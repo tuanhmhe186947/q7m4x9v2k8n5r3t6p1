@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.uv-cache/
+.venv/
+venv/
+env/
+
+# Runtime outputs and experiment artifacts
+outputs/
+logs/
+checkpoints/
+*.keras
+*.h5
+*.tflite
+*.onnx
+
+# Large local data and model artifacts
+data/raw/*
+!data/raw/README.md
+models/**/*.pt
+models/**/*.pth
+models/**/*.onnx
+models/**/*.tflite
+models/**/*.engine
+
+# Local notebooks and extracted scripts
+.ipynb_checkpoints/
+*_source.py
+nb.py
+notebook_source.py
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
