@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from io import BytesIO
 from pathlib import Path
 
 import numpy as np
@@ -14,12 +15,19 @@ from pig_behavior.config import EXPORT_DIR, TABULAR_FEATURES, TrainConfig
 PredictionScores = dict[str, float]
 
 
+def resolve_tflite_path(tflite_path: Path | None = None) -> Path:
+    """Resolve the TFLite model path, preferring the quantized export."""
+    if tflite_path is not None:
+        return tflite_path
+
+    int8_path = EXPORT_DIR / "model_int8.tflite"
+    fp32_path = EXPORT_DIR / "model_fp32.tflite"
+    return int8_path if int8_path.exists() else fp32_path
+
+
 def load_interpreter(tflite_path: Path | None = None) -> tf.lite.Interpreter:
     """Load and allocate a TFLite interpreter."""
-    if tflite_path is None:
-        int8_path = EXPORT_DIR / "model_int8.tflite"
-        fp32_path = EXPORT_DIR / "model_fp32.tflite"
-        tflite_path = int8_path if int8_path.exists() else fp32_path
+    tflite_path = resolve_tflite_path(tflite_path)
 
     if not tflite_path.exists():
         raise FileNotFoundError(
@@ -32,21 +40,38 @@ def load_interpreter(tflite_path: Path | None = None) -> tf.lite.Interpreter:
     return interpreter
 
 
+def preprocess_pil_image(
+    image: Image.Image,
+    bbox: tuple[float, float, float, float] | None = None,
+    target_size: tuple[int, int] = (224, 224),
+) -> np.ndarray:
+    """Crop, resize, and normalize one in-memory image."""
+    image = image.convert("RGB")
+
+    if bbox is not None:
+        x1, y1, x2, y2 = validate_bbox(bbox)
+        image = image.crop(
+            (int(round(x1)), int(round(y1)), int(round(x2)), int(round(y2)))
+        )
+
+    image = image.resize((target_size[1], target_size[0]))
+    array = np.asarray(image, dtype=np.float32) / 255.0
+    return np.expand_dims(array, axis=0)
+
+
+def image_from_bytes(image_bytes: bytes) -> Image.Image:
+    """Open an image from raw bytes."""
+    return Image.open(BytesIO(image_bytes))
+
+
 def preprocess_image(
     image_path: str | Path,
     bbox: tuple[float, float, float, float] | None = None,
     target_size: tuple[int, int] = (224, 224),
 ) -> np.ndarray:
     """Load, crop, resize, and normalize one image."""
-    image = Image.open(image_path).convert("RGB")
-
-    if bbox is not None:
-        x1, y1, x2, y2 = bbox
-        image = image.crop((int(x1), int(y1), int(x2), int(y2)))
-
-    image = image.resize((target_size[1], target_size[0]))
-    array = np.asarray(image, dtype=np.float32) / 255.0
-    return np.expand_dims(array, axis=0)
+    with Image.open(image_path) as image:
+        return preprocess_pil_image(image, bbox, target_size)
 
 
 def predict(
@@ -134,3 +159,17 @@ def _softmax(values: np.ndarray) -> np.ndarray:
     shifted = values - np.max(values)
     exp_values = np.exp(shifted)
     return exp_values / np.sum(exp_values)
+
+
+def validate_bbox(
+    bbox: tuple[float, float, float, float],
+) -> tuple[float, float, float, float]:
+    """Validate bounding box coordinates before cropping."""
+    x1, y1, x2, y2 = (float(value) for value in bbox)
+
+    if not all(np.isfinite(value) for value in (x1, y1, x2, y2)):
+        raise ValueError("Bounding box values must be finite numbers.")
+    if x2 <= x1 or y2 <= y1:
+        raise ValueError("Bounding box must be ordered as x1, y1, x2, y2.")
+
+    return x1, y1, x2, y2

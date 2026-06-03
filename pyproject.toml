@@ -5,6 +5,7 @@ description = "Training, export, and inference pipeline for pig behavior classif
 readme = "README.md"
 requires-python = ">=3.10,<3.12"
 dependencies = [
+    "fastapi>=0.115",
     "tensorflow>=2.12",
     "numpy>=1.23",
     "pandas>=1.5",
@@ -12,6 +13,8 @@ dependencies = [
     "matplotlib>=3.6",
     "seaborn>=0.12",
     "Pillow>=9.0",
+    "python-multipart>=0.0.9",
+    "uvicorn[standard]>=0.30",
 ]
 
 [build-system]
@@ -20,6 +23,7 @@ build-backend = "setuptools.build_meta"
 
 [project.scripts]
 pig-behavior = "pig_behavior.cli:main"
+pig-behavior-api = "pig_behavior.api:run"
 
 [project.optional-dependencies]
 dev = [
@@ -33,6 +37,12 @@ notebooks = [
 onnx = [
     "onnx>=1.15",
     "tf2onnx>=1.16",
+]
+pt = [
+    "opencv-python-headless>=4.8",
+    "torch>=2.1",
+    "torchvision>=0.16",
+    "ultralytics>=8.3",
 ]
 tracking = [
     "opencv-python-headless>=4.8",

@@ -19,6 +19,24 @@ def parse_args() -> argparse.Namespace:
         help="Pipeline mode to run.",
     )
     parser.add_argument(
+        "--backend",
+        choices=["auto", "tflite", "pt"],
+        default="auto",
+        help="Inference backend. Auto uses a local .pt model when available.",
+    )
+    parser.add_argument(
+        "--pt-model",
+        type=Path,
+        default=None,
+        help="Path to the PyTorch behavior sequence classifier.",
+    )
+    parser.add_argument(
+        "--conf",
+        type=float,
+        default=0.25,
+        help="Confidence threshold for .pt detection models.",
+    )
+    parser.add_argument(
         "--image",
         type=Path,
         default=None,
@@ -133,9 +151,11 @@ def main() -> int:
     cfg = build_config(args)
     print_run_summary(cfg)
 
+    from pig_behavior.config import DEFAULT_PT_MODEL
     from pig_behavior.data_loader import build_datasets
     from pig_behavior.export import benchmark_tflite, export_onnx, export_tflite
     from pig_behavior.inference import run_inference
+    from pig_behavior.services.pt_inference import run_pt_inference
     from pig_behavior.train import train as run_training
 
     datasets = None
@@ -156,10 +176,31 @@ def main() -> int:
         if args.image is None:
             print("ERROR: --image is required in infer mode.", file=sys.stderr)
             return 2
+
+        pt_model = args.pt_model or DEFAULT_PT_MODEL
+        use_pt_backend = args.backend == "pt" or (
+            args.backend == "auto"
+            and pt_model.exists()
+            and args.tabular is None
+        )
+
+        if use_pt_backend:
+            run_pt_inference(
+                image_path=args.image,
+                model_path=pt_model,
+                confidence_threshold=args.conf,
+            )
+            print("Done.")
+            return 0
+
+        if args.backend == "pt" and not pt_model.exists():
+            print(f"ERROR: .pt model not found at {pt_model}.", file=sys.stderr)
+            return 2
         if cfg.use_hybrid and args.tabular is None:
             print(
                 "ERROR: --tabular is required for hybrid inference. "
-                "Use --image-only to run without tabular features.",
+                "Use --image-only to run without tabular features, "
+                "or --backend pt to use the behavior sequence model.",
                 file=sys.stderr,
             )
             return 2

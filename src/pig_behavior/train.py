@@ -11,7 +11,11 @@ from sklearn.metrics import classification_report, confusion_matrix
 
 from pig_behavior.config import CHECKPOINT_DIR, LOG_DIR, TrainConfig, ensure_output_dirs
 from pig_behavior.data_loader import build_datasets
-from pig_behavior.model import build_model, compile_model, prepare_for_fine_tuning
+from pig_behavior.models.keras import (
+    build_model,
+    compile_model,
+    prepare_for_fine_tuning,
+)
 
 
 def _get_callbacks(phase: str, cfg: TrainConfig) -> list[tf.keras.callbacks.Callback]:

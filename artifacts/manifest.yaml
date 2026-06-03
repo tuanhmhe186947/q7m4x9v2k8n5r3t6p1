@@ -1,0 +1,32 @@
+artifacts:
+  - id: pig_behavior_sequence
+    role: behavior_sequence_classifier
+    description: >
+      PyTorch sequence classifier trained to classify pig behavior from six
+      cropped pig frames plus temporal and ROI features.
+    expected_path: models/behavior/pig_behavior_sequence.pt
+    original_local_name: pig_behavior_best.pt
+    size_bytes: 96340210
+    sha256: e85ca2e30a1962ebc6d2b053152933116f4526a80453e384174f17b574f4fe11
+    external_url: TODO
+    redistribution: research-use; confirm rights before public redistribution
+  - id: pig_detector_yolo
+    role: detector_tracker
+    description: >
+      YOLO detector weights used only for pig bounding-box detection and
+      tracking before behavior classification.
+    expected_path: models/detector/pig_detector_yolo.pt
+    original_local_name: models/yolo/weights.pt
+    size_bytes: 6272618
+    sha256: 93d261e370f4dee5346a477542da0ec8a0333d203963ed8a91e1e0dfea87dc39
+    external_url: TODO
+    redistribution: research-use; confirm rights before public redistribution
+  - id: pigs101219_full
+    role: demo_video
+    description: Demo video for the FastAPI tracking dashboard.
+    expected_path: data/videos/pigs101219_full.mp4
+    original_local_name: pigs101219 (full).mp4
+    size_bytes: 3811086247
+    sha256: a19894d062573a14892b4323a18df379b35de64f0ced670b7a5203b57e2518a8
+    external_url: TODO
+    redistribution: research-use; confirm rights before public redistribution

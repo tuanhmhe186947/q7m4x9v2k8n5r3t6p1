@@ -2,51 +2,72 @@
 
 ## Environment
 
-Recommended baseline:
+Recommended Python version:
+
+```text
+Python 3.11
+```
+
+Install:
 
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
 python -m pip install --upgrade pip
-pip install -e .
+pip install -e .[pt,dev,notebooks]
 ```
 
-For full research workflows:
+## Artifacts
 
-```bash
-pip install -r requirements-dev.txt
-```
-
-## Data
-
-Place raw images at:
+Expected local artifact paths:
 
 ```text
-data/raw/images_clean/
+models/behavior/pig_behavior_sequence.pt
+models/detector/pig_detector_yolo.pt
+data/videos/pigs101219_full.mp4
 ```
 
-Keep the processed CSV at:
+Validate size and SHA256 against:
 
 ```text
-data/processed/behavior_with_feats_rectROI.csv
+artifacts/manifest.yaml
 ```
 
-The default split seed is `42`.
+## Runtime Roles
 
-## Minimal Verification
+- Detector: `models/detector/pig_detector_yolo.pt`
+- Behavior sequence classifier: `models/behavior/pig_behavior_sequence.pt`
+- Demo video: `data/videos/pigs101219_full.mp4`
+
+## Demo Command
 
 ```bash
+set PIG_BEHAVIOR_MODEL_BACKEND=pt
+set PIG_BEHAVIOR_PT_MODEL_PATH=models\behavior\pig_behavior_sequence.pt
+set PIG_BEHAVIOR_DETECT_MODEL_PATH=models\detector\pig_detector_yolo.pt
+set PIG_BEHAVIOR_VIDEO_PATH=data\videos\pigs101219_full.mp4
+python -m uvicorn pig_behavior.api:app --host 127.0.0.1 --port 8000
+```
+
+Open:
+
+```text
+http://127.0.0.1:8000/dashboard
+```
+
+## Validation
+
+```bash
+python -m compileall src main.py
 ruff check src main.py tools tests
 pytest -q
-python main.py --mode train --dry-run
+python tools/clean_notebooks.py --check notebooks
 ```
 
-The dry run still requires the local image dataset.
+## Release Checklist
 
-## Public Release Checklist
-
-- Add code license.
-- Add data license and dataset download instructions.
-- Add author metadata and citation information.
-- Record final training command, commit hash, random seed, and hardware.
-- Publish model artifacts outside the Git history and document checksums.
+- Update external artifact URLs in `artifacts/manifest.yaml`.
+- Record commit hash, hardware, Python version, package versions, and random
+  seeds.
+- Report detector metrics separately from behavior-classifier metrics.
+- Confirm redistribution rights for videos, images, and model weights.

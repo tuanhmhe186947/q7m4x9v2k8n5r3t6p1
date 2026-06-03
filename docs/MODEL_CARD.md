@@ -1,40 +1,64 @@
 # Model Card
 
-## Model
+## Models
 
-The default classifier uses a MobileNetV3Small image backbone. It can run as:
+This project uses two separate runtime models:
 
-- image-only classifier
-- hybrid classifier with image crops and six tabular context features
+- `models/detector/pig_detector_yolo.pt`: YOLO detector/tracker weights. This
+  model detects pigs and provides bounding boxes and track IDs.
+- `models/behavior/pig_behavior_sequence.pt`: PyTorch behavior sequence
+  classifier. This model classifies behavior from six pig crops and tabular
+  context features.
 
-## Inputs
+The detector output feeds the behavior classifier. The behavior classifier is
+not used for detection or tracking.
 
-- RGB pig crop resized to `224x224`
-- Optional tabular features:
-  - `in_feeder`
-  - `in_drinker`
-  - `in_toy`
-  - `speed_feat`
-  - `min_dist_other`
-  - `num_close_other`
+## Behavior Classifier Input
 
-## Outputs
+One prediction uses a temporal window of six cropped pig frames:
 
-Softmax probabilities over either fine or coarse behavior labels.
+```text
+offsets = [-3, -2, -1, 0, 1, 2] * behavior_stride_frames
+default behavior_stride_frames = 3
+```
+
+Each crop is resized to `224x224` RGB. Each timestep also includes:
+
+```text
+cx_n, cy_n, bw_n, bh_n, speed_feat,
+min_dist_other, num_close_other, in_feeder, in_drinker, in_toy
+```
+
+## Behavior Classifier Output
+
+Softmax probabilities over:
+
+```text
+drink, eat, fight, social-nose, explore,
+lying, stand, move, sitting, playwithtoy
+```
+
+## Detector Input and Output
+
+Input is a video frame. Output is one or more pig detections with confidence,
+bounding box coordinates, class ID, and track ID when tracking is active.
 
 ## Evaluation
 
-The training pipeline writes metrics and confusion matrices under
-`outputs/logs/`. Report test accuracy, macro F1, per-class F1, and the exact
-data split seed when publishing results.
+Report detector precision/recall or MOT metrics separately from behavior
+classification metrics. For behavior classification, report accuracy, macro F1,
+per-class F1, confusion matrix, split seed, artifact checksum, and exact commit.
 
 ## Deployment
 
-The export path produces FP32 and optional quantized TFLite models under
-`outputs/export/`.
+The FastAPI dashboard loads both `.pt` artifacts. Exported TFLite models under
+`outputs/export/` are still supported for the older single-crop classifier API.
 
 ## Limitations
 
-- Performance depends on detector and bounding box quality.
-- The model should be validated on farms, cameras, lighting conditions, and pig
-  ages not seen during training before operational use.
+- Behavior predictions depend on detector quality and stable track IDs.
+- The sequence classifier waits for future frames, so live labels are delayed.
+- Farm layout, camera angle, lighting, occlusion, and animal age may cause
+  distribution shift.
+- Do not use this system for animal welfare decisions without validation by
+  domain experts.

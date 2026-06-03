@@ -1,4 +1,4 @@
-"""Central configuration for the pig behavior classification pipeline."""
+"""Central configuration for the pig behavior project."""
 
 from __future__ import annotations
 
@@ -11,13 +11,23 @@ DATA_DIR = PROJECT_ROOT / "data"
 RAW_DATA_DIR = DATA_DIR / "raw"
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
 ANNOTATION_DIR = DATA_DIR / "annotations"
+VIDEO_DIR = DATA_DIR / "videos"
+
+MODEL_DIR = PROJECT_ROOT / "models"
+BEHAVIOR_MODEL_DIR = MODEL_DIR / "behavior"
+DETECTOR_MODEL_DIR = MODEL_DIR / "detector"
 
 CSV_PATH = PROCESSED_DATA_DIR / "behavior_with_feats_rectROI.csv"
 IMAGES_DIR = RAW_DATA_DIR / "images_clean"
 COCO_ANNOTATIONS = ANNOTATION_DIR / "scene_objects.coco.json"
 BACKGROUND_PATH = ANNOTATION_DIR / "background.png"
 MASK_PATH = ANNOTATION_DIR / "mask.png"
-YOLO_WEIGHTS = PROJECT_ROOT / "models" / "yolo" / "weights.pt"
+YOLO_WEIGHTS = DETECTOR_MODEL_DIR / "pig_detector_yolo.pt"
+BEHAVIOR_CLASSIFIER_WEIGHTS = BEHAVIOR_MODEL_DIR / "pig_behavior_sequence.pt"
+DETECTION_TRACKING_WEIGHTS = YOLO_WEIGHTS
+DEFAULT_PT_MODEL = BEHAVIOR_CLASSIFIER_WEIGHTS
+DEFAULT_DETECTOR_MODEL = DETECTION_TRACKING_WEIGHTS
+DEFAULT_VIDEO_PATH = VIDEO_DIR / "pigs101219_full.mp4"
 
 OUTPUT_DIR = PROJECT_ROOT / "outputs"
 CHECKPOINT_DIR = OUTPUT_DIR / "checkpoints"
@@ -32,6 +42,19 @@ FINE_LABELS: list[str] = [
     "sitting",
     "stand",
     "social-nose",
+    "playwithtoy",
+]
+
+BEHAVIOR_SEQUENCE_LABELS: list[str] = [
+    "drink",
+    "eat",
+    "fight",
+    "social-nose",
+    "explore",
+    "lying",
+    "stand",
+    "move",
+    "sitting",
     "playwithtoy",
 ]
 
@@ -50,6 +73,23 @@ TABULAR_FEATURES: list[str] = [
     "min_dist_other",
     "num_close_other",
 ]
+
+BEHAVIOR_SEQUENCE_FEATURES: list[str] = [
+    "cx_n",
+    "cy_n",
+    "bw_n",
+    "bh_n",
+    "speed_feat",
+    "min_dist_other",
+    "num_close_other",
+    "in_feeder",
+    "in_drinker",
+    "in_toy",
+]
+
+BEHAVIOR_SEQUENCE_LENGTH = 6
+BEHAVIOR_SEQUENCE_STRIDE_FRAMES = 3
+BEHAVIOR_SEQUENCE_OFFSETS: tuple[int, ...] = (-3, -2, -1, 0, 1, 2)
 
 
 @dataclass(slots=True)

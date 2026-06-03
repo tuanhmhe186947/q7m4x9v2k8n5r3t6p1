@@ -1,31 +1,53 @@
-# Pig Behavior Classification
+# Pig Behavior Project
 
-Research pipeline for pig behavior classification from cropped video frames,
-bounding boxes, and tabular context features. The production path is packaged
-under `src/pig_behavior`; exploratory notebooks are kept separately under
-`notebooks/`.
+AI research code for pig detection, tracking, and behavior recognition from
+video. The maintained runtime code lives under `src/pig_behavior`; notebooks are
+kept as archived experiment history.
 
 ## Repository Layout
 
 ```text
 .
-├── data/
-│   ├── annotations/        # Scene masks and object annotations
-│   ├── processed/          # Tabular labels and engineered features
-│   └── raw/                # Local raw images, ignored by Git
-├── docs/                   # Reproducibility and release notes
-├── models/                 # Local model weights, ignored by Git
-├── notebooks/              # Archived experiment notebooks
-├── src/pig_behavior/       # Installable Python package
-├── tests/                  # Lightweight tests
-├── tools/                  # Maintenance utilities
-├── main.py                 # Compatibility wrapper
-└── pyproject.toml
+|-- artifacts/              # Artifact manifest with checksums and URL slots
+|-- data/
+|   |-- annotations/        # Scene masks and object annotations
+|   |-- processed/          # CSV labels and engineered features
+|   |-- raw/                # Local extracted images, ignored by Git
+|   `-- videos/             # Local videos, ignored by Git
+|-- docs/                   # Model card, dataset card, reproducibility notes
+|-- models/
+|   |-- behavior/           # Behavior sequence classifier weights, ignored
+|   `-- detector/           # YOLO detector weights, ignored
+|-- notebooks/              # Archived research notebooks
+|-- src/pig_behavior/       # Installable package
+|   |-- api/                # FastAPI app, routes, schemas, dashboard HTML
+|   |-- models/             # Model architectures and checkpoint loaders
+|   `-- services/           # Inference, detection, and video tracking services
+|-- tests/
+`-- tools/
 ```
 
-Large image folders and model weights are intentionally ignored. Keep them in
-the documented local paths, or publish them through a dataset registry, Git LFS,
-DVC, Zenodo, OSF, Kaggle, Hugging Face Datasets, or a GitHub Release.
+Large `.pt` and `.mp4` files are not committed. Publish them through an
+external registry, then update `artifacts/manifest.yaml`.
+
+## Runtime Artifacts
+
+Place local artifacts at these paths:
+
+```text
+models/behavior/pig_behavior_sequence.pt
+models/detector/pig_detector_yolo.pt
+data/videos/pigs101219_full.mp4
+```
+
+Roles:
+
+- `pig_behavior_sequence.pt` is the behavior sequence classifier.
+- `pig_detector_yolo.pt` is the detector/tracker model for bounding boxes and
+  track IDs.
+- `pigs101219_full.mp4` is the demo video for the dashboard.
+
+Verify files against `artifacts/manifest.yaml` before running experiments.
 
 ## Setup
 
@@ -33,125 +55,153 @@ DVC, Zenodo, OSF, Kaggle, Hugging Face Datasets, or a GitHub Release.
 python -m venv .venv
 .venv\Scripts\activate
 python -m pip install --upgrade pip
-pip install -e .
+pip install -e .[pt]
 ```
 
-For notebook, tracking, and development tools:
+For notebooks and development checks:
 
 ```bash
 pip install -r requirements-dev.txt
 ```
 
-## Data Contract
+## Dashboard
 
-The default training CSV is:
+Start the API:
 
-```text
-data/processed/behavior_with_feats_rectROI.csv
+```bash
+set PIG_BEHAVIOR_MODEL_BACKEND=pt
+set PIG_BEHAVIOR_PT_MODEL_PATH=models\behavior\pig_behavior_sequence.pt
+set PIG_BEHAVIOR_DETECT_MODEL_PATH=models\detector\pig_detector_yolo.pt
+set PIG_BEHAVIOR_VIDEO_PATH=data\videos\pigs101219_full.mp4
+set PIG_BEHAVIOR_BEHAVIOR_STRIDE_FRAMES=3
+pig-behavior-api
 ```
 
-Training images are expected at:
+Open:
 
 ```text
-data/raw/images_clean/
+http://127.0.0.1:8000/dashboard
 ```
 
-The CSV must include:
+The dashboard pipeline is:
 
-- image and bounding box columns: `img_name`, `x1`, `y1`, `x2`, `y2`
-- labels: `behavior`, `behavior_coarse`
-- split and filtering columns: `group_id`, `hidden`
-- tabular features: `in_feeder`, `in_drinker`, `in_toy`, `speed_feat`,
-  `min_dist_other`, `num_close_other`
+```text
+video frame
+  -> YOLO detector/tracker creates pig boxes and track IDs
+  -> collect each tracked pig's temporal crop sequence
+  -> behavior classifier receives 6 cropped frames plus tabular features
+  -> dashboard aggregates behavior counts over time
+```
 
-Splits are grouped by `group_id` to reduce leakage from the same frame burst.
+The behavior classifier follows the notebook training contract:
 
-## Usage
+```text
+sequence_length = 6
+offsets = [-3, -2, -1, 0, 1, 2] * behavior_stride_frames
+default behavior_stride_frames = 3
+```
 
-Quick smoke test:
+Default frame window around the center frame:
+
+```text
+center-9, center-6, center-3, center, center+3, center+6
+```
+
+Behavior labels appear with a small delay because the window includes future
+frames.
+
+## API
+
+Run locally:
+
+```bash
+pig-behavior-api
+```
+
+The service exposes:
+
+- `GET /` and `GET /metadata`
+- `GET /health`
+- `GET /ready`
+- `POST /predict`
+- `GET /dashboard`
+- `POST /tracking/start`
+- `POST /tracking/stop`
+- `GET /tracking/status`
+- `GET /tracking/stream`
+
+`uvicorn pig_behavior.api:app` remains supported.
+
+## CLI
+
+Training smoke test:
 
 ```bash
 pig-behavior --mode train --dry-run
 ```
 
-Or without installing the console script:
-
-```bash
-python main.py --mode train --dry-run
-```
-
-Full training:
-
-```bash
-pig-behavior --mode train
-```
-
-Train with custom data paths:
-
-```bash
-pig-behavior --mode train ^
-  --csv-path path\to\behavior_with_feats_rectROI.csv ^
-  --images-dir path\to\images
-```
-
-Export trained Keras checkpoints to TFLite:
+Export TFLite models:
 
 ```bash
 pig-behavior --mode export
 ```
 
-Hybrid inference:
+Behavior classifier inference from one crop uses padded sequence mode:
 
 ```bash
 pig-behavior --mode infer ^
-  --image data\raw\images_clean\example.jpg ^
-  --bbox 10 20 200 240 ^
-  --tabular 1 0 0 0.1 0.2 1
+  --backend pt ^
+  --pt-model models\behavior\pig_behavior_sequence.pt ^
+  --image data\raw\images_clean\example.jpg
 ```
 
-Image-only inference:
+## Docker
 
 ```bash
-pig-behavior --mode infer --image data\raw\images_clean\example.jpg --image-only
+docker compose up --build
 ```
 
-## Training Flow
+Compose mounts:
 
 ```text
-pig_behavior.cli
-  -> pig_behavior.config.TrainConfig
-  -> pig_behavior.data_loader.build_datasets()
-  -> pig_behavior.train.train()
-  -> pig_behavior.model.build_model()
+./models/behavior/pig_behavior_sequence.pt
+./models/detector/pig_detector_yolo.pt
+./data/videos/pigs101219_full.mp4
+./outputs
 ```
 
-Data preparation before training:
+## Data Contract
 
-1. Load the processed CSV.
-2. Validate required columns.
-3. Remove hidden pigs where `hidden` is `Yes`.
-4. Encode fine or coarse behavior labels.
-5. Split train, validation, and test sets by `group_id`.
-6. Validate referenced image files exist.
-7. Crop each pig using `x1`, `y1`, `x2`, `y2`.
-8. Resize crops to `224x224`.
-9. Normalize pixels to `[0, 1]`.
-10. Apply lightweight augmentation to training samples only.
+Default processed CSV:
 
-## Notebooks
+```text
+data/processed/behavior_with_feats_rectROI.csv
+```
 
-Notebooks are retained as experiment history, not the primary production API.
-See `notebooks/README.md` for the workflow index.
+Training images:
+
+```text
+data/raw/images_clean/
+```
+
+Required tabular sequence features:
+
+```text
+cx_n, cy_n, bw_n, bh_n, speed_feat,
+min_dist_other, num_close_other, in_feeder, in_drinker, in_toy
+```
 
 ## Quality Checks
 
 ```bash
+python -m compileall src main.py
 ruff check src main.py tools tests
 pytest -q
+python tools/clean_notebooks.py --check notebooks
 ```
 
 ## Release Notes
 
-Before publishing publicly, choose explicit licenses for code and data, and add
-a citation file with the correct author metadata. See
-`docs/reproducibility.md`, `docs/DATASET_CARD.md`, and `docs/MODEL_CARD.md`.
+Code is MIT licensed. Model and video artifacts are marked research-use until
+redistribution rights are confirmed. See `docs/MODEL_CARD.md`,
+`docs/DATASET_CARD.md`, and `docs/reproducibility.md`.

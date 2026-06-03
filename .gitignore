@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *.pyo
+*.egg-info/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
@@ -22,11 +23,17 @@ checkpoints/
 # Large local data and model artifacts
 data/raw/*
 !data/raw/README.md
+data/videos/*
+!data/videos/README.md
+*.pt
+*.mp4
 models/**/*.pt
 models/**/*.pth
 models/**/*.onnx
 models/**/*.tflite
 models/**/*.engine
+artifacts/*
+!artifacts/manifest.yaml
 
 # Local notebooks and extracted scripts
 .ipynb_checkpoints/
