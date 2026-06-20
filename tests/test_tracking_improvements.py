@@ -117,6 +117,12 @@ def _binary_mask(
     return mask
 
 
+def _hist_at(index: int) -> np.ndarray:
+    hist = np.zeros((16 * 16 * 4,), dtype=np.float32)
+    hist[index] = 1.0
+    return hist
+
+
 def test_track_detection_overlap_prefers_mask_iou_when_available() -> None:
     cfg = TrackingConfig(use_mask_iou=True)
     hist = np.full((16 * 16 * 4,), 1.0 / (16 * 16 * 4), dtype=np.float32)
@@ -221,6 +227,63 @@ def test_hidden_track_does_not_steal_active_track_detection() -> None:
     match_and_update_tracks(tracks, detections, frame, prev_frame=None, cfg=cfg)
 
     assert center_distance_norm(tracks[1].last_box, detections[1].box, 140, 40) < 0.08
+    assert np.allclose(tracks[2].last_box, detections[0].box)
+
+
+def test_lost_track_reid_uses_remaining_detection_after_active_match() -> None:
+    cfg = TrackingConfig(
+        expected_pigs=2,
+        motion_gate_confidence=0.5,
+        low_conf_max_center_jump=0.05,
+        use_mask_iou=False,
+    )
+    hist_lost = _hist_at(0)
+    hist_active = _hist_at(1)
+    lost_track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        missed=8,
+        last_score=0.1,
+        last_source="predicted",
+        ever_detected=True,
+    )
+    lost_track.hist_bank.append(hist_lost)
+    active_track = FixedTrack(
+        fixed_id=2,
+        last_box=np.array([90, 0, 110, 20], dtype=np.float32),
+        reliable_box=np.array([90, 0, 110, 20], dtype=np.float32),
+        missed=0,
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+    )
+    active_track.hist_bank.append(hist_active)
+    tracks = {1: lost_track, 2: active_track}
+    detections = [
+        Detection(
+            box=np.array([90, 0, 110, 20], dtype=np.float32),
+            score=0.92,
+            raw_id=None,
+            class_id=0,
+            hist=hist_active,
+        ),
+        Detection(
+            box=np.array([160, 0, 180, 20], dtype=np.float32),
+            score=0.3,
+            raw_id=None,
+            class_id=0,
+            hist=hist_lost,
+        ),
+    ]
+    frame = np.zeros((50, 220, 3), dtype=np.uint8)
+
+    match_and_update_tracks(tracks, detections, frame, prev_frame=None, cfg=cfg)
+
+    lost_center_x = float(tracks[1].last_box[[0, 2]].mean())
+    assert tracks[1].last_source == "detected"
+    assert tracks[1].missed == 0
+    assert lost_center_x > 120
     assert np.allclose(tracks[2].last_box, detections[0].box)
 
 

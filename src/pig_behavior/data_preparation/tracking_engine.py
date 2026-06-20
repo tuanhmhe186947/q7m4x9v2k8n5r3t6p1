@@ -194,6 +194,8 @@ class TrackingConfig:
     mask_iou_min_area: int = 64
     match_cost_threshold: float = 0.78
     unseen_track_cost_threshold: float = 1.10
+    lost_track_cost_threshold: float = 0.95
+    lost_track_reid_appearance_threshold: float = 0.25
     duplicate_iou_threshold: float = DEFAULT_OVERLAP_THRESHOLD
     initial_track_conf: float = DEFAULT_TRACK_HIGH_CONF_THRESHOLD
     low_conf_motion_gate: bool = True
@@ -622,6 +624,18 @@ def validate_config(cfg: TrackingConfig) -> None:
         raise ValueError("mask_iou_max_missed must be >= 0.")
     if cfg.mask_iou_min_area < 1:
         raise ValueError("mask_iou_min_area must be >= 1.")
+    cost_thresholds = {
+        "match_cost_threshold": cfg.match_cost_threshold,
+        "unseen_track_cost_threshold": cfg.unseen_track_cost_threshold,
+        "lost_track_cost_threshold": cfg.lost_track_cost_threshold,
+    }
+    for name, value in cost_thresholds.items():
+        if value < 0.0:
+            raise ValueError(f"{name} must be >= 0.")
+    if not 0.0 <= cfg.lost_track_reid_appearance_threshold <= 1.0:
+        raise ValueError(
+            "lost_track_reid_appearance_threshold must be between 0 and 1."
+        )
     if not 0.0 <= cfg.low_conf_max_center_jump <= 1.0:
         raise ValueError("low_conf_max_center_jump must be between 0 and 1.")
     if not 0.0 <= cfg.low_conf_min_iou <= 1.0:
@@ -1409,6 +1423,19 @@ def detection_needs_motion_gate(det: Detection, cfg: TrackingConfig) -> bool:
     return cfg.low_conf_motion_gate and det.score < cfg.motion_gate_confidence
 
 
+def track_is_visible_for_association(track: FixedTrack) -> bool:
+    return (
+        track.ever_detected
+        and track.missed == 0
+        and track.last_source == "detected"
+        and not track.last_ambiguous
+    )
+
+
+def track_is_lost_for_association(track: FixedTrack) -> bool:
+    return track.ever_detected and not track_is_visible_for_association(track)
+
+
 def association_reference_box(
     track: FixedTrack,
     det: Detection,
@@ -1438,12 +1465,26 @@ def low_conf_detection_is_plausible(
         return det.score >= cfg.initial_track_conf
 
     reference = association_reference_box(track, det, width, height, cfg)
+    if track_is_lost_for_association(track):
+        top_raw_id = track.top_raw_id()
+        if (
+            det.raw_id is not None
+            and top_raw_id is not None
+            and det.raw_id == top_raw_id
+        ):
+            return True
+        if hist_distance(track.mean_hist(), det.hist) <= (
+            cfg.lost_track_reid_appearance_threshold
+        ):
+            return True
+
     iou_score = track_detection_overlap_score(track, reference, det, cfg)
     if iou_score >= cfg.low_conf_min_iou:
         return True
 
     center_norm = center_distance_norm(reference, det.box, width, height)
-    allowed_norm = cfg.low_conf_max_center_jump + min(track.missed, 30) * 0.004
+    missed_growth = 0.008 if track_is_lost_for_association(track) else 0.004
+    allowed_norm = cfg.low_conf_max_center_jump + min(track.missed, 30) * missed_growth
     if center_norm <= allowed_norm:
         return True
 
@@ -1728,13 +1769,22 @@ def track_detection_cost(
         elif track.top_raw_id() is not None and track.top_raw_id() != det.raw_id:
             raw_penalty += 0.05
 
-    cost = (
-        0.42 * (1.0 - iou_score)
-        + 0.22 * center_cost
-        + 0.26 * app_cost
-        + 0.10 * area_cost
-        + raw_penalty
-    )
+    if track_is_lost_for_association(track):
+        cost = (
+            0.18 * (1.0 - iou_score)
+            + 0.08 * min(center_cost, 1.0)
+            + 0.52 * app_cost
+            + 0.12 * area_cost
+            + raw_penalty
+        )
+    else:
+        cost = (
+            0.42 * (1.0 - iou_score)
+            + 0.22 * center_cost
+            + 0.26 * app_cost
+            + 0.10 * area_cost
+            + raw_penalty
+        )
     cost += occlusion_assignment_penalty(
         track,
         det,
@@ -1746,9 +1796,22 @@ def track_detection_cost(
     )
 
     search_radius = 0.08 + min(track.missed, 60) / 60.0 * 0.22
-    if track.ever_detected and iou_score < 0.01 and center_cost > search_radius:
+    if (
+        track.ever_detected
+        and not track_is_lost_for_association(track)
+        and iou_score < 0.01
+        and center_cost > search_radius
+    ):
         cost += 1.0
     return float(cost)
+
+
+def association_cost_threshold(track: FixedTrack, cfg: TrackingConfig) -> float:
+    if not track.ever_detected:
+        return cfg.unseen_track_cost_threshold
+    if track_is_lost_for_association(track):
+        return cfg.lost_track_cost_threshold
+    return cfg.match_cost_threshold
 
 
 def match_and_update_tracks(
@@ -1777,14 +1840,24 @@ def match_and_update_tracks(
         height,
         cfg,
     )
-    if detections:
-        costs = np.zeros((len(ordered_tracks), len(detections)), dtype=np.float32)
-        for row, track in enumerate(ordered_tracks):
-            for col, det in enumerate(detections):
+
+    def run_matching_phase(
+        candidate_tracks: list[FixedTrack],
+        detection_indices: list[int],
+    ) -> None:
+        if not candidate_tracks or not detection_indices:
+            return
+
+        costs = np.zeros(
+            (len(candidate_tracks), len(detection_indices)),
+            dtype=np.float32,
+        )
+        for row, track in enumerate(candidate_tracks):
+            for col, det_idx in enumerate(detection_indices):
                 costs[row, col] = track_detection_cost(
                     track,
-                    det,
-                    col,
+                    detections[det_idx],
+                    det_idx,
                     raw_owner,
                     occlusion_context,
                     width,
@@ -1794,23 +1867,23 @@ def match_and_update_tracks(
 
         rows, cols = linear_sum_assignment(costs)
         for row, col in zip(rows, cols, strict=True):
-            track = ordered_tracks[row]
-            threshold = (
-                cfg.unseen_track_cost_threshold
-                if not track.ever_detected
-                else cfg.match_cost_threshold
-            )
-            if costs[row, col] > threshold:
+            track = candidate_tracks[row]
+            det_idx = detection_indices[col]
+            if (
+                track.fixed_id in matched_tracks
+                or det_idx in matched_detections
+                or costs[row, col] > association_cost_threshold(track, cfg)
+            ):
                 continue
             ambiguous = assignment_is_occlusion_ambiguous(
                 track,
-                col,
+                det_idx,
                 occlusion_context,
                 cfg,
             )
             learn_identity = not (cfg.freeze_identity_in_occlusion and ambiguous)
             track.update_detected(
-                detections[col],
+                detections[det_idx],
                 width,
                 height,
                 cfg,
@@ -1818,7 +1891,24 @@ def match_and_update_tracks(
                 ambiguous=ambiguous,
             )
             matched_tracks.add(track.fixed_id)
-            matched_detections.add(col)
+            matched_detections.add(det_idx)
+
+    if detections:
+        visible_tracks = [
+            track for track in ordered_tracks if track_is_visible_for_association(track)
+        ]
+        reid_tracks = [
+            track
+            for track in ordered_tracks
+            if not track_is_visible_for_association(track)
+        ]
+        all_detection_indices = list(range(len(detections)))
+
+        run_matching_phase(visible_tracks, all_detection_indices)
+        remaining_detection_indices = [
+            idx for idx in all_detection_indices if idx not in matched_detections
+        ]
+        run_matching_phase(reid_tracks, remaining_detection_indices)
 
     # Unmatched high-confidence detections can initialize hidden placeholder IDs.
     unseen_tracks = [
@@ -2639,6 +2729,12 @@ def build_quality_report(
             "use_mask_iou": cfg.use_mask_iou,
             "mask_iou_max_missed": cfg.mask_iou_max_missed,
             "mask_iou_min_area": cfg.mask_iou_min_area,
+            "match_cost_threshold": cfg.match_cost_threshold,
+            "unseen_track_cost_threshold": cfg.unseen_track_cost_threshold,
+            "lost_track_cost_threshold": cfg.lost_track_cost_threshold,
+            "lost_track_reid_appearance_threshold": (
+                cfg.lost_track_reid_appearance_threshold
+            ),
             "initial_track_conf": cfg.initial_track_conf,
             "motion_gate_confidence": cfg.motion_gate_confidence,
             "low_conf_motion_gate": cfg.low_conf_motion_gate,
@@ -3432,6 +3528,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--max-missing-frames", type=int, default=90)
     parser.add_argument("--match-cost-threshold", type=float, default=0.78)
     parser.add_argument("--unseen-track-cost-threshold", type=float, default=1.10)
+    parser.add_argument("--lost-track-cost-threshold", type=float, default=0.95)
+    parser.add_argument(
+        "--lost-track-reid-appearance-threshold",
+        type=float,
+        default=0.25,
+    )
     parser.add_argument(
         "--initial-track-conf",
         type=float,
@@ -3570,6 +3672,10 @@ def _tracking_config_from_args(
         max_missing_frames=args.max_missing_frames,
         match_cost_threshold=args.match_cost_threshold,
         unseen_track_cost_threshold=args.unseen_track_cost_threshold,
+        lost_track_cost_threshold=args.lost_track_cost_threshold,
+        lost_track_reid_appearance_threshold=(
+            args.lost_track_reid_appearance_threshold
+        ),
         initial_track_conf=args.initial_track_conf,
         low_conf_motion_gate=not args.no_low_conf_motion_gate,
         motion_gate_confidence=args.motion_gate_confidence,
