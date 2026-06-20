@@ -1,7 +1,8 @@
 # Notebook Index
 
-The notebooks are archived experiment workflows. The installable package under
-`src/pig_behavior` is the maintained path for training, export, and inference.
+The notebooks are archived experiment workflows or thin wrappers. Reusable
+logic belongs under `src/pig_behavior`; new automation should call the package
+entry points instead of importing notebook files.
 
 ## Data Preparation
 
@@ -9,6 +10,10 @@ The notebooks are archived experiment workflows. The installable package under
 - `01_data_preparation/video_to_frame_phase_2.ipynb`
 - `01_data_preparation/video_to_frame_annotate.ipynb`
 - `01_data_preparation/clean_cvat_json_to_csv.ipynb`
+- `01_data_preparation/clean_cvat_json_to_csv.py` wraps
+  `pig_behavior.data_preparation.classification_dataset`.
+- `01_data_preparation/track_video_ids_for_annotation.py` wraps
+  `pig_behavior.data_preparation.tracking_annotation`.
 - `01_data_preparation/update_ids_for_annotation.ipynb`
 - `01_data_preparation/export_behavior_extra_features.ipynb`
 
@@ -27,3 +32,13 @@ The notebooks are archived experiment workflows. The installable package under
 ## Evaluation
 
 - `04_evaluation/pig_tracking_for_mota.ipynb`
+- `04_evaluation/pig_tracking_for_mota.py` wraps
+  `pig_behavior.evaluation.tracking_metrics`.
+
+## Maintained Commands
+
+```bash
+pig-build-classification-data
+pig-track-for-annotation --video data/videos/Pigs281119_000085_30fps.mp4
+pig-tracking-eval --run-missing-tracker
+```

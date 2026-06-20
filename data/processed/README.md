@@ -1,7 +1,15 @@
 # Processed Data
 
-`behavior_with_feats_rectROI.csv` contains the training labels, bounding boxes,
-group identifiers, and tabular features consumed by `pig_behavior.data_loader`.
+Generated datasets are grouped by workflow and run timestamp.
 
-If this file is replaced, preserve the column contract documented in the main
-README.
+```text
+classification/<YYYYMMDD_HHMMSS>/behavior_clean_merged.csv
+classification/<YYYYMMDD_HHMMSS>/behavior_with_feats_rectROI.csv
+```
+
+`behavior_clean_merged.csv` is the cleaned CVAT annotation table.
+`behavior_with_feats_rectROI.csv` adds ROI, motion, and social-distance
+features consumed by `pig_behavior.data_loader`.
+
+`TrainConfig` resolves the newest classification run by default. Preserve the
+column contract documented in the main README when regenerating these files.

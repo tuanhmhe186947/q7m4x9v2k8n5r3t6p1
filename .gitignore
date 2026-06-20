@@ -25,6 +25,9 @@ data/raw/*
 !data/raw/README.md
 data/videos/*
 !data/videos/README.md
+data/data/
+data/processed/classification/
+data/annotations/classification/*.clean.coco.json
 *.pt
 *.mp4
 models/**/*.pt

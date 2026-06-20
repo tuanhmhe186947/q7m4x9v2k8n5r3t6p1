@@ -1,0 +1,16 @@
+{
+  "active_profile": "default",
+  "profiles": {
+    "default": {
+      "active_video": "Pigs281119_000085_30fps",
+      "videos": {},
+      "weights": "models/detector/pig_detector_yolov8.pt",
+      "mask": "data/annotations/scene/mask.png",
+      "output_dir": "outputs/id_tracking",
+      "gt_dir": "data/annotations/tracking",
+      "video_dir": "data/videos",
+      "prediction_root": "outputs/id_tracking",
+      "evaluation_output_root": "outputs/evaluation/tracking_metrics"
+    }
+  }
+}

@@ -10,8 +10,8 @@ kept as archived experiment history.
 .
 |-- artifacts/              # Artifact manifest with checksums and URL slots
 |-- data/
-|   |-- annotations/        # Scene masks and object annotations
-|   |-- processed/          # CSV labels and engineered features
+|   |-- annotations/        # Source annotations grouped by workflow
+|   |-- processed/          # Generated datasets grouped by workflow/run
 |   |-- raw/                # Local extracted images, ignored by Git
 |   `-- videos/             # Local videos, ignored by Git
 |-- docs/                   # Model card, dataset card, reproducibility notes
@@ -21,6 +21,8 @@ kept as archived experiment history.
 |-- notebooks/              # Archived research notebooks
 |-- src/pig_behavior/       # Installable package
 |   |-- api/                # FastAPI app, routes, schemas, dashboard HTML
+|   |-- data_preparation/   # CVAT cleaning and tracking annotation workflows
+|   |-- evaluation/         # Tracking metrics and report generation
 |   |-- models/             # Model architectures and checkpoint loaders
 |   `-- services/           # Inference, detection, and video tracking services
 |-- tests/
@@ -134,6 +136,24 @@ The service exposes:
 
 ## CLI
 
+Build classification training data from CVAT native exports:
+
+```bash
+pig-build-classification-data
+```
+
+Generate tracking predictions for annotation/evaluation:
+
+```bash
+pig-track-for-annotation --video data\videos\Pigs281119_000085_30fps.mp4
+```
+
+Evaluate tracking predictions against CVAT XML ground truth:
+
+```bash
+pig-tracking-eval --run-missing-tracker
+```
+
 Training smoke test:
 
 ```bash
@@ -172,10 +192,10 @@ Compose mounts:
 
 ## Data Contract
 
-Default processed CSV:
+Default processed CSV resolver:
 
 ```text
-data/processed/behavior_with_feats_rectROI.csv
+data/processed/classification/<YYYYMMDD_HHMMSS>/behavior_with_feats_rectROI.csv
 ```
 
 Training images:
@@ -189,6 +209,16 @@ Required tabular sequence features:
 ```text
 cx_n, cy_n, bw_n, bh_n, speed_feat,
 min_dist_other, num_close_other, in_feeder, in_drinker, in_toy
+```
+
+Annotation folders:
+
+```text
+data/annotations/roi/             # static feeder/drinker/toy ROI COCO
+data/annotations/scene/           # background.png and mask.png
+data/annotations/tracking/        # CVAT video XML ground truth
+data/annotations/classification/  # classification label assets
+data/annotations/schemas/         # CVAT label schemas
 ```
 
 ## Quality Checks
