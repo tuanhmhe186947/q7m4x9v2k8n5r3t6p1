@@ -212,6 +212,10 @@ class TrackingConfig:
     occlusion_competitor_margin: float = 0.12
     occlusion_appearance_penalty: float = 0.30
     occlusion_appearance_margin: float = 0.08
+    directional_y_prior: bool = True
+    directional_y_penalty_weight: float = 0.12
+    directional_y_velocity_epsilon_px: float = 3.0
+    directional_y_margin_px: float = 5.0
     occlusion_stationary_lock: bool = True
     freeze_identity_in_occlusion: bool = True
     hold_occluded_box: bool = True
@@ -988,6 +992,30 @@ def bbox_iou(first: np.ndarray, second: np.ndarray) -> float:
     return inter / max(union, 1e-6)
 
 
+def bbox_iou_matrix(first: np.ndarray, second: np.ndarray) -> np.ndarray:
+    """Pairwise IoU for two ``xyxy`` box arrays."""
+    if first.size == 0 or second.size == 0:
+        return np.zeros((len(first), len(second)), dtype=np.float32)
+
+    first = np.asarray(first, dtype=np.float32)
+    second = np.asarray(second, dtype=np.float32)
+    x1 = np.maximum(first[:, None, 0], second[None, :, 0])
+    y1 = np.maximum(first[:, None, 1], second[None, :, 1])
+    x2 = np.minimum(first[:, None, 2], second[None, :, 2])
+    y2 = np.minimum(first[:, None, 3], second[None, :, 3])
+    inter = np.maximum(0.0, x2 - x1) * np.maximum(0.0, y2 - y1)
+    first_area = np.maximum(1.0, first[:, 2] - first[:, 0]) * np.maximum(
+        1.0,
+        first[:, 3] - first[:, 1],
+    )
+    second_area = np.maximum(1.0, second[:, 2] - second[:, 0]) * np.maximum(
+        1.0,
+        second[:, 3] - second[:, 1],
+    )
+    union = first_area[:, None] + second_area[None, :] - inter
+    return (inter / np.maximum(union, 1e-6)).astype(np.float32)
+
+
 def mask_area(mask: np.ndarray | None) -> int:
     if mask is None:
         return 0
@@ -1451,6 +1479,85 @@ def association_reference_box(
     return track.predicted_box(width, height)
 
 
+def track_y_velocity_for_directional_prior(track: FixedTrack) -> float:
+    """Prefer stable motion history when available, otherwise use last-frame speed."""
+    if (
+        track.motion_state == "moving"
+        and len(track.reliable_velocity_history) > 0
+        and np.linalg.norm(track.reliable_velocity_xy) > 0.0
+    ):
+        return float(track.reliable_velocity_xy[1])
+    return float(track.velocity_xy[1])
+
+
+def apply_directional_y_prior_to_costs(
+    costs: np.ndarray,
+    candidate_tracks: list[FixedTrack],
+    detection_indices: list[int],
+    detections: list[Detection],
+    occlusion_context: OcclusionContext,
+    width: int,
+    height: int,
+    cfg: TrackingConfig,
+) -> None:
+    """Softly discourage assignments that reverse a track's Y momentum in overlap."""
+    if (
+        not cfg.directional_y_prior
+        or costs.size == 0
+        or cfg.directional_y_penalty_weight <= 0.0
+    ):
+        return
+
+    track_boxes = np.stack(
+        [
+            occlusion_context.predicted_boxes.get(
+                track.fixed_id,
+                track.predicted_box(width, height),
+            )
+            for track in candidate_tracks
+        ],
+        axis=0,
+    ).astype(np.float32)
+    det_boxes = np.stack(
+        [detections[det_idx].box for det_idx in detection_indices],
+        axis=0,
+    ).astype(np.float32)
+
+    track_center_y = (track_boxes[:, 1] + track_boxes[:, 3]) * 0.5
+    det_center_y = (det_boxes[:, 1] + det_boxes[:, 3]) * 0.5
+    delta_y = det_center_y[None, :] - track_center_y[:, None]
+
+    y_velocity = np.array(
+        [track_y_velocity_for_directional_prior(track) for track in candidate_tracks],
+        dtype=np.float32,
+    )
+    active_track = np.array(
+        [
+            track.ever_detected
+            and not track_is_lost_for_association(track)
+            and track.hits >= 2
+            for track in candidate_tracks
+        ],
+        dtype=bool,
+    )
+    velocity_epsilon = float(cfg.directional_y_velocity_epsilon_px)
+    margin = float(cfg.directional_y_margin_px)
+
+    moving_up = active_track & (y_velocity < -velocity_epsilon)
+    moving_down = active_track & (y_velocity > velocity_epsilon)
+    against_momentum = (
+        (moving_up[:, None] & (delta_y > margin))
+        | (moving_down[:, None] & (delta_y < -margin))
+    )
+    in_conflict_zone = bbox_iou_matrix(track_boxes, det_boxes) > 0.0
+    costs += (
+        against_momentum
+        & in_conflict_zone
+        & np.isfinite(costs)
+        & (costs < 1_000_000.0)
+    ).astype(np.float32) * float(cfg.directional_y_penalty_weight)
+
+
 def low_conf_detection_is_plausible(
     track: FixedTrack,
     det: Detection,
@@ -1865,6 +1972,16 @@ def match_and_update_tracks(
                     cfg,
                 )
 
+        apply_directional_y_prior_to_costs(
+            costs,
+            candidate_tracks,
+            detection_indices,
+            detections,
+            occlusion_context,
+            width,
+            height,
+            cfg,
+        )
         rows, cols = linear_sum_assignment(costs)
         for row, col in zip(rows, cols, strict=True):
             track = candidate_tracks[row]
@@ -3559,6 +3676,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--occlusion-competitor-margin", type=float, default=0.12)
     parser.add_argument("--occlusion-appearance-penalty", type=float, default=0.30)
     parser.add_argument("--occlusion-appearance-margin", type=float, default=0.08)
+    parser.add_argument("--directional-y-penalty-weight", type=float, default=0.12)
+    parser.add_argument("--directional-y-velocity-epsilon-px", type=float, default=3.0)
+    parser.add_argument("--directional-y-margin-px", type=float, default=5.0)
     parser.add_argument("--occlusion-hold-max-frames", type=int, default=30)
     parser.add_argument("--occlusion-hold-hidden-frames", type=int, default=2)
     parser.add_argument("--identity-swap-min-gain", type=float, default=0.015)
@@ -3593,6 +3713,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--no-refine-boxes", action="store_true")
     parser.add_argument("--no-low-conf-motion-gate", action="store_true")
     parser.add_argument("--no-occlusion-aware-matching", action="store_true")
+    parser.add_argument("--no-directional-y-prior", action="store_true")
     parser.add_argument("--learn-identity-in-occlusion", action="store_true")
     parser.add_argument("--no-hold-occluded-box", action="store_true")
     parser.add_argument("--no-identity-swap-guard", action="store_true")
@@ -3693,6 +3814,10 @@ def _tracking_config_from_args(
         occlusion_competitor_margin=args.occlusion_competitor_margin,
         occlusion_appearance_penalty=args.occlusion_appearance_penalty,
         occlusion_appearance_margin=args.occlusion_appearance_margin,
+        directional_y_prior=not args.no_directional_y_prior,
+        directional_y_penalty_weight=args.directional_y_penalty_weight,
+        directional_y_velocity_epsilon_px=args.directional_y_velocity_epsilon_px,
+        directional_y_margin_px=args.directional_y_margin_px,
         occlusion_stationary_lock=not args.no_occlusion_stationary_lock,
         freeze_identity_in_occlusion=not args.learn_identity_in_occlusion,
         hold_occluded_box=not args.no_hold_occluded_box,
@@ -3789,6 +3914,13 @@ def print_tracking_summary(cfg: TrackingConfig, summary: TrackingSummary) -> Non
         f"freeze_identity={cfg.freeze_identity_in_occlusion}, "
         f"hold_box={cfg.hold_occluded_box}, "
         f"hold_hidden_frames={cfg.occlusion_hold_hidden_frames}"
+    )
+    print(
+        "[OK] directional_y_prior="
+        f"enabled={cfg.directional_y_prior}, "
+        f"penalty={cfg.directional_y_penalty_weight:.3f}, "
+        f"velocity_epsilon_px={cfg.directional_y_velocity_epsilon_px:.1f}, "
+        f"margin_px={cfg.directional_y_margin_px:.1f}"
     )
     print(
         "[OK] identity_swap_guard="
