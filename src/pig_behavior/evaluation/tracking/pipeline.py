@@ -123,6 +123,9 @@ def tracking_rule_overrides(
     return {
         "USE_IOU_FALLBACK": config.USE_IOU_FALLBACK,
         "USE_AREA_OCCLUSION_FREEZE": config.USE_AREA_OCCLUSION_FREEZE,
+        "USE_CONDITIONAL_AREA_OCCLUSION_FREEZE": (
+            config.USE_CONDITIONAL_AREA_OCCLUSION_FREEZE
+        ),
         "USE_MERGED_BOX_SPLIT": config.USE_MERGED_BOX_SPLIT,
         "device": config.device,
         "half": config.half,

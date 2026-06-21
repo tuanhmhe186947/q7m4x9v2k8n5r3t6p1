@@ -8,7 +8,7 @@ from pathlib import Path
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from pig_behavior.data_preparation.tracking_engine import (
+from pig_behavior.tracking import (
     DEFAULT_MASK_PATH,
     DEFAULT_OUTPUT_DIR,
     DEFAULT_VIDEO_PATH,
@@ -16,9 +16,9 @@ from pig_behavior.data_preparation.tracking_engine import (
     TrackingConfig,
     TrackingSummary,
     display_tracked_video,
-    main,
     run_tracking,
 )
+from pig_behavior.tracking.cli import main
 from pig_behavior.tracking_path_config import (
     DEFAULT_TRACKING_PATH_CONFIG,
     load_tracking_path_profile,

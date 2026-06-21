@@ -7,5 +7,4 @@ should call this package directly.
 __all__ = [
     "classification_dataset",
     "tracking_annotation",
-    "tracking_engine",
 ]

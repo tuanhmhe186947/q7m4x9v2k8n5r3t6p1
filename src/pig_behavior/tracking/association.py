@@ -363,7 +363,16 @@ def match_and_update_tracks(
                 and track.fixed_id in runtime.current_recovery_track_ids
             )
             ambiguous = ambiguous or in_split_recovery
-            if area_occlusion_should_freeze(track, detections[det_idx], cfg):
+            if area_occlusion_should_freeze(
+                track,
+                detections[det_idx],
+                det_idx,
+                detections,
+                occlusion_context,
+                width,
+                height,
+                cfg,
+            ):
                 freeze_area_occluded_track(track, width, height, cfg)
                 matched_tracks.add(track.fixed_id)
                 matched_detections.add(det_idx)
@@ -430,7 +439,10 @@ def match_and_update_tracks(
         if track.fixed_id in matched_tracks:
             continue
         if (
-            cfg.USE_AREA_OCCLUSION_FREEZE
+            (
+                cfg.USE_AREA_OCCLUSION_FREEZE
+                or cfg.USE_CONDITIONAL_AREA_OCCLUSION_FREEZE
+            )
             and track.is_area_occluded
             and track.area_occlusion_frames < cfg.area_occlusion_freeze_frames
         ):

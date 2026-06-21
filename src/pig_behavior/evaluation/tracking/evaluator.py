@@ -405,7 +405,7 @@ def run_tracker_for_pair(
     tracking_overrides: dict[str, Any] | None = None,
 ) -> Path:
     """Run the project tracker for one pair and return generated prediction XML."""
-    from pig_behavior.data_preparation.tracking_annotation import (
+    from pig_behavior.tracking import (
         TrackingConfig,
         run_tracking,
     )

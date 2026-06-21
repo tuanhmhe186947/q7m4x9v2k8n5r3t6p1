@@ -41,4 +41,5 @@ class TrackingEvaluationPipelineConfig:
     half: bool = False
     USE_IOU_FALLBACK: bool = False
     USE_AREA_OCCLUSION_FREEZE: bool = False
+    USE_CONDITIONAL_AREA_OCCLUSION_FREEZE: bool = True
     USE_MERGED_BOX_SPLIT: bool = False

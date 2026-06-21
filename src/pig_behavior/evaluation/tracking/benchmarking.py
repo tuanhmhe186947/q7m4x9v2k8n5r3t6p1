@@ -18,6 +18,7 @@ from .reporting import _markdown_table
 TRACKING_RULE_FLAG_NAMES = (
     "USE_IOU_FALLBACK",
     "USE_AREA_OCCLUSION_FREEZE",
+    "USE_CONDITIONAL_AREA_OCCLUSION_FREEZE",
     "USE_MERGED_BOX_SPLIT",
 )
 
@@ -28,6 +29,7 @@ def tracking_rule_combo_name(flags: dict[str, bool]) -> str:
         [
             f"iou{int(flags['USE_IOU_FALLBACK'])}",
             f"area{int(flags['USE_AREA_OCCLUSION_FREEZE'])}",
+            f"condarea{int(flags['USE_CONDITIONAL_AREA_OCCLUSION_FREEZE'])}",
             f"merge{int(flags['USE_MERGED_BOX_SPLIT'])}",
         ]
     )
@@ -66,6 +68,7 @@ def build_rule_benchmark_report(
         "combo",
         "USE_IOU_FALLBACK",
         "USE_AREA_OCCLUSION_FREEZE",
+        "USE_CONDITIONAL_AREA_OCCLUSION_FREEZE",
         "USE_MERGED_BOX_SPLIT",
         "elapsed_sec",
         "fps_evaluated_frames",

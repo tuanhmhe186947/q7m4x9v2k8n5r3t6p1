@@ -2,16 +2,6 @@ from pathlib import Path
 
 import numpy as np
 
-from pig_behavior.data_preparation.tracking_engine import (
-    Detection,
-    FixedTrack,
-    TrackingConfig,
-    apply_identity_swap_guard,
-    center_distance_norm,
-    initialize_tracks,
-    match_and_update_tracks,
-    track_detection_overlap_score,
-)
 from pig_behavior.evaluation.tracking_metrics import (
     TrackingObject,
     TrackingPair,
@@ -21,6 +11,18 @@ from pig_behavior.evaluation.tracking_metrics import (
     identity_events_for_pair,
     identity_mapping_for_pair,
     parse_cvat_video_xml,
+)
+from pig_behavior.tracking import (
+    Detection,
+    FixedTrack,
+    TrackingConfig,
+    TrackingRuntimeState,
+    apply_identity_swap_guard,
+    center_distance_norm,
+    get_telemetry_summary,
+    initialize_tracks,
+    match_and_update_tracks,
+    track_detection_overlap_score,
 )
 
 
@@ -285,6 +287,443 @@ def test_lost_track_reid_uses_remaining_detection_after_active_match() -> None:
     assert tracks[1].missed == 0
     assert lost_center_x > 120
     assert np.allclose(tracks[2].last_box, detections[0].box)
+
+
+def test_iou_fallback_reconnects_unmatched_track_by_predicted_box() -> None:
+    cfg = TrackingConfig(
+        expected_pigs=1,
+        USE_IOU_FALLBACK=True,
+        lost_track_cost_threshold=0.01,
+        use_mask_iou=False,
+    )
+    track_hist = _hist_at(0)
+    det_hist = _hist_at(1)
+    track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([10, 10, 30, 30], dtype=np.float32),
+        reliable_box=np.array([10, 10, 30, 30], dtype=np.float32),
+        missed=3,
+        last_score=0.2,
+        last_source="predicted",
+        ever_detected=True,
+    )
+    track.hist_bank.append(track_hist)
+    tracks = {1: track}
+    detections = [
+        Detection(
+            box=np.array([10, 10, 30, 30], dtype=np.float32),
+            score=0.9,
+            raw_id=None,
+            class_id=0,
+            hist=det_hist,
+        )
+    ]
+    frame = np.zeros((60, 60, 3), dtype=np.uint8)
+
+    match_and_update_tracks(tracks, detections, frame, prev_frame=None, cfg=cfg)
+
+    assert tracks[1].last_source == "detected"
+    assert tracks[1].missed == 0
+    assert np.allclose(tracks[1].last_box, detections[0].box)
+
+
+def test_area_occlusion_freeze_consumes_shrunk_detection() -> None:
+    cfg = TrackingConfig(
+        expected_pigs=2,
+        USE_AREA_OCCLUSION_FREEZE=True,
+        area_occlusion_shrink_ratio=0.6,
+        smooth_boxes=False,
+    )
+    hist = _hist_at(0)
+    active_track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 100, 100], dtype=np.float32),
+        reliable_box=np.array([0, 0, 100, 100], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+    )
+    active_track.hist_bank.append(hist)
+    placeholder = FixedTrack(
+        fixed_id=2,
+        last_box=np.array([120, 0, 150, 30], dtype=np.float32),
+        ever_detected=False,
+    )
+    tracks = {1: active_track, 2: placeholder}
+    detections = [
+        Detection(
+            box=np.array([0, 0, 40, 40], dtype=np.float32),
+            score=0.95,
+            raw_id=None,
+            class_id=0,
+            hist=hist,
+        )
+    ]
+    frame = np.zeros((160, 180, 3), dtype=np.uint8)
+
+    match_and_update_tracks(tracks, detections, frame, prev_frame=None, cfg=cfg)
+
+    assert tracks[1].is_area_occluded is True
+    assert tracks[1].last_source == "occlusion_hold"
+    assert np.allclose(tracks[1].last_box, active_track.reliable_box)
+    assert tracks[2].ever_detected is False
+
+
+def test_conditional_area_occlusion_freeze_ignores_isolated_shrink() -> None:
+    cfg = TrackingConfig(
+        expected_pigs=2,
+        USE_AREA_OCCLUSION_FREEZE=False,
+        USE_CONDITIONAL_AREA_OCCLUSION_FREEZE=True,
+        area_occlusion_shrink_ratio=0.6,
+        smooth_boxes=False,
+    )
+    hist = _hist_at(0)
+    active_track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 100, 100], dtype=np.float32),
+        reliable_box=np.array([0, 0, 100, 100], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+    )
+    active_track.hist_bank.append(hist)
+    separate_track = FixedTrack(
+        fixed_id=2,
+        last_box=np.array([130, 0, 160, 30], dtype=np.float32),
+        reliable_box=np.array([130, 0, 160, 30], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+    )
+    separate_track.hist_bank.append(hist)
+    tracks = {1: active_track, 2: separate_track}
+    detections = [
+        Detection(
+            box=np.array([0, 0, 40, 40], dtype=np.float32),
+            score=0.95,
+            raw_id=None,
+            class_id=0,
+            hist=hist,
+        ),
+        Detection(
+            box=np.array([130, 0, 160, 30], dtype=np.float32),
+            score=0.95,
+            raw_id=None,
+            class_id=0,
+            hist=hist,
+        ),
+    ]
+    frame = np.zeros((180, 200, 3), dtype=np.uint8)
+
+    match_and_update_tracks(tracks, detections, frame, prev_frame=None, cfg=cfg)
+
+    assert tracks[1].is_area_occluded is False
+    assert tracks[1].last_source == "detected"
+    assert np.allclose(tracks[1].last_box, detections[0].box)
+
+
+def test_conditional_area_occlusion_freeze_triggers_in_heavy_overlap() -> None:
+    cfg = TrackingConfig(
+        expected_pigs=2,
+        USE_AREA_OCCLUSION_FREEZE=False,
+        USE_CONDITIONAL_AREA_OCCLUSION_FREEZE=True,
+        area_occlusion_shrink_ratio=0.6,
+        occlusion_detection_iom_threshold=0.2,
+        smooth_boxes=False,
+    )
+    hist = _hist_at(0)
+    front_track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 100, 100], dtype=np.float32),
+        reliable_box=np.array([0, 0, 100, 100], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+    )
+    hidden_track = FixedTrack(
+        fixed_id=2,
+        last_box=np.array([20, 20, 120, 120], dtype=np.float32),
+        reliable_box=np.array([20, 20, 120, 120], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+    )
+    front_track.hist_bank.append(hist)
+    hidden_track.hist_bank.append(hist)
+    tracks = {1: front_track, 2: hidden_track}
+    detections = [
+        Detection(
+            box=np.array([0, 0, 40, 40], dtype=np.float32),
+            score=0.95,
+            raw_id=None,
+            class_id=0,
+            hist=hist,
+        )
+    ]
+    frame = np.zeros((180, 200, 3), dtype=np.uint8)
+
+    match_and_update_tracks(tracks, detections, frame, prev_frame=None, cfg=cfg)
+
+    assert tracks[1].is_area_occluded is True
+    assert tracks[1].last_source == "occlusion_hold"
+    assert np.allclose(tracks[1].last_box, front_track.reliable_box)
+
+
+def test_merged_box_split_ignores_oversized_detection_for_nearby_tracks() -> None:
+    cfg = TrackingConfig(
+        expected_pigs=2,
+        USE_MERGED_BOX_SPLIT=True,
+        merged_box_growth_ratio=1.5,
+        merged_box_neighbor_distance=0.4,
+    )
+    hist = _hist_at(0)
+    first_track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+    )
+    second_track = FixedTrack(
+        fixed_id=2,
+        last_box=np.array([22, 0, 42, 20], dtype=np.float32),
+        reliable_box=np.array([22, 0, 42, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+    )
+    first_track.hist_bank.append(hist)
+    second_track.hist_bank.append(hist)
+    tracks = {1: first_track, 2: second_track}
+    detections = [
+        Detection(
+            box=np.array([0, 0, 42, 20], dtype=np.float32),
+            score=0.95,
+            raw_id=None,
+            class_id=0,
+            hist=hist,
+        )
+    ]
+    frame = np.zeros((80, 120, 3), dtype=np.uint8)
+
+    match_and_update_tracks(tracks, detections, frame, prev_frame=None, cfg=cfg)
+
+    assert tracks[1].last_merged_split is True
+    assert tracks[2].last_merged_split is True
+    assert tracks[1].last_source == "occlusion_hold"
+    assert tracks[2].last_source == "occlusion_hold"
+    assert np.allclose(tracks[1].last_box, np.array([0, 0, 20, 20], dtype=np.float32))
+    assert np.allclose(tracks[2].last_box, np.array([22, 0, 42, 20], dtype=np.float32))
+
+
+def test_merged_box_split_does_not_trigger_for_normal_close_detections() -> None:
+    cfg = TrackingConfig(
+        expected_pigs=2,
+        USE_MERGED_BOX_SPLIT=True,
+        merged_box_growth_ratio=1.5,
+        merged_box_neighbor_distance=0.4,
+        use_mask_iou=False,
+        smooth_boxes=False,
+    )
+    hist = _hist_at(0)
+    first_track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+    )
+    second_track = FixedTrack(
+        fixed_id=2,
+        last_box=np.array([22, 0, 42, 20], dtype=np.float32),
+        reliable_box=np.array([22, 0, 42, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+    )
+    first_track.hist_bank.append(hist)
+    second_track.hist_bank.append(hist)
+    tracks = {1: first_track, 2: second_track}
+    detections = [
+        Detection(
+            box=np.array([0, 0, 20, 20], dtype=np.float32),
+            score=0.95,
+            raw_id=None,
+            class_id=0,
+            hist=hist,
+        ),
+        Detection(
+            box=np.array([22, 0, 42, 20], dtype=np.float32),
+            score=0.95,
+            raw_id=None,
+            class_id=0,
+            hist=hist,
+        ),
+    ]
+    frame = np.zeros((80, 120, 3), dtype=np.uint8)
+
+    match_and_update_tracks(tracks, detections, frame, prev_frame=None, cfg=cfg)
+
+    assert tracks[1].last_merged_split is False
+    assert tracks[2].last_merged_split is False
+    assert tracks[1].last_source == "detected"
+    assert tracks[2].last_source == "detected"
+    assert np.allclose(tracks[1].last_box, detections[0].box)
+    assert np.allclose(tracks[2].last_box, detections[1].box)
+
+
+def test_merged_box_split_is_local_to_conflict_group() -> None:
+    cfg = TrackingConfig(
+        expected_pigs=3,
+        USE_MERGED_BOX_SPLIT=True,
+        merged_box_growth_ratio=1.5,
+        merged_box_neighbor_distance=0.4,
+        use_mask_iou=False,
+        smooth_boxes=False,
+    )
+    hist = _hist_at(0)
+    first_track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+    )
+    second_track = FixedTrack(
+        fixed_id=2,
+        last_box=np.array([22, 0, 42, 20], dtype=np.float32),
+        reliable_box=np.array([22, 0, 42, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+    )
+    third_track = FixedTrack(
+        fixed_id=3,
+        last_box=np.array([80, 0, 100, 20], dtype=np.float32),
+        reliable_box=np.array([80, 0, 100, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+    )
+    first_track.hist_bank.append(hist)
+    second_track.hist_bank.append(hist)
+    third_track.hist_bank.append(hist)
+    tracks = {1: first_track, 2: second_track, 3: third_track}
+    detections = [
+        Detection(
+            box=np.array([0, 0, 42, 20], dtype=np.float32),
+            score=0.95,
+            raw_id=None,
+            class_id=0,
+            hist=hist,
+        ),
+        Detection(
+            box=np.array([80, 0, 100, 20], dtype=np.float32),
+            score=0.95,
+            raw_id=None,
+            class_id=0,
+            hist=hist,
+        ),
+    ]
+    frame = np.zeros((80, 140, 3), dtype=np.uint8)
+
+    match_and_update_tracks(tracks, detections, frame, prev_frame=None, cfg=cfg)
+
+    assert tracks[1].last_merged_split is True
+    assert tracks[2].last_merged_split is True
+    assert tracks[3].last_merged_split is False
+    assert tracks[3].last_source == "detected"
+    assert np.allclose(tracks[3].last_box, detections[1].box)
+
+
+def test_merged_box_split_updates_runtime_telemetry() -> None:
+    cfg = TrackingConfig(
+        expected_pigs=2,
+        USE_MERGED_BOX_SPLIT=True,
+        merged_box_growth_ratio=1.5,
+        merged_box_neighbor_distance=0.4,
+    )
+    hist = _hist_at(0)
+    first_track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+    )
+    second_track = FixedTrack(
+        fixed_id=2,
+        last_box=np.array([22, 0, 42, 20], dtype=np.float32),
+        reliable_box=np.array([22, 0, 42, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+    )
+    first_track.hist_bank.append(hist)
+    second_track.hist_bank.append(hist)
+    tracks = {1: first_track, 2: second_track}
+    detections = [
+        Detection(
+            box=np.array([0, 0, 42, 20], dtype=np.float32),
+            score=0.95,
+            raw_id=None,
+            class_id=0,
+            hist=hist,
+        )
+    ]
+    frame = np.zeros((80, 120, 3), dtype=np.uint8)
+    runtime = TrackingRuntimeState()
+
+    match_and_update_tracks(
+        tracks,
+        detections,
+        frame,
+        prev_frame=None,
+        cfg=cfg,
+        runtime=runtime,
+    )
+
+    telemetry = get_telemetry_summary(runtime)
+    assert telemetry["hard_merges_triggered"] == 1
+    assert telemetry["detections_intentionally_ignored"] == 1
+    assert telemetry["recovery_frames_applied"] == 0
+
+    recovered_detections = [
+        Detection(
+            box=np.array([0, 0, 20, 20], dtype=np.float32),
+            score=0.95,
+            raw_id=None,
+            class_id=0,
+            hist=hist,
+        ),
+        Detection(
+            box=np.array([22, 0, 42, 20], dtype=np.float32),
+            score=0.95,
+            raw_id=None,
+            class_id=0,
+            hist=hist,
+        ),
+    ]
+
+    match_and_update_tracks(
+        tracks,
+        recovered_detections,
+        frame,
+        prev_frame=None,
+        cfg=cfg,
+        runtime=runtime,
+    )
+
+    telemetry = get_telemetry_summary(runtime)
+    assert telemetry["hard_merges_triggered"] == 1
+    assert telemetry["detections_intentionally_ignored"] == 1
+    assert telemetry["recovery_frames_applied"] == 1
+    assert tracks[1].last_ambiguous is True
+    assert tracks[2].last_ambiguous is True
 
 
 def _write_cvat_xml(path: Path, frame_one_swapped: bool) -> None:

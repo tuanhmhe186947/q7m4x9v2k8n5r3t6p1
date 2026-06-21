@@ -25,7 +25,7 @@ build-backend = "setuptools.build_meta"
 pig-behavior = "pig_behavior.cli:main"
 pig-behavior-api = "pig_behavior.api:run"
 pig-build-classification-data = "pig_behavior.data_preparation.classification_dataset:main"
-pig-track-for-annotation = "pig_behavior.data_preparation.tracking_annotation:main"
+pig-track-for-annotation = "pig_behavior.tracking.cli:main"
 pig-tracking-eval = "pig_behavior.evaluation.tracking_pipeline:main"
 
 [project.optional-dependencies]

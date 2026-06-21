@@ -97,6 +97,7 @@ class TrackingConfig:
     occlusion_hold_hidden_frames: int = 2
     USE_IOU_FALLBACK: bool = False
     USE_AREA_OCCLUSION_FREEZE: bool = False
+    USE_CONDITIONAL_AREA_OCCLUSION_FREEZE: bool = True
     USE_MERGED_BOX_SPLIT: bool = False
     iou_fallback_threshold: float = 0.45
     area_occlusion_shrink_ratio: float = 0.60
@@ -146,6 +147,7 @@ def tracking_rule_flags_enabled(cfg: TrackingConfig) -> bool:
     return (
         cfg.USE_IOU_FALLBACK
         or cfg.USE_AREA_OCCLUSION_FREEZE
+        or cfg.USE_CONDITIONAL_AREA_OCCLUSION_FREEZE
         or cfg.USE_MERGED_BOX_SPLIT
     )
 
@@ -245,7 +247,7 @@ def validate_config(cfg: TrackingConfig) -> None:
         raise ValueError("occlusion_hold_hidden_frames must be >= 1.")
     if cfg.USE_IOU_FALLBACK and not 0.0 <= cfg.iou_fallback_threshold <= 1.0:
         raise ValueError("iou_fallback_threshold must be between 0 and 1.")
-    if cfg.USE_AREA_OCCLUSION_FREEZE:
+    if cfg.USE_AREA_OCCLUSION_FREEZE or cfg.USE_CONDITIONAL_AREA_OCCLUSION_FREEZE:
         if not 0.0 < cfg.area_occlusion_shrink_ratio <= 1.0:
             raise ValueError("area_occlusion_shrink_ratio must be in (0, 1].")
         if cfg.area_occlusion_freeze_frames < 1:

@@ -66,6 +66,7 @@ from pig_behavior.evaluation.tracking.reporting import (
     build_markdown_report,
 )
 from pig_behavior.evaluation.tracking.benchmarking import (
+    iter_detector_benchmark_configs,
     run_tracking_detector_benchmark,
     run_tracking_rule_benchmark,
 )
@@ -136,6 +137,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--half", action="store_true")
     parser.add_argument("--use-iou-fallback", action="store_true")
     parser.add_argument("--use-area-occlusion-freeze", action="store_true")
+    parser.add_argument(
+        "--use-conditional-area-occlusion-freeze",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
     parser.add_argument("--use-merged-box-split", action="store_true")
     parser.add_argument(
         "--benchmark-rules",
@@ -200,6 +206,9 @@ def config_from_args(args: argparse.Namespace) -> TrackingEvaluationPipelineConf
         half=args.half,
         USE_IOU_FALLBACK=args.use_iou_fallback,
         USE_AREA_OCCLUSION_FREEZE=args.use_area_occlusion_freeze,
+        USE_CONDITIONAL_AREA_OCCLUSION_FREEZE=(
+            args.use_conditional_area_occlusion_freeze
+        ),
         USE_MERGED_BOX_SPLIT=args.use_merged_box_split,
     )
 

@@ -1,7 +1,7 @@
 # Pig ID Tracking Pipeline
 
 Tài liệu này giải thích file
-`notebooks/01_data_preparation/track_video_ids_for_annotation.py`.
+`pig-track-for-annotation`, backed by `pig_behavior.tracking`.
 Mục tiêu là tạo annotation CVAT cho video 30 FPS, luôn có 8 bbox trong mỗi
 frame, hạn chế ID switch khi lợn di chuyển tập trung hoặc chồng lấn.
 
@@ -144,13 +144,13 @@ bbox có score dưới `review_conf` nhưng chưa đủ điều kiện hidden s�
 Chạy full video với mặc định:
 
 ```powershell
-uv run --extra tracking python notebooks\01_data_preparation\track_video_ids_for_annotation.py
+pig-track-for-annotation
 ```
 
 Chạy rõ đường dẫn và ngưỡng:
 
 ```powershell
-uv run --extra tracking python notebooks\01_data_preparation\track_video_ids_for_annotation.py `
+pig-track-for-annotation `
   --video data\videos\Pigs291119_000263_30fps.mp4 `
   --weights models\detector\pig_detector_yolov8.pt `
   --mask data\annotations\mask.png `
@@ -182,13 +182,15 @@ uv run --extra tracking python notebooks\01_data_preparation\track_video_ids_for
 Test nhanh vài trăm frame:
 
 ```powershell
-uv run --extra tracking python notebooks\01_data_preparation\track_video_ids_for_annotation.py `
+pig-track-for-annotation `
   --max-frames 300
 ```
 
 Trong notebook/VS Code Interactive:
 
 ```python
+from pig_behavior.tracking import TrackingConfig, display_tracked_video, run_tracking
+
 cfg = TrackingConfig(max_frames=300)
 summary = run_tracking(cfg)
 display_tracked_video(summary.output_video)

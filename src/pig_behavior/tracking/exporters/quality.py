@@ -289,6 +289,9 @@ def build_quality_report(
             "occlusion_hold_hidden_frames": cfg.occlusion_hold_hidden_frames,
             "USE_IOU_FALLBACK": cfg.USE_IOU_FALLBACK,
             "USE_AREA_OCCLUSION_FREEZE": cfg.USE_AREA_OCCLUSION_FREEZE,
+            "USE_CONDITIONAL_AREA_OCCLUSION_FREEZE": (
+                cfg.USE_CONDITIONAL_AREA_OCCLUSION_FREEZE
+            ),
             "USE_MERGED_BOX_SPLIT": cfg.USE_MERGED_BOX_SPLIT,
             "iou_fallback_threshold": cfg.iou_fallback_threshold,
             "area_occlusion_shrink_ratio": cfg.area_occlusion_shrink_ratio,
@@ -372,6 +375,7 @@ def build_quality_report(
         rule_threshold_keys = (
             "USE_IOU_FALLBACK",
             "USE_AREA_OCCLUSION_FREEZE",
+            "USE_CONDITIONAL_AREA_OCCLUSION_FREEZE",
             "USE_MERGED_BOX_SPLIT",
             "iou_fallback_threshold",
             "area_occlusion_shrink_ratio",

@@ -273,10 +273,20 @@ def detection_is_reserved_for_active_track(
 def area_occlusion_should_freeze(
     track: FixedTrack,
     det: Detection,
+    det_index: int,
+    detections: list[Detection],
+    context: OcclusionContext,
+    width: int,
+    height: int,
     cfg: TrackingConfig,
 ) -> bool:
     """Detect sudden area shrinkage that likely means partial occlusion."""
-    if not cfg.USE_AREA_OCCLUSION_FREEZE or not track.ever_detected:
+    if (
+        not cfg.USE_AREA_OCCLUSION_FREEZE
+        and not cfg.USE_CONDITIONAL_AREA_OCCLUSION_FREEZE
+    ):
+        return False
+    if not track.ever_detected:
         return False
     if track.area_occlusion_frames >= cfg.area_occlusion_freeze_frames:
         return False
@@ -285,7 +295,36 @@ def area_occlusion_should_freeze(
     )
     previous_area = bbox_area(previous_box)
     current_area = bbox_area(det.box)
-    return current_area < cfg.area_occlusion_shrink_ratio * previous_area
+    is_shrunk = current_area < cfg.area_occlusion_shrink_ratio * previous_area
+    if not is_shrunk:
+        return False
+    if cfg.USE_AREA_OCCLUSION_FREEZE:
+        return True
+
+    competitors = context.detection_competitors.get(det_index, set())
+    active_tracks_in_scene = sum(
+        1 for box in context.predicted_boxes.values() if bbox_iom(box, det.box) > 0.0
+    )
+    detected_track_count = sum(1 for box in context.predicted_boxes.values() if box.size)
+    detection_deficit = len(detections) < detected_track_count
+    hard_scene_hint = track.hard_occlusion_frames > 0 or track.last_ambiguous
+    track_in_competition = (
+        len(competitors) > 1
+        and track.fixed_id in competitors
+        and track.fixed_id in context.occluded_track_ids
+    )
+    nearby_overlap_conflict = (
+        track.fixed_id in context.occluded_track_ids
+        and active_tracks_in_scene >= 2
+        and bbox_iom(previous_box, det.box) >= cfg.occlusion_detection_iom_threshold
+    )
+    center_jump = center_distance_norm(previous_box, det.box, width, height)
+    not_simple_reacquire = center_jump <= cfg.occlusion_stationary_max_center_jump * 2.0
+    return bool(
+        (track_in_competition or nearby_overlap_conflict or hard_scene_hint)
+        and (detection_deficit or len(competitors) > 1 or hard_scene_hint)
+        and not_simple_reacquire
+    )
 
 
 def freeze_area_occluded_track(

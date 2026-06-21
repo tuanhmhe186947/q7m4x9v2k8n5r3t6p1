@@ -141,6 +141,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--occlusion-hold-hidden-frames", type=int, default=2)
     parser.add_argument("--use-iou-fallback", action="store_true")
     parser.add_argument("--use-area-occlusion-freeze", action="store_true")
+    parser.add_argument(
+        "--use-conditional-area-occlusion-freeze",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
     parser.add_argument("--use-merged-box-split", action="store_true")
     parser.add_argument("--iou-fallback-threshold", type=float, default=0.45)
     parser.add_argument("--area-occlusion-shrink-ratio", type=float, default=0.60)
@@ -307,6 +312,9 @@ def _tracking_config_from_args(
         occlusion_hold_hidden_frames=args.occlusion_hold_hidden_frames,
         USE_IOU_FALLBACK=args.use_iou_fallback,
         USE_AREA_OCCLUSION_FREEZE=args.use_area_occlusion_freeze,
+        USE_CONDITIONAL_AREA_OCCLUSION_FREEZE=(
+            args.use_conditional_area_occlusion_freeze
+        ),
         USE_MERGED_BOX_SPLIT=args.use_merged_box_split,
         iou_fallback_threshold=args.iou_fallback_threshold,
         area_occlusion_shrink_ratio=args.area_occlusion_shrink_ratio,
@@ -423,6 +431,8 @@ def print_tracking_summary(cfg: TrackingConfig, summary: TrackingSummary) -> Non
             "[OK] rule_flags="
             f"iou_fallback={cfg.USE_IOU_FALLBACK}, "
             f"area_freeze={cfg.USE_AREA_OCCLUSION_FREEZE}, "
+            "conditional_area_freeze="
+            f"{cfg.USE_CONDITIONAL_AREA_OCCLUSION_FREEZE}, "
             f"merged_split={cfg.USE_MERGED_BOX_SPLIT}, "
             f"iou_threshold={cfg.iou_fallback_threshold:.2f}, "
             f"shrink_ratio={cfg.area_occlusion_shrink_ratio:.2f}, "
