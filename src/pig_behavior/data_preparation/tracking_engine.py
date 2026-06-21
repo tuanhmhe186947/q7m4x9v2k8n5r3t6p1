@@ -98,6 +98,18 @@ DEFAULT_CONF_THRESHOLD = DEFAULT_REVIEW_CONF_THRESHOLD
 DEFAULT_OVERLAP_THRESHOLD = 0.80
 DEFAULT_VISUAL_OPACITY = 0.75
 
+SCENE_CLEAR = "CLEAR"
+SCENE_SOFT_PROXIMITY = "SOFT_PROXIMITY"
+SCENE_HARD_OCCLUSION_ARMED = "HARD_OCCLUSION_ARMED"
+SCENE_HARD_MERGED = "HARD_MERGED"
+SCENE_SPLIT_RECOVERY = "SPLIT_RECOVERY"
+
+TRACKING_TELEMETRY_KEYS = (
+    "hard_merges_triggered",
+    "detections_intentionally_ignored",
+    "recovery_frames_applied",
+)
+
 
 def _bgr_to_hex(color: tuple[int, int, int]) -> str:
     blue, green, red = color
@@ -167,6 +179,8 @@ class TrackingConfig:
     tracker_yaml: Path | None = None
     quality_report_json: Path | None = None
     quality_report_csv: Path | None = None
+    device: int | str | None = None
+    half: bool = False
 
     expected_pigs: int = 8
     output_fps: float = 30.0
@@ -221,6 +235,20 @@ class TrackingConfig:
     hold_occluded_box: bool = True
     occlusion_hold_max_frames: int = 30
     occlusion_hold_hidden_frames: int = 2
+    USE_IOU_FALLBACK: bool = False
+    USE_AREA_OCCLUSION_FREEZE: bool = False
+    USE_MERGED_BOX_SPLIT: bool = False
+    iou_fallback_threshold: float = 0.45
+    area_occlusion_shrink_ratio: float = 0.60
+    area_occlusion_freeze_frames: int = 15
+    merged_box_growth_ratio: float = 1.50
+    merged_box_neighbor_distance: float = 0.12
+    merged_box_split_max_tracks: int = 2
+    hard_occlusion_track_iom_threshold: float = 0.35
+    hard_occlusion_detection_iom_threshold: float = 0.45
+    hard_occlusion_min_frames: int = 2
+    hard_occlusion_recovery_frames: int = 4
+    hard_occlusion_score_threshold: float = 0.65
     identity_swap_guard: bool = True
     identity_swap_min_gain: float = 0.015
     identity_swap_iom_threshold: float = 0.10
@@ -278,6 +306,39 @@ class OcclusionContext:
 
 
 @dataclass(slots=True)
+class ConflictGroup:
+    """Local track/detection component that may require occlusion handling."""
+
+    track_ids: set[int]
+    detection_indices: set[int]
+
+
+@dataclass(slots=True)
+class HardSceneDecision:
+    """Rule-based classification for a local conflict group."""
+
+    state: str
+    is_hard_occlusion: bool
+    is_merged: bool
+    score: float
+    has_detection_deficit: bool
+    has_oversized_detection: bool
+
+
+@dataclass(slots=True)
+class TrackingRuntimeState:
+    """State carried across frames for local FSM and telemetry."""
+
+    group_states: dict[tuple[int, ...], str] = field(default_factory=dict)
+    group_hard_frames: dict[tuple[int, ...], int] = field(default_factory=dict)
+    group_recovery_remaining: dict[tuple[int, ...], int] = field(default_factory=dict)
+    current_recovery_track_ids: set[int] = field(default_factory=set)
+    telemetry: dict[str, int] = field(
+        default_factory=lambda: {key: 0 for key in TRACKING_TELEMETRY_KEYS}
+    )
+
+
+@dataclass(slots=True)
 class FixedTrack:
     """Stable ID state. Each video frame will emit one box per FixedTrack."""
 
@@ -308,6 +369,11 @@ class FixedTrack:
     last_score: float = 0.0
     last_source: str = "placeholder"
     last_ambiguous: bool = False
+    is_area_occluded: bool = False
+    area_occlusion_frames: int = 0
+    last_merged_split: bool = False
+    hard_occlusion_frames: int = 0
+    hard_occlusion_recovery_frames: int = 0
     ever_detected: bool = False
 
     def mean_hist(self) -> np.ndarray | None:
@@ -519,6 +585,9 @@ class FixedTrack:
         self.last_score = float(det.score)
         self.last_source = "detected"
         self.last_ambiguous = bool(ambiguous)
+        self.is_area_occluded = False
+        self.area_occlusion_frames = 0
+        self.last_merged_split = False
         self.last_mask = det.mask.copy() if det.mask is not None else None
         self.missed = 0
         self.hits += 1
@@ -550,11 +619,14 @@ class FixedTrack:
         self.last_score = max(0.05, self.last_score * 0.92)
         self.last_source = "occlusion_hold" if hold else "predicted"
         self.last_ambiguous = bool(ambiguous)
+        self.last_merged_split = False
         self.missed += 1
         if hold:
             self.occlusion_hold_frames += 1
         else:
             self.occlusion_hold_frames = 0
+            self.is_area_occluded = False
+            self.area_occlusion_frames = 0
 
 
 @dataclass(slots=True)
@@ -577,6 +649,21 @@ class TrackingSummary:
     start_frame: int
     source_fps: float
     output_fps: float
+    telemetry: dict[str, int]
+
+
+def tracking_rule_flags_enabled(cfg: TrackingConfig) -> bool:
+    return (
+        cfg.USE_IOU_FALLBACK
+        or cfg.USE_AREA_OCCLUSION_FREEZE
+        or cfg.USE_MERGED_BOX_SPLIT
+    )
+
+
+def get_telemetry_summary(source: TrackingRuntimeState | TrackingSummary) -> dict[str, int]:
+    """Return telemetry counters in a stable schema for benchmark comparison."""
+    telemetry = source.telemetry
+    return {key: int(telemetry.get(key, 0)) for key in TRACKING_TELEMETRY_KEYS}
 
 
 # %%
@@ -585,6 +672,8 @@ def validate_config(cfg: TrackingConfig) -> None:
         cfg.review_conf = cfg.conf
     if cfg.start_frame < 0:
         raise ValueError("start_frame must be >= 0.")
+    if isinstance(cfg.device, str) and not cfg.device.strip():
+        raise ValueError("device must not be empty.")
     if cfg.expected_pigs != len(ID_VALUES):
         raise ValueError("The CVAT label schema is fixed to exactly 8 pig IDs.")
     if cfg.default_behavior not in BEHAVIOR_VALUES:
@@ -665,6 +754,36 @@ def validate_config(cfg: TrackingConfig) -> None:
         raise ValueError("occlusion_hold_max_frames must be >= 0.")
     if cfg.occlusion_hold_hidden_frames < 1:
         raise ValueError("occlusion_hold_hidden_frames must be >= 1.")
+    if cfg.USE_IOU_FALLBACK and not 0.0 <= cfg.iou_fallback_threshold <= 1.0:
+        raise ValueError("iou_fallback_threshold must be between 0 and 1.")
+    if cfg.USE_AREA_OCCLUSION_FREEZE:
+        if not 0.0 < cfg.area_occlusion_shrink_ratio <= 1.0:
+            raise ValueError("area_occlusion_shrink_ratio must be in (0, 1].")
+        if cfg.area_occlusion_freeze_frames < 1:
+            raise ValueError("area_occlusion_freeze_frames must be >= 1.")
+    if cfg.USE_MERGED_BOX_SPLIT:
+        if cfg.merged_box_growth_ratio <= 1.0:
+            raise ValueError("merged_box_growth_ratio must be > 1.")
+        if not 0.0 < cfg.merged_box_neighbor_distance <= 1.0:
+            raise ValueError("merged_box_neighbor_distance must be in (0, 1].")
+        if cfg.merged_box_split_max_tracks < 2:
+            raise ValueError("merged_box_split_max_tracks must be >= 2.")
+        hard_occlusion_values = {
+            "hard_occlusion_track_iom_threshold": (
+                cfg.hard_occlusion_track_iom_threshold
+            ),
+            "hard_occlusion_detection_iom_threshold": (
+                cfg.hard_occlusion_detection_iom_threshold
+            ),
+            "hard_occlusion_score_threshold": cfg.hard_occlusion_score_threshold,
+        }
+        for name, value in hard_occlusion_values.items():
+            if not 0.0 <= value <= 1.0:
+                raise ValueError(f"{name} must be between 0 and 1.")
+        if cfg.hard_occlusion_min_frames < 1:
+            raise ValueError("hard_occlusion_min_frames must be >= 1.")
+        if cfg.hard_occlusion_recovery_frames < 1:
+            raise ValueError("hard_occlusion_recovery_frames must be >= 1.")
     identity_swap_values = {
         "identity_swap_min_gain": cfg.identity_swap_min_gain,
         "identity_swap_iom_threshold": cfg.identity_swap_iom_threshold,
@@ -1014,6 +1133,56 @@ def bbox_iou_matrix(first: np.ndarray, second: np.ndarray) -> np.ndarray:
     )
     union = first_area[:, None] + second_area[None, :] - inter
     return (inter / np.maximum(union, 1e-6)).astype(np.float32)
+
+
+def bbox_iom_matrix(first: np.ndarray, second: np.ndarray) -> np.ndarray:
+    """Pairwise intersection-over-min-area for two ``xyxy`` box arrays."""
+    if first.size == 0 or second.size == 0:
+        return np.zeros((len(first), len(second)), dtype=np.float32)
+
+    first = np.asarray(first, dtype=np.float32)
+    second = np.asarray(second, dtype=np.float32)
+    x1 = np.maximum(first[:, None, 0], second[None, :, 0])
+    y1 = np.maximum(first[:, None, 1], second[None, :, 1])
+    x2 = np.minimum(first[:, None, 2], second[None, :, 2])
+    y2 = np.minimum(first[:, None, 3], second[None, :, 3])
+    inter = np.maximum(0.0, x2 - x1) * np.maximum(0.0, y2 - y1)
+    first_area = np.maximum(1.0, first[:, 2] - first[:, 0]) * np.maximum(
+        1.0,
+        first[:, 3] - first[:, 1],
+    )
+    second_area = np.maximum(1.0, second[:, 2] - second[:, 0]) * np.maximum(
+        1.0,
+        second[:, 3] - second[:, 1],
+    )
+    min_area = np.minimum(first_area[:, None], second_area[None, :])
+    return (inter / np.maximum(min_area, 1e-6)).astype(np.float32)
+
+
+def center_distance_norm_matrix(
+    first: np.ndarray,
+    second: np.ndarray,
+    width: int,
+    height: int,
+) -> np.ndarray:
+    """Pairwise normalized center distance for two ``xyxy`` box arrays."""
+    if first.size == 0 or second.size == 0:
+        return np.zeros((len(first), len(second)), dtype=np.float32)
+
+    first = np.asarray(first, dtype=np.float32)
+    second = np.asarray(second, dtype=np.float32)
+    first_centers = np.column_stack(
+        ((first[:, 0] + first[:, 2]) / 2.0, (first[:, 1] + first[:, 3]) / 2.0)
+    )
+    second_centers = np.column_stack(
+        (
+            (second[:, 0] + second[:, 2]) / 2.0,
+            (second[:, 1] + second[:, 3]) / 2.0,
+        )
+    )
+    deltas = first_centers[:, None, :] - second_centers[None, :, :]
+    diag = math.sqrt(width * width + height * height)
+    return (np.linalg.norm(deltas, axis=2) / max(diag, 1e-6)).astype(np.float32)
 
 
 def mask_area(mask: np.ndarray | None) -> int:
@@ -1839,6 +2008,568 @@ def detection_is_reserved_for_active_track(
     return not clearly_better_than_owner
 
 
+def area_occlusion_should_freeze(
+    track: FixedTrack,
+    det: Detection,
+    cfg: TrackingConfig,
+) -> bool:
+    """Detect sudden area shrinkage that likely means partial occlusion."""
+    if not cfg.USE_AREA_OCCLUSION_FREEZE or not track.ever_detected:
+        return False
+    if track.area_occlusion_frames >= cfg.area_occlusion_freeze_frames:
+        return False
+    previous_box = track.reliable_box if track.reliable_box is not None else track.last_box
+    previous_area = bbox_area(previous_box)
+    current_area = bbox_area(det.box)
+    return current_area < cfg.area_occlusion_shrink_ratio * previous_area
+
+
+def freeze_area_occluded_track(
+    track: FixedTrack,
+    width: int,
+    height: int,
+    cfg: TrackingConfig,
+) -> None:
+    """Hold a fixed ID in place for a bounded partial-occlusion window."""
+    hold_box = track.reliable_box if track.reliable_box is not None else track.last_box
+    track.update_predicted(
+        hold_box.copy(),
+        width,
+        height,
+        ambiguous=True,
+        hold=True,
+    )
+    track.is_area_occluded = True
+    track.area_occlusion_frames += 1
+
+
+def apply_iou_fallback(
+    tracks: dict[int, FixedTrack],
+    detections: list[Detection],
+    matched_tracks: set[int],
+    matched_detections: set[int],
+    width: int,
+    height: int,
+    cfg: TrackingConfig,
+) -> None:
+    """Reconnect an unmatched fixed ID to a plausible unassigned detection."""
+    if not cfg.USE_IOU_FALLBACK:
+        return
+
+    remaining_detection_indices = [
+        idx for idx in range(len(detections)) if idx not in matched_detections
+    ]
+    if not remaining_detection_indices:
+        return
+
+    ordered_tracks = [
+        tracks[idx]
+        for idx in range(1, cfg.expected_pigs + 1)
+        if idx not in matched_tracks and tracks[idx].ever_detected
+    ]
+    for track in ordered_tracks:
+        predicted = track.predicted_box(width, height)
+        best_idx = None
+        best_iou = cfg.iou_fallback_threshold
+        for det_idx in remaining_detection_indices:
+            score = bbox_iou(predicted, detections[det_idx].box)
+            if score > best_iou:
+                best_iou = score
+                best_idx = det_idx
+        if best_idx is None:
+            continue
+
+        track.update_detected(
+            detections[best_idx],
+            width,
+            height,
+            cfg,
+            learn_identity=False,
+            ambiguous=True,
+        )
+        matched_tracks.add(track.fixed_id)
+        matched_detections.add(best_idx)
+        remaining_detection_indices.remove(best_idx)
+        if not remaining_detection_indices:
+            return
+
+
+def build_local_conflict_groups(
+    ordered_tracks: list[FixedTrack],
+    detections: list[Detection],
+    predicted_boxes: dict[int, np.ndarray],
+    width: int,
+    height: int,
+    cfg: TrackingConfig,
+) -> list[ConflictGroup]:
+    """Build connected local track/detection groups for occlusion actions."""
+    from scipy.sparse import csr_matrix
+    from scipy.sparse.csgraph import connected_components
+
+    active_tracks = [track for track in ordered_tracks if track.ever_detected]
+    if len(active_tracks) < 2:
+        return []
+
+    track_ids = [track.fixed_id for track in active_tracks]
+    track_boxes = np.stack(
+        [predicted_boxes[track.fixed_id] for track in active_tracks],
+        axis=0,
+    ).astype(np.float32)
+    det_boxes = (
+        np.stack([det.box for det in detections], axis=0).astype(np.float32)
+        if detections
+        else np.zeros((0, 4), dtype=np.float32)
+    )
+    track_count = len(active_tracks)
+    detection_count = len(detections)
+    node_count = track_count + detection_count
+    adjacency = np.zeros((node_count, node_count), dtype=bool)
+
+    track_iom = bbox_iom_matrix(track_boxes, track_boxes)
+    track_distance = center_distance_norm_matrix(track_boxes, track_boxes, width, height)
+    track_edges = (
+        (track_iom >= cfg.occlusion_track_iom_threshold)
+        | (track_distance <= cfg.merged_box_neighbor_distance)
+    )
+    np.fill_diagonal(track_edges, False)
+    adjacency[:track_count, :track_count] = track_edges
+
+    if detection_count:
+        track_detection_iom = bbox_iom_matrix(track_boxes, det_boxes)
+        track_detection_distance = center_distance_norm_matrix(
+            track_boxes,
+            det_boxes,
+            width,
+            height,
+        )
+        track_detection_edges = (
+            track_detection_iom >= cfg.occlusion_detection_iom_threshold
+        ) | (
+            track_detection_distance
+            <= max(cfg.low_conf_max_center_jump, cfg.merged_box_neighbor_distance)
+        )
+        adjacency[:track_count, track_count:] = track_detection_edges
+        adjacency[track_count:, :track_count] = track_detection_edges.T
+
+    groups: list[ConflictGroup] = []
+    _, labels = connected_components(csr_matrix(adjacency), directed=False)
+    for component_id in np.unique(labels):
+        component_nodes = np.flatnonzero(labels == component_id)
+        component_track_nodes = component_nodes[component_nodes < track_count]
+        if len(component_track_nodes) < 2:
+            continue
+        component_detection_nodes = component_nodes[component_nodes >= track_count]
+        groups.append(
+            ConflictGroup(
+                track_ids={track_ids[idx] for idx in component_track_nodes},
+                detection_indices={
+                    int(idx - track_count) for idx in component_detection_nodes
+                },
+            )
+        )
+    return groups
+
+
+def tracks_are_moving_toward_each_other(
+    first: FixedTrack,
+    second: FixedTrack,
+) -> bool:
+    """Return True when relative motion is closing the distance between tracks."""
+    first_center = np.array(bbox_center(first.last_box), dtype=np.float32)
+    second_center = np.array(bbox_center(second.last_box), dtype=np.float32)
+    relative_center = second_center - first_center
+    relative_velocity = second.velocity_xy - first.velocity_xy
+    if np.linalg.norm(relative_velocity) <= 1e-6:
+        relative_velocity = second.reliable_velocity_xy - first.reliable_velocity_xy
+    if np.linalg.norm(relative_velocity) <= 1e-6:
+        return False
+    return float(np.dot(relative_center, relative_velocity)) < 0.0
+
+
+def reliable_track_area(track: FixedTrack) -> float:
+    reference = track.reliable_box if track.reliable_box is not None else track.last_box
+    return bbox_area(reference)
+
+
+def detection_covers_group_tracks(
+    det: Detection,
+    tracks: list[FixedTrack],
+    predicted_boxes: dict[int, np.ndarray],
+    cfg: TrackingConfig,
+) -> list[FixedTrack]:
+    """Return local tracks substantially covered by a candidate merged detection."""
+    covered: list[FixedTrack] = []
+    for track in tracks:
+        predicted = predicted_boxes[track.fixed_id]
+        if (
+            bbox_iom(predicted, det.box)
+            >= cfg.hard_occlusion_detection_iom_threshold
+        ):
+            covered.append(track)
+    return covered
+
+
+def conflict_group_key(group: ConflictGroup) -> tuple[int, ...]:
+    return tuple(sorted(group.track_ids))
+
+
+def advance_split_recovery(runtime: TrackingRuntimeState) -> None:
+    """Advance active split-recovery windows and expose recovery track IDs."""
+    runtime.current_recovery_track_ids.clear()
+    next_recovery: dict[tuple[int, ...], int] = {}
+    for group_key, remaining in runtime.group_recovery_remaining.items():
+        if remaining <= 0:
+            continue
+        runtime.current_recovery_track_ids.update(group_key)
+        runtime.telemetry["recovery_frames_applied"] += 1
+        next_recovery[group_key] = remaining - 1
+    runtime.group_recovery_remaining = next_recovery
+
+
+def hard_scene_decision_for_group(
+    group: ConflictGroup,
+    tracks_by_id: dict[int, FixedTrack],
+    detections: list[Detection],
+    predicted_boxes: dict[int, np.ndarray],
+    cfg: TrackingConfig,
+    runtime: TrackingRuntimeState | None = None,
+) -> HardSceneDecision:
+    """Classify a local group as normal proximity, hard occlusion, or merged."""
+    group_tracks = [
+        tracks_by_id[track_id]
+        for track_id in sorted(group.track_ids)
+        if tracks_by_id[track_id].ever_detected
+    ]
+    if len(group_tracks) < 2:
+        return HardSceneDecision(SCENE_CLEAR, False, False, 0.0, False, False)
+
+    group_key = conflict_group_key(group)
+    previous_state = (
+        runtime.group_states.get(group_key, SCENE_CLEAR)
+        if runtime is not None
+        else SCENE_CLEAR
+    )
+    group_boxes = np.stack(
+        [predicted_boxes[track.fixed_id] for track in group_tracks],
+        axis=0,
+    ).astype(np.float32)
+    group_iom = bbox_iom_matrix(group_boxes, group_boxes)
+    upper = np.triu_indices(len(group_tracks), k=1)
+    max_track_iom = float(np.max(group_iom[upper])) if upper[0].size else 0.0
+
+    centers = np.array([bbox_center(track.last_box) for track in group_tracks])
+    velocities = np.stack(
+        [
+            (
+                track.velocity_xy
+                if np.linalg.norm(track.velocity_xy) > 1e-6
+                else track.reliable_velocity_xy
+            )
+            for track in group_tracks
+        ],
+        axis=0,
+    )
+    relative_centers = centers[None, :, :] - centers[:, None, :]
+    relative_velocities = velocities[None, :, :] - velocities[:, None, :]
+    closing_scores = np.einsum("ijk,ijk->ij", relative_centers, relative_velocities)
+    moving_toward = bool(
+        upper[0].size
+        and np.any(
+            (closing_scores[upper] < 0.0)
+            & (np.linalg.norm(relative_velocities[upper], axis=1) > 1e-6)
+        )
+    )
+
+    local_detections = [detections[idx] for idx in sorted(group.detection_indices)]
+    has_detection_deficit = len(local_detections) < len(group_tracks)
+    has_identity_ambiguity = False
+    has_oversized_detection = False
+    if local_detections:
+        det_boxes = np.stack([det.box for det in local_detections], axis=0).astype(
+            np.float32
+        )
+        coverage = (
+            bbox_iom_matrix(group_boxes, det_boxes)
+            >= cfg.hard_occlusion_detection_iom_threshold
+        )
+        covered_counts = coverage.sum(axis=0)
+        has_identity_ambiguity = bool(np.any(covered_counts >= 2))
+        reliable_areas = np.array(
+            [reliable_track_area(track) for track in group_tracks],
+            dtype=np.float32,
+        )
+        detection_areas = np.array([bbox_area(det.box) for det in local_detections])
+        for det_col in np.flatnonzero(covered_counts >= 2):
+            covered_areas = reliable_areas[coverage[:, det_col]]
+            if detection_areas[det_col] > cfg.merged_box_growth_ratio * float(
+                np.median(covered_areas)
+            ):
+                has_oversized_detection = True
+                break
+
+    overlap_signal = (
+        1.0 if max_track_iom >= cfg.hard_occlusion_track_iom_threshold else 0.0
+    )
+    previous_hard_frames = (
+        runtime.group_hard_frames.get(group_key, 0) if runtime is not None else 0
+    )
+    soft_proximity = bool(
+        overlap_signal
+        or max_track_iom >= cfg.occlusion_track_iom_threshold
+        or has_identity_ambiguity
+    )
+    hard_evidence = bool(
+        has_identity_ambiguity or has_detection_deficit or moving_toward
+    )
+    current_hard_frames = previous_hard_frames + 1 if hard_evidence else 0
+    duration_signal = min(
+        1.0,
+        (current_hard_frames + overlap_signal) / cfg.hard_occlusion_min_frames,
+    )
+    score = (
+        0.30 * duration_signal
+        + 0.25 * float(has_identity_ambiguity)
+        + 0.20 * float(has_detection_deficit)
+        + 0.15 * float(has_oversized_detection)
+        + 0.10 * float(moving_toward)
+    )
+    severe_merged_evidence = (
+        has_detection_deficit and has_oversized_detection and has_identity_ambiguity
+    )
+    hard_armed = bool(
+        severe_merged_evidence
+        or (
+            score >= cfg.hard_occlusion_score_threshold
+            and current_hard_frames >= cfg.hard_occlusion_min_frames
+        )
+    )
+    if severe_merged_evidence:
+        state = SCENE_HARD_MERGED
+    elif hard_armed:
+        state = SCENE_HARD_OCCLUSION_ARMED
+    elif previous_state == SCENE_HARD_MERGED:
+        state = SCENE_SPLIT_RECOVERY
+    elif soft_proximity:
+        state = SCENE_SOFT_PROXIMITY
+    else:
+        state = SCENE_CLEAR
+
+    if runtime is not None:
+        runtime.group_hard_frames[group_key] = current_hard_frames
+        if previous_state != SCENE_HARD_MERGED and state == SCENE_HARD_MERGED:
+            runtime.telemetry["hard_merges_triggered"] += 1
+        if previous_state == SCENE_HARD_MERGED and state == SCENE_SPLIT_RECOVERY:
+            runtime.group_recovery_remaining[group_key] = (
+                max(0, cfg.hard_occlusion_recovery_frames - 1)
+            )
+            runtime.current_recovery_track_ids.update(group_key)
+            runtime.telemetry["recovery_frames_applied"] += 1
+        runtime.group_states[group_key] = state
+
+    is_hard_occlusion = state in {
+        SCENE_HARD_OCCLUSION_ARMED,
+        SCENE_HARD_MERGED,
+    }
+    is_merged = state == SCENE_HARD_MERGED
+    return HardSceneDecision(
+        state=state,
+        is_hard_occlusion=is_hard_occlusion,
+        is_merged=is_merged,
+        score=float(score),
+        has_detection_deficit=has_detection_deficit,
+        has_oversized_detection=has_oversized_detection,
+    )
+
+
+def update_hard_scene_track_state(
+    group: ConflictGroup,
+    tracks_by_id: dict[int, FixedTrack],
+    decision: HardSceneDecision,
+    cfg: TrackingConfig,
+) -> None:
+    """Keep bounded per-track duration and recovery counters for hard scenes."""
+    for track_id in group.track_ids:
+        track = tracks_by_id[track_id]
+        if decision.is_hard_occlusion:
+            track.hard_occlusion_frames += 1
+            track.hard_occlusion_recovery_frames = 0
+            continue
+        track.hard_occlusion_recovery_frames += 1
+        if track.hard_occlusion_recovery_frames >= cfg.hard_occlusion_recovery_frames:
+            track.hard_occlusion_frames = 0
+            track.hard_occlusion_recovery_frames = 0
+
+
+def nearby_track_pair_for_merged_detection(
+    candidate: FixedTrack,
+    tracks: list[FixedTrack],
+    det: Detection,
+    width: int,
+    height: int,
+    cfg: TrackingConfig,
+) -> list[FixedTrack]:
+    """Return up to two nearby tracks that are likely covered by one large box."""
+    if not candidate.ever_detected:
+        return []
+    previous_box = (
+        candidate.reliable_box
+        if candidate.reliable_box is not None
+        else candidate.last_box
+    )
+    previous_area = bbox_area(previous_box)
+    if bbox_area(det.box) <= cfg.merged_box_growth_ratio * previous_area:
+        return []
+
+    candidate_center = bbox_center(candidate.last_box)
+    candidates: list[tuple[float, FixedTrack]] = []
+    for other in tracks:
+        if other.fixed_id == candidate.fixed_id or not other.ever_detected:
+            continue
+        if bbox_iom(det.box, other.last_box) <= 0.0:
+            continue
+        distance = center_distance_norm(candidate.last_box, other.last_box, width, height)
+        if distance > cfg.merged_box_neighbor_distance:
+            continue
+        other_center = bbox_center(other.last_box)
+        det_center = bbox_center(det.box)
+        pair_distance_to_detection = math.dist(candidate_center, det_center) + math.dist(
+            other_center,
+            det_center,
+        )
+        candidates.append((pair_distance_to_detection, other))
+
+    if not candidates:
+        return []
+    candidates.sort(key=lambda item: item[0])
+    return [candidate, candidates[0][1]][: cfg.merged_box_split_max_tracks]
+
+
+def detect_merged_box_splits(
+    tracks: dict[int, FixedTrack],
+    detections: list[Detection],
+    width: int,
+    height: int,
+    cfg: TrackingConfig,
+    runtime: TrackingRuntimeState | None = None,
+) -> tuple[dict[int, np.ndarray], set[int]]:
+    """Find oversized detections that should be split by motion prediction."""
+    if not cfg.USE_MERGED_BOX_SPLIT:
+        return {}, set()
+
+    if runtime is not None:
+        advance_split_recovery(runtime)
+
+    ordered_tracks = [tracks[idx] for idx in range(1, cfg.expected_pigs + 1)]
+    predicted_boxes = {
+        track.fixed_id: track.predicted_box(width, height)
+        for track in ordered_tracks
+    }
+    conflict_groups = build_local_conflict_groups(
+        ordered_tracks,
+        detections,
+        predicted_boxes,
+        width,
+        height,
+        cfg,
+    )
+    split_boxes: dict[int, np.ndarray] = {}
+    ignored_detections: set[int] = set()
+    grouped_track_ids: set[int] = set()
+    for group in conflict_groups:
+        grouped_track_ids.update(group.track_ids)
+        decision = hard_scene_decision_for_group(
+            group,
+            tracks,
+            detections,
+            predicted_boxes,
+            cfg,
+            runtime,
+        )
+        update_hard_scene_track_state(group, tracks, decision, cfg)
+        if not decision.is_merged:
+            continue
+
+        group_tracks = [
+            tracks[track_id]
+            for track_id in sorted(group.track_ids)
+            if tracks[track_id].ever_detected
+        ]
+        for det_idx in sorted(
+            group.detection_indices,
+            key=lambda idx: detections[idx].score,
+            reverse=True,
+        ):
+            if det_idx in ignored_detections:
+                continue
+            det = detections[det_idx]
+            if len(
+                detection_covers_group_tracks(
+                    det,
+                    group_tracks,
+                    predicted_boxes,
+                    cfg,
+                )
+            ) < 2:
+                continue
+
+            pairs: list[FixedTrack] = []
+            for track in group_tracks:
+                if track.fixed_id in split_boxes:
+                    continue
+                if (
+                    bbox_iom(det.box, predicted_boxes[track.fixed_id])
+                    < cfg.hard_occlusion_detection_iom_threshold
+                ):
+                    continue
+                pairs = nearby_track_pair_for_merged_detection(
+                    track,
+                    group_tracks,
+                    det,
+                    width,
+                    height,
+                    cfg,
+                )
+                if len(pairs) >= 2:
+                    break
+            if len(pairs) < 2:
+                continue
+
+            ignored_detections.add(det_idx)
+            if runtime is not None:
+                runtime.telemetry["detections_intentionally_ignored"] += 1
+            for track in pairs:
+                split_boxes[track.fixed_id] = track.hidden_motion_box(
+                    width,
+                    height,
+                    cfg,
+                )
+    for track in ordered_tracks:
+        if track.fixed_id in grouped_track_ids or track.hard_occlusion_frames == 0:
+            continue
+        track.hard_occlusion_recovery_frames += 1
+        if track.hard_occlusion_recovery_frames >= cfg.hard_occlusion_recovery_frames:
+            track.hard_occlusion_frames = 0
+            track.hard_occlusion_recovery_frames = 0
+    return split_boxes, ignored_detections
+
+
+def apply_merged_box_splits(
+    tracks: dict[int, FixedTrack],
+    split_boxes: dict[int, np.ndarray],
+    matched_tracks: set[int],
+    width: int,
+    height: int,
+) -> None:
+    """Advance split tracks with motion boxes and keep their IDs reserved."""
+    for fixed_id, box in split_boxes.items():
+        if fixed_id in matched_tracks:
+            continue
+        track = tracks[fixed_id]
+        track.update_predicted(box, width, height, ambiguous=True, hold=True)
+        track.last_merged_split = True
+        matched_tracks.add(fixed_id)
+
+
 def track_detection_cost(
     track: FixedTrack,
     det: Detection,
@@ -1927,11 +2658,20 @@ def match_and_update_tracks(
     frame: np.ndarray,
     prev_frame: np.ndarray | None,
     cfg: TrackingConfig,
+    runtime: TrackingRuntimeState | None = None,
 ) -> None:
     from scipy.optimize import linear_sum_assignment
 
     height, width = frame.shape[:2]
     ordered_tracks = [tracks[idx] for idx in range(1, cfg.expected_pigs + 1)]
+    merged_split_boxes, ignored_detection_indices = detect_merged_box_splits(
+        tracks,
+        detections,
+        width,
+        height,
+        cfg,
+        runtime,
+    )
     raw_owner: dict[int, int] = {}
     for track in ordered_tracks:
         raw_id = track.top_raw_id()
@@ -1940,6 +2680,14 @@ def match_and_update_tracks(
 
     matched_tracks: set[int] = set()
     matched_detections: set[int] = set()
+    matched_detections.update(ignored_detection_indices)
+    apply_merged_box_splits(
+        tracks,
+        merged_split_boxes,
+        matched_tracks,
+        width,
+        height,
+    )
     occlusion_context = build_occlusion_context(
         ordered_tracks,
         detections,
@@ -1998,6 +2746,16 @@ def match_and_update_tracks(
                 occlusion_context,
                 cfg,
             )
+            in_split_recovery = (
+                runtime is not None
+                and track.fixed_id in runtime.current_recovery_track_ids
+            )
+            ambiguous = ambiguous or in_split_recovery
+            if area_occlusion_should_freeze(track, detections[det_idx], cfg):
+                freeze_area_occluded_track(track, width, height, cfg)
+                matched_tracks.add(track.fixed_id)
+                matched_detections.add(det_idx)
+                continue
             learn_identity = not (cfg.freeze_identity_in_occlusion and ambiguous)
             track.update_detected(
                 detections[det_idx],
@@ -2019,13 +2777,24 @@ def match_and_update_tracks(
             for track in ordered_tracks
             if not track_is_visible_for_association(track)
         ]
-        all_detection_indices = list(range(len(detections)))
+        all_detection_indices = [
+            idx for idx in range(len(detections)) if idx not in ignored_detection_indices
+        ]
 
         run_matching_phase(visible_tracks, all_detection_indices)
         remaining_detection_indices = [
             idx for idx in all_detection_indices if idx not in matched_detections
         ]
         run_matching_phase(reid_tracks, remaining_detection_indices)
+        apply_iou_fallback(
+            tracks,
+            detections,
+            matched_tracks,
+            matched_detections,
+            width,
+            height,
+            cfg,
+        )
 
     # Unmatched high-confidence detections can initialize hidden placeholder IDs.
     unseen_tracks = [
@@ -2045,6 +2814,13 @@ def match_and_update_tracks(
 
     for track in ordered_tracks:
         if track.fixed_id in matched_tracks:
+            continue
+        if (
+            cfg.USE_AREA_OCCLUSION_FREEZE
+            and track.is_area_occluded
+            and track.area_occlusion_frames < cfg.area_occlusion_freeze_frames
+        ):
+            freeze_area_occluded_track(track, width, height, cfg)
             continue
         if should_hold_occluded_track_box(track, detections, occlusion_context, cfg):
             hold_box = track.hidden_motion_box(width, height, cfg)
@@ -2091,7 +2867,7 @@ def shape_for_track(
         track.last_source != "detected" or track.last_score < cfg.review_conf
     )
     x1, y1, x2, y2 = [round(float(value), 2) for value in track.last_box]
-    return {
+    shape = {
         "type": "rectangle",
         "occluded": hidden == "Yes",
         "outside": False,
@@ -2118,6 +2894,15 @@ def shape_for_track(
         "_occlusion_hold": track.last_source == "occlusion_hold",
         "_motion_state": track.motion_state,
     }
+    if tracking_rule_flags_enabled(cfg):
+        shape.update(
+            {
+                "_area_occluded": bool(track.is_area_occluded),
+                "_area_occlusion_frames": int(track.area_occlusion_frames),
+                "_merged_box_split": bool(track.last_merged_split),
+            }
+        )
+    return shape
 
 
 def frame_shapes(
@@ -2650,6 +3435,7 @@ def build_quality_report(
     video_path: Path,
     source_fps: float,
     source_frame_count: int,
+    telemetry: dict[str, int] | None = None,
 ) -> dict[str, Any]:
     """Summarize frames/tracks that need manual review."""
     frames = sorted({int(shape["frame"]) for shape in shapes})
@@ -2687,6 +3473,16 @@ def build_quality_report(
             for shape in frame_shapes
             if shape.get("_occlusion_hold")
         ]
+        area_occluded_ids = [
+            int(str(shape["label"]).removeprefix("Pig_"))
+            for shape in frame_shapes
+            if shape.get("_area_occluded")
+        ]
+        merged_split_ids = [
+            int(str(shape["label"]).removeprefix("Pig_"))
+            for shape in frame_shapes
+            if shape.get("_merged_box_split")
+        ]
         identity_swap_ids = [
             int(str(shape["label"]).removeprefix("Pig_"))
             for shape in frame_shapes
@@ -2720,6 +3516,8 @@ def build_quality_report(
                 + refined_ids
                 + ambiguous_ids
                 + hold_ids
+                + area_occluded_ids
+                + merged_split_ids
                 + identity_swap_ids
             )
         )
@@ -2739,6 +3537,8 @@ def build_quality_report(
             "refined_count": len(refined_ids),
             "ambiguous_occlusion_count": len(ambiguous_ids),
             "occlusion_hold_count": len(hold_ids),
+            "area_occluded_count": len(area_occluded_ids),
+            "merged_box_split_count": len(merged_split_ids),
             "identity_swap_guard_count": len(identity_swap_ids),
             "hidden_count": len(hidden_ids),
             "low_score_count": len(low_score_ids),
@@ -2748,6 +3548,8 @@ def build_quality_report(
             "refined_ids": refined_ids,
             "ambiguous_occlusion_ids": ambiguous_ids,
             "occlusion_hold_ids": hold_ids,
+            "area_occluded_ids": area_occluded_ids,
+            "merged_box_split_ids": merged_split_ids,
             "identity_swap_guard_ids": identity_swap_ids,
             "moving_ids": moving_ids,
             "stationary_ids": stationary_ids,
@@ -2782,6 +3584,12 @@ def build_quality_report(
             1 for shape in track_shapes if shape.get("_ambiguous_occlusion")
         )
         hold_frames = sum(1 for shape in track_shapes if shape.get("_occlusion_hold"))
+        area_occluded_frames = sum(
+            1 for shape in track_shapes if shape.get("_area_occluded")
+        )
+        merged_split_frames = sum(
+            1 for shape in track_shapes if shape.get("_merged_box_split")
+        )
         identity_swap_frames = sum(
             1 for shape in track_shapes if shape.get("_identity_swap_guard")
         )
@@ -2804,6 +3612,8 @@ def build_quality_report(
                 or shape.get("_refined")
                 or shape.get("_ambiguous_occlusion")
                 or shape.get("_occlusion_hold")
+                or shape.get("_area_occluded")
+                or shape.get("_merged_box_split")
                 or shape.get("_identity_swap_guard")
             )
         )
@@ -2818,6 +3628,8 @@ def build_quality_report(
                 "refined_frames": refined_frames,
                 "ambiguous_occlusion_frames": ambiguous_frames,
                 "occlusion_hold_frames": hold_frames,
+                "area_occluded_frames": area_occluded_frames,
+                "merged_box_split_frames": merged_split_frames,
                 "identity_swap_guard_frames": identity_swap_frames,
                 "moving_frames": moving_frames,
                 "stationary_frames": stationary_frames,
@@ -2830,7 +3642,7 @@ def build_quality_report(
         )
 
     clean_shape_count = len(clean_training_shapes(shapes, cfg))
-    return {
+    report = {
         "video": str(video_path),
         "video_name": video_path.name,
         "source_fps": round(float(source_fps), 4),
@@ -2876,6 +3688,24 @@ def build_quality_report(
             "hold_occluded_box": cfg.hold_occluded_box,
             "occlusion_hold_max_frames": cfg.occlusion_hold_max_frames,
             "occlusion_hold_hidden_frames": cfg.occlusion_hold_hidden_frames,
+            "USE_IOU_FALLBACK": cfg.USE_IOU_FALLBACK,
+            "USE_AREA_OCCLUSION_FREEZE": cfg.USE_AREA_OCCLUSION_FREEZE,
+            "USE_MERGED_BOX_SPLIT": cfg.USE_MERGED_BOX_SPLIT,
+            "iou_fallback_threshold": cfg.iou_fallback_threshold,
+            "area_occlusion_shrink_ratio": cfg.area_occlusion_shrink_ratio,
+            "area_occlusion_freeze_frames": cfg.area_occlusion_freeze_frames,
+            "merged_box_growth_ratio": cfg.merged_box_growth_ratio,
+            "merged_box_neighbor_distance": cfg.merged_box_neighbor_distance,
+            "merged_box_split_max_tracks": cfg.merged_box_split_max_tracks,
+            "hard_occlusion_track_iom_threshold": (
+                cfg.hard_occlusion_track_iom_threshold
+            ),
+            "hard_occlusion_detection_iom_threshold": (
+                cfg.hard_occlusion_detection_iom_threshold
+            ),
+            "hard_occlusion_min_frames": cfg.hard_occlusion_min_frames,
+            "hard_occlusion_recovery_frames": cfg.hard_occlusion_recovery_frames,
+            "hard_occlusion_score_threshold": cfg.hard_occlusion_score_threshold,
             "identity_swap_guard": cfg.identity_swap_guard,
             "identity_swap_min_gain": cfg.identity_swap_min_gain,
             "identity_swap_iom_threshold": cfg.identity_swap_iom_threshold,
@@ -2906,6 +3736,12 @@ def build_quality_report(
             "occlusion_hold_shapes": sum(
                 1 for shape in shapes if shape.get("_occlusion_hold")
             ),
+            "area_occluded_shapes": sum(
+                1 for shape in shapes if shape.get("_area_occluded")
+            ),
+            "merged_box_split_shapes": sum(
+                1 for shape in shapes if shape.get("_merged_box_split")
+            ),
             "identity_swap_guard_shapes": sum(
                 1 for shape in shapes if shape.get("_identity_swap_guard")
             ),
@@ -2917,9 +3753,51 @@ def build_quality_report(
             "issue_frame_count": len(issue_frames),
             "issue_frames": issue_frames,
         },
+        "telemetry": (
+            {key: int((telemetry or {}).get(key, 0)) for key in TRACKING_TELEMETRY_KEYS}
+        ),
         "frames": frame_rows,
         "tracks": track_rows,
     }
+    if not tracking_rule_flags_enabled(cfg):
+        rule_frame_keys = (
+            "area_occluded_count",
+            "merged_box_split_count",
+            "area_occluded_ids",
+            "merged_box_split_ids",
+        )
+        rule_track_keys = (
+            "area_occluded_frames",
+            "merged_box_split_frames",
+        )
+        rule_threshold_keys = (
+            "USE_IOU_FALLBACK",
+            "USE_AREA_OCCLUSION_FREEZE",
+            "USE_MERGED_BOX_SPLIT",
+            "iou_fallback_threshold",
+            "area_occlusion_shrink_ratio",
+            "area_occlusion_freeze_frames",
+            "merged_box_growth_ratio",
+            "merged_box_neighbor_distance",
+            "merged_box_split_max_tracks",
+            "hard_occlusion_track_iom_threshold",
+            "hard_occlusion_detection_iom_threshold",
+            "hard_occlusion_min_frames",
+            "hard_occlusion_recovery_frames",
+            "hard_occlusion_score_threshold",
+        )
+        for row in report["frames"]:
+            for key in rule_frame_keys:
+                row.pop(key, None)
+        for row in report["tracks"]:
+            for key in rule_track_keys:
+                row.pop(key, None)
+        for key in rule_threshold_keys:
+            report["thresholds"].pop(key, None)
+        report["summary"].pop("area_occluded_shapes", None)
+        report["summary"].pop("merged_box_split_shapes", None)
+        report.pop("telemetry", None)
+    return report
 
 
 def write_quality_report_json(path: Path, report: dict[str, Any]) -> None:
@@ -2931,6 +3809,7 @@ def write_quality_report_json(path: Path, report: dict[str, Any]) -> None:
 
 
 def write_quality_report_csv(path: Path, report: dict[str, Any]) -> None:
+    include_rule_fields = "area_occluded_shapes" in report.get("summary", {})
     fieldnames = [
         "frame",
         "time_sec",
@@ -2957,24 +3836,42 @@ def write_quality_report_csv(path: Path, report: dict[str, Any]) -> None:
         "review_ids",
         "needs_review",
     ]
+    if include_rule_fields:
+        count_index = fieldnames.index("identity_swap_guard_count")
+        id_index = fieldnames.index("identity_swap_guard_ids")
+        fieldnames[count_index:count_index] = [
+            "area_occluded_count",
+            "merged_box_split_count",
+        ]
+        fieldnames[id_index + 2 : id_index + 2] = [
+            "area_occluded_ids",
+            "merged_box_split_ids",
+        ]
+    list_fields = [
+        "hidden_ids",
+        "predicted_ids",
+        "refined_ids",
+        "ambiguous_occlusion_ids",
+        "occlusion_hold_ids",
+        "identity_swap_guard_ids",
+        "moving_ids",
+        "stationary_ids",
+        "unknown_motion_ids",
+        "low_score_ids",
+        "review_ids",
+    ]
+    if include_rule_fields:
+        insert_at = list_fields.index("identity_swap_guard_ids")
+        list_fields[insert_at:insert_at] = [
+            "area_occluded_ids",
+            "merged_box_split_ids",
+        ]
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
         for row in report["frames"]:
             serialized = row.copy()
-            for key in (
-                "hidden_ids",
-                "predicted_ids",
-                "refined_ids",
-                "ambiguous_occlusion_ids",
-                "occlusion_hold_ids",
-                "identity_swap_guard_ids",
-                "moving_ids",
-                "stationary_ids",
-                "unknown_motion_ids",
-                "low_score_ids",
-                "review_ids",
-            ):
+            for key in list_fields:
                 serialized[key] = " ".join(str(value) for value in row[key])
             writer.writerow(serialized)
 
@@ -3390,6 +4287,7 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
     mask = load_mask(cfg.mask_path, width, height, cfg)
     model = YOLO(str(cfg.weights_path))
     tracks: dict[int, FixedTrack] | None = None
+    runtime = TrackingRuntimeState()
     shapes: list[dict[str, Any]] = []
     hidden_shape_count = 0
     review_shape_count = 0
@@ -3442,6 +4340,8 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
                 iou=cfg.iou,
                 tracker=str(tracker_yaml),
                 verbose=False,
+                device=cfg.device,
+                half=cfg.half,
             )
             detections = adaptive_confidence_filter(
                 parse_detections(results[0], frame, mask, cfg),
@@ -3451,7 +4351,14 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
             if tracks is None:
                 tracks = initialize_tracks(detections, mask, width, height, cfg)
             else:
-                match_and_update_tracks(tracks, detections, frame, prev_frame, cfg)
+                match_and_update_tracks(
+                    tracks,
+                    detections,
+                    frame,
+                    prev_frame,
+                    cfg,
+                    runtime,
+                )
 
             current_shapes = frame_shapes(tracks, frame_index, cfg)
             shapes.extend(current_shapes)
@@ -3494,6 +4401,8 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
             or shape.get("_refined")
             or shape.get("_ambiguous_occlusion")
             or shape.get("_occlusion_hold")
+            or shape.get("_area_occluded")
+            or shape.get("_merged_box_split")
             or shape.get("_identity_swap_guard")
         )
     )
@@ -3547,6 +4456,7 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
         cfg.video_path,
         source_fps,
         source_frame_count,
+        get_telemetry_summary(runtime),
     )
     write_quality_report_json(quality_report_json, quality_report)
     write_quality_report_csv(quality_report_csv, quality_report)
@@ -3567,6 +4477,7 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
         start_frame=cfg.start_frame,
         source_fps=source_fps,
         output_fps=cfg.output_fps,
+        telemetry=get_telemetry_summary(runtime),
     )
 
 
@@ -3610,6 +4521,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--tracker-yaml", type=Path, default=None)
     parser.add_argument("--quality-report-json", type=Path, default=None)
     parser.add_argument("--quality-report-csv", type=Path, default=None)
+    parser.add_argument(
+        "--device",
+        type=str,
+        default=None,
+        help="Torch device for YOLO inference, for example '0' or 'cpu'.",
+    )
+    parser.add_argument("--half", action="store_true")
     parser.add_argument("--start-frame", type=int, default=0)
     parser.add_argument(
         "--conf",
@@ -3681,6 +4599,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--directional-y-margin-px", type=float, default=5.0)
     parser.add_argument("--occlusion-hold-max-frames", type=int, default=30)
     parser.add_argument("--occlusion-hold-hidden-frames", type=int, default=2)
+    parser.add_argument("--use-iou-fallback", action="store_true")
+    parser.add_argument("--use-area-occlusion-freeze", action="store_true")
+    parser.add_argument("--use-merged-box-split", action="store_true")
+    parser.add_argument("--iou-fallback-threshold", type=float, default=0.45)
+    parser.add_argument("--area-occlusion-shrink-ratio", type=float, default=0.60)
+    parser.add_argument("--area-occlusion-freeze-frames", type=int, default=15)
+    parser.add_argument("--merged-box-growth-ratio", type=float, default=1.50)
+    parser.add_argument("--merged-box-neighbor-distance", type=float, default=0.12)
+    parser.add_argument("--merged-box-split-max-tracks", type=int, default=2)
+    parser.add_argument("--hard-occlusion-track-iom-threshold", type=float, default=0.35)
+    parser.add_argument(
+        "--hard-occlusion-detection-iom-threshold",
+        type=float,
+        default=0.45,
+    )
+    parser.add_argument("--hard-occlusion-min-frames", type=int, default=2)
+    parser.add_argument("--hard-occlusion-recovery-frames", type=int, default=4)
+    parser.add_argument("--hard-occlusion-score-threshold", type=float, default=0.65)
     parser.add_argument("--identity-swap-min-gain", type=float, default=0.015)
     parser.add_argument("--identity-swap-iom-threshold", type=float, default=0.10)
     parser.add_argument("--hidden-velocity-alpha", type=float, default=0.65)
@@ -3770,6 +4706,8 @@ def _tracking_config_from_args(
         tracker_yaml=args.tracker_yaml,
         quality_report_json=args.quality_report_json,
         quality_report_csv=args.quality_report_csv,
+        device=args.device,
+        half=args.half,
         start_frame=args.start_frame,
         output_fps=args.fps,
         det_conf=args.det_conf,
@@ -3823,6 +4761,22 @@ def _tracking_config_from_args(
         hold_occluded_box=not args.no_hold_occluded_box,
         occlusion_hold_max_frames=args.occlusion_hold_max_frames,
         occlusion_hold_hidden_frames=args.occlusion_hold_hidden_frames,
+        USE_IOU_FALLBACK=args.use_iou_fallback,
+        USE_AREA_OCCLUSION_FREEZE=args.use_area_occlusion_freeze,
+        USE_MERGED_BOX_SPLIT=args.use_merged_box_split,
+        iou_fallback_threshold=args.iou_fallback_threshold,
+        area_occlusion_shrink_ratio=args.area_occlusion_shrink_ratio,
+        area_occlusion_freeze_frames=args.area_occlusion_freeze_frames,
+        merged_box_growth_ratio=args.merged_box_growth_ratio,
+        merged_box_neighbor_distance=args.merged_box_neighbor_distance,
+        merged_box_split_max_tracks=args.merged_box_split_max_tracks,
+        hard_occlusion_track_iom_threshold=args.hard_occlusion_track_iom_threshold,
+        hard_occlusion_detection_iom_threshold=(
+            args.hard_occlusion_detection_iom_threshold
+        ),
+        hard_occlusion_min_frames=args.hard_occlusion_min_frames,
+        hard_occlusion_recovery_frames=args.hard_occlusion_recovery_frames,
+        hard_occlusion_score_threshold=args.hard_occlusion_score_threshold,
         identity_swap_guard=not args.no_identity_swap_guard,
         identity_swap_min_gain=args.identity_swap_min_gain,
         identity_swap_iom_threshold=args.identity_swap_iom_threshold,
@@ -3905,6 +4859,11 @@ def print_tracking_summary(cfg: TrackingConfig, summary: TrackingSummary) -> Non
         f"bbox_fallback=True"
     )
     print(
+        "[OK] inference="
+        f"device={cfg.device if cfg.device is not None else 'auto'}, "
+        f"half={cfg.half}"
+    )
+    print(
         "[OK] occlusion_matching="
         f"enabled={cfg.occlusion_aware_matching}, "
         f"track_iom={cfg.occlusion_track_iom_threshold:.2f}, "
@@ -3915,6 +4874,24 @@ def print_tracking_summary(cfg: TrackingConfig, summary: TrackingSummary) -> Non
         f"hold_box={cfg.hold_occluded_box}, "
         f"hold_hidden_frames={cfg.occlusion_hold_hidden_frames}"
     )
+    if tracking_rule_flags_enabled(cfg):
+        print(
+            "[OK] rule_flags="
+            f"iou_fallback={cfg.USE_IOU_FALLBACK}, "
+            f"area_freeze={cfg.USE_AREA_OCCLUSION_FREEZE}, "
+            f"merged_split={cfg.USE_MERGED_BOX_SPLIT}, "
+            f"iou_threshold={cfg.iou_fallback_threshold:.2f}, "
+            f"shrink_ratio={cfg.area_occlusion_shrink_ratio:.2f}, "
+            f"growth_ratio={cfg.merged_box_growth_ratio:.2f}"
+        )
+        telemetry = get_telemetry_summary(summary)
+        print(
+            "[OK] telemetry="
+            f"hard_merges_triggered={telemetry['hard_merges_triggered']}, "
+            "detections_intentionally_ignored="
+            f"{telemetry['detections_intentionally_ignored']}, "
+            f"recovery_frames_applied={telemetry['recovery_frames_applied']}"
+        )
     print(
         "[OK] directional_y_prior="
         f"enabled={cfg.directional_y_prior}, "
@@ -3973,6 +4950,195 @@ def main(argv: list[str] | None = None) -> int:
     if len(summaries) > 1:
         print(f"[OK] processed videos: {len(summaries)}")
     return 0
+
+
+from pig_behavior.tracking.config import (  # noqa: E402,F811
+    TrackingConfig,
+    get_telemetry_summary,
+    resolve_output_paths,
+    tracking_rule_flags_enabled,
+    validate_config,
+    write_tracker_yaml,
+)
+from pig_behavior.tracking.association import (  # noqa: E402,F811
+    apply_directional_y_prior_to_costs,
+    association_cost_threshold,
+    association_reference_box,
+    low_conf_detection_is_plausible,
+    match_and_update_tracks,
+    track_detection_cost,
+    track_y_velocity_for_directional_prior,
+)
+from pig_behavior.tracking.constants import (  # noqa: E402,F811
+    BEHAVIOR_VALUES,
+    DEFAULT_CONF_THRESHOLD,
+    DEFAULT_DET_CONF_THRESHOLD,
+    DEFAULT_MASK_PATH,
+    DEFAULT_OUTPUT_DIR,
+    DEFAULT_OVERLAP_THRESHOLD,
+    DEFAULT_REVIEW_CONF_THRESHOLD,
+    DEFAULT_TRACK_HIGH_CONF_THRESHOLD,
+    DEFAULT_VIDEO_PATH,
+    DEFAULT_VISUAL_OPACITY,
+    DEFAULT_WEIGHTS_PATH,
+    ID_VALUES,
+    PIG_LABEL_SCHEMA,
+    PROJECT_ROOT,
+    SCENE_CLEAR,
+    SCENE_HARD_MERGED,
+    SCENE_HARD_OCCLUSION_ARMED,
+    SCENE_SOFT_PROXIMITY,
+    SCENE_SPLIT_RECOVERY,
+    TRACKING_TELEMETRY_KEYS,
+    TRACK_COLORS_BGR,
+    build_pig_label_schema,
+)
+from pig_behavior.tracking.detections import (  # noqa: E402,F811
+    _names_dict,
+    _result_masks,
+    _to_numpy,
+    adaptive_confidence_filter,
+    confidence_ladder,
+    extract_hist_hsv,
+    hist_distance,
+    parse_detections,
+    spatial_sort_detections,
+    suppress_duplicate_detections,
+)
+from pig_behavior.tracking.geometry import (  # noqa: E402,F811
+    area_log_ratio,
+    bbox_area,
+    bbox_center,
+    bbox_intersection_area,
+    bbox_iom,
+    bbox_iom_matrix,
+    bbox_iou,
+    bbox_iou_matrix,
+    bbox_size,
+    center_distance_norm,
+    center_distance_norm_matrix,
+    clip_box,
+    smooth_alpha_for_score,
+    smooth_detected_box,
+)
+from pig_behavior.tracking.masks import (  # noqa: E402,F811
+    apply_mask_to_frame,
+    detection_overlap_score,
+    load_mask,
+    mask_anchor_boxes,
+    mask_area,
+    mask_iou,
+    roi_keep,
+    shade_outside_roi,
+    shift_mask,
+    track_detection_overlap_score,
+    track_mask_for_box,
+)
+from pig_behavior.tracking.occlusion import (  # noqa: E402,F811
+    advance_split_recovery,
+    apply_iou_fallback,
+    apply_merged_box_splits,
+    area_occlusion_should_freeze,
+    assignment_is_occlusion_ambiguous,
+    build_local_conflict_groups,
+    build_occlusion_context,
+    conflict_group_key,
+    detect_merged_box_splits,
+    detection_covers_group_tracks,
+    detection_is_reserved_for_active_track,
+    freeze_area_occluded_track,
+    hard_scene_decision_for_group,
+    nearby_track_pair_for_merged_detection,
+    occlusion_assignment_penalty,
+    reliable_track_area,
+    should_hold_occluded_track_box,
+    track_is_stationary_locked,
+    track_speed_norm,
+    tracks_are_moving_toward_each_other,
+    update_hard_scene_track_state,
+)
+from pig_behavior.tracking.refinement import (  # noqa: E402,F811
+    _apply_non_id_attribute_values,
+    _apply_shape_payload,
+    _non_id_attribute_values,
+    _shape_attributes_dict,
+    _shape_payload,
+    apply_identity_swap_guard,
+    clean_training_shapes,
+    identity_swap_reason,
+    interpolate_box,
+    nearby_anchor_indices,
+    refine_original_weight,
+    refine_shapes_temporally,
+    set_shape_box,
+    shape_box,
+    shape_fixed_id,
+    shape_hidden_value,
+    shape_is_clean_for_training,
+    shape_is_stable_anchor,
+    size_jump_ratio,
+    swap_shape_identity_payloads,
+    transition_cost,
+)
+from pig_behavior.tracking.schemas import (  # noqa: E402,F811
+    ConflictGroup,
+    Detection,
+    FixedTrack,
+    HardSceneDecision,
+    OcclusionContext,
+    TrackingRuntimeState,
+    TrackingSummary,
+)
+from pig_behavior.tracking.tracks import (  # noqa: E402,F811
+    detection_needs_motion_gate,
+    frame_shapes,
+    initialize_tracks,
+    lk_predict_box,
+    shape_for_track,
+    track_is_hidden,
+    track_is_lost_for_association,
+    track_is_visible_for_association,
+)
+from pig_behavior.tracking.exporters.annotation import (  # noqa: E402,F811
+    strip_internal_shape_keys,
+    write_annotation_json,
+)
+from pig_behavior.tracking.exporters.coco import (  # noqa: E402,F811
+    write_coco_annotation_json,
+)
+from pig_behavior.tracking.exporters.cvat_xml import (  # noqa: E402,F811
+    _append_cvat_xml_label,
+    _xml_child,
+    write_cvat_video_xml,
+)
+from pig_behavior.tracking.exporters.labels import (  # noqa: E402,F811
+    write_labels_json,
+)
+from pig_behavior.tracking.exporters.quality import (  # noqa: E402,F811
+    _shape_attribute_value,
+    build_quality_report,
+    write_quality_report_csv,
+    write_quality_report_json,
+)
+from pig_behavior.tracking.visualization import (  # noqa: E402,F811
+    draw_dashed_rectangle,
+    draw_shape_annotations,
+    draw_tracks,
+    render_annotation_video,
+    shapes_by_frame,
+)
+from pig_behavior.tracking.runner import (  # noqa: E402,F811
+    display_tracked_video,
+    run_tracking,
+)
+from pig_behavior.tracking.cli import (  # noqa: E402,F811
+    _profile_from_args,
+    _tracking_config_from_args,
+    _video_paths_from_args,
+    main,
+    parse_args,
+    print_tracking_summary,
+)
 
 
 if __name__ == "__main__":

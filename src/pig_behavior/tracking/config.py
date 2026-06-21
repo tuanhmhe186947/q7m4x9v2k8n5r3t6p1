@@ -1,0 +1,422 @@
+"""Configuration and output path helpers for offline pig tracking."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+from pig_behavior.tracking.constants import (
+    BEHAVIOR_VALUES,
+    DEFAULT_DET_CONF_THRESHOLD,
+    DEFAULT_MASK_PATH,
+    DEFAULT_OUTPUT_DIR,
+    DEFAULT_OVERLAP_THRESHOLD,
+    DEFAULT_REVIEW_CONF_THRESHOLD,
+    DEFAULT_TRACK_HIGH_CONF_THRESHOLD,
+    DEFAULT_VIDEO_PATH,
+    DEFAULT_VISUAL_OPACITY,
+    DEFAULT_WEIGHTS_PATH,
+    ID_VALUES,
+    TRACKING_TELEMETRY_KEYS,
+)
+
+
+@dataclass(slots=True)
+class TrackingConfig:
+    """Config for YOLOv8 detection, ID stabilization, JSON, and video export."""
+
+    video_path: Path = DEFAULT_VIDEO_PATH
+    weights_path: Path = DEFAULT_WEIGHTS_PATH
+    mask_path: Path | None = DEFAULT_MASK_PATH
+    output_dir: Path = DEFAULT_OUTPUT_DIR
+    output_video: Path | None = None
+    annotations_json: Path | None = None
+    coco_annotations_json: Path | None = None
+    clean_coco_annotations_json: Path | None = None
+    cvat_video_xml: Path | None = None
+    labels_json: Path | None = None
+    tracker_yaml: Path | None = None
+    quality_report_json: Path | None = None
+    quality_report_csv: Path | None = None
+    device: int | str | None = None
+    half: bool = False
+
+    expected_pigs: int = 8
+    output_fps: float = 30.0
+    start_frame: int = 0
+    det_conf: float = DEFAULT_DET_CONF_THRESHOLD
+    track_high_conf: float = DEFAULT_TRACK_HIGH_CONF_THRESHOLD
+    review_conf: float = DEFAULT_REVIEW_CONF_THRESHOLD
+    adaptive_conf_step: float = 0.05
+    conf: float | None = None
+    iou: float = DEFAULT_OVERLAP_THRESHOLD
+    class_id: int | None = None
+    allowed_class_name: str | None = None
+
+    use_mask: bool = True
+    mask_input_frame: bool = True
+    roi_mode: str = "center"
+    roi_min_cover: float = 0.10
+    roi_dilate_px: int = 8
+
+    max_missing_frames: int = 90
+    hidden_missed_frames: int = 5
+    hidden_score_threshold: float = 0.15
+    use_mask_iou: bool = True
+    mask_iou_max_missed: int = 10
+    mask_iou_min_area: int = 64
+    match_cost_threshold: float = 0.78
+    unseen_track_cost_threshold: float = 1.10
+    lost_track_cost_threshold: float = 0.95
+    lost_track_reid_appearance_threshold: float = 0.25
+    duplicate_iou_threshold: float = DEFAULT_OVERLAP_THRESHOLD
+    initial_track_conf: float = DEFAULT_TRACK_HIGH_CONF_THRESHOLD
+    low_conf_motion_gate: bool = True
+    motion_gate_confidence: float = DEFAULT_TRACK_HIGH_CONF_THRESHOLD
+    low_conf_max_center_jump: float = 0.08
+    low_conf_max_box_jump_scale: float = 1.75
+    low_conf_min_iou: float = 0.01
+    occlusion_aware_matching: bool = True
+    occlusion_track_iom_threshold: float = 0.20
+    occlusion_detection_iom_threshold: float = 0.30
+    occlusion_stationary_speed: float = 0.006
+    occlusion_stationary_max_center_jump: float = 0.045
+    occlusion_switch_penalty: float = 0.45
+    occlusion_competitor_margin: float = 0.12
+    occlusion_appearance_penalty: float = 0.30
+    occlusion_appearance_margin: float = 0.08
+    directional_y_prior: bool = True
+    directional_y_penalty_weight: float = 0.12
+    directional_y_velocity_epsilon_px: float = 3.0
+    directional_y_margin_px: float = 5.0
+    occlusion_stationary_lock: bool = True
+    freeze_identity_in_occlusion: bool = True
+    hold_occluded_box: bool = True
+    occlusion_hold_max_frames: int = 30
+    occlusion_hold_hidden_frames: int = 2
+    USE_IOU_FALLBACK: bool = False
+    USE_AREA_OCCLUSION_FREEZE: bool = False
+    USE_MERGED_BOX_SPLIT: bool = False
+    iou_fallback_threshold: float = 0.45
+    area_occlusion_shrink_ratio: float = 0.60
+    area_occlusion_freeze_frames: int = 15
+    merged_box_growth_ratio: float = 1.50
+    merged_box_neighbor_distance: float = 0.12
+    merged_box_split_max_tracks: int = 2
+    hard_occlusion_track_iom_threshold: float = 0.35
+    hard_occlusion_detection_iom_threshold: float = 0.45
+    hard_occlusion_min_frames: int = 2
+    hard_occlusion_recovery_frames: int = 4
+    hard_occlusion_score_threshold: float = 0.65
+    identity_swap_guard: bool = True
+    identity_swap_min_gain: float = 0.015
+    identity_swap_iom_threshold: float = 0.10
+    hidden_motion_model: bool = True
+    hidden_velocity_alpha: float = 0.65
+    hidden_acceleration_alpha: float = 0.35
+    hidden_stationary_speed: float = 0.006
+    hidden_motion_history: int = 8
+    hidden_min_motion_history: int = 4
+    hidden_stationary_displacement: float = 0.015
+    hidden_moving_displacement: float = 0.035
+    hidden_motion_consistency: float = 0.55
+    hidden_stationary_lock_frames: int = 8
+    hidden_max_motion_step_box_scale: float = 1.50
+    default_behavior: str = "lying"
+    smooth_boxes: bool = True
+    refine_boxes: bool = True
+    refine_max_gap_frames: int = 15
+    refine_size_jump_threshold: float = 0.45
+    max_box_scale_change_per_frame: float = 0.25
+    max_box_scale_change_after_gap: float = 0.75
+    high_conf_smooth_alpha: float = 0.75
+    mid_conf_smooth_alpha: float = 0.55
+    low_conf_smooth_alpha: float = 0.35
+
+    max_frames: int | None = None
+    draw_mask_outline: bool = True
+    shade_outside_mask: bool = True
+    visual_opacity: float = DEFAULT_VISUAL_OPACITY
+    show: bool = False
+    display_inline: bool = False
+
+
+def tracking_rule_flags_enabled(cfg: TrackingConfig) -> bool:
+    return (
+        cfg.USE_IOU_FALLBACK
+        or cfg.USE_AREA_OCCLUSION_FREEZE
+        or cfg.USE_MERGED_BOX_SPLIT
+    )
+
+
+def get_telemetry_summary(source: Any) -> dict[str, int]:
+    """Return telemetry counters in a stable schema for benchmark comparison."""
+    telemetry = source.telemetry
+    return {key: int(telemetry.get(key, 0)) for key in TRACKING_TELEMETRY_KEYS}
+
+
+def validate_config(cfg: TrackingConfig) -> None:
+    if cfg.conf is not None:
+        cfg.review_conf = cfg.conf
+    if cfg.start_frame < 0:
+        raise ValueError("start_frame must be >= 0.")
+    if isinstance(cfg.device, str) and not cfg.device.strip():
+        raise ValueError("device must not be empty.")
+    if cfg.expected_pigs != len(ID_VALUES):
+        raise ValueError("The CVAT label schema is fixed to exactly 8 pig IDs.")
+    if cfg.default_behavior not in BEHAVIOR_VALUES:
+        raise ValueError(f"default_behavior must be one of: {BEHAVIOR_VALUES}")
+    if cfg.roi_mode not in {"center", "cover"}:
+        raise ValueError("roi_mode must be either 'center' or 'cover'.")
+    confidence_values = {
+        "det_conf": cfg.det_conf,
+        "track_high_conf": cfg.track_high_conf,
+        "review_conf": cfg.review_conf,
+    }
+    for name, value in confidence_values.items():
+        if not 0.0 < value < 1.0:
+            raise ValueError(f"{name} must be between 0 and 1.")
+    gate_confidence_values = {
+        "initial_track_conf": cfg.initial_track_conf,
+        "motion_gate_confidence": cfg.motion_gate_confidence,
+    }
+    for name, value in gate_confidence_values.items():
+        if not 0.0 < value < 1.0:
+            raise ValueError(f"{name} must be between 0 and 1.")
+    if cfg.det_conf > cfg.track_high_conf:
+        raise ValueError("det_conf should be <= track_high_conf.")
+    if cfg.track_high_conf > cfg.review_conf:
+        raise ValueError("track_high_conf should be <= review_conf.")
+    if cfg.initial_track_conf < cfg.det_conf:
+        raise ValueError("initial_track_conf should be >= det_conf.")
+    if cfg.motion_gate_confidence < cfg.det_conf:
+        raise ValueError("motion_gate_confidence should be >= det_conf.")
+    if not 0.0 < cfg.adaptive_conf_step <= 0.50:
+        raise ValueError("adaptive_conf_step must be between 0 and 0.50.")
+    if not 0.0 < cfg.iou < 1.0:
+        raise ValueError("iou must be between 0 and 1.")
+    if not 0.0 <= cfg.visual_opacity <= 1.0:
+        raise ValueError("visual_opacity must be between 0 and 1.")
+    if cfg.hidden_missed_frames < 1:
+        raise ValueError("hidden_missed_frames must be >= 1.")
+    if not 0.0 <= cfg.hidden_score_threshold <= 1.0:
+        raise ValueError("hidden_score_threshold must be between 0 and 1.")
+    if cfg.mask_iou_max_missed < 0:
+        raise ValueError("mask_iou_max_missed must be >= 0.")
+    if cfg.mask_iou_min_area < 1:
+        raise ValueError("mask_iou_min_area must be >= 1.")
+    cost_thresholds = {
+        "match_cost_threshold": cfg.match_cost_threshold,
+        "unseen_track_cost_threshold": cfg.unseen_track_cost_threshold,
+        "lost_track_cost_threshold": cfg.lost_track_cost_threshold,
+    }
+    for name, value in cost_thresholds.items():
+        if value < 0.0:
+            raise ValueError(f"{name} must be >= 0.")
+    if not 0.0 <= cfg.lost_track_reid_appearance_threshold <= 1.0:
+        raise ValueError(
+            "lost_track_reid_appearance_threshold must be between 0 and 1."
+        )
+    if not 0.0 <= cfg.low_conf_max_center_jump <= 1.0:
+        raise ValueError("low_conf_max_center_jump must be between 0 and 1.")
+    if not 0.0 <= cfg.low_conf_min_iou <= 1.0:
+        raise ValueError("low_conf_min_iou must be between 0 and 1.")
+    if cfg.low_conf_max_box_jump_scale < 0.0:
+        raise ValueError("low_conf_max_box_jump_scale must be >= 0.")
+    occlusion_values = {
+        "occlusion_track_iom_threshold": cfg.occlusion_track_iom_threshold,
+        "occlusion_detection_iom_threshold": cfg.occlusion_detection_iom_threshold,
+        "occlusion_stationary_speed": cfg.occlusion_stationary_speed,
+        "occlusion_stationary_max_center_jump": (
+            cfg.occlusion_stationary_max_center_jump
+        ),
+        "occlusion_switch_penalty": cfg.occlusion_switch_penalty,
+        "occlusion_competitor_margin": cfg.occlusion_competitor_margin,
+        "occlusion_appearance_penalty": cfg.occlusion_appearance_penalty,
+        "occlusion_appearance_margin": cfg.occlusion_appearance_margin,
+    }
+    for name, value in occlusion_values.items():
+        if not 0.0 <= value <= 1.0:
+            raise ValueError(f"{name} must be between 0 and 1.")
+    if cfg.occlusion_hold_max_frames < 0:
+        raise ValueError("occlusion_hold_max_frames must be >= 0.")
+    if cfg.occlusion_hold_hidden_frames < 1:
+        raise ValueError("occlusion_hold_hidden_frames must be >= 1.")
+    if cfg.USE_IOU_FALLBACK and not 0.0 <= cfg.iou_fallback_threshold <= 1.0:
+        raise ValueError("iou_fallback_threshold must be between 0 and 1.")
+    if cfg.USE_AREA_OCCLUSION_FREEZE:
+        if not 0.0 < cfg.area_occlusion_shrink_ratio <= 1.0:
+            raise ValueError("area_occlusion_shrink_ratio must be in (0, 1].")
+        if cfg.area_occlusion_freeze_frames < 1:
+            raise ValueError("area_occlusion_freeze_frames must be >= 1.")
+    if cfg.USE_MERGED_BOX_SPLIT:
+        if cfg.merged_box_growth_ratio <= 1.0:
+            raise ValueError("merged_box_growth_ratio must be > 1.")
+        if not 0.0 < cfg.merged_box_neighbor_distance <= 1.0:
+            raise ValueError("merged_box_neighbor_distance must be in (0, 1].")
+        if cfg.merged_box_split_max_tracks < 2:
+            raise ValueError("merged_box_split_max_tracks must be >= 2.")
+        hard_occlusion_values = {
+            "hard_occlusion_track_iom_threshold": (
+                cfg.hard_occlusion_track_iom_threshold
+            ),
+            "hard_occlusion_detection_iom_threshold": (
+                cfg.hard_occlusion_detection_iom_threshold
+            ),
+            "hard_occlusion_score_threshold": cfg.hard_occlusion_score_threshold,
+        }
+        for name, value in hard_occlusion_values.items():
+            if not 0.0 <= value <= 1.0:
+                raise ValueError(f"{name} must be between 0 and 1.")
+        if cfg.hard_occlusion_min_frames < 1:
+            raise ValueError("hard_occlusion_min_frames must be >= 1.")
+        if cfg.hard_occlusion_recovery_frames < 1:
+            raise ValueError("hard_occlusion_recovery_frames must be >= 1.")
+    identity_swap_values = {
+        "identity_swap_min_gain": cfg.identity_swap_min_gain,
+        "identity_swap_iom_threshold": cfg.identity_swap_iom_threshold,
+    }
+    for name, value in identity_swap_values.items():
+        if not 0.0 <= value <= 1.0:
+            raise ValueError(f"{name} must be between 0 and 1.")
+    hidden_motion_values = {
+        "hidden_velocity_alpha": cfg.hidden_velocity_alpha,
+        "hidden_acceleration_alpha": cfg.hidden_acceleration_alpha,
+        "hidden_stationary_speed": cfg.hidden_stationary_speed,
+        "hidden_stationary_displacement": cfg.hidden_stationary_displacement,
+        "hidden_moving_displacement": cfg.hidden_moving_displacement,
+        "hidden_motion_consistency": cfg.hidden_motion_consistency,
+    }
+    for name, value in hidden_motion_values.items():
+        if not 0.0 <= value <= 1.0:
+            raise ValueError(f"{name} must be between 0 and 1.")
+    if cfg.hidden_motion_history < 2:
+        raise ValueError("hidden_motion_history must be >= 2.")
+    if cfg.hidden_min_motion_history < 2:
+        raise ValueError("hidden_min_motion_history must be >= 2.")
+    if cfg.hidden_min_motion_history > cfg.hidden_motion_history:
+        raise ValueError(
+            "hidden_min_motion_history must be <= hidden_motion_history."
+        )
+    if cfg.hidden_stationary_lock_frames < 1:
+        raise ValueError("hidden_stationary_lock_frames must be >= 1.")
+    if cfg.hidden_max_motion_step_box_scale < 0.0:
+        raise ValueError("hidden_max_motion_step_box_scale must be >= 0.")
+    scale_values = {
+        "max_box_scale_change_per_frame": cfg.max_box_scale_change_per_frame,
+        "max_box_scale_change_after_gap": cfg.max_box_scale_change_after_gap,
+    }
+    for name, value in scale_values.items():
+        if not 0.0 <= value <= 2.0:
+            raise ValueError(f"{name} must be between 0 and 2.")
+    if cfg.refine_max_gap_frames < 1:
+        raise ValueError("refine_max_gap_frames must be >= 1.")
+    if not 0.0 <= cfg.refine_size_jump_threshold <= 2.0:
+        raise ValueError("refine_size_jump_threshold must be between 0 and 2.")
+    alpha_values = {
+        "high_conf_smooth_alpha": cfg.high_conf_smooth_alpha,
+        "mid_conf_smooth_alpha": cfg.mid_conf_smooth_alpha,
+        "low_conf_smooth_alpha": cfg.low_conf_smooth_alpha,
+    }
+    for name, value in alpha_values.items():
+        if not 0.0 <= value <= 1.0:
+            raise ValueError(f"{name} must be between 0 and 1.")
+    if not cfg.video_path.exists():
+        raise FileNotFoundError(f"Video not found: {cfg.video_path}")
+    if not cfg.weights_path.exists():
+        raise FileNotFoundError(f"YOLOv8 weights not found: {cfg.weights_path}")
+    if cfg.use_mask and cfg.mask_path is not None and not cfg.mask_path.exists():
+        raise FileNotFoundError(f"Mask not found: {cfg.mask_path}")
+
+
+def resolve_output_paths(
+    cfg: TrackingConfig,
+) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path]:
+    video_stem = cfg.video_path.stem
+    run_output_dir = cfg.output_dir / video_stem
+    run_output_dir.mkdir(parents=True, exist_ok=True)
+    output_video = cfg.output_video or (
+        run_output_dir / f"{video_stem}_tracked_pigs_with_ids.mp4"
+    )
+    annotations_json = cfg.annotations_json or (
+        run_output_dir / f"{video_stem}_annotations_cvat_shapes.json"
+    )
+    coco_annotations_json = cfg.coco_annotations_json or (
+        run_output_dir / f"{video_stem}_annotations_coco.json"
+    )
+    clean_coco_annotations_json = cfg.clean_coco_annotations_json or (
+        run_output_dir / f"{video_stem}_annotations_coco_clean_train.json"
+    )
+    cvat_video_xml = cfg.cvat_video_xml or (
+        run_output_dir / f"{video_stem}_annotations_cvat_video_1_1.xml"
+    )
+    labels_json = cfg.labels_json or run_output_dir / f"{video_stem}_labels.json"
+    tracker_yaml = cfg.tracker_yaml or (
+        run_output_dir / f"{video_stem}_bytetrack_pig_8.yaml"
+    )
+    quality_report_json = cfg.quality_report_json or (
+        run_output_dir / f"{video_stem}_tracking_quality_report.json"
+    )
+    quality_report_csv = cfg.quality_report_csv or (
+        run_output_dir / f"{video_stem}_tracking_quality_report.csv"
+    )
+    output_video.parent.mkdir(parents=True, exist_ok=True)
+    annotations_json.parent.mkdir(parents=True, exist_ok=True)
+    coco_annotations_json.parent.mkdir(parents=True, exist_ok=True)
+    clean_coco_annotations_json.parent.mkdir(parents=True, exist_ok=True)
+    cvat_video_xml.parent.mkdir(parents=True, exist_ok=True)
+    labels_json.parent.mkdir(parents=True, exist_ok=True)
+    tracker_yaml.parent.mkdir(parents=True, exist_ok=True)
+    quality_report_json.parent.mkdir(parents=True, exist_ok=True)
+    quality_report_csv.parent.mkdir(parents=True, exist_ok=True)
+    return (
+        output_video,
+        annotations_json,
+        coco_annotations_json,
+        clean_coco_annotations_json,
+        cvat_video_xml,
+        labels_json,
+        tracker_yaml,
+        quality_report_json,
+        quality_report_csv,
+    )
+
+
+def write_tracker_yaml(path: Path, cfg: TrackingConfig) -> None:
+    """Write a ByteTrack config tuned for crowded 30 FPS pig videos."""
+    track_low_thresh = min(cfg.det_conf, cfg.track_high_conf)
+    path.write_text(
+        "\n".join(
+            [
+                "tracker_type: bytetrack",
+                f"track_high_thresh: {cfg.track_high_conf:.2f}",
+                f"track_low_thresh: {track_low_thresh:.2f}",
+                f"new_track_thresh: {cfg.track_high_conf:.2f}",
+                f"track_thresh: {cfg.track_high_conf:.2f}",
+                f"match_thresh: {cfg.iou:.2f}",
+                "track_buffer: 90",
+                "min_box_area: 10",
+                "mot20: false",
+                "fuse_score: true",
+                "proximity_thresh: 0.5",
+                "appearance_thresh: 0.25",
+                "max_age: 90",
+                "n_init: 3",
+                "with_reid: true",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+        newline="\n",
+    )
+
+
+__all__ = [
+    "TrackingConfig",
+    "get_telemetry_summary",
+    "resolve_output_paths",
+    "tracking_rule_flags_enabled",
+    "validate_config",
+    "write_tracker_yaml",
+]
