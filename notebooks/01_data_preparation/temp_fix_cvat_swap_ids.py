@@ -20,7 +20,7 @@ DEFAULT_XML = (
     / "outputs"
     / "id_tracking"
     / "Pigs291119_000302_30fps"
-    / "Pigs291119_000302_30fps_annotations_cvat_video_1_1.xml"
+    / "annotations_cvat_video_1_1.xml"
 )
 
 

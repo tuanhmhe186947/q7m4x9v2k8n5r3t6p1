@@ -69,18 +69,29 @@ def video_metadata(video_path: Path) -> dict[str, Any]:
 
 def find_prediction_xml(video_stem: str, prediction_root: Path) -> Path | None:
     """Find a prediction CVAT video XML for a video stem."""
-    preferred = (
+    # 1. Prefer the simplified path (without prefix)
+    preferred_new = (
+        prediction_root
+        / video_stem
+        / "annotations_cvat_video_1_1.xml"
+    )
+    if preferred_new.exists():
+        return preferred_new
+
+    # 2. Fallback to old path (with video_stem prefix)
+    preferred_old = (
         prediction_root
         / video_stem
         / f"{video_stem}_annotations_cvat_video_1_1.xml"
     )
-    if preferred.exists():
-        return preferred
+    if preferred_old.exists():
+        return preferred_old
 
+    # 3. Fallback to searching XMLs matching video_stem in name or parent directory
     candidates = sorted(
         path
         for path in prediction_root.rglob("*.xml")
-        if video_stem.lower() in path.name.lower()
+        if (video_stem.lower() in path.name.lower() or video_stem.lower() in path.parent.name.lower())
         and "cvat_video" in path.name.lower()
         and ".bak_" not in path.name.lower()
     )

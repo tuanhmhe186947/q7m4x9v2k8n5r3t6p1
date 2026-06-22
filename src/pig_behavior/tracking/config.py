@@ -339,29 +339,29 @@ def resolve_output_paths(
     run_output_dir = cfg.output_dir / video_stem
     run_output_dir.mkdir(parents=True, exist_ok=True)
     output_video = cfg.output_video or (
-        run_output_dir / f"{video_stem}_tracked_pigs_with_ids.mp4"
+        run_output_dir / "tracked_pigs_with_ids.mp4"
     )
     annotations_json = cfg.annotations_json or (
-        run_output_dir / f"{video_stem}_annotations_cvat_shapes.json"
+        run_output_dir / "annotations_cvat_shapes.json"
     )
     coco_annotations_json = cfg.coco_annotations_json or (
-        run_output_dir / f"{video_stem}_annotations_coco.json"
+        run_output_dir / "annotations_coco.json"
     )
     clean_coco_annotations_json = cfg.clean_coco_annotations_json or (
-        run_output_dir / f"{video_stem}_annotations_coco_clean_train.json"
+        run_output_dir / "annotations_coco_clean_train.json"
     )
     cvat_video_xml = cfg.cvat_video_xml or (
-        run_output_dir / f"{video_stem}_annotations_cvat_video_1_1.xml"
+        run_output_dir / "annotations_cvat_video_1_1.xml"
     )
-    labels_json = cfg.labels_json or run_output_dir / f"{video_stem}_labels.json"
+    labels_json = cfg.labels_json or run_output_dir / "labels.json"
     tracker_yaml = cfg.tracker_yaml or (
-        run_output_dir / f"{video_stem}_bytetrack_pig_8.yaml"
+        run_output_dir / "bytetrack_pig_8.yaml"
     )
     quality_report_json = cfg.quality_report_json or (
-        run_output_dir / f"{video_stem}_tracking_quality_report.json"
+        run_output_dir / "tracking_quality_report.json"
     )
     quality_report_csv = cfg.quality_report_csv or (
-        run_output_dir / f"{video_stem}_tracking_quality_report.csv"
+        run_output_dir / "tracking_quality_report.csv"
     )
     output_video.parent.mkdir(parents=True, exist_ok=True)
     annotations_json.parent.mkdir(parents=True, exist_ok=True)
