@@ -6,6 +6,7 @@ Designed to produce clean, stable CVAT XML outputs for manual annotators.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+
 from pig_behavior.tracking.config import TrackingConfig
 from pig_behavior.tracking.rgbd.config import RGBDTrackingConfig
 

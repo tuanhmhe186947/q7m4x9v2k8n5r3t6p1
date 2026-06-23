@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 """Script to run hard-scene identity evaluation and configuration comparisons on one or more videos."""
 
-import os
-import sys
-import subprocess
 import argparse
+import subprocess
+import sys
 from pathlib import Path
 
 # Add src/ to path so we can load configurations
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from pig_behavior.tracking_path_config import (
+from pig_behavior.tracking_path_config import (  # noqa: E402
     load_tracking_path_profile,
     profile_video_path,
     profile_video_paths,
 )
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -30,7 +30,9 @@ Examples:
   python scripts/run_hard_scene_eval.py -v Pigs281119_000085_30fps --compare
 
   # Compare specific named prediction files:
-  python scripts/run_hard_scene_eval.py -v Pigs281119_000085_30fps --compare --pred base=outputs/id_tracking/base/Pigs281119_000085_30fps/annotations_cvat_shapes.json --pred strict=outputs/id_tracking/strict_assoc_1/Pigs281119_000085_30fps/annotations_cvat_shapes.json
+  python scripts/run_hard_scene_eval.py -v Pigs281119_000085_30fps --compare ^
+    --pred base=outputs/id_tracking/base/Pigs281119_000085_30fps/annotations_cvat_shapes.json ^
+    --pred strict=outputs/id_tracking/strict_assoc_1/Pigs281119_000085_30fps/annotations_cvat_shapes.json
 
   # Run hard-scene evaluation on all videos:
   python scripts/run_hard_scene_eval.py --all-videos
@@ -120,9 +122,9 @@ def main():
     prediction_root = Path(profile.get("outputs", {}).get("id_tracking", "outputs/id_tracking"))
     
     for idx, video_path in enumerate(video_paths, 1):
-        print(f"\n==================================================")
+        print("\n==================================================")
         print(f"[{idx}/{len(video_paths)}] Running hard-scene evaluation on: {video_path.name}")
-        print(f"==================================================")
+        print("==================================================")
         
         # Build commands
         if args.compare:
@@ -156,7 +158,10 @@ def main():
         print(f"Command: {' '.join(cmd)}")
         result = subprocess.run(cmd)
         if result.returncode != 0:
-            print(f"Error: Hard-scene eval failed for {video_path.name} with exit code {result.returncode}", file=sys.stderr)
+            print(
+                f"Error: Hard-scene eval failed for {video_path.name} with exit code {result.returncode}",
+                file=sys.stderr,
+            )
             if len(video_paths) == 1:
                 sys.exit(result.returncode)
 

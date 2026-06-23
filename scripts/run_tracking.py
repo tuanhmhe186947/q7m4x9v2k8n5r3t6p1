@@ -10,7 +10,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from pig_behavior.tracking_path_config import (
+from pig_behavior.tracking_path_config import (  # noqa: E402
     load_tracking_path_profile,
     profile_video_path,
     profile_video_paths,

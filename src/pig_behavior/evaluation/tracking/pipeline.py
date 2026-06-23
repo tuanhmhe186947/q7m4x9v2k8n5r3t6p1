@@ -134,6 +134,7 @@ def tracking_rule_overrides(
         "USE_MERGED_BOX_SPLIT": config.USE_MERGED_BOX_SPLIT,
         "device": config.device,
         "half": config.half,
+        "mode": config.tracking_mode,
     }
 
 

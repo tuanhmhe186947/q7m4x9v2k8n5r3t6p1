@@ -8,3 +8,5 @@ seaborn>=0.12
 Pillow>=9.0
 python-multipart>=0.0.9
 uvicorn[standard]>=0.30
+inference-sdk>=0.9.18
+backoff>=2.2.1

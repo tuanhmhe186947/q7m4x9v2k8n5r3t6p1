@@ -404,11 +404,34 @@ def match_and_update_tracks(
             if idx not in ignored_detection_indices
         ]
 
-        run_matching_phase(visible_tracks, all_detection_indices)
-        remaining_detection_indices = [
-            idx for idx in all_detection_indices if idx not in matched_detections
+        # Partition detections into high-confidence and low-confidence indices
+        high_conf_indices = [
+            idx for idx in all_detection_indices
+            if detections[idx].score >= cfg.track_high_conf
         ]
-        run_matching_phase(reid_tracks, remaining_detection_indices)
+        low_conf_indices = [
+            idx for idx in all_detection_indices
+            if cfg.det_conf <= detections[idx].score < cfg.track_high_conf
+        ]
+
+        # Phase 1: High confidence detection matching (match visible tracks first, then reid tracks)
+        run_matching_phase(visible_tracks, high_conf_indices)
+        remaining_high_conf_indices = [
+            idx for idx in high_conf_indices if idx not in matched_detections
+        ]
+        run_matching_phase(reid_tracks, remaining_high_conf_indices)
+
+        # Phase 2: Low confidence detection matching (only for unmatched active tracks, never new IDs)
+        unmatched_active_tracks = [
+            track for track in ordered_tracks
+            if track.fixed_id not in matched_tracks and track.ever_detected
+        ]
+        remaining_low_conf_indices = [
+            idx for idx in low_conf_indices if idx not in matched_detections
+        ]
+        run_matching_phase(unmatched_active_tracks, remaining_low_conf_indices)
+
+        # Run IoU fallback on the remaining unmatched tracks and detections
         apply_iou_fallback(
             tracks,
             detections,
@@ -456,6 +479,7 @@ def match_and_update_tracks(
                 height,
                 ambiguous=True,
                 hold=True,
+                cfg=cfg,
             )
             continue
 
@@ -464,7 +488,7 @@ def match_and_update_tracks(
             lk_box = track.predicted_box(width, height)
         if track.missed > cfg.max_missing_frames:
             lk_box = 0.7 * track.last_box + 0.3 * lk_box
-        track.update_predicted(lk_box, width, height)
+        track.update_predicted(lk_box, width, height, cfg=cfg)
 
 
 __all__ = [

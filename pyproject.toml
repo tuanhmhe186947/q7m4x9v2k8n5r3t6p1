@@ -15,6 +15,8 @@ dependencies = [
     "Pillow>=9.0",
     "python-multipart>=0.0.9",
     "uvicorn[standard]>=0.30",
+    "inference-sdk>=0.9.18",
+    "backoff>=2.2.1",
 ]
 
 [build-system]
@@ -58,8 +60,11 @@ tracking = [
 where = ["src"]
 
 [tool.ruff]
-line-length = 88
+line-length = 120
 target-version = "py310"
+exclude = [
+    "scripts/connect_gdrive.py",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]

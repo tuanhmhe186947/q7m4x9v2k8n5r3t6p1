@@ -97,7 +97,8 @@ def write_cvat_video_xml(
         for shape in sorted(shapes_by_track[fixed_id], key=lambda item: item["frame"]):
             x1, y1, x2, y2 = [float(value) for value in shape["points"]]
             attributes = _shape_attributes_dict(shape)
-            hidden = str(attributes.get("Hidden", "No"))
+            outside_val = "1" if shape.get("outside", False) else "0"
+            occluded_val = "1" if shape.get("occluded", False) else "0"
             box = ET.SubElement(
                 track,
                 "box",
@@ -107,8 +108,8 @@ def write_cvat_video_xml(
                     "ytl": f"{y1:.2f}",
                     "xbr": f"{x2:.2f}",
                     "ybr": f"{y2:.2f}",
-                    "outside": "0",
-                    "occluded": "1" if hidden == "Yes" else "0",
+                    "outside": outside_val,
+                    "occluded": occluded_val,
                     "keyframe": "1",
                 },
             )

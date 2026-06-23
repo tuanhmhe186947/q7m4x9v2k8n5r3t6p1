@@ -134,6 +134,7 @@ def run_rgbd_tracking(cfg: RGBDTrackingConfig) -> TrackingSummary:
 
     try:
         import cv2
+        import torch
         from ultralytics import YOLO
     except ImportError as exc:
         raise ImportError(
@@ -192,7 +193,23 @@ def run_rgbd_tracking(cfg: RGBDTrackingConfig) -> TrackingSummary:
 
     # ---- model & state -----------------------------------------------------
     mask = load_mask(tc.mask_path, width, height, tc)
+    device_str = tc.device
+    if device_str is None or device_str == "":
+        device_str = "cuda" if torch.cuda.is_available() else "cpu"
+    else:
+        device_str = str(device_str)
+
     model = YOLO(str(tc.weights_path))
+    try:
+        model.to(device_str)
+    except Exception as e:
+        if "cuda" in device_str.lower() or "cuda" in str(e).lower():
+            logger.warning("CUDA initialization failed, falling back to CPU: %s", e)
+            device_str = "cpu"
+            model.to(device_str)
+            tc.device = "cpu"
+        else:
+            raise
     tracks: dict[int, FixedTrack] | None = None
     bev_states: dict[int, BEVTrackState] = {}
     runtime = TrackingRuntimeState()
@@ -245,12 +262,12 @@ def run_rgbd_tracking(cfg: RGBDTrackingConfig) -> TrackingSummary:
                 if tc.mask_input_frame and mask is not None
                 else color_frame
             )
-            results = model.track(
+            results = model.predict(
                 source=detector_frame,
-                persist=True,
                 conf=tc.det_conf,
-                iou=tc.iou,
-                tracker=str(tracker_yaml),
+                iou=tc.nms_iou,
+                max_det=tc.max_raw_detections,
+                imgsz=tc.imgsz,
                 verbose=False,
                 device=tc.device,
                 half=tc.half,

@@ -7,7 +7,13 @@ from typing import Any
 import numpy as np
 
 from pig_behavior.tracking.config import TrackingConfig
-from pig_behavior.tracking.geometry import bbox_center, clip_box
+from pig_behavior.tracking.geometry import (
+    bbox_center,
+    bbox_iom,
+    bbox_iou,
+    center_distance_norm,
+    clip_box,
+)
 from pig_behavior.tracking.masks import detection_overlap_score, roi_keep
 from pig_behavior.tracking.schemas import Detection
 
@@ -91,6 +97,40 @@ def hist_distance(first: np.ndarray | None, second: np.ndarray) -> float:
     return float(np.clip(1.0 - np.sum(np.sqrt(first * second)), 0.0, 1.0))
 
 
+def deduplicate_detections(
+    detections: list[Detection],
+    cfg: TrackingConfig,
+    width: int,
+    height: int,
+    frame_id: int | None = None,
+) -> list[Detection]:
+    """Remove highly overlapping or contained duplicate detections.
+    
+    Combines IoU with center distance, and containment with center distance
+    to avoid dropping two real pigs overlapping each other.
+    """
+    kept: list[Detection] = []
+    for det in detections:
+        is_dup = False
+        for other in kept:
+            iou = bbox_iou(det.box, other.box)
+            iom = bbox_iom(det.box, other.box)
+            center_dist = center_distance_norm(det.box, other.box, width, height)
+            
+            # 1. High IoU check: combined with center distance to confirm it's a duplicate
+            if iou > cfg.duplicate_iou_threshold and center_dist < cfg.dup_center_threshold:
+                is_dup = True
+                break
+                
+            # 2. Containment check: one box is almost entirely inside another, combined with center distance
+            if iom > cfg.dup_containment_threshold and center_dist < cfg.dup_center_threshold:
+                is_dup = True
+                break
+        if not is_dup:
+            kept.append(det)
+    return kept
+
+
 def parse_detections(
     result: Any,
     frame: np.ndarray,
@@ -140,8 +180,8 @@ def parse_detections(
         )
 
     detections.sort(key=lambda item: item.score, reverse=True)
-    detections = suppress_duplicate_detections(detections, cfg)
-    return detections[: max(cfg.expected_pigs * 3, cfg.expected_pigs)]
+    detections = deduplicate_detections(detections, cfg, width, height)
+    return detections
 
 
 def suppress_duplicate_detections(
@@ -181,7 +221,12 @@ def adaptive_confidence_filter(
     detections: list[Detection],
     cfg: TrackingConfig,
 ) -> list[Detection]:
-    """Keep the highest confidence threshold that still gives enough candidates."""
+    """Keep the highest confidence threshold that still gives enough candidates,
+    or just filter by det_conf in realtime.
+    """
+    if cfg.mode == "realtime":
+        return [det for det in detections if det.score >= cfg.det_conf]
+
     if not detections:
         return []
 
@@ -190,7 +235,7 @@ def adaptive_confidence_filter(
         selected = [det for det in detections if det.score >= threshold]
         if len(selected) >= cfg.expected_pigs:
             return selected[:max_candidates]
-    return detections[:max_candidates]
+    return [det for det in detections[:max_candidates] if det.score >= cfg.det_conf]
 
 
 def spatial_sort_detections(detections: list[Detection]) -> list[Detection]:
@@ -211,4 +256,5 @@ __all__ = [
     "parse_detections",
     "spatial_sort_detections",
     "suppress_duplicate_detections",
+    "deduplicate_detections",
 ]

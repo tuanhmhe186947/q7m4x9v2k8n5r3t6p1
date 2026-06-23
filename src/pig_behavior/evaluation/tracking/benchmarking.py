@@ -105,15 +105,20 @@ def build_rule_benchmark_report(
         "- `*_summary.csv`: enriched summary, containing both `ALL` and `PER_VIDEO` rows.",
         "- `*_summary_all_only.csv`: aggregate-only summary used for quick ranking.",
         "- `*_detailed_metrics.csv`: all per-video and ALL rows.",
-        "- Each combo folder contains the normal `tracking_report.md` and diagnostics (like ID mapping, event counts, and continuity gaps).",
-        "- Note: The diagnostic summary columns in the summary CSV files are only high-level counts/worst-case statistics. To view detailed information, open the respective files in `run_dir`.",
+        "- Each combo folder contains the normal `tracking_report.md` and diagnostics "
+        "(like ID mapping, event counts, and continuity gaps).",
+        "- Note: The diagnostic summary columns in the summary CSV files are only "
+        "high-level counts/worst-case statistics. To view detailed information, open "
+        "the respective files in `run_dir`.",
         "",
     ]
     return "\n".join(lines)
 
 
-def collect_run_diagnostics(run_dir: Path, video_stem: str | None = None) -> dict[str, object]:
-    """Read diagnostic files if they exist and return safe counts/worst-case stats, optionally filtered by video_stem."""
+def collect_run_diagnostics(
+    run_dir: Path, video_stem: str | None = None
+) -> dict[str, object]:
+    """Read diagnostic files if they exist and return safe counts and worst-case stats."""
     diagnostics = {
         "id_mapping_rows": 0,
         "remapped_identity_event_rows": 0,
@@ -137,7 +142,11 @@ def collect_run_diagnostics(run_dir: Path, video_stem: str | None = None) -> dic
             return None
         try:
             df = pd.read_csv(path)
-            if video_stem is not None and str(video_stem).upper() != "ALL" and "video_stem" in df.columns:
+            if (
+                video_stem is not None
+                and str(video_stem).upper() != "ALL"
+                and "video_stem" in df.columns
+            ):
                 df = df[df["video_stem"] == video_stem]
             return df
         except Exception:
@@ -153,14 +162,18 @@ def collect_run_diagnostics(run_dir: Path, video_stem: str | None = None) -> dic
     if df_remap is not None:
         diagnostics["remapped_identity_event_rows"] = int(len(df_remap))
         if "event" in df_remap.columns:
-            diagnostics["remapped_id_switch_rows"] = int(df_remap["event"].str.contains("id_switch", na=False).sum())
+            diagnostics["remapped_id_switch_rows"] = int(
+                df_remap["event"].str.contains("id_switch", na=False).sum()
+            )
 
     # 3. Read tracking_identity_events.csv
     df_events = read_and_filter("tracking_identity_events.csv")
     if df_events is not None:
         diagnostics["identity_event_rows"] = int(len(df_events))
         if "event" in df_events.columns:
-            diagnostics["identity_id_switch_rows"] = int(df_events["event"].str.contains("id_switch", na=False).sum())
+            diagnostics["identity_id_switch_rows"] = int(
+                df_events["event"].str.contains("id_switch", na=False).sum()
+            )
 
     # 4. Read tracking_continuity_gaps.csv
     df_gaps = read_and_filter("tracking_continuity_gaps.csv")
@@ -180,8 +193,12 @@ def collect_run_diagnostics(run_dir: Path, video_stem: str | None = None) -> dic
                     max_row = df_gaps.loc[idx_max]
                     diagnostics["worst_gap_frames"] = int(max_row["gap_frames"])
                     diagnostics["worst_gap_gt_id"] = str(max_row.get("gt_id", ""))
-                    diagnostics["worst_gap_prev_pred_id"] = str(max_row.get("previous_pred_id", ""))
-                    diagnostics["worst_gap_next_pred_id"] = str(max_row.get("next_pred_id", ""))
+                    diagnostics["worst_gap_prev_pred_id"] = str(
+                        max_row.get("previous_pred_id", "")
+                    )
+                    diagnostics["worst_gap_next_pred_id"] = str(
+                        max_row.get("next_pred_id", "")
+                    )
             except Exception:
                 pass
 
@@ -205,7 +222,7 @@ def build_enriched_summary_rows(
         row_type = "ALL" if str(video_stem).upper() == "ALL" else "PER_VIDEO"
         
         diagnostics = collect_run_diagnostics(run_dir, video_stem)
-        
+
         entry = {
             "row_type": row_type,
             "video_stem": video_stem,
@@ -222,7 +239,7 @@ def build_enriched_summary_rows(
         }
         # Merge metrics and ensure metadata overrides
         entry.update(row.to_dict())
-        
+
         # Enforce metadata values
         entry["row_type"] = row_type
         entry["video_stem"] = video_stem
@@ -232,7 +249,7 @@ def build_enriched_summary_rows(
         entry["run_dir"] = str(run_dir)
         for flag_name, flag_val in flags.items():
             entry[flag_name] = flag_val
-            
+
         rows.append(entry)
     return rows
 

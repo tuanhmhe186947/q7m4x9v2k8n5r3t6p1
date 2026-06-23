@@ -194,7 +194,7 @@ def main():
         print(f"\n[*] Running hard-scene evaluation for: {video_path.name}")
         hard_scene_cmd = [
             sys.executable,
-            str(PROJECT_ROOT / "scripts" / "run_hard_scene_eval.py"),
+            str(PROJECT_ROOT / "scripts" / "eval_hard_scenes.py"),
             "--video", video_path.stem,
         ]
         if args.profile:

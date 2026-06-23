@@ -20,12 +20,66 @@ def main():
     enable_area_freeze = False
 
     presets = [
-        {"name": "base", "det": 0.25, "jump": 0.08, "stationary": 0.045, "gain": 0.015, "iom": 0.10, "detection_iom": 0.30, "growth": 1.50},
-        {"name": "strict_assoc_1", "det": 0.25, "jump": 0.06, "stationary": 0.040, "gain": 0.020, "iom": 0.10, "detection_iom": 0.30, "growth": 1.50},
-        {"name": "strict_assoc_2", "det": 0.25, "jump": 0.05, "stationary": 0.035, "gain": 0.020, "iom": 0.15, "detection_iom": 0.30, "growth": 1.40},
-        {"name": "strict_assoc_3", "det": 0.30, "jump": 0.05, "stationary": 0.035, "gain": 0.020, "iom": 0.15, "detection_iom": 0.30, "growth": 1.40},
-        {"name": "conservative", "det": 0.30, "jump": 0.05, "stationary": 0.030, "gain": 0.030, "iom": 0.15, "detection_iom": 0.40, "growth": 1.30},
-        {"name": "soft_detection", "det": 0.25, "jump": 0.06, "stationary": 0.035, "gain": 0.020, "iom": 0.15, "detection_iom": 0.20, "growth": 1.40}
+        {
+            "name": "base",
+            "det": 0.25,
+            "jump": 0.08,
+            "stationary": 0.045,
+            "gain": 0.015,
+            "iom": 0.10,
+            "detection_iom": 0.30,
+            "growth": 1.50,
+        },
+        {
+            "name": "strict_assoc_1",
+            "det": 0.25,
+            "jump": 0.06,
+            "stationary": 0.040,
+            "gain": 0.020,
+            "iom": 0.10,
+            "detection_iom": 0.30,
+            "growth": 1.50,
+        },
+        {
+            "name": "strict_assoc_2",
+            "det": 0.25,
+            "jump": 0.05,
+            "stationary": 0.035,
+            "gain": 0.020,
+            "iom": 0.15,
+            "detection_iom": 0.30,
+            "growth": 1.40,
+        },
+        {
+            "name": "strict_assoc_3",
+            "det": 0.30,
+            "jump": 0.05,
+            "stationary": 0.035,
+            "gain": 0.020,
+            "iom": 0.15,
+            "detection_iom": 0.30,
+            "growth": 1.40,
+        },
+        {
+            "name": "conservative",
+            "det": 0.30,
+            "jump": 0.05,
+            "stationary": 0.030,
+            "gain": 0.030,
+            "iom": 0.15,
+            "detection_iom": 0.40,
+            "growth": 1.30,
+        },
+        {
+            "name": "soft_detection",
+            "det": 0.25,
+            "jump": 0.06,
+            "stationary": 0.035,
+            "gain": 0.020,
+            "iom": 0.15,
+            "detection_iom": 0.20,
+            "growth": 1.40,
+        },
     ]
 
     summary_rows = []
@@ -110,7 +164,7 @@ def main():
             print("\n[*] Running hard-scene evaluation comparison across presets...")
             compare_cmd = [
                 sys.executable,
-                str(Path(__file__).resolve().parent / "run_hard_scene_eval.py"),
+                str(Path(__file__).resolve().parent / "eval_hard_scenes.py"),
                 "--video", video_stem,
                 "--compare",
             ]

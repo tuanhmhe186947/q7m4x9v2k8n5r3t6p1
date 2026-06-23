@@ -106,6 +106,10 @@ class FixedTrack:
     hard_occlusion_frames: int = 0
     hard_occlusion_recovery_frames: int = 0
     ever_detected: bool = False
+    state: str = "MISSING"
+    state_reason: str = "initialized"
+    missed_count: int = 0
+    occlusion_count: int = 0
 
     def mean_hist(self) -> np.ndarray | None:
         if not self.hist_bank:
@@ -116,6 +120,9 @@ class FixedTrack:
         if not self.raw_id_counts:
             return None
         return self.raw_id_counts.most_common(1)[0][0]
+
+    def get_state(self) -> str:
+        return self.state
 
     def predicted_box(self, width: int, height: int) -> np.ndarray:
         damping = 0.85 ** min(self.missed, 12)
@@ -321,8 +328,23 @@ class FixedTrack:
         self.last_merged_split = False
         self.last_mask = det.mask.copy() if det.mask is not None else None
         self.missed = 0
+        self.missed_count = 0
         self.hits += 1
         self.ever_detected = True
+
+        if ambiguous or self.is_area_occluded or self.last_merged_split:
+            self.state = "OCCLUDED"
+            self.state_reason = (
+                "detected_ambiguous" if ambiguous else
+                "area_occlusion" if self.is_area_occluded else
+                "merged_split"
+            )
+            self.occlusion_count += 1
+        else:
+            self.state = "VISIBLE"
+            self.state_reason = "detected_high_conf" if det.score >= cfg.track_high_conf else "detected_low_conf"
+            self.occlusion_count = 0
+
         if learn_identity:
             self.hist_bank.append(det.hist)
         if learn_identity and det.raw_id is not None:
@@ -338,6 +360,7 @@ class FixedTrack:
         height: int,
         ambiguous: bool = False,
         hold: bool = False,
+        cfg: TrackingConfig | None = None,
     ) -> None:
         previous_center = _bbox_center(self.last_box)
         new_box = _clip_box(box, width, height)
@@ -352,12 +375,27 @@ class FixedTrack:
         self.last_ambiguous = bool(ambiguous)
         self.last_merged_split = False
         self.missed += 1
+        self.missed_count = self.missed
         if hold:
             self.occlusion_hold_frames += 1
         else:
             self.occlusion_hold_frames = 0
             self.is_area_occluded = False
             self.area_occlusion_frames = 0
+
+        if hold or self.is_area_occluded:
+            self.state = "OCCLUDED"
+            self.state_reason = "occlusion_hold"
+            self.occlusion_count += 1
+        else:
+            max_missing = cfg.max_missing_frames if cfg is not None else 30
+            if self.missed_count > max_missing:
+                self.state = "LOST"
+                self.state_reason = "max_missing_exceeded"
+            else:
+                self.state = "MISSING"
+                self.state_reason = "predicted"
+            self.occlusion_count = 0
 
 
 @dataclass(slots=True)

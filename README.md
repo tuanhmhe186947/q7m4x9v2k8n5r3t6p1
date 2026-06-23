@@ -175,6 +175,56 @@ pig-behavior --mode infer ^
   --image data\raw\images_clean\example.jpg
 ```
 
+## Roboflow Workflow Integration
+
+You can integrate Roboflow's serverless workflows to run detections side-by-side or as an alternative to the local YOLOv8 pipeline. The project integrates the "Detect, Count, and Visualize 3" workflow.
+
+### Setup API Key
+
+To run the Roboflow workflow, you must provide your Roboflow API key. You can pass it via command-line arguments or define the `ROBOFLOW_API_KEY` environment variable:
+
+```cmd
+set ROBOFLOW_API_KEY=your_api_key_here
+```
+
+### Running Detection on a Single Frame
+
+To detect pigs on a single frame (e.g., frame 979) with a workspace mask applied:
+
+```cmd
+python scripts\detect_pig_frame.py ^
+  --roboflow ^
+  --roboflow-api-key your_api_key_here ^
+  --start-frame 979
+```
+
+This will call the Roboflow Workflow API and save the annotated visualization image to:
+`outputs\detections\detect_frame_979_roboflow.png`
+
+### Running Detection on a Frame Range
+
+To process a range of frames and generate a comparison video:
+
+```cmd
+python scripts\detect_pig_frame.py ^
+  --roboflow ^
+  --start-frame 800 ^
+  --end-frame 1000 ^
+  --save-images
+```
+
+The output video will be saved to:
+`outputs\detections\detect_range_800_1000_roboflow.mp4`
+
+### Running Integration Tests
+
+To run the smoke tests for Roboflow integration, make sure your API key is set in the environment:
+
+```cmd
+set ROBOFLOW_API_KEY=your_api_key_here
+pytest tests\test_roboflow_integration.py
+```
+
 ## Docker
 
 ```bash

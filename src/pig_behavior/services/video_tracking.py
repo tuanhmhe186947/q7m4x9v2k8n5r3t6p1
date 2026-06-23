@@ -237,6 +237,7 @@ class VideoTrackingSession:
                     time.sleep(max(0.0, frame_delay - elapsed))
         finally:
             capture.release()
+            cv2.destroyAllWindows()
 
     def _parse_detections(self, result: Any, frame: Any) -> list[dict[str, Any]]:
         boxes = getattr(result, "boxes", None)

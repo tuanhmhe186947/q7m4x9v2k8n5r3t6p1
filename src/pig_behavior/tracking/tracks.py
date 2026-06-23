@@ -166,14 +166,17 @@ def shape_for_track(
     cfg: TrackingConfig,
 ) -> dict[str, Any]:
     hidden = "Yes" if track_is_hidden(track, cfg) else "No"
-    needs_review = hidden == "Yes" or (
+    track_state = track.get_state()
+    is_outside = track_state in ("MISSING", "LOST")
+    is_occluded = track_state == "OCCLUDED" or hidden == "Yes"
+    needs_review = is_outside or is_occluded or (
         track.last_source != "detected" or track.last_score < cfg.review_conf
     )
     x1, y1, x2, y2 = [round(float(value), 2) for value in track.last_box]
     shape = {
         "type": "rectangle",
-        "occluded": hidden == "Yes",
-        "outside": False,
+        "occluded": bool(is_occluded),
+        "outside": bool(is_outside),
         "z_order": 0,
         "rotation": 0.0,
         "points": [x1, y1, x2, y2],
@@ -183,12 +186,14 @@ def shape_for_track(
         "attributes": [
             {"value": f"ID_{track.fixed_id}", "name": "ID"},
             {"value": cfg.default_behavior, "name": "Behavior"},
-            {"value": hidden, "name": "Hidden"},
+            {"value": "Yes" if is_occluded else "No", "name": "Hidden"},
         ],
         "score": round(float(track.last_score), 4),
         "elements": [],
         "label": f"Pig_{track.fixed_id}",
         "_track_source": track.last_source,
+        "_track_state": track_state,
+        "_state_reason": track.state_reason,
         "_missed_frames": int(track.missed),
         "_needs_review": bool(needs_review),
         "_raw_track_id": track.top_raw_id(),

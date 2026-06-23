@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -46,6 +47,8 @@ from pig_behavior.tracking.visualization import (
     render_annotation_video,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
     """Run YOLOv8 + mask + stabilized eight-ID tracking."""
@@ -53,6 +56,7 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
 
     try:
         import cv2
+        import torch
         from ultralytics import YOLO
     except ImportError as exc:
         raise ImportError(
@@ -92,7 +96,23 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
         capture.set(cv2.CAP_PROP_POS_FRAMES, cfg.start_frame)
 
     mask = load_mask(cfg.mask_path, width, height, cfg)
+    device_str = cfg.device
+    if device_str is None or device_str == "":
+        device_str = "cuda" if torch.cuda.is_available() else "cpu"
+    else:
+        device_str = str(device_str)
+
     model = YOLO(str(cfg.weights_path))
+    try:
+        model.to(device_str)
+    except Exception as e:
+        if "cuda" in device_str.lower() or "cuda" in str(e).lower():
+            logger.warning("CUDA initialization failed, falling back to CPU: %s", e)
+            device_str = "cpu"
+            model.to(device_str)
+            cfg.device = "cpu"
+        else:
+            raise
     tracks: dict[int, FixedTrack] | None = None
     runtime = TrackingRuntimeState()
     shapes: list[dict[str, Any]] = []
@@ -121,6 +141,9 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
     except ImportError:
         progress = None
 
+    import time
+
+    total_process_time = 0.0
     try:
         while True:
             if cfg.max_frames is not None and frames_written >= cfg.max_frames:
@@ -129,6 +152,7 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
             if not ok:
                 break
             frame_index += 1
+            t_start = time.perf_counter()
 
             frame_h, frame_w = frame.shape[:2]
             if frame_w != width or frame_h != height:
@@ -140,37 +164,77 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
                 if cfg.mask_input_frame and mask is not None
                 else frame
             )
-            results = model.track(
-                source=detector_frame,
-                persist=True,
-                conf=cfg.det_conf,
-                iou=cfg.iou,
-                tracker=str(tracker_yaml),
-                verbose=False,
-                device=cfg.device,
-                half=cfg.half,
-            )
-            detections = adaptive_confidence_filter(
-                parse_detections(results[0], frame, mask, cfg),
-                cfg,
-            )
 
-            if tracks is None:
-                tracks = initialize_tracks(detections, mask, width, height, cfg)
-            else:
-                match_and_update_tracks(
-                    tracks,
-                    detections,
-                    frame,
-                    prev_frame,
-                    cfg,
-                    runtime,
+            is_detect_frame = (frame_index - cfg.start_frame) % cfg.detect_every_n_frames == 0
+            num_dets = 0
+
+            if is_detect_frame:
+                results = model.predict(
+                    source=detector_frame,
+                    conf=cfg.det_conf,
+                    iou=cfg.nms_iou,
+                    max_det=cfg.max_raw_detections,
+                    imgsz=cfg.imgsz,
+                    verbose=False,
+                    device=cfg.device,
+                    half=cfg.half,
                 )
+                detections = adaptive_confidence_filter(
+                    parse_detections(results[0], frame, mask, cfg),
+                    cfg,
+                )
+                num_dets = len(detections)
+
+                if tracks is None:
+                    tracks = initialize_tracks(detections, mask, width, height, cfg)
+                else:
+                    match_and_update_tracks(
+                        tracks,
+                        detections,
+                        frame,
+                        prev_frame,
+                        cfg,
+                        runtime,
+                    )
+            else:
+                # Skip detection: update tracks using motion prediction only
+                if tracks is not None:
+                    from pig_behavior.tracking.tracks import lk_predict_box
+                    for track in tracks.values():
+                        lk_box = lk_predict_box(prev_frame, frame, track.last_box, width, height)
+                        if lk_box is None:
+                            lk_box = track.predicted_box(width, height)
+                        track.update_predicted(lk_box, width, height, cfg=cfg)
 
             current_shapes = frame_shapes(tracks, frame_index, cfg)
             shapes.extend(current_shapes)
             frames_written += 1
             prev_frame = frame.copy()
+
+            t_end = time.perf_counter()
+            frame_time = t_end - t_start
+            total_process_time += frame_time
+
+            # Log frame statistics
+            if tracks is not None:
+                v_count = sum(1 for trk in tracks.values() if trk.get_state() == "VISIBLE")
+                m_count = sum(1 for trk in tracks.values() if trk.get_state() in ("MISSING", "LOST"))
+                o_count = sum(1 for trk in tracks.values() if trk.get_state() == "OCCLUDED")
+                logger.debug(
+                    "Frame %d: Latency=%.2fms | Dets=%d | Visible=%d | Missing=%d | Occluded=%d",
+                    frame_index,
+                    frame_time * 1000.0,
+                    num_dets,
+                    v_count,
+                    m_count,
+                    o_count,
+                )
+                if progress is not None:
+                    progress.set_postfix(
+                        lat=f"{frame_time * 1000.0:.1f}ms",
+                        vis=v_count,
+                        occ=o_count,
+                    )
 
             if progress is not None:
                 progress.update(1)
@@ -191,12 +255,16 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
             progress.close()
         if show_enabled:
             cv2.destroyAllWindows()
+        if frames_written > 0:
+            avg_fps = frames_written / max(total_process_time, 1e-6)
+            logger.info("Tracking finished. Total Frames: %d, Average FPS: %.2f", frames_written, avg_fps)
 
     if frames_written == 0:
         raise RuntimeError("No frames were processed.")
 
-    shapes = apply_identity_swap_guard(shapes, width, height, cfg)
-    shapes = refine_shapes_temporally(shapes, width, height, cfg)
+    if cfg.enable_offline_smoothing:
+        shapes = apply_identity_swap_guard(shapes, width, height, cfg)
+        shapes = refine_shapes_temporally(shapes, width, height, cfg)
     hidden_shape_count = sum(
         1 for shape in shapes if shape_hidden_value(shape) == "Yes"
     )

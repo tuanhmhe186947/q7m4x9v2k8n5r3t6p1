@@ -17,6 +17,7 @@ from __future__ import annotations
 import logging
 
 import numpy as np
+from numpy.typing import NDArray
 
 from pig_behavior.tracking.rgbd.config import RGBDTrackingConfig
 from pig_behavior.tracking.rgbd.depth import (
@@ -61,11 +62,14 @@ class RGBDProjector:
         u: float,
         v: float,
         depth_m: float,
-    ) -> tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         """Project a single pixel ``(u, v)`` at *depth_m* metres.
 
         Returns ``(camera_xyz, world_xyz)`` each as shape ``(3,)``.
         """
+        assert self._k_inv.shape == (3, 3), f"Expected inverse intrinsic matrix shape (3, 3), got {self._k_inv.shape}"
+        assert self._rot.shape == (3, 3), f"Expected rotation matrix shape (3, 3), got {self._rot.shape}"
+
         pixel_h = np.array([u, v, 1.0], dtype=np.float64)
         camera_xyz = depth_m * (self._k_inv @ pixel_h)
         world_xyz = self._rot @ camera_xyz
@@ -73,9 +77,9 @@ class RGBDProjector:
 
     def project_foreground_pixels(
         self,
-        pixel_uv: np.ndarray,
-        depth_m: np.ndarray,
-    ) -> tuple[np.ndarray, np.ndarray]:
+        pixel_uv: NDArray[np.float64],
+        depth_m: NDArray[np.float64],
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         """Project N foreground pixels to camera and world space.
 
         Parameters
@@ -92,6 +96,13 @@ class RGBDProjector:
         world_xyz:
             ``(N, 3)`` world-space points.
         """
+        assert pixel_uv.ndim == 2, f"Expected 2D array for pixel_uv, got {pixel_uv.ndim}D"
+        assert pixel_uv.shape[1] == 2, f"Expected pixel_uv to have shape [N, 2], got {pixel_uv.shape}"
+        assert depth_m.ndim == 1, f"Expected 1D array for depth_m, got {depth_m.ndim}D"
+        assert len(pixel_uv) == len(depth_m), f"Length mismatch: {len(pixel_uv)} vs {len(depth_m)}"
+        assert self._k_inv.shape == (3, 3), f"Expected inverse intrinsic matrix shape (3, 3), got {self._k_inv.shape}"
+        assert self._rot.shape == (3, 3), f"Expected rotation matrix shape (3, 3), got {self._rot.shape}"
+
         n = len(pixel_uv)
         ones = np.ones((n, 1), dtype=np.float64)
         # (N, 3) homogeneous pixels

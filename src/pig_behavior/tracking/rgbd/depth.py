@@ -15,6 +15,7 @@ import logging
 from dataclasses import dataclass
 
 import numpy as np
+from numpy.typing import NDArray
 
 from pig_behavior.tracking.rgbd.config import RGBDTrackingConfig
 
@@ -31,9 +32,9 @@ class RGBDCalibration:
     """Camera calibration data loaded from ``.npy`` files."""
 
     depth_scale: float
-    inverse_intrinsic: np.ndarray  # (3, 3)
-    rotation: np.ndarray  # (3, 3)
-    background_depth_m: np.ndarray | None  # (H, W) or None
+    inverse_intrinsic: NDArray[np.float64]  # (3, 3)
+    rotation: NDArray[np.float64]  # (3, 3)
+    background_depth_m: NDArray[np.float64] | None  # (H, W) or None
 
 
 def load_calibration(cfg: RGBDTrackingConfig) -> RGBDCalibration:
@@ -87,9 +88,9 @@ def load_calibration(cfg: RGBDTrackingConfig) -> RGBDCalibration:
 
 
 def depth_frame_to_meters(
-    raw_depth: np.ndarray,
+    raw_depth: NDArray[np.uint16] | NDArray[np.float64],
     depth_scale: float,
-) -> np.ndarray:
+) -> NDArray[np.float64]:
     """Convert a raw integer depth frame to metres (float64)."""
     if raw_depth.ndim == 3:
         raw_depth = raw_depth[:, :, 0]
@@ -152,10 +153,10 @@ def _lower_center_crop_region(
 
 
 def _filter_valid_depths(
-    depths: np.ndarray,
+    depths: NDArray[np.float64],
     cfg: RGBDTrackingConfig,
-    background_patch: np.ndarray | None = None,
-) -> np.ndarray:
+    background_patch: NDArray[np.float64] | None = None,
+) -> NDArray[np.float64]:
     """Remove invalid and background pixels from a depth array."""
     valid = np.isfinite(depths) & (depths > 0)
     valid &= depths >= cfg.min_depth_m
@@ -175,11 +176,11 @@ def _filter_valid_depths(
 
 
 def _extract_median_center_crop(
-    depth_m: np.ndarray,
+    depth_m: NDArray[np.float64],
     x1: int, y1: int, x2: int, y2: int,
     cfg: RGBDTrackingConfig,
-    background_patch: np.ndarray | None,
-) -> tuple[np.ndarray, tuple[int, int, int, int]]:
+    background_patch: NDArray[np.float64] | None,
+) -> tuple[NDArray[np.float64], tuple[int, int, int, int]]:
     rx1, ry1, rx2, ry2 = _center_crop_region(x1, y1, x2, y2, cfg.center_crop_ratio)
     patch = depth_m[ry1:ry2, rx1:rx2].ravel()
     bg = background_patch[ry1:ry2, rx1:rx2].ravel() if background_patch is not None else None
@@ -187,11 +188,11 @@ def _extract_median_center_crop(
 
 
 def _extract_lower_center_crop(
-    depth_m: np.ndarray,
+    depth_m: NDArray[np.float64],
     x1: int, y1: int, x2: int, y2: int,
     cfg: RGBDTrackingConfig,
-    background_patch: np.ndarray | None,
-) -> tuple[np.ndarray, tuple[int, int, int, int]]:
+    background_patch: NDArray[np.float64] | None,
+) -> tuple[NDArray[np.float64], tuple[int, int, int, int]]:
     rx1, ry1, rx2, ry2 = _lower_center_crop_region(x1, y1, x2, y2, cfg.center_crop_ratio)
     patch = depth_m[ry1:ry2, rx1:rx2].ravel()
     bg = background_patch[ry1:ry2, rx1:rx2].ravel() if background_patch is not None else None
@@ -199,23 +200,23 @@ def _extract_lower_center_crop(
 
 
 def _extract_foreground_median(
-    depth_m: np.ndarray,
+    depth_m: NDArray[np.float64],
     x1: int, y1: int, x2: int, y2: int,
     cfg: RGBDTrackingConfig,
-    background_patch: np.ndarray | None,
-) -> tuple[np.ndarray, tuple[int, int, int, int]]:
+    background_patch: NDArray[np.float64] | None,
+) -> tuple[NDArray[np.float64], tuple[int, int, int, int]]:
     patch = depth_m[y1:y2, x1:x2].ravel()
     bg = background_patch[y1:y2, x1:x2].ravel() if background_patch is not None else None
     return _filter_valid_depths(patch, cfg, bg), (x1, y1, x2, y2)
 
 
 def _extract_foreground_points_median(
-    depth_m: np.ndarray,
+    depth_m: NDArray[np.float64],
     x1: int, y1: int, x2: int, y2: int,
     cfg: RGBDTrackingConfig,
-    background_patch: np.ndarray | None,
-    mask: np.ndarray | None,
-) -> tuple[np.ndarray, tuple[int, int, int, int]]:
+    background_patch: NDArray[np.float64] | None,
+    mask: NDArray[np.bool_] | None,
+) -> tuple[NDArray[np.float64], tuple[int, int, int, int]]:
     """Use mask pixels if available, else full bbox foreground."""
     if mask is not None:
         h_d, w_d = depth_m.shape[:2]
@@ -228,7 +229,7 @@ def _extract_foreground_points_median(
             ).astype(bool)
         mask_region = mask[y1:y2, x1:x2]
         patch = depth_m[y1:y2, x1:x2][mask_region].ravel()
-        bg: np.ndarray | None = None
+        bg: NDArray[np.float64] | None = None
         if background_patch is not None:
             bg = background_patch[y1:y2, x1:x2][mask_region].ravel()
     else:
@@ -243,11 +244,11 @@ def _extract_foreground_points_median(
 
 
 def extract_depth_for_bbox(
-    depth_frame_m: np.ndarray,
+    depth_frame_m: NDArray[np.float64],
     bbox: tuple[float, float, float, float],
     cfg: RGBDTrackingConfig,
-    background_depth_m: np.ndarray | None = None,
-    mask: np.ndarray | None = None,
+    background_depth_m: NDArray[np.float64] | None = None,
+    mask: NDArray[np.bool_] | None = None,
 ) -> DepthExtractionResult:
     """Extract median depth, IQR and validity for a single bounding box.
 

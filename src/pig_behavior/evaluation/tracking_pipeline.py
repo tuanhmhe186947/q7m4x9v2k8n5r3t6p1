@@ -127,6 +127,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "using isolated prediction/output folders."
         ),
     )
+    parser.add_argument(
+        "--tracking-mode",
+        type=str,
+        choices=["realtime", "gt_export"],
+        default="gt_export",
+        help="Mode to run the tracker in (realtime or gt_export).",
+    )
     parser.add_argument("--max-frames", type=int, default=None)
     return parser.parse_args(argv)
 
@@ -176,6 +183,7 @@ def config_from_args(args: argparse.Namespace) -> TrackingEvaluationPipelineConf
             args.use_conditional_area_occlusion_freeze
         ),
         USE_MERGED_BOX_SPLIT=args.use_merged_box_split,
+        tracking_mode=args.tracking_mode,
     )
 
 

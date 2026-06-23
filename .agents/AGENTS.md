@@ -148,3 +148,36 @@ def project_2d_to_3d(
   * Use caret (`^`) for line continuations.
   * Use backslashes (`\`) for file paths.
 
+---
+
+## 7. Pre-Push Safety Rule
+* Never push code until the local repo passes the same quality gates used by CI:
+  * `ruff check src main.py tools tests`
+  * `pytest -q`
+* If you add new modules or tests, format them first and fix every `ruff` error in the touched files before considering the change ready.
+* If local Windows temp/cache permissions interfere with `pytest`, rerun with a workspace-local temp directory before assuming the test suite is broken.
+
+---
+
+## 8. Roboflow Workflows Integration
+
+### 8.1 API Key & Authentication
+* Never hardcode the Roboflow API key.
+* Always read from the environment variable `ROBOFLOW_API_KEY` (e.g., `os.environ.get("ROBOFLOW_API_KEY")`).
+
+### 8.2 Client Usage
+* Use the official `inference-sdk` Python package to interface with the serverless endpoint:
+```python
+from inference_sdk import InferenceHTTPClient
+client = InferenceHTTPClient(api_url="https://serverless.roboflow.com", api_key=api_key)
+```
+* Wrap workflow executions with retries and exponential backoff using the `backoff` library to survive rate limits and transient connection issues.
+
+### 8.3 Input/Output Data Contracts
+* **Inputs:** Provide the `images` dictionary with the key `"image"`. The value can be a base64 encoded string, local path, or public URL.
+* **Outputs:** The response returns a list of dictionaries. Each entry is keyed by:
+  - `count_objects` (the count of objects detected).
+  - `predictions` (a dictionary containing `image` metadata and `predictions` list of bounding box schemas).
+  - `output_image` (a base64 encoded string representing the visualized output frame).
+* **Defensive Parsing:** Bounding boxes from Roboflow are center-based (`x`, `y`, `width`, `height`). Always convert them to top-left / bottom-right coordinates `[x1, y1, x2, y2]` for consistency with the rest of the detection/tracking modules.
+

@@ -9,10 +9,24 @@ from typing import Any
 from pig_behavior.tracking.constants import (
     BEHAVIOR_VALUES,
     DEFAULT_DET_CONF_THRESHOLD,
+    DEFAULT_DETECT_EVERY_N_FRAMES,
+    DEFAULT_DUP_CENTER_THRESHOLD,
+    DEFAULT_DUP_CONTAINMENT_THRESHOLD,
+    DEFAULT_DUP_IOU_THRESHOLD,
+    DEFAULT_ENABLE_OFFLINE_SMOOTHING,
+    DEFAULT_EXPECTED_PIGS,
+    DEFAULT_HARD_OCCLUSION_IOU_THRESHOLD,
+    DEFAULT_MARK_INTERPOLATED_REVIEW,
     DEFAULT_MASK_PATH,
+    DEFAULT_MAX_INTERPOLATION_GAP,
+    DEFAULT_MAX_LOST_FRAMES,
+    DEFAULT_MAX_RAW_DETECTIONS,
+    DEFAULT_NMS_IOU_THRESHOLD,
+    DEFAULT_OCCLUSION_IOU_THRESHOLD,
     DEFAULT_OUTPUT_DIR,
-    DEFAULT_OVERLAP_THRESHOLD,
     DEFAULT_REVIEW_CONF_THRESHOLD,
+    DEFAULT_SPLIT_RECOVERY_FRAMES,
+    DEFAULT_TARGET_FPS,
     DEFAULT_TRACK_HIGH_CONF_THRESHOLD,
     DEFAULT_VIDEO_PATH,
     DEFAULT_VISUAL_OPACITY,
@@ -41,8 +55,9 @@ class TrackingConfig:
     quality_report_csv: Path | None = None
     device: int | str | None = None
     half: bool = False
+    tracker_type: str = "bytetrack"
 
-    expected_pigs: int = 8
+    expected_pigs: int = DEFAULT_EXPECTED_PIGS
     output_fps: float = 30.0
     start_frame: int = 0
     det_conf: float = DEFAULT_DET_CONF_THRESHOLD
@@ -50,9 +65,18 @@ class TrackingConfig:
     review_conf: float = DEFAULT_REVIEW_CONF_THRESHOLD
     adaptive_conf_step: float = 0.05
     conf: float | None = None
-    iou: float = DEFAULT_OVERLAP_THRESHOLD
+    nms_iou: float = DEFAULT_NMS_IOU_THRESHOLD
+    iou: float | None = None  # Legacy alias/override for nms_iou
     class_id: int | None = None
     allowed_class_name: str | None = None
+
+    # Pipeline Mode & Realtime parameters
+    mode: str = "realtime"  # "realtime" or "gt_export"
+    imgsz: int = 640
+    detect_every_n_frames: int = DEFAULT_DETECT_EVERY_N_FRAMES
+    max_raw_detections: int = DEFAULT_MAX_RAW_DETECTIONS
+    target_fps: float = DEFAULT_TARGET_FPS
+    enable_offline_smoothing: bool = DEFAULT_ENABLE_OFFLINE_SMOOTHING
 
     use_mask: bool = True
     mask_input_frame: bool = True
@@ -60,7 +84,8 @@ class TrackingConfig:
     roi_min_cover: float = 0.10
     roi_dilate_px: int = 8
 
-    max_missing_frames: int = 90
+    max_missing_frames: int = DEFAULT_MAX_LOST_FRAMES
+    max_lost_frames: int = DEFAULT_MAX_LOST_FRAMES  # Alias for max_missing_frames
     hidden_missed_frames: int = 5
     hidden_score_threshold: float = 0.15
     use_mask_iou: bool = True
@@ -70,7 +95,9 @@ class TrackingConfig:
     unseen_track_cost_threshold: float = 1.10
     lost_track_cost_threshold: float = 0.95
     lost_track_reid_appearance_threshold: float = 0.25
-    duplicate_iou_threshold: float = DEFAULT_OVERLAP_THRESHOLD
+    duplicate_iou_threshold: float = DEFAULT_DUP_IOU_THRESHOLD
+    dup_containment_threshold: float = DEFAULT_DUP_CONTAINMENT_THRESHOLD
+    dup_center_threshold: float = DEFAULT_DUP_CENTER_THRESHOLD
     initial_track_conf: float = DEFAULT_TRACK_HIGH_CONF_THRESHOLD
     low_conf_motion_gate: bool = True
     motion_gate_confidence: float = DEFAULT_TRACK_HIGH_CONF_THRESHOLD
@@ -78,7 +105,7 @@ class TrackingConfig:
     low_conf_max_box_jump_scale: float = 1.75
     low_conf_min_iou: float = 0.01
     occlusion_aware_matching: bool = True
-    occlusion_track_iom_threshold: float = 0.20
+    occlusion_track_iom_threshold: float = DEFAULT_OCCLUSION_IOU_THRESHOLD
     occlusion_detection_iom_threshold: float = 0.30
     occlusion_stationary_speed: float = 0.006
     occlusion_stationary_max_center_jump: float = 0.045
@@ -106,9 +133,9 @@ class TrackingConfig:
     merged_box_neighbor_distance: float = 0.12
     merged_box_split_max_tracks: int = 2
     hard_occlusion_track_iom_threshold: float = 0.35
-    hard_occlusion_detection_iom_threshold: float = 0.45
+    hard_occlusion_detection_iom_threshold: float = DEFAULT_HARD_OCCLUSION_IOU_THRESHOLD
     hard_occlusion_min_frames: int = 2
-    hard_occlusion_recovery_frames: int = 4
+    hard_occlusion_recovery_frames: int = DEFAULT_SPLIT_RECOVERY_FRAMES
     hard_occlusion_score_threshold: float = 0.65
     identity_swap_guard: bool = True
     identity_swap_min_gain: float = 0.015
@@ -135,6 +162,10 @@ class TrackingConfig:
     mid_conf_smooth_alpha: float = 0.55
     low_conf_smooth_alpha: float = 0.35
 
+    # Interpolation parameters (GT export only)
+    max_interpolation_gap: int = DEFAULT_MAX_INTERPOLATION_GAP
+    mark_interpolated_review: bool = DEFAULT_MARK_INTERPOLATED_REVIEW
+
     max_frames: int | None = None
     draw_mask_outline: bool = True
     shade_outside_mask: bool = True
@@ -159,6 +190,32 @@ def get_telemetry_summary(source: Any) -> dict[str, int]:
 
 
 def validate_config(cfg: TrackingConfig) -> None:
+    # 1. Map legacy iou to nms_iou if specified
+    if cfg.iou is not None:
+        cfg.nms_iou = cfg.iou
+    else:
+        cfg.iou = cfg.nms_iou
+
+    # 2. Mode-based dynamic defaults overrides
+    if cfg.mode == "gt_export":
+        if cfg.det_conf == 0.20:
+            cfg.det_conf = 0.15
+        if cfg.max_raw_detections == 20:
+            cfg.max_raw_detections = 30
+        if cfg.max_missing_frames == 30:
+            cfg.max_missing_frames = 60
+            cfg.max_lost_frames = 60
+        # For gt_export, enable offline smoothing by default unless overridden
+        if not cfg.enable_offline_smoothing:
+            cfg.enable_offline_smoothing = True
+            cfg.smooth_boxes = True
+            cfg.refine_boxes = True
+    else:
+        # In realtime mode, explicitly turn off offline smoothing / post-processing
+        cfg.enable_offline_smoothing = False
+        cfg.smooth_boxes = False
+        cfg.refine_boxes = False
+
     if cfg.conf is not None:
         cfg.review_conf = cfg.conf
     if cfg.start_frame < 0:
@@ -196,8 +253,8 @@ def validate_config(cfg: TrackingConfig) -> None:
         raise ValueError("motion_gate_confidence should be >= det_conf.")
     if not 0.0 < cfg.adaptive_conf_step <= 0.50:
         raise ValueError("adaptive_conf_step must be between 0 and 0.50.")
-    if not 0.0 < cfg.iou < 1.0:
-        raise ValueError("iou must be between 0 and 1.")
+    if not 0.0 < cfg.nms_iou < 1.0:
+        raise ValueError("nms_iou must be between 0 and 1.")
     if not 0.0 <= cfg.visual_opacity <= 1.0:
         raise ValueError("visual_opacity must be between 0 and 1.")
     if cfg.hidden_missed_frames < 1:
@@ -386,29 +443,49 @@ def resolve_output_paths(
 
 
 def write_tracker_yaml(path: Path, cfg: TrackingConfig) -> None:
-    """Write a ByteTrack config tuned for crowded 30 FPS pig videos."""
+    """Write a tracker config (ByteTrack or BoT-SORT) for pig videos."""
     track_low_thresh = min(cfg.det_conf, cfg.track_high_conf)
+    if cfg.tracker_type == "botsort":
+        lines = [
+            "tracker_type: botsort",
+            f"track_high_thresh: {cfg.track_high_conf:.2f}",
+            f"track_low_thresh: {track_low_thresh:.2f}",
+            f"new_track_thresh: {cfg.track_high_conf:.2f}",
+            f"track_thresh: {cfg.track_high_conf:.2f}",
+            f"match_thresh: {cfg.iou:.2f}",
+            "track_buffer: 90",
+            "min_box_area: 10",
+            "mot20: false",
+            "fuse_score: true",
+            "gmc_method: sparseOptFlow",
+            "proximity_thresh: 0.5",
+            "appearance_thresh: 0.25",
+            "with_reid: true",
+            "model: auto",
+            "",
+        ]
+    else:
+        lines = [
+            "tracker_type: bytetrack",
+            f"track_high_thresh: {cfg.track_high_conf:.2f}",
+            f"track_low_thresh: {track_low_thresh:.2f}",
+            f"new_track_thresh: {cfg.track_high_conf:.2f}",
+            f"track_thresh: {cfg.track_high_conf:.2f}",
+            f"match_thresh: {cfg.iou:.2f}",
+            "track_buffer: 90",
+            "min_box_area: 10",
+            "mot20: false",
+            "fuse_score: true",
+            "proximity_thresh: 0.5",
+            "appearance_thresh: 0.25",
+            "max_age: 90",
+            "n_init: 3",
+            "with_reid: false",
+            "model: auto",
+            "",
+        ]
     path.write_text(
-        "\n".join(
-            [
-                "tracker_type: bytetrack",
-                f"track_high_thresh: {cfg.track_high_conf:.2f}",
-                f"track_low_thresh: {track_low_thresh:.2f}",
-                f"new_track_thresh: {cfg.track_high_conf:.2f}",
-                f"track_thresh: {cfg.track_high_conf:.2f}",
-                f"match_thresh: {cfg.iou:.2f}",
-                "track_buffer: 90",
-                "min_box_area: 10",
-                "mot20: false",
-                "fuse_score: true",
-                "proximity_thresh: 0.5",
-                "appearance_thresh: 0.25",
-                "max_age: 90",
-                "n_init: 3",
-                "with_reid: true",
-                "",
-            ]
-        ),
+        "\n".join(lines),
         encoding="utf-8",
         newline="\n",
     )

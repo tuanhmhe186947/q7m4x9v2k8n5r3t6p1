@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import logging
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -13,7 +15,10 @@ from pig_behavior.tracking.config import (
 )
 from pig_behavior.tracking.constants import (
     DEFAULT_DET_CONF_THRESHOLD,
+    DEFAULT_DETECT_EVERY_N_FRAMES,
     DEFAULT_MASK_PATH,
+    DEFAULT_MAX_RAW_DETECTIONS,
+    DEFAULT_NMS_IOU_THRESHOLD,
     DEFAULT_OUTPUT_DIR,
     DEFAULT_OVERLAP_THRESHOLD,
     DEFAULT_REVIEW_CONF_THRESHOLD,
@@ -68,6 +73,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Torch device for YOLO inference, for example '0' or 'cpu'.",
     )
     parser.add_argument("--half", action="store_true")
+    parser.add_argument(
+        "--tracker-type",
+        type=str,
+        choices=["bytetrack", "botsort"],
+        default="bytetrack",
+        help="YOLO tracker algorithm to use: 'bytetrack' or 'botsort'.",
+    )
     parser.add_argument("--start-frame", type=int, default=0)
     parser.add_argument(
         "--conf",
@@ -87,7 +99,43 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=DEFAULT_REVIEW_CONF_THRESHOLD,
     )
     parser.add_argument("--adaptive-conf-step", type=float, default=0.05)
-    parser.add_argument("--iou", type=float, default=DEFAULT_OVERLAP_THRESHOLD)
+    parser.add_argument(
+        "--iou",
+        type=float,
+        default=None,
+        help="Legacy alias/override for --nms-iou.",
+    )
+    parser.add_argument(
+        "--nms-iou",
+        type=float,
+        default=DEFAULT_NMS_IOU_THRESHOLD,
+        help="YOLO inference NMS IoU threshold.",
+    )
+    parser.add_argument(
+        "--mode",
+        type=str,
+        choices=["realtime", "gt_export"],
+        default="realtime",
+        help="Running mode.",
+    )
+    parser.add_argument("--imgsz", type=int, default=640, help="YOLO inference image size.")
+    parser.add_argument(
+        "--detect-every-n-frames",
+        type=int,
+        default=DEFAULT_DETECT_EVERY_N_FRAMES,
+        help="Run detection every N frames.",
+    )
+    parser.add_argument(
+        "--max-raw-detections",
+        type=int,
+        default=DEFAULT_MAX_RAW_DETECTIONS,
+        help="Maximum number of raw YOLO detections.",
+    )
+    parser.add_argument(
+        "--enable-offline-smoothing",
+        action="store_true",
+        help="Enable offline smoothing/refinement (realtime mode ignores this).",
+    )
     parser.add_argument("--fps", type=float, default=30.0)
     parser.add_argument("--class-id", type=int, default=None)
     parser.add_argument("--class-name", type=str, default=None)
@@ -310,6 +358,7 @@ def _tracking_config_from_args(
         quality_report_csv=args.quality_report_csv,
         device=args.device,
         half=args.half,
+        tracker_type=args.tracker_type,
         start_frame=args.start_frame,
         output_fps=args.fps,
         det_conf=args.det_conf,
@@ -317,7 +366,13 @@ def _tracking_config_from_args(
         review_conf=args.review_conf,
         adaptive_conf_step=args.adaptive_conf_step,
         conf=args.conf,
+        nms_iou=args.nms_iou,
         iou=args.iou,
+        mode=args.mode,
+        imgsz=args.imgsz,
+        detect_every_n_frames=args.detect_every_n_frames,
+        max_raw_detections=args.max_raw_detections,
+        enable_offline_smoothing=args.enable_offline_smoothing,
         class_id=args.class_id,
         allowed_class_name=args.class_name,
         use_mask=not args.no_mask,
@@ -571,6 +626,12 @@ def _build_rgbd_config(
 
 
 def main(argv: list[str] | None = None) -> int:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        stream=sys.stdout,
+        force=True,
+    )
     args = parse_args(argv)
     if args.all_config_videos and any(
         path is not None
