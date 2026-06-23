@@ -1,15 +1,21 @@
-#!/usr/bin/env python3
-"""Smoke tests for the Roboflow Workflow integration."""
-
 from __future__ import annotations
 
 import os
 
-import cv2
-import numpy as np
 import pytest
 
-from pig_behavior.roboflow_client import detect_pigs_roboflow
+# Skip the entire module if dependencies are missing in CI
+try:
+    import backoff  # noqa: F401
+    import cv2
+    import inference_sdk  # noqa: F401
+    import numpy as np
+
+    from pig_behavior.roboflow_client import detect_pigs_roboflow
+except ImportError:
+    pytestmark = pytest.mark.skip(
+        reason="Missing heavy dependencies (cv2, backoff, or inference-sdk) in CI environment."
+    )
 
 
 @pytest.mark.skipif(

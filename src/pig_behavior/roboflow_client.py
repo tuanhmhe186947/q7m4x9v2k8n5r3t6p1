@@ -8,11 +8,7 @@ import os
 import sys
 from typing import Any
 
-import backoff
-import cv2
 import numpy as np
-from inference_sdk import InferenceHTTPClient
-from inference_sdk.http.errors import HTTPClientError
 from numpy.typing import NDArray
 
 
@@ -21,8 +17,15 @@ class RoboflowError(Exception):
     pass
 
 
-def get_roboflow_client(api_key: str | None = None) -> InferenceHTTPClient:
+def get_roboflow_client(api_key: str | None = None) -> Any:
     """Initialize the InferenceHTTPClient using environment variables or passed key."""
+    try:
+        from inference_sdk import InferenceHTTPClient
+    except ImportError as exc:
+        raise ImportError(
+            "inference-sdk is not installed. Please install it to use this client."
+        ) from exc
+
     key = api_key or os.environ.get("ROBOFLOW_API_KEY")
     if not key:
         raise RoboflowError(
@@ -35,28 +38,37 @@ def get_roboflow_client(api_key: str | None = None) -> InferenceHTTPClient:
     )
 
 
-@backoff.on_exception(
-    backoff.expo,
-    (HTTPClientError, Exception),
-    max_tries=3,
-    factor=2,
-    logger=None
-)
 def run_roboflow_workflow_with_retry(
-    client: InferenceHTTPClient,
+    client: Any,
     workspace_name: str,
     workflow_id: str,
     image_b64: str,
 ) -> dict[str, Any]:
     """Execute Roboflow workflow with exponential backoff on retryable HTTP errors."""
-    # Note: inference-sdk uses requests internally which handles connections,
-    # and we wrap it with backoff to handle transient network issues or rate limits.
     try:
-        results = client.run_workflow(
+        import backoff
+        from inference_sdk.http.errors import HTTPClientError
+    except ImportError as exc:
+        raise ImportError(
+            "backoff and inference-sdk are required for workflow execution."
+        ) from exc
+
+    @backoff.on_exception(
+        backoff.expo,
+        (HTTPClientError, Exception),
+        max_tries=3,
+        factor=2,
+        logger=None
+    )
+    def _run() -> Any:
+        return client.run_workflow(
             workspace_name=workspace_name,
             workflow_id=workflow_id,
             images={"image": image_b64}
         )
+
+    try:
+        results = _run()
         if not results or len(results) == 0:
             raise RoboflowError("Received empty response list from Roboflow Workflow execution.")
         
@@ -66,6 +78,7 @@ def run_roboflow_workflow_with_retry(
         if isinstance(e, RoboflowError):
             raise
         raise RoboflowError(f"Roboflow Workflow execution failed: {e}") from e
+
 
 
 def detect_pigs_roboflow(
@@ -90,6 +103,11 @@ def detect_pigs_roboflow(
     """
     assert frame.ndim == 3 and frame.shape[2] == 3, f"Expected 3D BGR image, got shape {frame.shape}"
     
+    try:
+        import cv2
+    except ImportError as exc:
+        raise ImportError("cv2 (OpenCV) is required for detect_pigs_roboflow.") from exc
+
     # 1. Base64 encode the frame to JPEG buffer
     ok, buf = cv2.imencode(".jpg", frame)
     if not ok:
