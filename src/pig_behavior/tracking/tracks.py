@@ -167,8 +167,15 @@ def shape_for_track(
 ) -> dict[str, Any]:
     hidden = "Yes" if track_is_hidden(track, cfg) else "No"
     track_state = track.get_state()
-    is_outside = track_state in ("MISSING", "LOST")
-    is_occluded = track_state == "OCCLUDED" or hidden == "Yes"
+    legacy_mode = cfg.mode == "legacy_bytetrack"
+    # MISSING still has a tracker-produced box, so keep it evaluable. Only an
+    # uninitialized placeholder or an expired LOST track is truly absent.
+    is_outside = False if legacy_mode else (
+        not track.ever_detected or track_state == "LOST"
+    )
+    is_occluded = hidden == "Yes" if legacy_mode else (
+        track_state == "OCCLUDED" or hidden == "Yes"
+    )
     needs_review = is_outside or is_occluded or (
         track.last_source != "detected" or track.last_score < cfg.review_conf
     )

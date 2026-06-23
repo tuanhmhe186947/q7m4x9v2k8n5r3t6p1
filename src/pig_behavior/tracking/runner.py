@@ -165,20 +165,42 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
                 else frame
             )
 
-            is_detect_frame = (frame_index - cfg.start_frame) % cfg.detect_every_n_frames == 0
+            is_detect_frame = (
+                cfg.mode == "legacy_bytetrack"
+                or (frame_index - cfg.start_frame) % cfg.detect_every_n_frames == 0
+            )
             num_dets = 0
 
             if is_detect_frame:
-                results = model.predict(
-                    source=detector_frame,
-                    conf=cfg.det_conf,
-                    iou=cfg.nms_iou,
-                    max_det=cfg.max_raw_detections,
-                    imgsz=cfg.imgsz,
-                    verbose=False,
-                    device=cfg.device,
-                    half=cfg.half,
-                )
+                inference_args = {
+                    "source": detector_frame,
+                    "conf": cfg.det_conf,
+                    "iou": cfg.nms_iou,
+                    "max_det": cfg.max_raw_detections,
+                    "imgsz": cfg.imgsz,
+                    "verbose": False,
+                    "device": cfg.device,
+                    "half": cfg.half,
+                }
+                if cfg.mode == "legacy_bytetrack":
+                    results = model.track(
+                        source=detector_frame,
+                        persist=True,
+                        conf=cfg.det_conf,
+                        iou=cfg.nms_iou,
+                        tracker=str(tracker_yaml),
+                        verbose=False,
+                        device=cfg.device,
+                        half=cfg.half,
+                    )
+                elif cfg.mode == "bytetrack":
+                    results = model.track(
+                        **inference_args,
+                        persist=True,
+                        tracker=str(tracker_yaml),
+                    )
+                else:
+                    results = model.predict(**inference_args)
                 detections = adaptive_confidence_filter(
                     parse_detections(results[0], frame, mask, cfg),
                     cfg,
@@ -204,7 +226,7 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
                         lk_box = lk_predict_box(prev_frame, frame, track.last_box, width, height)
                         if lk_box is None:
                             lk_box = track.predicted_box(width, height)
-                        track.update_predicted(lk_box, width, height, cfg=cfg)
+                        track.update_predicted(lk_box, width, height, cfg=cfg, is_skip_frame=True)
 
             current_shapes = frame_shapes(tracks, frame_index, cfg)
             shapes.extend(current_shapes)
@@ -262,7 +284,7 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
     if frames_written == 0:
         raise RuntimeError("No frames were processed.")
 
-    if cfg.enable_offline_smoothing:
+    if cfg.enable_offline_smoothing or cfg.mode == "legacy_bytetrack":
         shapes = apply_identity_swap_guard(shapes, width, height, cfg)
         shapes = refine_shapes_temporally(shapes, width, height, cfg)
     hidden_shape_count = sum(
@@ -317,14 +339,15 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
     )
     max_shape_frame = max(int(shape["frame"]) for shape in shapes)
     source_frame_count = max(total_frames, max_shape_frame + 1)
-    write_cvat_video_xml(
-        cvat_video_xml,
-        shapes,
-        cfg.video_path,
-        width,
-        height,
-        source_frame_count,
-    )
+    if cfg.mode in {"legacy_bytetrack", "gt_export"}:
+        write_cvat_video_xml(
+            cvat_video_xml,
+            shapes,
+            cfg.video_path,
+            width,
+            height,
+            source_frame_count,
+        )
     quality_report = build_quality_report(
         shapes,
         cfg,

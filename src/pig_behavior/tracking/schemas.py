@@ -108,8 +108,15 @@ class FixedTrack:
     ever_detected: bool = False
     state: str = "MISSING"
     state_reason: str = "initialized"
-    missed_count: int = 0
     occlusion_count: int = 0
+
+    @property
+    def missed_count(self) -> int:
+        return self.missed
+
+    @missed_count.setter
+    def missed_count(self, value: int) -> None:
+        self.missed = value
 
     def mean_hist(self) -> np.ndarray | None:
         if not self.hist_bank:
@@ -361,6 +368,7 @@ class FixedTrack:
         ambiguous: bool = False,
         hold: bool = False,
         cfg: TrackingConfig | None = None,
+        is_skip_frame: bool = False,
     ) -> None:
         previous_center = _bbox_center(self.last_box)
         new_box = _clip_box(box, width, height)
@@ -370,32 +378,35 @@ class FixedTrack:
             dtype=np.float32,
         )
         self.last_box = new_box
-        self.last_score = max(0.05, self.last_score * 0.92)
-        self.last_source = "occlusion_hold" if hold else "predicted"
-        self.last_ambiguous = bool(ambiguous)
-        self.last_merged_split = False
-        self.missed += 1
-        self.missed_count = self.missed
-        if hold:
-            self.occlusion_hold_frames += 1
-        else:
-            self.occlusion_hold_frames = 0
-            self.is_area_occluded = False
-            self.area_occlusion_frames = 0
-
-        if hold or self.is_area_occluded:
-            self.state = "OCCLUDED"
-            self.state_reason = "occlusion_hold"
-            self.occlusion_count += 1
-        else:
-            max_missing = cfg.max_missing_frames if cfg is not None else 30
-            if self.missed_count > max_missing:
-                self.state = "LOST"
-                self.state_reason = "max_missing_exceeded"
+        if not is_skip_frame:
+            self.last_score = max(0.05, self.last_score * 0.92)
+            self.last_source = "occlusion_hold" if hold else "predicted"
+            self.last_ambiguous = bool(ambiguous)
+            self.last_merged_split = False
+            self.missed += 1
+            self.missed_count = self.missed
+            if hold:
+                self.occlusion_hold_frames += 1
             else:
-                self.state = "MISSING"
-                self.state_reason = "predicted"
-            self.occlusion_count = 0
+                self.occlusion_hold_frames = 0
+                self.is_area_occluded = False
+                self.area_occlusion_frames = 0
+
+            if hold or self.is_area_occluded:
+                self.state = "OCCLUDED"
+                self.state_reason = "occlusion_hold"
+                self.occlusion_count += 1
+            else:
+                max_missing = cfg.max_missing_frames if cfg is not None else 30
+                if self.missed_count > max_missing:
+                    self.state = "LOST"
+                    self.state_reason = "max_missing_exceeded"
+                else:
+                    self.state = "MISSING"
+                    self.state_reason = "predicted"
+                self.occlusion_count = 0
+        else:
+            self.state_reason = "prediction_only"
 
 
 @dataclass(slots=True)

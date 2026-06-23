@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from .assets import (
     DETECTOR_WEIGHTS,
@@ -44,3 +45,4 @@ class TrackingEvaluationPipelineConfig:
     USE_CONDITIONAL_AREA_OCCLUSION_FREEZE: bool = True
     USE_MERGED_BOX_SPLIT: bool = False
     tracking_mode: str = "gt_export"
+    profile_overrides: dict[str, Any] | None = None

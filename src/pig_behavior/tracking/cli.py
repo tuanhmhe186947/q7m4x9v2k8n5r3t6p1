@@ -16,12 +16,17 @@ from pig_behavior.tracking.config import (
 from pig_behavior.tracking.constants import (
     DEFAULT_DET_CONF_THRESHOLD,
     DEFAULT_DETECT_EVERY_N_FRAMES,
+    DEFAULT_DUP_AREA_RATIO_THRESHOLD,
+    DEFAULT_DUP_CENTER_THRESHOLD,
+    DEFAULT_DUP_CONTAINMENT_THRESHOLD,
+    DEFAULT_DUP_IOU_THRESHOLD,
     DEFAULT_MASK_PATH,
+    DEFAULT_MAX_LOST_FRAMES,
     DEFAULT_MAX_RAW_DETECTIONS,
     DEFAULT_NMS_IOU_THRESHOLD,
     DEFAULT_OUTPUT_DIR,
-    DEFAULT_OVERLAP_THRESHOLD,
     DEFAULT_REVIEW_CONF_THRESHOLD,
+    DEFAULT_TRACK_MATCH_IOU_THRESHOLD,
     DEFAULT_TRACK_HIGH_CONF_THRESHOLD,
     DEFAULT_VIDEO_PATH,
     DEFAULT_VISUAL_OPACITY,
@@ -112,11 +117,21 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="YOLO inference NMS IoU threshold.",
     )
     parser.add_argument(
+        "--track-match-iou",
+        type=float,
+        default=DEFAULT_TRACK_MATCH_IOU_THRESHOLD,
+        help="ByteTrack/BoT-SORT association match threshold.",
+    )
+    parser.add_argument(
         "--mode",
         type=str,
-        choices=["realtime", "gt_export"],
+        choices=["realtime", "bytetrack", "legacy_bytetrack", "gt_export"],
         default="realtime",
-        help="Running mode.",
+        help=(
+            "'bytetrack' uses model.track() with current pipeline behavior. "
+            "'legacy_bytetrack' restores the e22cde3 ByteTrack association, "
+            "lifecycle, export flags, and post-processing behavior."
+        ),
     )
     parser.add_argument("--imgsz", type=int, default=640, help="YOLO inference image size.")
     parser.add_argument(
@@ -148,7 +163,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--hidden-score-threshold", type=float, default=0.15)
     parser.add_argument("--mask-iou-max-missed", type=int, default=10)
     parser.add_argument("--mask-iou-min-area", type=int, default=64)
-    parser.add_argument("--max-missing-frames", type=int, default=90)
+    parser.add_argument(
+        "--max-missing-frames",
+        type=int,
+        default=DEFAULT_MAX_LOST_FRAMES,
+    )
     parser.add_argument("--match-cost-threshold", type=float, default=0.78)
     parser.add_argument("--unseen-track-cost-threshold", type=float, default=1.10)
     parser.add_argument("--lost-track-cost-threshold", type=float, default=0.95)
@@ -227,9 +246,30 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--hidden-stationary-lock-frames", type=int, default=8)
     parser.add_argument("--hidden-max-motion-step-box-scale", type=float, default=1.50)
     parser.add_argument(
+        "--dup-iou-threshold",
+        type=float,
+        default=None,
+    )
+    parser.add_argument(
         "--duplicate-iou-threshold",
         type=float,
-        default=DEFAULT_OVERLAP_THRESHOLD,
+        default=None,
+        help="Deprecated alias for --dup-iou-threshold.",
+    )
+    parser.add_argument(
+        "--dup-containment-threshold",
+        type=float,
+        default=DEFAULT_DUP_CONTAINMENT_THRESHOLD,
+    )
+    parser.add_argument(
+        "--dup-center-threshold",
+        type=float,
+        default=DEFAULT_DUP_CENTER_THRESHOLD,
+    )
+    parser.add_argument(
+        "--dup-area-ratio-threshold",
+        type=float,
+        default=DEFAULT_DUP_AREA_RATIO_THRESHOLD,
     )
     parser.add_argument("--max-box-scale-change", type=float, default=0.25)
     parser.add_argument("--max-box-scale-change-after-gap", type=float, default=0.75)
@@ -307,7 +347,31 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     rgbd_group.add_argument("--debug", action="store_true")
 
-    return parser.parse_args(argv)
+    # First parse to get normal namespace with defaults
+    args = parser.parse_args(argv)
+
+    # In-place modify defaults on the actions of the parser to SUPPRESS
+    for action in parser._actions:
+        action.default = argparse.SUPPRESS
+
+    # Parse again to see which keys were explicitly provided by the user
+    suppressed_args = parser.parse_args(argv)
+    overrides = set(vars(suppressed_args).keys())
+
+    # Handle alias and default for dup_iou_threshold
+    if "dup_iou_threshold" in overrides:
+        # User explicitly specified --dup-iou-threshold
+        pass
+    elif "duplicate_iou_threshold" in overrides:
+        # User explicitly specified --duplicate-iou-threshold
+        args.dup_iou_threshold = args.duplicate_iou_threshold
+        overrides.add("dup_iou_threshold")
+    else:
+        # Neither was specified, use default
+        args.dup_iou_threshold = DEFAULT_DUP_IOU_THRESHOLD
+
+    args.overrides = overrides
+    return args
 
 
 def _profile_from_args(args: argparse.Namespace) -> dict[str, Any]:
@@ -342,7 +406,47 @@ def _tracking_config_from_args(
         or profile_path(profile, "output_dir", DEFAULT_OUTPUT_DIR)
         or DEFAULT_OUTPUT_DIR
     )
-    return TrackingConfig(
+    # Construct config overrides set
+    cfg_overrides = set()
+    raw_overrides = getattr(args, "overrides", set())
+    for key in raw_overrides:
+        cfg_overrides.add(key)
+        if key == "no_mask":
+            cfg_overrides.add("use_mask")
+        elif key == "no_mask_input":
+            cfg_overrides.add("mask_input_frame")
+        elif key == "no_mask_iou":
+            cfg_overrides.add("use_mask_iou")
+        elif key == "no_smooth_boxes":
+            cfg_overrides.add("smooth_boxes")
+        elif key == "no_refine_boxes":
+            cfg_overrides.add("refine_boxes")
+        elif key == "no_low_conf_motion_gate":
+            cfg_overrides.add("low_conf_motion_gate")
+        elif key == "no_occlusion_aware_matching":
+            cfg_overrides.add("occlusion_aware_matching")
+        elif key == "no_directional_y_prior":
+            cfg_overrides.add("directional_y_prior")
+        elif key == "learn_identity_in_occlusion":
+            cfg_overrides.add("freeze_identity_in_occlusion")
+        elif key == "no_hold_occluded_box":
+            cfg_overrides.add("hold_occluded_box")
+        elif key == "no_identity_swap_guard":
+            cfg_overrides.add("identity_swap_guard")
+        elif key == "no_hidden_motion_model":
+            cfg_overrides.add("hidden_motion_model")
+        elif key == "fps":
+            cfg_overrides.add("output_fps")
+        elif key == "class_name":
+            cfg_overrides.add("allowed_class_name")
+        elif key == "duplicate_iou_threshold":
+            cfg_overrides.add("dup_iou_threshold")
+        elif key == "refine_max_gap":
+            cfg_overrides.add("refine_max_gap_frames")
+        elif key == "max_box_scale_change":
+            cfg_overrides.add("max_box_scale_change_per_frame")
+
+    cfg = TrackingConfig(
         video_path=selected_video,
         weights_path=weights_path,
         mask_path=mask_path,
@@ -368,6 +472,7 @@ def _tracking_config_from_args(
         conf=args.conf,
         nms_iou=args.nms_iou,
         iou=args.iou,
+        track_match_iou=args.track_match_iou,
         mode=args.mode,
         imgsz=args.imgsz,
         detect_every_n_frames=args.detect_every_n_frames,
@@ -451,7 +556,10 @@ def _tracking_config_from_args(
         hidden_motion_consistency=args.hidden_motion_consistency,
         hidden_stationary_lock_frames=args.hidden_stationary_lock_frames,
         hidden_max_motion_step_box_scale=args.hidden_max_motion_step_box_scale,
-        duplicate_iou_threshold=args.duplicate_iou_threshold,
+        dup_iou_threshold=args.dup_iou_threshold,
+        dup_containment_threshold=args.dup_containment_threshold,
+        dup_center_threshold=args.dup_center_threshold,
+        dup_area_ratio_threshold=args.dup_area_ratio_threshold,
         default_behavior=args.default_behavior,
         smooth_boxes=not args.no_smooth_boxes,
         refine_boxes=not args.no_refine_boxes,
@@ -466,7 +574,35 @@ def _tracking_config_from_args(
         visual_opacity=args.visual_opacity,
         show=args.show,
         display_inline=args.display_inline,
+        overrides=cfg_overrides,
     )
+
+    tracker_fields = set(TrackingConfig.__dataclass_fields__.keys())
+
+    exclude_profile_keys = {
+        "video_path", "weights_path", "mask_path", "output_dir",
+        "output_video", "annotations_json", "coco_annotations_json",
+        "clean_coco_annotations_json", "cvat_video_xml", "labels_json",
+        "tracker_yaml", "quality_report_json", "quality_report_csv",
+        "overrides",
+    }
+
+    profile_mapped = {}
+    for p_key, p_val in profile.items():
+        if p_key == "duplicate_iou_threshold":
+            profile_mapped["dup_iou_threshold"] = p_val
+        elif p_key == "max_lost_frames":
+            profile_mapped["max_missing_frames"] = p_val
+            profile_mapped["max_lost_frames"] = p_val
+        else:
+            profile_mapped[p_key] = p_val
+
+    for p_key, p_val in profile_mapped.items():
+        if p_key in tracker_fields and p_key not in exclude_profile_keys:
+            if p_key not in cfg.overrides:
+                setattr(cfg, p_key, p_val)
+
+    return cfg
 
 
 def _video_paths_from_args(
@@ -501,7 +637,8 @@ def print_tracking_summary(cfg: TrackingConfig, summary: TrackingSummary) -> Non
         f"det_conf={cfg.det_conf:.2f}, "
         f"track_high_conf={cfg.track_high_conf:.2f}, "
         f"review_conf={cfg.review_conf:.2f}, "
-        f"overlap={cfg.iou:.2f}, "
+        f"nms_iou={cfg.nms_iou:.2f}, "
+        f"track_match_iou={cfg.track_match_iou:.2f}, "
         f"visual_opacity={cfg.visual_opacity:.2f}"
     )
     print(

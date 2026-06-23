@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -10,6 +10,7 @@ from pig_behavior.tracking.constants import (
     BEHAVIOR_VALUES,
     DEFAULT_DET_CONF_THRESHOLD,
     DEFAULT_DETECT_EVERY_N_FRAMES,
+    DEFAULT_DUP_AREA_RATIO_THRESHOLD,
     DEFAULT_DUP_CENTER_THRESHOLD,
     DEFAULT_DUP_CONTAINMENT_THRESHOLD,
     DEFAULT_DUP_IOU_THRESHOLD,
@@ -28,6 +29,7 @@ from pig_behavior.tracking.constants import (
     DEFAULT_SPLIT_RECOVERY_FRAMES,
     DEFAULT_TARGET_FPS,
     DEFAULT_TRACK_HIGH_CONF_THRESHOLD,
+    DEFAULT_TRACK_MATCH_IOU_THRESHOLD,
     DEFAULT_VIDEO_PATH,
     DEFAULT_VISUAL_OPACITY,
     DEFAULT_WEIGHTS_PATH,
@@ -67,11 +69,12 @@ class TrackingConfig:
     conf: float | None = None
     nms_iou: float = DEFAULT_NMS_IOU_THRESHOLD
     iou: float | None = None  # Legacy alias/override for nms_iou
+    track_match_iou: float = DEFAULT_TRACK_MATCH_IOU_THRESHOLD
     class_id: int | None = None
     allowed_class_name: str | None = None
 
     # Pipeline Mode & Realtime parameters
-    mode: str = "realtime"  # "realtime" or "gt_export"
+    mode: str = "realtime"  # realtime, bytetrack, legacy_bytetrack, or gt_export
     imgsz: int = 640
     detect_every_n_frames: int = DEFAULT_DETECT_EVERY_N_FRAMES
     max_raw_detections: int = DEFAULT_MAX_RAW_DETECTIONS
@@ -95,9 +98,10 @@ class TrackingConfig:
     unseen_track_cost_threshold: float = 1.10
     lost_track_cost_threshold: float = 0.95
     lost_track_reid_appearance_threshold: float = 0.25
-    duplicate_iou_threshold: float = DEFAULT_DUP_IOU_THRESHOLD
+    dup_iou_threshold: float = DEFAULT_DUP_IOU_THRESHOLD
     dup_containment_threshold: float = DEFAULT_DUP_CONTAINMENT_THRESHOLD
     dup_center_threshold: float = DEFAULT_DUP_CENTER_THRESHOLD
+    dup_area_ratio_threshold: float = DEFAULT_DUP_AREA_RATIO_THRESHOLD
     initial_track_conf: float = DEFAULT_TRACK_HIGH_CONF_THRESHOLD
     low_conf_motion_gate: bool = True
     motion_gate_confidence: float = DEFAULT_TRACK_HIGH_CONF_THRESHOLD
@@ -172,6 +176,7 @@ class TrackingConfig:
     visual_opacity: float = DEFAULT_VISUAL_OPACITY
     show: bool = False
     display_inline: bool = False
+    overrides: set[str] = field(default_factory=set)
 
 
 def tracking_rule_flags_enabled(cfg: TrackingConfig) -> bool:
@@ -196,25 +201,66 @@ def validate_config(cfg: TrackingConfig) -> None:
     else:
         cfg.iou = cfg.nms_iou
 
+    if cfg.mode not in {
+        "realtime",
+        "bytetrack",
+        "legacy_bytetrack",
+        "gt_export",
+    }:
+        raise ValueError(
+            "mode must be one of: realtime, bytetrack, legacy_bytetrack, "
+            "gt_export."
+        )
+
     # 2. Mode-based dynamic defaults overrides
-    if cfg.mode == "gt_export":
-        if cfg.det_conf == 0.20:
+    if cfg.mode == "legacy_bytetrack":
+        # Reproduce the e22cde3 ByteTrack defaults without changing the new
+        # pipeline defaults used by realtime, bytetrack, and gt_export.
+        legacy_defaults = {
+            "det_conf": 0.25,
+            "track_high_conf": 0.50,
+            "review_conf": 0.75,
+            "nms_iou": 0.80,
+            "track_match_iou": 0.80,
+            "dup_iou_threshold": 0.80,
+            "initial_track_conf": 0.50,
+            "motion_gate_confidence": 0.50,
+        }
+        for name, value in legacy_defaults.items():
+            explicitly_overridden = name in cfg.overrides
+            if name == "nms_iou" and "iou" in cfg.overrides:
+                explicitly_overridden = True
+            if not explicitly_overridden:
+                setattr(cfg, name, value)
+        cfg.iou = cfg.nms_iou
+        # The original path ran model.track() on every source frame.
+        cfg.detect_every_n_frames = 1
+        if "max_missing_frames" not in cfg.overrides:
+            cfg.max_missing_frames = 90
+            cfg.max_lost_frames = 90
+        if "enable_offline_smoothing" not in cfg.overrides:
+            cfg.enable_offline_smoothing = True
+            cfg.smooth_boxes = True
+            cfg.refine_boxes = True
+    elif cfg.mode == "gt_export":
+        if "det_conf" not in cfg.overrides and cfg.det_conf == 0.20:
             cfg.det_conf = 0.15
-        if cfg.max_raw_detections == 20:
+        if "max_raw_detections" not in cfg.overrides and cfg.max_raw_detections == 20:
             cfg.max_raw_detections = 30
-        if cfg.max_missing_frames == 30:
+        if "max_missing_frames" not in cfg.overrides and cfg.max_missing_frames == 30:
             cfg.max_missing_frames = 60
             cfg.max_lost_frames = 60
         # For gt_export, enable offline smoothing by default unless overridden
-        if not cfg.enable_offline_smoothing:
+        if "enable_offline_smoothing" not in cfg.overrides and not cfg.enable_offline_smoothing:
             cfg.enable_offline_smoothing = True
             cfg.smooth_boxes = True
             cfg.refine_boxes = True
     else:
         # In realtime mode, explicitly turn off offline smoothing / post-processing
-        cfg.enable_offline_smoothing = False
-        cfg.smooth_boxes = False
-        cfg.refine_boxes = False
+        if "enable_offline_smoothing" not in cfg.overrides:
+            cfg.enable_offline_smoothing = False
+            cfg.smooth_boxes = False
+            cfg.refine_boxes = False
 
     if cfg.conf is not None:
         cfg.review_conf = cfg.conf
@@ -255,6 +301,8 @@ def validate_config(cfg: TrackingConfig) -> None:
         raise ValueError("adaptive_conf_step must be between 0 and 0.50.")
     if not 0.0 < cfg.nms_iou < 1.0:
         raise ValueError("nms_iou must be between 0 and 1.")
+    if not 0.0 < cfg.track_match_iou < 1.0:
+        raise ValueError("track_match_iou must be between 0 and 1.")
     if not 0.0 <= cfg.visual_opacity <= 1.0:
         raise ValueError("visual_opacity must be between 0 and 1.")
     if cfg.hidden_missed_frames < 1:
@@ -277,6 +325,15 @@ def validate_config(cfg: TrackingConfig) -> None:
         raise ValueError(
             "lost_track_reid_appearance_threshold must be between 0 and 1."
         )
+    duplicate_values = {
+        "dup_iou_threshold": cfg.dup_iou_threshold,
+        "dup_containment_threshold": cfg.dup_containment_threshold,
+        "dup_center_threshold": cfg.dup_center_threshold,
+        "dup_area_ratio_threshold": cfg.dup_area_ratio_threshold,
+    }
+    for name, value in duplicate_values.items():
+        if not 0.0 <= value <= 1.0:
+            raise ValueError(f"{name} must be between 0 and 1.")
     if not 0.0 <= cfg.low_conf_max_center_jump <= 1.0:
         raise ValueError("low_conf_max_center_jump must be between 0 and 1.")
     if not 0.0 <= cfg.low_conf_min_iou <= 1.0:
@@ -445,14 +502,33 @@ def resolve_output_paths(
 def write_tracker_yaml(path: Path, cfg: TrackingConfig) -> None:
     """Write a tracker config (ByteTrack or BoT-SORT) for pig videos."""
     track_low_thresh = min(cfg.det_conf, cfg.track_high_conf)
-    if cfg.tracker_type == "botsort":
+    if cfg.mode == "legacy_bytetrack":
+        lines = [
+            "tracker_type: bytetrack",
+            f"track_high_thresh: {cfg.track_high_conf:.2f}",
+            f"track_low_thresh: {track_low_thresh:.2f}",
+            f"new_track_thresh: {cfg.track_high_conf:.2f}",
+            f"track_thresh: {cfg.track_high_conf:.2f}",
+            f"match_thresh: {cfg.track_match_iou:.2f}",
+            "track_buffer: 90",
+            "min_box_area: 10",
+            "mot20: false",
+            "fuse_score: true",
+            "proximity_thresh: 0.5",
+            "appearance_thresh: 0.25",
+            "max_age: 90",
+            "n_init: 3",
+            "with_reid: true",
+            "",
+        ]
+    elif cfg.tracker_type == "botsort":
         lines = [
             "tracker_type: botsort",
             f"track_high_thresh: {cfg.track_high_conf:.2f}",
             f"track_low_thresh: {track_low_thresh:.2f}",
             f"new_track_thresh: {cfg.track_high_conf:.2f}",
             f"track_thresh: {cfg.track_high_conf:.2f}",
-            f"match_thresh: {cfg.iou:.2f}",
+            f"match_thresh: {cfg.track_match_iou:.2f}",
             "track_buffer: 90",
             "min_box_area: 10",
             "mot20: false",
@@ -471,7 +547,7 @@ def write_tracker_yaml(path: Path, cfg: TrackingConfig) -> None:
             f"track_low_thresh: {track_low_thresh:.2f}",
             f"new_track_thresh: {cfg.track_high_conf:.2f}",
             f"track_thresh: {cfg.track_high_conf:.2f}",
-            f"match_thresh: {cfg.iou:.2f}",
+            f"match_thresh: {cfg.track_match_iou:.2f}",
             "track_buffer: 90",
             "min_box_area: 10",
             "mot20: false",

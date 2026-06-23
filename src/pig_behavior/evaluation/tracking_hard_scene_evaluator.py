@@ -1132,7 +1132,7 @@ def run_hard_scene_evaluation(
         config.gt_xml, include_hidden=config.include_hidden
     )
     pred_by_frame, pred_conf = _parse_with_confidence(
-        config.pred_xml, include_hidden=config.include_hidden
+        config.pred_xml, include_hidden=True
     )
     predicted_frame_count = sum(1 for objs in pred_by_frame.values() if objs)
 

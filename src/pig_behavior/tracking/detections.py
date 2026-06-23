@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import numpy as np
@@ -16,6 +17,8 @@ from pig_behavior.tracking.geometry import (
 )
 from pig_behavior.tracking.masks import detection_overlap_score, roi_keep
 from pig_behavior.tracking.schemas import Detection
+
+logger = logging.getLogger(__name__)
 
 
 def _to_numpy(value: Any) -> np.ndarray | None:
@@ -117,13 +120,34 @@ def deduplicate_detections(
             iom = bbox_iom(det.box, other.box)
             center_dist = center_distance_norm(det.box, other.box, width, height)
             
-            # 1. High IoU check: combined with center distance to confirm it's a duplicate
-            if iou > cfg.duplicate_iou_threshold and center_dist < cfg.dup_center_threshold:
+            # Calculate area ratio
+            det_area = (det.box[2] - det.box[0]) * (det.box[3] - det.box[1])
+            other_area = (other.box[2] - other.box[0]) * (other.box[3] - other.box[1])
+            min_area = min(det_area, other_area)
+            max_area = max(det_area, other_area)
+            area_ratio = min_area / max(max_area, 1e-6)
+            
+            # 1. High IoU check: combined with center distance and area ratio to confirm it's a duplicate
+            if (
+                iou > cfg.dup_iou_threshold
+                and center_dist < cfg.dup_center_threshold
+                and area_ratio >= cfg.dup_area_ratio_threshold
+            ):
+                logger.debug(
+                    "Deduplication drop [duplicate_iou] at frame %s: det %s dropped because of other %s. "
+                    "iou=%.3f, center_dist=%.3f, area_ratio=%.3f",
+                    frame_id, det.box.tolist(), other.box.tolist(), iou, center_dist, area_ratio
+                )
                 is_dup = True
                 break
                 
             # 2. Containment check: one box is almost entirely inside another, combined with center distance
             if iom > cfg.dup_containment_threshold and center_dist < cfg.dup_center_threshold:
+                logger.debug(
+                    "Deduplication drop [duplicate_containment] at frame %s: det %s dropped because of other %s. "
+                    "iom=%.3f, center_dist=%.3f",
+                    frame_id, det.box.tolist(), other.box.tolist(), iom, center_dist
+                )
                 is_dup = True
                 break
         if not is_dup:
@@ -180,6 +204,9 @@ def parse_detections(
         )
 
     detections.sort(key=lambda item: item.score, reverse=True)
+    if cfg.mode == "legacy_bytetrack":
+        detections = suppress_duplicate_detections(detections, cfg)
+        return detections[: max(cfg.expected_pigs * 3, cfg.expected_pigs)]
     detections = deduplicate_detections(detections, cfg, width, height)
     return detections
 
@@ -191,7 +218,7 @@ def suppress_duplicate_detections(
     kept: list[Detection] = []
     for det in detections:
         if all(
-            detection_overlap_score(det, other, cfg) < cfg.duplicate_iou_threshold
+            detection_overlap_score(det, other, cfg) < cfg.dup_iou_threshold
             for other in kept
         ):
             kept.append(det)
@@ -224,7 +251,7 @@ def adaptive_confidence_filter(
     """Keep the highest confidence threshold that still gives enough candidates,
     or just filter by det_conf in realtime.
     """
-    if cfg.mode == "realtime":
+    if cfg.mode in {"realtime", "bytetrack"}:
         return [det for det in detections if det.score >= cfg.det_conf]
 
     if not detections:

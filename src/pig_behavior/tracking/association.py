@@ -152,13 +152,14 @@ def low_conf_detection_is_plausible(
 
     reference = association_reference_box(track, det, width, height, cfg)
     if track_is_lost_for_association(track):
-        top_raw_id = track.top_raw_id()
-        if (
-            det.raw_id is not None
-            and top_raw_id is not None
-            and det.raw_id == top_raw_id
-        ):
-            return True
+        if cfg.mode == "legacy_bytetrack":
+            top_raw_id = track.top_raw_id()
+            if (
+                det.raw_id is not None
+                and top_raw_id is not None
+                and det.raw_id == top_raw_id
+            ):
+                return True
         if hist_distance(track.mean_hist(), det.hist) <= (
             cfg.lost_track_reid_appearance_threshold
         ):
@@ -186,11 +187,11 @@ def track_detection_cost(
     track: FixedTrack,
     det: Detection,
     det_index: int,
-    raw_owner: dict[int, int],
     occlusion_context: OcclusionContext,
     width: int,
     height: int,
     cfg: TrackingConfig,
+    raw_owner: dict[int, int] | None = None,
 ) -> float:
     if not low_conf_detection_is_plausible(track, det, width, height, cfg):
         return 1_000_000.0
@@ -212,8 +213,8 @@ def track_detection_cost(
     area_cost = min(area_log_ratio(predicted, det.box), 2.0) / 2.0
 
     raw_penalty = 0.0
-    if det.raw_id is not None:
-        owner = raw_owner.get(det.raw_id)
+    if cfg.mode == "legacy_bytetrack" and det.raw_id is not None:
+        owner = raw_owner.get(det.raw_id) if raw_owner is not None else None
         if owner is not None and owner != track.fixed_id:
             raw_penalty += 0.18
         elif track.top_raw_id() is not None and track.top_raw_id() != det.raw_id:
@@ -285,10 +286,11 @@ def match_and_update_tracks(
         runtime,
     )
     raw_owner: dict[int, int] = {}
-    for track in ordered_tracks:
-        raw_id = track.top_raw_id()
-        if raw_id is not None:
-            raw_owner[raw_id] = track.fixed_id
+    if cfg.mode == "legacy_bytetrack":
+        for track in ordered_tracks:
+            raw_id = track.top_raw_id()
+            if raw_id is not None:
+                raw_owner[raw_id] = track.fixed_id
 
     matched_tracks: set[int] = set()
     matched_detections: set[int] = set()
@@ -325,11 +327,11 @@ def match_and_update_tracks(
                     track,
                     detections[det_idx],
                     det_idx,
-                    raw_owner,
                     occlusion_context,
                     width,
                     height,
                     cfg,
+                    raw_owner,
                 )
 
         apply_directional_y_prior_to_costs(
@@ -404,32 +406,44 @@ def match_and_update_tracks(
             if idx not in ignored_detection_indices
         ]
 
-        # Partition detections into high-confidence and low-confidence indices
-        high_conf_indices = [
-            idx for idx in all_detection_indices
-            if detections[idx].score >= cfg.track_high_conf
-        ]
-        low_conf_indices = [
-            idx for idx in all_detection_indices
-            if cfg.det_conf <= detections[idx].score < cfg.track_high_conf
-        ]
+        if cfg.mode == "legacy_bytetrack":
+            run_matching_phase(visible_tracks, all_detection_indices)
+            remaining_detection_indices = [
+                idx
+                for idx in all_detection_indices
+                if idx not in matched_detections
+            ]
+            run_matching_phase(reid_tracks, remaining_detection_indices)
+        else:
+            high_conf_indices = [
+                idx
+                for idx in all_detection_indices
+                if detections[idx].score >= cfg.track_high_conf
+            ]
+            low_conf_indices = [
+                idx
+                for idx in all_detection_indices
+                if cfg.det_conf <= detections[idx].score < cfg.track_high_conf
+            ]
 
-        # Phase 1: High confidence detection matching (match visible tracks first, then reid tracks)
-        run_matching_phase(visible_tracks, high_conf_indices)
-        remaining_high_conf_indices = [
-            idx for idx in high_conf_indices if idx not in matched_detections
-        ]
-        run_matching_phase(reid_tracks, remaining_high_conf_indices)
+            run_matching_phase(visible_tracks, high_conf_indices)
+            remaining_high_conf_indices = [
+                idx for idx in high_conf_indices if idx not in matched_detections
+            ]
+            run_matching_phase(reid_tracks, remaining_high_conf_indices)
 
-        # Phase 2: Low confidence detection matching (only for unmatched active tracks, never new IDs)
-        unmatched_active_tracks = [
-            track for track in ordered_tracks
-            if track.fixed_id not in matched_tracks and track.ever_detected
-        ]
-        remaining_low_conf_indices = [
-            idx for idx in low_conf_indices if idx not in matched_detections
-        ]
-        run_matching_phase(unmatched_active_tracks, remaining_low_conf_indices)
+            unmatched_active_tracks = [
+                track
+                for track in ordered_tracks
+                if track.fixed_id not in matched_tracks and track.ever_detected
+            ]
+            remaining_low_conf_indices = [
+                idx for idx in low_conf_indices if idx not in matched_detections
+            ]
+            run_matching_phase(
+                unmatched_active_tracks,
+                remaining_low_conf_indices,
+            )
 
         # Run IoU fallback on the remaining unmatched tracks and detections
         apply_iou_fallback(

@@ -672,16 +672,16 @@ def run_stable_tracking(config: AnnotationStableConfig) -> TrackingSummary:
                         orig_data[3],
                     )
 
-    # Export final stable CVAT XML
-    write_stable_cvat_xml(
-        cvat_video_xml,
-        stable_tracks,
-        tc.video_path,
-        width,
-        height,
-        frame_count=frame_index + 1,
-        expected_pigs=config.tracking_config.expected_pigs,
-    )
+    if tc.mode == "gt_export":
+        write_stable_cvat_xml(
+            cvat_video_xml,
+            stable_tracks,
+            tc.video_path,
+            width,
+            height,
+            frame_count=frame_index + 1,
+            expected_pigs=config.tracking_config.expected_pigs,
+        )
 
     # Write CSV diagnostics
     write_frame_diagnostics(diagnostics_rows, frame_diagnostics_path)

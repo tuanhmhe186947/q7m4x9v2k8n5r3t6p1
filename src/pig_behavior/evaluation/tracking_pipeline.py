@@ -145,8 +145,41 @@ def config_from_args(args: argparse.Namespace) -> TrackingEvaluationPipelineConf
     video_paths = None
     if args.all_config_videos:
         video_paths = profile_video_paths(profile)
+    elif video_path is not None:
+        video_path_str = str(video_path)
+        if "," in video_path_str:
+            video_paths = []
+            for part in video_path_str.split(","):
+                part = part.strip()
+                try:
+                    resolved = profile_video_path(profile, part)
+                    if resolved:
+                        video_paths.append(resolved)
+                except Exception:
+                    direct = Path(part)
+                    if direct.exists() and direct.is_file():
+                        video_paths.append(direct)
+            video_path = None
     elif video_path is None and args.video_key:
         video_path = profile_video_path(profile, args.video_key)
+
+    from pig_behavior.tracking.config import TrackingConfig
+    tracker_fields = set(TrackingConfig.__dataclass_fields__.keys())
+    profile_overrides = {k: v for k, v in profile.items() if k in tracker_fields}
+
+    tracking_mode = args.tracking_mode
+    if "mode" in profile_overrides:
+        # If --tracking-mode was not explicitly passed on CLI, use profile's mode
+        if not any(arg.startswith("--tracking-mode") for arg in sys.argv):
+            tracking_mode = profile_overrides["mode"]
+
+    # Exclude arguments explicitly passed by run_tracker_for_pair or tracking_rule_overrides
+    exclude_keys = [
+        "video_path", "weights_path", "mask_path", "output_dir",
+        "max_frames", "display_inline", "show", "device", "half", "mode"
+    ]
+    for key in exclude_keys:
+        profile_overrides.pop(key, None)
 
     return TrackingEvaluationPipelineConfig(
         video_path=video_path,
@@ -183,7 +216,8 @@ def config_from_args(args: argparse.Namespace) -> TrackingEvaluationPipelineConf
             args.use_conditional_area_occlusion_freeze
         ),
         USE_MERGED_BOX_SPLIT=args.use_merged_box_split,
-        tracking_mode=args.tracking_mode,
+        tracking_mode=tracking_mode,
+        profile_overrides=profile_overrides,
     )
 
 

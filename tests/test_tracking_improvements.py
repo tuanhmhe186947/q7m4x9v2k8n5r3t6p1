@@ -24,6 +24,8 @@ from pig_behavior.tracking import (
     match_and_update_tracks,
     track_detection_overlap_score,
 )
+from pig_behavior.tracking.config import validate_config
+from pig_behavior.tracking.tracks import shape_for_track
 
 
 def _shape(frame: int, fixed_id: int, points: list[float]) -> dict:
@@ -50,6 +52,86 @@ def _shape(frame: int, fixed_id: int, points: list[float]) -> dict:
         "_ambiguous_occlusion": frame == 1,
         "_occlusion_hold": False,
     }
+
+
+def test_legacy_bytetrack_restores_e22cde3_defaults() -> None:
+    cfg = TrackingConfig(mode="legacy_bytetrack", detect_every_n_frames=3)
+
+    validate_config(cfg)
+
+    assert cfg.det_conf == 0.25
+    assert cfg.track_high_conf == 0.50
+    assert cfg.review_conf == 0.75
+    assert cfg.nms_iou == 0.80
+    assert cfg.track_match_iou == 0.80
+    assert cfg.dup_iou_threshold == 0.80
+    assert cfg.initial_track_conf == 0.50
+    assert cfg.motion_gate_confidence == 0.50
+    assert cfg.max_missing_frames == 90
+    assert cfg.detect_every_n_frames == 1
+    assert cfg.enable_offline_smoothing is True
+
+
+def test_legacy_bytetrack_keeps_explicit_threshold_overrides() -> None:
+    cfg = TrackingConfig(
+        mode="legacy_bytetrack",
+        det_conf=0.30,
+        nms_iou=0.70,
+        track_match_iou=0.65,
+        overrides={"det_conf", "nms_iou", "track_match_iou"},
+    )
+
+    validate_config(cfg)
+
+    assert cfg.det_conf == 0.30
+    assert cfg.nms_iou == 0.70
+    assert cfg.track_match_iou == 0.65
+    assert cfg.track_high_conf == 0.50
+
+
+def test_legacy_bytetrack_keeps_explicit_legacy_iou_alias() -> None:
+    cfg = TrackingConfig(
+        mode="legacy_bytetrack",
+        iou=0.72,
+        overrides={"iou"},
+    )
+
+    validate_config(cfg)
+
+    assert cfg.nms_iou == 0.72
+    assert cfg.iou == 0.72
+
+
+def test_missing_prediction_remains_evaluable_until_track_is_lost() -> None:
+    cfg = TrackingConfig(mode="realtime", max_missing_frames=30)
+    track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.8,
+        last_source="predicted",
+        ever_detected=True,
+        state="MISSING",
+    )
+
+    missing_shape = shape_for_track(track, frame_index=1, cfg=cfg)
+    assert missing_shape["outside"] is False
+    assert missing_shape["occluded"] is False
+
+    track.missed = 31
+    track.state = "LOST"
+    lost_shape = shape_for_track(track, frame_index=2, cfg=cfg)
+    assert lost_shape["outside"] is True
+
+
+def test_uninitialized_placeholder_is_outside_evaluation() -> None:
+    cfg = TrackingConfig(mode="realtime")
+    track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+    )
+
+    shape = shape_for_track(track, frame_index=0, cfg=cfg)
+    assert shape["outside"] is True
 
 
 def test_identity_swap_guard_swaps_geometry_without_relabeling() -> None:
@@ -802,6 +884,53 @@ def test_cvat_parser_prefers_id_attribute_over_pig_label(tmp_path: Path) -> None
 
     assert parsed[0][0].label == "Pig_1"
     assert parsed[0][0].obj_id == "ID_7"
+
+
+def test_evaluator_keeps_hidden_predictions_for_fair_tracker_comparison(
+    tmp_path: Path,
+) -> None:
+    gt_xml = tmp_path / "gt.xml"
+    pred_xml = tmp_path / "pred.xml"
+    video_path = tmp_path / "video.mp4"
+    gt_xml.write_text(
+        """
+        <annotations>
+          <track id="1" label="Pig_1">
+            <box frame="0" xtl="0" ytl="0" xbr="10" ybr="10" outside="0">
+              <attribute name="ID">ID_1</attribute>
+              <attribute name="Hidden">No</attribute>
+            </box>
+          </track>
+        </annotations>
+        """,
+        encoding="utf-8",
+    )
+    pred_xml.write_text(
+        """
+        <annotations>
+          <track id="1" label="Pig_1">
+            <box frame="0" xtl="0" ytl="0" xbr="10" ybr="10" outside="0">
+              <attribute name="ID">ID_1</attribute>
+              <attribute name="Hidden">Yes</attribute>
+            </box>
+          </track>
+        </annotations>
+        """,
+        encoding="utf-8",
+    )
+    pair = TrackingPair(
+        video_stem="video",
+        video_path=video_path,
+        gt_xml=gt_xml,
+        pred_xml=pred_xml,
+    )
+
+    metrics = evaluate_pair(pair, include_hidden=False)
+
+    assert metrics is not None
+    assert metrics.matches == 1
+    assert metrics.fn == 0
+    assert metrics.fp == 0
 
 
 def _write_stable_two_id_xml(

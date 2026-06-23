@@ -12,6 +12,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from pig_behavior.tracking_path_config import (  # noqa: E402
     load_tracking_path_profile,
+    profile_path,
     profile_video_path,
     profile_video_paths,
 )
@@ -117,9 +118,9 @@ def main():
         sys.exit(1)
 
     # Resolve GT directory
-    gt_dir = Path(profile.get("annotations", {}).get("tracking", "data/annotations/tracking"))
-    video_dir = Path(profile.get("videos", "data/videos"))
-    prediction_root = Path(profile.get("outputs", {}).get("id_tracking", "outputs/id_tracking"))
+    gt_dir = profile_path(profile, "gt_dir", PROJECT_ROOT / "data" / "annotations" / "tracking")
+    video_dir = profile_path(profile, "video_dir", PROJECT_ROOT / "data" / "videos")
+    prediction_root = profile_path(profile, "prediction_root") or profile_path(profile, "output_dir", PROJECT_ROOT / "outputs" / "id_tracking")
     
     for idx, video_path in enumerate(video_paths, 1):
         print("\n==================================================")

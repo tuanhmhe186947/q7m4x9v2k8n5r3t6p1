@@ -125,7 +125,7 @@ def tracking_rule_overrides(
     config: TrackingEvaluationPipelineConfig,
 ) -> dict[str, object]:
     """Return rule flags passed through to the tracking engine."""
-    return {
+    overrides = {
         "USE_IOU_FALLBACK": config.USE_IOU_FALLBACK,
         "USE_AREA_OCCLUSION_FREEZE": config.USE_AREA_OCCLUSION_FREEZE,
         "USE_CONDITIONAL_AREA_OCCLUSION_FREEZE": (
@@ -136,6 +136,9 @@ def tracking_rule_overrides(
         "half": config.half,
         "mode": config.tracking_mode,
     }
+    if config.profile_overrides:
+        overrides.update(config.profile_overrides)
+    return overrides
 
 
 def save_pipeline_report(
