@@ -62,6 +62,7 @@ where = ["src"]
 [tool.ruff]
 line-length = 120
 target-version = "py310"
+src = ["src"]
 exclude = [
     "scripts/connect_gdrive.py",
 ]
