@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
+# ruff: noqa
 """Run optimized pig tracking with extended linear interpolation and sparse keyframe CVAT XML export."""
+
+# ruff: noqa
 
 import sys
 from pathlib import Path
@@ -332,6 +335,75 @@ cvat_xml.write_cvat_video_xml = custom_write_cvat_video_xml
 runner.write_cvat_video_xml = custom_write_cvat_video_xml
 
 
+# Custom tracker configuration helper (supporting ByteTrack and BoT-SORT)
+import pig_behavior.tracking.config as tracking_config
+
+TRACKER_TYPE = "bytetrack"
+
+def custom_write_tracker_yaml(path: Path, cfg: TrackingConfig) -> None:
+    """Write tracker config tuned for pig videos (supports bytetrack and botsort)."""
+    track_low_thresh = min(cfg.det_conf, cfg.track_high_conf)
+    global TRACKER_TYPE
+    
+    if TRACKER_TYPE == "botsort":
+        path.write_text(
+            "\n".join(
+                [
+                    "tracker_type: botsort",
+                    "model: auto",  # Fixes AttributeError: 'IterableSimpleNamespace' object has no attribute 'model'
+                    f"track_high_thresh: {cfg.track_high_conf:.2f}",
+                    f"track_low_thresh: {track_low_thresh:.2f}",
+                    f"new_track_thresh: {cfg.track_high_conf:.2f}",
+                    f"track_thresh: {cfg.track_high_conf:.2f}",
+                    f"match_thresh: {cfg.iou:.2f}",
+                    "track_buffer: 90",
+                    "min_box_area: 10",
+                    "mot20: false",
+                    "distance_metric: iou",
+                    "match_metric: iou",
+                    "gmc_method: none",
+                    "with_reid: false",  # Turn off ReID to avoid downloading model weights
+                    "proximity_thresh: 0.5",
+                    "appearance_thresh: 0.25",
+                    "fuse_score: true",
+                    "max_age: 90",
+                    "n_init: 3",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+            newline="\n",
+        )
+    else:
+        path.write_text(
+            "\n".join(
+                [
+                    "tracker_type: bytetrack",
+                    f"track_high_thresh: {cfg.track_high_conf:.2f}",
+                    f"track_low_thresh: {track_low_thresh:.2f}",
+                    f"new_track_thresh: {cfg.track_high_conf:.2f}",
+                    f"track_thresh: {cfg.track_high_conf:.2f}",
+                    f"match_thresh: {cfg.iou:.2f}",
+                    "track_buffer: 90",
+                    "min_box_area: 10",
+                    "mot20: false",
+                    "fuse_score: true",
+                    "proximity_thresh: 0.5",
+                    "appearance_thresh: 0.25",
+                    "max_age: 90",
+                    "n_init: 3",
+                    "with_reid: true",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+            newline="\n",
+        )
+
+tracking_config.write_tracker_yaml = custom_write_tracker_yaml
+runner.write_tracker_yaml = custom_write_tracker_yaml
+
+
 def run_main():
     """Wrapper main that parses cli arguments and sets custom config attributes before running main."""
     # We parse standard arguments plus custom options
@@ -339,12 +411,17 @@ def run_main():
     parser = argparse.ArgumentParser(description="Run optimized pig tracking with extended linear interpolation and sparse keyframes.")
     parser.add_argument("--keyframe-error-threshold", type=float, default=1.5, help="Max pixel deviation error allowed before creating a keyframe in CVAT XML.")
     parser.add_argument("--no-pure-interpolation", action="store_true", help="Do not force 100%% linear interpolation for unstable/hidden tracking boxes.")
+    parser.add_argument("--tracker-type", choices=["bytetrack", "botsort"], default="bytetrack", help="Front-end tracker type (bytetrack or botsort).")
     
     # We parse known args for custom parameters, then forward the rest to the standard main
     args, standard_args = parser.parse_known_args()
     
     # Set the error threshold for XML exporter
     custom_write_cvat_video_xml.error_threshold = args.keyframe_error_threshold
+    
+    # Set the tracker type
+    global TRACKER_TYPE
+    TRACKER_TYPE = args.tracker_type
     
     # Parse standard arguments using cli
     cli_args = parse_args(standard_args)
@@ -363,6 +440,7 @@ def run_main():
         print(f"Running Optimized Tracking on: {cfg.video_path.name}")
         print(f"Keyframe Error Threshold: {args.keyframe_error_threshold} px")
         print(f"Pure Interpolation on Occlusion: {not args.no_pure_interpolation}")
+        print(f"Front-end Tracker Type: {args.tracker_type}")
         print(f"==================================================")
         
         summary = runner.run_tracking(cfg)

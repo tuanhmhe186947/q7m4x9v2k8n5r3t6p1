@@ -206,6 +206,59 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--no-hidden-motion-model", action="store_true")
     parser.add_argument("--show", action="store_true")
     parser.add_argument("--display-inline", action="store_true")
+
+    # ---- RGB-D mode arguments ----------------------------------------------
+    rgbd_group = parser.add_argument_group("RGB-D tracking (optional)")
+    rgbd_group.add_argument(
+        "--rgbd",
+        action="store_true",
+        help="Enable RGB-D BEV tracking.",
+    )
+    rgbd_group.add_argument("--depth-video", type=Path, default=None)
+    rgbd_group.add_argument("--times-file", type=Path, default=None)
+    rgbd_group.add_argument("--depth-scale-file", type=Path, default=None)
+    rgbd_group.add_argument("--inverse-intrinsic-file", type=Path, default=None)
+    rgbd_group.add_argument("--rotation-file", type=Path, default=None)
+    rgbd_group.add_argument("--background-depth-file", type=Path, default=None)
+    rgbd_group.add_argument("--background-filter-m", type=float, default=0.15)
+    rgbd_group.add_argument("--center-crop-ratio", type=float, default=0.50)
+    rgbd_group.add_argument(
+        "--depth-strategy",
+        choices=[
+            "median_center_crop",
+            "lower_center_crop",
+            "foreground_median",
+            "foreground_points_median",
+        ],
+        default="foreground_points_median",
+    )
+    rgbd_group.add_argument(
+        "--depth-failure-mode",
+        choices=["predict_only", "fallback_2d", "skip_frame"],
+        default="predict_only",
+    )
+    rgbd_group.add_argument("--bev-gate", type=float, default=0.40)
+    rgbd_group.add_argument(
+        "--bev-axes",
+        type=str,
+        default="0,1",
+        help="Comma-separated pair of world-space axis indices for BEV, e.g. '0,1'.",
+    )
+    rgbd_group.add_argument("--occlusion-iou-threshold-rgbd", type=float, default=0.40)
+    rgbd_group.add_argument(
+        "--larger-depth-is-farther",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
+    rgbd_group.add_argument("--max-occlusion-age", type=int, default=45)
+    rgbd_group.add_argument("--min-score-margin", type=float, default=0.05)
+    rgbd_group.add_argument(
+        "--render",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
+    rgbd_group.add_argument("--debug", action="store_true")
+
     return parser.parse_args(argv)
 
 
@@ -471,6 +524,52 @@ def print_tracking_summary(cfg: TrackingConfig, summary: TrackingSummary) -> Non
     )
 
 
+def _build_rgbd_config(
+    args: argparse.Namespace,
+    tracking_config: TrackingConfig,
+) -> object:
+    """Construct an ``RGBDTrackingConfig`` from CLI arguments."""
+    from pig_behavior.tracking.rgbd.config import RGBDTrackingConfig
+
+    if args.depth_video is None:
+        raise ValueError("--depth-video is required when --rgbd is set.")
+    if args.depth_scale_file is None:
+        raise ValueError("--depth-scale-file is required when --rgbd is set.")
+    if args.inverse_intrinsic_file is None:
+        raise ValueError("--inverse-intrinsic-file is required when --rgbd is set.")
+    if args.rotation_file is None:
+        raise ValueError("--rotation-file is required when --rgbd is set.")
+
+    bev_axes_parts = args.bev_axes.split(",")
+    if len(bev_axes_parts) != 2:
+        raise ValueError(
+            f"--bev-axes must be two comma-separated ints, got: {args.bev_axes}"
+        )
+    bev_axes = (int(bev_axes_parts[0].strip()), int(bev_axes_parts[1].strip()))
+
+    return RGBDTrackingConfig(
+        tracking_config=tracking_config,
+        depth_video_path=args.depth_video,
+        times_path=args.times_file,
+        depth_scale_path=args.depth_scale_file,
+        inverse_intrinsic_path=args.inverse_intrinsic_file,
+        rotation_path=args.rotation_file,
+        background_depth_path=args.background_depth_file,
+        background_filter_m=args.background_filter_m,
+        center_crop_ratio=args.center_crop_ratio,
+        depth_strategy=args.depth_strategy,
+        depth_failure_mode=args.depth_failure_mode,
+        bev_association_gate_m=args.bev_gate,
+        bev_axes=bev_axes,
+        occlusion_iou_threshold=args.occlusion_iou_threshold_rgbd,
+        larger_depth_is_farther=args.larger_depth_is_farther,
+        max_occlusion_age=args.max_occlusion_age,
+        min_score_margin=args.min_score_margin,
+        render=args.render,
+        debug=args.debug,
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     if args.all_config_videos and any(
@@ -495,7 +594,15 @@ def main(argv: list[str] | None = None) -> int:
     summaries: list[TrackingSummary] = []
     for video_path in _video_paths_from_args(args, profile):
         cfg = _tracking_config_from_args(args, profile, video_path)
-        summary = run_tracking(cfg)
+
+        if args.rgbd:
+            from pig_behavior.tracking.rgbd.runner_rgbd import run_rgbd_tracking
+
+            rgbd_cfg = _build_rgbd_config(args, cfg)
+            summary = run_rgbd_tracking(rgbd_cfg)
+        else:
+            summary = run_tracking(cfg)
+
         summaries.append(summary)
         print_tracking_summary(cfg, summary)
         if args.display_inline:

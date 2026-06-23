@@ -453,7 +453,7 @@ def test_conditional_area_occlusion_freeze_triggers_in_heavy_overlap() -> None:
     tracks = {1: front_track, 2: hidden_track}
     detections = [
         Detection(
-            box=np.array([0, 0, 40, 40], dtype=np.float32),
+            box=np.array([20, 20, 60, 60], dtype=np.float32),
             score=0.95,
             raw_id=None,
             class_id=0,

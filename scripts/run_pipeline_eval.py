@@ -1,21 +1,25 @@
 #!/usr/bin/env python3
-"""Script to run HOTA/MOTA tracking evaluation pipeline on one or more videos using pig-tracking-eval (tracking_pipeline.py)."""
+"""Run tracking evaluation and benchmark one or more videos."""
 
-import os
-import sys
-import subprocess
+# ruff: noqa: E402
+
+from __future__ import annotations
+
 import argparse
+import subprocess
+import sys
 from pathlib import Path
 
-# Add src/ to path so we can load configurations
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
+from pig_behavior.evaluation.tracking.pipeline import find_gt_xml_for_video
 from pig_behavior.tracking_path_config import (
     load_tracking_path_profile,
     profile_video_path,
     profile_video_paths,
 )
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -23,109 +27,171 @@ def parse_args():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Evaluate a single video (runs full rule benchmark of 8 flag combinations by default):
   python scripts/run_pipeline_eval.py -v Pigs281119_000085_30fps
-
-  # Evaluate a single video for only a single rule config (no sweep/benchmarking):
-  python scripts/run_pipeline_eval.py -v Pigs281119_000085_30fps --no-benchmark-rules --use-conditional-area-occlusion-freeze
-
-  # Run YOLOv8 vs YOLOv26 detector benchmarking on a video:
+  python scripts/run_pipeline_eval.py -v Pigs281119_000085_30fps
+      --no-benchmark-rules --use-conditional-area-occlusion-freeze
   python scripts/run_pipeline_eval.py -v Pigs281119_000085_30fps --benchmark-detectors
-
-  # Run evaluation on all videos:
   python scripts/run_pipeline_eval.py -a
-"""
+""",
     )
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument(
-        "-v", "--video",
+        "-v",
+        "--video",
         type=str,
-        help="Comma-separated video names, paths, or keys/aliases."
+        help="Comma-separated video names, paths, or keys/aliases.",
     )
     group.add_argument(
-        "-a", "--all-videos",
+        "-a",
+        "--all-videos",
         action="store_true",
-        help="Run evaluation on all videos resolved by the path profile."
+        help="Run evaluation on all videos resolved by the path profile.",
     )
     parser.add_argument(
-        "-p", "--profile",
+        "-p",
+        "--profile",
         type=str,
         default=None,
-        help="Path profile name from configs/tracking_paths.json (default active)."
+        help="Path profile name from configs/tracking_paths.json (default active).",
     )
     parser.add_argument(
         "--path-config",
         type=str,
         default=None,
-        help="Path to custom configs/tracking_paths.json file."
+        help="Path to custom configs/tracking_paths.json file.",
     )
-    
-    # Accept any extra args to forward to the evaluation pipeline
+    parser.add_argument(
+        "--skip-missing-gt",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Skip videos without matching GT XML instead of failing the batch.",
+    )
+    parser.add_argument(
+        "--fail-missing-gt",
+        action="store_true",
+        help="Fail immediately if any requested video is missing GT XML.",
+    )
     return parser.parse_known_args()
 
-def main():
-    args, pipeline_extra_args = parse_args()
-    
-    # Load profile
-    path_config = Path(args.path_config) if args.path_config else None
-    try:
-        profile = load_tracking_path_profile(path_config, args.profile)
-    except Exception as e:
-        print(f"Error loading path profile: {e}", file=sys.stderr)
-        sys.exit(1)
 
-    # Resolve videos
-    video_paths = []
+def _resolve_videos(args, profile):
+    video_paths: list[Path] = []
     if args.all_videos:
         video_paths = profile_video_paths(profile)
         print(f"Resolved all videos from profile: {[p.name for p in video_paths]}")
     elif args.video:
-        video_keys = [k.strip() for k in args.video.split(",")]
-        for key in video_keys:
+        for key in [part.strip() for part in args.video.split(",")]:
             try:
-                v_path = profile_video_path(profile, key)
-                if v_path:
-                    video_paths.append(v_path)
-            except Exception as e:
-                # Try direct path
+                resolved = profile_video_path(profile, key)
+                if resolved:
+                    video_paths.append(resolved)
+                    continue
+            except Exception as exc:
                 direct = Path(key)
                 if direct.exists() and direct.is_file():
                     video_paths.append(direct)
-                else:
-                    print(f"Warning: Could not resolve video '{key}': {e}", file=sys.stderr)
-                    
+                    continue
+                print(
+                    f"Warning: Could not resolve video '{key}': {exc}",
+                    file=sys.stderr,
+                )
+    return video_paths
+
+
+def _filter_videos_with_gt(video_paths: list[Path], gt_dir: Path):
+    valid_video_paths: list[Path] = []
+    skipped_video_paths: list[Path] = []
+    for video_path in video_paths:
+        if find_gt_xml_for_video(video_path, gt_dir) is not None:
+            valid_video_paths.append(video_path)
+        else:
+            skipped_video_paths.append(video_path)
+    return valid_video_paths, skipped_video_paths
+
+
+def main():
+    args, pipeline_extra_args = parse_args()
+
+    path_config = Path(args.path_config) if args.path_config else None
+    try:
+        profile = load_tracking_path_profile(path_config, args.profile)
+    except Exception as exc:
+        print(f"Error loading path profile: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    video_paths = _resolve_videos(args, profile)
     if not video_paths:
         print("Error: No valid videos resolved.", file=sys.stderr)
         sys.exit(1)
 
-    script_path = PROJECT_ROOT / "src" / "pig_behavior" / "evaluation" / "tracking_pipeline.py"
-    
-    for idx, video_path in enumerate(video_paths, 1):
-        print(f"\n==================================================")
-        print(f"[{idx}/{len(video_paths)}] Running tracking evaluation on: {video_path.name}")
-        print(f"==================================================")
-        
+    gt_dir = Path(
+        profile.get("gt_dir") or PROJECT_ROOT / "data" / "annotations" / "tracking"
+    )
+    valid_video_paths, skipped_video_paths = _filter_videos_with_gt(video_paths, gt_dir)
+
+    if skipped_video_paths:
+        if args.fail_missing_gt:
+            print("Error: Missing GT XML for requested videos.", file=sys.stderr)
+            for video_path in skipped_video_paths:
+                print(f"  - {video_path.name}", file=sys.stderr)
+            sys.exit(1)
+        if args.skip_missing_gt:
+            print("Skipping videos without GT XML:")
+            for video_path in skipped_video_paths:
+                print(f"  - {video_path.name}")
+        else:
+            print("Warning: Missing GT XML for some requested videos:")
+            for video_path in skipped_video_paths:
+                print(f"  - {video_path.name}")
+
+    if not valid_video_paths:
+        print("Error: No videos with matching GT XML were found.", file=sys.stderr)
+        sys.exit(1)
+
+    print("Videos with GT XML:")
+    for video_path in valid_video_paths:
+        gt_xml = find_gt_xml_for_video(video_path, gt_dir)
+        if gt_xml is not None:
+            print(f"  - {video_path.name} -> {gt_xml.name}")
+
+    script_path = (
+        PROJECT_ROOT / "src" / "pig_behavior" / "evaluation" / "tracking_pipeline.py"
+    )
+
+    for idx, video_path in enumerate(valid_video_paths, 1):
+        print("\n==================================================")
+        print(
+            f"[{idx}/{len(valid_video_paths)}] Running tracking evaluation on: "
+            f"{video_path.name}"
+        )
+        print("==================================================")
+
         cmd = [
             sys.executable,
             str(script_path),
-            "--video", str(video_path),
+            "--video",
+            str(video_path),
         ]
-        
+
         if args.profile:
             cmd.extend(["--profile", args.profile])
         if args.path_config:
             cmd.extend(["--path-config", args.path_config])
-            
+
         cmd.extend(pipeline_extra_args)
-        
+
         print(f"Command: {' '.join(cmd)}")
         result = subprocess.run(cmd)
         if result.returncode != 0:
-            print(f"Error: Evaluation failed for {video_path.name} with exit code {result.returncode}", file=sys.stderr)
-            if len(video_paths) == 1:
-                sys.exit(result.returncode)
+            print(
+                f"Error: Evaluation failed for {video_path.name} with exit code "
+                f"{result.returncode}",
+                file=sys.stderr,
+            )
+            continue
 
     print("\nEvaluation batch execution finished.")
+
 
 if __name__ == "__main__":
     main()

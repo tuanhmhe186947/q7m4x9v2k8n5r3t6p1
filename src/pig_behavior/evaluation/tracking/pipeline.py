@@ -4,12 +4,16 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict
-from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
 
-from .assets import TrackingPair, find_prediction_xml, list_tracking_pairs, normalize_key
+from .assets import (
+    TrackingPair,
+    find_prediction_xml,
+    list_tracking_pairs,
+    normalize_key,
+)
 from .config import TrackingEvaluationPipelineConfig
 from .cvat_io import read_task_name
 from .diagnostics import (
@@ -142,7 +146,7 @@ def save_pipeline_report(
     continuity_gaps_df: pd.DataFrame | None = None,
 ) -> Path:
     """Save assets, metrics, and config for one evaluation run."""
-    run_dir = config.output_root / datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_dir = config.output_root
     run_dir.mkdir(parents=True, exist_ok=True)
 
     asset_df = pairs_to_dataframe(pairs)
@@ -190,7 +194,7 @@ def save_pipeline_report(
         "mask_path": str(config.mask_path) if config.mask_path else None,
     }
     with (run_dir / "tracking_eval_config.json").open("w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
+        json.dump(payload, f, ensure_ascii=False, indent=2, default=str)
     return run_dir
 
 

@@ -6,7 +6,6 @@ import itertools
 import json
 import time
 from dataclasses import asdict, replace
-from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -108,11 +107,8 @@ def run_tracking_rule_benchmark(
     config: TrackingEvaluationPipelineConfig,
 ) -> tuple[pd.DataFrame, pd.DataFrame, Path]:
     """Run all rule flag combinations and write combined benchmark outputs."""
-    run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-    benchmark_root = config.output_root / "tracking_rule_benchmark" / run_id
-    benchmark_prediction_root = (
-        config.prediction_root / "tracking_rule_benchmark" / run_id
-    )
+    benchmark_root = config.output_root
+    benchmark_prediction_root = config.prediction_root
     benchmark_root.mkdir(parents=True, exist_ok=True)
     benchmark_prediction_root.mkdir(parents=True, exist_ok=True)
 
@@ -257,11 +253,8 @@ def run_tracking_detector_benchmark(
     config: TrackingEvaluationPipelineConfig,
 ) -> tuple[pd.DataFrame, pd.DataFrame, Path]:
     """Run the full rule benchmark independently for YOLOv8 and YOLOv26."""
-    run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-    benchmark_root = config.output_root / "tracking_detector_benchmark" / run_id
-    benchmark_prediction_root = (
-        config.prediction_root / "tracking_detector_benchmark" / run_id
-    )
+    benchmark_root = config.output_root
+    benchmark_prediction_root = config.prediction_root
     benchmark_root.mkdir(parents=True, exist_ok=True)
     benchmark_prediction_root.mkdir(parents=True, exist_ok=True)
 

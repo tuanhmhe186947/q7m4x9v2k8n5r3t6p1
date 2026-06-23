@@ -411,12 +411,11 @@ def run_tracker_for_pair(
     )
 
     mask_path = mask_path or resolve_mask_path()
-    output_dir = output_root / pair.video_stem
     cfg = TrackingConfig(
         video_path=pair.video_path,
         weights_path=weights_path,
         mask_path=mask_path,
-        output_dir=output_dir,
+        output_dir=output_root,
         max_frames=max_frames,
         display_inline=False,
         show=False,
