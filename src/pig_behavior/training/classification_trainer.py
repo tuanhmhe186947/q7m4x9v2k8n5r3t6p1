@@ -9,7 +9,12 @@ import numpy as np
 import tensorflow as tf
 from sklearn.metrics import classification_report, confusion_matrix
 
-from pig_behavior.config import CHECKPOINT_DIR, LOG_DIR, TrainConfig, ensure_output_dirs
+from pig_behavior.config import (
+    CHECKPOINT_DIR,
+    LOG_DIR,
+    TrainConfig,
+    ensure_output_dirs,
+)
 from pig_behavior.data.tf_dataset import build_datasets
 from pig_behavior.models.keras_classifier import (
     build_model,

@@ -40,7 +40,7 @@ def test_roboflow_workflow_smoke() -> None:
     assert "predictions" in result, "Response missing 'predictions' key"
     assert "visualized_frame" in result, "Response missing 'visualized_frame' key"
 
-    assert isinstance(result["count_objects"], (int, float)), "count_objects should be a number"
+    assert isinstance(result["count_objects"], int | float), "count_objects should be a number"
     assert isinstance(result["predictions"], list), "predictions should be a list"
     assert isinstance(result["visualized_frame"], np.ndarray), "visualized_frame should be a numpy array"
 
