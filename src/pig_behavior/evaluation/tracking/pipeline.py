@@ -53,7 +53,8 @@ def build_pairs(config: TrackingEvaluationPipelineConfig) -> list[TrackingPair]:
             resolved_video = video_path.resolve()
             gt_xml = find_gt_xml_for_video(resolved_video, config.gt_dir)
             if gt_xml is None:
-                raise FileNotFoundError(f"No GT XML found for video: {resolved_video}")
+                print(f"Warning: Skipping video '{resolved_video.name}' because no matching GT XML was found.")
+                continue
             pred_xml = find_prediction_xml(resolved_video.stem, config.prediction_root)
             pairs.append(
                 TrackingPair(

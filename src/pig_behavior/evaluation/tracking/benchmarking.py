@@ -82,25 +82,159 @@ def build_rule_benchmark_report(
         "run_dir",
     ]
     columns = [column for column in preferred_columns if column in summary_df.columns]
+    
+    # Filter for table display in report (only ALL row_type)
+    if "row_type" in summary_df.columns:
+        table_df = summary_df[summary_df["row_type"] == "ALL"]
+    else:
+        table_df = summary_df
+
     lines = [
         f"# {title}",
         "",
         f"- Output folder: `{benchmark_root}`",
-        f"- Flag combinations: `{len(summary_df)}`",
+        f"- Flag combinations: `{len(table_df)}`",
         f"- Detailed metric rows: `{len(detailed_metrics_df)}`",
         "",
         "## Aggregate Metrics",
         "",
-        _markdown_table(summary_df, columns) if columns else "_No rows._",
+        _markdown_table(table_df, columns) if columns else "_No rows._",
         "",
         "## Files",
         "",
-        "- `tracking_rule_benchmark_summary.csv`: one aggregate row per combo.",
-        "- `tracking_rule_benchmark_detailed_metrics.csv`: all per-video and ALL rows.",
-        "- Each combo folder contains the normal `tracking_report.md` and diagnostics.",
+        "- `*_summary.csv`: enriched summary, containing both `ALL` and `PER_VIDEO` rows.",
+        "- `*_summary_all_only.csv`: aggregate-only summary used for quick ranking.",
+        "- `*_detailed_metrics.csv`: all per-video and ALL rows.",
+        "- Each combo folder contains the normal `tracking_report.md` and diagnostics (like ID mapping, event counts, and continuity gaps).",
+        "- Note: The diagnostic summary columns in the summary CSV files are only high-level counts/worst-case statistics. To view detailed information, open the respective files in `run_dir`.",
         "",
     ]
     return "\n".join(lines)
+
+
+def collect_run_diagnostics(run_dir: Path, video_stem: str | None = None) -> dict[str, object]:
+    """Read diagnostic files if they exist and return safe counts/worst-case stats, optionally filtered by video_stem."""
+    diagnostics = {
+        "id_mapping_rows": 0,
+        "remapped_identity_event_rows": 0,
+        "remapped_id_switch_rows": 0,
+        "identity_event_rows": 0,
+        "identity_id_switch_rows": 0,
+        "continuity_gap_rows": 0,
+        "tolerated_gap_rows": 0,
+        "remaining_fragment_gap_rows": 0,
+        "id_changed_gap_rows": 0,
+        "worst_gap_frames": None,
+        "worst_gap_gt_id": None,
+        "worst_gap_prev_pred_id": None,
+        "worst_gap_next_pred_id": None,
+    }
+
+    # Helper function to read and filter DataFrame by video_stem
+    def read_and_filter(file_name: str) -> pd.DataFrame | None:
+        path = run_dir / file_name
+        if not path.exists():
+            return None
+        try:
+            df = pd.read_csv(path)
+            if video_stem is not None and str(video_stem).upper() != "ALL" and "video_stem" in df.columns:
+                df = df[df["video_stem"] == video_stem]
+            return df
+        except Exception:
+            return None
+
+    # 1. Read tracking_id_mapping.csv
+    df_map = read_and_filter("tracking_id_mapping.csv")
+    if df_map is not None:
+        diagnostics["id_mapping_rows"] = int(len(df_map))
+
+    # 2. Read tracking_remapped_identity_events.csv
+    df_remap = read_and_filter("tracking_remapped_identity_events.csv")
+    if df_remap is not None:
+        diagnostics["remapped_identity_event_rows"] = int(len(df_remap))
+        if "event" in df_remap.columns:
+            diagnostics["remapped_id_switch_rows"] = int(df_remap["event"].str.contains("id_switch", na=False).sum())
+
+    # 3. Read tracking_identity_events.csv
+    df_events = read_and_filter("tracking_identity_events.csv")
+    if df_events is not None:
+        diagnostics["identity_event_rows"] = int(len(df_events))
+        if "event" in df_events.columns:
+            diagnostics["identity_id_switch_rows"] = int(df_events["event"].str.contains("id_switch", na=False).sum())
+
+    # 4. Read tracking_continuity_gaps.csv
+    df_gaps = read_and_filter("tracking_continuity_gaps.csv")
+    if df_gaps is not None:
+        diagnostics["continuity_gap_rows"] = int(len(df_gaps))
+        if "tolerated" in df_gaps.columns:
+            tolerated_series = df_gaps["tolerated"].astype(str).str.lower() == "true"
+            diagnostics["tolerated_gap_rows"] = int(tolerated_series.sum())
+            diagnostics["remaining_fragment_gap_rows"] = int((~tolerated_series).sum())
+        if "id_changed" in df_gaps.columns:
+            id_changed_series = df_gaps["id_changed"].astype(str).str.lower() == "true"
+            diagnostics["id_changed_gap_rows"] = int(id_changed_series.sum())
+        if not df_gaps.empty and "gap_frames" in df_gaps.columns:
+            try:
+                idx_max = df_gaps["gap_frames"].idxmax()
+                if pd.notna(idx_max):
+                    max_row = df_gaps.loc[idx_max]
+                    diagnostics["worst_gap_frames"] = int(max_row["gap_frames"])
+                    diagnostics["worst_gap_gt_id"] = str(max_row.get("gt_id", ""))
+                    diagnostics["worst_gap_prev_pred_id"] = str(max_row.get("previous_pred_id", ""))
+                    diagnostics["worst_gap_next_pred_id"] = str(max_row.get("next_pred_id", ""))
+            except Exception:
+                pass
+
+    return diagnostics
+
+
+def build_enriched_summary_rows(
+    metrics_df: pd.DataFrame,
+    config: TrackingEvaluationPipelineConfig,
+    combo: str,
+    flags: dict[str, bool],
+    run_dir: Path,
+    asset_df: pd.DataFrame | None,
+    elapsed_sec: float,
+    fps: float,
+) -> list[dict[str, object]]:
+    """Build enriched summary rows including both ALL and PER_VIDEO rows with metrics and diagnostics."""
+    rows = []
+    for _, row in metrics_df.iterrows():
+        video_stem = row.get("video_stem", "")
+        row_type = "ALL" if str(video_stem).upper() == "ALL" else "PER_VIDEO"
+        
+        diagnostics = collect_run_diagnostics(run_dir, video_stem)
+        
+        entry = {
+            "row_type": row_type,
+            "video_stem": video_stem,
+            "detector": config.detector_name,
+            "weights_path": str(config.weights_path),
+            "combo": combo,
+            **flags,
+            "elapsed_sec": round(elapsed_sec, 4),
+            "fps_evaluated_frames": round(fps, 4),
+            "asset_rows": int(len(asset_df)) if asset_df is not None else 0,
+            "prediction_root": str(config.prediction_root),
+            "run_dir": str(run_dir),
+            **diagnostics,
+        }
+        # Merge metrics and ensure metadata overrides
+        entry.update(row.to_dict())
+        
+        # Enforce metadata values
+        entry["row_type"] = row_type
+        entry["video_stem"] = video_stem
+        entry["detector"] = config.detector_name
+        entry["weights_path"] = str(config.weights_path)
+        entry["combo"] = combo
+        entry["run_dir"] = str(run_dir)
+        for flag_name, flag_val in flags.items():
+            entry[flag_name] = flag_val
+            
+        rows.append(entry)
+    return rows
 
 
 def run_tracking_rule_benchmark(
@@ -122,8 +256,8 @@ def run_tracking_rule_benchmark(
             config,
             prediction_root=benchmark_prediction_root / combo,
             output_root=benchmark_root / combo,
-            run_missing_tracker=True,
-            force_track=True,
+            run_missing_tracker=config.run_missing_tracker,
+            force_track=config.force_track,
             **flags,
         )
 
@@ -134,20 +268,18 @@ def run_tracking_rule_benchmark(
         evaluated_frames = float(aggregate_metrics.get("evaluated_frames", 0) or 0)
         fps = evaluated_frames / elapsed_sec if elapsed_sec > 0 else 0.0
 
-        summary_rows.append(
-            {
-                "detector": config.detector_name,
-                "weights_path": str(config.weights_path),
-                "combo": combo,
-                **flags,
-                "elapsed_sec": round(elapsed_sec, 4),
-                "fps_evaluated_frames": round(fps, 4),
-                "asset_rows": int(len(asset_df)),
-                "run_dir": str(run_dir),
-                "prediction_root": str(combo_config.prediction_root),
-                **aggregate_metrics,
-            }
+        # Build enriched summary rows (containing both ALL and PER_VIDEO)
+        enriched_rows = build_enriched_summary_rows(
+            metrics_df=metrics_df,
+            config=combo_config,
+            combo=combo,
+            flags=flags,
+            run_dir=run_dir,
+            asset_df=asset_df,
+            elapsed_sec=elapsed_sec,
+            fps=fps,
         )
+        summary_rows.extend(enriched_rows)
 
         metrics_with_combo = metrics_df.copy()
         metrics_with_combo.insert(0, "combo", combo)
@@ -176,8 +308,15 @@ def run_tracking_rule_benchmark(
         pd.concat(asset_tables, ignore_index=True) if asset_tables else pd.DataFrame()
     )
 
+    # Save summary.csv (containing ALL + PER_VIDEO)
     summary_df.to_csv(
         benchmark_root / "tracking_rule_benchmark_summary.csv",
+        index=False,
+    )
+    # Save summary_all_only.csv (containing only ALL)
+    summary_all_only_df = summary_df[summary_df["row_type"] == "ALL"]
+    summary_all_only_df.to_csv(
+        benchmark_root / "tracking_rule_benchmark_summary_all_only.csv",
         index=False,
     )
     detailed_metrics_df.to_csv(
@@ -242,8 +381,8 @@ def iter_detector_benchmark_configs(
                 weights_path=weights_path,
                 prediction_root=benchmark_prediction_root / detector_name,
                 output_root=benchmark_root / detector_name,
-                run_missing_tracker=True,
-                force_track=True,
+                run_missing_tracker=config.run_missing_tracker,
+                force_track=config.force_track,
             )
         )
     return configs
@@ -288,6 +427,12 @@ def run_tracking_detector_benchmark(
     )
     summary_df.to_csv(
         benchmark_root / "tracking_detector_benchmark_summary.csv",
+        index=False,
+    )
+    # Save aggregate-only detector summary
+    summary_all_only_df = summary_df[summary_df["row_type"] == "ALL"]
+    summary_all_only_df.to_csv(
+        benchmark_root / "tracking_detector_benchmark_summary_all_only.csv",
         index=False,
     )
     detailed_metrics_df.to_csv(

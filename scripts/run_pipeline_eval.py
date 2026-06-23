@@ -190,6 +190,21 @@ def main():
             )
             continue
 
+        # Automatically trigger hard-scene evaluation for the video
+        print(f"\n[*] Running hard-scene evaluation for: {video_path.name}")
+        hard_scene_cmd = [
+            sys.executable,
+            str(PROJECT_ROOT / "scripts" / "run_hard_scene_eval.py"),
+            "--video", video_path.stem,
+        ]
+        if args.profile:
+            hard_scene_cmd.extend(["--profile", args.profile])
+        if args.path_config:
+            hard_scene_cmd.extend(["--path-config", args.path_config])
+
+        print(f"Hard-Scene Command: {' '.join(hard_scene_cmd)}")
+        subprocess.run(hard_scene_cmd)
+
     print("\nEvaluation batch execution finished.")
 
 

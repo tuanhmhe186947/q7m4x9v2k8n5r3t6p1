@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Script to run tracking annotation pipeline over multiple presets and compile results."""
 
-import os
-import sys
+import csv
 import json
 import subprocess
-import csv
+import sys
 from pathlib import Path
+
 
 def main():
     # Paths configuration
@@ -48,6 +48,8 @@ def main():
             "--identity-swap-iom-threshold", str(p["iom"]),
             "--occlusion-detection-iom-threshold", str(p["detection_iom"]),
             "--merged-box-growth-ratio", str(p["growth"]),
+            "--use-iou-fallback",
+            "--no-use-conditional-area-occlusion-freeze",
         ]
         if enable_merged_split:
             cmd.append("--use-merged-box-split")
@@ -57,7 +59,7 @@ def main():
         subprocess.run(cmd, check=True)
 
         report_path = preset_out / video_stem / "tracking_quality_report.json"
-        with open(report_path, "r", encoding="utf-8") as f:
+        with open(report_path, encoding="utf-8") as f:
             summary = json.load(f)
 
         row = {
@@ -103,6 +105,21 @@ def main():
                 writer.writeheader()
                 writer.writerows(summary_rows)
             print(f"\nSummary successfully written to: {summary_csv}")
+            
+            # Automatically run hard-scene comparison across presets
+            print("\n[*] Running hard-scene evaluation comparison across presets...")
+            compare_cmd = [
+                sys.executable,
+                str(Path(__file__).resolve().parent / "run_hard_scene_eval.py"),
+                "--video", video_stem,
+                "--compare",
+            ]
+            for r in summary_rows:
+                pred_file = Path(r["output_dir"]) / video_stem / "annotations_cvat_shapes.json"
+                compare_cmd.extend(["--pred", f"{r['preset']}={pred_file}"])
+                
+            print(f"Comparison Command: {' '.join(compare_cmd)}")
+            subprocess.run(compare_cmd)
         except Exception as e:
             print(f"Error: Failed to write CSV summary: {e}", file=sys.stderr)
 

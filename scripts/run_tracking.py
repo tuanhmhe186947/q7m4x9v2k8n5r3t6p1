@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Script to run tracking on one or more videos using pig-track-for-annotation (tracking_annotation.py)."""
 
-import os
-import sys
-import subprocess
 import argparse
+import subprocess
+import sys
 from pathlib import Path
 
 # Add src/ to path so we can load configurations
@@ -16,6 +15,7 @@ from pig_behavior.tracking_path_config import (
     profile_video_path,
     profile_video_paths,
 )
+
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -102,14 +102,16 @@ def main():
     
     # Run tracking for each video
     for idx, video_path in enumerate(video_paths, 1):
-        print(f"\n==================================================")
+        print("\n==================================================")
         print(f"[{idx}/{len(video_paths)}] Running tracking on: {video_path.name}")
-        print(f"==================================================")
+        print("==================================================")
         
         cmd = [
             sys.executable,
             str(script_path),
             "--video", str(video_path),
+            "--use-iou-fallback",
+            "--no-use-conditional-area-occlusion-freeze",
         ]
         
         # Add profile or path-config if specified to ensure consistent output paths

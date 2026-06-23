@@ -29,6 +29,8 @@ def test_detector_benchmark_configs_isolate_v8_and_v26_outputs(tmp_path: Path) -
         output_root=tmp_path / "reports",
         device="0",
         half=True,
+        force_track=True,
+        run_missing_tracker=True,
     )
 
     configs = iter_detector_benchmark_configs(
