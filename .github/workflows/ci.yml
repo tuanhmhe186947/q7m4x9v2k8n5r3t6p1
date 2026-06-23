@@ -24,7 +24,7 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install numpy pandas scipy
           python -m pip install -e . --no-deps
-          python -m pip install ruff pytest
+          python -m pip install ruff==0.15.18 pytest
       - name: Lint
         run: ruff check src main.py tools tests
       - name: Test

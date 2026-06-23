@@ -33,7 +33,7 @@ pig-tracking-eval = "pig_behavior.evaluation.tracking_pipeline:main"
 [project.optional-dependencies]
 dev = [
     "pre-commit>=3.7",
-    "ruff>=0.4",
+    "ruff==0.15.18",
     "pytest>=8",
 ]
 notebooks = [

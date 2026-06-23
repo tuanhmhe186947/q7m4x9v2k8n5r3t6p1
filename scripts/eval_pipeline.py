@@ -8,6 +8,7 @@ from __future__ import annotations
 import argparse
 import subprocess
 import sys
+from datetime import datetime
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -154,6 +155,35 @@ def main():
         if gt_xml is not None:
             print(f"  - {video_path.name} -> {gt_xml.name}")
 
+    # 1. Resolve weights path to determine detector name
+    weights_path = None
+    # Check if --weights was passed in pipeline_extra_args
+    for i, arg in enumerate(pipeline_extra_args):
+        if arg == "--weights" and i + 1 < len(pipeline_extra_args):
+            weights_path = Path(pipeline_extra_args[i + 1])
+            break
+
+    # If not in args, check profile
+    if not weights_path and profile:
+        profile_weights = profile.get("weights")
+        if profile_weights:
+            weights_path = Path(profile_weights)
+
+    # Fallback to default
+    if not weights_path:
+        from pig_behavior.evaluation.tracking.assets import DETECTOR_WEIGHTS_V8
+        weights_path = DETECTOR_WEIGHTS_V8
+
+    # 2. Determine detector name (yolov8 or yolov26)
+    weights_stem = weights_path.name.lower() if weights_path else ""
+    if "yolov26" in weights_stem or "v26" in weights_stem:
+        detector_name = "yolov26"
+    else:
+        detector_name = "yolov8"
+
+    # Generate timestamp
+    timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+
     script_path = (
         PROJECT_ROOT / "src" / "pig_behavior" / "evaluation" / "tracking_pipeline.py"
     )
@@ -166,11 +196,24 @@ def main():
         )
         print("==================================================")
 
+        # Output folder for tracking metrics under evaluation/tracking_metrics
+        custom_output_root = (
+            PROJECT_ROOT
+            / "outputs"
+            / "evaluation"
+            / "tracking_metrics"
+            / detector_name
+            / timestamp_str
+            / video_path.stem
+        )
+
         cmd = [
             sys.executable,
             str(script_path),
             "--video",
             str(video_path),
+            "--output-root",
+            str(custom_output_root),
         ]
 
         if args.profile:
@@ -192,10 +235,19 @@ def main():
 
         # Automatically trigger hard-scene evaluation for the video
         print(f"\n[*] Running hard-scene evaluation for: {video_path.name}")
+        custom_hard_scene_dir = (
+            PROJECT_ROOT
+            / "outputs"
+            / "evaluation"
+            / "hard_scene_output"
+            / detector_name
+            / timestamp_str
+        )
         hard_scene_cmd = [
             sys.executable,
             str(PROJECT_ROOT / "scripts" / "eval_hard_scenes.py"),
             "--video", video_path.stem,
+            "--output-dir", str(custom_hard_scene_dir),
         ]
         if args.profile:
             hard_scene_cmd.extend(["--profile", args.profile])
