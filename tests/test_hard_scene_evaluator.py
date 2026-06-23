@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from pig_behavior.evaluation.tracking_hard_scene_evaluator import (
     HardSceneEvalConfig,
@@ -404,10 +405,9 @@ def test_compare_creates_comparison_csv(tmp_path: Path) -> None:
 # Test 8: CLI Auto-mapping, custom roots, and comparison discovery
 # ---------------------------------------------------------------------------
 
-import pytest
 
 def test_main_auto_mapping_single_video(tmp_path: Path) -> None:
-    """pig-tracking-hard-eval with --video only automatically resolves GT and predictions."""
+    """pig-tracking-hard-eval with --video only auto-resolves GT/preds."""
     gt_dir = tmp_path / "annotations" / "tracking"
     video_dir = tmp_path / "videos"
     prediction_root = tmp_path / "outputs" / "id_tracking"
@@ -467,7 +467,7 @@ def test_main_missing_xml_errors(tmp_path: Path) -> None:
 
 
 def test_main_multiple_videos(tmp_path: Path) -> None:
-    """pig-tracking-hard-eval with no video path evaluates all matching pairs into subfolders."""
+    """pig-tracking-hard-eval with no video path evaluates all matching pairs."""
     gt_dir = tmp_path / "annotations" / "tracking"
     video_dir = tmp_path / "videos"
     prediction_root = tmp_path / "outputs" / "id_tracking"
@@ -501,7 +501,7 @@ def test_main_multiple_videos(tmp_path: Path) -> None:
 
 
 def test_main_compare_auto_mapping(tmp_path: Path) -> None:
-    """pig-tracking-hard-eval-compare auto-maps the latest benchmark predictions if --pred omitted."""
+    """pig-tracking-hard-eval-compare auto-maps the latest benchmark predictions."""
     gt_dir = tmp_path / "annotations" / "tracking"
     video_dir = tmp_path / "videos"
     prediction_root = tmp_path / "outputs" / "id_tracking"
@@ -526,7 +526,8 @@ def test_main_compare_auto_mapping(tmp_path: Path) -> None:
     for detector in ("yolov8", "yolov26"):
         pred_dir = run_2 / detector / "iou0_area1_condarea1_merge0" / "pig_video_1"
         pred_dir.mkdir(parents=True)
-        _write_cvat_xml(pred_dir / "pig_video_1_annotations_cvat_video_1_1.xml", gt_tracks)
+        xml_name = "pig_video_1_annotations_cvat_video_1_1.xml"
+        _write_cvat_xml(pred_dir / xml_name, gt_tracks)
         
     from pig_behavior.evaluation.tracking_hard_scene_evaluator import main_compare
     output_dir = tmp_path / "compare_out"
@@ -540,12 +541,14 @@ def test_main_compare_auto_mapping(tmp_path: Path) -> None:
         "--output-dir", str(output_dir),
     ])
     
-    # Config directories: "yolov8_iou0_area1_condarea1_merge0", "yolov26_iou0_area1_condarea1_merge0"
+    # Config directories: "yolov8_iou0_area1_condarea1_merge0",
+    # "yolov26_iou0_area1_condarea1_merge0"
     assert (output_dir / "yolov8_iou0_area1_condarea1_merge0").exists()
     assert (output_dir / "yolov26_iou0_area1_condarea1_merge0").exists()
     assert (output_dir / "hard_scene_config_comparison.csv").exists()
     
-    # Test explicit --run-dir pointing to run_1 (which is empty and should raise FileNotFoundError)
+    # Test explicit --run-dir pointing to run_1
+    # (which is empty and should raise FileNotFoundError)
     with pytest.raises(FileNotFoundError):
         main_compare([
             "--video", "pig_video_1",

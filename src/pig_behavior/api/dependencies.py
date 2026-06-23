@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import os
+from io import BytesIO
 from pathlib import Path
 from threading import Lock
 
 import numpy as np
+from fastapi import Request
 from PIL import Image
-from io import BytesIO
 
 from pig_behavior.config import (
     BEHAVIOR_CLASSIFIER_WEIGHTS,
@@ -175,7 +176,7 @@ def _tracking_config_from_env() -> TrackingConfig:
 
 
 # FastAPI Dependencies
-from fastapi import Request
+
 
 def get_model_service(request: Request):
     """Retrieve the model service from the app state."""

@@ -6,9 +6,13 @@ SRC_DIR = PROJECT_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from pig_behavior.evaluation.tracking_pipeline import (  # noqa: E402
-    TrackingEvaluationPipelineConfig,
+from pig_behavior.evaluation.tracking.benchmarking import (  # noqa: E402
     iter_detector_benchmark_configs,
+)
+from pig_behavior.evaluation.tracking.config import (  # noqa: E402
+    TrackingEvaluationPipelineConfig,
+)
+from pig_behavior.evaluation.tracking.pipeline import (  # noqa: E402
     tracking_rule_overrides,
 )
 

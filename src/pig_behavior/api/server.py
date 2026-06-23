@@ -8,12 +8,12 @@ from fastapi import FastAPI
 
 from pig_behavior import __version__
 from pig_behavior.api.dependencies import (
+    TFLiteModelService,
     _service_from_env,
     _tracking_config_from_env,
 )
 from pig_behavior.api.routes import predict, system, tracking
 from pig_behavior.services.pt_inference import PTModelService
-from pig_behavior.api.dependencies import TFLiteModelService
 from pig_behavior.services.video_tracking import VideoTrackingSession
 
 

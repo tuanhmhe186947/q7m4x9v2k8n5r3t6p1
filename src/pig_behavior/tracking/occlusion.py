@@ -305,7 +305,9 @@ def area_occlusion_should_freeze(
     active_tracks_in_scene = sum(
         1 for box in context.predicted_boxes.values() if bbox_iom(box, det.box) > 0.0
     )
-    detected_track_count = sum(1 for box in context.predicted_boxes.values() if box.size)
+    detected_track_count = sum(
+        1 for box in context.predicted_boxes.values() if box.size
+    )
     detection_deficit = len(detections) < detected_track_count
     hard_scene_hint = track.hard_occlusion_frames > 0 or track.last_ambiguous
     track_in_competition = (

@@ -12,7 +12,6 @@ from PIL import UnidentifiedImageError
 
 from pig_behavior.api.dependencies import (
     PTModelService,
-    TFLiteModelService,
     _confidence_from_env,
     get_model_service,
 )

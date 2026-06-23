@@ -9,26 +9,11 @@ matched to videos in ``data/videos`` by video stem, for example:
 
 from __future__ import annotations
 
-import json
-import math
-import re
-from collections import Counter, defaultdict
-from dataclasses import asdict, dataclass
-from datetime import datetime
-from pathlib import Path
-from typing import Any
-from xml.etree import ElementTree as ET
-
-import numpy as np
-import pandas as pd
-from scipy.optimize import linear_sum_assignment
-
-
 from .tracking.assets import (
     DATA_DIR,
     DETECTOR_WEIGHTS,
-    DETECTOR_WEIGHTS_V26,
     DETECTOR_WEIGHTS_V8,
+    DETECTOR_WEIGHTS_V26,
     EVAL_OUTPUT_ROOT,
     PREDICTION_ROOT,
     PROJECT_ROOT,
@@ -44,15 +29,10 @@ from .tracking.assets import (
 )
 from .tracking.cvat_io import (
     TrackingObject,
-    box_hidden,
-    box_id,
-    id_from_label,
-    is_outside,
     parse_cvat_video_xml,
     read_cvat_task_size,
     read_task_name,
 )
-from .tracking.matching import iou_xyxy, match_frame
 from .tracking.diagnostics import (
     continuity_gaps_for_pair,
     continuity_gaps_to_dataframe,
@@ -61,18 +41,6 @@ from .tracking.diagnostics import (
     identity_mapping_for_pair,
     identity_mapping_to_dataframe,
 )
-from .tracking.metrics import (
-    TrackingMetrics,
-    aggregate_metrics,
-    attach_remapped_metrics,
-    best_id_mapping,
-    compute_association_accuracy,
-    compute_id_metrics,
-    continuity_stats_from_matches,
-    matched_identity_counts,
-    remap_prediction_ids,
-)
-
 from .tracking.evaluator import (
     evaluate_dataset,
     evaluate_pair,
@@ -80,6 +48,14 @@ from .tracking.evaluator import (
     metrics_to_dataframe,
     pairs_to_dataframe,
     run_tracker_for_pair,
+)
+from .tracking.matching import iou_xyxy, match_frame
+from .tracking.metrics import (
+    TrackingMetrics,
+    aggregate_metrics,
+    compute_association_accuracy,
+    compute_id_metrics,
+    remap_prediction_ids,
 )
 
 __all__ = [

@@ -91,7 +91,10 @@ def find_prediction_xml(video_stem: str, prediction_root: Path) -> Path | None:
     candidates = sorted(
         path
         for path in prediction_root.rglob("*.xml")
-        if (video_stem.lower() in path.name.lower() or video_stem.lower() in path.parent.name.lower())
+        if (
+            video_stem.lower() in path.name.lower()
+            or video_stem.lower() in path.parent.name.lower()
+        )
         and "cvat_video" in path.name.lower()
         and ".bak_" not in path.name.lower()
     )

@@ -22,13 +22,13 @@ from xml.etree import ElementTree as ET
 import numpy as np
 import pandas as pd
 
+from pig_behavior.config import PROJECT_ROOT
 from pig_behavior.evaluation.tracking.cvat_io import (
     TrackingObject,
     parse_cvat_video_xml,
     read_task_name,
 )
 from pig_behavior.evaluation.tracking.matching import iou_xyxy, match_frame
-from pig_behavior.config import PROJECT_ROOT
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,9 @@ class HardSceneEvalConfig:
     pred_xml: Path = field(default_factory=lambda: Path("pred.xml"))
     video_path: Path | None = None
     output_dir: Path = field(
-        default_factory=lambda: PROJECT_ROOT / "outputs" / "evaluation" / "hard_scene_output"
+        default_factory=lambda: (
+            PROJECT_ROOT / "outputs" / "evaluation" / "hard_scene_output"
+        )
     )
     match_iou_threshold: float = 0.30
     stable_match_iou_threshold: float = 0.50
@@ -1219,9 +1221,9 @@ def run_hard_scene_evaluation(
 
 def _build_parser() -> argparse.ArgumentParser:
     from pig_behavior.evaluation.tracking.assets import (
+        PREDICTION_ROOT,
         TRACKING_GT_DIR,
         VIDEO_DIR,
-        PREDICTION_ROOT,
     )
     parser = argparse.ArgumentParser(
         description="Hard-Scene Identity Evaluator for pig tracking.",
@@ -1265,7 +1267,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.gt_xml and args.pred_xml:
         # Use explicitly provided paths
-        pairs_to_evaluate.append((args.gt_xml, args.pred_xml, args.video, args.output_dir))
+        pairs_to_evaluate.append(
+            (args.gt_xml, args.pred_xml, args.video, args.output_dir)
+        )
     else:
         # Auto-map using list_tracking_pairs
         prediction_root = args.run_dir or args.prediction_root
@@ -1278,25 +1282,50 @@ def main(argv: list[str] | None = None) -> int:
             target_video = Path(args.video)
             matched_pair = None
             for pair in pairs:
-                if (pair.video_path and pair.video_path.resolve() == target_video.resolve()) or \
-                   pair.video_stem.lower() == target_video.stem.lower() or \
-                   target_video.name.lower() in pair.video_path.name.lower():
+                is_path_match = (
+                    pair.video_path
+                    and pair.video_path.resolve() == target_video.resolve()
+                )
+                is_stem_match = (
+                    pair.video_stem.lower() == target_video.stem.lower()
+                )
+                is_subname_match = (
+                    target_video.name.lower() in pair.video_path.name.lower()
+                )
+                if is_path_match or is_stem_match or is_subname_match:
                     matched_pair = pair
                     break
             if matched_pair is None:
-                raise FileNotFoundError(f"Could not find matching ground truth/video pair for --video {args.video}")
+                raise FileNotFoundError(
+                    f"Could not find matching ground truth/video pair for "
+                    f"--video {args.video}"
+                )
             if matched_pair.pred_xml is None:
-                raise FileNotFoundError(f"No prediction XML found for video {args.video} under prediction-root {prediction_root}")
-            pairs_to_evaluate.append((matched_pair.gt_xml, matched_pair.pred_xml, matched_pair.video_path, args.output_dir))
+                raise FileNotFoundError(
+                    f"No prediction XML found for video {args.video} under "
+                    f"prediction-root {prediction_root}"
+                )
+            pairs_to_evaluate.append(
+                (
+                    matched_pair.gt_xml,
+                    matched_pair.pred_xml,
+                    matched_pair.video_path,
+                    args.output_dir,
+                )
+            )
         else:
             # Run on all pairs that have predictions
             valid_pairs = [p for p in pairs if p.pred_xml is not None]
             if not valid_pairs:
-                raise FileNotFoundError(f"No pairs with prediction XMLs found in {prediction_root}")
+                raise FileNotFoundError(
+                    f"No pairs with prediction XMLs found in {prediction_root}"
+                )
             for pair in valid_pairs:
                 # Store in subdirectories under output_dir to prevent collision
                 sub_out_dir = args.output_dir / pair.video_stem
-                pairs_to_evaluate.append((pair.gt_xml, pair.pred_xml, pair.video_path, sub_out_dir))
+                pairs_to_evaluate.append(
+                    (pair.gt_xml, pair.pred_xml, pair.video_path, sub_out_dir)
+                )
 
     for gt_xml, pred_xml, video_path, out_dir in pairs_to_evaluate:
         config = HardSceneEvalConfig(
@@ -1322,9 +1351,9 @@ def main(argv: list[str] | None = None) -> int:
 
 def _build_compare_parser() -> argparse.ArgumentParser:
     from pig_behavior.evaluation.tracking.assets import (
+        PREDICTION_ROOT,
         TRACKING_GT_DIR,
         VIDEO_DIR,
-        PREDICTION_ROOT,
     )
     parser = argparse.ArgumentParser(
         description="Compare multiple tracking configs via hard-scene evaluation.",
@@ -1369,6 +1398,7 @@ def main_compare(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     import re
+
     from pig_behavior.evaluation.tracking.assets import list_tracking_pairs
 
     # 1. Resolve run_dir if we are auto-discovering predictions
@@ -1388,7 +1418,8 @@ def main_compare(argv: list[str] | None = None) -> int:
                     runs.append(run_path)
         if not runs:
             raise FileNotFoundError(
-                f"No benchmark runs found under {args.prediction_root}. Please specify --pred or --run-dir."
+                f"No benchmark runs found under {args.prediction_root}. "
+                "Please specify --pred or --run-dir."
             )
         runs.sort(key=lambda p: p.name, reverse=True)
         run_dir = runs[0]
@@ -1410,7 +1441,9 @@ def main_compare(argv: list[str] | None = None) -> int:
     else:
         # Auto-discover from run_dir
         if not run_dir.exists() or not run_dir.is_dir():
-            raise FileNotFoundError(f"Run directory does not exist or is not a directory: {run_dir}")
+            raise FileNotFoundError(
+                f"Run directory does not exist or is not a directory: {run_dir}"
+            )
 
         video_stems = []
         if args.video:
@@ -1432,9 +1465,14 @@ def main_compare(argv: list[str] | None = None) -> int:
                                 discovered_stems.add(pair.video_stem)
                                 break
             if not discovered_stems:
-                raise FileNotFoundError(f"Could not discover any valid video stem directories in {run_dir}")
+                raise FileNotFoundError(
+                    f"Could not discover any valid video stem directories in {run_dir}"
+                )
             video_stems = sorted(discovered_stems)
-            print(f"Auto-discovered {len(video_stems)} videos in benchmark run: {video_stems}")
+            print(
+                f"Auto-discovered {len(video_stems)} videos in benchmark run: "
+                f"{video_stems}"
+            )
 
         # Build mapping for each video stem
         for v_stem in video_stems:
@@ -1456,7 +1494,10 @@ def main_compare(argv: list[str] | None = None) -> int:
                         if p.lower() == v_stem.lower():
                             continue
                         # Filter out internal benchmark framework folders & timestamps
-                        if p.lower() in ("tracking_rule_benchmark", "tracking_detector_benchmark"):
+                        if p.lower() in (
+                            "tracking_rule_benchmark",
+                            "tracking_detector_benchmark",
+                        ):
                             continue
                         if re.match(r"^\d{8}_\d{6}$", p):
                             continue
@@ -1467,28 +1508,41 @@ def main_compare(argv: list[str] | None = None) -> int:
                     v_pred_configs[config_name] = xml_path
 
             if not v_pred_configs:
-                print(f"[Warning] No prediction XMLs matching video '{v_stem}' found under {run_dir}. Skipping.")
+                print(
+                    f"[Warning] No prediction XMLs matching video '{v_stem}' "
+                    f"found under {run_dir}. Skipping."
+                )
                 continue
 
-            v_out_dir = args.output_dir / v_stem if len(video_stems) > 1 else args.output_dir
+            v_out_dir = (
+                args.output_dir / v_stem
+                if len(video_stems) > 1
+                else args.output_dir
+            )
             eval_targets.append((v_stem, v_out_dir, v_pred_configs))
 
         if not eval_targets:
-            raise FileNotFoundError(f"No prediction XMLs found under run directory {run_dir} for video stem(s): {video_stems}")
+            raise FileNotFoundError(
+                f"No prediction XMLs found under run directory {run_dir} "
+                f"for video stem(s): {video_stems}"
+            )
 
     # 3. Perform evaluation on all targets
     for v_stem, v_out_dir, v_pred_configs in eval_targets:
-        print(f"\n==================================================")
+        print("\n==================================================")
         print(f"Running comparison evaluation for video: {v_stem}")
         print(f"Output folder: {v_out_dir}")
-        print(f"==================================================")
+        print("==================================================")
 
         try:
             # Resolve GT XML path
             v_gt_xml = args.gt_xml
             if v_gt_xml is None:
                 if v_stem is None:
-                    raise ValueError("Either --gt-xml, --video, or --pred must be specified to determine target evaluation video.")
+                    raise ValueError(
+                        "Either --gt-xml, --video, or --pred must be "
+                        "specified to determine target evaluation video."
+                    )
                 pairs = list_tracking_pairs(
                     tracking_gt_dir=args.gt_dir,
                     video_dir=args.video_dir,
@@ -1496,24 +1550,41 @@ def main_compare(argv: list[str] | None = None) -> int:
                 )
                 matched_pair = None
                 for pair in pairs:
-                    if pair.video_stem.lower() == v_stem.lower() or \
-                       (args.video and pair.video_path.resolve() == Path(args.video).resolve()):
+                    is_stem_match = (
+                        pair.video_stem.lower() == v_stem.lower()
+                    )
+                    is_path_match = (
+                        args.video
+                        and pair.video_path.resolve()
+                        == Path(args.video).resolve()
+                    )
+                    if is_stem_match or is_path_match:
                         matched_pair = pair
                         break
                 if matched_pair is None:
-                    raise FileNotFoundError(f"Could not resolve ground truth XML for video '{v_stem}' from {args.gt_dir}")
+                    raise FileNotFoundError(
+                        f"Could not resolve ground truth XML for video "
+                        f"'{v_stem}' from {args.gt_dir}"
+                    )
                 v_gt_xml = matched_pair.gt_xml
-                print(f"Auto-resolved ground truth XML for video '{v_stem}': {v_gt_xml}")
+                print(
+                    f"Auto-resolved ground truth XML for video '{v_stem}': "
+                    f"{v_gt_xml}"
+                )
 
             v_out_dir.mkdir(parents=True, exist_ok=True)
             comparison_rows = []
 
             for name, pred_path in sorted(v_pred_configs.items()):
                 sub_dir = v_out_dir / name
+                # skip rendering overlay if running multiple
+                video_path_arg = (
+                    args.video if len(eval_targets) == 1 else None
+                )
                 config = HardSceneEvalConfig(
                     gt_xml=v_gt_xml,
                     pred_xml=pred_path,
-                    video_path=args.video if len(eval_targets) == 1 else None,  # skip rendering overlay if running multiple
+                    video_path=video_path_arg,
                     output_dir=sub_dir,
                     match_iou_threshold=args.match_iou_threshold,
                     stable_match_iou_threshold=args.stable_match_iou_threshold,

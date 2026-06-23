@@ -41,7 +41,9 @@ def _make_track(fid: int, box: list[float]) -> FixedTrack:
     return track
 
 
-def _make_bev_state(fid: int, pos: list[float], cfg: RGBDTrackingConfig) -> BEVTrackState:
+def _make_bev_state(
+    fid: int, pos: list[float], cfg: RGBDTrackingConfig
+) -> BEVTrackState:
     kf = create_bev_kalman(np.array(pos, dtype=np.float64), cfg)
     return BEVTrackState(
         fixed_id=fid,

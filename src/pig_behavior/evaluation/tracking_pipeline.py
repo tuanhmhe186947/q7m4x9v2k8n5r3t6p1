@@ -3,44 +3,30 @@
 from __future__ import annotations
 
 import argparse
-import itertools
-import json
 import sys
-import time
-from dataclasses import asdict, dataclass, replace
-from datetime import datetime
 from pathlib import Path
-
-import pandas as pd
 
 SRC_ROOT = Path(__file__).resolve().parents[2]
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
+from pig_behavior.evaluation.tracking.benchmarking import (  # noqa: E402
+    run_tracking_detector_benchmark,
+    run_tracking_rule_benchmark,
+)
+from pig_behavior.evaluation.tracking.config import (  # noqa: E402
+    TrackingEvaluationPipelineConfig,
+)
+from pig_behavior.evaluation.tracking.pipeline import (  # noqa: E402
+    run_pipeline,
+)
 from pig_behavior.evaluation.tracking_metrics import (  # noqa: E402
-    DETECTOR_WEIGHTS,
     DETECTOR_WEIGHTS_V8,
     DETECTOR_WEIGHTS_V26,
     EVAL_OUTPUT_ROOT,
     PREDICTION_ROOT,
     TRACKING_GT_DIR,
     VIDEO_DIR,
-    TrackingPair,
-    aggregate_metrics,
-    continuity_gaps_for_pair,
-    continuity_gaps_to_dataframe,
-    evaluate_pair,
-    find_prediction_xml,
-    identity_events_for_pair,
-    identity_events_to_dataframe,
-    identity_mapping_for_pair,
-    identity_mapping_to_dataframe,
-    list_tracking_pairs,
-    metrics_to_dataframe,
-    normalize_key,
-    pairs_to_dataframe,
-    read_task_name,
-    run_tracker_for_pair,
 )
 from pig_behavior.tracking_path_config import (  # noqa: E402
     DEFAULT_TRACKING_PATH_CONFIG,
@@ -50,26 +36,6 @@ from pig_behavior.tracking_path_config import (  # noqa: E402
     profile_video_paths,
 )
 
-
-from pig_behavior.evaluation.tracking.config import TrackingEvaluationPipelineConfig
-from pig_behavior.evaluation.tracking.pipeline import (
-    build_pairs,
-    ensure_predictions,
-    find_gt_xml_for_video,
-    run_pipeline,
-    save_pipeline_report,
-    tracking_rule_overrides,
-)
-from pig_behavior.evaluation.tracking.reporting import (
-    _format_metric_value,
-    _markdown_table,
-    build_markdown_report,
-)
-from pig_behavior.evaluation.tracking.benchmarking import (
-    iter_detector_benchmark_configs,
-    run_tracking_detector_benchmark,
-    run_tracking_rule_benchmark,
-)
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     """Parse CLI args."""
