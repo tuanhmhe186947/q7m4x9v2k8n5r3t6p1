@@ -54,8 +54,8 @@ def _shape(frame: int, fixed_id: int, points: list[float]) -> dict:
     }
 
 
-def test_legacy_bytetrack_restores_e22cde3_defaults() -> None:
-    cfg = TrackingConfig(mode="legacy_bytetrack", detect_every_n_frames=3)
+def test_bytetrack_restores_e22cde3_defaults() -> None:
+    cfg = TrackingConfig(mode="bytetrack", detect_every_n_frames=3)
 
     validate_config(cfg)
 
@@ -72,9 +72,9 @@ def test_legacy_bytetrack_restores_e22cde3_defaults() -> None:
     assert cfg.enable_offline_smoothing is True
 
 
-def test_legacy_bytetrack_keeps_explicit_threshold_overrides() -> None:
+def test_bytetrack_keeps_explicit_threshold_overrides() -> None:
     cfg = TrackingConfig(
-        mode="legacy_bytetrack",
+        mode="bytetrack",
         det_conf=0.30,
         nms_iou=0.70,
         track_match_iou=0.65,
@@ -89,9 +89,9 @@ def test_legacy_bytetrack_keeps_explicit_threshold_overrides() -> None:
     assert cfg.track_high_conf == 0.50
 
 
-def test_legacy_bytetrack_keeps_explicit_legacy_iou_alias() -> None:
+def test_bytetrack_keeps_explicit_legacy_iou_alias() -> None:
     cfg = TrackingConfig(
-        mode="legacy_bytetrack",
+        mode="bytetrack",
         iou=0.72,
         overrides={"iou"},
     )

@@ -166,7 +166,7 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
             )
 
             is_detect_frame = (
-                cfg.mode == "legacy_bytetrack"
+                cfg.mode == "bytetrack"
                 or (frame_index - cfg.start_frame) % cfg.detect_every_n_frames == 0
             )
             num_dets = 0
@@ -182,7 +182,7 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
                     "device": cfg.device,
                     "half": cfg.half,
                 }
-                if cfg.mode == "legacy_bytetrack":
+                if cfg.mode == "bytetrack":
                     results = model.track(
                         source=detector_frame,
                         persist=True,
@@ -192,12 +192,6 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
                         verbose=False,
                         device=cfg.device,
                         half=cfg.half,
-                    )
-                elif cfg.mode == "bytetrack":
-                    results = model.track(
-                        **inference_args,
-                        persist=True,
-                        tracker=str(tracker_yaml),
                     )
                 else:
                     results = model.predict(**inference_args)
@@ -284,7 +278,7 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
     if frames_written == 0:
         raise RuntimeError("No frames were processed.")
 
-    if cfg.enable_offline_smoothing or cfg.mode == "legacy_bytetrack":
+    if cfg.enable_offline_smoothing or cfg.mode == "bytetrack":
         shapes = apply_identity_swap_guard(shapes, width, height, cfg)
         shapes = refine_shapes_temporally(shapes, width, height, cfg)
     hidden_shape_count = sum(
@@ -339,7 +333,7 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
     )
     max_shape_frame = max(int(shape["frame"]) for shape in shapes)
     source_frame_count = max(total_frames, max_shape_frame + 1)
-    if cfg.mode in {"legacy_bytetrack", "gt_export"}:
+    if cfg.mode in {"bytetrack", "gt_export"}:
         write_cvat_video_xml(
             cvat_video_xml,
             shapes,

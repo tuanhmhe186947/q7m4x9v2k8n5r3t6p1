@@ -74,7 +74,7 @@ class TrackingConfig:
     allowed_class_name: str | None = None
 
     # Pipeline Mode & Realtime parameters
-    mode: str = "realtime"  # realtime, bytetrack, legacy_bytetrack, or gt_export
+    mode: str = "realtime"  # realtime, bytetrack, or gt_export
     imgsz: int = 640
     detect_every_n_frames: int = DEFAULT_DETECT_EVERY_N_FRAMES
     max_raw_detections: int = DEFAULT_MAX_RAW_DETECTIONS
@@ -204,19 +204,15 @@ def validate_config(cfg: TrackingConfig) -> None:
     if cfg.mode not in {
         "realtime",
         "bytetrack",
-        "legacy_bytetrack",
         "gt_export",
     }:
-        raise ValueError(
-            "mode must be one of: realtime, bytetrack, legacy_bytetrack, "
-            "gt_export."
-        )
+        raise ValueError("mode must be one of: realtime, bytetrack, gt_export.")
 
     # 2. Mode-based dynamic defaults overrides
-    if cfg.mode == "legacy_bytetrack":
+    if cfg.mode == "bytetrack":
         # Reproduce the e22cde3 ByteTrack defaults without changing the new
-        # pipeline defaults used by realtime, bytetrack, and gt_export.
-        legacy_defaults = {
+        # pipeline defaults used by realtime and gt_export.
+        bytetrack_defaults = {
             "det_conf": 0.25,
             "track_high_conf": 0.50,
             "review_conf": 0.75,
@@ -226,7 +222,7 @@ def validate_config(cfg: TrackingConfig) -> None:
             "initial_track_conf": 0.50,
             "motion_gate_confidence": 0.50,
         }
-        for name, value in legacy_defaults.items():
+        for name, value in bytetrack_defaults.items():
             explicitly_overridden = name in cfg.overrides
             if name == "nms_iou" and "iou" in cfg.overrides:
                 explicitly_overridden = True
@@ -502,7 +498,7 @@ def resolve_output_paths(
 def write_tracker_yaml(path: Path, cfg: TrackingConfig) -> None:
     """Write a tracker config (ByteTrack or BoT-SORT) for pig videos."""
     track_low_thresh = min(cfg.det_conf, cfg.track_high_conf)
-    if cfg.mode == "legacy_bytetrack":
+    if cfg.mode == "bytetrack":
         lines = [
             "tracker_type: bytetrack",
             f"track_high_thresh: {cfg.track_high_conf:.2f}",

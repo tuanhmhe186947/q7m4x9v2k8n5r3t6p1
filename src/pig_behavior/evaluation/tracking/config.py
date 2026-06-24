@@ -44,5 +44,5 @@ class TrackingEvaluationPipelineConfig:
     USE_AREA_OCCLUSION_FREEZE: bool = False
     USE_CONDITIONAL_AREA_OCCLUSION_FREEZE: bool = True
     USE_MERGED_BOX_SPLIT: bool = False
-    tracking_mode: str = "gt_export"
+    tracking_mode: str = "bytetrack"
     profile_overrides: dict[str, Any] | None = None

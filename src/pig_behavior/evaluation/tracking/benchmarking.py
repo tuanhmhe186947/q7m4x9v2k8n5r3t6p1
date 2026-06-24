@@ -54,13 +54,42 @@ def aggregate_metrics_dict(metrics_df: pd.DataFrame) -> dict[str, object]:
     return row.to_dict()
 
 
+def rank_aggregate_benchmark_rows(summary_df: pd.DataFrame) -> pd.DataFrame:
+    """Rank aggregate benchmark rows by identity-aware tracking quality."""
+    if summary_df.empty or "row_type" not in summary_df.columns:
+        return pd.DataFrame()
+    ranked = summary_df[summary_df["row_type"] == "ALL"].copy()
+    sort_columns = [
+        column
+        for column in (
+            "remapped_hota_pct",
+            "remapped_idf1_pct",
+            "remapped_mota_pct",
+            "remapped_idsw",
+            "fp",
+            "fn",
+        )
+        if column in ranked.columns
+    ]
+    if not sort_columns:
+        return ranked.reset_index(drop=True)
+    ascending = [
+        column in {"remapped_idsw", "fp", "fn"} for column in sort_columns
+    ]
+    return ranked.sort_values(
+        sort_columns,
+        ascending=ascending,
+        kind="stable",
+    ).reset_index(drop=True)
+
+
 def build_rule_benchmark_report(
     summary_df: pd.DataFrame,
     detailed_metrics_df: pd.DataFrame,
     benchmark_root: Path,
     title: str = "Tracking Rule Flag Benchmark",
 ) -> str:
-    """Build a compact Markdown report for the 8-combo benchmark."""
+    """Build a compact Markdown report for the 16-combo benchmark."""
     preferred_columns = [
         "detector",
         "weights_path",
@@ -331,11 +360,21 @@ def run_tracking_rule_benchmark(
         index=False,
     )
     # Save summary_all_only.csv (containing only ALL)
-    summary_all_only_df = summary_df[summary_df["row_type"] == "ALL"]
-    summary_all_only_df.to_csv(
+    ranked_summary_df = rank_aggregate_benchmark_rows(summary_df)
+    ranked_summary_df.to_csv(
         benchmark_root / "tracking_rule_benchmark_summary_all_only.csv",
         index=False,
     )
+    ranked_summary_df.to_csv(
+        benchmark_root / "tracking_rule_benchmark_ranking.csv",
+        index=False,
+    )
+    best_row = ranked_summary_df.iloc[0].to_dict() if not ranked_summary_df.empty else {}
+    with (benchmark_root / "tracking_rule_benchmark_best.json").open(
+        "w",
+        encoding="utf-8",
+    ) as handle:
+        json.dump(best_row, handle, ensure_ascii=False, indent=2, default=str)
     detailed_metrics_df.to_csv(
         benchmark_root / "tracking_rule_benchmark_detailed_metrics.csv",
         index=False,

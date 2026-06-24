@@ -1310,7 +1310,7 @@ def main(argv: list[str] | None = None) -> int:
                     matched_pair.gt_xml,
                     matched_pair.pred_xml,
                     matched_pair.video_path,
-                    args.output_dir,
+                    args.output_dir / matched_pair.video_stem,
                 )
             )
         else:
@@ -1437,7 +1437,8 @@ def main_compare(argv: list[str] | None = None) -> int:
             name, path_str = spec.split("=", 1)
             pred_configs[name.strip()] = Path(path_str.strip())
         video_stem = Path(args.video).stem if args.video else None
-        eval_targets.append((video_stem, args.output_dir, pred_configs))
+        v_out_dir = args.output_dir / video_stem if video_stem else args.output_dir
+        eval_targets.append((video_stem, v_out_dir, pred_configs))
     else:
         # Auto-discover from run_dir
         if not run_dir.exists() or not run_dir.is_dir():
@@ -1514,11 +1515,7 @@ def main_compare(argv: list[str] | None = None) -> int:
                 )
                 continue
 
-            v_out_dir = (
-                args.output_dir / v_stem
-                if len(video_stems) > 1
-                else args.output_dir
-            )
+            v_out_dir = args.output_dir / v_stem
             eval_targets.append((v_stem, v_out_dir, v_pred_configs))
 
         if not eval_targets:

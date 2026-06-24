@@ -125,11 +125,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--mode",
         type=str,
-        choices=["realtime", "bytetrack", "legacy_bytetrack", "gt_export"],
+        choices=["realtime", "bytetrack", "gt_export"],
         default="realtime",
         help=(
-            "'bytetrack' uses model.track() with current pipeline behavior. "
-            "'legacy_bytetrack' restores the e22cde3 ByteTrack association, "
+            "'bytetrack' uses the restored e22cde3 ByteTrack association, "
             "lifecycle, export flags, and post-processing behavior."
         ),
     )

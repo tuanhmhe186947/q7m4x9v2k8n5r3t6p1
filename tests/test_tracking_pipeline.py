@@ -1,6 +1,8 @@
 import sys
 from pathlib import Path
 
+import pandas as pd
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SRC_DIR = PROJECT_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
@@ -8,6 +10,7 @@ if str(SRC_DIR) not in sys.path:
 
 from pig_behavior.evaluation.tracking.benchmarking import (  # noqa: E402
     iter_detector_benchmark_configs,
+    rank_aggregate_benchmark_rows,
 )
 from pig_behavior.evaluation.tracking.config import (  # noqa: E402
     TrackingEvaluationPipelineConfig,
@@ -67,3 +70,35 @@ def test_tracking_rule_overrides_forwards_gpu_options() -> None:
     assert overrides["USE_AREA_OCCLUSION_FREEZE"] is True
     assert overrides["USE_CONDITIONAL_AREA_OCCLUSION_FREEZE"] is False
     assert overrides["USE_MERGED_BOX_SPLIT"] is True
+
+
+def test_rank_aggregate_benchmark_rows_prioritizes_hota_then_identity() -> None:
+    summary_df = pd.DataFrame(
+        [
+            {
+                "row_type": "PER_VIDEO",
+                "combo": "ignored",
+                "remapped_hota_pct": 100.0,
+            },
+            {
+                "row_type": "ALL",
+                "combo": "higher_mota",
+                "remapped_hota_pct": 94.0,
+                "remapped_idf1_pct": 99.0,
+                "remapped_mota_pct": 99.0,
+                "remapped_idsw": 0,
+            },
+            {
+                "row_type": "ALL",
+                "combo": "best_hota",
+                "remapped_hota_pct": 95.0,
+                "remapped_idf1_pct": 96.0,
+                "remapped_mota_pct": 97.0,
+                "remapped_idsw": 1,
+            },
+        ]
+    )
+
+    ranked = rank_aggregate_benchmark_rows(summary_df)
+
+    assert ranked["combo"].tolist() == ["best_hota", "higher_mota"]

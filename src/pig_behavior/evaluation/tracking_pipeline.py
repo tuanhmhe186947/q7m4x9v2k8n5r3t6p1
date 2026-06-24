@@ -114,7 +114,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action=argparse.BooleanOptionalAction,
         default=True,
         help=(
-            "Run all 8 tracking rule flag combinations. This is the default when "
+            "Run all 16 tracking rule flag combinations. This is the default when "
             "executing tracking_pipeline.py directly. Use --no-benchmark-rules "
             "for a single evaluation run with the explicit flags above."
         ),
@@ -130,9 +130,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--tracking-mode",
         type=str,
-        choices=["realtime", "gt_export"],
-        default="gt_export",
-        help="Mode to run the tracker in (realtime or gt_export).",
+        choices=["bytetrack", "realtime", "gt_export"],
+        default="bytetrack",
+        help="Mode to run the tracker in (bytetrack, realtime, or gt_export).",
     )
     parser.add_argument("--max-frames", type=int, default=None)
     return parser.parse_args(argv)

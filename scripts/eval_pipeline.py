@@ -28,11 +28,9 @@ def parse_args():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python scripts/run_pipeline_eval.py -v Pigs281119_000085_30fps
-  python scripts/run_pipeline_eval.py -v Pigs281119_000085_30fps
-      --no-benchmark-rules --use-conditional-area-occlusion-freeze
-  python scripts/run_pipeline_eval.py -v Pigs281119_000085_30fps --benchmark-detectors
-  python scripts/run_pipeline_eval.py -a
+  python scripts/eval_pipeline.py -a
+  python scripts/eval_pipeline.py -v data/videos/Pigs291119_000263_30fps.mp4
+  python scripts/eval_pipeline.py -v data/videos/Pigs291119_000263_30fps.mp4 --mode realtime
 """,
     )
     group = parser.add_mutually_exclusive_group(required=True)
@@ -60,6 +58,12 @@ Examples:
         type=str,
         default=None,
         help="Path to custom configs/tracking_paths.json file.",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["bytetrack", "realtime", "gt_export"],
+        default="bytetrack",
+        help="Tracking mode used for benchmark generation (default: bytetrack).",
     )
     parser.add_argument(
         "--skip-missing-gt",
@@ -110,6 +114,14 @@ def _filter_videos_with_gt(video_paths: list[Path], gt_dir: Path):
     return valid_video_paths, skipped_video_paths
 
 
+def _extra_arg_value(extra_args: list[str], name: str) -> str | None:
+    """Return the value passed after a forwarded CLI option."""
+    try:
+        return extra_args[extra_args.index(name) + 1]
+    except (ValueError, IndexError):
+        return None
+
+
 def main():
     args, pipeline_extra_args = parse_args()
 
@@ -155,110 +167,104 @@ def main():
         if gt_xml is not None:
             print(f"  - {video_path.name} -> {gt_xml.name}")
 
-    # 1. Resolve weights path to determine detector name
-    weights_path = None
-    # Check if --weights was passed in pipeline_extra_args
-    for i, arg in enumerate(pipeline_extra_args):
-        if arg == "--weights" and i + 1 < len(pipeline_extra_args):
-            weights_path = Path(pipeline_extra_args[i + 1])
-            break
-
-    # If not in args, check profile
-    if not weights_path and profile:
-        profile_weights = profile.get("weights")
-        if profile_weights:
-            weights_path = Path(profile_weights)
-
-    # Fallback to default
-    if not weights_path:
-        from pig_behavior.evaluation.tracking.assets import DETECTOR_WEIGHTS_V8
-        weights_path = DETECTOR_WEIGHTS_V8
-
-    # 2. Determine detector name (yolov8 or yolov26)
-    weights_stem = weights_path.name.lower() if weights_path else ""
-    if "yolov26" in weights_stem or "v26" in weights_stem:
-        detector_name = "yolov26"
-    else:
-        detector_name = "yolov8"
-
-    # Generate timestamp
-    timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-
     script_path = (
         PROJECT_ROOT / "src" / "pig_behavior" / "evaluation" / "tracking_pipeline.py"
     )
+    has_force_track_arg = "--force-track" in pipeline_extra_args
+    has_benchmark_arg = any(
+        arg in {"--benchmark-rules", "--no-benchmark-rules"}
+        for arg in pipeline_extra_args
+    )
+    has_prediction_root = "--prediction-root" in pipeline_extra_args
+    has_output_root = "--output-root" in pipeline_extra_args
 
-    for idx, video_path in enumerate(valid_video_paths, 1):
-        print("\n==================================================")
+    run_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    default_prediction_root = (
+        PROJECT_ROOT / "outputs" / "id_tracking" / args.mode / run_timestamp
+    )
+    default_output_root = (
+        PROJECT_ROOT
+        / "outputs"
+        / "evaluation"
+        / "tracking_metrics"
+        / args.mode
+        / run_timestamp
+    )
+    prediction_root = Path(
+        _extra_arg_value(pipeline_extra_args, "--prediction-root")
+        or default_prediction_root
+    )
+    output_root = Path(
+        _extra_arg_value(pipeline_extra_args, "--output-root")
+        or default_output_root
+    )
+
+    print("\n==================================================")
+    print(
+        f"Running {args.mode} benchmark on {len(valid_video_paths)} video(s)"
+    )
+    print("==================================================")
+
+    cmd = [
+        sys.executable,
+        str(script_path),
+        "--video",
+        ",".join(str(video_path) for video_path in valid_video_paths),
+        "--tracking-mode",
+        args.mode,
+    ]
+
+    if args.profile:
+        cmd.extend(["--profile", args.profile])
+    if args.path_config:
+        cmd.extend(["--path-config", args.path_config])
+    if not has_force_track_arg:
+        cmd.append("--force-track")
+    if not has_benchmark_arg:
+        cmd.append("--benchmark-rules")
+    if "--benchmark-detectors" not in pipeline_extra_args:
+        cmd.append("--benchmark-detectors")
+    if not has_prediction_root:
+        cmd.extend(["--prediction-root", str(prediction_root)])
+    if not has_output_root:
+        cmd.extend(["--output-root", str(output_root)])
+
+    cmd.extend(pipeline_extra_args)
+
+    print(f"Command: {' '.join(cmd)}")
+    result = subprocess.run(cmd)
+    if result.returncode != 0:
         print(
-            f"[{idx}/{len(valid_video_paths)}] Running tracking evaluation on: "
-            f"{video_path.name}"
+            f"Error: Evaluation failed with exit code {result.returncode}",
+            file=sys.stderr,
         )
-        print("==================================================")
+        return result.returncode
 
-        # Output folder for tracking metrics under evaluation/tracking_metrics
-        custom_output_root = (
-            PROJECT_ROOT
-            / "outputs"
-            / "evaluation"
-            / "tracking_metrics"
-            / detector_name
-            / timestamp_str
-            / video_path.stem
-        )
-
-        cmd = [
-            sys.executable,
-            str(script_path),
-            "--video",
-            str(video_path),
-            "--output-root",
-            str(custom_output_root),
-        ]
-
-        if args.profile:
-            cmd.extend(["--profile", args.profile])
-        if args.path_config:
-            cmd.extend(["--path-config", args.path_config])
-
-        cmd.extend(pipeline_extra_args)
-
-        print(f"Command: {' '.join(cmd)}")
-        result = subprocess.run(cmd)
-        if result.returncode != 0:
+    for detector_name in ("yolov8", "yolov26"):
+        for video_path in valid_video_paths:
             print(
-                f"Error: Evaluation failed for {video_path.name} with exit code "
-                f"{result.returncode}",
-                file=sys.stderr,
+                f"\n[*] Running {detector_name} hard-scene evaluation for: "
+                f"{video_path.name}"
             )
-            continue
+            hard_scene_cmd = [
+                sys.executable,
+                str(PROJECT_ROOT / "scripts" / "eval_hard_scenes.py"),
+                "--video", video_path.stem,
+                "--prediction-root", str(prediction_root / detector_name),
+                "--output-dir", str(output_root / detector_name / "hard_scenes"),
+            ]
+            if args.profile:
+                hard_scene_cmd.extend(["--profile", args.profile])
+            if args.path_config:
+                hard_scene_cmd.extend(["--path-config", args.path_config])
 
-        # Automatically trigger hard-scene evaluation for the video
-        print(f"\n[*] Running hard-scene evaluation for: {video_path.name}")
-        custom_hard_scene_dir = (
-            PROJECT_ROOT
-            / "outputs"
-            / "evaluation"
-            / "hard_scene_output"
-            / detector_name
-            / timestamp_str
-        )
-        hard_scene_cmd = [
-            sys.executable,
-            str(PROJECT_ROOT / "scripts" / "eval_hard_scenes.py"),
-            "--video", video_path.stem,
-            "--output-dir", str(custom_hard_scene_dir),
-        ]
-        if args.profile:
-            hard_scene_cmd.extend(["--profile", args.profile])
-        if args.path_config:
-            hard_scene_cmd.extend(["--path-config", args.path_config])
+            print(f"Hard-Scene Command: {' '.join(hard_scene_cmd)}")
+            subprocess.run(hard_scene_cmd)
 
-        print(f"Hard-Scene Command: {' '.join(hard_scene_cmd)}")
-        subprocess.run(hard_scene_cmd)
-
+    print(f"\nBenchmark output: {output_root}")
     print("\nEvaluation batch execution finished.")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
