@@ -78,7 +78,11 @@ def parse_args() -> argparse.Namespace:
         "--workflow-id", type=str, default="detect-count-and-visualize-3", help="Workflow slug."
     )
     parser.add_argument(
-        "--mode", type=str, choices=["realtime", "gt_export"], default="realtime", help="Tracking mode."
+        "--mode",
+        type=str,
+        choices=["realtime", "hybrid_bytetrack", "gt_export"],
+        default="realtime",
+        help="Tracking mode for Roboflow detections; gt_export is a deprecated alias.",
     )
     parser.add_argument("--max-frames", type=int, default=None, help="Limit number of frames.")
     parser.add_argument(
@@ -224,7 +228,7 @@ def run_roboflow_tracking(
     if frames_written == 0:
         raise RuntimeError("No frames were processed.")
 
-    # Apply offline refinements if gt_export is enabled
+    # Apply offline refinements when enabled by the selected mode/config.
     if cfg.enable_offline_smoothing:
         shapes = apply_identity_swap_guard(shapes, width, height, cfg)
         shapes = refine_shapes_temporally(shapes, width, height, cfg)

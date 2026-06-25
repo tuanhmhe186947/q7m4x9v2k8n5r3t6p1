@@ -167,7 +167,7 @@ def shape_for_track(
 ) -> dict[str, Any]:
     hidden = "Yes" if track_is_hidden(track, cfg) else "No"
     track_state = track.get_state()
-    bytetrack_mode = cfg.mode == "bytetrack"
+    bytetrack_mode = cfg.mode in {"bytetrack_raw", "hybrid_bytetrack"}
     # MISSING still has a tracker-produced box, so keep it evaluable. Only an
     # uninitialized placeholder or an expired LOST track is truly absent.
     is_outside = False if bytetrack_mode else (

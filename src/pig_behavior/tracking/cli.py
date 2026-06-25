@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from pig_behavior.tracking.config import (
+    TRACKING_MODE_CHOICES,
     TrackingConfig,
     get_telemetry_summary,
     tracking_rule_flags_enabled,
@@ -125,11 +126,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--mode",
         type=str,
-        choices=["realtime", "bytetrack", "gt_export"],
+        choices=list(TRACKING_MODE_CHOICES),
         default="realtime",
         help=(
-            "'bytetrack' uses the restored e22cde3 ByteTrack association, "
-            "lifecycle, export flags, and post-processing behavior."
+            "Tracking mode: realtime, bytetrack_raw baseline, "
+            "hybrid_bytetrack improved pipeline, or legacy aliases "
+            "bytetrack/gt_export."
         ),
     )
     parser.add_argument("--imgsz", type=int, default=640, help="YOLO inference image size.")

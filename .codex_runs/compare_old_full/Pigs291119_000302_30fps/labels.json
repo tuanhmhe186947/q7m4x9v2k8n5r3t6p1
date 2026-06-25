@@ -1,0 +1,386 @@
+[
+  {
+    "name": "Pig_1",
+    "id": 7872368,
+    "color": "#E16941",
+    "type": "any",
+    "attributes": [
+      {
+        "id": 2522611,
+        "name": "ID",
+        "input_type": "select",
+        "mutable": false,
+        "values": [
+          "ID_1"
+        ],
+        "default_value": "ID_1"
+      },
+      {
+        "id": 2522612,
+        "name": "Behavior",
+        "input_type": "select",
+        "mutable": true,
+        "values": [
+          "drink",
+          "eat",
+          "fight",
+          "social-nose",
+          "explore",
+          "lying",
+          "stand",
+          "move",
+          "sitting",
+          "playwithtoy"
+        ],
+        "default_value": "lying"
+      },
+      {
+        "id": 2522613,
+        "name": "Hidden",
+        "input_type": "select",
+        "mutable": true,
+        "values": [
+          "No",
+          "Yes"
+        ],
+        "default_value": "No"
+      }
+    ]
+  },
+  {
+    "name": "Pig_2",
+    "id": 7872369,
+    "color": "#32CD32",
+    "type": "any",
+    "attributes": [
+      {
+        "id": 2522621,
+        "name": "ID",
+        "input_type": "select",
+        "mutable": false,
+        "values": [
+          "ID_2"
+        ],
+        "default_value": "ID_2"
+      },
+      {
+        "id": 2522622,
+        "name": "Behavior",
+        "input_type": "select",
+        "mutable": true,
+        "values": [
+          "drink",
+          "eat",
+          "fight",
+          "social-nose",
+          "explore",
+          "lying",
+          "stand",
+          "move",
+          "sitting",
+          "playwithtoy"
+        ],
+        "default_value": "lying"
+      },
+      {
+        "id": 2522623,
+        "name": "Hidden",
+        "input_type": "select",
+        "mutable": true,
+        "values": [
+          "No",
+          "Yes"
+        ],
+        "default_value": "No"
+      }
+    ]
+  },
+  {
+    "name": "Pig_3",
+    "id": 7872370,
+    "color": "#008CFF",
+    "type": "any",
+    "attributes": [
+      {
+        "id": 2522631,
+        "name": "ID",
+        "input_type": "select",
+        "mutable": false,
+        "values": [
+          "ID_3"
+        ],
+        "default_value": "ID_3"
+      },
+      {
+        "id": 2522632,
+        "name": "Behavior",
+        "input_type": "select",
+        "mutable": true,
+        "values": [
+          "drink",
+          "eat",
+          "fight",
+          "social-nose",
+          "explore",
+          "lying",
+          "stand",
+          "move",
+          "sitting",
+          "playwithtoy"
+        ],
+        "default_value": "lying"
+      },
+      {
+        "id": 2522633,
+        "name": "Hidden",
+        "input_type": "select",
+        "mutable": true,
+        "values": [
+          "No",
+          "Yes"
+        ],
+        "default_value": "No"
+      }
+    ]
+  },
+  {
+    "name": "Pig_4",
+    "id": 7872371,
+    "color": "#3C14DC",
+    "type": "any",
+    "attributes": [
+      {
+        "id": 2522641,
+        "name": "ID",
+        "input_type": "select",
+        "mutable": false,
+        "values": [
+          "ID_4"
+        ],
+        "default_value": "ID_4"
+      },
+      {
+        "id": 2522642,
+        "name": "Behavior",
+        "input_type": "select",
+        "mutable": true,
+        "values": [
+          "drink",
+          "eat",
+          "fight",
+          "social-nose",
+          "explore",
+          "lying",
+          "stand",
+          "move",
+          "sitting",
+          "playwithtoy"
+        ],
+        "default_value": "lying"
+      },
+      {
+        "id": 2522643,
+        "name": "Hidden",
+        "input_type": "select",
+        "mutable": true,
+        "values": [
+          "No",
+          "Yes"
+        ],
+        "default_value": "No"
+      }
+    ]
+  },
+  {
+    "name": "Pig_5",
+    "id": 7872372,
+    "color": "#D30094",
+    "type": "any",
+    "attributes": [
+      {
+        "id": 2522651,
+        "name": "ID",
+        "input_type": "select",
+        "mutable": false,
+        "values": [
+          "ID_5"
+        ],
+        "default_value": "ID_5"
+      },
+      {
+        "id": 2522652,
+        "name": "Behavior",
+        "input_type": "select",
+        "mutable": true,
+        "values": [
+          "drink",
+          "eat",
+          "fight",
+          "social-nose",
+          "explore",
+          "lying",
+          "stand",
+          "move",
+          "sitting",
+          "playwithtoy"
+        ],
+        "default_value": "lying"
+      },
+      {
+        "id": 2522653,
+        "name": "Hidden",
+        "input_type": "select",
+        "mutable": true,
+        "values": [
+          "No",
+          "Yes"
+        ],
+        "default_value": "No"
+      }
+    ]
+  },
+  {
+    "name": "Pig_6",
+    "id": 7872373,
+    "color": "#D1CE00",
+    "type": "any",
+    "attributes": [
+      {
+        "id": 2522661,
+        "name": "ID",
+        "input_type": "select",
+        "mutable": false,
+        "values": [
+          "ID_6"
+        ],
+        "default_value": "ID_6"
+      },
+      {
+        "id": 2522662,
+        "name": "Behavior",
+        "input_type": "select",
+        "mutable": true,
+        "values": [
+          "drink",
+          "eat",
+          "fight",
+          "social-nose",
+          "explore",
+          "lying",
+          "stand",
+          "move",
+          "sitting",
+          "playwithtoy"
+        ],
+        "default_value": "lying"
+      },
+      {
+        "id": 2522663,
+        "name": "Hidden",
+        "input_type": "select",
+        "mutable": true,
+        "values": [
+          "No",
+          "Yes"
+        ],
+        "default_value": "No"
+      }
+    ]
+  },
+  {
+    "name": "Pig_7",
+    "id": 7872374,
+    "color": "#9314FF",
+    "type": "any",
+    "attributes": [
+      {
+        "id": 2522671,
+        "name": "ID",
+        "input_type": "select",
+        "mutable": false,
+        "values": [
+          "ID_7"
+        ],
+        "default_value": "ID_7"
+      },
+      {
+        "id": 2522672,
+        "name": "Behavior",
+        "input_type": "select",
+        "mutable": true,
+        "values": [
+          "drink",
+          "eat",
+          "fight",
+          "social-nose",
+          "explore",
+          "lying",
+          "stand",
+          "move",
+          "sitting",
+          "playwithtoy"
+        ],
+        "default_value": "lying"
+      },
+      {
+        "id": 2522673,
+        "name": "Hidden",
+        "input_type": "select",
+        "mutable": true,
+        "values": [
+          "No",
+          "Yes"
+        ],
+        "default_value": "No"
+      }
+    ]
+  },
+  {
+    "name": "Pig_8",
+    "id": 7872375,
+    "color": "#32CD9A",
+    "type": "any",
+    "attributes": [
+      {
+        "id": 2522681,
+        "name": "ID",
+        "input_type": "select",
+        "mutable": false,
+        "values": [
+          "ID_8"
+        ],
+        "default_value": "ID_8"
+      },
+      {
+        "id": 2522682,
+        "name": "Behavior",
+        "input_type": "select",
+        "mutable": true,
+        "values": [
+          "drink",
+          "eat",
+          "fight",
+          "social-nose",
+          "explore",
+          "lying",
+          "stand",
+          "move",
+          "sitting",
+          "playwithtoy"
+        ],
+        "default_value": "lying"
+      },
+      {
+        "id": 2522683,
+        "name": "Hidden",
+        "input_type": "select",
+        "mutable": true,
+        "values": [
+          "No",
+          "Yes"
+        ],
+        "default_value": "No"
+      }
+    ]
+  }
+]

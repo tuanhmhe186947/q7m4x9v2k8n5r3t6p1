@@ -10,6 +10,7 @@ from .config import RecoveryConfig, ensure_output_dirs
 from .csv_loader import validate_legacy_dataframe
 from .dense_tracklet_builder import build_dense_tracklets
 from .depth_provenance import build_depth_provenance_audit
+from .legacy_gt_loader import load_legacy_gt_bboxes
 from .manifest_writer import write_manifests
 from .path_utils import collect_path_resolution, write_path_resolution_report
 from .qa_report import build_qa_summary, write_qa_reports
@@ -21,12 +22,14 @@ from .timestamp_utils import (
     diagnostic_times_preview,
     parse_times_txt,
 )
+from .training_policy import apply_training_policy, build_manual_review_template, load_manual_review_decisions
 from .video_utils import count_video_frames
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Recover legacy burst CSV rows into dense training-ready tracklets.")
     parser.add_argument("--input-csv", required=True, type=Path)
+    parser.add_argument("--legacy-burst-bbox-csv", type=Path, default=None)
     parser.add_argument("--drive-root", required=True, type=Path)
     parser.add_argument("--output-root", required=True, type=Path)
     parser.add_argument("--detector-weights", type=Path, default=None)
@@ -35,7 +38,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--extract-full-frames", action="store_true")
     parser.add_argument("--track-end-mode", choices=["sample_0_6_12", "full_legacy_burst"], default="sample_0_6_12")
     parser.add_argument("--save-debug-visuals", action="store_true")
+    parser.add_argument("--debug-draw-all-detections", action="store_true")
+    parser.add_argument("--debug-draw-filtered-detections", action="store_true")
+    parser.add_argument("--scene-mask", type=Path, default=None)
+    parser.add_argument("--mask-filter-detections", action="store_true")
+    parser.add_argument("--mask-min-bbox-coverage", type=float, default=0.50)
+    parser.add_argument("--mask-require-center-inside", action="store_true", default=True)
     parser.add_argument("--no-detect-manifest-only", action="store_true")
+    parser.add_argument("--manual-review-csv", type=Path, default=None)
     parser.add_argument("--max-rows", type=int, default=None)
     parser.add_argument("--max-videos", type=int, default=None)
     parser.add_argument("--filter-group-id", default=None)
@@ -110,13 +120,21 @@ def main() -> None:
         input_csv=args.input_csv,
         drive_root=args.drive_root,
         output_root=args.output_root,
+        legacy_burst_bbox_csv=args.legacy_burst_bbox_csv,
         detector_weights=args.detector_weights,
         manifest_only=args.manifest_only,
         extract_crops=args.extract_crops,
         extract_full_frames=args.extract_full_frames,
         track_end_mode=args.track_end_mode,
         save_debug_visuals=args.save_debug_visuals,
+        debug_draw_all_detections=args.debug_draw_all_detections,
+        debug_draw_filtered_detections=args.debug_draw_filtered_detections,
+        scene_mask=args.scene_mask,
+        mask_filter_detections=args.mask_filter_detections or args.scene_mask is not None,
+        mask_min_bbox_coverage=args.mask_min_bbox_coverage,
+        mask_require_center_inside=args.mask_require_center_inside,
         no_detect_manifest_only=args.no_detect_manifest_only,
+        manual_review_csv=args.manual_review_csv,
         max_rows=args.max_rows,
         max_videos=args.max_videos,
         filter_group_id=args.filter_group_id,
@@ -137,6 +155,11 @@ def main() -> None:
     timestamp_parse_debug = pd.DataFrame()
     depth_audit = pd.DataFrame()
     tracking_failures = pd.DataFrame()
+    manual_review_df = pd.DataFrame()
+    manual_review_template_df = pd.DataFrame()
+    manual_review_apply_audit_df = pd.DataFrame()
+    legacy_gt_map = {}
+    legacy_gt_audit_df = pd.DataFrame()
 
     try:
         with reporter.stage("csv_load"):
@@ -149,6 +172,12 @@ def main() -> None:
             reporter.log(f"valid rows={len(accepted_df)}")
             reporter.log(f"rejected rows={len(rejected_df)}")
             reporter.log(f"unique source videos={accepted_df['video_final'].nunique() if not accepted_df.empty else 0}")
+
+        with reporter.stage("legacy_gt_load"):
+            legacy_gt_map, legacy_gt_audit_df = load_legacy_gt_bboxes(config.legacy_burst_bbox_csv)
+            legacy_gt_mode = "multi_anchor" if config.legacy_burst_bbox_csv is not None else "single_anchor"
+            reporter.log(f"legacy_gt_mode={legacy_gt_mode}")
+            reporter.log(f"legacy GT group+pig keys={len(legacy_gt_map)}")
 
         with reporter.stage("path_resolution"):
             resources_by_video, path_report = collect_path_resolution(
@@ -218,7 +247,17 @@ def main() -> None:
                 config,
                 sequence_views=args.sequence_views,
                 reporter=reporter,
+                legacy_gt_map=legacy_gt_map,
             )
+
+        with reporter.stage("training_policy"):
+            manual_review_df = load_manual_review_decisions(config.manual_review_csv)
+            dense_df, manual_review_apply_audit_df = apply_training_policy(
+                dense_df,
+                manual_review_df,
+                return_manual_review_audit=True,
+            )
+            manual_review_template_df = build_manual_review_template(dense_df, config.output_root)
 
         with reporter.stage("sequence_manifest"):
             sequence_df = build_sequence_views(dense_df, args.sequence_views, show_progress=config.progress)
@@ -248,6 +287,9 @@ def main() -> None:
                     "depth_provenance_audit.csv": depth_audit,
                     "rejected_rows.csv": rejected_df,
                     "tracking_failure_examples.csv": tracking_failures,
+                    "manual_review_template.csv": manual_review_template_df,
+                    "manual_review_apply_audit.csv": manual_review_apply_audit_df,
+                    "legacy_gt_support_audit.csv": legacy_gt_audit_df,
                 },
             )
             for filename in [
@@ -260,6 +302,9 @@ def main() -> None:
                 "depth_provenance_audit.csv",
                 "rejected_rows.csv",
                 "tracking_failure_examples.csv",
+                    "manual_review_template.csv",
+                    "manual_review_apply_audit.csv",
+                    "legacy_gt_support_audit.csv",
             ]:
                 reporter.log(f"WROTE {config.output_root / filename}")
 

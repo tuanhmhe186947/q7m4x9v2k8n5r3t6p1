@@ -20,12 +20,17 @@ def build_sequence_views(
     views: list[str] | None = None,
     *,
     show_progress: bool = False,
+    include_all_tracklets: bool = False,
 ) -> pd.DataFrame:
     if views is None:
         views = ["sparse_3_0_6_12"]
     rows: list[dict[str, object]] = []
     if dense_df.empty:
         return pd.DataFrame(rows)
+    if not include_all_tracklets and "include_in_training" in dense_df.columns:
+        dense_df = dense_df[dense_df["include_in_training"].fillna(False)].copy()
+        if dense_df.empty:
+            return pd.DataFrame(rows)
 
     grouped = list(dense_df.groupby("tracklet_id", sort=False))
     iterator = tqdm(grouped, desc="Building sequence views", disable=not show_progress)
@@ -86,6 +91,13 @@ def build_sequence_views(
                     "track_confidence_mean": selected["track_confidence"].mean(),
                     "qa_status": qa_status,
                     "qa_notes": ";".join(qa_notes),
+                    "auto_qa_status": selected["auto_qa_status"].iloc[0] if "auto_qa_status" in selected else qa_status,
+                    "manual_decision": selected["manual_decision"].iloc[0] if "manual_decision" in selected else "",
+                    "manual_reason": selected["manual_reason"].iloc[0] if "manual_reason" in selected else "",
+                    "include_in_training": (
+                        bool(selected["include_in_training"].iloc[0]) if "include_in_training" in selected else True
+                    ),
+                    "training_tier": selected["training_tier"].iloc[0] if "training_tier" in selected else "clean",
                 }
             )
     return pd.DataFrame(rows)

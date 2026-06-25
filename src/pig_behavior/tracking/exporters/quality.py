@@ -28,6 +28,44 @@ def _shape_attribute_value(
     return _shape_attributes_dict(shape).get(name, default)
 
 
+def _shape_box(shape: dict[str, Any]) -> tuple[float, float, float, float]:
+    x1, y1, x2, y2 = shape["points"]
+    return float(x1), float(y1), float(x2), float(y2)
+
+
+def _box_center(box: tuple[float, float, float, float]) -> tuple[float, float]:
+    return (box[0] + box[2]) * 0.5, (box[1] + box[3]) * 0.5
+
+
+def _box_area(box: tuple[float, float, float, float]) -> float:
+    return max(0.0, box[2] - box[0]) * max(0.0, box[3] - box[1])
+
+
+def _box_iou(
+    a: tuple[float, float, float, float],
+    b: tuple[float, float, float, float],
+) -> float:
+    ix1 = max(a[0], b[0])
+    iy1 = max(a[1], b[1])
+    ix2 = min(a[2], b[2])
+    iy2 = min(a[3], b[3])
+    inter = max(0.0, ix2 - ix1) * max(0.0, iy2 - iy1)
+    if inter <= 0.0:
+        return 0.0
+    union = _box_area(a) + _box_area(b) - inter
+    return inter / max(union, 1e-6)
+
+
+def _overlap_pair_count(frame_shapes: list[dict[str, Any]], threshold: float = 0.2) -> int:
+    count = 0
+    boxes = [_shape_box(shape) for shape in frame_shapes if not shape.get("outside")]
+    for idx, box in enumerate(boxes):
+        for other in boxes[idx + 1 :]:
+            if _box_iou(box, other) >= threshold:
+                count += 1
+    return count
+
+
 def build_quality_report(
     shapes: list[dict[str, Any]],
     cfg: TrackingConfig,
@@ -44,6 +82,7 @@ def build_quality_report(
     }
     frame_rows: list[dict[str, Any]] = []
     issue_frames: list[int] = []
+    previous_shape_by_label: dict[str, dict[str, Any]] = {}
 
     for frame in frames:
         frame_shapes = shapes_by_frame[frame]
@@ -127,11 +166,41 @@ def build_quality_report(
             (float(shape.get("score", 0.0)) for shape in frame_shapes),
             default=0.0,
         )
+        max_center_jump = 0.0
+        max_area_change = 0.0
+        for shape in frame_shapes:
+            label = str(shape["label"])
+            prev_shape = previous_shape_by_label.get(label)
+            if prev_shape is None:
+                continue
+            box = _shape_box(shape)
+            prev_box = _shape_box(prev_shape)
+            center = _box_center(box)
+            prev_center = _box_center(prev_box)
+            center_jump = float(np.hypot(center[0] - prev_center[0], center[1] - prev_center[1]))
+            area = _box_area(box)
+            prev_area = _box_area(prev_box)
+            area_change = max(area, prev_area) / max(min(area, prev_area), 1e-6)
+            max_center_jump = max(max_center_jump, center_jump)
+            max_area_change = max(max_area_change, area_change)
+        overlap_pair_count = _overlap_pair_count(frame_shapes)
+        lost_track_count = sum(
+            1
+            for shape in frame_shapes
+            if shape.get("_track_state") in {"MISSING", "LOST"}
+        )
         row = {
+            "video_name": video_path.name,
             "frame": frame,
+            "frame_id": frame,
+            "mode": cfg.mode,
             "time_sec": round(frame / max(source_fps, 1e-6), 3),
             "shape_count": len(frame_shapes),
+            "num_tracks": len(frame_shapes),
             "detected_count": detected_count,
+            "num_detections": detected_count,
+            "expected_pigs": cfg.expected_pigs,
+            "missing_detection_count": max(0, cfg.expected_pigs - detected_count),
             "predicted_count": len(predicted_ids),
             "refined_count": len(refined_ids),
             "ambiguous_occlusion_count": len(ambiguous_ids),
@@ -141,6 +210,12 @@ def build_quality_report(
             "identity_swap_guard_count": len(identity_swap_ids),
             "hidden_count": len(hidden_ids),
             "low_score_count": len(low_score_ids),
+            "low_conf_detection_count": len(low_score_ids),
+            "max_center_jump": round(max_center_jump, 3),
+            "max_area_change": round(max_area_change, 3),
+            "overlap_pair_count": overlap_pair_count,
+            "lost_track_count": lost_track_count,
+            "id_switch_candidate_count": len(identity_swap_ids),
             "min_score": round(min_score, 4),
             "hidden_ids": hidden_ids,
             "predicted_ids": predicted_ids,
@@ -160,6 +235,7 @@ def build_quality_report(
         if row["needs_review"]:
             issue_frames.append(frame)
         frame_rows.append(row)
+        previous_shape_by_label.update({str(shape["label"]): shape for shape in frame_shapes})
 
     track_rows: list[dict[str, Any]] = []
     for fixed_id in range(1, cfg.expected_pigs + 1):
@@ -415,10 +491,17 @@ def write_quality_report_json(path: Path, report: dict[str, Any]) -> None:
 def write_quality_report_csv(path: Path, report: dict[str, Any]) -> None:
     include_rule_fields = "area_occluded_shapes" in report.get("summary", {})
     fieldnames = [
+        "video_name",
         "frame",
+        "frame_id",
+        "mode",
         "time_sec",
         "shape_count",
+        "num_tracks",
         "detected_count",
+        "num_detections",
+        "expected_pigs",
+        "missing_detection_count",
         "predicted_count",
         "refined_count",
         "ambiguous_occlusion_count",
@@ -426,6 +509,12 @@ def write_quality_report_csv(path: Path, report: dict[str, Any]) -> None:
         "identity_swap_guard_count",
         "hidden_count",
         "low_score_count",
+        "low_conf_detection_count",
+        "max_center_jump",
+        "max_area_change",
+        "overlap_pair_count",
+        "lost_track_count",
+        "id_switch_candidate_count",
         "min_score",
         "hidden_ids",
         "predicted_ids",

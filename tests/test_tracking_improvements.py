@@ -67,9 +67,20 @@ def test_bytetrack_restores_e22cde3_defaults() -> None:
     assert cfg.dup_iou_threshold == 0.80
     assert cfg.initial_track_conf == 0.50
     assert cfg.motion_gate_confidence == 0.50
+    assert cfg.USE_IOU_FALLBACK is False
+    assert cfg.USE_CONDITIONAL_AREA_OCCLUSION_FREEZE is True
     assert cfg.max_missing_frames == 90
     assert cfg.detect_every_n_frames == 1
     assert cfg.enable_offline_smoothing is True
+
+
+def test_hybrid_bytetrack_matches_legacy_full_bytetrack_rules() -> None:
+    cfg = TrackingConfig(mode="hybrid_bytetrack")
+    validate_config(cfg)
+
+    assert cfg.USE_IOU_FALLBACK is False
+    assert cfg.USE_AREA_OCCLUSION_FREEZE is False
+    assert cfg.USE_CONDITIONAL_AREA_OCCLUSION_FREEZE is True
 
 
 def test_bytetrack_keeps_explicit_threshold_overrides() -> None:

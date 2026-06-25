@@ -1,0 +1,19 @@
+services:
+  pig-behavior-api:
+    build: .
+    image: pig-behavior-api:latest
+    ports:
+      - "8000:8000"
+    environment:
+      PIG_BEHAVIOR_MODEL_BACKEND: auto
+      PIG_BEHAVIOR_PT_MODEL_PATH: /app/models/behavior/pig_behavior_sequence.pt
+      PIG_BEHAVIOR_DETECT_MODEL_PATH: /app/models/detector/pig_detector_yolo.pt
+      PIG_BEHAVIOR_VIDEO_PATH: /app/data/videos/pigs101219_full.mp4
+      PIG_BEHAVIOR_BEHAVIOR_STRIDE_FRAMES: "3"
+      PIG_BEHAVIOR_IMAGE_ONLY: "false"
+      PIG_BEHAVIOR_COARSE_LABELS: "false"
+    volumes:
+      - ./models/behavior/pig_behavior_sequence.pt:/app/models/behavior/pig_behavior_sequence.pt:ro
+      - ./models/detector/pig_detector_yolo.pt:/app/models/detector/pig_detector_yolo.pt:ro
+      - ./data/videos/pigs101219_full.mp4:/app/data/videos/pigs101219_full.mp4:ro
+      - ./outputs:/app/outputs:ro

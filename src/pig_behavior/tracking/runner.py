@@ -53,6 +53,32 @@ logger = logging.getLogger(__name__)
 def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
     """Run YOLOv8 + mask + stabilized eight-ID tracking."""
     validate_config(cfg)
+    logger.info(
+        "tracking mode=%s tracker_type=%s cvat_video_xml=%s",
+        cfg.mode,
+        cfg.tracker_type,
+        bool(cfg.cvat_video_xml),
+    )
+    if cfg.mode == "hybrid_bytetrack":
+        logger.info(
+            "hybrid modules: iou_fallback=%s, occlusion_aware_matching=%s, "
+            "identity_swap_guard=%s, merged_box_split=%s, smoothing=%s, refinement=%s",
+            cfg.USE_IOU_FALLBACK,
+            cfg.occlusion_aware_matching,
+            cfg.identity_swap_guard,
+            cfg.USE_MERGED_BOX_SPLIT,
+            cfg.smooth_boxes,
+            cfg.refine_boxes,
+        )
+    elif cfg.mode == "bytetrack_raw":
+        logger.info(
+            "raw ByteTrack baseline: smoothing=%s, refinement=%s, "
+            "occlusion_aware_matching=%s, identity_swap_guard=%s",
+            cfg.smooth_boxes,
+            cfg.refine_boxes,
+            cfg.occlusion_aware_matching,
+            cfg.identity_swap_guard,
+        )
 
     try:
         import cv2
@@ -166,7 +192,7 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
             )
 
             is_detect_frame = (
-                cfg.mode == "bytetrack"
+                cfg.mode in {"bytetrack_raw", "hybrid_bytetrack"}
                 or (frame_index - cfg.start_frame) % cfg.detect_every_n_frames == 0
             )
             num_dets = 0
@@ -182,7 +208,7 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
                     "device": cfg.device,
                     "half": cfg.half,
                 }
-                if cfg.mode == "bytetrack":
+                if cfg.mode in {"bytetrack_raw", "hybrid_bytetrack"}:
                     results = model.track(
                         source=detector_frame,
                         persist=True,
@@ -278,7 +304,7 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
     if frames_written == 0:
         raise RuntimeError("No frames were processed.")
 
-    if cfg.enable_offline_smoothing or cfg.mode == "bytetrack":
+    if cfg.enable_offline_smoothing or cfg.mode in {"bytetrack", "hybrid_bytetrack"}:
         shapes = apply_identity_swap_guard(shapes, width, height, cfg)
         shapes = refine_shapes_temporally(shapes, width, height, cfg)
     hidden_shape_count = sum(
@@ -333,15 +359,14 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
     )
     max_shape_frame = max(int(shape["frame"]) for shape in shapes)
     source_frame_count = max(total_frames, max_shape_frame + 1)
-    if cfg.mode in {"bytetrack", "gt_export"}:
-        write_cvat_video_xml(
-            cvat_video_xml,
-            shapes,
-            cfg.video_path,
-            width,
-            height,
-            source_frame_count,
-        )
+    write_cvat_video_xml(
+        cvat_video_xml,
+        shapes,
+        cfg.video_path,
+        width,
+        height,
+        source_frame_count,
+    )
     quality_report = build_quality_report(
         shapes,
         cfg,

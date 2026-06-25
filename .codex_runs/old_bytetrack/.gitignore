@@ -1,0 +1,136 @@
+# ==========================================
+# 1. Python standard ignores
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ==========================================
+# 2. Virtual Environments
+# ==========================================
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# ==========================================
+# 3. Cache & IDE / OS configuration
+# ==========================================
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.uv-cache/
+.uv-tools/
+.ipynb_checkpoints/
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# ==========================================
+# 4. Data, Datasets and Annotations (AI Science standards)
+# ==========================================
+# Ignore large binary/data extensions
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.zip
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+*.csv
+*.tsv
+*.xlsx
+*.xml
+
+# Ignore all datasets inside data/ except specific configs/schemas
+data/raw/
+data/videos/
+data/processed/
+data/data/
+# Keep directory structures and readme documentation
+!data/README.md
+!data/raw/README.md
+!data/videos/README.md
+!data/processed/README.md
+!data/annotations/README.md
+
+# Ignore specific annotation files (allow schemas/configurations)
+data/annotations/tracking/
+data/annotations/classification/
+data/annotations/scene/background.png
+
+# Keep small config/schema annotations
+!data/annotations/roi/ROI_annotations.coco.json
+!data/annotations/schemas/cvat_pig_8_labels.json
+!data/annotations/scene/mask.png
+!data/task.json
+
+# ==========================================
+# 5. Model weights & Checkpoints
+# ==========================================
+*.pt
+*.pth
+*.onnx
+*.tflite
+*.keras
+*.h5
+*.pb
+*.engine
+*.ckpt
+*.weights
+*.pkl
+*.joblib
+models/
+!models/README.md
+!models/behavior/README.md
+!models/detector/README.md
+
+# ==========================================
+# 6. Runtime Outputs, Logs & Experiments
+# ==========================================
+outputs/
+logs/
+checkpoints/
+runs/
+wandb/
+.mlflow/
+lightning_logs/
+artifacts/*
+!artifacts/manifest.yaml
+
+# ==========================================
+# 7. Local environments / Secrets
+# ==========================================
+.env
+.env.*
+secrets.yaml
+credentials.json

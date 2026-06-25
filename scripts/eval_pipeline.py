@@ -61,9 +61,9 @@ Examples:
     )
     parser.add_argument(
         "--mode",
-        choices=["bytetrack", "realtime", "gt_export"],
-        default="bytetrack",
-        help="Tracking mode used for benchmark generation (default: bytetrack).",
+        choices=["realtime", "bytetrack_raw", "hybrid_bytetrack", "bytetrack", "gt_export"],
+        default="hybrid_bytetrack",
+        help="Tracking mode used for benchmark generation (default: hybrid_bytetrack).",
     )
     parser.add_argument(
         "--skip-missing-gt",

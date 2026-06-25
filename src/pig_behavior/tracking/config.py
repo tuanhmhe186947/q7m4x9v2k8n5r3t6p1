@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -36,6 +37,18 @@ from pig_behavior.tracking.constants import (
     ID_VALUES,
     TRACKING_TELEMETRY_KEYS,
 )
+
+
+logger = logging.getLogger(__name__)
+
+TRACKING_MODE_CHOICES = (
+    "realtime",
+    "bytetrack_raw",
+    "hybrid_bytetrack",
+    "bytetrack",
+    "gt_export",
+)
+CANONICAL_TRACKING_MODES = {"realtime", "bytetrack_raw", "hybrid_bytetrack"}
 
 
 @dataclass(slots=True)
@@ -74,7 +87,7 @@ class TrackingConfig:
     allowed_class_name: str | None = None
 
     # Pipeline Mode & Realtime parameters
-    mode: str = "realtime"  # realtime, bytetrack, or gt_export
+    mode: str = "realtime"  # realtime, bytetrack_raw, hybrid_bytetrack, or legacy aliases
     imgsz: int = 640
     detect_every_n_frames: int = DEFAULT_DETECT_EVERY_N_FRAMES
     max_raw_detections: int = DEFAULT_MAX_RAW_DETECTIONS
@@ -201,17 +214,45 @@ def validate_config(cfg: TrackingConfig) -> None:
     else:
         cfg.iou = cfg.nms_iou
 
-    if cfg.mode not in {
-        "realtime",
-        "bytetrack",
-        "gt_export",
-    }:
-        raise ValueError("mode must be one of: realtime, bytetrack, gt_export.")
+    if cfg.mode not in TRACKING_MODE_CHOICES:
+        raise ValueError(
+            "mode must be one of: realtime, bytetrack_raw, hybrid_bytetrack, "
+            "bytetrack, gt_export."
+        )
+
+    requested_mode = cfg.mode
+    if requested_mode == "bytetrack":
+        logger.warning("mode=bytetrack is a legacy alias for hybrid_bytetrack")
+        cfg.mode = "hybrid_bytetrack"
+    elif requested_mode == "gt_export":
+        logger.warning(
+            "[DEPRECATED] mode=gt_export is not a tracking algorithm. "
+            "Use --mode hybrid_bytetrack --cvat-video-xml output.xml instead."
+        )
+        cfg.mode = "hybrid_bytetrack"
 
     # 2. Mode-based dynamic defaults overrides
-    if cfg.mode == "bytetrack":
-        # Reproduce the e22cde3 ByteTrack defaults without changing the new
-        # pipeline defaults used by realtime and gt_export.
+    if cfg.mode == "bytetrack_raw":
+        # Raw ByteTrack baseline: keep Ultralytics ByteTrack association, but
+        # disable project-specific post-processing unless explicitly requested.
+        raw_defaults = {
+            "detect_every_n_frames": 1,
+            "enable_offline_smoothing": False,
+            "smooth_boxes": False,
+            "refine_boxes": False,
+            "occlusion_aware_matching": False,
+            "identity_swap_guard": False,
+            "hidden_motion_model": False,
+            "USE_IOU_FALLBACK": False,
+            "USE_AREA_OCCLUSION_FREEZE": False,
+            "USE_CONDITIONAL_AREA_OCCLUSION_FREEZE": False,
+            "USE_MERGED_BOX_SPLIT": False,
+        }
+        for name, value in raw_defaults.items():
+            if name not in cfg.overrides:
+                setattr(cfg, name, value)
+    elif cfg.mode == "hybrid_bytetrack":
+        # Preserve the previous ByteTrack-based behavior under a clear name.
         bytetrack_defaults = {
             "det_conf": 0.25,
             "track_high_conf": 0.50,
@@ -221,6 +262,8 @@ def validate_config(cfg: TrackingConfig) -> None:
             "dup_iou_threshold": 0.80,
             "initial_track_conf": 0.50,
             "motion_gate_confidence": 0.50,
+            "USE_IOU_FALLBACK": False,
+            "USE_CONDITIONAL_AREA_OCCLUSION_FREEZE": True,
         }
         for name, value in bytetrack_defaults.items():
             explicitly_overridden = name in cfg.overrides
@@ -238,19 +281,14 @@ def validate_config(cfg: TrackingConfig) -> None:
             cfg.enable_offline_smoothing = True
             cfg.smooth_boxes = True
             cfg.refine_boxes = True
-    elif cfg.mode == "gt_export":
-        if "det_conf" not in cfg.overrides and cfg.det_conf == 0.20:
-            cfg.det_conf = 0.15
-        if "max_raw_detections" not in cfg.overrides and cfg.max_raw_detections == 20:
-            cfg.max_raw_detections = 30
-        if "max_missing_frames" not in cfg.overrides and cfg.max_missing_frames == 30:
-            cfg.max_missing_frames = 60
-            cfg.max_lost_frames = 60
-        # For gt_export, enable offline smoothing by default unless overridden
-        if "enable_offline_smoothing" not in cfg.overrides and not cfg.enable_offline_smoothing:
-            cfg.enable_offline_smoothing = True
-            cfg.smooth_boxes = True
-            cfg.refine_boxes = True
+        if requested_mode == "gt_export":
+            if "det_conf" not in cfg.overrides and cfg.det_conf == 0.25:
+                cfg.det_conf = 0.15
+            if "max_raw_detections" not in cfg.overrides and cfg.max_raw_detections == 20:
+                cfg.max_raw_detections = 30
+            if "max_missing_frames" not in cfg.overrides and cfg.max_missing_frames == 90:
+                cfg.max_missing_frames = 60
+                cfg.max_lost_frames = 60
     else:
         # In realtime mode, explicitly turn off offline smoothing / post-processing
         if "enable_offline_smoothing" not in cfg.overrides:
@@ -446,7 +484,7 @@ def resolve_output_paths(
     cfg: TrackingConfig,
 ) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path]:
     video_stem = cfg.video_path.stem
-    run_output_dir = cfg.output_dir / video_stem
+    run_output_dir = cfg.output_dir / video_stem / cfg.mode
     run_output_dir.mkdir(parents=True, exist_ok=True)
     output_video = cfg.output_video or (
         run_output_dir / "tracked_pigs_with_ids.mp4"
@@ -498,7 +536,7 @@ def resolve_output_paths(
 def write_tracker_yaml(path: Path, cfg: TrackingConfig) -> None:
     """Write a tracker config (ByteTrack or BoT-SORT) for pig videos."""
     track_low_thresh = min(cfg.det_conf, cfg.track_high_conf)
-    if cfg.mode == "bytetrack":
+    if cfg.mode in {"bytetrack", "hybrid_bytetrack"}:
         lines = [
             "tracker_type: bytetrack",
             f"track_high_thresh: {cfg.track_high_conf:.2f}",
@@ -564,7 +602,9 @@ def write_tracker_yaml(path: Path, cfg: TrackingConfig) -> None:
 
 
 __all__ = [
+    "CANONICAL_TRACKING_MODES",
     "TrackingConfig",
+    "TRACKING_MODE_CHOICES",
     "get_telemetry_summary",
     "resolve_output_paths",
     "tracking_rule_flags_enabled",

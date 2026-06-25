@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_runs\old_bytetrack\src\pig_behavior\tracking\runner.py", line 60, in run_tracking
+    from ultralytics import YOLO
+ModuleNotFoundError: No module named 'ultralytics'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<string>", line 3, in <module>
+  File "C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_runs\old_bytetrack\src\pig_behavior\tracking\cli.py", line 801, in main
+    summary = run_tracking(cfg)
+              ^^^^^^^^^^^^^^^^^
+  File "C:\Users\ironh\Downloads\PIG_Behavior_Project\.codex_runs\old_bytetrack\src\pig_behavior\tracking\runner.py", line 62, in run_tracking
+    raise ImportError(
+ImportError: Install tracking dependencies first: pip install -e .[tracking]

@@ -4,12 +4,15 @@ from pathlib import Path
 
 import cv2
 import pandas as pd
+import numpy as np
 from tqdm import tqdm
 
 from .anchor_builder import build_anchor_records
 from .config import RecoveryConfig
 from .detector import YoloPigDetector
 from .extractor import frame_filename, output_dir, safe_video_id, write_crop, write_full_frame
+from .legacy_gt_loader import LegacyGtMap
+from .mask_utils import bbox_mask_metrics, filter_detections_by_mask, load_scene_mask
 from .path_utils import SourceResources
 from .runtime import RuntimeReporter, write_progress_state
 from .sequence_view_builder import build_sequence_views
@@ -26,8 +29,12 @@ def _append_failed_manifest_rows(
     reason: str,
 ) -> None:
     support_frames = set(anchor["gt_support_frames"])
+    legacy_gt_mode = "multi_anchor" if anchor.get("legacy_gt_by_frame") else "single_anchor"
+    legacy_gt_by_frame = anchor.get("legacy_gt_by_frame", {})
+    legacy_gt_support_frames = sorted(int(frame) for frame in legacy_gt_by_frame)
     x1, y1, x2, y2 = anchor["anchor_bbox"]
     for frame_index in anchor["dense_frame_indices"]:
+        gt_available = int(frame_index) in legacy_gt_by_frame
         rows.append(
             {
                 "tracklet_id": anchor["tracklet_id"],
@@ -47,15 +54,36 @@ def _append_failed_manifest_rows(
                 "y1": y1,
                 "x2": x2,
                 "y2": y2,
-                "bbox_source": "gt_anchor" if frame_index == anchor["legacy_anchor_frame"] else "tracker",
+                "bbox_source": (
+                    "gt_legacy"
+                    if gt_available
+                    else ("gt_anchor" if frame_index == anchor["legacy_anchor_frame"] else "tracker")
+                ),
                 "det_confidence": None,
                 "track_confidence": 0.0,
                 "is_anchor_frame": frame_index == anchor["legacy_anchor_frame"],
-                "is_gt_support_frame": frame_index in support_frames,
+                "is_gt_support_frame": gt_available or frame_index in support_frames,
                 "is_interpolated": False,
                 "tracking_status": "failed",
                 "qa_status": "needs_review",
                 "qa_notes": reason,
+                "legacy_gt_mode": legacy_gt_mode,
+                "legacy_gt_bbox_available": gt_available,
+                "legacy_gt_support_count": len(legacy_gt_support_frames),
+                "legacy_gt_support_frames": "|".join(map(str, legacy_gt_support_frames)),
+                "detector_best_iou_with_legacy_gt": None,
+                "detector_disagrees_with_legacy_gt": False,
+                "segment_start_gt_frame": None,
+                "segment_end_gt_frame": None,
+                "segment_tracking_status": "failed",
+                "id_switch_risk_score": 0.0,
+                "num_detections_raw": 0,
+                "num_detections_after_mask": 0,
+                "num_detections_outside_mask": 0,
+                "selected_det_center_in_mask": None,
+                "selected_det_bbox_mask_coverage": None,
+                "mask_filter_applied": False,
+                "scene_mask_path": "",
                 "crop_path": "",
                 "full_frame_path": "",
                 "legacy_anchor_frame": anchor["legacy_anchor_frame"],
@@ -91,6 +119,7 @@ def build_dense_tracklets(
     *,
     sequence_views: list[str] | None = None,
     reporter: RuntimeReporter | None = None,
+    legacy_gt_map: LegacyGtMap | None = None,
 ) -> tuple[pd.DataFrame, dict[str, dict[int, str]], dict[str, dict[int, str]], list[dict[str, object]]]:
     detector = None
     no_detection = config.no_detect_manifest_only
@@ -117,10 +146,17 @@ def build_dense_tracklets(
         show_progress=config.progress,
         skip_tracklet_ids=skip_tracklet_ids,
     )
+    legacy_gt_map = legacy_gt_map or {}
+    legacy_gt_mode = "multi_anchor" if config.legacy_burst_bbox_csv is not None else "single_anchor"
+    for anchor in anchors:
+        key = (str(anchor["group_id"]), str(anchor["pig_id"]))
+        anchor["legacy_gt_by_frame"] = legacy_gt_map.get(key, {}) if legacy_gt_mode == "multi_anchor" else {}
     rows: list[dict[str, object]] = existing_dense.to_dict(orient="records") if not existing_dense.empty else []
     crop_paths_by_tracklet: dict[str, dict[int, str]] = {}
     full_paths_by_tracklet: dict[str, dict[int, str]] = {}
     failures: list[dict[str, object]] = []
+    mask_cache = {}
+    mask_filter_applied = bool(config.scene_mask is not None and config.mask_filter_detections)
 
     processed_this_run = 0
 
@@ -165,7 +201,9 @@ def build_dense_tracklets(
                     flush_partial(anchor, "dense_manifest")
             continue
 
+        raw_detections_by_frame = {}
         detections_by_frame = {}
+        rejected_detections_by_frame = {}
         frame_cache = {}
         try:
             with VideoReader(resources.source_video_resolved) as reader:
@@ -182,7 +220,24 @@ def build_dense_tracklets(
                         continue
                     frame_cache[int(frame_index)] = frame
                     if detector is not None:
-                        detections_by_frame[int(frame_index)] = detector.detect(frame, int(frame_index))
+                        raw_detections = detector.detect(frame, int(frame_index))
+                        raw_detections_by_frame[int(frame_index)] = raw_detections
+                        if mask_filter_applied:
+                            frame_height, frame_width = frame.shape[:2]
+                            mask_key = (frame_width, frame_height)
+                            if mask_key not in mask_cache:
+                                mask_cache[mask_key] = load_scene_mask(config.scene_mask, frame_width, frame_height)
+                            kept_detections, rejected_detections = filter_detections_by_mask(
+                                raw_detections,
+                                mask_cache[mask_key],
+                                min_bbox_coverage=config.mask_min_bbox_coverage,
+                                require_center_inside=config.mask_require_center_inside,
+                            )
+                            detections_by_frame[int(frame_index)] = kept_detections
+                            rejected_detections_by_frame[int(frame_index)] = rejected_detections
+                        else:
+                            detections_by_frame[int(frame_index)] = raw_detections
+                            rejected_detections_by_frame[int(frame_index)] = []
         except Exception as exc:
             failures.append({"tracklet_id": anchor["tracklet_id"], "reason": f"video_or_detection_failed:{exc}"})
             if no_detection:
@@ -203,6 +258,8 @@ def build_dense_tracklets(
             detections_by_frame,
             list(anchor["gt_support_frames"]),
             no_detection_mode=no_detection,
+            legacy_gt_by_frame=anchor.get("legacy_gt_by_frame", {}),
+            legacy_gt_mode=legacy_gt_mode,
         )
         tracklet_id = str(anchor["tracklet_id"])
         crop_paths_by_tracklet[tracklet_id] = {}
@@ -254,6 +311,31 @@ def build_dense_tracklets(
             full_paths_by_tracklet[tracklet_id][frame_index] = full_path
 
             x1, y1, x2, y2 = tracked_box.bbox
+            legacy_gt_by_frame = anchor.get("legacy_gt_by_frame", {})
+            legacy_gt_support_frames = sorted(int(frame) for frame in legacy_gt_by_frame)
+            raw_detection_count = len(raw_detections_by_frame.get(frame_index, []))
+            masked_detection_count = len(detections_by_frame.get(frame_index, []))
+            rejected_detection_count = len(rejected_detections_by_frame.get(frame_index, []))
+            selected_center_in_mask = None
+            selected_bbox_mask_coverage = None
+            qa_status = tracked_box.qa_status
+            qa_notes = tracked_box.qa_notes
+            if mask_filter_applied and frame is not None:
+                frame_height, frame_width = frame.shape[:2]
+                mask_key = (frame_width, frame_height)
+                if mask_key not in mask_cache:
+                    mask_cache[mask_key] = load_scene_mask(config.scene_mask, frame_width, frame_height)
+                selected_metrics = bbox_mask_metrics(mask_cache[mask_key], tracked_box.bbox)
+                selected_center_in_mask = selected_metrics.center_in_mask
+                selected_bbox_mask_coverage = selected_metrics.bbox_mask_coverage
+                selected_outside_mask = (
+                    (config.mask_require_center_inside and not selected_metrics.center_in_mask)
+                    or selected_metrics.bbox_mask_coverage < config.mask_min_bbox_coverage
+                )
+                if selected_outside_mask:
+                    qa_status = "review"
+                    if "selected_bbox_outside_scene_mask" not in qa_notes:
+                        qa_notes = ";".join(filter(None, [qa_notes, "selected_bbox_outside_scene_mask"]))
             row = {
                 "tracklet_id": tracklet_id,
                 "group_id": anchor["group_id"],
@@ -279,8 +361,25 @@ def build_dense_tracklets(
                 "is_gt_support_frame": tracked_box.is_gt_support_frame,
                 "is_interpolated": tracked_box.is_interpolated,
                 "tracking_status": tracked_box.tracking_status,
-                "qa_status": tracked_box.qa_status,
-                "qa_notes": tracked_box.qa_notes,
+                "qa_status": qa_status,
+                "qa_notes": qa_notes,
+                "legacy_gt_mode": legacy_gt_mode,
+                "legacy_gt_bbox_available": tracked_box.legacy_gt_bbox_available,
+                "legacy_gt_support_count": len(legacy_gt_support_frames),
+                "legacy_gt_support_frames": "|".join(map(str, legacy_gt_support_frames)),
+                "detector_best_iou_with_legacy_gt": tracked_box.detector_best_iou_with_legacy_gt,
+                "detector_disagrees_with_legacy_gt": tracked_box.detector_disagrees_with_legacy_gt,
+                "segment_start_gt_frame": tracked_box.segment_start_gt_frame,
+                "segment_end_gt_frame": tracked_box.segment_end_gt_frame,
+                "segment_tracking_status": tracked_box.segment_tracking_status,
+                "id_switch_risk_score": tracked_box.id_switch_risk_score,
+                "num_detections_raw": raw_detection_count,
+                "num_detections_after_mask": masked_detection_count,
+                "num_detections_outside_mask": rejected_detection_count,
+                "selected_det_center_in_mask": selected_center_in_mask,
+                "selected_det_bbox_mask_coverage": selected_bbox_mask_coverage,
+                "mask_filter_applied": mask_filter_applied,
+                "scene_mask_path": "" if config.scene_mask is None else str(config.scene_mask),
                 "crop_path": crop_path,
                 "full_frame_path": full_path,
                 "legacy_anchor_frame": anchor["legacy_anchor_frame"],
@@ -311,7 +410,80 @@ def build_dense_tracklets(
                 debug_dir = config.output_root / "debug_visuals" / str(tracklet_id)
                 debug_dir.mkdir(parents=True, exist_ok=True)
                 debug = frame.copy()
+                if mask_filter_applied:
+                    frame_height, frame_width = frame.shape[:2]
+                    scene_mask = mask_cache.get((frame_width, frame_height))
+                    if scene_mask is not None:
+                        overlay = debug.copy()
+                        mask2d = np.asarray(scene_mask)
+                        if mask2d.ndim == 3:
+                            if mask2d.shape[2] == 1:
+                                mask2d = mask2d[:, :, 0]
+                            else:
+                                mask2d = np.any(mask2d > 0, axis=2)
+
+                        mask2d = mask2d.astype(bool)
+                        overlay[mask2d] = (0, 80, 0)
+                        debug = cv2.addWeighted(overlay, 0.25, debug, 0.75, 0)
+                        mask_uint8 = scene_mask.astype("uint8") * 255
+                        contours, _ = cv2.findContours(mask_uint8, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                        cv2.drawContours(debug, contours, -1, (0, 140, 0), 1)
+                if config.debug_draw_all_detections:
+                    for detection in detections_by_frame.get(frame_index, []):
+                        cv2.rectangle(
+                            debug,
+                            (int(detection.x1), int(detection.y1)),
+                            (int(detection.x2), int(detection.y2)),
+                            (0, 180, 0),
+                            1,
+                        )
+                    if config.debug_draw_filtered_detections:
+                        for detection in rejected_detections_by_frame.get(frame_index, []):
+                            cv2.rectangle(
+                                debug,
+                                (int(detection.x1), int(detection.y1)),
+                                (int(detection.x2), int(detection.y2)),
+                                (80, 80, 180),
+                                1,
+                            )
+                gt_record = anchor.get("legacy_gt_by_frame", {}).get(frame_index)
+                if gt_record is not None:
+                    gx1, gy1, gx2, gy2 = gt_record["bbox"]
+                    cv2.rectangle(debug, (int(gx1), int(gy1)), (int(gx2), int(gy2)), (255, 0, 0), 2)
+                    cv2.putText(
+                        debug,
+                        "GT",
+                        (int(gx1), max(0, int(gy1) - 6)),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5,
+                        (255, 0, 0),
+                        1,
+                        cv2.LINE_AA,
+                    )
                 cv2.rectangle(debug, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 255), 2)
+                status_text = [
+                    f"src={tracked_box.bbox_source}",
+                    f"status={tracked_box.tracking_status}",
+                    f"mode={legacy_gt_mode}",
+                    f"track={tracked_box.track_confidence:.2f}",
+                    f"det={'' if tracked_box.det_confidence is None else f'{tracked_box.det_confidence:.2f}'}",
+                    f"det_gt_disagree={tracked_box.detector_disagrees_with_legacy_gt}",
+                    f"raw_det={raw_detection_count}",
+                    f"mask_det={masked_detection_count}",
+                    f"outside_mask={rejected_detection_count}",
+                    f"mask_cov={'' if selected_bbox_mask_coverage is None else f'{selected_bbox_mask_coverage:.2f}'}",
+                ]
+                for text_idx, text in enumerate(status_text):
+                    cv2.putText(
+                        debug,
+                        text,
+                        (8, 18 + text_idx * 18),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5,
+                        (0, 255, 255),
+                        1,
+                        cv2.LINE_AA,
+                    )
                 cv2.imwrite(str(debug_dir / frame_filename(frame_index)), debug)
 
         if config.flush_every > 0 and processed_this_run % config.flush_every == 0:

@@ -630,15 +630,14 @@ def run_rgbd_tracking(cfg: RGBDTrackingConfig) -> TrackingSummary:
     )
     max_shape_frame = max(int(s["frame"]) for s in shapes)
     source_frame_count = max(total_frames, max_shape_frame + 1)
-    if tc.mode == "gt_export":
-        write_cvat_video_xml(
-            cvat_video_xml,
-            shapes,
-            tc.video_path,
-            width,
-            height,
-            source_frame_count,
-        )
+    write_cvat_video_xml(
+        cvat_video_xml,
+        shapes,
+        tc.video_path,
+        width,
+        height,
+        source_frame_count,
+    )
     write_labels_json(labels_json)
 
     # ---- export: RGB-D specific --------------------------------------------

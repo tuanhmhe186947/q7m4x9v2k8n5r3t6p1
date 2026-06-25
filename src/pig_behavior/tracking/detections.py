@@ -204,7 +204,7 @@ def parse_detections(
         )
 
     detections.sort(key=lambda item: item.score, reverse=True)
-    if cfg.mode == "bytetrack":
+    if cfg.mode in {"bytetrack", "hybrid_bytetrack"}:
         detections = suppress_duplicate_detections(detections, cfg)
         return detections[: max(cfg.expected_pigs * 3, cfg.expected_pigs)]
     detections = deduplicate_detections(detections, cfg, width, height)
@@ -251,7 +251,7 @@ def adaptive_confidence_filter(
     """Keep the highest confidence threshold that still gives enough candidates,
     or just filter by det_conf in realtime.
     """
-    if cfg.mode == "realtime":
+    if cfg.mode in {"realtime", "bytetrack_raw"}:
         return [det for det in detections if det.score >= cfg.det_conf]
 
     if not detections:

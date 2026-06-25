@@ -34,13 +34,21 @@ class RecoveryConfig:
     input_csv: Path
     drive_root: Path
     output_root: Path
+    legacy_burst_bbox_csv: Path | None
     detector_weights: Path | None
     manifest_only: bool
     extract_crops: bool
     extract_full_frames: bool
     track_end_mode: str
     save_debug_visuals: bool
+    debug_draw_all_detections: bool
+    debug_draw_filtered_detections: bool
+    scene_mask: Path | None
+    mask_filter_detections: bool
+    mask_min_bbox_coverage: float
+    mask_require_center_inside: bool
     no_detect_manifest_only: bool
+    manual_review_csv: Path | None
     max_rows: int | None
     max_videos: int | None
     filter_group_id: str | None
