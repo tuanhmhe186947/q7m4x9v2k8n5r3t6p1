@@ -1,3 +1,9 @@
+# Note
+
+Root `AGENTS.md` is now the main Codex instruction entrypoint for this repository.
+Project-specific memory and workflow files now live under `.agents/memory/`.
+This legacy file is preserved as supplemental implementation guidance; do not delete its content.
+
 # Coding Guidelines and Agent Rules
 
 This document establishes development standards, code quality checks, and performance optimization guidelines for PyTorch, OpenCV, and GPU hardware execution within this repository.
@@ -180,4 +186,3 @@ client = InferenceHTTPClient(api_url="https://serverless.roboflow.com", api_key=
   - `predictions` (a dictionary containing `image` metadata and `predictions` list of bounding box schemas).
   - `output_image` (a base64 encoded string representing the visualized output frame).
 * **Defensive Parsing:** Bounding boxes from Roboflow are center-based (`x`, `y`, `width`, `height`). Always convert them to top-left / bottom-right coordinates `[x1, y1, x2, y2]` for consistency with the rest of the detection/tracking modules.
-

@@ -67,9 +67,35 @@ def video_metadata(video_path: Path) -> dict[str, Any]:
     return metadata
 
 
-def find_prediction_xml(video_stem: str, prediction_root: Path) -> Path | None:
+def find_prediction_xml(
+    video_stem: str,
+    prediction_root: Path,
+    preferred_mode: str | None = None,
+) -> Path | None:
     """Find a prediction CVAT video XML for a video stem."""
-    # 1. Prefer the simplified path (without prefix)
+    # 1. Prefer the requested tracker mode when mode-scoped outputs coexist.
+    if preferred_mode:
+        mode_candidates = [preferred_mode]
+        if preferred_mode in {"bytetrack", "gt_export"}:
+            mode_candidates.append("hybrid_bytetrack")
+        for mode in dict.fromkeys(mode_candidates):
+            preferred_mode_scoped = (
+                prediction_root
+                / video_stem
+                / mode
+                / "annotations_cvat_video_1_1.xml"
+            )
+            if preferred_mode_scoped.exists():
+                return preferred_mode_scoped
+
+    # 2. Prefer current tracker output path: prediction_root/video_stem/mode/xml.
+    mode_scoped = sorted(
+        prediction_root.glob(f"{video_stem}/*/annotations_cvat_video_1_1.xml")
+    )
+    if mode_scoped:
+        return mode_scoped[0]
+
+    # 3. Prefer the previous simplified path (without prefix).
     preferred_new = (
         prediction_root
         / video_stem
@@ -78,7 +104,7 @@ def find_prediction_xml(video_stem: str, prediction_root: Path) -> Path | None:
     if preferred_new.exists():
         return preferred_new
 
-    # 2. Fallback to old path (with video_stem prefix)
+    # 4. Fallback to old path (with video_stem prefix).
     preferred_old = (
         prediction_root
         / video_stem
@@ -87,13 +113,14 @@ def find_prediction_xml(video_stem: str, prediction_root: Path) -> Path | None:
     if preferred_old.exists():
         return preferred_old
 
-    # 3. Fallback to searching XMLs matching video_stem in name or parent directory
+    # 5. Fallback to searching XMLs matching video_stem in name or ancestor path.
+    video_key = video_stem.lower()
     candidates = sorted(
         path
         for path in prediction_root.rglob("*.xml")
         if (
-            video_stem.lower() in path.name.lower()
-            or video_stem.lower() in path.parent.name.lower()
+            video_key in path.name.lower()
+            or any(video_key in part.lower() for part in path.parts)
         )
         and "cvat_video" in path.name.lower()
         and ".bak_" not in path.name.lower()
@@ -106,6 +133,7 @@ def list_tracking_pairs(
     tracking_gt_dir: Path = TRACKING_GT_DIR,
     video_dir: Path = VIDEO_DIR,
     prediction_root: Path = PREDICTION_ROOT,
+    preferred_mode: str | None = None,
 ) -> list[TrackingPair]:
     """Match GT XML files to videos and prediction XML files."""
     videos = [p for p in video_dir.glob("*") if p.suffix.lower() in {".mp4", ".avi"}]
@@ -128,7 +156,11 @@ def list_tracking_pairs(
         if matched_video is None:
             continue
 
-        pred_xml = find_prediction_xml(matched_video.stem, prediction_root)
+        pred_xml = find_prediction_xml(
+            matched_video.stem,
+            prediction_root,
+            preferred_mode=preferred_mode,
+        )
         pairs.append(
             TrackingPair(
                 video_stem=matched_video.stem,

@@ -1,3 +1,9 @@
+# Note
+
+Root `AGENTS.md` is now the main Codex instruction entrypoint for this repository.
+Project workflow memory now lives under `.agents/memory/08_WORKFLOW.md`.
+This legacy file is preserved for historical workflow context; do not delete its content.
+
 # Project Workflow: Data, Training, and Evaluation
 
 This document maps out the processing pipelines, training protocols, and validation workflows for the Pig Behavior Project.

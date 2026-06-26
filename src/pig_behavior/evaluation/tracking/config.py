@@ -42,7 +42,7 @@ class TrackingEvaluationPipelineConfig:
     half: bool = False
     USE_IOU_FALLBACK: bool = False
     USE_AREA_OCCLUSION_FREEZE: bool = False
-    USE_CONDITIONAL_AREA_OCCLUSION_FREEZE: bool = True
+    USE_CONDITIONAL_AREA_OCCLUSION_FREEZE: bool = False
     USE_MERGED_BOX_SPLIT: bool = False
-    tracking_mode: str = "bytetrack"
+    tracking_mode: str = "hybrid_bytetrack"
     profile_overrides: dict[str, Any] | None = None

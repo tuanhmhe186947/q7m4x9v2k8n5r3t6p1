@@ -1,3 +1,9 @@
+# Note
+
+Root `AGENTS.md` is now the main Codex instruction entrypoint for this repository.
+Project-specific memory is now organized under `.agents/memory/`.
+This legacy file is preserved for historical context; do not delete its content.
+
 # Project Memory: Pig Behavior Project
 
 This document serves as the long-term, medium-term, and short-term memory registry for the Pig Behavior Project, outlining the system architecture, code contracts, and active targets.

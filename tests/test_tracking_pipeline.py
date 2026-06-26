@@ -8,6 +8,7 @@ SRC_DIR = PROJECT_ROOT / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
+from pig_behavior.evaluation.tracking.assets import find_prediction_xml  # noqa: E402
 from pig_behavior.evaluation.tracking.benchmarking import (  # noqa: E402
     iter_detector_benchmark_configs,
     rank_aggregate_benchmark_rows,
@@ -18,6 +19,82 @@ from pig_behavior.evaluation.tracking.config import (  # noqa: E402
 from pig_behavior.evaluation.tracking.pipeline import (  # noqa: E402
     tracking_rule_overrides,
 )
+
+
+def test_find_prediction_xml_prefers_mode_scoped_tracker_output(
+    tmp_path: Path,
+) -> None:
+    video_stem = "Pigs291119_000263_30fps"
+    pred_xml = (
+        tmp_path
+        / video_stem
+        / "hybrid_bytetrack"
+        / "annotations_cvat_video_1_1.xml"
+    )
+    pred_xml.parent.mkdir(parents=True)
+    pred_xml.write_text("<annotations />", encoding="utf-8")
+
+    assert find_prediction_xml(video_stem, tmp_path) == pred_xml
+
+
+def test_find_prediction_xml_prefers_requested_mode_when_outputs_coexist(
+    tmp_path: Path,
+) -> None:
+    video_stem = "Pigs291119_000263_30fps"
+    raw_xml = (
+        tmp_path
+        / video_stem
+        / "bytetrack_raw"
+        / "annotations_cvat_video_1_1.xml"
+    )
+    hybrid_xml = (
+        tmp_path
+        / video_stem
+        / "hybrid_bytetrack"
+        / "annotations_cvat_video_1_1.xml"
+    )
+    raw_xml.parent.mkdir(parents=True)
+    hybrid_xml.parent.mkdir(parents=True)
+    raw_xml.write_text("<annotations />", encoding="utf-8")
+    hybrid_xml.write_text("<annotations />", encoding="utf-8")
+
+    assert (
+        find_prediction_xml(
+            video_stem,
+            tmp_path,
+            preferred_mode="hybrid_bytetrack",
+        )
+        == hybrid_xml
+    )
+
+
+def test_tracking_eval_defaults_match_hybrid_baseline() -> None:
+    cfg = TrackingEvaluationPipelineConfig()
+
+    assert cfg.tracking_mode == "hybrid_bytetrack"
+    assert cfg.USE_IOU_FALLBACK is False
+    assert cfg.USE_AREA_OCCLUSION_FREEZE is False
+    assert cfg.USE_CONDITIONAL_AREA_OCCLUSION_FREEZE is False
+    assert cfg.USE_MERGED_BOX_SPLIT is False
+
+
+def test_find_prediction_xml_maps_legacy_alias_to_hybrid_output(
+    tmp_path: Path,
+) -> None:
+    video_stem = "Pigs291119_000263_30fps"
+    hybrid_xml = (
+        tmp_path
+        / video_stem
+        / "hybrid_bytetrack"
+        / "annotations_cvat_video_1_1.xml"
+    )
+    hybrid_xml.parent.mkdir(parents=True)
+    hybrid_xml.write_text("<annotations />", encoding="utf-8")
+
+    assert (
+        find_prediction_xml(video_stem, tmp_path, preferred_mode="bytetrack")
+        == hybrid_xml
+    )
 
 
 def test_detector_benchmark_configs_isolate_v8_and_v26_outputs(tmp_path: Path) -> None:

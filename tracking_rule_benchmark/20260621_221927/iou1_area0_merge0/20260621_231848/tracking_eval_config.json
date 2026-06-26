@@ -1,0 +1,20 @@
+{
+  "video_path": null,
+  "video_paths": null,
+  "gt_xml": null,
+  "gt_dir": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking",
+  "video_dir": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\videos",
+  "prediction_root": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\id_tracking\\tracking_rule_benchmark\\20260621_221927\\iou1_area0_merge0",
+  "output_root": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\evaluation\\tracking_metrics\\tracking_rule_benchmark\\20260621_221927\\iou1_area0_merge0",
+  "weights_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\models\\detector\\pig_detector_yolov8.pt",
+  "mask_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\scene\\mask.png",
+  "iou_threshold": 0.5,
+  "include_hidden": false,
+  "gap_tolerance_frames": 15,
+  "run_missing_tracker": true,
+  "force_track": true,
+  "max_frames": null,
+  "USE_IOU_FALLBACK": true,
+  "USE_AREA_OCCLUSION_FREEZE": false,
+  "USE_MERGED_BOX_SPLIT": false
+}

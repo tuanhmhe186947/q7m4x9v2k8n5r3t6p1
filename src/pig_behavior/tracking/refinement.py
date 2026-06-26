@@ -10,6 +10,7 @@ from pig_behavior.tracking.config import TrackingConfig
 from pig_behavior.tracking.geometry import (
     area_log_ratio,
     bbox_iom,
+    bbox_iou,
     bbox_size,
     center_distance_norm,
     clip_box,
@@ -55,6 +56,73 @@ def set_shape_box(
 
 def shape_hidden_value(shape: dict[str, Any]) -> str:
     return str(_shape_attributes_dict(shape).get("Hidden", "No"))
+
+
+def set_shape_hidden(shape: dict[str, Any], hidden: bool) -> None:
+    value = "Yes" if hidden else "No"
+    for attribute in shape.get("attributes", []):
+        if attribute.get("name") == "Hidden":
+            attribute["value"] = value
+            break
+    else:
+        shape.setdefault("attributes", []).append({"value": value, "name": "Hidden"})
+    shape["occluded"] = bool(hidden)
+    if hidden:
+        shape["_needs_review"] = True
+
+
+def stabilize_overlap_hidden_islands(
+    shapes: list[dict[str, Any]],
+    cfg: TrackingConfig,
+) -> list[dict[str, Any]]:
+    """Keep short visible islands hidden when they sit inside heavy overlap."""
+    threshold = float(cfg.hidden_overlap_iou_threshold)
+    window = int(cfg.hidden_overlap_window_frames)
+    if threshold <= 0.0 or window < 1:
+        return shapes
+
+    stabilized_shapes = [shape.copy() for shape in shapes]
+    by_frame: dict[int, list[dict[str, Any]]] = {}
+    by_id: dict[int, dict[int, dict[str, Any]]] = {}
+    for shape in stabilized_shapes:
+        frame = int(shape["frame"])
+        fixed_id = shape_fixed_id(shape)
+        by_frame.setdefault(frame, []).append(shape)
+        by_id.setdefault(fixed_id, {})[frame] = shape
+
+    def nearby_hidden_count(fixed_id: int, frame: int) -> int:
+        track = by_id.get(fixed_id, {})
+        hidden_count = 0
+        for offset in range(1, window + 1):
+            for neighbor_frame in (frame - offset, frame + offset):
+                neighbor = track.get(neighbor_frame)
+                if neighbor is not None and shape_hidden_value(neighbor) == "Yes":
+                    hidden_count += 1
+        return hidden_count
+
+    for frame_shapes in by_frame.values():
+        candidate_shapes = [
+            shape for shape in frame_shapes if not shape.get("outside", False)
+        ]
+        for idx, first in enumerate(candidate_shapes):
+            for second in candidate_shapes[idx + 1 :]:
+                if bbox_iou(shape_box(first), shape_box(second)) < threshold:
+                    continue
+                first_hidden_history = nearby_hidden_count(shape_fixed_id(first), int(first["frame"]))
+                second_hidden_history = nearby_hidden_count(
+                    shape_fixed_id(second),
+                    int(second["frame"]),
+                )
+                if first_hidden_history == second_hidden_history:
+                    continue
+                hidden_shape = first if first_hidden_history > second_hidden_history else second
+                visible_shape = second if hidden_shape is first else first
+                set_shape_hidden(hidden_shape, True)
+                set_shape_hidden(visible_shape, False)
+                hidden_shape["_hidden_overlap_stabilized"] = True
+                visible_shape["_hidden_overlap_stabilized"] = True
+
+    return stabilized_shapes
 
 
 def shape_is_stable_anchor(shape: dict[str, Any], cfg: TrackingConfig) -> bool:

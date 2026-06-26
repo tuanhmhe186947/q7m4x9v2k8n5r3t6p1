@@ -29,7 +29,7 @@ def identity_events_for_pair(
         return []
 
     gt_by_frame = parse_cvat_video_xml(pair.gt_xml, include_hidden=include_hidden)
-    pred_by_frame = parse_cvat_video_xml(pair.pred_xml, include_hidden=True)
+    pred_by_frame = parse_cvat_video_xml(pair.pred_xml, include_hidden=include_hidden)
     id_mapping: dict[str, str] = {}
     if remap_ids:
         pred_by_frame, id_mapping, _mapped_matches, _coverage = remap_prediction_ids(
@@ -119,7 +119,7 @@ def identity_mapping_for_pair(
         return []
 
     gt_by_frame = parse_cvat_video_xml(pair.gt_xml, include_hidden=include_hidden)
-    pred_by_frame = parse_cvat_video_xml(pair.pred_xml, include_hidden=True)
+    pred_by_frame = parse_cvat_video_xml(pair.pred_xml, include_hidden=include_hidden)
     pair_counts = matched_identity_counts(
         gt_by_frame,
         pred_by_frame,
@@ -174,7 +174,7 @@ def continuity_gaps_for_pair(
 
     tolerance = max(0, int(gap_tolerance_frames))
     gt_by_frame = parse_cvat_video_xml(pair.gt_xml, include_hidden=include_hidden)
-    pred_by_frame = parse_cvat_video_xml(pair.pred_xml, include_hidden=True)
+    pred_by_frame = parse_cvat_video_xml(pair.pred_xml, include_hidden=include_hidden)
     if remap_ids:
         pred_by_frame, _mapping, _mapped_matches, _coverage = remap_prediction_ids(
             gt_by_frame,

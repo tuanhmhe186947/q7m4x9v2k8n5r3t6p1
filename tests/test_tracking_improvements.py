@@ -25,6 +25,7 @@ from pig_behavior.tracking import (
     track_detection_overlap_score,
 )
 from pig_behavior.tracking.config import validate_config
+from pig_behavior.tracking.refinement import stabilize_overlap_hidden_islands
 from pig_behavior.tracking.tracks import shape_for_track
 
 
@@ -54,7 +55,40 @@ def _shape(frame: int, fixed_id: int, points: list[float]) -> dict:
     }
 
 
-def test_bytetrack_restores_e22cde3_defaults() -> None:
+def _set_hidden(shape: dict, hidden: bool) -> dict:
+    for attribute in shape["attributes"]:
+        if attribute["name"] == "Hidden":
+            attribute["value"] = "Yes" if hidden else "No"
+    shape["occluded"] = hidden
+    return shape
+
+
+def test_overlap_hidden_stabilization_restores_hidden_owner() -> None:
+    cfg = TrackingConfig()
+    id1_box = [100.0, 100.0, 260.0, 220.0]
+    id8_box = [108.0, 102.0, 268.0, 222.0]
+    shapes = [
+        _shape(frame, 1, id1_box)
+        for frame in range(5)
+    ] + [
+        _set_hidden(_shape(frame, 8, id8_box), frame != 2)
+        for frame in range(5)
+    ]
+    _set_hidden(shapes[2], True)
+
+    stabilized = stabilize_overlap_hidden_islands(shapes, cfg)
+    frame_2 = {
+        shape["label"]: shape
+        for shape in stabilized
+        if int(shape["frame"]) == 2
+    }
+
+    assert frame_2["Pig_1"]["attributes"][2]["value"] == "No"
+    assert frame_2["Pig_8"]["attributes"][2]["value"] == "Yes"
+    assert frame_2["Pig_8"]["occluded"] is True
+
+
+def test_bytetrack_alias_uses_hybrid_defaults_without_forced_postprocessing() -> None:
     cfg = TrackingConfig(mode="bytetrack", detect_every_n_frames=3)
 
     validate_config(cfg)
@@ -68,19 +102,20 @@ def test_bytetrack_restores_e22cde3_defaults() -> None:
     assert cfg.initial_track_conf == 0.50
     assert cfg.motion_gate_confidence == 0.50
     assert cfg.USE_IOU_FALLBACK is False
-    assert cfg.USE_CONDITIONAL_AREA_OCCLUSION_FREEZE is True
+    assert cfg.USE_CONDITIONAL_AREA_OCCLUSION_FREEZE is False
     assert cfg.max_missing_frames == 90
     assert cfg.detect_every_n_frames == 1
-    assert cfg.enable_offline_smoothing is True
+    assert cfg.enable_offline_smoothing is False
 
 
-def test_hybrid_bytetrack_matches_legacy_full_bytetrack_rules() -> None:
+def test_hybrid_bytetrack_keeps_rule_flag_defaults() -> None:
     cfg = TrackingConfig(mode="hybrid_bytetrack")
     validate_config(cfg)
 
     assert cfg.USE_IOU_FALLBACK is False
     assert cfg.USE_AREA_OCCLUSION_FREEZE is False
-    assert cfg.USE_CONDITIONAL_AREA_OCCLUSION_FREEZE is True
+    assert cfg.USE_CONDITIONAL_AREA_OCCLUSION_FREEZE is False
+    assert cfg.enable_offline_smoothing is False
 
 
 def test_bytetrack_keeps_explicit_threshold_overrides() -> None:
@@ -897,7 +932,7 @@ def test_cvat_parser_prefers_id_attribute_over_pig_label(tmp_path: Path) -> None
     assert parsed[0][0].obj_id == "ID_7"
 
 
-def test_evaluator_keeps_hidden_predictions_for_fair_tracker_comparison(
+def test_evaluator_excludes_hidden_predictions_by_default(
     tmp_path: Path,
 ) -> None:
     gt_xml = tmp_path / "gt.xml"
@@ -939,9 +974,16 @@ def test_evaluator_keeps_hidden_predictions_for_fair_tracker_comparison(
     metrics = evaluate_pair(pair, include_hidden=False)
 
     assert metrics is not None
-    assert metrics.matches == 1
-    assert metrics.fn == 0
+    assert metrics.matches == 0
+    assert metrics.fn == 1
     assert metrics.fp == 0
+
+    hidden_metrics = evaluate_pair(pair, include_hidden=True)
+
+    assert hidden_metrics is not None
+    assert hidden_metrics.matches == 1
+    assert hidden_metrics.fn == 0
+    assert hidden_metrics.fp == 0
 
 
 def _write_stable_two_id_xml(

@@ -205,9 +205,7 @@ def evaluate_pair(
         return None
 
     gt = parse_cvat_video_xml(pair.gt_xml, include_hidden=include_hidden)
-    # Hidden predictions are still tracker outputs with valid geometry.
-    # Excluding them would reward trackers that omit uncertainty flags.
-    pred = parse_cvat_video_xml(pair.pred_xml, include_hidden=True)
+    pred = parse_cvat_video_xml(pair.pred_xml, include_hidden=include_hidden)
     metrics = evaluate_tracking(
         gt,
         pred,

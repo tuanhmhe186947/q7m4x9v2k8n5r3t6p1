@@ -38,7 +38,6 @@ from pig_behavior.tracking.constants import (
     TRACKING_TELEMETRY_KEYS,
 )
 
-
 logger = logging.getLogger(__name__)
 
 TRACKING_MODE_CHOICES = (
@@ -104,6 +103,8 @@ class TrackingConfig:
     max_lost_frames: int = DEFAULT_MAX_LOST_FRAMES  # Alias for max_missing_frames
     hidden_missed_frames: int = 5
     hidden_score_threshold: float = 0.15
+    hidden_overlap_iou_threshold: float = 0.65
+    hidden_overlap_window_frames: int = 2
     use_mask_iou: bool = True
     mask_iou_max_missed: int = 10
     mask_iou_min_area: int = 64
@@ -141,7 +142,7 @@ class TrackingConfig:
     occlusion_hold_hidden_frames: int = 2
     USE_IOU_FALLBACK: bool = False
     USE_AREA_OCCLUSION_FREEZE: bool = False
-    USE_CONDITIONAL_AREA_OCCLUSION_FREEZE: bool = True
+    USE_CONDITIONAL_AREA_OCCLUSION_FREEZE: bool = False
     USE_MERGED_BOX_SPLIT: bool = False
     iou_fallback_threshold: float = 0.45
     area_occlusion_shrink_ratio: float = 0.60
@@ -263,7 +264,6 @@ def validate_config(cfg: TrackingConfig) -> None:
             "initial_track_conf": 0.50,
             "motion_gate_confidence": 0.50,
             "USE_IOU_FALLBACK": False,
-            "USE_CONDITIONAL_AREA_OCCLUSION_FREEZE": True,
         }
         for name, value in bytetrack_defaults.items():
             explicitly_overridden = name in cfg.overrides
@@ -277,10 +277,6 @@ def validate_config(cfg: TrackingConfig) -> None:
         if "max_missing_frames" not in cfg.overrides:
             cfg.max_missing_frames = 90
             cfg.max_lost_frames = 90
-        if "enable_offline_smoothing" not in cfg.overrides:
-            cfg.enable_offline_smoothing = True
-            cfg.smooth_boxes = True
-            cfg.refine_boxes = True
         if requested_mode == "gt_export":
             if "det_conf" not in cfg.overrides and cfg.det_conf == 0.25:
                 cfg.det_conf = 0.15
@@ -453,6 +449,10 @@ def validate_config(cfg: TrackingConfig) -> None:
         raise ValueError("hidden_stationary_lock_frames must be >= 1.")
     if cfg.hidden_max_motion_step_box_scale < 0.0:
         raise ValueError("hidden_max_motion_step_box_scale must be >= 0.")
+    if not 0.0 <= cfg.hidden_overlap_iou_threshold <= 1.0:
+        raise ValueError("hidden_overlap_iou_threshold must be between 0 and 1.")
+    if cfg.hidden_overlap_window_frames < 1:
+        raise ValueError("hidden_overlap_window_frames must be >= 1.")
     scale_values = {
         "max_box_scale_change_per_frame": cfg.max_box_scale_change_per_frame,
         "max_box_scale_change_after_gap": cfg.max_box_scale_change_after_gap,
