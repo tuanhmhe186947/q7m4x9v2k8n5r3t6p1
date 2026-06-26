@@ -21,7 +21,7 @@ DEFAULT_WEIGHTS_PATH = (
     PROJECT_ROOT / "models" / "detector" / "pig_detector_yolov8.pt"
 )
 DEFAULT_MASK_PATH = PROJECT_ROOT / "data" / "annotations" / "scene" / "mask.png"
-DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "outputs" / "id_tracking"
+DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "outputs" / "pred"
 
 ID_VALUES = [f"ID_{idx}" for idx in range(1, 9)]
 BEHAVIOR_VALUES = [

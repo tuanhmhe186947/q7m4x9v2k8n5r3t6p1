@@ -1,0 +1,16 @@
+[1mdiff --git a/src/pig_behavior/evaluation/tracking/assets.py b/src/pig_behavior/evaluation/tracking/assets.py[m
+[1mindex c551c91..b5e8779 100644[m
+[1m--- a/src/pig_behavior/evaluation/tracking/assets.py[m
+[1m+++ b/src/pig_behavior/evaluation/tracking/assets.py[m
+[36m@@ -2,10 +2,10 @@[m
+ [m
+ from __future__ import annotations[m
+ [m
+[32m+[m[32mimport re[m
+ from dataclasses import dataclass[m
+ from pathlib import Path[m
+ from typing import Any[m
+[31m-import re[m
+ [m
+ from pig_behavior.output_layout import prediction_xml_candidates[m
+ [m

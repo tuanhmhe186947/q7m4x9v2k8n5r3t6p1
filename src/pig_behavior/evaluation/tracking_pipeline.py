@@ -101,6 +101,30 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Torch device for YOLO inference, for example '0' or 'cpu'.",
     )
     parser.add_argument("--half", action="store_true")
+    parser.add_argument(
+        "--enable-offline-smoothing",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Override tracker offline smoothing for generated prediction XML.",
+    )
+    parser.add_argument(
+        "--identity-swap-guard",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Override tracker identity swap guard for generated prediction XML.",
+    )
+    parser.add_argument(
+        "--smooth-boxes",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Override tracker temporal box smoothing for generated prediction XML.",
+    )
+    parser.add_argument(
+        "--refine-boxes",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Override tracker temporal box refinement for generated prediction XML.",
+    )
     parser.add_argument("--use-iou-fallback", action="store_true")
     parser.add_argument("--use-area-occlusion-freeze", action="store_true")
     parser.add_argument(
@@ -183,6 +207,19 @@ def config_from_args(args: argparse.Namespace) -> TrackingEvaluationPipelineConf
     ]
     for key in exclude_keys:
         profile_overrides.pop(key, None)
+    postprocess_overrides = {
+        "enable_offline_smoothing": args.enable_offline_smoothing,
+        "identity_swap_guard": args.identity_swap_guard,
+        "smooth_boxes": args.smooth_boxes,
+        "refine_boxes": args.refine_boxes,
+    }
+    profile_overrides.update(
+        {
+            key: value
+            for key, value in postprocess_overrides.items()
+            if value is not None
+        }
+    )
 
     return TrackingEvaluationPipelineConfig(
         video_path=video_path,

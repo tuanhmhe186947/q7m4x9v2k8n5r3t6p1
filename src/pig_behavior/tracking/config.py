@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from pig_behavior.output_layout import mode_scoped_video_dir
 from pig_behavior.tracking.constants import (
     BEHAVIOR_VALUES,
     DEFAULT_DET_CONF_THRESHOLD,
@@ -484,7 +485,7 @@ def resolve_output_paths(
     cfg: TrackingConfig,
 ) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path]:
     video_stem = cfg.video_path.stem
-    run_output_dir = cfg.output_dir / video_stem / cfg.mode
+    run_output_dir = mode_scoped_video_dir(cfg.output_dir, cfg.mode, video_stem)
     run_output_dir.mkdir(parents=True, exist_ok=True)
     output_video = cfg.output_video or (
         run_output_dir / "tracked_pigs_with_ids.mp4"

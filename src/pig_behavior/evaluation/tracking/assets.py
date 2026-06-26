@@ -1,4 +1,4 @@
-"""Logic for pair discovery, video metadata, prediction lookup."""
+"""Logic for pair discovery, metadata, and prediction lookup."""
 
 from __future__ import annotations
 
@@ -7,11 +7,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from pig_behavior.output_layout import prediction_xml_candidates
+
 from .cvat_io import read_task_name
 
 
 def find_project_root(start: Path | None = None) -> Path:
-    """Return the nearest parent containing project metadata."""
+    """Return the nearest parent project root."""
     current = Path.cwd() if start is None else Path(start).resolve()
     if current.is_file():
         current = current.parent
@@ -25,8 +27,8 @@ PROJECT_ROOT = find_project_root(Path(__file__).resolve())
 DATA_DIR = PROJECT_ROOT / "data"
 TRACKING_GT_DIR = DATA_DIR / "annotations" / "tracking"
 VIDEO_DIR = DATA_DIR / "videos"
-PREDICTION_ROOT = PROJECT_ROOT / "outputs" / "id_tracking"
-EVAL_OUTPUT_ROOT = PROJECT_ROOT / "outputs" / "evaluation" / "tracking_metrics"
+PREDICTION_ROOT = PROJECT_ROOT / "outputs" / "pred"
+EVAL_OUTPUT_ROOT = PROJECT_ROOT / "outputs" / "eval"
 DETECTOR_WEIGHTS_V8 = PROJECT_ROOT / "models" / "detector" / "pig_detector_yolov8.pt"
 DETECTOR_WEIGHTS_V26 = PROJECT_ROOT / "models" / "detector" / "pig_detector_yolov26.pt"
 DETECTOR_WEIGHTS = DETECTOR_WEIGHTS_V8
@@ -34,7 +36,7 @@ DETECTOR_WEIGHTS = DETECTOR_WEIGHTS_V8
 
 @dataclass(slots=True)
 class TrackingPair:
-    """Matched ground-truth/prediction assets for one video."""
+    """Matched ground-truth and prediction assets for one video."""
 
     video_stem: str
     video_path: Path
@@ -43,12 +45,12 @@ class TrackingPair:
 
 
 def normalize_key(text: str) -> str:
-    """Normalize file names for robust matching."""
+    """Normalize names for tolerant matching."""
     return re.sub(r"[^a-z0-9]+", "", text.lower())
 
 
 def video_metadata(video_path: Path) -> dict[str, Any]:
-    """Read optional video metadata with OpenCV if available."""
+    """Read optional video metadata when OpenCV is available."""
     try:
         import cv2  # type: ignore[import-not-found]
     except ImportError:
@@ -57,6 +59,7 @@ def video_metadata(video_path: Path) -> dict[str, Any]:
     capture = cv2.VideoCapture(str(video_path))
     if not capture.isOpened():
         return {}
+
     metadata = {
         "video_frame_count": int(capture.get(cv2.CAP_PROP_FRAME_COUNT) or 0),
         "video_fps": float(capture.get(cv2.CAP_PROP_FPS) or 0.0),
@@ -72,48 +75,27 @@ def find_prediction_xml(
     prediction_root: Path,
     preferred_mode: str | None = None,
 ) -> Path | None:
-    """Find a prediction CVAT video XML for a video stem."""
-    # 1. Prefer the requested tracker mode when mode-scoped outputs coexist.
-    if preferred_mode:
-        mode_candidates = [preferred_mode]
-        if preferred_mode in {"bytetrack", "gt_export"}:
-            mode_candidates.append("hybrid_bytetrack")
-        for mode in dict.fromkeys(mode_candidates):
-            preferred_mode_scoped = (
-                prediction_root
-                / video_stem
-                / mode
-                / "annotations_cvat_video_1_1.xml"
-            )
-            if preferred_mode_scoped.exists():
-                return preferred_mode_scoped
+    """Find prediction CVAT XML for a given video stem."""
+    for candidate in prediction_xml_candidates(
+        prediction_root,
+        video_stem,
+        preferred_mode=preferred_mode,
+    ):
+        if candidate.exists():
+            return candidate
 
-    # 2. Prefer current tracker output path: prediction_root/video_stem/mode/xml.
-    mode_scoped = sorted(
+    legacy_mode_scoped = sorted(
         prediction_root.glob(f"{video_stem}/*/annotations_cvat_video_1_1.xml")
     )
-    if mode_scoped:
-        return mode_scoped[0]
+    if legacy_mode_scoped:
+        return legacy_mode_scoped[0]
 
-    # 3. Prefer the previous simplified path (without prefix).
-    preferred_new = (
-        prediction_root
-        / video_stem
-        / "annotations_cvat_video_1_1.xml"
+    canonical_mode_scoped = sorted(
+        prediction_root.glob(f"*/{video_stem}/annotations_cvat_video_1_1.xml")
     )
-    if preferred_new.exists():
-        return preferred_new
+    if canonical_mode_scoped:
+        return canonical_mode_scoped[0]
 
-    # 4. Fallback to old path (with video_stem prefix).
-    preferred_old = (
-        prediction_root
-        / video_stem
-        / f"{video_stem}_annotations_cvat_video_1_1.xml"
-    )
-    if preferred_old.exists():
-        return preferred_old
-
-    # 5. Fallback to searching XMLs matching video_stem in name or ancestor path.
     video_key = video_stem.lower()
     candidates = sorted(
         path
@@ -135,24 +117,27 @@ def list_tracking_pairs(
     prediction_root: Path = PREDICTION_ROOT,
     preferred_mode: str | None = None,
 ) -> list[TrackingPair]:
-    """Match GT XML files to videos and prediction XML files."""
-    videos = [p for p in video_dir.glob("*") if p.suffix.lower() in {".mp4", ".avi"}]
-    video_by_key = {normalize_key(p.stem): p for p in videos}
-    pairs = []
+    """Match GT XML files to videos and optional prediction XML files."""
+    videos = [path for path in video_dir.glob("*") if path.suffix.lower() in {".mp4", ".avi", ".mov", ".mkv"}]
+    video_by_key = {normalize_key(path.stem): path for path in videos}
+    pairs: list[TrackingPair] = []
 
     for gt_xml in sorted(tracking_gt_dir.glob("*.xml")):
+        matched_video: Path | None = None
         gt_text = gt_xml.stem
-        matched_video = None
+
         for key, video in video_by_key.items():
             if key in normalize_key(gt_text):
                 matched_video = video
                 break
+
         if matched_video is None:
             task_name = read_task_name(gt_xml)
             for key, video in video_by_key.items():
                 if key in normalize_key(task_name):
                     matched_video = video
                     break
+
         if matched_video is None:
             continue
 
@@ -169,16 +154,31 @@ def list_tracking_pairs(
                 pred_xml=pred_xml,
             )
         )
+
     return pairs
 
 
 def resolve_mask_path() -> Path | None:
-    """Find the pen mask after annotations were split into subfolders."""
-    candidates = [
-        DATA_DIR / "annotations" / "scene" / "mask.png",
-        DATA_DIR / "annotations" / "mask.png",
-    ]
-    for path in candidates:
-        if path.exists():
-            return path
-    return None
+    """Return the default scene mask when available."""
+    mask_path = DATA_DIR / "annotations" / "scene" / "mask.png"
+    return mask_path if mask_path.exists() else None
+
+
+__all__ = [
+    "DATA_DIR",
+    "DETECTOR_WEIGHTS",
+    "DETECTOR_WEIGHTS_V8",
+    "DETECTOR_WEIGHTS_V26",
+    "EVAL_OUTPUT_ROOT",
+    "PREDICTION_ROOT",
+    "PROJECT_ROOT",
+    "TRACKING_GT_DIR",
+    "VIDEO_DIR",
+    "TrackingPair",
+    "find_prediction_xml",
+    "find_project_root",
+    "list_tracking_pairs",
+    "normalize_key",
+    "resolve_mask_path",
+    "video_metadata",
+]

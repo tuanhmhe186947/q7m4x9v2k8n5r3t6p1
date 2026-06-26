@@ -1,10 +1,12 @@
+#!/usr/bin/env python3
+"""Print the core agent context files used in this repository."""
+
 from __future__ import annotations
 
 from pathlib import Path
 import sys
 
-
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 CONTEXT_FILES = [
     ROOT / "AGENTS.md",
@@ -32,7 +34,6 @@ def main() -> int:
         sys.stdout.reconfigure(encoding="utf-8")
     if hasattr(sys.stderr, "reconfigure"):
         sys.stderr.reconfigure(encoding="utf-8")
-
     for path in CONTEXT_FILES:
         try:
             print_file(path)
@@ -43,4 +44,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())
