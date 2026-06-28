@@ -1,12 +1,18 @@
-# Current Short Memory
+# Project Memory Short
 
-- Do not blame weight for `Pigs291119_000263_30fps` IDSW increase.
-- User confirmed both old and new weights produce IDSW ≈ 6 on current code for `000263`.
-- Legacy 21/06 produced IDSW ≈ 2 for `000263`.
-- Therefore focus on code/config/runtime behavior.
-- `Pigs291119_000302_30fps` improvement is due to the new detector weight; do not use it as proof that `hybrid_bytetrack` matches legacy.
-- Current preferred baseline: `hybrid_bytetrack + iou0_area0_condarea0_merge0`.
-- Do not enable `condarea` by default without ablation.
-- Primary suspect: `association.py` raw_id owner/penalty/bypass and `all_detection_indices` matching for `hybrid_bytetrack`.
-- Secondary suspect: `runner.py` forced post-processing for `hybrid_bytetrack`.
-- Patch in small steps. Do not change weight/detector/evaluation first.
+- Do not hardcode `000263`/`000302` as optimizer target videos anymore.
+- For optimizer ranking defaults, derive weak target videos from:
+  `outputs/eval/hybrid_bytetrack/Tracking mới tắt smooth/yolov8/iou0_area0_condarea0_merge0/tracking_metrics.csv`
+- Current weakest set from that file is:
+  - `Pigs291119_000263_30fps`
+  - `Pigs291119_000226_30fps`
+  - `Pigs301119_000327_30fps`
+  - `Pigs301119_000328_30fps`
+- Stop using legacy 21/06 as a decision reference.
+- Current runtime variants to compare are:
+  - C:\Users\ironh\Downloads\PIG_Behavior_Project\outputs\eval\hybrid_bytetrack\Tracking moi tat smooth\yolov8
+  - C:\Users\ironh\Downloads\PIG_Behavior_Project\outputs\eval\hybrid_bytetrack\Tracking moi bat smooth
+- In reports, no smooth is currently worse than smooth; do not assume the unsmoothed runtime is the better baseline.
+- Optimizer default scopes should stay tracking-focused.
+- Detector-only presets were moved to explicit `--scope detector_probe` because `overnight_iou0` showed detector-only metrics were identical to `base`.
+- Continue focusing on code and runtime behavior in association.py and runner.py, not detector weight.

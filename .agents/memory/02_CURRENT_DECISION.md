@@ -1,40 +1,25 @@
-# Current Technical Decision
-
-## Settled facts
-
-- `Pigs291119_000302_30fps` improved mainly because of the new detector weight.
-- `Pigs291119_000263_30fps` IDSW increase is not caused by weight.
-- User confirmed both old and new weights produce IDSW ≈ 6 on current code for `000263`.
-- Legacy 21/06 produced IDSW ≈ 2 for `000263`.
-- Therefore `000263` regression must be investigated as code/config/runtime behavior regression.
+# Current Decision
 
 ## Current baseline
 
-```text
-tracking_mode = hybrid_bytetrack
+- Do not use legacy 21/06 as the primary comparison point anymore.
+- Treat Tracking moi bat smooth as the current quality baseline when reading reports.
+- Tracking moi tat smooth/yolov8 is still a relevant runtime variant, but its reported metrics are currently worse.
+- For optimizer default target-video diagnostics, do not pin `000263`/`000302`.
+- Instead derive the weak default target set from the current no-smooth baseline metrics file:
+  `outputs/eval/hybrid_bytetrack/Tracking mới tắt smooth/yolov8/iou0_area0_condarea0_merge0/tracking_metrics.csv`
+- Do not include detector-only presets (`det_conf`, `max_raw_detections`, `nms_iou` only) in the default optimizer scopes.
+- Artifact `outputs/eval/hybrid_bytetrack/overnight_iou0/optimizer/tracking_optimizer_summary.csv` showed detector-only presets matched `base` metrics for both smooth and no-smooth.
+- Detector-only checks now belong in explicit `--scope detector_probe` runs or explicit `--preset` runs.
 
-USE_IOU_FALLBACK = False
-USE_AREA_OCCLUSION_FREEZE = False
-USE_CONDITIONAL_AREA_OCCLUSION_FREEZE = False
-USE_MERGED_BOX_SPLIT = False
+## Investigation focus
 
-config name = iou0_area0_condarea0_merge0
-```
+- Keep focus on runtime and code-path differences inside hybrid_bytetrack.
+- Primary suspects remain association.py raw_id owner/penalty/bypass logic and all_detection_indices matching.
+- Secondary suspect remains forced post-processing in runner.py for hybrid_bytetrack.
 
-## Current hypothesis
+## Guardrails
 
-Most likely cause of `000263` IDSW regression:
-
-1. `hybrid_bytetrack` currently uses raw ByteTrack ID owner/penalty/bypass logic.
-2. `hybrid_bytetrack` matches `all_detection_indices` too early.
-3. `hybrid_bytetrack` is not equivalent to legacy one-way `tracking_engine.py` from 21/06.
-4. Forced post-processing by mode may also contribute.
-
-## Next recommended patch
-
-Patch `association.py` first:
-
-- Do not apply raw_id owner/penalty/bypass logic to `hybrid_bytetrack`.
-- Keep raw_id logic only for `bytetrack_raw` if needed.
-- Let `hybrid_bytetrack` use safer high-confidence / low-confidence matching, closer to legacy/non-ByteTrack behavior.
-- Do not change weight, detector, condarea, evaluation, or thresholds in the first patch.
+- Do not blame detector weight for the 000263 regression.
+- Do not enable condarea by default without an explicit ablation.
+- Prefer small, reversible patches.

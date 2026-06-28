@@ -1,37 +1,349 @@
-# Scripts Layout
+# Scripts README
 
-Canonical entrypoints in this folder:
+Chay lenh tu thu muc goc repo:
 
-- `track_videos.py`: run tracking on one or more videos
-- `evaluate_tracking.py`: run tracking + GT evaluation
-- `evaluate_best3_roboflow.py`: fixed 3-video benchmark
-- `benchmark_tracking_weights.py`: multi-weight GT benchmark
-- `benchmark_tracking_modes.py`: compare tracking modes side by side
-- `eval_hard_scenes.py`: hard-scene identity diagnostics
-- `detect_single_frame.py`: detector/frame debugging
-- `run_roboflow_tracking.py`: Roboflow detection tracking flow
-- `run_stable_tracking.py`: stable annotation tracking flow
-- `connect_gdrive.py`: local dataset utility
+```cmd
+cd C:\Users\ironh\Downloads\PIG_Behavior_Project
+```
 
-Compatibility wrappers kept for old commands:
+Neu dung moi truong ao:
 
-- `run_tracking.py`
-- `eval_pipeline.py`
-- `run_best3_yolov8_roboflow.py`
-- `run_weight_tracking_gt_benchmark.py`
+```cmd
+.venv\Scripts\python.exe scripts\<script_name>.py ...
+```
 
-Grouped non-canonical scripts:
+Neu Python he thong da dung moi truong du an:
 
-- `_internal/`: agent-only repository utilities
-- `_legacy/`: old ad-hoc or preview scripts not part of the main workflow
-- `_shortcuts/`: Windows `.bat` convenience launchers
+```cmd
+python scripts\<script_name>.py ...
+```
 
-Recommended commands:
+## 1. Entrypoint Chinh
+
+- `track_videos.py`: chay tracking va xuat prediction/XML.
+- `evaluate_tracking.py`: chay tracking + danh gia voi GT XML.
+- `optimize_tracking_metrics.py`: optimizer tu dong tim cau hinh tracking tot.
+- `benchmark_tracking_weights.py`: so sanh nhieu detector weights.
+- `benchmark_tracking_modes.py`: so sanh tracking modes.
+- `evaluate_best3_roboflow.py`: benchmark 3 video co dinh.
+- `eval_hard_scenes.py`: chan doan identity tren scene kho.
+- `detect_single_frame.py`: debug detector tren mot frame.
+
+Compatibility wrappers cu van con:
+
+- `eval_pipeline.py` -> dung thay bang `evaluate_tracking.py`.
+- `run_tracking.py` -> dung thay bang `track_videos.py`.
+- `run_best3_yolov8_roboflow.py` -> dung thay bang `evaluate_best3_roboflow.py`.
+- `run_weight_tracking_gt_benchmark.py` -> dung thay bang `benchmark_tracking_weights.py`.
+- `evaluate_recall_ablation.py` -> dung thay bang `optimize_tracking_metrics.py`.
+
+## 2. Weight Naming
+
+Khong dao nguoc hai file nay:
+
+- `models\detector\pig_detector_yolov8.pt`: weight moi nhat, dang uu tien.
+- `models\detector\pig_detector_yolov8_roboflow.pt`: weight cu da doi ten.
+
+## 3. Tracking Thuong
+
+Chay tracking mot video:
 
 ```cmd
 python scripts\track_videos.py -v Pigs291119_000263_30fps --mode hybrid_bytetrack
+```
+
+Chay tracking tat ca video trong path config:
+
+```cmd
+python scripts\track_videos.py -a --mode hybrid_bytetrack
+```
+
+Chay tracking voi weight cu neu can doi chieu:
+
+```cmd
+python scripts\track_videos.py -v Pigs291119_000263_30fps --mode hybrid_bytetrack --weights models\detector\pig_detector_yolov8_roboflow.pt
+```
+
+## 4. Evaluate Co Ban
+
+Evaluate mot video:
+
+```cmd
 python scripts\evaluate_tracking.py -v Pigs291119_000263_30fps --mode hybrid_bytetrack
-python scripts\evaluate_best3_roboflow.py --tag best3-roboflow
+```
+
+Evaluate tat ca GT video:
+
+```cmd
+python scripts\evaluate_tracking.py -a --mode hybrid_bytetrack
+```
+
+Evaluate tat ca GT video va tat smooth:
+
+```cmd
+python scripts\evaluate_tracking.py -a --mode hybrid_bytetrack --no-smooth
+```
+
+Evaluate mot video va tat smooth:
+
+```cmd
+python scripts\evaluate_tracking.py -v Pigs291119_000263_30fps --mode hybrid_bytetrack --no-smooth
+```
+
+## 5. Tracking Optimizer
+
+Script:
+
+```cmd
+python scripts\optimize_tracking_metrics.py ...
+```
+
+Mac dinh optimizer:
+
+- Dung `hybrid_bytetrack`.
+- Chi toi uu rule combo `iou0_area0_condarea0_merge0`.
+- Test ca `nosmooth` va `smooth`.
+- Xem `smooth` la baseline chat luong hien tai; `nosmooth` chi la nhanh doi chieu.
+- Neu khong truyen `--target-video`, script tu dong lay cac video yeu nhat tu baseline:
+  `outputs\eval\hybrid_bytetrack\Tracking mới tắt smooth\yolov8\iou0_area0_condarea0_merge0\tracking_metrics.csv`.
+- Ghi output vao `outputs\eval\hybrid_bytetrack\<run-name>\optimizer`.
+- Co resume mac dinh, neu cung `--run-name` thi bo qua candidate da co `tracking_metrics.csv`.
+
+Chay nhanh de kiem tra luong:
+
+```cmd
+python scripts\optimize_tracking_metrics.py -a --scope quick --dry-run
+```
+
+Chay probe ngan de xem smooth/no-smooth va cac video yeu nhat auto-discover:
+
+```cmd
+python scripts\optimize_tracking_metrics.py -a --scope quick --smooth-mode both --rank-by identity --run-name optimizer_probe_auto_targets
+```
+
+Chay toi uu mac dinh tren tat ca GT:
+
+```cmd
+python scripts\optimize_tracking_metrics.py -a --run-name optimizer_iou0
+```
+
+Chay balanced chi voi smooth de uu tien baseline hien tai:
+
+```cmd
+python scripts\optimize_tracking_metrics.py -a --scope balanced --smooth --rank-by identity --run-name optimizer_balanced_smooth
+```
+
+Chay `full` tracking-focused theo dung search space hien da duoc khai bao trong
+`optimize_tracking_metrics.py`. Detector van anh huong truc tiep den tracking qua
+confidence gate, missed detection, false positive, overlap/NMS va raw detection
+budget. Tuy nhien, artifact `overnight_iou0` cho thay cac detector-only preset da
+thu (`det_conf`/`nms`/raw budget thuan) cho metric y het `base`, nen khong de
+nhom nay trong scope mac dinh de tranh ton thoi gian va kho doc nguyen nhan.
+
+```cmd
+python scripts\optimize_tracking_metrics.py -a --scope full --run-name overnight_iou0
+```
+
+Luu y: lenh tren du de dao huong tracking hien tai, nhung chua phai joint
+detector+tracking optimization day du. Chi probe detector-only khi can xac minh
+lai gia thuyet detector:
+
+```cmd
+python scripts\optimize_tracking_metrics.py -a --scope detector_probe --run-name detector_probe_iou0
+```
+
+Neu muon doc ro tac dong rieng, chay theo 2 tang thay vi tron ngay tu dau:
+
+```cmd
+python scripts\optimize_tracking_metrics.py -a --scope full --smooth --rank-by identity --run-name overnight_iou0_tracking_focused
+python scripts\optimize_tracking_metrics.py -a --scope detector_probe --smooth --rank-by identity --run-name detector_probe_iou0
+```
+
+Chay `full` theo search space hien da duoc khai bao cho combo `iou1_area0_condarea0_merge0`:
+
+```cmd
+python scripts\optimize_tracking_metrics.py -a --scope full --rule-scope iou --run-name overnight_iou1
+```
+
+Chi chay no-smooth:
+
+```cmd
+python scripts\optimize_tracking_metrics.py -a --scope full --no-smooth --run-name overnight_iou0_nosmooth
+```
+
+Chi chay smooth:
+
+```cmd
+python scripts\optimize_tracking_metrics.py -a --scope full --smooth --run-name overnight_iou0_smooth
+```
+
+Chay tren mot video de debug truoc:
+
+```cmd
+python scripts\optimize_tracking_metrics.py -v Pigs291119_000263_30fps --scope quick --no-smooth --run-name debug_000263
+```
+
+Chi dinh ro video muc tieu trong ranking/report:
+
+```cmd
+python scripts\optimize_tracking_metrics.py -a --scope balanced --smooth --target-video Pigs291119_000263_30fps --target-video Pigs291119_000226_30fps --target-video Pigs301119_000327_30fps --target-video Pigs301119_000328_30fps --run-name optimizer_targets
+```
+
+Xem preset optimizer:
+
+```cmd
+python scripts\optimize_tracking_metrics.py --list-presets
+```
+
+Preset hien tai khong chi quet `det_conf`. Search space duoc chia theo family:
+
+- `baseline`: moc so sanh `base`.
+- `detection`: `det_conf`, `max_raw_detections`, `nms_iou`; nhom nay anh huong tracking nhung chi nam trong `--scope detector_probe` vi artifact hien tai chua cho thay tin hieu tot hon `base`.
+- `association`: `track_high_conf`, `track_match_iou`, `motion_gate`, `reid`, low-conf motion.
+- `lifecycle`: `max_missing_frames`, `max_lost_frames`.
+- `occlusion_identity`: identity guard, occlusion penalties, hidden motion.
+- `smoothing`: smoothing alpha, refinement gap.
+
+Quan trong:
+
+- `--scope full` chi mo rong het cac preset da duoc script khai bao.
+- `--scope full` mac dinh khong con chay detector-only preset vi artifact `overnight_iou0` da cho thay nhom nay khong co tin hieu trong cau hinh hien tai.
+- Dung `--scope detector_probe` hoac `--preset <ten_preset>` neu muon chay lai detector-only.
+- Khong dien giai `detector_probe` la "detector khong lien quan tracking"; day chi la cach tach thuc nghiem de doc nguyen nhan ro hon.
+- Hien tai chua co lenh san nao de quet "full moi chi so" trong toan bo `src\pig_behavior\tracking\constants.py`.
+- Muon co lenh do, can tiep tuc mo rong `optimize_tracking_metrics.py` de dua them cac tham so chua duoc expose vao preset/override.
+
+Output quan trong:
+
+- `tracking_optimizer_ranked.csv`: bang xep hang de chon cau hinh.
+- `tracking_optimizer_summary.csv`: tat ca candidate, delta voi baseline, stability, Pareto.
+- `tracking_optimizer_detailed_metrics.csv`: metric tung video va ALL.
+- `tracking_optimizer_report.md`: bao cao top results.
+- `tracking_optimizer_manifest.json`: cau hinh chay va search plan.
+
+Cot nen xem dau tien:
+
+- `selection_score`: diem tong hop can bang.
+- `is_pareto_optimal`: candidate khong bi candidate khac ap dao tren nhieu muc tieu.
+- `preset_family`: candidate thuoc nhom detection / association / lifecycle / occlusion_identity / smoothing nao.
+- `remapped_hota_pct`, `remapped_idf1_pct`, `remapped_idsw`.
+- `target_total_idsw`, `target_min_hota_pct`: tong IDSW va HOTA xau nhat tren cac video muc tieu.
+- `target_<video_key>_*`: cac cot chi tiet cho tung video muc tieu. Video key duoc rut gon tu stem, vi du `000263`, `000226`, `000327`, `000328`.
+- `fn`, `fp`, `fragments`.
+- `worst_video_hota_pct`, `max_video_idsw`, `hota_std`.
+- `delta_*`: chenh lech so voi preset `base` cung smooth/rule combo.
+- Trong `tracking_optimizer_report.md`, xem them 2 bang:
+  `Baseline Diagnostics` va `Best By Preset Family`.
+
+## 6. Chon Rule Combo
+
+Mac dinh:
+
+```cmd
+python scripts\optimize_tracking_metrics.py -a --scope full --run-name overnight_iou0
+```
+
+Tuong ung:
+
+```text
+iou0_area0_condarea0_merge0
+USE_IOU_FALLBACK=False
+USE_AREA_OCCLUSION_FREEZE=False
+USE_CONDITIONAL_AREA_OCCLUSION_FREEZE=False
+USE_MERGED_BOX_SPLIT=False
+```
+
+Neu muon test combo gan tuong duong nhung co IoU fallback:
+
+```cmd
+python scripts\optimize_tracking_metrics.py -a --scope full --rule-scope iou --run-name overnight_iou1
+```
+
+Tuong ung:
+
+```text
+iou1_area0_condarea0_merge0
+USE_IOU_FALLBACK=True
+USE_AREA_OCCLUSION_FREEZE=False
+USE_CONDITIONAL_AREA_OCCLUSION_FREEZE=False
+USE_MERGED_BOX_SPLIT=False
+```
+
+## 7. Smooth / No-Smooth
+
+No-smooth trong optimizer gom:
+
+```text
+enable_offline_smoothing=False
+identity_swap_guard=False
+smooth_boxes=False
+refine_boxes=False
+```
+
+Smooth trong optimizer gom:
+
+```text
+enable_offline_smoothing=True
+identity_swap_guard=True
+smooth_boxes=True
+refine_boxes=True
+```
+
+Nen doc ket qua theo thu tu:
+
+- `smooth`: baseline chat luong hien tai can bao ve.
+- `nosmooth`: chi de biet loi/xau den tu post-processing hay tu tracking truoc smoothing.
+
+Lenh chi chay no-smooth:
+
+```cmd
+python scripts\optimize_tracking_metrics.py -a --scope full --no-smooth --run-name overnight_nosmooth
+```
+
+Lenh chi chay smooth:
+
+```cmd
+python scripts\optimize_tracking_metrics.py -a --scope full --smooth --run-name overnight_smooth
+```
+
+## 8. Benchmark Weight
+
+Benchmark tracking voi weight mac dinh:
+
+```cmd
 python scripts\benchmark_tracking_weights.py --mode hybrid_bytetrack
+```
+
+Benchmark mode voi weight cu:
+
+```cmd
 python scripts\benchmark_tracking_modes.py --weights models\detector\pig_detector_yolov8_roboflow.pt --video data\videos\Pigs291119_000263_30fps.mp4
 ```
+
+## 9. Best3 Roboflow
+
+Chay benchmark 3 video co dinh:
+
+```cmd
+python scripts\evaluate_best3_roboflow.py --tag best3-roboflow
+```
+
+## 10. Debug
+
+Debug detector mot frame:
+
+```cmd
+python scripts\detect_single_frame.py --video data\videos\Pigs291119_000263_30fps.mp4 --frame 547
+```
+
+Chan doan identity scene kho:
+
+```cmd
+python scripts\eval_hard_scenes.py
+```
+
+## 11. Thu Muc Script Phu
+
+- `scripts\_internal`: tien ich noi bo cho agent/repo.
+- `scripts\_legacy`: script cu, khong phai workflow chinh.
+- `scripts\_shortcuts`: file `.bat` tien loi tren Windows.

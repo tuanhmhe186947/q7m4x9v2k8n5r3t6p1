@@ -1,5 +1,6 @@
 import re
 from pathlib import Path
+
 import pandas as pd
 
 ROOT = Path(r"C:\Users\ironh\Downloads\PIG_Behavior_Project")
@@ -43,7 +44,7 @@ dup_pairs = set(
 def pair_is_dup(df):
     return [
         (str(g), str(p)) in dup_pairs
-        for g, p in zip(df["group_id"], df["pig_id"])
+        for g, p in zip(df["group_id"], df["pig_id"], strict=False)
     ]
 
 bbox["duplicate_video_by_pair"] = pair_is_dup(bbox)
