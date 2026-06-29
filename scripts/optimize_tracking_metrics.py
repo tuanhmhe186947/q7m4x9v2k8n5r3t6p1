@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import multiprocessing as mp
 import re
 import sys
 import time
@@ -494,14 +495,54 @@ def contains_arg(args: list[str], *names: str) -> bool:
     return False
 
 
+def run_pipeline_worker(config):
+    from pig_behavior.evaluation.tracking.pipeline import run_pipeline  # noqa: PLC0415
+
+    _, metrics_df, _ = run_pipeline(config)
+    return metrics_df
+
+
+def run_pipeline_isolated(config):
+    ctx = mp.get_context("spawn")
+    with ctx.Pool(processes=1) as pool:
+        return pool.apply(run_pipeline_worker, (config,))
+
+
+def gt_backed_profile_videos(args: argparse.Namespace) -> str:
+    from pig_behavior.evaluation.tracking.pipeline import find_gt_xml_for_video  # noqa: PLC0415
+    from pig_behavior.tracking_path_config import (  # noqa: PLC0415
+        load_tracking_path_profile,
+        profile_path,
+        profile_video_paths,
+    )
+
+    profile = load_tracking_path_profile(
+        Path(args.path_config) if args.path_config else None,
+        args.profile,
+    )
+    gt_dir = profile_path(
+        profile,
+        "gt_dir",
+        PROJECT_ROOT / "data" / "annotations" / "tracking",
+    ) or PROJECT_ROOT / "data" / "annotations" / "tracking"
+    valid_videos = [
+        video_path
+        for video_path in profile_video_paths(profile)
+        if find_gt_xml_for_video(video_path, gt_dir) is not None
+    ]
+    if not valid_videos:
+        raise SystemExit("No configured videos have matching GT XML.")
+    return ",".join(str(video_path) for video_path in valid_videos)
+
+
 def build_pipeline_argv(args: argparse.Namespace, extras: list[str], run_name: str) -> list[str]:
     pipeline_argv: list[str] = []
     if args.all_videos:
-        pipeline_argv.append("--all-config-videos")
+        pipeline_argv.extend(["--video", gt_backed_profile_videos(args)])
     elif args.video:
         pipeline_argv.extend(["--video", args.video])
     else:
-        pipeline_argv.append("--all-config-videos")
+        pipeline_argv.extend(["--video", gt_backed_profile_videos(args)])
 
     if args.profile:
         pipeline_argv.extend(["--profile", args.profile])
@@ -1129,7 +1170,6 @@ def main(argv: list[str] | None = None) -> int:
         print_plan(rules, smooth_modes, presets)
         return 0
 
-    from pig_behavior.evaluation.tracking.pipeline import run_pipeline  # noqa: PLC0415
     from pig_behavior.evaluation.tracking_pipeline import (  # noqa: PLC0415
         config_from_args,
     )
@@ -1191,7 +1231,7 @@ def main(argv: list[str] | None = None) -> int:
                             profile_overrides=profile_overrides,
                             **rule.flags,
                         )
-                        _, metrics_df, _ = run_pipeline(run_config)
+                        metrics_df = run_pipeline_isolated(run_config)
                         elapsed = time.perf_counter() - started
                         status = "completed"
 

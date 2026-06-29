@@ -78,6 +78,17 @@ Evaluate tat ca GT video:
 python scripts\evaluate_tracking.py -a --mode hybrid_bytetrack
 ```
 
+Mac dinh lenh evaluate do dung mot tracking config. Day la lenh dung de bao
+cao chi so khoa hoc cho mot moc tracking cu the.
+
+Neu can tai lap benchmark-compatible matrix cu, bat ro:
+
+```cmd
+python scripts\evaluate_tracking.py -a --mode hybrid_bytetrack --benchmark-compatible
+```
+
+Optimizer moi la noi chay nhieu cau hinh de tim cau hinh tot nhat.
+
 Evaluate tat ca GT video va tat smooth:
 
 ```cmd
@@ -91,6 +102,13 @@ python scripts\evaluate_tracking.py -v Pigs291119_000263_30fps --mode hybrid_byt
 ```
 
 ## 5. Tracking Optimizer
+
+Nguyen tac hien tai:
+
+- `evaluate_tracking.py` mac dinh do dung mot tracking config; dung `--benchmark-compatible` neu can tai lap matrix cu.
+- `optimize_tracking_metrics.py` thay profile override cho tung candidate, sau do chay cung pipeline evaluate.
+- Moi candidate optimizer chay trong process rieng de tranh state leak giua cac candidate.
+- `-a/--all-videos` cua optimizer chi lay cac video co GT XML, giong evaluate.
 
 Script:
 
@@ -175,6 +193,12 @@ Chi chay smooth:
 
 ```cmd
 python scripts\optimize_tracking_metrics.py -a --scope full --smooth --run-name overnight_iou0_smooth
+```
+
+So sanh toi thieu base voi mot preset smooth cu the:
+
+```cmd
+python scripts\optimize_tracking_metrics.py -a --tracking-mode hybrid_bytetrack --scope full --rule-scope baseline --smooth --rank-by identity --preset base --preset smooth_responsive --run-name clean_base_vs_responsive_isolated --no-resume
 ```
 
 Chay tren mot video de debug truoc:
@@ -307,6 +331,10 @@ python scripts\optimize_tracking_metrics.py -a --scope full --smooth --run-name 
 ```
 
 ## 8. Benchmark Weight
+
+`evaluate_tracking.py` mac dinh do dung mot tracking config. Dung
+`--benchmark-compatible` chi khi can tai lap detector/rule matrix cu; khong dung
+matrix nay lam chi so cho mot config tracking don le.
 
 Benchmark tracking voi weight mac dinh:
 

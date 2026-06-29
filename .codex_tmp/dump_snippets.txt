@@ -1,0 +1,321 @@
+--- scripts/evaluate_tracking.py:110-190 ---
+110:             for video_path in skipped_video_paths:
+111:                 print(f" - {video_path.name}", file=sys.stderr)
+112:             return 1
+113:         label = "Skipping" if args.skip_missing_gt else "Warning"
+114:         print(f"{label}: videos without GT XML:")
+115:         for video_path in skipped_video_paths:
+116:             print(f" - {video_path.name}")
+117: 
+118:     if not valid_video_paths:
+119:         print("Error: No videos matching GT XML found.", file=sys.stderr)
+120:         return 1
+121: 
+122:     script_path = PROJECT_ROOT / "src" / "pig_behavior" / "evaluation" / "tracking_pipeline.py"
+123:     run_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+124:     default_prediction_root = PROJECT_ROOT / "outputs" / "pred" / args.mode / run_timestamp
+125:     default_output_root = PROJECT_ROOT / "outputs" / "eval" / args.mode / run_timestamp
+126:     has_prediction_root = "--prediction-root" in pipeline_extra_args
+127:     has_output_root = "--output-root" in pipeline_extra_args
+128:     has_force_track_arg = "--force-track" in pipeline_extra_args
+129:     has_benchmark_arg = any(arg in {"--benchmark-rules", "--no-benchmark-rules"} for arg in pipeline_extra_args)
+130:     has_smoothing_arg = any(
+131:         arg
+132:         in {
+133:             "--enable-offline-smoothing",
+134:             "--no-enable-offline-smoothing",
+135:             "--identity-swap-guard",
+136:             "--no-identity-swap-guard",
+137:             "--smooth-boxes",
+138:             "--no-smooth-boxes",
+139:             "--refine-boxes",
+140:             "--no-refine-boxes",
+141:         }
+142:         for arg in pipeline_extra_args
+143:     )
+144: 
+145:     prediction_root = Path(_extra_arg_value(pipeline_extra_args, "--prediction-root") or default_prediction_root)
+146:     output_root = Path(_extra_arg_value(pipeline_extra_args, "--output-root") or default_output_root)
+147: 
+148:     cmd = [
+149:         sys.executable,
+150:         str(script_path),
+151:         "--video",
+152:         ",".join(str(video_path) for video_path in valid_video_paths),
+153:         "--tracking-mode",
+154:         args.mode,
+155:     ]
+156:     if args.profile:
+157:         cmd.extend(["--profile", args.profile])
+158:     if args.path_config:
+159:         cmd.extend(["--path-config", args.path_config])
+160:     if not has_force_track_arg:
+161:         cmd.append("--force-track")
+162:     if not has_benchmark_arg:
+163:         cmd.append("--benchmark-rules")
+164:     if "--benchmark-detectors" not in pipeline_extra_args:
+165:         cmd.append("--benchmark-detectors")
+166:     if args.mode in {"hybrid_bytetrack", "bytetrack", "gt_export"} and args.smooth and not has_smoothing_arg:
+167:         cmd.extend(
+168:             [
+169:                 "--enable-offline-smoothing",
+170:                 "--identity-swap-guard",
+171:                 "--smooth-boxes",
+172:                 "--refine-boxes",
+173:             ]
+174:         )
+175:     if not has_prediction_root:
+176:         cmd.extend(["--prediction-root", str(prediction_root)])
+177:     if not has_output_root:
+178:         cmd.extend(["--output-root", str(output_root)])
+179:     cmd.extend(pipeline_extra_args)
+180: 
+181:     print(f"Command: {' '.join(cmd)}")
+182:     result = subprocess.run(cmd, cwd=PROJECT_ROOT)
+183:     print(f"\nBenchmark output: {output_root}")
+184:     return result.returncode
+185: 
+186: 
+187: if __name__ == "__main__":
+188:     raise SystemExit(main())
+--- scripts/optimize_tracking_metrics.py:1160-1235 ---
+1160:         "smooth_modes": [asdict(mode) for mode in smooth_modes],
+1161:         "presets": [asdict(preset) for preset in presets],
+1162:     }
+1163: 
+1164:     print_plan(rules, smooth_modes, presets)
+1165:     run_index = 0
+1166:     for rule in rules:
+1167:         for smooth in smooth_modes:
+1168:             for preset in presets:
+1169:                 run_index += 1
+1170:                 name = candidate_name(rule, smooth, preset)
+1171:                 run_dir = optimizer_output_root / name
+1172:                 pred_dir = optimizer_prediction_root / name
+1173:                 print(f"[{run_index}/{total_runs}] {name}")
+1174:                 started = time.perf_counter()
+1175:                 try:
+1176:                     existing_df = read_existing_metrics(run_dir) if args.resume else None
+1177:                     if existing_df is not None:
+1178:                         metrics_df = existing_df
+1179:                         status = "resumed"
+1180:                         elapsed = 0.0
+1181:                     else:
+1182:                         profile_overrides = dict(base_config.profile_overrides or {})
+1183:                         profile_overrides.update(smooth.overrides)
+1184:                         profile_overrides.update(preset.overrides)
+1185:                         run_config = replace(
+1186:                             base_config,
+1187:                             prediction_root=pred_dir,
+1188:                             output_root=run_dir,
+1189:                             run_missing_tracker=True,
+1190:                             force_track=True,
+1191:                             profile_overrides=profile_overrides,
+1192:                             **rule.flags,
+1193:                         )
+1194:                         _, metrics_df, _ = run_pipeline(run_config)
+1195:                         elapsed = time.perf_counter() - started
+1196:                         status = "completed"
+1197: 
+1198:                     summary_rows.append(
+1199:                         summary_from_metrics(
+1200:                             metrics_df,
+1201:                             name=name,
+1202:                             rule=rule,
+1203:                             smooth=smooth,
+1204:                             preset=preset,
+1205:                             run_dir=run_dir,
+1206:                             elapsed_sec=elapsed,
+1207:                             status=status,
+1208:                             target_video_stems=target_video_stems,
+1209:                         )
+1210:                     )
+1211:                     tagged_metrics = metrics_df.copy()
+1212:                     tagged_metrics.insert(0, "candidate", name)
+1213:                     tagged_metrics.insert(1, "rule_combo", rule.name)
+1214:                     tagged_metrics.insert(2, "smooth_mode", smooth.name)
+1215:                     tagged_metrics.insert(3, "preset", preset.name)
+1216:                     detailed_frames.append(tagged_metrics)
+1217:                 except Exception as exc:  # noqa: BLE001
+1218:                     elapsed = time.perf_counter() - started
+1219:                     summary_rows.append(
+1220:                         failure_summary(
+1221:                             name=name,
+1222:                             rule=rule,
+1223:                             smooth=smooth,
+1224:                             preset=preset,
+1225:                             run_dir=run_dir,
+1226:                             elapsed_sec=elapsed,
+1227:                             error=f"{type(exc).__name__}: {exc}",
+1228:                             target_video_stems=target_video_stems,
+1229:                         )
+1230:                     )
+1231:                     print(f"[failed] {name}: {type(exc).__name__}: {exc}")
+1232:                     if args.fail_fast:
+1233:                         raise
+1234:                 finally:
+1235:                     write_outputs(
+--- src/pig_behavior/evaluation/tracking_pipeline.py:40-120 ---
+40: def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+41:     """Parse CLI args."""
+42:     parser = argparse.ArgumentParser(
+43:         description="Run pig tracking prediction and evaluate against CVAT XML labels.",
+44:     )
+45:     parser.add_argument("--video", type=Path, default=None)
+46:     parser.add_argument("--video-key", type=str, default=None)
+47:     parser.add_argument(
+48:         "--all-config-videos",
+49:         action="store_true",
+50:         help="Evaluate every video listed in the selected tracking path profile.",
+51:     )
+52:     parser.add_argument(
+53:         "--path-config",
+54:         type=Path,
+55:         default=DEFAULT_TRACKING_PATH_CONFIG,
+56:         help="JSON path profile file for fast video/dir switching.",
+57:     )
+58:     parser.add_argument("--profile", type=str, default=None)
+59:     parser.add_argument("--gt-xml", type=Path, default=None)
+60:     parser.add_argument("--gt-dir", type=Path, default=None)
+61:     parser.add_argument("--video-dir", type=Path, default=None)
+62:     parser.add_argument("--prediction-root", type=Path, default=None)
+63:     parser.add_argument("--output-root", type=Path, default=None)
+64:     parser.add_argument("--weights", type=Path, default=None)
+65:     parser.add_argument(
+66:         "--weights-v26",
+67:         type=Path,
+68:         default=DETECTOR_WEIGHTS_V26,
+69:         help="YOLOv26 detector weights used only by --benchmark-detectors.",
+70:     )
+71:     parser.add_argument("--mask", type=Path, default=None)
+72:     parser.add_argument("--iou-threshold", type=float, default=0.5)
+73:     parser.add_argument("--include-hidden", action="store_true")
+74:     parser.add_argument(
+75:         "--gap-tolerance-frames",
+76:         type=int,
+77:         default=15,
+78:         help=(
+79:             "Merge continuity gaps up to this many frames for gap-tolerant "
+80:             "fragment/tracklet metrics. Use 0 for strict frame-by-frame scoring."
+81:         ),
+82:     )
+83:     parser.add_argument(
+84:         "--run-missing-tracker",
+85:         action=argparse.BooleanOptionalAction,
+86:         default=True,
+87:         help=(
+88:             "Run the package tracking annotator for videos without prediction XML. "
+89:             "Use --no-run-missing-tracker to evaluate only existing predictions."
+90:         ),
+91:     )
+92:     parser.add_argument(
+93:         "--force-track",
+94:         action="store_true",
+95:         help="Always rerun tracker before evaluation, even if prediction XML exists.",
+96:     )
+97:     parser.add_argument(
+98:         "--device",
+99:         type=str,
+100:         default=None,
+101:         help="Torch device for YOLO inference, for example '0' or 'cpu'.",
+102:     )
+103:     parser.add_argument("--half", action="store_true")
+104:     parser.add_argument(
+105:         "--enable-offline-smoothing",
+106:         action=argparse.BooleanOptionalAction,
+107:         default=None,
+108:         help="Override tracker offline smoothing for generated prediction XML.",
+109:     )
+110:     parser.add_argument(
+111:         "--identity-swap-guard",
+112:         action=argparse.BooleanOptionalAction,
+113:         default=None,
+114:         help="Override tracker identity swap guard for generated prediction XML.",
+115:     )
+116:     parser.add_argument(
+117:         "--smooth-boxes",
+118:         action=argparse.BooleanOptionalAction,
+119:         default=None,
+120:         help="Override tracker temporal box smoothing for generated prediction XML.",
+--- src/pig_behavior/evaluation/tracking_pipeline.py:220-310 ---
+220:             if value is not None
+221:         }
+222:     )
+223: 
+224:     return TrackingEvaluationPipelineConfig(
+225:         video_path=video_path,
+226:         video_paths=video_paths,
+227:         gt_xml=args.gt_xml,
+228:         gt_dir=args.gt_dir
+229:         or profile_path(profile, "gt_dir", TRACKING_GT_DIR)
+230:         or TRACKING_GT_DIR,
+231:         video_dir=args.video_dir
+232:         or profile_path(profile, "video_dir", VIDEO_DIR)
+233:         or VIDEO_DIR,
+234:         prediction_root=args.prediction_root
+235:         or profile_path(profile, "prediction_root", PREDICTION_ROOT)
+236:         or PREDICTION_ROOT,
+237:         output_root=args.output_root
+238:         or profile_path(profile, "evaluation_output_root", EVAL_OUTPUT_ROOT)
+239:         or EVAL_OUTPUT_ROOT,
+240:         weights_path=args.weights
+241:         or profile_path(profile, "weights", DETECTOR_WEIGHTS_V8)
+242:         or DETECTOR_WEIGHTS_V8,
+243:         weights_v26_path=args.weights_v26,
+244:         mask_path=args.mask or profile_path(profile, "mask", None),
+245:         iou_threshold=args.iou_threshold,
+246:         include_hidden=args.include_hidden,
+247:         gap_tolerance_frames=args.gap_tolerance_frames,
+248:         run_missing_tracker=args.run_missing_tracker,
+249:         force_track=args.force_track,
+250:         max_frames=args.max_frames,
+251:         device=args.device,
+252:         half=args.half,
+253:         USE_IOU_FALLBACK=args.use_iou_fallback,
+254:         USE_AREA_OCCLUSION_FREEZE=args.use_area_occlusion_freeze,
+255:         USE_CONDITIONAL_AREA_OCCLUSION_FREEZE=(
+256:             args.use_conditional_area_occlusion_freeze
+257:         ),
+258:         USE_MERGED_BOX_SPLIT=args.use_merged_box_split,
+259:         tracking_mode=tracking_mode,
+260:         profile_overrides=profile_overrides,
+261:     )
+262: 
+263: 
+264: def main() -> int:
+265:     """CLI entry point."""
+266:     args = parse_args()
+267:     config = config_from_args(args)
+268:     if args.benchmark_detectors:
+269:         summary_df, detailed_metrics_df, output_dir = run_tracking_detector_benchmark(
+270:             config,
+271:         )
+272:         print("[detector-benchmark-summary]")
+273:         print(summary_df.to_string(index=False))
+274:         print("[detector-benchmark-detailed-metrics]")
+275:         print(detailed_metrics_df.to_string(index=False))
+276:         print("[detector-benchmark-output]", output_dir)
+277:         return 0
+278: 
+279:     if args.benchmark_rules:
+280:         summary_df, detailed_metrics_df, output_dir = run_tracking_rule_benchmark(
+281:             config,
+282:         )
+283:         print("[benchmark-summary]")
+284:         print(summary_df.to_string(index=False))
+285:         print("[benchmark-detailed-metrics]")
+286:         print(detailed_metrics_df.to_string(index=False))
+287:         print("[benchmark-output]", output_dir)
+288:         return 0
+289: 
+290:     asset_df, metrics_df, output_dir = run_pipeline(config)
+291:     print("[assets]")
+292:     print(asset_df.to_string(index=False))
+293:     print("[metrics]")
+294:     print(metrics_df.to_string(index=False))
+295:     print("[output]", output_dir)
+296:     return 0
+297: 
+298: 
+299: if __name__ == "__main__":
+300:     raise SystemExit(main())

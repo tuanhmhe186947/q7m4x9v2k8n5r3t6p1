@@ -21,8 +21,35 @@ from pig_behavior.tracking_path_config import (  # noqa: E402
     profile_video_paths,
 )
 
+EVAL_CONFIG_OVERRIDES: dict[str, dict[str, object]] = {
+    "base": {
+        "USE_IOU_FALLBACK": False,
+        "USE_AREA_OCCLUSION_FREEZE": False,
+        "USE_CONDITIONAL_AREA_OCCLUSION_FREEZE": False,
+        "USE_MERGED_BOX_SPLIT": False,
+        "enable_offline_smoothing": True,
+        "identity_swap_guard": True,
+        "smooth_boxes": True,
+        "refine_boxes": True,
+    },
+    "iou0_area0_condarea0_merge0_smooth_det020_loose_motion": {
+        "USE_IOU_FALLBACK": False,
+        "USE_AREA_OCCLUSION_FREEZE": False,
+        "USE_CONDITIONAL_AREA_OCCLUSION_FREEZE": False,
+        "USE_MERGED_BOX_SPLIT": False,
+        "enable_offline_smoothing": True,
+        "identity_swap_guard": True,
+        "smooth_boxes": True,
+        "refine_boxes": True,
+        "det_conf": 0.20,
+        "low_conf_max_center_jump": 0.10,
+        "low_conf_max_box_jump_scale": 2.00,
+        "max_raw_detections": 64,
+    },
+}
 
-def parse_args() -> tuple[argparse.Namespace, list[str]]:
+
+def parse_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, list[str]]:
     parser = argparse.ArgumentParser(
         description="Run tracking evaluation on one or more videos.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -46,6 +73,31 @@ Examples:
     parser.add_argument("--skip-missing-gt", action="store_true")
     parser.add_argument("--fail-missing-gt", action="store_true")
     parser.add_argument(
+        "--single-config",
+        action="store_true",
+        help=(
+            "Run one exact evaluation config. This is now the default; the flag "
+            "is kept for older command lines."
+        ),
+    )
+    parser.add_argument(
+        "--benchmark-compatible",
+        action="store_true",
+        help=(
+            "Run the legacy benchmark-compatible detector/rule matrix. "
+            "Use this for benchmark-suite reproduction, not single-config reporting."
+        ),
+    )
+    parser.add_argument(
+        "--eval-config",
+        action="append",
+        default=None,
+        help=(
+            "Run a named direct evaluation config. Can be repeated. "
+            "Using this disables the benchmark-compatible detector/rule matrix."
+        ),
+    )
+    parser.add_argument(
         "--smooth",
         action=argparse.BooleanOptionalAction,
         default=True,
@@ -54,7 +106,7 @@ Examples:
             "the best3 Roboflow benchmark for hybrid_bytetrack runs."
         ),
     )
-    return parser.parse_known_args()
+    return parser.parse_known_args(argv)
 
 
 def _resolve_videos(args: argparse.Namespace, profile: dict[str, object]) -> list[Path]:
@@ -92,6 +144,24 @@ def _extra_arg_value(extra_args: list[str], name: str) -> str | None:
         return None
 
 
+def _selected_eval_configs(raw_configs: list[str] | None) -> list[str]:
+    if not raw_configs:
+        return []
+    selected: list[str] = []
+    for raw_config in raw_configs:
+        selected.extend(part.strip() for part in raw_config.split(",") if part.strip())
+    unknown = sorted(set(selected) - set(EVAL_CONFIG_OVERRIDES))
+    if unknown:
+        raise ValueError(f"Unknown eval config(s): {', '.join(unknown)}")
+    return selected
+
+
+def _format_profile_override_value(value: object) -> str:
+    if isinstance(value, bool):
+        return str(value).lower()
+    return str(value)
+
+
 def main() -> int:
     args, pipeline_extra_args = parse_args()
     path_config = Path(args.path_config) if args.path_config else None
@@ -117,6 +187,18 @@ def main() -> int:
 
     if not valid_video_paths:
         print("Error: No videos matching GT XML found.", file=sys.stderr)
+        return 1
+    try:
+        selected_eval_configs = _selected_eval_configs(args.eval_config)
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    if selected_eval_configs and args.benchmark_compatible:
+        print(
+            "Error: --eval-config evaluates exact configs and cannot be combined "
+            "with --benchmark-compatible.",
+            file=sys.stderr,
+        )
         return 1
 
     script_path = PROJECT_ROOT / "src" / "pig_behavior" / "evaluation" / "tracking_pipeline.py"
@@ -159,9 +241,12 @@ def main() -> int:
         cmd.extend(["--path-config", args.path_config])
     if not has_force_track_arg:
         cmd.append("--force-track")
-    if not has_benchmark_arg:
+    if args.benchmark_compatible and not has_benchmark_arg:
         cmd.append("--benchmark-rules")
-    if "--benchmark-detectors" not in pipeline_extra_args:
+    if (
+        args.benchmark_compatible
+        and "--benchmark-detectors" not in pipeline_extra_args
+    ):
         cmd.append("--benchmark-detectors")
     if args.mode in {"hybrid_bytetrack", "bytetrack", "gt_export"} and args.smooth and not has_smoothing_arg:
         cmd.extend(
@@ -172,16 +257,43 @@ def main() -> int:
                 "--refine-boxes",
             ]
         )
-    if not has_prediction_root:
-        cmd.extend(["--prediction-root", str(prediction_root)])
-    if not has_output_root:
-        cmd.extend(["--output-root", str(output_root)])
-    cmd.extend(pipeline_extra_args)
+    commands: list[tuple[str | None, list[str], Path]] = []
+    if selected_eval_configs:
+        for config_name in selected_eval_configs:
+            config_cmd = list(cmd)
+            for key, value in EVAL_CONFIG_OVERRIDES[config_name].items():
+                config_cmd.extend(
+                    [
+                        "--profile-override",
+                        f"{key}={_format_profile_override_value(value)}",
+                    ]
+                )
+            config_output_root = output_root / config_name
+            config_prediction_root = prediction_root / config_name
+            if not has_prediction_root:
+                config_cmd.extend(["--prediction-root", str(config_prediction_root)])
+            if not has_output_root:
+                config_cmd.extend(["--output-root", str(config_output_root)])
+            config_cmd.extend(pipeline_extra_args)
+            commands.append((config_name, config_cmd, config_output_root))
+    else:
+        if not has_prediction_root:
+            cmd.extend(["--prediction-root", str(prediction_root)])
+        if not has_output_root:
+            cmd.extend(["--output-root", str(output_root)])
+        cmd.extend(pipeline_extra_args)
+        commands.append((None, cmd, output_root))
 
-    print(f"Command: {' '.join(cmd)}")
-    result = subprocess.run(cmd, cwd=PROJECT_ROOT)
-    print(f"\nBenchmark output: {output_root}")
-    return result.returncode
+    return_code = 0
+    for config_name, run_cmd, run_output_root in commands:
+        label = f" [{config_name}]" if config_name else ""
+        print(f"Command{label}: {' '.join(run_cmd)}")
+        result = subprocess.run(run_cmd, cwd=PROJECT_ROOT)
+        if result.returncode != 0:
+            return_code = result.returncode
+            break
+        print(f"\nBenchmark output{label}: {run_output_root}")
+    return return_code
 
 
 if __name__ == "__main__":

@@ -3,8 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import cv2
-import pandas as pd
 import numpy as np
+import pandas as pd
 from tqdm import tqdm
 
 from .anchor_builder import build_anchor_records

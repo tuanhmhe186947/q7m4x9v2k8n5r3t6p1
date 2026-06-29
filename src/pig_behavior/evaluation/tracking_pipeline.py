@@ -162,7 +162,50 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument("--max-frames", type=int, default=None)
+    parser.add_argument(
+        "--profile-override",
+        action="append",
+        default=[],
+        metavar="KEY=VALUE",
+        help=(
+            "Override a TrackingConfig profile field for this run. "
+            "May be repeated; VALUE is parsed as bool, int, float, or string."
+        ),
+    )
     return parser.parse_args(argv)
+
+
+def parse_profile_override_value(raw_value: str) -> object:
+    normalized = raw_value.strip()
+    lowered = normalized.lower()
+    if lowered in {"true", "false"}:
+        return lowered == "true"
+    if lowered in {"none", "null"}:
+        return None
+    try:
+        return int(normalized)
+    except ValueError:
+        pass
+    try:
+        return float(normalized)
+    except ValueError:
+        return raw_value
+
+
+def parse_profile_overrides(
+    raw_overrides: list[str],
+    allowed_fields: set[str],
+) -> dict[str, object]:
+    parsed: dict[str, object] = {}
+    for item in raw_overrides:
+        if "=" not in item:
+            raise ValueError(f"--profile-override must be KEY=VALUE, got: {item}")
+        key, raw_value = item.split("=", 1)
+        key = key.strip()
+        if key not in allowed_fields:
+            raise ValueError(f"Unknown TrackingConfig override: {key}")
+        parsed[key] = parse_profile_override_value(raw_value)
+    return parsed
 
 
 def config_from_args(args: argparse.Namespace) -> TrackingEvaluationPipelineConfig:
@@ -193,6 +236,9 @@ def config_from_args(args: argparse.Namespace) -> TrackingEvaluationPipelineConf
     from pig_behavior.tracking.config import TrackingConfig
     tracker_fields = set(TrackingConfig.__dataclass_fields__.keys())
     profile_overrides = {k: v for k, v in profile.items() if k in tracker_fields}
+    profile_overrides.update(
+        parse_profile_overrides(args.profile_override, tracker_fields)
+    )
 
     tracking_mode = args.tracking_mode
     if "mode" in profile_overrides:
