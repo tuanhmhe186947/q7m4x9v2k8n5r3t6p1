@@ -35,6 +35,7 @@ from pig_behavior.tracking.refinement import (
     clean_training_shapes,
     refine_shapes_temporally,
     shape_hidden_value,
+    stabilize_overlap_hidden_islands,
 )
 from pig_behavior.tracking.schemas import (
     FixedTrack,
@@ -304,9 +305,11 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
     if frames_written == 0:
         raise RuntimeError("No frames were processed.")
 
-    if cfg.enable_offline_smoothing or cfg.mode == "hybrid_bytetrack":
+    if cfg.enable_offline_smoothing and cfg.identity_swap_guard:
         shapes = apply_identity_swap_guard(shapes, width, height, cfg)
+    if cfg.enable_offline_smoothing and (cfg.smooth_boxes or cfg.refine_boxes):
         shapes = refine_shapes_temporally(shapes, width, height, cfg)
+        shapes = stabilize_overlap_hidden_islands(shapes, cfg)
     hidden_shape_count = sum(
         1 for shape in shapes if shape_hidden_value(shape) == "Yes"
     )

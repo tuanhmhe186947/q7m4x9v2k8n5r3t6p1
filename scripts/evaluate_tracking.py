@@ -21,26 +21,55 @@ from pig_behavior.tracking_path_config import (  # noqa: E402
     profile_video_paths,
 )
 
+BASE_EVAL_CONFIG: dict[str, object] = {
+    "USE_IOU_FALLBACK": False,
+    "USE_AREA_OCCLUSION_FREEZE": False,
+    "USE_CONDITIONAL_AREA_OCCLUSION_FREEZE": False,
+    "USE_MERGED_BOX_SPLIT": False,
+    "enable_offline_smoothing": True,
+    "identity_swap_guard": True,
+    "smooth_boxes": True,
+    "refine_boxes": True,
+}
+
+RULE_BENCHMARK_OVERRIDE_KEYS = {
+    "USE_IOU_FALLBACK",
+    "USE_AREA_OCCLUSION_FREEZE",
+    "USE_CONDITIONAL_AREA_OCCLUSION_FREEZE",
+    "USE_MERGED_BOX_SPLIT",
+}
+
 EVAL_CONFIG_OVERRIDES: dict[str, dict[str, object]] = {
-    "base": {
-        "USE_IOU_FALLBACK": False,
-        "USE_AREA_OCCLUSION_FREEZE": False,
-        "USE_CONDITIONAL_AREA_OCCLUSION_FREEZE": False,
-        "USE_MERGED_BOX_SPLIT": False,
-        "enable_offline_smoothing": True,
-        "identity_swap_guard": True,
-        "smooth_boxes": True,
-        "refine_boxes": True,
+    "base": dict(BASE_EVAL_CONFIG),
+    "smooth_conservative": {
+        **BASE_EVAL_CONFIG,
+        "high_conf_smooth_alpha": 0.85,
+        "mid_conf_smooth_alpha": 0.65,
+        "low_conf_smooth_alpha": 0.45,
     },
+    "smooth_responsive": {
+        **BASE_EVAL_CONFIG,
+        "high_conf_smooth_alpha": 0.65,
+        "mid_conf_smooth_alpha": 0.45,
+        "low_conf_smooth_alpha": 0.25,
+    },
+    "smooth_det020_loose": {
+        **BASE_EVAL_CONFIG,
+        "det_conf": 0.20,
+        "low_conf_max_center_jump": 0.10,
+        "low_conf_max_box_jump_scale": 2.00,
+        "max_raw_detections": 64,
+    },
+    "smooth_responsive_det020": {
+        **BASE_EVAL_CONFIG,
+        "high_conf_smooth_alpha": 0.65,
+        "mid_conf_smooth_alpha": 0.45,
+        "low_conf_smooth_alpha": 0.25,
+        "det_conf": 0.20,
+    },
+    # Backward-compatible alias for older long-form command lines.
     "iou0_area0_condarea0_merge0_smooth_det020_loose_motion": {
-        "USE_IOU_FALLBACK": False,
-        "USE_AREA_OCCLUSION_FREEZE": False,
-        "USE_CONDITIONAL_AREA_OCCLUSION_FREEZE": False,
-        "USE_MERGED_BOX_SPLIT": False,
-        "enable_offline_smoothing": True,
-        "identity_swap_guard": True,
-        "smooth_boxes": True,
-        "refine_boxes": True,
+        **BASE_EVAL_CONFIG,
         "det_conf": 0.20,
         "low_conf_max_center_jump": 0.10,
         "low_conf_max_box_jump_scale": 2.00,
@@ -60,7 +89,7 @@ Examples:
   python scripts/evaluate_tracking.py -v data/videos/Pigs291119_000263_30fps.mp4 --mode realtime
 """,
     )
-    group = parser.add_mutually_exclusive_group(required=True)
+    group = parser.add_mutually_exclusive_group(required=False)
     group.add_argument("-v", "--video", type=str, help="Comma-separated names, paths, keys, or aliases.")
     group.add_argument("-a", "--all-videos", action="store_true", help="Run evaluation on all configured videos.")
     parser.add_argument("-p", "--profile", type=str, default=None, help="Path profile name.")
@@ -89,13 +118,34 @@ Examples:
         ),
     )
     parser.add_argument(
+        "--benchmark-rules",
+        action="store_true",
+        help=(
+            "Enable benchmark rule expansion for the selected run(s) without "
+            "forcing the legacy benchmark-compatible bundle."
+        ),
+    )
+    parser.add_argument(
+        "--benchmark-detectors",
+        action="store_true",
+        help=(
+            "Enable benchmark detector expansion for the selected run(s) without "
+            "forcing the legacy benchmark-compatible bundle."
+        ),
+    )
+    parser.add_argument(
         "--eval-config",
         action="append",
         default=None,
         help=(
             "Run a named direct evaluation config. Can be repeated. "
-            "Using this disables the benchmark-compatible detector/rule matrix."
+            "May be combined with --benchmark-rules or --benchmark-detectors."
         ),
+    )
+    parser.add_argument(
+        "--list-eval-configs",
+        action="store_true",
+        help="List named direct evaluation configs and exit.",
     )
     parser.add_argument(
         "--smooth",
@@ -106,7 +156,10 @@ Examples:
             "the best3 Roboflow benchmark for hybrid_bytetrack runs."
         ),
     )
-    return parser.parse_known_args(argv)
+    args, extra_args = parser.parse_known_args(argv)
+    if not args.list_eval_configs and not args.video and not args.all_videos:
+        parser.error("one of the arguments -v/--video -a/--all-videos is required")
+    return args, extra_args
 
 
 def _resolve_videos(args: argparse.Namespace, profile: dict[str, object]) -> list[Path]:
@@ -156,6 +209,13 @@ def _selected_eval_configs(raw_configs: list[str] | None) -> list[str]:
     return selected
 
 
+def _list_eval_configs() -> None:
+    print("Available eval configs:")
+    for name, overrides in EVAL_CONFIG_OVERRIDES.items():
+        summary = ", ".join(f"{key}={value}" for key, value in overrides.items())
+        print(f" - {name}: {summary}")
+
+
 def _format_profile_override_value(value: object) -> str:
     if isinstance(value, bool):
         return str(value).lower()
@@ -164,6 +224,9 @@ def _format_profile_override_value(value: object) -> str:
 
 def main() -> int:
     args, pipeline_extra_args = parse_args()
+    if args.list_eval_configs:
+        _list_eval_configs()
+        return 0
     path_config = Path(args.path_config) if args.path_config else None
     try:
         profile = load_tracking_path_profile(path_config, args.profile)
@@ -209,6 +272,7 @@ def main() -> int:
     has_output_root = "--output-root" in pipeline_extra_args
     has_force_track_arg = "--force-track" in pipeline_extra_args
     has_benchmark_arg = any(arg in {"--benchmark-rules", "--no-benchmark-rules"} for arg in pipeline_extra_args)
+    has_benchmark_detectors_arg = "--benchmark-detectors" in pipeline_extra_args
     has_smoothing_arg = any(
         arg
         in {
@@ -241,12 +305,13 @@ def main() -> int:
         cmd.extend(["--path-config", args.path_config])
     if not has_force_track_arg:
         cmd.append("--force-track")
-    if args.benchmark_compatible and not has_benchmark_arg:
+    enable_benchmark_rules = args.benchmark_compatible or args.benchmark_rules
+    enable_benchmark_detectors = (
+        args.benchmark_compatible or args.benchmark_detectors
+    )
+    if enable_benchmark_rules and not has_benchmark_arg:
         cmd.append("--benchmark-rules")
-    if (
-        args.benchmark_compatible
-        and "--benchmark-detectors" not in pipeline_extra_args
-    ):
+    if enable_benchmark_detectors and not has_benchmark_detectors_arg:
         cmd.append("--benchmark-detectors")
     if args.mode in {"hybrid_bytetrack", "bytetrack", "gt_export"} and args.smooth and not has_smoothing_arg:
         cmd.extend(
@@ -262,6 +327,11 @@ def main() -> int:
         for config_name in selected_eval_configs:
             config_cmd = list(cmd)
             for key, value in EVAL_CONFIG_OVERRIDES[config_name].items():
+                if (
+                    (enable_benchmark_rules or enable_benchmark_detectors)
+                    and key in RULE_BENCHMARK_OVERRIDE_KEYS
+                ):
+                    continue
                 config_cmd.extend(
                     [
                         "--profile-override",

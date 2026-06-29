@@ -2,7 +2,7 @@
 
 ## Current baseline
 
-- Do not use legacy 21/06 as the primary comparison point anymore.
+- Do not use legacy 21/06 as the primary comparison point anymore; when discussing `evaluate_tracking.py` metric drift, compare against commit `b697c4eba36db280cbf01f446873da17bcac509d`.
 - Treat Tracking moi bat smooth as the current quality baseline when reading reports.
 - Tracking moi tat smooth/yolov8 is still a relevant runtime variant, but its reported metrics are currently worse.
 - For optimizer default target-video diagnostics, do not pin `000263`/`000302`.

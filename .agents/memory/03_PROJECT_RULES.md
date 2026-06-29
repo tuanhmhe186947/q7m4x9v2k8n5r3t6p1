@@ -16,7 +16,7 @@
 
 ## Tracking-specific rules
 
-1. Treat legacy 21/06 `tracking_engine.py` as the behavioral reference when the user asks for old behavior.
+1. For `evaluate_tracking.py` behavior and metric comparisons, treat commit `b697c4eba36db280cbf01f446873da17bcac509d` as the main historical reference unless the user explicitly asks for another snapshot.
 2. Do not assume `hybrid_bytetrack` is already legacy-compatible.
 3. Do not assume folder name `iou0_area0_condarea0_merge0` proves runtime flags were correct; inspect config/runtime path if needed.
 4. Keep `hybrid_bytetrack` default rule flags OFF unless explicitly requested.

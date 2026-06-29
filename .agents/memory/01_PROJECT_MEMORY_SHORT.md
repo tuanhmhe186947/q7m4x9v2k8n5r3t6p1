@@ -8,7 +8,7 @@
   - `Pigs291119_000226_30fps`
   - `Pigs301119_000327_30fps`
   - `Pigs301119_000328_30fps`
-- Stop using legacy 21/06 as a decision reference.
+- For `evaluate_tracking.py` metric comparisons, use commit `b697c4eba36db280cbf01f446873da17bcac509d` as the relevant historical reference instead of legacy 21/06.
 - Current runtime variants to compare are:
   - C:\Users\ironh\Downloads\PIG_Behavior_Project\outputs\eval\hybrid_bytetrack\Tracking moi tat smooth\yolov8
   - C:\Users\ironh\Downloads\PIG_Behavior_Project\outputs\eval\hybrid_bytetrack\Tracking moi bat smooth

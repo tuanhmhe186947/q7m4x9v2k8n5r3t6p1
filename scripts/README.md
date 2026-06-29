@@ -81,10 +81,25 @@ python scripts\evaluate_tracking.py -a --mode hybrid_bytetrack
 Mac dinh lenh evaluate do dung mot tracking config. Day la lenh dung de bao
 cao chi so khoa hoc cho mot moc tracking cu the.
 
+Neu can chay nhanh nhieu preset config co san, dung `--eval-config`:
+
+```cmd
+python scripts\evaluate_tracking.py --list-eval-configs
+python scripts\evaluate_tracking.py -a --mode hybrid_bytetrack --eval-config base
+python scripts\evaluate_tracking.py -a --mode hybrid_bytetrack --eval-config smooth_responsive
+python scripts\evaluate_tracking.py -a --mode hybrid_bytetrack --eval-config smooth_conservative
+python scripts\evaluate_tracking.py -a --mode hybrid_bytetrack --eval-config smooth_det020_loose
+python scripts\evaluate_tracking.py -a --mode hybrid_bytetrack --eval-config smooth_responsive_det020
+```
+
+Preset `smooth_det020_loose` la ten rut gon de thay cho
+`iou0_area0_condarea0_merge0_smooth_det020_loose_motion`. Alias cu van duoc
+giu lai de khong vo lenh da dung truoc day.
+
 Neu can tai lap benchmark-compatible matrix cu, bat ro:
 
 ```cmd
-python scripts\evaluate_tracking.py -a --mode hybrid_bytetrack --benchmark-compatible
+python scripts\evaluate_tracking.py -a --mode hybrid_bytetrack 
 ```
 
 Optimizer moi la noi chay nhieu cau hinh de tim cau hinh tot nhat.
@@ -335,6 +350,21 @@ python scripts\optimize_tracking_metrics.py -a --scope full --smooth --run-name 
 `evaluate_tracking.py` mac dinh do dung mot tracking config. Dung
 `--benchmark-compatible` chi khi can tai lap detector/rule matrix cu; khong dung
 matrix nay lam chi so cho mot config tracking don le.
+
+De chay nhanh cac config co ten san, dung `--eval-config`. Cac ten ngan nen uu
+tien:
+
+```text
+base
+smooth_conservative
+smooth_responsive
+smooth_det020_loose
+smooth_responsive_det020
+```
+
+Lenh cu `iou0_area0_condarea0_merge0_smooth_det020_loose_motion` van duoc giu
+nhu alias tuong thich nguoc, nhung nen chuyen sang `smooth_det020_loose` de de
+go va de nho hon.
 
 Benchmark tracking voi weight mac dinh:
 
