@@ -102,6 +102,7 @@ class TrackingConfig:
 
     max_missing_frames: int = DEFAULT_MAX_LOST_FRAMES
     max_lost_frames: int = DEFAULT_MAX_LOST_FRAMES  # Alias for max_missing_frames
+    emit_hidden_tracks: bool = True
     hidden_missed_frames: int = 5
     hidden_score_threshold: float = 0.15
     hidden_overlap_iou_threshold: float = 0.65

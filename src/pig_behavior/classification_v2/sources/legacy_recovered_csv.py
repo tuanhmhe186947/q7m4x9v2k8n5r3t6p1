@@ -30,8 +30,8 @@ from pig_behavior.classification_v2.schema import (
     normalize_pig_id,
 )
 
-DEFAULT_LEGACY_IMAGE_WIDTH = 640
-DEFAULT_LEGACY_IMAGE_HEIGHT = 480
+DEFAULT_LEGACY_IMAGE_WIDTH = 1280
+DEFAULT_LEGACY_IMAGE_HEIGHT = 720
 
 
 def load_legacy_frame_objects(
@@ -673,8 +673,38 @@ def _normalize_common_fields(df: pd.DataFrame) -> pd.DataFrame:
     out.loc[invalid_bbox, "include_in_training"] = False
 
     hidden_yes = out["hidden"].eq("Yes")
-    out.loc[hidden_yes, "qa_status"] = "hidden"
-    out.loc[hidden_yes, "training_tier"] = "review"
+    #out.loc[hidden_yes, "qa_status"] = "hidden"
+    #out.loc[hidden_yes, "training_tier"] = "review"
+    valid_actor_for_hidden_policy = (
+        hidden_yes
+        & out["behavior"].notna()
+        & out["actor_bbox_valid"].fillna(False)
+    )
+
+    # If an older export/parser marked these rows as hidden/review only
+    # because Hidden=Yes, restore them as usable training rows.
+    out.loc[
+        valid_actor_for_hidden_policy & out["qa_status"].eq("hidden"),
+        "qa_status",
+    ] = "ok"
+
+    out.loc[
+        valid_actor_for_hidden_policy
+        & out["training_tier"].isin(["review", "warning"]),
+        "training_tier",
+    ] = "clean"
+
+    out.loc[valid_actor_for_hidden_policy, "include_in_training"] = True
+
+    for flag_col in [
+        "use_for_visual_training",
+        "use_for_shape_training",
+        "use_for_motion_training",
+        "use_for_roi_training",
+        "use_for_main_eval",
+    ]:
+        if flag_col in out.columns:
+            out.loc[valid_actor_for_hidden_policy, flag_col] = True
 
     if "annotation_scope" not in out.columns:
         out["annotation_scope"] = "selected_actor_group"

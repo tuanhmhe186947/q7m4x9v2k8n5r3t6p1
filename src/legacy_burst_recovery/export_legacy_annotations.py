@@ -1032,8 +1032,8 @@ def main():
             r"\exports"
         ),
     )
-    parser.add_argument("--image-width", type=int, default=640)
-    parser.add_argument("--image-height", type=int, default=480)
+    parser.add_argument("--image-width", type=int, default=1280)
+    parser.add_argument("--image-height", type=int, default=720)
 
     parser.add_argument(
         "--dataset-id",

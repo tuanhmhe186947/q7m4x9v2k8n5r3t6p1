@@ -229,6 +229,11 @@ def frame_shapes(
         shape_for_track(tracks[idx], frame_index, cfg)
         for idx in range(1, cfg.expected_pigs + 1)
     ]
+    if not cfg.emit_hidden_tracks:
+        for shape in shapes:
+            for attr in shape.get("attributes", []):
+                if attr.get("name") == "Hidden":
+                    attr["value"] = "No"
     if len(shapes) != cfg.expected_pigs:
         raise RuntimeError(f"Expected {cfg.expected_pigs} shapes, got {len(shapes)}")
     return shapes

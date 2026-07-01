@@ -64,6 +64,26 @@ Chay tracking voi weight cu neu can doi chieu:
 python scripts\track_videos.py -v Pigs291119_000263_30fps --mode hybrid_bytetrack --weights models\detector\pig_detector_yolov8_roboflow.pt
 ```
 
+Chay tracking voi preset eval giong `evaluate_tracking.py`:
+
+```cmd
+python scripts\track_videos.py -v Pigs291119_000263_30fps --mode hybrid_bytetrack --eval-config smooth_det020_loose
+```
+
+Giu bbox tracker noi suy nhung khong tu danh dau `Hidden=Yes` de dua len CVAT label lai:
+
+```cmd
+python scripts\track_videos.py -v Pigs291119_000263_30fps --mode hybrid_bytetrack --eval-config smooth_det020_loose --no-emit-hidden-tracks
+```
+
+Ghi nho luong hien tai:
+
+- `track_videos.py` la wrapper batch; script nay goi `python -m pig_behavior.tracking.cli`.
+- `track_videos.py --eval-config <name>` dung chung preset voi `evaluate_tracking.py`, roi truyen sang CLI bang cac `--profile-override KEY=VALUE`.
+- `pig_behavior.tracking.cli` phai co entrypoint `if __name__ == "__main__": raise SystemExit(main())`; neu thieu, `python -m pig_behavior.tracking.cli` chi import module roi thoat 0.
+- `track_videos.py` chu dong them `src` vao `PYTHONPATH` cho subprocess de CLI chay duoc khi project chua duoc editable-install.
+- `--no-emit-hidden-tracks` van xuat bbox tracker noi suy, nhung ghi attribute `Hidden=No` de nguoi label danh lai tren CVAT; no khong tat tracking state noi bo, association, smoothing, hay occlusion logic.
+
 ## 4. Evaluate Co Ban
 
 Evaluate mot video:

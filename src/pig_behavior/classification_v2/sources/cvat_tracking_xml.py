@@ -417,9 +417,10 @@ def _add_training_policy(
         "training_tier",
     ] = "partial_context"
 
-    out.loc[hidden_yes, "training_tier"] = "review"
-    out.loc[hidden_yes, "qa_status"] = "hidden"
-    out.loc[hidden_yes, "sample_weight"] = 0.5
+    out.loc[trusted_hidden_yes, "training_tier"] = "review"
+    out.loc[trusted_hidden_yes, "qa_status"] = "hidden"
+    out.loc[trusted_hidden_yes, "sample_weight"] = 0.5
+
 
     out.loc[social_missing_partner, "training_tier"] = "review"
     out.loc[social_missing_partner, "qa_status"] = "review_interaction_missing_partner"

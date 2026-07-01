@@ -66,6 +66,14 @@ For notebooks and development checks:
 pip install -r requirements-dev.txt
 ```
 
+## Tracking Scripts
+
+Current tracking/evaluation commands are documented in `scripts/README.md`.
+Use `python scripts\track_videos.py ...` as the tracking wrapper; it forwards
+to `python -m pig_behavior.tracking.cli` and supports `--eval-config` presets
+plus `--no-emit-hidden-tracks` for keeping tracker-maintained boxes while
+exporting their `Hidden` attribute as `No` for CVAT relabeling.
+
 ## Dashboard
 
 Start the API:
