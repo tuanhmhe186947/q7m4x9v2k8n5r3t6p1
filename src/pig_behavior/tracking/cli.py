@@ -44,35 +44,6 @@ from pig_behavior.tracking_path_config import (
 )
 
 
-def _parse_profile_override(raw_override: str) -> tuple[str, object]:
-    if "=" not in raw_override:
-        raise argparse.ArgumentTypeError(
-            f"Profile override must use KEY=VALUE syntax: {raw_override!r}"
-        )
-    key, raw_value = raw_override.split("=", 1)
-    key = key.strip()
-    if not key:
-        raise argparse.ArgumentTypeError(
-            f"Profile override key must not be empty: {raw_override!r}"
-        )
-    value = raw_value.strip()
-    lowered = value.lower()
-    if lowered == "true":
-        return key, True
-    if lowered == "false":
-        return key, False
-    if lowered in {"none", "null"}:
-        return key, None
-    try:
-        return key, int(value)
-    except ValueError:
-        pass
-    try:
-        return key, float(value)
-    except ValueError:
-        return key, value
-
-
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--video", type=Path, default=None)
@@ -185,27 +156,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--class-id", type=int, default=None)
     parser.add_argument("--class-name", type=str, default=None)
     parser.add_argument("--max-frames", type=int, default=None)
-    parser.add_argument(
-        "--profile-override",
-        action="append",
-        default=[],
-        metavar="KEY=VALUE",
-        type=_parse_profile_override,
-        help="Override a TrackingConfig profile field for this run.",
-    )
     parser.add_argument("--default-behavior", type=str, default="lying")
     parser.add_argument("--roi-mode", choices=["center", "cover"], default="center")
     parser.add_argument("--roi-min-cover", type=float, default=0.10)
     parser.add_argument("--roi-dilate-px", type=int, default=8)
-    parser.add_argument(
-        "--emit-hidden-tracks",
-        action=argparse.BooleanOptionalAction,
-        default=True,
-        help=(
-            "Keep tracker-maintained Hidden=Yes labels for temporarily missing pigs. "
-            "Use --no-emit-hidden-tracks to keep the boxes but export Hidden=No for CVAT relabeling."
-        ),
-    )
     parser.add_argument("--hidden-missed-frames", type=int, default=5)
     parser.add_argument("--hidden-score-threshold", type=float, default=0.15)
     parser.add_argument("--mask-iou-max-missed", type=int, default=10)
@@ -529,11 +483,10 @@ def _tracking_config_from_args(
         allowed_class_name=args.class_name,
         use_mask=not args.no_mask,
         mask_input_frame=not args.no_mask_input,
-            roi_mode=args.roi_mode,
-            roi_min_cover=args.roi_min_cover,
-            roi_dilate_px=args.roi_dilate_px,
-            emit_hidden_tracks=args.emit_hidden_tracks,
-            hidden_missed_frames=args.hidden_missed_frames,
+        roi_mode=args.roi_mode,
+        roi_min_cover=args.roi_min_cover,
+        roi_dilate_px=args.roi_dilate_px,
+        hidden_missed_frames=args.hidden_missed_frames,
         hidden_score_threshold=args.hidden_score_threshold,
         use_mask_iou=not args.no_mask_iou,
         mask_iou_max_missed=args.mask_iou_max_missed,
@@ -649,12 +602,6 @@ def _tracking_config_from_args(
         if p_key in tracker_fields and p_key not in exclude_profile_keys:
             if p_key not in cfg.overrides:
                 setattr(cfg, p_key, p_val)
-
-    for override_key, override_value in args.profile_override:
-        if override_key not in tracker_fields:
-            raise ValueError(f"Unknown TrackingConfig profile override: {override_key}")
-        if override_key not in cfg.overrides:
-            setattr(cfg, override_key, override_value)
 
     return cfg
 
@@ -873,7 +820,3 @@ __all__ = [
     "parse_args",
     "print_tracking_summary",
 ]
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
