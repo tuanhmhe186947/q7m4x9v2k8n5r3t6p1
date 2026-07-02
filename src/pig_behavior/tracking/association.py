@@ -183,70 +183,6 @@ def low_conf_detection_is_plausible(
     return center_px <= allowed_px
 
 
-def lost_track_detection_is_plausible(
-    track: FixedTrack,
-    det: Detection,
-    cfg: TrackingConfig,
-    width: int,
-    height: int,
-    raw_owner: dict[int, int] | None = None,
-) -> bool:
-    if not cfg.lost_track_reacquire_guard:
-        return True
-    if not track_is_lost_for_association(track):
-        return True
-
-    top_raw_id = track.top_raw_id()
-    same_raw_id = top_raw_id == det.raw_id
-    reference = association_reference_box(track, det, width, height, cfg)
-    distance = center_distance_norm(reference, det.box, width, height)
-    max_jump = cfg.lost_track_reacquire_max_center_jump + min(track.missed, 8) * 0.015
-    same_raw_max_jump = (
-        cfg.lost_track_reacquire_same_raw_max_center_jump + min(track.missed, 8) * 0.02
-    )
-    if same_raw_id and distance > same_raw_max_jump:
-        return False
-
-    owner = None
-    if raw_owner is not None and det.raw_id is not None:
-        owner = raw_owner.get(det.raw_id)
-    if owner is not None and owner != track.fixed_id:
-        return False
-
-    if distance > max_jump and not same_raw_id:
-        return False
-
-    return True
-
-
-def visible_raw_owner_transfer_is_plausible(
-    track: FixedTrack,
-    det: Detection,
-    cfg: TrackingConfig,
-    width: int,
-    height: int,
-    raw_owner_tracks: dict[int, FixedTrack] | None = None,
-) -> bool:
-    if not cfg.identity_swap_guard:
-        return True
-    if det.raw_id is None or raw_owner_tracks is None:
-        return True
-    if not track_is_visible_for_association(track):
-        return True
-
-    owner_track = raw_owner_tracks.get(det.raw_id)
-    if owner_track is None or owner_track.fixed_id == track.fixed_id:
-        return True
-    if not track_is_visible_for_association(owner_track):
-        return True
-
-    current_ref = association_reference_box(track, det, width, height, cfg)
-    owner_ref = association_reference_box(owner_track, det, width, height, cfg)
-    current_distance = center_distance_norm(current_ref, det.box, width, height)
-    owner_distance = center_distance_norm(owner_ref, det.box, width, height)
-    return current_distance + cfg.visible_raw_owner_transfer_min_gain < owner_distance
-
-
 def track_detection_cost(
     track: FixedTrack,
     det: Detection,
@@ -256,7 +192,6 @@ def track_detection_cost(
     height: int,
     cfg: TrackingConfig,
     raw_owner: dict[int, int] | None = None,
-    raw_owner_tracks: dict[int, FixedTrack] | None = None,
 ) -> float:
     if not low_conf_detection_is_plausible(track, det, width, height, cfg):
         return 1_000_000.0
@@ -268,12 +203,6 @@ def track_detection_cost(
         width,
         height,
         cfg,
-    ):
-        return 1_000_000.0
-    if not lost_track_detection_is_plausible(track, det, cfg, width, height, raw_owner):
-        return 1_000_000.0
-    if not visible_raw_owner_transfer_is_plausible(
-        track, det, cfg, width, height, raw_owner_tracks
     ):
         return 1_000_000.0
 
@@ -357,13 +286,11 @@ def match_and_update_tracks(
         runtime,
     )
     raw_owner: dict[int, int] = {}
-    raw_owner_tracks: dict[int, FixedTrack] = {}
     if cfg.mode in {"bytetrack", "hybrid_bytetrack"}:
         for track in ordered_tracks:
             raw_id = track.top_raw_id()
             if raw_id is not None:
                 raw_owner[raw_id] = track.fixed_id
-                raw_owner_tracks[raw_id] = track
 
     matched_tracks: set[int] = set()
     matched_detections: set[int] = set()
@@ -405,7 +332,6 @@ def match_and_update_tracks(
                     height,
                     cfg,
                     raw_owner,
-                    raw_owner_tracks,
                 )
 
         apply_directional_y_prior_to_costs(

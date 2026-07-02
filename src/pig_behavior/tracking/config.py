@@ -114,9 +114,6 @@ class TrackingConfig:
     unseen_track_cost_threshold: float = 1.10
     lost_track_cost_threshold: float = 0.95
     lost_track_reid_appearance_threshold: float = 0.25
-    lost_track_reacquire_guard: bool = True
-    lost_track_reacquire_max_center_jump: float = 0.22
-    lost_track_reacquire_same_raw_max_center_jump: float = 0.34
     dup_iou_threshold: float = DEFAULT_DUP_IOU_THRESHOLD
     dup_containment_threshold: float = DEFAULT_DUP_CONTAINMENT_THRESHOLD
     dup_center_threshold: float = DEFAULT_DUP_CENTER_THRESHOLD
@@ -163,7 +160,6 @@ class TrackingConfig:
     identity_swap_guard: bool = True
     identity_swap_min_gain: float = 0.015
     identity_swap_iom_threshold: float = 0.10
-    visible_raw_owner_transfer_min_gain: float = 0.04
     hidden_motion_model: bool = True
     hidden_velocity_alpha: float = 0.65
     hidden_acceleration_alpha: float = 0.35
