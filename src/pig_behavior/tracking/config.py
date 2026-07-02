@@ -106,6 +106,7 @@ class TrackingConfig:
     hidden_score_threshold: float = 0.15
     hidden_overlap_iou_threshold: float = 0.65
     hidden_overlap_window_frames: int = 2
+    emit_hidden_tracks: bool = True
     use_mask_iou: bool = True
     mask_iou_max_missed: int = 10
     mask_iou_min_area: int = 64

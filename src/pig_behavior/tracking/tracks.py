@@ -165,7 +165,7 @@ def shape_for_track(
     frame_index: int,
     cfg: TrackingConfig,
 ) -> dict[str, Any]:
-    hidden = "Yes" if track_is_hidden(track, cfg) else "No"
+    hidden = "Yes" if cfg.emit_hidden_tracks and track_is_hidden(track, cfg) else "No"
     track_state = track.get_state()
     bytetrack_mode = cfg.mode in {"bytetrack_raw", "hybrid_bytetrack"}
     # MISSING still has a tracker-produced box, so keep it evaluable. Only an

@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+from dataclasses import fields
 from pathlib import Path
 from typing import Any
 
@@ -44,6 +45,54 @@ from pig_behavior.tracking_path_config import (
 )
 
 
+def _parse_profile_override(raw: str) -> tuple[str, str]:
+    if "=" not in raw:
+        raise argparse.ArgumentTypeError(
+            f"profile override must use KEY=VALUE format: {raw!r}"
+        )
+    key, value = raw.split("=", 1)
+    key = key.strip()
+    if not key:
+        raise argparse.ArgumentTypeError(
+            f"profile override key cannot be empty: {raw!r}"
+        )
+    return key, value.strip()
+
+
+def _coerce_profile_override_value(current: object, value: str) -> object:
+    if isinstance(current, bool):
+        lowered = value.lower()
+        if lowered in {"1", "true", "yes", "on"}:
+            return True
+        if lowered in {"0", "false", "no", "off"}:
+            return False
+        raise argparse.ArgumentTypeError(
+            f"invalid boolean override value {value!r}"
+        )
+    if isinstance(current, int) and not isinstance(current, bool):
+        return int(value)
+    if isinstance(current, float):
+        return float(value)
+    if isinstance(current, Path):
+        return Path(value)
+    if current is None:
+        return value
+    return type(current)(value)
+
+
+def _apply_profile_overrides(
+    cfg: TrackingConfig, overrides: list[tuple[str, str]]
+) -> None:
+    valid_fields = {field.name for field in fields(TrackingConfig)}
+    for key, value in overrides:
+        if key not in valid_fields:
+            raise argparse.ArgumentTypeError(
+                f"unknown TrackingConfig override {key!r}"
+            )
+        current = getattr(cfg, key)
+        setattr(cfg, key, _coerce_profile_override_value(current, value))
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--video", type=Path, default=None)
@@ -64,6 +113,19 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--mask", type=Path, default=None)
     parser.add_argument("--output-dir", type=Path, default=None)
     parser.add_argument("--output-video", type=Path, default=None)
+    parser.add_argument(
+        "--profile-override",
+        action="append",
+        default=[],
+        type=_parse_profile_override,
+        metavar="KEY=VALUE",
+        help="Override a TrackingConfig field. May be supplied multiple times.",
+    )
+    parser.add_argument(
+        "--no-emit-hidden-tracks",
+        action="store_true",
+        help="Compatibility flag for batch scripts that suppress Hidden=Yes labels.",
+    )
     parser.add_argument("--annotations-json", type=Path, default=None)
     parser.add_argument("--coco-json", type=Path, default=None)
     parser.add_argument("--clean-coco-json", type=Path, default=None)
@@ -603,6 +665,11 @@ def _tracking_config_from_args(
             if p_key not in cfg.overrides:
                 setattr(cfg, p_key, p_val)
 
+    if args.no_emit_hidden_tracks:
+        cfg.emit_hidden_tracks = False
+
+    _apply_profile_overrides(cfg, args.profile_override)
+
     return cfg
 
 
@@ -820,3 +887,7 @@ __all__ = [
     "parse_args",
     "print_tracking_summary",
 ]
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
