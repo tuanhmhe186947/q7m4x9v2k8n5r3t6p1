@@ -26,3 +26,4 @@
 - Optimizer default scopes should stay tracking-focused.
 - Detector-only presets were moved to explicit `--scope detector_probe` because `overnight_iou0` showed detector-only metrics were identical to `base`.
 - Continue focusing on code and runtime behavior in association.py and runner.py, not detector weight.
+2026-07-03 note: User confirmed `000216` frames 486-499 severe hidden/lost ID jump cascade is fixed by the lost-track reacquire guard in `association.py`/`config.py`. New unresolved issue in same command: from frame 1584 onward IDs 4 and 7 swap when pigs only walk close, so next work must preserve the hard-case fix while studying visible close-pair identity stability.

@@ -29,3 +29,12 @@
 - Do not blame detector weight for the 000263 regression.
 - Do not enable condarea by default without an explicit ablation.
 - Prefer small, reversible patches.
+## 2026-07-03 - 000216 lost/hidden reacquire status
+
+- User confirmed the new lost/hidden reacquire guard solved the severe ID jump cascade on `Pigs291119_000216_30fps` around frames 486-499 when running:
+  `python scripts\track_videos.py -v C:\Users\ironh\Downloads\PIG_Behavior_Project\data\videos\Pigs291119_000216_30fps.mp4 --mode hybrid_bytetrack --eval-config smooth_det020_loose --no-emit-hidden-tracks`
+- Current patch scope that fixed it: `src/pig_behavior/tracking/association.py` lost-track reacquire plausibility gate plus `src/pig_behavior/tracking/config.py` thresholds:
+  `lost_track_reacquire_guard`, `lost_track_reacquire_max_center_jump`, `lost_track_reacquire_same_raw_max_center_jump`, `lost_track_reacquire_raw_owner_grace`.
+- New unresolved issue: same `000216` run has an easier-case regression from frame 1584 onward where IDs `4` and `7` swap when the pigs merely walk close together, without full overlap/occlusion.
+- Next investigation should preserve the hard-case fix while avoiding over-aggressive association changes that break easy close-neighbor cases. Focus likely on visible-track close-pair identity stability / swap guard, not on weakening the lost/hidden teleport guard blindly.
+- The first follow-up visible close-pair cost guard did not fix the `000216` frame 1584+ ID 4/7 swap and was removed. Current follow-up direction is a narrower visible raw-owner transfer guard: if a detection raw-id belongs to another still-visible fixed track, do not let a different visible track take it unless it is clearly closer by `visible_raw_owner_transfer_min_gain`.
