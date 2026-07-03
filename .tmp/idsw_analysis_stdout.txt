@@ -1,0 +1,18 @@
+
+Pigs291119_000231_30fps metric_idsw=2 detected_switches=2
+  3: frames 401, 407 | f401 4->5 iou=0.618; f407 5->4 iou=0.556
+
+Pigs291119_000263_30fps metric_idsw=2 detected_switches=2
+  2: frames 193 | f193 3->4 iou=0.672
+  3: frames 195 | f195 4->3 iou=0.511
+
+Pigs301119_000328_30fps metric_idsw=2 detected_switches=4
+  1: frames 1353 | f1353 7->5 iou=0.687
+  3: frames 1346, 1350, 1353 | f1346 5->7 iou=0.866; f1350 7->5 iou=0.774; f1353 5->7 iou=0.750
+
+Pigs301119_000329_30fps metric_idsw=4 detected_switches=4
+  0: frames 1788-1789 | f1788 1->2 iou=0.906; f1789 2->1 iou=0.838
+  1: frames 1788-1789 | f1788 2->1 iou=0.780; f1789 1->2 iou=0.925
+
+TOTAL detected_switches=12
+wrote .tmp\idsw_frames_194929.tsv

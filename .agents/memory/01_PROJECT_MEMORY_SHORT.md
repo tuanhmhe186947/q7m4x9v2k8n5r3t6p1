@@ -37,6 +37,7 @@
   - `ALL`: IDSW `2`, HOTA `0.9820366705826231`, IDF1 `0.9907038986528682`.
 - Preserve the current split `lost_track_reacquire_guard` design in `association.py` / `config.py`:
   - keep `lost_track_reacquire_guard=true`;
-  - use `lost_track_reacquire_non_same_raw_distance_guard=false` for this best tradeoff;
+  - `lost_track_reacquire_non_same_raw_distance_guard=false` is now the default/base setting after the strong 9-video `20260703_194929` run;
   - do not disable raw-owner guard globally because it fixes `000302` but badly hurts `000231`;
   - preserve the conditional `lost_track_different_raw_hidden_owner_bypass` with `min_missed=2` and `min_center_gain=0.03`.
+- `outputs/eval/hybrid_bytetrack/20260703_194929/smooth_det020_loose/iou0_area0_condarea0_merge0/` validated this as a good 9-video base; future tracking/eval/optimizer runs should not require a long override for this guard.

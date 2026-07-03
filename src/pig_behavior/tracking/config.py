@@ -119,7 +119,9 @@ class TrackingConfig:
     lost_track_reacquire_raw_owner_guard: bool = True
     lost_track_reacquire_same_raw_owner_guard: bool = True
     lost_track_reacquire_different_raw_owner_guard: bool = True
-    lost_track_reacquire_non_same_raw_distance_guard: bool = True
+    # Current hybrid_bytetrack base: disabling this distance-only reject preserved
+    # the strong 20260703_194929 9-video result while keeping raw-owner guards.
+    lost_track_reacquire_non_same_raw_distance_guard: bool = False
     lost_track_reacquire_max_center_jump: float = 0.22
     lost_track_reacquire_same_raw_max_center_jump: float = 0.34
     lost_track_reacquire_same_raw_appearance_bypass: bool = True

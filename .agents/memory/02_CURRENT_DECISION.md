@@ -9,13 +9,14 @@
   - `ALL`: IDSW `2`, HOTA `0.9820366705826231`, IDF1 `0.9907038986528682`.
 - Keep the current split lost-track reacquire approach:
   - `lost_track_reacquire_guard=true`.
-  - `lost_track_reacquire_non_same_raw_distance_guard=false` for the current best tradeoff.
+  - `lost_track_reacquire_non_same_raw_distance_guard=false` is the current default/base setting after 9-video run `20260703_194929`.
   - `lost_track_reacquire_raw_owner_guard=true`; do not turn it off globally.
   - Keep `lost_track_different_raw_hidden_owner_bypass=true`, `lost_track_different_raw_hidden_owner_min_missed=2`, and `lost_track_different_raw_hidden_owner_min_center_gain=0.03`.
 - Ablation findings:
   - Turning off raw-owner guard globally gives `000302` IDSW `0` but makes `000231` much worse.
   - Turning off only non-same-raw distance guard gives `000231` IDSW `2` but still needs the hidden-owner bypass to recover `000302`.
   - Tightening only appearance threshold did not change the bad `000231=8`, `000302=0` result; owner state / center gain was the useful tightening.
+- Default decision: tracking, evaluation, and optimizer should inherit this base from `TrackingConfig`; do not require callers to pass `--profile-override lost_track_reacquire_non_same_raw_distance_guard=false`.
 
 ## Current baseline
 
