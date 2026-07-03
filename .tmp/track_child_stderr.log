@@ -1,0 +1,19 @@
+Traceback (most recent call last):
+  File "C:\Users\ironh\Downloads\PIG_Behavior_Project\src\pig_behavior\tracking\runner.py", line 87, in run_tracking
+    from ultralytics import YOLO
+ModuleNotFoundError: No module named 'ultralytics'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "C:\Users\ironh\Downloads\PIG_Behavior_Project\src\pig_behavior\tracking\cli.py", line 893, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "C:\Users\ironh\Downloads\PIG_Behavior_Project\src\pig_behavior\tracking\cli.py", line 870, in main
+    summary = run_tracking(cfg)
+              ^^^^^^^^^^^^^^^^^
+  File "C:\Users\ironh\Downloads\PIG_Behavior_Project\src\pig_behavior\tracking\runner.py", line 89, in run_tracking
+    raise ImportError(
+ImportError: Install tracking dependencies first: pip install -e .[tracking]

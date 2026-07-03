@@ -183,6 +183,136 @@ def low_conf_detection_is_plausible(
     return center_px <= allowed_px
 
 
+def lost_track_fast_motion_owner_bypass_is_plausible(
+    track: FixedTrack,
+    owner_track: FixedTrack | None,
+    det: Detection,
+    cfg: TrackingConfig,
+    width: int,
+    height: int,
+    distance: float,
+    same_raw_id: bool,
+) -> bool:
+    if owner_track is None:
+        return False
+    if track_is_visible_for_association(owner_track):
+        return False
+    if not same_raw_id:
+        return False
+    if track.missed > cfg.lost_track_fast_motion_owner_grace:
+        return False
+    if not (
+        cfg.lost_track_fast_motion_min_center_jump
+        <= distance
+        <= cfg.lost_track_fast_motion_max_center_jump
+    ):
+        return False
+    mean_hist = track.mean_hist()
+    if mean_hist is None:
+        return False
+    if hist_distance(mean_hist, det.hist) > cfg.lost_track_fast_motion_appearance_threshold:
+        return False
+
+    owner_gap = center_distance_norm(track.last_box, owner_track.last_box, width, height)
+    return owner_gap <= cfg.lost_track_fast_motion_owner_max_gap
+
+
+def lost_track_same_raw_appearance_bypass_is_plausible(
+    track: FixedTrack,
+    det: Detection,
+    cfg: TrackingConfig,
+) -> bool:
+    if not cfg.lost_track_reacquire_same_raw_appearance_bypass:
+        return False
+
+    mean_hist = track.mean_hist()
+    if mean_hist is None:
+        return False
+
+    return (
+        hist_distance(mean_hist, det.hist)
+        <= cfg.lost_track_reacquire_same_raw_appearance_threshold
+    )
+
+
+def lost_track_raw_owner_transfer_is_plausible(
+    track: FixedTrack,
+    owner_track: FixedTrack | None,
+    det: Detection,
+    cfg: TrackingConfig,
+    width: int,
+    height: int,
+) -> bool:
+    if owner_track is None:
+        return False
+    if track.top_raw_id() != det.raw_id:
+        return False
+
+    track_hist = track.mean_hist()
+    if track_hist is None:
+        return False
+    track_app = hist_distance(track_hist, det.hist)
+    if track_app > cfg.lost_track_raw_owner_transfer_appearance_threshold:
+        return False
+
+    track_ref = association_reference_box(track, det, width, height, cfg)
+    owner_ref = association_reference_box(owner_track, det, width, height, cfg)
+    track_distance = center_distance_norm(track_ref, det.box, width, height)
+    owner_distance = center_distance_norm(owner_ref, det.box, width, height)
+    if (
+        track_distance + cfg.lost_track_raw_owner_transfer_min_center_gain
+        >= owner_distance
+    ):
+        return False
+
+    owner_hist = owner_track.mean_hist()
+    if owner_hist is None:
+        return True
+    owner_app = hist_distance(owner_hist, det.hist)
+    return (
+        track_app + cfg.lost_track_raw_owner_transfer_min_appearance_gain
+        < owner_app
+    )
+
+
+def lost_track_different_raw_hidden_owner_bypass_is_plausible(
+    track: FixedTrack,
+    owner_track: FixedTrack | None,
+    det: Detection,
+    cfg: TrackingConfig,
+    width: int,
+    height: int,
+) -> bool:
+    if not cfg.lost_track_different_raw_hidden_owner_bypass:
+        return False
+    if track.top_raw_id() == det.raw_id:
+        return False
+    if owner_track is None:
+        return False
+    if track_is_visible_for_association(owner_track):
+        return False
+    if owner_track.missed < cfg.lost_track_different_raw_hidden_owner_min_missed:
+        return False
+
+    track_hist = track.mean_hist()
+    if track_hist is None:
+        return False
+    if (
+        hist_distance(track_hist, det.hist)
+        > cfg.lost_track_different_raw_hidden_owner_appearance_threshold
+    ):
+        return False
+
+    track_ref = association_reference_box(track, det, width, height, cfg)
+    owner_ref = association_reference_box(owner_track, det, width, height, cfg)
+    track_distance = center_distance_norm(track_ref, det.box, width, height)
+    owner_distance = center_distance_norm(owner_ref, det.box, width, height)
+    return (
+        track_distance + cfg.lost_track_different_raw_hidden_owner_min_center_gain
+        < owner_distance
+    )
+
+
 def lost_track_detection_is_plausible(
     track: FixedTrack,
     det: Detection,
@@ -190,6 +320,7 @@ def lost_track_detection_is_plausible(
     width: int,
     height: int,
     raw_owner: dict[int, int] | None = None,
+    raw_owner_tracks: dict[int, FixedTrack] | None = None,
 ) -> bool:
     if not cfg.lost_track_reacquire_guard:
         return True
@@ -204,16 +335,58 @@ def lost_track_detection_is_plausible(
     same_raw_max_jump = (
         cfg.lost_track_reacquire_same_raw_max_center_jump + min(track.missed, 8) * 0.02
     )
-    if same_raw_id and distance > same_raw_max_jump:
+    if (
+        cfg.lost_track_reacquire_same_raw_distance_guard
+        and same_raw_id
+        and distance > same_raw_max_jump
+        and not lost_track_same_raw_appearance_bypass_is_plausible(track, det, cfg)
+    ):
         return False
 
     owner = None
     if raw_owner is not None and det.raw_id is not None:
         owner = raw_owner.get(det.raw_id)
     if owner is not None and owner != track.fixed_id:
-        return False
+        owner_guard_enabled = cfg.lost_track_reacquire_raw_owner_guard and (
+            cfg.lost_track_reacquire_same_raw_owner_guard
+            if same_raw_id
+            else cfg.lost_track_reacquire_different_raw_owner_guard
+        )
+        if owner_guard_enabled:
+            owner_track = (
+                raw_owner_tracks.get(owner) if raw_owner_tracks is not None else None
+            )
+            if not lost_track_fast_motion_owner_bypass_is_plausible(
+                track,
+                owner_track,
+                det,
+                cfg,
+                width,
+                height,
+                distance,
+                same_raw_id,
+            ) and not lost_track_raw_owner_transfer_is_plausible(
+                track,
+                owner_track,
+                det,
+                cfg,
+                width,
+                height,
+            ) and not lost_track_different_raw_hidden_owner_bypass_is_plausible(
+                track,
+                owner_track,
+                det,
+                cfg,
+                width,
+                height,
+            ):
+                return False
 
-    if distance > max_jump and not same_raw_id:
+    if (
+        cfg.lost_track_reacquire_non_same_raw_distance_guard
+        and distance > max_jump
+        and not same_raw_id
+    ):
         return False
 
     return True
@@ -270,7 +443,15 @@ def track_detection_cost(
         cfg,
     ):
         return 1_000_000.0
-    if not lost_track_detection_is_plausible(track, det, cfg, width, height, raw_owner):
+    if not lost_track_detection_is_plausible(
+        track,
+        det,
+        cfg,
+        width,
+        height,
+        raw_owner,
+        raw_owner_tracks,
+    ):
         return 1_000_000.0
     if not visible_raw_owner_transfer_is_plausible(
         track, det, cfg, width, height, raw_owner_tracks

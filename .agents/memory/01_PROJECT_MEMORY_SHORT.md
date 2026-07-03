@@ -26,3 +26,17 @@
 - Optimizer default scopes should stay tracking-focused.
 - Detector-only presets were moved to explicit `--scope detector_probe` because `overnight_iou0` showed detector-only metrics were identical to `base`.
 - Continue focusing on code and runtime behavior in association.py and runner.py, not detector weight.
+# 2026-07-03 Best tradeoff found: lost-track reacquire split guards
+
+- New strong 2-video tradeoff result:
+  `outputs/eval/hybrid_bytetrack/20260703_193439/smooth_det020_loose/iou0_area0_condarea0_merge0/tracking_metrics.csv`
+- Config was `smooth_det020_loose` plus `lost_track_reacquire_non_same_raw_distance_guard=false`.
+- Key metrics:
+  - `Pigs291119_000231_30fps`: IDSW `2`, HOTA `0.9705892717094201`, IDF1 `0.9847241970177549`.
+  - `Pigs291119_000302_30fps`: IDSW `0`, HOTA `0.9930104703678451`, IDF1 `0.9964355605255801`.
+  - `ALL`: IDSW `2`, HOTA `0.9820366705826231`, IDF1 `0.9907038986528682`.
+- Preserve the current split `lost_track_reacquire_guard` design in `association.py` / `config.py`:
+  - keep `lost_track_reacquire_guard=true`;
+  - use `lost_track_reacquire_non_same_raw_distance_guard=false` for this best tradeoff;
+  - do not disable raw-owner guard globally because it fixes `000302` but badly hurts `000231`;
+  - preserve the conditional `lost_track_different_raw_hidden_owner_bypass` with `min_missed=2` and `min_center_gain=0.03`.

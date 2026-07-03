@@ -1,5 +1,22 @@
 # Current Decision
 
+## 2026-07-03 tracking decision
+
+- Treat `outputs/eval/hybrid_bytetrack/20260703_193439/smooth_det020_loose/iou0_area0_condarea0_merge0/tracking_metrics.csv` as the current best 2-video tradeoff for `000231` + `000302`.
+- Result:
+  - `Pigs291119_000231_30fps`: IDSW `2`, HOTA `0.9705892717094201`, IDF1 `0.9847241970177549`.
+  - `Pigs291119_000302_30fps`: IDSW `0`, HOTA `0.9930104703678451`, IDF1 `0.9964355605255801`.
+  - `ALL`: IDSW `2`, HOTA `0.9820366705826231`, IDF1 `0.9907038986528682`.
+- Keep the current split lost-track reacquire approach:
+  - `lost_track_reacquire_guard=true`.
+  - `lost_track_reacquire_non_same_raw_distance_guard=false` for the current best tradeoff.
+  - `lost_track_reacquire_raw_owner_guard=true`; do not turn it off globally.
+  - Keep `lost_track_different_raw_hidden_owner_bypass=true`, `lost_track_different_raw_hidden_owner_min_missed=2`, and `lost_track_different_raw_hidden_owner_min_center_gain=0.03`.
+- Ablation findings:
+  - Turning off raw-owner guard globally gives `000302` IDSW `0` but makes `000231` much worse.
+  - Turning off only non-same-raw distance guard gives `000231` IDSW `2` but still needs the hidden-owner bypass to recover `000302`.
+  - Tightening only appearance threshold did not change the bad `000231=8`, `000302=0` result; owner state / center gain was the useful tightening.
+
 ## Current baseline
 
 - Do not use legacy 21/06 as the primary comparison point anymore; when discussing `evaluate_tracking.py` metric drift, compare against commit `b697c4eba36db280cbf01f446873da17bcac509d`.

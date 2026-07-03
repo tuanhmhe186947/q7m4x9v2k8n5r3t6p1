@@ -1,5 +1,20 @@
 # Project Rules
 
+## 2026-07-03 IDSW guard rules
+
+1. Preserve the split lost-track reacquire guard implementation that produced:
+   `outputs/eval/hybrid_bytetrack/20260703_193439/smooth_det020_loose/iou0_area0_condarea0_merge0/tracking_metrics.csv`.
+2. Current best tradeoff for `000231` + `000302` requires:
+   - `lost_track_reacquire_guard=true`
+   - `lost_track_reacquire_non_same_raw_distance_guard=false`
+   - `lost_track_reacquire_raw_owner_guard=true`
+   - `lost_track_different_raw_hidden_owner_bypass=true`
+   - `lost_track_different_raw_hidden_owner_min_missed=2`
+   - `lost_track_different_raw_hidden_owner_min_center_gain=0.03`
+3. Do not turn off `lost_track_reacquire_raw_owner_guard` globally; it fixes `000302` but damages `000231`.
+4. Do not remove the conditional different-raw hidden-owner bypass without an ablation against `000231` and `000302`.
+5. Do not assume appearance threshold tuning alone solves this tradeoff; tested `0.15` did not change the `000231=8`, `000302=0` result.
+
 ## General rules
 
 1. Always preserve the user's current experimental conclusion unless existing files clearly contradict it.

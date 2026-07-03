@@ -1,0 +1,61 @@
+def main() -> int:
+    args, tracker_extra_args = parse_args()
+    if args.list_eval_configs:
+        for name in sorted(EVAL_CONFIG_OVERRIDES):
+            print(name)
+        return 0
+
+    path_config = Path(args.path_config) if args.path_config else None
+    try:
+        profile = load_tracking_path_profile(path_config, args.profile)
+        video_paths = _resolve_videos(args, profile)
+    except Exception as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+    if not video_paths:
+        print("Error: No valid videos resolved.", file=sys.stderr)
+        return 1
+
+    exit_code = 0
+    for video_path in video_paths:
+        cmd = [
+            sys.executable,
+            "-m",
+            "pig_behavior.tracking.cli",
+            "--video",
+            str(video_path),
+        ]
+        if args.profile:
+            cmd.extend(["--profile", args.profile])
+        if args.eval_config:
+            for key, value in EVAL_CONFIG_OVERRIDES[args.eval_config].items():
+                cmd.extend(
+                    [
+                        "--profile-override",
+                        f"{key}={_format_profile_override_value(value)}",
+                    ]
+                )
+        if args.path_config:
+            cmd.extend(["--path-config", args.path_config])
+        cmd.extend(tracker_extra_args)
+        env = os.environ.copy()
+        existing_pythonpath = env.get("PYTHONPATH")
+        env["PYTHONPATH"] = (
+            str(SRC_ROOT)
+            if not existing_pythonpath
+            else f"{SRC_ROOT}{os.pathsep}{existing_pythonpath}"
+        )
+        print(f"Command: {' '.join(cmd)}")
+        result = subprocess.run(cmd, cwd=PROJECT_ROOT, env=env)
+        if result.returncode != 0:
+            print(
+                f"Error: Tracking failed for {video_path.name} with exit code {result.returncode}",
+                file=sys.stderr,
+            )
+            exit_code = result.returncode
+            if len(video_paths) == 1:
+                return exit_code
+
+    print("\nTracking batch execution finished.")
+    return exit_code

@@ -1,0 +1,101 @@
+﻿390:         width,
+391:         height,
+392:     )
+393:     occlusion_context = build_occlusion_context(
+394:         ordered_tracks,
+395:         detections,
+396:         width,
+397:         height,
+398:         cfg,
+399:     )
+400: 
+401:     def run_matching_phase(
+402:         candidate_tracks: list[FixedTrack],
+403:         detection_indices: list[int],
+404:     ) -> None:
+405:         if not candidate_tracks or not detection_indices:
+406:             return
+407: 
+408:         costs = np.zeros(
+409:             (len(candidate_tracks), len(detection_indices)),
+410:             dtype=np.float32,
+411:         )
+412:         for row, track in enumerate(candidate_tracks):
+413:             for col, det_idx in enumerate(detection_indices):
+414:                 costs[row, col] = track_detection_cost(
+415:                     track,
+416:                     detections[det_idx],
+417:                     det_idx,
+418:                     occlusion_context,
+419:                     width,
+420:                     height,
+421:                     cfg,
+422:                     raw_owner,
+423:                     raw_owner_tracks,
+424:                     runtime.current_recovery_track_ids,
+425:                 )
+426: 
+427:         apply_directional_y_prior_to_costs(
+428:             costs,
+429:             candidate_tracks,
+430:             detection_indices,
+431:             detections,
+432:             occlusion_context,
+433:             width,
+434:             height,
+435:             cfg,
+436:         )
+437:         rows, cols = linear_sum_assignment(costs)
+438:         for row, col in zip(rows, cols, strict=True):
+439:             track = candidate_tracks[row]
+440:             det_idx = detection_indices[col]
+441:             if (
+442:                 track.fixed_id in matched_tracks
+443:                 or det_idx in matched_detections
+444:                 or costs[row, col] > association_cost_threshold(track, cfg)
+445:             ):
+446:                 continue
+447:             ambiguous = assignment_is_occlusion_ambiguous(
+448:                 track,
+449:                 det_idx,
+450:                 occlusion_context,
+451:                 cfg,
+452:             )
+453:             in_split_recovery = (
+454:                 runtime is not None
+455:                 and track.fixed_id in runtime.current_recovery_track_ids
+456:             )
+457:             ambiguous = ambiguous or in_split_recovery
+458:             if area_occlusion_should_freeze(
+459:                 track,
+460:                 detections[det_idx],
+461:                 det_idx,
+462:                 detections,
+463:                 occlusion_context,
+464:                 width,
+465:                 height,
+466:                 cfg,
+467:             ):
+468:                 freeze_area_occluded_track(track, width, height, cfg)
+469:                 matched_tracks.add(track.fixed_id)
+470:                 matched_detections.add(det_idx)
+471:                 continue
+472:             learn_identity = not (cfg.freeze_identity_in_occlusion and ambiguous)
+473:             track.update_detected(
+474:                 detections[det_idx],
+475:                 width,
+476:                 height,
+477:                 cfg,
+478:                 learn_identity=learn_identity,
+479:                 ambiguous=ambiguous,
+480:             )
+481:             matched_tracks.add(track.fixed_id)
+482:             matched_detections.add(det_idx)
+483: 
+484:     if detections:
+485:         visible_tracks = [
+486:             track for track in ordered_tracks if track_is_visible_for_association(track)
+487:         ]
+488:         reid_tracks = [
+489:             track
+490:             for track in ordered_tracks
