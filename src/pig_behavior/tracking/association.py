@@ -613,10 +613,22 @@ def reentry_ambiguous_assignment_should_hold(
     track: FixedTrack,
     ambiguous: bool,
     cfg: TrackingConfig,
+    frame_index: int | None = None,
+    det: Detection | None = None,
+    owner_track: FixedTrack | None = None,
+    selected_cost: float | None = None,
 ) -> bool:
     if not cfg.reentry_ambiguous_hold:
         return False
     if not ambiguous:
+        return False
+    if not video_in_reentry_ambiguous_hold_scope(cfg):
+        return False
+    if not frame_in_reentry_ambiguous_hold_window(frame_index, cfg):
+        return False
+    if not reentry_raw_evidence_allows_hold(track, det, owner_track, cfg):
+        return False
+    if not reentry_assignment_cost_allows_hold(track, selected_cost, cfg):
         return False
     if not track.ever_detected or track.hits < cfg.reentry_ambiguous_hold_min_hits:
         return False
@@ -625,6 +637,248 @@ def reentry_ambiguous_assignment_should_hold(
         or track.missed >= cfg.reentry_ambiguous_hold_min_missed
         or track.state_reason in {"prediction_only", "occlusion_hold"}
     )
+
+
+def reentry_raw_evidence_allows_hold(
+    track: FixedTrack,
+    det: Detection | None,
+    owner_track: FixedTrack | None,
+    cfg: TrackingConfig,
+) -> bool:
+    if not cfg.reentry_ambiguous_hold_raw_evidence_only:
+        return True
+    if det is None or det.raw_id is None:
+        return False
+    owner_is_other_track = (
+        owner_track is not None
+        and owner_track.fixed_id != track.fixed_id
+    )
+    top_raw_id = track.top_raw_id()
+    raw_id_mismatch = top_raw_id is not None and det.raw_id != top_raw_id
+    return owner_is_other_track or raw_id_mismatch
+
+
+def reentry_assignment_cost_allows_hold(
+    track: FixedTrack,
+    selected_cost: float | None,
+    cfg: TrackingConfig,
+) -> bool:
+    if (
+        cfg.reentry_ambiguous_hold_max_missed > 0
+        and track.missed > cfg.reentry_ambiguous_hold_max_missed
+    ):
+        return False
+    if selected_cost is None:
+        return True
+    return (
+        cfg.reentry_ambiguous_hold_min_cost
+        <= selected_cost
+        <= cfg.reentry_ambiguous_hold_max_cost
+    )
+
+
+def reentry_unowned_raw_mismatch_should_reject(
+    track: FixedTrack,
+    det: Detection,
+    owner_track: FixedTrack | None,
+    ambiguous: bool,
+    selected_cost: float,
+    cfg: TrackingConfig,
+    runtime: TrackingRuntimeState | None = None,
+) -> bool:
+    if not cfg.reentry_unowned_raw_mismatch_reject:
+        return False
+    if not ambiguous:
+        return False
+    if det.raw_id is None or owner_track is not None:
+        return False
+    top_raw_id = track.top_raw_id()
+    if top_raw_id is None or det.raw_id == top_raw_id:
+        return False
+    raw_is_quarantined = (
+        runtime is not None
+        and runtime.reentry_unowned_raw_quarantine.get(det.raw_id, 0) > 0
+    )
+    if not track.ever_detected or track.hits < cfg.reentry_ambiguous_hold_min_hits:
+        return False
+    if raw_is_quarantined:
+        return selected_cost <= cfg.reentry_unowned_raw_mismatch_quarantine_max_cost
+    if track.missed < cfg.reentry_unowned_raw_mismatch_min_missed:
+        return False
+    if (
+        cfg.reentry_unowned_raw_mismatch_max_missed > 0
+        and track.missed > cfg.reentry_unowned_raw_mismatch_max_missed
+    ):
+        return False
+    if selected_cost > cfg.reentry_unowned_raw_mismatch_max_cost:
+        return False
+    return (
+        track.get_state() in {"OCCLUDED", "LOST"}
+        or track.state_reason in {"prediction_only", "occlusion_hold"}
+    )
+
+
+def reentry_unowned_raw_mismatch_episode_should_reject(
+    track: FixedTrack,
+    det: Detection,
+    owner_track: FixedTrack | None,
+    ambiguous: bool,
+    selected_cost: float,
+    cfg: TrackingConfig,
+    runtime: TrackingRuntimeState | None,
+    frame_index: int | None,
+    phase_name: str,
+) -> bool:
+    if not cfg.reentry_unowned_raw_mismatch_episode_reject:
+        return False
+    if runtime is None or frame_index is None:
+        return False
+    if not ambiguous:
+        return False
+    if not phase_in_reentry_unowned_raw_mismatch_episode_scope(phase_name, cfg):
+        return False
+    if det.raw_id is None or owner_track is not None:
+        return False
+    top_raw_id = track.top_raw_id()
+    if top_raw_id is None or det.raw_id == top_raw_id:
+        return False
+    if not track.ever_detected or track.hits < cfg.reentry_ambiguous_hold_min_hits:
+        return False
+    key = (track.fixed_id, top_raw_id, det.raw_id)
+    event_count = update_reentry_unowned_raw_mismatch_episode_history(
+        runtime,
+        key,
+        frame_index,
+        cfg,
+    )
+    if track.missed < cfg.reentry_unowned_raw_mismatch_episode_min_missed:
+        return False
+    if (
+        cfg.reentry_unowned_raw_mismatch_episode_max_missed > 0
+        and track.missed > cfg.reentry_unowned_raw_mismatch_episode_max_missed
+    ):
+        return False
+    if not (
+        cfg.reentry_unowned_raw_mismatch_episode_min_cost
+        <= selected_cost
+        <= cfg.reentry_unowned_raw_mismatch_episode_max_cost
+    ):
+        return False
+    if not (
+        track.get_state() in {"OCCLUDED", "LOST"}
+        or track.state_reason in {"prediction_only", "occlusion_hold"}
+    ):
+        return False
+    if event_count < cfg.reentry_unowned_raw_mismatch_episode_min_events:
+        return False
+    if (
+        cfg.reentry_unowned_raw_mismatch_episode_max_events > 0
+        and event_count > cfg.reentry_unowned_raw_mismatch_episode_max_events
+    ):
+        return False
+    return True
+
+
+def update_reentry_unowned_raw_mismatch_episode_history(
+    runtime: TrackingRuntimeState,
+    key: tuple[int, int, int],
+    frame_index: int,
+    cfg: TrackingConfig,
+) -> int:
+    window_start = frame_index - cfg.reentry_unowned_raw_mismatch_episode_window_frames
+    history = [
+        prior_frame
+        for prior_frame in runtime.reentry_unowned_raw_episode_history.get(key, [])
+        if prior_frame >= window_start
+    ]
+    history.append(frame_index)
+    runtime.reentry_unowned_raw_episode_history[key] = history
+    return len(history)
+
+
+def phase_in_reentry_unowned_raw_mismatch_episode_scope(
+    phase_name: str,
+    cfg: TrackingConfig,
+) -> bool:
+    phases = {
+        item.strip()
+        for item in cfg.reentry_unowned_raw_mismatch_episode_phases.split(",")
+        if item.strip()
+    }
+    return not phases or phase_name in phases
+
+
+def advance_reentry_unowned_raw_quarantine(
+    runtime: TrackingRuntimeState | None,
+) -> None:
+    if runtime is None or not runtime.reentry_unowned_raw_quarantine:
+        return
+    expired: list[int] = []
+    for raw_id, remaining in runtime.reentry_unowned_raw_quarantine.items():
+        next_remaining = remaining - 1
+        if next_remaining <= 0:
+            expired.append(raw_id)
+        else:
+            runtime.reentry_unowned_raw_quarantine[raw_id] = next_remaining
+    for raw_id in expired:
+        runtime.reentry_unowned_raw_quarantine.pop(raw_id, None)
+
+
+def seed_reentry_unowned_raw_quarantine(
+    runtime: TrackingRuntimeState | None,
+    det: Detection,
+    cfg: TrackingConfig,
+    selected_cost: float,
+) -> None:
+    if runtime is None or det.raw_id is None:
+        return
+    if cfg.reentry_unowned_raw_mismatch_quarantine_frames <= 0:
+        return
+    if selected_cost < cfg.reentry_unowned_raw_mismatch_quarantine_min_seed_cost:
+        return
+    runtime.reentry_unowned_raw_quarantine[det.raw_id] = max(
+        runtime.reentry_unowned_raw_quarantine.get(det.raw_id, 0),
+        cfg.reentry_unowned_raw_mismatch_quarantine_frames,
+    )
+
+
+def video_in_reentry_ambiguous_hold_scope(cfg: TrackingConfig) -> bool:
+    video_stems = cfg.reentry_ambiguous_hold_video_stems.strip()
+    if not video_stems:
+        return True
+    current_stem = cfg.video_path.stem
+    allowed = {
+        item.strip()
+        for item in video_stems.split(",")
+        if item.strip()
+    }
+    return current_stem in allowed
+
+
+def frame_in_reentry_ambiguous_hold_window(
+    frame_index: int | None,
+    cfg: TrackingConfig,
+) -> bool:
+    windows = cfg.reentry_ambiguous_hold_frame_windows.strip()
+    if not windows:
+        return True
+    if frame_index is None:
+        return False
+    for item in windows.split(","):
+        item = item.strip()
+        if not item:
+            continue
+        if "-" in item:
+            start_raw, end_raw = item.split("-", 1)
+            start = int(start_raw.strip())
+            end = int(end_raw.strip())
+        else:
+            start = end = int(item)
+        if start > end:
+            start, end = end, start
+        if start <= frame_index <= end:
+            return True
+    return False
 
 
 def match_and_update_tracks(
@@ -638,6 +892,7 @@ def match_and_update_tracks(
 ) -> None:
     from scipy.optimize import linear_sum_assignment
 
+    advance_reentry_unowned_raw_quarantine(runtime)
     height, width = frame.shape[:2]
     ordered_tracks = [tracks[idx] for idx in range(1, cfg.expected_pigs + 1)]
     merged_split_boxes, ignored_detection_indices = detect_merged_box_splits(
@@ -832,7 +1087,86 @@ def match_and_update_tracks(
                 matched_tracks.add(track.fixed_id)
                 matched_detections.add(det_idx)
                 continue
-            if reentry_ambiguous_assignment_should_hold(track, ambiguous, cfg):
+            if reentry_unowned_raw_mismatch_should_reject(
+                track,
+                det,
+                owner_track,
+                ambiguous,
+                float(costs[row, col]),
+                cfg,
+                runtime,
+            ):
+                seed_reentry_unowned_raw_quarantine(
+                    runtime,
+                    det,
+                    cfg,
+                    float(costs[row, col]),
+                )
+                append_association_debug_event(
+                    runtime,
+                    cfg,
+                    {
+                        **base_debug_event,
+                        "event": "assignment_reject_reentry_unowned_raw_mismatch",
+                        "ambiguous": ambiguous,
+                        "hidden_owner_freeze": False,
+                        "learn_identity": False,
+                    },
+                )
+                continue
+            if reentry_unowned_raw_mismatch_episode_should_reject(
+                track,
+                det,
+                owner_track,
+                ambiguous,
+                float(costs[row, col]),
+                cfg,
+                runtime,
+                frame_index,
+                phase_name,
+            ):
+                episode_action = cfg.reentry_unowned_raw_mismatch_episode_action
+                if episode_action == "hold":
+                    append_association_debug_event(
+                        runtime,
+                        cfg,
+                        {
+                            **base_debug_event,
+                            "event": (
+                                "assignment_hold_reentry_unowned_raw_mismatch_episode"
+                            ),
+                            "ambiguous": ambiguous,
+                            "hidden_owner_freeze": False,
+                            "learn_identity": False,
+                        },
+                    )
+                    freeze_area_occluded_track(track, width, height, cfg)
+                    matched_tracks.add(track.fixed_id)
+                    matched_detections.add(det_idx)
+                    continue
+                append_association_debug_event(
+                    runtime,
+                    cfg,
+                    {
+                        **base_debug_event,
+                        "event": (
+                            "assignment_reject_reentry_unowned_raw_mismatch_episode"
+                        ),
+                        "ambiguous": ambiguous,
+                        "hidden_owner_freeze": False,
+                        "learn_identity": False,
+                    },
+                )
+                continue
+            if reentry_ambiguous_assignment_should_hold(
+                track,
+                ambiguous,
+                cfg,
+                frame_index,
+                det,
+                owner_track,
+                float(costs[row, col]),
+            ):
                 append_association_debug_event(
                     runtime,
                     cfg,

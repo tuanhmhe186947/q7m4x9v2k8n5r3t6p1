@@ -68,6 +68,10 @@ class TrackingRuntimeState:
         default_factory=lambda: {key: 0 for key in TRACKING_TELEMETRY_KEYS}
     )
     association_debug_events: list[dict[str, object]] = field(default_factory=list)
+    reentry_unowned_raw_quarantine: dict[int, int] = field(default_factory=dict)
+    reentry_unowned_raw_episode_history: dict[tuple[int, int, int], list[int]] = field(
+        default_factory=dict
+    )
 
 
 @dataclass(slots=True)

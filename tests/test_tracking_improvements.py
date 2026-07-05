@@ -27,9 +27,16 @@ from pig_behavior.tracking import (
     track_detection_overlap_score,
 )
 from pig_behavior.tracking.association import (
+    frame_in_reentry_ambiguous_hold_window,
     hidden_owner_conflict_should_freeze_identity,
     raw_owner_conflict_is_ambiguous,
     reentry_ambiguous_assignment_should_hold,
+    reentry_assignment_cost_allows_hold,
+    reentry_raw_evidence_allows_hold,
+    reentry_unowned_raw_mismatch_episode_should_reject,
+    reentry_unowned_raw_mismatch_should_reject,
+    seed_reentry_unowned_raw_quarantine,
+    video_in_reentry_ambiguous_hold_scope,
 )
 from pig_behavior.tracking.config import validate_config
 from pig_behavior.tracking.refinement import stabilize_overlap_hidden_islands
@@ -1168,7 +1175,7 @@ def test_reentry_ambiguous_hold_requires_prior_stable_track() -> None:
     assert not reentry_ambiguous_assignment_should_hold(track, True, cfg)
 
 
-def test_reentry_ambiguous_hold_requires_missed_span() -> None:
+def test_reentry_ambiguous_hold_allows_occluded_without_mandatory_missed_span() -> None:
     cfg = TrackingConfig(
         reentry_ambiguous_hold=True,
         reentry_ambiguous_hold_min_hits=3,
@@ -1187,7 +1194,448 @@ def test_reentry_ambiguous_hold_requires_missed_span() -> None:
         state_reason="occlusion_hold",
     )
 
-    assert not reentry_ambiguous_assignment_should_hold(track, True, cfg)
+    assert reentry_ambiguous_assignment_should_hold(track, True, cfg)
+
+
+def test_reentry_ambiguous_hold_frame_window_is_opt_in_gate() -> None:
+    cfg = TrackingConfig(
+        reentry_ambiguous_hold=True,
+        reentry_ambiguous_hold_frame_windows="1335-1370, 1500",
+    )
+    track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+        hits=3,
+        missed=3,
+        state="OCCLUDED",
+    )
+
+    assert frame_in_reentry_ambiguous_hold_window(1342, cfg)
+    assert frame_in_reentry_ambiguous_hold_window(1500, cfg)
+    assert not frame_in_reentry_ambiguous_hold_window(475, cfg)
+    assert reentry_ambiguous_assignment_should_hold(track, True, cfg, 1342)
+    assert not reentry_ambiguous_assignment_should_hold(track, True, cfg, 475)
+
+
+def test_reentry_ambiguous_hold_video_scope_is_opt_in_gate() -> None:
+    cfg = TrackingConfig(
+        reentry_ambiguous_hold=True,
+        reentry_ambiguous_hold_video_stems="Pigs301119_000328_30fps",
+    )
+    track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+        hits=3,
+        missed=3,
+        state="OCCLUDED",
+    )
+
+    cfg.video_path = Path("Pigs301119_000328_30fps.mp4")
+    assert video_in_reentry_ambiguous_hold_scope(cfg)
+    assert reentry_ambiguous_assignment_should_hold(track, True, cfg, 1342)
+
+    cfg.video_path = Path("Pigs291119_000231_30fps.mp4")
+    assert not video_in_reentry_ambiguous_hold_scope(cfg)
+    assert not reentry_ambiguous_assignment_should_hold(track, True, cfg, 1342)
+
+
+def test_reentry_ambiguous_hold_raw_evidence_gate() -> None:
+    cfg = TrackingConfig(
+        reentry_ambiguous_hold=True,
+        reentry_ambiguous_hold_raw_evidence_only=True,
+    )
+    track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+        hits=3,
+        missed=3,
+        state="OCCLUDED",
+    )
+    track.raw_id_counts[3] = 10
+    hist = _hist_at(0)
+    same_raw_det = Detection(
+        box=np.array([1, 0, 21, 20], dtype=np.float32),
+        score=0.9,
+        raw_id=3,
+        class_id=0,
+        hist=hist,
+    )
+    mismatched_raw_det = Detection(
+        box=np.array([1, 0, 21, 20], dtype=np.float32),
+        score=0.9,
+        raw_id=17,
+        class_id=0,
+        hist=hist,
+    )
+
+    assert not reentry_raw_evidence_allows_hold(track, same_raw_det, None, cfg)
+    assert reentry_raw_evidence_allows_hold(track, mismatched_raw_det, None, cfg)
+    assert not reentry_ambiguous_assignment_should_hold(
+        track,
+        True,
+        cfg,
+        1342,
+        same_raw_det,
+        None,
+    )
+    assert reentry_ambiguous_assignment_should_hold(
+        track,
+        True,
+        cfg,
+        1342,
+        mismatched_raw_det,
+        None,
+    )
+
+
+def test_reentry_ambiguous_hold_cost_and_missed_gate() -> None:
+    cfg = TrackingConfig(
+        reentry_ambiguous_hold=True,
+        reentry_ambiguous_hold_raw_evidence_only=True,
+        reentry_ambiguous_hold_max_missed=15,
+        reentry_ambiguous_hold_min_cost=0.31,
+        reentry_ambiguous_hold_max_cost=0.36,
+    )
+    track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+        hits=3,
+        missed=15,
+        state="OCCLUDED",
+    )
+    track.raw_id_counts[3] = 10
+    det = Detection(
+        box=np.array([1, 0, 21, 20], dtype=np.float32),
+        score=0.9,
+        raw_id=17,
+        class_id=0,
+        hist=_hist_at(0),
+    )
+
+    assert reentry_assignment_cost_allows_hold(track, 0.33, cfg)
+    assert not reentry_assignment_cost_allows_hold(track, 0.25, cfg)
+    assert not reentry_assignment_cost_allows_hold(track, 0.40, cfg)
+    assert reentry_ambiguous_assignment_should_hold(
+        track,
+        True,
+        cfg,
+        1342,
+        det,
+        None,
+        0.33,
+    )
+
+    track.missed = 16
+    assert not reentry_assignment_cost_allows_hold(track, 0.33, cfg)
+    assert not reentry_ambiguous_assignment_should_hold(
+        track,
+        True,
+        cfg,
+        1342,
+        det,
+        None,
+        0.33,
+    )
+
+
+def test_reentry_unowned_raw_mismatch_rejects_only_short_suspicious_reentry() -> None:
+    cfg = TrackingConfig(
+        reentry_unowned_raw_mismatch_reject=True,
+        reentry_unowned_raw_mismatch_min_missed=1,
+        reentry_unowned_raw_mismatch_max_missed=5,
+        reentry_unowned_raw_mismatch_max_cost=0.30,
+    )
+    track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+        hits=3,
+        missed=1,
+        state="OCCLUDED",
+        state_reason="occlusion_hold",
+    )
+    track.raw_id_counts[3] = 10
+    hist = _hist_at(0)
+    mismatched_raw_det = Detection(
+        box=np.array([1, 0, 21, 20], dtype=np.float32),
+        score=0.9,
+        raw_id=17,
+        class_id=0,
+        hist=hist,
+    )
+    same_raw_det = Detection(
+        box=np.array([1, 0, 21, 20], dtype=np.float32),
+        score=0.9,
+        raw_id=3,
+        class_id=0,
+        hist=hist,
+    )
+    owner_track = FixedTrack(
+        fixed_id=2,
+        last_box=np.array([2, 0, 22, 20], dtype=np.float32),
+        reliable_box=np.array([2, 0, 22, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+        hits=3,
+    )
+
+    assert reentry_unowned_raw_mismatch_should_reject(
+        track,
+        mismatched_raw_det,
+        None,
+        ambiguous=True,
+        selected_cost=0.25,
+        cfg=cfg,
+    )
+    assert not reentry_unowned_raw_mismatch_should_reject(
+        track,
+        same_raw_det,
+        None,
+        ambiguous=True,
+        selected_cost=0.25,
+        cfg=cfg,
+    )
+    assert not reentry_unowned_raw_mismatch_should_reject(
+        track,
+        mismatched_raw_det,
+        owner_track,
+        ambiguous=True,
+        selected_cost=0.25,
+        cfg=cfg,
+    )
+    assert not reentry_unowned_raw_mismatch_should_reject(
+        track,
+        mismatched_raw_det,
+        None,
+        ambiguous=True,
+        selected_cost=0.35,
+        cfg=cfg,
+    )
+
+    track.missed = 6
+    assert not reentry_unowned_raw_mismatch_should_reject(
+        track,
+        mismatched_raw_det,
+        None,
+        ambiguous=True,
+        selected_cost=0.25,
+        cfg=cfg,
+    )
+
+
+def test_reentry_unowned_raw_mismatch_quarantine_extends_short_burst() -> None:
+    cfg = TrackingConfig(
+        reentry_unowned_raw_mismatch_reject=True,
+        reentry_unowned_raw_mismatch_quarantine_frames=10,
+        reentry_unowned_raw_mismatch_quarantine_min_seed_cost=0.31,
+        reentry_unowned_raw_mismatch_quarantine_max_cost=0.35,
+    )
+    runtime = TrackingRuntimeState()
+    track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+        hits=3,
+        missed=0,
+        state="OCCLUDED",
+        state_reason="detected_ambiguous",
+    )
+    track.raw_id_counts[3] = 10
+    det = Detection(
+        box=np.array([1, 0, 21, 20], dtype=np.float32),
+        score=0.9,
+        raw_id=17,
+        class_id=0,
+        hist=_hist_at(0),
+    )
+
+    assert not reentry_unowned_raw_mismatch_should_reject(
+        track,
+        det,
+        None,
+        ambiguous=True,
+        selected_cost=0.32,
+        cfg=cfg,
+        runtime=runtime,
+    )
+
+    seed_reentry_unowned_raw_quarantine(runtime, det, cfg, 0.30)
+    assert runtime.reentry_unowned_raw_quarantine == {}
+
+    seed_reentry_unowned_raw_quarantine(runtime, det, cfg, 0.32)
+    assert reentry_unowned_raw_mismatch_should_reject(
+        track,
+        det,
+        None,
+        ambiguous=True,
+        selected_cost=0.32,
+        cfg=cfg,
+        runtime=runtime,
+    )
+    assert not reentry_unowned_raw_mismatch_should_reject(
+        track,
+        det,
+        None,
+        ambiguous=True,
+        selected_cost=0.36,
+        cfg=cfg,
+        runtime=runtime,
+    )
+
+
+def test_reentry_unowned_raw_mismatch_episode_requires_repeated_burst() -> None:
+    cfg = TrackingConfig(
+        reentry_unowned_raw_mismatch_episode_reject=True,
+        reentry_unowned_raw_mismatch_episode_window_frames=10,
+        reentry_unowned_raw_mismatch_episode_min_events=3,
+        reentry_unowned_raw_mismatch_episode_max_events=4,
+        reentry_unowned_raw_mismatch_episode_max_cost=0.36,
+    )
+    runtime = TrackingRuntimeState()
+    track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+        hits=3,
+        missed=2,
+        state="OCCLUDED",
+        state_reason="occlusion_hold",
+    )
+    track.raw_id_counts[3] = 10
+    det = Detection(
+        box=np.array([1, 0, 21, 20], dtype=np.float32),
+        score=0.9,
+        raw_id=17,
+        class_id=0,
+        hist=_hist_at(0),
+    )
+
+    assert not reentry_unowned_raw_mismatch_episode_should_reject(
+        track, det, None, True, 0.34, cfg, runtime, 100, "reid"
+    )
+    assert not reentry_unowned_raw_mismatch_episode_should_reject(
+        track, det, None, True, 0.34, cfg, runtime, 104, "reid"
+    )
+    assert reentry_unowned_raw_mismatch_episode_should_reject(
+        track, det, None, True, 0.34, cfg, runtime, 108, "reid"
+    )
+    assert reentry_unowned_raw_mismatch_episode_should_reject(
+        track, det, None, True, 0.34, cfg, runtime, 109, "reid"
+    )
+    assert not reentry_unowned_raw_mismatch_episode_should_reject(
+        track, det, None, True, 0.34, cfg, runtime, 110, "reid"
+    )
+
+
+def test_reentry_unowned_raw_mismatch_episode_is_scoped_to_reid_phase() -> None:
+    cfg = TrackingConfig(reentry_unowned_raw_mismatch_episode_reject=True)
+    runtime = TrackingRuntimeState()
+    track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+        hits=3,
+        missed=2,
+        state="OCCLUDED",
+        state_reason="occlusion_hold",
+    )
+    track.raw_id_counts[3] = 10
+    det = Detection(
+        box=np.array([1, 0, 21, 20], dtype=np.float32),
+        score=0.9,
+        raw_id=17,
+        class_id=0,
+        hist=_hist_at(0),
+    )
+
+    for frame_index in (100, 101, 102):
+        assert not reentry_unowned_raw_mismatch_episode_should_reject(
+            track,
+            det,
+            None,
+            True,
+            0.34,
+            cfg,
+            runtime,
+            frame_index,
+            "visible",
+        )
+
+    assert runtime.reentry_unowned_raw_episode_history == {}
+
+
+def test_reentry_unowned_raw_mismatch_episode_accumulates_before_missed_gate() -> None:
+    cfg = TrackingConfig(
+        reentry_unowned_raw_mismatch_episode_reject=True,
+        reentry_unowned_raw_mismatch_episode_window_frames=10,
+        reentry_unowned_raw_mismatch_episode_min_events=3,
+        reentry_unowned_raw_mismatch_episode_min_missed=1,
+        reentry_unowned_raw_mismatch_episode_max_cost=0.36,
+    )
+    runtime = TrackingRuntimeState()
+    track = FixedTrack(
+        fixed_id=7,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+        hits=3,
+        missed=0,
+        state="OCCLUDED",
+        state_reason="occlusion_hold",
+    )
+    track.raw_id_counts[1] = 10
+    det = Detection(
+        box=np.array([1, 0, 21, 20], dtype=np.float32),
+        score=0.9,
+        raw_id=17,
+        class_id=0,
+        hist=_hist_at(0),
+    )
+
+    assert not reentry_unowned_raw_mismatch_episode_should_reject(
+        track, det, None, True, 0.29, cfg, runtime, 1338, "reid"
+    )
+    assert not reentry_unowned_raw_mismatch_episode_should_reject(
+        track, det, None, True, 0.29, cfg, runtime, 1339, "reid"
+    )
+    track.missed = 1
+    assert reentry_unowned_raw_mismatch_episode_should_reject(
+        track, det, None, True, 0.29, cfg, runtime, 1342, "reid"
+    )
+
+    key = (7, 1, 17)
+    assert runtime.reentry_unowned_raw_episode_history[key] == [1338, 1339, 1342]
 
 
 def _write_cvat_xml(path: Path, frame_one_swapped: bool) -> None:

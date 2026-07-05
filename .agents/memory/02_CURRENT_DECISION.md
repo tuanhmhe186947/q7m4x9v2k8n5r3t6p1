@@ -149,3 +149,55 @@ reentry_ambiguous_hold_min_missed` is mandatory before OCCLUDED/LOST or
 prediction/occlusion reason can trigger a hold. Retest this stricter version
 alone; expected trigger count should drop from thousands to localized reentry
 spans.
+
+## 2026-07-05 practical hard-set config
+
+Treat `hidden_owner_guard=true` plus `hidden_owner_guard_hold_assignment=true`
+as the current practical hard-set improvement path. It preserved the clean
+`000302` baseline and solved the known `000231` frame-401 hidden-owner failure
+in the later 3-video/4-video checks. Keep it opt-in until broader regression
+passes, but use it as the base when developing the next `000328` fix.
+
+Do not continue tuning `reentry_ambiguous_hold` thresholds as the main path.
+Runs through `20260705_152555` showed that hold-based reentry gates either fired
+too broadly and damaged `000231`/`000302`, or became too narrow and missed the
+`000328` switch. The `reentry_unowned_raw_mismatch_reject`/quarantine branch
+also failed to recover `000328=0` without collateral effects: when broad enough
+to affect `000328`, it damaged `000302`; when seed-gated, it no longer changed
+`000328`. Treat those as diagnostic opt-ins, not promotion candidates.
+
+Next direction: build a separate episode-level detector for `000328` style
+failure. It should look for repeated unowned raw-ID mismatch conflicts over a
+short window before taking action, rather than acting on each assignment
+independently. Preserve `hidden_owner_guard_hold_assignment` as the `000231`
+protection while testing this new branch.
+
+## 2026-07-05 practical hard-set clarification
+
+Use `hidden_owner_guard=true` plus `hidden_owner_guard_hold_assignment=true` as the current practical opt-in base for hard-set work. It fixed the known `000231` frame-401 hidden-owner failure and preserved `000302=0` in later checks.
+
+Do not keep tuning `reentry_ambiguous_hold` or simple `reentry_unowned_raw_mismatch_reject`/quarantine thresholds as the main path. Those branches either damaged `000231`/`000302` when broad enough, or missed `000328` when narrowed.
+
+The next branch is episode-level: detect repeated unowned raw-ID mismatch conflicts over a short frame window before rejecting. This is intended for the `000328` 1340-range failure while keeping hidden-owner hold as the `000231` protection.
+
+## 2026-07-05 successful hard-set candidate
+
+User reported and diagnostics confirmed `outputs/eval/hybrid_bytetrack/20260705_220622/smooth_det020_loose/iou0_area0_condarea0_merge0` is the current successful hard-set candidate.
+
+Metrics: `000231=0`, `000263=2`, `000328=0`, `000302=0`, `ALL=2` remapped IDSW.
+
+Candidate config for full-video validation before base promotion:
+
+- `hidden_owner_guard=true`
+- `hidden_owner_guard_hold_assignment=true`
+- `reentry_unowned_raw_mismatch_episode_reject=true`
+- `reentry_unowned_raw_mismatch_episode_action=hold`
+- `reentry_unowned_raw_mismatch_episode_max_events=8`
+- `reentry_unowned_raw_mismatch_episode_min_missed=1`
+- `reentry_unowned_raw_mismatch_episode_max_missed=20`
+- `reentry_unowned_raw_mismatch_episode_max_cost=0.36`
+- `association_debug=true` for diagnostics only, not promotion behavior.
+
+Observed guard effects: `000231` used `assignment_hidden_owner_hold` at frame `401`; `000328` used `assignment_hold_reentry_unowned_raw_mismatch_episode` at frame `1342`; `000302` had no guard trigger and stayed IDSW `0`.
+
+Remaining `000263` switches are frames `193` and `195`, track `3/4` during fight/occlusion. Raw IDs are still consistent (`track 3 -> raw 6`, `track 4 -> raw 7`), so this is not the raw-ID mismatch failure class. User noted this may be GT ambiguity because visually the two pigs exchange IDs while fighting. Do not add a broad runtime guard for this before visual/GT confirmation.

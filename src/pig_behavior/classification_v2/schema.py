@@ -402,6 +402,39 @@ LEGACY_COMPATIBLE_COLUMNS: Final[list[str]] = [
     "in_toy",
 ]
 
+LABEL_STRENGTHS: Final[set[str]] = {
+    "strong",
+    "medium",
+    "weak",
+    "boundary",
+    "unknown",
+}
+
+AMBIGUITY_GROUPS: Final[set[str]] = {
+    "none",
+    "roi_feeding_drinking_toy",
+    "aggression_social",
+    "motion_state",
+    "posture",
+    "unknown",
+}
+
+REVIEW_DECISIONS: Final[set[str]] = {
+    "auto_accept",
+    "accept",
+    "corrected",
+    "exclude",
+    "pending",
+    "not_required",
+}
+
+TRAINING_ACTIONS: Final[set[str]] = {
+    "main_train",
+    "low_weight_train",
+    "robust_train_only",
+    "exclude",
+    "pending",
+}
 
 # ---------------------------------------------------------------------
 # Helper functions
