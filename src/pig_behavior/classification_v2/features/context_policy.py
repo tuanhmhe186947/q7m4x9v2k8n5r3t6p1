@@ -352,8 +352,15 @@ def _apply_training_flags(
     bbox_valid = _to_bool_series(out["bbox_valid"])
     behavior_valid = out["behavior"].isin(VALID_BEHAVIOR_SET)
 
-    frame_uid_missing = out["frame_uid"].isna() | out["frame_uid"].astype(str).str.eq("")
-    pig_id_missing = out["pig_id"].isna() | out["pig_id"].astype(str).str.eq("")
+    frame_uid_missing = (
+        out["frame_uid"].isna()
+        | out["frame_uid"].astype(str).str.strip().eq("")
+    )
+
+    pig_id_missing = (
+        out["pig_id"].isna()
+        | out["pig_id"].astype(str).str.strip().eq("")
+    )
     required_missing = frame_uid_missing | pig_id_missing
 
     is_social = out["behavior"].isin(INTERACTION_BEHAVIORS)

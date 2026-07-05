@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import csv
 import logging
 from pathlib import Path
 from typing import Any
@@ -34,6 +35,8 @@ from pig_behavior.tracking.refinement import (
     apply_identity_swap_guard,
     clean_training_shapes,
     refine_shapes_temporally,
+    repair_episode_pair_swaps,
+    repair_local_pair_swaps,
     shape_hidden_value,
     stabilize_overlap_hidden_islands,
 )
@@ -238,6 +241,7 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
                         prev_frame,
                         cfg,
                         runtime,
+                        frame_index=frame_index,
                     )
             else:
                 # Skip detection: update tracks using motion prediction only
@@ -310,6 +314,8 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
     if cfg.enable_offline_smoothing and (cfg.smooth_boxes or cfg.refine_boxes):
         shapes = refine_shapes_temporally(shapes, width, height, cfg)
         shapes = stabilize_overlap_hidden_islands(shapes, cfg)
+        shapes = repair_local_pair_swaps(shapes, width, height, cfg)
+        shapes = repair_episode_pair_swaps(shapes, width, height, cfg)
     hidden_shape_count = sum(
         1 for shape in shapes if shape_hidden_value(shape) == "Yes"
     )
@@ -380,6 +386,19 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
     )
     write_quality_report_json(quality_report_json, quality_report)
     write_quality_report_csv(quality_report_csv, quality_report)
+    if cfg.association_debug:
+        debug_path = quality_report_csv.with_name("association_debug_events.csv")
+        debug_events = runtime.association_debug_events
+        if debug_events:
+            fieldnames = sorted(
+                {key for event in debug_events for key in event.keys()}
+            )
+            with debug_path.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(debug_events)
+        else:
+            debug_path.write_text("event\n", encoding="utf-8")
     return TrackingSummary(
         output_video=output_video,
         annotations_json=annotations_json,

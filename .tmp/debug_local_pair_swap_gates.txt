@@ -1,0 +1,18 @@
+
+Pigs291119_000231_30fps f401 ids 4/5
+  prev f398: overlap=0.249 keep=0.0256 swap=0.1483 gain=-0.1226
+  prev f399: overlap=0.249 keep=0.0110 swap=0.1355 gain=-0.1245
+  prev f400: overlap=0.249 keep=0.0252 swap=0.1476 gain=-0.1225
+  gates: min_overlap=0.2 min_gain=0.08 max_gap=2
+
+Pigs291119_000263_30fps f193 ids 3/4
+  prev f190: overlap=0.484 keep=0.0461 swap=0.0915 gain=-0.0453
+  prev f191: overlap=0.484 keep=0.0382 swap=0.0838 gain=-0.0456
+  prev f192: overlap=0.484 keep=0.0305 swap=0.0689 gain=-0.0384
+  gates: min_overlap=0.2 min_gain=0.08 max_gap=2
+
+Pigs301119_000328_30fps f1346 ids 5/7
+  prev f1343: overlap=0.732 keep=0.0155 swap=0.0183 gain=-0.0028
+  prev f1344: overlap=0.732 keep=0.0172 swap=0.0190 gain=-0.0018
+  prev f1345: overlap=0.732 keep=0.0173 swap=0.0195 gain=-0.0023
+  gates: min_overlap=0.2 min_gain=0.08 max_gap=2

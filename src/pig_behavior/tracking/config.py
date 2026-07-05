@@ -184,6 +184,29 @@ class TrackingConfig:
     identity_swap_guard: bool = True
     identity_swap_min_gain: float = 0.015
     identity_swap_iom_threshold: float = 0.10
+    # Experimental: frame-local motion repair did not affect the 20260703_221004
+    # / 20260703_222520 hard-case evals, so keep it opt-in until a stronger
+    # episode-level repair is validated.
+    local_pair_swap_repair: bool = False
+    local_pair_swap_window_frames: int = 8
+    local_pair_swap_max_gap_frames: int = 2
+    local_pair_swap_min_overlap_iou: float = 0.20
+    local_pair_swap_min_motion_gain: float = 0.08
+    episode_pair_swap_repair: bool = False
+    episode_pair_swap_max_frames: int = 12
+    episode_pair_swap_anchor_window_frames: int = 8
+    episode_pair_swap_min_overlap_iou: float = 0.20
+    episode_pair_swap_min_motion_gain: float = 0.10
+    association_debug: bool = False
+    ambiguity_owner_guard: bool = False
+    ambiguity_owner_guard_cost_margin: float = 0.04
+    hidden_owner_guard: bool = False
+    hidden_owner_guard_min_missed: int = 2
+    hidden_owner_guard_cost_margin: float = 0.08
+    hidden_owner_guard_hold_assignment: bool = False
+    reentry_ambiguous_hold: bool = False
+    reentry_ambiguous_hold_min_missed: int = 2
+    reentry_ambiguous_hold_min_hits: int = 3
     visible_raw_owner_transfer_min_gain: float = 0.04
     hidden_motion_model: bool = True
     hidden_velocity_alpha: float = 0.65

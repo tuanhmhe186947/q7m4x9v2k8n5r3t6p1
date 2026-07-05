@@ -67,6 +67,7 @@ class TrackingRuntimeState:
     telemetry: dict[str, int] = field(
         default_factory=lambda: {key: 0 for key in TRACKING_TELEMETRY_KEYS}
     )
+    association_debug_events: list[dict[str, object]] = field(default_factory=list)
 
 
 @dataclass(slots=True)

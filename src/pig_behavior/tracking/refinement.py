@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import numpy as np
@@ -15,6 +16,8 @@ from pig_behavior.tracking.geometry import (
     center_distance_norm,
     clip_box,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _shape_attributes_dict(shape: dict[str, Any]) -> dict[str, Any]:
@@ -470,6 +473,351 @@ def apply_identity_swap_guard(
     return guarded_shapes
 
 
+def shape_is_visible_for_local_swap(shape: dict[str, Any]) -> bool:
+    if shape.get("outside"):
+        return False
+    attributes = shape.get("attributes") or {}
+    if isinstance(attributes, list):
+        for attribute in attributes:
+            if str(attribute.get("name")) == "Hidden":
+                return attribute.get("value", "No") != "Yes"
+        return True
+    return attributes.get("Hidden", "No") != "Yes"
+
+
+def shape_center_xy(shape: dict[str, Any]) -> tuple[float, float]:
+    box = shape_box(shape)
+    return ((float(box[0]) + float(box[2])) / 2.0, (float(box[1]) + float(box[3])) / 2.0)
+
+
+def shape_iou(first: dict[str, Any], second: dict[str, Any]) -> float:
+    first_box = shape_box(first)
+    second_box = shape_box(second)
+    ax1, ay1, ax2, ay2 = map(float, first_box)
+    bx1, by1, bx2, by2 = map(float, second_box)
+    ix1 = max(ax1, bx1)
+    iy1 = max(ay1, by1)
+    ix2 = min(ax2, bx2)
+    iy2 = min(ay2, by2)
+    if ix2 <= ix1 or iy2 <= iy1:
+        return 0.0
+    inter = (ix2 - ix1) * (iy2 - iy1)
+    first_area = max(0.0, (ax2 - ax1) * (ay2 - ay1))
+    second_area = max(0.0, (bx2 - bx1) * (by2 - by1))
+    union = first_area + second_area - inter
+    return inter / union if union > 0.0 else 0.0
+
+
+def local_swap_motion_cost(
+    first_prev: dict[str, Any],
+    second_prev: dict[str, Any],
+    first_now: dict[str, Any],
+    second_now: dict[str, Any],
+    width: int,
+    height: int,
+    *,
+    swapped: bool,
+) -> float:
+    diagonal = max((float(width) ** 2 + float(height) ** 2) ** 0.5, 1.0)
+    first_prev_center = shape_center_xy(first_prev)
+    second_prev_center = shape_center_xy(second_prev)
+    first_now_center = shape_center_xy(first_now)
+    second_now_center = shape_center_xy(second_now)
+    if swapped:
+        first_now_center, second_now_center = second_now_center, first_now_center
+    first_cost = (
+        (first_prev_center[0] - first_now_center[0]) ** 2
+        + (first_prev_center[1] - first_now_center[1]) ** 2
+    ) ** 0.5
+    second_cost = (
+        (second_prev_center[0] - second_now_center[0]) ** 2
+        + (second_prev_center[1] - second_now_center[1]) ** 2
+    ) ** 0.5
+    return (first_cost + second_cost) / diagonal
+
+
+def repair_local_pair_swaps(
+    shapes: list[dict[str, Any]],
+    width: int,
+    height: int,
+    cfg: TrackingConfig,
+) -> list[dict[str, Any]]:
+    if not cfg.local_pair_swap_repair:
+        return shapes
+
+    by_frame: dict[int, list[dict[str, Any]]] = {}
+    for shape in shapes:
+        if shape_is_visible_for_local_swap(shape):
+            by_frame.setdefault(int(shape["frame"]), []).append(shape)
+
+    previous_by_id: dict[int, dict[str, Any]] = {}
+    previous_frame_by_id: dict[int, int] = {}
+    max_allowed_gap = min(
+        cfg.local_pair_swap_max_gap_frames,
+        cfg.local_pair_swap_window_frames,
+    )
+    repaired = 0
+
+    for frame in sorted(by_frame):
+        current_by_id = {
+            shape_fixed_id(shape): shape
+            for shape in by_frame[frame]
+            if shape_fixed_id(shape) is not None
+        }
+        ids = sorted(current_by_id)
+        swapped_ids: set[int] = set()
+        for index, first_id in enumerate(ids):
+            if first_id in swapped_ids or first_id not in previous_by_id:
+                continue
+            for second_id in ids[index + 1 :]:
+                if second_id in swapped_ids or second_id not in previous_by_id:
+                    continue
+                if (
+                    frame - previous_frame_by_id.get(first_id, -10_000)
+                    > max_allowed_gap
+                ):
+                    continue
+                if (
+                    frame - previous_frame_by_id.get(second_id, -10_000)
+                    > max_allowed_gap
+                ):
+                    continue
+
+                first_now = current_by_id[first_id]
+                second_now = current_by_id[second_id]
+                first_prev = previous_by_id[first_id]
+                second_prev = previous_by_id[second_id]
+                if (
+                    max(shape_iou(first_now, second_now), shape_iou(first_prev, second_prev))
+                    < cfg.local_pair_swap_min_overlap_iou
+                ):
+                    continue
+
+                keep_cost = local_swap_motion_cost(
+                    first_prev, second_prev, first_now, second_now, width, height, swapped=False
+                )
+                swap_cost = local_swap_motion_cost(
+                    first_prev, second_prev, first_now, second_now, width, height, swapped=True
+                )
+                if keep_cost - swap_cost < cfg.local_pair_swap_min_motion_gain:
+                    continue
+
+                swap_shape_identity_payloads(first_now, second_now, "local_pair_swap_repair")
+                first_now["_local_pair_swap_repair"] = True
+                second_now["_local_pair_swap_repair"] = True
+                first_now["_local_pair_swap_with"] = second_id
+                second_now["_local_pair_swap_with"] = first_id
+                swapped_ids.update({first_id, second_id})
+                repaired += 1
+                break
+
+        for fixed_id, shape in current_by_id.items():
+            previous_by_id[fixed_id] = shape
+            previous_frame_by_id[fixed_id] = frame
+
+    if repaired:
+        logger.debug("local pair swap repair adjusted %d frame-pairs", repaired)
+    return shapes
+
+
+def median_shape_center(shapes: list[dict[str, Any]]) -> tuple[float, float]:
+    centers = np.asarray([shape_center_xy(shape) for shape in shapes], dtype=np.float32)
+    median = np.median(centers, axis=0)
+    return float(median[0]), float(median[1])
+
+
+def normalized_center_distance(
+    first: tuple[float, float],
+    second: tuple[float, float],
+    width: int,
+    height: int,
+) -> float:
+    diagonal = max((float(width) ** 2 + float(height) ** 2) ** 0.5, 1.0)
+    return (((first[0] - second[0]) ** 2 + (first[1] - second[1]) ** 2) ** 0.5) / diagonal
+
+
+def episode_pair_swap_cost(
+    first_before: dict[str, Any],
+    second_before: dict[str, Any],
+    first_after: dict[str, Any],
+    second_after: dict[str, Any],
+    first_episode_shapes: list[dict[str, Any]],
+    second_episode_shapes: list[dict[str, Any]],
+    width: int,
+    height: int,
+    *,
+    swapped: bool,
+) -> float:
+    first_before_center = shape_center_xy(first_before)
+    second_before_center = shape_center_xy(second_before)
+    first_after_center = shape_center_xy(first_after)
+    second_after_center = shape_center_xy(second_after)
+    first_episode_center = median_shape_center(first_episode_shapes)
+    second_episode_center = median_shape_center(second_episode_shapes)
+
+    if swapped:
+        first_episode_center, second_episode_center = (
+            second_episode_center,
+            first_episode_center,
+        )
+
+    return (
+        normalized_center_distance(first_before_center, first_episode_center, width, height)
+        + normalized_center_distance(first_episode_center, first_after_center, width, height)
+        + normalized_center_distance(second_before_center, second_episode_center, width, height)
+        + normalized_center_distance(second_episode_center, second_after_center, width, height)
+    )
+
+
+def find_episode_anchor(
+    by_id_frame: dict[int, dict[int, dict[str, Any]]],
+    fixed_id: int,
+    start_frame: int,
+    end_frame: int,
+    cfg: TrackingConfig,
+    *,
+    before: bool,
+) -> dict[str, Any] | None:
+    frames = by_id_frame.get(fixed_id, {})
+    if before:
+        candidates = range(start_frame - 1, start_frame - cfg.episode_pair_swap_anchor_window_frames - 1, -1)
+    else:
+        candidates = range(end_frame + 1, end_frame + cfg.episode_pair_swap_anchor_window_frames + 1)
+    for frame in candidates:
+        shape = frames.get(frame)
+        if shape is not None and shape_is_visible_for_local_swap(shape):
+            return shape
+    return None
+
+
+def episode_overlap_runs(
+    first_frames: dict[int, dict[str, Any]],
+    second_frames: dict[int, dict[str, Any]],
+    cfg: TrackingConfig,
+) -> list[tuple[int, int]]:
+    overlap_frames = sorted(
+        frame
+        for frame in set(first_frames) & set(second_frames)
+        if shape_iou(first_frames[frame], second_frames[frame])
+        >= cfg.episode_pair_swap_min_overlap_iou
+    )
+    if not overlap_frames:
+        return []
+
+    runs: list[tuple[int, int]] = []
+    start = previous = overlap_frames[0]
+    for frame in overlap_frames[1:]:
+        if frame == previous + 1:
+            previous = frame
+            continue
+        runs.append((start, previous))
+        start = previous = frame
+    runs.append((start, previous))
+    return [
+        (start_frame, end_frame)
+        for start_frame, end_frame in runs
+        if end_frame - start_frame + 1 <= cfg.episode_pair_swap_max_frames
+    ]
+
+
+def repair_episode_pair_swaps(
+    shapes: list[dict[str, Any]],
+    width: int,
+    height: int,
+    cfg: TrackingConfig,
+) -> list[dict[str, Any]]:
+    if not cfg.episode_pair_swap_repair:
+        return shapes
+
+    by_id_frame: dict[int, dict[int, dict[str, Any]]] = {}
+    for shape in shapes:
+        if not shape_is_visible_for_local_swap(shape):
+            continue
+        fixed_id = shape_fixed_id(shape)
+        by_id_frame.setdefault(fixed_id, {})[int(shape["frame"])] = shape
+
+    repaired = 0
+    ids = sorted(by_id_frame)
+    for index, first_id in enumerate(ids):
+        for second_id in ids[index + 1 :]:
+            first_frames = by_id_frame[first_id]
+            second_frames = by_id_frame[second_id]
+            for start_frame, end_frame in episode_overlap_runs(first_frames, second_frames, cfg):
+                first_before = find_episode_anchor(
+                    by_id_frame, first_id, start_frame, end_frame, cfg, before=True
+                )
+                second_before = find_episode_anchor(
+                    by_id_frame, second_id, start_frame, end_frame, cfg, before=True
+                )
+                first_after = find_episode_anchor(
+                    by_id_frame, first_id, start_frame, end_frame, cfg, before=False
+                )
+                second_after = find_episode_anchor(
+                    by_id_frame, second_id, start_frame, end_frame, cfg, before=False
+                )
+                if any(
+                    anchor is None
+                    for anchor in (
+                        first_before,
+                        second_before,
+                        first_after,
+                        second_after,
+                    )
+                ):
+                    continue
+
+                episode_frames = range(start_frame, end_frame + 1)
+                first_episode_shapes = [first_frames[frame] for frame in episode_frames if frame in first_frames]
+                second_episode_shapes = [second_frames[frame] for frame in episode_frames if frame in second_frames]
+                if not first_episode_shapes or not second_episode_shapes:
+                    continue
+
+                keep_cost = episode_pair_swap_cost(
+                    first_before,
+                    second_before,
+                    first_after,
+                    second_after,
+                    first_episode_shapes,
+                    second_episode_shapes,
+                    width,
+                    height,
+                    swapped=False,
+                )
+                swap_cost = episode_pair_swap_cost(
+                    first_before,
+                    second_before,
+                    first_after,
+                    second_after,
+                    first_episode_shapes,
+                    second_episode_shapes,
+                    width,
+                    height,
+                    swapped=True,
+                )
+                if keep_cost - swap_cost < cfg.episode_pair_swap_min_motion_gain:
+                    continue
+
+                for frame in episode_frames:
+                    first_shape = first_frames.get(frame)
+                    second_shape = second_frames.get(frame)
+                    if first_shape is None or second_shape is None:
+                        continue
+                    swap_shape_identity_payloads(
+                        first_shape,
+                        second_shape,
+                        "episode_pair_swap_repair",
+                    )
+                    first_shape["_episode_pair_swap_repair"] = True
+                    second_shape["_episode_pair_swap_repair"] = True
+                    first_shape["_episode_pair_swap_with"] = second_id
+                    second_shape["_episode_pair_swap_with"] = first_id
+                repaired += 1
+
+    if repaired:
+        logger.debug("episode pair swap repair adjusted %d episodes", repaired)
+    return shapes
+
+
 __all__ = [
     "_apply_non_id_attribute_values",
     "_apply_shape_payload",
@@ -483,6 +831,8 @@ __all__ = [
     "nearby_anchor_indices",
     "refine_original_weight",
     "refine_shapes_temporally",
+    "repair_episode_pair_swaps",
+    "repair_local_pair_swaps",
     "set_shape_box",
     "shape_box",
     "shape_fixed_id",

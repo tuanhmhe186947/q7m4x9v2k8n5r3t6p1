@@ -22,7 +22,14 @@ from pig_behavior.tracking import (
     get_telemetry_summary,
     initialize_tracks,
     match_and_update_tracks,
+    repair_episode_pair_swaps,
+    repair_local_pair_swaps,
     track_detection_overlap_score,
+)
+from pig_behavior.tracking.association import (
+    hidden_owner_conflict_should_freeze_identity,
+    raw_owner_conflict_is_ambiguous,
+    reentry_ambiguous_assignment_should_hold,
 )
 from pig_behavior.tracking.config import validate_config
 from pig_behavior.tracking.refinement import stabilize_overlap_hidden_islands
@@ -333,6 +340,8 @@ def test_hidden_track_does_not_steal_active_track_detection() -> None:
         last_score=0.9,
         last_source="detected",
         ever_detected=True,
+        hits=1,
+        state="TRACKED",
     )
     active_track.hist_bank.append(hist)
     tracks = {1: hidden_track, 2: active_track}
@@ -854,6 +863,333 @@ def test_merged_box_split_updates_runtime_telemetry() -> None:
     assert tracks[2].last_ambiguous is True
 
 
+def test_association_debug_records_opt_in_assignment_event() -> None:
+    cfg = TrackingConfig(expected_pigs=1, association_debug=True, smooth_boxes=False)
+    hist = _hist_at(0)
+    track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+    )
+    track.hist_bank.append(hist)
+    tracks = {1: track}
+    detections = [
+        Detection(
+            box=np.array([1, 0, 21, 20], dtype=np.float32),
+            score=0.95,
+            raw_id=42,
+            class_id=0,
+            hist=hist,
+        )
+    ]
+    runtime = TrackingRuntimeState()
+    frame = np.zeros((50, 50, 3), dtype=np.uint8)
+
+    match_and_update_tracks(
+        tracks,
+        detections,
+        frame,
+        prev_frame=None,
+        cfg=cfg,
+        runtime=runtime,
+        frame_index=123,
+    )
+
+    assert len(runtime.association_debug_events) == 1
+    event = runtime.association_debug_events[0]
+    assert event["event"] == "assignment_accept"
+    assert event["frame"] == 123
+    assert event["track_id"] == 1
+    assert event["det_raw_id"] == 42
+
+
+def test_association_debug_is_silent_by_default() -> None:
+    cfg = TrackingConfig(expected_pigs=1, smooth_boxes=False)
+    hist = _hist_at(0)
+    track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+    )
+    track.hist_bank.append(hist)
+    tracks = {1: track}
+    detections = [
+        Detection(
+            box=np.array([1, 0, 21, 20], dtype=np.float32),
+            score=0.95,
+            raw_id=42,
+            class_id=0,
+            hist=hist,
+        )
+    ]
+    runtime = TrackingRuntimeState()
+    frame = np.zeros((50, 50, 3), dtype=np.uint8)
+
+    match_and_update_tracks(
+        tracks,
+        detections,
+        frame,
+        prev_frame=None,
+        cfg=cfg,
+        runtime=runtime,
+        frame_index=123,
+    )
+
+    assert runtime.association_debug_events == []
+
+
+def test_ambiguity_owner_guard_rejects_close_raw_owner_conflict() -> None:
+    cfg = TrackingConfig(
+        ambiguity_owner_guard=True,
+        ambiguity_owner_guard_cost_margin=0.04,
+    )
+    track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+    )
+    owner_track = FixedTrack(
+        fixed_id=2,
+        last_box=np.array([2, 0, 22, 20], dtype=np.float32),
+        reliable_box=np.array([2, 0, 22, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+    )
+    owner_track.raw_id_counts[42] = 3
+    det = Detection(
+        box=np.array([0, 0, 20, 20], dtype=np.float32),
+        score=0.9,
+        raw_id=42,
+        class_id=0,
+        hist=np.zeros(16, dtype=np.float32),
+    )
+
+    assert raw_owner_conflict_is_ambiguous(
+        track,
+        owner_track,
+        det,
+        selected_cost=0.20,
+        owner_cost=0.23,
+        cfg=cfg,
+    )
+
+
+def test_ambiguity_owner_guard_ignores_clear_raw_owner_conflict() -> None:
+    cfg = TrackingConfig(
+        ambiguity_owner_guard=True,
+        ambiguity_owner_guard_cost_margin=0.04,
+    )
+    track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+    )
+    owner_track = FixedTrack(
+        fixed_id=2,
+        last_box=np.array([2, 0, 22, 20], dtype=np.float32),
+        reliable_box=np.array([2, 0, 22, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+    )
+    owner_track.raw_id_counts[42] = 3
+    det = Detection(
+        box=np.array([0, 0, 20, 20], dtype=np.float32),
+        score=0.9,
+        raw_id=42,
+        class_id=0,
+        hist=np.zeros(16, dtype=np.float32),
+    )
+
+    assert not raw_owner_conflict_is_ambiguous(
+        track,
+        owner_track,
+        det,
+        selected_cost=0.20,
+        owner_cost=0.30,
+        cfg=cfg,
+    )
+
+
+def test_hidden_owner_guard_freezes_identity_for_lost_raw_owner() -> None:
+    cfg = TrackingConfig(
+        hidden_owner_guard=True,
+        hidden_owner_guard_min_missed=2,
+        hidden_owner_guard_cost_margin=0.08,
+        hidden_owner_guard_hold_assignment=True,
+    )
+    track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+    )
+    owner_track = FixedTrack(
+        fixed_id=2,
+        last_box=np.array([2, 0, 22, 20], dtype=np.float32),
+        reliable_box=np.array([2, 0, 22, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        missed=3,
+        state_reason="prediction_only",
+        ever_detected=True,
+        hits=1,
+        state="LOST",
+    )
+    owner_track.raw_id_counts[42] = 3
+    det = Detection(
+        box=np.array([0, 0, 20, 20], dtype=np.float32),
+        score=0.9,
+        raw_id=42,
+        class_id=0,
+        hist=np.zeros(16, dtype=np.float32),
+    )
+
+    assert hidden_owner_conflict_should_freeze_identity(
+        track,
+        owner_track,
+        det,
+        selected_cost=0.20,
+        owner_cost=0.25,
+        cfg=cfg,
+    )
+    assert cfg.hidden_owner_guard_hold_assignment is True
+
+
+def test_hidden_owner_guard_ignores_visible_raw_owner() -> None:
+    cfg = TrackingConfig(hidden_owner_guard=True)
+    track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+        hits=1,
+        state="TRACKED",
+    )
+    owner_track = FixedTrack(
+        fixed_id=2,
+        last_box=np.array([2, 0, 22, 20], dtype=np.float32),
+        reliable_box=np.array([2, 0, 22, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        missed=0,
+        ever_detected=True,
+        hits=1,
+        state="TRACKED",
+    )
+    owner_track.raw_id_counts[42] = 3
+    det = Detection(
+        box=np.array([0, 0, 20, 20], dtype=np.float32),
+        score=0.9,
+        raw_id=42,
+        class_id=0,
+        hist=np.zeros(16, dtype=np.float32),
+    )
+
+    assert not hidden_owner_conflict_should_freeze_identity(
+        track,
+        owner_track,
+        det,
+        selected_cost=0.20,
+        owner_cost=0.21,
+        cfg=cfg,
+    )
+
+
+def test_reentry_ambiguous_hold_requires_reentry_state_and_ambiguity() -> None:
+    cfg = TrackingConfig(
+        reentry_ambiguous_hold=True,
+        reentry_ambiguous_hold_min_missed=2,
+    )
+    track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+        hits=3,
+        missed=3,
+        state="OCCLUDED",
+        state_reason="occlusion_hold",
+    )
+
+    assert reentry_ambiguous_assignment_should_hold(track, True, cfg)
+    assert not reentry_ambiguous_assignment_should_hold(track, False, cfg)
+
+
+def test_reentry_ambiguous_hold_ignores_stable_track() -> None:
+    cfg = TrackingConfig(reentry_ambiguous_hold=True)
+    track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+        hits=1,
+        missed=0,
+        state="TRACKED",
+    )
+
+    assert not reentry_ambiguous_assignment_should_hold(track, True, cfg)
+
+
+def test_reentry_ambiguous_hold_requires_prior_stable_track() -> None:
+    cfg = TrackingConfig(
+        reentry_ambiguous_hold=True,
+        reentry_ambiguous_hold_min_hits=3,
+    )
+    track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="initialized",
+        ever_detected=False,
+        hits=0,
+        missed=5,
+        state="MISSING",
+    )
+
+    assert not reentry_ambiguous_assignment_should_hold(track, True, cfg)
+
+
+def test_reentry_ambiguous_hold_requires_missed_span() -> None:
+    cfg = TrackingConfig(
+        reentry_ambiguous_hold=True,
+        reentry_ambiguous_hold_min_hits=3,
+        reentry_ambiguous_hold_min_missed=2,
+    )
+    track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+        hits=3,
+        missed=0,
+        state="OCCLUDED",
+        state_reason="occlusion_hold",
+    )
+
+    assert not reentry_ambiguous_assignment_should_hold(track, True, cfg)
+
+
 def _write_cvat_xml(path: Path, frame_one_swapped: bool) -> None:
     boxes = {
         1: {
@@ -1114,3 +1450,142 @@ def test_continuity_gaps_explain_tolerated_interruptions(tmp_path: Path) -> None
     assert gaps[0]["gap_frames"] == 1
     assert gaps[0]["tolerated"] is True
     assert gaps[0]["event"] == "tolerated_gap"
+
+
+def test_local_pair_swap_repair_swaps_short_overlap_episode() -> None:
+    cfg = TrackingConfig(local_pair_swap_repair=True)
+    shapes = [
+        {
+            "frame": 1,
+            "label": "Pig_1",
+            "points": [0.0, 0.0, 60.0, 60.0],
+            "attributes": [{"name": "Hidden", "value": "No"}],
+        },
+        {
+            "frame": 1,
+            "label": "Pig_2",
+            "points": [30.0, 0.0, 90.0, 60.0],
+            "attributes": [{"name": "Hidden", "value": "No"}],
+        },
+        {
+            "frame": 2,
+            "label": "Pig_1",
+            "points": [32.0, 0.0, 92.0, 60.0],
+            "attributes": [{"name": "Hidden", "value": "No"}],
+        },
+        {
+            "frame": 2,
+            "label": "Pig_2",
+            "points": [2.0, 0.0, 62.0, 60.0],
+            "attributes": [{"name": "Hidden", "value": "No"}],
+        },
+    ]
+
+    repaired = repair_local_pair_swaps(shapes, width=100, height=100, cfg=cfg)
+
+    assert repaired[2]["label"] == "Pig_1"
+    assert repaired[3]["label"] == "Pig_2"
+    assert repaired[2]["points"] == [2.0, 0.0, 62.0, 60.0]
+    assert repaired[3]["points"] == [32.0, 0.0, 92.0, 60.0]
+    assert repaired[2]["_local_pair_swap_repair"]
+    assert repaired[3]["_local_pair_swap_repair"]
+
+
+def test_episode_pair_swap_repair_swaps_ambiguous_overlap_episode() -> None:
+    cfg = TrackingConfig(episode_pair_swap_repair=True)
+    shapes = [
+        {
+            "frame": 1,
+            "label": "Pig_1",
+            "points": [0.0, 0.0, 40.0, 40.0],
+            "attributes": [{"name": "Hidden", "value": "No"}],
+        },
+        {
+            "frame": 1,
+            "label": "Pig_2",
+            "points": [60.0, 0.0, 100.0, 40.0],
+            "attributes": [{"name": "Hidden", "value": "No"}],
+        },
+        {
+            "frame": 2,
+            "label": "Pig_1",
+            "points": [40.0, 0.0, 80.0, 40.0],
+            "attributes": [{"name": "Hidden", "value": "No"}],
+        },
+        {
+            "frame": 2,
+            "label": "Pig_2",
+            "points": [20.0, 0.0, 60.0, 40.0],
+            "attributes": [{"name": "Hidden", "value": "No"}],
+        },
+        {
+            "frame": 3,
+            "label": "Pig_1",
+            "points": [0.0, 0.0, 40.0, 40.0],
+            "attributes": [{"name": "Hidden", "value": "No"}],
+        },
+        {
+            "frame": 3,
+            "label": "Pig_2",
+            "points": [60.0, 0.0, 100.0, 40.0],
+            "attributes": [{"name": "Hidden", "value": "No"}],
+        },
+    ]
+
+    repaired = repair_episode_pair_swaps(shapes, width=120, height=80, cfg=cfg)
+
+    assert repaired[2]["label"] == "Pig_1"
+    assert repaired[3]["label"] == "Pig_2"
+    assert repaired[2]["points"] == [20.0, 0.0, 60.0, 40.0]
+    assert repaired[3]["points"] == [40.0, 0.0, 80.0, 40.0]
+    assert repaired[2]["_episode_pair_swap_repair"]
+    assert repaired[3]["_episode_pair_swap_repair"]
+
+
+def test_episode_pair_swap_repair_ignores_non_overlapping_tracks() -> None:
+    cfg = TrackingConfig(episode_pair_swap_repair=True)
+    shapes = [
+        {
+            "frame": 1,
+            "label": "Pig_1",
+            "points": [0.0, 0.0, 40.0, 40.0],
+            "attributes": [{"name": "Hidden", "value": "No"}],
+        },
+        {
+            "frame": 1,
+            "label": "Pig_2",
+            "points": [80.0, 0.0, 120.0, 40.0],
+            "attributes": [{"name": "Hidden", "value": "No"}],
+        },
+        {
+            "frame": 2,
+            "label": "Pig_1",
+            "points": [5.0, 0.0, 45.0, 40.0],
+            "attributes": [{"name": "Hidden", "value": "No"}],
+        },
+        {
+            "frame": 2,
+            "label": "Pig_2",
+            "points": [85.0, 0.0, 125.0, 40.0],
+            "attributes": [{"name": "Hidden", "value": "No"}],
+        },
+        {
+            "frame": 3,
+            "label": "Pig_1",
+            "points": [10.0, 0.0, 50.0, 40.0],
+            "attributes": [{"name": "Hidden", "value": "No"}],
+        },
+        {
+            "frame": 3,
+            "label": "Pig_2",
+            "points": [90.0, 0.0, 130.0, 40.0],
+            "attributes": [{"name": "Hidden", "value": "No"}],
+        },
+    ]
+
+    repaired = repair_episode_pair_swaps(shapes, width=140, height=80, cfg=cfg)
+
+    assert repaired[2]["points"] == [5.0, 0.0, 45.0, 40.0]
+    assert repaired[3]["points"] == [85.0, 0.0, 125.0, 40.0]
+    assert "_episode_pair_swap_repair" not in repaired[2]
+    assert "_episode_pair_swap_repair" not in repaired[3]
