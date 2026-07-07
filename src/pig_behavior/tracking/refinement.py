@@ -74,6 +74,78 @@ def set_shape_hidden(shape: dict[str, Any], hidden: bool) -> None:
         shape["_needs_review"] = True
 
 
+def suppress_overlapped_small_low_confidence_boxes(
+    shapes: list[dict[str, Any]],
+    cfg: TrackingConfig,
+) -> list[dict[str, Any]]:
+    """Hide small low-confidence boxes when they overlap a much larger box."""
+    if not cfg.overlap_small_box_suppression:
+        return shapes
+
+    min_iou = float(cfg.overlap_small_box_min_iou)
+    max_area_ratio = float(cfg.overlap_small_box_max_area_ratio)
+    max_score = float(cfg.overlap_small_box_max_score)
+    if min_iou <= 0.0 or max_area_ratio <= 0.0:
+        return shapes
+
+    suppressed_shapes = [shape.copy() for shape in shapes]
+    by_frame: dict[int, list[dict[str, Any]]] = {}
+    for shape in suppressed_shapes:
+        if shape.get("outside", False):
+            continue
+        if shape_hidden_value(shape) == "Yes":
+            continue
+        by_frame.setdefault(int(shape["frame"]), []).append(shape)
+
+    suppressed_count = 0
+    for frame_shapes in by_frame.values():
+        indexes_to_hide: set[int] = set()
+        for first_idx, first in enumerate(frame_shapes):
+            first_box = shape_box(first)
+            first_area = float(np.prod(np.maximum(first_box[2:] - first_box[:2], 0.0)))
+            if first_area <= 0.0:
+                continue
+            for second_idx in range(first_idx + 1, len(frame_shapes)):
+                second = frame_shapes[second_idx]
+                second_box = shape_box(second)
+                second_area = float(
+                    np.prod(np.maximum(second_box[2:] - second_box[:2], 0.0))
+                )
+                if second_area <= 0.0:
+                    continue
+                if bbox_iou(first_box, second_box) < min_iou:
+                    continue
+
+                if first_area <= second_area:
+                    small_idx, small_area, large_area = (
+                        first_idx,
+                        first_area,
+                        second_area,
+                    )
+                else:
+                    small_idx, small_area, large_area = (
+                        second_idx,
+                        second_area,
+                        first_area,
+                    )
+                if small_area / max(large_area, 1e-6) > max_area_ratio:
+                    continue
+                small_shape = frame_shapes[small_idx]
+                if float(small_shape.get("score", 1.0)) > max_score:
+                    continue
+                indexes_to_hide.add(small_idx)
+
+        for idx in indexes_to_hide:
+            shape = frame_shapes[idx]
+            set_shape_hidden(shape, True)
+            shape["_overlap_small_box_suppressed"] = True
+            suppressed_count += 1
+
+    if suppressed_count:
+        logger.debug("suppressed %d small overlapped low-confidence boxes", suppressed_count)
+    return suppressed_shapes
+
+
 def stabilize_overlap_hidden_islands(
     shapes: list[dict[str, Any]],
     cfg: TrackingConfig,
@@ -1158,6 +1230,7 @@ __all__ = [
     "shape_is_clean_for_training",
     "shape_is_stable_anchor",
     "size_jump_ratio",
+    "suppress_overlapped_small_low_confidence_boxes",
     "swap_shape_identity_payloads",
     "transition_cost",
 ]

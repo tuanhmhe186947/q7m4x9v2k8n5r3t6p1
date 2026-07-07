@@ -26,6 +26,8 @@ from pig_behavior.tracking import (
     repair_local_pair_swaps,
     repair_long_pair_swaps,
     repair_suffix_pair_swaps,
+    shape_hidden_value,
+    suppress_overlapped_small_low_confidence_boxes,
     track_detection_overlap_score,
 )
 from pig_behavior.tracking.association import (
@@ -2726,6 +2728,44 @@ def test_suffix_pair_swap_repair_requires_uncertain_overlap() -> None:
     assert repaired[5]["points"] == [2.0, 0.0, 42.0, 40.0]
     assert "_suffix_pair_swap_repair" not in repaired[4]
     assert "_suffix_pair_swap_repair" not in repaired[5]
+
+
+def test_overlap_small_box_suppression_hides_small_low_conf_overlap() -> None:
+    cfg = TrackingConfig(
+        overlap_small_box_suppression=True,
+        overlap_small_box_min_iou=0.30,
+        overlap_small_box_max_area_ratio=0.50,
+        overlap_small_box_max_score=0.75,
+    )
+    shapes = [
+        _shape(1, 1, [0.0, 0.0, 100.0, 100.0]),
+        _shape(1, 2, [20.0, 20.0, 80.0, 80.0]),
+        _shape(1, 3, [140.0, 0.0, 180.0, 40.0]),
+    ]
+    shapes[0]["score"] = 0.90
+    shapes[1]["score"] = 0.70
+    shapes[2]["score"] = 0.60
+
+    repaired = suppress_overlapped_small_low_confidence_boxes(shapes, cfg)
+
+    assert shape_hidden_value(repaired[0]) == "No"
+    assert shape_hidden_value(repaired[1]) == "Yes"
+    assert shape_hidden_value(repaired[2]) == "No"
+    assert repaired[1]["_overlap_small_box_suppressed"] is True
+
+
+def test_overlap_small_box_suppression_is_opt_in() -> None:
+    cfg = TrackingConfig(overlap_small_box_suppression=False)
+    shapes = [
+        _shape(1, 1, [0.0, 0.0, 100.0, 100.0]),
+        _shape(1, 2, [20.0, 20.0, 80.0, 80.0]),
+    ]
+    shapes[1]["score"] = 0.20
+
+    repaired = suppress_overlapped_small_low_confidence_boxes(shapes, cfg)
+
+    assert repaired is shapes
+    assert shape_hidden_value(repaired[1]) == "No"
 
 
 def test_occlusion_reid_bad_match_can_require_unowned_raw() -> None:

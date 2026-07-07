@@ -359,3 +359,35 @@ raw IDs, and hidden-overlap signals are not distinctive enough. Hidden-overlap
 runs similar to the desired `1111-1118` segment also occur earlier (`973-982`,
 `1053-1062`) where swapping is harmful. Avoid hardcoded video/frame repair in
 promotable tracking logic.
+
+## 2026-07-07 overlap small-box suppression candidate
+
+New best current 5-video opt-in candidate:
+`outputs/eval/hybrid_bytetrack/codex_overlap_suppress_5video/iou0_area0_condarea0_merge0`.
+
+Metrics:
+
+- `Pigs291119_000231_30fps`: stayed `0` remapped IDSW.
+- `Pigs291119_000233_30fps`: improved from `6` to `2` remapped IDSW.
+- `Pigs291119_000263_30fps`: stayed `0` remapped IDSW.
+- `Pigs301119_000328_30fps`: stayed `0` remapped IDSW.
+- `Pigs291119_000302_30fps`: stayed `0` remapped IDSW.
+- `ALL`: improved from `6` to `2` remapped IDSW versus the suffix candidate.
+
+Winning add-on is `overlap_small_box_suppression=true` on top of the protected
+practical config, the `000233` occlusion-reid guard, and
+`suffix_pair_swap_repair=true`. Default thresholds are intentionally conservative:
+`overlap_small_box_min_iou=0.40`,
+`overlap_small_box_max_area_ratio=0.65`, and
+`overlap_small_box_max_score=0.75`.
+
+Diagnosis: the early `000233` switches at `923/924` and `939/941` are not raw-ID
+owner failures. The runtime keeps the expected IDs, but the evaluator matches GT
+`ID_8` to a neighboring smaller low-confidence box because its IoU is slightly
+higher during heavy overlap. The new opt-in post-processing marks those small
+low-confidence overlapped boxes Hidden, removing the short IDSW bounces. The
+remaining `000233` switches are `1111/1119`, a harder `ID_1/ID_8` long conflict
+that should not be fixed by broad suffix or GT-aware swaps.
+
+Keep this candidate opt-in pending broader/full-set regression before base
+promotion.

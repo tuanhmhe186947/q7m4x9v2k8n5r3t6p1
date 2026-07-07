@@ -207,6 +207,10 @@ class TrackingConfig:
     suffix_pair_swap_max_overlap_frames: int = 8
     suffix_pair_swap_min_suffix_frames: int = 1500
     suffix_pair_swap_max_suffix_overlap_iou: float = 0.30
+    overlap_small_box_suppression: bool = False
+    overlap_small_box_min_iou: float = 0.40
+    overlap_small_box_max_area_ratio: float = 0.65
+    overlap_small_box_max_score: float = 0.75
     association_debug: bool = False
     ambiguity_owner_guard: bool = False
     ambiguity_owner_guard_cost_margin: float = 0.04

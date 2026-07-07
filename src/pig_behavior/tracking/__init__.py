@@ -133,6 +133,7 @@ from pig_behavior.tracking.refinement import (
     shape_is_clean_for_training,
     shape_is_stable_anchor,
     size_jump_ratio,
+    suppress_overlapped_small_low_confidence_boxes,
     swap_shape_identity_payloads,
     transition_cost,
 )
@@ -278,6 +279,7 @@ __all__ = [
     "smooth_alpha_for_score",
     "smooth_detected_box",
     "spatial_sort_detections",
+    "suppress_overlapped_small_low_confidence_boxes",
     "suppress_duplicate_detections",
     "swap_shape_identity_payloads",
     "track_detection_cost",
