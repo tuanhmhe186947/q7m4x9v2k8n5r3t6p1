@@ -428,3 +428,44 @@ strongly overlaps one visible partner, then has a long common suffix. Defaults:
 On the 5-video run this detected the `000233 ID_8/ID_1` suffix crossing without
 triggering regressions on `000231`, `000263`, `000328`, or `000302`. Keep this
 opt-in pending broader/full-set regression before base promotion.
+
+## 2026-07-07 broader regression correction
+
+The broader regression run
+`outputs/eval/hybrid_bytetrack/20260707_174142/smooth_det020_loose/iou0_area0_condarea0_merge0`
+proved the previous full 5-video stack is not a safe common baseline. It fixed
+the target videos (`000233=0`, `000263=0`) but regressed previously clean videos:
+
+- `Pigs281119_000085_30fps`: `0 -> 2` remapped IDSW.
+- `Pigs291119_000225_30fps`: `0 -> 2` remapped IDSW.
+
+Ablation on `000085/000225/000233/000263` isolated the issue:
+
+- `ablate_control_assoc_occlusion_4video`: `000085=0`, `000225=0`, `000233=6`, `000263=2`.
+- `ablate_suffix_only_4video`: `000085=2`, `000225=2`, `000233=6`, `000263=0`.
+- `ablate_overlap_only_4video`: `000085=0`, `000225=0`, `000233=2`, `000263=2`.
+- `ablate_overlap_hidden_no_suffix_4video`: `000085=0`, `000225=0`, `000233=0`, `000263=2`.
+
+Decision: do not promote `suffix_pair_swap_repair=true` in its current form. It
+fixes `000263` but creates false suffix swaps on clean videos. The current safest
+common candidate for broader validation is:
+
+- protected association/occlusion practical base:
+  `hidden_owner_guard=true`,
+  `hidden_owner_guard_hold_assignment=true`,
+  `reentry_unowned_raw_mismatch_episode_reject=true`,
+  `reentry_unowned_raw_mismatch_episode_action=hold`,
+  `reentry_unowned_raw_mismatch_episode_max_events=8`,
+  `reentry_unowned_raw_mismatch_episode_min_missed=1`,
+  `reentry_unowned_raw_mismatch_episode_max_missed=20`,
+  `reentry_unowned_raw_mismatch_episode_max_cost=0.36`,
+  `occlusion_reid_prefer_gap_over_bad_match=true`,
+  raw-mismatch/unowned/occlusion-hold-only with `min_missed=7`,
+  `max_missed=12`, `min_cost=0.55`, `max_cost=0.70`.
+- add `overlap_small_box_suppression=true`.
+- add `hidden_suffix_id_swap_repair=true`.
+- explicitly keep `suffix_pair_swap_repair=false`.
+
+Next step: run broader/full regression with this no-suffix common candidate. The
+remaining `000263=2` should be addressed by a new, narrower discriminator rather
+than by current suffix repair.
