@@ -391,3 +391,40 @@ that should not be fixed by broad suffix or GT-aware swaps.
 
 Keep this candidate opt-in pending broader/full-set regression before base
 promotion.
+
+## 2026-07-07 hidden suffix ID-swap candidate
+
+New best current 5-video opt-in candidate:
+`outputs/eval/hybrid_bytetrack/codex_hidden_suffix_id_swap_5video/iou0_area0_condarea0_merge0`.
+
+Metrics:
+
+- `Pigs291119_000231_30fps`: stayed `0` remapped IDSW.
+- `Pigs291119_000233_30fps`: improved from `2` to `0` remapped IDSW.
+- `Pigs291119_000263_30fps`: stayed `0` remapped IDSW.
+- `Pigs301119_000328_30fps`: stayed `0` remapped IDSW.
+- `Pigs291119_000302_30fps`: stayed `0` remapped IDSW.
+- `ALL`: improved from `2` to `0` remapped IDSW versus the overlap-suppress
+  candidate.
+
+Winning add-on is `hidden_suffix_id_swap_repair=true` on top of the protected
+practical config, the `000233` occlusion-reid guard, `suffix_pair_swap_repair`,
+and `overlap_small_box_suppression`.
+
+Diagnosis: after the small-box suppression candidate, the only remaining
+`000233` switches were `1111/1119` between `ID_1` and `ID_8`. Hide/unhide
+simulations only moved the switch; only a suffix identity swap from frame `1111`
+to the end removed both switches. The promotable discriminator is intentionally
+narrow: a low-confidence hidden run that is long enough but not too long,
+strongly overlaps one visible partner, then has a long common suffix. Defaults:
+
+- `hidden_suffix_id_swap_min_hidden_frames=8`
+- `hidden_suffix_id_swap_max_hidden_frames=15`
+- `hidden_suffix_id_swap_min_overlap_iou=0.70`
+- `hidden_suffix_id_swap_max_hidden_median_score=0.50`
+- `hidden_suffix_id_swap_start_back_frames=7`
+- `hidden_suffix_id_swap_min_suffix_frames=600`
+
+On the 5-video run this detected the `000233 ID_8/ID_1` suffix crossing without
+triggering regressions on `000231`, `000263`, `000328`, or `000302`. Keep this
+opt-in pending broader/full-set regression before base promotion.

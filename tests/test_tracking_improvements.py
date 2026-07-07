@@ -23,6 +23,7 @@ from pig_behavior.tracking import (
     initialize_tracks,
     match_and_update_tracks,
     repair_episode_pair_swaps,
+    repair_hidden_suffix_id_swaps,
     repair_local_pair_swaps,
     repair_long_pair_swaps,
     repair_suffix_pair_swaps,
@@ -2766,6 +2767,61 @@ def test_overlap_small_box_suppression_is_opt_in() -> None:
 
     assert repaired is shapes
     assert shape_hidden_value(repaired[1]) == "No"
+
+
+def _shape_id_value(shape: dict) -> str:
+    for attribute in shape["attributes"]:
+        if attribute["name"] == "ID":
+            return str(attribute["value"])
+    raise AssertionError("shape is missing ID attribute")
+
+
+def test_hidden_suffix_id_swap_repairs_low_conf_hidden_suffix() -> None:
+    cfg = TrackingConfig(
+        hidden_suffix_id_swap_repair=True,
+        hidden_suffix_id_swap_min_hidden_frames=2,
+        hidden_suffix_id_swap_max_hidden_frames=3,
+        hidden_suffix_id_swap_min_overlap_iou=0.40,
+        hidden_suffix_id_swap_max_hidden_median_score=0.50,
+        hidden_suffix_id_swap_start_back_frames=1,
+        hidden_suffix_id_swap_min_suffix_frames=4,
+    )
+    shapes = []
+    for frame in range(1, 7):
+        first = _shape(frame, 1, [0.0, 0.0, 100.0, 100.0])
+        hidden = _shape(frame, 8, [10.0, 10.0, 90.0, 90.0])
+        if frame in {2, 3}:
+            hidden["score"] = 0.30
+            _set_hidden(hidden, True)
+        shapes.extend([first, hidden])
+
+    repaired = repair_hidden_suffix_id_swaps(shapes, cfg)
+    by_frame_label = {
+        (int(shape["frame"]), shape["label"]): shape
+        for shape in repaired
+    }
+
+    assert _shape_id_value(by_frame_label[(1, "Pig_1")]) == "ID_1"
+    assert _shape_id_value(by_frame_label[(1, "Pig_8")]) == "ID_8"
+    assert _shape_id_value(by_frame_label[(2, "Pig_1")]) == "ID_8"
+    assert _shape_id_value(by_frame_label[(2, "Pig_8")]) == "ID_1"
+    assert _shape_id_value(by_frame_label[(6, "Pig_1")]) == "ID_8"
+    assert _shape_id_value(by_frame_label[(6, "Pig_8")]) == "ID_1"
+    assert by_frame_label[(2, "Pig_1")]["_hidden_suffix_id_swap_repair"] is True
+
+
+def test_hidden_suffix_id_swap_is_opt_in() -> None:
+    cfg = TrackingConfig(hidden_suffix_id_swap_repair=False)
+    shapes = [
+        _shape(1, 1, [0.0, 0.0, 100.0, 100.0]),
+        _set_hidden(_shape(1, 8, [10.0, 10.0, 90.0, 90.0]), True),
+    ]
+
+    repaired = repair_hidden_suffix_id_swaps(shapes, cfg)
+
+    assert repaired is shapes
+    assert _shape_id_value(repaired[0]) == "ID_1"
+    assert _shape_id_value(repaired[1]) == "ID_8"
 
 
 def test_occlusion_reid_bad_match_can_require_unowned_raw() -> None:

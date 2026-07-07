@@ -27,6 +27,14 @@ def _shape_attributes_dict(shape: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _set_shape_id_value(shape: dict[str, Any], id_value: str) -> None:
+    for attribute in shape.get("attributes", []):
+        if attribute.get("name") == "ID":
+            attribute["value"] = id_value
+            return
+    shape.setdefault("attributes", []).append({"value": id_value, "name": "ID"})
+
+
 def shape_is_clean_for_training(shape: dict[str, Any], cfg: TrackingConfig) -> bool:
     attributes = _shape_attributes_dict(shape)
     return (
@@ -144,6 +152,137 @@ def suppress_overlapped_small_low_confidence_boxes(
     if suppressed_count:
         logger.debug("suppressed %d small overlapped low-confidence boxes", suppressed_count)
     return suppressed_shapes
+
+
+def _contiguous_runs(frames: list[int]) -> list[tuple[int, int]]:
+    if not frames:
+        return []
+    runs: list[tuple[int, int]] = []
+    start = previous = frames[0]
+    for frame in frames[1:]:
+        if frame == previous + 1:
+            previous = frame
+            continue
+        runs.append((start, previous))
+        start = previous = frame
+    runs.append((start, previous))
+    return runs
+
+
+def _median_score(shapes: list[dict[str, Any]]) -> float:
+    if not shapes:
+        return 0.0
+    return float(np.median(np.asarray([float(shape.get("score", 0.0)) for shape in shapes])))
+
+
+def repair_hidden_suffix_id_swaps(
+    shapes: list[dict[str, Any]],
+    cfg: TrackingConfig,
+) -> list[dict[str, Any]]:
+    """Swap ID attributes after a low-confidence hidden track crosses a visible one."""
+    if not cfg.hidden_suffix_id_swap_repair:
+        return shapes
+
+    repaired_shapes = [shape.copy() for shape in shapes]
+    by_id_frame: dict[int, dict[int, dict[str, Any]]] = {}
+    by_frame: dict[int, list[dict[str, Any]]] = {}
+    for shape in repaired_shapes:
+        if shape.get("outside", False):
+            continue
+        fixed_id = shape_fixed_id(shape)
+        frame = int(shape["frame"])
+        by_id_frame.setdefault(fixed_id, {})[frame] = shape
+        by_frame.setdefault(frame, []).append(shape)
+
+    repaired_pairs: set[tuple[int, int]] = set()
+    for hidden_id, hidden_frames_by_frame in sorted(by_id_frame.items()):
+        hidden_frames = sorted(
+            frame
+            for frame, shape in hidden_frames_by_frame.items()
+            if shape_hidden_value(shape) == "Yes"
+        )
+        for run_start, run_end in _contiguous_runs(hidden_frames):
+            run_length = run_end - run_start + 1
+            if run_length < cfg.hidden_suffix_id_swap_min_hidden_frames:
+                continue
+            if (
+                cfg.hidden_suffix_id_swap_max_hidden_frames > 0
+                and run_length > cfg.hidden_suffix_id_swap_max_hidden_frames
+            ):
+                continue
+            if run_end + 1 not in hidden_frames_by_frame:
+                continue
+            if shape_hidden_value(hidden_frames_by_frame[run_end + 1]) == "Yes":
+                continue
+
+            hidden_run_shapes = [
+                hidden_frames_by_frame[frame]
+                for frame in range(run_start, run_end + 1)
+                if frame in hidden_frames_by_frame
+            ]
+            if (
+                _median_score(hidden_run_shapes)
+                > cfg.hidden_suffix_id_swap_max_hidden_median_score
+            ):
+                continue
+
+            partner_overlaps: dict[int, list[float]] = {}
+            for hidden_shape in hidden_run_shapes:
+                frame = int(hidden_shape["frame"])
+                for other in by_frame.get(frame, []):
+                    partner_id = shape_fixed_id(other)
+                    if partner_id == hidden_id:
+                        continue
+                    if shape_hidden_value(other) == "Yes":
+                        continue
+                    partner_overlaps.setdefault(partner_id, []).append(
+                        bbox_iou(shape_box(hidden_shape), shape_box(other))
+                    )
+            if not partner_overlaps:
+                continue
+
+            partner_id, overlaps = max(
+                partner_overlaps.items(),
+                key=lambda item: max(item[1]) if item[1] else 0.0,
+            )
+            if max(overlaps) < cfg.hidden_suffix_id_swap_min_overlap_iou:
+                continue
+            pair_key = tuple(sorted((hidden_id, partner_id)))
+            if pair_key in repaired_pairs:
+                continue
+
+            swap_start = max(
+                run_start,
+                run_end - cfg.hidden_suffix_id_swap_start_back_frames,
+            )
+            common_suffix_frames = sorted(
+                frame
+                for frame in set(hidden_frames_by_frame) & set(by_id_frame[partner_id])
+                if frame >= swap_start
+            )
+            if len(common_suffix_frames) < cfg.hidden_suffix_id_swap_min_suffix_frames:
+                continue
+
+            hidden_id_value = f"ID_{hidden_id}"
+            partner_id_value = f"ID_{partner_id}"
+            for frame in common_suffix_frames:
+                hidden_shape = hidden_frames_by_frame[frame]
+                partner_shape = by_id_frame[partner_id][frame]
+                _set_shape_id_value(hidden_shape, partner_id_value)
+                _set_shape_id_value(partner_shape, hidden_id_value)
+                hidden_shape["_hidden_suffix_id_swap_repair"] = True
+                partner_shape["_hidden_suffix_id_swap_repair"] = True
+                hidden_shape["_hidden_suffix_id_swap_with"] = partner_id
+                partner_shape["_hidden_suffix_id_swap_with"] = hidden_id
+                hidden_shape["_hidden_suffix_id_swap_start"] = swap_start
+                partner_shape["_hidden_suffix_id_swap_start"] = swap_start
+                hidden_shape["_needs_review"] = True
+                partner_shape["_needs_review"] = True
+            repaired_pairs.add(pair_key)
+
+    if repaired_pairs:
+        logger.debug("hidden suffix ID swap repaired %d pairs", len(repaired_pairs))
+    return repaired_shapes
 
 
 def stabilize_overlap_hidden_islands(
@@ -1222,6 +1361,7 @@ __all__ = [
     "repair_episode_pair_swaps",
     "repair_local_pair_swaps",
     "repair_long_pair_swaps",
+    "repair_hidden_suffix_id_swaps",
     "repair_suffix_pair_swaps",
     "set_shape_box",
     "shape_box",

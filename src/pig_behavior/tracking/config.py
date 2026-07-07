@@ -211,6 +211,13 @@ class TrackingConfig:
     overlap_small_box_min_iou: float = 0.40
     overlap_small_box_max_area_ratio: float = 0.65
     overlap_small_box_max_score: float = 0.75
+    hidden_suffix_id_swap_repair: bool = False
+    hidden_suffix_id_swap_min_hidden_frames: int = 8
+    hidden_suffix_id_swap_max_hidden_frames: int = 15
+    hidden_suffix_id_swap_min_overlap_iou: float = 0.70
+    hidden_suffix_id_swap_max_hidden_median_score: float = 0.50
+    hidden_suffix_id_swap_start_back_frames: int = 7
+    hidden_suffix_id_swap_min_suffix_frames: int = 600
     association_debug: bool = False
     ambiguity_owner_guard: bool = False
     ambiguity_owner_guard_cost_margin: float = 0.04
