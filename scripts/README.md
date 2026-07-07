@@ -148,6 +148,38 @@ C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\evaluate_tracking.p
   --rule-combo iou0_area0_condarea0_merge0
 ```
 
+Evaluate full 12-video voi candidate opt-in hien tot nhat:
+
+```cmd
+C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\evaluate_tracking.py ^
+  --eval-config smooth_det020_loose ^
+  -a ^
+  --rule-combo iou0_area0_condarea0_merge0 ^
+  --output-root outputs\eval\hybrid_bytetrack\codex_visible_suffix_gate_full ^
+  --prediction-root outputs\pred\hybrid_bytetrack\codex_visible_suffix_gate_full ^
+  --profile-override hidden_owner_guard=true ^
+  --profile-override hidden_owner_guard_hold_assignment=true ^
+  --profile-override reentry_unowned_raw_mismatch_episode_reject=true ^
+  --profile-override reentry_unowned_raw_mismatch_episode_action=hold ^
+  --profile-override reentry_unowned_raw_mismatch_episode_max_events=8 ^
+  --profile-override reentry_unowned_raw_mismatch_episode_min_missed=1 ^
+  --profile-override reentry_unowned_raw_mismatch_episode_max_missed=20 ^
+  --profile-override reentry_unowned_raw_mismatch_episode_max_cost=0.36 ^
+  --profile-override occlusion_reid_prefer_gap_over_bad_match=true ^
+  --profile-override occlusion_reid_bad_match_action=reject ^
+  --profile-override occlusion_reid_bad_match_same_raw_only=false ^
+  --profile-override occlusion_reid_bad_match_raw_mismatch_only=true ^
+  --profile-override occlusion_reid_bad_match_unowned_raw_only=true ^
+  --profile-override occlusion_reid_bad_match_occlusion_hold_only=true ^
+  --profile-override occlusion_reid_bad_match_min_missed=7 ^
+  --profile-override occlusion_reid_bad_match_max_missed=12 ^
+  --profile-override occlusion_reid_bad_match_min_cost=0.55 ^
+  --profile-override occlusion_reid_bad_match_max_cost=0.70 ^
+  --profile-override suffix_pair_swap_repair=true ^
+  --profile-override overlap_small_box_suppression=true ^
+  --profile-override hidden_suffix_id_swap_repair=true
+```
+
 Evaluate hard 5-video voi candidate opt-in hien tot nhat:
 
 ```cmd
@@ -157,6 +189,38 @@ C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\evaluate_tracking.p
   --rule-combo iou0_area0_condarea0_merge0 ^
   --output-root outputs\eval\hybrid_bytetrack\codex_hidden_suffix_id_swap_5video_rerun ^
   --prediction-root outputs\pred\hybrid_bytetrack\codex_hidden_suffix_id_swap_5video_rerun ^
+  --profile-override hidden_owner_guard=true ^
+  --profile-override hidden_owner_guard_hold_assignment=true ^
+  --profile-override reentry_unowned_raw_mismatch_episode_reject=true ^
+  --profile-override reentry_unowned_raw_mismatch_episode_action=hold ^
+  --profile-override reentry_unowned_raw_mismatch_episode_max_events=8 ^
+  --profile-override reentry_unowned_raw_mismatch_episode_min_missed=1 ^
+  --profile-override reentry_unowned_raw_mismatch_episode_max_missed=20 ^
+  --profile-override reentry_unowned_raw_mismatch_episode_max_cost=0.36 ^
+  --profile-override occlusion_reid_prefer_gap_over_bad_match=true ^
+  --profile-override occlusion_reid_bad_match_action=reject ^
+  --profile-override occlusion_reid_bad_match_same_raw_only=false ^
+  --profile-override occlusion_reid_bad_match_raw_mismatch_only=true ^
+  --profile-override occlusion_reid_bad_match_unowned_raw_only=true ^
+  --profile-override occlusion_reid_bad_match_occlusion_hold_only=true ^
+  --profile-override occlusion_reid_bad_match_min_missed=7 ^
+  --profile-override occlusion_reid_bad_match_max_missed=12 ^
+  --profile-override occlusion_reid_bad_match_min_cost=0.55 ^
+  --profile-override occlusion_reid_bad_match_max_cost=0.70 ^
+  --profile-override suffix_pair_swap_repair=true ^
+  --profile-override overlap_small_box_suppression=true ^
+  --profile-override hidden_suffix_id_swap_repair=true
+```
+
+Probe rieng `Pigs291119_000263_30fps` voi cung candidate opt-in:
+
+```cmd
+C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\evaluate_tracking.py ^
+  --eval-config smooth_det020_loose ^
+  -v Pigs291119_000263_30fps ^
+  --rule-combo iou0_area0_condarea0_merge0 ^
+  --output-root outputs\eval\hybrid_bytetrack\codex_probe_263_visible_suffix_gate_rerun ^
+  --prediction-root outputs\pred\hybrid_bytetrack\codex_probe_263_visible_suffix_gate_rerun ^
   --profile-override hidden_owner_guard=true ^
   --profile-override hidden_owner_guard_hold_assignment=true ^
   --profile-override reentry_unowned_raw_mismatch_episode_reject=true ^
