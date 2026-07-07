@@ -197,6 +197,16 @@ class TrackingConfig:
     episode_pair_swap_anchor_window_frames: int = 8
     episode_pair_swap_min_overlap_iou: float = 0.20
     episode_pair_swap_min_motion_gain: float = 0.10
+    long_pair_swap_repair: bool = False
+    long_pair_swap_min_frames: int = 24
+    long_pair_swap_max_gap_frames: int = 2
+    long_pair_swap_min_start_gain: float = 0.08
+    long_pair_swap_min_median_separation: float = 0.04
+    suffix_pair_swap_repair: bool = False
+    suffix_pair_swap_min_overlap_iou: float = 0.45
+    suffix_pair_swap_max_overlap_frames: int = 8
+    suffix_pair_swap_min_suffix_frames: int = 1500
+    suffix_pair_swap_max_suffix_overlap_iou: float = 0.30
     association_debug: bool = False
     ambiguity_owner_guard: bool = False
     ambiguity_owner_guard_cost_margin: float = 0.04
@@ -230,6 +240,24 @@ class TrackingConfig:
     reentry_unowned_raw_mismatch_episode_max_cost: float = 0.36
     reentry_unowned_raw_mismatch_episode_phases: str = "reid"
     reentry_unowned_raw_mismatch_episode_action: str = "reject"
+    occlusion_reid_prefer_gap_over_bad_match: bool = False
+    occlusion_reid_bad_match_min_cost: float = 0.60
+    occlusion_reid_bad_match_max_cost: float = 1.0
+    occlusion_reid_bad_match_min_missed: int = 0
+    occlusion_reid_bad_match_max_missed: int = 3
+    occlusion_reid_bad_match_same_raw_only: bool = True
+    occlusion_reid_bad_match_raw_mismatch_only: bool = False
+    occlusion_reid_bad_match_unowned_raw_only: bool = False
+    occlusion_reid_bad_match_occlusion_hold_only: bool = False
+    occlusion_reid_bad_match_once_per_episode: bool = False
+    occlusion_reid_bad_match_include_recent_visible: bool = False
+    occlusion_reid_bad_match_visible_min_cost: float = 0.70
+    occlusion_reid_bad_match_action: str = "hold"
+    reid_unowned_competing_candidate_hold: bool = False
+    reid_unowned_competing_candidate_min_cost: float = 0.55
+    reid_unowned_competing_candidate_min_gap: float = 0.15
+    reid_unowned_competing_candidate_min_missed: int = 1
+    reid_unowned_competing_candidate_occlusion_hold_only: bool = True
     visible_raw_owner_transfer_min_gain: float = 0.04
     hidden_motion_model: bool = True
     hidden_velocity_alpha: float = 0.65
@@ -293,6 +321,8 @@ def validate_config(cfg: TrackingConfig) -> None:
             "mode must be one of: realtime, bytetrack_raw, hybrid_bytetrack, "
             "bytetrack, gt_export."
         )
+    if cfg.occlusion_reid_bad_match_action not in {"hold", "reject"}:
+        raise ValueError("occlusion_reid_bad_match_action must be 'hold' or 'reject'.")
 
     requested_mode = cfg.mode
     if requested_mode == "bytetrack":

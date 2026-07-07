@@ -818,6 +818,322 @@ def repair_episode_pair_swaps(
     return shapes
 
 
+def long_pair_swap_segment_end(
+    first_frames: dict[int, dict[str, Any]],
+    second_frames: dict[int, dict[str, Any]],
+    start_frame: int,
+    cfg: TrackingConfig,
+) -> int | None:
+    common_frames = sorted(
+        frame
+        for frame in set(first_frames) & set(second_frames)
+        if frame >= start_frame
+    )
+    if not common_frames or common_frames[0] != start_frame:
+        return None
+
+    segment_frames = [common_frames[0]]
+    previous = common_frames[0]
+    for frame in common_frames[1:]:
+        if frame - previous > cfg.long_pair_swap_max_gap_frames + 1:
+            break
+        segment_frames.append(frame)
+        previous = frame
+
+    if len(segment_frames) < cfg.long_pair_swap_min_frames:
+        return None
+    return segment_frames[-1]
+
+
+def long_pair_swap_median_separation(
+    first_frames: dict[int, dict[str, Any]],
+    second_frames: dict[int, dict[str, Any]],
+    start_frame: int,
+    end_frame: int,
+    width: int,
+    height: int,
+) -> float:
+    distances = [
+        normalized_center_distance(
+            shape_center_xy(first_frames[frame]),
+            shape_center_xy(second_frames[frame]),
+            width,
+            height,
+        )
+        for frame in range(start_frame, end_frame + 1)
+        if frame in first_frames and frame in second_frames
+    ]
+    if not distances:
+        return 0.0
+    return float(np.median(np.asarray(distances, dtype=np.float32)))
+
+
+def repair_long_pair_swaps(
+    shapes: list[dict[str, Any]],
+    width: int,
+    height: int,
+    cfg: TrackingConfig,
+) -> list[dict[str, Any]]:
+    if not cfg.long_pair_swap_repair:
+        return shapes
+
+    by_id_frame: dict[int, dict[int, dict[str, Any]]] = {}
+    for shape in shapes:
+        if not shape_is_visible_for_local_swap(shape):
+            continue
+        fixed_id = shape_fixed_id(shape)
+        by_id_frame.setdefault(fixed_id, {})[int(shape["frame"])] = shape
+
+    repaired = 0
+    consumed: set[tuple[int, int, int, int]] = set()
+    ids = sorted(by_id_frame)
+    for index, first_id in enumerate(ids):
+        for second_id in ids[index + 1 :]:
+            first_frames = by_id_frame[first_id]
+            second_frames = by_id_frame[second_id]
+            common_frames = sorted(set(first_frames) & set(second_frames))
+            for previous_frame, start_frame in zip(
+                common_frames,
+                common_frames[1:],
+                strict=False,
+            ):
+                if start_frame - previous_frame > cfg.long_pair_swap_max_gap_frames + 1:
+                    continue
+
+                first_prev = first_frames[previous_frame]
+                second_prev = second_frames[previous_frame]
+                first_now = first_frames[start_frame]
+                second_now = second_frames[start_frame]
+                keep_cost = local_swap_motion_cost(
+                    first_prev,
+                    second_prev,
+                    first_now,
+                    second_now,
+                    width,
+                    height,
+                    swapped=False,
+                )
+                swap_cost = local_swap_motion_cost(
+                    first_prev,
+                    second_prev,
+                    first_now,
+                    second_now,
+                    width,
+                    height,
+                    swapped=True,
+                )
+                start_gain = keep_cost - swap_cost
+                if start_gain < cfg.long_pair_swap_min_start_gain:
+                    continue
+
+                end_frame = long_pair_swap_segment_end(
+                    first_frames,
+                    second_frames,
+                    start_frame,
+                    cfg,
+                )
+                if end_frame is None:
+                    continue
+
+                median_separation = long_pair_swap_median_separation(
+                    first_frames,
+                    second_frames,
+                    start_frame,
+                    end_frame,
+                    width,
+                    height,
+                )
+                if median_separation < cfg.long_pair_swap_min_median_separation:
+                    continue
+
+                segment_key = (first_id, second_id, start_frame, end_frame)
+                if segment_key in consumed:
+                    continue
+                consumed.add(segment_key)
+
+                for frame in range(start_frame, end_frame + 1):
+                    first_shape = first_frames.get(frame)
+                    second_shape = second_frames.get(frame)
+                    if first_shape is None or second_shape is None:
+                        continue
+                    swap_shape_identity_payloads(
+                        first_shape,
+                        second_shape,
+                        "long_pair_swap_repair",
+                    )
+                    first_shape["_long_pair_swap_repair"] = True
+                    second_shape["_long_pair_swap_repair"] = True
+                    first_shape["_long_pair_swap_with"] = second_id
+                    second_shape["_long_pair_swap_with"] = first_id
+                    first_shape["_long_pair_swap_start_gain"] = round(float(start_gain), 4)
+                    second_shape["_long_pair_swap_start_gain"] = round(float(start_gain), 4)
+                repaired += 1
+                break
+
+    if repaired:
+        logger.debug("long pair swap repair adjusted %d segments", repaired)
+    return shapes
+
+
+def shape_has_suffix_swap_uncertainty(shape: dict[str, Any]) -> bool:
+    return (
+        bool(shape.get("_occlusion_hold"))
+        or str(shape.get("_track_source", "")) != "detected"
+        or int(shape.get("_missed_frames", 0)) > 0
+        or str(shape.get("_track_state", "")) == "LOST"
+    )
+
+
+def shape_is_present_for_suffix_swap(shape: dict[str, Any]) -> bool:
+    return not bool(shape.get("outside"))
+
+
+def suffix_swap_overlap_runs(
+    first_frames: dict[int, dict[str, Any]],
+    second_frames: dict[int, dict[str, Any]],
+    cfg: TrackingConfig,
+) -> list[tuple[int, int]]:
+    overlap_frames = sorted(
+        frame
+        for frame in set(first_frames) & set(second_frames)
+        if shape_iou(first_frames[frame], second_frames[frame])
+        >= cfg.suffix_pair_swap_min_overlap_iou
+    )
+    if not overlap_frames:
+        return []
+
+    runs: list[tuple[int, int]] = []
+    start = previous = overlap_frames[0]
+    for frame in overlap_frames[1:]:
+        if frame == previous + 1:
+            previous = frame
+            continue
+        runs.append((start, previous))
+        start = previous = frame
+    runs.append((start, previous))
+    return [
+        (start_frame, end_frame)
+        for start_frame, end_frame in runs
+        if end_frame - start_frame + 1 <= cfg.suffix_pair_swap_max_overlap_frames
+    ]
+
+
+def suffix_swap_start_frame(
+    first_frames: dict[int, dict[str, Any]],
+    second_frames: dict[int, dict[str, Any]],
+    start_frame: int,
+    end_frame: int,
+) -> int | None:
+    for frame in range(start_frame, end_frame + 1):
+        first_shape = first_frames.get(frame)
+        second_shape = second_frames.get(frame)
+        if first_shape is None or second_shape is None:
+            continue
+        first_uncertain = shape_has_suffix_swap_uncertainty(first_shape)
+        second_uncertain = shape_has_suffix_swap_uncertainty(second_shape)
+        if first_uncertain != second_uncertain:
+            return frame
+    return None
+
+
+def suffix_is_stable_after_overlap(
+    first_frames: dict[int, dict[str, Any]],
+    second_frames: dict[int, dict[str, Any]],
+    start_frame: int,
+    cfg: TrackingConfig,
+) -> bool:
+    stable_frames = 0
+    for frame in sorted(set(first_frames) & set(second_frames)):
+        if frame <= start_frame:
+            continue
+        if (
+            shape_iou(first_frames[frame], second_frames[frame])
+            > cfg.suffix_pair_swap_max_suffix_overlap_iou
+        ):
+            continue
+        stable_frames += 1
+        if stable_frames >= cfg.suffix_pair_swap_min_suffix_frames:
+            return True
+    return False
+
+
+def repair_suffix_pair_swaps(
+    shapes: list[dict[str, Any]],
+    width: int,
+    height: int,
+    cfg: TrackingConfig,
+) -> list[dict[str, Any]]:
+    if not cfg.suffix_pair_swap_repair:
+        return shapes
+    _ = (width, height)
+
+    by_id_frame: dict[int, dict[int, dict[str, Any]]] = {}
+    for shape in shapes:
+        if not shape_is_present_for_suffix_swap(shape):
+            continue
+        fixed_id = shape_fixed_id(shape)
+        by_id_frame.setdefault(fixed_id, {})[int(shape["frame"])] = shape
+
+    repaired = 0
+    consumed_ids: set[int] = set()
+    ids = sorted(by_id_frame)
+    for index, first_id in enumerate(ids):
+        if first_id in consumed_ids:
+            continue
+        for second_id in ids[index + 1 :]:
+            if second_id in consumed_ids:
+                continue
+            first_frames = by_id_frame[first_id]
+            second_frames = by_id_frame[second_id]
+            for run_start, run_end in suffix_swap_overlap_runs(
+                first_frames,
+                second_frames,
+                cfg,
+            ):
+                swap_start = suffix_swap_start_frame(
+                    first_frames,
+                    second_frames,
+                    run_start,
+                    run_end,
+                )
+                if swap_start is None:
+                    continue
+                if not suffix_is_stable_after_overlap(
+                    first_frames,
+                    second_frames,
+                    swap_start,
+                    cfg,
+                ):
+                    continue
+
+                common_suffix_frames = sorted(
+                    frame
+                    for frame in set(first_frames) & set(second_frames)
+                    if frame >= swap_start
+                )
+                for frame in common_suffix_frames:
+                    swap_shape_identity_payloads(
+                        first_frames[frame],
+                        second_frames[frame],
+                        "suffix_pair_swap_repair",
+                    )
+                    first_frames[frame]["_suffix_pair_swap_repair"] = True
+                    second_frames[frame]["_suffix_pair_swap_repair"] = True
+                    first_frames[frame]["_suffix_pair_swap_with"] = second_id
+                    second_frames[frame]["_suffix_pair_swap_with"] = first_id
+                    first_frames[frame]["_suffix_pair_swap_start"] = swap_start
+                    second_frames[frame]["_suffix_pair_swap_start"] = swap_start
+                consumed_ids.update({first_id, second_id})
+                repaired += 1
+                break
+            if first_id in consumed_ids:
+                break
+
+    if repaired:
+        logger.debug("suffix pair swap repair adjusted %d suffixes", repaired)
+    return shapes
+
+
 __all__ = [
     "_apply_non_id_attribute_values",
     "_apply_shape_payload",
@@ -833,6 +1149,8 @@ __all__ = [
     "refine_shapes_temporally",
     "repair_episode_pair_swaps",
     "repair_local_pair_swaps",
+    "repair_long_pair_swaps",
+    "repair_suffix_pair_swaps",
     "set_shape_box",
     "shape_box",
     "shape_fixed_id",

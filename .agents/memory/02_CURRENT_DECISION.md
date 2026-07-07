@@ -201,3 +201,133 @@ Candidate config for full-video validation before base promotion:
 Observed guard effects: `000231` used `assignment_hidden_owner_hold` at frame `401`; `000328` used `assignment_hold_reentry_unowned_raw_mismatch_episode` at frame `1342`; `000302` had no guard trigger and stayed IDSW `0`.
 
 Remaining `000263` switches are frames `193` and `195`, track `3/4` during fight/occlusion. Raw IDs are still consistent (`track 3 -> raw 6`, `track 4 -> raw 7`), so this is not the raw-ID mismatch failure class. User noted this may be GT ambiguity because visually the two pigs exchange IDs while fighting. Do not add a broad runtime guard for this before visual/GT confirmation.
+
+## 2026-07-06 next weak-video tracking plan
+
+Keep the current successful hard-set candidate as the protected base. Future
+work is experimental until it proves no regression on the guardrail videos,
+especially `Pigs291119_000302_30fps = 0` IDSW. The two remaining weak videos
+should not be treated as one failure class.
+
+For `Pigs291119_000263_30fps`, the remaining switches are around frames
+`193/195` during close fight/occlusion between tracks `3/4`. Diagnostics showed
+raw IDs remain consistent (`track 3 -> raw 6`, `track 4 -> raw 7`), so this is
+not a raw-ID mismatch or hidden-owner steal. The next candidate should be a
+very narrow visible-assignment guard, such as `visible + ambiguous + same_raw +
+selected_cost high`, with a hold/freeze action over a short span. Do not use a
+broad raw mismatch/reentry rule for this case.
+
+Important clarification from the earlier read-only audit of
+`notebooks/01_data_preparation/update_ids_for_annotation.ipynb`,
+`DAT_Update_ID_For_Annotate.ipynb`, and early/stable tracker commits: the useful
+lesson for `000263` is not raw ByteTrack ID ownership. The old annotation/update
+flow stabilized identity with short-window local motion, roughly a 6-frame
+window, and preferred a gap/prediction over accepting a bad high-cost match. The
+notebook used a tighter matching threshold (`COST_THR = 0.60`) than the current
+runtime reid/lost path (`lost_track_cost_threshold = 0.95`).
+
+The key `000263` diagnostic sequence to preserve:
+
+- frame `193`: track `3` misses assignment; track `4` accepts raw `7` with cost
+  about `0.437596`.
+- frame `194`: track `3` accepts raw `6` with cost about `0.743141`, which is
+  high enough that the notebook-style logic would likely hold/predict instead
+  of accepting.
+- frame `195`: track `3` accepts raw `6` with cost about `0.177293`; track `4`
+  accepts raw `7` with cost about `0.489884`.
+
+Therefore the safest `000263` experiment is an opt-in
+`occlusion_reid_prefer_gap_over_bad_match` style guard for fight/occlusion
+geometry: `phase=reid`, track state `OCCLUDED/LOST`, `ambiguous=true`,
+`same_raw_id=true`, short missed span, and `selected_cost > 0.60` or `0.65`.
+The action should hold/predict/gap-fill instead of accepting the high-cost
+detection. This should be tested separately from the `000233` different-raw
+long-occlusion guard and validated carefully because a broad reid threshold
+tightening can increase FN/fragments.
+
+For `Pigs291119_000233_30fps`, the failures include short high-cost same-raw
+confusions around `923/924` and `939/941`, plus longer mismatches after
+occlusion around `1111-1242` and `1424+`. This looks like long-occlusion reid
+accepting a bad high-cost target after `occlusion_hold`, often with different
+or unowned raw IDs. The next candidate should target `phase=reid`,
+`track_source=occlusion_hold`, enough `missed` frames, high selected cost, and
+different/unowned raw ID, with an initial hold action rather than a broad reject.
+Do not globally set broad `same_raw_only=false`; previous probes suggested it
+would fire too often in other videos.
+
+Validation order: test the `000263` and `000233` guards separately, then combine
+only if each improves its target. The promotion gate remains the 5-video hard set
+`000231/000233/000263/000328/000302`: `000231=0`, `000328=0`, `000302=0`,
+`000263` does not regress and preferably improves, `000233` improves clearly,
+and total remapped IDSW does not increase on the broader set. Frame/window gates
+are acceptable for diagnosis only; promoted logic must be based on runtime
+state, not hardcoded video IDs or frame numbers.
+
+## 2026-07-07 000233 guarded improvement candidate
+
+New best opt-in 5-video hard-set candidate:
+`outputs/eval/hybrid_bytetrack/20260707_082640/smooth_det020_loose/iou0_area0_condarea0_merge0`.
+
+Metrics versus `outputs/eval/hybrid_bytetrack/Best_tracking/iou0_area0_condarea0_merge0`:
+
+- `Pigs291119_000231_30fps`: stayed `0` remapped IDSW.
+- `Pigs291119_000233_30fps`: improved from `9` to `6` remapped IDSW.
+- `Pigs291119_000263_30fps`: stayed `2` remapped IDSW.
+- `Pigs301119_000328_30fps`: stayed `0` remapped IDSW.
+- `Pigs291119_000302_30fps`: stayed `0` remapped IDSW.
+- `ALL`: improved from `11` to `8` remapped IDSW on this 5-video set.
+
+Winning add-on config on top of the protected practical base:
+
+- `occlusion_reid_prefer_gap_over_bad_match=true`
+- `occlusion_reid_bad_match_action=reject`
+- `occlusion_reid_bad_match_same_raw_only=false`
+- `occlusion_reid_bad_match_raw_mismatch_only=true`
+- `occlusion_reid_bad_match_unowned_raw_only=true`
+- `occlusion_reid_bad_match_occlusion_hold_only=true`
+- `occlusion_reid_bad_match_min_missed=7`
+- `occlusion_reid_bad_match_max_missed=12`
+- `occlusion_reid_bad_match_min_cost=0.55`
+- `occlusion_reid_bad_match_max_cost=0.70`
+
+Diagnosis: for `000233`, the useful rejections are bad-but-plausible unowned
+raw mismatch reid assignments around the long occlusion region, especially raw
+`26` near frames `1114-1118`. A broader reject/hold version damaged metrics or
+regressed `000231`. The max-cost upper bound is important: without it, a single
+very high-cost reject around `000231` frame `906` caused new switches at
+`909/912`. Keep this candidate opt-in until broader full-set regression passes.
+
+Next remaining target is `000263=2`. Do not use the `000233` raw-mismatch guard
+for `000263`; the `000263` failure remains same-raw fight/occlusion geometry
+around frames `193/195`.
+
+## 2026-07-07 suffix repair 000263 candidate
+
+New best current 5-video opt-in candidate:
+`outputs/eval/hybrid_bytetrack/codex_suffix_5video_min1500/iou0_area0_condarea0_merge0`.
+
+Metrics:
+
+- `Pigs291119_000231_30fps`: stayed `0` remapped IDSW.
+- `Pigs291119_000233_30fps`: stayed `6` remapped IDSW versus the 000233 guarded candidate.
+- `Pigs291119_000263_30fps`: improved from `2` to `0` remapped IDSW.
+- `Pigs301119_000328_30fps`: stayed `0` remapped IDSW.
+- `Pigs291119_000302_30fps`: stayed `0` remapped IDSW.
+- `ALL`: improved from `8` to `6` remapped IDSW versus `20260707_082640`.
+
+Winning add-on is `suffix_pair_swap_repair=true` on top of the protected
+practical config and the 000233 guarded config. Keep it opt-in until broader
+regression passes.
+
+Diagnosis: `000263` is a suffix identity crossing after heavy overlap/fight,
+not a raw-ID mismatch. The useful repair swaps the `Pig_3`/`Pig_4` suffix after
+the uncertain overlap around frames `193/195`. The first broad suffix repair with
+`suffix_pair_swap_min_suffix_frames=60` fixed `000263` but produced false suffix
+swaps on guardrail videos (`000231`, `000233`, `000328`, `000302`). The current
+default `suffix_pair_swap_min_suffix_frames=1500` is intentionally conservative
+and removed those false swaps in the 5-video run.
+
+Next validation step: run a broader regression/full set with this exact opt-in
+candidate before any base promotion. The remaining weak target is `000233=6`;
+do not weaken the suffix gate just to chase `000233`, because the broad version
+already proved unsafe.

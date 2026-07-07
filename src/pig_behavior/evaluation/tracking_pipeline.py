@@ -152,6 +152,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--rule-combo",
+        action="append",
+        default=None,
+        help=(
+            "Run only selected tracking rule combo(s), for example "
+            "iou0_area0_condarea0_merge0. Can be repeated or comma-separated."
+        ),
+    )
+    parser.add_argument(
         "--tracking-mode",
         type=str,
         choices=["realtime", "bytetrack_raw", "hybrid_bytetrack", "bytetrack", "gt_export"],
@@ -173,6 +182,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ),
     )
     return parser.parse_args(argv)
+
+
+def selected_rule_combos(raw_combos: list[str] | None) -> list[str]:
+    """Normalize repeated or comma-separated --rule-combo values."""
+    if not raw_combos:
+        return []
+    combos: list[str] = []
+    for raw_combo in raw_combos:
+        combos.extend(part.strip() for part in raw_combo.split(",") if part.strip())
+    return combos
 
 
 def parse_profile_override_value(raw_value: str) -> object:
@@ -311,9 +330,11 @@ def main() -> int:
     """CLI entry point."""
     args = parse_args()
     config = config_from_args(args)
+    rule_combos = selected_rule_combos(args.rule_combo)
     if args.benchmark_detectors:
         summary_df, detailed_metrics_df, output_dir = run_tracking_detector_benchmark(
             config,
+            combo_names=rule_combos or None,
         )
         print("[detector-benchmark-summary]")
         print(summary_df.to_string(index=False))
@@ -322,9 +343,10 @@ def main() -> int:
         print("[detector-benchmark-output]", output_dir)
         return 0
 
-    if args.benchmark_rules:
+    if args.benchmark_rules or rule_combos:
         summary_df, detailed_metrics_df, output_dir = run_tracking_rule_benchmark(
             config,
+            combo_names=rule_combos or None,
         )
         print("[benchmark-summary]")
         print(summary_df.to_string(index=False))

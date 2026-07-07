@@ -552,6 +552,55 @@ def detection_debug_state(det: Detection, det_idx: int) -> dict[str, object]:
     }
 
 
+def append_detection_candidate_rank_events(
+    runtime: TrackingRuntimeState | None,
+    cfg: TrackingConfig,
+    frame_index: int | None,
+    phase_name: str,
+    candidate_tracks: list[FixedTrack],
+    detection_indices: list[int],
+    detections: list[Detection],
+    costs: np.ndarray,
+    selected_track_by_det: dict[int, int],
+    raw_owner: dict[int, int],
+) -> None:
+    if runtime is None or not cfg.association_debug:
+        return
+    for col, det_idx in enumerate(detection_indices):
+        det = detections[det_idx]
+        ranked_rows = [
+            row
+            for row in np.argsort(costs[:, col])
+            if np.isfinite(costs[row, col]) and costs[row, col] < 1_000_000.0
+        ]
+        owner_id = raw_owner.get(det.raw_id) if det.raw_id is not None else None
+        for rank, row in enumerate(ranked_rows[:3], start=1):
+            track = candidate_tracks[int(row)]
+            append_association_debug_event(
+                runtime,
+                cfg,
+                {
+                    "event": "detection_candidate_rank",
+                    "frame": frame_index,
+                    "phase": phase_name,
+                    "candidate_rank": rank,
+                    "candidate_selected_by_lap": (
+                        selected_track_by_det.get(det_idx) == track.fixed_id
+                    ),
+                    "candidate_is_raw_owner": owner_id == track.fixed_id,
+                    "cost": round(float(costs[row, col]), 6),
+                    "threshold": round(
+                        float(association_cost_threshold(track, cfg)),
+                        6,
+                    ),
+                    "det_raw_owner": owner_id,
+                    "same_raw_id": track.top_raw_id() == det.raw_id,
+                    **track_debug_state(track),
+                    **detection_debug_state(det, det_idx),
+                },
+            )
+
+
 def raw_owner_conflict_is_ambiguous(
     track: FixedTrack,
     owner_track: FixedTrack | None,
@@ -808,6 +857,103 @@ def phase_in_reentry_unowned_raw_mismatch_episode_scope(
     return not phases or phase_name in phases
 
 
+def occlusion_reid_bad_match_should_hold(
+    track: FixedTrack,
+    det: Detection,
+    ambiguous: bool,
+    selected_cost: float,
+    cfg: TrackingConfig,
+    phase_name: str,
+    runtime: TrackingRuntimeState | None = None,
+    owner_track: FixedTrack | None = None,
+) -> bool:
+    if not cfg.occlusion_reid_prefer_gap_over_bad_match:
+        return False
+    visible_ambiguous_high_cost = (
+        cfg.occlusion_reid_bad_match_include_recent_visible
+        and phase_name == "visible"
+        and ambiguous
+        and selected_cost >= cfg.occlusion_reid_bad_match_visible_min_cost
+    )
+    if phase_name != "reid" and not visible_ambiguous_high_cost:
+        return False
+    if not ambiguous:
+        return False
+    if selected_cost < cfg.occlusion_reid_bad_match_min_cost:
+        return False
+    if selected_cost > cfg.occlusion_reid_bad_match_max_cost:
+        return False
+    if (
+        cfg.occlusion_reid_bad_match_min_missed > 0
+        and track.missed < cfg.occlusion_reid_bad_match_min_missed
+    ):
+        return False
+    if (
+        cfg.occlusion_reid_bad_match_max_missed >= 0
+        and track.missed > cfg.occlusion_reid_bad_match_max_missed
+    ):
+        return False
+    if cfg.occlusion_reid_bad_match_occlusion_hold_only and track.last_source != "occlusion_hold":
+        return False
+    if track.get_state() not in {"OCCLUDED", "LOST"} and not visible_ambiguous_high_cost:
+        return False
+    top_raw_id = track.top_raw_id()
+    is_raw_mismatch = top_raw_id is not None and det.raw_id != top_raw_id
+    if cfg.occlusion_reid_bad_match_unowned_raw_only and owner_track is not None:
+        return False
+    if cfg.occlusion_reid_bad_match_raw_mismatch_only:
+        should_hold = is_raw_mismatch
+    elif cfg.occlusion_reid_bad_match_same_raw_only:
+        should_hold = top_raw_id is not None and det.raw_id == top_raw_id
+    else:
+        should_hold = True
+    if not should_hold:
+        return False
+    if cfg.occlusion_reid_bad_match_once_per_episode:
+        if runtime is None:
+            return False
+        episode_key = (track.fixed_id, det.raw_id)
+        if episode_key in runtime.occlusion_reid_bad_match_hold_keys:
+            return False
+        runtime.occlusion_reid_bad_match_hold_keys.add(episode_key)
+    return True
+
+
+def reid_unowned_competing_candidate_should_hold(
+    track: FixedTrack,
+    det: Detection,
+    owner_track: FixedTrack | None,
+    ambiguous: bool,
+    selected_cost: float,
+    competing_cost: float | None,
+    cfg: TrackingConfig,
+    phase_name: str,
+) -> bool:
+    if not cfg.reid_unowned_competing_candidate_hold:
+        return False
+    if phase_name != "reid" or not ambiguous:
+        return False
+    if det.raw_id is None or owner_track is not None:
+        return False
+    top_raw_id = track.top_raw_id()
+    if top_raw_id is None or top_raw_id == det.raw_id:
+        return False
+    if selected_cost < cfg.reid_unowned_competing_candidate_min_cost:
+        return False
+    if track.missed < cfg.reid_unowned_competing_candidate_min_missed:
+        return False
+    if cfg.reid_unowned_competing_candidate_occlusion_hold_only and not (
+        track.last_source == "occlusion_hold" or track.state_reason == "occlusion_hold"
+    ):
+        return False
+    if competing_cost is None:
+        return False
+    return (
+        selected_cost - competing_cost
+        >= cfg.reid_unowned_competing_candidate_min_gap
+    )
+
+
 def advance_reentry_unowned_raw_quarantine(
     runtime: TrackingRuntimeState | None,
 ) -> None:
@@ -967,6 +1113,22 @@ def match_and_update_tracks(
             cfg,
         )
         rows, cols = linear_sum_assignment(costs)
+        selected_track_by_det = {
+            detection_indices[col]: candidate_tracks[row].fixed_id
+            for row, col in zip(rows, cols, strict=True)
+        }
+        append_detection_candidate_rank_events(
+            runtime,
+            cfg,
+            frame_index,
+            phase_name,
+            candidate_tracks,
+            detection_indices,
+            detections,
+            costs,
+            selected_track_by_det,
+            raw_owner,
+        )
         for row, col in zip(rows, cols, strict=True):
             track = candidate_tracks[row]
             det_idx = detection_indices[col]
@@ -987,6 +1149,14 @@ def match_and_update_tracks(
                     if candidate.fixed_id == owner_track.fixed_id:
                         owner_candidate_cost = float(costs[owner_row, col])
                         break
+            competing_costs = [
+                float(costs[other_row, col])
+                for other_row in range(len(candidate_tracks))
+                if other_row != row
+                and np.isfinite(costs[other_row, col])
+                and costs[other_row, col] < 1_000_000.0
+            ]
+            competing_cost = min(competing_costs) if competing_costs else None
             base_debug_event = {
                 "frame": frame_index,
                 "phase": phase_name,
@@ -1002,6 +1172,11 @@ def match_and_update_tracks(
                 "det_raw_owner_cost": (
                     round(owner_candidate_cost, 6)
                     if owner_candidate_cost is not None
+                    else None
+                ),
+                "det_best_competing_cost": (
+                    round(competing_cost, 6)
+                    if competing_cost is not None
                     else None
                 ),
                 "same_raw_id": track.top_raw_id() == det.raw_id,
@@ -1157,6 +1332,69 @@ def match_and_update_tracks(
                         "learn_identity": False,
                     },
                 )
+                continue
+            if reid_unowned_competing_candidate_should_hold(
+                track,
+                det,
+                owner_track,
+                ambiguous,
+                float(costs[row, col]),
+                competing_cost,
+                cfg,
+                phase_name,
+            ):
+                append_association_debug_event(
+                    runtime,
+                    cfg,
+                    {
+                        **base_debug_event,
+                        "event": "assignment_hold_reid_unowned_competing_candidate",
+                        "ambiguous": ambiguous,
+                        "hidden_owner_freeze": False,
+                        "learn_identity": False,
+                    },
+                )
+                freeze_area_occluded_track(track, width, height, cfg)
+                matched_tracks.add(track.fixed_id)
+                matched_detections.add(det_idx)
+                continue
+            if occlusion_reid_bad_match_should_hold(
+                track,
+                det,
+                ambiguous,
+                float(costs[row, col]),
+                cfg,
+                phase_name,
+                runtime,
+                owner_track=owner_track,
+            ):
+                if cfg.occlusion_reid_bad_match_action == "reject":
+                    append_association_debug_event(
+                        runtime,
+                        cfg,
+                        {
+                            **base_debug_event,
+                            "event": "assignment_reject_occlusion_reid_bad_match",
+                            "ambiguous": ambiguous,
+                            "hidden_owner_freeze": False,
+                            "learn_identity": False,
+                        },
+                    )
+                    continue
+                append_association_debug_event(
+                    runtime,
+                    cfg,
+                    {
+                        **base_debug_event,
+                        "event": "assignment_hold_occlusion_reid_bad_match",
+                        "ambiguous": ambiguous,
+                        "hidden_owner_freeze": False,
+                        "learn_identity": False,
+                    },
+                )
+                freeze_area_occluded_track(track, width, height, cfg)
+                matched_tracks.add(track.fixed_id)
+                matched_detections.add(det_idx)
                 continue
             if reentry_ambiguous_assignment_should_hold(
                 track,

@@ -134,6 +134,16 @@ Examples:
         ),
     )
     parser.add_argument(
+        "--rule-combo",
+        action="append",
+        default=None,
+        help=(
+            "Run only selected tracking rule combo(s), for example "
+            "iou0_area0_condarea0_merge0. Can be repeated or comma-separated. "
+            "Omit this and use --benchmark-rules/--benchmark-compatible to run all combos."
+        ),
+    )
+    parser.add_argument(
         "--eval-config",
         action="append",
         default=None,
@@ -209,6 +219,15 @@ def _selected_eval_configs(raw_configs: list[str] | None) -> list[str]:
     return selected
 
 
+def _selected_rule_combos(raw_combos: list[str] | None) -> list[str]:
+    if not raw_combos:
+        return []
+    selected: list[str] = []
+    for raw_combo in raw_combos:
+        selected.extend(part.strip() for part in raw_combo.split(",") if part.strip())
+    return selected
+
+
 def _list_eval_configs() -> None:
     print("Available eval configs:")
     for name, overrides in EVAL_CONFIG_OVERRIDES.items():
@@ -253,6 +272,7 @@ def main() -> int:
         return 1
     try:
         selected_eval_configs = _selected_eval_configs(args.eval_config)
+        selected_rule_combos = _selected_rule_combos(args.rule_combo)
     except ValueError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
@@ -311,8 +331,12 @@ def main() -> int:
     )
     if enable_benchmark_rules and not has_benchmark_arg:
         cmd.append("--benchmark-rules")
+    elif not has_benchmark_arg:
+        cmd.append("--no-benchmark-rules")
     if enable_benchmark_detectors and not has_benchmark_detectors_arg:
         cmd.append("--benchmark-detectors")
+    for combo_name in selected_rule_combos:
+        cmd.extend(["--rule-combo", combo_name])
     if args.mode in {"hybrid_bytetrack", "bytetrack", "gt_export"} and args.smooth and not has_smoothing_arg:
         cmd.extend(
             [

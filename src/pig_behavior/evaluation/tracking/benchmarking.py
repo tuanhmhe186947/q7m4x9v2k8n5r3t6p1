@@ -45,6 +45,28 @@ def iter_tracking_rule_flag_combinations() -> list[dict[str, bool]]:
     ]
 
 
+def tracking_rule_flags_from_combo_name(combo_name: str) -> dict[str, bool]:
+    """Return rule flags for one stable benchmark combo name."""
+    for flags in iter_tracking_rule_flag_combinations():
+        if tracking_rule_combo_name(flags) == combo_name:
+            return flags
+    available = ", ".join(
+        tracking_rule_combo_name(flags) for flags in iter_tracking_rule_flag_combinations()
+    )
+    raise ValueError(
+        f"Unknown tracking rule combo: {combo_name}. Available combos: {available}"
+    )
+
+
+def select_tracking_rule_flag_combinations(
+    combo_names: list[str] | None = None,
+) -> list[dict[str, bool]]:
+    """Return all rule combos or only the requested combo names."""
+    if not combo_names:
+        return iter_tracking_rule_flag_combinations()
+    return [tracking_rule_flags_from_combo_name(combo_name) for combo_name in combo_names]
+
+
 def aggregate_metrics_dict(metrics_df: pd.DataFrame) -> dict[str, object]:
     """Return the aggregate ALL row, or an empty row when no metrics exist."""
     if metrics_df.empty:
@@ -285,8 +307,9 @@ def build_enriched_summary_rows(
 
 def run_tracking_rule_benchmark(
     config: TrackingEvaluationPipelineConfig,
+    combo_names: list[str] | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, Path]:
-    """Run all rule flag combinations and write combined benchmark outputs."""
+    """Run selected rule flag combinations and write combined benchmark outputs."""
     benchmark_root = config.output_root
     benchmark_prediction_root = config.prediction_root
     benchmark_root.mkdir(parents=True, exist_ok=True)
@@ -296,7 +319,7 @@ def run_tracking_rule_benchmark(
     detailed_metrics: list[pd.DataFrame] = []
     asset_tables: list[pd.DataFrame] = []
 
-    for flags in iter_tracking_rule_flag_combinations():
+    for flags in select_tracking_rule_flag_combinations(combo_names):
         combo = tracking_rule_combo_name(flags)
         combo_config = replace(
             config,
@@ -446,6 +469,7 @@ def iter_detector_benchmark_configs(
 
 def run_tracking_detector_benchmark(
     config: TrackingEvaluationPipelineConfig,
+    combo_names: list[str] | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, Path]:
     """Run the full rule benchmark independently for YOLOv8 and YOLOv26."""
     benchmark_root = config.output_root
@@ -463,6 +487,7 @@ def run_tracking_detector_benchmark(
     for detector_config in detector_configs:
         summary_df, detailed_metrics_df, detector_output = run_tracking_rule_benchmark(
             detector_config,
+            combo_names=combo_names,
         )
         summary_tables.append(summary_df)
         detailed_tables.append(detailed_metrics_df)

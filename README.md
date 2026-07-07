@@ -74,6 +74,21 @@ to `python -m pig_behavior.tracking.cli` and supports `--eval-config` presets
 plus `--no-emit-hidden-tracks` for keeping tracker-maintained boxes while
 exporting their `Hidden` attribute as `No` for CVAT relabeling.
 
+For tracking evaluation, use `scripts\evaluate_tracking.py`. By default the
+wrapper runs a direct evaluation config instead of the full 16-combo rule
+matrix. To restrict a benchmark/rule run to one known rule folder, pass
+`--rule-combo`, for example:
+
+```bash
+python scripts\evaluate_tracking.py ^
+  --eval-config smooth_det020_loose ^
+  -v Pigs291119_000263_30fps ^
+  --rule-combo iou0_area0_condarea0_merge0
+```
+
+Use `--benchmark-rules` or `--benchmark-compatible` only when the full rule
+matrix is intentionally needed.
+
 ## Dashboard
 
 Start the API:

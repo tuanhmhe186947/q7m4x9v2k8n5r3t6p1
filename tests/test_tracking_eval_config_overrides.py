@@ -3,7 +3,10 @@ from pathlib import Path
 
 import pytest
 
-from pig_behavior.evaluation.tracking_pipeline import parse_profile_overrides
+from pig_behavior.evaluation.tracking_pipeline import (
+    parse_profile_overrides,
+    selected_rule_combos,
+)
 from pig_behavior.tracking.config import TrackingConfig
 
 SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "evaluate_tracking.py"
@@ -15,6 +18,7 @@ SPEC.loader.exec_module(evaluate_tracking_script)
 EVAL_CONFIG_OVERRIDES = evaluate_tracking_script.EVAL_CONFIG_OVERRIDES
 _selected_eval_configs = evaluate_tracking_script._selected_eval_configs
 parse_args = evaluate_tracking_script.parse_args
+_selected_rule_combos = evaluate_tracking_script._selected_rule_combos
 
 
 def test_parse_profile_overrides_coerces_tracking_config_values() -> None:
@@ -75,3 +79,22 @@ def test_evaluate_tracking_benchmark_matrix_is_explicit() -> None:
     )
 
     assert args.benchmark_compatible is True
+
+
+def test_evaluate_tracking_accepts_single_rule_combo() -> None:
+    args, _ = parse_args(
+        [
+            "-v",
+            "Pigs291119_000263_30fps",
+            "--rule-combo",
+            "iou0_area0_condarea0_merge0",
+        ]
+    )
+
+    assert _selected_rule_combos(args.rule_combo) == ["iou0_area0_condarea0_merge0"]
+
+
+def test_tracking_pipeline_normalizes_rule_combos() -> None:
+    assert selected_rule_combos(
+        ["iou0_area0_condarea0_merge0,iou1_area0_condarea0_merge0"]
+    ) == ["iou0_area0_condarea0_merge0", "iou1_area0_condarea0_merge0"]

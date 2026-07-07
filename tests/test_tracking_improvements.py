@@ -24,17 +24,21 @@ from pig_behavior.tracking import (
     match_and_update_tracks,
     repair_episode_pair_swaps,
     repair_local_pair_swaps,
+    repair_long_pair_swaps,
+    repair_suffix_pair_swaps,
     track_detection_overlap_score,
 )
 from pig_behavior.tracking.association import (
     frame_in_reentry_ambiguous_hold_window,
     hidden_owner_conflict_should_freeze_identity,
+    occlusion_reid_bad_match_should_hold,
     raw_owner_conflict_is_ambiguous,
     reentry_ambiguous_assignment_should_hold,
     reentry_assignment_cost_allows_hold,
     reentry_raw_evidence_allows_hold,
     reentry_unowned_raw_mismatch_episode_should_reject,
     reentry_unowned_raw_mismatch_should_reject,
+    reid_unowned_competing_candidate_should_hold,
     seed_reentry_unowned_raw_quarantine,
     video_in_reentry_ambiguous_hold_scope,
 )
@@ -905,8 +909,22 @@ def test_association_debug_records_opt_in_assignment_event() -> None:
         frame_index=123,
     )
 
-    assert len(runtime.association_debug_events) == 1
-    event = runtime.association_debug_events[0]
+    rank_event = next(
+        event
+        for event in runtime.association_debug_events
+        if event["event"] == "detection_candidate_rank"
+    )
+    assert rank_event["frame"] == 123
+    assert rank_event["track_id"] == 1
+    assert rank_event["det_raw_id"] == 42
+    assert rank_event["candidate_rank"] == 1
+    assert rank_event["candidate_selected_by_lap"] is True
+
+    event = next(
+        event
+        for event in runtime.association_debug_events
+        if event["event"] == "assignment_accept"
+    )
     assert event["event"] == "assignment_accept"
     assert event["frame"] == 123
     assert event["track_id"] == 1
@@ -1638,6 +1656,277 @@ def test_reentry_unowned_raw_mismatch_episode_accumulates_before_missed_gate() -
     assert runtime.reentry_unowned_raw_episode_history[key] == [1338, 1339, 1342]
 
 
+def test_occlusion_reid_bad_match_hold_targets_same_raw_high_cost() -> None:
+    cfg = TrackingConfig(
+        occlusion_reid_prefer_gap_over_bad_match=True,
+        occlusion_reid_bad_match_min_cost=0.40,
+        occlusion_reid_bad_match_max_cost=0.80,
+        occlusion_reid_bad_match_max_missed=3,
+    )
+    track = FixedTrack(
+        fixed_id=4,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+        hits=3,
+        missed=0,
+        state="OCCLUDED",
+        state_reason="detected_ambiguous",
+    )
+    track.raw_id_counts[7] = 10
+    det = Detection(
+        box=np.array([3, 0, 23, 20], dtype=np.float32),
+        score=0.9,
+        raw_id=7,
+        class_id=0,
+        hist=_hist_at(0),
+    )
+
+    assert occlusion_reid_bad_match_should_hold(
+        track,
+        det,
+        ambiguous=True,
+        selected_cost=0.437596,
+        cfg=cfg,
+        phase_name="reid",
+    )
+    assert not occlusion_reid_bad_match_should_hold(
+        track,
+        det,
+        ambiguous=True,
+        selected_cost=0.39,
+        cfg=cfg,
+        phase_name="reid",
+    )
+    assert not occlusion_reid_bad_match_should_hold(
+        track,
+        det,
+        ambiguous=True,
+        selected_cost=0.81,
+        cfg=cfg,
+        phase_name="reid",
+    )
+    assert not occlusion_reid_bad_match_should_hold(
+        track,
+        det,
+        ambiguous=True,
+        selected_cost=0.437596,
+        cfg=cfg,
+        phase_name="visible",
+    )
+
+
+def test_occlusion_reid_bad_match_hold_can_include_recent_visible_episode() -> None:
+    cfg = TrackingConfig(
+        occlusion_reid_prefer_gap_over_bad_match=True,
+        occlusion_reid_bad_match_include_recent_visible=True,
+        occlusion_reid_bad_match_min_cost=0.40,
+        occlusion_reid_bad_match_visible_min_cost=0.70,
+        occlusion_reid_bad_match_max_missed=3,
+    )
+    track = FixedTrack(
+        fixed_id=4,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+        hits=3,
+        missed=0,
+        state="VISIBLE",
+        state_reason="detected_high_conf",
+        last_ambiguous=False,
+    )
+    track.raw_id_counts[7] = 10
+    det = Detection(
+        box=np.array([3, 0, 23, 20], dtype=np.float32),
+        score=0.9,
+        raw_id=7,
+        class_id=0,
+        hist=_hist_at(0),
+    )
+
+    assert occlusion_reid_bad_match_should_hold(
+        track,
+        det,
+        ambiguous=True,
+        selected_cost=0.75317,
+        cfg=cfg,
+        phase_name="visible",
+    )
+    assert not occlusion_reid_bad_match_should_hold(
+        track,
+        det,
+        ambiguous=True,
+        selected_cost=0.69,
+        cfg=cfg,
+        phase_name="visible",
+    )
+
+
+def test_occlusion_reid_bad_match_hold_keeps_raw_mismatch_out_by_default() -> None:
+    cfg = TrackingConfig(occlusion_reid_prefer_gap_over_bad_match=True)
+    track = FixedTrack(
+        fixed_id=3,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+        hits=3,
+        missed=0,
+        state="OCCLUDED",
+        state_reason="detected_ambiguous",
+    )
+    track.raw_id_counts[6] = 10
+    det = Detection(
+        box=np.array([3, 0, 23, 20], dtype=np.float32),
+        score=0.9,
+        raw_id=17,
+        class_id=0,
+        hist=_hist_at(0),
+    )
+
+    assert not occlusion_reid_bad_match_should_hold(
+        track,
+        det,
+        ambiguous=True,
+        selected_cost=0.9,
+        cfg=cfg,
+        phase_name="reid",
+    )
+
+
+def test_occlusion_reid_bad_match_can_target_occlusion_hold_raw_mismatch() -> None:
+    cfg = TrackingConfig(
+        occlusion_reid_prefer_gap_over_bad_match=True,
+        occlusion_reid_bad_match_same_raw_only=False,
+        occlusion_reid_bad_match_raw_mismatch_only=True,
+        occlusion_reid_bad_match_occlusion_hold_only=True,
+        occlusion_reid_bad_match_min_missed=1,
+        occlusion_reid_bad_match_max_missed=10,
+        occlusion_reid_bad_match_min_cost=0.55,
+    )
+    track = FixedTrack(
+        fixed_id=8,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="occlusion_hold",
+        ever_detected=True,
+        hits=3,
+        missed=1,
+        state="OCCLUDED",
+        state_reason="detected_ambiguous",
+    )
+    track.raw_id_counts[7] = 10
+    raw_mismatch_det = Detection(
+        box=np.array([3, 0, 23, 20], dtype=np.float32),
+        score=0.9,
+        raw_id=26,
+        class_id=0,
+        hist=_hist_at(0),
+    )
+    same_raw_det = Detection(
+        box=np.array([3, 0, 23, 20], dtype=np.float32),
+        score=0.9,
+        raw_id=7,
+        class_id=0,
+        hist=_hist_at(0),
+    )
+
+    assert occlusion_reid_bad_match_should_hold(
+        track,
+        raw_mismatch_det,
+        ambiguous=True,
+        selected_cost=0.772298,
+        cfg=cfg,
+        phase_name="reid",
+    )
+    assert not occlusion_reid_bad_match_should_hold(
+        track,
+        same_raw_det,
+        ambiguous=True,
+        selected_cost=0.862005,
+        cfg=cfg,
+        phase_name="reid",
+    )
+    track.last_source = "detected"
+    assert not occlusion_reid_bad_match_should_hold(
+        track,
+        raw_mismatch_det,
+        ambiguous=True,
+        selected_cost=0.772298,
+        cfg=cfg,
+        phase_name="reid",
+    )
+
+
+def test_occlusion_reid_bad_match_reject_action_skips_bad_update(monkeypatch) -> None:
+    cfg = TrackingConfig(
+        expected_pigs=1,
+        association_debug=True,
+        occlusion_reid_prefer_gap_over_bad_match=True,
+        occlusion_reid_bad_match_action="reject",
+        occlusion_reid_bad_match_min_cost=0.40,
+        occlusion_reid_bad_match_max_missed=3,
+    )
+    track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="predicted",
+        ever_detected=True,
+        hits=3,
+        missed=1,
+        state="OCCLUDED",
+        state_reason="occlusion_hold",
+    )
+    track.raw_id_counts[7] = 10
+    tracks = {1: track}
+    detections = [
+        Detection(
+            box=np.array([40, 0, 60, 20], dtype=np.float32),
+            score=0.9,
+            raw_id=7,
+            class_id=0,
+            hist=_hist_at(0),
+        ),
+    ]
+    runtime = TrackingRuntimeState()
+
+    monkeypatch.setattr(
+        "pig_behavior.tracking.association.track_detection_cost",
+        lambda *args, **kwargs: 0.55,
+    )
+    monkeypatch.setattr(
+        "pig_behavior.tracking.association.assignment_is_occlusion_ambiguous",
+        lambda *args, **kwargs: True,
+    )
+
+    match_and_update_tracks(
+        tracks,
+        detections,
+        np.zeros((80, 80, 3), dtype=np.uint8),
+        prev_frame=None,
+        cfg=cfg,
+        runtime=runtime,
+        frame_index=194,
+    )
+
+    assert track.raw_id_counts[7] == 10
+    assert not np.allclose(track.last_box, detections[0].box)
+    assert any(
+        event["event"] == "assignment_reject_occlusion_reid_bad_match"
+        and event["track_id"] == 1
+        and event["det_raw_id"] == 7
+        for event in runtime.association_debug_events
+    )
+
+
 def _write_cvat_xml(path: Path, frame_one_swapped: bool) -> None:
     boxes = {
         1: {
@@ -1692,6 +1981,241 @@ def test_identity_events_flag_swapped_prediction_ids(tmp_path: Path) -> None:
     assert ("ID_1", "ID_2") in pairs
     assert ("ID_2", "ID_1") in pairs
     assert all(event["frame"] == 1 for event in events)
+
+
+def test_reid_unowned_competing_candidate_hold_targets_occlusion_hold() -> None:
+    cfg = TrackingConfig(
+        reid_unowned_competing_candidate_hold=True,
+        reid_unowned_competing_candidate_min_cost=0.55,
+        reid_unowned_competing_candidate_min_gap=0.15,
+        reid_unowned_competing_candidate_min_missed=1,
+    )
+    track = FixedTrack(
+        fixed_id=8,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="occlusion_hold",
+        ever_detected=True,
+        hits=3,
+        missed=10,
+        state="OCCLUDED",
+        state_reason="occlusion_hold",
+    )
+    track.raw_id_counts[7] = 10
+    det = Detection(
+        box=np.array([3, 0, 23, 20], dtype=np.float32),
+        score=0.9,
+        raw_id=16,
+        class_id=0,
+        hist=_hist_at(0),
+    )
+
+    assert reid_unowned_competing_candidate_should_hold(
+        track,
+        det,
+        owner_track=None,
+        ambiguous=True,
+        selected_cost=0.590739,
+        competing_cost=0.291244,
+        cfg=cfg,
+        phase_name="reid",
+    )
+
+
+def test_reid_unowned_competing_candidate_hold_requires_gap() -> None:
+    cfg = TrackingConfig(
+        reid_unowned_competing_candidate_hold=True,
+        reid_unowned_competing_candidate_min_cost=0.55,
+        reid_unowned_competing_candidate_min_gap=0.15,
+        reid_unowned_competing_candidate_min_missed=1,
+    )
+    track = FixedTrack(
+        fixed_id=8,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="occlusion_hold",
+        ever_detected=True,
+        hits=3,
+        missed=1,
+        state="OCCLUDED",
+        state_reason="occlusion_hold",
+    )
+    track.raw_id_counts[7] = 10
+    det = Detection(
+        box=np.array([3, 0, 23, 20], dtype=np.float32),
+        score=0.9,
+        raw_id=16,
+        class_id=0,
+        hist=_hist_at(0),
+    )
+
+    assert not reid_unowned_competing_candidate_should_hold(
+        track,
+        det,
+        owner_track=None,
+        ambiguous=True,
+        selected_cost=0.590739,
+        competing_cost=0.548742,
+        cfg=cfg,
+        phase_name="reid",
+    )
+
+
+def test_match_runtime_holds_occlusion_reid_bad_match(monkeypatch) -> None:
+    cfg = TrackingConfig(
+        expected_pigs=1,
+        association_debug=True,
+        occlusion_reid_prefer_gap_over_bad_match=True,
+        occlusion_reid_bad_match_min_cost=0.60,
+        occlusion_reid_bad_match_min_missed=1,
+        occlusion_reid_bad_match_max_missed=3,
+        occlusion_reid_bad_match_occlusion_hold_only=True,
+        smooth_boxes=False,
+    )
+    hist = _hist_at(0)
+    track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="occlusion_hold",
+        ever_detected=True,
+        hits=3,
+        missed=1,
+        state="OCCLUDED",
+        state_reason="occlusion_hold",
+    )
+    track.raw_id_counts[6] = 10
+    tracks = {1: track}
+    detections = [
+        Detection(
+            box=np.array([2, 0, 22, 20], dtype=np.float32),
+            score=0.9,
+            raw_id=6,
+            class_id=0,
+            hist=hist,
+        )
+    ]
+    runtime = TrackingRuntimeState()
+    runtime.current_recovery_track_ids.add(1)
+
+    def fake_cost(*args, **kwargs) -> float:
+        return 0.743141
+
+    monkeypatch.setattr(
+        "pig_behavior.tracking.association.track_detection_cost",
+        fake_cost,
+    )
+
+    match_and_update_tracks(
+        tracks,
+        detections,
+        np.zeros((50, 50, 3), dtype=np.uint8),
+        prev_frame=None,
+        cfg=cfg,
+        runtime=runtime,
+        frame_index=194,
+    )
+
+    events = [event["event"] for event in runtime.association_debug_events]
+    assert "assignment_hold_occlusion_reid_bad_match" in events
+    assert "assignment_accept" not in events
+    assert track.raw_id_counts[6] == 10
+
+
+def test_match_runtime_holds_reid_unowned_competing_candidate(monkeypatch) -> None:
+    cfg = TrackingConfig(
+        expected_pigs=2,
+        association_debug=True,
+        reid_unowned_competing_candidate_hold=True,
+        reid_unowned_competing_candidate_min_cost=0.55,
+        reid_unowned_competing_candidate_min_gap=0.15,
+        reid_unowned_competing_candidate_min_missed=1,
+        smooth_boxes=False,
+    )
+    hist = _hist_at(0)
+    owner_like_track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="occlusion_hold",
+        ever_detected=True,
+        hits=3,
+        missed=1,
+        state="OCCLUDED",
+        state_reason="detected_ambiguous",
+    )
+    owner_like_track.raw_id_counts[5] = 10
+    ambiguous_track = FixedTrack(
+        fixed_id=2,
+        last_box=np.array([80, 0, 100, 20], dtype=np.float32),
+        reliable_box=np.array([80, 0, 100, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="occlusion_hold",
+        ever_detected=True,
+        hits=3,
+        missed=1,
+        state="OCCLUDED",
+        state_reason="occlusion_hold",
+    )
+    ambiguous_track.raw_id_counts[7] = 10
+    tracks = {1: owner_like_track, 2: ambiguous_track}
+    detections = [
+        Detection(
+            box=np.array([0, 0, 20, 20], dtype=np.float32),
+            score=0.9,
+            raw_id=5,
+            class_id=0,
+            hist=hist,
+        ),
+        Detection(
+            box=np.array([40, 0, 60, 20], dtype=np.float32),
+            score=0.9,
+            raw_id=16,
+            class_id=0,
+            hist=hist,
+        ),
+    ]
+    runtime = TrackingRuntimeState()
+    runtime.current_recovery_track_ids.add(2)
+
+    cost_by_track_and_raw = {
+        (1, 5): 0.10,
+        (1, 16): 0.29,
+        (2, 5): 0.90,
+        (2, 16): 0.59,
+    }
+
+    def fake_cost(track, det, *args, **kwargs) -> float:
+        return cost_by_track_and_raw[(track.fixed_id, det.raw_id)]
+
+    monkeypatch.setattr(
+        "pig_behavior.tracking.association.track_detection_cost",
+        fake_cost,
+    )
+
+    match_and_update_tracks(
+        tracks,
+        detections,
+        np.zeros((120, 120, 3), dtype=np.uint8),
+        prev_frame=None,
+        cfg=cfg,
+        runtime=runtime,
+        frame_index=1424,
+    )
+
+    events = runtime.association_debug_events
+    assert any(
+        event["event"] == "assignment_hold_reid_unowned_competing_candidate"
+        and event["track_id"] == 2
+        and event["det_raw_id"] == 16
+        and event["det_best_competing_cost"] == 0.29
+        for event in events
+    )
+    assert 16 not in ambiguous_track.raw_id_counts
 
 
 def test_cvat_parser_prefers_id_attribute_over_pig_label(tmp_path: Path) -> None:
@@ -2037,3 +2561,310 @@ def test_episode_pair_swap_repair_ignores_non_overlapping_tracks() -> None:
     assert repaired[3]["points"] == [85.0, 0.0, 125.0, 40.0]
     assert "_episode_pair_swap_repair" not in repaired[2]
     assert "_episode_pair_swap_repair" not in repaired[3]
+
+
+def test_long_pair_swap_repair_swaps_stable_suffix_after_motion_break() -> None:
+    cfg = TrackingConfig(
+        long_pair_swap_repair=True,
+        long_pair_swap_min_frames=4,
+        long_pair_swap_min_start_gain=0.20,
+        long_pair_swap_min_median_separation=0.10,
+    )
+    shapes: list[dict[str, object]] = []
+    for frame in range(1, 7):
+        if frame == 1:
+            first_x, second_x = 0.0, 120.0
+        else:
+            first_x, second_x = 120.0 + frame, float(frame)
+        shapes.extend(
+            [
+                {
+                    "frame": frame,
+                    "label": "Pig_1",
+                    "points": [first_x, 0.0, first_x + 30.0, 30.0],
+                    "attributes": [{"name": "Hidden", "value": "No"}],
+                },
+                {
+                    "frame": frame,
+                    "label": "Pig_2",
+                    "points": [second_x, 0.0, second_x + 30.0, 30.0],
+                    "attributes": [{"name": "Hidden", "value": "No"}],
+                },
+            ]
+        )
+
+    repaired = repair_long_pair_swaps(shapes, width=200, height=100, cfg=cfg)
+    first_after = next(
+        shape
+        for shape in repaired
+        if int(shape["frame"]) == 2 and shape["label"] == "Pig_1"
+    )
+    second_after = next(
+        shape
+        for shape in repaired
+        if int(shape["frame"]) == 2 and shape["label"] == "Pig_2"
+    )
+
+    assert first_after["points"] == [2.0, 0.0, 32.0, 30.0]
+    assert second_after["points"] == [122.0, 0.0, 152.0, 30.0]
+    assert first_after["_long_pair_swap_repair"]
+    assert second_after["_long_pair_swap_repair"]
+
+
+def test_long_pair_swap_repair_requires_stable_suffix() -> None:
+    cfg = TrackingConfig(
+        long_pair_swap_repair=True,
+        long_pair_swap_min_frames=5,
+        long_pair_swap_min_start_gain=0.20,
+        long_pair_swap_min_median_separation=0.10,
+    )
+    shapes = [
+        {
+            "frame": 1,
+            "label": "Pig_1",
+            "points": [0.0, 0.0, 30.0, 30.0],
+            "attributes": [{"name": "Hidden", "value": "No"}],
+        },
+        {
+            "frame": 1,
+            "label": "Pig_2",
+            "points": [120.0, 0.0, 150.0, 30.0],
+            "attributes": [{"name": "Hidden", "value": "No"}],
+        },
+        {
+            "frame": 2,
+            "label": "Pig_1",
+            "points": [122.0, 0.0, 152.0, 30.0],
+            "attributes": [{"name": "Hidden", "value": "No"}],
+        },
+        {
+            "frame": 2,
+            "label": "Pig_2",
+            "points": [2.0, 0.0, 32.0, 30.0],
+            "attributes": [{"name": "Hidden", "value": "No"}],
+        },
+    ]
+
+    repaired = repair_long_pair_swaps(shapes, width=200, height=100, cfg=cfg)
+
+    assert repaired[2]["points"] == [122.0, 0.0, 152.0, 30.0]
+    assert repaired[3]["points"] == [2.0, 0.0, 32.0, 30.0]
+    assert "_long_pair_swap_repair" not in repaired[2]
+    assert "_long_pair_swap_repair" not in repaired[3]
+
+
+def test_suffix_pair_swap_repair_swaps_after_uncertain_overlap() -> None:
+    cfg = TrackingConfig(
+        suffix_pair_swap_repair=True,
+        suffix_pair_swap_min_overlap_iou=0.30,
+        suffix_pair_swap_min_suffix_frames=3,
+        suffix_pair_swap_max_suffix_overlap_iou=0.05,
+    )
+    shapes = [
+        _shape(1, 1, [0.0, 0.0, 40.0, 40.0]),
+        _shape(1, 2, [60.0, 0.0, 100.0, 40.0]),
+        _shape(2, 1, [30.0, 0.0, 70.0, 40.0]),
+        _shape(2, 2, [35.0, 0.0, 75.0, 40.0]),
+        _shape(3, 1, [62.0, 0.0, 102.0, 40.0]),
+        _shape(3, 2, [2.0, 0.0, 42.0, 40.0]),
+        _shape(4, 1, [64.0, 0.0, 104.0, 40.0]),
+        _shape(4, 2, [4.0, 0.0, 44.0, 40.0]),
+        _shape(5, 1, [66.0, 0.0, 106.0, 40.0]),
+        _shape(5, 2, [6.0, 0.0, 46.0, 40.0]),
+    ]
+    shapes[2]["_track_source"] = "occlusion_hold"
+    shapes[2]["_occlusion_hold"] = True
+    shapes[2]["_missed_frames"] = 1
+    _set_hidden(shapes[6], True)
+    _set_hidden(shapes[7], True)
+
+    repaired = repair_suffix_pair_swaps(shapes, width=140, height=80, cfg=cfg)
+
+    first_suffix = next(
+        shape for shape in repaired if int(shape["frame"]) == 3 and shape["label"] == "Pig_1"
+    )
+    second_suffix = next(
+        shape for shape in repaired if int(shape["frame"]) == 3 and shape["label"] == "Pig_2"
+    )
+    assert first_suffix["points"] == [2.0, 0.0, 42.0, 40.0]
+    assert second_suffix["points"] == [62.0, 0.0, 102.0, 40.0]
+    assert first_suffix["_suffix_pair_swap_repair"]
+    assert second_suffix["_suffix_pair_swap_start"] == 2
+    hidden_first = next(
+        shape for shape in repaired if int(shape["frame"]) == 4 and shape["label"] == "Pig_1"
+    )
+    hidden_second = next(
+        shape for shape in repaired if int(shape["frame"]) == 4 and shape["label"] == "Pig_2"
+    )
+    assert hidden_first["points"] == [4.0, 0.0, 44.0, 40.0]
+    assert hidden_second["points"] == [64.0, 0.0, 104.0, 40.0]
+
+
+def test_suffix_pair_swap_repair_requires_uncertain_overlap() -> None:
+    cfg = TrackingConfig(
+        suffix_pair_swap_repair=True,
+        suffix_pair_swap_min_overlap_iou=0.30,
+        suffix_pair_swap_min_suffix_frames=3,
+        suffix_pair_swap_max_suffix_overlap_iou=0.05,
+    )
+    shapes = [
+        _shape(1, 1, [0.0, 0.0, 40.0, 40.0]),
+        _shape(1, 2, [60.0, 0.0, 100.0, 40.0]),
+        _shape(2, 1, [30.0, 0.0, 70.0, 40.0]),
+        _shape(2, 2, [35.0, 0.0, 75.0, 40.0]),
+        _shape(3, 1, [62.0, 0.0, 102.0, 40.0]),
+        _shape(3, 2, [2.0, 0.0, 42.0, 40.0]),
+        _shape(4, 1, [64.0, 0.0, 104.0, 40.0]),
+        _shape(4, 2, [4.0, 0.0, 44.0, 40.0]),
+        _shape(5, 1, [66.0, 0.0, 106.0, 40.0]),
+        _shape(5, 2, [6.0, 0.0, 46.0, 40.0]),
+    ]
+
+    repaired = repair_suffix_pair_swaps(shapes, width=140, height=80, cfg=cfg)
+
+    assert repaired[4]["points"] == [62.0, 0.0, 102.0, 40.0]
+    assert repaired[5]["points"] == [2.0, 0.0, 42.0, 40.0]
+    assert "_suffix_pair_swap_repair" not in repaired[4]
+    assert "_suffix_pair_swap_repair" not in repaired[5]
+
+
+def test_occlusion_reid_bad_match_can_require_unowned_raw() -> None:
+    cfg = TrackingConfig(
+        occlusion_reid_prefer_gap_over_bad_match=True,
+        occlusion_reid_bad_match_same_raw_only=False,
+        occlusion_reid_bad_match_raw_mismatch_only=True,
+        occlusion_reid_bad_match_unowned_raw_only=True,
+        occlusion_reid_bad_match_occlusion_hold_only=True,
+        occlusion_reid_bad_match_min_missed=1,
+        occlusion_reid_bad_match_max_missed=10,
+        occlusion_reid_bad_match_min_cost=0.70,
+    )
+    track = FixedTrack(
+        fixed_id=8,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="occlusion_hold",
+        ever_detected=True,
+        hits=3,
+        missed=1,
+        state="OCCLUDED",
+        state_reason="occlusion_hold",
+    )
+    track.raw_id_counts[7] = 10
+    det = Detection(
+        box=np.array([3, 0, 23, 20], dtype=np.float32),
+        score=0.9,
+        raw_id=26,
+        class_id=0,
+        hist=_hist_at(0),
+    )
+    owner_track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+    )
+
+    assert occlusion_reid_bad_match_should_hold(
+        track,
+        det,
+        ambiguous=True,
+        selected_cost=0.77,
+        cfg=cfg,
+        phase_name="reid",
+        owner_track=None,
+    )
+    assert not occlusion_reid_bad_match_should_hold(
+        track,
+        det,
+        ambiguous=True,
+        selected_cost=0.77,
+        cfg=cfg,
+        phase_name="reid",
+        owner_track=owner_track,
+    )
+
+
+def test_occlusion_reid_bad_match_once_per_episode() -> None:
+    cfg = TrackingConfig(
+        occlusion_reid_prefer_gap_over_bad_match=True,
+        occlusion_reid_bad_match_same_raw_only=False,
+        occlusion_reid_bad_match_raw_mismatch_only=True,
+        occlusion_reid_bad_match_unowned_raw_only=True,
+        occlusion_reid_bad_match_occlusion_hold_only=True,
+        occlusion_reid_bad_match_once_per_episode=True,
+        occlusion_reid_bad_match_min_missed=1,
+        occlusion_reid_bad_match_max_missed=10,
+        occlusion_reid_bad_match_min_cost=0.70,
+    )
+    runtime = TrackingRuntimeState()
+    track = FixedTrack(
+        fixed_id=8,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="occlusion_hold",
+        ever_detected=True,
+        hits=3,
+        missed=1,
+        state="OCCLUDED",
+        state_reason="occlusion_hold",
+        occlusion_count=12,
+    )
+    track.raw_id_counts[7] = 10
+    det = Detection(
+        box=np.array([3, 0, 23, 20], dtype=np.float32),
+        score=0.9,
+        raw_id=26,
+        class_id=0,
+        hist=_hist_at(0),
+    )
+
+    assert occlusion_reid_bad_match_should_hold(
+        track,
+        det,
+        ambiguous=True,
+        selected_cost=0.77,
+        cfg=cfg,
+        phase_name="reid",
+        runtime=runtime,
+        owner_track=None,
+    )
+    assert not occlusion_reid_bad_match_should_hold(
+        track,
+        det,
+        ambiguous=True,
+        selected_cost=0.78,
+        cfg=cfg,
+        phase_name="reid",
+        runtime=runtime,
+        owner_track=None,
+    )
+    track.occlusion_count += 1
+    assert not occlusion_reid_bad_match_should_hold(
+        track,
+        det,
+        ambiguous=True,
+        selected_cost=0.78,
+        cfg=cfg,
+        phase_name="reid",
+        runtime=runtime,
+        owner_track=None,
+    )
+    new_raw_det = Detection(
+        box=np.array([3, 0, 23, 20], dtype=np.float32),
+        score=0.9,
+        raw_id=27,
+        class_id=0,
+        hist=_hist_at(0),
+    )
+    assert occlusion_reid_bad_match_should_hold(
+        track,
+        new_raw_det,
+        ambiguous=True,
+        selected_cost=0.78,
+        cfg=cfg,
+        phase_name="reid",
+        runtime=runtime,
+        owner_track=None,
+    )

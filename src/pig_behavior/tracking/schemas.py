@@ -72,6 +72,9 @@ class TrackingRuntimeState:
     reentry_unowned_raw_episode_history: dict[tuple[int, int, int], list[int]] = field(
         default_factory=dict
     )
+    occlusion_reid_bad_match_hold_keys: set[tuple[int, int | None]] = field(
+        default_factory=set
+    )
 
 
 @dataclass(slots=True)
