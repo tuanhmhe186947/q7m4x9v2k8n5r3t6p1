@@ -152,7 +152,7 @@ def low_conf_detection_is_plausible(
 
     reference = association_reference_box(track, det, width, height, cfg)
     if track_is_lost_for_association(track):
-        if cfg.mode in {"bytetrack", "hybrid_bytetrack"}:
+        if cfg.mode == "hybrid_bytetrack":
             top_raw_id = track.top_raw_id()
             if (
                 det.raw_id is not None
@@ -465,7 +465,7 @@ def track_detection_cost(
     area_cost = min(area_log_ratio(predicted, det.box), 2.0) / 2.0
 
     raw_penalty = 0.0
-    if cfg.mode in {"bytetrack", "hybrid_bytetrack"} and det.raw_id is not None:
+    if cfg.mode == "hybrid_bytetrack" and det.raw_id is not None:
         owner = raw_owner.get(det.raw_id) if raw_owner is not None else None
         if owner is not None and owner != track.fixed_id:
             raw_penalty += 0.18
@@ -1051,7 +1051,7 @@ def match_and_update_tracks(
     )
     raw_owner: dict[int, int] = {}
     raw_owner_tracks: dict[int, FixedTrack] = {}
-    if cfg.mode in {"bytetrack", "hybrid_bytetrack"}:
+    if cfg.mode == "hybrid_bytetrack":
         for track in ordered_tracks:
             raw_id = track.top_raw_id()
             if raw_id is not None:
@@ -1485,7 +1485,7 @@ def match_and_update_tracks(
             if idx not in ignored_detection_indices
         ]
 
-        if cfg.mode in {"bytetrack", "hybrid_bytetrack"}:
+        if cfg.mode == "hybrid_bytetrack":
             run_matching_phase(visible_tracks, all_detection_indices, "visible")
             remaining_detection_indices = [
                 idx

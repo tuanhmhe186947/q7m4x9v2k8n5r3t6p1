@@ -163,11 +163,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--tracking-mode",
         type=str,
-        choices=["realtime", "bytetrack_raw", "hybrid_bytetrack", "bytetrack", "gt_export"],
+        choices=["realtime", "bytetrack_raw", "hybrid_bytetrack", "gt_export"],
         default="hybrid_bytetrack",
         help=(
             "Mode to run the tracker in "
-            "(realtime, bytetrack_raw, hybrid_bytetrack, or legacy aliases)."
+            "(realtime, bytetrack_raw, hybrid_bytetrack, or gt_export)."
         ),
     )
     parser.add_argument("--max-frames", type=int, default=None)

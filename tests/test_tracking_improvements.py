@@ -109,8 +109,8 @@ def test_overlap_hidden_stabilization_restores_hidden_owner() -> None:
     assert frame_2["Pig_8"]["occluded"] is True
 
 
-def test_bytetrack_alias_uses_hybrid_defaults_without_forced_postprocessing() -> None:
-    cfg = TrackingConfig(mode="bytetrack", detect_every_n_frames=3)
+def test_hybrid_bytetrack_uses_hybrid_defaults_without_forced_postprocessing() -> None:
+    cfg = TrackingConfig(mode="hybrid_bytetrack", detect_every_n_frames=3)
 
     validate_config(cfg)
 
@@ -139,9 +139,9 @@ def test_hybrid_bytetrack_keeps_rule_flag_defaults() -> None:
     assert cfg.enable_offline_smoothing is False
 
 
-def test_bytetrack_keeps_explicit_threshold_overrides() -> None:
+def test_hybrid_bytetrack_keeps_explicit_threshold_overrides() -> None:
     cfg = TrackingConfig(
-        mode="bytetrack",
+        mode="hybrid_bytetrack",
         det_conf=0.30,
         nms_iou=0.70,
         track_match_iou=0.65,
@@ -156,9 +156,9 @@ def test_bytetrack_keeps_explicit_threshold_overrides() -> None:
     assert cfg.track_high_conf == 0.50
 
 
-def test_bytetrack_keeps_explicit_legacy_iou_alias() -> None:
+def test_hybrid_bytetrack_keeps_explicit_legacy_iou_alias() -> None:
     cfg = TrackingConfig(
-        mode="bytetrack",
+        mode="hybrid_bytetrack",
         iou=0.72,
         overrides={"iou"},
     )
@@ -167,6 +167,17 @@ def test_bytetrack_keeps_explicit_legacy_iou_alias() -> None:
 
     assert cfg.nms_iou == 0.72
     assert cfg.iou == 0.72
+
+
+def test_legacy_bytetrack_mode_is_rejected() -> None:
+    cfg = TrackingConfig(mode="bytetrack")
+
+    try:
+        validate_config(cfg)
+    except ValueError as exc:
+        assert "hybrid_bytetrack" in str(exc)
+    else:
+        raise AssertionError("legacy mode=bytetrack should be rejected")
 
 
 def test_missing_prediction_remains_evaluable_until_track_is_lost() -> None:

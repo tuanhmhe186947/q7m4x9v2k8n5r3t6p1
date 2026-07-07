@@ -19,6 +19,7 @@ from pig_behavior.evaluation.tracking.config import (  # noqa: E402
 from pig_behavior.evaluation.tracking.pipeline import (  # noqa: E402
     tracking_rule_overrides,
 )
+from pig_behavior.output_layout import prediction_xml_candidates  # noqa: E402
 
 
 def test_find_prediction_xml_prefers_mode_scoped_tracker_output(
@@ -78,23 +79,22 @@ def test_tracking_eval_defaults_match_hybrid_baseline() -> None:
     assert cfg.USE_MERGED_BOX_SPLIT is False
 
 
-def test_find_prediction_xml_maps_legacy_alias_to_hybrid_output(
+def test_find_prediction_xml_does_not_map_removed_bytetrack_alias(
     tmp_path: Path,
 ) -> None:
     video_stem = "Pigs291119_000263_30fps"
-    hybrid_xml = (
-        tmp_path
-        / video_stem
-        / "hybrid_bytetrack"
-        / "annotations_cvat_video_1_1.xml"
+    candidates = prediction_xml_candidates(
+        tmp_path,
+        video_stem,
+        preferred_mode="bytetrack",
     )
-    hybrid_xml.parent.mkdir(parents=True)
-    hybrid_xml.write_text("<annotations />", encoding="utf-8")
 
     assert (
-        find_prediction_xml(video_stem, tmp_path, preferred_mode="bytetrack")
-        == hybrid_xml
-    )
+        tmp_path
+        / "hybrid_bytetrack"
+        / video_stem
+        / "annotations_cvat_video_1_1.xml"
+    ) not in candidates
 
 
 def test_detector_benchmark_configs_isolate_v8_and_v26_outputs(tmp_path: Path) -> None:

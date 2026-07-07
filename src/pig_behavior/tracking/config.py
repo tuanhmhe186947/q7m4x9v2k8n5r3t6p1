@@ -45,7 +45,6 @@ TRACKING_MODE_CHOICES = (
     "realtime",
     "bytetrack_raw",
     "hybrid_bytetrack",
-    "bytetrack",
     "gt_export",
 )
 CANONICAL_TRACKING_MODES = {"realtime", "bytetrack_raw", "hybrid_bytetrack"}
@@ -87,7 +86,7 @@ class TrackingConfig:
     allowed_class_name: str | None = None
 
     # Pipeline Mode & Realtime parameters
-    mode: str = "realtime"  # realtime, bytetrack_raw, hybrid_bytetrack, or legacy aliases
+    mode: str = "realtime"  # realtime, bytetrack_raw, hybrid_bytetrack, or gt_export
     imgsz: int = 640
     detect_every_n_frames: int = DEFAULT_DETECT_EVERY_N_FRAMES
     max_raw_detections: int = DEFAULT_MAX_RAW_DETECTIONS
@@ -330,16 +329,13 @@ def validate_config(cfg: TrackingConfig) -> None:
     if cfg.mode not in TRACKING_MODE_CHOICES:
         raise ValueError(
             "mode must be one of: realtime, bytetrack_raw, hybrid_bytetrack, "
-            "bytetrack, gt_export."
+            "gt_export."
         )
     if cfg.occlusion_reid_bad_match_action not in {"hold", "reject"}:
         raise ValueError("occlusion_reid_bad_match_action must be 'hold' or 'reject'.")
 
     requested_mode = cfg.mode
-    if requested_mode == "bytetrack":
-        logger.warning("mode=bytetrack is a legacy alias for hybrid_bytetrack")
-        cfg.mode = "hybrid_bytetrack"
-    elif requested_mode == "gt_export":
+    if requested_mode == "gt_export":
         logger.warning(
             "[DEPRECATED] mode=gt_export is not a tracking algorithm. "
             "Use --mode hybrid_bytetrack --cvat-video-xml output.xml instead."
@@ -367,7 +363,7 @@ def validate_config(cfg: TrackingConfig) -> None:
             if name not in cfg.overrides:
                 setattr(cfg, name, value)
     elif cfg.mode == "hybrid_bytetrack":
-        # Preserve the previous ByteTrack-based behavior under a clear name.
+        # Preserve the ByteTrack-based improved behavior under a clear name.
         bytetrack_defaults = {
             "det_conf": 0.25,
             "track_high_conf": 0.50,
@@ -650,7 +646,7 @@ def resolve_output_paths(
 def write_tracker_yaml(path: Path, cfg: TrackingConfig) -> None:
     """Write a tracker config (ByteTrack or BoT-SORT) for pig videos."""
     track_low_thresh = min(cfg.det_conf, cfg.track_high_conf)
-    if cfg.mode in {"bytetrack", "hybrid_bytetrack"}:
+    if cfg.mode == "hybrid_bytetrack":
         lines = [
             "tracker_type: bytetrack",
             f"track_high_thresh: {cfg.track_high_conf:.2f}",

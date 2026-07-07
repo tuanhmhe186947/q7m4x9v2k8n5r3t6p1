@@ -32,7 +32,7 @@ DEFAULT_OUTPUT_ROOT = PROJECT_ROOT / "outputs/eval/weights"
 DEFAULT_PREDICTION_ROOT = PROJECT_ROOT / "outputs/pred/weights"
 SUPPORTED_GT_SUFFIXES = (".xml",)
 VIDEO_SUFFIXES = (".mp4", ".avi", ".mov", ".mkv")
-TRACKING_MODES = ("realtime", "bytetrack_raw", "hybrid_bytetrack", "bytetrack", "gt_export")
+TRACKING_MODES = ("realtime", "bytetrack_raw", "hybrid_bytetrack", "gt_export")
 RANKING_COLUMNS = ("hota", "idf1", "mota", "assa", "precision", "recall", "idsw", "fragments")
 
 
@@ -82,7 +82,11 @@ def match_videos(gt_files: list[Path], video_dir: Path) -> tuple[list[Path], lis
     for gt_file in gt_files:
         gt_stem = normalized_gt_stem(gt_file)
         video_path = next(
-            ((video_dir / f"{gt_stem}{suffix}") for suffix in VIDEO_SUFFIXES if (video_dir / f"{gt_stem}{suffix}").exists()),
+            (
+                (video_dir / f"{gt_stem}{suffix}")
+                for suffix in VIDEO_SUFFIXES
+                if (video_dir / f"{gt_stem}{suffix}").exists()
+            ),
             None,
         )
         if video_path is None:

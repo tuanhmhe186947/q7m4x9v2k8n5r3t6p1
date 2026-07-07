@@ -96,7 +96,7 @@ Examples:
     parser.add_argument("--path-config", type=str, default=None, help="Custom tracking_paths.json path.")
     parser.add_argument(
         "--mode",
-        choices=["realtime", "bytetrack_raw", "hybrid_bytetrack", "bytetrack", "gt_export"],
+        choices=["realtime", "bytetrack_raw", "hybrid_bytetrack", "gt_export"],
         default="hybrid_bytetrack",
     )
     parser.add_argument("--skip-missing-gt", action="store_true")
@@ -337,7 +337,7 @@ def main() -> int:
         cmd.append("--benchmark-detectors")
     for combo_name in selected_rule_combos:
         cmd.extend(["--rule-combo", combo_name])
-    if args.mode in {"hybrid_bytetrack", "bytetrack", "gt_export"} and args.smooth and not has_smoothing_arg:
+    if args.mode in {"hybrid_bytetrack", "gt_export"} and args.smooth and not has_smoothing_arg:
         cmd.extend(
             [
                 "--enable-offline-smoothing",

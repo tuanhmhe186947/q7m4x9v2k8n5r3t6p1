@@ -432,7 +432,7 @@ def parse_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, list[
         "--tracking-mode",
         "--mode",
         dest="tracking_mode",
-        choices=["realtime", "bytetrack_raw", "hybrid_bytetrack", "bytetrack", "gt_export"],
+        choices=["realtime", "bytetrack_raw", "hybrid_bytetrack", "gt_export"],
         default="hybrid_bytetrack",
         help="Tracking mode for generated predictions.",
     )

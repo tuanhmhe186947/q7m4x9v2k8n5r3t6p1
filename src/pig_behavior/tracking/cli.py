@@ -192,8 +192,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default="realtime",
         help=(
             "Tracking mode: realtime, bytetrack_raw baseline, "
-            "hybrid_bytetrack improved pipeline, or legacy aliases "
-            "bytetrack/gt_export."
+            "hybrid_bytetrack improved pipeline, or gt_export."
         ),
     )
     parser.add_argument("--imgsz", type=int, default=640, help="YOLO inference image size.")

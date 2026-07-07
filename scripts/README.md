@@ -52,6 +52,14 @@ Moi truong Python dang dung cho tracking/eval hien tai:
 C:\Users\ironh\anaconda3\envs\pig_project\python.exe
 ```
 
+Mode tracking dang dung:
+
+- `hybrid_bytetrack`: mode chinh cho tracking chat luong cao, gom cac guard/repair da duoc validate.
+- `bytetrack_raw`: baseline ByteTrack thuan, dung de doi chieu khoa hoc.
+- `realtime`: mode streaming/low-latency, khong mac dinh ke thua cac offline repair dai.
+
+Khong dung `--mode bytetrack` nua. Alias legacy nay da bi go bo de tranh nham voi `hybrid_bytetrack`; neu can pipeline tot nhat thi truyen ro `--mode hybrid_bytetrack`.
+
 Chay tracking mot video voi base/preset thuong:
 
 ```cmd
@@ -155,8 +163,8 @@ C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\evaluate_tracking.p
   --eval-config smooth_det020_loose ^
   -a ^
   --rule-combo iou0_area0_condarea0_merge0 ^
-  --output-root outputs\eval\hybrid_bytetrack\codex_visible_suffix_gate_full ^
-  --prediction-root outputs\pred\hybrid_bytetrack\codex_visible_suffix_gate_full ^
+  --output-root outputs\eval\hybrid_bytetrack\visible_suffix_gate_full ^
+  --prediction-root outputs\pred\hybrid_bytetrack\visible_suffix_gate_full ^
   --profile-override hidden_owner_guard=true ^
   --profile-override hidden_owner_guard_hold_assignment=true ^
   --profile-override reentry_unowned_raw_mismatch_episode_reject=true ^
@@ -187,8 +195,8 @@ C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\evaluate_tracking.p
   --eval-config smooth_det020_loose ^
   -v "Pigs291119_000231_30fps,Pigs291119_000233_30fps,Pigs291119_000263_30fps,Pigs301119_000328_30fps,Pigs291119_000302_30fps" ^
   --rule-combo iou0_area0_condarea0_merge0 ^
-  --output-root outputs\eval\hybrid_bytetrack\codex_hidden_suffix_id_swap_5video_rerun ^
-  --prediction-root outputs\pred\hybrid_bytetrack\codex_hidden_suffix_id_swap_5video_rerun ^
+  --output-root outputs\eval\hybrid_bytetrack\hidden_suffix_id_swap_5video_rerun ^
+  --prediction-root outputs\pred\hybrid_bytetrack\hidden_suffix_id_swap_5video_rerun ^
   --profile-override hidden_owner_guard=true ^
   --profile-override hidden_owner_guard_hold_assignment=true ^
   --profile-override reentry_unowned_raw_mismatch_episode_reject=true ^
@@ -219,8 +227,8 @@ C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\evaluate_tracking.p
   --eval-config smooth_det020_loose ^
   -v Pigs291119_000263_30fps ^
   --rule-combo iou0_area0_condarea0_merge0 ^
-  --output-root outputs\eval\hybrid_bytetrack\codex_probe_263_visible_suffix_gate_rerun ^
-  --prediction-root outputs\pred\hybrid_bytetrack\codex_probe_263_visible_suffix_gate_rerun ^
+  --output-root outputs\eval\hybrid_bytetrack\probe_263_visible_suffix_gate_rerun ^
+  --prediction-root outputs\pred\hybrid_bytetrack\probe_263_visible_suffix_gate_rerun ^
   --profile-override hidden_owner_guard=true ^
   --profile-override hidden_owner_guard_hold_assignment=true ^
   --profile-override reentry_unowned_raw_mismatch_episode_reject=true ^
@@ -251,8 +259,8 @@ C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\evaluate_tracking.p
   --eval-config smooth_det020_loose ^
   -v Pigs291119_000233_30fps ^
   --rule-combo iou0_area0_condarea0_merge0 ^
-  --output-root outputs\eval\hybrid_bytetrack\codex_probe_233_hidden_suffix_id_swap_rerun ^
-  --prediction-root outputs\pred\hybrid_bytetrack\codex_probe_233_hidden_suffix_id_swap_rerun ^
+  --output-root outputs\eval\hybrid_bytetrack\probe_233_hidden_suffix_id_swap_rerun ^
+  --prediction-root outputs\pred\hybrid_bytetrack\probe_233_hidden_suffix_id_swap_rerun ^
   --profile-override hidden_owner_guard=true ^
   --profile-override hidden_owner_guard_hold_assignment=true ^
   --profile-override reentry_unowned_raw_mismatch_episode_reject=true ^
