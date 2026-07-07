@@ -1268,6 +1268,18 @@ def suffix_is_stable_after_overlap(
     return False
 
 
+def suffix_swap_start_is_visible(
+    first_frames: dict[int, dict[str, Any]],
+    second_frames: dict[int, dict[str, Any]],
+    start_frame: int,
+) -> bool:
+    first_shape = first_frames.get(start_frame)
+    second_shape = second_frames.get(start_frame)
+    if first_shape is None or second_shape is None:
+        return False
+    return shape_hidden_value(first_shape) == "No" and shape_hidden_value(second_shape) == "No"
+
+
 def repair_suffix_pair_swaps(
     shapes: list[dict[str, Any]],
     width: int,
@@ -1308,6 +1320,12 @@ def repair_suffix_pair_swaps(
                     run_end,
                 )
                 if swap_start is None:
+                    continue
+                if not suffix_swap_start_is_visible(
+                    first_frames,
+                    second_frames,
+                    swap_start,
+                ):
                     continue
                 if not suffix_is_stable_after_overlap(
                     first_frames,

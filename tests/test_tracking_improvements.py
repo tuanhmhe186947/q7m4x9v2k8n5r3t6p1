@@ -2731,6 +2731,44 @@ def test_suffix_pair_swap_repair_requires_uncertain_overlap() -> None:
     assert "_suffix_pair_swap_repair" not in repaired[5]
 
 
+def test_suffix_pair_swap_repair_requires_visible_swap_start() -> None:
+    cfg = TrackingConfig(
+        suffix_pair_swap_repair=True,
+        suffix_pair_swap_min_overlap_iou=0.30,
+        suffix_pair_swap_min_suffix_frames=3,
+        suffix_pair_swap_max_suffix_overlap_iou=0.05,
+    )
+    shapes = [
+        _shape(1, 1, [0.0, 0.0, 40.0, 40.0]),
+        _shape(1, 2, [60.0, 0.0, 100.0, 40.0]),
+        _shape(2, 1, [30.0, 0.0, 70.0, 40.0]),
+        _shape(2, 2, [35.0, 0.0, 75.0, 40.0]),
+        _shape(3, 1, [62.0, 0.0, 102.0, 40.0]),
+        _shape(3, 2, [2.0, 0.0, 42.0, 40.0]),
+        _shape(4, 1, [64.0, 0.0, 104.0, 40.0]),
+        _shape(4, 2, [4.0, 0.0, 44.0, 40.0]),
+        _shape(5, 1, [66.0, 0.0, 106.0, 40.0]),
+        _shape(5, 2, [6.0, 0.0, 46.0, 40.0]),
+    ]
+    shapes[2]["_track_source"] = "occlusion_hold"
+    shapes[2]["_occlusion_hold"] = True
+    shapes[2]["_missed_frames"] = 1
+    _set_hidden(shapes[2], True)
+
+    repaired = repair_suffix_pair_swaps(shapes, width=140, height=80, cfg=cfg)
+
+    first_suffix = next(
+        shape for shape in repaired if int(shape["frame"]) == 3 and shape["label"] == "Pig_1"
+    )
+    second_suffix = next(
+        shape for shape in repaired if int(shape["frame"]) == 3 and shape["label"] == "Pig_2"
+    )
+    assert first_suffix["points"] == [62.0, 0.0, 102.0, 40.0]
+    assert second_suffix["points"] == [2.0, 0.0, 42.0, 40.0]
+    assert "_suffix_pair_swap_repair" not in first_suffix
+    assert "_suffix_pair_swap_repair" not in second_suffix
+
+
 def test_overlap_small_box_suppression_hides_small_low_conf_overlap() -> None:
     cfg = TrackingConfig(
         overlap_small_box_suppression=True,

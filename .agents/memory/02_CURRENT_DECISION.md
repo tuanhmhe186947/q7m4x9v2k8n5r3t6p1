@@ -1,5 +1,33 @@
 # Current Decision
 
+## 2026-07-07 current best full tracking candidate
+
+Treat `outputs/eval/hybrid_bytetrack/codex_visible_suffix_gate_full/iou0_area0_condarea0_merge0`
+as the current best validated full 12-video candidate.
+
+Compared with `outputs/eval/hybrid_bytetrack/Best_tracking/iou0_area0_condarea0_merge0`:
+
+- `ALL` remapped IDSW improved `11 -> 0`.
+- Every per-video remapped IDSW is `0`.
+- Clean guardrails remained clean: `000085=0`, `000225=0`, `000231=0`,
+  `000302=0`, `000328=0`.
+- Remaining targets are fixed: `000233=0`, `000263=0`.
+
+The key correction after the failed `20260707_174142` full stack is that
+`suffix_pair_swap_repair=true` now requires both shapes at the swap start frame
+to have `Hidden=No`. This keeps the desired visible-start `000263` repair while
+blocking the hidden-start false suffix swaps on `000085` and `000225`.
+
+Current candidate stack:
+
+- protected association/occlusion practical base.
+- `occlusion_reid_prefer_gap_over_bad_match=true` with the proven unowned
+  raw-mismatch occlusion-hold bounds.
+- `overlap_small_box_suppression=true`.
+- `hidden_suffix_id_swap_repair=true`.
+- `suffix_pair_swap_repair=true`, but only with the visible-start gate in
+  `repair_suffix_pair_swaps`.
+
 ## 2026-07-03 tracking decision
 
 - Treat `outputs/eval/hybrid_bytetrack/20260703_193439/smooth_det020_loose/iou0_area0_condarea0_merge0/tracking_metrics.csv` as the current best 2-video tradeoff for `000231` + `000302`.

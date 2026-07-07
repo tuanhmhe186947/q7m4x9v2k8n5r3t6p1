@@ -1,5 +1,21 @@
 # Project Memory Short
 
+## 2026-07-07 visible-start suffix gate full success
+
+- New best full 12-video candidate:
+  `outputs/eval/hybrid_bytetrack/codex_visible_suffix_gate_full/iou0_area0_condarea0_merge0`.
+- Versus `outputs/eval/hybrid_bytetrack/Best_tracking/iou0_area0_condarea0_merge0`:
+  `ALL` remapped IDSW improved `11 -> 0`; every per-video remapped IDSW is
+  `0`.
+- Guardrails stayed clean: `000085=0`, `000225=0`, `000231=0`, `000302=0`,
+  `000328=0`.
+- Targets fixed: `000233=0`, `000263=0`.
+- Key code change: `suffix_pair_swap_repair=true` is now narrowed by requiring
+  both shapes at `swap_start` to have `Hidden=No`. This blocks the false
+  hidden-start suffix swaps previously seen on `000085` frame 17 and `000225`
+  frame 264, while still allowing the visible-start `000263` suffix repair
+  around frame 193.
+
 - Do not hardcode `000263`/`000302` as optimizer target videos anymore.
 - For optimizer ranking defaults, derive weak target videos from:
   `outputs/eval/hybrid_bytetrack/Tracking mới tắt smooth/yolov8/iou0_area0_condarea0_merge0/tracking_metrics.csv`
