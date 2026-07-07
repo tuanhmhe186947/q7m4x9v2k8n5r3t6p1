@@ -331,3 +331,31 @@ Next validation step: run a broader regression/full set with this exact opt-in
 candidate before any base promotion. The remaining weak target is `000233=6`;
 do not weaken the suffix gate just to chase `000233`, because the broad version
 already proved unsafe.
+
+## 2026-07-07 000233 failed repair probes
+
+Keep `outputs/eval/hybrid_bytetrack/codex_suffix_5video_min1500/iou0_area0_condarea0_merge0`
+as the protected current best candidate. Do not promote the later 000233 probes:
+
+- `20260707_122454`: enabling existing local/episode/long pair swap repairs on
+  top of the best candidate did not change `000233`; remapped IDSW stayed `6`.
+- `20260707_123316`: aggressively loosening local/episode/long repair thresholds
+  also did not change `000233`; remapped IDSW stayed `6`.
+- A new experimental hidden-overlap suffix repair was implemented and verified
+  locally, but the single-video run `20260707_145820` worsened `000233` from
+  `6` to `10` remapped IDSW, adding switches around `973/1081` and `1138/1144`.
+  The code was reverted and must not be reintroduced without a stronger
+  discriminator.
+- Loosening existing suffix repair for overlapped suffixes
+  (`suffix_pair_swap_min_suffix_frames=600`,
+  `suffix_pair_swap_max_suffix_overlap_iou=1.0`) in `20260707_150456` also
+  worsened `000233` from `6` to `10` and badly reduced IDF1/coverage.
+
+Diagnostics: upper-bound GT-aware simulation shows that manually swapping
+`ID_2/ID_8` at frame `923`, `ID_1/ID_8` at frames `939-940`, and `ID_1/ID_8`
+from frame `1111` onward could make `000233` reach `0` IDSW without changing
+FP/FN. However, those fixes rely on GT/evaluator knowledge: runtime motion gain,
+raw IDs, and hidden-overlap signals are not distinctive enough. Hidden-overlap
+runs similar to the desired `1111-1118` segment also occur earlier (`973-982`,
+`1053-1062`) where swapping is harmful. Avoid hardcoded video/frame repair in
+promotable tracking logic.
