@@ -469,3 +469,29 @@ common candidate for broader validation is:
 Next step: run broader/full regression with this no-suffix common candidate. The
 remaining `000263=2` should be addressed by a new, narrower discriminator rather
 than by current suffix repair.
+
+## 2026-07-07 no-suffix common candidate full regression
+
+Full 12-video validation of the no-suffix common candidate passed:
+`outputs/eval/hybrid_bytetrack/no_suffix_common_candidate_full/iou0_area0_condarea0_merge0`.
+
+Compared with `outputs/eval/hybrid_bytetrack/Best_tracking/iou0_area0_condarea0_merge0`:
+
+- `ALL` remapped IDSW improved `11 -> 2`.
+- No video increased remapped IDSW.
+- `Pigs291119_000233_30fps` improved `9 -> 0`.
+- `Pigs291119_000263_30fps` stayed `2`; this is the remaining target.
+- Guardrail videos stayed clean: `000085=0`, `000225=0`, `000231=0`,
+  `000302=0`, `000328=0`.
+
+Current safest broader candidate:
+
+- protected association/occlusion practical base.
+- `overlap_small_box_suppression=true`.
+- `hidden_suffix_id_swap_repair=true`.
+- `suffix_pair_swap_repair=false`.
+
+Do not promote the previous full stack from `20260707_174142`; it included
+`suffix_pair_swap_repair=true` and caused false switches on `000085` and
+`000225`. Future `000263` work should either build a new narrower discriminator
+or heavily gate suffix repair so it cannot trigger on clean videos.
