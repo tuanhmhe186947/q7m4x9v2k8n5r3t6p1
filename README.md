@@ -1,4 +1,4 @@
-# Pig Behavior Project
+﻿# Pig Behavior Project
 
 AI research code for pig detection, tracking, and behavior recognition from
 video. The maintained runtime code lives under `src/pig_behavior`; notebooks are
@@ -68,27 +68,16 @@ pip install -r requirements-dev.txt
 
 ## Tracking Scripts
 
-Current tracking/evaluation commands are documented in `scripts/README.md`.
-Use `python scripts\track_videos.py ...` as the tracking wrapper; it forwards
-to `python -m pig_behavior.tracking.cli` and supports `--eval-config` presets
-plus `--no-emit-hidden-tracks` for keeping tracker-maintained boxes while
-exporting their `Hidden` attribute as `No` for CVAT relabeling.
+Detailed tracking, evaluation, optimizer, benchmark, and debug commands are kept in `scripts/README.md`.
+Use that file as the source of truth for command order and current opt-in tracking candidates.
 
-For tracking evaluation, use `scripts\evaluate_tracking.py`. By default the
-wrapper runs a direct evaluation config instead of the full 16-combo rule
-matrix. To restrict a benchmark/rule run to one known rule folder, pass
-`--rule-combo`, for example:
+Current command split:
 
-```bash
-python scripts\evaluate_tracking.py ^
-  --eval-config smooth_det020_loose ^
-  -v Pigs291119_000263_30fps ^
-  --rule-combo iou0_area0_condarea0_merge0
-```
+- `scripts\track_videos.py`: tracking-only runs and CVAT prediction/XML export.
+- `scripts\evaluate_tracking.py`: tracking plus GT evaluation metrics.
+- `scripts\optimize_tracking_metrics.py`: automated tracking config search.
 
-Use `--benchmark-rules` or `--benchmark-compatible` only when the full rule
-matrix is intentionally needed.
-
+The current best hard 5-video candidate is still opt-in. It is documented in `scripts/README.md` with the full `--profile-override` stack and has not been promoted into the base/default config yet.
 ## Dashboard
 
 Start the API:

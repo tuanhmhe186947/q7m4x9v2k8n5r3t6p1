@@ -1,4 +1,4 @@
-# Scripts README
+﻿# Scripts README
 
 Chay lenh tu thu muc goc repo:
 
@@ -46,96 +46,208 @@ Khong dao nguoc hai file nay:
 
 ## 3. Tracking Thuong
 
-Chay tracking mot video:
+Moi truong Python dang dung cho tracking/eval hien tai:
 
 ```cmd
-python scripts\track_videos.py -v Pigs291119_000263_30fps --mode hybrid_bytetrack
+C:\Users\ironh\anaconda3\envs\pig_project\python.exe
+```
+
+Chay tracking mot video voi base/preset thuong:
+
+```cmd
+C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\track_videos.py ^
+  -v Pigs291119_000263_30fps ^
+  --mode hybrid_bytetrack ^
+  --eval-config smooth_det020_loose
 ```
 
 Chay tracking tat ca video trong path config:
 
 ```cmd
-python scripts\track_videos.py -a --mode hybrid_bytetrack
+C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\track_videos.py ^
+  -a ^
+  --mode hybrid_bytetrack ^
+  --eval-config smooth_det020_loose
 ```
 
 Chay tracking voi weight cu neu can doi chieu:
 
 ```cmd
-python scripts\track_videos.py -v Pigs291119_000263_30fps --mode hybrid_bytetrack --weights models\detector\pig_detector_yolov8_roboflow.pt
-```
-
-Chay tracking voi preset eval giong `evaluate_tracking.py`:
-
-```cmd
-python scripts\track_videos.py -v Pigs291119_000263_30fps --mode hybrid_bytetrack --eval-config smooth_det020_loose
+C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\track_videos.py ^
+  -v Pigs291119_000263_30fps ^
+  --mode hybrid_bytetrack ^
+  --eval-config smooth_det020_loose ^
+  --weights models\detector\pig_detector_yolov8_roboflow.pt
 ```
 
 Giu bbox tracker noi suy nhung khong tu danh dau `Hidden=Yes` de dua len CVAT label lai:
 
 ```cmd
-python scripts\track_videos.py -v Pigs291119_000263_30fps --mode hybrid_bytetrack --eval-config smooth_det020_loose --no-emit-hidden-tracks
+C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\track_videos.py ^
+  -v Pigs291119_000263_30fps ^
+  --mode hybrid_bytetrack ^
+  --eval-config smooth_det020_loose ^
+  --no-emit-hidden-tracks
+```
+
+Chay tracking-only voi candidate opt-in hien tot nhat tren hard 5-video:
+
+```cmd
+C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\track_videos.py ^
+  -v Pigs291119_000233_30fps ^
+  --mode hybrid_bytetrack ^
+  --eval-config smooth_det020_loose ^
+  --profile-override hidden_owner_guard=true ^
+  --profile-override hidden_owner_guard_hold_assignment=true ^
+  --profile-override reentry_unowned_raw_mismatch_episode_reject=true ^
+  --profile-override reentry_unowned_raw_mismatch_episode_action=hold ^
+  --profile-override reentry_unowned_raw_mismatch_episode_max_events=8 ^
+  --profile-override reentry_unowned_raw_mismatch_episode_min_missed=1 ^
+  --profile-override reentry_unowned_raw_mismatch_episode_max_missed=20 ^
+  --profile-override reentry_unowned_raw_mismatch_episode_max_cost=0.36 ^
+  --profile-override occlusion_reid_prefer_gap_over_bad_match=true ^
+  --profile-override occlusion_reid_bad_match_action=reject ^
+  --profile-override occlusion_reid_bad_match_same_raw_only=false ^
+  --profile-override occlusion_reid_bad_match_raw_mismatch_only=true ^
+  --profile-override occlusion_reid_bad_match_unowned_raw_only=true ^
+  --profile-override occlusion_reid_bad_match_occlusion_hold_only=true ^
+  --profile-override occlusion_reid_bad_match_min_missed=7 ^
+  --profile-override occlusion_reid_bad_match_max_missed=12 ^
+  --profile-override occlusion_reid_bad_match_min_cost=0.55 ^
+  --profile-override occlusion_reid_bad_match_max_cost=0.70 ^
+  --profile-override suffix_pair_swap_repair=true ^
+  --profile-override overlap_small_box_suppression=true ^
+  --profile-override hidden_suffix_id_swap_repair=true
 ```
 
 Ghi nho luong hien tai:
 
 - `track_videos.py` la wrapper batch; script nay goi `python -m pig_behavior.tracking.cli`.
 - `track_videos.py --eval-config <name>` dung chung preset voi `evaluate_tracking.py`, roi truyen sang CLI bang cac `--profile-override KEY=VALUE`.
-- `pig_behavior.tracking.cli` phai co entrypoint `if __name__ == "__main__": raise SystemExit(main())`; neu thieu, `python -m pig_behavior.tracking.cli` chi import module roi thoat 0.
+- `pig_behavior.tracking.cli` phai co entrypoint `if __name__ == "__main__": SystemExit(main())`; neu thieu, `python -m pig_behavior.tracking.cli` chi import module roi thoat 0.
 - `track_videos.py` chu dong them `src` vao `PYTHONPATH` cho subprocess de CLI chay duoc khi project chua duoc editable-install.
 - `--no-emit-hidden-tracks` van xuat bbox tracker noi suy, nhung ghi attribute `Hidden=No` de nguoi label danh lai tren CVAT; no khong tat tracking state noi bo, association, smoothing, hay occlusion logic.
 
-## 4. Evaluate Co Ban
+## 4. Evaluate Tracking
 
-Evaluate mot video:
-
-```cmd
-python scripts\evaluate_tracking.py -v Pigs291119_000263_30fps --mode hybrid_bytetrack
-```
-
-Evaluate tat ca GT video:
+Evaluate mot video voi base/preset thuong:
 
 ```cmd
-python scripts\evaluate_tracking.py -a --mode hybrid_bytetrack
+C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\evaluate_tracking.py ^
+  --eval-config smooth_det020_loose ^
+  -v Pigs291119_000263_30fps ^
+  --rule-combo iou0_area0_condarea0_merge0
 ```
 
-Mac dinh lenh evaluate do dung mot tracking config. Day la lenh dung de bao
-cao chi so khoa hoc cho mot moc tracking cu the.
-
-Neu can chay nhanh nhieu preset config co san, dung `--eval-config`:
+Evaluate tat ca GT video voi base/preset thuong:
 
 ```cmd
-python scripts\evaluate_tracking.py --list-eval-configs
-python scripts\evaluate_tracking.py -a --mode hybrid_bytetrack --eval-config base
-python scripts\evaluate_tracking.py -a --mode hybrid_bytetrack --eval-config smooth_responsive
-python scripts\evaluate_tracking.py -a --mode hybrid_bytetrack --eval-config smooth_conservative
-python scripts\evaluate_tracking.py -a --mode hybrid_bytetrack --eval-config smooth_det020_loose
-python scripts\evaluate_tracking.py -a --mode hybrid_bytetrack --eval-config smooth_responsive_det020
+C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\evaluate_tracking.py ^
+  --eval-config smooth_det020_loose ^
+  -a ^
+  --rule-combo iou0_area0_condarea0_merge0
 ```
 
-Preset `smooth_det020_loose` la ten rut gon de thay cho
-`iou0_area0_condarea0_merge0_smooth_det020_loose_motion`. Alias cu van duoc
-giu lai de khong vo lenh da dung truoc day.
+Evaluate hard 5-video voi candidate opt-in hien tot nhat:
+
+```cmd
+C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\evaluate_tracking.py ^
+  --eval-config smooth_det020_loose ^
+  -v "Pigs291119_000231_30fps,Pigs291119_000233_30fps,Pigs291119_000263_30fps,Pigs301119_000328_30fps,Pigs291119_000302_30fps" ^
+  --rule-combo iou0_area0_condarea0_merge0 ^
+  --output-root outputs\eval\hybrid_bytetrack\codex_hidden_suffix_id_swap_5video_rerun ^
+  --prediction-root outputs\pred\hybrid_bytetrack\codex_hidden_suffix_id_swap_5video_rerun ^
+  --profile-override hidden_owner_guard=true ^
+  --profile-override hidden_owner_guard_hold_assignment=true ^
+  --profile-override reentry_unowned_raw_mismatch_episode_reject=true ^
+  --profile-override reentry_unowned_raw_mismatch_episode_action=hold ^
+  --profile-override reentry_unowned_raw_mismatch_episode_max_events=8 ^
+  --profile-override reentry_unowned_raw_mismatch_episode_min_missed=1 ^
+  --profile-override reentry_unowned_raw_mismatch_episode_max_missed=20 ^
+  --profile-override reentry_unowned_raw_mismatch_episode_max_cost=0.36 ^
+  --profile-override occlusion_reid_prefer_gap_over_bad_match=true ^
+  --profile-override occlusion_reid_bad_match_action=reject ^
+  --profile-override occlusion_reid_bad_match_same_raw_only=false ^
+  --profile-override occlusion_reid_bad_match_raw_mismatch_only=true ^
+  --profile-override occlusion_reid_bad_match_unowned_raw_only=true ^
+  --profile-override occlusion_reid_bad_match_occlusion_hold_only=true ^
+  --profile-override occlusion_reid_bad_match_min_missed=7 ^
+  --profile-override occlusion_reid_bad_match_max_missed=12 ^
+  --profile-override occlusion_reid_bad_match_min_cost=0.55 ^
+  --profile-override occlusion_reid_bad_match_max_cost=0.70 ^
+  --profile-override suffix_pair_swap_repair=true ^
+  --profile-override overlap_small_box_suppression=true ^
+  --profile-override hidden_suffix_id_swap_repair=true
+```
+
+Probe rieng `Pigs291119_000233_30fps` voi cung candidate opt-in:
+
+```cmd
+C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\evaluate_tracking.py ^
+  --eval-config smooth_det020_loose ^
+  -v Pigs291119_000233_30fps ^
+  --rule-combo iou0_area0_condarea0_merge0 ^
+  --output-root outputs\eval\hybrid_bytetrack\codex_probe_233_hidden_suffix_id_swap_rerun ^
+  --prediction-root outputs\pred\hybrid_bytetrack\codex_probe_233_hidden_suffix_id_swap_rerun ^
+  --profile-override hidden_owner_guard=true ^
+  --profile-override hidden_owner_guard_hold_assignment=true ^
+  --profile-override reentry_unowned_raw_mismatch_episode_reject=true ^
+  --profile-override reentry_unowned_raw_mismatch_episode_action=hold ^
+  --profile-override reentry_unowned_raw_mismatch_episode_max_events=8 ^
+  --profile-override reentry_unowned_raw_mismatch_episode_min_missed=1 ^
+  --profile-override reentry_unowned_raw_mismatch_episode_max_missed=20 ^
+  --profile-override reentry_unowned_raw_mismatch_episode_max_cost=0.36 ^
+  --profile-override occlusion_reid_prefer_gap_over_bad_match=true ^
+  --profile-override occlusion_reid_bad_match_action=reject ^
+  --profile-override occlusion_reid_bad_match_same_raw_only=false ^
+  --profile-override occlusion_reid_bad_match_raw_mismatch_only=true ^
+  --profile-override occlusion_reid_bad_match_unowned_raw_only=true ^
+  --profile-override occlusion_reid_bad_match_occlusion_hold_only=true ^
+  --profile-override occlusion_reid_bad_match_min_missed=7 ^
+  --profile-override occlusion_reid_bad_match_max_missed=12 ^
+  --profile-override occlusion_reid_bad_match_min_cost=0.55 ^
+  --profile-override occlusion_reid_bad_match_max_cost=0.70 ^
+  --profile-override suffix_pair_swap_repair=true ^
+  --profile-override overlap_small_box_suppression=true ^
+  --profile-override hidden_suffix_id_swap_repair=true
+```
+
+`--output-root` va `--prediction-root` chi doi thu muc ghi ket qua; chung khong doi logic tracking hay chi so neu config/code/video/weight giong nhau. Phan lam thay doi ket qua la cac dong `--profile-override`.
+
+Mac dinh `evaluate_tracking.py` do dung mot tracking config. Day la lenh dung de bao cao chi so khoa hoc cho mot moc tracking cu the. Neu can xem preset config co san:
+
+```cmd
+C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\evaluate_tracking.py --list-eval-configs
+```
+
+Preset `smooth_det020_loose` la ten rut gon de thay cho `iou0_area0_condarea0_merge0_smooth_det020_loose_motion`. Alias cu van duoc giu lai de khong vo lenh da dung truoc day.
 
 Neu can tai lap benchmark-compatible matrix cu, bat ro:
 
 ```cmd
-python scripts\evaluate_tracking.py -a --mode hybrid_bytetrack 
+C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\evaluate_tracking.py ^
+  -a ^
+  --mode hybrid_bytetrack ^
+  --benchmark-compatible
 ```
-
-Optimizer moi la noi chay nhieu cau hinh de tim cau hinh tot nhat.
 
 Evaluate tat ca GT video va tat smooth:
 
 ```cmd
-python scripts\evaluate_tracking.py -a --mode hybrid_bytetrack --no-smooth
+C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\evaluate_tracking.py ^
+  -a ^
+  --mode hybrid_bytetrack ^
+  --no-smooth
 ```
 
 Evaluate mot video va tat smooth:
 
 ```cmd
-python scripts\evaluate_tracking.py -v Pigs291119_000263_30fps --mode hybrid_bytetrack --no-smooth
+C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\evaluate_tracking.py ^
+  -v Pigs291119_000263_30fps ^
+  --mode hybrid_bytetrack ^
+  --no-smooth
 ```
-
 ## 5. Tracking Optimizer
 
 Nguyen tac hien tai:
@@ -158,7 +270,7 @@ Mac dinh optimizer:
 - Test ca `nosmooth` va `smooth`.
 - Xem `smooth` la baseline chat luong hien tai; `nosmooth` chi la nhanh doi chieu.
 - Neu khong truyen `--target-video`, script tu dong lay cac video yeu nhat tu baseline:
-  `outputs\eval\hybrid_bytetrack\Tracking mới tắt smooth\yolov8\iou0_area0_condarea0_merge0\tracking_metrics.csv`.
+  `outputs\eval\hybrid_bytetrack\Tracking má»›i táº¯t smooth\yolov8\iou0_area0_condarea0_merge0\tracking_metrics.csv`.
 - Ghi output vao `outputs\eval\hybrid_bytetrack\<run-name>\optimizer`.
 - Co resume mac dinh, neu cung `--run-name` thi bo qua candidate da co `tracking_metrics.csv`.
 
