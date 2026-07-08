@@ -6,10 +6,18 @@ import argparse
 import sys
 from pathlib import Path
 
-SRC_ROOT = Path(__file__).resolve().parents[2]
+SRC_ROOT = Path(__file__).resolve().parents[3]
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
+from pig_behavior.evaluation.tracking.api import (  # noqa: E402
+    DETECTOR_WEIGHTS_V8,
+    DETECTOR_WEIGHTS_V26,
+    EVAL_OUTPUT_ROOT,
+    PREDICTION_ROOT,
+    TRACKING_GT_DIR,
+    VIDEO_DIR,
+)
 from pig_behavior.evaluation.tracking.benchmarking import (  # noqa: E402
     run_tracking_detector_benchmark,
     run_tracking_rule_benchmark,
@@ -19,14 +27,6 @@ from pig_behavior.evaluation.tracking.config import (  # noqa: E402
 )
 from pig_behavior.evaluation.tracking.pipeline import (  # noqa: E402
     run_pipeline,
-)
-from pig_behavior.evaluation.tracking_metrics import (  # noqa: E402
-    DETECTOR_WEIGHTS_V8,
-    DETECTOR_WEIGHTS_V26,
-    EVAL_OUTPUT_ROOT,
-    PREDICTION_ROOT,
-    TRACKING_GT_DIR,
-    VIDEO_DIR,
 )
 from pig_behavior.tracking_path_config import (  # noqa: E402
     DEFAULT_TRACKING_PATH_CONFIG,
@@ -139,7 +139,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default=True,
         help=(
             "Run all 16 tracking rule flag combinations. This is the default when "
-            "executing tracking_pipeline.py directly. Use --no-benchmark-rules "
+            "executing the tracking CLI directly. Use --no-benchmark-rules "
             "for a single evaluation run with the explicit flags above."
         ),
     )

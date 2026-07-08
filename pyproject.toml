@@ -28,7 +28,7 @@ pig-behavior = "pig_behavior.cli:main"
 pig-behavior-api = "pig_behavior.api:run"
 pig-build-classification-data = "pig_behavior.data_preparation.classification_dataset:main"
 pig-track-for-annotation = "pig_behavior.tracking.cli:main"
-pig-tracking-eval = "pig_behavior.evaluation.tracking_pipeline:main"
+pig-tracking-eval = "pig_behavior.evaluation.tracking.cli:main"
 
 [project.optional-dependencies]
 dev = [
@@ -64,9 +64,6 @@ where = ["src"]
 line-length = 120
 target-version = "py310"
 src = ["src"]
-exclude = [
-    "scripts/connect_gdrive.py",
-]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]

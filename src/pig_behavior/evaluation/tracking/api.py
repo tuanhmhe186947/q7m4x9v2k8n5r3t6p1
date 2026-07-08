@@ -9,7 +9,7 @@ matched to videos in ``data/videos`` by video stem, for example:
 
 from __future__ import annotations
 
-from .tracking.assets import (
+from .assets import (
     DATA_DIR,
     DETECTOR_WEIGHTS,
     DETECTOR_WEIGHTS_V8,
@@ -27,13 +27,13 @@ from .tracking.assets import (
     resolve_mask_path,
     video_metadata,
 )
-from .tracking.cvat_io import (
+from .cvat_io import (
     TrackingObject,
     parse_cvat_video_xml,
     read_cvat_task_size,
     read_task_name,
 )
-from .tracking.diagnostics import (
+from .diagnostics import (
     continuity_gaps_for_pair,
     continuity_gaps_to_dataframe,
     identity_events_for_pair,
@@ -41,7 +41,7 @@ from .tracking.diagnostics import (
     identity_mapping_for_pair,
     identity_mapping_to_dataframe,
 )
-from .tracking.evaluator import (
+from .evaluator import (
     evaluate_dataset,
     evaluate_pair,
     evaluate_tracking,
@@ -49,8 +49,8 @@ from .tracking.evaluator import (
     pairs_to_dataframe,
     run_tracker_for_pair,
 )
-from .tracking.matching import iou_xyxy, match_frame
-from .tracking.metrics import (
+from .matching import iou_xyxy, match_frame
+from .metrics import (
     TrackingMetrics,
     aggregate_metrics,
     compute_association_accuracy,

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import numpy as np
 
-from pig_behavior.evaluation.tracking_metrics import (
+from pig_behavior.evaluation.tracking.api import (
     TrackingObject,
     TrackingPair,
     continuity_gaps_for_pair,

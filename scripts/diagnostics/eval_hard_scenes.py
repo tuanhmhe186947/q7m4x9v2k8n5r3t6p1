@@ -2,12 +2,13 @@
 """Script to run hard-scene identity evaluation and configuration comparisons on one or more videos."""
 
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 # Add src/ to path so we can load configurations
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from pig_behavior.tracking_path_config import (  # noqa: E402
@@ -120,7 +121,11 @@ def main():
     # Resolve GT directory
     gt_dir = profile_path(profile, "gt_dir", PROJECT_ROOT / "data" / "annotations" / "tracking")
     video_dir = profile_path(profile, "video_dir", PROJECT_ROOT / "data" / "videos")
-    prediction_root = profile_path(profile, "prediction_root") or profile_path(profile, "output_dir", PROJECT_ROOT / "outputs" / "id_tracking")
+    prediction_root = profile_path(profile, "prediction_root") or profile_path(
+        profile,
+        "output_dir",
+        PROJECT_ROOT / "outputs" / "id_tracking",
+    )
     
     for idx, video_path in enumerate(video_paths, 1):
         print("\n==================================================")
@@ -131,7 +136,7 @@ def main():
         if args.compare:
             cmd = [
                 sys.executable,
-                "-m", "pig_behavior.evaluation.tracking_hard_scene_evaluator",
+                "-m", "pig_behavior.evaluation.tracking.hard_scene",
                 "--compare",
                 "--video", video_path.stem,
                 "--gt-dir", str(gt_dir),
@@ -145,7 +150,7 @@ def main():
         else:
             cmd = [
                 sys.executable,
-                "-m", "pig_behavior.evaluation.tracking_hard_scene_evaluator",
+                "-m", "pig_behavior.evaluation.tracking.hard_scene",
                 "--video", video_path.stem,
                 "--gt-dir", str(gt_dir),
                 "--video-dir", str(video_dir),
@@ -157,7 +162,14 @@ def main():
         cmd.extend(extra_eval_args)
         
         print(f"Command: {' '.join(cmd)}")
-        result = subprocess.run(cmd)
+        env = os.environ.copy()
+        src_path = str(PROJECT_ROOT / "src")
+        env["PYTHONPATH"] = (
+            f"{src_path}{os.pathsep}{env['PYTHONPATH']}"
+            if env.get("PYTHONPATH")
+            else src_path
+        )
+        result = subprocess.run(cmd, env=env)
         if result.returncode != 0:
             print(
                 f"Error: Hard-scene eval failed for {video_path.name} with exit code {result.returncode}",

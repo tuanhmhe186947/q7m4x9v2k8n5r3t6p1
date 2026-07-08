@@ -15,126 +15,17 @@ if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
 from pig_behavior.evaluation.tracking.pipeline import find_gt_xml_for_video  # noqa: E402
+from pig_behavior.tracking import profiles as tracking_profiles  # noqa: E402
 from pig_behavior.tracking_path_config import (  # noqa: E402
     load_tracking_path_profile,
     profile_video_path,
     profile_video_paths,
 )
 
-BASE_EVAL_CONFIG: dict[str, object] = {
-    "USE_IOU_FALLBACK": False,
-    "USE_AREA_OCCLUSION_FREEZE": False,
-    "USE_CONDITIONAL_AREA_OCCLUSION_FREEZE": False,
-    "USE_MERGED_BOX_SPLIT": False,
-    "enable_offline_smoothing": True,
-    "identity_swap_guard": True,
-    "smooth_boxes": True,
-    "refine_boxes": True,
-}
-
-REALTIME_EVAL_CONFIG: dict[str, object] = {
-    "USE_IOU_FALLBACK": False,
-    "USE_AREA_OCCLUSION_FREEZE": False,
-    "USE_CONDITIONAL_AREA_OCCLUSION_FREEZE": False,
-    "USE_MERGED_BOX_SPLIT": False,
-    "enable_offline_smoothing": False,
-    "identity_swap_guard": False,
-    "smooth_boxes": False,
-    "refine_boxes": False,
-}
-
-RULE_BENCHMARK_OVERRIDE_KEYS = {
-    "USE_IOU_FALLBACK",
-    "USE_AREA_OCCLUSION_FREEZE",
-    "USE_CONDITIONAL_AREA_OCCLUSION_FREEZE",
-    "USE_MERGED_BOX_SPLIT",
-}
-
-EVAL_CONFIG_OVERRIDES: dict[str, dict[str, object]] = {
-    "base": dict(BASE_EVAL_CONFIG),
-    "smooth_conservative": {
-        **BASE_EVAL_CONFIG,
-        "high_conf_smooth_alpha": 0.85,
-        "mid_conf_smooth_alpha": 0.65,
-        "low_conf_smooth_alpha": 0.45,
-    },
-    "smooth_responsive": {
-        **BASE_EVAL_CONFIG,
-        "high_conf_smooth_alpha": 0.65,
-        "mid_conf_smooth_alpha": 0.45,
-        "low_conf_smooth_alpha": 0.25,
-    },
-    "smooth_det020_loose": {
-        **BASE_EVAL_CONFIG,
-        "det_conf": 0.20,
-        "low_conf_max_center_jump": 0.10,
-        "low_conf_max_box_jump_scale": 2.00,
-        "max_raw_detections": 64,
-    },
-    "realtime_fast": {
-        **REALTIME_EVAL_CONFIG,
-        "det_conf": 0.25,
-        "detect_every_n_frames": 2,
-        "max_raw_detections": 32,
-        "occlusion_aware_matching": False,
-    },
-    "realtime_balanced": {
-        **REALTIME_EVAL_CONFIG,
-        "det_conf": 0.20,
-        "low_conf_max_center_jump": 0.10,
-        "low_conf_max_box_jump_scale": 2.00,
-        "max_raw_detections": 64,
-        "occlusion_aware_matching": False,
-        "realtime_visible_close_competitor_guard": True,
-        "realtime_visible_better_competitor_reject": True,
-        "realtime_visible_better_competitor_prefer": True,
-        "realtime_low_conf_recovery_guard": True,
-    },
-    "realtime_quality_delayed": {
-        **REALTIME_EVAL_CONFIG,
-        "det_conf": 0.20,
-        "low_conf_max_center_jump": 0.10,
-        "low_conf_max_box_jump_scale": 2.00,
-        "max_raw_detections": 64,
-        "occlusion_aware_matching": False,
-        "realtime_visible_close_competitor_guard": True,
-        "realtime_visible_better_competitor_reject": True,
-        "realtime_visible_better_competitor_prefer": True,
-        "realtime_low_conf_recovery_guard": True,
-        "local_pair_swap_repair": True,
-        "local_pair_swap_window_frames": 12,
-        "local_pair_swap_max_gap_frames": 3,
-        "local_pair_swap_min_overlap_iou": 0.15,
-        "local_pair_swap_min_motion_gain": 0.04,
-        "realtime_motion_pair_stabilizer": True,
-        "realtime_motion_pair_max_jump": 0.10,
-        "realtime_motion_pair_min_gain": 0.01,
-        "realtime_motion_pair_memory_frames": 30,
-        "realtime_motion_pair_max_component_size": 4,
-        "realtime_motion_pair_max_component_edges": 3,
-        "realtime_motion_pair_dense_fallback_max_edges": 2,
-        "realtime_motion_pair_dense_fallback_max_support_ratio": 0.35,
-        "realtime_motion_pair_dense_fallback_min_median_gain": 0.05,
-        "realtime_motion_pair_dense_fallback_min_edge_gain": 0.04,
-        "realtime_motion_pair_simple_min_gain": 0.005,
-        "realtime_motion_pair_simple_max_component_size": 2,
-    },
-    "smooth_responsive_det020": {
-        **BASE_EVAL_CONFIG,
-        "high_conf_smooth_alpha": 0.65,
-        "mid_conf_smooth_alpha": 0.45,
-        "low_conf_smooth_alpha": 0.25,
-        "det_conf": 0.20,
-    },
-    # Backward-compatible alias for older long-form command lines.
-    "iou0_area0_condarea0_merge0_smooth_det020_loose_motion": {
-        **BASE_EVAL_CONFIG,
-        "det_conf": 0.20,
-        "low_conf_max_center_jump": 0.10,
-        "low_conf_max_box_jump_scale": 2.00,
-        "max_raw_detections": 64,
-    },
-}
+BASE_EVAL_CONFIG = tracking_profiles.BASE_EVAL_CONFIG
+REALTIME_EVAL_CONFIG = tracking_profiles.REALTIME_EVAL_CONFIG
+RULE_BENCHMARK_OVERRIDE_KEYS = tracking_profiles.RULE_BENCHMARK_OVERRIDE_KEYS
+EVAL_CONFIG_OVERRIDES = tracking_profiles.EVAL_CONFIG_OVERRIDES
 
 
 def parse_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, list[str]]:
@@ -155,7 +46,7 @@ Examples:
     parser.add_argument("--path-config", type=str, default=None, help="Custom tracking_paths.json path.")
     parser.add_argument(
         "--mode",
-        choices=["realtime", "bytetrack_raw", "hybrid_bytetrack", "gt_export"],
+        choices=["realtime", "bytetrack_raw", "hybrid_bytetrack"],
         default="hybrid_bytetrack",
     )
     parser.add_argument("--skip-missing-gt", action="store_true")
@@ -295,9 +186,7 @@ def _list_eval_configs() -> None:
 
 
 def _format_profile_override_value(value: object) -> str:
-    if isinstance(value, bool):
-        return str(value).lower()
-    return str(value)
+    return tracking_profiles.format_profile_override_value(value)
 
 
 def main() -> int:
@@ -343,13 +232,21 @@ def main() -> int:
         )
         return 1
 
-    script_path = PROJECT_ROOT / "src" / "pig_behavior" / "evaluation" / "tracking_pipeline.py"
+    script_path = (
+        PROJECT_ROOT
+        / "src"
+        / "pig_behavior"
+        / "evaluation"
+        / "tracking"
+        / "cli.py"
+    )
     run_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     default_prediction_root = PROJECT_ROOT / "outputs" / "pred" / args.mode / run_timestamp
     default_output_root = PROJECT_ROOT / "outputs" / "eval" / args.mode / run_timestamp
     has_prediction_root = "--prediction-root" in pipeline_extra_args
     has_output_root = "--output-root" in pipeline_extra_args
     has_force_track_arg = "--force-track" in pipeline_extra_args
+    has_no_run_missing_tracker_arg = "--no-run-missing-tracker" in pipeline_extra_args
     has_benchmark_arg = any(arg in {"--benchmark-rules", "--no-benchmark-rules"} for arg in pipeline_extra_args)
     has_benchmark_detectors_arg = "--benchmark-detectors" in pipeline_extra_args
     has_smoothing_arg = any(
@@ -382,7 +279,7 @@ def main() -> int:
         cmd.extend(["--profile", args.profile])
     if args.path_config:
         cmd.extend(["--path-config", args.path_config])
-    if not has_force_track_arg:
+    if not has_force_track_arg and not has_no_run_missing_tracker_arg:
         cmd.append("--force-track")
     enable_benchmark_rules = args.benchmark_compatible or args.benchmark_rules
     enable_benchmark_detectors = (
@@ -396,7 +293,7 @@ def main() -> int:
         cmd.append("--benchmark-detectors")
     for combo_name in selected_rule_combos:
         cmd.extend(["--rule-combo", combo_name])
-    if args.mode in {"hybrid_bytetrack", "gt_export"} and args.smooth and not has_smoothing_arg:
+    if args.mode == "hybrid_bytetrack" and args.smooth and not has_smoothing_arg:
         cmd.extend(
             [
                 "--enable-offline-smoothing",

@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from pig_behavior.evaluation.tracking_hard_scene_evaluator import (
+from pig_behavior.evaluation.tracking.hard_scene import (
     HardSceneEvalConfig,
     build_canonical_mapping,
     compute_frame_scores,
@@ -374,7 +374,7 @@ def test_compare_creates_comparison_csv(tmp_path: Path) -> None:
     _write_cvat_xml(pred_a, pred_a_tracks)
     _write_cvat_xml(pred_b, pred_b_tracks)
 
-    from pig_behavior.evaluation.tracking_hard_scene_evaluator import (
+    from pig_behavior.evaluation.tracking.hard_scene import (
         main_compare,
     )
 
@@ -425,7 +425,7 @@ def test_main_auto_mapping_single_video(tmp_path: Path) -> None:
     pred_dir.mkdir(parents=True)
     _write_cvat_xml(pred_dir / "pig_video_1_annotations_cvat_video_1_1.xml", gt_tracks)
     
-    from pig_behavior.evaluation.tracking_hard_scene_evaluator import main
+    from pig_behavior.evaluation.tracking.hard_scene import main
     output_dir = tmp_path / "out"
     main([
         "--video", "pig_video_1",
@@ -453,7 +453,7 @@ def test_main_missing_xml_errors(tmp_path: Path) -> None:
     gt_tracks = {1: {f: [0, 0, 20, 20] for f in range(5)}}
     _write_cvat_xml(gt_dir / "pig_video_1.xml", gt_tracks)
     
-    from pig_behavior.evaluation.tracking_hard_scene_evaluator import main
+    from pig_behavior.evaluation.tracking.hard_scene import main
     output_dir = tmp_path / "out"
     
     with pytest.raises(FileNotFoundError):
@@ -487,7 +487,7 @@ def test_main_multiple_videos(tmp_path: Path) -> None:
         pred_dir.mkdir(parents=True)
         _write_cvat_xml(pred_dir / f"{stem}_annotations_cvat_video_1_1.xml", gt_tracks)
         
-    from pig_behavior.evaluation.tracking_hard_scene_evaluator import main
+    from pig_behavior.evaluation.tracking.hard_scene import main
     output_dir = tmp_path / "out"
     main([
         "--gt-dir", str(gt_dir),
@@ -529,7 +529,7 @@ def test_main_compare_auto_mapping(tmp_path: Path) -> None:
         xml_name = "pig_video_1_annotations_cvat_video_1_1.xml"
         _write_cvat_xml(pred_dir / xml_name, gt_tracks)
         
-    from pig_behavior.evaluation.tracking_hard_scene_evaluator import main_compare
+    from pig_behavior.evaluation.tracking.hard_scene import main_compare
     output_dir = tmp_path / "compare_out"
     
     # Test Auto-discover of latest run (run_2)

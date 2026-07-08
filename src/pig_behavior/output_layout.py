@@ -9,7 +9,6 @@ TRACKING_MODES = frozenset(
         "realtime",
         "bytetrack_raw",
         "hybrid_bytetrack",
-        "gt_export",
     }
 )
 
@@ -45,8 +44,6 @@ def prediction_xml_candidates(
     mode_candidates: list[str] = []
     if preferred_mode:
         mode_candidates.append(preferred_mode)
-        if preferred_mode == "gt_export":
-            mode_candidates.append("hybrid_bytetrack")
 
     unique_modes = [mode for mode in dict.fromkeys(mode_candidates) if mode]
     candidates: list[Path] = []

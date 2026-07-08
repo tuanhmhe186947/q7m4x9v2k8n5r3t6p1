@@ -14,22 +14,15 @@ SRC_ROOT = PROJECT_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
+from pig_behavior.tracking.profiles import (  # noqa: E402
+    EVAL_CONFIG_OVERRIDES,
+    format_profile_override_value,
+)
 from pig_behavior.tracking_path_config import (  # noqa: E402
     load_tracking_path_profile,
     profile_video_path,
     profile_video_paths,
 )
-
-try:  # noqa: E402
-    from scripts.evaluate_tracking import (
-        EVAL_CONFIG_OVERRIDES,
-        _format_profile_override_value,
-    )
-except ModuleNotFoundError:  # pragma: no cover - direct script execution
-    from evaluate_tracking import (
-        EVAL_CONFIG_OVERRIDES,
-        _format_profile_override_value,
-    )
 
 
 def parse_args() -> tuple[argparse.Namespace, list[str]]:
@@ -117,7 +110,7 @@ def main() -> int:
                 cmd.extend(
                     [
                         "--profile-override",
-                        f"{key}={_format_profile_override_value(value)}",
+                        f"{key}={format_profile_override_value(value)}",
                     ]
                 )
         if args.path_config:

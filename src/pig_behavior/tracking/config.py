@@ -45,7 +45,6 @@ TRACKING_MODE_CHOICES = (
     "realtime",
     "bytetrack_raw",
     "hybrid_bytetrack",
-    "gt_export",
 )
 CANONICAL_TRACKING_MODES = {"realtime", "bytetrack_raw", "hybrid_bytetrack"}
 
@@ -86,7 +85,7 @@ class TrackingConfig:
     allowed_class_name: str | None = None
 
     # Pipeline Mode & Realtime parameters
-    mode: str = "realtime"  # realtime, bytetrack_raw, hybrid_bytetrack, or gt_export
+    mode: str = "realtime"  # realtime, bytetrack_raw, or hybrid_bytetrack
     imgsz: int = 640
     detect_every_n_frames: int = DEFAULT_DETECT_EVERY_N_FRAMES
     max_raw_detections: int = DEFAULT_MAX_RAW_DETECTIONS
@@ -315,7 +314,7 @@ class TrackingConfig:
     mid_conf_smooth_alpha: float = 0.55
     low_conf_smooth_alpha: float = 0.35
 
-    # Interpolation parameters (GT export only)
+    # Interpolation/export parameters
     max_interpolation_gap: int = DEFAULT_MAX_INTERPOLATION_GAP
     mark_interpolated_review: bool = DEFAULT_MARK_INTERPOLATED_REVIEW
 
@@ -352,19 +351,10 @@ def validate_config(cfg: TrackingConfig) -> None:
 
     if cfg.mode not in TRACKING_MODE_CHOICES:
         raise ValueError(
-            "mode must be one of: realtime, bytetrack_raw, hybrid_bytetrack, "
-            "gt_export."
+            "mode must be one of: realtime, bytetrack_raw, hybrid_bytetrack."
         )
     if cfg.occlusion_reid_bad_match_action not in {"hold", "reject"}:
         raise ValueError("occlusion_reid_bad_match_action must be 'hold' or 'reject'.")
-
-    requested_mode = cfg.mode
-    if requested_mode == "gt_export":
-        logger.warning(
-            "[DEPRECATED] mode=gt_export is not a tracking algorithm. "
-            "Use --mode hybrid_bytetrack --cvat-video-xml output.xml instead."
-        )
-        cfg.mode = "hybrid_bytetrack"
 
     # 2. Mode-based dynamic defaults overrides
     if cfg.mode == "bytetrack_raw":
@@ -411,14 +401,6 @@ def validate_config(cfg: TrackingConfig) -> None:
         if "max_missing_frames" not in cfg.overrides:
             cfg.max_missing_frames = 90
             cfg.max_lost_frames = 90
-        if requested_mode == "gt_export":
-            if "det_conf" not in cfg.overrides and cfg.det_conf == 0.25:
-                cfg.det_conf = 0.15
-            if "max_raw_detections" not in cfg.overrides and cfg.max_raw_detections == 20:
-                cfg.max_raw_detections = 30
-            if "max_missing_frames" not in cfg.overrides and cfg.max_missing_frames == 90:
-                cfg.max_missing_frames = 60
-                cfg.max_lost_frames = 60
     else:
         # In realtime mode, explicitly turn off offline smoothing / post-processing
         if "enable_offline_smoothing" not in cfg.overrides:

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from pig_behavior.evaluation.tracking_pipeline import (
+from pig_behavior.evaluation.tracking.cli import (
     parse_profile_overrides,
     selected_rule_combos,
 )

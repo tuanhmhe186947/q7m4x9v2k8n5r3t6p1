@@ -432,7 +432,7 @@ def parse_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, list[
         "--tracking-mode",
         "--mode",
         dest="tracking_mode",
-        choices=["realtime", "bytetrack_raw", "hybrid_bytetrack", "gt_export"],
+        choices=["realtime", "bytetrack_raw", "hybrid_bytetrack"],
         default="hybrid_bytetrack",
         help="Tracking mode for generated predictions.",
     )
@@ -1170,10 +1170,10 @@ def main(argv: list[str] | None = None) -> int:
         print_plan(rules, smooth_modes, presets)
         return 0
 
-    from pig_behavior.evaluation.tracking_pipeline import (  # noqa: PLC0415
+    from pig_behavior.evaluation.tracking.cli import (  # noqa: PLC0415
         config_from_args,
     )
-    from pig_behavior.evaluation.tracking_pipeline import (
+    from pig_behavior.evaluation.tracking.cli import (
         parse_args as parse_pipeline_args,
     )
 

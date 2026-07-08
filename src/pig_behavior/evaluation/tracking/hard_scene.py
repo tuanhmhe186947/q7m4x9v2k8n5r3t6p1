@@ -1,4 +1,4 @@
-"""Hard-Scene Identity Evaluator for pig tracking.
+"""Hard-scene identity evaluator for pig tracking.
 
 Standalone evaluator that diagnoses identity errors in hard/occluded scenes.
 Produces per-frame CSV, swap event CSV, hard frame summary CSV, summary

@@ -12,7 +12,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 TRACKING_SCRIPT = PROJECT_ROOT / "scripts" / "track_videos.py"
 DEFAULT_MODES = ("realtime", "bytetrack_raw", "hybrid_bytetrack")
 
