@@ -42,6 +42,7 @@ from pig_behavior.tracking.refinement import (
     repair_suffix_pair_swaps,
     shape_hidden_value,
     stabilize_overlap_hidden_islands,
+    stabilize_realtime_motion_pairs,
     suppress_overlapped_small_low_confidence_boxes,
 )
 from pig_behavior.tracking.schemas import (
@@ -318,12 +319,13 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
     if cfg.enable_offline_smoothing and (cfg.smooth_boxes or cfg.refine_boxes):
         shapes = refine_shapes_temporally(shapes, width, height, cfg)
         shapes = stabilize_overlap_hidden_islands(shapes, cfg)
-    shapes = repair_local_pair_swaps(shapes, width, height, cfg)
-    shapes = repair_episode_pair_swaps(shapes, width, height, cfg)
-    shapes = repair_long_pair_swaps(shapes, width, height, cfg)
-    shapes = repair_suffix_pair_swaps(shapes, width, height, cfg)
-    shapes = suppress_overlapped_small_low_confidence_boxes(shapes, cfg)
-    shapes = repair_hidden_suffix_id_swaps(shapes, cfg)
+        shapes = repair_local_pair_swaps(shapes, width, height, cfg)
+        shapes = repair_episode_pair_swaps(shapes, width, height, cfg)
+        shapes = repair_long_pair_swaps(shapes, width, height, cfg)
+        shapes = repair_suffix_pair_swaps(shapes, width, height, cfg)
+        shapes = suppress_overlapped_small_low_confidence_boxes(shapes, cfg)
+        shapes = repair_hidden_suffix_id_swaps(shapes, cfg)
+    shapes = stabilize_realtime_motion_pairs(shapes, width, height, cfg)
     hidden_shape_count = sum(
         1 for shape in shapes if shape_hidden_value(shape) == "Yes"
     )

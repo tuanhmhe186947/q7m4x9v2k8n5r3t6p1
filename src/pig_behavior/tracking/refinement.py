@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from copy import deepcopy
 from typing import Any
 
 import numpy as np
@@ -829,6 +830,181 @@ def repair_local_pair_swaps(
     if repaired:
         logger.debug("local pair swap repair adjusted %d frame-pairs", repaired)
     return shapes
+
+
+def shape_id_value(shape: dict[str, Any]) -> str | None:
+    value = _shape_attributes_dict(shape).get("ID")
+    return str(value) if value else None
+
+
+def realtime_motion_pair_candidates(
+    shapes: list[dict[str, Any]],
+    width: int,
+    height: int,
+    cfg: TrackingConfig,
+    *,
+    allowed_edges: set[tuple[str, str]] | None = None,
+) -> tuple[list[dict[str, Any]], list[tuple[str, str]]]:
+    stabilized = [deepcopy(shape) for shape in shapes]
+    by_frame: dict[int, list[dict[str, Any]]] = {}
+    for shape in stabilized:
+        if shape_is_visible_for_local_swap(shape):
+            by_frame.setdefault(int(shape["frame"]), []).append(shape)
+
+    previous_center_by_id: dict[str, tuple[float, float]] = {}
+    previous_frame_by_id: dict[str, int] = {}
+    changed_edges: list[tuple[str, str]] = []
+
+    for frame in sorted(by_frame):
+        frame_shapes = by_frame[frame]
+        active_previous = {
+            id_value: center
+            for id_value, center in previous_center_by_id.items()
+            if frame - previous_frame_by_id.get(id_value, frame)
+            <= cfg.realtime_motion_pair_memory_frames
+        }
+        if not active_previous:
+            for shape in frame_shapes:
+                id_value = shape_id_value(shape)
+                if id_value is None:
+                    continue
+                previous_center_by_id[id_value] = shape_center_xy(shape)
+                previous_frame_by_id[id_value] = frame
+            continue
+
+        candidates: list[tuple[float, str, int]] = []
+        for index, shape in enumerate(frame_shapes):
+            current_center = shape_center_xy(shape)
+            for id_value, previous_center in active_previous.items():
+                distance = normalized_center_distance(
+                    current_center,
+                    previous_center,
+                    width,
+                    height,
+                )
+                if distance <= cfg.realtime_motion_pair_max_jump:
+                    candidates.append((distance, id_value, index))
+        candidates.sort()
+
+        used_ids: set[str] = set()
+        used_indexes: set[int] = set()
+        assigned: dict[int, str] = {}
+        for _cost, id_value, index in candidates:
+            if id_value in used_ids or index in used_indexes:
+                continue
+            used_ids.add(id_value)
+            used_indexes.add(index)
+            assigned[index] = id_value
+
+        for index, proposed_id in assigned.items():
+            shape = frame_shapes[index]
+            current_id = shape_id_value(shape)
+            if current_id is None or current_id == proposed_id:
+                continue
+            current_center = shape_center_xy(shape)
+            if current_id in active_previous:
+                keep_cost = normalized_center_distance(
+                    current_center,
+                    active_previous[current_id],
+                    width,
+                    height,
+                )
+            else:
+                keep_cost = (
+                    cfg.realtime_motion_pair_max_jump
+                    + cfg.realtime_motion_pair_min_gain
+                )
+            proposed_cost = normalized_center_distance(
+                current_center,
+                active_previous[proposed_id],
+                width,
+                height,
+            )
+            if keep_cost - proposed_cost < cfg.realtime_motion_pair_min_gain:
+                continue
+            edge = tuple(sorted((current_id, proposed_id)))
+            if allowed_edges is not None and edge not in allowed_edges:
+                continue
+            _set_shape_id_value(shape, proposed_id)
+            shape["_realtime_motion_pair_stabilizer"] = True
+            shape["_needs_review"] = True
+            changed_edges.append(edge)
+
+        for shape in frame_shapes:
+            id_value = shape_id_value(shape)
+            if id_value is None:
+                continue
+            previous_center_by_id[id_value] = shape_center_xy(shape)
+            previous_frame_by_id[id_value] = frame
+
+    return stabilized, changed_edges
+
+
+def motion_pair_allowed_edges(
+    edges: list[tuple[str, str]],
+    cfg: TrackingConfig,
+) -> set[tuple[str, str]]:
+    if cfg.realtime_motion_pair_max_component_size <= 0:
+        return set(edges)
+
+    neighbors: dict[str, set[str]] = {}
+    for first_id, second_id in edges:
+        neighbors.setdefault(first_id, set()).add(second_id)
+        neighbors.setdefault(second_id, set()).add(first_id)
+
+    allowed: set[tuple[str, str]] = set()
+    seen: set[str] = set()
+    for start in neighbors:
+        if start in seen:
+            continue
+        stack = [start]
+        component: set[str] = set()
+        while stack:
+            node = stack.pop()
+            if node in component:
+                continue
+            component.add(node)
+            stack.extend(neighbors.get(node, set()) - component)
+        seen.update(component)
+        if len(component) > cfg.realtime_motion_pair_max_component_size:
+            continue
+        for first_id in component:
+            for second_id in neighbors.get(first_id, set()) & component:
+                allowed.add(tuple(sorted((first_id, second_id))))
+    return allowed
+
+
+def stabilize_realtime_motion_pairs(
+    shapes: list[dict[str, Any]],
+    width: int,
+    height: int,
+    cfg: TrackingConfig,
+) -> list[dict[str, Any]]:
+    """Relabel short-memory two-ID motion components for delayed realtime quality."""
+    if not cfg.realtime_motion_pair_stabilizer:
+        return shapes
+    if cfg.mode != "realtime":
+        return shapes
+
+    _, planned_edges = realtime_motion_pair_candidates(shapes, width, height, cfg)
+    if not planned_edges:
+        return shapes
+    allowed_edges = motion_pair_allowed_edges(planned_edges, cfg)
+    if not allowed_edges:
+        return shapes
+    stabilized, changed_edges = realtime_motion_pair_candidates(
+        shapes,
+        width,
+        height,
+        cfg,
+        allowed_edges=allowed_edges,
+    )
+    if changed_edges:
+        logger.debug(
+            "realtime motion pair stabilizer relabeled %d shapes",
+            len(changed_edges),
+        )
+    return stabilized
 
 
 def median_shape_center(shapes: list[dict[str, Any]]) -> tuple[float, float]:

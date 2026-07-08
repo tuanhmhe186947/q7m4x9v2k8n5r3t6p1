@@ -1,5 +1,147 @@
 # Project Memory Short
 
+## 2026-07-08 realtime motion-pair quality-delayed candidate
+
+- Added opt-in `realtime_motion_pair_stabilizer` for `mode=realtime` only. It relabels short-memory motion-consistent ID attributes, then filters proposed relabel graph to two-ID components (`realtime_motion_pair_max_component_size=2`) to block broad multi-ID cascades like `000233`.
+- Important implementation fix: the planning pass must use `deepcopy`; shallow `shape.copy()` mutates nested `attributes` and accidentally applies broad relabel before component filtering.
+- Enabled the stabilizer in `realtime_quality_delayed`, not in `realtime_balanced`. Treat this as a quality-delayed candidate, not the pure causal realtime baseline.
+- Validated runtime 5-video result: `outputs/eval/realtime/codex_motion_pair_quality_5video_fix/iou0_area0_condarea0_merge0`. Compared with `outputs/eval/realtime/realtime_balanced_5video/iou0_area0_condarea0_merge0`: `ALL remapped_idsw 43 -> 25`, `remapped_hota_pct 90.12 -> 92.20`, `remapped_idf1_pct 90.18 -> 92.50`, `fp/fn unchanged 849/661`.
+- Per-video remapped IDSW in this candidate: `000231=8` (from `12`), `000233=15` (unchanged, no regression), `000263=2` (from `12`), `000328=0` (from `4`), `000302=0` (guardrail preserved).
+- Do not promote this as realtime causal base without broader regression and explicit discussion that it is delayed/post-tracking stabilization. Next step should validate more videos and then design an online-buffer equivalent if true realtime latency is required.
+
+## 2026-07-08 realtime profile cleanup and failed probes
+
+- `realtime_balanced` was changed to inherit from a realtime-only eval base:
+  `enable_offline_smoothing=false`, `identity_swap_guard=false`,
+  `smooth_boxes=false`, and `refine_boxes=false`. Single `000233` with these
+  offline flags forced off matched the prior metrics, so the current realtime
+  failures are from online association/tracking behavior rather than offline
+  smoothing.
+- Added named realtime eval profiles:
+  - `realtime_fast`: speed-oriented probe, `detect_every_n_frames=2`,
+    `det_conf=0.25`, `max_raw_detections=32`, no offline smoothing.
+  - `realtime_balanced`: current causal probe stack.
+  - `realtime_quality_delayed`: finite-window local repair probe only; no
+    suffix/long future repair.
+- Rejected/neutral probes from this continuation:
+  - `overlap_small_box_suppression=true` on realtime `000233`: no metric change
+    (`remapped_idsw` stayed `15`).
+  - hybrid causal guard stack on realtime `000233`: no improvement; FP slightly
+    increased.
+  - `tracker_type=botsort` on realtime `000233`: no metric change.
+  - looser `realtime_visible_better_competitor_min_cost=0.28`,
+    `min_gain=0.025` on `000263`: regressed `remapped_idsw 12 -> 16`, so do
+    not promote.
+  - `local_pair_swap_repair=true` with a 12-frame window on realtime `000263`:
+    no metric change.
+- Current conclusion: remaining realtime IDSW is not solved by porting existing
+  hybrid causal guards or existing finite-window repair as-is. Next useful
+  implementation should be a new online/short-buffer identity stabilizer, not a
+  broad reject/hold guard and not offline suffix repair.
+
+## 2026-07-08 realtime balanced profile
+
+- Added `realtime_balanced` to `scripts/evaluate_tracking.py` as the current
+  named realtime probe profile. It packages the useful opt-in realtime stack:
+  `smooth_det020_loose` recovery settings, `occlusion_aware_matching=false`,
+  `realtime_visible_close_competitor_guard=true`,
+  `realtime_visible_better_competitor_reject=true`,
+  `realtime_visible_better_competitor_prefer=true`, and
+  `realtime_low_conf_recovery_guard=true`.
+- `realtime_balanced` is still a probe profile, not a finished realtime
+  baseline. It preserves the `000302` guardrail in the single-video check:
+  `outputs/eval/realtime/realtime_balanced_302_guardrail/iou0_area0_condarea0_merge0`
+  produced `remapped_idsw=0`, `remapped_hota_pct=99.38`,
+  `remapped_idf1_pct=99.69`.
+- 5-video validation with the named profile:
+  `outputs/eval/realtime/realtime_balanced_5video/iou0_area0_condarea0_merge0`.
+  This matches the prior long override candidate: `ALL remapped_idsw=43`,
+  `fn=661`, `fp=849`, `remapped_hota_pct=90.12`,
+  `remapped_idf1_pct=90.18`; per-video remapped IDSW remains
+  `000231=12`, `000233=15`, `000263=12`, `000328=4`, `000302=0`.
+- Rejected new probe: `realtime_reid_shadow_visible_hold`. Broad version on
+  `000263` reduced remapped IDSW `12 -> 8` but badly damaged idmap coverage and
+  HOTA/IDF1 (`remapped_hota_pct` about `81.70`). Narrowing to
+  `max_missed=5` kept `000263` at `12` IDSW and did not improve HOTA. The guard
+  was removed from code. Do not re-add a hold/consume duplicate-shadow reid
+  guard without a fundamentally better discriminator.
+
+## 2026-07-08 realtime failed guard probes
+
+- Tried a narrow opt-in `realtime_occluded_reid_duplicate_guard` idea for
+  `000263` reid switches. Default `min_iou=0.55` did not trigger. Lowering to
+  `min_iou=0.45` reduced `000263` remapped IDSW `12 -> 8`, but badly damaged
+  IDF1/HOTA/idmap coverage (`remapped_hota_pct` about `81.70` versus `90.62`),
+  so this is not a promotion candidate. The underlying evidence is still useful:
+  wrong `000263` reid detections around `792/846/865` overlap visible tracks by
+  only about `0.46-0.49` IoU, so simple duplicate rejection is too blunt.
+- Tried an opt-in visible row-regret reject for `000231` frame `1368`
+  (`selected_cost≈0.668`, `track_best≈0.226`). It triggered exactly once but did
+  not reduce remapped IDSW and slightly worsened FP/FN, so it was removed.
+- Current realtime candidate remains the missed3 low-conf stack:
+  `outputs/eval/realtime/probe_realtime_low_conf_recovery_missed3_5video/iou0_area0_condarea0_merge0`.
+  Continue from diagnostics rather than re-adding the rejected duplicate or
+  row-regret guards.
+
+## 2026-07-08 realtime missed3 candidate
+
+- Realtime baseline at `outputs/eval/realtime/baseline_current/iou0_area0_condarea0_merge0` remains the main realtime comparison point.
+- Current useful realtime candidate keeps all new realtime guards opt-in:
+  `occlusion_aware_matching=false`,
+  `realtime_visible_close_competitor_guard=true`,
+  `realtime_visible_better_competitor_reject=true`,
+  `realtime_visible_better_competitor_prefer=true`,
+  `realtime_low_conf_recovery_guard=true`.
+- Tuned `realtime_low_conf_recovery_min_missed` default for the opt-in guard to `3`.
+  Single `000233` improved versus the broad low-conf guard: `IDSW=15`,
+  `FN=388`, `remapped_hota_pct=84.21` at
+  `outputs/eval/realtime/probe_realtime_low_conf_recovery_233_missed3/iou0_area0_condarea0_merge0`.
+- 5-video candidate
+  `outputs/eval/realtime/probe_realtime_low_conf_recovery_missed3_5video/iou0_area0_condarea0_merge0`:
+  `ALL remapped_idsw=43`, `fn=661`, `fp=849`, `remapped_hota_pct=90.12`,
+  `remapped_idf1_pct=90.18`. Per-video remapped IDSW:
+  `000231=12`, `000233=15`, `000263=12`, `000328=4`, `000302=0`.
+  This is not final, but it is cleaner than the earlier broad low-conf guard
+  because it preserves most IDSW gain while recovering FN.
+- Rejected probe: `realtime_late_reid_guard` for stale occlusion reid on `000263`
+  reduced `000263` IDSW `12 -> 10` but badly damaged IDF1/HOTA and idmap coverage
+  (`remapped_hota_pct=81.66`), so it was removed from code.
+- Diagnostics from `outputs/pred/realtime/probe_realtime_missed3_263_debug/.../association_debug_events.csv`:
+  remaining `000263` switches are mostly `reid` from `OCCLUDED/occlusion_hold`
+  despite low selected costs, e.g. frames `792` missed `3`, `846` missed `33`,
+  `865` missed `5`. A simple late-missed gate is not safe; next direction should
+  inspect whether these reid detections are duplicates/extra boxes or need a
+  causal short-window identity stabilizer rather than a broad reject.
+
+## 2026-07-08 realtime coverage candidate
+
+- Baseline realtime at
+  `outputs/eval/realtime/baseline_current/iou0_area0_condarea0_merge0` has a
+  major coverage/FN problem: 13-video `ALL` `fn=72669`, `recall_pct=60.58`,
+  `remapped_idsw=115`, `remapped_hota_pct=57.55`.
+- Strongest realtime lever so far is `occlusion_aware_matching=false`; on the
+  5-video guard set it reduces `fn` from about `32425` to `601`, but exposes
+  visible close-competitor swaps.
+- Added opt-in `realtime_visible_close_competitor_guard=true` for realtime only
+  when `occlusion_aware_matching=false`. It resolves near-tie high-confidence
+  visible assignments toward an otherwise unserved competitor track.
+- The useful discriminator came from debug:
+  - `000302` good trigger: frame `555`, selected `track 8` vs preferred
+    `track 4`, costs `0.194358` vs `0.204259`, margin about `0.0099`.
+  - `000263` false trigger with wider margin: frame `421`, costs `0.261192`
+    vs `0.276337`, margin about `0.0151`.
+  - Default `realtime_visible_close_competitor_margin=0.012` keeps the `000302`
+    fix while blocking the `000263` false trigger.
+- Current 5-video realtime candidate:
+  `outputs/eval/realtime/probe_close_competitor_margin012_5video/iou0_area0_condarea0_merge0`.
+  Compared with realtime baseline subset, it is a large coverage/HOTA
+  improvement but not an IDSW win: `fn=601`, `fp=942`, `remapped_idsw=63`,
+  `recall_pct=99.15`, `remapped_hota_pct=88.07`. Per-video remapped IDSW:
+  `000231=27`, `000233=20`, `000263=12`, `000328=4`, `000302=0`.
+- Do not promote this as the default realtime config yet. Next realtime work
+  should reduce the remaining visible-swap IDSW on `000231/000233/000263/000328`
+  without reintroducing hidden/occluded coverage loss.
+
 ## 2026-07-07 visible-start suffix gate full success
 
 - New best full 12-video candidate:

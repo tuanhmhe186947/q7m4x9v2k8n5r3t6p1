@@ -601,6 +601,137 @@ def append_detection_candidate_rank_events(
             )
 
 
+def realtime_visible_close_competitor_should_prefer(
+    selected_track: FixedTrack,
+    competitor_track: FixedTrack,
+    det: Detection,
+    selected_cost: float,
+    competitor_cost: float,
+    competitor_selected_cost: float | None,
+    cfg: TrackingConfig,
+    phase_name: str,
+) -> bool:
+    """Resolve near-tie visible realtime assignments toward the unserved track."""
+    if not cfg.realtime_visible_close_competitor_guard:
+        return False
+    if cfg.mode != "realtime" or cfg.occlusion_aware_matching:
+        return False
+    if phase_name != "visible_high_conf":
+        return False
+    if det.score < cfg.track_high_conf:
+        return False
+    if selected_cost > cfg.realtime_visible_close_competitor_max_cost:
+        return False
+    if competitor_cost > cfg.realtime_visible_close_competitor_max_cost:
+        return False
+    if competitor_cost - selected_cost < 0.0:
+        return False
+    if (
+        competitor_cost - selected_cost
+        > cfg.realtime_visible_close_competitor_margin
+    ):
+        return False
+    if (
+        selected_track.hits < cfg.realtime_visible_close_competitor_min_hits
+        or competitor_track.hits < cfg.realtime_visible_close_competitor_min_hits
+    ):
+        return False
+    if not track_is_visible_for_association(selected_track):
+        return False
+    if not track_is_visible_for_association(competitor_track):
+        return False
+    if competitor_selected_cost is None:
+        return True
+    return (
+        competitor_selected_cost - competitor_cost
+        > cfg.realtime_visible_close_competitor_margin
+    )
+
+
+def realtime_visible_better_competitor_should_reject(
+    selected_track: FixedTrack,
+    competitor_track: FixedTrack,
+    selected_cost: float,
+    competitor_cost: float,
+    cfg: TrackingConfig,
+    phase_name: str,
+) -> bool:
+    """Reject high-cost visible assignments when another track is clearly better."""
+    if not cfg.realtime_visible_better_competitor_reject:
+        return False
+    if cfg.mode != "realtime" or cfg.occlusion_aware_matching:
+        return False
+    if phase_name != "visible_high_conf":
+        return False
+    if selected_cost < cfg.realtime_visible_better_competitor_min_cost:
+        return False
+    if (
+        selected_cost - competitor_cost
+        < cfg.realtime_visible_better_competitor_min_gain
+    ):
+        return False
+    if not track_is_visible_for_association(selected_track):
+        return False
+    return track_is_visible_for_association(competitor_track)
+
+
+def realtime_visible_better_competitor_should_prefer(
+    selected_track: FixedTrack,
+    competitor_track: FixedTrack,
+    selected_cost: float,
+    competitor_cost: float,
+    competitor_selected_cost: float | None,
+    cfg: TrackingConfig,
+    phase_name: str,
+) -> bool:
+    """Move a clearly bad visible realtime assignment to a much better track."""
+    if not cfg.realtime_visible_better_competitor_prefer:
+        return False
+    if cfg.mode != "realtime" or cfg.occlusion_aware_matching:
+        return False
+    if phase_name != "visible_high_conf":
+        return False
+    if selected_cost < cfg.realtime_visible_better_competitor_min_cost:
+        return False
+    if (
+        selected_cost - competitor_cost
+        < cfg.realtime_visible_better_competitor_min_gain
+    ):
+        return False
+    if not track_is_visible_for_association(selected_track):
+        return False
+    if not track_is_visible_for_association(competitor_track):
+        return False
+    if competitor_selected_cost is None:
+        return True
+    return (
+        competitor_selected_cost - competitor_cost
+        >= cfg.realtime_visible_better_competitor_min_gain
+    )
+
+
+def realtime_low_conf_recovery_should_reject(
+    track: FixedTrack,
+    det: Detection,
+    cfg: TrackingConfig,
+    phase_name: str,
+) -> bool:
+    """Avoid reviving hidden realtime tracks from very low-confidence detections."""
+    if not cfg.realtime_low_conf_recovery_guard:
+        return False
+    if cfg.mode != "realtime":
+        return False
+    if phase_name != "low_conf_recovery":
+        return False
+    if det.score >= cfg.realtime_low_conf_recovery_min_score:
+        return False
+    if track.missed < cfg.realtime_low_conf_recovery_min_missed:
+        return False
+    if track.missed > cfg.realtime_low_conf_recovery_max_missed:
+        return False
+    return not track_is_visible_for_association(track)
+
+
 def raw_owner_conflict_is_ambiguous(
     track: FixedTrack,
     owner_track: FixedTrack | None,
@@ -1117,6 +1248,10 @@ def match_and_update_tracks(
             detection_indices[col]: candidate_tracks[row].fixed_id
             for row, col in zip(rows, cols, strict=True)
         }
+        selected_col_by_track = {
+            candidate_tracks[row].fixed_id: col
+            for row, col in zip(rows, cols, strict=True)
+        }
         append_detection_candidate_rank_events(
             runtime,
             cfg,
@@ -1157,6 +1292,30 @@ def match_and_update_tracks(
                 and costs[other_row, col] < 1_000_000.0
             ]
             competing_cost = min(competing_costs) if competing_costs else None
+            competitor_track = None
+            competitor_selected_cost = None
+            if competing_cost is not None:
+                for other_row in range(len(candidate_tracks)):
+                    if other_row == row:
+                        continue
+                    other_cost = float(costs[other_row, col])
+                    if not np.isfinite(other_cost) or other_cost >= 1_000_000.0:
+                        continue
+                    if math.isclose(
+                        other_cost,
+                        competing_cost,
+                        rel_tol=0.0,
+                        abs_tol=1e-9,
+                    ):
+                        competitor_track = candidate_tracks[other_row]
+                        competitor_selected_col = selected_col_by_track.get(
+                            competitor_track.fixed_id,
+                        )
+                        if competitor_selected_col is not None:
+                            competitor_selected_cost = float(
+                                costs[other_row, competitor_selected_col],
+                            )
+                        break
             base_debug_event = {
                 "frame": frame_index,
                 "phase": phase_name,
@@ -1205,6 +1364,124 @@ def match_and_update_tracks(
                             )
                             else "assignment_reject_threshold"
                         ),
+                    },
+                )
+                continue
+            if realtime_low_conf_recovery_should_reject(
+                track,
+                det,
+                cfg,
+                phase_name,
+            ):
+                append_association_debug_event(
+                    runtime,
+                    cfg,
+                    {
+                        **base_debug_event,
+                        "event": "assignment_reject_low_conf_recovery",
+                        "learn_identity": False,
+                    },
+                )
+                continue
+            if (
+                competitor_track is not None
+                and realtime_visible_close_competitor_should_prefer(
+                    track,
+                    competitor_track,
+                    det,
+                    float(costs[row, col]),
+                    float(competing_cost),
+                    competitor_selected_cost,
+                    cfg,
+                    phase_name,
+                )
+            ):
+                append_association_debug_event(
+                    runtime,
+                    cfg,
+                    {
+                        **base_debug_event,
+                        "event": (
+                            "assignment_prefer_visible_close_competitor"
+                        ),
+                        "ambiguous": False,
+                        "preferred_track_id": competitor_track.fixed_id,
+                        "preferred_cost": round(float(competing_cost), 6),
+                        "learn_identity": True,
+                    },
+                )
+                competitor_track.update_detected(
+                    det,
+                    width,
+                    height,
+                    cfg,
+                    learn_identity=True,
+                    ambiguous=False,
+                )
+                matched_tracks.add(competitor_track.fixed_id)
+                matched_detections.add(det_idx)
+                continue
+            if (
+                competitor_track is not None
+                and realtime_visible_better_competitor_should_prefer(
+                    track,
+                    competitor_track,
+                    float(costs[row, col]),
+                    float(competing_cost),
+                    competitor_selected_cost,
+                    cfg,
+                    phase_name,
+                )
+            ):
+                append_association_debug_event(
+                    runtime,
+                    cfg,
+                    {
+                        **base_debug_event,
+                        "event": "assignment_prefer_visible_better_competitor",
+                        "ambiguous": False,
+                        "preferred_track_id": competitor_track.fixed_id,
+                        "preferred_cost": round(float(competing_cost), 6),
+                        "competitor_selected_cost": (
+                            round(competitor_selected_cost, 6)
+                            if competitor_selected_cost is not None
+                            else None
+                        ),
+                        "learn_identity": True,
+                    },
+                )
+                competitor_track.update_detected(
+                    det,
+                    width,
+                    height,
+                    cfg,
+                    learn_identity=True,
+                    ambiguous=False,
+                )
+                matched_tracks.add(competitor_track.fixed_id)
+                matched_detections.add(det_idx)
+                continue
+            if (
+                competitor_track is not None
+                and realtime_visible_better_competitor_should_reject(
+                    track,
+                    competitor_track,
+                    float(costs[row, col]),
+                    float(competing_cost),
+                    cfg,
+                    phase_name,
+                )
+            ):
+                append_association_debug_event(
+                    runtime,
+                    cfg,
+                    {
+                        **base_debug_event,
+                        "event": "assignment_reject_visible_better_competitor",
+                        "ambiguous": False,
+                        "better_competitor_track_id": competitor_track.fixed_id,
+                        "better_competitor_cost": round(float(competing_cost), 6),
+                        "learn_identity": False,
                     },
                 )
                 continue

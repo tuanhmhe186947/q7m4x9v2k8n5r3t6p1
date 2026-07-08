@@ -58,6 +58,25 @@ Mode tracking dang dung:
 - `bytetrack_raw`: baseline ByteTrack thuan, dung de doi chieu khoa hoc.
 - `realtime`: mode streaming/low-latency, khong mac dinh ke thua cac offline repair dai.
 
+Eval-config realtime hien chia thanh 3 profile:
+
+- `realtime_fast`: probe toc do, detect thua hon va it guard.
+- `realtime_balanced`: probe chinh hien tai, causal-only, khong bat offline smoothing/refine/suffix repair.
+- `realtime_quality_delayed`: probe quality-delayed, bat local finite-window repair
+  va `realtime_motion_pair_stabilizer` short-memory; khong dung suffix repair dai.
+
+`realtime_balanced` gom `smooth_det020_loose` detector/recovery settings voi cac
+guard online da co tin hieu tot (`occlusion_aware_matching=false`,
+`realtime_visible_close_competitor_guard=true`,
+`realtime_visible_better_competitor_reject=true`,
+`realtime_visible_better_competitor_prefer=true`,
+`realtime_low_conf_recovery_guard=true`). Khong dung cac repair offline/suffix.
+
+`realtime_quality_delayed` ke thua `realtime_balanced` va them
+`realtime_motion_pair_stabilizer=true`. Stabilizer nay dung short-memory motion
+voi component gate hai ID de giam IDSW sau tracking, vi vay phu hop che do
+quality-delayed hon la low-latency streaming thuan.
+
 Khong dung `--mode bytetrack` nua. Alias legacy nay da bi go bo de tranh nham voi `hybrid_bytetrack`; neu can pipeline tot nhat thi truyen ro `--mode hybrid_bytetrack`.
 
 Chay tracking mot video voi base/preset thuong:
@@ -151,9 +170,52 @@ Evaluate tat ca GT video voi base/preset thuong:
 
 ```cmd
 C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\evaluate_tracking.py ^
-  --eval-config smooth_det020_loose ^
-  -a ^
-  --rule-combo iou0_area0_condarea0_merge0
+--eval-config smooth_det020_loose ^
+-a ^
+--rule-combo iou0_area0_condarea0_merge0
+```
+
+Realtime balanced 5-video guard set:
+
+```cmd
+C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\evaluate_tracking.py ^
+--eval-config realtime_balanced ^
+-v "Pigs291119_000231_30fps,Pigs291119_000233_30fps,Pigs291119_000263_30fps,Pigs301119_000328_30fps,Pigs291119_000302_30fps" ^
+--mode realtime ^
+--rule-combo iou0_area0_condarea0_merge0 ^
+--output-root outputs\eval\realtime\realtime_balanced_5video ^
+--prediction-root outputs\pred\realtime\realtime_balanced_5video
+```
+
+Realtime single-video probe co debug assignment:
+
+```cmd
+C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\evaluate_tracking.py ^
+--eval-config realtime_balanced ^
+-v "Pigs291119_000263_30fps" ^
+--mode realtime ^
+--rule-combo iou0_area0_condarea0_merge0 ^
+--output-root outputs\eval\realtime\probe_realtime_263_debug ^
+--prediction-root outputs\pred\realtime\probe_realtime_263_debug ^
+--profile-override association_debug=true
+```
+
+Realtime fast / delayed profile probe:
+
+```cmd
+C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\evaluate_tracking.py ^
+--eval-config realtime_fast ^
+-v "Pigs291119_000233_30fps" ^
+--mode realtime ^
+--rule-combo iou0_area0_condarea0_merge0
+```
+
+```cmd
+C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\evaluate_tracking.py ^
+--eval-config realtime_quality_delayed ^
+-v "Pigs291119_000263_30fps" ^
+--mode realtime ^
+--rule-combo iou0_area0_condarea0_merge0
 ```
 
 Evaluate full 12-video voi candidate opt-in hien tot nhat:
@@ -563,6 +625,9 @@ base
 smooth_conservative
 smooth_responsive
 smooth_det020_loose
+realtime_fast
+realtime_balanced
+realtime_quality_delayed
 smooth_responsive_det020
 ```
 

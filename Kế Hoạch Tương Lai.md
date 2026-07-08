@@ -185,3 +185,154 @@
 
   Cấu hình tốt nhất hiện tại nên được giữ làm hybrid_bytetrack quality baseline, không nên ép nó thành realtime. Nhưng realtime có thể học từ
   hybrid ở phần association/guard causal.
+
+  • Các bước nâng cấp realtime nên đi theo hướng không copy nguyên hybrid_bytetrack, mà tách phần nào dùng được online, phần nào phải bỏ hoặc
+  viết lại bằng short-buffer.
+
+  Mục tiêu realtime
+
+  realtime nên có 3 profile rõ:
+
+  1. realtime_fast
+     Chạy nhanh nhất, detect mỗi N frame, motion/LK predict giữa các frame, ít guard.
+
+  2. realtime_balanced
+     Dùng các guard online đã chứng minh từ hybrid_bytetrack, ưu tiên giảm IDSW nhưng vẫn giữ latency thấp.
+
+  3. realtime_quality_delayed
+     Cho phép delay ngắn 15-30 frame để sửa local conflict, nhưng không dùng repair suffix dài như offline.
+
+  Bước 1: Đóng băng baseline realtime hiện tại
+
+  Chạy benchmark hiện tại trên cùng bộ video đã dùng cho hybrid_bytetrack:
+
+  C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\evaluate_tracking.py ^
+    --eval-config smooth_det020_loose ^
+    -a ^
+    --mode realtime ^
+    --rule-combo iou0_area0_condarea0_merge0 ^
+    --output-root outputs\eval\realtime\baseline_current ^
+    --prediction-root outputs\pred\realtime\baseline_current
+
+  Cần ghi lại: IDSW, IDF1, HOTA, FP/FN, fragments, FPS/elapsed time.
+
+  Bước 2: Phân loại logic hybrid
+
+  Có thể chuyển sang realtime gần như trực tiếp:
+
+  - hidden_owner_guard
+  - hidden_owner_guard_hold_assignment
+  - reentry_unowned_raw_mismatch_episode_reject nếu episode window chỉ nhìn quá khứ
+  - occlusion_reid_prefer_gap_over_bad_match
+  - overlap_small_box_suppression
+  - motion prediction / hidden motion model
+  - association diagnostics
+
+  Không chuyển trực tiếp:
+
+  - suffix_pair_swap_repair
+  - hidden_suffix_id_swap_repair
+  - mọi repair cần nhìn suffix dài/tương lai dài
+  - offline smoothing toàn chuỗi
+
+  Cần viết lại bằng short-buffer nếu muốn dùng realtime-delayed:
+
+  - temporal smoothing
+  - local pair repair
+  - hidden island stabilization
+
+  Bước 3: Tạo profile config realtime
+
+  Thêm preset/profile kiểu:
+
+  realtime_fast
+  realtime_balanced
+  realtime_quality_delayed
+
+  Trong đó realtime_balanced nên bật thử trước:
+
+  detect_every_n_frames=1 hoặc 2
+  enable_offline_smoothing=false
+  smooth_boxes=false
+  refine_boxes=false
+  hidden_owner_guard=true
+  hidden_owner_guard_hold_assignment=true
+  occlusion_reid_prefer_gap_over_bad_match=true
+  overlap_small_box_suppression=true
+
+  Bước 4: Port từng nhóm, không port một lần
+
+  Thứ tự nên là:
+
+  1. Motion prediction + giữ track khi mất detection ngắn.
+  2. Hidden owner guard.
+  3. Occlusion reid prefer-gap-over-bad-match.
+  4. Overlap small-box suppression.
+  5. Short-buffer smoothing nếu cần.
+  6. Short-buffer local repair nếu latency cho phép.
+
+  Sau mỗi bước chạy:
+
+  - single weak video: 000233, 000263, 000216, 000225
+  - guardrail: 000302
+  - full 13 video
+
+  Bước 5: Thêm đo latency/FPS thật
+
+  Realtime không chỉ nhìn IDSW. Cần thêm report:
+
+  avg_fps
+  median_frame_time_ms
+  p95_frame_time_ms
+  detector_time_ms
+  association_time_ms
+  postprocess_time_ms
+  buffer_delay_frames
+  buffer_delay_ms
+
+  Nếu không đo latency thì chưa thể gọi là realtime có căn cứ.
+
+  Bước 6: Thiết kế short-buffer
+
+  Với realtime_quality_delayed, dùng buffer nhỏ:
+
+  buffer_size = 15 hoặc 30 frame
+
+  Trong buffer này chỉ được sửa:
+
+  - bbox jitter ngắn
+  - local swap 2 con trong vài frame
+  - hidden/unhidden island ngắn
+  - gap-fill ngắn
+
+  Không được sửa kiểu “swap từ frame 193 đến cuối video” như offline suffix repair.
+
+  Bước 7: Báo cáo khoa học theo 3 chế độ
+
+  Bảng nên có:
+
+  bytetrack_raw
+  realtime_fast
+  realtime_balanced
+  realtime_quality_delayed
+  hybrid_bytetrack
+
+  So sánh:
+
+  IDSW
+  IDF1
+  HOTA
+  FP
+  FN
+  fragments
+  FPS
+  latency
+  causal/offline
+
+  Kết luận hợp lý sẽ là:
+
+  - hybrid_bytetrack: chất lượng cao nhất cho offline annotation/research.
+  - realtime_balanced: ứng dụng camera trực tiếp.
+  - realtime_quality_delayed: ứng dụng gần realtime, chấp nhận delay ngắn để tăng ổn định ID.
+
+  Bước tiếp theo thực tế nên làm là benchmark realtime hiện tại trước, rồi mới port từng guard từ hybrid_bytetrack.
