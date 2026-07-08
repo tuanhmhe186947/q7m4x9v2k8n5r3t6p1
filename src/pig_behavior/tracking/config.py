@@ -179,7 +179,14 @@ class TrackingConfig:
     realtime_motion_pair_max_jump: float = 0.10
     realtime_motion_pair_min_gain: float = 0.01
     realtime_motion_pair_memory_frames: int = 30
-    realtime_motion_pair_max_component_size: int = 2
+    realtime_motion_pair_max_component_size: int = 4
+    realtime_motion_pair_max_component_edges: int = 3
+    realtime_motion_pair_dense_fallback_max_edges: int = 3
+    realtime_motion_pair_dense_fallback_max_support_ratio: float = 0.35
+    realtime_motion_pair_dense_fallback_min_median_gain: float = 0.0
+    realtime_motion_pair_dense_fallback_min_edge_gain: float = 0.0
+    realtime_motion_pair_simple_min_gain: float = 0.0
+    realtime_motion_pair_simple_max_component_size: int = 2
     occlusion_hold_max_frames: int = 30
     occlusion_hold_hidden_frames: int = 2
     USE_IOU_FALLBACK: bool = False

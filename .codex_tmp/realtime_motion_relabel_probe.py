@@ -247,6 +247,9 @@ def copy_and_relabel_video(
     require_current_proposed_id: bool,
     require_mutual_swap: bool,
     max_component_size: int,
+    max_component_edges: int,
+    dense_fallback_max_edges: int,
+    dense_fallback_max_support_ratio: float,
 ) -> int:
     target_video_dir.mkdir(parents=True, exist_ok=True)
     source_json = source_video_dir / "annotations_cvat_shapes.json"
@@ -270,11 +273,14 @@ def copy_and_relabel_video(
             require_mutual_swap=require_mutual_swap,
         )
         neighbors: dict[str, set[str]] = {}
+        edge_support: dict[tuple[str, str], int] = {}
         for row in planned_rows:
             old_id = str(row["old_id"])
             new_id = str(row["new_id"])
             neighbors.setdefault(old_id, set()).add(new_id)
             neighbors.setdefault(new_id, set()).add(old_id)
+            edge = tuple(sorted((old_id, new_id)))
+            edge_support[edge] = edge_support.get(edge, 0) + 1
         allowed_edges = set()
         seen: set[str] = set()
         for start in neighbors:
@@ -289,10 +295,26 @@ def copy_and_relabel_video(
                 component.add(node)
                 stack.extend(neighbors.get(node, set()) - component)
             seen.update(component)
-            if len(component) <= max_component_size:
-                for old_id in component:
-                    for new_id in neighbors.get(old_id, set()) & component:
-                        allowed_edges.add(tuple(sorted((old_id, new_id))))
+            component_edges = {
+                tuple(sorted((old_id, new_id)))
+                for old_id in component
+                for new_id in neighbors.get(old_id, set()) & component
+            }
+            component_too_large = len(component) > max_component_size
+            component_too_dense = max_component_edges > 0 and len(component_edges) > max_component_edges
+            if component_too_large or component_too_dense:
+                if dense_fallback_max_edges <= 0 or dense_fallback_max_support_ratio <= 0.0:
+                    continue
+                max_support = max(edge_support[edge] for edge in component_edges)
+                rare_edges = [
+                    edge
+                    for edge in component_edges
+                    if edge_support[edge] <= max_support * dense_fallback_max_support_ratio
+                ]
+                rare_edges.sort(key=lambda edge: (edge_support[edge], edge))
+                allowed_edges.update(rare_edges[:dense_fallback_max_edges])
+                continue
+            allowed_edges.update(component_edges)
 
     relabeled, changes, change_rows = relabel_motion(
         shapes,
@@ -353,6 +375,9 @@ def main() -> int:
     parser.add_argument("--require-current-proposed-id", action="store_true")
     parser.add_argument("--require-mutual-swap", action="store_true")
     parser.add_argument("--max-component-size", type=int, default=0)
+    parser.add_argument("--max-component-edges", type=int, default=0)
+    parser.add_argument("--dense-fallback-max-edges", type=int, default=0)
+    parser.add_argument("--dense-fallback-max-support-ratio", type=float, default=0.0)
     args = parser.parse_args()
 
     videos = [video.strip() for video in args.video.split(",") if video.strip()]
@@ -380,6 +405,9 @@ def main() -> int:
             require_current_proposed_id=args.require_current_proposed_id,
             require_mutual_swap=args.require_mutual_swap,
             max_component_size=args.max_component_size,
+            max_component_edges=args.max_component_edges,
+            dense_fallback_max_edges=args.dense_fallback_max_edges,
+            dense_fallback_max_support_ratio=args.dense_fallback_max_support_ratio,
         )
         total_changes += changes
         print(f"{video}: motion_relabel_changes={changes}")

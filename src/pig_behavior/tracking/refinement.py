@@ -844,7 +844,7 @@ def realtime_motion_pair_candidates(
     cfg: TrackingConfig,
     *,
     allowed_edges: set[tuple[str, str]] | None = None,
-) -> tuple[list[dict[str, Any]], list[tuple[str, str]]]:
+) -> tuple[list[dict[str, Any]], list[tuple[str, str, float]]]:
     stabilized = [deepcopy(shape) for shape in shapes]
     by_frame: dict[int, list[dict[str, Any]]] = {}
     for shape in stabilized:
@@ -853,7 +853,7 @@ def realtime_motion_pair_candidates(
 
     previous_center_by_id: dict[str, tuple[float, float]] = {}
     previous_frame_by_id: dict[str, int] = {}
-    changed_edges: list[tuple[str, str]] = []
+    changed_edges: list[tuple[str, str, float]] = []
 
     for frame in sorted(by_frame):
         frame_shapes = by_frame[frame]
@@ -920,7 +920,8 @@ def realtime_motion_pair_candidates(
                 width,
                 height,
             )
-            if keep_cost - proposed_cost < cfg.realtime_motion_pair_min_gain:
+            gain = keep_cost - proposed_cost
+            if gain < cfg.realtime_motion_pair_min_gain:
                 continue
             edge = tuple(sorted((current_id, proposed_id)))
             if allowed_edges is not None and edge not in allowed_edges:
@@ -928,7 +929,7 @@ def realtime_motion_pair_candidates(
             _set_shape_id_value(shape, proposed_id)
             shape["_realtime_motion_pair_stabilizer"] = True
             shape["_needs_review"] = True
-            changed_edges.append(edge)
+            changed_edges.append((edge[0], edge[1], gain))
 
         for shape in frame_shapes:
             id_value = shape_id_value(shape)
@@ -941,16 +942,21 @@ def realtime_motion_pair_candidates(
 
 
 def motion_pair_allowed_edges(
-    edges: list[tuple[str, str]],
+    edges: list[tuple[str, str, float]],
     cfg: TrackingConfig,
 ) -> set[tuple[str, str]]:
     if cfg.realtime_motion_pair_max_component_size <= 0:
-        return set(edges)
+        return {(first_id, second_id) for first_id, second_id, _gain in edges}
 
     neighbors: dict[str, set[str]] = {}
-    for first_id, second_id in edges:
+    edge_support: dict[tuple[str, str], int] = {}
+    edge_gains: dict[tuple[str, str], list[float]] = {}
+    for first_id, second_id, gain in edges:
         neighbors.setdefault(first_id, set()).add(second_id)
         neighbors.setdefault(second_id, set()).add(first_id)
+        edge = tuple(sorted((first_id, second_id)))
+        edge_support[edge] = edge_support.get(edge, 0) + 1
+        edge_gains.setdefault(edge, []).append(float(gain))
 
     allowed: set[tuple[str, str]] = set()
     seen: set[str] = set()
@@ -966,11 +972,37 @@ def motion_pair_allowed_edges(
             component.add(node)
             stack.extend(neighbors.get(node, set()) - component)
         seen.update(component)
-        if len(component) > cfg.realtime_motion_pair_max_component_size:
+        component_edges = {
+            tuple(sorted((first_id, second_id)))
+            for first_id in component
+            for second_id in neighbors.get(first_id, set()) & component
+        }
+        component_too_large = len(component) > cfg.realtime_motion_pair_max_component_size
+        component_too_dense = (
+            cfg.realtime_motion_pair_max_component_edges > 0
+            and len(component_edges) > cfg.realtime_motion_pair_max_component_edges
+        )
+        if component_too_large or component_too_dense:
+            max_fallback_edges = int(cfg.realtime_motion_pair_dense_fallback_max_edges)
+            support_ratio = float(cfg.realtime_motion_pair_dense_fallback_max_support_ratio)
+            min_median_gain = float(
+                cfg.realtime_motion_pair_dense_fallback_min_median_gain
+            )
+            min_edge_gain = float(cfg.realtime_motion_pair_dense_fallback_min_edge_gain)
+            if max_fallback_edges <= 0 or support_ratio <= 0.0:
+                continue
+            max_support = max(edge_support[edge] for edge in component_edges)
+            rare_edges = [
+                edge
+                for edge in component_edges
+                if edge_support[edge] <= max_support * support_ratio
+                and float(np.median(edge_gains.get(edge, [0.0]))) >= min_median_gain
+                and min(edge_gains.get(edge, [0.0])) >= min_edge_gain
+            ]
+            rare_edges.sort(key=lambda edge: (edge_support[edge], edge))
+            allowed.update(rare_edges[:max_fallback_edges])
             continue
-        for first_id in component:
-            for second_id in neighbors.get(first_id, set()) & component:
-                allowed.add(tuple(sorted((first_id, second_id))))
+        allowed.update(component_edges)
     return allowed
 
 
@@ -980,7 +1012,7 @@ def stabilize_realtime_motion_pairs(
     height: int,
     cfg: TrackingConfig,
 ) -> list[dict[str, Any]]:
-    """Relabel short-memory two-ID motion components for delayed realtime quality."""
+    """Relabel short-memory motion components for delayed realtime quality."""
     if not cfg.realtime_motion_pair_stabilizer:
         return shapes
     if cfg.mode != "realtime":
@@ -999,6 +1031,39 @@ def stabilize_realtime_motion_pairs(
         cfg,
         allowed_edges=allowed_edges,
     )
+    simple_min_gain = float(cfg.realtime_motion_pair_simple_min_gain)
+    if 0.0 < simple_min_gain < cfg.realtime_motion_pair_min_gain:
+        simple_cfg = TrackingConfig(
+            mode=cfg.mode,
+            realtime_motion_pair_stabilizer=True,
+            realtime_motion_pair_max_jump=cfg.realtime_motion_pair_max_jump,
+            realtime_motion_pair_min_gain=simple_min_gain,
+            realtime_motion_pair_memory_frames=cfg.realtime_motion_pair_memory_frames,
+            realtime_motion_pair_max_component_size=(
+                cfg.realtime_motion_pair_simple_max_component_size
+            ),
+            realtime_motion_pair_max_component_edges=(
+                max(0, cfg.realtime_motion_pair_simple_max_component_size)
+            ),
+            realtime_motion_pair_dense_fallback_max_edges=0,
+            realtime_motion_pair_dense_fallback_max_support_ratio=0.0,
+        )
+        _, simple_planned_edges = realtime_motion_pair_candidates(
+            stabilized,
+            width,
+            height,
+            simple_cfg,
+        )
+        simple_allowed_edges = motion_pair_allowed_edges(simple_planned_edges, simple_cfg)
+        if simple_allowed_edges:
+            stabilized, simple_changed_edges = realtime_motion_pair_candidates(
+                stabilized,
+                width,
+                height,
+                simple_cfg,
+                allowed_edges=simple_allowed_edges,
+            )
+            changed_edges.extend(simple_changed_edges)
     if changed_edges:
         logger.debug(
             "realtime motion pair stabilizer relabeled %d shapes",

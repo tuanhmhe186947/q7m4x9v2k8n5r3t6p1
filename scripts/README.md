@@ -74,8 +74,16 @@ guard online da co tin hieu tot (`occlusion_aware_matching=false`,
 
 `realtime_quality_delayed` ke thua `realtime_balanced` va them
 `realtime_motion_pair_stabilizer=true`. Stabilizer nay dung short-memory motion
-voi component gate hai ID de giam IDSW sau tracking, vi vay phu hop che do
-quality-delayed hon la low-latency streaming thuan.
+voi sparse small-component gate (`realtime_motion_pair_max_component_size=4`,
+`realtime_motion_pair_max_component_edges=3`) va dense-component rare-edge
+fallback (`realtime_motion_pair_dense_fallback_max_edges=2`,
+`realtime_motion_pair_dense_fallback_max_support_ratio=0.35`,
+`realtime_motion_pair_dense_fallback_min_median_gain=0.05`,
+`realtime_motion_pair_dense_fallback_min_edge_gain=0.04`) va simple low-gain
+second pass (`realtime_motion_pair_simple_min_gain=0.005`,
+`realtime_motion_pair_simple_max_component_size=2`) de giam IDSW sau
+tracking, vi vay phu hop che do quality-delayed hon la low-latency streaming
+thuan.
 
 Khong dung `--mode bytetrack` nua. Alias legacy nay da bi go bo de tranh nham voi `hybrid_bytetrack`; neu can pipeline tot nhat thi truyen ro `--mode hybrid_bytetrack`.
 
@@ -216,6 +224,18 @@ C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\evaluate_tracking.p
 -v "Pigs291119_000263_30fps" ^
 --mode realtime ^
 --rule-combo iou0_area0_condarea0_merge0
+```
+
+Realtime quality-delayed 13-video regression set:
+
+```cmd
+C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\evaluate_tracking.py ^
+--eval-config realtime_quality_delayed ^
+-v "Pigs281119_000085_30fps,Pigs281119_000114_30fps,Pigs291119_000216_30fps,Pigs291119_000225_30fps,Pigs291119_000226_30fps,Pigs291119_000231_30fps,Pigs291119_000233_30fps,Pigs291119_000263_30fps,Pigs291119_000302_30fps,Pigs301119_000327_30fps,Pigs301119_000328_30fps,Pigs301119_000329_30fps,Pigs301119_000330_30fps" ^
+--mode realtime ^
+--rule-combo iou0_area0_condarea0_merge0 ^
+--output-root outputs\eval\realtime\realtime_quality_delayed_13video ^
+--prediction-root outputs\pred\realtime\realtime_quality_delayed_13video
 ```
 
 Evaluate full 12-video voi candidate opt-in hien tot nhat:

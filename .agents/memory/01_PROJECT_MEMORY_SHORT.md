@@ -1,12 +1,36 @@
 # Project Memory Short
 
+## 2026-07-08 realtime full runtime chunk validation
+
+- Runtime 13-video validation completed in two chunks: `outputs/eval/realtime/runtime_check_quality_delayed_simple_7video/iou0_area0_condarea0_merge0` plus `outputs/eval/realtime/runtime_check_quality_delayed_simple_remaining6/iou0_area0_condarea0_merge0`.
+- Compared with `outputs/eval/realtime/realtime_balanced_13video/iou0_area0_condarea0_merge0`, per-video runtime total `remapped_idsw 75 -> 21`, `fp/fn` stayed `2320/1055`, no per-video IDSW regression, and `000302=0`.
+- Remaining runtime IDSW: `000114=2`, `000231=6`, `000233=9`, `000263=2`, `000327=2`; all other 8 videos are `0`.
+
+## 2026-07-08 realtime simple low-gain component pass
+
+- Improved `realtime_quality_delayed` artifact candidate further by adding an opt-in second pass for simple motion components only: `realtime_motion_pair_simple_min_gain=0.005`, `realtime_motion_pair_simple_max_component_size=2`.
+- Evidence artifact: `outputs/eval/realtime/probe_motion_pair_simple005_comp2_13video/iou0_area0_condarea0_merge0`.
+- Compared with gain-gate candidate `outputs/eval/realtime/probe_motion_pair_gainmin004_edges2_13video/iou0_area0_condarea0_merge0`: `ALL remapped_idsw 27 -> 21`, `remapped_hota_pct 95.89 -> 96.60`, `remapped_idf1_pct 96.41 -> 97.02`, `fp/fn unchanged 2320/1055`.
+- Per-video improvements with no IDSW regression on 13-video artifact probe: `000085 2 -> 0`, `000327 4 -> 2`, `000330 2 -> 0`; `000233` stayed `9`, `000302` stayed `0`.
+- Runtime smoke check: `outputs/eval/realtime/runtime_check_quality_delayed_simple_233_302/iou0_area0_condarea0_merge0` using actual `realtime_quality_delayed` code path produced `000233 remapped_idsw=9` and `000302 remapped_idsw=0`, matching the artifact expectation for target/guardrail.
+- Rejected probes: global `min_allowed_edge_gain=0.02` regressed `000114/000327`; global `max_jump=0.08/0.12` regressed `000233`; `memory_frames=20` regressed `000231`; `memory_frames=40` unchanged; global `min_gain=0.005` regressed `000233/000327`.
+- Additional runtime smoke checks: `outputs/eval/realtime/runtime_check_quality_delayed_simple_263/iou0_area0_condarea0_merge0` produced `000263 remapped_idsw=2`; `outputs/eval/realtime/runtime_check_quality_delayed_simple_085/iou0_area0_condarea0_merge0` produced `000085 remapped_idsw=0`. Both match artifact expectations.
+
+## 2026-07-08 realtime dense fallback gain gate
+
+- Improved current `realtime_quality_delayed` motion-pair candidate by tightening dense-component fallback: `realtime_motion_pair_dense_fallback_max_edges=2`, `realtime_motion_pair_dense_fallback_min_median_gain=0.05`, `realtime_motion_pair_dense_fallback_min_edge_gain=0.04` while keeping `max_component_size=4`, `max_component_edges=3`, `max_support_ratio=0.35`.
+- Evidence artifact: `outputs/eval/realtime/probe_motion_pair_gainmin004_edges2_13video/iou0_area0_condarea0_merge0`.
+- Compared with previous dense candidate `outputs/eval/realtime/probe_motion_pair_comp4_edges3_dense_13video/iou0_area0_condarea0_merge0`: `ALL remapped_idsw 31 -> 27`, `000233 13 -> 9`, no per-video IDSW regression, `000302=0`, `fp/fn unchanged 2320/1055`; HOTA/IDF1 effectively unchanged at `95.89/96.41`.
+- Runtime check on `000233` planned graph confirms allowed dense fallback edges become `{ID_1-ID_3, ID_1-ID_8}`, excluding weak low-min-gain `ID_2-ID_8` that caused extra switches.
+
 ## 2026-07-08 realtime motion-pair quality-delayed candidate
 
-- Added opt-in `realtime_motion_pair_stabilizer` for `mode=realtime` only. It relabels short-memory motion-consistent ID attributes, then filters proposed relabel graph to two-ID components (`realtime_motion_pair_max_component_size=2`) to block broad multi-ID cascades like `000233`.
+- Added opt-in `realtime_motion_pair_stabilizer` for `mode=realtime` only. It relabels short-memory motion-consistent ID attributes, then filters proposed relabel graph to small/sparse components. The current 13-video candidate uses `realtime_motion_pair_max_component_size=4`, `realtime_motion_pair_max_component_edges=3`, and dense-component rare-edge fallback (`max_edges=3`, `max_support_ratio=0.35`); this admits sparse four-ID episodes like `000327` and a limited rare-edge subset in dense `000233` while still blocking the dominant long cascade edge.
 - Important implementation fix: the planning pass must use `deepcopy`; shallow `shape.copy()` mutates nested `attributes` and accidentally applies broad relabel before component filtering.
 - Enabled the stabilizer in `realtime_quality_delayed`, not in `realtime_balanced`. Treat this as a quality-delayed candidate, not the pure causal realtime baseline.
 - Validated runtime 5-video result: `outputs/eval/realtime/codex_motion_pair_quality_5video_fix/iou0_area0_condarea0_merge0`. Compared with `outputs/eval/realtime/realtime_balanced_5video/iou0_area0_condarea0_merge0`: `ALL remapped_idsw 43 -> 25`, `remapped_hota_pct 90.12 -> 92.20`, `remapped_idf1_pct 90.18 -> 92.50`, `fp/fn unchanged 849/661`.
 - Per-video remapped IDSW in this candidate: `000231=8` (from `12`), `000233=15` (unchanged, no regression), `000263=2` (from `12`), `000328=0` (from `4`), `000302=0` (guardrail preserved).
+- 13-video artifact probe with component size `4`, edge cap `3`, and rare-edge fallback: `outputs/eval/realtime/probe_motion_pair_comp4_edges3_dense_13video/iou0_area0_condarea0_merge0`. Compared with `outputs/eval/realtime/realtime_balanced_13video/iou0_area0_condarea0_merge0`: `ALL remapped_idsw 75 -> 31`, `remapped_hota_pct 92.77 -> 95.89`, `remapped_idf1_pct 93.12 -> 96.41`, `fp/fn unchanged 2320/1055`. No per-video remapped IDSW regression in this 13-video set; `000302` stayed `0`. `000327` improved `8 -> 4`; `000233` improved `15 -> 13` but remains the weakest realtime video.
 - Do not promote this as realtime causal base without broader regression and explicit discussion that it is delayed/post-tracking stabilization. Next step should validate more videos and then design an online-buffer equivalent if true realtime latency is required.
 
 ## 2026-07-08 realtime profile cleanup and failed probes
