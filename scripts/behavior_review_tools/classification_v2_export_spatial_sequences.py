@@ -127,7 +127,18 @@ def main() -> None:
 
     print(f"[OK] wrote {npz_path}")
     print(f"[OK] wrote {audit_path}")
-    print(json.dumps({k: audit[k] for k in ['rows', 'max_window_length', 'array_shapes', 'observed_ratio', 'errors', 'warnings']}, indent=2))
+    summary_keys = [
+        "rows",
+        "max_window_length",
+        "array_shapes",
+        "observed_ratio",
+        "observed_within_length_ratio",
+        "padding_slots",
+        "missing_observed_slots_within_length",
+        "errors",
+        "warnings",
+    ]
+    print(json.dumps({k: audit[k] for k in summary_keys}, indent=2))
     if audit["errors"]:
         raise SystemExit(2)
 

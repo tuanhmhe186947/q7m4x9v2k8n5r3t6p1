@@ -152,6 +152,7 @@ def export_spatial_sequences(
         name: np.zeros((len(work_windows), max_window_length, len(cols)), dtype=np.float32)
         for name, cols in feature_names.items()
     }
+    length_mask = np.zeros((len(work_windows), max_window_length), dtype=np.float32)
     observed_mask = np.zeros((len(work_windows), max_window_length), dtype=np.float32)
     frame_index_sequence = np.full((len(work_windows), max_window_length), -1, dtype=np.int32)
 
@@ -169,6 +170,7 @@ def export_spatial_sequences(
             if len(wanted_frames) > max_window_length:
                 wanted_frames = wanted_frames[:max_window_length]
                 truncated_windows += 1
+            length_mask[i, : len(wanted_frames)] = 1.0
             frame_index_sequence[i, : len(wanted_frames)] = wanted_frames
 
             if frame_data is None:
@@ -189,8 +191,13 @@ def export_spatial_sequences(
                 arrays[name][i, slot_positions, :] = values[:, col_slice]
             missing_frame_slots += int((~valid).sum())
 
+    arrays["length_mask"] = length_mask
     arrays["observed_mask"] = observed_mask
     arrays["frame_index_sequence"] = frame_index_sequence
+    valid_length_slots = int(length_mask.sum())
+    observed_frame_slots = int(observed_mask.sum())
+    padding_slots = int(length_mask.size - valid_length_slots)
+    missing_observed_slots = int(valid_length_slots - observed_frame_slots)
 
     audit = {
         "rows": int(len(work_windows)),
@@ -199,9 +206,13 @@ def export_spatial_sequences(
         "feature_names": feature_names,
         "forbidden_selected": forbidden_selected,
         "missing_frame_slots": int(missing_frame_slots),
-        "observed_frame_slots": int(observed_mask.sum()),
+        "valid_length_slots": valid_length_slots,
+        "observed_frame_slots": observed_frame_slots,
+        "padding_slots": padding_slots,
+        "missing_observed_slots_within_length": missing_observed_slots,
         "total_frame_slots": int(observed_mask.size),
-        "observed_ratio": float(observed_mask.sum() / max(1, observed_mask.size)),
+        "observed_ratio": float(observed_frame_slots / max(1, observed_mask.size)),
+        "observed_within_length_ratio": float(observed_frame_slots / max(1, valid_length_slots)),
         "truncated_windows": int(truncated_windows),
         "errors": [],
         "warnings": [],
