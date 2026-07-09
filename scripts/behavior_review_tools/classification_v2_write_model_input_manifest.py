@@ -10,23 +10,57 @@ DEFAULT_ROOT = Path("outputs/classification_v2/train_ready_windows")
 def main() -> None:
     parser = argparse.ArgumentParser(description="Write classification_v2 model input contract manifest.")
     parser.add_argument("--root", type=Path, default=DEFAULT_ROOT)
+    parser.add_argument(
+        "--classification-root",
+        type=Path,
+        default=Path("outputs/classification_v2"),
+        help="Root containing native temporal units, publication splits, and model smoke artifacts.",
+    )
     parser.add_argument("--output-json", type=Path, default=None)
     args = parser.parse_args()
 
     root = args.root
+    classification_root = args.classification_root
     manifest = {
-        "version": "classification_v2_train_ready_contract_v1",
+        "version": "classification_v2_train_ready_contract_v2",
         "root": str(root),
         "artifacts": {
             "tabular_X": str(root / "X_window_features.csv"),
             "spatial_sequence_X": str(root / "X_spatial_sequences.npz"),
+            "spatial_sequence_audit": str(root / "spatial_sequence_audit.json"),
             "image_sequence_loader_audit": str(root / "image_sequence_loader_smoke_audit.json"),
             "y": str(root / "y_behavior.csv"),
             "train_mask": str(root / "train_mask.csv"),
             "sample_weight": str(root / "sample_weight.csv"),
             "event_weight_manifest": str(root / "event_weight_manifest.csv"),
+            "event_weight_audit": str(root / "event_weight_audit.json"),
             "split_manifest": str(root / "split_manifest.csv"),
             "class_weight_policy": str(root / "class_weight_policy.json"),
+            "native_temporal_unit_manifest": str(
+                classification_root / "native_temporal_units" / "native_temporal_unit_manifest.csv"
+            ),
+            "native_temporal_unit_audit": str(
+                classification_root / "native_temporal_units" / "native_temporal_unit_audit.json"
+            ),
+            "window_publication_split_manifest": str(
+                classification_root / "publication_splits" / "publication_split_manifest.csv"
+            ),
+            "window_publication_split_audit": str(
+                classification_root / "publication_splits" / "publication_split_audit.json"
+            ),
+            "native_publication_split_manifest": str(
+                classification_root / "native_temporal_units_publication_splits" / "publication_split_manifest.csv"
+            ),
+            "native_publication_split_audit": str(
+                classification_root / "native_temporal_units_publication_splits" / "publication_split_audit.json"
+            ),
+            "spatial_tcn_forward_smoke_script": "scripts/dev_tools/check_classification_v2_spatial_tcn_forward.py",
+            "spatial_tcn_overfit_smoke_audit": str(
+                classification_root / "model_smoke" / "spatial_tcn_overfit_smoke.json"
+            ),
+            "spatial_tcn_overfit_smoke_checkpoint": str(
+                classification_root / "model_smoke" / "spatial_tcn_overfit_smoke.pt"
+            ),
         },
         "model_input_branches": {
             "tabular_context_branch": {
@@ -53,6 +87,10 @@ def main() -> None:
         },
         "training_contract": {
             "split": "Use split_manifest.csv; never random-split frames/windows.",
+            "publication_split": (
+                "Use native_publication_split_manifest for confirmatory event-level evaluation; "
+                "window_publication_split_manifest is for engineering/window-level sensitivity only."
+            ),
             "mask": (
                 "Use train_mask.csv/window_valid_for_main_train to exclude "
                 "invalid/incomplete/review-excluded windows."
@@ -63,6 +101,7 @@ def main() -> None:
                 "training augmentation; do not treat window count as independent test sample size."
             ),
             "label": "Use y_behavior.csv only as target y.",
+            "primary_prediction_unit": "native temporal unit / review unit, not overlapping sequence window",
         },
         "forbidden_model_inputs": [
             "manual_*",
