@@ -4,7 +4,6 @@ import argparse
 import json
 from pathlib import Path
 
-
 DEFAULT_ROOT = Path("outputs/classification_v2/train_ready_windows")
 
 
@@ -25,27 +24,44 @@ def main() -> None:
             "y": str(root / "y_behavior.csv"),
             "train_mask": str(root / "train_mask.csv"),
             "sample_weight": str(root / "sample_weight.csv"),
+            "event_weight_manifest": str(root / "event_weight_manifest.csv"),
             "split_manifest": str(root / "split_manifest.csv"),
             "class_weight_policy": str(root / "class_weight_policy.json"),
         },
         "model_input_branches": {
             "tabular_context_branch": {
                 "source": "tabular_X",
-                "description": "Window-level geometry, motion, non-target ROI relation, social, and quality numeric features.",
+                "description": (
+                    "Window-level geometry, motion, non-target ROI relation, social, "
+                    "and quality numeric features."
+                ),
             },
             "spatial_temporal_branch": {
                 "source": "spatial_sequence_X",
-                "description": "Per-frame normalized bbox, motion deltas, feeder/drinker/toy class-specific ROI relation, social relation, and quality masks.",
+                "description": (
+                    "Per-frame normalized bbox, motion deltas, feeder/drinker/toy "
+                    "class-specific ROI relation, social relation, and quality masks."
+                ),
             },
             "image_sequence_branch": {
                 "source": "runtime loader from reviewed_frame_features + split_manifest",
-                "description": "Legacy crop sequence or CVAT video+bbox crop sequence, checked by image_sequence_loader_smoke_audit.",
+                "description": (
+                    "Legacy crop sequence or CVAT video+bbox crop sequence, checked by "
+                    "image_sequence_loader_smoke_audit."
+                ),
             },
         },
         "training_contract": {
             "split": "Use split_manifest.csv; never random-split frames/windows.",
-            "mask": "Use train_mask.csv/window_valid_for_main_train to exclude invalid/incomplete/review-excluded windows.",
+            "mask": (
+                "Use train_mask.csv/window_valid_for_main_train to exclude "
+                "invalid/incomplete/review-excluded windows."
+            ),
             "sample_weight": "Use sample_weight.csv and class_weight_policy.json together.",
+            "event_weight": (
+                "Use event_weight_manifest.csv/event_balanced_sample_weight for overlapping-window "
+                "training augmentation; do not treat window count as independent test sample size."
+            ),
             "label": "Use y_behavior.csv only as target y.",
         },
         "forbidden_model_inputs": [
