@@ -65,13 +65,12 @@ ROI_DOMINANT_BEHAVIORS: Final[set[str]] = {
 MOTION_DOMINANT_BEHAVIORS: Final[set[str]] = {
     "move",
     "explore",
-    "fight",
+    "stand",
 }
 
 SHAPE_DOMINANT_BEHAVIORS: Final[set[str]] = {
     "lying",
     "sitting",
-    "stand",
 }
 
 

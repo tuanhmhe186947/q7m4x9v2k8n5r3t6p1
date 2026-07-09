@@ -32,8 +32,8 @@ import pandas as pd
 
 ROI_BEHAVIORS: set[str] = {"eat", "drink", "playwithtoy"}
 INTERACTION_BEHAVIORS: set[str] = {"fight", "social-nose"}
-MOTION_BEHAVIORS: set[str] = {"move", "explore", "fight"}
-SHAPE_BEHAVIORS: set[str] = {"lying", "sitting", "stand"}
+MOTION_BEHAVIORS: set[str] = {"move", "explore", "stand"}
+SHAPE_BEHAVIORS: set[str] = {"lying", "sitting"}
 VALID_BEHAVIORS: set[str] = {
     "drink",
     "eat",

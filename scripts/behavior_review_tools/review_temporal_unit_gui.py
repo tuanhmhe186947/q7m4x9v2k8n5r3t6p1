@@ -13,6 +13,8 @@ from typing import Any
 import pandas as pd
 from PIL import Image, ImageDraw, ImageTk
 
+from pig_behavior.classification_v2.features.roi import load_scene_rois_from_coco
+
 try:
     import cv2  # type: ignore
 except Exception:  # pragma: no cover
@@ -40,6 +42,7 @@ class GuiConfig:
     output_dir: Path
     video_root: Path | None = None
     raw_root: Path | None = None
+    roi_coco_path: Path | None = None
     source_type: str | None = None
     max_items: int | None = None
     padding: float = 0.8
@@ -76,6 +79,7 @@ class ReviewUnitGui:
         self.decisions: dict[str, dict[str, Any]] = {}
         self.video_cache: dict[str, Any] = {}
         self.video_index = self._build_video_index(config.video_root)
+        self.roi_overlays = self._load_roi_overlays(config.roi_coco_path)
 
         self.root = tk.Tk()
         self.root.title("classification_v2 temporal review unit GUI")
@@ -160,6 +164,14 @@ class ReviewUnitGui:
                     add_alias(base + p.suffix.lower(), p)
 
         return index
+
+    def _load_roi_overlays(self, path: Path | None) -> list[Any]:
+        if path is None or not path.exists():
+            return []
+        try:
+            return load_scene_rois_from_coco(path)
+        except Exception:
+            return []
 
     def _build_layout(self) -> None:
         self.root.columnconfigure(0, weight=1)
@@ -472,10 +484,41 @@ class ReviewUnitGui:
             return None
         img = Image.fromarray(crop).convert("RGB")
         draw = ImageDraw.Draw(img)
+        self._draw_roi_overlays(draw, row, w, h, xx1, yy1)
         # Actor bbox inside crop.
         ax1, ay1, ax2, ay2 = int(x1 - xx1), int(y1 - yy1), int(x2 - xx1), int(y2 - yy1)
         draw.rectangle([ax1, ay1, ax2, ay2], outline="red", width=3)
         return img
+
+    def _draw_roi_overlays(
+        self,
+        draw: ImageDraw.ImageDraw,
+        row: pd.Series,
+        frame_w: int,
+        frame_h: int,
+        crop_x1: int,
+        crop_y1: int,
+    ) -> None:
+        if not self.roi_overlays:
+            return
+        colors = {"feeder": "#00b050", "drinker": "#0070c0", "toy": "#c000ff"}
+        for roi in self.roi_overlays:
+            sx = frame_w / max(1.0, float(roi.image_width))
+            sy = frame_h / max(1.0, float(roi.image_height))
+            rx1 = float(roi.x1) * sx - crop_x1
+            ry1 = float(roi.y1) * sy - crop_y1
+            rx2 = float(roi.x2) * sx - crop_x1
+            ry2 = float(roi.y2) * sy - crop_y1
+            # Skip ROIs that do not intersect the displayed crop.
+            if rx2 < 0 or ry2 < 0:
+                continue
+            category = str(roi.category)
+            color = colors.get(category, "yellow")
+            if getattr(roi, "polygon", None) is not None and len(roi.polygon) >= 3:
+                pts = [(float(x) * sx - crop_x1, float(y) * sy - crop_y1) for x, y in roi.polygon]
+                draw.line([*pts, pts[0]], fill=color, width=2)
+            draw.rectangle([rx1, ry1, rx2, ry2], outline=color, width=2)
+            draw.text((max(0, int(rx1) + 2), max(0, int(ry1) + 2)), category, fill=color)
 
     def _resolve_video_path(self, row: pd.Series) -> Path | None:
         if "source_video_path" in row.index and pd.notna(row.get("source_video_path")):
@@ -491,24 +534,39 @@ class ReviewUnitGui:
                         if cand.exists():
                             return cand
 
-        raw_vk = str(row.get("video_key", "")).strip()
-        vk = raw_vk.replace("\\", "/").lower()
-        stem = Path(vk).stem.lower()
+        raw_keys = [str(row.get("video_key", "")).strip()]
+        if "source_video_key" in row.index and pd.notna(row.get("source_video_key")):
+            raw_keys.append(str(row.get("source_video_key")).strip())
 
-        candidates = [
-            vk,
-            stem,
-            f"{stem}.mp4",
-            f"{stem}_30fps",
-            f"{stem}_30fps.mp4",
-            f"{vk}.mp4",
-            f"{vk}_30fps",
-            f"{vk}_30fps.mp4",
-        ]
+        candidates = []
+        for raw_key in raw_keys:
+            if not raw_key:
+                continue
+            vk = raw_key.replace("\\", "/").lower()
+            stem = Path(vk).stem.lower()
+            stems = [stem]
+            # Some CVAT exports store task/source names like
+            # "test video Pigs291119_000302_30fps" instead of the disk stem.
+            for prefix in ["test video ", "tracking_annotation_", "tracking annotation "]:
+                if stem.startswith(prefix):
+                    stems.append(stem[len(prefix) :])
 
-        if stem.endswith("_30fps"):
-            base = stem[: -len("_30fps")]
-            candidates.extend([base, f"{base}.mp4"])
+            for candidate_stem in stems:
+                candidates.extend(
+                    [
+                        vk,
+                        candidate_stem,
+                        f"{candidate_stem}.mp4",
+                        f"{candidate_stem}_30fps",
+                        f"{candidate_stem}_30fps.mp4",
+                        f"{vk}.mp4",
+                        f"{vk}_30fps",
+                        f"{vk}_30fps.mp4",
+                    ]
+                )
+                if candidate_stem.endswith("_30fps"):
+                    base = candidate_stem[: -len("_30fps")]
+                    candidates.extend([base, f"{base}.mp4"])
 
         for key in candidates:
             key = str(key).strip().lower()
@@ -651,6 +709,7 @@ def main() -> None:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--video-root", type=Path, default=Path("data/videos"))
     parser.add_argument("--raw-root", type=Path, default=Path("data/raw/legacy_full_multigt_masked_nodup_16f/crops"))
+    parser.add_argument("--roi-coco-json", type=Path, default=Path("data/annotations/roi/ROI_annotations.coco.json"))
     parser.add_argument("--source-type", default="")
     parser.add_argument("--max-items", type=int, default=0)
     parser.add_argument("--padding", type=float, default=0.8)
@@ -664,6 +723,7 @@ def main() -> None:
             output_dir=args.output_dir,
             video_root=args.video_root,
             raw_root=args.raw_root,
+            roi_coco_path=args.roi_coco_json,
             source_type=args.source_type or None,
             max_items=args.max_items if args.max_items > 0 else None,
             padding=args.padding,

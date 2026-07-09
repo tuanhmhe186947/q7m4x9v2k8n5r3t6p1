@@ -279,20 +279,42 @@ def apply_decisions_to_frames(
 
     if decisions.empty:
         return out, {
+            "decisions_loaded": 0,
+            "pending_ignored": 0,
             "active_decisions": 0,
             "applied_decisions": 0,
+            "accepted_units": 0,
+            "corrected_units": 0,
+            "excluded_units": 0,
             "decision_frame_rows_touched": 0,
+            "affected_frames": 0,
+            "changed_behavior_frames": 0,
+            "excluded_frames": 0,
+            "duplicate_active_decision_rows": 0,
+            "missing_review_unit_count": 0,
             "unmatched_decisions": [],
             "decision_counts": {},
             "training_action_counts": {},
         }
 
     active = decisions[~decisions["manual_review_decision"].eq("pending")].copy()
+    pending_ignored = int(decisions["manual_review_decision"].eq("pending").sum())
+    duplicate_active_rows = int(active["review_unit_id"].duplicated(keep=False).sum()) if len(active) else 0
     if active.empty:
         return out, {
+            "decisions_loaded": int(len(decisions)),
+            "pending_ignored": pending_ignored,
             "active_decisions": 0,
             "applied_decisions": 0,
+            "accepted_units": 0,
+            "corrected_units": 0,
+            "excluded_units": 0,
             "decision_frame_rows_touched": 0,
+            "affected_frames": 0,
+            "changed_behavior_frames": 0,
+            "excluded_frames": 0,
+            "duplicate_active_decision_rows": duplicate_active_rows,
+            "missing_review_unit_count": 0,
             "unmatched_decisions": [],
             "decision_counts": {},
             "training_action_counts": {},
@@ -352,9 +374,19 @@ def apply_decisions_to_frames(
         applied_count += 1
 
     audit = {
+        "decisions_loaded": int(len(decisions)),
+        "pending_ignored": pending_ignored,
         "active_decisions": int(len(active)),
         "applied_decisions": int(applied_count),
         "decision_frame_rows_touched": int(touched_total),
+        "affected_frames": int(touched_total),
+        "changed_behavior_frames": int((out["behavior_after_review"] != out["behavior_before_review"]).sum()),
+        "excluded_frames": int((~out["review_include_in_training"].astype(bool)).sum()),
+        "accepted_units": int(active["manual_review_decision"].eq("accept").sum()),
+        "corrected_units": int(active["manual_review_decision"].eq("corrected").sum()),
+        "excluded_units": int(active["manual_review_decision"].isin(["exclude", "reject"]).sum()),
+        "duplicate_active_decision_rows": duplicate_active_rows,
+        "missing_review_unit_count": int(len(unmatched)),
         "unmatched_decisions": unmatched,
         "decision_counts": active["manual_review_decision"].value_counts(dropna=False).to_dict(),
         "training_action_counts": active["manual_training_action"].value_counts(dropna=False).to_dict(),

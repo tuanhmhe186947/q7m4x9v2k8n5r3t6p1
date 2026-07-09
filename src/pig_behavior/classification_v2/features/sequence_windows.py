@@ -171,6 +171,8 @@ def audit_sequence_windows(windows: pd.DataFrame, intervals: pd.DataFrame | None
         "behavior_window_label": _value_counts_dict(windows, "behavior_window_label"),
         "label_propagation_policy": _value_counts_dict(windows, "label_propagation_policy"),
         "window_exclusion_reason_top": _value_counts_dict(windows, "window_exclusion_reason"),
+        "review_excluded_frame_count_window": _value_counts_dict(windows, "review_excluded_frame_count_window"),
+        "window_sample_weight": _numeric_summary(windows, "window_sample_weight"),
         "speed_mean_window": _numeric_summary(windows, "speed_mean_window"),
         "target_roi_contact_ratio_window": _numeric_summary(windows, "target_roi_contact_ratio_window"),
         "pair_contact_ratio_window": _numeric_summary(windows, "pair_contact_ratio_window"),
@@ -281,14 +283,16 @@ def _generate_cvat_windows(
         return rows
 
     starts = intervals["label_window_start"].astype(int).tolist()
+    starts_np = intervals["label_window_start"].astype(int).to_numpy()
+    ends_np = intervals["label_window_end"].astype(int).to_numpy()
     produced = 0
     for length in config.window_lengths:
         for interval_pos in range(0, len(starts), config.cvat_window_stride_intervals):
             start = starts[interval_pos]
             end = start + length - 1
-            overlap = intervals[
-                (intervals["label_window_end"] >= start) & (intervals["label_window_start"] <= end)
-            ].copy()
+            left = int(np.searchsorted(ends_np, start, side="left"))
+            right = int(np.searchsorted(starts_np, end, side="right"))
+            overlap = intervals.iloc[left:right].copy()
             coverage_complete = _intervals_cover_span(overlap, start, end)
             interval_keys = (
                 set(overlap["temporal_unit_key"].astype(str)) if "temporal_unit_key" in overlap.columns else set()
@@ -382,6 +386,7 @@ def _summarize_window(
     bbox_valid_ratio = _bool_mean(wg.get("bbox_valid", pd.Series(True, index=wg.index)))
     hidden_ratio = _bool_mean(wg.get("hidden", pd.Series(False, index=wg.index)))
     spatio_ratio = _bool_mean(wg.get("spatiotemporal_feature_valid", pd.Series(True, index=wg.index)))
+    review_summary = _review_training_summary(wg)
 
     ts_start, ts_end, duration_from_ts = _timestamp_span(wg)
     effective_fps = _infer_effective_fps(wg, start, end, duration_from_ts, config.default_fps)
@@ -402,6 +407,8 @@ def _summarize_window(
         reasons.append("hidden_ratio_above_threshold")
     if spatio_ratio < config.min_spatiotemporal_valid_ratio:
         reasons.append("spatiotemporal_valid_ratio_below_threshold")
+    if review_summary["review_excluded_frame_count_window"] > 0:
+        reasons.append("review_excluded_rows_in_window")
 
     valid_main = not reasons and label_status == "stable"
     training_tier = (
@@ -452,6 +459,7 @@ def _summarize_window(
         "hidden_ratio_window": hidden_ratio,
         "visible_ratio_window": 1.0 - hidden_ratio,
         "spatiotemporal_feature_valid_ratio_window": spatio_ratio,
+        **review_summary,
     }
 
     row.update(_interaction_policy_for_behavior(row["behavior_window_label"]))
@@ -499,6 +507,11 @@ def _empty_invalid_window(
         "hidden_ratio_window": 0.0,
         "visible_ratio_window": 0.0,
         "spatiotemporal_feature_valid_ratio_window": 0.0,
+        "review_include_ratio_window": 1.0,
+        "review_excluded_frame_count_window": 0,
+        "review_training_actions_window": "",
+        "review_sample_weight_mean_window": 1.0,
+        "window_sample_weight": 0.0,
     }
     row.update(_interaction_policy_for_behavior(""))
     row.update(_empty_aggregate_features())
@@ -601,6 +614,56 @@ def _aggregate_window_features(wg: pd.DataFrame, window_duration_sec: float | No
     out["aggression_score_proxy_max_window"] = _safe_max(num("aggression_score_proxy"))
 
     return out
+
+
+def _review_training_summary(wg: pd.DataFrame) -> dict[str, Any]:
+    """Summarize reviewed training masks without dropping any window row."""
+    if wg.empty:
+        return {
+            "review_include_ratio_window": 1.0,
+            "review_excluded_frame_count_window": 0,
+            "review_training_actions_window": "",
+            "review_sample_weight_mean_window": 1.0,
+            "window_sample_weight": 0.0,
+        }
+
+    if "review_include_in_training" in wg.columns:
+        include = _to_bool_series(wg["review_include_in_training"])
+    else:
+        include = pd.Series(True, index=wg.index)
+
+    actions = ""
+    if "review_training_action" in wg.columns:
+        action_values = [
+            str(v).strip()
+            for v in wg["review_training_action"].dropna().astype(str).tolist()
+            if str(v).strip() and str(v).strip().lower() != "nan"
+        ]
+        actions = "|".join(sorted(set(action_values)))
+        exclude_action = pd.Series(
+            [str(v).strip().lower() in {"exclude", "reject"} for v in wg["review_training_action"]],
+            index=wg.index,
+        )
+        include = include & ~exclude_action
+
+    if "review_sample_weight" in wg.columns:
+        weights = pd.to_numeric(wg["review_sample_weight"], errors="coerce")
+    else:
+        weights = pd.Series(1.0, index=wg.index, dtype="float64")
+    weights = weights.fillna(1.0).clip(lower=0.0, upper=1.0)
+
+    excluded_count = int((~include).sum())
+    include_ratio = float(include.mean()) if len(include) else 1.0
+    weight_mean = float(weights.mean()) if len(weights) else 1.0
+    window_weight = 0.0 if excluded_count else weight_mean
+
+    return {
+        "review_include_ratio_window": include_ratio,
+        "review_excluded_frame_count_window": excluded_count,
+        "review_training_actions_window": actions,
+        "review_sample_weight_mean_window": weight_mean,
+        "window_sample_weight": window_weight,
+    }
 
 
 def _empty_aggregate_features() -> dict[str, Any]:
