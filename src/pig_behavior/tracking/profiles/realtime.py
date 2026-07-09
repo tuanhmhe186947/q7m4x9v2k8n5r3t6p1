@@ -72,6 +72,11 @@ PRESENTATION_PROFILES: dict[str, dict[str, object]] = {
         "eval_config": "realtime_fast",
         "description": "Lower-latency realtime profile with frame skipping and no delayed repair.",
     },
+    "realtime_balanced": {
+        "mode": "realtime",
+        "eval_config": "realtime_balanced",
+        "description": "Causal realtime profile with runtime guards and no delayed repair.",
+    },
     "realtime_quality_delayed": {
         "mode": "realtime",
         "eval_config": "realtime_quality_delayed",

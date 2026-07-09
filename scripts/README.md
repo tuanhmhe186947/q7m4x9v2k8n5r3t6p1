@@ -168,6 +168,50 @@ Sau khi `--task compare` chay xong, summary nam trong compare output root:
 
 - `mode_comparison_summary.csv`
 - `mode_comparison_summary.md`
+- `mode_runtime_summary.csv`
+- `mode_runtime_summary.md`
+- `mode_scientific_summary.csv`
+- `mode_scientific_summary.md`
+
+Compare summary gom nhieu nhom chi so de tranh ket luan chi dua tren IDSW/HOTA:
+
+- Protocol/mode semantics: `baseline_role`, `causality_level`,
+  `uses_offline_smoothing`, `uses_identity_repair`, `uses_delayed_repair`,
+  `detect_every_n_frames`, `latency_window_frames`.
+- Chat luong detection/tracking: `gt_detections`, `pred_detections`, `matches`,
+  `fp`, `fn`, `precision_pct`, `recall_pct`, `mota_pct`, `motp_iou_pct`,
+  `idf1_pct`, `hota_pct`.
+- Chat luong identity sau remap: `remapped_idsw`, `remapped_mota_pct`,
+  `remapped_idf1_pct`, `remapped_hota_pct`, `remapped_assa_pct`,
+  `idmap_coverage_pct`.
+- Do lien tuc track: `fragments`, `remapped_fragments`,
+  `gap_tolerant_fragments`, `remapped_gap_tolerant_fragments`, `tracklets`,
+  `remapped_tracklets`.
+- Toc do/thuc te: `compare_elapsed_sec`, `compare_evaluated_fps`,
+  `video_duration_sec`, `compare_realtime_factor`.
+
+`compare_elapsed_sec` la thoi gian cua subprocess compare cho tung mode, gom ca
+tracking neu prediction thieu va phan evaluation/report. `compare_realtime_factor`
+lon hon `1.0` nghia la nhanh hon realtime tren tong thoi luong video da evaluate.
+
+`mode_scientific_summary.csv` gom mot dong moi mode, phu hop de dua vao bang
+paper: total metrics lay tu dong `ALL`, con mean/std/median tinh tren tung video
+va bo qua dong `ALL`. Cach nay tranh viec mot video dai lan at toan bo ket luan.
+
+Ghi chu khi viet paper:
+
+- `bytetrack_raw` la raw ByteTrack baseline trong cung detector/input pipeline:
+  tat offline smoothing, identity guard, hidden motion, local/suffix repair,
+  overlap suppression, hidden suffix repair va realtime stabilizer. Khong nen
+  goi la benchmark chinh thuc cua moi bien the ByteTrack ben ngoai repo.
+- `realtime_fast` va `realtime_balanced` la realtime/online candidates vi tat
+  offline smoothing. `realtime_quality_delayed` la short-delay realtime candidate
+  vi co window repair/stabilizer; can bao cao `latency_window_frames`.
+- `hybrid_bytetrack` voi `hybrid_bytetrack_best` la offline quality profile vi
+  bat `enable_offline_smoothing`, `smooth_boxes`, `refine_boxes` va cac repair.
+  Neu profile nay cho ket qua tot nhat, viet nhu mot offline/post-processed upper
+  bound hoac quality-oriented mode. Dieu nay khong lam giam gia tri bai bao neu
+  duoc noi ro; nguoc lai, no lam trade-off accuracy/latency minh bach hon.
 
 ## `track_videos.py`
 
