@@ -29,6 +29,9 @@ def main() -> None:
             "spatial_sequence_X": str(root / "X_spatial_sequences.npz"),
             "spatial_sequence_audit": str(root / "spatial_sequence_audit.json"),
             "image_sequence_loader_audit": str(root / "image_sequence_loader_smoke_audit.json"),
+            "image_frame_context_manifest": str(root / "image_frame_context_manifest.csv"),
+            "image_window_context_manifest": str(root / "image_window_context_manifest.csv"),
+            "image_context_index_audit": str(root / "image_context_index_audit.json"),
             "y": str(root / "y_behavior.csv"),
             "train_mask": str(root / "train_mask.csv"),
             "sample_weight": str(root / "sample_weight.csv"),
@@ -78,10 +81,11 @@ def main() -> None:
                 ),
             },
             "image_sequence_branch": {
-                "source": "runtime loader from reviewed_frame_features + split_manifest",
+                "source": "image_frame_context_manifest + image_window_context_manifest",
                 "description": (
-                    "Legacy crop sequence or CVAT video+bbox crop sequence, checked by "
-                    "image_sequence_loader_smoke_audit."
+                    "Actor crop sequence index keyed by image_context_id. Legacy rows load "
+                    "pre-cropped images; CVAT rows load video frames and crop bbox, with "
+                    "full-frame/partner context availability audited separately."
                 ),
             },
         },
