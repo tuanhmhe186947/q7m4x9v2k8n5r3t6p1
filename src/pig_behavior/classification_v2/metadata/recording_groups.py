@@ -71,12 +71,13 @@ def assign_publication_splits(
     group_manifest: pd.DataFrame,
     *,
     ratios: dict[str, float],
+    id_col: str = "window_id",
     label_col: str = "behavior_window_label",
     valid_col: str = "window_valid_for_main_train",
 ) -> PublicationSplitTables:
     """Assign rows to train/val/test with zero recording-group overlap."""
     _validate_ratios(ratios)
-    required_rows = ["window_id", "source_type", "dataset_id", "video_key", label_col, valid_col]
+    required_rows = [id_col, "source_type", "dataset_id", "video_key", label_col, valid_col]
     missing_rows = [c for c in required_rows if c not in rows.columns]
     if missing_rows:
         raise ValueError(f"Missing split input columns: {missing_rows}")
@@ -149,7 +150,7 @@ def assign_publication_splits(
         assigned_labels[best_split].update(group["label_counts"])
 
     split_manifest = work[
-        ["window_id", "source_type", "dataset_id", "video_key", "recording_group_id", label_col, valid_col]
+        [id_col, "source_type", "dataset_id", "video_key", "recording_group_id", label_col, valid_col]
     ].copy()
     split_manifest["split"] = split_manifest["recording_group_id"].map(group_to_split)
 
@@ -165,6 +166,7 @@ def assign_publication_splits(
     )
     audit = {
         "rows": int(len(split_manifest)),
+        "id_col": id_col,
         "valid_rows": int(valid_mask.sum()),
         "recording_group_count": int(len(group_assignment)),
         "ratios": ratios,

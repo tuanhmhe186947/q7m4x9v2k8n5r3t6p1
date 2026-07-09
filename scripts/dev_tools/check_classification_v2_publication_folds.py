@@ -24,6 +24,7 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=Path("outputs/classification_v2/publication_splits/check_publication_folds_audit.json"),
     )
+    parser.add_argument("--id-col", default="window_id")
     return parser.parse_args()
 
 
@@ -36,7 +37,7 @@ def main() -> None:
 
     splits = pd.read_csv(args.split_manifest_csv, low_memory=False)
     groups = pd.read_csv(args.recording_group_manifest_csv, low_memory=False)
-    required_split = {"window_id", "recording_group_id", "split"}
+    required_split = {args.id_col, "recording_group_id", "split"}
     required_group = {"recording_group_id", "canonical_recording_date", "biological_subject_scope_known"}
     missing_split = sorted(required_split.difference(splits.columns))
     missing_group = sorted(required_group.difference(groups.columns))
@@ -79,7 +80,9 @@ def main() -> None:
     audit = {
         "split_manifest_csv": str(args.split_manifest_csv),
         "recording_group_manifest_csv": str(args.recording_group_manifest_csv),
+        "id_col": args.id_col,
         "rows": int(len(splits)),
+        "unique_ids": int(splits[args.id_col].nunique(dropna=False)) if args.id_col in splits else 0,
         "recording_group_count": int(splits["recording_group_id"].nunique()) if "recording_group_id" in splits else 0,
         "split_rows": splits["split"].value_counts(dropna=False).to_dict() if "split" in splits else {},
         "recording_group_leakage_count": int(len(leakage)),

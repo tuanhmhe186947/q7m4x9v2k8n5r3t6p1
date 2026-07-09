@@ -40,6 +40,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--label-col", default="behavior_window_label")
     parser.add_argument("--valid-col", default="window_valid_for_main_train")
+    parser.add_argument("--id-col", default="window_id")
     return parser.parse_args()
 
 
@@ -64,6 +65,7 @@ def main() -> None:
         rows,
         group_manifest,
         ratios=ratios,
+        id_col=args.id_col,
         label_col=args.label_col,
         valid_col=args.valid_col,
     )
@@ -80,6 +82,9 @@ def main() -> None:
         "publication_split_manifest_csv": str(split_path),
         "publication_split_audit_json": str(audit_path),
         "group_level": args.group_level,
+        "id_col": args.id_col,
+        "label_col": args.label_col,
+        "valid_col": args.valid_col,
         "recording_group_audit": recording_group_audit,
         "publication_split_audit": split_tables.audit,
     }
