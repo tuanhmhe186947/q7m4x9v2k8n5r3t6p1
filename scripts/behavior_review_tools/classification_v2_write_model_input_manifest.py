@@ -112,13 +112,16 @@ def main() -> None:
             ),
             "model_readiness_report_md": str(root / "model_readiness_report.md"),
             "model_readiness_report_json": str(root / "model_readiness_report.json"),
+            "feature_semantics_contract": "configs/classification_v2/feature_semantics_v1.json",
+            "feature_semantics_audit": str(root / "feature_semantics_audit.json"),
         },
         "model_input_branches": {
             "tabular_context_branch": {
                 "source": "tabular_X",
                 "description": (
-                    "Window-level geometry, motion, non-target ROI relation, social, "
-                    "and quality numeric features."
+                    "Window-level temporal, quality, motion, geometry, and social "
+                    "numeric features. Scientific feature-family semantics are "
+                    "declared in feature_semantics_contract."
                 ),
             },
             "spatial_temporal_branch": {

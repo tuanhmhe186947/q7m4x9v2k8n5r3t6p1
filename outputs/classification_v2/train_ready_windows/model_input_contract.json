@@ -1,0 +1,111 @@
+{
+  "version": "classification_v2_train_ready_contract_v2",
+  "root": "outputs\\classification_v2\\train_ready_windows",
+  "artifacts": {
+    "tabular_X": "outputs\\classification_v2\\train_ready_windows\\X_window_features.csv",
+    "spatial_sequence_X": "outputs\\classification_v2\\train_ready_windows\\X_spatial_sequences.npz",
+    "spatial_sequence_audit": "outputs\\classification_v2\\train_ready_windows\\spatial_sequence_audit.json",
+    "image_sequence_loader_audit": "outputs\\classification_v2\\train_ready_windows\\image_sequence_loader_smoke_audit.json",
+    "image_frame_context_manifest": "outputs\\classification_v2\\train_ready_windows\\image_frame_context_manifest.csv",
+    "image_window_context_manifest": "outputs\\classification_v2\\train_ready_windows\\image_window_context_manifest.csv",
+    "image_context_index_audit": "outputs\\classification_v2\\train_ready_windows\\image_context_index_audit.json",
+    "image_tensor_loader_smoke_audit": "outputs\\classification_v2\\train_ready_windows\\image_tensor_loader_smoke_audit.json",
+    "interaction_window_context_manifest": "outputs\\classification_v2\\train_ready_windows\\interaction_window_context_manifest.csv",
+    "interaction_context_audit": "outputs\\classification_v2\\train_ready_windows\\interaction_context_audit.json",
+    "y": "outputs\\classification_v2\\train_ready_windows\\y_behavior.csv",
+    "y_auxiliary_targets": "outputs\\classification_v2\\train_ready_windows\\y_auxiliary_targets.csv",
+    "auxiliary_targets_audit": "outputs\\classification_v2\\train_ready_windows\\auxiliary_targets_audit.json",
+    "train_mask": "outputs\\classification_v2\\train_ready_windows\\train_mask.csv",
+    "sample_weight": "outputs\\classification_v2\\train_ready_windows\\sample_weight.csv",
+    "event_weight_manifest": "outputs\\classification_v2\\train_ready_windows\\event_weight_manifest.csv",
+    "event_weight_audit": "outputs\\classification_v2\\train_ready_windows\\event_weight_audit.json",
+    "split_manifest": "outputs\\classification_v2\\train_ready_windows\\split_manifest.csv",
+    "class_weight_policy": "outputs\\classification_v2\\train_ready_windows\\class_weight_policy.json",
+    "native_temporal_unit_manifest": "outputs\\classification_v2\\native_temporal_units\\native_temporal_unit_manifest.csv",
+    "native_temporal_unit_audit": "outputs\\classification_v2\\native_temporal_units\\native_temporal_unit_audit.json",
+    "window_publication_split_manifest": "outputs\\classification_v2\\publication_splits\\publication_split_manifest.csv",
+    "window_publication_split_audit": "outputs\\classification_v2\\publication_splits\\publication_split_audit.json",
+    "native_publication_split_manifest": "outputs\\classification_v2\\native_temporal_units_publication_splits\\publication_split_manifest.csv",
+    "native_publication_split_audit": "outputs\\classification_v2\\native_temporal_units_publication_splits\\publication_split_audit.json",
+    "spatial_tcn_forward_smoke_script": "scripts/dev_tools/check_classification_v2_spatial_tcn_forward.py",
+    "spatial_tcn_overfit_smoke_audit": "outputs\\classification_v2\\model_smoke\\spatial_tcn_overfit_smoke.json",
+    "spatial_tcn_overfit_smoke_checkpoint": "outputs\\classification_v2\\model_smoke\\spatial_tcn_overfit_smoke.pt",
+    "spatial_tcn_smoke_train_audit": "outputs\\classification_v2\\model_smoke\\spatial_tcn_smoke_train\\spatial_tcn_smoke_train_audit.json",
+    "spatial_tcn_smoke_train_predictions": "outputs\\classification_v2\\model_smoke\\spatial_tcn_smoke_train\\spatial_tcn_smoke_predictions.csv",
+    "spatial_tcn_smoke_train_checkpoint": "outputs\\classification_v2\\model_smoke\\spatial_tcn_smoke_train\\spatial_tcn_smoke_train.pt",
+    "multimodal_forward_smoke_script": "scripts/dev_tools/check_classification_v2_multimodal_forward.py",
+    "multimodal_forward_smoke_audit": "outputs\\classification_v2\\model_smoke\\multimodal_forward_smoke_audit.json",
+    "multimodal_smoke_train_audit": "outputs\\classification_v2\\model_smoke\\multimodal_smoke_train\\multimodal_smoke_train_audit.json",
+    "multimodal_smoke_train_predictions": "outputs\\classification_v2\\model_smoke\\multimodal_smoke_train\\multimodal_smoke_predictions.csv",
+    "multimodal_smoke_train_checkpoint": "outputs\\classification_v2\\model_smoke\\multimodal_smoke_train\\multimodal_smoke_train.pt",
+    "experiment_registry_ledger": "outputs\\classification_v2\\experiment_registry\\experiment_ledger.jsonl",
+    "spatial_tcn_smoke_train_experiment_record": "outputs\\classification_v2\\experiment_registry\\spatial_tcn_smoke_train_record.json",
+    "spatial_control_shortcut_audit": "outputs\\classification_v2\\model_smoke\\spatial_control_shortcut_audit.json",
+    "native_temporal_prediction_audit": "outputs\\classification_v2\\model_smoke\\native_temporal_predictions\\native_temporal_prediction_audit.json",
+    "native_temporal_predictions": "outputs\\classification_v2\\model_smoke\\native_temporal_predictions\\native_temporal_predictions.csv",
+    "model_readiness_report_md": "outputs\\classification_v2\\train_ready_windows\\model_readiness_report.md",
+    "model_readiness_report_json": "outputs\\classification_v2\\train_ready_windows\\model_readiness_report.json",
+    "feature_semantics_contract": "configs/classification_v2/feature_semantics_v1.json",
+    "feature_semantics_audit": "outputs\\classification_v2\\train_ready_windows\\feature_semantics_audit.json"
+  },
+  "model_input_branches": {
+    "tabular_context_branch": {
+      "source": "tabular_X",
+      "description": "Window-level temporal, quality, motion, geometry, and social numeric features. Scientific feature-family semantics are declared in feature_semantics_contract."
+    },
+    "spatial_temporal_branch": {
+      "source": "spatial_sequence_X",
+      "description": "Per-frame normalized bbox, motion deltas, feeder/drinker/toy class-specific ROI relation, social relation, and quality masks."
+    },
+    "image_sequence_branch": {
+      "source": "image_frame_context_manifest + image_window_context_manifest",
+      "description": "Actor crop sequence index keyed by image_context_id. Legacy rows load pre-cropped images; CVAT rows load video frames and crop bbox, with full-frame/partner context availability audited separately."
+    },
+    "interaction_context_branch": {
+      "source": "interaction_window_context_manifest",
+      "description": "Audit-only full-frame and partner-context readiness for fight/social-nose windows. Use for review/model gating, not as numeric model input X."
+    }
+  },
+  "training_contract": {
+    "split": "Use split_manifest.csv; never random-split frames/windows.",
+    "publication_split": "Use native_publication_split_manifest for confirmatory event-level evaluation; window_publication_split_manifest is for engineering/window-level sensitivity only.",
+    "mask": "Use train_mask.csv/window_valid_for_main_train to exclude invalid/incomplete/review-excluded windows.",
+    "sample_weight": "Use sample_weight.csv and class_weight_policy.json together.",
+    "event_weight": "Use event_weight_manifest.csv/event_balanced_sample_weight for overlapping-window training augmentation; do not treat window count as independent test sample size.",
+    "prediction_schema": "Smoke/baseline prediction CSVs must include row_index, window_id, source_split, y_true, y_pred, confidence, and prediction_split.",
+    "label": "Use y_behavior.csv only as target y.",
+    "auxiliary_labels": "Use y_auxiliary_targets.csv only as auxiliary y/mask heads, never as input X.",
+    "primary_prediction_unit": "native temporal unit / review unit, not overlapping sequence window"
+  },
+  "forbidden_model_inputs": [
+    "manual_*",
+    "review_*",
+    "behavior_before_review",
+    "original_behavior",
+    "review_unit_id",
+    "window_id",
+    "temporal_unit_key",
+    "video_key",
+    "dataset_id",
+    "pig_id",
+    "track_id",
+    "path columns",
+    "label/policy text columns",
+    "target_roi_*",
+    "roi_target_*"
+  ],
+  "upgrade_path": [
+    "smoke_test_tabular_baseline",
+    "add_spatial_temporal_branch",
+    "add_image_sequence_branch",
+    "add_multimodal_forward_smoke",
+    "add_multimodal_tiny_overfit_smoke",
+    "add_interaction_full_frame_partner_context_audit",
+    "add_auxiliary_multitask_targets",
+    "multi_task_heads_posture_motion_roi_interaction",
+    "graph_social_interaction_branch",
+    "hard_negative_mining_from_confusion_focus",
+    "active_learning_uncertain_windows"
+  ],
+  "missing_artifacts": []
+}
