@@ -1,0 +1,78 @@
+{
+  "schema_version": "classification_v2_model_architecture_contract_audit_v1",
+  "contract_json": "configs\\classification_v2\\model_architecture_contract_v1.json",
+  "contract_version": "classification_v2_model_architecture_contract_v1",
+  "model_family": "multimodal_spatiotemporal_bbox_roi_social_context",
+  "paper_candidate": false,
+  "paper_candidate_ready": false,
+  "errors": [],
+  "warnings": [
+    "planned_branch_not_yet_implemented=full_frame_partner_interaction_context",
+    "planned_branch_not_yet_implemented=social_graph_context",
+    "paper_candidate_false_design_contract_only",
+    "paper_candidate_missing_required_branches=['full_frame_partner_interaction_context']",
+    "paper_candidate_blockers=['full_frame_partner_interaction_context is not implemented yet', 'learned model must emit S16 prediction schema for native temporal metrics', 'branch ablation and shortcut controls must be recorded before paper-facing claim']"
+  ],
+  "valid": true,
+  "branch_report": [
+    {
+      "name": "actor_image_sequence",
+      "status": "implemented_smoke",
+      "paper_candidate_required": true,
+      "source_artifacts": [
+        "outputs/classification_v2/train_ready_windows/image_frame_context_manifest.csv",
+        "outputs/classification_v2/train_ready_windows/image_window_context_manifest.csv"
+      ],
+      "existing_source_artifact_count": 2,
+      "mask_artifacts": [
+        "image_length_mask",
+        "image_observed_mask"
+      ]
+    },
+    {
+      "name": "full_frame_partner_interaction_context",
+      "status": "planned_required_before_paper_candidate",
+      "paper_candidate_required": true,
+      "source_artifacts": [
+        "outputs/classification_v2/train_ready_windows/interaction_context_window_manifest.csv"
+      ],
+      "existing_source_artifact_count": 0,
+      "mask_artifacts": [
+        "interaction_context_available_mask"
+      ]
+    },
+    {
+      "name": "social_graph_context",
+      "status": "planned_exploratory",
+      "paper_candidate_required": false,
+      "source_artifacts": [
+        "outputs/classification_v2/train_ready_windows/social_graph_window_tensors.npz"
+      ],
+      "existing_source_artifact_count": 0,
+      "mask_artifacts": [
+        "social_graph_available_mask"
+      ]
+    },
+    {
+      "name": "spatial_sequence_bbox_motion_roi_social_quality",
+      "status": "implemented_smoke",
+      "paper_candidate_required": true,
+      "source_artifacts": [
+        "outputs/classification_v2/train_ready_windows/X_spatial_sequences.npz"
+      ],
+      "existing_source_artifact_count": 1,
+      "mask_artifacts": [
+        "length_mask",
+        "observed_mask"
+      ]
+    }
+  ],
+  "paper_candidate_blockers": [
+    "full_frame_partner_interaction_context is not implemented yet",
+    "learned model must emit S16 prediction schema for native temporal metrics",
+    "branch ablation and shortcut controls must be recorded before paper-facing claim"
+  ],
+  "missing_required_paper_branches": [
+    "full_frame_partner_interaction_context"
+  ]
+}

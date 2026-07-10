@@ -1,0 +1,133 @@
+{
+  "version": "classification_v2_model_architecture_contract_v1",
+  "claim_boundary": {
+    "target_strength": "Q2_strong",
+    "primary_claim": "Improved pig behavior recognition under session/video-safe validation.",
+    "prohibited_claims": [
+      "Q1-style external farm/camera/cohort generalization without an external validation set",
+      "unseen-animal identity generalization from annotation-local pig_id",
+      "window-level metrics as independent publication sample size"
+    ]
+  },
+  "paper_candidate": false,
+  "model_family": "multimodal_spatiotemporal_bbox_roi_social_context",
+  "implemented_modules": {
+    "fusion_model": "src/pig_behavior/classification_v2/models/multimodal_fusion.py",
+    "smoke_trainer": "src/pig_behavior/classification_v2/training/multimodal_smoke.py",
+    "forward_checker": "scripts/dev_tools/check_classification_v2_multimodal_forward.py",
+    "smoke_train_checker": "scripts/dev_tools/check_classification_v2_multimodal_smoke_train.py",
+    "prediction_schema_checker": "scripts/dev_tools/check_classification_v2_prediction_schema.py"
+  },
+  "input_branches": [
+    {
+      "name": "actor_image_sequence",
+      "status": "implemented_smoke",
+      "tensor_role": "model_input",
+      "source_artifacts": [
+        "outputs/classification_v2/train_ready_windows/image_frame_context_manifest.csv",
+        "outputs/classification_v2/train_ready_windows/image_window_context_manifest.csv"
+      ],
+      "mask_artifacts": [
+        "image_length_mask",
+        "image_observed_mask"
+      ],
+      "allowed_context": "actor bbox crop sequence only",
+      "paper_candidate_required": true
+    },
+    {
+      "name": "spatial_sequence_bbox_motion_roi_social_quality",
+      "status": "implemented_smoke",
+      "tensor_role": "model_input",
+      "source_artifacts": [
+        "outputs/classification_v2/train_ready_windows/X_spatial_sequences.npz"
+      ],
+      "mask_artifacts": [
+        "length_mask",
+        "observed_mask"
+      ],
+      "required_feature_groups": [
+        "bbox_xywh_n",
+        "bbox_shape_n",
+        "motion_delta",
+        "roi_class_relation",
+        "social_relation",
+        "quality_mask"
+      ],
+      "allowed_context": "whitelisted bbox, motion, ROI relation, social relation, and quality numeric tensors",
+      "paper_candidate_required": true
+    },
+    {
+      "name": "full_frame_partner_interaction_context",
+      "status": "planned_required_before_paper_candidate",
+      "tensor_role": "model_input",
+      "source_artifacts": [
+        "outputs/classification_v2/train_ready_windows/interaction_context_window_manifest.csv"
+      ],
+      "mask_artifacts": [
+        "interaction_context_available_mask"
+      ],
+      "allowed_context": "full-frame or partner-context visual crop selected from audited geometry, never from ground-truth behavior",
+      "paper_candidate_required": true
+    },
+    {
+      "name": "social_graph_context",
+      "status": "planned_exploratory",
+      "tensor_role": "optional_model_input",
+      "source_artifacts": [
+        "outputs/classification_v2/train_ready_windows/social_graph_window_tensors.npz"
+      ],
+      "mask_artifacts": [
+        "social_graph_available_mask"
+      ],
+      "allowed_context": "same-frame pig graph derived from bbox geometry and audited social features",
+      "paper_candidate_required": false
+    }
+  ],
+  "fusion_policy": {
+    "type": "late_fusion_with_masks",
+    "required_controls": [
+      "branch-specific masks",
+      "branch ablation",
+      "source-domain balance audit",
+      "shortcut controls before paper claim"
+    ],
+    "forbidden_inputs": [
+      "manual_*",
+      "review_*",
+      "*behavior*",
+      "*label*",
+      "original_behavior",
+      "review_unit_id",
+      "window_id",
+      "temporal_unit_key",
+      "video_key",
+      "dataset_id",
+      "pig_id",
+      "track_id",
+      "object_track_key",
+      "source_type",
+      "source_*",
+      "split",
+      "split_*",
+      "*_path"
+    ]
+  },
+  "evaluation_contract": {
+    "split_policy": "recording_group_oof",
+    "metric_unit": "native_temporal_unit",
+    "prediction_schema_contract": "classification_v2_prediction_schema_contract_v1",
+    "primary_metrics": [
+      "macro_f1_supported",
+      "macro_recall_supported",
+      "accuracy"
+    ],
+    "uncertainty": "native_temporal_unit_bootstrap_ci",
+    "minimum_effect_size_metric": "macro_f1_supported",
+    "minimum_effect_size": 0.02
+  },
+  "paper_candidate_blockers": [
+    "full_frame_partner_interaction_context is not implemented yet",
+    "learned model must emit S16 prediction schema for native temporal metrics",
+    "branch ablation and shortcut controls must be recorded before paper-facing claim"
+  ]
+}
