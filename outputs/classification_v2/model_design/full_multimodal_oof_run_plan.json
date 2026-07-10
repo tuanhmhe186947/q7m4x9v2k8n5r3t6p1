@@ -20,7 +20,8 @@
     "bootstrap_iterations": 30,
     "seed": 20260710,
     "device": "auto",
-    "run_mode": "full"
+    "run_mode": "full",
+    "resume": true
   },
   "run_mode": "full",
   "paper_facing_candidate_plan": true,

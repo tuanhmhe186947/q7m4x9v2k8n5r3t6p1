@@ -7,6 +7,7 @@ for loading and audit, not as model features.
 
 from __future__ import annotations
 
+from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -32,6 +33,7 @@ class ImageSequenceDatasetConfig:
     image_size: int = 128
     max_windows: int | None = None
     require_complete: bool = True
+    image_cache_size: int = 8192
 
 
 class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
@@ -40,6 +42,8 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
     def __init__(self, config: ImageSequenceDatasetConfig) -> None:
         if config.image_size <= 0:
             raise ValueError("image_size must be positive")
+        if config.image_cache_size < 0:
+            raise ValueError("image_cache_size must be non-negative")
         self.config = config
         self.frames = pd.read_csv(config.frame_context_csv, low_memory=False)
         self.windows = pd.read_csv(config.window_context_csv, low_memory=False)
@@ -53,6 +57,7 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         self.windows = self.windows.reset_index(drop=True)
         self.frame_by_context_id = self.frames.set_index("image_context_id", drop=False).to_dict("index")
         self._capture_cache: dict[str, Any] = {}
+        self._image_cache: OrderedDict[str, np.ndarray] = OrderedDict()
 
     def __len__(self) -> int:
         return int(len(self.windows))
@@ -75,7 +80,7 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
             if frame is None:
                 errors.append(f"context_id_not_found@{pos}")
                 continue
-            image = self._load_frame_image(frame)
+            image = self._load_context_image(context_id, frame)
             if image is None:
                 errors.append(f"image_load_failed@{pos}")
                 continue
@@ -101,6 +106,7 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
             except Exception:
                 pass
         self._capture_cache.clear()
+        self._image_cache.clear()
 
     def _validate_manifests(self) -> None:
         frame_required = {
@@ -137,6 +143,21 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         if source_type == "cvat_tracking_xml":
             return self._load_cvat_crop(frame)
         return None
+
+    def _load_context_image(self, context_id: str, frame: dict[str, Any]) -> np.ndarray | None:
+        """Load one crop with a bounded LRU cache keyed by audited context ID."""
+
+        cache_size = int(self.config.image_cache_size)
+        if cache_size > 0 and context_id in self._image_cache:
+            image = self._image_cache.pop(context_id)
+            self._image_cache[context_id] = image
+            return image
+        image = self._load_frame_image(frame)
+        if image is not None and cache_size > 0:
+            self._image_cache[context_id] = image
+            while len(self._image_cache) > cache_size:
+                self._image_cache.popitem(last=False)
+        return image
 
     def _load_cvat_crop(self, frame: dict[str, Any]) -> np.ndarray | None:
         if cv2 is None:
