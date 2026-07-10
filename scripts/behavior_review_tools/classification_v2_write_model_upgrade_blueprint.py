@@ -7,152 +7,245 @@ from typing import Any
 
 
 DEFAULT_ROOT = Path("outputs/classification_v2/train_ready_windows")
-
-
-def _load_json(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8"))
+CLASSIFICATION_ROOT = Path("outputs/classification_v2")
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Write a concrete model-upgrade blueprint for classification_v2 training."
-    )
+    parser = argparse.ArgumentParser(description="Write classification_v2 model-upgrade blueprint.")
     parser.add_argument("--root", type=Path, default=DEFAULT_ROOT)
+    parser.add_argument("--classification-root", type=Path, default=CLASSIFICATION_ROOT)
     parser.add_argument("--output-json", type=Path, default=None)
     args = parser.parse_args()
 
     root = args.root
+    classification_root = args.classification_root
     contract = _load_json(root / "model_input_contract.json")
     spatial = _load_json(root / "spatial_sequence_audit.json")
     class_weights = _load_json(root / "class_weight_policy.json")
-    smoke_metrics_path = root / "smoke_tabular_baseline" / "smoke_metrics.json"
-    confusion_path = root / "smoke_tabular_baseline" / "confusion_focus_eval.json"
-    smoke_metrics = _load_json(smoke_metrics_path) if smoke_metrics_path.exists() else {}
-    confusion = _load_json(confusion_path) if confusion_path.exists() else {}
+    image_context = _load_json(root / "image_context_index_audit.json")
+    source_shortcut = _load_json(classification_root / "model_smoke" / "source_shortcut_audit.json")
+    spatial_controls = _load_json(classification_root / "model_smoke" / "spatial_control_shortcut_audit.json")
+    smoke_train = _load_json(
+        classification_root / "model_smoke" / "spatial_tcn_smoke_train" / "spatial_tcn_smoke_train_audit.json"
+    )
+    experiment_record = _load_json(
+        classification_root / "experiment_registry" / "spatial_tcn_smoke_train_record.json"
+    )
 
     blueprint = {
-        "version": "classification_v2_model_upgrade_blueprint_v1",
-        "scope": "Groundwork only: architecture/evaluation plan and artifact contract; no full training performed.",
-        "root": str(root),
-        "required_artifacts": contract["artifacts"],
+        "version": "classification_v2_model_upgrade_blueprint_v2",
+        "scope": (
+            "Framework roadmap and smoke-ready implementation surface only. Full model training and "
+            "publication claims require separate controlled experiments."
+        ),
+        "publication_claim_boundary": {
+            "target_claim": "Q2-strong: improved pig behavior recognition under session/video-safe validation.",
+            "not_claimed": "Q1 generalization across external farm/camera/cohort.",
+            "reason": "No external farm/camera/cohort validation is available in the current artifacts.",
+            "identity_scope": "pig_id is an annotation/track ID within a video/session, not biological identity across videos.",
+            "primary_prediction_unit": "native temporal unit / review unit; overlapping windows are training augmentation.",
+        },
+        "pass_fail_snapshot": _pass_fail_snapshot(contract, image_context, smoke_train, spatial_controls),
+        "artifact_contract": contract.get("artifacts", {}),
         "data_contract": {
-            "split": "Use split_manifest.csv; group-safe by source_type|dataset_id|video_key.",
-            "label": "Use y_behavior.csv as the only y source.",
-            "mask": "Use train_mask.csv to exclude invalid/incomplete/review-excluded windows.",
-            "sample_weight": "Use sample_weight.csv and class_weight_policy.json.",
-            "tabular_features": {
-                "source": contract["artifacts"]["tabular_X"],
-                "feature_count": smoke_metrics.get("feature_count"),
+            "X": {
+                "tabular_context": contract["artifacts"].get("tabular_X"),
+                "spatial_temporal": contract["artifacts"].get("spatial_sequence_X"),
+                "image_context_index": contract["artifacts"].get("image_frame_context_manifest"),
+                "forbidden_inputs": contract.get("forbidden_model_inputs", []),
             },
-            "spatial_sequences": {
-                "source": contract["artifacts"]["spatial_sequence_X"],
-                "array_shapes": spatial.get("array_shapes", {}),
-                "feature_names": spatial.get("feature_names", {}),
-                "observed_mask": "Use observed_mask to mask padded or missing frame slots.",
+            "y": contract["artifacts"].get("y"),
+            "mask_weight": {
+                "train_mask": contract["artifacts"].get("train_mask"),
+                "sample_weight": contract["artifacts"].get("sample_weight"),
+                "event_weight": contract["artifacts"].get("event_weight_manifest"),
             },
-            "image_sequences": {
-                "source": "runtime loader from reviewed_frame_features.csv + split_manifest.csv",
-                "smoke_audit": contract["artifacts"]["image_sequence_loader_audit"],
+            "validation": {
+                "split_manifest": contract["artifacts"].get("split_manifest"),
+                "native_publication_split": contract["artifacts"].get("native_publication_split_manifest"),
+                "rule": "No random frame/window split; report native temporal-unit metrics for confirmatory evaluation.",
             },
         },
-        "training_phases": [
+        "module_script_design": {
+            "image_context_index": {
+                "module": "src/pig_behavior/classification_v2/datasets/image_context_index.py",
+                "builder": "scripts/behavior_review_tools/classification_v2_build_image_context_index.py",
+                "checker": "scripts/dev_tools/check_classification_v2_image_context_index.py",
+                "purpose": "Frame-level actor crop/video+bbox index keyed by image_context_id plus window references.",
+            },
+            "spatial_tcn_smoke_trainer": {
+                "module": "src/pig_behavior/classification_v2/training/spatial_tcn_smoke.py",
+                "runner": "scripts/behavior_review_tools/classification_v2_spatial_tcn_smoke_train.py",
+                "checker": "scripts/dev_tools/check_classification_v2_spatial_tcn_smoke_train.py",
+                "purpose": "Reusable split-safe smoke training, prediction CSV schema, checkpoint, and metrics audit.",
+            },
+            "experiment_registry": {
+                "module": "src/pig_behavior/classification_v2/experiments/registry.py",
+                "runner": "scripts/behavior_review_tools/classification_v2_register_experiment.py",
+                "checker": "scripts/dev_tools/check_classification_v2_experiment_registry.py",
+                "purpose": "File-based provenance record with artifact hashes, git commit, config, and metrics.",
+            },
+            "shortcut_controls": {
+                "checker": "scripts/dev_tools/check_classification_v2_spatial_control_shortcuts.py",
+                "purpose": "Quantify source shortcut under real, repeat-first-frame, and mean-only spatial controls.",
+            },
+        },
+        "training_phases": _training_phases(contract, spatial, image_context, class_weights, smoke_train),
+        "known_risks": [
             {
-                "phase": "P0_tabular_smoke_baseline",
-                "status": "implemented_smoke_only",
-                "inputs": ["tabular_features"],
-                "model": "standardized linear/logistic baseline or shallow MLP",
-                "purpose": "Verify split/mask/sample_weight/class_weight contract and produce confusion-focused predictions.",
-                "current_smoke_outputs": {
-                    "metrics_json": str(smoke_metrics_path),
-                    "predictions_csv": str(root / "smoke_tabular_baseline" / "smoke_predictions.csv"),
-                    "confusion_focus_json": str(confusion_path),
-                    "val_accuracy": smoke_metrics.get("metrics", {}).get("val", {}).get("accuracy"),
-                    "test_accuracy": smoke_metrics.get("metrics", {}).get("test", {}).get("accuracy"),
-                    "test_macro_f1": smoke_metrics.get("metrics", {}).get("test", {}).get("macro_f1"),
+                "risk": "source/domain shortcut is strong",
+                "evidence": {
+                    "tabular_source_balanced_accuracy": source_shortcut.get("balanced_accuracy"),
+                    "spatial_control_balanced_accuracy": {
+                        name: values.get("balanced_accuracy")
+                        for name, values in spatial_controls.get("controls", {}).items()
+                    },
                 },
+                "required_control": "Report source-balanced, video/session-safe, and native temporal-unit metrics.",
             },
             {
-                "phase": "P1_spatial_temporal_branch",
-                "status": "ready_for_smoke_training",
-                "inputs": ["spatial_sequences", "tabular_features"],
-                "model": "TCN/GRU/Transformer encoder over per-frame spatial arrays plus tabular fusion.",
-                "must_use": ["observed_mask", "train_mask", "sample_weight", "class_weights"],
-                "expected_gain": "Better separation of move/explore/stand, lying/sitting transitions, and interaction proximity cues.",
+                "risk": "overlapping windows inflate apparent sample size",
+                "required_control": "Use event-balanced weights for training and native temporal-unit evaluation for claims.",
             },
             {
-                "phase": "P2_image_sequence_branch",
-                "status": "loader_smoke_passed",
-                "inputs": ["image_sequences", "spatial_sequences", "tabular_features"],
-                "model": "Small CNN/ViT frame encoder with temporal pooling; keep sequence-level split.",
-                "must_verify_before_training": [
-                    "Batch loader tensor shape for train/val/test",
-                    "GPU/CPU fallback",
-                    "No path/id/review columns enter model tensor",
-                ],
-            },
-            {
-                "phase": "P3_multi_task_heads",
-                "status": "design_ready",
-                "heads": {
-                    "behavior": ["drink", "eat", "fight", "social-nose", "explore", "lying", "stand", "move", "sitting", "playwithtoy"],
-                    "posture": ["lying", "sitting", "standing_or_other"],
-                    "motion_context": ["move", "explore", "stand", "other"],
-                    "roi_intent": ["eat", "drink", "playwithtoy", "none"],
-                    "interaction": ["fight", "social-nose", "none"],
-                },
-                "loss": "Weighted sum; behavior remains primary, auxiliary heads regularize confusion groups.",
-            },
-            {
-                "phase": "P4_graph_social_branch",
-                "status": "design_ready",
-                "inputs": ["social_relation", "nearest/pair overlap features", "optional full-frame partner crops later"],
-                "model": "Per-frame pig graph encoder over actor-nearest/partner features; fuse with temporal branch.",
-                "target_confusions": ["fight_vs_social-nose", "fight_vs_move", "social-nose_actor_only"],
-            },
-            {
-                "phase": "P5_hard_negative_mining",
-                "status": "evaluation_ready",
-                "source": str(confusion_path),
-                "pairs": class_weights.get("confusion_focus_pairs", []),
-                "policy": "After each smoke/full run, sample high-confidence mistakes from focus pairs into review/active-learning queue.",
-            },
-            {
-                "phase": "P6_active_learning_loop",
-                "status": "design_ready",
-                "selection": [
-                    "low confidence windows",
-                    "high entropy between focus-pair classes",
-                    "rare class candidates: playwithtoy/drink/social-nose/fight",
-                    "source-domain disagreements legacy vs cvat",
-                ],
-                "output": "review_unit shortlist, not direct label overwrite.",
+                "risk": "interaction labels need full-frame/partner context",
+                "required_control": "Use CVAT video full-frame rendering and partner overlays for interaction review/training audits.",
             },
         ],
-        "current_confusion_focus_top": _top_focus_confusions(confusion),
-        "class_weight_policy": {
-            "source": str(root / "class_weight_policy.json"),
-            "class_counts": class_weights.get("class_counts", {}),
-            "class_weights": class_weights.get("class_weights", {}),
-        },
-        "hard_constraints": contract.get("forbidden_model_inputs", []),
         "next_recommended_commands": [
-            "python scripts/behavior_review_tools/classification_v2_train_smoke_tabular.py",
-            "python scripts/dev_tools/evaluate_classification_v2_confusion_focus.py --predictions-csv outputs/classification_v2/train_ready_windows/smoke_tabular_baseline/smoke_predictions.csv --output-json outputs/classification_v2/train_ready_windows/smoke_tabular_baseline/confusion_focus_eval.json",
-            "Implement P1 spatial-temporal branch smoke trainer before image backbone full training.",
+            "python scripts/behavior_review_tools/classification_v2_build_image_context_index.py",
+            "python scripts/dev_tools/check_classification_v2_image_context_index.py",
+            "python scripts/behavior_review_tools/classification_v2_spatial_tcn_smoke_train.py --steps 8 --per-class-train 4 --per-class-eval 2 --hidden-dim 64",
+            "python scripts/dev_tools/check_classification_v2_spatial_tcn_smoke_train.py",
+            "python scripts/dev_tools/check_classification_v2_spatial_control_shortcuts.py --max-rows-per-split 5000",
+            "python scripts/behavior_review_tools/classification_v2_register_experiment.py --name spatial_tcn_smoke_train --metrics-json outputs/classification_v2/model_smoke/spatial_tcn_smoke_train/spatial_tcn_smoke_train_audit.json --artifact outputs/classification_v2/model_smoke/spatial_tcn_smoke_train/spatial_tcn_smoke_train_audit.json --artifact outputs/classification_v2/model_smoke/spatial_tcn_smoke_train/spatial_tcn_smoke_predictions.csv --artifact outputs/classification_v2/model_smoke/spatial_tcn_smoke_train/spatial_tcn_smoke_train.pt --artifact outputs/classification_v2/train_ready_windows/model_input_contract.json --notes split_safe_smoke_subset_not_full_training",
+        ],
+    }
+    output_json = args.output_json or (root / "model_upgrade_blueprint.json")
+    output_json.write_text(json.dumps(blueprint, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(
+        json.dumps(
+            {
+                "output_json": str(output_json),
+                "version": blueprint["version"],
+                "phase_count": len(blueprint["training_phases"]),
+                "pass_fail": blueprint["pass_fail_snapshot"],
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+    )
+
+
+def _training_phases(
+    contract: dict[str, Any],
+    spatial: dict[str, Any],
+    image_context: dict[str, Any],
+    class_weights: dict[str, Any],
+    smoke_train: dict[str, Any],
+) -> list[dict[str, Any]]:
+    return [
+        {
+            "phase": "P0_data_contract_and_leakage_gates",
+            "status": "implemented",
+            "evidence": {
+                "model_input_contract": contract.get("version"),
+                "missing_artifacts": contract.get("missing_artifacts", []),
+                "forbidden_inputs": contract.get("forbidden_model_inputs", []),
+            },
+        },
+        {
+            "phase": "P1_spatial_temporal_bbox_roi_social",
+            "status": "smoke_trainer_implemented",
+            "inputs": ["X_spatial_sequences.npz", "train_mask.csv", "sample_weight.csv", "event_weight_manifest.csv"],
+            "model": "Mask-aware SpatialTCN baseline over bbox, motion, ROI, social, and quality groups.",
+            "evidence": {
+                "array_shapes": spatial.get("array_shapes", {}),
+                "smoke_train_rows": smoke_train.get("train_rows"),
+                "smoke_eval_rows": smoke_train.get("eval_rows"),
+                "smoke_loss_reduction": smoke_train.get("loss_reduction"),
+            },
+        },
+        {
+            "phase": "P2_image_sequence_branch",
+            "status": "image_context_index_ready",
+            "inputs": ["image_frame_context_manifest.csv", "image_window_context_manifest.csv"],
+            "model": "Actor crop encoder plus optional full-frame/partner context for interaction samples.",
+            "evidence": {
+                "frame_rows": image_context.get("frame_rows"),
+                "frame_loadable_count": image_context.get("frame_loadable_count"),
+                "frame_unloadable_count": image_context.get("frame_unloadable_count"),
+                "duplicate_image_context_id": image_context.get("duplicate_image_context_id"),
+            },
+        },
+        {
+            "phase": "P3_multimodal_fusion",
+            "status": "design_ready_next",
+            "model": "Late fusion of spatial-temporal embedding, image-sequence embedding, tabular context, and masks.",
+            "required_before_full_training": [
+                "image batch loader smoke across legacy/CVAT/source/class",
+                "source-balanced validation report",
+                "native temporal-unit prediction collapse",
+            ],
+        },
+        {
+            "phase": "P4_multitask_heads",
+            "status": "design_ready",
+            "heads": {
+                "behavior": ["drink", "eat", "fight", "social-nose", "explore", "lying", "stand", "move", "sitting", "playwithtoy"],
+                "posture": ["lying", "sitting", "standing_or_other"],
+                "motion_context": ["move", "explore", "stand", "other"],
+                "roi_intent": ["eat", "drink", "playwithtoy", "none"],
+                "interaction": ["fight", "social-nose", "none"],
+            },
+            "loss": "Weighted behavior loss plus auxiliary heads; use class/event/sample weights.",
+        },
+        {
+            "phase": "P5_graph_social_branch",
+            "status": "design_ready",
+            "inputs": ["nearest/pair relation features", "partner bbox/crops", "full-frame context for CVAT"],
+            "target_confusions": ["fight_vs_social-nose", "fight_vs_move", "social-nose_actor_only"],
+        },
+        {
+            "phase": "P6_hard_negative_and_active_learning",
+            "status": "evaluation_ready",
+            "source": class_weights.get("confusion_focus_pairs", []),
+            "policy": "Select uncertain/focus-pair mistakes into review_unit shortlist; never overwrite labels automatically.",
+        },
+    ]
+
+
+def _pass_fail_snapshot(
+    contract: dict[str, Any],
+    image_context: dict[str, Any],
+    smoke_train: dict[str, Any],
+    spatial_controls: dict[str, Any],
+) -> dict[str, Any]:
+    failures = []
+    if contract.get("missing_artifacts"):
+        failures.append("contract_missing_artifacts")
+    if image_context.get("frame_unloadable_count") not in {0, None}:
+        failures.append("image_context_unloadable_frames")
+    if image_context.get("duplicate_image_context_id") not in {0, None}:
+        failures.append("duplicate_image_context_id")
+    if smoke_train.get("errors"):
+        failures.append("spatial_tcn_smoke_train_errors")
+    if spatial_controls.get("errors"):
+        failures.append("spatial_control_shortcut_errors")
+    return {
+        "status": "PASS" if not failures else "FAIL",
+        "failures": failures,
+        "caveats": [
+            "PASS means smoke/data-contract readiness, not full training readiness.",
+            "Strong source shortcut remains a scientific risk and must be controlled in evaluation.",
         ],
     }
 
-    output_json = args.output_json or (root / "model_upgrade_blueprint.json")
-    output_json.write_text(json.dumps(blueprint, indent=2), encoding="utf-8")
-    print(json.dumps({"output_json": str(output_json), "phases": len(blueprint["training_phases"])}, indent=2))
 
-
-def _top_focus_confusions(confusion: dict[str, Any], limit: int = 8) -> list[dict[str, Any]]:
-    pairs = confusion.get("focus_pairs", {})
-    rows = []
-    for pair, values in pairs.items():
-        rows.append({"pair": pair, **values})
-    return sorted(rows, key=lambda x: int(x.get("total_pair_confusions", 0)), reverse=True)[:limit]
+def _load_json(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
