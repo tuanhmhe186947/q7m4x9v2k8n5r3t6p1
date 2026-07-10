@@ -1,9 +1,9 @@
 {
   "schema_version": "classification_v2_experiment_record_v1",
   "name": "tabular_nonlinear_baseline",
-  "created_at_utc": "2026-07-10T15:05:09.107929+00:00",
-  "git_commit": "7b3e6879f92d8daf38c15f5e68970b3afc4c764e",
-  "git_dirty": true,
+  "created_at_utc": "2026-07-10T15:06:46.548308+00:00",
+  "git_commit": "cab76e8131bb2b57f919a502b3924ea0e05867c3",
+  "git_dirty": false,
   "metrics_json": "outputs\\classification_v2\\model_smoke\\tabular_nonlinear_baseline\\tabular_nonlinear_metrics.json",
   "metrics": {
     "primary_metric_unit": "native_temporal_unit",
