@@ -1,0 +1,119 @@
+{
+  "schema_version": "classification_v2_full_multimodal_oof_audit_v1",
+  "run_mode": "pilot",
+  "paper_facing_result": false,
+  "config": {
+    "root": "outputs\\classification_v2\\train_ready_windows",
+    "sequence_manifest_csv": "outputs\\classification_v2\\sequence_features_reviewed\\sequence_window_manifest.csv",
+    "interaction_context_manifest_csv": "outputs\\classification_v2\\train_ready_windows\\interaction_window_context_manifest.csv",
+    "native_oof_fold_manifest_csv": "outputs\\classification_v2\\native_temporal_units_oof_folds\\native_oof_fold_manifest.csv",
+    "output_dir": "outputs\\classification_v2\\model_smoke\\full_multimodal_oof_pilot",
+    "image_size": 32,
+    "hidden_dim": 24,
+    "dropout": 0.1,
+    "lr": 0.003,
+    "weight_decay": 0.0,
+    "steps_per_fold": 1,
+    "max_folds": 1,
+    "train_per_class_per_fold": 1,
+    "eval_per_class_per_fold": 1,
+    "bootstrap_iterations": 5,
+    "seed": 20260710,
+    "device": "auto",
+    "run_mode": "pilot"
+  },
+  "device": "cpu",
+  "label_order": [
+    "drink",
+    "eat",
+    "fight",
+    "social-nose",
+    "explore",
+    "lying",
+    "stand",
+    "move",
+    "sitting",
+    "playwithtoy"
+  ],
+  "load_audit": {
+    "row_counts": {
+      "y": 160740,
+      "train_mask": 160740,
+      "split": 160740,
+      "image_windows": 160740,
+      "interaction": 160740,
+      "bbox_xywh_n": 160740,
+      "bbox_shape_n": 160740,
+      "motion_delta": 160740,
+      "roi_class_relation": 160740,
+      "social_relation": 160740,
+      "quality_mask": 160740,
+      "length_mask": 160740,
+      "observed_mask": 160740,
+      "frame_index_sequence": 160740
+    },
+    "eligible_rows": 73668,
+    "eligible_fold_count": 13,
+    "eligible_label_counts": {
+      "drink": 2693,
+      "eat": 6662,
+      "explore": 12960,
+      "fight": 2334,
+      "lying": 17148,
+      "move": 2295,
+      "playwithtoy": 521,
+      "sitting": 23680,
+      "social-nose": 2260,
+      "stand": 3115
+    },
+    "complete_image_context_rows": 160356,
+    "interaction_context_ready_rows": 114816
+  },
+  "fold_audits": [
+    {
+      "oof_fold_id": "native_oof_000",
+      "train_rows": 10,
+      "eval_rows": 10,
+      "train_label_counts": {
+        "drink": 1,
+        "eat": 1,
+        "explore": 1,
+        "fight": 1,
+        "lying": 1,
+        "move": 1,
+        "playwithtoy": 1,
+        "sitting": 1,
+        "social-nose": 1,
+        "stand": 1
+      },
+      "eval_label_counts": {
+        "drink": 1,
+        "eat": 1,
+        "explore": 1,
+        "fight": 1,
+        "lying": 1,
+        "move": 1,
+        "playwithtoy": 1,
+        "sitting": 1,
+        "social-nose": 1,
+        "stand": 1
+      },
+      "initial_loss": 2.28853440284729,
+      "final_loss": 2.28853440284729,
+      "loss_reduction": 0.0
+    }
+  ],
+  "prediction_rows": 10,
+  "native_temporal_rows": 10,
+  "metrics_json": "outputs\\classification_v2\\model_smoke\\full_multimodal_oof_pilot\\full_multimodal_oof_metrics.json",
+  "predictions_csv": "outputs\\classification_v2\\model_smoke\\full_multimodal_oof_pilot\\full_multimodal_oof_predictions.csv",
+  "native_unit_predictions_csv": "outputs\\classification_v2\\model_smoke\\full_multimodal_oof_pilot\\full_multimodal_oof_unit_predictions.csv",
+  "prediction_schema_audit_json": "outputs\\classification_v2\\model_smoke\\full_multimodal_oof_pilot\\full_multimodal_oof_prediction_schema_audit.json",
+  "prediction_schema_valid": true,
+  "errors": [],
+  "warnings": [
+    "bounded pilot run; do not register as full_multimodal_oof_record or cite as paper metric",
+    "full learned OOF claim also requires source-balanced reporting and ablation report review"
+  ],
+  "valid": true
+}

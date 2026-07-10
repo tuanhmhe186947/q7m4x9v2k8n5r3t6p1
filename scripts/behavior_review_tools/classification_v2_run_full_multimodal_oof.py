@@ -1,0 +1,53 @@
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+from pig_behavior.classification_v2.training.full_multimodal_oof import (
+    FullMultimodalOofConfig,
+    run_full_multimodal_oof,
+)
+
+
+def main() -> None:
+    """Run a bounded pilot or explicit full learned multimodal native-OOF evaluation."""
+
+    parser = argparse.ArgumentParser(description="Run classification_v2 learned multimodal native-OOF evaluation.")
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("outputs/classification_v2/model_smoke/full_multimodal_oof_pilot"),
+    )
+    parser.add_argument("--image-size", type=int, default=32)
+    parser.add_argument("--hidden-dim", type=int, default=32)
+    parser.add_argument("--steps-per-fold", type=int, default=2)
+    parser.add_argument("--max-folds", type=int, default=2)
+    parser.add_argument("--train-per-class-per-fold", type=int, default=2)
+    parser.add_argument("--eval-per-class-per-fold", type=int, default=1)
+    parser.add_argument("--bootstrap-iterations", type=int, default=30)
+    parser.add_argument("--device", default="auto")
+    parser.add_argument(
+        "--full",
+        action="store_true",
+        help="Run all folds/all eligible rows. This can be slow and is required before paper-facing registration.",
+    )
+    args = parser.parse_args()
+    config = FullMultimodalOofConfig(
+        output_dir=args.output_dir,
+        image_size=args.image_size,
+        hidden_dim=args.hidden_dim,
+        steps_per_fold=args.steps_per_fold,
+        max_folds=None if args.full else args.max_folds,
+        train_per_class_per_fold=None if args.full else args.train_per_class_per_fold,
+        eval_per_class_per_fold=None if args.full else args.eval_per_class_per_fold,
+        bootstrap_iterations=args.bootstrap_iterations,
+        device=args.device,
+        run_mode="full" if args.full else "pilot",
+    )
+    result = run_full_multimodal_oof(config)
+    print(json.dumps(result["audit"], indent=2))
+
+
+if __name__ == "__main__":
+    main()
