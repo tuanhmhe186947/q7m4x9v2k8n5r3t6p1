@@ -1,0 +1,127 @@
+{
+  "contract_version": "classification_v2_data_contract_v1",
+  "snapshot_name": "classification_v2_train_ready_baseline",
+  "root": ".",
+  "train_ready_root": "outputs/classification_v2/train_ready_windows",
+  "snapshot_output_dir": "outputs/classification_v2/training_snapshots",
+  "primary_key": "window_id",
+  "row_count_alignment_group": [
+    "split_manifest",
+    "tabular_X",
+    "y_behavior",
+    "train_mask",
+    "sample_weight",
+    "spatial_sequences",
+    "event_weight_manifest",
+    "y_auxiliary_targets"
+  ],
+  "window_id_source_artifact": "split_manifest",
+  "artifacts": {
+    "split_manifest": {
+      "path": "outputs/classification_v2/train_ready_windows/split_manifest.csv",
+      "type": "csv",
+      "required": true,
+      "key_column": "window_id",
+      "required_columns": ["window_id", "split", "split_group_key"]
+    },
+    "tabular_X": {
+      "path": "outputs/classification_v2/train_ready_windows/X_window_features.csv",
+      "type": "csv",
+      "required": true,
+      "model_input": true
+    },
+    "y_behavior": {
+      "path": "outputs/classification_v2/train_ready_windows/y_behavior.csv",
+      "type": "csv",
+      "required": true
+    },
+    "train_mask": {
+      "path": "outputs/classification_v2/train_ready_windows/train_mask.csv",
+      "type": "csv",
+      "required": true
+    },
+    "sample_weight": {
+      "path": "outputs/classification_v2/train_ready_windows/sample_weight.csv",
+      "type": "csv",
+      "required": true
+    },
+    "spatial_sequences": {
+      "path": "outputs/classification_v2/train_ready_windows/X_spatial_sequences.npz",
+      "type": "npz",
+      "required": true,
+      "model_input": true,
+      "required_arrays": ["length_mask", "observed_mask", "frame_index_sequence"]
+    },
+    "event_weight_manifest": {
+      "path": "outputs/classification_v2/train_ready_windows/event_weight_manifest.csv",
+      "type": "csv",
+      "required": true,
+      "key_column": "window_id",
+      "required_columns": ["window_id", "event_balanced_sample_weight", "window_valid_for_event_weight"]
+    },
+    "y_auxiliary_targets": {
+      "path": "outputs/classification_v2/train_ready_windows/y_auxiliary_targets.csv",
+      "type": "csv",
+      "required": true,
+      "key_column": "window_id",
+      "required_columns": ["window_id"]
+    },
+    "model_input_contract": {
+      "path": "outputs/classification_v2/train_ready_windows/model_input_contract.json",
+      "type": "json",
+      "required": true
+    },
+    "train_ready_audit": {
+      "path": "outputs/classification_v2/train_ready_windows/train_ready_audit.json",
+      "type": "json",
+      "required": true
+    },
+    "native_temporal_unit_manifest": {
+      "path": "outputs/classification_v2/native_temporal_units/native_temporal_unit_manifest.csv",
+      "type": "csv",
+      "required": true,
+      "key_column": "temporal_unit_key",
+      "required_columns": ["native_temporal_unit_row_index", "source_type", "temporal_unit_key"]
+    },
+    "native_publication_split_manifest": {
+      "path": "outputs/classification_v2/native_temporal_units_publication_splits/publication_split_manifest.csv",
+      "type": "csv",
+      "required": true,
+      "key_column": "temporal_unit_key",
+      "required_columns": ["temporal_unit_key", "split", "recording_group_id"]
+    },
+    "image_window_context_manifest": {
+      "path": "outputs/classification_v2/train_ready_windows/image_window_context_manifest.csv",
+      "type": "csv",
+      "required": true,
+      "key_column": "window_id",
+      "required_columns": ["window_id", "image_context_id_sequence"]
+    },
+    "interaction_window_context_manifest": {
+      "path": "outputs/classification_v2/train_ready_windows/interaction_window_context_manifest.csv",
+      "type": "csv",
+      "required": true,
+      "key_column": "window_id",
+      "required_columns": ["window_id", "interaction_context_ready"]
+    }
+  },
+  "forbidden_x_patterns": [
+    "manual_*",
+    "review_*",
+    "*behavior*",
+    "original_behavior",
+    "review_unit_id",
+    "window_id",
+    "temporal_unit_key",
+    "video_key",
+    "dataset_id",
+    "pig_id",
+    "track_id",
+    "*_path"
+  ],
+  "notes": [
+    "This contract freezes train-ready artifacts; it never edits raw data.",
+    "X artifacts must be checked against explicit whitelist logic, not all numeric columns.",
+    "pig_id is an annotation-local identity and must not be treated as a biological identity across videos."
+  ]
+}
