@@ -1,9 +1,9 @@
 {
   "schema_version": "classification_v2_experiment_record_v1",
   "name": "tabular_linear_baseline",
-  "created_at_utc": "2026-07-10T14:26:02.511447+00:00",
-  "git_commit": "f643839f0ff6770fbcd4e5dc80811ea2d5ff57ba",
-  "git_dirty": true,
+  "created_at_utc": "2026-07-10T14:26:53.150482+00:00",
+  "git_commit": "a287fbc2862831ff9b41890da7fcd433d0577bf3",
+  "git_dirty": false,
   "metrics_json": "outputs\\classification_v2\\model_smoke\\tabular_linear_baseline\\tabular_linear_metrics.json",
   "metrics": {
     "primary_metric_unit": "native_temporal_unit",
