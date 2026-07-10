@@ -33,6 +33,8 @@ def main() -> None:
             "image_window_context_manifest": str(root / "image_window_context_manifest.csv"),
             "image_context_index_audit": str(root / "image_context_index_audit.json"),
             "image_tensor_loader_smoke_audit": str(root / "image_tensor_loader_smoke_audit.json"),
+            "interaction_window_context_manifest": str(root / "interaction_window_context_manifest.csv"),
+            "interaction_context_audit": str(root / "interaction_context_audit.json"),
             "y": str(root / "y_behavior.csv"),
             "train_mask": str(root / "train_mask.csv"),
             "sample_weight": str(root / "sample_weight.csv"),
@@ -130,6 +132,13 @@ def main() -> None:
                     "full-frame/partner context availability audited separately."
                 ),
             },
+            "interaction_context_branch": {
+                "source": "interaction_window_context_manifest",
+                "description": (
+                    "Audit-only full-frame and partner-context readiness for fight/social-nose windows. "
+                    "Use for review/model gating, not as numeric model input X."
+                ),
+            },
         },
         "training_contract": {
             "split": "Use split_manifest.csv; never random-split frames/windows.",
@@ -176,6 +185,7 @@ def main() -> None:
             "add_image_sequence_branch",
             "add_multimodal_forward_smoke",
             "add_multimodal_tiny_overfit_smoke",
+            "add_interaction_full_frame_partner_context_audit",
             "multi_task_heads_posture_motion_roi_interaction",
             "graph_social_interaction_branch",
             "hard_negative_mining_from_confusion_focus",

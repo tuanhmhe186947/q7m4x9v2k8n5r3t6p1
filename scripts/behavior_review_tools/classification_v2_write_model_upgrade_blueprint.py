@@ -24,6 +24,7 @@ def main() -> None:
     class_weights = _load_json(root / "class_weight_policy.json")
     image_context = _load_json(root / "image_context_index_audit.json")
     image_tensor_loader = _load_json(root / "image_tensor_loader_smoke_audit.json")
+    interaction_context = _load_json(root / "interaction_context_audit.json")
     source_shortcut = _load_json(classification_root / "model_smoke" / "source_shortcut_audit.json")
     spatial_controls = _load_json(classification_root / "model_smoke" / "spatial_control_shortcut_audit.json")
     smoke_train = _load_json(
@@ -106,6 +107,12 @@ def main() -> None:
                 "checker": "scripts/dev_tools/check_classification_v2_multimodal_smoke_train.py",
                 "purpose": "Tiny split-safe image+spatial overfit smoke; not full training.",
             },
+            "interaction_context_index": {
+                "module": "src/pig_behavior/classification_v2/datasets/interaction_context_index.py",
+                "builder": "scripts/behavior_review_tools/classification_v2_build_interaction_context_index.py",
+                "checker": "scripts/dev_tools/check_classification_v2_interaction_context_index.py",
+                "purpose": "Audit full-frame and partner-context readiness for fight/social-nose windows.",
+            },
             "experiment_registry": {
                 "module": "src/pig_behavior/classification_v2/experiments/registry.py",
                 "runner": "scripts/behavior_review_tools/classification_v2_register_experiment.py",
@@ -133,6 +140,7 @@ def main() -> None:
             native_predictions,
             multimodal_forward,
             multimodal_smoke_train,
+            interaction_context,
         ),
         "known_risks": [
             {
@@ -190,6 +198,7 @@ def _training_phases(
     native_predictions: dict[str, Any],
     multimodal_forward: dict[str, Any],
     multimodal_smoke_train: dict[str, Any],
+    interaction_context: dict[str, Any],
 ) -> list[dict[str, Any]]:
     return [
         {
@@ -268,6 +277,21 @@ def _training_phases(
                 "interaction": ["fight", "social-nose", "none"],
             },
             "loss": "Weighted behavior loss plus auxiliary heads; use class/event/sample weights.",
+        },
+        {
+            "phase": "P4b_interaction_full_frame_partner_context",
+            "status": "audit_index_implemented",
+            "inputs": ["interaction_window_context_manifest.csv", "interaction_context_audit.json"],
+            "evidence": {
+                "interaction_window_rows": interaction_context.get("interaction_window_rows"),
+                "interaction_ready_rows": interaction_context.get("interaction_ready_rows"),
+                "interaction_status_counts": interaction_context.get("interaction_status_counts", {}),
+                "interaction_label_counts": interaction_context.get("interaction_label_counts", {}),
+            },
+            "claim_gate": (
+                "fight/social-nose model claims should report context-ready subset metrics or explicitly "
+                "state when crop-only rows lack full-frame partner context."
+            ),
         },
         {
             "phase": "P5_graph_social_branch",
