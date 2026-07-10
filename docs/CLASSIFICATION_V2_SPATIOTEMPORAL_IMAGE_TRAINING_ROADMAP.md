@@ -1,6 +1,6 @@
 # Classification V2: Lộ trình nâng cấp framework multimodal spatio-temporal bbox + ROI + social context
 
-> Phiên bản 2.2, định hướng nghiên cứu và publication-readiness. Đây là execution roadmap. Thiết kế khoa học, giả thuyết, thống kê và quy tắc claim được khóa tại [CLASSIFICATION_V2_Q1_Q2_RESEARCH_PROTOCOL.md](CLASSIFICATION_V2_Q1_Q2_RESEARCH_PROTOCOL.md). Hai tài liệu phải được version cùng nhau.
+> Phiên bản 2.2, định hướng nghiên cứu và publication-readiness. Đây là execution roadmap. Thiết kế khoa học, giả thuyết, thống kê và quy tắc claim được khóa tại [CLASSIFICATION_V2_Q1_Q2_RESEARCH_PROTOCOL.md](CLASSIFICATION_V2_Q1_Q2_RESEARCH_PROTOCOL.md). Kế hoạch thực thi ngắn hạn nằm tại [CLASSIFICATION_V2_Q2_EXECUTION_PLAN.md](CLASSIFICATION_V2_Q2_EXECUTION_PLAN.md). Các tài liệu này phải được version cùng nhau.
 
 Trạng thái hiện tại: `ENGINEERING-READY FOR CONTROLLED SMOKE`, `NOT PUBLICATION-READY`. Nhãn Q1/Q2 trong tài liệu là mức độ nghiêm ngặt hướng tới, không phải cam kết tạp chí hoặc bảo đảm chấp nhận.
 
