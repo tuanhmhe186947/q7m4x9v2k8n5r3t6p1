@@ -1,0 +1,186 @@
+{
+  "schema_version": "classification_v2_experiment_record_v1",
+  "name": "paper_grade_protocol_gate",
+  "created_at_utc": "2026-07-10T10:38:09.102055+00:00",
+  "git_commit": "65c37dc2b1770f103472a1fbb416a4a535094a49",
+  "git_dirty": false,
+  "metrics_json": "outputs\\classification_v2\\paper_grade_protocol\\paper_grade_protocol_audit.json",
+  "metrics": {
+    "protocol_path": "configs\\classification_v2\\paper_grade_protocol_v1.json",
+    "version": "classification_v2_paper_grade_protocol_v1",
+    "target_strength": "Q2_strong",
+    "primary_claim": "Improved pig behavior recognition under session/video-safe validation.",
+    "artifact_audit": {
+      "training_snapshot": {
+        "path": "outputs/classification_v2/training_snapshots/c2v2_fc1fd779451fc3d4.json",
+        "exists": true,
+        "errors": [],
+        "valid": null
+      },
+      "trainer_contract": {
+        "path": "configs/classification_v2/trainer_contract_v1.json",
+        "exists": true,
+        "errors": [],
+        "valid": null
+      },
+      "source_domain_control": {
+        "path": "outputs/classification_v2/source_domain_controls/source_domain_control_audit.json",
+        "exists": true,
+        "errors": [],
+        "valid": true,
+        "rows": 160740,
+        "kept_rows": 70140,
+        "forbidden_x_columns": []
+      },
+      "source_shortcut": {
+        "path": "outputs/classification_v2/model_smoke/source_shortcut_audit.json",
+        "exists": true,
+        "errors": [],
+        "valid": null,
+        "rows": 160740,
+        "balanced_accuracy": 1.0
+      },
+      "spatial_shortcut": {
+        "path": "outputs/classification_v2/model_smoke/spatial_control_shortcut_audit.json",
+        "exists": true,
+        "errors": [],
+        "valid": null,
+        "controls": {
+          "real_sequence": {
+            "accuracy": 0.9962,
+            "balanced_accuracy": 0.9948483631251255
+          },
+          "repeat_first_frame": {
+            "accuracy": 0.9464,
+            "balanced_accuracy": 0.9561089910959363
+          },
+          "mean_only": {
+            "accuracy": 0.9978,
+            "balanced_accuracy": 0.995892749548102
+          }
+        }
+      },
+      "native_oof_folds": {
+        "path": "outputs/classification_v2/native_temporal_units_oof_folds/native_oof_fold_audit.json",
+        "exists": true,
+        "errors": [],
+        "valid": null,
+        "rows": 33354,
+        "fold_count": 13,
+        "duplicate_temporal_unit_key": 0
+      },
+      "training_snapshot_check": {
+        "valid": true,
+        "errors": [],
+        "warnings": [
+          "git_commit_changed"
+        ],
+        "expected_snapshot_id": "c2v2_fc1fd779451fc3d4",
+        "current_snapshot_id": "c2v2_fc1fd779451fc3d4"
+      },
+      "trainer_contract_check": {
+        "valid": true,
+        "errors": [],
+        "feature_count": 39,
+        "forbidden_x_columns": []
+      }
+    },
+    "confusion_pair_count": 10,
+    "ablation_count": 10,
+    "module_design_count": 9,
+    "warnings": [
+      "training_snapshot_warning=git_commit_changed"
+    ],
+    "errors": [],
+    "valid": true
+  },
+  "experiment_stage": "paper_facing_candidate",
+  "paper_facing": true,
+  "provenance": {
+    "dataset_snapshot_json": {
+      "path": "outputs\\classification_v2\\training_snapshots\\c2v2_fc1fd779451fc3d4.json",
+      "exists": true,
+      "size_bytes": 33348,
+      "mtime_utc": "2026-07-10T10:19:14.074269+00:00",
+      "sha256": "0e4be40388dacd12a315cda5105c3b52baaa3b3a068ad87c76bb52db44aa98fd",
+      "hash_status": "ok"
+    },
+    "paper_protocol_json": {
+      "path": "configs\\classification_v2\\paper_grade_protocol_v1.json",
+      "exists": true,
+      "size_bytes": 3851,
+      "mtime_utc": "2026-07-10T10:23:01.167120+00:00",
+      "sha256": "a625de107b1df2b475e4f182ec96aa31a94f861a4c5d6cb690a01bb5d698fcfe",
+      "hash_status": "ok"
+    },
+    "paper_protocol_audit_json": {
+      "path": "outputs\\classification_v2\\paper_grade_protocol\\paper_grade_protocol_audit.json",
+      "exists": true,
+      "size_bytes": 2661,
+      "mtime_utc": "2026-07-10T10:23:28.291253+00:00",
+      "sha256": "4cea3e0aea18b80ede4b2222aae00ff6183e902e06c6f74e5edf6a974aadbcdf",
+      "hash_status": "ok"
+    },
+    "source_domain_audit_json": {
+      "path": "outputs\\classification_v2\\source_domain_controls\\source_domain_control_audit.json",
+      "exists": true,
+      "size_bytes": 1347,
+      "mtime_utc": "2026-07-10T10:18:53.825144+00:00",
+      "sha256": "3d8951cfc8aa8668196e249016f04f013bd91c84774110884a0622c13dc8cdfd",
+      "hash_status": "ok"
+    },
+    "native_oof_audit_json": {
+      "path": "outputs\\classification_v2\\native_temporal_units_oof_folds\\native_oof_fold_audit.json",
+      "exists": true,
+      "size_bytes": 1766,
+      "mtime_utc": "2026-07-10T10:06:00.451806+00:00",
+      "sha256": "9a13dd0d5ac7b265b71d64da8ef2b83336aadea8517999df722cb78a3070f2c9",
+      "hash_status": "ok"
+    },
+    "trainer_contract_json": {
+      "path": "configs\\classification_v2\\trainer_contract_v1.json",
+      "exists": true,
+      "size_bytes": 2839,
+      "mtime_utc": "2026-07-10T10:14:30.465831+00:00",
+      "sha256": "d75d59b9aafecce0e1202eb5367d68516d689b5289c8071f2e7e840fe7449867",
+      "hash_status": "ok"
+    }
+  },
+  "artifacts": [
+    {
+      "path": "outputs\\classification_v2\\paper_grade_protocol\\paper_grade_protocol_audit.json",
+      "exists": true,
+      "size_bytes": 2661,
+      "mtime_utc": "2026-07-10T10:23:28.291253+00:00",
+      "sha256": "4cea3e0aea18b80ede4b2222aae00ff6183e902e06c6f74e5edf6a974aadbcdf",
+      "hash_status": "ok"
+    },
+    {
+      "path": "outputs\\classification_v2\\source_domain_controls\\source_domain_control_audit.json",
+      "exists": true,
+      "size_bytes": 1347,
+      "mtime_utc": "2026-07-10T10:18:53.825144+00:00",
+      "sha256": "3d8951cfc8aa8668196e249016f04f013bd91c84774110884a0622c13dc8cdfd",
+      "hash_status": "ok"
+    },
+    {
+      "path": "outputs\\classification_v2\\native_temporal_units_oof_folds\\native_oof_fold_audit.json",
+      "exists": true,
+      "size_bytes": 1766,
+      "mtime_utc": "2026-07-10T10:06:00.451806+00:00",
+      "sha256": "9a13dd0d5ac7b265b71d64da8ef2b83336aadea8517999df722cb78a3070f2c9",
+      "hash_status": "ok"
+    },
+    {
+      "path": "configs\\classification_v2\\trainer_contract_v1.json",
+      "exists": true,
+      "size_bytes": 2839,
+      "mtime_utc": "2026-07-10T10:14:30.465831+00:00",
+      "sha256": "d75d59b9aafecce0e1202eb5367d68516d689b5289c8071f2e7e840fe7449867",
+      "hash_status": "ok"
+    }
+  ],
+  "notes": "paper_facing_gate_record_no_model_training",
+  "record_path": "outputs\\classification_v2\\experiment_registry\\paper_grade_protocol_gate_record.json",
+  "ledger_path": "outputs\\classification_v2\\experiment_registry\\experiment_ledger.jsonl"
+}
