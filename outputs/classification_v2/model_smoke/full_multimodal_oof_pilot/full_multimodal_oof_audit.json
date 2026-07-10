@@ -23,7 +23,7 @@
     "seed": 20260710,
     "device": "auto",
     "run_mode": "pilot",
-    "resume": true
+    "resume": false
   },
   "device": "cpu",
   "label_order": [
@@ -107,7 +107,10 @@
       "initial_loss": 2.411081552505493,
       "final_loss": 2.411081552505493,
       "loss_reduction": 0.0,
-      "resumed_from_artifact": true
+      "resumed_training_checkpoint": false,
+      "prediction_chunk_count": 3,
+      "fold_work_dir": "outputs\\classification_v2\\model_smoke\\full_multimodal_oof_pilot\\fold_artifacts\\native_oof_000_work",
+      "resumed_from_artifact": false
     }
   ],
   "prediction_rows": 10,

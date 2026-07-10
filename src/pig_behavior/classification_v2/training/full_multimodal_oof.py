@@ -9,6 +9,7 @@ explicitly and registered separately; the pilot is engineering evidence only.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import random
 from dataclasses import asdict, dataclass
@@ -269,6 +270,7 @@ def _run_one_fold(
     label_order: list[str],
     label_to_idx: dict[str, int],
     device: torch.device,
+    fold_work_dir: Path | None = None,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     """Train on all non-held-out native folds and predict the held-out fold."""
 
@@ -302,17 +304,52 @@ def _run_one_fold(
     loss_fn = nn.CrossEntropyLoss()
     rng = np.random.default_rng(config.seed + int(_stable_fold_offset(fold_id)))
     losses: list[float] = []
-    model.train()
-    for step_index in range(int(config.steps_per_fold)):
-        batch_indices = _step_train_indices(train_indices, config.train_batch_size, rng, step_index)
-        train_batch = _batch_from_indices(dataset, bundle, batch_indices, label_to_idx, device)
-        optimizer.zero_grad(set_to_none=True)
-        logits = _forward_model(model, train_batch)
-        loss = loss_fn(logits, train_batch["target"])
-        loss.backward()
-        nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-        optimizer.step()
-        losses.append(float(loss.detach().cpu().item()))
+    resumed_training = False
+    training_signature = _fold_training_signature(config, fold_id, train_indices, eval_indices)
+    training_audit_path = fold_work_dir / "training_audit.json" if fold_work_dir is not None else None
+    model_state_path = fold_work_dir / "trained_model.pt" if fold_work_dir is not None else None
+    if fold_work_dir is not None:
+        fold_work_dir.mkdir(parents=True, exist_ok=True)
+    if (
+        config.resume
+        and training_audit_path is not None
+        and model_state_path is not None
+        and training_audit_path.exists()
+        and model_state_path.exists()
+    ):
+        training_audit = json.loads(training_audit_path.read_text(encoding="utf-8"))
+        if training_audit.get("training_signature") != training_signature:
+            raise ValueError(f"stale fold training checkpoint signature for fold {fold_id}")
+        model.load_state_dict(torch.load(model_state_path, map_location=device))
+        losses = [float(value) for value in training_audit.get("losses", [])]
+        resumed_training = True
+    else:
+        model.train()
+        for step_index in range(int(config.steps_per_fold)):
+            batch_indices = _step_train_indices(train_indices, config.train_batch_size, rng, step_index)
+            train_batch = _batch_from_indices(dataset, bundle, batch_indices, label_to_idx, device)
+            optimizer.zero_grad(set_to_none=True)
+            logits = _forward_model(model, train_batch)
+            loss = loss_fn(logits, train_batch["target"])
+            loss.backward()
+            nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            optimizer.step()
+            losses.append(float(loss.detach().cpu().item()))
+        if training_audit_path is not None and model_state_path is not None:
+            torch.save(model.state_dict(), model_state_path)
+            training_audit_path.write_text(
+                json.dumps(
+                    {
+                        "training_signature": training_signature,
+                        "losses": losses,
+                    },
+                    indent=2,
+                ),
+                encoding="utf-8",
+            )
+    if not losses:
+        raise ValueError(f"fold {fold_id} has no recorded training losses")
+    chunk_dir = fold_work_dir / "prediction_chunks" if fold_work_dir is not None else None
     predictions = _predict_in_batches(
         dataset,
         model,
@@ -323,6 +360,10 @@ def _run_one_fold(
         fold_id,
         config,
         device,
+        chunk_dir,
+    )
+    prediction_chunk_count = (
+        len(list(chunk_dir.glob("*.csv"))) if chunk_dir is not None and chunk_dir.exists() else 0
     )
     audit = {
         "oof_fold_id": str(fold_id),
@@ -335,6 +376,9 @@ def _run_one_fold(
         "initial_loss": float(losses[0]),
         "final_loss": float(losses[-1]),
         "loss_reduction": float(losses[0] - losses[-1]),
+        "resumed_training_checkpoint": bool(resumed_training),
+        "prediction_chunk_count": int(prediction_chunk_count),
+        "fold_work_dir": str(fold_work_dir) if fold_work_dir is not None else None,
     }
     return predictions, audit
 
@@ -367,6 +411,7 @@ def _load_or_run_one_fold(
         label_order,
         label_to_idx,
         device,
+        fold_artifact_dir / f"{safe_fold_id}_work",
     )
     audit["resumed_from_artifact"] = False
     predictions.to_csv(predictions_path, index=False)
@@ -557,15 +602,26 @@ def _predict_in_batches(
     fold_id: str,
     config: FullMultimodalOofConfig,
     device: torch.device,
+    chunk_dir: Path | None = None,
 ) -> pd.DataFrame:
-    """Predict a held-out fold in bounded chunks so full OOF does not exhaust RAM."""
+    """Predict a held-out fold in resumable chunks so long folds survive timeouts."""
 
     chunks: list[pd.DataFrame] = []
     role = "full_multimodal_oof" if _is_full_run(config, bundle) else "full_multimodal_oof_pilot"
+    if chunk_dir is not None:
+        chunk_dir.mkdir(parents=True, exist_ok=True)
     for start in range(0, len(indices), int(config.eval_batch_size)):
+        end = min(start + int(config.eval_batch_size), len(indices))
+        chunk_path = chunk_dir / f"chunk_{start:08d}_{end:08d}.csv" if chunk_dir is not None else None
+        if config.resume and chunk_path is not None and chunk_path.exists():
+            chunks.append(pd.read_csv(chunk_path, low_memory=False))
+            continue
         chunk_indices = indices[start : start + int(config.eval_batch_size)]
         batch = _batch_from_indices(dataset, bundle, chunk_indices, label_to_idx, device)
-        chunks.append(_predict(model, bundle, chunk_indices, batch, label_order, fold_id, role))
+        chunk_predictions = _predict(model, bundle, chunk_indices, batch, label_order, fold_id, role)
+        if chunk_path is not None:
+            chunk_predictions.to_csv(chunk_path, index=False)
+        chunks.append(chunk_predictions)
     return pd.concat(chunks, ignore_index=True)
 
 
@@ -646,6 +702,35 @@ def _mode_warnings(config: FullMultimodalOofConfig, bundle: _OofBundle) -> list[
 
 def _stable_fold_offset(fold_id: str) -> int:
     return sum(ord(char) for char in str(fold_id))
+
+
+def _fold_training_signature(
+    config: FullMultimodalOofConfig,
+    fold_id: str,
+    train_indices: np.ndarray,
+    eval_indices: np.ndarray,
+) -> dict[str, Any]:
+    """Identify the exact trained fold so prediction chunks cannot mix configs."""
+
+    return {
+        "oof_fold_id": str(fold_id),
+        "seed": int(config.seed),
+        "image_size": int(config.image_size),
+        "hidden_dim": int(config.hidden_dim),
+        "steps_per_fold": int(config.steps_per_fold),
+        "train_batch_size": int(config.train_batch_size),
+        "eval_batch_size": int(config.eval_batch_size),
+        "train_per_class_per_fold": config.train_per_class_per_fold,
+        "eval_per_class_per_fold": config.eval_per_class_per_fold,
+        "train_indices_sha256": _indices_checksum(train_indices),
+        "eval_indices_sha256": _indices_checksum(eval_indices),
+    }
+
+
+def _indices_checksum(indices: np.ndarray) -> str:
+    """Hash ordered row indices used for training/evaluation artifact lineage."""
+
+    return hashlib.sha256(np.asarray(indices, dtype=np.int64).tobytes()).hexdigest()
 
 
 def _safe_fold_id(fold_id: str) -> str:
