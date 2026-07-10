@@ -1,0 +1,40 @@
+{
+  "rows": 160740,
+  "eligible_rows": 152704,
+  "kept_rows": 70140,
+  "excluded_rows": 90600,
+  "source_labels": [
+    "cvat_tracking_xml",
+    "legacy_recovered"
+  ],
+  "duplicate_window_id": 0,
+  "x_column_count": 39,
+  "forbidden_x_columns": [],
+  "source_counts_before": {
+    "cvat_tracking_xml": 115200,
+    "legacy_recovered": 45540
+  },
+  "source_counts_kept": {
+    "cvat_tracking_xml": 35070,
+    "legacy_recovered": 35070
+  },
+  "reason_counts": {
+    "above_source_matched_quota": 81174,
+    "source_matched_keep": 70140,
+    "ineligible_train_mask_or_split": 8036,
+    "stratum_missing_one_or_more_sources": 1390
+  },
+  "balanced_strata_after_count": 216,
+  "imbalanced_strata_after_count": 0,
+  "imbalanced_strata_after_examples": [],
+  "warnings": [
+    "Use this matched view for source/domain-control experiments.",
+    "It is not a replacement for the full train-ready dataset.",
+    "Report high source shortcut audits under video/session-safe validation."
+  ],
+  "errors": [],
+  "valid": true,
+  "config": "configs\\classification_v2\\source_domain_control_v1.json",
+  "selection_manifest": "outputs\\classification_v2\\source_domain_controls\\source_domain_selection_manifest.csv",
+  "audit_json": "outputs\\classification_v2\\source_domain_controls\\source_domain_control_audit.json"
+}

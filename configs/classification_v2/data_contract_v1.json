@@ -13,16 +13,19 @@
     "sample_weight",
     "spatial_sequences",
     "event_weight_manifest",
-    "y_auxiliary_targets"
+    "y_auxiliary_targets",
+    "source_domain_selection_manifest"
   ],
   "window_id_source_artifact": "split_manifest",
   "key_alignment_group": [
     "split_manifest",
     "event_weight_manifest",
-    "y_auxiliary_targets"
+    "y_auxiliary_targets",
+    "source_domain_selection_manifest"
   ],
   "key_coverage_group": [
-    "image_window_context_manifest"
+    "image_window_context_manifest",
+    "source_domain_selection_manifest"
   ],
   "artifacts": {
     "split_manifest": {
@@ -149,6 +152,29 @@
         "scene_partner_context_policy",
         "interaction_context_ready"
       ]
+    },
+    "source_domain_selection_manifest": {
+      "path": "outputs/classification_v2/source_domain_controls/source_domain_selection_manifest.csv",
+      "type": "csv",
+      "required": true,
+      "key_column": "window_id",
+      "required_columns": [
+        "window_id",
+        "split",
+        "source_type",
+        "behavior_label",
+        "window_length_frames",
+        "domain_control_eligible",
+        "domain_control_keep",
+        "domain_control_reason",
+        "domain_control_stratum_key",
+        "domain_control_matched_quota"
+      ]
+    },
+    "source_domain_control_audit": {
+      "path": "outputs/classification_v2/source_domain_controls/source_domain_control_audit.json",
+      "type": "json",
+      "required": true
     }
   },
   "forbidden_x_patterns": [
@@ -163,6 +189,11 @@
     "dataset_id",
     "pig_id",
     "track_id",
+    "object_track_key",
+    "source_type",
+    "source_*",
+    "split",
+    "split_*",
     "*_path"
   ],
   "notes": [

@@ -25,6 +25,11 @@ DEFAULT_FORBIDDEN_X_PATTERNS = (
     "dataset_id",
     "pig_id",
     "track_id",
+    "object_track_key",
+    "source_type",
+    "source_*",
+    "split",
+    "split_*",
     "*_path",
 )
 
