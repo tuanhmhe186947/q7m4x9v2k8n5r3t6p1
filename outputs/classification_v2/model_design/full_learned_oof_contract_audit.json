@@ -1,0 +1,139 @@
+{
+  "schema_version": "classification_v2_full_learned_oof_contract_audit_v1",
+  "contract_json": "configs\\classification_v2\\full_learned_oof_contract_v1.json",
+  "paper_claim_level": "Q2_strong",
+  "external_generalization_claim": false,
+  "statistical_unit": "native_temporal_unit",
+  "split_policy": "recording_group_oof",
+  "input_report": {
+    "train_ready_root": {
+      "path": "outputs\\classification_v2\\train_ready_windows",
+      "exists": true,
+      "size_bytes": 12288
+    },
+    "x_spatial_sequences_npz": {
+      "path": "outputs\\classification_v2\\train_ready_windows\\X_spatial_sequences.npz",
+      "exists": true,
+      "size_bytes": 545232438
+    },
+    "y_behavior_csv": {
+      "path": "outputs\\classification_v2\\train_ready_windows\\y_behavior.csv",
+      "exists": true,
+      "size_bytes": 1313927
+    },
+    "train_mask_csv": {
+      "path": "outputs\\classification_v2\\train_ready_windows\\train_mask.csv",
+      "exists": true,
+      "size_bytes": 972505
+    },
+    "split_manifest_csv": {
+      "path": "outputs\\classification_v2\\train_ready_windows\\split_manifest.csv",
+      "exists": true,
+      "size_bytes": 63065387
+    },
+    "image_frame_context_manifest_csv": {
+      "path": "outputs\\classification_v2\\train_ready_windows\\image_frame_context_manifest.csv",
+      "exists": true,
+      "size_bytes": 188534911
+    },
+    "image_window_context_manifest_csv": {
+      "path": "outputs\\classification_v2\\train_ready_windows\\image_window_context_manifest.csv",
+      "exists": true,
+      "size_bytes": 306940011
+    },
+    "interaction_context_manifest_csv": {
+      "path": "outputs\\classification_v2\\train_ready_windows\\interaction_window_context_manifest.csv",
+      "exists": true,
+      "size_bytes": 72844682
+    },
+    "sequence_manifest_csv": {
+      "path": "outputs\\classification_v2\\sequence_features_reviewed\\sequence_window_manifest.csv",
+      "exists": true,
+      "size_bytes": 202180277
+    },
+    "native_oof_fold_manifest_csv": {
+      "path": "outputs\\classification_v2\\native_temporal_units_oof_folds\\native_oof_fold_manifest.csv",
+      "exists": true,
+      "size_bytes": 7098684
+    },
+    "trainer_contract_json": {
+      "path": "configs\\classification_v2\\trainer_contract_v1.json",
+      "exists": true,
+      "size_bytes": 2839
+    },
+    "model_architecture_contract_json": {
+      "path": "configs\\classification_v2\\model_architecture_contract_v1.json",
+      "exists": true,
+      "size_bytes": 4969
+    }
+  },
+  "alignment_report": {
+    "row_counts": {
+      "y_behavior": 160740,
+      "train_mask": 160740,
+      "split_manifest": 160740,
+      "image_window_context_manifest": 160740,
+      "interaction_context_manifest": 160740,
+      "spatial_array_bbox_xywh_n": 160740,
+      "spatial_array_bbox_shape_n": 160740,
+      "spatial_array_motion_delta": 160740,
+      "spatial_array_roi_class_relation": 160740,
+      "spatial_array_social_relation": 160740,
+      "spatial_array_quality_mask": 160740,
+      "spatial_array_length_mask": 160740,
+      "spatial_array_observed_mask": 160740,
+      "spatial_array_frame_index_sequence": 160740
+    },
+    "row_count_mismatches": {},
+    "train_ready_rows": 160740,
+    "train_mask_true_rows": 152704,
+    "single_native_unit_window_rows": 74628,
+    "native_oof_valid_window_rows": 74618,
+    "native_oof_fold_count": 13,
+    "complete_image_context_rows": 160356,
+    "image_frame_context_rows": 245664,
+    "image_frame_context_unique_frames": 32288,
+    "interaction_context_ready_rows": 114816
+  },
+  "required_model_inputs": [
+    "actor_bbox_image_sequence",
+    "whitelisted_spatial_sequence_features",
+    "roi_relation_features",
+    "social_partner_context_features",
+    "quality_masks"
+  ],
+  "forbidden_model_inputs": [
+    "manual_*",
+    "review_*",
+    "behavior_before_review",
+    "original_behavior",
+    "review_unit_id",
+    "window_id",
+    "temporal_unit_key",
+    "video_key",
+    "dataset_id",
+    "pig_id",
+    "track_id",
+    "path_columns",
+    "label_columns",
+    "split_columns"
+  ],
+  "required_output_schema": {
+    "prediction_schema": "classification_v2_prediction_schema_contract_v1",
+    "native_metrics": true,
+    "confidence_intervals": true,
+    "source_balanced_metrics": true,
+    "branch_ablation_deltas": true,
+    "shortcut_aware_reporting": true
+  },
+  "required_record": {
+    "path": "outputs\\classification_v2\\experiment_registry\\full_multimodal_oof_record.json",
+    "exists": false
+  },
+  "paper_ready": false,
+  "errors": [],
+  "warnings": [
+    "full_oof_record_missing=outputs\\classification_v2\\experiment_registry\\full_multimodal_oof_record.json"
+  ],
+  "valid": true
+}

@@ -1,0 +1,55 @@
+{
+  "version": "classification_v2_full_learned_oof_contract_v1",
+  "purpose": "Define the readiness gate for a paper-facing full native-OOF learned multimodal evaluation.",
+  "paper_claim_level": "Q2_strong",
+  "external_generalization_claim": false,
+  "statistical_unit": "native_temporal_unit",
+  "split_policy": "recording_group_oof",
+  "required_inputs": {
+    "train_ready_root": "outputs/classification_v2/train_ready_windows",
+    "x_spatial_sequences_npz": "outputs/classification_v2/train_ready_windows/X_spatial_sequences.npz",
+    "y_behavior_csv": "outputs/classification_v2/train_ready_windows/y_behavior.csv",
+    "train_mask_csv": "outputs/classification_v2/train_ready_windows/train_mask.csv",
+    "split_manifest_csv": "outputs/classification_v2/train_ready_windows/split_manifest.csv",
+    "image_frame_context_manifest_csv": "outputs/classification_v2/train_ready_windows/image_frame_context_manifest.csv",
+    "image_window_context_manifest_csv": "outputs/classification_v2/train_ready_windows/image_window_context_manifest.csv",
+    "interaction_context_manifest_csv": "outputs/classification_v2/train_ready_windows/interaction_window_context_manifest.csv",
+    "sequence_manifest_csv": "outputs/classification_v2/sequence_features_reviewed/sequence_window_manifest.csv",
+    "native_oof_fold_manifest_csv": "outputs/classification_v2/native_temporal_units_oof_folds/native_oof_fold_manifest.csv",
+    "trainer_contract_json": "configs/classification_v2/trainer_contract_v1.json",
+    "model_architecture_contract_json": "configs/classification_v2/model_architecture_contract_v1.json"
+  },
+  "required_model_inputs": [
+    "actor_bbox_image_sequence",
+    "whitelisted_spatial_sequence_features",
+    "roi_relation_features",
+    "social_partner_context_features",
+    "quality_masks"
+  ],
+  "forbidden_model_inputs": [
+    "manual_*",
+    "review_*",
+    "behavior_before_review",
+    "original_behavior",
+    "review_unit_id",
+    "window_id",
+    "temporal_unit_key",
+    "video_key",
+    "dataset_id",
+    "pig_id",
+    "track_id",
+    "path_columns",
+    "label_columns",
+    "split_columns"
+  ],
+  "required_output_schema": {
+    "prediction_schema": "classification_v2_prediction_schema_contract_v1",
+    "native_metrics": true,
+    "confidence_intervals": true,
+    "source_balanced_metrics": true,
+    "branch_ablation_deltas": true,
+    "shortcut_aware_reporting": true
+  },
+  "required_record": "outputs/classification_v2/experiment_registry/full_multimodal_oof_record.json",
+  "paper_ready_requires_record": true
+}
