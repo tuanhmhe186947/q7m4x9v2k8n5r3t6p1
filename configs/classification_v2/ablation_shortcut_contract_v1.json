@@ -79,14 +79,15 @@
     }
   ],
   "paper_candidate_blockers": [
-    "full out-of-fold learned multimodal evaluation is not recorded yet",
-    "branch ablation deltas against B0/B1/B2/B3/B5 are not recorded yet",
-    "source-balanced and shortcut-aware reporting is not recorded yet"
+    "full out-of-fold learned multimodal evaluation not recorded yet"
   ],
   "rules": [
     "A high source shortcut audit is a recorded risk, not a reason to hide the control.",
     "No ablation result may use window rows as independent publication sample size.",
     "Every paper-facing ablation must emit the S16 prediction schema and native-temporal metrics.",
     "Do not report a Q2 learned-model claim until required_before_paper_candidate ablations are recorded or explicitly waived with rationale."
-  ]
+  ],
+  "required_reporting_evidence": {
+    "ablation_reporting": "outputs/classification_v2/model_design/ablation_reporting_audit.json"
+  }
 }
