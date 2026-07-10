@@ -110,6 +110,8 @@ def main() -> None:
                 / "native_temporal_predictions"
                 / "native_temporal_predictions.csv"
             ),
+            "model_readiness_report_md": str(root / "model_readiness_report.md"),
+            "model_readiness_report_json": str(root / "model_readiness_report.json"),
         },
         "model_input_branches": {
             "tabular_context_branch": {
