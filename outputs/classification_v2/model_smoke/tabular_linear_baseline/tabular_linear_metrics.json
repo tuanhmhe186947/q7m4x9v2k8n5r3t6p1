@@ -1,0 +1,375 @@
+{
+  "primary_metric_unit": "native_temporal_unit",
+  "statistical_unit": "native_temporal_unit",
+  "native_temporal_metrics": {
+    "rows": 32727,
+    "labels": [
+      "drink",
+      "eat",
+      "fight",
+      "social-nose",
+      "explore",
+      "lying",
+      "stand",
+      "move",
+      "sitting",
+      "playwithtoy"
+    ],
+    "accuracy": 0.35515018180707064,
+    "macro_precision": 0.2848779989462728,
+    "macro_recall": 0.28202830586753463,
+    "macro_f1": 0.2643849294606202,
+    "macro_precision_supported": 0.2848779989462728,
+    "macro_recall_supported": 0.28202830586753463,
+    "macro_f1_supported": 0.2643849294606202,
+    "supported_label_count": 10,
+    "per_class": {
+      "drink": {
+        "support": 776,
+        "predicted": 894,
+        "tp": 118,
+        "precision": 0.1319910514541387,
+        "recall": 0.15206185567010308,
+        "f1": 0.14131736526946104
+      },
+      "eat": {
+        "support": 3080,
+        "predicted": 3088,
+        "tp": 1198,
+        "precision": 0.38795336787564766,
+        "recall": 0.38896103896103895,
+        "f1": 0.3884565499351491
+      },
+      "fight": {
+        "support": 2181,
+        "predicted": 5191,
+        "tp": 948,
+        "precision": 0.18262377191292622,
+        "recall": 0.4346629986244842,
+        "f1": 0.25718936516549107
+      },
+      "social-nose": {
+        "support": 1252,
+        "predicted": 4786,
+        "tp": 268,
+        "precision": 0.055996656916005014,
+        "recall": 0.21405750798722045,
+        "f1": 0.08877111626366346
+      },
+      "explore": {
+        "support": 8316,
+        "predicted": 6824,
+        "tp": 2868,
+        "precision": 0.42028135990621335,
+        "recall": 0.3448773448773449,
+        "f1": 0.37886393659180984
+      },
+      "lying": {
+        "support": 3198,
+        "predicted": 2132,
+        "tp": 1142,
+        "precision": 0.5356472795497186,
+        "recall": 0.35709818636647905,
+        "f1": 0.42851782363977486
+      },
+      "stand": {
+        "support": 1621,
+        "predicted": 228,
+        "tp": 36,
+        "precision": 0.15789473684210525,
+        "recall": 0.022208513263417645,
+        "f1": 0.038939967550027044
+      },
+      "move": {
+        "support": 891,
+        "predicted": 1013,
+        "tp": 397,
+        "precision": 0.39190523198420535,
+        "recall": 0.44556677890011226,
+        "f1": 0.41701680672268904
+      },
+      "sitting": {
+        "support": 11269,
+        "predicted": 8225,
+        "tp": 4641,
+        "precision": 0.5642553191489361,
+        "recall": 0.4118377850740971,
+        "f1": 0.4761465066174207
+      },
+      "playwithtoy": {
+        "support": 143,
+        "predicted": 346,
+        "tp": 7,
+        "precision": 0.02023121387283237,
+        "recall": 0.04895104895104895,
+        "f1": 0.02862985685071575
+      }
+    },
+    "confusion_matrix": {
+      "index": [
+        "drink",
+        "eat",
+        "fight",
+        "social-nose",
+        "explore",
+        "lying",
+        "stand",
+        "move",
+        "sitting",
+        "playwithtoy"
+      ],
+      "columns": [
+        "drink",
+        "eat",
+        "fight",
+        "social-nose",
+        "explore",
+        "lying",
+        "stand",
+        "move",
+        "sitting",
+        "playwithtoy"
+      ],
+      "values": [
+        [
+          118,
+          55,
+          51,
+          92,
+          177,
+          29,
+          5,
+          7,
+          224,
+          18
+        ],
+        [
+          74,
+          1198,
+          329,
+          290,
+          413,
+          76,
+          15,
+          7,
+          647,
+          31
+        ],
+        [
+          9,
+          81,
+          948,
+          453,
+          374,
+          1,
+          3,
+          213,
+          98,
+          1
+        ],
+        [
+          13,
+          53,
+          216,
+          268,
+          259,
+          38,
+          8,
+          41,
+          338,
+          18
+        ],
+        [
+          196,
+          510,
+          1880,
+          1229,
+          2868,
+          72,
+          64,
+          284,
+          1119,
+          94
+        ],
+        [
+          101,
+          166,
+          108,
+          504,
+          147,
+          1142,
+          13,
+          12,
+          950,
+          55
+        ],
+        [
+          62,
+          201,
+          290,
+          296,
+          438,
+          70,
+          36,
+          33,
+          176,
+          19
+        ],
+        [
+          3,
+          3,
+          276,
+          58,
+          135,
+          4,
+          4,
+          397,
+          3,
+          8
+        ],
+        [
+          310,
+          808,
+          1073,
+          1586,
+          1969,
+          691,
+          78,
+          18,
+          4641,
+          95
+        ],
+        [
+          8,
+          13,
+          20,
+          10,
+          44,
+          9,
+          2,
+          1,
+          29,
+          7
+        ]
+      ]
+    },
+    "focus_pair_confusions": {
+      "fight__vs__social-nose": {
+        "fight_predicted_as_social-nose": 453,
+        "social-nose_predicted_as_fight": 216,
+        "total_pair_confusions": 669
+      },
+      "fight__vs__stand": {
+        "fight_predicted_as_stand": 3,
+        "stand_predicted_as_fight": 290,
+        "total_pair_confusions": 293
+      },
+      "fight__vs__move": {
+        "fight_predicted_as_move": 213,
+        "move_predicted_as_fight": 276,
+        "total_pair_confusions": 489
+      },
+      "eat__vs__stand": {
+        "eat_predicted_as_stand": 15,
+        "stand_predicted_as_eat": 201,
+        "total_pair_confusions": 216
+      },
+      "eat__vs__explore": {
+        "eat_predicted_as_explore": 413,
+        "explore_predicted_as_eat": 510,
+        "total_pair_confusions": 923
+      },
+      "drink__vs__stand": {
+        "drink_predicted_as_stand": 5,
+        "stand_predicted_as_drink": 62,
+        "total_pair_confusions": 67
+      },
+      "drink__vs__explore": {
+        "drink_predicted_as_explore": 177,
+        "explore_predicted_as_drink": 196,
+        "total_pair_confusions": 373
+      },
+      "playwithtoy__vs__explore": {
+        "playwithtoy_predicted_as_explore": 44,
+        "explore_predicted_as_playwithtoy": 94,
+        "total_pair_confusions": 138
+      },
+      "playwithtoy__vs__stand": {
+        "playwithtoy_predicted_as_stand": 2,
+        "stand_predicted_as_playwithtoy": 19,
+        "total_pair_confusions": 21
+      },
+      "playwithtoy__vs__move": {
+        "playwithtoy_predicted_as_move": 1,
+        "move_predicted_as_playwithtoy": 8,
+        "total_pair_confusions": 9
+      },
+      "lying__vs__sitting": {
+        "lying_predicted_as_sitting": 950,
+        "sitting_predicted_as_lying": 691,
+        "total_pair_confusions": 1641
+      },
+      "move__vs__explore": {
+        "move_predicted_as_explore": 135,
+        "explore_predicted_as_move": 284,
+        "total_pair_confusions": 419
+      },
+      "move__vs__stand": {
+        "move_predicted_as_stand": 4,
+        "stand_predicted_as_move": 33,
+        "total_pair_confusions": 37
+      }
+    }
+  },
+  "confidence_intervals": {
+    "accuracy": {
+      "estimate": 0.35515018180707064,
+      "ci_low": 0.35112750939591164,
+      "ci_high": 0.35814312341491733,
+      "method": "unit_bootstrap_percentile",
+      "n_bootstrap": 30,
+      "resample_unit": "native_temporal_unit"
+    },
+    "macro_f1_supported": {
+      "estimate": 0.2643849294606202,
+      "ci_low": 0.25878610082211306,
+      "ci_high": 0.26950752685539003,
+      "method": "unit_bootstrap_percentile",
+      "n_bootstrap": 30,
+      "resample_unit": "native_temporal_unit"
+    },
+    "macro_recall_supported": {
+      "estimate": 0.28202830586753463,
+      "ci_low": 0.27630540917790647,
+      "ci_high": 0.2889639169170867,
+      "method": "unit_bootstrap_percentile",
+      "n_bootstrap": 30,
+      "resample_unit": "native_temporal_unit"
+    }
+  },
+  "sesoi": {
+    "primary_metric": "macro_f1_supported",
+    "minimum_effect_size": 0.02,
+    "comparison_required": true,
+    "status": "comparison_required_for_claim"
+  },
+  "native_temporal_prediction_audit": {
+    "schema_version": "classification_v2_native_temporal_prediction_audit_v1",
+    "input_window_rows": 73668,
+    "native_temporal_unit_rows": 32727,
+    "metric_included_unit_rows": 32727,
+    "true_label_conflict_units": 0,
+    "unit_id_col": "temporal_unit_key",
+    "true_col": "behavior_true",
+    "pred_col": "behavior_pred",
+    "weight_col": "window_sample_weight",
+    "valid_col": "window_valid_for_main_train",
+    "include_invalid_windows": false,
+    "errors": [],
+    "warnings": [],
+    "valid": true,
+    "missing_unit_id_window_rows": 0,
+    "invalid_window_rows_excluded": 0,
+    "prediction_aggregation_method": "mean_probability"
+  }
+}

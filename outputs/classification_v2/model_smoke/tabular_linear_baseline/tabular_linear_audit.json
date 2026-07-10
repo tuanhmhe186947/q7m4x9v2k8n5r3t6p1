@@ -1,0 +1,181 @@
+{
+  "schema_version": "classification_v2_tabular_linear_baseline_audit_v1",
+  "baseline_id": "B1_linear_tabular_whitelist",
+  "config": {
+    "trainer_contract_json": "configs\\classification_v2\\trainer_contract_v1.json",
+    "root": "outputs\\classification_v2\\train_ready_windows",
+    "sequence_manifest_csv": "outputs\\classification_v2\\sequence_features_reviewed\\sequence_window_manifest.csv",
+    "native_oof_fold_manifest_csv": "outputs\\classification_v2\\native_temporal_units_oof_folds\\native_oof_fold_manifest.csv",
+    "output_dir": "outputs\\classification_v2\\model_smoke\\tabular_linear_baseline",
+    "max_iter": 1000,
+    "tol": 0.001,
+    "random_state": 20260710,
+    "bootstrap_iterations": 30
+  },
+  "load_audit": {
+    "rows": 160740,
+    "feature_count": 39,
+    "feature_columns": [
+      "window_length_frames",
+      "window_duration_sec",
+      "effective_fps",
+      "observed_row_count_window",
+      "observed_frame_count_window",
+      "bbox_valid_ratio_window",
+      "hidden_ratio_window",
+      "visible_ratio_window",
+      "spatiotemporal_feature_valid_ratio_window",
+      "speed_mean_window",
+      "speed_max_window",
+      "speed_std_window",
+      "speed_per_sec_mean_window",
+      "speed_per_sec_max_window",
+      "path_length_n_window",
+      "path_length_n_per_sec_window",
+      "motion_energy_window",
+      "motion_burstiness_window",
+      "accel_abs_mean_window",
+      "accel_abs_max_window",
+      "direction_change_abs_mean_window",
+      "direction_change_abs_max_window",
+      "shape_transition_score_window",
+      "area_n_std_window",
+      "aspect_ratio_std_window",
+      "bbox_stability_window",
+      "displacement_n_window",
+      "displacement_ratio_window",
+      "nearest_dist_mean_window",
+      "nearest_dist_min_window",
+      "nearest_pair_iou_max_window",
+      "nearest_pair_overlap_max_window",
+      "social_density_mean_window",
+      "social_density_max_window",
+      "pair_contact_ratio_window",
+      "approach_speed_max_window",
+      "separation_speed_max_window",
+      "aggression_score_proxy_mean_window",
+      "aggression_score_proxy_max_window"
+    ],
+    "eligible_rows": 73668,
+    "fold_count": 13,
+    "label_counts": {
+      "drink": 2693,
+      "eat": 6662,
+      "explore": 12960,
+      "fight": 2334,
+      "lying": 17148,
+      "move": 2295,
+      "playwithtoy": 521,
+      "sitting": 23680,
+      "social-nose": 2260,
+      "stand": 3115
+    }
+  },
+  "train_audit": {
+    "folds": [
+      {
+        "oof_fold_id": "native_oof_000",
+        "train_rows": 68818,
+        "test_rows": 4850,
+        "train_label_count": 10,
+        "test_label_count": 10
+      },
+      {
+        "oof_fold_id": "native_oof_001",
+        "train_rows": 70828,
+        "test_rows": 2840,
+        "train_label_count": 10,
+        "test_label_count": 9
+      },
+      {
+        "oof_fold_id": "native_oof_002",
+        "train_rows": 69978,
+        "test_rows": 3690,
+        "train_label_count": 10,
+        "test_label_count": 9
+      },
+      {
+        "oof_fold_id": "native_oof_003",
+        "train_rows": 72988,
+        "test_rows": 680,
+        "train_label_count": 10,
+        "test_label_count": 7
+      },
+      {
+        "oof_fold_id": "native_oof_004",
+        "train_rows": 69238,
+        "test_rows": 4430,
+        "train_label_count": 10,
+        "test_label_count": 8
+      },
+      {
+        "oof_fold_id": "native_oof_005",
+        "train_rows": 62358,
+        "test_rows": 11310,
+        "train_label_count": 10,
+        "test_label_count": 10
+      },
+      {
+        "oof_fold_id": "native_oof_006",
+        "train_rows": 57416,
+        "test_rows": 16252,
+        "train_label_count": 10,
+        "test_label_count": 10
+      },
+      {
+        "oof_fold_id": "native_oof_007",
+        "train_rows": 64092,
+        "test_rows": 9576,
+        "train_label_count": 10,
+        "test_label_count": 10
+      },
+      {
+        "oof_fold_id": "native_oof_008",
+        "train_rows": 65628,
+        "test_rows": 8040,
+        "train_label_count": 10,
+        "test_label_count": 9
+      },
+      {
+        "oof_fold_id": "native_oof_009",
+        "train_rows": 66198,
+        "test_rows": 7470,
+        "train_label_count": 10,
+        "test_label_count": 9
+      },
+      {
+        "oof_fold_id": "native_oof_010",
+        "train_rows": 70798,
+        "test_rows": 2870,
+        "train_label_count": 10,
+        "test_label_count": 9
+      },
+      {
+        "oof_fold_id": "native_oof_011",
+        "train_rows": 72588,
+        "test_rows": 1080,
+        "train_label_count": 10,
+        "test_label_count": 9
+      },
+      {
+        "oof_fold_id": "native_oof_012",
+        "train_rows": 73088,
+        "test_rows": 580,
+        "train_label_count": 10,
+        "test_label_count": 8
+      }
+    ],
+    "prediction_rows": 73668,
+    "native_temporal_units_predicted": 32727
+  },
+  "predictions_csv": "outputs\\classification_v2\\model_smoke\\tabular_linear_baseline\\tabular_linear_predictions.csv",
+  "native_unit_predictions_csv": "outputs\\classification_v2\\model_smoke\\tabular_linear_baseline\\tabular_linear_unit_predictions.csv",
+  "metrics_json": "outputs\\classification_v2\\model_smoke\\tabular_linear_baseline\\tabular_linear_metrics.json",
+  "prediction_schema_audit_json": "outputs\\classification_v2\\model_smoke\\tabular_linear_baseline\\tabular_linear_prediction_schema_audit.json",
+  "prediction_schema_valid": true,
+  "errors": [],
+  "warnings": [
+    "linear tabular whitelist baseline only; use as B1 ablation control, not final multimodal model"
+  ],
+  "valid": true
+}

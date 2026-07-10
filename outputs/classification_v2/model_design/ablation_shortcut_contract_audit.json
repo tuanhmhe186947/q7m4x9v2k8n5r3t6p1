@@ -9,11 +9,10 @@
     "source_shortcut_high_balanced_accuracy=1.0000",
     "spatial_control_shortcut_high_balanced_accuracy={'real_sequence': 0.9948483631251255, 'repeat_first_frame': 0.9561089910959363, 'mean_only': 0.995892749548102}",
     "multimodal_smoke_train_is_not_full_oof_evaluation",
-    "required_ablation_planned_not_recorded=B1",
     "required_ablation_planned_not_recorded=B2",
     "paper_candidate_false_ablation_contract_only",
-    "planned_required_ablations_not_recorded=['B1', 'B2']",
-    "paper_candidate_blockers=['linear and nonlinear tabular whitelist baselines are not recorded yet', 'full out-of-fold learned multimodal evaluation is not recorded yet', 'branch ablation deltas against B0/B1/B2/B3/B5 are not recorded yet', 'source-balanced and shortcut-aware reporting is not recorded yet']"
+    "planned_required_ablations_not_recorded=['B2']",
+    "paper_candidate_blockers=['nonlinear tabular whitelist baseline is not recorded yet', 'full out-of-fold learned multimodal evaluation is not recorded yet', 'branch ablation deltas against B0/B1/B2/B3/B5 are not recorded yet', 'source-balanced and shortcut-aware reporting is not recorded yet']"
   ],
   "valid": true,
   "shortcut_report": {
@@ -91,10 +90,10 @@
     {
       "id": "B1",
       "name": "linear_tabular_whitelist",
-      "status": "planned_required",
+      "status": "recorded",
       "required_before_paper_candidate": true,
-      "evidence": "",
-      "evidence_exists": false
+      "evidence": "outputs/classification_v2/experiment_registry/tabular_linear_baseline_record.json",
+      "evidence_exists": true
     },
     {
       "id": "B2",
@@ -154,11 +153,10 @@
     }
   ],
   "planned_required_ablations_not_recorded": [
-    "B1",
     "B2"
   ],
   "paper_candidate_blockers": [
-    "linear and nonlinear tabular whitelist baselines are not recorded yet",
+    "nonlinear tabular whitelist baseline is not recorded yet",
     "full out-of-fold learned multimodal evaluation is not recorded yet",
     "branch ablation deltas against B0/B1/B2/B3/B5 are not recorded yet",
     "source-balanced and shortcut-aware reporting is not recorded yet"
