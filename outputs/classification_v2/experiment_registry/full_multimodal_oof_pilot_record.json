@@ -1,0 +1,479 @@
+{
+  "schema_version": "classification_v2_experiment_record_v1",
+  "name": "full_multimodal_oof_pilot",
+  "created_at_utc": "2026-07-10T15:23:38.491454+00:00",
+  "git_commit": "4199ca31ee5bca409ef63bb686e7cc17d3afa6ae",
+  "git_dirty": false,
+  "metrics_json": "outputs\\classification_v2\\model_smoke\\full_multimodal_oof_pilot\\full_multimodal_oof_metrics.json",
+  "metrics": {
+    "primary_metric_unit": "native_temporal_unit",
+    "statistical_unit": "native_temporal_unit",
+    "native_temporal_metrics": {
+      "rows": 10,
+      "labels": [
+        "drink",
+        "eat",
+        "fight",
+        "social-nose",
+        "explore",
+        "lying",
+        "stand",
+        "move",
+        "sitting",
+        "playwithtoy"
+      ],
+      "accuracy": 0.1,
+      "macro_precision": 0.01,
+      "macro_recall": 0.1,
+      "macro_f1": 0.01818181818181818,
+      "macro_precision_supported": 0.01,
+      "macro_recall_supported": 0.1,
+      "macro_f1_supported": 0.01818181818181818,
+      "supported_label_count": 10,
+      "per_class": {
+        "drink": {
+          "support": 1,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "eat": {
+          "support": 1,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "fight": {
+          "support": 1,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "social-nose": {
+          "support": 1,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "explore": {
+          "support": 1,
+          "predicted": 10,
+          "tp": 1,
+          "precision": 0.1,
+          "recall": 1.0,
+          "f1": 0.18181818181818182
+        },
+        "lying": {
+          "support": 1,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "stand": {
+          "support": 1,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "move": {
+          "support": 1,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "sitting": {
+          "support": 1,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "playwithtoy": {
+          "support": 1,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        }
+      },
+      "confusion_matrix": {
+        "index": [
+          "drink",
+          "eat",
+          "fight",
+          "social-nose",
+          "explore",
+          "lying",
+          "stand",
+          "move",
+          "sitting",
+          "playwithtoy"
+        ],
+        "columns": [
+          "drink",
+          "eat",
+          "fight",
+          "social-nose",
+          "explore",
+          "lying",
+          "stand",
+          "move",
+          "sitting",
+          "playwithtoy"
+        ],
+        "values": [
+          [
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        ]
+      },
+      "focus_pair_confusions": {
+        "fight__vs__social-nose": {
+          "fight_predicted_as_social-nose": 0,
+          "social-nose_predicted_as_fight": 0,
+          "total_pair_confusions": 0
+        },
+        "fight__vs__stand": {
+          "fight_predicted_as_stand": 0,
+          "stand_predicted_as_fight": 0,
+          "total_pair_confusions": 0
+        },
+        "fight__vs__move": {
+          "fight_predicted_as_move": 0,
+          "move_predicted_as_fight": 0,
+          "total_pair_confusions": 0
+        },
+        "eat__vs__stand": {
+          "eat_predicted_as_stand": 0,
+          "stand_predicted_as_eat": 0,
+          "total_pair_confusions": 0
+        },
+        "eat__vs__explore": {
+          "eat_predicted_as_explore": 1,
+          "explore_predicted_as_eat": 0,
+          "total_pair_confusions": 1
+        },
+        "drink__vs__stand": {
+          "drink_predicted_as_stand": 0,
+          "stand_predicted_as_drink": 0,
+          "total_pair_confusions": 0
+        },
+        "drink__vs__explore": {
+          "drink_predicted_as_explore": 1,
+          "explore_predicted_as_drink": 0,
+          "total_pair_confusions": 1
+        },
+        "playwithtoy__vs__explore": {
+          "playwithtoy_predicted_as_explore": 1,
+          "explore_predicted_as_playwithtoy": 0,
+          "total_pair_confusions": 1
+        },
+        "playwithtoy__vs__stand": {
+          "playwithtoy_predicted_as_stand": 0,
+          "stand_predicted_as_playwithtoy": 0,
+          "total_pair_confusions": 0
+        },
+        "playwithtoy__vs__move": {
+          "playwithtoy_predicted_as_move": 0,
+          "move_predicted_as_playwithtoy": 0,
+          "total_pair_confusions": 0
+        },
+        "lying__vs__sitting": {
+          "lying_predicted_as_sitting": 0,
+          "sitting_predicted_as_lying": 0,
+          "total_pair_confusions": 0
+        },
+        "move__vs__explore": {
+          "move_predicted_as_explore": 1,
+          "explore_predicted_as_move": 0,
+          "total_pair_confusions": 1
+        },
+        "move__vs__stand": {
+          "move_predicted_as_stand": 0,
+          "stand_predicted_as_move": 0,
+          "total_pair_confusions": 0
+        }
+      }
+    },
+    "confidence_intervals": {
+      "accuracy": {
+        "estimate": 0.1,
+        "ci_low": 0.010000000000000002,
+        "ci_high": 0.2,
+        "method": "unit_bootstrap_percentile",
+        "n_bootstrap": 5,
+        "resample_unit": "native_temporal_unit"
+      },
+      "macro_f1_supported": {
+        "estimate": 0.01818181818181818,
+        "ci_low": 0.002597402597402598,
+        "ci_high": 0.05416666666666667,
+        "method": "unit_bootstrap_percentile",
+        "n_bootstrap": 5,
+        "resample_unit": "native_temporal_unit"
+      },
+      "macro_recall_supported": {
+        "estimate": 0.1,
+        "ci_low": 0.0125,
+        "ci_high": 0.16666666666666666,
+        "method": "unit_bootstrap_percentile",
+        "n_bootstrap": 5,
+        "resample_unit": "native_temporal_unit"
+      }
+    },
+    "sesoi": {
+      "primary_metric": "macro_f1_supported",
+      "minimum_effect_size": 0.02,
+      "comparison_required": true,
+      "status": "comparison_required_for_claim"
+    },
+    "native_temporal_prediction_audit": {
+      "schema_version": "classification_v2_native_temporal_prediction_audit_v1",
+      "input_window_rows": 10,
+      "native_temporal_unit_rows": 10,
+      "metric_included_unit_rows": 10,
+      "true_label_conflict_units": 0,
+      "unit_id_col": "temporal_unit_key",
+      "true_col": "behavior_true",
+      "pred_col": "behavior_pred",
+      "weight_col": "window_sample_weight",
+      "valid_col": "window_valid_for_main_train",
+      "include_invalid_windows": false,
+      "errors": [],
+      "warnings": [],
+      "valid": true,
+      "missing_unit_id_window_rows": 0,
+      "invalid_window_rows_excluded": 0,
+      "prediction_aggregation_method": "mean_probability"
+    }
+  },
+  "experiment_stage": "engineering_smoke",
+  "paper_facing": false,
+  "provenance": {
+    "dataset_snapshot_json": {
+      "path": "outputs\\classification_v2\\training_snapshots\\c2v2_eb531fc8c09011b3.json",
+      "exists": true,
+      "size_bytes": 33349,
+      "mtime_utc": "2026-07-10T10:41:44.641723+00:00",
+      "sha256": "1c914cd0a474a59251278f50115e31d2a6331ec6247d20b68732d5d96a00bd3d",
+      "hash_status": "ok"
+    },
+    "paper_protocol_json": {
+      "path": "configs\\classification_v2\\paper_grade_protocol_v1.json",
+      "exists": true,
+      "size_bytes": 3965,
+      "mtime_utc": "2026-07-10T14:14:22.819889+00:00",
+      "sha256": "b13cdc7eea6f968abb53315ba980d0e059a093c1b01a9f4ac75dc32466b4d8b8",
+      "hash_status": "ok"
+    },
+    "paper_protocol_audit_json": {
+      "path": "outputs\\classification_v2\\paper_grade_protocol\\paper_grade_protocol_audit.json",
+      "exists": true,
+      "size_bytes": 3359,
+      "mtime_utc": "2026-07-10T14:16:34.269775+00:00",
+      "sha256": "040dc0d19707bbb1447aa689777d254d6bc7ebec1f976fb46b7533e7ffd2bfd1",
+      "hash_status": "ok"
+    },
+    "source_domain_audit_json": {
+      "path": "outputs\\classification_v2\\source_domain_controls\\source_domain_control_audit.json",
+      "exists": true,
+      "size_bytes": 1347,
+      "mtime_utc": "2026-07-10T10:18:53.825144+00:00",
+      "sha256": "3d8951cfc8aa8668196e249016f04f013bd91c84774110884a0622c13dc8cdfd",
+      "hash_status": "ok"
+    },
+    "native_oof_audit_json": {
+      "path": "outputs\\classification_v2\\native_temporal_units_oof_folds\\native_oof_fold_audit.json",
+      "exists": true,
+      "size_bytes": 1766,
+      "mtime_utc": "2026-07-10T10:06:00.451806+00:00",
+      "sha256": "9a13dd0d5ac7b265b71d64da8ef2b83336aadea8517999df722cb78a3070f2c9",
+      "hash_status": "ok"
+    },
+    "trainer_contract_json": {
+      "path": "configs\\classification_v2\\trainer_contract_v1.json",
+      "exists": true,
+      "size_bytes": 2839,
+      "mtime_utc": "2026-07-10T10:14:30.465831+00:00",
+      "sha256": "d75d59b9aafecce0e1202eb5367d68516d689b5289c8071f2e7e840fe7449867",
+      "hash_status": "ok"
+    },
+    "loader_input_audit_json": {
+      "path": "outputs\\classification_v2\\train_ready_windows\\loader_input_audit.json",
+      "exists": true,
+      "size_bytes": 1903,
+      "mtime_utc": "2026-07-10T11:03:59.389354+00:00",
+      "sha256": "8a188011804a658aa9847b3fcaf143f88e70bb61e1601b5773811b14cad6b04d",
+      "hash_status": "ok"
+    }
+  },
+  "evaluation_contract": {
+    "schema_version": "classification_v2_native_temporal_metrics_gate_v1",
+    "paper_claim_level": "Q2_strong",
+    "result_kind": "engineering_smoke",
+    "primary_metric_unit": "native_temporal_unit",
+    "split_policy": "recording_group_oof",
+    "source_domain_control_required": true,
+    "native_temporal_metrics_required": true,
+    "window_metrics_are_secondary": true,
+    "feature_leakage_guard_required": true,
+    "review_unit_decisions_required": true,
+    "pig_identity_scope": "annotation_local_not_cross_video",
+    "interaction_context": "full_frame_partner_context",
+    "external_generalization_claim": false
+  },
+  "artifacts": [
+    {
+      "path": "outputs\\classification_v2\\model_smoke\\full_multimodal_oof_pilot\\full_multimodal_oof_audit.json",
+      "exists": true,
+      "size_bytes": 3785,
+      "mtime_utc": "2026-07-10T15:21:50.831664+00:00",
+      "sha256": "93ba656781aa23b0f4e8d082659f8bb1dca3b5d78c3cc9f9d76de23396ae434f",
+      "hash_status": "ok"
+    },
+    {
+      "path": "outputs\\classification_v2\\model_smoke\\full_multimodal_oof_pilot\\full_multimodal_oof_prediction_schema_audit.json",
+      "exists": true,
+      "size_bytes": 2264,
+      "mtime_utc": "2026-07-10T15:21:50.831664+00:00",
+      "sha256": "ab0d0fe7487173f1a1717dd5789b214c2eb52c07f130ad796b03b6d48bf1ffba",
+      "hash_status": "ok"
+    }
+  ],
+  "notes": " S26B bounded learned multimodal native OOF pilot not paper-facing full OOF",
+  "record_path": "outputs\\classification_v2\\experiment_registry\\full_multimodal_oof_pilot_record.json",
+  "ledger_path": "outputs\\classification_v2\\experiment_registry\\experiment_ledger.jsonl"
+}
