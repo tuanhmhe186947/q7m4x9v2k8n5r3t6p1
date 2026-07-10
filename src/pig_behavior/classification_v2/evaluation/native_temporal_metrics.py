@@ -30,6 +30,10 @@ class NativeTemporalMetricsConfig:
     window_id_col: str = "window_id"
     prob_prefix: str = "prob_"
     include_invalid_windows: bool = False
+    bootstrap_iterations: int = 200
+    bootstrap_seed: int = 20260710
+    sesoi_primary_metric: str = "macro_f1_supported"
+    sesoi_minimum_effect_size: float = 0.02
 
 
 def build_native_temporal_predictions(
@@ -92,7 +96,17 @@ def build_native_temporal_metrics(
         )
     payload = {
         "primary_metric_unit": "native_temporal_unit",
+        "statistical_unit": "native_temporal_unit",
         "native_temporal_metrics": metrics,
+        "confidence_intervals": _bootstrap_confidence_intervals(metric_rows, cfg)
+        if not units.empty and not metric_rows.empty
+        else {},
+        "sesoi": {
+            "primary_metric": cfg.sesoi_primary_metric,
+            "minimum_effect_size": float(cfg.sesoi_minimum_effect_size),
+            "comparison_required": True,
+            "status": "comparison_required_for_claim",
+        },
         "native_temporal_prediction_audit": audit,
     }
     return units, payload
@@ -233,6 +247,42 @@ def _audit(
         "errors": errors,
         "warnings": warnings,
         "valid": not errors and conflict_count == 0 and metric_include_count > 0,
+    }
+
+
+def _bootstrap_confidence_intervals(metric_rows: pd.DataFrame, cfg: NativeTemporalMetricsConfig) -> dict[str, Any]:
+    """Compute deterministic bootstrap CIs over native temporal units.
+
+    The resampling unit is the native temporal unit row. This keeps uncertainty
+    aligned with the paper-facing statistical unit rather than overlapping
+    training windows.
+    """
+
+    if metric_rows.empty or cfg.bootstrap_iterations <= 0:
+        return {}
+    rng = np.random.default_rng(int(cfg.bootstrap_seed))
+    metrics = ["accuracy", "macro_f1_supported", "macro_recall_supported"]
+    estimates = evaluate_predictions(
+        metric_rows, y_true_col=cfg.true_col, y_pred_col="native_predicted_behavior"
+    )
+    samples: dict[str, list[float]] = {name: [] for name in metrics}
+    n_rows = len(metric_rows)
+    for _ in range(int(cfg.bootstrap_iterations)):
+        indices = rng.integers(0, n_rows, size=n_rows)
+        boot = metric_rows.iloc[indices].reset_index(drop=True)
+        boot_metrics = evaluate_predictions(boot, y_true_col=cfg.true_col, y_pred_col="native_predicted_behavior")
+        for name in metrics:
+            samples[name].append(float(boot_metrics.get(name, 0.0)))
+    return {
+        name: {
+            "estimate": float(estimates.get(name, 0.0)),
+            "ci_low": float(np.quantile(values, 0.025)),
+            "ci_high": float(np.quantile(values, 0.975)),
+            "method": "unit_bootstrap_percentile",
+            "n_bootstrap": int(cfg.bootstrap_iterations),
+            "resample_unit": "native_temporal_unit",
+        }
+        for name, values in samples.items()
     }
 
 

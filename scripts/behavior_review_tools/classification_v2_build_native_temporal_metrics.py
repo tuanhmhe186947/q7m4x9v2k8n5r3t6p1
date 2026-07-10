@@ -26,6 +26,10 @@ def main() -> None:
     parser.add_argument("--window-id-col", default="window_id")
     parser.add_argument("--prob-prefix", default="prob_")
     parser.add_argument("--include-invalid-windows", action="store_true")
+    parser.add_argument("--bootstrap-iterations", type=int, default=200)
+    parser.add_argument("--bootstrap-seed", type=int, default=20260710)
+    parser.add_argument("--sesoi-primary-metric", default="macro_f1_supported")
+    parser.add_argument("--sesoi-minimum-effect-size", type=float, default=0.02)
     args = parser.parse_args()
 
     predictions = pd.read_csv(args.predictions_csv)
@@ -38,6 +42,10 @@ def main() -> None:
         window_id_col=args.window_id_col,
         prob_prefix=args.prob_prefix,
         include_invalid_windows=args.include_invalid_windows,
+        bootstrap_iterations=args.bootstrap_iterations,
+        bootstrap_seed=args.bootstrap_seed,
+        sesoi_primary_metric=args.sesoi_primary_metric,
+        sesoi_minimum_effect_size=args.sesoi_minimum_effect_size,
     )
     units, payload = build_native_temporal_metrics(predictions, config)
 

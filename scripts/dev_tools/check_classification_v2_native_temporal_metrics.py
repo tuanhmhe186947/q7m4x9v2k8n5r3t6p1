@@ -8,6 +8,7 @@ from pig_behavior.classification_v2.evaluation.native_temporal_metrics_gate impo
     check_native_temporal_metrics_gate,
     default_evaluation_contract,
 )
+from pig_behavior.classification_v2.evaluation.metrics_payload_contract import check_paper_metrics_payload
 
 
 def main() -> None:
@@ -32,6 +33,10 @@ def main() -> None:
         result["errors"].append(f"native_temporal_prediction_audit_errors={audit.get('errors')}")
     if audit.get("valid") is False:
         result["errors"].append("native_temporal_prediction_audit_invalid")
+    metrics_contract = check_paper_metrics_payload(payload)
+    result["paper_metrics_payload_contract"] = metrics_contract
+    result["errors"].extend(f"paper_metrics_payload_contract:{error}" for error in metrics_contract["errors"])
+    result["warnings"].extend(f"paper_metrics_payload_contract:{warning}" for warning in metrics_contract["warnings"])
     result["valid"] = not result["errors"]
     print(json.dumps(result, indent=2))
     if result["errors"]:
