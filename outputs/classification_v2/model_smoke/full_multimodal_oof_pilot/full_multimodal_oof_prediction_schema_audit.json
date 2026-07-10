@@ -104,6 +104,9 @@
     "stand": 1
   },
   "pred_label_counts": {
-    "explore": 10
+    "explore": 2,
+    "lying": 4,
+    "playwithtoy": 1,
+    "stand": 3
   }
 }

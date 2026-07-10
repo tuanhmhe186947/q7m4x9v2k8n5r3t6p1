@@ -64,6 +64,8 @@ class FullMultimodalOofConfig:
     lr: float = 0.003
     weight_decay: float = 0.0
     steps_per_fold: int = 2
+    train_batch_size: int = 32
+    eval_batch_size: int = 64
     max_folds: int | None = 2
     train_per_class_per_fold: int | None = 2
     eval_per_class_per_fold: int | None = 1
@@ -215,8 +217,6 @@ def _run_one_fold(
     )
     if len(train_indices) < 2 or len(eval_indices) < 1:
         raise ValueError(f"fold {fold_id} has insufficient train/eval rows")
-    train_batch = _batch_from_indices(dataset, bundle, train_indices, label_to_idx, device)
-    eval_batch = _batch_from_indices(dataset, bundle, eval_indices, label_to_idx, device)
     model = MultimodalFusionClassifier(
         MultimodalFusionConfig(
             spatial_input_dims={name: int(bundle.arrays[name].shape[-1]) for name in MODEL_GROUPS},
@@ -231,9 +231,12 @@ def _run_one_fold(
     ).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
     loss_fn = nn.CrossEntropyLoss()
+    rng = np.random.default_rng(config.seed + int(_stable_fold_offset(fold_id)))
     losses: list[float] = []
     model.train()
-    for _ in range(int(config.steps_per_fold)):
+    for step_index in range(int(config.steps_per_fold)):
+        batch_indices = _step_train_indices(train_indices, config.train_batch_size, rng, step_index)
+        train_batch = _batch_from_indices(dataset, bundle, batch_indices, label_to_idx, device)
         optimizer.zero_grad(set_to_none=True)
         logits = _forward_model(model, train_batch)
         loss = loss_fn(logits, train_batch["target"])
@@ -241,11 +244,23 @@ def _run_one_fold(
         nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         optimizer.step()
         losses.append(float(loss.detach().cpu().item()))
-    predictions = _predict(model, bundle, eval_indices, eval_batch, label_order, fold_id)
+    predictions = _predict_in_batches(
+        dataset,
+        model,
+        bundle,
+        eval_indices,
+        label_to_idx,
+        label_order,
+        fold_id,
+        config,
+        device,
+    )
     audit = {
         "oof_fold_id": str(fold_id),
         "train_rows": int(len(train_indices)),
         "eval_rows": int(len(eval_indices)),
+        "train_batch_size": int(config.train_batch_size),
+        "eval_batch_size": int(config.eval_batch_size),
         "train_label_counts": bundle.frame.iloc[train_indices]["behavior_true"].value_counts().sort_index().to_dict(),
         "eval_label_counts": bundle.frame.iloc[eval_indices]["behavior_true"].value_counts().sort_index().to_dict(),
         "initial_loss": float(losses[0]),
@@ -402,6 +417,7 @@ def _predict(
     batch: dict[str, Any],
     label_order: list[str],
     fold_id: str,
+    experiment_role: str,
 ) -> pd.DataFrame:
     """Emit S16-compatible window predictions for held-out native units."""
 
@@ -419,12 +435,55 @@ def _predict(
             "window_sample_weight": pd.to_numeric(rows["window_sample_weight"], errors="coerce").fillna(1.0),
             "window_valid_for_main_train": rows["window_valid_for_main_train"].astype(bool),
             "oof_fold_id": str(fold_id),
-            "experiment_role": "full_multimodal_oof_pilot" if len(indices) < 1000 else "full_multimodal_oof",
+            "experiment_role": experiment_role,
         }
     )
     for class_index, label in enumerate(label_order):
         out[f"prob_{label}"] = probs[:, class_index]
     return out
+
+
+def _predict_in_batches(
+    dataset: ClassificationV2ImageSequenceDataset,
+    model: MultimodalFusionClassifier,
+    bundle: _OofBundle,
+    indices: np.ndarray,
+    label_to_idx: dict[str, int],
+    label_order: list[str],
+    fold_id: str,
+    config: FullMultimodalOofConfig,
+    device: torch.device,
+) -> pd.DataFrame:
+    """Predict a held-out fold in bounded chunks so full OOF does not exhaust RAM."""
+
+    chunks: list[pd.DataFrame] = []
+    role = "full_multimodal_oof" if _is_full_run(config, bundle) else "full_multimodal_oof_pilot"
+    for start in range(0, len(indices), int(config.eval_batch_size)):
+        chunk_indices = indices[start : start + int(config.eval_batch_size)]
+        batch = _batch_from_indices(dataset, bundle, chunk_indices, label_to_idx, device)
+        chunks.append(_predict(model, bundle, chunk_indices, batch, label_order, fold_id, role))
+    return pd.concat(chunks, ignore_index=True)
+
+
+def _step_train_indices(
+    train_indices: np.ndarray,
+    batch_size: int,
+    rng: np.random.Generator,
+    step_index: int,
+) -> np.ndarray:
+    """Select one deterministic mini-batch, cycling all rows when batch covers the fold."""
+
+    if len(train_indices) <= batch_size:
+        return train_indices
+    replace = len(train_indices) < batch_size
+    if not replace:
+        # Mix a deterministic offset with RNG sampling so short pilot runs still
+        # see different rows across steps without relying on global state.
+        shifted = np.roll(train_indices, step_index * batch_size)
+        candidate_pool = shifted[: max(batch_size * 4, batch_size)]
+        if len(candidate_pool) >= batch_size:
+            return np.sort(rng.choice(candidate_pool, size=batch_size, replace=False))
+    return np.sort(rng.choice(train_indices, size=batch_size, replace=replace))
 
 
 def _sample_indices(frame: pd.DataFrame, *, mask: pd.Series, per_class: int | None, seed: int) -> np.ndarray:
@@ -449,6 +508,8 @@ def _validate_config(config: FullMultimodalOofConfig) -> None:
         raise ValueError("hidden_dim must be positive")
     if config.steps_per_fold <= 0:
         raise ValueError("steps_per_fold must be positive")
+    if config.train_batch_size <= 0 or config.eval_batch_size <= 0:
+        raise ValueError("batch sizes must be positive")
     if config.max_folds is not None and config.max_folds <= 0:
         raise ValueError("max_folds must be positive when provided")
     if config.run_mode not in {"pilot", "full"}:
