@@ -27,6 +27,8 @@ def main() -> None:
     image_tensor_loader = _load_json(root / "image_tensor_loader_smoke_audit.json")
     interaction_context = _load_json(root / "interaction_context_audit.json")
     source_shortcut = _load_json(classification_root / "model_smoke" / "source_shortcut_audit.json")
+    source_domain = _load_json(classification_root / "source_domain_controls" / "source_domain_control_audit.json")
+    paper_protocol = _load_json(classification_root / "paper_grade_protocol" / "paper_grade_protocol_audit.json")
     spatial_controls = _load_json(classification_root / "model_smoke" / "spatial_control_shortcut_audit.json")
     smoke_train = _load_json(
         classification_root / "model_smoke" / "spatial_tcn_smoke_train" / "spatial_tcn_smoke_train_audit.json"
@@ -40,6 +42,9 @@ def main() -> None:
     )
     experiment_record = _load_json(
         classification_root / "experiment_registry" / "spatial_tcn_smoke_train_record.json"
+    )
+    paper_facing_record = _load_json(
+        classification_root / "experiment_registry" / "paper_grade_protocol_gate_record.json"
     )
 
     blueprint = {
@@ -73,6 +78,8 @@ def main() -> None:
             "validation": {
                 "split_manifest": contract["artifacts"].get("split_manifest"),
                 "native_publication_split": contract["artifacts"].get("native_publication_split_manifest"),
+                "source_domain_control": contract["artifacts"].get("source_domain_selection_manifest"),
+                "paper_facing_experiment_gate": contract["artifacts"].get("paper_facing_experiment_gate_record"),
                 "rule": "No random frame/window split; report native temporal-unit metrics for confirmatory evaluation.",
             },
         },
@@ -123,7 +130,10 @@ def main() -> None:
                 "module": "src/pig_behavior/classification_v2/experiments/registry.py",
                 "runner": "scripts/behavior_review_tools/classification_v2_register_experiment.py",
                 "checker": "scripts/dev_tools/check_classification_v2_experiment_registry.py",
-                "purpose": "File-based provenance record with artifact hashes, git commit, config, and metrics.",
+                "purpose": (
+                    "File-based provenance record with artifact hashes, git commit, config, metrics, and "
+                    "paper-facing provenance gates when experiment_stage=paper_facing_candidate."
+                ),
             },
             "shortcut_controls": {
                 "checker": "scripts/dev_tools/check_classification_v2_spatial_control_shortcuts.py",
@@ -153,10 +163,12 @@ def main() -> None:
             {
                 "risk": "source/domain shortcut is strong",
                 "evidence": {
-                    "tabular_source_balanced_accuracy": source_shortcut.get("balanced_accuracy"),
-                    "spatial_control_balanced_accuracy": {
-                        name: values.get("balanced_accuracy")
-                        for name, values in spatial_controls.get("controls", {}).items()
+                "tabular_source_balanced_accuracy": source_shortcut.get("balanced_accuracy"),
+                "source_domain_kept_rows": source_domain.get("kept_rows"),
+                "source_domain_kept_counts": source_domain.get("source_counts_kept"),
+                "spatial_control_balanced_accuracy": {
+                    name: values.get("balanced_accuracy")
+                    for name, values in spatial_controls.get("controls", {}).items()
                     },
                 },
                 "required_control": "Report source-balanced, video/session-safe, and native temporal-unit metrics.",
@@ -177,7 +189,16 @@ def main() -> None:
             "python scripts/dev_tools/check_classification_v2_spatial_tcn_smoke_train.py",
             "python scripts/dev_tools/check_classification_v2_spatial_control_shortcuts.py --max-rows-per-split 5000",
             "python scripts/behavior_review_tools/classification_v2_register_experiment.py --name spatial_tcn_smoke_train --metrics-json outputs/classification_v2/model_smoke/spatial_tcn_smoke_train/spatial_tcn_smoke_train_audit.json --artifact outputs/classification_v2/model_smoke/spatial_tcn_smoke_train/spatial_tcn_smoke_train_audit.json --artifact outputs/classification_v2/model_smoke/spatial_tcn_smoke_train/spatial_tcn_smoke_predictions.csv --artifact outputs/classification_v2/model_smoke/spatial_tcn_smoke_train/spatial_tcn_smoke_train.pt --artifact outputs/classification_v2/train_ready_windows/model_input_contract.json --notes split_safe_smoke_subset_not_full_training",
+            "python scripts/dev_tools/check_classification_v2_paper_grade_protocol.py",
+            "python scripts/dev_tools/check_classification_v2_experiment_registry.py --record-json outputs/classification_v2/experiment_registry/paper_grade_protocol_gate_record.json",
         ],
+        "paper_gate_status": {
+            "paper_grade_protocol_valid": paper_protocol.get("valid"),
+            "paper_grade_protocol_errors": paper_protocol.get("errors", []),
+            "paper_facing_record_name": paper_facing_record.get("name"),
+            "paper_facing_record_stage": paper_facing_record.get("experiment_stage"),
+            "paper_facing_record_git_dirty": paper_facing_record.get("git_dirty"),
+        },
     }
     output_json = args.output_json or (root / "model_upgrade_blueprint.json")
     output_json.write_text(json.dumps(blueprint, indent=2, ensure_ascii=False), encoding="utf-8")

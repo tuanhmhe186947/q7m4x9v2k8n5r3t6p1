@@ -5,7 +5,7 @@
   "primary_claim": "Improved pig behavior recognition under session/video-safe validation.",
   "artifact_audit": {
     "training_snapshot": {
-      "path": "outputs/classification_v2/training_snapshots/c2v2_fc1fd779451fc3d4.json",
+      "path": "outputs/classification_v2/training_snapshots/c2v2_eb531fc8c09011b3.json",
       "exists": true,
       "errors": [],
       "valid": null
@@ -65,11 +65,9 @@
     "training_snapshot_check": {
       "valid": true,
       "errors": [],
-      "warnings": [
-        "git_commit_changed"
-      ],
-      "expected_snapshot_id": "c2v2_fc1fd779451fc3d4",
-      "current_snapshot_id": "c2v2_fc1fd779451fc3d4"
+      "warnings": [],
+      "expected_snapshot_id": "c2v2_eb531fc8c09011b3",
+      "current_snapshot_id": "c2v2_eb531fc8c09011b3"
     },
     "trainer_contract_check": {
       "valid": true,
@@ -81,9 +79,7 @@
   "confusion_pair_count": 10,
   "ablation_count": 10,
   "module_design_count": 9,
-  "warnings": [
-    "training_snapshot_warning=git_commit_changed"
-  ],
+  "warnings": [],
   "errors": [],
   "valid": true
 }

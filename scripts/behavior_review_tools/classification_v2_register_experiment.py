@@ -20,7 +20,7 @@ def main() -> None:
     parser.add_argument(
         "--dataset-snapshot-json",
         type=Path,
-        default=Path("outputs/classification_v2/training_snapshots/c2v2_fc1fd779451fc3d4.json"),
+        default=Path("outputs/classification_v2/training_snapshots/c2v2_eb531fc8c09011b3.json"),
     )
     parser.add_argument(
         "--paper-protocol-json",

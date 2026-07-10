@@ -43,6 +43,11 @@
     "multimodal_smoke_train_checkpoint": "outputs\\classification_v2\\model_smoke\\multimodal_smoke_train\\multimodal_smoke_train.pt",
     "experiment_registry_ledger": "outputs\\classification_v2\\experiment_registry\\experiment_ledger.jsonl",
     "spatial_tcn_smoke_train_experiment_record": "outputs\\classification_v2\\experiment_registry\\spatial_tcn_smoke_train_record.json",
+    "paper_facing_experiment_gate_record": "outputs\\classification_v2\\experiment_registry\\paper_grade_protocol_gate_record.json",
+    "source_domain_control_audit": "outputs\\classification_v2\\source_domain_controls\\source_domain_control_audit.json",
+    "source_domain_selection_manifest": "outputs\\classification_v2\\source_domain_controls\\source_domain_selection_manifest.csv",
+    "paper_grade_protocol": "configs/classification_v2/paper_grade_protocol_v1.json",
+    "paper_grade_protocol_audit": "outputs\\classification_v2\\paper_grade_protocol\\paper_grade_protocol_audit.json",
     "spatial_control_shortcut_audit": "outputs\\classification_v2\\model_smoke\\spatial_control_shortcut_audit.json",
     "native_temporal_prediction_audit": "outputs\\classification_v2\\model_smoke\\native_temporal_predictions\\native_temporal_prediction_audit.json",
     "native_temporal_predictions": "outputs\\classification_v2\\model_smoke\\native_temporal_predictions\\native_temporal_predictions.csv",
@@ -83,6 +88,8 @@
     "auxiliary_loss": "Use masked auxiliary losses for posture, motion/context, ROI intent, and interaction heads. Rows with false has_*_aux_target masks must contribute zero for that auxiliary head.",
     "trainer_input": "Use trainer_contract_v1 tabular_feature_whitelist exactly. Never build X from all numeric columns in a manifest.",
     "oof_evaluation": "Use native_oof_fold_manifest.csv for grouped out-of-fold native temporal-unit evaluation. Each recording_group_id is held out exactly once.",
+    "source_domain_control": "Use source_domain_selection_manifest.csv/domain_control_keep for source-balanced controlled experiments; preserve the full train-ready dataset for primary lineage audits.",
+    "paper_facing_gate": "A paper-facing experiment record must reference the training snapshot, paper-grade protocol, source-domain audit, native OOF audit, and trainer contract.",
     "primary_prediction_unit": "native temporal unit / review unit, not overlapping sequence window"
   },
   "forbidden_model_inputs": [

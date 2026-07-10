@@ -102,6 +102,19 @@ def main() -> None:
             "spatial_tcn_smoke_train_experiment_record": str(
                 classification_root / "experiment_registry" / "spatial_tcn_smoke_train_record.json"
             ),
+            "paper_facing_experiment_gate_record": str(
+                classification_root / "experiment_registry" / "paper_grade_protocol_gate_record.json"
+            ),
+            "source_domain_control_audit": str(
+                classification_root / "source_domain_controls" / "source_domain_control_audit.json"
+            ),
+            "source_domain_selection_manifest": str(
+                classification_root / "source_domain_controls" / "source_domain_selection_manifest.csv"
+            ),
+            "paper_grade_protocol": "configs/classification_v2/paper_grade_protocol_v1.json",
+            "paper_grade_protocol_audit": str(
+                classification_root / "paper_grade_protocol" / "paper_grade_protocol_audit.json"
+            ),
             "spatial_control_shortcut_audit": str(
                 classification_root / "model_smoke" / "spatial_control_shortcut_audit.json"
             ),
@@ -190,6 +203,14 @@ def main() -> None:
             "oof_evaluation": (
                 "Use native_oof_fold_manifest.csv for grouped out-of-fold native temporal-unit evaluation. "
                 "Each recording_group_id is held out exactly once."
+            ),
+            "source_domain_control": (
+                "Use source_domain_selection_manifest.csv/domain_control_keep for source-balanced controlled "
+                "experiments; preserve the full train-ready dataset for primary lineage audits."
+            ),
+            "paper_facing_gate": (
+                "A paper-facing experiment record must reference the training snapshot, paper-grade protocol, "
+                "source-domain audit, native OOF audit, and trainer contract."
             ),
             "primary_prediction_unit": "native temporal unit / review unit, not overlapping sequence window",
         },

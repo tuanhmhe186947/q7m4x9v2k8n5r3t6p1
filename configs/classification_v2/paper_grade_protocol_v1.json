@@ -19,7 +19,7 @@
     "docs/MODEL_CARD.md"
   ],
   "required_artifacts": {
-    "training_snapshot": "outputs/classification_v2/training_snapshots/c2v2_fc1fd779451fc3d4.json",
+    "training_snapshot": "outputs/classification_v2/training_snapshots/c2v2_eb531fc8c09011b3.json",
     "trainer_contract": "configs/classification_v2/trainer_contract_v1.json",
     "source_domain_control": "outputs/classification_v2/source_domain_controls/source_domain_control_audit.json",
     "source_shortcut": "outputs/classification_v2/model_smoke/source_shortcut_audit.json",
