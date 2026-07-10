@@ -65,7 +65,9 @@
     "training_snapshot_check": {
       "valid": true,
       "errors": [],
-      "warnings": [],
+      "warnings": [
+        "git_commit_changed"
+      ],
       "expected_snapshot_id": "c2v2_eb531fc8c09011b3",
       "current_snapshot_id": "c2v2_eb531fc8c09011b3"
     },
@@ -79,7 +81,9 @@
   "confusion_pair_count": 10,
   "ablation_count": 10,
   "module_design_count": 9,
-  "warnings": [],
+  "warnings": [
+    "training_snapshot_warning=git_commit_changed"
+  ],
   "errors": [],
   "valid": true
 }
