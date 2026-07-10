@@ -1,0 +1,56 @@
+{
+  "native_split_manifest": "outputs\\classification_v2\\native_temporal_units_publication_splits\\publication_split_manifest.csv",
+  "native_oof_fold_manifest": "outputs\\classification_v2\\native_temporal_units_oof_folds\\native_oof_fold_manifest.csv",
+  "native_oof_fold_audit": "outputs\\classification_v2\\native_temporal_units_oof_folds\\native_oof_fold_audit.json",
+  "rows": 33354,
+  "fold_count": 13,
+  "recording_group_count": 13,
+  "duplicate_temporal_unit_key": 0,
+  "fold_rows": {
+    "native_oof_000": 485,
+    "native_oof_001": 284,
+    "native_oof_002": 369,
+    "native_oof_003": 68,
+    "native_oof_004": 444,
+    "native_oof_005": 5452,
+    "native_oof_006": 14645,
+    "native_oof_007": 9600,
+    "native_oof_008": 804,
+    "native_oof_009": 749,
+    "native_oof_010": 288,
+    "native_oof_011": 108,
+    "native_oof_012": 58
+  },
+  "valid_eval_rows_by_fold": {
+    "native_oof_000": 485,
+    "native_oof_001": 284,
+    "native_oof_002": 369,
+    "native_oof_003": 68,
+    "native_oof_004": 443,
+    "native_oof_005": 5452,
+    "native_oof_006": 14645,
+    "native_oof_007": 9600,
+    "native_oof_008": 804,
+    "native_oof_009": 749,
+    "native_oof_010": 288,
+    "native_oof_011": 108,
+    "native_oof_012": 58
+  },
+  "label_counts": {
+    "sitting": 11616,
+    "explore": 8430,
+    "lying": 3213,
+    "eat": 3131,
+    "fight": 2213,
+    "stand": 1639,
+    "social-nose": 1286,
+    "move": 894,
+    "drink": 789,
+    "playwithtoy": 143
+  },
+  "warnings": [
+    "OOF folds are grouped by recording_group_id; pig_id is not treated as cross-video biological identity",
+    "Use native temporal-unit macro F1 as primary metric; window metrics are secondary diagnostics"
+  ],
+  "errors": []
+}

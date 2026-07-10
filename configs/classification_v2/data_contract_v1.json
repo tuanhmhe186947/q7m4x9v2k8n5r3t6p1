@@ -108,6 +108,25 @@
       "key_column": "temporal_unit_key",
       "required_columns": ["temporal_unit_key", "split", "recording_group_id"]
     },
+    "native_oof_fold_manifest": {
+      "path": "outputs/classification_v2/native_temporal_units_oof_folds/native_oof_fold_manifest.csv",
+      "type": "csv",
+      "required": true,
+      "key_column": "temporal_unit_key",
+      "required_columns": [
+        "temporal_unit_key",
+        "recording_group_id",
+        "oof_fold_id",
+        "oof_test_group_key",
+        "oof_role",
+        "native_unit_valid_for_main_eval"
+      ]
+    },
+    "native_oof_fold_audit": {
+      "path": "outputs/classification_v2/native_temporal_units_oof_folds/native_oof_fold_audit.json",
+      "type": "json",
+      "required": true
+    },
     "image_window_context_manifest": {
       "path": "outputs/classification_v2/train_ready_windows/image_window_context_manifest.csv",
       "type": "csv",

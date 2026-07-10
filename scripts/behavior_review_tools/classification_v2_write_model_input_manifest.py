@@ -63,6 +63,12 @@ def main() -> None:
             "native_publication_split_audit": str(
                 classification_root / "native_temporal_units_publication_splits" / "publication_split_audit.json"
             ),
+            "native_oof_fold_manifest": str(
+                classification_root / "native_temporal_units_oof_folds" / "native_oof_fold_manifest.csv"
+            ),
+            "native_oof_fold_audit": str(
+                classification_root / "native_temporal_units_oof_folds" / "native_oof_fold_audit.json"
+            ),
             "spatial_tcn_forward_smoke_script": "scripts/dev_tools/check_classification_v2_spatial_tcn_forward.py",
             "spatial_tcn_overfit_smoke_audit": str(
                 classification_root / "model_smoke" / "spatial_tcn_overfit_smoke.json"
@@ -180,6 +186,10 @@ def main() -> None:
             "trainer_input": (
                 "Use trainer_contract_v1 tabular_feature_whitelist exactly. "
                 "Never build X from all numeric columns in a manifest."
+            ),
+            "oof_evaluation": (
+                "Use native_oof_fold_manifest.csv for grouped out-of-fold native temporal-unit evaluation. "
+                "Each recording_group_id is held out exactly once."
             ),
             "primary_prediction_unit": "native temporal unit / review unit, not overlapping sequence window",
         },
