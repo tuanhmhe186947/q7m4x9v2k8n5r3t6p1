@@ -16,6 +16,19 @@ def main() -> None:
     parser.add_argument("--notes", default="")
     parser.add_argument("--experiment-stage", default="engineering_smoke")
     parser.add_argument("--paper-facing", action="store_true")
+    parser.add_argument(
+        "--result-kind",
+        default="protocol_gate",
+        choices=["protocol_gate", "data_gate", "review_gate", "engineering_smoke", "model_evaluation", "baseline_evaluation", "ablation_evaluation"],
+        help="Scientific role of this record; model-like results must include native temporal metrics.",
+    )
+    parser.add_argument("--primary-metric-unit", default="native_temporal_unit")
+    parser.add_argument("--split-policy", default="recording_group_oof")
+    parser.add_argument(
+        "--external-generalization-claim",
+        action="store_true",
+        help="Only use when an external farm/camera/cohort test set exists.",
+    )
     parser.add_argument("--max-hash-bytes", type=int, default=100_000_000)
     parser.add_argument(
         "--dataset-snapshot-json",
@@ -64,6 +77,10 @@ def main() -> None:
             source_domain_audit_json=args.source_domain_audit_json,
             native_oof_audit_json=args.native_oof_audit_json,
             trainer_contract_json=args.trainer_contract_json,
+            result_kind=args.result_kind,
+            primary_metric_unit=args.primary_metric_unit,
+            split_policy=args.split_policy,
+            external_generalization_claim=args.external_generalization_claim,
             max_hash_bytes=args.max_hash_bytes,
         )
     )

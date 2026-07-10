@@ -142,6 +142,21 @@
       "hash_status": "ok"
     }
   },
+  "evaluation_contract": {
+    "schema_version": "classification_v2_native_temporal_metrics_gate_v1",
+    "paper_claim_level": "Q2_strong",
+    "result_kind": "protocol_gate",
+    "primary_metric_unit": "native_temporal_unit",
+    "split_policy": "recording_group_oof",
+    "source_domain_control_required": true,
+    "native_temporal_metrics_required": true,
+    "window_metrics_are_secondary": true,
+    "feature_leakage_guard_required": true,
+    "review_unit_decisions_required": true,
+    "pig_identity_scope": "annotation_local_not_cross_video",
+    "interaction_context": "full_frame_partner_context",
+    "external_generalization_claim": false
+  },
   "artifacts": [
     {
       "path": "outputs\\classification_v2\\paper_grade_protocol\\paper_grade_protocol_audit.json",

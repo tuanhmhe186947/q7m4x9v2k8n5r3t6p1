@@ -17,6 +17,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from pig_behavior.classification_v2.evaluation.native_temporal_metrics_gate import default_evaluation_contract
+
 
 @dataclass(frozen=True, slots=True)
 class ExperimentRecordConfig:
@@ -35,6 +37,10 @@ class ExperimentRecordConfig:
     source_domain_audit_json: Path | None = None
     native_oof_audit_json: Path | None = None
     trainer_contract_json: Path | None = None
+    result_kind: str = "protocol_gate"
+    primary_metric_unit: str = "native_temporal_unit"
+    split_policy: str = "recording_group_oof"
+    external_generalization_claim: bool = False
     max_hash_bytes: int = 100_000_000
 
 
@@ -57,6 +63,7 @@ def write_experiment_record(config: ExperimentRecordConfig) -> dict[str, Any]:
         "experiment_stage": config.experiment_stage,
         "paper_facing": bool(config.paper_facing),
         "provenance": _provenance_record(config),
+        "evaluation_contract": _evaluation_contract(config),
         "artifacts": artifacts,
         "notes": config.notes,
     }
@@ -85,6 +92,21 @@ def _provenance_record(config: ExperimentRecordConfig) -> dict[str, Any]:
         name: _artifact_record(path, max_hash_bytes=config.max_hash_bytes) if path is not None else None
         for name, path in paths.items()
     }
+
+
+def _evaluation_contract(config: ExperimentRecordConfig) -> dict[str, Any]:
+    """Return the native-temporal evaluation contract stored with each record."""
+
+    contract = default_evaluation_contract()
+    contract.update(
+        {
+            "result_kind": config.result_kind,
+            "primary_metric_unit": config.primary_metric_unit,
+            "split_policy": config.split_policy,
+            "external_generalization_claim": bool(config.external_generalization_claim),
+        }
+    )
+    return contract
 
 
 def _artifact_record(path: Path, *, max_hash_bytes: int) -> dict[str, Any]:
