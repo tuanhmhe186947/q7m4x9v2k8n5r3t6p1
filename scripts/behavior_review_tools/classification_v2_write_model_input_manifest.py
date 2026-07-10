@@ -64,6 +64,15 @@ def main() -> None:
             "spatial_tcn_overfit_smoke_checkpoint": str(
                 classification_root / "model_smoke" / "spatial_tcn_overfit_smoke.pt"
             ),
+            "spatial_tcn_smoke_train_audit": str(
+                classification_root / "model_smoke" / "spatial_tcn_smoke_train" / "spatial_tcn_smoke_train_audit.json"
+            ),
+            "spatial_tcn_smoke_train_predictions": str(
+                classification_root / "model_smoke" / "spatial_tcn_smoke_train" / "spatial_tcn_smoke_predictions.csv"
+            ),
+            "spatial_tcn_smoke_train_checkpoint": str(
+                classification_root / "model_smoke" / "spatial_tcn_smoke_train" / "spatial_tcn_smoke_train.pt"
+            ),
         },
         "model_input_branches": {
             "tabular_context_branch": {
@@ -103,6 +112,10 @@ def main() -> None:
             "event_weight": (
                 "Use event_weight_manifest.csv/event_balanced_sample_weight for overlapping-window "
                 "training augmentation; do not treat window count as independent test sample size."
+            ),
+            "prediction_schema": (
+                "Smoke/baseline prediction CSVs must include row_index, window_id, source_split, "
+                "y_true, y_pred, confidence, and prediction_split."
             ),
             "label": "Use y_behavior.csv only as target y.",
             "primary_prediction_unit": "native temporal unit / review unit, not overlapping sequence window",
