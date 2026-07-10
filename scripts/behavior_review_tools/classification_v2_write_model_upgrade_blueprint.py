@@ -29,6 +29,7 @@ def main() -> None:
     smoke_train = _load_json(
         classification_root / "model_smoke" / "spatial_tcn_smoke_train" / "spatial_tcn_smoke_train_audit.json"
     )
+    multimodal_forward = _load_json(classification_root / "model_smoke" / "multimodal_forward_smoke_audit.json")
     native_predictions = _load_json(
         classification_root / "model_smoke" / "native_temporal_predictions" / "native_temporal_prediction_audit.json"
     )
@@ -88,6 +89,14 @@ def main() -> None:
                 "checker": "scripts/dev_tools/check_classification_v2_spatial_tcn_smoke_train.py",
                 "purpose": "Reusable split-safe smoke training, prediction CSV schema, checkpoint, and metrics audit.",
             },
+            "multimodal_forward_smoke": {
+                "module": "src/pig_behavior/classification_v2/models/multimodal_fusion.py",
+                "checker": "scripts/dev_tools/check_classification_v2_multimodal_forward.py",
+                "purpose": (
+                    "Forward-pass smoke for late fusion of image crop sequences and whitelisted "
+                    "spatial-temporal bbox/ROI/social feature groups."
+                ),
+            },
             "experiment_registry": {
                 "module": "src/pig_behavior/classification_v2/experiments/registry.py",
                 "runner": "scripts/behavior_review_tools/classification_v2_register_experiment.py",
@@ -113,6 +122,7 @@ def main() -> None:
             class_weights,
             smoke_train,
             native_predictions,
+            multimodal_forward,
         ),
         "known_risks": [
             {
@@ -168,6 +178,7 @@ def _training_phases(
     class_weights: dict[str, Any],
     smoke_train: dict[str, Any],
     native_predictions: dict[str, Any],
+    multimodal_forward: dict[str, Any],
 ) -> list[dict[str, Any]]:
     return [
         {
@@ -208,12 +219,18 @@ def _training_phases(
         },
         {
             "phase": "P3_multimodal_fusion",
-            "status": "design_ready_next",
+            "status": "forward_smoke_implemented",
             "model": "Late fusion of spatial-temporal embedding, image-sequence embedding, tabular context, and masks.",
+            "evidence": {
+                "batch_shape": multimodal_forward.get("batch_shape"),
+                "logit_shape": multimodal_forward.get("logit_shape"),
+                "max_masked_padding_delta": multimodal_forward.get("max_masked_padding_delta"),
+                "errors": multimodal_forward.get("errors", []),
+            },
             "required_before_full_training": [
-                "image batch loader smoke across legacy/CVAT/source/class",
                 "source-balanced validation report",
                 "native temporal-unit prediction collapse",
+                "tiny split-safe multimodal overfit smoke",
             ],
         },
         {

@@ -74,6 +74,10 @@ def main() -> None:
             "spatial_tcn_smoke_train_checkpoint": str(
                 classification_root / "model_smoke" / "spatial_tcn_smoke_train" / "spatial_tcn_smoke_train.pt"
             ),
+            "multimodal_forward_smoke_script": "scripts/dev_tools/check_classification_v2_multimodal_forward.py",
+            "multimodal_forward_smoke_audit": str(
+                classification_root / "model_smoke" / "multimodal_forward_smoke_audit.json"
+            ),
             "experiment_registry_ledger": str(classification_root / "experiment_registry" / "experiment_ledger.jsonl"),
             "spatial_tcn_smoke_train_experiment_record": str(
                 classification_root / "experiment_registry" / "spatial_tcn_smoke_train_record.json"
@@ -161,6 +165,7 @@ def main() -> None:
             "smoke_test_tabular_baseline",
             "add_spatial_temporal_branch",
             "add_image_sequence_branch",
+            "add_multimodal_forward_smoke",
             "multi_task_heads_posture_motion_roi_interaction",
             "graph_social_interaction_branch",
             "hard_negative_mining_from_confusion_focus",
