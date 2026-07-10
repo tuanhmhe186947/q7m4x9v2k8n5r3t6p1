@@ -77,6 +77,9 @@ def main() -> None:
             "spatial_tcn_smoke_train_experiment_record": str(
                 classification_root / "experiment_registry" / "spatial_tcn_smoke_train_record.json"
             ),
+            "spatial_control_shortcut_audit": str(
+                classification_root / "model_smoke" / "spatial_control_shortcut_audit.json"
+            ),
         },
         "model_input_branches": {
             "tabular_context_branch": {
