@@ -1,8 +1,8 @@
 {
   "schema_version": "classification_v2_experiment_record_v1",
   "name": "full_multimodal_oof_pilot",
-  "created_at_utc": "2026-07-10T18:49:37.222217+00:00",
-  "git_commit": "ba0c64ebff213f701f37cf0a7dc44cdfe4128446",
+  "created_at_utc": "2026-07-10T18:52:21.024297+00:00",
+  "git_commit": "38c84ae0fd4af62a451d423b40a59ee662178565",
   "git_dirty": false,
   "metrics_json": "outputs\\classification_v2\\model_smoke\\full_multimodal_oof_pilot\\full_multimodal_oof_metrics.json",
   "metrics": {
@@ -460,7 +460,7 @@
       "path": "outputs\\classification_v2\\model_smoke\\full_multimodal_oof_pilot\\full_multimodal_oof_audit.json",
       "exists": true,
       "size_bytes": 4284,
-      "mtime_utc": "2026-07-10T18:48:34.567295+00:00",
+      "mtime_utc": "2026-07-10T18:52:06.531586+00:00",
       "sha256": "be4c3f2305fb604138c9ede436c3be74f0bc4f4a5b324449c965ccaf60e09a83",
       "hash_status": "ok"
     },
@@ -468,7 +468,7 @@
       "path": "outputs\\classification_v2\\model_smoke\\full_multimodal_oof_pilot\\full_multimodal_oof_prediction_schema_audit.json",
       "exists": true,
       "size_bytes": 2320,
-      "mtime_utc": "2026-07-10T18:48:34.566294+00:00",
+      "mtime_utc": "2026-07-10T18:52:06.530713+00:00",
       "sha256": "338946e67dbb76141946817ffa404333f814fbd4e0ce22d1dc324061df05ad63",
       "hash_status": "ok"
     }
