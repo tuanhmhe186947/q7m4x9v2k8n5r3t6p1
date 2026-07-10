@@ -1,0 +1,29 @@
+{
+  "schema_version": "classification_v2_native_majority_baseline_audit_v1",
+  "native_unit_rows_input": 33354,
+  "fold_rows_input": 33354,
+  "eligible_native_unit_rows": 33353,
+  "prediction_rows": 33353,
+  "fold_count": 13,
+  "global_majority_label": "sitting",
+  "label_counts": {
+    "drink": 788,
+    "eat": 3131,
+    "explore": 8430,
+    "fight": 2213,
+    "lying": 3213,
+    "move": 894,
+    "playwithtoy": 143,
+    "sitting": 11616,
+    "social-nose": 1286,
+    "stand": 1639
+  },
+  "errors": [],
+  "warnings": [
+    "no_model_training_majority_baseline_only"
+  ],
+  "valid": true,
+  "predictions_csv": "outputs\\classification_v2\\model_smoke\\native_majority_baseline\\native_majority_predictions.csv",
+  "native_unit_predictions_csv": "outputs\\classification_v2\\model_smoke\\native_majority_baseline\\native_majority_unit_predictions.csv",
+  "metrics_json": "outputs\\classification_v2\\model_smoke\\native_majority_baseline\\native_majority_metrics.json"
+}

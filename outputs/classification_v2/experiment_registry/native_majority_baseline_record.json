@@ -1,0 +1,479 @@
+{
+  "schema_version": "classification_v2_experiment_record_v1",
+  "name": "native_majority_baseline",
+  "created_at_utc": "2026-07-10T11:11:29.791554+00:00",
+  "git_commit": "676a56b7c75cd27ebd32eed280599e04ad0d610e",
+  "git_dirty": false,
+  "metrics_json": "outputs\\classification_v2\\model_smoke\\native_majority_baseline\\native_majority_metrics.json",
+  "metrics": {
+    "primary_metric_unit": "native_temporal_unit",
+    "statistical_unit": "native_temporal_unit",
+    "native_temporal_metrics": {
+      "rows": 33353,
+      "labels": [
+        "drink",
+        "eat",
+        "fight",
+        "social-nose",
+        "explore",
+        "lying",
+        "stand",
+        "move",
+        "sitting",
+        "playwithtoy"
+      ],
+      "accuracy": 0.3482745180343597,
+      "macro_precision": 0.03482745180343597,
+      "macro_recall": 0.1,
+      "macro_f1": 0.051662256220952205,
+      "macro_precision_supported": 0.03482745180343597,
+      "macro_recall_supported": 0.1,
+      "macro_f1_supported": 0.051662256220952205,
+      "supported_label_count": 10,
+      "per_class": {
+        "drink": {
+          "support": 788,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "eat": {
+          "support": 3131,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "fight": {
+          "support": 2213,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "social-nose": {
+          "support": 1286,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "explore": {
+          "support": 8430,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "lying": {
+          "support": 3213,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "stand": {
+          "support": 1639,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "move": {
+          "support": 894,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "sitting": {
+          "support": 11616,
+          "predicted": 33353,
+          "tp": 11616,
+          "precision": 0.3482745180343597,
+          "recall": 1.0,
+          "f1": 0.5166225622095221
+        },
+        "playwithtoy": {
+          "support": 143,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        }
+      },
+      "confusion_matrix": {
+        "index": [
+          "drink",
+          "eat",
+          "fight",
+          "social-nose",
+          "explore",
+          "lying",
+          "stand",
+          "move",
+          "sitting",
+          "playwithtoy"
+        ],
+        "columns": [
+          "drink",
+          "eat",
+          "fight",
+          "social-nose",
+          "explore",
+          "lying",
+          "stand",
+          "move",
+          "sitting",
+          "playwithtoy"
+        ],
+        "values": [
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            788,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            3131,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            2213,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1286,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            8430,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            3213,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1639,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            894,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            11616,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            143,
+            0
+          ]
+        ]
+      },
+      "focus_pair_confusions": {
+        "fight__vs__social-nose": {
+          "fight_predicted_as_social-nose": 0,
+          "social-nose_predicted_as_fight": 0,
+          "total_pair_confusions": 0
+        },
+        "fight__vs__stand": {
+          "fight_predicted_as_stand": 0,
+          "stand_predicted_as_fight": 0,
+          "total_pair_confusions": 0
+        },
+        "fight__vs__move": {
+          "fight_predicted_as_move": 0,
+          "move_predicted_as_fight": 0,
+          "total_pair_confusions": 0
+        },
+        "eat__vs__stand": {
+          "eat_predicted_as_stand": 0,
+          "stand_predicted_as_eat": 0,
+          "total_pair_confusions": 0
+        },
+        "eat__vs__explore": {
+          "eat_predicted_as_explore": 0,
+          "explore_predicted_as_eat": 0,
+          "total_pair_confusions": 0
+        },
+        "drink__vs__stand": {
+          "drink_predicted_as_stand": 0,
+          "stand_predicted_as_drink": 0,
+          "total_pair_confusions": 0
+        },
+        "drink__vs__explore": {
+          "drink_predicted_as_explore": 0,
+          "explore_predicted_as_drink": 0,
+          "total_pair_confusions": 0
+        },
+        "playwithtoy__vs__explore": {
+          "playwithtoy_predicted_as_explore": 0,
+          "explore_predicted_as_playwithtoy": 0,
+          "total_pair_confusions": 0
+        },
+        "playwithtoy__vs__stand": {
+          "playwithtoy_predicted_as_stand": 0,
+          "stand_predicted_as_playwithtoy": 0,
+          "total_pair_confusions": 0
+        },
+        "playwithtoy__vs__move": {
+          "playwithtoy_predicted_as_move": 0,
+          "move_predicted_as_playwithtoy": 0,
+          "total_pair_confusions": 0
+        },
+        "lying__vs__sitting": {
+          "lying_predicted_as_sitting": 3213,
+          "sitting_predicted_as_lying": 0,
+          "total_pair_confusions": 3213
+        },
+        "move__vs__explore": {
+          "move_predicted_as_explore": 0,
+          "explore_predicted_as_move": 0,
+          "total_pair_confusions": 0
+        },
+        "move__vs__stand": {
+          "move_predicted_as_stand": 0,
+          "stand_predicted_as_move": 0,
+          "total_pair_confusions": 0
+        }
+      }
+    },
+    "confidence_intervals": {
+      "accuracy": {
+        "estimate": 0.3482745180343597,
+        "ci_low": 0.3430808323089377,
+        "ci_high": 0.3529682487332474,
+        "method": "unit_bootstrap_percentile",
+        "n_bootstrap": 30,
+        "resample_unit": "native_temporal_unit"
+      },
+      "macro_f1_supported": {
+        "estimate": 0.051662256220952205,
+        "ci_low": 0.05108862969097177,
+        "ci_high": 0.05217687091653368,
+        "method": "unit_bootstrap_percentile",
+        "n_bootstrap": 30,
+        "resample_unit": "native_temporal_unit"
+      },
+      "macro_recall_supported": {
+        "estimate": 0.1,
+        "ci_low": 0.1,
+        "ci_high": 0.1,
+        "method": "unit_bootstrap_percentile",
+        "n_bootstrap": 30,
+        "resample_unit": "native_temporal_unit"
+      }
+    },
+    "sesoi": {
+      "primary_metric": "macro_f1_supported",
+      "minimum_effect_size": 0.02,
+      "comparison_required": true,
+      "status": "comparison_required_for_claim"
+    },
+    "native_temporal_prediction_audit": {
+      "schema_version": "classification_v2_native_temporal_prediction_audit_v1",
+      "input_window_rows": 33353,
+      "native_temporal_unit_rows": 33353,
+      "metric_included_unit_rows": 33353,
+      "true_label_conflict_units": 0,
+      "unit_id_col": "temporal_unit_key",
+      "true_col": "behavior_true",
+      "pred_col": "behavior_pred",
+      "weight_col": "window_sample_weight",
+      "valid_col": "window_valid_for_main_train",
+      "include_invalid_windows": false,
+      "errors": [],
+      "warnings": [],
+      "valid": true,
+      "missing_unit_id_window_rows": 0,
+      "invalid_window_rows_excluded": 0,
+      "prediction_aggregation_method": "weighted_vote"
+    }
+  },
+  "experiment_stage": "paper_facing_candidate",
+  "paper_facing": true,
+  "provenance": {
+    "dataset_snapshot_json": {
+      "path": "outputs\\classification_v2\\training_snapshots\\c2v2_eb531fc8c09011b3.json",
+      "exists": true,
+      "size_bytes": 33349,
+      "mtime_utc": "2026-07-10T10:41:44.641723+00:00",
+      "sha256": "1c914cd0a474a59251278f50115e31d2a6331ec6247d20b68732d5d96a00bd3d",
+      "hash_status": "ok"
+    },
+    "paper_protocol_json": {
+      "path": "configs\\classification_v2\\paper_grade_protocol_v1.json",
+      "exists": true,
+      "size_bytes": 3851,
+      "mtime_utc": "2026-07-10T10:41:54.927803+00:00",
+      "sha256": "55ec1341205acc06f73893fa727be065163c7c88256f5d9a6d1de610cc51820d",
+      "hash_status": "ok"
+    },
+    "paper_protocol_audit_json": {
+      "path": "outputs\\classification_v2\\paper_grade_protocol\\paper_grade_protocol_audit.json",
+      "exists": true,
+      "size_bytes": 2661,
+      "mtime_utc": "2026-07-10T10:44:17.898808+00:00",
+      "sha256": "82cb96261870b117d3a7a0e2d651f46f40ec1df84287e2b692f56e1268f6942b",
+      "hash_status": "ok"
+    },
+    "source_domain_audit_json": {
+      "path": "outputs\\classification_v2\\source_domain_controls\\source_domain_control_audit.json",
+      "exists": true,
+      "size_bytes": 1347,
+      "mtime_utc": "2026-07-10T10:18:53.825144+00:00",
+      "sha256": "3d8951cfc8aa8668196e249016f04f013bd91c84774110884a0622c13dc8cdfd",
+      "hash_status": "ok"
+    },
+    "native_oof_audit_json": {
+      "path": "outputs\\classification_v2\\native_temporal_units_oof_folds\\native_oof_fold_audit.json",
+      "exists": true,
+      "size_bytes": 1766,
+      "mtime_utc": "2026-07-10T10:06:00.451806+00:00",
+      "sha256": "9a13dd0d5ac7b265b71d64da8ef2b83336aadea8517999df722cb78a3070f2c9",
+      "hash_status": "ok"
+    },
+    "trainer_contract_json": {
+      "path": "configs\\classification_v2\\trainer_contract_v1.json",
+      "exists": true,
+      "size_bytes": 2839,
+      "mtime_utc": "2026-07-10T10:14:30.465831+00:00",
+      "sha256": "d75d59b9aafecce0e1202eb5367d68516d689b5289c8071f2e7e840fe7449867",
+      "hash_status": "ok"
+    },
+    "loader_input_audit_json": {
+      "path": "outputs\\classification_v2\\train_ready_windows\\loader_input_audit.json",
+      "exists": true,
+      "size_bytes": 1903,
+      "mtime_utc": "2026-07-10T11:03:59.389354+00:00",
+      "sha256": "8a188011804a658aa9847b3fcaf143f88e70bb61e1601b5773811b14cad6b04d",
+      "hash_status": "ok"
+    }
+  },
+  "evaluation_contract": {
+    "schema_version": "classification_v2_native_temporal_metrics_gate_v1",
+    "paper_claim_level": "Q2_strong",
+    "result_kind": "baseline_evaluation",
+    "primary_metric_unit": "native_temporal_unit",
+    "split_policy": "recording_group_oof",
+    "source_domain_control_required": true,
+    "native_temporal_metrics_required": true,
+    "window_metrics_are_secondary": true,
+    "feature_leakage_guard_required": true,
+    "review_unit_decisions_required": true,
+    "pig_identity_scope": "annotation_local_not_cross_video",
+    "interaction_context": "full_frame_partner_context",
+    "external_generalization_claim": false
+  },
+  "artifacts": [
+    {
+      "path": "outputs\\classification_v2\\model_smoke\\native_majority_baseline\\native_majority_metrics.json",
+      "exists": true,
+      "size_bytes": 8400,
+      "mtime_utc": "2026-07-10T11:09:33.817679+00:00",
+      "sha256": "c52a6a06ae88f2b62176fa7bddbc4e3e0ef259a1214119f93a1b06f90ebfd29b",
+      "hash_status": "ok"
+    },
+    {
+      "path": "outputs\\classification_v2\\model_smoke\\native_majority_baseline\\native_majority_audit.json",
+      "exists": true,
+      "size_bytes": 998,
+      "mtime_utc": "2026-07-10T11:09:33.817679+00:00",
+      "sha256": "ff311d46332aefa4a719dd79ef018dab93935d53a6cfad49db7eaf82c1556ab0",
+      "hash_status": "ok"
+    }
+  ],
+  "notes": "no_training_native_oof_majority_baseline",
+  "record_path": "outputs\\classification_v2\\experiment_registry\\native_majority_baseline_record.json",
+  "ledger_path": "outputs\\classification_v2\\experiment_registry\\experiment_ledger.jsonl"
+}
