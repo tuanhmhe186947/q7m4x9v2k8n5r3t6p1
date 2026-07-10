@@ -69,10 +69,16 @@ def check_training_snapshot(snapshot_path: Path, *, contract_path: Path | None =
     _compare_artifacts(expected.get("artifacts", {}), current.get("artifacts", {}), errors)
     if expected.get("row_alignment") != current.get("row_alignment"):
         errors.append("row_alignment_drift")
+    if expected.get("key_alignment") != current.get("key_alignment"):
+        errors.append("key_alignment_drift")
+    if expected.get("key_coverage") != current.get("key_coverage"):
+        errors.append("key_coverage_drift")
     if expected.get("model_input_audit") != current.get("model_input_audit"):
         errors.append("model_input_audit_drift")
     if expected.get("contract_digest") != current.get("contract_digest"):
         warnings.append("contract_json_digest_changed")
+    if expected.get("git_commit") != current.get("git_commit"):
+        warnings.append("git_commit_changed")
 
     return {
         "snapshot_path": str(snapshot_path),
@@ -322,7 +328,9 @@ def _compare_artifacts(expected: dict[str, Any], current: dict[str, Any], errors
 
 
 def _snapshot_id(snapshot: dict[str, Any]) -> str:
-    base = {k: v for k, v in snapshot.items() if k not in {"snapshot_id"}}
+    # The snapshot ID identifies artifact/contract content. The git commit is
+    # recorded for audit, but later checker commits must not rename the data.
+    base = {k: v for k, v in snapshot.items() if k not in {"snapshot_id", "git_commit"}}
     return "c2v2_" + hashlib.sha256(_stable_json(base).encode("utf-8")).hexdigest()[:16]
 
 

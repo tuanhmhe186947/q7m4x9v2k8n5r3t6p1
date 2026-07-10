@@ -22,7 +22,8 @@ def _latest_snapshot(root: Path) -> Path:
     snapshots = sorted((root / "outputs/classification_v2/training_snapshots").glob("c2v2_*.json"))
     if not snapshots:
         raise FileNotFoundError("No training snapshot found under outputs/classification_v2/training_snapshots")
-    return snapshots[-1]
+    # Snapshot IDs are content hashes, not chronological names.
+    return max(snapshots, key=lambda path: path.stat().st_mtime)
 
 
 def main() -> None:
