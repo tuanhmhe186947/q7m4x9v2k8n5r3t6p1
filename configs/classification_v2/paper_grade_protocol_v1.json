@@ -1,0 +1,78 @@
+{
+  "version": "classification_v2_paper_grade_protocol_v1",
+  "title": "Q2-oriented multimodal spatio-temporal behavior recognition protocol",
+  "claim_boundary": {
+    "target_strength": "Q2_strong",
+    "primary_claim": "Improved pig behavior recognition under session/video-safe validation.",
+    "allowed_generalization": "unseen recording sessions within the audited dataset domain",
+    "prohibited_claims": [
+      "Q1-style cross-farm generalization without an external farm/cohort/camera set",
+      "unseen-animal generalization from annotation pig_id alone",
+      "SOTA claim without literature matrix and fair published baseline",
+      "biological mechanism claim from attention or saliency alone"
+    ]
+  },
+  "required_documents": [
+    "docs/CLASSIFICATION_V2_Q1_Q2_RESEARCH_PROTOCOL.md",
+    "docs/CLASSIFICATION_V2_SPATIOTEMPORAL_IMAGE_TRAINING_ROADMAP.md",
+    "docs/DATASET_CARD.md",
+    "docs/MODEL_CARD.md"
+  ],
+  "required_artifacts": {
+    "training_snapshot": "outputs/classification_v2/training_snapshots/c2v2_fc1fd779451fc3d4.json",
+    "trainer_contract": "configs/classification_v2/trainer_contract_v1.json",
+    "source_domain_control": "outputs/classification_v2/source_domain_controls/source_domain_control_audit.json",
+    "source_shortcut": "outputs/classification_v2/model_smoke/source_shortcut_audit.json",
+    "spatial_shortcut": "outputs/classification_v2/model_smoke/spatial_control_shortcut_audit.json",
+    "native_oof_folds": "outputs/classification_v2/native_temporal_units_oof_folds/native_oof_fold_audit.json"
+  },
+  "primary_evaluation": {
+    "unit": "native_temporal_unit",
+    "split_policy": "recording_group/session-safe out-of-fold",
+    "primary_metric": "macro_f1",
+    "uncertainty": "paired recording-cluster bootstrap or exact sign-flip sensitivity",
+    "minimum_fold_count": 3
+  },
+  "mandatory_confusion_pairs": [
+    ["fight", "social-nose"],
+    ["fight", "stand"],
+    ["fight", "move"],
+    ["eat", "stand"],
+    ["drink", "stand"],
+    ["playwithtoy", "explore"],
+    ["playwithtoy", "stand"],
+    ["lying", "sitting"],
+    ["move", "explore"],
+    ["move", "stand"]
+  ],
+  "ablation_ladder": [
+    {"id": "B0", "name": "majority_prior", "role": "sanity_floor"},
+    {"id": "B1", "name": "linear_tabular_whitelist", "role": "linear_control"},
+    {"id": "B2", "name": "nonlinear_tabular_whitelist", "role": "strong_tabular_control"},
+    {"id": "B3", "name": "actor_image_sequence", "role": "appearance_control"},
+    {"id": "B4", "name": "actor_image_temporal", "role": "standard_sequence_control"},
+    {"id": "B5", "name": "masked_spatial_tcn", "role": "spatiotemporal_control"},
+    {"id": "P1", "name": "actor_image_spatial_tabular_fusion", "role": "primary_candidate"},
+    {"id": "P2", "name": "fusion_with_local_or_partner_context", "role": "context_hypothesis"},
+    {"id": "P3", "name": "fusion_with_masked_auxiliary_heads", "role": "secondary_candidate"},
+    {"id": "P4", "name": "fusion_with_social_graph", "role": "long_term_exploratory"}
+  ],
+  "required_module_design": [
+    "metadata.recording_groups",
+    "datasets.native_temporal_units",
+    "datasets.sequence_dataset",
+    "datasets.image_cache",
+    "features.spatial_groups_v2",
+    "models.image_temporal",
+    "models.multimodal_fusion",
+    "evaluation.shortcut_controls",
+    "evaluation.metrics"
+  ],
+  "rules": [
+    "Do not claim external farm/camera/cohort generalization without a locked external set.",
+    "Do not use window-level counts as independent sample size in publication metrics.",
+    "Do not include manual, review, source, split, ID, path, policy, or label fields in X.",
+    "Use full-frame or partner context for interaction modeling without selecting context from ground-truth behavior.",
+    "Keep pig_id annotation-local unless biological identity metadata proves otherwise."
+  ]
+}

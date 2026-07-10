@@ -1,0 +1,89 @@
+{
+  "protocol_path": "configs\\classification_v2\\paper_grade_protocol_v1.json",
+  "version": "classification_v2_paper_grade_protocol_v1",
+  "target_strength": "Q2_strong",
+  "primary_claim": "Improved pig behavior recognition under session/video-safe validation.",
+  "artifact_audit": {
+    "training_snapshot": {
+      "path": "outputs/classification_v2/training_snapshots/c2v2_fc1fd779451fc3d4.json",
+      "exists": true,
+      "errors": [],
+      "valid": null
+    },
+    "trainer_contract": {
+      "path": "configs/classification_v2/trainer_contract_v1.json",
+      "exists": true,
+      "errors": [],
+      "valid": null
+    },
+    "source_domain_control": {
+      "path": "outputs/classification_v2/source_domain_controls/source_domain_control_audit.json",
+      "exists": true,
+      "errors": [],
+      "valid": true,
+      "rows": 160740,
+      "kept_rows": 70140,
+      "forbidden_x_columns": []
+    },
+    "source_shortcut": {
+      "path": "outputs/classification_v2/model_smoke/source_shortcut_audit.json",
+      "exists": true,
+      "errors": [],
+      "valid": null,
+      "rows": 160740,
+      "balanced_accuracy": 1.0
+    },
+    "spatial_shortcut": {
+      "path": "outputs/classification_v2/model_smoke/spatial_control_shortcut_audit.json",
+      "exists": true,
+      "errors": [],
+      "valid": null,
+      "controls": {
+        "real_sequence": {
+          "accuracy": 0.9962,
+          "balanced_accuracy": 0.9948483631251255
+        },
+        "repeat_first_frame": {
+          "accuracy": 0.9464,
+          "balanced_accuracy": 0.9561089910959363
+        },
+        "mean_only": {
+          "accuracy": 0.9978,
+          "balanced_accuracy": 0.995892749548102
+        }
+      }
+    },
+    "native_oof_folds": {
+      "path": "outputs/classification_v2/native_temporal_units_oof_folds/native_oof_fold_audit.json",
+      "exists": true,
+      "errors": [],
+      "valid": null,
+      "rows": 33354,
+      "fold_count": 13,
+      "duplicate_temporal_unit_key": 0
+    },
+    "training_snapshot_check": {
+      "valid": true,
+      "errors": [],
+      "warnings": [
+        "git_commit_changed"
+      ],
+      "expected_snapshot_id": "c2v2_fc1fd779451fc3d4",
+      "current_snapshot_id": "c2v2_fc1fd779451fc3d4"
+    },
+    "trainer_contract_check": {
+      "valid": true,
+      "errors": [],
+      "feature_count": 39,
+      "forbidden_x_columns": []
+    }
+  },
+  "confusion_pair_count": 10,
+  "ablation_count": 10,
+  "module_design_count": 9,
+  "warnings": [
+    "training_snapshot_warning=git_commit_changed"
+  ],
+  "errors": [],
+  "valid": true
+}

@@ -4,8 +4,9 @@
 
 | Trường | Giá trị |
 |---|---|
-| Protocol version | 1.1 |
-| Companion roadmap | `CLASSIFICATION_V2_SPATIOTEMPORAL_IMAGE_TRAINING_ROADMAP.md`, version 2.1 |
+| Protocol version | 1.2 |
+| Companion roadmap | `CLASSIFICATION_V2_SPATIOTEMPORAL_IMAGE_TRAINING_ROADMAP.md`, version 2.2 |
+| Machine-readable gate | `configs/classification_v2/paper_grade_protocol_v1.json` |
 | Study type | Retrospective computational study trên video hành vi lợn |
 | Current status | Protocol design, chưa preregister, chưa full training |
 | Publication readiness | Chưa sẵn sàng |
@@ -640,3 +641,13 @@ Quartile phụ thuộc journal, năm và subject category; protocol tốt không
 8. Chỉ sau đó train image và multimodal candidates.
 9. Thực hiện shortcut/robustness controls trước khi viết claim.
 10. Thu thập hoặc khóa external validation set nếu mục tiêu là cross-domain/Q1-strength claim.
+
+## 20. Machine-readable gate status
+
+Protocol version 1.2 bổ sung một gate kiểm tự động:
+
+- Config: `configs/classification_v2/paper_grade_protocol_v1.json`.
+- Checker: `scripts/dev_tools/check_classification_v2_paper_grade_protocol.py`.
+- Audit: `outputs/classification_v2/paper_grade_protocol/paper_grade_protocol_audit.json`.
+
+Gate này không thay thế peer review khoa học hoặc literature review. Nó kiểm rằng claim boundary đang khóa ở mức Q2 mạnh, các tài liệu bắt buộc tồn tại, training snapshot/trainer contract/source-domain/native-OOF artifacts pass, confusion pairs và ablation ladder đủ tối thiểu. Nếu gate fail, kết quả model chỉ được xem là engineering smoke, không được dùng làm claim paper.

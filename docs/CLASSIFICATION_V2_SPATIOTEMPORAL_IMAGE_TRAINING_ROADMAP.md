@@ -1,6 +1,6 @@
 # Classification V2: Lộ trình nâng cấp framework multimodal spatio-temporal bbox + ROI + social context
 
-> Phiên bản 2.1, định hướng nghiên cứu và publication-readiness. Đây là execution roadmap. Thiết kế khoa học, giả thuyết, thống kê và quy tắc claim được khóa tại [CLASSIFICATION_V2_Q1_Q2_RESEARCH_PROTOCOL.md](CLASSIFICATION_V2_Q1_Q2_RESEARCH_PROTOCOL.md). Hai tài liệu phải được version cùng nhau.
+> Phiên bản 2.2, định hướng nghiên cứu và publication-readiness. Đây là execution roadmap. Thiết kế khoa học, giả thuyết, thống kê và quy tắc claim được khóa tại [CLASSIFICATION_V2_Q1_Q2_RESEARCH_PROTOCOL.md](CLASSIFICATION_V2_Q1_Q2_RESEARCH_PROTOCOL.md). Hai tài liệu phải được version cùng nhau.
 
 Trạng thái hiện tại: `ENGINEERING-READY FOR CONTROLLED SMOKE`, `NOT PUBLICATION-READY`. Nhãn Q1/Q2 trong tài liệu là mức độ nghiêm ngặt hướng tới, không phải cam kết tạp chí hoặc bảo đảm chấp nhận.
 
@@ -750,6 +750,23 @@ Roadmap được coi là hoàn tất về kỹ thuật khi:
 3. P3/P4: trainer PyTorch tối thiểu và E1 spatial-TCN smoke.
 4. P2/P5: image cache actor/local-context và image-sequence baseline.
 5. P6: multimodal fusion sau khi từng branch đã có bằng chứng độc lập.
+
+## 17. Protocol/checker artifacts đã thêm
+
+Roadmap version 2.2 bổ sung lớp kiểm tự động để ràng buộc kế hoạch paper-grade với artifact thật:
+
+- `configs/classification_v2/paper_grade_protocol_v1.json`: claim boundary Q2, required artifacts, confusion pairs, ablation ladder và module design tối thiểu.
+- `scripts/dev_tools/check_classification_v2_paper_grade_protocol.py`: fail nếu thiếu document/artifact, snapshot/trainer/source-domain/native-OOF lỗi, hoặc claim boundary vượt quá bằng chứng.
+- `outputs/classification_v2/paper_grade_protocol/paper_grade_protocol_audit.json`: audit kết quả kiểm.
+
+Trạng thái quan trọng hiện tại:
+
+- Source-domain matched view đã có: 160,740 row preserve, 70,140 row trong matched view, source kept cân bằng 35,070/35,070.
+- Source shortcut vẫn rất mạnh: tabular source balanced accuracy = 1.0; vì vậy mọi experiment chính phải báo source-domain controls.
+- Native OOF folds đã có 13 fold, duplicate temporal unit = 0.
+- Snapshot cuối hiện tại: `c2v2_fc1fd779451fc3d4`.
+
+Kết luận vận hành: từ thời điểm này, một experiment chỉ được gắn nhãn `paper-facing` khi checker paper-grade pass và record experiment trỏ tới snapshot/protocol đúng version. Nếu chỉ pass trainer/data smoke nhưng fail paper-grade gate, kết quả vẫn là engineering evidence.
 
 ## 15.1. Checklist PASS/FAIL triển khai
 
