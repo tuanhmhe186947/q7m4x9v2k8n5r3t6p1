@@ -31,9 +31,9 @@
     {
       "id": "B2",
       "name": "nonlinear_tabular_whitelist",
-      "status": "planned_required",
+      "status": "recorded",
       "required_before_paper_candidate": true,
-      "evidence": ""
+      "evidence": "outputs/classification_v2/experiment_registry/tabular_nonlinear_baseline_record.json"
     },
     {
       "id": "B3",
@@ -79,7 +79,6 @@
     }
   ],
   "paper_candidate_blockers": [
-    "nonlinear tabular whitelist baseline is not recorded yet",
     "full out-of-fold learned multimodal evaluation is not recorded yet",
     "branch ablation deltas against B0/B1/B2/B3/B5 are not recorded yet",
     "source-balanced and shortcut-aware reporting is not recorded yet"
