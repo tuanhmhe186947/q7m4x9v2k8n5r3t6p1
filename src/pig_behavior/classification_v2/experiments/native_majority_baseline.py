@@ -19,6 +19,7 @@ from pig_behavior.classification_v2.evaluation.native_temporal_metrics import (
     NativeTemporalMetricsConfig,
     build_native_temporal_metrics,
 )
+from pig_behavior.classification_v2.evaluation.prediction_schema_contract import check_prediction_schema
 
 
 @dataclass(frozen=True, slots=True)
@@ -59,15 +60,20 @@ def run_native_majority_baseline(config: NativeMajorityBaselineConfig) -> dict[s
     native_units_path = config.output_dir / "native_majority_unit_predictions.csv"
     metrics_path = config.output_dir / "native_majority_metrics.json"
     audit_path = config.output_dir / "native_majority_audit.json"
+    prediction_schema_path = config.output_dir / "native_majority_prediction_schema_audit.json"
     predictions.to_csv(predictions_path, index=False)
     metrics_units.to_csv(native_units_path, index=False)
     metrics_path.write_text(json.dumps(metrics_payload, indent=2), encoding="utf-8")
+    prediction_schema_audit = check_prediction_schema(predictions)
+    prediction_schema_path.write_text(json.dumps(prediction_schema_audit, indent=2), encoding="utf-8")
 
     audit.update(
         {
             "predictions_csv": str(predictions_path),
             "native_unit_predictions_csv": str(native_units_path),
             "metrics_json": str(metrics_path),
+            "prediction_schema_audit_json": str(prediction_schema_path),
+            "prediction_schema_valid": bool(prediction_schema_audit.get("valid")),
         }
     )
     audit_path.write_text(json.dumps(audit, indent=2), encoding="utf-8")
@@ -76,6 +82,7 @@ def run_native_majority_baseline(config: NativeMajorityBaselineConfig) -> dict[s
         "native_unit_predictions_csv": str(native_units_path),
         "metrics_json": str(metrics_path),
         "audit_json": str(audit_path),
+        "prediction_schema_audit_json": str(prediction_schema_path),
         "audit": audit,
     }
 
