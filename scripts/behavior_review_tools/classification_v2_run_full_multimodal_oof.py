@@ -19,6 +19,7 @@ def main() -> None:
         type=Path,
         default=Path("outputs/classification_v2/model_smoke/full_multimodal_oof_pilot"),
     )
+    parser.add_argument("--image-cache-manifest", type=Path, default=None)
     parser.add_argument("--image-size", type=int, default=32)
     parser.add_argument("--hidden-dim", type=int, default=32)
     parser.add_argument("--steps-per-fold", type=int, default=2)
@@ -38,6 +39,7 @@ def main() -> None:
     args = parser.parse_args()
     config = FullMultimodalOofConfig(
         output_dir=args.output_dir,
+        image_cache_manifest_csv=args.image_cache_manifest,
         image_size=args.image_size,
         hidden_dim=args.hidden_dim,
         steps_per_fold=args.steps_per_fold,

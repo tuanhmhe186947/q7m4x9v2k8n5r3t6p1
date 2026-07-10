@@ -7,6 +7,7 @@ for loading and audit, not as model features.
 
 from __future__ import annotations
 
+import hashlib
 from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
@@ -30,6 +31,7 @@ except Exception:  # pragma: no cover
 class ImageSequenceDatasetConfig:
     frame_context_csv: Path = Path("outputs/classification_v2/train_ready_windows/image_frame_context_manifest.csv")
     window_context_csv: Path = Path("outputs/classification_v2/train_ready_windows/image_window_context_manifest.csv")
+    image_cache_manifest_csv: Path | None = None
     image_size: int = 128
     max_windows: int | None = None
     require_complete: bool = True
@@ -48,6 +50,7 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         self.frames = pd.read_csv(config.frame_context_csv, low_memory=False)
         self.windows = pd.read_csv(config.window_context_csv, low_memory=False)
         self._validate_manifests()
+        self.cache_by_context_id = self._load_cache_manifest(config.image_cache_manifest_csv)
         if config.require_complete:
             self.windows = self.windows[_to_bool(self.windows["window_image_context_complete"])].copy()
         if config.max_windows is not None:
@@ -152,12 +155,60 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
             image = self._image_cache.pop(context_id)
             self._image_cache[context_id] = image
             return image
-        image = self._load_frame_image(frame)
+        image = self._load_cached_context_image(context_id)
+        if image is None:
+            image = self._load_frame_image(frame)
         if image is not None and cache_size > 0:
             self._image_cache[context_id] = image
             while len(self._image_cache) > cache_size:
                 self._image_cache.popitem(last=False)
         return image
+
+    def _load_cache_manifest(self, manifest_csv: Path | None) -> dict[str, Path]:
+        """Map audited context IDs to prebuilt crop files without changing labels."""
+
+        if manifest_csv is None:
+            return {}
+        manifest_path = Path(manifest_csv)
+        if not manifest_path.exists():
+            raise FileNotFoundError(f"image cache manifest not found: {manifest_path}")
+        manifest = pd.read_csv(manifest_path, low_memory=False)
+        required = {"image_context_id", "cache_path", "image_size", "cache_format"}
+        missing = sorted(required.difference(manifest.columns))
+        if missing:
+            raise ValueError(f"image cache manifest missing columns: {missing}")
+        size_mismatch = manifest[pd.to_numeric(manifest["image_size"], errors="coerce").ne(self.config.image_size)]
+        if len(size_mismatch):
+            raise ValueError(
+                f"image cache size mismatch: expected {self.config.image_size}, found {len(size_mismatch)} rows"
+            )
+        duplicate_context = int(manifest["image_context_id"].duplicated().sum())
+        if duplicate_context:
+            raise ValueError(f"duplicate cached image_context_id rows: {duplicate_context}")
+        base = manifest_path.parent
+        out: dict[str, Path] = {}
+        for row in manifest.itertuples(index=False):
+            cache_path = Path(str(row.cache_path))
+            if not cache_path.is_absolute():
+                cache_path = base / cache_path
+            out[str(row.image_context_id)] = cache_path
+        return out
+
+    def _load_cached_context_image(self, context_id: str) -> np.ndarray | None:
+        """Read a pre-resized RGB cache item and return the model CHW float tensor."""
+
+        cache_path = self.cache_by_context_id.get(context_id)
+        if cache_path is None or not cache_path.exists():
+            return None
+        try:
+            cached = np.load(cache_path)
+        except Exception:
+            return None
+        if cached.dtype == np.uint8 and cached.ndim == 3 and cached.shape[-1] == 3:
+            return _to_chw_float(cached)
+        if np.issubdtype(cached.dtype, np.floating) and cached.ndim == 3 and cached.shape[0] == 3:
+            return cached.astype(np.float32)
+        return None
 
     def _load_cvat_crop(self, frame: dict[str, Any]) -> np.ndarray | None:
         if cv2 is None:
@@ -250,6 +301,20 @@ def _load_legacy_crop(path: Path, image_size: int) -> np.ndarray | None:
 
 def _to_chw_float(image_rgb: np.ndarray) -> np.ndarray:
     return np.transpose(image_rgb.astype(np.float32) / 255.0, (2, 0, 1))
+
+
+def context_cache_relative_path(image_context_id: str) -> Path:
+    """Create a deterministic sharded cache path for one image context ID."""
+
+    digest = hashlib.sha1(str(image_context_id).encode("utf-8")).hexdigest()
+    return Path(digest[:2]) / f"{digest}.npy"
+
+
+def chw_float_to_hwc_uint8(image_chw: np.ndarray) -> np.ndarray:
+    """Convert loader output back to compact RGB uint8 for disk cache storage."""
+
+    clipped = np.clip(image_chw, 0.0, 1.0)
+    return np.transpose((clipped * 255.0).round().astype(np.uint8), (1, 2, 0))
 
 
 def _split_sequence(value: str) -> list[str]:

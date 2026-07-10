@@ -59,6 +59,7 @@ class FullMultimodalOofConfig:
         "outputs/classification_v2/native_temporal_units_oof_folds/native_oof_fold_manifest.csv"
     )
     output_dir: Path = Path("outputs/classification_v2/model_smoke/full_multimodal_oof_pilot")
+    image_cache_manifest_csv: Path | None = None
     image_size: int = 32
     hidden_dim: int = 32
     dropout: float = 0.1
@@ -99,6 +100,7 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
         ImageSequenceDatasetConfig(
             frame_context_csv=config.root / "image_frame_context_manifest.csv",
             window_context_csv=config.root / "image_window_context_manifest.csv",
+            image_cache_manifest_csv=config.image_cache_manifest_csv,
             image_size=config.image_size,
             require_complete=False,
         )
@@ -773,12 +775,7 @@ def _set_seed(seed: int) -> None:
 
 def _jsonable_config(config: FullMultimodalOofConfig) -> dict[str, Any]:
     out = asdict(config)
-    for key in [
-        "root",
-        "sequence_manifest_csv",
-        "interaction_context_manifest_csv",
-        "native_oof_fold_manifest_csv",
-        "output_dir",
-    ]:
-        out[key] = str(out[key])
+    for key, value in list(out.items()):
+        if isinstance(value, Path):
+            out[key] = str(value)
     return out
