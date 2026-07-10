@@ -30,6 +30,9 @@ def main() -> None:
         classification_root / "model_smoke" / "spatial_tcn_smoke_train" / "spatial_tcn_smoke_train_audit.json"
     )
     multimodal_forward = _load_json(classification_root / "model_smoke" / "multimodal_forward_smoke_audit.json")
+    multimodal_smoke_train = _load_json(
+        classification_root / "model_smoke" / "multimodal_smoke_train" / "multimodal_smoke_train_audit.json"
+    )
     native_predictions = _load_json(
         classification_root / "model_smoke" / "native_temporal_predictions" / "native_temporal_prediction_audit.json"
     )
@@ -97,6 +100,12 @@ def main() -> None:
                     "spatial-temporal bbox/ROI/social feature groups."
                 ),
             },
+            "multimodal_smoke_trainer": {
+                "module": "src/pig_behavior/classification_v2/training/multimodal_smoke.py",
+                "runner": "scripts/behavior_review_tools/classification_v2_multimodal_smoke_train.py",
+                "checker": "scripts/dev_tools/check_classification_v2_multimodal_smoke_train.py",
+                "purpose": "Tiny split-safe image+spatial overfit smoke; not full training.",
+            },
             "experiment_registry": {
                 "module": "src/pig_behavior/classification_v2/experiments/registry.py",
                 "runner": "scripts/behavior_review_tools/classification_v2_register_experiment.py",
@@ -123,6 +132,7 @@ def main() -> None:
             smoke_train,
             native_predictions,
             multimodal_forward,
+            multimodal_smoke_train,
         ),
         "known_risks": [
             {
@@ -179,6 +189,7 @@ def _training_phases(
     smoke_train: dict[str, Any],
     native_predictions: dict[str, Any],
     multimodal_forward: dict[str, Any],
+    multimodal_smoke_train: dict[str, Any],
 ) -> list[dict[str, Any]]:
     return [
         {
@@ -225,12 +236,15 @@ def _training_phases(
                 "batch_shape": multimodal_forward.get("batch_shape"),
                 "logit_shape": multimodal_forward.get("logit_shape"),
                 "max_masked_padding_delta": multimodal_forward.get("max_masked_padding_delta"),
+                "smoke_train_rows": multimodal_smoke_train.get("train_rows"),
+                "smoke_eval_rows": multimodal_smoke_train.get("eval_rows"),
+                "smoke_loss_reduction": multimodal_smoke_train.get("loss_reduction"),
                 "errors": multimodal_forward.get("errors", []),
             },
             "required_before_full_training": [
                 "source-balanced validation report",
                 "native temporal-unit prediction collapse",
-                "tiny split-safe multimodal overfit smoke",
+                "interaction full-frame/partner branch for interaction claims",
             ],
         },
         {

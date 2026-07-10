@@ -179,11 +179,11 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
 
 
 def image_sequence_collate(batch: list[dict[str, Any]]) -> dict[str, Any]:
-    """Collate fixed-length image sequence examples into batch tensors."""
+    """Collate image sequence examples into padded batch tensors."""
     return {
-        "image": torch.stack([item["image"] for item in batch], dim=0),
-        "length_mask": torch.stack([item["length_mask"] for item in batch], dim=0),
-        "observed_mask": torch.stack([item["observed_mask"] for item in batch], dim=0),
+        "image": _pad_stack([item["image"] for item in batch]),
+        "length_mask": _pad_stack_1d([item["length_mask"] for item in batch]),
+        "observed_mask": _pad_stack_1d([item["observed_mask"] for item in batch]),
         "window_id": [item["window_id"] for item in batch],
         "source_type": [item["source_type"] for item in batch],
         "video_key": [item["video_key"] for item in batch],
@@ -191,6 +191,29 @@ def image_sequence_collate(batch: list[dict[str, Any]]) -> dict[str, Any]:
         "expected_frame_indices": [item["expected_frame_indices"] for item in batch],
         "errors": [item["errors"] for item in batch],
     }
+
+
+def _pad_stack(values: list[torch.Tensor]) -> torch.Tensor:
+    if not values:
+        raise ValueError("cannot collate empty image batch")
+    max_len = max(int(value.shape[0]) for value in values)
+    tail_shape = tuple(values[0].shape[1:])
+    out = values[0].new_zeros((len(values), max_len, *tail_shape))
+    for idx, value in enumerate(values):
+        if tuple(value.shape[1:]) != tail_shape:
+            raise ValueError("all image tensors must share [C,H,W] shape")
+        out[idx, : value.shape[0]] = value
+    return out
+
+
+def _pad_stack_1d(values: list[torch.Tensor]) -> torch.Tensor:
+    if not values:
+        raise ValueError("cannot collate empty mask batch")
+    max_len = max(int(value.shape[0]) for value in values)
+    out = values[0].new_zeros((len(values), max_len))
+    for idx, value in enumerate(values):
+        out[idx, : value.shape[0]] = value
+    return out
 
 
 def _load_legacy_crop(path: Path, image_size: int) -> np.ndarray | None:
