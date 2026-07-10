@@ -1,0 +1,752 @@
+{
+  "config": {
+    "root": "outputs\\classification_v2\\train_ready_windows",
+    "sequence_manifest_csv": "outputs\\classification_v2\\sequence_features_reviewed\\sequence_window_manifest.csv",
+    "native_oof_fold_manifest_csv": "outputs\\classification_v2\\native_temporal_units_oof_folds\\native_oof_fold_manifest.csv",
+    "output_dir": "outputs\\classification_v2\\model_smoke\\multimodal_smoke_train",
+    "image_size": 64,
+    "hidden_dim": 48,
+    "dropout": 0.0,
+    "lr": 0.005,
+    "weight_decay": 0.0,
+    "steps": 6,
+    "per_class_train": 1,
+    "per_class_eval": 1,
+    "seed": 123,
+    "device": "auto"
+  },
+  "root": "outputs\\classification_v2\\train_ready_windows",
+  "checkpoint_path": "outputs\\classification_v2\\model_smoke\\multimodal_smoke_train\\multimodal_smoke_train.pt",
+  "predictions_path": "outputs\\classification_v2\\model_smoke\\multimodal_smoke_train\\multimodal_smoke_predictions.csv",
+  "native_predictions_path": "outputs\\classification_v2\\model_smoke\\multimodal_smoke_train\\multimodal_smoke_native_predictions.csv",
+  "prediction_schema_audit_path": "outputs\\classification_v2\\model_smoke\\multimodal_smoke_train\\multimodal_smoke_prediction_schema_audit.json",
+  "audit_path": "outputs\\classification_v2\\model_smoke\\multimodal_smoke_train\\multimodal_smoke_train_audit.json",
+  "device": "cpu",
+  "label_order": [
+    "drink",
+    "eat",
+    "fight",
+    "social-nose",
+    "explore",
+    "lying",
+    "stand",
+    "move",
+    "sitting",
+    "playwithtoy"
+  ],
+  "train_rows": 10,
+  "eval_rows": 10,
+  "train_label_counts": {
+    "drink": 1,
+    "eat": 1,
+    "fight": 1,
+    "social-nose": 1,
+    "explore": 1,
+    "lying": 1,
+    "stand": 1,
+    "move": 1,
+    "sitting": 1,
+    "playwithtoy": 1
+  },
+  "eval_label_counts": {
+    "drink": 1,
+    "eat": 1,
+    "fight": 1,
+    "social-nose": 1,
+    "explore": 1,
+    "lying": 1,
+    "stand": 1,
+    "move": 1,
+    "sitting": 1,
+    "playwithtoy": 1
+  },
+  "train_source_counts": {
+    "cvat_tracking_xml": 5,
+    "legacy_recovered": 5
+  },
+  "eval_source_counts": {
+    "cvat_tracking_xml": 6,
+    "legacy_recovered": 4
+  },
+  "initial_loss": 2.28727650642395,
+  "final_loss": 1.1118500232696533,
+  "loss_reduction": 1.1754264831542969,
+  "metrics": {
+    "train_smoke": {
+      "rows": 10,
+      "labels": [
+        "drink",
+        "eat",
+        "fight",
+        "social-nose",
+        "explore",
+        "lying",
+        "stand",
+        "move",
+        "sitting",
+        "playwithtoy"
+      ],
+      "accuracy": 0.4,
+      "macro_precision": 0.2666666666666667,
+      "macro_recall": 0.4,
+      "macro_f1": 0.2952380952380952,
+      "macro_precision_supported": 0.2666666666666667,
+      "macro_recall_supported": 0.4,
+      "macro_f1_supported": 0.2952380952380952,
+      "supported_label_count": 10,
+      "per_class": {
+        "drink": {
+          "support": 1,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "eat": {
+          "support": 1,
+          "predicted": 6,
+          "tp": 1,
+          "precision": 0.16666666666666666,
+          "recall": 1.0,
+          "f1": 0.2857142857142857
+        },
+        "fight": {
+          "support": 1,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "social-nose": {
+          "support": 1,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "explore": {
+          "support": 1,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "lying": {
+          "support": 1,
+          "predicted": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "stand": {
+          "support": 1,
+          "predicted": 2,
+          "tp": 1,
+          "precision": 0.5,
+          "recall": 1.0,
+          "f1": 0.6666666666666666
+        },
+        "move": {
+          "support": 1,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "sitting": {
+          "support": 1,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "playwithtoy": {
+          "support": 1,
+          "predicted": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "confusion_matrix": {
+        "index": [
+          "drink",
+          "eat",
+          "fight",
+          "social-nose",
+          "explore",
+          "lying",
+          "stand",
+          "move",
+          "sitting",
+          "playwithtoy"
+        ],
+        "columns": [
+          "drink",
+          "eat",
+          "fight",
+          "social-nose",
+          "explore",
+          "lying",
+          "stand",
+          "move",
+          "sitting",
+          "playwithtoy"
+        ],
+        "values": [
+          [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1
+          ]
+        ]
+      },
+      "focus_pair_confusions": {
+        "fight__vs__social-nose": {
+          "fight_predicted_as_social-nose": 0,
+          "social-nose_predicted_as_fight": 0,
+          "total_pair_confusions": 0
+        },
+        "fight__vs__stand": {
+          "fight_predicted_as_stand": 0,
+          "stand_predicted_as_fight": 0,
+          "total_pair_confusions": 0
+        },
+        "fight__vs__move": {
+          "fight_predicted_as_move": 0,
+          "move_predicted_as_fight": 0,
+          "total_pair_confusions": 0
+        },
+        "eat__vs__stand": {
+          "eat_predicted_as_stand": 0,
+          "stand_predicted_as_eat": 0,
+          "total_pair_confusions": 0
+        },
+        "eat__vs__explore": {
+          "eat_predicted_as_explore": 0,
+          "explore_predicted_as_eat": 0,
+          "total_pair_confusions": 0
+        },
+        "drink__vs__stand": {
+          "drink_predicted_as_stand": 0,
+          "stand_predicted_as_drink": 0,
+          "total_pair_confusions": 0
+        },
+        "drink__vs__explore": {
+          "drink_predicted_as_explore": 0,
+          "explore_predicted_as_drink": 0,
+          "total_pair_confusions": 0
+        },
+        "playwithtoy__vs__explore": {
+          "playwithtoy_predicted_as_explore": 0,
+          "explore_predicted_as_playwithtoy": 0,
+          "total_pair_confusions": 0
+        },
+        "playwithtoy__vs__stand": {
+          "playwithtoy_predicted_as_stand": 0,
+          "stand_predicted_as_playwithtoy": 0,
+          "total_pair_confusions": 0
+        },
+        "playwithtoy__vs__move": {
+          "playwithtoy_predicted_as_move": 0,
+          "move_predicted_as_playwithtoy": 0,
+          "total_pair_confusions": 0
+        },
+        "lying__vs__sitting": {
+          "lying_predicted_as_sitting": 0,
+          "sitting_predicted_as_lying": 0,
+          "total_pair_confusions": 0
+        },
+        "move__vs__explore": {
+          "move_predicted_as_explore": 0,
+          "explore_predicted_as_move": 0,
+          "total_pair_confusions": 0
+        },
+        "move__vs__stand": {
+          "move_predicted_as_stand": 0,
+          "stand_predicted_as_move": 0,
+          "total_pair_confusions": 0
+        }
+      }
+    },
+    "val_smoke": {
+      "rows": 10,
+      "labels": [
+        "drink",
+        "eat",
+        "fight",
+        "social-nose",
+        "explore",
+        "lying",
+        "stand",
+        "move",
+        "sitting",
+        "playwithtoy"
+      ],
+      "accuracy": 0.2,
+      "macro_precision": 0.11428571428571428,
+      "macro_recall": 0.2,
+      "macro_f1": 0.125,
+      "macro_precision_supported": 0.11428571428571428,
+      "macro_recall_supported": 0.2,
+      "macro_f1_supported": 0.125,
+      "supported_label_count": 10,
+      "per_class": {
+        "drink": {
+          "support": 1,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "eat": {
+          "support": 1,
+          "predicted": 7,
+          "tp": 1,
+          "precision": 0.14285714285714285,
+          "recall": 1.0,
+          "f1": 0.25
+        },
+        "fight": {
+          "support": 1,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "social-nose": {
+          "support": 1,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "explore": {
+          "support": 1,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "lying": {
+          "support": 1,
+          "predicted": 1,
+          "tp": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "stand": {
+          "support": 1,
+          "predicted": 2,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "move": {
+          "support": 1,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "sitting": {
+          "support": 1,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        },
+        "playwithtoy": {
+          "support": 1,
+          "predicted": 0,
+          "tp": 0,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0
+        }
+      },
+      "confusion_matrix": {
+        "index": [
+          "drink",
+          "eat",
+          "fight",
+          "social-nose",
+          "explore",
+          "lying",
+          "stand",
+          "move",
+          "sitting",
+          "playwithtoy"
+        ],
+        "columns": [
+          "drink",
+          "eat",
+          "fight",
+          "social-nose",
+          "explore",
+          "lying",
+          "stand",
+          "move",
+          "sitting",
+          "playwithtoy"
+        ],
+        "values": [
+          [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0
+          ]
+        ]
+      },
+      "focus_pair_confusions": {
+        "fight__vs__social-nose": {
+          "fight_predicted_as_social-nose": 0,
+          "social-nose_predicted_as_fight": 0,
+          "total_pair_confusions": 0
+        },
+        "fight__vs__stand": {
+          "fight_predicted_as_stand": 0,
+          "stand_predicted_as_fight": 0,
+          "total_pair_confusions": 0
+        },
+        "fight__vs__move": {
+          "fight_predicted_as_move": 0,
+          "move_predicted_as_fight": 0,
+          "total_pair_confusions": 0
+        },
+        "eat__vs__stand": {
+          "eat_predicted_as_stand": 0,
+          "stand_predicted_as_eat": 1,
+          "total_pair_confusions": 1
+        },
+        "eat__vs__explore": {
+          "eat_predicted_as_explore": 0,
+          "explore_predicted_as_eat": 1,
+          "total_pair_confusions": 1
+        },
+        "drink__vs__stand": {
+          "drink_predicted_as_stand": 0,
+          "stand_predicted_as_drink": 0,
+          "total_pair_confusions": 0
+        },
+        "drink__vs__explore": {
+          "drink_predicted_as_explore": 0,
+          "explore_predicted_as_drink": 0,
+          "total_pair_confusions": 0
+        },
+        "playwithtoy__vs__explore": {
+          "playwithtoy_predicted_as_explore": 0,
+          "explore_predicted_as_playwithtoy": 0,
+          "total_pair_confusions": 0
+        },
+        "playwithtoy__vs__stand": {
+          "playwithtoy_predicted_as_stand": 1,
+          "stand_predicted_as_playwithtoy": 0,
+          "total_pair_confusions": 1
+        },
+        "playwithtoy__vs__move": {
+          "playwithtoy_predicted_as_move": 0,
+          "move_predicted_as_playwithtoy": 0,
+          "total_pair_confusions": 0
+        },
+        "lying__vs__sitting": {
+          "lying_predicted_as_sitting": 0,
+          "sitting_predicted_as_lying": 0,
+          "total_pair_confusions": 0
+        },
+        "move__vs__explore": {
+          "move_predicted_as_explore": 0,
+          "explore_predicted_as_move": 0,
+          "total_pair_confusions": 0
+        },
+        "move__vs__stand": {
+          "move_predicted_as_stand": 0,
+          "stand_predicted_as_move": 0,
+          "total_pair_confusions": 0
+        }
+      }
+    }
+  },
+  "prediction_schema": [
+    "row_index",
+    "window_id",
+    "prediction_split",
+    "source_split",
+    "split_group_key",
+    "y_true",
+    "y_pred",
+    "confidence",
+    "correct"
+  ],
+  "native_prediction_schema": [
+    "temporal_unit_key",
+    "window_id",
+    "behavior_true",
+    "behavior_pred",
+    "window_sample_weight",
+    "window_valid_for_main_train",
+    "oof_fold_id",
+    "experiment_role"
+  ],
+  "native_prediction_audit": {
+    "schema_version": "classification_v2_multimodal_smoke_native_prediction_bridge_v1",
+    "debug_prediction_rows": 20,
+    "single_native_unit_rows": 20,
+    "multi_native_unit_rows_excluded": 0,
+    "native_oof_valid_rows": 20,
+    "native_oof_fold_manifest_csv": "outputs\\classification_v2\\native_temporal_units_oof_folds\\native_oof_fold_manifest.csv",
+    "note": "smoke subset only; proves schema bridge, not paper-facing model quality"
+  },
+  "prediction_schema_audit_valid": true,
+  "errors": [],
+  "warnings": [
+    "tiny smoke subset only; do not report as full model training result",
+    "image branch uses actor crops only; interaction full-frame/partner branch remains future work"
+  ]
+}

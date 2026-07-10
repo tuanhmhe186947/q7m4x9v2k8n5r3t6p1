@@ -19,6 +19,7 @@ from pig_behavior.classification_v2.datasets.image_sequence_dataset import (
     image_sequence_collate,
 )
 from pig_behavior.classification_v2.evaluation.metrics import DEFAULT_LABEL_ORDER, evaluate_predictions
+from pig_behavior.classification_v2.evaluation.prediction_schema_contract import check_prediction_schema
 from pig_behavior.classification_v2.models.multimodal_fusion import (
     MultimodalFusionClassifier,
     MultimodalFusionConfig,
@@ -29,6 +30,12 @@ from pig_behavior.classification_v2.training.spatial_tcn_smoke import MODEL_GROU
 @dataclass(frozen=True, slots=True)
 class MultimodalSmokeTrainConfig:
     root: Path = Path("outputs/classification_v2/train_ready_windows")
+    sequence_manifest_csv: Path = Path(
+        "outputs/classification_v2/sequence_features_reviewed/sequence_window_manifest.csv"
+    )
+    native_oof_fold_manifest_csv: Path = Path(
+        "outputs/classification_v2/native_temporal_units_oof_folds/native_oof_fold_manifest.csv"
+    )
     output_dir: Path = Path("outputs/classification_v2/model_smoke/multimodal_smoke_train")
     image_size: int = 64
     hidden_dim: int = 48
@@ -46,8 +53,10 @@ class MultimodalSmokeTrainConfig:
 class MultimodalSmokeTrainResult:
     audit: dict[str, Any]
     predictions: pd.DataFrame
+    native_predictions: pd.DataFrame
     checkpoint_path: Path
     predictions_path: Path
+    native_predictions_path: Path
     audit_path: Path
 
 
@@ -62,7 +71,7 @@ def run_multimodal_smoke_train(config: MultimodalSmokeTrainConfig) -> Multimodal
     _set_seed(config.seed)
     device = _resolve_device(config.device)
 
-    bundle = _load_bundle(config.root)
+    bundle = _load_bundle(config.root, config.sequence_manifest_csv)
     label_order = _label_order(bundle.y)
     label_to_idx = {label: idx for idx, label in enumerate(label_order)}
     train_indices = _select_balanced_indices(
@@ -132,6 +141,12 @@ def run_multimodal_smoke_train(config: MultimodalSmokeTrainConfig) -> Multimodal
         ],
         ignore_index=True,
     )
+    native_predictions, native_prediction_audit = _build_native_schema_predictions(
+        predictions,
+        bundle,
+        config.native_oof_fold_manifest_csv,
+    )
+    prediction_schema_audit = check_prediction_schema(native_predictions)
     metrics = {
         split: evaluate_predictions(group, y_true_col="y_true", y_pred_col="y_pred", label_order=label_order)
         for split, group in predictions.groupby("prediction_split", sort=True)
@@ -140,6 +155,8 @@ def run_multimodal_smoke_train(config: MultimodalSmokeTrainConfig) -> Multimodal
     config.output_dir.mkdir(parents=True, exist_ok=True)
     checkpoint_path = config.output_dir / "multimodal_smoke_train.pt"
     predictions_path = config.output_dir / "multimodal_smoke_predictions.csv"
+    native_predictions_path = config.output_dir / "multimodal_smoke_native_predictions.csv"
+    prediction_schema_audit_path = config.output_dir / "multimodal_smoke_prediction_schema_audit.json"
     audit_path = config.output_dir / "multimodal_smoke_train_audit.json"
     torch.save(
         {
@@ -151,11 +168,15 @@ def run_multimodal_smoke_train(config: MultimodalSmokeTrainConfig) -> Multimodal
         checkpoint_path,
     )
     predictions.to_csv(predictions_path, index=False)
+    native_predictions.to_csv(native_predictions_path, index=False)
+    prediction_schema_audit_path.write_text(json.dumps(prediction_schema_audit, indent=2), encoding="utf-8")
     audit = {
         "config": _jsonable_config(config),
         "root": str(config.root),
         "checkpoint_path": str(checkpoint_path),
         "predictions_path": str(predictions_path),
+        "native_predictions_path": str(native_predictions_path),
+        "prediction_schema_audit_path": str(prediction_schema_audit_path),
         "audit_path": str(audit_path),
         "device": str(device),
         "label_order": label_order,
@@ -170,6 +191,9 @@ def run_multimodal_smoke_train(config: MultimodalSmokeTrainConfig) -> Multimodal
         "loss_reduction": float(losses[0] - losses[-1]),
         "metrics": metrics,
         "prediction_schema": list(predictions.columns),
+        "native_prediction_schema": list(native_predictions.columns),
+        "native_prediction_audit": native_prediction_audit,
+        "prediction_schema_audit_valid": bool(prediction_schema_audit.get("valid")),
         "errors": [],
         "warnings": [
             "tiny smoke subset only; do not report as full model training result",
@@ -180,14 +204,20 @@ def run_multimodal_smoke_train(config: MultimodalSmokeTrainConfig) -> Multimodal
         audit["errors"].append("loss_nonfinite")
     if losses[-1] >= losses[0]:
         audit["errors"].append(f"loss_not_reduced initial={losses[0]:.6f} final={losses[-1]:.6f}")
+    if native_predictions.empty:
+        audit["errors"].append("native_schema_prediction_rows_zero")
+    if prediction_schema_audit.get("errors"):
+        audit["errors"].append(f"prediction_schema_errors={prediction_schema_audit.get('errors')}")
     audit_path.write_text(json.dumps(audit, indent=2, ensure_ascii=False), encoding="utf-8")
     if audit["errors"]:
         raise ValueError(f"Multimodal smoke train failed: {audit['errors']}")
     return MultimodalSmokeTrainResult(
         audit=audit,
         predictions=predictions,
+        native_predictions=native_predictions,
         checkpoint_path=checkpoint_path,
         predictions_path=predictions_path,
+        native_predictions_path=native_predictions_path,
         audit_path=audit_path,
     )
 
@@ -198,10 +228,13 @@ class _MultimodalBundle:
     y: pd.Series
     train_mask: pd.Series
     split: pd.DataFrame
+    sequence_manifest: pd.DataFrame
     image_windows: pd.DataFrame
 
 
-def _load_bundle(root: Path) -> _MultimodalBundle:
+def _load_bundle(root: Path, sequence_manifest_csv: Path) -> _MultimodalBundle:
+    """Load aligned train-ready tensors and window-to-native-unit metadata."""
+
     arrays = {name: value for name, value in np.load(root / "X_spatial_sequences.npz").items()}
     missing = [name for name in [*MODEL_GROUPS, "length_mask", "observed_mask"] if name not in arrays]
     if missing:
@@ -210,18 +243,104 @@ def _load_bundle(root: Path) -> _MultimodalBundle:
     train_mask = _read_bool(root / "train_mask.csv")
     split = pd.read_csv(root / "split_manifest.csv", low_memory=False)
     image_windows = pd.read_csv(root / "image_window_context_manifest.csv", low_memory=False)
+    sequence_manifest = pd.read_csv(
+        sequence_manifest_csv,
+        usecols=[
+            "window_id",
+            "temporal_unit_keys_window",
+            "num_temporal_units_window",
+            "window_valid_for_main_train",
+            "window_sample_weight",
+        ],
+        low_memory=False,
+    )
+    sequence_manifest = split[["window_id"]].merge(sequence_manifest, on="window_id", how="left")
     expected = len(y)
     row_counts = {
         "y": len(y),
         "train_mask": len(train_mask),
         "split": len(split),
+        "sequence_manifest": len(sequence_manifest),
         "image_windows": len(image_windows),
     }
     row_counts.update({name: int(arr.shape[0]) for name, arr in arrays.items()})
     mismatched = {name: count for name, count in row_counts.items() if count != expected}
     if mismatched:
         raise ValueError(f"row count mismatch against y={expected}: {mismatched}")
-    return _MultimodalBundle(arrays=arrays, y=y, train_mask=train_mask, split=split, image_windows=image_windows)
+    return _MultimodalBundle(
+        arrays=arrays,
+        y=y,
+        train_mask=train_mask,
+        split=split,
+        sequence_manifest=sequence_manifest,
+        image_windows=image_windows,
+    )
+
+
+def _build_native_schema_predictions(
+    predictions: pd.DataFrame,
+    bundle: _MultimodalBundle,
+    native_oof_fold_manifest_csv: Path,
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """Convert smoke debug predictions to the S16 native-metric schema.
+
+    The smoke trainer still reports a compact debug CSV with split/loss fields.
+    This bridge writes a second prediction CSV with only metric-exchange fields.
+    Rows without a single native temporal unit or OOF fold are counted in audit
+    and excluded from the schema file instead of being silently retained with
+    ambiguous native-unit identity.
+    """
+
+    native_folds = pd.read_csv(
+        native_oof_fold_manifest_csv,
+        usecols=["temporal_unit_key", "oof_fold_id", "native_unit_valid_for_main_eval"],
+        low_memory=False,
+    )
+    frame = predictions.merge(
+        bundle.sequence_manifest[
+            [
+                "window_id",
+                "temporal_unit_keys_window",
+                "num_temporal_units_window",
+                "window_valid_for_main_train",
+                "window_sample_weight",
+            ]
+        ],
+        on="window_id",
+        how="left",
+    )
+    frame["num_temporal_units_window"] = pd.to_numeric(frame["num_temporal_units_window"], errors="coerce")
+    single_unit = frame["num_temporal_units_window"].eq(1)
+    eligible = frame.loc[single_unit].copy()
+    eligible = eligible.rename(columns={"temporal_unit_keys_window": "temporal_unit_key"})
+    eligible = eligible.merge(native_folds, on="temporal_unit_key", how="left")
+    eligible["native_unit_valid_for_main_eval"] = _to_bool(eligible["native_unit_valid_for_main_eval"])
+    eligible = eligible.loc[eligible["native_unit_valid_for_main_eval"]].copy()
+    eligible["oof_fold_id"] = eligible["oof_fold_id"].fillna("").astype(str)
+    eligible = eligible.loc[eligible["oof_fold_id"].ne("")].copy()
+
+    native_predictions = pd.DataFrame(
+        {
+            "temporal_unit_key": eligible["temporal_unit_key"].astype(str),
+            "window_id": eligible["window_id"].astype(str),
+            "behavior_true": eligible["y_true"].astype(str),
+            "behavior_pred": eligible["y_pred"].astype(str),
+            "window_sample_weight": pd.to_numeric(eligible["window_sample_weight"], errors="coerce").fillna(1.0),
+            "window_valid_for_main_train": _to_bool(eligible["window_valid_for_main_train"]),
+            "oof_fold_id": eligible["oof_fold_id"].astype(str),
+            "experiment_role": "multimodal_smoke_schema_bridge_not_paper_metric",
+        }
+    ).reset_index(drop=True)
+    audit = {
+        "schema_version": "classification_v2_multimodal_smoke_native_prediction_bridge_v1",
+        "debug_prediction_rows": int(len(predictions)),
+        "single_native_unit_rows": int(single_unit.sum()),
+        "multi_native_unit_rows_excluded": int((~single_unit).sum()),
+        "native_oof_valid_rows": int(len(native_predictions)),
+        "native_oof_fold_manifest_csv": str(native_oof_fold_manifest_csv),
+        "note": "smoke subset only; proves schema bridge, not paper-facing model quality",
+    }
+    return native_predictions, audit
 
 
 def _batch_from_indices(
@@ -369,5 +488,7 @@ def _set_seed(seed: int) -> None:
 def _jsonable_config(config: MultimodalSmokeTrainConfig) -> dict[str, Any]:
     out = asdict(config)
     out["root"] = str(config.root)
+    out["sequence_manifest_csv"] = str(config.sequence_manifest_csv)
+    out["native_oof_fold_manifest_csv"] = str(config.native_oof_fold_manifest_csv)
     out["output_dir"] = str(config.output_dir)
     return out

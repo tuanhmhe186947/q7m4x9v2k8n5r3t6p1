@@ -1,0 +1,91 @@
+{
+  "schema_version": "classification_v2_prediction_schema_contract_v1",
+  "prediction_rows": 20,
+  "prediction_columns": [
+    "temporal_unit_key",
+    "window_id",
+    "behavior_true",
+    "behavior_pred",
+    "window_sample_weight",
+    "window_valid_for_main_train",
+    "oof_fold_id",
+    "experiment_role"
+  ],
+  "required_columns": [
+    "temporal_unit_key",
+    "window_id",
+    "behavior_true",
+    "behavior_pred",
+    "window_sample_weight",
+    "window_valid_for_main_train",
+    "oof_fold_id",
+    "experiment_role"
+  ],
+  "forbidden_columns": [
+    "review_item_id",
+    "review_unit_id",
+    "review_unit_type",
+    "review_template",
+    "review_reason",
+    "review_include_in_training",
+    "review_training_action",
+    "review_sample_weight",
+    "behavior_before_review",
+    "original_behavior",
+    "manual_review_decision",
+    "manual_corrected_behavior",
+    "manual_label_strength",
+    "manual_training_action",
+    "manual_sample_weight",
+    "manual_note",
+    "source_type",
+    "dataset_id",
+    "video_key",
+    "source_video_key",
+    "pig_id",
+    "track_id",
+    "track_label",
+    "object_track_key",
+    "frame_uid",
+    "image_key",
+    "image_name",
+    "crop_path",
+    "video_path"
+  ],
+  "probability_columns": [],
+  "valid_behavior_labels": [
+    "drink",
+    "eat",
+    "fight",
+    "social-nose",
+    "explore",
+    "lying",
+    "stand",
+    "move",
+    "sitting",
+    "playwithtoy"
+  ],
+  "errors": [],
+  "warnings": [
+    "no_probability_columns_present_weighted_vote_metrics_only"
+  ],
+  "valid": true,
+  "true_label_counts": {
+    "drink": 2,
+    "eat": 2,
+    "explore": 2,
+    "fight": 2,
+    "lying": 2,
+    "move": 2,
+    "playwithtoy": 2,
+    "sitting": 2,
+    "social-nose": 2,
+    "stand": 2
+  },
+  "pred_label_counts": {
+    "eat": 13,
+    "lying": 2,
+    "playwithtoy": 1,
+    "stand": 4
+  }
+}
