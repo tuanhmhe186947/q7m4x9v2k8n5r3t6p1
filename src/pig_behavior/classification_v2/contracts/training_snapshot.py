@@ -110,6 +110,8 @@ def _build_snapshot(paths: SnapshotPaths, contract: dict[str, Any]) -> dict[str,
         "primary_key": contract.get("primary_key", "window_id"),
         "artifacts": artifacts,
         "row_alignment": _row_alignment(contract, artifacts),
+        "key_alignment": _key_alignment(contract, artifacts),
+        "key_coverage": _key_coverage(contract, artifacts),
         "model_input_audit": _model_input_audit(contract, artifacts),
         "errors": errors,
     }
@@ -195,10 +197,20 @@ def _ordered_key_digest(path: Path, key_column: str) -> dict[str, Any]:
     return {
         "key_column": key_column,
         "ordered_key_sha256": digest.hexdigest(),
+        "key_set_sha256": _key_set_digest(seen),
         "duplicate_key_count": int(duplicates),
         "null_key_count": int(null_count),
         "unique_key_count": int(len(seen)),
     }
+
+
+def _key_set_digest(keys: set[str]) -> str:
+    """Hash sorted unique keys when artifact order is not part of the contract."""
+    digest = hashlib.sha256()
+    for value in sorted(keys):
+        digest.update(value.encode("utf-8"))
+        digest.update(b"\n")
+    return digest.hexdigest()
 
 
 def _finite_counts(arr: np.ndarray) -> tuple[int, int]:
@@ -223,6 +235,38 @@ def _row_alignment(contract: dict[str, Any], artifacts: dict[str, Any]) -> dict[
         "row_counts": row_counts,
         "aligned": len(set(non_null.values())) <= 1,
         "expected_rows": next(iter(non_null.values()), None) if non_null else None,
+    }
+
+
+def _key_alignment(contract: dict[str, Any], artifacts: dict[str, Any]) -> dict[str, Any]:
+    """Compare ordered primary-key digests for artifacts that must be row-aligned."""
+    source_name = contract.get("window_id_source_artifact")
+    names = contract.get("key_alignment_group", [])
+    source_digest = artifacts.get(source_name, {}).get("ordered_key_sha256")
+    digests = {name: artifacts.get(name, {}).get("ordered_key_sha256") for name in names}
+    mismatched = sorted(name for name, digest in digests.items() if source_digest and digest != source_digest)
+    return {
+        "source_artifact": source_name,
+        "group": names,
+        "ordered_key_sha256": digests,
+        "aligned": not mismatched,
+        "mismatched": mismatched,
+    }
+
+
+def _key_coverage(contract: dict[str, Any], artifacts: dict[str, Any]) -> dict[str, Any]:
+    """Check that joinable context artifacts contain the same key set as the source."""
+    source_name = contract.get("window_id_source_artifact")
+    names = contract.get("key_coverage_group", [])
+    source_digest = artifacts.get(source_name, {}).get("key_set_sha256")
+    digests = {name: artifacts.get(name, {}).get("key_set_sha256") for name in names}
+    mismatched = sorted(name for name, digest in digests.items() if source_digest and digest != source_digest)
+    return {
+        "source_artifact": source_name,
+        "group": names,
+        "key_set_sha256": digests,
+        "covered": not mismatched,
+        "mismatched": mismatched,
     }
 
 
@@ -252,6 +296,12 @@ def _validate_contract_profiles(contract: dict[str, Any], artifacts: dict[str, A
     alignment = _row_alignment(contract, artifacts)
     if not alignment["aligned"]:
         errors.append(f"row_count_alignment_mismatch={alignment['row_counts']}")
+    key_alignment = _key_alignment(contract, artifacts)
+    if not key_alignment["aligned"]:
+        errors.append(f"key_alignment_mismatch={key_alignment['mismatched']}")
+    key_coverage = _key_coverage(contract, artifacts)
+    if not key_coverage["covered"]:
+        errors.append(f"key_coverage_mismatch={key_coverage['mismatched']}")
     for name, audit in _model_input_audit(contract, artifacts).items():
         if audit.get("forbidden_columns"):
             errors.append(f"forbidden_x_columns:{name}={audit['forbidden_columns']}")
