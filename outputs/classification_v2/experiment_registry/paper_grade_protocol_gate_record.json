@@ -140,6 +140,14 @@
       "mtime_utc": "2026-07-10T10:14:30.465831+00:00",
       "sha256": "d75d59b9aafecce0e1202eb5367d68516d689b5289c8071f2e7e840fe7449867",
       "hash_status": "ok"
+    },
+    "loader_input_audit_json": {
+      "path": "outputs\\classification_v2\\train_ready_windows\\loader_input_audit.json",
+      "exists": true,
+      "size_bytes": 1903,
+      "mtime_utc": "2026-07-10T11:03:59.389354+00:00",
+      "sha256": "8a188011804a658aa9847b3fcaf143f88e70bb61e1601b5773811b14cad6b04d",
+      "hash_status": "ok"
     }
   },
   "evaluation_contract": {

@@ -37,6 +37,7 @@ class ExperimentRecordConfig:
     source_domain_audit_json: Path | None = None
     native_oof_audit_json: Path | None = None
     trainer_contract_json: Path | None = None
+    loader_input_audit_json: Path | None = None
     result_kind: str = "protocol_gate"
     primary_metric_unit: str = "native_temporal_unit"
     split_policy: str = "recording_group_oof"
@@ -87,6 +88,7 @@ def _provenance_record(config: ExperimentRecordConfig) -> dict[str, Any]:
         "source_domain_audit_json": config.source_domain_audit_json,
         "native_oof_audit_json": config.native_oof_audit_json,
         "trainer_contract_json": config.trainer_contract_json,
+        "loader_input_audit_json": config.loader_input_audit_json,
     }
     return {
         name: _artifact_record(path, max_hash_bytes=config.max_hash_bytes) if path is not None else None

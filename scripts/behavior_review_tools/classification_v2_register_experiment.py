@@ -60,6 +60,11 @@ def main() -> None:
         type=Path,
         default=Path("configs/classification_v2/trainer_contract_v1.json"),
     )
+    parser.add_argument(
+        "--loader-input-audit-json",
+        type=Path,
+        default=Path("outputs/classification_v2/train_ready_windows/loader_input_audit.json"),
+    )
     args = parser.parse_args()
 
     record = write_experiment_record(
@@ -77,6 +82,7 @@ def main() -> None:
             source_domain_audit_json=args.source_domain_audit_json,
             native_oof_audit_json=args.native_oof_audit_json,
             trainer_contract_json=args.trainer_contract_json,
+            loader_input_audit_json=args.loader_input_audit_json,
             result_kind=args.result_kind,
             primary_metric_unit=args.primary_metric_unit,
             split_policy=args.split_policy,

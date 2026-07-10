@@ -23,6 +23,7 @@ PAPER_FACING_REQUIRED_PROVENANCE = (
     "source_domain_audit_json",
     "native_oof_audit_json",
     "trainer_contract_json",
+    "loader_input_audit_json",
 )
 
 
