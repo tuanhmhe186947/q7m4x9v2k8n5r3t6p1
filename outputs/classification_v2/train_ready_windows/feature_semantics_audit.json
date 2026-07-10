@@ -1,0 +1,158 @@
+{
+  "contract_path": "configs\\classification_v2\\feature_semantics_v1.json",
+  "tabular_x_csv": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\train_ready_windows\\X_window_features.csv",
+  "spatial_npz": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\train_ready_windows\\X_spatial_sequences.npz",
+  "tabular_feature_count": 39,
+  "tabular_family_counts": {
+    "geometry_shape": 2,
+    "motion_kinematics": 17,
+    "quality_visibility": 6,
+    "social_context": 11,
+    "temporal_window_meta": 3
+  },
+  "tabular_assignments": {
+    "window_length_frames": "temporal_window_meta",
+    "window_duration_sec": "temporal_window_meta",
+    "effective_fps": "temporal_window_meta",
+    "observed_row_count_window": "quality_visibility",
+    "observed_frame_count_window": "quality_visibility",
+    "bbox_valid_ratio_window": "quality_visibility",
+    "hidden_ratio_window": "quality_visibility",
+    "visible_ratio_window": "quality_visibility",
+    "spatiotemporal_feature_valid_ratio_window": "quality_visibility",
+    "speed_mean_window": "motion_kinematics",
+    "speed_max_window": "motion_kinematics",
+    "speed_std_window": "motion_kinematics",
+    "speed_per_sec_mean_window": "motion_kinematics",
+    "speed_per_sec_max_window": "motion_kinematics",
+    "path_length_n_window": "motion_kinematics",
+    "path_length_n_per_sec_window": "motion_kinematics",
+    "motion_energy_window": "motion_kinematics",
+    "motion_burstiness_window": "motion_kinematics",
+    "accel_abs_mean_window": "motion_kinematics",
+    "accel_abs_max_window": "motion_kinematics",
+    "direction_change_abs_mean_window": "motion_kinematics",
+    "direction_change_abs_max_window": "motion_kinematics",
+    "shape_transition_score_window": "motion_kinematics",
+    "area_n_std_window": "geometry_shape",
+    "aspect_ratio_std_window": "geometry_shape",
+    "bbox_stability_window": "motion_kinematics",
+    "displacement_n_window": "motion_kinematics",
+    "displacement_ratio_window": "motion_kinematics",
+    "nearest_dist_mean_window": "social_context",
+    "nearest_dist_min_window": "social_context",
+    "nearest_pair_iou_max_window": "social_context",
+    "nearest_pair_overlap_max_window": "social_context",
+    "social_density_mean_window": "social_context",
+    "social_density_max_window": "social_context",
+    "pair_contact_ratio_window": "social_context",
+    "approach_speed_max_window": "social_context",
+    "separation_speed_max_window": "social_context",
+    "aggression_score_proxy_mean_window": "social_context",
+    "aggression_score_proxy_max_window": "social_context"
+  },
+  "spatial_assignments": {
+    "bbox_xywh_n": {
+      "family": "geometry_sequence",
+      "description": "Per-frame normalized actor bbox x/y/width/height sequence.",
+      "shape": [
+        160740,
+        16,
+        4
+      ],
+      "dtype": "float32",
+      "declared": true
+    },
+    "bbox_shape_n": {
+      "family": "geometry_sequence",
+      "description": "Per-frame normalized shape/area/aspect geometry sequence.",
+      "shape": [
+        160740,
+        16,
+        2
+      ],
+      "dtype": "float32",
+      "declared": true
+    },
+    "motion_delta": {
+      "family": "motion_sequence",
+      "description": "Per-frame actor motion delta sequence; must be grouped within object track/window only.",
+      "shape": [
+        160740,
+        16,
+        10
+      ],
+      "dtype": "float32",
+      "declared": true
+    },
+    "roi_class_relation": {
+      "family": "roi_context_sequence",
+      "description": "Class-specific feeder/drinker/toy ROI relation sequence; model-usable because it is not target-label-selected.",
+      "shape": [
+        160740,
+        16,
+        18
+      ],
+      "dtype": "float32",
+      "declared": true
+    },
+    "social_relation": {
+      "family": "social_context_sequence",
+      "description": "Per-frame label-independent social relation features from same-frame neighbors.",
+      "shape": [
+        160740,
+        16,
+        10
+      ],
+      "dtype": "float32",
+      "declared": true
+    },
+    "quality_mask": {
+      "family": "quality_sequence",
+      "description": "Per-frame quality/missingness mask.",
+      "shape": [
+        160740,
+        16,
+        6
+      ],
+      "dtype": "float32",
+      "declared": true
+    },
+    "length_mask": {
+      "family": "sequence_mask",
+      "description": "Window-length mask for padded sequence positions.",
+      "shape": [
+        160740,
+        16
+      ],
+      "dtype": "float32",
+      "declared": true
+    },
+    "observed_mask": {
+      "family": "sequence_mask",
+      "description": "Observed-frame mask; missing frames stay masked instead of dropped.",
+      "shape": [
+        160740,
+        16
+      ],
+      "dtype": "float32",
+      "declared": true
+    },
+    "frame_index_sequence": {
+      "family": "sequence_index",
+      "description": "Frame indices for audit/alignment; do not feed to model unless a trainer explicitly treats it as positional metadata.",
+      "shape": [
+        160740,
+        16
+      ],
+      "dtype": "int32",
+      "declared": true
+    }
+  },
+  "forbidden_tabular_features": [],
+  "errors": [],
+  "warnings": [
+    "tabular_roi_context_absent; current ROI signal is spatial roi_class_relation only"
+  ],
+  "valid": true
+}

@@ -1,0 +1,121 @@
+{
+  "version": "classification_v2_feature_semantics_v1",
+  "tabular_x_csv": "outputs/classification_v2/train_ready_windows/X_window_features.csv",
+  "spatial_npz": "outputs/classification_v2/train_ready_windows/X_spatial_sequences.npz",
+  "forbidden_x_patterns": [
+    "manual_*",
+    "review_*",
+    "*behavior*",
+    "original_behavior",
+    "review_unit_id",
+    "window_id",
+    "temporal_unit_key",
+    "video_key",
+    "dataset_id",
+    "pig_id",
+    "track_id",
+    "*_path"
+  ],
+  "tabular_families": {
+    "temporal_window_meta": {
+      "description": "Window duration, length, and effective sampling rate used to normalize motion features.",
+      "prediction_time_available": true,
+      "leakage_risk": "low",
+      "prefixes": ["window_length", "window_duration", "effective_fps"]
+    },
+    "quality_visibility": {
+      "description": "Observed-row, frame completeness, bbox-valid, hidden, visible, and feature-valid ratios used as masks/quality covariates.",
+      "prediction_time_available": "deployment-dependent for annotation Hidden; use only if runtime can produce equivalent flags",
+      "leakage_risk": "medium",
+      "prefixes": ["observed_", "bbox_valid_", "hidden_", "visible_", "spatiotemporal_feature_valid_"]
+    },
+    "motion_kinematics": {
+      "description": "Speed, acceleration, path length, direction change, displacement, burstiness, and motion energy from one object track within a window.",
+      "prediction_time_available": true,
+      "leakage_risk": "low",
+      "prefixes": [
+        "speed_",
+        "path_length_",
+        "motion_",
+        "accel_",
+        "direction_change_",
+        "displacement_",
+        "shape_transition_",
+        "bbox_stability_"
+      ]
+    },
+    "geometry_shape": {
+      "description": "Scale/aspect-ratio variability proxies from bbox geometry. They describe pose/shape but are not labels.",
+      "prediction_time_available": true,
+      "leakage_risk": "low",
+      "prefixes": ["area_n_", "aspect_ratio_"]
+    },
+    "social_context": {
+      "description": "Nearest-neighbor distance, pair overlap/contact, social density, approach/separation, and aggression proxy from same-frame group geometry.",
+      "prediction_time_available": true,
+      "leakage_risk": "low-to-medium; verify no behavior label is used to choose partners",
+      "prefixes": [
+        "nearest_",
+        "social_density_",
+        "pair_contact_",
+        "approach_",
+        "separation_",
+        "aggression_score_proxy_"
+      ]
+    }
+  },
+  "spatial_arrays": {
+    "bbox_xywh_n": {
+      "family": "geometry_sequence",
+      "description": "Per-frame normalized actor bbox x/y/width/height sequence."
+    },
+    "bbox_shape_n": {
+      "family": "geometry_sequence",
+      "description": "Per-frame normalized shape/area/aspect geometry sequence."
+    },
+    "motion_delta": {
+      "family": "motion_sequence",
+      "description": "Per-frame actor motion delta sequence; must be grouped within object track/window only."
+    },
+    "roi_class_relation": {
+      "family": "roi_context_sequence",
+      "description": "Class-specific feeder/drinker/toy ROI relation sequence; model-usable because it is not target-label-selected."
+    },
+    "social_relation": {
+      "family": "social_context_sequence",
+      "description": "Per-frame label-independent social relation features from same-frame neighbors."
+    },
+    "quality_mask": {
+      "family": "quality_sequence",
+      "description": "Per-frame quality/missingness mask."
+    },
+    "length_mask": {
+      "family": "sequence_mask",
+      "description": "Window-length mask for padded sequence positions."
+    },
+    "observed_mask": {
+      "family": "sequence_mask",
+      "description": "Observed-frame mask; missing frames stay masked instead of dropped."
+    },
+    "frame_index_sequence": {
+      "family": "sequence_index",
+      "description": "Frame indices for audit/alignment; do not feed to model unless a trainer explicitly treats it as positional metadata."
+    }
+  },
+  "expected_scientific_families": [
+    "temporal_window_meta",
+    "quality_visibility",
+    "motion_kinematics",
+    "geometry_shape",
+    "social_context",
+    "roi_context_sequence",
+    "geometry_sequence",
+    "motion_sequence",
+    "social_context_sequence"
+  ],
+  "notes": [
+    "Current tabular X has no ROI columns; ROI context is present in spatial NPZ as roi_class_relation.",
+    "Do not use target_roi_* or label-selected ROI fields as model X.",
+    "Hidden/visibility fields require deployment-time availability audit before final training claims."
+  ]
+}
