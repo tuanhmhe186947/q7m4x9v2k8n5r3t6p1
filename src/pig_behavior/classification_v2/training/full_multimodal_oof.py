@@ -180,6 +180,70 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
     }
 
 
+def build_full_multimodal_oof_run_plan(config: FullMultimodalOofConfig) -> dict[str, Any]:
+    """Summarize full/pilot OOF workload before loading images or training."""
+
+    _validate_config(config)
+    bundle = _load_bundle(config)
+    fold_ids = sorted(bundle.frame.loc[bundle.frame["eligible"], "oof_fold_id"].astype(str).unique())
+    selected_fold_ids = fold_ids if config.max_folds is None else fold_ids[: int(config.max_folds)]
+    fold_rows: list[dict[str, Any]] = []
+    total_eval_rows = 0
+    total_train_steps = 0
+    for fold_id in selected_fold_ids:
+        train_mask = bundle.frame["eligible"] & bundle.frame["oof_fold_id"].astype(str).ne(str(fold_id))
+        eval_mask = bundle.frame["eligible"] & bundle.frame["oof_fold_id"].astype(str).eq(str(fold_id))
+        train_indices = _sample_indices(
+            bundle.frame,
+            mask=train_mask,
+            per_class=config.train_per_class_per_fold,
+            seed=config.seed + int(_stable_fold_offset(fold_id)),
+        )
+        eval_indices = _sample_indices(
+            bundle.frame,
+            mask=eval_mask,
+            per_class=config.eval_per_class_per_fold,
+            seed=config.seed + 10_000 + int(_stable_fold_offset(fold_id)),
+        )
+        eval_batches = _ceil_div(len(eval_indices), int(config.eval_batch_size))
+        fold_rows.append(
+            {
+                "oof_fold_id": str(fold_id),
+                "train_rows": int(len(train_indices)),
+                "eval_rows": int(len(eval_indices)),
+                "steps_per_fold": int(config.steps_per_fold),
+                "train_batch_size": int(config.train_batch_size),
+                "eval_batch_size": int(config.eval_batch_size),
+                "eval_batches": int(eval_batches),
+                "train_label_counts": _label_counts(bundle.frame, train_indices),
+                "eval_label_counts": _label_counts(bundle.frame, eval_indices),
+            }
+        )
+        total_eval_rows += int(len(eval_indices))
+        total_train_steps += int(config.steps_per_fold)
+    full_like = _is_full_run(config, bundle)
+    warnings = []
+    if not full_like:
+        warnings.append("bounded_or_pilot_plan_not_valid_for_full_paper_record")
+    if len(selected_fold_ids) != bundle.load_audit.get("eligible_fold_count"):
+        warnings.append("selected_fold_count_less_than_available_fold_count")
+    return {
+        "schema_version": "classification_v2_full_multimodal_oof_run_plan_v1",
+        "config": _jsonable_config(config),
+        "run_mode": config.run_mode,
+        "paper_facing_candidate_plan": full_like,
+        "load_audit": bundle.load_audit,
+        "available_fold_count": int(bundle.load_audit.get("eligible_fold_count", 0)),
+        "selected_fold_count": int(len(selected_fold_ids)),
+        "total_eval_rows": int(total_eval_rows),
+        "total_train_steps": int(total_train_steps),
+        "folds": fold_rows,
+        "warnings": warnings,
+        "errors": [],
+        "valid": bool(selected_fold_ids and total_eval_rows > 0),
+    }
+
+
 @dataclass(slots=True)
 class _OofBundle:
     """Aligned tensors and metadata needed by the learned OOF runner."""
@@ -542,6 +606,14 @@ def _mode_warnings(config: FullMultimodalOofConfig, bundle: _OofBundle) -> list[
 
 def _stable_fold_offset(fold_id: str) -> int:
     return sum(ord(char) for char in str(fold_id))
+
+
+def _label_counts(frame: pd.DataFrame, indices: np.ndarray) -> dict[str, int]:
+    return frame.iloc[indices]["behavior_true"].value_counts().sort_index().to_dict()
+
+
+def _ceil_div(value: int, divisor: int) -> int:
+    return int((int(value) + int(divisor) - 1) // int(divisor))
 
 
 def _read_bool(path: Path) -> pd.Series:
