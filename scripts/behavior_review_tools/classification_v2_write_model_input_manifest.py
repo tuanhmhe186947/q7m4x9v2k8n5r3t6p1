@@ -80,6 +80,18 @@ def main() -> None:
             "spatial_control_shortcut_audit": str(
                 classification_root / "model_smoke" / "spatial_control_shortcut_audit.json"
             ),
+            "native_temporal_prediction_audit": str(
+                classification_root
+                / "model_smoke"
+                / "native_temporal_predictions"
+                / "native_temporal_prediction_audit.json"
+            ),
+            "native_temporal_predictions": str(
+                classification_root
+                / "model_smoke"
+                / "native_temporal_predictions"
+                / "native_temporal_predictions.csv"
+            ),
         },
         "model_input_branches": {
             "tabular_context_branch": {

@@ -28,6 +28,9 @@ def main() -> None:
     smoke_train = _load_json(
         classification_root / "model_smoke" / "spatial_tcn_smoke_train" / "spatial_tcn_smoke_train_audit.json"
     )
+    native_predictions = _load_json(
+        classification_root / "model_smoke" / "native_temporal_predictions" / "native_temporal_prediction_audit.json"
+    )
     experiment_record = _load_json(
         classification_root / "experiment_registry" / "spatial_tcn_smoke_train_record.json"
     )
@@ -89,8 +92,14 @@ def main() -> None:
                 "checker": "scripts/dev_tools/check_classification_v2_spatial_control_shortcuts.py",
                 "purpose": "Quantify source shortcut under real, repeat-first-frame, and mean-only spatial controls.",
             },
+            "native_temporal_prediction_collapse": {
+                "module": "src/pig_behavior/classification_v2/evaluation/native_temporal_collapse.py",
+                "runner": "scripts/behavior_review_tools/classification_v2_collapse_window_predictions_to_native_units.py",
+                "checker": "scripts/dev_tools/check_classification_v2_native_temporal_predictions.py",
+                "purpose": "Collapse overlapping window predictions to native temporal/review units for claim-safe metrics.",
+            },
         },
-        "training_phases": _training_phases(contract, spatial, image_context, class_weights, smoke_train),
+        "training_phases": _training_phases(contract, spatial, image_context, class_weights, smoke_train, native_predictions),
         "known_risks": [
             {
                 "risk": "source/domain shortcut is strong",
@@ -143,6 +152,7 @@ def _training_phases(
     image_context: dict[str, Any],
     class_weights: dict[str, Any],
     smoke_train: dict[str, Any],
+    native_predictions: dict[str, Any],
 ) -> list[dict[str, Any]]:
     return [
         {
@@ -187,6 +197,16 @@ def _training_phases(
                 "source-balanced validation report",
                 "native temporal-unit prediction collapse",
             ],
+        },
+        {
+            "phase": "P3b_native_temporal_evaluation",
+            "status": "collapse_schema_implemented",
+            "model": "Confidence-weighted vote from window predictions to temporal_unit_key.",
+            "evidence": {
+                "window_prediction_rows": native_predictions.get("window_prediction_rows"),
+                "native_units_predicted": native_predictions.get("native_units_predicted"),
+                "native_units_unpredicted": native_predictions.get("native_units_unpredicted"),
+            },
         },
         {
             "phase": "P4_multitask_heads",
