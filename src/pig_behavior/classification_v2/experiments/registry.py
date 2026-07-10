@@ -1,7 +1,10 @@
 """Lightweight experiment records for classification_v2.
 
-This registry is intentionally file-based. It records enough provenance for
-smoke/baseline runs without introducing a tracking service dependency.
+The registry is intentionally file-based so smoke and baseline runs can record
+provenance without depending on an external tracking service. Paper-facing
+records must also carry the audited data snapshot, protocol, source-domain
+control, and native OOF references so a result cannot be promoted from a loose
+smoke run by accident.
 """
 
 from __future__ import annotations
@@ -17,22 +20,33 @@ from typing import Any
 
 @dataclass(frozen=True, slots=True)
 class ExperimentRecordConfig:
+    """Inputs used to write a reproducible experiment record."""
+
     name: str
     output_dir: Path = Path("outputs/classification_v2/experiment_registry")
     metrics_json: Path | None = None
     artifacts: tuple[Path, ...] = field(default_factory=tuple)
     notes: str = ""
+    experiment_stage: str = "engineering_smoke"
+    paper_facing: bool = False
+    dataset_snapshot_json: Path | None = None
+    paper_protocol_json: Path | None = None
+    paper_protocol_audit_json: Path | None = None
+    source_domain_audit_json: Path | None = None
+    native_oof_audit_json: Path | None = None
+    trainer_contract_json: Path | None = None
     max_hash_bytes: int = 100_000_000
 
 
 def write_experiment_record(config: ExperimentRecordConfig) -> dict[str, Any]:
-    """Write one immutable experiment record and append it to a JSONL ledger."""
+    """Write one experiment record and append it to the JSONL ledger."""
+
     if not config.name.strip():
         raise ValueError("experiment name must not be empty")
     config.output_dir.mkdir(parents=True, exist_ok=True)
     metrics = _read_json(config.metrics_json) if config.metrics_json else None
     artifacts = [_artifact_record(path, max_hash_bytes=config.max_hash_bytes) for path in config.artifacts]
-    record = {
+    record: dict[str, Any] = {
         "schema_version": "classification_v2_experiment_record_v1",
         "name": config.name,
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -40,6 +54,9 @@ def write_experiment_record(config: ExperimentRecordConfig) -> dict[str, Any]:
         "git_dirty": _git_dirty(),
         "metrics_json": str(config.metrics_json) if config.metrics_json else None,
         "metrics": metrics,
+        "experiment_stage": config.experiment_stage,
+        "paper_facing": bool(config.paper_facing),
+        "provenance": _provenance_record(config),
         "artifacts": artifacts,
         "notes": config.notes,
     }
@@ -53,26 +70,40 @@ def write_experiment_record(config: ExperimentRecordConfig) -> dict[str, Any]:
     return record
 
 
+def _provenance_record(config: ExperimentRecordConfig) -> dict[str, Any]:
+    """Return optional Q2 gate references for an experiment record."""
+
+    paths = {
+        "dataset_snapshot_json": config.dataset_snapshot_json,
+        "paper_protocol_json": config.paper_protocol_json,
+        "paper_protocol_audit_json": config.paper_protocol_audit_json,
+        "source_domain_audit_json": config.source_domain_audit_json,
+        "native_oof_audit_json": config.native_oof_audit_json,
+        "trainer_contract_json": config.trainer_contract_json,
+    }
+    return {
+        name: _artifact_record(path, max_hash_bytes=config.max_hash_bytes) if path is not None else None
+        for name, path in paths.items()
+    }
+
+
 def _artifact_record(path: Path, *, max_hash_bytes: int) -> dict[str, Any]:
     exists = path.exists()
-    record: dict[str, Any] = {
-        "path": str(path),
-        "exists": bool(exists),
-        "size_bytes": None,
-        "mtime_utc": None,
-        "sha256": None,
-        "hash_status": "missing",
-    }
+    record: dict[str, Any] = {"path": str(path), "exists": exists}
     if not exists:
         return record
     stat = path.stat()
-    record["size_bytes"] = int(stat.st_size)
-    record["mtime_utc"] = datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat()
-    if stat.st_size > max_hash_bytes:
-        record["hash_status"] = f"skipped_large_file>{max_hash_bytes}"
-        return record
-    record["sha256"] = _sha256(path)
-    record["hash_status"] = "ok"
+    record.update(
+        {
+            "size_bytes": int(stat.st_size),
+            "mtime_utc": datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat(),
+        }
+    )
+    if stat.st_size <= max_hash_bytes:
+        record["sha256"] = _sha256(path)
+        record["hash_status"] = "ok"
+    else:
+        record["hash_status"] = "skipped_large_file"
     return record
 
 
@@ -84,7 +115,7 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _read_json(path: Path) -> Any:
+def _read_json(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {"error": f"missing_metrics_json={path}"}
     return json.loads(path.read_text(encoding="utf-8"))
