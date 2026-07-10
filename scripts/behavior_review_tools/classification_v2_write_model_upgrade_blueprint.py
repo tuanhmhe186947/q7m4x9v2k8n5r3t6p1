@@ -22,6 +22,7 @@ def main() -> None:
     contract = _load_json(root / "model_input_contract.json")
     spatial = _load_json(root / "spatial_sequence_audit.json")
     class_weights = _load_json(root / "class_weight_policy.json")
+    auxiliary_targets = _load_json(root / "auxiliary_targets_audit.json")
     image_context = _load_json(root / "image_context_index_audit.json")
     image_tensor_loader = _load_json(root / "image_tensor_loader_smoke_audit.json")
     interaction_context = _load_json(root / "interaction_context_audit.json")
@@ -113,6 +114,11 @@ def main() -> None:
                 "checker": "scripts/dev_tools/check_classification_v2_interaction_context_index.py",
                 "purpose": "Audit full-frame and partner-context readiness for fight/social-nose windows.",
             },
+            "auxiliary_targets": {
+                "builder": "scripts/behavior_review_tools/classification_v2_build_auxiliary_targets.py",
+                "checker": "scripts/dev_tools/check_classification_v2_auxiliary_targets.py",
+                "purpose": "Build y-only posture/motion/ROI/interaction auxiliary targets and masks.",
+            },
             "experiment_registry": {
                 "module": "src/pig_behavior/classification_v2/experiments/registry.py",
                 "runner": "scripts/behavior_review_tools/classification_v2_register_experiment.py",
@@ -141,6 +147,7 @@ def main() -> None:
             multimodal_forward,
             multimodal_smoke_train,
             interaction_context,
+            auxiliary_targets,
         ),
         "known_risks": [
             {
@@ -199,6 +206,7 @@ def _training_phases(
     multimodal_forward: dict[str, Any],
     multimodal_smoke_train: dict[str, Any],
     interaction_context: dict[str, Any],
+    auxiliary_targets: dict[str, Any],
 ) -> list[dict[str, Any]]:
     return [
         {
@@ -268,7 +276,7 @@ def _training_phases(
         },
         {
             "phase": "P4_multitask_heads",
-            "status": "design_ready",
+            "status": "auxiliary_targets_implemented",
             "heads": {
                 "behavior": ["drink", "eat", "fight", "social-nose", "explore", "lying", "stand", "move", "sitting", "playwithtoy"],
                 "posture": ["lying", "sitting", "standing_or_other"],
@@ -277,6 +285,11 @@ def _training_phases(
                 "interaction": ["fight", "social-nose", "none"],
             },
             "loss": "Weighted behavior loss plus auxiliary heads; use class/event/sample weights.",
+            "evidence": {
+                "auxiliary_target_rows": auxiliary_targets.get("rows"),
+                "positive_counts": auxiliary_targets.get("aux_target_positive_counts", {}),
+                "errors": auxiliary_targets.get("errors", []),
+            },
         },
         {
             "phase": "P4b_interaction_full_frame_partner_context",

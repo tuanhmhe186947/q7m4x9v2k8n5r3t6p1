@@ -36,6 +36,8 @@ def main() -> None:
             "interaction_window_context_manifest": str(root / "interaction_window_context_manifest.csv"),
             "interaction_context_audit": str(root / "interaction_context_audit.json"),
             "y": str(root / "y_behavior.csv"),
+            "y_auxiliary_targets": str(root / "y_auxiliary_targets.csv"),
+            "auxiliary_targets_audit": str(root / "auxiliary_targets_audit.json"),
             "train_mask": str(root / "train_mask.csv"),
             "sample_weight": str(root / "sample_weight.csv"),
             "event_weight_manifest": str(root / "event_weight_manifest.csv"),
@@ -160,6 +162,7 @@ def main() -> None:
                 "y_true, y_pred, confidence, and prediction_split."
             ),
             "label": "Use y_behavior.csv only as target y.",
+            "auxiliary_labels": "Use y_auxiliary_targets.csv only as auxiliary y/mask heads, never as input X.",
             "primary_prediction_unit": "native temporal unit / review unit, not overlapping sequence window",
         },
         "forbidden_model_inputs": [
@@ -186,6 +189,7 @@ def main() -> None:
             "add_multimodal_forward_smoke",
             "add_multimodal_tiny_overfit_smoke",
             "add_interaction_full_frame_partner_context_audit",
+            "add_auxiliary_multitask_targets",
             "multi_task_heads_posture_motion_roi_interaction",
             "graph_social_interaction_branch",
             "hard_negative_mining_from_confusion_focus",
