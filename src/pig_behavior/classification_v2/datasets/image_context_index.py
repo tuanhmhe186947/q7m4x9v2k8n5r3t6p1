@@ -15,6 +15,7 @@ from typing import Any
 import pandas as pd
 
 VIDEO_EXTS = {".mp4", ".avi", ".mov", ".mkv", ".mpg", ".mpeg", ".m4v"}
+IMAGE_CONTEXT_SEQUENCE_DELIMITER = ";;"
 
 FRAME_CONTEXT_COLUMNS = [
     "frame_uid",
@@ -297,7 +298,7 @@ def _build_window_manifest(windows: pd.DataFrame, frame_manifest: pd.DataFrame) 
             if is_loadable:
                 loadable += 1
         frame_uids.append("|".join(uid_values))
-        image_context_ids.append("|".join(context_id_values))
+        image_context_ids.append(IMAGE_CONTEXT_SEQUENCE_DELIMITER.join(context_id_values))
         observed_counts.append(observed)
         loadable_counts.append(loadable)
         missing = len(wanted) - loadable
@@ -320,13 +321,17 @@ def resolve_video(row: pd.Series, video_root: Path, video_index: dict[str, Path]
     if pd.notna(source_path):
         raw_path = Path(str(source_path).strip())
         for candidate in [raw_path, video_root / raw_path, video_root / raw_path.name]:
-            if candidate.exists():
+            if _is_video_file(candidate):
                 return candidate
     for key in _candidate_video_keys(row):
         hit = video_index.get(key.strip().lower())
         if hit is not None:
             return hit
     return None
+
+
+def _is_video_file(path: Path) -> bool:
+    return path.exists() and path.is_file() and path.suffix.lower() in VIDEO_EXTS
 
 
 def resolve_legacy_crop(row: pd.Series, crop_root: Path) -> Path | None:

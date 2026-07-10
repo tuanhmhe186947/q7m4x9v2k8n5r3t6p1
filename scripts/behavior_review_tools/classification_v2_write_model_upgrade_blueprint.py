@@ -23,6 +23,7 @@ def main() -> None:
     spatial = _load_json(root / "spatial_sequence_audit.json")
     class_weights = _load_json(root / "class_weight_policy.json")
     image_context = _load_json(root / "image_context_index_audit.json")
+    image_tensor_loader = _load_json(root / "image_tensor_loader_smoke_audit.json")
     source_shortcut = _load_json(classification_root / "model_smoke" / "source_shortcut_audit.json")
     spatial_controls = _load_json(classification_root / "model_smoke" / "spatial_control_shortcut_audit.json")
     smoke_train = _load_json(
@@ -76,6 +77,11 @@ def main() -> None:
                 "checker": "scripts/dev_tools/check_classification_v2_image_context_index.py",
                 "purpose": "Frame-level actor crop/video+bbox index keyed by image_context_id plus window references.",
             },
+            "image_sequence_tensor_loader": {
+                "module": "src/pig_behavior/classification_v2/datasets/image_sequence_dataset.py",
+                "checker": "scripts/dev_tools/check_classification_v2_image_tensor_loader.py",
+                "purpose": "Load legacy crop and CVAT video+bbox sequences into [B,T,3,H,W] tensors with masks.",
+            },
             "spatial_tcn_smoke_trainer": {
                 "module": "src/pig_behavior/classification_v2/training/spatial_tcn_smoke.py",
                 "runner": "scripts/behavior_review_tools/classification_v2_spatial_tcn_smoke_train.py",
@@ -99,7 +105,15 @@ def main() -> None:
                 "purpose": "Collapse overlapping window predictions to native temporal/review units for claim-safe metrics.",
             },
         },
-        "training_phases": _training_phases(contract, spatial, image_context, class_weights, smoke_train, native_predictions),
+        "training_phases": _training_phases(
+            contract,
+            spatial,
+            image_context,
+            image_tensor_loader,
+            class_weights,
+            smoke_train,
+            native_predictions,
+        ),
         "known_risks": [
             {
                 "risk": "source/domain shortcut is strong",
@@ -150,6 +164,7 @@ def _training_phases(
     contract: dict[str, Any],
     spatial: dict[str, Any],
     image_context: dict[str, Any],
+    image_tensor_loader: dict[str, Any],
     class_weights: dict[str, Any],
     smoke_train: dict[str, Any],
     native_predictions: dict[str, Any],
@@ -186,6 +201,9 @@ def _training_phases(
                 "frame_loadable_count": image_context.get("frame_loadable_count"),
                 "frame_unloadable_count": image_context.get("frame_unloadable_count"),
                 "duplicate_image_context_id": image_context.get("duplicate_image_context_id"),
+                "tensor_loader_batch_shape": image_tensor_loader.get("batch_shape"),
+                "tensor_loader_observed_slots": image_tensor_loader.get("observed_slots"),
+                "tensor_loader_length_slots": image_tensor_loader.get("length_slots"),
             },
         },
         {

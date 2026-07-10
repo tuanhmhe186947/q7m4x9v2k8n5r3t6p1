@@ -32,6 +32,7 @@ def main() -> None:
             "image_frame_context_manifest": str(root / "image_frame_context_manifest.csv"),
             "image_window_context_manifest": str(root / "image_window_context_manifest.csv"),
             "image_context_index_audit": str(root / "image_context_index_audit.json"),
+            "image_tensor_loader_smoke_audit": str(root / "image_tensor_loader_smoke_audit.json"),
             "y": str(root / "y_behavior.csv"),
             "train_mask": str(root / "train_mask.csv"),
             "sample_weight": str(root / "sample_weight.csv"),
