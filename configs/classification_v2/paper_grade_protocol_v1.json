@@ -24,6 +24,7 @@
     "source_domain_control": "outputs/classification_v2/source_domain_controls/source_domain_control_audit.json",
     "source_shortcut": "outputs/classification_v2/model_smoke/source_shortcut_audit.json",
     "spatial_shortcut": "outputs/classification_v2/model_smoke/spatial_control_shortcut_audit.json",
+    "ablation_shortcut_contract": "outputs/classification_v2/model_design/ablation_shortcut_contract_audit.json",
     "native_oof_folds": "outputs/classification_v2/native_temporal_units_oof_folds/native_oof_fold_audit.json"
   },
   "primary_evaluation": {

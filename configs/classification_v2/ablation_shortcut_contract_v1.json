@@ -1,0 +1,93 @@
+{
+  "version": "classification_v2_ablation_shortcut_contract_v1",
+  "purpose": "Predeclare branch ablations and shortcut-control evidence required before any Q2 paper-facing learned-model claim.",
+  "paper_candidate": false,
+  "required_shortcut_audits": {
+    "source_shortcut": "outputs/classification_v2/model_smoke/source_shortcut_audit.json",
+    "spatial_control_shortcut": "outputs/classification_v2/model_smoke/spatial_control_shortcut_audit.json"
+  },
+  "required_smoke_evidence": {
+    "native_majority_baseline_metrics": "outputs/classification_v2/model_smoke/native_majority_baseline/native_majority_metrics.json",
+    "native_majority_prediction_schema": "outputs/classification_v2/model_smoke/native_majority_baseline/native_majority_prediction_schema_audit.json",
+    "multimodal_smoke_train": "outputs/classification_v2/model_smoke/multimodal_smoke_train/multimodal_smoke_train_audit.json",
+    "multimodal_smoke_prediction_schema": "outputs/classification_v2/model_smoke/multimodal_smoke_train/multimodal_smoke_prediction_schema_audit.json",
+    "interaction_context_loader": "outputs/classification_v2/model_smoke/interaction_context_loader_audit.json"
+  },
+  "required_ablation_ladder": [
+    {
+      "id": "B0",
+      "name": "native_majority_baseline",
+      "status": "recorded",
+      "required_before_paper_candidate": true,
+      "evidence": "outputs/classification_v2/experiment_registry/native_majority_baseline_record.json"
+    },
+    {
+      "id": "B1",
+      "name": "linear_tabular_whitelist",
+      "status": "planned_required",
+      "required_before_paper_candidate": true,
+      "evidence": ""
+    },
+    {
+      "id": "B2",
+      "name": "nonlinear_tabular_whitelist",
+      "status": "planned_required",
+      "required_before_paper_candidate": true,
+      "evidence": ""
+    },
+    {
+      "id": "B3",
+      "name": "actor_image_sequence",
+      "status": "implemented_smoke",
+      "required_before_paper_candidate": true,
+      "evidence": "outputs/classification_v2/model_smoke/multimodal_smoke_train/multimodal_smoke_train_audit.json"
+    },
+    {
+      "id": "B5",
+      "name": "spatial_sequence_control",
+      "status": "recorded_smoke",
+      "required_before_paper_candidate": true,
+      "evidence": "outputs/classification_v2/experiment_registry/spatial_tcn_smoke_train_record.json"
+    },
+    {
+      "id": "P1",
+      "name": "image_spatial_interaction_context_fusion",
+      "status": "implemented_smoke",
+      "required_before_paper_candidate": true,
+      "evidence": "outputs/classification_v2/model_smoke/multimodal_smoke_train/multimodal_smoke_train_audit.json"
+    },
+    {
+      "id": "P2",
+      "name": "full_frame_partner_context_branch",
+      "status": "implemented_smoke",
+      "required_before_paper_candidate": true,
+      "evidence": "outputs/classification_v2/model_smoke/interaction_context_loader_audit.json"
+    },
+    {
+      "id": "P3",
+      "name": "masked_auxiliary_heads",
+      "status": "planned_required",
+      "required_before_paper_candidate": false,
+      "evidence": ""
+    },
+    {
+      "id": "P4",
+      "name": "social_graph_branch",
+      "status": "planned_exploratory",
+      "required_before_paper_candidate": false,
+      "evidence": ""
+    }
+  ],
+  "paper_candidate_blockers": [
+    "linear and nonlinear tabular whitelist baselines are not recorded yet",
+    "full out-of-fold learned multimodal evaluation is not recorded yet",
+    "branch ablation deltas against B0/B1/B2/B3/B5 are not recorded yet",
+    "source-balanced and shortcut-aware reporting is not recorded yet"
+  ],
+  "rules": [
+    "A high source shortcut audit is a recorded risk, not a reason to hide the control.",
+    "No ablation result may use window rows as independent publication sample size.",
+    "Every paper-facing ablation must emit the S16 prediction schema and native-temporal metrics.",
+    "Do not report a Q2 learned-model claim until required_before_paper_candidate ablations are recorded or explicitly waived with rationale."
+  ]
+}

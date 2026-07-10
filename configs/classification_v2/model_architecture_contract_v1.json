@@ -18,6 +18,7 @@
     "forward_checker": "scripts/dev_tools/check_classification_v2_multimodal_forward.py",
     "smoke_train_checker": "scripts/dev_tools/check_classification_v2_multimodal_smoke_train.py",
     "interaction_context_loader_checker": "scripts/dev_tools/check_classification_v2_interaction_context_loader.py",
+    "ablation_shortcut_contract_checker": "scripts/dev_tools/check_classification_v2_ablation_shortcut_contract.py",
     "prediction_schema_checker": "scripts/dev_tools/check_classification_v2_prediction_schema.py"
   },
   "input_branches": [

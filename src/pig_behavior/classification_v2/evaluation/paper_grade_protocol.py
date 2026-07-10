@@ -142,6 +142,12 @@ def _summarize_json_artifact(name: str, payload: dict[str, Any]) -> dict[str, An
             }
             for control, values in payload.get("controls", {}).items()
         }
+    if name == "ablation_shortcut_contract":
+        summary["paper_candidate_ready"] = payload.get("paper_candidate_ready")
+        summary["planned_required_ablations_not_recorded"] = payload.get(
+            "planned_required_ablations_not_recorded",
+        )
+        summary["paper_candidate_blockers"] = payload.get("paper_candidate_blockers")
     return summary
 
 

@@ -53,6 +53,23 @@
         }
       }
     },
+    "ablation_shortcut_contract": {
+      "path": "outputs/classification_v2/model_design/ablation_shortcut_contract_audit.json",
+      "exists": true,
+      "errors": [],
+      "valid": true,
+      "paper_candidate_ready": false,
+      "planned_required_ablations_not_recorded": [
+        "B1",
+        "B2"
+      ],
+      "paper_candidate_blockers": [
+        "linear and nonlinear tabular whitelist baselines are not recorded yet",
+        "full out-of-fold learned multimodal evaluation is not recorded yet",
+        "branch ablation deltas against B0/B1/B2/B3/B5 are not recorded yet",
+        "source-balanced and shortcut-aware reporting is not recorded yet"
+      ]
+    },
     "native_oof_folds": {
       "path": "outputs/classification_v2/native_temporal_units_oof_folds/native_oof_fold_audit.json",
       "exists": true,
