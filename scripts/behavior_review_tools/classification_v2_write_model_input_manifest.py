@@ -73,6 +73,10 @@ def main() -> None:
             "spatial_tcn_smoke_train_checkpoint": str(
                 classification_root / "model_smoke" / "spatial_tcn_smoke_train" / "spatial_tcn_smoke_train.pt"
             ),
+            "experiment_registry_ledger": str(classification_root / "experiment_registry" / "experiment_ledger.jsonl"),
+            "spatial_tcn_smoke_train_experiment_record": str(
+                classification_root / "experiment_registry" / "spatial_tcn_smoke_train_record.json"
+            ),
         },
         "model_input_branches": {
             "tabular_context_branch": {
