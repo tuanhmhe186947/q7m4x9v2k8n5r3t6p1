@@ -1,0 +1,62 @@
+{
+  "schema_version": "classification_v2_interaction_context_loader_audit_v1",
+  "manifest": "outputs\\classification_v2\\train_ready_windows\\interaction_window_context_manifest.csv",
+  "dataset_rows": 160740,
+  "sample_indices": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    1195,
+    1197,
+    1198,
+    1199,
+    2395,
+    2397,
+    2398,
+    2399,
+    3595,
+    3597,
+    3598,
+    3599,
+    4795,
+    4797,
+    4798,
+    4799
+  ],
+  "sample_rows": 32,
+  "feature_columns": [
+    "available_frame_context_ratio",
+    "full_frame_context_ratio",
+    "partner_context_ratio",
+    "partner_count_mean",
+    "partner_count_min"
+  ],
+  "feature_shape": [
+    32,
+    5
+  ],
+  "ready_mask_sum": 16.0,
+  "status_counts_sample": {
+    "ready": 16,
+    "missing_frame_context": 16
+  },
+  "forbidden_inputs_passed_to_model": [],
+  "metadata_keys_not_model_inputs": [
+    "window_id",
+    "context_status"
+  ],
+  "errors": []
+}

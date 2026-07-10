@@ -14,8 +14,10 @@
   "implemented_modules": {
     "fusion_model": "src/pig_behavior/classification_v2/models/multimodal_fusion.py",
     "smoke_trainer": "src/pig_behavior/classification_v2/training/multimodal_smoke.py",
+    "interaction_context_loader": "src/pig_behavior/classification_v2/datasets/interaction_context_loader.py",
     "forward_checker": "scripts/dev_tools/check_classification_v2_multimodal_forward.py",
     "smoke_train_checker": "scripts/dev_tools/check_classification_v2_multimodal_smoke_train.py",
+    "interaction_context_loader_checker": "scripts/dev_tools/check_classification_v2_interaction_context_loader.py",
     "prediction_schema_checker": "scripts/dev_tools/check_classification_v2_prediction_schema.py"
   },
   "input_branches": [
@@ -58,7 +60,7 @@
     },
     {
       "name": "full_frame_partner_interaction_context",
-      "status": "implemented_manifest",
+      "status": "implemented_smoke",
       "tensor_role": "model_input",
       "source_artifacts": [
         "outputs/classification_v2/train_ready_windows/interaction_window_context_manifest.csv"
@@ -126,7 +128,7 @@
     "minimum_effect_size": 0.02
   },
   "paper_candidate_blockers": [
-    "full_frame_partner_interaction_context tensor loader is not integrated into model training yet",
+    "full_frame_partner_interaction_context branch is not fused into learned model training yet",
     "learned model must emit S16 prediction schema for native temporal metrics",
     "branch ablation and shortcut controls must be recorded before paper-facing claim"
   ]

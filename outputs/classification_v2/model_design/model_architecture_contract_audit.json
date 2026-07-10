@@ -9,7 +9,7 @@
   "warnings": [
     "planned_branch_not_yet_implemented=social_graph_context",
     "paper_candidate_false_design_contract_only",
-    "paper_candidate_blockers=['full_frame_partner_interaction_context tensor loader is not integrated into model training yet', 'learned model must emit S16 prediction schema for native temporal metrics', 'branch ablation and shortcut controls must be recorded before paper-facing claim']"
+    "paper_candidate_blockers=['full_frame_partner_interaction_context branch is not fused into learned model training yet', 'learned model must emit S16 prediction schema for native temporal metrics', 'branch ablation and shortcut controls must be recorded before paper-facing claim']"
   ],
   "valid": true,
   "branch_report": [
@@ -29,7 +29,7 @@
     },
     {
       "name": "full_frame_partner_interaction_context",
-      "status": "implemented_manifest",
+      "status": "implemented_smoke",
       "paper_candidate_required": true,
       "source_artifacts": [
         "outputs/classification_v2/train_ready_windows/interaction_window_context_manifest.csv"
@@ -66,7 +66,7 @@
     }
   ],
   "paper_candidate_blockers": [
-    "full_frame_partner_interaction_context tensor loader is not integrated into model training yet",
+    "full_frame_partner_interaction_context branch is not fused into learned model training yet",
     "learned model must emit S16 prediction schema for native temporal metrics",
     "branch ablation and shortcut controls must be recorded before paper-facing claim"
   ],
