@@ -22,7 +22,8 @@
     "bootstrap_iterations": 5,
     "seed": 20260710,
     "device": "auto",
-    "run_mode": "pilot"
+    "run_mode": "pilot",
+    "resume": true
   },
   "device": "cpu",
   "label_order": [
@@ -71,6 +72,7 @@
     "complete_image_context_rows": 160356,
     "interaction_context_ready_rows": 114816
   },
+  "fold_artifact_dir": "outputs\\classification_v2\\model_smoke\\full_multimodal_oof_pilot\\fold_artifacts",
   "fold_audits": [
     {
       "oof_fold_id": "native_oof_000",
@@ -104,7 +106,8 @@
       },
       "initial_loss": 2.411081552505493,
       "final_loss": 2.411081552505493,
-      "loss_reduction": 0.0
+      "loss_reduction": 0.0,
+      "resumed_from_artifact": true
     }
   ],
   "prediction_rows": 10,

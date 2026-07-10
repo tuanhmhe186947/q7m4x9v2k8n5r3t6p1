@@ -29,6 +29,7 @@ def main() -> None:
     parser.add_argument("--eval-per-class-per-fold", type=int, default=1)
     parser.add_argument("--bootstrap-iterations", type=int, default=30)
     parser.add_argument("--device", default="auto")
+    parser.add_argument("--no-resume", action="store_true", help="Ignore existing per-fold artifacts and recompute.")
     parser.add_argument(
         "--full",
         action="store_true",
@@ -48,6 +49,7 @@ def main() -> None:
         bootstrap_iterations=args.bootstrap_iterations,
         device=args.device,
         run_mode="full" if args.full else "pilot",
+        resume=not args.no_resume,
     )
     result = run_full_multimodal_oof(config)
     print(json.dumps(result["audit"], indent=2))

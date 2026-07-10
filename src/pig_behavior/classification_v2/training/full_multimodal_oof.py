@@ -73,6 +73,7 @@ class FullMultimodalOofConfig:
     seed: int = 20260710
     device: str = "auto"
     run_mode: str = "pilot"
+    resume: bool = True
 
 
 def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
@@ -90,6 +91,9 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
     if not fold_ids:
         raise ValueError("no eligible OOF folds available")
 
+    config.output_dir.mkdir(parents=True, exist_ok=True)
+    fold_artifact_dir = config.output_dir / "fold_artifacts"
+    fold_artifact_dir.mkdir(parents=True, exist_ok=True)
     dataset = ClassificationV2ImageSequenceDataset(
         ImageSequenceDatasetConfig(
             frame_context_csv=config.root / "image_frame_context_manifest.csv",
@@ -102,7 +106,7 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
     fold_audits: list[dict[str, Any]] = []
     try:
         for fold_id in fold_ids:
-            fold_predictions, fold_audit = _run_one_fold(
+            fold_predictions, fold_audit = _load_or_run_one_fold(
                 dataset,
                 bundle,
                 config,
@@ -110,6 +114,7 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
                 label_order,
                 label_to_idx,
                 device,
+                fold_artifact_dir,
             )
             predictions.append(fold_predictions)
             fold_audits.append(fold_audit)
@@ -126,7 +131,6 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
         NativeTemporalMetricsConfig(bootstrap_iterations=int(config.bootstrap_iterations)),
     )
 
-    config.output_dir.mkdir(parents=True, exist_ok=True)
     predictions_path = config.output_dir / "full_multimodal_oof_predictions.csv"
     native_units_path = config.output_dir / "full_multimodal_oof_unit_predictions.csv"
     metrics_path = config.output_dir / "full_multimodal_oof_metrics.json"
@@ -145,6 +149,7 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
         "device": str(device),
         "label_order": label_order,
         "load_audit": bundle.load_audit,
+        "fold_artifact_dir": str(fold_artifact_dir),
         "fold_audits": fold_audits,
         "prediction_rows": int(len(prediction_frame)),
         "native_temporal_rows": int(
@@ -331,6 +336,41 @@ def _run_one_fold(
         "final_loss": float(losses[-1]),
         "loss_reduction": float(losses[0] - losses[-1]),
     }
+    return predictions, audit
+
+
+def _load_or_run_one_fold(
+    dataset: ClassificationV2ImageSequenceDataset,
+    bundle: _OofBundle,
+    config: FullMultimodalOofConfig,
+    fold_id: str,
+    label_order: list[str],
+    label_to_idx: dict[str, int],
+    device: torch.device,
+    fold_artifact_dir: Path,
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """Resume a completed fold or train/predict it and save fold artifacts."""
+
+    safe_fold_id = _safe_fold_id(fold_id)
+    predictions_path = fold_artifact_dir / f"{safe_fold_id}_predictions.csv"
+    audit_path = fold_artifact_dir / f"{safe_fold_id}_audit.json"
+    if config.resume and predictions_path.exists() and audit_path.exists():
+        predictions = pd.read_csv(predictions_path, low_memory=False)
+        audit = json.loads(audit_path.read_text(encoding="utf-8"))
+        audit["resumed_from_artifact"] = True
+        return predictions, audit
+    predictions, audit = _run_one_fold(
+        dataset,
+        bundle,
+        config,
+        fold_id,
+        label_order,
+        label_to_idx,
+        device,
+    )
+    audit["resumed_from_artifact"] = False
+    predictions.to_csv(predictions_path, index=False)
+    audit_path.write_text(json.dumps(audit, indent=2), encoding="utf-8")
     return predictions, audit
 
 
@@ -606,6 +646,12 @@ def _mode_warnings(config: FullMultimodalOofConfig, bundle: _OofBundle) -> list[
 
 def _stable_fold_offset(fold_id: str) -> int:
     return sum(ord(char) for char in str(fold_id))
+
+
+def _safe_fold_id(fold_id: str) -> str:
+    """Make fold IDs safe for deterministic per-fold artifact filenames."""
+
+    return "".join(ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in str(fold_id))
 
 
 def _label_counts(frame: pd.DataFrame, indices: np.ndarray) -> dict[str, int]:
