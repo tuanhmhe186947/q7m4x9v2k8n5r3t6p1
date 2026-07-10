@@ -38,6 +38,7 @@ def main() -> None:
             "y": str(root / "y_behavior.csv"),
             "y_auxiliary_targets": str(root / "y_auxiliary_targets.csv"),
             "auxiliary_targets_audit": str(root / "auxiliary_targets_audit.json"),
+            "multitask_loss_audit": str(root / "multitask_loss_audit.json"),
             "train_mask": str(root / "train_mask.csv"),
             "sample_weight": str(root / "sample_weight.csv"),
             "event_weight_manifest": str(root / "event_weight_manifest.csv"),
@@ -170,6 +171,10 @@ def main() -> None:
             ),
             "label": "Use y_behavior.csv only as target y.",
             "auxiliary_labels": "Use y_auxiliary_targets.csv only as auxiliary y/mask heads, never as input X.",
+            "auxiliary_loss": (
+                "Use masked auxiliary losses for posture, motion/context, ROI intent, and interaction heads. "
+                "Rows with false has_*_aux_target masks must contribute zero for that auxiliary head."
+            ),
             "primary_prediction_unit": "native temporal unit / review unit, not overlapping sequence window",
         },
         "forbidden_model_inputs": [
@@ -197,6 +202,7 @@ def main() -> None:
             "add_multimodal_tiny_overfit_smoke",
             "add_interaction_full_frame_partner_context_audit",
             "add_auxiliary_multitask_targets",
+            "add_masked_auxiliary_multitask_loss",
             "multi_task_heads_posture_motion_roi_interaction",
             "graph_social_interaction_branch",
             "hard_negative_mining_from_confusion_focus",

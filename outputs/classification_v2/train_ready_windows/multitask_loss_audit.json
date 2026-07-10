@@ -1,0 +1,67 @@
+{
+  "root": "outputs\\classification_v2\\train_ready_windows",
+  "rows": 160740,
+  "batch_rows": 16,
+  "label_maps": {
+    "posture": [
+      "lying",
+      "sitting",
+      "standing_or_other"
+    ],
+    "motion_context": [
+      "explore",
+      "move",
+      "other",
+      "stand"
+    ],
+    "roi_intent": [
+      "drink",
+      "eat",
+      "none",
+      "playwithtoy"
+    ],
+    "interaction": [
+      "fight",
+      "none",
+      "social-nose"
+    ]
+  },
+  "loss": {
+    "task_names": [
+      "posture",
+      "motion_context",
+      "roi_intent",
+      "interaction"
+    ],
+    "loss_weights": {
+      "posture": 0.25,
+      "motion_context": 0.25,
+      "roi_intent": 0.25,
+      "interaction": 0.25
+    },
+    "support": {
+      "posture": 4,
+      "motion_context": 4,
+      "roi_intent": 4,
+      "interaction": 4
+    },
+    "loss_values": {
+      "posture": 1.377182960510254,
+      "motion_context": 1.4128220081329346,
+      "roi_intent": 1.7079287767410278,
+      "interaction": 0.8410698771476746
+    },
+    "total_auxiliary_loss": 1.3347508907318115
+  },
+  "all_masked_loss_zero": true,
+  "auxiliary_targets_are_y_only": true,
+  "forbidden_as_model_input": [
+    "behavior_target",
+    "posture_target",
+    "motion_context_target",
+    "roi_intent_target",
+    "interaction_target",
+    "has_*_aux_target"
+  ],
+  "errors": []
+}

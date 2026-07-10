@@ -79,6 +79,11 @@
       "type": "json",
       "required": true
     },
+    "multitask_loss_audit": {
+      "path": "outputs/classification_v2/train_ready_windows/multitask_loss_audit.json",
+      "type": "json",
+      "required": true
+    },
     "train_ready_audit": {
       "path": "outputs/classification_v2/train_ready_windows/train_ready_audit.json",
       "type": "json",

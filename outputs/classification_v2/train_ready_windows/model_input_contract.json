@@ -15,6 +15,7 @@
     "y": "outputs\\classification_v2\\train_ready_windows\\y_behavior.csv",
     "y_auxiliary_targets": "outputs\\classification_v2\\train_ready_windows\\y_auxiliary_targets.csv",
     "auxiliary_targets_audit": "outputs\\classification_v2\\train_ready_windows\\auxiliary_targets_audit.json",
+    "multitask_loss_audit": "outputs\\classification_v2\\train_ready_windows\\multitask_loss_audit.json",
     "train_mask": "outputs\\classification_v2\\train_ready_windows\\train_mask.csv",
     "sample_weight": "outputs\\classification_v2\\train_ready_windows\\sample_weight.csv",
     "event_weight_manifest": "outputs\\classification_v2\\train_ready_windows\\event_weight_manifest.csv",
@@ -75,6 +76,7 @@
     "prediction_schema": "Smoke/baseline prediction CSVs must include row_index, window_id, source_split, y_true, y_pred, confidence, and prediction_split.",
     "label": "Use y_behavior.csv only as target y.",
     "auxiliary_labels": "Use y_auxiliary_targets.csv only as auxiliary y/mask heads, never as input X.",
+    "auxiliary_loss": "Use masked auxiliary losses for posture, motion/context, ROI intent, and interaction heads. Rows with false has_*_aux_target masks must contribute zero for that auxiliary head.",
     "primary_prediction_unit": "native temporal unit / review unit, not overlapping sequence window"
   },
   "forbidden_model_inputs": [
@@ -102,6 +104,7 @@
     "add_multimodal_tiny_overfit_smoke",
     "add_interaction_full_frame_partner_context_audit",
     "add_auxiliary_multitask_targets",
+    "add_masked_auxiliary_multitask_loss",
     "multi_task_heads_posture_motion_roi_interaction",
     "graph_social_interaction_branch",
     "hard_negative_mining_from_confusion_focus",
