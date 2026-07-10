@@ -22,6 +22,7 @@ REQUIRED_BRANCHES: tuple[str, ...] = (
 
 IMPLEMENTED_STATUSES: tuple[str, ...] = (
     "implemented",
+    "implemented_manifest",
     "implemented_smoke",
 )
 
