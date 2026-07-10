@@ -1,8 +1,8 @@
 {
   "schema_version": "classification_v2_experiment_record_v1",
   "name": "paper_grade_protocol_gate",
-  "created_at_utc": "2026-07-10T10:38:09.102055+00:00",
-  "git_commit": "65c37dc2b1770f103472a1fbb416a4a535094a49",
+  "created_at_utc": "2026-07-10T10:43:27.047302+00:00",
+  "git_commit": "11e7f8119134ba6b3a8dff656dd16fd2a1d7e5d9",
   "git_dirty": false,
   "metrics_json": "outputs\\classification_v2\\paper_grade_protocol\\paper_grade_protocol_audit.json",
   "metrics": {
@@ -12,7 +12,7 @@
     "primary_claim": "Improved pig behavior recognition under session/video-safe validation.",
     "artifact_audit": {
       "training_snapshot": {
-        "path": "outputs/classification_v2/training_snapshots/c2v2_fc1fd779451fc3d4.json",
+        "path": "outputs/classification_v2/training_snapshots/c2v2_eb531fc8c09011b3.json",
         "exists": true,
         "errors": [],
         "valid": null
@@ -72,11 +72,9 @@
       "training_snapshot_check": {
         "valid": true,
         "errors": [],
-        "warnings": [
-          "git_commit_changed"
-        ],
-        "expected_snapshot_id": "c2v2_fc1fd779451fc3d4",
-        "current_snapshot_id": "c2v2_fc1fd779451fc3d4"
+        "warnings": [],
+        "expected_snapshot_id": "c2v2_eb531fc8c09011b3",
+        "current_snapshot_id": "c2v2_eb531fc8c09011b3"
       },
       "trainer_contract_check": {
         "valid": true,
@@ -88,9 +86,7 @@
     "confusion_pair_count": 10,
     "ablation_count": 10,
     "module_design_count": 9,
-    "warnings": [
-      "training_snapshot_warning=git_commit_changed"
-    ],
+    "warnings": [],
     "errors": [],
     "valid": true
   },
@@ -98,27 +94,27 @@
   "paper_facing": true,
   "provenance": {
     "dataset_snapshot_json": {
-      "path": "outputs\\classification_v2\\training_snapshots\\c2v2_fc1fd779451fc3d4.json",
+      "path": "outputs\\classification_v2\\training_snapshots\\c2v2_eb531fc8c09011b3.json",
       "exists": true,
-      "size_bytes": 33348,
-      "mtime_utc": "2026-07-10T10:19:14.074269+00:00",
-      "sha256": "0e4be40388dacd12a315cda5105c3b52baaa3b3a068ad87c76bb52db44aa98fd",
+      "size_bytes": 33349,
+      "mtime_utc": "2026-07-10T10:41:44.641723+00:00",
+      "sha256": "1c914cd0a474a59251278f50115e31d2a6331ec6247d20b68732d5d96a00bd3d",
       "hash_status": "ok"
     },
     "paper_protocol_json": {
       "path": "configs\\classification_v2\\paper_grade_protocol_v1.json",
       "exists": true,
       "size_bytes": 3851,
-      "mtime_utc": "2026-07-10T10:23:01.167120+00:00",
-      "sha256": "a625de107b1df2b475e4f182ec96aa31a94f861a4c5d6cb690a01bb5d698fcfe",
+      "mtime_utc": "2026-07-10T10:41:54.927803+00:00",
+      "sha256": "55ec1341205acc06f73893fa727be065163c7c88256f5d9a6d1de610cc51820d",
       "hash_status": "ok"
     },
     "paper_protocol_audit_json": {
       "path": "outputs\\classification_v2\\paper_grade_protocol\\paper_grade_protocol_audit.json",
       "exists": true,
-      "size_bytes": 2661,
-      "mtime_utc": "2026-07-10T10:23:28.291253+00:00",
-      "sha256": "4cea3e0aea18b80ede4b2222aae00ff6183e902e06c6f74e5edf6a974aadbcdf",
+      "size_bytes": 2567,
+      "mtime_utc": "2026-07-10T10:42:17.492188+00:00",
+      "sha256": "1058a8699ff7baea865180405fe220072b72eb36d503ded1ff9b4f58a57e95e0",
       "hash_status": "ok"
     },
     "source_domain_audit_json": {
@@ -150,9 +146,9 @@
     {
       "path": "outputs\\classification_v2\\paper_grade_protocol\\paper_grade_protocol_audit.json",
       "exists": true,
-      "size_bytes": 2661,
-      "mtime_utc": "2026-07-10T10:23:28.291253+00:00",
-      "sha256": "4cea3e0aea18b80ede4b2222aae00ff6183e902e06c6f74e5edf6a974aadbcdf",
+      "size_bytes": 2567,
+      "mtime_utc": "2026-07-10T10:42:17.492188+00:00",
+      "sha256": "1058a8699ff7baea865180405fe220072b72eb36d503ded1ff9b4f58a57e95e0",
       "hash_status": "ok"
     },
     {
