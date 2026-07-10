@@ -18,6 +18,11 @@ from pig_behavior.classification_v2.datasets.image_sequence_dataset import (
     ImageSequenceDatasetConfig,
     image_sequence_collate,
 )
+from pig_behavior.classification_v2.datasets.interaction_context_loader import (
+    INTERACTION_CONTEXT_FEATURE_COLUMNS,
+    InteractionContextDatasetConfig,
+    InteractionContextWindowDataset,
+)
 from pig_behavior.classification_v2.evaluation.metrics import DEFAULT_LABEL_ORDER, evaluate_predictions
 from pig_behavior.classification_v2.evaluation.prediction_schema_contract import check_prediction_schema
 from pig_behavior.classification_v2.models.multimodal_fusion import (
@@ -32,6 +37,9 @@ class MultimodalSmokeTrainConfig:
     root: Path = Path("outputs/classification_v2/train_ready_windows")
     sequence_manifest_csv: Path = Path(
         "outputs/classification_v2/sequence_features_reviewed/sequence_window_manifest.csv"
+    )
+    interaction_context_manifest_csv: Path = Path(
+        "outputs/classification_v2/train_ready_windows/interaction_window_context_manifest.csv"
     )
     native_oof_fold_manifest_csv: Path = Path(
         "outputs/classification_v2/native_temporal_units_oof_folds/native_oof_fold_manifest.csv"
@@ -71,7 +79,7 @@ def run_multimodal_smoke_train(config: MultimodalSmokeTrainConfig) -> Multimodal
     _set_seed(config.seed)
     device = _resolve_device(config.device)
 
-    bundle = _load_bundle(config.root, config.sequence_manifest_csv)
+    bundle = _load_bundle(config.root, config.sequence_manifest_csv, config.interaction_context_manifest_csv)
     label_order = _label_order(bundle.y)
     label_to_idx = {label: idx for idx, label in enumerate(label_order)}
     train_indices = _select_balanced_indices(
@@ -107,8 +115,10 @@ def run_multimodal_smoke_train(config: MultimodalSmokeTrainConfig) -> Multimodal
         MultimodalFusionConfig(
             spatial_input_dims={name: int(bundle.arrays[name].shape[-1]) for name in MODEL_GROUPS},
             num_classes=len(label_order),
+            interaction_context_dim=len(INTERACTION_CONTEXT_FEATURE_COLUMNS),
             image_embedding_dim=config.hidden_dim,
             spatial_embedding_dim=config.hidden_dim,
+            interaction_embedding_dim=max(8, config.hidden_dim // 2),
             fusion_hidden_dim=config.hidden_dim,
             dropout=config.dropout,
         )
@@ -127,6 +137,8 @@ def run_multimodal_smoke_train(config: MultimodalSmokeTrainConfig) -> Multimodal
             observed_mask=train_batch["image_observed_mask"],
             spatial_length_mask=train_batch["spatial_length_mask"],
             spatial_observed_mask=train_batch["spatial_observed_mask"],
+            interaction_context_features=train_batch["interaction_context_features"],
+            interaction_context_available_mask=train_batch["interaction_context_available_mask"],
         )
         loss = loss_fn(logits, train_batch["target"])
         loss.backward()
@@ -186,6 +198,9 @@ def run_multimodal_smoke_train(config: MultimodalSmokeTrainConfig) -> Multimodal
         "eval_label_counts": bundle.y.iloc[eval_indices].value_counts(dropna=False).to_dict(),
         "train_source_counts": _source_counts(bundle.image_windows, train_indices),
         "eval_source_counts": _source_counts(bundle.image_windows, eval_indices),
+        "interaction_context_feature_columns": list(INTERACTION_CONTEXT_FEATURE_COLUMNS),
+        "train_interaction_context_ready_rows": int(bundle.interaction_context_available_mask[train_indices].sum()),
+        "eval_interaction_context_ready_rows": int(bundle.interaction_context_available_mask[eval_indices].sum()),
         "initial_loss": float(losses[0]),
         "final_loss": float(losses[-1]),
         "loss_reduction": float(losses[0] - losses[-1]),
@@ -197,7 +212,7 @@ def run_multimodal_smoke_train(config: MultimodalSmokeTrainConfig) -> Multimodal
         "errors": [],
         "warnings": [
             "tiny smoke subset only; do not report as full model training result",
-            "image branch uses actor crops only; interaction full-frame/partner branch remains future work",
+            "interaction context branch is fused in smoke mode; full OOF training and ablation remain future work",
         ],
     }
     if not np.isfinite(losses).all():
@@ -225,6 +240,8 @@ def run_multimodal_smoke_train(config: MultimodalSmokeTrainConfig) -> Multimodal
 @dataclass(slots=True)
 class _MultimodalBundle:
     arrays: dict[str, np.ndarray]
+    interaction_context_features: np.ndarray
+    interaction_context_available_mask: np.ndarray
     y: pd.Series
     train_mask: pd.Series
     split: pd.DataFrame
@@ -232,7 +249,11 @@ class _MultimodalBundle:
     image_windows: pd.DataFrame
 
 
-def _load_bundle(root: Path, sequence_manifest_csv: Path) -> _MultimodalBundle:
+def _load_bundle(
+    root: Path,
+    sequence_manifest_csv: Path,
+    interaction_context_manifest_csv: Path,
+) -> _MultimodalBundle:
     """Load aligned train-ready tensors and window-to-native-unit metadata."""
 
     arrays = {name: value for name, value in np.load(root / "X_spatial_sequences.npz").items()}
@@ -255,12 +276,34 @@ def _load_bundle(root: Path, sequence_manifest_csv: Path) -> _MultimodalBundle:
         low_memory=False,
     )
     sequence_manifest = split[["window_id"]].merge(sequence_manifest, on="window_id", how="left")
+    interaction_context = InteractionContextWindowDataset(
+        InteractionContextDatasetConfig(manifest_csv=interaction_context_manifest_csv)
+    ).manifest
+    interaction_context = split[["window_id"]].merge(
+        interaction_context[
+            [
+                "window_id",
+                "scene_partner_context_ready",
+                *INTERACTION_CONTEXT_FEATURE_COLUMNS,
+            ]
+        ],
+        on="window_id",
+        how="left",
+    )
+    interaction_features = (
+        interaction_context[list(INTERACTION_CONTEXT_FEATURE_COLUMNS)]
+        .apply(pd.to_numeric, errors="coerce")
+        .fillna(0.0)
+        .to_numpy(dtype=np.float32)
+    )
+    interaction_available_mask = _to_bool(interaction_context["scene_partner_context_ready"]).to_numpy(dtype=np.float32)
     expected = len(y)
     row_counts = {
         "y": len(y),
         "train_mask": len(train_mask),
         "split": len(split),
         "sequence_manifest": len(sequence_manifest),
+        "interaction_context": len(interaction_context),
         "image_windows": len(image_windows),
     }
     row_counts.update({name: int(arr.shape[0]) for name, arr in arrays.items()})
@@ -269,6 +312,8 @@ def _load_bundle(root: Path, sequence_manifest_csv: Path) -> _MultimodalBundle:
         raise ValueError(f"row count mismatch against y={expected}: {mismatched}")
     return _MultimodalBundle(
         arrays=arrays,
+        interaction_context_features=interaction_features,
+        interaction_context_available_mask=interaction_available_mask,
         y=y,
         train_mask=train_mask,
         split=split,
@@ -364,6 +409,12 @@ def _batch_from_indices(
         },
         "spatial_length_mask": torch.from_numpy(bundle.arrays["length_mask"][indices]).float().to(device),
         "spatial_observed_mask": torch.from_numpy(bundle.arrays["observed_mask"][indices]).float().to(device),
+        "interaction_context_features": torch.from_numpy(bundle.interaction_context_features[indices])
+        .float()
+        .to(device),
+        "interaction_context_available_mask": torch.from_numpy(
+            bundle.interaction_context_available_mask[indices]
+        ).float().to(device),
         "target": torch.tensor([label_to_idx[label] for label in target_labels], dtype=torch.long).to(device),
     }
 
@@ -385,6 +436,8 @@ def _predict_batch(
             observed_mask=batch["image_observed_mask"],
             spatial_length_mask=batch["spatial_length_mask"],
             spatial_observed_mask=batch["spatial_observed_mask"],
+            interaction_context_features=batch["interaction_context_features"],
+            interaction_context_available_mask=batch["interaction_context_available_mask"],
         )
         probs = torch.softmax(logits, dim=1).cpu().numpy()
     pred_idx = probs.argmax(axis=1)
@@ -489,6 +542,7 @@ def _jsonable_config(config: MultimodalSmokeTrainConfig) -> dict[str, Any]:
     out = asdict(config)
     out["root"] = str(config.root)
     out["sequence_manifest_csv"] = str(config.sequence_manifest_csv)
+    out["interaction_context_manifest_csv"] = str(config.interaction_context_manifest_csv)
     out["native_oof_fold_manifest_csv"] = str(config.native_oof_fold_manifest_csv)
     out["output_dir"] = str(config.output_dir)
     return out

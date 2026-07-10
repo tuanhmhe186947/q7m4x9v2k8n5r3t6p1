@@ -83,9 +83,9 @@
     "stand": 2
   },
   "pred_label_counts": {
-    "eat": 13,
-    "lying": 2,
-    "playwithtoy": 1,
-    "stand": 4
+    "drink": 1,
+    "eat": 14,
+    "explore": 3,
+    "playwithtoy": 2
   }
 }

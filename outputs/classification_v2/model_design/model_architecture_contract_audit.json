@@ -9,7 +9,7 @@
   "warnings": [
     "planned_branch_not_yet_implemented=social_graph_context",
     "paper_candidate_false_design_contract_only",
-    "paper_candidate_blockers=['full_frame_partner_interaction_context branch is not fused into learned model training yet', 'learned model must emit S16 prediction schema for native temporal metrics', 'branch ablation and shortcut controls must be recorded before paper-facing claim']"
+    "paper_candidate_blockers=['full out-of-fold learned model evaluation has not been run yet', 'branch ablation and shortcut controls must be recorded before paper-facing claim']"
   ],
   "valid": true,
   "branch_report": [
@@ -66,8 +66,7 @@
     }
   ],
   "paper_candidate_blockers": [
-    "full_frame_partner_interaction_context branch is not fused into learned model training yet",
-    "learned model must emit S16 prediction schema for native temporal metrics",
+    "full out-of-fold learned model evaluation has not been run yet",
     "branch ablation and shortcut controls must be recorded before paper-facing claim"
   ],
   "missing_required_paper_branches": []

@@ -135,8 +135,10 @@ class SpatialSequenceEncoder(nn.Module):
 class MultimodalFusionConfig:
     spatial_input_dims: dict[str, int]
     num_classes: int
+    interaction_context_dim: int | None = None
     image_embedding_dim: int = 64
     spatial_embedding_dim: int = 64
+    interaction_embedding_dim: int = 32
     fusion_hidden_dim: int = 96
     dropout: float = 0.1
 
@@ -159,7 +161,21 @@ class MultimodalFusionClassifier(nn.Module):
                 dropout=config.dropout,
             )
         )
-        fused_dim = config.image_embedding_dim + config.spatial_embedding_dim
+        self.interaction_context_encoder: nn.Module | None = None
+        interaction_dim = 0
+        if config.interaction_context_dim is not None:
+            if config.interaction_context_dim <= 0:
+                raise ValueError("interaction_context_dim must be positive when provided")
+            if config.interaction_embedding_dim <= 0:
+                raise ValueError("interaction_embedding_dim must be positive")
+            self.interaction_context_encoder = nn.Sequential(
+                nn.Linear(config.interaction_context_dim, config.interaction_embedding_dim),
+                nn.LayerNorm(config.interaction_embedding_dim),
+                nn.GELU(),
+                nn.Dropout(config.dropout),
+            )
+            interaction_dim = config.interaction_embedding_dim
+        fused_dim = config.image_embedding_dim + config.spatial_embedding_dim + interaction_dim
         self.classifier = nn.Sequential(
             nn.LayerNorm(fused_dim),
             nn.Linear(fused_dim, config.fusion_hidden_dim),
@@ -179,6 +195,8 @@ class MultimodalFusionClassifier(nn.Module):
         image_observed_mask: torch.Tensor | None = None,
         spatial_length_mask: torch.Tensor | None = None,
         spatial_observed_mask: torch.Tensor | None = None,
+        interaction_context_features: torch.Tensor | None = None,
+        interaction_context_available_mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Return logits shaped ``[B, num_classes]``.
 
@@ -197,7 +215,21 @@ class MultimodalFusionClassifier(nn.Module):
             length_mask=spatial_length_mask if spatial_length_mask is not None else length_mask,
             observed_mask=spatial_observed_mask if spatial_observed_mask is not None else observed_mask,
         )
-        return self.classifier(torch.cat([image_embedding, spatial_embedding], dim=-1))
+        embeddings = [image_embedding, spatial_embedding]
+        if self.interaction_context_encoder is not None:
+            if interaction_context_features is None:
+                raise ValueError("interaction_context_features required by model config")
+            if interaction_context_features.ndim != 2:
+                raise ValueError("interaction_context_features must have shape [B, D]")
+            if interaction_context_features.shape[0] != image_embedding.shape[0]:
+                raise ValueError("interaction_context_features batch size mismatch")
+            interaction_embedding = self.interaction_context_encoder(interaction_context_features.float())
+            if interaction_context_available_mask is not None:
+                if interaction_context_available_mask.ndim != 1:
+                    raise ValueError("interaction_context_available_mask must have shape [B]")
+                interaction_embedding = interaction_embedding * interaction_context_available_mask.float().unsqueeze(-1)
+            embeddings.append(interaction_embedding)
+        return self.classifier(torch.cat(embeddings, dim=-1))
 
 
 def _combined_mask(
