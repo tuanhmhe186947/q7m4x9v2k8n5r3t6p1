@@ -47,7 +47,9 @@
     "model_readiness_report_md": "outputs\\classification_v2\\train_ready_windows\\model_readiness_report.md",
     "model_readiness_report_json": "outputs\\classification_v2\\train_ready_windows\\model_readiness_report.json",
     "feature_semantics_contract": "configs/classification_v2/feature_semantics_v1.json",
-    "feature_semantics_audit": "outputs\\classification_v2\\train_ready_windows\\feature_semantics_audit.json"
+    "feature_semantics_audit": "outputs\\classification_v2\\train_ready_windows\\feature_semantics_audit.json",
+    "trainer_contract": "configs/classification_v2/trainer_contract_v1.json",
+    "trainer_contract_audit": "outputs\\classification_v2\\train_ready_windows\\trainer_contract_audit.json"
   },
   "model_input_branches": {
     "tabular_context_branch": {
@@ -77,6 +79,7 @@
     "label": "Use y_behavior.csv only as target y.",
     "auxiliary_labels": "Use y_auxiliary_targets.csv only as auxiliary y/mask heads, never as input X.",
     "auxiliary_loss": "Use masked auxiliary losses for posture, motion/context, ROI intent, and interaction heads. Rows with false has_*_aux_target masks must contribute zero for that auxiliary head.",
+    "trainer_input": "Use trainer_contract_v1 tabular_feature_whitelist exactly. Never build X from all numeric columns in a manifest.",
     "primary_prediction_unit": "native temporal unit / review unit, not overlapping sequence window"
   },
   "forbidden_model_inputs": [

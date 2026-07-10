@@ -1,0 +1,36 @@
+{
+  "contract_path": "configs\\classification_v2\\trainer_contract_v1.json",
+  "tabular_x_csv": "outputs\\classification_v2\\train_ready_windows\\X_window_features.csv",
+  "feature_count": 39,
+  "whitelist_count": 39,
+  "x_matches_whitelist_order": true,
+  "missing_from_x": [],
+  "extra_in_x": [],
+  "forbidden_x_columns": [],
+  "allowed_x_artifacts": [
+    "X_window_features.csv",
+    "X_spatial_sequences.npz",
+    "image_frame_context_manifest.csv",
+    "image_window_context_manifest.csv"
+  ],
+  "allowed_y_artifacts": [
+    "y_behavior.csv",
+    "y_auxiliary_targets.csv"
+  ],
+  "allowed_mask_weight_split_artifacts": [
+    "train_mask.csv",
+    "sample_weight.csv",
+    "event_weight_manifest.csv",
+    "split_manifest.csv"
+  ],
+  "rules": [
+    "Never construct X by selecting every numeric column from a manifest.",
+    "Use tabular_feature_whitelist exactly for tabular X.",
+    "Use y_behavior.csv only as the main behavior target.",
+    "Use y_auxiliary_targets.csv only as auxiliary targets and masks.",
+    "Use split_manifest.csv split/split_group_key; never random-split windows.",
+    "pig_id is annotation-local and must not be used as a cross-video biological identity feature."
+  ],
+  "errors": [],
+  "valid": true
+}

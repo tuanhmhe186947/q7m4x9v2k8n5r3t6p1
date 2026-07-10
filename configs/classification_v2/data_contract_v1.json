@@ -84,6 +84,11 @@
       "type": "json",
       "required": true
     },
+    "trainer_contract_audit": {
+      "path": "outputs/classification_v2/train_ready_windows/trainer_contract_audit.json",
+      "type": "json",
+      "required": true
+    },
     "train_ready_audit": {
       "path": "outputs/classification_v2/train_ready_windows/train_ready_audit.json",
       "type": "json",

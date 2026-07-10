@@ -115,6 +115,8 @@ def main() -> None:
             "model_readiness_report_json": str(root / "model_readiness_report.json"),
             "feature_semantics_contract": "configs/classification_v2/feature_semantics_v1.json",
             "feature_semantics_audit": str(root / "feature_semantics_audit.json"),
+            "trainer_contract": "configs/classification_v2/trainer_contract_v1.json",
+            "trainer_contract_audit": str(root / "trainer_contract_audit.json"),
         },
         "model_input_branches": {
             "tabular_context_branch": {
@@ -174,6 +176,10 @@ def main() -> None:
             "auxiliary_loss": (
                 "Use masked auxiliary losses for posture, motion/context, ROI intent, and interaction heads. "
                 "Rows with false has_*_aux_target masks must contribute zero for that auxiliary head."
+            ),
+            "trainer_input": (
+                "Use trainer_contract_v1 tabular_feature_whitelist exactly. "
+                "Never build X from all numeric columns in a manifest."
             ),
             "primary_prediction_unit": "native temporal unit / review unit, not overlapping sequence window",
         },
