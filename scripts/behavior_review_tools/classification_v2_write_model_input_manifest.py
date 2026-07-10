@@ -142,8 +142,10 @@ def main() -> None:
             "interaction_context_branch": {
                 "source": "interaction_window_context_manifest",
                 "description": (
-                    "Audit-only full-frame and partner-context readiness for fight/social-nose windows. "
-                    "Use for review/model gating, not as numeric model input X."
+                    "Audit-only scene/full-frame and partner-context readiness for every window. "
+                    "scene_partner_context_ready is label-independent; interaction_context_ready "
+                    "is the fight/social-nose subset for review compatibility. Use these columns "
+                    "for asset/model gating, not as numeric model input X."
                 ),
             },
         },

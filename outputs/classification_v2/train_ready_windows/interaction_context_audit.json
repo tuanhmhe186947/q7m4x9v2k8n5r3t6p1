@@ -1,0 +1,63 @@
+{
+  "window_rows": 160740,
+  "interaction_window_rows": 14790,
+  "interaction_ready_rows": 13456,
+  "non_interaction_window_rows": 145950,
+  "scene_context_ready_rows": 114816,
+  "scene_partner_context_ready_rows": 114816,
+  "non_interaction_scene_partner_ready_rows": 101360,
+  "duplicate_window_id": 0,
+  "duplicate_source_frame_uid_rows": 213376,
+  "scene_partner_status_counts": {
+    "ready": 114816,
+    "missing_full_frame_context": 45540,
+    "missing_frame_context": 384
+  },
+  "scene_partner_status_by_source": {
+    "missing_frame_context": {
+      "cvat_tracking_xml": 384,
+      "legacy_recovered": 0
+    },
+    "missing_full_frame_context": {
+      "cvat_tracking_xml": 0,
+      "legacy_recovered": 45540
+    },
+    "ready": {
+      "cvat_tracking_xml": 114816,
+      "legacy_recovered": 0
+    }
+  },
+  "status_counts": {
+    "not_interaction": 145950,
+    "ready": 13456,
+    "missing_full_frame_context": 1290,
+    "missing_frame_context": 44
+  },
+  "interaction_status_counts": {
+    "ready": 13456,
+    "missing_full_frame_context": 1290,
+    "missing_frame_context": 44
+  },
+  "interaction_label_counts": {
+    "fight": 8972,
+    "social-nose": 5818
+  },
+  "interaction_source_counts": {
+    "cvat_tracking_xml": 13500,
+    "legacy_recovered": 1290
+  },
+  "ready_by_label": {
+    "fight": 8778,
+    "social-nose": 4678
+  },
+  "ready_by_source": {
+    "cvat_tracking_xml": 13456,
+    "legacy_recovered": 0
+  },
+  "errors": [],
+  "warnings": [
+    "interaction_context_ready is an audit gate; columns from this manifest are not model inputs",
+    "scene_partner_context_ready is computed for every window without behavior-label gating",
+    "legacy crop-only interaction rows are expected to need separate full-frame/partner review assets"
+  ]
+}

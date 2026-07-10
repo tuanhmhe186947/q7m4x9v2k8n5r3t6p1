@@ -1,4 +1,10 @@
-"""Build interaction full-frame and partner-context audit indexes."""
+"""Build label-independent scene/partner context audit indexes.
+
+The original manifest focused on fight/social-nose windows. The S1 multimodal
+contract also needs scene and partner readiness for every train-ready window so
+the visual-context branch is gated by asset/geometry availability, not by the
+ground-truth behavior label.
+"""
 
 from __future__ import annotations
 
@@ -28,7 +34,7 @@ class InteractionContextIndexResult:
 
 
 def build_interaction_context_index(config: InteractionContextIndexConfig) -> InteractionContextIndexResult:
-    """Build one audit row per train-ready window."""
+    """Build one audit row per train-ready window with label-independent context stats."""
     image_frames = pd.read_csv(config.root / "image_frame_context_manifest.csv", low_memory=False)
     image_windows = pd.read_csv(config.root / "image_window_context_manifest.csv", low_memory=False)
     split = pd.read_csv(config.root / "split_manifest.csv", low_memory=False)
@@ -41,7 +47,7 @@ def build_interaction_context_index(config: InteractionContextIndexConfig) -> In
         "frame_uid",
         keep="first",
     )
-    frame_lookup = frame_lookup_source.set_index("frame_uid", drop=False)
+    frame_lookup = _build_frame_lookup(frame_lookup_source)
     merged = image_windows.merge(
         split[["window_id", "behavior_window_label"]],
         on="window_id",
@@ -73,22 +79,42 @@ def build_interaction_context_index(config: InteractionContextIndexConfig) -> In
     manifest["partner_count_mean"] = 0.0
     manifest["partner_count_min"] = 0.0
     manifest["partner_ids_union"] = ""
+    manifest["scene_context_required"] = True
+    manifest["scene_partner_context_required"] = True
+    manifest["scene_context_ready"] = False
+    manifest["scene_partner_context_ready"] = False
+    manifest["scene_partner_context_status"] = "not_evaluated"
+    manifest["scene_partner_context_policy"] = "label_independent_asset_geometry_gate"
     manifest["interaction_context_ready"] = False
     manifest["interaction_context_status"] = "not_interaction"
 
+    stats_by_key = {
+        key: _interaction_frame_stats(frame_lookup, _split_sequence(key))
+        for key in merged["frame_uid_sequence"].fillna("").astype(str).unique()
+    }
+    stats_records: list[dict[str, Any]] = []
+    scene_statuses: list[str] = []
+    for frame_uid_sequence in merged["frame_uid_sequence"].fillna("").astype(str).tolist():
+        stats = stats_by_key[frame_uid_sequence]
+        stats_records.append(stats)
+        scene_statuses.append(
+            _scene_partner_status(
+                expected_slots=stats["expected_frame_slots"],
+                available_rows=stats["available_frame_context_rows"],
+                full_frame_count=stats["full_frame_context_available_count"],
+                partner_count=stats["partner_context_available_count"],
+            )
+        )
+    stats_df = pd.DataFrame(stats_records, index=manifest.index)
+    for key in stats_df.columns:
+        manifest[key] = stats_df[key]
+    manifest["scene_context_ready"] = [status in {"ready", "missing_partner_context"} for status in scene_statuses]
+    manifest["scene_partner_context_ready"] = [status == "ready" for status in scene_statuses]
+    manifest["scene_partner_context_status"] = scene_statuses
+
     interaction_indices = manifest.index[manifest["is_interaction_window"]].tolist()
     for idx in interaction_indices:
-        frame_uids = _split_sequence(str(merged.at[idx, "frame_uid_sequence"]))
-        stats = _interaction_frame_stats(frame_lookup, frame_uids)
-        status = _interaction_status(
-            is_interaction=True,
-            expected_slots=stats["expected_frame_slots"],
-            available_rows=stats["available_frame_context_rows"],
-            full_frame_count=stats["full_frame_context_available_count"],
-            partner_count=stats["partner_context_available_count"],
-        )
-        for key, value in stats.items():
-            manifest.at[idx, key] = value
+        status = str(manifest.at[idx, "scene_partner_context_status"])
         manifest.at[idx, "interaction_context_ready"] = status == "ready"
         manifest.at[idx, "interaction_context_status"] = status
     audit = _audit(manifest, duplicate_source_frame_uid=duplicate_source_frame_uid)
@@ -147,16 +173,13 @@ def _validate_inputs(image_frames: pd.DataFrame, image_windows: pd.DataFrame, sp
         raise ValueError(f"image context windows missing from split manifest: {len(missing_split_windows)}")
 
 
-def _interaction_status(
+def _scene_partner_status(
     *,
-    is_interaction: bool,
     expected_slots: int,
     available_rows: int,
     full_frame_count: int,
     partner_count: int,
 ) -> str:
-    if not is_interaction:
-        return "not_interaction"
     if expected_slots <= 0 or available_rows < expected_slots:
         return "missing_frame_context"
     if full_frame_count < expected_slots:
@@ -166,27 +189,47 @@ def _interaction_status(
     return "ready"
 
 
-def _interaction_frame_stats(frame_lookup: pd.DataFrame, frame_uids: list[str]) -> dict[str, Any]:
-    frame_rows = frame_lookup.reindex(frame_uids)
+def _build_frame_lookup(frame_lookup_source: pd.DataFrame) -> dict[str, dict[str, Any]]:
+    """Precompute frame context records so every window can be audited cheaply."""
+    records: dict[str, dict[str, Any]] = {}
+    for row in frame_lookup_source.itertuples(index=False):
+        records[str(row.frame_uid)] = {
+            "full_frame_context_available": _bool_scalar(row.full_frame_context_available),
+            "partner_context_available": _bool_scalar(row.partner_context_available),
+            "interaction_partner_count": row.interaction_partner_count,
+            "interaction_partner_ids": row.interaction_partner_ids,
+        }
+    return records
+
+
+def _interaction_frame_stats(frame_lookup: dict[str, dict[str, Any]], frame_uids: list[str]) -> dict[str, Any]:
     expected_slots = len(frame_uids)
-    available = frame_rows["frame_uid"].notna()
-    available_rows = int(available.sum())
-    full_frame_count = int(_to_bool(frame_rows["full_frame_context_available"]).sum()) if available_rows else 0
-    partner_count = int(_to_bool(frame_rows["partner_context_available"]).sum()) if available_rows else 0
-    partner_counts = pd.to_numeric(frame_rows["interaction_partner_count"], errors="coerce").fillna(0)
+    frame_rows = [frame_lookup[uid] for uid in frame_uids if uid in frame_lookup]
+    available_rows = len(frame_rows)
+    full_frame_count = sum(1 for row in frame_rows if row["full_frame_context_available"])
+    partner_count = sum(1 for row in frame_rows if row["partner_context_available"])
+    partner_counts = pd.to_numeric(
+        pd.Series([row["interaction_partner_count"] for row in frame_rows], dtype=object),
+        errors="coerce",
+    ).fillna(0)
     return {
         "expected_frame_slots": int(expected_slots),
         "available_frame_context_rows": int(available_rows),
         "full_frame_context_available_count": int(full_frame_count),
         "partner_context_available_count": int(partner_count),
-        "partner_count_mean": float(partner_counts.mean()) if expected_slots else 0.0,
-        "partner_count_min": float(partner_counts.min()) if expected_slots else 0.0,
-        "partner_ids_union": _partner_ids_union(frame_rows["interaction_partner_ids"]) if available_rows else "",
+        "partner_count_mean": float(partner_counts.mean()) if available_rows else 0.0,
+        "partner_count_min": float(partner_counts.min()) if available_rows else 0.0,
+        "partner_ids_union": _partner_ids_union(
+            pd.Series([row["interaction_partner_ids"] for row in frame_rows], dtype=object)
+        )
+        if available_rows
+        else "",
     }
 
 
 def _audit(manifest: pd.DataFrame, *, duplicate_source_frame_uid: int) -> dict[str, Any]:
     interaction = manifest[manifest["is_interaction_window"]].copy()
+    non_interaction = manifest[~manifest["is_interaction_window"]].copy()
     duplicate_window_id = int(manifest["window_id"].duplicated().sum())
     errors: list[str] = []
     if duplicate_window_id:
@@ -194,12 +237,27 @@ def _audit(manifest: pd.DataFrame, *, duplicate_source_frame_uid: int) -> dict[s
     missing_labels = sorted(INTERACTION_LABELS.difference(set(interaction["behavior_window_label"].astype(str))))
     if missing_labels:
         errors.append(f"missing_interaction_labels={missing_labels}")
+    not_evaluated = int(manifest["scene_partner_context_status"].astype(str).eq("not_evaluated").sum())
+    if not_evaluated:
+        errors.append(f"scene_partner_context_not_evaluated={not_evaluated}")
+    non_interaction_ready = int(non_interaction["scene_partner_context_ready"].sum()) if len(non_interaction) else 0
+    if len(non_interaction) and non_interaction_ready == 0:
+        errors.append("scene_partner_context_appears_label_gated")
     return {
         "window_rows": int(len(manifest)),
         "interaction_window_rows": int(len(interaction)),
         "interaction_ready_rows": int(interaction["interaction_context_ready"].sum()) if len(interaction) else 0,
+        "non_interaction_window_rows": int(len(non_interaction)),
+        "scene_context_ready_rows": int(manifest["scene_context_ready"].sum()),
+        "scene_partner_context_ready_rows": int(manifest["scene_partner_context_ready"].sum()),
+        "non_interaction_scene_partner_ready_rows": int(non_interaction_ready),
         "duplicate_window_id": duplicate_window_id,
         "duplicate_source_frame_uid_rows": int(duplicate_source_frame_uid),
+        "scene_partner_status_counts": manifest["scene_partner_context_status"].value_counts(dropna=False).to_dict(),
+        "scene_partner_status_by_source": manifest.groupby("source_type")["scene_partner_context_status"]
+        .value_counts(dropna=False)
+        .unstack(fill_value=0)
+        .to_dict(),
         "status_counts": manifest["interaction_context_status"].value_counts(dropna=False).to_dict(),
         "interaction_status_counts": interaction["interaction_context_status"].value_counts(dropna=False).to_dict(),
         "interaction_label_counts": interaction["behavior_window_label"].value_counts(dropna=False).to_dict(),
@@ -209,6 +267,7 @@ def _audit(manifest: pd.DataFrame, *, duplicate_source_frame_uid: int) -> dict[s
         "errors": errors,
         "warnings": [
             "interaction_context_ready is an audit gate; columns from this manifest are not model inputs",
+            "scene_partner_context_ready is computed for every window without behavior-label gating",
             "legacy crop-only interaction rows are expected to need separate full-frame/partner review assets",
         ],
     }
@@ -233,3 +292,9 @@ def _to_bool(series: pd.Series) -> pd.Series:
     if pd.api.types.is_bool_dtype(series):
         return series.fillna(False).astype(bool)
     return series.astype(str).str.strip().str.lower().isin({"true", "1", "yes", "y", "t"})
+
+
+def _bool_scalar(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"true", "1", "yes", "y", "t"}

@@ -110,7 +110,16 @@
       "type": "csv",
       "required": true,
       "key_column": "window_id",
-      "required_columns": ["window_id", "interaction_context_ready"]
+      "required_columns": [
+        "window_id",
+        "scene_context_required",
+        "scene_partner_context_required",
+        "scene_context_ready",
+        "scene_partner_context_ready",
+        "scene_partner_context_status",
+        "scene_partner_context_policy",
+        "interaction_context_ready"
+      ]
     }
   },
   "forbidden_x_patterns": [
