@@ -6,6 +6,7 @@ from pathlib import Path
 
 from pig_behavior.classification_v2.training.full_multimodal_oof import (
     ABLATION_VARIANTS,
+    PRECISION_POLICIES,
     SAMPLE_WEIGHT_POLICIES,
     FullMultimodalOofConfig,
     run_full_multimodal_oof,
@@ -44,6 +45,7 @@ def main() -> None:
     parser.add_argument("--sample-weight-policy", choices=SAMPLE_WEIGHT_POLICIES, default="event_class")
     parser.add_argument("--class-weight-power", type=float, default=0.5)
     parser.add_argument("--class-weight-max", type=float, default=5.0)
+    parser.add_argument("--precision", choices=PRECISION_POLICIES, default="fp32")
     parser.add_argument("--no-resume", action="store_true", help="Ignore existing per-fold artifacts and recompute.")
     parser.add_argument(
         "--full",
@@ -77,6 +79,7 @@ def main() -> None:
         sample_weight_policy=args.sample_weight_policy,
         class_weight_power=args.class_weight_power,
         class_weight_max=args.class_weight_max,
+        precision=args.precision,
     )
     result = run_full_multimodal_oof(config)
     print(json.dumps(result["audit"], indent=2))

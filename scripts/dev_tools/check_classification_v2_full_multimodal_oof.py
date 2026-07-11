@@ -57,23 +57,45 @@ def main() -> None:
             errors.append(f"incomplete_full_training_coverage={incomplete_folds}")
         if audit.get("paper_facing_result") is not True:
             errors.append("full_run_not_marked_paper_facing")
-    weight_policy = str(audit.get("config", {}).get("sample_weight_policy", ""))
-    if audit.get("run_mode") == "full" and weight_policy not in {"event", "event_class"}:
+    audit_config = audit.get("config", {})
+    has_weight_contract = "sample_weight_policy" in audit_config
+    has_performance_contract = "precision" in audit_config
+    weight_policy = str(audit_config.get("sample_weight_policy", ""))
+    if has_weight_contract and audit.get("run_mode") == "full" and weight_policy not in {"event", "event_class"}:
         errors.append(f"full_run_uses_non_event_weight_policy={weight_policy}")
     for fold in audit.get("fold_audits", []):
         fold_id = fold.get("oof_fold_id")
-        if str(fold.get("sample_weight_policy", "")) != weight_policy:
+        if has_weight_contract and str(fold.get("sample_weight_policy", "")) != weight_policy:
             errors.append(f"fold_weight_policy_mismatch={fold_id}")
-        for field in ("training_weight_min", "training_weight_max", "training_weight_mean"):
+        weight_fields = (
+            ("training_weight_min", "training_weight_max", "training_weight_mean") if has_weight_contract else ()
+        )
+        for field in weight_fields:
             value = fold.get(field)
             if not isinstance(value, (int, float)) or not math.isfinite(float(value)):
                 errors.append(f"invalid_{field}={fold_id}:{value}")
-        if weight_policy in {"event", "event_class"} and int(fold.get("training_zero_weight_rows", -1)) != 0:
+        if has_weight_contract and weight_policy in {"event", "event_class"} and int(
+            fold.get("training_zero_weight_rows", -1)
+        ) != 0:
             errors.append(f"event_weight_zero_training_rows={fold_id}:{fold.get('training_zero_weight_rows')}")
-        if weight_policy == "event_class":
+        if has_weight_contract and weight_policy == "event_class":
             class_weights = fold.get("fold_local_class_weights", {})
             if sorted(class_weights) != sorted(audit.get("label_order", [])):
                 errors.append(f"fold_local_class_weight_labels_mismatch={fold_id}")
+        if has_performance_contract:
+            precision = str(audit_config.get("precision"))
+            if str(fold.get("precision", "")) != precision:
+                errors.append(f"fold_precision_mismatch={fold_id}")
+            if precision == "amp" and fold.get("amp_enabled") is not True:
+                errors.append(f"amp_not_enabled={fold_id}")
+            if float(fold.get("optimizer_steps_per_sec", 0.0)) <= 0.0:
+                errors.append(f"nonpositive_optimizer_throughput={fold_id}")
+            if float(fold.get("training_rows_per_sec", 0.0)) <= 0.0:
+                errors.append(f"nonpositive_training_row_throughput={fold_id}")
+            if str(audit.get("device", "")).startswith("cuda") and float(
+                fold.get("cuda_peak_memory_allocated_mb", 0.0)
+            ) <= 0.0:
+                errors.append(f"missing_cuda_peak_memory={fold_id}")
     image_load_audit = audit.get("image_load_audit", {})
     if args.require_cache_only:
         if image_load_audit.get("cache_manifest_configured") is not True:

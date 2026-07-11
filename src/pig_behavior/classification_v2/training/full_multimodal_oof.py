@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 import random
+import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -53,6 +54,7 @@ ABLATION_VARIANTS = (
     "no_motion",
 )
 SAMPLE_WEIGHT_POLICIES = ("none", "window", "event", "event_class")
+PRECISION_POLICIES = ("fp32", "amp")
 
 
 @dataclass(frozen=True, slots=True)
@@ -98,6 +100,7 @@ class FullMultimodalOofConfig:
     sample_weight_policy: str = "event_class"
     class_weight_power: float = 0.5
     class_weight_max: float = 5.0
+    precision: str = "fp32"
 
 
 def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
@@ -106,6 +109,8 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
     _validate_config(config)
     _set_seed(config.seed)
     device = _resolve_device(config.device)
+    if config.precision == "amp" and device.type != "cuda":
+        raise ValueError("precision=amp requires a CUDA device; no silent fp32 fallback is allowed")
     bundle = _load_bundle(config)
     label_order = list(VALID_BEHAVIORS)
     label_to_idx = {label: idx for idx, label in enumerate(label_order)}
@@ -354,10 +359,15 @@ def _run_one_fold(
     ).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
     loss_fn = nn.CrossEntropyLoss(reduction="none")
+    amp_enabled = config.precision == "amp" and device.type == "cuda"
+    scaler = torch.amp.GradScaler("cuda", enabled=amp_enabled)
     rng = np.random.default_rng(config.seed + int(_stable_fold_offset(fold_id)))
     losses: list[float] = []
     seen_train_indices: set[int] = set()
     resumed_training = False
+    training_elapsed_sec = 0.0
+    peak_allocated_mb = 0.0
+    peak_reserved_mb = 0.0
     training_signature = _fold_training_signature(config, fold_id, train_indices, eval_indices)
     training_audit_path = fold_work_dir / "training_audit.json" if fold_work_dir is not None else None
     model_state_path = fold_work_dir / "trained_model.pt" if fold_work_dir is not None else None
@@ -376,9 +386,16 @@ def _run_one_fold(
         model.load_state_dict(torch.load(model_state_path, map_location=device))
         losses = [float(value) for value in training_audit.get("losses", [])]
         seen_train_indices = {int(value) for value in training_audit.get("seen_train_indices", [])}
+        training_elapsed_sec = float(training_audit.get("training_elapsed_sec", 0.0))
+        peak_allocated_mb = float(training_audit.get("cuda_peak_memory_allocated_mb", 0.0))
+        peak_reserved_mb = float(training_audit.get("cuda_peak_memory_reserved_mb", 0.0))
         resumed_training = True
     else:
         model.train()
+        if device.type == "cuda":
+            torch.cuda.reset_peak_memory_stats(device)
+            torch.cuda.synchronize(device)
+        training_started = time.perf_counter()
         for batch_indices in _training_batches(config, train_indices, rng):
             seen_train_indices.update(int(value) for value in batch_indices)
             train_batch = _batch_from_indices(
@@ -391,16 +408,24 @@ def _run_one_fold(
                 device,
             )
             optimizer.zero_grad(set_to_none=True)
-            logits = _forward_model(model, train_batch)
-            per_row_loss = loss_fn(logits, train_batch["target"])
-            batch_weights = train_batch["training_sample_weight"]
-            if float(batch_weights.sum().detach().cpu().item()) <= 0.0:
-                raise ValueError(f"fold {fold_id} produced an all-zero training-weight batch")
-            loss = (per_row_loss * batch_weights).sum() / batch_weights.sum()
-            loss.backward()
+            with torch.amp.autocast("cuda", enabled=amp_enabled):
+                logits = _forward_model(model, train_batch)
+                per_row_loss = loss_fn(logits, train_batch["target"])
+                batch_weights = train_batch["training_sample_weight"]
+                if float(batch_weights.sum().detach().cpu().item()) <= 0.0:
+                    raise ValueError(f"fold {fold_id} produced an all-zero training-weight batch")
+                loss = (per_row_loss * batch_weights).sum() / batch_weights.sum()
+            scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
             nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-            optimizer.step()
+            scaler.step(optimizer)
+            scaler.update()
             losses.append(float(loss.detach().cpu().item()))
+        if device.type == "cuda":
+            torch.cuda.synchronize(device)
+            peak_allocated_mb = float(torch.cuda.max_memory_allocated(device) / (1024**2))
+            peak_reserved_mb = float(torch.cuda.max_memory_reserved(device) / (1024**2))
+        training_elapsed_sec = float(time.perf_counter() - training_started)
         if training_audit_path is not None and model_state_path is not None:
             torch.save(model.state_dict(), model_state_path)
             training_audit_path.write_text(
@@ -409,6 +434,9 @@ def _run_one_fold(
                         "training_signature": training_signature,
                         "losses": losses,
                         "seen_train_indices": sorted(seen_train_indices),
+                        "training_elapsed_sec": training_elapsed_sec,
+                        "cuda_peak_memory_allocated_mb": peak_allocated_mb,
+                        "cuda_peak_memory_reserved_mb": peak_reserved_mb,
                     },
                     indent=2,
                 ),
@@ -469,6 +497,17 @@ def _run_one_fold(
         "training_weight_max": float(train_sample_weights.max()),
         "training_weight_mean": float(train_sample_weights.mean()),
         "training_zero_weight_rows": int(np.count_nonzero(train_sample_weights == 0.0)),
+        "precision": config.precision,
+        "amp_enabled": bool(amp_enabled),
+        "training_elapsed_sec": training_elapsed_sec,
+        "optimizer_steps_per_sec": float(len(losses) / training_elapsed_sec) if training_elapsed_sec > 0.0 else 0.0,
+        "training_rows_per_sec": (
+            float(len(losses) * config.train_batch_size / training_elapsed_sec)
+            if training_elapsed_sec > 0.0
+            else 0.0
+        ),
+        "cuda_peak_memory_allocated_mb": peak_allocated_mb,
+        "cuda_peak_memory_reserved_mb": peak_reserved_mb,
         "resumed_training_checkpoint": bool(resumed_training),
         "prediction_chunk_count": int(prediction_chunk_count),
         "fold_work_dir": str(fold_work_dir) if fold_work_dir is not None else None,
@@ -822,6 +861,8 @@ def _validate_config(config: FullMultimodalOofConfig) -> None:
         raise ValueError(f"unsupported sample_weight_policy={config.sample_weight_policy}")
     if config.class_weight_power < 0.0 or config.class_weight_max <= 0.0:
         raise ValueError("class_weight_power must be non-negative and class_weight_max positive")
+    if config.precision not in PRECISION_POLICIES:
+        raise ValueError(f"unsupported precision={config.precision}")
     if config.train_batch_size <= 0 or config.eval_batch_size <= 0:
         raise ValueError("batch sizes must be positive")
     if config.max_folds is not None and config.max_folds <= 0:
@@ -895,6 +936,7 @@ def _fold_training_signature(
         "sample_weight_policy": config.sample_weight_policy,
         "class_weight_power": float(config.class_weight_power),
         "class_weight_max": float(config.class_weight_max),
+        "precision": config.precision,
         "train_batch_size": int(config.train_batch_size),
         "eval_batch_size": int(config.eval_batch_size),
         "train_per_class_per_fold": config.train_per_class_per_fold,

@@ -8,6 +8,7 @@ because quality claims require comparing a proposed model against a baseline.
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
 REQUIRED_NATIVE_METRICS = (
@@ -86,8 +87,13 @@ def _check_confidence_intervals(ci_payload: dict[str, Any], errors: list[str]) -
         except (TypeError, ValueError):
             errors.append(f"non_numeric_confidence_interval={metric_name}")
             continue
-        if not ci_low <= estimate <= ci_high:
+        if not all(math.isfinite(value) for value in (estimate, ci_low, ci_high)):
+            errors.append(f"non_finite_confidence_interval={metric_name}")
+            continue
+        if not ci_low <= ci_high:
             errors.append(f"confidence_interval_not_ordered={metric_name}")
+        if not all(0.0 <= value <= 1.0 for value in (estimate, ci_low, ci_high)):
+            errors.append(f"confidence_interval_out_of_metric_bounds={metric_name}")
 
 
 def _check_sesoi(sesoi: dict[str, Any], warnings: list[str], errors: list[str]) -> None:
