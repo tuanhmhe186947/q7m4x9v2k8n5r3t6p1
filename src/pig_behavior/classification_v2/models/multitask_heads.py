@@ -12,6 +12,13 @@ from dataclasses import dataclass
 import torch
 from torch import nn
 
+AUXILIARY_LABEL_ORDER: dict[str, tuple[str, ...]] = {
+    "posture": ("lying", "sitting", "standing_or_other"),
+    "motion_context": ("move", "explore", "stand", "other"),
+    "roi_intent": ("eat", "drink", "playwithtoy", "none"),
+    "interaction": ("fight", "social-nose", "none"),
+}
+
 
 @dataclass(frozen=True, slots=True)
 class AuxiliaryHeadConfig:

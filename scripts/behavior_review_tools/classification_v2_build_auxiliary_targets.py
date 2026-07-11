@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
+
 POSTURE_LABELS = {"lying", "sitting"}
 MOTION_LABELS = {"move", "explore", "stand"}
 ROI_LABELS = {"eat", "drink", "playwithtoy"}
@@ -28,6 +30,7 @@ def main() -> None:
             f"row count mismatch labels={len(labels)} split={len(split)} train_mask={len(train_mask)}"
         )
 
+    valid_behavior = labels.isin(VALID_BEHAVIORS)
     targets = pd.DataFrame(
         {
             "window_id": split["window_id"].astype(str),
@@ -36,10 +39,12 @@ def main() -> None:
             "motion_context_target": labels.map(_motion_context_target),
             "roi_intent_target": labels.map(_roi_intent_target),
             "interaction_target": labels.map(_interaction_target),
-            "has_posture_aux_target": labels.isin(POSTURE_LABELS),
-            "has_motion_context_aux_target": labels.isin(MOTION_LABELS),
-            "has_roi_intent_aux_target": labels.isin(ROI_LABELS),
-            "has_interaction_aux_target": labels.isin(INTERACTION_LABELS),
+            # Every valid behavior has one well-defined class in every
+            # hierarchy. Fold-local weights handle dominant none/other classes.
+            "has_posture_aux_target": valid_behavior,
+            "has_motion_context_aux_target": valid_behavior,
+            "has_roi_intent_aux_target": valid_behavior,
+            "has_interaction_aux_target": valid_behavior,
             "aux_include_in_training": train_mask,
         }
     )
@@ -94,15 +99,23 @@ def _audit(targets: pd.DataFrame) -> dict[str, object]:
         "motion_context_counts": targets["motion_context_target"].value_counts(dropna=False).to_dict(),
         "roi_intent_counts": targets["roi_intent_target"].value_counts(dropna=False).to_dict(),
         "interaction_counts": targets["interaction_target"].value_counts(dropna=False).to_dict(),
-        "aux_target_positive_counts": {
+        "aux_target_active_counts": {
             "posture": int(targets["has_posture_aux_target"].sum()),
             "motion_context": int(targets["has_motion_context_aux_target"].sum()),
             "roi_intent": int(targets["has_roi_intent_aux_target"].sum()),
             "interaction": int(targets["has_interaction_aux_target"].sum()),
         },
+        "aux_target_positive_counts": {
+            "posture": int(targets["behavior_target"].isin(POSTURE_LABELS).sum()),
+            "motion_context": int(targets["behavior_target"].isin(MOTION_LABELS).sum()),
+            "roi_intent": int(targets["behavior_target"].isin(ROI_LABELS).sum()),
+            "interaction": int(targets["behavior_target"].isin(INTERACTION_LABELS).sum()),
+        },
         "errors": errors,
         "warnings": [
             "auxiliary targets are y/mask artifacts; do not include them in model input X",
+            "auxiliary classes are deterministic decompositions of behavior y, not independent annotations",
+            "all valid behaviors supervise every hierarchy, including none/other negative classes",
             "stand maps to motion_context_target=stand, not posture_target",
             "fight maps to interaction_target=fight, not motion_context_target",
         ],

@@ -63,6 +63,12 @@
       "eval_rows": 10,
       "loss_reduction": 1.25221586227417
     },
+    "multitask_visual_v3": {
+      "path": "outputs/classification_v2/model_smoke/multitask_visual_v3/multitask_smoke_audit.json",
+      "exists": true,
+      "errors": [],
+      "valid": true
+    },
     "native_majority_baseline_metrics": {
       "path": "outputs/classification_v2/model_smoke/native_majority_baseline/native_majority_metrics.json",
       "exists": true,
@@ -142,10 +148,10 @@
     {
       "id": "P3",
       "name": "masked_auxiliary_heads",
-      "status": "planned_required",
+      "status": "recorded_smoke",
       "required_before_paper_candidate": false,
-      "evidence": "",
-      "evidence_exists": false
+      "evidence": "outputs/classification_v2/model_smoke/multitask_visual_v3/multitask_smoke_audit.json",
+      "evidence_exists": true
     },
     {
       "id": "P4",

@@ -267,6 +267,7 @@ class MultimodalFusionClassifier(nn.Module):
             )
             visual_context_dim = config.visual_context_embedding_dim
         fused_dim = image_dim + spatial_dim + interaction_dim + visual_context_dim
+        self.fused_embedding_dim = int(fused_dim)
         self.classifier = nn.Sequential(
             nn.LayerNorm(fused_dim),
             nn.Linear(fused_dim, config.fusion_hidden_dim),
@@ -299,6 +300,42 @@ class MultimodalFusionClassifier(nn.Module):
         current audited data, where image context windows may contain 6 frames
         while spatial arrays are padded to the maximum configured window length.
         """
+        fused = self.encode_fused(
+            image=image,
+            spatial_features=spatial_features,
+            length_mask=length_mask,
+            observed_mask=observed_mask,
+            image_length_mask=image_length_mask,
+            image_observed_mask=image_observed_mask,
+            spatial_length_mask=spatial_length_mask,
+            spatial_observed_mask=spatial_observed_mask,
+            interaction_context_features=interaction_context_features,
+            interaction_context_available_mask=interaction_context_available_mask,
+            visual_context_image=visual_context_image,
+            visual_context_length_mask=visual_context_length_mask,
+            visual_context_observed_mask=visual_context_observed_mask,
+        )
+        return self.classifier(fused)
+
+    def encode_fused(
+        self,
+        *,
+        image: torch.Tensor,
+        spatial_features: dict[str, torch.Tensor],
+        length_mask: torch.Tensor,
+        observed_mask: torch.Tensor | None = None,
+        image_length_mask: torch.Tensor | None = None,
+        image_observed_mask: torch.Tensor | None = None,
+        spatial_length_mask: torch.Tensor | None = None,
+        spatial_observed_mask: torch.Tensor | None = None,
+        interaction_context_features: torch.Tensor | None = None,
+        interaction_context_available_mask: torch.Tensor | None = None,
+        visual_context_image: torch.Tensor | None = None,
+        visual_context_length_mask: torch.Tensor | None = None,
+        visual_context_observed_mask: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        """Return the shared late-fusion embedding before classification heads."""
+
         embeddings: list[torch.Tensor] = []
         batch_size: int | None = None
         if self.image_encoder is not None:
@@ -341,7 +378,7 @@ class MultimodalFusionClassifier(nn.Module):
             if batch_size is not None and visual_embedding.shape[0] != batch_size:
                 raise ValueError("visual context batch size mismatch")
             embeddings.append(visual_embedding)
-        return self.classifier(torch.cat(embeddings, dim=-1))
+        return torch.cat(embeddings, dim=-1)
 
 
 def _combined_mask(

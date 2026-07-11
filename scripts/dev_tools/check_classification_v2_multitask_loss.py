@@ -11,9 +11,11 @@ from pig_behavior.classification_v2.models.multitask_heads import AuxiliaryHeadC
 from pig_behavior.classification_v2.training.multitask_loss import (
     DEFAULT_AUXILIARY_TASKS,
     build_auxiliary_label_maps,
+    build_fold_auxiliary_class_weights,
     encode_auxiliary_batch,
     masked_cross_entropy,
     masked_multitask_loss,
+    hierarchy_consistency_loss,
 )
 
 
@@ -34,6 +36,8 @@ def main() -> None:
     targets = pd.read_csv(args.root / "y_auxiliary_targets.csv", low_memory=False)
     batch = _sample_auxiliary_batch(targets, args.batch_rows_per_task)
     label_maps = build_auxiliary_label_maps(targets)
+    training_targets = targets[_to_bool(targets["aux_include_in_training"])].copy()
+    class_weights = build_fold_auxiliary_class_weights(training_targets, label_maps)
     encoded_targets, masks = encode_auxiliary_batch(batch, label_maps)
 
     heads = AuxiliaryPredictionHeads(
@@ -42,8 +46,16 @@ def main() -> None:
     )
     embedding = torch.randn(len(batch), args.embedding_dim)
     logits = heads(embedding)
-    total_loss, loss_audit = masked_multitask_loss(logits, encoded_targets, masks)
+    total_loss, loss_audit = masked_multitask_loss(
+        logits,
+        encoded_targets,
+        masks,
+        class_weights_by_task=class_weights,
+    )
     all_masked_zero = _check_all_masked_zero(logits, encoded_targets)
+    inactive_shuffle_delta = _inactive_target_shuffle_delta(logits, encoded_targets, masks)
+    behavior_logits = torch.randn(len(batch), 10)
+    consistency_loss = hierarchy_consistency_loss(behavior_logits, logits)
 
     errors: list[str] = []
     if not torch.isfinite(total_loss):
@@ -52,6 +64,10 @@ def main() -> None:
         errors.append("total_loss_not_positive")
     if not all_masked_zero:
         errors.append("all_masked_loss_not_zero")
+    if inactive_shuffle_delta > 1e-7:
+        errors.append(f"inactive_target_shuffle_changed_loss={inactive_shuffle_delta}")
+    if not torch.isfinite(consistency_loss):
+        errors.append("hierarchy_consistency_loss_nonfinite")
     for spec in DEFAULT_AUXILIARY_TASKS:
         if int(masks[spec.name].sum()) <= 0:
             errors.append(f"no_positive_mask_support:{spec.name}")
@@ -62,7 +78,14 @@ def main() -> None:
         "batch_rows": int(len(batch)),
         "label_maps": label_maps,
         "loss": loss_audit,
+        "fold_local_class_weights": {
+            name: value.detach().cpu().tolist() for name, value in class_weights.items()
+        },
+        "class_weights_derived_from_training_rows_only": True,
+        "class_weight_training_rows": int(len(training_targets)),
         "all_masked_loss_zero": bool(all_masked_zero),
+        "inactive_target_shuffle_max_loss_delta": inactive_shuffle_delta,
+        "hierarchy_consistency_loss": float(consistency_loss.detach().cpu().item()),
         "auxiliary_targets_are_y_only": True,
         "forbidden_as_model_input": [
             "behavior_target",
@@ -100,6 +123,23 @@ def _check_all_masked_zero(
         if float(loss.detach().cpu().item()) != 0.0:
             return False
     return True
+
+
+def _inactive_target_shuffle_delta(
+    logits: dict[str, torch.Tensor],
+    encoded_targets: dict[str, torch.Tensor],
+    masks: dict[str, torch.Tensor],
+) -> float:
+    deltas: list[float] = []
+    for name, value in logits.items():
+        original = masked_cross_entropy(value, encoded_targets[name], masks[name])
+        shuffled = encoded_targets[name].clone()
+        inactive = ~masks[name]
+        if inactive.any():
+            shuffled[inactive] = torch.flip(shuffled[inactive], dims=[0])
+        changed = masked_cross_entropy(value, shuffled, masks[name])
+        deltas.append(abs(float((original - changed).detach().cpu().item())))
+    return max(deltas, default=0.0)
 
 
 def _to_bool(series: pd.Series) -> pd.Series:

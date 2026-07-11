@@ -1,7 +1,7 @@
 {
   "root": "outputs\\classification_v2\\train_ready_windows",
   "rows": 160740,
-  "batch_rows": 16,
+  "batch_rows": 4,
   "label_maps": {
     "posture": [
       "lying",
@@ -9,21 +9,21 @@
       "standing_or_other"
     ],
     "motion_context": [
-      "explore",
       "move",
-      "other",
-      "stand"
+      "explore",
+      "stand",
+      "other"
     ],
     "roi_intent": [
-      "drink",
       "eat",
-      "none",
-      "playwithtoy"
+      "drink",
+      "playwithtoy",
+      "none"
     ],
     "interaction": [
       "fight",
-      "none",
-      "social-nose"
+      "social-nose",
+      "none"
     ]
   },
   "loss": {
@@ -46,14 +46,42 @@
       "interaction": 4
     },
     "loss_values": {
-      "posture": 1.377182960510254,
-      "motion_context": 1.4128220081329346,
-      "roi_intent": 1.7079287767410278,
-      "interaction": 0.8410698771476746
+      "posture": 1.3771828413009644,
+      "motion_context": 1.1238118410110474,
+      "roi_intent": 1.6363537311553955,
+      "interaction": 1.4674855470657349
     },
-    "total_auxiliary_loss": 1.3347508907318115
+    "total_auxiliary_loss": 1.4012084007263184
   },
+  "fold_local_class_weights": {
+    "posture": [
+      1.3809069395065308,
+      0.888430655002594,
+      0.73066246509552
+    ],
+    "motion_context": [
+      1.7921993732452393,
+      0.5712655782699585,
+      1.3121603727340698,
+      0.3243747353553772
+    ],
+    "roi_intent": [
+      0.5340805649757385,
+      0.9850983619689941,
+      2.3057496547698975,
+      0.17507144808769226
+    ],
+    "interaction": [
+      1.1920843124389648,
+      1.5121687650680542,
+      0.29574689269065857
+    ]
+  },
+  "class_weights_derived_from_training_rows_only": true,
+  "class_weight_training_rows": 152704,
   "all_masked_loss_zero": true,
+  "inactive_target_shuffle_max_loss_delta": 0.0,
+  "hierarchy_consistency_loss": 0.10598046332597733,
   "auxiliary_targets_are_y_only": true,
   "forbidden_as_model_input": [
     "behavior_target",

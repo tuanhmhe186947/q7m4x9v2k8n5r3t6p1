@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Check classification_v2 auxiliary target artifacts.")
@@ -53,6 +55,20 @@ def main() -> None:
     if "window_id" in targets and int(targets["window_id"].duplicated().sum()):
         errors.append("duplicate_window_id")
     if "behavior_target" in targets:
+        valid_behavior = targets["behavior_target"].astype(str).isin(VALID_BEHAVIORS)
+        for mask_col in [
+            "has_posture_aux_target",
+            "has_motion_context_aux_target",
+            "has_roi_intent_aux_target",
+            "has_interaction_aux_target",
+        ]:
+            mask = _to_bool(targets[mask_col])
+            false_valid = int((valid_behavior & ~mask).sum())
+            true_invalid = int((~valid_behavior & mask).sum())
+            if false_valid or true_invalid:
+                errors.append(
+                    f"invalid_aux_mask_semantics={mask_col}:false_valid={false_valid}:true_invalid={true_invalid}"
+                )
         stand_in_posture = int((targets["behavior_target"].eq("stand") & targets["posture_target"].eq("stand")).sum())
         fight_in_motion = int(
             (targets["behavior_target"].eq("fight") & targets["motion_context_target"].eq("fight")).sum()
@@ -74,12 +90,18 @@ def main() -> None:
         "csv": str(args.csv),
         "audit_json": str(args.audit_json),
         "rows": int(len(targets)),
-        "aux_target_positive_counts": audit.get("aux_target_positive_counts"),
+        "aux_target_active_counts": audit.get("aux_target_active_counts"),
         "errors": errors,
     }
     print(json.dumps(result, indent=2, ensure_ascii=False))
     if errors:
         raise SystemExit(1)
+
+
+def _to_bool(series: pd.Series) -> pd.Series:
+    if pd.api.types.is_bool_dtype(series):
+        return series.fillna(False).astype(bool)
+    return series.astype(str).str.strip().str.lower().isin({"true", "1", "yes", "y", "t"})
 
 
 if __name__ == "__main__":
