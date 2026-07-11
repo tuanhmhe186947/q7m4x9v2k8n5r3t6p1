@@ -20,6 +20,11 @@ def main() -> None:
         default=Path("outputs/classification_v2/model_smoke/full_multimodal_oof_pilot"),
     )
     parser.add_argument("--image-cache-manifest", type=Path, default=None)
+    parser.add_argument(
+        "--allow-image-source-fallback",
+        action="store_true",
+        help="Allow missing cache entries to fall back to legacy crops/CVAT videos.",
+    )
     parser.add_argument("--image-size", type=int, default=32)
     parser.add_argument("--hidden-dim", type=int, default=32)
     parser.add_argument("--steps-per-fold", type=int, default=2)
@@ -40,6 +45,7 @@ def main() -> None:
     config = FullMultimodalOofConfig(
         output_dir=args.output_dir,
         image_cache_manifest_csv=args.image_cache_manifest,
+        require_cached_images=bool(args.image_cache_manifest is not None and not args.allow_image_source_fallback),
         image_size=args.image_size,
         hidden_dim=args.hidden_dim,
         steps_per_fold=args.steps_per_fold,

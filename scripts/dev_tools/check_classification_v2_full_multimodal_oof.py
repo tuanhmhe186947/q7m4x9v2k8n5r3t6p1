@@ -29,6 +29,11 @@ def main() -> None:
         type=Path,
         default=Path("outputs/classification_v2/model_smoke/full_multimodal_oof_pilot/full_multimodal_oof_metrics.json"),
     )
+    parser.add_argument(
+        "--require-cache-only",
+        action="store_true",
+        help="Fail unless all sampled images came from the configured disk cache.",
+    )
     args = parser.parse_args()
     errors: list[str] = []
     audit = _read_json(args.audit_json, errors, "audit")
@@ -40,6 +45,18 @@ def main() -> None:
     errors.extend(f"metrics_payload:{error}" for error in metrics_check.get("errors", []))
     if audit.get("run_mode") == "pilot" and audit.get("paper_facing_result") is True:
         errors.append("pilot_marked_paper_facing")
+    image_load_audit = audit.get("image_load_audit", {})
+    if args.require_cache_only:
+        if image_load_audit.get("cache_manifest_configured") is not True:
+            errors.append("image_cache_manifest_not_configured")
+        if image_load_audit.get("require_cached_images") is not True:
+            errors.append("strict_image_cache_not_enabled")
+        if int(image_load_audit.get("disk_image_cache_misses", -1)) != 0:
+            errors.append(f"disk_image_cache_misses={image_load_audit.get('disk_image_cache_misses')}")
+        if int(image_load_audit.get("source_image_loads", -1)) != 0:
+            errors.append(f"source_image_loads={image_load_audit.get('source_image_loads')}")
+        if int(image_load_audit.get("disk_image_cache_hits", 0)) <= 0:
+            errors.append("disk_image_cache_hits_not_positive")
     result = {
         "audit_json": str(args.audit_json),
         "predictions_csv": str(args.predictions_csv),
@@ -53,6 +70,8 @@ def main() -> None:
         "macro_f1_supported": metrics.get("native_temporal_metrics", {}).get("macro_f1_supported") if metrics else None,
         "prediction_schema_valid": bool(schema_check.get("valid")),
         "metrics_payload_valid": not metrics_check.get("errors"),
+        "cache_only_required": bool(args.require_cache_only),
+        "image_load_audit": image_load_audit,
         "errors": errors,
     }
     print(json.dumps(result, indent=2))

@@ -60,6 +60,7 @@ class FullMultimodalOofConfig:
     )
     output_dir: Path = Path("outputs/classification_v2/model_smoke/full_multimodal_oof_pilot")
     image_cache_manifest_csv: Path | None = None
+    require_cached_images: bool = False
     image_size: int = 32
     hidden_dim: int = 32
     dropout: float = 0.1
@@ -103,6 +104,7 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
             image_cache_manifest_csv=config.image_cache_manifest_csv,
             image_size=config.image_size,
             require_complete=False,
+            require_cached_images=config.require_cached_images,
         )
     )
     predictions: list[pd.DataFrame] = []
@@ -144,6 +146,7 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
     metrics_path.write_text(json.dumps(metrics_payload, indent=2), encoding="utf-8")
     schema_audit_path.write_text(json.dumps(prediction_schema_audit, indent=2), encoding="utf-8")
 
+    image_load_audit = dataset.image_load_audit()
     audit = {
         "schema_version": "classification_v2_full_multimodal_oof_audit_v1",
         "run_mode": config.run_mode,
@@ -152,6 +155,7 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
         "device": str(device),
         "label_order": label_order,
         "load_audit": bundle.load_audit,
+        "image_load_audit": image_load_audit,
         "fold_artifact_dir": str(fold_artifact_dir),
         "fold_audits": fold_audits,
         "prediction_rows": int(len(prediction_frame)),
@@ -174,6 +178,10 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
             "native_temporal_prediction_errors="
             f"{metrics_payload.get('native_temporal_prediction_audit', {}).get('errors')}"
         )
+    if config.require_cached_images and (
+        image_load_audit["disk_image_cache_misses"] > 0 or image_load_audit["source_image_loads"] > 0
+    ):
+        audit["errors"].append(f"strict_image_cache_violation={image_load_audit}")
     audit["valid"] = audit["valid"] and not audit["errors"]
     audit_path.write_text(json.dumps(audit, indent=2), encoding="utf-8")
     if audit["errors"]:
@@ -680,6 +688,8 @@ def _validate_config(config: FullMultimodalOofConfig) -> None:
         config.max_folds is None or config.train_per_class_per_fold is None or config.eval_per_class_per_fold is None
     ):
         raise ValueError("pilot mode requires bounded folds and per-class sample caps")
+    if config.require_cached_images and config.image_cache_manifest_csv is None:
+        raise ValueError("require_cached_images needs image_cache_manifest_csv")
 
 
 def _is_full_run(config: FullMultimodalOofConfig, bundle: _OofBundle) -> bool:

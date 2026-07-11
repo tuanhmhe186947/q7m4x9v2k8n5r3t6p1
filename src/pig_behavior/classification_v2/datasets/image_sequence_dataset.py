@@ -35,6 +35,7 @@ class ImageSequenceDatasetConfig:
     image_size: int = 128
     max_windows: int | None = None
     require_complete: bool = True
+    require_cached_images: bool = False
     image_cache_size: int = 8192
 
 
@@ -66,6 +67,10 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         self.video_decode_count = 0
         self.video_seek_count = 0
         self.video_frame_reuse_count = 0
+        self.memory_image_cache_hits = 0
+        self.disk_image_cache_hits = 0
+        self.disk_image_cache_misses = 0
+        self.source_image_loads = 0
 
     def __len__(self) -> int:
         return int(len(self.windows))
@@ -161,15 +166,36 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         if cache_size > 0 and context_id in self._image_cache:
             image = self._image_cache.pop(context_id)
             self._image_cache[context_id] = image
+            self.memory_image_cache_hits += 1
             return image
         image = self._load_cached_context_image(context_id)
+        if image is not None:
+            self.disk_image_cache_hits += 1
+        elif self.config.image_cache_manifest_csv is not None:
+            self.disk_image_cache_misses += 1
+            if self.config.require_cached_images:
+                return None
         if image is None:
             image = self._load_frame_image(frame)
+            if image is not None:
+                self.source_image_loads += 1
         if image is not None and cache_size > 0:
             self._image_cache[context_id] = image
             while len(self._image_cache) > cache_size:
                 self._image_cache.popitem(last=False)
         return image
+
+    def image_load_audit(self) -> dict[str, Any]:
+        """Expose cache/source counters so training cannot hide fallback I/O."""
+
+        return {
+            "cache_manifest_configured": self.config.image_cache_manifest_csv is not None,
+            "require_cached_images": bool(self.config.require_cached_images),
+            "memory_image_cache_hits": int(self.memory_image_cache_hits),
+            "disk_image_cache_hits": int(self.disk_image_cache_hits),
+            "disk_image_cache_misses": int(self.disk_image_cache_misses),
+            "source_image_loads": int(self.source_image_loads),
+        }
 
     def _load_cache_manifest(self, manifest_csv: Path | None) -> dict[str, Path]:
         """Map audited context IDs to prebuilt crop files without changing labels."""
