@@ -43,6 +43,9 @@ from pig_behavior.classification_v2.evaluation.native_temporal_metrics import (
     build_native_temporal_metrics,
 )
 from pig_behavior.classification_v2.evaluation.prediction_schema_contract import check_prediction_schema
+from pig_behavior.classification_v2.evaluation.source_balanced_reporting import (
+    build_source_balanced_native_report,
+)
 from pig_behavior.classification_v2.models.multimodal_fusion import (
     MODEL_ARCHITECTURE_VERSION,
     MultimodalFusionClassifier,
@@ -190,24 +193,38 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
         prediction_frame,
         NativeTemporalMetricsConfig(bootstrap_iterations=int(config.bootstrap_iterations)),
     )
+    full_oof_verified = _is_full_run(config, bundle) and _fold_training_coverage_complete(fold_audits)
+    source_native_units, source_selection, source_report = build_source_balanced_native_report(
+        prediction_frame,
+        bundle.frame[["window_id", "source_type"]],
+        expected_fold_count=len(fold_ids),
+        paper_facing_run_verified=full_oof_verified,
+    )
+    paper_facing_result = full_oof_verified and bool(source_report.get("paper_facing_ready"))
 
     predictions_path = config.output_dir / "full_multimodal_oof_predictions.csv"
     native_units_path = config.output_dir / "full_multimodal_oof_unit_predictions.csv"
     metrics_path = config.output_dir / "full_multimodal_oof_metrics.json"
     schema_audit_path = config.output_dir / "full_multimodal_oof_prediction_schema_audit.json"
     audit_path = config.output_dir / "full_multimodal_oof_audit.json"
+    source_native_units_path = config.output_dir / "source_balanced_native_units.csv"
+    source_selection_path = config.output_dir / "source_balanced_selection.csv"
+    source_report_path = config.output_dir / "source_balanced_report.json"
     prediction_frame.to_csv(predictions_path, index=False)
     native_units.to_csv(native_units_path, index=False)
     metrics_path.write_text(json.dumps(metrics_payload, indent=2), encoding="utf-8")
     schema_audit_path.write_text(json.dumps(prediction_schema_audit, indent=2), encoding="utf-8")
+    source_native_units.to_csv(source_native_units_path, index=False)
+    source_selection.to_csv(source_selection_path, index=False)
+    source_report_path.write_text(json.dumps(source_report, indent=2), encoding="utf-8")
 
     image_load_audit = dataset.image_load_audit()
     git_state = _git_state()
-    paper_facing_result = _is_full_run(config, bundle) and _fold_training_coverage_complete(fold_audits)
     audit = {
         "schema_version": "classification_v2_full_multimodal_oof_audit_v1",
         "run_mode": config.run_mode,
         "paper_facing_result": paper_facing_result,
+        "full_oof_training_verified": full_oof_verified,
         "config": _jsonable_config(config),
         "ablation_settings": _ablation_settings(config.ablation_variant),
         "device": str(device),
@@ -228,6 +245,11 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
         "native_unit_predictions_csv": str(native_units_path),
         "prediction_schema_audit_json": str(schema_audit_path),
         "prediction_schema_valid": bool(prediction_schema_audit.get("valid")),
+        "source_balanced_report_json": str(source_report_path),
+        "source_balanced_native_units_csv": str(source_native_units_path),
+        "source_balanced_selection_csv": str(source_selection_path),
+        "source_balanced_report_valid": bool(source_report.get("valid")),
+        "source_balanced_paper_facing_ready": bool(source_report.get("paper_facing_ready")),
         "errors": [],
         "warnings": _mode_warnings(config, bundle),
         "valid": bool(not prediction_frame.empty and prediction_schema_audit.get("valid") is True),
@@ -239,6 +261,12 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
             "native_temporal_prediction_errors="
             f"{metrics_payload.get('native_temporal_prediction_audit', {}).get('errors')}"
         )
+    if source_report.get("errors"):
+        message = f"source_balanced_report_errors={source_report.get('errors')}"
+        if full_oof_verified:
+            audit["errors"].append(message)
+        else:
+            audit["warnings"].append(message)
     if config.require_cached_images and (
         image_load_audit["disk_image_cache_misses"] > 0 or image_load_audit["source_image_loads"] > 0
     ):
@@ -253,6 +281,7 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
         "native_unit_predictions_csv": str(native_units_path),
         "metrics_json": str(metrics_path),
         "prediction_schema_audit_json": str(schema_audit_path),
+        "source_balanced_report_json": str(source_report_path),
         "audit": audit,
     }
 
@@ -694,7 +723,11 @@ def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
     if mismatched:
         raise ValueError(f"row count mismatch against y={expected}: {mismatched}")
 
-    frame = split[["window_id", "split", "split_group_key"]].copy()
+    required_split_metadata = {"window_id", "split", "split_group_key", "source_type"}
+    missing_split_metadata = sorted(required_split_metadata.difference(split.columns))
+    if missing_split_metadata:
+        raise ValueError(f"split manifest missing evaluation metadata: {missing_split_metadata}")
+    frame = split[["window_id", "split", "split_group_key", "source_type"]].copy()
     frame["behavior_true"] = y
     frame["train_mask"] = train_mask
     frame = frame.merge(
