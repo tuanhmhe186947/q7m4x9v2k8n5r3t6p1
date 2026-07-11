@@ -15,9 +15,28 @@ from pig_behavior.classification_v2.datasets.image_sequence_dataset import (
 )
 
 
+EXPECTED_RESIZE_POLICY = "letterbox_preserve_aspect_rgb_pad_black_v1"
+REQUIRED_LETTERBOX_COLUMNS = {
+    "source_crop_width",
+    "source_crop_height",
+    "source_crop_aspect_ratio",
+    "letterbox_scale",
+    "letterbox_resized_width",
+    "letterbox_resized_height",
+    "letterbox_pad_left",
+    "letterbox_pad_top",
+    "letterbox_pad_right",
+    "letterbox_pad_bottom",
+}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Check classification_v2 image cache manifest and loader path.")
-    parser.add_argument("--cache-manifest", type=Path, default=Path("outputs/classification_v2/image_cache_v2/manifest.csv"))
+    parser.add_argument(
+        "--cache-manifest",
+        type=Path,
+        default=Path("outputs/classification_v2/image_cache_v2_letterbox/manifest.csv"),
+    )
     parser.add_argument(
         "--frame-context-csv",
         type=Path,
@@ -68,10 +87,13 @@ def check_image_cache(
         errors.append(f"cache_manifest_missing={cache_manifest}")
         return {"schema_version": "classification_v2_image_cache_check_v1", "errors": errors, "valid": False}
     manifest = pd.read_csv(cache_manifest, low_memory=False)
-    required = {"image_context_id", "cache_path", "image_size", "cache_format"}
+    required = {"image_context_id", "cache_path", "image_size", "cache_format", "resize_policy"}
     missing = sorted(required.difference(manifest.columns))
     if missing:
         errors.append(f"missing_manifest_columns={missing}")
+    missing_letterbox = sorted(REQUIRED_LETTERBOX_COLUMNS.difference(manifest.columns))
+    if missing_letterbox:
+        errors.append(f"missing_letterbox_metadata_columns={missing_letterbox}")
     duplicate_context = int(manifest["image_context_id"].duplicated().sum()) if "image_context_id" in manifest else -1
     if duplicate_context:
         errors.append(f"duplicate_image_context_id={duplicate_context}")
@@ -84,6 +106,11 @@ def check_image_cache(
         if "resize_policy" in manifest
         else []
     )
+    if resize_policies != [EXPECTED_RESIZE_POLICY]:
+        errors.append(f"resize_policy_mismatch={resize_policies}")
+    letterbox_geometry_errors = _check_letterbox_geometry(manifest, image_size) if not missing_letterbox else 0
+    if letterbox_geometry_errors:
+        errors.append(f"letterbox_geometry_invalid_rows={letterbox_geometry_errors}")
     base = cache_manifest.parent
     checked_files = 0
     missing_files = 0
@@ -176,9 +203,34 @@ def check_image_cache(
         "source_equivalence_checked": int(equivalence_checked),
         "source_equivalence_mismatches": int(equivalence_mismatches),
         "resize_policies": resize_policies,
+        "letterbox_geometry_invalid_rows": int(letterbox_geometry_errors),
         "errors": errors,
         "valid": not errors,
     }
+
+
+def _check_letterbox_geometry(manifest: pd.DataFrame, image_size: int) -> int:
+    """Verify recorded padding/scale keeps resized crop inside the square canvas."""
+
+    numeric = manifest[list(REQUIRED_LETTERBOX_COLUMNS)].apply(pd.to_numeric, errors="coerce")
+    available = numeric["source_crop_width"].gt(0) & numeric["source_crop_height"].gt(0)
+    if not bool(available.any()):
+        return 0
+    rows = numeric[available].copy()
+    pad_width = rows["letterbox_pad_left"] + rows["letterbox_resized_width"] + rows["letterbox_pad_right"]
+    pad_height = rows["letterbox_pad_top"] + rows["letterbox_resized_height"] + rows["letterbox_pad_bottom"]
+    invalid = (
+        rows["letterbox_scale"].le(0)
+        | rows["letterbox_resized_width"].le(0)
+        | rows["letterbox_resized_height"].le(0)
+        | rows["letterbox_pad_left"].lt(0)
+        | rows["letterbox_pad_top"].lt(0)
+        | rows["letterbox_pad_right"].lt(0)
+        | rows["letterbox_pad_bottom"].lt(0)
+        | pad_width.ne(image_size)
+        | pad_height.ne(image_size)
+    )
+    return int(invalid.sum())
 
 
 if __name__ == "__main__":

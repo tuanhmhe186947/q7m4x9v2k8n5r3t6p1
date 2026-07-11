@@ -31,7 +31,12 @@ def main() -> None:
         type=Path,
         default=Path("outputs/classification_v2/train_ready_windows/image_window_context_manifest.csv"),
     )
-    parser.add_argument("--output-dir", type=Path, default=Path("outputs/classification_v2/image_cache_v2"))
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("outputs/classification_v2/image_cache_v2_letterbox"),
+        help="Canonical reusable actor crop cache root; use one audited letterbox cache instead of smoke-specific roots.",
+    )
     parser.add_argument("--image-size", type=int, default=64)
     parser.add_argument("--max-contexts", type=int, default=None)
     parser.add_argument("--source-type", default=None, help="Optional source_type filter for targeted smoke builds.")
@@ -158,6 +163,7 @@ def build_image_cache(
                 cache_path.parent.mkdir(parents=True, exist_ok=True)
                 np.save(cache_path, image_uint8)
                 loaded += 1
+            letterbox_meta = _letterbox_metadata_from_bbox(row_dict, image_size)
             preview_rel_path = ""
             if preview_jpg and previews_written < preview_limit:
                 preview_rel = _readable_preview_relative_path(row_dict, context_id)
@@ -192,6 +198,7 @@ def build_image_cache(
                     "y1": row_dict.get("y1", ""),
                     "x2": row_dict.get("x2", ""),
                     "y2": row_dict.get("y2", ""),
+                    **letterbox_meta,
                 }
             )
             completed_context_ids.add(context_id)
@@ -392,6 +399,53 @@ def _sort_for_media_locality(frame: pd.DataFrame) -> pd.DataFrame:
         na_position="last",
     )
     return ordered.drop(columns=["_cache_frame_index", "_cache_media_path"]).reset_index(drop=True)
+
+
+def _letterbox_metadata_from_bbox(row: dict[str, Any], image_size: int) -> dict[str, Any]:
+    """Record resize geometry so cache users can audit aspect preservation."""
+
+    x1 = pd.to_numeric(row.get("x1"), errors="coerce")
+    y1 = pd.to_numeric(row.get("y1"), errors="coerce")
+    x2 = pd.to_numeric(row.get("x2"), errors="coerce")
+    y2 = pd.to_numeric(row.get("y2"), errors="coerce")
+    if pd.isna(x1) or pd.isna(y1) or pd.isna(x2) or pd.isna(y2):
+        return _empty_letterbox_metadata()
+    crop_width = max(0.0, float(x2) - float(x1))
+    crop_height = max(0.0, float(y2) - float(y1))
+    if crop_width <= 0.0 or crop_height <= 0.0:
+        return _empty_letterbox_metadata(crop_width=crop_width, crop_height=crop_height)
+    scale = min(float(image_size) / crop_width, float(image_size) / crop_height)
+    resized_width = max(1, int(round(crop_width * scale)))
+    resized_height = max(1, int(round(crop_height * scale)))
+    pad_left = int((image_size - resized_width) // 2)
+    pad_top = int((image_size - resized_height) // 2)
+    return {
+        "source_crop_width": float(crop_width),
+        "source_crop_height": float(crop_height),
+        "source_crop_aspect_ratio": float(crop_width / crop_height),
+        "letterbox_scale": float(scale),
+        "letterbox_resized_width": int(resized_width),
+        "letterbox_resized_height": int(resized_height),
+        "letterbox_pad_left": int(pad_left),
+        "letterbox_pad_top": int(pad_top),
+        "letterbox_pad_right": int(image_size - resized_width - pad_left),
+        "letterbox_pad_bottom": int(image_size - resized_height - pad_top),
+    }
+
+
+def _empty_letterbox_metadata(crop_width: float | None = None, crop_height: float | None = None) -> dict[str, Any]:
+    return {
+        "source_crop_width": "" if crop_width is None else float(crop_width),
+        "source_crop_height": "" if crop_height is None else float(crop_height),
+        "source_crop_aspect_ratio": "",
+        "letterbox_scale": "",
+        "letterbox_resized_width": "",
+        "letterbox_resized_height": "",
+        "letterbox_pad_left": "",
+        "letterbox_pad_top": "",
+        "letterbox_pad_right": "",
+        "letterbox_pad_bottom": "",
+    }
 
 
 def _safe_segment(value: str) -> str:
