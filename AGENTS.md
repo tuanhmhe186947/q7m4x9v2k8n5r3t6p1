@@ -32,6 +32,8 @@ Rules:
 - When asked to patch, keep the patch small and reversible.
 - Do not run long tracking/evaluation/benchmark unless the user explicitly requests it.
 - Always report which memory files were read before making changes.
+- Keep code lines within the repository formatter/linter limit before commit; wrap long conditions,
+  strings, and argument lists proactively so pre-commit does not fail on line length.
 
 Legacy preserved docs:
 

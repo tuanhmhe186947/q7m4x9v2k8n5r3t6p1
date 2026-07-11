@@ -29,6 +29,7 @@
 9. Always state which files were changed.
 10. Always state which behavior changed and which behavior was intentionally not changed.
 11. Always report which memory files were read before making changes.
+12. Keep code lines within the repository formatter/linter limit before commit. Wrap long conditions, strings, and argument lists proactively so pre-commit does not fail on line length.
 
 ## Tracking-specific rules
 
