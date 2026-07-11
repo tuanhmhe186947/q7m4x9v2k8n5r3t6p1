@@ -38,6 +38,11 @@ def main() -> None:
     parser.add_argument("--preview-jpg", action="store_true", help="Write readable JPEG previews for audit.")
     parser.add_argument("--preview-limit", type=int, default=500, help="Maximum preview JPEGs to write.")
     parser.add_argument("--checkpoint-every", type=int, default=1000, help="Write partial manifest every N contexts.")
+    parser.add_argument(
+        "--resume-from-partial",
+        action="store_true",
+        help="Resume from manifest.partial.csv/cache_audit.partial.json instead of iterating completed rows again.",
+    )
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
 
@@ -51,6 +56,7 @@ def main() -> None:
         preview_jpg=args.preview_jpg,
         preview_limit=args.preview_limit,
         checkpoint_every=args.checkpoint_every,
+        resume_from_partial=args.resume_from_partial,
         overwrite=args.overwrite,
     )
     print(json.dumps(audit, indent=2))
@@ -67,6 +73,7 @@ def build_image_cache(
     preview_jpg: bool,
     preview_limit: int,
     checkpoint_every: int,
+    resume_from_partial: bool,
     overwrite: bool,
 ) -> dict[str, Any]:
     """Materialize audited crops so training does not repeatedly seek videos."""
@@ -107,8 +114,23 @@ def build_image_cache(
     previews_written = 0
     partial_manifest_path = output_dir / "manifest.partial.csv"
     partial_audit_path = output_dir / "cache_audit.partial.json"
+    start_row_index = 1
+    resumed_manifest_rows = 0
+    if resume_from_partial:
+        resume_state = _load_partial_resume_state(
+            manifest_path=partial_manifest_path,
+            audit_path=partial_audit_path,
+            image_size=image_size,
+            source_type=source_type,
+        )
+        manifest_rows = resume_state["manifest_rows"]
+        start_row_index = resume_state["start_row_index"]
+        previews_written = resume_state["previews_written"]
+        resumed_manifest_rows = len(manifest_rows)
     try:
         for row_index, row in enumerate(frame.itertuples(index=False), start=1):
+            if row_index < start_row_index:
+                continue
             row_dict = row._asdict()
             context_id = str(row_dict["image_context_id"])
             rel_path = context_cache_relative_path(context_id)
@@ -195,6 +217,9 @@ def build_image_cache(
         "image_size": int(image_size),
         "selected_context_rows": int(len(frame)),
         "manifest_rows": int(len(manifest)),
+        "resume_from_partial": bool(resume_from_partial),
+        "start_row_index": int(start_row_index),
+        "resumed_manifest_rows": int(resumed_manifest_rows),
         "loaded_rows": int(loaded),
         "skipped_existing_rows": int(skipped_existing),
         "failed_rows": int(failed),
@@ -208,6 +233,52 @@ def build_image_cache(
     }
     (output_dir / "cache_audit.json").write_text(json.dumps(audit, indent=2), encoding="utf-8")
     return audit
+
+
+def _load_partial_resume_state(
+    *,
+    manifest_path: Path,
+    audit_path: Path,
+    image_size: int,
+    source_type: str | None,
+) -> dict[str, Any]:
+    """Load an interrupted cache build only when its lineage matches this run."""
+
+    if not manifest_path.exists() or not audit_path.exists():
+        return {"manifest_rows": [], "start_row_index": 1, "previews_written": 0}
+    audit = json.loads(audit_path.read_text(encoding="utf-8"))
+    if int(audit.get("image_size", -1)) != int(image_size):
+        raise ValueError(f"partial cache image_size mismatch: {audit.get('image_size')} != {image_size}")
+    if str(audit.get("resize_policy", "")) != RESIZE_POLICY:
+        raise ValueError(f"partial cache resize_policy mismatch: {audit.get('resize_policy')} != {RESIZE_POLICY}")
+    if audit.get("source_type_filter") != source_type:
+        raise ValueError(
+            f"partial cache source_type_filter mismatch: {audit.get('source_type_filter')} != {source_type}"
+        )
+    manifest = pd.read_csv(manifest_path, low_memory=False)
+    required = {"image_context_id", "cache_path", "image_size", "cache_format", "resize_policy"}
+    missing = sorted(required.difference(manifest.columns))
+    if missing:
+        raise ValueError(f"partial cache manifest missing columns: {missing}")
+    duplicate_context = int(manifest["image_context_id"].duplicated().sum())
+    if duplicate_context:
+        raise ValueError(f"partial cache manifest duplicate image_context_id rows: {duplicate_context}")
+    size_mismatch = int(pd.to_numeric(manifest["image_size"], errors="coerce").ne(image_size).sum())
+    if size_mismatch:
+        raise ValueError(f"partial cache manifest image_size mismatch rows: {size_mismatch}")
+    policy_mismatch = int(manifest["resize_policy"].astype(str).ne(RESIZE_POLICY).sum())
+    if policy_mismatch:
+        raise ValueError(f"partial cache manifest resize_policy mismatch rows: {policy_mismatch}")
+    checkpoint_row_index = int(audit.get("checkpoint_row_index", len(manifest)))
+    if checkpoint_row_index < len(manifest):
+        raise ValueError(
+            f"partial audit checkpoint_row_index {checkpoint_row_index} is behind manifest rows {len(manifest)}"
+        )
+    return {
+        "manifest_rows": manifest.to_dict("records"),
+        "start_row_index": checkpoint_row_index + 1,
+        "previews_written": int(audit.get("previews_written", 0)),
+    }
 
 
 def _write_cache_checkpoint(

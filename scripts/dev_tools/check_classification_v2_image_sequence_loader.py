@@ -9,6 +9,8 @@ import numpy as np
 import pandas as pd
 from PIL import Image
 
+from pig_behavior.classification_v2.datasets.image_sequence_dataset import letterbox_rgb_uint8
+
 try:
     import cv2  # type: ignore
 except Exception:  # pragma: no cover
@@ -136,8 +138,8 @@ def _read_legacy_image(row: pd.Series, crop_root: Path, size: int) -> np.ndarray
     if path is None:
         return None
     try:
-        img = Image.open(path).convert("RGB").resize((size, size), Image.Resampling.BILINEAR)
-        return np.asarray(img, dtype=np.uint8)
+        img = Image.open(path).convert("RGB")
+        return letterbox_rgb_uint8(np.asarray(img, dtype=np.uint8), size)
     except Exception:
         return None
 
@@ -172,8 +174,7 @@ def _read_cvat_crop(row: pd.Series, video_root: Path, video_index: dict[str, Pat
     if crop.size == 0:
         return None
     crop = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
-    crop = cv2.resize(crop, (size, size), interpolation=cv2.INTER_LINEAR)
-    return crop.astype(np.uint8)
+    return letterbox_rgb_uint8(crop.astype(np.uint8), size)
 
 
 def _as_bool(series: pd.Series) -> pd.Series:
