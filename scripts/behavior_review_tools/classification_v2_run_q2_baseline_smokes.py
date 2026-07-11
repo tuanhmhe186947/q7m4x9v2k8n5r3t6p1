@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
@@ -31,6 +32,7 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--eval-batch-size", type=int, default=16)
     parser.add_argument("--fold-id", default="q2_outer_00")
+    parser.add_argument("--python-exe", default="python", help="Python executable to show in generated CMD commands.")
     parser.add_argument("--execute", action="store_true", help="Run the bounded smokes. Omit for plan-only audit.")
     args = parser.parse_args()
 
@@ -78,6 +80,8 @@ def main() -> None:
         "schema_version": "classification_v2_q2_baseline_smoke_orchestration_v1",
         "mode": "execute" if args.execute else "plan_only",
         "selected_baselines": selected,
+        "runtime_python_executable": sys.executable,
+        "planned_python_executable": args.python_exe,
         "full_oof_executed": False,
         "outer_test_threshold_tuning": False,
         "plan": plan_rows,
@@ -92,7 +96,7 @@ def _cmd_for_baseline(config_path: Path, baseline_id: str, args: argparse.Namesp
     return (
         "cd /d C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project && "
         "set PYTHONPATH=%CD%\\src && "
-        "python scripts\\behavior_review_tools\\classification_v2_run_q2_baseline_smokes.py "
+        f"{args.python_exe} scripts\\behavior_review_tools\\classification_v2_run_q2_baseline_smokes.py "
         f"--baseline {baseline_id} "
         f"--output-dir {args.output_dir} "
         f"--smoke-steps {args.smoke_steps} "

@@ -323,11 +323,14 @@ def _build_model(
 
     validate_model_inputs(probe.model_inputs)
     spatial = probe.model_inputs["spatial_features"]
-    spatial_dims = {name: int(value.shape[-1]) for name, value in spatial.items()}
-    if tuple(sorted(spatial_dims)) != tuple(sorted(config.model.spatial_feature_groups)):
+    observed_spatial_dims = {name: int(value.shape[-1]) for name, value in spatial.items()}
+    spatial_dims = observed_spatial_dims if config.model.enable_spatial else {}
+    if config.model.enable_spatial and tuple(sorted(spatial_dims)) != tuple(
+        sorted(config.model.spatial_feature_groups)
+    ):
         raise ValueError(
             f"spatial whitelist mismatch: config={config.model.spatial_feature_groups}, "
-            f"data={sorted(spatial_dims)}"
+            f"data={sorted(observed_spatial_dims)}"
         )
     interaction_dim = int(probe.model_inputs["interaction_context_features"].shape[-1])
     return MultitaskFusionClassifier(
