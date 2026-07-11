@@ -28,7 +28,7 @@ def build_full_run_preflight(
     plan = build_full_multimodal_oof_run_plan(config)
     snapshot = check_training_snapshot(snapshot_json)
     runtime = json.loads(runtime_benchmark_audit_json.read_text(encoding="utf-8"))
-    git_state = _git_state()
+    git_state = current_git_state()
     errors: list[str] = []
     warnings: list[str] = []
     if config.run_mode != "full":
@@ -108,7 +108,35 @@ def _runtime_match_errors(config: FullMultimodalOofConfig, runtime: dict[str, An
     return errors
 
 
-def _git_state() -> dict[str, Any]:
+def validate_preflight_for_execution(
+    config: FullMultimodalOofConfig,
+    preflight: dict[str, Any],
+    *,
+    git_state: dict[str, Any] | None = None,
+) -> list[str]:
+    """Reject stale, dirty, invalid, or config-mismatched preflight payloads."""
+
+    state = git_state or current_git_state()
+    errors: list[str] = []
+    if preflight.get("valid") is not True or preflight.get("errors"):
+        errors.append(f"full_run_preflight_invalid={preflight.get('errors')}")
+    expected = full_run_config_fingerprint(config)
+    if preflight.get("config_sha256") != expected:
+        errors.append(
+            f"full_run_config_fingerprint_mismatch=expected:{expected},preflight:{preflight.get('config_sha256')}"
+        )
+    if preflight.get("git_dirty") is not False:
+        errors.append(f"preflight_git_dirty={preflight.get('git_dirty')}")
+    if state.get("dirty") is not False:
+        errors.append(f"current_git_dirty={state.get('dirty')}")
+    if not state.get("commit") or state.get("commit") != preflight.get("git_commit"):
+        errors.append(
+            f"preflight_git_commit_mismatch=preflight:{preflight.get('git_commit')},current:{state.get('commit')}"
+        )
+    return errors
+
+
+def current_git_state() -> dict[str, Any]:
     """Read the commit and dirty state bound to the future full-run artifact."""
 
     try:

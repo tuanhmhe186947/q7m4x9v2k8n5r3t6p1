@@ -9,9 +9,9 @@ from pig_behavior.classification_v2.training.full_multimodal_oof import (
     PRECISION_POLICIES,
     SAMPLE_WEIGHT_POLICIES,
     FullMultimodalOofConfig,
-    full_run_config_fingerprint,
     run_full_multimodal_oof,
 )
+from pig_behavior.classification_v2.training.full_run_preflight import validate_preflight_for_execution
 
 
 def main() -> None:
@@ -108,14 +108,9 @@ def _validate_full_execution_confirmation(
     if preflight_json is None or not preflight_json.exists():
         raise ValueError("--full requires an existing --preflight-json")
     preflight = json.loads(preflight_json.read_text(encoding="utf-8"))
-    if preflight.get("valid") is not True or preflight.get("errors"):
-        raise ValueError(f"full-run preflight is invalid: {preflight.get('errors')}")
-    expected = full_run_config_fingerprint(config)
-    if preflight.get("config_sha256") != expected:
-        raise ValueError(
-            "full-run config differs from preflight: "
-            f"expected={expected}, preflight={preflight.get('config_sha256')}"
-        )
+    errors = validate_preflight_for_execution(config, preflight)
+    if errors:
+        raise ValueError(f"full-run preflight execution gate failed: {errors}")
 
 
 if __name__ == "__main__":
