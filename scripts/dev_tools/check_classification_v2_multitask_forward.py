@@ -69,6 +69,32 @@ def main() -> None:
     for name, value in head_gradients.items():
         if value <= 0.0:
             errors.append(f"no_gradient_to_auxiliary_head={name}")
+    behavior_only = MultitaskFusionClassifier(
+        MultimodalFusionConfig(
+            spatial_input_dims={"bbox_xywh_n": 4, "motion_delta": 3},
+            num_classes=10,
+            interaction_context_dim=5,
+            image_embedding_dim=16,
+            spatial_embedding_dim=16,
+            interaction_embedding_dim=8,
+            visual_context_embedding_dim=16,
+            fusion_hidden_dim=24,
+            dropout=0.0,
+            enable_visual_context=True,
+        ),
+        enable_auxiliary_heads=False,
+    )
+    behavior_only_output = behavior_only(**model_inputs)
+    behavior_only_auxiliary_shapes = {
+        name: list(logits.shape)
+        for name, logits in behavior_only_output.auxiliary_logits().items()
+    }
+    if any(shape[1] != 0 for shape in behavior_only_auxiliary_shapes.values()):
+        errors.append(f"behavior_only_auxiliary_heads_present={behavior_only_auxiliary_shapes}")
+    behavior_only_parameter_count = int(sum(p.numel() for p in behavior_only.parameters()))
+    multitask_parameter_count = int(sum(p.numel() for p in model.parameters()))
+    if behavior_only_parameter_count >= multitask_parameter_count:
+        errors.append("behavior_only_parameter_count_not_reduced")
     audit = {
         "schema_version": "classification_v2_multitask_forward_audit_v1",
         "shape_report": shape_report,
@@ -76,6 +102,9 @@ def main() -> None:
         "behavior_only_parity_max_abs_delta": parity_delta,
         "shared_image_encoder_gradient_abs_sum": shared_gradient,
         "auxiliary_head_gradient_abs_sum": head_gradients,
+        "behavior_only_auxiliary_shapes": behavior_only_auxiliary_shapes,
+        "behavior_only_parameter_count": behavior_only_parameter_count,
+        "multitask_parameter_count": multitask_parameter_count,
         "auxiliary_targets_used_as_model_inputs": False,
         "errors": errors,
         "valid": not errors,

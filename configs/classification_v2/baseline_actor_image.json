@@ -27,7 +27,7 @@
     "enable_spatial": false,
     "enable_interaction_context": false,
     "enable_visual_context": false,
-    "enable_multitask": true
+    "enable_multitask": false
   },
   "optimization": {
     "optimizer": "adamw", "learning_rate": 0.003, "weight_decay": 0.0, "epochs": 3,
@@ -36,8 +36,8 @@
     "early_stopping_metric": "validation_window_macro_f1", "early_stopping_patience": 3
   },
   "loss": {
-    "behavior_weight": 1.0, "posture_weight": 0.25, "motion_context_weight": 0.25,
-    "roi_intent_weight": 0.25, "interaction_weight": 0.25, "hierarchy_consistency_weight": 0.1,
+    "behavior_weight": 1.0, "posture_weight": 0.0, "motion_context_weight": 0.0,
+    "roi_intent_weight": 0.0, "interaction_weight": 0.0, "hierarchy_consistency_weight": 0.0,
     "class_weight_power": 0.5, "class_weight_max": 5.0
   },
   "execution": {

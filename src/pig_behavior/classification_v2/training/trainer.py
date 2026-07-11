@@ -77,12 +77,16 @@ def run_training(config: ClassificationV2TrainingConfig) -> dict[str, Any]:
         )
         scaler = torch.amp.GradScaler("cuda", enabled=device.type == "cuda" and config.optimization.precision == "amp")
         behavior_weights = _behavior_class_weights(data, train_indices, config, device)
-        auxiliary_weights = build_fold_auxiliary_class_weights(
-            data.auxiliary.iloc[train_indices],
-            data.auxiliary_label_maps,
-            power=config.loss.class_weight_power,
-            max_weight=config.loss.class_weight_max,
-            device=device,
+        auxiliary_weights = (
+            build_fold_auxiliary_class_weights(
+                data.auxiliary.iloc[train_indices],
+                data.auxiliary_label_maps,
+                power=config.loss.class_weight_power,
+                max_weight=config.loss.class_weight_max,
+                device=device,
+            )
+            if config.model.enable_multitask
+            else {}
         )
         task_specs = _task_specs(config)
         history: list[dict[str, Any]] = []
@@ -234,14 +238,18 @@ def _train_epoch(
             )
             denominator = batch.sample_weight.sum().clamp_min(1e-8)
             behavior_loss = (behavior_per_row * batch.sample_weight).sum() / denominator
-            auxiliary_loss, _ = masked_multitask_loss(
-                output.auxiliary_logits(),
-                batch.auxiliary_targets,
-                batch.auxiliary_masks,
-                task_specs=task_specs,
-                class_weights_by_task=auxiliary_weights,
-            )
-            consistency = hierarchy_consistency_loss(output.behavior, output.auxiliary_logits())
+            if config.model.enable_multitask:
+                auxiliary_loss, _ = masked_multitask_loss(
+                    output.auxiliary_logits(),
+                    batch.auxiliary_targets,
+                    batch.auxiliary_masks,
+                    task_specs=task_specs,
+                    class_weights_by_task=auxiliary_weights,
+                )
+                consistency = hierarchy_consistency_loss(output.behavior, output.auxiliary_logits())
+            else:
+                auxiliary_loss = behavior_loss.new_zeros(())
+                consistency = behavior_loss.new_zeros(())
             total = (
                 config.loss.behavior_weight * behavior_loss
                 + auxiliary_loss
@@ -337,7 +345,8 @@ def _build_model(
             enable_spatial=config.model.enable_spatial,
             enable_interaction_context=config.model.enable_interaction_context,
             enable_visual_context=config.model.enable_visual_context,
-        )
+        ),
+        enable_auxiliary_heads=config.model.enable_multitask,
     )
 
 

@@ -122,6 +122,15 @@ def validate_training_config(config: ClassificationV2TrainingConfig) -> None:
         errors.append(f"unsupported_version={config.version}")
     if config.model.architecture_version != MULTITASK_ARCHITECTURE_VERSION:
         errors.append(f"architecture_version_mismatch={config.model.architecture_version}")
+    auxiliary_loss_values = [
+        config.loss.posture_weight,
+        config.loss.motion_context_weight,
+        config.loss.roi_intent_weight,
+        config.loss.interaction_weight,
+        config.loss.hierarchy_consistency_weight,
+    ]
+    if not config.model.enable_multitask and any(value != 0.0 for value in auxiliary_loss_values):
+        errors.append("behavior_only_model_requires_zero_auxiliary_loss_weights")
     if not config.model.spatial_feature_groups:
         errors.append("spatial_feature_groups_empty")
     unknown_standardized = sorted(
