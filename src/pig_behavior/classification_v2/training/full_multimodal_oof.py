@@ -43,6 +43,16 @@ from pig_behavior.classification_v2.models.multimodal_fusion import (
 from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
 from pig_behavior.classification_v2.training.spatial_tcn_smoke import MODEL_GROUPS
 
+ABLATION_VARIANTS = (
+    "full",
+    "image_only",
+    "spatial_only",
+    "no_interaction",
+    "no_roi",
+    "no_social",
+    "no_motion",
+)
+
 
 @dataclass(frozen=True, slots=True)
 class FullMultimodalOofConfig:
@@ -77,6 +87,7 @@ class FullMultimodalOofConfig:
     device: str = "auto"
     run_mode: str = "pilot"
     resume: bool = True
+    ablation_variant: str = "full"
 
 
 def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
@@ -152,6 +163,7 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
         "run_mode": config.run_mode,
         "paper_facing_result": _is_full_run(config, bundle),
         "config": _jsonable_config(config),
+        "ablation_settings": _ablation_settings(config.ablation_variant),
         "device": str(device),
         "label_order": label_order,
         "load_audit": bundle.load_audit,
@@ -299,15 +311,27 @@ def _run_one_fold(
     if len(train_indices) < 2 or len(eval_indices) < 1:
         raise ValueError(f"fold {fold_id} has insufficient train/eval rows")
     model = MultimodalFusionClassifier(
+        # Variant settings alter instantiated branches and spatial input dims,
+        # so ablation outputs cannot receive signal from disabled tensors.
         MultimodalFusionConfig(
-            spatial_input_dims={name: int(bundle.arrays[name].shape[-1]) for name in MODEL_GROUPS},
+            spatial_input_dims={
+                name: int(bundle.arrays[name].shape[-1])
+                for name in _ablation_settings(config.ablation_variant)["spatial_groups"]
+            },
             num_classes=len(label_order),
-            interaction_context_dim=len(INTERACTION_CONTEXT_FEATURE_COLUMNS),
+            interaction_context_dim=(
+                len(INTERACTION_CONTEXT_FEATURE_COLUMNS)
+                if _ablation_settings(config.ablation_variant)["enable_interaction"]
+                else None
+            ),
             image_embedding_dim=config.hidden_dim,
             spatial_embedding_dim=config.hidden_dim,
             interaction_embedding_dim=max(8, config.hidden_dim // 2),
             fusion_hidden_dim=config.hidden_dim,
             dropout=config.dropout,
+            enable_image=bool(_ablation_settings(config.ablation_variant)["enable_image"]),
+            enable_spatial=bool(_ablation_settings(config.ablation_variant)["enable_spatial"]),
+            enable_interaction_context=bool(_ablation_settings(config.ablation_variant)["enable_interaction"]),
         )
     ).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
@@ -337,7 +361,7 @@ def _run_one_fold(
         model.train()
         for step_index in range(int(config.steps_per_fold)):
             batch_indices = _step_train_indices(train_indices, config.train_batch_size, rng, step_index)
-            train_batch = _batch_from_indices(dataset, bundle, batch_indices, label_to_idx, device)
+            train_batch = _batch_from_indices(dataset, bundle, batch_indices, label_to_idx, config, device)
             optimizer.zero_grad(set_to_none=True)
             logits = _forward_model(model, train_batch)
             loss = loss_fn(logits, train_batch["target"])
@@ -377,6 +401,21 @@ def _run_one_fold(
     )
     audit = {
         "oof_fold_id": str(fold_id),
+        "ablation_variant": config.ablation_variant,
+        "ablation_settings": _ablation_settings(config.ablation_variant),
+        "instantiated_branches": {
+            "image": model.image_encoder is not None,
+            "spatial": model.spatial_encoder is not None,
+            "interaction": model.interaction_context_encoder is not None,
+        },
+        "spatial_branch_order": (
+            list(model.spatial_encoder.branch_order) if model.spatial_encoder is not None else []
+        ),
+        "trainable_parameter_count": int(
+            sum(parameter.numel() for parameter in model.parameters() if parameter.requires_grad)
+        ),
+        "train_indices_sha256": training_signature["train_indices_sha256"],
+        "eval_indices_sha256": training_signature["eval_indices_sha256"],
         "train_rows": int(len(train_indices)),
         "eval_rows": int(len(eval_indices)),
         "train_batch_size": int(config.train_batch_size),
@@ -525,21 +564,35 @@ def _batch_from_indices(
     bundle: _OofBundle,
     indices: np.ndarray,
     label_to_idx: dict[str, int],
+    config: FullMultimodalOofConfig,
     device: torch.device,
 ) -> dict[str, Any]:
     """Build one multimodal batch from aligned global row indices."""
 
-    image_batch = image_sequence_collate([dataset[int(index)] for index in indices])
-    image_errors = [err for item_errors in image_batch["errors"] for err in item_errors]
-    if image_errors:
-        raise ValueError(f"image load errors: {image_errors[:10]}")
+    settings = _ablation_settings(config.ablation_variant)
+    if settings["enable_image"]:
+        image_batch = image_sequence_collate([dataset[int(index)] for index in indices])
+        image_errors = [err for item_errors in image_batch["errors"] for err in item_errors]
+        if image_errors:
+            raise ValueError(f"image load errors: {image_errors[:10]}")
+        image = image_batch["image"].float().to(device)
+        image_length_mask = image_batch["length_mask"].float().to(device)
+        image_observed_mask = image_batch["observed_mask"].float().to(device)
+    else:
+        # Disabled image branches receive shape-valid placeholders and perform
+        # no cache/source I/O; the model never consumes these tensors.
+        batch_size = int(len(indices))
+        image = torch.zeros((batch_size, 1, 3, 1, 1), dtype=torch.float32, device=device)
+        image_length_mask = torch.ones((batch_size, 1), dtype=torch.float32, device=device)
+        image_observed_mask = torch.zeros((batch_size, 1), dtype=torch.float32, device=device)
     target_labels = bundle.frame.iloc[indices]["behavior_true"].astype(str).tolist()
     return {
-        "image": image_batch["image"].float().to(device),
-        "image_length_mask": image_batch["length_mask"].float().to(device),
-        "image_observed_mask": image_batch["observed_mask"].float().to(device),
+        "image": image,
+        "image_length_mask": image_length_mask,
+        "image_observed_mask": image_observed_mask,
         "spatial_features": {
-            name: torch.from_numpy(bundle.arrays[name][indices]).float().to(device) for name in MODEL_GROUPS
+            name: torch.from_numpy(bundle.arrays[name][indices]).float().to(device)
+            for name in settings["spatial_groups"]
         },
         "spatial_length_mask": torch.from_numpy(bundle.arrays["length_mask"][indices]).float().to(device),
         "spatial_observed_mask": torch.from_numpy(bundle.arrays["observed_mask"][indices]).float().to(device),
@@ -617,7 +670,8 @@ def _predict_in_batches(
     """Predict a held-out fold in resumable chunks so long folds survive timeouts."""
 
     chunks: list[pd.DataFrame] = []
-    role = "full_multimodal_oof" if _is_full_run(config, bundle) else "full_multimodal_oof_pilot"
+    role_base = "full_multimodal_oof" if _is_full_run(config, bundle) else "full_multimodal_oof_pilot"
+    role = f"{role_base}_{config.ablation_variant}"
     if chunk_dir is not None:
         chunk_dir.mkdir(parents=True, exist_ok=True)
     for start in range(0, len(indices), int(config.eval_batch_size)):
@@ -627,7 +681,7 @@ def _predict_in_batches(
             chunks.append(pd.read_csv(chunk_path, low_memory=False))
             continue
         chunk_indices = indices[start : start + int(config.eval_batch_size)]
-        batch = _batch_from_indices(dataset, bundle, chunk_indices, label_to_idx, device)
+        batch = _batch_from_indices(dataset, bundle, chunk_indices, label_to_idx, config, device)
         chunk_predictions = _predict(model, bundle, chunk_indices, batch, label_order, fold_id, role)
         if chunk_path is not None:
             chunk_predictions.to_csv(chunk_path, index=False)
@@ -684,6 +738,8 @@ def _validate_config(config: FullMultimodalOofConfig) -> None:
         raise ValueError("max_folds must be positive when provided")
     if config.run_mode not in {"pilot", "full"}:
         raise ValueError("run_mode must be pilot or full")
+    if config.ablation_variant not in ABLATION_VARIANTS:
+        raise ValueError(f"unsupported ablation_variant={config.ablation_variant}")
     if config.run_mode == "pilot" and (
         config.max_folds is None or config.train_per_class_per_fold is None or config.eval_per_class_per_fold is None
     ):
@@ -734,6 +790,7 @@ def _fold_training_signature(
         "eval_batch_size": int(config.eval_batch_size),
         "train_per_class_per_fold": config.train_per_class_per_fold,
         "eval_per_class_per_fold": config.eval_per_class_per_fold,
+        "ablation_variant": config.ablation_variant,
         "train_indices_sha256": _indices_checksum(train_indices),
         "eval_indices_sha256": _indices_checksum(eval_indices),
     }
@@ -743,6 +800,31 @@ def _indices_checksum(indices: np.ndarray) -> str:
     """Hash ordered row indices used for training/evaluation artifact lineage."""
 
     return hashlib.sha256(np.asarray(indices, dtype=np.int64).tobytes()).hexdigest()
+
+
+def _ablation_settings(variant: str) -> dict[str, Any]:
+    """Map a predeclared variant to branches and exact spatial feature groups."""
+
+    groups = list(MODEL_GROUPS)
+    settings: dict[str, Any] = {
+        "enable_image": True,
+        "enable_spatial": True,
+        "enable_interaction": True,
+        "spatial_groups": groups,
+    }
+    if variant == "image_only":
+        settings.update(enable_spatial=False, enable_interaction=False, spatial_groups=[])
+    elif variant == "spatial_only":
+        settings.update(enable_image=False, enable_interaction=False)
+    elif variant == "no_interaction":
+        settings["enable_interaction"] = False
+    elif variant == "no_roi":
+        settings["spatial_groups"] = [name for name in groups if name != "roi_class_relation"]
+    elif variant == "no_social":
+        settings["spatial_groups"] = [name for name in groups if name != "social_relation"]
+    elif variant == "no_motion":
+        settings["spatial_groups"] = [name for name in groups if name != "motion_delta"]
+    return settings
 
 
 def _safe_fold_id(fold_id: str) -> str:

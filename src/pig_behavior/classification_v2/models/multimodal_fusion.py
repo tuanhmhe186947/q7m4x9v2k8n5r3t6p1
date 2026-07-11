@@ -141,6 +141,9 @@ class MultimodalFusionConfig:
     interaction_embedding_dim: int = 32
     fusion_hidden_dim: int = 96
     dropout: float = 0.1
+    enable_image: bool = True
+    enable_spatial: bool = True
+    enable_interaction_context: bool | None = None
 
 
 class MultimodalFusionClassifier(nn.Module):
@@ -150,20 +153,37 @@ class MultimodalFusionClassifier(nn.Module):
         super().__init__()
         if config.num_classes <= 1:
             raise ValueError("num_classes must be greater than 1")
+        interaction_enabled = (
+            config.interaction_context_dim is not None
+            if config.enable_interaction_context is None
+            else bool(config.enable_interaction_context)
+        )
+        if not any([config.enable_image, config.enable_spatial, interaction_enabled]):
+            raise ValueError("at least one multimodal branch must be enabled")
         self.config = config
-        self.image_encoder = ImageSequenceEncoder(
-            ImageSequenceEncoderConfig(embedding_dim=config.image_embedding_dim, dropout=config.dropout)
-        )
-        self.spatial_encoder = SpatialSequenceEncoder(
-            SpatialSequenceEncoderConfig(
-                input_dims=config.spatial_input_dims,
-                embedding_dim=config.spatial_embedding_dim,
-                dropout=config.dropout,
+        self.image_encoder: ImageSequenceEncoder | None = None
+        image_dim = 0
+        if config.enable_image:
+            self.image_encoder = ImageSequenceEncoder(
+                ImageSequenceEncoderConfig(embedding_dim=config.image_embedding_dim, dropout=config.dropout)
             )
-        )
+            image_dim = config.image_embedding_dim
+        self.spatial_encoder: SpatialSequenceEncoder | None = None
+        spatial_dim = 0
+        if config.enable_spatial:
+            self.spatial_encoder = SpatialSequenceEncoder(
+                SpatialSequenceEncoderConfig(
+                    input_dims=config.spatial_input_dims,
+                    embedding_dim=config.spatial_embedding_dim,
+                    dropout=config.dropout,
+                )
+            )
+            spatial_dim = config.spatial_embedding_dim
         self.interaction_context_encoder: nn.Module | None = None
         interaction_dim = 0
-        if config.interaction_context_dim is not None:
+        if interaction_enabled:
+            if config.interaction_context_dim is None:
+                raise ValueError("interaction_context_dim required when interaction branch is enabled")
             if config.interaction_context_dim <= 0:
                 raise ValueError("interaction_context_dim must be positive when provided")
             if config.interaction_embedding_dim <= 0:
@@ -175,7 +195,7 @@ class MultimodalFusionClassifier(nn.Module):
                 nn.Dropout(config.dropout),
             )
             interaction_dim = config.interaction_embedding_dim
-        fused_dim = config.image_embedding_dim + config.spatial_embedding_dim + interaction_dim
+        fused_dim = image_dim + spatial_dim + interaction_dim
         self.classifier = nn.Sequential(
             nn.LayerNorm(fused_dim),
             nn.Linear(fused_dim, config.fusion_hidden_dim),
@@ -205,23 +225,30 @@ class MultimodalFusionClassifier(nn.Module):
         current audited data, where image context windows may contain 6 frames
         while spatial arrays are padded to the maximum configured window length.
         """
-        image_embedding = self.image_encoder(
-            image,
-            length_mask=image_length_mask if image_length_mask is not None else length_mask,
-            observed_mask=image_observed_mask if image_observed_mask is not None else observed_mask,
-        )
-        spatial_embedding = self.spatial_encoder(
-            spatial_features,
-            length_mask=spatial_length_mask if spatial_length_mask is not None else length_mask,
-            observed_mask=spatial_observed_mask if spatial_observed_mask is not None else observed_mask,
-        )
-        embeddings = [image_embedding, spatial_embedding]
+        embeddings: list[torch.Tensor] = []
+        batch_size: int | None = None
+        if self.image_encoder is not None:
+            image_embedding = self.image_encoder(
+                image,
+                length_mask=image_length_mask if image_length_mask is not None else length_mask,
+                observed_mask=image_observed_mask if image_observed_mask is not None else observed_mask,
+            )
+            embeddings.append(image_embedding)
+            batch_size = int(image_embedding.shape[0])
+        if self.spatial_encoder is not None:
+            spatial_embedding = self.spatial_encoder(
+                spatial_features,
+                length_mask=spatial_length_mask if spatial_length_mask is not None else length_mask,
+                observed_mask=spatial_observed_mask if spatial_observed_mask is not None else observed_mask,
+            )
+            embeddings.append(spatial_embedding)
+            batch_size = int(spatial_embedding.shape[0])
         if self.interaction_context_encoder is not None:
             if interaction_context_features is None:
                 raise ValueError("interaction_context_features required by model config")
             if interaction_context_features.ndim != 2:
                 raise ValueError("interaction_context_features must have shape [B, D]")
-            if interaction_context_features.shape[0] != image_embedding.shape[0]:
+            if batch_size is not None and interaction_context_features.shape[0] != batch_size:
                 raise ValueError("interaction_context_features batch size mismatch")
             interaction_embedding = self.interaction_context_encoder(interaction_context_features.float())
             if interaction_context_available_mask is not None:
