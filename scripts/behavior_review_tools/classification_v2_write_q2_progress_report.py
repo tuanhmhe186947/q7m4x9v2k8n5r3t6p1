@@ -62,6 +62,11 @@ def main() -> None:
         default=Path("outputs/classification_v2/model_design/q2_feature_whitelist_audit.json"),
     )
     parser.add_argument(
+        "--q2-final-package-stub-json",
+        type=Path,
+        default=Path("outputs/classification_v2/model_design/q2_final_package_stub_audit.json"),
+    )
+    parser.add_argument(
         "--output-json",
         type=Path,
         default=Path("outputs/classification_v2/model_design/q2_progress_report.json"),
@@ -83,6 +88,7 @@ def main() -> None:
     q2_active_review_contract = _load_optional_json(args.q2_active_review_contract_json)
     q2_final_package_contract = _load_optional_json(args.q2_final_package_contract_json)
     q2_feature_whitelist = _load_optional_json(args.q2_feature_whitelist_json)
+    q2_final_package_stub = _load_optional_json(args.q2_final_package_stub_json)
 
     gates = [
         _gate("S0A snapshot/data contract", snapshot.get("valid") is True, snapshot.get("errors")),
@@ -130,6 +136,14 @@ def main() -> None:
             q2_feature_whitelist.get("errors"),
         ),
         _gate(
+            "Q2 final package skeleton no-claim gate",
+            q2_final_package_stub.get("valid") is True
+            and q2_final_package_stub.get("status") == "BLOCKED_PENDING_FULL_OOF"
+            and q2_final_package_stub.get("can_claim_q2_result") is False
+            and q2_final_package_stub.get("paper_facing_metrics_available") is False,
+            q2_final_package_stub.get("errors"),
+        ),
+        _gate(
             "Strict trainer reproducibility",
             reproducibility.get("errors") == [] and reproducibility.get("forbidden_model_input_rejected") is True,
             reproducibility.get("errors"),
@@ -143,6 +157,7 @@ def main() -> None:
         "S8 active-review loop contract is defined; actual decisions require human GUI review before apply.",
         "S9 final package contract is defined; final paper metrics still need explicitly authorized full OOF/final-test execution.",
         "Q2 feature whitelist is defined; every new trainer must consume it or an equivalent checked contract.",
+        "Q2 final package skeleton exists only as a blocked/no-claim artifact until full OOF is authorized and complete.",
     ]
     result = {
         "schema_version": "classification_v2_q2_progress_report_v1",
@@ -160,6 +175,7 @@ def main() -> None:
             "q2_active_review_contract": _evidence_q2_active_review_contract(q2_active_review_contract),
             "q2_final_package_contract": _evidence_q2_final_package_contract(q2_final_package_contract),
             "q2_feature_whitelist": _evidence_q2_feature_whitelist(q2_feature_whitelist),
+            "q2_final_package_stub": _evidence_q2_final_package_stub(q2_final_package_stub),
             "reproducibility": _evidence_reproducibility(reproducibility),
         },
     }
@@ -300,6 +316,17 @@ def _evidence_q2_feature_whitelist(audit: dict[str, Any]) -> dict[str, Any]:
         "forbidden_probe_columns_not_blocked": audit.get("forbidden_probe_columns_not_blocked"),
         "tabular_trainer_whitelist_count": audit.get("tabular_trainer_whitelist_count"),
         "spatial_trainer_whitelist_count": audit.get("spatial_trainer_whitelist_count"),
+    }
+
+
+def _evidence_q2_final_package_stub(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "status": audit.get("status"),
+        "can_claim_q2_result": audit.get("can_claim_q2_result"),
+        "paper_facing_metrics_available": audit.get("paper_facing_metrics_available"),
+        "missing_required_package_artifact_count": audit.get("missing_required_package_artifact_count"),
+        "feature_whitelist_valid": audit.get("feature_whitelist_valid"),
     }
 
 
