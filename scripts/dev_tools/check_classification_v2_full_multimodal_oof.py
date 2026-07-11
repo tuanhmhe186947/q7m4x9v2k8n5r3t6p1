@@ -21,14 +21,12 @@ def main() -> None:
     parser.add_argument(
         "--predictions-csv",
         type=Path,
-        default=Path(
-            "outputs/classification_v2/model_smoke/full_multimodal_oof_pilot/full_multimodal_oof_predictions.csv"
-        ),
+        default=None,
     )
     parser.add_argument(
         "--metrics-json",
         type=Path,
-        default=Path("outputs/classification_v2/model_smoke/full_multimodal_oof_pilot/full_multimodal_oof_metrics.json"),
+        default=None,
     )
     parser.add_argument(
         "--require-cache-only",
@@ -38,8 +36,13 @@ def main() -> None:
     args = parser.parse_args()
     errors: list[str] = []
     audit = _read_json(args.audit_json, errors, "audit")
-    metrics = _read_json(args.metrics_json, errors, "metrics")
-    schema_check = check_prediction_schema_csv(args.predictions_csv)
+    predictions_csv = args.predictions_csv or _path_from_audit(audit, "predictions_csv")
+    metrics_json = args.metrics_json or _path_from_audit(audit, "metrics_json")
+    metrics = _read_json(metrics_json, errors, "metrics") if metrics_json is not None else {}
+    schema_check = check_prediction_schema_csv(predictions_csv) if predictions_csv is not None else {
+        "valid": False,
+        "errors": ["missing_predictions_csv"],
+    }
     metrics_check = check_paper_metrics_payload(metrics) if metrics else {"errors": ["missing_metrics"]}
     errors.extend(f"audit:{error}" for error in audit.get("errors", []))
     errors.extend(f"prediction_schema:{error}" for error in schema_check.get("errors", []))
@@ -121,8 +124,8 @@ def main() -> None:
             errors.append("image_cache_hits_not_positive")
     result = {
         "audit_json": str(args.audit_json),
-        "predictions_csv": str(args.predictions_csv),
-        "metrics_json": str(args.metrics_json),
+        "predictions_csv": str(predictions_csv) if predictions_csv is not None else None,
+        "metrics_json": str(metrics_json) if metrics_json is not None else None,
         "run_mode": audit.get("run_mode"),
         "paper_facing_result": audit.get("paper_facing_result"),
         "prediction_rows": schema_check.get("prediction_rows"),
@@ -148,6 +151,15 @@ def _read_json(path: Path, errors: list[str], name: str) -> dict:
         errors.append(f"missing_{name}={path}")
         return {}
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _path_from_audit(audit: dict, key: str) -> Path | None:
+    """Resolve artifact paths from the audited run instead of a smoke default."""
+
+    value = audit.get(key)
+    if value is None or str(value).strip() == "":
+        return None
+    return Path(str(value))
 
 
 if __name__ == "__main__":
