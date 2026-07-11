@@ -1,0 +1,134 @@
+{
+  "version": "classification_v2_q2_hard_negative_mining_contract_v1",
+  "purpose": "Define a leakage-safe hard-negative and active-review shortlist policy for Q2 multimodal classification_v2.",
+  "claim_boundary": {
+    "target_strength": "Q2_strong",
+    "primary_claim": "Improve internal behavior recognition by reviewing predeclared confusion-focused model errors under recording-date/video-safe validation.",
+    "external_generalization_claim": false
+  },
+  "execution_policy": {
+    "requires_oof_native_predictions": true,
+    "requires_fold_assignment_lineage": true,
+    "may_run_without_full_oof_predictions": false,
+    "outer_test_used_for_threshold_tuning": false,
+    "automatic_label_change_allowed": false,
+    "automatic_row_drop_allowed": false,
+    "review_unit_decision_required_before_training_label_change": true
+  },
+  "input_contract": {
+    "native_unit_predictions_csv": "outputs/classification_v2/q2_oof_evaluation/native_unit_predictions.csv",
+    "q2_oof_metrics_json": "outputs/classification_v2/q2_oof_evaluation/q2_oof_metrics.json",
+    "review_unit_manifest_csv": "outputs/classification_v2/review_units/full_review_unit_manifest.csv",
+    "fold_assignments_csv": "outputs/classification_v2/q2_grouped_folds/q2_outer_fold_assignments.csv"
+  },
+  "required_input_columns": [
+    "temporal_unit_key",
+    "oof_fold_id",
+    "true_label",
+    "native_predicted_behavior",
+    "native_metric_include",
+    "source_type",
+    "video_key",
+    "behavior_label"
+  ],
+  "required_probability_columns": [
+    "prob_drink",
+    "prob_eat",
+    "prob_fight",
+    "prob_social-nose",
+    "prob_explore",
+    "prob_lying",
+    "prob_stand",
+    "prob_move",
+    "prob_sitting",
+    "prob_playwithtoy"
+  ],
+  "predeclared_confusion_pairs": [
+    ["fight", "social-nose"],
+    ["fight", "stand"],
+    ["fight", "move"],
+    ["eat", "stand"],
+    ["eat", "explore"],
+    ["drink", "stand"],
+    ["drink", "explore"],
+    ["playwithtoy", "explore"],
+    ["playwithtoy", "stand"],
+    ["playwithtoy", "move"],
+    ["lying", "sitting"],
+    ["move", "explore"],
+    ["move", "stand"]
+  ],
+  "selection_policy": {
+    "candidate_unit": "review_unit_id_or_temporal_unit_key",
+    "include_only_oof_mistakes": true,
+    "include_predeclared_confusion_pairs_only": true,
+    "allow_high_uncertainty_correct_predictions": true,
+    "uncertainty_source": "native OOF probabilities only",
+    "default_high_confidence_error_threshold": 0.7,
+    "default_low_margin_threshold": 0.15,
+    "per_fold_class_source_cap_required": true,
+    "deterministic_sort_keys": [
+      "priority_score_desc",
+      "oof_fold_id",
+      "source_type",
+      "true_label",
+      "temporal_unit_key"
+    ]
+  },
+  "required_output_artifacts": {
+    "shortlist_csv": "outputs/classification_v2/review_policy/q2_hard_negative_review_shortlist.csv",
+    "audit_json": "outputs/classification_v2/review_policy/q2_hard_negative_review_shortlist_audit.json"
+  },
+  "required_shortlist_columns": [
+    "review_shortlist_id",
+    "temporal_unit_key",
+    "review_unit_id",
+    "oof_fold_id",
+    "source_type",
+    "video_key",
+    "pig_id",
+    "unit_start_frame",
+    "unit_end_frame",
+    "true_label",
+    "predicted_label",
+    "predicted_confidence",
+    "true_label_probability",
+    "prediction_margin",
+    "confusion_pair",
+    "selection_reason",
+    "priority_score",
+    "review_template",
+    "requires_full_frame_partner_context",
+    "recommended_training_action",
+    "manual_review_decision"
+  ],
+  "required_audit_counts": [
+    "input_native_unit_rows",
+    "eligible_oof_rows",
+    "confusion_error_rows",
+    "uncertain_correct_rows",
+    "shortlist_rows",
+    "duplicate_temporal_unit_key",
+    "duplicate_review_unit_id",
+    "missing_review_unit_count",
+    "per_fold_counts",
+    "per_source_counts",
+    "per_true_label_counts",
+    "per_confusion_pair_counts"
+  ],
+  "leakage_guards": [
+    "selection_uses_oof_predictions_only",
+    "selection_thresholds_predeclared_or_inner_train_only",
+    "outer_test_never_used_to_choose_thresholds",
+    "review_shortlist_does_not_change_training_labels",
+    "manual_decisions_apply_only_through_review_unit_decision_pipeline",
+    "no_window_id_or_model_probability_column_used_as_future_label",
+    "pig_id_annotation_local_not_identity_split_key"
+  ],
+  "review_safety_rules": [
+    "pending_decisions_do_not_apply_corrected_behavior",
+    "exclude_sets_training_mask_or_weight_only_without_dropping_rows",
+    "corrected_labels_require_review_unit_id_and_apply_scope",
+    "interaction_shortlist_requires_full_frame_partner_context_when_available"
+  ]
+}
