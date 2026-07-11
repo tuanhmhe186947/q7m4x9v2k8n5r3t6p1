@@ -187,10 +187,13 @@ def _check_semantic_paper_payloads(
     if result_kind == "model_evaluation":
         calibration = _payload(provenance.get("calibration_audit_json"))
         comparison = _payload(provenance.get("confusion_comparison_json"))
+        source_report = _payload(provenance.get("source_balanced_metrics_json"))
         if calibration and calibration.get("complete_oof_fold_coverage") is not True:
             errors.append("calibration_incomplete_oof_fold_coverage")
         if comparison and comparison.get("paper_facing_ready") is not True:
             errors.append("confusion_comparison_not_paper_facing_ready")
+        if source_report and source_report.get("paper_facing_ready") is not True:
+            errors.append("source_balanced_report_not_paper_facing_ready")
 
 
 def _payload(artifact: dict[str, Any] | None) -> dict[str, Any]:
