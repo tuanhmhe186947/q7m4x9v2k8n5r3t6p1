@@ -42,9 +42,11 @@ def build_interaction_context_index(config: InteractionContextIndexConfig) -> In
     image_windows["window_id"] = image_windows["window_id"].astype(str)
     split["window_id"] = split["window_id"].astype(str)
 
-    duplicate_source_frame_uid = int(image_frames["frame_uid"].duplicated().sum())
-    frame_lookup_source = image_frames.sort_values(["frame_uid", "image_context_id"]).drop_duplicates(
-        "frame_uid",
+    # frame_uid identifies a video frame, not an actor.  image_context_id is the
+    # actor-frame key and prevents one pig from inheriting another pig's context.
+    duplicate_source_image_context_id = int(image_frames["image_context_id"].duplicated().sum())
+    frame_lookup_source = image_frames.sort_values("image_context_id").drop_duplicates(
+        "image_context_id",
         keep="first",
     )
     frame_lookup = _build_frame_lookup(frame_lookup_source)
@@ -89,13 +91,13 @@ def build_interaction_context_index(config: InteractionContextIndexConfig) -> In
     manifest["interaction_context_status"] = "not_interaction"
 
     stats_by_key = {
-        key: _interaction_frame_stats(frame_lookup, _split_sequence(key))
-        for key in merged["frame_uid_sequence"].fillna("").astype(str).unique()
+        key: _interaction_frame_stats(frame_lookup, _split_context_sequence(key))
+        for key in merged["image_context_id_sequence"].fillna("").astype(str).unique()
     }
     stats_records: list[dict[str, Any]] = []
     scene_statuses: list[str] = []
-    for frame_uid_sequence in merged["frame_uid_sequence"].fillna("").astype(str).tolist():
-        stats = stats_by_key[frame_uid_sequence]
+    for image_context_id_sequence in merged["image_context_id_sequence"].fillna("").astype(str).tolist():
+        stats = stats_by_key[image_context_id_sequence]
         stats_records.append(stats)
         scene_statuses.append(
             _scene_partner_status(
@@ -112,12 +114,19 @@ def build_interaction_context_index(config: InteractionContextIndexConfig) -> In
     manifest["scene_partner_context_ready"] = [status == "ready" for status in scene_statuses]
     manifest["scene_partner_context_status"] = scene_statuses
 
-    interaction_indices = manifest.index[manifest["is_interaction_window"]].tolist()
-    for idx in interaction_indices:
-        status = str(manifest.at[idx, "scene_partner_context_status"])
-        manifest.at[idx, "interaction_context_ready"] = status == "ready"
-        manifest.at[idx, "interaction_context_status"] = status
-    audit = _audit(manifest, duplicate_source_frame_uid=duplicate_source_frame_uid)
+    # Vectorized assignment matters here: this manifest contains every training
+    # window, and scalar DataFrame writes made a metadata-only rebuild minutes long.
+    interaction_mask = manifest["is_interaction_window"].astype(bool)
+    manifest.loc[interaction_mask, "interaction_context_ready"] = manifest.loc[
+        interaction_mask, "scene_partner_context_status"
+    ].eq("ready")
+    manifest.loc[interaction_mask, "interaction_context_status"] = manifest.loc[
+        interaction_mask, "scene_partner_context_status"
+    ].astype(str)
+    audit = _audit(
+        manifest,
+        duplicate_source_image_context_id=duplicate_source_image_context_id,
+    )
     config.output_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = config.output_dir / "interaction_window_context_manifest.csv"
     audit_path = config.output_dir / "interaction_context_audit.json"
@@ -153,6 +162,7 @@ def _validate_inputs(image_frames: pd.DataFrame, image_windows: pd.DataFrame, sp
         "window_start_frame",
         "window_end_frame",
         "frame_uid_sequence",
+        "image_context_id_sequence",
     }
     split_cols = {"window_id", "behavior_window_label"}
     missing = {
@@ -193,7 +203,7 @@ def _build_frame_lookup(frame_lookup_source: pd.DataFrame) -> dict[str, dict[str
     """Precompute frame context records so every window can be audited cheaply."""
     records: dict[str, dict[str, Any]] = {}
     for row in frame_lookup_source.itertuples(index=False):
-        records[str(row.frame_uid)] = {
+        records[str(row.image_context_id)] = {
             "full_frame_context_available": _bool_scalar(row.full_frame_context_available),
             "partner_context_available": _bool_scalar(row.partner_context_available),
             "interaction_partner_count": row.interaction_partner_count,
@@ -208,26 +218,33 @@ def _interaction_frame_stats(frame_lookup: dict[str, dict[str, Any]], frame_uids
     available_rows = len(frame_rows)
     full_frame_count = sum(1 for row in frame_rows if row["full_frame_context_available"])
     partner_count = sum(1 for row in frame_rows if row["partner_context_available"])
-    partner_counts = pd.to_numeric(
-        pd.Series([row["interaction_partner_count"] for row in frame_rows], dtype=object),
-        errors="coerce",
-    ).fillna(0)
+    # Avoid constructing a pandas Series for every window. With tens of
+    # thousands of windows this metadata calculation otherwise dominates runtime.
+    partner_counts = [_nonnegative_float(row["interaction_partner_count"]) for row in frame_rows]
     return {
         "expected_frame_slots": int(expected_slots),
         "available_frame_context_rows": int(available_rows),
         "full_frame_context_available_count": int(full_frame_count),
         "partner_context_available_count": int(partner_count),
-        "partner_count_mean": float(partner_counts.mean()) if available_rows else 0.0,
-        "partner_count_min": float(partner_counts.min()) if available_rows else 0.0,
-        "partner_ids_union": _partner_ids_union(
-            pd.Series([row["interaction_partner_ids"] for row in frame_rows], dtype=object)
-        )
+        "partner_count_mean": float(sum(partner_counts) / available_rows) if available_rows else 0.0,
+        "partner_count_min": float(min(partner_counts)) if available_rows else 0.0,
+        "partner_ids_union": _partner_ids_union([row["interaction_partner_ids"] for row in frame_rows])
         if available_rows
         else "",
     }
 
 
-def _audit(manifest: pd.DataFrame, *, duplicate_source_frame_uid: int) -> dict[str, Any]:
+def _nonnegative_float(value: Any) -> float:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return 0.0
+    if pd.isna(number):
+        return 0.0
+    return max(0.0, number)
+
+
+def _audit(manifest: pd.DataFrame, *, duplicate_source_image_context_id: int) -> dict[str, Any]:
     interaction = manifest[manifest["is_interaction_window"]].copy()
     non_interaction = manifest[~manifest["is_interaction_window"]].copy()
     duplicate_window_id = int(manifest["window_id"].duplicated().sum())
@@ -252,7 +269,7 @@ def _audit(manifest: pd.DataFrame, *, duplicate_source_frame_uid: int) -> dict[s
         "scene_partner_context_ready_rows": int(manifest["scene_partner_context_ready"].sum()),
         "non_interaction_scene_partner_ready_rows": int(non_interaction_ready),
         "duplicate_window_id": duplicate_window_id,
-        "duplicate_source_frame_uid_rows": int(duplicate_source_frame_uid),
+        "duplicate_source_image_context_id_rows": int(duplicate_source_image_context_id),
         "scene_partner_status_counts": manifest["scene_partner_context_status"].value_counts(dropna=False).to_dict(),
         "scene_partner_status_by_source": manifest.groupby("source_type")["scene_partner_context_status"]
         .value_counts(dropna=False)
@@ -279,12 +296,23 @@ def _split_sequence(value: str) -> list[str]:
     return value.split("|")
 
 
-def _partner_ids_union(series: pd.Series) -> str:
+def _split_context_sequence(value: str) -> list[str]:
+    """Split actor-frame IDs, whose internal fields already contain pipes."""
+
+    if not value or value.lower() in {"nan", "none", "<na>"}:
+        return []
+    return value.split(";;")
+
+
+def _partner_ids_union(values: list[Any]) -> str:
     ids: set[str] = set()
-    for value in series.dropna().astype(str):
-        if value.lower() in {"", "nan", "none", "<na>"}:
+    for value in values:
+        if pd.isna(value):
             continue
-        ids.update(part for part in re.split(r"[;,| ]+", value) if part)
+        text = str(value)
+        if text.lower() in {"", "nan", "none", "<na>"}:
+            continue
+        ids.update(part for part in re.split(r"[;,| ]+", text) if part)
     return "|".join(sorted(ids))
 
 

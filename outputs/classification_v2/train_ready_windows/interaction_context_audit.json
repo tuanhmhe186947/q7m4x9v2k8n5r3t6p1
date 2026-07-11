@@ -7,7 +7,7 @@
   "scene_partner_context_ready_rows": 114816,
   "non_interaction_scene_partner_ready_rows": 101360,
   "duplicate_window_id": 0,
-  "duplicate_source_frame_uid_rows": 213376,
+  "duplicate_source_image_context_id_rows": 0,
   "scene_partner_status_counts": {
     "ready": 114816,
     "missing_full_frame_context": 45540,
