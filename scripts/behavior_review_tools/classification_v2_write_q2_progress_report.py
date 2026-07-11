@@ -32,6 +32,11 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--b4-seed-variance-check-json",
+        type=Path,
+        default=Path("outputs/classification_v2/model_design/b4_seed_variance_check_audit.json"),
+    )
+    parser.add_argument(
         "--output-json",
         type=Path,
         default=Path("outputs/classification_v2/model_design/q2_progress_report.json"),
@@ -47,11 +52,13 @@ def main() -> None:
     baseline_configs = _load_optional_json(args.baseline_config_audit_json)
     baseline_smokes = _load_optional_json(args.baseline_smoke_check_json)
     reproducibility = _load_optional_json(args.reproducibility_audit_json)
+    b4_seed_variance = _load_optional_json(args.b4_seed_variance_check_json)
 
     gates = [
         _gate("S0A snapshot/data contract", snapshot.get("valid") is True, snapshot.get("errors")),
         _gate("B2-B7 config matrix", baseline_configs.get("valid") is True, baseline_configs.get("errors")),
         _gate("B2-B7 CUDA smoke", baseline_smokes.get("valid") is True, baseline_smokes.get("errors")),
+        _gate("B4 inner-validation seed variance", b4_seed_variance.get("valid") is True, b4_seed_variance.get("errors")),
         _gate(
             "Strict trainer reproducibility",
             reproducibility.get("errors") == [] and reproducibility.get("forbidden_model_input_rejected") is True,
@@ -61,7 +68,7 @@ def main() -> None:
     remaining = [
         "Full OOF remains blocked until explicit authorization and matching clean preflight.",
         "S5 paper-facing per-source/matched metrics need real OOF predictions.",
-        "B4 inner-validation seed variance is still needed before freezing severe-slice regression threshold.",
+        "B4 seed variance is estimated from bounded validation-only smoke; full inner-validation variance still needs non-smoke OOF authorization.",
         "S7-S9 hard-negative mining, active review, final calibration, and paper package remain future work.",
     ]
     result = {
@@ -74,6 +81,7 @@ def main() -> None:
             "snapshot": _evidence_snapshot(snapshot),
             "baseline_configs": _evidence_baseline_configs(baseline_configs),
             "baseline_smokes": _evidence_baseline_smokes(baseline_smokes),
+            "b4_seed_variance": _evidence_b4_seed_variance(b4_seed_variance),
             "reproducibility": _evidence_reproducibility(reproducibility),
         },
     }
@@ -128,6 +136,14 @@ def _evidence_reproducibility(audit: dict[str, Any]) -> dict[str, Any]:
         "forbidden_model_input_rejected": audit.get("forbidden_model_input_rejected"),
         "prediction_sha256": audit.get("prediction_sha256"),
         "test_prediction_sha256": audit.get("test_prediction_sha256"),
+    }
+
+
+def _evidence_b4_seed_variance(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "seed_count": audit.get("seed_count"),
+        "summary": audit.get("summary"),
     }
 
 
