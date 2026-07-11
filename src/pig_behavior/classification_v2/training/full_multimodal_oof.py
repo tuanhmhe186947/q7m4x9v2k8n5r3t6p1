@@ -101,6 +101,7 @@ class FullMultimodalOofConfig:
     class_weight_power: float = 0.5
     class_weight_max: float = 5.0
     precision: str = "fp32"
+    checkpoint_every_steps: int = 500
 
 
 def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
@@ -379,6 +380,7 @@ def _run_one_fold(
     training_signature = _fold_training_signature(config, fold_id, train_indices, eval_indices)
     training_audit_path = fold_work_dir / "training_audit.json" if fold_work_dir is not None else None
     model_state_path = fold_work_dir / "trained_model.pt" if fold_work_dir is not None else None
+    completed_training_steps = 0
     if fold_work_dir is not None:
         fold_work_dir.mkdir(parents=True, exist_ok=True)
     if (
@@ -391,20 +393,45 @@ def _run_one_fold(
         training_audit = json.loads(training_audit_path.read_text(encoding="utf-8"))
         if training_audit.get("training_signature") != training_signature:
             raise ValueError(f"stale fold training checkpoint signature for fold {fold_id}")
-        model.load_state_dict(torch.load(model_state_path, map_location=device))
         losses = [float(value) for value in training_audit.get("losses", [])]
         seen_train_indices = {int(value) for value in training_audit.get("seen_train_indices", [])}
+        completed_training_steps = int(training_audit.get("completed_training_steps", len(losses)))
         training_elapsed_sec = float(training_audit.get("training_elapsed_sec", 0.0))
         peak_allocated_mb = float(training_audit.get("cuda_peak_memory_allocated_mb", 0.0))
         peak_reserved_mb = float(training_audit.get("cuda_peak_memory_reserved_mb", 0.0))
+        checkpoint = torch.load(model_state_path, map_location=device, weights_only=True)
+        if isinstance(checkpoint, dict) and "model_state_dict" in checkpoint:
+            if checkpoint.get("training_signature") != training_signature:
+                raise ValueError(f"stale fold checkpoint payload signature for fold {fold_id}")
+            model.load_state_dict(checkpoint["model_state_dict"])
+            optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+            if checkpoint.get("scaler_state_dict"):
+                scaler.load_state_dict(checkpoint["scaler_state_dict"])
+            losses = [float(value) for value in checkpoint.get("losses", [])]
+            seen_train_indices = {int(value) for value in checkpoint.get("seen_train_indices", [])}
+            completed_training_steps = int(checkpoint.get("completed_training_steps", len(losses)))
+            training_elapsed_sec = float(checkpoint.get("training_elapsed_sec", 0.0))
+            peak_allocated_mb = float(checkpoint.get("cuda_peak_memory_allocated_mb", 0.0))
+            peak_reserved_mb = float(checkpoint.get("cuda_peak_memory_reserved_mb", 0.0))
+        else:
+            # Version-1 completed checkpoints stored only the model state dict.
+            model.load_state_dict(checkpoint)
         resumed_training = True
-    else:
+    expected_training_steps = _effective_training_step_count(config, len(train_indices))
+    if completed_training_steps > expected_training_steps:
+        raise ValueError(
+            f"fold {fold_id} checkpoint exceeds planned steps: "
+            f"completed={completed_training_steps}, expected={expected_training_steps}"
+        )
+    if completed_training_steps < expected_training_steps:
         model.train()
         if device.type == "cuda":
             torch.cuda.reset_peak_memory_stats(device)
             torch.cuda.synchronize(device)
         training_started = time.perf_counter()
-        for batch_indices in _training_batches(config, train_indices, rng):
+        for step_index, batch_indices in enumerate(_training_batches(config, train_indices, rng)):
+            if step_index < completed_training_steps:
+                continue
             seen_train_indices.update(int(value) for value in batch_indices)
             train_batch = _batch_from_indices(
                 dataset,
@@ -429,26 +456,46 @@ def _run_one_fold(
             scaler.step(optimizer)
             scaler.update()
             losses.append(float(loss.detach().cpu().item()))
+            completed_training_steps += 1
+            if (
+                training_audit_path is not None
+                and model_state_path is not None
+                and completed_training_steps % int(config.checkpoint_every_steps) == 0
+            ):
+                elapsed = training_elapsed_sec + float(time.perf_counter() - training_started)
+                _save_training_checkpoint(
+                    model,
+                    optimizer,
+                    scaler,
+                    model_state_path,
+                    training_audit_path,
+                    training_signature=training_signature,
+                    losses=losses,
+                    seen_train_indices=seen_train_indices,
+                    completed_training_steps=completed_training_steps,
+                    training_elapsed_sec=elapsed,
+                    peak_allocated_mb=peak_allocated_mb,
+                    peak_reserved_mb=peak_reserved_mb,
+                )
         if device.type == "cuda":
             torch.cuda.synchronize(device)
             peak_allocated_mb = float(torch.cuda.max_memory_allocated(device) / (1024**2))
             peak_reserved_mb = float(torch.cuda.max_memory_reserved(device) / (1024**2))
-        training_elapsed_sec = float(time.perf_counter() - training_started)
+        training_elapsed_sec += float(time.perf_counter() - training_started)
         if training_audit_path is not None and model_state_path is not None:
-            torch.save(model.state_dict(), model_state_path)
-            training_audit_path.write_text(
-                json.dumps(
-                    {
-                        "training_signature": training_signature,
-                        "losses": losses,
-                        "seen_train_indices": sorted(seen_train_indices),
-                        "training_elapsed_sec": training_elapsed_sec,
-                        "cuda_peak_memory_allocated_mb": peak_allocated_mb,
-                        "cuda_peak_memory_reserved_mb": peak_reserved_mb,
-                    },
-                    indent=2,
-                ),
-                encoding="utf-8",
+            _save_training_checkpoint(
+                model,
+                optimizer,
+                scaler,
+                model_state_path,
+                training_audit_path,
+                training_signature=training_signature,
+                losses=losses,
+                seen_train_indices=seen_train_indices,
+                completed_training_steps=completed_training_steps,
+                training_elapsed_sec=training_elapsed_sec,
+                peak_allocated_mb=peak_allocated_mb,
+                peak_reserved_mb=peak_reserved_mb,
             )
     if not losses:
         raise ValueError(f"fold {fold_id} has no recorded training losses")
@@ -495,8 +542,8 @@ def _run_one_fold(
         "initial_loss": float(losses[0]),
         "final_loss": float(losses[-1]),
         "loss_reduction": float(losses[0] - losses[-1]),
-        "training_steps_completed": int(len(losses)),
-        "expected_training_steps": int(_effective_training_step_count(config, len(train_indices))),
+        "training_steps_completed": int(completed_training_steps),
+        "expected_training_steps": int(expected_training_steps),
         "unique_train_rows_seen": int(len(seen_train_indices)),
         "train_row_coverage_ratio": float(len(seen_train_indices) / len(train_indices)),
         "sample_weight_policy": config.sample_weight_policy,
@@ -871,6 +918,8 @@ def _validate_config(config: FullMultimodalOofConfig) -> None:
         raise ValueError("class_weight_power must be non-negative and class_weight_max positive")
     if config.precision not in PRECISION_POLICIES:
         raise ValueError(f"unsupported precision={config.precision}")
+    if config.checkpoint_every_steps <= 0:
+        raise ValueError("checkpoint_every_steps must be positive")
     if config.train_batch_size <= 0 or config.eval_batch_size <= 0:
         raise ValueError("batch sizes must be positive")
     if config.max_folds is not None and config.max_folds <= 0:
@@ -945,6 +994,7 @@ def _fold_training_signature(
         "class_weight_power": float(config.class_weight_power),
         "class_weight_max": float(config.class_weight_max),
         "precision": config.precision,
+        "checkpoint_every_steps": int(config.checkpoint_every_steps),
         "train_batch_size": int(config.train_batch_size),
         "eval_batch_size": int(config.eval_batch_size),
         "train_per_class_per_fold": config.train_per_class_per_fold,
@@ -976,6 +1026,61 @@ def _training_batches(
         return
     for step_index in range(int(config.steps_per_fold)):
         yield _step_train_indices(train_indices, config.train_batch_size, rng, step_index)
+
+
+def _save_training_checkpoint(
+    model: nn.Module,
+    optimizer: torch.optim.Optimizer,
+    scaler: torch.amp.GradScaler,
+    model_state_path: Path,
+    training_audit_path: Path,
+    *,
+    training_signature: dict[str, Any],
+    losses: list[float],
+    seen_train_indices: set[int],
+    completed_training_steps: int,
+    training_elapsed_sec: float,
+    peak_allocated_mb: float,
+    peak_reserved_mb: float,
+) -> None:
+    """Atomically persist resumable optimizer state and deterministic progress metadata."""
+
+    checkpoint_path = model_state_path.with_suffix(model_state_path.suffix + ".tmp")
+    audit_path = training_audit_path.with_suffix(training_audit_path.suffix + ".tmp")
+    torch.save(
+        {
+            "schema_version": "classification_v2_training_checkpoint_v2",
+            "model_state_dict": model.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+            "scaler_state_dict": scaler.state_dict(),
+            "training_signature": training_signature,
+            "losses": losses,
+            "seen_train_indices": sorted(seen_train_indices),
+            "completed_training_steps": int(completed_training_steps),
+            "training_elapsed_sec": float(training_elapsed_sec),
+            "cuda_peak_memory_allocated_mb": float(peak_allocated_mb),
+            "cuda_peak_memory_reserved_mb": float(peak_reserved_mb),
+        },
+        checkpoint_path,
+    )
+    audit_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "classification_v2_training_progress_v2",
+                "training_signature": training_signature,
+                "losses": losses,
+                "seen_train_indices": sorted(seen_train_indices),
+                "completed_training_steps": int(completed_training_steps),
+                "training_elapsed_sec": float(training_elapsed_sec),
+                "cuda_peak_memory_allocated_mb": float(peak_allocated_mb),
+                "cuda_peak_memory_reserved_mb": float(peak_reserved_mb),
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    checkpoint_path.replace(model_state_path)
+    audit_path.replace(training_audit_path)
 
 
 def _fold_local_class_weights(

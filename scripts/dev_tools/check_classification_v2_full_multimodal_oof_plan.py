@@ -40,6 +40,7 @@ def main() -> None:
     parser.add_argument("--precision", choices=PRECISION_POLICIES, default="amp")
     parser.add_argument("--bootstrap-iterations", type=int, default=2000)
     parser.add_argument("--device", default="cuda")
+    parser.add_argument("--checkpoint-every-steps", type=int, default=500)
     args = parser.parse_args()
     config = FullMultimodalOofConfig(
         image_size=args.image_size,
@@ -61,6 +62,7 @@ def main() -> None:
         precision=args.precision,
         bootstrap_iterations=args.bootstrap_iterations,
         device=args.device,
+        checkpoint_every_steps=args.checkpoint_every_steps,
     )
     plan = build_full_multimodal_oof_run_plan(config)
     args.output_json.parent.mkdir(parents=True, exist_ok=True)

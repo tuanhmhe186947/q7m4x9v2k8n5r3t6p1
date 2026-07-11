@@ -1,15 +1,19 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
+import torch
 
 from pig_behavior.classification_v2.training.full_multimodal_oof import (
     FullMultimodalOofConfig,
     _effective_training_step_count,
     _fold_local_class_weights,
     _fold_training_coverage_complete,
+    _save_training_checkpoint,
     _training_batches,
     _training_sample_weights,
 )
@@ -113,3 +117,39 @@ def test_event_class_weights_compose_without_entering_model_features() -> None:
     )
 
     np.testing.assert_allclose(weights, np.asarray([1.0, 0.5], dtype=np.float32))
+
+
+def test_v2_training_checkpoint_contains_resumable_optimizer_progress(tmp_path: Path) -> None:
+    """Periodic checkpoints must carry all state needed to continue an interrupted fold."""
+
+    model = torch.nn.Linear(2, 2)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.01)
+    scaler = torch.amp.GradScaler("cuda", enabled=False)
+    loss = model(torch.ones(1, 2)).sum()
+    loss.backward()
+    optimizer.step()
+    model_path = tmp_path / "trained_model.pt"
+    audit_path = tmp_path / "training_audit.json"
+
+    _save_training_checkpoint(
+        model,
+        optimizer,
+        scaler,
+        model_path,
+        audit_path,
+        training_signature={"fold": "f0"},
+        losses=[1.0, 0.5],
+        seen_train_indices={1, 3},
+        completed_training_steps=2,
+        training_elapsed_sec=4.0,
+        peak_allocated_mb=10.0,
+        peak_reserved_mb=12.0,
+    )
+
+    checkpoint = torch.load(model_path, map_location="cpu", weights_only=True)
+    audit = json.loads(audit_path.read_text(encoding="utf-8"))
+    assert checkpoint["schema_version"] == "classification_v2_training_checkpoint_v2"
+    assert checkpoint["completed_training_steps"] == 2
+    assert checkpoint["optimizer_state_dict"]["state"]
+    assert audit["completed_training_steps"] == 2
+    assert not list(tmp_path.glob("*.tmp"))

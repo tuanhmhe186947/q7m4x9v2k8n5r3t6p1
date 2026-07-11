@@ -47,6 +47,7 @@ def main() -> None:
     parser.add_argument("--class-weight-power", type=float, default=0.5)
     parser.add_argument("--class-weight-max", type=float, default=5.0)
     parser.add_argument("--precision", choices=PRECISION_POLICIES, default="fp32")
+    parser.add_argument("--checkpoint-every-steps", type=int, default=500)
     parser.add_argument("--preflight-json", type=Path, default=None)
     parser.add_argument(
         "--confirm-full-run",
@@ -87,6 +88,7 @@ def main() -> None:
         class_weight_power=args.class_weight_power,
         class_weight_max=args.class_weight_max,
         precision=args.precision,
+        checkpoint_every_steps=args.checkpoint_every_steps,
     )
     if args.full:
         _validate_full_execution_confirmation(config, args.preflight_json, args.confirm_full_run)
