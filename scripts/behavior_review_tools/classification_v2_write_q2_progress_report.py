@@ -57,6 +57,11 @@ def main() -> None:
         default=Path("outputs/classification_v2/model_design/q2_final_package_contract_audit.json"),
     )
     parser.add_argument(
+        "--q2-feature-whitelist-json",
+        type=Path,
+        default=Path("outputs/classification_v2/model_design/q2_feature_whitelist_audit.json"),
+    )
+    parser.add_argument(
         "--output-json",
         type=Path,
         default=Path("outputs/classification_v2/model_design/q2_progress_report.json"),
@@ -77,6 +82,7 @@ def main() -> None:
     q2_hard_negative_contract = _load_optional_json(args.q2_hard_negative_contract_json)
     q2_active_review_contract = _load_optional_json(args.q2_active_review_contract_json)
     q2_final_package_contract = _load_optional_json(args.q2_final_package_contract_json)
+    q2_feature_whitelist = _load_optional_json(args.q2_feature_whitelist_json)
 
     gates = [
         _gate("S0A snapshot/data contract", snapshot.get("valid") is True, snapshot.get("errors")),
@@ -116,6 +122,14 @@ def main() -> None:
             q2_final_package_contract.get("errors"),
         ),
         _gate(
+            "Q2 feature whitelist leakage guard",
+            q2_feature_whitelist.get("valid") is True
+            and q2_feature_whitelist.get("never_use_all_numeric_columns") is True
+            and q2_feature_whitelist.get("fail_closed_on_unknown_columns") is True
+            and q2_feature_whitelist.get("forbidden_probe_columns_not_blocked") == [],
+            q2_feature_whitelist.get("errors"),
+        ),
+        _gate(
             "Strict trainer reproducibility",
             reproducibility.get("errors") == [] and reproducibility.get("forbidden_model_input_rejected") is True,
             reproducibility.get("errors"),
@@ -128,6 +142,7 @@ def main() -> None:
         "S7 hard-negative contract is defined; actual shortlist generation needs explicitly authorized native OOF predictions.",
         "S8 active-review loop contract is defined; actual decisions require human GUI review before apply.",
         "S9 final package contract is defined; final paper metrics still need explicitly authorized full OOF/final-test execution.",
+        "Q2 feature whitelist is defined; every new trainer must consume it or an equivalent checked contract.",
     ]
     result = {
         "schema_version": "classification_v2_q2_progress_report_v1",
@@ -144,6 +159,7 @@ def main() -> None:
             "q2_hard_negative_contract": _evidence_q2_hard_negative_contract(q2_hard_negative_contract),
             "q2_active_review_contract": _evidence_q2_active_review_contract(q2_active_review_contract),
             "q2_final_package_contract": _evidence_q2_final_package_contract(q2_final_package_contract),
+            "q2_feature_whitelist": _evidence_q2_feature_whitelist(q2_feature_whitelist),
             "reproducibility": _evidence_reproducibility(reproducibility),
         },
     }
@@ -270,6 +286,20 @@ def _evidence_q2_final_package_contract(audit: dict[str, Any]) -> dict[str, Any]
         "figure_count": audit.get("figure_count"),
         "package_artifact_count": audit.get("package_artifact_count"),
         "can_claim_q2_result": audit.get("can_claim_q2_result"),
+    }
+
+
+def _evidence_q2_feature_whitelist(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "contract_version": audit.get("contract_version"),
+        "never_use_all_numeric_columns": audit.get("never_use_all_numeric_columns"),
+        "fail_closed_on_unknown_columns": audit.get("fail_closed_on_unknown_columns"),
+        "input_branch_count": audit.get("input_branch_count"),
+        "forbidden_pattern_count": audit.get("forbidden_pattern_count"),
+        "forbidden_probe_columns_not_blocked": audit.get("forbidden_probe_columns_not_blocked"),
+        "tabular_trainer_whitelist_count": audit.get("tabular_trainer_whitelist_count"),
+        "spatial_trainer_whitelist_count": audit.get("spatial_trainer_whitelist_count"),
     }
 
 

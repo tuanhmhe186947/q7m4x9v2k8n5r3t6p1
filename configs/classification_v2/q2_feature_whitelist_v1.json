@@ -1,0 +1,135 @@
+{
+  "version": "classification_v2_q2_feature_whitelist_v1",
+  "purpose": "Paper-facing Q2 whitelist for model inputs X. This file makes leakage-safe feature selection explicit and forbids all-numeric-column training.",
+  "claim_boundary": {
+    "target_strength": "Q2_strong",
+    "external_generalization_claim": false,
+    "pig_id_identity_scope": "annotation-local only; never persistent biological identity across videos"
+  },
+  "selection_policy": {
+    "never_use_all_numeric_columns": true,
+    "fail_closed_on_unknown_columns": true,
+    "feature_timing": "available at or before the reviewed temporal unit/window",
+    "label_columns_allowed_in_X": false,
+    "manual_review_columns_allowed_in_X": false,
+    "identifier_columns_allowed_in_X": false,
+    "path_columns_allowed_in_X": false,
+    "outer_test_dependent_columns_allowed_in_X": false
+  },
+  "input_branches": {
+    "actor_letterbox_image_sequence": {
+      "enabled": true,
+      "artifact_paths": [
+        "outputs/classification_v2/image_cache_v2_letterbox/packed_rgb_64_letterbox.npy",
+        "outputs/classification_v2/image_cache_v2_letterbox/packed_image_cache_index.csv",
+        "outputs/classification_v2/train_ready_windows/image_window_context_manifest.csv"
+      ],
+      "cache_policy": "letterbox_preserve_aspect_rgb_pad_black_v1",
+      "notes": "Actor bbox crops preserve aspect ratio through letterbox padding; manifest stores scale/pad metadata for audit."
+    },
+    "window_tabular_context": {
+      "enabled": true,
+      "source_contract": "configs/classification_v2/trainer_contract_v1.json#tabular_feature_whitelist",
+      "allowed_feature_families": [
+        "window_time_quality",
+        "bbox_geometry_quality",
+        "motion_kinematics",
+        "shape_change_proxy",
+        "social_distance_density",
+        "roi_relation_numeric"
+      ]
+    },
+    "spatial_temporal_sequence": {
+      "enabled": true,
+      "source_contract": "configs/classification_v2/trainer_contract_v2.json#spatial_sequence_feature_whitelist",
+      "allowed_feature_families": [
+        "per_frame_bbox_geometry",
+        "per_frame_motion_delta",
+        "per_frame_roi_relation",
+        "per_frame_social_relation",
+        "per_frame_quality_mask"
+      ]
+    },
+    "partner_full_frame_context": {
+      "enabled_for_interaction_models": true,
+      "artifact_paths": [
+        "outputs/classification_v2/visual_interaction_cache/visual_context_manifest.csv",
+        "outputs/classification_v2/visual_interaction_cache/packed_rgb_64_letterbox.npy",
+        "outputs/classification_v2/visual_interaction_cache/packed_image_cache_index.csv"
+      ],
+      "policy": "full-frame and partner context are allowed as image/context inputs; review or label text remains forbidden."
+    }
+  },
+  "target_y": {
+    "primary": "reviewed final behavior label only",
+    "allowed_labels": [
+      "drink",
+      "eat",
+      "fight",
+      "social-nose",
+      "explore",
+      "lying",
+      "stand",
+      "move",
+      "sitting",
+      "playwithtoy"
+    ],
+    "auxiliary_targets": [
+      "posture_head",
+      "motion_context_head",
+      "roi_intent_head",
+      "interaction_head"
+    ]
+  },
+  "mask_and_weight_inputs": [
+    "review_include_in_training",
+    "review_training_action",
+    "window_valid_for_main_train",
+    "review_sample_weight",
+    "event_balanced_sample_weight",
+    "class_weight_policy"
+  ],
+  "forbidden_model_input_patterns": [
+    "manual_*",
+    "review_*",
+    "*review*",
+    "*decision*",
+    "*corrected*",
+    "behavior_before_review",
+    "original_behavior",
+    "behavior_label",
+    "behavior_temporal_final",
+    "target_label",
+    "y_*",
+    "*label*",
+    "*policy*",
+    "*reason*",
+    "review_unit_id",
+    "review_item_id",
+    "window_id",
+    "window_uid",
+    "temporal_unit_key",
+    "frame_uid",
+    "image_context_id",
+    "video_key",
+    "dataset_id",
+    "source_type",
+    "pig_id",
+    "track_id",
+    "object_track_key",
+    "*path*",
+    "*file*",
+    "*xml*",
+    "*csv*",
+    "target_roi_*",
+    "roi_target_*",
+    "outer_fold_id",
+    "oof_fold_id",
+    "prediction_split"
+  ],
+  "required_audit_outputs": {
+    "feature_whitelist_audit_json": "outputs/classification_v2/model_design/q2_feature_whitelist_audit.json",
+    "trainer_contract_audit_json": "outputs/classification_v2/train_ready_windows/trainer_contract_audit.json",
+    "model_input_contract_json": "outputs/classification_v2/train_ready_windows/model_input_contract.json"
+  }
+}
