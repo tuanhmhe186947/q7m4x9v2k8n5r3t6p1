@@ -3,13 +3,14 @@ from pig_behavior.classification_v2.training.full_multimodal_oof import (
     full_run_config_fingerprint,
 )
 from pig_behavior.classification_v2.training.full_run_preflight import (
+    _feature_whitelist_audit_errors,
     _runtime_match_errors,
     validate_preflight_for_execution,
 )
 
 
 def test_runtime_preflight_requires_exact_recommended_precision_and_batch() -> None:
-    """A measured runtime recommendation cannot be silently changed for the full run."""
+    """A measured runtime recommendation cannot silently change a full run."""
 
     matching = FullMultimodalOofConfig(precision="amp", train_batch_size=128)
     changed = FullMultimodalOofConfig(precision="fp32", train_batch_size=64)
@@ -29,7 +30,7 @@ def test_runtime_preflight_requires_exact_recommended_precision_and_batch() -> N
 
 
 def test_execution_gate_rejects_preflight_from_another_commit() -> None:
-    """A clean preflight cannot authorize code from a later unreviewed commit."""
+    """A clean preflight cannot authorize code after an unreviewed commit."""
 
     config = FullMultimodalOofConfig()
     preflight = {
@@ -39,11 +40,34 @@ def test_execution_gate_rejects_preflight_from_another_commit() -> None:
         "git_commit": "old",
         "git_dirty": False,
     }
-
     errors = validate_preflight_for_execution(
         config,
         preflight,
         git_state={"commit": "new", "dirty": False},
     )
-
     assert any("preflight_git_commit_mismatch" in error for error in errors)
+
+
+def test_full_preflight_requires_valid_feature_whitelist_audit() -> None:
+    """Full OOF cannot fall back to unsafe feature selection."""
+
+    valid = {
+        "valid": True,
+        "errors": [],
+        "never_use_all_numeric_columns": True,
+        "fail_closed_on_unknown_columns": True,
+        "forbidden_probe_columns_not_blocked": [],
+    }
+    assert _feature_whitelist_audit_errors(valid) == []
+
+    invalid = {
+        "valid": False,
+        "errors": ["forbidden_probe_columns_not_blocked=['manual_review_decision']"],
+        "never_use_all_numeric_columns": False,
+        "fail_closed_on_unknown_columns": False,
+        "forbidden_probe_columns_not_blocked": ["manual_review_decision"],
+    }
+    errors = _feature_whitelist_audit_errors(invalid)
+    assert any("invalid_feature_whitelist_audit" in error for error in errors)
+    assert any("feature_whitelist_must_block_all_numeric_columns" in error for error in errors)
+    assert any("feature_whitelist_probe_leakage" in error for error in errors)

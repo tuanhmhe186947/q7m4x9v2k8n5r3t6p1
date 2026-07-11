@@ -14,6 +14,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Preflight classification_v2 full multimodal OOF.")
     parser.add_argument("--snapshot-json", type=Path, required=True)
     parser.add_argument("--runtime-benchmark-audit-json", type=Path, required=True)
+    parser.add_argument(
+        "--feature-whitelist-audit-json",
+        type=Path,
+        default=Path("outputs/classification_v2/model_design/q2_feature_whitelist_audit.json"),
+    )
     parser.add_argument("--output-json", type=Path, required=True)
     parser.add_argument("--model-output-dir", type=Path, required=True)
     parser.add_argument("--packed-image-cache", type=Path, required=True)
@@ -61,6 +66,7 @@ def main() -> None:
         config,
         snapshot_json=args.snapshot_json,
         runtime_benchmark_audit_json=args.runtime_benchmark_audit_json,
+        feature_whitelist_audit_json=args.feature_whitelist_audit_json,
     )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
     args.output_json.write_text(json.dumps(result, indent=2), encoding="utf-8")

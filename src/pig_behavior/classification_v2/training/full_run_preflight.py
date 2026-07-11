@@ -22,12 +22,16 @@ def build_full_run_preflight(
     *,
     snapshot_json: Path,
     runtime_benchmark_audit_json: Path,
+    feature_whitelist_audit_json: Path = Path(
+        "outputs/classification_v2/model_design/q2_feature_whitelist_audit.json"
+    ),
 ) -> dict[str, Any]:
     """Validate immutable data, runtime policy, CUDA, Git, and full workload without training."""
 
     plan = build_full_multimodal_oof_run_plan(config)
     snapshot = check_training_snapshot(snapshot_json)
     runtime = json.loads(runtime_benchmark_audit_json.read_text(encoding="utf-8"))
+    feature_whitelist = _read_optional_json(feature_whitelist_audit_json)
     git_state = current_git_state()
     errors: list[str] = []
     warnings: list[str] = []
@@ -37,6 +41,7 @@ def build_full_run_preflight(
         errors.append(f"invalid_full_workload_plan={plan.get('errors')}")
     if snapshot.get("valid") is not True:
         errors.append(f"invalid_training_snapshot={snapshot.get('errors')}")
+    errors.extend(_feature_whitelist_audit_errors(feature_whitelist))
     if not config.require_cached_images or config.packed_image_cache_npy is None:
         errors.append("full_run_requires_strict_packed_image_cache")
     if not config.require_packed_visual_context or config.visual_context_packed_cache_npy is None:
@@ -80,6 +85,9 @@ def build_full_run_preflight(
         "snapshot_valid": bool(snapshot.get("valid")),
         "runtime_benchmark_audit_json": str(runtime_benchmark_audit_json),
         "runtime_recommendation": recommendation,
+        "feature_whitelist_audit_json": str(feature_whitelist_audit_json),
+        "feature_whitelist_valid": feature_whitelist.get("valid"),
+        "feature_whitelist_contract_version": feature_whitelist.get("contract_version"),
         "cuda_available": bool(torch.cuda.is_available()),
         "cuda_device_name": torch.cuda.get_device_name(0) if torch.cuda.is_available() else None,
         "available_fold_count": plan.get("available_fold_count"),
@@ -92,6 +100,33 @@ def build_full_run_preflight(
         "warnings": warnings,
         "valid": not errors,
     }
+
+
+def _feature_whitelist_audit_errors(audit: dict[str, Any]) -> list[str]:
+    """Require the Q2 feature whitelist leakage audit before full OOF."""
+
+    errors: list[str] = []
+    if audit.get("missing") is True:
+        errors.append(f"missing_feature_whitelist_audit={audit.get('path')}")
+        return errors
+    if audit.get("valid") is not True or audit.get("errors"):
+        errors.append(f"invalid_feature_whitelist_audit={audit.get('errors')}")
+    if audit.get("never_use_all_numeric_columns") is not True:
+        errors.append("feature_whitelist_must_block_all_numeric_columns")
+    if audit.get("fail_closed_on_unknown_columns") is not True:
+        errors.append("feature_whitelist_must_fail_closed_on_unknown_columns")
+    if audit.get("forbidden_probe_columns_not_blocked") not in ([], None):
+        errors.append(
+            "feature_whitelist_probe_leakage="
+            f"{audit.get('forbidden_probe_columns_not_blocked')}"
+        )
+    return errors
+
+
+def _read_optional_json(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {"missing": True, "path": str(path), "valid": False}
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _runtime_match_errors(
