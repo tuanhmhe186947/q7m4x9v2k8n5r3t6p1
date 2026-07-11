@@ -13,7 +13,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--contract-json",
         type=Path,
-        default=Path("configs/classification_v2/data_contract_v1.json"),
+        default=None,
+        help="Override the contract path recorded in the snapshot. Leave unset for lineage-safe checks.",
     )
     return parser.parse_args()
 

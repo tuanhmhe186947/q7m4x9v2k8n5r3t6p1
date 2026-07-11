@@ -14,7 +14,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--contract-json",
         type=Path,
-        default=Path("configs/classification_v2/data_contract_v1.json"),
+        default=Path("configs/classification_v2/data_contract_v2.json"),
     )
     parser.add_argument("--output-json", type=Path, default=None)
     return parser.parse_args()

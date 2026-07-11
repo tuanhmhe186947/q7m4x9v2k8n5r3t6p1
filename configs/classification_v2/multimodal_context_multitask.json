@@ -1,7 +1,7 @@
 {
   "version": "classification_v2_training_config_v1",
   "dataset": {
-    "snapshot_json": "outputs/classification_v2/training_snapshots/c2v2_c4f631581dfd2b9e.json",
+    "snapshot_json": "outputs/classification_v2/training_snapshots/c2v2_638e3e616d88a3a5.json",
     "trainer_contract_json": "configs/classification_v2/trainer_contract_v2.json",
     "train_ready_root": "outputs/classification_v2/train_ready_windows",
     "actor_packed_cache": "outputs/classification_v2/image_cache_v2_letterbox/packed_rgb_64_letterbox.npy",
