@@ -124,12 +124,13 @@ def _aggregate_one_unit(
     unique_true = sorted(set(true_values))
     true_label = _deterministic_vote(true_values, weights=_weights(group, cfg)) if true_values else ""
     if prob_cols:
-        pred_label, confidence = _mean_probability_prediction(group, cfg, prob_cols)
+        pred_label, confidence, mean_probabilities = _mean_probability_prediction(group, cfg, prob_cols)
         aggregation_method = "mean_probability"
     else:
         pred_values = [str(v) for v in group[cfg.pred_col].fillna("").astype(str).tolist() if str(v)]
         pred_label = _deterministic_vote(pred_values, weights=_weights(group, cfg))
         confidence = _vote_confidence(pred_values, pred_label, _weights(group, cfg))
+        mean_probabilities = {}
         aggregation_method = "weighted_vote"
 
     window_ids = (
@@ -138,7 +139,7 @@ def _aggregate_one_unit(
         else []
     )
     true_conflict = len(unique_true) > 1
-    return {
+    row = {
         cfg.unit_id_col: unit_id,
         cfg.true_col: true_label,
         "native_predicted_behavior": pred_label,
@@ -151,6 +152,12 @@ def _aggregate_one_unit(
         "contributing_window_ids": "|".join(window_ids[:50]),
         "prediction_aggregation_method": aggregation_method,
     }
+    row.update(mean_probabilities)
+    if "oof_fold_id" in group.columns:
+        fold_ids = sorted(set(group["oof_fold_id"].fillna("").astype(str)) - {""})
+        row["oof_fold_id"] = fold_ids[0] if len(fold_ids) == 1 else ""
+        row["oof_fold_conflict"] = len(fold_ids) > 1
+    return row
 
 
 def _validate_required_columns(
@@ -182,7 +189,7 @@ def _mean_probability_prediction(
     group: pd.DataFrame,
     cfg: NativeTemporalMetricsConfig,
     prob_cols: list[str],
-) -> tuple[str, float]:
+) -> tuple[str, float, dict[str, float]]:
     """Average class probabilities with window weights and choose max class."""
 
     weights = _weights(group, cfg).to_numpy(dtype="float64")
@@ -190,7 +197,7 @@ def _mean_probability_prediction(
     weighted = np.average(probs, axis=0, weights=weights)
     best_idx = int(np.argmax(weighted))
     label = prob_cols[best_idx][len(cfg.prob_prefix) :]
-    return label, float(weighted[best_idx])
+    return label, float(weighted[best_idx]), {column: float(weighted[idx]) for idx, column in enumerate(prob_cols)}
 
 
 def _deterministic_vote(values: list[str], weights: pd.Series) -> str:
