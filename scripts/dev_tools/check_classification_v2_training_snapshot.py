@@ -16,6 +16,7 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Override the contract path recorded in the snapshot. Leave unset for lineage-safe checks.",
     )
+    parser.add_argument("--output-json", type=Path, default=None)
     return parser.parse_args()
 
 
@@ -31,7 +32,14 @@ def main() -> None:
     args = parse_args()
     snapshot_path = args.snapshot_json or _latest_snapshot(Path("."))
     result = check_training_snapshot(snapshot_path, contract_path=args.contract_json)
-    print(json.dumps({k: result[k] for k in ["snapshot_path", "expected_snapshot_id", "current_snapshot_id", "valid", "errors", "warnings"]}, indent=2))
+    summary = {
+        k: result[k]
+        for k in ["snapshot_path", "expected_snapshot_id", "current_snapshot_id", "valid", "errors", "warnings"]
+    }
+    if args.output_json is not None:
+        args.output_json.parent.mkdir(parents=True, exist_ok=True)
+        args.output_json.write_text(json.dumps(summary, indent=2), encoding="utf-8")
+    print(json.dumps(summary, indent=2))
     if not result["valid"]:
         raise SystemExit(2)
 
