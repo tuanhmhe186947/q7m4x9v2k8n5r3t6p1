@@ -31,6 +31,7 @@ def main() -> None:
     with StrictTrainingDataModule(config, device=torch.device("cpu")) as data:
         train_indices = data.balanced_smoke_indices(train=True)
         eval_indices = data.balanced_smoke_indices(train=False)
+        data.fit_spatial_normalizer(train_indices)
         train_batch = data.batch(train_indices)
         audit = data.audit()
         if set(train_batch.model_inputs) != set(MODEL_INPUT_KEYS):
@@ -49,6 +50,9 @@ def main() -> None:
             errors.append(f"duplicate_window_id={audit['duplicate_window_id']}")
         if audit["window_id_sha256"] != audit["auxiliary_window_id_sha256"]:
             errors.append("auxiliary_window_alignment_hash_mismatch")
+        normalized_groups = set(audit["spatial_normalization"]["groups"])
+        if normalized_groups != set(config.model.standardize_spatial_groups):
+            errors.append(f"spatial_normalizer_group_mismatch={sorted(normalized_groups)}")
         actor = data.actor_dataset.image_load_audit()
         visual = data.visual_dataset.load_audit()
         if actor["disk_image_cache_misses"] or actor["source_image_loads"]:

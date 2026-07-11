@@ -22,6 +22,7 @@
     "spatial_feature_groups": [
       "bbox_xywh_n", "bbox_shape_n", "motion_delta", "roi_class_relation", "social_relation", "quality_mask"
     ],
+    "standardize_spatial_groups": ["bbox_shape_n", "motion_delta", "roi_class_relation", "social_relation"],
     "enable_image": false,
     "enable_spatial": true,
     "enable_interaction_context": false,

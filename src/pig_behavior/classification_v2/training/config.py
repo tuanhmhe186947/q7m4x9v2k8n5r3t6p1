@@ -35,6 +35,7 @@ class ModelConfig:
     hidden_dim: int = 48
     dropout: float = 0.1
     spatial_feature_groups: tuple[str, ...] = ()
+    standardize_spatial_groups: tuple[str, ...] = ()
     enable_image: bool = True
     enable_spatial: bool = True
     enable_interaction_context: bool = True
@@ -123,6 +124,11 @@ def validate_training_config(config: ClassificationV2TrainingConfig) -> None:
         errors.append(f"architecture_version_mismatch={config.model.architecture_version}")
     if not config.model.spatial_feature_groups:
         errors.append("spatial_feature_groups_empty")
+    unknown_standardized = sorted(
+        set(config.model.standardize_spatial_groups).difference(config.model.spatial_feature_groups)
+    )
+    if unknown_standardized:
+        errors.append(f"standardize_spatial_groups_not_whitelisted={unknown_standardized}")
     if not any(
         [
             config.model.enable_image,
@@ -207,7 +213,7 @@ def _from_mapping(cls: type[T], payload: dict[str, Any]) -> T:
         value = payload[field.name]
         if "Path" in str(field.type):
             value = Path(value)
-        elif field.name == "spatial_feature_groups":
+        elif field.name in {"spatial_feature_groups", "standardize_spatial_groups"}:
             value = tuple(str(item) for item in value)
         converted[field.name] = value
     return cls(**converted)

@@ -96,6 +96,7 @@ class StrictTrainingDataModule:
         self.auxiliary = _align_auxiliary(config.dataset.auxiliary_targets_csv, self.bundle.frame)
         self.auxiliary_label_maps = build_auxiliary_label_maps(self.auxiliary)
         self.label_to_index = {label: index for index, label in enumerate(VALID_BEHAVIORS)}
+        self.spatial_normalizer: dict[str, dict[str, np.ndarray]] = {}
         self._validate_behavior_target_alignment()
 
     def close(self) -> None:
@@ -151,6 +152,7 @@ class StrictTrainingDataModule:
             self.full_config,
             self.device,
         )
+        self._apply_spatial_normalizer(raw["spatial_features"])
         model_inputs = {
             key: (raw["image_length_mask"] if key == "length_mask" else raw[key])
             for key in MODEL_INPUT_KEYS
@@ -204,9 +206,55 @@ class StrictTrainingDataModule:
                 "source_type",
             ],
             "auxiliary_targets_not_model_inputs": True,
+            "spatial_normalization": self.spatial_normalizer_audit(),
             "actor_image_load_audit": self.actor_dataset.image_load_audit(),
             "visual_context_load_audit": self.visual_dataset.load_audit(),
         }
+
+    def fit_spatial_normalizer(self, train_indices: np.ndarray) -> None:
+        """Fit declared spatial means/scales from outer-train observed slots only."""
+
+        if len(train_indices) == 0:
+            raise ValueError("cannot fit spatial normalizer on zero train rows")
+        observed = self.bundle.arrays["observed_mask"][train_indices].astype(bool)
+        length = self.bundle.arrays["length_mask"][train_indices].astype(bool)
+        valid_slots = observed & length
+        state: dict[str, dict[str, np.ndarray]] = {}
+        for group in self.config.model.standardize_spatial_groups:
+            values = np.asarray(self.bundle.arrays[group][train_indices], dtype=np.float64)
+            selected = values[valid_slots]
+            if selected.size == 0:
+                raise ValueError(f"no observed training values for spatial group={group}")
+            selected = np.where(np.isfinite(selected), selected, np.nan)
+            mean = np.nanmean(selected, axis=0)
+            scale = np.nanstd(selected, axis=0)
+            mean = np.where(np.isfinite(mean), mean, 0.0)
+            scale = np.where(np.isfinite(scale) & (scale > 1e-8), scale, 1.0)
+            state[group] = {"mean": mean.astype(np.float32), "scale": scale.astype(np.float32)}
+        self.spatial_normalizer = state
+
+    def spatial_normalizer_audit(self) -> dict[str, Any]:
+        """Serialize fold-local normalization state without exposing it as model X metadata."""
+
+        return {
+            "fit_scope": "outer_train_rows_only",
+            "groups": {
+                group: {
+                    "mean": values["mean"].astype(float).tolist(),
+                    "scale": values["scale"].astype(float).tolist(),
+                }
+                for group, values in self.spatial_normalizer.items()
+            },
+            "excluded_groups": sorted(
+                set(self.config.model.spatial_feature_groups).difference(self.spatial_normalizer)
+            ),
+        }
+
+    def _apply_spatial_normalizer(self, features: dict[str, torch.Tensor]) -> None:
+        for group, state in self.spatial_normalizer.items():
+            mean = torch.as_tensor(state["mean"], device=self.device)
+            scale = torch.as_tensor(state["scale"], device=self.device)
+            features[group] = torch.nan_to_num((features[group] - mean) / scale)
 
     def _validate_behavior_target_alignment(self) -> None:
         auxiliary_behavior = self.auxiliary["behavior_target"].fillna("").astype(str).reset_index(drop=True)

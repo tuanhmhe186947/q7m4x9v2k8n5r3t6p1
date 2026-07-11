@@ -67,6 +67,7 @@ def run_training(config: ClassificationV2TrainingConfig) -> dict[str, Any]:
             else data.split_indices("test")
         )
         _require_nonempty_split(train_indices, eval_indices, test_indices)
+        data.fit_spatial_normalizer(train_indices)
         probe = data.batch(train_indices[: min(len(train_indices), 2)])
         model = _build_model(config, probe).to(device)
         optimizer = torch.optim.AdamW(
