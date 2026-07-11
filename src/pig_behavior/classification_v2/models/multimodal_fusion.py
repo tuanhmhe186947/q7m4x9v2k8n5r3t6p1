@@ -12,7 +12,7 @@ from dataclasses import dataclass
 import torch
 from torch import nn
 
-MODEL_ARCHITECTURE_VERSION = "multimodal_temporal_conv_v2"
+MODEL_ARCHITECTURE_VERSION = "multimodal_temporal_conv_v3_visual_context"
 
 
 @dataclass(slots=True)

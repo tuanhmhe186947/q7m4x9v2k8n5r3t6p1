@@ -43,6 +43,19 @@ class VisualInteractionWindowDataset(Dataset[dict[str, Any]]):
             for row in cache.sort_values("image_context_id").itertuples(index=False)
         }
 
+    def load_audit(self) -> dict[str, Any]:
+        """Summarize cache coverage without exposing metadata as model features."""
+
+        rows = list(self.cache_by_image_context_id.values())
+        available = sum(1 for row in rows if _bool_scalar(row.visual_context_available))
+        return {
+            "window_rows": int(len(self.windows)),
+            "cache_manifest_rows": int(len(rows)),
+            "cache_available_rows": int(available),
+            "cache_unavailable_rows": int(len(rows) - available),
+            "image_size": int(self.image_size),
+        }
+
     def __len__(self) -> int:
         return int(len(self.windows))
 

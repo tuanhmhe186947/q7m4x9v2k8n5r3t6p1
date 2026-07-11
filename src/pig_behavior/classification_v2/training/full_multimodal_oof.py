@@ -33,6 +33,11 @@ from pig_behavior.classification_v2.datasets.interaction_context_loader import (
     InteractionContextDatasetConfig,
     InteractionContextWindowDataset,
 )
+from pig_behavior.classification_v2.datasets.visual_interaction_loader import (
+    VisualInteractionDatasetConfig,
+    VisualInteractionWindowDataset,
+    visual_interaction_collate,
+)
 from pig_behavior.classification_v2.evaluation.native_temporal_metrics import (
     NativeTemporalMetricsConfig,
     build_native_temporal_metrics,
@@ -51,6 +56,7 @@ ABLATION_VARIANTS = (
     "image_only",
     "spatial_only",
     "no_interaction",
+    "no_visual_context",
     "no_roi",
     "no_social",
     "no_motion",
@@ -69,6 +75,9 @@ class FullMultimodalOofConfig:
     )
     interaction_context_manifest_csv: Path = Path(
         "outputs/classification_v2/train_ready_windows/interaction_window_context_manifest.csv"
+    )
+    visual_context_cache_manifest_csv: Path = Path(
+        "outputs/classification_v2/visual_interaction_cache/visual_context_manifest.csv"
     )
     native_oof_fold_manifest_csv: Path = Path(
         "outputs/classification_v2/native_temporal_units_oof_folds/native_oof_fold_manifest.csv"
@@ -139,12 +148,20 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
             require_cached_images=config.require_cached_images,
         )
     )
+    visual_context_dataset = VisualInteractionWindowDataset(
+        VisualInteractionDatasetConfig(
+            cache_manifest_csv=config.visual_context_cache_manifest_csv,
+            window_context_csv=config.root / "image_window_context_manifest.csv",
+        )
+    )
+    _validate_dataset_alignment(dataset, visual_context_dataset)
     predictions: list[pd.DataFrame] = []
     fold_audits: list[dict[str, Any]] = []
     try:
         for fold_id in fold_ids:
             fold_predictions, fold_audit = _load_or_run_one_fold(
                 dataset,
+                visual_context_dataset,
                 bundle,
                 config,
                 fold_id,
@@ -193,6 +210,7 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
         "label_order": label_order,
         "load_audit": bundle.load_audit,
         "image_load_audit": image_load_audit,
+        "visual_context_load_audit": visual_context_dataset.load_audit(),
         "fold_artifact_dir": str(fold_artifact_dir),
         "fold_audits": fold_audits,
         "prediction_rows": int(len(prediction_frame)),
@@ -322,6 +340,7 @@ class _OofBundle:
 
 def _run_one_fold(
     dataset: ClassificationV2ImageSequenceDataset,
+    visual_context_dataset: VisualInteractionWindowDataset,
     bundle: _OofBundle,
     config: FullMultimodalOofConfig,
     fold_id: str,
@@ -365,11 +384,13 @@ def _run_one_fold(
             image_embedding_dim=config.hidden_dim,
             spatial_embedding_dim=config.hidden_dim,
             interaction_embedding_dim=max(8, config.hidden_dim // 2),
+            visual_context_embedding_dim=config.hidden_dim,
             fusion_hidden_dim=config.hidden_dim,
             dropout=config.dropout,
             enable_image=bool(_ablation_settings(config.ablation_variant)["enable_image"]),
             enable_spatial=bool(_ablation_settings(config.ablation_variant)["enable_spatial"]),
             enable_interaction_context=bool(_ablation_settings(config.ablation_variant)["enable_interaction"]),
+            enable_visual_context=bool(_ablation_settings(config.ablation_variant)["enable_visual_context"]),
         )
     ).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
@@ -441,6 +462,7 @@ def _run_one_fold(
             seen_train_indices.update(int(value) for value in batch_indices)
             train_batch = _batch_from_indices(
                 dataset,
+                visual_context_dataset,
                 bundle,
                 batch_indices,
                 label_to_idx,
@@ -508,6 +530,7 @@ def _run_one_fold(
     chunk_dir = fold_work_dir / "prediction_chunks" if fold_work_dir is not None else None
     predictions = _predict_in_batches(
         dataset,
+        visual_context_dataset,
         model,
         bundle,
         eval_indices,
@@ -530,6 +553,7 @@ def _run_one_fold(
             "image": model.image_encoder is not None,
             "spatial": model.spatial_encoder is not None,
             "interaction": model.interaction_context_encoder is not None,
+            "visual_context": model.visual_context_encoder is not None,
         },
         "spatial_branch_order": (
             list(model.spatial_encoder.branch_order) if model.spatial_encoder is not None else []
@@ -578,6 +602,7 @@ def _run_one_fold(
 
 def _load_or_run_one_fold(
     dataset: ClassificationV2ImageSequenceDataset,
+    visual_context_dataset: VisualInteractionWindowDataset,
     bundle: _OofBundle,
     config: FullMultimodalOofConfig,
     fold_id: str,
@@ -598,6 +623,7 @@ def _load_or_run_one_fold(
         return predictions, audit
     predictions, audit = _run_one_fold(
         dataset,
+        visual_context_dataset,
         bundle,
         config,
         fold_id,
@@ -733,6 +759,7 @@ def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
 
 def _batch_from_indices(
     dataset: ClassificationV2ImageSequenceDataset,
+    visual_context_dataset: VisualInteractionWindowDataset,
     bundle: _OofBundle,
     indices: np.ndarray,
     label_to_idx: dict[str, int],
@@ -758,6 +785,19 @@ def _batch_from_indices(
         image = torch.zeros((batch_size, 1, 3, 1, 1), dtype=torch.float32, device=device)
         image_length_mask = torch.ones((batch_size, 1), dtype=torch.float32, device=device)
         image_observed_mask = torch.zeros((batch_size, 1), dtype=torch.float32, device=device)
+    if settings["enable_visual_context"]:
+        visual_batch = visual_interaction_collate([visual_context_dataset[int(index)] for index in indices])
+        visual_errors = [error for item_errors in visual_batch["errors"] for error in item_errors]
+        if visual_errors:
+            raise ValueError(f"visual context load errors: {visual_errors[:10]}")
+        visual_context_image = visual_batch["visual_context_image"].float().to(device)
+        visual_context_length_mask = visual_batch["visual_context_length_mask"].float().to(device)
+        visual_context_observed_mask = visual_batch["visual_context_observed_mask"].float().to(device)
+    else:
+        batch_size = int(len(indices))
+        visual_context_image = torch.zeros((batch_size, 1, 3, 1, 1), dtype=torch.float32, device=device)
+        visual_context_length_mask = torch.ones((batch_size, 1), dtype=torch.float32, device=device)
+        visual_context_observed_mask = torch.zeros((batch_size, 1), dtype=torch.float32, device=device)
     target_labels = bundle.frame.iloc[indices]["behavior_true"].astype(str).tolist()
     training_sample_weight = _training_sample_weights(bundle, indices, class_weights, config)
     return {
@@ -776,6 +816,9 @@ def _batch_from_indices(
         "interaction_context_available_mask": torch.from_numpy(bundle.interaction_context_available_mask[indices])
         .float()
         .to(device),
+        "visual_context_image": visual_context_image,
+        "visual_context_length_mask": visual_context_length_mask,
+        "visual_context_observed_mask": visual_context_observed_mask,
         "target": torch.tensor([label_to_idx[label] for label in target_labels], dtype=torch.long).to(device),
         "training_sample_weight": torch.from_numpy(training_sample_weight).float().to(device),
     }
@@ -794,6 +837,9 @@ def _forward_model(model: MultimodalFusionClassifier, batch: dict[str, Any]) -> 
         spatial_observed_mask=batch["spatial_observed_mask"],
         interaction_context_features=batch["interaction_context_features"],
         interaction_context_available_mask=batch["interaction_context_available_mask"],
+        visual_context_image=batch["visual_context_image"],
+        visual_context_length_mask=batch["visual_context_length_mask"],
+        visual_context_observed_mask=batch["visual_context_observed_mask"],
     )
 
 
@@ -832,6 +878,7 @@ def _predict(
 
 def _predict_in_batches(
     dataset: ClassificationV2ImageSequenceDataset,
+    visual_context_dataset: VisualInteractionWindowDataset,
     model: MultimodalFusionClassifier,
     bundle: _OofBundle,
     indices: np.ndarray,
@@ -859,6 +906,7 @@ def _predict_in_batches(
         chunk_indices = indices[start : start + int(config.eval_batch_size)]
         batch = _batch_from_indices(
             dataset,
+            visual_context_dataset,
             bundle,
             chunk_indices,
             label_to_idx,
@@ -947,6 +995,31 @@ def _validate_config(config: FullMultimodalOofConfig) -> None:
         config.image_cache_manifest_csv is not None or config.packed_image_cache_npy is not None
     ):
         raise ValueError("require_cached_images needs an individual or packed image cache")
+    if _ablation_settings(config.ablation_variant)["enable_visual_context"]:
+        if not config.visual_context_cache_manifest_csv.exists():
+            raise ValueError(
+                "visual context branch requires an existing cache manifest: "
+                f"{config.visual_context_cache_manifest_csv}"
+            )
+
+
+def _validate_dataset_alignment(
+    actor_dataset: ClassificationV2ImageSequenceDataset,
+    visual_dataset: VisualInteractionWindowDataset,
+) -> None:
+    """Prove both image branches use the same global row-to-window mapping."""
+
+    actor_ids = actor_dataset.windows["window_id"].astype(str).reset_index(drop=True)
+    visual_ids = visual_dataset.windows["window_id"].astype(str).reset_index(drop=True)
+    if len(actor_ids) != len(visual_ids):
+        raise ValueError(f"actor/visual window row mismatch: {len(actor_ids)} != {len(visual_ids)}")
+    mismatch = actor_ids.ne(visual_ids)
+    if mismatch.any():
+        index = int(np.flatnonzero(mismatch.to_numpy())[0])
+        raise ValueError(
+            "actor/visual window order mismatch at row "
+            f"{index}: {actor_ids.iloc[index]} != {visual_ids.iloc[index]}"
+        )
 
 
 def _is_full_run(config: FullMultimodalOofConfig, bundle: _OofBundle) -> bool:
@@ -1182,14 +1255,22 @@ def _ablation_settings(variant: str) -> dict[str, Any]:
         "enable_image": True,
         "enable_spatial": True,
         "enable_interaction": True,
+        "enable_visual_context": True,
         "spatial_groups": groups,
     }
     if variant == "image_only":
-        settings.update(enable_spatial=False, enable_interaction=False, spatial_groups=[])
+        settings.update(
+            enable_spatial=False,
+            enable_interaction=False,
+            enable_visual_context=False,
+            spatial_groups=[],
+        )
     elif variant == "spatial_only":
-        settings.update(enable_image=False, enable_interaction=False)
+        settings.update(enable_image=False, enable_interaction=False, enable_visual_context=False)
     elif variant == "no_interaction":
         settings["enable_interaction"] = False
+    elif variant == "no_visual_context":
+        settings["enable_visual_context"] = False
     elif variant == "no_roi":
         settings["spatial_groups"] = [name for name in groups if name != "roi_class_relation"]
     elif variant == "no_social":

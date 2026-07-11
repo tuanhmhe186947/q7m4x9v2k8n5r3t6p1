@@ -11,11 +11,16 @@
   },
   "paper_candidate": false,
   "model_family": "multimodal_spatiotemporal_bbox_roi_social_context",
-  "implemented_model_architecture_version": "multimodal_temporal_conv_v2",
+  "implemented_model_architecture_version": "multimodal_temporal_conv_v3_visual_context",
   "implemented_modules": {
     "fusion_model": "src/pig_behavior/classification_v2/models/multimodal_fusion.py",
     "smoke_trainer": "src/pig_behavior/classification_v2/training/multimodal_smoke.py",
     "interaction_context_loader": "src/pig_behavior/classification_v2/datasets/interaction_context_loader.py",
+    "visual_interaction_cache": "src/pig_behavior/classification_v2/datasets/visual_interaction_context.py",
+    "visual_interaction_loader": "src/pig_behavior/classification_v2/datasets/visual_interaction_loader.py",
+    "visual_interaction_cache_builder": "scripts/behavior_review_tools/classification_v2_build_visual_interaction_cache.py",
+    "visual_interaction_cache_checker": "scripts/dev_tools/check_classification_v2_visual_interaction_cache.py",
+    "visual_interaction_forward_checker": "scripts/dev_tools/check_classification_v2_visual_interaction_forward.py",
     "forward_checker": "scripts/dev_tools/check_classification_v2_multimodal_forward.py",
     "smoke_train_checker": "scripts/dev_tools/check_classification_v2_multimodal_smoke_train.py",
     "interaction_context_loader_checker": "scripts/dev_tools/check_classification_v2_interaction_context_loader.py",
@@ -62,15 +67,17 @@
     },
     {
       "name": "full_frame_partner_interaction_context",
-      "status": "planned_required_before_paper_candidate",
+      "status": "implemented_smoke",
       "tensor_role": "model_input",
       "source_artifacts": [
-        "outputs/classification_v2/train_ready_windows/interaction_window_context_manifest.csv"
+        "outputs/classification_v2/train_ready_windows/interaction_window_context_manifest.csv",
+        "outputs/classification_v2/visual_interaction_cache/visual_context_manifest.csv"
       ],
       "mask_artifacts": [
-        "interaction_context_available_mask"
+        "visual_context_length_mask",
+        "visual_context_observed_mask"
       ],
-      "allowed_context": "planned full-frame or actor-partner union crop selected from audited geometry; current numeric readiness/count tensor is audit context only",
+      "allowed_context": "actor-nearest-partner union crop selected from same-frame audited geometry; legacy crop-only rows remain masked unavailable",
       "paper_candidate_required": true
     },
     {
@@ -130,7 +137,7 @@
     "minimum_effect_size": 0.02
   },
   "paper_candidate_blockers": [
-    "full-frame or actor-partner visual context tensors are not implemented yet; current interaction branch is numeric readiness context only",
+    "full visual interaction cache has not been materialized and audited yet; only bounded CVAT/legacy smoke caches exist",
     "full out-of-fold learned model evaluation has not been run yet",
     "branch ablation and shortcut controls must be recorded before paper-facing claim"
   ]

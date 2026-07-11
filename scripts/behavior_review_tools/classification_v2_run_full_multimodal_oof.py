@@ -27,6 +27,11 @@ def main() -> None:
     parser.add_argument("--packed-image-cache", type=Path, default=None)
     parser.add_argument("--packed-image-cache-index", type=Path, default=None)
     parser.add_argument(
+        "--visual-context-cache-manifest",
+        type=Path,
+        default=Path("outputs/classification_v2/visual_interaction_cache/visual_context_manifest.csv"),
+    )
+    parser.add_argument(
         "--allow-image-source-fallback",
         action="store_true",
         help="Allow missing cache entries to fall back to legacy crops/CVAT videos.",
@@ -66,6 +71,7 @@ def main() -> None:
         image_cache_manifest_csv=args.image_cache_manifest,
         packed_image_cache_npy=args.packed_image_cache,
         packed_image_cache_index_csv=args.packed_image_cache_index,
+        visual_context_cache_manifest_csv=args.visual_context_cache_manifest,
         require_cached_images=bool(
             (args.image_cache_manifest is not None or args.packed_image_cache is not None)
             and not args.allow_image_source_fallback
