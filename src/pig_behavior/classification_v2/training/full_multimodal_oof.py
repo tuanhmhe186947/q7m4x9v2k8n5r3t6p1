@@ -52,6 +52,7 @@ ABLATION_VARIANTS = (
     "no_social",
     "no_motion",
 )
+SAMPLE_WEIGHT_POLICIES = ("none", "window", "event", "event_class")
 
 
 @dataclass(frozen=True, slots=True)
@@ -67,6 +68,9 @@ class FullMultimodalOofConfig:
     )
     native_oof_fold_manifest_csv: Path = Path(
         "outputs/classification_v2/native_temporal_units_oof_folds/native_oof_fold_manifest.csv"
+    )
+    event_weight_manifest_csv: Path = Path(
+        "outputs/classification_v2/train_ready_windows/event_weight_manifest.csv"
     )
     output_dir: Path = Path("outputs/classification_v2/model_smoke/full_multimodal_oof_pilot")
     image_cache_manifest_csv: Path | None = None
@@ -91,6 +95,9 @@ class FullMultimodalOofConfig:
     run_mode: str = "pilot"
     resume: bool = True
     ablation_variant: str = "full"
+    sample_weight_policy: str = "event_class"
+    class_weight_power: float = 0.5
+    class_weight_max: float = 5.0
 
 
 def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
@@ -287,6 +294,7 @@ class _OofBundle:
     arrays: dict[str, np.ndarray]
     interaction_context_features: np.ndarray
     interaction_context_available_mask: np.ndarray
+    event_sample_weights: np.ndarray
     y: pd.Series
     frame: pd.DataFrame
     load_audit: dict[str, Any]
@@ -318,6 +326,8 @@ def _run_one_fold(
     )
     if len(train_indices) < 2 or len(eval_indices) < 1:
         raise ValueError(f"fold {fold_id} has insufficient train/eval rows")
+    class_weights = _fold_local_class_weights(bundle, train_indices, config)
+    train_sample_weights = _training_sample_weights(bundle, train_indices, class_weights, config)
     model = MultimodalFusionClassifier(
         # Variant settings alter instantiated branches and spatial input dims,
         # so ablation outputs cannot receive signal from disabled tensors.
@@ -343,7 +353,7 @@ def _run_one_fold(
         )
     ).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
-    loss_fn = nn.CrossEntropyLoss()
+    loss_fn = nn.CrossEntropyLoss(reduction="none")
     rng = np.random.default_rng(config.seed + int(_stable_fold_offset(fold_id)))
     losses: list[float] = []
     seen_train_indices: set[int] = set()
@@ -371,10 +381,22 @@ def _run_one_fold(
         model.train()
         for batch_indices in _training_batches(config, train_indices, rng):
             seen_train_indices.update(int(value) for value in batch_indices)
-            train_batch = _batch_from_indices(dataset, bundle, batch_indices, label_to_idx, config, device)
+            train_batch = _batch_from_indices(
+                dataset,
+                bundle,
+                batch_indices,
+                label_to_idx,
+                class_weights,
+                config,
+                device,
+            )
             optimizer.zero_grad(set_to_none=True)
             logits = _forward_model(model, train_batch)
-            loss = loss_fn(logits, train_batch["target"])
+            per_row_loss = loss_fn(logits, train_batch["target"])
+            batch_weights = train_batch["training_sample_weight"]
+            if float(batch_weights.sum().detach().cpu().item()) <= 0.0:
+                raise ValueError(f"fold {fold_id} produced an all-zero training-weight batch")
+            loss = (per_row_loss * batch_weights).sum() / batch_weights.sum()
             loss.backward()
             nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
@@ -406,6 +428,7 @@ def _run_one_fold(
         config,
         device,
         chunk_dir,
+        class_weights,
     )
     prediction_chunk_count = (
         len(list(chunk_dir.glob("*.csv"))) if chunk_dir is not None and chunk_dir.exists() else 0
@@ -440,6 +463,12 @@ def _run_one_fold(
         "expected_training_steps": int(_effective_training_step_count(config, len(train_indices))),
         "unique_train_rows_seen": int(len(seen_train_indices)),
         "train_row_coverage_ratio": float(len(seen_train_indices) / len(train_indices)),
+        "sample_weight_policy": config.sample_weight_policy,
+        "fold_local_class_weights": class_weights,
+        "training_weight_min": float(train_sample_weights.min()),
+        "training_weight_max": float(train_sample_weights.max()),
+        "training_weight_mean": float(train_sample_weights.mean()),
+        "training_zero_weight_rows": int(np.count_nonzero(train_sample_weights == 0.0)),
         "resumed_training_checkpoint": bool(resumed_training),
         "prediction_chunk_count": int(prediction_chunk_count),
         "fold_work_dir": str(fold_work_dir) if fold_work_dir is not None else None,
@@ -510,6 +539,12 @@ def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
         usecols=["temporal_unit_key", "oof_fold_id", "native_unit_valid_for_main_eval"],
         low_memory=False,
     )
+    event_weights = pd.read_csv(
+        config.event_weight_manifest_csv,
+        usecols=["window_id", "event_balanced_sample_weight", "window_valid_for_event_weight"],
+        low_memory=False,
+    )
+    _validate_event_weight_alignment(split, event_weights)
     interaction = InteractionContextWindowDataset(
         InteractionContextDatasetConfig(manifest_csv=config.interaction_context_manifest_csv)
     ).manifest
@@ -520,6 +555,7 @@ def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
         "split": int(len(split)),
         "image_windows": int(len(image_windows)),
         "interaction": int(len(interaction)),
+        "event_weights": int(len(event_weights)),
     }
     row_counts.update({name: int(arr.shape[0]) for name, arr in arrays.items()})
     mismatched = {name: count for name, count in row_counts.items() if count != expected}
@@ -536,9 +572,14 @@ def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
         validate="one_to_one",
     ).rename(columns={"temporal_unit_keys_window": "temporal_unit_key"})
     frame = frame.merge(folds, on="temporal_unit_key", how="left")
+    frame = frame.merge(event_weights, on="window_id", how="left", validate="one_to_one")
     frame["window_image_context_complete"] = _to_bool(image_windows["window_image_context_complete"])
     frame["window_valid_for_main_train"] = _to_bool(frame["window_valid_for_main_train"])
     frame["native_unit_valid_for_main_eval"] = _to_bool(frame["native_unit_valid_for_main_eval"])
+    frame["window_valid_for_event_weight"] = _to_bool(frame["window_valid_for_event_weight"])
+    frame["event_balanced_sample_weight"] = pd.to_numeric(
+        frame["event_balanced_sample_weight"], errors="coerce"
+    ).fillna(0.0)
     frame["num_temporal_units_window"] = pd.to_numeric(frame["num_temporal_units_window"], errors="coerce")
     frame["eligible"] = (
         frame["train_mask"]
@@ -549,6 +590,18 @@ def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
         & frame["behavior_true"].isin(VALID_BEHAVIORS)
         & frame["oof_fold_id"].fillna("").astype(str).ne("")
     )
+    if config.sample_weight_policy in {"event", "event_class"}:
+        invalid_event_training_rows = frame["eligible"] & (
+            ~frame["window_valid_for_event_weight"]
+            | ~np.isfinite(frame["event_balanced_sample_weight"])
+            | frame["event_balanced_sample_weight"].le(0.0)
+        )
+        if invalid_event_training_rows.any():
+            examples = frame.loc[invalid_event_training_rows, "window_id"].astype(str).head(10).tolist()
+            raise ValueError(
+                "event weighting is invalid for training-eligible rows: "
+                f"count={int(invalid_event_training_rows.sum())}, examples={examples}"
+            )
     interaction_features = (
         interaction[list(INTERACTION_CONTEXT_FEATURE_COLUMNS)]
         .apply(pd.to_numeric, errors="coerce")
@@ -556,6 +609,7 @@ def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
         .to_numpy(dtype=np.float32)
     )
     interaction_available = _to_bool(interaction["scene_partner_context_ready"]).to_numpy(dtype=np.float32)
+    event_sample_weights = frame["event_balanced_sample_weight"].to_numpy(dtype=np.float32)
     load_audit = {
         "row_counts": row_counts,
         "eligible_rows": int(frame["eligible"].sum()),
@@ -563,11 +617,14 @@ def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
         "eligible_label_counts": frame.loc[frame["eligible"], "behavior_true"].value_counts().sort_index().to_dict(),
         "complete_image_context_rows": int(frame["window_image_context_complete"].sum()),
         "interaction_context_ready_rows": int(interaction_available.sum()),
+        "valid_event_weight_rows": int(frame["window_valid_for_event_weight"].sum()),
+        "zero_event_weight_rows": int(np.count_nonzero(event_sample_weights == 0.0)),
     }
     return _OofBundle(
         arrays=arrays,
         interaction_context_features=interaction_features,
         interaction_context_available_mask=interaction_available,
+        event_sample_weights=event_sample_weights,
         y=y,
         frame=frame,
         load_audit=load_audit,
@@ -579,6 +636,7 @@ def _batch_from_indices(
     bundle: _OofBundle,
     indices: np.ndarray,
     label_to_idx: dict[str, int],
+    class_weights: dict[str, float],
     config: FullMultimodalOofConfig,
     device: torch.device,
 ) -> dict[str, Any]:
@@ -601,6 +659,7 @@ def _batch_from_indices(
         image_length_mask = torch.ones((batch_size, 1), dtype=torch.float32, device=device)
         image_observed_mask = torch.zeros((batch_size, 1), dtype=torch.float32, device=device)
     target_labels = bundle.frame.iloc[indices]["behavior_true"].astype(str).tolist()
+    training_sample_weight = _training_sample_weights(bundle, indices, class_weights, config)
     return {
         "image": image,
         "image_length_mask": image_length_mask,
@@ -618,6 +677,7 @@ def _batch_from_indices(
         .float()
         .to(device),
         "target": torch.tensor([label_to_idx[label] for label in target_labels], dtype=torch.long).to(device),
+        "training_sample_weight": torch.from_numpy(training_sample_weight).float().to(device),
     }
 
 
@@ -681,6 +741,7 @@ def _predict_in_batches(
     config: FullMultimodalOofConfig,
     device: torch.device,
     chunk_dir: Path | None = None,
+    class_weights: dict[str, float] | None = None,
 ) -> pd.DataFrame:
     """Predict a held-out fold in resumable chunks so long folds survive timeouts."""
 
@@ -696,7 +757,15 @@ def _predict_in_batches(
             chunks.append(pd.read_csv(chunk_path, low_memory=False))
             continue
         chunk_indices = indices[start : start + int(config.eval_batch_size)]
-        batch = _batch_from_indices(dataset, bundle, chunk_indices, label_to_idx, config, device)
+        batch = _batch_from_indices(
+            dataset,
+            bundle,
+            chunk_indices,
+            label_to_idx,
+            class_weights or {label: 1.0 for label in VALID_BEHAVIORS},
+            config,
+            device,
+        )
         chunk_predictions = _predict(model, bundle, chunk_indices, batch, label_order, fold_id, role)
         if chunk_path is not None:
             chunk_predictions.to_csv(chunk_path, index=False)
@@ -749,6 +818,10 @@ def _validate_config(config: FullMultimodalOofConfig) -> None:
         raise ValueError("steps_per_fold must be positive")
     if config.epochs_per_fold <= 0:
         raise ValueError("epochs_per_fold must be positive")
+    if config.sample_weight_policy not in SAMPLE_WEIGHT_POLICIES:
+        raise ValueError(f"unsupported sample_weight_policy={config.sample_weight_policy}")
+    if config.class_weight_power < 0.0 or config.class_weight_max <= 0.0:
+        raise ValueError("class_weight_power must be non-negative and class_weight_max positive")
     if config.train_batch_size <= 0 or config.eval_batch_size <= 0:
         raise ValueError("batch sizes must be positive")
     if config.max_folds is not None and config.max_folds <= 0:
@@ -776,6 +849,7 @@ def _is_full_run(config: FullMultimodalOofConfig, bundle: _OofBundle) -> bool:
         and config.train_per_class_per_fold is None
         and config.eval_per_class_per_fold is None
         and config.epochs_per_fold >= 1
+        and config.sample_weight_policy in {"event", "event_class"}
         and bundle.load_audit.get("eligible_fold_count", 0) >= 2
     )
 
@@ -818,6 +892,9 @@ def _fold_training_signature(
         "steps_per_fold": int(config.steps_per_fold),
         "epochs_per_fold": int(config.epochs_per_fold),
         "effective_training_steps": int(_effective_training_step_count(config, len(train_indices))),
+        "sample_weight_policy": config.sample_weight_policy,
+        "class_weight_power": float(config.class_weight_power),
+        "class_weight_max": float(config.class_weight_max),
         "train_batch_size": int(config.train_batch_size),
         "eval_batch_size": int(config.eval_batch_size),
         "train_per_class_per_fold": config.train_per_class_per_fold,
@@ -849,6 +926,77 @@ def _training_batches(
         return
     for step_index in range(int(config.steps_per_fold)):
         yield _step_train_indices(train_indices, config.train_batch_size, rng, step_index)
+
+
+def _fold_local_class_weights(
+    bundle: _OofBundle,
+    train_indices: np.ndarray,
+    config: FullMultimodalOofConfig,
+) -> dict[str, float]:
+    """Balance effective event mass using labels from this fold's train partition only."""
+
+    if config.sample_weight_policy != "event_class":
+        return {label: 1.0 for label in VALID_BEHAVIORS}
+    labels = bundle.frame.iloc[train_indices]["behavior_true"].astype(str).to_numpy()
+    event_weights = bundle.event_sample_weights[train_indices].astype(np.float64, copy=False)
+    class_mass = pd.Series(event_weights).groupby(pd.Series(labels), sort=False).sum().reindex(
+        VALID_BEHAVIORS, fill_value=0.0
+    )
+    positive_mass = class_mass[class_mass > 0.0]
+    if positive_mass.empty:
+        raise ValueError("cannot compute fold-local class weights without train labels")
+    median_mass = float(positive_mass.median())
+    weights: dict[str, float] = {}
+    for label in VALID_BEHAVIORS:
+        mass = float(class_mass[label])
+        if mass <= 0.0:
+            weights[label] = 0.0
+            continue
+        raw = (median_mass / mass) ** float(config.class_weight_power)
+        weights[label] = float(min(float(config.class_weight_max), raw))
+    return weights
+
+
+def _validate_event_weight_alignment(split: pd.DataFrame, event_weights: pd.DataFrame) -> None:
+    """Require a one-to-one window identity match before weights affect training loss."""
+
+    split_ids = split["window_id"].fillna("").astype(str)
+    weight_ids = event_weights["window_id"].fillna("").astype(str)
+    duplicate_split = int(split_ids.duplicated(keep=False).sum())
+    duplicate_weights = int(weight_ids.duplicated(keep=False).sum())
+    missing = sorted(set(split_ids) - set(weight_ids))
+    extra = sorted(set(weight_ids) - set(split_ids))
+    if duplicate_split or duplicate_weights or missing or extra:
+        raise ValueError(
+            "event weight window_id alignment failed: "
+            f"duplicate_split_rows={duplicate_split}, duplicate_weight_rows={duplicate_weights}, "
+            f"missing_count={len(missing)}, extra_count={len(extra)}, "
+            f"missing_examples={missing[:10]}, extra_examples={extra[:10]}"
+        )
+
+
+def _training_sample_weights(
+    bundle: _OofBundle,
+    indices: np.ndarray,
+    class_weights: dict[str, float],
+    config: FullMultimodalOofConfig,
+) -> np.ndarray:
+    """Compose review/window, event, and fold-local class weights without IDs in X."""
+
+    if config.sample_weight_policy == "none":
+        weights = np.ones(len(indices), dtype=np.float32)
+    elif config.sample_weight_policy == "window":
+        weights = pd.to_numeric(
+            bundle.frame.iloc[indices]["window_sample_weight"], errors="coerce"
+        ).fillna(0.0).to_numpy(dtype=np.float32)
+    else:
+        weights = bundle.event_sample_weights[indices].astype(np.float32, copy=True)
+    if config.sample_weight_policy == "event_class":
+        labels = bundle.frame.iloc[indices]["behavior_true"].astype(str).tolist()
+        weights *= np.asarray([class_weights.get(label, 0.0) for label in labels], dtype=np.float32)
+    if not np.isfinite(weights).all() or (weights < 0.0).any():
+        raise ValueError("training sample weights must be finite and non-negative")
+    return weights
 
 
 def _effective_training_step_count(config: FullMultimodalOofConfig, train_rows: int) -> int:

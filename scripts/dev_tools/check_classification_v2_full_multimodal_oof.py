@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 
 from pig_behavior.classification_v2.evaluation.metrics_payload_contract import check_paper_metrics_payload
@@ -56,6 +57,23 @@ def main() -> None:
             errors.append(f"incomplete_full_training_coverage={incomplete_folds}")
         if audit.get("paper_facing_result") is not True:
             errors.append("full_run_not_marked_paper_facing")
+    weight_policy = str(audit.get("config", {}).get("sample_weight_policy", ""))
+    if audit.get("run_mode") == "full" and weight_policy not in {"event", "event_class"}:
+        errors.append(f"full_run_uses_non_event_weight_policy={weight_policy}")
+    for fold in audit.get("fold_audits", []):
+        fold_id = fold.get("oof_fold_id")
+        if str(fold.get("sample_weight_policy", "")) != weight_policy:
+            errors.append(f"fold_weight_policy_mismatch={fold_id}")
+        for field in ("training_weight_min", "training_weight_max", "training_weight_mean"):
+            value = fold.get(field)
+            if not isinstance(value, (int, float)) or not math.isfinite(float(value)):
+                errors.append(f"invalid_{field}={fold_id}:{value}")
+        if weight_policy in {"event", "event_class"} and int(fold.get("training_zero_weight_rows", -1)) != 0:
+            errors.append(f"event_weight_zero_training_rows={fold_id}:{fold.get('training_zero_weight_rows')}")
+        if weight_policy == "event_class":
+            class_weights = fold.get("fold_local_class_weights", {})
+            if sorted(class_weights) != sorted(audit.get("label_order", [])):
+                errors.append(f"fold_local_class_weight_labels_mismatch={fold_id}")
     image_load_audit = audit.get("image_load_audit", {})
     if args.require_cache_only:
         if image_load_audit.get("cache_manifest_configured") is not True:
@@ -66,8 +84,11 @@ def main() -> None:
             errors.append(f"disk_image_cache_misses={image_load_audit.get('disk_image_cache_misses')}")
         if int(image_load_audit.get("source_image_loads", -1)) != 0:
             errors.append(f"source_image_loads={image_load_audit.get('source_image_loads')}")
-        total_cache_hits = int(image_load_audit.get("disk_image_cache_hits", 0)) + int(
+        # Packed hits are already included in disk_image_cache_hits; summing both double-counts reads.
+        total_cache_hits = int(
             image_load_audit.get("packed_image_cache_hits", 0)
+            if image_load_audit.get("packed_cache_configured") is True
+            else image_load_audit.get("disk_image_cache_hits", 0)
         )
         if total_cache_hits <= 0:
             errors.append("image_cache_hits_not_positive")
