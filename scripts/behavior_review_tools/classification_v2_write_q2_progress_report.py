@@ -67,6 +67,11 @@ def main() -> None:
         default=Path("outputs/classification_v2/model_design/q2_final_package_stub_audit.json"),
     )
     parser.add_argument(
+        "--full-oof-preflight-policy-json",
+        type=Path,
+        default=Path("outputs/classification_v2/model_design/full_oof_preflight_policy_audit.json"),
+    )
+    parser.add_argument(
         "--output-json",
         type=Path,
         default=Path("outputs/classification_v2/model_design/q2_progress_report.json"),
@@ -89,6 +94,7 @@ def main() -> None:
     q2_final_package_contract = _load_optional_json(args.q2_final_package_contract_json)
     q2_feature_whitelist = _load_optional_json(args.q2_feature_whitelist_json)
     q2_final_package_stub = _load_optional_json(args.q2_final_package_stub_json)
+    full_oof_preflight_policy = _load_optional_json(args.full_oof_preflight_policy_json)
 
     gates = [
         _gate("S0A snapshot/data contract", snapshot.get("valid") is True, snapshot.get("errors")),
@@ -144,6 +150,13 @@ def main() -> None:
             q2_final_package_stub.get("errors"),
         ),
         _gate(
+            "Full OOF preflight canonical path policy",
+            full_oof_preflight_policy.get("valid") is True
+            and full_oof_preflight_policy.get("canonical_config_errors") == []
+            and full_oof_preflight_policy.get("missing_bad_tokens") == [],
+            full_oof_preflight_policy.get("errors"),
+        ),
+        _gate(
             "Strict trainer reproducibility",
             reproducibility.get("errors") == [] and reproducibility.get("forbidden_model_input_rejected") is True,
             reproducibility.get("errors"),
@@ -158,6 +171,7 @@ def main() -> None:
         "S9 final package contract is defined; final paper metrics still need explicitly authorized full OOF/final-test execution.",
         "Q2 feature whitelist is defined; every new trainer must consume it or an equivalent checked contract.",
         "Q2 final package skeleton exists only as a blocked/no-claim artifact until full OOF is authorized and complete.",
+        "Full OOF preflight rejects ad hoc smoke/resume cache roots and requires canonical packed cache paths.",
     ]
     result = {
         "schema_version": "classification_v2_q2_progress_report_v1",
@@ -176,6 +190,7 @@ def main() -> None:
             "q2_final_package_contract": _evidence_q2_final_package_contract(q2_final_package_contract),
             "q2_feature_whitelist": _evidence_q2_feature_whitelist(q2_feature_whitelist),
             "q2_final_package_stub": _evidence_q2_final_package_stub(q2_final_package_stub),
+            "full_oof_preflight_policy": _evidence_full_oof_preflight_policy(full_oof_preflight_policy),
             "reproducibility": _evidence_reproducibility(reproducibility),
         },
     }
@@ -327,6 +342,16 @@ def _evidence_q2_final_package_stub(audit: dict[str, Any]) -> dict[str, Any]:
         "paper_facing_metrics_available": audit.get("paper_facing_metrics_available"),
         "missing_required_package_artifact_count": audit.get("missing_required_package_artifact_count"),
         "feature_whitelist_valid": audit.get("feature_whitelist_valid"),
+    }
+
+
+def _evidence_full_oof_preflight_policy(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "canonical_config_errors": audit.get("canonical_config_errors"),
+        "required_bad_token_count": audit.get("required_bad_token_count"),
+        "missing_bad_tokens": audit.get("missing_bad_tokens"),
+        "ad_hoc_config_error_count": len(audit.get("ad_hoc_config_errors", []) or []),
     }
 
 
