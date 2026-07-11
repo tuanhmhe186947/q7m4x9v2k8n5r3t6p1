@@ -47,6 +47,11 @@ def main() -> None:
         default=Path("outputs/classification_v2/model_design/q2_hard_negative_contract_audit.json"),
     )
     parser.add_argument(
+        "--q2-active-review-contract-json",
+        type=Path,
+        default=Path("outputs/classification_v2/model_design/q2_active_review_contract_audit.json"),
+    )
+    parser.add_argument(
         "--output-json",
         type=Path,
         default=Path("outputs/classification_v2/model_design/q2_progress_report.json"),
@@ -65,6 +70,7 @@ def main() -> None:
     b4_seed_variance = _load_optional_json(args.b4_seed_variance_check_json)
     q2_oof_metric_contract = _load_optional_json(args.q2_oof_metric_contract_json)
     q2_hard_negative_contract = _load_optional_json(args.q2_hard_negative_contract_json)
+    q2_active_review_contract = _load_optional_json(args.q2_active_review_contract_json)
 
     gates = [
         _gate("S0A snapshot/data contract", snapshot.get("valid") is True, snapshot.get("errors")),
@@ -86,6 +92,15 @@ def main() -> None:
             q2_hard_negative_contract.get("errors"),
         ),
         _gate(
+            "S8 active-review loop contract",
+            q2_active_review_contract.get("valid") is True
+            and q2_active_review_contract.get("active_review_can_apply_without_human_decision") is False
+            and q2_active_review_contract.get("pending_decisions_apply") is False
+            and q2_active_review_contract.get("exclude_drops_rows") is False
+            and q2_active_review_contract.get("decision_key") == "review_unit_id",
+            q2_active_review_contract.get("errors"),
+        ),
+        _gate(
             "Strict trainer reproducibility",
             reproducibility.get("errors") == [] and reproducibility.get("forbidden_model_input_rejected") is True,
             reproducibility.get("errors"),
@@ -96,7 +111,8 @@ def main() -> None:
         "S5 metric contract is defined; real per-source/matched metrics still need explicitly authorized full OOF predictions.",
         "B4 seed variance is estimated from bounded validation-only smoke; full inner-validation variance still needs non-smoke OOF authorization.",
         "S7 hard-negative contract is defined; actual shortlist generation needs explicitly authorized native OOF predictions.",
-        "S8-S9 active review, final calibration, and paper package remain future work.",
+        "S8 active-review loop contract is defined; actual decisions require human GUI review before apply.",
+        "S9 final calibration and paper package remain future work.",
     ]
     result = {
         "schema_version": "classification_v2_q2_progress_report_v1",
@@ -111,6 +127,7 @@ def main() -> None:
             "b4_seed_variance": _evidence_b4_seed_variance(b4_seed_variance),
             "q2_oof_metric_contract": _evidence_q2_oof_metric_contract(q2_oof_metric_contract),
             "q2_hard_negative_contract": _evidence_q2_hard_negative_contract(q2_hard_negative_contract),
+            "q2_active_review_contract": _evidence_q2_active_review_contract(q2_active_review_contract),
             "reproducibility": _evidence_reproducibility(reproducibility),
         },
     }
@@ -200,6 +217,22 @@ def _evidence_q2_hard_negative_contract(audit: dict[str, Any]) -> dict[str, Any]
         "predeclared_confusion_pair_count": audit.get("predeclared_confusion_pair_count"),
         "required_shortlist_column_count": audit.get("required_shortlist_column_count"),
         "leakage_guard_count": audit.get("leakage_guard_count"),
+    }
+
+
+def _evidence_q2_active_review_contract(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "contract_version": audit.get("contract_version"),
+        "active_review_can_apply_without_human_decision": audit.get(
+            "active_review_can_apply_without_human_decision"
+        ),
+        "pending_decisions_apply": audit.get("pending_decisions_apply"),
+        "exclude_drops_rows": audit.get("exclude_drops_rows"),
+        "decision_key": audit.get("decision_key"),
+        "decision_column_count": audit.get("decision_column_count"),
+        "gui_context_count": audit.get("gui_context_count"),
+        "apply_safety_rule_count": audit.get("apply_safety_rule_count"),
     }
 
 

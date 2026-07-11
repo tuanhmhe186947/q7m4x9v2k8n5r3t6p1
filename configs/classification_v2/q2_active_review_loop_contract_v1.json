@@ -1,0 +1,120 @@
+{
+  "version": "classification_v2_q2_active_review_loop_contract_v1",
+  "purpose": "Define a leakage-safe active-review loop from hard-negative shortlist to reviewed train-ready artifacts.",
+  "claim_boundary": {
+    "target_strength": "Q2_strong",
+    "primary_claim": "Improve reviewed internal training data quality through auditable review-unit decisions under video-safe validation.",
+    "external_generalization_claim": false
+  },
+  "execution_policy": {
+    "active_review_can_select_items": true,
+    "active_review_can_apply_without_human_decision": false,
+    "pending_decisions_apply": false,
+    "corrected_requires_manual_corrected_behavior": true,
+    "exclude_drops_rows": false,
+    "decision_key": "review_unit_id",
+    "full_oof_execution_required_before_model_claim_update": true
+  },
+  "input_artifacts": {
+    "hard_negative_shortlist_csv": "outputs/classification_v2/review_policy/q2_hard_negative_review_shortlist.csv",
+    "hard_negative_shortlist_audit_json": "outputs/classification_v2/review_policy/q2_hard_negative_review_shortlist_audit.json",
+    "full_review_unit_manifest_csv": "outputs/classification_v2/review_units/full_review_unit_manifest.csv",
+    "reviewed_frame_features_csv": "outputs/classification_v2/review_policy/reviewed_frame_features.csv"
+  },
+  "review_gui_outputs": {
+    "active_review_decisions_csv": "outputs/classification_v2/review_policy/q2_active_review_gui/behavior_unit_review_decisions.csv",
+    "contact_sheet_root": "outputs/classification_v2/review_policy/q2_active_review_gui/contact_sheets"
+  },
+  "apply_outputs": {
+    "reviewed_frame_features_csv": "outputs/classification_v2/review_policy/reviewed_frame_features.csv",
+    "review_unit_decisions_combined_csv": "outputs/classification_v2/review_policy/review_unit_decisions_combined.csv",
+    "apply_review_unit_decisions_audit_json": "outputs/classification_v2/review_policy/apply_review_unit_decisions_audit.json",
+    "reviewed_sequence_window_manifest_csv": "outputs/classification_v2/sequence_features_reviewed/sequence_window_manifest.csv",
+    "reviewed_sequence_window_features_csv": "outputs/classification_v2/sequence_features_reviewed/sequence_window_features.csv",
+    "reviewed_sequence_window_audit_json": "outputs/classification_v2/sequence_features_reviewed/sequence_window_audit.json"
+  },
+  "required_decision_columns": [
+    "review_item_id",
+    "review_unit_id",
+    "review_unit_type",
+    "temporal_unit_key",
+    "source_type",
+    "dataset_id",
+    "video_key",
+    "pig_id",
+    "track_id",
+    "object_track_key",
+    "unit_start_frame",
+    "unit_end_frame",
+    "display_frame_indices",
+    "review_template",
+    "behavior_label",
+    "original_behavior",
+    "review_reason",
+    "apply_scope",
+    "manual_review_decision",
+    "manual_corrected_behavior",
+    "manual_label_strength",
+    "manual_training_action",
+    "manual_sample_weight",
+    "manual_note"
+  ],
+  "allowed_manual_review_decisions": [
+    "pending",
+    "accept",
+    "corrected",
+    "exclude"
+  ],
+  "allowed_review_templates": [
+    "interaction",
+    "ROI-intent",
+    "motion/context",
+    "posture"
+  ],
+  "review_group_policy": {
+    "interaction": ["fight", "social-nose"],
+    "ROI-intent": ["eat", "drink", "playwithtoy"],
+    "motion/context": ["move", "explore", "stand"],
+    "posture": ["lying", "sitting"]
+  },
+  "required_gui_context": [
+    "legacy_crop_loading",
+    "cvat_video_bbox_loading",
+    "video_key_to_30fps_alias_resolution",
+    "uppercase_lowercase_mp4_resolution",
+    "recursive_data_videos_search",
+    "full_frame_partner_context_for_interaction_when_available",
+    "roi_overlay_for_roi_intent_when_available",
+    "bbox_sequence_contact_sheet"
+  ],
+  "apply_safety_rules": [
+    "pending_units_are_ignored",
+    "accept_keeps_behavior_label",
+    "corrected_applies_to_entire_review_unit",
+    "exclude_sets_include_flag_false_weight_zero_without_row_drop",
+    "duplicate_review_unit_decisions_fail_or_are_deterministically_reported",
+    "behavior_before_review_is_preserved",
+    "enhanced_frame_features_are_not_overwritten"
+  ],
+  "required_audit_counts": [
+    "decisions_loaded",
+    "pending_ignored",
+    "accepted_units",
+    "corrected_units",
+    "excluded_units",
+    "affected_frames",
+    "changed_behavior_frames",
+    "excluded_frames",
+    "duplicate_decision_count",
+    "missing_review_unit_count",
+    "rows_input",
+    "rows_output"
+  ],
+  "train_ready_rebuild_rules": [
+    "rebuild_sequence_windows_from_reviewed_frame_features",
+    "window_validity_respects_review_include_in_training",
+    "window_validity_respects_review_training_action",
+    "mixed_transition_windows_are_flagged_not_silently_dropped",
+    "model_X_excludes_manual_review_audit_identifier_path_and_label_columns"
+  ]
+}
