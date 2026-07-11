@@ -263,6 +263,7 @@ def _evaluate(
             row = {
                 "schema_version": PREDICTION_SCHEMA_VERSION,
                 "window_id": batch.metadata["window_id"][row_index],
+                "temporal_unit_key": batch.metadata["temporal_unit_key"][row_index],
                 "fold_id": config.execution.fold_id,
                 "split": "validation",
                 "source_type": batch.metadata["source_type"][row_index],

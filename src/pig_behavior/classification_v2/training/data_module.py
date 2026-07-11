@@ -161,6 +161,7 @@ class StrictTrainingDataModule:
             metadata={
                 "row_index": indices.astype(int).tolist(),
                 "window_id": selected["window_id"].astype(str).tolist(),
+                "temporal_unit_key": selected["temporal_unit_key"].astype(str).tolist(),
                 "oof_fold_id": selected["oof_fold_id"].astype(str).tolist(),
                 "source_type": selected["source_type"].astype(str).tolist(),
             },
@@ -182,7 +183,13 @@ class StrictTrainingDataModule:
             "window_id_sha256": _ids_hash(self.bundle.frame["window_id"]),
             "auxiliary_window_id_sha256": _ids_hash(self.auxiliary["window_id"]),
             "model_input_keys": sorted(MODEL_INPUT_KEYS),
-            "metadata_not_model_inputs": ["row_index", "window_id", "oof_fold_id", "source_type"],
+            "metadata_not_model_inputs": [
+                "row_index",
+                "window_id",
+                "temporal_unit_key",
+                "oof_fold_id",
+                "source_type",
+            ],
             "auxiliary_targets_not_model_inputs": True,
             "actor_image_load_audit": self.actor_dataset.image_load_audit(),
             "visual_context_load_audit": self.visual_dataset.load_audit(),
