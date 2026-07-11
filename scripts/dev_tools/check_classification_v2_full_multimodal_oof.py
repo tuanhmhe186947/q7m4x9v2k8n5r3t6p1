@@ -57,6 +57,11 @@ def main() -> None:
             errors.append(f"incomplete_full_training_coverage={incomplete_folds}")
         if audit.get("paper_facing_result") is not True:
             errors.append("full_run_not_marked_paper_facing")
+        for metric_name, interval in metrics.get("confidence_intervals", {}).items():
+            if interval.get("resample_unit") != "oof_fold_id":
+                errors.append(f"full_run_ci_not_fold_clustered={metric_name}")
+            if int(interval.get("n_bootstrap", 0)) < 1000:
+                errors.append(f"full_run_ci_bootstrap_below_1000={metric_name}")
     audit_config = audit.get("config", {})
     has_weight_contract = "sample_weight_policy" in audit_config
     has_performance_contract = "precision" in audit_config

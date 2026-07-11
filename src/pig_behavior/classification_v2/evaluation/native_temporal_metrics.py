@@ -15,7 +15,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from pig_behavior.classification_v2.evaluation.metrics import evaluate_predictions
+from pig_behavior.classification_v2.evaluation.metrics import DEFAULT_LABEL_ORDER, evaluate_predictions
 
 
 @dataclass(frozen=True, slots=True)
@@ -267,11 +267,39 @@ def _bootstrap_confidence_intervals(metric_rows: pd.DataFrame, cfg: NativeTempor
 
     if metric_rows.empty or cfg.bootstrap_iterations <= 0:
         return {}
-    rng = np.random.default_rng(int(cfg.bootstrap_seed))
     metrics = ["accuracy", "macro_f1_supported", "macro_recall_supported"]
     estimates = evaluate_predictions(
         metric_rows, y_true_col=cfg.true_col, y_pred_col="native_predicted_behavior"
     )
+    if "oof_fold_id" in metric_rows.columns and metric_rows["oof_fold_id"].fillna("").nunique() >= 2:
+        samples = _fold_cluster_bootstrap_samples(metric_rows, cfg)
+        method = "oof_fold_cluster_bootstrap_percentile"
+        resample_unit = "oof_fold_id"
+    else:
+        samples = _unit_bootstrap_samples(metric_rows, cfg, metrics)
+        method = "unit_bootstrap_percentile"
+        resample_unit = "native_temporal_unit"
+    return {
+        name: {
+            "estimate": float(estimates.get(name, 0.0)),
+            "ci_low": float(np.quantile(values, 0.025)),
+            "ci_high": float(np.quantile(values, 0.975)),
+            "method": method,
+            "n_bootstrap": int(cfg.bootstrap_iterations),
+            "resample_unit": resample_unit,
+        }
+        for name, values in samples.items()
+    }
+
+
+def _unit_bootstrap_samples(
+    metric_rows: pd.DataFrame,
+    cfg: NativeTemporalMetricsConfig,
+    metrics: list[str],
+) -> dict[str, list[float]]:
+    """Fallback uncertainty for one-fold engineering pilots only."""
+
+    rng = np.random.default_rng(int(cfg.bootstrap_seed))
     samples: dict[str, list[float]] = {name: [] for name in metrics}
     n_rows = len(metric_rows)
     for _ in range(int(cfg.bootstrap_iterations)):
@@ -280,16 +308,62 @@ def _bootstrap_confidence_intervals(metric_rows: pd.DataFrame, cfg: NativeTempor
         boot_metrics = evaluate_predictions(boot, y_true_col=cfg.true_col, y_pred_col="native_predicted_behavior")
         for name in metrics:
             samples[name].append(float(boot_metrics.get(name, 0.0)))
+    return samples
+
+
+def _fold_cluster_bootstrap_samples(
+    metric_rows: pd.DataFrame,
+    cfg: NativeTemporalMetricsConfig,
+) -> dict[str, list[float]]:
+    """Resample complete held-out recording folds using precomputed confusion matrices."""
+
+    labels = list(DEFAULT_LABEL_ORDER)
+    observed = set(metric_rows[cfg.true_col]).union(metric_rows["native_predicted_behavior"])
+    labels.extend(sorted(observed - set(labels)))
+    fold_ids = sorted(metric_rows["oof_fold_id"].fillna("").astype(str).unique())
+    confusion_by_fold = np.stack(
+        [
+            pd.crosstab(
+                metric_rows.loc[metric_rows["oof_fold_id"].astype(str).eq(fold_id), cfg.true_col],
+                metric_rows.loc[
+                    metric_rows["oof_fold_id"].astype(str).eq(fold_id), "native_predicted_behavior"
+                ],
+                dropna=False,
+            )
+            .reindex(index=labels, columns=labels, fill_value=0)
+            .to_numpy(dtype=np.int64)
+            for fold_id in fold_ids
+        ]
+    )
+    rng = np.random.default_rng(int(cfg.bootstrap_seed))
+    samples = {"accuracy": [], "macro_f1_supported": [], "macro_recall_supported": []}
+    for _ in range(int(cfg.bootstrap_iterations)):
+        multiplicity = np.bincount(
+            rng.integers(0, len(fold_ids), size=len(fold_ids)), minlength=len(fold_ids)
+        )
+        confusion = np.tensordot(multiplicity, confusion_by_fold, axes=(0, 0))
+        values = _metrics_from_confusion(confusion)
+        for name in samples:
+            samples[name].append(values[name])
+    return samples
+
+
+def _metrics_from_confusion(confusion: np.ndarray) -> dict[str, float]:
+    """Compute primary supported-class metrics from a fixed-order confusion matrix."""
+
+    true_positive = np.diag(confusion).astype(np.float64)
+    support = confusion.sum(axis=1).astype(np.float64)
+    predicted = confusion.sum(axis=0).astype(np.float64)
+    precision = np.divide(true_positive, predicted, out=np.zeros_like(true_positive), where=predicted > 0)
+    recall = np.divide(true_positive, support, out=np.zeros_like(true_positive), where=support > 0)
+    denominator = precision + recall
+    f1 = np.divide(2.0 * precision * recall, denominator, out=np.zeros_like(denominator), where=denominator > 0)
+    supported = support > 0
+    total = float(confusion.sum())
     return {
-        name: {
-            "estimate": float(estimates.get(name, 0.0)),
-            "ci_low": float(np.quantile(values, 0.025)),
-            "ci_high": float(np.quantile(values, 0.975)),
-            "method": "unit_bootstrap_percentile",
-            "n_bootstrap": int(cfg.bootstrap_iterations),
-            "resample_unit": "native_temporal_unit",
-        }
-        for name, values in samples.items()
+        "accuracy": float(true_positive.sum() / total) if total > 0.0 else 0.0,
+        "macro_f1_supported": float(f1[supported].mean()) if supported.any() else 0.0,
+        "macro_recall_supported": float(recall[supported].mean()) if supported.any() else 0.0,
     }
 
 
