@@ -131,7 +131,7 @@ def validate_training_config(config: ClassificationV2TrainingConfig) -> None:
     ]
     if not config.model.enable_multitask and any(value != 0.0 for value in auxiliary_loss_values):
         errors.append("behavior_only_model_requires_zero_auxiliary_loss_weights")
-    if not config.model.spatial_feature_groups:
+    if config.model.enable_spatial and not config.model.spatial_feature_groups:
         errors.append("spatial_feature_groups_empty")
     unknown_standardized = sorted(
         set(config.model.standardize_spatial_groups).difference(config.model.spatial_feature_groups)
