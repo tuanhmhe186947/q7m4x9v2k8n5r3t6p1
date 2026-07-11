@@ -31,6 +31,7 @@ def main() -> None:
     base = load_training_config(args.config)
     audits = []
     prediction_hashes = []
+    test_prediction_hashes = []
     for run_name in ("run_a", "run_b"):
         run_dir = args.output_dir / run_name
         config = replace(
@@ -40,6 +41,7 @@ def main() -> None:
         )
         audits.append(run_training(config))
         prediction_hashes.append(_prediction_digest(run_dir / "validation_predictions.csv"))
+        test_prediction_hashes.append(_prediction_digest(run_dir / "oof_test_predictions.csv"))
     forbidden_rejected = False
     try:
         validate_model_inputs({**{key: None for key in MODEL_INPUT_KEYS}, "review_sample_weight": None})
@@ -55,6 +57,10 @@ def main() -> None:
         errors.append(f"metric_history_mismatch={comparable_history}")
     if prediction_hashes[0] != prediction_hashes[1]:
         errors.append("prediction_digest_mismatch")
+    if test_prediction_hashes[0] != test_prediction_hashes[1]:
+        errors.append("test_prediction_digest_mismatch")
+    if audits[0]["test_selected_window_id_sha256"] != audits[1]["test_selected_window_id_sha256"]:
+        errors.append("test_selection_hash_mismatch")
     if not forbidden_rejected:
         errors.append("forbidden_model_input_not_rejected")
     result = {
@@ -64,6 +70,8 @@ def main() -> None:
         "validation_selection_sha256": [audit["validation_selected_window_id_sha256"] for audit in audits],
         "history_signatures": comparable_history,
         "prediction_sha256": prediction_hashes,
+        "test_prediction_sha256": test_prediction_hashes,
+        "test_selection_sha256": [audit["test_selected_window_id_sha256"] for audit in audits],
         "forbidden_model_input_rejected": forbidden_rejected,
         "tolerance": 0.0,
         "errors": errors,

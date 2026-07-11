@@ -23,6 +23,7 @@ class DatasetConfig:
     visual_packed_cache: Path
     visual_packed_index: Path
     native_oof_fold_manifest: Path
+    grouped_fold_roles: Path
     auxiliary_targets_csv: Path
     strict_packed_cache: bool = True
 

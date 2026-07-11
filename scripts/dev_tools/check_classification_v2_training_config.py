@@ -35,6 +35,7 @@ def main() -> None:
             "visual_packed_cache",
             "visual_packed_index",
             "native_oof_fold_manifest",
+            "grouped_fold_roles",
             "auxiliary_targets_csv",
         ]
     }

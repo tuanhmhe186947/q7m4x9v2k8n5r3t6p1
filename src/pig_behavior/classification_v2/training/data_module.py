@@ -71,6 +71,7 @@ class StrictTrainingDataModule:
         self.device = device
         self.full_config = _to_full_config(config, device)
         self.bundle = _load_bundle(self.full_config)
+        self._attach_grouped_roles()
         self.actor_dataset = ClassificationV2ImageSequenceDataset(
             ImageSequenceDatasetConfig(
                 frame_context_csv=config.dataset.train_ready_root / "image_frame_context_manifest.csv",
@@ -107,24 +108,34 @@ class StrictTrainingDataModule:
         self.close()
 
     def fold_indices(self, *, train: bool) -> np.ndarray:
-        """Return all eligible rows inside or outside the configured held-out fold."""
+        """Backward-compatible outer-train/test index access."""
 
-        fold = self.bundle.frame["oof_fold_id"].astype(str)
-        fold_mask = fold.ne(self.config.execution.fold_id) if train else fold.eq(self.config.execution.fold_id)
-        return np.flatnonzero((self.bundle.frame["eligible"] & fold_mask).to_numpy()).astype(np.int64)
+        return self.split_indices("train" if train else "test")
+
+    def split_indices(self, role: str) -> np.ndarray:
+        """Return eligible rows for one predeclared inner/outer role."""
+
+        if role not in {"train", "validation", "test"}:
+            raise ValueError(f"unsupported grouped split role: {role}")
+        mask = self.bundle.frame["eligible"] & self.bundle.frame["grouped_role"].eq(role)
+        return np.flatnonzero(mask.to_numpy()).astype(np.int64)
 
     def balanced_smoke_indices(self, *, train: bool) -> np.ndarray:
         """Select deterministic per-class rows from the requested fold side."""
 
-        fold = self.bundle.frame["oof_fold_id"].astype(str)
-        mask = self.bundle.frame["eligible"] & (
-            fold.ne(self.config.execution.fold_id) if train else fold.eq(self.config.execution.fold_id)
-        )
+        return self.balanced_smoke_split("train" if train else "validation")
+
+    def balanced_smoke_split(self, role: str) -> np.ndarray:
+        """Select deterministic per-class rows from a declared grouped role."""
+
+        if role not in {"train", "validation", "test"}:
+            raise ValueError(f"unsupported grouped smoke role: {role}")
+        mask = self.bundle.frame["eligible"] & self.bundle.frame["grouped_role"].eq(role)
         return _sample_indices(
             self.bundle.frame,
             mask=mask,
             per_class=self.config.execution.smoke_per_class,
-            seed=self.config.optimization.seed + (0 if train else 10_000),
+            seed=self.config.optimization.seed + {"train": 0, "validation": 10_000, "test": 20_000}[role],
         )
 
     def batch(self, indices: np.ndarray) -> StrictTrainingBatch:
@@ -171,13 +182,15 @@ class StrictTrainingDataModule:
         """Return key/hash/count evidence without exposing metadata to model X."""
 
         train_indices = self.fold_indices(train=True)
-        eval_indices = self.fold_indices(train=False)
+        validation_indices = self.split_indices("validation")
+        test_indices = self.split_indices("test")
         return {
             "schema_version": "classification_v2_strict_data_module_audit_v1",
             "rows": int(len(self.bundle.frame)),
             "eligible_rows": int(self.bundle.frame["eligible"].sum()),
             "train_rows": int(len(train_indices)),
-            "eval_rows": int(len(eval_indices)),
+            "validation_rows": int(len(validation_indices)),
+            "test_rows": int(len(test_indices)),
             "fold_id": self.config.execution.fold_id,
             "duplicate_window_id": int(self.bundle.frame["window_id"].duplicated().sum()),
             "window_id_sha256": _ids_hash(self.bundle.frame["window_id"]),
@@ -202,6 +215,25 @@ class StrictTrainingDataModule:
         if mismatch.any():
             examples = np.flatnonzero(mismatch.to_numpy())[:10].tolist()
             raise ValueError(f"auxiliary/main behavior target mismatch rows: {examples}")
+
+    def _attach_grouped_roles(self) -> None:
+        """Join the configured fold's roles by native unit and reject missing lineage."""
+
+        roles = pd.read_csv(
+            self.config.dataset.grouped_fold_roles,
+            usecols=["temporal_unit_key", "outer_fold_id", "role"],
+            low_memory=False,
+        )
+        roles = roles.loc[roles["outer_fold_id"].astype(str).eq(self.config.execution.fold_id)].copy()
+        if roles["temporal_unit_key"].duplicated().any():
+            raise ValueError("duplicate temporal_unit_key in configured grouped fold roles")
+        role_map = roles.set_index("temporal_unit_key")["role"]
+        self.bundle.frame["grouped_role"] = self.bundle.frame["temporal_unit_key"].map(role_map)
+        missing = self.bundle.frame["grouped_role"].isna()
+        eligible_missing = missing & self.bundle.frame["eligible"]
+        if eligible_missing.any():
+            raise ValueError(f"eligible window rows missing grouped role: {int(eligible_missing.sum())}")
+        self.bundle.frame.loc[missing, "grouped_role"] = "not_eligible"
 
 
 def _align_auxiliary(path: Path, frame: pd.DataFrame) -> pd.DataFrame:

@@ -59,9 +59,14 @@ def run_training(config: ClassificationV2TrainingConfig) -> dict[str, Any]:
         eval_indices = (
             data.balanced_smoke_indices(train=False)
             if config.execution.mode == "smoke"
-            else data.fold_indices(train=False)
+            else data.split_indices("validation")
         )
-        _require_nonempty_split(train_indices, eval_indices)
+        test_indices = (
+            data.balanced_smoke_split("test")
+            if config.execution.mode == "smoke"
+            else data.split_indices("test")
+        )
+        _require_nonempty_split(train_indices, eval_indices, test_indices)
         probe = data.batch(train_indices[: min(len(train_indices), 2)])
         model = _build_model(config, probe).to(device)
         optimizer = torch.optim.AdamW(
@@ -123,7 +128,9 @@ def run_training(config: ClassificationV2TrainingConfig) -> dict[str, Any]:
                 epoch=epoch,
                 global_step=global_step,
             )
-            predictions, eval_metrics = _evaluate(model, data, eval_indices, config, device)
+            predictions, eval_metrics = _evaluate(
+                model, data, eval_indices, config, device, split="validation"
+            )
             predictions.to_csv(output_dir / "validation_predictions.csv", index=False)
             record = {"epoch": epoch, **train_result, **eval_metrics}
             history.append(record)
@@ -154,18 +161,36 @@ def run_training(config: ClassificationV2TrainingConfig) -> dict[str, Any]:
                 stale_epochs += 1
             if config.execution.mode != "smoke" and stale_epochs >= config.optimization.early_stopping_patience:
                 break
+        best_checkpoint = output_dir / "best_validation.pt"
+        if not best_checkpoint.exists():
+            raise ValueError("best-validation checkpoint missing before outer-test evaluation")
+        load_training_checkpoint(
+            best_checkpoint,
+            model=model,
+            optimizer=optimizer,
+            scaler=scaler,
+            config=config,
+            map_location=device,
+            restore_rng=False,
+        )
+        test_predictions, test_metrics = _evaluate(
+            model, data, test_indices, config, device, split="test"
+        )
+        test_predictions.to_csv(output_dir / "oof_test_predictions.csv", index=False)
         audit = _run_audit(
             config,
             data,
             model,
             train_indices,
             eval_indices,
+            test_indices,
             behavior_weights,
             auxiliary_weights,
             history,
             best_epoch,
             device,
             resumed_from,
+            test_metrics,
         )
     _write_json_atomic(output_dir / "run_audit.json", audit)
     _write_json_atomic(output_dir / "registry_entry.json", _registry_entry(audit, output_dir))
@@ -245,6 +270,8 @@ def _evaluate(
     indices: np.ndarray,
     config: ClassificationV2TrainingConfig,
     device: torch.device,
+    *,
+    split: str,
 ) -> tuple[pd.DataFrame, dict[str, float]]:
     """Evaluate only the held-out fold and retain identifiers strictly as output metadata."""
 
@@ -265,7 +292,7 @@ def _evaluate(
                 "window_id": batch.metadata["window_id"][row_index],
                 "temporal_unit_key": batch.metadata["temporal_unit_key"][row_index],
                 "fold_id": config.execution.fold_id,
-                "split": "validation",
+                "split": split,
                 "source_type": batch.metadata["source_type"][row_index],
                 "true_label": labels[int(true_values[row_index])],
                 "predicted_label": labels[int(predicted[row_index])],
@@ -277,7 +304,7 @@ def _evaluate(
             rows.append(row)
     predictions = pd.DataFrame(rows)
     metric = _macro_f1(predictions["true_label"], predictions["predicted_label"], labels)
-    return predictions, {"validation_window_macro_f1": metric}
+    return predictions, {f"{split}_window_macro_f1": metric}
 
 
 def _build_model(
@@ -350,12 +377,14 @@ def _run_audit(
     model: MultitaskFusionClassifier,
     train_indices: np.ndarray,
     eval_indices: np.ndarray,
+    test_indices: np.ndarray,
     behavior_weights: torch.Tensor,
     auxiliary_weights: dict[str, torch.Tensor],
     history: list[dict[str, Any]],
     best_epoch: int,
     device: torch.device,
     resumed_from: str | None,
+    test_metrics: dict[str, float],
 ) -> dict[str, Any]:
     config_payload = training_config_to_jsonable(config)
     git = _git_state()
@@ -384,14 +413,17 @@ def _run_audit(
         "normalization_imputation": "bound_to_trainer_contract_and_snapshot",
         "train_selected_window_id_sha256": _selected_id_hash(data, train_indices),
         "validation_selected_window_id_sha256": _selected_id_hash(data, eval_indices),
+        "test_selected_window_id_sha256": _selected_id_hash(data, test_indices),
         "train_rows": int(len(train_indices)),
         "validation_rows": int(len(eval_indices)),
+        "test_rows": int(len(test_indices)),
         "behavior_class_weights_train_fold_only": behavior_weights.detach().cpu().tolist(),
         "auxiliary_class_weights_train_fold_only": {
             name: value.detach().cpu().tolist() for name, value in auxiliary_weights.items()
         },
         "data_module_audit": data.audit(),
         "history": history,
+        "outer_test_metrics": test_metrics,
         "best_epoch": best_epoch,
         "resume": {
             "enabled": config.execution.resume,
@@ -402,6 +434,7 @@ def _run_audit(
             "last_checkpoint": "last.pt",
             "best_checkpoint": "best_validation.pt",
             "predictions": "validation_predictions.csv",
+            "oof_test_predictions": "oof_test_predictions.csv",
         },
         "errors": [],
     }
@@ -425,9 +458,14 @@ def _resolve_device(precision: str) -> torch.device:
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def _require_nonempty_split(train_indices: np.ndarray, eval_indices: np.ndarray) -> None:
-    if len(train_indices) == 0 or len(eval_indices) == 0:
-        raise ValueError(f"empty train/validation split: train={len(train_indices)}, validation={len(eval_indices)}")
+def _require_nonempty_split(
+    train_indices: np.ndarray, eval_indices: np.ndarray, test_indices: np.ndarray
+) -> None:
+    if len(train_indices) == 0 or len(eval_indices) == 0 or len(test_indices) == 0:
+        raise ValueError(
+            "empty grouped split: "
+            f"train={len(train_indices)}, validation={len(eval_indices)}, test={len(test_indices)}"
+        )
 
 
 def _macro_f1(true: pd.Series, predicted: pd.Series, labels: list[str]) -> float:

@@ -9,7 +9,8 @@
     "visual_cache_manifest": "outputs/classification_v2/visual_interaction_cache/visual_context_manifest.csv",
     "visual_packed_cache": "outputs/classification_v2/visual_interaction_cache/packed_rgb_64_letterbox.npy",
     "visual_packed_index": "outputs/classification_v2/visual_interaction_cache/packed_image_cache_index.csv",
-    "native_oof_fold_manifest": "outputs/classification_v2/native_temporal_units_oof_folds/native_oof_fold_manifest.csv",
+    "native_oof_fold_manifest": "outputs/classification_v2/q2_grouped_folds/q2_outer_fold_assignments.csv",
+    "grouped_fold_roles": "outputs/classification_v2/q2_grouped_folds/q2_outer_inner_roles.csv",
     "auxiliary_targets_csv": "outputs/classification_v2/train_ready_windows/y_auxiliary_targets.csv",
     "strict_packed_cache": true
   },
@@ -60,7 +61,7 @@
   },
   "execution": {
     "mode": "smoke",
-    "fold_id": "native_oof_000",
+    "fold_id": "q2_outer_00",
     "smoke_steps": 8,
     "smoke_per_class": 1,
     "output_dir": "outputs/classification_v2/model_smoke/strict_multitask",
