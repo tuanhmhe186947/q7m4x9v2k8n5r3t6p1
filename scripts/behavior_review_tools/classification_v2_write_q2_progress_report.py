@@ -52,6 +52,11 @@ def main() -> None:
         default=Path("outputs/classification_v2/model_design/q2_active_review_contract_audit.json"),
     )
     parser.add_argument(
+        "--q2-final-package-contract-json",
+        type=Path,
+        default=Path("outputs/classification_v2/model_design/q2_final_package_contract_audit.json"),
+    )
+    parser.add_argument(
         "--output-json",
         type=Path,
         default=Path("outputs/classification_v2/model_design/q2_progress_report.json"),
@@ -71,6 +76,7 @@ def main() -> None:
     q2_oof_metric_contract = _load_optional_json(args.q2_oof_metric_contract_json)
     q2_hard_negative_contract = _load_optional_json(args.q2_hard_negative_contract_json)
     q2_active_review_contract = _load_optional_json(args.q2_active_review_contract_json)
+    q2_final_package_contract = _load_optional_json(args.q2_final_package_contract_json)
 
     gates = [
         _gate("S0A snapshot/data contract", snapshot.get("valid") is True, snapshot.get("errors")),
@@ -101,6 +107,15 @@ def main() -> None:
             q2_active_review_contract.get("errors"),
         ),
         _gate(
+            "S9 final calibration and paper-package contract",
+            q2_final_package_contract.get("valid") is True
+            and q2_final_package_contract.get("outer_test_used_for_model_selection") is False
+            and q2_final_package_contract.get("outer_test_used_for_threshold_tuning") is False
+            and q2_final_package_contract.get("outer_test_used_for_calibration_fit") is False
+            and q2_final_package_contract.get("can_claim_q2_result") is False,
+            q2_final_package_contract.get("errors"),
+        ),
+        _gate(
             "Strict trainer reproducibility",
             reproducibility.get("errors") == [] and reproducibility.get("forbidden_model_input_rejected") is True,
             reproducibility.get("errors"),
@@ -112,7 +127,7 @@ def main() -> None:
         "B4 seed variance is estimated from bounded validation-only smoke; full inner-validation variance still needs non-smoke OOF authorization.",
         "S7 hard-negative contract is defined; actual shortlist generation needs explicitly authorized native OOF predictions.",
         "S8 active-review loop contract is defined; actual decisions require human GUI review before apply.",
-        "S9 final calibration and paper package remain future work.",
+        "S9 final package contract is defined; final paper metrics still need explicitly authorized full OOF/final-test execution.",
     ]
     result = {
         "schema_version": "classification_v2_q2_progress_report_v1",
@@ -128,6 +143,7 @@ def main() -> None:
             "q2_oof_metric_contract": _evidence_q2_oof_metric_contract(q2_oof_metric_contract),
             "q2_hard_negative_contract": _evidence_q2_hard_negative_contract(q2_hard_negative_contract),
             "q2_active_review_contract": _evidence_q2_active_review_contract(q2_active_review_contract),
+            "q2_final_package_contract": _evidence_q2_final_package_contract(q2_final_package_contract),
             "reproducibility": _evidence_reproducibility(reproducibility),
         },
     }
@@ -233,6 +249,27 @@ def _evidence_q2_active_review_contract(audit: dict[str, Any]) -> dict[str, Any]
         "decision_column_count": audit.get("decision_column_count"),
         "gui_context_count": audit.get("gui_context_count"),
         "apply_safety_rule_count": audit.get("apply_safety_rule_count"),
+    }
+
+
+def _evidence_q2_final_package_contract(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "contract_version": audit.get("contract_version"),
+        "full_oof_predictions_required_before_final_claim": audit.get(
+            "full_oof_predictions_required_before_final_claim"
+        ),
+        "outer_test_used_for_model_selection": audit.get("outer_test_used_for_model_selection"),
+        "outer_test_used_for_threshold_tuning": audit.get("outer_test_used_for_threshold_tuning"),
+        "outer_test_used_for_calibration_fit": audit.get("outer_test_used_for_calibration_fit"),
+        "calibration_fit_scope": audit.get("calibration_fit_scope"),
+        "final_test_is_single_touch": audit.get("final_test_is_single_touch"),
+        "primary_metric": audit.get("primary_metric"),
+        "model_family_count": audit.get("model_family_count"),
+        "metric_table_count": audit.get("metric_table_count"),
+        "figure_count": audit.get("figure_count"),
+        "package_artifact_count": audit.get("package_artifact_count"),
+        "can_claim_q2_result": audit.get("can_claim_q2_result"),
     }
 
 
