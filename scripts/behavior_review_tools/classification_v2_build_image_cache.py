@@ -16,6 +16,8 @@ from pig_behavior.classification_v2.datasets.image_sequence_dataset import (
     context_cache_relative_path,
 )
 
+RESIZE_POLICY = "letterbox_preserve_aspect_rgb_pad_black_v1"
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build reusable classification_v2 actor crop image cache.")
@@ -73,8 +75,8 @@ def build_image_cache(
     if preview_limit < 0:
         raise ValueError("preview_limit must be non-negative")
     output_dir.mkdir(parents=True, exist_ok=True)
-    cache_root = output_dir / f"actor_rgb_{image_size}"
-    preview_root = output_dir / f"preview_jpg_{image_size}"
+    cache_root = output_dir / f"actor_rgb_{image_size}_letterbox"
+    preview_root = output_dir / f"preview_jpg_{image_size}_letterbox"
     cache_root.mkdir(parents=True, exist_ok=True)
     if preview_jpg:
         preview_root.mkdir(parents=True, exist_ok=True)
@@ -130,15 +132,16 @@ def build_image_cache(
                         preview_path.parent.mkdir(parents=True, exist_ok=True)
                         Image.fromarray(image_uint8).save(preview_path, quality=92)
                 if preview_path.exists():
-                    preview_rel_path = str(Path(f"preview_jpg_{image_size}") / preview_rel)
+                    preview_rel_path = str(Path(f"preview_jpg_{image_size}_letterbox") / preview_rel)
                     previews_written += 1
             manifest_rows.append(
                 {
                     "image_context_id": context_id,
-                    "cache_path": str(Path(f"actor_rgb_{image_size}") / rel_path),
+                    "cache_path": str(Path(f"actor_rgb_{image_size}_letterbox") / rel_path),
                     "preview_path": preview_rel_path,
                     "image_size": int(image_size),
                     "cache_format": "npy_uint8_rgb_hwc",
+                    "resize_policy": RESIZE_POLICY,
                     "source_type": str(row_dict.get("source_type", "")),
                     "dataset_id": str(row_dict.get("dataset_id", "")),
                     "video_key": str(row_dict.get("video_key", "")),
@@ -176,6 +179,7 @@ def build_image_cache(
         "previews_written": int(previews_written),
         "source_type_filter": source_type,
         "cache_format": "npy_uint8_rgb_hwc",
+        "resize_policy": RESIZE_POLICY,
         "valid": bool(len(manifest) > 0 and failed == 0),
     }
     (output_dir / "cache_audit.json").write_text(json.dumps(audit, indent=2), encoding="utf-8")

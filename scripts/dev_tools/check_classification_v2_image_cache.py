@@ -68,6 +68,11 @@ def check_image_cache(
         size_mismatch = int(pd.to_numeric(manifest["image_size"], errors="coerce").ne(image_size).sum())
         if size_mismatch:
             errors.append(f"image_size_mismatch_rows={size_mismatch}")
+    resize_policies = (
+        sorted(manifest["resize_policy"].fillna("").astype(str).unique().tolist())
+        if "resize_policy" in manifest
+        else []
+    )
     base = cache_manifest.parent
     checked_files = 0
     missing_files = 0
@@ -114,6 +119,7 @@ def check_image_cache(
         "dataset_rows": int(dataset_rows),
         "observed_frames": int(observed_frames),
         "duplicate_image_context_id": int(duplicate_context),
+        "resize_policies": resize_policies,
         "errors": errors,
         "valid": not errors,
     }

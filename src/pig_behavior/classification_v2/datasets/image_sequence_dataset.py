@@ -242,11 +242,7 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         if crop_bgr.size == 0:
             return None
         crop_rgb = cv2.cvtColor(crop_bgr, cv2.COLOR_BGR2RGB)
-        crop_rgb = cv2.resize(
-            crop_rgb,
-            (self.config.image_size, self.config.image_size),
-            interpolation=cv2.INTER_LINEAR,
-        )
+        crop_rgb = letterbox_rgb_uint8(crop_rgb, self.config.image_size)
         return _to_chw_float(crop_rgb)
 
 
@@ -293,10 +289,35 @@ def _load_legacy_crop(path: Path, image_size: int) -> np.ndarray | None:
         return None
     try:
         with Image.open(path) as image:
-            image = image.convert("RGB").resize((image_size, image_size), Image.Resampling.BILINEAR)
+            image = _letterbox_pil_rgb(image.convert("RGB"), image_size)
             return _to_chw_float(np.asarray(image, dtype=np.uint8))
     except Exception:
         return None
+
+
+def _letterbox_pil_rgb(image: Image.Image, image_size: int) -> Image.Image:
+    """Resize without distorting pig aspect ratio, padding to a square canvas."""
+
+    width, height = image.size
+    if width <= 0 or height <= 0:
+        raise ValueError("cannot letterbox an empty image")
+    scale = min(image_size / width, image_size / height)
+    resized_width = max(1, int(round(width * scale)))
+    resized_height = max(1, int(round(height * scale)))
+    resized = image.resize((resized_width, resized_height), Image.Resampling.BILINEAR)
+    canvas = Image.new("RGB", (image_size, image_size), (0, 0, 0))
+    left = (image_size - resized_width) // 2
+    top = (image_size - resized_height) // 2
+    canvas.paste(resized, (left, top))
+    return canvas
+
+
+def letterbox_rgb_uint8(image_rgb: np.ndarray, image_size: int) -> np.ndarray:
+    """Letterbox an RGB uint8 crop to square HWC uint8 without aspect distortion."""
+
+    if image_rgb.ndim != 3 or image_rgb.shape[-1] != 3:
+        raise ValueError("letterbox_rgb_uint8 expects an RGB HWC image")
+    return np.asarray(_letterbox_pil_rgb(Image.fromarray(image_rgb.astype(np.uint8), mode="RGB"), image_size))
 
 
 def _to_chw_float(image_rgb: np.ndarray) -> np.ndarray:
