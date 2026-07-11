@@ -34,6 +34,9 @@ class ModelConfig:
     hidden_dim: int = 48
     dropout: float = 0.1
     spatial_feature_groups: tuple[str, ...] = ()
+    enable_image: bool = True
+    enable_spatial: bool = True
+    enable_interaction_context: bool = True
     enable_visual_context: bool = True
     enable_multitask: bool = True
 
@@ -119,6 +122,15 @@ def validate_training_config(config: ClassificationV2TrainingConfig) -> None:
         errors.append(f"architecture_version_mismatch={config.model.architecture_version}")
     if not config.model.spatial_feature_groups:
         errors.append("spatial_feature_groups_empty")
+    if not any(
+        [
+            config.model.enable_image,
+            config.model.enable_spatial,
+            config.model.enable_interaction_context,
+            config.model.enable_visual_context,
+        ]
+    ):
+        errors.append("at_least_one_model_branch_required")
     if config.model.image_size <= 0 or config.model.hidden_dim <= 0:
         errors.append("model_dimensions_must_be_positive")
     if config.optimization.optimizer != "adamw":

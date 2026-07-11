@@ -19,51 +19,27 @@
     "hidden_dim": 48,
     "dropout": 0.1,
     "spatial_feature_groups": [
-      "bbox_xywh_n",
-      "bbox_shape_n",
-      "motion_delta",
-      "roi_class_relation",
-      "social_relation",
-      "quality_mask"
+      "bbox_xywh_n", "bbox_shape_n", "motion_delta", "roi_class_relation", "social_relation", "quality_mask"
     ],
     "enable_image": true,
-    "enable_spatial": true,
-    "enable_interaction_context": true,
-    "enable_visual_context": true,
+    "enable_spatial": false,
+    "enable_interaction_context": false,
+    "enable_visual_context": false,
     "enable_multitask": true
   },
   "optimization": {
-    "optimizer": "adamw",
-    "learning_rate": 0.003,
-    "weight_decay": 0.0,
-    "epochs": 3,
-    "batch_size": 128,
-    "eval_batch_size": 128,
-    "gradient_clip_norm": 1.0,
-    "precision": "amp",
-    "seed": 20260710,
-    "deterministic": true,
-    "checkpoint_every_steps": 500,
-    "scheduler": "none",
-    "early_stopping_metric": "validation_window_macro_f1",
-    "early_stopping_patience": 3
+    "optimizer": "adamw", "learning_rate": 0.003, "weight_decay": 0.0, "epochs": 3,
+    "batch_size": 128, "eval_batch_size": 128, "gradient_clip_norm": 1.0, "precision": "amp",
+    "seed": 20260710, "deterministic": true, "checkpoint_every_steps": 500, "scheduler": "none",
+    "early_stopping_metric": "validation_window_macro_f1", "early_stopping_patience": 3
   },
   "loss": {
-    "behavior_weight": 1.0,
-    "posture_weight": 0.25,
-    "motion_context_weight": 0.25,
-    "roi_intent_weight": 0.25,
-    "interaction_weight": 0.25,
-    "hierarchy_consistency_weight": 0.1,
-    "class_weight_power": 0.5,
-    "class_weight_max": 5.0
+    "behavior_weight": 1.0, "posture_weight": 0.25, "motion_context_weight": 0.25,
+    "roi_intent_weight": 0.25, "interaction_weight": 0.25, "hierarchy_consistency_weight": 0.1,
+    "class_weight_power": 0.5, "class_weight_max": 5.0
   },
   "execution": {
-    "mode": "smoke",
-    "fold_id": "native_oof_000",
-    "smoke_steps": 8,
-    "smoke_per_class": 1,
-    "output_dir": "outputs/classification_v2/model_smoke/strict_multitask",
-    "resume": true
+    "mode": "smoke", "fold_id": "native_oof_000", "smoke_steps": 8, "smoke_per_class": 1,
+    "output_dir": "outputs/classification_v2/model_smoke/baseline_actor_image", "resume": true
   }
 }

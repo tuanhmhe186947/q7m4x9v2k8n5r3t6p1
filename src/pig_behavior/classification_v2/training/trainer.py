@@ -168,6 +168,7 @@ def run_training(config: ClassificationV2TrainingConfig) -> dict[str, Any]:
             resumed_from,
         )
     _write_json_atomic(output_dir / "run_audit.json", audit)
+    _write_json_atomic(output_dir / "registry_entry.json", _registry_entry(audit, output_dir))
     return audit
 
 
@@ -303,6 +304,9 @@ def _build_model(
             visual_context_embedding_dim=config.model.hidden_dim,
             fusion_hidden_dim=config.model.hidden_dim * 2,
             dropout=config.model.dropout,
+            enable_image=config.model.enable_image,
+            enable_spatial=config.model.enable_spatial,
+            enable_interaction_context=config.model.enable_interaction_context,
             enable_visual_context=config.model.enable_visual_context,
         )
     )
@@ -466,3 +470,25 @@ def _write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     temporary.replace(path)
+
+
+def _registry_entry(audit: dict[str, Any], output_dir: Path) -> dict[str, Any]:
+    """Create a self-contained experiment index without mutating a global registry."""
+
+    return {
+        "schema_version": "classification_v2_experiment_registry_entry_v1",
+        "run_id": hashlib.sha256(
+            f"{audit['config_sha256']}:{audit['git']['commit']}".encode()
+        ).hexdigest()[:20],
+        "snapshot_id": audit["snapshot_id"],
+        "config_sha256": audit["config_sha256"],
+        "split_manifest_sha256": audit["split_manifest_sha256"],
+        "git": audit["git"],
+        "fold_id": audit["config"]["execution"]["fold_id"],
+        "model_architecture": audit["model_architecture"],
+        "best_epoch": audit["best_epoch"],
+        "history": audit["history"],
+        "artifact_root": str(output_dir),
+        "artifacts": audit["artifacts"],
+        "valid": audit["valid"],
+    }
