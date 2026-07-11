@@ -11,7 +11,8 @@
     "native_majority_prediction_schema": "outputs/classification_v2/model_smoke/native_majority_baseline/native_majority_prediction_schema_audit.json",
     "multimodal_smoke_train": "outputs/classification_v2/model_smoke/multimodal_smoke_train/multimodal_smoke_train_audit.json",
     "multimodal_smoke_prediction_schema": "outputs/classification_v2/model_smoke/multimodal_smoke_train/multimodal_smoke_prediction_schema_audit.json",
-    "interaction_context_loader": "outputs/classification_v2/model_smoke/interaction_context_loader_audit.json"
+    "interaction_context_loader": "outputs/classification_v2/model_smoke/interaction_context_loader_audit.json",
+    "visual_context_ablation_wiring": "outputs/classification_v2/model_design/visual_context_ablation_smoke_audit.json"
   },
   "required_ablation_ladder": [
     {
@@ -59,9 +60,9 @@
     {
       "id": "P2",
       "name": "full_frame_partner_context_branch",
-      "status": "implemented_smoke",
+      "status": "recorded_smoke",
       "required_before_paper_candidate": true,
-      "evidence": "outputs/classification_v2/model_smoke/interaction_context_loader_audit.json"
+      "evidence": "outputs/classification_v2/model_design/visual_context_ablation_smoke_audit.json"
     },
     {
       "id": "P3",

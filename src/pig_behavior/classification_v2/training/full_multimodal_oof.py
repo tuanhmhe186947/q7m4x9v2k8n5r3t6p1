@@ -143,9 +143,6 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
         ImageSequenceDatasetConfig(
             frame_context_csv=config.root / "image_frame_context_manifest.csv",
             window_context_csv=config.root / "image_window_context_manifest.csv",
-            packed_cache_npy=config.visual_context_packed_cache_npy,
-            packed_cache_index_csv=config.visual_context_packed_cache_index_csv,
-            require_packed_cache=config.require_packed_visual_context,
             image_cache_manifest_csv=config.image_cache_manifest_csv,
             packed_image_cache_npy=config.packed_image_cache_npy,
             packed_image_cache_index_csv=config.packed_image_cache_index_csv,
@@ -158,6 +155,9 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
         VisualInteractionDatasetConfig(
             cache_manifest_csv=config.visual_context_cache_manifest_csv,
             window_context_csv=config.root / "image_window_context_manifest.csv",
+            packed_cache_npy=config.visual_context_packed_cache_npy,
+            packed_cache_index_csv=config.visual_context_packed_cache_index_csv,
+            require_packed_cache=config.require_packed_visual_context,
         )
     )
     _validate_dataset_alignment(dataset, visual_context_dataset)

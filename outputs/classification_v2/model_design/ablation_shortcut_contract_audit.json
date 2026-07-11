@@ -74,6 +74,12 @@
       "exists": true,
       "errors": [],
       "valid": true
+    },
+    "visual_context_ablation_wiring": {
+      "path": "outputs/classification_v2/model_design/visual_context_ablation_smoke_audit.json",
+      "exists": true,
+      "errors": [],
+      "valid": true
     }
   },
   "ablation_report": [
@@ -128,9 +134,9 @@
     {
       "id": "P2",
       "name": "full_frame_partner_context_branch",
-      "status": "implemented_smoke",
+      "status": "recorded_smoke",
       "required_before_paper_candidate": true,
-      "evidence": "outputs/classification_v2/model_smoke/interaction_context_loader_audit.json",
+      "evidence": "outputs/classification_v2/model_design/visual_context_ablation_smoke_audit.json",
       "evidence_exists": true
     },
     {
