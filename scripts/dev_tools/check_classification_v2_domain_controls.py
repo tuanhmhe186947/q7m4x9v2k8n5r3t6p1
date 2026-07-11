@@ -74,6 +74,8 @@ def main() -> None:
         errors.append("grouped_spatial_source_probe_controls")
     if feature_shift.get("eligible_rows") != 152704 or feature_shift.get("feature_count") != 39:
         errors.append("domain_feature_shift_scope")
+    if feature_shift.get("camera_safe_claim_allowed") is not False:
+        errors.append("camera_safe_claim_not_blocked_without_metadata")
     result = {
         "schema_version": "classification_v2_domain_controls_check_v1",
         "policies": audits,

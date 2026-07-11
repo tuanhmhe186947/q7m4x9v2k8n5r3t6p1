@@ -239,6 +239,9 @@ def audit_domain_feature_shift(
             ).to_dict().items()
         },
         "source_identifier_in_features": False,
+        "camera_layout_metadata_status": "not_available_in_current_window_metadata",
+        "camera_safe_claim_allowed": False,
+        "claim_boundary": "recording-date/video-safe internal validation only",
         "errors": [],
         "valid": True,
     }
