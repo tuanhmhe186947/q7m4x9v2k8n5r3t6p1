@@ -1,0 +1,125 @@
+{
+  "version": "classification_v2_q2_oof_metric_contract_v1",
+  "purpose": "Declare the paper-facing metric contract for Q2 multimodal native-unit OOF evaluation without authorizing a full OOF run.",
+  "claim_boundary": {
+    "target_strength": "Q2_strong",
+    "primary_claim": "Improved pig behavior recognition under recording-date/video-safe internal validation.",
+    "external_generalization_claim": false,
+    "prohibited_claims": [
+      "external farm generalization",
+      "external camera generalization",
+      "unseen biological pig identity generalization",
+      "cross-cohort generalization",
+      "SOTA claim without external benchmark"
+    ]
+  },
+  "execution_policy": {
+    "full_oof_execution_allowed_by_contract": false,
+    "outer_test_used_for_threshold_tuning": false,
+    "model_selection_uses_outer_test": false,
+    "requires_explicit_user_authorization_for_full_oof": true
+  },
+  "statistical_unit": "native_temporal_unit",
+  "primary_split_policy": "recording_date_or_video_group_safe_oof",
+  "primary_label_order": [
+    "drink",
+    "eat",
+    "fight",
+    "social-nose",
+    "explore",
+    "lying",
+    "stand",
+    "move",
+    "sitting",
+    "playwithtoy"
+  ],
+  "required_prediction_columns": [
+    "window_id",
+    "temporal_unit_key",
+    "oof_fold_id",
+    "true_label",
+    "predicted_label",
+    "prob_drink",
+    "prob_eat",
+    "prob_fight",
+    "prob_social-nose",
+    "prob_explore",
+    "prob_lying",
+    "prob_stand",
+    "prob_move",
+    "prob_sitting",
+    "prob_playwithtoy"
+  ],
+  "required_native_outputs": {
+    "native_unit_predictions_csv": "outputs/classification_v2/q2_oof_evaluation/native_unit_predictions.csv",
+    "q2_oof_metrics_json": "outputs/classification_v2/q2_oof_evaluation/q2_oof_metrics.json"
+  },
+  "required_metric_groups": [
+    "pooled_native_unit_metrics",
+    "outer_fold_metrics",
+    "source_type_slice_metrics",
+    "recording_group_slice_metrics",
+    "behavior_label_slice_metrics",
+    "matched_6_frame_source_class_balanced_metrics",
+    "per_class_source_slice_metrics",
+    "probability_calibration_metrics",
+    "paired_cluster_bootstrap_ci",
+    "holm_corrected_ablation_tests",
+    "confusion_pair_metrics"
+  ],
+  "required_scalar_metrics": [
+    "macro_f1",
+    "balanced_accuracy",
+    "macro_precision",
+    "macro_recall",
+    "multiclass_mcc",
+    "negative_log_likelihood",
+    "multiclass_brier",
+    "top_label_ece"
+  ],
+  "required_confusion_pairs": [
+    ["fight", "social-nose"],
+    ["fight", "stand"],
+    ["fight", "move"],
+    ["eat", "stand"],
+    ["eat", "explore"],
+    ["drink", "stand"],
+    ["drink", "explore"],
+    ["playwithtoy", "explore"],
+    ["playwithtoy", "stand"],
+    ["playwithtoy", "move"],
+    ["lying", "sitting"],
+    ["move", "explore"],
+    ["move", "stand"]
+  ],
+  "required_native_collapse": {
+    "collapse_from": "overlapping_sequence_windows",
+    "collapse_to": "temporal_unit_key",
+    "one_prediction_per_native_unit": true,
+    "window_only_metrics_are_not_primary": true
+  },
+  "required_leakage_controls": [
+    "recording_group_safe_outer_folds",
+    "fold-local_standardization",
+    "no_manual_review_columns_in_X",
+    "no_identifier_or_path_columns_in_X",
+    "no_behavior_or_original_behavior_columns_in_X",
+    "pig_id_not_used_as_cross_video_identity",
+    "outer_test_not_used_for_threshold_tuning",
+    "native_temporal_unit_is_primary_metric_unit"
+  ],
+  "required_source_domain_controls": [
+    "overall_source_type_slice",
+    "per_behavior_source_type_slice",
+    "matched_6_frame_legacy_vs_cvat_subset",
+    "source_shortcut_probe_or_domain_control_ablation"
+  ],
+  "required_baseline_comparisons": [
+    "B2_spatial_only",
+    "B3_actor_image_only",
+    "B4_actor_spatial",
+    "B5_actor_spatial_partner_context",
+    "B6_actor_spatial_partner_multitask",
+    "B7_full_candidate_domain_controls"
+  ]
+}

@@ -37,6 +37,11 @@ def main() -> None:
         default=Path("outputs/classification_v2/model_design/b4_seed_variance_check_audit.json"),
     )
     parser.add_argument(
+        "--q2-oof-metric-contract-json",
+        type=Path,
+        default=Path("outputs/classification_v2/model_design/q2_oof_metric_contract_audit.json"),
+    )
+    parser.add_argument(
         "--output-json",
         type=Path,
         default=Path("outputs/classification_v2/model_design/q2_progress_report.json"),
@@ -53,12 +58,20 @@ def main() -> None:
     baseline_smokes = _load_optional_json(args.baseline_smoke_check_json)
     reproducibility = _load_optional_json(args.reproducibility_audit_json)
     b4_seed_variance = _load_optional_json(args.b4_seed_variance_check_json)
+    q2_oof_metric_contract = _load_optional_json(args.q2_oof_metric_contract_json)
 
     gates = [
         _gate("S0A snapshot/data contract", snapshot.get("valid") is True, snapshot.get("errors")),
         _gate("B2-B7 config matrix", baseline_configs.get("valid") is True, baseline_configs.get("errors")),
         _gate("B2-B7 CUDA smoke", baseline_smokes.get("valid") is True, baseline_smokes.get("errors")),
         _gate("B4 inner-validation seed variance", b4_seed_variance.get("valid") is True, b4_seed_variance.get("errors")),
+        _gate(
+            "S5 Q2 native-OOF metric contract",
+            q2_oof_metric_contract.get("valid") is True
+            and q2_oof_metric_contract.get("full_oof_execution_allowed_by_contract") is False
+            and q2_oof_metric_contract.get("outer_test_used_for_threshold_tuning") is False,
+            q2_oof_metric_contract.get("errors"),
+        ),
         _gate(
             "Strict trainer reproducibility",
             reproducibility.get("errors") == [] and reproducibility.get("forbidden_model_input_rejected") is True,
@@ -67,7 +80,7 @@ def main() -> None:
     ]
     remaining = [
         "Full OOF remains blocked until explicit authorization and matching clean preflight.",
-        "S5 paper-facing per-source/matched metrics need real OOF predictions.",
+        "S5 metric contract is defined; real per-source/matched metrics still need explicitly authorized full OOF predictions.",
         "B4 seed variance is estimated from bounded validation-only smoke; full inner-validation variance still needs non-smoke OOF authorization.",
         "S7-S9 hard-negative mining, active review, final calibration, and paper package remain future work.",
     ]
@@ -82,6 +95,7 @@ def main() -> None:
             "baseline_configs": _evidence_baseline_configs(baseline_configs),
             "baseline_smokes": _evidence_baseline_smokes(baseline_smokes),
             "b4_seed_variance": _evidence_b4_seed_variance(b4_seed_variance),
+            "q2_oof_metric_contract": _evidence_q2_oof_metric_contract(q2_oof_metric_contract),
             "reproducibility": _evidence_reproducibility(reproducibility),
         },
     }
@@ -144,6 +158,20 @@ def _evidence_b4_seed_variance(audit: dict[str, Any]) -> dict[str, Any]:
         "valid": audit.get("valid"),
         "seed_count": audit.get("seed_count"),
         "summary": audit.get("summary"),
+    }
+
+
+def _evidence_q2_oof_metric_contract(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "contract_version": audit.get("contract_version"),
+        "statistical_unit": audit.get("statistical_unit"),
+        "primary_split_policy": audit.get("primary_split_policy"),
+        "label_count": audit.get("label_count"),
+        "required_metric_group_count": audit.get("required_metric_group_count"),
+        "confusion_pair_count": audit.get("confusion_pair_count"),
+        "full_oof_execution_allowed_by_contract": audit.get("full_oof_execution_allowed_by_contract"),
+        "outer_test_used_for_threshold_tuning": audit.get("outer_test_used_for_threshold_tuning"),
     }
 
 
