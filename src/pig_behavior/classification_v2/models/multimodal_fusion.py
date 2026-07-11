@@ -194,11 +194,13 @@ class MultimodalFusionConfig:
     image_embedding_dim: int = 64
     spatial_embedding_dim: int = 64
     interaction_embedding_dim: int = 32
+    visual_context_embedding_dim: int = 64
     fusion_hidden_dim: int = 96
     dropout: float = 0.1
     enable_image: bool = True
     enable_spatial: bool = True
     enable_interaction_context: bool | None = None
+    enable_visual_context: bool = False
 
 
 class MultimodalFusionClassifier(nn.Module):
@@ -213,7 +215,7 @@ class MultimodalFusionClassifier(nn.Module):
             if config.enable_interaction_context is None
             else bool(config.enable_interaction_context)
         )
-        if not any([config.enable_image, config.enable_spatial, interaction_enabled]):
+        if not any([config.enable_image, config.enable_spatial, interaction_enabled, config.enable_visual_context]):
             raise ValueError("at least one multimodal branch must be enabled")
         self.config = config
         self.image_encoder: ImageSequenceEncoder | None = None
@@ -250,7 +252,21 @@ class MultimodalFusionClassifier(nn.Module):
                 nn.Dropout(config.dropout),
             )
             interaction_dim = config.interaction_embedding_dim
-        fused_dim = image_dim + spatial_dim + interaction_dim
+        self.visual_context_encoder: ImageSequenceEncoder | None = None
+        visual_context_dim = 0
+        if config.enable_visual_context:
+            if config.visual_context_embedding_dim <= 0:
+                raise ValueError("visual_context_embedding_dim must be positive")
+            # Separate weights prevent the actor crop and actor-partner scene
+            # branches from being forced into the same visual representation.
+            self.visual_context_encoder = ImageSequenceEncoder(
+                ImageSequenceEncoderConfig(
+                    embedding_dim=config.visual_context_embedding_dim,
+                    dropout=config.dropout,
+                )
+            )
+            visual_context_dim = config.visual_context_embedding_dim
+        fused_dim = image_dim + spatial_dim + interaction_dim + visual_context_dim
         self.classifier = nn.Sequential(
             nn.LayerNorm(fused_dim),
             nn.Linear(fused_dim, config.fusion_hidden_dim),
@@ -272,6 +288,9 @@ class MultimodalFusionClassifier(nn.Module):
         spatial_observed_mask: torch.Tensor | None = None,
         interaction_context_features: torch.Tensor | None = None,
         interaction_context_available_mask: torch.Tensor | None = None,
+        visual_context_image: torch.Tensor | None = None,
+        visual_context_length_mask: torch.Tensor | None = None,
+        visual_context_observed_mask: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Return logits shaped ``[B, num_classes]``.
 
@@ -311,6 +330,17 @@ class MultimodalFusionClassifier(nn.Module):
                     raise ValueError("interaction_context_available_mask must have shape [B]")
                 interaction_embedding = interaction_embedding * interaction_context_available_mask.float().unsqueeze(-1)
             embeddings.append(interaction_embedding)
+        if self.visual_context_encoder is not None:
+            if visual_context_image is None or visual_context_length_mask is None:
+                raise ValueError("visual context image and length mask required by model config")
+            visual_embedding = self.visual_context_encoder(
+                visual_context_image,
+                length_mask=visual_context_length_mask,
+                observed_mask=visual_context_observed_mask,
+            )
+            if batch_size is not None and visual_embedding.shape[0] != batch_size:
+                raise ValueError("visual context batch size mismatch")
+            embeddings.append(visual_embedding)
         return self.classifier(torch.cat(embeddings, dim=-1))
 
 
