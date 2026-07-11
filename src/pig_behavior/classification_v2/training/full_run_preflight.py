@@ -41,6 +41,7 @@ def build_full_run_preflight(
         errors.append("full_run_requires_strict_packed_image_cache")
     if not config.require_packed_visual_context or config.visual_context_packed_cache_npy is None:
         errors.append("full_run_requires_strict_packed_visual_context")
+    errors.extend(_canonical_full_run_path_errors(config))
     for path_name, path in (
         ("packed_image_cache_npy", config.packed_image_cache_npy),
         ("packed_image_cache_index_csv", config.packed_image_cache_index_csv),
@@ -127,6 +128,62 @@ def _runtime_match_errors(
             f"recommended:{recommendation.get('train_batch_size')},config:{config.train_batch_size}"
         )
     return errors
+
+
+def _canonical_full_run_path_errors(config: FullMultimodalOofConfig) -> list[str]:
+    """Fail closed on ad hoc cache/output roots before a long full OOF run."""
+
+    errors: list[str] = []
+    output_parts = {part.lower() for part in config.output_dir.parts}
+    if {"model_smoke", "smoke", "pilot", "resume_smoke"}.intersection(output_parts):
+        errors.append(f"full_run_output_dir_must_not_be_smoke_or_pilot={config.output_dir}")
+    expected_actor_root = Path("outputs/classification_v2/image_cache_v2_letterbox")
+    expected_actor_tensor = expected_actor_root / f"packed_rgb_{config.image_size}_letterbox.npy"
+    expected_actor_index = expected_actor_root / "packed_image_cache_index.csv"
+    if config.packed_image_cache_npy is not None and _norm(config.packed_image_cache_npy) != _norm(
+        expected_actor_tensor
+    ):
+        errors.append(
+            "packed_actor_cache_must_use_canonical_letterbox_tensor="
+            f"expected:{expected_actor_tensor},actual:{config.packed_image_cache_npy}"
+        )
+    if config.packed_image_cache_index_csv is not None and _norm(config.packed_image_cache_index_csv) != _norm(
+        expected_actor_index
+    ):
+        errors.append(
+            "packed_actor_cache_index_must_use_canonical_letterbox_index="
+            f"expected:{expected_actor_index},actual:{config.packed_image_cache_index_csv}"
+        )
+    expected_visual_root = Path("outputs/classification_v2/visual_interaction_cache")
+    expected_visual_manifest = expected_visual_root / "visual_context_manifest.csv"
+    expected_visual_tensor = expected_visual_root / f"packed_rgb_{config.image_size}_letterbox.npy"
+    expected_visual_index = expected_visual_root / "packed_image_cache_index.csv"
+    if config.visual_context_cache_manifest_csv is not None and _norm(
+        config.visual_context_cache_manifest_csv
+    ) != _norm(expected_visual_manifest):
+        errors.append(
+            "visual_context_manifest_must_use_canonical_cache="
+            f"expected:{expected_visual_manifest},actual:{config.visual_context_cache_manifest_csv}"
+        )
+    if config.visual_context_packed_cache_npy is not None and _norm(config.visual_context_packed_cache_npy) != _norm(
+        expected_visual_tensor
+    ):
+        errors.append(
+            "packed_visual_context_must_use_canonical_letterbox_tensor="
+            f"expected:{expected_visual_tensor},actual:{config.visual_context_packed_cache_npy}"
+        )
+    if config.visual_context_packed_cache_index_csv is not None and _norm(
+        config.visual_context_packed_cache_index_csv
+    ) != _norm(expected_visual_index):
+        errors.append(
+            "packed_visual_context_index_must_use_canonical_letterbox_index="
+            f"expected:{expected_visual_index},actual:{config.visual_context_packed_cache_index_csv}"
+        )
+    return errors
+
+
+def _norm(path: Path) -> str:
+    return path.as_posix().lower().rstrip("/")
 
 
 def validate_preflight_for_execution(
