@@ -1,0 +1,63 @@
+{
+  "version": "classification_v2_training_config_v1",
+  "dataset": {
+    "snapshot_json": "outputs/classification_v2/training_snapshots/c2v2_c4f631581dfd2b9e.json",
+    "trainer_contract_json": "configs/classification_v2/trainer_contract_v1.json",
+    "train_ready_root": "outputs/classification_v2/train_ready_windows",
+    "actor_packed_cache": "outputs/classification_v2/image_cache_v2_letterbox/packed_rgb_64_letterbox.npy",
+    "actor_packed_index": "outputs/classification_v2/image_cache_v2_letterbox/packed_image_cache_index.csv",
+    "visual_cache_manifest": "outputs/classification_v2/visual_interaction_cache/visual_context_manifest.csv",
+    "visual_packed_cache": "outputs/classification_v2/visual_interaction_cache/packed_rgb_64_letterbox.npy",
+    "visual_packed_index": "outputs/classification_v2/visual_interaction_cache/packed_image_cache_index.csv",
+    "native_oof_fold_manifest": "outputs/classification_v2/native_temporal_units_oof_folds/native_oof_fold_manifest.csv",
+    "auxiliary_targets_csv": "outputs/classification_v2/train_ready_windows/y_auxiliary_targets.csv",
+    "strict_packed_cache": true
+  },
+  "model": {
+    "architecture_version": "multimodal_temporal_conv_v3_visual_context_multitask_v1",
+    "image_size": 64,
+    "hidden_dim": 48,
+    "dropout": 0.1,
+    "spatial_feature_groups": [
+      "bbox_xywh_n",
+      "bbox_shape_n",
+      "motion_delta",
+      "roi_class_relation",
+      "social_relation",
+      "quality_mask"
+    ],
+    "enable_visual_context": true,
+    "enable_multitask": true
+  },
+  "optimization": {
+    "optimizer": "adamw",
+    "learning_rate": 0.003,
+    "weight_decay": 0.0,
+    "epochs": 3,
+    "batch_size": 128,
+    "eval_batch_size": 128,
+    "gradient_clip_norm": 1.0,
+    "precision": "amp",
+    "seed": 20260710,
+    "deterministic": true,
+    "checkpoint_every_steps": 500
+  },
+  "loss": {
+    "behavior_weight": 1.0,
+    "posture_weight": 0.25,
+    "motion_context_weight": 0.25,
+    "roi_intent_weight": 0.25,
+    "interaction_weight": 0.25,
+    "hierarchy_consistency_weight": 0.1,
+    "class_weight_power": 0.5,
+    "class_weight_max": 5.0
+  },
+  "execution": {
+    "mode": "smoke",
+    "fold_id": "native_oof_000",
+    "smoke_steps": 8,
+    "smoke_per_class": 1,
+    "output_dir": "outputs/classification_v2/model_smoke/strict_multitask",
+    "resume": true
+  }
+}
