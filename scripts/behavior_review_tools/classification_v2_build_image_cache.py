@@ -106,6 +106,8 @@ def build_image_cache(
         frame = frame[frame["source_type"].astype(str).eq(source_type)].copy()
     if max_contexts is not None:
         frame = frame.head(int(max_contexts)).copy()
+    selected_context_rows = len(frame)
+    frame = _sort_for_media_locality(frame)
 
     manifest_rows: list[dict[str, Any]] = []
     loaded = 0
@@ -114,8 +116,9 @@ def build_image_cache(
     previews_written = 0
     partial_manifest_path = output_dir / "manifest.partial.csv"
     partial_audit_path = output_dir / "cache_audit.partial.json"
-    start_row_index = 1
     resumed_manifest_rows = 0
+    resume_missing_cache_rows = 0
+    completed_context_ids: set[str] = set()
     if resume_from_partial:
         resume_state = _load_partial_resume_state(
             manifest_path=partial_manifest_path,
@@ -124,15 +127,23 @@ def build_image_cache(
             source_type=source_type,
         )
         manifest_rows = resume_state["manifest_rows"]
-        start_row_index = resume_state["start_row_index"]
         previews_written = resume_state["previews_written"]
         resumed_manifest_rows = len(manifest_rows)
+        resume_missing_cache_rows = int(resume_state["missing_cache_rows"])
+        completed_context_ids = {str(row["image_context_id"]) for row in manifest_rows}
+        selected_context_ids = set(frame["image_context_id"].astype(str))
+        unexpected_context_ids = completed_context_ids.difference(selected_context_ids)
+        if unexpected_context_ids:
+            raise ValueError(
+                "partial cache contains image_context_id values outside the selected input set: "
+                f"{len(unexpected_context_ids)}"
+            )
     try:
         for row_index, row in enumerate(frame.itertuples(index=False), start=1):
-            if row_index < start_row_index:
-                continue
             row_dict = row._asdict()
             context_id = str(row_dict["image_context_id"])
+            if context_id in completed_context_ids:
+                continue
             rel_path = context_cache_relative_path(context_id)
             cache_path = cache_root / rel_path
             image_uint8: np.ndarray | None = None
@@ -183,6 +194,7 @@ def build_image_cache(
                     "y2": row_dict.get("y2", ""),
                 }
             )
+            completed_context_ids.add(context_id)
             if checkpoint_every and row_index % checkpoint_every == 0:
                 _write_cache_checkpoint(
                     manifest_rows=manifest_rows,
@@ -192,18 +204,23 @@ def build_image_cache(
                     cache_root=cache_root,
                     preview_root=preview_root if preview_jpg else None,
                     image_size=image_size,
-                    selected_context_rows=len(frame),
+                    selected_context_rows=selected_context_rows,
                     loaded=loaded,
                     skipped_existing=skipped_existing,
                     failed=failed,
                     previews_written=previews_written,
                     source_type=source_type,
                     checkpoint_row_index=row_index,
+                    video_decode_count=dataset.video_decode_count,
+                    video_seek_count=dataset.video_seek_count,
+                    video_frame_reuse_count=dataset.video_frame_reuse_count,
                 )
     finally:
         dataset.close()
 
     manifest = pd.DataFrame(manifest_rows).sort_values("image_context_id", kind="mergesort")
+    duplicate_context_rows = int(manifest["image_context_id"].duplicated().sum())
+    missing_context_rows = int(selected_context_rows - len(manifest))
     manifest_path = output_dir / "manifest.csv"
     manifest.to_csv(manifest_path, index=False)
     audit = {
@@ -215,11 +232,13 @@ def build_image_cache(
         "preview_root": str(preview_root) if preview_jpg else None,
         "manifest_csv": str(manifest_path),
         "image_size": int(image_size),
-        "selected_context_rows": int(len(frame)),
+        "selected_context_rows": int(selected_context_rows),
         "manifest_rows": int(len(manifest)),
+        "missing_context_rows": int(missing_context_rows),
+        "duplicate_context_rows": int(duplicate_context_rows),
         "resume_from_partial": bool(resume_from_partial),
-        "start_row_index": int(start_row_index),
         "resumed_manifest_rows": int(resumed_manifest_rows),
+        "resume_missing_cache_rows": int(resume_missing_cache_rows),
         "loaded_rows": int(loaded),
         "skipped_existing_rows": int(skipped_existing),
         "failed_rows": int(failed),
@@ -229,7 +248,17 @@ def build_image_cache(
         "source_type_filter": source_type,
         "cache_format": "npy_uint8_rgb_hwc",
         "resize_policy": RESIZE_POLICY,
-        "valid": bool(len(manifest) > 0 and failed == 0),
+        "processing_order": "source_media_frame_context_v1",
+        "resume_key_policy": "image_context_id_v1",
+        "video_decode_count": int(dataset.video_decode_count),
+        "video_seek_count": int(dataset.video_seek_count),
+        "video_frame_reuse_count": int(dataset.video_frame_reuse_count),
+        "valid": bool(
+            len(manifest) > 0
+            and missing_context_rows == 0
+            and duplicate_context_rows == 0
+            and failed == 0
+        ),
     }
     (output_dir / "cache_audit.json").write_text(json.dumps(audit, indent=2), encoding="utf-8")
     return audit
@@ -245,7 +274,7 @@ def _load_partial_resume_state(
     """Load an interrupted cache build only when its lineage matches this run."""
 
     if not manifest_path.exists() or not audit_path.exists():
-        return {"manifest_rows": [], "start_row_index": 1, "previews_written": 0}
+        return {"manifest_rows": [], "previews_written": 0, "missing_cache_rows": 0}
     audit = json.loads(audit_path.read_text(encoding="utf-8"))
     if int(audit.get("image_size", -1)) != int(image_size):
         raise ValueError(f"partial cache image_size mismatch: {audit.get('image_size')} != {image_size}")
@@ -269,15 +298,16 @@ def _load_partial_resume_state(
     policy_mismatch = int(manifest["resize_policy"].astype(str).ne(RESIZE_POLICY).sum())
     if policy_mismatch:
         raise ValueError(f"partial cache manifest resize_policy mismatch rows: {policy_mismatch}")
-    checkpoint_row_index = int(audit.get("checkpoint_row_index", len(manifest)))
-    if checkpoint_row_index < len(manifest):
-        raise ValueError(
-            f"partial audit checkpoint_row_index {checkpoint_row_index} is behind manifest rows {len(manifest)}"
-        )
+    base = manifest_path.parent
+    cache_exists = manifest["cache_path"].astype(str).map(
+        lambda value: (Path(value) if Path(value).is_absolute() else base / value).exists()
+    )
+    missing_cache_rows = int((~cache_exists).sum())
+    manifest = manifest[cache_exists].copy()
     return {
         "manifest_rows": manifest.to_dict("records"),
-        "start_row_index": checkpoint_row_index + 1,
         "previews_written": int(audit.get("previews_written", 0)),
+        "missing_cache_rows": missing_cache_rows,
     }
 
 
@@ -297,6 +327,9 @@ def _write_cache_checkpoint(
     previews_written: int,
     source_type: str | None,
     checkpoint_row_index: int,
+    video_decode_count: int,
+    video_seek_count: int,
+    video_frame_reuse_count: int,
 ) -> None:
     """Persist partial cache lineage so interrupted long builds are auditable."""
 
@@ -318,6 +351,11 @@ def _write_cache_checkpoint(
         "source_type_filter": source_type,
         "cache_format": "npy_uint8_rgb_hwc",
         "resize_policy": RESIZE_POLICY,
+        "processing_order": "source_media_frame_context_v1",
+        "resume_key_policy": "image_context_id_v1",
+        "video_decode_count": int(video_decode_count),
+        "video_seek_count": int(video_seek_count),
+        "video_frame_reuse_count": int(video_frame_reuse_count),
         "complete": False,
     }
     audit_path.write_text(json.dumps(audit, indent=2), encoding="utf-8")
@@ -336,6 +374,24 @@ def _readable_preview_relative_path(row: dict[str, Any], context_id: str) -> Pat
         frame_text = "frame_unknown"
     short_id = context_cache_relative_path(context_id).stem[:10]
     return Path(source) / video / pig / f"{frame_text}_{short_id}.jpg"
+
+
+def _sort_for_media_locality(frame: pd.DataFrame) -> pd.DataFrame:
+    """Order requests for one-open-per-video sequential decoding.
+
+    The deterministic context ID remains the cache key. Sorting changes only
+    I/O order; it does not change labels, rows, bbox values, or output IDs.
+    """
+
+    ordered = frame.copy()
+    ordered["_cache_frame_index"] = pd.to_numeric(ordered["frame_index"], errors="coerce")
+    ordered["_cache_media_path"] = ordered["resolved_media_path"].fillna("").astype(str)
+    ordered = ordered.sort_values(
+        ["source_type", "_cache_media_path", "_cache_frame_index", "image_context_id"],
+        kind="mergesort",
+        na_position="last",
+    )
+    return ordered.drop(columns=["_cache_frame_index", "_cache_media_path"]).reset_index(drop=True)
 
 
 def _safe_segment(value: str) -> str:

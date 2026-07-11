@@ -60,7 +60,12 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         self.windows = self.windows.reset_index(drop=True)
         self.frame_by_context_id = self.frames.set_index("image_context_id", drop=False).to_dict("index")
         self._capture_cache: dict[str, Any] = {}
+        self._capture_next_frame: dict[str, int] = {}
+        self._decoded_video_frame: dict[str, tuple[int, np.ndarray]] = {}
         self._image_cache: OrderedDict[str, np.ndarray] = OrderedDict()
+        self.video_decode_count = 0
+        self.video_seek_count = 0
+        self.video_frame_reuse_count = 0
 
     def __len__(self) -> int:
         return int(len(self.windows))
@@ -109,6 +114,8 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
             except Exception:
                 pass
         self._capture_cache.clear()
+        self._capture_next_frame.clear()
+        self._decoded_video_frame.clear()
         self._image_cache.clear()
 
     def _validate_manifests(self) -> None:
@@ -211,6 +218,13 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         return None
 
     def _load_cvat_crop(self, frame: dict[str, Any]) -> np.ndarray | None:
+        """Load one CVAT crop while reusing sequentially decoded full frames.
+
+        The cache builder sorts requests by video/frame. This method therefore
+        reads consecutive frames without seeking and decodes a shared frame
+        once when several pigs have boxes on that frame.
+        """
+
         if cv2 is None:
             return None
         video_path = str(frame.get("resolved_media_path", ""))
@@ -226,10 +240,21 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         bbox = [pd.to_numeric(frame.get(col), errors="coerce") for col in ["x1", "y1", "x2", "y2"]]
         if pd.isna(frame_index) or any(pd.isna(value) for value in bbox):
             return None
-        capture.set(cv2.CAP_PROP_POS_FRAMES, int(frame_index))
-        ok, image_bgr = capture.read()
-        if not ok or image_bgr is None:
-            return None
+        target_frame = int(frame_index)
+        decoded = self._decoded_video_frame.get(video_path)
+        if decoded is not None and decoded[0] == target_frame:
+            image_bgr = decoded[1]
+            self.video_frame_reuse_count += 1
+        else:
+            if self._capture_next_frame.get(video_path) != target_frame:
+                capture.set(cv2.CAP_PROP_POS_FRAMES, target_frame)
+                self.video_seek_count += 1
+            ok, image_bgr = capture.read()
+            if not ok or image_bgr is None:
+                return None
+            self._capture_next_frame[video_path] = target_frame + 1
+            self._decoded_video_frame[video_path] = (target_frame, image_bgr)
+            self.video_decode_count += 1
         height, width = image_bgr.shape[:2]
         x1, y1, x2, y2 = [float(value) for value in bbox]
         x1i = max(0, min(width, int(x1)))
