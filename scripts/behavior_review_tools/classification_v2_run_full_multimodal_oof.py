@@ -29,6 +29,7 @@ def main() -> None:
     parser.add_argument("--image-size", type=int, default=32)
     parser.add_argument("--hidden-dim", type=int, default=32)
     parser.add_argument("--steps-per-fold", type=int, default=2)
+    parser.add_argument("--epochs-per-fold", type=int, default=3)
     parser.add_argument("--train-batch-size", type=int, default=32)
     parser.add_argument("--eval-batch-size", type=int, default=64)
     parser.add_argument("--max-folds", type=int, default=2)
@@ -51,6 +52,7 @@ def main() -> None:
         image_size=args.image_size,
         hidden_dim=args.hidden_dim,
         steps_per_fold=args.steps_per_fold,
+        epochs_per_fold=args.epochs_per_fold,
         train_batch_size=args.train_batch_size,
         eval_batch_size=args.eval_batch_size,
         max_folds=None if args.full else args.max_folds,

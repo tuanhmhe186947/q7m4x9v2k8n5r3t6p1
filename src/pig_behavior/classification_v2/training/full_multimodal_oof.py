@@ -77,6 +77,7 @@ class FullMultimodalOofConfig:
     lr: float = 0.003
     weight_decay: float = 0.0
     steps_per_fold: int = 2
+    epochs_per_fold: int = 3
     train_batch_size: int = 32
     eval_batch_size: int = 64
     max_folds: int | None = 2
@@ -158,10 +159,11 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
     schema_audit_path.write_text(json.dumps(prediction_schema_audit, indent=2), encoding="utf-8")
 
     image_load_audit = dataset.image_load_audit()
+    paper_facing_result = _is_full_run(config, bundle) and _fold_training_coverage_complete(fold_audits)
     audit = {
         "schema_version": "classification_v2_full_multimodal_oof_audit_v1",
         "run_mode": config.run_mode,
-        "paper_facing_result": _is_full_run(config, bundle),
+        "paper_facing_result": paper_facing_result,
         "config": _jsonable_config(config),
         "ablation_settings": _ablation_settings(config.ablation_variant),
         "device": str(device),
@@ -240,6 +242,8 @@ def build_full_multimodal_oof_run_plan(config: FullMultimodalOofConfig) -> dict[
                 "train_rows": int(len(train_indices)),
                 "eval_rows": int(len(eval_indices)),
                 "steps_per_fold": int(config.steps_per_fold),
+                "epochs_per_fold": int(config.epochs_per_fold),
+                "effective_training_steps": int(_effective_training_step_count(config, len(train_indices))),
                 "train_batch_size": int(config.train_batch_size),
                 "eval_batch_size": int(config.eval_batch_size),
                 "eval_batches": int(eval_batches),
@@ -248,7 +252,7 @@ def build_full_multimodal_oof_run_plan(config: FullMultimodalOofConfig) -> dict[
             }
         )
         total_eval_rows += int(len(eval_indices))
-        total_train_steps += int(config.steps_per_fold)
+        total_train_steps += _effective_training_step_count(config, len(train_indices))
     full_like = _is_full_run(config, bundle)
     warnings = []
     if not full_like:
@@ -338,6 +342,7 @@ def _run_one_fold(
     loss_fn = nn.CrossEntropyLoss()
     rng = np.random.default_rng(config.seed + int(_stable_fold_offset(fold_id)))
     losses: list[float] = []
+    seen_train_indices: set[int] = set()
     resumed_training = False
     training_signature = _fold_training_signature(config, fold_id, train_indices, eval_indices)
     training_audit_path = fold_work_dir / "training_audit.json" if fold_work_dir is not None else None
@@ -356,11 +361,12 @@ def _run_one_fold(
             raise ValueError(f"stale fold training checkpoint signature for fold {fold_id}")
         model.load_state_dict(torch.load(model_state_path, map_location=device))
         losses = [float(value) for value in training_audit.get("losses", [])]
+        seen_train_indices = {int(value) for value in training_audit.get("seen_train_indices", [])}
         resumed_training = True
     else:
         model.train()
-        for step_index in range(int(config.steps_per_fold)):
-            batch_indices = _step_train_indices(train_indices, config.train_batch_size, rng, step_index)
+        for batch_indices in _training_batches(config, train_indices, rng):
+            seen_train_indices.update(int(value) for value in batch_indices)
             train_batch = _batch_from_indices(dataset, bundle, batch_indices, label_to_idx, config, device)
             optimizer.zero_grad(set_to_none=True)
             logits = _forward_model(model, train_batch)
@@ -376,6 +382,7 @@ def _run_one_fold(
                     {
                         "training_signature": training_signature,
                         "losses": losses,
+                        "seen_train_indices": sorted(seen_train_indices),
                     },
                     indent=2,
                 ),
@@ -425,6 +432,10 @@ def _run_one_fold(
         "initial_loss": float(losses[0]),
         "final_loss": float(losses[-1]),
         "loss_reduction": float(losses[0] - losses[-1]),
+        "training_steps_completed": int(len(losses)),
+        "expected_training_steps": int(_effective_training_step_count(config, len(train_indices))),
+        "unique_train_rows_seen": int(len(seen_train_indices)),
+        "train_row_coverage_ratio": float(len(seen_train_indices) / len(train_indices)),
         "resumed_training_checkpoint": bool(resumed_training),
         "prediction_chunk_count": int(prediction_chunk_count),
         "fold_work_dir": str(fold_work_dir) if fold_work_dir is not None else None,
@@ -732,6 +743,8 @@ def _validate_config(config: FullMultimodalOofConfig) -> None:
         raise ValueError("hidden_dim must be positive")
     if config.steps_per_fold <= 0:
         raise ValueError("steps_per_fold must be positive")
+    if config.epochs_per_fold <= 0:
+        raise ValueError("epochs_per_fold must be positive")
     if config.train_batch_size <= 0 or config.eval_batch_size <= 0:
         raise ValueError("batch sizes must be positive")
     if config.max_folds is not None and config.max_folds <= 0:
@@ -756,6 +769,7 @@ def _is_full_run(config: FullMultimodalOofConfig, bundle: _OofBundle) -> bool:
         and config.max_folds is None
         and config.train_per_class_per_fold is None
         and config.eval_per_class_per_fold is None
+        and config.epochs_per_fold >= 1
         and bundle.load_audit.get("eligible_fold_count", 0) >= 2
     )
 
@@ -766,6 +780,16 @@ def _mode_warnings(config: FullMultimodalOofConfig, bundle: _OofBundle) -> list[
         warnings.append("bounded pilot run; do not register as full_multimodal_oof_record or cite as paper metric")
     warnings.append("full learned OOF claim also requires source-balanced reporting and ablation report review")
     return warnings
+
+
+def _fold_training_coverage_complete(fold_audits: list[dict[str, Any]]) -> bool:
+    """Require every full fold to complete its declared epoch coverage."""
+
+    return bool(fold_audits) and all(
+        int(fold.get("training_steps_completed", -1)) == int(fold.get("expected_training_steps", -2))
+        and float(fold.get("train_row_coverage_ratio", 0.0)) >= 1.0
+        for fold in fold_audits
+    )
 
 
 def _stable_fold_offset(fold_id: str) -> int:
@@ -786,6 +810,8 @@ def _fold_training_signature(
         "image_size": int(config.image_size),
         "hidden_dim": int(config.hidden_dim),
         "steps_per_fold": int(config.steps_per_fold),
+        "epochs_per_fold": int(config.epochs_per_fold),
+        "effective_training_steps": int(_effective_training_step_count(config, len(train_indices))),
         "train_batch_size": int(config.train_batch_size),
         "eval_batch_size": int(config.eval_batch_size),
         "train_per_class_per_fold": config.train_per_class_per_fold,
@@ -800,6 +826,31 @@ def _indices_checksum(indices: np.ndarray) -> str:
     """Hash ordered row indices used for training/evaluation artifact lineage."""
 
     return hashlib.sha256(np.asarray(indices, dtype=np.int64).tobytes()).hexdigest()
+
+
+def _training_batches(
+    config: FullMultimodalOofConfig,
+    train_indices: np.ndarray,
+    rng: np.random.Generator,
+):
+    """Yield bounded pilot batches or complete deterministic epochs for full runs."""
+
+    if config.run_mode == "full":
+        for _ in range(int(config.epochs_per_fold)):
+            shuffled = rng.permutation(train_indices)
+            for start in range(0, len(shuffled), int(config.train_batch_size)):
+                yield shuffled[start : start + int(config.train_batch_size)]
+        return
+    for step_index in range(int(config.steps_per_fold)):
+        yield _step_train_indices(train_indices, config.train_batch_size, rng, step_index)
+
+
+def _effective_training_step_count(config: FullMultimodalOofConfig, train_rows: int) -> int:
+    """Return optimizer steps implied by bounded pilot or full epoch coverage."""
+
+    if config.run_mode == "full":
+        return _ceil_div(train_rows, int(config.train_batch_size)) * int(config.epochs_per_fold)
+    return int(config.steps_per_fold)
 
 
 def _ablation_settings(variant: str) -> dict[str, Any]:

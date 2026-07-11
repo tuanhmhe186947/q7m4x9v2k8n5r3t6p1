@@ -45,6 +45,17 @@ def main() -> None:
     errors.extend(f"metrics_payload:{error}" for error in metrics_check.get("errors", []))
     if audit.get("run_mode") == "pilot" and audit.get("paper_facing_result") is True:
         errors.append("pilot_marked_paper_facing")
+    if audit.get("run_mode") == "full":
+        incomplete_folds = [
+            fold.get("oof_fold_id")
+            for fold in audit.get("fold_audits", [])
+            if int(fold.get("training_steps_completed", -1)) != int(fold.get("expected_training_steps", -2))
+            or float(fold.get("train_row_coverage_ratio", 0.0)) < 1.0
+        ]
+        if incomplete_folds:
+            errors.append(f"incomplete_full_training_coverage={incomplete_folds}")
+        if audit.get("paper_facing_result") is not True:
+            errors.append("full_run_not_marked_paper_facing")
     image_load_audit = audit.get("image_load_audit", {})
     if args.require_cache_only:
         if image_load_audit.get("cache_manifest_configured") is not True:

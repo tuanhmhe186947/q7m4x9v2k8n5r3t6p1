@@ -66,7 +66,7 @@ python scripts\behavior_review_tools\classification_v2_run_full_multimodal_oof.p
   --output-dir outputs\classification_v2\model_full\full_multimodal_oof ^
   --image-size 64 ^
   --hidden-dim 48 ^
-  --steps-per-fold 6 ^
+  --epochs-per-fold 3 ^
   --bootstrap-iterations 200
 ```
 
@@ -74,6 +74,8 @@ Hardware notes:
 
 - CPU is supported but may be slow because CVAT crops are read from video.
 - GPU should be used when available through `--device auto`.
+- Full mode ignores bounded pilot step counts and trains complete shuffled epochs.
+- Confirm `train_row_coverage_ratio=1.0` for every fold before interpreting a run as paper-facing.
 - If runtime is too high, reduce only training steps for a documented
   engineering run. Do not register a reduced/bounded run as full paper evidence.
 
