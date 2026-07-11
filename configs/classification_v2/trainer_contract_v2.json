@@ -1,0 +1,78 @@
+{
+  "version": "classification_v2_trainer_contract_v2",
+  "claim_scope": "improved behavior recognition under recording-date/video-safe internal validation",
+  "claim_exclusions": [
+    "external farm generalization",
+    "external camera generalization",
+    "biological pig identity generalization"
+  ],
+  "train_ready_root": "outputs/classification_v2/train_ready_windows",
+  "q2_outer_assignments": "outputs/classification_v2/q2_grouped_folds/q2_outer_fold_assignments.csv",
+  "q2_outer_inner_roles": "outputs/classification_v2/q2_grouped_folds/q2_outer_inner_roles.csv",
+  "primary_prediction_unit": "native_temporal_unit",
+  "primary_metric": "fixed_10_class_native_unit_macro_f1",
+  "spatial_sequence_feature_whitelist": [
+    "bbox_xywh_n",
+    "bbox_shape_n",
+    "motion_delta",
+    "roi_class_relation",
+    "social_relation",
+    "quality_mask"
+  ],
+  "standardize_from_outer_train_only": [
+    "bbox_shape_n",
+    "motion_delta",
+    "roi_class_relation",
+    "social_relation"
+  ],
+  "model_input_branches": [
+    "actor_letterbox_rgb_sequence",
+    "whitelisted_spatial_sequence",
+    "label_independent_interaction_context",
+    "actor_partner_letterbox_rgb_sequence"
+  ],
+  "target_artifacts": ["y_behavior.csv", "y_auxiliary_targets.csv"],
+  "mask_weight_artifacts": ["train_mask.csv", "sample_weight.csv", "event_weight_manifest.csv"],
+  "split_rules": [
+    "outer test contains complete recording groups and is never used for early stopping",
+    "inner validation is selected only from outer-train recording groups",
+    "all windows from one temporal unit, video, and recording date stay in one outer role",
+    "pig_id is annotation-local and is never a cross-video grouping key"
+  ],
+  "forbidden_x_patterns": [
+    "manual_*",
+    "review_*",
+    "*behavior*",
+    "*label*",
+    "original_behavior",
+    "behavior_before_review",
+    "review_unit_id",
+    "window_id",
+    "temporal_unit_key",
+    "video_key",
+    "dataset_id",
+    "pig_id",
+    "track_id",
+    "object_track_key",
+    "recording_group_id",
+    "source_type",
+    "source_*",
+    "split",
+    "split_*",
+    "*_path"
+  ],
+  "domain_controls": [
+    "combined and per-source native-unit metrics",
+    "matched 6-frame source-class-balanced view",
+    "grouped clean-feature and strict-spatial source probes",
+    "fold-local normalization and weighting",
+    "source type remains evaluation metadata only"
+  ],
+  "rules": [
+    "Never construct X by selecting all numeric columns.",
+    "Never silently drop, duplicate, or relabel rows for source balancing.",
+    "Collapse overlapping windows to one native-unit prediction before primary scoring.",
+    "Use full-frame and direct-partner context for interaction without behavior-label routing.",
+    "Report unsupported source/class/fold combinations explicitly."
+  ]
+}
