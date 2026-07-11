@@ -1,5 +1,5 @@
 {
-  "contract_version": "classification_v2_data_contract_v1",
+  "contract_version": "classification_v2_data_contract_v1_1",
   "snapshot_name": "classification_v2_train_ready_baseline",
   "root": ".",
   "train_ready_root": "outputs/classification_v2/train_ready_windows",
@@ -26,6 +26,16 @@
   "key_coverage_group": [
     "image_window_context_manifest",
     "source_domain_selection_manifest"
+  ],
+  "key_coverage_groups": [
+    {
+      "source_artifact": "split_manifest",
+      "artifacts": ["image_window_context_manifest", "source_domain_selection_manifest"]
+    },
+    {
+      "source_artifact": "image_frame_context_manifest",
+      "artifacts": ["image_cache_manifest", "image_cache_integrity_manifest"]
+    }
   ],
   "artifacts": {
     "split_manifest": {
@@ -136,6 +146,58 @@
       "required": true,
       "key_column": "window_id",
       "required_columns": ["window_id", "image_context_id_sequence"]
+    },
+    "image_frame_context_manifest": {
+      "path": "outputs/classification_v2/train_ready_windows/image_frame_context_manifest.csv",
+      "type": "csv",
+      "required": true,
+      "key_column": "image_context_id",
+      "required_columns": [
+        "image_context_id",
+        "source_type",
+        "resolved_media_path",
+        "frame_index",
+        "x1",
+        "y1",
+        "x2",
+        "y2"
+      ]
+    },
+    "image_cache_manifest": {
+      "path": "outputs/classification_v2/image_cache_v2_letterbox/manifest.csv",
+      "type": "csv",
+      "required": true,
+      "key_column": "image_context_id",
+      "required_columns": [
+        "image_context_id",
+        "cache_path",
+        "image_size",
+        "cache_format",
+        "resize_policy"
+      ]
+    },
+    "image_cache_integrity_manifest": {
+      "path": "outputs/classification_v2/image_cache_v2_letterbox/image_cache_integrity_manifest.csv",
+      "type": "csv",
+      "required": true,
+      "key_column": "image_context_id",
+      "required_columns": [
+        "image_context_id",
+        "cache_path",
+        "cache_size_bytes",
+        "cache_sha256",
+        "integrity_status"
+      ]
+    },
+    "image_cache_integrity_audit": {
+      "path": "outputs/classification_v2/image_cache_v2_letterbox/image_cache_integrity_audit.json",
+      "type": "json",
+      "required": true
+    },
+    "image_cache_audit": {
+      "path": "outputs/classification_v2/image_cache_v2_letterbox/cache_audit.json",
+      "type": "json",
+      "required": true
     },
     "interaction_window_context_manifest": {
       "path": "outputs/classification_v2/train_ready_windows/interaction_window_context_manifest.csv",

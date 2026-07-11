@@ -49,8 +49,13 @@ def freeze_training_snapshot(contract_path: Path, *, output_path: Path | None = 
     destination.parent.mkdir(parents=True, exist_ok=True)
 
     encoded = _stable_json(snapshot)
-    if destination.exists() and destination.read_text(encoding="utf-8") != encoded:
-        raise FileExistsError(f"Snapshot already exists with different content: {destination}")
+    if destination.exists():
+        existing = json.loads(destination.read_text(encoding="utf-8"))
+        if _snapshot_identity_payload(existing) != _snapshot_identity_payload(snapshot):
+            raise FileExistsError(f"Snapshot already exists with different artifact content: {destination}")
+        # Git provenance is recorded at first freeze, while the content ID is
+        # intentionally stable across later checker/code-only commits.
+        return {**existing, "snapshot_path": str(destination)}
     destination.write_text(encoded, encoding="utf-8")
     return {**snapshot, "snapshot_path": str(destination)}
 
@@ -262,11 +267,28 @@ def _key_alignment(contract: dict[str, Any], artifacts: dict[str, Any]) -> dict[
 
 def _key_coverage(contract: dict[str, Any], artifacts: dict[str, Any]) -> dict[str, Any]:
     """Check that joinable context artifacts contain the same key set as the source."""
+    configured_groups = contract.get("key_coverage_groups")
+    if configured_groups:
+        groups = [_key_coverage_group(group, artifacts) for group in configured_groups]
+        mismatched = [
+            f"{group['source_artifact']}->{name}"
+            for group in groups
+            for name in group["mismatched"]
+        ]
+        return {"groups": groups, "covered": not mismatched, "mismatched": mismatched}
     source_name = contract.get("window_id_source_artifact")
     names = contract.get("key_coverage_group", [])
+    return _key_coverage_group({"source_artifact": source_name, "artifacts": names}, artifacts)
+
+
+def _key_coverage_group(group: dict[str, Any], artifacts: dict[str, Any]) -> dict[str, Any]:
+    """Compare one declared source key set with all dependent artifacts."""
+
+    source_name = group.get("source_artifact")
+    names = group.get("artifacts", [])
     source_digest = artifacts.get(source_name, {}).get("key_set_sha256")
     digests = {name: artifacts.get(name, {}).get("key_set_sha256") for name in names}
-    mismatched = sorted(name for name, digest in digests.items() if source_digest and digest != source_digest)
+    mismatched = sorted(name for name, digest in digests.items() if not source_digest or digest != source_digest)
     return {
         "source_artifact": source_name,
         "group": names,
@@ -320,7 +342,15 @@ def _compare_artifacts(expected: dict[str, Any], current: dict[str, Any], errors
         if current_profile is None:
             errors.append(f"artifact_missing_from_current:{name}")
             continue
-        for field in ("exists", "size_bytes", "sha256", "row_count", "columns", "array_names", "arrays"):
+        for field in (
+            "exists",
+            "size_bytes",
+            "sha256",
+            "row_count",
+            "columns",
+            "array_names",
+            "arrays",
+        ):
             if expected_profile.get(field) != current_profile.get(field):
                 errors.append(f"artifact_{field}_drift:{name}")
         if expected_profile.get("ordered_key_sha256") != current_profile.get("ordered_key_sha256"):
@@ -330,8 +360,15 @@ def _compare_artifacts(expected: dict[str, Any], current: dict[str, Any], errors
 def _snapshot_id(snapshot: dict[str, Any]) -> str:
     # The snapshot ID identifies artifact/contract content. The git commit is
     # recorded for audit, but later checker commits must not rename the data.
-    base = {k: v for k, v in snapshot.items() if k not in {"snapshot_id", "git_commit"}}
-    return "c2v2_" + hashlib.sha256(_stable_json(base).encode("utf-8")).hexdigest()[:16]
+    return "c2v2_" + hashlib.sha256(
+        _stable_json(_snapshot_identity_payload(snapshot)).encode("utf-8")
+    ).hexdigest()[:16]
+
+
+def _snapshot_identity_payload(snapshot: dict[str, Any]) -> dict[str, Any]:
+    """Return fields that define artifact identity, excluding code provenance."""
+
+    return {k: v for k, v in snapshot.items() if k not in {"snapshot_id", "snapshot_path", "git_commit"}}
 
 
 def _stable_json(data: dict[str, Any]) -> str:
