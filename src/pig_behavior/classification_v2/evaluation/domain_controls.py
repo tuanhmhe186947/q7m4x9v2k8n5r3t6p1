@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from typing import Any
 
+import numpy as np
 import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import balanced_accuracy_score
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 
 
 def build_source_matched_views(windows: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, Any]]:
@@ -91,6 +96,93 @@ def build_source_matched_views(windows: pd.DataFrame) -> tuple[pd.DataFrame, dic
     return result, audit
 
 
+def grouped_source_probe(
+    features: pd.DataFrame,
+    window_metadata: pd.DataFrame,
+    event_mapping: pd.DataFrame,
+    grouped_roles: pd.DataFrame,
+    *,
+    max_iter: int = 500,
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """Predict source on outer-test groups with scaler/model fit on train groups only."""
+
+    if not (len(features) == len(window_metadata) == len(event_mapping)):
+        raise ValueError(
+            "source probe row alignment mismatch: "
+            f"features={len(features)}, metadata={len(window_metadata)}, events={len(event_mapping)}"
+        )
+    if "window_id" not in event_mapping or not window_metadata["window_id"].astype(str).reset_index(
+        drop=True
+    ).equals(event_mapping["window_id"].astype(str).reset_index(drop=True)):
+        raise ValueError("source probe window/event row-order alignment mismatch")
+    if features.select_dtypes(exclude=[np.number]).columns.tolist():
+        raise ValueError("source probe features must be an explicit numeric feature table")
+    if "window_valid_for_main_train" not in window_metadata:
+        raise ValueError("source probe metadata missing window_valid_for_main_train")
+    base = window_metadata[["window_id", "source_type", "window_valid_for_main_train"]].copy()
+    base["temporal_unit_key"] = event_mapping["temporal_unit_keys_window"].astype(str).to_numpy()
+    base["row_index"] = np.arange(len(base), dtype=np.int64)
+    predictions: list[pd.DataFrame] = []
+    fold_audits: list[dict[str, Any]] = []
+    for fold_id in sorted(grouped_roles["outer_fold_id"].astype(str).unique()):
+        roles = grouped_roles.loc[
+            grouped_roles["outer_fold_id"].astype(str).eq(fold_id),
+            ["temporal_unit_key", "role"],
+        ]
+        merged = base.merge(roles, on="temporal_unit_key", how="left", validate="many_to_one")
+        eligible = _to_bool(merged["window_valid_for_main_train"])
+        train = merged["role"].eq("train") & eligible
+        test = merged["role"].eq("test") & eligible
+        if not train.any() or not test.any():
+            raise ValueError(f"empty grouped source probe split={fold_id}")
+        y_train = merged.loc[train, "source_type"].astype(str)
+        y_test = merged.loc[test, "source_type"].astype(str)
+        if y_train.nunique() < 2:
+            raise ValueError(f"source probe training fold has one source={fold_id}")
+        model = make_pipeline(
+            StandardScaler(),
+            LogisticRegression(max_iter=max_iter, class_weight="balanced", random_state=0),
+        )
+        model.fit(features.iloc[merged.loc[train, "row_index"].to_numpy(dtype=int)], y_train)
+        predicted = model.predict(features.iloc[merged.loc[test, "row_index"].to_numpy(dtype=int)])
+        part = merged.loc[test, ["window_id", "temporal_unit_key", "source_type"]].copy()
+        part["outer_fold_id"] = fold_id
+        part["source_predicted"] = predicted
+        predictions.append(part)
+        fold_audits.append(
+            {
+                "outer_fold_id": fold_id,
+                "train_rows": int(train.sum()),
+                "test_rows": int(test.sum()),
+                "train_source_counts": y_train.value_counts().sort_index().to_dict(),
+                "test_source_counts": y_test.value_counts().sort_index().to_dict(),
+                "balanced_accuracy_supported": _supported_balanced_accuracy(y_test, predicted),
+                "test_source_class_count": int(y_test.nunique()),
+                "two_source_test_support": bool(y_test.nunique() == 2),
+                "scaler_fit_on_train_only": True,
+                "validation_and_test_excluded_from_fit": True,
+            }
+        )
+    out = pd.concat(predictions, ignore_index=True)
+    if out["window_id"].duplicated().any():
+        raise ValueError("grouped source probe emitted duplicate OOF window predictions")
+    pooled = float(balanced_accuracy_score(out["source_type"], out["source_predicted"]))
+    audit = {
+        "schema_version": "classification_v2_grouped_source_probe_v1",
+        "feature_count": int(features.shape[1]),
+        "oof_prediction_rows": int(len(out)),
+        "oof_fold_count": int(out["outer_fold_id"].nunique()),
+        "pooled_balanced_accuracy": pooled,
+        "folds": fold_audits,
+        "source_identifier_in_features": False,
+        "interpretation": "internal source/domain shortcut diagnostic, not external generalization",
+        "warnings": ["High source predictability can indicate source-correlated geometry or missingness."],
+        "errors": [],
+        "valid": True,
+    }
+    return out, audit
+
+
 def _contingency(frame: pd.DataFrame) -> dict[str, dict[str, int]]:
     table = pd.crosstab(frame["source_type"], frame["behavior_window_label"])
     return {
@@ -103,3 +195,12 @@ def _to_bool(series: pd.Series) -> pd.Series:
     if pd.api.types.is_bool_dtype(series):
         return series.fillna(False).astype(bool)
     return series.astype(str).str.strip().str.lower().isin({"true", "1", "yes", "y", "t"})
+
+
+def _supported_balanced_accuracy(true: pd.Series, predicted: np.ndarray) -> float:
+    recalls = []
+    predicted_series = pd.Series(predicted, index=true.index)
+    for label in sorted(true.astype(str).unique()):
+        mask = true.astype(str).eq(label)
+        recalls.append(float(predicted_series.loc[mask].astype(str).eq(label).mean()))
+    return float(np.mean(recalls)) if recalls else 0.0
