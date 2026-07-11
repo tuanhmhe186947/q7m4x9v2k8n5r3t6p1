@@ -278,6 +278,7 @@ def build_full_multimodal_oof_run_plan(config: FullMultimodalOofConfig) -> dict[
     return {
         "schema_version": "classification_v2_full_multimodal_oof_run_plan_v1",
         "config": _jsonable_config(config),
+        "config_sha256": full_run_config_fingerprint(config),
         "run_mode": config.run_mode,
         "paper_facing_candidate_plan": full_like,
         "load_audit": bundle.load_audit,
@@ -290,6 +291,13 @@ def build_full_multimodal_oof_run_plan(config: FullMultimodalOofConfig) -> dict[
         "errors": [],
         "valid": bool(selected_fold_ids and total_eval_rows > 0),
     }
+
+
+def full_run_config_fingerprint(config: FullMultimodalOofConfig) -> str:
+    """Hash the exact JSON-safe run config bound to a no-training preflight."""
+
+    payload = json.dumps(_jsonable_config(config), sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
 
 
 @dataclass(slots=True)

@@ -6,6 +6,8 @@ from pathlib import Path
 
 from pig_behavior.classification_v2.training.full_multimodal_oof import (
     ABLATION_VARIANTS,
+    PRECISION_POLICIES,
+    SAMPLE_WEIGHT_POLICIES,
     FullMultimodalOofConfig,
     build_full_multimodal_oof_run_plan,
 )
@@ -24,14 +26,20 @@ def main() -> None:
     parser.add_argument("--hidden-dim", type=int, default=48)
     parser.add_argument("--steps-per-fold", type=int, default=6)
     parser.add_argument("--epochs-per-fold", type=int, default=3)
-    parser.add_argument("--train-batch-size", type=int, default=32)
-    parser.add_argument("--eval-batch-size", type=int, default=64)
+    parser.add_argument("--train-batch-size", type=int, default=128)
+    parser.add_argument("--eval-batch-size", type=int, default=128)
     parser.add_argument("--max-folds", type=int, default=None)
     parser.add_argument("--train-per-class-per-fold", type=int, default=None)
     parser.add_argument("--eval-per-class-per-fold", type=int, default=None)
     parser.add_argument("--pilot", action="store_true", help="Plan bounded pilot settings instead of full OOF.")
     parser.add_argument("--ablation-variant", choices=ABLATION_VARIANTS, default="full")
     parser.add_argument("--image-cache-manifest", type=Path, default=None)
+    parser.add_argument("--packed-image-cache", type=Path, default=None)
+    parser.add_argument("--packed-image-cache-index", type=Path, default=None)
+    parser.add_argument("--sample-weight-policy", choices=SAMPLE_WEIGHT_POLICIES, default="event_class")
+    parser.add_argument("--precision", choices=PRECISION_POLICIES, default="amp")
+    parser.add_argument("--bootstrap-iterations", type=int, default=2000)
+    parser.add_argument("--device", default="cuda")
     args = parser.parse_args()
     config = FullMultimodalOofConfig(
         image_size=args.image_size,
@@ -46,7 +54,13 @@ def main() -> None:
         run_mode="pilot" if args.pilot else "full",
         ablation_variant=args.ablation_variant,
         image_cache_manifest_csv=args.image_cache_manifest,
-        require_cached_images=args.image_cache_manifest is not None,
+        packed_image_cache_npy=args.packed_image_cache,
+        packed_image_cache_index_csv=args.packed_image_cache_index,
+        require_cached_images=args.image_cache_manifest is not None or args.packed_image_cache is not None,
+        sample_weight_policy=args.sample_weight_policy,
+        precision=args.precision,
+        bootstrap_iterations=args.bootstrap_iterations,
+        device=args.device,
     )
     plan = build_full_multimodal_oof_run_plan(config)
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
