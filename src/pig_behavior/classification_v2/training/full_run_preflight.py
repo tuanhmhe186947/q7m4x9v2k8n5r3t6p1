@@ -39,9 +39,14 @@ def build_full_run_preflight(
         errors.append(f"invalid_training_snapshot={snapshot.get('errors')}")
     if not config.require_cached_images or config.packed_image_cache_npy is None:
         errors.append("full_run_requires_strict_packed_image_cache")
+    if not config.require_packed_visual_context or config.visual_context_packed_cache_npy is None:
+        errors.append("full_run_requires_strict_packed_visual_context")
     for path_name, path in (
         ("packed_image_cache_npy", config.packed_image_cache_npy),
         ("packed_image_cache_index_csv", config.packed_image_cache_index_csv),
+        ("visual_context_cache_manifest_csv", config.visual_context_cache_manifest_csv),
+        ("visual_context_packed_cache_npy", config.visual_context_packed_cache_npy),
+        ("visual_context_packed_cache_index_csv", config.visual_context_packed_cache_index_csv),
     ):
         if path is None or not path.exists():
             errors.append(f"missing_{path_name}={path}")

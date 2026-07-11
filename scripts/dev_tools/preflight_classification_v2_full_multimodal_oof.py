@@ -18,6 +18,9 @@ def main() -> None:
     parser.add_argument("--model-output-dir", type=Path, required=True)
     parser.add_argument("--packed-image-cache", type=Path, required=True)
     parser.add_argument("--packed-image-cache-index", type=Path, required=True)
+    parser.add_argument("--visual-context-cache-manifest", type=Path, required=True)
+    parser.add_argument("--visual-context-packed-cache", type=Path, required=True)
+    parser.add_argument("--visual-context-packed-cache-index", type=Path, required=True)
     parser.add_argument("--image-size", type=int, default=64)
     parser.add_argument("--hidden-dim", type=int, default=48)
     parser.add_argument("--epochs-per-fold", type=int, default=3)
@@ -34,6 +37,10 @@ def main() -> None:
         packed_image_cache_npy=args.packed_image_cache,
         packed_image_cache_index_csv=args.packed_image_cache_index,
         require_cached_images=True,
+        visual_context_cache_manifest_csv=args.visual_context_cache_manifest,
+        visual_context_packed_cache_npy=args.visual_context_packed_cache,
+        visual_context_packed_cache_index_csv=args.visual_context_packed_cache_index,
+        require_packed_visual_context=True,
         image_size=args.image_size,
         hidden_dim=args.hidden_dim,
         epochs_per_fold=args.epochs_per_fold,
