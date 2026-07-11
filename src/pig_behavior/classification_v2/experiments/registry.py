@@ -38,11 +38,19 @@ class ExperimentRecordConfig:
     native_oof_audit_json: Path | None = None
     trainer_contract_json: Path | None = None
     loader_input_audit_json: Path | None = None
+    run_audit_json: Path | None = None
+    calibration_audit_json: Path | None = None
+    source_balanced_metrics_json: Path | None = None
+    confusion_comparison_json: Path | None = None
+    ablation_report_json: Path | None = None
+    runtime_benchmark_audit_json: Path | None = None
+    parent_record_jsons: tuple[Path, ...] = field(default_factory=tuple)
     result_kind: str = "protocol_gate"
     primary_metric_unit: str = "native_temporal_unit"
     split_policy: str = "recording_group_oof"
     external_generalization_claim: bool = False
     max_hash_bytes: int = 100_000_000
+    overwrite: bool = False
 
 
 def write_experiment_record(config: ExperimentRecordConfig) -> dict[str, Any]:
@@ -50,11 +58,13 @@ def write_experiment_record(config: ExperimentRecordConfig) -> dict[str, Any]:
 
     if not config.name.strip():
         raise ValueError("experiment name must not be empty")
+    if config.paper_facing and config.overwrite:
+        raise ValueError("paper-facing experiment records are immutable and cannot be overwritten")
     config.output_dir.mkdir(parents=True, exist_ok=True)
     metrics = _read_json(config.metrics_json) if config.metrics_json else None
     artifacts = [_artifact_record(path, max_hash_bytes=config.max_hash_bytes) for path in config.artifacts]
     record: dict[str, Any] = {
-        "schema_version": "classification_v2_experiment_record_v1",
+        "schema_version": "classification_v2_experiment_record_v2",
         "name": config.name,
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "git_commit": _git_commit(),
@@ -70,6 +80,8 @@ def write_experiment_record(config: ExperimentRecordConfig) -> dict[str, Any]:
     }
     record_path = config.output_dir / f"{_safe_name(config.name)}_record.json"
     ledger_path = config.output_dir / "experiment_ledger.jsonl"
+    if record_path.exists() and not config.overwrite:
+        raise FileExistsError(f"experiment record already exists; choose a new name: {record_path}")
     record["record_path"] = str(record_path)
     record["ledger_path"] = str(ledger_path)
     record_path.write_text(json.dumps(record, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -89,11 +101,21 @@ def _provenance_record(config: ExperimentRecordConfig) -> dict[str, Any]:
         "native_oof_audit_json": config.native_oof_audit_json,
         "trainer_contract_json": config.trainer_contract_json,
         "loader_input_audit_json": config.loader_input_audit_json,
+        "run_audit_json": config.run_audit_json,
+        "calibration_audit_json": config.calibration_audit_json,
+        "source_balanced_metrics_json": config.source_balanced_metrics_json,
+        "confusion_comparison_json": config.confusion_comparison_json,
+        "ablation_report_json": config.ablation_report_json,
+        "runtime_benchmark_audit_json": config.runtime_benchmark_audit_json,
     }
-    return {
+    provenance = {
         name: _artifact_record(path, max_hash_bytes=config.max_hash_bytes) if path is not None else None
         for name, path in paths.items()
     }
+    provenance["parent_record_jsons"] = [
+        _artifact_record(path, max_hash_bytes=config.max_hash_bytes) for path in config.parent_record_jsons
+    ]
+    return provenance
 
 
 def _evaluation_contract(config: ExperimentRecordConfig) -> dict[str, Any]:
