@@ -37,6 +37,7 @@ def main() -> None:
     parser.add_argument("--source-type", default=None, help="Optional source_type filter for targeted smoke builds.")
     parser.add_argument("--preview-jpg", action="store_true", help="Write readable JPEG previews for audit.")
     parser.add_argument("--preview-limit", type=int, default=500, help="Maximum preview JPEGs to write.")
+    parser.add_argument("--checkpoint-every", type=int, default=1000, help="Write partial manifest every N contexts.")
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
 
@@ -49,6 +50,7 @@ def main() -> None:
         source_type=args.source_type,
         preview_jpg=args.preview_jpg,
         preview_limit=args.preview_limit,
+        checkpoint_every=args.checkpoint_every,
         overwrite=args.overwrite,
     )
     print(json.dumps(audit, indent=2))
@@ -64,6 +66,7 @@ def build_image_cache(
     source_type: str | None,
     preview_jpg: bool,
     preview_limit: int,
+    checkpoint_every: int,
     overwrite: bool,
 ) -> dict[str, Any]:
     """Materialize audited crops so training does not repeatedly seek videos."""
@@ -74,6 +77,8 @@ def build_image_cache(
         raise ValueError("max_contexts must be positive when provided")
     if preview_limit < 0:
         raise ValueError("preview_limit must be non-negative")
+    if checkpoint_every < 0:
+        raise ValueError("checkpoint_every must be non-negative")
     output_dir.mkdir(parents=True, exist_ok=True)
     cache_root = output_dir / f"actor_rgb_{image_size}_letterbox"
     preview_root = output_dir / f"preview_jpg_{image_size}_letterbox"
@@ -100,8 +105,10 @@ def build_image_cache(
     failed = 0
     skipped_existing = 0
     previews_written = 0
+    partial_manifest_path = output_dir / "manifest.partial.csv"
+    partial_audit_path = output_dir / "cache_audit.partial.json"
     try:
-        for row in frame.itertuples(index=False):
+        for row_index, row in enumerate(frame.itertuples(index=False), start=1):
             row_dict = row._asdict()
             context_id = str(row_dict["image_context_id"])
             rel_path = context_cache_relative_path(context_id)
@@ -154,6 +161,23 @@ def build_image_cache(
                     "y2": row_dict.get("y2", ""),
                 }
             )
+            if checkpoint_every and row_index % checkpoint_every == 0:
+                _write_cache_checkpoint(
+                    manifest_rows=manifest_rows,
+                    manifest_path=partial_manifest_path,
+                    audit_path=partial_audit_path,
+                    output_dir=output_dir,
+                    cache_root=cache_root,
+                    preview_root=preview_root if preview_jpg else None,
+                    image_size=image_size,
+                    selected_context_rows=len(frame),
+                    loaded=loaded,
+                    skipped_existing=skipped_existing,
+                    failed=failed,
+                    previews_written=previews_written,
+                    source_type=source_type,
+                    checkpoint_row_index=row_index,
+                )
     finally:
         dataset.close()
 
@@ -184,6 +208,48 @@ def build_image_cache(
     }
     (output_dir / "cache_audit.json").write_text(json.dumps(audit, indent=2), encoding="utf-8")
     return audit
+
+
+def _write_cache_checkpoint(
+    *,
+    manifest_rows: list[dict[str, Any]],
+    manifest_path: Path,
+    audit_path: Path,
+    output_dir: Path,
+    cache_root: Path,
+    preview_root: Path | None,
+    image_size: int,
+    selected_context_rows: int,
+    loaded: int,
+    skipped_existing: int,
+    failed: int,
+    previews_written: int,
+    source_type: str | None,
+    checkpoint_row_index: int,
+) -> None:
+    """Persist partial cache lineage so interrupted long builds are auditable."""
+
+    pd.DataFrame(manifest_rows).sort_values("image_context_id", kind="mergesort").to_csv(manifest_path, index=False)
+    audit = {
+        "schema_version": "classification_v2_image_cache_partial_audit_v1",
+        "output_dir": str(output_dir),
+        "cache_root": str(cache_root),
+        "preview_root": str(preview_root) if preview_root is not None else None,
+        "manifest_csv": str(manifest_path),
+        "image_size": int(image_size),
+        "selected_context_rows": int(selected_context_rows),
+        "checkpoint_row_index": int(checkpoint_row_index),
+        "manifest_rows": int(len(manifest_rows)),
+        "loaded_rows": int(loaded),
+        "skipped_existing_rows": int(skipped_existing),
+        "failed_rows": int(failed),
+        "previews_written": int(previews_written),
+        "source_type_filter": source_type,
+        "cache_format": "npy_uint8_rgb_hwc",
+        "resize_policy": RESIZE_POLICY,
+        "complete": False,
+    }
+    audit_path.write_text(json.dumps(audit, indent=2), encoding="utf-8")
 
 
 def _readable_preview_relative_path(row: dict[str, Any], context_id: str) -> Path:
