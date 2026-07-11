@@ -31,6 +31,9 @@ def main() -> None:
         type=Path,
         default=Path("outputs/classification_v2/visual_interaction_cache/visual_context_manifest.csv"),
     )
+    parser.add_argument("--visual-context-packed-cache", type=Path, default=None)
+    parser.add_argument("--visual-context-packed-cache-index", type=Path, default=None)
+    parser.add_argument("--require-packed-visual-context", action="store_true")
     parser.add_argument(
         "--allow-image-source-fallback",
         action="store_true",
@@ -72,6 +75,9 @@ def main() -> None:
         packed_image_cache_npy=args.packed_image_cache,
         packed_image_cache_index_csv=args.packed_image_cache_index,
         visual_context_cache_manifest_csv=args.visual_context_cache_manifest,
+        visual_context_packed_cache_npy=args.visual_context_packed_cache,
+        visual_context_packed_cache_index_csv=args.visual_context_packed_cache_index,
+        require_packed_visual_context=args.require_packed_visual_context,
         require_cached_images=bool(
             (args.image_cache_manifest is not None or args.packed_image_cache is not None)
             and not args.allow_image_source_fallback

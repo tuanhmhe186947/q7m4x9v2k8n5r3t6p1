@@ -79,6 +79,9 @@ class FullMultimodalOofConfig:
     visual_context_cache_manifest_csv: Path = Path(
         "outputs/classification_v2/visual_interaction_cache/visual_context_manifest.csv"
     )
+    visual_context_packed_cache_npy: Path | None = None
+    visual_context_packed_cache_index_csv: Path | None = None
+    require_packed_visual_context: bool = False
     native_oof_fold_manifest_csv: Path = Path(
         "outputs/classification_v2/native_temporal_units_oof_folds/native_oof_fold_manifest.csv"
     )
@@ -140,6 +143,9 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
         ImageSequenceDatasetConfig(
             frame_context_csv=config.root / "image_frame_context_manifest.csv",
             window_context_csv=config.root / "image_window_context_manifest.csv",
+            packed_cache_npy=config.visual_context_packed_cache_npy,
+            packed_cache_index_csv=config.visual_context_packed_cache_index_csv,
+            require_packed_cache=config.require_packed_visual_context,
             image_cache_manifest_csv=config.image_cache_manifest_csv,
             packed_image_cache_npy=config.packed_image_cache_npy,
             packed_image_cache_index_csv=config.packed_image_cache_index_csv,
@@ -1001,6 +1007,11 @@ def _validate_config(config: FullMultimodalOofConfig) -> None:
                 "visual context branch requires an existing cache manifest: "
                 f"{config.visual_context_cache_manifest_csv}"
             )
+        if config.require_packed_visual_context and (
+            config.visual_context_packed_cache_npy is None
+            or config.visual_context_packed_cache_index_csv is None
+        ):
+            raise ValueError("require_packed_visual_context needs packed tensor and index paths")
 
 
 def _validate_dataset_alignment(

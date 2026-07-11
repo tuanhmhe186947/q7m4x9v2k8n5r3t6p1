@@ -23,12 +23,18 @@ def main() -> None:
     parser.add_argument("--cache-manifest-csv", type=Path, required=True)
     parser.add_argument("--window-context-csv", type=Path, required=True)
     parser.add_argument("--max-windows", type=int, default=16)
+    parser.add_argument("--packed-cache", type=Path, default=None)
+    parser.add_argument("--packed-cache-index", type=Path, default=None)
+    parser.add_argument("--require-packed-cache", action="store_true")
     args = parser.parse_args()
     dataset = VisualInteractionWindowDataset(
         VisualInteractionDatasetConfig(
             cache_manifest_csv=args.cache_manifest_csv,
             window_context_csv=args.window_context_csv,
             max_windows=args.max_windows,
+            packed_cache_npy=args.packed_cache,
+            packed_cache_index_csv=args.packed_cache_index,
+            require_packed_cache=args.require_packed_cache,
         )
     )
     batch = next(iter(DataLoader(dataset, batch_size=min(8, len(dataset)), collate_fn=visual_interaction_collate)))
@@ -61,6 +67,7 @@ def main() -> None:
         "visual_context_shape": list(batch["visual_context_image"].shape),
         "observed_frame_slots": observed_rows,
         "logits_shape": list(logits.shape),
+        "cache_load_audit": dataset.load_audit(),
         "errors": errors,
         "valid": not errors,
     }

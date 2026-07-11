@@ -23,6 +23,11 @@ def main() -> None:
     parser.add_argument("--max-contexts", type=int, default=None)
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--checkpoint-every", type=int, default=5000)
+    parser.add_argument(
+        "--available-column",
+        default=None,
+        help="Optional boolean manifest column; only available tensors are packed and masked rows stay in source manifest.",
+    )
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
@@ -33,6 +38,7 @@ def main() -> None:
         max_contexts=args.max_contexts,
         workers=args.workers,
         checkpoint_every=args.checkpoint_every,
+        available_column=args.available_column,
         resume=args.resume,
         overwrite=args.overwrite,
     )
@@ -51,6 +57,7 @@ def build_packed_cache(
     checkpoint_every: int,
     resume: bool,
     overwrite: bool,
+    available_column: str | None = None,
 ) -> dict[str, Any]:
     """Build a deterministic row-addressable tensor without changing source cache files."""
 
@@ -59,6 +66,7 @@ def build_packed_cache(
     if max_contexts is not None and max_contexts <= 0:
         raise ValueError("max_contexts must be positive when provided")
     manifest = pd.read_csv(cache_manifest, low_memory=False)
+    source_rows = len(manifest)
     required = {"image_context_id", "cache_path", "image_size", "resize_policy"}
     missing = sorted(required.difference(manifest.columns))
     if missing:
@@ -67,6 +75,13 @@ def build_packed_cache(
         raise ValueError("cache manifest contains duplicate image_context_id rows")
     if pd.to_numeric(manifest["image_size"], errors="coerce").ne(image_size).any():
         raise ValueError("cache manifest image_size mismatch")
+    masked_unavailable_rows = 0
+    if available_column is not None:
+        if available_column not in manifest.columns:
+            raise ValueError(f"available column missing from cache manifest: {available_column}")
+        available = _to_bool(manifest[available_column])
+        masked_unavailable_rows = int((~available).sum())
+        manifest = manifest[available].copy()
     manifest = manifest.sort_values("image_context_id", kind="mergesort").reset_index(drop=True)
     if max_contexts is not None:
         manifest = manifest.head(int(max_contexts)).copy()
@@ -152,6 +167,10 @@ def build_packed_cache(
         "shape": [int(value) for value in tensor.shape],
         "dtype": str(tensor.dtype),
         "source_rows": int(len(manifest)),
+        "source_manifest_rows": int(source_rows),
+        "selected_available_rows": int(len(manifest)),
+        "masked_unavailable_rows": int(masked_unavailable_rows),
+        "available_column": available_column,
         "packed_rows": int(tensor.shape[0]),
         "index_rows": int(len(index)),
         "start_row": int(start_row),
@@ -219,6 +238,12 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _to_bool(series: pd.Series) -> pd.Series:
+    if pd.api.types.is_bool_dtype(series):
+        return series.fillna(False).astype(bool)
+    return series.astype(str).str.strip().str.lower().isin({"true", "1", "yes", "y", "t"})
 
 
 if __name__ == "__main__":
