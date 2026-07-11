@@ -32,6 +32,8 @@ class ImageSequenceDatasetConfig:
     frame_context_csv: Path = Path("outputs/classification_v2/train_ready_windows/image_frame_context_manifest.csv")
     window_context_csv: Path = Path("outputs/classification_v2/train_ready_windows/image_window_context_manifest.csv")
     image_cache_manifest_csv: Path | None = None
+    packed_image_cache_npy: Path | None = None
+    packed_image_cache_index_csv: Path | None = None
     image_size: int = 128
     max_windows: int | None = None
     require_complete: bool = True
@@ -52,6 +54,10 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         self.windows = pd.read_csv(config.window_context_csv, low_memory=False)
         self._validate_manifests()
         self.cache_by_context_id = self._load_cache_manifest(config.image_cache_manifest_csv)
+        self._packed_tensor, self.packed_row_by_context_id = self._load_packed_cache(
+            config.packed_image_cache_npy,
+            config.packed_image_cache_index_csv,
+        )
         if config.require_complete:
             self.windows = self.windows[_to_bool(self.windows["window_image_context_complete"])].copy()
         if config.max_windows is not None:
@@ -69,6 +75,7 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         self.video_frame_reuse_count = 0
         self.memory_image_cache_hits = 0
         self.disk_image_cache_hits = 0
+        self.packed_image_cache_hits = 0
         self.disk_image_cache_misses = 0
         self.source_image_loads = 0
 
@@ -122,6 +129,7 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         self._capture_next_frame.clear()
         self._decoded_video_frame.clear()
         self._image_cache.clear()
+        self._packed_tensor = None
 
     def _validate_manifests(self) -> None:
         frame_required = {
@@ -171,7 +179,7 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         image = self._load_cached_context_image(context_id)
         if image is not None:
             self.disk_image_cache_hits += 1
-        elif self.config.image_cache_manifest_csv is not None:
+        elif self._cache_configured():
             self.disk_image_cache_misses += 1
             if self.config.require_cached_images:
                 return None
@@ -189,10 +197,15 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         """Expose cache/source counters so training cannot hide fallback I/O."""
 
         return {
-            "cache_manifest_configured": self.config.image_cache_manifest_csv is not None,
+            "cache_manifest_configured": self._cache_configured(),
+            "packed_cache_configured": bool(
+                self.config.packed_image_cache_npy is not None
+                and self.config.packed_image_cache_index_csv is not None
+            ),
             "require_cached_images": bool(self.config.require_cached_images),
             "memory_image_cache_hits": int(self.memory_image_cache_hits),
             "disk_image_cache_hits": int(self.disk_image_cache_hits),
+            "packed_image_cache_hits": int(self.packed_image_cache_hits),
             "disk_image_cache_misses": int(self.disk_image_cache_misses),
             "source_image_loads": int(self.source_image_loads),
         }
@@ -227,9 +240,46 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
             out[str(row.image_context_id)] = cache_path
         return out
 
+    def _load_packed_cache(
+        self,
+        tensor_npy: Path | None,
+        index_csv: Path | None,
+    ) -> tuple[np.ndarray | None, dict[str, int]]:
+        """Open a row-addressable mmap cache only when tensor and index agree."""
+
+        if (tensor_npy is None) != (index_csv is None):
+            raise ValueError("packed_image_cache_npy and packed_image_cache_index_csv must be provided together")
+        if tensor_npy is None or index_csv is None:
+            return None, {}
+        tensor_path = Path(tensor_npy)
+        index_path = Path(index_csv)
+        if not tensor_path.exists() or not index_path.exists():
+            raise FileNotFoundError(f"packed image cache missing: tensor={tensor_path} index={index_path}")
+        tensor = np.load(tensor_path, mmap_mode="r")
+        expected_tail = (self.config.image_size, self.config.image_size, 3)
+        if tensor.dtype != np.uint8 or tensor.ndim != 4 or tuple(tensor.shape[1:]) != expected_tail:
+            raise ValueError(f"packed image tensor contract mismatch: dtype={tensor.dtype} shape={tensor.shape}")
+        index = pd.read_csv(index_path, low_memory=False)
+        required = {"image_context_id", "packed_row"}
+        missing = sorted(required.difference(index.columns))
+        if missing:
+            raise ValueError(f"packed image index missing columns: {missing}")
+        if index["image_context_id"].duplicated().any():
+            raise ValueError("packed image index has duplicate image_context_id rows")
+        rows = pd.to_numeric(index["packed_row"], errors="coerce")
+        if rows.isna().any() or (rows < 0).any() or (rows >= tensor.shape[0]).any():
+            raise ValueError("packed image index contains invalid packed_row values")
+        mapping = dict(zip(index["image_context_id"].astype(str), rows.astype(int), strict=True))
+        return tensor, mapping
+
     def _load_cached_context_image(self, context_id: str) -> np.ndarray | None:
         """Read a pre-resized RGB cache item and return the model CHW float tensor."""
 
+        packed_row = self.packed_row_by_context_id.get(context_id)
+        if packed_row is not None and self._packed_tensor is not None:
+            cached = np.asarray(self._packed_tensor[packed_row])
+            self.packed_image_cache_hits += 1
+            return _to_chw_float(cached)
         cache_path = self.cache_by_context_id.get(context_id)
         if cache_path is None or not cache_path.exists():
             return None
@@ -242,6 +292,15 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         if np.issubdtype(cached.dtype, np.floating) and cached.ndim == 3 and cached.shape[0] == 3:
             return cached.astype(np.float32)
         return None
+
+    def _cache_configured(self) -> bool:
+        return bool(
+            self.config.image_cache_manifest_csv is not None
+            or (
+                self.config.packed_image_cache_npy is not None
+                and self.config.packed_image_cache_index_csv is not None
+            )
+        )
 
     def _load_cvat_crop(self, frame: dict[str, Any]) -> np.ndarray | None:
         """Load one CVAT crop while reusing sequentially decoded full frames.

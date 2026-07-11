@@ -66,8 +66,11 @@ def main() -> None:
             errors.append(f"disk_image_cache_misses={image_load_audit.get('disk_image_cache_misses')}")
         if int(image_load_audit.get("source_image_loads", -1)) != 0:
             errors.append(f"source_image_loads={image_load_audit.get('source_image_loads')}")
-        if int(image_load_audit.get("disk_image_cache_hits", 0)) <= 0:
-            errors.append("disk_image_cache_hits_not_positive")
+        total_cache_hits = int(image_load_audit.get("disk_image_cache_hits", 0)) + int(
+            image_load_audit.get("packed_image_cache_hits", 0)
+        )
+        if total_cache_hits <= 0:
+            errors.append("image_cache_hits_not_positive")
     result = {
         "audit_json": str(args.audit_json),
         "predictions_csv": str(args.predictions_csv),

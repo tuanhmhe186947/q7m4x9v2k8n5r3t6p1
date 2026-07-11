@@ -21,6 +21,8 @@ def main() -> None:
         default=Path("outputs/classification_v2/model_smoke/full_multimodal_oof_pilot"),
     )
     parser.add_argument("--image-cache-manifest", type=Path, default=None)
+    parser.add_argument("--packed-image-cache", type=Path, default=None)
+    parser.add_argument("--packed-image-cache-index", type=Path, default=None)
     parser.add_argument(
         "--allow-image-source-fallback",
         action="store_true",
@@ -48,7 +50,12 @@ def main() -> None:
     config = FullMultimodalOofConfig(
         output_dir=args.output_dir,
         image_cache_manifest_csv=args.image_cache_manifest,
-        require_cached_images=bool(args.image_cache_manifest is not None and not args.allow_image_source_fallback),
+        packed_image_cache_npy=args.packed_image_cache,
+        packed_image_cache_index_csv=args.packed_image_cache_index,
+        require_cached_images=bool(
+            (args.image_cache_manifest is not None or args.packed_image_cache is not None)
+            and not args.allow_image_source_fallback
+        ),
         image_size=args.image_size,
         hidden_dim=args.hidden_dim,
         steps_per_fold=args.steps_per_fold,

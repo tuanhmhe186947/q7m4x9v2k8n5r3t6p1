@@ -70,6 +70,8 @@ class FullMultimodalOofConfig:
     )
     output_dir: Path = Path("outputs/classification_v2/model_smoke/full_multimodal_oof_pilot")
     image_cache_manifest_csv: Path | None = None
+    packed_image_cache_npy: Path | None = None
+    packed_image_cache_index_csv: Path | None = None
     require_cached_images: bool = False
     image_size: int = 32
     hidden_dim: int = 32
@@ -114,6 +116,8 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
             frame_context_csv=config.root / "image_frame_context_manifest.csv",
             window_context_csv=config.root / "image_window_context_manifest.csv",
             image_cache_manifest_csv=config.image_cache_manifest_csv,
+            packed_image_cache_npy=config.packed_image_cache_npy,
+            packed_image_cache_index_csv=config.packed_image_cache_index_csv,
             image_size=config.image_size,
             require_complete=False,
             require_cached_images=config.require_cached_images,
@@ -757,8 +761,10 @@ def _validate_config(config: FullMultimodalOofConfig) -> None:
         config.max_folds is None or config.train_per_class_per_fold is None or config.eval_per_class_per_fold is None
     ):
         raise ValueError("pilot mode requires bounded folds and per-class sample caps")
-    if config.require_cached_images and config.image_cache_manifest_csv is None:
-        raise ValueError("require_cached_images needs image_cache_manifest_csv")
+    if config.require_cached_images and not (
+        config.image_cache_manifest_csv is not None or config.packed_image_cache_npy is not None
+    ):
+        raise ValueError("require_cached_images needs an individual or packed image cache")
 
 
 def _is_full_run(config: FullMultimodalOofConfig, bundle: _OofBundle) -> bool:

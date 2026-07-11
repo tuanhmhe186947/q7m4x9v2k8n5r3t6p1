@@ -34,7 +34,11 @@
     },
     {
       "source_artifact": "image_frame_context_manifest",
-      "artifacts": ["image_cache_manifest", "image_cache_integrity_manifest"]
+      "artifacts": [
+        "image_cache_manifest",
+        "image_cache_integrity_manifest",
+        "packed_image_cache_index"
+      ]
     }
   ],
   "artifacts": {
@@ -191,6 +195,23 @@
     },
     "image_cache_integrity_audit": {
       "path": "outputs/classification_v2/image_cache_v2_letterbox/image_cache_integrity_audit.json",
+      "type": "json",
+      "required": true
+    },
+    "packed_image_cache_index": {
+      "path": "outputs/classification_v2/image_cache_v2_letterbox/packed_image_cache_index.csv",
+      "type": "csv",
+      "required": true,
+      "key_column": "image_context_id",
+      "required_columns": ["image_context_id", "packed_row"]
+    },
+    "packed_image_cache_tensor": {
+      "path": "outputs/classification_v2/image_cache_v2_letterbox/packed_rgb_64_letterbox.npy",
+      "type": "binary",
+      "required": true
+    },
+    "packed_image_cache_audit": {
+      "path": "outputs/classification_v2/image_cache_v2_letterbox/packed_image_cache_audit.json",
       "type": "json",
       "required": true
     },
