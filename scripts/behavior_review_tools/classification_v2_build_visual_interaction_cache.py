@@ -19,6 +19,8 @@ def main() -> None:
     parser.add_argument("--max-contexts", type=int, default=None)
     parser.add_argument("--source-type", default=None)
     parser.add_argument("--preview-limit", type=int, default=100)
+    parser.add_argument("--checkpoint-every", type=int, default=1000)
+    parser.add_argument("--resume", action="store_true")
     args = parser.parse_args()
     audit = build_visual_interaction_cache(VisualInteractionCacheConfig(**vars(args)))
     print(json.dumps(audit, indent=2))

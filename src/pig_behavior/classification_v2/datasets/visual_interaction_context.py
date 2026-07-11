@@ -32,6 +32,8 @@ class VisualInteractionCacheConfig:
     max_contexts: int | None = None
     source_type: str | None = None
     preview_limit: int = 100
+    checkpoint_every: int = 1000
+    resume: bool = False
 
 
 def build_visual_interaction_cache(config: VisualInteractionCacheConfig) -> dict[str, Any]:
@@ -61,8 +63,24 @@ def build_visual_interaction_cache(config: VisualInteractionCacheConfig) -> dict
     manifest_rows: list[dict[str, Any]] = []
     decode_count = seek_count = reuse_count = 0
     previews_written = 0
+    partial_manifest_path = config.output_dir / "visual_context_manifest.partial.csv"
+    partial_audit_path = config.output_dir / "visual_context_cache_audit.partial.json"
+    completed_context_ids: set[str] = set()
+    resumed_rows = 0
+    if config.resume and partial_manifest_path.exists():
+        partial = pd.read_csv(partial_manifest_path, low_memory=False)
+        _validate_partial_manifest(partial, config)
+        manifest_rows = partial.to_dict("records")
+        completed_context_ids = set(partial["visual_context_id"].astype(str))
+        resumed_rows = len(manifest_rows)
+        previews_written = int(
+            sum(bool(str(value).strip()) for value in partial["preview_path"].fillna(""))
+        )
     try:
-        for row in frames.to_dict("records"):
+        for row_number, row in enumerate(frames.to_dict("records"), start=1):
+            context_id = _visual_context_id(str(row["image_context_id"]))
+            if context_id in completed_context_ids:
+                continue
             result = _resolve_context_geometry(row, lookup, config.padding_ratio)
             image: np.ndarray | None = None
             if result["status"] == "geometry_ready":
@@ -80,7 +98,6 @@ def build_visual_interaction_cache(config: VisualInteractionCacheConfig) -> dict
                 if image is None:
                     result["status"] = "video_decode_or_crop_failed"
 
-            context_id = _visual_context_id(str(row["image_context_id"]))
             cache_rel = ""
             preview_rel = ""
             if image is not None:
@@ -114,6 +131,18 @@ def build_visual_interaction_cache(config: VisualInteractionCacheConfig) -> dict
                     **result["audit_geometry"],
                 }
             )
+            completed_context_ids.add(context_id)
+            if config.checkpoint_every and row_number % config.checkpoint_every == 0:
+                _write_partial_checkpoint(
+                    manifest_rows,
+                    partial_manifest_path,
+                    partial_audit_path,
+                    config,
+                    decode_count=decode_count,
+                    seek_count=seek_count,
+                    reuse_count=reuse_count,
+                    selected_rows=len(frames),
+                )
     finally:
         for capture in captures.values():
             capture.release()
@@ -140,6 +169,8 @@ def build_visual_interaction_cache(config: VisualInteractionCacheConfig) -> dict
         "video_seek_count": seek_count,
         "video_frame_reuse_count": reuse_count,
         "previews_written": previews_written,
+        "resume_requested": bool(config.resume),
+        "resumed_rows": int(resumed_rows),
         "label_gated": False,
         "rows_dropped_for_missing_context": 0,
         "errors": [] if duplicate_ids == 0 else [f"duplicate_visual_context_id={duplicate_ids}"],
@@ -148,6 +179,17 @@ def build_visual_interaction_cache(config: VisualInteractionCacheConfig) -> dict
     audit["valid"] = not audit["errors"] and len(manifest) > 0
     (config.output_dir / "visual_context_cache_audit.json").write_text(
         json.dumps(audit, indent=2), encoding="utf-8"
+    )
+    _write_partial_checkpoint(
+        manifest.to_dict("records"),
+        partial_manifest_path,
+        partial_audit_path,
+        config,
+        decode_count=decode_count,
+        seek_count=seek_count,
+        reuse_count=reuse_count,
+        selected_rows=len(frames),
+        complete=True,
     )
     return audit
 
@@ -159,6 +201,8 @@ def _validate_config(config: VisualInteractionCacheConfig) -> None:
         raise ValueError("padding_ratio must be in [0, 1]")
     if config.max_contexts is not None and config.max_contexts <= 0:
         raise ValueError("max_contexts must be positive")
+    if config.checkpoint_every < 0:
+        raise ValueError("checkpoint_every must be non-negative")
 
 
 def _validate_frames(frames: pd.DataFrame) -> None:
@@ -295,3 +339,62 @@ def _visual_context_id(image_context_id: str) -> str:
 
 def _cache_relative_path(context_id: str) -> Path:
     return Path(context_id[:2]) / f"{context_id}.npy"
+
+
+def _validate_partial_manifest(partial: pd.DataFrame, config: VisualInteractionCacheConfig) -> None:
+    """Reject resume state whose cache contract differs from the requested run."""
+
+    required = {
+        "visual_context_id",
+        "image_context_id",
+        "cache_path",
+        "preview_path",
+        "image_size",
+        "resize_policy",
+    }
+    missing = sorted(required.difference(partial.columns))
+    if missing:
+        raise ValueError(f"partial visual cache manifest missing columns: {missing}")
+    if partial["visual_context_id"].duplicated().any():
+        raise ValueError("partial visual cache manifest has duplicate visual_context_id")
+    if pd.to_numeric(partial["image_size"], errors="coerce").ne(config.image_size).any():
+        raise ValueError("partial visual cache image_size does not match requested image_size")
+    if partial["resize_policy"].astype(str).ne(RESIZE_POLICY).any():
+        raise ValueError("partial visual cache resize_policy mismatch")
+    available = partial["visual_context_available"].astype(str).str.lower().isin({"true", "1"})
+    missing_files = partial.loc[available, "cache_path"].astype(str).map(
+        lambda value: not (config.output_dir / value).exists()
+    )
+    if missing_files.any():
+        raise ValueError(f"partial visual cache has missing tensor files: {int(missing_files.sum())}")
+
+
+def _write_partial_checkpoint(
+    manifest_rows: list[dict[str, Any]],
+    manifest_path: Path,
+    audit_path: Path,
+    config: VisualInteractionCacheConfig,
+    *,
+    decode_count: int,
+    seek_count: int,
+    reuse_count: int,
+    selected_rows: int,
+    complete: bool = False,
+) -> None:
+    """Persist resumable state without mutating source data or dropping failures."""
+
+    partial = pd.DataFrame(manifest_rows)
+    partial.to_csv(manifest_path, index=False)
+    payload = {
+        "schema_version": "classification_v2_visual_interaction_cache_partial_v1",
+        "selected_rows": int(selected_rows),
+        "completed_rows": int(len(partial)),
+        "complete": bool(complete),
+        "image_size": int(config.image_size),
+        "resize_policy": RESIZE_POLICY,
+        "source_type_filter": config.source_type,
+        "video_decode_count_this_process": int(decode_count),
+        "video_seek_count_this_process": int(seek_count),
+        "video_frame_reuse_count_this_process": int(reuse_count),
+    }
+    audit_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
