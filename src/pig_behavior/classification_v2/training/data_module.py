@@ -36,6 +36,7 @@ from pig_behavior.classification_v2.training.multitask_loss import (
 MODEL_INPUT_KEYS = frozenset(
     {
         "image",
+        "length_mask",
         "image_length_mask",
         "image_observed_mask",
         "spatial_features",
@@ -139,7 +140,11 @@ class StrictTrainingDataModule:
             self.full_config,
             self.device,
         )
-        model_inputs = {key: raw[key] for key in MODEL_INPUT_KEYS}
+        model_inputs = {
+            key: (raw["image_length_mask"] if key == "length_mask" else raw[key])
+            for key in MODEL_INPUT_KEYS
+        }
+        validate_model_inputs(model_inputs)
         auxiliary_rows = self.auxiliary.iloc[indices].reset_index(drop=True)
         auxiliary_targets, auxiliary_masks = encode_auxiliary_batch(
             auxiliary_rows,
@@ -226,3 +231,13 @@ def _to_full_config(config: ClassificationV2TrainingConfig, device: torch.device
 
 def _ids_hash(values: pd.Series) -> str:
     return hashlib.sha256("\n".join(values.astype(str)).encode("utf-8")).hexdigest()
+
+
+def validate_model_inputs(model_inputs: dict[str, Any]) -> None:
+    """Fail closed if metadata, targets, or undeclared tensors enter model X."""
+
+    observed = set(model_inputs)
+    missing = sorted(MODEL_INPUT_KEYS.difference(observed))
+    forbidden = sorted(observed.difference(MODEL_INPUT_KEYS))
+    if missing or forbidden:
+        raise ValueError(f"model input contract mismatch: missing={missing}, forbidden={forbidden}")

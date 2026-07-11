@@ -51,6 +51,9 @@ class OptimizationConfig:
     seed: int = 20260710
     deterministic: bool = True
     checkpoint_every_steps: int = 500
+    scheduler: str = "none"
+    early_stopping_metric: str = "validation_window_macro_f1"
+    early_stopping_patience: int = 3
 
 
 @dataclass(frozen=True, slots=True)
@@ -120,10 +123,18 @@ def validate_training_config(config: ClassificationV2TrainingConfig) -> None:
         errors.append("model_dimensions_must_be_positive")
     if config.optimization.optimizer != "adamw":
         errors.append(f"unsupported_optimizer={config.optimization.optimizer}")
+    if config.optimization.scheduler != "none":
+        errors.append(f"unsupported_scheduler={config.optimization.scheduler}")
+    if config.optimization.early_stopping_metric != "validation_window_macro_f1":
+        errors.append(
+            f"unsupported_early_stopping_metric={config.optimization.early_stopping_metric}"
+        )
     if config.optimization.precision not in {"fp32", "amp"}:
         errors.append(f"unsupported_precision={config.optimization.precision}")
     if min(config.optimization.epochs, config.optimization.batch_size, config.optimization.eval_batch_size) <= 0:
         errors.append("epochs_and_batch_sizes_must_be_positive")
+    if config.optimization.early_stopping_patience <= 0:
+        errors.append("early_stopping_patience_must_be_positive")
     if config.optimization.learning_rate <= 0.0 or config.optimization.gradient_clip_norm <= 0.0:
         errors.append("learning_rate_and_gradient_clip_must_be_positive")
     if config.execution.mode not in {"smoke", "full_oof"}:

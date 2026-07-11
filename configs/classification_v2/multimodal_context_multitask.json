@@ -40,7 +40,10 @@
     "precision": "amp",
     "seed": 20260710,
     "deterministic": true,
-    "checkpoint_every_steps": 500
+    "checkpoint_every_steps": 500,
+    "scheduler": "none",
+    "early_stopping_metric": "validation_window_macro_f1",
+    "early_stopping_patience": 3
   },
   "loss": {
     "behavior_weight": 1.0,
