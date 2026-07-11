@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 import random
+import subprocess
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -38,6 +39,7 @@ from pig_behavior.classification_v2.evaluation.native_temporal_metrics import (
 )
 from pig_behavior.classification_v2.evaluation.prediction_schema_contract import check_prediction_schema
 from pig_behavior.classification_v2.models.multimodal_fusion import (
+    MODEL_ARCHITECTURE_VERSION,
     MultimodalFusionClassifier,
     MultimodalFusionConfig,
 )
@@ -102,6 +104,7 @@ class FullMultimodalOofConfig:
     class_weight_max: float = 5.0
     precision: str = "fp32"
     checkpoint_every_steps: int = 500
+    model_architecture_version: str = MODEL_ARCHITECTURE_VERSION
 
 
 def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
@@ -176,6 +179,7 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
     schema_audit_path.write_text(json.dumps(prediction_schema_audit, indent=2), encoding="utf-8")
 
     image_load_audit = dataset.image_load_audit()
+    git_state = _git_state()
     paper_facing_result = _is_full_run(config, bundle) and _fold_training_coverage_complete(fold_audits)
     audit = {
         "schema_version": "classification_v2_full_multimodal_oof_audit_v1",
@@ -184,6 +188,8 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
         "config": _jsonable_config(config),
         "ablation_settings": _ablation_settings(config.ablation_variant),
         "device": str(device),
+        "git_commit": git_state["commit"],
+        "git_dirty": git_state["dirty"],
         "label_order": label_order,
         "load_audit": bundle.load_audit,
         "image_load_audit": image_load_audit,
@@ -920,6 +926,11 @@ def _validate_config(config: FullMultimodalOofConfig) -> None:
         raise ValueError(f"unsupported precision={config.precision}")
     if config.checkpoint_every_steps <= 0:
         raise ValueError("checkpoint_every_steps must be positive")
+    if config.model_architecture_version != MODEL_ARCHITECTURE_VERSION:
+        raise ValueError(
+            "model_architecture_version does not match implemented model: "
+            f"config={config.model_architecture_version}, implemented={MODEL_ARCHITECTURE_VERSION}"
+        )
     if config.train_batch_size <= 0 or config.eval_batch_size <= 0:
         raise ValueError("batch sizes must be positive")
     if config.max_folds is not None and config.max_folds <= 0:
@@ -995,6 +1006,7 @@ def _fold_training_signature(
         "class_weight_max": float(config.class_weight_max),
         "precision": config.precision,
         "checkpoint_every_steps": int(config.checkpoint_every_steps),
+        "model_architecture_version": config.model_architecture_version,
         "train_batch_size": int(config.train_batch_size),
         "eval_batch_size": int(config.eval_batch_size),
         "train_per_class_per_fold": config.train_per_class_per_fold,
@@ -1199,6 +1211,23 @@ def _label_counts(frame: pd.DataFrame, indices: np.ndarray) -> dict[str, int]:
 
 def _ceil_div(value: int, divisor: int) -> int:
     return int((int(value) + int(divisor) - 1) // int(divisor))
+
+
+def _git_state() -> dict[str, Any]:
+    """Bind learned artifacts to the exact source revision used for execution."""
+
+    try:
+        commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"], check=True, capture_output=True, text=True
+        ).stdout.strip()
+        dirty = bool(
+            subprocess.run(
+                ["git", "status", "--short"], check=True, capture_output=True, text=True
+            ).stdout.strip()
+        )
+    except Exception:
+        return {"commit": None, "dirty": None}
+    return {"commit": commit or None, "dirty": dirty}
 
 
 def _read_bool(path: Path) -> pd.Series:

@@ -11,6 +11,7 @@
   },
   "paper_candidate": false,
   "model_family": "multimodal_spatiotemporal_bbox_roi_social_context",
+  "implemented_model_architecture_version": "multimodal_temporal_conv_v2",
   "implemented_modules": {
     "fusion_model": "src/pig_behavior/classification_v2/models/multimodal_fusion.py",
     "smoke_trainer": "src/pig_behavior/classification_v2/training/multimodal_smoke.py",
@@ -61,7 +62,7 @@
     },
     {
       "name": "full_frame_partner_interaction_context",
-      "status": "implemented_smoke",
+      "status": "planned_required_before_paper_candidate",
       "tensor_role": "model_input",
       "source_artifacts": [
         "outputs/classification_v2/train_ready_windows/interaction_window_context_manifest.csv"
@@ -69,7 +70,7 @@
       "mask_artifacts": [
         "interaction_context_available_mask"
       ],
-      "allowed_context": "full-frame or partner-context visual crop selected from audited geometry, never from ground-truth behavior",
+      "allowed_context": "planned full-frame or actor-partner union crop selected from audited geometry; current numeric readiness/count tensor is audit context only",
       "paper_candidate_required": true
     },
     {
@@ -124,11 +125,12 @@
       "macro_recall_supported",
       "accuracy"
     ],
-    "uncertainty": "native_temporal_unit_bootstrap_ci",
+    "uncertainty": "oof_fold_cluster_bootstrap_ci over native temporal-unit predictions",
     "minimum_effect_size_metric": "macro_f1_supported",
     "minimum_effect_size": 0.02
   },
   "paper_candidate_blockers": [
+    "full-frame or actor-partner visual context tensors are not implemented yet; current interaction branch is numeric readiness context only",
     "full out-of-fold learned model evaluation has not been run yet",
     "branch ablation and shortcut controls must be recorded before paper-facing claim"
   ]

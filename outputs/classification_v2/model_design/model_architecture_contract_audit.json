@@ -7,9 +7,11 @@
   "paper_candidate_ready": false,
   "errors": [],
   "warnings": [
+    "planned_branch_not_yet_implemented=full_frame_partner_interaction_context",
     "planned_branch_not_yet_implemented=social_graph_context",
     "paper_candidate_false_design_contract_only",
-    "paper_candidate_blockers=['full out-of-fold learned model evaluation has not been run yet', 'branch ablation and shortcut controls must be recorded before paper-facing claim']"
+    "paper_candidate_missing_required_branches=['full_frame_partner_interaction_context']",
+    "paper_candidate_blockers=['full-frame or actor-partner visual context tensors are not implemented yet; current interaction branch is numeric readiness context only', 'full out-of-fold learned model evaluation has not been run yet', 'branch ablation and shortcut controls must be recorded before paper-facing claim']"
   ],
   "valid": true,
   "branch_report": [
@@ -29,7 +31,7 @@
     },
     {
       "name": "full_frame_partner_interaction_context",
-      "status": "implemented_smoke",
+      "status": "planned_required_before_paper_candidate",
       "paper_candidate_required": true,
       "source_artifacts": [
         "outputs/classification_v2/train_ready_windows/interaction_window_context_manifest.csv"
@@ -66,8 +68,11 @@
     }
   ],
   "paper_candidate_blockers": [
+    "full-frame or actor-partner visual context tensors are not implemented yet; current interaction branch is numeric readiness context only",
     "full out-of-fold learned model evaluation has not been run yet",
     "branch ablation and shortcut controls must be recorded before paper-facing claim"
   ],
-  "missing_required_paper_branches": []
+  "missing_required_paper_branches": [
+    "full_frame_partner_interaction_context"
+  ]
 }

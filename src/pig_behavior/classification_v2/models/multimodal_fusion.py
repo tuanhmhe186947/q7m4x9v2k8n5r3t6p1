@@ -12,6 +12,8 @@ from dataclasses import dataclass
 import torch
 from torch import nn
 
+MODEL_ARCHITECTURE_VERSION = "multimodal_temporal_conv_v2"
+
 
 @dataclass(slots=True)
 class ImageSequenceEncoderConfig:
@@ -29,13 +31,13 @@ class ImageSequenceEncoder(nn.Module):
         self.config = config
         self.frame_encoder = nn.Sequential(
             nn.Conv2d(3, 16, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(16),
+            nn.GroupNorm(4, 16),
             nn.GELU(),
             nn.Conv2d(16, 32, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(32),
+            nn.GroupNorm(8, 32),
             nn.GELU(),
             nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
-            nn.BatchNorm2d(64),
+            nn.GroupNorm(8, 64),
             nn.GELU(),
             nn.AdaptiveAvgPool2d((1, 1)),
             nn.Flatten(),
@@ -45,6 +47,11 @@ class ImageSequenceEncoder(nn.Module):
             nn.LayerNorm(config.embedding_dim),
             nn.GELU(),
             nn.Dropout(config.dropout),
+        )
+        self.temporal_encoder = MaskedTemporalConvEncoder(
+            config.embedding_dim,
+            layers=2,
+            dropout=config.dropout,
         )
 
     def forward(
@@ -63,8 +70,8 @@ class ImageSequenceEncoder(nn.Module):
         batch_size, sequence_len = image.shape[:2]
         encoded = self.frame_encoder(image.float().reshape(batch_size * sequence_len, *image.shape[2:]))
         encoded = encoded.reshape(batch_size, sequence_len, -1)
-        projected = self.temporal_projection(encoded) * mask.unsqueeze(-1)
-        return _masked_mean(projected, mask)
+        projected = self.temporal_projection(encoded)
+        return self.temporal_encoder(projected, mask)
 
 
 @dataclass(slots=True)
@@ -103,6 +110,11 @@ class SpatialSequenceEncoder(nn.Module):
             nn.GELU(),
             nn.Dropout(config.dropout),
         )
+        self.temporal_encoder = MaskedTemporalConvEncoder(
+            config.embedding_dim,
+            layers=2,
+            dropout=config.dropout,
+        )
 
     def forward(
         self,
@@ -127,8 +139,51 @@ class SpatialSequenceEncoder(nn.Module):
             if value.shape[:2] != first.shape[:2]:
                 raise ValueError(f"{name} sequence shape does not match first spatial group")
             projected.append(self.branches[name](value))
-        fused = self.projection(torch.cat(projected, dim=-1)) * mask.unsqueeze(-1)
-        return _masked_mean(fused, mask)
+        fused = self.projection(torch.cat(projected, dim=-1))
+        return self.temporal_encoder(fused, mask)
+
+
+class MaskedTemporalConvEncoder(nn.Module):
+    """Learn order-sensitive local dynamics and pool only observed sequence positions."""
+
+    def __init__(self, embedding_dim: int, *, layers: int, dropout: float) -> None:
+        super().__init__()
+        if embedding_dim <= 0 or layers <= 0:
+            raise ValueError("temporal embedding_dim and layers must be positive")
+        self.blocks = nn.ModuleList(
+            [
+                nn.ModuleDict(
+                    {
+                        "conv": nn.Conv1d(
+                            embedding_dim,
+                            embedding_dim,
+                            kernel_size=3,
+                            padding=2**layer,
+                            dilation=2**layer,
+                        ),
+                        "norm": nn.LayerNorm(embedding_dim),
+                        "dropout": nn.Dropout(dropout),
+                    }
+                )
+                for layer in range(layers)
+            ]
+        )
+        self.pool_score = nn.Linear(embedding_dim, 1)
+
+    def forward(self, value: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+        """Encode ``[B,T,D]`` values while preventing padded slots from affecting valid slots."""
+
+        if value.ndim != 3 or mask.ndim != 2 or value.shape[:2] != mask.shape:
+            raise ValueError("temporal value/mask shapes must be [B,T,D] and [B,T]")
+        mask_3d = mask.float().unsqueeze(-1)
+        encoded = value.float() * mask_3d
+        for block in self.blocks:
+            update = block["conv"](encoded.transpose(1, 2)).transpose(1, 2)
+            update = block["dropout"](torch.nn.functional.gelu(block["norm"](update)))
+            encoded = (encoded + update) * mask_3d
+        unnormalized = torch.exp(self.pool_score(encoded).squeeze(-1).clamp(-20.0, 20.0)) * mask.float()
+        weights = unnormalized / unnormalized.sum(dim=1, keepdim=True).clamp_min(1e-8)
+        return (encoded * weights.unsqueeze(-1)).sum(dim=1)
 
 
 @dataclass(slots=True)
@@ -274,9 +329,3 @@ def _combined_mask(
             raise ValueError("observed_mask must match length_mask shape")
         mask = mask * observed_mask.float()
     return mask
-
-
-def _masked_mean(value: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
-    masked = value * mask.unsqueeze(-1)
-    denom = mask.sum(dim=1).clamp_min(1.0).unsqueeze(-1)
-    return masked.sum(dim=1) / denom

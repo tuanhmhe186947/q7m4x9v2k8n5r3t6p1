@@ -45,7 +45,7 @@ def build_full_run_preflight(
     ):
         if path is None or not path.exists():
             errors.append(f"missing_{path_name}={path}")
-    errors.extend(_runtime_match_errors(config, runtime))
+    errors.extend(_runtime_match_errors(config, runtime, expected_git_commit=git_state["commit"]))
     if config.precision == "amp" and not torch.cuda.is_available():
         errors.append("amp_full_run_requires_cuda")
     if config.device not in {"cuda", "auto"}:
@@ -88,7 +88,12 @@ def build_full_run_preflight(
     }
 
 
-def _runtime_match_errors(config: FullMultimodalOofConfig, runtime: dict[str, Any]) -> list[str]:
+def _runtime_match_errors(
+    config: FullMultimodalOofConfig,
+    runtime: dict[str, Any],
+    *,
+    expected_git_commit: str | None = None,
+) -> list[str]:
     """Require the full config to use a measured memory-safe runtime recommendation."""
 
     errors: list[str] = []
@@ -96,6 +101,17 @@ def _runtime_match_errors(config: FullMultimodalOofConfig, runtime: dict[str, An
         errors.append(f"invalid_runtime_benchmark={runtime.get('errors')}")
         return errors
     recommendation = runtime.get("recommended_runtime_config") or {}
+    if recommendation.get("model_architecture_version") != config.model_architecture_version:
+        errors.append(
+            "runtime_architecture_mismatch="
+            f"recommended:{recommendation.get('model_architecture_version')},"
+            f"config:{config.model_architecture_version}"
+        )
+    if expected_git_commit is not None and recommendation.get("git_commit") != expected_git_commit:
+        errors.append(
+            "runtime_git_commit_mismatch="
+            f"recommended:{recommendation.get('git_commit')},current:{expected_git_commit}"
+        )
     if recommendation.get("precision") != config.precision:
         errors.append(
             f"runtime_precision_mismatch=recommended:{recommendation.get('precision')},config:{config.precision}"

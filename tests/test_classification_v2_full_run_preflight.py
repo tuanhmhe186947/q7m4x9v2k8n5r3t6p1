@@ -11,14 +11,17 @@ from pig_behavior.classification_v2.training.full_run_preflight import (
 def test_runtime_preflight_requires_exact_recommended_precision_and_batch() -> None:
     """A measured runtime recommendation cannot be silently changed for the full run."""
 
+    matching = FullMultimodalOofConfig(precision="amp", train_batch_size=128)
+    changed = FullMultimodalOofConfig(precision="fp32", train_batch_size=64)
     runtime = {
         "valid": True,
         "errors": [],
-        "recommended_runtime_config": {"precision": "amp", "train_batch_size": 128},
+        "recommended_runtime_config": {
+            "precision": "amp",
+            "train_batch_size": 128,
+            "model_architecture_version": matching.model_architecture_version,
+        },
     }
-    matching = FullMultimodalOofConfig(precision="amp", train_batch_size=128)
-    changed = FullMultimodalOofConfig(precision="fp32", train_batch_size=64)
-
     assert _runtime_match_errors(matching, runtime) == []
     errors = _runtime_match_errors(changed, runtime)
     assert any("runtime_precision_mismatch" in error for error in errors)

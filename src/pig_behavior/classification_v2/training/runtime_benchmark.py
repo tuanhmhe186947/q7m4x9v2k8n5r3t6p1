@@ -28,6 +28,7 @@ def summarize_runtime_benchmarks(
     valid_candidate = (
         table["audit_valid"]
         & table["cache_only"]
+        & table["git_clean"]
         & table["throughput_rows_per_sec"].gt(0.0)
         & table["peak_reserved_memory_mb"].le(float(max_reserved_memory_mb))
     )
@@ -40,6 +41,8 @@ def summarize_runtime_benchmarks(
             kind="mergesort",
         ).iloc[0]
         recommended = {
+            "model_architecture_version": str(best["model_architecture_version"]),
+            "git_commit": str(best["git_commit"]),
             "precision": str(best["precision"]),
             "train_batch_size": int(best["train_batch_size"]),
             "throughput_rows_per_sec": float(best["throughput_rows_per_sec"]),
@@ -113,8 +116,11 @@ def _read_benchmark(path: Path) -> dict[str, Any]:
         "train_indices_sha256": str(fold.get("train_indices_sha256", "")),
         "eval_indices_sha256": str(fold.get("eval_indices_sha256", "")),
         "device": str(audit.get("device", "")),
+        "git_commit": str(audit.get("git_commit", "")),
+        "git_clean": bool(audit.get("git_dirty") is False and audit.get("git_commit")),
         "image_size": int(config.get("image_size", 0)),
         "hidden_dim": int(config.get("hidden_dim", 0)),
+        "model_architecture_version": str(config.get("model_architecture_version", "")),
         "ablation_variant": str(config.get("ablation_variant", "")),
         "sample_weight_policy": str(config.get("sample_weight_policy", "")),
         "seed": int(config.get("seed", 0)),
@@ -136,8 +142,10 @@ def _matched_workload_errors(table: pd.DataFrame) -> list[str]:
         "train_indices_sha256",
         "eval_indices_sha256",
         "device",
+        "git_commit",
         "image_size",
         "hidden_dim",
+        "model_architecture_version",
         "ablation_variant",
         "sample_weight_policy",
         "seed",
@@ -149,4 +157,6 @@ def _matched_workload_errors(table: pd.DataFrame) -> list[str]:
         errors.append("benchmark_contains_non_cache_only_run")
     if not table["audit_valid"].all():
         errors.append("benchmark_contains_invalid_run")
+    if not table["git_clean"].all():
+        errors.append("benchmark_contains_dirty_or_uncommitted_run")
     return errors
