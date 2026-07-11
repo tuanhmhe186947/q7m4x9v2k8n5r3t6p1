@@ -9,7 +9,7 @@
   "warnings": [
     "planned_branch_not_yet_implemented=social_graph_context",
     "paper_candidate_false_design_contract_only",
-    "paper_candidate_blockers=['full visual interaction cache has not been materialized and audited yet; only bounded CVAT/legacy smoke caches exist', 'full out-of-fold learned model evaluation has not been run yet', 'branch ablation and shortcut controls must be recorded before paper-facing claim']"
+    "paper_candidate_blockers=['full out-of-fold learned model evaluation has not been run yet', 'branch ablation and shortcut controls must be recorded before paper-facing claim']"
   ],
   "valid": true,
   "branch_report": [
@@ -33,9 +33,12 @@
       "paper_candidate_required": true,
       "source_artifacts": [
         "outputs/classification_v2/train_ready_windows/interaction_window_context_manifest.csv",
-        "outputs/classification_v2/visual_interaction_cache/visual_context_manifest.csv"
+        "outputs/classification_v2/visual_interaction_cache/visual_context_manifest.csv",
+        "outputs/classification_v2/visual_interaction_cache/packed_rgb_64_letterbox.npy",
+        "outputs/classification_v2/visual_interaction_cache/packed_image_cache_index.csv",
+        "outputs/classification_v2/visual_interaction_cache/packed_image_cache_audit.json"
       ],
-      "existing_source_artifact_count": 1,
+      "existing_source_artifact_count": 5,
       "mask_artifacts": [
         "visual_context_length_mask",
         "visual_context_observed_mask"
@@ -68,7 +71,6 @@
     }
   ],
   "paper_candidate_blockers": [
-    "full visual interaction cache has not been materialized and audited yet; only bounded CVAT/legacy smoke caches exist",
     "full out-of-fold learned model evaluation has not been run yet",
     "branch ablation and shortcut controls must be recorded before paper-facing claim"
   ],
