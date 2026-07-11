@@ -19,6 +19,16 @@ def main() -> None:
         default=Path("outputs/classification_v2/source_matched_views/check_domain_controls.json"),
     )
     parser.add_argument(
+        "--spatial-source-probe-audit",
+        type=Path,
+        default=Path("outputs/classification_v2/domain_controls/grouped_spatial_source_probe.json"),
+    )
+    parser.add_argument(
+        "--feature-shift-audit",
+        type=Path,
+        default=Path("outputs/classification_v2/domain_controls/domain_feature_shift_audit.json"),
+    )
+    parser.add_argument(
         "--source-probe-audit",
         type=Path,
         default=Path("outputs/classification_v2/domain_controls/grouped_source_probe_audit.json"),
@@ -44,6 +54,8 @@ def main() -> None:
         if audit["row_duplication_used"]:
             errors.append(f"row_duplication_used={policy}")
     source_probe = json.loads(args.source_probe_audit.read_text(encoding="utf-8"))
+    spatial_probe = json.loads(args.spatial_source_probe_audit.read_text(encoding="utf-8"))
+    feature_shift = json.loads(args.feature_shift_audit.read_text(encoding="utf-8"))
     if source_probe.get("oof_prediction_rows") != 73668:
         errors.append(f"source_probe_oof_rows={source_probe.get('oof_prediction_rows')}")
     if source_probe.get("oof_fold_count") != 5:
@@ -52,6 +64,16 @@ def main() -> None:
         errors.append("source_identifier_entered_probe_features")
     if not all(fold.get("validation_and_test_excluded_from_fit") for fold in source_probe["folds"]):
         errors.append("source_probe_fit_leakage_flag")
+    if spatial_probe.get("fold_count") != 5 or spatial_probe.get("source_type_in_model_x") is not False:
+        errors.append("grouped_spatial_source_probe_contract")
+    if set(spatial_probe.get("pooled_controls", {})) != {
+        "real_sequence",
+        "repeat_first_frame",
+        "mean_only",
+    }:
+        errors.append("grouped_spatial_source_probe_controls")
+    if feature_shift.get("eligible_rows") != 152704 or feature_shift.get("feature_count") != 39:
+        errors.append("domain_feature_shift_scope")
     result = {
         "schema_version": "classification_v2_domain_controls_check_v1",
         "policies": audits,
@@ -59,6 +81,8 @@ def main() -> None:
             audit["fit_scope"] == "training_fold_only" for audit in audits.values()
         ),
         "grouped_source_probe": source_probe,
+        "grouped_spatial_source_probe": spatial_probe,
+        "domain_feature_shift": feature_shift,
         "errors": errors,
         "valid": not errors,
     }

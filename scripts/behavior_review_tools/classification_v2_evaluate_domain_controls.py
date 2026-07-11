@@ -8,7 +8,10 @@ from pathlib import Path
 
 import pandas as pd
 
-from pig_behavior.classification_v2.evaluation.domain_controls import grouped_source_probe
+from pig_behavior.classification_v2.evaluation.domain_controls import (
+    audit_domain_feature_shift,
+    grouped_source_probe,
+)
 
 
 def main() -> None:
@@ -28,13 +31,16 @@ def main() -> None:
     )
     parser.add_argument("--max-iter", type=int, default=500)
     args = parser.parse_args()
+    features = pd.read_csv(args.root / "X_window_features.csv", low_memory=False)
+    metadata = pd.read_csv(args.root / "split_manifest.csv", low_memory=False)
     predictions, audit = grouped_source_probe(
-        pd.read_csv(args.root / "X_window_features.csv", low_memory=False),
-        pd.read_csv(args.root / "split_manifest.csv", low_memory=False),
+        features,
+        metadata,
         pd.read_csv(args.root / "event_weight_manifest.csv", low_memory=False),
         pd.read_csv(args.grouped_roles, low_memory=False),
         max_iter=args.max_iter,
     )
+    shift_audit = audit_domain_feature_shift(features, metadata)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     predictions.to_csv(args.output_dir / "grouped_source_probe_predictions.csv", index=False)
     payload = {
@@ -43,6 +49,9 @@ def main() -> None:
     }
     (args.output_dir / "grouped_source_probe_audit.json").write_text(
         json.dumps(payload, indent=2), encoding="utf-8"
+    )
+    (args.output_dir / "domain_feature_shift_audit.json").write_text(
+        json.dumps(shift_audit, indent=2, allow_nan=False), encoding="utf-8"
     )
     print(json.dumps(payload, indent=2))
 

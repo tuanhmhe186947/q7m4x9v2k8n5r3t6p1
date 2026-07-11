@@ -183,6 +183,67 @@ def grouped_source_probe(
     return out, audit
 
 
+def audit_domain_feature_shift(
+    features: pd.DataFrame,
+    metadata: pd.DataFrame,
+) -> dict[str, Any]:
+    """Quantify feature missingness and standardized mean shift by source and behavior."""
+
+    required = ["source_type", "behavior_window_label", "window_valid_for_main_train"]
+    missing = [column for column in required if column not in metadata]
+    if missing or len(features) != len(metadata):
+        raise ValueError(
+            f"domain shift input mismatch: missing={missing}, features={len(features)}, metadata={len(metadata)}"
+        )
+    valid = _to_bool(metadata["window_valid_for_main_train"])
+    x = features.loc[valid].apply(pd.to_numeric, errors="coerce")
+    meta = metadata.loc[valid].reset_index(drop=True)
+    x = x.reset_index(drop=True)
+    sources = sorted(meta["source_type"].astype(str).unique())
+    if len(sources) != 2:
+        raise ValueError(f"domain shift audit requires exactly two sources, observed={sources}")
+    source_stats: dict[str, Any] = {}
+    for source in sources:
+        subset = x.loc[meta["source_type"].astype(str).eq(source)]
+        source_stats[source] = {
+            "rows": int(len(subset)),
+            "missing_rate": subset.isna().mean().astype(float).to_dict(),
+            "mean": subset.mean().astype(float).to_dict(),
+            "std": subset.std(ddof=0).astype(float).to_dict(),
+        }
+    left, right = sources
+    left_mask = meta["source_type"].astype(str).eq(left)
+    right_mask = meta["source_type"].astype(str).eq(right)
+    mean_delta = x.loc[left_mask].mean() - x.loc[right_mask].mean()
+    pooled_scale = np.sqrt(
+        (x.loc[left_mask].var(ddof=0) + x.loc[right_mask].var(ddof=0)) / 2.0
+    ).replace(0.0, np.nan)
+    smd = (mean_delta / pooled_scale).replace([np.inf, -np.inf], np.nan)
+    ranked = smd.abs().sort_values(ascending=False, na_position="last")
+    return {
+        "schema_version": "classification_v2_domain_feature_shift_v1",
+        "eligible_rows": int(valid.sum()),
+        "feature_count": int(features.shape[1]),
+        "sources": sources,
+        "source_statistics": source_stats,
+        "standardized_mean_difference": smd.astype(object).where(smd.notna(), None).to_dict(),
+        "top_absolute_smd_features": [
+            {"feature": feature, "absolute_smd": float(ranked[feature])}
+            for feature in ranked.index[:20]
+            if pd.notna(ranked[feature])
+        ],
+        "source_behavior_counts": {
+            behavior: {source: int(count) for source, count in values.items()}
+            for behavior, values in pd.crosstab(
+                meta["source_type"], meta["behavior_window_label"]
+            ).to_dict().items()
+        },
+        "source_identifier_in_features": False,
+        "errors": [],
+        "valid": True,
+    }
+
+
 def _contingency(frame: pd.DataFrame) -> dict[str, dict[str, int]]:
     table = pd.crosstab(frame["source_type"], frame["behavior_window_label"])
     return {
