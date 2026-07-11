@@ -1,0 +1,103 @@
+{
+  "version": "classification_v2_q2_ablation_matrix_v1",
+  "status": "predeclared_before_full_oof",
+  "base_training_config": "configs/classification_v2/multimodal_context_multitask.json",
+  "snapshot_id": "c2v2_c4f631581dfd2b9e",
+  "outer_folds": ["q2_outer_00", "q2_outer_01", "q2_outer_02", "q2_outer_03", "q2_outer_04"],
+  "engineering_seed": 20260710,
+  "confirmatory_seeds": [20260710, 20260711, 20260712],
+  "selection_metric": "inner_validation_native_unit_macro_f1",
+  "primary_test_metric": "pooled_outer_oof_fixed_10_class_native_unit_macro_f1",
+  "test_predictions_used_for_model_selection": false,
+  "baselines": [
+    {
+      "id": "B2",
+      "name": "spatial_tcn_behavior_only",
+      "enable_image": false,
+      "enable_spatial": true,
+      "enable_interaction_context": false,
+      "enable_visual_context": false,
+      "enable_multitask": false,
+      "spatial_groups": ["bbox_xywh_n", "bbox_shape_n", "motion_delta", "roi_class_relation", "social_relation", "quality_mask"]
+    },
+    {
+      "id": "B3",
+      "name": "actor_image_behavior_only",
+      "enable_image": true,
+      "enable_spatial": false,
+      "enable_interaction_context": false,
+      "enable_visual_context": false,
+      "enable_multitask": false,
+      "spatial_groups": []
+    },
+    {
+      "id": "B4",
+      "name": "actor_plus_spatial_behavior_only",
+      "enable_image": true,
+      "enable_spatial": true,
+      "enable_interaction_context": false,
+      "enable_visual_context": false,
+      "enable_multitask": false,
+      "spatial_groups": ["bbox_xywh_n", "bbox_shape_n", "motion_delta", "roi_class_relation", "social_relation", "quality_mask"]
+    },
+    {
+      "id": "B5",
+      "name": "actor_spatial_plus_partner_context_behavior_only",
+      "enable_image": true,
+      "enable_spatial": true,
+      "enable_interaction_context": true,
+      "enable_visual_context": true,
+      "enable_multitask": false,
+      "spatial_groups": ["bbox_xywh_n", "bbox_shape_n", "motion_delta", "roi_class_relation", "social_relation", "quality_mask"]
+    },
+    {
+      "id": "B6",
+      "name": "actor_spatial_partner_multitask",
+      "enable_image": true,
+      "enable_spatial": true,
+      "enable_interaction_context": true,
+      "enable_visual_context": true,
+      "enable_multitask": true,
+      "spatial_groups": ["bbox_xywh_n", "bbox_shape_n", "motion_delta", "roi_class_relation", "social_relation", "quality_mask"]
+    },
+    {
+      "id": "B7",
+      "name": "full_candidate_with_domain_controls",
+      "enable_image": true,
+      "enable_spatial": true,
+      "enable_interaction_context": true,
+      "enable_visual_context": true,
+      "enable_multitask": true,
+      "spatial_groups": ["bbox_xywh_n", "bbox_shape_n", "motion_delta", "roi_class_relation", "social_relation", "quality_mask"],
+      "weight_policy": "source_class_balanced",
+      "matched_6frame_report_required": true
+    }
+  ],
+  "ablations": [
+    {"id": "A01", "parent": "B7", "remove": ["bbox_xywh_n", "bbox_shape_n"], "hypothesis": "bbox geometry contribution"},
+    {"id": "A02", "parent": "B7", "remove": ["motion_delta"], "hypothesis": "motion contribution"},
+    {"id": "A03", "parent": "B7", "remove": ["roi_class_relation"], "hypothesis": "ROI relation contribution"},
+    {"id": "A04", "parent": "B7", "remove": ["social_relation"], "hypothesis": "social geometry contribution"},
+    {"id": "A05", "parent": "B7", "remove": ["actor_image"], "hypothesis": "actor visual contribution"},
+    {"id": "A06", "parent": "B7", "remove": ["visual_context"], "hypothesis": "actor-partner visual context contribution"},
+    {"id": "A07", "parent": "B7", "remove": ["interaction_context"], "hypothesis": "partner numeric context contribution"},
+    {"id": "A08", "parent": "B7", "remove": ["auxiliary_heads"], "hypothesis": "hierarchical multitask regularization"},
+    {"id": "A09", "parent": "B7", "remove": ["source_class_balanced_weighting"], "hypothesis": "domain-balanced weighting"},
+    {"id": "A10", "parent": "B7", "evaluation_view": "matched_6frame", "hypothesis": "interval-length/source confounding"}
+  ],
+  "promotion_rules": {
+    "primary_reference": "B4",
+    "effect_direction": "candidate_minus_reference",
+    "uncertainty": "paired_recording_date_cluster_bootstrap_95ci",
+    "critical_slices": [
+      "source_type",
+      "fight_social-nose_context_ready",
+      "roi_required",
+      "playwithtoy",
+      "matched_6frame"
+    ],
+    "severe_slice_regression_threshold": "freeze_from_B4_inner-validation_seed_variance_before_outer-test",
+    "outer_test_threshold_tuning_allowed": false
+  },
+  "claim_boundary": "Q2 internal recording-date/video-safe improvement; no external farm/camera/cohort claim"
+}
