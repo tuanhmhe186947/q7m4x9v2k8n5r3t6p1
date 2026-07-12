@@ -110,6 +110,9 @@ def main() -> None:
         "cmd_launch_command_prefix_ready": _cmd_launch_command_prefix_ready(
             packet
         ),
+        "cmd_launch_command_wraps_base_command": (
+            _cmd_launch_command_wraps_base_command(packet)
+        ),
         "cmd_launch_command_bat_present": bool(
             packet.get("cmd_launch_command_bat")
         ),
@@ -163,6 +166,8 @@ def _packet_errors(packet: dict[str, Any], expected: dict[str, Any]) -> list[str
         errors.append("launch_packet_cmd_missing_command_chaining")
     if not _cmd_launch_command_prefix_ready(packet):
         errors.append("launch_packet_cmd_prefix_invalid")
+    if not _cmd_launch_command_wraps_base_command(packet):
+        errors.append("launch_packet_cmd_does_not_wrap_base_command")
     if not packet.get("cmd_launch_command_bat"):
         errors.append("launch_packet_missing_cmd_launch_command_bat")
     if packet.get("estimated_training_seconds_excluding_eval") is None:
@@ -235,6 +240,16 @@ def _cmd_launch_command_prefix_ready(packet: dict[str, Any]) -> bool:
         python_executable,
     ]
     return cmd_command[: len(expected)] == expected
+
+
+def _cmd_launch_command_wraps_base_command(packet: dict[str, Any]) -> bool:
+    """Check that the CMD launch helper preserves the audited Python command."""
+
+    cmd_command = packet.get("cmd_launch_command") or []
+    launch_command = packet.get("launch_command") or []
+    if len(cmd_command) < 8 or not launch_command:
+        return False
+    return cmd_command[7:] == launch_command
 
 
 def _missing_command_values(command: list[str], options: list[str]) -> list[str]:
