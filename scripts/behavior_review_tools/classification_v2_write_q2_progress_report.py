@@ -114,6 +114,14 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--full-oof-execution-gate-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "full_oof_execution_gate_audit.json"
+        ),
+    )
+    parser.add_argument(
         "--image-cache-inventory-json",
         type=Path,
         default=Path(
@@ -295,6 +303,9 @@ def main() -> None:
     full_oof_run_plan = _load_optional_json(args.full_oof_run_plan_json)
     full_runner_default_config = _load_optional_json(
         args.full_runner_default_config_json
+    )
+    full_oof_execution_gate = _load_optional_json(
+        args.full_oof_execution_gate_json
     )
     image_cache_inventory = _load_optional_json(args.image_cache_inventory_json)
     image_cache_letterbox_policy = _load_optional_json(
@@ -667,6 +678,13 @@ def main() -> None:
             full_runner_default_config.get("errors"),
         ),
         _gate(
+            "Full OOF execution gate rejects unauthorized runs",
+            full_oof_execution_gate.get("valid") is True
+            and full_oof_execution_gate.get("full_training_invoked") is False
+            and full_oof_execution_gate.get("case_count") == 3,
+            full_oof_execution_gate.get("errors"),
+        ),
+        _gate(
             "Strict trainer reproducibility",
             reproducibility.get("errors") == []
             and reproducibility.get("forbidden_model_input_rejected") is True,
@@ -823,6 +841,9 @@ def main() -> None:
             "full_oof_run_plan": _evidence_full_oof_run_plan(full_oof_run_plan),
             "full_runner_default_config": _evidence_full_runner_default_config(
                 full_runner_default_config
+            ),
+            "full_oof_execution_gate": _evidence_full_oof_execution_gate(
+                full_oof_execution_gate
             ),
             "reproducibility": _evidence_reproducibility(reproducibility),
         },
@@ -1395,6 +1416,19 @@ def _evidence_full_runner_default_config(audit: dict[str, Any]) -> dict[str, Any
         "hidden_dim": runner_config.get("hidden_dim"),
         "precision": runner_config.get("precision"),
         "checked_existing_path_keys": audit.get("checked_existing_path_keys"),
+    }
+
+
+def _evidence_full_oof_execution_gate(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "case_count": audit.get("case_count"),
+        "full_training_invoked": audit.get("full_training_invoked"),
+        "case_names": [
+            case.get("name")
+            for case in audit.get("cases", []) or []
+        ],
+        "errors": audit.get("errors"),
     }
 
 
