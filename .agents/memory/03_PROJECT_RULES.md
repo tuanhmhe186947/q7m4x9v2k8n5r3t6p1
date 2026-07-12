@@ -42,6 +42,10 @@
     overlong-line scan, for example `rg -n "^.{101,}$" <changed-files>`, and
     fix any matches before `git commit` so pre-commit does not fail on line
     length.
+13. For manual file edits, use `apply_patch` instead of shell write commands.
+    Do not rewrite/delete-add an existing file when a small targeted patch is
+    enough. If command output is compressed or lossy, re-read the exact file
+    content before patching so a formatting fix does not corrupt the text.
 
 ## Tracking-specific rules
 
@@ -78,6 +82,8 @@
 6. Before committing code, scan changed files for overlong lines with a command
    such as `rg -n "^.{101,}$" <changed-files>` and wrap matches proactively;
    do not rely on pre-commit failure to catch line-length issues.
+7. When changing text or code files, prefer small context-matched patches over
+   whole-file replacement. Verify the patch with `git diff` before staging.
 
 ## Verification rules
 
