@@ -25,6 +25,26 @@ RUNTIME_RELEVANT_PATH_PREFIXES = (
     "scripts/dev_tools/preflight_classification_v2_full_multimodal_oof.py",
     "scripts/dev_tools/summarize_classification_v2_runtime_benchmark.py",
 )
+AUTH_GATE_ONLY_RUNTIME_PATHS = {
+    "scripts/behavior_review_tools/classification_v2_run_full_multimodal_oof.py",
+}
+AUTH_GATE_ONLY_DIFF_MARKERS = (
+    "FULL_RUN_AUTHORIZATION",
+    "authorization",
+    "full_run_authorization",
+    "reviewer",
+    "reviewed_at",
+    "schema_version",
+)
+AUTH_GATE_ONLY_STRUCTURAL_LINES = {
+    "(",
+    ")",
+    "{",
+    "}",
+    "[",
+    "]",
+    "errors.append(",
+}
 
 
 def build_full_run_preflight(
@@ -259,6 +279,11 @@ def _runtime_git_commit_check(
         path
         for path in changed_paths
         if _runtime_relevant_path(path)
+        and not _changed_only_auth_gate(
+            recommended=recommended,
+            current=current,
+            path=path,
+        )
     ]
     return {
         "changed": True,
@@ -277,6 +302,75 @@ def _runtime_relevant_path(path: str) -> bool:
         normalized.startswith(prefix.lower())
         for prefix in RUNTIME_RELEVANT_PATH_PREFIXES
     )
+
+
+def _changed_only_auth_gate(
+    *,
+    recommended: str,
+    current: str,
+    path: str,
+) -> bool:
+    """Allow auth-only runner changes without invalidating runtime benchmarks."""
+
+    normalized = path.replace("\\", "/").lower()
+    if normalized not in AUTH_GATE_ONLY_RUNTIME_PATHS:
+        return False
+    try:
+        diff = subprocess.run(
+            ["git", "diff", "-U0", f"{recommended}..{current}", "--", path],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except Exception:
+        return False
+    hunks = _changed_diff_hunks(diff.stdout)
+    if not hunks:
+        return False
+    return all(_auth_gate_hunk_allowed(hunk) for hunk in hunks)
+
+
+def _changed_diff_hunks(diff_text: str) -> list[list[str]]:
+    """Extract changed source lines grouped by zero-context diff hunk."""
+
+    hunks: list[list[str]] = []
+    current_hunk: list[str] = []
+    for line in diff_text.splitlines():
+        if line.startswith("@@"):
+            if current_hunk:
+                hunks.append(current_hunk)
+            current_hunk = []
+            continue
+        if line.startswith(("+++", "---")):
+            continue
+        if not line.startswith(("+", "-")):
+            continue
+        changed = line[1:].strip()
+        if changed:
+            current_hunk.append(changed)
+    if current_hunk:
+        hunks.append(current_hunk)
+    return hunks
+
+
+def _auth_gate_hunk_allowed(hunk: list[str]) -> bool:
+    """Require every allowed hunk to be clearly tied to authorization logic."""
+
+    has_auth_marker = any(
+        _line_has_auth_gate_marker(line)
+        for line in hunk
+    )
+    if not has_auth_marker:
+        return False
+    return all(
+        _line_has_auth_gate_marker(line)
+        or line in AUTH_GATE_ONLY_STRUCTURAL_LINES
+        for line in hunk
+    )
+
+
+def _line_has_auth_gate_marker(line: str) -> bool:
+    return any(marker in line for marker in AUTH_GATE_ONLY_DIFF_MARKERS)
 
 
 def _canonical_full_run_path_errors(config: FullMultimodalOofConfig) -> list[str]:
