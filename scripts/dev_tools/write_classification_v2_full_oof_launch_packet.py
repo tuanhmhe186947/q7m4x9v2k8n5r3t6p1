@@ -107,6 +107,8 @@ def build_launch_packet(
     runtime_config = runtime_benchmark.get("recommended_runtime_config") or {}
     command = _full_run_command(config)
     cmd_command = _cmd_launch_command(command)
+    authorization_command = _authorization_command(preflight)
+    cmd_authorization_command = _cmd_launch_command(authorization_command)
     errors = _launch_packet_errors(
         preflight=preflight,
         run_plan=run_plan,
@@ -176,6 +178,11 @@ def build_launch_packet(
         "launch_command": command,
         "cmd_launch_command": cmd_command,
         "cmd_launch_command_bat": subprocess.list2cmdline(cmd_command),
+        "authorization_command": authorization_command,
+        "cmd_authorization_command": cmd_authorization_command,
+        "cmd_authorization_command_bat": subprocess.list2cmdline(
+            cmd_authorization_command
+        ),
         "review_checklist": _review_checklist(),
     }
 
@@ -185,6 +192,7 @@ def render_launch_packet_markdown(packet: dict[str, Any]) -> str:
 
     checklist = packet.get("review_checklist") or []
     command = str(packet.get("cmd_launch_command_bat") or "")
+    authorization_command = str(packet.get("cmd_authorization_command_bat") or "")
     lines = [
         "# classification_v2 Full OOF Launch Packet",
         "",
@@ -208,6 +216,14 @@ def render_launch_packet_markdown(packet: dict[str, Any]) -> str:
         "## CMD Command",
         "```bat",
         command,
+        "```",
+        "",
+        "## Authorization Command Template",
+        "Review the packet, replace `<REVIEWER>` with the human reviewer name, "
+        "then run this before the full OOF command.",
+        "",
+        "```bat",
+        authorization_command,
         "```",
         "",
         "## Checklist",
@@ -257,6 +273,24 @@ def _full_run_command(config: dict[str, Any]) -> list[str]:
         str(config.get("device") or ""),
         "--precision",
         str(config.get("precision") or ""),
+    ]
+
+
+def _authorization_command(preflight: dict[str, Any]) -> list[str]:
+    """Build the explicit human authorization command template."""
+
+    return [
+        sys.executable,
+        "scripts\\dev_tools\\write_classification_v2_full_oof_authorization_file.py",
+        "--authorize",
+        "--reviewer",
+        "<REVIEWER>",
+        "--acknowledge-long-run",
+        "--acknowledge-no-q2-claim",
+        "--preflight-config-sha256",
+        str(preflight.get("config_sha256") or ""),
+        "--git-commit",
+        str(preflight.get("git_commit") or ""),
     ]
 
 

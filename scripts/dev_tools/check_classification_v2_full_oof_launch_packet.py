@@ -105,6 +105,8 @@ def main() -> None:
         "python_executable": packet.get("python_executable"),
         "launch_command": packet.get("launch_command"),
         "cmd_launch_command": packet.get("cmd_launch_command"),
+        "authorization_command": packet.get("authorization_command"),
+        "cmd_authorization_command": packet.get("cmd_authorization_command"),
         "launch_command_python_ready": _launch_command_python_ready(packet),
         "cmd_launch_command_ready": _cmd_launch_command_ready(packet),
         "cmd_launch_command_prefix_ready": _cmd_launch_command_prefix_ready(
@@ -115,6 +117,16 @@ def main() -> None:
         ),
         "cmd_launch_command_bat_present": bool(
             packet.get("cmd_launch_command_bat")
+        ),
+        "authorization_command_ready": _authorization_command_ready(packet),
+        "cmd_authorization_command_ready": _cmd_authorization_command_ready(
+            packet
+        ),
+        "cmd_authorization_command_wraps_base_command": (
+            _cmd_authorization_command_wraps_base_command(packet)
+        ),
+        "cmd_authorization_command_bat_present": bool(
+            packet.get("cmd_authorization_command_bat")
         ),
         "estimated_training_seconds_excluding_eval": packet.get(
             "estimated_training_seconds_excluding_eval"
@@ -153,11 +165,15 @@ def _packet_errors(packet: dict[str, Any], expected: dict[str, Any]) -> list[str
         errors.append("launch_packet_template_must_be_unauthorized")
     command = packet.get("launch_command") or []
     cmd_command = packet.get("cmd_launch_command") or []
+    authorization_command = packet.get("authorization_command") or []
+    cmd_authorization_command = packet.get("cmd_authorization_command") or []
     python_executable = str(packet.get("python_executable") or "")
     if not python_executable:
         errors.append("launch_packet_missing_python_executable")
     if command and command[0] != python_executable:
         errors.append("launch_packet_python_executable_mismatch")
+    if authorization_command and authorization_command[0] != python_executable:
+        errors.append("authorization_command_python_executable_mismatch")
     if not cmd_command:
         errors.append("launch_packet_missing_cmd_launch_command")
     if "PYTHONPATH=%CD%\\src" not in cmd_command:
@@ -170,6 +186,18 @@ def _packet_errors(packet: dict[str, Any], expected: dict[str, Any]) -> list[str
         errors.append("launch_packet_cmd_does_not_wrap_base_command")
     if not packet.get("cmd_launch_command_bat"):
         errors.append("launch_packet_missing_cmd_launch_command_bat")
+    if not authorization_command:
+        errors.append("launch_packet_missing_authorization_command")
+    if not cmd_authorization_command:
+        errors.append("launch_packet_missing_cmd_authorization_command")
+    if not packet.get("cmd_authorization_command_bat"):
+        errors.append("launch_packet_missing_cmd_authorization_command_bat")
+    if not _authorization_command_ready(packet):
+        errors.append("launch_packet_authorization_command_invalid")
+    if not _cmd_authorization_command_ready(packet):
+        errors.append("launch_packet_cmd_authorization_command_invalid")
+    if not _cmd_authorization_command_wraps_base_command(packet):
+        errors.append("launch_packet_cmd_authorization_does_not_wrap_base")
     if packet.get("estimated_training_seconds_excluding_eval") is None:
         errors.append("launch_packet_missing_training_runtime_estimate")
     if packet.get("estimated_training_minutes_excluding_eval") is None:
@@ -247,9 +275,57 @@ def _cmd_launch_command_wraps_base_command(packet: dict[str, Any]) -> bool:
 
     cmd_command = packet.get("cmd_launch_command") or []
     launch_command = packet.get("launch_command") or []
-    if len(cmd_command) < 8 or not launch_command:
+    return _cmd_command_wraps_base(cmd_command, launch_command)
+
+
+def _authorization_command_ready(packet: dict[str, Any]) -> bool:
+    """Return whether authorization command is explicit and preflight-bound."""
+
+    command = packet.get("authorization_command") or []
+    required_tokens = {
+        "--authorize",
+        "--reviewer",
+        "<REVIEWER>",
+        "--acknowledge-long-run",
+        "--acknowledge-no-q2-claim",
+        "--preflight-config-sha256",
+        str(packet.get("preflight_config_sha256") or ""),
+        "--git-commit",
+        str(packet.get("git_commit") or ""),
+    }
+    return bool(command and required_tokens.issubset(set(command)))
+
+
+def _cmd_authorization_command_ready(packet: dict[str, Any]) -> bool:
+    """Return whether authorization CMD command keeps project setup."""
+
+    cmd_command = packet.get("cmd_authorization_command") or []
+    return bool(
+        cmd_command
+        and "PYTHONPATH=%CD%\\src" in cmd_command
+        and "&&" in cmd_command
+    )
+
+
+def _cmd_authorization_command_wraps_base_command(
+    packet: dict[str, Any],
+) -> bool:
+    """Check that CMD authorization helper preserves the base command."""
+
+    cmd_command = packet.get("cmd_authorization_command") or []
+    authorization_command = packet.get("authorization_command") or []
+    return _cmd_command_wraps_base(cmd_command, authorization_command)
+
+
+def _cmd_command_wraps_base(
+    cmd_command: list[str],
+    base_command: list[str],
+) -> bool:
+    """Check that a CMD helper preserves the audited Python command."""
+
+    if len(cmd_command) < 8 or not base_command:
         return False
-    return cmd_command[7:] == launch_command
+    return cmd_command[7:] == base_command
 
 
 def _missing_command_values(command: list[str], options: list[str]) -> list[str]:
