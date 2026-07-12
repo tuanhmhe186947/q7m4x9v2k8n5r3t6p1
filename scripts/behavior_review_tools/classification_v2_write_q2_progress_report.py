@@ -790,7 +790,15 @@ def main() -> None:
             )
             and _optional_true(
                 full_oof_postrun_registration_packet,
+                "calibration_command_bat_present",
+            )
+            and _optional_true(
+                full_oof_postrun_registration_packet,
                 "confusion_comparison_cmd_command_ready",
+            )
+            and _optional_true(
+                full_oof_postrun_registration_packet,
+                "confusion_comparison_command_bat_present",
             )
             and _optional_true(
                 full_oof_postrun_registration_packet,
@@ -798,11 +806,23 @@ def main() -> None:
             )
             and _optional_true(
                 full_oof_postrun_registration_packet,
+                "ablation_report_command_bat_present",
+            )
+            and _optional_true(
+                full_oof_postrun_registration_packet,
                 "register_cmd_command_ready",
             )
             and _optional_true(
                 full_oof_postrun_registration_packet,
+                "register_command_bat_present",
+            )
+            and _optional_true(
+                full_oof_postrun_registration_packet,
                 "completion_gate_cmd_command_ready",
+            )
+            and _optional_true(
+                full_oof_postrun_registration_packet,
+                "completion_gate_command_bat_present",
             )
             and _optional_true(
                 full_oof_postrun_registration_packet,
