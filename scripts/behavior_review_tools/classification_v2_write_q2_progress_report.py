@@ -130,6 +130,14 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--full-oof-completion-gate-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "full_oof_completion_gate_audit.json"
+        ),
+    )
+    parser.add_argument(
         "--image-cache-inventory-json",
         type=Path,
         default=Path(
@@ -316,6 +324,9 @@ def main() -> None:
         args.full_oof_execution_gate_json
     )
     full_oof_launch_packet = _load_optional_json(args.full_oof_launch_packet_json)
+    full_oof_completion_gate = _load_optional_json(
+        args.full_oof_completion_gate_json
+    )
     image_cache_inventory = _load_optional_json(args.image_cache_inventory_json)
     image_cache_letterbox_policy = _load_optional_json(
         args.image_cache_letterbox_policy_json
@@ -708,6 +719,16 @@ def main() -> None:
             full_oof_launch_packet.get("errors"),
         ),
         _gate(
+            "Full OOF completion gate is fail-closed",
+            full_oof_completion_gate.get("valid") is True
+            and full_oof_completion_gate.get("fail_closed") is True
+            and (
+                full_oof_completion_gate.get("completion_ready")
+                is full_oof_completion_gate.get("q2_claim_allowed")
+            ),
+            full_oof_completion_gate.get("errors"),
+        ),
+        _gate(
             "Strict trainer reproducibility",
             reproducibility.get("errors") == []
             and reproducibility.get("forbidden_model_input_rejected") is True,
@@ -779,6 +800,10 @@ def main() -> None:
         (
             "Full OOF launch packet is review-ready but still requires an "
             "explicit authorization JSON before training can start."
+        ),
+        (
+            "Full OOF completion gate is fail-closed: missing or invalid full "
+            "prediction artifacts keep q2_claim_allowed=false."
         ),
     ]
     result = {
@@ -874,6 +899,9 @@ def main() -> None:
             ),
             "full_oof_launch_packet": _evidence_full_oof_launch_packet(
                 full_oof_launch_packet
+            ),
+            "full_oof_completion_gate": _evidence_full_oof_completion_gate(
+                full_oof_completion_gate
             ),
             "reproducibility": _evidence_reproducibility(reproducibility),
         },
@@ -1475,6 +1503,21 @@ def _evidence_full_oof_launch_packet(audit: dict[str, Any]) -> dict[str, Any]:
         "review_checklist_count": audit.get("review_checklist_count"),
         "preflight_config_sha256": audit.get("preflight_config_sha256"),
         "git_commit": audit.get("git_commit"),
+    }
+
+
+def _evidence_full_oof_completion_gate(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "completion_ready": audit.get("completion_ready"),
+        "q2_claim_allowed": audit.get("q2_claim_allowed"),
+        "fail_closed": audit.get("fail_closed"),
+        "missing_artifact_count": audit.get("missing_artifact_count"),
+        "blocking_reasons": audit.get("blocking_reasons"),
+        "output_dir": audit.get("output_dir"),
+        "registry_record_json": audit.get("registry_record_json"),
+        "preflight_config_sha256": audit.get("preflight_config_sha256"),
+        "preflight_git_commit": audit.get("preflight_git_commit"),
     }
 
 
