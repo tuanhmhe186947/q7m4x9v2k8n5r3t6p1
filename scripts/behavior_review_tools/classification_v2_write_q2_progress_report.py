@@ -1984,6 +1984,7 @@ def _evidence_full_oof_preflight_freshness(audit: dict[str, Any]) -> dict[str, A
         "authorization_must_refresh_preflight": audit.get(
             "authorization_must_refresh_preflight"
         ),
+        "git_dirty": audit.get("git_dirty"),
         "git_commit_matches": audit.get("git_commit_matches"),
         "snapshot_matches": audit.get("snapshot_matches"),
         "preflight_git_commit": audit.get("preflight_git_commit"),
@@ -1995,6 +1996,7 @@ def _evidence_full_oof_preflight_freshness(audit: dict[str, Any]) -> dict[str, A
 
 
 def _render_markdown(result: dict[str, Any]) -> str:
+    evidence = result.get("evidence") or {}
     lines = [
         "# classification_v2 Q2 Progress Report",
         "",
@@ -2002,8 +2004,22 @@ def _render_markdown(result: dict[str, Any]) -> str:
         "",
         f"Claim boundary: {result['claim_boundary']}",
         "",
-        "## Gates",
+        "## Current State",
     ]
+    lines.extend(_render_current_state_lines(evidence))
+    lines.extend(
+        [
+            "",
+            "## Next Action",
+        ]
+    )
+    lines.extend(_render_next_action_lines(evidence))
+    lines.extend(
+        [
+            "",
+            "## Gates",
+        ]
+    )
     for gate in result["gates"]:
         marker = "PASS" if gate["passed"] else "FAIL"
         lines.append(f"- {marker}: {gate['name']}")
@@ -2012,6 +2028,55 @@ def _render_markdown(result: dict[str, Any]) -> str:
     lines.extend(["", "## Remaining Work"])
     lines.extend(f"- {item}" for item in result["remaining_work"])
     return "\n".join(lines) + "\n"
+
+
+def _render_current_state_lines(evidence: dict[str, Any]) -> list[str]:
+    """Render fail-closed full-run state without implying Q2 completion."""
+
+    freshness = evidence.get("full_oof_preflight_freshness") or {}
+    launch = evidence.get("full_oof_launch_packet") or {}
+    completion = evidence.get("full_oof_completion_gate") or {}
+    return [
+        f"- Preflight fresh: `{freshness.get('preflight_fresh')}`",
+        f"- Snapshot matches: `{freshness.get('snapshot_matches')}`",
+        f"- Git dirty: `{freshness.get('git_dirty')}`",
+        f"- Current commit: `{freshness.get('current_git_commit')}`",
+        f"- Current snapshot: `{freshness.get('current_snapshot_id')}`",
+        f"- Full OOF execution allowed: `{launch.get('full_oof_execution_allowed')}`",
+        f"- Authorization required: `{launch.get('authorization_required')}`",
+        f"- Completion gate q2_claim_allowed: `{completion.get('q2_claim_allowed')}`",
+        f"- Completion gate fail_closed: `{completion.get('fail_closed')}`",
+    ]
+
+
+def _render_next_action_lines(evidence: dict[str, Any]) -> list[str]:
+    """Render the next operator step from authorization and gate evidence."""
+
+    authorization = evidence.get("full_oof_authorization_file") or {}
+    freshness = evidence.get("full_oof_preflight_freshness") or {}
+    launch = evidence.get("full_oof_launch_packet") or {}
+    postrun = evidence.get("full_oof_postrun_registration_packet") or {}
+    if launch.get("full_oof_execution_allowed") is True:
+        return [
+            "- Authorization is valid. Run the full OOF command from:",
+            "  `outputs/classification_v2/model_design/full_oof_launch_packet.md`",
+            "- After full OOF completes, run postrun commands from:",
+            "  `outputs/classification_v2/model_design/"
+            "full_oof_postrun_registration_packet.md`",
+        ]
+    return [
+        "- Do not run full OOF yet.",
+        f"- Blocked reason: `{freshness.get('execution_blocked_reason')}`",
+        f"- Authorized: `{authorization.get('authorized')}`",
+        f"- Long-run acknowledged: `{authorization.get('acknowledges_long_run')}`",
+        "- No-Q2-claim acknowledged: "
+        f"`{authorization.get('acknowledges_no_q2_claim')}`",
+        f"- Reviewer present: `{authorization.get('reviewer_present')}`",
+        "- Review and run the authorization command template in:",
+        "  `outputs/classification_v2/model_design/full_oof_launch_packet.md`",
+        "- Postrun packet ready: "
+        f"`{postrun.get('packet_status')}`",
+    ]
 
 
 if __name__ == "__main__":
