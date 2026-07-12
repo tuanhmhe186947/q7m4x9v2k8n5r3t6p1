@@ -344,7 +344,9 @@ def _check_calibrated_predictions_csv(
         blocking.append(
             f"calibrated_prediction_schema_invalid={schema_check.get('errors')}"
         )
-    frame = pd.read_csv(path, low_memory=False)
+    frame = _read_csv_or_block(path, "calibrated_predictions", blocking)
+    if frame is None:
+        return
     labels = [str(label) for label in calibration.get("labels") or []]
     required = {
         "behavior_pred_calibrated",
@@ -378,7 +380,9 @@ def _check_hard_errors_csv(
 ) -> None:
     """Validate the high-confidence hard-error table bound to final review."""
 
-    frame = pd.read_csv(path, low_memory=False)
+    frame = _read_csv_or_block(path, "hard_errors", blocking)
+    if frame is None:
+        return
     required = {
         "temporal_unit_key",
         "oof_fold_id",
@@ -412,6 +416,20 @@ def _check_hard_errors_csv(
         invalid_pairs = sorted(observed_pairs.difference(allowed_pairs))
         if invalid_pairs:
             blocking.append(f"hard_errors_invalid_focus_pairs={invalid_pairs}")
+
+
+def _read_csv_or_block(
+    path: Path,
+    name: str,
+    blocking: list[str],
+) -> pd.DataFrame | None:
+    """Read a required CSV and keep malformed files as gate blockers."""
+
+    try:
+        return pd.read_csv(path, low_memory=False)
+    except Exception as exc:  # pragma: no cover - defensive IO boundary.
+        blocking.append(f"{name}_csv_unreadable={path}:{exc}")
+        return None
 
 
 def _check_provenance_path(
