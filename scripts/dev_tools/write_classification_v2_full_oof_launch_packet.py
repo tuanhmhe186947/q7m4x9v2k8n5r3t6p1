@@ -212,6 +212,17 @@ def _full_run_command(config: dict[str, Any]) -> list[str]:
         "outputs\\classification_v2\\model_design\\full_oof_authorization.json",
         "--output-dir",
         str(config.get("output_dir") or ""),
+        "--packed-image-cache",
+        str(config.get("packed_image_cache_npy") or ""),
+        "--packed-image-cache-index",
+        str(config.get("packed_image_cache_index_csv") or ""),
+        "--visual-context-cache-manifest",
+        str(config.get("visual_context_cache_manifest_csv") or ""),
+        "--visual-context-packed-cache",
+        str(config.get("visual_context_packed_cache_npy") or ""),
+        "--visual-context-packed-cache-index",
+        str(config.get("visual_context_packed_cache_index_csv") or ""),
+        "--require-packed-visual-context",
         "--image-size",
         str(config.get("image_size") or ""),
         "--hidden-dim",
@@ -265,11 +276,47 @@ def _launch_packet_errors(
         errors.append("authorization_template_config_sha256_mismatch")
     if authorization_template.get("git_commit") != preflight.get("git_commit"):
         errors.append("authorization_template_git_commit_mismatch")
-    required_tokens = {"--full", "--confirm-full-run", "--authorization-json"}
+    required_tokens = {
+        "--full",
+        "--confirm-full-run",
+        "--authorization-json",
+        "--packed-image-cache",
+        "--packed-image-cache-index",
+        "--visual-context-cache-manifest",
+        "--visual-context-packed-cache",
+        "--visual-context-packed-cache-index",
+        "--require-packed-visual-context",
+    }
     missing = sorted(required_tokens.difference(command))
     if missing:
         errors.append(f"launch_command_missing_required_tokens={missing}")
+    missing_values = _missing_command_values(
+        command,
+        [
+            "--packed-image-cache",
+            "--packed-image-cache-index",
+            "--visual-context-cache-manifest",
+            "--visual-context-packed-cache",
+            "--visual-context-packed-cache-index",
+        ],
+    )
+    if missing_values:
+        errors.append(f"launch_command_missing_required_values={missing_values}")
     return errors
+
+
+def _missing_command_values(command: list[str], options: list[str]) -> list[str]:
+    """Return command options that are absent or followed by an empty value."""
+
+    missing: list[str] = []
+    for option in options:
+        if option not in command:
+            missing.append(option)
+            continue
+        index = command.index(option)
+        if index + 1 >= len(command) or command[index + 1] == "":
+            missing.append(option)
+    return missing
 
 
 def _review_checklist() -> list[str]:

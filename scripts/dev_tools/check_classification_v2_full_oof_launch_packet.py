@@ -133,12 +133,49 @@ def _packet_errors(packet: dict[str, Any], expected: dict[str, Any]) -> list[str
     if packet.get("authorization_template_authorized") is not False:
         errors.append("launch_packet_template_must_be_unauthorized")
     command = packet.get("launch_command") or []
-    for token in ("--full", "--confirm-full-run", "--authorization-json"):
+    required_tokens = (
+        "--full",
+        "--confirm-full-run",
+        "--authorization-json",
+        "--packed-image-cache",
+        "--packed-image-cache-index",
+        "--visual-context-cache-manifest",
+        "--visual-context-packed-cache",
+        "--visual-context-packed-cache-index",
+        "--require-packed-visual-context",
+    )
+    for token in required_tokens:
         if token not in command:
             errors.append(f"launch_packet_command_missing={token}")
+    missing_values = _missing_command_values(
+        command,
+        [
+            "--packed-image-cache",
+            "--packed-image-cache-index",
+            "--visual-context-cache-manifest",
+            "--visual-context-packed-cache",
+            "--visual-context-packed-cache-index",
+        ],
+    )
+    if missing_values:
+        errors.append(f"launch_packet_command_missing_values={missing_values}")
     if len(packet.get("review_checklist") or []) < 6:
         errors.append("launch_packet_review_checklist_too_short")
     return errors
+
+
+def _missing_command_values(command: list[str], options: list[str]) -> list[str]:
+    """Return command options that are absent or followed by an empty value."""
+
+    missing: list[str] = []
+    for option in options:
+        if option not in command:
+            missing.append(option)
+            continue
+        index = command.index(option)
+        if index + 1 >= len(command) or command[index + 1] == "":
+            missing.append(option)
+    return missing
 
 
 def _load_json(path: Path, errors: list[str]) -> dict[str, Any]:
