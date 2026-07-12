@@ -337,7 +337,12 @@ def main() -> None:
         _gate(
             "Image cache canonical inventory",
             image_cache_inventory.get("valid") is True
-            and image_cache_inventory.get("canonical_cache_dir_exists") is True,
+            and image_cache_inventory.get("canonical_cache_dir_exists") is True
+            and image_cache_inventory.get(
+                "ad_hoc_active_training_reference_count",
+                0,
+            )
+            == 0,
             image_cache_inventory.get("errors"),
         ),
         _gate(
@@ -813,11 +818,16 @@ def _evidence_q2_final_package_stub(audit: dict[str, Any]) -> dict[str, Any]:
 def _evidence_image_cache_inventory(audit: dict[str, Any]) -> dict[str, Any]:
     return {
         "valid": audit.get("valid"),
+        "schema_version": audit.get("schema_version"),
         "canonical_cache_dir": audit.get("canonical_cache_dir"),
         "canonical_cache_dir_exists": audit.get("canonical_cache_dir_exists"),
         "cache_dir_count": audit.get("cache_dir_count"),
         "ad_hoc_cache_dir_count": audit.get("ad_hoc_cache_dir_count"),
         "ad_hoc_cache_dirs": audit.get("ad_hoc_cache_dirs"),
+        "ad_hoc_active_training_reference_count": audit.get(
+            "ad_hoc_active_training_reference_count"
+        ),
+        "ad_hoc_cache_policy": audit.get("ad_hoc_cache_policy"),
         "warnings": audit.get("warnings"),
     }
 
