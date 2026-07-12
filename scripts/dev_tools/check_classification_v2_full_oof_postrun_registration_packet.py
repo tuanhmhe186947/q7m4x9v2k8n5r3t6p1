@@ -98,6 +98,10 @@ def main() -> None:
             packet.get("calibration_cmd_command") or [],
             packet.get("python_executable"),
         ),
+        "calibration_cmd_wraps_base_command": _cmd_wraps_base_command(
+            packet.get("calibration_cmd_command") or [],
+            packet.get("calibration_command") or [],
+        ),
         "calibration_command_bat_present": bool(
             packet.get("calibration_command_bat")
         ),
@@ -105,12 +109,20 @@ def main() -> None:
             packet.get("confusion_comparison_cmd_command") or [],
             packet.get("python_executable"),
         ),
+        "confusion_cmd_wraps_base_command": _cmd_wraps_base_command(
+            packet.get("confusion_comparison_cmd_command") or [],
+            packet.get("confusion_comparison_command") or [],
+        ),
         "confusion_comparison_command_bat_present": bool(
             packet.get("confusion_comparison_command_bat")
         ),
         "ablation_report_cmd_command_ready": _cmd_ready(
             packet.get("ablation_report_cmd_command") or [],
             packet.get("python_executable"),
+        ),
+        "ablation_cmd_wraps_base_command": _cmd_wraps_base_command(
+            packet.get("ablation_report_cmd_command") or [],
+            packet.get("ablation_report_command") or [],
         ),
         "ablation_report_command_bat_present": bool(
             packet.get("ablation_report_command_bat")
@@ -120,6 +132,10 @@ def main() -> None:
             packet.get("register_cmd_command") or [],
             packet.get("python_executable"),
         ),
+        "register_cmd_wraps_base_command": _cmd_wraps_base_command(
+            packet.get("register_cmd_command") or [],
+            packet.get("register_command") or [],
+        ),
         "register_command_bat_present": bool(
             packet.get("register_command_bat")
         ),
@@ -127,6 +143,10 @@ def main() -> None:
         "completion_gate_cmd_command_ready": _cmd_ready(
             packet.get("completion_gate_cmd_command") or [],
             packet.get("python_executable"),
+        ),
+        "completion_cmd_wraps_base_command": _cmd_wraps_base_command(
+            packet.get("completion_gate_cmd_command") or [],
+            packet.get("completion_gate_command") or [],
         ),
         "completion_gate_command_bat_present": bool(
             packet.get("completion_gate_command_bat")
@@ -273,26 +293,51 @@ def _packet_errors(packet: dict[str, Any], expected: dict[str, Any]) -> list[str
         python_executable,
     ):
         errors.append("postrun_calibration_cmd_missing_cmd_setup")
+    if not _cmd_wraps_base_command(
+        packet.get("calibration_cmd_command") or [],
+        packet.get("calibration_command") or [],
+    ):
+        errors.append("postrun_calibration_cmd_does_not_wrap_base_command")
     if not _cmd_ready(
         packet.get("confusion_comparison_cmd_command") or [],
         python_executable,
     ):
         errors.append("postrun_confusion_cmd_missing_cmd_setup")
+    if not _cmd_wraps_base_command(
+        packet.get("confusion_comparison_cmd_command") or [],
+        packet.get("confusion_comparison_command") or [],
+    ):
+        errors.append("postrun_confusion_cmd_does_not_wrap_base_command")
     if not _cmd_ready(
         packet.get("ablation_report_cmd_command") or [],
         python_executable,
     ):
         errors.append("postrun_ablation_cmd_missing_cmd_setup")
+    if not _cmd_wraps_base_command(
+        packet.get("ablation_report_cmd_command") or [],
+        packet.get("ablation_report_command") or [],
+    ):
+        errors.append("postrun_ablation_cmd_does_not_wrap_base_command")
     if not _cmd_ready(
         packet.get("register_cmd_command") or [],
         python_executable,
     ):
         errors.append("postrun_register_cmd_missing_cmd_setup")
+    if not _cmd_wraps_base_command(
+        packet.get("register_cmd_command") or [],
+        packet.get("register_command") or [],
+    ):
+        errors.append("postrun_register_cmd_does_not_wrap_base_command")
     if not _cmd_ready(
         packet.get("completion_gate_cmd_command") or [],
         python_executable,
     ):
         errors.append("postrun_completion_cmd_missing_cmd_setup")
+    if not _cmd_wraps_base_command(
+        packet.get("completion_gate_cmd_command") or [],
+        packet.get("completion_gate_command") or [],
+    ):
+        errors.append("postrun_completion_cmd_does_not_wrap_base_command")
     for key in (
         "calibration_command_bat",
         "confusion_comparison_command_bat",
@@ -371,6 +416,14 @@ def _cmd_ready(command: list[str], python_executable: Any) -> bool:
     if command[6] != "&&":
         return False
     return command[7] == str(python_executable or "")
+
+
+def _cmd_wraps_base_command(command: list[str], base_command: list[str]) -> bool:
+    """Check that the CMD helper preserves the exact underlying command."""
+
+    if len(command) < 8 or not base_command:
+        return False
+    return command[7:] == base_command
 
 
 def _load_json(path: Path, errors: list[str]) -> dict[str, Any]:
