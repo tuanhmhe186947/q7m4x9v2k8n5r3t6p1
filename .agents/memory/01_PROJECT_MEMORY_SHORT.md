@@ -1,5 +1,21 @@
 # Project Memory Short
 
+## 2026-07-13 classification_v2 pre-full hardening refresh
+
+- Latest verified pre-full HEAD:
+  `90408f7b368e61df85749879e0ca5148e06e3894`.
+- `q2_progress_report_audit.json` is valid with `PASS_PARTIAL_ROADMAP`,
+  44/44 gates passing, clean git, `full_oof_execution_allowed=false`,
+  `authorization_authorized=false`, and `q2_claim_allowed=false`.
+- Full OOF execution gate is now hardened with 4 rejection cases, including a
+  near-authorized authorization file that has all boolean approvals true but
+  missing `reviewer` and `reviewed_at`.
+- Preflight runtime benchmark drift now allows audit/auth-only changes without
+  rebenchmarking, while keeping runtime/model/training changes fail-closed.
+- Full OOF remains not run and not claimable. The next irreversible step is
+  still human authorization of `full_oof_authorization.json`, followed by the
+  launch packet and postrun calibration/confusion/registry/completion gates.
+
 ## 2026-07-12 classification_v2 Q2 multimodal ready state
 
 - Active priority is `classification_v2` behavior recognition, not tracking

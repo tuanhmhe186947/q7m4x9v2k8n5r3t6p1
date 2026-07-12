@@ -1,5 +1,18 @@
 # Current Decision
 
+## 2026-07-13 active classification_v2 decision refresh
+
+Keep the active decision as pre-full ready, not Q2 complete.
+
+- Current verified HEAD is `90408f7b368e61df85749879e0ca5148e06e3894`.
+- Current progress is `PASS_PARTIAL_ROADMAP` with 44/44 gates passing.
+- The execution gate now requires 4 rejection cases, including rejection of a
+  near-authorized file missing `reviewer` and `reviewed_at`.
+- Runtime preflight may allow audit/auth-only commit drift without rebenchmark,
+  but must still fail closed for runtime/model/training-relevant changes.
+- Do not run or claim full OOF until human authorization is explicitly valid and
+  the execution gate allows it.
+
 ## 2026-07-12 active classification_v2 decision
 
 The active project priority is `classification_v2` behavior recognition unless
