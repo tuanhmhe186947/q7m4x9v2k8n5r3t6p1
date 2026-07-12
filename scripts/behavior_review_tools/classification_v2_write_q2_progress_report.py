@@ -637,15 +637,20 @@ def main() -> None:
             full_oof_authorization_template.get("errors"),
         ),
         _gate(
-            "Full OOF stale preflight fail-closed guard",
+            "Full OOF fresh preflight authorization-ready guard",
             full_oof_preflight_freshness.get("valid") is True
-            and full_oof_preflight_freshness.get("preflight_fresh") is False
+            and full_oof_preflight_freshness.get("preflight_valid") is True
+            and full_oof_preflight_freshness.get("preflight_fresh") is True
             and full_oof_preflight_freshness.get("full_oof_execution_allowed")
             is False
             and full_oof_preflight_freshness.get(
+                "preflight_authorization_ready"
+            )
+            is True
+            and full_oof_preflight_freshness.get(
                 "authorization_must_refresh_preflight"
             )
-            is True,
+            is False,
             full_oof_preflight_freshness.get("errors"),
         ),
         _gate(
@@ -1439,7 +1444,11 @@ def _evidence_full_oof_preflight_freshness(audit: dict[str, Any]) -> dict[str, A
         "valid": audit.get("valid"),
         "preflight_valid": audit.get("preflight_valid"),
         "preflight_fresh": audit.get("preflight_fresh"),
+        "preflight_authorization_ready": audit.get(
+            "preflight_authorization_ready"
+        ),
         "full_oof_execution_allowed": audit.get("full_oof_execution_allowed"),
+        "execution_blocked_reason": audit.get("execution_blocked_reason"),
         "authorization_must_refresh_preflight": audit.get(
             "authorization_must_refresh_preflight"
         ),

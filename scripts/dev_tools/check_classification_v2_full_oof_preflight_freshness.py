@@ -69,6 +69,9 @@ def check_preflight_freshness(
     )
     preflight_valid = preflight.get("valid") is True and not preflight.get("errors")
     preflight_fresh = bool(preflight_valid and git_matches and snapshot_matches)
+    preflight_authorization_ready = bool(
+        preflight_fresh and git_state.get("dirty") is False
+    )
     if not preflight_valid:
         warnings.append(f"preflight_invalid={preflight.get('errors')}")
     if not git_matches:
@@ -94,7 +97,9 @@ def check_preflight_freshness(
         "current_snapshot_id": current_snapshot_id,
         "snapshot_matches": snapshot_matches,
         "preflight_fresh": preflight_fresh,
-        "full_oof_execution_allowed": preflight_fresh,
+        "preflight_authorization_ready": preflight_authorization_ready,
+        "full_oof_execution_allowed": False,
+        "execution_blocked_reason": "missing_explicit_authorization_json",
         "authorization_must_refresh_preflight": not preflight_fresh,
         "warnings": warnings,
         "errors": errors,
