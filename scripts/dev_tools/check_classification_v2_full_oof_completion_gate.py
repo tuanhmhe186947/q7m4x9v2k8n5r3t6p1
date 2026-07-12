@@ -5,6 +5,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
+
 from pig_behavior.classification_v2.evaluation.metrics_payload_contract import (
     check_paper_metrics_payload,
 )
@@ -137,12 +139,26 @@ def _validate_complete_artifacts(
     registry_contract = check_experiment_record(paths["registry_record"])
     schema_file_audit = _read_existing_json(paths["prediction_schema_audit"])
     schema_check = check_prediction_schema_csv(paths["predictions"])
+    calibrated_schema_check = check_prediction_schema_csv(
+        paths["calibrated_predictions"]
+    )
     metrics_check = check_paper_metrics_payload(metrics)
 
     _check_run_audit(run_audit, preflight, blocking)
     _check_source_report(source_report, blocking)
     _check_registry_record(registry, paths, blocking)
     _check_postrun_artifacts(calibration, confusion, ablation, blocking)
+    _check_calibrated_predictions_csv(
+        paths["calibrated_predictions"],
+        calibration,
+        calibrated_schema_check,
+        blocking,
+    )
+    _check_hard_errors_csv(
+        paths["high_confidence_hard_errors"],
+        confusion,
+        blocking,
+    )
     if registry_contract.get("valid") is not True:
         blocking.append(
             "registry_record_contract_invalid="
@@ -187,6 +203,10 @@ def _validate_complete_artifacts(
         "registry_stage": registry.get("experiment_stage"),
         "registry_contract_valid": registry_contract.get("valid"),
         "prediction_schema_valid": schema_check.get("valid"),
+        "calibrated_prediction_schema_valid": calibrated_schema_check.get("valid"),
+        "calibrated_prediction_rows": calibrated_schema_check.get(
+            "prediction_rows"
+        ),
         "metrics_payload_valid": metrics_check.get("valid"),
     }
 
@@ -310,6 +330,88 @@ def _check_postrun_artifacts(
         blocking.append(f"ablation_claim_level_invalid={ablation.get('paper_claim_level')}")
     if ablation.get("external_generalization_claim") is not False:
         blocking.append("ablation_external_generalization_claim_true")
+
+
+def _check_calibrated_predictions_csv(
+    path: Path,
+    calibration: dict[str, Any],
+    schema_check: dict[str, Any],
+    blocking: list[str],
+) -> None:
+    """Validate calibrated native predictions used by post-run comparisons."""
+
+    if schema_check.get("valid") is not True:
+        blocking.append(
+            f"calibrated_prediction_schema_invalid={schema_check.get('errors')}"
+        )
+    frame = pd.read_csv(path, low_memory=False)
+    labels = [str(label) for label in calibration.get("labels") or []]
+    required = {
+        "behavior_pred_calibrated",
+        "calibrated_confidence",
+        *[f"cal_prob_{label}" for label in labels],
+    }
+    missing = sorted(required.difference(frame.columns))
+    if missing:
+        blocking.append(f"calibrated_predictions_missing_columns={missing}")
+    expected_rows = calibration.get("native_unit_rows")
+    if expected_rows is not None and int(expected_rows) != int(len(frame)):
+        blocking.append(
+            "calibrated_prediction_row_count_mismatch="
+            f"{len(frame)}!={expected_rows}"
+        )
+    if "calibrated_confidence" in frame.columns:
+        confidence = pd.to_numeric(
+            frame["calibrated_confidence"],
+            errors="coerce",
+        )
+        if int(confidence.isna().sum()):
+            blocking.append("calibrated_confidence_non_numeric_rows")
+        if int((confidence.lt(0.0) | confidence.gt(1.0)).sum()):
+            blocking.append("calibrated_confidence_out_of_range_rows")
+
+
+def _check_hard_errors_csv(
+    path: Path,
+    confusion: dict[str, Any],
+    blocking: list[str],
+) -> None:
+    """Validate the high-confidence hard-error table bound to final review."""
+
+    frame = pd.read_csv(path, low_memory=False)
+    required = {
+        "temporal_unit_key",
+        "oof_fold_id",
+        "behavior_true",
+        "baseline_pred",
+        "proposed_pred",
+        "proposed_confidence",
+        "focus_pair",
+    }
+    missing = sorted(required.difference(frame.columns))
+    if missing:
+        blocking.append(f"hard_errors_missing_columns={missing}")
+    expected_rows = confusion.get("high_confidence_hard_error_rows")
+    if expected_rows is not None and int(expected_rows) != int(len(frame)):
+        blocking.append(
+            "hard_errors_row_count_mismatch="
+            f"{len(frame)}!={expected_rows}"
+        )
+    if "proposed_confidence" in frame.columns:
+        confidence = pd.to_numeric(
+            frame["proposed_confidence"],
+            errors="coerce",
+        )
+        if int(confidence.isna().sum()):
+            blocking.append("hard_errors_confidence_non_numeric_rows")
+        if int((confidence.lt(0.0) | confidence.gt(1.0)).sum()):
+            blocking.append("hard_errors_confidence_out_of_range_rows")
+    if "focus_pair" in frame.columns and "focus_pairs" in confusion:
+        allowed_pairs = set((confusion.get("focus_pairs") or {}).keys())
+        observed_pairs = set(frame["focus_pair"].fillna("").astype(str))
+        invalid_pairs = sorted(observed_pairs.difference(allowed_pairs))
+        if invalid_pairs:
+            blocking.append(f"hard_errors_invalid_focus_pairs={invalid_pairs}")
 
 
 def _check_provenance_path(
