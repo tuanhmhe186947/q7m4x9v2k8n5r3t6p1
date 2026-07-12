@@ -727,7 +727,7 @@ def main() -> None:
             and full_oof_launch_packet.get("authorization_required") is True
             and full_oof_launch_packet.get("authorization_template_authorized")
             is False
-            and _launch_packet_cmd_ready(full_oof_launch_packet),
+            and _launch_packet_ready(full_oof_launch_packet),
             full_oof_launch_packet.get("errors"),
         ),
         _gate(
@@ -1546,6 +1546,17 @@ def _launch_packet_cmd_ready(audit: dict[str, Any]) -> bool:
     )
 
 
+def _launch_packet_ready(audit: dict[str, Any]) -> bool:
+    """Use checker readiness booleans when present, with old-audit fallback."""
+
+    if "launch_command_python_ready" in audit or "cmd_launch_command_ready" in audit:
+        return bool(
+            audit.get("launch_command_python_ready") is True
+            and audit.get("cmd_launch_command_ready") is True
+        )
+    return _launch_packet_cmd_ready(audit)
+
+
 def _evidence_full_oof_launch_packet(audit: dict[str, Any]) -> dict[str, Any]:
     return {
         "valid": audit.get("valid"),
@@ -1557,7 +1568,16 @@ def _evidence_full_oof_launch_packet(audit: dict[str, Any]) -> dict[str, Any]:
             "authorization_template_authorized"
         ),
         "python_executable": audit.get("python_executable"),
-        "cmd_launch_command_ready": _launch_packet_cmd_ready(audit),
+        "launch_command_python_ready": (
+            audit.get("launch_command_python_ready")
+            if "launch_command_python_ready" in audit
+            else _launch_packet_cmd_ready(audit)
+        ),
+        "cmd_launch_command_ready": (
+            audit.get("cmd_launch_command_ready")
+            if "cmd_launch_command_ready" in audit
+            else _launch_packet_cmd_ready(audit)
+        ),
         "review_checklist_count": audit.get("review_checklist_count"),
         "preflight_config_sha256": audit.get("preflight_config_sha256"),
         "git_commit": audit.get("git_commit"),
