@@ -90,6 +90,14 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--full-oof-preflight-freshness-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "full_oof_preflight_freshness_audit.json"
+        ),
+    )
+    parser.add_argument(
         "--image-cache-inventory-json",
         type=Path,
         default=Path(
@@ -237,6 +245,9 @@ def main() -> None:
     )
     full_oof_authorization_template = _load_optional_json(
         args.full_oof_authorization_template_json
+    )
+    full_oof_preflight_freshness = _load_optional_json(
+        args.full_oof_preflight_freshness_json
     )
     image_cache_inventory = _load_optional_json(args.image_cache_inventory_json)
     image_cache_letterbox_policy = _load_optional_json(
@@ -534,6 +545,18 @@ def main() -> None:
             full_oof_authorization_template.get("errors"),
         ),
         _gate(
+            "Full OOF stale preflight fail-closed guard",
+            full_oof_preflight_freshness.get("valid") is True
+            and full_oof_preflight_freshness.get("preflight_fresh") is False
+            and full_oof_preflight_freshness.get("full_oof_execution_allowed")
+            is False
+            and full_oof_preflight_freshness.get(
+                "authorization_must_refresh_preflight"
+            )
+            is True,
+            full_oof_preflight_freshness.get("errors"),
+        ),
+        _gate(
             "Strict trainer reproducibility",
             reproducibility.get("errors") == []
             and reproducibility.get("forbidden_model_input_rejected") is True,
@@ -675,6 +698,9 @@ def main() -> None:
             ),
             "full_oof_authorization_template": _evidence_full_oof_authorization_template(
                 full_oof_authorization_template
+            ),
+            "full_oof_preflight_freshness": _evidence_full_oof_preflight_freshness(
+                full_oof_preflight_freshness
             ),
             "reproducibility": _evidence_reproducibility(reproducibility),
         },
@@ -1132,6 +1158,25 @@ def _evidence_full_oof_authorization_template(audit: dict[str, Any]) -> dict[str
             "template_binds_preflight_config_sha256"
         ),
         "template_binds_git_commit": audit.get("template_binds_git_commit"),
+    }
+
+
+def _evidence_full_oof_preflight_freshness(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "preflight_valid": audit.get("preflight_valid"),
+        "preflight_fresh": audit.get("preflight_fresh"),
+        "full_oof_execution_allowed": audit.get("full_oof_execution_allowed"),
+        "authorization_must_refresh_preflight": audit.get(
+            "authorization_must_refresh_preflight"
+        ),
+        "git_commit_matches": audit.get("git_commit_matches"),
+        "snapshot_matches": audit.get("snapshot_matches"),
+        "preflight_git_commit": audit.get("preflight_git_commit"),
+        "current_git_commit": audit.get("current_git_commit"),
+        "preflight_snapshot_id": audit.get("preflight_snapshot_id"),
+        "current_snapshot_id": audit.get("current_snapshot_id"),
+        "warnings": audit.get("warnings"),
     }
 
 
