@@ -33,6 +33,8 @@ def main() -> None:
         "valid",
         "tabular_feature_count",
         "tabular_family_counts",
+        "declared_spatial_array_count",
+        "undeclared_spatial_arrays",
         "roi_context",
         "errors",
         "warnings",

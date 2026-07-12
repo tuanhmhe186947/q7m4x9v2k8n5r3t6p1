@@ -170,6 +170,8 @@
       "declared": true
     }
   },
+  "declared_spatial_array_count": 9,
+  "undeclared_spatial_arrays": [],
   "roi_context": {
     "available": true,
     "tabular_feature_count": 0,

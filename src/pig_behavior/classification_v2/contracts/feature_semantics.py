@@ -49,6 +49,13 @@ def audit_feature_semantics(contract_path: Path) -> dict[str, Any]:
     missing_spatial = sorted(set(contract["spatial_arrays"]).difference(spatial_assignments))
     if missing_spatial:
         errors.append(f"missing_spatial_arrays={missing_spatial}")
+    undeclared_spatial = sorted(
+        name
+        for name, assignment in spatial_assignments.items()
+        if not assignment.get("declared")
+    )
+    if undeclared_spatial:
+        errors.append(f"undeclared_spatial_arrays={undeclared_spatial}")
     tabular_family_counts = _family_counts(tabular_assignments)
     roi_context = _roi_context_status(tabular_family_counts, spatial_assignments)
     if not roi_context["available"]:
@@ -62,6 +69,10 @@ def audit_feature_semantics(contract_path: Path) -> dict[str, Any]:
         "tabular_family_counts": tabular_family_counts,
         "tabular_assignments": tabular_assignments,
         "spatial_assignments": spatial_assignments,
+        "declared_spatial_array_count": int(
+            len(spatial_assignments) - len(undeclared_spatial)
+        ),
+        "undeclared_spatial_arrays": undeclared_spatial,
         "roi_context": roi_context,
         "forbidden_tabular_features": forbidden,
         "errors": errors,
