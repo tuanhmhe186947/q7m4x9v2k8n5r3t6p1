@@ -1,7 +1,7 @@
 {
   "contract_path": "configs\\classification_v2\\feature_semantics_v1.json",
-  "tabular_x_csv": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\train_ready_windows\\X_window_features.csv",
-  "spatial_npz": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\train_ready_windows\\X_spatial_sequences.npz",
+  "tabular_x_csv": "outputs\\classification_v2\\train_ready_windows\\X_window_features.csv",
+  "spatial_npz": "outputs\\classification_v2\\train_ready_windows\\X_spatial_sequences.npz",
   "tabular_feature_count": 39,
   "tabular_family_counts": {
     "geometry_shape": 2,
@@ -54,7 +54,9 @@
   "spatial_assignments": {
     "bbox_xywh_n": {
       "family": "geometry_sequence",
-      "description": "Per-frame normalized actor bbox x/y/width/height sequence.",
+      "description": [
+        "Per-frame normalized actor bbox x/y/width/height sequence."
+      ],
       "shape": [
         160740,
         16,
@@ -65,7 +67,9 @@
     },
     "bbox_shape_n": {
       "family": "geometry_sequence",
-      "description": "Per-frame normalized shape/area/aspect geometry sequence.",
+      "description": [
+        "Per-frame normalized shape/area/aspect geometry sequence."
+      ],
       "shape": [
         160740,
         16,
@@ -76,7 +80,10 @@
     },
     "motion_delta": {
       "family": "motion_sequence",
-      "description": "Per-frame actor motion delta sequence; must be grouped within object track/window only.",
+      "description": [
+        "Per-frame actor motion delta sequence; must be grouped within object track/window",
+        "only."
+      ],
       "shape": [
         160740,
         16,
@@ -87,7 +94,10 @@
     },
     "roi_class_relation": {
       "family": "roi_context_sequence",
-      "description": "Class-specific feeder/drinker/toy ROI relation sequence; model-usable because it is not target-label-selected.",
+      "description": [
+        "Class-specific feeder/drinker/toy ROI relation sequence; model-usable because it",
+        "is not target-label-selected."
+      ],
       "shape": [
         160740,
         16,
@@ -98,7 +108,9 @@
     },
     "social_relation": {
       "family": "social_context_sequence",
-      "description": "Per-frame label-independent social relation features from same-frame neighbors.",
+      "description": [
+        "Per-frame label-independent social relation features from same-frame neighbors."
+      ],
       "shape": [
         160740,
         16,
@@ -109,7 +121,9 @@
     },
     "quality_mask": {
       "family": "quality_sequence",
-      "description": "Per-frame quality/missingness mask.",
+      "description": [
+        "Per-frame quality/missingness mask."
+      ],
       "shape": [
         160740,
         16,
@@ -120,7 +134,9 @@
     },
     "length_mask": {
       "family": "sequence_mask",
-      "description": "Window-length mask for padded sequence positions.",
+      "description": [
+        "Window-length mask for padded sequence positions."
+      ],
       "shape": [
         160740,
         16
@@ -130,7 +146,9 @@
     },
     "observed_mask": {
       "family": "sequence_mask",
-      "description": "Observed-frame mask; missing frames stay masked instead of dropped.",
+      "description": [
+        "Observed-frame mask; missing frames stay masked instead of dropped."
+      ],
       "shape": [
         160740,
         16
@@ -140,7 +158,10 @@
     },
     "frame_index_sequence": {
       "family": "sequence_index",
-      "description": "Frame indices for audit/alignment; do not feed to model unless a trainer explicitly treats it as positional metadata.",
+      "description": [
+        "Frame indices for audit/alignment; do not feed to model unless a trainer",
+        "explicitly treats it as positional metadata."
+      ],
       "shape": [
         160740,
         16
@@ -149,10 +170,22 @@
       "declared": true
     }
   },
+  "roi_context": {
+    "available": true,
+    "tabular_feature_count": 0,
+    "spatial_sequence_array": "roi_class_relation",
+    "spatial_sequence_shape": [
+      160740,
+      16,
+      18
+    ],
+    "leakage_policy": [
+      "Use label-independent ROI relation tensors; do not add target_roi_* or label-",
+      "selected ROI audit fields to model X."
+    ]
+  },
   "forbidden_tabular_features": [],
   "errors": [],
-  "warnings": [
-    "tabular_roi_context_absent; current ROI signal is spatial roi_class_relation only"
-  ],
+  "warnings": [],
   "valid": true
 }

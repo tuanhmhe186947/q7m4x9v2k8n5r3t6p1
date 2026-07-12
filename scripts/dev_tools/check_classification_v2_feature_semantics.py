@@ -8,7 +8,9 @@ from pig_behavior.classification_v2.contracts.feature_semantics import audit_fea
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Audit classification_v2 feature semantics and leakage status.")
+    parser = argparse.ArgumentParser(
+        description="Audit classification_v2 feature semantics and leakage status."
+    )
     parser.add_argument(
         "--contract-json",
         type=Path,
@@ -27,7 +29,15 @@ def main() -> None:
     result = audit_feature_semantics(args.contract_json)
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
     args.output_json.write_text(json.dumps(result, indent=2), encoding="utf-8")
-    print(json.dumps({k: result[k] for k in ["valid", "tabular_feature_count", "tabular_family_counts", "errors", "warnings"]}, indent=2))
+    summary_keys = [
+        "valid",
+        "tabular_feature_count",
+        "tabular_family_counts",
+        "roi_context",
+        "errors",
+        "warnings",
+    ]
+    print(json.dumps({key: result[key] for key in summary_keys}, indent=2))
     if not result["valid"]:
         raise SystemExit(2)
 

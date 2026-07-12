@@ -629,6 +629,8 @@ def main() -> None:
             feature_semantics_audit.get("valid") is True
             and feature_semantics_audit.get("errors") == []
             and feature_semantics_audit.get("forbidden_tabular_features") == []
+            and (feature_semantics_audit.get("roi_context") or {}).get("available")
+            is True
             and feature_semantics_audit.get("tabular_feature_count") == 39,
             feature_semantics_audit.get("errors"),
         ),
@@ -1418,6 +1420,7 @@ def _evidence_feature_semantics(audit: dict[str, Any]) -> dict[str, Any]:
         "valid": audit.get("valid"),
         "tabular_feature_count": audit.get("tabular_feature_count"),
         "tabular_family_counts": audit.get("tabular_family_counts"),
+        "roi_context": audit.get("roi_context"),
         "forbidden_tabular_features": audit.get("forbidden_tabular_features"),
         "spatial_assignment_count": len(audit.get("spatial_assignments", {}) or {}),
         "warnings": audit.get("warnings"),
