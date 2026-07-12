@@ -1,5 +1,70 @@
 # Workflow
 
+## Current classification_v2 Q2 workflow
+
+Use this workflow when continuing the behavior-recognition roadmap.
+
+1. Work from project root:
+   `C:\Users\ironh\Downloads\PIG_Behavior_Project`
+2. For CMD execution, set:
+   `set PYTHONPATH=%CD%\src`
+3. Prefer Python:
+   `C:\Users\ironh\anaconda3\envs\pig_project\python.exe`
+4. Before any code edit, read root `AGENTS.md` and memory files
+   `01_PROJECT_MEMORY_SHORT.md`, `02_CURRENT_DECISION.md`,
+   `03_PROJECT_RULES.md`, and `08_WORKFLOW.md`.
+5. Use `apply_patch` for source/config/docs edits. Do not write source files
+   with redirects, heredocs, here-strings, `cat`, or ad hoc scripts.
+6. Before every code commit, run an overlong-line scan on changed code files,
+   for example `rg -n "^.{101,}$" <changed-files>`, and run
+   `git diff --check`.
+
+### classification_v2 pre-full gates
+
+Run these checks before any full OOF launch:
+
+```bat
+cd /d C:\Users\ironh\Downloads\PIG_Behavior_Project
+set PYTHONPATH=%CD%\src
+set PY=C:\Users\ironh\anaconda3\envs\pig_project\python.exe
+%PY% scripts\dev_tools\preflight_classification_v2_full_multimodal_oof.py ^
+  --snapshot-json outputs\classification_v2\training_snapshots\c2v2_27ed5c9963904c52.json ^
+  --runtime-benchmark-audit-json ^
+  outputs\classification_v2\model_benchmarks_visual_v3\summary_head\runtime_benchmark_audit.json
+%PY% scripts\dev_tools\write_classification_v2_full_oof_authorization_template.py
+%PY% scripts\dev_tools\write_classification_v2_full_oof_authorization_file.py
+%PY% scripts\dev_tools\check_classification_v2_full_oof_authorization_template.py
+%PY% scripts\dev_tools\check_classification_v2_full_oof_authorization_file.py
+%PY% scripts\dev_tools\check_classification_v2_full_oof_authorization_writer.py
+%PY% scripts\dev_tools\check_classification_v2_full_oof_preflight_freshness.py
+%PY% scripts\dev_tools\write_classification_v2_full_oof_launch_packet.py
+%PY% scripts\dev_tools\check_classification_v2_full_oof_launch_packet.py
+%PY% scripts\dev_tools\check_classification_v2_full_oof_execution_gate.py
+%PY% scripts\dev_tools\check_classification_v2_full_oof_completion_gate.py
+%PY% scripts\dev_tools\write_classification_v2_full_oof_postrun_registration_packet.py
+%PY% scripts\dev_tools\check_classification_v2_full_oof_postrun_registration_packet.py
+%PY% scripts\behavior_review_tools\classification_v2_write_q2_progress_report.py
+```
+
+The expected pre-full status is `PASS_PARTIAL_ROADMAP` with fail-closed full
+OOF authorization. That is a ready-for-human-authorization state, not a
+completed Q2 result.
+
+### Full OOF authorization rule
+
+Do not run the full OOF command until:
+
+- `full_oof_authorization.json` has `authorized=true`.
+- `acknowledges_long_run=true`.
+- `acknowledges_no_q2_claim_until_verified=true`.
+- reviewer is non-empty.
+- preflight config hash and git commit match the current clean preflight.
+
+After full OOF completes, run the postrun commands from
+`outputs/classification_v2/model_design/full_oof_postrun_registration_packet.json`
+in order: calibration, confusion focus comparison, ablation report refresh,
+registry registration, and completion gate.
+
 ## Before every coding task
 
 1. Read root `AGENTS.md`.

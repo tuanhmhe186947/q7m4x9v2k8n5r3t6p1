@@ -1,5 +1,37 @@
 # Project Memory Short
 
+## 2026-07-12 classification_v2 Q2 multimodal ready state
+
+- Active priority is `classification_v2` behavior recognition, not tracking
+  ablation, unless the user explicitly switches back to tracking.
+- Current target claim remains Q2-strong only: improved pig behavior recognition
+  under recording-date/video-safe validation. Do not claim external farm,
+  camera, or cohort generalization until external validation exists.
+- Pipeline is built around multimodal spatio-temporal inputs:
+  bbox/letterboxed actor image sequence, ROI relation features, motion,
+  social/partner context, interaction visual context, event-balanced weights,
+  native temporal OOF folds, and strict feature whitelist leakage guards.
+- `pig_id` is annotation-local and must not be treated as the same animal across
+  videos or sessions.
+- Canonical actor image cache is letterboxed, not square-stretched:
+  `outputs/classification_v2/image_cache_v2_letterbox/`.
+- Full OOF launch path is gated by preflight plus explicit authorization:
+  `outputs/classification_v2/model_design/full_multimodal_oof_preflight.json`
+  and `outputs/classification_v2/model_design/full_oof_authorization.json`.
+- As of commit `128c42f`, Q2 progress reports `PASS_PARTIAL_ROADMAP` with
+  43/43 gates passing. Full OOF is still not complete because the authorization
+  file is intentionally fail-closed and full/postrun artifacts are missing.
+- Do not run full OOF unless `full_oof_authorization.json` is explicitly
+  authorized with long-run and no-Q2-claim acknowledgements, matching the clean
+  preflight config hash and git commit.
+- Expected full OOF runtime on RTX 3050 Laptop GPU is roughly 2-3 hours total;
+  preflight training-only estimate is about 108 minutes, excluding evaluation,
+  bootstrap metrics, calibration, registry, startup, and checkpoint IO.
+- After full OOF, required postrun steps are cross-fit calibration, confusion
+  focus comparison, ablation report refresh, experiment registry write, and
+  completion gate check. Q2 claim remains locked until the completion gate
+  allows it.
+
 ## 2026-07-08 realtime full runtime chunk validation
 
 - Runtime 13-video validation completed in two chunks: `outputs/eval/realtime/runtime_check_quality_delayed_simple_7video/iou0_area0_condarea0_merge0` plus `outputs/eval/realtime/runtime_check_quality_delayed_simple_remaining6/iou0_area0_condarea0_merge0`.
