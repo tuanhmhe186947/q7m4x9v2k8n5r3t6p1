@@ -306,6 +306,43 @@ def _check_registry_record(
         paths["ablation_report"],
         blocking,
     )
+    _check_registry_artifact_paths(record, paths, blocking)
+
+
+def _check_registry_artifact_paths(
+    record: dict[str, Any],
+    paths: dict[str, Path],
+    blocking: list[str],
+) -> None:
+    """Require the registry record to bind every required output artifact."""
+
+    artifact_paths = {
+        _norm_path(artifact.get("path"))
+        for artifact in record.get("artifacts", []) or []
+        if artifact.get("path")
+    }
+    required = (
+        "run_audit",
+        "predictions",
+        "unit_predictions",
+        "metrics",
+        "prediction_schema_audit",
+        "source_balanced_report",
+        "source_balanced_native_units",
+        "source_balanced_selection",
+        "calibrated_predictions",
+        "calibration_audit",
+        "confusion_comparison",
+        "high_confidence_hard_errors",
+        "ablation_report",
+    )
+    missing = [
+        name
+        for name in required
+        if _norm_path(paths[name]) not in artifact_paths
+    ]
+    if missing:
+        blocking.append(f"registry_missing_required_artifacts={missing}")
 
 
 def _check_postrun_artifacts(
@@ -443,6 +480,12 @@ def _check_provenance_path(
         blocking.append(f"registry_provenance_path_mismatch={key}")
     if value.get("exists") is not True:
         blocking.append(f"registry_provenance_missing={key}")
+
+
+def _norm_path(value: Any) -> str:
+    """Normalize registry paths for deterministic Windows-safe comparison."""
+
+    return str(Path(str(value))).replace("\\", "/").lower()
 
 
 def _expected_paths(output_dir: Path, registry_record: Path) -> dict[str, Path]:
