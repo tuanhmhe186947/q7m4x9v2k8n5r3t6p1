@@ -146,6 +146,7 @@ def _validate_complete_artifacts(
 
     _check_run_audit(run_audit, preflight, blocking)
     _check_source_report(source_report, blocking)
+    _check_source_balanced_csvs(paths, source_report, blocking)
     _check_registry_record(registry, paths, blocking)
     _check_postrun_artifacts(calibration, confusion, ablation, blocking)
     _check_calibrated_predictions_csv(
@@ -255,6 +256,82 @@ def _check_source_report(report: dict[str, Any], blocking: list[str]) -> None:
         blocking.append(f"source_balanced_requires_two_sources={report.get('source_labels')}")
     if int(report.get("matched_native_unit_rows") or 0) <= 0:
         blocking.append("source_balanced_matched_rows_zero")
+
+
+def _check_source_balanced_csvs(
+    paths: dict[str, Path],
+    report: dict[str, Any],
+    blocking: list[str],
+) -> None:
+    """Validate source-balanced CSVs bound to the paper-facing source report."""
+
+    native = _read_csv_or_block(
+        paths["source_balanced_native_units"],
+        "source_balanced_native_units",
+        blocking,
+    )
+    selection = _read_csv_or_block(
+        paths["source_balanced_selection"],
+        "source_balanced_selection",
+        blocking,
+    )
+    if native is None or selection is None:
+        return
+    native_required = {
+        "temporal_unit_key",
+        "behavior_true",
+        "native_predicted_behavior",
+        "oof_fold_id",
+        "source_type",
+    }
+    selection_required = {
+        "temporal_unit_key",
+        "behavior_true",
+        "oof_fold_id",
+        "source_type",
+        "source_balance_rank",
+        "source_balance_quota",
+        "source_balance_keep",
+    }
+    _check_required_columns(
+        native,
+        native_required,
+        "source_balanced_native_units",
+        blocking,
+    )
+    _check_required_columns(
+        selection,
+        selection_required,
+        "source_balanced_selection",
+        blocking,
+    )
+    if "temporal_unit_key" in native.columns:
+        duplicate_native = int(native["temporal_unit_key"].duplicated().sum())
+        if duplicate_native:
+            blocking.append(
+                "source_balanced_native_duplicate_temporal_units="
+                f"{duplicate_native}"
+            )
+    if "temporal_unit_key" in selection.columns:
+        duplicate_selection = int(selection["temporal_unit_key"].duplicated().sum())
+        if duplicate_selection:
+            blocking.append(
+                "source_balanced_selection_duplicate_temporal_units="
+                f"{duplicate_selection}"
+            )
+    expected_rows = report.get("matched_native_unit_rows")
+    if expected_rows is not None and int(expected_rows) != int(len(native)):
+        blocking.append(
+            "source_balanced_native_row_count_mismatch="
+            f"{len(native)}!={expected_rows}"
+        )
+    if "source_balance_keep" in selection.columns:
+        keep_count = int(_to_bool_series(selection["source_balance_keep"]).sum())
+        if expected_rows is not None and keep_count != int(expected_rows):
+            blocking.append(
+                "source_balanced_selection_keep_count_mismatch="
+                f"{keep_count}!={expected_rows}"
+            )
 
 
 def _check_registry_record(
@@ -455,6 +532,19 @@ def _check_hard_errors_csv(
             blocking.append(f"hard_errors_invalid_focus_pairs={invalid_pairs}")
 
 
+def _check_required_columns(
+    frame: pd.DataFrame,
+    required: set[str],
+    name: str,
+    blocking: list[str],
+) -> None:
+    """Append a deterministic blocker when a required CSV schema is incomplete."""
+
+    missing = sorted(required.difference(frame.columns))
+    if missing:
+        blocking.append(f"{name}_missing_columns={missing}")
+
+
 def _read_csv_or_block(
     path: Path,
     name: str,
@@ -467,6 +557,20 @@ def _read_csv_or_block(
     except Exception as exc:  # pragma: no cover - defensive IO boundary.
         blocking.append(f"{name}_csv_unreadable={path}:{exc}")
         return None
+
+
+def _to_bool_series(series: pd.Series) -> pd.Series:
+    """Normalize bool-like CSV cells without silently treating NaN as true."""
+
+    if pd.api.types.is_bool_dtype(series):
+        return series.fillna(False).astype(bool)
+    return (
+        series.fillna("")
+        .astype(str)
+        .str.strip()
+        .str.lower()
+        .isin({"true", "1", "yes", "y", "t"})
+    )
 
 
 def _check_provenance_path(
