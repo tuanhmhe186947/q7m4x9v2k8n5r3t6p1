@@ -69,6 +69,7 @@ set PY=C:\Users\ironh\anaconda3\envs\pig_project\python.exe
 %PY% scripts\dev_tools\write_classification_v2_full_oof_postrun_registration_packet.py
 %PY% scripts\dev_tools\check_classification_v2_full_oof_postrun_registration_packet.py
 %PY% scripts\behavior_review_tools\classification_v2_write_q2_progress_report.py
+%PY% scripts\dev_tools\check_classification_v2_q2_progress_report.py
 ```
 
 Full OOF authorization rule:
@@ -160,6 +161,7 @@ set PY=C:\Users\ironh\anaconda3\envs\pig_project\python.exe
 %PY% scripts\dev_tools\write_classification_v2_full_oof_postrun_registration_packet.py
 %PY% scripts\dev_tools\check_classification_v2_full_oof_postrun_registration_packet.py
 %PY% scripts\behavior_review_tools\classification_v2_write_q2_progress_report.py
+%PY% scripts\dev_tools\check_classification_v2_q2_progress_report.py
 ```
 
 The expected pre-full status is `PASS_PARTIAL_ROADMAP` with fail-closed full
