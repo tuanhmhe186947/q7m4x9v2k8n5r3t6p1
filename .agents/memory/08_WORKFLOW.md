@@ -32,6 +32,14 @@ If the user asks to patch:
 - Wrap long conditions, strings, comprehensions, function calls, and argument
   lists proactively so formatter/linter hooks do not fail the commit.
 
+File-write safety:
+
+- For source/config/docs edits, use `apply_patch` with small hunks.
+- Do not use shell redirects, heredocs, here-strings, `cat`, or ad hoc write
+  scripts unless the file is a generated artifact.
+- Inspect `git diff -- <file>` after editing and fix overlong lines before
+  staging.
+
 ## Verification task
 
 When user allows verification, run in this order:

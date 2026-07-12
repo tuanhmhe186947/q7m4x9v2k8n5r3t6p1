@@ -46,6 +46,11 @@
     Do not rewrite/delete-add an existing file when a small targeted patch is
     enough. If command output is compressed or lossy, re-read the exact file
     content before patching so a formatting fix does not corrupt the text.
+14. Avoid repeating file-write failures: do not use shell redirects, heredocs,
+    here-strings, `cat`, or ad hoc scripts to write source/config/docs unless a
+    generated artifact truly requires it. After every source/config/docs edit,
+    inspect `git diff -- <file>` and run the changed-file overlong-line scan
+    before staging or committing.
 
 ## Tracking-specific rules
 
