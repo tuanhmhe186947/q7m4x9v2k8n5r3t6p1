@@ -17,6 +17,9 @@ from pig_behavior.classification_v2.training.full_run_preflight import (
 )
 
 FULL_RUN_AUTHORIZATION_PURPOSE = "classification_v2_full_multimodal_oof"
+FULL_RUN_AUTHORIZATION_SCHEMA_VERSION = (
+    "classification_v2_full_oof_authorization_v1"
+)
 DEFAULT_FULL_OUTPUT_DIR = Path(
     "outputs/classification_v2/model_full/full_multimodal_oof"
 )
@@ -250,6 +253,11 @@ def _validate_full_run_authorization(
     """Bind human approval to the same config and commit as the clean preflight."""
 
     errors: list[str] = []
+    if authorization.get("schema_version") != FULL_RUN_AUTHORIZATION_SCHEMA_VERSION:
+        errors.append(
+            "full_run_authorization_schema_version_mismatch="
+            f"{authorization.get('schema_version')}"
+        )
     if authorization.get("authorized") is not True:
         errors.append("full_run_authorization_requires_authorized_true")
     if authorization.get("purpose") != FULL_RUN_AUTHORIZATION_PURPOSE:
@@ -261,6 +269,10 @@ def _validate_full_run_authorization(
         errors.append("full_run_authorization_must_acknowledge_long_run")
     if authorization.get("acknowledges_no_q2_claim_until_verified") is not True:
         errors.append("full_run_authorization_must_acknowledge_no_q2_claim")
+    if not str(authorization.get("reviewer") or "").strip():
+        errors.append("full_run_authorization_requires_reviewer")
+    if not str(authorization.get("reviewed_at") or "").strip():
+        errors.append("full_run_authorization_requires_reviewed_at")
 
     expected_hash = full_run_config_fingerprint(config)
     preflight_hash = preflight.get("config_sha256")

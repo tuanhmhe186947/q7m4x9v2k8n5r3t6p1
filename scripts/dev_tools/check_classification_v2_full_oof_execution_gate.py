@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import tempfile
 from pathlib import Path
 from typing import Callable
 
@@ -11,6 +12,8 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from scripts.behavior_review_tools.classification_v2_run_full_multimodal_oof import (  # noqa: E402
+    FULL_RUN_AUTHORIZATION_PURPOSE,
+    FULL_RUN_AUTHORIZATION_SCHEMA_VERSION,
     _validate_full_execution_confirmation,
 )
 from scripts.dev_tools.check_classification_v2_full_runner_defaults import (  # noqa: E402
@@ -69,42 +72,61 @@ def check_execution_gate(
     """Exercise runner gate failures without invoking model training."""
 
     config = _full_runner_default_config()
-    cases = [
-        _case(
-            "missing_confirm_flag",
-            lambda: _validate_full_execution_confirmation(
-                config,
-                preflight_json,
-                authorization_template_json,
-                confirmed=False,
+    preflight = _load_json_if_exists(preflight_json)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        missing_reviewer_json = _write_authorization_missing_reviewer(
+            tmp_dir=Path(tmp_dir),
+            preflight=preflight,
+        )
+        cases = [
+            _case(
+                "missing_confirm_flag",
+                lambda: _validate_full_execution_confirmation(
+                    config,
+                    preflight_json,
+                    authorization_template_json,
+                    confirmed=False,
+                ),
+                ["--confirm-full-run"],
             ),
-            ["--confirm-full-run"],
-        ),
-        _case(
-            "missing_authorization_json",
-            lambda: _validate_full_execution_confirmation(
-                config,
-                preflight_json,
-                None,
-                confirmed=True,
+            _case(
+                "missing_authorization_json",
+                lambda: _validate_full_execution_confirmation(
+                    config,
+                    preflight_json,
+                    None,
+                    confirmed=True,
+                ),
+                ["--authorization-json"],
             ),
-            ["--authorization-json"],
-        ),
-        _case(
-            "unauthorized_template_rejected",
-            lambda: _validate_full_execution_confirmation(
-                config,
-                preflight_json,
-                authorization_template_json,
-                confirmed=True,
+            _case(
+                "unauthorized_template_rejected",
+                lambda: _validate_full_execution_confirmation(
+                    config,
+                    preflight_json,
+                    authorization_template_json,
+                    confirmed=True,
+                ),
+                [
+                    "full_run_authorization_requires_authorized_true",
+                    "full_run_authorization_must_acknowledge_long_run",
+                    "full_run_authorization_must_acknowledge_no_q2_claim",
+                ],
             ),
-            [
-                "full_run_authorization_requires_authorized_true",
-                "full_run_authorization_must_acknowledge_long_run",
-                "full_run_authorization_must_acknowledge_no_q2_claim",
-            ],
-        ),
-    ]
+            _case(
+                "authorized_booleans_missing_reviewer_rejected",
+                lambda: _validate_full_execution_confirmation(
+                    config,
+                    preflight_json,
+                    missing_reviewer_json,
+                    confirmed=True,
+                ),
+                [
+                    "full_run_authorization_requires_reviewer",
+                    "full_run_authorization_requires_reviewed_at",
+                ],
+            ),
+        ]
     errors = [
         error
         for case in cases
@@ -120,6 +142,37 @@ def check_execution_gate(
         "errors": errors,
         "valid": not errors,
     }
+
+
+def _load_json_if_exists(path: Path) -> dict[str, object]:
+    """Load optional JSON evidence while keeping missing-file cases testable."""
+
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _write_authorization_missing_reviewer(
+    *,
+    tmp_dir: Path,
+    preflight: dict[str, object],
+) -> Path:
+    """Create a temporary near-valid authorization missing human identity."""
+
+    authorization = {
+        "schema_version": FULL_RUN_AUTHORIZATION_SCHEMA_VERSION,
+        "authorized": True,
+        "purpose": FULL_RUN_AUTHORIZATION_PURPOSE,
+        "acknowledges_long_run": True,
+        "acknowledges_no_q2_claim_until_verified": True,
+        "reviewer": "",
+        "reviewed_at": "",
+        "preflight_config_sha256": preflight.get("config_sha256"),
+        "git_commit": preflight.get("git_commit"),
+    }
+    path = tmp_dir / "authorized_missing_reviewer.json"
+    path.write_text(json.dumps(authorization, indent=2), encoding="utf-8")
+    return path
 
 
 def _case(

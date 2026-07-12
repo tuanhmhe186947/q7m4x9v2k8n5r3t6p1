@@ -12,6 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from scripts.behavior_review_tools.classification_v2_run_full_multimodal_oof import (  # noqa: E402
     FULL_RUN_AUTHORIZATION_PURPOSE,
+    FULL_RUN_AUTHORIZATION_SCHEMA_VERSION,
 )
 
 SCHEMA_VERSION = "classification_v2_full_oof_authorization_file_audit_v1"
@@ -149,9 +150,7 @@ def _binding_errors(
     errors: list[str] = []
     if preflight.get("valid") is not True:
         errors.append(f"preflight_invalid={preflight.get('errors')}")
-    if authorization.get("schema_version") != (
-        "classification_v2_full_oof_authorization_v1"
-    ):
+    if authorization.get("schema_version") != FULL_RUN_AUTHORIZATION_SCHEMA_VERSION:
         errors.append("authorization_schema_version_invalid")
     if authorization.get("purpose") != FULL_RUN_AUTHORIZATION_PURPOSE:
         errors.append("authorization_purpose_invalid")

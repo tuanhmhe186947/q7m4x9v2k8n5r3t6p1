@@ -14,6 +14,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from scripts.behavior_review_tools.classification_v2_run_full_multimodal_oof import (  # noqa: E402
     FULL_RUN_AUTHORIZATION_PURPOSE,
+    FULL_RUN_AUTHORIZATION_SCHEMA_VERSION,
 )
 
 
@@ -52,7 +53,7 @@ def build_authorization_template(preflight: dict[str, Any]) -> dict[str, Any]:
     """Create a reviewable approval draft without silently authorizing full OOF."""
 
     return {
-        "schema_version": "classification_v2_full_oof_authorization_v1",
+        "schema_version": FULL_RUN_AUTHORIZATION_SCHEMA_VERSION,
         "authorized": False,
         "purpose": FULL_RUN_AUTHORIZATION_PURPOSE,
         "acknowledges_long_run": False,
