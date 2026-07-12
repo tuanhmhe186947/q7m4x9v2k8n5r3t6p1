@@ -107,6 +107,12 @@ def main() -> None:
         "cmd_launch_command": packet.get("cmd_launch_command"),
         "launch_command_python_ready": _launch_command_python_ready(packet),
         "cmd_launch_command_ready": _cmd_launch_command_ready(packet),
+        "cmd_launch_command_prefix_ready": _cmd_launch_command_prefix_ready(
+            packet
+        ),
+        "cmd_launch_command_bat_present": bool(
+            packet.get("cmd_launch_command_bat")
+        ),
         "estimated_training_seconds_excluding_eval": packet.get(
             "estimated_training_seconds_excluding_eval"
         ),
@@ -155,6 +161,10 @@ def _packet_errors(packet: dict[str, Any], expected: dict[str, Any]) -> list[str
         errors.append("launch_packet_cmd_missing_pythonpath")
     if "&&" not in cmd_command:
         errors.append("launch_packet_cmd_missing_command_chaining")
+    if not _cmd_launch_command_prefix_ready(packet):
+        errors.append("launch_packet_cmd_prefix_invalid")
+    if not packet.get("cmd_launch_command_bat"):
+        errors.append("launch_packet_missing_cmd_launch_command_bat")
     if packet.get("estimated_training_seconds_excluding_eval") is None:
         errors.append("launch_packet_missing_training_runtime_estimate")
     if packet.get("estimated_training_minutes_excluding_eval") is None:
@@ -207,6 +217,24 @@ def _cmd_launch_command_ready(packet: dict[str, Any]) -> bool:
         and "PYTHONPATH=%CD%\\src" in cmd_command
         and "&&" in cmd_command
     )
+
+
+def _cmd_launch_command_prefix_ready(packet: dict[str, Any]) -> bool:
+    """Require the human CMD command to enter project root before Python."""
+
+    cmd_command = packet.get("cmd_launch_command") or []
+    python_executable = str(packet.get("python_executable") or "")
+    expected = [
+        "cd",
+        "/d",
+        str(Path.cwd()),
+        "&&",
+        "set",
+        "PYTHONPATH=%CD%\\src",
+        "&&",
+        python_executable,
+    ]
+    return cmd_command[: len(expected)] == expected
 
 
 def _missing_command_values(command: list[str], options: list[str]) -> list[str]:

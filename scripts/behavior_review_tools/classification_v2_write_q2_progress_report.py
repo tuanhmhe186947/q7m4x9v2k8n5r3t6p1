@@ -1659,9 +1659,21 @@ def _launch_packet_ready(audit: dict[str, Any]) -> bool:
     """Use checker readiness booleans when present, with old-audit fallback."""
 
     if "launch_command_python_ready" in audit or "cmd_launch_command_ready" in audit:
+        prefix_ready = (
+            audit.get("cmd_launch_command_prefix_ready")
+            if "cmd_launch_command_prefix_ready" in audit
+            else True
+        )
+        bat_present = (
+            audit.get("cmd_launch_command_bat_present")
+            if "cmd_launch_command_bat_present" in audit
+            else True
+        )
         return bool(
             audit.get("launch_command_python_ready") is True
             and audit.get("cmd_launch_command_ready") is True
+            and prefix_ready is True
+            and bat_present is True
         )
     return _launch_packet_cmd_ready(audit)
 
@@ -1686,6 +1698,12 @@ def _evidence_full_oof_launch_packet(audit: dict[str, Any]) -> dict[str, Any]:
             audit.get("cmd_launch_command_ready")
             if "cmd_launch_command_ready" in audit
             else _launch_packet_cmd_ready(audit)
+        ),
+        "cmd_launch_command_prefix_ready": audit.get(
+            "cmd_launch_command_prefix_ready"
+        ),
+        "cmd_launch_command_bat_present": audit.get(
+            "cmd_launch_command_bat_present"
         ),
         "estimated_training_seconds_excluding_eval": audit.get(
             "estimated_training_seconds_excluding_eval"

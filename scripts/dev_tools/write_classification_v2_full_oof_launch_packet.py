@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -174,6 +175,7 @@ def build_launch_packet(
         "python_executable": command[0],
         "launch_command": command,
         "cmd_launch_command": cmd_command,
+        "cmd_launch_command_bat": subprocess.list2cmdline(cmd_command),
         "review_checklist": _review_checklist(),
     }
 
@@ -182,7 +184,7 @@ def render_launch_packet_markdown(packet: dict[str, Any]) -> str:
     """Render the launch packet as a compact runbook for human review."""
 
     checklist = packet.get("review_checklist") or []
-    command = " ".join(packet.get("cmd_launch_command") or [])
+    command = str(packet.get("cmd_launch_command_bat") or "")
     lines = [
         "# classification_v2 Full OOF Launch Packet",
         "",
