@@ -27,6 +27,10 @@ If the user asks to patch:
 - State behavior changed.
 - State behavior intentionally not changed.
 - Do not run long benchmarks unless requested.
+- Before every commit that changes code, scan changed files for overlong lines:
+  `rg -n "^.{101,}$" <changed-files>`.
+- Wrap long conditions, strings, comprehensions, function calls, and argument
+  lists proactively so formatter/linter hooks do not fail the commit.
 
 ## Verification task
 
@@ -40,9 +44,13 @@ When user allows verification, run in this order:
 
 ## Preserved legacy workflow notes from previous `.agents/WORKFLOW.md`
 
-- ROI definitions live in `data/annotations/roi/ROI_annotations.coco.json` with related scene background and mask assets.
+- ROI definitions live in `data/annotations/roi/ROI_annotations.coco.json`
+  with related scene background and mask assets.
 - CVAT XML annotations are processed into classification datasets and feature tables.
-- Detection and tracking previously centered around `pig-track-for-annotation` workflows with GPU fallback to CPU.
-- RGB-D occlusion handling used depth calibration files such as `depth_scale.npy`, `inverse_intrinsic.npy`, and `rot.npy`.
-- Behavior training, export, inference, and FastAPI dashboard flows remain documented in `.agents/WORKFLOW.md`.
+- Detection and tracking previously centered around `pig-track-for-annotation`
+  workflows with GPU fallback to CPU.
+- RGB-D occlusion handling used depth calibration files such as
+  `depth_scale.npy`, `inverse_intrinsic.npy`, and `rot.npy`.
+- Behavior training, export, inference, and FastAPI dashboard flows remain
+  documented in `.agents/WORKFLOW.md`.
 - CI/quality gates previously documented there remain preserved as legacy workflow guidance.
