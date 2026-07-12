@@ -131,6 +131,9 @@ def _validate_complete_artifacts(
     metrics = _read_existing_json(paths["metrics"])
     source_report = _read_existing_json(paths["source_balanced_report"])
     registry = _read_existing_json(paths["registry_record"])
+    calibration = _read_existing_json(paths["calibration_audit"])
+    confusion = _read_existing_json(paths["confusion_comparison"])
+    ablation = _read_existing_json(paths["ablation_report"])
     registry_contract = check_experiment_record(paths["registry_record"])
     schema_file_audit = _read_existing_json(paths["prediction_schema_audit"])
     schema_check = check_prediction_schema_csv(paths["predictions"])
@@ -139,6 +142,7 @@ def _validate_complete_artifacts(
     _check_run_audit(run_audit, preflight, blocking)
     _check_source_report(source_report, blocking)
     _check_registry_record(registry, paths, blocking)
+    _check_postrun_artifacts(calibration, confusion, ablation, blocking)
     if registry_contract.get("valid") is not True:
         blocking.append(
             "registry_record_contract_invalid="
@@ -172,6 +176,13 @@ def _validate_complete_artifacts(
         "native_temporal_unit_rows": metrics_native_rows,
         "source_balanced_ready": source_report.get("paper_facing_ready"),
         "source_balanced_valid": source_report.get("valid"),
+        "calibration_valid": calibration.get("valid"),
+        "calibration_complete_folds": calibration.get("complete_oof_fold_coverage"),
+        "confusion_valid": confusion.get("valid"),
+        "confusion_paper_facing_inputs_verified": confusion.get(
+            "paper_facing_inputs_verified"
+        ),
+        "ablation_report_valid": ablation.get("valid"),
         "registry_paper_facing": registry.get("paper_facing"),
         "registry_stage": registry.get("experiment_stage"),
         "registry_contract_valid": registry_contract.get("valid"),
@@ -257,6 +268,48 @@ def _check_registry_record(
         paths["source_balanced_report"],
         blocking,
     )
+    _check_provenance_path(
+        provenance,
+        "calibration_audit_json",
+        paths["calibration_audit"],
+        blocking,
+    )
+    _check_provenance_path(
+        provenance,
+        "confusion_comparison_json",
+        paths["confusion_comparison"],
+        blocking,
+    )
+    _check_provenance_path(
+        provenance,
+        "ablation_report_json",
+        paths["ablation_report"],
+        blocking,
+    )
+
+
+def _check_postrun_artifacts(
+    calibration: dict[str, Any],
+    confusion: dict[str, Any],
+    ablation: dict[str, Any],
+    blocking: list[str],
+) -> None:
+    """Require calibration, confusion, and ablation evidence before Q2 unlock."""
+
+    if calibration.get("valid") is not True:
+        blocking.append(f"calibration_audit_invalid={calibration.get('errors')}")
+    if calibration.get("complete_oof_fold_coverage") is not True:
+        blocking.append("calibration_incomplete_oof_fold_coverage")
+    if confusion.get("valid") is not True:
+        blocking.append(f"confusion_comparison_invalid={confusion.get('errors')}")
+    if confusion.get("paper_facing_inputs_verified") is not True:
+        blocking.append("confusion_inputs_not_paper_facing_verified")
+    if ablation.get("valid") is not True:
+        blocking.append(f"ablation_report_invalid={ablation.get('errors')}")
+    if ablation.get("paper_claim_level") != "Q2_strong":
+        blocking.append(f"ablation_claim_level_invalid={ablation.get('paper_claim_level')}")
+    if ablation.get("external_generalization_claim") is not False:
+        blocking.append("ablation_external_generalization_claim_true")
 
 
 def _check_provenance_path(
@@ -286,6 +339,21 @@ def _expected_paths(output_dir: Path, registry_record: Path) -> dict[str, Path]:
             output_dir / "source_balanced_native_units.csv"
         ),
         "source_balanced_selection": output_dir / "source_balanced_selection.csv",
+        "calibrated_predictions": (
+            output_dir / "calibration" / "cross_fitted_calibrated_native_predictions.csv"
+        ),
+        "calibration_audit": (
+            output_dir / "calibration" / "cross_fitted_calibration_audit.json"
+        ),
+        "confusion_comparison": (
+            output_dir / "confusion_focus" / "confusion_focus_comparison.json"
+        ),
+        "high_confidence_hard_errors": (
+            output_dir / "confusion_focus" / "high_confidence_hard_errors.csv"
+        ),
+        "ablation_report": Path(
+            "outputs/classification_v2/model_design/ablation_reporting_audit.json"
+        ),
         "registry_record": registry_record,
     }
 
