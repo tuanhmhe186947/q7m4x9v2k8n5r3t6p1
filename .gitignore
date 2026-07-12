@@ -42,6 +42,7 @@ venv.bak/
 .mypy_cache/
 .uv-cache/
 .uv-tools/
+.codex_tmp/
 .ipynb_checkpoints/
 .DS_Store
 Thumbs.db
