@@ -84,8 +84,17 @@ def main() -> None:
         "runs_training": packet.get("runs_training"),
         "runs_registration": packet.get("runs_registration"),
         "q2_claim_allowed_by_packet": packet.get("q2_claim_allowed_by_packet"),
+        "python_executable": packet.get("python_executable"),
         "register_command": packet.get("register_command"),
+        "register_cmd_command_ready": _cmd_ready(
+            packet.get("register_cmd_command") or [],
+            packet.get("python_executable"),
+        ),
         "completion_gate_command": packet.get("completion_gate_command"),
+        "completion_gate_cmd_command_ready": _cmd_ready(
+            packet.get("completion_gate_cmd_command") or [],
+            packet.get("python_executable"),
+        ),
         "required_artifact_count": len(packet.get("required_artifacts") or {}),
     }
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
@@ -116,13 +125,49 @@ def _packet_errors(packet: dict[str, Any], expected: dict[str, Any]) -> list[str
     if len(packet.get("required_artifacts") or {}) < 8:
         errors.append("postrun_packet_required_artifacts_incomplete")
     command = packet.get("register_command") or []
+    python_executable = str(packet.get("python_executable") or "")
+    if not python_executable:
+        errors.append("postrun_packet_missing_python_executable")
+    if command and command[0] != python_executable:
+        errors.append("postrun_register_command_python_mismatch")
     for token in ("--paper-facing", "--artifact", "--run-audit-json"):
         if token not in command:
             errors.append(f"postrun_register_command_missing={token}")
     completion = packet.get("completion_gate_command") or []
+    if completion and completion[0] != python_executable:
+        errors.append("postrun_completion_command_python_mismatch")
     if "--registry-record-json" not in completion:
         errors.append("postrun_completion_command_missing_registry_record")
+    if not _cmd_ready(
+        packet.get("register_cmd_command") or [],
+        python_executable,
+    ):
+        errors.append("postrun_register_cmd_missing_cmd_setup")
+    if not _cmd_ready(
+        packet.get("completion_gate_cmd_command") or [],
+        python_executable,
+    ):
+        errors.append("postrun_completion_cmd_missing_cmd_setup")
     return errors
+
+
+def _cmd_ready(command: list[str], python_executable: Any) -> bool:
+    """Check that CMD commands enter the project before running Python."""
+
+    if len(command) < 8:
+        return False
+    if command[:6] != [
+        "cd",
+        "/d",
+        str(Path.cwd()),
+        "&&",
+        "set",
+        "PYTHONPATH=%CD%\\src",
+    ]:
+        return False
+    if command[6] != "&&":
+        return False
+    return command[7] == str(python_executable or "")
 
 
 def _load_json(path: Path, errors: list[str]) -> dict[str, Any]:

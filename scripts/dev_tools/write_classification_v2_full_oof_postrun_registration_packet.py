@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -102,10 +103,17 @@ def build_postrun_registration_packet(
         "output_dir": str(output_dir),
         "registry_record_json": str(record_json),
         "required_artifacts": {name: str(path) for name, path in artifacts.items()},
+        "python_executable": sys.executable,
         "register_command": register_command,
-        "register_command_bat": subprocess.list2cmdline(register_command),
         "completion_gate_command": completion_command,
-        "completion_gate_command_bat": subprocess.list2cmdline(completion_command),
+        "register_cmd_command": _cmd_command(register_command),
+        "completion_gate_cmd_command": _cmd_command(completion_command),
+        "register_command_bat": subprocess.list2cmdline(
+            _cmd_command(register_command)
+        ),
+        "completion_gate_command_bat": subprocess.list2cmdline(
+            _cmd_command(completion_command)
+        ),
         "postrun_order": [
             "Run full OOF only through the authorization-gated launch packet.",
             "Run the register_command after full artifacts exist and pass checks.",
@@ -155,7 +163,7 @@ def _register_command(
     """Build the registry command with full OOF provenance paths."""
 
     command = [
-        "python",
+        sys.executable,
         "scripts\\behavior_review_tools\\classification_v2_register_experiment.py",
         "--name",
         "full_multimodal_oof",
@@ -192,12 +200,27 @@ def _completion_gate_command(*, output_dir: Path, record_json: Path) -> list[str
     """Build the post-registration completion gate command."""
 
     return [
-        "python",
+        sys.executable,
         "scripts\\dev_tools\\check_classification_v2_full_oof_completion_gate.py",
         "--output-dir",
         str(output_dir),
         "--registry-record-json",
         str(record_json),
+    ]
+
+
+def _cmd_command(command: list[str]) -> list[str]:
+    """Wrap post-run commands with project-root and PYTHONPATH setup for CMD."""
+
+    return [
+        "cd",
+        "/d",
+        str(Path.cwd()),
+        "&&",
+        "set",
+        "PYTHONPATH=%CD%\\src",
+        "&&",
+        *command,
     ]
 
 
@@ -242,7 +265,28 @@ def _packet_errors(packet: dict[str, Any]) -> list[str]:
     completion = packet.get("completion_gate_command") or []
     if "--registry-record-json" not in completion:
         errors.append("completion_command_missing_registry_record_json")
+    if not _cmd_ready(packet.get("register_cmd_command") or []):
+        errors.append("register_cmd_command_missing_cmd_setup")
+    if not _cmd_ready(packet.get("completion_gate_cmd_command") or []):
+        errors.append("completion_cmd_command_missing_cmd_setup")
     return errors
+
+
+def _cmd_ready(command: list[str]) -> bool:
+    """Return whether a stored CMD command enters the project import context."""
+
+    if len(command) < 8:
+        return False
+    if command[:6] != [
+        "cd",
+        "/d",
+        str(Path.cwd()),
+        "&&",
+        "set",
+        "PYTHONPATH=%CD%\\src",
+    ]:
+        return False
+    return command[6] == "&&" and command[7] == sys.executable
 
 
 if __name__ == "__main__":

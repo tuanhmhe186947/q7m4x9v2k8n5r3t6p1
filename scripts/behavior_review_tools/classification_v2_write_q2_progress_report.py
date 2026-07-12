@@ -756,7 +756,15 @@ def main() -> None:
             and full_oof_postrun_registration_packet.get(
                 "q2_claim_allowed_by_packet"
             )
-            is False,
+            is False
+            and _optional_true(
+                full_oof_postrun_registration_packet,
+                "register_cmd_command_ready",
+            )
+            and _optional_true(
+                full_oof_postrun_registration_packet,
+                "completion_gate_cmd_command_ready",
+            ),
             full_oof_postrun_registration_packet.get("errors"),
         ),
         _gate(
@@ -963,6 +971,12 @@ def _load_optional_json(path: Path) -> dict[str, Any]:
 
 def _gate(name: str, passed: bool, errors: Any) -> dict[str, Any]:
     return {"name": name, "passed": bool(passed), "errors": errors or []}
+
+
+def _optional_true(audit: dict[str, Any], key: str) -> bool:
+    """Accept old audit files without a key, but require True when present."""
+
+    return key not in audit or audit.get(key) is True
 
 
 def _evidence_snapshot(snapshot: dict[str, Any]) -> dict[str, Any]:
@@ -1615,6 +1629,11 @@ def _evidence_full_oof_postrun_registration_packet(
         "runs_training": audit.get("runs_training"),
         "runs_registration": audit.get("runs_registration"),
         "q2_claim_allowed_by_packet": audit.get("q2_claim_allowed_by_packet"),
+        "python_executable": audit.get("python_executable"),
+        "register_cmd_command_ready": audit.get("register_cmd_command_ready"),
+        "completion_gate_cmd_command_ready": audit.get(
+            "completion_gate_cmd_command_ready"
+        ),
         "required_artifact_count": audit.get("required_artifact_count"),
     }
 
