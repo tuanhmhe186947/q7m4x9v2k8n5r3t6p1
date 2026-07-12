@@ -782,6 +782,16 @@ def main() -> None:
                 full_oof_postrun_registration_packet,
                 "completion_gate_cmd_command_ready",
             )
+            and (
+                full_oof_postrun_registration_packet.get(
+                    "required_postrun_provenance_count"
+                )
+                == 5
+            )
+            and _optional_true(
+                full_oof_postrun_registration_packet,
+                "register_postrun_provenance_paths_present",
+            )
             and _optional_true(
                 full_oof_postrun_registration_packet,
                 "parent_controls_valid",
@@ -1694,6 +1704,12 @@ def _evidence_full_oof_postrun_registration_packet(
             "completion_gate_cmd_command_ready"
         ),
         "required_artifact_count": audit.get("required_artifact_count"),
+        "required_postrun_provenance_count": audit.get(
+            "required_postrun_provenance_count"
+        ),
+        "register_postrun_provenance_paths_present": audit.get(
+            "register_postrun_provenance_paths_present"
+        ),
         "parent_control_count": audit.get("parent_control_count"),
         "parent_controls_valid": audit.get("parent_controls_valid"),
         "parent_controls": audit.get("parent_controls"),
