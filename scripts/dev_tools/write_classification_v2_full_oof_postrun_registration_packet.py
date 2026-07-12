@@ -178,33 +178,49 @@ def render_postrun_packet_markdown(packet: dict[str, Any]) -> str:
         "",
         "## Calibration Command",
         "```bat",
-        str(packet.get("calibration_command_bat") or ""),
+        _wrap_bat_command_for_markdown(
+            str(packet.get("calibration_command_bat") or "")
+        ),
         "```",
         "",
         "## Confusion Comparison Command",
         "```bat",
-        str(packet.get("confusion_comparison_command_bat") or ""),
+        _wrap_bat_command_for_markdown(
+            str(packet.get("confusion_comparison_command_bat") or "")
+        ),
         "```",
         "",
         "## Ablation Report Command",
         "```bat",
-        str(packet.get("ablation_report_command_bat") or ""),
+        _wrap_bat_command_for_markdown(
+            str(packet.get("ablation_report_command_bat") or "")
+        ),
         "```",
         "",
         "## Register Command",
         "```bat",
-        str(packet.get("register_command_bat") or ""),
+        _wrap_bat_command_for_markdown(
+            str(packet.get("register_command_bat") or "")
+        ),
         "```",
         "",
         "## Completion Gate Command",
         "```bat",
-        str(packet.get("completion_gate_command_bat") or ""),
+        _wrap_bat_command_for_markdown(
+            str(packet.get("completion_gate_command_bat") or "")
+        ),
         "```",
         "",
         "## Order",
     ]
     lines.extend(f"- {item}" for item in packet.get("postrun_order") or [])
     return "\n".join(lines) + "\n"
+
+
+def _wrap_bat_command_for_markdown(command: str) -> str:
+    """Wrap a CMD command for review without changing the audited JSON value."""
+
+    return command.replace(" && ", " ^\n  && ").replace(" --", " ^\n  --")
 
 
 def _register_command(
