@@ -130,6 +130,14 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--full-multimodal-oof-artifact-check-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "full_multimodal_oof_artifact_check.json"
+        ),
+    )
+    parser.add_argument(
         "--full-oof-completion-gate-json",
         type=Path,
         default=Path(
@@ -332,6 +340,9 @@ def main() -> None:
         args.full_oof_execution_gate_json
     )
     full_oof_launch_packet = _load_optional_json(args.full_oof_launch_packet_json)
+    full_multimodal_oof_artifact_check = _load_optional_json(
+        args.full_multimodal_oof_artifact_check_json
+    )
     full_oof_completion_gate = _load_optional_json(
         args.full_oof_completion_gate_json
     )
@@ -736,6 +747,17 @@ def main() -> None:
             full_oof_launch_packet.get("errors"),
         ),
         _gate(
+            "Full multimodal OOF artifact checker is audit-backed",
+            full_multimodal_oof_artifact_check.get("valid") is True
+            and full_multimodal_oof_artifact_check.get("run_mode")
+            in {"pilot", "full"}
+            and full_multimodal_oof_artifact_check.get("prediction_schema_valid")
+            is True
+            and full_multimodal_oof_artifact_check.get("metrics_payload_valid")
+            is True,
+            full_multimodal_oof_artifact_check.get("errors"),
+        ),
+        _gate(
             "Full OOF completion gate is fail-closed",
             full_oof_completion_gate.get("valid") is True
             and full_oof_completion_gate.get("fail_closed") is True
@@ -983,6 +1005,11 @@ def main() -> None:
             ),
             "full_oof_launch_packet": _evidence_full_oof_launch_packet(
                 full_oof_launch_packet
+            ),
+            "full_multimodal_oof_artifact_check": (
+                _evidence_full_multimodal_oof_artifact_check(
+                    full_multimodal_oof_artifact_check
+                )
             ),
             "full_oof_completion_gate": _evidence_full_oof_completion_gate(
                 full_oof_completion_gate
@@ -1661,6 +1688,22 @@ def _evidence_full_oof_launch_packet(audit: dict[str, Any]) -> dict[str, Any]:
         "review_checklist_count": audit.get("review_checklist_count"),
         "preflight_config_sha256": audit.get("preflight_config_sha256"),
         "git_commit": audit.get("git_commit"),
+    }
+
+
+def _evidence_full_multimodal_oof_artifact_check(
+    audit: dict[str, Any]
+) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "run_mode": audit.get("run_mode"),
+        "paper_facing_result": audit.get("paper_facing_result"),
+        "prediction_rows": audit.get("prediction_rows"),
+        "native_temporal_rows": audit.get("native_temporal_rows"),
+        "prediction_schema_valid": audit.get("prediction_schema_valid"),
+        "metrics_payload_valid": audit.get("metrics_payload_valid"),
+        "cache_only_required": audit.get("cache_only_required"),
+        "errors": audit.get("errors"),
     }
 
 

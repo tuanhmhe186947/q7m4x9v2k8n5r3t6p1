@@ -54,6 +54,14 @@ def main() -> None:
         action="store_true",
         help="Fail unless all sampled images came from the configured disk cache.",
     )
+    parser.add_argument(
+        "--output-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "full_multimodal_oof_artifact_check.json"
+        ),
+    )
     args = parser.parse_args()
     errors: list[str] = []
     audit = _read_json(args.audit_json, errors, "audit")
@@ -202,7 +210,10 @@ def main() -> None:
         "cache_only_required": bool(args.require_cache_only),
         "image_load_audit": image_load_audit,
         "errors": errors,
+        "valid": not errors,
     }
+    args.output_json.parent.mkdir(parents=True, exist_ok=True)
+    args.output_json.write_text(json.dumps(result, indent=2), encoding="utf-8")
     print(json.dumps(result, indent=2))
     if errors:
         raise SystemExit(1)
