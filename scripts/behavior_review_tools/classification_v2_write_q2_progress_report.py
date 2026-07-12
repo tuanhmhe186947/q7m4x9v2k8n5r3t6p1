@@ -105,6 +105,14 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--visual-interaction-cache-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "visual_interaction_cache_audit.json"
+        ),
+    )
+    parser.add_argument(
         "--pig-id-locality-json",
         type=Path,
         default=Path(
@@ -152,6 +160,7 @@ def main() -> None:
     image_cache_letterbox_policy = _load_optional_json(
         args.image_cache_letterbox_policy_json
     )
+    visual_interaction_cache = _load_optional_json(args.visual_interaction_cache_json)
     pig_id_locality = _load_optional_json(args.pig_id_locality_json)
     split_group_leakage = _load_optional_json(args.split_group_leakage_json)
 
@@ -254,6 +263,15 @@ def main() -> None:
             image_cache_letterbox_policy.get("errors"),
         ),
         _gate(
+            "Visual interaction partner context cache",
+            visual_interaction_cache.get("valid") is True
+            and visual_interaction_cache.get("cvat_ready_rows", 0) > 0
+            and visual_interaction_cache.get("legacy_ready_rows") == 0
+            and visual_interaction_cache.get("label_gated") is False
+            and visual_interaction_cache.get("rows_dropped_for_missing_context") == 0,
+            visual_interaction_cache.get("errors"),
+        ),
+        _gate(
             "Full OOF preflight canonical path policy",
             full_oof_preflight_policy.get("valid") is True
             and full_oof_preflight_policy.get("canonical_config_errors") == []
@@ -337,6 +355,10 @@ def main() -> None:
             "padding, not square stretch resizing."
         ),
         (
+            "Visual interaction cache is audited as CVAT actor-nearest-partner "
+            "union context, with legacy crop-only rows masked rather than dropped."
+        ),
+        (
             "pig_id remains annotation-local in Q2 contracts and must not be "
             "used as a biological identity or cross-video split key."
         ),
@@ -378,6 +400,9 @@ def main() -> None:
             "image_cache_inventory": _evidence_image_cache_inventory(image_cache_inventory),
             "image_cache_letterbox_policy": _evidence_image_cache_letterbox_policy(
                 image_cache_letterbox_policy
+            ),
+            "visual_interaction_cache": _evidence_visual_interaction_cache(
+                visual_interaction_cache
             ),
             "full_oof_preflight_policy": _evidence_full_oof_preflight_policy(
                 full_oof_preflight_policy
@@ -601,6 +626,25 @@ def _evidence_image_cache_letterbox_policy(audit: dict[str, Any]) -> dict[str, A
         "letterbox_geometry_invalid_rows": audit.get("letterbox_geometry_invalid_rows"),
         "source_equivalence_checked": audit.get("source_equivalence_checked"),
         "source_equivalence_mismatches": audit.get("source_equivalence_mismatches"),
+    }
+
+
+def _evidence_visual_interaction_cache(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "rows": audit.get("rows"),
+        "cvat_ready_rows": audit.get("cvat_ready_rows"),
+        "legacy_ready_rows": audit.get("legacy_ready_rows"),
+        "available_rows": audit.get("available_rows"),
+        "unavailable_rows": audit.get("unavailable_rows"),
+        "context_kinds": audit.get("context_kinds"),
+        "resize_policies": audit.get("resize_policies"),
+        "packed_tensor_shape": audit.get("packed_tensor_shape"),
+        "packed_index_rows": audit.get("packed_index_rows"),
+        "label_gated": audit.get("label_gated"),
+        "rows_dropped_for_missing_context": audit.get(
+            "rows_dropped_for_missing_context"
+        ),
     }
 
 
