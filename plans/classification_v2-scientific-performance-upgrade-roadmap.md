@@ -1,10 +1,11 @@
 # Classification V2 Scientific Performance Upgrade Roadmap
 
-Version: 2.0-draft
+Version: 2.1-working
 
 Date: 2026-07-13
 
-Status: active design; user answers and baseline reconciliation are pending.
+Status: working protocol accepted; source verification and baseline
+reconciliation remain pending.
 
 Scope: `classification_v2` data, model, validation, and publication workflow.
 
@@ -30,6 +31,18 @@ Secondary objective:
 The intended paper claim is Q2-strong internal improvement. Do not claim
 external farm, camera, cohort, or biological-individual generalization without
 an independent external dataset. `pig_id` remains annotation-local.
+
+### 1.1 Three Distinct Scientific Tracks
+
+1. Main thesis track: 10-class session-safe learned recognition.
+2. Comparability track: strict five-class ResNet18, ResNet34, and enhanced-model
+   experiments under the same thesis protocol.
+3. Optional reproduction track: paper-aligned heuristic movement and ROI logic
+   plus a binary ResNet18 lying-standing branch.
+
+Never combine results from these tracks into one model claim. The strict-5
+learned classifier is a paper-aligned label-space comparison, not a reproduction
+of the VISAPP pipeline.
 
 ## 2. Current Evidence And Feasibility
 
@@ -143,6 +156,26 @@ The final head consumes shared features and optional soft attribute embeddings.
 It never consumes argmax auxiliary labels. A hard two-stage cascade is retained
 only as an ablation because early errors can block rare final behaviors.
 
+### 5.3 Attribute Review Design
+
+Review approximately 600-1000 unique review units, subject to a power and
+coverage audit. One unit may receive all applicable attributes:
+
+- posture: lying, sitting, standing, transition, unclear;
+- locomotion: stationary, locomoting, turning, transition, unclear;
+- ROI: target class, far/near/contact, head engagement, contact duration;
+- interaction: none, social-nose, fight, other-contact, role, partner and count;
+- quality: occlusion, bbox completeness, ID confidence, temporal consistency.
+
+Sample by source, recording session, original class, confusion group,
+occlusion/quality, and class frequency. Keep the existing review-unit grain:
+16 frames for legacy and six frames for CVAT. Interaction review also shows the
+full frame, actor box, partner boxes, and context-sufficiency state.
+
+Double-review a stratified subset and report agreement overall and by attribute.
+Attribute decisions apply through `review_unit_id`; they do not overwrite raw
+labels or silently force a five-class mapping.
+
 ## 6. Target Model Family
 
 The first credible candidate is a pretrained actor model plus audited spatial
@@ -151,8 +184,9 @@ baseline before multimodal gains are claimed.
 
 ### 6.1 Visual And Temporal Backbone
 
-- Default visual encoder: ImageNet-pretrained ResNet18 at `160x160`.
-- Capacity ablation: ResNet34 at `160x160`; `224x224` only after runtime PASS.
+- Engineering pilot: ImageNet-pretrained ResNet18 at `160x160`.
+- Main thesis visual baseline: ImageNet-pretrained ResNet34 at `224x224`, only
+  after the ResNet18 data, leakage, memory, and runtime gates pass.
 - Optional later candidate: EfficientNet-B0 or ConvNeXt-Tiny, one at a time.
 - Frame features: one embedding per observed actor crop with a padding mask.
 - Temporal baseline: masked TCN with dilations and attention pooling.
@@ -160,6 +194,11 @@ baseline before multimodal gains are claimed.
   encoding, real frame deltas, and key-padding masks.
 - Sequence lengths: compare native 6 and 16 frames first; use 8 and 12 only as
   controlled context-length ablations.
+
+ResNet18 and ResNet34 comparisons must use the same ImageNet-1K pretrained
+status. Record the exact `torchvision` weight enum, package versions, mean/std,
+resize and letterbox contract, frozen stages, freeze duration, and checkpoint
+hash. Train-from-scratch remains a separate ablation.
 
 ### 6.2 Multimodal Branches
 
@@ -222,6 +261,7 @@ Evaluate each method independently before combinations:
 | ID | Method | Scientific role |
 |---|---|---|
 | L0 | event-balanced standard CE | reference |
+| LP | inverse-frequency CE | paper-aligned historical control |
 | L1 | effective-number class-balanced CE | smooth rare-class correction |
 | L2 | Balanced Softmax | training-prior-aware logits |
 | L3 | logit adjustment | separate prior correction ablation |
@@ -231,6 +271,10 @@ Evaluate each method independently before combinations:
 For effective-number weighting, compute `E_n = (1-beta^n)/(1-beta)` from
 training-fold native-event mass. Tune `beta` only on inner validation groups,
 normalize weights to mean one, and cap extreme weights.
+
+The inverse-frequency paper control is fitted from each training fold, capped,
+and reported separately. It is not automatically combined with event oversampling
+or focal loss because that can overcorrect rare classes.
 
 ### 7.3 Sampler And Batch Construction
 
@@ -298,9 +342,31 @@ Priority actions:
 Synthetic or generative augmentation is exploratory only. It requires a
 real-only test and an ablation proving gains do not come from synthetic shortcuts.
 
-## 8. Five-Class Paper Comparison Branch
+## 8. Bergamini VISAPP 2021 Comparison Branch
 
-### 8.1 Strict Mapping Contract
+### 8.1 Reference And Reproduction Boundary
+
+Reference paper:
+
+> Bergamini et al., "Extracting Accurate Long-term Behavior Changes from a
+> Large Pig Dataset," VISAPP 2021, pp. 524-533.
+
+DOI: `10.5220/0010288405240533`.
+
+The reported five-behavior result is a hybrid pipeline, not a direct five-way
+ResNet classifier:
+
+1. `move` from a 2.5 cm center-displacement threshold over two seconds;
+2. `eat` and `drink` from feeder/drinker geometry and body orientation;
+3. remaining cases classified as lying or standing by ResNet18;
+4. inverse class weighting for imbalance.
+
+Record these details as user-supplied protocol until checked against the PDF and
+any available source code. Do not claim exact reproduction without equivalent
+time sampling, metric calibration, ROI geometry, orientation logic, preprocessing,
+and evaluation units.
+
+### 8.2 Strict Mapping Contract
 
 | Canonical label | Five-class label |
 |---|---|
@@ -314,14 +380,15 @@ Do not silently map `sitting` to standing, `explore` to moving, or interaction
 classes to standing or moving. Preserve every native unit and add
 `five_class_eligible` plus `five_class_exclusion_reason` for noneligible rows.
 
-### 8.2 Two Separate Analyses
+### 8.3 Strict And Coarse Analyses
 
-1. Primary five-class analysis: train and evaluate a direct five-class head on
+1. Strict-5 analysis: train and evaluate a direct five-class head on
    the strict subset using grouped folds.
-2. Sensitivity analysis: apply any broader mapping only after the exact paper
-   ontology is known, and report it separately from the strict result.
+2. Paper-style coarse analysis: derive locomotion and posture from reviewed
+   attributes, retain `sitting` separately, and report operational mappings.
+3. Hybrid reproduction: run only after the calibration gate in section 8.5.
 
-### 8.3 Required Model Comparisons
+### 8.4 Required Model Comparisons
 
 | ID | Model | Purpose |
 |---|---|---|
@@ -337,6 +404,34 @@ augmentation policy, and native-unit metrics. The old random split may be
 reproduced only as a labeled historical-comparability analysis, never as the
 primary scientific result.
 
+### 8.5 Hybrid Reproduction Calibration Gate
+
+The optional hybrid track must verify:
+
+- source PDF and any code-derived protocol details;
+- effective frame rate and the exact 12-frame or equivalent two-second window;
+- conversion from image displacement to centimeters using depth, ground-plane,
+  or another documented physical calibration;
+- feeder and drinker ROI coordinates in the same geometric coordinate system;
+- body-orientation estimation and its failure behavior;
+- binary lying-standing crop, normalization, weights, and decision threshold;
+- whether paper metrics use ground-truth boxes, tracked boxes, or both;
+- evaluation grain, class support, exclusions, and weighting.
+
+Do not infer a 6 FPS stream from the CVAT six-frame anchor interval. Verify video
+FPS and timestamps independently, then express the movement window in seconds.
+
+If centimeter calibration or protocol equivalence is unavailable, rename the
+experiment `paper_inspired_hybrid`, tune thresholds only on training groups, and
+do not compare its accuracy as an exact reproduction of the reported result.
+
+### 8.6 Claim-Safe Names
+
+- `strict5_learned`: direct learned strict five-class benchmark.
+- `coarse5_attribute`: operational mapping from reviewed attributes.
+- `paper_inspired_hybrid`: incomplete heuristic reproduction.
+- `bergamini2021_reproduction`: allowed only after every gate above passes.
+
 ## 9. Leakage-Safe Validation And Statistical Protocol
 
 ### 9.1 Grouping
@@ -347,9 +442,26 @@ primary scientific result.
 - Keep the existing 13-group OOF manifest as a paired baseline artifact.
 - Add metadata audits for camera, pen, date, source, and duplicate visual events.
 
+Create `recording_metadata.csv` with `video_key`, `farm_id`, `pen_id`,
+`camera_id`, `cohort_id`, `recording_date`, `session_id`, `session_start_time`,
+`metadata_source`, and `metadata_confidence`. Derived dates or sessions must cite
+the filename, `times.txt`, or another source; unknown values remain explicit.
+
+Current user-supplied dataset context is one research pen, one D435i camera, one
+eight-pig cohort, recordings across 23 days in six weeks, and a 6 FPS scientific
+source stream. Verify these values from primary documentation before using them
+in a table or split. They imply temporal variation within one acquisition domain,
+not multi-domain generalization.
+
 Because all current groups have already informed development, the next result is
 an internally validated comparative study, not a pristine external confirmation.
 For stronger evidence, use nested grouped CV or collect untouched sessions.
+
+An untouched same-domain session must have no prior use in detector or behavior
+training, threshold or ROI calibration, tracking tuning, review-template design,
+error analysis, or model selection. It supports a same-domain session-held-out
+claim, not external-domain generalization. External claims require a new pen,
+camera, cohort, or farm.
 
 ### 9.2 Model Selection
 
@@ -430,8 +542,23 @@ Targets are evaluated only under the frozen grouped native-unit protocol:
 The research and stretch values are goals, not guaranteed PASS thresholds.
 Promotion also requires confidence intervals and class guardrails. A higher
 accuracy caused by predicting `sitting` or `explore` more often is not success.
-The five-class target will be set after the old paper's exact metric, split,
-support, and label mapping are known.
+The five-class target will be set after the paper's exact metric, support,
+ethogram ambiguity, and evaluation pipeline are verified from primary sources.
+
+### 9.8 Offline And Causal Protocols
+
+Offline longitudinal analysis is the primary deployment claim. It may use
+centered windows and declared post-processing because accuracy and long-term
+behavior profiles are the priority.
+
+Causal near-real-time is a separate secondary experiment. It may use only the
+current and past frames, cannot use undeclared delayed identity repair or future
+smoothing, and reports model-only plus end-to-end latency, throughput, frame
+delay, macro-F1, and degradation from offline mode.
+
+For a 6 FPS source, the deployment target is end-to-end throughput of at least
+6 FPS. Failure to meet it does not invalidate an offline ResNet34 result, but it
+blocks a near-real-time claim.
 
 ## 10. Dependency Graph
 
@@ -511,12 +638,14 @@ Tasks:
 - build a literature evidence table for the old paper, hierarchical behavior
   recognition, long-tail losses, temporal models, and grouped validation;
 - preregister hypotheses, primary metric, comparison models, and claim boundary;
+- build `recording_metadata.csv` with field-level provenance and confidence;
 - produce counts by label, source, video, recording group, and review status.
 
 Primary files:
 
 - `configs/classification_v2/behavior_ontology_v2.json`
 - `src/pig_behavior/classification_v2/ontology.py`
+- `configs/classification_v2/recording_metadata.csv`
 - `scripts/classification_v2/02_train_ready_exports/`
   `classification_v2_build_hierarchical_targets.py`
 - `scripts/classification_v2/02_train_ready_exports/`
@@ -564,7 +693,9 @@ Tasks:
   per-cache preview contact sheets for human inspection;
 - fail on duplicate cache key, missing tensor, nonfinite value, or stretched crop;
 - implement ResNet18 pretrained and random-init controls;
-- benchmark batch sizes under AMP on RTX 3050 before pilot training.
+- benchmark batch sizes under AMP on RTX 3050 before pilot training;
+- after ResNet18 PASS, build the versioned `224x224` cache and ResNet34 control
+  without changing split, normalization, augmentation, or pretrained status.
 
 Primary files:
 
@@ -614,7 +745,8 @@ Tasks:
 - feed soft attribute embeddings to the final head behind an opt-in gate;
 - keep behavior-only, auxiliary-only, soft-fusion, and hard-cascade ablations;
 - validate that masked targets contribute exactly zero loss and gradient;
-- add a small manually reviewed attribute subset if annotation is approved.
+- build the stratified 600-1000 unit attribute-review set from section 5.3;
+- double-review a subset and keep agreement metrics beside target confidence.
 
 Primary files:
 
@@ -661,21 +793,25 @@ Tasks:
 
 - build strict eligible manifests and grouped fold audits;
 - add a direct five-class output head and loss configuration;
+- add attribute-based coarse mapping with explicit unknown and exclusion states;
 - adapt old checkpoint inference when its preprocessing can be reproduced;
 - retrain an old-architecture control under safe folds;
 - report old-random-split reproduction only as a separate appendix result;
-- add strict and optional broad-mapping sensitivity reports.
+- implement the hybrid movement/ROI/binary posture path only after section 8.5;
+- add strict, coarse, and hybrid reports without merging their claims.
 
 Primary files:
 
 - `src/pig_behavior/classification_v2/benchmarks/five_class.py`
+- `src/pig_behavior/classification_v2/benchmarks/bergamini_hybrid.py`
 - `src/pig_behavior/classification_v2/benchmarks/legacy_model.py`
 - `scripts/classification_v2/04_baselines_smokes/`
 - `scripts/classification_v2/07_postrun_evaluation/`
 - `tests/test_classification_v2_five_class_contract.py`
 
-PASS: identical units and folds are used across models, noneligible rows remain
-in audit output, and no old random-split number is labeled session-safe. Commit:
+PASS: identical units and folds are used across learned models, noneligible rows
+remain in audit output, and paper-inspired results cannot be labeled exact
+reproduction or session-safe without their corresponding gates. Commit:
 `feat: add strict five class paper benchmark`.
 
 ### M8. Run Bounded Correctness And Overfit Gates
@@ -705,13 +841,15 @@ Pilot matrix, in order:
 - B0 current tiny full multimodal baseline;
 - B1 ResNet18 actor-only, event-balanced CE;
 - B2 B1 plus TCN or Transformer;
-- B3 B2 plus spatial geometry and motion;
-- B4 B3 plus ROI;
-- B5 B4 plus social and visual context;
-- B6 B5 plus soft hierarchy;
-- B7 best B1-B6 plus one imbalance method;
-- B8 second imbalance method only if B7 evidence is insufficient;
-- B9 strict five-class P1-P5 controls.
+- B3 ResNet34 `224x224` actor-temporal baseline after runtime PASS;
+- B4 B3 plus spatial geometry and motion;
+- B5 B4 plus ROI;
+- B6 B5 plus social and visual context;
+- B7 B6 plus soft hierarchy, the initial enhanced-model candidate;
+- B8 best B1-B7 plus one imbalance method;
+- B9 second imbalance method only if B8 evidence is insufficient;
+- B10 strict five-class ResNet18, ResNet34, and enhanced-model controls;
+- B11 optional paper-inspired hybrid after calibration PASS.
 
 Use a small fixed development fold set and at least three seeds for finalists.
 Compare native-unit macro-F1, class slices, calibration, runtime, and paired
@@ -746,9 +884,11 @@ Purpose: generate paired predictions for the locked scientific comparisons.
 Minimum full comparisons:
 
 - current tiny baseline artifact, reused rather than retrained if compatible;
-- strong pretrained actor-only control;
+- pretrained ResNet18 pilot control if it remains scientifically informative;
+- pretrained ResNet34 `224x224` actor-temporal thesis baseline;
 - selected 10-class multimodal/hierarchical candidate;
-- selected old-compatible and modern five-class controls.
+- strict-5 ResNet18, ResNet34, and selected enhanced-model controls;
+- optional hybrid only if its separate reproduction gate passes.
 
 Every fold writes progress, checkpoint, train/eval indices, class priors,
 weights, unique-event coverage, losses, predictions, runtime, VRAM, and hashes.
@@ -817,9 +957,9 @@ Default hardware-aware ladder:
 | G0 | synthetic tensors | forward and loss only |
 | G1 | ResNet18 `160x160` | 16-64 event overfit |
 | G2 | ResNet18 `160x160` | one fold, one epoch |
-| G3 | shortlisted model | fixed development folds |
-| G4 | locked model | full grouped OOF after authorization |
-| G5 | ResNet34 or `224x224` | only if G3 shows a capacity ceiling |
+| G3 | ResNet34 `224x224` | one fold, one epoch after G2 PASS |
+| G4 | shortlisted model | fixed development folds |
+| G5 | locked model | full grouped OOF after authorization |
 
 Each cache has one stable root with resumable state inside it. A cache smoke
 uses a row limit but the same root and manifest schema; it does not create a new
@@ -850,36 +990,31 @@ The exact focused tests depend on changed files, but the minimum order is:
 5. bounded GPU smoke when model/runtime behavior changed;
 6. worktree and artifact-lineage review before commit.
 
-## 15. User Decisions Needed
+## 15. Resolved Working Decisions
 
-The plan can start at M0 with defaults, but these answers are needed before M1
-is finalized or M7 claims comparability:
-
-1. What is the exact old five-class paper: title, DOI, PDF, or protocol?
-2. In that paper, does `standing` mean only `stand`, or does it include sitting
-   or nonmoving exploratory behavior?
-3. Is 10-class macro-F1 the primary objective and five-class comparison the
-   secondary objective, as proposed here?
-4. May the project download and use ImageNet pretrained weights?
-5. Is manual attribute review possible for a stratified subset, especially
-   `lying/sitting`, `stand`, `explore`, `fight`, and `social-nose`?
-6. Are pen, camera, farm, cohort, and session fields available beyond filenames?
-7. Are new untouched recording sessions available for final confirmation?
-8. Is deployment intended to be offline, causal near-real-time, or both?
-9. Is a longer ResNet34 or `224x224` run acceptable only after ResNet18 pilots
-   prove a likely capacity ceiling?
-
-## 16. Defaults Until Answers Arrive
-
+- Reference: Bergamini et al., VISAPP 2021, DOI `10.5220/0010288405240533`.
 - Primary task: 10-class session-safe recognition.
-- Secondary task: strict five-class subset.
-- `standing` maps only from canonical `stand`.
-- Visual baseline: pretrained ResNet18 at `160x160`.
-- Hierarchy: soft multitask fusion with a directly supervised final head.
-- Imbalance baseline: event-balanced CE, followed by isolated Balanced Softmax
-  and effective-number ablations.
-- Validation: grouped native-unit OOF with paired cluster statistics.
-- Claim: Q2 internal improvement only.
+- Secondary task: strict five-class comparison.
+- Optional track: calibrated paper-aligned hybrid reproduction.
+- ImageNet-1K pretrained weights are allowed and must be matched across models.
+- Attribute review of about 600-1000 unique units is feasible.
+- Structured recording metadata must be created from documented provenance.
+- Offline longitudinal analysis is primary; causal near-real-time is secondary.
+- ResNet34 at `224x224` is the main thesis baseline after ResNet18 gates pass.
+- A same-domain untouched session is useful Q2 evidence but not external-domain
+  evidence; its current availability is unconfirmed.
+
+## 16. Open Evidence Gates
+
+- Verify paper details from the primary PDF and any available source code.
+- Recover or document the paper ethogram ambiguity for sitting and exploration.
+- Prove centimeter displacement and two-second timing equivalence.
+- Verify whether the paper evaluated ground-truth or tracked boxes.
+- Determine whether a truly untouched same-domain session can be locked.
+- Confirm structured metadata values and confidence before split construction.
+- Measure ResNet34 memory, runtime, and causal throughput on the RTX 3050.
+- Define the proposed enhanced model architecture before using a paper-facing
+  name such as `Pig-STRENet`.
 
 ## 17. Change And Rollback Protocol
 

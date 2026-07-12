@@ -1,5 +1,22 @@
 # Benchmark Notes
 
+## 2026-07-13 Bergamini five-class comparison protocol
+
+Use three separately named tracks:
+
+1. `strict5_learned`: canonical `stand`, `lying`, `move`, `eat`, and `drink`
+   only, using identical grouped native-unit folds across learned models.
+2. `coarse5_attribute`: operational mapping from reviewed posture and locomotion
+   attributes; never silently map `sitting` or `explore` by class name.
+3. Paper-aligned hybrid: movement threshold, ROI/orientation, and binary
+   lying-standing ResNet18. Call it exact reproduction only after physical and
+   temporal calibration plus primary-source protocol verification pass.
+
+The 10-class task remains the thesis primary result. ResNet18 `160x160` is the
+engineering pilot; pretrained ResNet34 `224x224` is the main visual baseline
+after runtime gates. Offline longitudinal analysis is primary, while causal
+near-real-time is a separately evaluated secondary protocol.
+
 ## Active classification_v2 benchmark direction
 
 Current behavior-recognition benchmark target:
