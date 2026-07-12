@@ -630,6 +630,8 @@ def main() -> None:
             and feature_semantics_audit.get("errors") == []
             and feature_semantics_audit.get("forbidden_tabular_features") == []
             and feature_semantics_audit.get("undeclared_spatial_arrays") == []
+            and feature_semantics_audit.get("spatial_model_input_role_errors") == []
+            and feature_semantics_audit.get("spatial_model_input_array_count") == 6
             and (feature_semantics_audit.get("roi_context") or {}).get("available")
             is True
             and feature_semantics_audit.get("tabular_feature_count") == 39,
@@ -1425,6 +1427,13 @@ def _evidence_feature_semantics(audit: dict[str, Any]) -> dict[str, Any]:
         "forbidden_tabular_features": audit.get("forbidden_tabular_features"),
         "declared_spatial_array_count": audit.get("declared_spatial_array_count"),
         "undeclared_spatial_arrays": audit.get("undeclared_spatial_arrays"),
+        "spatial_model_input_array_count": audit.get(
+            "spatial_model_input_array_count"
+        ),
+        "spatial_model_input_role_errors": audit.get(
+            "spatial_model_input_role_errors"
+        ),
+        "spatial_non_model_arrays": audit.get("spatial_non_model_arrays"),
         "spatial_assignment_count": len(audit.get("spatial_assignments", {}) or {}),
         "warnings": audit.get("warnings"),
     }

@@ -27,12 +27,35 @@ def load_feature_semantics(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _load_trainer_contract(contract: dict[str, Any], root: Path) -> dict[str, Any]:
+    """Load the trainer contract so semantics and trainer whitelist cannot drift."""
+
+    trainer_path = contract.get("trainer_contract_json")
+    if not trainer_path:
+        return {}
+    return json.loads((root / str(trainer_path)).read_text(encoding="utf-8"))
+
+
+def _spatial_model_input_whitelist(
+    trainer_contract: dict[str, Any],
+    contract: dict[str, Any],
+) -> list[str]:
+    """Return the authoritative model-input spatial arrays for the trainer."""
+
+    whitelist = trainer_contract.get("spatial_sequence_feature_whitelist")
+    if whitelist is None:
+        whitelist = contract.get("model_input_spatial_arrays", [])
+    return [str(name) for name in whitelist]
+
+
 def audit_feature_semantics(contract_path: Path) -> dict[str, Any]:
     """Validate tabular/spatial model inputs against the declared feature semantics."""
     contract = load_feature_semantics(contract_path)
     root = Path(".").resolve()
     tabular_path = root / contract["tabular_x_csv"]
     spatial_path = root / contract["spatial_npz"]
+    trainer_contract = _load_trainer_contract(contract, root)
+    spatial_model_inputs = _spatial_model_input_whitelist(trainer_contract, contract)
 
     tabular_columns = read_csv_schema(tabular_path)
     tabular_assignments = _assign_tabular_families(tabular_columns, contract["tabular_families"])
@@ -56,6 +79,11 @@ def audit_feature_semantics(contract_path: Path) -> dict[str, Any]:
     )
     if undeclared_spatial:
         errors.append(f"undeclared_spatial_arrays={undeclared_spatial}")
+    spatial_role_errors = _spatial_model_input_role_errors(
+        spatial_assignments,
+        spatial_model_inputs,
+    )
+    errors.extend(spatial_role_errors)
     tabular_family_counts = _family_counts(tabular_assignments)
     roi_context = _roi_context_status(tabular_family_counts, spatial_assignments)
     if not roi_context["available"]:
@@ -65,10 +93,15 @@ def audit_feature_semantics(contract_path: Path) -> dict[str, Any]:
         "contract_path": str(contract_path),
         "tabular_x_csv": _display_path(tabular_path, root),
         "spatial_npz": _display_path(spatial_path, root),
+        "trainer_contract_json": _trainer_contract_display_path(contract, root),
         "tabular_feature_count": int(len(tabular_columns)),
         "tabular_family_counts": tabular_family_counts,
         "tabular_assignments": tabular_assignments,
         "spatial_assignments": spatial_assignments,
+        "spatial_model_input_whitelist": spatial_model_inputs,
+        "spatial_model_input_array_count": int(len(spatial_model_inputs)),
+        "spatial_non_model_arrays": _spatial_non_model_arrays(spatial_assignments),
+        "spatial_model_input_role_errors": spatial_role_errors,
         "declared_spatial_array_count": int(
             len(spatial_assignments) - len(undeclared_spatial)
         ),
@@ -106,12 +139,57 @@ def _assign_spatial_arrays(
         arr = arrays[name]
         assignments[name] = {
             "family": spec.get("family"),
-            "description": _wrap_text(str(spec.get("description", ""))),
+            "model_input_role": spec.get("model_input_role"),
+            "model_input_allowed": bool(spec.get("model_input_allowed", False)),
+            "description": _semantic_text_lines(spec.get("description", "")),
             "shape": [int(v) for v in arr.shape],
             "dtype": str(arr.dtype),
             "declared": bool(spec),
         }
     return assignments
+
+
+def _spatial_model_input_role_errors(
+    spatial_assignments: dict[str, dict[str, Any]],
+    spatial_model_inputs: list[str],
+) -> list[str]:
+    """Fail if model feature groups include mask/index/audit-only arrays."""
+
+    errors: list[str] = []
+    missing = sorted(set(spatial_model_inputs).difference(spatial_assignments))
+    if missing:
+        errors.append(f"missing_model_input_spatial_arrays={missing}")
+    invalid: list[dict[str, Any]] = []
+    for name in spatial_model_inputs:
+        assignment = spatial_assignments.get(name)
+        if not assignment:
+            continue
+        if (
+            assignment.get("model_input_role") != "model_input"
+            or assignment.get("model_input_allowed") is not True
+        ):
+            invalid.append(
+                {
+                    "array": name,
+                    "model_input_role": assignment.get("model_input_role"),
+                    "model_input_allowed": assignment.get("model_input_allowed"),
+                }
+            )
+    if invalid:
+        errors.append(f"spatial_model_input_role_errors={invalid}")
+    return errors
+
+
+def _spatial_non_model_arrays(
+    spatial_assignments: dict[str, dict[str, Any]],
+) -> list[str]:
+    """List arrays intentionally reserved for masks, indexing, or audit."""
+
+    return sorted(
+        name
+        for name, assignment in spatial_assignments.items()
+        if assignment.get("model_input_role") != "model_input"
+    )
 
 
 def _family_counts(assignments: dict[str, str | None]) -> dict[str, int]:
@@ -152,7 +230,24 @@ def _display_path(path: Path, root: Path) -> str:
         return str(path)
 
 
+def _trainer_contract_display_path(contract: dict[str, Any], root: Path) -> str | None:
+    """Return a stable trainer contract path when this audit is trainer-bound."""
+
+    trainer_path = contract.get("trainer_contract_json")
+    if not trainer_path:
+        return None
+    return _display_path(root / str(trainer_path), root)
+
+
 def _wrap_text(value: str, *, width: int = 82) -> list[str]:
     """Store long audit prose as short JSON lines for readable diffs."""
 
     return textwrap.wrap(value, width=width) if value else []
+
+
+def _semantic_text_lines(value: Any, *, width: int = 82) -> list[str]:
+    """Accept string or pre-wrapped JSON text and emit compact audit lines."""
+
+    if isinstance(value, list):
+        return [str(item) for item in value if str(item)]
+    return _wrap_text(str(value), width=width)

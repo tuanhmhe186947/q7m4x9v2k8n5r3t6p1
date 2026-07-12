@@ -2,6 +2,7 @@
   "contract_path": "configs\\classification_v2\\feature_semantics_v1.json",
   "tabular_x_csv": "outputs\\classification_v2\\train_ready_windows\\X_window_features.csv",
   "spatial_npz": "outputs\\classification_v2\\train_ready_windows\\X_spatial_sequences.npz",
+  "trainer_contract_json": "configs\\classification_v2\\trainer_contract_v2.json",
   "tabular_feature_count": 39,
   "tabular_family_counts": {
     "geometry_shape": 2,
@@ -54,6 +55,8 @@
   "spatial_assignments": {
     "bbox_xywh_n": {
       "family": "geometry_sequence",
+      "model_input_role": "model_input",
+      "model_input_allowed": true,
       "description": [
         "Per-frame normalized actor bbox x/y/width/height sequence."
       ],
@@ -67,6 +70,8 @@
     },
     "bbox_shape_n": {
       "family": "geometry_sequence",
+      "model_input_role": "model_input",
+      "model_input_allowed": true,
       "description": [
         "Per-frame normalized shape/area/aspect geometry sequence."
       ],
@@ -80,9 +85,11 @@
     },
     "motion_delta": {
       "family": "motion_sequence",
+      "model_input_role": "model_input",
+      "model_input_allowed": true,
       "description": [
-        "Per-frame actor motion delta sequence; must be grouped within object track/window",
-        "only."
+        "Per-frame actor motion delta sequence; must be grouped within object",
+        "track/window only."
       ],
       "shape": [
         160740,
@@ -94,9 +101,11 @@
     },
     "roi_class_relation": {
       "family": "roi_context_sequence",
+      "model_input_role": "model_input",
+      "model_input_allowed": true,
       "description": [
-        "Class-specific feeder/drinker/toy ROI relation sequence; model-usable because it",
-        "is not target-label-selected."
+        "Class-specific feeder/drinker/toy ROI relation sequence; model-usable",
+        "because it is not target-label-selected."
       ],
       "shape": [
         160740,
@@ -108,8 +117,11 @@
     },
     "social_relation": {
       "family": "social_context_sequence",
+      "model_input_role": "model_input",
+      "model_input_allowed": true,
       "description": [
-        "Per-frame label-independent social relation features from same-frame neighbors."
+        "Per-frame label-independent social relation features from same-frame",
+        "neighbors."
       ],
       "shape": [
         160740,
@@ -121,6 +133,8 @@
     },
     "quality_mask": {
       "family": "quality_sequence",
+      "model_input_role": "model_input",
+      "model_input_allowed": true,
       "description": [
         "Per-frame quality/missingness mask."
       ],
@@ -134,6 +148,8 @@
     },
     "length_mask": {
       "family": "sequence_mask",
+      "model_input_role": "mask_only",
+      "model_input_allowed": false,
       "description": [
         "Window-length mask for padded sequence positions."
       ],
@@ -146,6 +162,8 @@
     },
     "observed_mask": {
       "family": "sequence_mask",
+      "model_input_role": "mask_only",
+      "model_input_allowed": false,
       "description": [
         "Observed-frame mask; missing frames stay masked instead of dropped."
       ],
@@ -158,9 +176,11 @@
     },
     "frame_index_sequence": {
       "family": "sequence_index",
+      "model_input_role": "audit_index",
+      "model_input_allowed": false,
       "description": [
-        "Frame indices for audit/alignment; do not feed to model unless a trainer",
-        "explicitly treats it as positional metadata."
+        "Frame indices for audit/alignment; do not feed to model unless a",
+        "trainer explicitly treats it as positional metadata."
       ],
       "shape": [
         160740,
@@ -170,6 +190,21 @@
       "declared": true
     }
   },
+  "spatial_model_input_whitelist": [
+    "bbox_xywh_n",
+    "bbox_shape_n",
+    "motion_delta",
+    "roi_class_relation",
+    "social_relation",
+    "quality_mask"
+  ],
+  "spatial_model_input_array_count": 6,
+  "spatial_non_model_arrays": [
+    "frame_index_sequence",
+    "length_mask",
+    "observed_mask"
+  ],
+  "spatial_model_input_role_errors": [],
   "declared_spatial_array_count": 9,
   "undeclared_spatial_arrays": [],
   "roi_context": {
