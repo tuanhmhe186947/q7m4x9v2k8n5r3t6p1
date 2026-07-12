@@ -1,5 +1,32 @@
 # Project Rules
 
+## classification_v2 active rules
+
+1. Treat `classification_v2` behavior recognition as the active goal unless the
+   user explicitly switches back to tracking.
+2. Do not run full OOF training unless the authorization file is explicitly
+   enabled and the execution gate allows it.
+3. Do not make a Q2 result claim from pre-full, pilot, smoke, or shortcut
+   artifacts. Q2 claim requires full OOF plus postrun completion gate.
+4. Use letterbox image preprocessing for bbox actor crops. Do not square-stretch
+   pig crops because it distorts body shape.
+5. Reuse packed actor and visual-context image caches for training experiments.
+   Do not repeatedly seek/crop/resize video frames in full loops when cache
+   artifacts already exist.
+6. `pig_id` is annotation-local and must not be used as cross-video identity.
+7. Keep model inputs leakage-safe. Exclude manual/review/audit identifiers,
+   path columns, label columns, and policy text from model X.
+8. Use full-frame or partner visual context for interaction behaviors. Do not
+   infer fight/social-nose only from isolated actor crops when partner context is
+   required for the experiment.
+9. Keep review decisions applied by `review_unit_id`; do not silently drop rows
+   or alter original raw data under `data/`.
+10. Before committing code changes, scan changed files for overlong lines and
+    run `git diff --check`.
+
+The tracking rules below are historical/preserved for tracking tasks. They do
+not supersede the active classification_v2 rules above.
+
 ## 2026-07-03 IDSW guard rules
 
 1. Preserve the split lost-track reacquire guard implementation that produced:

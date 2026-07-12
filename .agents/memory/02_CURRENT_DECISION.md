@@ -1,5 +1,40 @@
 # Current Decision
 
+## 2026-07-12 active classification_v2 decision
+
+The active project priority is `classification_v2` behavior recognition unless
+the user explicitly switches back to tracking.
+
+Current decision:
+
+- Treat the multimodal Q2 roadmap as pre-full ready, not complete.
+- The accepted claim boundary is Q2 internal
+  recording-date/video-safe improvement. Do not claim external farm, camera,
+  cohort, or broad real-world generalization without external validation.
+- The model direction is multimodal spatio-temporal:
+  letterboxed actor bbox image sequence, ROI relation tensors, motion features,
+  social/partner context, and interaction visual context.
+- `pig_id` is annotation-local. Never use it as identity continuity across
+  videos or sessions.
+- Canonical actor visual cache:
+  `outputs/classification_v2/image_cache_v2_letterbox/`.
+- Canonical full OOF output dir:
+  `outputs/classification_v2/model_full/full_multimodal_oof/`.
+- Current progress report is `PASS_PARTIAL_ROADMAP` with 44/44 pre-full gates
+  passing. This means ready for human authorization review, not ready to claim
+  final Q2 results.
+- Full OOF remains fail-closed until
+  `outputs/classification_v2/model_design/full_oof_authorization.json` is
+  explicitly authorized with reviewer, long-run acknowledgement,
+  no-Q2-claim acknowledgement, matching preflight config SHA256, and matching
+  git commit.
+- After full OOF finishes, run postrun calibration, confusion-focus comparison,
+  ablation report refresh, experiment registry write, and completion gate before
+  any Q2 claim.
+
+Historical tracking decisions below are preserved for tracking work, but they
+must not override the current `classification_v2` priority.
+
 ## 2026-07-07 current best full tracking candidate
 
 Treat `outputs/eval/hybrid_bytetrack/codex_visible_suffix_gate_full/iou0_area0_condarea0_merge0`

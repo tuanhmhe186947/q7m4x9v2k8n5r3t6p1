@@ -1,5 +1,21 @@
 # Benchmark Notes
 
+## Active classification_v2 benchmark direction
+
+Current behavior-recognition benchmark target:
+
+- Claim level: Q2 internal recording-date/video-safe improvement only.
+- Required validation: full multimodal OOF with native folds, not random
+  frame/window split.
+- Main comparison axis: multimodal learned model versus registered native,
+  tabular linear, and tabular nonlinear controls.
+- Required postrun outputs: metrics, predictions, prediction schema audit,
+  calibration audit, calibrated predictions, confusion-focus comparison,
+  high-confidence hard errors, source-balanced report, and experiment registry.
+- Do not use pilot or smoke metrics as paper-facing full results.
+
+Historical tracking benchmark notes below are preserved only for tracking work.
+
 ## Important conclusions
 
 - `000302` improvement is attributed mainly to the new detector weight.

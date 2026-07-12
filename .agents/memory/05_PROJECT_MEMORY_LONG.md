@@ -1,5 +1,33 @@
 # Project Memory - Long Term
 
+## Current active track: classification_v2 behavior recognition
+
+As of 2026-07-12, the active workstream is `classification_v2` behavior
+recognition.
+
+Long-term target:
+
+- Build a paper-facing Q2-strong internal evaluation for pig behavior
+  recognition under recording-date/video-safe validation.
+- Use multimodal spatio-temporal inputs:
+  letterboxed actor bbox images, ROI relation tensors, social/partner context,
+  interaction visual context, and leakage-safe engineered features.
+- Keep the claim boundary conservative. Do not claim external farm, camera, or
+  cohort generalization until an external validation set exists.
+- Treat `pig_id` as annotation-local, not persistent identity across videos.
+- Keep review/audit identifiers and label-derived policy fields out of model X.
+- Use cached packed images for repeatable full OOF runs.
+
+Current full OOF status:
+
+- Pre-full roadmap is passing and ready for human authorization review.
+- Full OOF is not complete until the authorized 13-fold run finishes and the
+  postrun completion gate passes.
+- Q2 claim remains locked until full OOF metrics, calibrated predictions,
+  confusion-focused analysis, ablation comparison, and registry record exist.
+
+Historical tracking memory below is preserved for tracking-specific tasks.
+
 ## A. Project overview
 
 Project: `PIG_Behavior_Project`

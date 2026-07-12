@@ -65,6 +65,38 @@ After full OOF completes, run the postrun commands from
 in order: calibration, confusion focus comparison, ablation report refresh,
 registry registration, and completion gate.
 
+### Full OOF launch packet
+
+Use the generated launch packet as the single source of truth:
+
+```text
+outputs/classification_v2/model_design/full_oof_launch_packet.md
+outputs/classification_v2/model_design/full_oof_launch_packet.json
+```
+
+The current packet is ready for human authorization review and targets:
+
+```text
+outputs/classification_v2/model_full/full_multimodal_oof
+```
+
+The full run must use cached letterboxed actor images and packed visual context.
+Do not run ad hoc full loops that repeatedly seek, crop, resize, and convert
+frames when the packed caches are available.
+
+### Post-full memory refresh
+
+After a successful full OOF and postrun completion gate:
+
+1. Update `01_PROJECT_MEMORY_SHORT.md` with the final PASS/FAIL state, key
+   metrics, output paths, and claim boundary.
+2. Update `02_CURRENT_DECISION.md` with the accepted result decision and any
+   remaining blockers.
+3. Update `06_BENCHMARK_NOTES.md` with final OOF/control metrics and confusion
+   findings.
+4. Update `08_WORKFLOW.md` if the launch or postrun command sequence changed.
+5. Commit the memory refresh separately from code changes.
+
 ## Before every coding task
 
 1. Read root `AGENTS.md`.
