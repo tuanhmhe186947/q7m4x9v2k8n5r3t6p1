@@ -7,7 +7,9 @@ from typing import Any
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Write a compact Q2 classification_v2 progress report.")
+    parser = argparse.ArgumentParser(
+        description="Write a compact Q2 classification_v2 progress report."
+    )
     parser.add_argument(
         "--snapshot-check-json",
         type=Path,
@@ -102,6 +104,13 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--split-group-leakage-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/split_group_leakage_audit.json"
+        ),
+    )
+    parser.add_argument(
         "--output-json",
         type=Path,
         default=Path("outputs/classification_v2/model_design/q2_progress_report.json"),
@@ -133,11 +142,20 @@ def main() -> None:
     )
     image_cache_inventory = _load_optional_json(args.image_cache_inventory_json)
     pig_id_locality = _load_optional_json(args.pig_id_locality_json)
+    split_group_leakage = _load_optional_json(args.split_group_leakage_json)
 
     gates = [
         _gate("S0A snapshot/data contract", snapshot.get("valid") is True, snapshot.get("errors")),
-        _gate("B2-B7 config matrix", baseline_configs.get("valid") is True, baseline_configs.get("errors")),
-        _gate("B2-B7 CUDA smoke", baseline_smokes.get("valid") is True, baseline_smokes.get("errors")),
+        _gate(
+            "B2-B7 config matrix",
+            baseline_configs.get("valid") is True,
+            baseline_configs.get("errors"),
+        ),
+        _gate(
+            "B2-B7 CUDA smoke",
+            baseline_smokes.get("valid") is True,
+            baseline_smokes.get("errors"),
+        ),
         _gate(
             "B4 inner-validation seed variance",
             b4_seed_variance.get("valid") is True,
@@ -160,7 +178,10 @@ def main() -> None:
         _gate(
             "S8 active-review loop contract",
             q2_active_review_contract.get("valid") is True
-            and q2_active_review_contract.get("active_review_can_apply_without_human_decision") is False
+            and q2_active_review_contract.get(
+                "active_review_can_apply_without_human_decision"
+            )
+            is False
             and q2_active_review_contract.get("pending_decisions_apply") is False
             and q2_active_review_contract.get("exclude_drops_rows") is False
             and q2_active_review_contract.get("decision_key") == "review_unit_id",
@@ -190,6 +211,14 @@ def main() -> None:
             == pig_id_locality.get("contracts_with_scope_hint")
             and pig_id_locality.get("forbidden_identity_allowance_count") == 0,
             pig_id_locality.get("errors"),
+        ),
+        _gate(
+            "Q2 split group leakage artifact guard",
+            split_group_leakage.get("valid") is True
+            and split_group_leakage.get("group_split_leakage_count") == 0
+            and split_group_leakage.get("video_split_leakage_count") == 0
+            and split_group_leakage.get("split_group_key_uses_pig_id_only_count") == 0,
+            split_group_leakage.get("errors"),
         ),
         _gate(
             "Q2 final package skeleton no-claim gate",
@@ -233,7 +262,8 @@ def main() -> None:
         ),
         _gate(
             "Strict trainer reproducibility",
-            reproducibility.get("errors") == [] and reproducibility.get("forbidden_model_input_rejected") is True,
+            reproducibility.get("errors") == []
+            and reproducibility.get("forbidden_model_input_rejected") is True,
             reproducibility.get("errors"),
         ),
     ]
@@ -251,17 +281,26 @@ def main() -> None:
             "S7 hard-negative contract is defined; actual shortlist generation "
             "needs explicitly authorized native OOF predictions."
         ),
-        "S8 active-review loop contract is defined; actual decisions require human GUI review before apply.",
+        (
+            "S8 active-review loop contract is defined; actual decisions "
+            "require human GUI review before apply."
+        ),
         (
             "S9 final package contract is defined; final paper metrics still "
             "need explicitly authorized full OOF/final-test execution."
         ),
-        "Q2 feature whitelist is defined; every new trainer must consume it or an equivalent checked contract.",
+        (
+            "Q2 feature whitelist is defined; every new trainer must consume "
+            "it or an equivalent checked contract."
+        ),
         (
             "Q2 final package skeleton exists only as a blocked/no-claim "
             "artifact until full OOF is authorized and complete."
         ),
-        "Full OOF preflight rejects ad hoc smoke/resume cache roots and requires canonical packed cache paths.",
+        (
+            "Full OOF preflight rejects ad hoc smoke/resume cache roots and "
+            "requires canonical packed cache paths."
+        ),
         (
             "Full OOF runner requires authorization JSON bound to preflight "
             "config hash and Git commit."
@@ -277,6 +316,10 @@ def main() -> None:
         (
             "pig_id remains annotation-local in Q2 contracts and must not be "
             "used as a biological identity or cross-video split key."
+        ),
+        (
+            "Current split artifacts are audited so split_group_key and "
+            "video_key do not cross train/val/test boundaries."
         ),
     ]
     result = {
@@ -296,14 +339,23 @@ def main() -> None:
             "baseline_smokes": _evidence_baseline_smokes(baseline_smokes),
             "b4_seed_variance": _evidence_b4_seed_variance(b4_seed_variance),
             "q2_oof_metric_contract": _evidence_q2_oof_metric_contract(q2_oof_metric_contract),
-            "q2_hard_negative_contract": _evidence_q2_hard_negative_contract(q2_hard_negative_contract),
-            "q2_active_review_contract": _evidence_q2_active_review_contract(q2_active_review_contract),
-            "q2_final_package_contract": _evidence_q2_final_package_contract(q2_final_package_contract),
+            "q2_hard_negative_contract": _evidence_q2_hard_negative_contract(
+                q2_hard_negative_contract
+            ),
+            "q2_active_review_contract": _evidence_q2_active_review_contract(
+                q2_active_review_contract
+            ),
+            "q2_final_package_contract": _evidence_q2_final_package_contract(
+                q2_final_package_contract
+            ),
             "q2_feature_whitelist": _evidence_q2_feature_whitelist(q2_feature_whitelist),
             "pig_id_locality": _evidence_pig_id_locality(pig_id_locality),
+            "split_group_leakage": _evidence_split_group_leakage(split_group_leakage),
             "q2_final_package_stub": _evidence_q2_final_package_stub(q2_final_package_stub),
             "image_cache_inventory": _evidence_image_cache_inventory(image_cache_inventory),
-            "full_oof_preflight_policy": _evidence_full_oof_preflight_policy(full_oof_preflight_policy),
+            "full_oof_preflight_policy": _evidence_full_oof_preflight_policy(
+                full_oof_preflight_policy
+            ),
             "full_oof_authorization_policy": _evidence_full_oof_authorization_policy(
                 full_oof_authorization_policy
             ),
@@ -354,7 +406,9 @@ def _evidence_baseline_smokes(audit: dict[str, Any]) -> dict[str, Any]:
         "require_device": audit.get("require_device"),
         "runtime_python_executable": audit.get("runtime_python_executable"),
         "devices": sorted({row.get("device") for row in audit.get("baselines", [])}),
-        "git_dirty_values": sorted({str(row.get("git_dirty")) for row in audit.get("baselines", [])}),
+        "git_dirty_values": sorted(
+            {str(row.get("git_dirty")) for row in audit.get("baselines", [])}
+        ),
     }
 
 
@@ -384,7 +438,9 @@ def _evidence_q2_oof_metric_contract(audit: dict[str, Any]) -> dict[str, Any]:
         "label_count": audit.get("label_count"),
         "required_metric_group_count": audit.get("required_metric_group_count"),
         "confusion_pair_count": audit.get("confusion_pair_count"),
-        "full_oof_execution_allowed_by_contract": audit.get("full_oof_execution_allowed_by_contract"),
+        "full_oof_execution_allowed_by_contract": audit.get(
+            "full_oof_execution_allowed_by_contract"
+        ),
         "outer_test_used_for_threshold_tuning": audit.get("outer_test_used_for_threshold_tuning"),
     }
 
@@ -465,13 +521,31 @@ def _evidence_pig_id_locality(audit: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _evidence_split_group_leakage(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "rows": audit.get("rows"),
+        "group_count": audit.get("group_count"),
+        "video_count": audit.get("video_count"),
+        "split_counts": audit.get("split_counts"),
+        "group_split_leakage_count": audit.get("group_split_leakage_count"),
+        "video_split_leakage_count": audit.get("video_split_leakage_count"),
+        "split_group_key_uses_pig_id_only_count": audit.get(
+            "split_group_key_uses_pig_id_only_count"
+        ),
+        "builder_leakage_group_count": audit.get("builder_leakage_group_count"),
+    }
+
+
 def _evidence_q2_final_package_stub(audit: dict[str, Any]) -> dict[str, Any]:
     return {
         "valid": audit.get("valid"),
         "status": audit.get("status"),
         "can_claim_q2_result": audit.get("can_claim_q2_result"),
         "paper_facing_metrics_available": audit.get("paper_facing_metrics_available"),
-        "missing_required_package_artifact_count": audit.get("missing_required_package_artifact_count"),
+        "missing_required_package_artifact_count": audit.get(
+            "missing_required_package_artifact_count"
+        ),
         "feature_whitelist_valid": audit.get("feature_whitelist_valid"),
     }
 
