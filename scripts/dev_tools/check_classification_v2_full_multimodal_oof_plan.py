@@ -12,15 +12,35 @@ from pig_behavior.classification_v2.training.full_multimodal_oof import (
     build_full_multimodal_oof_run_plan,
 )
 
+DEFAULT_FULL_OUTPUT_DIR = Path(
+    "outputs/classification_v2/model_full/full_multimodal_oof"
+)
+DEFAULT_PILOT_OUTPUT_DIR = Path(
+    "outputs/classification_v2/model_smoke/full_multimodal_oof_pilot"
+)
+
 
 def main() -> None:
     """Write a no-training workload plan for learned multimodal native OOF."""
 
-    parser = argparse.ArgumentParser(description="Plan classification_v2 learned multimodal OOF workload.")
+    parser = argparse.ArgumentParser(
+        description="Plan classification_v2 learned multimodal OOF workload."
+    )
     parser.add_argument(
         "--output-json",
         type=Path,
-        default=Path("outputs/classification_v2/model_design/full_multimodal_oof_run_plan.json"),
+        default=Path(
+            "outputs/classification_v2/model_design/full_multimodal_oof_run_plan.json"
+        ),
+    )
+    parser.add_argument(
+        "--run-output-dir",
+        type=Path,
+        default=None,
+        help=(
+            "Planned model artifact directory. Defaults to model_full for full "
+            "plans and model_smoke for pilot plans."
+        ),
     )
     parser.add_argument("--image-size", type=int, default=64)
     parser.add_argument("--hidden-dim", type=int, default=48)
@@ -31,18 +51,30 @@ def main() -> None:
     parser.add_argument("--max-folds", type=int, default=None)
     parser.add_argument("--train-per-class-per-fold", type=int, default=None)
     parser.add_argument("--eval-per-class-per-fold", type=int, default=None)
-    parser.add_argument("--pilot", action="store_true", help="Plan bounded pilot settings instead of full OOF.")
+    parser.add_argument(
+        "--pilot",
+        action="store_true",
+        help="Plan bounded pilot settings instead of full OOF.",
+    )
     parser.add_argument("--ablation-variant", choices=ABLATION_VARIANTS, default="full")
     parser.add_argument("--image-cache-manifest", type=Path, default=None)
     parser.add_argument("--packed-image-cache", type=Path, default=None)
     parser.add_argument("--packed-image-cache-index", type=Path, default=None)
-    parser.add_argument("--sample-weight-policy", choices=SAMPLE_WEIGHT_POLICIES, default="event_class")
+    parser.add_argument(
+        "--sample-weight-policy",
+        choices=SAMPLE_WEIGHT_POLICIES,
+        default="event_class",
+    )
     parser.add_argument("--precision", choices=PRECISION_POLICIES, default="amp")
     parser.add_argument("--bootstrap-iterations", type=int, default=2000)
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--checkpoint-every-steps", type=int, default=500)
     args = parser.parse_args()
+    run_output_dir = args.run_output_dir or (
+        DEFAULT_PILOT_OUTPUT_DIR if args.pilot else DEFAULT_FULL_OUTPUT_DIR
+    )
     config = FullMultimodalOofConfig(
+        output_dir=run_output_dir,
         image_size=args.image_size,
         hidden_dim=args.hidden_dim,
         steps_per_fold=args.steps_per_fold,
@@ -57,7 +89,9 @@ def main() -> None:
         image_cache_manifest_csv=args.image_cache_manifest,
         packed_image_cache_npy=args.packed_image_cache,
         packed_image_cache_index_csv=args.packed_image_cache_index,
-        require_cached_images=args.image_cache_manifest is not None or args.packed_image_cache is not None,
+        require_cached_images=(
+            args.image_cache_manifest is not None or args.packed_image_cache is not None
+        ),
         sample_weight_policy=args.sample_weight_policy,
         precision=args.precision,
         bootstrap_iterations=args.bootstrap_iterations,

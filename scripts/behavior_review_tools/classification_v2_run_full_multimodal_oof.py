@@ -17,6 +17,9 @@ from pig_behavior.classification_v2.training.full_run_preflight import (
 )
 
 FULL_RUN_AUTHORIZATION_PURPOSE = "classification_v2_full_multimodal_oof"
+DEFAULT_FULL_OUTPUT_DIR = Path(
+    "outputs/classification_v2/model_full/full_multimodal_oof"
+)
 DEFAULT_PILOT_OUTPUT_DIR = Path(
     "outputs/classification_v2/model_smoke/full_multimodal_oof_pilot"
 )
@@ -34,7 +37,11 @@ def main() -> None:
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=DEFAULT_PILOT_OUTPUT_DIR,
+        default=None,
+        help=(
+            "Model artifact directory. Defaults to model_full for --full and "
+            "model_smoke for bounded pilot runs."
+        ),
     )
     parser.add_argument("--image-cache-manifest", type=Path, default=None)
     parser.add_argument("--packed-image-cache", type=Path, default=None)
@@ -106,8 +113,11 @@ def main() -> None:
         ),
     )
     args = parser.parse_args()
+    output_dir = args.output_dir or (
+        DEFAULT_FULL_OUTPUT_DIR if args.full else DEFAULT_PILOT_OUTPUT_DIR
+    )
     config = FullMultimodalOofConfig(
-        output_dir=args.output_dir,
+        output_dir=output_dir,
         image_cache_manifest_csv=args.image_cache_manifest,
         packed_image_cache_npy=args.packed_image_cache,
         packed_image_cache_index_csv=args.packed_image_cache_index,
