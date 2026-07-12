@@ -931,10 +931,6 @@ def main() -> None:
             "need explicitly authorized full OOF/final-test execution."
         ),
         (
-            "Q2 feature whitelist is defined; every new trainer must consume "
-            "it or an equivalent checked contract."
-        ),
-        (
             "Q2 final package skeleton exists only as a blocked/no-claim "
             "artifact until full OOF is authorized and complete."
         ),
@@ -983,6 +979,10 @@ def main() -> None:
             "completion-check commands, but it does not execute registration."
         ),
     ]
+    if not q2_feature_whitelist.get("valid"):
+        remaining.append(
+            "Q2 feature whitelist or trainer input contract is not valid yet."
+        )
     result = {
         "schema_version": "classification_v2_q2_progress_report_v1",
         "overall_status": (
