@@ -1,3 +1,8 @@
+from scripts.behavior_review_tools.classification_v2_run_full_multimodal_oof import (
+    FULL_RUN_AUTHORIZATION_PURPOSE,
+    _validate_full_run_authorization,
+)
+
 from pig_behavior.classification_v2.training.full_multimodal_oof import (
     FullMultimodalOofConfig,
     full_run_config_fingerprint,
@@ -71,3 +76,36 @@ def test_full_preflight_requires_valid_feature_whitelist_audit() -> None:
     assert any("invalid_feature_whitelist_audit" in error for error in errors)
     assert any("feature_whitelist_must_block_all_numeric_columns" in error for error in errors)
     assert any("feature_whitelist_probe_leakage" in error for error in errors)
+
+
+def test_full_run_authorization_binds_preflight_hash_and_commit() -> None:
+    """Full OOF needs explicit approval for the exact preflight artifact."""
+
+    config = FullMultimodalOofConfig(run_mode="full")
+    config_hash = full_run_config_fingerprint(config)
+    preflight = {
+        "config_sha256": config_hash,
+        "git_commit": "abc123",
+    }
+    authorization = {
+        "authorized": True,
+        "purpose": FULL_RUN_AUTHORIZATION_PURPOSE,
+        "acknowledges_long_run": True,
+        "acknowledges_no_q2_claim_until_verified": True,
+        "preflight_config_sha256": config_hash,
+        "git_commit": "abc123",
+    }
+    assert _validate_full_run_authorization(config, preflight, authorization) == []
+
+    bad_authorization = dict(authorization)
+    bad_authorization.update(
+        {
+            "acknowledges_long_run": False,
+            "preflight_config_sha256": "different",
+            "git_commit": "stale",
+        }
+    )
+    errors = _validate_full_run_authorization(config, preflight, bad_authorization)
+    assert any("acknowledge_long_run" in error for error in errors)
+    assert any("preflight_hash_mismatch" in error for error in errors)
+    assert any("git_commit_mismatch" in error for error in errors)
