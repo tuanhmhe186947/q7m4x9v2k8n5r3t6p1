@@ -11,6 +11,9 @@ from pig_behavior.classification_v2.evaluation.metrics_payload_contract import (
 from pig_behavior.classification_v2.evaluation.prediction_schema_contract import (
     check_prediction_schema_csv,
 )
+from pig_behavior.classification_v2.experiments.record_contract import (
+    check_experiment_record,
+)
 
 
 def main() -> None:
@@ -128,6 +131,7 @@ def _validate_complete_artifacts(
     metrics = _read_existing_json(paths["metrics"])
     source_report = _read_existing_json(paths["source_balanced_report"])
     registry = _read_existing_json(paths["registry_record"])
+    registry_contract = check_experiment_record(paths["registry_record"])
     schema_file_audit = _read_existing_json(paths["prediction_schema_audit"])
     schema_check = check_prediction_schema_csv(paths["predictions"])
     metrics_check = check_paper_metrics_payload(metrics)
@@ -135,6 +139,11 @@ def _validate_complete_artifacts(
     _check_run_audit(run_audit, preflight, blocking)
     _check_source_report(source_report, blocking)
     _check_registry_record(registry, paths, blocking)
+    if registry_contract.get("valid") is not True:
+        blocking.append(
+            "registry_record_contract_invalid="
+            f"{registry_contract.get('errors')}"
+        )
     if schema_check.get("valid") is not True:
         blocking.append(f"prediction_schema_invalid={schema_check.get('errors')}")
     if schema_file_audit.get("valid") is not True:
@@ -165,6 +174,7 @@ def _validate_complete_artifacts(
         "source_balanced_valid": source_report.get("valid"),
         "registry_paper_facing": registry.get("paper_facing"),
         "registry_stage": registry.get("experiment_stage"),
+        "registry_contract_valid": registry_contract.get("valid"),
         "prediction_schema_valid": schema_check.get("valid"),
         "metrics_payload_valid": metrics_check.get("valid"),
     }
