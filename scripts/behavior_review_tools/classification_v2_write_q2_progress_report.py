@@ -98,6 +98,14 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--full-oof-run-plan-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "full_multimodal_oof_run_plan.json"
+        ),
+    )
+    parser.add_argument(
         "--image-cache-inventory-json",
         type=Path,
         default=Path(
@@ -276,6 +284,7 @@ def main() -> None:
     full_oof_preflight_freshness = _load_optional_json(
         args.full_oof_preflight_freshness_json
     )
+    full_oof_run_plan = _load_optional_json(args.full_oof_run_plan_json)
     image_cache_inventory = _load_optional_json(args.image_cache_inventory_json)
     image_cache_letterbox_policy = _load_optional_json(
         args.image_cache_letterbox_policy_json
@@ -311,6 +320,7 @@ def main() -> None:
         args.image_sequence_loader_audit_json
     )
 
+    full_oof_run_plan_errors = _full_oof_run_plan_errors(full_oof_run_plan)
     gates = [
         _gate("S0A snapshot/data contract", snapshot.get("valid") is True, snapshot.get("errors")),
         _gate(
@@ -628,6 +638,11 @@ def main() -> None:
             full_oof_preflight_freshness.get("errors"),
         ),
         _gate(
+            "Full OOF workload plan output isolation",
+            not full_oof_run_plan_errors,
+            full_oof_run_plan_errors,
+        ),
+        _gate(
             "Strict trainer reproducibility",
             reproducibility.get("errors") == []
             and reproducibility.get("forbidden_model_input_rejected") is True,
@@ -781,6 +796,7 @@ def main() -> None:
             "full_oof_preflight_freshness": _evidence_full_oof_preflight_freshness(
                 full_oof_preflight_freshness
             ),
+            "full_oof_run_plan": _evidence_full_oof_run_plan(full_oof_run_plan),
             "reproducibility": _evidence_reproducibility(reproducibility),
         },
     }
@@ -1243,6 +1259,63 @@ def _evidence_image_sequence_loader(audit: dict[str, Any]) -> dict[str, Any]:
         "missing_frames": audit.get("missing_frames"),
         "checked_by_source": audit.get("checked_by_source"),
         "image_size": audit.get("image_size"),
+    }
+
+
+def _full_oof_run_plan_errors(plan: dict[str, Any]) -> list[str]:
+    """Require full workload plans to use full-output roots, not smoke roots."""
+
+    errors: list[str] = []
+    config = plan.get("config") or {}
+    load_audit = plan.get("load_audit") or {}
+    output_dir = str(config.get("output_dir") or "")
+    output_parts = _normalized_path_parts(output_dir)
+    forbidden_parts = {"model_smoke", "smoke", "pilot", "resume_smoke"}
+    if plan.get("valid") is not True or plan.get("errors"):
+        errors.append(f"invalid_full_oof_run_plan={plan.get('errors')}")
+    if plan.get("run_mode") != "full":
+        errors.append(f"full_oof_plan_run_mode_not_full={plan.get('run_mode')}")
+    if plan.get("paper_facing_candidate_plan") is not True:
+        errors.append("full_oof_plan_not_paper_facing_candidate")
+    if int(plan.get("selected_fold_count") or 0) != int(
+        plan.get("available_fold_count") or -1
+    ):
+        errors.append(
+            "full_oof_plan_selected_fold_count_mismatch="
+            f"{plan.get('selected_fold_count')}!={plan.get('available_fold_count')}"
+        )
+    if int(plan.get("total_eval_rows") or 0) != int(
+        load_audit.get("eligible_rows") or -1
+    ):
+        errors.append(
+            "full_oof_plan_total_eval_rows_mismatch="
+            f"{plan.get('total_eval_rows')}!={load_audit.get('eligible_rows')}"
+        )
+    if output_parts.intersection(forbidden_parts):
+        errors.append(f"full_oof_plan_output_dir_forbidden={output_dir}")
+    if "model_full" not in output_parts:
+        errors.append(f"full_oof_plan_output_dir_not_model_full={output_dir}")
+    return errors
+
+
+def _normalized_path_parts(path: str) -> set[str]:
+    return {part for part in path.replace("\\", "/").lower().split("/") if part}
+
+
+def _evidence_full_oof_run_plan(plan: dict[str, Any]) -> dict[str, Any]:
+    config = plan.get("config") or {}
+    load_audit = plan.get("load_audit") or {}
+    return {
+        "valid": plan.get("valid"),
+        "run_mode": plan.get("run_mode"),
+        "paper_facing_candidate_plan": plan.get("paper_facing_candidate_plan"),
+        "output_dir": config.get("output_dir"),
+        "available_fold_count": plan.get("available_fold_count"),
+        "selected_fold_count": plan.get("selected_fold_count"),
+        "total_eval_rows": plan.get("total_eval_rows"),
+        "eligible_rows": load_audit.get("eligible_rows"),
+        "total_train_steps": plan.get("total_train_steps"),
+        "config_sha256": plan.get("config_sha256"),
     }
 
 
