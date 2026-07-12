@@ -40,6 +40,13 @@ Rules:
   overlong-line scan, for example `rg -n "^.{101,}$" <changed-files>`, and fix
   any matches before `git commit` so pre-commit does not fail on line length.
 
+File edit safety:
+
+- For manual file edits, use `apply_patch` with small, reviewable hunks. Avoid
+  shell redirects, heredocs, here-strings, `cat`, or ad hoc scripts to write
+  source/config/docs unless generating a mechanical artifact is unavoidable.
+  After editing, inspect `git diff -- <file>` before staging or committing.
+
 Legacy preserved docs:
 
 - `.agents/AGENTS.md`
