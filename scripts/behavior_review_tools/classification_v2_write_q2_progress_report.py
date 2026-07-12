@@ -771,7 +771,11 @@ def main() -> None:
             "Full OOF execution gate rejects unauthorized runs",
             full_oof_execution_gate.get("valid") is True
             and full_oof_execution_gate.get("full_training_invoked") is False
-            and full_oof_execution_gate.get("case_count") == 3,
+            and full_oof_execution_gate.get("case_count") == 4
+            and _has_case(
+                full_oof_execution_gate,
+                "authorized_booleans_missing_reviewer_rejected",
+            ),
             full_oof_execution_gate.get("errors"),
         ),
         _gate(
@@ -1134,6 +1138,18 @@ def _load_optional_json(path: Path) -> dict[str, Any]:
 
 def _gate(name: str, passed: bool, errors: Any) -> dict[str, Any]:
     return {"name": name, "passed": bool(passed), "errors": errors or []}
+
+
+def _has_case(audit: dict[str, Any], name: str) -> bool:
+    """Return True when an audit contains a named validation case."""
+
+    cases = audit.get("cases")
+    if not isinstance(cases, list):
+        return False
+    return any(
+        isinstance(case, dict) and case.get("name") == name
+        for case in cases
+    )
 
 
 def _optional_true(audit: dict[str, Any], key: str) -> bool:
