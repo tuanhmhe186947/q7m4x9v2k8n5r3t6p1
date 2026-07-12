@@ -58,6 +58,8 @@
 3. If changing `detections.py`, document how it differs from legacy `tracking_engine.py`.
 4. If changing `config.py`, document default mode/rule behavior clearly.
 5. If changing evaluation path, ensure stale XML cannot be confused with fresh XML.
+6. Before committing code, scan changed files for overlong lines and wrap them
+   proactively; do not rely on pre-commit failure to catch line-length issues.
 
 ## Verification rules
 
