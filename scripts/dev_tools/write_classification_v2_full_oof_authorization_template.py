@@ -23,8 +23,22 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Write a classification_v2 full OOF authorization template."
     )
-    parser.add_argument("--preflight-json", type=Path, required=True)
-    parser.add_argument("--output-json", type=Path, required=True)
+    parser.add_argument(
+        "--preflight-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "full_multimodal_oof_preflight.json"
+        ),
+    )
+    parser.add_argument(
+        "--output-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "full_oof_authorization_template.json"
+        ),
+    )
     args = parser.parse_args()
 
     preflight = json.loads(args.preflight_json.read_text(encoding="utf-8"))
