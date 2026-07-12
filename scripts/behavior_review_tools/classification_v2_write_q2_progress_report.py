@@ -217,6 +217,33 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--spatial-sequence-audit-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/train_ready_windows/spatial_sequence_audit.json"
+        ),
+    )
+    parser.add_argument(
+        "--feature-semantics-audit-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/train_ready_windows/feature_semantics_audit.json"
+        ),
+    )
+    parser.add_argument(
+        "--event-weight-audit-json",
+        type=Path,
+        default=Path("outputs/classification_v2/train_ready_windows/event_weight_audit.json"),
+    )
+    parser.add_argument(
+        "--image-sequence-loader-audit-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/train_ready_windows/"
+            "image_sequence_loader_smoke_audit.json"
+        ),
+    )
+    parser.add_argument(
         "--output-json",
         type=Path,
         default=Path("outputs/classification_v2/model_design/q2_progress_report.json"),
@@ -277,6 +304,12 @@ def main() -> None:
     )
     source_domain_control = _load_optional_json(args.source_domain_control_json)
     loader_input_audit = _load_optional_json(args.loader_input_audit_json)
+    spatial_sequence_audit = _load_optional_json(args.spatial_sequence_audit_json)
+    feature_semantics_audit = _load_optional_json(args.feature_semantics_audit_json)
+    event_weight_audit = _load_optional_json(args.event_weight_audit_json)
+    image_sequence_loader_audit = _load_optional_json(
+        args.image_sequence_loader_audit_json
+    )
 
     gates = [
         _gate("S0A snapshot/data contract", snapshot.get("valid") is True, snapshot.get("errors")),
@@ -519,6 +552,44 @@ def main() -> None:
             loader_input_audit.get("errors"),
         ),
         _gate(
+            "Spatial sequence train-ready tensor contract",
+            spatial_sequence_audit.get("errors") == []
+            and spatial_sequence_audit.get("rows") == 160740
+            and spatial_sequence_audit.get("truncated_windows") == 0
+            and spatial_sequence_audit.get("forbidden_selected") == []
+            and spatial_sequence_audit.get("observed_within_length_ratio", 0.0)
+            > 0.99,
+            spatial_sequence_audit.get("errors"),
+        ),
+        _gate(
+            "Feature semantics leakage annotation contract",
+            feature_semantics_audit.get("valid") is True
+            and feature_semantics_audit.get("errors") == []
+            and feature_semantics_audit.get("forbidden_tabular_features") == []
+            and feature_semantics_audit.get("tabular_feature_count") == 39,
+            feature_semantics_audit.get("errors"),
+        ),
+        _gate(
+            "Event-balanced sample weight contract",
+            event_weight_audit.get("errors") == []
+            and event_weight_audit.get("rows") == 160740
+            and event_weight_audit.get("duplicate_window_id") == 0
+            and event_weight_audit.get("missing_event_key_rows") == 0
+            and event_weight_audit.get("invalid_weight_zero_count", 0) > 0,
+            event_weight_audit.get("errors"),
+        ),
+        _gate(
+            "Image sequence loader source coverage smoke",
+            image_sequence_loader_audit.get("errors") == []
+            and image_sequence_loader_audit.get("checked_windows", 0) >= 24
+            and image_sequence_loader_audit.get("error_windows") == 0
+            and image_sequence_loader_audit.get("missing_frames") == 0
+            and {"cvat_tracking_xml", "legacy_recovered"}.issubset(
+                set((image_sequence_loader_audit.get("checked_by_source") or {}).keys())
+            ),
+            image_sequence_loader_audit.get("errors"),
+        ),
+        _gate(
             "Full OOF preflight canonical path policy",
             full_oof_preflight_policy.get("valid") is True
             and full_oof_preflight_policy.get("canonical_config_errors") == []
@@ -689,6 +760,14 @@ def main() -> None:
             ),
             "loader_input_audit": _evidence_loader_input_audit(
                 loader_input_audit
+            ),
+            "spatial_sequence": _evidence_spatial_sequence(spatial_sequence_audit),
+            "feature_semantics": _evidence_feature_semantics(
+                feature_semantics_audit
+            ),
+            "event_weight": _evidence_event_weight(event_weight_audit),
+            "image_sequence_loader": _evidence_image_sequence_loader(
+                image_sequence_loader_audit
             ),
             "full_oof_preflight_policy": _evidence_full_oof_preflight_policy(
                 full_oof_preflight_policy
@@ -1117,6 +1196,53 @@ def _evidence_loader_input_audit(audit: dict[str, Any]) -> dict[str, Any]:
         "source_domain_imbalanced_strata_after_count": audit.get(
             "source_domain_imbalanced_strata_after_count"
         ),
+    }
+
+
+def _evidence_spatial_sequence(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "rows": audit.get("rows"),
+        "max_window_length": audit.get("max_window_length"),
+        "truncated_windows": audit.get("truncated_windows"),
+        "observed_within_length_ratio": audit.get("observed_within_length_ratio"),
+        "forbidden_selected": audit.get("forbidden_selected"),
+        "array_shapes": audit.get("array_shapes"),
+        "warnings": audit.get("warnings"),
+    }
+
+
+def _evidence_feature_semantics(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "tabular_feature_count": audit.get("tabular_feature_count"),
+        "tabular_family_counts": audit.get("tabular_family_counts"),
+        "forbidden_tabular_features": audit.get("forbidden_tabular_features"),
+        "spatial_assignment_count": len(audit.get("spatial_assignments", {}) or {}),
+        "warnings": audit.get("warnings"),
+    }
+
+
+def _evidence_event_weight(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "rows": audit.get("rows"),
+        "unique_window_ids": audit.get("unique_window_ids"),
+        "duplicate_window_id": audit.get("duplicate_window_id"),
+        "invalid_weight_zero_count": audit.get("invalid_weight_zero_count"),
+        "event_overlap_cluster_count": audit.get("event_overlap_cluster_count"),
+        "event_balanced_weight_sum": audit.get("event_balanced_weight_sum"),
+        "warnings": audit.get("warnings"),
+    }
+
+
+def _evidence_image_sequence_loader(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "checked_windows": audit.get("checked_windows"),
+        "ok_windows": audit.get("ok_windows"),
+        "error_windows": audit.get("error_windows"),
+        "loaded_frames": audit.get("loaded_frames"),
+        "missing_frames": audit.get("missing_frames"),
+        "checked_by_source": audit.get("checked_by_source"),
+        "image_size": audit.get("image_size"),
     }
 
 
