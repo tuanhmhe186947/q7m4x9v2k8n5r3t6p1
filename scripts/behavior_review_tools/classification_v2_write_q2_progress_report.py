@@ -97,6 +97,14 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--image-cache-letterbox-policy-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "image_cache_letterbox_policy_audit.json"
+        ),
+    )
+    parser.add_argument(
         "--pig-id-locality-json",
         type=Path,
         default=Path(
@@ -141,6 +149,9 @@ def main() -> None:
         args.full_oof_authorization_template_json
     )
     image_cache_inventory = _load_optional_json(args.image_cache_inventory_json)
+    image_cache_letterbox_policy = _load_optional_json(
+        args.image_cache_letterbox_policy_json
+    )
     pig_id_locality = _load_optional_json(args.pig_id_locality_json)
     split_group_leakage = _load_optional_json(args.split_group_leakage_json)
 
@@ -235,6 +246,14 @@ def main() -> None:
             image_cache_inventory.get("errors"),
         ),
         _gate(
+            "Image cache letterbox aspect policy",
+            image_cache_letterbox_policy.get("valid") is True
+            and image_cache_letterbox_policy.get("resize_policies")
+            == [image_cache_letterbox_policy.get("expected_resize_policy")]
+            and image_cache_letterbox_policy.get("letterbox_geometry_invalid_rows") == 0,
+            image_cache_letterbox_policy.get("errors"),
+        ),
+        _gate(
             "Full OOF preflight canonical path policy",
             full_oof_preflight_policy.get("valid") is True
             and full_oof_preflight_policy.get("canonical_config_errors") == []
@@ -314,6 +333,10 @@ def main() -> None:
             "roots without deleting derived outputs automatically."
         ),
         (
+            "Actor image cache policy is audited as letterbox aspect-preserving "
+            "padding, not square stretch resizing."
+        ),
+        (
             "pig_id remains annotation-local in Q2 contracts and must not be "
             "used as a biological identity or cross-video split key."
         ),
@@ -353,6 +376,9 @@ def main() -> None:
             "split_group_leakage": _evidence_split_group_leakage(split_group_leakage),
             "q2_final_package_stub": _evidence_q2_final_package_stub(q2_final_package_stub),
             "image_cache_inventory": _evidence_image_cache_inventory(image_cache_inventory),
+            "image_cache_letterbox_policy": _evidence_image_cache_letterbox_policy(
+                image_cache_letterbox_policy
+            ),
             "full_oof_preflight_policy": _evidence_full_oof_preflight_policy(
                 full_oof_preflight_policy
             ),
@@ -559,6 +585,22 @@ def _evidence_image_cache_inventory(audit: dict[str, Any]) -> dict[str, Any]:
         "ad_hoc_cache_dir_count": audit.get("ad_hoc_cache_dir_count"),
         "ad_hoc_cache_dirs": audit.get("ad_hoc_cache_dirs"),
         "warnings": audit.get("warnings"),
+    }
+
+
+def _evidence_image_cache_letterbox_policy(audit: dict[str, Any]) -> dict[str, Any]:
+    summary = audit.get("letterbox_geometry_summary") or {}
+    return {
+        "valid": audit.get("valid"),
+        "cache_manifest": audit.get("cache_manifest"),
+        "manifest_rows": audit.get("manifest_rows"),
+        "resize_policies": audit.get("resize_policies"),
+        "expected_resize_policy": audit.get("expected_resize_policy"),
+        "non_square_source_crop_rows": summary.get("non_square_source_crop_rows"),
+        "padded_canvas_rows": summary.get("padded_canvas_rows"),
+        "letterbox_geometry_invalid_rows": audit.get("letterbox_geometry_invalid_rows"),
+        "source_equivalence_checked": audit.get("source_equivalence_checked"),
+        "source_equivalence_mismatches": audit.get("source_equivalence_mismatches"),
     }
 
 
