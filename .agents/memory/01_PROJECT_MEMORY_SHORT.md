@@ -18,15 +18,18 @@
 - Full OOF launch path is gated by preflight plus explicit authorization:
   `outputs/classification_v2/model_design/full_multimodal_oof_preflight.json`
   and `outputs/classification_v2/model_design/full_oof_authorization.json`.
-- As of commit `75426db`, Q2 progress reports `PASS_PARTIAL_ROADMAP` with
-  44/44 gates passing. Full OOF is still not complete because the authorization
-  file is intentionally fail-closed and full/postrun artifacts are missing.
+- In the latest refreshed pre-full state, Q2 progress reports
+  `PASS_PARTIAL_ROADMAP` with 44/44 gates passing. Full OOF is still not
+  complete because the authorization file is intentionally fail-closed and
+  full/postrun artifacts are missing.
 - The current pre-full state is ready for human authorization review, not a
   finished Q2 result. The authorization writer and authorization file checker
   are both audited, and the execution gate rejects unauthorized full runs.
 - Do not run full OOF unless `full_oof_authorization.json` is explicitly
   authorized with long-run and no-Q2-claim acknowledgements, matching the clean
   preflight config hash and git commit.
+- After any commit, refresh the pre-full gate sequence before requesting human
+  full OOF authorization so preflight freshness points at current HEAD.
 - Expected full OOF runtime on RTX 3050 Laptop GPU is roughly 2-3 hours total;
   preflight training-only estimate is about 108 minutes, excluding evaluation,
   bootstrap metrics, calibration, registry, startup, and checkpoint IO.

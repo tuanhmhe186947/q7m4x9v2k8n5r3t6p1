@@ -133,7 +133,7 @@ When user allows verification, run in this order:
 - Treat `classification_v2` behavior recognition as the active priority unless
   the user explicitly switches back to tracking.
 - Pre-full readiness currently means `PASS_PARTIAL_ROADMAP` with 44/44 gates
-  passing at commit `75426db`, not a completed Q2 result.
+  passing in the latest refreshed pre-full state, not a completed Q2 result.
 - Full OOF remains fail-closed until `full_oof_authorization.json` is explicitly
   authorized with reviewer, long-run acknowledgement, no-Q2-claim
   acknowledgement, matching preflight config hash, and matching git commit.
@@ -141,6 +141,8 @@ When user allows verification, run in this order:
   checks, authorization writer check, preflight freshness check, launch packet
   check, execution gate, completion gate, postrun packet check, and Q2 progress
   report.
+- After any commit, refresh the same sequence again before requesting human full
+  OOF authorization so preflight freshness points at current HEAD.
 - Do not launch full OOF unless
   `check_classification_v2_full_oof_execution_gate.py` allows execution.
 - After full OOF, run calibration, confusion-focus comparison, ablation report
