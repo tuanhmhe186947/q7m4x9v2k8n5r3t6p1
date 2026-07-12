@@ -88,6 +88,13 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--image-cache-inventory-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/image_cache_inventory_audit.json"
+        ),
+    )
+    parser.add_argument(
         "--output-json",
         type=Path,
         default=Path("outputs/classification_v2/model_design/q2_progress_report.json"),
@@ -117,6 +124,7 @@ def main() -> None:
     full_oof_authorization_template = _load_optional_json(
         args.full_oof_authorization_template_json
     )
+    image_cache_inventory = _load_optional_json(args.image_cache_inventory_json)
 
     gates = [
         _gate("S0A snapshot/data contract", snapshot.get("valid") is True, snapshot.get("errors")),
@@ -174,6 +182,12 @@ def main() -> None:
             and q2_final_package_stub.get("can_claim_q2_result") is False
             and q2_final_package_stub.get("paper_facing_metrics_available") is False,
             q2_final_package_stub.get("errors"),
+        ),
+        _gate(
+            "Image cache canonical inventory",
+            image_cache_inventory.get("valid") is True
+            and image_cache_inventory.get("canonical_cache_dir_exists") is True,
+            image_cache_inventory.get("errors"),
         ),
         _gate(
             "Full OOF preflight canonical path policy",
@@ -240,6 +254,10 @@ def main() -> None:
             "Full OOF authorization template is intentionally non-authorized "
             "until a reviewer edits the approval fields."
         ),
+        (
+            "Image cache inventory records non-canonical smoke/resume cache "
+            "roots without deleting derived outputs automatically."
+        ),
     ]
     result = {
         "schema_version": "classification_v2_q2_progress_report_v1",
@@ -263,6 +281,7 @@ def main() -> None:
             "q2_final_package_contract": _evidence_q2_final_package_contract(q2_final_package_contract),
             "q2_feature_whitelist": _evidence_q2_feature_whitelist(q2_feature_whitelist),
             "q2_final_package_stub": _evidence_q2_final_package_stub(q2_final_package_stub),
+            "image_cache_inventory": _evidence_image_cache_inventory(image_cache_inventory),
             "full_oof_preflight_policy": _evidence_full_oof_preflight_policy(full_oof_preflight_policy),
             "full_oof_authorization_policy": _evidence_full_oof_authorization_policy(
                 full_oof_authorization_policy
@@ -421,6 +440,18 @@ def _evidence_q2_final_package_stub(audit: dict[str, Any]) -> dict[str, Any]:
         "paper_facing_metrics_available": audit.get("paper_facing_metrics_available"),
         "missing_required_package_artifact_count": audit.get("missing_required_package_artifact_count"),
         "feature_whitelist_valid": audit.get("feature_whitelist_valid"),
+    }
+
+
+def _evidence_image_cache_inventory(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "canonical_cache_dir": audit.get("canonical_cache_dir"),
+        "canonical_cache_dir_exists": audit.get("canonical_cache_dir_exists"),
+        "cache_dir_count": audit.get("cache_dir_count"),
+        "ad_hoc_cache_dir_count": audit.get("ad_hoc_cache_dir_count"),
+        "ad_hoc_cache_dirs": audit.get("ad_hoc_cache_dirs"),
+        "warnings": audit.get("warnings"),
     }
 
 
