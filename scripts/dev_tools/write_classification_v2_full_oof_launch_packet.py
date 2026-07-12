@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -104,6 +105,7 @@ def build_launch_packet(
     config = run_plan.get("config") or {}
     runtime_config = runtime_benchmark.get("recommended_runtime_config") or {}
     command = _full_run_command(config)
+    cmd_command = _cmd_launch_command(command)
     errors = _launch_packet_errors(
         preflight=preflight,
         run_plan=run_plan,
@@ -159,7 +161,9 @@ def build_launch_packet(
                 "visual_context_packed_cache_index_csv"
             ),
         },
+        "python_executable": command[0],
         "launch_command": command,
+        "cmd_launch_command": cmd_command,
         "review_checklist": _review_checklist(),
     }
 
@@ -168,7 +172,7 @@ def render_launch_packet_markdown(packet: dict[str, Any]) -> str:
     """Render the launch packet as a compact runbook for human review."""
 
     checklist = packet.get("review_checklist") or []
-    command = " ".join(packet.get("launch_command") or [])
+    command = " ".join(packet.get("cmd_launch_command") or [])
     lines = [
         "# classification_v2 Full OOF Launch Packet",
         "",
@@ -187,7 +191,7 @@ def render_launch_packet_markdown(packet: dict[str, Any]) -> str:
         f"- Eval rows: `{packet.get('total_eval_rows')}`",
         f"- Train steps: `{packet.get('total_train_steps')}`",
         "",
-        "## Command",
+        "## CMD Command",
         "```bat",
         command,
         "```",
@@ -202,7 +206,7 @@ def _full_run_command(config: dict[str, Any]) -> list[str]:
     """Build the exact full OOF command while leaving authorization external."""
 
     return [
-        "python",
+        sys.executable,
         "scripts\\behavior_review_tools\\classification_v2_run_full_multimodal_oof.py",
         "--full",
         "--confirm-full-run",
@@ -239,6 +243,21 @@ def _full_run_command(config: dict[str, Any]) -> list[str]:
         str(config.get("device") or ""),
         "--precision",
         str(config.get("precision") or ""),
+    ]
+
+
+def _cmd_launch_command(command: list[str]) -> list[str]:
+    """Wrap the launch command with project-root and PYTHONPATH setup for CMD."""
+
+    return [
+        "cd",
+        "/d",
+        str(Path.cwd()),
+        "&&",
+        "set",
+        "PYTHONPATH=%CD%\\src",
+        "&&",
+        *command,
     ]
 
 

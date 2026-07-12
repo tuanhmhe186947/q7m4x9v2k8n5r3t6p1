@@ -102,7 +102,9 @@ def main() -> None:
         "authorization_template_authorized": packet.get(
             "authorization_template_authorized"
         ),
+        "python_executable": packet.get("python_executable"),
         "launch_command": packet.get("launch_command"),
+        "cmd_launch_command": packet.get("cmd_launch_command"),
         "review_checklist_count": len(packet.get("review_checklist") or []),
         "preflight_config_sha256": packet.get("preflight_config_sha256"),
         "git_commit": packet.get("git_commit"),
@@ -133,6 +135,18 @@ def _packet_errors(packet: dict[str, Any], expected: dict[str, Any]) -> list[str
     if packet.get("authorization_template_authorized") is not False:
         errors.append("launch_packet_template_must_be_unauthorized")
     command = packet.get("launch_command") or []
+    cmd_command = packet.get("cmd_launch_command") or []
+    python_executable = str(packet.get("python_executable") or "")
+    if not python_executable:
+        errors.append("launch_packet_missing_python_executable")
+    if command and command[0] != python_executable:
+        errors.append("launch_packet_python_executable_mismatch")
+    if not cmd_command:
+        errors.append("launch_packet_missing_cmd_launch_command")
+    if "PYTHONPATH=%CD%\\src" not in cmd_command:
+        errors.append("launch_packet_cmd_missing_pythonpath")
+    if "&&" not in cmd_command:
+        errors.append("launch_packet_cmd_missing_command_chaining")
     required_tokens = (
         "--full",
         "--confirm-full-run",
