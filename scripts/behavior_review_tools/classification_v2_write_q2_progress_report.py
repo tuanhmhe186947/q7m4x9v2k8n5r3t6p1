@@ -95,6 +95,13 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--pig-id-locality-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/pig_id_locality_contract_audit.json"
+        ),
+    )
+    parser.add_argument(
         "--output-json",
         type=Path,
         default=Path("outputs/classification_v2/model_design/q2_progress_report.json"),
@@ -125,6 +132,7 @@ def main() -> None:
         args.full_oof_authorization_template_json
     )
     image_cache_inventory = _load_optional_json(args.image_cache_inventory_json)
+    pig_id_locality = _load_optional_json(args.pig_id_locality_json)
 
     gates = [
         _gate("S0A snapshot/data contract", snapshot.get("valid") is True, snapshot.get("errors")),
@@ -174,6 +182,14 @@ def main() -> None:
             and q2_feature_whitelist.get("fail_closed_on_unknown_columns") is True
             and q2_feature_whitelist.get("forbidden_probe_columns_not_blocked") == [],
             q2_feature_whitelist.get("errors"),
+        ),
+        _gate(
+            "Q2 pig_id annotation-local leakage guard",
+            pig_id_locality.get("valid") is True
+            and pig_id_locality.get("contracts_with_pig_id")
+            == pig_id_locality.get("contracts_with_scope_hint")
+            and pig_id_locality.get("forbidden_identity_allowance_count") == 0,
+            pig_id_locality.get("errors"),
         ),
         _gate(
             "Q2 final package skeleton no-claim gate",
@@ -258,6 +274,10 @@ def main() -> None:
             "Image cache inventory records non-canonical smoke/resume cache "
             "roots without deleting derived outputs automatically."
         ),
+        (
+            "pig_id remains annotation-local in Q2 contracts and must not be "
+            "used as a biological identity or cross-video split key."
+        ),
     ]
     result = {
         "schema_version": "classification_v2_q2_progress_report_v1",
@@ -280,6 +300,7 @@ def main() -> None:
             "q2_active_review_contract": _evidence_q2_active_review_contract(q2_active_review_contract),
             "q2_final_package_contract": _evidence_q2_final_package_contract(q2_final_package_contract),
             "q2_feature_whitelist": _evidence_q2_feature_whitelist(q2_feature_whitelist),
+            "pig_id_locality": _evidence_pig_id_locality(pig_id_locality),
             "q2_final_package_stub": _evidence_q2_final_package_stub(q2_final_package_stub),
             "image_cache_inventory": _evidence_image_cache_inventory(image_cache_inventory),
             "full_oof_preflight_policy": _evidence_full_oof_preflight_policy(full_oof_preflight_policy),
@@ -429,6 +450,18 @@ def _evidence_q2_feature_whitelist(audit: dict[str, Any]) -> dict[str, Any]:
         "forbidden_probe_columns_not_blocked": audit.get("forbidden_probe_columns_not_blocked"),
         "tabular_trainer_whitelist_count": audit.get("tabular_trainer_whitelist_count"),
         "spatial_trainer_whitelist_count": audit.get("spatial_trainer_whitelist_count"),
+    }
+
+
+def _evidence_pig_id_locality(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "contract_count": audit.get("contract_count"),
+        "contracts_with_pig_id": audit.get("contracts_with_pig_id"),
+        "contracts_with_scope_hint": audit.get("contracts_with_scope_hint"),
+        "forbidden_identity_allowance_count": audit.get(
+            "forbidden_identity_allowance_count"
+        ),
     }
 
 

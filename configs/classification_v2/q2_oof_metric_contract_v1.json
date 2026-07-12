@@ -5,6 +5,7 @@
     "target_strength": "Q2_strong",
     "primary_claim": "Improved pig behavior recognition under recording-date/video-safe internal validation.",
     "external_generalization_claim": false,
+    "pig_id_identity_scope": "annotation-local only; not identity across videos; never persistent biological identity",
     "prohibited_claims": [
       "external farm generalization",
       "external camera generalization",

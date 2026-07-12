@@ -4,7 +4,8 @@
   "claim_boundary": {
     "target_strength": "Q2_strong",
     "primary_claim": "Improve internal behavior recognition by reviewing predeclared confusion-focused model errors under recording-date/video-safe validation.",
-    "external_generalization_claim": false
+    "external_generalization_claim": false,
+    "pig_id_identity_scope": "annotation-local only; not identity across videos; never persistent biological identity"
   },
   "execution_policy": {
     "requires_oof_native_predictions": true,
