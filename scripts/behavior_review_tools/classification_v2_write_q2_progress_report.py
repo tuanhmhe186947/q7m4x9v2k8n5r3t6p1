@@ -726,7 +726,8 @@ def main() -> None:
             is False
             and full_oof_launch_packet.get("authorization_required") is True
             and full_oof_launch_packet.get("authorization_template_authorized")
-            is False,
+            is False
+            and _launch_packet_cmd_ready(full_oof_launch_packet),
             full_oof_launch_packet.get("errors"),
         ),
         _gate(
@@ -1529,6 +1530,22 @@ def _evidence_full_oof_execution_gate(audit: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _launch_packet_cmd_ready(audit: dict[str, Any]) -> bool:
+    """Require full-run launch packets to bind CMD setup and Python executable."""
+
+    command = audit.get("launch_command") or []
+    cmd_command = audit.get("cmd_launch_command") or []
+    python_executable = str(audit.get("python_executable") or "")
+    return bool(
+        python_executable
+        and command
+        and command[0] == python_executable
+        and cmd_command
+        and "PYTHONPATH=%CD%\\src" in cmd_command
+        and "&&" in cmd_command
+    )
+
+
 def _evidence_full_oof_launch_packet(audit: dict[str, Any]) -> dict[str, Any]:
     return {
         "valid": audit.get("valid"),
@@ -1539,6 +1556,8 @@ def _evidence_full_oof_launch_packet(audit: dict[str, Any]) -> dict[str, Any]:
         "authorization_template_authorized": audit.get(
             "authorization_template_authorized"
         ),
+        "python_executable": audit.get("python_executable"),
+        "cmd_launch_command_ready": _launch_packet_cmd_ready(audit),
         "review_checklist_count": audit.get("review_checklist_count"),
         "preflight_config_sha256": audit.get("preflight_config_sha256"),
         "git_commit": audit.get("git_commit"),
