@@ -138,6 +138,14 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--full-oof-postrun-registration-packet-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "full_oof_postrun_registration_packet_audit.json"
+        ),
+    )
+    parser.add_argument(
         "--image-cache-inventory-json",
         type=Path,
         default=Path(
@@ -326,6 +334,9 @@ def main() -> None:
     full_oof_launch_packet = _load_optional_json(args.full_oof_launch_packet_json)
     full_oof_completion_gate = _load_optional_json(
         args.full_oof_completion_gate_json
+    )
+    full_oof_postrun_registration_packet = _load_optional_json(
+        args.full_oof_postrun_registration_packet_json
     )
     image_cache_inventory = _load_optional_json(args.image_cache_inventory_json)
     image_cache_letterbox_policy = _load_optional_json(
@@ -729,6 +740,25 @@ def main() -> None:
             full_oof_completion_gate.get("errors"),
         ),
         _gate(
+            "Full OOF post-run registration packet is reviewable",
+            full_oof_postrun_registration_packet.get("valid") is True
+            and full_oof_postrun_registration_packet.get("packet_status")
+            == "READY_FOR_POST_FULL_OOF_REGISTRATION"
+            and full_oof_postrun_registration_packet.get(
+                "packet_matches_current_inputs"
+            )
+            is True
+            and full_oof_postrun_registration_packet.get("runs_training")
+            is False
+            and full_oof_postrun_registration_packet.get("runs_registration")
+            is False
+            and full_oof_postrun_registration_packet.get(
+                "q2_claim_allowed_by_packet"
+            )
+            is False,
+            full_oof_postrun_registration_packet.get("errors"),
+        ),
+        _gate(
             "Strict trainer reproducibility",
             reproducibility.get("errors") == []
             and reproducibility.get("forbidden_model_input_rejected") is True,
@@ -804,6 +834,10 @@ def main() -> None:
         (
             "Full OOF completion gate is fail-closed: missing or invalid full "
             "prediction artifacts keep q2_claim_allowed=false."
+        ),
+        (
+            "Full OOF post-run registration packet defines the registry and "
+            "completion-check commands, but it does not execute registration."
         ),
     ]
     result = {
@@ -902,6 +936,11 @@ def main() -> None:
             ),
             "full_oof_completion_gate": _evidence_full_oof_completion_gate(
                 full_oof_completion_gate
+            ),
+            "full_oof_postrun_registration_packet": (
+                _evidence_full_oof_postrun_registration_packet(
+                    full_oof_postrun_registration_packet
+                )
             ),
             "reproducibility": _evidence_reproducibility(reproducibility),
         },
@@ -1518,6 +1557,20 @@ def _evidence_full_oof_completion_gate(audit: dict[str, Any]) -> dict[str, Any]:
         "registry_record_json": audit.get("registry_record_json"),
         "preflight_config_sha256": audit.get("preflight_config_sha256"),
         "preflight_git_commit": audit.get("preflight_git_commit"),
+    }
+
+
+def _evidence_full_oof_postrun_registration_packet(
+    audit: dict[str, Any]
+) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "packet_status": audit.get("packet_status"),
+        "packet_matches_current_inputs": audit.get("packet_matches_current_inputs"),
+        "runs_training": audit.get("runs_training"),
+        "runs_registration": audit.get("runs_registration"),
+        "q2_claim_allowed_by_packet": audit.get("q2_claim_allowed_by_packet"),
+        "required_artifact_count": audit.get("required_artifact_count"),
     }
 
 

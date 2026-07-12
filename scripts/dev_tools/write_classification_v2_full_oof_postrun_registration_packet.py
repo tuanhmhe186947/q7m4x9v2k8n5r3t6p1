@@ -1,0 +1,249 @@
+from __future__ import annotations
+
+import argparse
+import json
+import subprocess
+from pathlib import Path
+from typing import Any
+
+
+SCHEMA_VERSION = "classification_v2_full_oof_postrun_registration_packet_v1"
+DEFAULT_FULL_OUTPUT_DIR = Path("outputs/classification_v2/model_full/full_multimodal_oof")
+DEFAULT_REGISTRY_DIR = Path("outputs/classification_v2/experiment_registry")
+DEFAULT_RECORD_JSON = DEFAULT_REGISTRY_DIR / "full_multimodal_oof_record.json"
+
+
+def main() -> None:
+    """Write post-run registry commands without registering an experiment."""
+
+    parser = argparse.ArgumentParser(
+        description="Write classification_v2 full OOF post-run registration packet."
+    )
+    parser.add_argument("--output-dir", type=Path, default=DEFAULT_FULL_OUTPUT_DIR)
+    parser.add_argument("--registry-dir", type=Path, default=DEFAULT_REGISTRY_DIR)
+    parser.add_argument(
+        "--runtime-benchmark-audit-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_benchmarks_visual_v3/"
+            "summary_head/runtime_benchmark_audit.json"
+        ),
+    )
+    parser.add_argument(
+        "--completion-gate-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "full_oof_completion_gate_audit.json"
+        ),
+    )
+    parser.add_argument(
+        "--output-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "full_oof_postrun_registration_packet.json"
+        ),
+    )
+    parser.add_argument(
+        "--output-md",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "full_oof_postrun_registration_packet.md"
+        ),
+    )
+    args = parser.parse_args()
+
+    packet = build_postrun_registration_packet(
+        output_dir=args.output_dir,
+        registry_dir=args.registry_dir,
+        runtime_benchmark_audit_json=args.runtime_benchmark_audit_json,
+        completion_gate_json=args.completion_gate_json,
+    )
+    args.output_json.parent.mkdir(parents=True, exist_ok=True)
+    args.output_json.write_text(json.dumps(packet, indent=2), encoding="utf-8")
+    args.output_md.parent.mkdir(parents=True, exist_ok=True)
+    args.output_md.write_text(render_postrun_packet_markdown(packet), encoding="utf-8")
+    print(json.dumps(packet, indent=2))
+    if not packet["valid"]:
+        raise SystemExit(1)
+
+
+def build_postrun_registration_packet(
+    *,
+    output_dir: Path,
+    registry_dir: Path,
+    runtime_benchmark_audit_json: Path,
+    completion_gate_json: Path,
+) -> dict[str, Any]:
+    """Describe the exact post-full-OOF registration and verification steps."""
+
+    artifacts = _full_oof_artifacts(output_dir)
+    record_json = registry_dir / "full_multimodal_oof_record.json"
+    register_command = _register_command(
+        output_dir=output_dir,
+        registry_dir=registry_dir,
+        artifacts=artifacts,
+        runtime_benchmark_audit_json=runtime_benchmark_audit_json,
+    )
+    completion_command = _completion_gate_command(
+        output_dir=output_dir,
+        record_json=record_json,
+    )
+    packet = {
+        "schema_version": SCHEMA_VERSION,
+        "valid": True,
+        "errors": [],
+        "status": "READY_FOR_POST_FULL_OOF_REGISTRATION",
+        "runs_training": False,
+        "runs_registration": False,
+        "q2_claim_allowed_by_packet": False,
+        "output_dir": str(output_dir),
+        "registry_record_json": str(record_json),
+        "required_artifacts": {name: str(path) for name, path in artifacts.items()},
+        "register_command": register_command,
+        "register_command_bat": subprocess.list2cmdline(register_command),
+        "completion_gate_command": completion_command,
+        "completion_gate_command_bat": subprocess.list2cmdline(completion_command),
+        "postrun_order": [
+            "Run full OOF only through the authorization-gated launch packet.",
+            "Run the register_command after full artifacts exist and pass checks.",
+            "Run the completion_gate_command to unlock q2_claim_allowed if valid.",
+            "Do not make a Q2 result claim until completion gate allows it.",
+        ],
+    }
+    packet["errors"] = _packet_errors(packet)
+    packet["valid"] = not packet["errors"]
+    return packet
+
+
+def render_postrun_packet_markdown(packet: dict[str, Any]) -> str:
+    """Render a compact post-run runbook for human execution."""
+
+    lines = [
+        "# classification_v2 Full OOF Post-Run Registration Packet",
+        "",
+        f"Status: **{packet.get('status')}**",
+        "",
+        f"Output dir: `{packet.get('output_dir')}`",
+        f"Registry record: `{packet.get('registry_record_json')}`",
+        "",
+        "## Register Command",
+        "```bat",
+        str(packet.get("register_command_bat") or ""),
+        "```",
+        "",
+        "## Completion Gate Command",
+        "```bat",
+        str(packet.get("completion_gate_command_bat") or ""),
+        "```",
+        "",
+        "## Order",
+    ]
+    lines.extend(f"- {item}" for item in packet.get("postrun_order") or [])
+    return "\n".join(lines) + "\n"
+
+
+def _register_command(
+    *,
+    output_dir: Path,
+    registry_dir: Path,
+    artifacts: dict[str, Path],
+    runtime_benchmark_audit_json: Path,
+) -> list[str]:
+    """Build the registry command with full OOF provenance paths."""
+
+    command = [
+        "python",
+        "scripts\\behavior_review_tools\\classification_v2_register_experiment.py",
+        "--name",
+        "full_multimodal_oof",
+        "--output-dir",
+        str(registry_dir),
+        "--metrics-json",
+        str(artifacts["metrics"]),
+        "--experiment-stage",
+        "paper_facing_candidate",
+        "--paper-facing",
+        "--result-kind",
+        "model_evaluation",
+        "--primary-metric-unit",
+        "native_temporal_unit",
+        "--split-policy",
+        "recording_group_oof",
+        "--dataset-snapshot-json",
+        "outputs\\classification_v2\\training_snapshots\\c2v2_27ed5c9963904c52.json",
+        "--run-audit-json",
+        str(artifacts["run_audit"]),
+        "--source-balanced-metrics-json",
+        str(artifacts["source_balanced_report"]),
+        "--runtime-benchmark-audit-json",
+        str(runtime_benchmark_audit_json),
+        "--notes",
+        "Full multimodal native-OOF evaluation; Q2 internal validation only.",
+    ]
+    for key in sorted(artifacts):
+        command.extend(["--artifact", str(artifacts[key])])
+    return command
+
+
+def _completion_gate_command(*, output_dir: Path, record_json: Path) -> list[str]:
+    """Build the post-registration completion gate command."""
+
+    return [
+        "python",
+        "scripts\\dev_tools\\check_classification_v2_full_oof_completion_gate.py",
+        "--output-dir",
+        str(output_dir),
+        "--registry-record-json",
+        str(record_json),
+    ]
+
+
+def _full_oof_artifacts(output_dir: Path) -> dict[str, Path]:
+    return {
+        "metrics": output_dir / "full_multimodal_oof_metrics.json",
+        "predictions": output_dir / "full_multimodal_oof_predictions.csv",
+        "prediction_schema_audit": (
+            output_dir / "full_multimodal_oof_prediction_schema_audit.json"
+        ),
+        "run_audit": output_dir / "full_multimodal_oof_audit.json",
+        "source_balanced_native_units": (
+            output_dir / "source_balanced_native_units.csv"
+        ),
+        "source_balanced_report": output_dir / "source_balanced_report.json",
+        "source_balanced_selection": output_dir / "source_balanced_selection.csv",
+        "unit_predictions": output_dir / "full_multimodal_oof_unit_predictions.csv",
+    }
+
+
+def _packet_errors(packet: dict[str, Any]) -> list[str]:
+    """Ensure the packet is a runbook, not a hidden registration side effect."""
+
+    errors: list[str] = []
+    if packet.get("runs_training") is not False:
+        errors.append("postrun_packet_must_not_run_training")
+    if packet.get("runs_registration") is not False:
+        errors.append("postrun_packet_must_not_run_registration")
+    if packet.get("q2_claim_allowed_by_packet") is not False:
+        errors.append("postrun_packet_must_not_allow_q2_claim")
+    command = packet.get("register_command") or []
+    required = {
+        "--paper-facing",
+        "--run-audit-json",
+        "--source-balanced-metrics-json",
+        "--runtime-benchmark-audit-json",
+        "--artifact",
+    }
+    missing = sorted(required.difference(command))
+    if missing:
+        errors.append(f"register_command_missing_tokens={missing}")
+    completion = packet.get("completion_gate_command") or []
+    if "--registry-record-json" not in completion:
+        errors.append("completion_command_missing_registry_record_json")
+    return errors
+
+
+if __name__ == "__main__":
+    main()
