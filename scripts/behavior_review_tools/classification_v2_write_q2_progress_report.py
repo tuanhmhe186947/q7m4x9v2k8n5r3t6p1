@@ -1578,6 +1578,12 @@ def _evidence_full_oof_launch_packet(audit: dict[str, Any]) -> dict[str, Any]:
             if "cmd_launch_command_ready" in audit
             else _launch_packet_cmd_ready(audit)
         ),
+        "estimated_training_seconds_excluding_eval": audit.get(
+            "estimated_training_seconds_excluding_eval"
+        ),
+        "estimated_training_minutes_excluding_eval": audit.get(
+            "estimated_training_minutes_excluding_eval"
+        ),
         "review_checklist_count": audit.get("review_checklist_count"),
         "preflight_config_sha256": audit.get("preflight_config_sha256"),
         "git_commit": audit.get("git_commit"),

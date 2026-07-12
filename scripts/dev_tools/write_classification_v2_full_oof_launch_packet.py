@@ -134,6 +134,16 @@ def build_launch_packet(
         "available_fold_count": run_plan.get("available_fold_count"),
         "total_eval_rows": run_plan.get("total_eval_rows"),
         "total_train_steps": run_plan.get("total_train_steps"),
+        "estimated_training_seconds_excluding_eval": preflight.get(
+            "estimated_training_seconds_excluding_eval"
+        ),
+        "estimated_training_minutes_excluding_eval": _runtime_minutes(
+            preflight.get("estimated_training_seconds_excluding_eval")
+        ),
+        "runtime_estimate_scope": (
+            "Training only; excludes evaluation, bootstrap metrics, startup, "
+            "checkpoint IO, and manual review time."
+        ),
         "runtime_benchmark": {
             "precision": runtime_config.get("precision"),
             "train_batch_size": runtime_config.get("train_batch_size"),
@@ -190,6 +200,8 @@ def render_launch_packet_markdown(packet: dict[str, Any]) -> str:
         f"- Folds: `{packet.get('selected_fold_count')}`",
         f"- Eval rows: `{packet.get('total_eval_rows')}`",
         f"- Train steps: `{packet.get('total_train_steps')}`",
+        "- Estimated training minutes, excluding eval/bootstrap/IO: "
+        f"`{packet.get('estimated_training_minutes_excluding_eval')}`",
         "",
         "## CMD Command",
         "```bat",
@@ -261,6 +273,14 @@ def _cmd_launch_command(command: list[str]) -> list[str]:
     ]
 
 
+def _runtime_minutes(seconds: Any) -> float | None:
+    """Convert a preflight runtime estimate to minutes for human review."""
+
+    if seconds is None:
+        return None
+    return round(float(seconds) / 60.0, 2)
+
+
 def _launch_packet_errors(
     *,
     preflight: dict[str, Any],
@@ -279,6 +299,8 @@ def _launch_packet_errors(
         errors.append(f"run_plan_not_valid={run_plan.get('errors')}")
     if runtime_benchmark.get("valid") is not True:
         errors.append(f"runtime_benchmark_not_valid={runtime_benchmark.get('errors')}")
+    if preflight.get("estimated_training_seconds_excluding_eval") is None:
+        errors.append("missing_training_runtime_estimate")
     if preflight.get("config_sha256") != run_plan.get("config_sha256"):
         errors.append("preflight_run_plan_config_sha256_mismatch")
     if preflight_freshness.get("preflight_fresh") is not True:

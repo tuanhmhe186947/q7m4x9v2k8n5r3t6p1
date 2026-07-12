@@ -107,6 +107,12 @@ def main() -> None:
         "cmd_launch_command": packet.get("cmd_launch_command"),
         "launch_command_python_ready": _launch_command_python_ready(packet),
         "cmd_launch_command_ready": _cmd_launch_command_ready(packet),
+        "estimated_training_seconds_excluding_eval": packet.get(
+            "estimated_training_seconds_excluding_eval"
+        ),
+        "estimated_training_minutes_excluding_eval": packet.get(
+            "estimated_training_minutes_excluding_eval"
+        ),
         "review_checklist_count": len(packet.get("review_checklist") or []),
         "preflight_config_sha256": packet.get("preflight_config_sha256"),
         "git_commit": packet.get("git_commit"),
@@ -149,6 +155,10 @@ def _packet_errors(packet: dict[str, Any], expected: dict[str, Any]) -> list[str
         errors.append("launch_packet_cmd_missing_pythonpath")
     if "&&" not in cmd_command:
         errors.append("launch_packet_cmd_missing_command_chaining")
+    if packet.get("estimated_training_seconds_excluding_eval") is None:
+        errors.append("launch_packet_missing_training_runtime_estimate")
+    if packet.get("estimated_training_minutes_excluding_eval") is None:
+        errors.append("launch_packet_missing_training_runtime_minutes")
     required_tokens = (
         "--full",
         "--confirm-full-run",
