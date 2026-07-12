@@ -87,6 +87,16 @@ not supersede the active classification_v2 rules above.
     the file. Re-read the nearby lines with an exact reader, reduce the patch to
     a smaller hunk, and retry. After the retry, inspect `git diff -- <file>` to
     confirm no Markdown structure was corrupted.
+17. Markdown append/edit protocol is mandatory for `.md` files:
+    identify the exact heading or nearby anchor first, patch only that section,
+    keep each hunk small enough to review, and avoid whole-file replacement.
+    Never append by shell redirection, here-doc, here-string, `cat`, or a
+    temporary generated overwrite. If the intended anchor is missing, add a new
+    dated section near the top with `apply_patch` and preserve all existing
+    historical content below it.
+18. After editing any `.md` file, run `git diff --check` and a changed-file
+    overlong-line scan before staging. For Markdown command examples, wrap long
+    Windows CMD commands with `^` continuation instead of leaving one long line.
 
 ## Tracking-specific rules
 

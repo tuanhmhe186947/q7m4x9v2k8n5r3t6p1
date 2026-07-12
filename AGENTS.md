@@ -46,6 +46,11 @@ File edit safety:
   shell redirects, heredocs, here-strings, `cat`, or ad hoc scripts to write
   source/config/docs unless generating a mechanical artifact is unavoidable.
   After editing, inspect `git diff -- <file>` before staging or committing.
+- For Markdown edits, first identify a stable heading or nearby anchor and patch
+  only that section. Do not delete/recreate `.md` files, append with shell
+  redirection, or overwrite from a temporary file. If a patch hunk fails, re-read
+  the nearby lines, retry a smaller hunk, then run `git diff --check` and an
+  overlong-line scan before staging.
 
 Legacy preserved docs:
 

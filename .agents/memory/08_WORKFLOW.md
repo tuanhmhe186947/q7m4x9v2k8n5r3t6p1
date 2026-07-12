@@ -39,8 +39,12 @@ Edit and commit rules:
    unless the user explicitly asks to remove it.
 5. If an `apply_patch` hunk fails, re-read the nearby lines and retry with a
    smaller context-matched patch instead of shell-writing the file.
-6. Before commit, scan changed files for long lines and run `git diff --check`.
-7. Wrap long Markdown command lines with CMD continuation `^`.
+6. For every Markdown edit, choose a stable heading or nearby anchor before
+   patching. If the anchor is missing, add a small dated section near the top;
+   do not use redirects, temporary overwrite files, or delete-add rewrites.
+7. After a Markdown edit, inspect `git diff -- <file>`, run `git diff --check`,
+   and scan changed `.md` files for overlong lines before staging.
+8. Wrap long Markdown command lines with CMD continuation `^`.
 
 Pre-full refresh sequence after any commit:
 
