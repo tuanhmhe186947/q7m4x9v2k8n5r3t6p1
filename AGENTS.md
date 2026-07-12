@@ -19,11 +19,13 @@ Critical settled facts:
 - Do not blame detector weight for `Pigs291119_000263_30fps` IDSW regression.
 - The user confirmed that both old and new weights produce IDSW ≈ 6 on current code for `000263`.
 - Legacy 21/06 produced IDSW ≈ 2 for `000263`.
-- Therefore focus on code/config/runtime behavior differences between legacy 21/06 and current `hybrid_bytetrack`.
+- Therefore focus on code/config/runtime behavior differences between legacy
+  21/06 and current `hybrid_bytetrack`.
 - `Pigs291119_000302_30fps` improved mainly because of the new detector weight.
 - Current preferred baseline is `hybrid_bytetrack + iou0_area0_condarea0_merge0`.
 - Do not enable `condarea` by default without explicit ablation.
-- Primary suspect for `000263`: `association.py` raw_id owner/penalty/bypass and `all_detection_indices` matching for `hybrid_bytetrack`.
+- Primary suspect for `000263`: `association.py` raw_id owner/penalty/bypass
+  and `all_detection_indices` matching for `hybrid_bytetrack`.
 - Secondary suspect: forced post-processing in `runner.py` for `hybrid_bytetrack`.
 
 Rules:
@@ -34,8 +36,9 @@ Rules:
 - Always report which memory files were read before making changes.
 - Keep code lines within the repository formatter/linter limit before commit.
   Wrap long conditions, strings, comprehensions, function calls, and argument
-  lists proactively; run a changed-file overlong-line scan before committing so
-  git commit/pre-commit does not fail on line length.
+  lists proactively. Before every commit that changes code, run a changed-file
+  overlong-line scan, for example `rg -n "^.{101,}$" <changed-files>`, and fix
+  any matches before `git commit` so pre-commit does not fail on line length.
 
 Legacy preserved docs:
 

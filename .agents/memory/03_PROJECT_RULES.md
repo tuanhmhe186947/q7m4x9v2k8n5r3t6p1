@@ -3,7 +3,8 @@
 ## 2026-07-03 IDSW guard rules
 
 1. Preserve the split lost-track reacquire guard implementation that produced:
-   `outputs/eval/hybrid_bytetrack/20260703_193439/smooth_det020_loose/iou0_area0_condarea0_merge0/tracking_metrics.csv`.
+   `outputs/eval/hybrid_bytetrack/20260703_193439/smooth_det020_loose/`
+   `iou0_area0_condarea0_merge0/tracking_metrics.csv`.
 2. Current best tradeoff for `000231` + `000302` requires:
    - `lost_track_reacquire_guard=true`
    - `lost_track_reacquire_non_same_raw_distance_guard=false` as the default/base setting
@@ -11,14 +12,20 @@
    - `lost_track_different_raw_hidden_owner_bypass=true`
    - `lost_track_different_raw_hidden_owner_min_missed=2`
    - `lost_track_different_raw_hidden_owner_min_center_gain=0.03`
-3. Do not turn off `lost_track_reacquire_raw_owner_guard` globally; it fixes `000302` but damages `000231`.
-4. Do not remove the conditional different-raw hidden-owner bypass without an ablation against `000231` and `000302`.
-5. Do not assume appearance threshold tuning alone solves this tradeoff; tested `0.15` did not change the `000231=8`, `000302=0` result.
-6. Do not reintroduce the need for `--profile-override lost_track_reacquire_non_same_raw_distance_guard=false`; this is now the base/default so tracking/eval/optimizer use it automatically.
+3. Do not turn off `lost_track_reacquire_raw_owner_guard` globally; it fixes
+   `000302` but damages `000231`.
+4. Do not remove the conditional different-raw hidden-owner bypass without an
+   ablation against `000231` and `000302`.
+5. Do not assume appearance threshold tuning alone solves this tradeoff; tested
+   `0.15` did not change the `000231=8`, `000302=0` result.
+6. Do not reintroduce the need for
+   `--profile-override lost_track_reacquire_non_same_raw_distance_guard=false`;
+   this is now the base/default so tracking/eval/optimizer use it automatically.
 
 ## General rules
 
-1. Always preserve the user's current experimental conclusion unless existing files clearly contradict it.
+1. Always preserve the user's current experimental conclusion unless existing
+   files clearly contradict it.
 2. Do not repeatedly reopen settled hypotheses.
 3. Do not blame weight for `000263` IDSW increase.
 4. Prefer small, reversible patches.
@@ -29,17 +36,27 @@
 9. Always state which files were changed.
 10. Always state which behavior changed and which behavior was intentionally not changed.
 11. Always report which memory files were read before making changes.
-12. Keep code lines within the repository formatter/linter limit before commit. Wrap long conditions, strings, and argument lists proactively so pre-commit does not fail on line length.
+12. Keep code lines within the repository formatter/linter limit before commit.
+    Wrap long conditions, strings, comprehensions, function calls, and argument
+    lists proactively. Before every commit that changes code, run a changed-file
+    overlong-line scan, for example `rg -n "^.{101,}$" <changed-files>`, and
+    fix any matches before `git commit` so pre-commit does not fail on line
+    length.
 
 ## Tracking-specific rules
 
-1. For `evaluate_tracking.py` behavior and metric comparisons, treat commit `b697c4eba36db280cbf01f446873da17bcac509d` as the main historical reference unless the user explicitly asks for another snapshot.
+1. For `evaluate_tracking.py` behavior and metric comparisons, treat commit
+   `b697c4eba36db280cbf01f446873da17bcac509d` as the main historical reference
+   unless the user explicitly asks for another snapshot.
 2. Do not assume `hybrid_bytetrack` is already legacy-compatible.
-3. Do not assume folder name `iou0_area0_condarea0_merge0` proves runtime flags were correct; inspect config/runtime path if needed.
+3. Do not assume folder name `iou0_area0_condarea0_merge0` proves runtime flags
+   were correct; inspect config/runtime path if needed.
 4. Preserve the `runner.py` post-processing gates that improved IDSW:
    - identity guard: `cfg.enable_offline_smoothing and cfg.identity_swap_guard`
-   - temporal refinement and overlap hidden island stabilization: `cfg.enable_offline_smoothing and (cfg.smooth_boxes or cfg.refine_boxes)`
-   - `stabilize_overlap_hidden_islands(shapes, cfg)` must run after `refine_shapes_temporally(...)` in that second block.
+   - temporal refinement and overlap hidden island stabilization:
+     `cfg.enable_offline_smoothing and (cfg.smooth_boxes or cfg.refine_boxes)`
+   - `stabilize_overlap_hidden_islands(shapes, cfg)` must run after
+     `refine_shapes_temporally(...)` in that second block.
 4. Keep `hybrid_bytetrack` default rule flags OFF unless explicitly requested.
 5. Do not enable `condarea` by default unless the user asks or ablation proves it.
 6. Be careful with raw ByteTrack IDs; they may be unstable after occlusion.
@@ -58,8 +75,9 @@
 3. If changing `detections.py`, document how it differs from legacy `tracking_engine.py`.
 4. If changing `config.py`, document default mode/rule behavior clearly.
 5. If changing evaluation path, ensure stale XML cannot be confused with fresh XML.
-6. Before committing code, scan changed files for overlong lines and wrap them
-   proactively; do not rely on pre-commit failure to catch line-length issues.
+6. Before committing code, scan changed files for overlong lines with a command
+   such as `rg -n "^.{101,}$" <changed-files>` and wrap matches proactively;
+   do not rely on pre-commit failure to catch line-length issues.
 
 ## Verification rules
 
@@ -86,4 +104,7 @@ Metrics to watch:
 
 ## Preserved legacy agent rules
 
-The previous `.agents/AGENTS.md` remains in place and contains broader repository coding standards for PyTorch, OpenCV, GPU fallback, quality checks, and command formatting. Root `AGENTS.md` is now the main Codex entrypoint; use the preserved file as supplemental implementation guidance when relevant.
+The previous `.agents/AGENTS.md` remains in place and contains broader
+repository coding standards for PyTorch, OpenCV, GPU fallback, quality checks,
+and command formatting. Root `AGENTS.md` is now the main Codex entrypoint; use
+the preserved file as supplemental implementation guidance when relevant.
