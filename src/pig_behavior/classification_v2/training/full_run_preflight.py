@@ -16,6 +16,16 @@ from pig_behavior.classification_v2.training.full_multimodal_oof import (
     full_run_config_fingerprint,
 )
 
+RUNTIME_RELEVANT_PATH_PREFIXES = (
+    "configs/classification_v2/",
+    "src/pig_behavior/classification_v2/contracts/",
+    "src/pig_behavior/classification_v2/evaluation/",
+    "src/pig_behavior/classification_v2/training/",
+    "scripts/behavior_review_tools/classification_v2_run_full_multimodal_oof.py",
+    "scripts/dev_tools/preflight_classification_v2_full_multimodal_oof.py",
+    "scripts/dev_tools/summarize_classification_v2_runtime_benchmark.py",
+)
+
 
 def build_full_run_preflight(
     config: FullMultimodalOofConfig,
@@ -56,7 +66,13 @@ def build_full_run_preflight(
     ):
         if path is None or not path.exists():
             errors.append(f"missing_{path_name}={path}")
-    errors.extend(_runtime_match_errors(config, runtime, expected_git_commit=git_state["commit"]))
+    runtime_match = _runtime_match_audit(
+        config,
+        runtime,
+        expected_git_commit=git_state["commit"],
+    )
+    errors.extend(runtime_match["errors"])
+    warnings.extend(runtime_match["warnings"])
     if config.precision == "amp" and not torch.cuda.is_available():
         errors.append("amp_full_run_requires_cuda")
     if config.device not in {"cuda", "auto"}:
@@ -72,8 +88,13 @@ def build_full_run_preflight(
         int(fold.get("effective_training_steps", 0)) * int(fold.get("train_batch_size", 0))
         for fold in plan.get("folds", [])
     )
-    estimated_training_seconds = float(total_training_rows / throughput) if throughput > 0.0 else None
-    warnings.append("Estimated runtime excludes evaluation, bootstrap metrics, startup, and checkpoint IO.")
+    estimated_training_seconds = (
+        float(total_training_rows / throughput) if throughput > 0.0 else None
+    )
+    warnings.append(
+        "Estimated runtime excludes evaluation, bootstrap metrics, startup, "
+        "and checkpoint IO."
+    )
     return {
         "schema_version": "classification_v2_full_run_preflight_v1",
         "config_sha256": full_run_config_fingerprint(config),
@@ -85,6 +106,7 @@ def build_full_run_preflight(
         "snapshot_valid": bool(snapshot.get("valid")),
         "runtime_benchmark_audit_json": str(runtime_benchmark_audit_json),
         "runtime_recommendation": recommendation,
+        "runtime_match_audit": runtime_match,
         "feature_whitelist_audit_json": str(feature_whitelist_audit_json),
         "feature_whitelist_valid": feature_whitelist.get("valid"),
         "feature_whitelist_contract_version": feature_whitelist.get("contract_version"),
@@ -129,18 +151,23 @@ def _read_optional_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _runtime_match_errors(
+def _runtime_match_audit(
     config: FullMultimodalOofConfig,
     runtime: dict[str, Any],
     *,
     expected_git_commit: str | None = None,
-) -> list[str]:
+) -> dict[str, Any]:
     """Require the full config to use a measured memory-safe runtime recommendation."""
 
     errors: list[str] = []
+    warnings: list[str] = []
     if runtime.get("valid") is not True or runtime.get("errors"):
         errors.append(f"invalid_runtime_benchmark={runtime.get('errors')}")
-        return errors
+        return {
+            "errors": errors,
+            "warnings": warnings,
+            "runtime_git_commit_check": {},
+        }
     recommendation = runtime.get("recommended_runtime_config") or {}
     if recommendation.get("model_architecture_version") != config.model_architecture_version:
         errors.append(
@@ -148,21 +175,108 @@ def _runtime_match_errors(
             f"recommended:{recommendation.get('model_architecture_version')},"
             f"config:{config.model_architecture_version}"
         )
-    if expected_git_commit is not None and recommendation.get("git_commit") != expected_git_commit:
+    git_check = _runtime_git_commit_check(
+        recommended_git_commit=recommendation.get("git_commit"),
+        current_git_commit=expected_git_commit,
+    )
+    if git_check["changed"] and not git_check["allowed_without_rebenchmark"]:
         errors.append(
-            "runtime_git_commit_mismatch="
-            f"recommended:{recommendation.get('git_commit')},current:{expected_git_commit}"
+            "runtime_git_commit_mismatch_relevant_changes="
+            f"recommended:{recommendation.get('git_commit')},"
+            f"current:{expected_git_commit},"
+            f"relevant_paths:{git_check['runtime_relevant_changed_paths']}"
+        )
+    elif git_check["changed"]:
+        warnings.append(
+            "runtime_git_commit_mismatch_allowed_audit_only_changes="
+            f"recommended:{recommendation.get('git_commit')},"
+            f"current:{expected_git_commit}"
         )
     if recommendation.get("precision") != config.precision:
         errors.append(
-            f"runtime_precision_mismatch=recommended:{recommendation.get('precision')},config:{config.precision}"
+            "runtime_precision_mismatch="
+            f"recommended:{recommendation.get('precision')},"
+            f"config:{config.precision}"
         )
     if int(recommendation.get("train_batch_size", -1)) != int(config.train_batch_size):
         errors.append(
             "runtime_batch_size_mismatch="
             f"recommended:{recommendation.get('train_batch_size')},config:{config.train_batch_size}"
         )
-    return errors
+    return {
+        "errors": errors,
+        "warnings": warnings,
+        "runtime_git_commit_check": git_check,
+    }
+
+
+def _runtime_git_commit_check(
+    *,
+    recommended_git_commit: Any,
+    current_git_commit: str | None,
+) -> dict[str, Any]:
+    """Classify benchmark commit drift by runtime-relevant source changes."""
+
+    recommended = str(recommended_git_commit or "")
+    current = str(current_git_commit or "")
+    if not recommended or not current:
+        return {
+            "changed": recommended != current,
+            "allowed_without_rebenchmark": False,
+            "changed_paths": [],
+            "runtime_relevant_changed_paths": [],
+            "error": "missing_git_commit_for_runtime_benchmark_check",
+        }
+    if recommended == current:
+        return {
+            "changed": False,
+            "allowed_without_rebenchmark": True,
+            "changed_paths": [],
+            "runtime_relevant_changed_paths": [],
+            "error": None,
+        }
+    try:
+        diff = subprocess.run(
+            ["git", "diff", "--name-only", f"{recommended}..{current}"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except Exception as exc:
+        return {
+            "changed": True,
+            "allowed_without_rebenchmark": False,
+            "changed_paths": [],
+            "runtime_relevant_changed_paths": [],
+            "error": f"git_diff_failed={exc}",
+        }
+    changed_paths = [
+        path.strip().replace("\\", "/")
+        for path in diff.stdout.splitlines()
+        if path.strip()
+    ]
+    relevant_paths = [
+        path
+        for path in changed_paths
+        if _runtime_relevant_path(path)
+    ]
+    return {
+        "changed": True,
+        "allowed_without_rebenchmark": not relevant_paths,
+        "changed_paths": changed_paths,
+        "runtime_relevant_changed_paths": relevant_paths,
+        "error": None,
+    }
+
+
+def _runtime_relevant_path(path: str) -> bool:
+    """Return whether a changed file can invalidate runtime benchmark evidence."""
+
+    normalized = path.replace("\\", "/").lower()
+    return any(
+        normalized.startswith(prefix.lower())
+        for prefix in RUNTIME_RELEVANT_PATH_PREFIXES
+    )
 
 
 def _canonical_full_run_path_errors(config: FullMultimodalOofConfig) -> list[str]:
@@ -175,19 +289,23 @@ def _canonical_full_run_path_errors(config: FullMultimodalOofConfig) -> list[str
     expected_actor_root = Path("outputs/classification_v2/image_cache_v2_letterbox")
     expected_actor_tensor = expected_actor_root / f"packed_rgb_{config.image_size}_letterbox.npy"
     expected_actor_index = expected_actor_root / "packed_image_cache_index.csv"
-    if config.packed_image_cache_npy is not None and _norm(config.packed_image_cache_npy) != _norm(
-        expected_actor_tensor
+    if (
+        config.packed_image_cache_npy is not None
+        and _norm(config.packed_image_cache_npy) != _norm(expected_actor_tensor)
     ):
         errors.append(
             "packed_actor_cache_must_use_canonical_letterbox_tensor="
             f"expected:{expected_actor_tensor},actual:{config.packed_image_cache_npy}"
         )
-    if config.packed_image_cache_index_csv is not None and _norm(config.packed_image_cache_index_csv) != _norm(
-        expected_actor_index
+    if (
+        config.packed_image_cache_index_csv is not None
+        and _norm(config.packed_image_cache_index_csv)
+        != _norm(expected_actor_index)
     ):
         errors.append(
             "packed_actor_cache_index_must_use_canonical_letterbox_index="
-            f"expected:{expected_actor_index},actual:{config.packed_image_cache_index_csv}"
+            f"expected:{expected_actor_index},"
+            f"actual:{config.packed_image_cache_index_csv}"
         )
     expected_visual_root = Path("outputs/classification_v2/visual_interaction_cache")
     expected_visual_manifest = expected_visual_root / "visual_context_manifest.csv"
@@ -200,19 +318,23 @@ def _canonical_full_run_path_errors(config: FullMultimodalOofConfig) -> list[str
             "visual_context_manifest_must_use_canonical_cache="
             f"expected:{expected_visual_manifest},actual:{config.visual_context_cache_manifest_csv}"
         )
-    if config.visual_context_packed_cache_npy is not None and _norm(config.visual_context_packed_cache_npy) != _norm(
-        expected_visual_tensor
+    if (
+        config.visual_context_packed_cache_npy is not None
+        and _norm(config.visual_context_packed_cache_npy)
+        != _norm(expected_visual_tensor)
     ):
         errors.append(
             "packed_visual_context_must_use_canonical_letterbox_tensor="
-            f"expected:{expected_visual_tensor},actual:{config.visual_context_packed_cache_npy}"
+            f"expected:{expected_visual_tensor},"
+            f"actual:{config.visual_context_packed_cache_npy}"
         )
     if config.visual_context_packed_cache_index_csv is not None and _norm(
         config.visual_context_packed_cache_index_csv
     ) != _norm(expected_visual_index):
         errors.append(
             "packed_visual_context_index_must_use_canonical_letterbox_index="
-            f"expected:{expected_visual_index},actual:{config.visual_context_packed_cache_index_csv}"
+            f"expected:{expected_visual_index},"
+            f"actual:{config.visual_context_packed_cache_index_csv}"
         )
     return errors
 
@@ -236,7 +358,9 @@ def validate_preflight_for_execution(
     expected = full_run_config_fingerprint(config)
     if preflight.get("config_sha256") != expected:
         errors.append(
-            f"full_run_config_fingerprint_mismatch=expected:{expected},preflight:{preflight.get('config_sha256')}"
+            "full_run_config_fingerprint_mismatch="
+            f"expected:{expected},"
+            f"preflight:{preflight.get('config_sha256')}"
         )
     if preflight.get("git_dirty") is not False:
         errors.append(f"preflight_git_dirty={preflight.get('git_dirty')}")
@@ -244,7 +368,9 @@ def validate_preflight_for_execution(
         errors.append(f"current_git_dirty={state.get('dirty')}")
     if not state.get("commit") or state.get("commit") != preflight.get("git_commit"):
         errors.append(
-            f"preflight_git_commit_mismatch=preflight:{preflight.get('git_commit')},current:{state.get('commit')}"
+            "preflight_git_commit_mismatch="
+            f"preflight:{preflight.get('git_commit')},"
+            f"current:{state.get('commit')}"
         )
     return errors
 
