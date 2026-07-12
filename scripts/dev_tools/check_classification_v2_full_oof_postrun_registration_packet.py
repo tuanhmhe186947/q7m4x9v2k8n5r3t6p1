@@ -116,6 +116,17 @@ def main() -> None:
             packet.get("completion_gate_cmd_command") or [],
             packet.get("python_executable"),
         ),
+        "completion_gate_precheck_valid": (
+            (packet.get("completion_gate_precheck") or {}).get("valid")
+        ),
+        "completion_gate_precheck_fail_closed": (
+            (packet.get("completion_gate_precheck") or {}).get("fail_closed")
+        ),
+        "completion_gate_precheck_claim_allowed": (
+            (packet.get("completion_gate_precheck") or {}).get(
+                "q2_claim_allowed"
+            )
+        ),
         "required_artifact_count": len(packet.get("required_artifacts") or {}),
         "required_postrun_provenance_count": len(
             packet.get("required_postrun_provenance") or {}
@@ -152,6 +163,11 @@ def _packet_errors(packet: dict[str, Any], expected: dict[str, Any]) -> list[str
         errors.append("postrun_packet_must_not_run_registration")
     if packet.get("q2_claim_allowed_by_packet") is not False:
         errors.append("postrun_packet_must_not_allow_q2_claim")
+    precheck = packet.get("completion_gate_precheck") or {}
+    if precheck.get("valid") is not True:
+        errors.append(f"postrun_completion_precheck_invalid={precheck.get('errors')}")
+    if precheck.get("fail_closed") is not True:
+        errors.append("postrun_completion_precheck_not_fail_closed")
     if len(packet.get("required_artifacts") or {}) < 8:
         errors.append("postrun_packet_required_artifacts_incomplete")
     postrun = packet.get("required_postrun_provenance") or {}

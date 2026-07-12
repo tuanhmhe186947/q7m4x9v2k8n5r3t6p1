@@ -804,6 +804,14 @@ def main() -> None:
                 full_oof_postrun_registration_packet,
                 "completion_gate_cmd_command_ready",
             )
+            and _optional_true(
+                full_oof_postrun_registration_packet,
+                "completion_gate_precheck_valid",
+            )
+            and _optional_true(
+                full_oof_postrun_registration_packet,
+                "completion_gate_precheck_fail_closed",
+            )
             and (
                 full_oof_postrun_registration_packet.get(
                     "required_postrun_provenance_count"
@@ -1745,6 +1753,15 @@ def _evidence_full_oof_postrun_registration_packet(
         "register_cmd_command_ready": audit.get("register_cmd_command_ready"),
         "completion_gate_cmd_command_ready": audit.get(
             "completion_gate_cmd_command_ready"
+        ),
+        "completion_gate_precheck_valid": audit.get(
+            "completion_gate_precheck_valid"
+        ),
+        "completion_gate_precheck_fail_closed": audit.get(
+            "completion_gate_precheck_fail_closed"
+        ),
+        "completion_gate_precheck_claim_allowed": audit.get(
+            "completion_gate_precheck_claim_allowed"
         ),
         "required_artifact_count": audit.get("required_artifact_count"),
         "required_postrun_provenance_count": audit.get(

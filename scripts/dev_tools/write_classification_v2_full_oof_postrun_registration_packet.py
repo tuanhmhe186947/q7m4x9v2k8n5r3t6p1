@@ -83,6 +83,11 @@ def build_postrun_registration_packet(
     artifacts = _full_oof_artifacts(output_dir)
     postrun = _postrun_provenance_artifacts(output_dir)
     record_json = registry_dir / "full_multimodal_oof_record.json"
+    completion_precheck = _completion_gate_precheck(
+        completion_gate_json=completion_gate_json,
+        output_dir=output_dir,
+        record_json=record_json,
+    )
     calibration_command = _calibration_command(
         artifacts=artifacts,
         output_dir=output_dir,
@@ -113,6 +118,8 @@ def build_postrun_registration_packet(
         "q2_claim_allowed_by_packet": False,
         "output_dir": str(output_dir),
         "registry_record_json": str(record_json),
+        "completion_gate_precheck_json": str(completion_gate_json),
+        "completion_gate_precheck": completion_precheck,
         "required_artifacts": {name: str(path) for name, path in artifacts.items()},
         "required_postrun_provenance": {
             name: str(path) for name, path in postrun.items()
@@ -321,6 +328,47 @@ def _completion_gate_command(*, output_dir: Path, record_json: Path) -> list[str
     ]
 
 
+def _completion_gate_precheck(
+    *,
+    completion_gate_json: Path,
+    output_dir: Path,
+    record_json: Path,
+) -> dict[str, Any]:
+    """Bind the packet to the current fail-closed completion-gate evidence."""
+
+    if not completion_gate_json.exists():
+        return {
+            "valid": False,
+            "errors": [f"missing_completion_gate_json={completion_gate_json}"],
+            "completion_ready": None,
+            "q2_claim_allowed": None,
+            "fail_closed": None,
+        }
+    payload = json.loads(completion_gate_json.read_text(encoding="utf-8"))
+    errors: list[str] = []
+    if payload.get("valid") is not True:
+        errors.append(f"completion_gate_invalid={payload.get('errors')}")
+    if payload.get("fail_closed") is not True:
+        errors.append("completion_gate_not_fail_closed")
+    if _norm_path(payload.get("output_dir")) != _norm_path(output_dir):
+        errors.append("completion_gate_output_dir_mismatch")
+    if _norm_path(payload.get("registry_record_json")) != _norm_path(record_json):
+        errors.append("completion_gate_registry_record_mismatch")
+    return {
+        "valid": not errors,
+        "errors": errors,
+        "completion_ready": payload.get("completion_ready"),
+        "q2_claim_allowed": payload.get("q2_claim_allowed"),
+        "fail_closed": payload.get("fail_closed"),
+        "missing_artifact_count": payload.get("missing_artifact_count"),
+        "blocking_reasons": payload.get("blocking_reasons"),
+        "output_dir": payload.get("output_dir"),
+        "registry_record_json": payload.get("registry_record_json"),
+        "preflight_config_sha256": payload.get("preflight_config_sha256"),
+        "preflight_git_commit": payload.get("preflight_git_commit"),
+    }
+
+
 def _cmd_command(command: list[str]) -> list[str]:
     """Wrap post-run commands with project-root and PYTHONPATH setup for CMD."""
 
@@ -392,6 +440,9 @@ def _packet_errors(packet: dict[str, Any]) -> list[str]:
     """Ensure the packet is a runbook, not a hidden registration side effect."""
 
     errors: list[str] = []
+    precheck = packet.get("completion_gate_precheck") or {}
+    if precheck.get("valid") is not True:
+        errors.append(f"completion_gate_precheck_invalid={precheck.get('errors')}")
     if packet.get("runs_training") is not False:
         errors.append("postrun_packet_must_not_run_training")
     if packet.get("runs_registration") is not False:
@@ -483,6 +534,12 @@ def _packet_errors(packet: dict[str, Any]) -> list[str]:
     if not _cmd_ready(packet.get("completion_gate_cmd_command") or []):
         errors.append("completion_cmd_command_missing_cmd_setup")
     return errors
+
+
+def _norm_path(value: Any) -> str:
+    """Normalize paths for deterministic packet comparisons on Windows."""
+
+    return str(Path(str(value))).replace("\\", "/").lower()
 
 
 def _require_option_values(
