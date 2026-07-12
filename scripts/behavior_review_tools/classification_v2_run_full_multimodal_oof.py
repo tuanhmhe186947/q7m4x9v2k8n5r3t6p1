@@ -23,6 +23,10 @@ DEFAULT_FULL_OUTPUT_DIR = Path(
 DEFAULT_PILOT_OUTPUT_DIR = Path(
     "outputs/classification_v2/model_smoke/full_multimodal_oof_pilot"
 )
+DEFAULT_ACTOR_CACHE_ROOT = Path("outputs/classification_v2/image_cache_v2_letterbox")
+DEFAULT_VISUAL_CACHE_ROOT = Path(
+    "outputs/classification_v2/visual_interaction_cache"
+)
 DEFAULT_VISUAL_CONTEXT_MANIFEST = Path(
     "outputs/classification_v2/visual_interaction_cache/visual_context_manifest.csv"
 )
@@ -116,17 +120,34 @@ def main() -> None:
     output_dir = args.output_dir or (
         DEFAULT_FULL_OUTPUT_DIR if args.full else DEFAULT_PILOT_OUTPUT_DIR
     )
+    actor_manifest = args.image_cache_manifest
+    actor_tensor = args.packed_image_cache
+    actor_index = args.packed_image_cache_index
+    visual_manifest = args.visual_context_cache_manifest
+    visual_tensor = args.visual_context_packed_cache
+    visual_index = args.visual_context_packed_cache_index
+    if args.full and not args.allow_image_source_fallback:
+        actor_tensor = actor_tensor or _actor_packed_tensor(args.image_size)
+        actor_index = actor_index or DEFAULT_ACTOR_CACHE_ROOT / "packed_image_cache_index.csv"
+        visual_manifest = visual_manifest or DEFAULT_VISUAL_CONTEXT_MANIFEST
+        visual_tensor = visual_tensor or _visual_packed_tensor(args.image_size)
+        visual_index = visual_index or DEFAULT_VISUAL_CACHE_ROOT / (
+            "packed_image_cache_index.csv"
+        )
     config = FullMultimodalOofConfig(
         output_dir=output_dir,
-        image_cache_manifest_csv=args.image_cache_manifest,
-        packed_image_cache_npy=args.packed_image_cache,
-        packed_image_cache_index_csv=args.packed_image_cache_index,
-        visual_context_cache_manifest_csv=args.visual_context_cache_manifest,
-        visual_context_packed_cache_npy=args.visual_context_packed_cache,
-        visual_context_packed_cache_index_csv=args.visual_context_packed_cache_index,
-        require_packed_visual_context=args.require_packed_visual_context,
+        image_cache_manifest_csv=actor_manifest,
+        packed_image_cache_npy=actor_tensor,
+        packed_image_cache_index_csv=actor_index,
+        visual_context_cache_manifest_csv=visual_manifest,
+        visual_context_packed_cache_npy=visual_tensor,
+        visual_context_packed_cache_index_csv=visual_index,
+        require_packed_visual_context=(
+            args.require_packed_visual_context
+            or bool(args.full and visual_tensor is not None)
+        ),
         require_cached_images=bool(
-            (args.image_cache_manifest is not None or args.packed_image_cache is not None)
+            (actor_manifest is not None or actor_tensor is not None)
             and not args.allow_image_source_fallback
         ),
         image_size=args.image_size,
@@ -158,6 +179,14 @@ def main() -> None:
         )
     result = run_full_multimodal_oof(config)
     print(json.dumps(result["audit"], indent=2))
+
+
+def _actor_packed_tensor(image_size: int) -> Path:
+    return DEFAULT_ACTOR_CACHE_ROOT / f"packed_rgb_{int(image_size)}_letterbox.npy"
+
+
+def _visual_packed_tensor(image_size: int) -> Path:
+    return DEFAULT_VISUAL_CACHE_ROOT / f"packed_rgb_{int(image_size)}_letterbox.npy"
 
 
 def _validate_full_execution_confirmation(
