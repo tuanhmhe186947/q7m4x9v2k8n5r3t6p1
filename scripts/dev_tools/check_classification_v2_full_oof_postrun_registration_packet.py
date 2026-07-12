@@ -98,23 +98,38 @@ def main() -> None:
             packet.get("calibration_cmd_command") or [],
             packet.get("python_executable"),
         ),
+        "calibration_command_bat_present": bool(
+            packet.get("calibration_command_bat")
+        ),
         "confusion_comparison_cmd_command_ready": _cmd_ready(
             packet.get("confusion_comparison_cmd_command") or [],
             packet.get("python_executable"),
         ),
+        "confusion_comparison_command_bat_present": bool(
+            packet.get("confusion_comparison_command_bat")
+        ),
         "ablation_report_cmd_command_ready": _cmd_ready(
             packet.get("ablation_report_cmd_command") or [],
             packet.get("python_executable"),
+        ),
+        "ablation_report_command_bat_present": bool(
+            packet.get("ablation_report_command_bat")
         ),
         "register_command": packet.get("register_command"),
         "register_cmd_command_ready": _cmd_ready(
             packet.get("register_cmd_command") or [],
             packet.get("python_executable"),
         ),
+        "register_command_bat_present": bool(
+            packet.get("register_command_bat")
+        ),
         "completion_gate_command": packet.get("completion_gate_command"),
         "completion_gate_cmd_command_ready": _cmd_ready(
             packet.get("completion_gate_cmd_command") or [],
             packet.get("python_executable"),
+        ),
+        "completion_gate_command_bat_present": bool(
+            packet.get("completion_gate_command_bat")
         ),
         "completion_gate_precheck_valid": (
             (packet.get("completion_gate_precheck") or {}).get("valid")
@@ -278,6 +293,15 @@ def _packet_errors(packet: dict[str, Any], expected: dict[str, Any]) -> list[str
         python_executable,
     ):
         errors.append("postrun_completion_cmd_missing_cmd_setup")
+    for key in (
+        "calibration_command_bat",
+        "confusion_comparison_command_bat",
+        "ablation_report_command_bat",
+        "register_command_bat",
+        "completion_gate_command_bat",
+    ):
+        if not packet.get(key):
+            errors.append(f"postrun_packet_missing_bat_command={key}")
     return errors
 
 
