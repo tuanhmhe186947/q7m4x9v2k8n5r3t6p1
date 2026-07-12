@@ -10,7 +10,7 @@ Current policy:
 - The full-like smoke and first full OOF run have completed, so the script
   organization layer has moved from plan to implementation.
 - All operator scripts live under `scripts/classification_v2/<block>/`.
-- The former `behavior_review_tools` and `dev_tools` wrappers are removed.
+- The former split script namespaces and their wrappers are removed.
 - Checkers are colocated with the stage whose contract they validate.
 
 Related documents:
