@@ -122,6 +122,14 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--full-oof-launch-packet-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "full_oof_launch_packet_audit.json"
+        ),
+    )
+    parser.add_argument(
         "--image-cache-inventory-json",
         type=Path,
         default=Path(
@@ -307,6 +315,7 @@ def main() -> None:
     full_oof_execution_gate = _load_optional_json(
         args.full_oof_execution_gate_json
     )
+    full_oof_launch_packet = _load_optional_json(args.full_oof_launch_packet_json)
     image_cache_inventory = _load_optional_json(args.image_cache_inventory_json)
     image_cache_letterbox_policy = _load_optional_json(
         args.image_cache_letterbox_policy_json
@@ -685,6 +694,20 @@ def main() -> None:
             full_oof_execution_gate.get("errors"),
         ),
         _gate(
+            "Full OOF launch packet ready for human authorization",
+            full_oof_launch_packet.get("valid") is True
+            and full_oof_launch_packet.get("packet_status")
+            == "READY_FOR_HUMAN_AUTHORIZATION"
+            and full_oof_launch_packet.get("packet_matches_current_inputs")
+            is True
+            and full_oof_launch_packet.get("full_oof_execution_allowed")
+            is False
+            and full_oof_launch_packet.get("authorization_required") is True
+            and full_oof_launch_packet.get("authorization_template_authorized")
+            is False,
+            full_oof_launch_packet.get("errors"),
+        ),
+        _gate(
             "Strict trainer reproducibility",
             reproducibility.get("errors") == []
             and reproducibility.get("forbidden_model_input_rejected") is True,
@@ -752,6 +775,10 @@ def main() -> None:
         (
             "Current split artifacts are audited so split_group_key and "
             "video_key do not cross train/val/test boundaries."
+        ),
+        (
+            "Full OOF launch packet is review-ready but still requires an "
+            "explicit authorization JSON before training can start."
         ),
     ]
     result = {
@@ -844,6 +871,9 @@ def main() -> None:
             ),
             "full_oof_execution_gate": _evidence_full_oof_execution_gate(
                 full_oof_execution_gate
+            ),
+            "full_oof_launch_packet": _evidence_full_oof_launch_packet(
+                full_oof_launch_packet
             ),
             "reproducibility": _evidence_reproducibility(reproducibility),
         },
@@ -1429,6 +1459,22 @@ def _evidence_full_oof_execution_gate(audit: dict[str, Any]) -> dict[str, Any]:
             for case in audit.get("cases", []) or []
         ],
         "errors": audit.get("errors"),
+    }
+
+
+def _evidence_full_oof_launch_packet(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "packet_status": audit.get("packet_status"),
+        "packet_matches_current_inputs": audit.get("packet_matches_current_inputs"),
+        "full_oof_execution_allowed": audit.get("full_oof_execution_allowed"),
+        "authorization_required": audit.get("authorization_required"),
+        "authorization_template_authorized": audit.get(
+            "authorization_template_authorized"
+        ),
+        "review_checklist_count": audit.get("review_checklist_count"),
+        "preflight_config_sha256": audit.get("preflight_config_sha256"),
+        "git_commit": audit.get("git_commit"),
     }
 
 
