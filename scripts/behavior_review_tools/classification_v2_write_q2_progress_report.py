@@ -90,6 +90,14 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--full-oof-authorization-file-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "full_oof_authorization_file_audit.json"
+        ),
+    )
+    parser.add_argument(
         "--full-oof-preflight-freshness-json",
         type=Path,
         default=Path(
@@ -328,6 +336,9 @@ def main() -> None:
     )
     full_oof_authorization_template = _load_optional_json(
         args.full_oof_authorization_template_json
+    )
+    full_oof_authorization_file = _load_optional_json(
+        args.full_oof_authorization_file_json
     )
     full_oof_preflight_freshness = _load_optional_json(
         args.full_oof_preflight_freshness_json
@@ -695,6 +706,19 @@ def main() -> None:
             full_oof_authorization_template.get("errors"),
         ),
         _gate(
+            "Full OOF authorization file fail-closed status",
+            full_oof_authorization_file.get("valid") is True
+            and full_oof_authorization_file.get("authorization_exists") is True
+            and full_oof_authorization_file.get(
+                "binds_preflight_config_sha256"
+            )
+            is True
+            and full_oof_authorization_file.get("binds_git_commit") is True
+            and full_oof_authorization_file.get("full_oof_execution_allowed")
+            is False,
+            full_oof_authorization_file.get("errors"),
+        ),
+        _gate(
             "Full OOF fresh preflight authorization-ready guard",
             full_oof_preflight_freshness.get("valid") is True
             and full_oof_preflight_freshness.get("preflight_valid") is True
@@ -1020,6 +1044,9 @@ def main() -> None:
             ),
             "full_oof_authorization_template": _evidence_full_oof_authorization_template(
                 full_oof_authorization_template
+            ),
+            "full_oof_authorization_file": _evidence_full_oof_authorization_file(
+                full_oof_authorization_file
             ),
             "full_oof_preflight_freshness": _evidence_full_oof_preflight_freshness(
                 full_oof_preflight_freshness
@@ -1865,6 +1892,23 @@ def _evidence_full_oof_authorization_template(audit: dict[str, Any]) -> dict[str
             "template_binds_preflight_config_sha256"
         ),
         "template_binds_git_commit": audit.get("template_binds_git_commit"),
+    }
+
+
+def _evidence_full_oof_authorization_file(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "authorization_exists": audit.get("authorization_exists"),
+        "authorized": audit.get("authorized"),
+        "acknowledges_long_run": audit.get("acknowledges_long_run"),
+        "acknowledges_no_q2_claim": audit.get("acknowledges_no_q2_claim"),
+        "reviewer_present": audit.get("reviewer_present"),
+        "binds_preflight_config_sha256": audit.get(
+            "binds_preflight_config_sha256"
+        ),
+        "binds_git_commit": audit.get("binds_git_commit"),
+        "full_oof_execution_allowed": audit.get("full_oof_execution_allowed"),
+        "blocking_reasons": audit.get("blocking_reasons"),
     }
 
 
