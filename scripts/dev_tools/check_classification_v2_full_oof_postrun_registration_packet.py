@@ -117,6 +117,12 @@ def main() -> None:
             packet.get("python_executable"),
         ),
         "required_artifact_count": len(packet.get("required_artifacts") or {}),
+        "required_postrun_provenance_count": len(
+            packet.get("required_postrun_provenance") or {}
+        ),
+        "register_postrun_provenance_paths_present": (
+            _register_postrun_provenance_paths_present(packet)
+        ),
         "parent_control_count": len(parent_controls),
         "parent_controls_valid": all(parent["valid"] for parent in parent_controls),
         "parent_controls": parent_controls,
@@ -148,6 +154,9 @@ def _packet_errors(packet: dict[str, Any], expected: dict[str, Any]) -> list[str
         errors.append("postrun_packet_must_not_allow_q2_claim")
     if len(packet.get("required_artifacts") or {}) < 8:
         errors.append("postrun_packet_required_artifacts_incomplete")
+    postrun = packet.get("required_postrun_provenance") or {}
+    if len(postrun) < 5:
+        errors.append("postrun_packet_required_postrun_provenance_incomplete")
     command = packet.get("register_command") or []
     python_executable = str(packet.get("python_executable") or "")
     if not python_executable:
@@ -194,7 +203,7 @@ def _packet_errors(packet: dict[str, Any], expected: dict[str, Any]) -> list[str
     parent_count = command.count("--parent-record-json")
     if parent_count < len(packet_writer._parent_record_artifacts()):
         errors.append(f"postrun_parent_records_incomplete={parent_count}")
-    for key, path in (packet.get("required_postrun_provenance") or {}).items():
+    for key, path in postrun.items():
         if str(path) not in command:
             errors.append(f"postrun_register_missing_postrun_provenance={key}")
     completion = packet.get("completion_gate_command") or []
@@ -254,6 +263,16 @@ def _packet_errors(packet: dict[str, Any], expected: dict[str, Any]) -> list[str
     ):
         errors.append("postrun_completion_cmd_missing_cmd_setup")
     return errors
+
+
+def _register_postrun_provenance_paths_present(packet: dict[str, Any]) -> bool:
+    """Return whether every post-run provenance path is registered as artifact."""
+
+    command = packet.get("register_command") or []
+    return all(
+        str(path) in command
+        for path in (packet.get("required_postrun_provenance") or {}).values()
+    )
 
 
 def _parent_control_audits(packet: dict[str, Any]) -> list[dict[str, Any]]:

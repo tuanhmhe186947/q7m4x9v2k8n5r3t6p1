@@ -343,11 +343,19 @@ def _postrun_provenance_artifacts(output_dir: Path) -> dict[str, Path]:
         "ablation_report": Path(
             "outputs/classification_v2/model_design/ablation_reporting_audit.json"
         ),
+        "calibrated_predictions": (
+            output_dir
+            / "calibration"
+            / "cross_fitted_calibrated_native_predictions.csv"
+        ),
         "calibration_audit": (
             output_dir / "calibration" / "cross_fitted_calibration_audit.json"
         ),
         "confusion_comparison": (
             output_dir / "confusion_focus" / "confusion_focus_comparison.json"
+        ),
+        "high_confidence_hard_errors": (
+            output_dir / "confusion_focus" / "high_confidence_hard_errors.csv"
         ),
     }
 
