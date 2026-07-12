@@ -326,12 +326,27 @@ def _check_source_balanced_csvs(
             f"{len(native)}!={expected_rows}"
         )
     if "source_balance_keep" in selection.columns:
-        keep_count = int(_to_bool_series(selection["source_balance_keep"]).sum())
+        keep_mask = _to_bool_series(selection["source_balance_keep"])
+        keep_count = int(keep_mask.sum())
         if expected_rows is not None and keep_count != int(expected_rows):
             blocking.append(
                 "source_balanced_selection_keep_count_mismatch="
                 f"{keep_count}!={expected_rows}"
             )
+        if "temporal_unit_key" in native.columns:
+            native_keys = set(native["temporal_unit_key"].fillna("").astype(str))
+            selected_keys = set(
+                selection.loc[keep_mask, "temporal_unit_key"]
+                .fillna("")
+                .astype(str)
+            )
+            missing_from_native = sorted(selected_keys.difference(native_keys))
+            extra_native = sorted(native_keys.difference(selected_keys))
+            if missing_from_native or extra_native:
+                blocking.append(
+                    "source_balanced_native_selection_key_mismatch="
+                    f"missing={missing_from_native[:5]},extra={extra_native[:5]}"
+                )
 
 
 def _check_registry_record(
