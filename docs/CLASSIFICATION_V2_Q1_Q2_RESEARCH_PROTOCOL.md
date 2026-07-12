@@ -647,7 +647,8 @@ Quartile phụ thuộc journal, năm và subject category; protocol tốt không
 Protocol version 1.2 bổ sung một gate kiểm tự động:
 
 - Config: `configs/classification_v2/paper_grade_protocol_v1.json`.
-- Checker: `scripts/dev_tools/check_classification_v2_paper_grade_protocol.py`.
+- Checker: `scripts/classification_v2/08_publication_reporting/`
+  `check_classification_v2_paper_grade_protocol.py`.
 - Audit: `outputs/classification_v2/paper_grade_protocol/paper_grade_protocol_audit.json`.
 
 Gate này không thay thế peer review khoa học hoặc literature review. Nó kiểm rằng claim boundary đang khóa ở mức Q2 mạnh, các tài liệu bắt buộc tồn tại, training snapshot/trainer contract/source-domain/native-OOF artifacts pass, confusion pairs và ablation ladder đủ tối thiểu. Nếu gate fail, kết quả model chỉ được xem là engineering smoke, không được dùng làm claim paper.

@@ -660,29 +660,30 @@ Tên dưới đây là kế hoạch triển khai, chưa mặc định là file �
   - Event-level metrics, per-class/group/source/session slices, cluster bootstrap, calibration.
 - `src/pig_behavior/classification_v2/evaluation/shortcut_controls.py`
   - Background-only, actor-masked, temporal-shuffle, repeat-frame, source-classifier controls.
-- `scripts/behavior_review_tools/classification_v2_build_dataset_snapshot.py`
+- `scripts/classification_v2/02_train_ready_exports/classification_v2_freeze_training_snapshot.py`
   - Snapshot row counts, hashes, schema, label distribution, review coverage.
-- `scripts/behavior_review_tools/classification_v2_build_recording_groups.py`
+- `scripts/classification_v2/02_train_ready_exports/classification_v2_build_recording_groups.py`
   - CLI wrapper cho recording-group manifest.
-- `scripts/behavior_review_tools/classification_v2_build_publication_folds.py`
+- `scripts/classification_v2/02_train_ready_exports/classification_v2_build_publication_folds.py`
   - Nested grouped folds theo `recording_group_id`.
-- `scripts/behavior_review_tools/classification_v2_build_native_temporal_units.py`
+- `scripts/classification_v2/00_source_feature_temporal/classification_v2_build_native_temporal_units.py`
   - Primary temporal-unit artifact cho confirmatory analysis.
-- `scripts/behavior_review_tools/classification_v2_build_image_cache.py`
+- `scripts/classification_v2/03_image_cache_context/classification_v2_build_image_cache.py`
   - Build actor/local/scene cache trong `outputs/classification_v2`.
-- `scripts/behavior_review_tools/classification_v2_train_sequence.py`
+- `scripts/classification_v2/04_baselines_smokes/classification_v2_train.py`
   - Chạy E0/E1/E3/E5 theo config khóa, không chạy full training nếu chưa qua gates.
-- `scripts/dev_tools/check_classification_v2_sequence_dataset.py`
+- `scripts/classification_v2/02_train_ready_exports/check_classification_v2_data_module.py`
   - Validate masks/order/window_id/review_unit_id/sample weights.
-- `scripts/dev_tools/check_classification_v2_publication_folds.py`
+- `scripts/classification_v2/02_train_ready_exports/check_classification_v2_publication_folds.py`
   - Fail nếu recording-group leakage > 0 hoặc fold thiếu audit.
-- `scripts/dev_tools/evaluate_classification_v2_model.py`
+- `scripts/classification_v2/07_postrun_evaluation/classification_v2_evaluate_oof_predictions.py`
   - Tạo predictions chuẩn, metrics JSON/CSV, confusion/slice outputs.
-- `scripts/dev_tools/compare_classification_v2_experiments.py`
+- `scripts/classification_v2/07_postrun_evaluation/classification_v2_compare_confusion_focus.py`
   - Paired model comparison, bootstrap CI, SESOI check.
-- `scripts/dev_tools/run_classification_v2_shortcut_controls.py`
+- `scripts/classification_v2/02_train_ready_exports/check_classification_v2_spatial_control_shortcuts.py`
   - Chạy controls trước khi viết claim.
-- `scripts/dev_tools/select_classification_v2_active_learning_units.py`
+- Future active-learning selector belongs in
+  `scripts/classification_v2/08_publication_reporting/`.
   - Chọn unit uncertainty/disagreement/rare-class để review tiếp.
 
 Mỗi script tạo JSON audit và không sửa raw data. Config và artifact path phải truyền qua CLI, không hard-code một video.
@@ -756,7 +757,10 @@ Roadmap được coi là hoàn tất về kỹ thuật khi:
 Roadmap version 2.2 bổ sung lớp kiểm tự động để ràng buộc kế hoạch paper-grade với artifact thật:
 
 - `configs/classification_v2/paper_grade_protocol_v1.json`: claim boundary Q2, required artifacts, confusion pairs, ablation ladder và module design tối thiểu.
-- `scripts/dev_tools/check_classification_v2_paper_grade_protocol.py`: fail nếu thiếu document/artifact, snapshot/trainer/source-domain/native-OOF lỗi, hoặc claim boundary vượt quá bằng chứng.
+- `scripts/classification_v2/08_publication_reporting/`
+  `check_classification_v2_paper_grade_protocol.py`: fail nếu thiếu
+  document/artifact, snapshot/trainer/source-domain/native-OOF lỗi, hoặc claim
+  boundary vượt quá bằng chứng.
 - `outputs/classification_v2/paper_grade_protocol/paper_grade_protocol_audit.json`: audit kết quả kiểm.
 
 Trạng thái quan trọng hiện tại:

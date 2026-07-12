@@ -7,12 +7,11 @@ long full OOF job.
 
 Current policy:
 
-- Do not move or rename existing scripts before the full-like smoke/full OOF
-  path is stable.
-- Use this document and the two script README files as the navigation layer.
-- Keep canonical commands bound to existing paths until wrappers and packet
-  writers are updated in small commits.
-- Full OOF remains blocked until explicit human authorization is valid.
+- The full-like smoke and first full OOF run have completed, so the script
+  organization layer has moved from plan to implementation.
+- All operator scripts live under `scripts/classification_v2/<block>/`.
+- The former `behavior_review_tools` and `dev_tools` wrappers are removed.
+- Checkers are colocated with the stage whose contract they validate.
 
 Related documents:
 
@@ -23,24 +22,21 @@ Related documents:
 
 ## Status Snapshot
 
-The current pre-full state is `PASS_PRE_FULL_READY_AUTHORIZATION_REQUIRED`.
-Use one command as the authoritative pre-full summary:
+The full OOF run has completed. Postrun gates remain the authority for whether
+the result is a Q2 internal candidate. Use this command for the aggregate
+completion state:
 
 ```bat
 cd /d C:\Users\ironh\Downloads\PIG_Behavior_Project
 set PYTHONPATH=%CD%\src
 C:\Users\ironh\anaconda3\envs\pig_project\python.exe ^
-  scripts\dev_tools\check_classification_v2_full_readiness_once.py
+  scripts\classification_v2\09_final_release_audit\ ^
+  check_classification_v2_full_readiness_once.py
 ```
 
-Expected before authorization:
-
-- `valid=true`
-- `status=PASS_PRE_FULL_READY_AUTHORIZATION_REQUIRED`
-- `errors=[]`
-- `gate_count=44`
-- `full_oof_execution_allowed=false`
-- authorization blockers only
+This aggregate checker must not replace the stage-local checks. A failed stage
+must be repaired in its numbered folder, then all dependent later stages must
+be rerun.
 
 ## End-To-End Blocks
 
@@ -86,52 +82,46 @@ flowchart TD
 
 ## Current Run Order
 
-Use this order before the first long full OOF execution:
+Use the numbered directories in order:
 
-1. Maintain existing script paths.
-2. Run the one-shot readiness audit.
-3. Create human authorization only after reviewing the launch packet.
-4. Run a short full-like smoke on the same full code path.
-5. Validate smoke outputs and postrun readers.
-6. Run full OOF once.
-7. Run calibration, confusion comparison, registry, and completion gate.
-8. Refresh memory only after full OOF and postrun gates finish.
+1. Build and audit source, feature, temporal, review, train-ready, and cache
+   artifacts with blocks `00-03`.
+2. Pass model contracts and a bounded full-like smoke in block `04`.
+3. Run preflight, authorization, and launch-packet checks in block `05`.
+4. Run and validate full OOF training in block `06`.
+5. Run calibration, native-unit metrics, confusion analysis, and ablations in
+   block `07`.
+6. Register the experiment and refresh Q2/paper reports in block `08`.
+7. Run aggregate completion gates and refresh project memory in block `09`.
 
 Do not skip the full-like smoke. It is the cheap check for cache loading,
 CUDA/AMP, output schemas, checkpoint/resume behavior, and postrun compatibility.
 
 ## Directory Strategy
 
-The current script folders are crowded:
-
-- `scripts/behavior_review_tools`
-- `scripts/dev_tools`
-
-Before full OOF, keep them stable. The safe organization layer is:
-
-- this workflow map
-- `scripts/behavior_review_tools/README.md`
-- `scripts/dev_tools/README.md`
-
-After full-like smoke passes, a future migration may add wrappers under:
+The crowded script folders have been split by workflow block. The organized
+namespace is:
 
 ```text
 scripts/classification_v2/
-  data_contract/
-  review/
-  cache/
-  training/
-  postrun/
-  audits/
+  00_source_feature_temporal/
+  01_review_units_gui/
+  02_train_ready_exports/
+  03_image_cache_context/
+  04_baselines_smokes/
+  05_preflight_authorization/
+  06_full_oof_training/
+  07_postrun_evaluation/
+  08_publication_reporting/
+  09_final_release_audit/
 ```
 
-Migration rules:
+No wrapper policy:
 
-- Move or rename only one block per commit.
-- Keep compatibility wrappers at old paths until all launch packets and memory
-  files are updated.
-- Grep every old path before deleting a wrapper.
-- Re-run `check_classification_v2_full_readiness_once.py` after each migration.
+- New commands must use the numbered namespace directly.
+- A repository scan for either former script namespace must return zero active
+  executable references.
+- Run stage-local checks first and the block `09` aggregate gate last.
 
 ## No-Leakage Boundary
 

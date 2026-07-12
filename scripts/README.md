@@ -24,8 +24,8 @@ Thu muc phu:
 - `scripts\benchmarks`: benchmark detector/tracking.
 - `scripts\diagnostics`: debug frame, hard-scene identity.
 - `scripts\integrations`: tich hop ngoai nhu Roboflow.
-- `scripts\behavior_review_tools`: tooling review behavior/classification.
-- `scripts\dev_tools`: tool phat trien/pilot, khong phai workflow chinh.
+- `scripts\classification_v2`: workflow behavior classification theo thu tu
+  cac khoi `00-09`, gom ca runner va checker cua tung khoi.
 - `scripts\_legacy`: wrapper cu de tham chieu/tuong thich.
 - `scripts\_shortcuts`: file `.bat` tien loi tren Windows.
 

@@ -21,16 +21,21 @@ RUNTIME_RELEVANT_PATH_PREFIXES = (
     "src/pig_behavior/classification_v2/contracts/",
     "src/pig_behavior/classification_v2/evaluation/",
     "src/pig_behavior/classification_v2/training/",
-    "scripts/behavior_review_tools/classification_v2_run_full_multimodal_oof.py",
-    "scripts/dev_tools/preflight_classification_v2_full_multimodal_oof.py",
-    "scripts/dev_tools/summarize_classification_v2_runtime_benchmark.py",
+    "scripts/classification_v2/06_full_oof_training/"
+    "classification_v2_run_full_multimodal_oof.py",
+    "scripts/classification_v2/05_preflight_authorization/"
+    "preflight_classification_v2_full_multimodal_oof.py",
+    "scripts/classification_v2/04_baselines_smokes/"
+    "summarize_classification_v2_runtime_benchmark.py",
 )
 RUNTIME_AUDIT_ONLY_PATHS = {
     "src/pig_behavior/classification_v2/training/full_run_preflight.py",
-    "scripts/dev_tools/preflight_classification_v2_full_multimodal_oof.py",
+    "scripts/classification_v2/05_preflight_authorization/"
+    "preflight_classification_v2_full_multimodal_oof.py",
 }
 AUTH_GATE_ONLY_RUNTIME_PATHS = {
-    "scripts/behavior_review_tools/classification_v2_run_full_multimodal_oof.py",
+    "scripts/classification_v2/06_full_oof_training/"
+    "classification_v2_run_full_multimodal_oof.py",
 }
 AUTH_GATE_ONLY_DIFF_MARKERS = (
     "FULL_RUN_AUTHORIZATION",

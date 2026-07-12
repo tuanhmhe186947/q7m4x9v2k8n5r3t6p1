@@ -41,9 +41,12 @@ Run these before full training:
 cd /d C:\Users\ironh\Downloads\PIG_Behavior_Project
 set PYTHONPATH=%CD%\src
 
-python scripts\dev_tools\check_classification_v2_full_learned_oof_contract.py
-python scripts\dev_tools\check_classification_v2_ablation_reporting.py
-python scripts\dev_tools\check_classification_v2_ablation_shortcut_contract.py ^
+python scripts\classification_v2\06_full_oof_training\ ^
+  check_classification_v2_full_learned_oof_contract.py
+python scripts\classification_v2\07_postrun_evaluation\ ^
+  check_classification_v2_ablation_reporting.py
+python scripts\classification_v2\07_postrun_evaluation\ ^
+  check_classification_v2_ablation_shortcut_contract.py ^
   --contract-json configs\classification_v2\ablation_shortcut_contract_v1.json ^
   --output-json outputs\classification_v2\model_design\ablation_shortcut_contract_audit.json
 ```
@@ -61,7 +64,8 @@ The command below intentionally requires `--full`; without it the runner stays
 bounded and cannot be registered as full evidence.
 
 ```bat
-python scripts\behavior_review_tools\classification_v2_run_full_multimodal_oof.py ^
+python scripts\classification_v2\06_full_oof_training\ ^
+  classification_v2_run_full_multimodal_oof.py ^
   --full ^
   --output-dir outputs\classification_v2\model_full\full_multimodal_oof ^
   --image-size 64 ^
@@ -84,12 +88,14 @@ Hardware notes:
 Run:
 
 ```bat
-python scripts\dev_tools\check_classification_v2_full_multimodal_oof.py ^
+python scripts\classification_v2\06_full_oof_training\ ^
+  check_classification_v2_full_multimodal_oof.py ^
   --audit-json outputs\classification_v2\model_full\full_multimodal_oof\full_multimodal_oof_audit.json ^
   --predictions-csv outputs\classification_v2\model_full\full_multimodal_oof\full_multimodal_oof_predictions.csv ^
   --metrics-json outputs\classification_v2\model_full\full_multimodal_oof\full_multimodal_oof_metrics.json
 
-python scripts\dev_tools\check_classification_v2_native_temporal_metrics.py ^
+python scripts\classification_v2\02_train_ready_exports\ ^
+  check_classification_v2_native_temporal_metrics.py ^
   --metrics-json outputs\classification_v2\model_full\full_multimodal_oof\full_multimodal_oof_metrics.json ^
   --result-kind model_evaluation
 ```
@@ -108,7 +114,8 @@ Pass criteria:
 Register only after all post-run gates pass:
 
 ```bat
-python scripts\behavior_review_tools\classification_v2_register_experiment.py ^
+python scripts\classification_v2\08_publication_reporting\ ^
+  classification_v2_register_experiment.py ^
   --name full_multimodal_oof ^
   --metrics-json outputs\classification_v2\model_full\full_multimodal_oof\full_multimodal_oof_metrics.json ^
   --artifact outputs\classification_v2\model_full\full_multimodal_oof\full_multimodal_oof_audit.json ^
@@ -122,7 +129,8 @@ python scripts\behavior_review_tools\classification_v2_register_experiment.py ^
 Then verify:
 
 ```bat
-python scripts\dev_tools\check_classification_v2_experiment_registry.py ^
+python scripts\classification_v2\08_publication_reporting\ ^
+  check_classification_v2_experiment_registry.py ^
   --record-json outputs\classification_v2\experiment_registry\full_multimodal_oof_record.json
 ```
 

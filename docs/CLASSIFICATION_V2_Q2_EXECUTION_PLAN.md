@@ -192,7 +192,8 @@ PASS:
 Command:
 
 ```bat
-python scripts\behavior_review_tools\classification_v2_run_full_multimodal_oof.py ^
+python scripts\classification_v2\06_full_oof_training\ ^
+  classification_v2_run_full_multimodal_oof.py ^
   --full ^
   --output-dir outputs\classification_v2\model_full\full_multimodal_oof ^
   --image-size 64 ^
@@ -220,7 +221,8 @@ FAIL:
 Register only after S32 post-run gates pass:
 
 ```bat
-python scripts\behavior_review_tools\classification_v2_register_experiment.py ^
+python scripts\classification_v2\08_publication_reporting\ ^
+  classification_v2_register_experiment.py ^
   --name full_multimodal_oof ^
   --metrics-json outputs\classification_v2\model_full\full_multimodal_oof\full_multimodal_oof_metrics.json ^
   --artifact outputs\classification_v2\model_full\full_multimodal_oof\full_multimodal_oof_audit.json ^

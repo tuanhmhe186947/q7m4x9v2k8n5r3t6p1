@@ -17,17 +17,17 @@ Workflow:
    outputs/classification_v2/sequence_features/sequence_window_features.csv
 
 2) Build normal review templates if you want window-level reasons:
-   scripts/dev_tools/run_build_review_templates.bat
+   python scripts/classification_v2/01_review_units_gui/build_behavior_review_templates.py
 
 3) Build canonical review units:
-   scripts/dev_tools/run_build_review_units.bat
+   python scripts/classification_v2/01_review_units_gui/classification_v2_build_review_units.py
 
 4) Create interaction review unit shortlist:
-   python scripts/dev_tools/make_interaction_review_unit_shortlist.py
+   python scripts/classification_v2/01_review_units_gui/make_interaction_review_unit_shortlist.py
 
 5) Test GUI by source:
-   python scripts/dev_tools/run_interaction_review_unit_gui_pilot.py --fresh --source-type legacy_recovered --max-items 5
-   python scripts/dev_tools/run_interaction_review_unit_gui_pilot.py --fresh --source-type cvat_tracking_xml --max-items 5
+   python scripts/classification_v2/01_review_units_gui/run_interaction_review_unit_gui_pilot.py --fresh --source-type legacy_recovered --max-items 5
+   python scripts/classification_v2/01_review_units_gui/run_interaction_review_unit_gui_pilot.py --fresh --source-type cvat_tracking_xml --max-items 5
 
 Outputs:
 - outputs/classification_v2/review_units/review_unit_manifest.csv

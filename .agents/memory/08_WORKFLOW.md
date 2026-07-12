@@ -80,24 +80,27 @@ Pre-full refresh sequence after any commit:
 cd /d C:\Users\ironh\Downloads\PIG_Behavior_Project
 set PYTHONPATH=%CD%\src
 set PY=C:\Users\ironh\anaconda3\envs\pig_project\python.exe
-%PY% scripts\dev_tools\preflight_classification_v2_full_multimodal_oof.py ^
+set S5=scripts\classification_v2\05_preflight_authorization
+set S8=scripts\classification_v2\08_publication_reporting
+set S9=scripts\classification_v2\09_final_release_audit
+%PY% %S5%\preflight_classification_v2_full_multimodal_oof.py ^
   --snapshot-json outputs\classification_v2\training_snapshots\c2v2_27ed5c9963904c52.json ^
   --runtime-benchmark-audit-json ^
   outputs\classification_v2\model_benchmarks_visual_v3\summary_head\runtime_benchmark_audit.json
-%PY% scripts\dev_tools\write_classification_v2_full_oof_authorization_template.py
-%PY% scripts\dev_tools\write_classification_v2_full_oof_authorization_file.py
-%PY% scripts\dev_tools\check_classification_v2_full_oof_authorization_template.py
-%PY% scripts\dev_tools\check_classification_v2_full_oof_authorization_file.py
-%PY% scripts\dev_tools\check_classification_v2_full_oof_authorization_writer.py
-%PY% scripts\dev_tools\check_classification_v2_full_oof_preflight_freshness.py
-%PY% scripts\dev_tools\write_classification_v2_full_oof_launch_packet.py
-%PY% scripts\dev_tools\check_classification_v2_full_oof_launch_packet.py
-%PY% scripts\dev_tools\check_classification_v2_full_oof_execution_gate.py
-%PY% scripts\dev_tools\check_classification_v2_full_oof_completion_gate.py
-%PY% scripts\dev_tools\write_classification_v2_full_oof_postrun_registration_packet.py
-%PY% scripts\dev_tools\check_classification_v2_full_oof_postrun_registration_packet.py
-%PY% scripts\behavior_review_tools\classification_v2_write_q2_progress_report.py
-%PY% scripts\dev_tools\check_classification_v2_q2_progress_report.py
+%PY% %S5%\write_classification_v2_full_oof_authorization_template.py
+%PY% %S5%\write_classification_v2_full_oof_authorization_file.py
+%PY% %S5%\check_classification_v2_full_oof_authorization_template.py
+%PY% %S5%\check_classification_v2_full_oof_authorization_file.py
+%PY% %S5%\check_classification_v2_full_oof_authorization_writer.py
+%PY% %S5%\check_classification_v2_full_oof_preflight_freshness.py
+%PY% %S5%\write_classification_v2_full_oof_launch_packet.py
+%PY% %S5%\check_classification_v2_full_oof_launch_packet.py
+%PY% %S5%\check_classification_v2_full_oof_execution_gate.py
+%PY% %S5%\write_classification_v2_full_oof_postrun_registration_packet.py
+%PY% %S5%\check_classification_v2_full_oof_postrun_registration_packet.py
+%PY% %S8%\classification_v2_write_q2_progress_report.py
+%PY% %S8%\check_classification_v2_q2_progress_report.py
+%PY% %S9%\check_classification_v2_full_oof_completion_gate.py
 ```
 
 Full OOF authorization rule:
@@ -172,24 +175,27 @@ Run these checks before any full OOF launch:
 cd /d C:\Users\ironh\Downloads\PIG_Behavior_Project
 set PYTHONPATH=%CD%\src
 set PY=C:\Users\ironh\anaconda3\envs\pig_project\python.exe
-%PY% scripts\dev_tools\preflight_classification_v2_full_multimodal_oof.py ^
+set S5=scripts\classification_v2\05_preflight_authorization
+set S8=scripts\classification_v2\08_publication_reporting
+set S9=scripts\classification_v2\09_final_release_audit
+%PY% %S5%\preflight_classification_v2_full_multimodal_oof.py ^
   --snapshot-json outputs\classification_v2\training_snapshots\c2v2_27ed5c9963904c52.json ^
   --runtime-benchmark-audit-json ^
   outputs\classification_v2\model_benchmarks_visual_v3\summary_head\runtime_benchmark_audit.json
-%PY% scripts\dev_tools\write_classification_v2_full_oof_authorization_template.py
-%PY% scripts\dev_tools\write_classification_v2_full_oof_authorization_file.py
-%PY% scripts\dev_tools\check_classification_v2_full_oof_authorization_template.py
-%PY% scripts\dev_tools\check_classification_v2_full_oof_authorization_file.py
-%PY% scripts\dev_tools\check_classification_v2_full_oof_authorization_writer.py
-%PY% scripts\dev_tools\check_classification_v2_full_oof_preflight_freshness.py
-%PY% scripts\dev_tools\write_classification_v2_full_oof_launch_packet.py
-%PY% scripts\dev_tools\check_classification_v2_full_oof_launch_packet.py
-%PY% scripts\dev_tools\check_classification_v2_full_oof_execution_gate.py
-%PY% scripts\dev_tools\check_classification_v2_full_oof_completion_gate.py
-%PY% scripts\dev_tools\write_classification_v2_full_oof_postrun_registration_packet.py
-%PY% scripts\dev_tools\check_classification_v2_full_oof_postrun_registration_packet.py
-%PY% scripts\behavior_review_tools\classification_v2_write_q2_progress_report.py
-%PY% scripts\dev_tools\check_classification_v2_q2_progress_report.py
+%PY% %S5%\write_classification_v2_full_oof_authorization_template.py
+%PY% %S5%\write_classification_v2_full_oof_authorization_file.py
+%PY% %S5%\check_classification_v2_full_oof_authorization_template.py
+%PY% %S5%\check_classification_v2_full_oof_authorization_file.py
+%PY% %S5%\check_classification_v2_full_oof_authorization_writer.py
+%PY% %S5%\check_classification_v2_full_oof_preflight_freshness.py
+%PY% %S5%\write_classification_v2_full_oof_launch_packet.py
+%PY% %S5%\check_classification_v2_full_oof_launch_packet.py
+%PY% %S5%\check_classification_v2_full_oof_execution_gate.py
+%PY% %S5%\write_classification_v2_full_oof_postrun_registration_packet.py
+%PY% %S5%\check_classification_v2_full_oof_postrun_registration_packet.py
+%PY% %S8%\classification_v2_write_q2_progress_report.py
+%PY% %S8%\check_classification_v2_q2_progress_report.py
+%PY% %S9%\check_classification_v2_full_oof_completion_gate.py
 ```
 
 The expected pre-full status is `PASS_PARTIAL_ROADMAP` with fail-closed full

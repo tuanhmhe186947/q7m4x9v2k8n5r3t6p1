@@ -72,10 +72,12 @@ Experiment bi chan neu:
   `evaluation_contract` vao moi record moi.
 - `src/pig_behavior/classification_v2/experiments/record_contract.py` doc record,
   validate provenance va goi native temporal gate.
-- `scripts/behavior_review_tools/classification_v2_register_experiment.py`
+- `scripts/classification_v2/08_publication_reporting/`
+  `classification_v2_register_experiment.py`
   expose `--result-kind`, `--primary-metric-unit`, `--split-policy`,
   `--external-generalization-claim`.
-- `scripts/dev_tools/check_classification_v2_experiment_registry.py` la gate
+- `scripts/classification_v2/08_publication_reporting/`
+  `check_classification_v2_experiment_registry.py` la gate
   CLI chinh cho tung record JSON.
 
 ## Next implementation steps after S9

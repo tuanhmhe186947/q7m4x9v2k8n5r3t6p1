@@ -1,11 +1,12 @@
-from scripts.behavior_review_tools.classification_v2_run_full_multimodal_oof import (
-    FULL_RUN_AUTHORIZATION_PURPOSE,
-    _validate_full_run_authorization,
-)
-
 from pig_behavior.classification_v2.training.full_multimodal_oof import (
     FullMultimodalOofConfig,
     full_run_config_fingerprint,
+)
+from pig_behavior.classification_v2.training.full_run_contract import (
+    FULL_RUN_AUTHORIZATION_PURPOSE,
+)
+from pig_behavior.classification_v2.training.full_run_contract import (
+    validate_full_run_authorization as _validate_full_run_authorization,
 )
 from pig_behavior.classification_v2.training.full_run_preflight import (
     _feature_whitelist_audit_errors,
