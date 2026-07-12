@@ -1,5 +1,117 @@
 # Workflow
 
+## Active classification_v2 Workflow Override
+
+Use this section as the current workflow. Older tracking/RGB-D/FastAPI notes in
+this file are historical unless the user explicitly switches workstreams.
+
+Current state:
+
+- `classification_v2` behavior recognition is the active project priority.
+- The project is pre-full ready, not Q2 complete.
+- `q2_progress_report.json` reports `PASS_PARTIAL_ROADMAP`.
+- The latest pre-full gate summary is 44/44 gates passing.
+- Full OOF remains fail-closed until explicit authorization is written.
+- Q2 claim remains locked until full OOF and postrun completion gate pass.
+
+Command conventions:
+
+1. Work from `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
+2. Use CMD semantics for project commands:
+   `cd /d C:\Users\ironh\Downloads\PIG_Behavior_Project`
+3. Set `PYTHONPATH` before classification commands:
+   `set PYTHONPATH=%CD%\src`
+4. Prefer:
+   `C:\Users\ironh\anaconda3\envs\pig_project\python.exe`
+5. Use packed letterboxed actor and visual-context caches for full experiments.
+6. Do not repeat seek/crop/resize frame loops when packed caches already exist.
+
+Edit and commit rules:
+
+1. Before edits, read root `AGENTS.md` plus:
+   `01_PROJECT_MEMORY_SHORT.md`, `02_CURRENT_DECISION.md`,
+   `03_PROJECT_RULES.md`, and `08_WORKFLOW.md`.
+2. Use `apply_patch` for source/config/docs edits.
+3. Avoid redirects, heredocs, here-strings, `cat`, or ad hoc write scripts for
+   manual edits.
+4. For Markdown memory/workflow files, do not delete/recreate the file first.
+   Read exact nearby text, patch a small hunk, and preserve historical content
+   unless the user explicitly asks to remove it.
+5. If an `apply_patch` hunk fails, re-read the nearby lines and retry with a
+   smaller context-matched patch instead of shell-writing the file.
+6. Before commit, scan changed files for long lines and run `git diff --check`.
+7. Wrap long Markdown command lines with CMD continuation `^`.
+
+Pre-full refresh sequence after any commit:
+
+```bat
+cd /d C:\Users\ironh\Downloads\PIG_Behavior_Project
+set PYTHONPATH=%CD%\src
+set PY=C:\Users\ironh\anaconda3\envs\pig_project\python.exe
+%PY% scripts\dev_tools\preflight_classification_v2_full_multimodal_oof.py ^
+  --snapshot-json outputs\classification_v2\training_snapshots\c2v2_27ed5c9963904c52.json ^
+  --runtime-benchmark-audit-json ^
+  outputs\classification_v2\model_benchmarks_visual_v3\summary_head\runtime_benchmark_audit.json
+%PY% scripts\dev_tools\write_classification_v2_full_oof_authorization_template.py
+%PY% scripts\dev_tools\write_classification_v2_full_oof_authorization_file.py
+%PY% scripts\dev_tools\check_classification_v2_full_oof_authorization_template.py
+%PY% scripts\dev_tools\check_classification_v2_full_oof_authorization_file.py
+%PY% scripts\dev_tools\check_classification_v2_full_oof_authorization_writer.py
+%PY% scripts\dev_tools\check_classification_v2_full_oof_preflight_freshness.py
+%PY% scripts\dev_tools\write_classification_v2_full_oof_launch_packet.py
+%PY% scripts\dev_tools\check_classification_v2_full_oof_launch_packet.py
+%PY% scripts\dev_tools\check_classification_v2_full_oof_execution_gate.py
+%PY% scripts\dev_tools\check_classification_v2_full_oof_completion_gate.py
+%PY% scripts\dev_tools\write_classification_v2_full_oof_postrun_registration_packet.py
+%PY% scripts\dev_tools\check_classification_v2_full_oof_postrun_registration_packet.py
+%PY% scripts\behavior_review_tools\classification_v2_write_q2_progress_report.py
+```
+
+Full OOF authorization rule:
+
+- Do not run full OOF until `full_oof_authorization.json` has
+  `authorized=true`.
+- Require `acknowledges_long_run=true`.
+- Require `acknowledges_no_q2_claim_until_verified=true`.
+- Require non-empty `reviewer`.
+- Require matching preflight config SHA256 and git commit.
+- Require `check_classification_v2_full_oof_execution_gate.py` to allow
+  execution.
+
+Use these generated files as the source of truth:
+
+```text
+outputs/classification_v2/model_design/full_oof_launch_packet.md
+outputs/classification_v2/model_design/full_oof_launch_packet.json
+outputs/classification_v2/model_design/full_oof_authorization.json
+outputs/classification_v2/model_design/full_oof_postrun_registration_packet.md
+outputs/classification_v2/model_design/full_oof_postrun_registration_packet.json
+```
+
+Post-full required order:
+
+1. Cross-fit calibration.
+2. Confusion-focus comparison.
+3. Ablation report refresh.
+4. Experiment registry registration.
+5. Completion gate.
+6. Q2 progress report refresh.
+
+Only after the completion gate reports `q2_claim_allowed=true` may the result
+be described as a Q2 internal improvement candidate.
+
+Memory refresh after full OOF:
+
+1. Update `01_PROJECT_MEMORY_SHORT.md` with final PASS/FAIL, key metrics,
+   output paths, and claim boundary.
+2. Update `02_CURRENT_DECISION.md` with accepted result decision and blockers.
+3. Update `06_BENCHMARK_NOTES.md` with final OOF/control metrics and confusion
+   findings.
+4. Update `08_WORKFLOW.md` only if launch/postrun command sequence changed.
+5. Commit the memory refresh separately.
+
+## Preserved Historical Workflow
+
 ## Current classification_v2 Q2 workflow
 
 Use this workflow when continuing the behavior-recognition roadmap.

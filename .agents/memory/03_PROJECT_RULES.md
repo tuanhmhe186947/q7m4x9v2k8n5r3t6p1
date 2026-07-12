@@ -78,6 +78,15 @@ not supersede the active classification_v2 rules above.
     generated artifact truly requires it. After every source/config/docs edit,
     inspect `git diff -- <file>` and run the changed-file overlong-line scan
     before staging or committing.
+15. For Markdown memory/workflow files, do not start by deleting and recreating
+    the file. First read the exact current text, then use `apply_patch` with a
+    small context-matched hunk. If a full rewrite seems necessary, prefer adding
+    a new "active override" section at the top and preserve historical content
+    below unless the user explicitly asks to remove it.
+16. If an `apply_patch` hunk fails, do not immediately switch to shell-writing
+    the file. Re-read the nearby lines with an exact reader, reduce the patch to
+    a smaller hunk, and retry. After the retry, inspect `git diff -- <file>` to
+    confirm no Markdown structure was corrupted.
 
 ## Tracking-specific rules
 
