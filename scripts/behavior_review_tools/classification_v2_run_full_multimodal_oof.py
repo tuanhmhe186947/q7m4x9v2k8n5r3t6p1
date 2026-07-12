@@ -30,6 +30,26 @@ DEFAULT_VISUAL_CACHE_ROOT = Path(
 DEFAULT_VISUAL_CONTEXT_MANIFEST = Path(
     "outputs/classification_v2/visual_interaction_cache/visual_context_manifest.csv"
 )
+FULL_DEFAULTS = {
+    "image_size": 64,
+    "hidden_dim": 48,
+    "steps_per_fold": 6,
+    "train_batch_size": 128,
+    "eval_batch_size": 128,
+    "bootstrap_iterations": 2000,
+    "device": "cuda",
+    "precision": "amp",
+}
+PILOT_DEFAULTS = {
+    "image_size": 32,
+    "hidden_dim": 32,
+    "steps_per_fold": 2,
+    "train_batch_size": 32,
+    "eval_batch_size": 64,
+    "bootstrap_iterations": 30,
+    "device": "auto",
+    "precision": "fp32",
+}
 
 
 def main() -> None:
@@ -63,17 +83,17 @@ def main() -> None:
         action="store_true",
         help="Allow missing cache entries to fall back to legacy crops/CVAT videos.",
     )
-    parser.add_argument("--image-size", type=int, default=32)
-    parser.add_argument("--hidden-dim", type=int, default=32)
-    parser.add_argument("--steps-per-fold", type=int, default=2)
+    parser.add_argument("--image-size", type=int, default=None)
+    parser.add_argument("--hidden-dim", type=int, default=None)
+    parser.add_argument("--steps-per-fold", type=int, default=None)
     parser.add_argument("--epochs-per-fold", type=int, default=3)
-    parser.add_argument("--train-batch-size", type=int, default=32)
-    parser.add_argument("--eval-batch-size", type=int, default=64)
+    parser.add_argument("--train-batch-size", type=int, default=None)
+    parser.add_argument("--eval-batch-size", type=int, default=None)
     parser.add_argument("--max-folds", type=int, default=2)
     parser.add_argument("--train-per-class-per-fold", type=int, default=2)
     parser.add_argument("--eval-per-class-per-fold", type=int, default=1)
-    parser.add_argument("--bootstrap-iterations", type=int, default=30)
-    parser.add_argument("--device", default="auto")
+    parser.add_argument("--bootstrap-iterations", type=int, default=None)
+    parser.add_argument("--device", default=None)
     parser.add_argument(
         "--ablation-variant",
         choices=ABLATION_VARIANTS,
@@ -86,7 +106,7 @@ def main() -> None:
     )
     parser.add_argument("--class-weight-power", type=float, default=0.5)
     parser.add_argument("--class-weight-max", type=float, default=5.0)
-    parser.add_argument("--precision", choices=PRECISION_POLICIES, default="fp32")
+    parser.add_argument("--precision", choices=PRECISION_POLICIES, default=None)
     parser.add_argument("--checkpoint-every-steps", type=int, default=500)
     parser.add_argument("--preflight-json", type=Path, default=None)
     parser.add_argument(
@@ -120,6 +140,17 @@ def main() -> None:
     output_dir = args.output_dir or (
         DEFAULT_FULL_OUTPUT_DIR if args.full else DEFAULT_PILOT_OUTPUT_DIR
     )
+    mode_defaults = FULL_DEFAULTS if args.full else PILOT_DEFAULTS
+    image_size = args.image_size or int(mode_defaults["image_size"])
+    hidden_dim = args.hidden_dim or int(mode_defaults["hidden_dim"])
+    steps_per_fold = args.steps_per_fold or int(mode_defaults["steps_per_fold"])
+    train_batch_size = args.train_batch_size or int(mode_defaults["train_batch_size"])
+    eval_batch_size = args.eval_batch_size or int(mode_defaults["eval_batch_size"])
+    bootstrap_iterations = args.bootstrap_iterations or int(
+        mode_defaults["bootstrap_iterations"]
+    )
+    device = args.device or str(mode_defaults["device"])
+    precision = args.precision or str(mode_defaults["precision"])
     actor_manifest = args.image_cache_manifest
     actor_tensor = args.packed_image_cache
     actor_index = args.packed_image_cache_index
@@ -127,10 +158,10 @@ def main() -> None:
     visual_tensor = args.visual_context_packed_cache
     visual_index = args.visual_context_packed_cache_index
     if args.full and not args.allow_image_source_fallback:
-        actor_tensor = actor_tensor or _actor_packed_tensor(args.image_size)
+        actor_tensor = actor_tensor or _actor_packed_tensor(image_size)
         actor_index = actor_index or DEFAULT_ACTOR_CACHE_ROOT / "packed_image_cache_index.csv"
         visual_manifest = visual_manifest or DEFAULT_VISUAL_CONTEXT_MANIFEST
-        visual_tensor = visual_tensor or _visual_packed_tensor(args.image_size)
+        visual_tensor = visual_tensor or _visual_packed_tensor(image_size)
         visual_index = visual_index or DEFAULT_VISUAL_CACHE_ROOT / (
             "packed_image_cache_index.csv"
         )
@@ -150,24 +181,24 @@ def main() -> None:
             (actor_manifest is not None or actor_tensor is not None)
             and not args.allow_image_source_fallback
         ),
-        image_size=args.image_size,
-        hidden_dim=args.hidden_dim,
-        steps_per_fold=args.steps_per_fold,
+        image_size=image_size,
+        hidden_dim=hidden_dim,
+        steps_per_fold=steps_per_fold,
         epochs_per_fold=args.epochs_per_fold,
-        train_batch_size=args.train_batch_size,
-        eval_batch_size=args.eval_batch_size,
+        train_batch_size=train_batch_size,
+        eval_batch_size=eval_batch_size,
         max_folds=None if args.full else args.max_folds,
         train_per_class_per_fold=None if args.full else args.train_per_class_per_fold,
         eval_per_class_per_fold=None if args.full else args.eval_per_class_per_fold,
-        bootstrap_iterations=args.bootstrap_iterations,
-        device=args.device,
+        bootstrap_iterations=bootstrap_iterations,
+        device=device,
         run_mode="full" if args.full else "pilot",
         resume=not args.no_resume,
         ablation_variant=args.ablation_variant,
         sample_weight_policy=args.sample_weight_policy,
         class_weight_power=args.class_weight_power,
         class_weight_max=args.class_weight_max,
-        precision=args.precision,
+        precision=precision,
         checkpoint_every_steps=args.checkpoint_every_steps,
     )
     if args.full:

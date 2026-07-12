@@ -106,6 +106,14 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--full-runner-default-config-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "full_runner_default_config_audit.json"
+        ),
+    )
+    parser.add_argument(
         "--image-cache-inventory-json",
         type=Path,
         default=Path(
@@ -285,6 +293,9 @@ def main() -> None:
         args.full_oof_preflight_freshness_json
     )
     full_oof_run_plan = _load_optional_json(args.full_oof_run_plan_json)
+    full_runner_default_config = _load_optional_json(
+        args.full_runner_default_config_json
+    )
     image_cache_inventory = _load_optional_json(args.image_cache_inventory_json)
     image_cache_letterbox_policy = _load_optional_json(
         args.image_cache_letterbox_policy_json
@@ -643,6 +654,14 @@ def main() -> None:
             full_oof_run_plan_errors,
         ),
         _gate(
+            "Full runner default config matches workload plan",
+            full_runner_default_config.get("valid") is True
+            and full_runner_default_config.get("errors") == []
+            and full_runner_default_config.get("runner_config_sha256")
+            == full_oof_run_plan.get("config_sha256"),
+            full_runner_default_config.get("errors"),
+        ),
+        _gate(
             "Strict trainer reproducibility",
             reproducibility.get("errors") == []
             and reproducibility.get("forbidden_model_input_rejected") is True,
@@ -797,6 +816,9 @@ def main() -> None:
                 full_oof_preflight_freshness
             ),
             "full_oof_run_plan": _evidence_full_oof_run_plan(full_oof_run_plan),
+            "full_runner_default_config": _evidence_full_runner_default_config(
+                full_runner_default_config
+            ),
             "reproducibility": _evidence_reproducibility(reproducibility),
         },
     }
@@ -1350,6 +1372,24 @@ def _evidence_full_oof_run_plan(plan: dict[str, Any]) -> dict[str, Any]:
         "eligible_rows": load_audit.get("eligible_rows"),
         "total_train_steps": plan.get("total_train_steps"),
         "config_sha256": plan.get("config_sha256"),
+    }
+
+
+def _evidence_full_runner_default_config(audit: dict[str, Any]) -> dict[str, Any]:
+    runner_config = audit.get("runner_config") or {}
+    return {
+        "valid": audit.get("valid"),
+        "runner_config_sha256": audit.get("runner_config_sha256"),
+        "plan_config_sha256": audit.get("plan_config_sha256"),
+        "output_dir": runner_config.get("output_dir"),
+        "require_cached_images": runner_config.get("require_cached_images"),
+        "require_packed_visual_context": runner_config.get(
+            "require_packed_visual_context"
+        ),
+        "image_size": runner_config.get("image_size"),
+        "hidden_dim": runner_config.get("hidden_dim"),
+        "precision": runner_config.get("precision"),
+        "checked_existing_path_keys": audit.get("checked_existing_path_keys"),
     }
 
 
