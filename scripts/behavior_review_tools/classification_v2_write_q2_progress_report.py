@@ -1745,8 +1745,22 @@ def _launch_packet_ready(audit: dict[str, Any]) -> bool:
             and audit.get("cmd_launch_command_ready") is True
             and prefix_ready is True
             and bat_present is True
+            and _authorization_command_ready(audit)
         )
     return _launch_packet_cmd_ready(audit)
+
+
+def _authorization_command_ready(audit: dict[str, Any]) -> bool:
+    """Require audited authorization command fields when available."""
+
+    if "authorization_command_ready" not in audit:
+        return True
+    return bool(
+        audit.get("authorization_command_ready") is True
+        and audit.get("cmd_authorization_command_ready") is True
+        and audit.get("cmd_authorization_command_wraps_base_command") is True
+        and audit.get("cmd_authorization_command_bat_present") is True
+    )
 
 
 def _evidence_full_oof_launch_packet(audit: dict[str, Any]) -> dict[str, Any]:
@@ -1775,6 +1789,16 @@ def _evidence_full_oof_launch_packet(audit: dict[str, Any]) -> dict[str, Any]:
         ),
         "cmd_launch_command_bat_present": audit.get(
             "cmd_launch_command_bat_present"
+        ),
+        "authorization_command_ready": audit.get("authorization_command_ready"),
+        "cmd_authorization_command_ready": audit.get(
+            "cmd_authorization_command_ready"
+        ),
+        "cmd_authorization_command_wraps_base_command": audit.get(
+            "cmd_authorization_command_wraps_base_command"
+        ),
+        "cmd_authorization_command_bat_present": audit.get(
+            "cmd_authorization_command_bat_present"
         ),
         "estimated_training_seconds_excluding_eval": audit.get(
             "estimated_training_seconds_excluding_eval"
