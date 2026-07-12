@@ -466,6 +466,8 @@ def main() -> None:
             "Q2 ablation matrix outer-test lock",
             q2_ablation_matrix.get("valid") is True
             and q2_ablation_matrix.get("outer_test_execution_allowed") is False
+            and q2_ablation_matrix.get("threshold_freeze_status")
+            == "frozen_from_B4_inner_validation_seed_variance"
             and q2_ablation_matrix.get("outer_fold_count", 0) >= 5
             and q2_ablation_matrix.get("confirmatory_seed_count", 0) >= 3,
             q2_ablation_matrix.get("errors"),
