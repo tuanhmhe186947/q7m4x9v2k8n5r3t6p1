@@ -411,7 +411,57 @@ def _packet_errors(packet: dict[str, Any]) -> list[str]:
     for key, path in (packet.get("required_postrun_provenance") or {}).items():
         if str(path) not in command:
             errors.append(f"register_command_missing_postrun_provenance={key}")
+    _require_option_values(
+        errors,
+        "register_command",
+        command,
+        (
+            "--name",
+            "--output-dir",
+            "--metrics-json",
+            "--experiment-stage",
+            "--result-kind",
+            "--primary-metric-unit",
+            "--split-policy",
+            "--dataset-snapshot-json",
+            "--run-audit-json",
+            "--calibration-audit-json",
+            "--source-balanced-metrics-json",
+            "--confusion-comparison-json",
+            "--ablation-report-json",
+            "--runtime-benchmark-audit-json",
+            "--notes",
+            "--parent-record-json",
+            "--artifact",
+        ),
+    )
+    _require_option_values(
+        errors,
+        "calibration_command",
+        packet.get("calibration_command") or [],
+        ("--input-csv", "--output-dir", "--expected-fold-count"),
+    )
+    _require_option_values(
+        errors,
+        "confusion_comparison_command",
+        packet.get("confusion_comparison_command") or [],
+        (
+            "--proposed-csv",
+            "--baseline-csv",
+            "--proposed-run-audit",
+            "--baseline-run-audit",
+            "--output-dir",
+            "--expected-fold-count",
+            "--bootstrap-iterations",
+        ),
+    )
     completion = packet.get("completion_gate_command") or []
+    _require_option_values(
+        errors,
+        "completion_command",
+        completion,
+        ("--output-dir", "--registry-record-json"),
+    )
     if "--registry-record-json" not in completion:
         errors.append("completion_command_missing_registry_record_json")
     if not _cmd_ready(packet.get("calibration_cmd_command") or []):
@@ -425,6 +475,29 @@ def _packet_errors(packet: dict[str, Any]) -> list[str]:
     if not _cmd_ready(packet.get("completion_gate_cmd_command") or []):
         errors.append("completion_cmd_command_missing_cmd_setup")
     return errors
+
+
+def _require_option_values(
+    errors: list[str],
+    command_name: str,
+    command: list[str],
+    options: tuple[str, ...],
+) -> None:
+    """Require critical CLI options to be followed by a non-option value."""
+
+    for option in options:
+        indices = [index for index, token in enumerate(command) if token == option]
+        if not indices:
+            errors.append(f"{command_name}_missing_option={option}")
+            continue
+        for index in indices:
+            value_index = index + 1
+            if value_index >= len(command):
+                errors.append(f"{command_name}_missing_value={option}")
+                continue
+            value = str(command[value_index])
+            if value == "" or value.startswith("--"):
+                errors.append(f"{command_name}_invalid_value={option}:{value}")
 
 
 def _cmd_ready(command: list[str]) -> bool:
