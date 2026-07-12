@@ -1,0 +1,4 @@
+interface:
+  display_name: "Multimodal Sequence Model Builder"
+  short_description: "Build mask-aware multimodal sequence models"
+  default_prompt: "Use $multimodal-sequence-model-builder to add this model mode."

@@ -1,0 +1,5 @@
+outer_fold_id,role,recording_group_id,video_key,temporal_unit_key
+fold_00,train,date_b,video_b,legacy_recovered|video_b|pig_1|0
+fold_00,test,date_a,video_a,cvat_tracking_xml|video_a|pig_1|0
+fold_01,train,date_a,video_a,cvat_tracking_xml|video_a|pig_1|0
+fold_01,test,date_b,video_b,legacy_recovered|video_b|pig_1|0

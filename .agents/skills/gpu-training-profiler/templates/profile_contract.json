@@ -1,0 +1,7 @@
+{
+  "status": "future",
+  "activation_requires": "one_fold_pilot_pass",
+  "required_profiles": ["local_smoke", "remote_pilot", "parallel_folds"],
+  "bounded_search": true,
+  "authorizes_full_training": false
+}

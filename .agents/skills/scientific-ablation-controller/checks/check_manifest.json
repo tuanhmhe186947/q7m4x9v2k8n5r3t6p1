@@ -1,0 +1,6 @@
+{
+  "requires_single_changed_family": true,
+  "requires_paired_native_units": true,
+  "requires_explicit_full_oof_authorization": true,
+  "mutates_inputs": false
+}

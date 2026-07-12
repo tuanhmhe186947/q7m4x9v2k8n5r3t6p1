@@ -1,0 +1,4 @@
+interface:
+  display_name: "Grouped Cv Evaluation"
+  short_description: "Evaluate grouped native-unit predictions"
+  default_prompt: "Use $grouped-cv-evaluation to compare these OOF predictions."

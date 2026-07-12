@@ -1,0 +1,3 @@
+temporal_unit_key,actor_ref,actor_available,partner_ref,partner_available
+unit_a,actor_a.npy,true,partner_a.npy,true
+unit_b,actor_b.npy,true,,false

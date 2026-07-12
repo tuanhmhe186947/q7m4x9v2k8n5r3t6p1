@@ -1,0 +1,3 @@
+temporal_unit_key,source_type,label_frame_count,behavior_label
+cvat_tracking_xml|video_a|pig_1|0,cvat_tracking_xml,6,stand
+legacy_recovered|video_b|pig_1|0,legacy_recovered,16,move

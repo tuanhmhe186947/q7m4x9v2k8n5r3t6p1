@@ -1,0 +1,17 @@
+{
+  "schema_version": "classification_v2_run_manifest_v1",
+  "run_id": "local_smoke_example",
+  "execution_mode": "local_smoke",
+  "experiment_name": "resnet18_actor_temporal",
+  "code_sha": "REQUIRED",
+  "dirty_worktree": false,
+  "config_hash": "REQUIRED",
+  "dataset_snapshot_hash": "REQUIRED",
+  "cache_hash": "REQUIRED",
+  "fold_manifest_hash": "REQUIRED",
+  "feature_whitelist_hash": "REQUIRED",
+  "fold": "development_fold_00",
+  "seed": 20260713,
+  "status": "planned",
+  "failure_reason": null
+}

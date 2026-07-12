@@ -1,0 +1,11 @@
+{
+  "execution_modes": ["local_smoke", "remote_pilot", "remote_full_oof"],
+  "required_hashes": [
+    "config_hash",
+    "dataset_snapshot_hash",
+    "cache_hash",
+    "fold_manifest_hash",
+    "feature_whitelist_hash"
+  ],
+  "fold_outputs_are_isolated": true
+}

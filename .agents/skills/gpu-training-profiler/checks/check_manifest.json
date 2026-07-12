@@ -1,0 +1,7 @@
+{
+  "requires_amp_correctness": true,
+  "requires_bounded_batch_search": true,
+  "requires_resume_test": true,
+  "permits_silent_model_reduction": false,
+  "permits_full_oof": false
+}

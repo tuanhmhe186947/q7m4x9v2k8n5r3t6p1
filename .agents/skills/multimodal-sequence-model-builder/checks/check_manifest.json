@@ -1,0 +1,8 @@
+{
+  "shared_checks": [
+    "../../checks/audit_model_forward_shapes.py",
+    "../../checks/audit_missing_modality_masks.py"
+  ],
+  "requires_forward_smoke": true,
+  "permits_full_training": false
+}

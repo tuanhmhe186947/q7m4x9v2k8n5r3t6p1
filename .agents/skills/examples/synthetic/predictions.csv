@@ -1,0 +1,3 @@
+temporal_unit_key,y_pred,confidence
+cvat_tracking_xml|video_a|pig_1|0,stand,0.8
+legacy_recovered|video_b|pig_1|0,move,0.7

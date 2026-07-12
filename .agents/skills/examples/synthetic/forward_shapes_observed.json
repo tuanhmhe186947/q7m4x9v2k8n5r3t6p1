@@ -1,0 +1,9 @@
+{
+  "inputs": {
+    "actor_rgb": [2, 6, 3, 224, 224],
+    "frame_mask": [2, 6]
+  },
+  "outputs": {
+    "behavior_logits": [2, 10]
+  }
+}

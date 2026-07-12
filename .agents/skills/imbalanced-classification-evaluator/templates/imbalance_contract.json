@@ -1,0 +1,9 @@
+{
+  "status": "future",
+  "allowed_initial_policies": [
+    "event_balanced_ce",
+    "effective_number_ce",
+    "balanced_softmax"
+  ],
+  "selection_count": 1
+}

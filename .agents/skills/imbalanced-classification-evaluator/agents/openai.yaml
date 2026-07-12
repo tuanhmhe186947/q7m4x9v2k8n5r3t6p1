@@ -1,0 +1,6 @@
+interface:
+  display_name: "Imbalanced Classification Evaluator"
+  short_description: "Compare one event-level imbalance policy"
+  default_prompt: "Use $imbalanced-classification-evaluator after the one-fold pilot."
+policy:
+  allow_implicit_invocation: false

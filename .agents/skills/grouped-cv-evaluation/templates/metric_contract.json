@@ -1,0 +1,6 @@
+{
+  "primary_metric": "pooled_oof_native_unit_macro_f1",
+  "global_class_count": 10,
+  "fold_metric": "supported_class_macro_f1",
+  "uncertainty_cluster": "recording_or_native_event"
+}

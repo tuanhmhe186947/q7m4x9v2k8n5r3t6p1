@@ -1,0 +1,13 @@
+{
+  "schema_version": "classification_v2_feature_whitelist_v1",
+  "features": [
+    "cx_n",
+    "cy_n",
+    "bw_n",
+    "bh_n",
+    "speed_feat",
+    "min_dist_other"
+  ],
+  "selection_policy": "explicit_only",
+  "fit_scope": "training_fold_only"
+}

@@ -1,0 +1,6 @@
+{
+  "activation_requires": "one_fold_pilot_pass",
+  "requires_native_event_mass": true,
+  "permits_combined_loss_sampler_search": false,
+  "permits_full_oof": false
+}

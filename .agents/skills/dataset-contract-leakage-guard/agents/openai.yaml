@@ -1,0 +1,4 @@
+interface:
+  display_name: "Dataset Contract Leakage Guard"
+  short_description: "Audit classifier data and leakage contracts"
+  default_prompt: "Use $dataset-contract-leakage-guard to audit this training plan."

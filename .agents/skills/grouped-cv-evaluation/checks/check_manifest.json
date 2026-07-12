@@ -1,0 +1,8 @@
+{
+  "shared_checks": [
+    "../../checks/audit_prediction_count.py",
+    "../../checks/audit_native_unit_uniqueness.py",
+    "../../checks/audit_split_overlap.py"
+  ],
+  "mutates_inputs": false
+}

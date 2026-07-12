@@ -1,0 +1,17 @@
+{
+  "schema_version": "classification_v2_promotion_decision_v1",
+  "candidate_id": "V1",
+  "control_id": "V0",
+  "changed_family": "resolution",
+  "gates": {
+    "schema": "pending",
+    "tiny_overfit": "pending",
+    "one_batch": "pending",
+    "resume": "pending",
+    "runtime_vram": "pending",
+    "development_fold": "pending",
+    "paired_improvement": "pending"
+  },
+  "decision": "not_authorized",
+  "full_oof_authorized": false
+}

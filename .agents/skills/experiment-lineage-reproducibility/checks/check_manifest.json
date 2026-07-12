@@ -1,0 +1,6 @@
+{
+  "shared_checks": ["../../checks/audit_artifact_hashes.py"],
+  "checks_resume_config_equality": true,
+  "checks_fold_output_isolation": true,
+  "mutates_inputs": false
+}

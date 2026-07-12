@@ -1,0 +1,4 @@
+experiment_id,parent_id,changed_family,backbone,resolution,temporal,modalities,status
+V0,,visual,resnet18,160,masked_mean,actor,planned
+V1,V0,resolution,resnet18,224,masked_mean,actor,planned
+V2,V1,backbone,resnet34,224,masked_mean,actor,planned

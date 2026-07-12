@@ -1,0 +1,10 @@
+{
+  "inputs": {
+    "actor_rgb": {"shape": ["B", "T", 3, 224, 224], "required": true},
+    "frame_mask": {"shape": ["B", "T"], "required": true},
+    "geometry_motion": {"shape": ["B", "T", 12], "required": false}
+  },
+  "outputs": {
+    "behavior_logits": {"shape": ["B", 10], "required": true}
+  }
+}

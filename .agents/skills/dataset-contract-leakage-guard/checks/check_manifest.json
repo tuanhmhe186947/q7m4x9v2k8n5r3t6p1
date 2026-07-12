@@ -1,0 +1,8 @@
+{
+  "shared_checks": [
+    "../../checks/audit_split_overlap.py",
+    "../../checks/audit_feature_leakage.py",
+    "../../checks/audit_native_unit_uniqueness.py"
+  ],
+  "mutates_inputs": false
+}

@@ -1,0 +1,11 @@
+{
+  "required_outputs": [
+    "feature_whitelist.json",
+    "feature_blacklist.json",
+    "fold_manifest.csv",
+    "leakage_audit.json",
+    "class_by_fold_support.csv",
+    "source_by_fold_support.csv",
+    "temporal_unit_audit.json"
+  ]
+}

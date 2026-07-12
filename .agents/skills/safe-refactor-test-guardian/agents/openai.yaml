@@ -1,0 +1,4 @@
+interface:
+  display_name: "Safe Refactor Test Guardian"
+  short_description: "Guard small classifier changes with tests"
+  default_prompt: "Use $safe-refactor-test-guardian before changing this module."

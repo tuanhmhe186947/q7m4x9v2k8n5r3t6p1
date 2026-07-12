@@ -1,0 +1,4 @@
+interface:
+  display_name: "Experiment Lineage Reproducibility"
+  short_description: "Trace configs, hashes, folds, and checkpoints"
+  default_prompt: "Use $experiment-lineage-reproducibility to register this run."

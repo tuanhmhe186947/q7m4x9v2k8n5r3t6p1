@@ -1,0 +1,14 @@
+{
+  "ordered_gates": [
+    "schema_correctness",
+    "tiny_overfit",
+    "one_batch",
+    "resume",
+    "runtime_vram",
+    "development_fold",
+    "paired_improvement",
+    "finalist_lock",
+    "full_oof_authorization"
+  ],
+  "full_oof_default": "blocked"
+}

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Gpu Training Profiler"
+  short_description: "Profile bounded GPU training workloads"
+  default_prompt: "Use $gpu-training-profiler after the one-fold pilot passes."
+policy:
+  allow_implicit_invocation: false

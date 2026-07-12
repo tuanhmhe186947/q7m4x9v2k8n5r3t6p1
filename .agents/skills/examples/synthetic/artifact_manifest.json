@@ -1,0 +1,34 @@
+{
+  "artifacts": [
+    {
+      "name": "config",
+      "path": "config.json",
+      "sha256": "801e6179b165419770d43401756c790b344b8c0e54e888728b43192d34e416dd"
+    },
+    {
+      "name": "dataset",
+      "path": "dataset_snapshot.json",
+      "sha256": "cc1d4db8e17cd382c86af7ec91889fb009d6015d6d23c149d7168ba5f33e0405"
+    },
+    {
+      "name": "cache",
+      "path": "cache_index.json",
+      "sha256": "44caed97a6f85bc4686838ef4d840955d7c24ce6d9328e9019f0e53179b5b05c"
+    },
+    {
+      "name": "fold_manifest",
+      "path": "fold_manifest.csv",
+      "sha256": "50a60e3223afafdc4574fe1850f32d3bb5c57766cd71279d467a471ddc74a186"
+    },
+    {
+      "name": "feature_whitelist",
+      "path": "feature_whitelist.json",
+      "sha256": "f643de14a0e99ca7a924d17d108c1e459b57d2209fe1bb42cff6b58c7c64a472"
+    },
+    {
+      "name": "checkpoint",
+      "path": "checkpoint.bin",
+      "sha256": "53f46dde8e65a7f1d154a2fc9344c7977a061e76c96fc67e123f7d6875612ed0"
+    }
+  ]
+}

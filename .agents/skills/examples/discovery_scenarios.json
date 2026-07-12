@@ -1,0 +1,25 @@
+{
+  "schema_version": "classification_v2_skill_scenarios_v1",
+  "scenarios": [
+    {
+      "id": "prepare_actor_temporal_baseline",
+      "prompt": "Chuẩn bị thêm ResNet18 actor-temporal baseline nhưng chưa train.",
+      "expected_skills": [
+        "safe-refactor-test-guardian",
+        "dataset-contract-leakage-guard",
+        "experiment-lineage-reproducibility",
+        "scientific-ablation-controller",
+        "multimodal-sequence-model-builder"
+      ]
+    },
+    {
+      "id": "compare_prediction_files",
+      "prompt": "So sánh hai prediction files.",
+      "expected_skills": [
+        "grouped-cv-evaluation",
+        "dataset-contract-leakage-guard",
+        "experiment-lineage-reproducibility"
+      ]
+    }
+  ]
+}

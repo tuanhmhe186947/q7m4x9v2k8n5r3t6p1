@@ -1,0 +1,76 @@
+{
+  "schema_version": "classification_v2_skill_registry_v1",
+  "native_root": ".agents/skills",
+  "skills": [
+    {
+      "name": "safe-refactor-test-guardian",
+      "status": "active",
+      "implicit": true,
+      "order": 1,
+      "triggers": ["chuẩn bị thêm", "baseline", "refactor", "sửa code"],
+      "depends_on": []
+    },
+    {
+      "name": "dataset-contract-leakage-guard",
+      "status": "active",
+      "implicit": true,
+      "order": 2,
+      "triggers": ["train", "split", "feature", "prediction"],
+      "depends_on": []
+    },
+    {
+      "name": "experiment-lineage-reproducibility",
+      "status": "active",
+      "implicit": true,
+      "order": 3,
+      "triggers": ["baseline", "run", "resume", "prediction"],
+      "depends_on": ["dataset-contract-leakage-guard"]
+    },
+    {
+      "name": "scientific-ablation-controller",
+      "status": "active",
+      "implicit": true,
+      "order": 4,
+      "triggers": ["baseline", "ablation", "promotion", "finalist"],
+      "depends_on": ["experiment-lineage-reproducibility"]
+    },
+    {
+      "name": "multimodal-sequence-model-builder",
+      "status": "active",
+      "implicit": true,
+      "order": 5,
+      "triggers": ["resnet18", "actor-temporal", "multimodal", "model"],
+      "depends_on": [
+        "dataset-contract-leakage-guard",
+        "scientific-ablation-controller"
+      ]
+    },
+    {
+      "name": "grouped-cv-evaluation",
+      "status": "active",
+      "implicit": true,
+      "order": 6,
+      "triggers": ["so sánh hai prediction", "prediction files", "oof"],
+      "depends_on": [
+        "dataset-contract-leakage-guard",
+        "experiment-lineage-reproducibility"
+      ]
+    },
+    {
+      "name": "imbalanced-classification-evaluator",
+      "status": "future",
+      "implicit": false,
+      "order": 7,
+      "triggers": ["event-balanced ce", "balanced softmax", "class imbalance"],
+      "depends_on": ["grouped-cv-evaluation"]
+    },
+    {
+      "name": "gpu-training-profiler",
+      "status": "future",
+      "implicit": false,
+      "order": 8,
+      "triggers": ["gpu profile", "peak vram", "batch-size search"],
+      "depends_on": ["multimodal-sequence-model-builder"]
+    }
+  ]
+}

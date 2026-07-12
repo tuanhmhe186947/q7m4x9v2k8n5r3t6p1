@@ -1,0 +1,6 @@
+{
+  "shared_checks": ["../../checks/audit_canonical_columns.py"],
+  "required_static_checks": ["py_compile", "compileall", "import"],
+  "requires_row_count_audit": true,
+  "permits_long_training": false
+}

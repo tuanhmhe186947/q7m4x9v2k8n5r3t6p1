@@ -1,0 +1,10 @@
+{
+  "features": [
+    "cx_n",
+    "cy_n",
+    "bw_n",
+    "bh_n",
+    "speed_feat",
+    "roi_class_relation"
+  ]
+}

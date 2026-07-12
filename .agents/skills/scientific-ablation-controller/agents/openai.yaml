@@ -1,0 +1,4 @@
+interface:
+  display_name: "Scientific Ablation Controller"
+  short_description: "Control isolated ablations and promotion gates"
+  default_prompt: "Use $scientific-ablation-controller to review this comparison."

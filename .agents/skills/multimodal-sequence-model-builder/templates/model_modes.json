@@ -1,0 +1,14 @@
+{
+  "modes": [
+    "actor_only",
+    "actor_temporal",
+    "actor_geometry",
+    "actor_geometry_roi",
+    "actor_geometry_roi_social",
+    "actor_partner_union",
+    "full_multimodal",
+    "full_multimodal_hierarchy"
+  ],
+  "class_count": 10,
+  "direct_final_supervision": true
+}
