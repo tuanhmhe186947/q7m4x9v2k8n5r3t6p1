@@ -25,6 +25,10 @@ RUNTIME_RELEVANT_PATH_PREFIXES = (
     "scripts/dev_tools/preflight_classification_v2_full_multimodal_oof.py",
     "scripts/dev_tools/summarize_classification_v2_runtime_benchmark.py",
 )
+RUNTIME_AUDIT_ONLY_PATHS = {
+    "src/pig_behavior/classification_v2/training/full_run_preflight.py",
+    "scripts/dev_tools/preflight_classification_v2_full_multimodal_oof.py",
+}
 AUTH_GATE_ONLY_RUNTIME_PATHS = {
     "scripts/behavior_review_tools/classification_v2_run_full_multimodal_oof.py",
 }
@@ -298,6 +302,8 @@ def _runtime_relevant_path(path: str) -> bool:
     """Return whether a changed file can invalidate runtime benchmark evidence."""
 
     normalized = path.replace("\\", "/").lower()
+    if normalized in RUNTIME_AUDIT_ONLY_PATHS:
+        return False
     return any(
         normalized.startswith(prefix.lower())
         for prefix in RUNTIME_RELEVANT_PATH_PREFIXES
