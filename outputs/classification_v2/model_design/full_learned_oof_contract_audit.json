@@ -44,7 +44,7 @@
     "interaction_context_manifest_csv": {
       "path": "outputs\\classification_v2\\train_ready_windows\\interaction_window_context_manifest.csv",
       "exists": true,
-      "size_bytes": 72844682
+      "size_bytes": 72888209
     },
     "sequence_manifest_csv": {
       "path": "outputs\\classification_v2\\sequence_features_reviewed\\sequence_window_manifest.csv",
@@ -64,7 +64,7 @@
     "model_architecture_contract_json": {
       "path": "configs\\classification_v2\\model_architecture_contract_v1.json",
       "exists": true,
-      "size_bytes": 4969
+      "size_bytes": 6644
     }
   },
   "alignment_report": {

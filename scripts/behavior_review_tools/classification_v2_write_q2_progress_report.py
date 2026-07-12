@@ -135,6 +135,38 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--model-architecture-contract-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "model_architecture_contract_audit.json"
+        ),
+    )
+    parser.add_argument(
+        "--ablation-shortcut-contract-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "ablation_shortcut_contract_audit.json"
+        ),
+    )
+    parser.add_argument(
+        "--ablation-reporting-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "ablation_reporting_audit.json"
+        ),
+    )
+    parser.add_argument(
+        "--full-learned-oof-contract-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "full_learned_oof_contract_audit.json"
+        ),
+    )
+    parser.add_argument(
         "--output-json",
         type=Path,
         default=Path("outputs/classification_v2/model_design/q2_progress_report.json"),
@@ -173,6 +205,16 @@ def main() -> None:
     split_group_leakage = _load_optional_json(args.split_group_leakage_json)
     interaction_context_index = _load_optional_json(
         args.interaction_context_index_json
+    )
+    model_architecture_contract = _load_optional_json(
+        args.model_architecture_contract_json
+    )
+    ablation_shortcut_contract = _load_optional_json(
+        args.ablation_shortcut_contract_json
+    )
+    ablation_reporting = _load_optional_json(args.ablation_reporting_json)
+    full_learned_oof_contract = _load_optional_json(
+        args.full_learned_oof_contract_json
     )
 
     gates = [
@@ -302,6 +344,46 @@ def main() -> None:
             )
             == [],
             interaction_context_index.get("errors"),
+        ),
+        _gate(
+            "Q2 multimodal architecture contract",
+            model_architecture_contract.get("valid") is True
+            and model_architecture_contract.get("paper_candidate_ready") is False
+            and model_architecture_contract.get("missing_required_paper_branches")
+            == [],
+            model_architecture_contract.get("errors"),
+        ),
+        _gate(
+            "Q2 ablation shortcut no-claim contract",
+            ablation_shortcut_contract.get("valid") is True
+            and ablation_shortcut_contract.get("paper_candidate_ready") is False
+            and ablation_shortcut_contract.get(
+                "planned_required_ablations_not_recorded"
+            )
+            == [],
+            ablation_shortcut_contract.get("errors"),
+        ),
+        _gate(
+            "Q2 ablation reporting guard",
+            ablation_reporting.get("valid") is True
+            and ablation_reporting.get("paper_claim_level") == "Q2_strong"
+            and ablation_reporting.get("external_generalization_claim") is False
+            and set(ablation_reporting.get("native_oof_comparable_ids", []))
+            >= {"B0", "B1", "B2"},
+            ablation_reporting.get("errors"),
+        ),
+        _gate(
+            "Full learned OOF contract no-claim gate",
+            full_learned_oof_contract.get("valid") is True
+            and full_learned_oof_contract.get("paper_claim_level") == "Q2_strong"
+            and full_learned_oof_contract.get("external_generalization_claim")
+            is False
+            and full_learned_oof_contract.get("paper_ready") is False
+            and (full_learned_oof_contract.get("required_record") or {}).get(
+                "exists"
+            )
+            is False,
+            full_learned_oof_contract.get("errors"),
         ),
         _gate(
             "Full OOF preflight canonical path policy",
@@ -438,6 +520,16 @@ def main() -> None:
             ),
             "interaction_context_index": _evidence_interaction_context_index(
                 interaction_context_index
+            ),
+            "model_architecture_contract": _evidence_model_architecture_contract(
+                model_architecture_contract
+            ),
+            "ablation_shortcut_contract": _evidence_ablation_shortcut_contract(
+                ablation_shortcut_contract
+            ),
+            "ablation_reporting": _evidence_ablation_reporting(ablation_reporting),
+            "full_learned_oof_contract": _evidence_full_learned_oof_contract(
+                full_learned_oof_contract
             ),
             "full_oof_preflight_policy": _evidence_full_oof_preflight_policy(
                 full_oof_preflight_policy
@@ -700,6 +792,61 @@ def _evidence_interaction_context_index(audit: dict[str, Any]) -> dict[str, Any]
         "forbidden_model_input_columns_present": audit.get(
             "forbidden_model_input_columns_present"
         ),
+    }
+
+
+def _evidence_model_architecture_contract(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "contract_version": audit.get("contract_version"),
+        "paper_candidate_ready": audit.get("paper_candidate_ready"),
+        "missing_required_paper_branches": audit.get(
+            "missing_required_paper_branches"
+        ),
+        "paper_candidate_blockers": audit.get("paper_candidate_blockers"),
+    }
+
+
+def _evidence_ablation_shortcut_contract(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "contract_version": audit.get("contract_version"),
+        "paper_candidate_ready": audit.get("paper_candidate_ready"),
+        "planned_required_ablations_not_recorded": audit.get(
+            "planned_required_ablations_not_recorded"
+        ),
+        "paper_candidate_blockers": audit.get("paper_candidate_blockers"),
+    }
+
+
+def _evidence_ablation_reporting(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "paper_claim_level": audit.get("paper_claim_level"),
+        "external_generalization_claim": audit.get(
+            "external_generalization_claim"
+        ),
+        "native_oof_comparable_ids": audit.get("native_oof_comparable_ids"),
+        "smoke_only_ids": audit.get("smoke_only_ids"),
+        "primary_metric": audit.get("primary_metric"),
+        "sesoi": audit.get("sesoi"),
+    }
+
+
+def _evidence_full_learned_oof_contract(audit: dict[str, Any]) -> dict[str, Any]:
+    required_record = audit.get("required_record") or {}
+    alignment = audit.get("alignment_report") or {}
+    return {
+        "valid": audit.get("valid"),
+        "paper_claim_level": audit.get("paper_claim_level"),
+        "external_generalization_claim": audit.get(
+            "external_generalization_claim"
+        ),
+        "paper_ready": audit.get("paper_ready"),
+        "required_record_exists": required_record.get("exists"),
+        "train_ready_rows": alignment.get("train_ready_rows"),
+        "native_oof_fold_count": alignment.get("native_oof_fold_count"),
+        "row_count_mismatches": alignment.get("row_count_mismatches"),
     }
 
 

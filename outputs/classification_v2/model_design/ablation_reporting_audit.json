@@ -139,9 +139,9 @@
     {
       "id": "P2",
       "name": "full_frame_partner_context_branch",
-      "status": "implemented_smoke",
+      "status": "recorded_smoke",
       "required_before_paper_candidate": true,
-      "evidence": "outputs/classification_v2/model_smoke/interaction_context_loader_audit.json",
+      "evidence": "outputs/classification_v2/model_design/visual_context_ablation_smoke_audit.json",
       "evidence_exists": true,
       "record_valid": false,
       "git_dirty": null,
@@ -157,11 +157,11 @@
     {
       "id": "P3",
       "name": "masked_auxiliary_heads",
-      "status": "planned_required",
+      "status": "recorded_smoke",
       "required_before_paper_candidate": false,
-      "evidence": "",
-      "evidence_exists": false,
-      "record_valid": null,
+      "evidence": "outputs/classification_v2/model_smoke/multitask_visual_v3/multitask_smoke_audit.json",
+      "evidence_exists": true,
+      "record_valid": false,
       "git_dirty": null,
       "result_kind": null,
       "native_temporal_metrics_available": false,
@@ -170,7 +170,7 @@
       "accuracy": null,
       "macro_recall_supported": null,
       "metric_ci": null,
-      "comparability_note": "planned_without_evidence"
+      "comparability_note": "smoke_or_non_native_temporal_record"
     },
     {
       "id": "P4",
@@ -309,6 +309,7 @@
     "ablation_not_native_temporal_comparable=B5",
     "ablation_not_native_temporal_comparable=P1",
     "ablation_not_native_temporal_comparable=P2",
+    "ablation_not_native_temporal_comparable=P3",
     "required_ablation_records_smoke_only_not_native_oof=['B3', 'B5', 'P1', 'P2']",
     "source_shortcut_high_risk_requires_source_balanced_reporting",
     "spatial_shortcut_high_risk_controls=['mean_only', 'real_sequence', 'repeat_first_frame']"
