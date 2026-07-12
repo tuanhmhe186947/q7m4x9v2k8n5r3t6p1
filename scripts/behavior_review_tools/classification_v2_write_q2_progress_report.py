@@ -80,6 +80,14 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--full-oof-authorization-template-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "full_oof_authorization_template_audit.json"
+        ),
+    )
+    parser.add_argument(
         "--output-json",
         type=Path,
         default=Path("outputs/classification_v2/model_design/q2_progress_report.json"),
@@ -105,6 +113,9 @@ def main() -> None:
     full_oof_preflight_policy = _load_optional_json(args.full_oof_preflight_policy_json)
     full_oof_authorization_policy = _load_optional_json(
         args.full_oof_authorization_policy_json
+    )
+    full_oof_authorization_template = _load_optional_json(
+        args.full_oof_authorization_template_json
     )
 
     gates = [
@@ -179,6 +190,18 @@ def main() -> None:
             full_oof_authorization_policy.get("errors"),
         ),
         _gate(
+            "Full OOF authorization template fail-closed policy",
+            full_oof_authorization_template.get("valid") is True
+            and full_oof_authorization_template.get("template_authorized_default") is False
+            and full_oof_authorization_template.get(
+                "template_acknowledges_long_run_default"
+            )
+            is False
+            and full_oof_authorization_template.get("template_acknowledges_no_claim_default")
+            is False,
+            full_oof_authorization_template.get("errors"),
+        ),
+        _gate(
             "Strict trainer reproducibility",
             reproducibility.get("errors") == [] and reproducibility.get("forbidden_model_input_rejected") is True,
             reproducibility.get("errors"),
@@ -213,6 +236,10 @@ def main() -> None:
             "Full OOF runner requires authorization JSON bound to preflight "
             "config hash and Git commit."
         ),
+        (
+            "Full OOF authorization template is intentionally non-authorized "
+            "until a reviewer edits the approval fields."
+        ),
     ]
     result = {
         "schema_version": "classification_v2_q2_progress_report_v1",
@@ -239,6 +266,9 @@ def main() -> None:
             "full_oof_preflight_policy": _evidence_full_oof_preflight_policy(full_oof_preflight_policy),
             "full_oof_authorization_policy": _evidence_full_oof_authorization_policy(
                 full_oof_authorization_policy
+            ),
+            "full_oof_authorization_template": _evidence_full_oof_authorization_template(
+                full_oof_authorization_template
             ),
             "reproducibility": _evidence_reproducibility(reproducibility),
         },
@@ -415,6 +445,23 @@ def _evidence_full_oof_authorization_policy(audit: dict[str, Any]) -> dict[str, 
         "invalid_authorization_error_count": len(
             audit.get("invalid_authorization_errors", []) or []
         ),
+    }
+
+
+def _evidence_full_oof_authorization_template(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "template_authorized_default": audit.get("template_authorized_default"),
+        "template_acknowledges_long_run_default": audit.get(
+            "template_acknowledges_long_run_default"
+        ),
+        "template_acknowledges_no_claim_default": audit.get(
+            "template_acknowledges_no_claim_default"
+        ),
+        "template_binds_preflight_config_sha256": audit.get(
+            "template_binds_preflight_config_sha256"
+        ),
+        "template_binds_git_commit": audit.get("template_binds_git_commit"),
     }
 
 
