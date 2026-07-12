@@ -127,6 +127,14 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--interaction-context-index-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "interaction_context_index_audit.json"
+        ),
+    )
+    parser.add_argument(
         "--output-json",
         type=Path,
         default=Path("outputs/classification_v2/model_design/q2_progress_report.json"),
@@ -163,6 +171,9 @@ def main() -> None:
     visual_interaction_cache = _load_optional_json(args.visual_interaction_cache_json)
     pig_id_locality = _load_optional_json(args.pig_id_locality_json)
     split_group_leakage = _load_optional_json(args.split_group_leakage_json)
+    interaction_context_index = _load_optional_json(
+        args.interaction_context_index_json
+    )
 
     gates = [
         _gate("S0A snapshot/data contract", snapshot.get("valid") is True, snapshot.get("errors")),
@@ -270,6 +281,27 @@ def main() -> None:
             and visual_interaction_cache.get("label_gated") is False
             and visual_interaction_cache.get("rows_dropped_for_missing_context") == 0,
             visual_interaction_cache.get("errors"),
+        ),
+        _gate(
+            "Interaction numeric context leakage guard",
+            interaction_context_index.get("valid") is True
+            and interaction_context_index.get("interaction_ready_rows", 0) > 0
+            and interaction_context_index.get(
+                "non_interaction_scene_partner_ready_rows",
+                0,
+            )
+            > 0
+            and interaction_context_index.get("duplicate_window_id") == 0
+            and interaction_context_index.get(
+                "scene_partner_context_not_evaluated_count"
+            )
+            == 0
+            and interaction_context_index.get("window_uid_present") is False
+            and interaction_context_index.get(
+                "forbidden_model_input_columns_present"
+            )
+            == [],
+            interaction_context_index.get("errors"),
         ),
         _gate(
             "Full OOF preflight canonical path policy",
@@ -403,6 +435,9 @@ def main() -> None:
             ),
             "visual_interaction_cache": _evidence_visual_interaction_cache(
                 visual_interaction_cache
+            ),
+            "interaction_context_index": _evidence_interaction_context_index(
+                interaction_context_index
             ),
             "full_oof_preflight_policy": _evidence_full_oof_preflight_policy(
                 full_oof_preflight_policy
@@ -644,6 +679,26 @@ def _evidence_visual_interaction_cache(audit: dict[str, Any]) -> dict[str, Any]:
         "label_gated": audit.get("label_gated"),
         "rows_dropped_for_missing_context": audit.get(
             "rows_dropped_for_missing_context"
+        ),
+    }
+
+
+def _evidence_interaction_context_index(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "rows": audit.get("rows"),
+        "duplicate_window_id": audit.get("duplicate_window_id"),
+        "window_uid_present": audit.get("window_uid_present"),
+        "interaction_ready_rows": audit.get("interaction_ready_rows"),
+        "non_interaction_scene_partner_ready_rows": audit.get(
+            "non_interaction_scene_partner_ready_rows"
+        ),
+        "scene_partner_context_not_evaluated_count": audit.get(
+            "scene_partner_context_not_evaluated_count"
+        ),
+        "model_input_feature_columns": audit.get("model_input_feature_columns"),
+        "forbidden_model_input_columns_present": audit.get(
+            "forbidden_model_input_columns_present"
         ),
     }
 
