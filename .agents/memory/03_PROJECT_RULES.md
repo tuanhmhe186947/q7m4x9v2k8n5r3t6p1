@@ -108,6 +108,16 @@ not supersede the active classification_v2 rules above.
       with a smaller hunk. Do not switch to shell-writing as a fallback.
     - After patching, run `git diff -- <file>`, `git diff --check`, and
       `rg -n "^.{101,}$" <file>` before staging.
+20. Markdown failure-stop rule:
+    - Treat `.md` files as hand-edited project memory, not generated output.
+    - If two `apply_patch` attempts fail for the same Markdown target, stop and
+      re-read the exact file section before trying again.
+    - Do not recover from a failed Markdown patch by using PowerShell writers,
+      shell redirects, temporary files, or whole-file replacement.
+    - For append-like changes, insert under an existing heading or add one
+      small dated heading near the top with `apply_patch`.
+    - If the target location is ambiguous after re-reading, ask the user or
+      report the ambiguity instead of guessing with a broad rewrite.
 
 ## Tracking-specific rules
 

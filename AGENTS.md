@@ -62,6 +62,17 @@ File edit safety:
   6. After the patch, run `git diff -- <file>`, `git diff --check`, and
      `rg -n "^.{101,}$" <file>` before staging.
 
+- Markdown failure-stop rule:
+  1. Treat `.md` files as hand-edited project memory, not generated output.
+  2. If two `apply_patch` attempts fail for the same Markdown target, stop and
+     re-read the exact file section before trying again.
+  3. Do not recover from a failed Markdown patch by using PowerShell writers,
+     shell redirects, temporary files, or whole-file replacement.
+  4. For append-like changes, insert under an existing heading or add one small
+     dated heading near the top with `apply_patch`.
+  5. If the target location is ambiguous after re-reading, ask the user or
+     report the ambiguity instead of guessing with a broad rewrite.
+
 Legacy preserved docs:
 
 - `.agents/AGENTS.md`
