@@ -105,6 +105,8 @@ def main() -> None:
         "python_executable": packet.get("python_executable"),
         "launch_command": packet.get("launch_command"),
         "cmd_launch_command": packet.get("cmd_launch_command"),
+        "launch_command_python_ready": _launch_command_python_ready(packet),
+        "cmd_launch_command_ready": _cmd_launch_command_ready(packet),
         "review_checklist_count": len(packet.get("review_checklist") or []),
         "preflight_config_sha256": packet.get("preflight_config_sha256"),
         "git_commit": packet.get("git_commit"),
@@ -176,6 +178,25 @@ def _packet_errors(packet: dict[str, Any], expected: dict[str, Any]) -> list[str
     if len(packet.get("review_checklist") or []) < 6:
         errors.append("launch_packet_review_checklist_too_short")
     return errors
+
+
+def _launch_command_python_ready(packet: dict[str, Any]) -> bool:
+    """Return whether the raw Python command is bound to the audited executable."""
+
+    command = packet.get("launch_command") or []
+    python_executable = str(packet.get("python_executable") or "")
+    return bool(python_executable and command and command[0] == python_executable)
+
+
+def _cmd_launch_command_ready(packet: dict[str, Any]) -> bool:
+    """Return whether the human CMD command keeps project-root PYTHONPATH setup."""
+
+    cmd_command = packet.get("cmd_launch_command") or []
+    return bool(
+        cmd_command
+        and "PYTHONPATH=%CD%\\src" in cmd_command
+        and "&&" in cmd_command
+    )
 
 
 def _missing_command_values(command: list[str], options: list[str]) -> list[str]:
