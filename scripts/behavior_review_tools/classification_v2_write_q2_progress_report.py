@@ -1762,15 +1762,28 @@ def _evidence_full_oof_postrun_registration_packet(
         "calibration_cmd_command_ready": audit.get(
             "calibration_cmd_command_ready"
         ),
+        "calibration_command_bat_present": audit.get(
+            "calibration_command_bat_present"
+        ),
         "confusion_comparison_cmd_command_ready": audit.get(
             "confusion_comparison_cmd_command_ready"
+        ),
+        "confusion_comparison_command_bat_present": audit.get(
+            "confusion_comparison_command_bat_present"
         ),
         "ablation_report_cmd_command_ready": audit.get(
             "ablation_report_cmd_command_ready"
         ),
+        "ablation_report_command_bat_present": audit.get(
+            "ablation_report_command_bat_present"
+        ),
         "register_cmd_command_ready": audit.get("register_cmd_command_ready"),
+        "register_command_bat_present": audit.get("register_command_bat_present"),
         "completion_gate_cmd_command_ready": audit.get(
             "completion_gate_cmd_command_ready"
+        ),
+        "completion_gate_command_bat_present": audit.get(
+            "completion_gate_command_bat_present"
         ),
         "completion_gate_precheck_valid": audit.get(
             "completion_gate_precheck_valid"
