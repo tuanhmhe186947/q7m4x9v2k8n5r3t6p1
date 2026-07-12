@@ -77,6 +77,13 @@ def main() -> None:
             "full_oof_launch_packet_audit.json"
         ),
     )
+    parser.add_argument(
+        "--launch-packet-md",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/full_oof_launch_packet.md"
+        ),
+    )
     args = parser.parse_args()
 
     errors: list[str] = []
@@ -89,6 +96,15 @@ def main() -> None:
         preflight_freshness=_load_json(args.preflight_freshness_json, errors),
     )
     errors.extend(_packet_errors(packet, expected))
+    md_audit = _markdown_runbook_audit(
+        path=args.launch_packet_md,
+        expected_headings=(
+            "## CMD Command",
+            "## Authorization Command Template",
+        ),
+        min_bat_blocks=2,
+    )
+    errors.extend(md_audit["errors"])
     audit = {
         "schema_version": "classification_v2_full_oof_launch_packet_audit_v1",
         "valid": not errors,
@@ -137,6 +153,15 @@ def main() -> None:
         "review_checklist_count": len(packet.get("review_checklist") or []),
         "preflight_config_sha256": packet.get("preflight_config_sha256"),
         "git_commit": packet.get("git_commit"),
+        "launch_packet_md": str(args.launch_packet_md),
+        "markdown_runbook_valid": md_audit["valid"],
+        "markdown_bat_block_count": md_audit["bat_block_count"],
+        "markdown_wrapped_command_line_count": md_audit[
+            "wrapped_command_line_count"
+        ],
+        "markdown_overlong_command_line_count": md_audit[
+            "overlong_command_line_count"
+        ],
     }
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
     args.output_json.write_text(json.dumps(audit, indent=2), encoding="utf-8")
@@ -340,6 +365,54 @@ def _missing_command_values(command: list[str], options: list[str]) -> list[str]
         if index + 1 >= len(command) or command[index + 1] == "":
             missing.append(option)
     return missing
+
+
+def _markdown_runbook_audit(
+    *,
+    path: Path,
+    expected_headings: tuple[str, ...],
+    min_bat_blocks: int,
+) -> dict[str, Any]:
+    """Check generated Markdown has wrapped CMD blocks for human execution."""
+
+    errors: list[str] = []
+    if not path.exists():
+        return {
+            "valid": False,
+            "errors": [f"missing_markdown_runbook={path}"],
+            "bat_block_count": 0,
+            "wrapped_command_line_count": 0,
+            "overlong_command_line_count": 0,
+        }
+    text = path.read_text(encoding="utf-8")
+    for heading in expected_headings:
+        if heading not in text:
+            errors.append(f"markdown_runbook_missing_heading={heading}")
+    bat_block_count = text.count("```bat")
+    if bat_block_count < min_bat_blocks:
+        errors.append(f"markdown_runbook_bat_blocks_too_few={bat_block_count}")
+    wrapped_lines = [
+        line for line in text.splitlines() if line.rstrip().endswith("^")
+    ]
+    if not wrapped_lines:
+        errors.append("markdown_runbook_missing_cmd_continuation_lines")
+    overlong_command_lines = [
+        line
+        for line in text.splitlines()
+        if len(line) > 140 and (" && " in line or " --" in line)
+    ]
+    if overlong_command_lines:
+        errors.append(
+            "markdown_runbook_has_unwrapped_long_command_lines="
+            f"{len(overlong_command_lines)}"
+        )
+    return {
+        "valid": not errors,
+        "errors": errors,
+        "bat_block_count": bat_block_count,
+        "wrapped_command_line_count": len(wrapped_lines),
+        "overlong_command_line_count": len(overlong_command_lines),
+    }
 
 
 def _load_json(path: Path, errors: list[str]) -> dict[str, Any]:

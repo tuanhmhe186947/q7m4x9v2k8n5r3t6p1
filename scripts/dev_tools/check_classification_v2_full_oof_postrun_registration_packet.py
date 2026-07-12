@@ -63,6 +63,14 @@ def main() -> None:
             "full_oof_postrun_registration_packet_audit.json"
         ),
     )
+    parser.add_argument(
+        "--packet-md",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "full_oof_postrun_registration_packet.md"
+        ),
+    )
     args = parser.parse_args()
 
     errors: list[str] = []
@@ -80,6 +88,18 @@ def main() -> None:
             f"postrun_parent_record_invalid={parent['record_json']}:{error}"
             for error in parent["errors"]
         )
+    md_audit = _markdown_runbook_audit(
+        path=args.packet_md,
+        expected_headings=(
+            "## Calibration Command",
+            "## Confusion Comparison Command",
+            "## Ablation Report Command",
+            "## Register Command",
+            "## Completion Gate Command",
+        ),
+        min_bat_blocks=5,
+    )
+    errors.extend(md_audit["errors"])
     audit = {
         "schema_version": (
             "classification_v2_full_oof_postrun_registration_packet_audit_v1"
@@ -172,6 +192,15 @@ def main() -> None:
         "parent_control_count": len(parent_controls),
         "parent_controls_valid": all(parent["valid"] for parent in parent_controls),
         "parent_controls": parent_controls,
+        "packet_md": str(args.packet_md),
+        "markdown_runbook_valid": md_audit["valid"],
+        "markdown_bat_block_count": md_audit["bat_block_count"],
+        "markdown_wrapped_command_line_count": md_audit[
+            "wrapped_command_line_count"
+        ],
+        "markdown_overlong_command_line_count": md_audit[
+            "overlong_command_line_count"
+        ],
     }
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
     args.output_json.write_text(json.dumps(audit, indent=2), encoding="utf-8")
@@ -424,6 +453,54 @@ def _cmd_wraps_base_command(command: list[str], base_command: list[str]) -> bool
     if len(command) < 8 or not base_command:
         return False
     return command[7:] == base_command
+
+
+def _markdown_runbook_audit(
+    *,
+    path: Path,
+    expected_headings: tuple[str, ...],
+    min_bat_blocks: int,
+) -> dict[str, Any]:
+    """Check generated Markdown has wrapped CMD blocks for human execution."""
+
+    errors: list[str] = []
+    if not path.exists():
+        return {
+            "valid": False,
+            "errors": [f"missing_markdown_runbook={path}"],
+            "bat_block_count": 0,
+            "wrapped_command_line_count": 0,
+            "overlong_command_line_count": 0,
+        }
+    text = path.read_text(encoding="utf-8")
+    for heading in expected_headings:
+        if heading not in text:
+            errors.append(f"markdown_runbook_missing_heading={heading}")
+    bat_block_count = text.count("```bat")
+    if bat_block_count < min_bat_blocks:
+        errors.append(f"markdown_runbook_bat_blocks_too_few={bat_block_count}")
+    wrapped_lines = [
+        line for line in text.splitlines() if line.rstrip().endswith("^")
+    ]
+    if not wrapped_lines:
+        errors.append("markdown_runbook_missing_cmd_continuation_lines")
+    overlong_command_lines = [
+        line
+        for line in text.splitlines()
+        if len(line) > 140 and (" && " in line or " --" in line)
+    ]
+    if overlong_command_lines:
+        errors.append(
+            "markdown_runbook_has_unwrapped_long_command_lines="
+            f"{len(overlong_command_lines)}"
+        )
+    return {
+        "valid": not errors,
+        "errors": errors,
+        "bat_block_count": bat_block_count,
+        "wrapped_command_line_count": len(wrapped_lines),
+        "overlong_command_line_count": len(overlong_command_lines),
+    }
 
 
 def _load_json(path: Path, errors: list[str]) -> dict[str, Any]:
