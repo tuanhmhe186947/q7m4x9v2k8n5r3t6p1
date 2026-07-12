@@ -72,6 +72,14 @@ def main() -> None:
         default=Path("outputs/classification_v2/model_design/full_oof_preflight_policy_audit.json"),
     )
     parser.add_argument(
+        "--full-oof-authorization-policy-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "full_oof_authorization_policy_audit.json"
+        ),
+    )
+    parser.add_argument(
         "--output-json",
         type=Path,
         default=Path("outputs/classification_v2/model_design/q2_progress_report.json"),
@@ -95,12 +103,19 @@ def main() -> None:
     q2_feature_whitelist = _load_optional_json(args.q2_feature_whitelist_json)
     q2_final_package_stub = _load_optional_json(args.q2_final_package_stub_json)
     full_oof_preflight_policy = _load_optional_json(args.full_oof_preflight_policy_json)
+    full_oof_authorization_policy = _load_optional_json(
+        args.full_oof_authorization_policy_json
+    )
 
     gates = [
         _gate("S0A snapshot/data contract", snapshot.get("valid") is True, snapshot.get("errors")),
         _gate("B2-B7 config matrix", baseline_configs.get("valid") is True, baseline_configs.get("errors")),
         _gate("B2-B7 CUDA smoke", baseline_smokes.get("valid") is True, baseline_smokes.get("errors")),
-        _gate("B4 inner-validation seed variance", b4_seed_variance.get("valid") is True, b4_seed_variance.get("errors")),
+        _gate(
+            "B4 inner-validation seed variance",
+            b4_seed_variance.get("valid") is True,
+            b4_seed_variance.get("errors"),
+        ),
         _gate(
             "S5 Q2 native-OOF metric contract",
             q2_oof_metric_contract.get("valid") is True
@@ -157,6 +172,13 @@ def main() -> None:
             full_oof_preflight_policy.get("errors"),
         ),
         _gate(
+            "Full OOF authorization artifact policy",
+            full_oof_authorization_policy.get("valid") is True
+            and full_oof_authorization_policy.get("requires_authorization_json") is True
+            and full_oof_authorization_policy.get("missing_invalid_tokens") == [],
+            full_oof_authorization_policy.get("errors"),
+        ),
+        _gate(
             "Strict trainer reproducibility",
             reproducibility.get("errors") == [] and reproducibility.get("forbidden_model_input_rejected") is True,
             reproducibility.get("errors"),
@@ -164,19 +186,43 @@ def main() -> None:
     ]
     remaining = [
         "Full OOF remains blocked until explicit authorization and matching clean preflight.",
-        "S5 metric contract is defined; real per-source/matched metrics still need explicitly authorized full OOF predictions.",
-        "B4 seed variance is estimated from bounded validation-only smoke; full inner-validation variance still needs non-smoke OOF authorization.",
-        "S7 hard-negative contract is defined; actual shortlist generation needs explicitly authorized native OOF predictions.",
+        (
+            "S5 metric contract is defined; real per-source/matched metrics "
+            "still need explicitly authorized full OOF predictions."
+        ),
+        (
+            "B4 seed variance is estimated from bounded validation-only smoke; "
+            "full inner-validation variance still needs non-smoke OOF authorization."
+        ),
+        (
+            "S7 hard-negative contract is defined; actual shortlist generation "
+            "needs explicitly authorized native OOF predictions."
+        ),
         "S8 active-review loop contract is defined; actual decisions require human GUI review before apply.",
-        "S9 final package contract is defined; final paper metrics still need explicitly authorized full OOF/final-test execution.",
+        (
+            "S9 final package contract is defined; final paper metrics still "
+            "need explicitly authorized full OOF/final-test execution."
+        ),
         "Q2 feature whitelist is defined; every new trainer must consume it or an equivalent checked contract.",
-        "Q2 final package skeleton exists only as a blocked/no-claim artifact until full OOF is authorized and complete.",
+        (
+            "Q2 final package skeleton exists only as a blocked/no-claim "
+            "artifact until full OOF is authorized and complete."
+        ),
         "Full OOF preflight rejects ad hoc smoke/resume cache roots and requires canonical packed cache paths.",
+        (
+            "Full OOF runner requires authorization JSON bound to preflight "
+            "config hash and Git commit."
+        ),
     ]
     result = {
         "schema_version": "classification_v2_q2_progress_report_v1",
-        "overall_status": "PASS_PARTIAL_ROADMAP" if all(gate["passed"] for gate in gates) else "FAIL",
-        "claim_boundary": "Q2 internal recording-date/video-safe improvement only; no external farm/camera/cohort claim.",
+        "overall_status": (
+            "PASS_PARTIAL_ROADMAP" if all(gate["passed"] for gate in gates) else "FAIL"
+        ),
+        "claim_boundary": (
+            "Q2 internal recording-date/video-safe improvement only; "
+            "no external farm/camera/cohort claim."
+        ),
         "gates": gates,
         "remaining_work": remaining,
         "evidence": {
@@ -191,6 +237,9 @@ def main() -> None:
             "q2_feature_whitelist": _evidence_q2_feature_whitelist(q2_feature_whitelist),
             "q2_final_package_stub": _evidence_q2_final_package_stub(q2_final_package_stub),
             "full_oof_preflight_policy": _evidence_full_oof_preflight_policy(full_oof_preflight_policy),
+            "full_oof_authorization_policy": _evidence_full_oof_authorization_policy(
+                full_oof_authorization_policy
+            ),
             "reproducibility": _evidence_reproducibility(reproducibility),
         },
     }
@@ -352,6 +401,20 @@ def _evidence_full_oof_preflight_policy(audit: dict[str, Any]) -> dict[str, Any]
         "required_bad_token_count": audit.get("required_bad_token_count"),
         "missing_bad_tokens": audit.get("missing_bad_tokens"),
         "ad_hoc_config_error_count": len(audit.get("ad_hoc_config_errors", []) or []),
+    }
+
+
+def _evidence_full_oof_authorization_policy(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "requires_authorization_json": audit.get("requires_authorization_json"),
+        "authorization_purpose": audit.get("authorization_purpose"),
+        "valid_authorization_errors": audit.get("valid_authorization_errors"),
+        "required_invalid_token_count": audit.get("required_invalid_token_count"),
+        "missing_invalid_tokens": audit.get("missing_invalid_tokens"),
+        "invalid_authorization_error_count": len(
+            audit.get("invalid_authorization_errors", []) or []
+        ),
     }
 
 
