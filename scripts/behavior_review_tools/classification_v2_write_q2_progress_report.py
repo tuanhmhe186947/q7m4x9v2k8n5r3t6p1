@@ -786,7 +786,12 @@ def main() -> None:
             and full_oof_launch_packet.get("authorization_required") is True
             and full_oof_launch_packet.get("authorization_template_authorized")
             is False
-            and _launch_packet_ready(full_oof_launch_packet),
+            and _launch_packet_ready(full_oof_launch_packet)
+            and full_oof_launch_packet.get("markdown_runbook_valid") is True
+            and full_oof_launch_packet.get(
+                "markdown_overlong_command_line_count"
+            )
+            == 0,
             full_oof_launch_packet.get("errors"),
         ),
         _gate(
@@ -866,6 +871,17 @@ def main() -> None:
             and _optional_true(
                 full_oof_postrun_registration_packet,
                 "completion_gate_command_bat_present",
+            )
+            and _optional_true(
+                full_oof_postrun_registration_packet,
+                "markdown_runbook_valid",
+            )
+            and (
+                full_oof_postrun_registration_packet.get(
+                    "markdown_overlong_command_line_count",
+                    0,
+                )
+                == 0
             )
             and _optional_true(
                 full_oof_postrun_registration_packet,
@@ -1809,6 +1825,15 @@ def _evidence_full_oof_launch_packet(audit: dict[str, Any]) -> dict[str, Any]:
         "review_checklist_count": audit.get("review_checklist_count"),
         "preflight_config_sha256": audit.get("preflight_config_sha256"),
         "git_commit": audit.get("git_commit"),
+        "launch_packet_md": audit.get("launch_packet_md"),
+        "markdown_runbook_valid": audit.get("markdown_runbook_valid"),
+        "markdown_bat_block_count": audit.get("markdown_bat_block_count"),
+        "markdown_wrapped_command_line_count": audit.get(
+            "markdown_wrapped_command_line_count"
+        ),
+        "markdown_overlong_command_line_count": audit.get(
+            "markdown_overlong_command_line_count"
+        ),
     }
 
 
@@ -1899,6 +1924,15 @@ def _evidence_full_oof_postrun_registration_packet(
         "parent_control_count": audit.get("parent_control_count"),
         "parent_controls_valid": audit.get("parent_controls_valid"),
         "parent_controls": audit.get("parent_controls"),
+        "packet_md": audit.get("packet_md"),
+        "markdown_runbook_valid": audit.get("markdown_runbook_valid"),
+        "markdown_bat_block_count": audit.get("markdown_bat_block_count"),
+        "markdown_wrapped_command_line_count": audit.get(
+            "markdown_wrapped_command_line_count"
+        ),
+        "markdown_overlong_command_line_count": audit.get(
+            "markdown_overlong_command_line_count"
+        ),
     }
 
 
@@ -2035,6 +2069,7 @@ def _render_current_state_lines(evidence: dict[str, Any]) -> list[str]:
 
     freshness = evidence.get("full_oof_preflight_freshness") or {}
     launch = evidence.get("full_oof_launch_packet") or {}
+    postrun = evidence.get("full_oof_postrun_registration_packet") or {}
     completion = evidence.get("full_oof_completion_gate") or {}
     return [
         f"- Preflight fresh: `{freshness.get('preflight_fresh')}`",
@@ -2044,6 +2079,12 @@ def _render_current_state_lines(evidence: dict[str, Any]) -> list[str]:
         f"- Current snapshot: `{freshness.get('current_snapshot_id')}`",
         f"- Full OOF execution allowed: `{launch.get('full_oof_execution_allowed')}`",
         f"- Authorization required: `{launch.get('authorization_required')}`",
+        f"- Launch runbook Markdown valid: `{launch.get('markdown_runbook_valid')}`",
+        "- Launch runbook overlong command lines: "
+        f"`{launch.get('markdown_overlong_command_line_count')}`",
+        f"- Postrun runbook Markdown valid: `{postrun.get('markdown_runbook_valid')}`",
+        "- Postrun runbook overlong command lines: "
+        f"`{postrun.get('markdown_overlong_command_line_count')}`",
         f"- Completion gate q2_claim_allowed: `{completion.get('q2_claim_allowed')}`",
         f"- Completion gate fail_closed: `{completion.get('fail_closed')}`",
     ]
