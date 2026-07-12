@@ -11,8 +11,10 @@ Current state:
 - The project is pre-full ready, not Q2 complete.
 - `q2_progress_report.json` reports `PASS_PARTIAL_ROADMAP`.
 - The latest pre-full gate summary is 44/44 gates passing.
-- Latest verified pre-full HEAD is
-  `90408f7b368e61df85749879e0ca5148e06e3894`.
+- Latest verified pre-full HEAD is the `current_git_commit` in
+  `outputs/classification_v2/model_design/q2_progress_report_audit.json` after
+  the latest pre-full refresh. Do not hard-code it in workflow memory because
+  memory commits intentionally move HEAD.
 - Full OOF remains fail-closed until explicit authorization is written.
 - Q2 claim remains locked until full OOF and postrun completion gate pass.
 - Full OOF execution gate must report 4 rejection cases, including the

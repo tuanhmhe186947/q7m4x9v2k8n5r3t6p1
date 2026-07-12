@@ -4,7 +4,10 @@
 
 Keep the active decision as pre-full ready, not Q2 complete.
 
-- Current verified HEAD is `90408f7b368e61df85749879e0ca5148e06e3894`.
+- Current verified HEAD is the `current_git_commit` in
+  `outputs/classification_v2/model_design/q2_progress_report_audit.json` after
+  the latest pre-full refresh. Do not hard-code a commit here because memory
+  commits intentionally move HEAD.
 - Current progress is `PASS_PARTIAL_ROADMAP` with 44/44 gates passing.
 - The execution gate now requires 4 rejection cases, including rejection of a
   near-authorized file missing `reviewer` and `reviewed_at`.

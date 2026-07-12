@@ -2,8 +2,10 @@
 
 ## 2026-07-13 classification_v2 pre-full hardening refresh
 
-- Latest verified pre-full HEAD:
-  `90408f7b368e61df85749879e0ca5148e06e3894`.
+- Current verified HEAD must be read from
+  `outputs/classification_v2/model_design/q2_progress_report_audit.json` key
+  `current_git_commit` after each pre-full refresh. Do not hard-code it in
+  memory because every memory commit changes HEAD.
 - `q2_progress_report_audit.json` is valid with `PASS_PARTIAL_ROADMAP`,
   44/44 gates passing, clean git, `full_oof_execution_allowed=false`,
   `authorization_authorized=false`, and `q2_claim_allowed=false`.
