@@ -63,7 +63,15 @@ def check_experiment_record(record_path: Path, _visited: set[Path] | None = None
     record = json.loads(record_path.read_text(encoding="utf-8"))
     errors: list[str] = []
     warnings: list[str] = []
-    required = ["schema_version", "name", "created_at_utc", "git_commit", "git_dirty", "artifacts", "record_path"]
+    required = [
+        "schema_version",
+        "name",
+        "created_at_utc",
+        "git_commit",
+        "git_dirty",
+        "artifacts",
+        "record_path",
+    ]
     missing = [key for key in required if key not in record]
     if missing:
         errors.append(f"missing_record_keys={missing}")
@@ -96,7 +104,10 @@ def check_experiment_record(record_path: Path, _visited: set[Path] | None = None
         experiment_stage=stage,
     )
     errors.extend(f"native_temporal_metrics_gate:{error}" for error in native_gate["errors"])
-    warnings.extend(f"native_temporal_metrics_gate:{warning}" for warning in native_gate["warnings"])
+    warnings.extend(
+        f"native_temporal_metrics_gate:{warning}"
+        for warning in native_gate["warnings"]
+    )
 
     return {
         "record_json": str(record_path),
@@ -152,7 +163,11 @@ def _check_paper_facing_provenance(
         _check_artifact_record(artifact, errors)
         if name.endswith("_audit_json"):
             _check_json_payload(artifact, name, errors)
-        elif name.endswith("_metrics_json") or name.endswith("_comparison_json") or name.endswith("_report_json"):
+        elif (
+            name.endswith("_metrics_json")
+            or name.endswith("_comparison_json")
+            or name.endswith("_report_json")
+        ):
             _check_json_payload(artifact, name, errors)
     parent_records = provenance.get("parent_record_jsons", [])
     if result_kind in {"model_evaluation", "ablation_evaluation"} and not parent_records:
@@ -161,13 +176,43 @@ def _check_paper_facing_provenance(
         _check_artifact_record(artifact, errors)
         path = Path(str(artifact.get("path", "")))
         if path.exists():
-            parent_check = check_experiment_record(path, visited)
-            if parent_check.get("errors"):
-                errors.append(f"invalid_parent_experiment_record={path}:{parent_check.get('errors')}")
-            if parent_check.get("paper_facing") is not True:
-                errors.append(f"parent_experiment_not_paper_facing={path}")
+            _check_parent_record_link(path, errors)
 
     _check_semantic_paper_payloads(provenance, result_kind, errors)
+
+
+def _check_parent_record_link(path: Path, errors: list[str]) -> None:
+    """Validate parent records as comparable native-temporal controls.
+
+    Parent records can be older baseline/control records. For a full learned
+    model claim, the link must prove clean, paper-facing native-temporal metrics
+    without recursively requiring the parent to have its own parent graph.
+    """
+
+    record = json.loads(path.read_text(encoding="utf-8"))
+    if record.get("paper_facing") is not True:
+        errors.append(f"parent_experiment_not_paper_facing={path}")
+    if record.get("git_dirty") is not False:
+        errors.append(f"parent_experiment_git_dirty={path}")
+    evaluation = record.get("evaluation_contract") or {}
+    if evaluation.get("external_generalization_claim") is True:
+        errors.append(f"parent_external_generalization_claim={path}")
+    if evaluation.get("primary_metric_unit") != "native_temporal_unit":
+        errors.append(f"parent_metric_unit_not_native_temporal={path}")
+    metrics = record.get("metrics") or {}
+    native_metrics = metrics.get("native_temporal_metrics") or {}
+    if not native_metrics:
+        errors.append(f"parent_missing_native_temporal_metrics={path}")
+    parent_gate = check_native_temporal_metrics_gate(
+        evaluation_contract=evaluation,
+        metrics_payload=metrics,
+        paper_facing=bool(record.get("paper_facing")),
+        experiment_stage=str(record.get("experiment_stage", "")),
+    )
+    errors.extend(
+        f"parent_native_temporal_metrics_gate={path}:{error}"
+        for error in parent_gate["errors"]
+    )
 
 
 def _check_semantic_paper_payloads(
