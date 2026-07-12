@@ -6,20 +6,30 @@ from pathlib import Path
 
 import pandas as pd
 
-from pig_behavior.classification_v2.evaluation.source_domain_controls import audit_source_domain_control_view
+from pig_behavior.classification_v2.evaluation.source_domain_controls import (
+    audit_source_domain_control_view,
+)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Check classification_v2 source/domain control artifacts.")
+    parser = argparse.ArgumentParser(
+        description="Check classification_v2 source/domain control artifacts."
+    )
     parser.add_argument(
         "--manifest",
         type=Path,
-        default=Path("outputs/classification_v2/source_domain_controls/source_domain_selection_manifest.csv"),
+        default=Path(
+            "outputs/classification_v2/source_domain_controls/"
+            "source_domain_selection_manifest.csv"
+        ),
     )
     parser.add_argument(
         "--audit-json",
         type=Path,
-        default=Path("outputs/classification_v2/source_domain_controls/source_domain_control_audit.json"),
+        default=Path(
+            "outputs/classification_v2/source_domain_controls/"
+            "source_domain_control_audit.json"
+        ),
     )
     parser.add_argument(
         "--config",
@@ -29,7 +39,8 @@ def main() -> None:
     args = parser.parse_args()
     config = json.loads(args.config.read_text(encoding="utf-8"))
     manifest = pd.read_csv(args.manifest, low_memory=False)
-    x_columns = list(pd.read_csv(Path(config["train_ready_root"]) / config["tabular_x"], nrows=0).columns)
+    x_path = Path(config["train_ready_root"]) / config["tabular_x"]
+    x_columns = list(pd.read_csv(x_path, nrows=0).columns)
     source_labels = sorted(manifest["source_type"].dropna().astype(str).unique())
     audit = audit_source_domain_control_view(
         manifest,

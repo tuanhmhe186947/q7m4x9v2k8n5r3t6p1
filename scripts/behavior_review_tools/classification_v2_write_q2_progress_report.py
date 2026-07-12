@@ -194,6 +194,21 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--source-domain-control-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/source_domain_controls/"
+            "source_domain_control_audit.json"
+        ),
+    )
+    parser.add_argument(
+        "--loader-input-audit-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/train_ready_windows/loader_input_audit.json"
+        ),
+    )
+    parser.add_argument(
         "--output-json",
         type=Path,
         default=Path("outputs/classification_v2/model_design/q2_progress_report.json"),
@@ -249,6 +264,8 @@ def main() -> None:
     visual_context_ablation_smoke = _load_optional_json(
         args.visual_context_ablation_smoke_json
     )
+    source_domain_control = _load_optional_json(args.source_domain_control_json)
+    loader_input_audit = _load_optional_json(args.loader_input_audit_json)
 
     gates = [
         _gate("S0A snapshot/data contract", snapshot.get("valid") is True, snapshot.get("errors")),
@@ -465,6 +482,30 @@ def main() -> None:
             visual_context_ablation_smoke.get("errors"),
         ),
         _gate(
+            "Source-domain matched control contract",
+            source_domain_control.get("valid") is True
+            and source_domain_control.get("duplicate_window_id") == 0
+            and source_domain_control.get("kept_rows", 0) > 0
+            and source_domain_control.get("imbalanced_strata_after_count") == 0
+            and source_domain_control.get("forbidden_x_columns") == []
+            and len(source_domain_control.get("source_labels", [])) >= 2,
+            source_domain_control.get("errors"),
+        ),
+        _gate(
+            "Loader input source-domain leakage guard",
+            loader_input_audit.get("valid") is True
+            and loader_input_audit.get("forbidden_x_columns") == []
+            and loader_input_audit.get("whitelist_missing_in_tabular_x") == []
+            and loader_input_audit.get("tabular_x_columns_not_in_whitelist")
+            == []
+            and loader_input_audit.get("source_domain_kept_rows", 0) > 0
+            and loader_input_audit.get(
+                "source_domain_imbalanced_strata_after_count"
+            )
+            == 0,
+            loader_input_audit.get("errors"),
+        ),
+        _gate(
             "Full OOF preflight canonical path policy",
             full_oof_preflight_policy.get("valid") is True
             and full_oof_preflight_policy.get("canonical_config_errors") == []
@@ -617,6 +658,12 @@ def main() -> None:
             ),
             "visual_context_ablation_smoke": _evidence_visual_context_ablation_smoke(
                 visual_context_ablation_smoke
+            ),
+            "source_domain_control": _evidence_source_domain_control(
+                source_domain_control
+            ),
+            "loader_input_audit": _evidence_loader_input_audit(
+                loader_input_audit
             ),
             "full_oof_preflight_policy": _evidence_full_oof_preflight_policy(
                 full_oof_preflight_policy
@@ -1004,6 +1051,44 @@ def _evidence_visual_context_ablation_smoke(
             "no_visual_trainable_parameter_count"
         ),
         "metric_interpretation": audit.get("metric_interpretation"),
+    }
+
+
+def _evidence_source_domain_control(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "rows": audit.get("rows"),
+        "eligible_rows": audit.get("eligible_rows"),
+        "kept_rows": audit.get("kept_rows"),
+        "excluded_rows": audit.get("excluded_rows"),
+        "source_labels": audit.get("source_labels"),
+        "duplicate_window_id": audit.get("duplicate_window_id"),
+        "forbidden_x_columns": audit.get("forbidden_x_columns"),
+        "balanced_strata_after_count": audit.get(
+            "balanced_strata_after_count"
+        ),
+        "imbalanced_strata_after_count": audit.get(
+            "imbalanced_strata_after_count"
+        ),
+    }
+
+
+def _evidence_loader_input_audit(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "trainer_contract_json": audit.get("trainer_contract_json"),
+        "tabular_x_column_count": audit.get("tabular_x_column_count"),
+        "tabular_feature_whitelist_count": audit.get(
+            "tabular_feature_whitelist_count"
+        ),
+        "forbidden_x_columns": audit.get("forbidden_x_columns"),
+        "tabular_x_columns_not_in_whitelist": audit.get(
+            "tabular_x_columns_not_in_whitelist"
+        ),
+        "source_domain_kept_rows": audit.get("source_domain_kept_rows"),
+        "source_domain_imbalanced_strata_after_count": audit.get(
+            "source_domain_imbalanced_strata_after_count"
+        ),
     }
 
 

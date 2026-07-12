@@ -8,7 +8,9 @@ from pig_behavior.classification_v2.evaluation.loader_input_audit import audit_l
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Check classification_v2 loader/sampler input leakage contract.")
+    parser = argparse.ArgumentParser(
+        description="Check classification_v2 loader/sampler input leakage contract."
+    )
     parser.add_argument(
         "--trainer-contract-json",
         type=Path,
@@ -22,7 +24,10 @@ def main() -> None:
     parser.add_argument(
         "--source-domain-audit-json",
         type=Path,
-        default=Path("outputs/classification_v2/source_domain_controls/source_domain_control_audit.json"),
+        default=Path(
+            "outputs/classification_v2/source_domain_controls/"
+            "source_domain_control_audit.json"
+        ),
     )
     parser.add_argument("--source-domain-manifest-csv", type=Path, default=None)
     parser.add_argument(
