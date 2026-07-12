@@ -191,8 +191,12 @@ def render_launch_packet_markdown(packet: dict[str, Any]) -> str:
     """Render the launch packet as a compact runbook for human review."""
 
     checklist = packet.get("review_checklist") or []
-    command = str(packet.get("cmd_launch_command_bat") or "")
-    authorization_command = str(packet.get("cmd_authorization_command_bat") or "")
+    command = _wrap_bat_command_for_markdown(
+        str(packet.get("cmd_launch_command_bat") or "")
+    )
+    authorization_command = _wrap_bat_command_for_markdown(
+        str(packet.get("cmd_authorization_command_bat") or "")
+    )
     lines = [
         "# classification_v2 Full OOF Launch Packet",
         "",
@@ -230,6 +234,12 @@ def render_launch_packet_markdown(packet: dict[str, Any]) -> str:
     ]
     lines.extend(f"- {item}" for item in checklist)
     return "\n".join(lines) + "\n"
+
+
+def _wrap_bat_command_for_markdown(command: str) -> str:
+    """Wrap a CMD command for review without changing the audited JSON value."""
+
+    return command.replace(" && ", " ^\n  && ").replace(" --", " ^\n  --")
 
 
 def _full_run_command(config: dict[str, Any]) -> list[str]:
