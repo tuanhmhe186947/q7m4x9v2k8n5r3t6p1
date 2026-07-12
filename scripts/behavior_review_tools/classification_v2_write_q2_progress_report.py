@@ -1295,6 +1295,18 @@ def _full_oof_run_plan_errors(plan: dict[str, Any]) -> list[str]:
         errors.append(f"full_oof_plan_output_dir_forbidden={output_dir}")
     if "model_full" not in output_parts:
         errors.append(f"full_oof_plan_output_dir_not_model_full={output_dir}")
+    if config.get("require_cached_images") is not True:
+        errors.append("full_oof_plan_must_require_actor_cached_images")
+    if config.get("packed_image_cache_npy") in (None, ""):
+        errors.append("full_oof_plan_missing_packed_actor_cache")
+    if config.get("packed_image_cache_index_csv") in (None, ""):
+        errors.append("full_oof_plan_missing_packed_actor_cache_index")
+    if config.get("require_packed_visual_context") is not True:
+        errors.append("full_oof_plan_must_require_packed_visual_context")
+    if config.get("visual_context_packed_cache_npy") in (None, ""):
+        errors.append("full_oof_plan_missing_packed_visual_context")
+    if config.get("visual_context_packed_cache_index_csv") in (None, ""):
+        errors.append("full_oof_plan_missing_packed_visual_context_index")
     return errors
 
 
@@ -1310,6 +1322,16 @@ def _evidence_full_oof_run_plan(plan: dict[str, Any]) -> dict[str, Any]:
         "run_mode": plan.get("run_mode"),
         "paper_facing_candidate_plan": plan.get("paper_facing_candidate_plan"),
         "output_dir": config.get("output_dir"),
+        "require_cached_images": config.get("require_cached_images"),
+        "packed_image_cache_npy": config.get("packed_image_cache_npy"),
+        "packed_image_cache_index_csv": config.get("packed_image_cache_index_csv"),
+        "require_packed_visual_context": config.get("require_packed_visual_context"),
+        "visual_context_packed_cache_npy": config.get(
+            "visual_context_packed_cache_npy"
+        ),
+        "visual_context_packed_cache_index_csv": config.get(
+            "visual_context_packed_cache_index_csv"
+        ),
         "available_fold_count": plan.get("available_fold_count"),
         "selected_fold_count": plan.get("selected_fold_count"),
         "total_eval_rows": plan.get("total_eval_rows"),
