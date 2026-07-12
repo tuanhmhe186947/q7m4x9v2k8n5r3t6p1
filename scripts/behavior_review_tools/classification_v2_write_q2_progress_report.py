@@ -167,6 +167,33 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--data-module-audit-json",
+        type=Path,
+        default=Path("outputs/classification_v2/model_design/data_module_audit.json"),
+    )
+    parser.add_argument(
+        "--training-config-audit-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/training_config_audit.json"
+        ),
+    )
+    parser.add_argument(
+        "--q2-ablation-matrix-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/q2_ablation_matrix_audit.json"
+        ),
+    )
+    parser.add_argument(
+        "--visual-context-ablation-smoke-json",
+        type=Path,
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "visual_context_ablation_smoke_audit.json"
+        ),
+    )
+    parser.add_argument(
         "--output-json",
         type=Path,
         default=Path("outputs/classification_v2/model_design/q2_progress_report.json"),
@@ -215,6 +242,12 @@ def main() -> None:
     ablation_reporting = _load_optional_json(args.ablation_reporting_json)
     full_learned_oof_contract = _load_optional_json(
         args.full_learned_oof_contract_json
+    )
+    data_module_audit = _load_optional_json(args.data_module_audit_json)
+    training_config_audit = _load_optional_json(args.training_config_audit_json)
+    q2_ablation_matrix = _load_optional_json(args.q2_ablation_matrix_json)
+    visual_context_ablation_smoke = _load_optional_json(
+        args.visual_context_ablation_smoke_json
     )
 
     gates = [
@@ -386,6 +419,47 @@ def main() -> None:
             full_learned_oof_contract.get("errors"),
         ),
         _gate(
+            "Strict train-ready data module boundary",
+            data_module_audit.get("valid") is True
+            and data_module_audit.get("duplicate_window_id") == 0
+            and data_module_audit.get("auxiliary_targets_not_model_inputs") is True
+            and (data_module_audit.get("actor_image_load_audit") or {}).get(
+                "source_image_loads"
+            )
+            == 0
+            and (data_module_audit.get("visual_context_load_audit") or {}).get(
+                "individual_cache_loads"
+            )
+            == 0,
+            data_module_audit.get("errors"),
+        ),
+        _gate(
+            "Strict multimodal training config audit",
+            training_config_audit.get("valid") is True
+            and training_config_audit.get("snapshot_valid") is True
+            and training_config_audit.get("missing_paths") == {},
+            training_config_audit.get("errors"),
+        ),
+        _gate(
+            "Q2 ablation matrix outer-test lock",
+            q2_ablation_matrix.get("valid") is True
+            and q2_ablation_matrix.get("outer_test_execution_allowed") is False
+            and q2_ablation_matrix.get("outer_fold_count", 0) >= 5
+            and q2_ablation_matrix.get("confirmatory_seed_count", 0) >= 3,
+            q2_ablation_matrix.get("errors"),
+        ),
+        _gate(
+            "Visual context ablation smoke wiring",
+            visual_context_ablation_smoke.get("valid") is True
+            and visual_context_ablation_smoke.get("full_visual_packed_hits", 0)
+            > 0
+            and visual_context_ablation_smoke.get(
+                "metric_interpretation"
+            )
+            == "wiring_smoke_only_not_statistical_ablation_evidence",
+            visual_context_ablation_smoke.get("errors"),
+        ),
+        _gate(
             "Full OOF preflight canonical path policy",
             full_oof_preflight_policy.get("valid") is True
             and full_oof_preflight_policy.get("canonical_config_errors") == []
@@ -530,6 +604,14 @@ def main() -> None:
             "ablation_reporting": _evidence_ablation_reporting(ablation_reporting),
             "full_learned_oof_contract": _evidence_full_learned_oof_contract(
                 full_learned_oof_contract
+            ),
+            "data_module": _evidence_data_module(data_module_audit),
+            "training_config": _evidence_training_config(training_config_audit),
+            "q2_ablation_matrix": _evidence_q2_ablation_matrix(
+                q2_ablation_matrix
+            ),
+            "visual_context_ablation_smoke": _evidence_visual_context_ablation_smoke(
+                visual_context_ablation_smoke
             ),
             "full_oof_preflight_policy": _evidence_full_oof_preflight_policy(
                 full_oof_preflight_policy
@@ -847,6 +929,71 @@ def _evidence_full_learned_oof_contract(audit: dict[str, Any]) -> dict[str, Any]
         "train_ready_rows": alignment.get("train_ready_rows"),
         "native_oof_fold_count": alignment.get("native_oof_fold_count"),
         "row_count_mismatches": alignment.get("row_count_mismatches"),
+    }
+
+
+def _evidence_data_module(audit: dict[str, Any]) -> dict[str, Any]:
+    actor_load = audit.get("actor_image_load_audit") or {}
+    visual_load = audit.get("visual_context_load_audit") or {}
+    return {
+        "valid": audit.get("valid"),
+        "rows": audit.get("rows"),
+        "eligible_rows": audit.get("eligible_rows"),
+        "duplicate_window_id": audit.get("duplicate_window_id"),
+        "auxiliary_targets_not_model_inputs": audit.get(
+            "auxiliary_targets_not_model_inputs"
+        ),
+        "actor_source_image_loads": actor_load.get("source_image_loads"),
+        "actor_packed_cache_hits": actor_load.get("packed_image_cache_hits"),
+        "visual_individual_cache_loads": visual_load.get(
+            "individual_cache_loads"
+        ),
+        "visual_packed_cache_hits": visual_load.get("packed_cache_hits"),
+    }
+
+
+def _evidence_training_config(audit: dict[str, Any]) -> dict[str, Any]:
+    config = audit.get("config") or {}
+    model = config.get("model") or {}
+    execution = config.get("execution") or {}
+    return {
+        "valid": audit.get("valid"),
+        "snapshot_id": audit.get("snapshot_id"),
+        "snapshot_valid": audit.get("snapshot_valid"),
+        "missing_paths": audit.get("missing_paths"),
+        "architecture_version": model.get("architecture_version"),
+        "execution_mode": execution.get("mode"),
+        "fold_id": execution.get("fold_id"),
+    }
+
+
+def _evidence_q2_ablation_matrix(audit: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "baseline_count": audit.get("baseline_count"),
+        "ablation_count": audit.get("ablation_count"),
+        "outer_fold_count": audit.get("outer_fold_count"),
+        "confirmatory_seed_count": audit.get("confirmatory_seed_count"),
+        "outer_test_execution_allowed": audit.get(
+            "outer_test_execution_allowed"
+        ),
+        "threshold_freeze_status": audit.get("threshold_freeze_status"),
+    }
+
+
+def _evidence_visual_context_ablation_smoke(
+    audit: dict[str, Any]
+) -> dict[str, Any]:
+    return {
+        "valid": audit.get("valid"),
+        "full_visual_packed_hits": audit.get("full_visual_packed_hits"),
+        "full_trainable_parameter_count": audit.get(
+            "full_trainable_parameter_count"
+        ),
+        "no_visual_trainable_parameter_count": audit.get(
+            "no_visual_trainable_parameter_count"
+        ),
+        "metric_interpretation": audit.get("metric_interpretation"),
     }
 
 

@@ -2,7 +2,7 @@
   "version": "classification_v2_q2_ablation_matrix_v1",
   "status": "predeclared_before_full_oof",
   "base_training_config": "configs/classification_v2/multimodal_context_multitask.json",
-  "snapshot_id": "c2v2_638e3e616d88a3a5",
+  "snapshot_id": "c2v2_27ed5c9963904c52",
   "outer_folds": ["q2_outer_00", "q2_outer_01", "q2_outer_02", "q2_outer_03", "q2_outer_04"],
   "engineering_seed": 20260710,
   "confirmatory_seeds": [20260710, 20260711, 20260712],
