@@ -8,19 +8,19 @@ this file are historical unless the user explicitly switches workstreams.
 Current state:
 
 - `classification_v2` behavior recognition is the active project priority.
-- The project is pre-full ready, not Q2 complete.
-- `q2_progress_report.json` reports `PASS_PARTIAL_ROADMAP`.
-- The latest pre-full gate summary is 44/44 gates passing.
-- Latest verified pre-full HEAD is the `current_git_commit` in
-  `outputs/classification_v2/model_design/q2_progress_report_audit.json` after
-  the latest pre-full refresh. Do not hard-code it in workflow memory because
-  memory commits intentionally move HEAD.
-- Full OOF remains fail-closed until explicit authorization is written.
-- Q2 claim remains locked until full OOF and postrun completion gate pass.
-- Full OOF execution gate must report 4 rejection cases, including the
-  near-authorized missing-reviewer/missing-reviewed-at case.
-- Runtime preflight allows audit/auth-only commit drift without rebenchmark,
-  but runtime/model/training changes must remain fail-closed.
+- Full multimodal OOF training is complete; postrun validation is active.
+- The completed full run has 73,668 window predictions and 32,727 native
+  temporal predictions. It is not yet a Q2 result claim.
+- Use only the numbered script workflow under
+  `scripts/classification_v2/00_*` through `09_*`.
+- Blocks `00-06` are complete for the current artifact lineage. Continue with
+  block `07` calibration/confusion/ablation, block `08` registration/reporting,
+  then block `09` completion gates.
+- Q2 claim remains locked until block `09` reports
+  `q2_claim_allowed=true`.
+- Do not rerun full OOF merely because script paths changed; rerun only if
+  model, data, or training semantics change and a new authorized experiment is
+  intended.
 
 Command conventions:
 

@@ -1,5 +1,20 @@
 # Current Decision
 
+## 2026-07-13 post-full active decision
+
+Treat full OOF training as complete and postrun validation as the active gate.
+
+- Do not rerun full training for the script migration; the completed artifacts
+  remain the input to block `07` postrun evaluation.
+- Run cross-fit calibration, confusion-focus comparison, ablation refresh,
+  experiment registration, and block `09` completion gate in that order.
+- Do not claim Q2 improvement until the completion gate reports
+  `q2_claim_allowed=true`.
+- Use only `scripts/classification_v2/00_*` through `09_*`; there are no wrapper
+  commands under the former script namespaces.
+- The claim boundary remains internal recording-date/video-safe improvement.
+  No external farm, camera, cohort, or biological-identity generalization.
+
 ## 2026-07-13 active classification_v2 decision refresh
 
 Keep the active decision as pre-full ready, not Q2 complete.

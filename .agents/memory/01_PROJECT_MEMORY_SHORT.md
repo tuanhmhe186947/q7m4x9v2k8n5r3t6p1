@@ -1,5 +1,21 @@
 # Project Memory Short
 
+## 2026-07-13 classification_v2 full OOF and workflow migration
+
+- Full multimodal OOF training completed in
+  `outputs/classification_v2/model_full/full_multimodal_oof/`.
+- Verified full outputs contain 73,668 window predictions and 32,727 native
+  temporal predictions; accuracy is `0.5216793473` and supported macro-F1 is
+  `0.4156053847`.
+- These metrics are engineering full-OOF evidence, not yet a Q2 claim. Required
+  postrun calibration, confusion comparison, ablation refresh, experiment
+  registration, and completion gate remain incomplete.
+- All classification operator scripts now live only under
+  `scripts/classification_v2/00_*` through `09_*`. The former split namespaces
+  and compatibility wrappers were removed.
+- Workflow migration commits are `d7d22a8` and `1491d78`. The structural audit
+  is block `09` script `check_classification_v2_workflow_layout.py`.
+
 ## 2026-07-13 classification_v2 pre-full hardening refresh
 
 - Current verified HEAD must be read from
