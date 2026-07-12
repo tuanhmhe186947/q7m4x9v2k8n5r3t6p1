@@ -1303,10 +1303,22 @@ def _full_oof_run_plan_errors(plan: dict[str, Any]) -> list[str]:
         errors.append("full_oof_plan_missing_packed_actor_cache_index")
     if config.get("require_packed_visual_context") is not True:
         errors.append("full_oof_plan_must_require_packed_visual_context")
+    if config.get("visual_context_cache_manifest_csv") in (None, ""):
+        errors.append("full_oof_plan_missing_visual_context_manifest")
     if config.get("visual_context_packed_cache_npy") in (None, ""):
         errors.append("full_oof_plan_missing_packed_visual_context")
     if config.get("visual_context_packed_cache_index_csv") in (None, ""):
         errors.append("full_oof_plan_missing_packed_visual_context_index")
+    for key in (
+        "packed_image_cache_npy",
+        "packed_image_cache_index_csv",
+        "visual_context_cache_manifest_csv",
+        "visual_context_packed_cache_npy",
+        "visual_context_packed_cache_index_csv",
+    ):
+        path = config.get(key)
+        if path and not Path(str(path)).exists():
+            errors.append(f"full_oof_plan_missing_file={key}:{path}")
     return errors
 
 
