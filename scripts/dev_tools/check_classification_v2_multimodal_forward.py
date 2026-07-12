@@ -20,20 +20,18 @@ from pig_behavior.classification_v2.models.multimodal_fusion import (
     MultimodalFusionClassifier,
     MultimodalFusionConfig,
 )
-
-MODEL_GROUPS = (
-    "bbox_xywh_n",
-    "bbox_shape_n",
-    "motion_delta",
-    "roi_class_relation",
-    "social_relation",
-    "quality_mask",
-)
+from pig_behavior.classification_v2.training.spatial_tcn_smoke import MODEL_GROUPS
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Smoke-check classification_v2 multimodal fusion forward pass.")
-    parser.add_argument("--root", type=Path, default=Path("outputs/classification_v2/train_ready_windows"))
+    parser = argparse.ArgumentParser(
+        description="Smoke-check classification_v2 multimodal fusion forward pass."
+    )
+    parser.add_argument(
+        "--root",
+        type=Path,
+        default=Path("outputs/classification_v2/train_ready_windows"),
+    )
     parser.add_argument(
         "--output-json",
         type=Path,
@@ -64,7 +62,12 @@ def main() -> None:
     try:
         indices = _sample_indices(windows, args.sample_per_source)
         subset = Subset(dataset, indices)
-        loader = DataLoader(subset, batch_size=max(1, len(indices)), shuffle=False, collate_fn=image_sequence_collate)
+        loader = DataLoader(
+            subset,
+            batch_size=max(1, len(indices)),
+            shuffle=False,
+            collate_fn=image_sequence_collate,
+        )
         batch = next(iter(loader)) if indices else None
         audit = _run_forward_smoke(args, arrays, labels, windows, indices, batch)
     finally:
@@ -99,12 +102,21 @@ def _run_forward_smoke(
     if batch["window_id"] != expected_window_ids:
         errors.append("image_batch_window_id_order_mismatch")
 
-    spatial_features = {name: torch.from_numpy(arrays[name][indices]).float() for name in MODEL_GROUPS}
+    spatial_features = {
+        name: torch.from_numpy(arrays[name][indices]).float()
+        for name in MODEL_GROUPS
+    }
     length_mask = torch.from_numpy(arrays["length_mask"][indices]).float()
     observed_mask = torch.from_numpy(arrays["observed_mask"][indices]).float()
-    if length_mask.shape == batch["length_mask"].shape and not torch.equal(length_mask, batch["length_mask"]):
+    if length_mask.shape == batch["length_mask"].shape and not torch.equal(
+        length_mask,
+        batch["length_mask"],
+    ):
         warnings.append("same_shape_branch_length_masks_differ")
-    if observed_mask.shape == batch["observed_mask"].shape and not torch.equal(observed_mask, batch["observed_mask"]):
+    if observed_mask.shape == batch["observed_mask"].shape and not torch.equal(
+        observed_mask,
+        batch["observed_mask"],
+    ):
         warnings.append("same_shape_branch_observed_masks_differ")
 
     label_order = _label_order(labels)
@@ -240,10 +252,16 @@ def _audit(
         "num_classes": int(len(_label_order(labels))),
         "complete_window_rows": int(_to_bool(windows["window_image_context_complete"]).sum()),
         "sample_indices": [int(i) for i in indices],
-        "sample_source_counts": windows.iloc[indices]["source_type"].value_counts(dropna=False).to_dict()
-        if indices
-        else {},
-        "sample_label_counts": labels.iloc[indices].value_counts(dropna=False).to_dict() if indices else {},
+        "sample_source_counts": (
+            windows.iloc[indices]["source_type"].value_counts(dropna=False).to_dict()
+            if indices
+            else {}
+        ),
+        "sample_label_counts": (
+            labels.iloc[indices].value_counts(dropna=False).to_dict()
+            if indices
+            else {}
+        ),
         "batch_shape": list(batch["image"].shape) if batch is not None else None,
         "image_mask_shape": list(batch["length_mask"].shape) if batch is not None else None,
         "spatial_mask_shape": spatial_mask_shape,
@@ -262,8 +280,16 @@ def _audit(
     }
 
 
-def _validate_arrays(arrays: dict[str, np.ndarray], labels: pd.Series, windows: pd.DataFrame) -> None:
-    missing = [name for name in [*MODEL_GROUPS, "length_mask", "observed_mask"] if name not in arrays]
+def _validate_arrays(
+    arrays: dict[str, np.ndarray],
+    labels: pd.Series,
+    windows: pd.DataFrame,
+) -> None:
+    missing = [
+        name
+        for name in [*MODEL_GROUPS, "length_mask", "observed_mask"]
+        if name not in arrays
+    ]
     if missing:
         raise ValueError(f"missing spatial arrays: {missing}")
     expected = int(len(labels))
@@ -282,7 +308,12 @@ def _sample_indices(windows: pd.DataFrame, sample_per_source: int) -> list[int]:
         if len(group) <= sample_per_source:
             indices.extend(group.index.tolist())
             continue
-        positions = sorted({round(i * (len(group) - 1) / max(1, sample_per_source - 1)) for i in range(sample_per_source)})
+        positions = sorted(
+            {
+                round(i * (len(group) - 1) / max(1, sample_per_source - 1))
+                for i in range(sample_per_source)
+            }
+        )
         indices.extend(group.iloc[positions].index.tolist())
     return indices
 

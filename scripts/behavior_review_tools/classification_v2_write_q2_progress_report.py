@@ -1132,6 +1132,15 @@ def _evidence_q2_feature_whitelist(audit: dict[str, Any]) -> dict[str, Any]:
         "forbidden_probe_columns_not_blocked": audit.get("forbidden_probe_columns_not_blocked"),
         "tabular_trainer_whitelist_count": audit.get("tabular_trainer_whitelist_count"),
         "spatial_trainer_whitelist_count": audit.get("spatial_trainer_whitelist_count"),
+        "implemented_spatial_model_groups": audit.get(
+            "implemented_spatial_model_groups"
+        ),
+        "spatial_contract_model_groups": audit.get(
+            "spatial_contract_model_groups"
+        ),
+        "spatial_model_group_contract_mismatch": audit.get(
+            "spatial_model_group_contract_mismatch"
+        ),
     }
 
 

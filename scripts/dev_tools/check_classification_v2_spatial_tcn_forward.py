@@ -9,21 +9,16 @@ import pandas as pd
 import torch
 
 from pig_behavior.classification_v2.models.spatial_tcn import SpatialTCNClassifier, SpatialTCNConfig
+from pig_behavior.classification_v2.training.spatial_tcn_smoke import MODEL_GROUPS
 
 DEFAULT_NPZ = Path("outputs/classification_v2/train_ready_windows/X_spatial_sequences.npz")
 DEFAULT_Y = Path("outputs/classification_v2/train_ready_windows/y_behavior.csv")
-MODEL_GROUPS = (
-    "bbox_xywh_n",
-    "bbox_shape_n",
-    "motion_delta",
-    "roi_class_relation",
-    "social_relation",
-    "quality_mask",
-)
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Smoke-check classification_v2 SpatialTCN forward pass.")
+    parser = argparse.ArgumentParser(
+        description="Smoke-check classification_v2 SpatialTCN forward pass."
+    )
     parser.add_argument("--npz", type=Path, default=DEFAULT_NPZ)
     parser.add_argument("--y-csv", type=Path, default=DEFAULT_Y)
     parser.add_argument("--batch-size", type=int, default=32)
@@ -40,7 +35,11 @@ def main() -> None:
     labels = pd.read_csv(args.y_csv).iloc[:, 0].fillna("").astype(str)
     label_order = sorted(labels.unique().tolist())
 
-    missing = [name for name in [*MODEL_GROUPS, "length_mask", "observed_mask"] if name not in data.files]
+    missing = [
+        name
+        for name in [*MODEL_GROUPS, "length_mask", "observed_mask"]
+        if name not in data.files
+    ]
     if missing:
         raise SystemExit(f"missing arrays: {missing}")
     batch_size = min(args.batch_size, data["length_mask"].shape[0])
@@ -61,7 +60,11 @@ def main() -> None:
         perturbed = {name: value.clone() for name, value in features.items()}
         padding = length_mask.eq(0).unsqueeze(-1)
         for name in MODEL_GROUPS:
-            perturbed[name] = torch.where(padding, torch.full_like(perturbed[name], 9999.0), perturbed[name])
+            perturbed[name] = torch.where(
+                padding,
+                torch.full_like(perturbed[name], 9999.0),
+                perturbed[name],
+            )
         perturbed_logits = model(perturbed, length_mask=length_mask, observed_mask=observed_mask)
     max_padding_delta = float((logits - perturbed_logits).abs().max().item())
     errors = []

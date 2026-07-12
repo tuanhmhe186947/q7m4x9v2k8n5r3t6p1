@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from pig_behavior.classification_v2.training.spatial_tcn_smoke import MODEL_GROUPS
+
 
 REQUIRED_BRANCHES = {
     "actor_letterbox_image_sequence",
@@ -138,11 +140,15 @@ def check_whitelist(
         errors.append(f"missing_input_branches={missing_branches}")
     _check_branch_contracts(branches, errors)
     forbidden_patterns = whitelist.get("forbidden_model_input_patterns", [])
-    missing_forbidden = [pattern for pattern in REQUIRED_FORBIDDEN_PATTERNS if pattern not in forbidden_patterns]
+    missing_forbidden = [
+        pattern for pattern in REQUIRED_FORBIDDEN_PATTERNS if pattern not in forbidden_patterns
+    ]
     if missing_forbidden:
         errors.append(f"missing_forbidden_patterns={missing_forbidden}")
     leaked_probe_columns = [
-        column for column in PROBE_FORBIDDEN_COLUMNS if not _is_forbidden(column, forbidden_patterns)
+        column
+        for column in PROBE_FORBIDDEN_COLUMNS
+        if not _is_forbidden(column, forbidden_patterns)
     ]
     if leaked_probe_columns:
         errors.append(f"forbidden_probe_columns_not_blocked={leaked_probe_columns}")
@@ -156,11 +162,22 @@ def check_whitelist(
         errors,
     )
     tabular_count = len(trainer_v1.get("tabular_feature_whitelist", []))
-    spatial_count = len(trainer_v2.get("spatial_sequence_feature_whitelist", []))
+    spatial_whitelist = [
+        str(name)
+        for name in trainer_v2.get("spatial_sequence_feature_whitelist", [])
+    ]
+    implemented_spatial_groups = [str(name) for name in MODEL_GROUPS]
+    spatial_model_group_contract_mismatch = implemented_spatial_groups != spatial_whitelist
+    spatial_count = len(spatial_whitelist)
     if tabular_count <= 0:
         errors.append("trainer_contract_v1_tabular_whitelist_empty")
     if spatial_count <= 0:
         errors.append("trainer_contract_v2_spatial_whitelist_empty")
+    if spatial_model_group_contract_mismatch:
+        errors.append(
+            "spatial_model_groups_do_not_match_trainer_contract="
+            f"implemented:{implemented_spatial_groups} contract:{spatial_whitelist}"
+        )
 
     return {
         "schema_version": "classification_v2_q2_feature_whitelist_audit_v1",
@@ -179,6 +196,9 @@ def check_whitelist(
         "allowed_label_count": len(target.get("allowed_labels", [])),
         "tabular_trainer_whitelist_count": int(tabular_count),
         "spatial_trainer_whitelist_count": int(spatial_count),
+        "implemented_spatial_model_groups": implemented_spatial_groups,
+        "spatial_contract_model_groups": spatial_whitelist,
+        "spatial_model_group_contract_mismatch": spatial_model_group_contract_mismatch,
         "errors": errors,
         "valid": not errors,
     }
@@ -208,10 +228,14 @@ def _check_branch_contracts(branches: dict[str, Any], errors: list[str]) -> None
     if actor.get("cache_policy") != "letterbox_preserve_aspect_rgb_pad_black_v1":
         errors.append("actor_cache_policy_must_be_letterbox_preserve_aspect")
     tabular = branches.get("window_tabular_context", {})
-    if "trainer_contract_v1.json#tabular_feature_whitelist" not in str(tabular.get("source_contract", "")):
+    if "trainer_contract_v1.json#tabular_feature_whitelist" not in str(
+        tabular.get("source_contract", "")
+    ):
         errors.append("tabular_branch_must_reference_trainer_contract_v1_whitelist")
     spatial = branches.get("spatial_temporal_sequence", {})
-    if "trainer_contract_v2.json#spatial_sequence_feature_whitelist" not in str(spatial.get("source_contract", "")):
+    if "trainer_contract_v2.json#spatial_sequence_feature_whitelist" not in str(
+        spatial.get("source_contract", "")
+    ):
         errors.append("spatial_branch_must_reference_trainer_contract_v2_whitelist")
     partner = branches.get("partner_full_frame_context", {})
     if partner.get("enabled_for_interaction_models") is not True:
@@ -222,7 +246,12 @@ def _is_forbidden(column: str, patterns: list[str]) -> bool:
     return any(fnmatch.fnmatchcase(column, pattern) for pattern in patterns)
 
 
-def _check_required_items(name: str, values: list[str], required: list[str], errors: list[str]) -> None:
+def _check_required_items(
+    name: str,
+    values: list[str],
+    required: list[str],
+    errors: list[str],
+) -> None:
     missing = [item for item in required if item not in values]
     if missing:
         errors.append(f"{name}_missing={missing}")

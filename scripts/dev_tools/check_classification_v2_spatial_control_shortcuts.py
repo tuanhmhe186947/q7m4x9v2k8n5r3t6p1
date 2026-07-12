@@ -11,20 +11,18 @@ from sklearn.metrics import accuracy_score, balanced_accuracy_score, confusion_m
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-
-MODEL_GROUPS = (
-    "bbox_xywh_n",
-    "bbox_shape_n",
-    "motion_delta",
-    "roi_class_relation",
-    "social_relation",
-    "quality_mask",
-)
+from pig_behavior.classification_v2.training.spatial_tcn_smoke import MODEL_GROUPS
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Spatial control shortcut checks for classification_v2.")
-    parser.add_argument("--root", type=Path, default=Path("outputs/classification_v2/train_ready_windows"))
+    parser = argparse.ArgumentParser(
+        description="Spatial control shortcut checks for classification_v2."
+    )
+    parser.add_argument(
+        "--root",
+        type=Path,
+        default=Path("outputs/classification_v2/train_ready_windows"),
+    )
     parser.add_argument(
         "--output-json",
         type=Path,
@@ -41,7 +39,11 @@ def main() -> None:
     arrays = {name: value for name, value in np.load(args.root / "X_spatial_sequences.npz").items()}
     split = pd.read_csv(args.root / "split_manifest.csv", low_memory=False)
     mask = _read_bool(args.root / "train_mask.csv")
-    missing = [name for name in [*MODEL_GROUPS, "length_mask", "observed_mask"] if name not in arrays]
+    missing = [
+        name
+        for name in [*MODEL_GROUPS, "length_mask", "observed_mask"]
+        if name not in arrays
+    ]
     if missing:
         raise ValueError(f"missing spatial arrays: {missing}")
     if "source_type" not in split.columns or "split" not in split.columns:
@@ -61,7 +63,13 @@ def main() -> None:
     for name, builder in controls.items():
         x_train = builder(arrays, train_idx)
         x_test = builder(arrays, test_idx)
-        results[name] = _fit_predict_source(x_train, y_train, x_test, y_test, max_iter=args.max_iter)
+        results[name] = _fit_predict_source(
+            x_train,
+            y_train,
+            x_test,
+            y_test,
+            max_iter=args.max_iter,
+        )
 
     audit = {
         "root": str(args.root),
@@ -71,8 +79,9 @@ def main() -> None:
         "source_counts_test": y_test.value_counts(dropna=False).to_dict(),
         "controls": results,
         "interpretation": (
-            "High repeat_first_frame or mean_only source accuracy means static geometry/domain cues "
-            "remain sufficient to identify source_type; temporal models must report source-balanced "
+            "High repeat_first_frame or mean_only source accuracy means static "
+            "geometry/domain cues remain sufficient to identify source_type; "
+            "temporal models must report source-balanced "
             "and video/session-safe metrics."
         ),
         "errors": [],
@@ -82,7 +91,13 @@ def main() -> None:
     print(json.dumps(audit, indent=2))
 
 
-def _sample_indices(split: pd.DataFrame, mask: pd.Series, split_name: str, max_rows: int, seed: int) -> np.ndarray:
+def _sample_indices(
+    split: pd.DataFrame,
+    mask: pd.Series,
+    split_name: str,
+    max_rows: int,
+    seed: int,
+) -> np.ndarray:
     valid = np.flatnonzero((split["split"].astype(str).eq(split_name) & mask).to_numpy())
     if len(valid) <= max_rows:
         return valid
@@ -116,7 +131,8 @@ def _fit_predict_source(
 
 
 def _flatten_real(arrays: dict[str, np.ndarray], indices: np.ndarray) -> np.ndarray:
-    return np.concatenate([arrays[name][indices].reshape(len(indices), -1) for name in MODEL_GROUPS], axis=1)
+    pieces = [arrays[name][indices].reshape(len(indices), -1) for name in MODEL_GROUPS]
+    return np.concatenate(pieces, axis=1)
 
 
 def _flatten_repeat_first(arrays: dict[str, np.ndarray], indices: np.ndarray) -> np.ndarray:
@@ -127,7 +143,10 @@ def _flatten_repeat_first(arrays: dict[str, np.ndarray], indices: np.ndarray) ->
         values = arrays[name][indices].copy()
         first_positions = _first_observed_positions(length_mask, observed_mask)
         first_values = values[np.arange(len(indices)), first_positions]
-        values = np.repeat(first_values[:, None, :], values.shape[1], axis=1) * length_mask[:, :, None]
+        values = (
+            np.repeat(first_values[:, None, :], values.shape[1], axis=1)
+            * length_mask[:, :, None]
+        )
         pieces.append(values.reshape(len(indices), -1))
     return np.concatenate(pieces, axis=1)
 

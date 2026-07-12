@@ -10,21 +10,16 @@ import torch
 from torch import nn
 
 from pig_behavior.classification_v2.models.spatial_tcn import SpatialTCNClassifier, SpatialTCNConfig
+from pig_behavior.classification_v2.training.spatial_tcn_smoke import MODEL_GROUPS
 
 DEFAULT_ROOT = Path("outputs/classification_v2/train_ready_windows")
 DEFAULT_OUTPUT = Path("outputs/classification_v2/model_smoke/spatial_tcn_overfit_smoke.json")
-MODEL_GROUPS = (
-    "bbox_xywh_n",
-    "bbox_shape_n",
-    "motion_delta",
-    "roi_class_relation",
-    "social_relation",
-    "quality_mask",
-)
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Overfit-one-batch smoke test for classification_v2 SpatialTCN.")
+    parser = argparse.ArgumentParser(
+        description="Overfit-one-batch smoke test for classification_v2 SpatialTCN."
+    )
     parser.add_argument("--root", type=Path, default=DEFAULT_ROOT)
     parser.add_argument("--output-json", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--batch-size", type=int, default=40)
@@ -49,14 +44,23 @@ def main() -> None:
     data = np.load(args.root / "X_spatial_sequences.npz")
     label_order = sorted(y.unique().tolist())
     label_to_idx = {label: i for i, label in enumerate(label_order)}
-    selected = _select_balanced_indices(y, train_mask, split, per_class=args.per_class, batch_size=args.batch_size)
+    selected = _select_balanced_indices(
+        y,
+        train_mask,
+        split,
+        per_class=args.per_class,
+        batch_size=args.batch_size,
+    )
     if len(selected) < 2:
         raise ValueError("Could not select enough rows for overfit smoke batch")
 
     features = {name: torch.from_numpy(data[name][selected]).float() for name in MODEL_GROUPS}
     length_mask = torch.from_numpy(data["length_mask"][selected]).float()
     observed_mask = torch.from_numpy(data["observed_mask"][selected]).float()
-    target = torch.tensor([label_to_idx[label] for label in y.iloc[selected].tolist()], dtype=torch.long)
+    target = torch.tensor(
+        [label_to_idx[label] for label in y.iloc[selected].tolist()],
+        dtype=torch.long,
+    )
 
     model = SpatialTCNClassifier(
         SpatialTCNConfig(
@@ -108,7 +112,11 @@ def main() -> None:
     reloaded.load_state_dict(state["model_state_dict"])
     reloaded.eval()
     with torch.no_grad():
-        logits_after_reload = reloaded(features, length_mask=length_mask, observed_mask=observed_mask)
+        logits_after_reload = reloaded(
+            features,
+            length_mask=length_mask,
+            observed_mask=observed_mask,
+        )
     reload_max_delta = float((logits_before_save - logits_after_reload).abs().max().cpu().item())
 
     initial_loss = losses[0]

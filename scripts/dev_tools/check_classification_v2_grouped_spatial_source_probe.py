@@ -13,18 +13,13 @@ from sklearn.metrics import balanced_accuracy_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-MODEL_GROUPS = (
-    "bbox_xywh_n",
-    "bbox_shape_n",
-    "motion_delta",
-    "roi_class_relation",
-    "social_relation",
-    "quality_mask",
-)
+from pig_behavior.classification_v2.training.spatial_tcn_smoke import MODEL_GROUPS
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Probe source shortcuts in strict spatial sequence X.")
+    parser = argparse.ArgumentParser(
+        description="Probe source shortcuts in strict spatial sequence X."
+    )
     parser.add_argument(
         "--root", type=Path, default=Path("outputs/classification_v2/train_ready_windows")
     )
@@ -140,7 +135,11 @@ def main() -> None:
 def _validate_alignment(
     arrays: dict[str, np.ndarray], metadata: pd.DataFrame, events: pd.DataFrame
 ) -> None:
-    missing = [name for name in [*MODEL_GROUPS, "length_mask", "observed_mask"] if name not in arrays]
+    missing = [
+        name
+        for name in [*MODEL_GROUPS, "length_mask", "observed_mask"]
+        if name not in arrays
+    ]
     if missing:
         raise ValueError(f"missing strict spatial arrays: {missing}")
     if not metadata["window_id"].astype(str).reset_index(drop=True).equals(
@@ -165,7 +164,8 @@ def _stratified_indices(
 
 
 def _flatten_real(arrays: dict[str, np.ndarray], indices: np.ndarray) -> np.ndarray:
-    return np.concatenate([arrays[name][indices].reshape(len(indices), -1) for name in MODEL_GROUPS], axis=1)
+    pieces = [arrays[name][indices].reshape(len(indices), -1) for name in MODEL_GROUPS]
+    return np.concatenate(pieces, axis=1)
 
 
 def _flatten_repeat_first(arrays: dict[str, np.ndarray], indices: np.ndarray) -> np.ndarray:
