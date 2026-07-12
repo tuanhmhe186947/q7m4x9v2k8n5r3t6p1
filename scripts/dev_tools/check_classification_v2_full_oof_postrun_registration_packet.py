@@ -85,6 +85,18 @@ def main() -> None:
         "runs_registration": packet.get("runs_registration"),
         "q2_claim_allowed_by_packet": packet.get("q2_claim_allowed_by_packet"),
         "python_executable": packet.get("python_executable"),
+        "calibration_cmd_command_ready": _cmd_ready(
+            packet.get("calibration_cmd_command") or [],
+            packet.get("python_executable"),
+        ),
+        "confusion_comparison_cmd_command_ready": _cmd_ready(
+            packet.get("confusion_comparison_cmd_command") or [],
+            packet.get("python_executable"),
+        ),
+        "ablation_report_cmd_command_ready": _cmd_ready(
+            packet.get("ablation_report_cmd_command") or [],
+            packet.get("python_executable"),
+        ),
         "register_command": packet.get("register_command"),
         "register_cmd_command_ready": _cmd_ready(
             packet.get("register_cmd_command") or [],
@@ -130,14 +142,45 @@ def _packet_errors(packet: dict[str, Any], expected: dict[str, Any]) -> list[str
         errors.append("postrun_packet_missing_python_executable")
     if command and command[0] != python_executable:
         errors.append("postrun_register_command_python_mismatch")
-    for token in ("--paper-facing", "--artifact", "--run-audit-json"):
+    for token in (
+        "--paper-facing",
+        "--artifact",
+        "--run-audit-json",
+        "--calibration-audit-json",
+        "--source-balanced-metrics-json",
+        "--confusion-comparison-json",
+        "--ablation-report-json",
+        "--runtime-benchmark-audit-json",
+        "--parent-record-json",
+    ):
         if token not in command:
             errors.append(f"postrun_register_command_missing={token}")
+    parent_count = command.count("--parent-record-json")
+    if parent_count < len(packet_writer._parent_record_artifacts()):
+        errors.append(f"postrun_parent_records_incomplete={parent_count}")
+    for key, path in (packet.get("required_postrun_provenance") or {}).items():
+        if str(path) not in command:
+            errors.append(f"postrun_register_missing_postrun_provenance={key}")
     completion = packet.get("completion_gate_command") or []
     if completion and completion[0] != python_executable:
         errors.append("postrun_completion_command_python_mismatch")
     if "--registry-record-json" not in completion:
         errors.append("postrun_completion_command_missing_registry_record")
+    if not _cmd_ready(
+        packet.get("calibration_cmd_command") or [],
+        python_executable,
+    ):
+        errors.append("postrun_calibration_cmd_missing_cmd_setup")
+    if not _cmd_ready(
+        packet.get("confusion_comparison_cmd_command") or [],
+        python_executable,
+    ):
+        errors.append("postrun_confusion_cmd_missing_cmd_setup")
+    if not _cmd_ready(
+        packet.get("ablation_report_cmd_command") or [],
+        python_executable,
+    ):
+        errors.append("postrun_ablation_cmd_missing_cmd_setup")
     if not _cmd_ready(
         packet.get("register_cmd_command") or [],
         python_executable,

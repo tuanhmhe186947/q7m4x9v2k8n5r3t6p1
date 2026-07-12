@@ -759,6 +759,18 @@ def main() -> None:
             is False
             and _optional_true(
                 full_oof_postrun_registration_packet,
+                "calibration_cmd_command_ready",
+            )
+            and _optional_true(
+                full_oof_postrun_registration_packet,
+                "confusion_comparison_cmd_command_ready",
+            )
+            and _optional_true(
+                full_oof_postrun_registration_packet,
+                "ablation_report_cmd_command_ready",
+            )
+            and _optional_true(
+                full_oof_postrun_registration_packet,
                 "register_cmd_command_ready",
             )
             and _optional_true(
@@ -1630,6 +1642,15 @@ def _evidence_full_oof_postrun_registration_packet(
         "runs_registration": audit.get("runs_registration"),
         "q2_claim_allowed_by_packet": audit.get("q2_claim_allowed_by_packet"),
         "python_executable": audit.get("python_executable"),
+        "calibration_cmd_command_ready": audit.get(
+            "calibration_cmd_command_ready"
+        ),
+        "confusion_comparison_cmd_command_ready": audit.get(
+            "confusion_comparison_cmd_command_ready"
+        ),
+        "ablation_report_cmd_command_ready": audit.get(
+            "ablation_report_cmd_command_ready"
+        ),
         "register_cmd_command_ready": audit.get("register_cmd_command_ready"),
         "completion_gate_cmd_command_ready": audit.get(
             "completion_gate_cmd_command_ready"

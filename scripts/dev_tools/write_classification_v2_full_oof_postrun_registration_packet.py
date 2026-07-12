@@ -81,11 +81,22 @@ def build_postrun_registration_packet(
     """Describe the exact post-full-OOF registration and verification steps."""
 
     artifacts = _full_oof_artifacts(output_dir)
+    postrun = _postrun_provenance_artifacts(output_dir)
     record_json = registry_dir / "full_multimodal_oof_record.json"
+    calibration_command = _calibration_command(
+        artifacts=artifacts,
+        output_dir=output_dir,
+    )
+    confusion_command = _confusion_comparison_command(
+        artifacts=artifacts,
+        output_dir=output_dir,
+    )
+    ablation_command = _ablation_report_command()
     register_command = _register_command(
         output_dir=output_dir,
         registry_dir=registry_dir,
         artifacts=artifacts,
+        postrun=postrun,
         runtime_benchmark_audit_json=runtime_benchmark_audit_json,
     )
     completion_command = _completion_gate_command(
@@ -103,11 +114,29 @@ def build_postrun_registration_packet(
         "output_dir": str(output_dir),
         "registry_record_json": str(record_json),
         "required_artifacts": {name: str(path) for name, path in artifacts.items()},
+        "required_postrun_provenance": {
+            name: str(path) for name, path in postrun.items()
+        },
         "python_executable": sys.executable,
+        "calibration_command": calibration_command,
+        "confusion_comparison_command": confusion_command,
+        "ablation_report_command": ablation_command,
         "register_command": register_command,
         "completion_gate_command": completion_command,
+        "calibration_cmd_command": _cmd_command(calibration_command),
+        "confusion_comparison_cmd_command": _cmd_command(confusion_command),
+        "ablation_report_cmd_command": _cmd_command(ablation_command),
         "register_cmd_command": _cmd_command(register_command),
         "completion_gate_cmd_command": _cmd_command(completion_command),
+        "calibration_command_bat": subprocess.list2cmdline(
+            _cmd_command(calibration_command)
+        ),
+        "confusion_comparison_command_bat": subprocess.list2cmdline(
+            _cmd_command(confusion_command)
+        ),
+        "ablation_report_command_bat": subprocess.list2cmdline(
+            _cmd_command(ablation_command)
+        ),
         "register_command_bat": subprocess.list2cmdline(
             _cmd_command(register_command)
         ),
@@ -116,7 +145,10 @@ def build_postrun_registration_packet(
         ),
         "postrun_order": [
             "Run full OOF only through the authorization-gated launch packet.",
-            "Run the register_command after full artifacts exist and pass checks.",
+            "Run calibration_command after full native-unit predictions exist.",
+            "Run confusion_comparison_command after calibrated predictions exist.",
+            "Run ablation_report_command to refresh shortcut/ablation evidence.",
+            "Run the register_command after all provenance exists and passes.",
             "Run the completion_gate_command to unlock q2_claim_allowed if valid.",
             "Do not make a Q2 result claim until completion gate allows it.",
         ],
@@ -136,6 +168,21 @@ def render_postrun_packet_markdown(packet: dict[str, Any]) -> str:
         "",
         f"Output dir: `{packet.get('output_dir')}`",
         f"Registry record: `{packet.get('registry_record_json')}`",
+        "",
+        "## Calibration Command",
+        "```bat",
+        str(packet.get("calibration_command_bat") or ""),
+        "```",
+        "",
+        "## Confusion Comparison Command",
+        "```bat",
+        str(packet.get("confusion_comparison_command_bat") or ""),
+        "```",
+        "",
+        "## Ablation Report Command",
+        "```bat",
+        str(packet.get("ablation_report_command_bat") or ""),
+        "```",
         "",
         "## Register Command",
         "```bat",
@@ -158,10 +205,12 @@ def _register_command(
     output_dir: Path,
     registry_dir: Path,
     artifacts: dict[str, Path],
+    postrun: dict[str, Path],
     runtime_benchmark_audit_json: Path,
 ) -> list[str]:
     """Build the registry command with full OOF provenance paths."""
 
+    parent_records = _parent_record_artifacts()
     command = [
         sys.executable,
         "scripts\\behavior_review_tools\\classification_v2_register_experiment.py",
@@ -184,16 +233,79 @@ def _register_command(
         "outputs\\classification_v2\\training_snapshots\\c2v2_27ed5c9963904c52.json",
         "--run-audit-json",
         str(artifacts["run_audit"]),
+        "--calibration-audit-json",
+        str(postrun["calibration_audit"]),
         "--source-balanced-metrics-json",
         str(artifacts["source_balanced_report"]),
+        "--confusion-comparison-json",
+        str(postrun["confusion_comparison"]),
+        "--ablation-report-json",
+        str(postrun["ablation_report"]),
         "--runtime-benchmark-audit-json",
         str(runtime_benchmark_audit_json),
         "--notes",
         "Full multimodal native-OOF evaluation; Q2 internal validation only.",
     ]
+    for path in parent_records:
+        command.extend(["--parent-record-json", str(path)])
     for key in sorted(artifacts):
         command.extend(["--artifact", str(artifacts[key])])
+    for key in sorted(postrun):
+        command.extend(["--artifact", str(postrun[key])])
     return command
+
+
+def _calibration_command(*, artifacts: dict[str, Path], output_dir: Path) -> list[str]:
+    """Build cross-fit calibration command for full native-unit predictions."""
+
+    return [
+        sys.executable,
+        "scripts\\behavior_review_tools\\classification_v2_cross_fit_calibration.py",
+        "--input-csv",
+        str(artifacts["unit_predictions"]),
+        "--output-dir",
+        str(output_dir / "calibration"),
+        "--expected-fold-count",
+        "13",
+    ]
+
+
+def _confusion_comparison_command(
+    *,
+    artifacts: dict[str, Path],
+    output_dir: Path,
+) -> list[str]:
+    """Build command comparing full model errors against the native baseline."""
+
+    return [
+        sys.executable,
+        "scripts\\behavior_review_tools\\classification_v2_compare_confusion_focus.py",
+        "--proposed-csv",
+        str(output_dir / "calibration" / "cross_fitted_calibrated_native_predictions.csv"),
+        "--baseline-csv",
+        "outputs\\classification_v2\\model_smoke\\native_majority_baseline"
+        "\\native_majority_unit_predictions.csv",
+        "--proposed-run-audit",
+        str(artifacts["run_audit"]),
+        "--baseline-run-audit",
+        "outputs\\classification_v2\\model_smoke\\native_majority_baseline"
+        "\\native_majority_audit.json",
+        "--output-dir",
+        str(output_dir / "confusion_focus"),
+        "--expected-fold-count",
+        "13",
+        "--bootstrap-iterations",
+        "2000",
+    ]
+
+
+def _ablation_report_command() -> list[str]:
+    """Build command refreshing the predeclared Q2 ablation reporting audit."""
+
+    return [
+        sys.executable,
+        "scripts\\dev_tools\\check_classification_v2_ablation_reporting.py",
+    ]
 
 
 def _completion_gate_command(*, output_dir: Path, record_json: Path) -> list[str]:
@@ -222,6 +334,33 @@ def _cmd_command(command: list[str]) -> list[str]:
         "&&",
         *command,
     ]
+
+
+def _postrun_provenance_artifacts(output_dir: Path) -> dict[str, Path]:
+    """Return Q2 model-evaluation provenance created after full OOF training."""
+
+    return {
+        "ablation_report": Path(
+            "outputs/classification_v2/model_design/ablation_reporting_audit.json"
+        ),
+        "calibration_audit": (
+            output_dir / "calibration" / "cross_fitted_calibration_audit.json"
+        ),
+        "confusion_comparison": (
+            output_dir / "confusion_focus" / "confusion_focus_comparison.json"
+        ),
+    }
+
+
+def _parent_record_artifacts() -> tuple[Path, ...]:
+    """Return paper-facing control records linked by the full model record."""
+
+    registry = Path("outputs/classification_v2/experiment_registry")
+    return (
+        registry / "native_majority_baseline_record.json",
+        registry / "tabular_linear_baseline_record.json",
+        registry / "tabular_nonlinear_baseline_record.json",
+    )
 
 
 def _full_oof_artifacts(output_dir: Path) -> dict[str, Path]:
@@ -255,16 +394,32 @@ def _packet_errors(packet: dict[str, Any]) -> list[str]:
     required = {
         "--paper-facing",
         "--run-audit-json",
+        "--calibration-audit-json",
         "--source-balanced-metrics-json",
+        "--confusion-comparison-json",
+        "--ablation-report-json",
         "--runtime-benchmark-audit-json",
+        "--parent-record-json",
         "--artifact",
     }
     missing = sorted(required.difference(command))
     if missing:
         errors.append(f"register_command_missing_tokens={missing}")
+    parent_record_count = command.count("--parent-record-json")
+    if parent_record_count < len(_parent_record_artifacts()):
+        errors.append(f"register_command_parent_records_incomplete={parent_record_count}")
+    for key, path in (packet.get("required_postrun_provenance") or {}).items():
+        if str(path) not in command:
+            errors.append(f"register_command_missing_postrun_provenance={key}")
     completion = packet.get("completion_gate_command") or []
     if "--registry-record-json" not in completion:
         errors.append("completion_command_missing_registry_record_json")
+    if not _cmd_ready(packet.get("calibration_cmd_command") or []):
+        errors.append("calibration_cmd_command_missing_cmd_setup")
+    if not _cmd_ready(packet.get("confusion_comparison_cmd_command") or []):
+        errors.append("confusion_cmd_command_missing_cmd_setup")
+    if not _cmd_ready(packet.get("ablation_report_cmd_command") or []):
+        errors.append("ablation_cmd_command_missing_cmd_setup")
     if not _cmd_ready(packet.get("register_cmd_command") or []):
         errors.append("register_cmd_command_missing_cmd_setup")
     if not _cmd_ready(packet.get("completion_gate_cmd_command") or []):
