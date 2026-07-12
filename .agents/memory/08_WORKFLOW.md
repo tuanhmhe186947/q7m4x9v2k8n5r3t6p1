@@ -45,6 +45,16 @@ Edit and commit rules:
 7. After a Markdown edit, inspect `git diff -- <file>`, run `git diff --check`,
    and scan changed `.md` files for overlong lines before staging.
 8. Wrap long Markdown command lines with CMD continuation `^`.
+9. For Markdown append/update work, follow this exact failure-prevention
+   protocol:
+   - Re-read the target section immediately before editing.
+   - Patch under a stable heading or add one dated section near the top.
+   - Keep each hunk scoped to one section and fewer than about 40 changed lines.
+   - Never use `>>`, `Set-Content`, `Add-Content`, heredoc, here-string,
+     `cat`, or temporary overwrite files for manual Markdown edits.
+   - If a hunk fails, re-read 20-40 nearby lines and retry with a smaller hunk.
+   - Verify with `git diff -- <file>`, `git diff --check`, and an overlong-line
+     scan before staging.
 
 Pre-full refresh sequence after any commit:
 

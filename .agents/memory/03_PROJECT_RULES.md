@@ -97,6 +97,17 @@ not supersede the active classification_v2 rules above.
 18. After editing any `.md` file, run `git diff --check` and a changed-file
     overlong-line scan before staging. For Markdown command examples, wrap long
     Windows CMD commands with `^` continuation instead of leaving one long line.
+19. Markdown append/update failure prevention protocol is strict:
+    - Re-read the exact target section immediately before editing.
+    - Patch under a stable heading or insert one dated section near the top.
+    - Keep each hunk scoped to one section and fewer than about 40 changed
+      lines.
+    - Never append with `>>`, `Set-Content`, `Add-Content`, heredoc,
+      here-string, `cat`, or a temporary overwrite file.
+    - If context matching fails, stop, re-read 20-40 nearby lines, and retry
+      with a smaller hunk. Do not switch to shell-writing as a fallback.
+    - After patching, run `git diff -- <file>`, `git diff --check`, and
+      `rg -n "^.{101,}$" <file>` before staging.
 
 ## Tracking-specific rules
 

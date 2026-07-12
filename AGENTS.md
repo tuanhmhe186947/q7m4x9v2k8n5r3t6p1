@@ -51,6 +51,16 @@ File edit safety:
   redirection, or overwrite from a temporary file. If a patch hunk fails, re-read
   the nearby lines, retry a smaller hunk, then run `git diff --check` and an
   overlong-line scan before staging.
+- Markdown append/update failure prevention protocol:
+  1. Re-read the exact target section immediately before editing.
+  2. Patch under a stable heading or insert one dated section near the top.
+  3. Keep each hunk scoped to one section and fewer than about 40 changed lines.
+  4. Never append with `>>`, `Set-Content`, `Add-Content`, heredoc,
+     here-string, `cat`, or a temporary overwrite file.
+  5. If context matching fails, stop, re-read 20-40 nearby lines, and retry with
+     a smaller hunk. Do not switch to shell-writing as a fallback.
+  6. After the patch, run `git diff -- <file>`, `git diff --check`, and
+     `rg -n "^.{101,}$" <file>` before staging.
 
 Legacy preserved docs:
 
