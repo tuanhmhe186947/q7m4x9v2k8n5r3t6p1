@@ -1,5 +1,25 @@
 # Benchmark Notes
 
+## 2026-07-13 focused classifier critical path
+
+Canonical plan:
+`plans/classification_v2-core-classifier-roadmap.md`.
+
+- P0-P8 optimize and validate the 10-class classifier only.
+- Five-class, paper reproduction, publication, and integration are optional P9.
+- Visual pilots separate resolution from backbone:
+  `R18/160 -> R18/224 -> R34/224`.
+- Architecture search uses the selected ResNet18 view where practical; finalists
+  are confirmed with the selected stronger visual backbone.
+- Temporal controls are pooling, TCN, then a small Transformer if justified.
+- Primary temporal view has six slots; native 6/16 is a source-shortcut ablation.
+- Context gains require matched-subset, availability-only, modality-dropout,
+  all-source, and source-probe controls.
+- Initial imbalance choices are event-balanced CE, effective-number CE, and
+  Balanced Softmax; select one policy.
+- Hierarchy follows strong-baseline error analysis and reviewed attributes.
+- Full OOF is limited to F0, F1, F2, plus no-hierarchy when scientifically needed.
+
 ## 2026-07-13 Bergamini five-class comparison protocol
 
 Use three separately named tracks:

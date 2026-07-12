@@ -4,8 +4,7 @@ Version: 2.1-working
 
 Date: 2026-07-13
 
-Status: working protocol accepted; source verification and baseline
-reconciliation remain pending.
+Status: extended research reference; not the core classifier critical path.
 
 Scope: `classification_v2` data, model, validation, and publication workflow.
 
@@ -13,6 +12,10 @@ This plan supersedes the model-training direction in
 `classification_v2-q2-multimodal-roadmap.md`. The older document remains the
 historical record of data and audit construction. This plan does not authorize
 a long OOF run and never changes raw files under `data/`.
+
+Use `classification_v2-core-classifier-roadmap.md` as the canonical P0-P8
+execution plan. Five-class comparison, paper reproduction, publication, and
+integration work in this document are optional Phase 9 activities.
 
 ## 1. Objective And Claim Boundary
 
