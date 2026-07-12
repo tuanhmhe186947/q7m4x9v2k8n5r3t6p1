@@ -13,6 +13,9 @@ if str(PROJECT_ROOT) not in sys.path:
 from scripts.dev_tools import (  # noqa: E402
     write_classification_v2_full_oof_postrun_registration_packet as packet_writer,
 )
+from pig_behavior.classification_v2.experiments.record_contract import (  # noqa: E402
+    check_parent_record_link,
+)
 
 SCHEMA_VERSION = packet_writer.SCHEMA_VERSION
 DEFAULT_FULL_OUTPUT_DIR = packet_writer.DEFAULT_FULL_OUTPUT_DIR
@@ -71,6 +74,12 @@ def main() -> None:
         completion_gate_json=args.completion_gate_json,
     )
     errors.extend(_packet_errors(packet, expected))
+    parent_controls = _parent_control_audits(packet)
+    for parent in parent_controls:
+        errors.extend(
+            f"postrun_parent_record_invalid={parent['record_json']}:{error}"
+            for error in parent["errors"]
+        )
     audit = {
         "schema_version": (
             "classification_v2_full_oof_postrun_registration_packet_audit_v1"
@@ -108,6 +117,9 @@ def main() -> None:
             packet.get("python_executable"),
         ),
         "required_artifact_count": len(packet.get("required_artifacts") or {}),
+        "parent_control_count": len(parent_controls),
+        "parent_controls_valid": all(parent["valid"] for parent in parent_controls),
+        "parent_controls": parent_controls,
     }
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
     args.output_json.write_text(json.dumps(audit, indent=2), encoding="utf-8")
@@ -192,6 +204,22 @@ def _packet_errors(packet: dict[str, Any], expected: dict[str, Any]) -> list[str
     ):
         errors.append("postrun_completion_cmd_missing_cmd_setup")
     return errors
+
+
+def _parent_control_audits(packet: dict[str, Any]) -> list[dict[str, Any]]:
+    """Validate linked parent controls before the full record is registered."""
+
+    command = packet.get("register_command") or []
+    paths: list[Path] = []
+    for index, token in enumerate(command):
+        if token != "--parent-record-json":
+            continue
+        next_index = index + 1
+        if next_index >= len(command):
+            paths.append(Path("<missing-parent-record-token>"))
+            continue
+        paths.append(Path(str(command[next_index])))
+    return [check_parent_record_link(path) for path in paths]
 
 
 def _cmd_ready(command: list[str], python_executable: Any) -> bool:

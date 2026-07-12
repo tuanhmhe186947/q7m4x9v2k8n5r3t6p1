@@ -134,6 +134,21 @@ def _check_artifact_record(artifact: dict[str, Any], errors: list[str]) -> None:
         errors.append(f"missing_sha256={artifact.get('path')}")
 
 
+def check_parent_record_link(record_path: Path) -> dict[str, Any]:
+    """Validate a linked parent/control record without requiring its parents."""
+
+    errors: list[str] = []
+    if not record_path.exists():
+        errors.append(f"missing_parent_experiment_record={record_path}")
+    else:
+        _check_parent_record_link(record_path, errors)
+    return {
+        "record_json": str(record_path),
+        "valid": not errors,
+        "errors": errors,
+    }
+
+
 def _check_paper_facing_provenance(
     provenance: dict[str, Any],
     *,
