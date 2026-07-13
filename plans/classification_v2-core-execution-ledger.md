@@ -109,7 +109,7 @@ Work proceeds in dependency order without fabricating human evidence:
 3. Fold-local preprocessing, event balancing, and lineage: `COMPLETED IN CODE`.
 4. Configurable model/mask/shape contracts: `COMPLETED IN CODE`.
 5. Real fixed-six timing loader and hash lineage: `COMPLETED IN CODE`.
-6. Complete native-collapse and paired-evaluation tests with synthetic predictions.
+6. Native-collapse and paired-evaluation contracts: `IN PROGRESS` on fixtures.
 7. Reconcile the historical baseline only as a registered engineering control.
 
 ## Promotion And Full-Run Lock
