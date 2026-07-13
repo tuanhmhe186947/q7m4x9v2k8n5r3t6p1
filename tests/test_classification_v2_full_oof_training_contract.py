@@ -9,12 +9,14 @@ import pandas as pd
 import pytest
 import torch
 
+from pig_behavior.classification_v2.contracts.window_alignment import (
+    require_ordered_window_ids,
+)
 from pig_behavior.classification_v2.training.full_multimodal_oof import (
     FullMultimodalOofConfig,
     _effective_training_step_count,
     _fold_local_class_weights,
     _fold_training_coverage_complete,
-    _require_ordered_window_ids,
     _save_training_checkpoint,
     _training_batches,
     _training_sample_weights,
@@ -25,7 +27,7 @@ def test_ordered_window_alignment_rejects_same_keys_in_wrong_order() -> None:
     reference = pd.Series(["window-0", "window-1"])
 
     with pytest.raises(ValueError, match="window_order_mismatch_rows=2"):
-        _require_ordered_window_ids(
+        require_ordered_window_ids(
             "split",
             reference,
             {"image_context": pd.Series(["window-1", "window-0"])},

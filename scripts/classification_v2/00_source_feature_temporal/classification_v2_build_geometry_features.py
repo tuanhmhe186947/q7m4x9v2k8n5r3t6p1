@@ -8,6 +8,9 @@ from pathlib import Path
 
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.output_safety import (
+    require_output_paths_available,
+)
 from pig_behavior.classification_v2.features.geometry import (
     build_geometry_features,
     validate_geometry_features,
@@ -15,15 +18,29 @@ from pig_behavior.classification_v2.features.geometry import (
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Build geometry features for classification_v2.")
+    parser = argparse.ArgumentParser(
+        description="Build geometry features for classification_v2."
+    )
     parser.add_argument("--input-csv", type=Path, required=True)
     parser.add_argument("--output-csv", type=Path, required=True)
     parser.add_argument("--audit-json", type=Path, default=None)
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace existing derived geometry artifacts explicitly.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+    output_paths = [args.output_csv]
+    if args.audit_json is not None:
+        output_paths.append(args.audit_json)
+    require_output_paths_available(
+        output_paths,
+        overwrite=args.overwrite,
+    )
 
     print(f"reading: {args.input_csv}")
     df = pd.read_csv(args.input_csv, low_memory=False)

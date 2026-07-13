@@ -51,7 +51,7 @@ def main() -> None:
     paths = _audit_paths(root)
     payloads, preload_errors = _load_payloads(paths)
     repeatability = _repeatability_audit(root, repeat_root)
-    decision_files = _decision_files(root / "03_review_units")
+    decision_files = _decision_files(_review_unit_dir(root))
     gate = audit_technical_smoke_gate(
         payloads,
         repeatability=repeatability,
@@ -95,6 +95,19 @@ def main() -> None:
 def _audit_paths(root: Path) -> dict[str, Path]:
     """Return the fixed stage artifacts for one versioned smoke root."""
 
+    if _uses_identifier_v2_layout(root):
+        return {
+            "scope": root / "00_scope" / "smoke_scope_audit.json",
+            "enhanced": root / "04_enhanced" / "enhanced_audit.json",
+            "sequence": root / "05_sequence" / "sequence_window_audit.json",
+            "review_units": root / "06_review_units" / "review_unit_audit.json",
+            "temporal_evidence": root / "audits" / "temporal_evidence_audit.json",
+            "train_ready": root / "07_train_ready" / "train_ready_audit.json",
+            "feature_semantics": root / "audits" / "feature_semantics_audit.json",
+            "spatial_validation": (
+                root / "audits" / "spatial_sequence_validation.json"
+            ),
+        }
     return {
         "scope": root / "00_scope" / "smoke_scope_audit.json",
         "enhanced": root / "01_enhanced" / "enhanced_audit.json",
@@ -148,10 +161,16 @@ def _repeatability_pairs(
 ) -> list[tuple[Path, Path]]:
     """Pair each scientific table with its explicit-overwrite bounded rerun."""
 
-    original_enhanced = root / "01_enhanced"
-    original_sequence = root / "02_sequence"
-    repeat_enhanced = repeat_root / "enhanced"
-    repeat_sequence = repeat_root / "sequence"
+    if _uses_identifier_v2_layout(root):
+        original_enhanced = root / "04_enhanced"
+        original_sequence = root / "05_sequence"
+        repeat_enhanced = repeat_root / "04_enhanced"
+        repeat_sequence = repeat_root / "05_sequence"
+    else:
+        original_enhanced = root / "01_enhanced"
+        original_sequence = root / "02_sequence"
+        repeat_enhanced = repeat_root / "enhanced"
+        repeat_sequence = repeat_root / "sequence"
     return [
         (
             original_enhanced / "spatiotemporal_frame_features_enhanced.csv",
@@ -217,6 +236,18 @@ def _decision_files(review_dir: Path) -> list[str]:
         for path in review_dir.rglob("*.csv")
         if "decision" in path.name.lower()
     )
+
+
+def _uses_identifier_v2_layout(root: Path) -> bool:
+    """Detect the expanded source-to-window bounded stage layout."""
+
+    return (root / "04_enhanced").is_dir() and (root / "07_train_ready").is_dir()
+
+
+def _review_unit_dir(root: Path) -> Path:
+    """Return the review-unit directory for either supported smoke layout."""
+
+    return root / ("06_review_units" if _uses_identifier_v2_layout(root) else "03_review_units")
 
 
 def _sha256(path: Path) -> str:

@@ -23,6 +23,9 @@ import pandas as pd
 import torch
 from torch import nn
 
+from pig_behavior.classification_v2.contracts.window_alignment import (
+    require_ordered_window_ids,
+)
 from pig_behavior.classification_v2.datasets.image_sequence_dataset import (
     ClassificationV2ImageSequenceDataset,
     ImageSequenceDatasetConfig,
@@ -752,7 +755,7 @@ def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
     interaction = InteractionContextWindowDataset(
         InteractionContextDatasetConfig(manifest_csv=config.interaction_context_manifest_csv)
     ).manifest
-    window_alignment = _require_ordered_window_ids(
+    window_alignment = require_ordered_window_ids(
         "split",
         split["window_id"],
         {
@@ -858,94 +861,6 @@ def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
         frame=frame,
         load_audit=load_audit,
     )
-
-
-def _require_ordered_window_ids(
-    reference_name: str,
-    reference: pd.Series,
-    candidates: dict[str, pd.Series],
-) -> dict[str, Any]:
-    """Prove every positional artifact uses one ordered window-key lineage."""
-
-    reference_ids = _clean_window_ids(reference)
-    errors = _window_key_errors(reference_ids, reference_name)
-    comparisons: dict[str, dict[str, Any]] = {}
-    reference_set = set(reference_ids)
-    for name, values in candidates.items():
-        candidate_ids = _clean_window_ids(values)
-        candidate_errors = _window_key_errors(candidate_ids, name)
-        missing = sorted(reference_set.difference(candidate_ids))
-        extra = sorted(set(candidate_ids).difference(reference_set))
-        order_mismatch = _ordered_mismatch_count(
-            reference_ids,
-            candidate_ids,
-        )
-        candidate_errors.extend(
-            [
-                *([f"missing_window_ids={len(missing)}"] if missing else []),
-                *([f"extra_window_ids={len(extra)}"] if extra else []),
-                *([f"window_order_mismatch_rows={order_mismatch}"] if order_mismatch else []),
-            ]
-        )
-        comparisons[name] = {
-            "rows": int(len(candidate_ids)),
-            "ordered_window_id_sha256": _ordered_window_id_sha256(candidate_ids),
-            "missing_count": int(len(missing)),
-            "extra_count": int(len(extra)),
-            "order_mismatch_rows": int(order_mismatch),
-            "errors": candidate_errors,
-        }
-        errors.extend(f"{name}:{error}" for error in candidate_errors)
-
-    audit = {
-        "reference": reference_name,
-        "reference_rows": int(len(reference_ids)),
-        "reference_ordered_window_id_sha256": _ordered_window_id_sha256(reference_ids),
-        "comparisons": comparisons,
-        "errors": errors,
-        "valid": not errors,
-    }
-    if errors:
-        raise ValueError(f"ordered window alignment failed: {errors}")
-    return audit
-
-
-def _clean_window_ids(values: pd.Series) -> pd.Series:
-    """Normalize keys without making missing values appear valid."""
-
-    return values.fillna("").astype(str).str.strip().reset_index(drop=True)
-
-
-def _window_key_errors(values: pd.Series, name: str) -> list[str]:
-    """Return blank and duplicate violations for one positional artifact."""
-
-    errors: list[str] = []
-    blank = int(values.eq("").sum())
-    duplicate = int(values.duplicated(keep=False).sum())
-    if blank:
-        errors.append(f"blank_{name}_window_ids={blank}")
-    if duplicate:
-        errors.append(f"duplicate_{name}_window_id_rows={duplicate}")
-    return errors
-
-
-def _ordered_mismatch_count(
-    reference: pd.Series,
-    candidate: pd.Series,
-) -> int:
-    """Count positional mismatches, including rows absent from either side."""
-
-    size = max(len(reference), len(candidate))
-    left = reference.reindex(range(size), fill_value="")
-    right = candidate.reindex(range(size), fill_value="")
-    return int(left.ne(right).sum())
-
-
-def _ordered_window_id_sha256(values: pd.Series) -> str:
-    """Hash ordered keys so run manifests can prove row alignment cheaply."""
-
-    payload = "\n".join(values.astype(str)).encode("utf-8")
-    return hashlib.sha256(payload).hexdigest()
 
 
 def _batch_from_indices(
@@ -1240,13 +1155,13 @@ def _validate_dataset_alignment(
     actor_ids = actor_dataset.windows["window_id"].astype(str).reset_index(drop=True)
     visual_ids = visual_dataset.windows["window_id"].astype(str).reset_index(drop=True)
     if expected_window_ids is None:
-        _require_ordered_window_ids(
+        require_ordered_window_ids(
             "actor_image",
             actor_ids,
             {"visual_context": visual_ids},
         )
         return
-    _require_ordered_window_ids(
+    require_ordered_window_ids(
         "supervised_bundle",
         expected_window_ids,
         {

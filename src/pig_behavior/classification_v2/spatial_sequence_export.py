@@ -8,6 +8,10 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.window_alignment import (
+    require_ordered_window_ids,
+)
+
 FORBIDDEN_SUBSTRINGS = (
     "behavior",
     "label",
@@ -141,6 +145,10 @@ def export_spatial_sequences(
         raise ValueError(f"Forbidden spatial feature columns selected: {forbidden_selected}")
 
     work_windows = windows.reset_index(drop=True).copy()
+    window_alignment = require_ordered_window_ids(
+        "spatial_windows",
+        work_windows["window_id"],
+    )
     for column in [
         "window_start_frame",
         "window_end_frame",
@@ -299,6 +307,7 @@ def export_spatial_sequences(
         "social_partner_available_frame_rows": int(
             work_frames["_social_partner_key"].ne("").sum()
         ),
+        "window_alignment": window_alignment,
         "errors": [],
         "warnings": [],
     }

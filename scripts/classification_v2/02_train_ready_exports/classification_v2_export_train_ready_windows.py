@@ -10,6 +10,9 @@ import pandas as pd
 from pig_behavior.classification_v2.contracts.output_safety import (
     require_output_paths_available,
 )
+from pig_behavior.classification_v2.contracts.window_alignment import (
+    require_ordered_window_ids,
+)
 from pig_behavior.classification_v2.train_ready_features import build_train_ready_window_tables
 
 
@@ -76,6 +79,12 @@ def main() -> None:
     df = pd.read_csv(args.input_csv, low_memory=False)
     if args.max_rows is not None:
         df = df.head(args.max_rows).copy()
+    if "window_id" not in df.columns:
+        raise ValueError("Input sequence windows are missing window_id")
+    window_alignment = require_ordered_window_ids(
+        "train_ready_input",
+        df["window_id"],
+    )
 
     tables = build_train_ready_window_tables(
         df,
@@ -115,6 +124,7 @@ def main() -> None:
             "mask_true": int(tables.mask.sum()),
             "mask_false": int((~tables.mask).sum()),
         },
+        "window_alignment": window_alignment,
         "feature_selection": tables.audit,
     }
     audit_path.write_text(

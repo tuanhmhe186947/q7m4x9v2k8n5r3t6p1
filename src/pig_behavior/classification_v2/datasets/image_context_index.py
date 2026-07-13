@@ -19,6 +19,9 @@ from pig_behavior.classification_v2.contracts.identifiers import (
     audit_frame_object_identifiers,
     ensure_frame_object_identifiers,
 )
+from pig_behavior.classification_v2.contracts.window_alignment import (
+    require_ordered_window_ids,
+)
 
 VIDEO_EXTS = {".mp4", ".avi", ".mov", ".mkv", ".mpg", ".mpeg", ".m4v"}
 IMAGE_CONTEXT_SEQUENCE_DELIMITER = ";;"
@@ -37,6 +40,8 @@ FRAME_CONTEXT_COLUMNS = [
     "video_key",
     "source_video_key",
     "source_video_path",
+    "clip_id",
+    "task_id",
     "object_track_key",
     "pig_id",
     "track_id",
@@ -321,9 +326,11 @@ def build_image_context_index(
         video_index,
     )
     window_manifest = _build_window_manifest(windows, frame_manifest)
-    input_window_ids = windows["window_id"].fillna("").astype(str).reset_index(drop=True)
-    output_window_ids = window_manifest["window_id"].fillna("").astype(str).reset_index(drop=True)
-    window_order_preserved = input_window_ids.equals(output_window_ids)
+    window_alignment = require_ordered_window_ids(
+        "input_windows",
+        windows["window_id"],
+        {"image_context_windows": window_manifest["window_id"]},
+    )
 
     loadable = _to_bool(frame_manifest["image_context_loadable"])
     audit = {
@@ -333,7 +340,8 @@ def build_image_context_index(
         "window_rows": int(len(window_manifest)),
         "frame_row_count_preserved": bool(len(frames) == len(frame_manifest)),
         "window_row_count_preserved": bool(len(windows) == len(window_manifest)),
-        "window_order_preserved": window_order_preserved,
+        "window_order_preserved": True,
+        "window_alignment": window_alignment,
         "invalid_frame_alignment_rows": 0,
         "invalid_window_alignment_rows": 0,
         "duplicate_frame_alignment_rows": 0,

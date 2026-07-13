@@ -6,6 +6,9 @@ from pathlib import Path
 
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.output_safety import (
+    require_output_paths_available,
+)
 from pig_behavior.classification_v2.contracts.temporal_evidence import (
     audit_temporal_evidence_lineage,
 )
@@ -60,6 +63,11 @@ def parse_args() -> argparse.Namespace:
             "outputs/classification_v2/audits/temporal_evidence_lineage_audit.json"
         ),
     )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace an existing derived temporal audit explicitly.",
+    )
     return parser.parse_args()
 
 
@@ -67,6 +75,10 @@ def main() -> None:
     """Read derived artifacts, write one audit JSON, and fail on violations."""
 
     args = parse_args()
+    require_output_paths_available(
+        [args.output_json],
+        overwrite=args.overwrite,
+    )
     for path in [
         args.enhanced_csv,
         args.intervals_csv,

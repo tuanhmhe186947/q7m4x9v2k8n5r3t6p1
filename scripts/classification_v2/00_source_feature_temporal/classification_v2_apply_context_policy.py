@@ -8,6 +8,9 @@ from pathlib import Path
 
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.output_safety import (
+    require_output_paths_available,
+)
 from pig_behavior.classification_v2.features.context_policy import (
     apply_context_policy,
     audit_context_policy,
@@ -15,7 +18,9 @@ from pig_behavior.classification_v2.features.context_policy import (
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Normalize include/training/eval flags for classification_v2.")
+    parser = argparse.ArgumentParser(
+        description="Normalize include/training/eval flags for classification_v2."
+    )
     parser.add_argument("--input-csv", type=Path, required=True)
     parser.add_argument("--output-csv", type=Path, required=True)
     parser.add_argument("--audit-json", type=Path, default=None)
@@ -28,13 +33,28 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--no-recompute-context",
         action="store_true",
-        help="Use existing context columns instead of recomputing from frame_uid/pig_id.",
+        help=(
+            "Use existing context columns instead of recomputing from "
+            "frame_uid/pig_id."
+        ),
+    )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace existing derived context artifacts explicitly.",
     )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+    output_paths = [args.output_csv]
+    if args.audit_json is not None:
+        output_paths.append(args.audit_json)
+    require_output_paths_available(
+        output_paths,
+        overwrite=args.overwrite,
+    )
 
     print(f"reading: {args.input_csv}")
     df = pd.read_csv(args.input_csv, low_memory=False)

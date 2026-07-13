@@ -7,6 +7,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.output_safety import (
+    require_output_paths_available,
+)
 from pig_behavior.classification_v2.spatial_sequence_export import export_spatial_sequences
 
 
@@ -37,11 +40,22 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--max-rows", type=int, default=None)
     parser.add_argument("--compress", action="store_true")
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace existing derived spatial export artifacts explicitly.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+    npz_path = args.output_dir / "X_spatial_sequences.npz"
+    audit_path = args.output_dir / "spatial_sequence_audit.json"
+    require_output_paths_available(
+        [npz_path, audit_path],
+        overwrite=args.overwrite,
+    )
     if not args.window_manifest_csv.exists():
         raise FileNotFoundError(args.window_manifest_csv)
     if not args.frame_features_csv.exists():
@@ -117,8 +131,6 @@ def main() -> None:
 
     export = export_spatial_sequences(windows, frames)
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    npz_path = args.output_dir / "X_spatial_sequences.npz"
-    audit_path = args.output_dir / "spatial_sequence_audit.json"
 
     save_fn = np.savez_compressed if args.compress else np.savez
     save_fn(npz_path, **export.arrays)

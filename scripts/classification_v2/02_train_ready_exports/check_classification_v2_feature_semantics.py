@@ -4,7 +4,12 @@ import argparse
 import json
 from pathlib import Path
 
-from pig_behavior.classification_v2.contracts.feature_semantics import audit_feature_semantics
+from pig_behavior.classification_v2.contracts.feature_semantics import (
+    audit_feature_semantics,
+)
+from pig_behavior.classification_v2.contracts.output_safety import (
+    require_output_paths_available,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -21,7 +26,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output-json",
         type=Path,
-        default=Path("outputs/classification_v2/train_ready_windows/feature_semantics_audit.json"),
+        default=Path(
+            "outputs/classification_v2/train_ready_windows/"
+            "feature_semantics_audit.json"
+        ),
     )
     parser.add_argument(
         "--tabular-x-csv",
@@ -35,11 +43,20 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Optional bounded/smoke spatial X artifact override.",
     )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace an existing derived feature-semantics audit explicitly.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+    require_output_paths_available(
+        [args.output_json],
+        overwrite=args.overwrite,
+    )
     result = audit_feature_semantics(
         args.contract_json,
         tabular_x_csv=args.tabular_x_csv,
