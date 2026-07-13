@@ -4,6 +4,7 @@ from pig_behavior.classification_v2.training.full_multimodal_oof import (
 )
 from pig_behavior.classification_v2.training.full_run_contract import (
     FULL_RUN_AUTHORIZATION_PURPOSE,
+    FULL_RUN_AUTHORIZATION_SCHEMA_VERSION,
 )
 from pig_behavior.classification_v2.training.full_run_contract import (
     validate_full_run_authorization as _validate_full_run_authorization,
@@ -89,10 +90,13 @@ def test_full_run_authorization_binds_preflight_hash_and_commit() -> None:
         "git_commit": "abc123",
     }
     authorization = {
+        "schema_version": FULL_RUN_AUTHORIZATION_SCHEMA_VERSION,
         "authorized": True,
         "purpose": FULL_RUN_AUTHORIZATION_PURPOSE,
         "acknowledges_long_run": True,
         "acknowledges_no_q2_claim_until_verified": True,
+        "reviewer": "pytest_reviewer",
+        "reviewed_at": "2026-07-13T00:00:00+07:00",
         "preflight_config_sha256": config_hash,
         "git_commit": "abc123",
     }
@@ -110,3 +114,14 @@ def test_full_run_authorization_binds_preflight_hash_and_commit() -> None:
     assert any("acknowledge_long_run" in error for error in errors)
     assert any("preflight_hash_mismatch" in error for error in errors)
     assert any("git_commit_mismatch" in error for error in errors)
+
+    missing_provenance = dict(authorization)
+    missing_provenance.pop("reviewer")
+    missing_provenance.pop("reviewed_at")
+    errors = _validate_full_run_authorization(
+        config,
+        preflight,
+        missing_provenance,
+    )
+    assert any("requires_reviewer" in error for error in errors)
+    assert any("requires_reviewed_at" in error for error in errors)

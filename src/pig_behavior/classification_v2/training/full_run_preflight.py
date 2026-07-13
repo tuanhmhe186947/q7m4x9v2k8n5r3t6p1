@@ -21,8 +21,7 @@ RUNTIME_RELEVANT_PATH_PREFIXES = (
     "src/pig_behavior/classification_v2/contracts/",
     "src/pig_behavior/classification_v2/evaluation/",
     "src/pig_behavior/classification_v2/training/",
-    "scripts/classification_v2/06_full_oof_training/"
-    "classification_v2_run_full_multimodal_oof.py",
+    "scripts/classification_v2/06_full_oof_training/classification_v2_run_full_multimodal_oof.py",
     "scripts/classification_v2/05_preflight_authorization/"
     "preflight_classification_v2_full_multimodal_oof.py",
     "scripts/classification_v2/04_baselines_smokes/"
@@ -34,8 +33,7 @@ RUNTIME_AUDIT_ONLY_PATHS = {
     "preflight_classification_v2_full_multimodal_oof.py",
 }
 AUTH_GATE_ONLY_RUNTIME_PATHS = {
-    "scripts/classification_v2/06_full_oof_training/"
-    "classification_v2_run_full_multimodal_oof.py",
+    "scripts/classification_v2/06_full_oof_training/classification_v2_run_full_multimodal_oof.py",
 }
 AUTH_GATE_ONLY_DIFF_MARKERS = (
     "FULL_RUN_AUTHORIZATION",
@@ -121,8 +119,7 @@ def build_full_run_preflight(
         float(total_training_rows / throughput) if throughput > 0.0 else None
     )
     warnings.append(
-        "Estimated runtime excludes evaluation, bootstrap metrics, startup, "
-        "and checkpoint IO."
+        "Estimated runtime excludes evaluation, bootstrap metrics, startup, and checkpoint IO."
     )
     return {
         "schema_version": "classification_v2_full_run_preflight_v1",
@@ -168,8 +165,7 @@ def _feature_whitelist_audit_errors(audit: dict[str, Any]) -> list[str]:
         errors.append("feature_whitelist_must_fail_closed_on_unknown_columns")
     if audit.get("forbidden_probe_columns_not_blocked") not in ([], None):
         errors.append(
-            "feature_whitelist_probe_leakage="
-            f"{audit.get('forbidden_probe_columns_not_blocked')}"
+            f"feature_whitelist_probe_leakage={audit.get('forbidden_probe_columns_not_blocked')}"
         )
     return errors
 
@@ -239,6 +235,20 @@ def _runtime_match_audit(
     }
 
 
+def _runtime_match_errors(
+    config: FullMultimodalOofConfig,
+    runtime: dict[str, Any],
+    *,
+    expected_git_commit: str | None = None,
+) -> list[str]:
+    """Return only errors for callers using the pre-audit compatibility API."""
+    return _runtime_match_audit(
+        config,
+        runtime,
+        expected_git_commit=expected_git_commit,
+    )["errors"]
+
+
 def _runtime_git_commit_check(
     *,
     recommended_git_commit: Any,
@@ -280,9 +290,7 @@ def _runtime_git_commit_check(
             "error": f"git_diff_failed={exc}",
         }
     changed_paths = [
-        path.strip().replace("\\", "/")
-        for path in diff.stdout.splitlines()
-        if path.strip()
+        path.strip().replace("\\", "/") for path in diff.stdout.splitlines() if path.strip()
     ]
     relevant_paths = [
         path
@@ -309,10 +317,7 @@ def _runtime_relevant_path(path: str) -> bool:
     normalized = path.replace("\\", "/").lower()
     if normalized in RUNTIME_AUDIT_ONLY_PATHS:
         return False
-    return any(
-        normalized.startswith(prefix.lower())
-        for prefix in RUNTIME_RELEVANT_PATH_PREFIXES
-    )
+    return any(normalized.startswith(prefix.lower()) for prefix in RUNTIME_RELEVANT_PATH_PREFIXES)
 
 
 def _changed_only_auth_gate(
@@ -367,16 +372,11 @@ def _changed_diff_hunks(diff_text: str) -> list[list[str]]:
 def _auth_gate_hunk_allowed(hunk: list[str]) -> bool:
     """Require every allowed hunk to be clearly tied to authorization logic."""
 
-    has_auth_marker = any(
-        _line_has_auth_gate_marker(line)
-        for line in hunk
-    )
+    has_auth_marker = any(_line_has_auth_gate_marker(line) for line in hunk)
     if not has_auth_marker:
         return False
     return all(
-        _line_has_auth_gate_marker(line)
-        or line in AUTH_GATE_ONLY_STRUCTURAL_LINES
-        for line in hunk
+        _line_has_auth_gate_marker(line) or line in AUTH_GATE_ONLY_STRUCTURAL_LINES for line in hunk
     )
 
 
@@ -394,19 +394,16 @@ def _canonical_full_run_path_errors(config: FullMultimodalOofConfig) -> list[str
     expected_actor_root = Path("outputs/classification_v2/image_cache_v2_letterbox")
     expected_actor_tensor = expected_actor_root / f"packed_rgb_{config.image_size}_letterbox.npy"
     expected_actor_index = expected_actor_root / "packed_image_cache_index.csv"
-    if (
-        config.packed_image_cache_npy is not None
-        and _norm(config.packed_image_cache_npy) != _norm(expected_actor_tensor)
+    if config.packed_image_cache_npy is not None and _norm(config.packed_image_cache_npy) != _norm(
+        expected_actor_tensor
     ):
         errors.append(
             "packed_actor_cache_must_use_canonical_letterbox_tensor="
             f"expected:{expected_actor_tensor},actual:{config.packed_image_cache_npy}"
         )
-    if (
-        config.packed_image_cache_index_csv is not None
-        and _norm(config.packed_image_cache_index_csv)
-        != _norm(expected_actor_index)
-    ):
+    if config.packed_image_cache_index_csv is not None and _norm(
+        config.packed_image_cache_index_csv
+    ) != _norm(expected_actor_index):
         errors.append(
             "packed_actor_cache_index_must_use_canonical_letterbox_index="
             f"expected:{expected_actor_index},"
@@ -423,11 +420,9 @@ def _canonical_full_run_path_errors(config: FullMultimodalOofConfig) -> list[str
             "visual_context_manifest_must_use_canonical_cache="
             f"expected:{expected_visual_manifest},actual:{config.visual_context_cache_manifest_csv}"
         )
-    if (
-        config.visual_context_packed_cache_npy is not None
-        and _norm(config.visual_context_packed_cache_npy)
-        != _norm(expected_visual_tensor)
-    ):
+    if config.visual_context_packed_cache_npy is not None and _norm(
+        config.visual_context_packed_cache_npy
+    ) != _norm(expected_visual_tensor):
         errors.append(
             "packed_visual_context_must_use_canonical_letterbox_tensor="
             f"expected:{expected_visual_tensor},"
