@@ -1,5 +1,5 @@
 {
-  "contract_version": "classification_v2_data_contract_v2_0",
+  "contract_version": "classification_v2_data_contract_v2_1",
   "snapshot_name": "classification_v2_q2_multimodal_train_ready",
   "root": ".",
   "train_ready_root": "outputs/classification_v2/train_ready_windows",
@@ -12,13 +12,23 @@
     "train_mask",
     "sample_weight",
     "spatial_sequences",
+    "image_window_context_manifest",
+    "interaction_window_context_manifest",
     "event_weight_manifest",
     "y_auxiliary_targets",
     "source_domain_selection_manifest"
   ],
   "window_id_source_artifact": "split_manifest",
+  "lineage_audit_artifact": "identifier_v2_lineage_audit",
+  "required_ordered_window_artifacts": [
+    "split_manifest",
+    "image_window_context_manifest",
+    "interaction_window_context_manifest"
+  ],
   "key_alignment_group": [
     "split_manifest",
+    "image_window_context_manifest",
+    "interaction_window_context_manifest",
     "event_weight_manifest",
     "y_auxiliary_targets",
     "source_domain_selection_manifest"
@@ -108,6 +118,26 @@
     },
     "train_ready_audit": {
       "path": "outputs/classification_v2/train_ready_windows/train_ready_audit.json",
+      "type": "json",
+      "required": true
+    },
+    "spatial_sequence_audit": {
+      "path": "outputs/classification_v2/train_ready_windows/spatial_sequence_audit.json",
+      "type": "json",
+      "required": true
+    },
+    "image_context_index_audit": {
+      "path": "outputs/classification_v2/train_ready_windows/image_context_index_audit.json",
+      "type": "json",
+      "required": true
+    },
+    "interaction_context_audit": {
+      "path": "outputs/classification_v2/train_ready_windows/interaction_context_audit.json",
+      "type": "json",
+      "required": true
+    },
+    "identifier_v2_lineage_audit": {
+      "path": "outputs/classification_v2/train_ready_windows/identifier_lineage_audit.json",
       "type": "json",
       "required": true
     },

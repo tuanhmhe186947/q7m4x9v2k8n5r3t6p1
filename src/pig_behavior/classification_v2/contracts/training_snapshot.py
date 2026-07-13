@@ -22,6 +22,8 @@ from pig_behavior.classification_v2.contracts.model_io import validate_model_inp
 
 CSV_CHUNK_ROWS = 100_000
 FILE_CHUNK_BYTES = 1024 * 1024
+SNAPSHOT_SCHEMA_VERSION = "classification_v2.training_snapshot.v2"
+ORDERED_KEY_HASH_VERSION = "newline_join_v1"
 
 
 @dataclass(frozen=True)
@@ -38,11 +40,20 @@ def load_contract(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def freeze_training_snapshot(contract_path: Path, *, output_path: Path | None = None) -> dict[str, Any]:
+def freeze_training_snapshot(
+    contract_path: Path,
+    *,
+    output_path: Path | None = None,
+) -> dict[str, Any]:
     """Create an immutable snapshot manifest for the current artifact state."""
     contract = load_contract(contract_path)
     paths = _resolve_paths(contract_path, contract, output_path=output_path)
     snapshot = _build_snapshot(paths, contract)
+    if snapshot["errors"]:
+        raise ValueError(
+            "Cannot freeze an invalid training snapshot: "
+            f"{snapshot['errors']}"
+        )
     snapshot_id = _snapshot_id(snapshot)
     snapshot["snapshot_id"] = snapshot_id
     destination = output_path or (paths.output_dir / f"{snapshot_id}.json")
@@ -52,7 +63,10 @@ def freeze_training_snapshot(contract_path: Path, *, output_path: Path | None = 
     if destination.exists():
         existing = json.loads(destination.read_text(encoding="utf-8"))
         if _snapshot_identity_payload(existing) != _snapshot_identity_payload(snapshot):
-            raise FileExistsError(f"Snapshot already exists with different artifact content: {destination}")
+            raise FileExistsError(
+                "Snapshot already exists with different artifact content: "
+                f"{destination}"
+            )
         # Git provenance is recorded at first freeze, while the content ID is
         # intentionally stable across later checker/code-only commits.
         return {**existing, "snapshot_path": str(destination)}
@@ -60,7 +74,11 @@ def freeze_training_snapshot(contract_path: Path, *, output_path: Path | None = 
     return {**snapshot, "snapshot_path": str(destination)}
 
 
-def check_training_snapshot(snapshot_path: Path, *, contract_path: Path | None = None) -> dict[str, Any]:
+def check_training_snapshot(
+    snapshot_path: Path,
+    *,
+    contract_path: Path | None = None,
+) -> dict[str, Any]:
     """Compare current artifacts against a frozen snapshot and report deterministic drift."""
     expected = json.loads(snapshot_path.read_text(encoding="utf-8"))
     contract_file = contract_path or Path(expected["contract_path"])
@@ -71,6 +89,16 @@ def check_training_snapshot(snapshot_path: Path, *, contract_path: Path | None =
 
     errors: list[str] = []
     warnings: list[str] = []
+    if expected.get("snapshot_schema_version") != SNAPSHOT_SCHEMA_VERSION:
+        errors.append(
+            "snapshot_schema_version_mismatch="
+            f"expected:{SNAPSHOT_SCHEMA_VERSION},"
+            f"actual:{expected.get('snapshot_schema_version')}"
+        )
+    if expected.get("errors"):
+        errors.append(f"frozen_snapshot_has_contract_errors={expected['errors']}")
+    if current.get("errors"):
+        errors.append(f"current_snapshot_has_contract_errors={current['errors']}")
     _compare_artifacts(expected.get("artifacts", {}), current.get("artifacts", {}), errors)
     if expected.get("row_alignment") != current.get("row_alignment"):
         errors.append("row_alignment_drift")
@@ -81,9 +109,11 @@ def check_training_snapshot(snapshot_path: Path, *, contract_path: Path | None =
     if expected.get("model_input_audit") != current.get("model_input_audit"):
         errors.append("model_input_audit_drift")
     if expected.get("contract_digest") != current.get("contract_digest"):
-        warnings.append("contract_json_digest_changed")
+        errors.append("contract_json_digest_changed")
     if expected.get("git_commit") != current.get("git_commit"):
         warnings.append("git_commit_changed")
+    if expected.get("snapshot_id") != current.get("snapshot_id"):
+        errors.append("snapshot_id_drift")
 
     return {
         "snapshot_path": str(snapshot_path),
@@ -96,7 +126,12 @@ def check_training_snapshot(snapshot_path: Path, *, contract_path: Path | None =
     }
 
 
-def _resolve_paths(contract_path: Path, contract: dict[str, Any], *, output_path: Path | None = None) -> SnapshotPaths:
+def _resolve_paths(
+    contract_path: Path,
+    contract: dict[str, Any],
+    *,
+    output_path: Path | None = None,
+) -> SnapshotPaths:
     # Contract roots are project-relative by design, so scripts run from the
     # repository root produce stable paths independent of the config directory.
     root = Path(contract.get("root", ".")).resolve()
@@ -113,6 +148,7 @@ def _build_snapshot(paths: SnapshotPaths, contract: dict[str, Any]) -> dict[str,
     }
     errors = _validate_contract_profiles(contract, artifacts)
     return {
+        "snapshot_schema_version": SNAPSHOT_SCHEMA_VERSION,
         "contract_version": contract.get("contract_version"),
         "snapshot_name": contract.get("snapshot_name"),
         "contract_path": str(paths.contract_json),
@@ -159,7 +195,9 @@ def _profile_csv(path: Path, spec: dict[str, Any]) -> dict[str, Any]:
         "row_count": int(row_count),
         "columns": columns,
         "dtypes": dtypes,
-        "missing_required_columns": sorted(set(spec.get("required_columns", [])).difference(columns)),
+        "missing_required_columns": sorted(
+            set(spec.get("required_columns", [])).difference(columns)
+        ),
     }
     key_column = spec.get("key_column")
     if key_column and key_column in columns:
@@ -185,7 +223,9 @@ def _profile_npz(path: Path, spec: dict[str, Any]) -> dict[str, Any]:
     return {
         "arrays": array_profiles,
         "array_names": sorted(arrays.files),
-        "missing_required_arrays": sorted(set(spec.get("required_arrays", [])).difference(arrays.files)),
+        "missing_required_arrays": sorted(
+            set(spec.get("required_arrays", [])).difference(arrays.files)
+        ),
         "first_axis_lengths": first_axis_lengths,
         "row_count": next(iter(first_axis_lengths.values()), 0) if first_axis_lengths else 0,
     }
@@ -196,17 +236,26 @@ def _ordered_key_digest(path: Path, key_column: str) -> dict[str, Any]:
     seen: set[str] = set()
     duplicates = 0
     null_count = 0
-    for chunk in pd.read_csv(path, usecols=[key_column], chunksize=CSV_CHUNK_ROWS, low_memory=False):
+    first_value = True
+    for chunk in pd.read_csv(
+        path,
+        usecols=[key_column],
+        chunksize=CSV_CHUNK_ROWS,
+        low_memory=False,
+    ):
         for value in chunk[key_column].astype("string").fillna("").tolist():
             if value == "":
                 null_count += 1
             if value in seen:
                 duplicates += 1
             seen.add(value)
+            if not first_value:
+                digest.update(b"\n")
             digest.update(value.encode("utf-8"))
-            digest.update(b"\n")
+            first_value = False
     return {
         "key_column": key_column,
+        "ordered_key_hash_version": ORDERED_KEY_HASH_VERSION,
         "ordered_key_sha256": digest.hexdigest(),
         "key_set_sha256": _key_set_digest(seen),
         "duplicate_key_count": int(duplicates),
@@ -255,10 +304,15 @@ def _key_alignment(contract: dict[str, Any], artifacts: dict[str, Any]) -> dict[
     names = contract.get("key_alignment_group", [])
     source_digest = artifacts.get(source_name, {}).get("ordered_key_sha256")
     digests = {name: artifacts.get(name, {}).get("ordered_key_sha256") for name in names}
-    mismatched = sorted(name for name, digest in digests.items() if source_digest and digest != source_digest)
+    mismatched = sorted(
+        name
+        for name, digest in digests.items()
+        if not source_digest or not digest or digest != source_digest
+    )
     return {
         "source_artifact": source_name,
         "group": names,
+        "ordered_key_hash_version": ORDERED_KEY_HASH_VERSION,
         "ordered_key_sha256": digests,
         "aligned": not mismatched,
         "mismatched": mismatched,
@@ -288,7 +342,11 @@ def _key_coverage_group(group: dict[str, Any], artifacts: dict[str, Any]) -> dic
     names = group.get("artifacts", [])
     source_digest = artifacts.get(source_name, {}).get("key_set_sha256")
     digests = {name: artifacts.get(name, {}).get("key_set_sha256") for name in names}
-    mismatched = sorted(name for name, digest in digests.items() if not source_digest or digest != source_digest)
+    mismatched = sorted(
+        name
+        for name, digest in digests.items()
+        if not source_digest or digest != source_digest
+    )
     return {
         "source_artifact": source_name,
         "group": names,
@@ -321,12 +379,24 @@ def _validate_contract_profiles(contract: dict[str, Any], artifacts: dict[str, A
             errors.append(f"missing_required_array:{name}.{array}")
         if profile.get("duplicate_key_count", 0):
             errors.append(f"duplicate_key:{name}={profile['duplicate_key_count']}")
+        if profile.get("null_key_count", 0):
+            errors.append(f"blank_key:{name}={profile['null_key_count']}")
     alignment = _row_alignment(contract, artifacts)
     if not alignment["aligned"]:
         errors.append(f"row_count_alignment_mismatch={alignment['row_counts']}")
     key_alignment = _key_alignment(contract, artifacts)
     if not key_alignment["aligned"]:
         errors.append(f"key_alignment_mismatch={key_alignment['mismatched']}")
+    required_ordered = set(
+        contract.get("required_ordered_window_artifacts", [])
+    )
+    declared_ordered = set(contract.get("key_alignment_group", []))
+    undeclared_ordered = sorted(required_ordered.difference(declared_ordered))
+    if undeclared_ordered:
+        errors.append(
+            "required_ordered_artifacts_not_aligned="
+            f"{undeclared_ordered}"
+        )
     key_coverage = _key_coverage(contract, artifacts)
     if not key_coverage["covered"]:
         errors.append(f"key_coverage_mismatch={key_coverage['mismatched']}")
@@ -336,7 +406,11 @@ def _validate_contract_profiles(contract: dict[str, Any], artifacts: dict[str, A
     return errors
 
 
-def _compare_artifacts(expected: dict[str, Any], current: dict[str, Any], errors: list[str]) -> None:
+def _compare_artifacts(
+    expected: dict[str, Any],
+    current: dict[str, Any],
+    errors: list[str],
+) -> None:
     for name, expected_profile in expected.items():
         current_profile = current.get(name)
         if current_profile is None:
@@ -350,6 +424,11 @@ def _compare_artifacts(expected: dict[str, Any], current: dict[str, Any], errors
             "columns",
             "array_names",
             "arrays",
+            "ordered_key_hash_version",
+            "key_set_sha256",
+            "duplicate_key_count",
+            "null_key_count",
+            "unique_key_count",
         ):
             if expected_profile.get(field) != current_profile.get(field):
                 errors.append(f"artifact_{field}_drift:{name}")
@@ -368,7 +447,8 @@ def _snapshot_id(snapshot: dict[str, Any]) -> str:
 def _snapshot_identity_payload(snapshot: dict[str, Any]) -> dict[str, Any]:
     """Return fields that define artifact identity, excluding code provenance."""
 
-    return {k: v for k, v in snapshot.items() if k not in {"snapshot_id", "snapshot_path", "git_commit"}}
+    excluded = {"snapshot_id", "snapshot_path", "git_commit"}
+    return {key: value for key, value in snapshot.items() if key not in excluded}
 
 
 def _stable_json(data: dict[str, Any]) -> str:
