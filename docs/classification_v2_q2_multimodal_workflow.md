@@ -31,14 +31,15 @@ training. Complete the 5,171 Hidden v5 decisions, apply them, rebuild temporal
 and behavior-review artifacts, then complete all 4,670 behavior decisions.
 
 Technical evidence is separately PASS at
-`outputs/classification_v2/rebuilds/scientific_smoke_v1`: 688 frame rows,
-63 native/review units, 438 windows, exact 110-feature tabular X, zero
-trainable spatial gaps, and 5/5 deterministic CSV reruns. Its explicit status
-is `PASS_TECHNICAL_SMOKE_HUMAN_REVIEW_BLOCKED`.
+`outputs/classification_v2/rebuilds/scientific_smoke_identifier_v2_20260713`:
+688 frame rows, 63 native/review units, 438 ordered windows, exact 110-feature
+tabular X, zero trainable spatial gaps, and 8/8 deterministic reruns. Its
+identifier-v2 and technical statuses are PASS with human review blocked.
 
 The commit-`18d6692` full OOF and its block `09` aggregate report belong to the
-previous lineage. They are useful historical diagnostics but cannot authorize
-the active rebuild or support a current Q2 claim. Use
+previous lineage. Commit `bfdf913` found positional multimodal misalignment in
+that run, so it is compute/debug evidence only and cannot support a performance
+claim or authorize the active rebuild. Use
 `CLASSIFICATION_V2_CURRENT_STATE.md` for the live PASS/FAIL matrix.
 
 ## End-To-End Blocks

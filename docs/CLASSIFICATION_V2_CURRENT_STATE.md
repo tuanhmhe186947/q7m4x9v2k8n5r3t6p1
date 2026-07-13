@@ -46,9 +46,9 @@ must not emit a reviewed dataset from this incomplete payload.
 
 ## Technical Short-Chain Evidence
 
-The bounded legacy+CVAT chain at
-`outputs/classification_v2/rebuilds/scientific_smoke_v1` now passes the
-machine-readable technical gate at commit `1679aca`:
+The bounded legacy+CVAT identifier-v2 chain at
+`outputs/classification_v2/rebuilds/scientific_smoke_identifier_v2_20260713`
+passes the machine-readable lineage and technical gates at commit `a83d5a5`:
 
 - 688 selected, enhanced, and harmonized frame/object rows;
 - 63 native intervals and 63 review units;
@@ -57,12 +57,14 @@ machine-readable technical gate at commit `1679aca`:
 - exact 110-column tabular whitelist and 73 temporal evidence fields;
 - 342 trainable windows with zero missing spatial slots;
 - zero duplicate temporal-unit, review-unit, or window IDs;
-- five of five repeated scientific CSVs byte-identical.
+- eight of eight context-to-window CSVs byte-identical in an independent root;
+- exact ordered sequence/image/train-ready/spatial `window_id` hash agreement.
 
-The gate status is `PASS_TECHNICAL_SMOKE_HUMAN_REVIEW_BLOCKED`. It proves
-data-generation, evidence propagation, leakage separation, and deterministic
-bounded execution. It does not authorize reviewed data, training, or full OOF.
-The supporting safety commits are `7854691`, `e69ca22`, and `1679aca`.
+The statuses are `PASS_IDENTIFIER_V2_TECHNICAL_HUMAN_REVIEW_BLOCKED` and
+`PASS_TECHNICAL_SMOKE_HUMAN_REVIEW_BLOCKED`. They prove data generation,
+identifier propagation, positional alignment, leakage separation, and bounded
+determinism. They do not authorize reviewed data, training, or full OOF. The
+critical alignment commits are `bfdf913` and `a83d5a5`.
 
 ## Active Gate Status
 
@@ -70,7 +72,7 @@ The supporting safety commits are `7854691`, `e69ca22`, and `1679aca`.
 |---|---|---|
 | Raw `data/` immutable | PASS | No rebuild writes under `data/` |
 | Enhanced frame features | PASS | 245,664 rows audited |
-| Technical legacy+CVAT chain | PASS | 688/63/438 counts; 5/5 repeatability |
+| Technical legacy+CVAT chain | PASS | 688/63/438 counts; 8/8 repeatability |
 | Exact model-X contract | PASS | 110 tabular fields; no review/target leakage |
 | Hidden v5 template | PASS | 5,171 unique items, independent audit clean |
 | Hidden human decisions | FAIL | 30/5,171 resolved; 5,141 missing |
@@ -95,11 +97,12 @@ It was produced at commit `18d6692` from the previous artifact lineage. It has
 73,668 window predictions and 32,727 native temporal predictions, with accuracy
 `0.5216793473` and supported macro-F1 `0.4156053847`.
 
-This run remains useful for debugging compute, cache, fold, and model wiring. It
-is not the final thesis result because its input lineage predates the current
+This run remains useful for debugging compute, checkpoint, and execution
+wiring. It is not classifier-performance evidence: commit `bfdf913` found
+151,440 positional mismatches across 160,740 split-to-image and
+split-to-interaction window rows. Its input lineage also predates the current
 two-sided Hidden review and complete behavior-review gates. Old reports that
-label it paper-facing or `PASS_PARTIAL_ROADMAP` are lineage-local historical
-evidence and do not authorize a current Q2 claim.
+label it paper-facing or `PASS_PARTIAL_ROADMAP` do not authorize a Q2 claim.
 
 ## Required Execution Order
 

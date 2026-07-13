@@ -49,7 +49,7 @@ of the VISAPP pipeline.
 
 ## 2. Current Evidence And Feasibility
 
-Current native-unit OOF evidence has 32,727 predictions:
+The historical OOF artifact has 32,727 native-unit predictions and recorded:
 
 | Metric | Current value |
 |---|---:|
@@ -58,11 +58,13 @@ Current native-unit OOF evidence has 32,727 predictions:
 | Macro recall | 0.4518 |
 | 95% cluster-bootstrap CI for macro-F1 | 0.3840 to 0.4614 |
 
-The current model is an engineering baseline, not a capacity-matched successor
-to the old checkpoint. It uses a three-layer CNN, `64x64` actor images, a small
-temporal convolution, and about 108,653 trainable parameters. The old checkpoint
-is consistent with ResNet34, CBAM, a two-layer Transformer, `224x224` images,
-and about 24.0 million parameters. It is roughly 221 times larger.
+These scores are not valid model-quality evidence. Commit `bfdf913` found
+151,440 positional mismatches across 160,740 split-to-image and
+split-to-interaction rows. The run remains compute/debug evidence only. A new
+correctly aligned pilot must reconcile the baseline before any scientific
+comparison. Capacity remains a separate later control: the historical model
+used a small `64x64` CNN, while the old checkpoint is consistent with a much
+larger ResNet34/CBAM/Transformer design at `224x224`.
 
 The upgrade is feasible on the RTX 3050 Laptop GPU if experiments are staged:
 

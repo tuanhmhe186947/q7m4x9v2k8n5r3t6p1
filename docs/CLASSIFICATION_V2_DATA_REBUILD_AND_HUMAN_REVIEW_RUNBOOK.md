@@ -1476,16 +1476,24 @@ human coverage:
 
 ```bat
 set S9=scripts\classification_v2\09_final_release_audit
+set BASE=outputs\classification_v2\rebuilds
+set ROOT=%BASE%\scientific_smoke_identifier_v2_20260713
+set REPEAT=%BASE%\scientific_smoke_identifier_v2_repeat_20260713
+%PY% %S9%\check_classification_v2_identifier_v2_lineage.py ^
+  --root %ROOT% ^
+  --repeat-root %REPEAT% ^
+  --overwrite
 %PY% %S9%\check_classification_v2_technical_smoke_gate.py ^
-  --root outputs\classification_v2\rebuilds\scientific_smoke_v1 ^
+  --root %ROOT% ^
+  --repeat-root %REPEAT% ^
   --overwrite
 ```
 
-Expected status is `PASS_TECHNICAL_SMOKE_HUMAN_REVIEW_BLOCKED`, with 688 frame
-rows, 63 native/review units, 438 windows, exact 110-feature X, zero trainable
-spatial gaps, and 5/5 deterministic CSV pairs. This gate must never be used to
-bypass sections 8A, 11, or 12. Final reviewed data still requires complete
-human decisions and the lineage-specific checks below.
+Expected statuses are `PASS_IDENTIFIER_V2_TECHNICAL_HUMAN_REVIEW_BLOCKED` and
+`PASS_TECHNICAL_SMOKE_HUMAN_REVIEW_BLOCKED`, with 688 frame rows, 63 native
+units, 438 ordered windows, exact 110-feature X, zero trainable spatial gaps,
+and 8/8 deterministic stage pairs. These gates must never bypass sections 8A,
+11, or 12. Final reviewed data still requires complete human decisions.
 
 ### 17.1. Hash artifact chính
 

@@ -32,22 +32,31 @@ The current versioned full Hidden template is
 review and fail-closed decision coverage; do not treat the template alone as a
 reviewed artifact.
 
-The code/data-generation short chain is independently verified under
-`outputs/classification_v2/rebuilds/scientific_smoke_v1`. Run its consolidated
-gate after changing source/features/temporal/review-unit/train-ready logic:
+The current identifier-v2 short chain is independently verified under
+`outputs/classification_v2/rebuilds/scientific_smoke_identifier_v2_20260713`.
+After changing source/features/temporal/image/train-ready ordering, rebuild a
+new bounded root and run both lineage and consolidated gates:
 
 ```bat
 set S9=scripts\classification_v2\09_final_release_audit
+set BASE=outputs\classification_v2\rebuilds
+set ROOT=%BASE%\scientific_smoke_identifier_v2_20260713
+set REPEAT=%BASE%\scientific_smoke_identifier_v2_repeat_20260713
+%PY% %S9%\check_classification_v2_identifier_v2_lineage.py ^
+  --root %ROOT% ^
+  --repeat-root %REPEAT% ^
+  --overwrite
 %PY% %S9%\check_classification_v2_technical_smoke_gate.py ^
-  --root outputs\classification_v2\rebuilds\scientific_smoke_v1 ^
+  --root %ROOT% ^
+  --repeat-root %REPEAT% ^
   --overwrite
 ```
 
-Expected status is `PASS_TECHNICAL_SMOKE_HUMAN_REVIEW_BLOCKED`, never a
-training authorization. Before any wider data processing, first run a new
-bounded legacy+CVAT chain with both sources and all 10 behaviors. Builders must
-exit nonzero on audit errors. Existing derived outputs require an explicit
-`--overwrite`; prefer a new versioned directory for changed semantics.
+Expected statuses are `PASS_IDENTIFIER_V2_TECHNICAL_HUMAN_REVIEW_BLOCKED` and
+`PASS_TECHNICAL_SMOKE_HUMAN_REVIEW_BLOCKED`, never training authorization.
+Use both sources and all 10 behaviors. Builders must exit nonzero on audit
+errors. Existing derived outputs require explicit `--overwrite`; prefer a new
+versioned directory for changed semantics.
 
 The current canonical reviewed artifact is not human-review complete. Complete
 all mandatory review units, pass the fail-closed decision-coverage audit, then
@@ -66,16 +75,18 @@ Current state:
 
 - `classification_v2` behavior recognition is the active project priority.
 - Status authority is `docs/CLASSIFICATION_V2_CURRENT_STATE.md`.
-- The bounded technical chain passes at commit `1679aca`: 688 frame rows,
-  63 native/review units, 438 windows, exact X whitelist, and 5/5 repeatability.
+- The identifier-v2 technical chain passes at commit `a83d5a5`: 688 frame rows,
+  63 native/review units, 438 ordered windows, exact X whitelist, and 8/8
+  source-to-window repeatability.
 - The active lineage stops at block `01`: the Hidden v5 template passes, but
   human Hidden decisions are only 30/5,171 and apply is incomplete.
 - Behavior review also fails closed with 3/4,670 decisions, 4,667 missing, and
   one pending.
 - Do not rebuild train-ready exports, refresh model preflight, or launch model
   training until both review layers pass and versioned hashes are frozen.
-- The 73,668-window/32,727-native-unit full OOF at commit `18d6692` is
-  historical engineering evidence from the previous data lineage.
+- The 73,668-window/32,727-native-unit full OOF at commit `18d6692` had
+  split-to-multimodal positional misalignment. Keep it only as historical
+  compute/pipeline evidence, never as model-performance evidence.
 - Use only the numbered script workflow under
   `scripts/classification_v2/00_*` through `09_*`.
 - Q2 claim remains locked until a new reviewed-lineage full run and block `09`

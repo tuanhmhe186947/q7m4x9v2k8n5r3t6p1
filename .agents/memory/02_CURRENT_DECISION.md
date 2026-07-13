@@ -13,12 +13,15 @@ fail-closed until static checks, a tiny/short representative run, and
 schema/count/hash/output/runtime audits pass. A prior full authorization does
 not transfer to a changed semantic config.
 
-The current code/data-generation short chain has passed at commit `1679aca`.
-Its status is `PASS_TECHNICAL_SMOKE_HUMAN_REVIEW_BLOCKED`: exact model-X
-whitelisting, temporal/ROI/motion/social evidence, native-unit counts, spatial
-masks, fail-closed CLI behavior, and 5/5 deterministic CSV reruns are verified.
-This closes the technical assurance subgoal only. It does not permit apply,
-snapshot freeze, model training, or full OOF while human coverage is incomplete.
+The identifier-v2 code/data chain passes at commit `a83d5a5`. Its bounded root
+has 688 frame rows, 63 native/review units, 438 ordered windows, exact model-X
+whitelisting, zero trainable missing spatial slots, and 8/8 deterministic stage
+reruns. All reviewed-data, training, full-OOF, and Q2 authorizations remain false.
+
+Do not use the historical full OOF metrics to judge model quality. Commit
+`bfdf913` proved that its split/target rows were positionally misaligned with
+151,440 of 160,740 image and interaction windows. That run remains useful only
+for compute, checkpoint, and pipeline-debug evidence.
 
 The current `reviewed_frame_features.csv` is not human-review complete. The
 latest audit has 4,670 mandatory review units, 3 decision rows, 2 active

@@ -41,7 +41,8 @@ only expose stable inputs and outputs so it can be integrated later.
 
 ## 2. Current Evidence And Main Risks
 
-The existing full OOF artifact has 32,727 native temporal predictions:
+The historical full OOF artifact has 32,727 native temporal predictions and
+recorded the following outputs:
 
 | Metric | Value |
 |---|---:|
@@ -49,15 +50,19 @@ The existing full OOF artifact has 32,727 native temporal predictions:
 | Macro-F1 | 0.4156 |
 | Macro recall | 0.4518 |
 
-It is a valid engineering baseline but uses a small `64x64` CNN model with about
-108,653 parameters. It is not capacity-matched to the older ResNet34 checkpoint.
+These are not valid classifier-baseline metrics. Commit `bfdf913` found
+151,440 positional mismatches across 160,740 split-to-image and
+split-to-interaction rows. Keep the run only for compute/checkpoint debugging.
+The next correctly aligned short pilot must establish the reconciled baseline
+before any architecture or promotion comparison.
 
-The next lineage must address four primary risks:
+The next lineage must address five primary risks:
 
-1. insufficient image resolution and visual capacity;
-2. source shortcuts from domain, sequence length, and class distribution;
-3. missing-context shortcuts across legacy and CVAT sources;
-4. severe event-level class imbalance and label ambiguity.
+1. exact positional alignment across targets and every multimodal branch;
+2. insufficient image resolution and visual capacity;
+3. source shortcuts from domain, sequence length, and class distribution;
+4. missing-context shortcuts across legacy and CVAT sources;
+5. severe event-level class imbalance and label ambiguity.
 
 ## 3. Non-Negotiable Scientific Invariants
 

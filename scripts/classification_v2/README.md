@@ -8,16 +8,15 @@ command from the project root with `PYTHONPATH=%CD%\src`.
 
 The active lineage is in block `01`, not block `07`: complete the versioned
 Hidden review, rebuild temporal/review artifacts, and complete behavior review
-before train-ready exports. The prior commit-`18d6692` full OOF artifacts are
-historical engineering evidence and must not be mixed into the active rebuild.
+before train-ready exports. The prior commit-`18d6692` full OOF has positional
+multimodal misalignment and is only compute/debug evidence.
 
 The bounded technical chain under
-`outputs/classification_v2/rebuilds/scientific_smoke_v1` passes at commit
-`1679aca`. Block `09` script
-`check_classification_v2_technical_smoke_gate.py` verifies cross-stage counts,
-exact feature semantics, train-mask spatial completeness, no synthetic human
-decisions, and deterministic reruns. Its PASS is technical evidence only;
-blocks `01` and `02` remain unavailable for final lineage promotion until both
+`outputs/classification_v2/rebuilds/scientific_smoke_identifier_v2_20260713`
+passes at commit `a83d5a5`. Block `09` identifier-v2 and technical smoke
+checkers verify exact frame lineage, ordered window hashes, cross-stage counts,
+feature semantics, spatial completeness, and 8/8 deterministic reruns. PASS is
+technical evidence only; final lineage promotion remains blocked until both
 human-review layers pass.
 
 Status authority: `docs/CLASSIFICATION_V2_CURRENT_STATE.md`.

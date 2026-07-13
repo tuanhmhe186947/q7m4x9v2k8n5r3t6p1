@@ -1,5 +1,24 @@
 # Project Memory Short
 
+## 2026-07-13 identifier-v2 positional lineage correction
+
+- Commit `bfdf913` fixed a critical row-order defect: image and interaction
+  windows had been sorted independently from split/target/spatial rows.
+- In the historical full artifact, split-to-image and split-to-interaction
+  positional mismatches were `151,440/160,740`; image and interaction happened
+  to agree with each other. Historical OOF metrics are therefore runtime/debug
+  evidence only, not classifier-quality evidence.
+- Commit `a83d5a5` centralizes ordered `window_id` validation and adds fail-closed
+  source-to-window identifier-v2 auditing plus overwrite guards.
+- Current bounded authority is
+  `outputs/classification_v2/rebuilds/scientific_smoke_identifier_v2_20260713`.
+  It passes with 688 frame rows, 63 native units, 438 windows, exact 110-field X,
+  zero trainable missing spatial slots, and 8/8 byte-identical repeat artifacts.
+- Ordered sequence/image/train-ready/spatial hash is
+  `05656ad78ecb65fac2341bc865f741039fe0c1e6b28211c65f2fc2c7973d7996`.
+- Status remains `PASS_IDENTIFIER_V2_TECHNICAL_HUMAN_REVIEW_BLOCKED`; all
+  training, full-OOF, reviewed-dataset, and Q2-claim authorizations are false.
+
 ## 2026-07-13 classification_v2 technical assurance gate
 
 - Technical smoke authority is
