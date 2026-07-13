@@ -38,6 +38,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--repeat-root", type=Path, default=None)
     parser.add_argument("--output-json", type=Path, default=None)
     parser.add_argument(
+        "--require-interaction-lineage",
+        action="store_true",
+        help=(
+            "Require ordered interaction-window and interaction-export audit "
+            "evidence for a full multimodal packet."
+        ),
+    )
+    parser.add_argument(
         "--overwrite",
         action="store_true",
         help="Replace an existing derived lineage audit explicitly.",
@@ -80,6 +88,12 @@ def main() -> None:
         "image_window_manifest",
         preload_errors,
     )
+    interaction_window_manifest = _read_optional_csv(
+        paths["tables"]["interaction_window_manifest"],
+        "interaction_window_manifest",
+        preload_errors,
+        required=args.require_interaction_lineage,
+    )
     train_ready_tables = {
         name: _read_csv(path, name, preload_errors)
         for name, path in paths["train_ready_tables"].items()
@@ -87,7 +101,16 @@ def main() -> None:
     artifact_audits = {
         name: _read_json(path, name, preload_errors)
         for name, path in paths["audits"].items()
+        if name != "interaction_context" or path.exists()
     }
+    if (
+        args.require_interaction_lineage
+        and "interaction_context" not in artifact_audits
+    ):
+        preload_errors.append(
+            "missing_json=interaction_context:"
+            f"{paths['audits']['interaction_context']}"
+        )
     spatial_array_rows = _read_npz_rows(
         paths["spatial_npz"],
         preload_errors,
@@ -100,6 +123,7 @@ def main() -> None:
         sequence_features=sequence_features,
         image_frame_manifest=image_frame_manifest,
         image_window_manifest=image_window_manifest,
+        interaction_window_manifest=interaction_window_manifest,
         x_columns=[str(column) for column in x_table.columns],
         artifact_audits=artifact_audits,
         artifact_row_counts={
@@ -108,6 +132,7 @@ def main() -> None:
         },
         spatial_array_rows=spatial_array_rows,
         preload_errors=preload_errors,
+        require_interaction_lineage=args.require_interaction_lineage,
     )
     all_paths = _flatten_paths(paths)
     repeatability = _repeatability_audit(args.root, args.repeat_root)
@@ -189,6 +214,10 @@ def _artifact_paths(root: Path) -> dict[str, Any]:
             "image_window_manifest": (
                 train_ready_dir / "image_window_context_manifest.csv"
             ),
+            "interaction_window_manifest": (
+                train_ready_dir
+                / "interaction_window_context_manifest.csv"
+            ),
         },
         "train_ready_tables": {
             "X_window_features": train_ready_dir / "X_window_features.csv",
@@ -200,6 +229,9 @@ def _artifact_paths(root: Path) -> dict[str, Any]:
             "train_ready": train_ready_dir / "train_ready_audit.json",
             "spatial": train_ready_dir / "spatial_sequence_audit.json",
             "image_context": train_ready_dir / "image_context_index_audit.json",
+            "interaction_context": (
+                train_ready_dir / "interaction_context_audit.json"
+            ),
         },
         "spatial_npz": train_ready_dir / "X_spatial_sequences.npz",
     }
@@ -215,6 +247,22 @@ def _read_csv(
     if not path.exists():
         errors.append(f"missing_csv={name}:{path}")
         return pd.DataFrame()
+
+
+def _read_optional_csv(
+    path: Path,
+    name: str,
+    errors: list[str],
+    *,
+    required: bool,
+) -> pd.DataFrame | None:
+    """Read an optional bounded artifact or fail when full lineage requires it."""
+
+    if not path.exists():
+        if required:
+            errors.append(f"missing_csv={name}:{path}")
+        return None
+    return _read_csv(path, name, errors)
     try:
         return pd.read_csv(path, low_memory=False)
     except (OSError, ValueError, pd.errors.ParserError) as exc:

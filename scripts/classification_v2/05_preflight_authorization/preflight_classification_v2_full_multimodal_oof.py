@@ -4,6 +4,9 @@ import argparse
 import json
 from pathlib import Path
 
+from pig_behavior.classification_v2.contracts.output_safety import (
+    require_output_paths_available,
+)
 from pig_behavior.classification_v2.training.full_multimodal_oof import FullMultimodalOofConfig
 from pig_behavior.classification_v2.training.full_run_contract import (
     DEFAULT_ACTOR_CACHE_ROOT,
@@ -18,8 +21,19 @@ from pig_behavior.classification_v2.training.full_run_preflight import build_ful
 def main() -> None:
     """Write a full OOF preflight artifact without loading images or training."""
 
-    parser = argparse.ArgumentParser(description="Preflight classification_v2 full multimodal OOF.")
+    parser = argparse.ArgumentParser(
+        description="Preflight classification_v2 full multimodal OOF."
+    )
     parser.add_argument("--snapshot-json", type=Path, required=True)
+    parser.add_argument(
+        "--lineage-audit-json",
+        type=Path,
+        required=True,
+        help=(
+            "Reviewed identifier-v2 source-to-window audit bound to the "
+            "same snapshot artifacts."
+        ),
+    )
     parser.add_argument("--runtime-benchmark-audit-json", type=Path, required=True)
     parser.add_argument(
         "--feature-whitelist-audit-json",
@@ -71,9 +85,20 @@ def main() -> None:
         default=FULL_DEFAULTS["precision"],
     )
     parser.add_argument("--checkpoint-every-steps", type=int, default=500)
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace an existing derived preflight artifact explicitly.",
+    )
     args = parser.parse_args()
+    require_output_paths_available(
+        [args.output_json],
+        overwrite=args.overwrite,
+    )
     actor_tensor = args.packed_image_cache or _actor_packed_tensor(args.image_size)
-    actor_index = args.packed_image_cache_index or (DEFAULT_ACTOR_CACHE_ROOT / "packed_image_cache_index.csv")
+    actor_index = args.packed_image_cache_index or (
+        DEFAULT_ACTOR_CACHE_ROOT / "packed_image_cache_index.csv"
+    )
     visual_tensor = args.visual_context_packed_cache or _visual_packed_tensor(args.image_size)
     visual_index = args.visual_context_packed_cache_index or (
         DEFAULT_VISUAL_CACHE_ROOT / "packed_image_cache_index.csv"
@@ -110,6 +135,7 @@ def main() -> None:
         snapshot_json=args.snapshot_json,
         runtime_benchmark_audit_json=args.runtime_benchmark_audit_json,
         feature_whitelist_audit_json=args.feature_whitelist_audit_json,
+        lineage_audit_json=args.lineage_audit_json,
     )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
     args.output_json.write_text(json.dumps(result, indent=2), encoding="utf-8")

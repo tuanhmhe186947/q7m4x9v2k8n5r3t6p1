@@ -15,11 +15,16 @@ import write_classification_v2_full_oof_authorization_template as template_write
 def main() -> None:
     """Check that generated full OOF authorization templates fail closed."""
 
-    parser = argparse.ArgumentParser(description="Check classification_v2 full OOF authorization template.")
+    parser = argparse.ArgumentParser(
+        description="Check classification_v2 full OOF authorization template."
+    )
     parser.add_argument(
         "--output-json",
         type=Path,
-        default=Path("outputs/classification_v2/model_design/full_oof_authorization_template_audit.json"),
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "full_oof_authorization_template_audit.json"
+        ),
     )
     parser.add_argument(
         "--preflight-json",
@@ -29,7 +34,10 @@ def main() -> None:
     parser.add_argument(
         "--template-json",
         type=Path,
-        default=Path("outputs/classification_v2/model_design/full_oof_authorization_template.json"),
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "full_oof_authorization_template.json"
+        ),
     )
     args = parser.parse_args()
 
@@ -47,12 +55,21 @@ def main() -> None:
         "preflight_git_commit": preflight.get("git_commit"),
         "template_authorized_default": template.get("authorized"),
         "template_acknowledges_long_run_default": template.get("acknowledges_long_run"),
-        "template_acknowledges_no_claim_default": template.get("acknowledges_no_q2_claim_until_verified"),
+        "template_acknowledges_no_claim_default": template.get(
+            "acknowledges_no_q2_claim_until_verified"
+        ),
         "template_purpose": template.get("purpose"),
         "template_binds_preflight_config_sha256": (
             template.get("preflight_config_sha256") == preflight.get("config_sha256")
         ),
         "template_binds_git_commit": (template.get("git_commit") == preflight.get("git_commit")),
+        "template_binds_snapshot_id": (
+            template.get("snapshot_id") == preflight.get("snapshot_id")
+        ),
+        "template_binds_lineage_audit": (
+            template.get("lineage_audit_sha256")
+            == preflight.get("lineage_audit_sha256")
+        ),
         "template_matches_writer_output": template == generated_template,
         "errors": errors,
         "valid": not errors,
@@ -98,7 +115,25 @@ def _template_errors(
     if not template.get("git_commit"):
         errors.append("template_missing_git_commit")
     elif template.get("git_commit") != preflight.get("git_commit"):
-        errors.append(f"template_git_commit_mismatch={template.get('git_commit')}!={preflight.get('git_commit')}")
+        errors.append(
+            "template_git_commit_mismatch="
+            f"{template.get('git_commit')}!="
+            f"{preflight.get('git_commit')}"
+        )
+    expected_ordered_hash = (
+        (preflight.get("lineage_binding_audit") or {}).get(
+            "expected_ordered_window_id_sha256"
+        )
+    )
+    bindings = {
+        "snapshot_id": preflight.get("snapshot_id"),
+        "snapshot_file_sha256": preflight.get("snapshot_file_sha256"),
+        "lineage_audit_sha256": preflight.get("lineage_audit_sha256"),
+        "ordered_window_id_sha256": expected_ordered_hash,
+    }
+    for field, expected in bindings.items():
+        if not expected or template.get(field) != expected:
+            errors.append(f"template_binding_mismatch={field}")
     return errors
 
 

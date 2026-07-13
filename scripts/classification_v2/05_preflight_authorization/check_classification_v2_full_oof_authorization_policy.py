@@ -17,6 +17,7 @@ from pig_behavior.classification_v2.training.full_multimodal_oof import (  # noq
 )
 from pig_behavior.classification_v2.training.full_run_contract import (  # noqa: E402
     FULL_RUN_AUTHORIZATION_PURPOSE,
+    FULL_RUN_AUTHORIZATION_SCHEMA_VERSION,
     validate_full_run_authorization as _validate_full_run_authorization,
 )
 
@@ -24,11 +25,16 @@ from pig_behavior.classification_v2.training.full_run_contract import (  # noqa:
 def main() -> None:
     """Check that full OOF cannot run without exact explicit authorization."""
 
-    parser = argparse.ArgumentParser(description="Check classification_v2 full OOF authorization policy.")
+    parser = argparse.ArgumentParser(
+        description="Check classification_v2 full OOF authorization policy."
+    )
     parser.add_argument(
         "--output-json",
         type=Path,
-        default=Path("outputs/classification_v2/model_design/full_oof_authorization_policy_audit.json"),
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "full_oof_authorization_policy_audit.json"
+        ),
     )
     args = parser.parse_args()
 
@@ -37,6 +43,14 @@ def main() -> None:
     preflight = {
         "config_sha256": config_hash,
         "git_commit": "commit-for-policy-check",
+        "snapshot_id": "snapshot-for-policy-check",
+        "snapshot_file_sha256": "snapshot-sha-for-policy-check",
+        "lineage_audit_sha256": "lineage-sha-for-policy-check",
+        "lineage_binding_audit": {
+            "expected_ordered_window_id_sha256": (
+                "ordered-window-sha-for-policy-check"
+            )
+        },
     }
     valid_authorization = _authorization(
         config_hash=config_hash,
@@ -74,7 +88,9 @@ def main() -> None:
         "git_commit_mismatch",
     ]
     missing_invalid_tokens = [
-        token for token in required_invalid_tokens if not any(token in error for error in invalid_errors)
+        token
+        for token in required_invalid_tokens
+        if not any(token in error for error in invalid_errors)
     ]
     errors: list[str] = []
     if valid_errors:
@@ -104,12 +120,21 @@ def _authorization(*, config_hash: str, git_commit: str) -> dict[str, object]:
     """Build the explicit approval payload expected by the full-run gate."""
 
     return {
+        "schema_version": FULL_RUN_AUTHORIZATION_SCHEMA_VERSION,
         "authorized": True,
         "purpose": FULL_RUN_AUTHORIZATION_PURPOSE,
         "acknowledges_long_run": True,
         "acknowledges_no_q2_claim_until_verified": True,
         "preflight_config_sha256": config_hash,
         "git_commit": git_commit,
+        "snapshot_id": "snapshot-for-policy-check",
+        "snapshot_file_sha256": "snapshot-sha-for-policy-check",
+        "lineage_audit_sha256": "lineage-sha-for-policy-check",
+        "ordered_window_id_sha256": (
+            "ordered-window-sha-for-policy-check"
+        ),
+        "reviewer": "authorization-policy-check",
+        "reviewed_at": "2026-07-13T00:00:00+07:00",
     }
 
 

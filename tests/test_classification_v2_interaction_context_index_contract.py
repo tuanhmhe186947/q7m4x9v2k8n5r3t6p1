@@ -66,6 +66,21 @@ def test_interaction_context_index_preserves_aligned_window(tmp_path: Path) -> N
     assert result.audit["duplicate_source_image_context_id_rows"] == 0
     assert result.audit["errors"] == []
     assert result.manifest.loc[0, "scene_partner_context_status"] == "ready"
+    alignment = result.audit["window_alignment"]
+    assert alignment["valid"] is True
+    assert alignment["comparisons"]["interaction_context_windows"][
+        "order_mismatch_rows"
+    ] == 0
+
+
+def test_interaction_context_index_requires_explicit_overwrite(
+    tmp_path: Path,
+) -> None:
+    _write_inputs(tmp_path)
+    _build(tmp_path)
+
+    with pytest.raises(FileExistsError, match="--overwrite"):
+        _build(tmp_path)
 
 
 def test_interaction_context_index_rejects_duplicate_actor_frame_key(

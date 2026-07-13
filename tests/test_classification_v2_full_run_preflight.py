@@ -52,7 +52,34 @@ def test_execution_gate_rejects_preflight_from_another_commit() -> None:
         preflight,
         git_state={"commit": "new", "dirty": False},
     )
+    assert any("preflight_schema_version_mismatch" in error for error in errors)
     assert any("preflight_git_commit_mismatch" in error for error in errors)
+
+
+def test_execution_gate_rejects_missing_lineage_files() -> None:
+    """A saved valid flag cannot replace execution-time artifact checks."""
+
+    config = FullMultimodalOofConfig()
+    preflight = {
+        "schema_version": "classification_v2_full_run_preflight_v2",
+        "valid": True,
+        "errors": [],
+        "lineage_binding_valid": True,
+        "lineage_training_authorized": True,
+        "config_sha256": full_run_config_fingerprint(config),
+        "git_commit": "same",
+        "git_dirty": False,
+        "snapshot_json": "missing-snapshot.json",
+        "lineage_audit_json": "missing-lineage.json",
+    }
+
+    errors = validate_preflight_for_execution(
+        config,
+        preflight,
+        git_state={"commit": "same", "dirty": False},
+    )
+
+    assert any("execution_missing_snapshot_json" in error for error in errors)
 
 
 def test_full_preflight_requires_valid_feature_whitelist_audit() -> None:
@@ -88,6 +115,12 @@ def test_full_run_authorization_binds_preflight_hash_and_commit() -> None:
     preflight = {
         "config_sha256": config_hash,
         "git_commit": "abc123",
+        "snapshot_id": "snapshot-123",
+        "snapshot_file_sha256": "snapshot-file-123",
+        "lineage_audit_sha256": "lineage-123",
+        "lineage_binding_audit": {
+            "expected_ordered_window_id_sha256": "ordered-window-123",
+        },
     }
     authorization = {
         "schema_version": FULL_RUN_AUTHORIZATION_SCHEMA_VERSION,
@@ -99,6 +132,10 @@ def test_full_run_authorization_binds_preflight_hash_and_commit() -> None:
         "reviewed_at": "2026-07-13T00:00:00+07:00",
         "preflight_config_sha256": config_hash,
         "git_commit": "abc123",
+        "snapshot_id": "snapshot-123",
+        "snapshot_file_sha256": "snapshot-file-123",
+        "lineage_audit_sha256": "lineage-123",
+        "ordered_window_id_sha256": "ordered-window-123",
     }
     assert _validate_full_run_authorization(config, preflight, authorization) == []
 
@@ -114,6 +151,17 @@ def test_full_run_authorization_binds_preflight_hash_and_commit() -> None:
     assert any("acknowledge_long_run" in error for error in errors)
     assert any("preflight_hash_mismatch" in error for error in errors)
     assert any("git_commit_mismatch" in error for error in errors)
+
+    stale_lineage = dict(authorization)
+    stale_lineage["snapshot_id"] = "another-snapshot"
+    stale_lineage["lineage_audit_sha256"] = "another-lineage"
+    errors = _validate_full_run_authorization(
+        config,
+        preflight,
+        stale_lineage,
+    )
+    assert any("snapshot_id" in error for error in errors)
+    assert any("lineage_audit_sha256" in error for error in errors)
 
     missing_provenance = dict(authorization)
     missing_provenance.pop("reviewer")

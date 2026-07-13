@@ -14,7 +14,9 @@ from pig_behavior.classification_v2.training.full_run_preflight import (
 )
 
 FULL_RUN_AUTHORIZATION_PURPOSE = "classification_v2_full_multimodal_oof"
-FULL_RUN_AUTHORIZATION_SCHEMA_VERSION = "classification_v2_full_oof_authorization_v1"
+FULL_RUN_AUTHORIZATION_SCHEMA_VERSION = (
+    "classification_v2_full_oof_authorization_v2"
+)
 DEFAULT_FULL_OUTPUT_DIR = Path("outputs/classification_v2/model_full/full_multimodal_oof")
 DEFAULT_PILOT_OUTPUT_DIR = Path("outputs/classification_v2/model_smoke/full_multimodal_oof_pilot")
 DEFAULT_ACTOR_CACHE_ROOT = Path("outputs/classification_v2/image_cache_v2_letterbox")
@@ -64,7 +66,9 @@ def full_runner_default_config() -> FullMultimodalOofConfig:
         packed_image_cache_index_csv=(DEFAULT_ACTOR_CACHE_ROOT / "packed_image_cache_index.csv"),
         visual_context_cache_manifest_csv=DEFAULT_VISUAL_CONTEXT_MANIFEST,
         visual_context_packed_cache_npy=visual_packed_tensor(image_size),
-        visual_context_packed_cache_index_csv=(DEFAULT_VISUAL_CACHE_ROOT / "packed_image_cache_index.csv"),
+        visual_context_packed_cache_index_csv=(
+            DEFAULT_VISUAL_CACHE_ROOT / "packed_image_cache_index.csv"
+        ),
         require_cached_images=True,
         require_packed_visual_context=True,
         image_size=image_size,
@@ -113,7 +117,10 @@ def validate_full_run_authorization(
 
     errors: list[str] = []
     if authorization.get("schema_version") != FULL_RUN_AUTHORIZATION_SCHEMA_VERSION:
-        errors.append(f"full_run_authorization_schema_version_mismatch={authorization.get('schema_version')}")
+        errors.append(
+            "full_run_authorization_schema_version_mismatch="
+            f"{authorization.get('schema_version')}"
+        )
     if authorization.get("authorized") is not True:
         errors.append("full_run_authorization_requires_authorized_true")
     if authorization.get("purpose") != FULL_RUN_AUTHORIZATION_PURPOSE:
@@ -131,16 +138,54 @@ def validate_full_run_authorization(
     authorized_hash = authorization.get("preflight_config_sha256")
     if authorized_hash != preflight_hash:
         errors.append(
-            f"full_run_authorization_preflight_hash_mismatch=preflight:{preflight_hash},authorization:{authorized_hash}"
+            "full_run_authorization_preflight_hash_mismatch="
+            f"preflight:{preflight_hash},"
+            f"authorization:{authorized_hash}"
         )
     if authorized_hash != expected_hash:
         errors.append(
-            f"full_run_authorization_config_hash_mismatch=expected:{expected_hash},authorization:{authorized_hash}"
+            "full_run_authorization_config_hash_mismatch="
+            f"expected:{expected_hash},"
+            f"authorization:{authorized_hash}"
         )
     expected_commit = preflight.get("git_commit")
     authorized_commit = authorization.get("git_commit")
     if authorized_commit != expected_commit:
         errors.append(
-            f"full_run_authorization_git_commit_mismatch=expected:{expected_commit},authorization:{authorized_commit}"
+            "full_run_authorization_git_commit_mismatch="
+            f"expected:{expected_commit},"
+            f"authorization:{authorized_commit}"
         )
+    for field in (
+        "snapshot_id",
+        "snapshot_file_sha256",
+        "lineage_audit_sha256",
+        "ordered_window_id_sha256",
+    ):
+        expected_value = _preflight_authorization_binding(preflight, field)
+        authorized_value = authorization.get(field)
+        if not expected_value:
+            errors.append(
+                f"full_run_preflight_missing_authorization_binding={field}"
+            )
+        elif authorized_value != expected_value:
+            errors.append(
+                "full_run_authorization_binding_mismatch="
+                f"{field}:expected:{expected_value},"
+                f"authorization:{authorized_value}"
+            )
     return errors
+
+
+def _preflight_authorization_binding(
+    preflight: dict[str, object],
+    field: str,
+) -> object:
+    """Resolve direct and nested preflight fields bound by human approval."""
+
+    if field != "ordered_window_id_sha256":
+        return preflight.get(field)
+    lineage = preflight.get("lineage_binding_audit")
+    if not isinstance(lineage, dict):
+        return None
+    return lineage.get("expected_ordered_window_id_sha256")

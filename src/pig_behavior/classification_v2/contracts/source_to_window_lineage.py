@@ -68,11 +68,13 @@ def audit_source_to_window_lineage(
     sequence_features: pd.DataFrame,
     image_frame_manifest: pd.DataFrame,
     image_window_manifest: pd.DataFrame,
+    interaction_window_manifest: pd.DataFrame | None = None,
     x_columns: list[str],
     artifact_audits: dict[str, dict[str, Any]],
     artifact_row_counts: dict[str, int],
     spatial_array_rows: dict[str, int],
     preload_errors: list[str] | None = None,
+    require_interaction_lineage: bool = False,
 ) -> dict[str, Any]:
     """Prove frame IDs and ordered window IDs survive every positional export."""
 
@@ -91,6 +93,7 @@ def audit_source_to_window_lineage(
         sequence_manifest,
         sequence_features,
         image_window_manifest,
+        interaction_window_manifest,
     )
     errors.extend(window_lineage["errors"])
     expected_window_hash = window_lineage.get("ordered_window_id_sha256")
@@ -98,6 +101,7 @@ def audit_source_to_window_lineage(
     audit_hashes = _audit_exported_window_hashes(
         artifact_audits,
         expected_window_hash,
+        require_interaction=require_interaction_lineage,
     )
     errors.extend(audit_hashes["errors"])
 
@@ -121,6 +125,13 @@ def audit_source_to_window_lineage(
         sequence_features,
     )
     errors.extend(coverage["errors"])
+
+    interaction_complete = _interaction_lineage_complete(
+        window_lineage,
+        audit_hashes,
+    )
+    if require_interaction_lineage and not interaction_complete:
+        errors.append("required_interaction_lineage_incomplete")
 
     artifact_errors = _artifact_errors(artifact_audits)
     errors.extend(artifact_errors)
@@ -152,6 +163,7 @@ def audit_source_to_window_lineage(
         "row_lineage": row_lineage,
         "feature_identifier_guard": feature_guard,
         "coverage": coverage,
+        "full_multimodal_lineage_complete": interaction_complete,
         "artifact_contract_errors": artifact_errors,
         "human_review_blockers": human_blockers,
         "errors": errors,
@@ -336,6 +348,7 @@ def _audit_window_lineage(
     sequence_manifest: pd.DataFrame,
     sequence_features: pd.DataFrame,
     image_windows: pd.DataFrame,
+    interaction_windows: pd.DataFrame | None,
 ) -> dict[str, Any]:
     """Audit sequence, tabular-feature, and image window positional identity."""
 
@@ -344,6 +357,8 @@ def _audit_window_lineage(
         "sequence_features": sequence_features,
         "image_window_manifest": image_windows,
     }
+    if interaction_windows is not None:
+        tables["interaction_window_manifest"] = interaction_windows
     missing_columns = [name for name, rows in tables.items() if "window_id" not in rows]
     if missing_columns:
         return {
@@ -351,16 +366,22 @@ def _audit_window_lineage(
             "errors": [f"missing_window_id_columns={missing_columns}"],
             "valid": False,
         }
+    candidates = {
+        "sequence_features": sequence_features["window_id"],
+        "image_window_manifest": image_windows["window_id"],
+    }
+    if interaction_windows is not None:
+        candidates["interaction_window_manifest"] = interaction_windows[
+            "window_id"
+        ]
     audit = audit_ordered_window_ids(
         "sequence_manifest",
         sequence_manifest["window_id"],
-        {
-            "sequence_features": sequence_features["window_id"],
-            "image_window_manifest": image_windows["window_id"],
-        },
+        candidates,
     )
     return {
         **audit,
+        "interaction_manifest_audited": interaction_windows is not None,
         "ordered_window_id_sha256": ordered_window_id_sha256(
             sequence_manifest["window_id"]
         ),
@@ -370,6 +391,8 @@ def _audit_window_lineage(
 def _audit_exported_window_hashes(
     artifact_audits: dict[str, dict[str, Any]],
     expected_hash: str | None,
+    *,
+    require_interaction: bool,
 ) -> dict[str, Any]:
     """Reconcile ordered-key hashes emitted by every positional exporter."""
 
@@ -386,20 +409,44 @@ def _audit_exported_window_hashes(
             "image_context_windows",
             "ordered_window_id_sha256",
         ),
+        "interaction_context_input": (
+            "window_alignment",
+            "reference_ordered_window_id_sha256",
+        ),
+        "interaction_context_output": (
+            "window_alignment",
+            "comparisons",
+            "interaction_context_windows",
+            "ordered_window_id_sha256",
+        ),
     }
     source_names = {
         "train_ready": "train_ready",
         "spatial": "spatial",
         "image_context_input": "image_context",
         "image_context_output": "image_context",
+        "interaction_context_input": "interaction_context",
+        "interaction_context_output": "interaction_context",
     }
     values: dict[str, dict[str, Any]] = {}
     errors: list[str] = []
     for name, path in paths.items():
         payload = artifact_audits.get(source_names[name], {})
         value = _nested_value(payload, path)
+        interaction_item = name.startswith("interaction_context")
+        if interaction_item and not payload and not require_interaction:
+            values[name] = {
+                "sha256": None,
+                "matches_sequence": None,
+                "audited": False,
+            }
+            continue
         matches = bool(expected_hash) and value == expected_hash
-        values[name] = {"sha256": value, "matches_sequence": matches}
+        values[name] = {
+            "sha256": value,
+            "matches_sequence": matches,
+            "audited": True,
+        }
         if not matches:
             errors.append(f"ordered_window_hash_mismatch={name}")
     return {
@@ -408,6 +455,28 @@ def _audit_exported_window_hashes(
         "errors": errors,
         "valid": not errors,
     }
+
+
+def _interaction_lineage_complete(
+    window_lineage: dict[str, Any],
+    audit_hashes: dict[str, Any],
+) -> bool:
+    """Return whether interaction rows and exporter hashes were audited."""
+
+    comparison = window_lineage.get("comparisons", {}).get(
+        "interaction_window_manifest",
+        {},
+    )
+    hash_artifacts = audit_hashes.get("artifacts", {})
+    required_hashes = (
+        hash_artifacts.get("interaction_context_input", {}),
+        hash_artifacts.get("interaction_context_output", {}),
+    )
+    return bool(
+        window_lineage.get("interaction_manifest_audited")
+        and not comparison.get("errors")
+        and all(item.get("matches_sequence") is True for item in required_hashes)
+    )
 
 
 def _audit_row_counts(

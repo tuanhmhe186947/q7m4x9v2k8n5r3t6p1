@@ -21,7 +21,9 @@ from pig_behavior.classification_v2.training.full_run_contract import (
 def main() -> None:
     """Audit that the real full-run gate refuses to start without approval."""
 
-    parser = argparse.ArgumentParser(description="Check classification_v2 full OOF execution gate.")
+    parser = argparse.ArgumentParser(
+        description="Check classification_v2 full OOF execution gate."
+    )
     parser.add_argument(
         "--preflight-json",
         type=Path,
@@ -30,7 +32,10 @@ def main() -> None:
     parser.add_argument(
         "--authorization-template-json",
         type=Path,
-        default=Path("outputs/classification_v2/model_design/full_oof_authorization_template.json"),
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "full_oof_authorization_template.json"
+        ),
     )
     parser.add_argument(
         "--output-json",
@@ -151,6 +156,14 @@ def _write_authorization_missing_reviewer(
         "reviewed_at": "",
         "preflight_config_sha256": preflight.get("config_sha256"),
         "git_commit": preflight.get("git_commit"),
+        "snapshot_id": preflight.get("snapshot_id"),
+        "snapshot_file_sha256": preflight.get("snapshot_file_sha256"),
+        "lineage_audit_sha256": preflight.get("lineage_audit_sha256"),
+        "ordered_window_id_sha256": (
+            (preflight.get("lineage_binding_audit") or {}).get(
+                "expected_ordered_window_id_sha256"
+            )
+        ),
     }
     path = tmp_dir / "authorized_missing_reviewer.json"
     path.write_text(json.dumps(authorization, indent=2), encoding="utf-8")

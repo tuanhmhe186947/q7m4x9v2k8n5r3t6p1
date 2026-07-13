@@ -21,7 +21,9 @@ from pig_behavior.classification_v2.training.full_run_contract import (  # noqa:
 def main() -> None:
     """Write a non-authorized template tied to one full OOF preflight artifact."""
 
-    parser = argparse.ArgumentParser(description="Write a classification_v2 full OOF authorization template.")
+    parser = argparse.ArgumentParser(
+        description="Write a classification_v2 full OOF authorization template."
+    )
     parser.add_argument(
         "--preflight-json",
         type=Path,
@@ -30,7 +32,10 @@ def main() -> None:
     parser.add_argument(
         "--output-json",
         type=Path,
-        default=Path("outputs/classification_v2/model_design/full_oof_authorization_template.json"),
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "full_oof_authorization_template.json"
+        ),
     )
     args = parser.parse_args()
 
@@ -52,6 +57,14 @@ def build_authorization_template(preflight: dict[str, Any]) -> dict[str, Any]:
         "acknowledges_no_q2_claim_until_verified": False,
         "preflight_config_sha256": preflight.get("config_sha256"),
         "git_commit": preflight.get("git_commit"),
+        "snapshot_id": preflight.get("snapshot_id"),
+        "snapshot_file_sha256": preflight.get("snapshot_file_sha256"),
+        "lineage_audit_sha256": preflight.get("lineage_audit_sha256"),
+        "ordered_window_id_sha256": (
+            (preflight.get("lineage_binding_audit") or {}).get(
+                "expected_ordered_window_id_sha256"
+            )
+        ),
         "reviewer": "",
         "reviewed_at": "",
         "note": (

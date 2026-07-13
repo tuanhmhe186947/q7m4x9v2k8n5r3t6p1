@@ -17,7 +17,9 @@ SCHEMA_VERSION = "classification_v2_full_oof_launch_packet_v1"
 def main() -> None:
     """Write a human-review launch packet without authorizing full training."""
 
-    parser = argparse.ArgumentParser(description="Write the classification_v2 full OOF launch packet.")
+    parser = argparse.ArgumentParser(
+        description="Write the classification_v2 full OOF launch packet."
+    )
     parser.add_argument(
         "--preflight-json",
         type=Path,
@@ -31,7 +33,10 @@ def main() -> None:
     parser.add_argument(
         "--runtime-benchmark-json",
         type=Path,
-        default=Path("outputs/classification_v2/model_benchmarks_visual_v3/summary_head/runtime_benchmark_audit.json"),
+        default=Path(
+            "outputs/classification_v2/model_benchmarks_visual_v3/"
+            "summary_head/runtime_benchmark_audit.json"
+        ),
     )
     parser.add_argument(
         "--authorization-template-json",
@@ -41,7 +46,10 @@ def main() -> None:
     parser.add_argument(
         "--preflight-freshness-json",
         type=Path,
-        default=Path("outputs/classification_v2/model_design/full_oof_preflight_freshness_audit.json"),
+        default=Path(
+            "outputs/classification_v2/model_design/"
+            "full_oof_preflight_freshness_audit.json"
+        ),
     )
     parser.add_argument(
         "--output-json",
@@ -108,17 +116,27 @@ def build_launch_packet(
         "run_plan_config_sha256": run_plan.get("config_sha256"),
         "git_commit": preflight.get("git_commit"),
         "snapshot_id": preflight.get("snapshot_id"),
+        "snapshot_file_sha256": preflight.get("snapshot_file_sha256"),
+        "lineage_audit_sha256": preflight.get("lineage_audit_sha256"),
+        "ordered_window_id_sha256": (
+            (preflight.get("lineage_binding_audit") or {}).get(
+                "expected_ordered_window_id_sha256"
+            )
+        ),
         "output_dir": config.get("output_dir"),
         "selected_fold_count": run_plan.get("selected_fold_count"),
         "available_fold_count": run_plan.get("available_fold_count"),
         "total_eval_rows": run_plan.get("total_eval_rows"),
         "total_train_steps": run_plan.get("total_train_steps"),
-        "estimated_training_seconds_excluding_eval": preflight.get("estimated_training_seconds_excluding_eval"),
+        "estimated_training_seconds_excluding_eval": preflight.get(
+            "estimated_training_seconds_excluding_eval"
+        ),
         "estimated_training_minutes_excluding_eval": _runtime_minutes(
             preflight.get("estimated_training_seconds_excluding_eval")
         ),
         "runtime_estimate_scope": (
-            "Training only; excludes evaluation, bootstrap metrics, startup, checkpoint IO, and manual review time."
+            "Training only; excludes evaluation, bootstrap metrics, startup, "
+            "checkpoint IO, and manual review time."
         ),
         "runtime_benchmark": {
             "precision": runtime_config.get("precision"),
@@ -151,7 +169,9 @@ def render_launch_packet_markdown(packet: dict[str, Any]) -> str:
 
     checklist = packet.get("review_checklist") or []
     command = _wrap_bat_command_for_markdown(str(packet.get("cmd_launch_command_bat") or ""))
-    authorization_command = _wrap_bat_command_for_markdown(str(packet.get("cmd_authorization_command_bat") or ""))
+    authorization_command = _wrap_bat_command_for_markdown(
+        str(packet.get("cmd_authorization_command_bat") or "")
+    )
     lines = [
         "# classification_v2 Full OOF Launch Packet",
         "",
@@ -162,6 +182,10 @@ def render_launch_packet_markdown(packet: dict[str, Any]) -> str:
         "## Binding",
         f"- Git commit: `{packet.get('git_commit')}`",
         f"- Snapshot: `{packet.get('snapshot_id')}`",
+        f"- Snapshot file SHA256: `{packet.get('snapshot_file_sha256')}`",
+        f"- Lineage audit SHA256: `{packet.get('lineage_audit_sha256')}`",
+        "- Ordered window ID SHA256: "
+        f"`{packet.get('ordered_window_id_sha256')}`",
         f"- Config SHA256: `{packet.get('preflight_config_sha256')}`",
         "",
         "## Execution",
@@ -207,7 +231,8 @@ def _full_run_command(config: dict[str, Any]) -> list[str]:
 
     return [
         sys.executable,
-        "scripts\\classification_v2\\06_full_oof_training\\classification_v2_run_full_multimodal_oof.py",
+        "scripts\\classification_v2\\06_full_oof_training\\"
+        "classification_v2_run_full_multimodal_oof.py",
         "--full",
         "--confirm-full-run",
         "--preflight-json",
@@ -322,6 +347,22 @@ def _launch_packet_errors(
         errors.append("authorization_template_config_sha256_mismatch")
     if authorization_template.get("git_commit") != preflight.get("git_commit"):
         errors.append("authorization_template_git_commit_mismatch")
+    expected_ordered_hash = (
+        (preflight.get("lineage_binding_audit") or {}).get(
+            "expected_ordered_window_id_sha256"
+        )
+    )
+    expected_bindings = {
+        "snapshot_id": preflight.get("snapshot_id"),
+        "snapshot_file_sha256": preflight.get("snapshot_file_sha256"),
+        "lineage_audit_sha256": preflight.get("lineage_audit_sha256"),
+        "ordered_window_id_sha256": expected_ordered_hash,
+    }
+    for field, expected in expected_bindings.items():
+        if not expected or authorization_template.get(field) != expected:
+            errors.append(
+                f"authorization_template_binding_mismatch={field}"
+            )
     required_tokens = {
         "--full",
         "--confirm-full-run",

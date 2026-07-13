@@ -14,7 +14,8 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(
         description=(
-            "Create classification_v2 full OOF authorization JSON. Without --authorize it writes a fail-closed file."
+            "Create classification_v2 full OOF authorization JSON. Without "
+            "--authorize it writes a fail-closed file."
         )
     )
     parser.add_argument(
@@ -109,6 +110,12 @@ def _authorization_errors(
     errors: list[str] = []
     expected_hash = str(preflight.get("config_sha256") or "")
     expected_commit = str(preflight.get("git_commit") or "")
+    if preflight.get("valid") is not True or preflight.get("errors"):
+        errors.append("preflight_not_valid_for_authorization")
+    if preflight.get("lineage_binding_valid") is not True:
+        errors.append("preflight_lineage_binding_not_valid")
+    if preflight.get("lineage_training_authorized") is not True:
+        errors.append("preflight_lineage_training_not_authorized")
     if not reviewer:
         errors.append("missing_reviewer")
     if not acknowledge_long_run:
@@ -119,6 +126,15 @@ def _authorization_errors(
         errors.append("preflight_config_sha256_mismatch")
     if git_commit != expected_commit:
         errors.append("git_commit_mismatch")
+    template = template_writer.build_authorization_template(preflight)
+    for field in (
+        "snapshot_id",
+        "snapshot_file_sha256",
+        "lineage_audit_sha256",
+        "ordered_window_id_sha256",
+    ):
+        if not template.get(field):
+            errors.append(f"missing_preflight_binding={field}")
     return errors
 
 

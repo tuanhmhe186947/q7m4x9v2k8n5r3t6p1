@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 from pathlib import Path
@@ -9,7 +10,12 @@ from typing import Any
 
 import torch
 
-from pig_behavior.classification_v2.contracts.training_snapshot import check_training_snapshot
+from pig_behavior.classification_v2.contracts.training_lineage import (
+    audit_training_lineage_packet,
+)
+from pig_behavior.classification_v2.contracts.training_snapshot import (
+    check_training_snapshot,
+)
 from pig_behavior.classification_v2.training.full_multimodal_oof import (
     FullMultimodalOofConfig,
     build_full_multimodal_oof_run_plan,
@@ -62,6 +68,7 @@ def build_full_run_preflight(
     feature_whitelist_audit_json: Path = Path(
         "outputs/classification_v2/model_design/q2_feature_whitelist_audit.json"
     ),
+    lineage_audit_json: Path | None = None,
 ) -> dict[str, Any]:
     """Validate immutable data, runtime policy, CUDA, Git, and full workload without training."""
 
@@ -70,6 +77,16 @@ def build_full_run_preflight(
     runtime = json.loads(runtime_benchmark_audit_json.read_text(encoding="utf-8"))
     feature_whitelist = _read_optional_json(feature_whitelist_audit_json)
     git_state = current_git_state()
+    lineage = _read_optional_json(lineage_audit_json)
+    lineage_binding = audit_training_lineage_packet(
+        lineage,
+        snapshot,
+        lineage_file_sha256=_optional_sha256(lineage_audit_json),
+        expected_git_commit=git_state["commit"],
+        require_full_multimodal=True,
+        require_clean_code=True,
+        require_training_authorization=True,
+    )
     errors: list[str] = []
     warnings: list[str] = []
     if config.run_mode != "full":
@@ -78,6 +95,7 @@ def build_full_run_preflight(
         errors.append(f"invalid_full_workload_plan={plan.get('errors')}")
     if snapshot.get("valid") is not True:
         errors.append(f"invalid_training_snapshot={snapshot.get('errors')}")
+    errors.extend(lineage_binding["errors"])
     errors.extend(_feature_whitelist_audit_errors(feature_whitelist))
     if not config.require_cached_images or config.packed_image_cache_npy is None:
         errors.append("full_run_requires_strict_packed_image_cache")
@@ -122,7 +140,7 @@ def build_full_run_preflight(
         "Estimated runtime excludes evaluation, bootstrap metrics, startup, and checkpoint IO."
     )
     return {
-        "schema_version": "classification_v2_full_run_preflight_v1",
+        "schema_version": "classification_v2_full_run_preflight_v2",
         "config_sha256": full_run_config_fingerprint(config),
         "config": plan.get("config"),
         "git_commit": git_state["commit"],
@@ -130,6 +148,14 @@ def build_full_run_preflight(
         "snapshot_json": str(snapshot_json),
         "snapshot_id": snapshot.get("expected_snapshot_id"),
         "snapshot_valid": bool(snapshot.get("valid")),
+        "snapshot_file_sha256": _optional_sha256(snapshot_json),
+        "lineage_audit_json": str(lineage_audit_json or ""),
+        "lineage_audit_sha256": _optional_sha256(lineage_audit_json),
+        "lineage_binding_audit": lineage_binding,
+        "lineage_binding_valid": lineage_binding["valid"],
+        "lineage_training_authorized": lineage_binding[
+            "training_authorized"
+        ],
         "runtime_benchmark_audit_json": str(runtime_benchmark_audit_json),
         "runtime_recommendation": recommendation,
         "runtime_match_audit": runtime_match,
@@ -170,10 +196,38 @@ def _feature_whitelist_audit_errors(audit: dict[str, Any]) -> list[str]:
     return errors
 
 
-def _read_optional_json(path: Path) -> dict[str, Any]:
-    if not path.exists():
+def _read_optional_json(path: Path | None) -> dict[str, Any]:
+    if path is None or not path.exists():
         return {"missing": True, "path": str(path), "valid": False}
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {
+            "invalid": True,
+            "path": str(path),
+            "error": str(exc),
+            "valid": False,
+        }
+    if not isinstance(payload, dict):
+        return {
+            "invalid": True,
+            "path": str(path),
+            "error": "json_top_level_must_be_object",
+            "valid": False,
+        }
+    return payload
+
+
+def _optional_sha256(path: Path | None) -> str | None:
+    """Hash one evidence file without treating a missing path as valid."""
+
+    if path is None or not path.exists() or not path.is_file():
+        return None
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _runtime_match_audit(
@@ -453,8 +507,19 @@ def validate_preflight_for_execution(
 
     state = git_state or current_git_state()
     errors: list[str] = []
+    if preflight.get("schema_version") != (
+        "classification_v2_full_run_preflight_v2"
+    ):
+        errors.append(
+            "full_run_preflight_schema_version_mismatch="
+            f"{preflight.get('schema_version')}"
+        )
     if preflight.get("valid") is not True or preflight.get("errors"):
         errors.append(f"full_run_preflight_invalid={preflight.get('errors')}")
+    if preflight.get("lineage_binding_valid") is not True:
+        errors.append("preflight_lineage_binding_must_be_valid")
+    if preflight.get("lineage_training_authorized") is not True:
+        errors.append("preflight_lineage_training_must_be_authorized")
     expected = full_run_config_fingerprint(config)
     if preflight.get("config_sha256") != expected:
         errors.append(
@@ -472,6 +537,62 @@ def validate_preflight_for_execution(
             f"preflight:{preflight.get('git_commit')},"
             f"current:{state.get('commit')}"
         )
+    errors.extend(
+        _execution_lineage_errors(
+            preflight,
+            expected_git_commit=state.get("commit"),
+        )
+    )
+    return errors
+
+
+def _execution_lineage_errors(
+    preflight: dict[str, Any],
+    *,
+    expected_git_commit: str | None,
+) -> list[str]:
+    """Recompute snapshot and lineage bindings at execution time."""
+
+    if preflight.get("schema_version") != (
+        "classification_v2_full_run_preflight_v2"
+    ):
+        return []
+    errors: list[str] = []
+    snapshot_path = Path(str(preflight.get("snapshot_json") or ""))
+    lineage_path = Path(str(preflight.get("lineage_audit_json") or ""))
+    if not snapshot_path.is_file():
+        return [f"execution_missing_snapshot_json={snapshot_path}"]
+    if not lineage_path.is_file():
+        return [f"execution_missing_lineage_audit_json={lineage_path}"]
+    snapshot_sha = _optional_sha256(snapshot_path)
+    if snapshot_sha != preflight.get("snapshot_file_sha256"):
+        errors.append("execution_snapshot_file_hash_drift")
+    lineage_sha = _optional_sha256(lineage_path)
+    if lineage_sha != preflight.get("lineage_audit_sha256"):
+        errors.append("execution_lineage_file_hash_drift")
+    snapshot = check_training_snapshot(snapshot_path)
+    lineage = _read_optional_json(lineage_path)
+    binding = audit_training_lineage_packet(
+        lineage,
+        snapshot,
+        lineage_file_sha256=lineage_sha,
+        expected_git_commit=expected_git_commit,
+        require_full_multimodal=True,
+        require_clean_code=True,
+        require_training_authorization=True,
+    )
+    if binding.get("valid") is not True:
+        errors.append(
+            f"execution_lineage_binding_invalid={binding.get('errors')}"
+        )
+    if binding.get("snapshot_id") != preflight.get("snapshot_id"):
+        errors.append("execution_snapshot_id_drift")
+    if binding.get("expected_ordered_window_id_sha256") != (
+        (preflight.get("lineage_binding_audit") or {}).get(
+            "expected_ordered_window_id_sha256"
+        )
+    ):
+        errors.append("execution_ordered_window_hash_drift")
     return errors
 
 

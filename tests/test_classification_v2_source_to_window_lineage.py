@@ -49,6 +49,45 @@ def test_source_to_window_lineage_rejects_reordered_image_windows() -> None:
     assert any("window_order_mismatch_rows" in error for error in result["errors"])
 
 
+def test_source_to_window_lineage_accepts_full_interaction_packet() -> None:
+    inputs = _valid_inputs()
+    sequence_manifest = inputs["sequence_manifest"]
+    assert isinstance(sequence_manifest, pd.DataFrame)
+    inputs["interaction_window_manifest"] = sequence_manifest.copy()
+    expected_hash = ordered_window_id_sha256(
+        sequence_manifest["window_id"]
+    )
+    artifact_audits = inputs["artifact_audits"]
+    assert isinstance(artifact_audits, dict)
+    artifact_audits["interaction_context"] = {
+        "window_alignment": {
+            "reference_ordered_window_id_sha256": expected_hash,
+            "comparisons": {
+                "interaction_context_windows": {
+                    "ordered_window_id_sha256": expected_hash,
+                }
+            },
+        },
+        "errors": [],
+    }
+    inputs["require_interaction_lineage"] = True
+
+    result = audit_source_to_window_lineage(**inputs)
+
+    assert result["technical_pass"] is True
+    assert result["full_multimodal_lineage_complete"] is True
+
+
+def test_source_to_window_lineage_rejects_missing_required_interaction() -> None:
+    inputs = _valid_inputs()
+    inputs["require_interaction_lineage"] = True
+
+    result = audit_source_to_window_lineage(**inputs)
+
+    assert result["technical_pass"] is False
+    assert "required_interaction_lineage_incomplete" in result["errors"]
+
+
 def test_ordered_window_contract_rejects_blank_and_duplicate_keys() -> None:
     with pytest.raises(ValueError, match="blank_split_window_ids=1"):
         require_ordered_window_ids(

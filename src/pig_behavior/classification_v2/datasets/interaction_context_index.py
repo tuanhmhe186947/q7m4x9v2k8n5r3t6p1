@@ -16,6 +16,13 @@ from typing import Any
 
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.output_safety import (
+    require_output_paths_available,
+)
+from pig_behavior.classification_v2.contracts.window_alignment import (
+    require_ordered_window_ids,
+)
+
 INTERACTION_LABELS = frozenset({"fight", "social-nose"})
 
 
@@ -23,6 +30,7 @@ INTERACTION_LABELS = frozenset({"fight", "social-nose"})
 class InteractionContextIndexConfig:
     root: Path = Path("outputs/classification_v2/train_ready_windows")
     output_dir: Path = Path("outputs/classification_v2/train_ready_windows")
+    overwrite: bool = False
 
 
 @dataclass(slots=True)
@@ -37,6 +45,12 @@ def build_interaction_context_index(
     config: InteractionContextIndexConfig,
 ) -> InteractionContextIndexResult:
     """Build one audit row per train-ready window with label-independent context stats."""
+    manifest_path = config.output_dir / "interaction_window_context_manifest.csv"
+    audit_path = config.output_dir / "interaction_context_audit.json"
+    require_output_paths_available(
+        [manifest_path, audit_path],
+        overwrite=config.overwrite,
+    )
     image_frames = pd.read_csv(config.root / "image_frame_context_manifest.csv", low_memory=False)
     image_windows = pd.read_csv(config.root / "image_window_context_manifest.csv", low_memory=False)
     split = pd.read_csv(config.root / "split_manifest.csv", low_memory=False)
@@ -126,10 +140,19 @@ def build_interaction_context_index(
     manifest.loc[interaction_mask, "interaction_context_status"] = manifest.loc[
         interaction_mask, "scene_partner_context_status"
     ].astype(str)
-    audit = _audit(manifest)
+    window_alignment = require_ordered_window_ids(
+        "split_manifest",
+        split["window_id"],
+        {
+            "image_context_windows": image_windows["window_id"],
+            "interaction_context_windows": manifest["window_id"],
+        },
+    )
+    audit = {
+        **_audit(manifest),
+        "window_alignment": window_alignment,
+    }
     config.output_dir.mkdir(parents=True, exist_ok=True)
-    manifest_path = config.output_dir / "interaction_window_context_manifest.csv"
-    audit_path = config.output_dir / "interaction_context_audit.json"
     manifest.to_csv(manifest_path, index=False)
     audit_path.write_text(json.dumps(audit, indent=2, ensure_ascii=False), encoding="utf-8")
     if audit["errors"]:
