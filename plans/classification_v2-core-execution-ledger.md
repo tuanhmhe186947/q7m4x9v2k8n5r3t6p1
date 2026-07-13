@@ -61,6 +61,7 @@ Passing gates:
 - Representative chain: `PASS`; it has 688 frames, 63 units, and 438 windows.
 - Exact X whitelist: `PASS`; 110 fields pass the technical leakage audit.
 - Hidden design/template: `PASS`; v5 has 5,171 unique review items.
+- Exact CVAT resolver: `PASS`; six frames resolve to the exact `_30fps.mp4` file.
 
 Blocked human-lineage gates:
 
@@ -71,7 +72,6 @@ Blocked human-lineage gates:
 
 Independent in-progress gates:
 
-- Exact CVAT resolver: assert six rows and the exact `_30fps.mp4` basename.
 - Identifier contract: separate or version scene-frame and object-frame identity.
 - Temporal views: build audited fixed6 observed-time, phase, and native views.
 - Shortcut probes: implement fold/source/length/missingness checks on fixtures.
@@ -80,14 +80,13 @@ Independent in-progress gates:
 
 Work proceeds in dependency order without fabricating human evidence:
 
-1. Make the exact CVAT resolver case fail closed and cover a wrong basename fixture.
-2. Version the frame/object identifier contract and prove row preservation.
-3. Complete Hidden clustered uncertainty and target-independent prevalence gates.
-4. Implement fixed-6 view manifests and source/length shortcut probes on fixtures.
-5. Complete fold-local preprocessing, event balancing, and lineage registry contracts.
-6. Complete configurable model/mask/shape contracts without downloading weights.
-7. Complete native-collapse and paired-evaluation tests with synthetic predictions.
-8. Reconcile the historical baseline only as a registered engineering control.
+1. Version the frame/object identifier contract and prove row preservation.
+2. Complete Hidden clustered uncertainty and target-independent prevalence gates.
+3. Implement fixed-6 view manifests and source/length shortcut probes on fixtures.
+4. Complete fold-local preprocessing, event balancing, and lineage registry contracts.
+5. Complete configurable model/mask/shape contracts without downloading weights.
+6. Complete native-collapse and paired-evaluation tests with synthetic predictions.
+7. Reconcile the historical baseline only as a registered engineering control.
 
 ## Promotion And Full-Run Lock
 
@@ -104,9 +103,10 @@ authorization.
 | Date | Achievement | Result | Commit |
 |---|---|---|---|
 | 2026-07-13 | Core/scientific execution contract | PASS | `ea88946` |
-| 2026-07-13 | Phase ledger opened | IN_PROGRESS | pending commit |
+| 2026-07-13 | Phase ledger opened | IN_PROGRESS | `475eefe` |
+| 2026-07-13 | Exact CVAT video resolver gate | PASS | `97a1bc3` |
 
 ## Next Checkpoint
 
-The next commit must contain only this ledger. The following isolated achievement is the exact
-CVAT resolver assertion plus focused synthetic and canonical read-only validation.
+The next isolated achievement is the versioned scene-frame/object-frame identifier contract
+with backward-compatible readers, duplicate-key audits, and row-preservation tests.
