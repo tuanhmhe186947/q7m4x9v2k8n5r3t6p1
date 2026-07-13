@@ -17,6 +17,10 @@ from typing import Any
 
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.identifiers import (
+    ensure_frame_object_identifiers,
+    scene_frame_key,
+)
 from pig_behavior.classification_v2.schema import (
     DEFAULT_PIG_IDS,
     INTERACTION_BEHAVIORS,
@@ -36,6 +40,7 @@ REQUIRED_POLICY_COLUMNS: tuple[str, ...] = (
     "source_type",
     "dataset_id",
     "video_key",
+    "scene_frame_uid",
     "frame_uid",
     "frame_index",
     "pig_id",
@@ -61,17 +66,19 @@ def apply_context_policy(
     expected_pig_count:
         Expected full context pig count. Default is 8.
     recompute_context:
-        If True, recompute context columns from frame_uid/pig_id.
+        If True, recompute context columns from scene_frame_uid/pig_id.
         This is recommended after merge.
     require_full_8_for_eval:
         If True, use_for_main_eval is True only for full-context rows.
         Default False because legacy/selected annotations are valid partial context.
     """
-    missing = [c for c in REQUIRED_POLICY_COLUMNS if c not in frame_objects.columns]
+    out = ensure_frame_object_identifiers(
+        frame_objects,
+        source_name="context_policy",
+    )
+    missing = [c for c in REQUIRED_POLICY_COLUMNS if c not in out.columns]
     if missing:
         raise ValueError(f"Missing required policy columns: {missing}")
-
-    out = frame_objects.copy()
 
     out = _normalize_labels(out)
     out = _ensure_bbox_valid(out)
@@ -140,7 +147,10 @@ def audit_context_policy(df: pd.DataFrame) -> dict[str, Any]:
 
     return {
         "rows": int(len(df)),
-        "frames": int(df["frame_uid"].nunique()) if "frame_uid" in df.columns else 0,
+        "frames": int(scene_frame_key(df).nunique()),
+        "frame_objects": int(df["frame_uid"].nunique())
+        if "frame_uid" in df.columns
+        else 0,
         "sources": _value_counts_dict(df, "source_type"),
         "datasets": _value_counts_dict(df, "dataset_id"),
         "behaviors": _value_counts_dict(df, "behavior"),
@@ -301,29 +311,44 @@ def _recompute_context_columns(
             out = out.drop(columns=[col])
 
     counts = (
-        out.groupby("frame_uid", dropna=False)["pig_id"]
+        out.groupby("scene_frame_uid", dropna=False)["pig_id"]
         .nunique(dropna=True)
         .rename("global_context_pig_count")
     )
 
     pig_sets = (
-        out.groupby("frame_uid", dropna=False)["pig_id"]
+        out.groupby("scene_frame_uid", dropna=False)["pig_id"]
         .apply(lambda values: set(values.dropna().astype(str)))
         .rename("present_pig_ids")
     )
 
     duplicate = (
-        out.groupby(["frame_uid", "pig_id"], dropna=False)
+        out.groupby(["scene_frame_uid", "pig_id"], dropna=False)
         .size()
         .gt(1)
-        .groupby("frame_uid")
+        .groupby("scene_frame_uid")
         .any()
         .rename("duplicate_pig_id_in_frame")
     )
 
-    out = out.merge(counts, left_on="frame_uid", right_index=True, how="left")
-    out = out.merge(pig_sets, left_on="frame_uid", right_index=True, how="left")
-    out = out.merge(duplicate, left_on="frame_uid", right_index=True, how="left")
+    out = out.merge(
+        counts,
+        left_on="scene_frame_uid",
+        right_index=True,
+        how="left",
+    )
+    out = out.merge(
+        pig_sets,
+        left_on="scene_frame_uid",
+        right_index=True,
+        how="left",
+    )
+    out = out.merge(
+        duplicate,
+        left_on="scene_frame_uid",
+        right_index=True,
+        how="left",
+    )
 
     expected_ids = set(DEFAULT_PIG_IDS[:expected_pig_count])
 
@@ -483,7 +508,7 @@ def _apply_training_flags(
 def _interaction_partner_ids(df: pd.DataFrame) -> pd.Series:
     partner_ids: dict[int, str] = {}
 
-    for _, group in df.groupby("frame_uid", dropna=False):
+    for _, group in df.groupby("scene_frame_uid", dropna=False):
         ids = [str(v) for v in group["pig_id"].dropna().tolist()]
 
         for idx, pig_id in zip(group.index, group["pig_id"], strict=True):

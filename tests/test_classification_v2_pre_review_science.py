@@ -119,6 +119,24 @@ def test_hidden_review_does_not_change_training_weight_by_itself() -> None:
     assert reviewed.loc[0, "training_tier"] == reviewed.loc[1, "training_tier"]
 
 
+def test_context_policy_groups_object_uids_by_explicit_scene_key() -> None:
+    rows = _frame_rows(
+        "cvat_tracking_xml",
+        [0, 0],
+        ["fight", "fight"],
+    )
+    rows["track_id"] = ["1", "2"]
+    rows["pig_id"] = ["ID_1", "ID_2"]
+
+    reviewed = apply_context_policy(rows)
+
+    assert reviewed["scene_frame_uid"].nunique() == 1
+    assert reviewed["frame_uid"].nunique() == 2
+    assert reviewed["global_context_pig_count"].eq(2).all()
+    assert reviewed["interaction_partner_count"].eq(1).all()
+    assert set(reviewed["interaction_partner_ids"]) == {"ID_1", "ID_2"}
+
+
 def test_high_trusted_hidden_ratio_is_not_an_automatic_window_exclusion() -> None:
     frames = _frame_rows(
         "cvat_tracking_xml",
