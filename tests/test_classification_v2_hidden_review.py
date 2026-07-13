@@ -5,6 +5,9 @@ from typing import Any
 import pandas as pd
 import pytest
 
+from pig_behavior.classification_v2.contracts.identifiers import (
+    ensure_frame_object_identifiers,
+)
 from pig_behavior.classification_v2.features.context_policy import (
     apply_context_policy,
 )
@@ -16,8 +19,17 @@ from pig_behavior.classification_v2.review.hidden_review_builder import (
     HiddenReviewConfig,
     apply_hidden_review_decisions,
     audit_hidden_decision_coverage,
+    build_hidden_review_frame_context,
     build_hidden_review_manifest,
     hidden_decision_semantic_error,
+)
+from pig_behavior.classification_v2.review.hidden_review_identifiers import (
+    HIDDEN_REVIEW_KEY_VERSION,
+    attach_hidden_review_identifiers,
+)
+from pig_behavior.classification_v2.review.hidden_review_migration import (
+    migrate_hidden_review_decisions,
+    upgrade_hidden_review_manifest_identifiers,
 )
 
 
@@ -108,6 +120,112 @@ def test_hidden_review_manifest_audits_both_yes_and_no() -> None:
     legacy = manifest["source_type"].eq("legacy_recovered")
     assert not manifest.loc[cvat, "hidden_is_trusted_before_review"].any()
     assert manifest.loc[legacy, "hidden_is_trusted_before_review"].all()
+
+
+def test_hidden_review_identity_ignores_labels_and_frame_uid_schema() -> None:
+    """Review identity must survive label correction and identifier migration."""
+
+    row = _frame_rows().iloc[[0]].copy()
+    row["object_track_key"] = "legacy|track=0|pig=ID_1"
+    original = attach_hidden_review_identifiers(row)
+    changed = row.copy()
+    changed["frame_uid"] = "object-level-frame-id"
+    changed["behavior"] = "fight"
+    changed["hidden"] = "No"
+    migrated = attach_hidden_review_identifiers(changed)
+
+    assert original.iloc[0]["hidden_review_item_id"] == migrated.iloc[0][
+        "hidden_review_item_id"
+    ]
+    assert original.iloc[0]["hidden_review_subject_key"] == migrated.iloc[0][
+        "hidden_review_subject_key"
+    ]
+    assert migrated.iloc[0]["hidden_review_key_version"] == (
+        HIDDEN_REVIEW_KEY_VERSION
+    )
+
+
+def test_hidden_review_identifier_migration_preserves_human_payload() -> None:
+    """A partial decision file maps one-to-one without fabricating decisions."""
+
+    _, generated = _build_review()
+    legacy = generated.copy()
+    legacy["hidden_review_item_id"] = [
+        f"legacy_hidden_item_{index}" for index in range(len(legacy))
+    ]
+    decisions = _resolved_decisions(legacy).head(2).copy()
+    upgraded = upgrade_hidden_review_manifest_identifiers(legacy)
+
+    mapping, migrated, audit = migrate_hidden_review_decisions(
+        legacy,
+        upgraded,
+        decisions,
+    )
+
+    assert audit["errors"] == []
+    assert audit["valid"] is True
+    assert audit["mapping_rows"] == len(legacy)
+    assert audit["mapped_decision_rows"] == 2
+    assert audit["human_payload_changed_rows"] == 0
+    assert len(migrated) == len(decisions)
+    assert int(mapping["has_human_decision"].sum()) == 2
+    assert migrated["legacy_hidden_review_item_id"].tolist() == decisions[
+        "hidden_review_item_id"
+    ].tolist()
+    for column in (
+        "hidden_after_review",
+        "hidden_review_status",
+        "hidden_review_reason",
+        "hidden_reviewer",
+    ):
+        assert migrated[column].tolist() == decisions[column].tolist()
+
+
+def test_hidden_review_identifier_migration_rejects_unknown_decision() -> None:
+    """Unknown legacy IDs remain visible as errors and are never dropped."""
+
+    _, generated = _build_review()
+    legacy = generated.copy()
+    legacy["hidden_review_item_id"] = [
+        f"legacy_hidden_item_{index}" for index in range(len(legacy))
+    ]
+    decisions = _resolved_decisions(legacy).head(2).copy()
+    decisions.loc[0, "hidden_review_item_id"] = "unknown_hidden_item"
+    upgraded = upgrade_hidden_review_manifest_identifiers(legacy)
+
+    _, migrated, audit = migrate_hidden_review_decisions(
+        legacy,
+        upgraded,
+        decisions,
+    )
+
+    assert audit["valid"] is False
+    assert "decision_ids_missing_from_legacy=1" in audit["errors"]
+    assert "unmapped_decision_rows=1" in audit["errors"]
+    assert len(migrated) == len(decisions)
+
+
+def test_hidden_frame_context_keeps_all_objects_in_v2_scene() -> None:
+    """Selecting one actor must retain partner rows from the same scene."""
+
+    rows = _frame_rows().iloc[:2].copy()
+    rows["source_type"] = "cvat_tracking_xml"
+    rows["dataset_id"] = "cvat"
+    rows["video_key"] = "scene_video"
+    rows["frame_uid"] = "legacy_scene_0"
+    rows["frame_index"] = 0
+    rows["object_track_key"] = ["scene|track=0", "scene|track=1"]
+    rows = ensure_frame_object_identifiers(
+        rows,
+        source_name="hidden_frame_context_test",
+    )
+    selected_actor = rows.iloc[[0]].copy()
+
+    context = build_hidden_review_frame_context(rows, selected_actor)
+
+    assert len(context) == 2
+    assert context["frame_uid"].nunique() == 2
+    assert context["scene_frame_uid"].nunique() == 1
 
 
 def test_hidden_review_census_targets_untrusted_yes_and_caps_risk() -> None:

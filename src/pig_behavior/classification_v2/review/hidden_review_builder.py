@@ -16,6 +16,12 @@ from typing import Any
 
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.identifiers import scene_frame_key
+from pig_behavior.classification_v2.review.hidden_review_identifiers import (
+    attach_hidden_review_identifiers,
+    audit_hidden_review_identifiers,
+)
+
 HIDDEN_REVIEW_COHORTS: tuple[str, ...] = (
     "hidden_yes_confirmation",
     "hidden_no_high_risk",
@@ -122,6 +128,56 @@ def balanced_hidden_smoke_scope(
     return pd.concat(parts, ignore_index=False).copy()
 
 
+def build_hidden_review_frame_context(
+    frame_features: pd.DataFrame,
+    manifest: pd.DataFrame,
+) -> pd.DataFrame:
+    """Keep every annotated object in each selected review scene.
+
+    The join uses the explicit scene key under identifier v2. Legacy artifacts
+    are read through the identifier contract's scene-level fallback. This
+    prevents an actor-level ``frame_uid`` from removing partners or bystanders
+    needed to judge occlusion and interaction context.
+    """
+
+    required = ["source_type", "dataset_id", "video_key", "frame_uid"]
+    _require_columns(frame_features, required, "frame_features")
+    _require_columns(manifest, required, "manifest")
+    frames = frame_features.copy()
+    selected_rows = manifest.copy()
+    scene_column = "_hidden_review_scene_key"
+    frames[scene_column] = scene_frame_key(frames)
+    selected_rows[scene_column] = scene_frame_key(selected_rows)
+    join_columns = ["source_type", "dataset_id", "video_key", scene_column]
+    selected = selected_rows[join_columns].drop_duplicates()
+    context = frames.merge(
+        selected,
+        on=join_columns,
+        how="inner",
+        validate="many_to_one",
+    )
+    found = context[join_columns].drop_duplicates()
+    if len(found) != len(selected):
+        raise ValueError(
+            "Hidden frame context lost selected scenes: "
+            f"expected={len(selected)} found={len(found)}"
+        )
+    sort_columns = [
+        column
+        for column in [
+            "source_type",
+            "video_key",
+            "frame_index",
+            scene_column,
+            "frame_uid",
+            "pig_id",
+        ]
+        if column in context.columns
+    ]
+    context = context.sort_values(sort_columns, kind="mergesort")
+    return context.drop(columns=[scene_column]).reset_index(drop=True)
+
+
 def build_hidden_review_manifest(
     frame_features: pd.DataFrame,
     *,
@@ -136,8 +192,8 @@ def build_hidden_review_manifest(
 
     work = frame_features.copy().reset_index(drop=False)
     work = work.rename(columns={"index": "source_row_index"})
+    work = attach_hidden_review_identifiers(work)
     work["hidden_before_review"] = work["hidden"].map(_normalize_hidden)
-    work["hidden_review_item_id"] = _build_review_item_ids(work)
     _require_unique(work, "hidden_review_item_id", "frame_features")
 
     work["hidden_source"] = _initial_hidden_source(work)
@@ -270,6 +326,11 @@ def audit_hidden_review_manifest(
         errors.append("missing_hidden_review_item_id")
     elif manifest["hidden_review_item_id"].duplicated().any():
         errors.append("duplicate_hidden_review_item_id")
+    identifier_audit = audit_hidden_review_identifiers(manifest)
+    errors.extend(
+        f"identifier_contract:{error}"
+        for error in identifier_audit["errors"]
+    )
 
     invalid_cohorts: list[str] = []
     if "hidden_review_cohort" in manifest.columns:
@@ -288,8 +349,7 @@ def audit_hidden_review_manifest(
     )
     if "hidden_before_review" not in source.columns:
         source["hidden_before_review"] = source["hidden"].map(_normalize_hidden)
-    if "hidden_review_item_id" not in source.columns:
-        source["hidden_review_item_id"] = _build_review_item_ids(source)
+    source = attach_hidden_review_identifiers(source)
     if "hidden_review_stratum_key" not in source.columns:
         source["hidden_review_stratum_key"] = _hidden_review_stratum_key(
             source
@@ -441,6 +501,7 @@ def audit_hidden_review_manifest(
         "manifest_unique_items": int(
             manifest.get("hidden_review_item_id", pd.Series(dtype=str)).nunique()
         ),
+        "identifier_audit": identifier_audit,
         "input_hidden_yes_items": int(len(source_yes_ids)),
         "manifest_hidden_yes_items": int(len(manifest_yes_ids)),
         "missing_hidden_yes_items": int(len(missing_yes_ids)),
@@ -622,7 +683,7 @@ def apply_hidden_review_decisions(
         raise ValueError(f"Hidden decision coverage failed: {coverage['errors']}")
 
     out = frame_features.copy().reset_index(drop=True)
-    out["hidden_review_item_id"] = _build_review_item_ids(out)
+    out = attach_hidden_review_identifiers(out)
     _require_unique(out, "hidden_review_item_id", "frame_features")
     out = _initialize_hidden_provenance(out)
 
@@ -745,27 +806,6 @@ def _hidden_false_negative_risk(
         dtype="object",
     )
     return score, reason_series
-
-
-def _build_review_item_ids(df: pd.DataFrame) -> pd.Series:
-    """Build deterministic frame/object keys independent of mutable labels."""
-    fields = [
-        "source_type",
-        "dataset_id",
-        "video_key",
-        "frame_uid",
-        "frame_index",
-        "track_id",
-        "pig_id",
-        "object_id_in_image",
-    ]
-
-    def make_id(row: pd.Series) -> str:
-        raw = "|".join(_stable_text(row.get(field, "")) for field in fields)
-        digest = hashlib.sha256(raw.encode("utf-8")).hexdigest()[:24]
-        return f"hidden_item_{digest}"
-
-    return df.apply(make_id, axis=1)
 
 
 def _initialize_hidden_provenance(df: pd.DataFrame) -> pd.DataFrame:

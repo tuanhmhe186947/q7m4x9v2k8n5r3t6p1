@@ -8,9 +8,11 @@ from pathlib import Path
 
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.identifiers import scene_frame_key
 from pig_behavior.classification_v2.review.hidden_review_builder import (
     HiddenReviewConfig,
     balanced_hidden_smoke_scope,
+    build_hidden_review_frame_context,
     build_hidden_review_manifest,
 )
 
@@ -102,9 +104,14 @@ def main() -> None:
     audit["output_dir"] = str(args.output_dir)
     audit["max_rows"] = args.max_rows
     audit["max_rows_per_source"] = args.max_rows_per_source
-    frame_context = _selected_frame_context(frames, manifest)
+    frame_context = build_hidden_review_frame_context(frames, manifest)
     audit["frame_context_rows"] = int(len(frame_context))
-    audit["frame_context_frames"] = int(frame_context["frame_uid"].nunique(dropna=True))
+    audit["frame_context_frames"] = int(
+        scene_frame_key(frame_context).nunique(dropna=True)
+    )
+    audit["frame_context_objects"] = int(
+        frame_context["frame_uid"].nunique(dropna=True)
+    )
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     manifest.to_csv(output_paths[0], index=False)
@@ -118,32 +125,6 @@ def main() -> None:
     print(f"[PASS] Hidden review manifest rows={len(manifest)} cohorts={audit['cohort_counts']}")
     print(f"[PASS] frame context rows={len(frame_context)}")
     print(f"[PASS] audit={output_paths[2]}")
-
-
-def _selected_frame_context(
-    frames: pd.DataFrame,
-    manifest: pd.DataFrame,
-) -> pd.DataFrame:
-    """Keep all annotated objects on selected frames for GUI overlays."""
-    keys = ["source_type", "dataset_id", "video_key", "frame_uid"]
-    missing = [column for column in keys if column not in frames.columns]
-    if missing:
-        raise ValueError(f"Cannot build frame context; missing columns: {missing}")
-    selected = manifest[keys].drop_duplicates()
-    context = frames.merge(selected, on=keys, how="inner", validate="many_to_one")
-    found = context[keys].drop_duplicates()
-    if len(found) != len(selected):
-        raise ValueError(
-            f"Frame context lost selected frames: expected={len(selected)} found={len(found)}"
-        )
-    sort_columns = [
-        "source_type",
-        "video_key",
-        "frame_index",
-        "frame_uid",
-        "pig_id",
-    ]
-    return context.sort_values(sort_columns, kind="mergesort").reset_index(drop=True)
 
 
 def _guard_outputs(paths: list[Path], *, overwrite: bool) -> None:
