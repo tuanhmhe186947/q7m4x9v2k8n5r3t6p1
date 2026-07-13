@@ -36,6 +36,13 @@ unselected windows are retained as explicit masked rows. This remains fixture
 evidence only: the reviewed snapshot is blocked, so ResNet training, pilot
 training, and full OOF remain unauthorized.
 
+Commit `1b6ba3d` completes native-unit collapse and paired evaluation in code.
+Strict ten-class probabilities are reconciled against the complete fold
+authority, pooled metrics use the fixed global class order, and paired
+recording-cluster uncertainty requires identical units, targets, clusters, and
+folds. Its 351-test regression and synthetic checker do not replace the missing
+human-reviewed snapshot or authorize training.
+
 The identifier-v2 code/data chain passes at commit `a83d5a5`. Its bounded root
 has 688 frame rows, 63 native/review units, 438 ordered windows, exact model-X
 whitelisting, zero trainable missing spatial slots, and 8/8 deterministic stage

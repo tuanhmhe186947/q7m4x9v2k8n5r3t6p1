@@ -97,8 +97,11 @@ Independent training-contract engineering is also complete in code:
 - `111f152` loads real ordered fixed-six timing without dropping unselected
   windows. Checkpoint schema v4 and registry v3 bind the separate temporal slot
   manifest hash; corrupt order, slot identity, masks, or timing fail closed.
+- `1b6ba3d` collapses strict ten-class window probabilities to the complete
+  native-unit authority, rejects fold/target/count drift, and binds paired
+  recording-cluster comparisons to identical unit mappings.
 
-The current classification regression is 334 passed and 181 deselected. This
+The current classification regression is 351 passed and 181 deselected. This
 evidence remains synthetic/fixture-only; it has not frozen or trained the
 incomplete human-review lineage.
 
@@ -123,6 +126,7 @@ incomplete human-review lineage.
 | Fold-local preprocessing/weights | PASS IN CODE | Train-only fit and native-event tests |
 | Run lineage/registry | PASS IN CODE | 33 focused tests; checkpoint smoke PASS |
 | Model factory/mask contract | PASS IN CODE | 10 modes; 4 temporal encoders |
+| Native paired evaluation | PASS IN CODE | 31 focused tests; strict synthetic OOF PASS |
 | Model smoke on active snapshot | NOT RUN | Snapshot hashes are not frozen |
 | Full OOF on active snapshot | NOT AUTHORIZED | Smoke and launch gates not reached |
 | Q2 result claim | NOT ALLOWED | Active reviewed evaluation is absent |

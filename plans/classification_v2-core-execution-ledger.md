@@ -99,6 +99,9 @@ Independent in-progress gates:
 - Fixed-six timing loader: `PASS IN CODE` at `111f152`; ordered real timing is
   aligned without row loss. Checkpoint schema v4 and registry v3 bind the
   separate slot-manifest hash.
+- Native paired evaluation: `PASS IN CODE` at `1b6ba3d`; complete authority
+  coverage, fixed ten-class metrics, fold/target reconciliation, and paired
+  recording-cluster lineage pass synthetic fail-closed checks.
 
 ## Independent Work Queue
 
@@ -109,7 +112,7 @@ Work proceeds in dependency order without fabricating human evidence:
 3. Fold-local preprocessing, event balancing, and lineage: `COMPLETED IN CODE`.
 4. Configurable model/mask/shape contracts: `COMPLETED IN CODE`.
 5. Real fixed-six timing loader and hash lineage: `COMPLETED IN CODE`.
-6. Native-collapse and paired-evaluation contracts: `IN PROGRESS` on fixtures.
+6. Native-collapse and paired-evaluation contracts: `COMPLETED IN CODE`.
 7. Reconcile the historical baseline only as a registered engineering control.
 
 ## Promotion And Full-Run Lock
@@ -145,11 +148,12 @@ authorization.
 | 2026-07-14 | Run lineage and append-only registry | PASS IN CODE | `16cdb93` |
 | 2026-07-14 | Mask-safe configurable model factory | PASS IN CODE | `318bf58` |
 | 2026-07-14 | Strict fixed-six timing loader | PASS IN CODE | `111f152` |
+| 2026-07-14 | Native-unit paired evaluation contract | PASS IN CODE | `1b6ba3d` |
 
 ## Next Checkpoint
 
-The next isolated achievement is native-unit prediction collapse and paired
-evaluation on synthetic predictions. It must preserve every eligible native
-unit, reject conflicting targets or fold manifests, and keep outer-fold results
-out of model selection. Hidden/behavior review remains the separate blocker for
-freezing the reviewed P0 snapshot.
+The next isolated achievement is historical-baseline reconciliation as a
+registered engineering control. It must document the old positional-lineage
+defect, prevent performance promotion, and bind any reusable runtime evidence
+to its original data, code, config, and checkpoint lineage. Hidden/behavior
+review remains the separate blocker for freezing the reviewed P0 snapshot.

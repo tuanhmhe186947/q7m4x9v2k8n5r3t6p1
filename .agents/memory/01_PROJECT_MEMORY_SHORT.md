@@ -1,5 +1,23 @@
 # Project Memory Short
 
+## 2026-07-14 native-unit paired evaluation contract
+
+- Commit `1b6ba3d` preserves the complete fold-assignment universe while
+  collapsing strict ten-class window probabilities to one prediction per
+  eligible native temporal unit.
+- Prediction labels and folds must match the authority manifest; malformed
+  keys, probability vectors, conflicting targets, missing units, and split
+  drift fail closed.
+- Primary pooled macro-F1 uses the fixed global ten-class order. Supported-fold,
+  behavior-group, source/video/recording, calibration, and class-fold evidence
+  remain explicit.
+- Paired uncertainty resamples recording clusters with identical unit, target,
+  cluster, and fold mappings. Percentile bootstrap reports no pseudo p-value.
+- Evidence is 31 focused tests, 351 classification tests with 181 deselected,
+  and a passing four-unit synthetic checker with no full-data read or training.
+- The next independent task is historical-baseline reconciliation as an
+  engineering control. Human Hidden and behavior review remain blockers.
+
 ## 2026-07-14 strict fixed-six timing loader
 
 - Commit `111f152` loads ordered real `time_delta` values for the primary
