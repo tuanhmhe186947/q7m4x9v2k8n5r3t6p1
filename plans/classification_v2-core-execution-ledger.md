@@ -86,6 +86,13 @@ Independent in-progress gates:
 - Structural shortcut probes: `PASS IN CODE`; source/length/padding/timing,
   quality, availability, and metadata-to-label signatures fail closed on
   fixtures. Learned embedding probes remain a later model-stage gate.
+- Fold-local preprocessing: `PASS IN CODE` at `97f83c5`; fit keys, train-only
+  statistics, missingness indicators, and resume hashes fail closed on fixtures.
+- Native-event weighting: `PASS IN CODE` at `73b901d`; overlapping windows
+  share event mass and all class statistics remain training-fold-only.
+- Run lineage and registry: `PASS IN CODE` at `16cdb93`; every run is isolated
+  by `fold_id/run_id`, checkpoint schema v2 binds exact lineage, and terminal
+  registry rows are append-only and independently mergeable.
 
 ## Independent Work Queue
 
@@ -93,7 +100,7 @@ Work proceeds in dependency order without fabricating human evidence:
 
 1. Complete Hidden clustered uncertainty and target-independent prevalence gates.
 2. Fixed-six manifests and structural shortcut probes: `COMPLETED IN CODE`.
-3. Complete fold-local preprocessing, event balancing, and lineage registry contracts.
+3. Fold-local preprocessing, event balancing, and lineage: `COMPLETED IN CODE`.
 4. Complete configurable model/mask/shape contracts without downloading weights.
 5. Complete native-collapse and paired-evaluation tests with synthetic predictions.
 6. Reconcile the historical baseline only as a registered engineering control.
@@ -126,10 +133,13 @@ authorization.
 | 2026-07-13 | Ordered snapshot-v2 contract | PASS | `7cb4637` |
 | 2026-07-13 | Preflight/execution lineage binding | PASS | `dd0e6ff` |
 | 2026-07-13 | Fixed-six temporal views and shortcut contract | PASS IN CODE | `bb225ff` |
+| 2026-07-14 | Fold-local preprocessing contract | PASS IN CODE | `97f83c5` |
+| 2026-07-14 | Native-event fold weighting | PASS IN CODE | `73b901d` |
+| 2026-07-14 | Run lineage and append-only registry | PASS IN CODE | `16cdb93` |
 
 ## Next Checkpoint
 
-The next isolated achievement is fold-local preprocessing, event balancing,
-and experiment-lineage registry hardening on fixtures. It must not train or
-infer human decisions. Hidden/behavior review remains the separate blocker for
-freezing the reviewed P0 snapshot.
+The next isolated achievement is the configurable model factory with explicit
+modality availability/quality masks and forward-shape contracts. Unit tests
+must not download pretrained weights or infer human decisions. Hidden/behavior
+review remains the separate blocker for freezing the reviewed P0 snapshot.

@@ -1,5 +1,19 @@
 # Project Memory Short
 
+## 2026-07-14 fold-local training lineage contracts
+
+- Commits `97f83c5` and `73b901d` add training-fold-only preprocessing and
+  native-event mass weighting without reading validation/test statistics.
+- Commit `16cdb93` adds immutable run identity, isolated `fold_id/run_id`
+  artifacts, checkpoint schema v2, append-only registry rows, remote merge,
+  resume/hash audits, and lineage-aware caller paths.
+- Evidence is 33 focused tests, 292 classification tests with 181 deselected,
+  zero overlong Python lines, and a passing checkpoint/resume smoke.
+- No model training or OOF ran. Hidden remains 30/5,171 and behavior remains
+  3/4,670 with one pending, so the reviewed snapshot is still blocked.
+- The next independent task is the configurable model factory with explicit
+  modality availability/quality masks and forward-shape contracts.
+
 ## 2026-07-13 fixed-six temporal-view contract
 
 - Commit `bb225ff` adds keyed manifests for `fixed6_observed_time`,

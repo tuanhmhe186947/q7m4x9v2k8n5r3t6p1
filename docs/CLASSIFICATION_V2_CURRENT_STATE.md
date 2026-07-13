@@ -3,7 +3,7 @@
 ## Authority
 
 This file is the authoritative status snapshot for the active
-`classification_v2` lineage as of 2026-07-13. It records current gates, not
+`classification_v2` lineage as of 2026-07-14. It records current gates, not
 historical intent. When an older memory, plan, report, or runbook conflicts with
 this file, use this file together with `02_CURRENT_DECISION.md` and the data
 rebuild runbook.
@@ -83,9 +83,18 @@ Temporal-view code is hardened by `bb225ff`:
   in the 6/16 ablation;
 - persisted rows/order/hashes and structural shortcuts fail closed.
 
-The current classification regression is 243 passed and 181 deselected. The
-new temporal evidence is synthetic/fixture-only; it has not frozen or trained
-the incomplete human-review lineage.
+Independent training-contract engineering is also complete in code:
+
+- `97f83c5` fits preprocessing only from the declared training fold;
+- `73b901d` balances overlapping windows by unique native-event mass;
+- `16cdb93` isolates artifacts under `fold_id/run_id`, binds checkpoint schema
+  v2 to code/data/cache/fold/config identity, and appends immutable run rows;
+- caller checks consume the returned lineage directory instead of guessing an
+  artifact path from the requested output root.
+
+The current classification regression is 292 passed and 181 deselected. This
+evidence remains synthetic/fixture-only; it has not frozen or trained the
+incomplete human-review lineage.
 
 ## Active Gate Status
 
@@ -104,6 +113,8 @@ the incomplete human-review lineage.
 | Reviewed train-ready snapshot | FAIL | No complete reviewed lineage exists |
 | Snapshot/preflight code contract | PASS | Ordered lineage and hash binding tested |
 | Temporal-view code contract | PASS IN CODE | 22 fixture tests; active packet blocked |
+| Fold-local preprocessing/weights | PASS IN CODE | Train-only fit and native-event tests |
+| Run lineage/registry | PASS IN CODE | 33 focused tests; checkpoint smoke PASS |
 | Model smoke on active snapshot | NOT RUN | Snapshot hashes are not frozen |
 | Full OOF on active snapshot | NOT AUTHORIZED | Smoke and launch gates not reached |
 | Q2 result claim | NOT ALLOWED | Active reviewed evaluation is absent |

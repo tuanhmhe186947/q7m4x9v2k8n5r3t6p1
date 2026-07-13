@@ -19,6 +19,12 @@ six-frame windows for both sources; legacy 16-frame quantile sampling is not
 allowed. This is `PASS IN CODE`, not active-data evidence. Do not build the
 reviewed temporal packet or run a model until both human review layers pass.
 
+Commits `97f83c5`, `73b901d`, and `16cdb93` complete fold-local preprocessing,
+native-event weighting, and run-lineage/registry contracts on fixtures. Run
+artifacts now live under `output_root/fold_id/run_id`; downstream callers must
+consume the returned lineage path. This remains engineering readiness only and
+does not authorize model smoke on an unfrozen reviewed snapshot.
+
 The identifier-v2 code/data chain passes at commit `a83d5a5`. Its bounded root
 has 688 frame rows, 63 native/review units, 438 ordered windows, exact model-X
 whitelisting, zero trainable missing spatial slots, and 8/8 deterministic stage

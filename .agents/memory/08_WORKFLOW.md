@@ -66,6 +66,21 @@ windows; never sample six quantiles across a legacy burst. Keep all original
 windows in the selection ledger and keep source/native-length metadata outside
 model tensors. An unmitigated source shortcut is a training hard stop.
 
+Training-contract code now uses fold-local preprocessing, native-event mass
+weighting, and immutable lineage. A requested `output_dir` is an output root,
+not the artifact directory. The trainer owns this exact layout:
+
+```text
+output_root\fold_id\run_id
+```
+
+Downstream Python callers must use `training_run_dir(audit)`. Check a completed
+packet with block `04` `check_classification_v2_run_lineage.py`. Independent
+remote fold rows are merged only through block `06`
+`classification_v2_merge_run_registry.py`; never concatenate or overwrite the
+central registry manually. These contracts pass at `16cdb93`, but no real run
+is allowed before the reviewed snapshot and smoke gates pass.
+
 For a reviewed full-multimodal candidate, rerun the lineage checker with
 `--require-interaction-lineage`. Snapshot v2 must show one ordered hash for
 split, image-window, and interaction-window manifests; exporter audits must
@@ -96,6 +111,8 @@ Current state:
   source-to-window repeatability.
 - Temporal-view manifests and structural shortcut checks pass 22 synthetic
   tests at `bb225ff`; no active reviewed packet has been built from them yet.
+- Fold-local preprocessing, native-event weighting, and immutable run lineage
+  pass 292 classification tests at `97f83c5`, `73b901d`, and `16cdb93`.
 - The active lineage stops at block `01`: the Hidden v5 template passes, but
   human Hidden decisions are only 30/5,171 and apply is incomplete.
 - Behavior review also fails closed with 3/4,670 decisions, 4,667 missing, and
