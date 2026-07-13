@@ -20,16 +20,26 @@ VALID_BEHAVIORS = {
 }
 
 ROOT = Path(".")
-ENHANCED = Path(r"outputs\classification_v2\frame_features\spatiotemporal_frame_features_enhanced.csv")
+ENHANCED = Path(
+    r"outputs\classification_v2\frame_features"
+    r"\spatiotemporal_frame_features_enhanced.csv"
+)
 ENH_AUDIT = Path(r"outputs\classification_v2\audits\enhanced_spatiotemporal_audit.json")
 INTERVALS = Path(r"outputs\classification_v2\sequence_features\temporal_label_intervals.csv")
 WINDOWS = Path(r"outputs\classification_v2\sequence_features\sequence_window_manifest.csv")
 SEQ_AUDIT = Path(r"outputs\classification_v2\sequence_features\sequence_window_audit.json")
 UNITS = Path(r"outputs\classification_v2\review_units\review_unit_manifest.csv")
 UNIT_AUDIT = Path(r"outputs\classification_v2\review_units\review_unit_audit.json")
-INTERACTION_TEMPLATE = Path(r"outputs\classification_v2\review_units\interaction_review_unit_template.csv")
-INTERACTION_SHORTLIST = Path(r"outputs\classification_v2\review_units\interaction_review_unit_shortlist.csv")
+INTERACTION_TEMPLATE = Path(
+    r"outputs\classification_v2\review_units"
+    r"\interaction_review_unit_template.csv"
+)
+INTERACTION_SHORTLIST = Path(
+    r"outputs\classification_v2\review_units"
+    r"\interaction_review_unit_shortlist.csv"
+)
 OUT_AUDIT = Path(r"outputs\classification_v2\audits\review_unit_contract_check.json")
+LEGACY_CROP_ROOT = Path(r"data\raw\legacy_full_multigt_masked_nodup_16f\crops")
 
 
 def raw_header(path: Path) -> list[str]:
@@ -70,6 +80,19 @@ def parse_display_indices(value) -> list[int]:
         except Exception:
             return []
     return out
+
+
+def resolve_legacy_crop_path(value: object) -> Path | None:
+    """Resolve stale exported crop paths through the immutable raw crop root."""
+    path = Path(str(value))
+    if path.exists():
+        return path
+    parts = list(path.parts)
+    if "crops" not in parts:
+        return None
+    relative = Path(*parts[parts.index("crops") + 1 :])
+    candidate = LEGACY_CROP_ROOT / relative
+    return candidate if candidate.exists() else None
 
 
 def load_audit(path: Path, errors: list[str], name: str) -> dict:
@@ -219,12 +242,15 @@ def main() -> None:
     if "window_uid" in shortlist.columns:
         errors.append("interaction_review_unit_shortlist.csv contains forbidden window_uid")
     if windows["window_id"].duplicated().any():
-        errors.append(f"duplicate window_id count = {int(windows['window_id'].duplicated().sum())}")
+        duplicate = int(windows["window_id"].duplicated().sum())
+        errors.append(f"duplicate window_id count = {duplicate}")
     if units["review_unit_id"].duplicated().any():
-        errors.append(f"duplicate review_unit_id count = {int(units['review_unit_id'].duplicated().sum())}")
+        duplicate = int(units["review_unit_id"].duplicated().sum())
+        errors.append(f"duplicate review_unit_id count = {duplicate}")
     if shortlist["review_unit_id"].duplicated().any():
+        duplicate = int(shortlist["review_unit_id"].duplicated().sum())
         errors.append(
-            f"duplicate shortlist review_unit_id count = {int(shortlist['review_unit_id'].duplicated().sum())}"
+            f"duplicate shortlist review_unit_id count = {duplicate}"
         )
 
     # Behavior labels.
@@ -251,7 +277,10 @@ def main() -> None:
         anchor = pd.to_numeric(cvat["label_anchor_frame_index"], errors="coerce")
         bad_inside = cvat[~((fi >= ws) & (fi <= we))]
         if len(bad_inside):
-            errors.append(f"CVAT enhanced rows where frame_index not inside label window: {len(bad_inside)}")
+            errors.append(
+                "CVAT enhanced rows where frame_index is outside label window: "
+                f"{len(bad_inside)}"
+            )
         bad_anchor = cvat[anchor.notna() & ((anchor % 6) != 0)]
         if len(bad_anchor):
             errors.append(f"CVAT label_anchor_frame_index not divisible by 6: {len(bad_anchor)}")
@@ -282,17 +311,25 @@ def main() -> None:
             errors.append(f"CVAT intervals not length 6: {len(bad)}")
 
     # Window rules.
-    lengths = set(pd.to_numeric(windows["window_length_frames"], errors="coerce").dropna().astype(int).tolist())
+    lengths = set(
+        pd.to_numeric(windows["window_length_frames"], errors="coerce")
+        .dropna()
+        .astype(int)
+        .tolist()
+    )
     summary["window_lengths"] = sorted(lengths)
     if not {6, 8, 12, 16}.issubset(lengths):
         errors.append(f"sequence windows missing one of 6,8,12,16. got {sorted(lengths)}")
     allowed_status = {"stable", "uncertain", "transition", "incomplete"}
-    bad_status = sorted(set(windows["sequence_label_status"].dropna().astype(str)) - allowed_status)
+    status_values = set(windows["sequence_label_status"].dropna().astype(str))
+    bad_status = sorted(status_values - allowed_status)
     if bad_status:
         errors.append(f"unexpected sequence_label_status values: {bad_status}")
 
     # Review unit rules.
-    units["_display_count_calc"] = units["display_frame_indices"].map(lambda x: len(parse_display_indices(x)))
+    units["_display_count_calc"] = units["display_frame_indices"].map(
+        lambda value: len(parse_display_indices(value))
+    )
     legacy_units = units[units["source_type"].astype(str).eq("legacy_recovered")].copy()
     cvat_units = units[units["source_type"].astype(str).eq("cvat_tracking_xml")].copy()
 
@@ -308,7 +345,9 @@ def main() -> None:
         ]
         if len(bad_count):
             errors.append(f"legacy review units not displaying 16 frames: {len(bad_count)}")
-        bad_scope = legacy_units[legacy_units["apply_scope"].astype(str) != "whole_legacy_burst_16f"]
+        bad_scope = legacy_units[
+            legacy_units["apply_scope"].astype(str) != "whole_legacy_burst_16f"
+        ]
         if len(bad_scope):
             errors.append(f"legacy review units wrong apply_scope: {len(bad_scope)}")
 
@@ -330,18 +369,23 @@ def main() -> None:
 
     # Interaction shortlist rules.
     allowed_interaction = {"fight", "social-nose"}
-    bad_interaction_labels = sorted(set(shortlist["behavior_label"].dropna().astype(str)) - allowed_interaction)
+    shortlist_labels = set(shortlist["behavior_label"].dropna().astype(str))
+    bad_interaction_labels = sorted(shortlist_labels - allowed_interaction)
     if bad_interaction_labels:
         warnings.append(f"shortlist contains non-interaction labels: {bad_interaction_labels}")
     if "window_id" in shortlist.columns:
         warnings.append(
-            "shortlist contains window_id; not fatal if metadata only, but review should be by review_unit_id"
+            "shortlist contains window_id; it is metadata only and review must "
+            "still use review_unit_id"
         )
 
     # Legacy crop_path preflight for first shortlist legacy units.
     if "crop_path" in enh.columns:
-        legacy_short = shortlist[shortlist["source_type"].astype(str).eq("legacy_recovered")].head(10)
-        missing_crop = 0
+        legacy_short = shortlist[
+            shortlist["source_type"].astype(str).eq("legacy_recovered")
+        ].head(10)
+        missing_direct_crop = 0
+        unresolved_crop = 0
         for _, unit in legacy_short.iterrows():
             f = enh[
                 enh["source_type"].astype(str).eq("legacy_recovered")
@@ -352,12 +396,22 @@ def main() -> None:
             ].copy()
             for cp in f["crop_path"].dropna().astype(str).head(16):
                 if not Path(cp).exists():
-                    missing_crop += 1
-        summary["legacy_shortlist_missing_crop_paths_first10_units"] = int(missing_crop)
-        if missing_crop:
-            warnings.append(f"some legacy crop_path files missing in first 10 legacy shortlist units: {missing_crop}")
+                    missing_direct_crop += 1
+                if resolve_legacy_crop_path(cp) is None:
+                    unresolved_crop += 1
+        summary["legacy_shortlist_direct_crop_paths_missing_first10_units"] = int(
+            missing_direct_crop
+        )
+        summary["legacy_shortlist_unresolved_crop_paths_first10_units"] = int(unresolved_crop)
+        if unresolved_crop:
+            warnings.append(
+                "legacy crop paths unresolved after raw-root fallback in first "
+                f"10 units: {unresolved_crop}"
+            )
     else:
-        warnings.append("enhanced CSV has no crop_path column; legacy GUI may need raw-root fallback")
+        warnings.append(
+            "enhanced CSV has no crop_path column; legacy GUI may need raw-root fallback"
+        )
 
     summary.update(
         {
@@ -378,7 +432,10 @@ def main() -> None:
     )
 
     OUT_AUDIT.parent.mkdir(parents=True, exist_ok=True)
-    OUT_AUDIT.write_text(json.dumps(summary, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
+    OUT_AUDIT.write_text(
+        json.dumps(summary, indent=2, ensure_ascii=False, default=str),
+        encoding="utf-8",
+    )
 
     print(json.dumps(summary, indent=2, ensure_ascii=False, default=str))
 

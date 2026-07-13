@@ -9,55 +9,14 @@ from typing import Any
 
 import pandas as pd
 
-VALID_BEHAVIORS = {
-    "drink",
-    "eat",
-    "fight",
-    "social-nose",
-    "explore",
-    "lying",
-    "stand",
-    "move",
-    "sitting",
-    "playwithtoy",
-}
-VALID_DECISIONS = {"pending", "accept", "corrected", "exclude"}
-VALID_ACTIONS = {
-    "",
-    "main_train",
-    "keep",
-    "correct_and_keep",
-    "downweight",
-    "low_weight_train",
-    "exclude",
-    "review_later",
-}
-REQUIRED_COLUMNS = [
-    "review_item_id",
-    "review_unit_id",
-    "review_unit_type",
-    "temporal_unit_key",
-    "source_type",
-    "dataset_id",
-    "video_key",
-    "pig_id",
-    "track_id",
-    "object_track_key",
-    "unit_start_frame",
-    "unit_end_frame",
-    "display_frame_indices",
-    "review_template",
-    "behavior_label",
-    "original_behavior",
-    "review_reason",
-    "apply_scope",
-    "manual_review_decision",
-    "manual_corrected_behavior",
-    "manual_label_strength",
-    "manual_training_action",
-    "manual_sample_weight",
-    "manual_note",
-]
+from pig_behavior.classification_v2.review.behavior_review_contract import (
+    REQUIRED_DECISION_COLUMNS,
+    audit_manifest_alignment,
+    canonicalize_decisions,
+    validate_decision_semantics,
+)
+
+REQUIRED_COLUMNS = list(REQUIRED_DECISION_COLUMNS)
 
 
 def _text(series: pd.Series) -> pd.Series:
@@ -95,49 +54,44 @@ def audit_decision_coverage(
     if "window_uid" in decisions.columns:
         errors.append("forbidden_window_uid_column")
 
+    decisions, normalization_warnings = canonicalize_decisions(decisions)
+    warnings.extend(normalization_warnings)
+    semantic_errors, semantic_warnings = validate_decision_semantics(
+        decisions,
+        require_complete=require_complete,
+    )
+    errors.extend(semantic_errors)
+    warnings.extend(semantic_warnings)
+    alignment_errors, alignment_warnings = audit_manifest_alignment(
+        review_manifest,
+        decisions,
+        allow_blank_snapshot=False,
+    )
+    errors.extend(alignment_errors)
+    warnings.extend(alignment_warnings)
+
     decision_ids = _text(decisions["review_unit_id"])
     duplicate_decisions = int(decision_ids.duplicated(keep=False).sum())
-    if duplicate_decisions:
-        errors.append(f"duplicate_decision_rows={duplicate_decisions}")
 
     expected_set = set(expected_ids)
     decision_set = set(decision_ids)
     missing_ids = sorted(expected_set - decision_set)
     unexpected_ids = sorted(decision_set - expected_set)
     decision_values = _text(decisions["manual_review_decision"])
-    invalid_decisions = sorted(set(decision_values) - VALID_DECISIONS)
     pending_count = int(decision_values.eq("pending").sum())
     action_values = _text(decisions["manual_training_action"])
-    invalid_actions = sorted(set(action_values) - VALID_ACTIONS)
     review_later_count = int(action_values.eq("review_later").sum())
 
-    if unexpected_ids:
-        errors.append(f"unexpected_review_unit_count={len(unexpected_ids)}")
-    if invalid_decisions:
-        errors.append(f"invalid_decisions={invalid_decisions}")
-    if invalid_actions:
-        errors.append(f"invalid_training_actions={invalid_actions}")
     if require_complete and missing_ids:
         errors.append(f"missing_review_unit_count={len(missing_ids)}")
     elif missing_ids:
         warnings.append(f"missing_review_unit_count={len(missing_ids)}")
-    if require_complete and pending_count:
-        errors.append(f"pending_review_unit_count={pending_count}")
-    elif pending_count:
+    if pending_count and not require_complete:
         warnings.append(f"pending_review_unit_count={pending_count}")
     if require_complete and review_later_count:
         errors.append(f"review_later_unit_count={review_later_count}")
     elif review_later_count:
         warnings.append(f"review_later_unit_count={review_later_count}")
-
-    corrected_values = _text(decisions["manual_corrected_behavior"])
-    corrected = decision_values.eq("corrected")
-    invalid_corrected = corrected & ~corrected_values.isin(VALID_BEHAVIORS)
-    pending_with_correction = decision_values.eq("pending") & corrected_values.ne("")
-    if invalid_corrected.any():
-        errors.append(f"invalid_corrected_behavior_rows={int(invalid_corrected.sum())}")
-    if pending_with_correction.any():
-        errors.append(f"pending_with_corrected_behavior={int(pending_with_correction.sum())}")
 
     return {
         "review_unit_rows": int(len(review_manifest)),

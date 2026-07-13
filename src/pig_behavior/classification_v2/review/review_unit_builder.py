@@ -17,6 +17,10 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from pig_behavior.classification_v2.review.behavior_review_contract import (
+    audit_review_unit_contract,
+)
+
 LEGACY_SOURCE = "legacy_recovered"
 CVAT_SOURCE = "cvat_tracking_xml"
 INTERACTION_BEHAVIORS = {"fight", "social-nose"}
@@ -43,7 +47,7 @@ class ReviewUnitConfig:
     sequence_window_manifest_csv: Path
     output_dir: Path
     window_review_manifest_csv: Path | None = None
-    max_units_per_template: int = 5000
+    max_units_per_template: int = 0
 
 
 def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
@@ -106,7 +110,34 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
 
     units = _finalize_unit_review_fields(units)
 
+    contract_audit = audit_review_unit_contract(units)
+    input_errors = _input_contract_errors(intervals, windows, units)
+    capacity_errors = _template_capacity_errors(
+        units,
+        config.max_units_per_template,
+    )
+    errors = input_errors + list(contract_audit["errors"]) + capacity_errors
+    warnings = list(contract_audit["warnings"])
+
     config.output_dir.mkdir(parents=True, exist_ok=True)
+    if errors:
+        failed_audit = {
+            "errors": errors,
+            "warnings": warnings,
+            "rows": {
+                "intervals": int(len(intervals)),
+                "windows": int(len(windows)),
+                "review_units": int(len(units)),
+            },
+            "review_unit_contract": contract_audit,
+        }
+        audit_path = config.output_dir / "review_unit_audit.json"
+        audit_path.write_text(
+            json.dumps(failed_audit, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        raise ValueError("review unit contract failed: " + "; ".join(errors))
+
     unit_path = config.output_dir / "review_unit_manifest.csv"
     units.to_csv(unit_path, index=False)
 
@@ -114,9 +145,13 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
     templates = _write_template_unit_files(units, config.output_dir, config.max_units_per_template)
     outputs.update(templates)
 
+    template_audit = _audit_template_partition(units, templates)
+    errors.extend(template_audit["errors"])
+    warnings.extend(template_audit["warnings"])
+
     audit = {
-        "errors": [],
-        "warnings": [],
+        "errors": errors,
+        "warnings": warnings,
         "inputs": {
             "intervals_csv": str(config.intervals_csv),
             "sequence_window_manifest_csv": str(config.sequence_window_manifest_csv),
@@ -139,17 +174,22 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
         "templates": {
             name: {
                 "path": str(path),
-                "rows": int(pd.read_csv(path, nrows=0).shape[0])
-                if False
-                else int(pd.read_csv(path, low_memory=False).shape[0]),
+                "rows": int(pd.read_csv(path, low_memory=False).shape[0]),
             }
             for name, path in outputs.items()
         },
-        "review_reason_counts": _counts(units[units["include_in_review"].astype(bool)], "review_reason"),
+        "review_unit_contract": contract_audit,
+        "template_partition": template_audit,
+        "review_reason_counts": _counts(
+            units[units["include_in_review"].astype(bool)],
+            "review_reason",
+        ),
     }
 
     audit_path = config.output_dir / "review_unit_audit.json"
     audit_path.write_text(json.dumps(audit, indent=2, ensure_ascii=False), encoding="utf-8")
+    if errors:
+        raise ValueError("review template partition failed: " + "; ".join(errors))
     return audit
 
 
@@ -159,13 +199,28 @@ def _base_units_from_intervals(intervals: pd.DataFrame) -> pd.DataFrame:
     out["review_unit_type"] = np.where(
         out["source_type"].astype(str).eq(LEGACY_SOURCE),
         "legacy_burst_16",
-        np.where(out["source_type"].astype(str).eq(CVAT_SOURCE), "cvat_interval_6", "temporal_interval"),
+        np.where(
+            out["source_type"].astype(str).eq(CVAT_SOURCE),
+            "cvat_interval_6",
+            "temporal_interval",
+        ),
     )
-    out["unit_start_frame"] = pd.to_numeric(out["label_window_start"], errors="coerce").astype("Int64")
-    out["unit_end_frame"] = pd.to_numeric(out["label_window_end"], errors="coerce").astype("Int64")
+    out["unit_start_frame"] = pd.to_numeric(
+        out["label_window_start"],
+        errors="coerce",
+    ).astype("Int64")
+    out["unit_end_frame"] = pd.to_numeric(
+        out["label_window_end"],
+        errors="coerce",
+    ).astype("Int64")
     out["unit_frame_count"] = (out["unit_end_frame"] - out["unit_start_frame"] + 1).astype("Int64")
+    frame_bounds = zip(
+        out["unit_start_frame"],
+        out["unit_end_frame"],
+        strict=False,
+    )
     out["display_frame_indices"] = [
-        _frame_list(start, end) for start, end in zip(out["unit_start_frame"], out["unit_end_frame"], strict=False)
+        _frame_list(start, end) for start, end in frame_bounds
     ]
     out["display_frame_count"] = (
         out["display_frame_indices"].astype(str).map(lambda s: 0 if not s else len(s.split(",")))
@@ -257,13 +312,26 @@ def _add_window_coverage(units: pd.DataFrame, windows: pd.DataFrame) -> pd.DataF
             .agg(
                 affected_window_count=("window_id", "nunique"),
                 affected_window_lengths=("window_length_frames", lambda s: _join_unique_ints(s)),
-                affected_main_train_windows=("window_valid_for_main_train", lambda s: int(_to_bool(s).sum())),
-                affected_stable_windows=("sequence_label_status", lambda s: int(s.astype(str).eq("stable").sum())),
+                affected_main_train_windows=(
+                    "window_valid_for_main_train",
+                    lambda s: int(_to_bool(s).sum()),
+                ),
+                affected_stable_windows=(
+                    "sequence_label_status",
+                    lambda s: int(s.astype(str).eq("stable").sum()),
+                ),
                 affected_uncertain_or_transition_windows=(
                     "sequence_label_status",
-                    lambda s: int(s.astype(str).isin(["uncertain", "transition", "incomplete"]).sum()),
+                    lambda s: int(
+                        s.astype(str)
+                        .isin(["uncertain", "transition", "incomplete"])
+                        .sum()
+                    ),
                 ),
-                affected_behavior_labels=("behavior_window_label", lambda s: _join_unique_strings(s)),
+                affected_behavior_labels=(
+                    "behavior_window_label",
+                    lambda s: _join_unique_strings(s),
+                ),
             )
             .reset_index()
         )
@@ -290,9 +358,13 @@ def _add_window_review_signals(
     keys = ["source_type", "dataset_id", "video_key", "object_track_key", "pig_id"]
     cols = ["window_id", *keys, "window_length_frames", "window_start_frame", "window_end_frame"]
     w = windows[cols].drop_duplicates("window_id").copy()
-    rcols = [
-        c for c in ["window_id", "review_template", "review_reason", "review_priority"] if c in review_manifest.columns
+    candidate_columns = [
+        "window_id",
+        "review_template",
+        "review_reason",
+        "review_priority",
     ]
+    rcols = [c for c in candidate_columns if c in review_manifest.columns]
     r = review_manifest[rcols].copy()
     wr = r.merge(w, on="window_id", how="left")
 
@@ -345,6 +417,15 @@ def _add_window_review_signals(
 
 def _finalize_unit_review_fields(units: pd.DataFrame) -> pd.DataFrame:
     out = units.copy()
+    sort_columns = [
+        "source_type",
+        "dataset_id",
+        "video_key",
+        "object_track_key",
+        "unit_start_frame",
+        "temporal_unit_key",
+    ]
+    out = out.sort_values(sort_columns, kind="mergesort").reset_index(drop=True)
     behavior = out["behavior_label"].fillna("").astype(str)
     status = out["temporal_consistency_status"].fillna("").astype(str)
     interval_reason = out["interval_review_reason"].fillna("").astype(str)
@@ -427,8 +508,11 @@ def _write_template_unit_files(units: pd.DataFrame, output_dir: Path, cap: int) 
     review_units = units[units["include_in_review"].astype(bool)].copy()
     for name in ["roi", "motion", "interaction", "posture", "temporal_consistency"]:
         part = review_units[review_units["review_template"].astype(str).eq(name)].copy()
-        if len(part) > cap:
-            part = part.sort_values("review_priority", ascending=False).head(cap)
+        if cap > 0 and len(part) > cap:
+            raise ValueError(
+                f"canonical template {name} has {len(part)} rows, exceeding cap={cap}; "
+                "use a separate pilot/shortlist builder instead of truncating it"
+            )
         path = output_dir / f"{name}_review_unit_template.csv"
         part.to_csv(path, index=False)
         paths[f"{name}_review_unit_template"] = path
@@ -436,6 +520,83 @@ def _write_template_unit_files(units: pd.DataFrame, output_dir: Path, cap: int) 
     review_units.sort_values("review_priority", ascending=False).to_csv(full_path, index=False)
     paths["full_review_unit_manifest"] = full_path
     return paths
+
+
+def _template_capacity_errors(units: pd.DataFrame, cap: int) -> list[str]:
+    """Reject canonical truncation before any manifest or template is written."""
+    if cap <= 0:
+        return []
+    review_units = units[units["include_in_review"].astype(bool)]
+    errors = []
+    for name in ["roi", "motion", "interaction", "posture", "temporal_consistency"]:
+        count = int(review_units["review_template"].astype(str).eq(name).sum())
+        if count > cap:
+            errors.append(f"canonical_template_cap_exceeded={name}:{count}:{cap}")
+    return errors
+
+
+def _input_contract_errors(
+    intervals: pd.DataFrame,
+    windows: pd.DataFrame,
+    units: pd.DataFrame,
+) -> list[str]:
+    """Check one-to-one lineage before any canonical review file is written."""
+    errors: list[str] = []
+    interval_keys = intervals["temporal_unit_key"].fillna("").astype(str).str.strip()
+    if interval_keys.eq("").any():
+        errors.append(f"blank_interval_temporal_unit_key={int(interval_keys.eq('').sum())}")
+    if interval_keys.duplicated(keep=False).any():
+        count = int(interval_keys.duplicated(keep=False).sum())
+        errors.append(f"duplicate_interval_temporal_unit_key={count}")
+    if len(intervals) != len(units):
+        errors.append(f"interval_review_unit_row_mismatch={len(intervals)}:{len(units)}")
+    if set(interval_keys) != set(units["temporal_unit_key"].astype(str)):
+        errors.append("interval_review_unit_key_set_mismatch")
+
+    window_ids = windows["window_id"].fillna("").astype(str).str.strip()
+    if window_ids.eq("").any():
+        errors.append(f"blank_window_id={int(window_ids.eq('').sum())}")
+    if window_ids.duplicated(keep=False).any():
+        errors.append(f"duplicate_window_id={int(window_ids.duplicated(keep=False).sum())}")
+    if "window_uid" in intervals.columns or "window_uid" in windows.columns:
+        errors.append("forbidden_window_uid_column")
+    return errors
+
+
+def _audit_template_partition(
+    units: pd.DataFrame,
+    templates: dict[str, Path],
+) -> dict[str, Any]:
+    """Prove that policy templates partition the full review manifest."""
+    errors: list[str] = []
+    warnings: list[str] = []
+    review_ids = set(
+        units.loc[units["include_in_review"].astype(bool), "review_unit_id"].astype(str)
+    )
+    union_ids: set[str] = set()
+    for name, path in templates.items():
+        if name == "full_review_unit_manifest":
+            continue
+        part = pd.read_csv(path, low_memory=False)
+        ids = part["review_unit_id"].fillna("").astype(str)
+        if ids.duplicated(keep=False).any():
+            errors.append(f"duplicate_template_review_unit_id={name}")
+        overlap = union_ids.intersection(ids)
+        if overlap:
+            errors.append(f"review_unit_in_multiple_templates={name}:count={len(overlap)}")
+        union_ids.update(ids)
+    if union_ids != review_ids:
+        missing = len(review_ids - union_ids)
+        unexpected = len(union_ids - review_ids)
+        errors.append(
+            f"template_union_mismatch=missing:{missing}:unexpected:{unexpected}"
+        )
+    return {
+        "expected_review_units": int(len(review_ids)),
+        "template_union_units": int(len(union_ids)),
+        "errors": errors,
+        "warnings": warnings,
+    }
 
 
 def _validate_columns(df: pd.DataFrame, required: list[str], name: str) -> None:

@@ -4,6 +4,8 @@ import argparse
 import csv
 import hashlib
 import math
+import os
+import tempfile
 import tkinter as tk
 from dataclasses import dataclass
 from pathlib import Path
@@ -14,6 +16,13 @@ import pandas as pd
 from PIL import Image, ImageDraw, ImageTk
 
 from pig_behavior.classification_v2.features.roi import load_scene_rois_from_coco
+from pig_behavior.classification_v2.review.behavior_review_contract import (
+    CANONICAL_BEHAVIORS,
+    audit_manifest_alignment,
+    audit_review_unit_contract,
+    canonicalize_decisions,
+    validate_decision_semantics,
+)
 
 try:
     import cv2  # type: ignore
@@ -21,18 +30,7 @@ except Exception:  # pragma: no cover
     cv2 = None
 
 
-VALID_BEHAVIORS = [
-    "drink",
-    "eat",
-    "fight",
-    "social-nose",
-    "explore",
-    "lying",
-    "stand",
-    "move",
-    "sitting",
-    "playwithtoy",
-]
+VALID_BEHAVIORS = sorted(CANONICAL_BEHAVIORS)
 
 
 @dataclass(slots=True)
@@ -60,6 +58,30 @@ def safe_filename(value: object, max_len: int = 150) -> str:
     if not s:
         s = hashlib.md5(str(value).encode("utf-8", errors="ignore")).hexdigest()[:12]
     return s[:max_len]
+
+
+def _write_csv_atomic(path: Path, columns: list[str], rows: list[dict[str, Any]]) -> None:
+    """Replace a decision CSV atomically so interruption cannot truncate it."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_name = ""
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            newline="",
+            encoding="utf-8",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as handle:
+            temporary_name = handle.name
+            writer = csv.DictWriter(handle, fieldnames=columns)
+            writer.writeheader()
+            writer.writerows(rows)
+        os.replace(temporary_name, path)
+    finally:
+        if temporary_name and Path(temporary_name).exists():
+            Path(temporary_name).unlink()
 
 
 class ReviewUnitGui:
@@ -111,6 +133,11 @@ class ReviewUnitGui:
         missing = [c for c in required if c not in df.columns]
         if missing:
             raise SystemExit(f"Review unit CSV missing required columns: {missing}")
+        contract = audit_review_unit_contract(df)
+        if contract["errors"]:
+            raise SystemExit(
+                "Review unit contract failed: " + "; ".join(contract["errors"])
+            )
         if self.config.source_type:
             df = df[df["source_type"].astype(str).eq(self.config.source_type)].copy()
         if "review_priority" in df.columns:
@@ -149,6 +176,30 @@ class ReviewUnitGui:
                 "Existing decision CSV does not match the selected review template; "
                 f"unexpected review_unit_id count={len(unexpected)}"
             )
+
+        existing, normalization_warnings = canonicalize_decisions(existing)
+        semantic_errors, semantic_warnings = validate_decision_semantics(
+            existing,
+            require_complete=False,
+        )
+        alignment_errors, _ = audit_manifest_alignment(
+            self.units,
+            existing,
+            allow_blank_snapshot=False,
+        )
+        strength_errors = [
+            warning
+            for warning in semantic_warnings
+            if warning.startswith("active_decision_without_strength")
+        ]
+        errors = semantic_errors + alignment_errors + strength_errors
+        if errors:
+            raise SystemExit(
+                "Existing decision CSV violates review contract: "
+                + "; ".join(sorted(set(errors)))
+            )
+        if normalization_warnings:
+            print("[RESUME WARN] " + "; ".join(normalization_warnings))
 
         decisions: dict[str, dict[str, Any]] = {}
         for record in existing.to_dict(orient="records"):
@@ -267,9 +318,12 @@ class ReviewUnitGui:
         ).grid(row=row, column=1, sticky="ew")
         row += 1
         ttk.Label(form, text="Corrected behavior").grid(row=row, column=0, sticky="w")
-        ttk.Combobox(form, textvariable=self.corrected_var, values=["", *VALID_BEHAVIORS]).grid(
-            row=row, column=1, sticky="ew"
-        )
+        ttk.Combobox(
+            form,
+            textvariable=self.corrected_var,
+            values=["", *VALID_BEHAVIORS],
+            state="readonly",
+        ).grid(row=row, column=1, sticky="ew")
         row += 1
         ttk.Label(form, text="Strength").grid(row=row, column=0, sticky="w")
         ttk.Combobox(
@@ -290,6 +344,7 @@ class ReviewUnitGui:
                 "exclude",
                 "review_later",
             ],
+            state="readonly",
         ).grid(row=row, column=1, sticky="ew")
         row += 1
         ttk.Label(form, text="Weight").grid(row=row, column=0, sticky="w")
@@ -337,6 +392,7 @@ class ReviewUnitGui:
 
         frames = self._frame_rows_for_unit(unit)
         image, diagnostics = self._make_contact_sheet(unit, frames)
+        self.current_diagnostics = diagnostics
         self._photo = ImageTk.PhotoImage(image)
         self.image_label.configure(image=self._photo)
 
@@ -508,7 +564,7 @@ class ReviewUnitGui:
             if img is not None:
                 return img, ""
             return self._placeholder("NO LEGACY CROP"), "missing_legacy_crop_path"
-        img = self._cvat_crop_image(row)
+        img = self._cvat_crop_image(unit, row)
         if img is not None:
             return img, ""
         # fallback for any source with crop_path
@@ -539,7 +595,11 @@ class ReviewUnitGui:
                         continue
         return None
 
-    def _cvat_crop_image(self, row: pd.Series) -> Image.Image | None:
+    def _cvat_crop_image(
+        self,
+        unit: pd.Series,
+        row: pd.Series,
+    ) -> Image.Image | None:
         if cv2 is None:
             return None
         video_path = self._resolve_video_path(row)
@@ -557,6 +617,8 @@ class ReviewUnitGui:
         if not ok or frame is None:
             return None
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        if str(unit.get("review_template", "")) == "interaction":
+            return self._interaction_context_image(frame, row)
         h, w = frame.shape[:2]
         x1 = float(row.get("x1", 0))
         y1 = float(row.get("y1", 0))
@@ -579,6 +641,80 @@ class ReviewUnitGui:
         ax1, ay1, ax2, ay2 = int(x1 - xx1), int(y1 - yy1), int(x2 - xx1), int(y2 - yy1)
         draw.rectangle([ax1, ay1, ax2, ay2], outline="red", width=3)
         return img
+
+    def _interaction_context_image(self, frame: Any, actor: pd.Series) -> Image.Image:
+        """Draw full-frame actor and partner context without using target labels."""
+        image = Image.fromarray(frame).convert("RGB")
+        draw = ImageDraw.Draw(image)
+        frame_index = pd.to_numeric(actor.get("frame_index"), errors="coerce")
+        candidates = self.frames[
+            self.frames["source_type"].astype(str).eq(str(actor.get("source_type", "")))
+            & self.frames["dataset_id"].astype(str).eq(str(actor.get("dataset_id", "")))
+            & self.frames["video_key"].astype(str).eq(str(actor.get("video_key", "")))
+            & self.frames["frame_index"].eq(frame_index)
+        ].copy()
+
+        actor_key = self._context_identity(actor)
+        actor_center = self._bbox_center(actor)
+        nearest_index: Any = None
+        nearest_distance = float("inf")
+        for index, candidate in candidates.iterrows():
+            candidate_key = self._context_identity(candidate)
+            if candidate_key == actor_key:
+                continue
+            center = self._bbox_center(candidate)
+            if center is None or actor_center is None:
+                continue
+            distance = math.dist(actor_center, center)
+            if distance < nearest_distance:
+                nearest_distance = distance
+                nearest_index = index
+
+        for index, candidate in candidates.iterrows():
+            box = self._bbox_coordinates(candidate)
+            if box is None:
+                continue
+            candidate_key = self._context_identity(candidate)
+            is_actor = candidate_key == actor_key
+            color = "red" if is_actor else "#00b050" if index == nearest_index else "yellow"
+            width = 4 if is_actor or index == nearest_index else 2
+            draw.rectangle(box, outline=color, width=width)
+            role = "actor" if is_actor else "nearest" if index == nearest_index else "other"
+            identity = str(candidate.get("pig_id", candidate.get("track_id", "")))
+            draw.text((box[0] + 3, max(0, box[1] - 15)), f"{role}:{identity}", fill=color)
+        return image
+
+    @staticmethod
+    def _bbox_coordinates(row: pd.Series) -> tuple[int, int, int, int] | None:
+        values = pd.to_numeric(
+            pd.Series([row.get("x1"), row.get("y1"), row.get("x2"), row.get("y2")]),
+            errors="coerce",
+        )
+        invalid = (
+            values.isna().any()
+            or values.iloc[2] <= values.iloc[0]
+            or values.iloc[3] <= values.iloc[1]
+        )
+        if invalid:
+            return None
+        return tuple(int(value) for value in values.tolist())
+
+    @staticmethod
+    def _context_identity(row: pd.Series) -> str:
+        """Identify an actor locally without assuming identity across videos."""
+        object_key = str(row.get("object_track_key", "")).strip()
+        if object_key and object_key.lower() not in {"nan", "none", "<na>"}:
+            return f"object:{object_key}"
+        track_id = str(row.get("track_id", "")).strip()
+        pig_id = str(row.get("pig_id", "")).strip()
+        return f"track:{track_id}|pig:{pig_id}"
+
+    @classmethod
+    def _bbox_center(cls, row: pd.Series) -> tuple[float, float] | None:
+        box = cls._bbox_coordinates(row)
+        if box is None:
+            return None
+        return ((box[0] + box[2]) / 2.0, (box[1] + box[3]) / 2.0)
 
     def _draw_roi_overlays(
         self,
@@ -678,10 +814,10 @@ class ReviewUnitGui:
         out.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
         return out
 
-    def save_current(self) -> None:
+    def save_current(self) -> bool:
         unit = self.current_unit()
         unit_id = str(unit["review_unit_id"])
-        self.decisions[unit_id] = {
+        record = {
             "review_item_id": unit.get("review_item_id", ""),
             "review_unit_id": unit_id,
             "review_unit_type": unit.get("review_unit_type", ""),
@@ -707,7 +843,51 @@ class ReviewUnitGui:
             "manual_sample_weight": self.weight_var.get(),
             "manual_note": self.note_var.get(),
         }
+        normalized, warnings = canonicalize_decisions(pd.DataFrame([record]))
+        errors, semantic_warnings = validate_decision_semantics(
+            normalized,
+            require_complete=False,
+        )
+        warnings.extend(semantic_warnings)
+        errors.extend(
+            warning
+            for warning in warnings
+            if warning.startswith("active_decision_without_strength")
+        )
+
+        decision = str(normalized.iloc[0]["manual_review_decision"])
+        wanted = self._display_frames(unit)
+        frame_rows = self._frame_rows_for_unit(unit)
+        observed = pd.to_numeric(frame_rows["frame_index"], errors="coerce")
+        observed_frames = sorted(observed.dropna().astype(int).tolist())
+        complete_scope = observed_frames == wanted
+        diagnostics = getattr(self, "current_diagnostics", [])
+        blocking_diagnostics = [
+            message
+            for message in diagnostics
+            if "no frame row" in message
+            or "missing_video_or_crop" in message
+            or "missing_legacy_crop_path" in message
+            or "no_frames" in message
+        ]
+        if decision in {"accept", "corrected"} and not complete_scope:
+            errors.append("cannot confirm behavior: displayed frame scope is incomplete")
+        if decision in {"accept", "corrected"} and blocking_diagnostics:
+            errors.append("cannot confirm behavior: one or more images are unavailable")
+        if decision == "exclude" and (not complete_scope or blocking_diagnostics):
+            if not str(normalized.iloc[0]["manual_note"]).strip():
+                errors.append("exclusion with incomplete visual evidence requires a note")
+        if errors:
+            messagebox.showerror("Invalid decision", "\n".join(sorted(set(errors))))
+            return False
+
+        normalized_record = normalized.iloc[0].to_dict()
+        self.decisions[unit_id] = {
+            key: "" if pd.isna(value) else value
+            for key, value in normalized_record.items()
+        }
         self.write_decisions(show_message=False)
+        return True
 
     def write_decisions(self, show_message: bool = True) -> None:
         unit_order = {
@@ -752,21 +932,15 @@ class ReviewUnitGui:
             "manual_sample_weight",
             "manual_note",
         ]
-        with out1.open("w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=cols)
-            writer.writeheader()
-            writer.writerows(rows)
+        _write_csv_atomic(out1, cols, rows)
         # Compatibility file name; still unit-level, not expanded window-level.
-        with out2.open("w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=cols)
-            writer.writeheader()
-            writer.writerows(rows)
+        _write_csv_atomic(out2, cols, rows)
         if show_message:
             messagebox.showinfo("Saved", f"Wrote {len(rows)} decisions\n{out1}\n{out2}")
 
     def save_next(self) -> None:
-        self.save_current()
-        self.next_item()
+        if self.save_current():
+            self.next_item()
 
     def accept_strong_next(self) -> None:
         self.decision_var.set("accept")

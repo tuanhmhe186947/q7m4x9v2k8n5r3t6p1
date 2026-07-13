@@ -42,7 +42,15 @@ def main() -> None:
         type=Path,
         default=Path(r"outputs/classification_v2/review_units"),
     )
-    parser.add_argument("--max-units-per-template", type=int, default=5000)
+    parser.add_argument(
+        "--max-units-per-template",
+        type=int,
+        default=0,
+        help=(
+            "Fail if a canonical template exceeds this size. Zero means no cap. "
+            "Use pilot builders for sampled review instead of truncating canonical files."
+        ),
+    )
     args = parser.parse_args()
 
     window_review = args.window_review_manifest_csv

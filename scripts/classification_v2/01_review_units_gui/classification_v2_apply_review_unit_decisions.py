@@ -18,30 +18,14 @@ from typing import Any
 
 import pandas as pd
 
-CANONICAL_BEHAVIORS = {
-    "drink",
-    "eat",
-    "fight",
-    "social-nose",
-    "explore",
-    "lying",
-    "stand",
-    "move",
-    "sitting",
-    "playwithtoy",
-}
+from pig_behavior.classification_v2.review.behavior_review_contract import (
+    audit_manifest_alignment,
+    audit_review_unit_contract,
+    canonicalize_decisions,
+    normalize_text,
+    validate_decision_semantics,
+)
 
-VALID_DECISIONS = {"pending", "accept", "corrected", "exclude", "reject", "uncertain"}
-VALID_ACTIONS = {
-    "",
-    "main_train",
-    "keep",
-    "correct_and_keep",
-    "downweight",
-    "low_weight_train",
-    "exclude",
-    "review_later",
-}
 DEFAULT_DECISION_FILES = [
     (
         r"outputs\classification_v2\review_policy\roi_review_unit_gui_pilot"
@@ -63,12 +47,8 @@ DEFAULT_DECISION_FILES = [
 
 
 def _norm_text(value: Any) -> str:
-    if pd.isna(value):
-        return ""
-    text = str(value).strip()
-    if text.lower() == "nan":
-        return ""
-    return text
+    """Compatibility wrapper for callers of the former local helper."""
+    return normalize_text(value)
 
 
 def _to_bool_action(action: str, decision: str) -> bool:
@@ -118,6 +98,17 @@ def load_decisions(
     errors: list[str] = []
     warnings: list[str] = []
 
+    unit_contract = audit_review_unit_contract(review_unit_manifest)
+    errors.extend(unit_contract["errors"])
+    warnings.extend(unit_contract["warnings"])
+    if errors:
+        return pd.DataFrame(), {
+            "missing_files": missing_files,
+            "load_errors": errors,
+            "load_warnings": warnings,
+            "review_unit_contract": unit_contract,
+        }
+
     manifest_cols = [
         "review_unit_id",
         "temporal_unit_key",
@@ -156,6 +147,14 @@ def load_decisions(
         if "original_behavior" not in df.columns:
             df["original_behavior"] = df["behavior_label"]
 
+        alignment_errors, alignment_warnings = audit_manifest_alignment(
+            review_unit_manifest,
+            df,
+            allow_blank_snapshot=True,
+        )
+        errors.extend(f"{path}:{error}" for error in alignment_errors)
+        warnings.extend(f"{path}:{warning}" for warning in alignment_warnings)
+
         # Fill missing metadata from canonical review unit manifest.
         df = df.merge(
             manifest_small,
@@ -178,6 +177,16 @@ def load_decisions(
             elif mcol in df.columns:
                 df[col] = df[col].where(df[col].notna() & df[col].astype(str).ne(""), df[mcol])
 
+        original = df["original_behavior"].map(_norm_text)
+        df["original_behavior"] = original.where(original.ne(""), df["behavior_label"])
+
+        final_alignment_errors, _ = audit_manifest_alignment(
+            review_unit_manifest,
+            df,
+            allow_blank_snapshot=False,
+        )
+        errors.extend(f"{path}:{error}" for error in final_alignment_errors)
+
         parts.append(df)
 
     if parts:
@@ -187,104 +196,25 @@ def load_decisions(
 
     audit = {
         "missing_files": missing_files,
-        "load_errors": errors,
-        "load_warnings": warnings,
+        "load_errors": sorted(set(errors)),
+        "load_warnings": sorted(set(warnings)),
+        "review_unit_contract": unit_contract,
     }
     return decisions, audit
 
 
 def normalize_decisions(decisions: pd.DataFrame) -> tuple[pd.DataFrame, list[str], list[str]]:
-    errors: list[str] = []
-    warnings: list[str] = []
-
     if decisions.empty:
-        return decisions, errors, warnings
+        return decisions, [], []
 
-    required_defaults = {
-        "review_unit_id": "",
-        "temporal_unit_key": "",
-        "review_template": "",
-        "behavior_label": "",
-        "original_behavior": "",
-        "manual_review_decision": "pending",
-        "manual_corrected_behavior": "",
-        "manual_label_strength": "",
-        "manual_training_action": "",
-        "manual_sample_weight": pd.NA,
-        "manual_note": "",
-    }
-    for col, default in required_defaults.items():
-        if col not in decisions.columns:
-            decisions[col] = default
-
-    for col in [
-        "review_unit_id",
-        "temporal_unit_key",
-        "review_template",
-        "behavior_label",
-        "original_behavior",
-        "manual_review_decision",
-        "manual_corrected_behavior",
-        "manual_label_strength",
-        "manual_training_action",
-        "manual_note",
-    ]:
-        decisions[col] = decisions[col].map(_norm_text)
-
-    decisions["manual_review_decision"] = decisions["manual_review_decision"].replace("", "pending")
-    decisions["manual_sample_weight"] = pd.to_numeric(
-        decisions["manual_sample_weight"],
-        errors="coerce",
+    normalized, warnings = canonicalize_decisions(decisions)
+    errors, semantic_warnings = validate_decision_semantics(
+        normalized,
+        require_complete=False,
     )
-
-    # Normalize actions and weights.
-    for idx, row in decisions.iterrows():
-        decision = row["manual_review_decision"]
-        action = row["manual_training_action"]
-        if action == "":
-            action = _default_action(decision)
-            decisions.at[idx, "manual_training_action"] = action
-        if pd.isna(row["manual_sample_weight"]):
-            default_weight = _default_weight(decision, action)
-            if default_weight is not None:
-                decisions.at[idx, "manual_sample_weight"] = default_weight
-
-    pending = decisions["manual_review_decision"].eq("pending")
-    decisions.loc[pending, "manual_corrected_behavior"] = ""
-    decisions.loc[pending, "manual_training_action"] = ""
-    decisions.loc[pending, "manual_sample_weight"] = pd.NA
-
-    bad_decisions = sorted(set(decisions["manual_review_decision"]) - VALID_DECISIONS)
-    if bad_decisions:
-        warnings.append(f"unknown manual_review_decision values: {bad_decisions}")
-
-    bad_actions = sorted(set(decisions["manual_training_action"].fillna("")) - VALID_ACTIONS)
-    if bad_actions:
-        warnings.append(f"unknown manual_training_action values: {bad_actions}")
-
-    active = decisions[~decisions["manual_review_decision"].eq("pending")].copy()
-    corrected = active[active["manual_review_decision"].eq("corrected")].copy()
-    if not corrected.empty:
-        invalid_corrected = corrected[
-            ~corrected["manual_corrected_behavior"].isin(CANONICAL_BEHAVIORS)
-        ]
-        if len(invalid_corrected):
-            errors.append(
-                "corrected decisions with invalid/manual missing behavior: "
-                + ", ".join(invalid_corrected["review_unit_id"].astype(str).head(10).tolist())
-            )
-
-    # Dedupe: if the same review_unit_id appears more than once, keep the last active row.
-    # This supports repeated GUI pilot tests while still recording a warning.
-    active_dups = int(active["review_unit_id"].duplicated(keep=False).sum()) if len(active) else 0
-    if active_dups:
-        warnings.append(
-            f"duplicate active decisions rows={active_dups}; "
-            "keeping last per review_unit_id"
-        )
-
-    decisions["_decision_order"] = range(len(decisions))
-    return decisions, errors, warnings
+    warnings.extend(semantic_warnings)
+    normalized["_decision_order"] = range(len(normalized))
+    return normalized, errors, warnings
 
 
 def apply_decisions_to_frames(
@@ -292,12 +222,31 @@ def apply_decisions_to_frames(
     review_units: pd.DataFrame,
     decisions: pd.DataFrame,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
-    _validate_columns(frames, ["temporal_unit_key", "behavior"], "frame_features_csv")
     _validate_columns(
-        review_units,
-        ["review_unit_id", "temporal_unit_key"],
-        "review_unit_manifest_csv",
+        frames,
+        ["temporal_unit_key", "source_type", "frame_index", "behavior"],
+        "frame_features_csv",
     )
+    unit_contract = audit_review_unit_contract(review_units)
+    if unit_contract["errors"]:
+        raise ValueError(
+            "invalid review_unit_manifest_csv: "
+            + "; ".join(unit_contract["errors"])
+        )
+
+    if not decisions.empty:
+        semantic_errors, _ = validate_decision_semantics(
+            decisions,
+            require_complete=False,
+        )
+        alignment_errors, _ = audit_manifest_alignment(
+            review_units,
+            decisions,
+            allow_blank_snapshot=True,
+        )
+        decision_errors = semantic_errors + alignment_errors
+        if decision_errors:
+            raise ValueError("invalid behavior decisions: " + "; ".join(decision_errors))
 
     out = frames.copy()
     out["behavior_before_review"] = out["behavior"].fillna("").astype(str)
@@ -361,22 +310,37 @@ def apply_decisions_to_frames(
             "training_action_counts": {},
         }
 
-    # Keep last active row per unit.
-    active = active.sort_values("_decision_order").drop_duplicates("review_unit_id", keep="last")
-
     unit_map = review_units[
-        ["review_unit_id", "temporal_unit_key"]
-    ].drop_duplicates("review_unit_id")
-    active = active.merge(unit_map, on="review_unit_id", how="left", suffixes=("", "_unit"))
-    active["target_temporal_unit_key"] = active["temporal_unit_key"].where(
-        active["temporal_unit_key"].notna() & active["temporal_unit_key"].astype(str).ne(""),
-        active["temporal_unit_key_unit"],
+        [
+            "review_unit_id",
+            "temporal_unit_key",
+            "source_type",
+            "unit_start_frame",
+            "unit_end_frame",
+        ]
+    ].rename(
+        columns={
+            "temporal_unit_key": "target_temporal_unit_key",
+            "source_type": "target_source_type",
+            "unit_start_frame": "target_start_frame",
+            "unit_end_frame": "target_end_frame",
+        }
     )
-    active["target_temporal_unit_key"] = active["target_temporal_unit_key"].map(_norm_text)
+    active = active.merge(
+        unit_map,
+        on="review_unit_id",
+        how="left",
+        validate="one_to_one",
+    )
+    active["target_temporal_unit_key"] = active["target_temporal_unit_key"].map(
+        _norm_text
+    )
 
     unmatched: list[str] = []
     touched_total = 0
     applied_count = 0
+    applied_unit_ids: list[str] = []
+    frame_index = pd.to_numeric(out["frame_index"], errors="coerce")
 
     for _, row in active.iterrows():
         unit_id = row["review_unit_id"]
@@ -385,10 +349,30 @@ def apply_decisions_to_frames(
             unmatched.append(f"{unit_id}:missing_temporal_unit_key")
             continue
 
-        mask = out["temporal_unit_key"].astype(str).eq(str(target_key))
+        start = int(row["target_start_frame"])
+        end = int(row["target_end_frame"])
+        key_mask = out["temporal_unit_key"].astype(str).eq(str(target_key))
+        mask = (
+            key_mask
+            & out["source_type"].astype(str).eq(str(row["target_source_type"]))
+            & frame_index.between(start, end)
+        )
         n = int(mask.sum())
         if n == 0:
             unmatched.append(f"{unit_id}:no_matching_frames")
+            continue
+        observed_frames = frame_index[mask].dropna().astype(int).tolist()
+        expected_frames = list(range(start, end + 1))
+        if int(key_mask.sum()) != n:
+            unmatched.append(f"{unit_id}:temporal_key_has_rows_outside_unit_scope")
+            continue
+        if len(observed_frames) != len(expected_frames):
+            unmatched.append(
+                f"{unit_id}:row_count={len(observed_frames)}:expected={len(expected_frames)}"
+            )
+            continue
+        if sorted(observed_frames) != expected_frames:
+            unmatched.append(f"{unit_id}:frame_scope_not_exact_or_has_duplicates")
             continue
 
         decision = row["manual_review_decision"]
@@ -415,6 +399,9 @@ def apply_decisions_to_frames(
 
         touched_total += n
         applied_count += 1
+        applied_unit_ids.append(str(unit_id))
+
+    applied = active[active["review_unit_id"].astype(str).isin(applied_unit_ids)].copy()
 
     audit = {
         "decisions_loaded": int(len(decisions)),
@@ -427,14 +414,14 @@ def apply_decisions_to_frames(
             (out["behavior_after_review"] != out["behavior_before_review"]).sum()
         ),
         "excluded_frames": int((~out["review_include_in_training"].astype(bool)).sum()),
-        "accepted_units": int(active["manual_review_decision"].eq("accept").sum()),
-        "corrected_units": int(active["manual_review_decision"].eq("corrected").sum()),
-        "excluded_units": int(active["manual_review_decision"].isin(["exclude", "reject"]).sum()),
+        "accepted_units": int(applied["manual_review_decision"].eq("accept").sum()),
+        "corrected_units": int(applied["manual_review_decision"].eq("corrected").sum()),
+        "excluded_units": int(applied["manual_review_decision"].eq("exclude").sum()),
         "duplicate_active_decision_rows": duplicate_active_rows,
         "missing_review_unit_count": int(len(unmatched)),
         "unmatched_decisions": unmatched,
-        "decision_counts": active["manual_review_decision"].value_counts(dropna=False).to_dict(),
-        "training_action_counts": active["manual_training_action"]
+        "decision_counts": applied["manual_review_decision"].value_counts(dropna=False).to_dict(),
+        "training_action_counts": applied["manual_training_action"]
         .value_counts(dropna=False)
         .to_dict(),
         "review_include_in_training_counts": out["review_include_in_training"]
@@ -496,18 +483,34 @@ def main() -> None:
     decisions, load_audit = load_decisions(decision_paths, review_units)
     decisions, norm_errors, norm_warnings = normalize_decisions(decisions)
 
-    apply_errors: list[str] = []
-    if norm_errors:
-        apply_errors.extend(norm_errors)
+    apply_errors = list(load_audit.get("load_errors", [])) + norm_errors
+    missing_files = load_audit.get("missing_files", [])
+    if missing_files:
+        apply_errors.append(f"missing_decision_files={missing_files}")
+    if decisions.empty:
+        apply_errors.append("no_behavior_review_decisions_loaded")
 
-    reviewed, apply_audit = apply_decisions_to_frames(frames, review_units, decisions)
+    reviewed: pd.DataFrame | None = None
+    apply_audit: dict[str, Any] = {"skipped": True}
+    if not apply_errors:
+        try:
+            reviewed, apply_audit = apply_decisions_to_frames(
+                frames,
+                review_units,
+                decisions,
+            )
+        except ValueError as exc:
+            apply_errors.append(str(exc))
+        else:
+            unmatched = apply_audit.get("unmatched_decisions", [])
+            if unmatched:
+                apply_errors.append(f"unmatched_decisions={unmatched}")
+            if len(reviewed) != len(frames):
+                apply_errors.append(
+                    f"reviewed_row_count_mismatch={len(frames)}:{len(reviewed)}"
+                )
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
     audit_path.parent.mkdir(parents=True, exist_ok=True)
-    combined_path.parent.mkdir(parents=True, exist_ok=True)
-
-    reviewed.to_csv(output_path, index=False, encoding="utf-8-sig")
-    decisions.to_csv(combined_path, index=False, encoding="utf-8-sig")
 
     audit = {
         "errors": apply_errors,
@@ -524,25 +527,34 @@ def main() -> None:
         },
         "rows": {
             "frame_features": int(len(frames)),
-            "reviewed_frame_features": int(len(reviewed)),
+            "reviewed_frame_features": int(len(reviewed)) if reviewed is not None else None,
             "decisions_loaded": int(len(decisions)),
         },
         "load_audit": load_audit,
         "apply_audit": apply_audit,
     }
 
+    if apply_errors:
+        audit_path.write_text(
+            json.dumps(audit, indent=2, ensure_ascii=False, default=str),
+            encoding="utf-8",
+        )
+        print(json.dumps(audit, indent=2, ensure_ascii=False, default=str))
+        raise SystemExit(2)
+
+    assert reviewed is not None
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    combined_path.parent.mkdir(parents=True, exist_ok=True)
+    reviewed.to_csv(output_path, index=False, encoding="utf-8-sig")
+    decisions.to_csv(combined_path, index=False, encoding="utf-8-sig")
     audit_path.write_text(
         json.dumps(audit, indent=2, ensure_ascii=False, default=str),
         encoding="utf-8",
     )
-
     print(json.dumps(audit, indent=2, ensure_ascii=False, default=str))
     print("\n[OK] wrote", output_path, "rows=", len(reviewed), "cols=", len(reviewed.columns))
     print("[OK] wrote", combined_path, "rows=", len(decisions))
     print("[OK] wrote", audit_path)
-
-    if apply_errors:
-        raise SystemExit(2)
 
 
 if __name__ == "__main__":

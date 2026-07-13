@@ -900,21 +900,6 @@ def _first_existing_series(
     return pd.Series([default] * len(df), index=df.index)
 
 
-def _first_existing_series(
-    df: pd.DataFrame,
-    columns: list[str],
-    *,
-    default: Any,
-) -> pd.Series:
-    """Return the first existing non-empty column among candidates."""
-    for column in columns:
-        if column in df.columns:
-            series = df[column]
-            if not series.isna().all():
-                return series
-    return pd.Series([default] * len(df), index=df.index)
-
-
 def _to_numeric(series: pd.Series) -> pd.Series:
     """Convert a Series to numeric with invalid values as NA."""
     return pd.to_numeric(series, errors="coerce")
