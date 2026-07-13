@@ -118,15 +118,29 @@ def export_spatial_sequences(
         raise ValueError(f"Forbidden spatial feature columns selected: {forbidden_selected}")
 
     work_windows = windows.reset_index(drop=True).copy()
-    work_windows["window_start_frame"] = pd.to_numeric(work_windows["window_start_frame"], errors="coerce")
-    work_windows["window_end_frame"] = pd.to_numeric(work_windows["window_end_frame"], errors="coerce")
-    work_windows["window_length_frames"] = pd.to_numeric(work_windows["window_length_frames"], errors="coerce")
+    for column in [
+        "window_start_frame",
+        "window_end_frame",
+        "window_length_frames",
+    ]:
+        work_windows[column] = pd.to_numeric(
+            work_windows[column],
+            errors="coerce",
+        )
+    _validate_window_alignment_contract(work_windows)
     if max_window_length is None:
         max_window_length = int(work_windows["window_length_frames"].max())
+    if max_window_length <= 0:
+        raise ValueError("max_window_length must be greater than zero")
+    if max_window_length < int(work_windows["window_length_frames"].max()):
+        raise ValueError(
+            "max_window_length is smaller than a declared window length: "
+            f"max_window_length={max_window_length}"
+        )
 
     work_frames = frames[["object_track_key", "frame_index", *selected_cols]].copy()
     work_frames["frame_index"] = pd.to_numeric(work_frames["frame_index"], errors="coerce")
-    work_frames = work_frames.dropna(subset=["object_track_key", "frame_index"])
+    _validate_frame_alignment_contract(work_frames)
     work_frames["frame_index"] = work_frames["frame_index"].astype(int)
     for col in selected_cols:
         work_frames[col] = _numeric_feature(work_frames[col])
@@ -177,7 +191,9 @@ def export_spatial_sequences(
             frame_indices, feature_matrix = frame_data
             positions = np.searchsorted(frame_indices, wanted_frames)
             bounded_positions = np.minimum(positions, len(frame_indices) - 1)
-            valid = (positions < len(frame_indices)) & (frame_indices[bounded_positions] == wanted_frames)
+            valid = (positions < len(frame_indices)) & (
+                frame_indices[bounded_positions] == wanted_frames
+            )
             if not valid.any():
                 missing_frame_slots += len(wanted_frames)
                 continue
@@ -199,6 +215,14 @@ def export_spatial_sequences(
 
     audit = {
         "rows": int(len(work_windows)),
+        "input_window_rows": int(len(windows)),
+        "aligned_window_rows": int(len(work_windows)),
+        "input_frame_rows": int(len(frames)),
+        "aligned_frame_rows": int(len(work_frames)),
+        "invalid_window_alignment_rows": 0,
+        "invalid_frame_alignment_rows": 0,
+        "duplicate_window_id_rows": 0,
+        "duplicate_frame_alignment_rows": 0,
         "max_window_length": int(max_window_length),
         "array_shapes": {name: list(value.shape) for name, value in arrays.items()},
         "feature_names": feature_names,
@@ -220,6 +244,78 @@ def export_spatial_sequences(
     return SpatialSequenceExport(arrays=arrays, feature_names=feature_names, audit=audit)
 
 
+def _validate_window_alignment_contract(windows: pd.DataFrame) -> None:
+    """Reject ambiguous or malformed window rows before tensor alignment."""
+    if windows.empty:
+        raise ValueError("Window alignment contract failed: no window rows")
+
+    key_text = windows["object_track_key"].fillna("").astype(str).str.strip()
+    id_text = windows["window_id"].fillna("").astype(str).str.strip()
+    start = windows["window_start_frame"]
+    end = windows["window_end_frame"]
+    length = windows["window_length_frames"]
+    integer_fields = (
+        start.notna()
+        & end.notna()
+        & length.notna()
+        & start.mod(1).eq(0)
+        & end.mod(1).eq(0)
+        & length.mod(1).eq(0)
+    )
+    span_valid = start.le(end) & length.eq(end - start + 1) & length.gt(0)
+    invalid = key_text.eq("") | id_text.eq("") | ~integer_fields | ~span_valid
+    duplicate_id = id_text.ne("") & id_text.duplicated(keep=False)
+    if invalid.any() or duplicate_id.any():
+        _raise_alignment_error(
+            "Window",
+            windows,
+            invalid,
+            duplicate_id,
+            duplicate_name="duplicate_window_id_rows",
+        )
+
+
+def _validate_frame_alignment_contract(frames: pd.DataFrame) -> None:
+    """Reject frame rows that would otherwise be dropped or truncated."""
+    key_text = frames["object_track_key"].fillna("").astype(str).str.strip()
+    frame_index = frames["frame_index"]
+    integer_index = frame_index.notna() & frame_index.mod(1).eq(0)
+    invalid = key_text.eq("") | ~integer_index
+    duplicate = pd.DataFrame(
+        {
+            "object_track_key": key_text,
+            "frame_index": frame_index,
+        }
+    ).duplicated(keep=False)
+    duplicate &= ~invalid
+    if invalid.any() or duplicate.any():
+        _raise_alignment_error(
+            "Frame",
+            frames,
+            invalid,
+            duplicate,
+            duplicate_name="duplicate_frame_alignment_rows",
+        )
+
+
+def _raise_alignment_error(
+    kind: str,
+    rows: pd.DataFrame,
+    invalid: pd.Series,
+    duplicate: pd.Series,
+    *,
+    duplicate_name: str,
+) -> None:
+    """Raise a compact alignment error with counts and source-row samples."""
+    affected = invalid | duplicate
+    sample_indices = [str(value) for value in rows.index[affected].tolist()[:10]]
+    raise ValueError(
+        f"{kind} alignment contract failed: invalid_rows={int(invalid.sum())}, "
+        f"{duplicate_name}={int(duplicate.sum())}, "
+        f"sample_source_indices={sample_indices}"
+    )
+
+
 def _available_feature_names(frames: pd.DataFrame) -> dict[str, list[str]]:
     available: dict[str, list[str]] = {}
     for group_name, cols in SPATIAL_FRAME_FEATURES.items():
@@ -236,11 +332,22 @@ def _numeric_feature(series: pd.Series) -> pd.Series:
         lower = series.astype(str).str.strip().str.lower()
         bool_like = lower.isin(["true", "false", "yes", "no", "1", "0", "nan", "<na>", "none", ""])
         if bool_like.mean() > 0.95:
-            mapped = lower.map({"true": 1.0, "yes": 1.0, "1": 1.0, "false": 0.0, "no": 0.0, "0": 0.0})
+            mapped = lower.map(
+                {
+                    "true": 1.0,
+                    "yes": 1.0,
+                    "1": 1.0,
+                    "false": 0.0,
+                    "no": 0.0,
+                    "0": 0.0,
+                }
+            )
             return mapped.fillna(0.0).astype(float)
     return pd.to_numeric(series, errors="coerce").replace([np.inf, -np.inf], np.nan).fillna(0.0)
 
 
 def _is_forbidden(column: str) -> bool:
     lower = column.lower()
-    return any(token in lower for token in FORBIDDEN_SUBSTRINGS) or lower.startswith(("target_roi_", "roi_target_"))
+    return any(
+        token in lower for token in FORBIDDEN_SUBSTRINGS
+    ) or lower.startswith(("target_roi_", "roi_target_"))
