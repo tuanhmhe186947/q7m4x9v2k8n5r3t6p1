@@ -478,6 +478,11 @@ Gate: `errors=[]`, hai source, complete CVAT 6-frame actor units, complete legac
 688 row, 63 native unit và đủ 10 behavior; số khác phải được giải thích, không
 ép về 688 bằng cách cắt row.
 
+Reference scope 688-row không chứa case anchor 1020. Vì vậy technical smoke này
+không được dùng làm bằng chứng cho case bắt buộc; checker ở mục 10.2 phải chạy
+trên chính full versioned enhanced/interval/review-unit artifacts trước khi mở
+full human behavior review hoặc model smoke.
+
 ## 8A. Hidden review hai chiều trước temporal harmonization
 
 Hidden review độc lập với behavior review. Mục tiêu không chỉ xác nhận các row
