@@ -7,6 +7,9 @@ from pathlib import Path
 
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.output_safety import (
+    require_output_paths_available,
+)
 from pig_behavior.classification_v2.train_ready_features import build_train_ready_window_tables
 
 
@@ -68,12 +71,7 @@ def main() -> None:
     weight_path = args.output_dir / "sample_weight.csv"
     audit_path = args.output_dir / "train_ready_audit.json"
     output_paths = [x_path, y_path, mask_path, weight_path, audit_path]
-    existing = [path for path in output_paths if path.exists()]
-    if existing and not args.overwrite:
-        raise FileExistsError(
-            "Derived export files already exist; pass --overwrite explicitly: "
-            f"{existing}"
-        )
+    require_output_paths_available(output_paths, overwrite=args.overwrite)
 
     df = pd.read_csv(args.input_csv, low_memory=False)
     if args.max_rows is not None:

@@ -9,6 +9,9 @@ from pathlib import Path
 
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.output_safety import (
+    require_output_paths_available,
+)
 from pig_behavior.classification_v2.features.sequence_windows import (
     audit_sequence_windows,
     build_sequence_windows,
@@ -85,7 +88,53 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--max-windows-per-track", type=int, default=None)
     parser.add_argument("--max-rows", type=int, default=None)
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace existing derived sequence and audit files explicitly.",
+    )
     return parser.parse_args()
+
+
+def _write_audit(path: Path, audit: dict[str, object]) -> None:
+    """Persist sequence audit evidence for both PASS and failed builds."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(audit, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
+def _fail_if_audit_has_errors(
+    audit: dict[str, object],
+    audit_path: Path,
+) -> None:
+    """Write a failed audit and prevent invalid sequence tables from output."""
+
+    errors = audit.get("errors") or []
+    if not errors:
+        return
+    _write_audit(audit_path, audit)
+    print(f"[ERRORS] {errors}")
+    raise SystemExit(2)
+
+
+def _resolved_output_paths(args: argparse.Namespace) -> dict[str, Path]:
+    """Resolve every output once so safety checks and writers cannot drift."""
+
+    output_dir = args.output_dir
+    return {
+        "harmonized": args.harmonized_frame_csv
+        or output_dir / "training_ready_frame_features_harmonized_preview.csv",
+        "intervals": args.temporal_intervals_csv
+        or output_dir / "temporal_label_intervals.csv",
+        "manifest": args.sequence_window_manifest_csv
+        or output_dir / "sequence_window_manifest.csv",
+        "features": args.sequence_window_features_csv
+        or output_dir / "sequence_window_features.csv",
+        "audit": args.audit_json or output_dir / "sequence_window_audit.json",
+    }
 
 
 def _to_bool_series(s: pd.Series) -> pd.Series:
@@ -353,10 +402,15 @@ def _try_fast_reviewed_rebuild(args: argparse.Namespace) -> bool:
             return False
 
     output_dir = args.output_dir
-    intervals_csv = args.temporal_intervals_csv or output_dir / "temporal_label_intervals.csv"
-    manifest_csv = args.sequence_window_manifest_csv or output_dir / "sequence_window_manifest.csv"
-    features_csv = args.sequence_window_features_csv or output_dir / "sequence_window_features.csv"
-    audit_json = args.audit_json or output_dir / "sequence_window_audit.json"
+    paths = _resolved_output_paths(args)
+    intervals_csv = paths["intervals"]
+    manifest_csv = paths["manifest"]
+    features_csv = paths["features"]
+    audit_json = paths["audit"]
+    require_output_paths_available(
+        [intervals_csv, manifest_csv, features_csv, audit_json],
+        overwrite=args.overwrite,
+    )
 
     output_dir.mkdir(parents=True, exist_ok=True)
     intervals_csv.parent.mkdir(parents=True, exist_ok=True)
@@ -379,10 +433,6 @@ def _try_fast_reviewed_rebuild(args: argparse.Namespace) -> bool:
     intervals = pd.read_csv(base_intervals, low_memory=False)
     windows = pd.read_csv(base_manifest, low_memory=False)
     windows = _apply_review_overlay_to_windows(windows, frames_overlay)
-
-    intervals.to_csv(intervals_csv, index=False)
-    windows.to_csv(manifest_csv, index=False)
-    windows.to_csv(features_csv, index=False)
 
     temporal_audit = {
         "rows": None,
@@ -418,20 +468,24 @@ def _try_fast_reviewed_rebuild(args: argparse.Namespace) -> bool:
             "disable_fast_reuse": args.disable_fast_reuse,
             "max_windows_per_track": args.max_windows_per_track,
             "max_rows": args.max_rows,
+            "overwrite": args.overwrite,
         },
         "temporal_harmonization": temporal_audit,
         "sequence_windows": window_audit,
         "errors": temporal_audit.get("errors", []) + window_audit.get("errors", []),
         "warnings": temporal_audit.get("warnings", []) + window_audit.get("warnings", []),
     }
-    audit_json.write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
+    _fail_if_audit_has_errors(audit, audit_json)
+
+    intervals.to_csv(intervals_csv, index=False)
+    windows.to_csv(manifest_csv, index=False)
+    windows.to_csv(features_csv, index=False)
+    _write_audit(audit_json, audit)
 
     print(f"[OK] fast reviewed rebuild wrote {intervals_csv} rows={len(intervals)}")
     print(f"[OK] fast reviewed rebuild wrote {manifest_csv} rows={len(windows)}")
     print(f"[OK] fast reviewed rebuild wrote {features_csv} rows={len(windows)}")
     print(f"[OK] fast reviewed rebuild wrote {audit_json}")
-    if audit["errors"]:
-        print(f"[ERRORS] {audit['errors']}")
     if audit["warnings"]:
         print(f"[WARNINGS] {audit['warnings']}")
     return True
@@ -446,6 +500,12 @@ def main() -> None:
 
     if _try_fast_reviewed_rebuild(args):
         return
+
+    paths = _resolved_output_paths(args)
+    require_output_paths_available(
+        paths.values(),
+        overwrite=args.overwrite,
+    )
 
     df = pd.read_csv(args.input_csv, low_memory=False)
     if args.max_rows is not None:
@@ -492,13 +552,11 @@ def main() -> None:
         )
 
     output_dir = args.output_dir
-    harmonized_csv = args.harmonized_frame_csv or (
-        output_dir / "training_ready_frame_features_harmonized_preview.csv"
-    )
-    intervals_csv = args.temporal_intervals_csv or output_dir / "temporal_label_intervals.csv"
-    manifest_csv = args.sequence_window_manifest_csv or output_dir / "sequence_window_manifest.csv"
-    features_csv = args.sequence_window_features_csv or output_dir / "sequence_window_features.csv"
-    audit_json = args.audit_json or output_dir / "sequence_window_audit.json"
+    harmonized_csv = paths["harmonized"]
+    intervals_csv = paths["intervals"]
+    manifest_csv = paths["manifest"]
+    features_csv = paths["features"]
+    audit_json = paths["audit"]
 
     output_dir.mkdir(parents=True, exist_ok=True)
     harmonized_csv.parent.mkdir(parents=True, exist_ok=True)
@@ -506,14 +564,6 @@ def main() -> None:
     manifest_csv.parent.mkdir(parents=True, exist_ok=True)
     features_csv.parent.mkdir(parents=True, exist_ok=True)
     audit_json.parent.mkdir(parents=True, exist_ok=True)
-
-    harmonized.to_csv(harmonized_csv, index=False)
-    intervals.to_csv(intervals_csv, index=False)
-    windows.to_csv(manifest_csv, index=False)
-    # At this stage manifest and feature table intentionally share rows. Keeping
-    # a separate file path preserves the future contract if visual-path columns
-    # or train-only columns are split later.
-    windows.to_csv(features_csv, index=False)
 
     temporal_audit = audit_temporal_harmonization(harmonized, intervals)
     window_audit = audit_sequence_windows(windows, intervals)
@@ -542,21 +592,29 @@ def main() -> None:
             "disable_fast_reuse": args.disable_fast_reuse,
             "max_windows_per_track": args.max_windows_per_track,
             "max_rows": args.max_rows,
+            "overwrite": args.overwrite,
         },
         "temporal_harmonization": temporal_audit,
         "sequence_windows": window_audit,
         "errors": temporal_audit.get("errors", []) + window_audit.get("errors", []),
         "warnings": temporal_audit.get("warnings", []) + window_audit.get("warnings", []),
     }
-    audit_json.write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
+    _fail_if_audit_has_errors(audit, audit_json)
+
+    harmonized.to_csv(harmonized_csv, index=False)
+    intervals.to_csv(intervals_csv, index=False)
+    windows.to_csv(manifest_csv, index=False)
+    # At this stage manifest and feature table intentionally share rows. Keeping
+    # a separate file path preserves the future contract if visual-path columns
+    # or train-only columns are split later.
+    windows.to_csv(features_csv, index=False)
+    _write_audit(audit_json, audit)
 
     print(f"[OK] wrote {harmonized_csv} rows={len(harmonized)} cols={len(harmonized.columns)}")
     print(f"[OK] wrote {intervals_csv} rows={len(intervals)}")
     print(f"[OK] wrote {manifest_csv} rows={len(windows)}")
     print(f"[OK] wrote {features_csv} rows={len(windows)}")
     print(f"[OK] wrote {audit_json}")
-    if audit["errors"]:
-        print(f"[ERRORS] {audit['errors']}")
     if audit["warnings"]:
         print(f"[WARNINGS] {audit['warnings']}")
 

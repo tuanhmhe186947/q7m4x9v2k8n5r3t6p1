@@ -7,9 +7,13 @@ from types import ModuleType
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from pig_behavior.classification_v2.contracts.feature_semantics import (
     audit_feature_semantics,
+)
+from pig_behavior.classification_v2.contracts.output_safety import (
+    require_output_paths_available,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -127,3 +131,15 @@ def test_spatial_checker_rejects_missing_slots_in_trainable_rows(
     assert audit["errors"] == [
         "trainable_windows_have_missing_spatial_slots=rows:1 slots:1"
     ]
+
+
+def test_derived_output_guard_requires_explicit_overwrite(tmp_path: Path) -> None:
+    """Existing derived artifacts may only be replaced by an explicit command."""
+
+    existing = tmp_path / "artifact.csv"
+    existing.write_text("fixture", encoding="utf-8")
+
+    with pytest.raises(FileExistsError, match="--overwrite explicitly"):
+        require_output_paths_available([existing], overwrite=False)
+
+    require_output_paths_available([existing], overwrite=True)

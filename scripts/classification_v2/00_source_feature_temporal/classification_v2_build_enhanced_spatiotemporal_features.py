@@ -9,6 +9,9 @@ from pathlib import Path
 
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.output_safety import (
+    require_output_paths_available,
+)
 from pig_behavior.classification_v2.features.spatiotemporal import (
     audit_enhanced_spatiotemporal_features,
     build_enhanced_spatiotemporal_features,
@@ -34,13 +37,46 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--active-speed-threshold", type=float, default=0.006)
     parser.add_argument("--turning-angle-threshold-deg", type=float, default=30.0)
     parser.add_argument("--max-rows", type=int, default=None)
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace existing derived output and audit files explicitly.",
+    )
     return parser.parse_args()
+
+
+def _write_audit(path: Path, audit: dict[str, object]) -> None:
+    """Persist audit evidence before success or fail-closed exit."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(audit, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
+def _fail_if_audit_has_errors(
+    audit: dict[str, object],
+    audit_path: Path,
+) -> None:
+    """Write the failed audit and prevent a poisoned CSV from being emitted."""
+
+    errors = audit.get("errors") or []
+    if not errors:
+        return
+    _write_audit(audit_path, audit)
+    print(f"[ERRORS] {errors}")
+    raise SystemExit(2)
 
 
 def main() -> None:
     args = parse_args()
     if not args.input_csv.exists():
         raise FileNotFoundError(args.input_csv)
+    require_output_paths_available(
+        [args.output_csv, args.audit_json],
+        overwrite=args.overwrite,
+    )
 
     df = pd.read_csv(args.input_csv, low_memory=False)
     if args.max_rows is not None:
@@ -72,17 +108,17 @@ def main() -> None:
         "active_speed_threshold": args.active_speed_threshold,
         "turning_angle_threshold_deg": args.turning_angle_threshold_deg,
         "max_rows": args.max_rows,
+        "overwrite": args.overwrite,
     }
 
+    _fail_if_audit_has_errors(audit, args.audit_json)
+
     args.output_csv.parent.mkdir(parents=True, exist_ok=True)
-    args.audit_json.parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(args.output_csv, index=False)
-    args.audit_json.write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
+    _write_audit(args.audit_json, audit)
 
     print(f"[OK] wrote {args.output_csv} rows={len(out)} cols={len(out.columns)}")
     print(f"[OK] wrote {args.audit_json}")
-    if audit.get("errors"):
-        print(f"[ERRORS] {audit['errors']}")
     if audit.get("warnings"):
         print(f"[WARNINGS] {audit['warnings']}")
 

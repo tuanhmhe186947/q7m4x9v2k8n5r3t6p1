@@ -598,6 +598,34 @@ def test_cvat_anchor_case_is_checked_across_layers() -> None:
     json.dumps(audit)
 
 
+@pytest.mark.parametrize(
+    "filename",
+    [
+        "classification_v2_build_enhanced_spatiotemporal_features.py",
+        "classification_v2_build_temporal_harmonization.py",
+        "classification_v2_build_sequence_windows.py",
+    ],
+)
+def test_source_builders_persist_failed_audit_and_exit_nonzero(
+    filename: str,
+    tmp_path: Path,
+) -> None:
+    """A failed scientific audit must not be reported as CLI success."""
+
+    module = _load_source_script(f"fail_closed_{filename}", filename)
+    audit_path = tmp_path / f"{filename}.audit.json"
+
+    with pytest.raises(SystemExit) as exc_info:
+        module._fail_if_audit_has_errors(
+            {"errors": ["forced_contract_failure"], "warnings": []},
+            audit_path,
+        )
+
+    assert exc_info.value.code == 2
+    persisted = json.loads(audit_path.read_text(encoding="utf-8"))
+    assert persisted["errors"] == ["forced_contract_failure"]
+
+
 def test_publication_split_writes_explicit_train_ready_path(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
