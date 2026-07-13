@@ -9,6 +9,7 @@ training window.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -586,6 +587,7 @@ def _summarize_window(
         else "exclude"
     )
 
+    temporal_unit_keys = _temporal_unit_keys(wg)
     row: dict[str, Any] = {
         "window_id": _make_window_id(first, length, start, end),
         "source_window_type": source_window_type,
@@ -607,11 +609,12 @@ def _summarize_window(
         if "frame_index" in wg.columns
         else int(len(wg)),
         "label_coverage_complete": bool(label_coverage_complete),
-        "temporal_unit_keys_window": "|".join(
-            sorted(set(wg.get("temporal_unit_key", pd.Series(dtype=str)).fillna("").astype(str)))
-        )
-        if "temporal_unit_key" in wg.columns
-        else "",
+        "temporal_unit_keys_window": "|".join(temporal_unit_keys),
+        "temporal_unit_keys_json": json.dumps(
+            temporal_unit_keys,
+            ensure_ascii=True,
+            separators=(",", ":"),
+        ),
         "num_temporal_units_window": int(
             wg.get("temporal_unit_key", pd.Series(dtype=str)).nunique(dropna=True)
         )
@@ -678,6 +681,7 @@ def _empty_invalid_window(
         "observed_frame_count_window": 0,
         "label_coverage_complete": False,
         "temporal_unit_keys_window": "",
+        "temporal_unit_keys_json": "[]",
         "num_temporal_units_window": 0,
         "num_behaviors_window": 0,
         "unique_behaviors_window": "",
@@ -842,6 +846,20 @@ def _aggregate_window_features(
     )
 
     return out
+
+
+def _temporal_unit_keys(window_rows: pd.DataFrame) -> list[str]:
+    """Return unique native-unit keys without ambiguous delimiter parsing."""
+
+    if "temporal_unit_key" not in window_rows.columns:
+        return []
+    values = (
+        window_rows["temporal_unit_key"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+    )
+    return sorted(set(values.loc[values.ne("")]))
 
 
 def _review_training_summary(wg: pd.DataFrame) -> dict[str, Any]:

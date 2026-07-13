@@ -13,11 +13,18 @@ from pig_behavior.classification_v2.datasets.event_weights import (
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Build event-balanced sample weights for classification_v2 windows.")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Build event-balanced sample weights for classification_v2 windows."
+        )
+    )
     parser.add_argument(
         "--window-manifest-csv",
         type=Path,
-        default=Path("outputs/classification_v2/sequence_features_reviewed/sequence_window_manifest.csv"),
+        default=Path(
+            "outputs/classification_v2/sequence_features_reviewed/"
+            "sequence_window_manifest.csv"
+        ),
     )
     parser.add_argument(
         "--output-dir",
@@ -37,14 +44,24 @@ def main() -> None:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     weights_path = args.output_dir / "event_weight_manifest.csv"
     audit_path = args.output_dir / "event_weight_audit.json"
-    tables.weights.to_csv(weights_path, index=False)
     audit = {
         **tables.audit,
         "window_manifest_csv": str(args.window_manifest_csv),
         "event_weight_manifest_csv": str(weights_path),
         "event_weight_audit_json": str(audit_path),
     }
-    audit_path.write_text(json.dumps(audit, indent=2, ensure_ascii=False, default=json_default), encoding="utf-8")
+    audit["event_weight_manifest_written"] = not bool(audit["errors"])
+    if not audit["errors"]:
+        tables.weights.to_csv(weights_path, index=False)
+    audit_path.write_text(
+        json.dumps(
+            audit,
+            indent=2,
+            ensure_ascii=False,
+            default=json_default,
+        ),
+        encoding="utf-8",
+    )
     print(json.dumps(audit, indent=2, ensure_ascii=False, default=json_default))
     if audit["errors"]:
         raise SystemExit(2)

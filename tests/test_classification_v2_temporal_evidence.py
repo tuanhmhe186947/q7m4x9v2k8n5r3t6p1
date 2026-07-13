@@ -242,7 +242,7 @@ def test_stale_cvat_hidden_trust_is_rejected_without_review_provenance() -> None
 def test_sequence_window_recomputes_evidence_inside_requested_span() -> None:
     enriched = add_unit_temporal_evidence(_six_frame_fixture())
 
-    _, _, windows = build_sequence_windows(
+    harmonized, _, windows = build_sequence_windows(
         enriched,
         window_lengths=(6,),
         legacy_window_stride=1,
@@ -252,6 +252,10 @@ def test_sequence_window_recomputes_evidence_inside_requested_span() -> None:
     assert windows.iloc[0]["temporal_observation_ratio_window"] == 1.0
     assert windows.iloc[0]["motion_active_ratio_window"] == 1.0
     assert windows.iloc[0]["roi_feeder_contact_ratio_window"] == 2 / 6
+    expected_unit_keys = sorted(set(harmonized["temporal_unit_key"].astype(str)))
+    assert json.loads(windows.iloc[0]["temporal_unit_keys_json"]) == (
+        expected_unit_keys
+    )
 
 
 def test_sequence_window_recomputes_legacy_social_aggregates() -> None:
