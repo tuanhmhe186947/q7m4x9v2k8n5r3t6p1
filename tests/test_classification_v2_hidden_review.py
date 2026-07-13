@@ -109,6 +109,92 @@ def test_hidden_review_manifest_audits_both_yes_and_no() -> None:
     assert manifest.loc[legacy, "hidden_is_trusted_before_review"].all()
 
 
+def test_hidden_review_census_targets_untrusted_yes_and_caps_risk() -> None:
+    frames = _frame_rows()
+    frames.loc[frames["source_type"].eq("legacy_recovered"), "hidden"] = "Yes"
+    manifest, _, audit = build_hidden_review_manifest(
+        frames,
+        config=HiddenReviewConfig(
+            trusted_yes_per_stratum=1,
+            random_no_per_stratum=0,
+            clean_control_per_stratum=0,
+        ),
+    )
+
+    yes_review = manifest.loc[
+        manifest["hidden_review_cohort"].eq("hidden_yes_confirmation")
+    ]
+    legacy_yes = yes_review["source_type"].eq("legacy_recovered")
+    cvat_yes = yes_review["source_type"].eq("cvat_tracking_xml")
+    high_risk = manifest.loc[
+        manifest["hidden_review_cohort"].eq("hidden_no_high_risk")
+    ]
+    assert int(legacy_yes.sum()) == 1
+    assert int(cvat_yes.sum()) == 1
+    assert yes_review.loc[legacy_yes, "hidden_sampling_design"].eq(
+        "stratified_trusted_hidden_yes_audit"
+    ).all()
+    assert yes_review.loc[cvat_yes, "hidden_sampling_design"].eq(
+        "census_untrusted_hidden_yes"
+    ).all()
+    assert len(high_risk) == 1
+    assert audit["input_trusted_hidden_yes_items"] == 4
+    assert audit["selected_trusted_hidden_yes_items"] == 1
+    assert audit["unselected_trusted_hidden_yes_items"] == 3
+    assert audit["missing_untrusted_hidden_yes_items"] == 0
+
+
+def test_hidden_review_strata_group_legacy_date_but_keep_cvat_videos() -> None:
+    frames = _frame_rows().iloc[:4].copy()
+    frames["source_type"] = [
+        "legacy_recovered",
+        "legacy_recovered",
+        "cvat_tracking_xml",
+        "cvat_tracking_xml",
+    ]
+    frames["dataset_id"] = [
+        "legacy_pigs281119",
+        "legacy_pigs281119",
+        "cvat",
+        "cvat",
+    ]
+    frames["video_key"] = [
+        r"G:\pig_data\pigs281119a\burst_001",
+        r"G:\pig_data\pigs281119a\burst_002",
+        "Pigs281119_000085_30fps",
+        "Pigs281119_000086_30fps",
+    ]
+    frames["hidden"] = "No"
+    manifest, _, _ = build_hidden_review_manifest(
+        frames,
+        config=HiddenReviewConfig(
+            trusted_yes_per_stratum=0,
+            random_no_per_stratum=1,
+            clean_control_per_stratum=0,
+            high_risk_threshold=1.0,
+        ),
+    )
+
+    random_audit = manifest.loc[
+        manifest["hidden_review_cohort"].eq("hidden_no_random_audit")
+    ]
+    legacy = random_audit.loc[
+        random_audit["source_type"].eq("legacy_recovered")
+    ]
+    cvat = random_audit.loc[
+        random_audit["source_type"].eq("cvat_tracking_xml")
+    ]
+    assert len(legacy) == 1
+    assert legacy.iloc[0]["hidden_review_stratum_key"] == (
+        "recording_date=281119"
+    )
+    assert len(cvat) == 2
+    assert set(cvat["hidden_review_stratum_key"]) == {
+        "video=pigs281119_000085_30fps",
+        "video=pigs281119_000086_30fps",
+    }
+
+
 def test_apply_hidden_review_supports_all_four_transitions_without_row_loss() -> None:
     frames, manifest = _build_review()
     decisions = _resolved_decisions(manifest)

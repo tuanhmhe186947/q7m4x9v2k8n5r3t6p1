@@ -51,9 +51,10 @@ class HiddenReviewConfig:
     """Deterministic sampling and risk thresholds for Hidden review."""
 
     random_seed: int = 20260713
+    trusted_yes_per_stratum: int = 1
     random_no_per_stratum: int = 3
     clean_control_per_stratum: int = 1
-    max_high_risk_per_stratum: int | None = None
+    max_high_risk_per_stratum: int | None = 1
     high_risk_threshold: float = 0.35
     clean_control_max_risk: float = 0.10
     pair_iou_threshold: float = 0.01
@@ -63,12 +64,14 @@ class HiddenReviewConfig:
     area_delta_threshold: float = 0.20
     stratum_columns: tuple[str, ...] = (
         "source_type",
-        "video_key",
+        "hidden_review_stratum_key",
         "behavior",
     )
 
     def validate(self) -> None:
         """Reject sampling settings that would create ambiguous coverage."""
+        if self.trusted_yes_per_stratum < 0:
+            raise ValueError("trusted_yes_per_stratum must be >= 0")
         if self.random_no_per_stratum < 0:
             raise ValueError("random_no_per_stratum must be >= 0")
         if self.clean_control_per_stratum < 0:
@@ -132,17 +135,39 @@ def build_hidden_review_manifest(
     work["hidden_source"] = _initial_hidden_source(work)
     work["hidden_is_trusted_before_review"] = _initial_hidden_trust(work)
     work["hidden_trust_status_before_review"] = _initial_trust_status(work)
+    work["hidden_review_stratum_key"] = _hidden_review_stratum_key(work)
     risk_score, risk_reasons = _hidden_false_negative_risk(work, cfg)
     work["hidden_false_negative_risk_score"] = risk_score
     work["hidden_false_negative_risk_reasons"] = risk_reasons
 
     selected_parts: list[pd.DataFrame] = []
     hidden_yes = work["hidden_before_review"].eq("Yes")
-    hidden_yes_rows = _add_sampling_metadata(
-        work.loc[hidden_yes],
-        work.loc[hidden_yes],
+    trusted_before = _to_bool(work["hidden_is_trusted_before_review"])
+    untrusted_hidden_yes = work.loc[hidden_yes & ~trusted_before]
+    untrusted_hidden_yes = _add_sampling_metadata(
+        untrusted_hidden_yes,
+        untrusted_hidden_yes,
         cfg.stratum_columns,
-        design="census_hidden_yes",
+        design="census_untrusted_hidden_yes",
+    )
+    trusted_hidden_yes_pool = work.loc[hidden_yes & trusted_before]
+    trusted_hidden_yes = _sample_each_stratum(
+        trusted_hidden_yes_pool,
+        cfg.stratum_columns,
+        cfg.trusted_yes_per_stratum,
+        cfg.random_seed,
+        "trusted_hidden_yes_audit",
+    )
+    trusted_hidden_yes = _add_sampling_metadata(
+        trusted_hidden_yes_pool,
+        trusted_hidden_yes,
+        cfg.stratum_columns,
+        design="stratified_trusted_hidden_yes_audit",
+    )
+    hidden_yes_rows = pd.concat(
+        [untrusted_hidden_yes, trusted_hidden_yes],
+        ignore_index=False,
+        sort=False,
     )
     selected_parts.append(_assign_cohort(hidden_yes_rows, "hidden_yes_confirmation", 100))
 
@@ -257,6 +282,14 @@ def audit_hidden_review_manifest(
         source["hidden_before_review"] = source["hidden"].map(_normalize_hidden)
     if "hidden_review_item_id" not in source.columns:
         source["hidden_review_item_id"] = _build_review_item_ids(source)
+    if "hidden_review_stratum_key" not in source.columns:
+        source["hidden_review_stratum_key"] = _hidden_review_stratum_key(
+            source
+        )
+    if "hidden_is_trusted_before_review" not in source.columns:
+        source["hidden_is_trusted_before_review"] = _initial_hidden_trust(
+            source
+        )
     _require_unique(source, "hidden_review_item_id", "frame_features")
     source_ids = set(source["hidden_review_item_id"].astype(str))
     manifest_ids = set(manifest.get("hidden_review_item_id", pd.Series(dtype=str)).astype(str))
@@ -270,6 +303,20 @@ def audit_hidden_review_manifest(
             "hidden_review_item_id",
         ].astype(str)
     )
+    source_trusted = _to_bool(source["hidden_is_trusted_before_review"])
+    source_yes = source["hidden"].map(_normalize_hidden).eq("Yes")
+    source_trusted_yes_ids = set(
+        source.loc[
+            source_yes & source_trusted,
+            "hidden_review_item_id",
+        ].astype(str)
+    )
+    source_untrusted_yes_ids = set(
+        source.loc[
+            source_yes & ~source_trusted,
+            "hidden_review_item_id",
+        ].astype(str)
+    )
     manifest_yes_ids = set(
         manifest.loc[
             manifest.get(
@@ -280,9 +327,46 @@ def audit_hidden_review_manifest(
         ].astype(str)
     )
     missing_yes_ids = source_yes_ids.difference(manifest_yes_ids)
+    missing_untrusted_yes_ids = source_untrusted_yes_ids.difference(
+        manifest_yes_ids
+    )
+    selected_trusted_yes_ids = source_trusted_yes_ids.intersection(
+        manifest_yes_ids
+    )
+    trusted_yes_pool = source.loc[source_yes & source_trusted]
+    trusted_yes_selected = trusted_yes_pool.loc[
+        trusted_yes_pool["hidden_review_item_id"]
+        .astype(str)
+        .isin(selected_trusted_yes_ids)
+    ]
+    trusted_population_counts = _sampling_strata(
+        trusted_yes_pool,
+        config.stratum_columns,
+    ).value_counts()
+    trusted_selected_counts = _sampling_strata(
+        trusted_yes_selected,
+        config.stratum_columns,
+    ).value_counts()
+    expected_trusted_counts = trusted_population_counts.clip(
+        upper=config.trusted_yes_per_stratum
+    )
+    trusted_quota_mismatch = int(
+        trusted_selected_counts
+        .reindex(expected_trusted_counts.index, fill_value=0)
+        .ne(expected_trusted_counts)
+        .sum()
+    )
+    if trusted_quota_mismatch:
+        errors.append(
+            "trusted_hidden_yes_stratum_quota_mismatch="
+            f"{trusted_quota_mismatch}"
+        )
     extra_yes_ids = manifest_yes_ids.difference(source_yes_ids)
-    if missing_yes_ids:
-        errors.append(f"hidden_yes_items_missing_from_manifest={len(missing_yes_ids)}")
+    if missing_untrusted_yes_ids:
+        errors.append(
+            "untrusted_hidden_yes_items_missing_from_manifest="
+            f"{len(missing_untrusted_yes_ids)}"
+        )
     if extra_yes_ids:
         errors.append(f"invalid_hidden_yes_confirmation_items={len(extra_yes_ids)}")
 
@@ -300,6 +384,26 @@ def audit_hidden_review_manifest(
         ].astype(str)
     )
     selected_high_risk_ids = source_high_risk_ids.intersection(manifest_ids)
+    high_risk_rows = manifest.loc[
+        manifest.get(
+            "hidden_review_cohort",
+            pd.Series("", index=manifest.index),
+        ).eq("hidden_no_high_risk")
+    ]
+    high_risk_cap_violations = 0
+    if config.max_high_risk_per_stratum is not None:
+        high_risk_counts = _sampling_strata(
+            high_risk_rows,
+            config.stratum_columns,
+        ).value_counts()
+        high_risk_cap_violations = int(
+            high_risk_counts.gt(config.max_high_risk_per_stratum).sum()
+        )
+        if high_risk_cap_violations:
+            errors.append(
+                "hidden_no_high_risk_stratum_cap_violations="
+                f"{high_risk_cap_violations}"
+            )
 
     before = manifest.get(
         "hidden_before_review",
@@ -332,8 +436,25 @@ def audit_hidden_review_manifest(
         "input_hidden_yes_items": int(len(source_yes_ids)),
         "manifest_hidden_yes_items": int(len(manifest_yes_ids)),
         "missing_hidden_yes_items": int(len(missing_yes_ids)),
+        "input_untrusted_hidden_yes_items": int(
+            len(source_untrusted_yes_ids)
+        ),
+        "missing_untrusted_hidden_yes_items": int(
+            len(missing_untrusted_yes_ids)
+        ),
+        "input_trusted_hidden_yes_items": int(len(source_trusted_yes_ids)),
+        "selected_trusted_hidden_yes_items": int(
+            len(selected_trusted_yes_ids)
+        ),
+        "unselected_trusted_hidden_yes_items": int(
+            len(source_trusted_yes_ids - selected_trusted_yes_ids)
+        ),
+        "trusted_hidden_yes_stratum_quota_mismatch": (
+            trusted_quota_mismatch
+        ),
         "input_high_risk_hidden_no_items": int(len(source_high_risk_ids)),
         "selected_high_risk_hidden_no_items": int(len(selected_high_risk_ids)),
+        "high_risk_stratum_cap_violations": high_risk_cap_violations,
         "unselected_high_risk_hidden_no_items": int(
             len(source_high_risk_ids.difference(manifest_ids))
         ),
@@ -1036,6 +1157,40 @@ def _review_track_key(df: pd.DataFrame) -> pd.Series:
     )
 
 
+def _hidden_review_stratum_key(df: pd.DataFrame) -> pd.Series:
+    """Use recording date for legacy bursts and exact video for CVAT clips."""
+
+    source = df["source_type"].fillna("").astype(str).str.strip()
+    video = (
+        df["video_key"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.replace("\\", "/", regex=False)
+        .str.lower()
+    )
+    dataset = df["dataset_id"].fillna("").astype(str).str.strip()
+    source_text = dataset + "|" + video
+    date_token = source_text.str.extract(
+        r"(?i)pigs?([0-3]\d[01]\d\d{2})",
+        expand=False,
+    ).fillna("")
+    keys = "video=" + video.where(video.ne(""), "unknown_video")
+    legacy = source.eq("legacy_recovered")
+    has_date = date_token.ne("")
+    keys.loc[legacy & has_date] = (
+        "recording_date=" + date_token.loc[legacy & has_date]
+    )
+    keys.loc[legacy & ~has_date] = (
+        "legacy_video="
+        + video.loc[legacy & ~has_date].where(
+            video.loc[legacy & ~has_date].ne(""),
+            "unknown_video",
+        )
+    )
+    return keys
+
+
 def _normalize_hidden(value: object) -> str:
     if pd.isna(value):
         raise ValueError("Hidden value must not be missing")
@@ -1114,6 +1269,7 @@ def _wilson_interval(successes: int, total: int) -> tuple[float | None, float | 
 def _config_payload(config: HiddenReviewConfig) -> dict[str, Any]:
     return {
         "random_seed": config.random_seed,
+        "trusted_yes_per_stratum": config.trusted_yes_per_stratum,
         "random_no_per_stratum": config.random_no_per_stratum,
         "clean_control_per_stratum": config.clean_control_per_stratum,
         "max_high_risk_per_stratum": config.max_high_risk_per_stratum,

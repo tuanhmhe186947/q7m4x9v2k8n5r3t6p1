@@ -32,9 +32,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input-csv", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--random-seed", type=int, default=20260713)
+    parser.add_argument("--trusted-yes-per-stratum", type=int, default=1)
     parser.add_argument("--random-no-per-stratum", type=int, default=3)
     parser.add_argument("--clean-control-per-stratum", type=int, default=1)
-    parser.add_argument("--max-high-risk-per-stratum", type=int, default=None)
+    parser.add_argument("--max-high-risk-per-stratum", type=int, default=1)
     parser.add_argument("--high-risk-threshold", type=float, default=0.35)
     parser.add_argument("--clean-control-max-risk", type=float, default=0.10)
     parser.add_argument(
@@ -86,6 +87,7 @@ def main() -> None:
         )
     config = HiddenReviewConfig(
         random_seed=args.random_seed,
+        trusted_yes_per_stratum=args.trusted_yes_per_stratum,
         random_no_per_stratum=args.random_no_per_stratum,
         clean_control_per_stratum=args.clean_control_per_stratum,
         max_high_risk_per_stratum=args.max_high_risk_per_stratum,
