@@ -17,7 +17,11 @@ def _frames() -> pd.DataFrame:
         {
             "frame_uid": ["f0", "f1"],
             "source_type": ["legacy_recovered", "legacy_recovered"],
+            "dataset_id": ["fixture", "fixture"],
+            "video_key": ["video-a", "video-a"],
             "object_track_key": ["track-a", "track-a"],
+            "track_id": ["track-a", "track-a"],
+            "pig_id": ["ID_1", "ID_1"],
             "frame_index": [0, 1],
             "crop_path": ["missing-0.jpg", "missing-1.jpg"],
         }
@@ -72,6 +76,8 @@ def test_context_index_preserves_rows_even_when_media_is_missing(
     assert result.audit["window_rows"] == 1
     assert result.audit["window_row_count_preserved"] is True
     assert result.audit["frame_unloadable_count"] == 2
+    assert result.frame_manifest["frame_uid"].is_unique
+    assert "scene_frame_uid_sequence" in result.window_manifest
 
 
 def test_context_index_rejects_duplicate_track_frame_rows(tmp_path: Path) -> None:

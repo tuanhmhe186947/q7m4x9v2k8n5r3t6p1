@@ -126,6 +126,19 @@ def scene_frame_key(rows: pd.DataFrame) -> pd.Series:
     scene = _clean_series(rows, "scene_frame_uid")
     if scene.ne("").all():
         return scene
+    has_scene = scene.ne("")
+    versions = _clean_series(rows, "identifier_schema_version")
+    current = versions.eq(FRAME_OBJECT_IDENTIFIER_VERSION)
+    if has_scene.any() or current.any():
+        missing = ~has_scene
+        raise ValueError(
+            _identifier_error(
+                "scene_frame_key",
+                "missing_scene_frame_uid",
+                rows,
+                missing,
+            )
+        )
     legacy = _clean_series(rows, "frame_uid")
     return scene.where(scene.ne(""), legacy)
 

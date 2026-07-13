@@ -14,6 +14,7 @@ def _write_inputs(root: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
 
     image_frames = pd.DataFrame(
         {
+            "scene_frame_uid": ["scene-0", "scene-1"],
             "frame_uid": ["frame-0", "frame-1"],
             "image_context_id": ["context-0", "context-1"],
             "full_frame_context_available": [True, True],
@@ -33,6 +34,7 @@ def _write_inputs(root: Path) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
             "track_id": [1],
             "window_start_frame": [0],
             "window_end_frame": [1],
+            "scene_frame_uid_sequence": ["scene-0|scene-1"],
             "frame_uid_sequence": ["frame-0|frame-1"],
             "image_context_id_sequence": ["context-0;;context-1"],
         }
@@ -99,4 +101,21 @@ def test_interaction_context_index_rejects_frame_context_mismatch(
     )
 
     with pytest.raises(ValueError, match="frame_context_sequence_mismatches=2"):
+        _build(tmp_path)
+
+
+def test_interaction_context_index_rejects_scene_context_mismatch(
+    tmp_path: Path,
+) -> None:
+    _, image_windows, _ = _write_inputs(tmp_path)
+    image_windows.loc[0, "scene_frame_uid_sequence"] = "scene-1|scene-0"
+    image_windows.to_csv(
+        tmp_path / "image_window_context_manifest.csv",
+        index=False,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="scene_context_sequence_mismatches=2",
+    ):
         _build(tmp_path)

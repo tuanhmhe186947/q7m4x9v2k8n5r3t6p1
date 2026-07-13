@@ -44,9 +44,9 @@ def build_interaction_context_index(
     image_windows["window_id"] = image_windows["window_id"].astype(str)
     split["window_id"] = split["window_id"].astype(str)
 
-    # frame_uid identifies a video frame, not an actor. image_context_id is the
-    # actor-frame key and prevents one pig from inheriting another pig's context.
-    # Input validation proves this key is unique, so no row is selected silently.
+    # frame_uid and image_context_id identify one actor observation. The explicit
+    # scene_frame_uid keeps full-frame alignment separate from actor identity.
+    # Input validation proves every sequence slot maps to both keys exactly.
     frame_lookup = _build_frame_lookup(image_frames)
     merged = image_windows.merge(
         split[["window_id", "behavior_window_label"]],
@@ -233,29 +233,60 @@ def _window_sequence_errors(
             strict=True,
         )
     )
+    has_scene_sequence = {
+        "scene_frame_uid",
+        "scene_frame_uid_sequence",
+    }.issubset(image_frames.columns.union(image_windows.columns))
+    scene_uid_by_context = (
+        dict(
+            zip(
+                _clean_keys(image_frames["image_context_id"]),
+                _clean_keys(image_frames["scene_frame_uid"]),
+                strict=True,
+            )
+        )
+        if has_scene_sequence
+        else {}
+    )
     blank_sequences = 0
     length_mismatches = 0
     duplicate_frame_slots = 0
     duplicate_context_slots = 0
     missing_context_rows = 0
     frame_context_mismatches = 0
+    scene_sequence_length_mismatches = 0
+    scene_context_mismatches = 0
     for row in image_windows.itertuples(index=False):
         frame_uids = _split_sequence(str(row.frame_uid_sequence))
         context_ids = _split_context_sequence(str(row.image_context_id_sequence))
+        scene_uids = (
+            _split_sequence(str(row.scene_frame_uid_sequence))
+            if has_scene_sequence
+            else []
+        )
         if not frame_uids or not context_ids:
             blank_sequences += 1
             continue
         if len(frame_uids) != len(context_ids):
             length_mismatches += 1
             continue
+        if has_scene_sequence and len(scene_uids) != len(context_ids):
+            scene_sequence_length_mismatches += 1
+            continue
         duplicate_frame_slots += int(len(frame_uids) != len(set(frame_uids)))
         duplicate_context_slots += int(len(context_ids) != len(set(context_ids)))
-        for frame_uid, context_id in zip(frame_uids, context_ids, strict=True):
+        for slot, (frame_uid, context_id) in enumerate(
+            zip(frame_uids, context_ids, strict=True)
+        ):
             source_frame_uid = frame_uid_by_context.get(context_id)
             if source_frame_uid is None:
                 missing_context_rows += 1
             elif source_frame_uid != frame_uid:
                 frame_context_mismatches += 1
+            if has_scene_sequence:
+                source_scene_uid = scene_uid_by_context.get(context_id)
+                if source_scene_uid is None or source_scene_uid != scene_uids[slot]:
+                    scene_context_mismatches += 1
 
     counts = {
         "blank_window_sequences": blank_sequences,
@@ -264,6 +295,8 @@ def _window_sequence_errors(
         "windows_with_duplicate_context_slots": duplicate_context_slots,
         "missing_context_sequence_rows": missing_context_rows,
         "frame_context_sequence_mismatches": frame_context_mismatches,
+        "scene_sequence_length_mismatches": scene_sequence_length_mismatches,
+        "scene_context_sequence_mismatches": scene_context_mismatches,
     }
     return [f"{name}={count}" for name, count in counts.items() if count]
 

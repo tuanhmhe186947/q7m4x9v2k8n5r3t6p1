@@ -86,6 +86,14 @@ def test_scene_frame_key_reads_old_and_new_artifacts() -> None:
     assert scene_frame_key(new).tolist() == new["scene_frame_uid"].tolist()
 
 
+def test_scene_frame_key_rejects_partial_v2_scene_identity() -> None:
+    rows = ensure_frame_object_identifiers(_legacy_rows(), source_name="fixture")
+    rows.loc[rows.index[0], "scene_frame_uid"] = ""
+
+    with pytest.raises(ValueError, match="missing_scene_frame_uid=1"):
+        scene_frame_key(rows)
+
+
 def test_source_namespace_prevents_cross_source_object_collision() -> None:
     first = _legacy_rows().iloc[[0]].copy()
     second = first.copy()

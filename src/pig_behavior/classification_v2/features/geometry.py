@@ -17,6 +17,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.identifiers import scene_frame_key
 from pig_behavior.classification_v2.schema import GEOMETRY_FEATURE_COLUMNS
 
 REQUIRED_GEOMETRY_INPUT_COLUMNS: tuple[str, ...] = (
@@ -220,7 +221,10 @@ def validate_geometry_features(df: pd.DataFrame) -> dict[str, Any]:
 
     return {
         "rows": int(len(df)),
-        "frames": int(df["frame_uid"].nunique()) if "frame_uid" in df.columns else 0,
+        "frames": int(scene_frame_key(df).nunique()),
+        "frame_objects": int(df["frame_uid"].nunique())
+        if "frame_uid" in df.columns
+        else 0,
         "sources": _value_counts_dict(df, "source_type"),
         "datasets": _value_counts_dict(df, "dataset_id"),
         "behaviors": _value_counts_dict(df, "behavior"),

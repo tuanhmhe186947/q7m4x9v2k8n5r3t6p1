@@ -23,6 +23,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.identifiers import scene_frame_key
 from pig_behavior.classification_v2.features.context_policy import (
     normalize_hidden_provenance,
 )
@@ -382,10 +383,9 @@ def audit_temporal_harmonization(
 
     return {
         "rows": int(len(df)),
-        "frames": int(df["frame_uid"].nunique(dropna=True))
+        "frames": int(scene_frame_key(df).nunique(dropna=True)),
+        "frame_objects": int(df["frame_uid"].nunique(dropna=True))
         if "frame_uid" in df.columns
-        else int(df["frame_index"].nunique(dropna=True))
-        if "frame_index" in df.columns
         else 0,
         "temporal_intervals": int(len(intervals)) if intervals is not None else None,
         "sources": _value_counts_dict(df, "source_type"),
@@ -421,6 +421,7 @@ def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
         "source_type",
         "dataset_id",
         "video_key",
+        "scene_frame_uid",
         "frame_uid",
         "pig_id",
         "track_id",

@@ -17,6 +17,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.identifiers import scene_frame_key
 from pig_behavior.classification_v2.schema import ROI_DOMINANT_BEHAVIORS
 
 ROI_CLASSES: tuple[str, ...] = ("feeder", "drinker", "toy")
@@ -426,7 +427,10 @@ def validate_roi_features(df: pd.DataFrame) -> dict[str, Any]:
 
     return {
         "rows": int(len(df)),
-        "frames": int(df["frame_uid"].nunique()) if "frame_uid" in df.columns else 0,
+        "frames": int(scene_frame_key(df).nunique()),
+        "frame_objects": int(df["frame_uid"].nunique())
+        if "frame_uid" in df.columns
+        else 0,
         "sources": _value_counts_dict(df, "source_type"),
         "behaviors": _value_counts_dict(df, "behavior"),
         "roi_feature_required": _value_counts_dict(df, "roi_feature_required"),

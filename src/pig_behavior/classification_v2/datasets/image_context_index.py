@@ -14,6 +14,10 @@ from typing import Any
 
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.identifiers import (
+    ensure_frame_object_identifiers,
+)
+
 VIDEO_EXTS = {".mp4", ".avi", ".mov", ".mkv", ".mpg", ".mpeg", ".m4v"}
 IMAGE_CONTEXT_SEQUENCE_DELIMITER = ";;"
 
@@ -23,6 +27,8 @@ MANDATORY_CVAT_FRAME_INDICES = tuple(range(678, 684))
 MANDATORY_CVAT_MEDIA_BASENAME = "Pigs291119_000231_30fps.mp4"
 
 FRAME_CONTEXT_COLUMNS = [
+    "identifier_schema_version",
+    "scene_frame_uid",
     "frame_uid",
     "source_type",
     "dataset_id",
@@ -227,11 +233,20 @@ def build_image_context_index(
         ],
         "windows",
     )
-    _validate_frame_context_contract(frames)
+    identifier_frames = ensure_frame_object_identifiers(
+        frames,
+        source_name="image_context_index",
+    )
+    _validate_frame_context_contract(identifier_frames)
     _validate_window_context_contract(windows)
 
     video_index = build_video_index(video_root)
-    frame_manifest = _build_frame_manifest(frames, video_root, legacy_crop_root, video_index)
+    frame_manifest = _build_frame_manifest(
+        identifier_frames,
+        video_root,
+        legacy_crop_root,
+        video_index,
+    )
     window_manifest = _build_window_manifest(windows, frame_manifest)
 
     loadable = _to_bool(frame_manifest["image_context_loadable"])
@@ -301,9 +316,8 @@ def build_image_context_index(
     if audit["duplicate_window_id"]:
         audit["errors"].append(f"duplicate_window_id={audit['duplicate_window_id']}")
     if audit["duplicate_frame_uid"]:
-        audit["warnings"].append(
-            f"duplicate_frame_uid={audit['duplicate_frame_uid']}; "
-            "using image_context_id as unique key"
+        audit["errors"].append(
+            f"duplicate_frame_uid={audit['duplicate_frame_uid']}"
         )
     if audit["frame_unloadable_count"]:
         audit["warnings"].append(f"frame_unloadable_count={audit['frame_unloadable_count']}")
@@ -377,6 +391,7 @@ def _build_frame_manifest(
         for column in [
             "source_type",
             "video_key",
+            "scene_frame_uid",
             "object_track_key",
             "frame_index",
             "frame_uid",
@@ -397,17 +412,19 @@ def _build_window_manifest(windows: pd.DataFrame, frame_manifest: pd.DataFrame) 
         [
             "object_track_key",
             "frame_index",
+            "scene_frame_uid",
             "frame_uid",
             "image_context_id",
             "image_context_loadable",
         ]
     ].copy()
     frame_work["frame_index"] = pd.to_numeric(frame_work["frame_index"], errors="coerce")
-    frame_lookup: dict[str, dict[int, tuple[str, str, bool]]] = {}
+    frame_lookup: dict[str, dict[int, tuple[str, str, str, bool]]] = {}
     for key, group in frame_work.groupby("object_track_key", sort=False):
         group = group.sort_values("frame_index")
         frame_lookup[str(key)] = {
             int(record.frame_index): (
+                str(record.scene_frame_uid),
                 str(record.frame_uid),
                 str(record.image_context_id),
                 bool(record.image_context_loadable),
@@ -415,6 +432,7 @@ def _build_window_manifest(windows: pd.DataFrame, frame_manifest: pd.DataFrame) 
             for record in group.itertuples(index=False)
         }
 
+    scene_frame_uids: list[str] = []
     frame_uids: list[str] = []
     image_context_ids: list[str] = []
     frame_indices: list[str] = []
@@ -433,6 +451,7 @@ def _build_window_manifest(windows: pd.DataFrame, frame_manifest: pd.DataFrame) 
             wanted = list(range(int(start), int(end) + 1))
         frame_indices.append("|".join(str(v) for v in wanted))
         by_frame = frame_lookup.get(object_key, {})
+        scene_uid_values: list[str] = []
         uid_values: list[str] = []
         context_id_values: list[str] = []
         observed = 0
@@ -440,15 +459,18 @@ def _build_window_manifest(windows: pd.DataFrame, frame_manifest: pd.DataFrame) 
         for frame_index in wanted:
             record = by_frame.get(frame_index)
             if record is None:
+                scene_uid_values.append("")
                 uid_values.append("")
                 context_id_values.append("")
                 continue
             observed += 1
-            frame_uid, image_context_id, is_loadable = record
+            scene_frame_uid, frame_uid, image_context_id, is_loadable = record
+            scene_uid_values.append(scene_frame_uid)
             uid_values.append(frame_uid)
             context_id_values.append(image_context_id)
             if is_loadable:
                 loadable += 1
+        scene_frame_uids.append("|".join(scene_uid_values))
         frame_uids.append("|".join(uid_values))
         image_context_ids.append(IMAGE_CONTEXT_SEQUENCE_DELIMITER.join(context_id_values))
         observed_counts.append(observed)
@@ -458,6 +480,7 @@ def _build_window_manifest(windows: pd.DataFrame, frame_manifest: pd.DataFrame) 
         complete_flags.append(bool(wanted) and missing == 0)
 
     out["expected_frame_indices"] = frame_indices
+    out["scene_frame_uid_sequence"] = scene_frame_uids
     out["frame_uid_sequence"] = frame_uids
     out["image_context_id_sequence"] = image_context_ids
     out["observed_image_context_rows"] = observed_counts

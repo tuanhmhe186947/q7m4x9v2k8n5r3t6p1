@@ -18,6 +18,7 @@ from typing import Any
 
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.identifiers import scene_frame_key
 from pig_behavior.classification_v2.schema import (
     ROI_DOMINANT_BEHAVIORS,
     VALID_BEHAVIOR_SET,
@@ -177,6 +178,8 @@ def build_behavior_review_template(
         "source_video_key",
         "clip_id",
         "task_id",
+        "identifier_schema_version",
+        "scene_frame_uid",
         "frame_uid",
         "image_name",
         "image_key",
@@ -472,7 +475,10 @@ def audit_review_policy(df: pd.DataFrame) -> dict[str, Any]:
 
     return {
         "rows": int(len(df)),
-        "frames": int(df["frame_uid"].nunique()) if "frame_uid" in df.columns else 0,
+        "frames": int(scene_frame_key(df).nunique()),
+        "frame_objects": int(df["frame_uid"].nunique())
+        if "frame_uid" in df.columns
+        else 0,
         "behaviors": _value_counts_dict(df, "behavior"),
         "behavior_train": _value_counts_dict(df, "behavior_train"),
         "roi_consistency_status": _value_counts_dict(df, "roi_consistency_status"),
