@@ -126,7 +126,8 @@ def build_temporal_label_intervals(
 
     if "temporal_unit_key" not in harmonized_or_frame_features.columns:
         df = _assign_temporal_units(
-            _ensure_object_track_key(_normalize_columns(harmonized_or_frame_features.copy())), config
+            _ensure_object_track_key(_normalize_columns(harmonized_or_frame_features.copy())),
+            config,
         )
     else:
         df = harmonized_or_frame_features.copy()
@@ -137,10 +138,20 @@ def build_temporal_label_intervals(
     else:
         df["timestamp_sec"] = np.nan
 
-    bool_cols = ["bbox_valid", "hidden", "spatiotemporal_feature_valid"]
+    bool_cols = [
+        "bbox_valid",
+        "hidden",
+        "hidden_is_trusted",
+        "spatiotemporal_feature_valid",
+    ]
     for col in bool_cols:
         if col not in df.columns:
-            df[col] = False if col == "hidden" else True
+            if col == "hidden":
+                df[col] = False
+            elif col == "hidden_is_trusted":
+                df[col] = _default_hidden_trust(df)
+            else:
+                df[col] = True
         df[col] = _to_bool_series(df[col])
 
     rows: list[dict[str, Any]] = []
@@ -170,7 +181,9 @@ def build_temporal_label_intervals(
             anchor = label_start
 
         label_frame_count = (
-            int(label_end - label_start + 1) if np.isfinite(label_start) and np.isfinite(label_end) else 0
+            int(label_end - label_start + 1)
+            if np.isfinite(label_start) and np.isfinite(label_end)
+            else 0
         )
         observed_frame_count = int(g["frame_index"].nunique(dropna=True))
         expected_count = (
@@ -218,9 +231,17 @@ def build_temporal_label_intervals(
                 status = "mixed"
             behavior_consistent = bool(num_behaviors == 1)
 
-        hidden_ratio = float(_to_bool_series(g["hidden"]).mean()) if len(g) else 0.0
+        hidden_raw = _to_bool_series(g["hidden"])
+        hidden_trust = _to_bool_series(g["hidden_is_trusted"])
+        hidden_effective = hidden_raw & hidden_trust
+        hidden_ratio_raw = float(hidden_raw.mean()) if len(g) else 0.0
+        hidden_ratio = float(hidden_effective.mean()) if len(g) else 0.0
+        hidden_untrusted_ratio = float((hidden_raw & ~hidden_trust).mean()) if len(g) else 0.0
+        hidden_review_coverage = float(hidden_trust.mean()) if len(g) else 0.0
         bbox_valid_ratio = float(_to_bool_series(g["bbox_valid"]).mean()) if len(g) else 0.0
-        spatio_valid_ratio = float(_to_bool_series(g["spatiotemporal_feature_valid"]).mean()) if len(g) else 0.0
+        spatio_valid_ratio = (
+            float(_to_bool_series(g["spatiotemporal_feature_valid"]).mean()) if len(g) else 0.0
+        )
 
         rows.append(
             {
@@ -252,14 +273,27 @@ def build_temporal_label_intervals(
                 "behavior_temporal_final": final_behavior,
                 "temporal_consistency_status": status,
                 "behavior_consistency_in_interval": behavior_consistent,
-                "timestamp_start_sec": _first_valid_numeric(g.get("timestamp_sec"), default=np.nan, how="min"),
-                "timestamp_end_sec": _first_valid_numeric(g.get("timestamp_sec"), default=np.nan, how="max"),
+                "timestamp_start_sec": _first_valid_numeric(
+                    g.get("timestamp_sec"), default=np.nan, how="min"
+                ),
+                "timestamp_end_sec": _first_valid_numeric(
+                    g.get("timestamp_sec"), default=np.nan, how="max"
+                ),
                 "bbox_valid_ratio_interval": bbox_valid_ratio,
                 "hidden_ratio_interval": hidden_ratio,
                 "visible_ratio_interval": 1.0 - hidden_ratio,
+                "hidden_ratio_raw_interval": hidden_ratio_raw,
+                "hidden_ratio_trusted_interval": hidden_ratio,
+                "hidden_metadata_untrusted_ratio_interval": (hidden_untrusted_ratio),
+                "hidden_review_coverage_ratio_interval": hidden_review_coverage,
                 "spatiotemporal_feature_valid_ratio_interval": spatio_valid_ratio,
                 "interval_review_reason": _interval_review_reason(
-                    status, final_behavior, bbox_valid_ratio, hidden_ratio, spatio_valid_ratio
+                    status,
+                    final_behavior,
+                    bbox_valid_ratio,
+                    hidden_ratio,
+                    hidden_untrusted_ratio,
+                    spatio_valid_ratio,
                 ),
             }
         )
@@ -268,18 +302,28 @@ def build_temporal_label_intervals(
     if intervals.empty:
         return intervals
 
-    intervals = _add_interaction_policy_columns(intervals, behavior_col="dominant_behavior_in_interval")
+    intervals = _add_interaction_policy_columns(
+        intervals, behavior_col="dominant_behavior_in_interval"
+    )
     return intervals.sort_values(
         [
             c
-            for c in ["source_type", "dataset_id", "video_key", "object_track_key", "label_window_start"]
+            for c in [
+                "source_type",
+                "dataset_id",
+                "video_key",
+                "object_track_key",
+                "label_window_start",
+            ]
             if c in intervals.columns
         ],
         kind="mergesort",
     ).reset_index(drop=True)
 
 
-def audit_temporal_harmonization(df: pd.DataFrame, intervals: pd.DataFrame | None = None) -> dict[str, Any]:
+def audit_temporal_harmonization(
+    df: pd.DataFrame, intervals: pd.DataFrame | None = None
+) -> dict[str, Any]:
     """Return a compact audit summary."""
     errors: list[str] = []
     warnings: list[str] = []
@@ -317,7 +361,9 @@ def audit_temporal_harmonization(df: pd.DataFrame, intervals: pd.DataFrame | Non
     if intervals is not None and not intervals.empty:
         interval_status = _value_counts_dict(intervals, "temporal_consistency_status")
         incomplete_or_mixed = int(
-            interval_status.get("mixed", 0) + interval_status.get("incomplete", 0) + interval_status.get("uncertain", 0)
+            interval_status.get("mixed", 0)
+            + interval_status.get("incomplete", 0)
+            + interval_status.get("uncertain", 0)
         )
         if incomplete_or_mixed:
             warnings.append(f"intervals_need_review_or_exclusion={incomplete_or_mixed}")
@@ -335,10 +381,15 @@ def audit_temporal_harmonization(df: pd.DataFrame, intervals: pd.DataFrame | Non
         "sources": _value_counts_dict(df, "source_type"),
         "behaviors": _value_counts_dict(df, "behavior"),
         "temporal_label_mode": _value_counts_dict(df, "temporal_label_mode"),
-        "temporal_consistency_status_frame_rows": _value_counts_dict(df, "temporal_consistency_status"),
+        "temporal_consistency_status_frame_rows": _value_counts_dict(
+            df, "temporal_consistency_status"
+        ),
         "temporal_consistency_status_intervals": interval_status,
         "label_propagation_policy": _value_counts_dict(df, "label_propagation_policy"),
         "allow_label_propagation": _value_counts_dict(df, "allow_label_propagation"),
+        "hidden_review_status": _value_counts_dict(df, "hidden_review_status"),
+        "hidden_trust_status": _value_counts_dict(df, "hidden_trust_status"),
+        "hidden_is_trusted": _value_counts_dict(df, "hidden_is_trusted"),
         "errors": errors,
         "warnings": warnings,
     }
@@ -356,7 +407,15 @@ def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
     ]:
         if col in out.columns:
             out[col] = pd.to_numeric(out[col], errors="coerce")
-    for col in ["source_type", "dataset_id", "video_key", "frame_uid", "pig_id", "track_id", "behavior"]:
+    for col in [
+        "source_type",
+        "dataset_id",
+        "video_key",
+        "frame_uid",
+        "pig_id",
+        "track_id",
+        "behavior",
+    ]:
         if col not in out.columns:
             out[col] = ""
         out[col] = out[col].fillna("").astype(str)
@@ -367,12 +426,20 @@ def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
         out["hidden"] = _to_bool_series(out["hidden"])
     else:
         out["hidden"] = False
+    if "hidden_is_trusted" in out.columns:
+        out["hidden_is_trusted"] = _to_bool_series(out["hidden_is_trusted"])
+    else:
+        out["hidden_is_trusted"] = _default_hidden_trust(out)
+    out["hidden_effective_for_policy"] = out["hidden"] & out["hidden_is_trusted"]
     return out
 
 
 def _ensure_object_track_key(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
-    if "object_track_key" not in out.columns or out["object_track_key"].fillna("").astype(str).eq("").all():
+    if (
+        "object_track_key" not in out.columns
+        or out["object_track_key"].fillna("").astype(str).eq("").all()
+    ):
         track_for_key = out["track_id"].replace("", pd.NA).fillna(out["pig_id"]).astype(str)
         pig_for_key = out["pig_id"].replace("", pd.NA).fillna(out["track_id"]).astype(str)
         out["object_track_key"] = (
@@ -403,7 +470,9 @@ def _assign_temporal_units(df: pd.DataFrame, config: TemporalHarmonizationConfig
         out["temporal_label_mode"] = "unknown_temporal"
     out["temporal_label_mode"] = out["temporal_label_mode"].fillna("").astype(str)
     out.loc[cvat_mask, "temporal_label_mode"] = f"cvat_anchor_{config.cvat_label_stride}f_interval"
-    out.loc[legacy_mask, "temporal_label_mode"] = f"legacy_{config.legacy_expected_sequence_length}f_constant"
+    out.loc[legacy_mask, "temporal_label_mode"] = (
+        f"legacy_{config.legacy_expected_sequence_length}f_constant"
+    )
 
     cvat_anchor = np.floor(frame_idx / config.cvat_label_stride) * config.cvat_label_stride
 
@@ -416,7 +485,9 @@ def _assign_temporal_units(df: pd.DataFrame, config: TemporalHarmonizationConfig
 
     out.loc[cvat_mask, "label_anchor_frame_index"] = cvat_anchor.loc[cvat_mask]
     out.loc[cvat_mask, "label_window_start"] = cvat_anchor.loc[cvat_mask]
-    out.loc[cvat_mask, "label_window_end"] = cvat_anchor.loc[cvat_mask] + config.cvat_label_stride - 1
+    out.loc[cvat_mask, "label_window_end"] = (
+        cvat_anchor.loc[cvat_mask] + config.cvat_label_stride - 1
+    )
 
     if legacy_mask.any():
         if "relative_frame_index" in out.columns:
@@ -442,7 +513,10 @@ def _assign_temporal_units(df: pd.DataFrame, config: TemporalHarmonizationConfig
     out.loc[other_mask & out["temporal_unit_key"].eq(""), "temporal_unit_key"] = (
         out.loc[other_mask & out["temporal_unit_key"].eq(""), "object_track_key"].astype(str)
         + "|frame="
-        + frame_idx.loc[other_mask & out["temporal_unit_key"].eq("")].round().astype("Int64").astype(str)
+        + frame_idx.loc[other_mask & out["temporal_unit_key"].eq("")]
+        .round()
+        .astype("Int64")
+        .astype(str)
     )
 
     # Legacy window start/end from actual sequence span.
@@ -456,8 +530,12 @@ def _assign_temporal_units(df: pd.DataFrame, config: TemporalHarmonizationConfig
     out["label_anchor_frame_index"] = (
         pd.to_numeric(out["label_anchor_frame_index"], errors="coerce").round().astype("Int64")
     )
-    out["label_window_start"] = pd.to_numeric(out["label_window_start"], errors="coerce").round().astype("Int64")
-    out["label_window_end"] = pd.to_numeric(out["label_window_end"], errors="coerce").round().astype("Int64")
+    out["label_window_start"] = (
+        pd.to_numeric(out["label_window_start"], errors="coerce").round().astype("Int64")
+    )
+    out["label_window_end"] = (
+        pd.to_numeric(out["label_window_end"], errors="coerce").round().astype("Int64")
+    )
     return out
 
 
@@ -487,6 +565,10 @@ def _map_interval_columns_to_frames(df: pd.DataFrame, intervals: pd.DataFrame) -
         "bbox_valid_ratio_interval",
         "hidden_ratio_interval",
         "visible_ratio_interval",
+        "hidden_ratio_raw_interval",
+        "hidden_ratio_trusted_interval",
+        "hidden_metadata_untrusted_ratio_interval",
+        "hidden_review_coverage_ratio_interval",
         "spatiotemporal_feature_valid_ratio_interval",
         "interval_review_reason",
     ]
@@ -528,9 +610,15 @@ def _anchor_behavior_for_interval(g: pd.DataFrame, anchor: float | int | None) -
     return values[0] if values else ""
 
 
-def _add_interaction_policy_columns(df: pd.DataFrame, behavior_col: str = "behavior") -> pd.DataFrame:
+def _add_interaction_policy_columns(
+    df: pd.DataFrame, behavior_col: str = "behavior"
+) -> pd.DataFrame:
     out = df.copy()
-    behavior = out.get(behavior_col, out.get("behavior", pd.Series("", index=out.index))).fillna("").astype(str)
+    behavior = (
+        out.get(behavior_col, out.get("behavior", pd.Series("", index=out.index)))
+        .fillna("")
+        .astype(str)
+    )
 
     out["interaction_annotation_policy"] = "not_interaction"
     out["interaction_role_policy"] = "none"
@@ -562,7 +650,9 @@ def _add_interaction_policy_columns(df: pd.DataFrame, behavior_col: str = "behav
 def _add_harmonization_quality_columns(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
     status = (
-        out.get("temporal_consistency_status", pd.Series("uncertain", index=out.index)).fillna("uncertain").astype(str)
+        out.get("temporal_consistency_status", pd.Series("uncertain", index=out.index))
+        .fillna("uncertain")
+        .astype(str)
     )
     out["temporal_unit_stable_for_training"] = status.eq("stable")
     out["temporal_unit_needs_review"] = status.isin({"mixed", "incomplete", "uncertain"})
@@ -575,7 +665,12 @@ def _add_harmonization_quality_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _interval_review_reason(
-    status: str, behavior: str, bbox_ratio: float, hidden_ratio: float, spatio_ratio: float
+    status: str,
+    behavior: str,
+    bbox_ratio: float,
+    hidden_ratio: float,
+    hidden_untrusted_ratio: float,
+    spatio_ratio: float,
 ) -> str:
     reasons: list[str] = []
     if status != "stable":
@@ -584,11 +679,26 @@ def _interval_review_reason(
         reasons.append("bbox_invalid_in_interval")
     if hidden_ratio > 0.5:
         reasons.append("high_hidden_ratio_interval")
+    if hidden_untrusted_ratio > 0:
+        reasons.append("untrusted_hidden_metadata_interval")
     if spatio_ratio < 1.0:
         reasons.append("spatiotemporal_feature_invalid_in_interval")
     if behavior in INTERACTION_BEHAVIORS:
         reasons.append("interaction_requires_partner_context")
     return ";".join(reasons)
+
+
+def _default_hidden_trust(df: pd.DataFrame) -> pd.Series:
+    """Infer backward-compatible trust without trusting CVAT tracking output."""
+    source = (
+        df.get(
+            "source_type",
+            pd.Series("", index=df.index),
+        )
+        .fillna("")
+        .astype(str)
+    )
+    return source.eq(LEGACY_SOURCE_TYPE)
 
 
 def _first_valid_numeric(s: Any, default: float = np.nan, how: str = "first") -> float:

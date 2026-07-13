@@ -58,6 +58,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--default-fps", type=float, default=None)
     parser.add_argument("--min-bbox-valid-ratio", type=float, default=1.0)
     parser.add_argument("--max-hidden-ratio-main", type=float, default=0.5)
+    parser.add_argument(
+        "--exclude-high-hidden-from-main",
+        action="store_true",
+        help=(
+            "Opt-in exclusion policy. Default only audits trusted Hidden ratio "
+            "and does not exclude or down-weight a window."
+        ),
+    )
     parser.add_argument("--min-spatiotemporal-valid-ratio", type=float, default=1.0)
     parser.add_argument("--exclude-mixed-windows", action="store_true")
     parser.add_argument(
@@ -131,9 +139,7 @@ def _apply_review_overlay_to_windows(windows: pd.DataFrame, frames: pd.DataFrame
 
     if "review_sample_weight" in f.columns:
         f["_review_weight"] = (
-            pd.to_numeric(f["review_sample_weight"], errors="coerce")
-            .fillna(1.0)
-            .clip(0.0, 1.0)
+            pd.to_numeric(f["review_sample_weight"], errors="coerce").fillna(1.0).clip(0.0, 1.0)
         )
     else:
         f["_review_weight"] = 1.0
@@ -181,8 +187,7 @@ def _apply_review_overlay_to_windows(windows: pd.DataFrame, frames: pd.DataFrame
                 {
                     str(value).strip()
                     for value in actions[left:right]
-                    if str(value).strip()
-                    and str(value).strip().lower() != "nan"
+                    if str(value).strip() and str(value).strip().lower() != "nan"
                 }
             )
             excluded_count = int((~include_slice).sum())
@@ -301,6 +306,7 @@ def _try_fast_reviewed_rebuild(args: argparse.Namespace) -> bool:
             "default_fps": args.default_fps,
             "min_bbox_valid_ratio": args.min_bbox_valid_ratio,
             "max_hidden_ratio_main": args.max_hidden_ratio_main,
+            "exclude_high_hidden_from_main": (args.exclude_high_hidden_from_main),
             "min_spatiotemporal_valid_ratio": args.min_spatiotemporal_valid_ratio,
             "include_mixed_windows": not args.exclude_mixed_windows,
             "disable_fast_reuse": args.disable_fast_reuse,
@@ -353,8 +359,7 @@ def main() -> None:
         )
         intervals = build_temporal_label_intervals(harmonized, config=interval_config)
         base_manifest = Path(
-            "outputs/classification_v2/sequence_features/"
-            "sequence_window_manifest.csv"
+            "outputs/classification_v2/sequence_features/sequence_window_manifest.csv"
         )
         windows = pd.read_csv(base_manifest, low_memory=False)
         windows = _apply_review_overlay_to_windows(windows, harmonized)
@@ -369,6 +374,7 @@ def main() -> None:
             default_fps=args.default_fps,
             min_bbox_valid_ratio=args.min_bbox_valid_ratio,
             max_hidden_ratio_main=args.max_hidden_ratio_main,
+            exclude_high_hidden_from_main=(args.exclude_high_hidden_from_main),
             min_spatiotemporal_valid_ratio=args.min_spatiotemporal_valid_ratio,
             include_mixed_windows=not args.exclude_mixed_windows,
             max_windows_per_track=args.max_windows_per_track,
@@ -416,6 +422,7 @@ def main() -> None:
             "default_fps": args.default_fps,
             "min_bbox_valid_ratio": args.min_bbox_valid_ratio,
             "max_hidden_ratio_main": args.max_hidden_ratio_main,
+            "exclude_high_hidden_from_main": (args.exclude_high_hidden_from_main),
             "min_spatiotemporal_valid_ratio": args.min_spatiotemporal_valid_ratio,
             "include_mixed_windows": not args.exclude_mixed_windows,
             "disable_fast_reuse": args.disable_fast_reuse,

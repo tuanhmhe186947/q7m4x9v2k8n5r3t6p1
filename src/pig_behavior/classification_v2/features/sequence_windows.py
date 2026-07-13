@@ -37,6 +37,7 @@ class SequenceWindowConfig:
     default_fps: float | None = None
     min_bbox_valid_ratio: float = 1.0
     max_hidden_ratio_main: float = 0.5
+    exclude_high_hidden_from_main: bool = False
     min_spatiotemporal_valid_ratio: float = 1.0
     include_mixed_windows: bool = True
     max_windows_per_track: int | None = None
@@ -76,6 +77,7 @@ def build_sequence_windows(
     default_fps: float | None = None,
     min_bbox_valid_ratio: float = 1.0,
     max_hidden_ratio_main: float = 0.5,
+    exclude_high_hidden_from_main: bool = False,
     min_spatiotemporal_valid_ratio: float = 1.0,
     include_mixed_windows: bool = True,
     max_windows_per_track: int | None = None,
@@ -95,6 +97,7 @@ def build_sequence_windows(
         default_fps=default_fps,
         min_bbox_valid_ratio=min_bbox_valid_ratio,
         max_hidden_ratio_main=max_hidden_ratio_main,
+        exclude_high_hidden_from_main=exclude_high_hidden_from_main,
         min_spatiotemporal_valid_ratio=min_spatiotemporal_valid_ratio,
         include_mixed_windows=include_mixed_windows,
         max_windows_per_track=max_windows_per_track,
@@ -115,7 +118,9 @@ def build_sequence_windows(
     return harmonized, intervals, windows
 
 
-def audit_sequence_windows(windows: pd.DataFrame, intervals: pd.DataFrame | None = None) -> dict[str, Any]:
+def audit_sequence_windows(
+    windows: pd.DataFrame, intervals: pd.DataFrame | None = None
+) -> dict[str, Any]:
     """Return an audit summary for generated sequence windows."""
     errors: list[str] = []
     warnings: list[str] = []
@@ -147,14 +152,20 @@ def audit_sequence_windows(windows: pd.DataFrame, intervals: pd.DataFrame | None
 
     if not windows.empty:
         invalid_main = windows[
-            windows.get("window_valid_for_main_train", False).astype(str).str.lower().isin({"true", "1", "yes"})
+            windows.get("window_valid_for_main_train", False)
+            .astype(str)
+            .str.lower()
+            .isin({"true", "1", "yes"})
             & ~windows.get("sequence_label_status", "").astype(str).eq("stable")
         ]
         if len(invalid_main):
             errors.append(f"main_train_windows_not_stable={len(invalid_main)}")
 
         mixed = int(
-            windows.get("sequence_label_status", pd.Series(dtype=str)).astype(str).isin({"mixed", "transition"}).sum()
+            windows.get("sequence_label_status", pd.Series(dtype=str))
+            .astype(str)
+            .isin({"mixed", "transition"})
+            .sum()
         )
         if mixed:
             warnings.append(f"mixed_or_transition_windows={mixed}")
@@ -171,12 +182,28 @@ def audit_sequence_windows(windows: pd.DataFrame, intervals: pd.DataFrame | None
         "behavior_window_label": _value_counts_dict(windows, "behavior_window_label"),
         "label_propagation_policy": _value_counts_dict(windows, "label_propagation_policy"),
         "window_exclusion_reason_top": _value_counts_dict(windows, "window_exclusion_reason"),
-        "review_excluded_frame_count_window": _value_counts_dict(windows, "review_excluded_frame_count_window"),
+        "review_excluded_frame_count_window": _value_counts_dict(
+            windows, "review_excluded_frame_count_window"
+        ),
         "window_sample_weight": _numeric_summary(windows, "window_sample_weight"),
         "speed_mean_window": _numeric_summary(windows, "speed_mean_window"),
-        "target_roi_contact_ratio_window": _numeric_summary(windows, "target_roi_contact_ratio_window"),
+        "target_roi_contact_ratio_window": _numeric_summary(
+            windows, "target_roi_contact_ratio_window"
+        ),
         "pair_contact_ratio_window": _numeric_summary(windows, "pair_contact_ratio_window"),
         "hidden_ratio_window": _numeric_summary(windows, "hidden_ratio_window"),
+        "hidden_ratio_raw_window": _numeric_summary(
+            windows,
+            "hidden_ratio_raw_window",
+        ),
+        "hidden_review_coverage_ratio_window": _numeric_summary(
+            windows,
+            "hidden_review_coverage_ratio_window",
+        ),
+        "high_hidden_ratio_window": _value_counts_dict(
+            windows,
+            "high_hidden_ratio_window",
+        ),
         "bbox_valid_ratio_window": _numeric_summary(windows, "bbox_valid_ratio_window"),
         "errors": errors,
         "warnings": warnings,
@@ -195,7 +222,9 @@ def _build_windows_from_harmonized(
     intervals_by_track: dict[str, pd.DataFrame] = {}
     if intervals is not None and not intervals.empty:
         for key, g in intervals.groupby("object_track_key", dropna=False, sort=False):
-            intervals_by_track[str(key)] = g.sort_values("label_window_start", kind="mergesort").reset_index(drop=True)
+            intervals_by_track[str(key)] = g.sort_values(
+                "label_window_start", kind="mergesort"
+            ).reset_index(drop=True)
 
     for object_key, g in frames.groupby("object_track_key", dropna=False, sort=False):
         object_key = str(object_key)
@@ -220,7 +249,14 @@ def _build_windows_from_harmonized(
         return windows
 
     windows = windows.sort_values(
-        ["source_type", "dataset_id", "video_key", "object_track_key", "window_length_frames", "window_start_frame"],
+        [
+            "source_type",
+            "dataset_id",
+            "video_key",
+            "object_track_key",
+            "window_length_frames",
+            "window_start_frame",
+        ],
         kind="mergesort",
     ).reset_index(drop=True)
     windows.insert(0, "window_row_index", np.arange(len(windows), dtype="int64"))
@@ -229,7 +265,9 @@ def _build_windows_from_harmonized(
 
 def _generate_legacy_windows(g: pd.DataFrame, config: SequenceWindowConfig) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    frames_available = sorted(set(int(x) for x in pd.to_numeric(g["frame_index"], errors="coerce").dropna()))
+    frames_available = sorted(
+        set(int(x) for x in pd.to_numeric(g["frame_index"], errors="coerce").dropna())
+    )
     if not frames_available:
         return rows
     frame_set = set(frames_available)
@@ -238,7 +276,11 @@ def _generate_legacy_windows(g: pd.DataFrame, config: SequenceWindowConfig) -> l
     for length in config.window_lengths:
         last_start = max_f - length + 1
         if last_start < min_f:
-            rows.append(_empty_invalid_window(g, length, min_f, min_f + length - 1, "not_enough_frames_for_window"))
+            rows.append(
+                _empty_invalid_window(
+                    g, length, min_f, min_f + length - 1, "not_enough_frames_for_window"
+                )
+            )
             continue
         for start in range(min_f, last_start + 1, config.legacy_window_stride):
             end = start + length - 1
@@ -256,7 +298,10 @@ def _generate_legacy_windows(g: pd.DataFrame, config: SequenceWindowConfig) -> l
             )
             rows.append(row)
             produced += 1
-            if config.max_windows_per_track is not None and produced >= config.max_windows_per_track:
+            if (
+                config.max_windows_per_track is not None
+                and produced >= config.max_windows_per_track
+            ):
                 return rows
     return rows
 
@@ -269,12 +314,18 @@ def _generate_cvat_windows(
         min_f = int(pd.to_numeric(g["frame_index"], errors="coerce").min())
         return [
             _empty_invalid_window(
-                g, int(config.window_lengths[0]), min_f, min_f + int(config.window_lengths[0]) - 1, "no_cvat_intervals"
+                g,
+                int(config.window_lengths[0]),
+                min_f,
+                min_f + int(config.window_lengths[0]) - 1,
+                "no_cvat_intervals",
             )
         ]
 
     intervals = intervals.copy()
-    intervals["label_window_start"] = pd.to_numeric(intervals["label_window_start"], errors="coerce")
+    intervals["label_window_start"] = pd.to_numeric(
+        intervals["label_window_start"], errors="coerce"
+    )
     intervals["label_window_end"] = pd.to_numeric(intervals["label_window_end"], errors="coerce")
     intervals = intervals.dropna(subset=["label_window_start", "label_window_end"]).sort_values(
         "label_window_start", kind="mergesort"
@@ -295,9 +346,15 @@ def _generate_cvat_windows(
             overlap = intervals.iloc[left:right].copy()
             coverage_complete = _intervals_cover_span(overlap, start, end)
             interval_keys = (
-                set(overlap["temporal_unit_key"].astype(str)) if "temporal_unit_key" in overlap.columns else set()
+                set(overlap["temporal_unit_key"].astype(str))
+                if "temporal_unit_key" in overlap.columns
+                else set()
             )
-            wg = g[g["temporal_unit_key"].astype(str).isin(interval_keys)] if interval_keys else g.iloc[0:0]
+            wg = (
+                g[g["temporal_unit_key"].astype(str).isin(interval_keys)]
+                if interval_keys
+                else g.iloc[0:0]
+            )
             row = _summarize_window(
                 wg,
                 length,
@@ -310,14 +367,21 @@ def _generate_cvat_windows(
             )
             rows.append(row)
             produced += 1
-            if config.max_windows_per_track is not None and produced >= config.max_windows_per_track:
+            if (
+                config.max_windows_per_track is not None
+                and produced >= config.max_windows_per_track
+            ):
                 return rows
     return rows
 
 
-def _generate_generic_windows(g: pd.DataFrame, config: SequenceWindowConfig) -> list[dict[str, Any]]:
+def _generate_generic_windows(
+    g: pd.DataFrame, config: SequenceWindowConfig
+) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    frames_available = sorted(set(int(x) for x in pd.to_numeric(g["frame_index"], errors="coerce").dropna()))
+    frames_available = sorted(
+        set(int(x) for x in pd.to_numeric(g["frame_index"], errors="coerce").dropna())
+    )
     if not frames_available:
         return rows
     min_f, max_f = min(frames_available), max(frames_available)
@@ -325,7 +389,11 @@ def _generate_generic_windows(g: pd.DataFrame, config: SequenceWindowConfig) -> 
     for length in config.window_lengths:
         last_start = max_f - length + 1
         if last_start < min_f:
-            rows.append(_empty_invalid_window(g, length, min_f, min_f + length - 1, "not_enough_frames_for_window"))
+            rows.append(
+                _empty_invalid_window(
+                    g, length, min_f, min_f + length - 1, "not_enough_frames_for_window"
+                )
+            )
             continue
         for start in range(min_f, last_start + 1, config.legacy_window_stride):
             end = start + length - 1
@@ -343,7 +411,10 @@ def _generate_generic_windows(g: pd.DataFrame, config: SequenceWindowConfig) -> 
                 )
             )
             produced += 1
-            if config.max_windows_per_track is not None and produced >= config.max_windows_per_track:
+            if (
+                config.max_windows_per_track is not None
+                and produced >= config.max_windows_per_track
+            ):
                 return rows
     return rows
 
@@ -361,7 +432,12 @@ def _summarize_window(
 ) -> dict[str, Any]:
     if wg.empty:
         return _empty_invalid_window(
-            pd.DataFrame(), length, start, end, "no_observed_rows_in_window", source_window_type=source_window_type
+            pd.DataFrame(),
+            length,
+            start,
+            end,
+            "no_observed_rows_in_window",
+            source_window_type=source_window_type,
         )
 
     first = wg.iloc[0]
@@ -384,8 +460,16 @@ def _summarize_window(
         label_status = "transition" if _looks_like_transition(interval_subset, wg) else "mixed"
 
     bbox_valid_ratio = _bool_mean(wg.get("bbox_valid", pd.Series(True, index=wg.index)))
-    hidden_ratio = _bool_mean(wg.get("hidden", pd.Series(False, index=wg.index)))
-    spatio_ratio = _bool_mean(wg.get("spatiotemporal_feature_valid", pd.Series(True, index=wg.index)))
+    hidden_raw = _to_bool_series(wg.get("hidden", pd.Series(False, index=wg.index)))
+    hidden_trust = _window_hidden_trust(wg)
+    hidden_effective = hidden_raw & hidden_trust
+    hidden_ratio_raw = float(hidden_raw.mean()) if len(wg) else 0.0
+    hidden_ratio = float(hidden_effective.mean()) if len(wg) else 0.0
+    hidden_untrusted_ratio = float((hidden_raw & ~hidden_trust).mean()) if len(wg) else 0.0
+    hidden_review_coverage = float(hidden_trust.mean()) if len(wg) else 0.0
+    spatio_ratio = _bool_mean(
+        wg.get("spatiotemporal_feature_valid", pd.Series(True, index=wg.index))
+    )
     review_summary = _review_training_summary(wg)
 
     ts_start, ts_end, duration_from_ts = _timestamp_span(wg)
@@ -403,7 +487,8 @@ def _summarize_window(
         reasons.append("label_coverage_incomplete")
     if bbox_valid_ratio < config.min_bbox_valid_ratio:
         reasons.append("bbox_valid_ratio_below_threshold")
-    if hidden_ratio > config.max_hidden_ratio_main:
+    high_hidden_ratio = hidden_ratio > config.max_hidden_ratio_main
+    if config.exclude_high_hidden_from_main and high_hidden_ratio:
         reasons.append("hidden_ratio_above_threshold")
     if spatio_ratio < config.min_spatiotemporal_valid_ratio:
         reasons.append("spatiotemporal_valid_ratio_below_threshold")
@@ -445,7 +530,9 @@ def _summarize_window(
         )
         if "temporal_unit_key" in wg.columns
         else "",
-        "num_temporal_units_window": int(wg.get("temporal_unit_key", pd.Series(dtype=str)).nunique(dropna=True))
+        "num_temporal_units_window": int(
+            wg.get("temporal_unit_key", pd.Series(dtype=str)).nunique(dropna=True)
+        )
         if "temporal_unit_key" in wg.columns
         else 0,
         "num_behaviors_window": int(len(unique_behaviors)),
@@ -458,6 +545,12 @@ def _summarize_window(
         "bbox_valid_ratio_window": bbox_valid_ratio,
         "hidden_ratio_window": hidden_ratio,
         "visible_ratio_window": 1.0 - hidden_ratio,
+        "hidden_ratio_raw_window": hidden_ratio_raw,
+        "hidden_ratio_trusted_window": hidden_ratio,
+        "hidden_metadata_untrusted_ratio_window": hidden_untrusted_ratio,
+        "hidden_review_coverage_ratio_window": hidden_review_coverage,
+        "high_hidden_ratio_window": high_hidden_ratio,
+        "hidden_exclusion_policy_enabled": config.exclude_high_hidden_from_main,
         "spatiotemporal_feature_valid_ratio_window": spatio_ratio,
         **review_summary,
     }
@@ -506,6 +599,12 @@ def _empty_invalid_window(
         "bbox_valid_ratio_window": 0.0,
         "hidden_ratio_window": 0.0,
         "visible_ratio_window": 0.0,
+        "hidden_ratio_raw_window": 0.0,
+        "hidden_ratio_trusted_window": 0.0,
+        "hidden_metadata_untrusted_ratio_window": 0.0,
+        "hidden_review_coverage_ratio_window": 0.0,
+        "high_hidden_ratio_window": False,
+        "hidden_exclusion_policy_enabled": False,
         "spatiotemporal_feature_valid_ratio_window": 0.0,
         "review_include_ratio_window": 1.0,
         "review_excluded_frame_count_window": 0,
@@ -518,7 +617,9 @@ def _empty_invalid_window(
     return row
 
 
-def _aggregate_window_features(wg: pd.DataFrame, window_duration_sec: float | None) -> dict[str, Any]:
+def _aggregate_window_features(
+    wg: pd.DataFrame, window_duration_sec: float | None
+) -> dict[str, Any]:
     out: dict[str, Any] = {}
 
     def num(col: str) -> pd.Series:
@@ -542,13 +643,19 @@ def _aggregate_window_features(wg: pd.DataFrame, window_duration_sec: float | No
     out["speed_per_sec_max_window"] = _safe_max(speed_sec)
     out["path_length_n_window"] = _safe_sum(disp)
     out["path_length_n_per_sec_window"] = (
-        out["path_length_n_window"] / window_duration_sec if window_duration_sec and window_duration_sec > 0 else np.nan
+        out["path_length_n_window"] / window_duration_sec
+        if window_duration_sec and window_duration_sec > 0
+        else np.nan
     )
     out["motion_energy_window"] = (
-        float(np.nansum(np.asarray(speed.dropna(), dtype="float64") ** 2)) if not speed.dropna().empty else 0.0
+        float(np.nansum(np.asarray(speed.dropna(), dtype="float64") ** 2))
+        if not speed.dropna().empty
+        else 0.0
     )
     out["motion_burstiness_window"] = (
-        out["speed_std_window"] / (out["speed_mean_window"] + 1e-9) if np.isfinite(out["speed_std_window"]) else 0.0
+        out["speed_std_window"] / (out["speed_mean_window"] + 1e-9)
+        if np.isfinite(out["speed_std_window"])
+        else 0.0
     )
     out["accel_abs_mean_window"] = _safe_mean(accel)
     out["accel_abs_max_window"] = _safe_max(accel)
@@ -563,11 +670,15 @@ def _aggregate_window_features(wg: pd.DataFrame, window_duration_sec: float | No
 
     # First-last displacement ratio.
     if {"cx_n", "cy_n"}.issubset(wg.columns) and len(wg) >= 2:
-        coords = wg.sort_values("frame_index")[["cx_n", "cy_n"]].apply(pd.to_numeric, errors="coerce")
+        coords = wg.sort_values("frame_index")[["cx_n", "cy_n"]].apply(
+            pd.to_numeric, errors="coerce"
+        )
         first = coords.iloc[0]
         last = coords.iloc[-1]
         displacement = (
-            float(np.sqrt((last["cx_n"] - first["cx_n"]) ** 2 + (last["cy_n"] - first["cy_n"]) ** 2))
+            float(
+                np.sqrt((last["cx_n"] - first["cx_n"]) ** 2 + (last["cy_n"] - first["cy_n"]) ** 2)
+            )
             if coords.notna().all(axis=None)
             else np.nan
         )
@@ -576,7 +687,9 @@ def _aggregate_window_features(wg: pd.DataFrame, window_duration_sec: float | No
     out["displacement_n_window"] = displacement
     out["displacement_ratio_window"] = (
         displacement / out["path_length_n_window"]
-        if out["path_length_n_window"] and out["path_length_n_window"] > 0 and np.isfinite(displacement)
+        if out["path_length_n_window"]
+        and out["path_length_n_window"] > 0
+        and np.isfinite(displacement)
         else np.nan
     )
 
@@ -592,7 +705,9 @@ def _aggregate_window_features(wg: pd.DataFrame, window_duration_sec: float | No
     out["target_roi_min_dist_n_mean_window"] = _safe_mean(num("roi_target_min_dist_n"))
     out["target_roi_min_dist_n_min_window"] = _safe_min(num("roi_target_min_dist_n"))
     out["target_roi_entry_count_window"] = (
-        int(_safe_sum(num("roi_target_entry_event"))) if "roi_target_entry_event" in wg.columns else 0
+        int(_safe_sum(num("roi_target_entry_event")))
+        if "roi_target_entry_event" in wg.columns
+        else 0
     )
     out["target_roi_exit_count_window"] = (
         int(_safe_sum(num("roi_target_exit_event"))) if "roi_target_exit_event" in wg.columns else 0
@@ -606,7 +721,9 @@ def _aggregate_window_features(wg: pd.DataFrame, window_duration_sec: float | No
     out["social_density_mean_window"] = _safe_mean(num("social_density_near_count"))
     out["social_density_max_window"] = _safe_max(num("social_density_near_count"))
     out["pair_contact_ratio_window"] = (
-        _bool_mean(wg["pair_contact_with_nearest"]) if "pair_contact_with_nearest" in wg.columns else 0.0
+        _bool_mean(wg["pair_contact_with_nearest"])
+        if "pair_contact_with_nearest" in wg.columns
+        else 0.0
     )
     out["approach_speed_max_window"] = _safe_max(num("approach_speed_n_per_frame"))
     out["separation_speed_max_window"] = _safe_max(num("separation_speed_n_per_frame"))
@@ -781,9 +898,16 @@ def _intervals_cover_span(intervals: pd.DataFrame, start: int, end: int) -> bool
 
 
 def _looks_like_transition(interval_subset: pd.DataFrame | None, wg: pd.DataFrame) -> bool:
-    if interval_subset is not None and not interval_subset.empty and "label_window_start" in interval_subset.columns:
+    if (
+        interval_subset is not None
+        and not interval_subset.empty
+        and "label_window_start" in interval_subset.columns
+    ):
         ordered = (
-            interval_subset.sort_values("label_window_start")["behavior_temporal_final"].fillna("").astype(str).tolist()
+            interval_subset.sort_values("label_window_start")["behavior_temporal_final"]
+            .fillna("")
+            .astype(str)
+            .tolist()
         )
     else:
         ordered = (
@@ -821,7 +945,9 @@ def _timestamp_span(wg: pd.DataFrame) -> tuple[float, float, float | None]:
 def _infer_effective_fps(
     wg: pd.DataFrame, start: int, end: int, duration: float | None, default_fps: float | None
 ) -> float:
-    observed_frames = int(wg["frame_index"].nunique(dropna=True)) if "frame_index" in wg.columns else int(len(wg))
+    observed_frames = (
+        int(wg["frame_index"].nunique(dropna=True)) if "frame_index" in wg.columns else int(len(wg))
+    )
     if duration is not None and duration > 0 and observed_frames > 1:
         return float(observed_frames / duration)
     if default_fps is not None and default_fps > 0:
@@ -873,6 +999,21 @@ def _bool_mean(s: pd.Series | Iterable[Any]) -> float:
     if len(s) == 0:
         return 0.0
     return float(_to_bool_series(s).mean())
+
+
+def _window_hidden_trust(window_rows: pd.DataFrame) -> pd.Series:
+    """Use explicit review trust, with a source-aware legacy fallback."""
+    if "hidden_is_trusted" in window_rows.columns:
+        return _to_bool_series(window_rows["hidden_is_trusted"])
+    source = (
+        window_rows.get(
+            "source_type",
+            pd.Series("", index=window_rows.index),
+        )
+        .fillna("")
+        .astype(str)
+    )
+    return source.eq(LEGACY_SOURCE_TYPE)
 
 
 def _to_bool_series(s: pd.Series | Iterable[Any]) -> pd.Series:
@@ -935,7 +1076,15 @@ def _numeric_summary(df: pd.DataFrame, column: str) -> dict[str, float | int | N
         return {}
     s = pd.to_numeric(df[column], errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
     if s.empty:
-        return {"count": 0, "mean": None, "std": None, "min": None, "p50": None, "p95": None, "max": None}
+        return {
+            "count": 0,
+            "mean": None,
+            "std": None,
+            "min": None,
+            "p50": None,
+            "p95": None,
+            "max": None,
+        }
     return {
         "count": int(s.size),
         "mean": float(s.mean()),
