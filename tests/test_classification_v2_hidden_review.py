@@ -19,6 +19,7 @@ from pig_behavior.classification_v2.review.hidden_review_builder import (
     HiddenReviewConfig,
     apply_hidden_review_decisions,
     audit_hidden_decision_coverage,
+    audit_hidden_review_manifest,
     build_hidden_review_frame_context,
     build_hidden_review_manifest,
     hidden_decision_semantic_error,
@@ -120,6 +121,87 @@ def test_hidden_review_manifest_audits_both_yes_and_no() -> None:
     legacy = manifest["source_type"].eq("legacy_recovered")
     assert not manifest.loc[cvat, "hidden_is_trusted_before_review"].any()
     assert manifest.loc[legacy, "hidden_is_trusted_before_review"].all()
+
+
+def test_hidden_selection_is_invariant_to_behavior_targets() -> None:
+    """Behavior relabeling must not alter visibility review selection."""
+
+    frames = _frame_rows()
+    config = HiddenReviewConfig(
+        random_no_per_stratum=1,
+        clean_control_per_stratum=1,
+    )
+    first, _, first_audit = build_hidden_review_manifest(
+        frames,
+        config=config,
+    )
+    relabeled = frames.copy()
+    relabeled["behavior"] = [
+        "drink" if index % 2 else "social-nose"
+        for index in range(len(relabeled))
+    ]
+    second, _, second_audit = build_hidden_review_manifest(
+        relabeled,
+        config=config,
+    )
+    signature_columns = [
+        "hidden_review_item_id",
+        "hidden_review_cohort",
+        "hidden_false_negative_risk_score",
+        "hidden_false_negative_risk_reasons",
+        "hidden_false_negative_risk_band",
+        "hidden_sampling_stratum",
+        "hidden_sampling_probability",
+        "hidden_sampling_weight",
+        "hidden_review_priority",
+    ]
+
+    pd.testing.assert_frame_equal(
+        first[signature_columns].reset_index(drop=True),
+        second[signature_columns].reset_index(drop=True),
+    )
+    assert first_audit["selection_contract"]["target_independent"] is True
+    assert second_audit["selection_contract"]["target_independent"] is True
+    assert not first["hidden_sampling_stratum"].str.contains(
+        "behavior=",
+        regex=False,
+    ).any()
+    assert not first["hidden_false_negative_risk_reasons"].str.contains(
+        "interaction_scene",
+        regex=False,
+    ).any()
+
+
+def test_hidden_sampling_config_rejects_target_derived_strata() -> None:
+    config = HiddenReviewConfig(
+        stratum_columns=("source_type", "behavior"),
+    )
+
+    with pytest.raises(ValueError, match="target-independent"):
+        config.validate()
+
+
+def test_hidden_manifest_audit_rejects_target_derived_risk_reason() -> None:
+    frames, manifest = _build_review()
+    corrupted = manifest.copy()
+    corrupted.loc[corrupted.index[0], "hidden_false_negative_risk_reasons"] = (
+        "interaction_scene"
+    )
+
+    audit = audit_hidden_review_manifest(
+        frames,
+        corrupted,
+        HiddenReviewConfig(
+            random_no_per_stratum=1,
+            clean_control_per_stratum=1,
+        ),
+    )
+
+    assert audit["selection_contract"]["target_independent"] is False
+    assert any(
+        "target_derived_hidden_risk_reason" in error
+        for error in audit["errors"]
+    )
 
 
 def test_hidden_review_identity_ignores_labels_and_frame_uid_schema() -> None:

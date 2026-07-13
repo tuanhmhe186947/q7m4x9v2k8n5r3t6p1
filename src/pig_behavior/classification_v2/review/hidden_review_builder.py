@@ -29,6 +29,31 @@ HIDDEN_REVIEW_COHORTS: tuple[str, ...] = (
     "hidden_no_clean_control",
 )
 
+HIDDEN_RISK_INPUT_COLUMNS: tuple[str, ...] = (
+    "bbox_was_clipped",
+    "nearest_pair_iou",
+    "nearest_pair_overlap_ratio",
+    "nearest_dist_n",
+    "pair_contact_with_nearest",
+    "shape_change_score",
+    "delta_area_n",
+    "hidden_before_review",
+    "frame_index",
+    "object_track_key",
+    "track_id",
+    "pig_id",
+)
+
+FORBIDDEN_SELECTION_FIELD_TOKENS: tuple[str, ...] = (
+    "behavior",
+    "label",
+    "target",
+    "manual_",
+    "review_status",
+    "review_decision",
+    "after_review",
+)
+
 DECISION_COLUMNS: tuple[str, ...] = (
     "hidden_review_item_id",
     "hidden_before_review",
@@ -79,7 +104,7 @@ class HiddenReviewConfig:
     stratum_columns: tuple[str, ...] = (
         "source_type",
         "hidden_review_stratum_key",
-        "behavior",
+        "hidden_false_negative_risk_band",
     )
 
     def validate(self) -> None:
@@ -95,6 +120,12 @@ class HiddenReviewConfig:
                 raise ValueError("max_high_risk_per_stratum must be > 0")
         if not 0 <= self.clean_control_max_risk <= self.high_risk_threshold <= 1:
             raise ValueError("risk thresholds must satisfy 0 <= clean <= high <= 1")
+        forbidden = _target_derived_selection_fields(self.stratum_columns)
+        if forbidden:
+            raise ValueError(
+                "Hidden sampling strata must be target-independent: "
+                f"{forbidden}"
+            )
 
 
 def balanced_hidden_smoke_scope(
@@ -203,6 +234,11 @@ def build_hidden_review_manifest(
     risk_score, risk_reasons = _hidden_false_negative_risk(work, cfg)
     work["hidden_false_negative_risk_score"] = risk_score
     work["hidden_false_negative_risk_reasons"] = risk_reasons
+    work["hidden_false_negative_risk_band"] = _hidden_risk_band(
+        risk_score,
+        cfg,
+    )
+    _require_columns(work, cfg.stratum_columns, "hidden sampling strata")
 
     selected_parts: list[pd.DataFrame] = []
     hidden_yes = work["hidden_before_review"].eq("Yes")
@@ -316,6 +352,7 @@ def audit_hidden_review_manifest(
     prepared_frame_features: pd.DataFrame | None = None,
 ) -> dict[str, Any]:
     """Return coverage, trust, and cohort evidence for a review manifest."""
+    config.validate()
     errors: list[str] = []
     warnings: list[str] = []
     if len(frame_features) <= 0:
@@ -358,6 +395,17 @@ def audit_hidden_review_manifest(
         source["hidden_is_trusted_before_review"] = _initial_hidden_trust(
             source
         )
+    expected_risk, expected_reasons = _hidden_false_negative_risk(
+        source,
+        config,
+    )
+    source["hidden_false_negative_risk_score"] = expected_risk
+    source["hidden_false_negative_risk_reasons"] = expected_reasons
+    source["hidden_false_negative_risk_band"] = _hidden_risk_band(
+        expected_risk,
+        config,
+    )
+    _require_columns(source, config.stratum_columns, "hidden sampling strata")
     _require_unique(source, "hidden_review_item_id", "frame_features")
     source_ids = set(source["hidden_review_item_id"].astype(str))
     manifest_ids = set(manifest.get("hidden_review_item_id", pd.Series(dtype=str)).astype(str))
@@ -438,13 +486,7 @@ def audit_hidden_review_manifest(
     if extra_yes_ids:
         errors.append(f"invalid_hidden_yes_confirmation_items={len(extra_yes_ids)}")
 
-    if "hidden_false_negative_risk_score" in source.columns:
-        source_risk = pd.to_numeric(
-            source["hidden_false_negative_risk_score"],
-            errors="coerce",
-        ).fillna(0.0)
-    else:
-        source_risk, _ = _hidden_false_negative_risk(source, config)
+    source_risk = source["hidden_false_negative_risk_score"]
     source_high_risk_ids = set(
         source.loc[
             source["hidden_before_review"].eq("No") & source_risk.ge(config.high_risk_threshold),
@@ -493,6 +535,13 @@ def audit_hidden_review_manifest(
     elif not selected_no.any():
         errors.append("no_hidden_no_rows_selected_for_false_negative_audit")
 
+    selection_contract = _audit_hidden_selection_contract(
+        source,
+        manifest,
+        config,
+    )
+    errors.extend(selection_contract["errors"])
+
     return {
         "input_rows": int(len(frame_features)),
         "input_hidden": _counts(frame_features, "hidden"),
@@ -538,8 +587,111 @@ def audit_hidden_review_manifest(
         "unselected_hidden_no_rows": int(len(source_no) - selected_no.sum()),
         "random_seed": config.random_seed,
         "config": _config_payload(config),
+        "selection_contract": selection_contract,
         "errors": errors,
         "warnings": warnings,
+    }
+
+
+def _audit_hidden_selection_contract(
+    source: pd.DataFrame,
+    manifest: pd.DataFrame,
+    config: HiddenReviewConfig,
+) -> dict[str, Any]:
+    """Prove that Hidden selection uses visibility evidence, never targets."""
+
+    errors: list[str] = []
+    required = [
+        "hidden_false_negative_risk_score",
+        "hidden_false_negative_risk_reasons",
+        "hidden_false_negative_risk_band",
+        "hidden_sampling_stratum",
+    ]
+    missing = sorted(set(required).difference(manifest.columns))
+    if missing:
+        errors.append(f"missing_hidden_selection_columns={missing}")
+
+    target_fields = sorted(
+        set(_target_derived_selection_fields(config.stratum_columns))
+        | set(_target_derived_selection_fields(HIDDEN_RISK_INPUT_COLUMNS))
+    )
+    if target_fields:
+        errors.append(f"target_derived_hidden_selection_fields={target_fields}")
+
+    score_mismatch = 0
+    reason_mismatch = 0
+    band_mismatch = 0
+    stratum_mismatch = 0
+    target_marker_rows = 0
+    forbidden_reason_rows = 0
+    if not missing and not manifest.empty:
+        expected = source.set_index("hidden_review_item_id", drop=False)
+        item_ids = manifest["hidden_review_item_id"].astype(str)
+        expected_score = item_ids.map(
+            expected["hidden_false_negative_risk_score"]
+        )
+        actual_score = pd.to_numeric(
+            manifest["hidden_false_negative_risk_score"],
+            errors="coerce",
+        )
+        score_mismatch = int(
+            (actual_score.sub(expected_score).abs().gt(1e-12)
+             | actual_score.isna()).sum()
+        )
+        expected_reason = item_ids.map(
+            expected["hidden_false_negative_risk_reasons"]
+        ).fillna("")
+        actual_reason = manifest[
+            "hidden_false_negative_risk_reasons"
+        ].fillna("").astype(str)
+        reason_mismatch = int(actual_reason.ne(expected_reason).sum())
+        expected_band = item_ids.map(
+            expected["hidden_false_negative_risk_band"]
+        ).fillna("")
+        actual_band = manifest[
+            "hidden_false_negative_risk_band"
+        ].fillna("").astype(str)
+        band_mismatch = int(actual_band.ne(expected_band).sum())
+        expected_stratum = _sampling_strata(manifest, config.stratum_columns)
+        actual_stratum = manifest["hidden_sampling_stratum"].fillna("").astype(str)
+        stratum_mismatch = int(actual_stratum.ne(expected_stratum).sum())
+        lowered_strata = actual_stratum.str.lower()
+        target_marker_rows = int(
+            lowered_strata.map(
+                lambda value: any(
+                    f"{token}=" in value
+                    for token in FORBIDDEN_SELECTION_FIELD_TOKENS
+                )
+            ).sum()
+        )
+        forbidden_reason_rows = int(
+            actual_reason.str.contains("interaction_scene", regex=False).sum()
+        )
+
+    for code, count in (
+        ("hidden_risk_score_mismatch", score_mismatch),
+        ("hidden_risk_reason_mismatch", reason_mismatch),
+        ("hidden_risk_band_mismatch", band_mismatch),
+        ("hidden_sampling_stratum_mismatch", stratum_mismatch),
+        ("target_marker_in_hidden_sampling_stratum", target_marker_rows),
+        ("target_derived_hidden_risk_reason", forbidden_reason_rows),
+    ):
+        if count:
+            errors.append(f"{code}={count}")
+
+    return {
+        "target_independent": not errors,
+        "risk_input_columns": list(HIDDEN_RISK_INPUT_COLUMNS),
+        "stratum_columns": list(config.stratum_columns),
+        "target_derived_fields": target_fields,
+        "score_mismatch_rows": score_mismatch,
+        "reason_mismatch_rows": reason_mismatch,
+        "risk_band_mismatch_rows": band_mismatch,
+        "sampling_stratum_mismatch_rows": stratum_mismatch,
+        "target_marker_rows": target_marker_rows,
+        "forbidden_reason_rows": forbidden_reason_rows,
+        "behavior_is_descriptive_metadata_only": True,
+        "errors": errors,
     }
 
 
@@ -778,12 +930,6 @@ def _hidden_false_negative_risk(
         0.10,
         "abrupt_area_change",
     )
-    add(
-        frame_features["behavior"].astype(str).isin(["fight", "social-nose"]),
-        0.10,
-        "interaction_scene",
-    )
-
     hidden_yes = frame_features["hidden_before_review"].eq("Yes")
     track_key = _review_track_key(frame_features)
     ordered = pd.DataFrame(
@@ -806,6 +952,18 @@ def _hidden_false_negative_risk(
         dtype="object",
     )
     return score, reason_series
+
+
+def _hidden_risk_band(
+    score: pd.Series,
+    config: HiddenReviewConfig,
+) -> pd.Series:
+    """Stratify random audit sampling using visibility evidence only."""
+
+    band = pd.Series("moderate", index=score.index, dtype="object")
+    band.loc[score.le(config.clean_control_max_risk)] = "low"
+    band.loc[score.ge(config.high_risk_threshold)] = "high"
+    return band
 
 
 def _initialize_hidden_provenance(df: pd.DataFrame) -> pd.DataFrame:
@@ -1036,14 +1194,13 @@ def _finalize_manifest(manifest: pd.DataFrame) -> pd.DataFrame:
         "hidden_review_priority",
         "source_type",
         "video_key",
-        "behavior",
         "frame_index",
         "pig_id",
         "hidden_review_item_id",
     ]
     return manifest.sort_values(
         sort_columns,
-        ascending=[False, True, True, True, True, True, True],
+        ascending=[False, True, True, True, True, True],
         kind="mergesort",
     ).reset_index(drop=True)
 
@@ -1122,7 +1279,8 @@ def _sampling_strata(
     if not available:
         return pd.Series("all", index=rows.index, dtype="object")
     values = rows[available].fillna("<NA>").astype(str)
-    return values.agg("|".join, axis=1)
+    named = [column + "=" + values[column] for column in available]
+    return pd.concat(named, axis=1).agg("|".join, axis=1)
 
 
 def _cap_each_stratum(
@@ -1326,6 +1484,19 @@ def _stable_text(value: object) -> str:
     if pd.isna(value):
         return ""
     return str(value).strip().replace("\\", "/").lower()
+
+
+def _target_derived_selection_fields(columns: Iterable[str]) -> list[str]:
+    """Return target or review fields forbidden in Hidden sample selection."""
+
+    return sorted(
+        column
+        for column in columns
+        if any(
+            token in str(column).strip().lower()
+            for token in FORBIDDEN_SELECTION_FIELD_TOKENS
+        )
+    )
 
 
 def _require_columns(
