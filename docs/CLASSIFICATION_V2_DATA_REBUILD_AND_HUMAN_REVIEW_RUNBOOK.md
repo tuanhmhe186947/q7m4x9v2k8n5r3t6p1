@@ -385,6 +385,7 @@ set HSM=%SM%\hidden_review
   --output-dir %HSM%\gui --reviewer REVIEWER_NAME ^
   --video-root data\videos ^
   --crop-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
+  --validation-audit-json %HSM%\hidden_media_validation_audit.json ^
   --validate-only
 ```
 
@@ -451,6 +452,19 @@ high-risk correction yield. Nếu yield còn cao, tăng cap theo chuỗi 1, 2, 4
 hoặc bỏ cap; giữ cùng seed để selection lồng nhau và resume decision cũ. Chỉ
 khóa final cap khi correction yield đã ổn định thấp và random weighted estimate
 có uncertainty được báo cáo. Mọi lần mở rộng phải rebuild coverage audit.
+
+```bat
+%PY% %S1%\review_hidden_quality_gui.py ^
+  --manifest-csv %HREV%\hidden_review_unit_manifest.csv ^
+  --frame-features-csv %HREV%\hidden_review_frame_context.csv ^
+  --output-dir %HREV%\gui --reviewer REVIEWER_NAME ^
+  --video-root data\videos ^
+  --crop-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
+  --validation-audit-json %HREV%\hidden_media_validation_audit.json ^
+  --validate-only
+```
+
+Chỉ mở full GUI sau khi media audit trên báo `media_missing=0`:
 
 ```bat
 %PY% %S1%\review_hidden_quality_gui.py ^

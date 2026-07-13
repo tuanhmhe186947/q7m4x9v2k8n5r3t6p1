@@ -211,6 +211,75 @@ def test_interaction_gui_draws_actor_and_nearest_partner_on_full_frame() -> None
     assert image.getpixel((40, 10)) == (0, 176, 80)
 
 
+def test_hidden_gui_rebases_legacy_crop_without_video_fallback(
+    tmp_path: Path,
+) -> None:
+    gui = _load_script(
+        "hidden_gui_legacy_media",
+        "review_hidden_quality_gui.py",
+    )
+    crop_root = tmp_path / "current" / "crops"
+    relative = Path("dense_tracklet_0_to_12/pigs281119/000166/ID_8/f000008.jpg")
+    expected_crop = crop_root / relative
+    expected_crop.parent.mkdir(parents=True)
+    expected_crop.write_bytes(b"fixture")
+    stale_crop = tmp_path / "old" / "legacy_full_multigt_masked_nodup_16f"
+    stale_crop = stale_crop / "crops" / relative
+    wrong_video = tmp_path / "000166.mp4"
+    wrong_video.write_bytes(b"not-a-video")
+    row = pd.Series(
+        {
+            "source_type": "legacy_recovered",
+            "video_key": "000166",
+            "crop_path": str(stale_crop),
+        }
+    )
+
+    mode, path = gui.resolve_review_media(
+        row,
+        video_index={"000166": wrong_video},
+        crop_roots=[crop_root],
+    )
+    audit = gui.validate_media_resolution(
+        pd.DataFrame([row]),
+        {"000166": wrong_video},
+        [crop_root],
+    )
+
+    assert mode == "legacy_crop"
+    assert path == expected_crop
+    assert audit["crop_resolved"] == 1
+    assert audit["video_resolved"] == 0
+    assert audit["media_missing"] == 0
+
+
+def test_hidden_gui_uses_video_contract_for_cvat(tmp_path: Path) -> None:
+    gui = _load_script(
+        "hidden_gui_cvat_media",
+        "review_hidden_quality_gui.py",
+    )
+    video = tmp_path / "Pigs291119_000231_30fps.mp4"
+    video.write_bytes(b"fixture")
+    crop = tmp_path / "wrong-cvat-crop.jpg"
+    crop.write_bytes(b"fixture")
+    row = pd.Series(
+        {
+            "source_type": "cvat_tracking_xml",
+            "video_key": "test video Pigs291119_000231_30fps",
+            "crop_path": str(crop),
+        }
+    )
+
+    mode, path = gui.resolve_review_media(
+        row,
+        video_index={"pigs291119_000231_30fps": video},
+        crop_roots=[tmp_path],
+    )
+
+    assert mode == "cvat_video_bbox"
+    assert path == video
+
+
 def test_decision_coverage_requires_no_missing_or_pending() -> None:
     coverage = _load_script(
         "review_decision_coverage",

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import re
 import tkinter as tk
 from datetime import datetime
@@ -18,6 +19,10 @@ from typing import Any
 import cv2
 import pandas as pd
 from PIL import Image, ImageDraw, ImageTk
+
+from pig_behavior.classification_v2.datasets.image_context_index import (
+    resolve_legacy_crop,
+)
 
 DECISION_FILENAME = "hidden_review_decisions.csv"
 REQUIRED_MANIFEST_COLUMNS = {
@@ -85,6 +90,12 @@ def parse_args() -> argparse.Namespace:
         "--validate-only",
         action="store_true",
         help="Validate manifest and media resolution without opening Tk.",
+    )
+    parser.add_argument(
+        "--validation-audit-json",
+        type=Path,
+        default=None,
+        help="Optional JSON evidence path for the media-resolution gate.",
     )
     return parser.parse_args()
 
@@ -449,21 +460,25 @@ def build_review_image(
     padding: float,
 ) -> Image.Image:
     """Render full-frame context and an undistorted actor crop side by side."""
-    video_path = resolve_video(row, video_index)
-    frame = None
-    if video_path is not None:
-        frame = reader.read(video_path, int(float(row["frame_index"])))
-    if frame is not None:
+    media_mode, media_path = resolve_review_media(
+        row,
+        video_index=video_index,
+        crop_roots=crop_roots,
+    )
+    if media_mode == "cvat_video_bbox" and media_path is not None:
+        frame = reader.read(media_path, int(float(row["frame_index"])))
+        if frame is None:
+            raise OSError(f"Cannot read CVAT video frame: {media_path}")
         full = frame.copy()
         group = frame_groups.get(_frame_group_key(row), pd.DataFrame())
         draw_context_boxes(full, group, row)
         crop = crop_bbox(frame, row, padding=padding)
         return compose_context_and_crop(full, crop)
 
-    crop_path = resolve_crop(row, crop_roots)
-    if crop_path is None:
-        raise FileNotFoundError("No resolvable video frame or legacy crop")
-    crop_image = Image.open(crop_path).convert("RGB")
+    if media_mode != "legacy_crop" or media_path is None:
+        source_type = _text(row.get("source_type", ""))
+        raise FileNotFoundError(f"No media for source_type={source_type}")
+    crop_image = Image.open(media_path).convert("RGB")
     canvas = Image.new("RGB", (1200, 680), "black")
     crop_image.thumbnail((1150, 630), Image.Resampling.LANCZOS)
     offset = ((1200 - crop_image.width) // 2, (680 - crop_image.height) // 2)
@@ -548,10 +563,27 @@ def resolve_video(row: pd.Series, index: dict[str, Path]) -> Path | None:
     return None
 
 
+def resolve_review_media(
+    row: pd.Series,
+    *,
+    video_index: dict[str, Path],
+    crop_roots: list[Path],
+) -> tuple[str, Path | None]:
+    """Resolve media strictly from the source-specific acquisition contract."""
+    source_type = _text(row.get("source_type", ""))
+    if source_type == "legacy_recovered":
+        return "legacy_crop", resolve_crop(row, crop_roots)
+    if source_type == "cvat_tracking_xml":
+        return "cvat_video_bbox", resolve_video(row, video_index)
+    return "unknown_source", None
+
+
 def resolve_crop(row: pd.Series, roots: list[Path]) -> Path | None:
-    direct = _text(row.get("crop_path", ""))
-    if direct and Path(direct).exists():
-        return Path(direct)
+    for root in roots:
+        resolved = resolve_legacy_crop(row, root)
+        if resolved is not None:
+            return resolved
+
     names = [
         _text(row.get("crop_path", "")),
         _text(row.get("image_name", "")),
@@ -563,9 +595,9 @@ def resolve_crop(row: pd.Series, roots: list[Path]) -> Path | None:
             if candidate.exists():
                 return candidate
         for name in names:
-            matches = list(root.rglob(name))
-            if matches:
-                return sorted(matches)[0]
+            matches = sorted(path for path in root.rglob(name) if path.is_file())
+            if len(matches) == 1:
+                return matches[0]
     return None
 
 
@@ -604,6 +636,12 @@ def _normalize_video_key(value: str) -> str:
     name = Path(str(value)).name
     name = re.sub(r"\.(mp4|avi|mov|mkv)$", "", name, flags=re.I)
     name = re.sub(r"_30fps$", "", name, flags=re.I)
+    name = re.sub(
+        r"^(test video |tracking_annotation_|tracking annotation )",
+        "",
+        name,
+        flags=re.I,
+    )
     return name.strip()
 
 
@@ -622,23 +660,52 @@ def validate_media_resolution(
     manifest: pd.DataFrame,
     video_index: dict[str, Path],
     crop_roots: list[Path],
-) -> dict[str, int]:
-    """Count resolvable media without reading every video frame."""
+) -> dict[str, Any]:
+    """Audit source-specific media resolution without decoding every frame."""
     video_count = 0
     crop_count = 0
     missing_count = 0
+    unknown_source_count = 0
+    missing_by_source: dict[str, int] = {}
+    missing_examples: list[dict[str, str]] = []
     for _, row in manifest.iterrows():
-        if resolve_video(row, video_index) is not None:
+        media_mode, media_path = resolve_review_media(
+            row,
+            video_index=video_index,
+            crop_roots=crop_roots,
+        )
+        if media_mode == "cvat_video_bbox" and media_path is not None:
             video_count += 1
-        elif resolve_crop(row, crop_roots) is not None:
+        elif media_mode == "legacy_crop" and media_path is not None:
             crop_count += 1
         else:
             missing_count += 1
+            source_type = _text(row.get("source_type", "")) or "<missing>"
+            missing_by_source[source_type] = missing_by_source.get(source_type, 0) + 1
+            if len(missing_examples) < 50:
+                missing_examples.append(
+                    {
+                        "hidden_review_item_id": _text(
+                            row.get("hidden_review_item_id", "")
+                        ),
+                        "source_type": source_type,
+                        "video_key": _text(row.get("video_key", "")),
+                        "crop_path": _text(row.get("crop_path", "")),
+                        "source_video_path": _text(
+                            row.get("source_video_path", "")
+                        ),
+                    }
+                )
+            if media_mode == "unknown_source":
+                unknown_source_count += 1
     return {
         "manifest_items": int(len(manifest)),
         "video_resolved": video_count,
         "crop_resolved": crop_count,
+        "unknown_source_items": unknown_source_count,
         "media_missing": missing_count,
+        "missing_by_source": missing_by_source,
+        "missing_examples": missing_examples,
     }
 
 
@@ -651,6 +718,20 @@ def main() -> None:
     video_index = build_video_index(args.video_root)
     resolution = validate_media_resolution(manifest, video_index, args.crop_root)
     print(resolution)
+    if args.validation_audit_json is not None:
+        audit = {
+            "schema_version": "classification_v2_hidden_media_audit_v1",
+            "manifest_csv": str(args.manifest_csv),
+            "frame_features_csv": str(args.frame_features_csv),
+            "video_roots": [str(path) for path in args.video_root],
+            "crop_roots": [str(path) for path in args.crop_root],
+            **resolution,
+        }
+        args.validation_audit_json.parent.mkdir(parents=True, exist_ok=True)
+        args.validation_audit_json.write_text(
+            json.dumps(audit, indent=2),
+            encoding="utf-8",
+        )
     if args.validate_only:
         if resolution["media_missing"]:
             raise SystemExit(f"FAIL: missing media for {resolution['media_missing']} items")
