@@ -36,6 +36,18 @@ def _load_trainer_contract(contract: dict[str, Any], root: Path) -> dict[str, An
     return json.loads((root / str(trainer_path)).read_text(encoding="utf-8"))
 
 
+def _load_tabular_trainer_contract(
+    contract: dict[str, Any],
+    root: Path,
+) -> dict[str, Any]:
+    """Load the exact tabular whitelist used to build model X."""
+
+    trainer_path = contract.get("tabular_trainer_contract_json")
+    if not trainer_path:
+        return {}
+    return json.loads((root / str(trainer_path)).read_text(encoding="utf-8"))
+
+
 def _spatial_model_input_whitelist(
     trainer_contract: dict[str, Any],
     contract: dict[str, Any],
@@ -55,12 +67,20 @@ def audit_feature_semantics(contract_path: Path) -> dict[str, Any]:
     tabular_path = root / contract["tabular_x_csv"]
     spatial_path = root / contract["spatial_npz"]
     trainer_contract = _load_trainer_contract(contract, root)
+    tabular_trainer_contract = _load_tabular_trainer_contract(contract, root)
     spatial_model_inputs = _spatial_model_input_whitelist(trainer_contract, contract)
 
     tabular_columns = read_csv_schema(tabular_path)
     tabular_assignments = _assign_tabular_families(tabular_columns, contract["tabular_families"])
     spatial_assignments = _assign_spatial_arrays(spatial_path, contract["spatial_arrays"])
     forbidden = forbidden_x_columns(tabular_columns, contract.get("forbidden_x_patterns"))
+    expected_tabular = [
+        str(column)
+        for column in tabular_trainer_contract.get("tabular_feature_whitelist", [])
+    ]
+    tabular_missing = sorted(set(expected_tabular).difference(tabular_columns))
+    tabular_unexpected = sorted(set(tabular_columns).difference(expected_tabular))
+    tabular_contract_match = tabular_columns == expected_tabular
 
     errors: list[str] = []
     warnings: list[str] = []
@@ -69,6 +89,15 @@ def audit_feature_semantics(contract_path: Path) -> dict[str, Any]:
         errors.append(f"unassigned_tabular_features={unassigned}")
     if forbidden:
         errors.append(f"forbidden_tabular_x_features={forbidden}")
+    if not expected_tabular:
+        errors.append("tabular_trainer_whitelist_empty")
+    if tabular_missing:
+        errors.append(f"tabular_features_missing_from_x={tabular_missing}")
+    if tabular_unexpected:
+        errors.append(f"unexpected_tabular_x_features={tabular_unexpected}")
+    if expected_tabular and not tabular_missing and not tabular_unexpected:
+        if not tabular_contract_match:
+            errors.append("tabular_x_feature_order_mismatch")
     missing_spatial = sorted(set(contract["spatial_arrays"]).difference(spatial_assignments))
     if missing_spatial:
         errors.append(f"missing_spatial_arrays={missing_spatial}")
@@ -94,7 +123,15 @@ def audit_feature_semantics(contract_path: Path) -> dict[str, Any]:
         "tabular_x_csv": _display_path(tabular_path, root),
         "spatial_npz": _display_path(spatial_path, root),
         "trainer_contract_json": _trainer_contract_display_path(contract, root),
+        "tabular_trainer_contract_json": _tabular_trainer_contract_display_path(
+            contract,
+            root,
+        ),
         "tabular_feature_count": int(len(tabular_columns)),
+        "tabular_expected_feature_count": int(len(expected_tabular)),
+        "tabular_contract_match": tabular_contract_match,
+        "tabular_features_missing_from_x": tabular_missing,
+        "unexpected_tabular_x_features": tabular_unexpected,
         "tabular_family_counts": tabular_family_counts,
         "tabular_assignments": tabular_assignments,
         "spatial_assignments": spatial_assignments,
@@ -234,6 +271,18 @@ def _trainer_contract_display_path(contract: dict[str, Any], root: Path) -> str 
     """Return a stable trainer contract path when this audit is trainer-bound."""
 
     trainer_path = contract.get("trainer_contract_json")
+    if not trainer_path:
+        return None
+    return _display_path(root / str(trainer_path), root)
+
+
+def _tabular_trainer_contract_display_path(
+    contract: dict[str, Any],
+    root: Path,
+) -> str | None:
+    """Return the exact tabular whitelist contract path."""
+
+    trainer_path = contract.get("tabular_trainer_contract_json")
     if not trainer_path:
         return None
     return _display_path(root / str(trainer_path), root)

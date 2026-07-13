@@ -7,6 +7,10 @@ from typing import Any
 
 import pandas as pd
 
+from pig_behavior.classification_v2.features.temporal_evidence import (
+    WINDOW_TEMPORAL_EVIDENCE_COLUMNS,
+)
+
 LABEL_COLUMNS = {
     "behavior",
     "behavior_before_review",
@@ -99,6 +103,7 @@ EXACT_FEATURE_COLUMNS = {
     "num_temporal_units_window",
     "bbox_valid_ratio_window",
     "spatiotemporal_feature_valid_ratio_window",
+    *WINDOW_TEMPORAL_EVIDENCE_COLUMNS,
 }
 
 SAFE_FEATURE_PREFIXES = (

@@ -1,15 +1,22 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pandas.testing as pdt
 
+from pig_behavior.classification_v2.contracts.feature_semantics import (
+    _assign_tabular_families,
+)
 from pig_behavior.classification_v2.features.sequence_windows import (
     build_sequence_windows,
 )
 from pig_behavior.classification_v2.features.temporal_evidence import (
     TEMPORAL_EVIDENCE_BASE_COLUMNS,
     UNIT_TEMPORAL_EVIDENCE_COLUMNS,
+    WINDOW_TEMPORAL_EVIDENCE_COLUMNS,
     add_unit_temporal_evidence,
     summarize_temporal_evidence,
 )
@@ -171,3 +178,25 @@ def test_sequence_window_recomputes_evidence_inside_requested_span() -> None:
     assert windows.iloc[0]["temporal_observation_ratio_window"] == 1.0
     assert windows.iloc[0]["motion_active_ratio_window"] == 1.0
     assert windows.iloc[0]["roi_feeder_contact_ratio_window"] == 2 / 6
+
+
+def test_trainer_whitelist_and_semantics_cover_every_new_window_feature() -> None:
+    trainer = json.loads(
+        Path("configs/classification_v2/trainer_contract_v1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    semantics = json.loads(
+        Path("configs/classification_v2/feature_semantics_v1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    whitelist = trainer["tabular_feature_whitelist"]
+    assignments = _assign_tabular_families(
+        list(WINDOW_TEMPORAL_EVIDENCE_COLUMNS),
+        semantics["tabular_families"],
+    )
+
+    assert len(whitelist) == len(set(whitelist))
+    assert set(WINDOW_TEMPORAL_EVIDENCE_COLUMNS).issubset(whitelist)
+    assert all(assignments.values())

@@ -95,10 +95,16 @@ def test_fight_without_partner_evidence_is_high_priority() -> None:
 def test_review_scores_are_never_selected_for_model_x() -> None:
     scored = add_behavior_review_evidence(pd.DataFrame([_unit("move")]))
     scored["speed_mean_window"] = 0.0
+    scored["motion_active_ratio_window"] = 0.5
+    scored["roi_feeder_contact_ratio_window"] = 0.25
+    scored["social_partner_persistence_ratio_window"] = 0.75
 
     selected = select_window_feature_columns(scored)
 
     assert "speed_mean_window" in selected
+    assert "motion_active_ratio_window" in selected
+    assert "roi_feeder_contact_ratio_window" in selected
+    assert "social_partner_persistence_ratio_window" in selected
     assert not set(REVIEW_EVIDENCE_COLUMNS).intersection(selected)
 
 

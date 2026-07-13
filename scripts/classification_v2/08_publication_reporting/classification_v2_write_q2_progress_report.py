@@ -513,7 +513,7 @@ def main() -> None:
             and feature_semantics_audit.get("spatial_model_input_role_errors") == []
             and feature_semantics_audit.get("spatial_model_input_array_count") == 6
             and (feature_semantics_audit.get("roi_context") or {}).get("available") is True
-            and feature_semantics_audit.get("tabular_feature_count") == 37,
+            and feature_semantics_audit.get("tabular_contract_match") is True,
             feature_semantics_audit.get("errors"),
         ),
         _gate(
@@ -1237,6 +1237,10 @@ def _evidence_feature_semantics(audit: dict[str, Any]) -> dict[str, Any]:
     return {
         "valid": audit.get("valid"),
         "tabular_feature_count": audit.get("tabular_feature_count"),
+        "tabular_expected_feature_count": audit.get(
+            "tabular_expected_feature_count"
+        ),
+        "tabular_contract_match": audit.get("tabular_contract_match"),
         "tabular_family_counts": audit.get("tabular_family_counts"),
         "roi_context": audit.get("roi_context"),
         "forbidden_tabular_features": audit.get("forbidden_tabular_features"),

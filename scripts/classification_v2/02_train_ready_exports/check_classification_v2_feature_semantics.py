@@ -30,6 +30,10 @@ def main() -> None:
     summary_keys = [
         "valid",
         "tabular_feature_count",
+        "tabular_expected_feature_count",
+        "tabular_contract_match",
+        "tabular_features_missing_from_x",
+        "unexpected_tabular_x_features",
         "tabular_family_counts",
         "declared_spatial_array_count",
         "undeclared_spatial_arrays",
