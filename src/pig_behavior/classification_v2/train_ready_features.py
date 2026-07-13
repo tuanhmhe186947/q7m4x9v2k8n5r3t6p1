@@ -98,8 +98,6 @@ EXACT_FEATURE_COLUMNS = {
     "observed_frame_count_window",
     "num_temporal_units_window",
     "bbox_valid_ratio_window",
-    "hidden_ratio_window",
-    "visible_ratio_window",
     "spatiotemporal_feature_valid_ratio_window",
 }
 

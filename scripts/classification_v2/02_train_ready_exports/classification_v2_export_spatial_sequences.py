@@ -98,9 +98,7 @@ def main() -> None:
         "aggression_score_proxy",
         "bbox_valid",
         "actor_bbox_valid",
-        "hidden",
         "geometry_feature_valid",
-        "roi_feature_valid",
         "spatiotemporal_feature_valid",
     }
     usecols = [c for c in header if c in needed]

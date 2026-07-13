@@ -513,7 +513,7 @@ def main() -> None:
             and feature_semantics_audit.get("spatial_model_input_role_errors") == []
             and feature_semantics_audit.get("spatial_model_input_array_count") == 6
             and (feature_semantics_audit.get("roi_context") or {}).get("available") is True
-            and feature_semantics_audit.get("tabular_feature_count") == 39,
+            and feature_semantics_audit.get("tabular_feature_count") == 37,
             feature_semantics_audit.get("errors"),
         ),
         _gate(

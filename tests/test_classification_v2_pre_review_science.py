@@ -12,6 +12,12 @@ from pig_behavior.classification_v2.review.behavior_review_contract import (
     BEHAVIOR_REVIEW_TEMPLATE,
     audit_review_unit_contract,
 )
+from pig_behavior.classification_v2.spatial_sequence_export import (
+    SPATIAL_FRAME_FEATURES,
+)
+from pig_behavior.classification_v2.train_ready_features import (
+    select_window_feature_columns,
+)
 
 
 def _frame_rows(
@@ -158,3 +164,25 @@ def test_all_ten_behaviors_route_to_the_settled_review_groups() -> None:
 
     audit = audit_review_unit_contract(pd.DataFrame(units))
     assert audit["errors"] == []
+
+
+def test_hidden_metadata_is_audit_only_and_never_selected_for_model_x() -> None:
+    windows = pd.DataFrame(
+        {
+            "speed_mean_window": [0.2],
+            "bbox_valid_ratio_window": [1.0],
+            "hidden_ratio_window": [0.5],
+            "visible_ratio_window": [0.5],
+            "behavior_window_label": ["stand"],
+            "window_valid_for_main_train": [True],
+        }
+    )
+
+    selected = select_window_feature_columns(windows)
+
+    assert "speed_mean_window" in selected
+    assert "bbox_valid_ratio_window" in selected
+    assert "hidden_ratio_window" not in selected
+    assert "visible_ratio_window" not in selected
+    assert "hidden" not in SPATIAL_FRAME_FEATURES["quality_mask"]
+    assert "roi_feature_valid" not in SPATIAL_FRAME_FEATURES["quality_mask"]

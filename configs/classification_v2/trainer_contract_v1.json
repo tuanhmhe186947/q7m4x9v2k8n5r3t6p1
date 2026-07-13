@@ -26,8 +26,6 @@
     "observed_row_count_window",
     "observed_frame_count_window",
     "bbox_valid_ratio_window",
-    "hidden_ratio_window",
-    "visible_ratio_window",
     "spatiotemporal_feature_valid_ratio_window",
     "speed_mean_window",
     "speed_max_window",

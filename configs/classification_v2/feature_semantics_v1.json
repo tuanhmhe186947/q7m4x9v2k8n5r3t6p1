@@ -29,19 +29,14 @@
     },
     "quality_visibility": {
       "description": [
-        "Observed-row, frame completeness, bbox-valid, hidden, visible, and",
-        "feature-valid ratios used as masks/quality covariates."
+        "Observed-row, frame completeness, bbox-valid, and feature-valid",
+        "ratios used as inference-available quality covariates."
       ],
-      "prediction_time_available": [
-        "deployment-dependent for annotation Hidden; use only if runtime can",
-        "produce equivalent flags"
-      ],
-      "leakage_risk": "medium",
+      "prediction_time_available": true,
+      "leakage_risk": "low",
       "prefixes": [
         "observed_",
         "bbox_valid_",
-        "hidden_",
-        "visible_",
         "spatiotemporal_feature_valid_"
       ]
     },
@@ -134,7 +129,10 @@
       "family": "quality_sequence",
       "model_input_role": "model_input",
       "model_input_allowed": true,
-      "description": "Per-frame quality/missingness mask."
+      "description": [
+        "Per-frame inference-available geometry and feature-validity mask.",
+        "Annotation Hidden and human-review states are explicitly excluded."
+      ]
     },
     "length_mask": {
       "family": "sequence_mask",
@@ -172,6 +170,6 @@
   "notes": [
     "Current tabular X has no ROI columns; ROI context is present in spatial NPZ.",
     "Do not use target_roi_* or label-selected ROI fields as model X.",
-    "Hidden/visibility fields require deployment-time availability audit."
+    "Hidden/visibility fields remain audit-only and are forbidden from model X."
   ]
 }

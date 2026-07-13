@@ -47,7 +47,7 @@
         "per_frame_motion_delta",
         "per_frame_roi_relation",
         "per_frame_social_relation",
-        "per_frame_quality_mask"
+        "per_frame_quality_mask_without_annotation_hidden"
       ]
     },
     "partner_full_frame_context": {

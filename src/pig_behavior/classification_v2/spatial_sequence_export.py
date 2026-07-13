@@ -73,9 +73,7 @@ SPATIAL_FRAME_FEATURES: dict[str, list[str]] = {
     "quality_mask": [
         "bbox_valid",
         "actor_bbox_valid",
-        "hidden",
         "geometry_feature_valid",
-        "roi_feature_valid",
         "spatiotemporal_feature_valid",
     ],
 }
