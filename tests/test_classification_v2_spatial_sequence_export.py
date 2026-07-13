@@ -130,3 +130,61 @@ def test_spatial_motion_is_rebased_inside_each_window() -> None:
     assert motion[1, names.index("abs_accel_n_per_frame2")] == 0.0
     assert motion[1, names.index("abs_direction_change_rad")] == 0.0
     assert result.audit["motion_rebased_windows"] == 1
+
+
+def test_spatial_social_motion_is_rebased_inside_each_window() -> None:
+    frames = pd.DataFrame(
+        {
+            "object_track_key": ["track-a"] * 3,
+            "frame_index": [0, 1, 2],
+            "cx_n": [0.0, 0.5, 0.6],
+            "cy_n": [0.0, 0.0, 0.0],
+            "bw_n": [0.2, 0.2, 0.2],
+            "bh_n": [0.1, 0.1, 0.1],
+            "nearest_pig_id": ["ID_2"] * 3,
+            "roi_feeder_available": [True, True, True],
+            "roi_drinker_available": [False, False, False],
+            "roi_toy_available": [True, True, True],
+            "nearest_dist_n": [0.5, 0.2, 0.1],
+            "nearest_dist_delta": [0.0, -0.3, -0.1],
+            "approach_speed_n_per_frame": [0.0, 0.3, 0.1],
+            "separation_speed_n_per_frame": [0.0, 0.0, 0.0],
+            "pair_contact_with_nearest": [True, True, True],
+            "social_density_near_count": [0.0, 0.0, 0.0],
+            "aggression_score_proxy": [0.0, 99.0, 99.0],
+            "speed_n_per_frame": [0.0, 0.5, 0.1],
+            "bbox_valid": [True, True, True],
+        }
+    )
+    windows = _windows()
+    windows["window_id"] = "track-a|win=2|1-2"
+    windows["window_start_frame"] = 1
+    windows["window_end_frame"] = 2
+
+    result = export_spatial_sequences(windows, frames)
+    names = result.feature_names["social_relation"]
+    social = result.arrays["social_relation"][0]
+    quality_names = result.feature_names["quality_mask"]
+    quality = result.arrays["quality_mask"][0]
+
+    assert social[0, names.index("nearest_dist_delta")] == 0.0
+    assert social[0, names.index("approach_speed_n_per_frame")] == 0.0
+    assert social[0, names.index("aggression_score_proxy")] == 0.0
+    assert social[1, names.index("nearest_dist_delta")] == pytest.approx(-0.1)
+    assert social[1, names.index("approach_speed_n_per_frame")] == pytest.approx(
+        0.1
+    )
+    assert social[1, names.index("aggression_score_proxy")] == pytest.approx(
+        0.2
+    )
+    assert quality[0, quality_names.index("roi_feeder_available")] == 1.0
+    assert quality[0, quality_names.index("roi_drinker_available")] == 0.0
+    assert quality[0, quality_names.index("roi_toy_available")] == 1.0
+    assert quality[0, quality_names.index("social_neighbor_available")] == 1.0
+    selected = {
+        feature
+        for group_features in result.feature_names.values()
+        for feature in group_features
+    }
+    assert "nearest_pig_id" not in selected
+    assert result.audit["social_rebased_windows"] == 1

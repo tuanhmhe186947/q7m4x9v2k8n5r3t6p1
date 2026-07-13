@@ -75,6 +75,10 @@ SPATIAL_FRAME_FEATURES: dict[str, list[str]] = {
         "actor_bbox_valid",
         "geometry_feature_valid",
         "spatiotemporal_feature_valid",
+        "roi_feeder_available",
+        "roi_drinker_available",
+        "roi_toy_available",
+        "social_neighbor_available",
     ],
 }
 
@@ -111,7 +115,24 @@ def export_spatial_sequences(
     if missing_windows or missing_frames:
         raise ValueError(f"Missing columns: windows={missing_windows} frames={missing_frames}")
 
-    feature_names = _available_feature_names(frames)
+    feature_frames = frames.copy()
+    nearest_pig = feature_frames.get(
+        "nearest_pig_id",
+        pd.Series("", index=feature_frames.index),
+    ).fillna("").astype(str).str.strip()
+    nearest_track = feature_frames.get(
+        "nearest_track_id",
+        pd.Series("", index=feature_frames.index),
+    ).fillna("").astype(str).str.strip()
+    feature_frames["_social_partner_key"] = nearest_pig.where(
+        nearest_pig.ne(""),
+        nearest_track,
+    )
+    feature_frames["social_neighbor_available"] = feature_frames[
+        "_social_partner_key"
+    ].ne("")
+
+    feature_names = _available_feature_names(feature_frames)
     selected_cols = [c for cols in feature_names.values() for c in cols]
     forbidden_selected = [c for c in selected_cols if _is_forbidden(c)]
     if forbidden_selected:
@@ -138,7 +159,14 @@ def export_spatial_sequences(
             f"max_window_length={max_window_length}"
         )
 
-    work_frames = frames[["object_track_key", "frame_index", *selected_cols]].copy()
+    work_frames = feature_frames[
+        [
+            "object_track_key",
+            "frame_index",
+            *selected_cols,
+            "_social_partner_key",
+        ]
+    ].copy()
     work_frames["frame_index"] = pd.to_numeric(work_frames["frame_index"], errors="coerce")
     _validate_frame_alignment_contract(work_frames)
     work_frames["frame_index"] = work_frames["frame_index"].astype(int)
@@ -152,12 +180,13 @@ def export_spatial_sequences(
         group_slices[name] = slice(start_col, start_col + len(cols))
         start_col += len(cols)
 
-    grouped: dict[str, tuple[np.ndarray, np.ndarray]] = {}
+    grouped: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray]] = {}
     for key, group in work_frames.groupby("object_track_key", sort=False):
         group = group.sort_values("frame_index")
         grouped[str(key)] = (
             group["frame_index"].to_numpy(dtype=np.int32, copy=True),
             group[flat_feature_names].to_numpy(dtype=np.float32, copy=True),
+            group["_social_partner_key"].to_numpy(dtype=str, copy=True),
         )
 
     arrays = {
@@ -173,6 +202,9 @@ def export_spatial_sequences(
     motion_rebased_windows = 0
     motion_valid_pair_count = 0
     motion_reset_row_count = 0
+    social_rebased_windows = 0
+    social_valid_pair_count = 0
+    social_reset_row_count = 0
     for object_key, window_group in work_windows.groupby("object_track_key", sort=False):
         frame_data = grouped.get(str(object_key))
         for i, row in window_group.iterrows():
@@ -191,7 +223,7 @@ def export_spatial_sequences(
             if frame_data is None:
                 missing_frame_slots += len(wanted_frames)
                 continue
-            frame_indices, feature_matrix = frame_data
+            frame_indices, feature_matrix, partner_keys = frame_data
             positions = np.searchsorted(frame_indices, wanted_frames)
             bounded_positions = np.minimum(positions, len(frame_indices) - 1)
             valid = (positions < len(frame_indices)) & (
@@ -209,9 +241,18 @@ def export_spatial_sequences(
                 flat_feature_names,
                 wanted_frames[valid],
             )
+            values, social_audit = _rebase_window_social_motion(
+                values,
+                flat_feature_names,
+                wanted_frames[valid],
+                partner_keys[valid_positions],
+            )
             motion_rebased_windows += int(motion_audit["rebased"])
             motion_valid_pair_count += int(motion_audit["valid_pairs"])
             motion_reset_row_count += int(motion_audit["reset_rows"])
+            social_rebased_windows += int(social_audit["rebased"])
+            social_valid_pair_count += int(social_audit["valid_pairs"])
+            social_reset_row_count += int(social_audit["reset_rows"])
             for name, col_slice in group_slices.items():
                 arrays[name][i, slot_positions, :] = values[:, col_slice]
             missing_frame_slots += int((~valid).sum())
@@ -250,6 +291,12 @@ def export_spatial_sequences(
         "motion_rebased_windows": int(motion_rebased_windows),
         "motion_valid_pair_count": int(motion_valid_pair_count),
         "motion_reset_row_count": int(motion_reset_row_count),
+        "social_rebased_windows": int(social_rebased_windows),
+        "social_valid_pair_count": int(social_valid_pair_count),
+        "social_reset_row_count": int(social_reset_row_count),
+        "social_partner_available_frame_rows": int(
+            work_frames["_social_partner_key"].ne("").sum()
+        ),
         "errors": [],
         "warnings": [],
     }
@@ -355,6 +402,126 @@ def _rebase_window_motion(
         "valid_pairs": int(valid_pair.sum()),
         "reset_rows": int(len(out) - valid_pair.sum()),
     }
+
+
+def _rebase_window_social_motion(
+    values: np.ndarray,
+    feature_names: list[str],
+    frame_indices: np.ndarray,
+    partner_keys: np.ndarray,
+) -> tuple[np.ndarray, dict[str, int | bool]]:
+    """Recompute pair-derived social signals within one requested window."""
+
+    derived = [
+        "nearest_dist_delta",
+        "approach_speed_n_per_frame",
+        "separation_speed_n_per_frame",
+        "aggression_score_proxy",
+    ]
+    present = [column for column in derived if column in feature_names]
+    if not present or len(values) == 0:
+        return values, {"rebased": False, "valid_pairs": 0, "reset_rows": 0}
+
+    out = values.copy()
+    indices = {column: feature_names.index(column) for column in feature_names}
+    for column in present:
+        out[:, indices[column]] = 0.0
+
+    required = {"nearest_dist_n", "cx_n", "cy_n"}
+    if not required.issubset(indices):
+        return out, {
+            "rebased": True,
+            "valid_pairs": 0,
+            "reset_rows": int(len(out)),
+        }
+
+    row_valid = np.ones(len(out), dtype=bool)
+    for column in [
+        "bbox_valid",
+        "actor_bbox_valid",
+        "geometry_feature_valid",
+        "spatiotemporal_feature_valid",
+    ]:
+        if column in indices:
+            row_valid &= out[:, indices[column]] > 0.5
+
+    frame_delta = np.diff(frame_indices.astype("float64"))
+    partner_text = np.asarray(partner_keys, dtype=str)
+    same_partner = (
+        (partner_text[:-1] != "")
+        & (partner_text[1:] != "")
+        & (partner_text[:-1] == partner_text[1:])
+    )
+    distance = out[:, indices["nearest_dist_n"]]
+    distance_delta = np.diff(distance)
+    valid_pair = (
+        np.isfinite(frame_delta)
+        & (frame_delta > 0)
+        & same_partner
+        & np.isfinite(distance_delta)
+        & row_valid[:-1]
+        & row_valid[1:]
+    )
+    pair_rows = np.flatnonzero(valid_pair) + 1
+    if pair_rows.size:
+        delta = distance_delta[valid_pair]
+        denom = frame_delta[valid_pair]
+        if "nearest_dist_delta" in indices:
+            out[pair_rows, indices["nearest_dist_delta"]] = delta
+        if "approach_speed_n_per_frame" in indices:
+            out[pair_rows, indices["approach_speed_n_per_frame"]] = np.clip(
+                -delta / denom,
+                0.0,
+                None,
+            )
+        if "separation_speed_n_per_frame" in indices:
+            out[pair_rows, indices["separation_speed_n_per_frame"]] = np.clip(
+                delta / denom,
+                0.0,
+                None,
+            )
+
+    if "aggression_score_proxy" in indices:
+        contact = _column_or_zero(out, indices, "pair_contact_with_nearest")
+        speed = _column_or_zero(out, indices, "speed_n_per_frame")
+        approach = _column_or_zero(
+            out,
+            indices,
+            "approach_speed_n_per_frame",
+        )
+        density = np.clip(
+            _column_or_zero(out, indices, "social_density_near_count"),
+            0.0,
+            None,
+        )
+        partner_available = (partner_text != "").astype(float)
+        aggression = (
+            (contact > 0.5).astype(float)
+            * partner_available
+            * (np.clip(speed, 0.0, None) + approach)
+            * (1.0 + density)
+        )
+        aggression[~row_valid] = 0.0
+        out[:, indices["aggression_score_proxy"]] = aggression
+
+    return out, {
+        "rebased": True,
+        "valid_pairs": int(valid_pair.sum()),
+        "reset_rows": int(len(out) - valid_pair.sum()),
+    }
+
+
+def _column_or_zero(
+    values: np.ndarray,
+    indices: dict[str, int],
+    column: str,
+) -> np.ndarray:
+    """Read one finite feature vector or return a zero vector."""
+
+    if column not in indices:
+        return np.zeros(len(values), dtype="float32")
+    observed = values[:, indices[column]]
+    return np.where(np.isfinite(observed), observed, 0.0)
 
 
 def _recompute_higher_order_motion(

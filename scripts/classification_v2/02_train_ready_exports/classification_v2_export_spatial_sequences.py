@@ -12,12 +12,18 @@ from pig_behavior.classification_v2.spatial_sequence_export import export_spatia
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Export leakage-safe per-frame spatial arrays for reviewed classification_v2 windows."
+        description=(
+            "Export leakage-safe per-frame spatial arrays for reviewed "
+            "classification_v2 windows."
+        )
     )
     parser.add_argument(
         "--window-manifest-csv",
         type=Path,
-        default=Path("outputs/classification_v2/sequence_features_reviewed/sequence_window_manifest.csv"),
+        default=Path(
+            "outputs/classification_v2/sequence_features_reviewed/"
+            "sequence_window_manifest.csv"
+        ),
     )
     parser.add_argument(
         "--frame-features-csv",
@@ -69,24 +75,29 @@ def main() -> None:
         "abs_accel_n_per_frame2",
         "abs_direction_change_rad",
         "roi_feeder_min_dist_n",
+        "roi_feeder_available",
         "roi_feeder_max_overlap_ratio",
         "roi_feeder_max_iou",
         "roi_feeder_center_inside",
         "roi_feeder_near",
         "roi_feeder_contact",
         "roi_drinker_min_dist_n",
+        "roi_drinker_available",
         "roi_drinker_max_overlap_ratio",
         "roi_drinker_max_iou",
         "roi_drinker_center_inside",
         "roi_drinker_near",
         "roi_drinker_contact",
         "roi_toy_min_dist_n",
+        "roi_toy_available",
         "roi_toy_max_overlap_ratio",
         "roi_toy_max_iou",
         "roi_toy_center_inside",
         "roi_toy_near",
         "roi_toy_contact",
         "nearest_dist_n",
+        "nearest_pig_id",
+        "nearest_track_id",
         "nearest_pair_iou",
         "nearest_pair_overlap_ratio",
         "social_density_near_count",
