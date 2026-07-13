@@ -74,8 +74,10 @@ Independent in-progress gates:
 
 - Identifier code contract: `PASS`; scene and object identity are versioned as
   `scene_frame_uid` and object-level `frame_uid`.
-- Identifier active-lineage rebuild: `IN_PROGRESS`; preserve the 30 existing Hidden
-  decisions through an audited key migration before rebuilding v2 artifacts.
+- Hidden review key migration: `PASS`; all 5,171 workload rows and 30 existing
+  decisions map one-to-one with zero human-payload changes.
+- Identifier active-lineage rebuild: `IN_PROGRESS`; run a bounded source-to-window
+  v2 rebuild before any canonical artifact replacement.
 - Temporal views: build audited fixed6 observed-time, phase, and native views.
 - Shortcut probes: implement fold/source/length/missingness checks on fixtures.
 
@@ -83,14 +85,13 @@ Independent in-progress gates:
 
 Work proceeds in dependency order without fabricating human evidence:
 
-1. Migrate old-to-v2 review keys with a one-to-one audit and zero lost decisions.
-2. Run a bounded source-to-window v2 technical rebuild and row-preservation audit.
-3. Complete Hidden clustered uncertainty and target-independent prevalence gates.
-4. Implement fixed-6 view manifests and source/length shortcut probes on fixtures.
-5. Complete fold-local preprocessing, event balancing, and lineage registry contracts.
-6. Complete configurable model/mask/shape contracts without downloading weights.
-7. Complete native-collapse and paired-evaluation tests with synthetic predictions.
-8. Reconcile the historical baseline only as a registered engineering control.
+1. Run a bounded source-to-window v2 technical rebuild and row-preservation audit.
+2. Complete Hidden clustered uncertainty and target-independent prevalence gates.
+3. Implement fixed-6 view manifests and source/length shortcut probes on fixtures.
+4. Complete fold-local preprocessing, event balancing, and lineage registry contracts.
+5. Complete configurable model/mask/shape contracts without downloading weights.
+6. Complete native-collapse and paired-evaluation tests with synthetic predictions.
+7. Reconcile the historical baseline only as a registered engineering control.
 
 ## Promotion And Full-Run Lock
 
@@ -116,9 +117,10 @@ authorization.
 | 2026-07-13 | Scene-based social features | PASS | `8b41854` |
 | 2026-07-13 | Identifier propagation through derived contracts | PASS | `9c14368` |
 | 2026-07-13 | X/prediction guards and manifest-v2 audit | PASS | `1d3ab4d` |
+| 2026-07-13 | Hidden review identifier and decision migration | PASS | `b5f3213` |
 
 ## Next Checkpoint
 
-The next isolated achievement is an old-to-v2 review-key migration map. It must preserve all
-30 existing Hidden decisions, reject ambiguous mappings, and report zero missing or duplicate
-decision targets before any bounded identifier-v2 source-to-window rebuild runs.
+The next isolated achievement is a bounded identifier-v2 source-to-window rebuild. It must
+exercise both sources, preserve source rows, emit explicit scene/object sequences, retain all
+review and mask-false rows, and pass X leakage checks before any larger rebuild is considered.
