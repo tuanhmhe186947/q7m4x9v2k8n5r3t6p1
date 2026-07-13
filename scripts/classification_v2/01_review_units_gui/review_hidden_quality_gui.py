@@ -13,7 +13,7 @@ import re
 import tkinter as tk
 from datetime import datetime
 from pathlib import Path
-from tkinter import ttk
+from tkinter import messagebox, ttk
 from typing import Any
 
 import cv2
@@ -22,6 +22,9 @@ from PIL import Image, ImageDraw, ImageTk
 
 from pig_behavior.classification_v2.datasets.image_context_index import (
     resolve_legacy_crop,
+)
+from pig_behavior.classification_v2.review.hidden_review_builder import (
+    hidden_decision_semantic_error,
 )
 
 DECISION_FILENAME = "hidden_review_decisions.csv"
@@ -178,6 +181,7 @@ class HiddenQualityReviewApp:
             )
         }
         self.decisions = decisions
+        self.completed_ids = completed_decision_ids(decisions)
         self.decision_path = decision_path
         self.reviewer = reviewer
         self.video_index = video_index
@@ -204,7 +208,7 @@ class HiddenQualityReviewApp:
         self.info_var = tk.StringVar()
         self.status_var = tk.StringVar()
         self.confidence_var = tk.StringVar(value="high")
-        self.reason_var = tk.StringVar(value="clearly_visible")
+        self.reason_var = tk.StringVar(value="")
         self.note_var = tk.StringVar()
         self._build_ui()
         self._bind_keys()
@@ -281,13 +285,14 @@ class HiddenQualityReviewApp:
             width=10,
         ).pack(side=tk.LEFT, padx=5)
         tk.Label(metadata, text="Reason").pack(side=tk.LEFT)
-        ttk.Combobox(
+        self.reason_combo = ttk.Combobox(
             metadata,
             textvariable=self.reason_var,
             values=REASON_OPTIONS,
             state="readonly",
             width=28,
-        ).pack(side=tk.LEFT, padx=5)
+        )
+        self.reason_combo.pack(side=tk.LEFT, padx=5)
         tk.Label(metadata, text="Note").pack(side=tk.LEFT)
         tk.Entry(metadata, textvariable=self.note_var).pack(
             side=tk.LEFT,
@@ -321,7 +326,8 @@ class HiddenQualityReviewApp:
         self.info_var.set(
             "\n".join(
                 [
-                    f"Item {self.index + 1}/{len(self.items)} | reviewed={len(self.decisions)}",
+                    f"Item {self.index + 1}/{len(self.items)} | "
+                    f"completed={len(self.completed_ids)} | stored={len(self.decisions)}",
                     f"cohort={row['hidden_review_cohort']} | "
                     f"before={row['hidden_before_review']} | risk={risk}",
                     f"source={row['source_type']} | video={row['video_key']} | "
@@ -363,9 +369,28 @@ class HiddenQualityReviewApp:
         item_id = str(row["hidden_review_item_id"])
         previous = self.decisions.get(item_id)
         reason = self.reason_var.get().strip()
+        if not reason and status == "reviewed" and hidden_after == "No":
+            reason = "clearly_visible"
+            self.reason_var.set(reason)
+        if not reason and status == "unclear":
+            reason = "ambiguous"
+            self.reason_var.set(reason)
         note = self.note_var.get().strip()
         if note:
             reason = f"{reason};note={note}"
+        semantic_error = hidden_decision_semantic_error(
+            hidden_after=hidden_after,
+            review_status=status,
+            reason=reason,
+        )
+        if semantic_error is not None:
+            messagebox.showerror(
+                "Decision not saved",
+                decision_error_message(semantic_error),
+                parent=self.root,
+            )
+            self.reason_combo.focus_set()
+            return
         record = make_decision_record(
             row,
             hidden_after=hidden_after,
@@ -375,14 +400,21 @@ class HiddenQualityReviewApp:
             reviewer=self.reviewer,
         )
         self.decisions[item_id] = record
+        if is_completed_decision(record):
+            self.completed_ids.add(item_id)
+        else:
+            self.completed_ids.discard(item_id)
         self.undo_stack.append((item_id, previous.copy() if previous else None))
         write_decisions(self.decision_path, self.decisions)
         self.index += 1
+        self.reason_var.set("")
         self.note_var.set("")
         self._show_current()
 
     def _skip(self) -> None:
         self.index += 1
+        self.reason_var.set("")
+        self.note_var.set("")
         self._show_current()
 
     def _undo(self) -> None:
@@ -393,8 +425,14 @@ class HiddenQualityReviewApp:
             self.decisions.pop(item_id, None)
         else:
             self.decisions[item_id] = previous
+        if previous is not None and is_completed_decision(previous):
+            self.completed_ids.add(item_id)
+        else:
+            self.completed_ids.discard(item_id)
         write_decisions(self.decision_path, self.decisions)
         self.index = max(0, self.index - 1)
+        self.reason_var.set("")
+        self.note_var.set("")
         self._show_current()
 
     def _save_and_exit(self) -> None:
@@ -461,6 +499,51 @@ def load_decisions(path: Path) -> dict[str, dict[str, str]]:
             raise ValueError(f"Duplicate decision item: {item_id}")
         decisions[item_id] = {column: str(row.get(column, "")) for column in DECISION_COLUMNS}
     return decisions
+
+
+def is_completed_decision(record: dict[str, str]) -> bool:
+    """Accept only resolved, semantically coherent records for GUI resume."""
+    status = _text(record.get("hidden_review_status", "")).lower()
+    if status not in {"reviewed", "resolved", "complete"}:
+        return False
+    try:
+        error = hidden_decision_semantic_error(
+            hidden_after=record.get("hidden_after_review", ""),
+            review_status=status,
+            reason=record.get("hidden_review_reason", ""),
+        )
+    except ValueError:
+        return False
+    return error is None
+
+
+def completed_decision_ids(
+    decisions: dict[str, dict[str, str]],
+) -> set[str]:
+    """Return decision IDs that may safely be skipped during resume."""
+    return {
+        item_id
+        for item_id, record in decisions.items()
+        if is_completed_decision(record)
+    }
+
+
+def decision_error_message(error_code: str) -> str:
+    """Translate stable audit codes into concise reviewer instructions."""
+    messages = {
+        "missing_hidden_review_reason": (
+            "Choose why the pig is hidden before saving Hidden = Yes."
+        ),
+        "hidden_yes_with_clearly_visible_reason": (
+            "Hidden = Yes conflicts with reason clearly_visible. "
+            "Choose the observed occlusion reason."
+        ),
+        "visible_no_with_hidden_only_reason": (
+            "Visible = No conflicts with an occlusion-only reason. "
+            "Choose clearly_visible or another compatible reason."
+        ),
+    }
+    return messages.get(error_code, f"Invalid Hidden decision: {error_code}")
 
 
 def write_decisions(
@@ -771,7 +854,9 @@ def main() -> None:
     if args.include_reviewed:
         items = manifest.copy()
     else:
-        items = manifest.loc[~manifest["hidden_review_item_id"].astype(str).isin(decisions)].copy()
+        completed_ids = completed_decision_ids(decisions)
+        item_ids = manifest["hidden_review_item_id"].astype(str)
+        items = manifest.loc[~item_ids.isin(completed_ids)].copy()
     if args.max_items is not None:
         if args.max_items <= 0:
             raise ValueError("--max-items must be > 0")

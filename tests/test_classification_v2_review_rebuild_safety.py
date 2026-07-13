@@ -315,6 +315,34 @@ def test_hidden_gui_window_rejects_invalid_screen_size() -> None:
         gui.bounded_window_size(0, 864)
 
 
+def test_hidden_gui_requeues_semantically_invalid_decisions() -> None:
+    gui = _load_script(
+        "hidden_gui_semantic_resume",
+        "review_hidden_quality_gui.py",
+    )
+    valid = {
+        "hidden_review_status": "reviewed",
+        "hidden_after_review": "No",
+        "hidden_review_reason": "clearly_visible",
+    }
+    invalid = {
+        "hidden_review_status": "reviewed",
+        "hidden_after_review": "Yes",
+        "hidden_review_reason": "clearly_visible",
+    }
+    unclear = {
+        "hidden_review_status": "unclear",
+        "hidden_after_review": "",
+        "hidden_review_reason": "ambiguous",
+    }
+
+    completed = gui.completed_decision_ids(
+        {"valid": valid, "invalid": invalid, "unclear": unclear}
+    )
+
+    assert completed == {"valid"}
+
+
 def test_decision_coverage_requires_no_missing_or_pending() -> None:
     coverage = _load_script(
         "review_decision_coverage",

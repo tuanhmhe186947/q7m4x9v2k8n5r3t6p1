@@ -17,6 +17,7 @@ from pig_behavior.classification_v2.review.hidden_review_builder import (
     apply_hidden_review_decisions,
     audit_hidden_decision_coverage,
     build_hidden_review_manifest,
+    hidden_decision_semantic_error,
 )
 
 
@@ -259,6 +260,37 @@ def test_duplicate_hidden_decision_is_rejected() -> None:
     decisions = pd.concat([decisions, decisions.iloc[[0]]], ignore_index=True)
     audit = audit_hidden_decision_coverage(manifest, decisions)
     assert any("duplicate_decision_items" in error for error in audit["errors"])
+
+
+def test_hidden_yes_with_clearly_visible_reason_is_rejected() -> None:
+    frames, manifest = _build_review()
+    decisions = _resolved_decisions(manifest)
+    yes_item_id = manifest.loc[
+        manifest["hidden_before_review"].eq("Yes"),
+        "hidden_review_item_id",
+    ].iloc[0]
+    target = decisions["hidden_review_item_id"].eq(yes_item_id)
+    decisions.loc[target, "hidden_after_review"] = "Yes"
+    decisions.loc[target, "hidden_review_reason"] = "clearly_visible"
+
+    audit = audit_hidden_decision_coverage(manifest, decisions)
+
+    assert audit["semantic_error_items"] == 1
+    assert audit["semantic_error_counts"] == {
+        "hidden_yes_with_clearly_visible_reason": 1
+    }
+    with pytest.raises(ValueError, match="coverage failed"):
+        apply_hidden_review_decisions(frames, manifest, decisions)
+
+
+def test_visible_no_rejects_hidden_only_reason() -> None:
+    error = hidden_decision_semantic_error(
+        hidden_after="No",
+        review_status="reviewed",
+        reason="occluded_by_pig;note=fixture",
+    )
+
+    assert error == "visible_no_with_hidden_only_reason"
 
 
 def test_high_risk_caps_form_nested_review_waves() -> None:

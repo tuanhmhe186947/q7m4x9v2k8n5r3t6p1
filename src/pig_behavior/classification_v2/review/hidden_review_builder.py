@@ -34,6 +34,14 @@ DECISION_COLUMNS: tuple[str, ...] = (
     "hidden_reviewed_at",
 )
 
+HIDDEN_ONLY_REASON_CODES: frozenset[str] = frozenset(
+    {
+        "occluded_by_pig",
+        "occluded_by_scene",
+        "partial_bbox_or_frame_edge",
+    }
+)
+
 REQUIRED_FRAME_COLUMNS: tuple[str, ...] = (
     "source_type",
     "dataset_id",
@@ -518,6 +526,22 @@ def audit_hidden_decision_coverage(
     if require_resolved and pending.any():
         errors.append(f"pending_decision_items={int(pending.sum())}")
 
+    semantic_errors = normalized.apply(
+        lambda row: hidden_decision_semantic_error(
+            hidden_after=row["hidden_after_review"],
+            review_status=row["hidden_review_status"],
+            reason=row["hidden_review_reason"],
+        ),
+        axis=1,
+    )
+    semantic_errors = semantic_errors.loc[semantic_errors.notna()]
+    semantic_error_counts = {
+        str(key): int(value)
+        for key, value in semantic_errors.value_counts().sort_index().items()
+    }
+    for error_code, count in semantic_error_counts.items():
+        errors.append(f"{error_code}={count}")
+
     joined = manifest[["hidden_review_item_id", "hidden_before_review"]].merge(
         normalized[["hidden_review_item_id", "hidden_before_review"]],
         on="hidden_review_item_id",
@@ -541,10 +565,43 @@ def audit_hidden_decision_coverage(
         "resolved_items": int(resolved.sum()),
         "unclear_items": int(unclear.sum()),
         "pending_items": int(pending.sum()),
+        "semantic_error_items": int(len(semantic_errors)),
+        "semantic_error_counts": semantic_error_counts,
         "decision_status_counts": _counts(normalized, "hidden_review_status"),
         "errors": errors,
         "warnings": warnings,
     }
+
+
+def hidden_decision_semantic_error(
+    *,
+    hidden_after: object,
+    review_status: object,
+    reason: object,
+) -> str | None:
+    """Return a stable error code for a contradictory Hidden decision."""
+    status = _stable_text(review_status)
+    status = {
+        "complete": "reviewed",
+        "resolved": "reviewed",
+        "ambiguous": "unclear",
+    }.get(status, status)
+    if status not in {"reviewed", "unclear"}:
+        return None
+
+    reason_text = _stable_text(reason)
+    reason_code = reason_text.split(";", maxsplit=1)[0].strip()
+    if not reason_code:
+        return "missing_hidden_review_reason"
+    if status != "reviewed":
+        return None
+
+    after = _normalize_hidden(hidden_after)
+    if after == "Yes" and reason_code == "clearly_visible":
+        return "hidden_yes_with_clearly_visible_reason"
+    if after == "No" and reason_code in HIDDEN_ONLY_REASON_CODES:
+        return "visible_no_with_hidden_only_reason"
+    return None
 
 
 def apply_hidden_review_decisions(
