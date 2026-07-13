@@ -76,8 +76,10 @@ Independent in-progress gates:
   `scene_frame_uid` and object-level `frame_uid`.
 - Hidden review key migration: `PASS`; all 5,171 workload rows and 30 existing
   decisions map one-to-one with zero human-payload changes.
-- Identifier active-lineage rebuild: `IN_PROGRESS`; run a bounded source-to-window
-  v2 rebuild before any canonical artifact replacement.
+- Identifier active-lineage rebuild: `PASS`; bounded 688/63/438 evidence has
+  ordered frame/window lineage and 8/8 deterministic stage pairs.
+- Snapshot/launch binding: `PASS IN CODE`; snapshot v2 and preflight v2 bind
+  split/image/interaction order plus artifact, config, and code hashes.
 - Temporal views: build audited fixed6 observed-time, phase, and native views.
 - Shortcut probes: implement fold/source/length/missingness checks on fixtures.
 
@@ -85,13 +87,12 @@ Independent in-progress gates:
 
 Work proceeds in dependency order without fabricating human evidence:
 
-1. Run a bounded source-to-window v2 technical rebuild and row-preservation audit.
-2. Complete Hidden clustered uncertainty and target-independent prevalence gates.
-3. Implement fixed-6 view manifests and source/length shortcut probes on fixtures.
-4. Complete fold-local preprocessing, event balancing, and lineage registry contracts.
-5. Complete configurable model/mask/shape contracts without downloading weights.
-6. Complete native-collapse and paired-evaluation tests with synthetic predictions.
-7. Reconcile the historical baseline only as a registered engineering control.
+1. Complete Hidden clustered uncertainty and target-independent prevalence gates.
+2. Implement fixed-6 view manifests and source/length shortcut probes on fixtures.
+3. Complete fold-local preprocessing, event balancing, and lineage registry contracts.
+4. Complete configurable model/mask/shape contracts without downloading weights.
+5. Complete native-collapse and paired-evaluation tests with synthetic predictions.
+6. Reconcile the historical baseline only as a registered engineering control.
 
 ## Promotion And Full-Run Lock
 
@@ -118,9 +119,12 @@ authorization.
 | 2026-07-13 | Identifier propagation through derived contracts | PASS | `9c14368` |
 | 2026-07-13 | X/prediction guards and manifest-v2 audit | PASS | `1d3ab4d` |
 | 2026-07-13 | Hidden review identifier and decision migration | PASS | `b5f3213` |
+| 2026-07-13 | Ordered snapshot-v2 contract | PASS | `7cb4637` |
+| 2026-07-13 | Preflight/execution lineage binding | PASS | `dd0e6ff` |
 
 ## Next Checkpoint
 
-The next isolated achievement is a bounded identifier-v2 source-to-window rebuild. It must
-exercise both sources, preserve source rows, emit explicit scene/object sequences, retain all
-review and mask-false rows, and pass X leakage checks before any larger rebuild is considered.
+The next isolated achievement is a fixed-6 observed-time temporal-view contract
+plus source, length, padding, and missingness shortcut probes on fixtures. It
+must not train or infer human decisions. Hidden/behavior review remains the
+separate blocker for freezing the reviewed P0 snapshot.

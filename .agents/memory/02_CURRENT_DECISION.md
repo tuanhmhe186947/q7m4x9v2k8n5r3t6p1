@@ -18,6 +18,12 @@ has 688 frame rows, 63 native/review units, 438 ordered windows, exact model-X
 whitelisting, zero trainable missing spatial slots, and 8/8 deterministic stage
 reruns. All reviewed-data, training, full-OOF, and Q2 authorizations remain false.
 
+Snapshot/preflight contracts are hardened by `7cb4637` and `dd0e6ff`.
+Future full-run evidence must bind exact ordered split, image, interaction,
+spatial, snapshot, lineage-audit, config, and code hashes. Old v1 snapshots,
+preflights, and authorization files are readable historical artifacts but
+cannot authorize execution. This code gate does not replace human review.
+
 Do not use the historical full OOF metrics to judge model quality. Commit
 `bfdf913` proved that its split/target rows were positionally misaligned with
 151,440 of 160,740 image and interaction windows. That run remains useful only

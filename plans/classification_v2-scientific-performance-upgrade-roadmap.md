@@ -66,6 +66,11 @@ comparison. Capacity remains a separate later control: the historical model
 used a small `64x64` CNN, while the old checkpoint is consistent with a much
 larger ResNet34/CBAM/Transformer design at `224x224`.
 
+Current code gates `7cb4637` and `dd0e6ff` require one ordered hash across
+split/image/interaction plus exact snapshot, lineage-audit, config, and code
+bindings before a full launch. This closes the historical positional failure
+but does not make the incomplete human-review data train-ready.
+
 The upgrade is feasible on the RTX 3050 Laptop GPU if experiments are staged:
 
 - begin with pretrained ResNet18 at `160x160`, AMP, and bounded fold pilots;

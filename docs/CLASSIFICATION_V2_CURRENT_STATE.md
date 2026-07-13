@@ -66,6 +66,17 @@ identifier propagation, positional alignment, leakage separation, and bounded
 determinism. They do not authorize reviewed data, training, or full OOF. The
 critical alignment commits are `bfdf913` and `a83d5a5`.
 
+Snapshot and launch lineage are hardened by `7cb4637` and `dd0e6ff`:
+
+- snapshot v2 uses the exporter-compatible ordered-key digest;
+- split, image-window, and interaction-window rows must match in count/order;
+- invalid contracts cannot be frozen as immutable snapshots;
+- preflight and execution recompute artifact, snapshot, lineage, and code binds;
+- human authorization binds snapshot and lineage hashes, not only model config.
+
+These contracts passed 221 classification regression tests. They have not been
+used to freeze the incomplete human-review lineage and do not authorize train.
+
 ## Active Gate Status
 
 | Gate | Status | Evidence or blocker |
@@ -81,6 +92,7 @@ critical alignment commits are `bfdf913` and `a83d5a5`.
 | Behavior human decisions | FAIL | 4,667 missing, one pending |
 | Behavior decision apply | BLOCKED | Complete gate fails |
 | Reviewed train-ready snapshot | FAIL | No complete reviewed lineage exists |
+| Snapshot/preflight code contract | PASS | Ordered lineage and hash binding tested |
 | Model smoke on active snapshot | NOT RUN | Snapshot hashes are not frozen |
 | Full OOF on active snapshot | NOT AUTHORIZED | Smoke and launch gates not reached |
 | Q2 result claim | NOT ALLOWED | Active reviewed evaluation is absent |

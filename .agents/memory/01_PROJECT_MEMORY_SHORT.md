@@ -1,5 +1,18 @@
 # Project Memory Short
 
+## 2026-07-13 snapshot and launch-lineage hardening
+
+- Commit `7cb4637` makes snapshot v2 fail closed on blank/duplicate keys,
+  contract drift, invalid freeze, and ordered split/image/interaction mismatch.
+- Commit `dd0e6ff` binds preflight, execution, and human authorization to the
+  snapshot hash, lineage-audit hash, ordered `window_id` hash, config, and code.
+- Interaction-context export now emits the same ordered-key audit and requires
+  explicit `--overwrite` before replacing derived outputs.
+- Regression evidence is 221 classification tests passing. No model training or
+  full OOF was run.
+- The bounded identifier-v2 packet remains technical-only because its Hidden
+  and behavior-review authorizations are false.
+
 ## 2026-07-13 identifier-v2 positional lineage correction
 
 - Commit `bfdf913` fixed a critical row-order defect: image and interaction

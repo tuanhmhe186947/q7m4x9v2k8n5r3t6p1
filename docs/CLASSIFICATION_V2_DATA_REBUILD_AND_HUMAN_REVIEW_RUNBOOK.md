@@ -1527,7 +1527,9 @@ Không gọi một folder là final nếu hash/audit chưa khóa.
 ### 17.2. Versioned snapshot hard stop
 
 Artifact dưới `%R%` là candidate versioned. Không copy đè canonical để né path
-contract. Audit hiện tại phát hiện các blocker sau trước snapshot/full:
+contract. Trạng thái dưới đây đã được đối chiếu lại sau `7cb4637` và `dd0e6ff`.
+Snapshot v2 đã khóa ordered split/image/interaction và preflight đã bind lineage,
+nhưng các blocker path/fold/view/model và human review vẫn còn:
 
 1. `data_contract_v2.json` đang trỏ canonical train-ready/native/fold paths và
    packed cache 64 px, trong khi runbook tạo lineage `%R%` và cache 224 px.
@@ -1543,14 +1545,13 @@ contract. Audit hiện tại phát hiện các blocker sau trước snapshot/ful
    primary view đã loại/calibrate length, cadence và availability shortcuts.
 7. Canonical feature artifacts đang lẫn ít nhất hai source allowlist; không có
    một canonical root hiện tại đủ điều kiện làm snapshot authority.
-8. `frame_uid` đang là scene-frame key. Image-context audit có 213.376 duplicate
-   theo cột này vì nhiều pig cùng frame, trái object-row identifier contract.
-   Phải migrate sang `scene_frame_uid` cộng object-level `frame_uid`, hoặc sửa
-   chính thức schema/checkers với compatibility và composite row key.
+8. **RESOLVED IN CODE:** identifier-v2 tách `scene_frame_uid` và object-level
+   `frame_uid`; bounded source-to-window audit đã PASS. Final reviewed lineage
+   vẫn phải rebuild và chứng minh lại contract này.
 9. Hidden high-risk score còn target-informed; weighted/high-risk uncertainty
    và predeclared threshold gate chưa được code hóa fail-closed.
-10. Image-context checker chỉ assert case `000231` loadable, chưa assert exact
-    resolved basename `Pigs291119_000231_30fps.mp4`.
+10. **RESOLVED IN CODE:** checker đã assert exact basename
+    `Pigs291119_000231_30fps.mp4`; final reviewed lineage vẫn phải chạy lại gate.
 
 Vì vậy **chưa có lệnh snapshot/full hợp lệ trực tiếp cho `%R%`**. Trước model
 smoke phải sửa module chính để mọi path trên đi qua một versioned contract, thêm
@@ -1571,6 +1572,13 @@ Contract phải tham chiếu duy nhất artifact của cùng `RUN_ID`, fixed tem
 view, 224 caches và Q2 primary roles; native OOF manifest chỉ bắt buộc nếu chạy
 engineering sensitivity đã khai báo. Checkpoint phải ghi snapshot, config,
 feature-whitelist, cache và fold hashes.
+
+Trước freeze final, chạy identifier audit với
+`--require-interaction-lineage`. Preflight block `05` bắt buộc nhận
+`--lineage-audit-json`; audit phải bind đúng bytes của X/y/mask/weights,
+spatial, image và interaction trong snapshot. Authorization v2 tiếp tục bind
+snapshot ID, snapshot SHA, lineage SHA, ordered-window SHA, config và Git SHA.
+Audit bounded hiện tại có human authorization false nên preflight phải FAIL.
 
 ### 17.3. Model finalist gate
 
@@ -1715,7 +1723,7 @@ PASS:
 - [ ] Q2 outer/inner roles được khóa/hash; native manifest chỉ khi sensitivity
       run đã predeclare.
 - [ ] X whitelist không có label/review/manual/ID/path/policy/split field.
-- [ ] X/y/mask/weights/spatial arrays row/order/key khớp.
+- [ ] X/y/mask/weights/spatial/image/interaction row/order/key hash khớp.
 - [ ] `frame_uid` object-row contract đã migrate hoặc schema revision được khóa.
 - [ ] Không có global normalization/class weight fit trước fold.
 - [ ] Legacy crop và CVAT video+bbox loader smoke PASS.
@@ -1739,7 +1747,8 @@ Full OOF chỉ được phép khi thêm các mục sau PASS:
 - [ ] ResNet resolution/backbone controls và temporal baseline đã chạy đúng cặp.
 - [ ] F0/F1/F2 và inner selection rule được khóa trước outer predictions.
 - [ ] One-batch, tiny-overfit, resume, AMP/runtime/VRAM và one-fold PASS.
-- [ ] Preflight, authorization, launch packet và execution gate cùng config SHA.
+- [ ] Preflight/authorization/execution cùng snapshot, lineage, ordered-window,
+      config và Git SHA.
 - [ ] Full predictions đủ count và collapse về native unit không mất unit.
 - [ ] Calibration, confusion, grouped/source metrics, registry và completion PASS.
 

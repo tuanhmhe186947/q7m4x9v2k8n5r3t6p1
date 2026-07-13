@@ -58,6 +58,14 @@ Use both sources and all 10 behaviors. Builders must exit nonzero on audit
 errors. Existing derived outputs require explicit `--overwrite`; prefer a new
 versioned directory for changed semantics.
 
+For a reviewed full-multimodal candidate, rerun the lineage checker with
+`--require-interaction-lineage`. Snapshot v2 must show one ordered hash for
+split, image-window, and interaction-window manifests; exporter audits must
+match the same hash. Full preflight additionally requires an explicit
+`--lineage-audit-json` and binds snapshot, lineage, ordered-window, config, and
+code hashes. Bounded technical audits keep training authorization false and
+must therefore be rejected by this preflight.
+
 The current canonical reviewed artifact is not human-review complete. Complete
 all mandatory review units, pass the fail-closed decision-coverage audit, then
 rebuild reviewed windows with `--disable-fast-reuse`. Use recording-date or

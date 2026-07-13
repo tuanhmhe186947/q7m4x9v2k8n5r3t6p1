@@ -244,6 +244,7 @@ through P4; P5 selects whether a different imbalance loss is justified.
 - reviewed native-unit and window manifests;
 - one frozen recording/video-safe fold manifest;
 - strict X feature whitelist and forbidden-field audit;
+- ordered split/image/interaction/spatial lineage and snapshot-v2 binding;
 - current OOF baseline reconciliation;
 - class, source, length, context, and quality distributions;
 - `class x fold` support matrix;
@@ -252,9 +253,11 @@ through P4; P5 selects whether a different imbalance loss is justified.
 
 ### P0.2 Baseline Reconciliation
 
-Finish the current full-OOF postrun steps before using its metrics as a control:
-calibration, confusion comparison, ablation refresh, experiment registration,
-and completion audit. Repair stale test or audit contracts first.
+Do not use the historical full-OOF metrics as a model-quality control because
+its modalities were positionally misaligned. Register it only as
+compute/checkpoint evidence. After the reviewed snapshot and P0 contracts pass,
+run a correctly aligned short actor-temporal baseline to establish the first
+reconciled performance control; outer predictions never select architecture.
 
 ### P0.3 Temporal Views
 
