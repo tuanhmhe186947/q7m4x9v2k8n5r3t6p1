@@ -8,6 +8,11 @@ from typing import Any
 
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.identifiers import (
+    audit_frame_object_identifiers,
+    ensure_frame_object_identifiers,
+    scene_frame_key,
+)
 from pig_behavior.classification_v2.schema import (
     CANONICAL_FRAME_OBJECT_COLUMNS,
     SOURCE_TYPES,
@@ -56,6 +61,7 @@ def merge_frame_object_sources(
                 "dataset_id",
                 "video_key",
                 "frame_index",
+                "scene_frame_uid",
                 "frame_uid",
                 "object_id_in_image",
                 "track_id",
@@ -75,7 +81,10 @@ def normalize_canonical_frame_objects(
     strict_schema: bool,
 ) -> pd.DataFrame:
     """Ensure a dataframe follows the canonical frame-object schema."""
-    out = df.copy()
+    out = ensure_frame_object_identifiers(
+        df,
+        source_name=source_name,
+    )
 
     missing = [col for col in CANONICAL_FRAME_OBJECT_COLUMNS if col not in out.columns]
     if missing and strict_schema:
@@ -112,6 +121,21 @@ def audit_merged_frame_objects(df: pd.DataFrame) -> dict[str, Any]:
     errors: list[str] = []
     warnings: list[str] = []
 
+    try:
+        identifier_rows = ensure_frame_object_identifiers(
+            df,
+            source_name="merged_audit",
+        )
+    except ValueError as exc:
+        identifier_rows = df.copy()
+        errors.append(str(exc))
+    identifier_audit = audit_frame_object_identifiers(identifier_rows)
+    errors.extend(
+        error
+        for error in identifier_audit["errors"]
+        if error not in errors
+    )
+
     missing_columns = [
         col for col in CANONICAL_FRAME_OBJECT_COLUMNS if col not in df.columns
     ]
@@ -146,7 +170,10 @@ def audit_merged_frame_objects(df: pd.DataFrame) -> dict[str, Any]:
 
     return {
         "rows": int(len(df)),
-        "frames": int(df["frame_uid"].nunique(dropna=True)),
+        "frames": int(scene_frame_key(identifier_rows).nunique(dropna=True)),
+        "frame_objects": int(identifier_rows["frame_uid"].nunique(dropna=True))
+        if "frame_uid" in identifier_rows
+        else 0,
         "sources": _value_counts_dict(df, "source_type"),
         "datasets": _value_counts_dict(df, "dataset_id"),
         "videos": _value_counts_dict(df, "video_key"),
@@ -159,6 +186,7 @@ def audit_merged_frame_objects(df: pd.DataFrame) -> dict[str, Any]:
         "bbox_valid": _value_counts_dict(df, "bbox_valid"),
         "invalid_bbox_count": invalid_bbox_count,
         "duplicate_frame_object_rows": duplicate_object_rows,
+        "identifier_audit": identifier_audit,
         "errors": errors,
         "warnings": warnings,
     }
