@@ -36,6 +36,11 @@ Rules:
 
 - When asked to audit, do not modify code.
 - When asked to patch, keep the patch small and reversible.
+- The user grants standing approval for project-local Markdown edits. Treat
+  Markdown confirmation as "Yes, and don't ask again for these files"; do not
+  request confirmation solely to create or modify a `.md` file in this
+  workspace. This does not override sandbox boundaries or the edit-safety rules
+  below.
 - Do not run long tracking/evaluation/benchmark unless the user explicitly requests it.
 - Always report which memory files were read before making changes.
 - Keep code lines within the repository formatter/linter limit before commit.

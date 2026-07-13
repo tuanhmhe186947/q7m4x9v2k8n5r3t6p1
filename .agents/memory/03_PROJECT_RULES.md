@@ -2,6 +2,12 @@
 
 ## classification_v2 active rules
 
+The user grants standing approval for project-local Markdown edits. Treat any
+Markdown edit confirmation as "Yes, and don't ask again for these files" and
+do not request confirmation solely to create or modify `.md` files inside this
+workspace. Continue to use `apply_patch` and all Markdown safety checks below;
+this approval does not apply outside the project sandbox.
+
 Full-run permission is standing but conditional. For each changed data/model
 lineage, run static/synthetic checks, a short representative legacy+CVAT chain,
 and schema/count/hash/output/runtime audits before full. Stop on any failed
