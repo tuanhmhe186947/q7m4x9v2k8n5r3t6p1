@@ -7,6 +7,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.output_safety import (
+    require_output_paths_available,
+)
+
 DEFAULT_NPZ = Path("outputs/classification_v2/train_ready_windows/X_spatial_sequences.npz")
 DEFAULT_AUDIT = Path("outputs/classification_v2/train_ready_windows/spatial_sequence_audit.json")
 DEFAULT_WINDOWS = Path(
@@ -26,7 +30,23 @@ def main() -> None:
         default=None,
         help="Optional train mask used to reject incomplete trainable windows.",
     )
+    parser.add_argument(
+        "--output-json",
+        type=Path,
+        default=None,
+        help="Optional machine-readable checker result.",
+    )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace an existing checker output JSON explicitly.",
+    )
     args = parser.parse_args()
+    if args.output_json is not None:
+        require_output_paths_available(
+            [args.output_json],
+            overwrite=args.overwrite,
+        )
 
     audit = json.loads(args.audit_json.read_text(encoding="utf-8"))
     window_rows = sum(1 for _ in open(args.window_manifest_csv, encoding="utf-8")) - 1
@@ -108,6 +128,12 @@ def main() -> None:
         "warnings": audit.get("warnings", []),
         "errors": errors,
     }
+    if args.output_json is not None:
+        args.output_json.parent.mkdir(parents=True, exist_ok=True)
+        args.output_json.write_text(
+            json.dumps(result, indent=2),
+            encoding="utf-8",
+        )
     print(json.dumps(result, indent=2))
     if errors:
         raise SystemExit(1)
