@@ -407,7 +407,7 @@ def _turning_summary(
     concentration = 0.0
     if moving_direction.size:
         resultant = np.mean(np.exp(1j * moving_direction))
-        concentration = float(np.abs(resultant))
+        concentration = float(np.clip(np.abs(resultant), 0.0, 1.0))
     return {
         "turning_abs_mean": _mean_abs(changes),
         "turning_rate": _bounded_ratio(

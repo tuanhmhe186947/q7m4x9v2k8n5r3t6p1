@@ -10,6 +10,9 @@ import pandas.testing as pdt
 from pig_behavior.classification_v2.contracts.feature_semantics import (
     _assign_tabular_families,
 )
+from pig_behavior.classification_v2.contracts.temporal_evidence import (
+    audit_temporal_evidence_lineage,
+)
 from pig_behavior.classification_v2.features.sequence_windows import (
     build_sequence_windows,
 )
@@ -22,6 +25,10 @@ from pig_behavior.classification_v2.features.temporal_evidence import (
 )
 from pig_behavior.classification_v2.features.temporal_harmonization import (
     build_temporal_label_intervals,
+)
+from pig_behavior.classification_v2.review.review_unit_builder import (
+    _base_units_from_intervals,
+    _finalize_unit_review_fields,
 )
 
 
@@ -106,6 +113,7 @@ def test_straight_motion_and_persistence_metrics_are_correct() -> None:
     assert evidence["trajectory_straightness"] == 1.0
     assert evidence["trajectory_tortuosity_log1p"] == 0.0
     assert evidence["turning_direction_concentration"] == 1.0
+    assert 0.0 <= evidence["turning_direction_concentration"] <= 1.0
     assert evidence["roi_feeder_contact_ratio"] == 2 / 6
     assert evidence["roi_feeder_contact_longest_run_ratio"] == 2 / 6
     assert evidence["roi_feeder_contact_episode_count"] == 1
@@ -219,3 +227,35 @@ def test_trainer_whitelist_and_semantics_cover_every_new_window_feature() -> Non
     assert len(whitelist) == len(set(whitelist))
     assert set(WINDOW_TEMPORAL_EVIDENCE_COLUMNS).issubset(whitelist)
     assert all(assignments.values())
+
+
+def test_cross_artifact_temporal_evidence_audit_passes_one_unit_lineage() -> None:
+    enriched = add_unit_temporal_evidence(_six_frame_fixture())
+    harmonized, intervals, windows = build_sequence_windows(
+        enriched,
+        window_lengths=(6,),
+    )
+    review_units = _base_units_from_intervals(intervals)
+    review_units["window_review_hit_count"] = 0
+    review_units["review_templates_hit"] = ""
+    review_units["review_reasons_window"] = ""
+    review_units["review_priority_window_max"] = 0.0
+    review_units = _finalize_unit_review_fields(review_units)
+    trainer = json.loads(
+        Path("configs/classification_v2/trainer_contract_v1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    audit = audit_temporal_evidence_lineage(
+        harmonized,
+        intervals,
+        windows,
+        review_units,
+        trainer,
+    )
+
+    assert audit["valid"] is True
+    assert audit["keys"]["duplicate_temporal_unit_key"] == 0
+    assert audit["keys"]["duplicate_window_id"] == 0
+    assert audit["review_units"]["evidence_available_rows"] == 1
