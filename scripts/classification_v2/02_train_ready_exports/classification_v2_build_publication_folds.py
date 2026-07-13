@@ -15,22 +15,39 @@ from pig_behavior.classification_v2.metadata.recording_groups import (
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Build publication-safe grouped train/val/test splits.")
+    parser = argparse.ArgumentParser(
+        description="Build publication-safe grouped train/val/test splits."
+    )
     parser.add_argument(
         "--manifest-csv",
         type=Path,
-        default=Path("outputs/classification_v2/sequence_features_reviewed/sequence_window_manifest.csv"),
+        default=Path(
+            "outputs/classification_v2/sequence_features_reviewed/"
+            "sequence_window_manifest.csv"
+        ),
     )
     parser.add_argument(
         "--recording-group-manifest-csv",
         type=Path,
         default=None,
-        help="Optional prebuilt recording_group_manifest.csv. If absent it is built from --manifest-csv.",
+        help=(
+            "Optional prebuilt recording_group_manifest.csv. If absent it is "
+            "built from --manifest-csv."
+        ),
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
         default=Path("outputs/classification_v2/publication_splits"),
+    )
+    parser.add_argument(
+        "--split-output-csv",
+        type=Path,
+        default=None,
+        help=(
+            "Optional explicit split CSV path, for example a train-ready "
+            "split_manifest.csv. The same audit contract is retained."
+        ),
     )
     parser.add_argument("--ratios", default="0.70,0.15,0.15", help="train,val,test ratios")
     parser.add_argument(
@@ -54,7 +71,11 @@ def main() -> None:
         if not args.recording_group_manifest_csv.exists():
             raise FileNotFoundError(args.recording_group_manifest_csv)
         group_manifest = pd.read_csv(args.recording_group_manifest_csv, low_memory=False)
-        recording_group_audit = {"recording_group_manifest_csv": str(args.recording_group_manifest_csv)}
+        recording_group_audit = {
+            "recording_group_manifest_csv": str(
+                args.recording_group_manifest_csv
+            )
+        }
     else:
         group_tables = build_recording_group_manifest(rows, group_level=args.group_level)
         group_manifest = group_tables.manifest
@@ -72,8 +93,11 @@ def main() -> None:
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     group_path = args.output_dir / "recording_group_manifest.csv"
-    split_path = args.output_dir / "publication_split_manifest.csv"
+    split_path = args.split_output_csv or (
+        args.output_dir / "publication_split_manifest.csv"
+    )
     audit_path = args.output_dir / "publication_split_audit.json"
+    split_path.parent.mkdir(parents=True, exist_ok=True)
     group_manifest.to_csv(group_path, index=False)
     split_tables.split_manifest.to_csv(split_path, index=False)
     audit = {
@@ -88,7 +112,10 @@ def main() -> None:
         "recording_group_audit": recording_group_audit,
         "publication_split_audit": split_tables.audit,
     }
-    audit_path.write_text(json.dumps(audit, indent=2, ensure_ascii=False, default=json_default), encoding="utf-8")
+    audit_path.write_text(
+        json.dumps(audit, indent=2, ensure_ascii=False, default=json_default),
+        encoding="utf-8",
+    )
     print(json.dumps(audit, indent=2, ensure_ascii=False, default=json_default))
     if split_tables.audit["errors"]:
         raise SystemExit(2)

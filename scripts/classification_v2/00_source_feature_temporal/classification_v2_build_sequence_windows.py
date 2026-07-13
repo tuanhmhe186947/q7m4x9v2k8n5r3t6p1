@@ -60,6 +60,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-hidden-ratio-main", type=float, default=0.5)
     parser.add_argument("--min-spatiotemporal-valid-ratio", type=float, default=1.0)
     parser.add_argument("--exclude-mixed-windows", action="store_true")
+    parser.add_argument(
+        "--disable-fast-reuse",
+        action="store_true",
+        help=(
+            "Force a full rebuild from the provided frame CSV instead of "
+            "reusing canonical unreviewed window artifacts."
+        ),
+    )
     parser.add_argument("--max-windows-per-track", type=int, default=None)
     parser.add_argument("--max-rows", type=int, default=None)
     return parser.parse_args()
@@ -72,13 +80,18 @@ def _to_bool_series(s: pd.Series) -> pd.Series:
 
 
 def _can_reuse_window_structure(df: pd.DataFrame, args: argparse.Namespace) -> bool:
+    if args.disable_fast_reuse:
+        return False
     if args.max_rows is not None:
         return False
     if "review_include_in_training" not in df.columns:
         return False
     if {"behavior_before_review", "behavior_after_review"}.issubset(df.columns):
         changed = (
-            df["behavior_before_review"].fillna("").astype(str).ne(df["behavior_after_review"].fillna("").astype(str))
+            df["behavior_before_review"]
+            .fillna("")
+            .astype(str)
+            .ne(df["behavior_after_review"].fillna("").astype(str))
         )
         if bool(changed.any()):
             return False
@@ -98,7 +111,10 @@ def _apply_review_overlay_to_windows(windows: pd.DataFrame, frames: pd.DataFrame
 
     f = frames.copy()
     f["frame_index"] = pd.to_numeric(f["frame_index"], errors="coerce")
-    f = f.dropna(subset=["frame_index"]).sort_values(["object_track_key", "frame_index"], kind="mergesort")
+    f = f.dropna(subset=["frame_index"]).sort_values(
+        ["object_track_key", "frame_index"],
+        kind="mergesort",
+    )
     f["frame_index"] = f["frame_index"].astype(int)
 
     if "review_include_in_training" in f.columns:
@@ -114,7 +130,11 @@ def _apply_review_overlay_to_windows(windows: pd.DataFrame, frames: pd.DataFrame
         f["_review_action"] = ""
 
     if "review_sample_weight" in f.columns:
-        f["_review_weight"] = pd.to_numeric(f["review_sample_weight"], errors="coerce").fillna(1.0).clip(0.0, 1.0)
+        f["_review_weight"] = (
+            pd.to_numeric(f["review_sample_weight"], errors="coerce")
+            .fillna(1.0)
+            .clip(0.0, 1.0)
+        )
     else:
         f["_review_weight"] = 1.0
 
@@ -125,10 +145,20 @@ def _apply_review_overlay_to_windows(windows: pd.DataFrame, frames: pd.DataFrame
     out["window_sample_weight"] = 1.0
 
     frame_groups = {
-        str(key): group.reset_index(drop=True) for key, group in f.groupby("object_track_key", dropna=False, sort=False)
+        str(key): group.reset_index(drop=True)
+        for key, group in f.groupby(
+            "object_track_key",
+            dropna=False,
+            sort=False,
+        )
     }
 
-    for object_key, win_idx in out.groupby("object_track_key", dropna=False, sort=False).groups.items():
+    window_groups = out.groupby(
+        "object_track_key",
+        dropna=False,
+        sort=False,
+    ).groups
+    for object_key, win_idx in window_groups.items():
         fg = frame_groups.get(str(object_key))
         if fg is None or fg.empty:
             continue
@@ -148,21 +178,30 @@ def _apply_review_overlay_to_windows(windows: pd.DataFrame, frames: pd.DataFrame
             include_slice = include[left:right]
             weight_slice = weights[left:right]
             action_values = sorted(
-                {str(v).strip() for v in actions[left:right] if str(v).strip() and str(v).strip().lower() != "nan"}
+                {
+                    str(value).strip()
+                    for value in actions[left:right]
+                    if str(value).strip()
+                    and str(value).strip().lower() != "nan"
+                }
             )
             excluded_count = int((~include_slice).sum())
             out.at[row_idx, "review_include_ratio_window"] = float(include_slice.mean())
             out.at[row_idx, "review_excluded_frame_count_window"] = excluded_count
             out.at[row_idx, "review_training_actions_window"] = "|".join(action_values)
             out.at[row_idx, "review_sample_weight_mean_window"] = float(weight_slice.mean())
-            out.at[row_idx, "window_sample_weight"] = 0.0 if excluded_count else float(weight_slice.mean())
+            out.at[row_idx, "window_sample_weight"] = (
+                0.0 if excluded_count else float(weight_slice.mean())
+            )
 
             if excluded_count:
                 out.at[row_idx, "window_valid_for_main_train"] = False
                 reason = str(out.at[row_idx, "window_exclusion_reason"] or "").strip()
                 token = "review_excluded_rows_in_window"
                 if token not in reason.split(";"):
-                    out.at[row_idx, "window_exclusion_reason"] = f"{reason};{token}" if reason else token
+                    out.at[row_idx, "window_exclusion_reason"] = (
+                        f"{reason};{token}" if reason else token
+                    )
                 out.at[row_idx, "window_training_tier_recommendation"] = "exclude"
 
     return out
@@ -176,7 +215,7 @@ def _try_fast_reviewed_rebuild(args: argparse.Namespace) -> bool:
     the already-built structural window manifest and overlay mask/weight fields
     from the reviewed frame CSV.
     """
-    if args.max_rows is not None:
+    if args.disable_fast_reuse or args.max_rows is not None:
         return False
 
     base_dir = Path("outputs/classification_v2/sequence_features")
@@ -264,6 +303,7 @@ def _try_fast_reviewed_rebuild(args: argparse.Namespace) -> bool:
             "max_hidden_ratio_main": args.max_hidden_ratio_main,
             "min_spatiotemporal_valid_ratio": args.min_spatiotemporal_valid_ratio,
             "include_mixed_windows": not args.exclude_mixed_windows,
+            "disable_fast_reuse": args.disable_fast_reuse,
             "max_windows_per_track": args.max_windows_per_track,
             "max_rows": args.max_rows,
         },
@@ -312,7 +352,10 @@ def main() -> None:
             legacy_expected_sequence_length=args.legacy_expected_sequence_length,
         )
         intervals = build_temporal_label_intervals(harmonized, config=interval_config)
-        base_manifest = Path("outputs/classification_v2/sequence_features/sequence_window_manifest.csv")
+        base_manifest = Path(
+            "outputs/classification_v2/sequence_features/"
+            "sequence_window_manifest.csv"
+        )
         windows = pd.read_csv(base_manifest, low_memory=False)
         windows = _apply_review_overlay_to_windows(windows, harmonized)
     else:
@@ -332,7 +375,9 @@ def main() -> None:
         )
 
     output_dir = args.output_dir
-    harmonized_csv = args.harmonized_frame_csv or output_dir / "training_ready_frame_features_harmonized_preview.csv"
+    harmonized_csv = args.harmonized_frame_csv or (
+        output_dir / "training_ready_frame_features_harmonized_preview.csv"
+    )
     intervals_csv = args.temporal_intervals_csv or output_dir / "temporal_label_intervals.csv"
     manifest_csv = args.sequence_window_manifest_csv or output_dir / "sequence_window_manifest.csv"
     features_csv = args.sequence_window_features_csv or output_dir / "sequence_window_features.csv"
@@ -373,6 +418,7 @@ def main() -> None:
             "max_hidden_ratio_main": args.max_hidden_ratio_main,
             "min_spatiotemporal_valid_ratio": args.min_spatiotemporal_valid_ratio,
             "include_mixed_windows": not args.exclude_mixed_windows,
+            "disable_fast_reuse": args.disable_fast_reuse,
             "max_windows_per_track": args.max_windows_per_track,
             "max_rows": args.max_rows,
         },

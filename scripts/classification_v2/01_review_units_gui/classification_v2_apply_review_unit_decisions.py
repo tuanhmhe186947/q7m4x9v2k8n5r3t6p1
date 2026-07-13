@@ -32,12 +32,33 @@ CANONICAL_BEHAVIORS = {
 }
 
 VALID_DECISIONS = {"pending", "accept", "corrected", "exclude", "reject", "uncertain"}
-VALID_ACTIONS = {"", "main_train", "keep", "correct_and_keep", "downweight", "exclude"}
+VALID_ACTIONS = {
+    "",
+    "main_train",
+    "keep",
+    "correct_and_keep",
+    "downweight",
+    "low_weight_train",
+    "exclude",
+    "review_later",
+}
 DEFAULT_DECISION_FILES = [
-    r"outputs\classification_v2\review_policy\roi_review_unit_gui_pilot\behavior_unit_review_decisions.csv",
-    r"outputs\classification_v2\review_policy\motion_review_unit_gui_pilot\behavior_unit_review_decisions.csv",
-    r"outputs\classification_v2\review_policy\posture_review_unit_gui_pilot\behavior_unit_review_decisions.csv",
-    r"outputs\classification_v2\review_policy\interaction_review_unit_gui_pilot\behavior_unit_review_decisions.csv",
+    (
+        r"outputs\classification_v2\review_policy\roi_review_unit_gui_pilot"
+        r"\behavior_unit_review_decisions.csv"
+    ),
+    (
+        r"outputs\classification_v2\review_policy\motion_review_unit_gui_pilot"
+        r"\behavior_unit_review_decisions.csv"
+    ),
+    (
+        r"outputs\classification_v2\review_policy\posture_review_unit_gui_pilot"
+        r"\behavior_unit_review_decisions.csv"
+    ),
+    (
+        r"outputs\classification_v2\review_policy\interaction_review_unit_gui_pilot"
+        r"\behavior_unit_review_decisions.csv"
+    ),
 ]
 
 
@@ -55,7 +76,7 @@ def _to_bool_action(action: str, decision: str) -> bool:
     decision = _norm_text(decision)
     if decision in {"exclude", "reject"}:
         return False
-    if action == "exclude":
+    if action in {"exclude", "review_later"}:
         return False
     return True
 
@@ -75,9 +96,9 @@ def _default_action(decision: str) -> str:
 def _default_weight(decision: str, action: str) -> float | None:
     if decision == "pending":
         return None
-    if decision in {"exclude", "reject"} or action == "exclude":
+    if decision in {"exclude", "reject"} or action in {"exclude", "review_later"}:
         return 0.0
-    if decision == "uncertain" or action == "downweight":
+    if decision == "uncertain" or action in {"downweight", "low_weight_train"}:
         return 0.5
     return 1.0
 
@@ -88,7 +109,10 @@ def _validate_columns(df: pd.DataFrame, required: list[str], name: str) -> None:
         raise ValueError(f"{name} missing columns: {missing}")
 
 
-def load_decisions(paths: list[Path], review_unit_manifest: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, Any]]:
+def load_decisions(
+    paths: list[Path],
+    review_unit_manifest: pd.DataFrame,
+) -> tuple[pd.DataFrame, dict[str, Any]]:
     parts: list[pd.DataFrame] = []
     missing_files: list[str] = []
     errors: list[str] = []
@@ -120,7 +144,10 @@ def load_decisions(paths: list[Path], review_unit_manifest: pd.DataFrame) -> tup
 
         if "behavior_label" not in df.columns:
             if "original_behavior" in df.columns:
-                warnings.append(f"{path} missing behavior_label; using original_behavior compatibility")
+                warnings.append(
+                    f"{path} missing behavior_label; "
+                    "using original_behavior compatibility"
+                )
                 df["behavior_label"] = df["original_behavior"]
             else:
                 warnings.append(f"{path} missing behavior_label/original_behavior; filling empty")
@@ -205,7 +232,10 @@ def normalize_decisions(decisions: pd.DataFrame) -> tuple[pd.DataFrame, list[str
         decisions[col] = decisions[col].map(_norm_text)
 
     decisions["manual_review_decision"] = decisions["manual_review_decision"].replace("", "pending")
-    decisions["manual_sample_weight"] = pd.to_numeric(decisions["manual_sample_weight"], errors="coerce")
+    decisions["manual_sample_weight"] = pd.to_numeric(
+        decisions["manual_sample_weight"],
+        errors="coerce",
+    )
 
     # Normalize actions and weights.
     for idx, row in decisions.iterrows():
@@ -235,7 +265,9 @@ def normalize_decisions(decisions: pd.DataFrame) -> tuple[pd.DataFrame, list[str
     active = decisions[~decisions["manual_review_decision"].eq("pending")].copy()
     corrected = active[active["manual_review_decision"].eq("corrected")].copy()
     if not corrected.empty:
-        invalid_corrected = corrected[~corrected["manual_corrected_behavior"].isin(CANONICAL_BEHAVIORS)]
+        invalid_corrected = corrected[
+            ~corrected["manual_corrected_behavior"].isin(CANONICAL_BEHAVIORS)
+        ]
         if len(invalid_corrected):
             errors.append(
                 "corrected decisions with invalid/manual missing behavior: "
@@ -246,7 +278,10 @@ def normalize_decisions(decisions: pd.DataFrame) -> tuple[pd.DataFrame, list[str
     # This supports repeated GUI pilot tests while still recording a warning.
     active_dups = int(active["review_unit_id"].duplicated(keep=False).sum()) if len(active) else 0
     if active_dups:
-        warnings.append(f"duplicate active decisions rows={active_dups}; keeping last per review_unit_id")
+        warnings.append(
+            f"duplicate active decisions rows={active_dups}; "
+            "keeping last per review_unit_id"
+        )
 
     decisions["_decision_order"] = range(len(decisions))
     return decisions, errors, warnings
@@ -258,7 +293,11 @@ def apply_decisions_to_frames(
     decisions: pd.DataFrame,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     _validate_columns(frames, ["temporal_unit_key", "behavior"], "frame_features_csv")
-    _validate_columns(review_units, ["review_unit_id", "temporal_unit_key"], "review_unit_manifest_csv")
+    _validate_columns(
+        review_units,
+        ["review_unit_id", "temporal_unit_key"],
+        "review_unit_manifest_csv",
+    )
 
     out = frames.copy()
     out["behavior_before_review"] = out["behavior"].fillna("").astype(str)
@@ -297,7 +336,11 @@ def apply_decisions_to_frames(
 
     active = decisions[~decisions["manual_review_decision"].eq("pending")].copy()
     pending_ignored = int(decisions["manual_review_decision"].eq("pending").sum())
-    duplicate_active_rows = int(active["review_unit_id"].duplicated(keep=False).sum()) if len(active) else 0
+    duplicate_active_rows = (
+        int(active["review_unit_id"].duplicated(keep=False).sum())
+        if len(active)
+        else 0
+    )
     if active.empty:
         return out, {
             "decisions_loaded": int(len(decisions)),
@@ -321,7 +364,9 @@ def apply_decisions_to_frames(
     # Keep last active row per unit.
     active = active.sort_values("_decision_order").drop_duplicates("review_unit_id", keep="last")
 
-    unit_map = review_units[["review_unit_id", "temporal_unit_key"]].drop_duplicates("review_unit_id")
+    unit_map = review_units[
+        ["review_unit_id", "temporal_unit_key"]
+    ].drop_duplicates("review_unit_id")
     active = active.merge(unit_map, on="review_unit_id", how="left", suffixes=("", "_unit"))
     active["target_temporal_unit_key"] = active["temporal_unit_key"].where(
         active["temporal_unit_key"].notna() & active["temporal_unit_key"].astype(str).ne(""),
@@ -378,7 +423,9 @@ def apply_decisions_to_frames(
         "applied_decisions": int(applied_count),
         "decision_frame_rows_touched": int(touched_total),
         "affected_frames": int(touched_total),
-        "changed_behavior_frames": int((out["behavior_after_review"] != out["behavior_before_review"]).sum()),
+        "changed_behavior_frames": int(
+            (out["behavior_after_review"] != out["behavior_before_review"]).sum()
+        ),
         "excluded_frames": int((~out["review_include_in_training"].astype(bool)).sum()),
         "accepted_units": int(active["manual_review_decision"].eq("accept").sum()),
         "corrected_units": int(active["manual_review_decision"].eq("corrected").sum()),
@@ -387,9 +434,15 @@ def apply_decisions_to_frames(
         "missing_review_unit_count": int(len(unmatched)),
         "unmatched_decisions": unmatched,
         "decision_counts": active["manual_review_decision"].value_counts(dropna=False).to_dict(),
-        "training_action_counts": active["manual_training_action"].value_counts(dropna=False).to_dict(),
-        "review_include_in_training_counts": out["review_include_in_training"].value_counts(dropna=False).to_dict(),
-        "review_decision_applied_counts": out["review_decision_applied"].value_counts(dropna=False).to_dict(),
+        "training_action_counts": active["manual_training_action"]
+        .value_counts(dropna=False)
+        .to_dict(),
+        "review_include_in_training_counts": out["review_include_in_training"]
+        .value_counts(dropna=False)
+        .to_dict(),
+        "review_decision_applied_counts": out["review_decision_applied"]
+        .value_counts(dropna=False)
+        .to_dict(),
     }
     return out, audit
 
@@ -398,7 +451,10 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--frame-features-csv",
-        default=r"outputs\classification_v2\frame_features\spatiotemporal_frame_features_enhanced.csv",
+        default=(
+            r"outputs\classification_v2\frame_features"
+            r"\spatiotemporal_frame_features_enhanced.csv"
+        ),
     )
     parser.add_argument(
         "--review-unit-manifest-csv",
@@ -408,7 +464,10 @@ def main() -> None:
         "--decisions-csv",
         nargs="*",
         default=DEFAULT_DECISION_FILES,
-        help="One or more behavior_unit_review_decisions.csv files. Defaults to the 4 GUI pilot outputs.",
+        help=(
+            "One or more behavior_unit_review_decisions.csv files. "
+            "Defaults to the 4 GUI pilot outputs."
+        ),
     )
     parser.add_argument(
         "--output-csv",
@@ -472,7 +531,10 @@ def main() -> None:
         "apply_audit": apply_audit,
     }
 
-    audit_path.write_text(json.dumps(audit, indent=2, ensure_ascii=False, default=str), encoding="utf-8")
+    audit_path.write_text(
+        json.dumps(audit, indent=2, ensure_ascii=False, default=str),
+        encoding="utf-8",
+    )
 
     print(json.dumps(audit, indent=2, ensure_ascii=False, default=str))
     print("\n[OK] wrote", output_path, "rows=", len(reviewed), "cols=", len(reviewed.columns))

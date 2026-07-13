@@ -73,10 +73,13 @@ class ReviewUnitGui:
         self.frames = pd.read_csv(config.frame_features_csv, low_memory=False)
         self.frames["frame_index"] = pd.to_numeric(self.frames.get("frame_index"), errors="coerce")
         if "relative_frame_index" in self.frames.columns:
-            self.frames["relative_frame_index"] = pd.to_numeric(self.frames["relative_frame_index"], errors="coerce")
+            self.frames["relative_frame_index"] = pd.to_numeric(
+                self.frames["relative_frame_index"],
+                errors="coerce",
+            )
 
         self.current = 0
-        self.decisions: dict[str, dict[str, Any]] = {}
+        self.decisions = self._load_existing_decisions()
         self.video_cache: dict[str, Any] = {}
         self.video_index = self._build_video_index(config.video_root)
         self.roi_overlays = self._load_roi_overlays(config.roi_coco_path)
@@ -110,12 +113,52 @@ class ReviewUnitGui:
             raise SystemExit(f"Review unit CSV missing required columns: {missing}")
         if self.config.source_type:
             df = df[df["source_type"].astype(str).eq(self.config.source_type)].copy()
-        df = df.sort_values(["review_priority"], ascending=False) if "review_priority" in df.columns else df
+        if "review_priority" in df.columns:
+            df = df.sort_values(["review_priority"], ascending=False)
         if self.config.max_items is not None and self.config.max_items > 0:
             df = df.head(self.config.max_items).copy()
         if df.empty:
             raise SystemExit("No review units after filtering.")
         return df.reset_index(drop=True)
+
+    def _load_existing_decisions(self) -> dict[str, dict[str, Any]]:
+        """Resume one review template without losing decisions from prior sessions."""
+        path = self.config.output_dir / "behavior_unit_review_decisions.csv"
+        if not path.exists():
+            return {}
+
+        existing = pd.read_csv(path, low_memory=False)
+        if existing.empty:
+            return {}
+        if "review_unit_id" not in existing.columns:
+            raise SystemExit(f"Existing decision CSV missing review_unit_id: {path}")
+
+        ids = existing["review_unit_id"].fillna("").astype(str).str.strip()
+        if ids.eq("").any():
+            raise SystemExit(f"Existing decision CSV has blank review_unit_id: {path}")
+        if ids.duplicated().any():
+            duplicate_count = int(ids.duplicated(keep=False).sum())
+            raise SystemExit(
+                f"Existing decision CSV has duplicate review_unit_id rows={duplicate_count}: {path}"
+            )
+
+        expected_ids = set(self.units["review_unit_id"].astype(str))
+        unexpected = sorted(set(ids) - expected_ids)
+        if unexpected:
+            raise SystemExit(
+                "Existing decision CSV does not match the selected review template; "
+                f"unexpected review_unit_id count={len(unexpected)}"
+            )
+
+        decisions: dict[str, dict[str, Any]] = {}
+        for record in existing.to_dict(orient="records"):
+            cleaned = {
+                key: "" if pd.isna(value) else value
+                for key, value in record.items()
+            }
+            decisions[str(cleaned["review_unit_id"]).strip()] = cleaned
+        print(f"[RESUME] loaded {len(decisions)} decisions from {path}")
+        return decisions
 
     def _build_video_index(self, root: Path | None) -> dict[str, Path]:
         """Build a tolerant video lookup index.
@@ -178,7 +221,12 @@ class ReviewUnitGui:
         self.root.rowconfigure(1, weight=1)
 
         self.header = tk.StringVar()
-        header_lbl = ttk.Label(self.root, textvariable=self.header, font=("Segoe UI", 11, "bold"), wraplength=1160)
+        header_lbl = ttk.Label(
+            self.root,
+            textvariable=self.header,
+            font=("Segoe UI", 11, "bold"),
+            wraplength=1160,
+        )
         header_lbl.grid(row=0, column=0, sticky="ew", padx=8, pady=(6, 2))
 
         self.main_frame = ttk.Frame(self.root)
@@ -212,7 +260,10 @@ class ReviewUnitGui:
         row = 0
         ttk.Label(form, text="Decision").grid(row=row, column=0, sticky="w")
         ttk.Combobox(
-            form, textvariable=self.decision_var, values=["pending", "accept", "corrected", "exclude"], state="readonly"
+            form,
+            textvariable=self.decision_var,
+            values=["pending", "accept", "corrected", "exclude"],
+            state="readonly",
         ).grid(row=row, column=1, sticky="ew")
         row += 1
         ttk.Label(form, text="Corrected behavior").grid(row=row, column=0, sticky="w")
@@ -222,12 +273,23 @@ class ReviewUnitGui:
         row += 1
         ttk.Label(form, text="Strength").grid(row=row, column=0, sticky="w")
         ttk.Combobox(
-            form, textvariable=self.strength_var, values=["", "strong", "medium", "weak", "boundary"], state="readonly"
+            form,
+            textvariable=self.strength_var,
+            values=["", "strong", "medium", "weak", "boundary"],
+            state="readonly",
         ).grid(row=row, column=1, sticky="ew")
         row += 1
         ttk.Label(form, text="Training action").grid(row=row, column=0, sticky="w")
         ttk.Combobox(
-            form, textvariable=self.action_var, values=["", "main_train", "low_weight_train", "exclude", "review_later"]
+            form,
+            textvariable=self.action_var,
+            values=[
+                "",
+                "main_train",
+                "low_weight_train",
+                "exclude",
+                "review_later",
+            ],
         ).grid(row=row, column=1, sticky="ew")
         row += 1
         ttk.Label(form, text="Weight").grid(row=row, column=0, sticky="w")
@@ -240,16 +302,30 @@ class ReviewUnitGui:
         bottom.grid(row=2, column=0, sticky="ew", padx=8, pady=8)
         for i in range(8):
             bottom.columnconfigure(i, weight=1)
-        ttk.Button(bottom, text="< Prev", command=self.prev_item).grid(row=0, column=0, sticky="ew", padx=3)
-        ttk.Button(bottom, text="Save", command=self.save_current).grid(row=0, column=1, sticky="ew", padx=3)
-        ttk.Button(bottom, text="Save + Next", command=self.save_next).grid(row=0, column=2, sticky="ew", padx=3)
+        ttk.Button(bottom, text="< Prev", command=self.prev_item).grid(
+            row=0, column=0, sticky="ew", padx=3
+        )
+        ttk.Button(bottom, text="Save", command=self.save_current).grid(
+            row=0, column=1, sticky="ew", padx=3
+        )
+        ttk.Button(bottom, text="Save + Next", command=self.save_next).grid(
+            row=0, column=2, sticky="ew", padx=3
+        )
         ttk.Button(bottom, text="Accept strong + Next", command=self.accept_strong_next).grid(
             row=0, column=3, sticky="ew", padx=3
         )
-        ttk.Button(bottom, text="Exclude + Next", command=self.exclude_next).grid(row=0, column=4, sticky="ew", padx=3)
-        ttk.Button(bottom, text="Next >", command=self.next_item).grid(row=0, column=5, sticky="ew", padx=3)
-        ttk.Button(bottom, text="Write CSV", command=self.write_decisions).grid(row=0, column=6, sticky="ew", padx=3)
-        ttk.Button(bottom, text="Quit", command=self.on_quit).grid(row=0, column=7, sticky="ew", padx=3)
+        ttk.Button(bottom, text="Exclude + Next", command=self.exclude_next).grid(
+            row=0, column=4, sticky="ew", padx=3
+        )
+        ttk.Button(bottom, text="Next >", command=self.next_item).grid(
+            row=0, column=5, sticky="ew", padx=3
+        )
+        ttk.Button(bottom, text="Write CSV", command=self.write_decisions).grid(
+            row=0, column=6, sticky="ew", padx=3
+        )
+        ttk.Button(bottom, text="Quit", command=self.on_quit).grid(
+            row=0, column=7, sticky="ew", padx=3
+        )
 
     def current_unit(self) -> pd.Series:
         return self.units.iloc[self.current]
@@ -266,13 +342,19 @@ class ReviewUnitGui:
 
         if self.config.copy_contact_sheets:
             safe = safe_filename(unit_id)
-            image.save(self.config.output_dir / "contact_sheets" / f"{self.current:05d}_{safe}.jpg", quality=92)
+            output_path = (
+                self.config.output_dir
+                / "contact_sheets"
+                / f"{self.current:05d}_{safe}.jpg"
+            )
+            image.save(output_path, quality=92)
 
         display_indices = str(unit.get("display_frame_indices", ""))
         self.header.set(
             f"{self.current + 1}/{len(self.units)} | {unit.get('review_unit_type')} | "
             f"{unit.get('source_type')} | {unit.get('behavior_label')} | "
-            f"frames {unit.get('unit_start_frame')}-{unit.get('unit_end_frame')} | shown [{display_indices}]"
+            f"frames {unit.get('unit_start_frame')}-{unit.get('unit_end_frame')} | "
+            f"shown [{display_indices}]"
         )
 
         self.info_text.delete("1.0", "end")
@@ -358,7 +440,11 @@ class ReviewUnitGui:
                 pass
         return vals
 
-    def _make_contact_sheet(self, unit: pd.Series, rows: pd.DataFrame) -> tuple[Image.Image, list[str]]:
+    def _make_contact_sheet(
+        self,
+        unit: pd.Series,
+        rows: pd.DataFrame,
+    ) -> tuple[Image.Image, list[str]]:
         wanted = self._display_frames(unit)
         if not wanted:
             try:
@@ -368,7 +454,11 @@ class ReviewUnitGui:
 
         diagnostics: list[str] = []
         thumbs: list[tuple[int, Image.Image, str]] = []
-        row_by_frame = {int(r["frame_index"]): r for _, r in rows.iterrows() if pd.notna(r.get("frame_index"))}
+        row_by_frame = {
+            int(record["frame_index"]): record
+            for _, record in rows.iterrows()
+            if pd.notna(record.get("frame_index"))
+        }
         for frame_idx in wanted:
             row = row_by_frame.get(frame_idx)
             if row is None:
@@ -620,7 +710,17 @@ class ReviewUnitGui:
         self.write_decisions(show_message=False)
 
     def write_decisions(self, show_message: bool = True) -> None:
-        rows = list(self.decisions.values())
+        unit_order = {
+            str(unit_id): index
+            for index, unit_id in enumerate(self.units["review_unit_id"].astype(str))
+        }
+        rows = sorted(
+            self.decisions.values(),
+            key=lambda row: (
+                unit_order.get(str(row.get("review_unit_id", "")), len(unit_order)),
+                str(row.get("review_unit_id", "")),
+            ),
+        )
         out1 = self.config.output_dir / "behavior_unit_review_decisions.csv"
         out2 = self.config.output_dir / "behavior_strength_review_decisions.csv"
         if not rows:
@@ -703,13 +803,23 @@ class ReviewUnitGui:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Review canonical temporal units, not training windows.")
+    parser = argparse.ArgumentParser(
+        description="Review canonical temporal units, not training windows."
+    )
     parser.add_argument("--review-units-csv", type=Path, required=True)
     parser.add_argument("--frame-features-csv", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--video-root", type=Path, default=Path("data/videos"))
-    parser.add_argument("--raw-root", type=Path, default=Path("data/raw/legacy_full_multigt_masked_nodup_16f/crops"))
-    parser.add_argument("--roi-coco-json", type=Path, default=Path("data/annotations/roi/ROI_annotations.coco.json"))
+    parser.add_argument(
+        "--raw-root",
+        type=Path,
+        default=Path("data/raw/legacy_full_multigt_masked_nodup_16f/crops"),
+    )
+    parser.add_argument(
+        "--roi-coco-json",
+        type=Path,
+        default=Path("data/annotations/roi/ROI_annotations.coco.json"),
+    )
     parser.add_argument("--source-type", default="")
     parser.add_argument("--max-items", type=int, default=0)
     parser.add_argument("--padding", type=float, default=0.8)

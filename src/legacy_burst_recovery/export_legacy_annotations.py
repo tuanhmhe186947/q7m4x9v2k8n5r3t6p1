@@ -264,7 +264,10 @@ def add_sequence_columns(
         .astype(int)
     )
 
-    out["legacy_sequence_mode"] = f"legacy_{expected_sequence_length}f_0_to_{expected_sequence_length - 1}"
+    out["legacy_sequence_mode"] = (
+        f"legacy_{expected_sequence_length}f_0_to_"
+        f"{expected_sequence_length - 1}"
+    )
     out["legacy_expected_sequence_length"] = int(expected_sequence_length)
     out["legacy_anchor_relative_frames"] = ",".join(str(x) for x in anchor_relative_frames)
     out["is_legacy_gt_anchor"] = out["relative_frame_index"].isin(anchor_relative_frames)
@@ -1069,6 +1072,12 @@ def main():
         help="Optional FPS used to compute timestamp_sec if the dense CSV has no timestamp_sec.",
     )
     parser.add_argument(
+        "--max-rows",
+        type=int,
+        default=None,
+        help="Optional leading-row limit for a bounded pipeline smoke test.",
+    )
+    parser.add_argument(
         "--training-only",
         action="store_true",
         help=(
@@ -1092,6 +1101,10 @@ def main():
 
     print(f"reading dense csv: {dense_csv}", flush=True)
     dense = pd.read_csv(dense_csv, low_memory=False)
+    if args.max_rows is not None:
+        if args.max_rows <= 0:
+            raise ValueError("--max-rows must be > 0")
+        dense = dense.head(args.max_rows).copy()
     print(f"dense rows: {len(dense)}", flush=True)
 
     print("building canonical frame-object csv...", flush=True)

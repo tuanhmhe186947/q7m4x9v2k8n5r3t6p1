@@ -11,7 +11,9 @@ from pig_behavior.classification_v2.review.review_unit_builder import (
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build canonical review units for classification_v2.")
+    parser = argparse.ArgumentParser(
+        description="Build canonical review units for classification_v2."
+    )
     parser.add_argument(
         "--intervals-csv",
         type=Path,
@@ -28,6 +30,14 @@ def main() -> None:
         default=Path(r"outputs/classification_v2/review_templates/full_review_manifest.csv"),
     )
     parser.add_argument(
+        "--disable-window-review-overlay",
+        action="store_true",
+        help=(
+            "Do not read a canonical window-review manifest. Use this for a "
+            "versioned rebuild that has no same-lineage window review artifact."
+        ),
+    )
+    parser.add_argument(
         "--output-dir",
         type=Path,
         default=Path(r"outputs/classification_v2/review_units"),
@@ -36,7 +46,7 @@ def main() -> None:
     args = parser.parse_args()
 
     window_review = args.window_review_manifest_csv
-    if not window_review.exists():
+    if args.disable_window_review_overlay or not window_review.exists():
         window_review = None
 
     audit = build_review_units(
