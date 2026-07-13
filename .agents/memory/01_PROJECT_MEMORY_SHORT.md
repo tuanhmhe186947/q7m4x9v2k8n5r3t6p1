@@ -1,5 +1,19 @@
 # Project Memory Short
 
+## 2026-07-14 strict fixed-six timing loader
+
+- Commit `111f152` loads ordered real `time_delta` values for the primary
+  fixed-six view while preserving the complete training-window universe.
+- Missing, reordered, duplicate, negative, or contradictory slot records fail
+  closed; unselected windows remain explicit NaN/mask rows instead of dropping.
+- Actor, spatial, and union branches receive the same timing tensor while
+  retaining branch-specific observation masks.
+- Checkpoint schema v4 and registry v3 bind the separate temporal-manifest hash.
+- Evidence is 334 classification tests, four passing synthetic checkers, no
+  pretrained download, no full-data read, and no model training.
+- The next independent task is native-unit collapse and paired evaluation on
+  synthetic predictions. Human Hidden and behavior review remain blockers.
+
 ## 2026-07-14 mask-safe configurable model factory
 
 - Commit `318bf58` adds ten exact model modes and four temporal encoders behind

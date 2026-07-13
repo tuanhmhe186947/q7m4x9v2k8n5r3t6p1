@@ -27,9 +27,14 @@ does not authorize model smoke on an unfrozen reviewed snapshot.
 
 Commit `318bf58` completes the configurable model-factory contract in code.
 Ten model modes and four temporal encoders pass mask, shape, missing-modality,
-gradient, checkpoint, and lineage tests without downloading weights. This does
-not authorize ResNet training: the strict loader must first provide real
-fixed-six `time_delta`, and the reviewed snapshot remains blocked.
+gradient, checkpoint, and lineage tests without downloading weights.
+
+Commit `111f152` now loads real ordered fixed-six `time_delta` tensors into the
+strict data module and binds the slot-manifest hash in checkpoint schema v4 and
+registry v3. Corrupt order, slot identity, masks, or timing fail closed, and
+unselected windows are retained as explicit masked rows. This remains fixture
+evidence only: the reviewed snapshot is blocked, so ResNet training, pilot
+training, and full OOF remain unauthorized.
 
 The identifier-v2 code/data chain passes at commit `a83d5a5`. Its bounded root
 has 688 frame rows, 63 native/review units, 438 ordered windows, exact model-X

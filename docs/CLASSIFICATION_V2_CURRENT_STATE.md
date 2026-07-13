@@ -94,8 +94,11 @@ Independent training-contract engineering is also complete in code:
 - `318bf58` adds ten exact model modes, four mask-safe temporal encoders,
   branch availability/quality contracts, checkpoint schema v3, and registry
   v2. The smoke factory downloads no weights and performs no optimizer steps.
+- `111f152` loads real ordered fixed-six timing without dropping unselected
+  windows. Checkpoint schema v4 and registry v3 bind the separate temporal slot
+  manifest hash; corrupt order, slot identity, masks, or timing fail closed.
 
-The current classification regression is 319 passed and 181 deselected. This
+The current classification regression is 334 passed and 181 deselected. This
 evidence remains synthetic/fixture-only; it has not frozen or trained the
 incomplete human-review lineage.
 
@@ -116,6 +119,7 @@ incomplete human-review lineage.
 | Reviewed train-ready snapshot | FAIL | No complete reviewed lineage exists |
 | Snapshot/preflight code contract | PASS | Ordered lineage and hash binding tested |
 | Temporal-view code contract | PASS IN CODE | 22 fixture tests; active packet blocked |
+| Fixed-six timing loader/lineage | PASS IN CODE | Ordered timing and hash tests pass |
 | Fold-local preprocessing/weights | PASS IN CODE | Train-only fit and native-event tests |
 | Run lineage/registry | PASS IN CODE | 33 focused tests; checkpoint smoke PASS |
 | Model factory/mask contract | PASS IN CODE | 10 modes; 4 temporal encoders |

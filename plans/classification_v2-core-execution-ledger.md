@@ -96,6 +96,9 @@ Independent in-progress gates:
 - Configurable model factory: `PASS IN CODE` at `318bf58`; ten model modes and
   four temporal encoders enforce exact branch, mask, shape, and lineage rules.
   Checkpoint schema v3 and registry v2 bind the explicit `model_mode`.
+- Fixed-six timing loader: `PASS IN CODE` at `111f152`; ordered real timing is
+  aligned without row loss. Checkpoint schema v4 and registry v3 bind the
+  separate slot-manifest hash.
 
 ## Independent Work Queue
 
@@ -105,7 +108,7 @@ Work proceeds in dependency order without fabricating human evidence:
 2. Fixed-six manifests and structural shortcut probes: `COMPLETED IN CODE`.
 3. Fold-local preprocessing, event balancing, and lineage: `COMPLETED IN CODE`.
 4. Configurable model/mask/shape contracts: `COMPLETED IN CODE`.
-5. Wire real fixed-six `time_delta` through strict loaders and hash lineage.
+5. Real fixed-six timing loader and hash lineage: `COMPLETED IN CODE`.
 6. Complete native-collapse and paired-evaluation tests with synthetic predictions.
 7. Reconcile the historical baseline only as a registered engineering control.
 
@@ -141,10 +144,12 @@ authorization.
 | 2026-07-14 | Native-event fold weighting | PASS IN CODE | `73b901d` |
 | 2026-07-14 | Run lineage and append-only registry | PASS IN CODE | `16cdb93` |
 | 2026-07-14 | Mask-safe configurable model factory | PASS IN CODE | `318bf58` |
+| 2026-07-14 | Strict fixed-six timing loader | PASS IN CODE | `111f152` |
 
 ## Next Checkpoint
 
-The next isolated achievement is strict fixed-six real-time-delta loading with
-ordered-key/hash lineage and missing-slot tests. This must make Transformer
-training fail closed until real timing is present. Hidden/behavior review
-remains the separate blocker for freezing the reviewed P0 snapshot.
+The next isolated achievement is native-unit prediction collapse and paired
+evaluation on synthetic predictions. It must preserve every eligible native
+unit, reject conflicting targets or fold manifests, and keep outer-fold results
+out of model selection. Hidden/behavior review remains the separate blocker for
+freezing the reviewed P0 snapshot.
