@@ -57,6 +57,11 @@ def load_cvat_tracking_xml(
     path = Path(xml_path)
     if not path.exists():
         raise FileNotFoundError(f"CVAT tracking XML not found: {path}")
+    if trust_hidden:
+        raise ValueError(
+            "CVAT tracking-derived Hidden cannot be trusted by parser flag; "
+            "complete hidden review and apply its provenance instead"
+        )
 
     root = ET.parse(path).getroot()
 
@@ -163,7 +168,6 @@ def load_cvat_tracking_xml(
     out = _add_training_policy(
         out,
         require_full_8_for_eval=require_full_8_for_eval,
-        trust_hidden=trust_hidden,
     )
     out = _ensure_canonical_columns(out)
 
@@ -383,17 +387,11 @@ def _add_training_policy(
     df: pd.DataFrame,
     *,
     require_full_8_for_eval: bool,
-    trust_hidden: bool,
 ) -> pd.DataFrame:
     out = df.copy()
 
     invalid_behavior = out["behavior"].isna()
     invalid_bbox = ~out["bbox_valid"].fillna(False)
-    hidden_yes = out["hidden"].eq("Yes")
-    trusted_hidden_yes = hidden_yes if trust_hidden else pd.Series(
-        False,
-        index=out.index,
-    )
     duplicate_pig = out["duplicate_pig_id_in_frame"].fillna(False)
 
     is_social = out["behavior"].isin(INTERACTION_BEHAVIORS)
@@ -416,11 +414,6 @@ def _add_training_policy(
         ~out["global_context_complete_8"] & out["local_context_pig_count"].ge(2),
         "training_tier",
     ] = "partial_context"
-
-    out.loc[trusted_hidden_yes, "training_tier"] = "review"
-    out.loc[trusted_hidden_yes, "qa_status"] = "hidden"
-    out.loc[trusted_hidden_yes, "sample_weight"] = 0.5
-
 
     out.loc[social_missing_partner, "training_tier"] = "review"
     out.loc[social_missing_partner, "qa_status"] = "review_interaction_missing_partner"
@@ -453,7 +446,6 @@ def _add_training_policy(
 
     out["use_for_main_eval"] = (
         include
-        & ~trusted_hidden_yes
         & ~invalid_behavior
         & ~invalid_bbox
     )

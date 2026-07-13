@@ -32,13 +32,13 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "--trust-hidden",
-        action="store_true",
-        help=(
-            "Trust CVAT Hidden attribute. If not set, Hidden is preserved "
-            "but does not affect qa_status, sample_weight, or use_for_main_eval."
-        ),
-    )
+    "--trust-hidden",
+    action="store_true",
+    help=(
+        "Deprecated fail-closed flag. CVAT Hidden trust must come from "
+        "completed human hidden review provenance."
+    ),
+)
 
     parser.add_argument(
         "--legacy-csv",
