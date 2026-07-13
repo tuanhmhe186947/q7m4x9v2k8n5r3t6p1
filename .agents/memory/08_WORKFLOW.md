@@ -26,6 +26,12 @@ source copies for a new lineage.
 Detailed settled Hidden policy and validation evidence are in
 `.agents/memory/09_HIDDEN_REVIEW.md`.
 
+The current versioned full Hidden template is
+`outputs/classification_v2/rebuilds/hidden_review_v5_full_20260713`. It contains
+5,171 unique items and passed independent coverage. Continue with GUI human
+review and fail-closed decision coverage; do not treat the template alone as a
+reviewed artifact.
+
 The current canonical reviewed artifact is not human-review complete. Complete
 all mandatory review units, pass the fail-closed decision-coverage audit, then
 rebuild reviewed windows with `--disable-fast-reuse`. Use recording-date or

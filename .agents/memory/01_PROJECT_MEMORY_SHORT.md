@@ -1,5 +1,18 @@
 # Project Memory Short
 
+## 2026-07-13 classification_v2 Hidden review workload
+
+- Current workload-policy implementation commit is `5212a59`.
+- Hidden review now census-selects every untrusted CVAT Hidden=Yes, samples
+  trusted legacy Yes by recording-date/behavior stratum, and caps initial
+  high-risk Hidden=No review at one item per stratum.
+- Versioned full evidence is
+  `outputs/classification_v2/rebuilds/hidden_review_v5_full_20260713`.
+- V5 has 5,171 unique items: 4,649 CVAT and 522 legacy. It has zero missing
+  untrusted Yes, trusted-stratum quota mismatches, or high-risk cap violations.
+- This only makes the review workload auditable. Human Hidden decisions and
+  behavior decisions remain incomplete, so the dataset is not train-ready.
+
 ## 2026-07-13 classification_v2 full OOF and workflow migration
 
 - Full multimodal OOF training completed in

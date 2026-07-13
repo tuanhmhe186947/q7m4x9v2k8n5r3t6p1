@@ -344,7 +344,8 @@ nguồn yếu nhất vì Hidden chủ yếu đến từ tracking; row CVAT chưa
 
 Bốn cohort không được trộn ý nghĩa thống kê:
 
-- `hidden_yes_confirmation`: census mọi `Hidden=Yes` trong input scope;
+- `hidden_yes_confirmation`: census `Hidden=Yes` chưa tin cậy, đồng thời lấy
+  mẫu phân tầng từ `Hidden=Yes` trusted để kiểm tra lại prior review;
 - `hidden_no_high_risk`: enrichment theo overlap, proximity, bbox/shape change;
 - `hidden_no_random_audit`: random phân tầng để ước lượng false-negative rate;
 - `hidden_no_clean_control`: kiểm specificity ở nhóm risk thấp.
@@ -378,9 +379,10 @@ set HSM=%SM%\hidden_review
   --validate-only
 ```
 
-Short PASS khi hai source đều có mặt, input scope có cả Yes/No, mọi Yes nằm
-trong manifest, negative cohorts tồn tại, key unique và media missing bằng 0.
-Builder xuất frame-context subset để GUI không đọc lại full enhanced CSV.
+Short PASS khi hai source đều có mặt, input scope có cả Yes/No, không thiếu
+untrusted Yes, trusted Yes đạt quota phân tầng, negative cohorts tồn tại, key
+unique và media missing bằng 0. Builder xuất frame-context subset để GUI không
+đọc lại full enhanced CSV.
 
 Mở GUI pilot sau media gate:
 
@@ -425,17 +427,18 @@ mới và phải lưu trong lineage.
 %PY% %S1%\classification_v2_build_hidden_review_units.py ^
   --input-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
   --output-dir %HREV% ^
+  --trusted-yes-per-stratum 1 ^
   --random-no-per-stratum 3 ^
   --clean-control-per-stratum 1 ^
-  --max-high-risk-per-stratum 25
+  --max-high-risk-per-stratum 1
 %PY% %S1%\check_hidden_review_template_coverage.py ^
   --input-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
   --manifest-csv %HREV%\hidden_review_unit_manifest.csv ^
   --audit-json %HREV%\hidden_review_coverage_audit.json
 ```
 
-Cap 25 là wave đầu, không phải ngưỡng khoa học cố định. Sau mỗi wave, kiểm
-high-risk correction yield. Nếu yield còn cao, tăng cap theo chuỗi 25, 50, 100
+Cap 1 là wave đầu, không phải ngưỡng khoa học cố định. Sau mỗi wave, kiểm
+high-risk correction yield. Nếu yield còn cao, tăng cap theo chuỗi 1, 2, 4, 8
 hoặc bỏ cap; giữ cùng seed để selection lồng nhau và resume decision cũ. Chỉ
 khóa final cap khi correction yield đã ổn định thấp và random weighted estimate
 có uncertainty được báo cáo. Mọi lần mở rộng phải rebuild coverage audit.
@@ -1226,7 +1229,7 @@ PASS:
 - [ ] Legacy export giữ native burst 16 frame.
 - [ ] CVAT anchor interval đúng 6 frame và non-anchor kế thừa target.
 - [ ] Case `000085 / ID_4 / anchor 1020 = social-nose + interaction` PASS.
-- [ ] Mọi source-scope `Hidden=Yes` có item trong confirmation cohort.
+- [ ] Mọi untrusted `Hidden=Yes` có item; trusted Yes đạt quota phân tầng.
 - [ ] `Hidden=No` có high-risk, stratified-random và clean-control audit.
 - [ ] CVAT chưa review giữ `untrusted_tracking_derived`, không silent trust.
 - [ ] Hidden decisions unique, resolved và áp đúng frame/object key.

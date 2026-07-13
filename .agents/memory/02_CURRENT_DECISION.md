@@ -13,6 +13,12 @@ decisions, 1 pending decision, and 4,667 missing decisions. Do not call this
 artifact clean final training data. Rebuild instructions are in
 `docs/CLASSIFICATION_V2_DATA_REBUILD_AND_HUMAN_REVIEW_RUNBOOK.md`.
 
+Use the versioned v5 Hidden manifest at
+`outputs/classification_v2/rebuilds/hidden_review_v5_full_20260713` for the
+next human Hidden-review wave. Its 5,171-item template passed independent
+coverage, but it has no complete human decision file and must not be applied as
+reviewed data yet.
+
 Do not resume full training from this decision alone. First create a versioned
 reviewed-data lineage, pass complete-decision and leakage-safe fold gates, then
 run model smoke gates on the frozen data/cache hashes.

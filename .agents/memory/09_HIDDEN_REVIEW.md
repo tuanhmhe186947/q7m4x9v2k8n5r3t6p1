@@ -14,7 +14,7 @@ marks the item unclear.
 
 Use four disjoint cohorts:
 
-- census every source-scope `Hidden=Yes`;
+- census every untrusted `Hidden=Yes` and stratified-audit trusted Yes;
 - label-independent high-risk `Hidden=No` enrichment;
 - stratified-random `Hidden=No` for false-negative estimation;
 - low-risk clean negative controls.
@@ -39,10 +39,15 @@ not automatically exclude or down-weight a sequence window.
 
 ## Evidence and status
 
-Implementation commit is `a242d5d`. Ruff and compileall passed. Eighteen
-relevant tests passed. The representative short build used 64 rows per source,
-selected 98 review items and resolved media for 98/98.
+Current workload-policy implementation commit is `5212a59`. The complete
+classification regression passed with 150 tests. The balanced 64-row/source
+smoke selected 41 review items and passed the independent coverage checker.
 
-Full Hidden manifest generation and full human review are not complete. Follow
-section 8A of
+The versioned v5 full manifest contains 5,171 unique review items: 4,121 Yes
+confirmations, 211 high-risk No, 647 random No, and 192 clean controls. It has
+4,649 CVAT and 522 legacy items, zero missing untrusted Yes, zero trusted quota
+mismatches, and zero high-risk cap violations. The evidence is under
+`outputs/classification_v2/rebuilds/hidden_review_v5_full_20260713`.
+
+Full human review and decision apply are not complete. Follow section 8A of
 `docs/CLASSIFICATION_V2_DATA_REBUILD_AND_HUMAN_REVIEW_RUNBOOK.md`.
