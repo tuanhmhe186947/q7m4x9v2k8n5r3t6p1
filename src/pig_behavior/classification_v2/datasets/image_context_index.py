@@ -116,9 +116,17 @@ def build_image_context_index(
     _require_columns(frames, ["source_type", "object_track_key", "frame_index"], "frames")
     _require_columns(
         windows,
-        ["window_id", "object_track_key", "window_start_frame", "window_end_frame", "window_length_frames"],
+        [
+            "window_id",
+            "object_track_key",
+            "window_start_frame",
+            "window_end_frame",
+            "window_length_frames",
+        ],
         "windows",
     )
+    _validate_frame_context_contract(frames)
+    _validate_window_context_contract(windows)
 
     video_index = build_video_index(video_root)
     frame_manifest = _build_frame_manifest(frames, video_root, legacy_crop_root, video_index)
@@ -126,8 +134,15 @@ def build_image_context_index(
 
     loadable = _to_bool(frame_manifest["image_context_loadable"])
     audit = {
+        "input_frame_rows": int(len(frames)),
         "frame_rows": int(len(frame_manifest)),
+        "input_window_rows": int(len(windows)),
         "window_rows": int(len(window_manifest)),
+        "frame_row_count_preserved": bool(len(frames) == len(frame_manifest)),
+        "window_row_count_preserved": bool(len(windows) == len(window_manifest)),
+        "invalid_frame_alignment_rows": 0,
+        "invalid_window_alignment_rows": 0,
+        "duplicate_frame_alignment_rows": 0,
         "source_counts": frame_manifest["source_type"].value_counts(dropna=False).to_dict()
         if "source_type" in frame_manifest
         else {},
@@ -154,12 +169,24 @@ def build_image_context_index(
         "unloadable_reasons": frame_manifest.loc[~loadable, "image_context_error"]
         .value_counts(dropna=False)
         .to_dict(),
-        "window_image_context_complete": int(_to_bool(window_manifest["window_image_context_complete"]).sum()),
+        "window_image_context_complete": int(
+            _to_bool(window_manifest["window_image_context_complete"]).sum()
+        ),
         "window_missing_context_slots": int(
-            pd.to_numeric(window_manifest["missing_image_context_slots"], errors="coerce").fillna(0).sum()
+            pd.to_numeric(
+                window_manifest["missing_image_context_slots"],
+                errors="coerce",
+            )
+            .fillna(0)
+            .sum()
         ),
         "interaction_rows_requiring_partner_context": int(
-            _to_bool(frame_manifest.get("requires_partner_context", pd.Series(False, index=frame_manifest.index))).sum()
+            _to_bool(
+                frame_manifest.get(
+                    "requires_partner_context",
+                    pd.Series(False, index=frame_manifest.index),
+                )
+            ).sum()
         ),
         "interaction_rows_with_partner_context": int(
             _to_bool(frame_manifest["partner_context_available"]).sum()
@@ -173,11 +200,16 @@ def build_image_context_index(
         audit["errors"].append(f"duplicate_window_id={audit['duplicate_window_id']}")
     if audit["duplicate_frame_uid"]:
         audit["warnings"].append(
-            f"duplicate_frame_uid={audit['duplicate_frame_uid']}; using image_context_id as unique key"
+            f"duplicate_frame_uid={audit['duplicate_frame_uid']}; "
+            "using image_context_id as unique key"
         )
     if audit["frame_unloadable_count"]:
         audit["warnings"].append(f"frame_unloadable_count={audit['frame_unloadable_count']}")
-    return ImageContextIndex(frame_manifest=frame_manifest, window_manifest=window_manifest, audit=audit)
+    return ImageContextIndex(
+        frame_manifest=frame_manifest,
+        window_manifest=window_manifest,
+        audit=audit,
+    )
 
 
 def _build_frame_manifest(
@@ -191,7 +223,9 @@ def _build_frame_manifest(
     if "frame_uid" not in out.columns:
         out["frame_uid"] = [
             f"{row.source_type}|{row.object_track_key}|f{int(row.frame_index):06d}"
-            for row in frames[["source_type", "object_track_key", "frame_index"]].itertuples(index=False)
+            for row in frames[
+                ["source_type", "object_track_key", "frame_index"]
+            ].itertuples(index=False)
         ]
     out["frame_index"] = pd.to_numeric(out["frame_index"], errors="coerce")
     out["image_context_id"] = [
@@ -236,7 +270,17 @@ def _build_frame_manifest(
 
     out.loc[unknown_mask, "image_context_error"] = "unknown_source_type"
 
-    sort_cols = [c for c in ["source_type", "video_key", "object_track_key", "frame_index", "frame_uid"] if c in out]
+    sort_cols = [
+        column
+        for column in [
+            "source_type",
+            "video_key",
+            "object_track_key",
+            "frame_index",
+            "frame_uid",
+        ]
+        if column in out
+    ]
     return out.sort_values(sort_cols).reset_index(drop=True)
 
 
@@ -248,11 +292,17 @@ def _build_window_manifest(windows: pd.DataFrame, frame_manifest: pd.DataFrame) 
     out["window_length_frames"] = pd.to_numeric(out["window_length_frames"], errors="coerce")
 
     frame_work = frame_manifest[
-        ["object_track_key", "frame_index", "frame_uid", "image_context_id", "image_context_loadable"]
+        [
+            "object_track_key",
+            "frame_index",
+            "frame_uid",
+            "image_context_id",
+            "image_context_loadable",
+        ]
     ].copy()
     frame_work["frame_index"] = pd.to_numeric(frame_work["frame_index"], errors="coerce")
     frame_lookup: dict[str, dict[int, tuple[str, str, bool]]] = {}
-    for key, group in frame_work.dropna(subset=["frame_index"]).groupby("object_track_key", sort=False):
+    for key, group in frame_work.groupby("object_track_key", sort=False):
         group = group.sort_values("frame_index")
         frame_lookup[str(key)] = {
             int(record.frame_index): (
@@ -312,7 +362,16 @@ def _build_window_manifest(windows: pd.DataFrame, frame_manifest: pd.DataFrame) 
     out["loadable_image_context_rows"] = loadable_counts
     out["missing_image_context_slots"] = missing_slots
     out["window_image_context_complete"] = complete_flags
-    sort_cols = [c for c in ["source_type", "video_key", "object_track_key", "window_start_frame"] if c in out]
+    sort_cols = [
+        column
+        for column in [
+            "source_type",
+            "video_key",
+            "object_track_key",
+            "window_start_frame",
+        ]
+        if column in out
+    ]
     return out.sort_values(sort_cols).reset_index(drop=True)
 
 
@@ -372,8 +431,22 @@ def _resolve_legacy_paths_frame(rows: pd.DataFrame, crop_root: Path) -> pd.Serie
     return raw_values.map(resolved)
 
 
-def _resolve_video_paths_frame(rows: pd.DataFrame, video_root: Path, video_index: dict[str, Path]) -> pd.Series:
-    keys = rows[[c for c in ["video_key", "source_video_key", "source_video_path"] if c in rows.columns]].copy()
+def _resolve_video_paths_frame(
+    rows: pd.DataFrame,
+    video_root: Path,
+    video_index: dict[str, Path],
+) -> pd.Series:
+    keys = rows[
+        [
+            column
+            for column in [
+                "video_key",
+                "source_video_key",
+                "source_video_path",
+            ]
+            if column in rows.columns
+        ]
+    ].copy()
     if keys.empty:
         return pd.Series(pd.NA, index=rows.index, dtype=object)
     keys = keys.fillna("").astype(str)
@@ -499,3 +572,77 @@ def _require_columns(df: pd.DataFrame, required: list[str], name: str) -> None:
     missing = [c for c in required if c not in df.columns]
     if missing:
         raise ValueError(f"{name} missing required columns: {missing}")
+
+
+def _validate_frame_context_contract(frames: pd.DataFrame) -> None:
+    """Reject frame rows that would be lost or overwritten in context lookup."""
+    key = frames["object_track_key"].fillna("").astype(str).str.strip()
+    frame_index = pd.to_numeric(frames["frame_index"], errors="coerce")
+    invalid = (
+        key.eq("")
+        | frame_index.isna()
+        | frame_index.mod(1).ne(0)
+        | frame_index.lt(0)
+    )
+    duplicate = pd.DataFrame(
+        {
+            "object_track_key": key,
+            "frame_index": frame_index,
+        }
+    ).duplicated(keep=False)
+    duplicate &= ~invalid
+    if invalid.any() or duplicate.any():
+        _raise_context_alignment_error(
+            "Frame",
+            frames,
+            invalid,
+            duplicate,
+            duplicate_name="duplicate_frame_alignment_rows",
+        )
+
+
+def _validate_window_context_contract(windows: pd.DataFrame) -> None:
+    """Reject malformed windows before frame-sequence context alignment."""
+    key = windows["object_track_key"].fillna("").astype(str).str.strip()
+    window_id = windows["window_id"].fillna("").astype(str).str.strip()
+    start = pd.to_numeric(windows["window_start_frame"], errors="coerce")
+    end = pd.to_numeric(windows["window_end_frame"], errors="coerce")
+    length = pd.to_numeric(windows["window_length_frames"], errors="coerce")
+    integer_fields = (
+        start.notna()
+        & end.notna()
+        & length.notna()
+        & start.mod(1).eq(0)
+        & end.mod(1).eq(0)
+        & length.mod(1).eq(0)
+    )
+    span_valid = start.ge(0) & end.ge(start) & length.eq(end - start + 1)
+    invalid = key.eq("") | window_id.eq("") | ~integer_fields | ~span_valid
+    duplicate = window_id.ne("") & window_id.duplicated(keep=False)
+    if invalid.any() or duplicate.any():
+        _raise_context_alignment_error(
+            "Window",
+            windows,
+            invalid,
+            duplicate,
+            duplicate_name="duplicate_window_id_rows",
+        )
+
+
+def _raise_context_alignment_error(
+    kind: str,
+    rows: pd.DataFrame,
+    invalid: pd.Series,
+    duplicate: pd.Series,
+    *,
+    duplicate_name: str,
+) -> None:
+    """Raise an evidence-rich context alignment error without writing output."""
+    affected = invalid | duplicate
+    sample = [str(value) for value in rows.index[affected].tolist()[:10]]
+    raise ValueError(
+        f"{kind} image-context contract failed: "
+        f"invalid_rows={int(invalid.sum())}, "
+        f"{duplicate_name}={int(duplicate.sum())}, "
+        f"sample_source_indices={sample}"
+    )
