@@ -44,14 +44,36 @@ current decision files contain three rows: one accept, one exclude, and one
 pending. There are 4,667 missing decisions. Behavior apply is fail-closed and
 must not emit a reviewed dataset from this incomplete payload.
 
+## Technical Short-Chain Evidence
+
+The bounded legacy+CVAT chain at
+`outputs/classification_v2/rebuilds/scientific_smoke_v1` now passes the
+machine-readable technical gate at commit `1679aca`:
+
+- 688 selected, enhanced, and harmonized frame/object rows;
+- 63 native intervals and 63 review units;
+- 438 sequence windows, tabular-X rows, target rows, and spatial-X rows;
+- all 10 behaviors and both sources represented;
+- exact 110-column tabular whitelist and 73 temporal evidence fields;
+- 342 trainable windows with zero missing spatial slots;
+- zero duplicate temporal-unit, review-unit, or window IDs;
+- five of five repeated scientific CSVs byte-identical.
+
+The gate status is `PASS_TECHNICAL_SMOKE_HUMAN_REVIEW_BLOCKED`. It proves
+data-generation, evidence propagation, leakage separation, and deterministic
+bounded execution. It does not authorize reviewed data, training, or full OOF.
+The supporting safety commits are `7854691`, `e69ca22`, and `1679aca`.
+
 ## Active Gate Status
 
 | Gate | Status | Evidence or blocker |
 |---|---|---|
 | Raw `data/` immutable | PASS | No rebuild writes under `data/` |
 | Enhanced frame features | PASS | 245,664 rows audited |
+| Technical legacy+CVAT chain | PASS | 688/63/438 counts; 5/5 repeatability |
+| Exact model-X contract | PASS | 110 tabular fields; no review/target leakage |
 | Hidden v5 template | PASS | 5,171 unique items, independent audit clean |
-| Hidden human decisions | FAIL | Full decision coverage is incomplete |
+| Hidden human decisions | FAIL | 30/5,171 resolved; 5,141 missing |
 | Hidden decision apply | BLOCKED | Requires resolved coverage |
 | Temporal rebuild from Hidden-reviewed data | BLOCKED | Upstream apply missing |
 | Behavior human decisions | FAIL | 4,667 missing, one pending |

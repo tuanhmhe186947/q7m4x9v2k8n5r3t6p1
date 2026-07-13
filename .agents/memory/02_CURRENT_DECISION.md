@@ -13,6 +13,13 @@ fail-closed until static checks, a tiny/short representative run, and
 schema/count/hash/output/runtime audits pass. A prior full authorization does
 not transfer to a changed semantic config.
 
+The current code/data-generation short chain has passed at commit `1679aca`.
+Its status is `PASS_TECHNICAL_SMOKE_HUMAN_REVIEW_BLOCKED`: exact model-X
+whitelisting, temporal/ROI/motion/social evidence, native-unit counts, spatial
+masks, fail-closed CLI behavior, and 5/5 deterministic CSV reruns are verified.
+This closes the technical assurance subgoal only. It does not permit apply,
+snapshot freeze, model training, or full OOF while human coverage is incomplete.
+
 The current `reviewed_frame_features.csv` is not human-review complete. The
 latest audit has 4,670 mandatory review units, 3 decision rows, 2 active
 decisions, 1 pending decision, and 4,667 missing decisions. Do not call this

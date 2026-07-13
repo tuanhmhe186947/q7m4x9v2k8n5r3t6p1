@@ -114,6 +114,9 @@ set VCACHE=%R%\13_interaction_cache_224_letterbox
 Không chạy nguyên văn khi `RUN_ID` còn chứa `YYYYMMDD_vN`, và không dùng lại
 một `%R%` đã có artifact. Active Hidden v5 là lineage review hiện hành riêng;
 trạng thái và đường dẫn của nó nằm trong `CLASSIFICATION_V2_CURRENT_STATE.md`.
+Các builder derived-data sẽ dừng nếu output đã tồn tại. Chỉ thêm `--overwrite`
+khi lặp lại đúng semantic config sau short PASS; đổi config phải dùng `RUN_ID`
+mới để không trộn lineage.
 
 Khai báo script root ngắn để lệnh dễ đọc và tránh lỗi dòng dài:
 
@@ -930,14 +933,17 @@ OOF và model selection.
 ```bat
 %PY% %S2%\classification_v2_export_train_ready_windows.py ^
   --input-csv %SEQ1%\sequence_window_features.csv ^
-  --output-dir %TRAIN%
+  --output-dir %TRAIN% ^
+  --trainer-contract-json configs\classification_v2\trainer_contract_v1.json
 %PY% %S2%\check_classification_v2_train_ready_windows.py ^
   --audit-json %TRAIN%\train_ready_audit.json
 %PY% %S2%\check_classification_v2_q2_feature_whitelist.py ^
   --output-json %TRAIN%\q2_feature_whitelist_audit.json
 ```
 
-`X_window_features.csv` chỉ chứa feature whitelist. `y_behavior.csv`,
+Exporter fail nếu thiếu, thừa hoặc sai thứ tự whitelist; nó không còn suy luận X
+từ mọi numeric column hoặc prefix. `X_window_features.csv` chỉ chứa feature
+whitelist. `y_behavior.csv`,
 `train_mask.csv` và `sample_weight.csv` là artifact riêng, không join ngược vào
 X. Audit phải có `forbidden_selected=[]` và row count X/y/mask/weight bằng nhau.
 
@@ -967,12 +973,16 @@ này; class prior/weight phải tính riêng từ train role của từng outer 
 %PY% %S2%\check_classification_v2_spatial_sequences.py ^
   --npz %TRAIN%\X_spatial_sequences.npz ^
   --audit-json %TRAIN%\spatial_sequence_audit.json ^
-  --window-manifest-csv %SEQ1%\sequence_window_manifest.csv
+  --window-manifest-csv %SEQ1%\sequence_window_manifest.csv ^
+  --train-mask-csv %TRAIN%\train_mask.csv ^
+  --output-json %TRAIN%\spatial_sequence_validation.json
 ```
 
 NPZ chứa numeric arrays và masks, không phải ảnh xem trực tiếp. Phải có
 `length_mask`, `observed_mask`, `quality/missing` semantics và row order khớp
-`window_id`. Padding không được coi là frame thật.
+`window_id`. Padding không được coi là frame thật. Mọi window mask-true phải có
+`trainable_rows_with_missing_slots=0`; missing slot ở mask-false vẫn được giữ
+và báo cáo, không xóa row để làm audit đẹp.
 
 ### 15.5. Auxiliary y cho hierarchy
 
@@ -1133,6 +1143,24 @@ Nếu context thiếu, giữ row và availability mask. Không được dùng
 phải có modality dropout và missingness ablation ở giai đoạn training.
 
 ## 17. Final data gate và snapshot
+
+### 17.0. Technical reference gate
+
+Current bounded code/data-generation evidence is checked independently from
+human coverage:
+
+```bat
+set S9=scripts\classification_v2\09_final_release_audit
+%PY% %S9%\check_classification_v2_technical_smoke_gate.py ^
+  --root outputs\classification_v2\rebuilds\scientific_smoke_v1 ^
+  --overwrite
+```
+
+Expected status is `PASS_TECHNICAL_SMOKE_HUMAN_REVIEW_BLOCKED`, with 688 frame
+rows, 63 native/review units, 438 windows, exact 110-feature X, zero trainable
+spatial gaps, and 5/5 deterministic CSV pairs. This gate must never be used to
+bypass sections 8A, 11, or 12. Final reviewed data still requires complete
+human decisions and the lineage-specific checks below.
 
 ### 17.1. Hash artifact chính
 

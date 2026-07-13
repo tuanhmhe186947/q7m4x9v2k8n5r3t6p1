@@ -1,5 +1,23 @@
 # Project Memory Short
 
+## 2026-07-13 classification_v2 technical assurance gate
+
+- Technical smoke authority is
+  `outputs/classification_v2/rebuilds/scientific_smoke_v1/audits/technical_smoke_gate.json`.
+- Commit `1679aca` reports `PASS_TECHNICAL_SMOKE_HUMAN_REVIEW_BLOCKED` with
+  688 frame rows, 63 native/review units, 438 windows, both sources, and all
+  10 behaviors.
+- Tabular X matches the exact 110-column trainer whitelist; all 73 temporal
+  evidence fields are present, while Hidden/review/target fields stay outside X.
+- All 342 trainable smoke windows have complete spatial slots. The 544 missing
+  slots belong only to 96 retained mask-false windows.
+- Five repeated enhanced/harmonized/interval/window CSV pairs are byte-identical.
+- Builders now exit nonzero on audit errors and require explicit `--overwrite`
+  before replacing derived artifacts.
+- This is code/data-generation assurance only. Hidden coverage is 30/5,171 and
+  behavior coverage is 3/4,670 with one pending, so reviewed training remains
+  blocked.
+
 ## 2026-07-13 authoritative classification_v2 state
 
 - Use `docs/CLASSIFICATION_V2_CURRENT_STATE.md` as the status authority.

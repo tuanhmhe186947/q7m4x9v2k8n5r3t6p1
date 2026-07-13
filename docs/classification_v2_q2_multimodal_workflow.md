@@ -11,6 +11,8 @@ Current policy:
   It is historical and does not bypass current human-review gates.
 - The active lineage is at Hidden review in block `01`; status authority is
   `CLASSIFICATION_V2_CURRENT_STATE.md`.
+- The bounded code/data-generation chain passes technical gate commit
+  `1679aca`; this does not bypass either human-review layer.
 - All operator scripts live under `scripts/classification_v2/<block>/`.
 - The former split script namespaces and their wrappers are removed.
 - Checkers are colocated with the stage whose contract they validate.
@@ -28,6 +30,12 @@ The active reviewed-data lineage has not reached temporal harmonization or model
 training. Complete the 5,171 Hidden v5 decisions, apply them, rebuild temporal
 and behavior-review artifacts, then complete all 4,670 behavior decisions.
 
+Technical evidence is separately PASS at
+`outputs/classification_v2/rebuilds/scientific_smoke_v1`: 688 frame rows,
+63 native/review units, 438 windows, exact 110-feature tabular X, zero
+trainable spatial gaps, and 5/5 deterministic CSV reruns. Its explicit status
+is `PASS_TECHNICAL_SMOKE_HUMAN_REVIEW_BLOCKED`.
+
 The commit-`18d6692` full OOF and its block `09` aggregate report belong to the
 previous lineage. They are useful historical diagnostics but cannot authorize
 the active rebuild or support a current Q2 claim. Use
@@ -40,7 +48,8 @@ flowchart TD
   A[Raw annotations and videos] --> B[Source parsing]
   B --> C[Frame-level merge]
   C --> D[Context, ROI, motion, social features]
-  D --> E[Two-sided Hidden review manifest]
+  D --> TS[Bounded technical smoke and leakage audit]
+  TS --> E[Two-sided Hidden review manifest]
   E --> F[Hidden GUI decisions and apply audit]
   F --> G[Hidden-reviewed frame features]
   G --> H[Temporal harmonization]
@@ -67,6 +76,7 @@ flowchart TD
 |---|---|---|---|
 | Source merge | legacy/CVAT frame rows | merge sources | `frame_features/*` |
 | Feature build | geometry, ROI, motion, social | build feature scripts | `spatiotemporal_*` |
+| Technical smoke | count/X/repeatability audit | block `09` gate | audit JSON |
 | Hidden review | policy-defined Yes/No cohorts | Hidden GUI/apply | reviewed frames |
 | Temporal units | CVAT 6f and legacy 16f policy | temporal harmonization | intervals CSV |
 | Review units | human-review rows/templates | build review units | `review_units/*` |
@@ -96,6 +106,11 @@ between blocks `00` and `01` and must be followed exactly:
 7. Run block `05` preflight and authorization bound to frozen hashes.
 8. Run block `06` finalists, block `07` evaluation, block `08` reporting, and
    block `09` completion gates.
+
+Before scaling step 1 to all source rows, run the bounded legacy+CVAT technical
+chain and block `09` technical smoke gate. Every rerun that replaces an existing
+derived artifact must declare `--overwrite`; changed semantics use a new
+versioned root.
 
 Do not skip the full-like smoke. It is the cheap check for cache loading,
 CUDA/AMP, output schemas, checkpoint/resume behavior, and postrun compatibility.
