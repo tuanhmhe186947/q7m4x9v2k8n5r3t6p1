@@ -29,15 +29,19 @@ def _unit(behavior: str, **overrides: float) -> dict[str, object]:
         "trajectory_straightness_unit": 0.0,
         "bbox_shape_change_p90_unit": 0.0,
         "roi_feeder_near_ratio_unit": 0.0,
+        "roi_feeder_availability_ratio_unit": 1.0,
         "roi_feeder_contact_ratio_unit": 0.0,
         "roi_feeder_contact_longest_run_ratio_unit": 0.0,
         "roi_drinker_near_ratio_unit": 0.0,
+        "roi_drinker_availability_ratio_unit": 1.0,
         "roi_drinker_contact_ratio_unit": 0.0,
         "roi_drinker_contact_longest_run_ratio_unit": 0.0,
         "roi_toy_near_ratio_unit": 0.0,
+        "roi_toy_availability_ratio_unit": 1.0,
         "roi_toy_contact_ratio_unit": 0.0,
         "roi_toy_contact_longest_run_ratio_unit": 0.0,
         "social_pair_contact_ratio_unit": 0.0,
+        "social_neighbor_availability_ratio_unit": 0.0,
         "social_partner_persistence_ratio_unit": 0.0,
         "social_nearest_dist_p50_unit": 1.0,
         "social_aggression_proxy_p90_unit": 0.0,
@@ -85,10 +89,53 @@ def test_target_roi_persistence_supports_eat_but_not_drink() -> None:
 def test_fight_without_partner_evidence_is_high_priority() -> None:
     scored = add_behavior_review_evidence(pd.DataFrame([_unit("fight")]))
 
-    assert scored.iloc[0]["review_evidence_conflict_score"] == 1.0
+    assert scored.iloc[0]["review_evidence_conflict_score"] == 0.0
+    assert scored.iloc[0]["review_evidence_insufficiency_score"] == 1.0
+    assert not bool(scored.iloc[0]["review_social_evidence_available"])
     assert scored.iloc[0]["review_evidence_priority_auto"] >= 75.0
+    assert "social_evidence_unavailable" in scored.iloc[0][
+        "review_evidence_reason_auto"
+    ]
     assert "fight_vs_social-nose_stand_move" in scored.iloc[0][
         "review_confusion_pairs_auto"
+    ]
+
+
+def test_available_social_context_can_contradict_fight_label() -> None:
+    scored = add_behavior_review_evidence(
+        pd.DataFrame(
+            [
+                _unit(
+                    "fight",
+                    social_neighbor_availability_ratio_unit=1.0,
+                )
+            ]
+        )
+    )
+
+    assert scored.iloc[0]["review_evidence_insufficiency_score"] == 0.0
+    assert scored.iloc[0]["review_evidence_conflict_score"] == 1.0
+    assert "fight_without_persistent_contact_or_aggression" in scored.iloc[0][
+        "review_evidence_reason_auto"
+    ]
+
+
+def test_missing_target_roi_is_insufficient_not_contradictory() -> None:
+    scored = add_behavior_review_evidence(
+        pd.DataFrame(
+            [
+                _unit(
+                    "eat",
+                    roi_feeder_availability_ratio_unit=0.0,
+                )
+            ]
+        )
+    )
+
+    assert scored.iloc[0]["review_evidence_conflict_score"] == 0.0
+    assert scored.iloc[0]["review_evidence_insufficiency_score"] == 1.0
+    assert "target_roi_evidence_unavailable" in scored.iloc[0][
+        "review_evidence_reason_auto"
     ]
 
 

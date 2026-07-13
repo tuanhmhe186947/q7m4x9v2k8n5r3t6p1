@@ -25,7 +25,13 @@ POSTURE_BEHAVIORS = {"lying", "sitting"}
 
 REVIEW_EVIDENCE_COLUMNS: tuple[str, ...] = (
     "review_evidence_available",
+    "review_motion_evidence_available",
+    "review_roi_evidence_available",
+    "review_social_evidence_available",
+    "review_posture_evidence_available",
+    "review_relevant_evidence_available",
     "review_evidence_quality_score",
+    "review_evidence_insufficiency_score",
     "review_motion_support_score",
     "review_roi_support_score",
     "review_social_support_score",
@@ -34,6 +40,7 @@ REVIEW_EVIDENCE_COLUMNS: tuple[str, ...] = (
     "review_evidence_priority_auto",
     "review_confusion_pairs_auto",
     "review_evidence_reason_auto",
+    "review_evidence_status_auto",
 )
 
 REQUIRED_EVIDENCE_COLUMNS: tuple[str, ...] = (
@@ -150,6 +157,18 @@ def audit_behavior_review_evidence(
         "rows": int(len(temporal_units)),
         "evidence_available_rows": int(available.sum()),
         "evidence_unavailable_rows": int((~available).sum()),
+        "relevant_evidence_available": _counts(
+            temporal_units,
+            "review_relevant_evidence_available",
+        ),
+        "evidence_status": _counts(
+            temporal_units,
+            "review_evidence_status_auto",
+        ),
+        "insufficiency_score": _numeric_summary(
+            temporal_units,
+            "review_evidence_insufficiency_score",
+        ),
         "conflict_score": _numeric_summary(
             temporal_units,
             "review_evidence_conflict_score",
@@ -188,6 +207,12 @@ def _score_behavior_row(
         return _empty_score()
     behavior = str(row.get(behavior_col, "")).strip().lower()
     quality = _quality_score(row)
+    availability = _branch_availability(row, behavior)
+    relevant_available = _relevant_evidence_available(
+        behavior,
+        availability,
+    )
+    insufficiency = 0.0 if relevant_available else 1.0
     motion = _motion_support(row)
     roi_support = _roi_support(row, behavior)
     social = _social_support(row, config)
@@ -195,27 +220,44 @@ def _score_behavior_row(
         _number(row, "bbox_shape_change_p90_unit"),
         config.shape_transition_reference,
     )
-    conflict, reasons, pairs = _behavior_conflict(
-        row,
-        behavior=behavior,
-        motion=motion,
-        roi_support=roi_support,
-        social=social,
-        posture_transition=posture_transition,
-        config=config,
-    )
+    if relevant_available:
+        conflict, reasons, pairs = _behavior_conflict(
+            row,
+            behavior=behavior,
+            motion=motion,
+            roi_support=roi_support,
+            social=social,
+            posture_transition=posture_transition,
+            config=config,
+        )
+        evidence_status = "sufficient"
+    else:
+        conflict = 0.0
+        reasons = [_missing_evidence_reason(behavior)]
+        pairs = [_confusion_pair(behavior)]
+        evidence_status = "missing_relevant_modality"
     quality_penalty = 1.0 - quality
-    priority = 60.0 * conflict + 20.0 * quality_penalty
+    priority = (
+        60.0 * conflict
+        + 60.0 * insufficiency
+        + 20.0 * quality_penalty
+    )
     if behavior in INTERACTION_BEHAVIORS:
         priority += 15.0
     if behavior == "playwithtoy":
         priority += 10.0
-    if conflict < config.conflict_review_threshold:
+    if conflict < config.conflict_review_threshold and insufficiency == 0.0:
         reasons = []
         pairs = []
     return {
         "review_evidence_available": True,
+        "review_motion_evidence_available": availability["motion"],
+        "review_roi_evidence_available": availability["roi"],
+        "review_social_evidence_available": availability["social"],
+        "review_posture_evidence_available": availability["posture"],
+        "review_relevant_evidence_available": relevant_available,
         "review_evidence_quality_score": quality,
+        "review_evidence_insufficiency_score": insufficiency,
         "review_motion_support_score": motion,
         "review_roi_support_score": roi_support,
         "review_social_support_score": social,
@@ -224,6 +266,7 @@ def _score_behavior_row(
         "review_evidence_priority_auto": float(np.clip(priority, 0.0, 100.0)),
         "review_confusion_pairs_auto": "|".join(_unique(pairs)),
         "review_evidence_reason_auto": ";".join(_unique(reasons)),
+        "review_evidence_status_auto": evidence_status,
     }
 
 
@@ -310,6 +353,78 @@ def _quality_score(row: pd.Series) -> float:
     return float(np.clip(0.45 * observation + 0.35 * pair + 0.20 * bbox, 0.0, 1.0))
 
 
+def _branch_availability(
+    row: pd.Series,
+    behavior: str,
+) -> dict[str, bool]:
+    """Report per-row modality availability without using target decisions."""
+
+    observation = _number(row, "temporal_observation_ratio_unit")
+    pair = _number(row, "temporal_pair_coverage_ratio_unit")
+    bbox = _number(row, "bbox_valid_ratio_interval", default=1.0)
+    target_roi = ROI_BEHAVIOR_TO_CLASS.get(behavior)
+    if target_roi:
+        roi_available = _number(
+            row,
+            f"roi_{target_roi}_availability_ratio_unit",
+        ) > 0
+    else:
+        roi_available = any(
+            _number(row, f"roi_{roi_class}_availability_ratio_unit") > 0
+            for roi_class in ("feeder", "drinker", "toy")
+        )
+    return {
+        "motion": bool(observation > 0 and pair > 0 and bbox > 0),
+        "roi": bool(roi_available and bbox > 0),
+        "social": bool(
+            _number(row, "social_neighbor_availability_ratio_unit") > 0
+            and bbox > 0
+        ),
+        "posture": bool(observation > 0 and bbox > 0),
+    }
+
+
+def _relevant_evidence_available(
+    behavior: str,
+    availability: dict[str, bool],
+) -> bool:
+    if behavior in MOTION_BEHAVIORS:
+        return availability["motion"]
+    if behavior in ROI_BEHAVIOR_TO_CLASS:
+        return availability["roi"]
+    if behavior in INTERACTION_BEHAVIORS:
+        return availability["social"]
+    if behavior in POSTURE_BEHAVIORS:
+        return availability["posture"]
+    return False
+
+
+def _missing_evidence_reason(behavior: str) -> str:
+    if behavior in MOTION_BEHAVIORS:
+        return "motion_evidence_unavailable"
+    if behavior in ROI_BEHAVIOR_TO_CLASS:
+        return "target_roi_evidence_unavailable"
+    if behavior in INTERACTION_BEHAVIORS:
+        return "social_evidence_unavailable"
+    if behavior in POSTURE_BEHAVIORS:
+        return "posture_evidence_unavailable"
+    return "behavior_evidence_unavailable"
+
+
+def _confusion_pair(behavior: str) -> str:
+    if behavior in MOTION_BEHAVIORS:
+        return "move_vs_explore_vs_stand"
+    if behavior in ROI_BEHAVIOR_TO_CLASS:
+        return f"{behavior}_vs_stand_explore"
+    if behavior == "fight":
+        return "fight_vs_social-nose_stand_move"
+    if behavior == "social-nose":
+        return "social-nose_vs_fight_stand"
+    if behavior in POSTURE_BEHAVIORS:
+        return "lying_vs_sitting"
+    return ""
+
+
 def _motion_support(row: pd.Series) -> float:
     """Combine active duration, high speed, and net trajectory evidence."""
 
@@ -370,7 +485,13 @@ def _empty_score() -> dict[str, float | bool | str]:
 
     return {
         "review_evidence_available": False,
+        "review_motion_evidence_available": False,
+        "review_roi_evidence_available": False,
+        "review_social_evidence_available": False,
+        "review_posture_evidence_available": False,
+        "review_relevant_evidence_available": False,
         "review_evidence_quality_score": 0.0,
+        "review_evidence_insufficiency_score": 0.0,
         "review_motion_support_score": 0.0,
         "review_roi_support_score": 0.0,
         "review_social_support_score": 0.0,
@@ -379,6 +500,7 @@ def _empty_score() -> dict[str, float | bool | str]:
         "review_evidence_priority_auto": 0.0,
         "review_confusion_pairs_auto": "",
         "review_evidence_reason_auto": "",
+        "review_evidence_status_auto": "base_evidence_unavailable",
     }
 
 
