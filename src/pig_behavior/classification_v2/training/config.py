@@ -25,6 +25,9 @@ T = TypeVar("T")
 TEMPORAL_VIEW_SELECTION_CONTRACT = {
     "fixed6_observed_time": "fixed6_keep",
 }
+TEMPORAL_VIEW_MANIFEST_FILENAMES = {
+    "fixed6_observed_time": "fixed6_observed_time_manifest.csv",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,6 +45,7 @@ class DatasetConfig:
     temporal_view_selection_manifest: Path
     auxiliary_targets_csv: Path
     fold_event_weight_manifest: Path | None = None
+    temporal_view_manifest: Path | None = None
     temporal_view_selection_col: str = "fixed6_keep"
     augmentation_policy: str = "none"
     strict_packed_cache: bool = True
@@ -113,7 +117,7 @@ class ExecutionConfig:
     smoke_per_class: int = 1
     output_dir: Path = Path("outputs/classification_v2/model_smoke/strict_multitask")
     runs_registry_csv: Path = Path(
-        "outputs/classification_v2/run_registry/runs_registry_v2.csv"
+        "outputs/classification_v2/run_registry/runs_registry_v3.csv"
     )
     resume: bool = True
 
@@ -311,7 +315,7 @@ def validate_training_config(config: ClassificationV2TrainingConfig) -> None:
 def training_config_to_jsonable(config: ClassificationV2TrainingConfig) -> dict[str, Any]:
     """Serialize typed config for audit/checkpoint artifacts."""
 
-    return {
+    payload = {
         "version": config.version,
         **{
             section: {
@@ -321,6 +325,26 @@ def training_config_to_jsonable(config: ClassificationV2TrainingConfig) -> dict[
             for section in ["dataset", "model", "optimization", "loss", "execution"]
         },
     }
+    payload["dataset"]["temporal_view_manifest"] = str(
+        resolve_temporal_view_manifest(config)
+    )
+    return payload
+
+
+def resolve_temporal_view_manifest(
+    config: ClassificationV2TrainingConfig,
+) -> Path:
+    """Resolve an old config safely while new configs name the slot manifest."""
+
+    if config.dataset.temporal_view_manifest is not None:
+        return config.dataset.temporal_view_manifest
+    filename = TEMPORAL_VIEW_MANIFEST_FILENAMES.get(config.model.temporal_view)
+    if filename is None:
+        raise ValueError(
+            "no temporal view manifest mapping for "
+            f"{config.model.temporal_view}"
+        )
+    return config.dataset.temporal_view_selection_manifest.parent / filename
 
 
 def _from_mapping(cls: type[T], payload: dict[str, Any]) -> T:

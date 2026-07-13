@@ -55,10 +55,15 @@ required before a context candidate can be promoted.
 each branch mask. Missing-slot deltas may be NaN because those slots are
 explicitly masked.
 
-The current model API supports branch-specific timing. The strict training data
-module does not yet load `time_delta` from the fixed-six slot manifest. Until
-that loader and its hash lineage pass, Transformer model tests are technical
-evidence only and Transformer training must stay blocked.
+The strict data module loads `time_delta` from the ordered fixed-six slot
+manifest and aligns it to the complete window universe. Missing timing remains
+NaN-masked; duplicate, missing, reordered, negative, or contradictory slots
+fail closed. The same real timing tensor is supplied to actor, spatial, and
+union branches, while each branch retains its own observation mask.
+
+This loader contract does not authorize training. Transformer runs still need
+an immutable reviewed snapshot containing the exact manifest hash and must pass
+the normal one-batch, tiny-overfit, resume, and runtime gates.
 
 ## Visual Backbone Contract
 
@@ -70,10 +75,11 @@ the next P1 visual milestone and must record an exact weight enum.
 ## Lineage
 
 The current strict checkpoint schema is
-`classification_v2_training_checkpoint_v3`. The run identity and append-only
-registry include `model_mode`; the full resolved config hash also binds temporal
-encoder parameters and every legacy branch flag. Registry v2 writes to
-`runs_registry_v2.csv`, preserving the prior registry as historical evidence.
+`classification_v2_training_checkpoint_v4`. Run identity binds `model_mode`,
+the selection-manifest hash, and the separate temporal slot-manifest hash. The
+full resolved config hash also binds temporal encoder parameters and every
+legacy branch flag. Registry v3 writes to `runs_registry_v3.csv`, preserving
+prior registries as historical evidence.
 
 ## Validation
 

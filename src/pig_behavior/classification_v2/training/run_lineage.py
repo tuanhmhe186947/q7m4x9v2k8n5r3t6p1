@@ -703,6 +703,9 @@ def _registry_entry(
         "temporal_view_selection_sha256": (
             identity.temporal_view_selection_sha256
         ),
+        "temporal_view_manifest_sha256": (
+            identity.temporal_view_manifest_sha256
+        ),
         "fold_event_weight_sha256": identity.fold_event_weight_sha256,
         "architecture_version": identity.architecture_version,
         "model_mode": identity.model_mode,

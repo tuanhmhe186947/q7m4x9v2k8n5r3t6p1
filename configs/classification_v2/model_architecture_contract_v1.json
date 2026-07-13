@@ -27,6 +27,7 @@
   "implemented_modules": {
     "model_factory": "src/pig_behavior/classification_v2/models/model_factory.py",
     "temporal_encoders": "src/pig_behavior/classification_v2/models/temporal_encoders.py",
+    "temporal_view_loader": "src/pig_behavior/classification_v2/training/temporal_view_loader.py",
     "fusion_model": "src/pig_behavior/classification_v2/models/multimodal_fusion.py",
     "smoke_trainer": "src/pig_behavior/classification_v2/training/multimodal_smoke.py",
     "interaction_context_loader": "src/pig_behavior/classification_v2/datasets/interaction_context_loader.py",
@@ -43,6 +44,7 @@
     "multitask_smoke_checker": "scripts/classification_v2/04_baselines_smokes/check_classification_v2_multitask_smoke_train.py",
     "forward_checker": "scripts/classification_v2/04_baselines_smokes/check_classification_v2_multimodal_forward.py",
     "model_factory_checker": "scripts/classification_v2/04_baselines_smokes/check_classification_v2_model_factory.py",
+    "temporal_view_loader_checker": "scripts/classification_v2/04_baselines_smokes/check_classification_v2_temporal_view_loader.py",
     "smoke_train_checker": "scripts/classification_v2/04_baselines_smokes/check_classification_v2_multimodal_smoke_train.py",
     "interaction_context_loader_checker": "scripts/classification_v2/03_image_cache_context/check_classification_v2_interaction_context_loader.py",
     "ablation_shortcut_contract_checker": "scripts/classification_v2/07_postrun_evaluation/check_classification_v2_ablation_shortcut_contract.py",

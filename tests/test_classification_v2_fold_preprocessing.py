@@ -314,6 +314,12 @@ def test_declared_training_configs_include_fold_event_contract() -> None:
         for config in configs
     )
     assert all(
+        config.dataset.temporal_view_manifest is not None
+        and config.dataset.temporal_view_manifest.name
+        == "fixed6_observed_time_manifest.csv"
+        for config in configs
+    )
+    assert all(
         config.loss.sample_weight_policy == "event_class"
         for config in configs
     )
@@ -348,6 +354,7 @@ def _training_config(root: Path) -> ClassificationV2TrainingConfig:
         native_oof_fold_manifest=root / "native.csv",
         grouped_fold_roles=root / "roles.csv",
         temporal_view_selection_manifest=root / "temporal_selection.csv",
+        temporal_view_manifest=root / "fixed6_observed_time.csv",
         auxiliary_targets_csv=root / "auxiliary.csv",
     )
     return ClassificationV2TrainingConfig(
@@ -377,6 +384,7 @@ def _run_identity(
         "fold_manifest_sha256": "3" * 64,
         "feature_whitelist_sha256": "4" * 64,
         "temporal_view_selection_sha256": "5" * 64,
+        "temporal_view_manifest_sha256": "7" * 64,
         "fold_event_weight_sha256": "6" * 64,
         "fold_id": config.execution.fold_id,
         "architecture_version": config.model.architecture_version,

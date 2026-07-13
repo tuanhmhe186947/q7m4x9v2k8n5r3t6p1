@@ -17,7 +17,7 @@ from pig_behavior.classification_v2.training.config import (
     training_config_to_jsonable,
 )
 
-CHECKPOINT_SCHEMA_VERSION = "classification_v2_training_checkpoint_v3"
+CHECKPOINT_SCHEMA_VERSION = "classification_v2_training_checkpoint_v4"
 RUN_IDENTITY_REQUIRED_FIELDS = (
     "run_id",
     "experiment_name",
@@ -32,6 +32,7 @@ RUN_IDENTITY_REQUIRED_FIELDS = (
     "fold_manifest_sha256",
     "feature_whitelist_sha256",
     "temporal_view_selection_sha256",
+    "temporal_view_manifest_sha256",
     "fold_event_weight_sha256",
     "fold_id",
     "architecture_version",

@@ -23,6 +23,7 @@ from pig_behavior.classification_v2.datasets.visual_interaction_loader import (
 from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
 from pig_behavior.classification_v2.training.config import (
     ClassificationV2TrainingConfig,
+    resolve_temporal_view_manifest,
     training_config_to_jsonable,
 )
 from pig_behavior.classification_v2.training.fold_preprocessing import (
@@ -41,6 +42,9 @@ from pig_behavior.classification_v2.training.multitask_loss import (
     build_auxiliary_label_maps,
     encode_auxiliary_batch,
 )
+from pig_behavior.classification_v2.training.temporal_view_loader import (
+    load_temporal_view_tensors,
+)
 
 MODEL_INPUT_KEYS = frozenset(
     {
@@ -50,11 +54,13 @@ MODEL_INPUT_KEYS = frozenset(
         "image_observed_mask",
         "image_available_mask",
         "image_quality_mask",
+        "image_time_delta",
         "spatial_features",
         "spatial_length_mask",
         "spatial_observed_mask",
         "spatial_available_mask",
         "spatial_quality_mask",
+        "spatial_time_delta",
         "interaction_context_features",
         "interaction_context_available_mask",
         "interaction_context_quality_mask",
@@ -63,6 +69,7 @@ MODEL_INPUT_KEYS = frozenset(
         "visual_context_observed_mask",
         "visual_context_available_mask",
         "visual_context_quality_mask",
+        "visual_context_time_delta",
     }
 )
 
@@ -89,6 +96,7 @@ class StrictTrainingDataModule:
         self.bundle = _load_bundle(self.full_config)
         self._attach_grouped_roles()
         self._attach_temporal_view_selection()
+        self._attach_temporal_view_tensors()
         self._attach_fold_event_weights()
         self.actor_dataset = ClassificationV2ImageSequenceDataset(
             ImageSequenceDatasetConfig(
@@ -186,6 +194,7 @@ class StrictTrainingDataModule:
             self.full_config,
             self.device,
         )
+        raw.update(self._time_delta_batch(indices, raw))
         self._apply_fold_preprocessing(raw)
         model_inputs = _strict_model_inputs(raw)
         validate_model_inputs(model_inputs)
@@ -239,6 +248,7 @@ class StrictTrainingDataModule:
             "auxiliary_targets_not_model_inputs": True,
             "spatial_normalization": self.spatial_normalizer_audit(),
             "temporal_view_selection": self.temporal_view_selection_audit,
+            "temporal_view_tensors": self.temporal_view_tensors.audit,
             "fold_event_weight": self.fold_event_weight_audit,
             "actor_image_load_audit": self.actor_dataset.image_load_audit(),
             "visual_context_load_audit": self.visual_dataset.load_audit(),
@@ -373,6 +383,50 @@ class StrictTrainingDataModule:
             "selected_rows": int(selected.sum()),
             "ordered_window_id_sha256": _ids_hash(selection["window_id"]),
             "errors": [],
+        }
+
+    def _attach_temporal_view_tensors(self) -> None:
+        """Load slot timing against the exact full window order."""
+
+        self.temporal_view_tensors = load_temporal_view_tensors(
+            resolve_temporal_view_manifest(self.config),
+            expected_window_ids=self.bundle.frame["window_id"],
+            selected_mask=self.bundle.frame["temporal_view_selected"],
+            expected_view_name=self.config.model.temporal_view,
+            expected_sequence_length=6,
+        )
+
+    def _time_delta_batch(
+        self,
+        indices: np.ndarray,
+        raw: dict[str, Any],
+    ) -> dict[str, torch.Tensor]:
+        """Return one real timing tensor for each aligned temporal branch."""
+
+        selected = self.bundle.frame.iloc[indices][
+            "temporal_view_selected"
+        ].to_numpy(dtype=np.bool_)
+        if not selected.all():
+            raise ValueError("batch contains a window outside the selected temporal view")
+        delta = torch.from_numpy(
+            self.temporal_view_tensors.time_delta[indices]
+        ).float().to(self.device)
+        branch_masks = {
+            "image": raw["image_length_mask"],
+            "spatial": raw["spatial_length_mask"],
+            "visual_context": raw["visual_context_length_mask"],
+        }
+        for branch_name, mask in branch_masks.items():
+            if tuple(mask.shape) != tuple(delta.shape):
+                raise ValueError(
+                    "temporal time_delta shape mismatch: "
+                    f"branch={branch_name}, mask={tuple(mask.shape)}, "
+                    f"delta={tuple(delta.shape)}"
+                )
+        return {
+            "image_time_delta": delta,
+            "spatial_time_delta": delta,
+            "visual_context_time_delta": delta,
         }
 
     def _attach_fold_event_weights(self) -> None:

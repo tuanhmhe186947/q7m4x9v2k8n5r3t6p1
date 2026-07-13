@@ -14,6 +14,7 @@ from pig_behavior.classification_v2.training.checkpoint import (
 )
 from pig_behavior.classification_v2.training.config import (
     ClassificationV2TrainingConfig,
+    resolve_temporal_view_manifest,
 )
 from pig_behavior.classification_v2.training.lineage_hashing import (
     file_sha256,
@@ -32,6 +33,7 @@ IDENTITY_HASH_FIELDS = (
     "fold_manifest_sha256",
     "feature_whitelist_sha256",
     "temporal_view_selection_sha256",
+    "temporal_view_manifest_sha256",
     "fold_event_weight_sha256",
 )
 CODE_SCOPE_PATHS = (
@@ -61,6 +63,7 @@ class RunIdentity:
     fold_manifest_sha256: str
     feature_whitelist_sha256: str
     temporal_view_selection_sha256: str
+    temporal_view_manifest_sha256: str
     fold_event_weight_sha256: str
     architecture_version: str
     model_mode: str
@@ -94,6 +97,9 @@ class RunIdentity:
             "feature_whitelist_sha256": self.feature_whitelist_sha256,
             "temporal_view_selection_sha256": (
                 self.temporal_view_selection_sha256
+            ),
+            "temporal_view_manifest_sha256": (
+                self.temporal_view_manifest_sha256
             ),
             "fold_event_weight_sha256": self.fold_event_weight_sha256,
             "architecture_version": self.architecture_version,
@@ -171,6 +177,13 @@ def build_run_identity(
         ),
         "temporal-view selection",
     )
+    temporal_manifest_hash = _required_hash(
+        _snapshot_artifact_by_path(
+            artifacts,
+            resolve_temporal_view_manifest(config),
+        ),
+        "temporal-view tensor manifest",
+    )
     if config.dataset.fold_event_weight_manifest is None:
         raise ValueError("run lineage requires fold event-weight manifest")
     event_weight_hash = _required_hash(
@@ -210,6 +223,7 @@ def build_run_identity(
         fold_manifest_sha256=fold_hash,
         feature_whitelist_sha256=whitelist_hash,
         temporal_view_selection_sha256=temporal_view_hash,
+        temporal_view_manifest_sha256=temporal_manifest_hash,
         fold_event_weight_sha256=event_weight_hash,
         architecture_version=config.model.architecture_version,
         model_mode=config.model.model_mode,

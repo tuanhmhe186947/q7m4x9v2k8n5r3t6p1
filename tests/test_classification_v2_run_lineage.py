@@ -629,6 +629,7 @@ def _fixture(
             "native_folds",
             "grouped_roles",
             "temporal_selection",
+            "temporal_manifest",
             "auxiliary",
             "fold_event_weights",
         ]
@@ -648,6 +649,7 @@ def _fixture(
         native_oof_fold_manifest=paths["native_folds"],
         grouped_fold_roles=paths["grouped_roles"],
         temporal_view_selection_manifest=paths["temporal_selection"],
+        temporal_view_manifest=paths["temporal_manifest"],
         auxiliary_targets_csv=paths["auxiliary"],
         fold_event_weight_manifest=paths["fold_event_weights"],
     )

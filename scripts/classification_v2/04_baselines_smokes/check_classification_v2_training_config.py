@@ -7,6 +7,7 @@ from pathlib import Path
 from pig_behavior.classification_v2.contracts.training_snapshot import check_training_snapshot
 from pig_behavior.classification_v2.training.config import (
     load_training_config,
+    resolve_temporal_view_manifest,
     training_config_to_jsonable,
 )
 
@@ -44,6 +45,9 @@ def main() -> None:
             "auxiliary_targets_csv",
         ]
     }
+    required_paths["temporal_view_manifest"] = resolve_temporal_view_manifest(
+        config
+    )
     missing_paths = {name: str(path) for name, path in required_paths.items() if not path.exists()}
     if missing_paths:
         errors.append(f"missing_paths={missing_paths}")
