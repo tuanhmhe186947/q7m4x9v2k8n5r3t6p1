@@ -228,6 +228,31 @@ def test_decision_coverage_requires_no_missing_or_pending() -> None:
     assert "pending_review_unit_count=1" in audit["errors"]
 
 
+def test_pending_payload_repair_preserves_row_and_unconfirmed_note() -> None:
+    repair = _load_script(
+        "pending_behavior_payload_repair",
+        "repair_pending_behavior_review_payloads.py",
+    )
+    pending = _decision_row("unit_a", "pending")
+    pending["manual_corrected_behavior"] = "eat"
+    pending["manual_sample_weight"] = float("nan")
+    pending["manual_note"] = "candidate correction; review not completed"
+    accepted = _decision_row("unit_b", "accept")
+    source = pd.DataFrame([pending, accepted])
+
+    repaired, audit = repair.repair_pending_payloads(source)
+
+    assert len(repaired) == len(source)
+    assert repaired["review_unit_id"].tolist() == ["unit_a", "unit_b"]
+    assert repaired.loc[0, "manual_review_decision"] == "pending"
+    assert repaired.loc[0, "manual_corrected_behavior"] == ""
+    assert repaired.loc[0, "manual_note"] == pending["manual_note"]
+    assert repaired.loc[1, "manual_review_decision"] == "accept"
+    assert audit["pending_payload_rows_before"] == 1
+    assert audit["pending_payload_rows_after"] == 0
+    assert audit["semantic_errors_after"] == []
+
+
 def test_decision_coverage_accepts_complete_unique_review() -> None:
     coverage = _load_script(
         "review_decision_coverage_complete",
