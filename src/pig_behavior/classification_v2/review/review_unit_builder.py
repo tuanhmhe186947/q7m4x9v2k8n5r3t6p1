@@ -371,16 +371,30 @@ def _add_window_review_signals(
 ) -> pd.DataFrame:
     keys = ["source_type", "dataset_id", "video_key", "object_track_key", "pig_id"]
     cols = ["window_id", *keys, "window_length_frames", "window_start_frame", "window_end_frame"]
-    w = windows[cols].drop_duplicates("window_id").copy()
-    candidate_columns = [
+    required_review_columns = [
         "window_id",
         "review_template",
         "review_reason",
         "review_priority",
     ]
-    rcols = [c for c in candidate_columns if c in review_manifest.columns]
-    r = review_manifest[rcols].copy()
-    wr = r.merge(w, on="window_id", how="left")
+    missing_review_columns = [
+        column
+        for column in required_review_columns
+        if column not in review_manifest.columns
+    ]
+    if missing_review_columns:
+        raise ValueError(
+            f"window review manifest missing columns: {missing_review_columns}"
+        )
+    w = windows[cols].copy()
+    r = review_manifest[required_review_columns].copy()
+    _validate_window_review_overlay_keys(w, r)
+    wr = r.merge(
+        w,
+        on="window_id",
+        how="left",
+        validate="one_to_one",
+    )
 
     u = units[["review_unit_id", *keys, "unit_start_frame", "unit_end_frame"]].copy()
     for col in ["unit_start_frame", "unit_end_frame"]:
@@ -427,6 +441,34 @@ def _add_window_review_signals(
             out[col] = value
         out[col] = out[col].fillna(value)
     return out
+
+
+def _validate_window_review_overlay_keys(
+    windows: pd.DataFrame,
+    review_manifest: pd.DataFrame,
+) -> None:
+    """Reject duplicate, blank, or unknown window-review overlay keys."""
+
+    window_ids = windows["window_id"].fillna("").astype(str).str.strip()
+    review_ids = (
+        review_manifest["window_id"].fillna("").astype(str).str.strip()
+    )
+    counts = {
+        "blank_window_id": int(window_ids.eq("").sum()),
+        "duplicate_window_id_rows": int(
+            window_ids.duplicated(keep=False).sum()
+        ),
+        "blank_window_review_id": int(review_ids.eq("").sum()),
+        "duplicate_window_review_id_rows": int(
+            review_ids.duplicated(keep=False).sum()
+        ),
+        "unknown_window_review_id_rows": int(
+            (~review_ids.isin(set(window_ids))).sum()
+        ),
+    }
+    errors = [f"{name}={count}" for name, count in counts.items() if count]
+    if errors:
+        raise ValueError("window review overlay key contract failed: " + "; ".join(errors))
 
 
 def _finalize_unit_review_fields(units: pd.DataFrame) -> pd.DataFrame:
@@ -588,6 +630,14 @@ def _input_contract_errors(
         errors.append(f"interval_review_unit_row_mismatch={len(intervals)}:{len(units)}")
     if set(interval_keys) != set(units["temporal_unit_key"].astype(str)):
         errors.append("interval_review_unit_key_set_mismatch")
+    uncovered_units = int(
+        pd.to_numeric(units["affected_window_count"], errors="coerce")
+        .fillna(0)
+        .eq(0)
+        .sum()
+    )
+    if uncovered_units:
+        errors.append(f"review_units_without_window_coverage={uncovered_units}")
 
     window_ids = windows["window_id"].fillna("").astype(str).str.strip()
     if window_ids.eq("").any():
