@@ -5,7 +5,10 @@ import json
 from pathlib import Path
 
 from pig_behavior.classification_v2.contracts.training_snapshot import check_training_snapshot
-from pig_behavior.classification_v2.training.config import load_training_config, training_config_to_jsonable
+from pig_behavior.classification_v2.training.config import (
+    load_training_config,
+    training_config_to_jsonable,
+)
 
 
 def main() -> None:
@@ -36,6 +39,8 @@ def main() -> None:
             "visual_packed_index",
             "native_oof_fold_manifest",
             "grouped_fold_roles",
+            "temporal_view_selection_manifest",
+            "fold_event_weight_manifest",
             "auxiliary_targets_csv",
         ]
     }

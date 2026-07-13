@@ -24,7 +24,10 @@ class DatasetConfig:
     visual_packed_index: Path
     native_oof_fold_manifest: Path
     grouped_fold_roles: Path
+    temporal_view_selection_manifest: Path
     auxiliary_targets_csv: Path
+    fold_event_weight_manifest: Path | None = None
+    temporal_view_selection_col: str = "fixed6_keep"
     strict_packed_cache: bool = True
 
 
@@ -71,6 +74,8 @@ class LossConfig:
     hierarchy_consistency_weight: float = 0.1
     class_weight_power: float = 0.5
     class_weight_max: float = 5.0
+    sample_weight_policy: str = "event_class"
+    sample_weight_max: float = 10.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -159,7 +164,30 @@ def validate_training_config(config: ClassificationV2TrainingConfig) -> None:
         )
     if config.optimization.precision not in {"fp32", "amp"}:
         errors.append(f"unsupported_precision={config.optimization.precision}")
-    if min(config.optimization.epochs, config.optimization.batch_size, config.optimization.eval_batch_size) <= 0:
+    if config.loss.sample_weight_policy not in {
+        "uniform",
+        "event",
+        "event_class",
+    }:
+        errors.append(
+            f"unsupported_sample_weight_policy={config.loss.sample_weight_policy}"
+        )
+    if (
+        config.loss.sample_weight_policy != "uniform"
+        and config.dataset.fold_event_weight_manifest is None
+    ):
+        errors.append("event_weight_policy_requires_fold_event_weight_manifest")
+    if config.dataset.temporal_view_selection_col != "fixed6_keep":
+        errors.append(
+            "primary_training_requires_fixed6_keep_temporal_view_selection"
+        )
+    if config.loss.sample_weight_max < 1.0:
+        errors.append("sample_weight_max_must_be_at_least_one")
+    if min(
+        config.optimization.epochs,
+        config.optimization.batch_size,
+        config.optimization.eval_batch_size,
+    ) <= 0:
         errors.append("epochs_and_batch_sizes_must_be_positive")
     if config.optimization.early_stopping_patience <= 0:
         errors.append("early_stopping_patience_must_be_positive")

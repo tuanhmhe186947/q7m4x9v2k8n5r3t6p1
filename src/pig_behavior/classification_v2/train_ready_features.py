@@ -44,6 +44,7 @@ ID_COLUMNS = {
     "object_track_key",
     "temporal_unit_key",
     "temporal_unit_keys_window",
+    "temporal_unit_keys_json",
     "review_unit_id",
     "review_unit_id_applied",
     "review_item_id",

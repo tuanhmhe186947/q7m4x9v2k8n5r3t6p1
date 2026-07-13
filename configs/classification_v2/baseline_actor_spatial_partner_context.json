@@ -11,6 +11,8 @@
     "visual_packed_index": "outputs/classification_v2/visual_interaction_cache/packed_image_cache_index.csv",
     "native_oof_fold_manifest": "outputs/classification_v2/q2_grouped_folds/q2_outer_fold_assignments.csv",
     "grouped_fold_roles": "outputs/classification_v2/q2_grouped_folds/q2_outer_inner_roles.csv",
+    "temporal_view_selection_manifest": "outputs/classification_v2/temporal_views/temporal_view_selection_manifest.csv",
+    "fold_event_weight_manifest": "outputs/classification_v2/q2_grouped_folds/fold_event_weight_manifest.csv",
     "auxiliary_targets_csv": "outputs/classification_v2/train_ready_windows/y_auxiliary_targets.csv",
     "strict_packed_cache": true
   },
@@ -58,7 +60,9 @@
     "interaction_weight": 0.0,
     "hierarchy_consistency_weight": 0.0,
     "class_weight_power": 0.5,
-    "class_weight_max": 5.0
+    "class_weight_max": 5.0,
+    "sample_weight_policy": "event_class",
+    "sample_weight_max": 10.0
   },
   "execution": {
     "mode": "smoke",

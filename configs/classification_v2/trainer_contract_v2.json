@@ -9,6 +9,8 @@
   "train_ready_root": "outputs/classification_v2/train_ready_windows",
   "q2_outer_assignments": "outputs/classification_v2/q2_grouped_folds/q2_outer_fold_assignments.csv",
   "q2_outer_inner_roles": "outputs/classification_v2/q2_grouped_folds/q2_outer_inner_roles.csv",
+  "temporal_view_selection_manifest": "outputs/classification_v2/temporal_views/temporal_view_selection_manifest.csv",
+  "fold_event_weight_manifest": "outputs/classification_v2/q2_grouped_folds/fold_event_weight_manifest.csv",
   "primary_prediction_unit": "native_temporal_unit",
   "primary_metric": "fixed_10_class_native_unit_macro_f1",
   "spatial_sequence_feature_whitelist": [
@@ -32,11 +34,18 @@
     "actor_partner_letterbox_rgb_sequence"
   ],
   "target_artifacts": ["y_behavior.csv", "y_auxiliary_targets.csv"],
-  "mask_weight_artifacts": ["train_mask.csv", "sample_weight.csv", "event_weight_manifest.csv"],
+  "mask_weight_artifacts": [
+    "train_mask.csv",
+    "sample_weight.csv",
+    "event_weight_manifest.csv",
+    "temporal_view_selection_manifest.csv",
+    "fold_event_weight_manifest.csv"
+  ],
   "split_rules": [
     "outer test contains complete recording groups and is never used for early stopping",
     "inner validation is selected only from outer-train recording groups",
     "all windows from one temporal unit, video, and recording date stay in one outer role",
+    "primary training uses only fixed6_keep rows while retaining all rows for audit",
     "pig_id is annotation-local and is never a cross-video grouping key"
   ],
   "forbidden_x_patterns": [
@@ -49,6 +58,7 @@
     "review_unit_id",
     "window_id",
     "temporal_unit_key",
+    "temporal_unit_keys_json",
     "video_key",
     "dataset_id",
     "pig_id",
@@ -66,6 +76,7 @@
     "matched 6-frame source-class-balanced view",
     "grouped clean-feature and strict-spatial source probes",
     "fold-local normalization and weighting",
+    "fold event and class mass are fitted from train-role native events only",
     "source type remains evaluation metadata only"
   ],
   "rules": [

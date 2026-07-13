@@ -81,6 +81,8 @@ class StrictTrainingDataModule:
         self.full_config = _to_full_config(config, device)
         self.bundle = _load_bundle(self.full_config)
         self._attach_grouped_roles()
+        self._attach_temporal_view_selection()
+        self._attach_fold_event_weights()
         self.actor_dataset = ClassificationV2ImageSequenceDataset(
             ImageSequenceDatasetConfig(
                 frame_context_csv=config.dataset.train_ready_root
@@ -195,7 +197,7 @@ class StrictTrainingDataModule:
             behavior_target=raw["target"],
             auxiliary_targets=auxiliary_targets,
             auxiliary_masks=auxiliary_masks,
-            sample_weight=raw["training_sample_weight"],
+            sample_weight=self._training_sample_weight(indices),
             metadata={
                 "row_index": indices.astype(int).tolist(),
                 "window_id": selected["window_id"].astype(str).tolist(),
@@ -232,6 +234,8 @@ class StrictTrainingDataModule:
             ],
             "auxiliary_targets_not_model_inputs": True,
             "spatial_normalization": self.spatial_normalizer_audit(),
+            "temporal_view_selection": self.temporal_view_selection_audit,
+            "fold_event_weight": self.fold_event_weight_audit,
             "actor_image_load_audit": self.actor_dataset.image_load_audit(),
             "visual_context_load_audit": self.visual_dataset.load_audit(),
         }
@@ -328,6 +332,204 @@ class StrictTrainingDataModule:
             )
         self.bundle.frame.loc[missing, "grouped_role"] = "not_eligible"
 
+    def _attach_temporal_view_selection(self) -> None:
+        """Restrict every loss policy to the same ordered primary temporal view."""
+
+        path = self.config.dataset.temporal_view_selection_manifest
+        selection_col = self.config.dataset.temporal_view_selection_col
+        selection = pd.read_csv(
+            path,
+            usecols=["window_id", selection_col],
+            low_memory=False,
+        )
+        expected_ids = self.bundle.frame["window_id"].astype(str).reset_index(
+            drop=True
+        )
+        observed_ids = selection["window_id"].astype(str).reset_index(drop=True)
+        if len(selection) != len(expected_ids) or not observed_ids.equals(
+            expected_ids
+        ):
+            raise ValueError(
+                "temporal-view selection window order mismatch: "
+                f"observed={len(selection)}, expected={len(expected_ids)}"
+            )
+        selected = _strict_bool_column(
+            selection[selection_col],
+            name=selection_col,
+        )
+        self.bundle.frame["temporal_view_selected"] = selected.to_numpy()
+        self.bundle.frame["eligible"] &= self.bundle.frame[
+            "temporal_view_selected"
+        ]
+        self.temporal_view_selection_audit = {
+            "path": str(path),
+            "sha256": file_sha256(path),
+            "selection_col": selection_col,
+            "rows": int(len(selection)),
+            "selected_rows": int(selected.sum()),
+            "ordered_window_id_sha256": _ids_hash(selection["window_id"]),
+            "errors": [],
+        }
+
+    def _attach_fold_event_weights(self) -> None:
+        """Attach the configured fold's train-only weights by exact row order."""
+
+        path = self.config.dataset.fold_event_weight_manifest
+        policy = self.config.loss.sample_weight_policy
+        if policy == "uniform" and path is None:
+            self.bundle.frame["fold_event_sample_weight"] = 1.0
+            self.fold_class_weights = {
+                label: 1.0 for label in VALID_BEHAVIORS
+            }
+            self.fold_event_weight_audit = {
+                "policy": policy,
+                "loaded": False,
+                "fit_scope": "training_fold_only",
+                "errors": [],
+            }
+            return
+        if path is None or not path.exists():
+            raise FileNotFoundError(
+                "fold event-weight manifest is required by the loss policy: "
+                f"{path}"
+            )
+        columns = [
+            "outer_fold_id",
+            "window_id",
+            "role",
+            "behavior_window_label",
+            "window_selected_for_training_view",
+            "window_valid_for_event_weight",
+            "window_valid_for_fold_training_weight",
+            "fold_event_mass_weight",
+            "fold_event_sample_weight",
+            "fold_class_weight",
+            "fold_event_class_sample_weight",
+        ]
+        manifest = pd.read_csv(path, usecols=columns, low_memory=False)
+        fold = manifest.loc[
+            manifest["outer_fold_id"].astype(str).eq(
+                self.config.execution.fold_id
+            )
+        ].reset_index(drop=True)
+        expected_ids = self.bundle.frame["window_id"].astype(str).reset_index(
+            drop=True
+        )
+        observed_ids = fold["window_id"].astype(str).reset_index(drop=True)
+        if len(fold) != len(self.bundle.frame) or not observed_ids.equals(
+            expected_ids
+        ):
+            raise ValueError(
+                "fold event-weight window order mismatch: "
+                f"observed={len(fold)}, expected={len(self.bundle.frame)}"
+            )
+        if fold["window_id"].duplicated().any():
+            raise ValueError("duplicate window_id in configured fold event weights")
+        selected = self.bundle.frame["temporal_view_selected"].astype(bool)
+        manifest_selected = _strict_bool_column(
+            fold["window_selected_for_training_view"],
+            name="window_selected_for_training_view",
+        )
+        if not selected.equals(manifest_selected):
+            raise ValueError("fold weights and temporal-view selection disagree")
+        expected_roles = self.bundle.frame["grouped_role"].astype(str)
+        observed_roles = fold["role"].astype(str)
+        role_mismatch = self.bundle.frame["eligible"] & observed_roles.ne(
+            expected_roles
+        )
+        if role_mismatch.any():
+            raise ValueError(
+                "fold event-weight role mismatch on eligible rows: "
+                f"count={int(role_mismatch.sum())}"
+            )
+        label_mismatch = fold["behavior_window_label"].fillna("").astype(str).ne(
+            self.bundle.y.fillna("").astype(str).reset_index(drop=True)
+        )
+        if label_mismatch.any():
+            raise ValueError(
+                "fold event-weight behavior mismatch: "
+                f"count={int(label_mismatch.sum())}"
+            )
+        valid_train = _strict_bool_column(
+            fold["window_valid_for_fold_training_weight"],
+            name="window_valid_for_fold_training_weight",
+        )
+        numeric_columns = [
+            "fold_event_mass_weight",
+            "fold_event_sample_weight",
+            "fold_class_weight",
+            "fold_event_class_sample_weight",
+        ]
+        numeric = fold[numeric_columns].apply(pd.to_numeric, errors="coerce")
+        if not np.isfinite(numeric.to_numpy(dtype=float)).all():
+            raise ValueError("fold event-weight manifest contains nonfinite values")
+        nontrain_nonzero = ~valid_train & (
+            numeric["fold_event_sample_weight"].ne(0.0)
+            | numeric["fold_event_class_sample_weight"].ne(0.0)
+        )
+        if nontrain_nonzero.any():
+            raise ValueError(
+                "nontraining fold rows have nonzero sample weight: "
+                f"count={int(nontrain_nonzero.sum())}"
+            )
+        eligible_train = self.bundle.frame["eligible"] & expected_roles.eq("train")
+        eligibility_mismatch = valid_train.ne(eligible_train)
+        if eligibility_mismatch.any():
+            raise ValueError(
+                "fold weight/trainer eligibility mismatch: "
+                f"count={int(eligibility_mismatch.sum())}"
+            )
+        unusable = valid_train & numeric["fold_event_sample_weight"].le(0.0)
+        if unusable.any():
+            raise ValueError(
+                "eligible train rows lack positive fold event weight: "
+                f"count={int(unusable.sum())}"
+            )
+        weights = numeric.loc[valid_train, "fold_event_sample_weight"]
+        if abs(float(weights.mean()) - 1.0) > 1e-8:
+            raise ValueError(
+                f"fold event sample-weight mean is not one={float(weights.mean())}"
+            )
+        if float(weights.max()) > self.config.loss.sample_weight_max + 1e-8:
+            raise ValueError(
+                "fold event sample-weight cap exceeded: "
+                f"observed={float(weights.max())}, "
+                f"cap={self.config.loss.sample_weight_max}"
+            )
+        self.fold_class_weights = _validated_fold_class_weights(
+            fold,
+            valid_train,
+            power=self.config.loss.class_weight_power,
+            max_weight=self.config.loss.class_weight_max,
+        )
+        self.bundle.frame["fold_event_sample_weight"] = numeric[
+            "fold_event_sample_weight"
+        ].to_numpy(dtype=np.float32)
+        self.fold_event_weight_audit = {
+            "policy": policy,
+            "loaded": True,
+            "path": str(path),
+            "sha256": file_sha256(path),
+            "temporal_view_selection": self.temporal_view_selection_audit,
+            "fold_id": self.config.execution.fold_id,
+            "rows": int(len(fold)),
+            "valid_train_weight_rows": int(valid_train.sum()),
+            "ordered_window_id_sha256": _ids_hash(fold["window_id"]),
+            "weight_mean": float(weights.mean()),
+            "weight_max": float(weights.max()),
+            "class_weights": self.fold_class_weights,
+            "fit_scope": "training_fold_only",
+            "errors": [],
+        }
+
+    def _training_sample_weight(self, indices: np.ndarray) -> torch.Tensor:
+        if self.config.loss.sample_weight_policy == "uniform":
+            return torch.ones(len(indices), dtype=torch.float32, device=self.device)
+        values = self.bundle.frame.iloc[indices][
+            "fold_event_sample_weight"
+        ].to_numpy(dtype=np.float32)
+        return torch.from_numpy(values).to(self.device)
+
 
 def _align_auxiliary(path: Path, frame: pd.DataFrame) -> pd.DataFrame:
     auxiliary = pd.read_csv(path, low_memory=False)
@@ -398,6 +600,78 @@ def _load_spatial_feature_names(
             )
         result[group] = names
     return result
+
+
+def _validated_fold_class_weights(
+    fold: pd.DataFrame,
+    valid_train: pd.Series,
+    *,
+    power: float,
+    max_weight: float,
+) -> dict[str, float]:
+    """Recompute train-fold class weights from native-event mass."""
+
+    event_mass = pd.to_numeric(
+        fold["fold_event_mass_weight"],
+        errors="coerce",
+    )
+    class_mass = (
+        pd.DataFrame(
+            {
+                "label": fold["behavior_window_label"].astype(str),
+                "mass": event_mass,
+            }
+        )
+        .loc[valid_train]
+        .groupby("label")["mass"]
+        .sum()
+        .reindex(VALID_BEHAVIORS, fill_value=0.0)
+    )
+    positive = class_mass[class_mass > 0.0]
+    if positive.empty:
+        raise ValueError("fold event manifest has zero training class mass")
+    median = float(positive.median())
+    result: dict[str, float] = {}
+    for label in VALID_BEHAVIORS:
+        mass = float(class_mass[label])
+        expected = (
+            0.0
+            if mass <= 0.0
+            else float(min(max_weight, (median / mass) ** power))
+        )
+        observed = pd.to_numeric(
+            fold.loc[
+                valid_train & fold["behavior_window_label"].astype(str).eq(label),
+                "fold_class_weight",
+            ],
+            errors="coerce",
+        ).unique()
+        if len(observed) > 1 or (
+            len(observed) == 1
+            and not np.isclose(observed[0], expected, atol=1e-9, rtol=0.0)
+        ):
+            raise ValueError(
+                f"fold class-weight mismatch for {label}: "
+                f"observed={observed.tolist()}, expected={expected}"
+            )
+        result[label] = expected
+    return result
+
+
+def _strict_bool_column(series: pd.Series, *, name: str) -> pd.Series:
+    if pd.api.types.is_bool_dtype(series):
+        if series.isna().any():
+            raise ValueError(f"{name} contains null boolean values")
+        return series.astype(bool)
+    normalized = series.fillna("").astype(str).str.strip().str.lower()
+    true_values = {"true", "1", "yes", "y", "t"}
+    false_values = {"false", "0", "no", "n", "f"}
+    invalid = ~normalized.isin(true_values | false_values)
+    if invalid.any():
+        raise ValueError(
+            f"{name} contains invalid values={sorted(normalized[invalid].unique())}"
+        )
+    return normalized.isin(true_values)
 
 
 def validate_model_inputs(model_inputs: dict[str, Any]) -> None:

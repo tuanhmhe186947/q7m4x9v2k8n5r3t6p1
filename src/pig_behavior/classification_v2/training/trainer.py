@@ -400,13 +400,22 @@ def _behavior_class_weights(
     device: torch.device,
 ) -> torch.Tensor:
     labels = data.bundle.y.iloc[indices].astype(str)
-    counts = labels.value_counts().reindex(VALID_BEHAVIORS, fill_value=0).astype(float)
+    counts = labels.value_counts().reindex(VALID_BEHAVIORS, fill_value=0)
     if (counts <= 0).any():
         missing = counts[counts <= 0].index.tolist()
         raise ValueError(f"training fold missing behavior classes: {missing}")
-    inverse = (float(counts.max()) / counts) ** config.loss.class_weight_power
-    weights = (inverse / float(inverse.mean())).clip(upper=config.loss.class_weight_max)
-    return torch.tensor(weights.to_numpy(), dtype=torch.float32, device=device)
+    if config.loss.sample_weight_policy != "event_class":
+        values = np.ones(len(VALID_BEHAVIORS), dtype=np.float32)
+    else:
+        values = np.asarray(
+            [data.fold_class_weights[label] for label in VALID_BEHAVIORS],
+            dtype=np.float32,
+        )
+        if not np.isfinite(values).all() or (values <= 0.0).any():
+            raise ValueError(
+                "event-class policy requires positive train-fold class weights"
+            )
+    return torch.tensor(values, dtype=torch.float32, device=device)
 
 
 def _task_specs(config: ClassificationV2TrainingConfig) -> tuple[AuxiliaryTaskSpec, ...]:

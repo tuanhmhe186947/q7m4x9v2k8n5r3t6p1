@@ -22,6 +22,7 @@ from pig_behavior.classification_v2.training.config import (
     LossConfig,
     ModelConfig,
     OptimizationConfig,
+    load_training_config,
 )
 from pig_behavior.classification_v2.training.fold_preprocessing import (
     ensure_fold_preprocessing_state,
@@ -236,6 +237,34 @@ def test_checkpoint_resume_rejects_preprocessing_hash_drift(
         )
 
 
+def test_declared_training_configs_include_fold_event_contract() -> None:
+    root = Path(__file__).parents[1] / "configs" / "classification_v2"
+    paths = sorted(root.glob("baseline_*.json"))
+    paths.extend(
+        [
+            root / "full_candidate_domain_controls.json",
+            root / "multimodal_context_multitask.json",
+        ]
+    )
+
+    configs = [load_training_config(path) for path in paths]
+
+    assert len(configs) == 7
+    assert all(
+        config.dataset.fold_event_weight_manifest is not None
+        for config in configs
+    )
+    assert all(
+        config.dataset.temporal_view_selection_manifest.name
+        == "temporal_view_selection_manifest.csv"
+        for config in configs
+    )
+    assert all(
+        config.loss.sample_weight_policy == "event_class"
+        for config in configs
+    )
+
+
 def _training_config(root: Path) -> ClassificationV2TrainingConfig:
     dataset = DatasetConfig(
         snapshot_json=root / "snapshot.json",
@@ -248,6 +277,7 @@ def _training_config(root: Path) -> ClassificationV2TrainingConfig:
         visual_packed_index=root / "visual_index.csv",
         native_oof_fold_manifest=root / "native.csv",
         grouped_fold_roles=root / "roles.csv",
+        temporal_view_selection_manifest=root / "temporal_selection.csv",
         auxiliary_targets_csv=root / "auxiliary.csv",
     )
     return ClassificationV2TrainingConfig(
@@ -255,6 +285,6 @@ def _training_config(root: Path) -> ClassificationV2TrainingConfig:
         dataset=dataset,
         model=ModelConfig(architecture_version=MULTITASK_ARCHITECTURE_VERSION),
         optimization=OptimizationConfig(),
-        loss=LossConfig(),
+        loss=LossConfig(sample_weight_policy="uniform"),
         execution=ExecutionConfig(),
     )
