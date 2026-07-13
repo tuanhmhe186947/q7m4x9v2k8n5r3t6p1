@@ -22,7 +22,8 @@ inputs, predictions, or training runs. Invoke again after any schema change.
 
 The target is the canonical 10-class classifier. Legacy native units contain 16
 frames; CVAT anchor intervals contain six. Harmonize first, then create training
-windows. Treat `pig_id` as annotation-local, never as identity across videos.
+windows. Before harmonization, apply the two-sided frame/object Hidden review.
+Treat `pig_id` as annotation-local, never as identity across videos.
 
 ## Required inputs
 
@@ -30,6 +31,7 @@ windows. Treat `pig_id` as annotation-local, never as identity across videos.
 - candidate fold and training-window manifests;
 - explicit feature whitelist and blacklist;
 - source, recording/session, video, and context availability columns;
+- Hidden manifest, decision coverage, trust provenance, and apply audit;
 - fit scope for normalization, priors, weights, thresholds, and calibration.
 
 ## Scientific invariants
@@ -42,25 +44,29 @@ windows. Treat `pig_id` as annotation-local, never as identity across videos.
 - Quantify source, length, padding, context, and missing-modality shortcuts.
 - Never silently drop a row or change a label.
 - Require 16-frame legacy and six-frame CVAT native-unit contracts.
+- Treat CVAT Hidden as tracking-derived/untrusted until human review.
+- Audit both Hidden Yes corrections and stratified Hidden No false negatives.
+- Never use Hidden trust, review status, or availability as behavior evidence.
 
 ## Ordered procedure
 
-1. Verify source hashes and temporal harmonization status.
-2. Reconcile frame, interval, native-unit, review-unit, and window key counts.
-3. Validate source-specific lengths and native-unit uniqueness.
-4. Audit recording/session/video membership for every split role.
-5. Prove review units and overlapping windows never cross split boundaries.
-6. Validate the whitelist against forbidden patterns and inference paths.
-7. Record fold-local fitting rules for every data-derived parameter.
-8. Produce class/source support and shortcut diagnostics by fold.
-9. Compare output keys and labels with inputs; explain every exclusion.
-10. Stop before training unless the audit has zero errors.
+1. Verify source hashes and two-sided Hidden review status.
+2. Prove Hidden apply preserves rows and frame/object scope.
+3. Verify temporal harmonization uses the hidden-reviewed artifact.
+4. Reconcile frame, interval, native-unit, review-unit, and window key counts.
+5. Validate source-specific lengths and native-unit uniqueness.
+6. Audit recording/session/video membership for every split role.
+7. Prove review units and overlapping windows never cross split boundaries.
+8. Validate the whitelist against forbidden patterns and inference paths.
+9. Record fold-local fitting rules for every data-derived parameter.
+10. Produce support and shortcut diagnostics, then stop on any error.
 
 ## Required outputs
 
 Produce `feature_whitelist.json`, `feature_blacklist.json`,
 `fold_manifest.csv`, `leakage_audit.json`, `class_by_fold_support.csv`,
-`source_by_fold_support.csv`, and `temporal_unit_audit.json`.
+`source_by_fold_support.csv`, `hidden_review_audit.json`, and
+`temporal_unit_audit.json`.
 
 ## Validation commands
 

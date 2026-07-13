@@ -26,6 +26,8 @@ Trạng thái dữ liệu hiện có chưa đủ để gọi là human-reviewed 
 nhất có 4.670 review unit bắt buộc nhưng chỉ 3 decision row, trong đó 2 active,
 1 pending và còn thiếu 4.667 unit. File `reviewed_frame_features.csv` hiện tại
 chỉ là artifact kỹ thuật đã đi qua apply logic, chưa phải ground truth sạch.
+Hidden lineage cũng chưa hoàn tất human decision; đặc biệt CVAT No hiện không
+được coi là visible trusted chỉ vì tracking đã xuất thuộc tính đó.
 
 ## 2. Bất biến khoa học
 
@@ -45,6 +47,11 @@ chỉ là artifact kỹ thuật đã đi qua apply logic, chưa phải ground tr
   training partition của từng fold.
 - Không drop mixed/transition window. Giữ row, status và main-train mask.
 - Không dùng global class weights trong bước tạo data.
+- Hidden là visibility attribute cấp frame/object, không phải behavior target.
+- CVAT Hidden là tracking-derived và untrusted cho tới khi human review.
+- Audit phải kiểm cả `Yes -> No` và false negative `No -> Yes`.
+- Không lan một hidden decision sang cả interval 6/16 frame nếu reviewer không
+  khai báo rõ span; mặc định decision chỉ áp đúng frame/object item.
 
 ## 3. Sơ đồ dữ liệu
 
@@ -53,6 +60,8 @@ legacy_dense_tracklet_map.csv
   -> legacy_frame_object_annotations.csv
   -> merge với 12 CVAT behavior XML
   -> context policy -> geometry -> ROI -> motion/social/posture
+  -> two-sided Hidden review: Yes + risk/random/control No
+  -> hidden_reviewed_frame_features.csv
   -> temporal harmonization: legacy 16f, CVAT 6f
   -> unreviewed sequence windows
   -> review_unit_manifest + 4 policy templates
@@ -79,20 +88,22 @@ cd /d C:\Users\ironh\Downloads\PIG_Behavior_Project
 set PYTHONPATH=%CD%\src
 set PY=C:\Users\ironh\anaconda3\envs\pig_project\python.exe
 set RUN_ID=c2v2_rebuild_20260713_v1
+set REVIEWER_NAME=replace_with_reviewer_id
 set R=outputs\classification_v2\rebuilds\%RUN_ID%
 set SM=%R%\00_smoke
 set SRC=%R%\01_source_full
 set FEAT=%R%\02_frame_features
-set SEQ0=%R%\03_sequence_unreviewed
-set REV=%R%\04_review_units
-set DEC=%R%\05_review_decisions
-set RFRAME=%R%\06_reviewed_frames
-set SEQ1=%R%\07_sequence_reviewed
-set NATIVE=%R%\08_native_units
-set SPLIT=%R%\09_grouped_splits
-set TRAIN=%R%\10_train_ready
-set CACHE=%R%\11_actor_cache_224_letterbox
-set VCACHE=%R%\12_interaction_cache_224_letterbox
+set HREV=%R%\03_hidden_review
+set SEQ0=%R%\04_sequence_unreviewed
+set REV=%R%\05_review_units
+set DEC=%R%\06_review_decisions
+set RFRAME=%R%\07_reviewed_frames
+set SEQ1=%R%\08_sequence_reviewed
+set NATIVE=%R%\09_native_units
+set SPLIT=%R%\10_grouped_splits
+set TRAIN=%R%\11_train_ready
+set CACHE=%R%\12_actor_cache_224_letterbox
+set VCACHE=%R%\13_interaction_cache_224_letterbox
 ```
 
 Khai báo script root ngắn để lệnh dễ đọc và tránh lỗi dòng dài:
@@ -324,10 +335,160 @@ Không truyền `--max-rows` ở full. So sánh số row của enhanced với me
 chênh lệch phải có error hoặc audit reason cụ thể. Enhanced là input immutable
 của nhánh review trong lineage này; apply review phải ghi file khác.
 
+## 8A. Hidden review hai chiều trước temporal harmonization
+
+Hidden review độc lập với behavior review. Mục tiêu không chỉ xác nhận các row
+đã có `Hidden=Yes`, mà còn phát hiện false negative trong `Hidden=No`. CVAT là
+nguồn yếu nhất vì Hidden chủ yếu đến từ tracking; row CVAT chưa review phải giữ
+`hidden_trust_status=untrusted_tracking_derived`.
+
+Bốn cohort không được trộn ý nghĩa thống kê:
+
+- `hidden_yes_confirmation`: census mọi `Hidden=Yes` trong input scope;
+- `hidden_no_high_risk`: enrichment theo overlap, proximity, bbox/shape change;
+- `hidden_no_random_audit`: random phân tầng để ước lượng false-negative rate;
+- `hidden_no_clean_control`: kiểm specificity ở nhóm risk thấp.
+
+Random audit lưu population, inclusion probability và inverse sampling weight.
+Chỉ post-stratified random estimate được diễn giải như prevalence. Correction
+yield của high-risk cohort không phải prevalence.
+
+### 8A.1. Short builder và media gate
+
+```bat
+set HSM=%SM%\hidden_review
+%PY% %S1%\classification_v2_build_hidden_review_units.py ^
+  --input-csv %FSM%\frame_enhanced.csv ^
+  --output-dir %HSM% ^
+  --max-rows-per-source 64
+```
+
+```bat
+%PY% %S1%\check_hidden_review_template_coverage.py ^
+  --input-csv %FSM%\frame_enhanced.csv ^
+  --manifest-csv %HSM%\hidden_review_unit_manifest.csv ^
+  --audit-json %HSM%\hidden_review_coverage_audit.json ^
+  --max-rows-per-source 64
+%PY% %S1%\review_hidden_quality_gui.py ^
+  --manifest-csv %HSM%\hidden_review_unit_manifest.csv ^
+  --frame-features-csv %HSM%\hidden_review_frame_context.csv ^
+  --output-dir %HSM%\gui --reviewer REVIEWER_NAME ^
+  --video-root data\videos ^
+  --crop-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
+  --validate-only
+```
+
+Short PASS khi hai source đều có mặt, input scope có cả Yes/No, mọi Yes nằm
+trong manifest, negative cohorts tồn tại, key unique và media missing bằng 0.
+Builder xuất frame-context subset để GUI không đọc lại full enhanced CSV.
+
+Mở GUI pilot sau media gate:
+
+```bat
+%PY% %S1%\review_hidden_quality_gui.py ^
+  --manifest-csv %HSM%\hidden_review_unit_manifest.csv ^
+  --frame-features-csv %HSM%\hidden_review_frame_context.csv ^
+  --output-dir %HSM%\gui --reviewer REVIEWER_NAME ^
+  --video-root data\videos ^
+  --crop-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
+  --max-items 5
+```
+
+Sau pilot, chạy lại không `--max-items` để hoàn thành short manifest, rồi kiểm
+và apply. Không tạo fake decision để ép smoke PASS.
+
+```bat
+%PY% %S1%\check_hidden_review_decision_coverage.py ^
+  --manifest-csv %HSM%\hidden_review_unit_manifest.csv ^
+  --decisions-csv %HSM%\gui\hidden_review_decisions.csv ^
+  --audit-json %HSM%\hidden_review_decision_coverage_audit.json
+%PY% %S1%\classification_v2_apply_hidden_review_decisions.py ^
+  --input-csv %FSM%\frame_enhanced.csv ^
+  --manifest-csv %HSM%\hidden_review_unit_manifest.csv ^
+  --decisions-csv %HSM%\gui\hidden_review_decisions.csv ^
+  --output-csv %HSM%\hidden_reviewed_frame_features.csv ^
+  --audit-json %HSM%\apply_hidden_review_audit.json ^
+  --confusion-audit-json %HSM%\hidden_confusion_audit.json
+%PY% %S1%\check_apply_hidden_review_decisions_output.py ^
+  --input-csv %FSM%\frame_enhanced.csv ^
+  --output-csv %HSM%\hidden_reviewed_frame_features.csv ^
+  --audit-json %HSM%\check_apply_hidden_review_output.json
+```
+
+### 8A.2. Full manifest và human review
+
+Chỉ chạy sau short PASS. Cap high-risk kiểm soát workload nhưng audit vẫn ghi
+toàn bộ high-risk population và số chưa được chọn. Thay cap tạo review design
+mới và phải lưu trong lineage.
+
+```bat
+%PY% %S1%\classification_v2_build_hidden_review_units.py ^
+  --input-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
+  --output-dir %HREV% ^
+  --random-no-per-stratum 3 ^
+  --clean-control-per-stratum 1 ^
+  --max-high-risk-per-stratum 25
+%PY% %S1%\check_hidden_review_template_coverage.py ^
+  --input-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
+  --manifest-csv %HREV%\hidden_review_unit_manifest.csv ^
+  --audit-json %HREV%\hidden_review_coverage_audit.json
+```
+
+Cap 25 là wave đầu, không phải ngưỡng khoa học cố định. Sau mỗi wave, kiểm
+high-risk correction yield. Nếu yield còn cao, tăng cap theo chuỗi 25, 50, 100
+hoặc bỏ cap; giữ cùng seed để selection lồng nhau và resume decision cũ. Chỉ
+khóa final cap khi correction yield đã ổn định thấp và random weighted estimate
+có uncertainty được báo cáo. Mọi lần mở rộng phải rebuild coverage audit.
+
+```bat
+%PY% %S1%\review_hidden_quality_gui.py ^
+  --manifest-csv %HREV%\hidden_review_unit_manifest.csv ^
+  --frame-features-csv %HREV%\hidden_review_frame_context.csv ^
+  --output-dir %HREV%\gui --reviewer REVIEWER_NAME ^
+  --video-root data\videos ^
+  --crop-root data\raw\legacy_full_multigt_masked_nodup_16f\crops
+```
+
+GUI hiển thị full frame với actor và bbox context, kèm actor crop letterbox.
+Chọn `Hidden=Yes`, `Visible=No` hoặc `Unclear`; confidence và reason là bắt
+buộc về mặt quy trình. GUI chỉ ghi decision CSV, không sửa XML/CSV nguồn.
+
+### 8A.3. Complete gate và apply
+
+```bat
+%PY% %S1%\check_hidden_review_decision_coverage.py ^
+  --manifest-csv %HREV%\hidden_review_unit_manifest.csv ^
+  --decisions-csv %HREV%\gui\hidden_review_decisions.csv ^
+  --audit-json %HREV%\hidden_review_decision_coverage_audit.json
+```
+
+Default là fail-closed: missing, duplicate, pending và `Unclear` đều làm gate
+FAIL. `--allow-unresolved` chỉ dành cho smoke/debug, không dùng để tạo training
+snapshot. Non-selected CVAT No vẫn là untrusted, không âm thầm thành trusted No.
+
+```bat
+%PY% %S1%\classification_v2_apply_hidden_review_decisions.py ^
+  --input-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
+  --manifest-csv %HREV%\hidden_review_unit_manifest.csv ^
+  --decisions-csv %HREV%\gui\hidden_review_decisions.csv ^
+  --output-csv %HREV%\hidden_reviewed_frame_features.csv ^
+  --audit-json %HREV%\apply_hidden_review_audit.json ^
+  --confusion-audit-json %HREV%\hidden_confusion_audit.json
+%PY% %S1%\check_apply_hidden_review_decisions_output.py ^
+  --input-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
+  --output-csv %HREV%\hidden_reviewed_frame_features.csv ^
+  --audit-json %HREV%\check_apply_hidden_review_output.json
+```
+
+Apply PASS khi output rows bằng enhanced rows, non-Hidden source columns không
+đổi, decision match đúng frame/object key và audit ghi `Yes->No`, `No->Yes`,
+trust status, random false-negative estimate cùng high-risk correction yield.
+
 ## 9. Temporal harmonization và window chưa review
 
-Temporal harmonization biến nhãn nguồn thành native interval. CVAT anchor `k`
-đại diện `k..k+5`; legacy burst có 16 frame. Sequence window được tạo sau bước
+Temporal harmonization chỉ bắt đầu từ hidden-reviewed artifact. CVAT anchor `k`
+đại diện `k..k+5`; legacy burst có 16 frame. Hidden vẫn là frame/object quality,
+không được broadcast theo behavior interval. Sequence window được tạo sau bước
 này và có thể dài 6, 8, 12 hoặc 16 frame.
 
 ### 9.1. Short temporal/window chain
@@ -335,14 +496,14 @@ này và có thể dài 6, 8, 12 hoặc 16 frame.
 ```bat
 set TSM=%SM%\sequence_unreviewed
 %PY% %S0%\classification_v2_build_temporal_harmonization.py ^
-  --input-csv %FSM%\frame_enhanced.csv ^
+  --input-csv %HSM%\hidden_reviewed_frame_features.csv ^
   --output-csv %TSM%\harmonized_frames.csv ^
   --intervals-csv %TSM%\temporal_intervals_standalone.csv ^
   --audit-json %TSM%\temporal_harmonization_audit.json ^
   --cvat-label-stride 6 ^
   --legacy-expected-sequence-length 16
 %PY% %S0%\classification_v2_build_sequence_windows.py ^
-  --input-csv %FSM%\frame_enhanced.csv ^
+  --input-csv %HSM%\hidden_reviewed_frame_features.csv ^
   --output-dir %TSM% ^
   --window-lengths 6,8,12,16 ^
   --cvat-label-stride 6 ^
@@ -360,7 +521,7 @@ eligibility.
 
 ```bat
 %PY% %S0%\classification_v2_build_temporal_harmonization.py ^
-  --input-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
+  --input-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --output-csv %SEQ0%\harmonized_frames.csv ^
   --intervals-csv %SEQ0%\temporal_intervals_standalone.csv ^
   --audit-json %SEQ0%\temporal_harmonization_audit.json ^
@@ -370,7 +531,7 @@ eligibility.
 
 ```bat
 %PY% %S0%\classification_v2_build_sequence_windows.py ^
-  --input-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
+  --input-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --output-dir %SEQ0% ^
   --window-lengths 6,8,12,16 ^
   --cvat-label-stride 6 ^
@@ -394,6 +555,11 @@ Chúng phải có cùng native-unit key, label và interval boundary. Gate bắt
 - window status stable/mixed/transition được đếm;
 - source và label distribution được ghi;
 - không row bị mất mà không có audit reason.
+
+Window audit phải tách `hidden_ratio_raw`, `hidden_ratio_trusted` và review
+coverage. Default không loại/downweight window chỉ vì hidden ratio cao. Flag
+`--exclude-high-hidden-from-main` là opt-in policy experiment, không dùng trong
+lineage chuẩn nếu chưa có ablation và phê duyệt riêng.
 
 ## 10. Tạo review unit và template
 
@@ -428,7 +594,7 @@ interaction; posture chỉ có `lying` và `sitting`.
 %PY% %S1%\check_review_unit_template_coverage.py ^
   --review-unit-dir %REV%
 %PY% %S0%\check_classification_v2_cvat_anchor_case.py ^
-  --enhanced-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
+  --enhanced-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --intervals-csv %SEQ0%\temporal_label_intervals.csv ^
   --review-units-csv %REV%\review_unit_manifest.csv ^
   --output-json %REV%\cvat_anchor_1020_audit.json
@@ -452,20 +618,20 @@ decision cũ. Không dùng `--fresh` và không xóa CSV giữa các session.
 ```bat
 %PY% %S1%\review_temporal_unit_gui.py ^
   --review-units-csv %REV%\roi_review_unit_template.csv ^
-  --frame-features-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
+  --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --output-dir %DEC%\roi --video-root data\videos ^
   --raw-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
   --roi-coco-json data\annotations\roi\ROI_annotations.coco.json ^
   --max-items 5 --copy-contact-sheets
 %PY% %S1%\review_temporal_unit_gui.py ^
   --review-units-csv %REV%\motion_review_unit_template.csv ^
-  --frame-features-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
+  --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --output-dir %DEC%\motion --video-root data\videos ^
   --raw-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
   --max-items 5 --copy-contact-sheets
 %PY% %S1%\review_temporal_unit_gui.py ^
   --review-units-csv %REV%\posture_review_unit_template.csv ^
-  --frame-features-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
+  --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --output-dir %DEC%\posture --video-root data\videos ^
   --raw-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
   --max-items 5 --copy-contact-sheets
@@ -478,7 +644,7 @@ full frame cho CVAT. Nếu actor/partner/role vẫn không đủ rõ, chọn
 ```bat
 %PY% %S1%\review_temporal_unit_gui.py ^
   --review-units-csv %REV%\interaction_review_unit_template.csv ^
-  --frame-features-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
+  --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --output-dir %DEC%\interaction --video-root data\videos ^
   --raw-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
   --padding 10 --max-items 5 --copy-contact-sheets
@@ -510,20 +676,20 @@ GUI nạp CSV cũ, chặn blank/duplicate ID và ghi deterministic order.
 ```bat
 %PY% %S1%\review_temporal_unit_gui.py ^
   --review-units-csv %REV%\roi_review_unit_template.csv ^
-  --frame-features-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
+  --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --output-dir %DEC%\roi --video-root data\videos ^
   --raw-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
   --roi-coco-json data\annotations\roi\ROI_annotations.coco.json ^
   --copy-contact-sheets
 %PY% %S1%\review_temporal_unit_gui.py ^
   --review-units-csv %REV%\motion_review_unit_template.csv ^
-  --frame-features-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
+  --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --output-dir %DEC%\motion --video-root data\videos ^
   --raw-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
   --copy-contact-sheets
 %PY% %S1%\review_temporal_unit_gui.py ^
   --review-units-csv %REV%\posture_review_unit_template.csv ^
-  --frame-features-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
+  --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --output-dir %DEC%\posture --video-root data\videos ^
   --raw-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
   --copy-contact-sheets
@@ -532,7 +698,7 @@ GUI nạp CSV cũ, chặn blank/duplicate ID và ghi deterministic order.
 ```bat
 %PY% %S1%\review_temporal_unit_gui.py ^
   --review-units-csv %REV%\interaction_review_unit_template.csv ^
-  --frame-features-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
+  --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --output-dir %DEC%\interaction --video-root data\videos ^
   --raw-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
   --padding 10 --copy-contact-sheets
@@ -577,7 +743,7 @@ behavior hợp lệ và không `window_uid`.
 ```bat
 %PY% %S1%\classification_v2_apply_review_unit_decisions.py ^
   --frame-features-csv ^
-  %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
+  %HREV%\hidden_reviewed_frame_features.csv ^
   --review-unit-manifest-csv %REV%\review_unit_manifest.csv ^
   --decisions-csv ^
   %DEC%\roi\behavior_unit_review_decisions.csv ^
@@ -595,7 +761,7 @@ behavior hợp lệ và không `window_uid`.
   --audit-json %RFRAME%\apply_review_unit_decisions_audit.json ^
   --combined-csv %RFRAME%\review_unit_decisions_combined.csv ^
   --source-frame-features-csv ^
-  %FEAT%\spatiotemporal_frame_features_enhanced.csv
+  %HREV%\hidden_reviewed_frame_features.csv
 ```
 
 Apply không overwrite enhanced CSV. Nó giữ nguyên số frame row, lưu
@@ -948,6 +1114,9 @@ phải có modality dropout và missingness ablation ở giai đoạn training.
 certutil -hashfile %SRC%\merged_frame_objects.csv SHA256
 certutil -hashfile ^
   %FEAT%\spatiotemporal_frame_features_enhanced.csv SHA256
+certutil -hashfile %HREV%\hidden_review_unit_manifest.csv SHA256
+certutil -hashfile %HREV%\gui\hidden_review_decisions.csv SHA256
+certutil -hashfile %HREV%\hidden_reviewed_frame_features.csv SHA256
 certutil -hashfile %RFRAME%\reviewed_frame_features.csv SHA256
 certutil -hashfile %SEQ1%\sequence_window_manifest.csv SHA256
 certutil -hashfile %NATIVE%\native_temporal_unit_manifest.csv SHA256
@@ -1014,6 +1183,18 @@ label cố ý không nằm trong image tensor để tránh leakage.
 Đó là deterministic storage key. Dùng `preview_jpg_*` để review bằng tên
 source/video/pig/frame. Không rename file cache thủ công vì sẽ phá manifest.
 
+**Hidden=No của CVAT được xem là visible trusted**
+
+Đây là lỗi contract. Trước human decision, CVAT phải là
+`untrusted_tracking_derived`. Không bật `--trust-hidden`, không tự chuyển toàn bộ
+No thành trusted và không dùng availability/trust field như behavior feature.
+
+**Hidden random audit có correction rate khác high-risk**
+
+Đây là kết quả dự kiến. Chỉ random cohort với sampling weight dùng để ước lượng
+false-negative prevalence. High-risk cohort dùng đo correction yield và tìm lỗi,
+không được báo như prevalence của toàn dataset.
+
 **GUI mất decision sau khi mở lại**
 
 Phải dùng cùng output directory. Bản GUI hiện tại resume CSV và fail trên
@@ -1045,7 +1226,13 @@ PASS:
 - [ ] Legacy export giữ native burst 16 frame.
 - [ ] CVAT anchor interval đúng 6 frame và non-anchor kế thừa target.
 - [ ] Case `000085 / ID_4 / anchor 1020 = social-nose + interaction` PASS.
-- [ ] Enhanced rows bằng reviewed rows.
+- [ ] Mọi source-scope `Hidden=Yes` có item trong confirmation cohort.
+- [ ] `Hidden=No` có high-risk, stratified-random và clean-control audit.
+- [ ] CVAT chưa review giữ `untrusted_tracking_derived`, không silent trust.
+- [ ] Hidden decisions unique, resolved và áp đúng frame/object key.
+- [ ] Hidden apply giữ nguyên row count và non-Hidden source columns.
+- [ ] `Yes->No`, `No->Yes`, weighted false-negative rate có audit.
+- [ ] Enhanced, hidden-reviewed và behavior-reviewed rows bằng nhau.
 - [ ] Duplicate `temporal_unit_key=0` và duplicate `review_unit_id=0`.
 - [ ] Không output mới dùng `window_uid`.
 - [ ] ROI/motion/posture/interaction templates đúng policy.

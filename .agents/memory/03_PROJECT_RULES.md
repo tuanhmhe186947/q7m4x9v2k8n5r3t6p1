@@ -12,6 +12,22 @@ Current reviewed data is not human-review complete. No pending,
 may enter final main training. Use a versioned rebuild root and never mix
 canonical artifacts from a different lineage.
 
+Hidden-specific rules:
+
+- Hidden is a frame/object visibility attribute, never the 10-class target.
+- Never trust CVAT Hidden solely because tracking emitted Yes or No.
+- Audit both `Yes -> No` and false-negative `No -> Yes` corrections.
+- Use census Yes plus risk, stratified-random and clean-control No cohorts.
+- Do not propagate one Hidden decision across a 6/16-frame native unit unless
+  an explicit reviewed span is stored.
+- Do not edit raw XML/CSV; GUI writes decision CSV and apply writes a new
+  derived frame-feature artifact.
+- Unreviewed CVAT No remains untrusted. Do not silently coerce it to visible
+  trusted metadata.
+- High Hidden ratio is audited, not an automatic exclusion/down-weight rule.
+- Report random weighted false-negative estimates separately from high-risk
+  correction yield.
+
 1. Treat `classification_v2` behavior recognition as the active goal unless the
    user explicitly switches back to tracking.
 2. Do not run full OOF training unless the authorization file is explicitly

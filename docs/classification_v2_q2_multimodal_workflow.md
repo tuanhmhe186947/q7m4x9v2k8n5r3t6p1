@@ -26,6 +26,11 @@ The full OOF run has completed. Postrun gates remain the authority for whether
 the result is a Q2 internal candidate. Use this command for the aggregate
 completion state:
 
+That run belongs to the previous artifact lineage. A new reviewed-data lineage
+is currently blocked before temporal harmonization until two-sided Hidden review
+and behavior review are complete; do not mix its partial outputs with the old
+full OOF artifacts.
+
 ```bat
 cd /d C:\Users\ironh\Downloads\PIG_Behavior_Project
 set PYTHONPATH=%CD%\src
@@ -45,22 +50,25 @@ flowchart TD
   A[Raw annotations and videos] --> B[Source parsing]
   B --> C[Frame-level merge]
   C --> D[Context, ROI, motion, social features]
-  D --> E[Temporal harmonization]
-  E --> F[Sequence windows]
-  E --> G[Review unit manifests]
-  G --> H[GUI review decisions]
-  H --> I[Reviewed frame features]
-  I --> J[Reviewed sequence windows]
-  J --> K[Train-ready tensors and manifests]
-  K --> L[Actor and visual context caches]
-  K --> M[Leakage-safe folds and weights]
-  L --> N[Full-like smoke]
-  M --> N
-  N --> O[Human full OOF authorization]
-  O --> P[Full multimodal OOF]
-  P --> Q[Calibration and confusion analysis]
-  Q --> R[Experiment registry]
-  R --> S[Completion gate and Q2 claim boundary]
+  D --> E[Two-sided Hidden review manifest]
+  E --> F[Hidden GUI decisions and apply audit]
+  F --> G[Hidden-reviewed frame features]
+  G --> H[Temporal harmonization]
+  H --> I[Sequence windows]
+  H --> J[Behavior review unit manifests]
+  J --> K[Behavior GUI decisions]
+  K --> L[Behavior-reviewed frame features]
+  L --> M[Reviewed sequence windows]
+  M --> N[Train-ready tensors and manifests]
+  N --> O[Actor and visual context caches]
+  N --> P[Leakage-safe folds and weights]
+  O --> Q[Full-like smoke]
+  P --> Q
+  Q --> R[Human full OOF authorization]
+  R --> S[Full multimodal OOF]
+  S --> T[Calibration and confusion analysis]
+  T --> U[Experiment registry]
+  U --> V[Completion gate and Q2 claim boundary]
 ```
 
 ## Block Index
@@ -69,6 +77,7 @@ flowchart TD
 |---|---|---|---|
 | Source merge | legacy/CVAT frame rows | merge sources | `frame_features/*` |
 | Feature build | geometry, ROI, motion, social | build feature scripts | `spatiotemporal_*` |
+| Hidden review | Yes census plus No audits | Hidden GUI/apply | hidden-reviewed frames |
 | Temporal units | CVAT 6f and legacy 16f policy | temporal harmonization | intervals CSV |
 | Review units | human-review rows/templates | build review units | `review_units/*` |
 | GUI/apply | review and apply decisions | GUI plus apply script | reviewed frames |

@@ -14,6 +14,10 @@ For broader tracking or architecture tasks, also read:
 7. `.agents/memory/06_BENCHMARK_NOTES.md`
 8. `.agents/memory/07_LEGACY_DIFF_NOTES.md`
 
+For `classification_v2` data/review work, also read:
+
+9. `.agents/memory/09_HIDDEN_REVIEW.md`
+
 Critical settled facts:
 
 - Do not blame detector weight for `Pigs291119_000263_30fps` IDSW regression.

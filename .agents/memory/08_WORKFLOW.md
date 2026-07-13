@@ -7,6 +7,25 @@ For a new `classification_v2` data lineage, follow
 authorized only after the same semantic config passes static checks, a short
 legacy+CVAT chain, and schema/count/hash/output/runtime audits.
 
+Required frame-data order:
+
+```text
+enhanced frame features
+  -> two-sided Hidden manifest and media gate
+  -> human Hidden decisions and fail-closed coverage
+  -> hidden_reviewed_frame_features.csv
+  -> temporal harmonization and sequence windows
+  -> behavior review units and behavior decision apply
+```
+
+CVAT Hidden is tracking-derived/untrusted before review. The Hidden GUI must
+show full-frame context, write decision CSV only, and apply each decision to
+its declared frame/object key. Do not use the legacy GUI that writes corrected
+source copies for a new lineage.
+
+Detailed settled Hidden policy and validation evidence are in
+`.agents/memory/09_HIDDEN_REVIEW.md`.
+
 The current canonical reviewed artifact is not human-review complete. Complete
 all mandatory review units, pass the fail-closed decision-coverage audit, then
 rebuild reviewed windows with `--disable-fast-reuse`. Use recording-date or
