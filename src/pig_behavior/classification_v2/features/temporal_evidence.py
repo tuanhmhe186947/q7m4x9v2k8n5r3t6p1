@@ -521,14 +521,7 @@ def _social_summary(
 ) -> dict[str, float | int]:
     """Measure partner/contact persistence without exporting partner identity."""
 
-    if "nearest_pig_id" in work.columns:
-        partner = work["nearest_pig_id"].fillna("").astype(str).to_numpy()
-    else:
-        partner = np.full(len(work), "", dtype=object)
-    if "nearest_track_id" in work.columns:
-        track_partner = work["nearest_track_id"].fillna("").astype(str).to_numpy()
-        has_pig_partner = np.char.str_len(partner.astype(str)) > 0
-        partner = np.where(has_pig_partner, partner, track_partner)
+    partner = _partner_array(work)
     neighbor_available = (
         np.char.str_len(partner.astype(str)) > 0
     ) & row_valid
@@ -550,7 +543,7 @@ def _social_summary(
 
     contact = _bool_array(work, "pair_contact_with_nearest")
     contact_runs = _frame_run_stats(contact, neighbor_available, frames)
-    approach, aggression, comparable_partner_pairs = _within_span_social_motion(
+    approach, _, aggression, comparable_partner_pairs = _within_span_social_motion(
         work,
         frames,
         row_valid,
@@ -591,6 +584,51 @@ def _social_summary(
     }
 
 
+def summarize_social_motion_dynamics(
+    frame_rows: pd.DataFrame,
+) -> dict[str, float]:
+    """Return window-local social dynamics for legacy tabular feature names."""
+
+    work = _ordered_rows(frame_rows)
+    frames = _numeric_array(work, "frame_index")
+    row_valid = _row_quality_mask(work)
+    partner = _partner_array(work)
+    neighbor_available = (
+        np.char.str_len(partner.astype(str)) > 0
+    ) & row_valid
+    contact = _bool_array(work, "pair_contact_with_nearest")
+    approach, separation, aggression, _ = _within_span_social_motion(
+        work,
+        frames,
+        row_valid,
+        partner,
+        neighbor_available,
+        contact,
+    )
+    return {
+        "approach_speed_max": _finite_max(approach),
+        "separation_speed_max": _finite_max(separation),
+        "aggression_score_proxy_mean": _finite_mean(aggression),
+        "aggression_score_proxy_max": _finite_max(aggression),
+    }
+
+
+def _partner_array(work: pd.DataFrame) -> np.ndarray:
+    """Resolve a video-local partner token without exporting it as a feature."""
+
+    if "nearest_pig_id" in work.columns:
+        partner = work["nearest_pig_id"].fillna("").astype(str).to_numpy()
+    else:
+        partner = np.full(len(work), "", dtype=object)
+    if "nearest_track_id" in work.columns:
+        track_partner = (
+            work["nearest_track_id"].fillna("").astype(str).to_numpy()
+        )
+        has_pig_partner = np.char.str_len(partner.astype(str)) > 0
+        partner = np.where(has_pig_partner, partner, track_partner)
+    return partner
+
+
 def _within_span_social_motion(
     work: pd.DataFrame,
     frames: np.ndarray,
@@ -598,11 +636,12 @@ def _within_span_social_motion(
     partner: np.ndarray,
     neighbor_available: np.ndarray,
     contact: np.ndarray,
-) -> tuple[np.ndarray, np.ndarray, int]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, int]:
     """Recompute approach and aggression without reading outside-span deltas."""
 
     row_count = len(work)
     approach = np.zeros(row_count, dtype="float64")
+    separation = np.zeros(row_count, dtype="float64")
     actor_speed = np.zeros(row_count, dtype="float64")
     if row_count > 1:
         delta_frame = np.diff(frames)
@@ -628,6 +667,13 @@ def _within_span_social_motion(
             None,
         )
         approach[1:] = approach_values
+        separation_values = np.zeros(row_count - 1, dtype="float64")
+        separation_values[comparable] = np.clip(
+            distance_delta[comparable] / delta_frame[comparable],
+            0.0,
+            None,
+        )
+        separation[1:] = separation_values
 
         cx = _numeric_array(work, "cx_n")
         cy = _numeric_array(work, "cy_n")
@@ -655,7 +701,7 @@ def _within_span_social_motion(
         * (actor_speed + approach)
         * (1.0 + density)
     )
-    return approach, aggression[row_valid], comparable_count
+    return approach, separation, aggression[row_valid], comparable_count
 
 
 def _pair_run_stats(
@@ -842,6 +888,20 @@ def _mean_abs(values: np.ndarray) -> float:
 
     finite = _finite(values)
     return float(np.mean(np.abs(finite))) if finite.size else 0.0
+
+
+def _finite_mean(values: np.ndarray) -> float:
+    """Return the mean finite value or zero when evidence is unavailable."""
+
+    finite = _finite(values)
+    return float(np.mean(finite)) if finite.size else 0.0
+
+
+def _finite_max(values: np.ndarray) -> float:
+    """Return the maximum finite value or zero when evidence is unavailable."""
+
+    finite = _finite(values)
+    return float(np.max(finite)) if finite.size else 0.0
 
 
 def _finite(values: np.ndarray) -> np.ndarray:

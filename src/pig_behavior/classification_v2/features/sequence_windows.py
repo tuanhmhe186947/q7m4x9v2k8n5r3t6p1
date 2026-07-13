@@ -19,6 +19,7 @@ import pandas as pd
 from pig_behavior.classification_v2.features.temporal_evidence import (
     WINDOW_TEMPORAL_EVIDENCE_COLUMNS,
     TemporalEvidenceConfig,
+    summarize_social_motion_dynamics,
     summarize_temporal_evidence,
 )
 from pig_behavior.classification_v2.features.temporal_harmonization import (
@@ -819,10 +820,17 @@ def _aggregate_window_features(
         if "pair_contact_with_nearest" in wg.columns
         else 0.0
     )
-    out["approach_speed_max_window"] = _safe_max(num("approach_speed_n_per_frame"))
-    out["separation_speed_max_window"] = _safe_max(num("separation_speed_n_per_frame"))
-    out["aggression_score_proxy_mean_window"] = _safe_mean(num("aggression_score_proxy"))
-    out["aggression_score_proxy_max_window"] = _safe_max(num("aggression_score_proxy"))
+    social_motion = summarize_social_motion_dynamics(wg)
+    out["approach_speed_max_window"] = social_motion["approach_speed_max"]
+    out["separation_speed_max_window"] = social_motion[
+        "separation_speed_max"
+    ]
+    out["aggression_score_proxy_mean_window"] = social_motion[
+        "aggression_score_proxy_mean"
+    ]
+    out["aggression_score_proxy_max_window"] = social_motion[
+        "aggression_score_proxy_max"
+    ]
     out.update(
         summarize_temporal_evidence(
             wg,

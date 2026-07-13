@@ -254,6 +254,27 @@ def test_sequence_window_recomputes_evidence_inside_requested_span() -> None:
     assert windows.iloc[0]["roi_feeder_contact_ratio_window"] == 2 / 6
 
 
+def test_sequence_window_recomputes_legacy_social_aggregates() -> None:
+    frames = _six_frame_fixture()
+    _, _, baseline = build_sequence_windows(frames, window_lengths=(6,))
+    frames["approach_speed_n_per_frame"] = 999.0
+    frames["separation_speed_n_per_frame"] = 999.0
+    frames["aggression_score_proxy"] = 999.0
+
+    _, _, changed = build_sequence_windows(frames, window_lengths=(6,))
+
+    columns = [
+        "approach_speed_max_window",
+        "separation_speed_max_window",
+        "aggression_score_proxy_mean_window",
+        "aggression_score_proxy_max_window",
+    ]
+    pdt.assert_series_equal(
+        changed.loc[0, columns],
+        baseline.loc[0, columns],
+    )
+
+
 def test_trainer_whitelist_and_semantics_cover_every_new_window_feature() -> None:
     trainer = json.loads(
         Path("configs/classification_v2/trainer_contract_v1.json").read_text(
