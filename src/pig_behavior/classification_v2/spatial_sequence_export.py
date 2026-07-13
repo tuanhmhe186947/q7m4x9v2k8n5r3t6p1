@@ -170,6 +170,9 @@ def export_spatial_sequences(
 
     missing_frame_slots = 0
     truncated_windows = 0
+    motion_rebased_windows = 0
+    motion_valid_pair_count = 0
+    motion_reset_row_count = 0
     for object_key, window_group in work_windows.groupby("object_track_key", sort=False):
         frame_data = grouped.get(str(object_key))
         for i, row in window_group.iterrows():
@@ -201,6 +204,14 @@ def export_spatial_sequences(
             slot_positions = np.flatnonzero(valid)
             observed_mask[i, slot_positions] = 1.0
             values = feature_matrix[valid_positions]
+            values, motion_audit = _rebase_window_motion(
+                values,
+                flat_feature_names,
+                wanted_frames[valid],
+            )
+            motion_rebased_windows += int(motion_audit["rebased"])
+            motion_valid_pair_count += int(motion_audit["valid_pairs"])
+            motion_reset_row_count += int(motion_audit["reset_rows"])
             for name, col_slice in group_slices.items():
                 arrays[name][i, slot_positions, :] = values[:, col_slice]
             missing_frame_slots += int((~valid).sum())
@@ -236,12 +247,157 @@ def export_spatial_sequences(
         "observed_ratio": float(observed_frame_slots / max(1, observed_mask.size)),
         "observed_within_length_ratio": float(observed_frame_slots / max(1, valid_length_slots)),
         "truncated_windows": int(truncated_windows),
+        "motion_rebased_windows": int(motion_rebased_windows),
+        "motion_valid_pair_count": int(motion_valid_pair_count),
+        "motion_reset_row_count": int(motion_reset_row_count),
         "errors": [],
         "warnings": [],
     }
     if missing_frame_slots:
         audit["warnings"].append(f"missing_frame_slots={missing_frame_slots}")
     return SpatialSequenceExport(arrays=arrays, feature_names=feature_names, audit=audit)
+
+
+def _rebase_window_motion(
+    values: np.ndarray,
+    feature_names: list[str],
+    frame_indices: np.ndarray,
+) -> tuple[np.ndarray, dict[str, int | bool]]:
+    """Recompute pair-derived motion without reading frames outside a window."""
+    motion_columns = SPATIAL_FRAME_FEATURES["motion_delta"]
+    present_motion = [column for column in motion_columns if column in feature_names]
+    if not present_motion or len(values) == 0:
+        return values, {"rebased": False, "valid_pairs": 0, "reset_rows": 0}
+
+    out = values.copy()
+    indices = {column: feature_names.index(column) for column in feature_names}
+    for column in present_motion:
+        out[:, indices[column]] = 0.0
+
+    required_position = ["cx_n", "cy_n", "bw_n", "bh_n"]
+    if not all(column in indices for column in required_position):
+        return out, {
+            "rebased": True,
+            "valid_pairs": 0,
+            "reset_rows": int(len(out)),
+        }
+
+    row_valid = np.ones(len(out), dtype=bool)
+    for column in [
+        "bbox_valid",
+        "actor_bbox_valid",
+        "geometry_feature_valid",
+        "spatiotemporal_feature_valid",
+    ]:
+        if column in indices:
+            row_valid &= out[:, indices[column]] > 0.5
+
+    frame_delta = np.diff(frame_indices.astype("float64"))
+    valid_pair = (
+        np.isfinite(frame_delta)
+        & (frame_delta > 0)
+        & row_valid[:-1]
+        & row_valid[1:]
+    )
+    pair_rows = np.flatnonzero(valid_pair) + 1
+    previous_rows = pair_rows - 1
+
+    raw_to_delta = {
+        "cx_n": "delta_cx_n",
+        "cy_n": "delta_cy_n",
+        "bw_n": "delta_bw_n",
+        "bh_n": "delta_bh_n",
+        "area_n": "delta_area_n",
+        "aspect_ratio": "delta_aspect_ratio",
+    }
+    for raw_column, delta_column in raw_to_delta.items():
+        if raw_column not in indices or delta_column not in indices:
+            continue
+        delta = (
+            out[pair_rows, indices[raw_column]]
+            - out[previous_rows, indices[raw_column]]
+        )
+        finite = np.isfinite(delta)
+        out[pair_rows[finite], indices[delta_column]] = delta[finite]
+
+    dx = out[pair_rows, indices["cx_n"]] - out[
+        previous_rows,
+        indices["cx_n"],
+    ]
+    dy = out[pair_rows, indices["cy_n"]] - out[
+        previous_rows,
+        indices["cy_n"],
+    ]
+    speed = np.hypot(dx, dy) / frame_delta[valid_pair]
+    finite_speed = np.isfinite(speed)
+    if "speed_n_per_frame" in indices:
+        out[pair_rows[finite_speed], indices["speed_n_per_frame"]] = speed[
+            finite_speed
+        ]
+
+    if "speed_n_per_sec" in indices:
+        original_speed_sec = values[:, indices["speed_n_per_sec"]]
+        finite_speed_sec = np.isfinite(original_speed_sec[pair_rows])
+        out[
+            pair_rows[finite_speed_sec],
+            indices["speed_n_per_sec"],
+        ] = original_speed_sec[pair_rows[finite_speed_sec]]
+
+    _recompute_higher_order_motion(
+        out,
+        indices,
+        pair_rows,
+        frame_delta,
+        valid_pair,
+    )
+    return out, {
+        "rebased": True,
+        "valid_pairs": int(valid_pair.sum()),
+        "reset_rows": int(len(out) - valid_pair.sum()),
+    }
+
+
+def _recompute_higher_order_motion(
+    values: np.ndarray,
+    indices: dict[str, int],
+    pair_rows: np.ndarray,
+    frame_delta: np.ndarray,
+    valid_pair: np.ndarray,
+) -> None:
+    """Recompute acceleration and turning after window-local speeds exist."""
+    if len(pair_rows) < 2:
+        return
+    speed_column = indices.get("speed_n_per_frame")
+    if speed_column is None:
+        return
+
+    pair_is_consecutive = np.diff(pair_rows) == 1
+    higher_rows = pair_rows[1:][pair_is_consecutive]
+    previous_pair_rows = higher_rows - 1
+    if "abs_accel_n_per_frame2" in indices:
+        accel = np.abs(
+            values[higher_rows, speed_column]
+            - values[previous_pair_rows, speed_column]
+        ) / frame_delta[valid_pair][1:][pair_is_consecutive]
+        values[higher_rows, indices["abs_accel_n_per_frame2"]] = accel
+
+    if {
+        "abs_direction_change_rad",
+        "delta_cx_n",
+        "delta_cy_n",
+    }.issubset(indices):
+        dx = values[pair_rows, indices["delta_cx_n"]]
+        dy = values[pair_rows, indices["delta_cy_n"]]
+        direction = np.arctan2(dy, dx)
+        change = np.abs(
+            (direction[1:] - direction[:-1] + np.pi)
+            % (2.0 * np.pi)
+            - np.pi
+        )
+        values[
+            higher_rows,
+            indices["abs_direction_change_rad"],
+        ] = change[pair_is_consecutive]
 
 
 def _validate_window_alignment_contract(windows: pd.DataFrame) -> None:
