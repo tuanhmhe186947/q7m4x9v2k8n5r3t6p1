@@ -33,6 +33,8 @@ def save_training_checkpoint(
     optimizer: torch.optim.Optimizer,
     scaler: torch.amp.GradScaler | None,
     config: ClassificationV2TrainingConfig,
+    preprocessing_sha256: str,
+    train_window_id_sha256: str,
     epoch: int,
     global_step: int,
     metrics: dict[str, Any],
@@ -42,7 +44,12 @@ def save_training_checkpoint(
     if epoch < 0 or global_step < 0:
         raise ValueError("epoch and global_step must be non-negative")
     git_state = _git_state()
-    lineage = _lineage(config, git_state)
+    lineage = _lineage(
+        config,
+        git_state,
+        preprocessing_sha256=preprocessing_sha256,
+        train_window_id_sha256=train_window_id_sha256,
+    )
     payload = {
         "schema_version": CHECKPOINT_SCHEMA_VERSION,
         "lineage": lineage,
@@ -86,6 +93,8 @@ def load_training_checkpoint(
     optimizer: torch.optim.Optimizer,
     scaler: torch.amp.GradScaler | None,
     config: ClassificationV2TrainingConfig,
+    preprocessing_sha256: str,
+    train_window_id_sha256: str,
     map_location: torch.device | str = "cpu",
     restore_rng: bool = True,
 ) -> dict[str, Any]:
@@ -94,7 +103,13 @@ def load_training_checkpoint(
     payload = torch.load(path, map_location=map_location, weights_only=False)
     if payload.get("schema_version") != CHECKPOINT_SCHEMA_VERSION:
         raise ValueError(f"checkpoint schema mismatch: {payload.get('schema_version')}")
-    expected = _lineage(config, _git_state(), include_git=False)
+    expected = _lineage(
+        config,
+        _git_state(),
+        preprocessing_sha256=preprocessing_sha256,
+        train_window_id_sha256=train_window_id_sha256,
+        include_git=False,
+    )
     observed = payload.get("lineage", {})
     mismatches = {
         key: {"expected": value, "observed": observed.get(key)}
@@ -124,13 +139,19 @@ def _lineage(
     config: ClassificationV2TrainingConfig,
     git_state: dict[str, Any],
     *,
+    preprocessing_sha256: str,
+    train_window_id_sha256: str,
     include_git: bool = True,
 ) -> dict[str, Any]:
+    if not preprocessing_sha256 or not train_window_id_sha256:
+        raise ValueError("checkpoint preprocessing lineage must not be blank")
     lineage = {
         "config_sha256": training_config_sha256(config),
         "snapshot_id": config.dataset.snapshot_json.stem,
         "fold_id": config.execution.fold_id,
         "architecture_version": config.model.architecture_version,
+        "preprocessing_sha256": preprocessing_sha256,
+        "train_window_id_sha256": train_window_id_sha256,
     }
     if include_git:
         lineage.update(git_commit=git_state.get("commit"), git_dirty=git_state.get("dirty"))

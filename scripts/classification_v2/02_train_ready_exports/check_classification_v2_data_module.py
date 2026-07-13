@@ -31,17 +31,24 @@ def main() -> None:
     with StrictTrainingDataModule(config, device=torch.device("cpu")) as data:
         train_indices = data.balanced_smoke_indices(train=True)
         eval_indices = data.balanced_smoke_indices(train=False)
-        data.fit_spatial_normalizer(train_indices)
+        data.fit_fold_preprocessor()
         train_batch = data.batch(train_indices)
         audit = data.audit()
         if set(train_batch.model_inputs) != set(MODEL_INPUT_KEYS):
             errors.append("model_input_key_contract_mismatch")
         forbidden_tokens = ["window", "source", "behavior", "target", "review", "manual", "path"]
-        leaked = [key for key in train_batch.model_inputs if any(token in key.lower() for token in forbidden_tokens)]
+        leaked = [
+            key
+            for key in train_batch.model_inputs
+            if any(token in key.lower() for token in forbidden_tokens)
+        ]
         if leaked:
             errors.append(f"forbidden_model_input_keys={leaked}")
         if len(train_indices) != len(eval_indices) or len(train_indices) == 0:
-            errors.append(f"balanced_smoke_size_mismatch=train:{len(train_indices)}:eval:{len(eval_indices)}")
+            errors.append(
+                "balanced_smoke_size_mismatch="
+                f"train:{len(train_indices)}:eval:{len(eval_indices)}"
+            )
         if audit["duplicate_window_id"]:
             errors.append(f"duplicate_window_id={audit['duplicate_window_id']}")
         if audit["window_id_sha256"] != audit["auxiliary_window_id_sha256"]:

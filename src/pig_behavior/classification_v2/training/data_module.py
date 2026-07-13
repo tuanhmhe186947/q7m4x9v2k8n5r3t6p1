@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -20,7 +21,15 @@ from pig_behavior.classification_v2.datasets.visual_interaction_loader import (
     VisualInteractionWindowDataset,
 )
 from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
-from pig_behavior.classification_v2.training.config import ClassificationV2TrainingConfig
+from pig_behavior.classification_v2.training.config import (
+    ClassificationV2TrainingConfig,
+    training_config_to_jsonable,
+)
+from pig_behavior.classification_v2.training.fold_preprocessing import (
+    FoldPreprocessingState,
+    file_sha256,
+    fit_fold_preprocessing,
+)
 from pig_behavior.classification_v2.training.full_multimodal_oof import (
     FullMultimodalOofConfig,
     _batch_from_indices,
@@ -103,7 +112,15 @@ class StrictTrainingDataModule:
         self.auxiliary = _align_auxiliary(config.dataset.auxiliary_targets_csv, self.bundle.frame)
         self.auxiliary_label_maps = build_auxiliary_label_maps(self.auxiliary)
         self.label_to_index = {label: index for index, label in enumerate(VALID_BEHAVIORS)}
-        self.spatial_normalizer: dict[str, dict[str, np.ndarray]] = {}
+        self.spatial_audit_path = (
+            config.dataset.train_ready_root / "spatial_sequence_audit.json"
+        )
+        self.spatial_feature_names = _load_spatial_feature_names(
+            self.spatial_audit_path,
+            self.bundle.arrays,
+            config.model.spatial_feature_groups,
+        )
+        self.fold_preprocessing_state: FoldPreprocessingState | None = None
         self._validate_behavior_target_alignment()
 
     def close(self) -> None:
@@ -160,7 +177,7 @@ class StrictTrainingDataModule:
             self.full_config,
             self.device,
         )
-        self._apply_spatial_normalizer(raw["spatial_features"])
+        self._apply_fold_preprocessing(raw)
         model_inputs = {
             key: (raw["image_length_mask"] if key == "length_mask" else raw[key])
             for key in MODEL_INPUT_KEYS
@@ -219,50 +236,64 @@ class StrictTrainingDataModule:
             "visual_context_load_audit": self.visual_dataset.load_audit(),
         }
 
-    def fit_spatial_normalizer(self, train_indices: np.ndarray) -> None:
-        """Fit declared spatial means/scales from outer-train observed slots only."""
+    def fit_fold_preprocessor(self) -> FoldPreprocessingState:
+        """Fit the complete configured fold from eligible training-role rows."""
 
-        if len(train_indices) == 0:
-            raise ValueError("cannot fit spatial normalizer on zero train rows")
-        observed = self.bundle.arrays["observed_mask"][train_indices].astype(bool)
-        length = self.bundle.arrays["length_mask"][train_indices].astype(bool)
-        valid_slots = observed & length
-        state: dict[str, dict[str, np.ndarray]] = {}
-        for group in self.config.model.standardize_spatial_groups:
-            values = np.asarray(self.bundle.arrays[group][train_indices], dtype=np.float64)
-            selected = values[valid_slots]
-            if selected.size == 0:
-                raise ValueError(f"no observed training values for spatial group={group}")
-            selected = np.where(np.isfinite(selected), selected, np.nan)
-            mean = np.nanmean(selected, axis=0)
-            scale = np.nanstd(selected, axis=0)
-            mean = np.where(np.isfinite(mean), mean, 0.0)
-            scale = np.where(np.isfinite(scale) & (scale > 1e-8), scale, 1.0)
-            state[group] = {"mean": mean.astype(np.float32), "scale": scale.astype(np.float32)}
-        self.spatial_normalizer = state
+        config_payload = json.dumps(
+            training_config_to_jsonable(self.config),
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        state = fit_fold_preprocessing(
+            self.bundle.frame,
+            self.bundle.arrays,
+            self.spatial_feature_names,
+            fold_id=self.config.execution.fold_id,
+            snapshot_sha256=file_sha256(self.config.dataset.snapshot_json),
+            config_sha256=hashlib.sha256(config_payload.encode("utf-8")).hexdigest(),
+            spatial_audit_sha256=file_sha256(self.spatial_audit_path),
+            feature_groups=self.config.model.spatial_feature_groups,
+            standardized_groups=self.config.model.standardize_spatial_groups,
+        )
+        self.fold_preprocessing_state = state
+        return state
+
+    def fit_spatial_normalizer(self, train_indices: np.ndarray) -> None:
+        """Compatibility API that now requires the complete declared train role."""
+
+        expected = self.split_indices("train")
+        provided = np.asarray(train_indices, dtype=np.int64)
+        if not np.array_equal(provided, expected):
+            raise ValueError(
+                "spatial preprocessing must fit the complete grouped train role: "
+                f"provided={len(provided)}, expected={len(expected)}"
+            )
+        self.fit_fold_preprocessor()
 
     def spatial_normalizer_audit(self) -> dict[str, Any]:
         """Serialize fold-local normalization state without exposing it as model X metadata."""
 
+        if self.fold_preprocessing_state is None:
+            return {
+                "fit_scope": "not_fitted",
+                "groups": {},
+                "state_sha256": None,
+            }
+        payload = self.fold_preprocessing_state.to_payload()
         return {
-            "fit_scope": "outer_train_rows_only",
-            "groups": {
-                group: {
-                    "mean": values["mean"].astype(float).tolist(),
-                    "scale": values["scale"].astype(float).tolist(),
-                }
-                for group, values in self.spatial_normalizer.items()
-            },
-            "excluded_groups": sorted(
-                set(self.config.model.spatial_feature_groups).difference(self.spatial_normalizer)
-            ),
+            **payload,
+            "fit_scope": "eligible_grouped_train_role_only",
+            "groups": payload["statistics"],
         }
 
-    def _apply_spatial_normalizer(self, features: dict[str, torch.Tensor]) -> None:
-        for group, state in self.spatial_normalizer.items():
-            mean = torch.as_tensor(state["mean"], device=self.device)
-            scale = torch.as_tensor(state["scale"], device=self.device)
-            features[group] = torch.nan_to_num((features[group] - mean) / scale)
+    def _apply_fold_preprocessing(self, raw: dict[str, Any]) -> None:
+        if self.fold_preprocessing_state is None:
+            raise ValueError("fold preprocessing must be fitted before building a batch")
+        raw["spatial_features"] = self.fold_preprocessing_state.transform_torch(
+            raw["spatial_features"],
+            length_mask=raw["spatial_length_mask"],
+            observed_mask=raw["spatial_observed_mask"],
+        )
 
     def _validate_behavior_target_alignment(self) -> None:
         auxiliary_behavior = (
@@ -336,6 +367,37 @@ def _to_full_config(
 
 def _ids_hash(values: pd.Series) -> str:
     return hashlib.sha256("\n".join(values.astype(str)).encode("utf-8")).hexdigest()
+
+
+def _load_spatial_feature_names(
+    audit_path: Path,
+    arrays: dict[str, np.ndarray],
+    feature_groups: tuple[str, ...],
+) -> dict[str, tuple[str, ...]]:
+    """Bind tensor dimensions to the exact exporter feature order."""
+
+    if not audit_path.exists():
+        raise FileNotFoundError(
+            "spatial feature-order audit is required for training: "
+            f"{audit_path}"
+        )
+    payload = json.loads(audit_path.read_text(encoding="utf-8"))
+    declared = payload.get("feature_names")
+    if not isinstance(declared, dict):
+        raise ValueError("spatial sequence audit has no feature_names mapping")
+    result: dict[str, tuple[str, ...]] = {}
+    for group in feature_groups:
+        if group not in arrays:
+            raise ValueError(f"spatial array missing configured group={group}")
+        names = tuple(str(value).strip() for value in declared.get(group, ()))
+        dimension = int(np.asarray(arrays[group]).shape[-1])
+        if len(names) != dimension or len(set(names)) != len(names):
+            raise ValueError(
+                f"spatial feature-order mismatch for {group}: "
+                f"names={list(names)}, dimension={dimension}"
+            )
+        result[group] = names
+    return result
 
 
 def validate_model_inputs(model_inputs: dict[str, Any]) -> None:

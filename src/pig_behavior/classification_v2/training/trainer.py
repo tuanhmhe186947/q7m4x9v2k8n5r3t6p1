@@ -22,6 +22,7 @@ from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
 from pig_behavior.classification_v2.training.checkpoint import (
     load_training_checkpoint,
     save_training_checkpoint,
+    training_config_sha256,
 )
 from pig_behavior.classification_v2.training.config import (
     ClassificationV2TrainingConfig,
@@ -31,6 +32,10 @@ from pig_behavior.classification_v2.training.data_module import (
     StrictTrainingBatch,
     StrictTrainingDataModule,
     validate_model_inputs,
+)
+from pig_behavior.classification_v2.training.fold_preprocessing import (
+    FoldPreprocessingState,
+    ensure_fold_preprocessing_state,
 )
 from pig_behavior.classification_v2.training.multitask_loss import (
     AuxiliaryTaskSpec,
@@ -67,7 +72,11 @@ def run_training(config: ClassificationV2TrainingConfig) -> dict[str, Any]:
             else data.split_indices("test")
         )
         _require_nonempty_split(train_indices, eval_indices, test_indices)
-        data.fit_spatial_normalizer(train_indices)
+        preprocessing_state = data.fit_fold_preprocessor()
+        preprocessing_status = ensure_fold_preprocessing_state(
+            output_dir / "preprocessing.json",
+            preprocessing_state,
+        )
         probe = data.batch(train_indices[: min(len(train_indices), 2)])
         model = _build_model(config, probe).to(device)
         optimizer = torch.optim.AdamW(
@@ -75,7 +84,13 @@ def run_training(config: ClassificationV2TrainingConfig) -> dict[str, Any]:
             lr=config.optimization.learning_rate,
             weight_decay=config.optimization.weight_decay,
         )
-        scaler = torch.amp.GradScaler("cuda", enabled=device.type == "cuda" and config.optimization.precision == "amp")
+        scaler = torch.amp.GradScaler(
+            "cuda",
+            enabled=(
+                device.type == "cuda"
+                and config.optimization.precision == "amp"
+            ),
+        )
         behavior_weights = _behavior_class_weights(data, train_indices, config, device)
         auxiliary_weights = (
             build_fold_auxiliary_class_weights(
@@ -105,6 +120,10 @@ def run_training(config: ClassificationV2TrainingConfig) -> dict[str, Any]:
                 optimizer=optimizer,
                 scaler=scaler,
                 config=config,
+                preprocessing_sha256=preprocessing_state.state_sha256,
+                train_window_id_sha256=(
+                    preprocessing_state.train_window_id_sha256
+                ),
                 map_location=device,
                 restore_rng=True,
             )
@@ -145,6 +164,10 @@ def run_training(config: ClassificationV2TrainingConfig) -> dict[str, Any]:
                 optimizer=optimizer,
                 scaler=scaler,
                 config=config,
+                preprocessing_sha256=preprocessing_state.state_sha256,
+                train_window_id_sha256=(
+                    preprocessing_state.train_window_id_sha256
+                ),
                 epoch=epoch,
                 global_step=global_step,
                 metrics=record,
@@ -158,13 +181,21 @@ def run_training(config: ClassificationV2TrainingConfig) -> dict[str, Any]:
                     optimizer=optimizer,
                     scaler=scaler,
                     config=config,
+                    preprocessing_sha256=preprocessing_state.state_sha256,
+                    train_window_id_sha256=(
+                        preprocessing_state.train_window_id_sha256
+                    ),
                     epoch=epoch,
                     global_step=global_step,
                     metrics=record,
                 )
             else:
                 stale_epochs += 1
-            if config.execution.mode != "smoke" and stale_epochs >= config.optimization.early_stopping_patience:
+            if (
+                config.execution.mode != "smoke"
+                and stale_epochs
+                >= config.optimization.early_stopping_patience
+            ):
                 break
         best_checkpoint = output_dir / "best_validation.pt"
         if not best_checkpoint.exists():
@@ -175,6 +206,8 @@ def run_training(config: ClassificationV2TrainingConfig) -> dict[str, Any]:
             optimizer=optimizer,
             scaler=scaler,
             config=config,
+            preprocessing_sha256=preprocessing_state.state_sha256,
+            train_window_id_sha256=preprocessing_state.train_window_id_sha256,
             map_location=device,
             restore_rng=False,
         )
@@ -196,6 +229,8 @@ def run_training(config: ClassificationV2TrainingConfig) -> dict[str, Any]:
             device,
             resumed_from,
             test_metrics,
+            preprocessing_state,
+            preprocessing_status,
         )
     _write_json_atomic(output_dir / "run_audit.json", audit)
     _write_json_atomic(output_dir / "registry_entry.json", _registry_entry(audit, output_dir))
@@ -309,7 +344,12 @@ def _evaluate(
                 "model_version": config.model.architecture_version,
                 "snapshot_id": config.dataset.snapshot_json.stem,
             }
-            row.update({f"prob_{label}": float(probabilities[row_index, i]) for i, label in enumerate(labels)})
+            row.update(
+                {
+                    f"prob_{label}": float(probabilities[row_index, i])
+                    for i, label in enumerate(labels)
+                }
+            )
             rows.append(row)
     predictions = pd.DataFrame(rows)
     metric = _macro_f1(predictions["true_label"], predictions["predicted_label"], labels)
@@ -362,7 +402,8 @@ def _behavior_class_weights(
     labels = data.bundle.y.iloc[indices].astype(str)
     counts = labels.value_counts().reindex(VALID_BEHAVIORS, fill_value=0).astype(float)
     if (counts <= 0).any():
-        raise ValueError(f"training fold missing behavior classes: {counts[counts <= 0].index.tolist()}")
+        missing = counts[counts <= 0].index.tolist()
+        raise ValueError(f"training fold missing behavior classes: {missing}")
     inverse = (float(counts.max()) / counts) ** config.loss.class_weight_power
     weights = (inverse / float(inverse.mean())).clip(upper=config.loss.class_weight_max)
     return torch.tensor(weights.to_numpy(), dtype=torch.float32, device=device)
@@ -398,6 +439,8 @@ def _run_audit(
     device: torch.device,
     resumed_from: str | None,
     test_metrics: dict[str, float],
+    preprocessing_state: FoldPreprocessingState,
+    preprocessing_status: str,
 ) -> dict[str, Any]:
     config_payload = training_config_to_jsonable(config)
     git = _git_state()
@@ -405,14 +448,18 @@ def _run_audit(
         "schema_version": RUN_AUDIT_SCHEMA_VERSION,
         "valid": True,
         "config": config_payload,
-        "config_sha256": hashlib.sha256(json.dumps(config_payload, sort_keys=True).encode()).hexdigest(),
+        "config_sha256": training_config_sha256(config),
         "snapshot_id": config.dataset.snapshot_json.stem,
         "snapshot_sha256": _file_sha256(config.dataset.snapshot_json),
         "split_manifest_sha256": _file_sha256(config.dataset.native_oof_fold_manifest),
         "trainer_contract_sha256": _file_sha256(config.dataset.trainer_contract_json),
         "git": git,
         "device": str(device),
-        "hardware": torch.cuda.get_device_name(device) if device.type == "cuda" else platform.processor(),
+        "hardware": (
+            torch.cuda.get_device_name(device)
+            if device.type == "cuda"
+            else platform.processor()
+        ),
         "versions": {
             "python": platform.python_version(),
             "torch": torch.__version__,
@@ -424,6 +471,14 @@ def _run_audit(
         "label_order": list(VALID_BEHAVIORS),
         "feature_whitelist": list(config.model.spatial_feature_groups),
         "normalization_imputation": "bound_to_trainer_contract_and_snapshot",
+        "preprocessing": {
+            "path": "preprocessing.json",
+            "state_sha256": preprocessing_state.state_sha256,
+            "train_window_id_sha256": (
+                preprocessing_state.train_window_id_sha256
+            ),
+            "status": preprocessing_status,
+        },
         "train_selected_window_id_sha256": _selected_id_hash(data, train_indices),
         "validation_selected_window_id_sha256": _selected_id_hash(data, eval_indices),
         "test_selected_window_id_sha256": _selected_id_hash(data, test_indices),
@@ -448,6 +503,7 @@ def _run_audit(
             "best_checkpoint": "best_validation.pt",
             "predictions": "validation_predictions.csv",
             "oof_test_predictions": "oof_test_predictions.csv",
+            "preprocessing": "preprocessing.json",
         },
         "errors": [],
     }
@@ -507,7 +563,12 @@ def _file_sha256(path: Path) -> str:
 
 def _git_state() -> dict[str, Any]:
     try:
-        commit = subprocess.run(["git", "rev-parse", "HEAD"], check=True, capture_output=True, text=True).stdout.strip()
+        commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
         dirty = bool(
             subprocess.run(
                 ["git", "status", "--short"], check=True, capture_output=True, text=True

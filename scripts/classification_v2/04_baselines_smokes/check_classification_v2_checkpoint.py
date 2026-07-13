@@ -18,7 +18,9 @@ from pig_behavior.classification_v2.training.config import load_training_config
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Check atomic classification_v2 checkpoint/resume contract.")
+    parser = argparse.ArgumentParser(
+        description="Check atomic classification_v2 checkpoint/resume contract."
+    )
     parser.add_argument(
         "--config",
         type=Path,
@@ -46,6 +48,8 @@ def main() -> None:
         optimizer=optimizer,
         scaler=scaler,
         config=config,
+        preprocessing_sha256="fixture-preprocessing-sha256",
+        train_window_id_sha256="fixture-train-window-id-sha256",
         epoch=2,
         global_step=17,
         metrics={"loss": float(loss.detach().item())},
@@ -59,6 +63,8 @@ def main() -> None:
         optimizer=optimizer,
         scaler=scaler,
         config=config,
+        preprocessing_sha256="fixture-preprocessing-sha256",
+        train_window_id_sha256="fixture-train-window-id-sha256",
         restore_rng=True,
     )
     resumed_rng = _draw_rng()
@@ -71,6 +77,8 @@ def main() -> None:
             optimizer=optimizer,
             scaler=scaler,
             config=stale_config,
+            preprocessing_sha256="fixture-preprocessing-sha256",
+            train_window_id_sha256="fixture-train-window-id-sha256",
             restore_rng=False,
         )
     except ValueError:
@@ -96,7 +104,10 @@ def main() -> None:
         "valid": not errors,
     }
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    (args.output_dir / "checkpoint_contract_audit.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
+    (args.output_dir / "checkpoint_contract_audit.json").write_text(
+        json.dumps(result, indent=2),
+        encoding="utf-8",
+    )
     print(json.dumps(result, indent=2))
     if errors:
         raise SystemExit(1)
