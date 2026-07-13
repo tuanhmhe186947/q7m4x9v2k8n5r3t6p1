@@ -91,8 +91,11 @@ Independent training-contract engineering is also complete in code:
   v2 to code/data/cache/fold/config identity, and appends immutable run rows;
 - caller checks consume the returned lineage directory instead of guessing an
   artifact path from the requested output root.
+- `318bf58` adds ten exact model modes, four mask-safe temporal encoders,
+  branch availability/quality contracts, checkpoint schema v3, and registry
+  v2. The smoke factory downloads no weights and performs no optimizer steps.
 
-The current classification regression is 292 passed and 181 deselected. This
+The current classification regression is 319 passed and 181 deselected. This
 evidence remains synthetic/fixture-only; it has not frozen or trained the
 incomplete human-review lineage.
 
@@ -115,6 +118,7 @@ incomplete human-review lineage.
 | Temporal-view code contract | PASS IN CODE | 22 fixture tests; active packet blocked |
 | Fold-local preprocessing/weights | PASS IN CODE | Train-only fit and native-event tests |
 | Run lineage/registry | PASS IN CODE | 33 focused tests; checkpoint smoke PASS |
+| Model factory/mask contract | PASS IN CODE | 10 modes; 4 temporal encoders |
 | Model smoke on active snapshot | NOT RUN | Snapshot hashes are not frozen |
 | Full OOF on active snapshot | NOT AUTHORIZED | Smoke and launch gates not reached |
 | Q2 result claim | NOT ALLOWED | Active reviewed evaluation is absent |

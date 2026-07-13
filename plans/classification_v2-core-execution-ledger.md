@@ -93,6 +93,9 @@ Independent in-progress gates:
 - Run lineage and registry: `PASS IN CODE` at `16cdb93`; every run is isolated
   by `fold_id/run_id`, checkpoint schema v2 binds exact lineage, and terminal
   registry rows are append-only and independently mergeable.
+- Configurable model factory: `PASS IN CODE` at `318bf58`; ten model modes and
+  four temporal encoders enforce exact branch, mask, shape, and lineage rules.
+  Checkpoint schema v3 and registry v2 bind the explicit `model_mode`.
 
 ## Independent Work Queue
 
@@ -101,9 +104,10 @@ Work proceeds in dependency order without fabricating human evidence:
 1. Complete Hidden clustered uncertainty and target-independent prevalence gates.
 2. Fixed-six manifests and structural shortcut probes: `COMPLETED IN CODE`.
 3. Fold-local preprocessing, event balancing, and lineage: `COMPLETED IN CODE`.
-4. Complete configurable model/mask/shape contracts without downloading weights.
-5. Complete native-collapse and paired-evaluation tests with synthetic predictions.
-6. Reconcile the historical baseline only as a registered engineering control.
+4. Configurable model/mask/shape contracts: `COMPLETED IN CODE`.
+5. Wire real fixed-six `time_delta` through strict loaders and hash lineage.
+6. Complete native-collapse and paired-evaluation tests with synthetic predictions.
+7. Reconcile the historical baseline only as a registered engineering control.
 
 ## Promotion And Full-Run Lock
 
@@ -136,10 +140,11 @@ authorization.
 | 2026-07-14 | Fold-local preprocessing contract | PASS IN CODE | `97f83c5` |
 | 2026-07-14 | Native-event fold weighting | PASS IN CODE | `73b901d` |
 | 2026-07-14 | Run lineage and append-only registry | PASS IN CODE | `16cdb93` |
+| 2026-07-14 | Mask-safe configurable model factory | PASS IN CODE | `318bf58` |
 
 ## Next Checkpoint
 
-The next isolated achievement is the configurable model factory with explicit
-modality availability/quality masks and forward-shape contracts. Unit tests
-must not download pretrained weights or infer human decisions. Hidden/behavior
-review remains the separate blocker for freezing the reviewed P0 snapshot.
+The next isolated achievement is strict fixed-six real-time-delta loading with
+ordered-key/hash lineage and missing-slot tests. This must make Transformer
+training fail closed until real timing is present. Hidden/behavior review
+remains the separate blocker for freezing the reviewed P0 snapshot.

@@ -25,6 +25,12 @@ artifacts now live under `output_root/fold_id/run_id`; downstream callers must
 consume the returned lineage path. This remains engineering readiness only and
 does not authorize model smoke on an unfrozen reviewed snapshot.
 
+Commit `318bf58` completes the configurable model-factory contract in code.
+Ten model modes and four temporal encoders pass mask, shape, missing-modality,
+gradient, checkpoint, and lineage tests without downloading weights. This does
+not authorize ResNet training: the strict loader must first provide real
+fixed-six `time_delta`, and the reviewed snapshot remains blocked.
+
 The identifier-v2 code/data chain passes at commit `a83d5a5`. Its bounded root
 has 688 frame rows, 63 native/review units, 438 ordered windows, exact model-X
 whitelisting, zero trainable missing spatial slots, and 8/8 deterministic stage

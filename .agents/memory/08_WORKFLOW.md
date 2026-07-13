@@ -112,7 +112,12 @@ Current state:
 - Temporal-view manifests and structural shortcut checks pass 22 synthetic
   tests at `bb225ff`; no active reviewed packet has been built from them yet.
 - Fold-local preprocessing, native-event weighting, and immutable run lineage
-  pass 292 classification tests at `97f83c5`, `73b901d`, and `16cdb93`.
+  pass at `97f83c5`, `73b901d`, and `16cdb93`.
+- The mask-safe factory at `318bf58` exposes ten exact model modes and four
+  temporal encoders. Current classification regression is 319 passed and 181
+  deselected; this is fixture evidence, not training authorization.
+- Transformer training remains blocked until strict fixed-six loaders emit real
+  `time_delta` tensors bound to ordered manifest hashes.
 - The active lineage stops at block `01`: the Hidden v5 template passes, but
   human Hidden decisions are only 30/5,171 and apply is incomplete.
 - Behavior review also fails closed with 3/4,670 decisions, 4,667 missing, and

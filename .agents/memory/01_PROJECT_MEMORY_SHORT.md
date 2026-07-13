@@ -1,5 +1,18 @@
 # Project Memory Short
 
+## 2026-07-14 mask-safe configurable model factory
+
+- Commit `318bf58` adds ten exact model modes and four temporal encoders behind
+  one validated factory; direct 10-class supervision remains mandatory.
+- Availability and quality masks gate optional data without entering X as
+  behavior evidence. Masked NaN values cannot change logits.
+- Checkpoint schema v3 and registry v2 now bind `model_mode`; old configs are
+  read compatibly and reserialize with an explicit mode.
+- Evidence is 78 focused tests, 319 classification tests, model-factory and
+  multitask dry-runs, zero weight downloads, and zero optimizer steps.
+- ResNet backbones and strict Transformer training remain blocked. The next
+  independent task is real fixed-six `time_delta` loading and hash lineage.
+
 ## 2026-07-14 fold-local training lineage contracts
 
 - Commits `97f83c5` and `73b901d` add training-fold-only preprocessing and
