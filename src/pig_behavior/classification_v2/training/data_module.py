@@ -74,8 +74,10 @@ class StrictTrainingDataModule:
         self._attach_grouped_roles()
         self.actor_dataset = ClassificationV2ImageSequenceDataset(
             ImageSequenceDatasetConfig(
-                frame_context_csv=config.dataset.train_ready_root / "image_frame_context_manifest.csv",
-                window_context_csv=config.dataset.train_ready_root / "image_window_context_manifest.csv",
+                frame_context_csv=config.dataset.train_ready_root
+                / "image_frame_context_manifest.csv",
+                window_context_csv=config.dataset.train_ready_root
+                / "image_window_context_manifest.csv",
                 packed_image_cache_npy=config.dataset.actor_packed_cache,
                 packed_image_cache_index_csv=config.dataset.actor_packed_index,
                 image_size=config.model.image_size,
@@ -86,13 +88,18 @@ class StrictTrainingDataModule:
         self.visual_dataset = VisualInteractionWindowDataset(
             VisualInteractionDatasetConfig(
                 cache_manifest_csv=config.dataset.visual_cache_manifest,
-                window_context_csv=config.dataset.train_ready_root / "image_window_context_manifest.csv",
+                window_context_csv=config.dataset.train_ready_root
+                / "image_window_context_manifest.csv",
                 packed_cache_npy=config.dataset.visual_packed_cache,
                 packed_cache_index_csv=config.dataset.visual_packed_index,
                 require_packed_cache=config.dataset.strict_packed_cache,
             )
         )
-        _validate_dataset_alignment(self.actor_dataset, self.visual_dataset)
+        _validate_dataset_alignment(
+            self.actor_dataset,
+            self.visual_dataset,
+            expected_window_ids=self.bundle.frame["window_id"],
+        )
         self.auxiliary = _align_auxiliary(config.dataset.auxiliary_targets_csv, self.bundle.frame)
         self.auxiliary_label_maps = build_auxiliary_label_maps(self.auxiliary)
         self.label_to_index = {label: index for index, label in enumerate(VALID_BEHAVIORS)}
@@ -136,7 +143,8 @@ class StrictTrainingDataModule:
             self.bundle.frame,
             mask=mask,
             per_class=self.config.execution.smoke_per_class,
-            seed=self.config.optimization.seed + {"train": 0, "validation": 10_000, "test": 20_000}[role],
+            seed=self.config.optimization.seed
+            + {"train": 0, "validation": 10_000, "test": 20_000}[role],
         )
 
     def batch(self, indices: np.ndarray) -> StrictTrainingBatch:
@@ -257,7 +265,9 @@ class StrictTrainingDataModule:
             features[group] = torch.nan_to_num((features[group] - mean) / scale)
 
     def _validate_behavior_target_alignment(self) -> None:
-        auxiliary_behavior = self.auxiliary["behavior_target"].fillna("").astype(str).reset_index(drop=True)
+        auxiliary_behavior = (
+            self.auxiliary["behavior_target"].fillna("").astype(str).reset_index(drop=True)
+        )
         main_behavior = self.bundle.y.reset_index(drop=True)
         mismatch = auxiliary_behavior.ne(main_behavior)
         if mismatch.any():
@@ -272,7 +282,9 @@ class StrictTrainingDataModule:
             usecols=["temporal_unit_key", "outer_fold_id", "role"],
             low_memory=False,
         )
-        roles = roles.loc[roles["outer_fold_id"].astype(str).eq(self.config.execution.fold_id)].copy()
+        roles = roles.loc[
+            roles["outer_fold_id"].astype(str).eq(self.config.execution.fold_id)
+        ].copy()
         if roles["temporal_unit_key"].duplicated().any():
             raise ValueError("duplicate temporal_unit_key in configured grouped fold roles")
         role_map = roles.set_index("temporal_unit_key")["role"]
@@ -280,7 +292,9 @@ class StrictTrainingDataModule:
         missing = self.bundle.frame["grouped_role"].isna()
         eligible_missing = missing & self.bundle.frame["eligible"]
         if eligible_missing.any():
-            raise ValueError(f"eligible window rows missing grouped role: {int(eligible_missing.sum())}")
+            raise ValueError(
+                f"eligible window rows missing grouped role: {int(eligible_missing.sum())}"
+            )
         self.bundle.frame.loc[missing, "grouped_role"] = "not_eligible"
 
 
@@ -292,11 +306,15 @@ def _align_auxiliary(path: Path, frame: pd.DataFrame) -> pd.DataFrame:
     ordered["_row_order"] = np.arange(len(ordered), dtype=np.int64)
     merged = ordered.merge(auxiliary, on="window_id", how="left", validate="one_to_one")
     if merged["behavior_target"].isna().any():
-        raise ValueError(f"missing auxiliary target rows: {int(merged['behavior_target'].isna().sum())}")
+        raise ValueError(
+            f"missing auxiliary target rows: {int(merged['behavior_target'].isna().sum())}"
+        )
     return merged.sort_values("_row_order").drop(columns="_row_order").reset_index(drop=True)
 
 
-def _to_full_config(config: ClassificationV2TrainingConfig, device: torch.device) -> FullMultimodalOofConfig:
+def _to_full_config(
+    config: ClassificationV2TrainingConfig, device: torch.device
+) -> FullMultimodalOofConfig:
     return FullMultimodalOofConfig(
         root=config.dataset.train_ready_root,
         native_oof_fold_manifest_csv=config.dataset.native_oof_fold_manifest,

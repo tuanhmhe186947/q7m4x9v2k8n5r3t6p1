@@ -58,8 +58,7 @@ def _mandatory_cvat_case(media_basename: str) -> pd.DataFrame:
             "video_key": ["Pigs291119_000231"] * len(frame_indices),
             "pig_id": ["ID_4"] * len(frame_indices),
             "frame_index": frame_indices,
-            "resolved_media_path": [f"C:/videos/{media_basename}"]
-            * len(frame_indices),
+            "resolved_media_path": [f"C:/videos/{media_basename}"] * len(frame_indices),
             "image_context_loadable": [True] * len(frame_indices),
         }
     )
@@ -85,6 +84,24 @@ def test_context_index_preserves_rows_even_when_media_is_missing(
     )
     assert identifier_audit["status"] == "v2"
     assert identifier_audit["valid"] is True
+
+
+def test_context_index_preserves_input_window_order(tmp_path: Path) -> None:
+    windows = pd.DataFrame(
+        {
+            "window_id": ["track-a|win=1|1-1", "track-a|win=1|0-0"],
+            "source_type": ["legacy_recovered", "legacy_recovered"],
+            "object_track_key": ["track-a", "track-a"],
+            "window_start_frame": [1, 0],
+            "window_end_frame": [1, 0],
+            "window_length_frames": [1, 1],
+        }
+    )
+
+    result = _build(_frames(), windows, tmp_path)
+
+    assert result.window_manifest["window_id"].tolist() == windows["window_id"].tolist()
+    assert result.audit["window_order_preserved"] is True
 
 
 def test_context_index_rejects_duplicate_track_frame_rows(tmp_path: Path) -> None:
@@ -114,9 +131,7 @@ def test_context_index_rejects_inconsistent_window_length(tmp_path: Path) -> Non
 
 
 def test_mandatory_cvat_video_case_accepts_exact_resolved_interval() -> None:
-    audit = audit_mandatory_cvat_video_case(
-        _mandatory_cvat_case(MANDATORY_CVAT_MEDIA_BASENAME)
-    )
+    audit = audit_mandatory_cvat_video_case(_mandatory_cvat_case(MANDATORY_CVAT_MEDIA_BASENAME))
 
     assert audit["ok"] is True
     assert audit["rows"] == 6
@@ -125,9 +140,7 @@ def test_mandatory_cvat_video_case_accepts_exact_resolved_interval() -> None:
 
 
 def test_mandatory_cvat_video_case_rejects_loadable_wrong_basename() -> None:
-    audit = audit_mandatory_cvat_video_case(
-        _mandatory_cvat_case("Pigs291119_000231.mp4")
-    )
+    audit = audit_mandatory_cvat_video_case(_mandatory_cvat_case("Pigs291119_000231.mp4"))
 
     assert audit["ok"] is False
     assert audit["unloadable_rows"] == 0

@@ -90,6 +90,32 @@ def test_interaction_context_index_requires_exact_window_key_set(
         _build(tmp_path)
 
 
+def test_interaction_context_index_rejects_window_order_mismatch(
+    tmp_path: Path,
+) -> None:
+    _, image_windows, split = _write_inputs(tmp_path)
+    second_window = image_windows.copy()
+    second_window["window_id"] = "window-1"
+    image_windows = pd.concat(
+        [image_windows, second_window],
+        ignore_index=True,
+    )
+    second_split = split.copy()
+    second_split["window_id"] = "window-1"
+    split = pd.concat([second_split, split], ignore_index=True)
+    image_windows.to_csv(
+        tmp_path / "image_window_context_manifest.csv",
+        index=False,
+    )
+    split.to_csv(tmp_path / "split_manifest.csv", index=False)
+
+    with pytest.raises(
+        ValueError,
+        match="image_split_window_order_mismatch_rows=2",
+    ):
+        _build(tmp_path)
+
+
 def test_interaction_context_index_rejects_frame_context_mismatch(
     tmp_path: Path,
 ) -> None:

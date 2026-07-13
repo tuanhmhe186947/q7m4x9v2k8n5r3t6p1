@@ -50,7 +50,9 @@ from pig_behavior.classification_v2.training.multitask_loss import (
 class MultitaskSmokeConfig:
     root: Path = Path("outputs/classification_v2/train_ready_windows")
     output_dir: Path = Path("outputs/classification_v2/model_smoke/multitask_visual_v3")
-    actor_packed_cache: Path = Path("outputs/classification_v2/image_cache_v2_letterbox/packed_rgb_64_letterbox.npy")
+    actor_packed_cache: Path = Path(
+        "outputs/classification_v2/image_cache_v2_letterbox/packed_rgb_64_letterbox.npy"
+    )
     actor_packed_index: Path = Path(
         "outputs/classification_v2/image_cache_v2_letterbox/packed_image_cache_index.csv"
     )
@@ -79,7 +81,9 @@ def run_multitask_smoke(config: MultitaskSmokeConfig) -> dict[str, Any]:
     if config.steps <= 0 or config.per_class <= 0:
         raise ValueError("steps and per_class must be positive")
     _set_seed(config.seed)
-    resolved_device = "cuda" if config.device == "auto" and torch.cuda.is_available() else config.device
+    resolved_device = (
+        "cuda" if config.device == "auto" and torch.cuda.is_available() else config.device
+    )
     if config.device == "auto" and not torch.cuda.is_available():
         resolved_device = "cpu"
     device = torch.device(resolved_device)
@@ -98,9 +102,13 @@ def run_multitask_smoke(config: MultitaskSmokeConfig) -> dict[str, Any]:
         require_packed_visual_context=True,
     )
     bundle = _load_bundle(full_config)
-    fold_id = sorted(bundle.frame.loc[bundle.frame["eligible"], "oof_fold_id"].astype(str).unique())[0]
+    fold_id = sorted(
+        bundle.frame.loc[bundle.frame["eligible"], "oof_fold_id"].astype(str).unique()
+    )[0]
     train_mask = bundle.frame["eligible"] & bundle.frame["oof_fold_id"].astype(str).ne(fold_id)
-    indices = _sample_indices(bundle.frame, mask=train_mask, per_class=config.per_class, seed=config.seed)
+    indices = _sample_indices(
+        bundle.frame, mask=train_mask, per_class=config.per_class, seed=config.seed
+    )
     if len(indices) != len(VALID_BEHAVIORS) * config.per_class:
         raise ValueError(f"balanced smoke selection incomplete: rows={len(indices)}")
 
@@ -124,7 +132,11 @@ def run_multitask_smoke(config: MultitaskSmokeConfig) -> dict[str, Any]:
             require_packed_cache=True,
         )
     )
-    _validate_dataset_alignment(actor_dataset, visual_dataset)
+    _validate_dataset_alignment(
+        actor_dataset,
+        visual_dataset,
+        expected_window_ids=bundle.frame["window_id"],
+    )
     label_to_idx = {label: index for index, label in enumerate(VALID_BEHAVIORS)}
     try:
         batch = _batch_from_indices(
@@ -149,10 +161,14 @@ def run_multitask_smoke(config: MultitaskSmokeConfig) -> dict[str, Any]:
         np.flatnonzero(train_mask.to_numpy()),
     )
     class_weights = build_fold_auxiliary_class_weights(fold_auxiliary, label_maps, device=device)
-    auxiliary_targets, auxiliary_masks = encode_auxiliary_batch(auxiliary, label_maps, device=device)
+    auxiliary_targets, auxiliary_masks = encode_auxiliary_batch(
+        auxiliary, label_maps, device=device
+    )
     model = MultitaskFusionClassifier(
         MultimodalFusionConfig(
-            spatial_input_dims={name: int(bundle.arrays[name].shape[-1]) for name in batch["spatial_features"]},
+            spatial_input_dims={
+                name: int(bundle.arrays[name].shape[-1]) for name in batch["spatial_features"]
+            },
             num_classes=len(VALID_BEHAVIORS),
             interaction_context_dim=len(INTERACTION_CONTEXT_FEATURE_COLUMNS),
             image_embedding_dim=config.hidden_dim,
@@ -282,4 +298,7 @@ def _set_seed(seed: int) -> None:
 
 
 def _jsonable_config(config: MultitaskSmokeConfig) -> dict[str, Any]:
-    return {key: str(value) if isinstance(value, Path) else value for key, value in asdict(config).items()}
+    return {
+        key: str(value) if isinstance(value, Path) else value
+        for key, value in asdict(config).items()
+    }

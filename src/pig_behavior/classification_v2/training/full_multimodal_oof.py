@@ -42,7 +42,9 @@ from pig_behavior.classification_v2.evaluation.native_temporal_metrics import (
     NativeTemporalMetricsConfig,
     build_native_temporal_metrics,
 )
-from pig_behavior.classification_v2.evaluation.prediction_schema_contract import check_prediction_schema
+from pig_behavior.classification_v2.evaluation.prediction_schema_contract import (
+    check_prediction_schema,
+)
 from pig_behavior.classification_v2.evaluation.source_balanced_reporting import (
     build_source_balanced_native_report,
 )
@@ -133,7 +135,9 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
     bundle = _load_bundle(config)
     label_order = list(VALID_BEHAVIORS)
     label_to_idx = {label: idx for idx, label in enumerate(label_order)}
-    fold_ids = sorted(bundle.frame.loc[bundle.frame["eligible"], "oof_fold_id"].astype(str).unique())
+    fold_ids = sorted(
+        bundle.frame.loc[bundle.frame["eligible"], "oof_fold_id"].astype(str).unique()
+    )
     if config.max_folds is not None:
         fold_ids = fold_ids[: int(config.max_folds)]
     if not fold_ids:
@@ -163,7 +167,11 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
             require_packed_cache=config.require_packed_visual_context,
         )
     )
-    _validate_dataset_alignment(dataset, visual_context_dataset)
+    _validate_dataset_alignment(
+        dataset,
+        visual_context_dataset,
+        expected_window_ids=bundle.frame["window_id"],
+    )
     predictions: list[pd.DataFrame] = []
     fold_audits: list[dict[str, Any]] = []
     try:
@@ -193,7 +201,9 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
         prediction_frame,
         NativeTemporalMetricsConfig(bootstrap_iterations=int(config.bootstrap_iterations)),
     )
-    full_oof_verified = _is_full_run(config, bundle) and _fold_training_coverage_complete(fold_audits)
+    full_oof_verified = _is_full_run(config, bundle) and _fold_training_coverage_complete(
+        fold_audits
+    )
     source_native_units, source_selection, source_report = build_source_balanced_native_report(
         prediction_frame,
         bundle.frame[["window_id", "source_type"]],
@@ -238,7 +248,9 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
         "fold_audits": fold_audits,
         "prediction_rows": int(len(prediction_frame)),
         "native_temporal_rows": int(
-            metrics_payload.get("native_temporal_prediction_audit", {}).get("native_temporal_unit_rows", 0)
+            metrics_payload.get("native_temporal_prediction_audit", {}).get(
+                "native_temporal_unit_rows", 0
+            )
         ),
         "metrics_json": str(metrics_path),
         "predictions_csv": str(predictions_path),
@@ -268,7 +280,8 @@ def run_full_multimodal_oof(config: FullMultimodalOofConfig) -> dict[str, Any]:
         else:
             audit["warnings"].append(message)
     if config.require_cached_images and (
-        image_load_audit["disk_image_cache_misses"] > 0 or image_load_audit["source_image_loads"] > 0
+        image_load_audit["disk_image_cache_misses"] > 0
+        or image_load_audit["source_image_loads"] > 0
     ):
         audit["errors"].append(f"strict_image_cache_violation={image_load_audit}")
     audit["valid"] = audit["valid"] and not audit["errors"]
@@ -291,14 +304,20 @@ def build_full_multimodal_oof_run_plan(config: FullMultimodalOofConfig) -> dict[
 
     _validate_config(config)
     bundle = _load_bundle(config)
-    fold_ids = sorted(bundle.frame.loc[bundle.frame["eligible"], "oof_fold_id"].astype(str).unique())
+    fold_ids = sorted(
+        bundle.frame.loc[bundle.frame["eligible"], "oof_fold_id"].astype(str).unique()
+    )
     selected_fold_ids = fold_ids if config.max_folds is None else fold_ids[: int(config.max_folds)]
     fold_rows: list[dict[str, Any]] = []
     total_eval_rows = 0
     total_train_steps = 0
     for fold_id in selected_fold_ids:
-        train_mask = bundle.frame["eligible"] & bundle.frame["oof_fold_id"].astype(str).ne(str(fold_id))
-        eval_mask = bundle.frame["eligible"] & bundle.frame["oof_fold_id"].astype(str).eq(str(fold_id))
+        train_mask = bundle.frame["eligible"] & bundle.frame["oof_fold_id"].astype(str).ne(
+            str(fold_id)
+        )
+        eval_mask = bundle.frame["eligible"] & bundle.frame["oof_fold_id"].astype(str).eq(
+            str(fold_id)
+        )
         train_indices = _sample_indices(
             bundle.frame,
             mask=train_mask,
@@ -319,7 +338,9 @@ def build_full_multimodal_oof_run_plan(config: FullMultimodalOofConfig) -> dict[
                 "eval_rows": int(len(eval_indices)),
                 "steps_per_fold": int(config.steps_per_fold),
                 "epochs_per_fold": int(config.epochs_per_fold),
-                "effective_training_steps": int(_effective_training_step_count(config, len(train_indices))),
+                "effective_training_steps": int(
+                    _effective_training_step_count(config, len(train_indices))
+                ),
                 "train_batch_size": int(config.train_batch_size),
                 "eval_batch_size": int(config.eval_batch_size),
                 "eval_batches": int(eval_batches),
@@ -356,7 +377,9 @@ def build_full_multimodal_oof_run_plan(config: FullMultimodalOofConfig) -> dict[
 def full_run_config_fingerprint(config: FullMultimodalOofConfig) -> str:
     """Hash the exact JSON-safe run config bound to a no-training preflight."""
 
-    payload = json.dumps(_jsonable_config(config), sort_keys=True, separators=(",", ":")).encode("utf-8")
+    payload = json.dumps(_jsonable_config(config), sort_keys=True, separators=(",", ":")).encode(
+        "utf-8"
+    )
     return hashlib.sha256(payload).hexdigest()
 
 
@@ -424,11 +447,17 @@ def _run_one_fold(
             dropout=config.dropout,
             enable_image=bool(_ablation_settings(config.ablation_variant)["enable_image"]),
             enable_spatial=bool(_ablation_settings(config.ablation_variant)["enable_spatial"]),
-            enable_interaction_context=bool(_ablation_settings(config.ablation_variant)["enable_interaction"]),
-            enable_visual_context=bool(_ablation_settings(config.ablation_variant)["enable_visual_context"]),
+            enable_interaction_context=bool(
+                _ablation_settings(config.ablation_variant)["enable_interaction"]
+            ),
+            enable_visual_context=bool(
+                _ablation_settings(config.ablation_variant)["enable_visual_context"]
+            ),
         )
     ).to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
+    optimizer = torch.optim.AdamW(
+        model.parameters(), lr=config.lr, weight_decay=config.weight_decay
+    )
     loss_fn = nn.CrossEntropyLoss(reduction="none")
     amp_enabled = config.precision == "amp" and device.type == "cuda"
     scaler = torch.amp.GradScaler("cuda", enabled=amp_enabled)
@@ -440,7 +469,9 @@ def _run_one_fold(
     peak_allocated_mb = 0.0
     peak_reserved_mb = 0.0
     training_signature = _fold_training_signature(config, fold_id, train_indices, eval_indices)
-    training_audit_path = fold_work_dir / "training_audit.json" if fold_work_dir is not None else None
+    training_audit_path = (
+        fold_work_dir / "training_audit.json" if fold_work_dir is not None else None
+    )
     model_state_path = fold_work_dir / "trained_model.pt" if fold_work_dir is not None else None
     completed_training_steps = 0
     if fold_work_dir is not None:
@@ -602,8 +633,14 @@ def _run_one_fold(
         "eval_rows": int(len(eval_indices)),
         "train_batch_size": int(config.train_batch_size),
         "eval_batch_size": int(config.eval_batch_size),
-        "train_label_counts": bundle.frame.iloc[train_indices]["behavior_true"].value_counts().sort_index().to_dict(),
-        "eval_label_counts": bundle.frame.iloc[eval_indices]["behavior_true"].value_counts().sort_index().to_dict(),
+        "train_label_counts": bundle.frame.iloc[train_indices]["behavior_true"]
+        .value_counts()
+        .sort_index()
+        .to_dict(),
+        "eval_label_counts": bundle.frame.iloc[eval_indices]["behavior_true"]
+        .value_counts()
+        .sort_index()
+        .to_dict(),
         "initial_loss": float(losses[0]),
         "final_loss": float(losses[-1]),
         "loss_reduction": float(losses[0] - losses[-1]),
@@ -620,7 +657,9 @@ def _run_one_fold(
         "precision": config.precision,
         "amp_enabled": bool(amp_enabled),
         "training_elapsed_sec": training_elapsed_sec,
-        "optimizer_steps_per_sec": float(len(losses) / training_elapsed_sec) if training_elapsed_sec > 0.0 else 0.0,
+        "optimizer_steps_per_sec": float(len(losses) / training_elapsed_sec)
+        if training_elapsed_sec > 0.0
+        else 0.0,
         "training_rows_per_sec": (
             float(len(losses) * config.train_batch_size / training_elapsed_sec)
             if training_elapsed_sec > 0.0
@@ -676,8 +715,12 @@ def _load_or_run_one_fold(
 def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
     """Load train-ready rows and keep identity/source columns as metadata only."""
 
-    arrays = {name: value for name, value in np.load(config.root / "X_spatial_sequences.npz").items()}
-    missing_arrays = [name for name in [*MODEL_GROUPS, "length_mask", "observed_mask"] if name not in arrays]
+    arrays = {
+        name: value for name, value in np.load(config.root / "X_spatial_sequences.npz").items()
+    }
+    missing_arrays = [
+        name for name in [*MODEL_GROUPS, "length_mask", "observed_mask"] if name not in arrays
+    ]
     if missing_arrays:
         raise ValueError(f"missing spatial arrays: {missing_arrays}")
     y = pd.read_csv(config.root / "y_behavior.csv").iloc[:, 0].fillna("").astype(str)
@@ -709,6 +752,15 @@ def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
     interaction = InteractionContextWindowDataset(
         InteractionContextDatasetConfig(manifest_csv=config.interaction_context_manifest_csv)
     ).manifest
+    window_alignment = _require_ordered_window_ids(
+        "split",
+        split["window_id"],
+        {
+            "sequence": sequence["window_id"],
+            "image_context": image_windows["window_id"],
+            "interaction_context": interaction["window_id"],
+        },
+    )
     expected = int(len(y))
     row_counts = {
         "y": int(len(y)),
@@ -738,14 +790,18 @@ def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
     ).rename(columns={"temporal_unit_keys_window": "temporal_unit_key"})
     frame = frame.merge(folds, on="temporal_unit_key", how="left")
     frame = frame.merge(event_weights, on="window_id", how="left", validate="one_to_one")
-    frame["window_image_context_complete"] = _to_bool(image_windows["window_image_context_complete"])
+    frame["window_image_context_complete"] = _to_bool(
+        image_windows["window_image_context_complete"]
+    )
     frame["window_valid_for_main_train"] = _to_bool(frame["window_valid_for_main_train"])
     frame["native_unit_valid_for_main_eval"] = _to_bool(frame["native_unit_valid_for_main_eval"])
     frame["window_valid_for_event_weight"] = _to_bool(frame["window_valid_for_event_weight"])
     frame["event_balanced_sample_weight"] = pd.to_numeric(
         frame["event_balanced_sample_weight"], errors="coerce"
     ).fillna(0.0)
-    frame["num_temporal_units_window"] = pd.to_numeric(frame["num_temporal_units_window"], errors="coerce")
+    frame["num_temporal_units_window"] = pd.to_numeric(
+        frame["num_temporal_units_window"], errors="coerce"
+    )
     frame["eligible"] = (
         frame["train_mask"]
         & frame["window_valid_for_main_train"]
@@ -762,7 +818,9 @@ def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
             | frame["event_balanced_sample_weight"].le(0.0)
         )
         if invalid_event_training_rows.any():
-            examples = frame.loc[invalid_event_training_rows, "window_id"].astype(str).head(10).tolist()
+            examples = (
+                frame.loc[invalid_event_training_rows, "window_id"].astype(str).head(10).tolist()
+            )
             raise ValueError(
                 "event weighting is invalid for training-eligible rows: "
                 f"count={int(invalid_event_training_rows.sum())}, examples={examples}"
@@ -773,17 +831,23 @@ def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
         .fillna(0.0)
         .to_numpy(dtype=np.float32)
     )
-    interaction_available = _to_bool(interaction["scene_partner_context_ready"]).to_numpy(dtype=np.float32)
+    interaction_available = _to_bool(interaction["scene_partner_context_ready"]).to_numpy(
+        dtype=np.float32
+    )
     event_sample_weights = frame["event_balanced_sample_weight"].to_numpy(dtype=np.float32)
     load_audit = {
         "row_counts": row_counts,
         "eligible_rows": int(frame["eligible"].sum()),
         "eligible_fold_count": int(frame.loc[frame["eligible"], "oof_fold_id"].nunique()),
-        "eligible_label_counts": frame.loc[frame["eligible"], "behavior_true"].value_counts().sort_index().to_dict(),
+        "eligible_label_counts": frame.loc[frame["eligible"], "behavior_true"]
+        .value_counts()
+        .sort_index()
+        .to_dict(),
         "complete_image_context_rows": int(frame["window_image_context_complete"].sum()),
         "interaction_context_ready_rows": int(interaction_available.sum()),
         "valid_event_weight_rows": int(frame["window_valid_for_event_weight"].sum()),
         "zero_event_weight_rows": int(np.count_nonzero(event_sample_weights == 0.0)),
+        "window_alignment": window_alignment,
     }
     return _OofBundle(
         arrays=arrays,
@@ -794,6 +858,94 @@ def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
         frame=frame,
         load_audit=load_audit,
     )
+
+
+def _require_ordered_window_ids(
+    reference_name: str,
+    reference: pd.Series,
+    candidates: dict[str, pd.Series],
+) -> dict[str, Any]:
+    """Prove every positional artifact uses one ordered window-key lineage."""
+
+    reference_ids = _clean_window_ids(reference)
+    errors = _window_key_errors(reference_ids, reference_name)
+    comparisons: dict[str, dict[str, Any]] = {}
+    reference_set = set(reference_ids)
+    for name, values in candidates.items():
+        candidate_ids = _clean_window_ids(values)
+        candidate_errors = _window_key_errors(candidate_ids, name)
+        missing = sorted(reference_set.difference(candidate_ids))
+        extra = sorted(set(candidate_ids).difference(reference_set))
+        order_mismatch = _ordered_mismatch_count(
+            reference_ids,
+            candidate_ids,
+        )
+        candidate_errors.extend(
+            [
+                *([f"missing_window_ids={len(missing)}"] if missing else []),
+                *([f"extra_window_ids={len(extra)}"] if extra else []),
+                *([f"window_order_mismatch_rows={order_mismatch}"] if order_mismatch else []),
+            ]
+        )
+        comparisons[name] = {
+            "rows": int(len(candidate_ids)),
+            "ordered_window_id_sha256": _ordered_window_id_sha256(candidate_ids),
+            "missing_count": int(len(missing)),
+            "extra_count": int(len(extra)),
+            "order_mismatch_rows": int(order_mismatch),
+            "errors": candidate_errors,
+        }
+        errors.extend(f"{name}:{error}" for error in candidate_errors)
+
+    audit = {
+        "reference": reference_name,
+        "reference_rows": int(len(reference_ids)),
+        "reference_ordered_window_id_sha256": _ordered_window_id_sha256(reference_ids),
+        "comparisons": comparisons,
+        "errors": errors,
+        "valid": not errors,
+    }
+    if errors:
+        raise ValueError(f"ordered window alignment failed: {errors}")
+    return audit
+
+
+def _clean_window_ids(values: pd.Series) -> pd.Series:
+    """Normalize keys without making missing values appear valid."""
+
+    return values.fillna("").astype(str).str.strip().reset_index(drop=True)
+
+
+def _window_key_errors(values: pd.Series, name: str) -> list[str]:
+    """Return blank and duplicate violations for one positional artifact."""
+
+    errors: list[str] = []
+    blank = int(values.eq("").sum())
+    duplicate = int(values.duplicated(keep=False).sum())
+    if blank:
+        errors.append(f"blank_{name}_window_ids={blank}")
+    if duplicate:
+        errors.append(f"duplicate_{name}_window_id_rows={duplicate}")
+    return errors
+
+
+def _ordered_mismatch_count(
+    reference: pd.Series,
+    candidate: pd.Series,
+) -> int:
+    """Count positional mismatches, including rows absent from either side."""
+
+    size = max(len(reference), len(candidate))
+    left = reference.reindex(range(size), fill_value="")
+    right = candidate.reindex(range(size), fill_value="")
+    return int(left.ne(right).sum())
+
+
+def _ordered_window_id_sha256(values: pd.Series) -> str:
+    """Hash ordered keys so run manifests can prove row alignment cheaply."""
+
+    payload = "\n".join(values.astype(str)).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
 
 
 def _batch_from_indices(
@@ -825,18 +977,26 @@ def _batch_from_indices(
         image_length_mask = torch.ones((batch_size, 1), dtype=torch.float32, device=device)
         image_observed_mask = torch.zeros((batch_size, 1), dtype=torch.float32, device=device)
     if settings["enable_visual_context"]:
-        visual_batch = visual_interaction_collate([visual_context_dataset[int(index)] for index in indices])
+        visual_batch = visual_interaction_collate(
+            [visual_context_dataset[int(index)] for index in indices]
+        )
         visual_errors = [error for item_errors in visual_batch["errors"] for error in item_errors]
         if visual_errors:
             raise ValueError(f"visual context load errors: {visual_errors[:10]}")
         visual_context_image = visual_batch["visual_context_image"].float().to(device)
         visual_context_length_mask = visual_batch["visual_context_length_mask"].float().to(device)
-        visual_context_observed_mask = visual_batch["visual_context_observed_mask"].float().to(device)
+        visual_context_observed_mask = (
+            visual_batch["visual_context_observed_mask"].float().to(device)
+        )
     else:
         batch_size = int(len(indices))
-        visual_context_image = torch.zeros((batch_size, 1, 3, 1, 1), dtype=torch.float32, device=device)
+        visual_context_image = torch.zeros(
+            (batch_size, 1, 3, 1, 1), dtype=torch.float32, device=device
+        )
         visual_context_length_mask = torch.ones((batch_size, 1), dtype=torch.float32, device=device)
-        visual_context_observed_mask = torch.zeros((batch_size, 1), dtype=torch.float32, device=device)
+        visual_context_observed_mask = torch.zeros(
+            (batch_size, 1), dtype=torch.float32, device=device
+        )
     target_labels = bundle.frame.iloc[indices]["behavior_true"].astype(str).tolist()
     training_sample_weight = _training_sample_weights(bundle, indices, class_weights, config)
     return {
@@ -847,18 +1007,28 @@ def _batch_from_indices(
             name: torch.from_numpy(bundle.arrays[name][indices]).float().to(device)
             for name in settings["spatial_groups"]
         },
-        "spatial_length_mask": torch.from_numpy(bundle.arrays["length_mask"][indices]).float().to(device),
-        "spatial_observed_mask": torch.from_numpy(bundle.arrays["observed_mask"][indices]).float().to(device),
-        "interaction_context_features": torch.from_numpy(bundle.interaction_context_features[indices])
+        "spatial_length_mask": torch.from_numpy(bundle.arrays["length_mask"][indices])
         .float()
         .to(device),
-        "interaction_context_available_mask": torch.from_numpy(bundle.interaction_context_available_mask[indices])
+        "spatial_observed_mask": torch.from_numpy(bundle.arrays["observed_mask"][indices])
+        .float()
+        .to(device),
+        "interaction_context_features": torch.from_numpy(
+            bundle.interaction_context_features[indices]
+        )
+        .float()
+        .to(device),
+        "interaction_context_available_mask": torch.from_numpy(
+            bundle.interaction_context_available_mask[indices]
+        )
         .float()
         .to(device),
         "visual_context_image": visual_context_image,
         "visual_context_length_mask": visual_context_length_mask,
         "visual_context_observed_mask": visual_context_observed_mask,
-        "target": torch.tensor([label_to_idx[label] for label in target_labels], dtype=torch.long).to(device),
+        "target": torch.tensor(
+            [label_to_idx[label] for label in target_labels], dtype=torch.long
+        ).to(device),
         "training_sample_weight": torch.from_numpy(training_sample_weight).float().to(device),
     }
 
@@ -904,7 +1074,9 @@ def _predict(
             "window_id": rows["window_id"].astype(str),
             "behavior_true": rows["behavior_true"].astype(str),
             "behavior_pred": [label_order[index] for index in pred_idx],
-            "window_sample_weight": pd.to_numeric(rows["window_sample_weight"], errors="coerce").fillna(1.0),
+            "window_sample_weight": pd.to_numeric(
+                rows["window_sample_weight"], errors="coerce"
+            ).fillna(1.0),
             "window_valid_for_main_train": rows["window_valid_for_main_train"].astype(bool),
             "oof_fold_id": str(fold_id),
             "experiment_role": experiment_role,
@@ -932,13 +1104,17 @@ def _predict_in_batches(
     """Predict a held-out fold in resumable chunks so long folds survive timeouts."""
 
     chunks: list[pd.DataFrame] = []
-    role_base = "full_multimodal_oof" if _is_full_run(config, bundle) else "full_multimodal_oof_pilot"
+    role_base = (
+        "full_multimodal_oof" if _is_full_run(config, bundle) else "full_multimodal_oof_pilot"
+    )
     role = f"{role_base}_{config.ablation_variant}"
     if chunk_dir is not None:
         chunk_dir.mkdir(parents=True, exist_ok=True)
     for start in range(0, len(indices), int(config.eval_batch_size)):
         end = min(start + int(config.eval_batch_size), len(indices))
-        chunk_path = chunk_dir / f"chunk_{start:08d}_{end:08d}.csv" if chunk_dir is not None else None
+        chunk_path = (
+            chunk_dir / f"chunk_{start:08d}_{end:08d}.csv" if chunk_dir is not None else None
+        )
         if config.resume and chunk_path is not None and chunk_path.exists():
             chunks.append(pd.read_csv(chunk_path, low_memory=False))
             continue
@@ -953,7 +1129,9 @@ def _predict_in_batches(
             config,
             device,
         )
-        chunk_predictions = _predict(model, bundle, chunk_indices, batch, label_order, fold_id, role)
+        chunk_predictions = _predict(
+            model, bundle, chunk_indices, batch, label_order, fold_id, role
+        )
         if chunk_path is not None:
             chunk_predictions.to_csv(chunk_path, index=False)
         chunks.append(chunk_predictions)
@@ -981,7 +1159,9 @@ def _step_train_indices(
     return np.sort(rng.choice(train_indices, size=batch_size, replace=replace))
 
 
-def _sample_indices(frame: pd.DataFrame, *, mask: pd.Series, per_class: int | None, seed: int) -> np.ndarray:
+def _sample_indices(
+    frame: pd.DataFrame, *, mask: pd.Series, per_class: int | None, seed: int
+) -> np.ndarray:
     """Return deterministic per-class sample indices or all rows when per_class is None."""
 
     rng = np.random.default_rng(seed)
@@ -1027,7 +1207,9 @@ def _validate_config(config: FullMultimodalOofConfig) -> None:
     if config.ablation_variant not in ABLATION_VARIANTS:
         raise ValueError(f"unsupported ablation_variant={config.ablation_variant}")
     if config.run_mode == "pilot" and (
-        config.max_folds is None or config.train_per_class_per_fold is None or config.eval_per_class_per_fold is None
+        config.max_folds is None
+        or config.train_per_class_per_fold is None
+        or config.eval_per_class_per_fold is None
     ):
         raise ValueError("pilot mode requires bounded folds and per-class sample caps")
     if config.require_cached_images and not (
@@ -1050,20 +1232,28 @@ def _validate_config(config: FullMultimodalOofConfig) -> None:
 def _validate_dataset_alignment(
     actor_dataset: ClassificationV2ImageSequenceDataset,
     visual_dataset: VisualInteractionWindowDataset,
+    *,
+    expected_window_ids: pd.Series | None = None,
 ) -> None:
-    """Prove both image branches use the same global row-to-window mapping."""
+    """Prove image branches match each other and the supervised row order."""
 
     actor_ids = actor_dataset.windows["window_id"].astype(str).reset_index(drop=True)
     visual_ids = visual_dataset.windows["window_id"].astype(str).reset_index(drop=True)
-    if len(actor_ids) != len(visual_ids):
-        raise ValueError(f"actor/visual window row mismatch: {len(actor_ids)} != {len(visual_ids)}")
-    mismatch = actor_ids.ne(visual_ids)
-    if mismatch.any():
-        index = int(np.flatnonzero(mismatch.to_numpy())[0])
-        raise ValueError(
-            "actor/visual window order mismatch at row "
-            f"{index}: {actor_ids.iloc[index]} != {visual_ids.iloc[index]}"
+    if expected_window_ids is None:
+        _require_ordered_window_ids(
+            "actor_image",
+            actor_ids,
+            {"visual_context": visual_ids},
         )
+        return
+    _require_ordered_window_ids(
+        "supervised_bundle",
+        expected_window_ids,
+        {
+            "actor_image": actor_ids,
+            "visual_context": visual_ids,
+        },
+    )
 
 
 def _is_full_run(config: FullMultimodalOofConfig, bundle: _OofBundle) -> bool:
@@ -1083,8 +1273,13 @@ def _is_full_run(config: FullMultimodalOofConfig, bundle: _OofBundle) -> bool:
 def _mode_warnings(config: FullMultimodalOofConfig, bundle: _OofBundle) -> list[str]:
     warnings: list[str] = []
     if not _is_full_run(config, bundle):
-        warnings.append("bounded pilot run; do not register as full_multimodal_oof_record or cite as paper metric")
-    warnings.append("full learned OOF claim also requires source-balanced reporting and ablation report review")
+        warnings.append(
+            "bounded pilot run; do not register as full_multimodal_oof_record "
+            "or cite as paper metric"
+        )
+    warnings.append(
+        "full learned OOF claim also requires source-balanced reporting and ablation report review"
+    )
     return warnings
 
 
@@ -1092,7 +1287,8 @@ def _fold_training_coverage_complete(fold_audits: list[dict[str, Any]]) -> bool:
     """Require every full fold to complete its declared epoch coverage."""
 
     return bool(fold_audits) and all(
-        int(fold.get("training_steps_completed", -1)) == int(fold.get("expected_training_steps", -2))
+        int(fold.get("training_steps_completed", -1))
+        == int(fold.get("expected_training_steps", -2))
         and float(fold.get("train_row_coverage_ratio", 0.0)) >= 1.0
         for fold in fold_audits
     )
@@ -1223,8 +1419,11 @@ def _fold_local_class_weights(
         return {label: 1.0 for label in VALID_BEHAVIORS}
     labels = bundle.frame.iloc[train_indices]["behavior_true"].astype(str).to_numpy()
     event_weights = bundle.event_sample_weights[train_indices].astype(np.float64, copy=False)
-    class_mass = pd.Series(event_weights).groupby(pd.Series(labels), sort=False).sum().reindex(
-        VALID_BEHAVIORS, fill_value=0.0
+    class_mass = (
+        pd.Series(event_weights)
+        .groupby(pd.Series(labels), sort=False)
+        .sum()
+        .reindex(VALID_BEHAVIORS, fill_value=0.0)
     )
     positive_mass = class_mass[class_mass > 0.0]
     if positive_mass.empty:
@@ -1270,9 +1469,11 @@ def _training_sample_weights(
     if config.sample_weight_policy == "none":
         weights = np.ones(len(indices), dtype=np.float32)
     elif config.sample_weight_policy == "window":
-        weights = pd.to_numeric(
-            bundle.frame.iloc[indices]["window_sample_weight"], errors="coerce"
-        ).fillna(0.0).to_numpy(dtype=np.float32)
+        weights = (
+            pd.to_numeric(bundle.frame.iloc[indices]["window_sample_weight"], errors="coerce")
+            .fillna(0.0)
+            .to_numpy(dtype=np.float32)
+        )
     else:
         weights = bundle.event_sample_weights[indices].astype(np.float32, copy=True)
     if config.sample_weight_policy == "event_class":

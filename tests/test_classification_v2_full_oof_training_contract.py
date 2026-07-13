@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
+import pytest
 import torch
 
 from pig_behavior.classification_v2.training.full_multimodal_oof import (
@@ -13,10 +14,22 @@ from pig_behavior.classification_v2.training.full_multimodal_oof import (
     _effective_training_step_count,
     _fold_local_class_weights,
     _fold_training_coverage_complete,
+    _require_ordered_window_ids,
     _save_training_checkpoint,
     _training_batches,
     _training_sample_weights,
 )
+
+
+def test_ordered_window_alignment_rejects_same_keys_in_wrong_order() -> None:
+    reference = pd.Series(["window-0", "window-1"])
+
+    with pytest.raises(ValueError, match="window_order_mismatch_rows=2"):
+        _require_ordered_window_ids(
+            "split",
+            reference,
+            {"image_context": pd.Series(["window-1", "window-0"])},
+        )
 
 
 def test_full_training_batches_cover_every_row_each_epoch() -> None:
@@ -108,7 +121,9 @@ def test_event_class_weights_compose_without_entering_model_features() -> None:
             "window_sample_weight": [1.0, 1.0],
         }
     )
-    bundle = SimpleNamespace(frame=frame, event_sample_weights=np.asarray([0.5, 2.0], dtype=np.float32))
+    bundle = SimpleNamespace(
+        frame=frame, event_sample_weights=np.asarray([0.5, 2.0], dtype=np.float32)
+    )
     weights = _training_sample_weights(
         bundle,
         np.asarray([0, 1], dtype=np.int64),

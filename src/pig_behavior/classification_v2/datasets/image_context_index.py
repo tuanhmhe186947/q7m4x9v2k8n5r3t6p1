@@ -91,14 +91,24 @@ def audit_image_context_identifier_contract(
     window_manifest: pd.DataFrame,
 ) -> dict[str, Any]:
     """Audit v2 scene/object keys while allowing explicit old-manifest reads."""
-    version = frame_manifest.get(
-        "identifier_schema_version",
-        pd.Series("", index=frame_manifest.index),
-    ).fillna("").astype(str).str.strip()
-    scene_values = frame_manifest.get(
-        "scene_frame_uid",
-        pd.Series("", index=frame_manifest.index),
-    ).fillna("").astype(str).str.strip()
+    version = (
+        frame_manifest.get(
+            "identifier_schema_version",
+            pd.Series("", index=frame_manifest.index),
+        )
+        .fillna("")
+        .astype(str)
+        .str.strip()
+    )
+    scene_values = (
+        frame_manifest.get(
+            "scene_frame_uid",
+            pd.Series("", index=frame_manifest.index),
+        )
+        .fillna("")
+        .astype(str)
+        .str.strip()
+    )
     has_partial_v2 = scene_values.ne("").any() or (
         "scene_frame_uid_sequence" in window_manifest.columns
     )
@@ -138,11 +148,7 @@ def audit_image_context_identifier_contract(
     invalid_version = int(version.ne(FRAME_OBJECT_IDENTIFIER_VERSION).sum())
     if invalid_version:
         errors.append(f"invalid_identifier_version_rows={invalid_version}")
-    identifier_audit = (
-        audit_frame_object_identifiers(frame_manifest)
-        if not missing_frame
-        else {}
-    )
+    identifier_audit = audit_frame_object_identifiers(frame_manifest) if not missing_frame else {}
     errors.extend(identifier_audit.get("errors", []))
     return {
         "status": "v2" if not errors else "invalid_v2",
@@ -199,13 +205,10 @@ def audit_mandatory_cvat_video_case(frames: pd.DataFrame) -> dict[str, Any]:
 
     if len(selected) != len(expected_frames):
         errors.append(
-            "row_count_mismatch="
-            f"expected:{len(expected_frames)},observed:{len(selected)}"
+            f"row_count_mismatch=expected:{len(expected_frames)},observed:{len(selected)}"
         )
     if observed_frames != expected_frames:
-        errors.append(
-            f"frame_set_mismatch=expected:{expected_frames},observed:{observed_frames}"
-        )
+        errors.append(f"frame_set_mismatch=expected:{expected_frames},observed:{observed_frames}")
     if unloadable_rows:
         errors.append(f"unloadable_rows={unloadable_rows}")
     if resolved_basenames != [MANDATORY_CVAT_MEDIA_BASENAME]:
@@ -318,6 +321,9 @@ def build_image_context_index(
         video_index,
     )
     window_manifest = _build_window_manifest(windows, frame_manifest)
+    input_window_ids = windows["window_id"].fillna("").astype(str).reset_index(drop=True)
+    output_window_ids = window_manifest["window_id"].fillna("").astype(str).reset_index(drop=True)
+    window_order_preserved = input_window_ids.equals(output_window_ids)
 
     loadable = _to_bool(frame_manifest["image_context_loadable"])
     audit = {
@@ -327,6 +333,7 @@ def build_image_context_index(
         "window_rows": int(len(window_manifest)),
         "frame_row_count_preserved": bool(len(frames) == len(frame_manifest)),
         "window_row_count_preserved": bool(len(windows) == len(window_manifest)),
+        "window_order_preserved": window_order_preserved,
         "invalid_frame_alignment_rows": 0,
         "invalid_window_alignment_rows": 0,
         "duplicate_frame_alignment_rows": 0,
@@ -385,10 +392,10 @@ def build_image_context_index(
         audit["errors"].append(f"duplicate_image_context_id={audit['duplicate_image_context_id']}")
     if audit["duplicate_window_id"]:
         audit["errors"].append(f"duplicate_window_id={audit['duplicate_window_id']}")
+    if not audit["window_order_preserved"]:
+        audit["errors"].append("window_order_not_preserved")
     if audit["duplicate_frame_uid"]:
-        audit["errors"].append(
-            f"duplicate_frame_uid={audit['duplicate_frame_uid']}"
-        )
+        audit["errors"].append(f"duplicate_frame_uid={audit['duplicate_frame_uid']}")
     if audit["frame_unloadable_count"]:
         audit["warnings"].append(f"frame_unloadable_count={audit['frame_unloadable_count']}")
     return ImageContextIndex(
@@ -409,9 +416,9 @@ def _build_frame_manifest(
     if "frame_uid" not in out.columns:
         out["frame_uid"] = [
             f"{row.source_type}|{row.object_track_key}|f{int(row.frame_index):06d}"
-            for row in frames[
-                ["source_type", "object_track_key", "frame_index"]
-            ].itertuples(index=False)
+            for row in frames[["source_type", "object_track_key", "frame_index"]].itertuples(
+                index=False
+            )
         ]
     out["frame_index"] = pd.to_numeric(out["frame_index"], errors="coerce")
     out["image_context_id"] = [
@@ -557,17 +564,9 @@ def _build_window_manifest(windows: pd.DataFrame, frame_manifest: pd.DataFrame) 
     out["loadable_image_context_rows"] = loadable_counts
     out["missing_image_context_slots"] = missing_slots
     out["window_image_context_complete"] = complete_flags
-    sort_cols = [
-        column
-        for column in [
-            "source_type",
-            "video_key",
-            "object_track_key",
-            "window_start_frame",
-        ]
-        if column in out
-    ]
-    return out.sort_values(sort_cols).reset_index(drop=True)
+    # Positional X/y/spatial arrays use the source window-manifest row order.
+    # Re-sorting here silently pairs actor images with another window's target.
+    return out.reset_index(drop=True)
 
 
 def resolve_video(row: pd.Series, video_root: Path, video_index: dict[str, Path]) -> Path | None:
@@ -773,12 +772,7 @@ def _validate_frame_context_contract(frames: pd.DataFrame) -> None:
     """Reject frame rows that would be lost or overwritten in context lookup."""
     key = frames["object_track_key"].fillna("").astype(str).str.strip()
     frame_index = pd.to_numeric(frames["frame_index"], errors="coerce")
-    invalid = (
-        key.eq("")
-        | frame_index.isna()
-        | frame_index.mod(1).ne(0)
-        | frame_index.lt(0)
-    )
+    invalid = key.eq("") | frame_index.isna() | frame_index.mod(1).ne(0) | frame_index.lt(0)
     duplicate = pd.DataFrame(
         {
             "object_track_key": key,

@@ -72,8 +72,8 @@ def build_interaction_context_index(
         manifest["behavior_window_label"].astype(str).isin(INTERACTION_LABELS)
     )
     manifest["interaction_context_required"] = manifest["is_interaction_window"]
-    manifest["expected_frame_slots"] = merged["frame_uid_sequence"].astype(str).map(
-        lambda value: len(_split_sequence(value))
+    manifest["expected_frame_slots"] = (
+        merged["frame_uid_sequence"].astype(str).map(lambda value: len(_split_sequence(value)))
     )
     manifest["available_frame_context_rows"] = 0
     manifest["full_frame_context_available_count"] = 0
@@ -96,9 +96,7 @@ def build_interaction_context_index(
     }
     stats_records: list[dict[str, Any]] = []
     scene_statuses: list[str] = []
-    context_sequences = (
-        merged["image_context_id_sequence"].fillna("").astype(str).tolist()
-    )
+    context_sequences = merged["image_context_id_sequence"].fillna("").astype(str).tolist()
     for image_context_id_sequence in context_sequences:
         stats = stats_by_key[image_context_id_sequence]
         stats_records.append(stats)
@@ -114,8 +112,7 @@ def build_interaction_context_index(
     for key in stats_df.columns:
         manifest[key] = stats_df[key]
     manifest["scene_context_ready"] = [
-        status in {"ready", "missing_partner_context"}
-        for status in scene_statuses
+        status in {"ready", "missing_partner_context"} for status in scene_statuses
     ]
     manifest["scene_partner_context_ready"] = [status == "ready" for status in scene_statuses]
     manifest["scene_partner_context_status"] = scene_statuses
@@ -196,6 +193,12 @@ def _validate_inputs(
         errors.append(f"image_windows_missing_from_split={len(missing_split_windows)}")
     if missing_context_windows:
         errors.append(f"split_windows_missing_image_context={len(missing_context_windows)}")
+    if not missing_split_windows and not missing_context_windows:
+        image_order = image_window_ids.reset_index(drop=True)
+        split_order = split_window_ids.reset_index(drop=True)
+        order_mismatch = image_order.ne(split_order)
+        if order_mismatch.any():
+            errors.append(f"image_split_window_order_mismatch_rows={int(order_mismatch.sum())}")
     errors.extend(_window_sequence_errors(image_frames, image_windows))
     if errors:
         raise ValueError(f"interaction context input contract failed: {errors}")
@@ -260,9 +263,7 @@ def _window_sequence_errors(
         frame_uids = _split_sequence(str(row.frame_uid_sequence))
         context_ids = _split_context_sequence(str(row.image_context_id_sequence))
         scene_uids = (
-            _split_sequence(str(row.scene_frame_uid_sequence))
-            if has_scene_sequence
-            else []
+            _split_sequence(str(row.scene_frame_uid_sequence)) if has_scene_sequence else []
         )
         if not frame_uids or not context_ids:
             blank_sequences += 1
@@ -275,9 +276,7 @@ def _window_sequence_errors(
             continue
         duplicate_frame_slots += int(len(frame_uids) != len(set(frame_uids)))
         duplicate_context_slots += int(len(context_ids) != len(set(context_ids)))
-        for slot, (frame_uid, context_id) in enumerate(
-            zip(frame_uids, context_ids, strict=True)
-        ):
+        for slot, (frame_uid, context_id) in enumerate(zip(frame_uids, context_ids, strict=True)):
             source_frame_uid = frame_uid_by_context.get(context_id)
             if source_frame_uid is None:
                 missing_context_rows += 1
@@ -352,9 +351,7 @@ def _interaction_frame_stats(
         ),
         "partner_count_min": float(min(partner_counts)) if available_rows else 0.0,
         "partner_ids_union": (
-            _partner_ids_union(
-                [row["interaction_partner_ids"] for row in frame_rows]
-            )
+            _partner_ids_union([row["interaction_partner_ids"] for row in frame_rows])
             if available_rows
             else ""
         ),
@@ -379,22 +376,15 @@ def _audit(manifest: pd.DataFrame) -> dict[str, Any]:
     if duplicate_window_id:
         errors.append(f"duplicate_window_id={duplicate_window_id}")
     missing_labels = sorted(
-        INTERACTION_LABELS.difference(
-            set(interaction["behavior_window_label"].astype(str))
-        )
+        INTERACTION_LABELS.difference(set(interaction["behavior_window_label"].astype(str)))
     )
     not_evaluated = int(
-        manifest["scene_partner_context_status"]
-        .astype(str)
-        .eq("not_evaluated")
-        .sum()
+        manifest["scene_partner_context_status"].astype(str).eq("not_evaluated").sum()
     )
     if not_evaluated:
         errors.append(f"scene_partner_context_not_evaluated={not_evaluated}")
     non_interaction_ready = (
-        int(non_interaction["scene_partner_context_ready"].sum())
-        if len(non_interaction)
-        else 0
+        int(non_interaction["scene_partner_context_ready"].sum()) if len(non_interaction) else 0
     )
     if len(non_interaction) and non_interaction_ready == 0:
         errors.append("scene_partner_context_appears_label_gated")
@@ -402,9 +392,7 @@ def _audit(manifest: pd.DataFrame) -> dict[str, Any]:
         "window_rows": int(len(manifest)),
         "interaction_window_rows": int(len(interaction)),
         "interaction_ready_rows": (
-            int(interaction["interaction_context_ready"].sum())
-            if len(interaction)
-            else 0
+            int(interaction["interaction_context_ready"].sum()) if len(interaction) else 0
         ),
         "non_interaction_window_rows": int(len(non_interaction)),
         "scene_context_ready_rows": int(manifest["scene_context_ready"].sum()),
@@ -413,9 +401,9 @@ def _audit(manifest: pd.DataFrame) -> dict[str, Any]:
         "duplicate_window_id": duplicate_window_id,
         "duplicate_source_image_context_id_rows": 0,
         "missing_interaction_labels": missing_labels,
-        "scene_partner_status_counts": manifest[
-            "scene_partner_context_status"
-        ].value_counts(dropna=False).to_dict(),
+        "scene_partner_status_counts": manifest["scene_partner_context_status"]
+        .value_counts(dropna=False)
+        .to_dict(),
         "scene_partner_status_by_source": manifest.groupby("source_type")[
             "scene_partner_context_status"
         ]
@@ -434,25 +422,19 @@ def _audit(manifest: pd.DataFrame) -> dict[str, Any]:
         "interaction_source_counts": interaction["source_type"]
         .value_counts(dropna=False)
         .to_dict(),
-        "ready_by_label": interaction.groupby("behavior_window_label")[
-            "interaction_context_ready"
-        ].sum().to_dict(),
-        "ready_by_source": interaction.groupby("source_type")[
-            "interaction_context_ready"
-        ].sum().to_dict(),
+        "ready_by_label": interaction.groupby("behavior_window_label")["interaction_context_ready"]
+        .sum()
+        .to_dict(),
+        "ready_by_source": interaction.groupby("source_type")["interaction_context_ready"]
+        .sum()
+        .to_dict(),
         "errors": errors,
         "warnings": [
-            *(
-                [f"interaction_labels_without_support={missing_labels}"]
-                if missing_labels
-                else []
-            ),
-            "interaction_context_ready is an audit gate; its columns are not "
-            "model inputs",
+            *([f"interaction_labels_without_support={missing_labels}"] if missing_labels else []),
+            "interaction_context_ready is an audit gate; its columns are not model inputs",
             "scene_partner_context_ready is computed for every window without "
             "behavior-label gating",
-            "legacy crop-only interaction rows need separate full-frame/partner "
-            "review assets",
+            "legacy crop-only interaction rows need separate full-frame/partner review assets",
         ],
     }
 

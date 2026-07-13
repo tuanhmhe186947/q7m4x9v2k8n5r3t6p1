@@ -6,6 +6,9 @@ from pathlib import Path
 
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.output_safety import (
+    require_output_paths_available,
+)
 from pig_behavior.classification_v2.datasets.image_context_index import (
     FRAME_CONTEXT_COLUMNS,
     WINDOW_CONTEXT_COLUMNS,
@@ -14,7 +17,9 @@ from pig_behavior.classification_v2.datasets.image_context_index import (
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Build classification_v2 image-context index manifests.")
+    parser = argparse.ArgumentParser(
+        description="Build classification_v2 image-context index manifests."
+    )
     parser.add_argument(
         "--frame-features-csv",
         type=Path,
@@ -23,9 +28,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--window-manifest-csv",
         type=Path,
-        default=Path("outputs/classification_v2/sequence_features_reviewed/sequence_window_manifest.csv"),
+        default=Path(
+            "outputs/classification_v2/sequence_features_reviewed/sequence_window_manifest.csv"
+        ),
     )
-    parser.add_argument("--output-dir", type=Path, default=Path("outputs/classification_v2/train_ready_windows"))
+    parser.add_argument(
+        "--output-dir", type=Path, default=Path("outputs/classification_v2/train_ready_windows")
+    )
     parser.add_argument("--video-root", type=Path, default=Path("data/videos"))
     parser.add_argument(
         "--legacy-crop-root",
@@ -33,11 +42,23 @@ def parse_args() -> argparse.Namespace:
         default=Path("data/raw/legacy_full_multigt_masked_nodup_16f/crops"),
     )
     parser.add_argument("--max-frame-rows", type=int, default=None)
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace existing derived image-context artifacts explicitly.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+    frame_path = args.output_dir / "image_frame_context_manifest.csv"
+    window_path = args.output_dir / "image_window_context_manifest.csv"
+    audit_path = args.output_dir / "image_context_index_audit.json"
+    require_output_paths_available(
+        [frame_path, window_path, audit_path],
+        overwrite=args.overwrite,
+    )
     frame_header = pd.read_csv(args.frame_features_csv, nrows=0).columns.tolist()
     window_header = pd.read_csv(args.window_manifest_csv, nrows=0).columns.tolist()
     frame_usecols = [c for c in FRAME_CONTEXT_COLUMNS if c in frame_header]
@@ -57,9 +78,6 @@ def main() -> None:
         legacy_crop_root=args.legacy_crop_root,
     )
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    frame_path = args.output_dir / "image_frame_context_manifest.csv"
-    window_path = args.output_dir / "image_window_context_manifest.csv"
-    audit_path = args.output_dir / "image_context_index_audit.json"
     index.frame_manifest.to_csv(frame_path, index=False)
     index.window_manifest.to_csv(window_path, index=False)
     audit = {
