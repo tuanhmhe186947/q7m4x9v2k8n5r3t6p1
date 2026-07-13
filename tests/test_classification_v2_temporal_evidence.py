@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pandas.testing as pdt
+import pytest
 
 from pig_behavior.classification_v2.contracts.feature_semantics import (
     _assign_tabular_families,
@@ -136,6 +137,27 @@ def test_explicit_roi_availability_and_track_partner_fallback_are_respected() ->
     assert evidence["roi_feeder_availability_ratio"] == 0.0
     assert evidence["roi_feeder_contact_ratio"] == 0.0
     assert evidence["social_partner_persistence_ratio"] == 0.5
+
+
+def test_invalid_bbox_does_not_create_motion_roi_or_social_evidence() -> None:
+    frames = _six_frame_fixture()
+    frames.loc[2, "bbox_valid"] = False
+    frames.loc[2, "cx_n"] = 10.0
+    frames.loc[2, "area_n"] = 50.0
+
+    evidence = summarize_temporal_evidence(
+        frames,
+        expected_start=0,
+        expected_end=5,
+    )
+
+    assert evidence["motion_speed_p90"] == pytest.approx(0.01)
+    assert evidence["trajectory_path_length_n"] == pytest.approx(0.03)
+    assert evidence["trajectory_displacement_n"] == pytest.approx(0.03)
+    assert evidence["bbox_area_p90"] < 1.0
+    assert evidence["roi_feeder_availability_ratio"] == 5 / 6
+    assert evidence["roi_feeder_contact_ratio"] == 1 / 5
+    assert evidence["social_pair_contact_ratio"] == 2 / 5
 
 
 def test_gaps_and_duplicates_are_audited_without_row_loss() -> None:

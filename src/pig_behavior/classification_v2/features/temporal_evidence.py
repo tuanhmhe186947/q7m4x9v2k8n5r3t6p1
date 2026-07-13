@@ -150,13 +150,22 @@ def summarize_temporal_evidence(
     work = _ordered_rows(frame_rows)
     frames = _numeric_array(work, "frame_index")
     expected_count = _expected_frame_count(frames, expected_start, expected_end)
+    row_valid = _row_quality_mask(work)
 
     summary: dict[str, float | int | bool] = {}
     summary.update(_temporal_quality_summary(work, frames, expected_count))
-    summary.update(_motion_summary(work, frames, expected_count, config))
-    summary.update(_bbox_summary(work))
-    summary.update(_roi_summary(work, frames))
-    summary.update(_social_summary(work, frames))
+    summary.update(
+        _motion_summary(
+            work,
+            frames,
+            expected_count,
+            row_valid,
+            config,
+        )
+    )
+    summary.update(_bbox_summary(work, frames, row_valid))
+    summary.update(_roi_summary(work, frames, row_valid))
+    summary.update(_social_summary(work, frames, row_valid))
 
     missing = sorted(set(TEMPORAL_EVIDENCE_BASE_COLUMNS).difference(summary))
     if missing:
@@ -305,6 +314,7 @@ def _motion_summary(
     work: pd.DataFrame,
     frames: np.ndarray,
     expected_count: int,
+    row_valid: np.ndarray,
     config: TemporalEvidenceConfig,
 ) -> dict[str, float | int | bool]:
     """Describe speed, runs, jerk, turning, and trajectory shape."""
@@ -319,6 +329,8 @@ def _motion_summary(
         & (delta_frame > 0)
         & np.isfinite(dx)
         & np.isfinite(dy)
+        & row_valid[:-1]
+        & row_valid[1:]
     )
     contiguous = pair_valid & np.isclose(delta_frame, 1.0)
     distance = np.hypot(dx, dy)
@@ -341,7 +353,11 @@ def _motion_summary(
     turning = _turning_summary(speed, dx, dy, pair_valid, contiguous, config)
 
     path_length = float(np.nansum(distance[pair_valid])) if pair_valid.any() else 0.0
-    displacement = _endpoint_displacement(cx, cy)
+    displacement = _connected_displacement(
+        cx,
+        cy,
+        pair_valid,
+    )
     straightness = (
         float(np.clip(displacement / path_length, 0.0, 1.0))
         if path_length > 0
@@ -422,12 +438,22 @@ def _turning_summary(
     }
 
 
-def _bbox_summary(work: pd.DataFrame) -> dict[str, float]:
+def _bbox_summary(
+    work: pd.DataFrame,
+    frames: np.ndarray,
+    row_valid: np.ndarray,
+) -> dict[str, float]:
     """Use robust bbox quantiles as weak posture/shape descriptors."""
 
-    area = _finite(_numeric_array(work, "area_n"))
-    aspect = _finite(_numeric_array(work, "aspect_ratio"))
-    shape_change = _finite(_numeric_array(work, "shape_change_score"))
+    area = _finite(_numeric_array(work, "area_n")[row_valid])
+    aspect = _finite(_numeric_array(work, "aspect_ratio")[row_valid])
+    shape_valid = np.zeros(len(work), dtype=bool)
+    if len(work) > 1:
+        contiguous = np.isclose(np.diff(frames), 1.0)
+        shape_valid[1:] = row_valid[:-1] & row_valid[1:] & contiguous
+    shape_change = _finite(
+        _numeric_array(work, "shape_change_score")[shape_valid]
+    )
     area_q = [_quantile(area, q) for q in (0.10, 0.50, 0.90)]
     aspect_q = [_quantile(aspect, q) for q in (0.10, 0.50, 0.90)]
     return {
@@ -443,7 +469,11 @@ def _bbox_summary(work: pd.DataFrame) -> dict[str, float]:
     }
 
 
-def _roi_summary(work: pd.DataFrame, frames: np.ndarray) -> dict[str, float | int]:
+def _roi_summary(
+    work: pd.DataFrame,
+    frames: np.ndarray,
+    row_valid: np.ndarray,
+) -> dict[str, float | int]:
     """Summarize each physical ROI independently of the behavior label."""
 
     out: dict[str, float | int] = {}
@@ -456,9 +486,9 @@ def _roi_summary(work: pd.DataFrame, frames: np.ndarray) -> dict[str, float | in
         distance_available = np.isfinite(distance)
         if f"{prefix}_available" in work.columns:
             available = _bool_array(work, f"{prefix}_available")
-            available = available & distance_available
+            available = available & distance_available & row_valid
         else:
-            available = distance_available
+            available = distance_available & row_valid
         frame_runs = _frame_run_stats(contact, available, frames)
         available_count = int(available.sum())
         out[f"{prefix}_availability_ratio"] = _bounded_ratio(
@@ -487,6 +517,7 @@ def _roi_summary(work: pd.DataFrame, frames: np.ndarray) -> dict[str, float | in
 def _social_summary(
     work: pd.DataFrame,
     frames: np.ndarray,
+    row_valid: np.ndarray,
 ) -> dict[str, float | int]:
     """Measure partner/contact persistence without exporting partner identity."""
 
@@ -498,7 +529,9 @@ def _social_summary(
         track_partner = work["nearest_track_id"].fillna("").astype(str).to_numpy()
         has_pig_partner = np.char.str_len(partner.astype(str)) > 0
         partner = np.where(has_pig_partner, partner, track_partner)
-    neighbor_available = np.char.str_len(partner.astype(str)) > 0
+    neighbor_available = (
+        np.char.str_len(partner.astype(str)) > 0
+    ) & row_valid
     available_count = int(neighbor_available.sum())
     persistence = 0.0
     if available_count:
@@ -518,8 +551,12 @@ def _social_summary(
     contact = _bool_array(work, "pair_contact_with_nearest")
     contact_runs = _frame_run_stats(contact, neighbor_available, frames)
     approach = _numeric_array(work, "approach_speed_n_per_frame")
-    nearest_dist = _finite(_numeric_array(work, "nearest_dist_n"))
-    aggression = _finite(_numeric_array(work, "aggression_score_proxy"))
+    nearest_dist = _finite(
+        _numeric_array(work, "nearest_dist_n")[neighbor_available]
+    )
+    aggression = _finite(
+        _numeric_array(work, "aggression_score_proxy")[row_valid]
+    )
     return {
         "social_neighbor_availability_ratio": _bounded_ratio(
             available_count,
@@ -638,16 +675,45 @@ def _linear_trend(x: np.ndarray, y: np.ndarray) -> tuple[float, bool]:
     return float(np.sum(centered_x * centered_y) / denominator), True
 
 
-def _endpoint_displacement(cx: np.ndarray, cy: np.ndarray) -> float:
-    """Measure first-to-last finite normalized center displacement."""
+def _connected_displacement(
+    cx: np.ndarray,
+    cy: np.ndarray,
+    pair_valid: np.ndarray,
+) -> float:
+    """Sum endpoint displacement within connected valid trajectory segments."""
 
-    valid = np.isfinite(cx) & np.isfinite(cy)
-    positions = np.flatnonzero(valid)
-    if positions.size < 2:
-        return 0.0
-    first = int(positions[0])
-    last = int(positions[-1])
-    return float(np.hypot(cx[last] - cx[first], cy[last] - cy[first]))
+    usable = pair_valid
+    total = 0.0
+    start: int | None = None
+    for pair_index, valid in enumerate(usable):
+        if valid and start is None:
+            start = pair_index
+        is_last_pair = pair_index == len(usable) - 1
+        if start is not None and (not valid or is_last_pair):
+            end = pair_index + 1 if valid and is_last_pair else pair_index
+            total += float(
+                np.hypot(
+                    cx[end] - cx[start],
+                    cy[end] - cy[start],
+                )
+            )
+            start = None
+    return total
+
+
+def _row_quality_mask(work: pd.DataFrame) -> np.ndarray:
+    """Combine only inference-time geometry quality fields that are present."""
+
+    valid = np.ones(len(work), dtype=bool)
+    for column in [
+        "bbox_valid",
+        "actor_bbox_valid",
+        "geometry_feature_valid",
+        "spatiotemporal_feature_valid",
+    ]:
+        if column in work.columns:
+            valid &= _bool_array(work, column)
+    return valid
 
 
 def _expected_frame_count(
