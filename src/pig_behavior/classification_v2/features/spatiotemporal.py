@@ -244,7 +244,11 @@ def audit_enhanced_spatiotemporal_features(df: pd.DataFrame) -> dict[str, Any]:
         errors.append(f"missing_enhanced_columns={missing_new}")
 
     if "behavior" in df.columns:
-        invalid_behaviors = sorted(set(df["behavior"].dropna().astype(str)).difference(VALID_BEHAVIORS))
+        invalid_behaviors = sorted(
+            set(df["behavior"].dropna().astype(str)).difference(
+                VALID_BEHAVIORS
+            )
+        )
         if invalid_behaviors:
             warnings.append(f"invalid_or_unknown_behaviors={invalid_behaviors}")
 
@@ -261,7 +265,10 @@ def audit_enhanced_spatiotemporal_features(df: pd.DataFrame) -> dict[str, Any]:
 
     feature_valid_count = _value_counts_dict(df, "spatiotemporal_feature_valid")
     if feature_valid_count.get("False", 0) > 0:
-        warnings.append(f"some_rows_have_spatiotemporal_feature_valid_false={feature_valid_count.get('False', 0)}")
+        warnings.append(
+            "some_rows_have_spatiotemporal_feature_valid_false="
+            f"{feature_valid_count.get('False', 0)}"
+        )
 
     return {
         "rows": int(len(df)),
@@ -344,7 +351,15 @@ def _normalize_basic_columns(df: pd.DataFrame) -> pd.DataFrame:
         if col in out.columns:
             out[col] = _to_bool_series(out[col])
 
-    for col in ["source_type", "dataset_id", "video_key", "frame_uid", "pig_id", "track_id", "behavior"]:
+    for col in [
+        "source_type",
+        "dataset_id",
+        "video_key",
+        "frame_uid",
+        "pig_id",
+        "track_id",
+        "behavior",
+    ]:
         if col in out.columns:
             out[col] = out[col].fillna("").astype(str)
 
@@ -415,7 +430,13 @@ def _add_temporal_unit_columns(df: pd.DataFrame, config: EnhancedFeatureConfig) 
     # Legacy: each recovered tracklet is intended to be a constant behavior unit.
     # We derive the actual window from rows available for the object_track_key.
     if legacy_mask.any():
-        rel = pd.to_numeric(out.get("relative_frame_index", pd.Series(np.nan, index=out.index)), errors="coerce")
+        rel = pd.to_numeric(
+            out.get(
+                "relative_frame_index",
+                pd.Series(np.nan, index=out.index),
+            ),
+            errors="coerce",
+        )
         # Prefer actual relative-frame metadata when available.
         legacy_anchor = frame_idx - rel
         anchor.loc[legacy_mask] = legacy_anchor.loc[legacy_mask]
@@ -443,23 +464,40 @@ def _add_temporal_unit_columns(df: pd.DataFrame, config: EnhancedFeatureConfig) 
     )
 
     # Legacy window start/end come from the actual frame span in each unit.
-    unit_frame_stats = out.groupby("temporal_unit_key", dropna=False)["frame_index"].agg(["min", "max", "nunique"])
-    out["source_sequence_length"] = out["temporal_unit_key"].map(unit_frame_stats["nunique"]).astype("Int64")
+    unit_frame_stats = out.groupby(
+        "temporal_unit_key",
+        dropna=False,
+    )["frame_index"].agg(["min", "max", "nunique"])
+    out["source_sequence_length"] = (
+        out["temporal_unit_key"]
+        .map(unit_frame_stats["nunique"])
+        .astype("Int64")
+    )
 
     missing_start = out["label_window_start"].isna()
     out.loc[missing_start, "label_window_start"] = (
-        out.loc[missing_start, "temporal_unit_key"].map(unit_frame_stats["min"]).round().astype("Int64")
+        out.loc[missing_start, "temporal_unit_key"]
+        .map(unit_frame_stats["min"])
+        .round()
+        .astype("Int64")
     )
     missing_end = out["label_window_end"].isna()
     out.loc[missing_end, "label_window_end"] = (
-        out.loc[missing_end, "temporal_unit_key"].map(unit_frame_stats["max"]).round().astype("Int64")
+        out.loc[missing_end, "temporal_unit_key"]
+        .map(unit_frame_stats["max"])
+        .round()
+        .astype("Int64")
     )
 
     legacy_unit = legacy_mask
     out["source_sequence_expected_length"] = np.where(
         legacy_unit,
         config.legacy_expected_sequence_length,
-        np.where(cvat_mask, config.cvat_label_stride, out["source_sequence_length"].astype("float64")),
+        np.where(
+            cvat_mask,
+            config.cvat_label_stride,
+            out["source_sequence_length"].astype("float64"),
+        ),
     )
     out["source_sequence_complete_auto"] = pd.to_numeric(
         out["source_sequence_length"], errors="coerce"
@@ -475,7 +513,11 @@ def _add_temporal_unit_columns(df: pd.DataFrame, config: EnhancedFeatureConfig) 
         .rename("dominant_behavior_in_unit")
     )
     behavior_stats = behavior_stats.join(dominant)
-    out["num_behaviors_in_unit"] = out["temporal_unit_key"].map(behavior_stats["num_behaviors_in_unit"]).astype("Int64")
+    out["num_behaviors_in_unit"] = (
+        out["temporal_unit_key"]
+        .map(behavior_stats["num_behaviors_in_unit"])
+        .astype("Int64")
+    )
     out["unique_behaviors_in_unit"] = (
         out["temporal_unit_key"].map(behavior_stats["unique_behaviors_in_unit"]).fillna("")
     )
@@ -527,7 +569,9 @@ def _add_temporal_deltas(df: pd.DataFrame) -> pd.DataFrame:
     out["speed_n_per_sec"] = out["displacement_n"] / denom_time
 
     out["prev_speed_n_per_frame"] = g["speed_n_per_frame"].shift(1)
-    out["accel_n_per_frame2"] = (out["speed_n_per_frame"] - out["prev_speed_n_per_frame"]) / denom_frame
+    out["accel_n_per_frame2"] = (
+        out["speed_n_per_frame"] - out["prev_speed_n_per_frame"]
+    ) / denom_frame
     out["abs_accel_n_per_frame2"] = out["accel_n_per_frame2"].abs()
 
     out["direction_rad"] = np.arctan2(out["delta_cy_n"], out["delta_cx_n"])
@@ -542,7 +586,7 @@ def _add_temporal_deltas(df: pd.DataFrame) -> pd.DataFrame:
         + (out["delta_aspect_ratio"].fillna(0) / 10.0) ** 2
     )
 
-    # First row in each track has no previous movement; use 0 for train/review-friendly motion magnitudes.
+    # The first track row has no previous movement, so use zero magnitudes.
     fill_zero_cols = [
         "delta_cx_n",
         "delta_cy_n",
@@ -570,13 +614,22 @@ def _add_temporal_deltas(df: pd.DataFrame) -> pd.DataFrame:
 def _add_roi_temporal_columns(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
 
-    target_class = out.get("roi_target_class", pd.Series("", index=out.index)).fillna("").astype(str)
+    target_class = (
+        out.get("roi_target_class", pd.Series("", index=out.index))
+        .fillna("")
+        .astype(str)
+    )
     behavior = out["behavior"].astype(str)
     out["roi_target_class_inferred"] = target_class.where(
         target_class.ne(""), behavior.map(BEHAVIOR_TO_TARGET_ROI).fillna("")
     )
 
-    for col in ["roi_target_near", "roi_target_contact", "roi_target_center_inside", "roi_target_available"]:
+    for col in [
+        "roi_target_near",
+        "roi_target_contact",
+        "roi_target_center_inside",
+        "roi_target_available",
+    ]:
         if col in out.columns:
             out[col] = _to_bool_series(out[col])
         else:
@@ -590,8 +643,20 @@ def _add_roi_temporal_columns(df: pd.DataFrame) -> pd.DataFrame:
     out = out.sort_values(["object_track_key", "frame_index"], kind="mergesort")
     g = out.groupby("object_track_key", dropna=False, sort=False)
 
-    out["prev_roi_target_contact"] = g["roi_target_contact"].shift(1).astype("boolean").fillna(False).astype(bool)
-    out["prev_roi_target_near"] = g["roi_target_near"].shift(1).astype("boolean").fillna(False).astype(bool)
+    out["prev_roi_target_contact"] = (
+        g["roi_target_contact"]
+        .shift(1)
+        .astype("boolean")
+        .fillna(False)
+        .astype(bool)
+    )
+    out["prev_roi_target_near"] = (
+        g["roi_target_near"]
+        .shift(1)
+        .astype("boolean")
+        .fillna(False)
+        .astype(bool)
+    )
     out["roi_target_entry_event"] = out["roi_target_contact"] & ~out["prev_roi_target_contact"]
     out["roi_target_exit_event"] = ~out["roi_target_contact"] & out["prev_roi_target_contact"]
     out["roi_target_near_entry_event"] = out["roi_target_near"] & ~out["prev_roi_target_near"]
@@ -625,13 +690,12 @@ def _add_social_context_columns(df: pd.DataFrame, config: EnhancedFeatureConfig)
             out[col] = np.nan
         out[col] = pd.to_numeric(out[col], errors="coerce")
 
-    # Use frame_uid if available; otherwise fallback to source/dataset/video/frame_index.
-    if "frame_uid" in out.columns and out["frame_uid"].astype(str).ne("").any():
-        frame_key_cols = ["source_type", "dataset_id", "video_key", "frame_uid"]
-    else:
-        frame_key_cols = ["source_type", "dataset_id", "video_key", "frame_index"]
+    out["_social_frame_group_key"] = _social_frame_group_key(out)
+    frame_key_cols = ["_social_frame_group_key"]
 
-    valid_bbox = _to_bool_series(out.get("bbox_valid", pd.Series(True, index=out.index))).to_numpy(dtype=bool)
+    valid_bbox = _to_bool_series(
+        out.get("bbox_valid", pd.Series(True, index=out.index))
+    ).to_numpy(dtype=bool)
     pig_ids_all = out["pig_id"].fillna("").astype(str).to_numpy(dtype=object)
     track_ids_all = out["track_id"].fillna("").astype(str).to_numpy(dtype=object)
     centers_all = out[["cx_n", "cy_n"]].to_numpy(dtype="float64")
@@ -649,30 +713,43 @@ def _add_social_context_columns(df: pd.DataFrame, config: EnhancedFeatureConfig)
             continue
 
         centers = centers_all[idx_arr]
-        finite_centers = np.isfinite(centers).all(axis=1)
-        if not finite_centers.any():
+        finite_geometry = (
+            np.isfinite(centers).all(axis=1)
+            & np.isfinite(boxes_all[idx_arr]).all(axis=1)
+            & np.isfinite(areas_all[idx_arr])
+            & (areas_all[idx_arr] > 0)
+            & valid_bbox[idx_arr]
+        )
+        if not finite_geometry.any():
             continue
 
         dx = centers[:, [0]] - centers[:, 0][None, :]
         dy = centers[:, [1]] - centers[:, 1][None, :]
         dist = np.sqrt(dx**2 + dy**2)
         np.fill_diagonal(dist, np.inf)
-        dist[~finite_centers, :] = np.inf
-        dist[:, ~finite_centers] = np.inf
+        dist[~finite_geometry, :] = np.inf
+        dist[:, ~finite_geometry] = np.inf
 
         nearest_pos = np.argmin(dist, axis=1)
         nearest_dist = dist[np.arange(m), nearest_pos]
         has_neighbor = np.isfinite(nearest_dist)
         near_count = (dist <= config.social_near_distance_n).sum(axis=1)
 
-        pair_iou_mat, pair_overlap_mat = _pairwise_box_overlap(boxes_all[idx_arr], areas_all[idx_arr])
+        pair_iou_mat, pair_overlap_mat = _pairwise_box_overlap(
+            boxes_all[idx_arr],
+            areas_all[idx_arr],
+        )
+        pair_iou_mat[~finite_geometry, :] = 0.0
+        pair_iou_mat[:, ~finite_geometry] = 0.0
+        pair_overlap_mat[~finite_geometry, :] = 0.0
+        pair_overlap_mat[:, ~finite_geometry] = 0.0
         contact_mat = (pair_iou_mat >= config.social_contact_iou_threshold) | (
             pair_overlap_mat >= config.social_contact_overlap_threshold
         )
         np.fill_diagonal(contact_mat, False)
         contact_count = contact_mat.sum(axis=1)
 
-        valid_rows = has_neighbor & valid_bbox[idx_arr]
+        valid_rows = has_neighbor & finite_geometry
         source_pos = np.where(valid_rows)[0]
         target_positions = idx_arr[source_pos]
         neighbor_positions = nearest_pos[source_pos]
@@ -681,15 +758,21 @@ def _add_social_context_columns(df: pd.DataFrame, config: EnhancedFeatureConfig)
         nearest_track_id_arr[target_positions] = track_ids_all[idx_arr[neighbor_positions]]
         nearest_dist_arr[target_positions] = nearest_dist[source_pos]
 
-        near_count_arr[idx_arr] = near_count.astype("int64")
-        contact_count_arr[idx_arr] = contact_count.astype("int64")
+        valid_global = idx_arr[finite_geometry]
+        near_count_arr[valid_global] = near_count[finite_geometry].astype("int64")
+        contact_count_arr[valid_global] = contact_count[finite_geometry].astype(
+            "int64"
+        )
 
         # Nearest pair overlap values.
-        for local_pos, global_pos in enumerate(idx_arr):
-            if has_neighbor[local_pos]:
-                j = nearest_pos[local_pos]
-                nearest_iou_arr[global_pos] = pair_iou_mat[local_pos, j]
-                nearest_overlap_arr[global_pos] = pair_overlap_mat[local_pos, j]
+        for local_pos in source_pos:
+            global_pos = idx_arr[local_pos]
+            neighbor_pos = nearest_pos[local_pos]
+            nearest_iou_arr[global_pos] = pair_iou_mat[local_pos, neighbor_pos]
+            nearest_overlap_arr[global_pos] = pair_overlap_mat[
+                local_pos,
+                neighbor_pos,
+            ]
 
     out["nearest_pig_id"] = nearest_pig_id_arr
     out["nearest_track_id"] = nearest_track_id_arr
@@ -702,15 +785,34 @@ def _add_social_context_columns(df: pd.DataFrame, config: EnhancedFeatureConfig)
 
     out = out.sort_values(["object_track_key", "frame_index"], kind="mergesort")
     g = out.groupby("object_track_key", dropna=False, sort=False)
-    denom_frame = out["delta_frame_prev"].replace(0, np.nan) if "delta_frame_prev" in out.columns else np.nan
+    denom_frame = (
+        out["delta_frame_prev"].replace(0, np.nan)
+        if "delta_frame_prev" in out.columns
+        else np.nan
+    )
     out["prev_nearest_pig_id"] = g["nearest_pig_id"].shift(1).fillna("")
     out["prev_nearest_dist_n"] = g["nearest_dist_n"].shift(1)
-    same_neighbor = out["nearest_pig_id"].astype(str).eq(out["prev_nearest_pig_id"].astype(str)) & out[
-        "nearest_pig_id"
-    ].astype(str).ne("")
-    out["nearest_dist_delta"] = np.where(same_neighbor, out["nearest_dist_n"] - out["prev_nearest_dist_n"], np.nan)
-    out["approach_speed_n_per_frame"] = np.where(same_neighbor, -out["nearest_dist_delta"] / denom_frame, 0.0)
-    out["separation_speed_n_per_frame"] = np.where(same_neighbor, out["nearest_dist_delta"] / denom_frame, 0.0)
+    same_neighbor = (
+        out["nearest_pig_id"]
+        .astype(str)
+        .eq(out["prev_nearest_pig_id"].astype(str))
+        & out["nearest_pig_id"].astype(str).ne("")
+    )
+    out["nearest_dist_delta"] = np.where(
+        same_neighbor,
+        out["nearest_dist_n"] - out["prev_nearest_dist_n"],
+        np.nan,
+    )
+    out["approach_speed_n_per_frame"] = np.where(
+        same_neighbor,
+        -out["nearest_dist_delta"] / denom_frame,
+        0.0,
+    )
+    out["separation_speed_n_per_frame"] = np.where(
+        same_neighbor,
+        out["nearest_dist_delta"] / denom_frame,
+        0.0,
+    )
     out["approach_speed_n_per_frame"] = (
         pd.to_numeric(out["approach_speed_n_per_frame"], errors="coerce")
         .replace([np.inf, -np.inf], np.nan)
@@ -724,16 +826,59 @@ def _add_social_context_columns(df: pd.DataFrame, config: EnhancedFeatureConfig)
         .clip(lower=0.0)
     )
 
-    out["pair_contact_with_nearest"] = (out["nearest_pair_iou"] >= config.social_contact_iou_threshold) | (
-        out["nearest_pair_overlap_ratio"] >= config.social_contact_overlap_threshold
+    out["pair_contact_with_nearest"] = (
+        out["nearest_pair_iou"] >= config.social_contact_iou_threshold
+    ) | (
+        out["nearest_pair_overlap_ratio"]
+        >= config.social_contact_overlap_threshold
     )
     out["aggression_score_proxy"] = (
         out["pair_contact_with_nearest"].astype(float)
-        * (out.get("speed_n_per_frame", 0.0).fillna(0.0) + out["approach_speed_n_per_frame"].fillna(0.0))
+        * (
+            out.get("speed_n_per_frame", 0.0).fillna(0.0)
+            + out["approach_speed_n_per_frame"].fillna(0.0)
+        )
         * (1.0 + out["social_density_near_count"].fillna(0.0))
     )
 
+    out = out.drop(columns=["_social_frame_group_key"])
     return out.sort_index(kind="mergesort")
+
+
+def _social_frame_group_key(rows: pd.DataFrame) -> pd.Series:
+    """Build a row-wise frame key without merging partially missing UIDs."""
+    frame_uid = rows.get(
+        "frame_uid",
+        pd.Series("", index=rows.index),
+    ).fillna("").astype(str).str.strip()
+    frame_index = pd.to_numeric(rows["frame_index"], errors="coerce")
+    invalid_fallback = (
+        frame_uid.eq("")
+        & (
+            frame_index.isna()
+            | frame_index.mod(1).ne(0)
+            | frame_index.lt(0)
+        )
+    )
+    if invalid_fallback.any():
+        sample = [str(value) for value in rows.index[invalid_fallback].tolist()[:10]]
+        raise ValueError(
+            "Social frame grouping contract failed: "
+            f"invalid_fallback_rows={int(invalid_fallback.sum())}, "
+            f"sample_source_indices={sample}"
+        )
+
+    fallback = "frame=" + frame_index.round().astype("Int64").astype(str)
+    local_frame = ("uid=" + frame_uid).where(frame_uid.ne(""), fallback)
+    return (
+        rows["source_type"].astype(str)
+        + "|"
+        + rows["dataset_id"].astype(str)
+        + "|"
+        + rows["video_key"].astype(str)
+        + "|"
+        + local_frame
+    )
 
 
 def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
@@ -749,7 +894,12 @@ def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
         "direction_change_abs_mean_unit": ("abs_direction_change_rad", "mean"),
         "direction_change_abs_max_unit": ("abs_direction_change_rad", "max"),
         "path_length_n_unit": ("displacement_n", "sum"),
-        "motion_energy_unit": ("speed_n_per_frame", lambda s: float(np.nansum(np.asarray(s, dtype="float64") ** 2))),
+        "motion_energy_unit": (
+            "speed_n_per_frame",
+            lambda s: float(
+                np.nansum(np.asarray(s, dtype="float64") ** 2)
+            ),
+        ),
         "shape_transition_score_unit": ("shape_change_score", "max"),
         "area_n_std_unit": ("area_n", "std"),
         "aspect_ratio_std_unit": ("aspect_ratio", "std"),
@@ -798,15 +948,18 @@ def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
 
     frame_count = g.size().rename("frame_count_unit")
     unit_agg = unit_agg.join(frame_count)
-    unit_agg["target_roi_contact_ratio_unit"] = unit_agg.get("target_roi_contact_frame_count_unit", 0) / unit_agg[
-        "frame_count_unit"
-    ].replace(0, np.nan)
-    unit_agg["target_roi_near_ratio_unit"] = unit_agg.get("target_roi_near_frame_count_unit", 0) / unit_agg[
-        "frame_count_unit"
-    ].replace(0, np.nan)
-    unit_agg["pair_contact_ratio_unit"] = unit_agg.get("pair_contact_frame_count_unit", 0) / unit_agg[
-        "frame_count_unit"
-    ].replace(0, np.nan)
+    unit_agg["target_roi_contact_ratio_unit"] = unit_agg.get(
+        "target_roi_contact_frame_count_unit",
+        0,
+    ) / unit_agg["frame_count_unit"].replace(0, np.nan)
+    unit_agg["target_roi_near_ratio_unit"] = unit_agg.get(
+        "target_roi_near_frame_count_unit",
+        0,
+    ) / unit_agg["frame_count_unit"].replace(0, np.nan)
+    unit_agg["pair_contact_ratio_unit"] = unit_agg.get(
+        "pair_contact_frame_count_unit",
+        0,
+    ) / unit_agg["frame_count_unit"].replace(0, np.nan)
 
     # Prefix columns are already descriptive; map back to each row.
     for col in unit_agg.columns:
@@ -831,7 +984,11 @@ def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
     ]
     for col in numeric_fill:
         if col in out.columns:
-            out[col] = pd.to_numeric(out[col], errors="coerce").replace([np.inf, -np.inf], np.nan).fillna(0.0)
+            out[col] = (
+                pd.to_numeric(out[col], errors="coerce")
+                .replace([np.inf, -np.inf], np.nan)
+                .fillna(0.0)
+            )
 
     return out
 
@@ -857,21 +1014,39 @@ def _add_review_helper_columns(df: pd.DataFrame) -> pd.DataFrame:
             if flag:
                 reason_parts[i].append(reason)
 
-    add_reason(out["is_roi_behavior"] & ~out.get("roi_target_contact", False), "roi_label_without_target_contact")
-    add_reason(out["is_motion_behavior"] & out.get("speed_mean_unit", 0).fillna(0).lt(0.002), "motion_label_low_motion")
     add_reason(
-        out["behavior"].eq("stand") & out.get("speed_mean_unit", 0).fillna(0).gt(0.01), "stand_label_high_motion"
+        out["is_roi_behavior"] & ~out.get("roi_target_contact", False),
+        "roi_label_without_target_contact",
     )
     add_reason(
-        out["is_interaction_behavior"] & out.get("nearest_dist_min_unit", np.inf).fillna(np.inf).gt(0.12),
+        out["is_motion_behavior"]
+        & out.get("speed_mean_unit", 0).fillna(0).lt(0.002),
+        "motion_label_low_motion",
+    )
+    add_reason(
+        out["behavior"].eq("stand")
+        & out.get("speed_mean_unit", 0).fillna(0).gt(0.01),
+        "stand_label_high_motion",
+    )
+    add_reason(
+        out["is_interaction_behavior"]
+        & out.get("nearest_dist_min_unit", np.inf)
+        .fillna(np.inf)
+        .gt(0.12),
         "interaction_label_no_close_neighbor",
     )
     add_reason(
         out["is_shape_behavior"] & out.get("shape_transition_score_unit", 0).fillna(0).gt(0.20),
         "posture_label_high_shape_change",
     )
-    add_reason(~out["behavior_consistency_in_unit"].fillna(True).astype(bool), "multiple_behaviors_in_temporal_unit")
-    add_reason(~out["source_sequence_complete_auto"].fillna(True).astype(bool), "incomplete_temporal_unit")
+    add_reason(
+        ~out["behavior_consistency_in_unit"].fillna(True).astype(bool),
+        "multiple_behaviors_in_temporal_unit",
+    )
+    add_reason(
+        ~out["source_sequence_complete_auto"].fillna(True).astype(bool),
+        "incomplete_temporal_unit",
+    )
 
     out["review_feature_reason_auto"] = [";".join(parts) if parts else "" for parts in reason_parts]
     out["review_feature_priority_auto"] = np.select(
@@ -925,7 +1100,12 @@ def _pairwise_box_overlap(boxes: np.ndarray, areas: np.ndarray) -> tuple[np.ndar
     union = area_i + area_j - inter
     with np.errstate(divide="ignore", invalid="ignore"):
         iou = np.where(union > 0, inter / union, 0.0)
-        overlap_min = np.where(np.minimum(area_i, area_j) > 0, inter / np.minimum(area_i, area_j), 0.0)
+        minimum_area = np.minimum(area_i, area_j)
+        overlap_min = np.where(
+            minimum_area > 0,
+            inter / minimum_area,
+            0.0,
+        )
     iou[~np.isfinite(iou)] = 0.0
     overlap_min[~np.isfinite(overlap_min)] = 0.0
     return iou, overlap_min
@@ -956,7 +1136,15 @@ def _numeric_summary(df: pd.DataFrame, column: str) -> dict[str, float | int | N
         return {}
     s = pd.to_numeric(df[column], errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
     if s.empty:
-        return {"count": 0, "mean": None, "std": None, "min": None, "p50": None, "p95": None, "max": None}
+        return {
+            "count": 0,
+            "mean": None,
+            "std": None,
+            "min": None,
+            "p50": None,
+            "p95": None,
+            "max": None,
+        }
     return {
         "count": int(s.size),
         "mean": float(s.mean()),
