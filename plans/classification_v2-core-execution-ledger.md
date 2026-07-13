@@ -37,7 +37,8 @@ completion status, while its evidence records independent work that can continue
 ### P1-P6 Development Phases
 
 - P1 visual, mapped to M3/M8/M9: `BLOCKED` by the unfrozen P0 snapshot and hashes.
-- P2 temporal, mapped to M4/M8/M9: `BLOCKED` by P0/P1 and unlocked fixed-6 views.
+- P2 temporal, mapped to M4/M8/M9: `BLOCKED` by P0/P1; the active reviewed
+  fixed-six packet cannot exist until human review completes.
 - P3 spatial/ROI, mapped to M6/M8/M9: `BLOCKED` by P2 and the active snapshot.
 - P4 social, mapped to M6/M8/M9: `BLOCKED` by P3 and missing shortcut controls.
 - P5 imbalance, mapped to M2/M8/M9: `BLOCKED` by the missing strong P4 model.
@@ -80,15 +81,18 @@ Independent in-progress gates:
   ordered frame/window lineage and 8/8 deterministic stage pairs.
 - Snapshot/launch binding: `PASS IN CODE`; snapshot v2 and preflight v2 bind
   split/image/interaction order plus artifact, config, and code hashes.
-- Temporal views: build audited fixed6 observed-time, phase, and native views.
-- Shortcut probes: implement fold/source/length/missingness checks on fixtures.
+- Temporal views: `PASS IN CODE` at `bb225ff`; fixed-six observed-time, phase,
+  native 6/16, selection-ledger, order/hash, and missing-slot contracts pass.
+- Structural shortcut probes: `PASS IN CODE`; source/length/padding/timing,
+  quality, availability, and metadata-to-label signatures fail closed on
+  fixtures. Learned embedding probes remain a later model-stage gate.
 
 ## Independent Work Queue
 
 Work proceeds in dependency order without fabricating human evidence:
 
 1. Complete Hidden clustered uncertainty and target-independent prevalence gates.
-2. Implement fixed-6 view manifests and source/length shortcut probes on fixtures.
+2. Fixed-six manifests and structural shortcut probes: `COMPLETED IN CODE`.
 3. Complete fold-local preprocessing, event balancing, and lineage registry contracts.
 4. Complete configurable model/mask/shape contracts without downloading weights.
 5. Complete native-collapse and paired-evaluation tests with synthetic predictions.
@@ -121,10 +125,11 @@ authorization.
 | 2026-07-13 | Hidden review identifier and decision migration | PASS | `b5f3213` |
 | 2026-07-13 | Ordered snapshot-v2 contract | PASS | `7cb4637` |
 | 2026-07-13 | Preflight/execution lineage binding | PASS | `dd0e6ff` |
+| 2026-07-13 | Fixed-six temporal views and shortcut contract | PASS IN CODE | `bb225ff` |
 
 ## Next Checkpoint
 
-The next isolated achievement is a fixed-6 observed-time temporal-view contract
-plus source, length, padding, and missingness shortcut probes on fixtures. It
-must not train or infer human decisions. Hidden/behavior review remains the
-separate blocker for freezing the reviewed P0 snapshot.
+The next isolated achievement is fold-local preprocessing, event balancing,
+and experiment-lineage registry hardening on fixtures. It must not train or
+infer human decisions. Hidden/behavior review remains the separate blocker for
+freezing the reviewed P0 snapshot.

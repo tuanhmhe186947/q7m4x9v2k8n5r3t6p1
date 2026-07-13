@@ -1009,6 +1009,8 @@ target và temporal status. Không dùng fast overlay canonical.
 %PY% %S0%\classification_v2_build_sequence_windows.py ^
   --input-csv %RFRAME%\reviewed_frame_features.csv ^
   --output-dir %SEQ1% ^
+  --harmonized-frame-csv %SEQ1%\harmonized_frames.csv ^
+  --temporal-intervals-csv %SEQ1%\temporal_label_intervals.csv ^
   --window-lengths 6,8,12,16 ^
   --cvat-label-stride 6 ^
   --legacy-expected-sequence-length 16 ^
@@ -1256,7 +1258,28 @@ sau này, phải có confidence/mask và một ablation riêng.
 
 ### 15.6. Primary temporal view và source-shortcut controls
 
-Tạo non-destructive 6-frame/source-matched masks và grouped source probes:
+Đầu tiên tạo packet temporal view từ đúng reviewed lineage:
+
+```bat
+set TVIEW=%TRAIN%\temporal_views
+%PY% %S2%\classification_v2_build_temporal_views.py ^
+  --window-manifest %SEQ1%\sequence_window_manifest.csv ^
+  --harmonized-frame-csv %SEQ1%\harmonized_frames.csv ^
+  --temporal-interval-csv %SEQ1%\temporal_label_intervals.csv ^
+  --output-dir %TVIEW%
+%PY% %S2%\check_classification_v2_temporal_view_shortcuts.py ^
+  --temporal-view-dir %TVIEW% ^
+  --output-json %TVIEW%\temporal_shortcut_audit.json
+```
+
+Builder tạo sáu artifact chính: selection ledger, hai fixed-six slot manifest,
+native 6/16 slot manifest, contract JSON và build audit. Mọi input window vẫn
+có một row trong ledger; missing frame vẫn có expected slot và mask. Contract
+bind row count cùng ordered-key hash, nên cắt hoặc reorder CSV sẽ làm checker
+FAIL. Output đã tồn tại cần `--overwrite`; semantic config mới phải dùng `%R%`
+mới. Trước packet full, chạy cùng lệnh trên reviewed complete-unit short lineage.
+
+Sau đó tạo source-matched masks và grouped source probes bổ sung:
 
 ```bat
 %PY% %S2%\classification_v2_build_source_matched_views.py ^
@@ -1275,11 +1298,12 @@ Tạo non-destructive 6-frame/source-matched masks và grouped source probes:
   --output-json %TRAIN%\domain_controls\spatial_source_probe_audit.json
 ```
 
-Primary protocol là một fixed 6-slot view với cùng sampling rule và observed
-time semantics cho hai source. `view_matched_6frame` hiện chỉ kiểm số slot; nó
-chưa tự chứng minh cadence/duration tương đương. Native 6/16 và mọi-length
-training chỉ là ablation cho tới khi source, sequence-length, padding và
-effective-time probes được audit.
+Primary protocol là `fixed6_observed_time`: CVAT và legacy đều dùng window dài
+6 đã được tạo sau harmonization. Không lấy sáu quantile rải trên burst legacy
+16 frame vì cách đó làm span/cadence trở thành source proxy. Một native legacy
+có thể cho nhiều subwindow, nhưng tất cả ở cùng fold/native event và event
+weight kiểm soát repeated mass. `fixed6_normalized_phase` giữ nguyên membership
+nhưng bỏ absolute duration; `native6_16` chỉ là ablation.
 
 Trong primary X, `window_length_frames` phải là hằng số. Chỉ giữ duration,
 effective FPS hoặc frame-delta khi provenance thời gian của hai source đã được
@@ -1287,10 +1311,12 @@ calibrate và cùng ý nghĩa; nếu không chúng là source proxy và phải b
 primary view. Chạy riêng `availability-only` probe cho ROI/social/context masks
 trước khi diễn giải gain từ real context.
 
-Không chạy full nếu model loader chưa nhận explicit temporal-view mask hoặc nếu
-source/length gần như suy ra label mà chưa có matched analysis. Context gain còn
-phải có actor-only, availability-only, real-context, matched-context subset và
-modality-dropout controls.
+Checker đo exact structural signatures cho source/length/padding/observed,
+quality/timing/availability và association audit-only tới behavior. Near-direct
+shortcut chưa có mitigation evidence hợp lệ là hard stop. Không tự thêm
+`--mitigation-evidence-json`; file đó phải là output versioned của control riêng.
+Context gain còn phải có actor-only, availability-only, real-context,
+matched-context subset và modality-dropout controls.
 
 ## 16. Image context và cache tái sử dụng
 
@@ -1752,6 +1778,8 @@ Full OOF chỉ được phép khi thêm các mục sau PASS:
 - [ ] Full predictions đủ count và collapse về native unit không mất unit.
 - [ ] Calibration, confusion, grouped/source metrics, registry và completion PASS.
 
-Theo code hiện tại, versioned contract/path routing, primary fold protocol,
-fixed-6 loader controls và ResNet finalist đều chưa đạt; do đó toàn luồng tới
-scientific full OOF vẫn là `FAIL/BLOCKED`, dù technical data smoke đã PASS.
+Theo code hiện tại, fixed-six manifest và structural shortcut contract đã PASS
+trên fixture ở `bb225ff`; active reviewed packet và model-loader integration
+chưa thể chạy. Primary fold protocol, ResNet finalist và reviewed snapshot cũng
+chưa đạt. Vì vậy toàn luồng tới scientific full OOF vẫn là `FAIL/BLOCKED`, dù
+technical data smoke đã PASS.

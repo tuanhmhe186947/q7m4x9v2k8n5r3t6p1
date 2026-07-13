@@ -16,6 +16,8 @@ Current policy:
 - All operator scripts live under `scripts/classification_v2/<block>/`.
 - The former split script namespaces and their wrappers are removed.
 - Checkers are colocated with the stage whose contract they validate.
+- Commit `bb225ff` adds fixture-verified fixed-six/phase/native temporal views
+  and structural shortcut checks; active reviewed artifacts remain blocked.
 
 Related documents:
 
@@ -60,8 +62,9 @@ flowchart TD
   K --> L[Behavior-reviewed frame features]
   L --> M[Reviewed sequence windows]
   M --> N[Train-ready tensors and manifests]
-  N --> O[Actor and visual context caches]
-  N --> P[Leakage-safe folds and weights]
+  N --> TV[Fixed-six and native views plus shortcut audit]
+  TV --> O[Actor and visual context caches]
+  TV --> P[Leakage-safe folds and weights]
   O --> Q[Full-like smoke]
   P --> Q
   Q --> R[Human full OOF authorization]
@@ -83,7 +86,7 @@ flowchart TD
 | Review units | human-review rows/templates | build review units | `review_units/*` |
 | GUI/apply | review and apply decisions | GUI plus apply script | reviewed frames |
 | Windows | reviewed training windows | build sequence windows | reviewed windows |
-| Train-ready | X/y/masks/weights/splits | export train-ready | `train_ready_windows/*` |
+| Train-ready | tensors, splits, temporal views | block `02` | `train_ready_windows/*` |
 | Cache | letterbox actor/context caches | cache builders | image caches |
 | Baselines | B0/B1/B2 and pilots | baseline runners | registry records |
 | Full gate | preflight, auth, launch packet | full OOF checks | `model_design/*` |
@@ -102,7 +105,8 @@ between blocks `00` and `01` and must be followed exactly:
 2. Run block `01` Hidden template, media validation, human review, and apply.
 3. Return to block `00` for temporal harmonization and sequence windows.
 4. Run block `01` behavior-unit build, GUI review, coverage, and apply.
-5. Run blocks `02-03` for reviewed exports, folds, and matching caches.
+5. Run block `02` for reviewed exports, folds, fixed-six/native views, and
+   shortcut audits; then block `03` for matching caches.
 6. Pass block `04` contracts and bounded model smokes.
 7. Run block `05` preflight and authorization bound to frozen hashes.
 8. Run block `06` finalists, block `07` evaluation, block `08` reporting, and

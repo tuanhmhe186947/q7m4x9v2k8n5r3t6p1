@@ -1,5 +1,20 @@
 # Project Memory Short
 
+## 2026-07-13 fixed-six temporal-view contract
+
+- Commit `bb225ff` adds keyed manifests for `fixed6_observed_time`,
+  `fixed6_normalized_phase`, and the `native6_16` ablation.
+- The primary view reuses existing post-harmonization six-frame windows for
+  both sources. It does not sample six quantiles across a legacy 16-frame burst.
+- Every original window remains in a selection ledger; every native 6/16 unit
+  remains in the native view, and missing observations remain explicit masks.
+- Persisted manifests bind row counts and ordered stable-key hashes. Structural
+  source/length/padding/timing/quality/availability shortcuts fail closed unless
+  a separate valid mitigation artifact is supplied.
+- Fixture evidence is 22/22 tests; the full classification regression is
+  243 passed and 181 deselected. No real reviewed artifact, training, or OOF was
+  run, so human Hidden and behavior review remain the active blockers.
+
 ## 2026-07-13 snapshot and launch-lineage hardening
 
 - Commit `7cb4637` makes snapshot v2 fail closed on blank/duplicate keys,

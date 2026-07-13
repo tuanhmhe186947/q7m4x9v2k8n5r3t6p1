@@ -58,6 +58,14 @@ Use both sources and all 10 behaviors. Builders must exit nonzero on audit
 errors. Existing derived outputs require explicit `--overwrite`; prefer a new
 versioned directory for changed semantics.
 
+The temporal-view code contract is `PASS IN CODE` at `bb225ff`. After reviewed
+windows exist, build `fixed6_observed_time`, `fixed6_normalized_phase`, and
+`native6_16` with the block `02` temporal-view builder, then run its structural
+shortcut checker. The fixed-six view reuses existing harmonized six-frame
+windows; never sample six quantiles across a legacy burst. Keep all original
+windows in the selection ledger and keep source/native-length metadata outside
+model tensors. An unmitigated source shortcut is a training hard stop.
+
 For a reviewed full-multimodal candidate, rerun the lineage checker with
 `--require-interaction-lineage`. Snapshot v2 must show one ordered hash for
 split, image-window, and interaction-window manifests; exporter audits must
@@ -86,6 +94,8 @@ Current state:
 - The identifier-v2 technical chain passes at commit `a83d5a5`: 688 frame rows,
   63 native/review units, 438 ordered windows, exact X whitelist, and 8/8
   source-to-window repeatability.
+- Temporal-view manifests and structural shortcut checks pass 22 synthetic
+  tests at `bb225ff`; no active reviewed packet has been built from them yet.
 - The active lineage stops at block `01`: the Hidden v5 template passes, but
   human Hidden decisions are only 30/5,171 and apply is incomplete.
 - Behavior review also fails closed with 3/4,670 decisions, 4,667 missing, and

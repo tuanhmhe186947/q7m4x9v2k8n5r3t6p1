@@ -152,18 +152,22 @@ guardrail thresholds are frozen after Phase 0 baseline reconciliation.
 `source_type` never enters X. The primary temporal view is
 `fixed6_observed_time`:
 
-- CVAT uses its six interval frames;
-- legacy samples six deterministic time-distributed positions from 16 frames;
-- both expose six slots with the same mask shape;
-- actual timestamps and frame deltas remain available;
-- the native unit and all unused rows remain in audit artifacts.
+- CVAT reuses each harmonized six-frame anchor-interval window;
+- legacy reuses existing harmonized six-frame subwindows within its burst;
+- do not sample six quantiles across a legacy 16-frame burst;
+- a legacy native unit may contribute multiple windows, but it never crosses a
+  split and event weighting controls repeated event mass;
+- both sources expose six keyed slots with identical length/padding semantics;
+- timestamps and frame deltas remain only when shortcut audits permit them;
+- every original window stays in a selection ledger and every native unit stays
+  in audit/native-ablation artifacts.
 
 Compare this primary view with `native6_16` only as an ablation. Also build a
 `fixed6_normalized_phase` diagnostic that removes absolute duration. These views
 separate padding-length shortcuts from legitimate temporal information.
 
-Do not infer 6 FPS from a six-frame CVAT interval. Sampling uses verified frame
-timestamps and effective FPS.
+Do not infer 6 FPS from a six-frame CVAT interval. Observed time uses verified
+timestamps; normalized phase removes absolute duration as a diagnostic.
 
 ### 6.2 Required Source Probes
 
@@ -269,6 +273,9 @@ Create keyed, audited manifests for:
 
 No view deletes native units. Each records selected frame indices, timestamps,
 source interval length, missing frames, and deterministic sampling version.
+
+Commit `bb225ff` implements this contract and structural shortcut audits on
+synthetic fixtures. Active-lineage manifests remain blocked by human review.
 
 ### P0 PASS
 

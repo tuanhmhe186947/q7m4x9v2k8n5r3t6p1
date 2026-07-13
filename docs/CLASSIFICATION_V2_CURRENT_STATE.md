@@ -74,8 +74,18 @@ Snapshot and launch lineage are hardened by `7cb4637` and `dd0e6ff`:
 - preflight and execution recompute artifact, snapshot, lineage, and code binds;
 - human authorization binds snapshot and lineage hashes, not only model config.
 
-These contracts passed 221 classification regression tests. They have not been
-used to freeze the incomplete human-review lineage and do not authorize train.
+Temporal-view code is hardened by `bb225ff`:
+
+- fixed-six observed-time and normalized-phase views share exact keyed slots;
+- both sources reuse post-harmonization six-frame windows;
+- legacy is not quantile-sampled across its native 16-frame burst;
+- every source window stays in a selection ledger and every native unit stays
+  in the 6/16 ablation;
+- persisted rows/order/hashes and structural shortcuts fail closed.
+
+The current classification regression is 243 passed and 181 deselected. The
+new temporal evidence is synthetic/fixture-only; it has not frozen or trained
+the incomplete human-review lineage.
 
 ## Active Gate Status
 
@@ -93,6 +103,7 @@ used to freeze the incomplete human-review lineage and do not authorize train.
 | Behavior decision apply | BLOCKED | Complete gate fails |
 | Reviewed train-ready snapshot | FAIL | No complete reviewed lineage exists |
 | Snapshot/preflight code contract | PASS | Ordered lineage and hash binding tested |
+| Temporal-view code contract | PASS IN CODE | 22 fixture tests; active packet blocked |
 | Model smoke on active snapshot | NOT RUN | Snapshot hashes are not frozen |
 | Full OOF on active snapshot | NOT AUTHORIZED | Smoke and launch gates not reached |
 | Q2 result claim | NOT ALLOWED | Active reviewed evaluation is absent |
@@ -126,10 +137,11 @@ label it paper-facing or `PASS_PARTIAL_ROADMAP` do not authorize a Q2 claim.
 6. Complete all behavior decisions and pass the fail-closed coverage gate.
 7. Apply behavior decisions without dropping rows or overwriting enhanced data.
 8. Rebuild reviewed windows, native units, X/y/masks/weights, and image indexes.
-9. Freeze data, cache, feature-whitelist, and fold hashes.
-10. Run one-batch, tiny-overfit, resume, runtime, and one-fold smoke gates.
-11. Obtain a new full-run authorization bound to the frozen hashes and code SHA.
-12. Run finalists only, then grouped native-unit evaluation and completion gates.
+9. Build fixed-six/phase/native temporal views and pass shortcut audits.
+10. Freeze data, cache, feature-whitelist, fold, and temporal-view hashes.
+11. Run one-batch, tiny-overfit, resume, runtime, and one-fold smoke gates.
+12. Obtain a new full-run authorization bound to frozen hashes and code SHA.
+13. Run finalists only, then grouped native-unit evaluation and completion gates.
 
 Detailed commands are in
 `CLASSIFICATION_V2_DATA_REBUILD_AND_HUMAN_REVIEW_RUNBOOK.md`. Script ownership
@@ -142,6 +154,8 @@ and stage order are documented in `scripts/classification_v2/README.md` and
 - CVAT anchors represent six-frame intervals `k..k+5`.
 - `pig_id` is annotation-local, not cross-video biological identity.
 - Training windows are created only after temporal harmonization.
+- The primary view uses existing harmonized six-frame windows for both sources;
+  native 6/16 length is an ablation, not an implicit primary input.
 - No label, review, path, stable ID, fold ID, or target-derived field enters X.
 - No random frame/window split and no overlapping windows across split roles.
 - No silent row drop, silent relabel, silent trust promotion, or raw-data edit.

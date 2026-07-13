@@ -13,6 +13,12 @@ fail-closed until static checks, a tiny/short representative run, and
 schema/count/hash/output/runtime audits pass. A prior full authorization does
 not transfer to a changed semantic config.
 
+Commit `bb225ff` completes the temporal-view and structural shortcut contract
+in code and on synthetic fixtures. The primary view now reuses harmonized
+six-frame windows for both sources; legacy 16-frame quantile sampling is not
+allowed. This is `PASS IN CODE`, not active-data evidence. Do not build the
+reviewed temporal packet or run a model until both human review layers pass.
+
 The identifier-v2 code/data chain passes at commit `a83d5a5`. Its bounded root
 has 688 frame rows, 63 native/review units, 438 ordered windows, exact model-X
 whitelisting, zero trainable missing spatial slots, and 8/8 deterministic stage

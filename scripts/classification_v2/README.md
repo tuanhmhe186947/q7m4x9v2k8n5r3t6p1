@@ -28,7 +28,7 @@ Data rebuild commands:
 |---|---|---|
 | 00 | `00_source_feature_temporal` | source merge, features, temporal units |
 | 01 | `01_review_units_gui` | review units, GUI, decisions, review audits |
-| 02 | `02_train_ready_exports` | X/y/masks/weights, folds, leakage checks |
+| 02 | `02_train_ready_exports` | X/y/masks/weights, folds, temporal views, leakage checks |
 | 03 | `03_image_cache_context` | actor and interaction cache plus loaders |
 | 04 | `04_baselines_smokes` | model contracts, baselines, bounded smokes |
 | 05 | `05_preflight_authorization` | preflight, authorization, launch packets |
