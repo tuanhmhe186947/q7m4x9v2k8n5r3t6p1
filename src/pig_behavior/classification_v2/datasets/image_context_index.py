@@ -17,6 +17,11 @@ import pandas as pd
 VIDEO_EXTS = {".mp4", ".avi", ".mov", ".mkv", ".mpg", ".mpeg", ".m4v"}
 IMAGE_CONTEXT_SEQUENCE_DELIMITER = ";;"
 
+MANDATORY_CVAT_VIDEO_KEY = "Pigs291119_000231"
+MANDATORY_CVAT_PIG_ID = "ID_4"
+MANDATORY_CVAT_FRAME_INDICES = tuple(range(678, 684))
+MANDATORY_CVAT_MEDIA_BASENAME = "Pigs291119_000231_30fps.mp4"
+
 FRAME_CONTEXT_COLUMNS = [
     "frame_uid",
     "source_type",
@@ -71,6 +76,103 @@ class ImageContextIndex:
     frame_manifest: pd.DataFrame
     window_manifest: pd.DataFrame
     audit: dict[str, Any]
+
+
+def audit_mandatory_cvat_video_case(frames: pd.DataFrame) -> dict[str, Any]:
+    """Validate the fixed CVAT resolver regression case without loading video pixels."""
+    required = {
+        "video_key",
+        "pig_id",
+        "frame_index",
+        "resolved_media_path",
+        "image_context_loadable",
+    }
+    missing_columns = sorted(required.difference(frames.columns))
+    errors: list[str] = []
+    if missing_columns:
+        errors.append(f"missing_columns={missing_columns}")
+        return _mandatory_cvat_case_result(
+            rows=0,
+            observed_frames=[],
+            resolved_basenames=[],
+            unloadable_rows=0,
+            errors=errors,
+        )
+
+    frame_index = pd.to_numeric(frames["frame_index"], errors="coerce")
+    selected = frames[
+        frames["video_key"].astype(str).eq(MANDATORY_CVAT_VIDEO_KEY)
+        & frames["pig_id"].astype(str).eq(MANDATORY_CVAT_PIG_ID)
+        & frame_index.between(
+            min(MANDATORY_CVAT_FRAME_INDICES),
+            max(MANDATORY_CVAT_FRAME_INDICES),
+        )
+    ].copy()
+    selected_frame_index = pd.to_numeric(selected["frame_index"], errors="coerce")
+    observed_frames = sorted(selected_frame_index.dropna().astype(int).tolist())
+    expected_frames = list(MANDATORY_CVAT_FRAME_INDICES)
+    loadable = _to_bool(selected["image_context_loadable"])
+    unloadable_rows = int((~loadable).sum())
+    resolved_basenames = sorted(
+        {
+            _portable_basename(value)
+            for value in selected["resolved_media_path"]
+            if str(value).strip()
+        }
+    )
+
+    if len(selected) != len(expected_frames):
+        errors.append(
+            "row_count_mismatch="
+            f"expected:{len(expected_frames)},observed:{len(selected)}"
+        )
+    if observed_frames != expected_frames:
+        errors.append(
+            f"frame_set_mismatch=expected:{expected_frames},observed:{observed_frames}"
+        )
+    if unloadable_rows:
+        errors.append(f"unloadable_rows={unloadable_rows}")
+    if resolved_basenames != [MANDATORY_CVAT_MEDIA_BASENAME]:
+        errors.append(
+            "resolved_media_basename_mismatch="
+            f"expected:{MANDATORY_CVAT_MEDIA_BASENAME},observed:{resolved_basenames}"
+        )
+    return _mandatory_cvat_case_result(
+        rows=len(selected),
+        observed_frames=observed_frames,
+        resolved_basenames=resolved_basenames,
+        unloadable_rows=unloadable_rows,
+        errors=errors,
+    )
+
+
+def _mandatory_cvat_case_result(
+    *,
+    rows: int,
+    observed_frames: list[int],
+    resolved_basenames: list[str],
+    unloadable_rows: int,
+    errors: list[str],
+) -> dict[str, Any]:
+    """Build the stable machine-readable result for the mandatory resolver case."""
+    return {
+        "video_key": MANDATORY_CVAT_VIDEO_KEY,
+        "pig_id": MANDATORY_CVAT_PIG_ID,
+        "expected_frame_indices": list(MANDATORY_CVAT_FRAME_INDICES),
+        "expected_media_basename": MANDATORY_CVAT_MEDIA_BASENAME,
+        "rows": int(rows),
+        "observed_frame_indices": observed_frames,
+        "resolved_media_basenames": resolved_basenames,
+        "unloadable_rows": int(unloadable_rows),
+        "ok": not errors,
+        "errors": errors,
+    }
+
+
+def _portable_basename(value: object) -> str:
+    """Return a basename consistently for Windows and POSIX path strings."""
+    normalized = str(value).strip().replace("\\", "/").rstrip("/")
+    return normalized.rsplit("/", 1)[-1] if normalized else ""
 
 
 def build_video_index(video_root: Path) -> dict[str, Path]:

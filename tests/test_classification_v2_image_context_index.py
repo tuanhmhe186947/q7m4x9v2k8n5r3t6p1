@@ -6,6 +6,8 @@ import pandas as pd
 import pytest
 
 from pig_behavior.classification_v2.datasets.image_context_index import (
+    MANDATORY_CVAT_MEDIA_BASENAME,
+    audit_mandatory_cvat_video_case,
     build_image_context_index,
 )
 
@@ -41,6 +43,20 @@ def _build(frames: pd.DataFrame, windows: pd.DataFrame, root: Path):
         windows,
         video_root=root / "videos",
         legacy_crop_root=root / "crops",
+    )
+
+
+def _mandatory_cvat_case(media_basename: str) -> pd.DataFrame:
+    frame_indices = list(range(678, 684))
+    return pd.DataFrame(
+        {
+            "video_key": ["Pigs291119_000231"] * len(frame_indices),
+            "pig_id": ["ID_4"] * len(frame_indices),
+            "frame_index": frame_indices,
+            "resolved_media_path": [f"C:/videos/{media_basename}"]
+            * len(frame_indices),
+            "image_context_loadable": [True] * len(frame_indices),
+        }
     )
 
 
@@ -82,3 +98,34 @@ def test_context_index_rejects_inconsistent_window_length(tmp_path: Path) -> Non
 
     with pytest.raises(ValueError, match="Window image-context contract failed"):
         _build(_frames(), windows, tmp_path)
+
+
+def test_mandatory_cvat_video_case_accepts_exact_resolved_interval() -> None:
+    audit = audit_mandatory_cvat_video_case(
+        _mandatory_cvat_case(MANDATORY_CVAT_MEDIA_BASENAME)
+    )
+
+    assert audit["ok"] is True
+    assert audit["rows"] == 6
+    assert audit["observed_frame_indices"] == list(range(678, 684))
+    assert audit["resolved_media_basenames"] == [MANDATORY_CVAT_MEDIA_BASENAME]
+
+
+def test_mandatory_cvat_video_case_rejects_loadable_wrong_basename() -> None:
+    audit = audit_mandatory_cvat_video_case(
+        _mandatory_cvat_case("Pigs291119_000231.mp4")
+    )
+
+    assert audit["ok"] is False
+    assert audit["unloadable_rows"] == 0
+    assert any("resolved_media_basename_mismatch" in error for error in audit["errors"])
+
+
+def test_mandatory_cvat_video_case_rejects_incomplete_frame_set() -> None:
+    frames = _mandatory_cvat_case(MANDATORY_CVAT_MEDIA_BASENAME).iloc[:-1]
+
+    audit = audit_mandatory_cvat_video_case(frames)
+
+    assert audit["ok"] is False
+    assert any("row_count_mismatch" in error for error in audit["errors"])
+    assert any("frame_set_mismatch" in error for error in audit["errors"])

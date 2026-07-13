@@ -6,6 +6,10 @@ from pathlib import Path
 
 import pandas as pd
 
+from pig_behavior.classification_v2.datasets.image_context_index import (
+    audit_mandatory_cvat_video_case,
+)
+
 REQUIRED_FRAME_COLUMNS = {
     "image_context_id",
     "frame_uid",
@@ -45,27 +49,42 @@ def _to_bool(series: pd.Series) -> pd.Series:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Check classification_v2 image-context index artifacts.")
+    parser = argparse.ArgumentParser(
+        description="Check classification_v2 image-context index artifacts."
+    )
     parser.add_argument(
         "--frame-context-csv",
         type=Path,
-        default=Path("outputs/classification_v2/train_ready_windows/image_frame_context_manifest.csv"),
+        default=Path(
+            "outputs/classification_v2/train_ready_windows/"
+            "image_frame_context_manifest.csv"
+        ),
     )
     parser.add_argument(
         "--window-context-csv",
         type=Path,
-        default=Path("outputs/classification_v2/train_ready_windows/image_window_context_manifest.csv"),
+        default=Path(
+            "outputs/classification_v2/train_ready_windows/"
+            "image_window_context_manifest.csv"
+        ),
     )
     parser.add_argument(
         "--audit-json",
         type=Path,
-        default=Path("outputs/classification_v2/train_ready_windows/image_context_index_audit.json"),
+        default=Path(
+            "outputs/classification_v2/train_ready_windows/"
+            "image_context_index_audit.json"
+        ),
     )
     args = parser.parse_args()
 
     frames = pd.read_csv(args.frame_context_csv, low_memory=False)
     windows = pd.read_csv(args.window_context_csv, low_memory=False)
-    audit = json.loads(args.audit_json.read_text(encoding="utf-8")) if args.audit_json.exists() else {}
+    audit = (
+        json.loads(args.audit_json.read_text(encoding="utf-8"))
+        if args.audit_json.exists()
+        else {}
+    )
 
     errors: list[str] = []
     missing_frame_cols = sorted(REQUIRED_FRAME_COLUMNS.difference(frames.columns))
@@ -75,35 +94,47 @@ def main() -> None:
     if missing_window_cols:
         errors.append(f"missing_window_columns={missing_window_cols}")
     if "image_context_id" in frames and frames["image_context_id"].duplicated().any():
-        errors.append(f"duplicate_image_context_id={int(frames['image_context_id'].duplicated().sum())}")
+        duplicate_context_ids = int(frames["image_context_id"].duplicated().sum())
+        errors.append(f"duplicate_image_context_id={duplicate_context_ids}")
     if "window_id" in windows and windows["window_id"].duplicated().any():
         errors.append(f"duplicate_window_id={int(windows['window_id'].duplicated().sum())}")
     if "source_type" in frames:
-        missing_sources = {"legacy_recovered", "cvat_tracking_xml"}.difference(set(frames["source_type"].astype(str)))
+        available_sources = set(frames["source_type"].astype(str))
+        missing_sources = {"legacy_recovered", "cvat_tracking_xml"}.difference(
+            available_sources
+        )
         if missing_sources:
             errors.append(f"missing_source_types={sorted(missing_sources)}")
 
-    loadable = _to_bool(frames["image_context_loadable"]) if "image_context_loadable" in frames else pd.Series([])
-    cvat_case = frames[
-        frames.get("video_key", pd.Series(dtype=str)).astype(str).eq("Pigs291119_000231")
-        & frames.get("pig_id", pd.Series(dtype=str)).astype(str).eq("ID_4")
-        & pd.to_numeric(frames.get("frame_index", pd.Series(dtype=float)), errors="coerce").between(678, 683)
-    ]
-    cvat_case_ok = not cvat_case.empty and _to_bool(cvat_case["image_context_loadable"]).all()
-    if not cvat_case_ok:
-        errors.append("mandatory_cvat_gui_video_case_not_loadable")
+    loadable = (
+        _to_bool(frames["image_context_loadable"])
+        if "image_context_loadable" in frames
+        else pd.Series([], dtype=bool)
+    )
+    cvat_case = audit_mandatory_cvat_video_case(frames)
+    if not cvat_case["ok"]:
+        errors.append("mandatory_cvat_gui_video_case_failed")
+        errors.extend(
+            f"mandatory_cvat_gui_video_case:{error}"
+            for error in cvat_case["errors"]
+        )
 
     result = {
         "frame_rows": int(len(frames)),
         "window_rows": int(len(windows)),
         "frame_loadable": int(loadable.sum()) if len(loadable) else 0,
         "frame_unloadable": int((~loadable).sum()) if len(loadable) else 0,
-        "source_counts": frames["source_type"].value_counts(dropna=False).to_dict() if "source_type" in frames else {},
+        "source_counts": (
+            frames["source_type"].value_counts(dropna=False).to_dict()
+            if "source_type" in frames
+            else {}
+        ),
         "window_complete": int(_to_bool(windows["window_image_context_complete"]).sum())
         if "window_image_context_complete" in windows
         else 0,
-        "mandatory_cvat_gui_video_case_rows": int(len(cvat_case)),
-        "mandatory_cvat_gui_video_case_ok": bool(cvat_case_ok),
+        "mandatory_cvat_gui_video_case_rows": cvat_case["rows"],
+        "mandatory_cvat_gui_video_case_ok": cvat_case["ok"],
+        "mandatory_cvat_gui_video_case": cvat_case,
         "audit_errors": audit.get("errors", []),
         "audit_warnings": audit.get("warnings", []),
         "errors": errors,
