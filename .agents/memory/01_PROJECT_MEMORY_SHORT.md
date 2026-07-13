@@ -1,5 +1,22 @@
 # Project Memory Short
 
+## 2026-07-14 historical baseline controls
+
+- Commit `e5d6417` registers the commit-`18d6692` full OOF only as
+  `HISTORICAL_ONLY` and the legacy sequence checkpoint only as
+  `HISTORICAL_ARCHITECTURE_ONLY`.
+- The audit reproduces 151,440/160,740 split-to-context positional mismatches;
+  image and interaction manifests agree with each other at all positions.
+- Registration-time hashes cover 34 artifacts and 527,948,648 bytes. They do
+  not prove origin-time inputs because the old run did not bind those hashes.
+- `pig_behavior_sequence.pt` is a ten-output ResNet34 architecture reference,
+  not a performance baseline without dataset, grouped-split, config, and seed
+  lineage.
+- Evidence is 5 focused tests and 356 classification tests with 181 deselected.
+  Training, model promotion, paired comparison, and Q2 claims remain forbidden.
+- The next independent task is Hidden clustered uncertainty and
+  target-independent prevalence gates. Human review remains the P0 blocker.
+
 ## 2026-07-14 native-unit paired evaluation contract
 
 - Commit `1b6ba3d` preserves the complete fold-assignment universe while

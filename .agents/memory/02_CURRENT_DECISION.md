@@ -40,8 +40,16 @@ Commit `1b6ba3d` completes native-unit collapse and paired evaluation in code.
 Strict ten-class probabilities are reconciled against the complete fold
 authority, pooled metrics use the fixed global class order, and paired
 recording-cluster uncertainty requires identical units, targets, clusters, and
-folds. Its 351-test regression and synthetic checker do not replace the missing
+folds. Its synthetic checker does not replace the missing
 human-reviewed snapshot or authorize training.
+
+Commit `e5d6417` completes historical-baseline reconciliation as an engineering
+control. Its audit reproduces 151,440/160,740 positional mismatches and marks
+the old full OOF `HISTORICAL_ONLY`. It safely records the legacy ResNet34
+sequence checkpoint as `HISTORICAL_ARCHITECTURE_ONLY`, not as a performance
+baseline. The current regression is 356 passed and 181 deselected. Neither
+historical artifact authorizes model selection, paired comparison, training,
+full OOF, or a Q2 claim.
 
 The identifier-v2 code/data chain passes at commit `a83d5a5`. Its bounded root
 has 688 frame rows, 63 native/review units, 438 ordered windows, exact model-X

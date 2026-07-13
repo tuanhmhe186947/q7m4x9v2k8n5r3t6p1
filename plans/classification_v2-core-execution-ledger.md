@@ -102,6 +102,8 @@ Independent in-progress gates:
 - Native paired evaluation: `PASS IN CODE` at `1b6ba3d`; complete authority
   coverage, fixed ten-class metrics, fold/target reconciliation, and paired
   recording-cluster lineage pass synthetic fail-closed checks.
+- Historical baseline control: `PASS IN CODE` at `e5d6417`; the old OOF and
+  legacy checkpoint are hash-registered with explicit non-promotion status.
 
 ## Independent Work Queue
 
@@ -113,7 +115,7 @@ Work proceeds in dependency order without fabricating human evidence:
 4. Configurable model/mask/shape contracts: `COMPLETED IN CODE`.
 5. Real fixed-six timing loader and hash lineage: `COMPLETED IN CODE`.
 6. Native-collapse and paired-evaluation contracts: `COMPLETED IN CODE`.
-7. Reconcile the historical baseline only as a registered engineering control.
+7. Historical baseline engineering control: `COMPLETED IN CODE`.
 
 ## Promotion And Full-Run Lock
 
@@ -149,11 +151,13 @@ authorization.
 | 2026-07-14 | Mask-safe configurable model factory | PASS IN CODE | `318bf58` |
 | 2026-07-14 | Strict fixed-six timing loader | PASS IN CODE | `111f152` |
 | 2026-07-14 | Native-unit paired evaluation contract | PASS IN CODE | `1b6ba3d` |
+| 2026-07-14 | Historical baseline controls | PASS IN CODE | `e5d6417` |
 
 ## Next Checkpoint
 
-The next isolated achievement is historical-baseline reconciliation as a
-registered engineering control. It must document the old positional-lineage
-defect, prevent performance promotion, and bind any reusable runtime evidence
-to its original data, code, config, and checkpoint lineage. Hidden/behavior
-review remains the separate blocker for freezing the reviewed P0 snapshot.
+The next isolated achievement is Hidden clustered uncertainty and
+target-independent prevalence gating. It must quantify review uncertainty at
+the recording/native-unit cluster level, preserve the probability-weighted
+random audit design, and reject target-derived risk or sampling logic. Human
+Hidden decisions remain necessary for final prevalence estimates and for
+freezing the reviewed P0 snapshot.

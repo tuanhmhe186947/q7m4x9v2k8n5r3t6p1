@@ -100,8 +100,10 @@ Independent training-contract engineering is also complete in code:
 - `1b6ba3d` collapses strict ten-class window probabilities to the complete
   native-unit authority, rejects fold/target/count drift, and binds paired
   recording-cluster comparisons to identical unit mappings.
+- `e5d6417` registers the old full OOF and legacy sequence checkpoint with
+  explicit non-promotion claim flags and independently checked hashes.
 
-The current classification regression is 351 passed and 181 deselected. This
+The current classification regression is 356 passed and 181 deselected. This
 evidence remains synthetic/fixture-only; it has not frozen or trained the
 incomplete human-review lineage.
 
@@ -127,6 +129,7 @@ incomplete human-review lineage.
 | Run lineage/registry | PASS IN CODE | 33 focused tests; checkpoint smoke PASS |
 | Model factory/mask contract | PASS IN CODE | 10 modes; 4 temporal encoders |
 | Native paired evaluation | PASS IN CODE | 31 focused tests; strict synthetic OOF PASS |
+| Historical baseline control | PASS IN CODE | Registered as non-performance evidence |
 | Model smoke on active snapshot | NOT RUN | Snapshot hashes are not frozen |
 | Full OOF on active snapshot | NOT AUTHORIZED | Smoke and launch gates not reached |
 | Q2 result claim | NOT ALLOWED | Active reviewed evaluation is absent |
@@ -149,6 +152,21 @@ wiring. It is not classifier-performance evidence: commit `bfdf913` found
 split-to-interaction window rows. Its input lineage also predates the current
 two-sided Hidden review and complete behavior-review gates. Old reports that
 label it paper-facing or `PASS_PARTIAL_ROADMAP` do not authorize a Q2 claim.
+
+Commit `e5d6417` records this boundary in:
+
+```text
+outputs/classification_v2/experiment_registry/historical_controls/
+historical_baseline_reconciliation_18d6692.json
+```
+
+The audit hashes 34 artifacts totaling 527,948,648 bytes and reproduces the
+known mismatch. Those hashes prove registration-time integrity only because
+the origin run did not bind its input bytes. The legacy checkpoint at
+`models/behavior/pig_behavior_sequence.pt` is safely inspected as a ten-output
+ResNet34 architecture reference. It has no verified reviewed-data hash,
+grouped split, paired predictions, training config, or seed lineage, so it is
+not a model-quality baseline.
 
 ## Required Execution Order
 
