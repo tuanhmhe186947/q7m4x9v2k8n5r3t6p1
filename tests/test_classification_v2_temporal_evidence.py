@@ -4,17 +4,31 @@ import numpy as np
 import pandas as pd
 import pandas.testing as pdt
 
+from pig_behavior.classification_v2.features.sequence_windows import (
+    build_sequence_windows,
+)
 from pig_behavior.classification_v2.features.temporal_evidence import (
     TEMPORAL_EVIDENCE_BASE_COLUMNS,
     UNIT_TEMPORAL_EVIDENCE_COLUMNS,
     add_unit_temporal_evidence,
     summarize_temporal_evidence,
 )
+from pig_behavior.classification_v2.features.temporal_harmonization import (
+    build_temporal_label_intervals,
+)
 
 
 def _six_frame_fixture() -> pd.DataFrame:
     return pd.DataFrame(
         {
+            "source_type": ["cvat_tracking_xml"] * 6,
+            "dataset_id": ["fixture"] * 6,
+            "video_key": ["video"] * 6,
+            "object_track_key": ["fixture|video|track=4"] * 6,
+            "pig_id": ["ID_4"] * 6,
+            "track_id": ["4"] * 6,
+            "temporal_label_mode": ["cvat_anchor_6f_interval"] * 6,
+            "label_anchor_frame_index": [0] * 6,
             "temporal_unit_key": ["cvat|track=4|anchor=0"] * 6,
             "label_window_start": [0] * 6,
             "label_window_end": [5] * 6,
@@ -35,6 +49,10 @@ def _six_frame_fixture() -> pd.DataFrame:
             "approach_speed_n_per_frame": [0, 0.1, 0.1, 0.01, 0, 0],
             "aggression_score_proxy": [0, 0, 0.2, 0.4, 0.1, 0],
             "behavior": ["move"] * 6,
+            "bbox_valid": [True] * 6,
+            "hidden": [False] * 6,
+            "hidden_is_trusted": [False] * 6,
+            "spatiotemporal_feature_valid": [True] * 6,
         }
     )
 
@@ -115,3 +133,41 @@ def test_unit_attachment_preserves_rows_keys_and_labels() -> None:
     )
     assert set(UNIT_TEMPORAL_EVIDENCE_COLUMNS).issubset(enriched.columns)
     assert enriched["motion_active_ratio_unit"].nunique() == 1
+
+
+def test_temporal_intervals_receive_one_constant_unit_evidence_vector() -> None:
+    enriched = add_unit_temporal_evidence(_six_frame_fixture())
+
+    intervals = build_temporal_label_intervals(enriched)
+
+    assert len(intervals) == 1
+    assert intervals.iloc[0]["behavior_temporal_final"] == "move"
+    assert intervals.iloc[0]["motion_active_ratio_unit"] == 1.0
+    assert intervals.iloc[0]["roi_feeder_contact_ratio_unit"] == 2 / 6
+
+
+def test_stale_cvat_hidden_trust_is_rejected_without_review_provenance() -> None:
+    frames = _six_frame_fixture()
+    frames["hidden"] = True
+    frames["hidden_is_trusted"] = True
+
+    intervals = build_temporal_label_intervals(frames)
+
+    assert intervals.iloc[0]["hidden_ratio_raw_interval"] == 1.0
+    assert intervals.iloc[0]["hidden_ratio_trusted_interval"] == 0.0
+    assert intervals.iloc[0]["hidden_metadata_untrusted_ratio_interval"] == 1.0
+
+
+def test_sequence_window_recomputes_evidence_inside_requested_span() -> None:
+    enriched = add_unit_temporal_evidence(_six_frame_fixture())
+
+    _, _, windows = build_sequence_windows(
+        enriched,
+        window_lengths=(6,),
+        legacy_window_stride=1,
+    )
+
+    assert len(windows) == 1
+    assert windows.iloc[0]["temporal_observation_ratio_window"] == 1.0
+    assert windows.iloc[0]["motion_active_ratio_window"] == 1.0
+    assert windows.iloc[0]["roi_feeder_contact_ratio_window"] == 2 / 6

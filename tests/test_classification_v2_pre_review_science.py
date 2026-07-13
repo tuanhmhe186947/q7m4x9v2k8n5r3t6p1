@@ -126,6 +126,7 @@ def test_high_trusted_hidden_ratio_is_not_an_automatic_window_exclusion() -> Non
     )
     frames["hidden"] = "Yes"
     frames["hidden_is_trusted"] = True
+    frames["hidden_review_status"] = "reviewed"
     frames["spatiotemporal_feature_valid"] = True
 
     _, _, windows = build_sequence_windows(

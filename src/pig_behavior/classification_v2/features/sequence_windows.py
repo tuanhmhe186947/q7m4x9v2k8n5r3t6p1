@@ -16,6 +16,11 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from pig_behavior.classification_v2.features.temporal_evidence import (
+    WINDOW_TEMPORAL_EVIDENCE_COLUMNS,
+    TemporalEvidenceConfig,
+    summarize_temporal_evidence,
+)
 from pig_behavior.classification_v2.features.temporal_harmonization import (
     CVAT_SOURCE_TYPES,
     LEGACY_SOURCE_TYPE,
@@ -42,6 +47,9 @@ class SequenceWindowConfig:
     include_mixed_windows: bool = True
     max_windows_per_track: int | None = None
     aggregate_observed_rows_only: bool = True
+    stationary_speed_threshold: float = 0.002
+    active_speed_threshold: float = 0.006
+    turning_angle_threshold_rad: float = float(np.pi / 6.0)
 
     def validate(self) -> None:
         if not self.window_lengths:
@@ -64,6 +72,16 @@ class SequenceWindowConfig:
             raise ValueError("min_spatiotemporal_valid_ratio must be in [0, 1]")
         if self.max_windows_per_track is not None and self.max_windows_per_track <= 0:
             raise ValueError("max_windows_per_track must be None or > 0")
+        self.temporal_evidence_config().validate()
+
+    def temporal_evidence_config(self) -> TemporalEvidenceConfig:
+        """Return thresholds shared by every generated window."""
+
+        return TemporalEvidenceConfig(
+            stationary_speed_threshold=self.stationary_speed_threshold,
+            active_speed_threshold=self.active_speed_threshold,
+            turning_angle_threshold_rad=self.turning_angle_threshold_rad,
+        )
 
 
 def build_sequence_windows(
@@ -81,6 +99,9 @@ def build_sequence_windows(
     min_spatiotemporal_valid_ratio: float = 1.0,
     include_mixed_windows: bool = True,
     max_windows_per_track: int | None = None,
+    stationary_speed_threshold: float = 0.002,
+    active_speed_threshold: float = 0.006,
+    turning_angle_threshold_rad: float = float(np.pi / 6.0),
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Build harmonized frame features, intervals, and window manifest.
 
@@ -101,6 +122,9 @@ def build_sequence_windows(
         min_spatiotemporal_valid_ratio=min_spatiotemporal_valid_ratio,
         include_mixed_windows=include_mixed_windows,
         max_windows_per_track=max_windows_per_track,
+        stationary_speed_threshold=stationary_speed_threshold,
+        active_speed_threshold=active_speed_threshold,
+        turning_angle_threshold_rad=turning_angle_threshold_rad,
     )
     config.validate()
 
@@ -556,7 +580,15 @@ def _summarize_window(
     }
 
     row.update(_interaction_policy_for_behavior(row["behavior_window_label"]))
-    row.update(_aggregate_window_features(wg, window_duration_sec))
+    row.update(
+        _aggregate_window_features(
+            wg,
+            window_duration_sec,
+            expected_start=start,
+            expected_end=end,
+            evidence_config=config.temporal_evidence_config(),
+        )
+    )
     return row
 
 
@@ -618,7 +650,12 @@ def _empty_invalid_window(
 
 
 def _aggregate_window_features(
-    wg: pd.DataFrame, window_duration_sec: float | None
+    wg: pd.DataFrame,
+    window_duration_sec: float | None,
+    *,
+    expected_start: int,
+    expected_end: int,
+    evidence_config: TemporalEvidenceConfig,
 ) -> dict[str, Any]:
     out: dict[str, Any] = {}
 
@@ -729,6 +766,15 @@ def _aggregate_window_features(
     out["separation_speed_max_window"] = _safe_max(num("separation_speed_n_per_frame"))
     out["aggression_score_proxy_mean_window"] = _safe_mean(num("aggression_score_proxy"))
     out["aggression_score_proxy_max_window"] = _safe_max(num("aggression_score_proxy"))
+    out.update(
+        summarize_temporal_evidence(
+            wg,
+            expected_start=expected_start,
+            expected_end=expected_end,
+            suffix="_window",
+            config=evidence_config,
+        )
+    )
 
     return out
 
@@ -825,7 +871,14 @@ def _empty_aggregate_features() -> dict[str, Any]:
         "aggression_score_proxy_mean_window",
         "aggression_score_proxy_max_window",
     ]
-    return {k: 0.0 if not k.endswith("count_window") else 0 for k in keys}
+    out = {k: 0.0 if not k.endswith("count_window") else 0 for k in keys}
+    out.update(
+        {
+            key: 0 if key.endswith(("count_window", "valid_window")) else 0.0
+            for key in WINDOW_TEMPORAL_EVIDENCE_COLUMNS
+        }
+    )
+    return out
 
 
 def _prepare_frame_columns(df: pd.DataFrame) -> pd.DataFrame:

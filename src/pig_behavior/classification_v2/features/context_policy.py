@@ -177,8 +177,24 @@ def _normalize_labels(df: pd.DataFrame) -> pd.DataFrame:
 
     out["behavior"] = out["behavior"].map(normalize_behavior)
     out["behavior_coarse"] = out["behavior"].map(behavior_to_coarse)
-    out["hidden"] = out["hidden"].map(normalize_hidden)
     out["pig_id"] = out["pig_id"].map(normalize_pig_id)
+
+    return normalize_hidden_provenance(out)
+
+
+def normalize_hidden_provenance(df: pd.DataFrame) -> pd.DataFrame:
+    """Canonicalize Hidden trust and reject stale CVAT trust flags.
+
+    CVAT Hidden starts as tracking-derived metadata. An existing boolean trust
+    column is insufficient evidence of human review; completed review status is
+    required. Legacy rows retain the settled prior-review trust policy unless a
+    current reviewer marked them unclear.
+    """
+
+    if "source_type" not in df.columns or "hidden" not in df.columns:
+        raise ValueError("source_type and hidden are required for Hidden provenance")
+    out = df.copy()
+    out["hidden"] = out["hidden"].map(normalize_hidden)
 
     source = out["source_type"].fillna("").astype(str)
     reviewed = _reviewed_hidden_mask(out)

@@ -23,6 +23,13 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from pig_behavior.classification_v2.features.context_policy import (
+    normalize_hidden_provenance,
+)
+from pig_behavior.classification_v2.features.temporal_evidence import (
+    attach_unit_evidence_to_intervals,
+)
+
 VALID_BEHAVIORS: set[str] = {
     "drink",
     "eat",
@@ -124,13 +131,14 @@ def build_temporal_label_intervals(
         )
     config.validate()
 
-    if "temporal_unit_key" not in harmonized_or_frame_features.columns:
+    normalized = _normalize_columns(harmonized_or_frame_features.copy())
+    if "temporal_unit_key" not in normalized.columns:
         df = _assign_temporal_units(
-            _ensure_object_track_key(_normalize_columns(harmonized_or_frame_features.copy())),
+            _ensure_object_track_key(normalized),
             config,
         )
     else:
-        df = harmonized_or_frame_features.copy()
+        df = _ensure_object_track_key(normalized)
 
     df["frame_index"] = pd.to_numeric(df["frame_index"], errors="coerce")
     if "timestamp_sec" in df.columns:
@@ -302,6 +310,7 @@ def build_temporal_label_intervals(
     if intervals.empty:
         return intervals
 
+    intervals = attach_unit_evidence_to_intervals(intervals, df)
     intervals = _add_interaction_policy_columns(
         intervals, behavior_col="dominant_behavior_in_interval"
     )
@@ -426,12 +435,7 @@ def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
         out["hidden"] = _to_bool_series(out["hidden"])
     else:
         out["hidden"] = False
-    if "hidden_is_trusted" in out.columns:
-        out["hidden_is_trusted"] = _to_bool_series(out["hidden_is_trusted"])
-    else:
-        out["hidden_is_trusted"] = _default_hidden_trust(out)
-    out["hidden_effective_for_policy"] = out["hidden"] & out["hidden_is_trusted"]
-    return out
+    return normalize_hidden_provenance(out)
 
 
 def _ensure_object_track_key(df: pd.DataFrame) -> pd.DataFrame:

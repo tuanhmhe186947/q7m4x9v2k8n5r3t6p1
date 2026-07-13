@@ -30,6 +30,14 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from pig_behavior.classification_v2.features.context_policy import (
+    normalize_hidden_provenance,
+)
+from pig_behavior.classification_v2.features.temporal_evidence import (
+    TemporalEvidenceConfig,
+    add_unit_temporal_evidence,
+)
+
 ROI_BEHAVIORS: set[str] = {"eat", "drink", "playwithtoy"}
 INTERACTION_BEHAVIORS: set[str] = {"fight", "social-nose"}
 MOTION_BEHAVIORS: set[str] = {"move", "explore", "stand"}
@@ -124,6 +132,9 @@ class EnhancedFeatureConfig:
     social_contact_iou_threshold: float = 0.01
     social_contact_overlap_threshold: float = 0.05
     max_frame_group_size_for_social: int = 64
+    stationary_speed_threshold: float = 0.002
+    active_speed_threshold: float = 0.006
+    turning_angle_threshold_rad: float = float(np.pi / 6.0)
 
     def validate(self) -> None:
         if self.cvat_label_stride <= 0:
@@ -138,6 +149,16 @@ class EnhancedFeatureConfig:
             raise ValueError("social_contact_overlap_threshold must be >= 0")
         if self.max_frame_group_size_for_social <= 1:
             raise ValueError("max_frame_group_size_for_social must be > 1")
+        self.temporal_evidence_config().validate()
+
+    def temporal_evidence_config(self) -> TemporalEvidenceConfig:
+        """Return the shared unit/window evidence threshold contract."""
+
+        return TemporalEvidenceConfig(
+            stationary_speed_threshold=self.stationary_speed_threshold,
+            active_speed_threshold=self.active_speed_threshold,
+            turning_angle_threshold_rad=self.turning_angle_threshold_rad,
+        )
 
 
 def build_enhanced_spatiotemporal_features(
@@ -148,6 +169,9 @@ def build_enhanced_spatiotemporal_features(
     social_near_distance_n: float = 0.08,
     social_contact_iou_threshold: float = 0.01,
     social_contact_overlap_threshold: float = 0.05,
+    stationary_speed_threshold: float = 0.002,
+    active_speed_threshold: float = 0.006,
+    turning_angle_threshold_rad: float = float(np.pi / 6.0),
 ) -> pd.DataFrame:
     """Add enhanced spatio-temporal, ROI-duration, and social-context features.
 
@@ -160,6 +184,9 @@ def build_enhanced_spatiotemporal_features(
         social_near_distance_n=social_near_distance_n,
         social_contact_iou_threshold=social_contact_iou_threshold,
         social_contact_overlap_threshold=social_contact_overlap_threshold,
+        stationary_speed_threshold=stationary_speed_threshold,
+        active_speed_threshold=active_speed_threshold,
+        turning_angle_threshold_rad=turning_angle_threshold_rad,
     )
     config.validate()
 
@@ -175,6 +202,10 @@ def build_enhanced_spatiotemporal_features(
     out = _add_roi_temporal_columns(out)
     out = _add_social_context_columns(out, config)
     out = _add_temporal_unit_aggregates(out)
+    out = add_unit_temporal_evidence(
+        out,
+        config=config.temporal_evidence_config(),
+    )
     out = _add_review_helper_columns(out)
 
     return out
@@ -203,6 +234,9 @@ def audit_enhanced_spatiotemporal_features(df: pd.DataFrame) -> dict[str, Any]:
         "nearest_pig_id",
         "nearest_dist_n",
         "social_density_near_count",
+        "motion_active_ratio_unit",
+        "roi_feeder_contact_ratio_unit",
+        "social_partner_persistence_ratio_unit",
         "spatiotemporal_feature_valid",
     ]
     missing_new = [c for c in required_new if c not in df.columns]
@@ -246,6 +280,18 @@ def audit_enhanced_spatiotemporal_features(df: pd.DataFrame) -> dict[str, Any]:
         "nearest_dist_n": _numeric_summary(df, "nearest_dist_n"),
         "motion_energy_unit": _numeric_summary(df, "motion_energy_unit"),
         "social_density_near_count": _numeric_summary(df, "social_density_near_count"),
+        "motion_active_ratio_unit": _numeric_summary(
+            df,
+            "motion_active_ratio_unit",
+        ),
+        "roi_feeder_contact_ratio_unit": _numeric_summary(
+            df,
+            "roi_feeder_contact_ratio_unit",
+        ),
+        "social_partner_persistence_ratio_unit": _numeric_summary(
+            df,
+            "social_partner_persistence_ratio_unit",
+        ),
         "new_feature_columns": [
             c
             for c in df.columns
@@ -286,6 +332,9 @@ def audit_enhanced_spatiotemporal_features(df: pd.DataFrame) -> dict[str, Any]:
 
 def _normalize_basic_columns(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
+
+    if {"source_type", "hidden"}.issubset(out.columns):
+        out = normalize_hidden_provenance(out)
 
     for col in NUMERIC_COLUMNS:
         if col in out.columns:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 
 import pandas as pd
@@ -29,6 +30,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--social-near-distance-n", type=float, default=0.08)
     parser.add_argument("--social-contact-iou-threshold", type=float, default=0.01)
     parser.add_argument("--social-contact-overlap-threshold", type=float, default=0.05)
+    parser.add_argument("--stationary-speed-threshold", type=float, default=0.002)
+    parser.add_argument("--active-speed-threshold", type=float, default=0.006)
+    parser.add_argument("--turning-angle-threshold-deg", type=float, default=30.0)
     parser.add_argument("--max-rows", type=int, default=None)
     return parser.parse_args()
 
@@ -51,6 +55,9 @@ def main() -> None:
         social_near_distance_n=args.social_near_distance_n,
         social_contact_iou_threshold=args.social_contact_iou_threshold,
         social_contact_overlap_threshold=args.social_contact_overlap_threshold,
+        stationary_speed_threshold=args.stationary_speed_threshold,
+        active_speed_threshold=args.active_speed_threshold,
+        turning_angle_threshold_rad=math.radians(args.turning_angle_threshold_deg),
     )
     audit = audit_enhanced_spatiotemporal_features(out)
     audit["input_csv"] = str(args.input_csv)
@@ -61,6 +68,9 @@ def main() -> None:
         "social_near_distance_n": args.social_near_distance_n,
         "social_contact_iou_threshold": args.social_contact_iou_threshold,
         "social_contact_overlap_threshold": args.social_contact_overlap_threshold,
+        "stationary_speed_threshold": args.stationary_speed_threshold,
+        "active_speed_threshold": args.active_speed_threshold,
+        "turning_angle_threshold_deg": args.turning_angle_threshold_deg,
         "max_rows": args.max_rows,
     }
 

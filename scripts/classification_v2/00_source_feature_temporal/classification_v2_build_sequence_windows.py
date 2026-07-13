@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from pathlib import Path
 
 import pandas as pd
@@ -11,6 +12,9 @@ import pandas as pd
 from pig_behavior.classification_v2.features.sequence_windows import (
     audit_sequence_windows,
     build_sequence_windows,
+)
+from pig_behavior.classification_v2.features.temporal_evidence import (
+    WINDOW_TEMPORAL_EVIDENCE_COLUMNS,
 )
 from pig_behavior.classification_v2.features.temporal_harmonization import (
     TemporalHarmonizationConfig,
@@ -67,6 +71,9 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument("--min-spatiotemporal-valid-ratio", type=float, default=1.0)
+    parser.add_argument("--stationary-speed-threshold", type=float, default=0.002)
+    parser.add_argument("--active-speed-threshold", type=float, default=0.006)
+    parser.add_argument("--turning-angle-threshold-deg", type=float, default=30.0)
     parser.add_argument("--exclude-mixed-windows", action="store_true")
     parser.add_argument(
         "--disable-fast-reuse",
@@ -103,8 +110,33 @@ def _can_reuse_window_structure(df: pd.DataFrame, args: argparse.Namespace) -> b
         )
         if bool(changed.any()):
             return False
-    base_manifest = Path("outputs/classification_v2/sequence_features/sequence_window_manifest.csv")
-    return base_manifest.exists()
+    return _base_window_evidence_contract_matches(args)
+
+
+def _base_window_evidence_contract_matches(args: argparse.Namespace) -> bool:
+    """Allow reuse only when schema and evidence thresholds match exactly."""
+
+    base_dir = Path("outputs/classification_v2/sequence_features")
+    base_manifest = base_dir / "sequence_window_manifest.csv"
+    base_audit = base_dir / "sequence_window_audit.json"
+    if not base_manifest.exists() or not base_audit.exists():
+        return False
+    columns = set(pd.read_csv(base_manifest, nrows=0).columns)
+    if not set(WINDOW_TEMPORAL_EVIDENCE_COLUMNS).issubset(columns):
+        return False
+    try:
+        parameters = json.loads(base_audit.read_text(encoding="utf-8")).get(
+            "parameters",
+            {},
+        )
+    except (OSError, json.JSONDecodeError):
+        return False
+    expected = {
+        "stationary_speed_threshold": args.stationary_speed_threshold,
+        "active_speed_threshold": args.active_speed_threshold,
+        "turning_angle_threshold_deg": args.turning_angle_threshold_deg,
+    }
+    return all(parameters.get(key) == value for key, value in expected.items())
 
 
 def _apply_review_overlay_to_windows(windows: pd.DataFrame, frames: pd.DataFrame) -> pd.DataFrame:
@@ -228,6 +260,8 @@ def _try_fast_reviewed_rebuild(args: argparse.Namespace) -> bool:
     base_intervals = base_dir / "temporal_label_intervals.csv"
     if not base_manifest.exists() or not base_intervals.exists():
         return False
+    if not _base_window_evidence_contract_matches(args):
+        return False
 
     header = pd.read_csv(args.input_csv, nrows=0)
     columns = set(header.columns)
@@ -308,6 +342,9 @@ def _try_fast_reviewed_rebuild(args: argparse.Namespace) -> bool:
             "max_hidden_ratio_main": args.max_hidden_ratio_main,
             "exclude_high_hidden_from_main": (args.exclude_high_hidden_from_main),
             "min_spatiotemporal_valid_ratio": args.min_spatiotemporal_valid_ratio,
+            "stationary_speed_threshold": args.stationary_speed_threshold,
+            "active_speed_threshold": args.active_speed_threshold,
+            "turning_angle_threshold_deg": args.turning_angle_threshold_deg,
             "include_mixed_windows": not args.exclude_mixed_windows,
             "disable_fast_reuse": args.disable_fast_reuse,
             "max_windows_per_track": args.max_windows_per_track,
@@ -378,6 +415,11 @@ def main() -> None:
             min_spatiotemporal_valid_ratio=args.min_spatiotemporal_valid_ratio,
             include_mixed_windows=not args.exclude_mixed_windows,
             max_windows_per_track=args.max_windows_per_track,
+            stationary_speed_threshold=args.stationary_speed_threshold,
+            active_speed_threshold=args.active_speed_threshold,
+            turning_angle_threshold_rad=math.radians(
+                args.turning_angle_threshold_deg
+            ),
         )
 
     output_dir = args.output_dir
@@ -424,6 +466,9 @@ def main() -> None:
             "max_hidden_ratio_main": args.max_hidden_ratio_main,
             "exclude_high_hidden_from_main": (args.exclude_high_hidden_from_main),
             "min_spatiotemporal_valid_ratio": args.min_spatiotemporal_valid_ratio,
+            "stationary_speed_threshold": args.stationary_speed_threshold,
+            "active_speed_threshold": args.active_speed_threshold,
+            "turning_angle_threshold_deg": args.turning_angle_threshold_deg,
             "include_mixed_windows": not args.exclude_mixed_windows,
             "disable_fast_reuse": args.disable_fast_reuse,
             "max_windows_per_track": args.max_windows_per_track,
