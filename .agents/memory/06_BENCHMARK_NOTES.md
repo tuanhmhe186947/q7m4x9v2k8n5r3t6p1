@@ -42,6 +42,9 @@ near-real-time is a separately evaluated secondary protocol.
 Current behavior-recognition benchmark target:
 
 - Claim level: Q2 internal recording-date/video-safe improvement only.
+- Immediate prerequisite: complete Hidden and behavior review, then freeze a
+  new reviewed train-ready snapshot. No architecture promotion uses the current
+  incomplete review payload.
 - Required validation: full multimodal OOF with native folds, not random
   frame/window split.
 - Main comparison axis: multimodal learned model versus registered native,
@@ -50,6 +53,9 @@ Current behavior-recognition benchmark target:
   calibration audit, calibrated predictions, confusion-focus comparison,
   high-confidence hard errors, source-balanced report, and experiment registry.
 - Do not use pilot or smoke metrics as paper-facing full results.
+- The old commit-`18d6692` full run (`macro-F1=0.4156053847`) is a diagnostic
+  engineering baseline only because its data lineage predates current review
+  gates. It is not a promotion target for the final reviewed evaluation.
 
 Historical tracking benchmark notes below are preserved only for tracking work.
 

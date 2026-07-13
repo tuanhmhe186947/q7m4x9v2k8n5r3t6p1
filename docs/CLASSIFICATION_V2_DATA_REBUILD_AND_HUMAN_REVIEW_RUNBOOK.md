@@ -5,6 +5,10 @@ Tài liệu này hướng dẫn tái tạo dữ liệu `classification_v2` từ
 sẵn sàng cho training smoke. Tài liệu không khởi chạy full training hoặc full
 OOF.
 
+Trạng thái PASS/FAIL hiện hành nằm trong
+`docs/CLASSIFICATION_V2_CURRENT_STATE.md`. Hiện tại luồng đang dừng ở human
+Hidden review; không nhảy tới temporal rebuild hoặc model training.
+
 ## 1. Trạng thái và quyền chạy full
 
 Người dùng đã cho phép chạy full. Quyền này là **có điều kiện** và không bỏ qua
@@ -87,7 +91,8 @@ lineage mới; không tái dùng thư mục của một cấu hình khác.
 cd /d C:\Users\ironh\Downloads\PIG_Behavior_Project
 set PYTHONPATH=%CD%\src
 set PY=C:\Users\ironh\anaconda3\envs\pig_project\python.exe
-set RUN_ID=c2v2_rebuild_20260713_v1
+REM Replace the placeholders and use a new directory for every semantic rebuild.
+set RUN_ID=c2v2_rebuild_YYYYMMDD_vN
 set REVIEWER_NAME=replace_with_reviewer_id
 set R=outputs\classification_v2\rebuilds\%RUN_ID%
 set SM=%R%\00_smoke
@@ -105,6 +110,10 @@ set TRAIN=%R%\11_train_ready
 set CACHE=%R%\12_actor_cache_224_letterbox
 set VCACHE=%R%\13_interaction_cache_224_letterbox
 ```
+
+Không chạy nguyên văn khi `RUN_ID` còn chứa `YYYYMMDD_vN`, và không dùng lại
+một `%R%` đã có artifact. Active Hidden v5 là lineage review hiện hành riêng;
+trạng thái và đường dẫn của nó nằm trong `CLASSIFICATION_V2_CURRENT_STATE.md`.
 
 Khai báo script root ngắn để lệnh dễ đọc và tránh lỗi dòng dài:
 

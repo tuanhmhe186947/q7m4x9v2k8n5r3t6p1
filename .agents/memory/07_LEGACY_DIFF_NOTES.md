@@ -6,15 +6,11 @@ These notes describe historical tracking differences. They should not steer
 current `classification_v2` behavior-recognition work unless the user explicitly
 returns to tracking.
 
-For active classification_v2 work, use:
-
-- `outputs/classification_v2/model_design/q2_progress_report.json`
-- `outputs/classification_v2/model_design/full_oof_launch_packet.md`
-- `outputs/classification_v2/model_design/full_oof_execution_gate_audit.json`
-- `outputs/classification_v2/model_design/full_oof_completion_gate_audit.json`
-
-Current classification_v2 state is pre-full ready and authorization-gated.
-Full OOF/postrun artifacts are still required before any Q2 claim.
+For active classification_v2 work, use
+`docs/CLASSIFICATION_V2_CURRENT_STATE.md`. The old Q2 progress, launch,
+execution-gate, and completion-gate artifacts belong to the commit-`18d6692`
+lineage. They are historical and cannot authorize the current reviewed-data
+rebuild or a future full run.
 
 ## Key difference
 

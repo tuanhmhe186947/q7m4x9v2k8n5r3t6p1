@@ -7,8 +7,10 @@ long full OOF job.
 
 Current policy:
 
-- The full-like smoke and first full OOF run have completed, so the script
-  organization layer has moved from plan to implementation.
+- The first engineering full OOF completed for the previous artifact lineage.
+  It is historical and does not bypass current human-review gates.
+- The active lineage is at Hidden review in block `01`; status authority is
+  `CLASSIFICATION_V2_CURRENT_STATE.md`.
 - All operator scripts live under `scripts/classification_v2/<block>/`.
 - The former split script namespaces and their wrappers are removed.
 - Checkers are colocated with the stage whose contract they validate.
@@ -22,26 +24,14 @@ Related documents:
 
 ## Status Snapshot
 
-The full OOF run has completed. Postrun gates remain the authority for whether
-the result is a Q2 internal candidate. Use this command for the aggregate
-completion state:
+The active reviewed-data lineage has not reached temporal harmonization or model
+training. Complete the 5,171 Hidden v5 decisions, apply them, rebuild temporal
+and behavior-review artifacts, then complete all 4,670 behavior decisions.
 
-That run belongs to the previous artifact lineage. A new reviewed-data lineage
-is currently blocked before temporal harmonization until two-sided Hidden review
-and behavior review are complete; do not mix its partial outputs with the old
-full OOF artifacts.
-
-```bat
-cd /d C:\Users\ironh\Downloads\PIG_Behavior_Project
-set PYTHONPATH=%CD%\src
-C:\Users\ironh\anaconda3\envs\pig_project\python.exe ^
-  scripts\classification_v2\09_final_release_audit\ ^
-  check_classification_v2_full_readiness_once.py
-```
-
-This aggregate checker must not replace the stage-local checks. A failed stage
-must be repaired in its numbered folder, then all dependent later stages must
-be rerun.
+The commit-`18d6692` full OOF and its block `09` aggregate report belong to the
+previous lineage. They are useful historical diagnostics but cannot authorize
+the active rebuild or support a current Q2 claim. Use
+`CLASSIFICATION_V2_CURRENT_STATE.md` for the live PASS/FAIL matrix.
 
 ## End-To-End Blocks
 
@@ -77,7 +67,7 @@ flowchart TD
 |---|---|---|---|
 | Source merge | legacy/CVAT frame rows | merge sources | `frame_features/*` |
 | Feature build | geometry, ROI, motion, social | build feature scripts | `spatiotemporal_*` |
-| Hidden review | Yes census plus No audits | Hidden GUI/apply | hidden-reviewed frames |
+| Hidden review | policy-defined Yes/No cohorts | Hidden GUI/apply | reviewed frames |
 | Temporal units | CVAT 6f and legacy 16f policy | temporal harmonization | intervals CSV |
 | Review units | human-review rows/templates | build review units | `review_units/*` |
 | GUI/apply | review and apply decisions | GUI plus apply script | reviewed frames |
@@ -89,19 +79,23 @@ flowchart TD
 | Full OOF | learned multimodal OOF run | full OOF runner | `model_full/*` |
 | Postrun | calibration, confusion, registry | postrun scripts | postrun artifacts |
 
+Hidden cohorts mean census of untrusted CVAT Yes, stratified audit of trusted
+legacy Yes, and separate risk, random, and clean-control No cohorts.
+
 ## Current Run Order
 
-Use the numbered directories in order:
+Numbered folders describe code ownership. The data dependency order crosses
+between blocks `00` and `01` and must be followed exactly:
 
-1. Build and audit source, feature, temporal, review, train-ready, and cache
-   artifacts with blocks `00-03`.
-2. Pass model contracts and a bounded full-like smoke in block `04`.
-3. Run preflight, authorization, and launch-packet checks in block `05`.
-4. Run and validate full OOF training in block `06`.
-5. Run calibration, native-unit metrics, confusion analysis, and ablations in
-   block `07`.
-6. Register the experiment and refresh Q2/paper reports in block `08`.
-7. Run aggregate completion gates and refresh project memory in block `09`.
+1. Run block `00` source merge and frame-level feature construction.
+2. Run block `01` Hidden template, media validation, human review, and apply.
+3. Return to block `00` for temporal harmonization and sequence windows.
+4. Run block `01` behavior-unit build, GUI review, coverage, and apply.
+5. Run blocks `02-03` for reviewed exports, folds, and matching caches.
+6. Pass block `04` contracts and bounded model smokes.
+7. Run block `05` preflight and authorization bound to frozen hashes.
+8. Run block `06` finalists, block `07` evaluation, block `08` reporting, and
+   block `09` completion gates.
 
 Do not skip the full-like smoke. It is the cheap check for cache loading,
 CUDA/AMP, output schemas, checkpoint/resume behavior, and postrun compatibility.
@@ -152,7 +146,10 @@ Model input X must not include:
 
 Before completion gate:
 
-- Allowed: engineering readiness, smoke evidence, pre-full status.
+- Allowed only when proven for that same lineage: data readiness, smoke
+  evidence, or pre-full engineering status.
+- Current lineage may claim only audited template coverage and incomplete
+  human-review status.
 - Not allowed: Q2 model performance claim.
 
 After full OOF plus postrun completion:

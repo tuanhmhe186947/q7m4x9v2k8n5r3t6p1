@@ -1,6 +1,12 @@
 # Current Decision
 
-## 2026-07-13 reviewed-data rebuild decision
+## Decision precedence
+
+Only the active decision immediately below controls current work. All later
+sections are historical records. Current gate status is centralized in
+`docs/CLASSIFICATION_V2_CURRENT_STATE.md`.
+
+## Active decision: reviewed-data rebuild
 
 The user authorizes full runs, but every new data/model lineage remains
 fail-closed until static checks, a tiny/short representative run, and
@@ -23,9 +29,10 @@ Do not resume full training from this decision alone. First create a versioned
 reviewed-data lineage, pass complete-decision and leakage-safe fold gates, then
 run model smoke gates on the frozen data/cache hashes.
 
-## 2026-07-13 post-full active decision
+## Historical 2026-07-13 post-full decision
 
-Treat full OOF training as complete and postrun validation as the active gate.
+For the previous artifact lineage, full OOF training completed and postrun
+validation was the next gate. This no longer overrides the active rebuild.
 
 - Do not rerun full training for the script migration; the completed artifacts
   remain the input to block `07` postrun evaluation.
@@ -38,9 +45,9 @@ Treat full OOF training as complete and postrun validation as the active gate.
 - The claim boundary remains internal recording-date/video-safe improvement.
   No external farm, camera, cohort, or biological-identity generalization.
 
-## 2026-07-13 active classification_v2 decision refresh
+## Historical 2026-07-13 pre-full decision refresh
 
-Keep the active decision as pre-full ready, not Q2 complete.
+At that point, the previous lineage was pre-full ready, not Q2 complete.
 
 - Current verified HEAD is the `current_git_commit` in
   `outputs/classification_v2/model_design/q2_progress_report_audit.json` after
@@ -54,12 +61,12 @@ Keep the active decision as pre-full ready, not Q2 complete.
 - Do not run or claim full OOF until human authorization is explicitly valid and
   the execution gate allows it.
 
-## 2026-07-12 active classification_v2 decision
+## Historical 2026-07-12 classification_v2 decision
 
 The active project priority is `classification_v2` behavior recognition unless
 the user explicitly switches back to tracking.
 
-Current decision:
+Decision recorded at that time:
 
 - Treat the multimodal Q2 roadmap as pre-full ready, not complete.
 - The accepted claim boundary is Q2 internal
@@ -72,13 +79,13 @@ Current decision:
   videos or sessions.
 - Canonical actor visual cache:
   `outputs/classification_v2/image_cache_v2_letterbox/`.
-- Canonical full OOF output dir:
+- Historical full OOF output dir for that lineage:
   `outputs/classification_v2/model_full/full_multimodal_oof/`.
-- Current progress report is `PASS_PARTIAL_ROADMAP` with 44/44 pre-full gates
-  passing. This means ready for human authorization review, not ready to claim
+- The progress report then was `PASS_PARTIAL_ROADMAP` with 44/44 pre-full
+  gates passing. It meant ready for authorization review, not ready to claim
   final Q2 results.
-- Full OOF remains fail-closed until
-  `outputs/classification_v2/model_design/full_oof_authorization.json` is
+- Full OOF was fail-closed until
+  `outputs/classification_v2/model_design/full_oof_authorization.json` was
   explicitly authorized with reviewer, long-run acknowledgement,
   no-Q2-claim acknowledgement, matching preflight config SHA256, and matching
   git commit.

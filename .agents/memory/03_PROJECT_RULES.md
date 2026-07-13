@@ -17,7 +17,8 @@ Hidden-specific rules:
 - Hidden is a frame/object visibility attribute, never the 10-class target.
 - Never trust CVAT Hidden solely because tracking emitted Yes or No.
 - Audit both `Yes -> No` and false-negative `No -> Yes` corrections.
-- Use census Yes plus risk, stratified-random and clean-control No cohorts.
+- Census untrusted Yes, stratified-audit trusted Yes, and use risk,
+  stratified-random, and clean-control No cohorts.
 - Do not propagate one Hidden decision across a 6/16-frame native unit unless
   an explicit reviewed span is stored.
 - Do not edit raw XML/CSV; GUI writes decision CSV and apply writes a new
@@ -27,6 +28,10 @@ Hidden-specific rules:
 - High Hidden ratio is audited, not an automatic exclusion/down-weight rule.
 - Report random weighted false-negative estimates separately from high-risk
   correction yield.
+
+Current execution precedence: finish the versioned Hidden and behavior review
+lineage before rebuilding trainer inputs or authorizing another full OOF. The
+previous commit-`18d6692` full run is historical engineering evidence only.
 
 1. Treat `classification_v2` behavior recognition as the active goal unless the
    user explicitly switches back to tracking.

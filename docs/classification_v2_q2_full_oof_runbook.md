@@ -1,8 +1,11 @@
 # classification_v2 Q2 Full OOF Runbook
 
-This runbook defines the next paper-facing execution step after the current
-engineering pilots. It keeps the claim boundary explicit: Q2 evidence requires
-full native-temporal OOF learned evaluation, not smoke or pilot metrics.
+This is a future execution runbook, not the current next step. The active
+lineage must first complete Hidden and behavior human review and freeze new
+data/cache/fold hashes. See `CLASSIFICATION_V2_CURRENT_STATE.md`.
+
+The commit-`18d6692` full run used the previous artifact lineage. Do not rerun,
+register, or promote it as a substitute for reviewed-lineage evaluation.
 
 ## Current State
 
@@ -10,16 +13,20 @@ full native-temporal OOF learned evaluation, not smoke or pilot metrics.
 - B1 linear tabular whitelist native OOF baseline is recorded.
 - B2 nonlinear tabular whitelist native OOF baseline is recorded.
 - Ablation/shortcut reporting is recorded for comparable B0/B1/B2 metrics.
-- Learned multimodal OOF runner has a bounded pilot record only.
-- Full paper-facing learned multimodal record is still missing:
-  `outputs/classification_v2/experiment_registry/full_multimodal_oof_record.json`
+- A historical 13-fold learned run exists with 73,668 window predictions and
+  32,727 native-unit predictions.
+- The active Hidden v5 and behavior-review decisions are incomplete, so no new
+  reviewed train-ready snapshot is available.
+- This runbook becomes executable only after the current-state data and smoke
+  gates pass and a new authorization is bound to their hashes.
 
 ## Claim Boundary
 
-Allowed claim after current state:
+Allowed current statement:
 
-- Engineering readiness for multimodal actor image + spatial sequence +
-  interaction-context training under native OOF bookkeeping.
+- Hidden template coverage is audited, but human-review and train-ready gates
+  remain incomplete.
+- The old full OOF proves engineering wiring only for its historical lineage.
 
 Not allowed yet:
 
@@ -35,11 +42,13 @@ Allowed target claim after full run passes:
 
 ## Pre-Run Gates
 
-Run these before full training:
+Run these only after the reviewed-data runbook and model smoke gates pass:
 
 ```bat
 cd /d C:\Users\ironh\Downloads\PIG_Behavior_Project
 set PYTHONPATH=%CD%\src
+set RUN_ID=reviewed_YYYYMMDD_HHMMSS
+set OOF_OUT=outputs\classification_v2\model_full\%RUN_ID%
 
 python scripts\classification_v2\06_full_oof_training\ ^
   check_classification_v2_full_learned_oof_contract.py
@@ -53,12 +62,19 @@ python scripts\classification_v2\07_postrun_evaluation\ ^
 
 Expected before full run:
 
+- Hidden and behavior decision coverage are complete and fail-closed audits pass.
+- The reviewed snapshot, caches, whitelist, and folds share frozen hashes.
+- One-batch, tiny-overfit, resume, runtime, and one-fold smoke gates pass.
 - `full_learned_oof_contract_audit.json`: `valid=true`, `paper_ready=false`.
 - `ablation_reporting_audit.json`: `valid=true`.
 - `ablation_shortcut_contract_audit.json`: `valid=true`.
-- Remaining blocker is only full learned OOF record missing.
+- A new authorization matches the reviewed hashes, clean code SHA, and run ID.
 
 ## Full Run Command
+
+Do not run this command for the current incomplete rebuild. When all upstream
+gates pass, generate a new output directory and authorization packet rather
+than overwriting the historical artifact.
 
 The command below intentionally requires `--full`; without it the runner stays
 bounded and cannot be registered as full evidence.
@@ -67,7 +83,7 @@ bounded and cannot be registered as full evidence.
 python scripts\classification_v2\06_full_oof_training\ ^
   classification_v2_run_full_multimodal_oof.py ^
   --full ^
-  --output-dir outputs\classification_v2\model_full\full_multimodal_oof ^
+  --output-dir %OOF_OUT% ^
   --image-size 64 ^
   --hidden-dim 48 ^
   --epochs-per-fold 3 ^
@@ -90,13 +106,13 @@ Run:
 ```bat
 python scripts\classification_v2\06_full_oof_training\ ^
   check_classification_v2_full_multimodal_oof.py ^
-  --audit-json outputs\classification_v2\model_full\full_multimodal_oof\full_multimodal_oof_audit.json ^
-  --predictions-csv outputs\classification_v2\model_full\full_multimodal_oof\full_multimodal_oof_predictions.csv ^
-  --metrics-json outputs\classification_v2\model_full\full_multimodal_oof\full_multimodal_oof_metrics.json
+  --audit-json %OOF_OUT%\full_multimodal_oof_audit.json ^
+  --predictions-csv %OOF_OUT%\full_multimodal_oof_predictions.csv ^
+  --metrics-json %OOF_OUT%\full_multimodal_oof_metrics.json
 
 python scripts\classification_v2\02_train_ready_exports\ ^
   check_classification_v2_native_temporal_metrics.py ^
-  --metrics-json outputs\classification_v2\model_full\full_multimodal_oof\full_multimodal_oof_metrics.json ^
+  --metrics-json %OOF_OUT%\full_multimodal_oof_metrics.json ^
   --result-kind model_evaluation
 ```
 
@@ -116,10 +132,10 @@ Register only after all post-run gates pass:
 ```bat
 python scripts\classification_v2\08_publication_reporting\ ^
   classification_v2_register_experiment.py ^
-  --name full_multimodal_oof ^
-  --metrics-json outputs\classification_v2\model_full\full_multimodal_oof\full_multimodal_oof_metrics.json ^
-  --artifact outputs\classification_v2\model_full\full_multimodal_oof\full_multimodal_oof_audit.json ^
-  --artifact outputs\classification_v2\model_full\full_multimodal_oof\full_multimodal_oof_prediction_schema_audit.json ^
+  --name %RUN_ID% ^
+  --metrics-json %OOF_OUT%\full_multimodal_oof_metrics.json ^
+  --artifact %OOF_OUT%\full_multimodal_oof_audit.json ^
+  --artifact %OOF_OUT%\full_multimodal_oof_prediction_schema_audit.json ^
   --notes "full learned multimodal native OOF evaluation" ^
   --experiment-stage paper_facing_candidate ^
   --paper-facing ^
@@ -131,7 +147,7 @@ Then verify:
 ```bat
 python scripts\classification_v2\08_publication_reporting\ ^
   check_classification_v2_experiment_registry.py ^
-  --record-json outputs\classification_v2\experiment_registry\full_multimodal_oof_record.json
+  --record-json outputs\classification_v2\experiment_registry\%RUN_ID%_record.json
 ```
 
 The registry record must show:
@@ -166,7 +182,7 @@ After a clean full record exists:
 1. Re-run `check_classification_v2_full_learned_oof_contract.py`.
 2. Re-run `check_classification_v2_ablation_shortcut_contract.py`.
 3. Confirm the full OOF blocker is removed only if the checker explicitly
-   validates `full_multimodal_oof_record.json`.
+   validates the new `%RUN_ID%_record.json` and its bound artifact hashes.
 
 Do not edit blockers manually to make the contract pass.
 

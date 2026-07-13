@@ -10,16 +10,16 @@ Current state:
 - The data/review/train-ready path has been upgraded toward a multimodal
   spatio-temporal design using bbox actor images, ROI relations, motion,
   social/partner context, and leakage-safe tabular features.
-- Canonical image cache is letterboxed:
-  `outputs/classification_v2/image_cache_v2_letterbox/`.
-- Packed actor and visual-context caches are expected to be reused for full OOF.
-- The latest pre-full progress report is `PASS_PARTIAL_ROADMAP` with all
-  pre-full gates passing. This is ready for human authorization review, not a
-  completed paper result.
-- Full OOF is intentionally blocked until explicit authorization is written and
-  the execution gate passes.
-- After full OOF, required postrun artifacts are calibration, confusion-focus
-  comparison, ablation reporting, experiment registry, and completion gate.
+- The active rebuild has 245,664 enhanced rows and a valid 5,171-item Hidden v5
+  template. Human Hidden decisions are incomplete.
+- Behavior review coverage is 3/4,670 units, with 4,667 missing and one pending.
+- Therefore no reviewed train-ready snapshot is currently valid for new model
+  experiments. Complete review and freeze new hashes before model smoke.
+- A full 13-fold engineering OOF run exists at commit `18d6692`, but it belongs
+  to the previous unreviewed lineage and is not the final Q2 result.
+- Canonical actor cache remains letterboxed. Rebuild it or verify its hash
+  against the future reviewed snapshot before reuse.
+- Current status authority is `docs/CLASSIFICATION_V2_CURRENT_STATE.md`.
 
 The tracking notes below are preserved because they still matter if the user
 returns to tracking. They are not the active workstream.

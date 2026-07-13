@@ -18,13 +18,16 @@ Long-term target:
 - Keep review/audit identifiers and label-derived policy fields out of model X.
 - Use cached packed images for repeatable full OOF runs.
 
-Current full OOF status:
+Current lineage status:
 
-- Pre-full roadmap is passing and ready for human authorization review.
-- Full OOF is not complete until the authorized 13-fold run finishes and the
-  postrun completion gate passes.
-- Q2 claim remains locked until full OOF metrics, calibrated predictions,
-  confusion-focused analysis, ablation comparison, and registry record exist.
+- The active task is rebuilding reviewed data, not promoting the old model run.
+- Hidden v5 template coverage passes, but its human decisions are incomplete.
+- Behavior review has only 3 of 4,670 decision rows and fails closed.
+- The commit-`18d6692` 13-fold run is historical engineering evidence from the
+  previous lineage; it is not the final thesis evaluation.
+- A future reviewed-lineage full OOF requires frozen data/cache/fold hashes,
+  local smoke gates, explicit authorization, and all postrun completion gates.
+- Use `docs/CLASSIFICATION_V2_CURRENT_STATE.md` for current PASS/FAIL status.
 
 Historical tracking memory below is preserved for tracking-specific tasks.
 

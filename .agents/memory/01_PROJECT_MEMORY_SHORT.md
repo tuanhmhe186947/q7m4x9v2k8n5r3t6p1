@@ -1,5 +1,16 @@
 # Project Memory Short
 
+## 2026-07-13 authoritative classification_v2 state
+
+- Use `docs/CLASSIFICATION_V2_CURRENT_STATE.md` as the status authority.
+- The active path is the reviewed-data rebuild, not postrun promotion of the
+  previous full OOF artifact.
+- Hidden v5 has a valid 5,171-item template but no complete human decisions.
+- Behavior coverage is 3/4,670 units, with 4,667 missing and one pending.
+- Therefore Hidden apply, behavior apply, the reviewed train-ready snapshot,
+  model smoke on that snapshot, and a new full OOF are all blocked.
+- The old commit-`18d6692` full OOF is historical engineering evidence only.
+
 ## 2026-07-13 classification_v2 Hidden review workload
 
 - Current workload-policy implementation commit is `5212a59`.
@@ -13,28 +24,27 @@
 - This only makes the review workload auditable. Human Hidden decisions and
   behavior decisions remain incomplete, so the dataset is not train-ready.
 
-## 2026-07-13 classification_v2 full OOF and workflow migration
+## Historical 2026-07-13 full OOF and workflow migration
 
 - Full multimodal OOF training completed in
   `outputs/classification_v2/model_full/full_multimodal_oof/`.
 - Verified full outputs contain 73,668 window predictions and 32,727 native
   temporal predictions; accuracy is `0.5216793473` and supported macro-F1 is
   `0.4156053847`.
-- These metrics are engineering full-OOF evidence, not yet a Q2 claim. Required
-  postrun calibration, confusion comparison, ablation refresh, experiment
-  registration, and completion gate remain incomplete.
+- These metrics are engineering evidence from the previous data lineage. They
+  cannot become the final Q2 result by postrun processing alone because current
+  Hidden and behavior human-review gates are incomplete.
 - All classification operator scripts now live only under
   `scripts/classification_v2/00_*` through `09_*`. The former split namespaces
   and compatibility wrappers were removed.
 - Workflow migration commits are `d7d22a8` and `1491d78`. The structural audit
   is block `09` script `check_classification_v2_workflow_layout.py`.
 
-## 2026-07-13 classification_v2 pre-full hardening refresh
+## Historical 2026-07-13 pre-full hardening refresh
 
-- Current verified HEAD must be read from
+- The previous lineage recorded its verified HEAD in
   `outputs/classification_v2/model_design/q2_progress_report_audit.json` key
-  `current_git_commit` after each pre-full refresh. Do not hard-code it in
-  memory because every memory commit changes HEAD.
+  `current_git_commit`.
 - `q2_progress_report_audit.json` is valid with `PASS_PARTIAL_ROADMAP`,
   44/44 gates passing, clean git, `full_oof_execution_allowed=false`,
   `authorization_authorized=false`, and `q2_claim_allowed=false`.
@@ -43,11 +53,10 @@
   missing `reviewer` and `reviewed_at`.
 - Preflight runtime benchmark drift now allows audit/auth-only changes without
   rebenchmarking, while keeping runtime/model/training changes fail-closed.
-- Full OOF remains not run and not claimable. The next irreversible step is
-  still human authorization of `full_oof_authorization.json`, followed by the
-  launch packet and postrun calibration/confusion/registry/completion gates.
+- This pre-full state was later followed by the historical full run. It does not
+  describe the active reviewed-data rebuild and must not authorize another run.
 
-## 2026-07-12 classification_v2 Q2 multimodal ready state
+## Architecture contract retained from 2026-07-12
 
 - Active priority is `classification_v2` behavior recognition, not tracking
   ablation, unless the user explicitly switches back to tracking.
@@ -62,28 +71,14 @@
   videos or sessions.
 - Canonical actor image cache is letterboxed, not square-stretched:
   `outputs/classification_v2/image_cache_v2_letterbox/`.
-- Full OOF launch path is gated by preflight plus explicit authorization:
-  `outputs/classification_v2/model_design/full_multimodal_oof_preflight.json`
-  and `outputs/classification_v2/model_design/full_oof_authorization.json`.
-- In the latest refreshed pre-full state, Q2 progress reports
-  `PASS_PARTIAL_ROADMAP` with 44/44 gates passing. Full OOF is still not
-  complete because the authorization file is intentionally fail-closed and
-  full/postrun artifacts are missing.
-- The current pre-full state is ready for human authorization review, not a
-  finished Q2 result. The authorization writer and authorization file checker
-  are both audited, and the execution gate rejects unauthorized full runs.
-- Do not run full OOF unless `full_oof_authorization.json` is explicitly
-  authorized with long-run and no-Q2-claim acknowledgements, matching the clean
-  preflight config hash and git commit.
-- After any commit, refresh the pre-full gate sequence before requesting human
-  full OOF authorization so preflight freshness points at current HEAD.
-- Expected full OOF runtime on RTX 3050 Laptop GPU is roughly 2-3 hours total;
-  preflight training-only estimate is about 108 minutes, excluding evaluation,
-  bootstrap metrics, calibration, registry, startup, and checkpoint IO.
-- After full OOF, required postrun steps are cross-fit calibration, confusion
-  focus comparison, ablation report refresh, experiment registry write, and
-  completion gate check. Q2 claim remains locked until the completion gate
-  allows it.
+- Every future full OOF launch still requires preflight plus explicit
+  authorization bound to the active data/cache/config/code hashes.
+- The previous 44/44 `PASS_PARTIAL_ROADMAP` report is stale for the current
+  rebuild and must not be refreshed until human review and snapshot gates pass.
+- Local RTX 3050 limits development batch size, not the research architecture;
+  remote/rented GPU execution remains allowed after the same lineage gates.
+- Postrun calibration, confusion analysis, ablation, registry, and completion
+  checks remain required after a future reviewed-lineage full run.
 
 ## 2026-07-08 realtime full runtime chunk validation
 

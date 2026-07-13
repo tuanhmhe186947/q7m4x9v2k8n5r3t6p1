@@ -23,21 +23,25 @@ Not allowed without new evidence:
 
 ## 2. Current State
 
-Completed engineering evidence:
+Current active lineage:
 
-- Review-to-train data lineage preserves rows from reviewed frame features to
-  sequence windows and train-ready artifacts.
-- Feature input uses a whitelist and denies review/manual/source/path/ID/label
-  columns from model X.
-- Native OOF folds exist for 13 recording groups.
-- B0/B1/B2 native OOF baselines are recorded.
-- Learned multimodal OOF runner has a bounded pilot, prediction schema checks,
-  registry record, and resumable per-fold artifact support.
+- 245,664 enhanced frame/object rows exist and remain the review input.
+- Hidden v5 template coverage passes for 5,171 items, but human decisions are
+  incomplete.
+- Behavior review coverage is 3/4,670 units, with 4,667 missing and one pending.
+- Hidden apply, reviewed temporal rebuild, behavior apply, and a frozen
+  train-ready snapshot are therefore blocked.
 
-Current blocking condition:
+Historical engineering evidence:
 
-- Full learned native OOF multimodal evaluation is not recorded yet at
-  `outputs/classification_v2/experiment_registry/full_multimodal_oof_record.json`.
+- A 13-fold full OOF run exists at commit `18d6692` with 73,668 window and
+  32,727 native-unit predictions.
+- It belongs to the previous unreviewed lineage and is not the final Q2 result.
+- Old preflight, launch, and progress reports are not valid authorization for
+  the active rebuild.
+
+Use `CLASSIFICATION_V2_CURRENT_STATE.md` for the current PASS/FAIL matrix. The
+next executable stage is human Hidden review, not model postrun promotion.
 
 ## 3. End-to-End Data Logic
 
@@ -171,89 +175,74 @@ Training rules:
 
 ## 6. Immediate Execution Checklist
 
-### S31. Execution Plan and Full OOF Readiness
+### S31. Complete Hidden v5 Review
 
 Deliverables:
 
-- This execution plan.
-- Clean preflight audits:
-  - `check_classification_v2_full_learned_oof_contract.py`
-  - `check_classification_v2_ablation_shortcut_contract.py`
-  - `check_classification_v2_full_multimodal_oof.py` for pilot.
+- Complete decision CSV for all 5,171 v5 review items.
+- Media-resolution and decision-schema audits.
+- Separate counts for trusted-Yes audit, untrusted-Yes census, high-risk No,
+  random No, and clean controls.
 
 PASS:
 
-- Contract valid.
-- Only blocker is missing full learned OOF record.
-- Worktree is clean before full run.
+- Every mandatory item has one resolved decision.
+- No unresolved pending row or contradictory decision payload remains.
+- Decision apply preserves source rows and writes a new derived artifact.
 
-### S32. Full Learned Native OOF Run
+### S32. Apply Hidden and Rebuild Temporal Artifacts
 
-Command:
-
-```bat
-python scripts\classification_v2\06_full_oof_training\ ^
-  classification_v2_run_full_multimodal_oof.py ^
-  --full ^
-  --output-dir outputs\classification_v2\model_full\full_multimodal_oof ^
-  --image-size 64 ^
-  --hidden-dim 48 ^
-  --steps-per-fold 6 ^
-  --train-batch-size 32 ^
-  --eval-batch-size 64 ^
-  --bootstrap-iterations 200
-```
+Use the data rebuild runbook commands for the versioned v5 lineage. Temporal
+harmonization must consume the Hidden-reviewed frame artifact, never the
+pre-review enhanced CSV.
 
 PASS:
 
-- `run_mode=full`.
-- All planned folds produce fold artifacts.
-- Predictions and native temporal metrics pass schema checks.
-- No forbidden leakage columns appear in prediction schema.
+- Hidden apply has equal input/output row counts and explicit action counts.
+- CVAT anchors still represent `k..k+5`; legacy bursts still contain 16 frames.
+- Rebuilt intervals and windows have deterministic unique keys.
+- No row, label, or trust state changes without an audit record.
 
 FAIL:
 
-- A reduced/pilot run is registered as full paper evidence.
-- A fold failure is hidden by silently dropping that fold.
+- Temporal windows are reused from a different Hidden lineage.
+- An excluded review item is physically dropped instead of masked/audited.
+- Temporal harmonization runs before Hidden apply.
 
-### S33. Full Record Registration
+### S33. Complete Behavior Review and Apply
 
-Register only after S32 post-run gates pass:
-
-```bat
-python scripts\classification_v2\08_publication_reporting\ ^
-  classification_v2_register_experiment.py ^
-  --name full_multimodal_oof ^
-  --metrics-json outputs\classification_v2\model_full\full_multimodal_oof\full_multimodal_oof_metrics.json ^
-  --artifact outputs\classification_v2\model_full\full_multimodal_oof\full_multimodal_oof_audit.json ^
-  --artifact outputs\classification_v2\model_full\full_multimodal_oof\full_multimodal_oof_prediction_schema_audit.json ^
-  --notes "full learned multimodal native OOF evaluation" ^
-  --experiment-stage paper_facing_candidate ^
-  --paper-facing ^
-  --result-kind model_evaluation
-```
+Rebuild behavior review units from the v5 Hidden-reviewed temporal lineage.
+Complete all required review decisions before apply; the existing 3-row
+decision payload is evidence of an incomplete review, not a reusable result.
 
 PASS:
 
-- Registry record has `git_dirty=false`.
-- Native temporal metrics gate is valid.
-- `external_generalization_claim=false`.
+- Required and decided `review_unit_id` sets match exactly.
+- No pending decision carries active correction or exclusion payload.
+- Apply preserves frame rows and records corrected/excluded counts.
+- Reviewed labels remain within the canonical 10-class vocabulary.
 
-### S34. Claim Gate Recheck
+### S34. Freeze Train-Ready Lineage and Run Bounded Smokes
 
-Run:
-
-- full learned OOF contract checker.
-- ablation/shortcut contract checker.
-- paper-grade protocol checker.
+Rebuild reviewed windows, native units, X/y/masks/weights, image indexes,
+feature whitelist, and recording-safe folds. Freeze their hashes before any
+model comparison.
 
 PASS:
 
-- Missing-full-OOF blocker is removed.
-- Remaining warnings are scientific caveats, not data leakage or missing primary
-  prediction schema.
+- Snapshot, cache, whitelist, config, and fold hashes are mutually linked.
+- One-batch, tiny-overfit, resume, runtime, and one-fold tests pass.
+- Source, sequence length, padding, and context availability shortcut audits
+  have explicit results and mitigation where required.
 
-## 7. Next Scientific Upgrades After Full OOF
+### S35. Authorize Future Finalist OOF
+
+Only after S34 passes, generate a new run ID, output directory, preflight, and
+human authorization bound to the frozen lineage and clean code SHA. Use the
+future full-OOF runbook; never overwrite or promote the commit-`18d6692`
+artifact.
+
+## 7. Scientific Upgrades After the Reviewed Baseline
 
 Priority A, before any manuscript claim:
 
@@ -301,17 +290,18 @@ Every added module/script should include docstrings or comments for:
 
 ## 9. PASS/FAIL Summary
 
-Overall PASS for the next goal requires:
+Overall PASS for the active data-readiness goal requires:
 
-- Full learned native OOF record exists and validates.
-- Reviewed/train-ready data gates still preserve rows and forbid leakage.
-- Metrics are native temporal-unit metrics, not independent window metrics.
+- Hidden and behavior decision coverage is complete and fail-closed.
+- Reviewed/train-ready data gates preserve rows and forbid leakage.
+- Snapshot, cache, whitelist, and fold hashes are frozen together.
+- All bounded model smoke gates pass before full-run authorization.
 - Claims remain Q2 in-domain and do not imply external generalization.
-- Follow-up ablations and shortcut controls are planned from the full OOF
-  result, not retrofitted to justify a preferred outcome.
 
 Current status at the time of this plan:
 
-- PASS: engineering pipeline, train-ready contracts, pilot learned OOF, resumable
-  fold artifacts, pilot registry.
-- FAIL/blocked for paper-facing model claim: full learned OOF record missing.
+- PASS: enhanced rows and Hidden v5 template coverage.
+- FAIL: complete Hidden decisions and complete behavior decisions.
+- BLOCKED: reviewed snapshot, matching caches/folds, model smokes, and a new
+  reviewed-lineage full OOF.
+- Historical only: the commit-`18d6692` OOF run and its lineage-local reports.

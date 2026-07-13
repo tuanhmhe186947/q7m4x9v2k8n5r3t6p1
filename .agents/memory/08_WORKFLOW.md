@@ -48,19 +48,19 @@ this file are historical unless the user explicitly switches workstreams.
 Current state:
 
 - `classification_v2` behavior recognition is the active project priority.
-- Full multimodal OOF training is complete; postrun validation is active.
-- The completed full run has 73,668 window predictions and 32,727 native
-  temporal predictions. It is not yet a Q2 result claim.
+- Status authority is `docs/CLASSIFICATION_V2_CURRENT_STATE.md`.
+- The active lineage stops at block `01`: the Hidden v5 template passes, but
+  human Hidden decisions and apply are incomplete.
+- Behavior review also fails closed with 3/4,670 decisions, 4,667 missing, and
+  one pending.
+- Do not rebuild train-ready exports, refresh model preflight, or launch model
+  training until both review layers pass and versioned hashes are frozen.
+- The 73,668-window/32,727-native-unit full OOF at commit `18d6692` is
+  historical engineering evidence from the previous data lineage.
 - Use only the numbered script workflow under
   `scripts/classification_v2/00_*` through `09_*`.
-- Blocks `00-06` are complete for the current artifact lineage. Continue with
-  block `07` calibration/confusion/ablation, block `08` registration/reporting,
-  then block `09` completion gates.
-- Q2 claim remains locked until block `09` reports
-  `q2_claim_allowed=true`.
-- Do not rerun full OOF merely because script paths changed; rerun only if
-  model, data, or training semantics change and a new authorized experiment is
-  intended.
+- Q2 claim remains locked until a new reviewed-lineage full run and block `09`
+  completion gate both pass.
 
 Command conventions:
 
@@ -114,7 +114,10 @@ Edit and commit rules:
     - If the target location is ambiguous after re-reading, ask the user or
       report the ambiguity instead of guessing with a broad rewrite.
 
-Pre-full refresh sequence after any commit:
+Future full-run refresh sequence after snapshot readiness:
+
+Do not run this sequence now. It becomes active only after the reviewed data,
+cache, whitelist, and fold hashes are frozen and all model smoke gates pass.
 
 ```bat
 cd /d C:\Users\ironh\Downloads\PIG_Behavior_Project
@@ -188,7 +191,7 @@ Memory refresh after full OOF:
 
 ## Preserved Historical Workflow
 
-## Current classification_v2 Q2 workflow
+## Historical classification_v2 pre-full workflow
 
 Use this workflow when continuing the behavior-recognition roadmap.
 
@@ -207,7 +210,7 @@ Use this workflow when continuing the behavior-recognition roadmap.
    for example `rg -n "^.{101,}$" <changed-files>`, and run
    `git diff --check`.
 
-### classification_v2 pre-full gates
+### Historical classification_v2 pre-full gates
 
 Run these checks before any full OOF launch:
 
@@ -238,9 +241,9 @@ set S9=scripts\classification_v2\09_final_release_audit
 %PY% %S9%\check_classification_v2_full_oof_completion_gate.py
 ```
 
-The expected pre-full status is `PASS_PARTIAL_ROADMAP` with fail-closed full
-OOF authorization. That is a ready-for-human-authorization state, not a
-completed Q2 result.
+For that historical lineage, the expected pre-full status was
+`PASS_PARTIAL_ROADMAP` with fail-closed full OOF authorization. It was not a
+completed Q2 result and is not the expected status of the active rebuild.
 
 ### Full OOF authorization rule
 
@@ -266,11 +269,13 @@ outputs/classification_v2/model_design/full_oof_launch_packet.md
 outputs/classification_v2/model_design/full_oof_launch_packet.json
 ```
 
-The current packet is ready for human authorization review and targets:
+The historical packet targeted:
 
 ```text
 outputs/classification_v2/model_full/full_multimodal_oof
 ```
+
+Do not reuse this path or packet for a future reviewed-lineage run.
 
 The full run must use cached letterboxed actor images and packed visual context.
 Do not run ad hoc full loops that repeatedly seek, crop, resize, and convert
@@ -352,23 +357,23 @@ When user allows verification, run in this order:
   documented in `.agents/WORKFLOW.md`.
 - CI/quality gates previously documented there remain preserved as legacy workflow guidance.
 
-## 2026-07-12 classification_v2 current override
+## Historical 2026-07-12 classification_v2 override
 
-- Treat `classification_v2` behavior recognition as the active priority unless
-  the user explicitly switches back to tracking.
-- Pre-full readiness currently means `PASS_PARTIAL_ROADMAP` with 44/44 gates
-  passing in the latest refreshed pre-full state, not a completed Q2 result.
-- Full OOF remains fail-closed until `full_oof_authorization.json` is explicitly
-  authorized with reviewer, long-run acknowledgement, no-Q2-claim
-  acknowledgement, matching preflight config hash, and matching git commit.
-- Before any full run, refresh the preflight, authorization template/file
+This records the old pre-full contract and must not be executed for the active
+reviewed-data rebuild.
+
+- `classification_v2` behavior recognition became the active priority.
+- That lineage reported `PASS_PARTIAL_ROADMAP` with 44/44 pre-full gates; this
+  was not a completed Q2 result.
+- Its full OOF remained fail-closed until `full_oof_authorization.json` was
+  authorized with reviewer, acknowledgements, config hash, and git commit.
+- Before that full run, the workflow refreshed the preflight, template/file
   checks, authorization writer check, preflight freshness check, launch packet
   check, execution gate, completion gate, postrun packet check, and Q2 progress
   report.
-- After any commit, refresh the same sequence again before requesting human full
-  OOF authorization so preflight freshness points at current HEAD.
-- Do not launch full OOF unless
-  `check_classification_v2_full_oof_execution_gate.py` allows execution.
-- After full OOF, run calibration, confusion-focus comparison, ablation report
+- After each commit, it refreshed the sequence before requesting authorization.
+- It launched only when `check_classification_v2_full_oof_execution_gate.py`
+  allowed execution.
+- After full OOF, it required calibration, confusion comparison, ablation report
   refresh, experiment registry registration, and completion gate before making
   any Q2 result claim.
