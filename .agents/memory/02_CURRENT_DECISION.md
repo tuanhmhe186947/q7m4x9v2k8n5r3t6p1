@@ -1,5 +1,22 @@
 # Current Decision
 
+## 2026-07-13 reviewed-data rebuild decision
+
+The user authorizes full runs, but every new data/model lineage remains
+fail-closed until static checks, a tiny/short representative run, and
+schema/count/hash/output/runtime audits pass. A prior full authorization does
+not transfer to a changed semantic config.
+
+The current `reviewed_frame_features.csv` is not human-review complete. The
+latest audit has 4,670 mandatory review units, 3 decision rows, 2 active
+decisions, 1 pending decision, and 4,667 missing decisions. Do not call this
+artifact clean final training data. Rebuild instructions are in
+`docs/CLASSIFICATION_V2_DATA_REBUILD_AND_HUMAN_REVIEW_RUNBOOK.md`.
+
+Do not resume full training from this decision alone. First create a versioned
+reviewed-data lineage, pass complete-decision and leakage-safe fold gates, then
+run model smoke gates on the frozen data/cache hashes.
+
 ## 2026-07-13 post-full active decision
 
 Treat full OOF training as complete and postrun validation as the active gate.

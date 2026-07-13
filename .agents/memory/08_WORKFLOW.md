@@ -1,5 +1,20 @@
 # Workflow
 
+## Reviewed-data rebuild gate
+
+For a new `classification_v2` data lineage, follow
+`docs/CLASSIFICATION_V2_DATA_REBUILD_AND_HUMAN_REVIEW_RUNBOOK.md`. Full runs are
+authorized only after the same semantic config passes static checks, a short
+legacy+CVAT chain, and schema/count/hash/output/runtime audits.
+
+The current canonical reviewed artifact is not human-review complete. Complete
+all mandatory review units, pass the fail-closed decision-coverage audit, then
+rebuild reviewed windows with `--disable-fast-reuse`. Use recording-date or
+validated session groups; never random-split frames or overlapping windows.
+
+Do not launch model training from a new rebuild until its versioned
+data/cache/fold hashes are frozen and all local model smoke gates pass.
+
 ## Active classification_v2 Workflow Override
 
 Use this section as the current workflow. Older tracking/RGB-D/FastAPI notes in

@@ -2,6 +2,16 @@
 
 ## classification_v2 active rules
 
+Full-run permission is standing but conditional. For each changed data/model
+lineage, run static/synthetic checks, a short representative legacy+CVAT chain,
+and schema/count/hash/output/runtime audits before full. Stop on any failed
+gate; never use a full run as the first correctness test.
+
+Current reviewed data is not human-review complete. No pending,
+`review_later`, missing, duplicate, or unexpected mandatory `review_unit_id`
+may enter final main training. Use a versioned rebuild root and never mix
+canonical artifacts from a different lineage.
+
 1. Treat `classification_v2` behavior recognition as the active goal unless the
    user explicitly switches back to tracking.
 2. Do not run full OOF training unless the authorization file is explicitly
