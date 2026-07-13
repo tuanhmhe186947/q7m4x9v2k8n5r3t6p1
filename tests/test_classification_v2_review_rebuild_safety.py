@@ -299,6 +299,27 @@ def test_apply_action_aliases_are_fail_closed() -> None:
     assert apply_module._default_weight("accept", "low_weight_train") == 0.5
 
 
+def test_apply_loader_removes_manifest_helper_columns(tmp_path: Path) -> None:
+    apply_module = _load_script(
+        "review_apply_load_alignment",
+        "classification_v2_apply_review_unit_decisions.py",
+    )
+    unit = _native_unit("cvat_tracking_xml", 1020)
+    decision_path = tmp_path / "decisions.csv"
+    pd.DataFrame([_decision_for_unit(unit, "accept")]).to_csv(
+        decision_path,
+        index=False,
+    )
+
+    decisions, audit = apply_module.load_decisions(
+        [decision_path],
+        pd.DataFrame([unit]),
+    )
+
+    assert audit["load_errors"] == []
+    assert not any(column.endswith("_manifest") for column in decisions.columns)
+
+
 def test_apply_corrected_cvat_decision_has_exact_six_frame_scope() -> None:
     apply_module = _load_script(
         "review_apply_cvat_scope",

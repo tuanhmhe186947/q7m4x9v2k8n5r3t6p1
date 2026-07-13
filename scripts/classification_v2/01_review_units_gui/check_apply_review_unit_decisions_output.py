@@ -8,7 +8,7 @@ import pandas as pd
 
 from pig_behavior.classification_v2.review.behavior_review_contract import (
     CANONICAL_BEHAVIORS,
-    audit_manifest_alignment,
+    audit_decision_coverage,
     audit_review_unit_contract,
     canonicalize_decisions,
     validate_decision_semantics,
@@ -18,7 +18,7 @@ REVIEWED_PATH = Path(r"outputs\classification_v2\review_policy\reviewed_frame_fe
 AUDIT_PATH = Path(r"outputs\classification_v2\review_policy\apply_review_unit_decisions_audit.json")
 COMBINED_PATH = Path(r"outputs\classification_v2\review_policy\review_unit_decisions_combined.csv")
 REVIEW_MANIFEST_PATH = Path(
-    r"outputs\classification_v2\review_units\review_unit_manifest.csv"
+    r"outputs\classification_v2\review_units\full_review_unit_manifest.csv"
 )
 
 
@@ -78,18 +78,19 @@ def main() -> None:
     if combined_path.exists():
         decisions = pd.read_csv(combined_path, low_memory=False)
         decisions, _ = canonicalize_decisions(decisions)
-        decision_errors, _ = validate_decision_semantics(
-            decisions,
-            require_complete=False,
-        )
-        errors.extend(decision_errors)
         if review_manifest is not None:
-            alignment_errors, _ = audit_manifest_alignment(
+            coverage_audit = audit_decision_coverage(
                 review_manifest,
                 decisions,
-                allow_blank_snapshot=False,
+                require_complete=True,
             )
-            errors.extend(alignment_errors)
+            errors.extend(coverage_audit["errors"])
+        else:
+            decision_errors, _ = validate_decision_semantics(
+                decisions,
+                require_complete=True,
+            )
+            errors.extend(decision_errors)
         print("\n=== COMBINED DECISIONS ===")
         print("rows=", len(decisions))
         if "manual_review_decision" in decisions.columns:

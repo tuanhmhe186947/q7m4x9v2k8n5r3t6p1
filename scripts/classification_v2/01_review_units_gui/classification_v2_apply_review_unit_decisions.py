@@ -19,6 +19,7 @@ from typing import Any
 import pandas as pd
 
 from pig_behavior.classification_v2.review.behavior_review_contract import (
+    audit_decision_coverage,
     audit_manifest_alignment,
     audit_review_unit_contract,
     canonicalize_decisions,
@@ -161,6 +162,7 @@ def load_decisions(
             on="review_unit_id",
             how="left",
             suffixes=("", "_manifest"),
+            validate="many_to_one",
         )
         for col in [
             "temporal_unit_key",
@@ -176,6 +178,14 @@ def load_decisions(
                 df[col] = df[mcol] if mcol in df.columns else ""
             elif mcol in df.columns:
                 df[col] = df[col].where(df[col].notna() & df[col].astype(str).ne(""), df[mcol])
+
+        helper_columns = [
+            column
+            for column in df.columns
+            if column.endswith("_manifest")
+        ]
+        if helper_columns:
+            df = df.drop(columns=helper_columns)
 
         original = df["original_behavior"].map(_norm_text)
         df["original_behavior"] = original.where(original.ne(""), df["behavior_label"])
@@ -445,7 +455,10 @@ def main() -> None:
     )
     parser.add_argument(
         "--review-unit-manifest-csv",
-        default=r"outputs\classification_v2\review_units\review_unit_manifest.csv",
+        default=(
+            r"outputs\classification_v2\review_units"
+            r"\full_review_unit_manifest.csv"
+        ),
     )
     parser.add_argument(
         "--decisions-csv",
@@ -482,8 +495,17 @@ def main() -> None:
 
     decisions, load_audit = load_decisions(decision_paths, review_units)
     decisions, norm_errors, norm_warnings = normalize_decisions(decisions)
+    coverage_audit = audit_decision_coverage(
+        review_units,
+        decisions,
+        require_complete=True,
+    )
 
-    apply_errors = list(load_audit.get("load_errors", [])) + norm_errors
+    apply_errors = (
+        list(load_audit.get("load_errors", []))
+        + norm_errors
+        + list(coverage_audit.get("errors", []))
+    )
     missing_files = load_audit.get("missing_files", [])
     if missing_files:
         apply_errors.append(f"missing_decision_files={missing_files}")
@@ -513,8 +535,14 @@ def main() -> None:
     audit_path.parent.mkdir(parents=True, exist_ok=True)
 
     audit = {
-        "errors": apply_errors,
-        "warnings": load_audit.get("load_warnings", []) + norm_warnings,
+        "errors": sorted(set(apply_errors)),
+        "warnings": sorted(
+            set(
+                load_audit.get("load_warnings", [])
+                + norm_warnings
+                + list(coverage_audit.get("warnings", []))
+            )
+        ),
         "inputs": {
             "frame_features_csv": str(frame_path),
             "review_unit_manifest_csv": str(unit_path),
@@ -531,6 +559,7 @@ def main() -> None:
             "decisions_loaded": int(len(decisions)),
         },
         "load_audit": load_audit,
+        "decision_coverage_audit": coverage_audit,
         "apply_audit": apply_audit,
     }
 

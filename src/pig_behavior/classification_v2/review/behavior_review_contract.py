@@ -314,6 +314,105 @@ def validate_decision_semantics(
     return errors, warnings
 
 
+def audit_decision_coverage(
+    review_manifest: pd.DataFrame,
+    decisions: pd.DataFrame,
+    *,
+    require_complete: bool,
+) -> dict[str, Any]:
+    """Audit decision schema, exact review-unit coverage, and completeness."""
+
+    errors: list[str] = []
+    warnings: list[str] = []
+    if "review_unit_id" not in review_manifest.columns:
+        return {
+            "errors": ["review_manifest_missing_review_unit_id"],
+            "warnings": warnings,
+        }
+    expected_ids = review_manifest["review_unit_id"].map(normalize_text)
+    blank_manifest = int(expected_ids.eq("").sum())
+    duplicate_manifest = int(expected_ids.duplicated(keep=False).sum())
+    if blank_manifest:
+        errors.append(f"blank_review_manifest_rows={blank_manifest}")
+    if duplicate_manifest:
+        errors.append(f"duplicate_review_manifest_rows={duplicate_manifest}")
+
+    missing_columns = [
+        column
+        for column in REQUIRED_DECISION_COLUMNS
+        if column not in decisions.columns
+    ]
+    if missing_columns:
+        errors.append(f"missing_decision_columns={missing_columns}")
+        return {
+            "review_unit_rows": int(len(review_manifest)),
+            "decision_rows": int(len(decisions)),
+            "errors": errors,
+            "warnings": warnings,
+        }
+    if "window_uid" in decisions.columns:
+        errors.append("forbidden_window_uid_column")
+
+    canonical, normalization_warnings = canonicalize_decisions(decisions)
+    warnings.extend(normalization_warnings)
+    semantic_errors, semantic_warnings = validate_decision_semantics(
+        canonical,
+        require_complete=require_complete,
+    )
+    errors.extend(semantic_errors)
+    warnings.extend(semantic_warnings)
+    alignment_errors, alignment_warnings = audit_manifest_alignment(
+        review_manifest,
+        canonical,
+        allow_blank_snapshot=False,
+    )
+    errors.extend(alignment_errors)
+    warnings.extend(alignment_warnings)
+
+    decision_ids = canonical["review_unit_id"].map(normalize_text)
+    expected_set = set(expected_ids)
+    decision_set = set(decision_ids)
+    missing_ids = sorted(expected_set - decision_set)
+    unexpected_ids = sorted(decision_set - expected_set)
+    decision_values = canonical["manual_review_decision"].map(normalize_text)
+    action_values = canonical["manual_training_action"].map(normalize_text)
+    duplicate_decisions = int(decision_ids.duplicated(keep=False).sum())
+    pending_count = int(decision_values.eq("pending").sum())
+    review_later_count = int(action_values.eq("review_later").sum())
+
+    if require_complete and missing_ids:
+        errors.append(f"missing_review_unit_count={len(missing_ids)}")
+    elif missing_ids:
+        warnings.append(f"missing_review_unit_count={len(missing_ids)}")
+    if pending_count and not require_complete:
+        warnings.append(f"pending_review_unit_count={pending_count}")
+    if require_complete and review_later_count:
+        errors.append(f"review_later_unit_count={review_later_count}")
+    elif review_later_count:
+        warnings.append(f"review_later_unit_count={review_later_count}")
+
+    return {
+        "review_unit_rows": int(len(review_manifest)),
+        "decision_rows": int(len(canonical)),
+        "covered_review_units": int(len(expected_set & decision_set)),
+        "missing_review_unit_count": int(len(missing_ids)),
+        "unexpected_review_unit_count": int(len(unexpected_ids)),
+        "duplicate_review_manifest_rows": duplicate_manifest,
+        "duplicate_decision_rows": duplicate_decisions,
+        "pending_review_unit_count": pending_count,
+        "review_later_unit_count": review_later_count,
+        "decision_counts": decision_values.value_counts(dropna=False).to_dict(),
+        "training_action_counts": action_values.value_counts(
+            dropna=False
+        ).to_dict(),
+        "require_complete": require_complete,
+        "missing_review_unit_sample": missing_ids[:20],
+        "unexpected_review_unit_sample": unexpected_ids[:20],
+        "errors": sorted(set(errors)),
+        "warnings": sorted(set(warnings)),
+    }
+
+
 def audit_manifest_alignment(
     review_manifest: pd.DataFrame,
     decisions: pd.DataFrame,
