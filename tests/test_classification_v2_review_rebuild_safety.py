@@ -498,3 +498,104 @@ def test_publication_split_writes_explicit_train_ready_path(
     assert len(split) == 3
     assert split["window_id"].is_unique
     assert split["recording_group_id"].nunique() == 3
+
+
+def test_review_overlay_excludes_window_with_incomplete_frame_scope() -> None:
+    builder = _load_source_script(
+        "review_overlay_incomplete_scope",
+        "classification_v2_build_sequence_windows.py",
+    )
+    windows = pd.DataFrame(
+        {
+            "window_id": ["w0"],
+            "object_track_key": ["track-a"],
+            "window_start_frame": [0],
+            "window_end_frame": [1],
+            "window_length_frames": [2],
+            "window_valid_for_main_train": [True],
+            "window_exclusion_reason": [""],
+            "window_training_tier_recommendation": ["main_train"],
+        }
+    )
+    frames = pd.DataFrame(
+        {
+            "object_track_key": ["track-a"],
+            "frame_index": [0],
+            "review_include_in_training": [True],
+            "review_sample_weight": [1.0],
+        }
+    )
+
+    overlaid = builder._apply_review_overlay_to_windows(windows, frames)
+
+    assert not bool(overlaid.iloc[0]["review_overlay_coverage_complete"])
+    assert overlaid.iloc[0]["review_overlay_observed_frame_count_window"] == 1
+    assert not bool(overlaid.iloc[0]["window_valid_for_main_train"])
+    assert overlaid.iloc[0]["window_sample_weight"] == 0.0
+    assert "review_overlay_frame_coverage_incomplete" in overlaid.iloc[0][
+        "window_exclusion_reason"
+    ]
+
+
+def test_review_overlay_rejects_invalid_frame_instead_of_dropping_it() -> None:
+    builder = _load_source_script(
+        "review_overlay_invalid_frame",
+        "classification_v2_build_sequence_windows.py",
+    )
+    windows = pd.DataFrame(
+        {
+            "window_id": ["w0"],
+            "object_track_key": ["track-a"],
+            "window_start_frame": [0],
+            "window_end_frame": [0],
+            "window_length_frames": [1],
+            "window_valid_for_main_train": [True],
+            "window_exclusion_reason": [""],
+            "window_training_tier_recommendation": ["main_train"],
+        }
+    )
+    frames = pd.DataFrame(
+        {
+            "object_track_key": ["track-a"],
+            "frame_index": [None],
+        }
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Review overlay frame contract failed",
+    ):
+        builder._apply_review_overlay_to_windows(windows, frames)
+
+
+def test_review_overlay_keeps_complete_included_window_trainable() -> None:
+    builder = _load_source_script(
+        "review_overlay_complete_scope",
+        "classification_v2_build_sequence_windows.py",
+    )
+    windows = pd.DataFrame(
+        {
+            "window_id": ["w0"],
+            "object_track_key": ["track-a"],
+            "window_start_frame": [0],
+            "window_end_frame": [1],
+            "window_length_frames": [2],
+            "window_valid_for_main_train": [True],
+            "window_exclusion_reason": [""],
+            "window_training_tier_recommendation": ["main_train"],
+        }
+    )
+    frames = pd.DataFrame(
+        {
+            "object_track_key": ["track-a", "track-a"],
+            "frame_index": [0, 1],
+            "review_include_in_training": [True, True],
+            "review_sample_weight": [1.0, 1.0],
+        }
+    )
+
+    overlaid = builder._apply_review_overlay_to_windows(windows, frames)
+
+    assert bool(overlaid.iloc[0]["review_overlay_coverage_complete"])
+    assert bool(overlaid.iloc[0]["window_valid_for_main_train"])
+    assert overlaid.iloc[0]["window_sample_weight"] == 1.0

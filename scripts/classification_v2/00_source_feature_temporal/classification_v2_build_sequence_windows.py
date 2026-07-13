@@ -151,7 +151,8 @@ def _apply_review_overlay_to_windows(windows: pd.DataFrame, frames: pd.DataFrame
 
     f = frames.copy()
     f["frame_index"] = pd.to_numeric(f["frame_index"], errors="coerce")
-    f = f.dropna(subset=["frame_index"]).sort_values(
+    _validate_review_overlay_frames(f)
+    f = f.sort_values(
         ["object_track_key", "frame_index"],
         kind="mergesort",
     )
@@ -181,6 +182,13 @@ def _apply_review_overlay_to_windows(windows: pd.DataFrame, frames: pd.DataFrame
     out["review_training_actions_window"] = ""
     out["review_sample_weight_mean_window"] = 1.0
     out["window_sample_weight"] = 1.0
+    out["review_overlay_observed_frame_count_window"] = 0
+    out["review_overlay_expected_frame_count_window"] = (
+        pd.to_numeric(out["window_end_frame"], errors="coerce")
+        - pd.to_numeric(out["window_start_frame"], errors="coerce")
+        + 1
+    )
+    out["review_overlay_coverage_complete"] = False
 
     frame_groups = {
         str(key): group.reset_index(drop=True)
@@ -199,6 +207,8 @@ def _apply_review_overlay_to_windows(windows: pd.DataFrame, frames: pd.DataFrame
     for object_key, win_idx in window_groups.items():
         fg = frame_groups.get(str(object_key))
         if fg is None or fg.empty:
+            for row_idx in win_idx:
+                _exclude_incomplete_review_overlay(out, row_idx)
             continue
         frame_idx = fg["frame_index"].to_numpy()
         include = fg["_review_include"].to_numpy(dtype=bool)
@@ -211,6 +221,7 @@ def _apply_review_overlay_to_windows(windows: pd.DataFrame, frames: pd.DataFrame
             left = int(frame_idx.searchsorted(start, side="left"))
             right = int(frame_idx.searchsorted(end, side="right"))
             if right <= left:
+                _exclude_incomplete_review_overlay(out, row_idx)
                 continue
 
             include_slice = include[left:right]
@@ -223,6 +234,9 @@ def _apply_review_overlay_to_windows(windows: pd.DataFrame, frames: pd.DataFrame
                 }
             )
             excluded_count = int((~include_slice).sum())
+            observed_count = int(pd.Series(frame_idx[left:right]).nunique())
+            expected_count = int(end - start + 1)
+            coverage_complete = observed_count == expected_count
             out.at[row_idx, "review_include_ratio_window"] = float(include_slice.mean())
             out.at[row_idx, "review_excluded_frame_count_window"] = excluded_count
             out.at[row_idx, "review_training_actions_window"] = "|".join(action_values)
@@ -230,6 +244,14 @@ def _apply_review_overlay_to_windows(windows: pd.DataFrame, frames: pd.DataFrame
             out.at[row_idx, "window_sample_weight"] = (
                 0.0 if excluded_count else float(weight_slice.mean())
             )
+            out.at[
+                row_idx,
+                "review_overlay_observed_frame_count_window",
+            ] = observed_count
+            out.at[
+                row_idx,
+                "review_overlay_coverage_complete",
+            ] = coverage_complete
 
             if excluded_count:
                 out.at[row_idx, "window_valid_for_main_train"] = False
@@ -240,8 +262,55 @@ def _apply_review_overlay_to_windows(windows: pd.DataFrame, frames: pd.DataFrame
                         f"{reason};{token}" if reason else token
                     )
                 out.at[row_idx, "window_training_tier_recommendation"] = "exclude"
+            if not coverage_complete:
+                _exclude_incomplete_review_overlay(out, row_idx)
 
     return out
+
+
+def _validate_review_overlay_frames(frames: pd.DataFrame) -> None:
+    """Reject reviewed frame rows that cannot align uniquely to a window."""
+    key = frames["object_track_key"].fillna("").astype(str).str.strip()
+    frame_index = frames["frame_index"]
+    invalid = (
+        key.eq("")
+        | frame_index.isna()
+        | frame_index.mod(1).ne(0)
+        | frame_index.lt(0)
+    )
+    duplicate = pd.DataFrame(
+        {
+            "object_track_key": key,
+            "frame_index": frame_index,
+        }
+    ).duplicated(keep=False)
+    duplicate &= ~invalid
+    if invalid.any() or duplicate.any():
+        affected = invalid | duplicate
+        sample = [str(value) for value in frames.index[affected].tolist()[:10]]
+        raise ValueError(
+            "Review overlay frame contract failed: "
+            f"invalid_rows={int(invalid.sum())}, "
+            f"duplicate_track_frame_rows={int(duplicate.sum())}, "
+            f"sample_source_indices={sample}"
+        )
+
+
+def _exclude_incomplete_review_overlay(
+    windows: pd.DataFrame,
+    row_index: object,
+) -> None:
+    """Fail one window closed when its reviewed frame scope is incomplete."""
+    windows.at[row_index, "review_include_ratio_window"] = 0.0
+    windows.at[row_index, "window_sample_weight"] = 0.0
+    windows.at[row_index, "window_valid_for_main_train"] = False
+    windows.at[row_index, "window_training_tier_recommendation"] = "exclude"
+    reason = str(windows.at[row_index, "window_exclusion_reason"] or "").strip()
+    token = "review_overlay_frame_coverage_incomplete"
+    if token not in reason.split(";"):
+        windows.at[row_index, "window_exclusion_reason"] = (
+            f"{reason};{token}" if reason else token
+        )
 
 
 def _try_fast_reviewed_rebuild(args: argparse.Namespace) -> bool:
