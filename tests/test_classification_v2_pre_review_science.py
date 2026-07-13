@@ -250,3 +250,39 @@ def test_hidden_metadata_is_audit_only_and_never_selected_for_model_x() -> None:
     assert "visible_ratio_window" not in selected
     assert "hidden" not in SPATIAL_FRAME_FEATURES["quality_mask"]
     assert "roi_feature_valid" not in SPATIAL_FRAME_FEATURES["quality_mask"]
+
+
+def test_explicit_feature_whitelist_preserves_contract_order() -> None:
+    windows = pd.DataFrame(
+        {
+            "speed_mean_window": [0.2],
+            "bbox_valid_ratio_window": [1.0],
+            "unused_numeric": [7.0],
+        }
+    )
+
+    selected = select_window_feature_columns(
+        windows,
+        feature_whitelist=[
+            "bbox_valid_ratio_window",
+            "speed_mean_window",
+        ],
+    )
+
+    assert selected == ["bbox_valid_ratio_window", "speed_mean_window"]
+
+
+def test_explicit_feature_whitelist_fails_closed_on_contract_drift() -> None:
+    windows = pd.DataFrame({"speed_mean_window": [0.2]})
+
+    with pytest.raises(ValueError, match="Missing whitelisted feature columns"):
+        select_window_feature_columns(
+            windows,
+            feature_whitelist=["speed_mean_window", "motion_active_ratio_window"],
+        )
+
+    with pytest.raises(ValueError, match="forbidden feature columns"):
+        select_window_feature_columns(
+            windows.assign(review_score=0.5),
+            feature_whitelist=["speed_mean_window", "review_score"],
+        )

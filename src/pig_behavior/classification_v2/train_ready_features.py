@@ -143,8 +143,19 @@ class TrainReadyWindowTables:
     audit: dict[str, Any]
 
 
-def select_window_feature_columns(df: pd.DataFrame) -> list[str]:
-    """Return deterministic model-input columns from a sequence-window table."""
+def select_window_feature_columns(
+    df: pd.DataFrame,
+    *,
+    feature_whitelist: list[str] | None = None,
+) -> list[str]:
+    """Return deterministic, inference-safe model-input columns.
+
+    An explicit whitelist is authoritative for exported artifacts. The legacy
+    rule-based selection remains available for diagnostics and older callers.
+    """
+    if feature_whitelist is not None:
+        return _validate_explicit_feature_whitelist(df, feature_whitelist)
+
     numeric_cols = set(df.select_dtypes(include=["number", "bool"]).columns)
     selected: list[str] = []
     for col in df.columns:
@@ -163,6 +174,7 @@ def build_train_ready_window_tables(
     label_col: str = "behavior_window_label",
     mask_col: str = "window_valid_for_main_train",
     sample_weight_col: str = "window_sample_weight",
+    feature_whitelist: list[str] | None = None,
 ) -> TrainReadyWindowTables:
     """Split reviewed sequence windows into X, y, mask, and sample_weight."""
     required = [label_col, mask_col]
@@ -170,25 +182,42 @@ def build_train_ready_window_tables(
     if missing:
         raise ValueError(f"Missing train-ready window columns: {missing}")
 
-    feature_cols = select_window_feature_columns(windows)
+    feature_cols = select_window_feature_columns(
+        windows,
+        feature_whitelist=feature_whitelist,
+    )
     leakage = sorted(c for c in feature_cols if _is_forbidden_feature_column(c))
     if leakage:
         raise ValueError(f"Leakage-prone columns selected for X: {leakage}")
 
     x = windows[feature_cols].copy()
     for col in x.columns:
-        x[col] = pd.to_numeric(x[col], errors="coerce").replace([float("inf"), float("-inf")], pd.NA).fillna(0.0)
+        x[col] = (
+            pd.to_numeric(x[col], errors="coerce")
+            .replace([float("inf"), float("-inf")], pd.NA)
+            .fillna(0.0)
+        )
 
     y = windows[label_col].fillna("").astype(str).copy()
     mask = _to_bool_series(windows[mask_col])
 
     if sample_weight_col in windows.columns:
-        sample_weight = pd.to_numeric(windows[sample_weight_col], errors="coerce").fillna(1.0).clip(0.0, 1.0)
+        sample_weight = (
+            pd.to_numeric(windows[sample_weight_col], errors="coerce")
+            .fillna(1.0)
+            .clip(0.0, 1.0)
+        )
     else:
         sample_weight = pd.Series(1.0, index=windows.index, name=sample_weight_col)
     sample_weight = sample_weight.where(mask, 0.0)
 
-    audit = audit_train_ready_feature_selection(windows, feature_cols, label_col=label_col, mask_col=mask_col)
+    audit = audit_train_ready_feature_selection(
+        windows,
+        feature_cols,
+        label_col=label_col,
+        mask_col=mask_col,
+        expected_feature_columns=feature_whitelist,
+    )
     return TrainReadyWindowTables(x=x, y=y, mask=mask, sample_weight=sample_weight, audit=audit)
 
 
@@ -198,6 +227,7 @@ def audit_train_ready_feature_selection(
     *,
     label_col: str = "behavior_window_label",
     mask_col: str = "window_valid_for_main_train",
+    expected_feature_columns: list[str] | None = None,
 ) -> dict[str, Any]:
     """Audit that model X is separated from label, ID, path, and review columns."""
     if feature_cols is None:
@@ -221,6 +251,29 @@ def audit_train_ready_feature_selection(
 
     numeric_cols = list(windows.select_dtypes(include=["number", "bool"]).columns)
     numeric_not_selected = sorted(set(numeric_cols).difference(feature_cols))
+    expected = (
+        list(expected_feature_columns)
+        if expected_feature_columns is not None
+        else None
+    )
+    missing_expected = (
+        [column for column in expected if column not in feature_cols]
+        if expected is not None
+        else []
+    )
+    unexpected = (
+        [column for column in feature_cols if column not in expected]
+        if expected is not None
+        else []
+    )
+    whitelist_match = feature_cols == expected if expected is not None else None
+    if missing_expected:
+        errors.append(f"missing_expected_features={missing_expected}")
+    if unexpected:
+        errors.append(f"unexpected_features={unexpected}")
+    if expected is not None and not missing_expected and not unexpected:
+        if not whitelist_match:
+            errors.append("feature_whitelist_order_mismatch")
 
     return {
         "rows": int(len(windows)),
@@ -230,11 +283,53 @@ def audit_train_ready_feature_selection(
         "mask_col": mask_col,
         "sample_weight_candidates": [c for c in SAMPLE_WEIGHT_COLUMNS if c in windows.columns],
         "forbidden_selected": forbidden_selected,
+        "explicit_whitelist_used": expected is not None,
+        "feature_whitelist_match": whitelist_match,
+        "missing_expected_features": missing_expected,
+        "unexpected_features": unexpected,
         "numeric_columns_not_selected_count": int(len(numeric_not_selected)),
         "numeric_columns_not_selected_sample": numeric_not_selected[:80],
         "errors": errors,
         "warnings": warnings,
     }
+
+
+def _validate_explicit_feature_whitelist(
+    df: pd.DataFrame,
+    feature_whitelist: list[str],
+) -> list[str]:
+    """Validate and preserve the exact order of an explicit trainer whitelist."""
+    whitelist = [str(column).strip() for column in feature_whitelist]
+    if not whitelist or any(not column for column in whitelist):
+        raise ValueError("Explicit feature whitelist must contain named columns")
+    if len(whitelist) != len(set(whitelist)):
+        raise ValueError("Explicit feature whitelist contains duplicate columns")
+
+    duplicate_input = df.columns[df.columns.duplicated()].tolist()
+    if duplicate_input:
+        raise ValueError(f"Input contains duplicate columns: {duplicate_input}")
+
+    missing = [column for column in whitelist if column not in df.columns]
+    if missing:
+        raise ValueError(f"Missing whitelisted feature columns: {missing}")
+
+    forbidden = [
+        column for column in whitelist if _is_forbidden_feature_column(column)
+    ]
+    if forbidden:
+        raise ValueError(f"Whitelist contains forbidden feature columns: {forbidden}")
+
+    non_numeric = [
+        column
+        for column in whitelist
+        if not (
+            pd.api.types.is_numeric_dtype(df[column])
+            or pd.api.types.is_bool_dtype(df[column])
+        )
+    ]
+    if non_numeric:
+        raise ValueError(f"Whitelisted feature columns must be numeric: {non_numeric}")
+    return whitelist
 
 
 def _is_forbidden_feature_column(col: str) -> bool:

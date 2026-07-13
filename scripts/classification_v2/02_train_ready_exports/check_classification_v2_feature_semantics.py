@@ -8,7 +8,11 @@ from pig_behavior.classification_v2.contracts.feature_semantics import audit_fea
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Audit classification_v2 feature semantics and leakage status.")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Audit classification_v2 feature semantics and leakage status."
+        )
+    )
     parser.add_argument(
         "--contract-json",
         type=Path,
@@ -19,12 +23,28 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=Path("outputs/classification_v2/train_ready_windows/feature_semantics_audit.json"),
     )
+    parser.add_argument(
+        "--tabular-x-csv",
+        type=Path,
+        default=None,
+        help="Optional bounded/smoke tabular X artifact override.",
+    )
+    parser.add_argument(
+        "--spatial-npz",
+        type=Path,
+        default=None,
+        help="Optional bounded/smoke spatial X artifact override.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    result = audit_feature_semantics(args.contract_json)
+    result = audit_feature_semantics(
+        args.contract_json,
+        tabular_x_csv=args.tabular_x_csv,
+        spatial_npz=args.spatial_npz,
+    )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
     args.output_json.write_text(json.dumps(result, indent=2), encoding="utf-8")
     summary_keys = [

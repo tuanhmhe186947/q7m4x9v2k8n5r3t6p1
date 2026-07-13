@@ -60,12 +60,23 @@ def _spatial_model_input_whitelist(
     return [str(name) for name in whitelist]
 
 
-def audit_feature_semantics(contract_path: Path) -> dict[str, Any]:
-    """Validate tabular/spatial model inputs against the declared feature semantics."""
+def audit_feature_semantics(
+    contract_path: Path,
+    *,
+    tabular_x_csv: Path | None = None,
+    spatial_npz: Path | None = None,
+) -> dict[str, Any]:
+    """Validate selected tabular/spatial artifacts against one contract."""
     contract = load_feature_semantics(contract_path)
     root = Path(".").resolve()
-    tabular_path = root / contract["tabular_x_csv"]
-    spatial_path = root / contract["spatial_npz"]
+    tabular_path = _resolve_artifact_path(
+        tabular_x_csv or Path(contract["tabular_x_csv"]),
+        root,
+    )
+    spatial_path = _resolve_artifact_path(
+        spatial_npz or Path(contract["spatial_npz"]),
+        root,
+    )
     trainer_contract = _load_trainer_contract(contract, root)
     tabular_trainer_contract = _load_tabular_trainer_contract(contract, root)
     spatial_model_inputs = _spatial_model_input_whitelist(trainer_contract, contract)
@@ -265,6 +276,12 @@ def _display_path(path: Path, root: Path) -> str:
         return str(path.resolve().relative_to(root))
     except ValueError:
         return str(path)
+
+
+def _resolve_artifact_path(path: Path, root: Path) -> Path:
+    """Resolve CLI smoke overrides and contract-relative project paths alike."""
+
+    return path.resolve() if path.is_absolute() else (root / path).resolve()
 
 
 def _trainer_contract_display_path(contract: dict[str, Any], root: Path) -> str | None:

@@ -5,10 +5,14 @@ import json
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 
 DEFAULT_NPZ = Path("outputs/classification_v2/train_ready_windows/X_spatial_sequences.npz")
 DEFAULT_AUDIT = Path("outputs/classification_v2/train_ready_windows/spatial_sequence_audit.json")
-DEFAULT_WINDOWS = Path("outputs/classification_v2/sequence_features_reviewed/sequence_window_manifest.csv")
+DEFAULT_WINDOWS = Path(
+    "outputs/classification_v2/sequence_features_reviewed/"
+    "sequence_window_manifest.csv"
+)
 
 
 def main() -> None:
@@ -16,6 +20,12 @@ def main() -> None:
     parser.add_argument("--npz", type=Path, default=DEFAULT_NPZ)
     parser.add_argument("--audit-json", type=Path, default=DEFAULT_AUDIT)
     parser.add_argument("--window-manifest-csv", type=Path, default=DEFAULT_WINDOWS)
+    parser.add_argument(
+        "--train-mask-csv",
+        type=Path,
+        default=None,
+        help="Optional train mask used to reject incomplete trainable windows.",
+    )
     args = parser.parse_args()
 
     audit = json.loads(args.audit_json.read_text(encoding="utf-8"))
@@ -53,8 +63,16 @@ def main() -> None:
         if not np.isfinite(arr).all():
             errors.append(f"{name}_has_nan_or_inf")
 
-    observed = data["observed_mask"] if "observed_mask" in data.files else np.zeros((0, 0), dtype=np.float32)
-    length = data["length_mask"] if "length_mask" in data.files else np.zeros((0, 0), dtype=np.float32)
+    observed = (
+        data["observed_mask"]
+        if "observed_mask" in data.files
+        else np.zeros((0, 0), dtype=np.float32)
+    )
+    length = (
+        data["length_mask"]
+        if "length_mask" in data.files
+        else np.zeros((0, 0), dtype=np.float32)
+    )
     if observed.size and not ((observed == 0.0) | (observed == 1.0)).all():
         errors.append("observed_mask_not_binary")
     if length.size and not ((length == 0.0) | (length == 1.0)).all():
@@ -63,6 +81,14 @@ def main() -> None:
         errors.append(f"mask_shape_mismatch observed={observed.shape} length={length.shape}")
     elif observed.size and (observed > length).any():
         errors.append("observed_mask_has_values_outside_length_mask")
+
+    train_mask_audit = _audit_train_mask_completeness(
+        args.train_mask_csv,
+        length,
+        observed,
+        window_rows,
+    )
+    errors.extend(train_mask_audit["errors"])
 
     result = {
         "npz": str(args.npz),
@@ -77,6 +103,7 @@ def main() -> None:
         "padding_slots": audit.get("padding_slots"),
         "missing_observed_slots_within_length": audit.get("missing_observed_slots_within_length"),
         "missing_frame_slots": audit.get("missing_frame_slots"),
+        "train_mask_completeness": train_mask_audit,
         "forbidden_selected": audit.get("forbidden_selected"),
         "warnings": audit.get("warnings", []),
         "errors": errors,
@@ -84,6 +111,66 @@ def main() -> None:
     print(json.dumps(result, indent=2))
     if errors:
         raise SystemExit(1)
+
+
+def _audit_train_mask_completeness(
+    mask_path: Path | None,
+    length: np.ndarray,
+    observed: np.ndarray,
+    expected_rows: int,
+) -> dict[str, object]:
+    """Prove that missing spatial slots cannot enter the training subset."""
+
+    result: dict[str, object] = {
+        "available": mask_path is not None,
+        "train_mask_csv": str(mask_path) if mask_path is not None else None,
+        "trainable_rows": None,
+        "trainable_rows_with_missing_slots": None,
+        "trainable_missing_slots": None,
+        "errors": [],
+    }
+    errors = result["errors"]
+    if mask_path is None:
+        return result
+    if not mask_path.exists():
+        errors.append(f"missing_train_mask_csv={mask_path}")
+        return result
+
+    mask_frame = pd.read_csv(mask_path)
+    if len(mask_frame) != expected_rows:
+        errors.append(
+            f"train_mask_row_mismatch={len(mask_frame)} expected={expected_rows}"
+        )
+        return result
+    if len(mask_frame.columns) != 1:
+        errors.append(f"train_mask_column_count={len(mask_frame.columns)} expected=1")
+        return result
+
+    raw = mask_frame.iloc[:, 0]
+    normalized = raw.astype(str).str.strip().str.lower()
+    allowed = {"true", "false", "1", "0", "yes", "no", "y", "n", "t", "f"}
+    invalid = ~normalized.isin(allowed)
+    if invalid.any():
+        errors.append(f"invalid_train_mask_values={int(invalid.sum())}")
+        return result
+    trainable = normalized.isin({"true", "1", "yes", "y", "t"}).to_numpy()
+
+    if length.shape != observed.shape or length.shape[0] != expected_rows:
+        errors.append("spatial_masks_unavailable_for_train_mask_audit")
+        return result
+    missing_per_row = np.maximum(length - observed, 0.0).sum(axis=1)
+    trainable_missing = missing_per_row[trainable]
+    rows_with_missing = int((trainable_missing > 0).sum())
+    missing_slots = int(trainable_missing.sum())
+    result["trainable_rows"] = int(trainable.sum())
+    result["trainable_rows_with_missing_slots"] = rows_with_missing
+    result["trainable_missing_slots"] = missing_slots
+    if rows_with_missing:
+        errors.append(
+            "trainable_windows_have_missing_spatial_slots="
+            f"rows:{rows_with_missing} slots:{missing_slots}"
+        )
+    return result
 
 
 if __name__ == "__main__":
