@@ -103,6 +103,7 @@ def harmonize_temporal_labels(
     out = frame_features.copy().reset_index(drop=True)
     out = _normalize_columns(out)
     out = _ensure_object_track_key(out)
+    _validate_temporal_identity_contract(out)
     out = _assign_temporal_units(out, config)
     intervals = build_temporal_label_intervals(out, config=config)
     out = _map_interval_columns_to_frames(out, intervals)
@@ -133,12 +134,12 @@ def build_temporal_label_intervals(
 
     normalized = _normalize_columns(harmonized_or_frame_features.copy())
     if "temporal_unit_key" not in normalized.columns:
-        df = _assign_temporal_units(
-            _ensure_object_track_key(normalized),
-            config,
-        )
+        df = _ensure_object_track_key(normalized)
+        _validate_temporal_identity_contract(df)
+        df = _assign_temporal_units(df, config)
     else:
         df = _ensure_object_track_key(normalized)
+        _validate_temporal_identity_contract(df)
 
     df["frame_index"] = pd.to_numeric(df["frame_index"], errors="coerce")
     if "timestamp_sec" in df.columns:
@@ -440,26 +441,62 @@ def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 def _ensure_object_track_key(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
-    if (
-        "object_track_key" not in out.columns
-        or out["object_track_key"].fillna("").astype(str).eq("").all()
-    ):
-        track_for_key = out["track_id"].replace("", pd.NA).fillna(out["pig_id"]).astype(str)
-        pig_for_key = out["pig_id"].replace("", pd.NA).fillna(out["track_id"]).astype(str)
-        out["object_track_key"] = (
-            out["source_type"].astype(str)
-            + "|"
-            + out["dataset_id"].astype(str)
-            + "|"
-            + out["video_key"].astype(str)
-            + "|track="
-            + track_for_key
-            + "|pig="
-            + pig_for_key
-        )
-    else:
-        out["object_track_key"] = out["object_track_key"].fillna("").astype(str)
+    track_for_key = (
+        out["track_id"].replace("", pd.NA).fillna(out["pig_id"]).astype(str)
+    )
+    pig_for_key = (
+        out["pig_id"].replace("", pd.NA).fillna(out["track_id"]).astype(str)
+    )
+    derived_key = (
+        out["source_type"].astype(str)
+        + "|"
+        + out["dataset_id"].astype(str)
+        + "|"
+        + out["video_key"].astype(str)
+        + "|track="
+        + track_for_key
+        + "|pig="
+        + pig_for_key
+    )
+    if "object_track_key" not in out.columns:
+        out["object_track_key"] = derived_key
+        return out
+
+    current_key = out["object_track_key"].fillna("").astype(str).str.strip()
+    missing_key = current_key.eq("")
+    out["object_track_key"] = current_key.where(~missing_key, derived_key)
     return out
+
+
+def _validate_temporal_identity_contract(df: pd.DataFrame) -> None:
+    """Reject rows that cannot form unique source-local temporal trajectories."""
+    key = df["object_track_key"].fillna("").astype(str).str.strip()
+    frame_index = pd.to_numeric(df["frame_index"], errors="coerce")
+    track = df["track_id"].fillna("").astype(str).str.strip()
+    pig = df["pig_id"].fillna("").astype(str).str.strip()
+    invalid = (
+        key.eq("")
+        | (track.eq("") & pig.eq(""))
+        | frame_index.isna()
+        | frame_index.mod(1).ne(0)
+        | frame_index.lt(0)
+    )
+    duplicate = pd.DataFrame(
+        {
+            "object_track_key": key,
+            "frame_index": frame_index,
+        }
+    ).duplicated(keep=False)
+    duplicate &= ~invalid
+    if invalid.any() or duplicate.any():
+        affected = invalid | duplicate
+        sample = [str(value) for value in df.index[affected].tolist()[:10]]
+        raise ValueError(
+            "Temporal identity contract failed: "
+            f"invalid_rows={int(invalid.sum())}, "
+            f"duplicate_track_frame_rows={int(duplicate.sum())}, "
+            f"sample_source_indices={sample}"
+        )
 
 
 def _assign_temporal_units(df: pd.DataFrame, config: TemporalHarmonizationConfig) -> pd.DataFrame:

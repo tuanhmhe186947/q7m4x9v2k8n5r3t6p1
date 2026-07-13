@@ -172,8 +172,36 @@ def test_sequence_builder_rejects_invalid_frame_index_without_row_loss(
     frames["frame_index"] = frames["frame_index"].astype(object)
     frames.loc[3, "frame_index"] = bad_index
 
-    with pytest.raises(ValueError, match="Sequence frame contract failed"):
+    with pytest.raises(ValueError, match="Temporal identity contract failed"):
         build_sequence_windows(frames, window_lengths=[6])
+
+
+def test_temporal_harmonization_fills_partial_missing_object_track_keys() -> None:
+    frames = _frame_rows(
+        "legacy_recovered",
+        [0, 1],
+        ["stand", "stand"],
+    )
+    frames["track_id"] = ["1", "2"]
+    frames["pig_id"] = ["ID_1", "ID_2"]
+    frames["object_track_key"] = ["preserved-key", ""]
+
+    harmonized = harmonize_temporal_labels(frames)
+
+    assert harmonized.loc[0, "object_track_key"] == "preserved-key"
+    assert harmonized.loc[1, "object_track_key"] != ""
+    assert "track=2" in harmonized.loc[1, "object_track_key"]
+
+
+def test_temporal_harmonization_rejects_duplicate_track_frame_rows() -> None:
+    frames = _frame_rows(
+        "legacy_recovered",
+        [0, 0],
+        ["stand", "stand"],
+    )
+
+    with pytest.raises(ValueError, match="duplicate_track_frame_rows=2"):
+        harmonize_temporal_labels(frames)
 
 
 def test_all_ten_behaviors_route_to_the_settled_review_groups() -> None:
