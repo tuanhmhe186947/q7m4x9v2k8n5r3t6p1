@@ -240,6 +240,7 @@ def _build_windows_from_harmonized(
     config: SequenceWindowConfig,
 ) -> pd.DataFrame:
     frames = _prepare_frame_columns(frames)
+    _validate_window_frame_contract(frames)
     rows: list[dict[str, Any]] = []
 
     # Build interval lookup for CVAT tracks.
@@ -289,9 +290,7 @@ def _build_windows_from_harmonized(
 
 def _generate_legacy_windows(g: pd.DataFrame, config: SequenceWindowConfig) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    frames_available = sorted(
-        set(int(x) for x in pd.to_numeric(g["frame_index"], errors="coerce").dropna())
-    )
+    frames_available = sorted(set(g["frame_index"].astype(int).tolist()))
     if not frames_available:
         return rows
     frame_set = set(frames_available)
@@ -351,9 +350,8 @@ def _generate_cvat_windows(
         intervals["label_window_start"], errors="coerce"
     )
     intervals["label_window_end"] = pd.to_numeric(intervals["label_window_end"], errors="coerce")
-    intervals = intervals.dropna(subset=["label_window_start", "label_window_end"]).sort_values(
-        "label_window_start", kind="mergesort"
-    )
+    _validate_cvat_interval_contract(intervals)
+    intervals = intervals.sort_values("label_window_start", kind="mergesort")
     if intervals.empty:
         return rows
 
@@ -374,11 +372,12 @@ def _generate_cvat_windows(
                 if "temporal_unit_key" in overlap.columns
                 else set()
             )
-            wg = (
-                g[g["temporal_unit_key"].astype(str).isin(interval_keys)]
-                if interval_keys
-                else g.iloc[0:0]
-            )
+            if interval_keys:
+                in_interval = g["temporal_unit_key"].astype(str).isin(interval_keys)
+                in_window = g["frame_index"].between(start, end, inclusive="both")
+                wg = g[in_interval & in_window]
+            else:
+                wg = g.iloc[0:0]
             row = _summarize_window(
                 wg,
                 length,
@@ -403,9 +402,7 @@ def _generate_generic_windows(
     g: pd.DataFrame, config: SequenceWindowConfig
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    frames_available = sorted(
-        set(int(x) for x in pd.to_numeric(g["frame_index"], errors="coerce").dropna())
-    )
+    frames_available = sorted(set(g["frame_index"].astype(int).tolist()))
     if not frames_available:
         return rows
     min_f, max_f = min(frames_available), max(frames_available)
@@ -441,6 +438,66 @@ def _generate_generic_windows(
             ):
                 return rows
     return rows
+
+
+def _validate_window_frame_contract(frames: pd.DataFrame) -> None:
+    """Reject frame rows that cannot map uniquely to temporal windows."""
+    if frames.empty:
+        return
+    key = frames["object_track_key"].fillna("").astype(str).str.strip()
+    frame_index = pd.to_numeric(frames["frame_index"], errors="coerce")
+    invalid = (
+        key.eq("")
+        | frame_index.isna()
+        | frame_index.mod(1).ne(0)
+        | frame_index.lt(0)
+    )
+    duplicate = pd.DataFrame(
+        {
+            "object_track_key": key,
+            "frame_index": frame_index,
+        }
+    ).duplicated(keep=False)
+    duplicate &= ~invalid
+    if invalid.any() or duplicate.any():
+        affected = invalid | duplicate
+        sample = [str(value) for value in frames.index[affected].tolist()[:10]]
+        raise ValueError(
+            "Sequence frame contract failed: "
+            f"invalid_rows={int(invalid.sum())}, "
+            f"duplicate_track_frame_rows={int(duplicate.sum())}, "
+            f"sample_source_indices={sample}"
+        )
+    frames["frame_index"] = frame_index.astype(int)
+
+
+def _validate_cvat_interval_contract(intervals: pd.DataFrame) -> None:
+    """Reject malformed CVAT intervals rather than dropping them silently."""
+    start = intervals["label_window_start"]
+    end = intervals["label_window_end"]
+    unit_key = intervals.get(
+        "temporal_unit_key",
+        pd.Series("", index=intervals.index),
+    ).fillna("").astype(str).str.strip()
+    invalid = (
+        start.isna()
+        | end.isna()
+        | start.mod(1).ne(0)
+        | end.mod(1).ne(0)
+        | start.lt(0)
+        | end.lt(start)
+        | unit_key.eq("")
+    )
+    duplicate = unit_key.ne("") & unit_key.duplicated(keep=False)
+    if invalid.any() or duplicate.any():
+        affected = invalid | duplicate
+        sample = [str(value) for value in intervals.index[affected].tolist()[:10]]
+        raise ValueError(
+            "CVAT interval contract failed: "
+            f"invalid_rows={int(invalid.sum())}, "
+            f"duplicate_temporal_unit_rows={int(duplicate.sum())}, "
+            f"sample_source_indices={sample}"
+        )
 
 
 def _summarize_window(

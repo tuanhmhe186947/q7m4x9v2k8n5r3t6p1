@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pandas as pd
+import pytest
 
 from pig_behavior.classification_v2.features.context_policy import apply_context_policy
 from pig_behavior.classification_v2.features.sequence_windows import build_sequence_windows
@@ -139,6 +140,40 @@ def test_high_trusted_hidden_ratio_is_not_an_automatic_window_exclusion() -> Non
     assert bool(windows.iloc[0]["high_hidden_ratio_window"]) is True
     assert bool(windows.iloc[0]["hidden_exclusion_policy_enabled"]) is False
     assert bool(windows.iloc[0]["window_valid_for_main_train"]) is True
+
+
+def test_cvat_eight_frame_window_does_not_use_frames_beyond_its_span() -> None:
+    frames = _frame_rows(
+        "cvat_tracking_xml",
+        list(range(0, 12)),
+        ["stand"] * 12,
+    )
+    frames["displacement_n"] = 1.0
+
+    _, _, windows = build_sequence_windows(frames, window_lengths=[8])
+
+    first = windows.sort_values("window_start_frame").iloc[0]
+    assert first["window_start_frame"] == 0
+    assert first["window_end_frame"] == 7
+    assert first["observed_frame_count_window"] == 8
+    assert first["observed_row_count_window"] == 8
+    assert first["path_length_n_window"] == 8.0
+
+
+@pytest.mark.parametrize("bad_index", [None, "bad", 0.5, -1])
+def test_sequence_builder_rejects_invalid_frame_index_without_row_loss(
+    bad_index: object,
+) -> None:
+    frames = _frame_rows(
+        "legacy_recovered",
+        list(range(0, 16)),
+        ["stand"] * 16,
+    )
+    frames["frame_index"] = frames["frame_index"].astype(object)
+    frames.loc[3, "frame_index"] = bad_index
+
+    with pytest.raises(ValueError, match="Sequence frame contract failed"):
+        build_sequence_windows(frames, window_lengths=[6])
 
 
 def test_all_ten_behaviors_route_to_the_settled_review_groups() -> None:
