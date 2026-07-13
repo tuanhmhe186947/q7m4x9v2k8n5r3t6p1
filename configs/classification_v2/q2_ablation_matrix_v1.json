@@ -13,6 +13,7 @@
     {
       "id": "B2",
       "name": "spatial_tcn_behavior_only",
+      "model_mode": "spatial_only_control",
       "enable_image": false,
       "enable_spatial": true,
       "enable_interaction_context": false,
@@ -23,6 +24,7 @@
     {
       "id": "B3",
       "name": "actor_image_behavior_only",
+      "model_mode": "actor_temporal",
       "enable_image": true,
       "enable_spatial": false,
       "enable_interaction_context": false,
@@ -33,6 +35,7 @@
     {
       "id": "B4",
       "name": "actor_plus_spatial_behavior_only",
+      "model_mode": "actor_geometry_roi_social",
       "enable_image": true,
       "enable_spatial": true,
       "enable_interaction_context": false,
@@ -43,6 +46,7 @@
     {
       "id": "B5",
       "name": "actor_spatial_plus_partner_context_behavior_only",
+      "model_mode": "full_multimodal",
       "enable_image": true,
       "enable_spatial": true,
       "enable_interaction_context": true,
@@ -53,6 +57,7 @@
     {
       "id": "B6",
       "name": "actor_spatial_partner_multitask",
+      "model_mode": "full_multimodal_hierarchy",
       "enable_image": true,
       "enable_spatial": true,
       "enable_interaction_context": true,
@@ -63,6 +68,7 @@
     {
       "id": "B7",
       "name": "full_candidate_with_domain_controls",
+      "model_mode": "full_multimodal_hierarchy",
       "enable_image": true,
       "enable_spatial": true,
       "enable_interaction_context": true,

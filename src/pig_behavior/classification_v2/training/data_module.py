@@ -48,14 +48,21 @@ MODEL_INPUT_KEYS = frozenset(
         "length_mask",
         "image_length_mask",
         "image_observed_mask",
+        "image_available_mask",
+        "image_quality_mask",
         "spatial_features",
         "spatial_length_mask",
         "spatial_observed_mask",
+        "spatial_available_mask",
+        "spatial_quality_mask",
         "interaction_context_features",
         "interaction_context_available_mask",
+        "interaction_context_quality_mask",
         "visual_context_image",
         "visual_context_length_mask",
         "visual_context_observed_mask",
+        "visual_context_available_mask",
+        "visual_context_quality_mask",
     }
 )
 
@@ -180,10 +187,7 @@ class StrictTrainingDataModule:
             self.device,
         )
         self._apply_fold_preprocessing(raw)
-        model_inputs = {
-            key: (raw["image_length_mask"] if key == "length_mask" else raw[key])
-            for key in MODEL_INPUT_KEYS
-        }
+        model_inputs = _strict_model_inputs(raw)
         validate_model_inputs(model_inputs)
         auxiliary_rows = self.auxiliary.iloc[indices].reset_index(drop=True)
         auxiliary_targets, auxiliary_masks = encode_auxiliary_batch(
@@ -682,3 +686,26 @@ def validate_model_inputs(model_inputs: dict[str, Any]) -> None:
     forbidden = sorted(observed.difference(MODEL_INPUT_KEYS))
     if missing or forbidden:
         raise ValueError(f"model input contract mismatch: missing={missing}, forbidden={forbidden}")
+
+
+def _strict_model_inputs(raw: dict[str, Any]) -> dict[str, Any]:
+    """Expose explicit gates without adding availability values as features."""
+
+    model_inputs = {
+        key: (raw["image_length_mask"] if key == "length_mask" else raw[key])
+        for key in MODEL_INPUT_KEYS
+        if key in raw or key == "length_mask"
+    }
+    derived = {
+        "image_available_mask": raw["image_observed_mask"],
+        "image_quality_mask": raw["image_observed_mask"],
+        "spatial_available_mask": raw["spatial_observed_mask"],
+        "spatial_quality_mask": raw["spatial_observed_mask"],
+        "interaction_context_quality_mask": raw[
+            "interaction_context_available_mask"
+        ],
+        "visual_context_available_mask": raw["visual_context_observed_mask"],
+        "visual_context_quality_mask": raw["visual_context_observed_mask"],
+    }
+    model_inputs.update(derived)
+    return model_inputs

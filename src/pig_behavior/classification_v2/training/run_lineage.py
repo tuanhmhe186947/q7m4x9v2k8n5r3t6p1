@@ -705,6 +705,7 @@ def _registry_entry(
         ),
         "fold_event_weight_sha256": identity.fold_event_weight_sha256,
         "architecture_version": identity.architecture_version,
+        "model_mode": identity.model_mode,
         "backbone_name": identity.backbone_name,
         "pretrained_weight_enum": identity.pretrained_weight_enum,
         "resolution": identity.resolution,

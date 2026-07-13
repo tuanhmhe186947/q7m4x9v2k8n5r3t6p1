@@ -277,6 +277,19 @@ def test_checkpoint_resume_rejects_run_identity_drift(tmp_path: Path) -> None:
             train_window_id_sha256="train-order-a",
         )
 
+    drifted_mode = {**identity, "model_mode": "actor_temporal"}
+    with pytest.raises(ValueError, match="model_mode"):
+        load_training_checkpoint(
+            path,
+            model=model,
+            optimizer=optimizer,
+            scaler=scaler,
+            config=config,
+            run_identity=drifted_mode,
+            preprocessing_sha256="preprocessing-a",
+            train_window_id_sha256="train-order-a",
+        )
+
 
 def test_declared_training_configs_include_fold_event_contract() -> None:
     root = Path(__file__).parents[1] / "configs" / "classification_v2"
@@ -367,6 +380,7 @@ def _run_identity(
         "fold_event_weight_sha256": "6" * 64,
         "fold_id": config.execution.fold_id,
         "architecture_version": config.model.architecture_version,
+        "model_mode": config.model.model_mode,
         "backbone_name": config.model.backbone_name,
         "pretrained_weight_enum": config.model.pretrained_weight_enum,
         "resolution": config.model.image_size,

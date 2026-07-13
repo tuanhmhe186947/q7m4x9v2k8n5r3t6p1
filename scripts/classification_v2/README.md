@@ -24,6 +24,9 @@ Status authority: `docs/CLASSIFICATION_V2_CURRENT_STATE.md`.
 Data rebuild commands:
 `docs/CLASSIFICATION_V2_DATA_REBUILD_AND_HUMAN_REVIEW_RUNBOOK.md`.
 
+Model mode, tensor, mask, and no-download smoke contract:
+`docs/CLASSIFICATION_V2_MODEL_FACTORY_CONTRACT.md`.
+
 | Order | Folder | Workflow responsibility |
 |---|---|---|
 | 00 | `00_source_feature_temporal` | source merge, features, temporal units |

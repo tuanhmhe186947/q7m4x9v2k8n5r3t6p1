@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
-REGISTRY_SCHEMA_VERSION = "classification_v2.runs_registry.v1"
+REGISTRY_SCHEMA_VERSION = "classification_v2.runs_registry.v2"
 REGISTRY_FIELDS = (
     "registry_schema_version",
     "run_id",
@@ -33,6 +33,7 @@ REGISTRY_FIELDS = (
     "temporal_view_selection_sha256",
     "fold_event_weight_sha256",
     "architecture_version",
+    "model_mode",
     "backbone_name",
     "pretrained_weight_enum",
     "resolution",

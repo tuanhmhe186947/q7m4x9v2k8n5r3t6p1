@@ -14,10 +14,13 @@ import json
 from pathlib import Path
 from typing import Any
 
+from pig_behavior.classification_v2.models.model_factory import MODEL_MODE_NAMES
+
 REQUIRED_BRANCHES: tuple[str, ...] = (
     "actor_image_sequence",
     "spatial_sequence_bbox_motion_roi_social_quality",
-    "full_frame_partner_interaction_context",
+    "label_independent_partner_context",
+    "actor_partner_union_context",
 )
 
 IMPLEMENTED_STATUSES: tuple[str, ...] = (
@@ -51,7 +54,11 @@ REQUIRED_FORBIDDEN_PATTERNS: tuple[str, ...] = (
 )
 
 
-def check_model_architecture_contract(contract_json: Path, *, project_root: Path | None = None) -> dict[str, Any]:
+def check_model_architecture_contract(
+    contract_json: Path,
+    *,
+    project_root: Path | None = None,
+) -> dict[str, Any]:
     """Validate a multimodal architecture contract JSON artifact.
 
     ``valid`` means the roadmap contract is internally consistent and aligned
@@ -68,6 +75,7 @@ def check_model_architecture_contract(contract_json: Path, *, project_root: Path
         return _audit(contract_json, contract, errors, warnings, paper_ready=False)
 
     _check_claim_boundary(contract, errors, warnings)
+    _check_model_modes(contract, errors)
     _check_implemented_modules(contract, root, errors, warnings)
     branch_report = _check_branches(contract, root, errors, warnings)
     _check_fusion_policy(contract, errors, warnings)
@@ -127,6 +135,24 @@ def _check_claim_boundary(contract: dict[str, Any], errors: list[str], warnings:
         warnings.append("prohibited_claims_should_explicitly_block_q1_external_generalization")
     if "pig_id" not in prohibited:
         warnings.append("prohibited_claims_should_block_pig_id_biological_identity_generalization")
+
+
+def _check_model_modes(contract: dict[str, Any], errors: list[str]) -> None:
+    """Require the machine-readable contract to match the factory registry."""
+
+    observed = contract.get("model_modes")
+    if not isinstance(observed, list):
+        errors.append("model_modes_missing")
+        return
+    values = [str(value) for value in observed]
+    if len(values) != len(set(values)):
+        errors.append("model_modes_duplicate")
+    missing = sorted(MODEL_MODE_NAMES.difference(values))
+    unknown = sorted(set(values).difference(MODEL_MODE_NAMES))
+    if missing or unknown:
+        errors.append(
+            f"model_modes_registry_mismatch=missing:{missing},unknown:{unknown}"
+        )
 
 
 def _check_implemented_modules(
@@ -202,7 +228,12 @@ def _check_fusion_policy(contract: dict[str, Any], errors: list[str], warnings: 
     if policy.get("type") != "late_fusion_with_masks":
         errors.append(f"fusion_policy_type_must_be_late_fusion_with_masks={policy.get('type')}")
     controls = {str(item) for item in policy.get("required_controls", [])}
-    for required in ("branch-specific masks", "branch ablation", "shortcut controls before paper claim"):
+    required_controls = (
+        "branch-specific masks",
+        "branch ablation",
+        "shortcut controls before paper claim",
+    )
+    for required in required_controls:
         if required not in controls:
             errors.append(f"missing_fusion_required_control={required}")
     forbidden = [str(item) for item in policy.get("forbidden_inputs", [])]
@@ -217,7 +248,11 @@ def _check_fusion_policy(contract: dict[str, Any], errors: list[str], warnings: 
         warnings.append("pig_id_not_explicitly_forbidden")
 
 
-def _check_evaluation_contract(contract: dict[str, Any], errors: list[str], warnings: list[str]) -> None:
+def _check_evaluation_contract(
+    contract: dict[str, Any],
+    errors: list[str],
+    warnings: list[str],
+) -> None:
     """Validate native-temporal leakage-safe evaluation declarations."""
 
     evaluation = contract.get("evaluation_contract", {})
@@ -225,7 +260,10 @@ def _check_evaluation_contract(contract: dict[str, Any], errors: list[str], warn
         errors.append(f"split_policy_must_be_recording_group_oof={evaluation.get('split_policy')}")
     if evaluation.get("metric_unit") != "native_temporal_unit":
         errors.append(f"metric_unit_must_be_native_temporal_unit={evaluation.get('metric_unit')}")
-    if evaluation.get("prediction_schema_contract") != "classification_v2_prediction_schema_contract_v1":
+    if (
+        evaluation.get("prediction_schema_contract")
+        != "classification_v2_prediction_schema_contract_v1"
+    ):
         errors.append("prediction_schema_contract_must_reference_S16_contract")
     if "macro_f1_supported" not in evaluation.get("primary_metrics", []):
         errors.append("primary_metrics_missing_macro_f1_supported")

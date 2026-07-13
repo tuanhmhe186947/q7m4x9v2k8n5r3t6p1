@@ -17,7 +17,11 @@ import pandas as pd
 import torch
 import torch.nn.functional as F
 
-from pig_behavior.classification_v2.models.multimodal_fusion import MultimodalFusionConfig
+from pig_behavior.classification_v2.models.model_factory import (
+    build_multimodal_model,
+    model_mode_contract,
+    model_parameter_report,
+)
 from pig_behavior.classification_v2.models.multitask_fusion import MultitaskFusionClassifier
 from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
 from pig_behavior.classification_v2.training.checkpoint import (
@@ -417,24 +421,16 @@ def _build_model(
             f"spatial whitelist mismatch: config={config.model.spatial_feature_groups}, "
             f"data={sorted(observed_spatial_dims)}"
         )
-    interaction_dim = int(probe.model_inputs["interaction_context_features"].shape[-1])
-    return MultitaskFusionClassifier(
-        MultimodalFusionConfig(
-            spatial_input_dims=spatial_dims,
-            num_classes=len(VALID_BEHAVIORS),
-            interaction_context_dim=interaction_dim,
-            image_embedding_dim=config.model.hidden_dim,
-            spatial_embedding_dim=config.model.hidden_dim,
-            interaction_embedding_dim=max(8, config.model.hidden_dim // 2),
-            visual_context_embedding_dim=config.model.hidden_dim,
-            fusion_hidden_dim=config.model.hidden_dim * 2,
-            dropout=config.model.dropout,
-            enable_image=config.model.enable_image,
-            enable_spatial=config.model.enable_spatial,
-            enable_interaction_context=config.model.enable_interaction_context,
-            enable_visual_context=config.model.enable_visual_context,
-        ),
-        enable_auxiliary_heads=config.model.enable_multitask,
+    interaction_dim = (
+        int(probe.model_inputs["interaction_context_features"].shape[-1])
+        if config.model.enable_interaction_context
+        else None
+    )
+    return build_multimodal_model(
+        config.model,
+        spatial_input_dims=spatial_dims,
+        interaction_context_dim=interaction_dim,
+        num_classes=len(VALID_BEHAVIORS),
     )
 
 
@@ -519,7 +515,11 @@ def _run_audit(
             "pandas": pd.__version__,
         },
         "model_architecture": config.model.architecture_version,
-        "model_parameter_count": int(sum(parameter.numel() for parameter in model.parameters())),
+        "model_mode_contract": model_mode_contract(config.model.model_mode),
+        "model_parameters": model_parameter_report(model),
+        "model_parameter_count": int(
+            sum(parameter.numel() for parameter in model.parameters())
+        ),
         "label_order": list(VALID_BEHAVIORS),
         "feature_whitelist": list(config.model.spatial_feature_groups),
         "normalization_imputation": "bound_to_trainer_contract_and_snapshot",

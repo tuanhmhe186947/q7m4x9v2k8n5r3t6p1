@@ -7,7 +7,15 @@ from dataclasses import MISSING, dataclass, fields
 from pathlib import Path
 from typing import Any, TypeVar
 
+from pig_behavior.classification_v2.models.model_factory import (
+    ALL_SPATIAL_GROUPS,
+    MODEL_MODE_REGISTRY,
+    model_mode_errors,
+)
 from pig_behavior.classification_v2.models.multitask_fusion import MULTITASK_ARCHITECTURE_VERSION
+from pig_behavior.classification_v2.models.temporal_encoders import (
+    TEMPORAL_ENCODER_NAMES,
+)
 
 T = TypeVar("T")
 
@@ -42,6 +50,7 @@ class DatasetConfig:
 @dataclass(frozen=True, slots=True)
 class ModelConfig:
     architecture_version: str
+    model_mode: str = "full_multimodal_hierarchy"
     backbone_name: str = "smoke_cnn"
     pretrained_weight_enum: str = "NONE_RANDOM_INIT"
     temporal_view: str = "fixed6_observed_time"
@@ -49,7 +58,9 @@ class ModelConfig:
     image_size: int = 64
     hidden_dim: int = 48
     dropout: float = 0.1
-    spatial_feature_groups: tuple[str, ...] = ()
+    transformer_layers: int = 2
+    transformer_heads: int = 4
+    spatial_feature_groups: tuple[str, ...] = ALL_SPATIAL_GROUPS
     standardize_spatial_groups: tuple[str, ...] = ()
     enable_image: bool = True
     enable_spatial: bool = True
@@ -102,7 +113,7 @@ class ExecutionConfig:
     smoke_per_class: int = 1
     output_dir: Path = Path("outputs/classification_v2/model_smoke/strict_multitask")
     runs_registry_csv: Path = Path(
-        "outputs/classification_v2/run_registry/runs_registry.csv"
+        "outputs/classification_v2/run_registry/runs_registry_v2.csv"
     )
     resume: bool = True
 
@@ -146,6 +157,7 @@ def validate_training_config(config: ClassificationV2TrainingConfig) -> None:
         errors.append(f"unsupported_version={config.version}")
     if config.model.architecture_version != MULTITASK_ARCHITECTURE_VERSION:
         errors.append(f"architecture_version_mismatch={config.model.architecture_version}")
+    errors.extend(model_mode_errors(config.model))
     auxiliary_loss_values = [
         config.loss.posture_weight,
         config.loss.motion_context_weight,
@@ -190,8 +202,20 @@ def validate_training_config(config: ClassificationV2TrainingConfig) -> None:
             "unsupported_temporal_view_loader="
             f"{config.model.temporal_view}"
         )
-    if not config.model.temporal_encoder_name.strip():
-        errors.append("temporal_encoder_name_must_not_be_blank")
+    if config.model.temporal_encoder_name not in TEMPORAL_ENCODER_NAMES:
+        errors.append(
+            "unsupported_temporal_encoder="
+            f"{config.model.temporal_encoder_name}"
+        )
+    if config.model.transformer_layers not in {1, 2}:
+        errors.append("transformer_layers_must_be_one_or_two")
+    if config.model.transformer_heads <= 0:
+        errors.append("transformer_heads_must_be_positive")
+    if (
+        config.model.temporal_encoder_name == "small_transformer"
+        and config.model.hidden_dim % config.model.transformer_heads != 0
+    ):
+        errors.append("hidden_dim_must_be_divisible_by_transformer_heads")
     if config.optimization.optimizer != "adamw":
         errors.append(f"unsupported_optimizer={config.optimization.optimizer}")
     if config.optimization.scheduler != "none":
@@ -302,6 +326,8 @@ def training_config_to_jsonable(config: ClassificationV2TrainingConfig) -> dict[
 def _from_mapping(cls: type[T], payload: dict[str, Any]) -> T:
     if not isinstance(payload, dict):
         raise ValueError(f"{cls.__name__} payload must be an object")
+    if cls is ModelConfig and "model_mode" not in payload:
+        payload = {**payload, "model_mode": _infer_legacy_model_mode(payload)}
     names = {field.name for field in fields(cls)}
     required = {
         field.name
@@ -331,3 +357,50 @@ def _jsonable(value: Any) -> Any:
     if isinstance(value, tuple):
         return list(value)
     return value
+
+
+def _infer_legacy_model_mode(payload: dict[str, Any]) -> str:
+    """Map pre-factory branch flags to one exact mode without semantic drift."""
+
+    groups = tuple(str(value) for value in payload.get("spatial_feature_groups", ()))
+    observed = {
+        "spatial_feature_groups": groups,
+        "enable_image": bool(payload.get("enable_image", True)),
+        "enable_spatial": bool(payload.get("enable_spatial", True)),
+        "enable_interaction_context": bool(
+            payload.get("enable_interaction_context", True)
+        ),
+        "enable_visual_context": bool(payload.get("enable_visual_context", True)),
+        "enable_multitask": bool(payload.get("enable_multitask", True)),
+    }
+    candidates = [
+        name
+        for name, spec in MODEL_MODE_REGISTRY.items()
+        if spec.spatial_feature_groups == observed["spatial_feature_groups"]
+        and all(
+            getattr(spec, field) == observed[field]
+            for field in (
+                "enable_image",
+                "enable_spatial",
+                "enable_interaction_context",
+                "enable_visual_context",
+                "enable_multitask",
+            )
+        )
+        and not (
+            name == "actor_only"
+            and payload.get("temporal_encoder_name", "masked_tcn")
+            != "masked_mean"
+        )
+        and not (
+            name == "actor_temporal"
+            and payload.get("temporal_encoder_name", "masked_tcn")
+            == "masked_mean"
+        )
+    ]
+    if len(candidates) != 1:
+        raise ValueError(
+            "legacy model flags do not map to exactly one model_mode: "
+            f"candidates={candidates}, observed={observed}"
+        )
+    return candidates[0]

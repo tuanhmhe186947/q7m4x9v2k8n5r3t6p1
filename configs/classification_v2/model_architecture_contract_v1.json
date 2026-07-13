@@ -11,27 +11,42 @@
   },
   "paper_candidate": false,
   "model_family": "multimodal_spatiotemporal_bbox_roi_social_context",
-  "implemented_model_architecture_version": "multimodal_temporal_conv_v3_visual_context",
+  "model_modes": [
+    "actor_only",
+    "actor_temporal",
+    "actor_geometry",
+    "actor_geometry_motion",
+    "actor_geometry_roi",
+    "actor_geometry_roi_social",
+    "actor_partner_union",
+    "full_multimodal",
+    "full_multimodal_hierarchy",
+    "spatial_only_control"
+  ],
+  "implemented_model_architecture_version": "multimodal_sequence_factory_v4_multitask_v2",
   "implemented_modules": {
+    "model_factory": "src/pig_behavior/classification_v2/models/model_factory.py",
+    "temporal_encoders": "src/pig_behavior/classification_v2/models/temporal_encoders.py",
     "fusion_model": "src/pig_behavior/classification_v2/models/multimodal_fusion.py",
     "smoke_trainer": "src/pig_behavior/classification_v2/training/multimodal_smoke.py",
     "interaction_context_loader": "src/pig_behavior/classification_v2/datasets/interaction_context_loader.py",
     "visual_interaction_cache": "src/pig_behavior/classification_v2/datasets/visual_interaction_context.py",
     "visual_interaction_loader": "src/pig_behavior/classification_v2/datasets/visual_interaction_loader.py",
-    "visual_interaction_cache_builder": "scripts/behavior_review_tools/classification_v2_build_visual_interaction_cache.py",
-    "visual_interaction_cache_checker": "scripts/dev_tools/check_classification_v2_visual_interaction_cache.py",
-    "visual_interaction_forward_checker": "scripts/dev_tools/check_classification_v2_visual_interaction_forward.py",
+    "visual_interaction_cache_builder": "scripts/classification_v2/03_image_cache_context/classification_v2_build_visual_interaction_cache.py",
+    "visual_interaction_cache_checker": "scripts/classification_v2/03_image_cache_context/check_classification_v2_visual_interaction_cache.py",
+    "visual_interaction_forward_checker": "scripts/classification_v2/03_image_cache_context/check_classification_v2_visual_interaction_forward.py",
     "multitask_fusion": "src/pig_behavior/classification_v2/models/multitask_fusion.py",
     "multitask_loss": "src/pig_behavior/classification_v2/training/multitask_loss.py",
-    "multitask_forward_checker": "scripts/dev_tools/check_classification_v2_multitask_forward.py",
-    "multitask_loss_checker": "scripts/dev_tools/check_classification_v2_multitask_loss.py",
+    "multitask_forward_checker": "scripts/classification_v2/04_baselines_smokes/check_classification_v2_multitask_forward.py",
+    "multitask_loss_checker": "scripts/classification_v2/04_baselines_smokes/check_classification_v2_multitask_loss.py",
     "multitask_smoke_trainer": "src/pig_behavior/classification_v2/training/multitask_smoke.py",
-    "multitask_smoke_checker": "scripts/dev_tools/check_classification_v2_multitask_smoke_train.py",
-    "forward_checker": "scripts/dev_tools/check_classification_v2_multimodal_forward.py",
-    "smoke_train_checker": "scripts/dev_tools/check_classification_v2_multimodal_smoke_train.py",
-    "interaction_context_loader_checker": "scripts/dev_tools/check_classification_v2_interaction_context_loader.py",
-    "ablation_shortcut_contract_checker": "scripts/dev_tools/check_classification_v2_ablation_shortcut_contract.py",
-    "prediction_schema_checker": "scripts/dev_tools/check_classification_v2_prediction_schema.py"
+    "multitask_smoke_checker": "scripts/classification_v2/04_baselines_smokes/check_classification_v2_multitask_smoke_train.py",
+    "forward_checker": "scripts/classification_v2/04_baselines_smokes/check_classification_v2_multimodal_forward.py",
+    "model_factory_checker": "scripts/classification_v2/04_baselines_smokes/check_classification_v2_model_factory.py",
+    "smoke_train_checker": "scripts/classification_v2/04_baselines_smokes/check_classification_v2_multimodal_smoke_train.py",
+    "interaction_context_loader_checker": "scripts/classification_v2/03_image_cache_context/check_classification_v2_interaction_context_loader.py",
+    "ablation_shortcut_contract_checker": "scripts/classification_v2/07_postrun_evaluation/check_classification_v2_ablation_shortcut_contract.py",
+    "prediction_schema_checker": "scripts/classification_v2/06_full_oof_training/check_classification_v2_prediction_schema.py"
   },
   "input_branches": [
     {
@@ -44,7 +59,9 @@
       ],
       "mask_artifacts": [
         "image_length_mask",
-        "image_observed_mask"
+        "image_observed_mask",
+        "image_available_mask",
+        "image_quality_mask"
       ],
       "allowed_context": "actor bbox crop sequence only",
       "paper_candidate_required": true
@@ -57,8 +74,10 @@
         "outputs/classification_v2/train_ready_windows/X_spatial_sequences.npz"
       ],
       "mask_artifacts": [
-        "length_mask",
-        "observed_mask"
+        "spatial_length_mask",
+        "spatial_observed_mask",
+        "spatial_available_mask",
+        "spatial_quality_mask"
       ],
       "required_feature_groups": [
         "bbox_xywh_n",
@@ -72,7 +91,21 @@
       "paper_candidate_required": true
     },
     {
-      "name": "full_frame_partner_interaction_context",
+      "name": "label_independent_partner_context",
+      "status": "implemented_smoke",
+      "tensor_role": "model_input",
+      "source_artifacts": [
+        "outputs/classification_v2/train_ready_windows/interaction_window_context_manifest.csv"
+      ],
+      "mask_artifacts": [
+        "interaction_context_available_mask",
+        "interaction_context_quality_mask"
+      ],
+      "allowed_context": "label-independent nearest-partner numeric relations with top-K-compatible masking",
+      "paper_candidate_required": true
+    },
+    {
+      "name": "actor_partner_union_context",
       "status": "implemented_smoke",
       "tensor_role": "model_input",
       "source_artifacts": [
@@ -84,7 +117,9 @@
       ],
       "mask_artifacts": [
         "visual_context_length_mask",
-        "visual_context_observed_mask"
+        "visual_context_observed_mask",
+        "visual_context_available_mask",
+        "visual_context_quality_mask"
       ],
       "allowed_context": "actor-nearest-partner union crop selected from same-frame audited geometry; legacy crop-only rows remain masked unavailable",
       "paper_candidate_required": true

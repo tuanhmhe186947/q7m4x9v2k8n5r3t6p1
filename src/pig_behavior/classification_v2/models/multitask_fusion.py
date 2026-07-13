@@ -21,7 +21,7 @@ from pig_behavior.classification_v2.models.multitask_heads import (
     AuxiliaryPredictionHeads,
 )
 
-MULTITASK_ARCHITECTURE_VERSION = "multimodal_temporal_conv_v3_visual_context_multitask_v1"
+MULTITASK_ARCHITECTURE_VERSION = "multimodal_sequence_factory_v4_multitask_v2"
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,7 +46,12 @@ class MultitaskFusionOutput:
 class MultitaskFusionClassifier(nn.Module):
     """Apply behavior and auxiliary heads to one shared multimodal embedding."""
 
-    def __init__(self, backbone_config: MultimodalFusionConfig, *, enable_auxiliary_heads: bool = True) -> None:
+    def __init__(
+        self,
+        backbone_config: MultimodalFusionConfig,
+        *,
+        enable_auxiliary_heads: bool = True,
+    ) -> None:
         super().__init__()
         self.backbone = MultimodalFusionClassifier(backbone_config)
         self.enable_auxiliary_heads = bool(enable_auxiliary_heads)
@@ -61,7 +66,10 @@ class MultitaskFusionClassifier(nn.Module):
                 ],
             )
 
-    def forward(self, **model_inputs: torch.Tensor | dict[str, torch.Tensor] | None) -> MultitaskFusionOutput:
+    def forward(
+        self,
+        **model_inputs: torch.Tensor | dict[str, torch.Tensor] | None,
+    ) -> MultitaskFusionOutput:
         """Return typed logits while accepting the fusion backbone's keyword API."""
 
         fused = self.backbone.encode_fused(**model_inputs)

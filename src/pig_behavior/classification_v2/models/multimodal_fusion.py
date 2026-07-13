@@ -1,8 +1,8 @@
-"""Mask-aware multimodal fusion smoke model for classification_v2.
+"""Mask-safe multimodal tensor modules for classification_v2.
 
-This module is intentionally small: it verifies that the audited image sequence
-branch and spatial-temporal branch can be fused without introducing identifier,
-path, review, source, or label columns into model tensors.
+The visual encoder remains the no-download smoke backbone. The model factory
+rejects unimplemented production backbones instead of silently substituting it.
+No identifier, path, review, source, or label value enters these modules.
 """
 
 from __future__ import annotations
@@ -12,13 +12,21 @@ from dataclasses import dataclass
 import torch
 from torch import nn
 
-MODEL_ARCHITECTURE_VERSION = "multimodal_temporal_conv_v3_visual_context"
+from pig_behavior.classification_v2.models.temporal_encoders import (
+    MaskedTemporalConvEncoder,
+    build_temporal_encoder,
+)
+
+MODEL_ARCHITECTURE_VERSION = "multimodal_sequence_factory_v4"
 
 
 @dataclass(slots=True)
 class ImageSequenceEncoderConfig:
     embedding_dim: int = 64
     dropout: float = 0.0
+    temporal_encoder_name: str = "masked_tcn"
+    transformer_layers: int = 2
+    transformer_heads: int = 4
 
 
 class ImageSequenceEncoder(nn.Module):
@@ -48,10 +56,12 @@ class ImageSequenceEncoder(nn.Module):
             nn.GELU(),
             nn.Dropout(config.dropout),
         )
-        self.temporal_encoder = MaskedTemporalConvEncoder(
-            config.embedding_dim,
-            layers=2,
+        self.temporal_encoder = build_temporal_encoder(
+            config.temporal_encoder_name,
+            embedding_dim=config.embedding_dim,
             dropout=config.dropout,
+            transformer_layers=config.transformer_layers,
+            transformer_heads=config.transformer_heads,
         )
 
     def forward(
@@ -60,18 +70,31 @@ class ImageSequenceEncoder(nn.Module):
         *,
         length_mask: torch.Tensor,
         observed_mask: torch.Tensor | None = None,
+        available_mask: torch.Tensor | None = None,
+        quality_mask: torch.Tensor | None = None,
+        time_delta: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Return sequence embedding shaped ``[B, embedding_dim]``."""
         if image.ndim != 5:
             raise ValueError("image must have shape [B, T, 3, H, W]")
         if image.shape[2] != 3:
             raise ValueError("image channel dimension must be 3")
-        mask = _combined_mask(length_mask, observed_mask, image.shape[:2])
+        mask = _combined_mask(
+            length_mask,
+            observed_mask,
+            image.shape[:2],
+            available_mask=available_mask,
+            quality_mask=quality_mask,
+            branch_name="image",
+        )
         batch_size, sequence_len = image.shape[:2]
-        encoded = self.frame_encoder(image.float().reshape(batch_size * sequence_len, *image.shape[2:]))
+        clean_image = _masked_values(image, mask, branch_name="image")
+        encoded = self.frame_encoder(
+            clean_image.reshape(batch_size * sequence_len, *image.shape[2:])
+        )
         encoded = encoded.reshape(batch_size, sequence_len, -1)
         projected = self.temporal_projection(encoded)
-        return self.temporal_encoder(projected, mask)
+        return self.temporal_encoder(projected, mask, time_delta=time_delta)
 
 
 @dataclass(slots=True)
@@ -79,6 +102,9 @@ class SpatialSequenceEncoderConfig:
     input_dims: dict[str, int]
     embedding_dim: int = 64
     dropout: float = 0.0
+    temporal_encoder_name: str = "masked_tcn"
+    transformer_layers: int = 2
+    transformer_heads: int = 4
 
 
 class SpatialSequenceEncoder(nn.Module):
@@ -91,7 +117,7 @@ class SpatialSequenceEncoder(nn.Module):
         if config.embedding_dim <= 0:
             raise ValueError("embedding_dim must be positive")
         self.config = config
-        self.branch_order = tuple(sorted(config.input_dims))
+        self.branch_order = tuple(config.input_dims)
         branch_dim = max(8, config.embedding_dim // max(1, len(self.branch_order)))
         self.branches = nn.ModuleDict(
             {
@@ -100,7 +126,7 @@ class SpatialSequenceEncoder(nn.Module):
                     nn.LayerNorm(branch_dim),
                     nn.GELU(),
                 )
-                for name, dim in sorted(config.input_dims.items())
+                for name, dim in config.input_dims.items()
             }
         )
         fused_dim = branch_dim * len(self.branch_order)
@@ -110,10 +136,12 @@ class SpatialSequenceEncoder(nn.Module):
             nn.GELU(),
             nn.Dropout(config.dropout),
         )
-        self.temporal_encoder = MaskedTemporalConvEncoder(
-            config.embedding_dim,
-            layers=2,
+        self.temporal_encoder = build_temporal_encoder(
+            config.temporal_encoder_name,
+            embedding_dim=config.embedding_dim,
             dropout=config.dropout,
+            transformer_layers=config.transformer_layers,
+            transformer_heads=config.transformer_heads,
         )
 
     def forward(
@@ -122,6 +150,9 @@ class SpatialSequenceEncoder(nn.Module):
         *,
         length_mask: torch.Tensor,
         observed_mask: torch.Tensor | None = None,
+        available_mask: torch.Tensor | None = None,
+        quality_mask: torch.Tensor | None = None,
+        time_delta: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Return sequence embedding shaped ``[B, embedding_dim]``."""
         missing = [name for name in self.branch_order if name not in features]
@@ -130,60 +161,150 @@ class SpatialSequenceEncoder(nn.Module):
         first = features[self.branch_order[0]]
         if first.ndim != 3:
             raise ValueError(f"{self.branch_order[0]} must have shape [B, T, D]")
-        mask = _combined_mask(length_mask, observed_mask, first.shape[:2])
+        mask = _combined_mask(
+            length_mask,
+            observed_mask,
+            first.shape[:2],
+            available_mask=available_mask,
+            quality_mask=quality_mask,
+            branch_name="spatial",
+        )
         projected = []
         for name in self.branch_order:
-            value = features[name].float()
+            value = features[name]
             if value.ndim != 3:
                 raise ValueError(f"{name} must have shape [B, T, D]")
             if value.shape[:2] != first.shape[:2]:
                 raise ValueError(f"{name} sequence shape does not match first spatial group")
-            projected.append(self.branches[name](value))
-        fused = self.projection(torch.cat(projected, dim=-1))
-        return self.temporal_encoder(fused, mask)
-
-
-class MaskedTemporalConvEncoder(nn.Module):
-    """Learn order-sensitive local dynamics and pool only observed sequence positions."""
-
-    def __init__(self, embedding_dim: int, *, layers: int, dropout: float) -> None:
-        super().__init__()
-        if embedding_dim <= 0 or layers <= 0:
-            raise ValueError("temporal embedding_dim and layers must be positive")
-        self.blocks = nn.ModuleList(
-            [
-                nn.ModuleDict(
-                    {
-                        "conv": nn.Conv1d(
-                            embedding_dim,
-                            embedding_dim,
-                            kernel_size=3,
-                            padding=2**layer,
-                            dilation=2**layer,
-                        ),
-                        "norm": nn.LayerNorm(embedding_dim),
-                        "dropout": nn.Dropout(dropout),
-                    }
+            expected_dim = self.config.input_dims[name]
+            if value.shape[-1] != expected_dim:
+                raise ValueError(
+                    f"{name} feature dim {value.shape[-1]} does not match {expected_dim}"
                 )
-                for layer in range(layers)
-            ]
+            clean = _masked_values(value, mask, branch_name=f"spatial:{name}")
+            projected.append(self.branches[name](clean))
+        fused = self.projection(torch.cat(projected, dim=-1))
+        return self.temporal_encoder(fused, mask, time_delta=time_delta)
+
+
+class ActorEncoder(ImageSequenceEncoder):
+    """Named actor-crop branch sharing the image sequence tensor contract."""
+
+
+class PartnerSetEncoder(nn.Module):
+    """Encode one or more label-independently selected partner feature rows."""
+
+    def __init__(self, input_dim: int, embedding_dim: int, dropout: float) -> None:
+        super().__init__()
+        if input_dim <= 0 or embedding_dim <= 0:
+            raise ValueError("partner input and embedding dimensions must be positive")
+        self.input_dim = int(input_dim)
+        self.embedding_dim = int(embedding_dim)
+        self.projection = nn.Sequential(
+            nn.Linear(input_dim, embedding_dim),
+            nn.LayerNorm(embedding_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
         )
-        self.pool_score = nn.Linear(embedding_dim, 1)
 
-    def forward(self, value: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
-        """Encode ``[B,T,D]`` values while preventing padded slots from affecting valid slots."""
+    def forward(
+        self,
+        value: torch.Tensor,
+        *,
+        available_mask: torch.Tensor,
+        quality_mask: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        """Return ``[B,D]`` while absent partners contribute exactly zero."""
 
-        if value.ndim != 3 or mask.ndim != 2 or value.shape[:2] != mask.shape:
-            raise ValueError("temporal value/mask shapes must be [B,T,D] and [B,T]")
-        mask_3d = mask.float().unsqueeze(-1)
-        encoded = value.float() * mask_3d
-        for block in self.blocks:
-            update = block["conv"](encoded.transpose(1, 2)).transpose(1, 2)
-            update = block["dropout"](torch.nn.functional.gelu(block["norm"](update)))
-            encoded = (encoded + update) * mask_3d
-        unnormalized = torch.exp(self.pool_score(encoded).squeeze(-1).clamp(-20.0, 20.0)) * mask.float()
-        weights = unnormalized / unnormalized.sum(dim=1, keepdim=True).clamp_min(1e-8)
-        return (encoded * weights.unsqueeze(-1)).sum(dim=1)
+        if value.ndim == 2:
+            value = value.unsqueeze(1)
+        if value.ndim != 3 or value.shape[-1] != self.input_dim:
+            raise ValueError(
+                "partner features must have shape [B,D] or [B,K,D] with "
+                f"D={self.input_dim}"
+            )
+        available = _set_mask(
+            available_mask,
+            value.shape[:2],
+            name="interaction_context_available_mask",
+        )
+        if quality_mask is None:
+            quality = available
+        else:
+            quality = _set_mask(
+                quality_mask,
+                value.shape[:2],
+                name="interaction_context_quality_mask",
+            )
+            if (quality & ~available).any():
+                raise ValueError("interaction quality mask is true outside availability")
+        valid = available & quality
+        clean = _masked_values(value, valid, branch_name="interaction_context")
+        projected = self.projection(clean)
+        weights = valid.to(projected.dtype).unsqueeze(-1)
+        pooled = (projected * weights).sum(dim=1)
+        return pooled / weights.sum(dim=1).clamp_min(1.0)
+
+
+class UnionCropEncoder(ImageSequenceEncoder):
+    """Encode an actor-partner union/context crop with independent weights."""
+
+
+class AvailabilityEncoder(nn.Module):
+    """Gate embeddings only; masks are never concatenated as behavior features."""
+
+    def forward(
+        self,
+        embedding: torch.Tensor,
+        available_mask: torch.Tensor,
+    ) -> torch.Tensor:
+        if embedding.ndim != 2:
+            raise ValueError("embedding must have shape [B,D]")
+        available = _vector_mask(
+            available_mask,
+            embedding.shape[0],
+            name="branch_available_mask",
+        )
+        return torch.where(
+            available.unsqueeze(-1),
+            embedding,
+            torch.zeros_like(embedding),
+        )
+
+
+class FusionHead(nn.Module):
+    """Fuse enabled embeddings without receiving any availability bits."""
+
+    def __init__(self, input_dim: int, hidden_dim: int, dropout: float) -> None:
+        super().__init__()
+        if input_dim <= 0 or hidden_dim <= 0:
+            raise ValueError("fusion input and hidden dimensions must be positive")
+        self.layers = nn.Sequential(
+            nn.LayerNorm(input_dim),
+            nn.Linear(input_dim, hidden_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+        )
+
+    def forward(self, embedding: torch.Tensor) -> torch.Tensor:
+        if embedding.ndim != 2:
+            raise ValueError("fusion embedding must have shape [B,D]")
+        return self.layers(embedding)
+
+
+class FinalBehaviorHead(nn.Module):
+    """Directly supervised final behavior logits with no hard cascade."""
+
+    def __init__(self, input_dim: int, num_classes: int) -> None:
+        super().__init__()
+        if input_dim <= 0 or num_classes <= 1:
+            raise ValueError("behavior head dimensions are invalid")
+        self.projection = nn.Linear(input_dim, num_classes)
+
+    def forward(self, embedding: torch.Tensor) -> torch.Tensor:
+        if embedding.ndim != 2:
+            raise ValueError("behavior embedding must have shape [B,D]")
+        return self.projection(embedding)
 
 
 @dataclass(slots=True)
@@ -197,6 +318,9 @@ class MultimodalFusionConfig:
     visual_context_embedding_dim: int = 64
     fusion_hidden_dim: int = 96
     dropout: float = 0.1
+    temporal_encoder_name: str = "masked_tcn"
+    transformer_layers: int = 2
+    transformer_heads: int = 4
     enable_image: bool = True
     enable_spatial: bool = True
     enable_interaction_context: bool | None = None
@@ -210,19 +334,34 @@ class MultimodalFusionClassifier(nn.Module):
         super().__init__()
         if config.num_classes <= 1:
             raise ValueError("num_classes must be greater than 1")
+        if not 0.0 <= config.dropout < 1.0:
+            raise ValueError("dropout must be in [0,1)")
         interaction_enabled = (
             config.interaction_context_dim is not None
             if config.enable_interaction_context is None
             else bool(config.enable_interaction_context)
         )
-        if not any([config.enable_image, config.enable_spatial, interaction_enabled, config.enable_visual_context]):
+        if not any(
+            [
+                config.enable_image,
+                config.enable_spatial,
+                interaction_enabled,
+                config.enable_visual_context,
+            ]
+        ):
             raise ValueError("at least one multimodal branch must be enabled")
         self.config = config
         self.image_encoder: ImageSequenceEncoder | None = None
         image_dim = 0
         if config.enable_image:
-            self.image_encoder = ImageSequenceEncoder(
-                ImageSequenceEncoderConfig(embedding_dim=config.image_embedding_dim, dropout=config.dropout)
+            self.image_encoder = ActorEncoder(
+                ImageSequenceEncoderConfig(
+                    embedding_dim=config.image_embedding_dim,
+                    dropout=config.dropout,
+                    temporal_encoder_name=config.temporal_encoder_name,
+                    transformer_layers=config.transformer_layers,
+                    transformer_heads=config.transformer_heads,
+                )
             )
             image_dim = config.image_embedding_dim
         self.spatial_encoder: SpatialSequenceEncoder | None = None
@@ -233,6 +372,9 @@ class MultimodalFusionClassifier(nn.Module):
                     input_dims=config.spatial_input_dims,
                     embedding_dim=config.spatial_embedding_dim,
                     dropout=config.dropout,
+                    temporal_encoder_name=config.temporal_encoder_name,
+                    transformer_layers=config.transformer_layers,
+                    transformer_heads=config.transformer_heads,
                 )
             )
             spatial_dim = config.spatial_embedding_dim
@@ -240,16 +382,17 @@ class MultimodalFusionClassifier(nn.Module):
         interaction_dim = 0
         if interaction_enabled:
             if config.interaction_context_dim is None:
-                raise ValueError("interaction_context_dim required when interaction branch is enabled")
+                raise ValueError(
+                    "interaction_context_dim required when interaction branch is enabled"
+                )
             if config.interaction_context_dim <= 0:
                 raise ValueError("interaction_context_dim must be positive when provided")
             if config.interaction_embedding_dim <= 0:
                 raise ValueError("interaction_embedding_dim must be positive")
-            self.interaction_context_encoder = nn.Sequential(
-                nn.Linear(config.interaction_context_dim, config.interaction_embedding_dim),
-                nn.LayerNorm(config.interaction_embedding_dim),
-                nn.GELU(),
-                nn.Dropout(config.dropout),
+            self.interaction_context_encoder = PartnerSetEncoder(
+                config.interaction_context_dim,
+                config.interaction_embedding_dim,
+                config.dropout,
             )
             interaction_dim = config.interaction_embedding_dim
         self.visual_context_encoder: ImageSequenceEncoder | None = None
@@ -259,21 +402,21 @@ class MultimodalFusionClassifier(nn.Module):
                 raise ValueError("visual_context_embedding_dim must be positive")
             # Separate weights prevent the actor crop and actor-partner scene
             # branches from being forced into the same visual representation.
-            self.visual_context_encoder = ImageSequenceEncoder(
+            self.visual_context_encoder = UnionCropEncoder(
                 ImageSequenceEncoderConfig(
                     embedding_dim=config.visual_context_embedding_dim,
                     dropout=config.dropout,
+                    temporal_encoder_name=config.temporal_encoder_name,
+                    transformer_layers=config.transformer_layers,
+                    transformer_heads=config.transformer_heads,
                 )
             )
             visual_context_dim = config.visual_context_embedding_dim
         fused_dim = image_dim + spatial_dim + interaction_dim + visual_context_dim
         self.fused_embedding_dim = int(fused_dim)
         self.classifier = nn.Sequential(
-            nn.LayerNorm(fused_dim),
-            nn.Linear(fused_dim, config.fusion_hidden_dim),
-            nn.GELU(),
-            nn.Dropout(config.dropout),
-            nn.Linear(config.fusion_hidden_dim, config.num_classes),
+            FusionHead(fused_dim, config.fusion_hidden_dim, config.dropout),
+            FinalBehaviorHead(config.fusion_hidden_dim, config.num_classes),
         )
 
     def forward(
@@ -285,13 +428,23 @@ class MultimodalFusionClassifier(nn.Module):
         observed_mask: torch.Tensor | None = None,
         image_length_mask: torch.Tensor | None = None,
         image_observed_mask: torch.Tensor | None = None,
+        image_available_mask: torch.Tensor | None = None,
+        image_quality_mask: torch.Tensor | None = None,
+        image_time_delta: torch.Tensor | None = None,
         spatial_length_mask: torch.Tensor | None = None,
         spatial_observed_mask: torch.Tensor | None = None,
+        spatial_available_mask: torch.Tensor | None = None,
+        spatial_quality_mask: torch.Tensor | None = None,
+        spatial_time_delta: torch.Tensor | None = None,
         interaction_context_features: torch.Tensor | None = None,
         interaction_context_available_mask: torch.Tensor | None = None,
+        interaction_context_quality_mask: torch.Tensor | None = None,
         visual_context_image: torch.Tensor | None = None,
         visual_context_length_mask: torch.Tensor | None = None,
         visual_context_observed_mask: torch.Tensor | None = None,
+        visual_context_available_mask: torch.Tensor | None = None,
+        visual_context_quality_mask: torch.Tensor | None = None,
+        visual_context_time_delta: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Return logits shaped ``[B, num_classes]``.
 
@@ -307,13 +460,23 @@ class MultimodalFusionClassifier(nn.Module):
             observed_mask=observed_mask,
             image_length_mask=image_length_mask,
             image_observed_mask=image_observed_mask,
+            image_available_mask=image_available_mask,
+            image_quality_mask=image_quality_mask,
+            image_time_delta=image_time_delta,
             spatial_length_mask=spatial_length_mask,
             spatial_observed_mask=spatial_observed_mask,
+            spatial_available_mask=spatial_available_mask,
+            spatial_quality_mask=spatial_quality_mask,
+            spatial_time_delta=spatial_time_delta,
             interaction_context_features=interaction_context_features,
             interaction_context_available_mask=interaction_context_available_mask,
+            interaction_context_quality_mask=interaction_context_quality_mask,
             visual_context_image=visual_context_image,
             visual_context_length_mask=visual_context_length_mask,
             visual_context_observed_mask=visual_context_observed_mask,
+            visual_context_available_mask=visual_context_available_mask,
+            visual_context_quality_mask=visual_context_quality_mask,
+            visual_context_time_delta=visual_context_time_delta,
         )
         return self.classifier(fused)
 
@@ -326,13 +489,23 @@ class MultimodalFusionClassifier(nn.Module):
         observed_mask: torch.Tensor | None = None,
         image_length_mask: torch.Tensor | None = None,
         image_observed_mask: torch.Tensor | None = None,
+        image_available_mask: torch.Tensor | None = None,
+        image_quality_mask: torch.Tensor | None = None,
+        image_time_delta: torch.Tensor | None = None,
         spatial_length_mask: torch.Tensor | None = None,
         spatial_observed_mask: torch.Tensor | None = None,
+        spatial_available_mask: torch.Tensor | None = None,
+        spatial_quality_mask: torch.Tensor | None = None,
+        spatial_time_delta: torch.Tensor | None = None,
         interaction_context_features: torch.Tensor | None = None,
         interaction_context_available_mask: torch.Tensor | None = None,
+        interaction_context_quality_mask: torch.Tensor | None = None,
         visual_context_image: torch.Tensor | None = None,
         visual_context_length_mask: torch.Tensor | None = None,
         visual_context_observed_mask: torch.Tensor | None = None,
+        visual_context_available_mask: torch.Tensor | None = None,
+        visual_context_quality_mask: torch.Tensor | None = None,
+        visual_context_time_delta: torch.Tensor | None = None,
     ) -> torch.Tensor:
         """Return the shared late-fusion embedding before classification heads."""
 
@@ -341,32 +514,57 @@ class MultimodalFusionClassifier(nn.Module):
         if self.image_encoder is not None:
             image_embedding = self.image_encoder(
                 image,
-                length_mask=image_length_mask if image_length_mask is not None else length_mask,
-                observed_mask=image_observed_mask if image_observed_mask is not None else observed_mask,
+                length_mask=(
+                    image_length_mask
+                    if image_length_mask is not None
+                    else length_mask
+                ),
+                observed_mask=(
+                    image_observed_mask
+                    if image_observed_mask is not None
+                    else observed_mask
+                ),
+                available_mask=image_available_mask,
+                quality_mask=image_quality_mask,
+                time_delta=image_time_delta,
             )
             embeddings.append(image_embedding)
             batch_size = int(image_embedding.shape[0])
         if self.spatial_encoder is not None:
             spatial_embedding = self.spatial_encoder(
                 spatial_features,
-                length_mask=spatial_length_mask if spatial_length_mask is not None else length_mask,
-                observed_mask=spatial_observed_mask if spatial_observed_mask is not None else observed_mask,
+                length_mask=(
+                    spatial_length_mask
+                    if spatial_length_mask is not None
+                    else length_mask
+                ),
+                observed_mask=(
+                    spatial_observed_mask
+                    if spatial_observed_mask is not None
+                    else observed_mask
+                ),
+                available_mask=spatial_available_mask,
+                quality_mask=spatial_quality_mask,
+                time_delta=spatial_time_delta,
             )
             embeddings.append(spatial_embedding)
             batch_size = int(spatial_embedding.shape[0])
         if self.interaction_context_encoder is not None:
             if interaction_context_features is None:
                 raise ValueError("interaction_context_features required by model config")
-            if interaction_context_features.ndim != 2:
-                raise ValueError("interaction_context_features must have shape [B, D]")
+            if interaction_context_available_mask is None:
+                raise ValueError(
+                    "interaction_context_available_mask required by model config"
+                )
             if batch_size is not None and interaction_context_features.shape[0] != batch_size:
                 raise ValueError("interaction_context_features batch size mismatch")
-            interaction_embedding = self.interaction_context_encoder(interaction_context_features.float())
-            if interaction_context_available_mask is not None:
-                if interaction_context_available_mask.ndim != 1:
-                    raise ValueError("interaction_context_available_mask must have shape [B]")
-                interaction_embedding = interaction_embedding * interaction_context_available_mask.float().unsqueeze(-1)
+            interaction_embedding = self.interaction_context_encoder(
+                interaction_context_features,
+                available_mask=interaction_context_available_mask,
+                quality_mask=interaction_context_quality_mask,
+            )
             embeddings.append(interaction_embedding)
+            batch_size = int(interaction_embedding.shape[0])
         if self.visual_context_encoder is not None:
             if visual_context_image is None or visual_context_length_mask is None:
                 raise ValueError("visual context image and length mask required by model config")
@@ -374,10 +572,14 @@ class MultimodalFusionClassifier(nn.Module):
                 visual_context_image,
                 length_mask=visual_context_length_mask,
                 observed_mask=visual_context_observed_mask,
+                available_mask=visual_context_available_mask,
+                quality_mask=visual_context_quality_mask,
+                time_delta=visual_context_time_delta,
             )
             if batch_size is not None and visual_embedding.shape[0] != batch_size:
                 raise ValueError("visual context batch size mismatch")
             embeddings.append(visual_embedding)
+            batch_size = int(visual_embedding.shape[0])
         return torch.cat(embeddings, dim=-1)
 
 
@@ -385,14 +587,106 @@ def _combined_mask(
     length_mask: torch.Tensor,
     observed_mask: torch.Tensor | None,
     expected_shape: torch.Size | tuple[int, int],
+    *,
+    available_mask: torch.Tensor | None = None,
+    quality_mask: torch.Tensor | None = None,
+    branch_name: str,
 ) -> torch.Tensor:
-    if length_mask.ndim != 2:
-        raise ValueError("length_mask must have shape [B, T]")
-    if tuple(length_mask.shape) != tuple(expected_shape):
-        raise ValueError(f"length_mask shape {tuple(length_mask.shape)} does not match {tuple(expected_shape)}")
-    mask = length_mask.float()
-    if observed_mask is not None:
-        if observed_mask.shape != length_mask.shape:
-            raise ValueError("observed_mask must match length_mask shape")
-        mask = mask * observed_mask.float()
-    return mask
+    length = _set_mask(
+        length_mask,
+        expected_shape,
+        name=f"{branch_name}_length_mask",
+    )
+    observed = (
+        length
+        if observed_mask is None
+        else _set_mask(
+            observed_mask,
+            expected_shape,
+            name=f"{branch_name}_observed_mask",
+        )
+    )
+    available = (
+        observed
+        if available_mask is None
+        else _set_mask(
+            available_mask,
+            expected_shape,
+            name=f"{branch_name}_available_mask",
+        )
+    )
+    quality = (
+        observed
+        if quality_mask is None
+        else _set_mask(
+            quality_mask,
+            expected_shape,
+            name=f"{branch_name}_quality_mask",
+        )
+    )
+    if (observed & ~length).any():
+        raise ValueError(f"{branch_name} observed mask is true outside length")
+    if (available & ~observed).any():
+        raise ValueError(f"{branch_name} availability is true outside observation")
+    if (quality & ~observed).any():
+        raise ValueError(f"{branch_name} quality is true outside observation")
+    return length & observed & available & quality
+
+
+def _set_mask(
+    mask: torch.Tensor,
+    expected_shape: torch.Size | tuple[int, int],
+    *,
+    name: str,
+) -> torch.Tensor:
+    expected = tuple(expected_shape)
+    value = mask
+    if value.ndim == 1 and expected[1] == 1 and value.shape[0] == expected[0]:
+        value = value.unsqueeze(1)
+    if value.ndim != 2 or tuple(value.shape) != expected:
+        raise ValueError(f"{name} shape {tuple(value.shape)} does not match {expected}")
+    if not torch.isfinite(value).all():
+        raise ValueError(f"{name} contains nonfinite entries")
+    if not torch.all((value == 0) | (value == 1)):
+        raise ValueError(f"{name} must be binary")
+    return value.bool()
+
+
+def _vector_mask(mask: torch.Tensor, batch_size: int, *, name: str) -> torch.Tensor:
+    if mask.ndim != 1 or mask.shape[0] != batch_size:
+        raise ValueError(f"{name} must have shape [B]")
+    if not torch.isfinite(mask).all() or not torch.all((mask == 0) | (mask == 1)):
+        raise ValueError(f"{name} must be finite and binary")
+    return mask.bool()
+
+
+def _masked_values(
+    value: torch.Tensor,
+    mask: torch.Tensor,
+    *,
+    branch_name: str,
+) -> torch.Tensor:
+    if tuple(value.shape[:2]) != tuple(mask.shape):
+        raise ValueError(f"{branch_name} values do not match mask shape")
+    if not torch.isfinite(value[mask]).all():
+        raise ValueError(f"{branch_name} observed values contain nonfinite entries")
+    expanded = mask.reshape(*mask.shape, *([1] * (value.ndim - 2)))
+    return torch.where(expanded, value.float(), torch.zeros_like(value).float())
+
+
+__all__ = [
+    "ActorEncoder",
+    "AvailabilityEncoder",
+    "FinalBehaviorHead",
+    "FusionHead",
+    "ImageSequenceEncoder",
+    "ImageSequenceEncoderConfig",
+    "MODEL_ARCHITECTURE_VERSION",
+    "MaskedTemporalConvEncoder",
+    "MultimodalFusionClassifier",
+    "MultimodalFusionConfig",
+    "PartnerSetEncoder",
+    "SpatialSequenceEncoder",
+    "SpatialSequenceEncoderConfig",
+    "UnionCropEncoder",
+]

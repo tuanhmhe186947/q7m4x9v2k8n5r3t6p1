@@ -63,6 +63,7 @@ class RunIdentity:
     temporal_view_selection_sha256: str
     fold_event_weight_sha256: str
     architecture_version: str
+    model_mode: str
     backbone_name: str
     pretrained_weight_enum: str
     resolution: int
@@ -96,6 +97,7 @@ class RunIdentity:
             ),
             "fold_event_weight_sha256": self.fold_event_weight_sha256,
             "architecture_version": self.architecture_version,
+            "model_mode": self.model_mode,
             "backbone_name": self.backbone_name,
             "pretrained_weight_enum": self.pretrained_weight_enum,
             "resolution": self.resolution,
@@ -210,6 +212,7 @@ def build_run_identity(
         temporal_view_selection_sha256=temporal_view_hash,
         fold_event_weight_sha256=event_weight_hash,
         architecture_version=config.model.architecture_version,
+        model_mode=config.model.model_mode,
         backbone_name=config.model.backbone_name,
         pretrained_weight_enum=pretrained,
         resolution=config.model.image_size,
@@ -283,7 +286,7 @@ def _validate_identity(identity: RunIdentity) -> None:
             raise ValueError(f"run identity has unsafe {name}={value!r}")
         if len(value) > 160:
             raise ValueError(f"run identity has overlong {name}")
-    if not identity.code_sha or not identity.modalities:
+    if not identity.code_sha or not identity.modalities or not identity.model_mode:
         raise ValueError("run identity has blank code or modalities")
     if not all(
         [

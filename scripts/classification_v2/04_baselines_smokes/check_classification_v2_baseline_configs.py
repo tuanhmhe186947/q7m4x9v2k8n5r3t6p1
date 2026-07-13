@@ -21,7 +21,9 @@ BASELINE_CONFIGS = {
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Check classification_v2 Q2 baseline training configs.")
+    parser = argparse.ArgumentParser(
+        description="Check classification_v2 Q2 baseline training configs."
+    )
     parser.add_argument(
         "--matrix-json",
         type=Path,
@@ -50,6 +52,7 @@ def main() -> None:
             continue
         config = load_training_config(path)
         observed = {
+            "model_mode": config.model.model_mode,
             "enable_image": config.model.enable_image,
             "enable_spatial": config.model.enable_spatial,
             "enable_interaction_context": config.model.enable_interaction_context,

@@ -17,7 +17,7 @@ from pig_behavior.classification_v2.training.config import (
     training_config_to_jsonable,
 )
 
-CHECKPOINT_SCHEMA_VERSION = "classification_v2_training_checkpoint_v2"
+CHECKPOINT_SCHEMA_VERSION = "classification_v2_training_checkpoint_v3"
 RUN_IDENTITY_REQUIRED_FIELDS = (
     "run_id",
     "experiment_name",
@@ -35,6 +35,7 @@ RUN_IDENTITY_REQUIRED_FIELDS = (
     "fold_event_weight_sha256",
     "fold_id",
     "architecture_version",
+    "model_mode",
     "backbone_name",
     "pretrained_weight_enum",
     "resolution",
@@ -189,6 +190,7 @@ def _lineage(
         "config_sha256": training_config_sha256(config),
         "fold_id": config.execution.fold_id,
         "architecture_version": config.model.architecture_version,
+        "model_mode": config.model.model_mode,
         "backbone_name": config.model.backbone_name,
         "pretrained_weight_enum": config.model.pretrained_weight_enum,
         "resolution": config.model.image_size,
