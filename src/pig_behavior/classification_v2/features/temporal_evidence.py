@@ -347,11 +347,11 @@ def _motion_summary(
         if path_length > 0
         else 0.0
     )
-    tortuosity = (
-        float(np.log1p(path_length / max(displacement, 1e-9)))
-        if path_length > 0
-        else 0.0
+    tortuosity_excess = max(
+        0.0,
+        path_length / max(displacement, 1e-9) - 1.0,
     )
+    tortuosity = float(np.log1p(tortuosity_excess)) if path_length > 0 else 0.0
     return {
         "motion_speed_p10": _quantile(valid_speed, 0.10),
         "motion_speed_p50": _quantile(valid_speed, 0.50),
@@ -453,7 +453,12 @@ def _roi_summary(work: pd.DataFrame, frames: np.ndarray) -> dict[str, float | in
         overlap = _numeric_array(work, f"{prefix}_max_overlap_ratio")
         near = _bool_array(work, f"{prefix}_near")
         contact = _bool_array(work, f"{prefix}_contact")
-        available = np.isfinite(distance)
+        distance_available = np.isfinite(distance)
+        if f"{prefix}_available" in work.columns:
+            available = _bool_array(work, f"{prefix}_available")
+            available = available & distance_available
+        else:
+            available = distance_available
         frame_runs = _frame_run_stats(contact, available, frames)
         available_count = int(available.sum())
         out[f"{prefix}_availability_ratio"] = _bounded_ratio(
@@ -489,6 +494,10 @@ def _social_summary(
         partner = work["nearest_pig_id"].fillna("").astype(str).to_numpy()
     else:
         partner = np.full(len(work), "", dtype=object)
+    if "nearest_track_id" in work.columns:
+        track_partner = work["nearest_track_id"].fillna("").astype(str).to_numpy()
+        has_pig_partner = np.char.str_len(partner.astype(str)) > 0
+        partner = np.where(has_pig_partner, partner, track_partner)
     neighbor_available = np.char.str_len(partner.astype(str)) > 0
     available_count = int(neighbor_available.sum())
     persistence = 0.0

@@ -47,10 +47,12 @@ def _six_frame_fixture() -> pd.DataFrame:
             "aspect_ratio": [2.0, 2.0, 2.1, 2.1, 2.0, 2.0],
             "shape_change_score": [0.0, 0.01, 0.02, 0.01, 0.01, 0.0],
             "roi_feeder_min_dist_n": [0.2, 0.1, 0.0, 0.0, 0.1, 0.2],
+            "roi_feeder_available": [True] * 6,
             "roi_feeder_max_overlap_ratio": [0, 0, 0.3, 0.4, 0, 0],
             "roi_feeder_near": [False, True, True, True, True, False],
             "roi_feeder_contact": [False, False, True, True, False, False],
             "nearest_pig_id": ["ID_2", "ID_2", "ID_2", "ID_3", "ID_3", "ID_3"],
+            "nearest_track_id": ["2", "2", "2", "3", "3", "3"],
             "nearest_dist_n": [0.2, 0.1, 0.05, 0.04, 0.06, 0.08],
             "pair_contact_with_nearest": [False, False, True, True, True, False],
             "approach_speed_n_per_frame": [0, 0.1, 0.1, 0.01, 0, 0],
@@ -102,6 +104,7 @@ def test_straight_motion_and_persistence_metrics_are_correct() -> None:
     assert evidence["motion_active_ratio"] == 1.0
     assert evidence["motion_longest_active_run_ratio"] == 1.0
     assert evidence["trajectory_straightness"] == 1.0
+    assert evidence["trajectory_tortuosity_log1p"] == 0.0
     assert evidence["turning_direction_concentration"] == 1.0
     assert evidence["roi_feeder_contact_ratio"] == 2 / 6
     assert evidence["roi_feeder_contact_longest_run_ratio"] == 2 / 6
@@ -109,6 +112,22 @@ def test_straight_motion_and_persistence_metrics_are_correct() -> None:
     assert evidence["social_partner_persistence_ratio"] == 0.5
     assert evidence["social_partner_turnover_rate"] == 0.2
     assert evidence["social_pair_contact_ratio"] == 0.5
+
+
+def test_explicit_roi_availability_and_track_partner_fallback_are_respected() -> None:
+    frames = _six_frame_fixture()
+    frames["roi_feeder_available"] = False
+    frames["nearest_pig_id"] = ""
+
+    evidence = summarize_temporal_evidence(
+        frames,
+        expected_start=0,
+        expected_end=5,
+    )
+
+    assert evidence["roi_feeder_availability_ratio"] == 0.0
+    assert evidence["roi_feeder_contact_ratio"] == 0.0
+    assert evidence["social_partner_persistence_ratio"] == 0.5
 
 
 def test_gaps_and_duplicates_are_audited_without_row_loss() -> None:
