@@ -30,6 +30,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.identifiers import scene_frame_key
 from pig_behavior.classification_v2.features.context_policy import (
     normalize_hidden_provenance,
 )
@@ -272,7 +273,10 @@ def audit_enhanced_spatiotemporal_features(df: pd.DataFrame) -> dict[str, Any]:
 
     return {
         "rows": int(len(df)),
-        "frames": int(df["frame_uid"].nunique(dropna=True)) if "frame_uid" in df.columns else 0,
+        "frames": int(scene_frame_key(df).nunique(dropna=True)),
+        "frame_objects": int(df["frame_uid"].nunique(dropna=True))
+        if "frame_uid" in df.columns
+        else 0,
         "sources": _value_counts_dict(df, "source_type"),
         "datasets": _value_counts_dict(df, "dataset_id"),
         "behaviors": _value_counts_dict(df, "behavior"),
@@ -355,6 +359,7 @@ def _normalize_basic_columns(df: pd.DataFrame) -> pd.DataFrame:
         "source_type",
         "dataset_id",
         "video_key",
+        "scene_frame_uid",
         "frame_uid",
         "pig_id",
         "track_id",
@@ -847,10 +852,7 @@ def _add_social_context_columns(df: pd.DataFrame, config: EnhancedFeatureConfig)
 
 def _social_frame_group_key(rows: pd.DataFrame) -> pd.Series:
     """Build a row-wise frame key without merging partially missing UIDs."""
-    frame_uid = rows.get(
-        "frame_uid",
-        pd.Series("", index=rows.index),
-    ).fillna("").astype(str).str.strip()
+    frame_uid = scene_frame_key(rows).fillna("").astype(str).str.strip()
     frame_index = pd.to_numeric(rows["frame_index"], errors="coerce")
     invalid_fallback = (
         frame_uid.eq("")

@@ -77,6 +77,33 @@ def test_invalid_bbox_cannot_be_selected_as_social_partner() -> None:
     assert invalid["social_density_near_count"] == 0
 
 
+def test_object_level_uids_share_social_context_through_scene_uid() -> None:
+    rows = pd.DataFrame(
+        [
+            _row(
+                frame_index=0,
+                frame_uid="object-1",
+                pig_id="ID_1",
+                cx_n=0.10,
+                x1=10.0,
+            ),
+            _row(
+                frame_index=0,
+                frame_uid="object-2",
+                pig_id="ID_2",
+                cx_n=0.16,
+                x1=40.0,
+            ),
+        ]
+    )
+    rows["scene_frame_uid"] = "scene-0"
+
+    enriched = _add_social_context_columns(rows, EnhancedFeatureConfig())
+
+    assert enriched["nearest_pig_id"].tolist() == ["ID_2", "ID_1"]
+    assert enriched["social_context_frame_size"].eq(2).all()
+
+
 def test_partial_missing_frame_uid_does_not_merge_different_frames() -> None:
     rows = pd.DataFrame(
         [
