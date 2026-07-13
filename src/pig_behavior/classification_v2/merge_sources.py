@@ -40,7 +40,13 @@ def merge_frame_object_sources(
             )
         )
 
+    expected_rows = sum(len(frame) for frame in normalized)
     merged = pd.concat(normalized, ignore_index=True)
+    if len(merged) != expected_rows:
+        raise RuntimeError(
+            "Merging canonical sources changed row count: "
+            f"expected={expected_rows}, actual={len(merged)}"
+        )
 
     if sort_output and not merged.empty:
         sort_cols = [
@@ -134,6 +140,10 @@ def audit_merged_frame_objects(df: pd.DataFrame) -> dict[str, Any]:
     else:
         errors.append("bbox_valid_column_missing")
 
+    duplicate_object_rows = _duplicate_object_row_count(df)
+    if duplicate_object_rows:
+        errors.append(f"duplicate_frame_object_rows={duplicate_object_rows}")
+
     return {
         "rows": int(len(df)),
         "frames": int(df["frame_uid"].nunique(dropna=True)),
@@ -148,6 +158,7 @@ def audit_merged_frame_objects(df: pd.DataFrame) -> dict[str, Any]:
         "qa_status": _value_counts_dict(df, "qa_status"),
         "bbox_valid": _value_counts_dict(df, "bbox_valid"),
         "invalid_bbox_count": invalid_bbox_count,
+        "duplicate_frame_object_rows": duplicate_object_rows,
         "errors": errors,
         "warnings": warnings,
     }
@@ -198,3 +209,22 @@ def _value_counts_dict(df: pd.DataFrame, column: str) -> dict[str, int]:
         return {}
     counts = df[column].value_counts(dropna=False).sort_index()
     return {str(key): int(value) for key, value in counts.items()}
+
+
+def _duplicate_object_row_count(df: pd.DataFrame) -> int:
+    """Count ambiguous duplicate actor observations within one source frame."""
+
+    preferred = [
+        "source_type",
+        "dataset_id",
+        "video_key",
+        "frame_index",
+        "track_id",
+        "pig_id",
+    ]
+    if not set(preferred).issubset(df.columns):
+        return 0
+    key = df[preferred].copy()
+    for column in preferred:
+        key[column] = key[column].fillna("").astype(str).str.strip()
+    return int(key.duplicated(keep=False).sum())
