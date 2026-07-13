@@ -7,6 +7,10 @@ from pig_behavior.classification_v2.review.behavior_evidence import (
     REVIEW_EVIDENCE_COLUMNS,
     add_behavior_review_evidence,
 )
+from pig_behavior.classification_v2.review.review_unit_builder import (
+    _base_units_from_intervals,
+    _finalize_unit_review_fields,
+)
 from pig_behavior.classification_v2.train_ready_features import (
     select_window_feature_columns,
 )
@@ -96,3 +100,38 @@ def test_review_scores_are_never_selected_for_model_x() -> None:
 
     assert "speed_mean_window" in selected
     assert not set(REVIEW_EVIDENCE_COLUMNS).intersection(selected)
+
+
+def test_review_unit_builder_routes_evidence_conflict_without_relabeling() -> None:
+    interval = _unit("move")
+    interval.update(
+        {
+            "source_type": "cvat_tracking_xml",
+            "dataset_id": "fixture",
+            "video_key": "video",
+            "object_track_key": "fixture|video|track=4",
+            "pig_id": "ID_4",
+            "track_id": "4",
+            "label_window_start": 0,
+            "label_window_end": 5,
+            "temporal_label_mode": "cvat_anchor_6f_interval",
+            "label_anchor_frame_index": 0,
+            "temporal_consistency_status": "stable",
+            "behavior_consistency_in_interval": True,
+            "temporal_interval_complete": True,
+            "bbox_valid_ratio_interval": 1.0,
+        }
+    )
+    units = _base_units_from_intervals(pd.DataFrame([interval]))
+    units["window_review_hit_count"] = 0
+    units["review_templates_hit"] = ""
+    units["review_reasons_window"] = ""
+    units["review_priority_window_max"] = 0.0
+
+    finalized = _finalize_unit_review_fields(units)
+
+    assert finalized.iloc[0]["behavior_label"] == "move"
+    assert finalized.iloc[0]["review_template"] == "motion"
+    assert bool(finalized.iloc[0]["include_in_review"])
+    assert "move_with_weak_motion_evidence" in finalized.iloc[0]["review_reason"]
+    assert finalized.iloc[0]["apply_scope"] == "cvat_interval_6f"

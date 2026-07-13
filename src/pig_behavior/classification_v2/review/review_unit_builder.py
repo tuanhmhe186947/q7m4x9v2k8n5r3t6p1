@@ -17,6 +17,11 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from pig_behavior.classification_v2.review.behavior_evidence import (
+    REVIEW_EVIDENCE_COLUMNS,
+    add_behavior_review_evidence,
+    audit_behavior_review_evidence,
+)
 from pig_behavior.classification_v2.review.behavior_review_contract import (
     audit_review_unit_contract,
 )
@@ -109,6 +114,7 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
         units["review_priority_window_max"] = 0.0
 
     units = _finalize_unit_review_fields(units)
+    behavior_evidence_audit = audit_behavior_review_evidence(units)
 
     contract_audit = audit_review_unit_contract(units)
     input_errors = _input_contract_errors(intervals, windows, units)
@@ -117,7 +123,9 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
         config.max_units_per_template,
     )
     errors = input_errors + list(contract_audit["errors"]) + capacity_errors
+    errors.extend(behavior_evidence_audit["errors"])
     warnings = list(contract_audit["warnings"])
+    warnings.extend(behavior_evidence_audit["warnings"])
 
     config.output_dir.mkdir(parents=True, exist_ok=True)
     if errors:
@@ -130,6 +138,7 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
                 "review_units": int(len(units)),
             },
             "review_unit_contract": contract_audit,
+            "behavior_evidence": behavior_evidence_audit,
         }
         audit_path = config.output_dir / "review_unit_audit.json"
         audit_path.write_text(
@@ -179,6 +188,7 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
             for name, path in outputs.items()
         },
         "review_unit_contract": contract_audit,
+        "behavior_evidence": behavior_evidence_audit,
         "template_partition": template_audit,
         "review_reason_counts": _counts(
             units[units["include_in_review"].astype(bool)],
@@ -194,7 +204,10 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
 
 
 def _base_units_from_intervals(intervals: pd.DataFrame) -> pd.DataFrame:
-    out = intervals.copy()
+    out = add_behavior_review_evidence(
+        intervals,
+        behavior_col="behavior_temporal_final",
+    )
     out["review_unit_id"] = out["temporal_unit_key"].astype(str)
     out["review_unit_type"] = np.where(
         out["source_type"].astype(str).eq(LEGACY_SOURCE),
@@ -270,6 +283,7 @@ def _base_units_from_intervals(intervals: pd.DataFrame) -> pd.DataFrame:
         "roi_target_contact",
         "roi_context_quality",
         "use_for_roi_training",
+        *REVIEW_EVIDENCE_COLUMNS,
     ]
     for col in keep:
         if col not in out.columns:
@@ -438,6 +452,21 @@ def _finalize_unit_review_fields(units: pd.DataFrame) -> pd.DataFrame:
         np.where(interval_reason.ne("") & interval_reason.ne("nan"), interval_reason, ""),
     )
     reason = pd.Series(reason, index=out.index).replace("nan", "")
+    evidence_reason = out.get(
+        "review_evidence_reason_auto",
+        pd.Series("", index=out.index),
+    ).fillna("").astype(str)
+    reason = pd.Series(
+        [
+            _combine_reason_tokens(base_reason, auto_reason)
+            for base_reason, auto_reason in zip(
+                reason,
+                evidence_reason,
+                strict=True,
+            )
+        ],
+        index=out.index,
+    )
     temporal_bad = ~status.eq("stable")
     reason = reason.mask(reason.eq("") & temporal_bad, "temporal_unit_not_stable")
 
@@ -452,6 +481,13 @@ def _finalize_unit_review_fields(units: pd.DataFrame) -> pd.DataFrame:
     out["include_in_review"] = out["review_reason"].astype(str).ne("")
 
     priority = pd.to_numeric(out["review_priority_window_max"], errors="coerce").fillna(0.0)
+    evidence_priority = pd.to_numeric(
+        out.get("review_evidence_priority_auto", 0.0),
+        errors="coerce",
+    )
+    if isinstance(evidence_priority, pd.Series):
+        evidence_priority = evidence_priority.fillna(0.0)
+    priority = priority + evidence_priority
     priority = priority + 30 * behavior.isin(INTERACTION_BEHAVIORS).astype(int)
     priority = priority + 25 * behavior.eq("playwithtoy").astype(int)
     priority = priority + 20 * temporal_bad.astype(int)
@@ -638,6 +674,12 @@ def _join_unique_strings(s: pd.Series) -> str:
 def _join_unique_ints(s: pd.Series) -> str:
     vals = sorted(set(pd.to_numeric(s, errors="coerce").dropna().astype(int).tolist()))
     return ",".join(str(v) for v in vals)
+
+
+def _combine_reason_tokens(*values: Any) -> str:
+    """Join semicolon-delimited review reasons without duplicate tokens."""
+
+    return _join_unique_strings(pd.Series(list(values), dtype="object"))
 
 
 def _counts(df: pd.DataFrame, col: str) -> dict[str, int]:
