@@ -72,7 +72,10 @@ Blocked human-lineage gates:
 
 Independent in-progress gates:
 
-- Identifier contract: separate or version scene-frame and object-frame identity.
+- Identifier code contract: `PASS`; scene and object identity are versioned as
+  `scene_frame_uid` and object-level `frame_uid`.
+- Identifier active-lineage rebuild: `IN_PROGRESS`; preserve the 30 existing Hidden
+  decisions through an audited key migration before rebuilding v2 artifacts.
 - Temporal views: build audited fixed6 observed-time, phase, and native views.
 - Shortcut probes: implement fold/source/length/missingness checks on fixtures.
 
@@ -80,13 +83,14 @@ Independent in-progress gates:
 
 Work proceeds in dependency order without fabricating human evidence:
 
-1. Version the frame/object identifier contract and prove row preservation.
-2. Complete Hidden clustered uncertainty and target-independent prevalence gates.
-3. Implement fixed-6 view manifests and source/length shortcut probes on fixtures.
-4. Complete fold-local preprocessing, event balancing, and lineage registry contracts.
-5. Complete configurable model/mask/shape contracts without downloading weights.
-6. Complete native-collapse and paired-evaluation tests with synthetic predictions.
-7. Reconcile the historical baseline only as a registered engineering control.
+1. Migrate old-to-v2 review keys with a one-to-one audit and zero lost decisions.
+2. Run a bounded source-to-window v2 technical rebuild and row-preservation audit.
+3. Complete Hidden clustered uncertainty and target-independent prevalence gates.
+4. Implement fixed-6 view manifests and source/length shortcut probes on fixtures.
+5. Complete fold-local preprocessing, event balancing, and lineage registry contracts.
+6. Complete configurable model/mask/shape contracts without downloading weights.
+7. Complete native-collapse and paired-evaluation tests with synthetic predictions.
+8. Reconcile the historical baseline only as a registered engineering control.
 
 ## Promotion And Full-Run Lock
 
@@ -105,8 +109,16 @@ authorization.
 | 2026-07-13 | Core/scientific execution contract | PASS | `ea88946` |
 | 2026-07-13 | Phase ledger opened | IN_PROGRESS | `475eefe` |
 | 2026-07-13 | Exact CVAT video resolver gate | PASS | `97a1bc3` |
+| 2026-07-13 | Identifier schema and duplicate-key guards | PASS | `a4dafed` |
+| 2026-07-13 | Canonical reader/merge identifier migration | PASS | `b5d4f9d` |
+| 2026-07-13 | Scene-based context grouping | PASS | `0125203` |
+| 2026-07-13 | Source parser object identifiers | PASS | `c4ecfde` |
+| 2026-07-13 | Scene-based social features | PASS | `8b41854` |
+| 2026-07-13 | Identifier propagation through derived contracts | PASS | `9c14368` |
+| 2026-07-13 | X/prediction guards and manifest-v2 audit | PASS | `1d3ab4d` |
 
 ## Next Checkpoint
 
-The next isolated achievement is the versioned scene-frame/object-frame identifier contract
-with backward-compatible readers, duplicate-key audits, and row-preservation tests.
+The next isolated achievement is an old-to-v2 review-key migration map. It must preserve all
+30 existing Hidden decisions, reject ambiguous mappings, and report zero missing or duplicate
+decision targets before any bounded identifier-v2 source-to-window rebuild runs.
