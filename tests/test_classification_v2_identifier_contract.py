@@ -11,6 +11,9 @@ from pig_behavior.classification_v2.contracts.identifiers import (
     ensure_frame_object_identifiers,
     scene_frame_key,
 )
+from pig_behavior.classification_v2.contracts.model_io import (
+    validate_model_input_columns,
+)
 from pig_behavior.classification_v2.sources.legacy_recovered_csv import (
     load_legacy_frame_objects,
 )
@@ -138,3 +141,21 @@ def test_legacy_source_emits_unique_object_ids_for_shared_scene(
     assert rows["identifier_schema_version"].eq(
         FRAME_OBJECT_IDENTIFIER_VERSION
     ).all()
+
+
+def test_identifier_columns_are_forbidden_from_model_x() -> None:
+    audit = validate_model_input_columns(
+        [
+            "speed_mean_window",
+            "frame_uid",
+            "scene_frame_uid",
+            "identifier_schema_version",
+        ]
+    )
+
+    assert audit["valid"] is False
+    assert audit["forbidden_columns"] == [
+        "frame_uid",
+        "identifier_schema_version",
+        "scene_frame_uid",
+    ]

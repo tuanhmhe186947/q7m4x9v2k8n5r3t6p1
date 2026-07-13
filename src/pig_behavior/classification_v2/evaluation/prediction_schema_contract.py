@@ -53,6 +53,8 @@ FORBIDDEN_PREDICTION_COLUMNS: tuple[str, ...] = (
     "track_id",
     "track_label",
     "object_track_key",
+    "identifier_schema_version",
+    "scene_frame_uid",
     "frame_uid",
     "image_key",
     "image_name",
@@ -138,7 +140,11 @@ def check_prediction_schema_csv(
     return result
 
 
-def _check_required_columns(columns: list[str], cfg: PredictionSchemaContract, errors: list[str]) -> None:
+def _check_required_columns(
+    columns: list[str],
+    cfg: PredictionSchemaContract,
+    errors: list[str],
+) -> None:
     """Require the metric exchange keys used by every model/baseline output."""
 
     missing = sorted(set(cfg.required_columns).difference(columns))
@@ -146,7 +152,11 @@ def _check_required_columns(columns: list[str], cfg: PredictionSchemaContract, e
         errors.append(f"missing_prediction_columns={missing}")
 
 
-def _check_forbidden_columns(columns: list[str], cfg: PredictionSchemaContract, errors: list[str]) -> None:
+def _check_forbidden_columns(
+    columns: list[str],
+    cfg: PredictionSchemaContract,
+    errors: list[str],
+) -> None:
     """Reject leakage-prone audit/source/identity columns in prediction files."""
 
     exact = sorted(set(columns).intersection(cfg.forbidden_columns))
@@ -161,7 +171,11 @@ def _check_forbidden_columns(columns: list[str], cfg: PredictionSchemaContract, 
         errors.append(f"forbidden_prediction_columns={forbidden}")
 
 
-def _check_identity_columns(predictions: pd.DataFrame, cfg: PredictionSchemaContract, errors: list[str]) -> None:
+def _check_identity_columns(
+    predictions: pd.DataFrame,
+    cfg: PredictionSchemaContract,
+    errors: list[str],
+) -> None:
     """Ensure native unit and window identifiers are present and deterministic."""
 
     unit_values = predictions[cfg.unit_id_col].fillna("").astype(str).str.strip()
@@ -177,7 +191,11 @@ def _check_identity_columns(predictions: pd.DataFrame, cfg: PredictionSchemaCont
         errors.append(f"duplicate_window_id_rows={duplicate_window_rows}")
 
 
-def _check_behavior_labels(predictions: pd.DataFrame, cfg: PredictionSchemaContract, errors: list[str]) -> None:
+def _check_behavior_labels(
+    predictions: pd.DataFrame,
+    cfg: PredictionSchemaContract,
+    errors: list[str],
+) -> None:
     """Validate true and predicted behavior labels against project schema."""
 
     for column in (cfg.true_col, cfg.pred_col):
@@ -190,7 +208,11 @@ def _check_behavior_labels(predictions: pd.DataFrame, cfg: PredictionSchemaContr
             errors.append(f"invalid_behavior_labels={column}:{invalid}")
 
 
-def _check_weights(predictions: pd.DataFrame, cfg: PredictionSchemaContract, errors: list[str]) -> None:
+def _check_weights(
+    predictions: pd.DataFrame,
+    cfg: PredictionSchemaContract,
+    errors: list[str],
+) -> None:
     """Require numeric non-negative sample weights for reproducible metrics."""
 
     weights = pd.to_numeric(predictions[cfg.weight_col], errors="coerce")
@@ -202,7 +224,11 @@ def _check_weights(predictions: pd.DataFrame, cfg: PredictionSchemaContract, err
         errors.append(f"negative_sample_weight_rows={negative}")
 
 
-def _check_valid_flags(predictions: pd.DataFrame, cfg: PredictionSchemaContract, errors: list[str]) -> None:
+def _check_valid_flags(
+    predictions: pd.DataFrame,
+    cfg: PredictionSchemaContract,
+    errors: list[str],
+) -> None:
     """Ensure main-train validity flags are explicit bool-like values."""
 
     raw = predictions[cfg.valid_col]

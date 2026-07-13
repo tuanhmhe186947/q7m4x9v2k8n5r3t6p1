@@ -7,6 +7,7 @@ from pathlib import Path
 import pandas as pd
 
 from pig_behavior.classification_v2.datasets.image_context_index import (
+    audit_image_context_identifier_contract,
     audit_mandatory_cvat_video_case,
 )
 
@@ -118,6 +119,14 @@ def main() -> None:
             f"mandatory_cvat_gui_video_case:{error}"
             for error in cvat_case["errors"]
         )
+    identifier_contract = audit_image_context_identifier_contract(
+        frames,
+        windows,
+    )
+    errors.extend(
+        f"identifier_contract:{error}"
+        for error in identifier_contract["errors"]
+    )
 
     result = {
         "frame_rows": int(len(frames)),
@@ -135,6 +144,7 @@ def main() -> None:
         "mandatory_cvat_gui_video_case_rows": cvat_case["rows"],
         "mandatory_cvat_gui_video_case_ok": cvat_case["ok"],
         "mandatory_cvat_gui_video_case": cvat_case,
+        "identifier_contract": identifier_contract,
         "audit_errors": audit.get("errors", []),
         "audit_warnings": audit.get("warnings", []),
         "errors": errors,

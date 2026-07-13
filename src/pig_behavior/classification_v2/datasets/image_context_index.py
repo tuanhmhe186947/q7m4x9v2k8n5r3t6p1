@@ -15,6 +15,8 @@ from typing import Any
 import pandas as pd
 
 from pig_behavior.classification_v2.contracts.identifiers import (
+    FRAME_OBJECT_IDENTIFIER_VERSION,
+    audit_frame_object_identifiers,
     ensure_frame_object_identifiers,
 )
 
@@ -82,6 +84,74 @@ class ImageContextIndex:
     frame_manifest: pd.DataFrame
     window_manifest: pd.DataFrame
     audit: dict[str, Any]
+
+
+def audit_image_context_identifier_contract(
+    frame_manifest: pd.DataFrame,
+    window_manifest: pd.DataFrame,
+) -> dict[str, Any]:
+    """Audit v2 scene/object keys while allowing explicit old-manifest reads."""
+    version = frame_manifest.get(
+        "identifier_schema_version",
+        pd.Series("", index=frame_manifest.index),
+    ).fillna("").astype(str).str.strip()
+    scene_values = frame_manifest.get(
+        "scene_frame_uid",
+        pd.Series("", index=frame_manifest.index),
+    ).fillna("").astype(str).str.strip()
+    has_partial_v2 = scene_values.ne("").any() or (
+        "scene_frame_uid_sequence" in window_manifest.columns
+    )
+    if version.eq("").all() and has_partial_v2:
+        return {
+            "status": "invalid_v2",
+            "version": "",
+            "valid": False,
+            "errors": ["partial_identifier_v2_without_version"],
+            "warnings": [],
+        }
+    if version.eq("").all():
+        return {
+            "status": "legacy_compatible",
+            "version": "",
+            "valid": True,
+            "errors": [],
+            "warnings": ["identifier_v2_not_present_rebuild_required"],
+        }
+
+    errors: list[str] = []
+    required_frame = {
+        "identifier_schema_version",
+        "scene_frame_uid",
+        "frame_uid",
+    }
+    required_window = {
+        "scene_frame_uid_sequence",
+        "frame_uid_sequence",
+    }
+    missing_frame = sorted(required_frame.difference(frame_manifest.columns))
+    missing_window = sorted(required_window.difference(window_manifest.columns))
+    if missing_frame:
+        errors.append(f"missing_identifier_frame_columns={missing_frame}")
+    if missing_window:
+        errors.append(f"missing_identifier_window_columns={missing_window}")
+    invalid_version = int(version.ne(FRAME_OBJECT_IDENTIFIER_VERSION).sum())
+    if invalid_version:
+        errors.append(f"invalid_identifier_version_rows={invalid_version}")
+    identifier_audit = (
+        audit_frame_object_identifiers(frame_manifest)
+        if not missing_frame
+        else {}
+    )
+    errors.extend(identifier_audit.get("errors", []))
+    return {
+        "status": "v2" if not errors else "invalid_v2",
+        "version": FRAME_OBJECT_IDENTIFIER_VERSION,
+        "frame_identifier_audit": identifier_audit,
+        "valid": not errors,
+        "errors": errors,
+        "warnings": [],
+    }
 
 
 def audit_mandatory_cvat_video_case(frames: pd.DataFrame) -> dict[str, Any]:

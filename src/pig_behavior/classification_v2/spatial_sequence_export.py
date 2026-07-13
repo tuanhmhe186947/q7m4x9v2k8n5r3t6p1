@@ -15,6 +15,8 @@ FORBIDDEN_SUBSTRINGS = (
     "manual",
     "temporal_unit",
     "window_id",
+    "identifier_schema",
+    "scene_frame_uid",
     "frame_uid",
     "video_key",
     "dataset_id",

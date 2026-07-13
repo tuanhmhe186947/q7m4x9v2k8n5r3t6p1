@@ -7,6 +7,7 @@ import pytest
 
 from pig_behavior.classification_v2.datasets.image_context_index import (
     MANDATORY_CVAT_MEDIA_BASENAME,
+    audit_image_context_identifier_contract,
     audit_mandatory_cvat_video_case,
     build_image_context_index,
 )
@@ -78,6 +79,12 @@ def test_context_index_preserves_rows_even_when_media_is_missing(
     assert result.audit["frame_unloadable_count"] == 2
     assert result.frame_manifest["frame_uid"].is_unique
     assert "scene_frame_uid_sequence" in result.window_manifest
+    identifier_audit = audit_image_context_identifier_contract(
+        result.frame_manifest,
+        result.window_manifest,
+    )
+    assert identifier_audit["status"] == "v2"
+    assert identifier_audit["valid"] is True
 
 
 def test_context_index_rejects_duplicate_track_frame_rows(tmp_path: Path) -> None:
@@ -135,3 +142,34 @@ def test_mandatory_cvat_video_case_rejects_incomplete_frame_set() -> None:
     assert audit["ok"] is False
     assert any("row_count_mismatch" in error for error in audit["errors"])
     assert any("frame_set_mismatch" in error for error in audit["errors"])
+
+
+def test_image_context_identifier_audit_reads_explicit_legacy_manifest() -> None:
+    frames = pd.DataFrame({"frame_uid": ["old-scene"]})
+    windows = pd.DataFrame({"frame_uid_sequence": ["old-scene"]})
+
+    audit = audit_image_context_identifier_contract(frames, windows)
+
+    assert audit["status"] == "legacy_compatible"
+    assert audit["valid"] is True
+
+
+def test_image_context_identifier_audit_rejects_partial_v2_manifest() -> None:
+    frames = pd.DataFrame(
+        {
+            "scene_frame_uid": ["scene-0"],
+            "frame_uid": ["object-0"],
+        }
+    )
+    windows = pd.DataFrame(
+        {
+            "scene_frame_uid_sequence": ["scene-0"],
+            "frame_uid_sequence": ["object-0"],
+        }
+    )
+
+    audit = audit_image_context_identifier_contract(frames, windows)
+
+    assert audit["status"] == "invalid_v2"
+    assert audit["valid"] is False
+    assert audit["errors"] == ["partial_identifier_v2_without_version"]

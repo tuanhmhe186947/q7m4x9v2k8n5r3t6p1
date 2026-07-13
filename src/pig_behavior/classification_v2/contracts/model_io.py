@@ -21,6 +21,11 @@ DEFAULT_FORBIDDEN_X_PATTERNS = (
     "review_unit_id",
     "window_id",
     "temporal_unit_key",
+    "frame_uid",
+    "scene_frame_uid",
+    "identifier_schema_version",
+    "*_uid",
+    "*_key",
     "video_key",
     "dataset_id",
     "pig_id",
@@ -34,10 +39,17 @@ DEFAULT_FORBIDDEN_X_PATTERNS = (
 )
 
 
-def forbidden_x_columns(columns: list[str], patterns: list[str] | tuple[str, ...] | None = None) -> list[str]:
+def forbidden_x_columns(
+    columns: list[str],
+    patterns: list[str] | tuple[str, ...] | None = None,
+) -> list[str]:
     """Return columns that match audit/label/identifier patterns forbidden in X."""
     active_patterns = tuple(patterns or DEFAULT_FORBIDDEN_X_PATTERNS)
-    return sorted(col for col in columns if any(fnmatch(col, pattern) for pattern in active_patterns))
+    return sorted(
+        col
+        for col in columns
+        if any(fnmatch(col, pattern) for pattern in active_patterns)
+    )
 
 
 def validate_model_input_columns(

@@ -32,6 +32,8 @@ ID_COLUMNS = {
     "source_video_key",
     "clip_id",
     "task_id",
+    "identifier_schema_version",
+    "scene_frame_uid",
     "frame_uid",
     "image_key",
     "image_name",

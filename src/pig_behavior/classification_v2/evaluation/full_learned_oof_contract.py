@@ -21,8 +21,13 @@ import pandas as pd
 class FullLearnedOofContractConfig:
     """Paths for checking the full learned OOF evaluation contract."""
 
-    contract_json: Path = Path("configs/classification_v2/full_learned_oof_contract_v1.json")
-    output_json: Path = Path("outputs/classification_v2/model_design/full_learned_oof_contract_audit.json")
+    contract_json: Path = Path(
+        "configs/classification_v2/full_learned_oof_contract_v1.json"
+    )
+    output_json: Path = Path(
+        "outputs/classification_v2/model_design/"
+        "full_learned_oof_contract_audit.json"
+    )
 
 
 def check_full_learned_oof_contract(config: FullLearnedOofContractConfig) -> dict[str, Any]:
@@ -102,16 +107,30 @@ def _build_alignment_report(
         "image_window_context_manifest": int(len(image_windows)),
         "interaction_context_manifest": int(len(interaction)),
     }
-    row_counts.update({f"spatial_array_{name}": int(value.shape[0]) for name, value in arrays.items()})
+    row_counts.update(
+        {
+            f"spatial_array_{name}": int(value.shape[0])
+            for name, value in arrays.items()
+        }
+    )
     mismatched = {name: count for name, count in row_counts.items() if count != expected_rows}
     if mismatched:
         errors.append(f"row_count_mismatch={mismatched}")
 
-    sequence_join = split[["window_id"]].merge(sequence, on="window_id", how="left", validate="one_to_one")
+    sequence_join = split[["window_id"]].merge(
+        sequence,
+        on="window_id",
+        how="left",
+        validate="one_to_one",
+    )
     single_unit = pd.to_numeric(sequence_join["num_temporal_units_window"], errors="coerce").eq(1)
-    native_join = sequence_join.loc[single_unit].rename(columns={"temporal_unit_keys_window": "temporal_unit_key"})
+    native_join = sequence_join.loc[single_unit].rename(
+        columns={"temporal_unit_keys_window": "temporal_unit_key"}
+    )
     native_join = native_join.merge(folds, on="temporal_unit_key", how="left")
-    native_valid = _to_bool(native_join["native_unit_valid_for_main_eval"]) & native_join["oof_fold_id"].notna()
+    native_valid = _to_bool(
+        native_join["native_unit_valid_for_main_eval"]
+    ) & native_join["oof_fold_id"].notna()
     if int(native_valid.sum()) == 0:
         errors.append("native_oof_valid_window_rows_zero")
     complete_image = _to_bool(image_windows["window_image_context_complete"])
@@ -119,6 +138,11 @@ def _build_alignment_report(
         errors.append("complete_image_context_rows_zero")
     if "frame_uid" not in image_frames.columns:
         errors.append("image_frame_context_missing_frame_uid")
+    scene_column = (
+        "scene_frame_uid"
+        if "scene_frame_uid" in image_frames.columns
+        else "frame_uid"
+    )
 
     return {
         "row_counts": row_counts,
@@ -130,10 +154,19 @@ def _build_alignment_report(
         "native_oof_fold_count": int(native_join.loc[native_valid, "oof_fold_id"].nunique()),
         "complete_image_context_rows": int(complete_image.sum()),
         "image_frame_context_rows": int(len(image_frames)),
-        "image_frame_context_unique_frames": int(image_frames["frame_uid"].nunique())
+        "image_frame_context_unique_frames": int(
+            image_frames[scene_column].nunique()
+        )
+        if scene_column in image_frames.columns
+        else 0,
+        "image_frame_context_unique_objects": int(
+            image_frames["frame_uid"].nunique()
+        )
         if "frame_uid" in image_frames.columns
         else 0,
-        "interaction_context_ready_rows": int(_to_bool(interaction["scene_partner_context_ready"]).sum()),
+        "interaction_context_ready_rows": int(
+            _to_bool(interaction["scene_partner_context_ready"]).sum()
+        ),
     }
 
 
