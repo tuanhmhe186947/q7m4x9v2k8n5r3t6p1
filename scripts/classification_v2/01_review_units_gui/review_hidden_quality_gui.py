@@ -100,6 +100,20 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def bounded_window_size(
+    screen_width: int,
+    screen_height: int,
+) -> tuple[int, int]:
+    """Fit the review window inside the usable screen with taskbar margins."""
+    if screen_width <= 0 or screen_height <= 0:
+        raise ValueError("Screen dimensions must be positive")
+    horizontal_margin = 40 if screen_width > 80 else 0
+    vertical_margin = 80 if screen_height > 160 else 0
+    width = min(1320, screen_width - horizontal_margin)
+    height = min(920, screen_height - vertical_margin)
+    return max(1, width), max(1, height)
+
+
 class VideoReader:
     """Reuse video handles and a small frame cache during review."""
 
@@ -173,6 +187,19 @@ class HiddenQualityReviewApp:
         self.index = 0
         self.undo_stack: list[tuple[str, dict[str, str] | None]] = []
         self.photo: ImageTk.PhotoImage | None = None
+        window_width, window_height = bounded_window_size(
+            self.root.winfo_screenwidth(),
+            self.root.winfo_screenheight(),
+        )
+        offset_x = max(0, (self.root.winfo_screenwidth() - window_width) // 2)
+        offset_y = max(0, (self.root.winfo_screenheight() - window_height) // 2)
+        self.image_max_size = (
+            max(1, window_width - 40),
+            max(1, window_height - 260),
+        )
+        self.root.geometry(
+            f"{window_width}x{window_height}+{offset_x}+{offset_y}"
+        )
 
         self.info_var = tk.StringVar()
         self.status_var = tk.StringVar()
@@ -185,7 +212,6 @@ class HiddenQualityReviewApp:
 
     def _build_ui(self) -> None:
         self.root.title("Classification V2 - Two-sided Hidden Quality Review")
-        self.root.geometry("1320x920")
         tk.Label(
             self.root,
             textvariable=self.info_var,
@@ -193,37 +219,17 @@ class HiddenQualityReviewApp:
             anchor="w",
             font=("Consolas", 10),
         ).pack(fill=tk.X, padx=10, pady=6)
-        self.image_label = tk.Label(self.root, bg="black", fg="white")
-        self.image_label.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)
 
-        metadata = tk.Frame(self.root)
-        metadata.pack(fill=tk.X, padx=10, pady=4)
-        tk.Label(metadata, text="Confidence").pack(side=tk.LEFT)
-        ttk.Combobox(
-            metadata,
-            textvariable=self.confidence_var,
-            values=["high", "medium", "low"],
-            state="readonly",
-            width=10,
-        ).pack(side=tk.LEFT, padx=5)
-        tk.Label(metadata, text="Reason").pack(side=tk.LEFT)
-        ttk.Combobox(
-            metadata,
-            textvariable=self.reason_var,
-            values=REASON_OPTIONS,
-            state="readonly",
-            width=28,
-        ).pack(side=tk.LEFT, padx=5)
-        tk.Label(metadata, text="Note").pack(side=tk.LEFT)
-        tk.Entry(metadata, textvariable=self.note_var).pack(
-            side=tk.LEFT,
-            fill=tk.X,
-            expand=True,
-            padx=5,
-        )
+        tk.Label(
+            self.root,
+            textvariable=self.status_var,
+            justify=tk.LEFT,
+            anchor="w",
+            font=("Consolas", 10),
+        ).pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=5)
 
         controls = tk.Frame(self.root)
-        controls.pack(fill=tk.X, padx=10, pady=6)
+        controls.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=6)
         tk.Button(
             controls,
             text="Hidden = Yes [H]",
@@ -263,13 +269,35 @@ class HiddenQualityReviewApp:
             command=self._save_and_exit,
             height=2,
         ).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=3)
-        tk.Label(
-            self.root,
-            textvariable=self.status_var,
-            justify=tk.LEFT,
-            anchor="w",
-            font=("Consolas", 10),
-        ).pack(fill=tk.X, padx=10, pady=5)
+
+        metadata = tk.Frame(self.root)
+        metadata.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=4)
+        tk.Label(metadata, text="Confidence").pack(side=tk.LEFT)
+        ttk.Combobox(
+            metadata,
+            textvariable=self.confidence_var,
+            values=["high", "medium", "low"],
+            state="readonly",
+            width=10,
+        ).pack(side=tk.LEFT, padx=5)
+        tk.Label(metadata, text="Reason").pack(side=tk.LEFT)
+        ttk.Combobox(
+            metadata,
+            textvariable=self.reason_var,
+            values=REASON_OPTIONS,
+            state="readonly",
+            width=28,
+        ).pack(side=tk.LEFT, padx=5)
+        tk.Label(metadata, text="Note").pack(side=tk.LEFT)
+        tk.Entry(metadata, textvariable=self.note_var).pack(
+            side=tk.LEFT,
+            fill=tk.X,
+            expand=True,
+            padx=5,
+        )
+
+        self.image_label = tk.Label(self.root, bg="black", fg="white")
+        self.image_label.pack(fill=tk.BOTH, expand=True, padx=10, pady=6)
 
     def _bind_keys(self) -> None:
         self.root.bind("h", lambda _event: self._save("Yes", "reviewed"))
@@ -320,7 +348,7 @@ class HiddenQualityReviewApp:
                 reader=self.reader,
                 padding=self.padding,
             )
-            image.thumbnail((1280, 680), Image.Resampling.LANCZOS)
+            image.thumbnail(self.image_max_size, Image.Resampling.LANCZOS)
             self.photo = ImageTk.PhotoImage(image)
             self.image_label.configure(image=self.photo, text="")
         except Exception as exc:

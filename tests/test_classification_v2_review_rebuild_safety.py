@@ -280,6 +280,41 @@ def test_hidden_gui_uses_video_contract_for_cvat(tmp_path: Path) -> None:
     assert path == video
 
 
+@pytest.mark.parametrize(
+    ("screen_size", "expected_size"),
+    [
+        ((1536, 864), (1320, 784)),
+        ((1920, 1080), (1320, 920)),
+        ((640, 480), (600, 400)),
+        ((60, 120), (60, 120)),
+    ],
+)
+def test_hidden_gui_window_stays_inside_screen(
+    screen_size: tuple[int, int],
+    expected_size: tuple[int, int],
+) -> None:
+    gui = _load_script(
+        f"hidden_gui_window_{screen_size[0]}_{screen_size[1]}",
+        "review_hidden_quality_gui.py",
+    )
+
+    actual = gui.bounded_window_size(*screen_size)
+
+    assert actual == expected_size
+    assert actual[0] <= screen_size[0]
+    assert actual[1] <= screen_size[1]
+
+
+def test_hidden_gui_window_rejects_invalid_screen_size() -> None:
+    gui = _load_script(
+        "hidden_gui_window_invalid",
+        "review_hidden_quality_gui.py",
+    )
+
+    with pytest.raises(ValueError, match="Screen dimensions must be positive"):
+        gui.bounded_window_size(0, 864)
+
+
 def test_decision_coverage_requires_no_missing_or_pending() -> None:
     coverage = _load_script(
         "review_decision_coverage",
