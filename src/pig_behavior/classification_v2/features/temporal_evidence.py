@@ -550,12 +550,16 @@ def _social_summary(
 
     contact = _bool_array(work, "pair_contact_with_nearest")
     contact_runs = _frame_run_stats(contact, neighbor_available, frames)
-    approach = _numeric_array(work, "approach_speed_n_per_frame")
+    approach, aggression, comparable_partner_pairs = _within_span_social_motion(
+        work,
+        frames,
+        row_valid,
+        partner,
+        neighbor_available,
+        contact,
+    )
     nearest_dist = _finite(
         _numeric_array(work, "nearest_dist_n")[neighbor_available]
-    )
-    aggression = _finite(
-        _numeric_array(work, "aggression_score_proxy")[row_valid]
     )
     return {
         "social_neighbor_availability_ratio": _bounded_ratio(
@@ -578,13 +582,80 @@ def _social_summary(
         "social_contact_episode_count": int(contact_runs["episodes"]),
         "social_approach_ratio": _bounded_ratio(
             int(((approach > 0) & neighbor_available).sum()),
-            available_count,
+            comparable_partner_pairs,
         ),
         "social_nearest_dist_p10": _quantile(nearest_dist, 0.10),
         "social_nearest_dist_p50": _quantile(nearest_dist, 0.50),
         "social_nearest_dist_p90": _quantile(nearest_dist, 0.90),
         "social_aggression_proxy_p90": _quantile(aggression, 0.90),
     }
+
+
+def _within_span_social_motion(
+    work: pd.DataFrame,
+    frames: np.ndarray,
+    row_valid: np.ndarray,
+    partner: np.ndarray,
+    neighbor_available: np.ndarray,
+    contact: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, int]:
+    """Recompute approach and aggression without reading outside-span deltas."""
+
+    row_count = len(work)
+    approach = np.zeros(row_count, dtype="float64")
+    actor_speed = np.zeros(row_count, dtype="float64")
+    if row_count > 1:
+        delta_frame = np.diff(frames)
+        positive_delta = np.isfinite(delta_frame) & (delta_frame > 0)
+        same_partner = (
+            neighbor_available[:-1]
+            & neighbor_available[1:]
+            & (partner[:-1] == partner[1:])
+        )
+        distance = _numeric_array(work, "nearest_dist_n")
+        distance_delta = np.diff(distance)
+        comparable = (
+            positive_delta
+            & same_partner
+            & np.isfinite(distance_delta)
+            & row_valid[:-1]
+            & row_valid[1:]
+        )
+        approach_values = np.zeros(row_count - 1, dtype="float64")
+        approach_values[comparable] = np.clip(
+            -distance_delta[comparable] / delta_frame[comparable],
+            0.0,
+            None,
+        )
+        approach[1:] = approach_values
+
+        cx = _numeric_array(work, "cx_n")
+        cy = _numeric_array(work, "cy_n")
+        actor_distance = np.hypot(np.diff(cx), np.diff(cy))
+        actor_pair_valid = (
+            positive_delta
+            & np.isfinite(actor_distance)
+            & row_valid[:-1]
+            & row_valid[1:]
+        )
+        actor_values = np.zeros(row_count - 1, dtype="float64")
+        actor_values[actor_pair_valid] = (
+            actor_distance[actor_pair_valid] / delta_frame[actor_pair_valid]
+        )
+        actor_speed[1:] = actor_values
+        comparable_count = int(comparable.sum())
+    else:
+        comparable_count = 0
+
+    density = _numeric_array(work, "social_density_near_count")
+    density = np.where(np.isfinite(density), np.clip(density, 0.0, None), 0.0)
+    aggression = (
+        contact.astype(float)
+        * neighbor_available.astype(float)
+        * (actor_speed + approach)
+        * (1.0 + density)
+    )
+    return approach, aggression[row_valid], comparable_count
 
 
 def _pair_run_stats(

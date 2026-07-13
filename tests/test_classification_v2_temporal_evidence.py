@@ -160,6 +160,31 @@ def test_invalid_bbox_does_not_create_motion_roi_or_social_evidence() -> None:
     assert evidence["social_pair_contact_ratio"] == 2 / 5
 
 
+def test_social_motion_is_recomputed_inside_requested_span() -> None:
+    frames = _six_frame_fixture()
+    baseline = summarize_temporal_evidence(
+        frames,
+        expected_start=0,
+        expected_end=5,
+    )
+    frames["approach_speed_n_per_frame"] = 999.0
+    frames["aggression_score_proxy"] = 999.0
+
+    changed = summarize_temporal_evidence(
+        frames,
+        expected_start=0,
+        expected_end=5,
+    )
+
+    assert changed["social_approach_ratio"] == baseline[
+        "social_approach_ratio"
+    ]
+    assert changed["social_aggression_proxy_p90"] == baseline[
+        "social_aggression_proxy_p90"
+    ]
+    assert changed["social_aggression_proxy_p90"] < 1.0
+
+
 def test_gaps_and_duplicates_are_audited_without_row_loss() -> None:
     frames = _six_frame_fixture().iloc[[0, 1, 3, 3, 5]].copy()
     frames.iloc[3, frames.columns.get_loc("frame_index")] = 3
