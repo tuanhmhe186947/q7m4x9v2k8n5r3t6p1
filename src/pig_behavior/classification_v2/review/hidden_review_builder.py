@@ -916,7 +916,30 @@ def _cap_each_stratum(
 ) -> pd.DataFrame:
     if count is None:
         return rows.copy()
-    return _sample_each_stratum(rows, columns, count, seed, salt)
+    if rows.empty:
+        return rows.copy()
+    available = [column for column in columns if column in rows.columns]
+    groups = rows.groupby(available, dropna=False, sort=True) if available else [("all", rows)]
+    parts: list[pd.DataFrame] = []
+    for key, group in groups:
+        stratum_key = str(key)
+        ranked = group.copy()
+        ranked["_risk_rank"] = pd.to_numeric(
+            ranked["hidden_false_negative_risk_score"],
+            errors="coerce",
+        ).fillna(0.0)
+        ranked["_tie_rank"] = ranked["hidden_review_item_id"].map(
+            lambda item_id, bound_key=stratum_key: hashlib.sha256(
+                f"{seed}|{salt}|{bound_key}|{item_id}".encode()
+            ).hexdigest()
+        )
+        ranked = ranked.sort_values(
+            ["_risk_rank", "_tie_rank", "hidden_review_item_id"],
+            ascending=[False, True, True],
+            kind="mergesort",
+        )
+        parts.append(ranked.head(count).drop(columns=["_risk_rank", "_tie_rank"]))
+    return pd.concat(parts, ignore_index=False)
 
 
 def _stable_sample(

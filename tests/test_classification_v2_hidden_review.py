@@ -175,6 +175,40 @@ def test_duplicate_hidden_decision_is_rejected() -> None:
     assert any("duplicate_decision_items" in error for error in audit["errors"])
 
 
+def test_high_risk_caps_form_nested_review_waves() -> None:
+    frames = _frame_rows()
+    first, _, _ = build_hidden_review_manifest(
+        frames,
+        config=HiddenReviewConfig(
+            random_no_per_stratum=0,
+            clean_control_per_stratum=0,
+            max_high_risk_per_stratum=1,
+        ),
+    )
+    second, _, _ = build_hidden_review_manifest(
+        frames,
+        config=HiddenReviewConfig(
+            random_no_per_stratum=0,
+            clean_control_per_stratum=0,
+            max_high_risk_per_stratum=2,
+        ),
+    )
+    first_ids = set(
+        first.loc[
+            first["hidden_review_cohort"].eq("hidden_no_high_risk"),
+            "hidden_review_item_id",
+        ]
+    )
+    second_ids = set(
+        second.loc[
+            second["hidden_review_cohort"].eq("hidden_no_high_risk"),
+            "hidden_review_item_id",
+        ]
+    )
+    assert first_ids
+    assert first_ids.issubset(second_ids)
+
+
 def test_context_policy_does_not_trust_cvat_hidden_metadata() -> None:
     frames = _frame_rows().copy()
     frames["global_context_pig_count"] = 1
