@@ -1,13 +1,24 @@
 # Classification V2 Data Rebuild And Human Review Runbook
 
-Tài liệu này hướng dẫn tái tạo dữ liệu `classification_v2` từ
-`legacy_frame_object_annotations.csv` đến bộ dữ liệu reviewed, leakage-safe và
-sẵn sàng cho training smoke. Tài liệu không khởi chạy full training hoặc full
-OOF.
+Tài liệu này hướng dẫn tái tạo dữ liệu `classification_v2` từ việc xuất
+`legacy_frame_object_annotations.csv` đến reviewed data, leakage-safe model
+inputs, model smoke và ranh giới cho phép chạy full OOF. Tài liệu không tự khởi
+chạy full training hoặc full OOF.
 
 Trạng thái PASS/FAIL hiện hành nằm trong
 `docs/CLASSIFICATION_V2_CURRENT_STATE.md`. Hiện tại luồng đang dừng ở human
 Hidden review; không nhảy tới temporal rebuild hoặc model training.
+
+Audit ngày 2026-07-13 kết luận: data-generation short chain đang PASS kỹ thuật,
+nhưng end-to-end reviewed lineage tới full OOF chưa PASS. Human review chưa đủ;
+versioned snapshot và current full runner chưa có cùng path/resolution/model
+contract. Các hard stop tương ứng được ghi ngay tại từng stage bên dưới.
+
+Audit lần hai cùng ngày xác nhận luồng **chưa hoàn toàn scientific-release
+ready**. Các lỗi còn lại không làm sai reference legacy, nhưng đang chặn snapshot:
+canonical outputs lẫn lineage, identifier `frame_uid` lệch contract object-row,
+Hidden stopping rule chưa được code hóa và cache/full runner chưa dùng cùng một
+versioned contract.
 
 ## 1. Trạng thái và quyền chạy full
 
@@ -17,7 +28,8 @@ là:
 
 1. `py_compile`, unit test và audit chỉ đọc.
 2. Chạy synthetic hoặc tiny smoke.
-3. Chạy short representative chain trên cả legacy và CVAT.
+3. Chạy short representative chain bằng complete temporal units của cả hai
+   source; không dùng leading-row truncation cho temporal/review validation.
 4. Kiểm schema, row count, key uniqueness, hash, output và runtime.
 5. Chỉ chạy full khi tất cả kiểm tra trên PASS.
 
@@ -56,6 +68,11 @@ Hidden lineage cũng chưa hoàn tất human decision; đặc biệt CVAT No hi�
 - Audit phải kiểm cả `Yes -> No` và false negative `No -> Yes`.
 - Không lan một hidden decision sang cả interval 6/16 frame nếu reviewer không
   khai báo rõ span; mặc định decision chỉ áp đúng frame/object item.
+- Identifier contract mong muốn là `frame_uid` cho frame/object row. Code hiện
+  dùng `frame_uid` như scene-frame key dùng chung giữa nhiều pig; vì vậy không
+  được deduplicate hoặc join object row chỉ bằng cột này trước khi migration.
+- Trong trạng thái chuyển tiếp, object row phải dùng composite provenance key
+  hoặc `image_context_id`; mọi join/apply vẫn phải chứng minh one-to-one.
 
 ## 3. Sơ đồ dữ liệu
 
@@ -64,6 +81,7 @@ legacy_dense_tracklet_map.csv
   -> legacy_frame_object_annotations.csv
   -> merge với 12 CVAT behavior XML
   -> context policy -> geometry -> ROI -> motion/social/posture
+  -> complete-unit scientific smoke scope (legacy 16f, CVAT scene block 6f)
   -> two-sided Hidden review: Yes + risk/random/control No
   -> hidden_reviewed_frame_features.csv
   -> temporal harmonization: legacy 16f, CVAT 6f
@@ -75,12 +93,37 @@ legacy_dense_tracklet_map.csv
   -> reviewed_frame_features.csv
   -> reviewed sequence windows
   -> native temporal units
-  -> recording-date/session-safe folds
+  -> Q2 outer/inner folds + optional native leave-one-group sensitivity
   -> whitelisted X/y/masks/event weights/spatial sequences
+  -> fixed-6 primary temporal view + native-length ablation
+  -> grouped source/length/missingness shortcut controls
   -> image context index
   -> reusable actor and interaction letterbox caches
-  -> final hash/audit snapshot
+  -> versioned data contract + immutable hash snapshot
+  -> one-batch -> tiny-overfit -> resume -> runtime -> one-fold
+  -> finalist lock -> preflight -> authorization -> full OOF
+  -> native-unit evaluation -> calibration -> confusion -> registry
 ```
+
+### 3.1. Thứ tự short trước full
+
+Mỗi stage có gate riêng; PASS ở stage trước không truyền quyền sang stage sau:
+
+```text
+legacy export smoke -> legacy full export
+merge/parser smoke -> full merge
+feature parser smoke -> full frame features -> complete-unit science smoke
+Hidden short/media/apply -> full Hidden review/apply
+temporal/window short -> full temporal/window build
+review-unit/GUI pilot -> full behavior review/apply
+cache preview/subset -> full cache/integrity/pack
+model one-batch/tiny/resume/one-fold -> authorized full OOF
+```
+
+`full` ở giữa sơ đồ chỉ nghĩa là xử lý toàn bộ artifact của stage đó, không phải
+quyền chạy training dài. Complete-unit smoke dùng để xác nhận contract liên
+stage; leading-row smoke chỉ kiểm parser/schema. Không bỏ một gate vì stage
+trước đã exit 0.
 
 ## 4. Chuẩn bị môi trường và lineage
 
@@ -109,14 +152,24 @@ set SPLIT=%R%\10_grouped_splits
 set TRAIN=%R%\11_train_ready
 set CACHE=%R%\12_actor_cache_224_letterbox
 set VCACHE=%R%\13_interaction_cache_224_letterbox
+set SNAP=%R%\14_training_snapshot
+set MODEL=%R%\15_model_development
 ```
 
 Không chạy nguyên văn khi `RUN_ID` còn chứa `YYYYMMDD_vN`, và không dùng lại
 một `%R%` đã có artifact. Active Hidden v5 là lineage review hiện hành riêng;
 trạng thái và đường dẫn của nó nằm trong `CLASSIFICATION_V2_CURRENT_STATE.md`.
-Các builder derived-data sẽ dừng nếu output đã tồn tại. Chỉ thêm `--overwrite`
-khi lặp lại đúng semantic config sau short PASS; đổi config phải dùng `RUN_ID`
-mới để không trộn lineage.
+Không phải mọi builder đều chặn output tồn tại. Exporter legacy, temporal smoke
+selector và một số builder CSV có thể ghi đè. Khi khởi tạo lineage mới, chạy
+guard sau đúng một lần trước khi tạo artifact:
+
+```bat
+if exist "%R%" (echo ERROR: RUN_ID already exists: %R% & exit /b 2)
+```
+
+Chỉ thêm `--overwrite` khi lặp lại đúng semantic config sau short PASS. Đổi
+config phải dùng `RUN_ID` mới để không trộn lineage. Resume GUI/cache là ngoại
+lệ có chủ ý và phải dùng đúng manifest/hash của cùng lineage.
 
 Khai báo script root ngắn để lệnh dễ đọc và tránh lỗi dòng dài:
 
@@ -125,11 +178,24 @@ set S0=scripts\classification_v2\00_source_feature_temporal
 set S1=scripts\classification_v2\01_review_units_gui
 set S2=scripts\classification_v2\02_train_ready_exports
 set S3=scripts\classification_v2\03_image_cache_context
+set S4=scripts\classification_v2\04_baselines_smokes
+set S5=scripts\classification_v2\05_preflight_authorization
+set S6=scripts\classification_v2\06_full_oof_training
+set S7=scripts\classification_v2\07_postrun_evaluation
+set S8=scripts\classification_v2\08_publication_reporting
+set S9=scripts\classification_v2\09_final_release_audit
 ```
 
 Không tạo nhiều folder tên `smoke`, `resume_smoke`, `letterbox_smoke` ở cấp
 `outputs\classification_v2`. Mọi artifact của lần rebuild này nằm dưới `%R%`.
 Smoke và full có tên theo vai trò, không theo lỗi thử nghiệm.
+
+Không dùng canonical folder hiện có làm authority cho rebuild mới. Audit đã thấy
+`frame_features\geometry_audit.json` chỉ có 173.664 row, gồm 100.800 CVAT row và
+còn chứa dataset `Tracking_annotation_Pigs291119_000263_30fps`. Trong khi đó,
+enhanced audit cùng canonical tree có 245.664 row, gồm 172.800 CVAT row từ
+allowlist 12 XML. Đây là mixed lineage. Mọi stage phải đọc artifact ngay trước
+nó dưới cùng `%R%`; không được ghép một canonical intermediate vào lineage mới.
 
 ## 5. Kiểm kê nguồn bất biến
 
@@ -178,9 +244,40 @@ lần chạy sau nghĩa là lineage mới và phải chạy short chain lại.
 
 ## 6. Xuất legacy frame-object annotations
 
+### 6.0. Reference hiện có và lineage mới
+
+File người dùng nêu là derived reference, không phải raw input bất biến:
+
+```text
+outputs\legacy_full_multigt_masked_nodup_16f\exports_v2\
+legacy_frame_object_annotations.csv
+```
+
+Audit hiện tại của reference: 72.864 row, 4.554 tracklet, mỗi tracklet đúng 16
+frame, 0 duplicate tracklet/frame, 0 behavior thay đổi trong burst, 0 bbox
+invalid và đủ 10 behavior. SHA256 hiện tại là:
+
+```text
+adbdb572b976e9f63cff5f9b29ced649f37fa80dd382336b3678f71ac50ff636
+```
+
+Xác nhận lại bằng lệnh chỉ đọc:
+
+```bat
+certutil -hashfile ^
+  outputs\legacy_full_multigt_masked_nodup_16f\exports_v2\^
+legacy_frame_object_annotations.csv SHA256
+```
+
+Không overwrite reference này khi rebuild. Mỗi run phải xuất bản mới dưới
+`%SRC%\legacy_export`, rồi so row/schema/hash với reference. Hash khác không tự
+động là lỗi, nhưng phải giải thích bằng code SHA, input hash hoặc config diff.
+
 ### 6.1. Short smoke bắt buộc
 
 ```bat
+if exist "%SM%\legacy_export\legacy_frame_object_annotations.csv" ^
+  (echo ERROR: smoke legacy export exists & exit /b 2)
 %PY% src\legacy_burst_recovery\export_legacy_annotations.py ^
   --dense-csv ^
   data\raw\legacy_full_multigt_masked_nodup_16f\legacy_dense_tracklet_map.csv ^
@@ -200,6 +297,8 @@ và xác định do input hash thay đổi hay do regression. Không thêm
 ### 6.2. Full export sau khi smoke PASS
 
 ```bat
+if exist "%SRC%\legacy_export\legacy_frame_object_annotations.csv" ^
+  (echo ERROR: full legacy export exists & exit /b 2)
 %PY% src\legacy_burst_recovery\export_legacy_annotations.py ^
   --dense-csv ^
   data\raw\legacy_full_multigt_masked_nodup_16f\legacy_dense_tracklet_map.csv ^
@@ -215,8 +314,16 @@ Output chính:
 %SRC%\legacy_export\legacy_frame_object_annotations.csv
 ```
 
-Gate: file không rỗng, bbox invalid được báo cáo, sequence thiếu/ngoài range được
-ghi rõ và không row nào bị lọc âm thầm.
+Exporter hiện không có `--overwrite` guard hoặc audit JSON; hai `if exist` trên
+là bắt buộc. Gate: file không rỗng, bbox invalid được báo cáo, sequence
+thiếu/ngoài range được ghi rõ và không row nào bị lọc âm thầm. Hash output phải
+được ghi ở mục 17; downstream merge audit phải xác nhận row/schema/source.
+
+Các cột legacy như `behavior_coarse` và `use_for_*_training` là metadata
+target-derived để tương thích/audit, không phải feature. Context policy hiện
+hành phải recompute eligibility theo `schema.py`; review policy mới là authority
+cho interaction/ROI/motion/posture. Cấm đưa các cột legacy này vào X hoặc dùng
+chúng để route modality, partner hay image context.
 
 ## 7. Merge legacy và CVAT
 
@@ -294,7 +401,7 @@ Geometry tạo bbox/location chuẩn hóa. ROI tạo quan hệ tới feeder, dri
 toy cho mọi row, không chọn ROI theo label. Enhanced tạo motion, temporal,
 partner/social và posture proxy.
 
-### 8.1. Short feature chain
+### 8.1. Parser/schema feature smoke
 
 ```bat
 set FSM=%SM%\frame_features
@@ -317,9 +424,11 @@ set FSM=%SM%\frame_features
   --audit-json %FSM%\frame_enhanced_audit.json
 ```
 
-Short chain PASS khi row count giữ nguyên qua bốn bước, audit không có error,
-bbox/ROI columns tồn tại, source vẫn đủ và không có target-derived field được
-chọn làm X. Warning về thiếu context phải được đếm, không được thay bằng drop.
+Chain này dùng merge bị giới hạn theo leading rows, nên chỉ kiểm parser, schema
+và row preservation. Nó không chứng minh temporal/review correctness vì có thể
+cắt giữa CVAT interval hoặc legacy burst. PASS khi row count giữ nguyên qua bốn
+bước, audit không có error, bbox/all-ROI columns tồn tại và source vẫn đủ.
+Warning về thiếu context phải được đếm, không được thay bằng drop.
 
 ### 8.2. Full feature chain
 
@@ -347,6 +456,28 @@ Không truyền `--max-rows` ở full. So sánh số row của enhanced với me
 chênh lệch phải có error hoặc audit reason cụ thể. Enhanced là input immutable
 của nhánh review trong lineage này; apply review phải ghi file khác.
 
+### 8.3. Complete-unit scientific smoke scope
+
+Sau full feature extraction, tạo short scope từ complete scene/native blocks.
+Đây mới là input cho Hidden, temporal và review smoke:
+
+```bat
+set SSCOPE=%SM%\complete_unit_scope
+if exist "%SSCOPE%\frame_features_complete_units.csv" ^
+  (echo ERROR: complete-unit smoke exists & exit /b 2)
+%PY% %S0%\classification_v2_build_temporal_smoke_scope.py ^
+  --input-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
+  --output-csv %SSCOPE%\frame_features_complete_units.csv ^
+  --audit-json %SSCOPE%\temporal_smoke_scope_audit.json ^
+  --blocks-per-source 4 --cvat-label-stride 6 ^
+  --legacy-expected-sequence-length 16
+```
+
+Gate: `errors=[]`, hai source, complete CVAT 6-frame actor units, complete legacy
+16-frame tracklets và không selected incomplete block. Reference hiện tại có
+688 row, 63 native unit và đủ 10 behavior; số khác phải được giải thích, không
+ép về 688 bằng cách cắt row.
+
 ## 8A. Hidden review hai chiều trước temporal harmonization
 
 Hidden review độc lập với behavior review. Mục tiêu không chỉ xác nhận các row
@@ -358,7 +489,9 @@ Bốn cohort không được trộn ý nghĩa thống kê:
 
 - `hidden_yes_confirmation`: census `Hidden=Yes` chưa tin cậy, đồng thời lấy
   mẫu phân tầng từ `Hidden=Yes` trusted để kiểm tra lại prior review;
-- `hidden_no_high_risk`: enrichment theo overlap, proximity, bbox/shape change;
+- `hidden_no_high_risk`: targeted enrichment theo overlap, proximity,
+  bbox/shape change và, trong implementation hiện tại, original interaction
+  label;
 - `hidden_no_random_audit`: random phân tầng để ước lượng false-negative rate;
 - `hidden_no_clean_control`: kiểm specificity ở nhóm risk thấp.
 
@@ -366,33 +499,39 @@ Random audit lưu population, inclusion probability và inverse sampling weight.
 Chỉ post-stratified random estimate được diễn giải như prevalence. Correction
 yield của high-risk cohort không phải prevalence.
 
+Hàm `_hidden_false_negative_risk()` hiện cộng score khi `behavior` là `fight`
+hoặc `social-nose`, dù docstring gọi risk là label-independent. Manifest v5 có
+333 row mang reason `interaction_scene`. Trước final Hidden lock phải chọn một
+trong hai contract: bỏ target term khỏi visibility risk, hoặc đổi tên cohort
+thành target-informed enrichment và báo cáo tách biệt. Tuyệt đối không dùng
+cohort này để ước lượng population false-negative prevalence.
+
 ### 8A.1. Short builder và media gate
 
 ```bat
 set HSM=%SM%\hidden_review
 %PY% %S1%\classification_v2_build_hidden_review_units.py ^
-  --input-csv %FSM%\frame_enhanced.csv ^
-  --output-dir %HSM% ^
-  --max-rows-per-source 64
+  --input-csv %SSCOPE%\frame_features_complete_units.csv ^
+  --output-dir %HSM%
 ```
 
 ```bat
 %PY% %S1%\check_hidden_review_template_coverage.py ^
-  --input-csv %FSM%\frame_enhanced.csv ^
+  --input-csv %SSCOPE%\frame_features_complete_units.csv ^
   --manifest-csv %HSM%\hidden_review_unit_manifest.csv ^
-  --audit-json %HSM%\hidden_review_coverage_audit.json ^
-  --max-rows-per-source 64
+  --audit-json %HSM%\hidden_review_coverage_audit.json
 %PY% %S1%\review_hidden_quality_gui.py ^
   --manifest-csv %HSM%\hidden_review_unit_manifest.csv ^
   --frame-features-csv %HSM%\hidden_review_frame_context.csv ^
-  --output-dir %HSM%\gui --reviewer REVIEWER_NAME ^
+  --output-dir %HSM%\gui --reviewer %REVIEWER_NAME% ^
   --video-root data\videos ^
   --crop-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
   --validation-audit-json %HSM%\hidden_media_validation_audit.json ^
   --validate-only
 ```
 
-Short PASS khi hai source đều có mặt, input scope có cả Yes/No, không thiếu
+Không thêm `--max-rows-per-source` ở đây vì nó có thể cắt complete-unit scope
+lần thứ hai. Short PASS khi hai source đều có mặt, input có cả Yes/No, không thiếu
 untrusted Yes, trusted Yes đạt quota phân tầng, negative cohorts tồn tại, key
 unique và media missing bằng 0. Builder xuất frame-context subset để GUI không
 đọc lại full enhanced CSV.
@@ -403,7 +542,7 @@ Mở GUI pilot sau media gate:
 %PY% %S1%\review_hidden_quality_gui.py ^
   --manifest-csv %HSM%\hidden_review_unit_manifest.csv ^
   --frame-features-csv %HSM%\hidden_review_frame_context.csv ^
-  --output-dir %HSM%\gui --reviewer REVIEWER_NAME ^
+  --output-dir %HSM%\gui --reviewer %REVIEWER_NAME% ^
   --video-root data\videos ^
   --crop-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
   --max-items 5
@@ -418,14 +557,14 @@ và apply. Không tạo fake decision để ép smoke PASS.
   --decisions-csv %HSM%\gui\hidden_review_decisions.csv ^
   --audit-json %HSM%\hidden_review_decision_coverage_audit.json
 %PY% %S1%\classification_v2_apply_hidden_review_decisions.py ^
-  --input-csv %FSM%\frame_enhanced.csv ^
+  --input-csv %SSCOPE%\frame_features_complete_units.csv ^
   --manifest-csv %HSM%\hidden_review_unit_manifest.csv ^
   --decisions-csv %HSM%\gui\hidden_review_decisions.csv ^
   --output-csv %HSM%\hidden_reviewed_frame_features.csv ^
   --audit-json %HSM%\apply_hidden_review_audit.json ^
   --confusion-audit-json %HSM%\hidden_confusion_audit.json
 %PY% %S1%\check_apply_hidden_review_decisions_output.py ^
-  --input-csv %FSM%\frame_enhanced.csv ^
+  --input-csv %SSCOPE%\frame_features_complete_units.csv ^
   --output-csv %HSM%\hidden_reviewed_frame_features.csv ^
   --audit-json %HSM%\check_apply_hidden_review_output.json
 ```
@@ -456,11 +595,26 @@ hoặc bỏ cap; giữ cùng seed để selection lồng nhau và resume decisio
 khóa final cap khi correction yield đã ổn định thấp và random weighted estimate
 có uncertainty được báo cáo. Mọi lần mở rộng phải rebuild coverage audit.
 
+Trước khi xem kết quả wave đầu, ghi vào review-design manifest: ngưỡng chấp
+nhận false-negative, phương pháp confidence interval và strata sẽ báo cáo.
+Không khóa Hidden review chỉ vì point estimate thấp. Upper confidence bound của
+random weighted estimate và correction yield ở wave high-risk cuối đều phải
+đạt ngưỡng đã khai báo; nếu không thì mở rộng wave hoặc census. Không suy ngược
+prevalence từ high-risk cohort và không đổi ngưỡng sau khi xem kết quả.
+
+Đây hiện là **implementation blocker**, không phải gate đã có sẵn. Apply audit
+mới chỉ xuất Wilson 95% CI cho tỷ lệ random không trọng số, một weighted point
+estimate và một high-risk point estimate. Nó chưa có design-based/clustered CI
+cho weighted estimate, CI cho high-risk yield, hoặc machine-readable threshold
+decision. Correlation của các frame cùng native unit/video phải được phản ánh
+trong uncertainty. Không được gọi Hidden scientifically locked cho tới khi các
+output và fail-closed checker này được cài đặt, test và bind vào snapshot.
+
 ```bat
 %PY% %S1%\review_hidden_quality_gui.py ^
   --manifest-csv %HREV%\hidden_review_unit_manifest.csv ^
   --frame-features-csv %HREV%\hidden_review_frame_context.csv ^
-  --output-dir %HREV%\gui --reviewer REVIEWER_NAME ^
+  --output-dir %HREV%\gui --reviewer %REVIEWER_NAME% ^
   --video-root data\videos ^
   --crop-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
   --validation-audit-json %HREV%\hidden_media_validation_audit.json ^
@@ -473,14 +627,15 @@ Chỉ mở full GUI sau khi media audit trên báo `media_missing=0`:
 %PY% %S1%\review_hidden_quality_gui.py ^
   --manifest-csv %HREV%\hidden_review_unit_manifest.csv ^
   --frame-features-csv %HREV%\hidden_review_frame_context.csv ^
-  --output-dir %HREV%\gui --reviewer REVIEWER_NAME ^
+  --output-dir %HREV%\gui --reviewer %REVIEWER_NAME% ^
   --video-root data\videos ^
   --crop-root data\raw\legacy_full_multigt_masked_nodup_16f\crops
 ```
 
 GUI hiển thị full frame với actor và bbox context, kèm actor crop letterbox.
-Chọn `Hidden=Yes`, `Visible=No` hoặc `Unclear`; confidence và reason là bắt
-buộc về mặt quy trình. GUI chỉ ghi decision CSV, không sửa XML/CSV nguồn.
+Chọn `Hidden=Yes`, `Hidden=No (visible)` hoặc `Unclear`; confidence và reason
+là bắt buộc về mặt quy trình. GUI chỉ ghi decision CSV, không sửa XML/CSV
+nguồn.
 
 ### 8A.3. Complete gate và apply
 
@@ -492,8 +647,10 @@ buộc về mặt quy trình. GUI chỉ ghi decision CSV, không sửa XML/CSV n
 ```
 
 Default là fail-closed: missing, duplicate, pending và `Unclear` đều làm gate
-FAIL. `--allow-unresolved` chỉ dành cho smoke/debug, không dùng để tạo training
-snapshot. Non-selected CVAT No vẫn là untrusted, không âm thầm thành trusted No.
+FAIL. `--allow-unresolved` chỉ bỏ yêu cầu resolve `pending/Unclear`; nó vẫn FAIL
+khi thiếu decision row, duplicate hoặc unknown item. Flag này không tạo được
+fake coverage và không được dùng cho training snapshot. Non-selected CVAT No
+vẫn là untrusted, không âm thầm thành trusted No.
 
 ```bat
 %PY% %S1%\classification_v2_apply_hidden_review_decisions.py ^
@@ -518,7 +675,9 @@ trust status, random false-negative estimate cùng high-risk correction yield.
 Temporal harmonization chỉ bắt đầu từ hidden-reviewed artifact. CVAT anchor `k`
 đại diện `k..k+5`; legacy burst có 16 frame. Hidden vẫn là frame/object quality,
 không được broadcast theo behavior interval. Sequence window được tạo sau bước
-này và có thể dài 6, 8, 12 hoặc 16 frame.
+này. Window 6, 8, 12 và 16 frame là candidate pool để audit/ablation, không phải
+cam kết rằng final model được dùng đồng thời mọi length. Primary model view phải
+được khóa riêng ở mục 15.6 để sequence length/padding không tiết lộ source.
 
 ### 9.1. Short temporal/window chain
 
@@ -583,7 +742,14 @@ Chúng phải có cùng native-unit key, label và interval boundary. Gate bắt
 - `window_id` unique, không có `window_uid`;
 - window status stable/mixed/transition được đếm;
 - source và label distribution được ghi;
+- standalone interval và window-builder interval khớp key/label/boundary;
 - không row bị mất mà không có audit reason.
+
+Case anchor bắt buộc có một nuance quan trọng. Raw rows `1020..1025` của
+`Pigs281119_000085_30fps / ID_4` chứa cả `social-nose` và `stand`; anchor 1020
+là `social-nose`. Sau harmonization, target của đủ sáu frame là `social-nose`
+và review group là `interaction`. Đây là propagation đúng contract, không phải
+đổi âm thầm raw non-anchor annotation.
 
 Window audit phải tách `hidden_ratio_raw`, `hidden_ratio_trusted` và review
 coverage. Default không loại/downweight window chỉ vì hidden ratio cao. Flag
@@ -596,6 +762,12 @@ Review unit là đơn vị human decision, không phải training window. Mỗi 
 thuộc một template chính: interaction, ROI, motion hoặc posture. `playwithtoy`
 luôn nằm trong ROI review. `stand` thuộc motion/context; `fight` thuộc
 interaction; posture chỉ có `lying` và `sitting`.
+
+Builder gắn review-only conflict/insufficiency/priority evidence từ motion,
+all-ROI, posture proxy và social persistence. Các score này chỉ sắp xếp/cung
+cấp ngữ cảnh cho reviewer; chúng không tự đổi label, weight hoặc model target và
+mọi `review_*` field bị cấm khỏi X. ROI bbox contact chỉ là proxy không gian,
+không được diễn giải như bằng chứng chắc chắn về ăn/uống nếu thiếu head/snout.
 
 ### 10.1. Builder smoke
 
@@ -627,6 +799,13 @@ interaction; posture chỉ có `lying` và `sitting`.
   --intervals-csv %SEQ0%\temporal_label_intervals.csv ^
   --review-units-csv %REV%\review_unit_manifest.csv ^
   --output-json %REV%\cvat_anchor_1020_audit.json
+%PY% %S0%\check_classification_v2_temporal_evidence.py ^
+  --enhanced-csv %HREV%\hidden_reviewed_frame_features.csv ^
+  --intervals-csv %SEQ0%\temporal_label_intervals.csv ^
+  --windows-csv %SEQ0%\sequence_window_manifest.csv ^
+  --review-units-csv %REV%\review_unit_manifest.csv ^
+  --trainer-contract-json configs\classification_v2\trainer_contract_v1.json ^
+  --output-json %REV%\temporal_evidence_audit.json
 ```
 
 Flag `--disable-window-review-overlay` ngăn builder đọc window-review artifact
@@ -634,7 +813,8 @@ canonical cũ. Chỉ bật overlay khi có file review window thuộc đúng `RU
 hash đã khóa.
 
 Gate: duplicate `review_unit_id=0`, không có `window_uid`, template labels đúng
-policy và `full_review_unit_manifest.csv` bằng union của các template.
+policy, `full_review_unit_manifest.csv` bằng union của các template và temporal
+evidence audit không phát hiện label/review leakage vào trainer whitelist.
 
 ## 11. GUI smoke và human review đầy đủ
 
@@ -746,6 +926,12 @@ Quy tắc quyết định:
 Full review hiện tại tương đương khoảng 4.670 unit. Con số phải lấy từ manifest
 mới, không hard-code. Nên double-review 10-20% nhóm hiếm/confusion và báo
 agreement riêng; GUI decision không được dùng làm model feature.
+
+Với kết quả paper-facing, subset double-review phải được chọn theo strata trước
+khi xem disagreement, review lần hai ở chế độ blind và lưu reviewer/run riêng.
+Báo action agreement, corrected-label agreement và per-confusion disagreement;
+adjudication tạo artifact mới, không sửa âm thầm decision gốc. Nếu chỉ có một
+reviewer, phải ghi đây là limitation thay vì claim annotation reliability cao.
 
 ## 12. Audit decision và apply review
 
@@ -892,6 +1078,12 @@ ghi `unknown`, không suy đoán.
 
 ### 14.3. Q2 outer/inner folds
 
+Năm grouped folds này là protocol khoa học chính. Với từng outer fold, `test`
+phải bất khả kiến; candidate selection, early stopping, normalization, class
+weight và calibration fit chỉ được dùng `train`/`validation` của chính fold đó.
+Outer test chỉ đánh giá selection rule đã khai báo trước. Mọi model paired
+comparison phải dùng cùng assignment/hash và cùng native units.
+
 ```bat
 %PY% %S2%\classification_v2_build_q2_folds.py ^
   --native-unit-csv ^
@@ -902,9 +1094,46 @@ ghi `unknown`, không suy đoán.
   --fold-dir %SPLIT%\q2_grouped_folds
 ```
 
+Không chọn global finalist bằng pooled outer-test metrics rồi báo lại chính các
+metric đó như unbiased evidence. Hoặc khóa finalist trên development groups
+tách biệt, hoặc predeclare candidate-selection rule chạy hoàn toàn trong inner
+roles của từng outer fold. Dataset hiện chưa có untouched external session.
+
+### 14.4. Native leave-one-group-out engineering manifest
+
+Current OOF runner đọc manifest leave-one-recording-group-out riêng và không
+dùng inner validation roles. Build/audit manifest này để tái lập runner hiện
+tại, nhưng không gọi nó là confirmatory protocol sau khi cùng recording groups
+đã được dùng để chọn architecture:
+
+```bat
+%PY% %S2%\classification_v2_build_native_oof_folds.py ^
+  --native-split-manifest ^
+  %SPLIT%\publication_native\publication_split_manifest.csv ^
+  --output-dir %SPLIT%\native_oof_folds
+%PY% %S2%\check_classification_v2_native_oof_folds.py ^
+  --manifest %SPLIT%\native_oof_folds\native_oof_fold_manifest.csv ^
+  --audit-json %SPLIT%\native_oof_folds\native_oof_fold_check.json
+```
+
+Q2 outer/inner roles là authority khoa học. Native leave-one-group-out chỉ là
+engineering baseline hoặc sensitivity analysis được khai báo trước. Final Q2
+runner phải nhận Q2 roles trực tiếp, fit mọi transform trong outer-train và dùng
+inner validation; không được chạy cả hai protocol rồi chọn metric tốt hơn. Muốn
+có confirmatory test độc lập thật sự phải khóa recording/session chưa từng tham
+gia review design, feature/model selection hoặc threshold tuning; hiện chưa có
+manifest như vậy.
+
 Gate: một `recording_group_id` và recording date không xuất hiện ở nhiều split
 trong cùng comparison; cùng `temporal_unit_key` không nằm ở nhiều outer test
-fold; class-by-fold support được báo cáo. Fold thiếu lớp không được che giấu.
+fold; class-by-fold và source-by-fold support được báo cáo. Fold thiếu lớp không
+được che giấu.
+
+Recording date và source hiện có tương quan mạnh; một số fold có thể chỉ chứa
+legacy hoặc CVAT. Grouped split ngăn leakage nhưng không tự loại domain
+confounding. Không phá recording group để cân source. Phải báo cáo pooled,
+per-source và source-by-fold metrics, đồng thời giữ claim ở internal known-domain
+validation, không gọi là source/farm/camera generalization.
 
 Không dùng split random theo frame, row hoặc overlapping window. Không dùng
 outer-fold prediction để chọn architecture, threshold hoặc hyperparameter.
@@ -926,7 +1155,15 @@ OOF và model selection.
   --label-col behavior_window_label ^
   --valid-col window_valid_for_main_train ^
   --id-col window_id
+%PY% %S2%\check_classification_v2_split_group_leakage.py ^
+  --split-manifest-csv %TRAIN%\split_manifest.csv ^
+  --split-audit-json ^
+  %TRAIN%\window_split_protocol\publication_split_audit.json ^
+  --output-json %TRAIN%\window_split_group_leakage_audit.json
 ```
+
+Gate phải chứng minh mọi window của cùng recording/video/native unit chỉ có một
+split role. `window_id` là row key, không phải grouping key khoa học.
 
 ### 15.2. Whitelisted tabular X/y/mask/weight
 
@@ -946,6 +1183,9 @@ từ mọi numeric column hoặc prefix. `X_window_features.csv` chỉ chứa fe
 whitelist. `y_behavior.csv`,
 `train_mask.csv` và `sample_weight.csv` là artifact riêng, không join ngược vào
 X. Audit phải có `forbidden_selected=[]` và row count X/y/mask/weight bằng nhau.
+`check_classification_v2_q2_feature_whitelist.py` chỉ đối chiếu các contract
+JSON; nó không tự kiểm `%TRAIN%\X_window_features.csv`. Candidate-specific check
+được chạy sau spatial export ở mục 15.4.
 
 ### 15.3. Event-balanced weights
 
@@ -976,7 +1216,18 @@ này; class prior/weight phải tính riêng từ train role của từng outer 
   --window-manifest-csv %SEQ1%\sequence_window_manifest.csv ^
   --train-mask-csv %TRAIN%\train_mask.csv ^
   --output-json %TRAIN%\spatial_sequence_validation.json
+%PY% %S2%\check_classification_v2_feature_semantics.py ^
+  --contract-json configs\classification_v2\feature_semantics_v1.json ^
+  --tabular-x-csv %TRAIN%\X_window_features.csv ^
+  --spatial-npz %TRAIN%\X_spatial_sequences.npz ^
+  --output-json %TRAIN%\feature_semantics_audit.json
 ```
+
+Không truyền `trainer_contract_v2.json` vào
+`check_classification_v2_trainer_contract.py`: checker hiện chỉ hiểu schema v1
+và đọc canonical paths. Candidate `%TRAIN%` đã được kiểm trực tiếp bằng
+feature-semantics command trên; trainer-contract checker phải được nâng cấp
+nhận versioned path trước snapshot.
 
 NPZ chứa numeric arrays và masks, không phải ảnh xem trực tiếp. Phải có
 `length_mask`, `observed_mask`, `quality/missing` semantics và row order khớp
@@ -998,7 +1249,60 @@ lập. Chỉ dùng làm auxiliary target/mask; không đưa vào X và không d�
 argmax cascade vào final 10-class head. Attribute reviewed độc lập, nếu bổ sung
 sau này, phải có confidence/mask và một ablation riêng.
 
+### 15.6. Primary temporal view và source-shortcut controls
+
+Tạo non-destructive 6-frame/source-matched masks và grouped source probes:
+
+```bat
+%PY% %S2%\classification_v2_build_source_matched_views.py ^
+  --window-manifest %TRAIN%\split_manifest.csv ^
+  --output-dir %TRAIN%\source_matched_views
+%PY% %S2%\check_classification_v2_source_matched_views.py ^
+  --input-csv %TRAIN%\split_manifest.csv ^
+  --view-csv %TRAIN%\source_matched_views\source_matched_view_manifest.csv
+%PY% %S7%\classification_v2_evaluate_domain_controls.py ^
+  --root %TRAIN% ^
+  --grouped-roles %SPLIT%\q2_grouped_folds\q2_outer_inner_roles.csv ^
+  --output-dir %TRAIN%\domain_controls
+%PY% %S4%\check_classification_v2_grouped_spatial_source_probe.py ^
+  --root %TRAIN% ^
+  --grouped-roles %SPLIT%\q2_grouped_folds\q2_outer_inner_roles.csv ^
+  --output-json %TRAIN%\domain_controls\spatial_source_probe_audit.json
+```
+
+Primary protocol là một fixed 6-slot view với cùng sampling rule và observed
+time semantics cho hai source. `view_matched_6frame` hiện chỉ kiểm số slot; nó
+chưa tự chứng minh cadence/duration tương đương. Native 6/16 và mọi-length
+training chỉ là ablation cho tới khi source, sequence-length, padding và
+effective-time probes được audit.
+
+Trong primary X, `window_length_frames` phải là hằng số. Chỉ giữ duration,
+effective FPS hoặc frame-delta khi provenance thời gian của hai source đã được
+calibrate và cùng ý nghĩa; nếu không chúng là source proxy và phải bỏ khỏi
+primary view. Chạy riêng `availability-only` probe cho ROI/social/context masks
+trước khi diễn giải gain từ real context.
+
+Không chạy full nếu model loader chưa nhận explicit temporal-view mask hoặc nếu
+source/length gần như suy ra label mà chưa có matched analysis. Context gain còn
+phải có actor-only, availability-only, real-context, matched-context subset và
+modality-dropout controls.
+
 ## 16. Image context và cache tái sử dụng
+
+### 16.0. Disk và cache-lineage preflight
+
+Với 245.664 actor row và 172.800 CVAT visual-context row ở 224 px, raw `uint8`
+pixel chiếm xấp xỉ 37 GB cho actor và 26 GB cho interaction. Giữ cả individual
+NPY và packed NPY nhân đôi thành khoảng 126 GB, chưa tính preview, manifest,
+integrity, partial checkpoint và filesystem overhead. Khuyến nghị có ít nhất
+160 GB trống trước khi build cả hai cache:
+
+```bat
+%PY% -c "import shutil; print(shutil.disk_usage('C:/').free // 2**30)"
+```
+
+Nếu không đủ, dừng trước cache full và đổi storage root trong versioned contract.
+Không xóa cache cũ hoặc raw data để giải phóng chỗ mà chưa kiểm lineage/hash.
 
 ### 16.1. Resolver/index smoke trước cache
 
@@ -1022,8 +1326,12 @@ sau này, phải có confidence/mask và một ablation riêng.
   --audit-json %TRAIN%\image_context_index_audit.json
 ```
 
-Checker cuối kiểm trực tiếp case `Pigs291119_000231 / ID_4 / 678..683` và phải
-resolve được file `_30fps.mp4`. Missing media/bbox được đếm, không thay bằng ảnh
+Checker cuối kiểm trực tiếp sáu row của case
+`Pigs291119_000231 / ID_4 / 678..683` và hiện fail nếu chúng không loadable.
+Manifest đã xác nhận path thực tế là
+`data\videos\Pigs291119_000231_30fps.mp4`. Tuy nhiên checker hiện chưa assert
+exact basename; phải bổ sung assertion này trước snapshot để một file sai nhưng
+vẫn loadable không thể PASS. Missing media/bbox được đếm, không thay bằng ảnh
 zero âm thầm.
 
 ### 16.2. Actor cache short run trong chính cache root
@@ -1089,7 +1397,7 @@ Không dùng `--overwrite` trừ khi input hash hoặc resize policy đổi và 
 %PY% %S3%\classification_v2_build_packed_image_cache.py ^
   --cache-manifest %CACHE%\manifest.csv ^
   --image-size 224 --output-dir %CACHE% ^
-  --workers 4 --checkpoint-every 5000 --resume
+  --workers 4 --checkpoint-every 5000
 %PY% %S3%\check_classification_v2_packed_image_cache.py ^
   --root %CACHE% --sample-size 64
 ```
@@ -1097,6 +1405,11 @@ Không dùng `--overwrite` trừ khi input hash hoặc resize policy đổi và 
 Packed `.npy` là tensor memory-mapped duy nhất để training không mở hàng trăm
 nghìn file nhỏ. `packed_image_cache_index.csv` ánh xạ `image_context_id` sang
 row, nên tensor không phải file rỗng hoặc thiếu metadata.
+
+Lệnh fresh không có `--resume`: packed builder yêu cầu tensor và partial audit
+đã tồn tại khi flag này được bật. Chỉ thêm `--resume` sau một run bị ngắt và khi
+source-manifest hash, shape, image size cùng partial audit đều khớp. Không dùng
+`--overwrite` để che lineage mismatch.
 
 ### 16.5. Interaction context index
 
@@ -1127,7 +1440,7 @@ bystander. Sau PASS, tiếp tục cùng folder:
   --frame-context-csv %TRAIN%\image_frame_context_manifest.csv ^
   --output-dir %VCACHE% --image-size 224 ^
   --padding-ratio 0.15 --preview-limit 500 ^
-  --checkpoint-every 1000 --resume
+  --checkpoint-every 1000
 %PY% %S3%\check_classification_v2_visual_interaction_cache.py ^
   --cache-dir %VCACHE% --sample-tensors 128 ^
   --output-json %VCACHE%\check_visual_interaction_cache.json
@@ -1135,8 +1448,15 @@ bystander. Sau PASS, tiếp tục cùng folder:
   --cache-manifest %VCACHE%\visual_context_manifest.csv ^
   --available-column visual_context_available ^
   --image-size 224 --output-dir %VCACHE% ^
-  --workers 4 --checkpoint-every 5000 --resume
+  --workers 4 --checkpoint-every 5000
 ```
+
+Full visual-cache run cố ý không resume từ subset 128. Builder hiện áp
+`max_contexts` trước khi dựng same-frame partner lookup; actor ở biên subset có
+thể bị đánh `missing_nearest_partner_bbox` dù partner nằm ngoài subset. Full run
+không `--resume` sẽ dựng lookup từ toàn manifest và tính lại các row đó. Resume
+chỉ hợp lệ sau khi chính full-selection run bị ngắt. Packed interaction cache
+cũng chỉ dùng `--resume` khi packed tensor và partial audit đã tồn tại, khớp hash.
 
 Nếu context thiếu, giữ row và availability mask. Không được dùng
 `context_available=true` như một proxy trực tiếp cho interaction label; model
@@ -1175,35 +1495,104 @@ certutil -hashfile %RFRAME%\reviewed_frame_features.csv SHA256
 certutil -hashfile %SEQ1%\sequence_window_manifest.csv SHA256
 certutil -hashfile %NATIVE%\native_temporal_unit_manifest.csv SHA256
 certutil -hashfile %SPLIT%\q2_grouped_folds\q2_outer_inner_roles.csv SHA256
+if exist "%SPLIT%\native_oof_folds\native_oof_fold_manifest.csv" ^
+  certutil -hashfile ^
+    %SPLIT%\native_oof_folds\native_oof_fold_manifest.csv SHA256
 certutil -hashfile %TRAIN%\X_window_features.csv SHA256
 certutil -hashfile %TRAIN%\X_spatial_sequences.npz SHA256
+certutil -hashfile %TRAIN%\feature_semantics_audit.json SHA256
+certutil -hashfile %CACHE%\manifest.csv SHA256
 certutil -hashfile %CACHE%\packed_rgb_224_letterbox.npy SHA256
+certutil -hashfile %VCACHE%\visual_context_manifest.csv SHA256
+certutil -hashfile %VCACHE%\packed_rgb_224_letterbox.npy SHA256
 ```
 
 Ghi hash, row count, schema version, `RUN_ID`, Git SHA, dirty-worktree status,
 Python/PyTorch/OpenCV version và input hash vào run manifest trước training.
 Không gọi một folder là final nếu hash/audit chưa khóa.
 
-### 17.2. Promotion sang trainer-active lineage
+### 17.2. Versioned snapshot hard stop
 
-Artifact dưới `%R%` là candidate versioned. Không copy đè canonical tự động.
-Có hai cách hợp lệ:
+Artifact dưới `%R%` là candidate versioned. Không copy đè canonical để né path
+contract. Audit hiện tại phát hiện các blocker sau trước snapshot/full:
 
-1. Tạo data-contract config mới trỏ trực tiếp tới `%R%`, commit config và chạy
-   toàn bộ contract/loader smoke.
-2. Promote có phê duyệt sang canonical paths, lưu backup/hash và chạy lại
-   snapshot checker trước model smoke.
+1. `data_contract_v2.json` đang trỏ canonical train-ready/native/fold paths và
+   packed cache 64 px, trong khi runbook tạo lineage `%R%` và cache 224 px.
+2. `classification_v2_write_model_input_manifest.py` giả định canonical child
+   folder names, không khớp layout `09_native_units/10_grouped_splits` ở đây.
+3. Trainer-contract checker chỉ hiểu v1/canonical, chưa kiểm được candidate v2
+   bằng explicit `%TRAIN%` paths.
+4. Preflight/full runner chỉ override cache paths; CLI chưa nhận train-ready
+   root, reviewed sequence manifest, native OOF manifest và event weights.
+5. Full runner hiện dùng leave-one-group-out, không consume Q2 outer/inner roles
+   và không có fold-local inner model selection/early stopping.
+6. `view_matched_6frame` mới là selection mask; trainer chưa consume một fixed-6
+   primary view đã loại/calibrate length, cadence và availability shortcuts.
+7. Canonical feature artifacts đang lẫn ít nhất hai source allowlist; không có
+   một canonical root hiện tại đủ điều kiện làm snapshot authority.
+8. `frame_uid` đang là scene-frame key. Image-context audit có 213.376 duplicate
+   theo cột này vì nhiều pig cùng frame, trái object-row identifier contract.
+   Phải migrate sang `scene_frame_uid` cộng object-level `frame_uid`, hoặc sửa
+   chính thức schema/checkers với compatibility và composite row key.
+9. Hidden high-risk score còn target-informed; weighted/high-risk uncertainty
+   và predeclared threshold gate chưa được code hóa fail-closed.
+10. Image-context checker chỉ assert case `000231` loadable, chưa assert exact
+    resolved basename `Pigs291119_000231_30fps.mp4`.
 
-Không trộn artifact từ `RUN_ID` khác nhau. `model_input_contract.json` chỉ được
-tạo sau khi native units, folds, train-ready arrays, image indexes và caches đều
-tồn tại. Mọi đường dẫn checkpoint sau này phải tham chiếu dataset/cache hash.
+Vì vậy **chưa có lệnh snapshot/full hợp lệ trực tiếp cho `%R%`**. Trước model
+smoke phải sửa module chính để mọi path trên đi qua một versioned contract, thêm
+loader/preflight tests và không fallback canonical. Sau khi patch đó PASS, lệnh
+snapshot chuẩn phải có dạng:
 
-### 17.3. Full-run permission sau này
+```bat
+%PY% %S2%\classification_v2_freeze_training_snapshot.py ^
+  --contract-json %SNAP%\data_contract.json ^
+  --output-json %SNAP%\training_snapshot.json
+%PY% %S2%\check_classification_v2_training_snapshot.py ^
+  --snapshot-json %SNAP%\training_snapshot.json ^
+  --contract-json %SNAP%\data_contract.json ^
+  --output-json %SNAP%\training_snapshot_check.json
+```
 
-Quyền full đã được cấp nhưng vẫn phải qua one-batch, tiny-overfit, resume,
-runtime/VRAM và representative one-fold smoke trên **chính snapshot này**. Chỉ
-sau các gate đó mới chạy full data processing mới hoặc full training. Full OOF
-vẫn cần launch packet và execution gate của block `05`.
+Contract phải tham chiếu duy nhất artifact của cùng `RUN_ID`, fixed temporal
+view, 224 caches và Q2 primary roles; native OOF manifest chỉ bắt buộc nếu chạy
+engineering sensitivity đã khai báo. Checkpoint phải ghi snapshot, config,
+feature-whitelist, cache và fold hashes.
+
+### 17.3. Model finalist gate
+
+Current `multimodal_fusion.py` dùng small ConvNet và full runner mặc định 64 px;
+nó là engineering model, không phải ResNet18/ResNet34 224 finalist trong roadmap.
+Không được gọi một lần chạy mới của model này là final Q2 classifier.
+
+Trên cùng frozen snapshot/folds, development phải tách từng biến:
+
+```text
+resolution: ResNet18-160 -> ResNet18-224
+backbone:   ResNet18-224 -> ResNet34-224
+temporal:   masked pooling -> TCN -> small Transformer nếu TCN chưa đủ
+modality:   actor -> geometry/motion -> all-ROI -> social -> union context
+imbalance:  event CE | effective-number CE | Balanced Softmax, chọn một
+```
+
+Mỗi candidate phải qua one-batch forward/backward, tiny overfit 16-64 native
+event, checkpoint resume, AMP/runtime/VRAM, cache-only I/O và representative
+one-fold development run. Context candidate phải qua missingness controls ở mục
+15.6. Khóa tối đa F0 actor-temporal, F1 actor+geometry/motion/ROI, F2 final
+multimodal và một F2-no-hierarchy ablation nếu cần.
+
+### 17.4. Full OOF và postrun gate
+
+Quyền full đã được cấp có điều kiện; semantic/config/hash đổi thì short gates
+phải chạy lại. Chỉ sau finalist lock và clean snapshot mới chạy block `05`
+preflight, authorization file, launch-packet writer và execution gate. Không tự
+gõ một lệnh `--full` thủ công; dùng exact command/hash do launch packet sinh ra.
+
+Sau full, bắt buộc kiểm prediction count/schema, collapse về native unit,
+pooled 10-class macro-F1, rare/interaction/ROI/posture/locomotion metrics,
+per-source/video/recording support, paired uncertainty, cross-fit calibration,
+confusion-focus, experiment registry và block `09` completion gate. Outer OOF
+prediction không được quay lại chọn architecture, threshold hoặc loss.
 
 ## 18. Lỗi thường gặp
 
@@ -1221,6 +1610,12 @@ trước khi thêm. Không xóa XML nguồn.
 
 Thiếu `--disable-fast-reuse`. Xóa không phải giải pháp. Tạo output versioned
 mới và rebuild đúng input/hash.
+
+**Preflight/full đọc canonical thay vì `%R%`**
+
+Đây là blocker code, không phải lý do copy artifact sang canonical. Dừng ở mục
+17.2, bổ sung contract/path overrides và tests, rồi freeze lại snapshot. Không
+chạy full với cache 224 nhưng X/folds/event weights từ lineage 64/canonical cũ.
 
 **Ảnh 224x224 trông như vuông**
 
@@ -1276,9 +1671,11 @@ Dataset chỉ được gọi là `reviewed train-ready candidate` khi tất cả
 PASS:
 
 - [ ] Input hashes và allowlist 12 behavior XML đã khóa.
+- [ ] Mọi artifact thuộc cùng `RUN_ID`; không canonical intermediate lẫn lineage.
 - [ ] Raw `data\` không thay đổi.
 - [ ] Legacy export giữ native burst 16 frame.
 - [ ] CVAT anchor interval đúng 6 frame và non-anchor kế thừa target.
+- [ ] Scientific smoke dùng complete units, không leading-row temporal scope.
 - [ ] Case `000085 / ID_4 / anchor 1020 = social-nose + interaction` PASS.
 - [ ] Mọi untrusted `Hidden=Yes` có item; trusted Yes đạt quota phân tầng.
 - [ ] `Hidden=No` có high-risk, stratified-random và clean-control audit.
@@ -1286,6 +1683,8 @@ PASS:
 - [ ] Hidden decisions unique, resolved và áp đúng frame/object key.
 - [ ] Hidden apply giữ nguyên row count và non-Hidden source columns.
 - [ ] `Yes->No`, `No->Yes`, weighted false-negative rate có audit.
+- [ ] Hidden weighted/high-risk CI và predeclared threshold gate PASS.
+- [ ] Hidden target-informed enrichment không bị gọi label-independent.
 - [ ] Enhanced, hidden-reviewed và behavior-reviewed rows bằng nhau.
 - [ ] Duplicate `temporal_unit_key=0` và duplicate `review_unit_id=0`.
 - [ ] Không output mới dùng `window_uid`.
@@ -1297,18 +1696,40 @@ PASS:
 - [ ] Reviewed windows rebuild bằng `--disable-fast-reuse`.
 - [ ] Stable/mixed/transition và main-train-valid counts được báo cáo.
 - [ ] Native CVAT 6f, legacy 16f, không duplicate key.
+- [ ] Temporal evidence/determinism audit PASS, review scores không vào X.
 - [ ] Recording-date/session leakage bằng 0 trong split/folds.
 - [ ] Class-by-fold và source-by-fold support được báo cáo.
+- [ ] Q2 outer/inner roles được khóa/hash; native manifest chỉ khi sensitivity
+      run đã predeclare.
 - [ ] X whitelist không có label/review/manual/ID/path/policy/split field.
 - [ ] X/y/mask/weights/spatial arrays row/order/key khớp.
+- [ ] `frame_uid` object-row contract đã migrate hoặc schema revision được khóa.
 - [ ] Không có global normalization/class weight fit trước fold.
 - [ ] Legacy crop và CVAT video+bbox loader smoke PASS.
-- [ ] Case `000231` resolve `_30fps.mp4` PASS.
+- [ ] Case `000231` exact basename `_30fps.mp4` được checker assert và PASS.
 - [ ] Actor cache dùng letterbox, preview không méo, checksum PASS.
 - [ ] Packed cache index/tensor equivalence PASS.
 - [ ] Interaction context giữ missing mask và không label-select partner.
+- [ ] Fixed-6 primary view và native-length ablation được định nghĩa tách biệt.
+- [ ] Grouped source/length/padding/missingness controls đã được audit.
 - [ ] Final artifact hashes, config, code SHA và environment đã ghi.
 
 Nếu bất kỳ mục nào FAIL, kết luận là `NOT TRAIN-READY`. Không dùng số row lớn,
 training accuracy hoặc việc script exit 0 để thay cho gate thiếu. Sau PASS, bước
 kế tiếp chỉ là model/local smoke theo roadmap, chưa phải full OOF.
+
+Full OOF chỉ được phép khi thêm các mục sau PASS:
+
+- [ ] Reviewer-agreement audit đã có, hoặc single-review limitation được khóa.
+- [ ] Versioned data contract trỏ hoàn toàn tới một `RUN_ID`, không fallback.
+- [ ] Snapshot/checkpoint bind dataset, cache, fold, whitelist và config hashes.
+- [ ] ResNet resolution/backbone controls và temporal baseline đã chạy đúng cặp.
+- [ ] F0/F1/F2 và inner selection rule được khóa trước outer predictions.
+- [ ] One-batch, tiny-overfit, resume, AMP/runtime/VRAM và one-fold PASS.
+- [ ] Preflight, authorization, launch packet và execution gate cùng config SHA.
+- [ ] Full predictions đủ count và collapse về native unit không mất unit.
+- [ ] Calibration, confusion, grouped/source metrics, registry và completion PASS.
+
+Theo code hiện tại, versioned contract/path routing, primary fold protocol,
+fixed-6 loader controls và ResNet finalist đều chưa đạt; do đó toàn luồng tới
+scientific full OOF vẫn là `FAIL/BLOCKED`, dù technical data smoke đã PASS.
