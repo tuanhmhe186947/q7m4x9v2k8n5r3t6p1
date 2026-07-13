@@ -541,21 +541,72 @@ def _merge_review_decisions(
 
     keep_cols = [key] if isinstance(key, str) else list(key)
     keep_cols += list(MANUAL_REVIEW_COLUMNS)
-
-    review = review[keep_cols].drop_duplicates(subset=key, keep="last")
+    review = review[keep_cols].copy()
+    key_columns = [key] if isinstance(key, str) else list(key)
+    _validate_review_merge_keys(out, review, key_columns)
 
     out = out.drop(
         columns=[c for c in MANUAL_REVIEW_COLUMNS if c in out.columns],
         errors="ignore",
     )
-
-    out = out.merge(review, on=key, how="left")
+    input_rows = len(out)
+    out = out.merge(
+        review,
+        on=key,
+        how="left",
+        validate="one_to_one",
+    )
+    if len(out) != input_rows:
+        raise ValueError(
+            f"Review decision merge changed row count: {input_rows} -> {len(out)}"
+        )
 
     for col in MANUAL_REVIEW_COLUMNS:
         if col not in out.columns:
             out[col] = ""
 
     return out
+
+
+def _validate_review_merge_keys(
+    frame: pd.DataFrame,
+    review: pd.DataFrame,
+    key_columns: list[str],
+) -> None:
+    """Require unique, complete decision keys that exist in the frame table."""
+
+    frame_blank = _blank_key_row_count(frame, key_columns)
+    review_blank = _blank_key_row_count(review, key_columns)
+    frame_duplicate = int(frame.duplicated(key_columns, keep=False).sum())
+    review_duplicate = int(review.duplicated(key_columns, keep=False).sum())
+    errors: list[str] = []
+    if frame_blank:
+        errors.append(f"blank_frame_review_key_rows={frame_blank}")
+    if review_blank:
+        errors.append(f"blank_decision_review_key_rows={review_blank}")
+    if frame_duplicate:
+        errors.append(f"duplicate_frame_review_key_rows={frame_duplicate}")
+    if review_duplicate:
+        errors.append(f"duplicate_decision_review_key_rows={review_duplicate}")
+
+    if not errors:
+        frame_keys = pd.MultiIndex.from_frame(frame[key_columns])
+        review_keys = pd.MultiIndex.from_frame(review[key_columns])
+        unmatched = int((~review_keys.isin(frame_keys)).sum())
+        if unmatched:
+            errors.append(f"unmatched_decision_review_key_rows={unmatched}")
+    if errors:
+        raise ValueError("Review decision key contract failed: " + "; ".join(errors))
+
+
+def _blank_key_row_count(frame: pd.DataFrame, key_columns: list[str]) -> int:
+    """Count rows with a missing or blank component in a composite key."""
+
+    blank = pd.DataFrame(index=frame.index)
+    for column in key_columns:
+        values = frame[column]
+        blank[column] = values.isna() | values.astype(str).str.strip().eq("")
+    return int(blank.any(axis=1).sum())
 
 
 def _to_bool_series(series: pd.Series) -> pd.Series:
