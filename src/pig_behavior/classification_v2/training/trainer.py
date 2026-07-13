@@ -8,6 +8,7 @@ import os
 import platform
 import random
 import subprocess
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -43,9 +44,27 @@ from pig_behavior.classification_v2.training.multitask_loss import (
     hierarchy_consistency_loss,
     masked_multitask_loss,
 )
+from pig_behavior.classification_v2.training.run_lineage import (
+    PredictionArtifact,
+    RunLineageSession,
+    finalize_run_lineage,
+    initialize_run_lineage,
+)
 
 PREDICTION_SCHEMA_VERSION = "classification_v2_training_predictions_v1"
 RUN_AUDIT_SCHEMA_VERSION = "classification_v2_training_run_audit_v1"
+
+
+def training_run_dir(audit: Mapping[str, Any]) -> Path:
+    """Return the lineage-owned artifact directory from a completed run audit."""
+
+    lineage = audit.get("run_lineage")
+    if not isinstance(lineage, Mapping):
+        raise ValueError("training audit is missing run_lineage")
+    value = lineage.get("run_dir")
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError("training run lineage is missing run_dir")
+    return Path(value)
 
 
 def run_training(config: ClassificationV2TrainingConfig) -> dict[str, Any]:
@@ -53,8 +72,40 @@ def run_training(config: ClassificationV2TrainingConfig) -> dict[str, Any]:
 
     _seed_everything(config.optimization.seed, deterministic=config.optimization.deterministic)
     device = _resolve_device(config.optimization.precision)
-    output_dir = config.execution.output_dir
-    output_dir.mkdir(parents=True, exist_ok=True)
+    if device.type == "cuda":
+        torch.cuda.reset_peak_memory_stats(device)
+    with initialize_run_lineage(config) as session:
+        audit = _run_training_impl(config, device=device, session=session)
+        peak_vram = int(torch.cuda.max_memory_allocated(device)) if device.type == "cuda" else 0
+        lineage = finalize_run_lineage(
+            session,
+            checkpoint_paths=[
+                session.run_dir / "last.pt",
+                session.run_dir / "best_validation.pt",
+            ],
+            predictions=[
+                PredictionArtifact(
+                    path=session.run_dir / "oof_test_predictions.csv",
+                    checkpoint_path=session.run_dir / "best_validation.pt",
+                    split="test",
+                    expected_rows=int(audit["test_rows"]),
+                )
+            ],
+            metric_paths=[session.run_dir / "run_audit.json"],
+            peak_vram_bytes=peak_vram,
+        )
+    return {**audit, "run_lineage": lineage}
+
+
+def _run_training_impl(
+    config: ClassificationV2TrainingConfig,
+    *,
+    device: torch.device,
+    session: RunLineageSession,
+) -> dict[str, Any]:
+    """Execute one already-initialized and lineage-bound fold run."""
+
+    output_dir = session.run_dir
     with StrictTrainingDataModule(config, device=device) as data:
         train_indices = (
             data.balanced_smoke_indices(train=True)
@@ -86,10 +137,7 @@ def run_training(config: ClassificationV2TrainingConfig) -> dict[str, Any]:
         )
         scaler = torch.amp.GradScaler(
             "cuda",
-            enabled=(
-                device.type == "cuda"
-                and config.optimization.precision == "amp"
-            ),
+            enabled=(device.type == "cuda" and config.optimization.precision == "amp"),
         )
         behavior_weights = _behavior_class_weights(data, train_indices, config, device)
         auxiliary_weights = (
@@ -120,10 +168,9 @@ def run_training(config: ClassificationV2TrainingConfig) -> dict[str, Any]:
                 optimizer=optimizer,
                 scaler=scaler,
                 config=config,
+                run_identity=session.identity.to_payload(),
                 preprocessing_sha256=preprocessing_state.state_sha256,
-                train_window_id_sha256=(
-                    preprocessing_state.train_window_id_sha256
-                ),
+                train_window_id_sha256=(preprocessing_state.train_window_id_sha256),
                 map_location=device,
                 restore_rng=True,
             )
@@ -164,10 +211,9 @@ def run_training(config: ClassificationV2TrainingConfig) -> dict[str, Any]:
                 optimizer=optimizer,
                 scaler=scaler,
                 config=config,
+                run_identity=session.identity.to_payload(),
                 preprocessing_sha256=preprocessing_state.state_sha256,
-                train_window_id_sha256=(
-                    preprocessing_state.train_window_id_sha256
-                ),
+                train_window_id_sha256=(preprocessing_state.train_window_id_sha256),
                 epoch=epoch,
                 global_step=global_step,
                 metrics=record,
@@ -181,10 +227,9 @@ def run_training(config: ClassificationV2TrainingConfig) -> dict[str, Any]:
                     optimizer=optimizer,
                     scaler=scaler,
                     config=config,
+                    run_identity=session.identity.to_payload(),
                     preprocessing_sha256=preprocessing_state.state_sha256,
-                    train_window_id_sha256=(
-                        preprocessing_state.train_window_id_sha256
-                    ),
+                    train_window_id_sha256=(preprocessing_state.train_window_id_sha256),
                     epoch=epoch,
                     global_step=global_step,
                     metrics=record,
@@ -193,8 +238,7 @@ def run_training(config: ClassificationV2TrainingConfig) -> dict[str, Any]:
                 stale_epochs += 1
             if (
                 config.execution.mode != "smoke"
-                and stale_epochs
-                >= config.optimization.early_stopping_patience
+                and stale_epochs >= config.optimization.early_stopping_patience
             ):
                 break
         best_checkpoint = output_dir / "best_validation.pt"
@@ -206,6 +250,7 @@ def run_training(config: ClassificationV2TrainingConfig) -> dict[str, Any]:
             optimizer=optimizer,
             scaler=scaler,
             config=config,
+            run_identity=session.identity.to_payload(),
             preprocessing_sha256=preprocessing_state.state_sha256,
             train_window_id_sha256=preprocessing_state.train_window_id_sha256,
             map_location=device,
@@ -231,9 +276,9 @@ def run_training(config: ClassificationV2TrainingConfig) -> dict[str, Any]:
             test_metrics,
             preprocessing_state,
             preprocessing_status,
+            session.identity.to_payload(),
         )
     _write_json_atomic(output_dir / "run_audit.json", audit)
-    _write_json_atomic(output_dir / "registry_entry.json", _registry_entry(audit, output_dir))
     return audit
 
 
@@ -412,9 +457,7 @@ def _behavior_class_weights(
             dtype=np.float32,
         )
         if not np.isfinite(values).all() or (values <= 0.0).any():
-            raise ValueError(
-                "event-class policy requires positive train-fold class weights"
-            )
+            raise ValueError("event-class policy requires positive train-fold class weights")
     return torch.tensor(values, dtype=torch.float32, device=device)
 
 
@@ -450,6 +493,7 @@ def _run_audit(
     test_metrics: dict[str, float],
     preprocessing_state: FoldPreprocessingState,
     preprocessing_status: str,
+    run_identity: dict[str, Any],
 ) -> dict[str, Any]:
     config_payload = training_config_to_jsonable(config)
     git = _git_state()
@@ -458,6 +502,7 @@ def _run_audit(
         "valid": True,
         "config": config_payload,
         "config_sha256": training_config_sha256(config),
+        "run_identity": run_identity,
         "snapshot_id": config.dataset.snapshot_json.stem,
         "snapshot_sha256": _file_sha256(config.dataset.snapshot_json),
         "split_manifest_sha256": _file_sha256(config.dataset.native_oof_fold_manifest),
@@ -465,9 +510,7 @@ def _run_audit(
         "git": git,
         "device": str(device),
         "hardware": (
-            torch.cuda.get_device_name(device)
-            if device.type == "cuda"
-            else platform.processor()
+            torch.cuda.get_device_name(device) if device.type == "cuda" else platform.processor()
         ),
         "versions": {
             "python": platform.python_version(),
@@ -483,9 +526,7 @@ def _run_audit(
         "preprocessing": {
             "path": "preprocessing.json",
             "state_sha256": preprocessing_state.state_sha256,
-            "train_window_id_sha256": (
-                preprocessing_state.train_window_id_sha256
-            ),
+            "train_window_id_sha256": (preprocessing_state.train_window_id_sha256),
             "status": preprocessing_status,
         },
         "train_selected_window_id_sha256": _selected_id_hash(data, train_indices),
@@ -541,8 +582,8 @@ def _require_nonempty_split(
 ) -> None:
     if len(train_indices) == 0 or len(eval_indices) == 0 or len(test_indices) == 0:
         raise ValueError(
-            "empty grouped split: "
-            f"train={len(train_indices)}, validation={len(eval_indices)}, test={len(test_indices)}"
+            f"empty grouped split: train={len(train_indices)}, "
+            f"validation={len(eval_indices)}, test={len(test_indices)}"
         )
 
 
@@ -592,25 +633,3 @@ def _write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     temporary.replace(path)
-
-
-def _registry_entry(audit: dict[str, Any], output_dir: Path) -> dict[str, Any]:
-    """Create a self-contained experiment index without mutating a global registry."""
-
-    return {
-        "schema_version": "classification_v2_experiment_registry_entry_v1",
-        "run_id": hashlib.sha256(
-            f"{audit['config_sha256']}:{audit['git']['commit']}".encode()
-        ).hexdigest()[:20],
-        "snapshot_id": audit["snapshot_id"],
-        "config_sha256": audit["config_sha256"],
-        "split_manifest_sha256": audit["split_manifest_sha256"],
-        "git": audit["git"],
-        "fold_id": audit["config"]["execution"]["fold_id"],
-        "model_architecture": audit["model_architecture"],
-        "best_epoch": audit["best_epoch"],
-        "history": audit["history"],
-        "artifact_root": str(output_dir),
-        "artifacts": audit["artifacts"],
-        "valid": audit["valid"],
-    }

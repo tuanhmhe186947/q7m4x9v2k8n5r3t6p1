@@ -8,11 +8,16 @@ from dataclasses import replace
 from pathlib import Path
 
 from pig_behavior.classification_v2.training.config import load_training_config
-from pig_behavior.classification_v2.training.trainer import run_training
+from pig_behavior.classification_v2.training.trainer import (
+    run_training,
+    training_run_dir,
+)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Check behavior-only strict baseline training paths.")
+    parser = argparse.ArgumentParser(
+        description="Check behavior-only strict baseline training paths."
+    )
     parser.add_argument(
         "--output-dir",
         type=Path,
@@ -38,13 +43,15 @@ def main() -> None:
             ),
         )
         audit = run_training(config)
+        run_dir = training_run_dir(audit)
         runs[name] = {
+            "run_dir": str(run_dir),
             "model_parameter_count": audit["model_parameter_count"],
             "train_steps": audit["history"][0]["train_steps"],
             "validation_rows": audit["validation_rows"],
             "test_rows": audit["test_rows"],
             "auxiliary_class_weights": audit["auxiliary_class_weights_train_fold_only"],
-            "oof_test_predictions_exists": (args.output_dir / name / "oof_test_predictions.csv").exists(),
+            "oof_test_predictions_exists": (run_dir / "oof_test_predictions.csv").exists(),
         }
         if config.model.enable_multitask:
             errors.append(f"baseline_multitask_enabled={name}")
@@ -59,7 +66,9 @@ def main() -> None:
         "valid": not errors,
     }
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    (args.output_dir / "behavior_only_baseline_audit.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
+    (args.output_dir / "behavior_only_baseline_audit.json").write_text(
+        json.dumps(result, indent=2), encoding="utf-8"
+    )
     print(json.dumps(result, indent=2))
     if errors:
         raise SystemExit(1)

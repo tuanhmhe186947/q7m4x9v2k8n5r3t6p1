@@ -10,11 +10,18 @@ import numpy as np
 import torch
 from torch import nn
 
+from pig_behavior.classification_v2.contracts.output_safety import (
+    require_output_paths_available,
+)
 from pig_behavior.classification_v2.training.checkpoint import (
     load_training_checkpoint,
     save_training_checkpoint,
+    training_config_sha256,
 )
-from pig_behavior.classification_v2.training.config import load_training_config
+from pig_behavior.classification_v2.training.config import (
+    ClassificationV2TrainingConfig,
+    load_training_config,
+)
 
 
 def main() -> None:
@@ -31,6 +38,7 @@ def main() -> None:
         type=Path,
         default=Path("outputs/classification_v2/model_smoke/checkpoint_contract"),
     )
+    parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
     config = load_training_config(args.config)
     _seed_all(123)
@@ -42,12 +50,23 @@ def main() -> None:
     loss.backward()
     optimizer.step()
     checkpoint_path = args.output_dir / "checkpoint.pt"
+    result_path = args.output_dir / "checkpoint_contract_audit.json"
+    require_output_paths_available(
+        [
+            checkpoint_path,
+            checkpoint_path.with_suffix(".pt.audit.json"),
+            result_path,
+        ],
+        overwrite=args.overwrite,
+    )
+    run_identity = _synthetic_run_identity(config)
     save_audit = save_training_checkpoint(
         checkpoint_path,
         model=model,
         optimizer=optimizer,
         scaler=scaler,
         config=config,
+        run_identity=run_identity,
         preprocessing_sha256="fixture-preprocessing-sha256",
         train_window_id_sha256="fixture-train-window-id-sha256",
         epoch=2,
@@ -63,13 +82,20 @@ def main() -> None:
         optimizer=optimizer,
         scaler=scaler,
         config=config,
+        run_identity=run_identity,
         preprocessing_sha256="fixture-preprocessing-sha256",
         train_window_id_sha256="fixture-train-window-id-sha256",
         restore_rng=True,
     )
     resumed_rng = _draw_rng()
     mismatch_rejected = False
-    stale_config = replace(config, execution=replace(config.execution, fold_id="native_oof_stale"))
+    stale_config = replace(
+        config,
+        execution=replace(
+            config.execution,
+            fold_id="native_oof_stale",
+        ),
+    )
     try:
         load_training_checkpoint(
             checkpoint_path,
@@ -77,6 +103,7 @@ def main() -> None:
             optimizer=optimizer,
             scaler=scaler,
             config=stale_config,
+            run_identity=run_identity,
             preprocessing_sha256="fixture-preprocessing-sha256",
             train_window_id_sha256="fixture-train-window-id-sha256",
             restore_rng=False,
@@ -103,11 +130,7 @@ def main() -> None:
         "errors": errors,
         "valid": not errors,
     }
-    args.output_dir.mkdir(parents=True, exist_ok=True)
-    (args.output_dir / "checkpoint_contract_audit.json").write_text(
-        json.dumps(result, indent=2),
-        encoding="utf-8",
-    )
+    _write_json_atomic(result_path, result)
     print(json.dumps(result, indent=2))
     if errors:
         raise SystemExit(1)
@@ -119,11 +142,68 @@ def _seed_all(seed: int) -> None:
     torch.manual_seed(seed)
 
 
+def _write_json_atomic(path: Path, payload: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(
+        json.dumps(payload, indent=2),
+        encoding="utf-8",
+    )
+    temporary.replace(path)
+
+
 def _draw_rng() -> dict[str, float]:
     return {
         "python": random.random(),
         "numpy": float(np.random.random()),
         "torch": float(torch.rand(1).item()),
+    }
+
+
+def _synthetic_run_identity(
+    config: ClassificationV2TrainingConfig,
+) -> dict[str, object]:
+    """Build explicit fixture lineage without claiming a real dataset run."""
+
+    modalities = [
+        name
+        for name, enabled in {
+            "actor_rgb": config.model.enable_image,
+            "spatial": config.model.enable_spatial,
+            "interaction_numeric": config.model.enable_interaction_context,
+            "partner_visual": config.model.enable_visual_context,
+            "auxiliary_heads": config.model.enable_multitask,
+        }.items()
+        if enabled
+    ]
+    return {
+        "run_id": "synthetic-checkpoint-contract",
+        "experiment_name": "checkpoint-contract",
+        "execution_profile": "local_smoke",
+        "code_sha": "0" * 40,
+        "dirty_worktree": True,
+        "worktree_state_sha256": "0" * 64,
+        "config_sha256": training_config_sha256(config),
+        "dataset_snapshot_id": "synthetic-snapshot",
+        "dataset_snapshot_sha256": "1" * 64,
+        "cache_sha256": "2" * 64,
+        "fold_manifest_sha256": "3" * 64,
+        "feature_whitelist_sha256": "4" * 64,
+        "temporal_view_selection_sha256": "5" * 64,
+        "fold_event_weight_sha256": "6" * 64,
+        "fold_id": config.execution.fold_id,
+        "architecture_version": config.model.architecture_version,
+        "backbone_name": config.model.backbone_name,
+        "pretrained_weight_enum": config.model.pretrained_weight_enum,
+        "resolution": config.model.image_size,
+        "temporal_view": config.model.temporal_view,
+        "temporal_encoder_name": config.model.temporal_encoder_name,
+        "modalities": modalities,
+        "loss_name": f"cross_entropy+{config.loss.sample_weight_policy}",
+        "sampler_policy": config.loss.sampler_policy,
+        "optimizer_name": config.optimization.optimizer,
+        "precision": config.optimization.precision,
+        "augmentation_policy": config.dataset.augmentation_policy,
     }
 
 

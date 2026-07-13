@@ -5,7 +5,6 @@ from __future__ import annotations
 import hashlib
 import json
 import random
-import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -18,11 +17,44 @@ from pig_behavior.classification_v2.training.config import (
     training_config_to_jsonable,
 )
 
-CHECKPOINT_SCHEMA_VERSION = "classification_v2_training_checkpoint_v1"
+CHECKPOINT_SCHEMA_VERSION = "classification_v2_training_checkpoint_v2"
+RUN_IDENTITY_REQUIRED_FIELDS = (
+    "run_id",
+    "experiment_name",
+    "execution_profile",
+    "code_sha",
+    "dirty_worktree",
+    "worktree_state_sha256",
+    "config_sha256",
+    "dataset_snapshot_id",
+    "dataset_snapshot_sha256",
+    "cache_sha256",
+    "fold_manifest_sha256",
+    "feature_whitelist_sha256",
+    "temporal_view_selection_sha256",
+    "fold_event_weight_sha256",
+    "fold_id",
+    "architecture_version",
+    "backbone_name",
+    "pretrained_weight_enum",
+    "resolution",
+    "temporal_view",
+    "temporal_encoder_name",
+    "modalities",
+    "loss_name",
+    "sampler_policy",
+    "optimizer_name",
+    "precision",
+    "augmentation_policy",
+)
 
 
 def training_config_sha256(config: ClassificationV2TrainingConfig) -> str:
-    payload = json.dumps(training_config_to_jsonable(config), sort_keys=True, separators=(",", ":"))
+    payload = json.dumps(
+        training_config_to_jsonable(config),
+        sort_keys=True,
+        separators=(",", ":"),
+    )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
@@ -33,6 +65,7 @@ def save_training_checkpoint(
     optimizer: torch.optim.Optimizer,
     scaler: torch.amp.GradScaler | None,
     config: ClassificationV2TrainingConfig,
+    run_identity: dict[str, Any],
     preprocessing_sha256: str,
     train_window_id_sha256: str,
     epoch: int,
@@ -43,10 +76,9 @@ def save_training_checkpoint(
 
     if epoch < 0 or global_step < 0:
         raise ValueError("epoch and global_step must be non-negative")
-    git_state = _git_state()
     lineage = _lineage(
         config,
-        git_state,
+        run_identity=run_identity,
         preprocessing_sha256=preprocessing_sha256,
         train_window_id_sha256=train_window_id_sha256,
     )
@@ -93,6 +125,7 @@ def load_training_checkpoint(
     optimizer: torch.optim.Optimizer,
     scaler: torch.amp.GradScaler | None,
     config: ClassificationV2TrainingConfig,
+    run_identity: dict[str, Any],
     preprocessing_sha256: str,
     train_window_id_sha256: str,
     map_location: torch.device | str = "cpu",
@@ -105,12 +138,17 @@ def load_training_checkpoint(
         raise ValueError(f"checkpoint schema mismatch: {payload.get('schema_version')}")
     expected = _lineage(
         config,
-        _git_state(),
+        run_identity=run_identity,
         preprocessing_sha256=preprocessing_sha256,
         train_window_id_sha256=train_window_id_sha256,
-        include_git=False,
     )
     observed = payload.get("lineage", {})
+    if set(observed) != set(expected):
+        raise ValueError(
+            "checkpoint lineage schema mismatch: "
+            f"missing={sorted(set(expected).difference(observed))}, "
+            f"unknown={sorted(set(observed).difference(expected))}"
+        )
     mismatches = {
         key: {"expected": value, "observed": observed.get(key)}
         for key, value in expected.items()
@@ -137,24 +175,45 @@ def load_training_checkpoint(
 
 def _lineage(
     config: ClassificationV2TrainingConfig,
-    git_state: dict[str, Any],
     *,
+    run_identity: dict[str, Any],
     preprocessing_sha256: str,
     train_window_id_sha256: str,
-    include_git: bool = True,
 ) -> dict[str, Any]:
     if not preprocessing_sha256 or not train_window_id_sha256:
         raise ValueError("checkpoint preprocessing lineage must not be blank")
-    lineage = {
+    missing = sorted(set(RUN_IDENTITY_REQUIRED_FIELDS).difference(run_identity))
+    if missing:
+        raise ValueError(f"checkpoint run identity missing fields={missing}")
+    expected = {
         "config_sha256": training_config_sha256(config),
-        "snapshot_id": config.dataset.snapshot_json.stem,
         "fold_id": config.execution.fold_id,
         "architecture_version": config.model.architecture_version,
+        "backbone_name": config.model.backbone_name,
+        "pretrained_weight_enum": config.model.pretrained_weight_enum,
+        "resolution": config.model.image_size,
+        "temporal_view": config.model.temporal_view,
+        "temporal_encoder_name": config.model.temporal_encoder_name,
+        "optimizer_name": config.optimization.optimizer,
+        "precision": config.optimization.precision,
+        "augmentation_policy": config.dataset.augmentation_policy,
+    }
+    mismatches = {
+        key: {"expected": value, "observed": run_identity.get(key)}
+        for key, value in expected.items()
+        if run_identity.get(key) != value
+    }
+    if mismatches:
+        raise ValueError(f"checkpoint run identity mismatch={mismatches}")
+    lineage = {
+        **{
+            key: run_identity[key]
+            for key in RUN_IDENTITY_REQUIRED_FIELDS
+        },
+        "snapshot_id": run_identity["dataset_snapshot_id"],
         "preprocessing_sha256": preprocessing_sha256,
         "train_window_id_sha256": train_window_id_sha256,
     }
-    if include_git:
-        lineage.update(git_commit=git_state.get("commit"), git_dirty=git_state.get("dirty"))
     return lineage
 
 
@@ -173,18 +232,3 @@ def _restore_rng_state(state: dict[str, Any]) -> None:
     torch.set_rng_state(state["torch_cpu"])
     if torch.cuda.is_available() and state.get("torch_cuda"):
         torch.cuda.set_rng_state_all(state["torch_cuda"])
-
-
-def _git_state() -> dict[str, Any]:
-    try:
-        commit = subprocess.run(
-            ["git", "rev-parse", "HEAD"], check=True, capture_output=True, text=True
-        ).stdout.strip()
-        dirty = bool(
-            subprocess.run(
-                ["git", "status", "--short"], check=True, capture_output=True, text=True
-            ).stdout.strip()
-        )
-    except Exception:
-        return {"commit": None, "dirty": None}
-    return {"commit": commit or None, "dirty": dirty}

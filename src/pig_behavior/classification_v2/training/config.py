@@ -11,6 +11,13 @@ from pig_behavior.classification_v2.models.multitask_fusion import MULTITASK_ARC
 
 T = TypeVar("T")
 
+# Add a view here only after the data module consumes its matching tensor
+# contract. This prevents an ablation config from being mislabeled while still
+# reading the primary observed-time inputs.
+TEMPORAL_VIEW_SELECTION_CONTRACT = {
+    "fixed6_observed_time": "fixed6_keep",
+}
+
 
 @dataclass(frozen=True, slots=True)
 class DatasetConfig:
@@ -28,12 +35,17 @@ class DatasetConfig:
     auxiliary_targets_csv: Path
     fold_event_weight_manifest: Path | None = None
     temporal_view_selection_col: str = "fixed6_keep"
+    augmentation_policy: str = "none"
     strict_packed_cache: bool = True
 
 
 @dataclass(frozen=True, slots=True)
 class ModelConfig:
     architecture_version: str
+    backbone_name: str = "smoke_cnn"
+    pretrained_weight_enum: str = "NONE_RANDOM_INIT"
+    temporal_view: str = "fixed6_observed_time"
+    temporal_encoder_name: str = "masked_tcn"
     image_size: int = 64
     hidden_dim: int = 48
     dropout: float = 0.1
@@ -76,15 +88,22 @@ class LossConfig:
     class_weight_max: float = 5.0
     sample_weight_policy: str = "event_class"
     sample_weight_max: float = 10.0
+    sampler_policy: str = "deterministic_shuffle"
 
 
 @dataclass(frozen=True, slots=True)
 class ExecutionConfig:
     mode: str = "smoke"
+    execution_profile: str = "local_smoke"
+    experiment_name: str = "classification_v2"
+    run_id: str | None = None
     fold_id: str = "native_oof_000"
     smoke_steps: int = 8
     smoke_per_class: int = 1
     output_dir: Path = Path("outputs/classification_v2/model_smoke/strict_multitask")
+    runs_registry_csv: Path = Path(
+        "outputs/classification_v2/run_registry/runs_registry.csv"
+    )
     resume: bool = True
 
 
@@ -154,6 +173,25 @@ def validate_training_config(config: ClassificationV2TrainingConfig) -> None:
         errors.append("at_least_one_model_branch_required")
     if config.model.image_size <= 0 or config.model.hidden_dim <= 0:
         errors.append("model_dimensions_must_be_positive")
+    if not config.model.backbone_name.strip():
+        errors.append("backbone_name_must_not_be_blank")
+    if config.model.pretrained_weight_enum.strip().lower() in {
+        "",
+        "auto",
+        "default",
+        "unknown",
+    }:
+        errors.append("pretrained_weight_enum_must_be_explicit")
+    expected_selection_col = TEMPORAL_VIEW_SELECTION_CONTRACT.get(
+        config.model.temporal_view
+    )
+    if expected_selection_col is None:
+        errors.append(
+            "unsupported_temporal_view_loader="
+            f"{config.model.temporal_view}"
+        )
+    if not config.model.temporal_encoder_name.strip():
+        errors.append("temporal_encoder_name_must_not_be_blank")
     if config.optimization.optimizer != "adamw":
         errors.append(f"unsupported_optimizer={config.optimization.optimizer}")
     if config.optimization.scheduler != "none":
@@ -177,12 +215,26 @@ def validate_training_config(config: ClassificationV2TrainingConfig) -> None:
         and config.dataset.fold_event_weight_manifest is None
     ):
         errors.append("event_weight_policy_requires_fold_event_weight_manifest")
-    if config.dataset.temporal_view_selection_col != "fixed6_keep":
+    if config.dataset.augmentation_policy != "none":
         errors.append(
-            "primary_training_requires_fixed6_keep_temporal_view_selection"
+            "unsupported_augmentation_policy="
+            f"{config.dataset.augmentation_policy}"
+        )
+    if (
+        expected_selection_col is not None
+        and config.dataset.temporal_view_selection_col
+        != expected_selection_col
+    ):
+        errors.append(
+            "temporal_view_selection_contract_mismatch="
+            f"view:{config.model.temporal_view},"
+            f"column:{config.dataset.temporal_view_selection_col},"
+            f"expected:{expected_selection_col}"
         )
     if config.loss.sample_weight_max < 1.0:
         errors.append("sample_weight_max_must_be_at_least_one")
+    if config.loss.sampler_policy != "deterministic_shuffle":
+        errors.append("unsupported_sampler_policy")
     if min(
         config.optimization.epochs,
         config.optimization.batch_size,
@@ -195,6 +247,23 @@ def validate_training_config(config: ClassificationV2TrainingConfig) -> None:
         errors.append("learning_rate_and_gradient_clip_must_be_positive")
     if config.execution.mode not in {"smoke", "full_oof"}:
         errors.append(f"unsupported_execution_mode={config.execution.mode}")
+    profiles = {"local_smoke", "remote_pilot", "remote_full_oof"}
+    if config.execution.execution_profile not in profiles:
+        errors.append(
+            f"unsupported_execution_profile={config.execution.execution_profile}"
+        )
+    if (
+        config.execution.execution_profile == "local_smoke"
+        and config.execution.mode != "smoke"
+    ):
+        errors.append("local_smoke_profile_requires_smoke_mode")
+    if (
+        config.execution.execution_profile == "remote_full_oof"
+        and config.execution.mode != "full_oof"
+    ):
+        errors.append("remote_full_oof_profile_requires_full_oof_mode")
+    if not config.execution.experiment_name.strip():
+        errors.append("experiment_name_must_not_be_blank")
     if config.execution.mode == "smoke" and (
         config.execution.smoke_steps <= 0 or config.execution.smoke_per_class <= 0
     ):
@@ -248,7 +317,7 @@ def _from_mapping(cls: type[T], payload: dict[str, Any]) -> T:
         if field.name not in payload:
             continue
         value = payload[field.name]
-        if "Path" in str(field.type):
+        if "Path" in str(field.type) and value is not None:
             value = Path(value)
         elif field.name in {"spatial_feature_groups", "standardize_spatial_groups"}:
             value = tuple(str(item) for item in value)

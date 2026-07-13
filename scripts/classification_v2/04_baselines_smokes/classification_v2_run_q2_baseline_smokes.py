@@ -7,8 +7,14 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-from pig_behavior.classification_v2.training.config import load_training_config, training_config_to_jsonable
-from pig_behavior.classification_v2.training.trainer import run_training
+from pig_behavior.classification_v2.training.config import (
+    load_training_config,
+    training_config_to_jsonable,
+)
+from pig_behavior.classification_v2.training.trainer import (
+    run_training,
+    training_run_dir,
+)
 
 BASELINE_CONFIGS = {
     "B2": Path("configs/classification_v2/baseline_spatial_tcn.json"),
@@ -21,16 +27,30 @@ BASELINE_CONFIGS = {
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Prepare or run bounded one-fold Q2 B2-B7 engineering smokes.")
-    parser.add_argument("--output-dir", type=Path, default=Path("outputs/classification_v2/model_smoke/q2_baselines"))
-    parser.add_argument("--baseline", action="append", choices=sorted(BASELINE_CONFIGS), default=None)
+    parser = argparse.ArgumentParser(
+        description="Prepare or run bounded one-fold Q2 B2-B7 engineering smokes."
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("outputs/classification_v2/model_smoke/q2_baselines"),
+    )
+    parser.add_argument(
+        "--baseline", action="append", choices=sorted(BASELINE_CONFIGS), default=None
+    )
     parser.add_argument("--smoke-steps", type=int, default=2)
     parser.add_argument("--smoke-per-class", type=int, default=1)
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--eval-batch-size", type=int, default=16)
     parser.add_argument("--fold-id", default="q2_outer_00")
-    parser.add_argument("--python-exe", default="python", help="Python executable to show in generated CMD commands.")
-    parser.add_argument("--execute", action="store_true", help="Run the bounded smokes. Omit for plan-only audit.")
+    parser.add_argument(
+        "--python-exe",
+        default="python",
+        help="Python executable to show in generated CMD commands.",
+    )
+    parser.add_argument(
+        "--execute", action="store_true", help="Run the bounded smokes. Omit for plan-only audit."
+    )
     args = parser.parse_args()
 
     selected = args.baseline or list(BASELINE_CONFIGS)
@@ -71,7 +91,14 @@ def main() -> None:
         if args.execute:
             # This path is intentionally bounded to smoke mode and one fold.
             # Full OOF remains gated by the separate full-run preflight.
-            run_audits.append({"baseline_id": baseline_id, "audit": run_training(config)})
+            audit = run_training(config)
+            run_audits.append(
+                {
+                    "baseline_id": baseline_id,
+                    "run_dir": str(training_run_dir(audit)),
+                    "audit": audit,
+                }
+            )
 
     result = {
         "schema_version": "classification_v2_q2_baseline_smoke_orchestration_v1",
@@ -86,7 +113,11 @@ def main() -> None:
     }
     output_path = args.output_dir / "q2_baseline_smoke_orchestration_audit.json"
     output_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
-    print(json.dumps({k: result[k] for k in ["schema_version", "mode", "selected_baselines"]}, indent=2))
+    print(
+        json.dumps(
+            {k: result[k] for k in ["schema_version", "mode", "selected_baselines"]}, indent=2
+        )
+    )
 
 
 def _cmd_for_baseline(config_path: Path, baseline_id: str, args: argparse.Namespace) -> str:

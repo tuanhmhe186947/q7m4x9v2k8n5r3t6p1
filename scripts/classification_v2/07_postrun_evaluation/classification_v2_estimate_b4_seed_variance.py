@@ -8,14 +8,22 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-from pig_behavior.classification_v2.training.config import load_training_config, training_config_to_jsonable
-from pig_behavior.classification_v2.training.trainer import run_training
+from pig_behavior.classification_v2.training.config import (
+    load_training_config,
+    training_config_to_jsonable,
+)
+from pig_behavior.classification_v2.training.trainer import (
+    run_training,
+    training_run_dir,
+)
 
 DEFAULT_SEEDS = (20260710, 20260711, 20260712)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Estimate B4 inner-validation seed variance with bounded smoke runs.")
+    parser = argparse.ArgumentParser(
+        description="Estimate B4 inner-validation seed variance with bounded smoke runs."
+    )
     parser.add_argument(
         "--config",
         type=Path,
@@ -32,7 +40,9 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--eval-batch-size", type=int, default=16)
     parser.add_argument("--fold-id", default="q2_outer_00")
-    parser.add_argument("--execute", action="store_true", help="Run bounded seed smokes. Omit for plan-only audit.")
+    parser.add_argument(
+        "--execute", action="store_true", help="Run bounded seed smokes. Omit for plan-only audit."
+    )
     args = parser.parse_args()
 
     seeds = _parse_seeds(args.seeds)
@@ -66,6 +76,7 @@ def main() -> None:
         }
         if args.execute:
             audit = run_training(config)
+            completed_run_dir = training_run_dir(audit)
             validation_metrics = [
                 float(item["validation_window_macro_f1"])
                 for item in audit.get("history", [])
@@ -73,18 +84,23 @@ def main() -> None:
             ]
             row.update(
                 {
+                    "run_dir": str(completed_run_dir),
                     "device": audit.get("device"),
                     "hardware": audit.get("hardware"),
                     "git": audit.get("git"),
                     "errors": audit.get("errors", []),
-                    "validation_window_macro_f1": validation_metrics[-1] if validation_metrics else None,
+                    "validation_window_macro_f1": validation_metrics[-1]
+                    if validation_metrics
+                    else None,
                     "outer_test_metrics_present_but_ignored": bool(audit.get("outer_test_metrics")),
                 }
             )
         rows.append(row)
 
     metrics = [
-        float(row["validation_window_macro_f1"]) for row in rows if row.get("validation_window_macro_f1") is not None
+        float(row["validation_window_macro_f1"])
+        for row in rows
+        if row.get("validation_window_macro_f1") is not None
     ]
     errors = _validate(rows, metrics, executed=args.execute, expected_count=len(seeds))
     result = {
@@ -105,7 +121,12 @@ def main() -> None:
     }
     output_path = args.output_dir / "b4_seed_variance_audit.json"
     output_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
-    print(json.dumps({k: result[k] for k in ["schema_version", "mode", "summary", "errors", "valid"]}, indent=2))
+    print(
+        json.dumps(
+            {k: result[k] for k in ["schema_version", "mode", "summary", "errors", "valid"]},
+            indent=2,
+        )
+    )
     if errors:
         raise SystemExit(1)
 
@@ -144,7 +165,10 @@ def _validate(
     if not executed:
         return errors
     if len(rows) != expected_count or len(metrics) != expected_count:
-        errors.append(f"incomplete_seed_runs=rows:{len(rows)},metrics:{len(metrics)},expected:{expected_count}")
+        errors.append(
+            f"incomplete_seed_runs=rows:{len(rows)},"
+            f"metrics:{len(metrics)},expected:{expected_count}"
+        )
     for row in rows:
         if row.get("errors"):
             errors.append(f"seed_{row.get('seed')}_errors={row.get('errors')}")

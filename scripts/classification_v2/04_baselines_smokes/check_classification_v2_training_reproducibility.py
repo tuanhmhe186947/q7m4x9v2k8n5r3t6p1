@@ -11,12 +11,20 @@ from pathlib import Path
 import pandas as pd
 
 from pig_behavior.classification_v2.training.config import load_training_config
-from pig_behavior.classification_v2.training.data_module import MODEL_INPUT_KEYS, validate_model_inputs
-from pig_behavior.classification_v2.training.trainer import run_training
+from pig_behavior.classification_v2.training.data_module import (
+    MODEL_INPUT_KEYS,
+    validate_model_inputs,
+)
+from pig_behavior.classification_v2.training.trainer import (
+    run_training,
+    training_run_dir,
+)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Check strict trainer reproducibility without full OOF.")
+    parser = argparse.ArgumentParser(
+        description="Check strict trainer reproducibility without full OOF."
+    )
     parser.add_argument(
         "--config",
         type=Path,
@@ -30,28 +38,43 @@ def main() -> None:
     args = parser.parse_args()
     base = load_training_config(args.config)
     audits = []
+    run_directories = []
     prediction_hashes = []
     test_prediction_hashes = []
     for run_name in ("run_a", "run_b"):
-        run_dir = args.output_dir / run_name
+        output_root = args.output_dir / run_name
         config = replace(
             base,
             optimization=replace(base.optimization, batch_size=10, eval_batch_size=10),
-            execution=replace(base.execution, mode="smoke", smoke_steps=2, output_dir=run_dir, resume=False),
+            execution=replace(
+                base.execution,
+                mode="smoke",
+                smoke_steps=2,
+                output_dir=output_root,
+                resume=False,
+            ),
         )
-        audits.append(run_training(config))
+        audit = run_training(config)
+        audits.append(audit)
+        run_dir = training_run_dir(audit)
+        run_directories.append(run_dir)
         prediction_hashes.append(_prediction_digest(run_dir / "validation_predictions.csv"))
         test_prediction_hashes.append(_prediction_digest(run_dir / "oof_test_predictions.csv"))
     forbidden_rejected = False
     try:
-        validate_model_inputs({**{key: None for key in MODEL_INPUT_KEYS}, "review_sample_weight": None})
+        validate_model_inputs(
+            {**{key: None for key in MODEL_INPUT_KEYS}, "review_sample_weight": None}
+        )
     except ValueError:
         forbidden_rejected = True
     comparable_history = [_history_signature(audit) for audit in audits]
     errors: list[str] = []
     if audits[0]["train_selected_window_id_sha256"] != audits[1]["train_selected_window_id_sha256"]:
         errors.append("train_selection_hash_mismatch")
-    if audits[0]["validation_selected_window_id_sha256"] != audits[1]["validation_selected_window_id_sha256"]:
+    if (
+        audits[0]["validation_selected_window_id_sha256"]
+        != audits[1]["validation_selected_window_id_sha256"]
+    ):
         errors.append("validation_selection_hash_mismatch")
     if comparable_history[0] != comparable_history[1]:
         errors.append(f"metric_history_mismatch={comparable_history}")
@@ -65,9 +88,11 @@ def main() -> None:
         errors.append("forbidden_model_input_not_rejected")
     result = {
         "schema_version": "classification_v2_training_reproducibility_audit_v1",
-        "run_directories": [str(args.output_dir / name) for name in ("run_a", "run_b")],
+        "run_directories": [str(path) for path in run_directories],
         "train_selection_sha256": [audit["train_selected_window_id_sha256"] for audit in audits],
-        "validation_selection_sha256": [audit["validation_selected_window_id_sha256"] for audit in audits],
+        "validation_selection_sha256": [
+            audit["validation_selected_window_id_sha256"] for audit in audits
+        ],
         "history_signatures": comparable_history,
         "prediction_sha256": prediction_hashes,
         "test_prediction_sha256": test_prediction_hashes,
@@ -78,7 +103,9 @@ def main() -> None:
         "valid": not errors,
     }
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    (args.output_dir / "reproducibility_audit.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
+    (args.output_dir / "reproducibility_audit.json").write_text(
+        json.dumps(result, indent=2), encoding="utf-8"
+    )
     print(json.dumps(result, indent=2))
     if errors:
         raise SystemExit(1)

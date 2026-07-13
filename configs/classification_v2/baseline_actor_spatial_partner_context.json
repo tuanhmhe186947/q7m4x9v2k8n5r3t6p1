@@ -18,6 +18,10 @@
   },
   "model": {
     "architecture_version": "multimodal_temporal_conv_v3_visual_context_multitask_v1",
+    "backbone_name": "smoke_cnn",
+    "pretrained_weight_enum": "NONE_RANDOM_INIT",
+    "temporal_view": "fixed6_observed_time",
+    "temporal_encoder_name": "masked_tcn",
     "image_size": 64,
     "hidden_dim": 48,
     "dropout": 0.1,
@@ -66,6 +70,8 @@
   },
   "execution": {
     "mode": "smoke",
+    "execution_profile": "local_smoke",
+    "experiment_name": "baseline_actor_spatial_partner_context",
     "smoke_steps": 8,
     "smoke_per_class": 1,
     "output_dir": "outputs/classification_v2/model_smoke/baseline_actor_spatial_partner_context",

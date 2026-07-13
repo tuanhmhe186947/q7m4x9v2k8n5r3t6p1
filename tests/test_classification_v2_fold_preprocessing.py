@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -14,6 +15,7 @@ from pig_behavior.classification_v2.models.multitask_fusion import (
 from pig_behavior.classification_v2.training.checkpoint import (
     load_training_checkpoint,
     save_training_checkpoint,
+    training_config_sha256,
 )
 from pig_behavior.classification_v2.training.config import (
     ClassificationV2TrainingConfig,
@@ -23,6 +25,7 @@ from pig_behavior.classification_v2.training.config import (
     ModelConfig,
     OptimizationConfig,
     load_training_config,
+    validate_training_config,
 )
 from pig_behavior.classification_v2.training.fold_preprocessing import (
     ensure_fold_preprocessing_state,
@@ -212,12 +215,14 @@ def test_checkpoint_resume_rejects_preprocessing_hash_drift(
     scaler = torch.amp.GradScaler("cuda", enabled=False)
     config = _training_config(tmp_path)
     path = tmp_path / "checkpoint.pt"
+    run_identity = _run_identity(config)
     save_training_checkpoint(
         path,
         model=model,
         optimizer=optimizer,
         scaler=scaler,
         config=config,
+        run_identity=run_identity,
         preprocessing_sha256="preprocessing-a",
         train_window_id_sha256="train-order-a",
         epoch=0,
@@ -232,7 +237,43 @@ def test_checkpoint_resume_rejects_preprocessing_hash_drift(
             optimizer=optimizer,
             scaler=scaler,
             config=config,
+            run_identity=run_identity,
             preprocessing_sha256="preprocessing-b",
+            train_window_id_sha256="train-order-a",
+        )
+
+
+def test_checkpoint_resume_rejects_run_identity_drift(tmp_path: Path) -> None:
+    model = torch.nn.Linear(2, 2)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=0.01)
+    scaler = torch.amp.GradScaler("cuda", enabled=False)
+    config = _training_config(tmp_path)
+    identity = _run_identity(config)
+    path = tmp_path / "checkpoint.pt"
+    save_training_checkpoint(
+        path,
+        model=model,
+        optimizer=optimizer,
+        scaler=scaler,
+        config=config,
+        run_identity=identity,
+        preprocessing_sha256="preprocessing-a",
+        train_window_id_sha256="train-order-a",
+        epoch=0,
+        global_step=1,
+        metrics={},
+    )
+    drifted = {**identity, "cache_sha256": "9" * 64}
+
+    with pytest.raises(ValueError, match="cache_sha256"):
+        load_training_checkpoint(
+            path,
+            model=model,
+            optimizer=optimizer,
+            scaler=scaler,
+            config=config,
+            run_identity=drifted,
+            preprocessing_sha256="preprocessing-a",
             train_window_id_sha256="train-order-a",
         )
 
@@ -265,6 +306,22 @@ def test_declared_training_configs_include_fold_event_contract() -> None:
     )
 
 
+def test_config_rejects_temporal_view_without_matching_loader(
+    tmp_path: Path,
+) -> None:
+    config = _training_config(tmp_path)
+    unsupported = replace(
+        config,
+        model=replace(
+            config.model,
+            temporal_view="fixed6_normalized_phase",
+        ),
+    )
+
+    with pytest.raises(ValueError, match="unsupported_temporal_view_loader"):
+        validate_training_config(unsupported)
+
+
 def _training_config(root: Path) -> ClassificationV2TrainingConfig:
     dataset = DatasetConfig(
         snapshot_json=root / "snapshot.json",
@@ -288,3 +345,37 @@ def _training_config(root: Path) -> ClassificationV2TrainingConfig:
         loss=LossConfig(sample_weight_policy="uniform"),
         execution=ExecutionConfig(),
     )
+
+
+def _run_identity(
+    config: ClassificationV2TrainingConfig,
+) -> dict[str, object]:
+    return {
+        "run_id": "test-run",
+        "experiment_name": "fold-preprocessing-test",
+        "execution_profile": "local_smoke",
+        "code_sha": "0" * 40,
+        "dirty_worktree": True,
+        "worktree_state_sha256": "0" * 64,
+        "config_sha256": training_config_sha256(config),
+        "dataset_snapshot_id": "test-snapshot",
+        "dataset_snapshot_sha256": "1" * 64,
+        "cache_sha256": "2" * 64,
+        "fold_manifest_sha256": "3" * 64,
+        "feature_whitelist_sha256": "4" * 64,
+        "temporal_view_selection_sha256": "5" * 64,
+        "fold_event_weight_sha256": "6" * 64,
+        "fold_id": config.execution.fold_id,
+        "architecture_version": config.model.architecture_version,
+        "backbone_name": config.model.backbone_name,
+        "pretrained_weight_enum": config.model.pretrained_weight_enum,
+        "resolution": config.model.image_size,
+        "temporal_view": config.model.temporal_view,
+        "temporal_encoder_name": config.model.temporal_encoder_name,
+        "modalities": ["actor_rgb"],
+        "loss_name": f"cross_entropy+{config.loss.sample_weight_policy}",
+        "sampler_policy": config.loss.sampler_policy,
+        "optimizer_name": config.optimization.optimizer,
+        "precision": config.optimization.precision,
+        "augmentation_policy": config.dataset.augmentation_policy,
+    }
