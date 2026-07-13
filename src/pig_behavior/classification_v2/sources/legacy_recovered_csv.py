@@ -20,6 +20,10 @@ from typing import Any
 
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.identifiers import (
+    ensure_frame_object_identifiers,
+    scene_frame_key,
+)
 from pig_behavior.classification_v2.schema import (
     CANONICAL_FRAME_OBJECT_COLUMNS,
     DEFAULT_PIG_IDS,
@@ -145,7 +149,7 @@ def infer_legacy_source_kind(df: pd.DataFrame) -> str:
 def add_legacy_context_counts(df: pd.DataFrame) -> pd.DataFrame:
     """Add global context counts for legacy recovered data.
 
-    The count is computed per frame_uid. A frame may have 1..8 pigs.
+    The count is computed per scene_frame_uid. A frame may have 1..8 pigs.
     This function only records the context status; it never rejects rows.
     """
     out = df.copy()
@@ -156,8 +160,11 @@ def add_legacy_context_counts(df: pd.DataFrame) -> pd.DataFrame:
         out["missing_global_pig_ids"] = pd.Series(dtype="object")
         return out
 
-    if "frame_uid" not in out.columns:
-        raise ValueError("frame_uid is required before adding context counts.")
+    out["scene_frame_uid"] = scene_frame_key(out)
+    if out["scene_frame_uid"].eq("").any():
+        raise ValueError(
+            "scene_frame_uid is required before adding context counts."
+        )
     
     has_existing_context = (
         "global_context_pig_count" in out.columns
@@ -188,20 +195,41 @@ def add_legacy_context_counts(df: pd.DataFrame) -> pd.DataFrame:
 
         return out
 
+    recomputed_columns = [
+        "global_context_pig_count",
+        "global_context_complete_8",
+        "missing_global_pig_ids",
+        "local_context_pig_count",
+        "context_quality",
+    ]
+    out = out.drop(
+        columns=[column for column in recomputed_columns if column in out],
+    )
+
     counts = (
-        out.groupby("frame_uid", dropna=False)["pig_id"]
+        out.groupby("scene_frame_uid", dropna=False)["pig_id"]
         .nunique(dropna=True)
         .rename("global_context_pig_count")
     )
 
     pig_sets = (
-        out.groupby("frame_uid", dropna=False)["pig_id"]
+        out.groupby("scene_frame_uid", dropna=False)["pig_id"]
         .apply(lambda values: set(v for v in values.dropna().astype(str)))
         .rename("present_pig_ids")
     )
 
-    out = out.merge(counts, left_on="frame_uid", right_index=True, how="left")
-    out = out.merge(pig_sets, left_on="frame_uid", right_index=True, how="left")
+    out = out.merge(
+        counts,
+        left_on="scene_frame_uid",
+        right_index=True,
+        how="left",
+    )
+    out = out.merge(
+        pig_sets,
+        left_on="scene_frame_uid",
+        right_index=True,
+        how="left",
+    )
 
     expected = set(DEFAULT_PIG_IDS)
 
@@ -239,7 +267,8 @@ def audit_legacy_frame_objects(df: pd.DataFrame) -> dict[str, Any]:
 
     audit: dict[str, Any] = {
         "rows": int(len(df)),
-        "frames": int(df["frame_uid"].nunique(dropna=True))
+        "frames": int(scene_frame_key(df).nunique(dropna=True)),
+        "frame_objects": int(df["frame_uid"].nunique(dropna=True))
         if "frame_uid" in df.columns
         else 0,
         "tracklets": int(df["track_id"].nunique(dropna=True))
@@ -296,24 +325,41 @@ def _from_frame_object_export(
         default="",
     )
 
-    out["frame_uid"] = _first_existing_series(
+    out["identifier_schema_version"] = _first_existing_series(
         df,
-        ["frame_uid", "image_key"],
+        ["identifier_schema_version"],
         default="",
     )
-    missing_frame_uid = out["frame_uid"].isna() | out["frame_uid"].astype(str).eq("")
-    if missing_frame_uid.any():
+
+    out["scene_frame_uid"] = _first_existing_series(
+        df,
+        ["scene_frame_uid", "frame_uid", "image_key"],
+        default="",
+    )
+    missing_scene_uid = (
+        out["scene_frame_uid"].isna()
+        | out["scene_frame_uid"].astype(str).eq("")
+    )
+    if missing_scene_uid.any():
         fallback_uid = _build_frame_uid(
             video_key=out["video_key"],
             group_id=_get_series(df, "group_id", default=""),
             frame_index=_get_series(df, "frame_index", default=0),
         )
-        out.loc[missing_frame_uid, "frame_uid"] = fallback_uid.loc[missing_frame_uid]
+        out.loc[missing_scene_uid, "scene_frame_uid"] = fallback_uid.loc[
+            missing_scene_uid
+        ]
+
+    out["frame_uid"] = _first_existing_series(
+        df,
+        ["frame_uid"],
+        default=out["scene_frame_uid"],
+    )
 
     out["image_key"] = _first_existing_series(
         df,
-        ["image_key", "frame_uid"],
-        default=out["frame_uid"],
+        ["image_key", "scene_frame_uid"],
+        default=out["scene_frame_uid"],
     )
 
     out["image_name"] = _get_series(df, "image_name", default="")
@@ -541,17 +587,19 @@ def _from_dense_tracklet_map(
     out["video_key"] = source_video
     out["clip_id"] = group_id
     out["task_id"] = ""
+    out["identifier_schema_version"] = ""
 
     if "image_key" in df.columns:
-        out["frame_uid"] = df["image_key"]
+        out["scene_frame_uid"] = df["image_key"]
     else:
-        out["frame_uid"] = _build_frame_uid(
+        out["scene_frame_uid"] = _build_frame_uid(
             video_key=source_video,
             group_id=group_id,
             frame_index=frame_index,
         )
 
-    out["image_key"] = out["frame_uid"]
+    out["frame_uid"] = out["scene_frame_uid"]
+    out["image_key"] = out["scene_frame_uid"]
     out["image_name"] = _get_series(df, "image_name", default="")
     out["frame_index"] = _to_numeric(frame_index)
     out["relative_frame_index"] = out["frame_index"]
@@ -781,7 +829,10 @@ def _ensure_canonical_columns(df: pd.DataFrame) -> pd.DataFrame:
             "social_feature_quality",
         ] = "full_context"
 
-    return out
+    return ensure_frame_object_identifiers(
+        out,
+        source_name="legacy_recovered",
+    )
 
 
 def _copy_bbox_columns(source: pd.DataFrame, out: pd.DataFrame) -> None:
@@ -855,7 +906,7 @@ def _build_frame_uid(
     group_id: pd.Series,
     frame_index: pd.Series,
 ) -> pd.Series:
-    """Build a stable frame UID for legacy data."""
+    """Build a stable legacy scene-frame UID."""
     frame_num = _to_numeric(frame_index).fillna(-1).astype(int)
     return (
         video_key.astype(str)

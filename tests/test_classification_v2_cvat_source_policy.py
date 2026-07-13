@@ -4,6 +4,9 @@ from pathlib import Path
 
 import pytest
 
+from pig_behavior.classification_v2.contracts.identifiers import (
+    FRAME_OBJECT_IDENTIFIER_VERSION,
+)
 from pig_behavior.classification_v2.sources.cvat_tracking_xml import (
     load_cvat_tracking_xml,
 )
@@ -46,6 +49,10 @@ def test_tracking_hidden_is_kept_without_automatic_downweight(
     assert bool(rows.iloc[0]["include_in_training"])
     assert rows.iloc[0]["sample_weight"] == 1.0
     assert rows.iloc[0]["qa_status"] == "ok"
+    assert rows.iloc[0]["identifier_schema_version"] == (
+        FRAME_OBJECT_IDENTIFIER_VERSION
+    )
+    assert rows.iloc[0]["scene_frame_uid"] != rows.iloc[0]["frame_uid"]
 
 
 def test_parser_flag_cannot_claim_human_hidden_trust(tmp_path: Path) -> None:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
@@ -8,6 +10,9 @@ from pig_behavior.classification_v2.contracts.identifiers import (
     audit_frame_object_identifiers,
     ensure_frame_object_identifiers,
     scene_frame_key,
+)
+from pig_behavior.classification_v2.sources.legacy_recovered_csv import (
+    load_legacy_frame_objects,
 )
 
 
@@ -93,3 +98,35 @@ def test_source_namespace_prevents_cross_source_object_collision() -> None:
         "scene_frame_uid"
     ]
     assert first_ids.iloc[0]["frame_uid"] != second_ids.iloc[0]["frame_uid"]
+
+
+def test_legacy_source_emits_unique_object_ids_for_shared_scene(
+    tmp_path: Path,
+) -> None:
+    source = pd.DataFrame(
+        {
+            "image_key": ["legacy-scene-0", "legacy-scene-0"],
+            "image_name": ["frame.jpg", "frame.jpg"],
+            "source_video_key": ["legacy-video", "legacy-video"],
+            "tracklet_id": ["track-1", "track-2"],
+            "pig_id": ["ID_1", "ID_2"],
+            "behavior": ["stand", "fight"],
+            "frame_index": [0, 0],
+            "x1": [10.0, 40.0],
+            "y1": [10.0, 10.0],
+            "x2": [30.0, 60.0],
+            "y2": [30.0, 30.0],
+        }
+    )
+    source_path = tmp_path / "legacy_frame_object_annotations.csv"
+    source.to_csv(source_path, index=False)
+
+    rows = load_legacy_frame_objects(source_path, dataset_id="legacy-fixture")
+
+    assert len(rows) == 2
+    assert rows["scene_frame_uid"].nunique() == 1
+    assert rows["frame_uid"].nunique() == 2
+    assert rows["global_context_pig_count"].eq(2).all()
+    assert rows["identifier_schema_version"].eq(
+        FRAME_OBJECT_IDENTIFIER_VERSION
+    ).all()

@@ -27,6 +27,10 @@ from xml.etree import ElementTree as ET
 
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.identifiers import (
+    ensure_frame_object_identifiers,
+    scene_frame_key,
+)
 from pig_behavior.classification_v2.schema import (
     CANONICAL_FRAME_OBJECT_COLUMNS,
     DEFAULT_PIG_IDS,
@@ -105,7 +109,7 @@ def load_cvat_tracking_xml(
             x2_raw = _safe_float(box.attrib.get("xbr"))
             y2_raw = _safe_float(box.attrib.get("ybr"))
 
-            frame_uid = f"{resolved_video_key}::f{frame_index:06d}"
+            scene_frame_uid = f"{resolved_video_key}::f{frame_index:06d}"
 
             rows.append(
                 {
@@ -115,8 +119,9 @@ def load_cvat_tracking_xml(
                     "source_video_key": resolved_video_key,
                     "clip_id": "",
                     "task_id": task_id,
-                    "frame_uid": frame_uid,
-                    "image_key": frame_uid,
+                    "scene_frame_uid": scene_frame_uid,
+                    "frame_uid": scene_frame_uid,
+                    "image_key": scene_frame_uid,
                     "image_name": f"{resolved_video_key}__f{frame_index:06d}.jpg",
                     "object_id_in_image": pd.NA,
                     "frame_index": frame_index,
@@ -190,7 +195,8 @@ def audit_cvat_tracking_xml(df: pd.DataFrame) -> dict[str, Any]:
 
     return {
         "rows": int(len(df)),
-        "frames": int(df["frame_uid"].nunique(dropna=True)),
+        "frames": int(scene_frame_key(df).nunique(dropna=True)),
+        "frame_objects": int(df["frame_uid"].nunique(dropna=True)),
         "tracks": int(df["track_id"].nunique(dropna=True)),
         "pig_ids": _value_counts_dict(df, "pig_id"),
         "behaviors": _value_counts_dict(df, "behavior"),
@@ -298,29 +304,44 @@ def _add_context_columns(
     out = df.copy()
 
     counts = (
-        out.groupby("frame_uid", dropna=False)["pig_id"]
+        out.groupby("scene_frame_uid", dropna=False)["pig_id"]
         .nunique(dropna=True)
         .rename("global_context_pig_count")
     )
 
     pig_sets = (
-        out.groupby("frame_uid", dropna=False)["pig_id"]
+        out.groupby("scene_frame_uid", dropna=False)["pig_id"]
         .apply(lambda values: set(v for v in values.dropna().astype(str)))
         .rename("present_pig_ids")
     )
 
     duplicates = (
-        out.groupby(["frame_uid", "pig_id"], dropna=False)
+        out.groupby(["scene_frame_uid", "pig_id"], dropna=False)
         .size()
         .gt(1)
-        .groupby("frame_uid")
+        .groupby("scene_frame_uid")
         .any()
         .rename("duplicate_pig_id_in_frame")
     )
 
-    out = out.merge(counts, left_on="frame_uid", right_index=True, how="left")
-    out = out.merge(pig_sets, left_on="frame_uid", right_index=True, how="left")
-    out = out.merge(duplicates, left_on="frame_uid", right_index=True, how="left")
+    out = out.merge(
+        counts,
+        left_on="scene_frame_uid",
+        right_index=True,
+        how="left",
+    )
+    out = out.merge(
+        pig_sets,
+        left_on="scene_frame_uid",
+        right_index=True,
+        how="left",
+    )
+    out = out.merge(
+        duplicates,
+        left_on="scene_frame_uid",
+        right_index=True,
+        how="left",
+    )
 
     expected_ids = set(DEFAULT_PIG_IDS[:expected_pig_count])
 
@@ -470,16 +491,18 @@ def _ensure_canonical_columns(df: pd.DataFrame) -> pd.DataFrame:
     ).reset_index(drop=True)
 
     out["object_id_in_image"] = (
-        out.groupby("frame_uid", dropna=False).cumcount() + 1
+        out.groupby("scene_frame_uid", dropna=False).cumcount() + 1
     )
-
-    return out
+    return ensure_frame_object_identifiers(
+        out,
+        source_name="cvat_tracking_xml",
+    )
 
 
 def _interaction_partner_ids(df: pd.DataFrame) -> pd.Series:
     partner_ids: dict[int, str] = {}
 
-    for _, group in df.groupby("frame_uid", dropna=False):
+    for _, group in df.groupby("scene_frame_uid", dropna=False):
         ids = [str(v) for v in group["pig_id"].dropna().tolist()]
 
         for idx, pig_id in zip(group.index, group["pig_id"], strict=False):
