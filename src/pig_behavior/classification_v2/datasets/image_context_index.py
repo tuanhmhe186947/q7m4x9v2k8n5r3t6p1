@@ -67,6 +67,8 @@ FRAME_CONTEXT_COLUMNS = [
     "requires_partner_context",
     "review_include_in_training",
     "review_training_action",
+    "lineage_scope",
+    "human_review_complete",
 ]
 
 WINDOW_CONTEXT_COLUMNS = [
@@ -81,6 +83,8 @@ WINDOW_CONTEXT_COLUMNS = [
     "window_start_frame",
     "window_end_frame",
     "window_valid_for_main_train",
+    "lineage_scope",
+    "human_review_complete",
 ]
 
 
@@ -317,6 +321,10 @@ def build_image_context_index(
     )
     _validate_frame_context_contract(identifier_frames)
     _validate_window_context_contract(windows)
+    lineage_claim = _validate_optional_lineage_claims(
+        identifier_frames,
+        windows,
+    )
 
     video_index = build_video_index(video_root)
     frame_manifest = _build_frame_manifest(
@@ -348,6 +356,9 @@ def build_image_context_index(
         "source_counts": frame_manifest["source_type"].value_counts(dropna=False).to_dict()
         if "source_type" in frame_manifest
         else {},
+        "image_context_source_counts": frame_manifest["image_context_source"]
+        .value_counts(dropna=False)
+        .to_dict(),
         "window_source_counts": window_manifest["source_type"].value_counts(dropna=False).to_dict()
         if "source_type" in window_manifest
         else {},
@@ -395,6 +406,7 @@ def build_image_context_index(
         ),
         "errors": [],
         "warnings": [],
+        **lineage_claim,
     }
     if audit["duplicate_image_context_id"]:
         audit["errors"].append(f"duplicate_image_context_id={audit['duplicate_image_context_id']}")
@@ -455,7 +467,32 @@ def _build_frame_manifest(
         legacy_exists = legacy_paths.notna()
         out.loc[legacy_mask, "resolved_media_exists"] = legacy_exists.to_numpy()
         out.loc[legacy_mask, "image_context_loadable"] = legacy_exists.to_numpy()
-        out.loc[legacy_exists.index[~legacy_exists], "image_context_error"] = "missing_legacy_crop"
+        fallback_index = legacy_exists.index[~legacy_exists]
+        if len(fallback_index):
+            video_paths = _resolve_video_paths_frame(
+                out.loc[fallback_index],
+                video_root,
+                video_index,
+            )
+            video_exists = video_paths.notna()
+            video_bbox = _to_bool(out.loc[fallback_index, "bbox_context_valid"])
+            video_loadable = video_exists & video_bbox
+            out.loc[fallback_index, "resolved_media_path"] = video_paths.fillna("")
+            out.loc[fallback_index, "resolved_media_exists"] = video_exists.to_numpy()
+            out.loc[fallback_index, "full_frame_context_available"] = (
+                video_exists.to_numpy()
+            )
+            out.loc[fallback_index, "image_context_loadable"] = (
+                video_loadable.to_numpy()
+            )
+            video_index_rows = video_exists.index[video_exists]
+            out.loc[video_index_rows, "image_context_source"] = "legacy_video_bbox"
+            missing_video_rows = video_exists.index[~video_exists]
+            out.loc[missing_video_rows, "image_context_error"] = (
+                "missing_legacy_crop_and_video"
+            )
+            invalid_bbox_rows = video_exists.index[video_exists & ~video_bbox]
+            out.loc[invalid_bbox_rows, "image_context_error"] = "invalid_bbox"
 
     if cvat_mask.any():
         cvat_paths = _resolve_video_paths_frame(out.loc[cvat_mask], video_root, video_index)
@@ -770,6 +807,16 @@ def _to_bool(series: pd.Series) -> pd.Series:
     return series.astype(str).str.strip().str.lower().isin({"true", "1", "yes", "y", "t"})
 
 
+def _strict_bool(series: pd.Series) -> tuple[pd.Series, int]:
+    if pd.api.types.is_bool_dtype(series):
+        return series.fillna(False).astype(bool), int(series.isna().sum())
+    normalized = series.fillna("").astype(str).str.strip().str.lower()
+    truthy = {"true", "1", "yes", "y", "t"}
+    falsy = {"false", "0", "no", "n", "f"}
+    invalid = int((~normalized.isin(truthy | falsy)).sum())
+    return normalized.isin(truthy), invalid
+
+
 def _require_columns(df: pd.DataFrame, required: list[str], name: str) -> None:
     missing = [c for c in required if c not in df.columns]
     if missing:
@@ -824,6 +871,57 @@ def _validate_window_context_contract(windows: pd.DataFrame) -> None:
             duplicate,
             duplicate_name="duplicate_window_id_rows",
         )
+
+
+def _validate_optional_lineage_claims(
+    frames: pd.DataFrame,
+    windows: pd.DataFrame,
+) -> dict[str, Any]:
+    """Preserve an explicit profile claim only when both manifests agree."""
+
+    claim_columns = {"lineage_scope", "human_review_complete"}
+    frame_present = claim_columns.intersection(frames.columns)
+    window_present = claim_columns.intersection(windows.columns)
+    if not frame_present and not window_present:
+        return {}
+    if frame_present != claim_columns or window_present != claim_columns:
+        raise ValueError(
+            "image context lineage claim requires both columns on frames "
+            "and windows"
+        )
+    frame_scopes = set(frames["lineage_scope"].fillna("").astype(str))
+    window_scopes = set(windows["lineage_scope"].fillna("").astype(str))
+    frame_reviewed, frame_invalid = _strict_bool(
+        frames["human_review_complete"]
+    )
+    window_reviewed, window_invalid = _strict_bool(
+        windows["human_review_complete"]
+    )
+    if (
+        len(frame_scopes) != 1
+        or "" in frame_scopes
+        or frame_scopes != window_scopes
+    ):
+        raise ValueError(
+            "image context lineage_scope mismatch: "
+            f"frames={sorted(frame_scopes)} windows={sorted(window_scopes)}"
+        )
+    frame_values = set(frame_reviewed.astype(bool))
+    window_values = set(window_reviewed.astype(bool))
+    if (
+        frame_invalid
+        or window_invalid
+        or len(frame_values) != 1
+        or frame_values != window_values
+    ):
+        raise ValueError(
+            "image context human_review_complete mismatch: "
+            f"frame_invalid={frame_invalid} window_invalid={window_invalid}"
+        )
+    return {
+        "lineage_scope": next(iter(frame_scopes)),
+        "human_review_complete": next(iter(frame_values)),
+    }
 
 
 def _raise_context_alignment_error(

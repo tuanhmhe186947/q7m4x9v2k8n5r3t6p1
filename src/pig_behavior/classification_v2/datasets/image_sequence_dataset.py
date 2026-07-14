@@ -19,7 +19,9 @@ import torch
 from PIL import Image
 from torch.utils.data import Dataset
 
-from pig_behavior.classification_v2.datasets.image_context_index import IMAGE_CONTEXT_SEQUENCE_DELIMITER
+from pig_behavior.classification_v2.datasets.image_context_index import (
+    IMAGE_CONTEXT_SEQUENCE_DELIMITER,
+)
 
 try:
     import cv2  # type: ignore
@@ -29,8 +31,14 @@ except Exception:  # pragma: no cover
 
 @dataclass(frozen=True, slots=True)
 class ImageSequenceDatasetConfig:
-    frame_context_csv: Path = Path("outputs/classification_v2/train_ready_windows/image_frame_context_manifest.csv")
-    window_context_csv: Path = Path("outputs/classification_v2/train_ready_windows/image_window_context_manifest.csv")
+    frame_context_csv: Path = Path(
+        "outputs/classification_v2/train_ready_windows/"
+        "image_frame_context_manifest.csv"
+    )
+    window_context_csv: Path = Path(
+        "outputs/classification_v2/train_ready_windows/"
+        "image_window_context_manifest.csv"
+    )
     image_cache_manifest_csv: Path | None = None
     packed_image_cache_npy: Path | None = None
     packed_image_cache_index_csv: Path | None = None
@@ -42,7 +50,7 @@ class ImageSequenceDatasetConfig:
 
 
 class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
-    """Load legacy crop sequences and CVAT video+bbox crop sequences."""
+    """Load audited crop files or video+bbox sequences for cache construction."""
 
     def __init__(self, config: ImageSequenceDatasetConfig) -> None:
         if config.image_size <= 0:
@@ -59,13 +67,19 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
             config.packed_image_cache_index_csv,
         )
         if config.require_complete:
-            self.windows = self.windows[_to_bool(self.windows["window_image_context_complete"])].copy()
+            complete = _to_bool(
+                self.windows["window_image_context_complete"]
+            )
+            self.windows = self.windows[complete].copy()
         if config.max_windows is not None:
             if config.max_windows <= 0:
                 raise ValueError("max_windows must be positive")
             self.windows = self.windows.head(config.max_windows).copy()
         self.windows = self.windows.reset_index(drop=True)
-        self.frame_by_context_id = self.frames.set_index("image_context_id", drop=False).to_dict("index")
+        self.frame_by_context_id = self.frames.set_index(
+            "image_context_id",
+            drop=False,
+        ).to_dict("index")
         self._capture_cache: dict[str, Any] = {}
         self._capture_next_frame: dict[str, int] = {}
         self._decoded_video_frame: dict[str, tuple[int, np.ndarray]] = {}
@@ -87,7 +101,15 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         context_ids = _split_context_id_sequence(str(window["image_context_id_sequence"]))
         expected_frames = _split_sequence(str(window["expected_frame_indices"]))
         sequence_len = len(context_ids)
-        images = np.zeros((sequence_len, 3, self.config.image_size, self.config.image_size), dtype=np.float32)
+        images = np.zeros(
+            (
+                sequence_len,
+                3,
+                self.config.image_size,
+                self.config.image_size,
+            ),
+            dtype=np.float32,
+        )
         length_mask = np.ones((sequence_len,), dtype=np.float32)
         observed_mask = np.zeros((sequence_len,), dtype=np.float32)
         errors: list[str] = []
@@ -154,7 +176,10 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         missing_frame = sorted(frame_required.difference(self.frames.columns))
         missing_window = sorted(window_required.difference(self.windows.columns))
         if missing_frame or missing_window:
-            raise ValueError(f"missing image context columns: frames={missing_frame} windows={missing_window}")
+            raise ValueError(
+                "missing image context columns: "
+                f"frames={missing_frame} windows={missing_window}"
+            )
         duplicate_context = int(self.frames["image_context_id"].duplicated().sum())
         if duplicate_context:
             raise ValueError(f"duplicate image_context_id rows: {duplicate_context}")
@@ -162,9 +187,14 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
     def _load_frame_image(self, frame: dict[str, Any]) -> np.ndarray | None:
         source_type = str(frame.get("source_type", ""))
         if source_type == "legacy_recovered":
-            return _load_legacy_crop(Path(str(frame["resolved_media_path"])), self.config.image_size)
+            if str(frame.get("image_context_source", "")) == "legacy_video_bbox":
+                return self._load_video_bbox_crop(frame)
+            return _load_legacy_crop(
+                Path(str(frame["resolved_media_path"])),
+                self.config.image_size,
+            )
         if source_type == "cvat_tracking_xml":
-            return self._load_cvat_crop(frame)
+            return self._load_video_bbox_crop(frame)
         return None
 
     def _load_context_image(self, context_id: str, frame: dict[str, Any]) -> np.ndarray | None:
@@ -223,10 +253,16 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         missing = sorted(required.difference(manifest.columns))
         if missing:
             raise ValueError(f"image cache manifest missing columns: {missing}")
-        size_mismatch = manifest[pd.to_numeric(manifest["image_size"], errors="coerce").ne(self.config.image_size)]
+        size_mismatch = manifest[
+            pd.to_numeric(manifest["image_size"], errors="coerce").ne(
+                self.config.image_size
+            )
+        ]
         if len(size_mismatch):
             raise ValueError(
-                f"image cache size mismatch: expected {self.config.image_size}, found {len(size_mismatch)} rows"
+                "image cache size mismatch: "
+                f"expected {self.config.image_size}, "
+                f"found {len(size_mismatch)} rows"
             )
         duplicate_context = int(manifest["image_context_id"].duplicated().sum())
         if duplicate_context:
@@ -248,17 +284,26 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         """Open a row-addressable mmap cache only when tensor and index agree."""
 
         if (tensor_npy is None) != (index_csv is None):
-            raise ValueError("packed_image_cache_npy and packed_image_cache_index_csv must be provided together")
+            raise ValueError(
+                "packed_image_cache_npy and packed_image_cache_index_csv "
+                "must be provided together"
+            )
         if tensor_npy is None or index_csv is None:
             return None, {}
         tensor_path = Path(tensor_npy)
         index_path = Path(index_csv)
         if not tensor_path.exists() or not index_path.exists():
-            raise FileNotFoundError(f"packed image cache missing: tensor={tensor_path} index={index_path}")
+            raise FileNotFoundError(
+                "packed image cache missing: "
+                f"tensor={tensor_path} index={index_path}"
+            )
         tensor = np.load(tensor_path, mmap_mode="r")
         expected_tail = (self.config.image_size, self.config.image_size, 3)
         if tensor.dtype != np.uint8 or tensor.ndim != 4 or tuple(tensor.shape[1:]) != expected_tail:
-            raise ValueError(f"packed image tensor contract mismatch: dtype={tensor.dtype} shape={tensor.shape}")
+            raise ValueError(
+                "packed image tensor contract mismatch: "
+                f"dtype={tensor.dtype} shape={tensor.shape}"
+            )
         index = pd.read_csv(index_path, low_memory=False)
         required = {"image_context_id", "packed_row"}
         missing = sorted(required.difference(index.columns))
@@ -302,8 +347,8 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
             )
         )
 
-    def _load_cvat_crop(self, frame: dict[str, Any]) -> np.ndarray | None:
-        """Load one CVAT crop while reusing sequentially decoded full frames.
+    def _load_video_bbox_crop(self, frame: dict[str, Any]) -> np.ndarray | None:
+        """Load one bbox crop while reusing sequentially decoded full frames.
 
         The cache builder sorts requests by video/frame. This method therefore
         reads consecutive frames without seeking and decodes a shared frame
@@ -427,7 +472,8 @@ def letterbox_rgb_uint8(image_rgb: np.ndarray, image_size: int) -> np.ndarray:
 
     if image_rgb.ndim != 3 or image_rgb.shape[-1] != 3:
         raise ValueError("letterbox_rgb_uint8 expects an RGB HWC image")
-    return np.asarray(_letterbox_pil_rgb(Image.fromarray(image_rgb.astype(np.uint8), mode="RGB"), image_size))
+    image = Image.fromarray(image_rgb.astype(np.uint8), mode="RGB")
+    return np.asarray(_letterbox_pil_rgb(image, image_size))
 
 
 def _to_chw_float(image_rgb: np.ndarray) -> np.ndarray:

@@ -12,7 +12,11 @@ import pandas as pd
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Pack classification_v2 image cache files into one mmap tensor.")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Pack classification_v2 image cache files into one mmap tensor."
+        )
+    )
     parser.add_argument(
         "--cache-manifest",
         type=Path,
@@ -69,6 +73,7 @@ def build_packed_cache(
     if max_contexts is not None and max_contexts <= 0:
         raise ValueError("max_contexts must be positive when provided")
     manifest = pd.read_csv(cache_manifest, low_memory=False)
+    lineage_claim = _optional_manifest_claim(manifest)
     source_rows = len(manifest)
     required = {"image_context_id", "cache_path", "image_size", "resize_policy"}
     missing = sorted(required.difference(manifest.columns))
@@ -105,13 +110,25 @@ def build_packed_cache(
         if not tensor_path.exists() or not partial_audit_path.exists():
             raise FileNotFoundError("--resume requires packed tensor and partial audit")
         partial = json.loads(partial_audit_path.read_text(encoding="utf-8"))
-        if partial.get("shape") != list(shape) or partial.get("source_manifest_sha256") != _sha256(cache_manifest):
+        partial_shape_valid = partial.get("shape") == list(shape)
+        partial_source_valid = partial.get(
+            "source_manifest_sha256"
+        ) == _sha256(cache_manifest)
+        if not partial_shape_valid or not partial_source_valid:
             raise ValueError("packed cache partial lineage mismatch")
+        for name, expected in lineage_claim.items():
+            if partial.get(name) != expected:
+                raise ValueError(
+                    f"packed cache partial {name} mismatch"
+                )
         start_row = int(partial.get("completed_rows", 0))
         packed = np.lib.format.open_memmap(tensor_path, mode="r+", dtype=np.uint8, shape=shape)
     else:
         if tensor_path.exists():
-            raise FileExistsError(f"packed tensor exists; use --resume or --overwrite: {tensor_path}")
+            raise FileExistsError(
+                "packed tensor exists; use --resume or --overwrite: "
+                f"{tensor_path}"
+            )
         packed = np.lib.format.open_memmap(tensor_path, mode="w+", dtype=np.uint8, shape=shape)
 
     records = [
@@ -141,12 +158,17 @@ def build_packed_cache(
                     shape=shape,
                     completed_rows=completed_rows,
                     workers=workers,
+                    lineage_claim=lineage_claim,
                 )
     packed.flush()
     index = pd.DataFrame(
         {
             "image_context_id": manifest["image_context_id"].astype(str),
             "packed_row": np.arange(len(manifest), dtype=np.int64),
+            **{
+                name: [value] * len(manifest)
+                for name, value in lineage_claim.items()
+            },
         }
     )
     index.to_csv(index_path, index=False)
@@ -184,6 +206,7 @@ def build_packed_cache(
         "verification_sample_rows": int(verification_count),
         "verification_mismatches": int(verification_mismatches),
         "resize_policy_values": sorted(manifest["resize_policy"].astype(str).unique().tolist()),
+        **lineage_claim,
         "valid": bool(
             tensor.shape == shape
             and tensor.dtype == np.uint8
@@ -222,6 +245,7 @@ def _write_partial_audit(
     shape: tuple[int, int, int, int],
     completed_rows: int,
     workers: int,
+    lineage_claim: dict[str, Any],
 ) -> None:
     audit = {
         "schema_version": "classification_v2_packed_image_cache_partial_audit_v1",
@@ -230,6 +254,7 @@ def _write_partial_audit(
         "shape": list(shape),
         "completed_rows": int(completed_rows),
         "workers": int(workers),
+        **lineage_claim,
         "complete": False,
     }
     path.write_text(json.dumps(audit, indent=2), encoding="utf-8")
@@ -241,6 +266,38 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _optional_manifest_claim(manifest: pd.DataFrame) -> dict[str, Any]:
+    """Propagate one explicit profile claim into the packed index and audit."""
+
+    columns = {"lineage_scope", "human_review_complete"}
+    present = columns.intersection(manifest.columns)
+    if not present:
+        return {}
+    if present != columns:
+        raise ValueError("cache manifest has a partial lineage claim")
+    scopes = set(manifest["lineage_scope"].fillna("").astype(str))
+    if len(scopes) != 1 or "" in scopes:
+        raise ValueError(f"cache manifest lineage_scope values={sorted(scopes)}")
+    normalized = (
+        manifest["human_review_complete"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
+    truthy = {"true", "1", "yes", "y", "t"}
+    falsy = {"false", "0", "no", "n", "f"}
+    if not normalized.isin(truthy | falsy).all():
+        raise ValueError("cache manifest has invalid human_review_complete")
+    reviewed_values = set(normalized.isin(truthy))
+    if len(reviewed_values) != 1:
+        raise ValueError("cache manifest has mixed human_review_complete")
+    return {
+        "lineage_scope": next(iter(scopes)),
+        "human_review_complete": next(iter(reviewed_values)),
+    }
 
 
 def _to_bool(series: pd.Series) -> pd.Series:

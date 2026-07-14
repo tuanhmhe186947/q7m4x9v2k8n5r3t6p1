@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -10,6 +11,13 @@ from pig_behavior.classification_v2.datasets.image_context_index import (
     audit_image_context_identifier_contract,
     audit_mandatory_cvat_video_case,
     build_image_context_index,
+)
+from pig_behavior.classification_v2.datasets.image_sequence_dataset import (
+    ClassificationV2ImageSequenceDataset,
+    ImageSequenceDatasetConfig,
+)
+from pig_behavior.classification_v2.datasets.legacy_unreviewed_development import (
+    LEGACY_DEVELOPMENT_SCOPE,
 )
 
 
@@ -84,6 +92,66 @@ def test_context_index_preserves_rows_even_when_media_is_missing(
     )
     assert identifier_audit["status"] == "v2"
     assert identifier_audit["valid"] is True
+
+
+def test_context_index_uses_legacy_video_bbox_when_crop_is_missing(
+    tmp_path: Path,
+) -> None:
+    video_path = tmp_path / "legacy.mp4"
+    video_path.write_bytes(b"video-placeholder")
+    frames = _frames()
+    frames["source_video_path"] = str(video_path)
+    frames[["x1", "y1", "x2", "y2"]] = [1.0, 2.0, 9.0, 12.0]
+
+    result = _build(frames, _windows(), tmp_path)
+
+    assert result.audit["frame_loadable_count"] == 2
+    assert result.audit["image_context_source_counts"] == {
+        "legacy_video_bbox": 2,
+    }
+    assert result.frame_manifest["resolved_media_path"].eq(str(video_path)).all()
+    assert result.frame_manifest["image_context_loadable"].all()
+
+
+def test_context_index_propagates_explicit_lineage_claim(tmp_path: Path) -> None:
+    frames = _frames()
+    windows = _windows()
+    frames["lineage_scope"] = LEGACY_DEVELOPMENT_SCOPE
+    frames["human_review_complete"] = False
+    windows["lineage_scope"] = LEGACY_DEVELOPMENT_SCOPE
+    windows["human_review_complete"] = False
+
+    result = _build(frames, windows, tmp_path)
+
+    assert set(result.frame_manifest["lineage_scope"]) == {
+        LEGACY_DEVELOPMENT_SCOPE
+    }
+    assert not result.frame_manifest["human_review_complete"].any()
+    assert set(result.window_manifest["lineage_scope"]) == {
+        LEGACY_DEVELOPMENT_SCOPE
+    }
+    assert not result.window_manifest["human_review_complete"].any()
+    assert result.audit["lineage_scope"] == LEGACY_DEVELOPMENT_SCOPE
+    assert result.audit["human_review_complete"] is False
+
+
+def test_image_dataset_dispatches_legacy_video_bbox_source(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dataset = object.__new__(ClassificationV2ImageSequenceDataset)
+    dataset.config = ImageSequenceDatasetConfig(image_size=8)
+    expected = np.zeros((3, 8, 8), dtype=np.float32)
+    monkeypatch.setattr(dataset, "_load_video_bbox_crop", lambda _frame: expected)
+
+    observed = dataset._load_frame_image(
+        {
+            "source_type": "legacy_recovered",
+            "image_context_source": "legacy_video_bbox",
+            "resolved_media_path": "legacy.mp4",
+        }
+    )
+
+    assert observed is expected
 
 
 def test_context_index_preserves_input_window_order(tmp_path: Path) -> None:

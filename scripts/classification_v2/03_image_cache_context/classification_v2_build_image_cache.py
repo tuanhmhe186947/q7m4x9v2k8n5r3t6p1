@@ -20,35 +20,65 @@ RESIZE_POLICY = "letterbox_preserve_aspect_rgb_pad_black_v1"
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build reusable classification_v2 actor crop image cache.")
+    parser = argparse.ArgumentParser(
+        description="Build reusable classification_v2 actor crop image cache."
+    )
     parser.add_argument(
         "--frame-context-csv",
         type=Path,
-        default=Path("outputs/classification_v2/train_ready_windows/image_frame_context_manifest.csv"),
+        default=Path(
+            "outputs/classification_v2/train_ready_windows/"
+            "image_frame_context_manifest.csv"
+        ),
     )
     parser.add_argument(
         "--window-context-csv",
         type=Path,
-        default=Path("outputs/classification_v2/train_ready_windows/image_window_context_manifest.csv"),
+        default=Path(
+            "outputs/classification_v2/train_ready_windows/"
+            "image_window_context_manifest.csv"
+        ),
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
         default=Path("outputs/classification_v2/image_cache_v2_letterbox"),
         help=(
-            "Canonical reusable actor crop cache root; use one audited letterbox cache instead of smoke-specific roots."
+            "Canonical reusable actor crop cache root; use one audited "
+            "letterbox cache instead of smoke-specific roots."
         ),
     )
     parser.add_argument("--image-size", type=int, default=64)
     parser.add_argument("--max-contexts", type=int, default=None)
-    parser.add_argument("--source-type", default=None, help="Optional source_type filter for targeted smoke builds.")
-    parser.add_argument("--preview-jpg", action="store_true", help="Write readable JPEG previews for audit.")
-    parser.add_argument("--preview-limit", type=int, default=500, help="Maximum preview JPEGs to write.")
-    parser.add_argument("--checkpoint-every", type=int, default=1000, help="Write partial manifest every N contexts.")
+    parser.add_argument(
+        "--source-type",
+        default=None,
+        help="Optional source_type filter for targeted smoke builds.",
+    )
+    parser.add_argument(
+        "--preview-jpg",
+        action="store_true",
+        help="Write readable JPEG previews for audit.",
+    )
+    parser.add_argument(
+        "--preview-limit",
+        type=int,
+        default=500,
+        help="Maximum preview JPEGs to write.",
+    )
+    parser.add_argument(
+        "--checkpoint-every",
+        type=int,
+        default=1000,
+        help="Write partial manifest every N contexts.",
+    )
     parser.add_argument(
         "--resume-from-partial",
         action="store_true",
-        help="Resume from manifest.partial.csv/cache_audit.partial.json instead of iterating completed rows again.",
+        help=(
+            "Resume from manifest.partial.csv/cache_audit.partial.json "
+            "instead of iterating completed rows again."
+        ),
     )
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
@@ -108,6 +138,7 @@ def build_image_cache(
             image_cache_size=0,
         )
     )
+    lineage_claim = _optional_lineage_claim(dataset.frames, dataset.windows)
     frame = dataset.frames.copy()
     if source_type:
         frame = frame[frame["source_type"].astype(str).eq(source_type)].copy()
@@ -132,6 +163,7 @@ def build_image_cache(
             audit_path=partial_audit_path,
             image_size=image_size,
             source_type=source_type,
+            lineage_claim=lineage_claim,
         )
         manifest_rows = resume_state["manifest_rows"]
         previews_written = resume_state["previews_written"]
@@ -180,7 +212,10 @@ def build_image_cache(
                         preview_path.parent.mkdir(parents=True, exist_ok=True)
                         Image.fromarray(image_uint8).save(preview_path, quality=92)
                 if preview_path.exists():
-                    preview_rel_path = str(Path(f"preview_jpg_{image_size}_letterbox") / preview_rel)
+                    preview_rel_path = str(
+                        Path(f"preview_jpg_{image_size}_letterbox")
+                        / preview_rel
+                    )
                     previews_written += 1
             manifest_rows.append(
                 {
@@ -201,6 +236,7 @@ def build_image_cache(
                     "x2": row_dict.get("x2", ""),
                     "y2": row_dict.get("y2", ""),
                     **letterbox_meta,
+                    **lineage_claim,
                 }
             )
             completed_context_ids.add(context_id)
@@ -223,6 +259,7 @@ def build_image_cache(
                     video_decode_count=dataset.video_decode_count,
                     video_seek_count=dataset.video_seek_count,
                     video_frame_reuse_count=dataset.video_frame_reuse_count,
+                    lineage_claim=lineage_claim,
                 )
     finally:
         dataset.close()
@@ -262,10 +299,70 @@ def build_image_cache(
         "video_decode_count": int(dataset.video_decode_count),
         "video_seek_count": int(dataset.video_seek_count),
         "video_frame_reuse_count": int(dataset.video_frame_reuse_count),
-        "valid": bool(len(manifest) > 0 and missing_context_rows == 0 and duplicate_context_rows == 0 and failed == 0),
+        **lineage_claim,
+        "valid": bool(
+            len(manifest) > 0
+            and missing_context_rows == 0
+            and duplicate_context_rows == 0
+            and failed == 0
+        ),
     }
     (output_dir / "cache_audit.json").write_text(json.dumps(audit, indent=2), encoding="utf-8")
     return audit
+
+
+def _optional_lineage_claim(
+    frames: pd.DataFrame,
+    windows: pd.DataFrame,
+) -> dict[str, Any]:
+    """Propagate a profile claim only when frame and window inputs agree."""
+
+    columns = {"lineage_scope", "human_review_complete"}
+    frame_present = columns.intersection(frames.columns)
+    window_present = columns.intersection(windows.columns)
+    if not frame_present and not window_present:
+        return {}
+    if frame_present != columns or window_present != columns:
+        raise ValueError(
+            "cache lineage claim requires both columns on frames and windows"
+        )
+    frame_scopes = set(frames["lineage_scope"].fillna("").astype(str))
+    window_scopes = set(windows["lineage_scope"].fillna("").astype(str))
+    if (
+        len(frame_scopes) != 1
+        or "" in frame_scopes
+        or frame_scopes != window_scopes
+    ):
+        raise ValueError(
+            "cache lineage_scope mismatch: "
+            f"frames={sorted(frame_scopes)} windows={sorted(window_scopes)}"
+        )
+    frame_reviewed = _single_bool_claim(
+        frames["human_review_complete"],
+        "frame human_review_complete",
+    )
+    window_reviewed = _single_bool_claim(
+        windows["human_review_complete"],
+        "window human_review_complete",
+    )
+    if frame_reviewed != window_reviewed:
+        raise ValueError("cache human_review_complete mismatch")
+    return {
+        "lineage_scope": next(iter(frame_scopes)),
+        "human_review_complete": frame_reviewed,
+    }
+
+
+def _single_bool_claim(series: pd.Series, name: str) -> bool:
+    normalized = series.fillna("").astype(str).str.strip().str.lower()
+    truthy = {"true", "1", "yes", "y", "t"}
+    falsy = {"false", "0", "no", "n", "f"}
+    if not normalized.isin(truthy | falsy).all():
+        raise ValueError(f"invalid {name} values")
+    values = set(normalized.isin(truthy))
+    if len(values) != 1:
+        raise ValueError(f"mixed {name} values")
+    return next(iter(values))
 
 
 def _load_partial_resume_state(
@@ -274,6 +371,7 @@ def _load_partial_resume_state(
     audit_path: Path,
     image_size: int,
     source_type: str | None,
+    lineage_claim: dict[str, Any],
 ) -> dict[str, Any]:
     """Load an interrupted cache build only when its lineage matches this run."""
 
@@ -281,13 +379,25 @@ def _load_partial_resume_state(
         return {"manifest_rows": [], "previews_written": 0, "missing_cache_rows": 0}
     audit = json.loads(audit_path.read_text(encoding="utf-8"))
     if int(audit.get("image_size", -1)) != int(image_size):
-        raise ValueError(f"partial cache image_size mismatch: {audit.get('image_size')} != {image_size}")
+        raise ValueError(
+            "partial cache image_size mismatch: "
+            f"{audit.get('image_size')} != {image_size}"
+        )
     if str(audit.get("resize_policy", "")) != RESIZE_POLICY:
-        raise ValueError(f"partial cache resize_policy mismatch: {audit.get('resize_policy')} != {RESIZE_POLICY}")
+        raise ValueError(
+            "partial cache resize_policy mismatch: "
+            f"{audit.get('resize_policy')} != {RESIZE_POLICY}"
+        )
     if audit.get("source_type_filter") != source_type:
         raise ValueError(
-            f"partial cache source_type_filter mismatch: {audit.get('source_type_filter')} != {source_type}"
+            "partial cache source_type_filter mismatch: "
+            f"{audit.get('source_type_filter')} != {source_type}"
         )
+    for name, expected in lineage_claim.items():
+        if audit.get(name) != expected:
+            raise ValueError(
+                f"partial cache {name} mismatch: {audit.get(name)} != {expected}"
+            )
     manifest = pd.read_csv(manifest_path, low_memory=False)
     required = {"image_context_id", "cache_path", "image_size", "cache_format", "resize_policy"}
     missing = sorted(required.difference(manifest.columns))
@@ -295,7 +405,10 @@ def _load_partial_resume_state(
         raise ValueError(f"partial cache manifest missing columns: {missing}")
     duplicate_context = int(manifest["image_context_id"].duplicated().sum())
     if duplicate_context:
-        raise ValueError(f"partial cache manifest duplicate image_context_id rows: {duplicate_context}")
+        raise ValueError(
+            "partial cache manifest duplicate image_context_id rows: "
+            f"{duplicate_context}"
+        )
     size_mismatch = int(pd.to_numeric(manifest["image_size"], errors="coerce").ne(image_size).sum())
     if size_mismatch:
         raise ValueError(f"partial cache manifest image_size mismatch rows: {size_mismatch}")
@@ -336,10 +449,14 @@ def _write_cache_checkpoint(
     video_decode_count: int,
     video_seek_count: int,
     video_frame_reuse_count: int,
+    lineage_claim: dict[str, Any],
 ) -> None:
     """Persist partial cache lineage so interrupted long builds are auditable."""
 
-    pd.DataFrame(manifest_rows).sort_values("image_context_id", kind="mergesort").to_csv(manifest_path, index=False)
+    pd.DataFrame(manifest_rows).sort_values(
+        "image_context_id",
+        kind="mergesort",
+    ).to_csv(manifest_path, index=False)
     audit = {
         "schema_version": "classification_v2_image_cache_partial_audit_v1",
         "output_dir": str(output_dir),
@@ -362,6 +479,7 @@ def _write_cache_checkpoint(
         "video_decode_count": int(video_decode_count),
         "video_seek_count": int(video_seek_count),
         "video_frame_reuse_count": int(video_frame_reuse_count),
+        **lineage_claim,
         "complete": False,
     }
     audit_path.write_text(json.dumps(audit, indent=2), encoding="utf-8")
@@ -432,7 +550,10 @@ def _letterbox_metadata_from_bbox(row: dict[str, Any], image_size: int) -> dict[
     }
 
 
-def _empty_letterbox_metadata(crop_width: float | None = None, crop_height: float | None = None) -> dict[str, Any]:
+def _empty_letterbox_metadata(
+    crop_width: float | None = None,
+    crop_height: float | None = None,
+) -> dict[str, Any]:
     return {
         "source_crop_width": "" if crop_width is None else float(crop_width),
         "source_crop_height": "" if crop_height is None else float(crop_height),

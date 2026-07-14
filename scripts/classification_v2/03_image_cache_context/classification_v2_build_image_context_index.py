@@ -43,6 +43,17 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--max-frame-rows", type=int, default=None)
     parser.add_argument(
+        "--lineage-scope",
+        default=None,
+        help="Optional explicit profile claim propagated to both manifests.",
+    )
+    parser.add_argument(
+        "--human-review-complete",
+        choices=("true", "false"),
+        default=None,
+        help="Required with --lineage-scope; use false for unreviewed lanes.",
+    )
+    parser.add_argument(
         "--overwrite",
         action="store_true",
         help="Replace existing derived image-context artifacts explicitly.",
@@ -52,6 +63,10 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    if (args.lineage_scope is None) != (args.human_review_complete is None):
+        raise ValueError(
+            "--lineage-scope and --human-review-complete must be provided together"
+        )
     frame_path = args.output_dir / "image_frame_context_manifest.csv"
     window_path = args.output_dir / "image_window_context_manifest.csv"
     audit_path = args.output_dir / "image_context_index_audit.json"
@@ -70,6 +85,12 @@ def main() -> None:
             raise ValueError("--max-frame-rows must be > 0")
         frames = frames.head(args.max_frame_rows).copy()
     windows = pd.read_csv(args.window_manifest_csv, usecols=window_usecols, low_memory=False)
+    if args.lineage_scope is not None:
+        human_review_complete = args.human_review_complete == "true"
+        frames["lineage_scope"] = args.lineage_scope
+        frames["human_review_complete"] = human_review_complete
+        windows["lineage_scope"] = args.lineage_scope
+        windows["human_review_complete"] = human_review_complete
 
     index = build_image_context_index(
         frames,
