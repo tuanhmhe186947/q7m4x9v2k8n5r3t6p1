@@ -118,6 +118,26 @@ validated session groups; never random-split frames or overlapping windows.
 Do not launch model training from a new rebuild until its versioned
 data/cache/fold hashes are frozen and all local model smoke gates pass.
 
+## Legacy-only unreviewed development lane
+
+The user separately authorizes bounded development on the legacy 16-frame
+source without waiting for current human review. Use a new versioned root under
+`outputs/classification_v2/legacy_only_unreviewed_development`; never write into
+the reviewed rebuild, canonical train-ready, or historical full-OOF folders.
+
+The lane must preserve one complete 16-frame burst as the native unit, group
+splits by recording date or video, keep all overlapping windows from a burst in
+one role, and bind source, feature whitelist, cache, fold, and config hashes.
+Every artifact and metric must carry the exact scope label
+`legacy-only-unreviewed-development` and `human_review_complete=false`.
+
+Run the ladder in this order: read-only source audit, complete-unit short chain,
+full legacy data rebuild, leakage-safe snapshot freeze, loader sample,
+one-batch forward/backward, tiny overfit, resume, then one short development
+fold. A full or long run is permitted only after the exact short configuration
+passes and receives the existing explicit authorization. Results from this lane
+cannot support the reviewed all-source Q2 claim.
+
 ## Active classification_v2 Workflow Override
 
 Use this section as the current workflow. Older tracking/RGB-D/FastAPI notes in

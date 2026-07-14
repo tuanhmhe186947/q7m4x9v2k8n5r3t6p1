@@ -1,5 +1,20 @@
 # Project Memory Short
 
+## 2026-07-14 legacy-only unreviewed development authorization
+
+- The user authorizes bounded classifier development from the 72,864-row
+  `legacy_recovered` reference without waiting for current Hidden or behavior
+  review.
+- Every artifact and metric must be labeled
+  `legacy-only-unreviewed-development`; this lineage is for loader, model,
+  runtime, controlled ablation, and historical-comparison work only.
+- Recording/video-safe groups, one 16-frame native burst per unit, exact
+  feature whitelists, immutable hashes, and short-before-full gates remain
+  mandatory.
+- This branch cannot be called reviewed/final train-ready data, replace the
+  all-source reviewed evaluation, authorize a Q2 claim, or weaken the existing
+  human-review and full-OOF gates.
+
 ## 2026-07-14 native source and missingness probes
 
 - Commit `9b04209` replaces the positional, all-numeric window source probe

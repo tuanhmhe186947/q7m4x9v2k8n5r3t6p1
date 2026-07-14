@@ -44,6 +44,11 @@ completion status, while its evidence records independent work that can continue
 - P5 imbalance, mapped to M2/M8/M9: `BLOCKED` by the missing strong P4 model.
 - P6 hierarchy, mapped to M5/M8/M9: `BLOCKED` by P1-P5 error analysis and review.
 
+An independent `legacy-only-unreviewed-development` lane is now `IN_PROGRESS`.
+It may exercise P0-P5 engineering and bounded development-fold metrics after
+its own leakage-safe snapshot passes. It does not change the blocked status of
+the reviewed all-source P0-P8 path and cannot promote a Q2 finalist.
+
 ### P7-P8 Confirmatory Phases
 
 - P7 finalist lock, mapped to M10: `BLOCKED` until P0-P6 and bounded pilots pass.

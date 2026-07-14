@@ -13,13 +13,19 @@ fail-closed until static checks, a tiny/short representative run, and
 schema/count/hash/output/runtime audits pass. A prior full authorization does
 not transfer to a changed semantic config.
 
-For bounded model tests that report `accuracy` or `F1`, prefer an explicitly
-declared `legacy_recovered` 16-frame evaluation slice when it is scientifically
-compatible with the tested question. It is closest to the older model lineage,
-supports clearer historical comparison, and is currently less dirty than CVAT.
-The slice must still be reviewed, grouped by video/session, native-unit safe,
-and labeled `legacy-only`; it cannot replace the all-source 10-class evaluation
-or support a Q2 claim by itself.
+For bounded model tests that report `accuracy` or `F1`, use an explicitly
+declared `legacy_recovered` 16-frame development lineage when it is
+scientifically compatible with the tested question. The user permits this
+lineage to proceed without current human review because it is closest to the
+older model lineage and currently less dirty than CVAT. It must be grouped by
+recording/video, native-unit safe, hash-frozen, and labeled
+`legacy-only-unreviewed-development` in every manifest, run, prediction, and
+metric. It cannot replace the all-source reviewed evaluation, be called final
+train-ready data, authorize full OOF, or support a Q2 claim by itself.
+
+The reviewed all-source lineage remains independently blocked by incomplete
+Hidden and behavior decisions. Its gates must not be weakened or reused to
+misrepresent the legacy development branch as human reviewed.
 
 Commit `9b04209` is now the source/missingness probe authority. A source probe
 must use the exact ordered trainer whitelist, bind the train-ready ordered
