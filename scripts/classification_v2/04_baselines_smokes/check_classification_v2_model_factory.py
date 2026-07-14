@@ -7,6 +7,9 @@ from typing import Any
 
 import torch
 
+from pig_behavior.classification_v2.contracts.temporal_tier_contract import (
+    DEFAULT_TEMPORAL_TIERS,
+)
 from pig_behavior.classification_v2.models.model_factory import (
     MODEL_MODE_NAMES,
     build_multimodal_model,
@@ -106,21 +109,64 @@ def run_model_factory_audit() -> dict[str, Any]:
                 "temporal_build_failed="
                 f"{encoder_name}:{type(exc).__name__}:{exc}"
             )
+    temporal_tiers: list[dict[str, Any]] = []
+    for sequence_length in DEFAULT_TEMPORAL_TIERS:
+        config = _config(
+            "actor_temporal",
+            temporal_input_frames=sequence_length,
+        )
+        try:
+            model = _build(config).eval()
+            output = model(**_inputs(config))
+            shape = list(output.behavior.shape)
+            finite = bool(torch.isfinite(output.behavior).all())
+            if shape != [2, 10] or not finite:
+                errors.append(
+                    "temporal_tier_forward_invalid="
+                    f"T{sequence_length}:{shape}:{finite}"
+                )
+            temporal_tiers.append(
+                {
+                    "temporal_tier": f"T{sequence_length}",
+                    "sequence_length": sequence_length,
+                    "behavior_shape": shape,
+                    "behavior_finite": finite,
+                    "parameters": model_parameter_report(model),
+                }
+            )
+        except (RuntimeError, ValueError) as exc:
+            errors.append(
+                "temporal_tier_forward_failed="
+                f"T{sequence_length}:{type(exc).__name__}:{exc}"
+            )
+    tier_parameter_counts = {
+        int(item["parameters"]["total"])
+        for item in temporal_tiers
+    }
+    if len(tier_parameter_counts) > 1:
+        errors.append("temporal_tier_parameter_count_drift")
     return {
-        "schema_version": "classification_v2.model_factory_audit.v1",
+        "schema_version": "classification_v2.model_factory_audit.v2",
         "model_mode_count": len(modes),
         "temporal_encoder_count": len(temporal),
+        "temporal_tier_count": len(temporal_tiers),
         "expected_behavior_shape": [2, 10],
         "pretrained_weight_downloaded": False,
         "optimizer_steps": 0,
         "modes": modes,
         "temporal_encoders": temporal,
+        "temporal_tiers": temporal_tiers,
         "errors": errors,
         "valid": not errors,
     }
 
 
-def _config(mode: str, *, temporal_encoder: str | None = None) -> ModelConfig:
+def _config(
+    mode: str,
+    *,
+    temporal_encoder: str | None = None,
+    temporal_input_frames: int = 6,
+) -> ModelConfig:
     spec = model_mode_spec(mode)
     encoder = temporal_encoder or (
         "masked_mean" if mode == "actor_only" else "masked_tcn"
@@ -128,6 +174,7 @@ def _config(mode: str, *, temporal_encoder: str | None = None) -> ModelConfig:
     return ModelConfig(
         architecture_version=MULTITASK_ARCHITECTURE_VERSION,
         model_mode=mode,
+        temporal_input_frames=temporal_input_frames,
         temporal_encoder_name=encoder,
         hidden_dim=8,
         dropout=0.0,
@@ -156,7 +203,8 @@ def _build(config: ModelConfig):
 
 
 def _inputs(config: ModelConfig) -> dict[str, Any]:
-    batch_size, sequence_length = 2, 6
+    batch_size = 2
+    sequence_length = config.temporal_input_frames
     length = torch.ones(batch_size, sequence_length)
     observed = length.clone()
     observed[1, -1] = 0.0

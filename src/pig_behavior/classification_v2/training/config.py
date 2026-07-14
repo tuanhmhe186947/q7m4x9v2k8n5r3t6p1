@@ -7,6 +7,9 @@ from dataclasses import MISSING, dataclass, fields
 from pathlib import Path
 from typing import Any, TypeVar
 
+from pig_behavior.classification_v2.contracts.temporal_tier_contract import (
+    LEGACY_TEMPORAL_MODEL_VIEW_SPECS,
+)
 from pig_behavior.classification_v2.models.model_factory import (
     ALL_SPATIAL_GROUPS,
     MODEL_MODE_REGISTRY,
@@ -34,9 +37,24 @@ T = TypeVar("T")
 # reading the primary observed-time inputs.
 TEMPORAL_VIEW_SELECTION_CONTRACT = {
     "fixed6_observed_time": "fixed6_keep",
+    **{
+        view_name: str(spec["selection_column"])
+        for view_name, spec in LEGACY_TEMPORAL_MODEL_VIEW_SPECS.items()
+    },
 }
 TEMPORAL_VIEW_MANIFEST_FILENAMES = {
     "fixed6_observed_time": "fixed6_observed_time_manifest.csv",
+    **{
+        view_name: str(spec["slot_manifest_filename"])
+        for view_name, spec in LEGACY_TEMPORAL_MODEL_VIEW_SPECS.items()
+    },
+}
+TEMPORAL_VIEW_SEQUENCE_LENGTHS = {
+    "fixed6_observed_time": 6,
+    **{
+        view_name: int(spec["sequence_length"])
+        for view_name, spec in LEGACY_TEMPORAL_MODEL_VIEW_SPECS.items()
+    },
 }
 
 
@@ -68,6 +86,7 @@ class ModelConfig:
     backbone_name: str = "smoke_cnn"
     pretrained_weight_enum: str = "NONE_RANDOM_INIT"
     temporal_view: str = "fixed6_observed_time"
+    temporal_input_frames: int = 6
     temporal_encoder_name: str = "masked_tcn"
     image_size: int = 64
     hidden_dim: int = 48
@@ -227,10 +246,25 @@ def validate_training_config(config: ClassificationV2TrainingConfig) -> None:
     expected_selection_col = TEMPORAL_VIEW_SELECTION_CONTRACT.get(
         config.model.temporal_view
     )
+    expected_temporal_length = TEMPORAL_VIEW_SEQUENCE_LENGTHS.get(
+        config.model.temporal_view
+    )
     if expected_selection_col is None:
         errors.append(
             "unsupported_temporal_view_loader="
             f"{config.model.temporal_view}"
+        )
+    if expected_temporal_length is None:
+        errors.append(
+            "unsupported_temporal_view_length="
+            f"{config.model.temporal_view}"
+        )
+    elif config.model.temporal_input_frames != expected_temporal_length:
+        errors.append(
+            "temporal_input_length_contract_mismatch="
+            f"view:{config.model.temporal_view},"
+            f"frames:{config.model.temporal_input_frames},"
+            f"expected:{expected_temporal_length}"
         )
     if config.model.temporal_encoder_name not in TEMPORAL_ENCODER_NAMES:
         errors.append(

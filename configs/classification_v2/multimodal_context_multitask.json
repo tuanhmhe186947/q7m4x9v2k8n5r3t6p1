@@ -23,6 +23,7 @@
     "backbone_name": "smoke_cnn",
     "pretrained_weight_enum": "NONE_RANDOM_INIT",
     "temporal_view": "fixed6_observed_time",
+    "temporal_input_frames": 6,
     "temporal_encoder_name": "masked_tcn",
     "image_size": 64,
     "hidden_dim": 48,

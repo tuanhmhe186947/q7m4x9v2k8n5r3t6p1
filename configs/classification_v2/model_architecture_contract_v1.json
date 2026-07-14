@@ -42,7 +42,21 @@
       "image_size": 224
     }
   ],
+  "temporal_input_contract": {
+    "all_source_primary_view": "fixed6_observed_time",
+    "legacy_development_tiers_frames": [6, 8, 12, 16],
+    "legacy_native_evaluation_frames": 16,
+    "legacy_sampling_views": [
+      "all_sliding_event_balanced",
+      "one_centered_window_matched"
+    ],
+    "comparison_rule": "change temporal input length only",
+    "temporal_resampling_allowed": false,
+    "cross_native_unit_windows_allowed": false,
+    "q2_claim_allowed_from_legacy_lane": false
+  },
   "implemented_modules": {
+    "temporal_tier_contract": "contracts/temporal_tier_contract.py",
     "model_factory": "src/pig_behavior/classification_v2/models/model_factory.py",
     "temporal_encoders": "src/pig_behavior/classification_v2/models/temporal_encoders.py",
     "temporal_view_loader": "src/pig_behavior/classification_v2/training/temporal_view_loader.py",

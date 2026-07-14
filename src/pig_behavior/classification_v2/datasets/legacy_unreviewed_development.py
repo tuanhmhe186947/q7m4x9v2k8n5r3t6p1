@@ -14,20 +14,20 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.temporal_tier_contract import (
+    DEFAULT_TEMPORAL_TIERS,
+    LEGACY_TEMPORAL_MODEL_VIEW_SPECS,
+    TEMPORAL_TIER_VIEWS,
+)
 from pig_behavior.classification_v2.schema import VALID_BEHAVIOR_SET, VALID_BEHAVIORS
 
 LEGACY_SOURCE = "legacy_recovered"
 LEGACY_NATIVE_LENGTH = 16
 LEGACY_DEVELOPMENT_SCOPE = "legacy-only-unreviewed-development"
 LEGACY_DEVELOPMENT_SCHEMA_VERSION = (
-    "classification_v2.legacy_unreviewed_development.v1"
+    "classification_v2.legacy_unreviewed_development.v2"
 )
-DEFAULT_TEMPORAL_TIERS = (6, 8, 12, 16)
 DEFAULT_LEGACY_WINDOW_STRIDE = 3
-TEMPORAL_TIER_VIEWS = (
-    "all_sliding_event_balanced",
-    "one_centered_window_matched",
-)
 
 
 @dataclass(slots=True)
@@ -38,6 +38,8 @@ class LegacyUnreviewedDevelopmentTables:
     native_units: pd.DataFrame
     all_sliding_windows: pd.DataFrame
     matched_windows: pd.DataFrame
+    temporal_selection: pd.DataFrame
+    temporal_slot_manifests: dict[str, pd.DataFrame]
     audit: dict[str, Any]
 
 
@@ -68,12 +70,21 @@ def build_legacy_unreviewed_development_manifests(
         temporal_tiers=temporal_tiers,
         legacy_window_stride=legacy_window_stride,
     )
+    selection, slot_manifests, model_input_audit = (
+        _build_temporal_model_input_manifests(
+            harmonized_frames,
+            all_sliding,
+            matched,
+            temporal_tiers=temporal_tiers,
+        )
+    )
 
     errors = [
         *source_audit["errors"],
         *frame_audit["errors"],
         *native_audit["errors"],
         *tier_audit["errors"],
+        *model_input_audit["errors"],
     ]
     audit = {
         "schema_version": LEGACY_DEVELOPMENT_SCHEMA_VERSION,
@@ -104,6 +115,7 @@ def build_legacy_unreviewed_development_manifests(
         "harmonized_frame_audit": frame_audit,
         "native_unit_audit": native_audit,
         "temporal_tier_audit": tier_audit,
+        "temporal_model_input_audit": model_input_audit,
         "errors": errors,
         "warnings": [
             "metrics must be labeled legacy-only-unreviewed-development",
@@ -122,6 +134,8 @@ def build_legacy_unreviewed_development_manifests(
         native_units=native_units,
         all_sliding_windows=all_sliding,
         matched_windows=matched,
+        temporal_selection=selection,
+        temporal_slot_manifests=slot_manifests,
         audit=audit,
     )
 
@@ -241,6 +255,7 @@ def _build_harmonized_unit_summary(
         "track_id",
         "pig_id",
         "frame_index",
+        "timestamp_sec",
         "temporal_unit_key",
         "behavior_temporal_final",
         "bbox_valid",
@@ -800,6 +815,248 @@ def _build_temporal_tier_manifests(
     }
 
 
+def _build_temporal_model_input_manifests(
+    harmonized_frames: pd.DataFrame,
+    all_sliding: pd.DataFrame,
+    matched: pd.DataFrame,
+    *,
+    temporal_tiers: tuple[int, ...],
+) -> tuple[pd.DataFrame, dict[str, pd.DataFrame], dict[str, Any]]:
+    """Create exact model-selection and observed-time slot contracts."""
+
+    required = [
+        "source_type",
+        "object_track_key",
+        "frame_index",
+        "timestamp_sec",
+    ]
+    _require_columns(harmonized_frames, set(required), "harmonized_frames")
+    frame_lookup = harmonized_frames[required].copy()
+    _require_legacy_only(frame_lookup, "harmonized_frames")
+    frame_lookup["frame_index"] = pd.to_numeric(
+        frame_lookup["frame_index"],
+        errors="coerce",
+    )
+    duplicate_frames = int(
+        frame_lookup.duplicated(
+            ["object_track_key", "frame_index"],
+            keep=False,
+        ).sum()
+    )
+    invalid_frame_index = int(
+        (
+            frame_lookup["frame_index"].isna()
+            | frame_lookup["frame_index"].mod(1).ne(0)
+        ).sum()
+    )
+    if not invalid_frame_index:
+        frame_lookup["frame_index"] = frame_lookup["frame_index"].astype(int)
+
+    windows = all_sliding.copy().reset_index(drop=True)
+    windows["_source_window_order"] = np.arange(len(windows), dtype=np.int64)
+    matched_ids = set(matched["window_id"].astype(str))
+    selection = windows[
+        [
+            "window_id",
+            "temporal_unit_key",
+            "temporal_tier",
+            "window_length_frames",
+            "tier_window_valid",
+            "lineage_scope",
+            "human_review_complete",
+        ]
+    ].copy()
+
+    slot_manifests: dict[str, pd.DataFrame] = {}
+    view_audits: dict[str, dict[str, Any]] = {}
+    errors: list[str] = []
+    if duplicate_frames:
+        errors.append(f"duplicate_temporal_slot_source_frames={duplicate_frames}")
+    if invalid_frame_index:
+        errors.append(
+            f"invalid_temporal_slot_source_frame_indices={invalid_frame_index}"
+        )
+
+    for view_name, spec in LEGACY_TEMPORAL_MODEL_VIEW_SPECS.items():
+        length = int(spec["sequence_length"])
+        if length not in temporal_tiers:
+            continue
+        tier_mask = windows["temporal_tier"].eq(f"T{length}")
+        if spec["sampling_view"] == "one_centered_window_matched":
+            tier_mask &= windows["window_id"].astype(str).isin(matched_ids)
+        selection[str(spec["selection_column"])] = tier_mask.to_numpy()
+        selected = windows.loc[tier_mask].copy()
+        slots, slot_audit = _build_temporal_slot_manifest(
+            selected,
+            frame_lookup,
+            view_name=view_name,
+            sequence_length=length,
+        )
+        slot_manifests[view_name] = slots
+        view_audits[view_name] = slot_audit
+        errors.extend(
+            f"{view_name}:{error}" for error in slot_audit["errors"]
+        )
+
+    return selection, slot_manifests, {
+        "selection_rows": int(len(selection)),
+        "selection_order_matches_window_universe": selection[
+            "window_id"
+        ].astype(str).tolist()
+        == all_sliding["window_id"].astype(str).tolist(),
+        "selection_columns": [
+            str(spec["selection_column"])
+            for spec in LEGACY_TEMPORAL_MODEL_VIEW_SPECS.values()
+        ],
+        "view_specs": LEGACY_TEMPORAL_MODEL_VIEW_SPECS,
+        "view_audits": view_audits,
+        "duplicate_temporal_slot_source_frames": duplicate_frames,
+        "invalid_temporal_slot_source_frame_indices": invalid_frame_index,
+        "rows_dropped": 0,
+        "labels_changed": 0,
+        "errors": errors,
+    }
+
+
+def _build_temporal_slot_manifest(
+    windows: pd.DataFrame,
+    frame_lookup: pd.DataFrame,
+    *,
+    view_name: str,
+    sequence_length: int,
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """Expand selected windows into exact, non-resampled observed-time slots."""
+
+    records: list[dict[str, Any]] = []
+    for item_order, row in enumerate(windows.itertuples(index=False)):
+        start = int(row.window_start_frame)
+        end = int(row.window_end_frame)
+        if end - start + 1 != sequence_length:
+            raise ValueError(
+                f"{view_name} window length mismatch for {row.window_id}"
+            )
+        view_item_id = f"{view_name}|{row.window_id}"
+        for slot_index, frame_index in enumerate(range(start, end + 1)):
+            records.append(
+                {
+                    "temporal_view_name": view_name,
+                    "view_item_id": view_item_id,
+                    "parent_window_id": str(row.window_id),
+                    "temporal_unit_key": str(row.temporal_unit_key),
+                    "source_type": LEGACY_SOURCE,
+                    "source_native_length_audit": LEGACY_NATIVE_LENGTH,
+                    "item_order": item_order,
+                    "slot_index": slot_index,
+                    "slot_key": f"{view_item_id}|slot={slot_index}",
+                    "declared_sequence_length": sequence_length,
+                    "object_track_key_audit": str(row.object_track_key),
+                    "frame_index_expected_audit": frame_index,
+                }
+            )
+    slots = pd.DataFrame.from_records(records)
+    if slots.empty:
+        return slots, {
+            "windows": 0,
+            "slot_rows": 0,
+            "missing_observed_slots": 0,
+            "invalid_timing_slots": 0,
+            "nonpositive_time_delta_slots": 0,
+            "duplicate_slot_key_rows": 0,
+            "errors": ["empty_temporal_slot_manifest"],
+        }
+
+    lookup = frame_lookup[
+        ["object_track_key", "frame_index", "timestamp_sec"]
+    ].rename(
+        columns={
+            "frame_index": "frame_index_expected_audit",
+            "timestamp_sec": "timestamp_sec_audit",
+        }
+    )
+    slots = slots.merge(
+        lookup,
+        left_on=["object_track_key_audit", "frame_index_expected_audit"],
+        right_on=["object_track_key", "frame_index_expected_audit"],
+        how="left",
+        validate="many_to_one",
+        indicator=True,
+    )
+    slots["observed_mask"] = slots["_merge"].eq("both")
+    timestamp = pd.to_numeric(slots["timestamp_sec_audit"], errors="coerce")
+    slots["timing_valid_mask"] = slots["observed_mask"] & np.isfinite(
+        timestamp
+    )
+    slots["timestamp_sec_audit"] = timestamp
+    slots["time_coordinate_kind"] = "observed_seconds"
+    slots["time_value"] = timestamp - slots.groupby(
+        "view_item_id",
+        sort=False,
+    )["timestamp_sec_audit"].transform("first")
+    slots["time_delta"] = slots.groupby("view_item_id", sort=False)[
+        "timestamp_sec_audit"
+    ].diff()
+    slots.loc[slots["slot_index"].eq(0), "time_delta"] = 0.0
+    slots["length_mask"] = True
+    slots["padding_mask"] = False
+    slots["lineage_scope"] = LEGACY_DEVELOPMENT_SCOPE
+    slots["human_review_complete"] = False
+
+    missing_observed = int((~slots["observed_mask"]).sum())
+    invalid_timing = int((~slots["timing_valid_mask"]).sum())
+    nonpositive_delta = int(
+        (
+            slots["slot_index"].gt(0)
+            & pd.to_numeric(slots["time_delta"], errors="coerce").le(0.0)
+        ).sum()
+    )
+    duplicate_slot_keys = int(slots["slot_key"].duplicated(keep=False).sum())
+    errors = []
+    counts = {
+        "missing_observed_slots": missing_observed,
+        "invalid_timing_slots": invalid_timing,
+        "nonpositive_time_delta_slots": nonpositive_delta,
+        "duplicate_slot_key_rows": duplicate_slot_keys,
+    }
+    errors.extend(f"{name}={count}" for name, count in counts.items() if count)
+    expected_rows = len(windows) * sequence_length
+    if len(slots) != expected_rows:
+        errors.append(f"slot_rows={len(slots)}:expected={expected_rows}")
+
+    output_columns = [
+        "temporal_view_name",
+        "view_item_id",
+        "parent_window_id",
+        "temporal_unit_key",
+        "source_type",
+        "source_native_length_audit",
+        "item_order",
+        "slot_index",
+        "slot_key",
+        "declared_sequence_length",
+        "object_track_key_audit",
+        "frame_index_expected_audit",
+        "timestamp_sec_audit",
+        "time_coordinate_kind",
+        "time_value",
+        "time_delta",
+        "length_mask",
+        "observed_mask",
+        "timing_valid_mask",
+        "padding_mask",
+        "lineage_scope",
+        "human_review_complete",
+    ]
+    slots = slots[output_columns].reset_index(drop=True)
+    return slots, {
+        "windows": int(len(windows)),
+        "slot_rows": int(len(slots)),
+        "sequence_length": sequence_length,
+        **counts,
+        "rows_dropped": 0,
+        "errors": errors,
+    }
+
+
 def _native_exclusion_reason(row: Any) -> str:
     """Explain every technically invalid unit without deleting it."""
 
@@ -952,6 +1209,7 @@ __all__ = [
     "DEFAULT_TEMPORAL_TIERS",
     "LEGACY_DEVELOPMENT_SCHEMA_VERSION",
     "LEGACY_DEVELOPMENT_SCOPE",
+    "LEGACY_TEMPORAL_MODEL_VIEW_SPECS",
     "TEMPORAL_TIER_VIEWS",
     "LegacyUnreviewedDevelopmentTables",
     "build_legacy_unreviewed_development_manifests",

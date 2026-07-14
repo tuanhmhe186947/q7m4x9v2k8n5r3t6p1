@@ -14,6 +14,7 @@ from pig_behavior.classification_v2.contracts.output_safety import (
 from pig_behavior.classification_v2.datasets.legacy_unreviewed_development import (
     DEFAULT_TEMPORAL_TIERS,
     LEGACY_DEVELOPMENT_SCOPE,
+    LEGACY_TEMPORAL_MODEL_VIEW_SPECS,
     build_legacy_unreviewed_development_manifests,
 )
 from pig_behavior.classification_v2.training.lineage_hashing import file_sha256
@@ -41,6 +42,7 @@ HARMONIZED_COLUMNS = [
     "track_id",
     "pig_id",
     "frame_index",
+    "timestamp_sec",
     "temporal_unit_key",
     "behavior_temporal_final",
     "bbox_valid",
@@ -124,13 +126,19 @@ def parse_args() -> argparse.Namespace:
 
 
 def _output_paths(output_dir: Path) -> dict[str, Path]:
-    return {
+    paths = {
         "source_units": output_dir / "source_unit_manifest.csv",
         "native_units": output_dir / "native_temporal_unit_manifest.csv",
         "all_sliding": output_dir / "temporal_tier_all_sliding_manifest.csv",
         "matched": output_dir / "temporal_tier_matched_manifest.csv",
+        "selection": output_dir / "temporal_tier_selection_manifest.csv",
         "audit": output_dir / "legacy_unreviewed_development_audit.json",
     }
+    for view_name, spec in LEGACY_TEMPORAL_MODEL_VIEW_SPECS.items():
+        paths[f"slots:{view_name}"] = output_dir / str(
+            spec["slot_manifest_filename"]
+        )
+    return paths
 
 
 def _assert_derived_output(output_dir: Path) -> None:
@@ -199,6 +207,9 @@ def main() -> None:
     tables.native_units.to_csv(paths["native_units"], index=False)
     tables.all_sliding_windows.to_csv(paths["all_sliding"], index=False)
     tables.matched_windows.to_csv(paths["matched"], index=False)
+    tables.temporal_selection.to_csv(paths["selection"], index=False)
+    for view_name, manifest in tables.temporal_slot_manifests.items():
+        manifest.to_csv(paths[f"slots:{view_name}"], index=False)
 
     input_paths = {
         "source_reference_csv": args.source_reference_csv,
@@ -247,6 +258,9 @@ def main() -> None:
                     "all_sliding_rows"
                 ],
                 "matched_rows": audit["temporal_tier_audit"]["matched_rows"],
+                "temporal_model_views": len(
+                    audit["temporal_model_input_audit"]["view_audits"]
+                ),
                 "human_review_complete": False,
                 "q2_claim_allowed": False,
                 "audit_json": str(paths["audit"]),

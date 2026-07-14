@@ -205,6 +205,13 @@ baseline before multimodal gains are claimed.
 - Sequence lengths: compare native 6 and 16 frames first; use 8 and 12 only as
   controlled context-length ablations.
 
+For the isolated legacy development lineage, execute the complete
+`T6/T8/T12/T16` ladder because every source event is a common 16-frame burst.
+Use event-mass-balanced stride-3 windows as the primary development view and
+one centered window per burst/tier as the matched sensitivity view. Aggregate
+both to the 16-frame burst before metrics. This does not replace the all-source
+fixed-6 protocol or provide reviewed Q2 evidence.
+
 ResNet18 and ResNet34 comparisons must use the same ImageNet-1K pretrained
 status. Record the exact `torchvision` weight enum, package versions, mean/std,
 resize and letterbox contract, frozen stages, freeze duration, and checkpoint

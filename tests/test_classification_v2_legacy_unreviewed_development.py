@@ -1,13 +1,19 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
 from pig_behavior.classification_v2.datasets.legacy_unreviewed_development import (
     LEGACY_DEVELOPMENT_SCOPE,
+    LEGACY_TEMPORAL_MODEL_VIEW_SPECS,
     build_legacy_unreviewed_development_manifests,
+)
+from pig_behavior.classification_v2.training.temporal_view_loader import (
+    load_temporal_view_tensors,
 )
 
 
@@ -63,6 +69,7 @@ def _fixture_tables() -> tuple[
                     "track_id": track_id,
                     "pig_id": pig_id,
                     "frame_index": frame_index,
+                    "timestamp_sec": frame_index * 0.2,
                     "temporal_unit_key": unit_key,
                     "behavior_temporal_final": behavior,
                     "bbox_valid": True,
@@ -122,7 +129,7 @@ def _fixture_tables() -> tuple[
     )
 
 
-def test_builds_balanced_and_matched_temporal_tiers() -> None:
+def test_builds_balanced_and_matched_temporal_tiers(tmp_path: Path) -> None:
     tables = build_legacy_unreviewed_development_manifests(*_fixture_tables())
 
     assert tables.audit["errors"] == []
@@ -157,6 +164,50 @@ def test_builds_balanced_and_matched_temporal_tiers() -> None:
         "T12": [3],
         "T16": [0],
     }
+    selection = tables.temporal_selection
+    assert len(selection) == len(tables.all_sliding_windows)
+    assert set(tables.temporal_slot_manifests) == set(
+        LEGACY_TEMPORAL_MODEL_VIEW_SPECS
+    )
+    expected_selected = {
+        "legacy_t6_all_sliding_keep": 8,
+        "legacy_t6_centered_matched_keep": 2,
+        "legacy_t8_all_sliding_keep": 6,
+        "legacy_t8_centered_matched_keep": 2,
+        "legacy_t12_all_sliding_keep": 4,
+        "legacy_t12_centered_matched_keep": 2,
+        "legacy_t16_all_sliding_keep": 2,
+        "legacy_t16_centered_matched_keep": 2,
+    }
+    assert {
+        column: int(selection[column].sum())
+        for column in expected_selected
+    } == expected_selected
+    for view_name, spec in LEGACY_TEMPORAL_MODEL_VIEW_SPECS.items():
+        slots = tables.temporal_slot_manifests[view_name]
+        selected_mask = selection[str(spec["selection_column"])].to_numpy()
+        selected_count = int(selected_mask.sum())
+        assert len(slots) == selected_count * int(spec["sequence_length"])
+        assert set(slots["temporal_view_name"]) == {view_name}
+        first = slots.loc[slots["slot_index"].eq(0), "time_delta"]
+        later = slots.loc[slots["slot_index"].gt(0), "time_delta"]
+        assert first.eq(0.0).all()
+        assert np.isclose(later, 0.2).all()
+        slot_path = tmp_path / str(spec["slot_manifest_filename"])
+        slots.to_csv(slot_path, index=False)
+        tensors = load_temporal_view_tensors(
+            slot_path,
+            expected_window_ids=selection["window_id"],
+            selected_mask=selected_mask,
+            expected_view_name=view_name,
+            expected_sequence_length=int(spec["sequence_length"]),
+        )
+        assert tensors.time_delta.shape == (
+            len(selection),
+            int(spec["sequence_length"]),
+        )
+        assert np.isfinite(tensors.time_delta[selected_mask]).all()
+        assert np.isnan(tensors.time_delta[~selected_mask]).all()
 
 
 def test_invalid_unit_is_retained_with_zero_training_mass() -> None:

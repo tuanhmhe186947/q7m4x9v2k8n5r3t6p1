@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -20,6 +21,7 @@ from pig_behavior.classification_v2.training.config import (
     OptimizationConfig,
     resolve_temporal_view_manifest,
     training_config_to_jsonable,
+    validate_training_config,
 )
 from pig_behavior.classification_v2.training.data_module import (
     StrictTrainingDataModule,
@@ -208,6 +210,58 @@ def test_data_module_rejects_branch_time_shape_mismatch() -> None:
         module._time_delta_batch(np.array([0]), raw)
 
 
+def test_data_module_trims_only_spatial_padding_for_tier() -> None:
+    module = StrictTrainingDataModule.__new__(StrictTrainingDataModule)
+    module.config = SimpleNamespace(
+        model=SimpleNamespace(temporal_input_frames=8),
+    )
+    spatial_length = torch.cat(
+        [torch.ones(2, 8), torch.zeros(2, 8)],
+        dim=1,
+    )
+    raw = {
+        "image": torch.zeros(2, 8, 3, 4, 4),
+        "image_length_mask": torch.ones(2, 8),
+        "image_observed_mask": torch.ones(2, 8),
+        "visual_context_image": torch.zeros(2, 8, 3, 4, 4),
+        "visual_context_length_mask": torch.ones(2, 8),
+        "visual_context_observed_mask": torch.ones(2, 8),
+        "spatial_length_mask": spatial_length,
+        "spatial_observed_mask": spatial_length.clone(),
+        "spatial_features": {
+            "geometry_raw": torch.zeros(2, 16, 3),
+        },
+    }
+
+    module._enforce_temporal_input_shape(raw)
+
+    assert raw["spatial_length_mask"].shape == (2, 8)
+    assert raw["spatial_features"]["geometry_raw"].shape == (2, 8, 3)
+
+
+def test_data_module_rejects_spatial_content_beyond_tier() -> None:
+    module = StrictTrainingDataModule.__new__(StrictTrainingDataModule)
+    module.config = SimpleNamespace(
+        model=SimpleNamespace(temporal_input_frames=8),
+    )
+    raw = {
+        "image": torch.zeros(1, 8, 3, 4, 4),
+        "image_length_mask": torch.ones(1, 8),
+        "image_observed_mask": torch.ones(1, 8),
+        "visual_context_image": torch.zeros(1, 8, 3, 4, 4),
+        "visual_context_length_mask": torch.ones(1, 8),
+        "visual_context_observed_mask": torch.ones(1, 8),
+        "spatial_length_mask": torch.ones(1, 16),
+        "spatial_observed_mask": torch.ones(1, 16),
+        "spatial_features": {
+            "geometry_raw": torch.zeros(1, 16, 3),
+        },
+    }
+
+    with pytest.raises(ValueError, match="spatial length beyond"):
+        module._enforce_temporal_input_shape(raw)
+
+
 def test_old_config_resolves_adjacent_primary_manifest(tmp_path: Path) -> None:
     config = _config(tmp_path, temporal_view_manifest=None)
 
@@ -223,6 +277,39 @@ def test_explicit_temporal_manifest_path_wins(tmp_path: Path) -> None:
     config = _config(tmp_path, temporal_view_manifest=explicit)
 
     assert resolve_temporal_view_manifest(config) == explicit
+
+
+def test_legacy_tier_config_binds_length_selection_and_manifest(
+    tmp_path: Path,
+) -> None:
+    base = _config(tmp_path, temporal_view_manifest=None)
+    view_name = "legacy_t12_centered_matched_observed_time"
+    config = replace(
+        base,
+        dataset=replace(
+            base.dataset,
+            temporal_view_selection_col=(
+                "legacy_t12_centered_matched_keep"
+            ),
+        ),
+        model=replace(
+            base.model,
+            temporal_view=view_name,
+            temporal_input_frames=12,
+        ),
+    )
+
+    validate_training_config(config)
+
+    assert resolve_temporal_view_manifest(config) == (
+        tmp_path / "legacy_t12_centered_matched_observed_time_manifest.csv"
+    )
+    wrong_length = replace(
+        config,
+        model=replace(config.model, temporal_input_frames=8),
+    )
+    with pytest.raises(ValueError, match="temporal_input_length_contract"):
+        validate_training_config(wrong_length)
 
 
 def _write_manifest(tmp_path: Path, window_ids: list[str]) -> Path:

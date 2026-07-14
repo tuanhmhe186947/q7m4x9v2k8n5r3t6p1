@@ -194,6 +194,7 @@ class StrictTrainingDataModule:
             self.full_config,
             self.device,
         )
+        self._enforce_temporal_input_shape(raw)
         raw.update(self._time_delta_batch(indices, raw))
         self._apply_fold_preprocessing(raw)
         model_inputs = _strict_model_inputs(raw)
@@ -251,6 +252,7 @@ class StrictTrainingDataModule:
             "spatial_normalization": self.spatial_normalizer_audit(),
             "temporal_view_selection": self.temporal_view_selection_audit,
             "temporal_view_tensors": self.temporal_view_tensors.audit,
+            "temporal_input_frames": self.config.model.temporal_input_frames,
             "fold_event_weight": self.fold_event_weight_audit,
             "actor_image_load_audit": self.actor_dataset.image_load_audit(),
             "visual_context_load_audit": self.visual_dataset.load_audit(),
@@ -395,8 +397,51 @@ class StrictTrainingDataModule:
             expected_window_ids=self.bundle.frame["window_id"],
             selected_mask=self.bundle.frame["temporal_view_selected"],
             expected_view_name=self.config.model.temporal_view,
-            expected_sequence_length=6,
+            expected_sequence_length=self.config.model.temporal_input_frames,
         )
+
+    def _enforce_temporal_input_shape(self, raw: dict[str, Any]) -> None:
+        """Align padded spatial tensors to the configured exact input tier."""
+
+        expected = self.config.model.temporal_input_frames
+        for branch in ("image", "visual_context"):
+            tensor = raw[f"{branch}_image" if branch == "visual_context" else branch]
+            length_mask = raw[f"{branch}_length_mask"]
+            observed_mask = raw[f"{branch}_observed_mask"]
+            shapes = {
+                int(tensor.shape[1]),
+                int(length_mask.shape[1]),
+                int(observed_mask.shape[1]),
+            }
+            if shapes != {expected}:
+                raise ValueError(
+                    "exact temporal branch length mismatch: "
+                    f"branch={branch}, observed={sorted(shapes)}, "
+                    f"expected={expected}"
+                )
+
+        spatial_length = raw["spatial_length_mask"]
+        spatial_observed = raw["spatial_observed_mask"]
+        if spatial_length.ndim != 2 or spatial_observed.shape != spatial_length.shape:
+            raise ValueError("invalid spatial temporal-mask shapes")
+        available = int(spatial_length.shape[1])
+        if available < expected:
+            raise ValueError(
+                "spatial temporal capacity below configured tier: "
+                f"available={available}, expected={expected}"
+            )
+        if not torch.all(spatial_length[:, :expected] > 0.5):
+            raise ValueError("selected window lacks an expected spatial length slot")
+        if available > expected and torch.any(
+            spatial_length[:, expected:] > 0.5
+        ):
+            raise ValueError("selected window has spatial length beyond its tier")
+        raw["spatial_length_mask"] = spatial_length[:, :expected]
+        raw["spatial_observed_mask"] = spatial_observed[:, :expected]
+        raw["spatial_features"] = {
+            name: values[:, :expected]
+            for name, values in raw["spatial_features"].items()
+        }
 
     def _time_delta_batch(
         self,
@@ -413,6 +458,11 @@ class StrictTrainingDataModule:
         delta = torch.from_numpy(
             self.temporal_view_tensors.time_delta[indices]
         ).float().to(self.device)
+        timing_valid = self.temporal_view_tensors.timing_valid_mask[indices]
+        if not timing_valid.all():
+            raise ValueError(
+                "selected temporal input contains timing-invalid slots"
+            )
         branch_masks = {
             "image": raw["image_length_mask"],
             "spatial": raw["spatial_length_mask"],

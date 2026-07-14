@@ -374,6 +374,48 @@ Compare the chosen temporal encoder on `fixed6_observed_time` and `native6_16`.
 Include `fixed6_normalized_phase` as a shortcut diagnostic. Select native length
 only if its gain survives source probes and source-balanced evaluation.
 
+### P2 Legacy Temporal-Length Ladder
+
+The separate `legacy-only-unreviewed-development` lane compares exact actor,
+spatial, and observed-time inputs at `T6`, `T8`, `T12`, and `T16`. Every tier
+is cut inside one complete 16-frame burst after harmonization. No temporal
+resampling, interpolation, cross-burst window, or review inference is allowed.
+
+Use two paired views:
+
+| View | Windows per 16-frame burst | Scientific role |
+|---|---:|---|
+| all sliding, stride 3 | T6=4, T8=3, T12=2, T16=1 | primary development comparison |
+| one centered window | exactly one for every tier | sample-count sensitivity control |
+
+For each configured `T`, the model contract is:
+
+```text
+actor RGB             [B, T, 3, H, W]
+spatial feature group [B, T, D_group]
+observed time delta   [B, T]
+actor/union context   [B, T, 3, H, W]
+length/quality masks  [B, T]
+final behavior logits [B, 10]
+```
+
+Spatial exports may be stored with capacity 16, but the loader must prove that
+all length-mask values after `T` are false before slicing. Actor and context
+sequences must already have exact length `T`; the loader does not truncate or
+interpolate them to make a malformed sample fit.
+
+For the all-sliding view, the total loss mass of each burst within each tier is
+one. All windows from a burst stay in the same recording-safe fold. Window
+predictions are aggregated to the common 16-frame native burst before metrics.
+Backbone, resolution, temporal encoder, loss, sampler, fold manifest, and seed
+remain fixed; only temporal input length changes. The centered control prevents
+extra placements at shorter tiers from being mistaken for a sequence-length
+gain.
+
+These legacy-only metrics support architecture development and comparison with
+the historical legacy model. They are not reviewed all-source evidence and
+cannot authorize a Q2 claim or full OOF run.
+
 ### P2 PASS
 
 Select the simplest temporal encoder whose paired gain is stable. Transformer is
