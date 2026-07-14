@@ -60,6 +60,11 @@ previous commit-`18d6692` full run is historical engineering evidence only.
    or alter original raw data under `data/`.
 10. Before committing code changes, scan changed files for overlong lines and
     run `git diff --check`.
+11. When a bounded classifier test reports `accuracy` or `F1`, prefer a
+    reviewed, grouped, native-unit-safe `legacy_recovered` 16-frame slice when
+    it matches the hypothesis. Mark the metric `legacy-only` and use it for
+    historical comparison, not as a substitute for all-source evaluation or a
+    Q2 claim. Do not use this preference to bypass Hidden/behavior review.
 
 The tracking rules below are historical/preserved for tracking tasks. They do
 not supersede the active classification_v2 rules above.
