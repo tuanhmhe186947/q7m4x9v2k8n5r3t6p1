@@ -52,6 +52,11 @@ Its temporal ablation set is `T6/T8/T12/T16`, with common burst-level folds,
 native-16 evaluation, event-mass-balanced sliding views, and a matched
 one-window-per-burst sensitivity view.
 
+New-chat execution for this lane is governed by
+`classification_v2-legacy-16f-development-goal-prompt.md` and its dedicated
+L0-L8 ledger. Completing that scoped goal produces a handback artifact; it does
+not complete or unblock the canonical reviewed all-source P0-P8 path by itself.
+
 ### P7-P8 Confirmatory Phases
 
 - P7 finalist lock, mapped to M10: `BLOCKED` until P0-P6 and bounded pilots pass.

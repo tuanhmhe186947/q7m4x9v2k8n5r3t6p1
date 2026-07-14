@@ -33,6 +33,11 @@
 - This branch cannot be called reviewed/final train-ready data, replace the
   all-source reviewed evaluation, authorize a Q2 claim, or weaken the existing
   human-review and full-OOF gates.
+- New chats must create the scoped goal from
+  `plans/classification_v2-legacy-16f-development-goal-prompt.md` and track
+  L0-L8 in its dedicated execution ledger.
+- After L0-L8 genuinely complete, return the hash-bound handback to the parent
+  Q2 chat. The parent goal remains incomplete until separately resumed.
 
 ## 2026-07-14 native source and missingness probes
 

@@ -30,6 +30,11 @@ The reviewed all-source lineage remains independently blocked by incomplete
 Hidden and behavior decisions. Its gates must not be weakened or reused to
 misrepresent the legacy development branch as human reviewed.
 
+Use `plans/classification_v2-legacy-16f-development-goal-prompt.md` to create a
+separate goal for this branch and its dedicated L0-L8 ledger. On scoped goal
+completion, return to the original Q2 chat with the immutable handback audit;
+do not mark the parent P0-P8 objective complete automatically.
+
 Temporal-length experiments must compare `T6`, `T8`, `T12`, and `T16` windows
 generated only after harmonization and contained within one legacy burst. Use
 the same native-burst folds and aggregate predictions back to the 16-frame
