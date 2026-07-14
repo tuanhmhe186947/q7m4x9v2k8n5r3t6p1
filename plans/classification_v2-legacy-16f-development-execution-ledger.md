@@ -28,8 +28,8 @@ replaced by this ledger.
 | L0 state reconciliation | PASS | Authority, lane, counts, and claim boundary locked |
 | L1 short packet | PASS | Exact cache, slot, fold, and repeat gate at `00dc2e0` |
 | L2 full legacy lineage | PASS | Full repeat-bound lineage at `59647e2` |
-| L3 immutable inputs | IN_PROGRESS | Freeze caches, folds, whitelists, and views |
-| L4 model correctness | NOT_STARTED | Requires frozen L3 snapshot |
+| L3 immutable inputs | PASS | Committed-SHA gate at `0414adc` |
+| L4 model correctness | IN_PROGRESS | Run the bounded correctness ladder |
 | L5 core baselines | NOT_STARTED | Requires L4 PASS |
 | L6 modality loop | NOT_STARTED | Requires retained L5 baseline |
 | L7 imbalance policy | NOT_STARTED | Requires retained L6 candidate |
@@ -131,6 +131,7 @@ The cache/fold boundary remains `00dc2e0`; claim hardening rollback is
 | 2026-07-14 | Legacy L1 cache and fold gate | PASS | `00dc2e0` |
 | 2026-07-14 | End-to-end legacy lineage claims | PASS | `aae63c3` |
 | 2026-07-14 | Deterministic full legacy L2 lineage | PASS | `59647e2` |
+| 2026-07-14 | Immutable legacy L3 input gate | PASS | `0414adc` |
 
 ## L2 PASS Evidence
 
@@ -154,6 +155,26 @@ full_legacy_lineage_v2_repeat_20260714
 
 The audit is `08_l2_audit/legacy_development_l2_audit.json` under the primary
 root. L2 authorizes only the L3 immutable-input freeze; model training remains
+unauthorized.
+
+## L3 PASS Evidence
+
+- 72,864 RGB actor crops use exact 160x160 aspect-preserving letterbox;
+- packed tensor shape is `[72864, 160, 160, 3]`, dtype `uint8`;
+- all 72,864 packed rows passed fresh pixel and loader equivalence;
+- zero cache misses, loader failures, source-media reads, or pixel mismatches;
+- 45,540 windows inherit 12 recording-date folds without leakage;
+- all 40 frozen artifacts verified by size, hash, rows, shape, and dtype;
+- primary/repeat image, fold, class, and source manifests are byte-identical;
+- `quality_mask` is control-only and forbidden metadata is excluded from X;
+- length-to-label uplift and maximum T6/T8/T12/T16 class drift are `0.0`;
+- the committed-SHA audit is bound to `0414adc` with zero errors;
+- focused L3 tests: 8 passed; classification regression: 475 passed,
+  181 deselected; Ruff, compile, diff, and long-line checks pass.
+
+The audit is `13_l3_audit/legacy_development_l3_audit.json` under the primary
+root. L3 authorizes only bounded L4 model-correctness work. Accuracy/F1
+comparison, canonical full OOF, reviewed/final naming, and Q2 claims remain
 unauthorized.
 
 ## Full-Run Boundary
