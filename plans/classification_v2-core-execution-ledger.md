@@ -48,6 +48,9 @@ An independent `legacy-only-unreviewed-development` lane is now `IN_PROGRESS`.
 It may exercise P0-P5 engineering and bounded development-fold metrics after
 its own leakage-safe snapshot passes. It does not change the blocked status of
 the reviewed all-source P0-P8 path and cannot promote a Q2 finalist.
+Its temporal ablation set is `T6/T8/T12/T16`, with common burst-level folds,
+native-16 evaluation, event-mass-balanced sliding views, and a matched
+one-window-per-burst sensitivity view.
 
 ### P7-P8 Confirmatory Phases
 

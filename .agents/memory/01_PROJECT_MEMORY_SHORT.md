@@ -11,6 +11,9 @@
 - Recording/video-safe groups, one 16-frame native burst per unit, exact
   feature whitelists, immutable hashes, and short-before-full gates remain
   mandatory.
+- Model inputs must expose controlled `T6`, `T8`, `T12`, and `T16` tiers built
+  inside each burst after harmonization. Evaluate every tier at the common
+  16-frame native-unit grain.
 - This branch cannot be called reviewed/final train-ready data, replace the
   all-source reviewed evaluation, authorize a Q2 claim, or weaken the existing
   human-review and full-OOF gates.

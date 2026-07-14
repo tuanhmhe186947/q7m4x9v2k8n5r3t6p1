@@ -27,6 +27,12 @@ The reviewed all-source lineage remains independently blocked by incomplete
 Hidden and behavior decisions. Its gates must not be weakened or reused to
 misrepresent the legacy development branch as human reviewed.
 
+Temporal-length experiments must compare `T6`, `T8`, `T12`, and `T16` windows
+generated only after harmonization and contained within one legacy burst. Use
+the same native-burst folds and aggregate predictions back to the 16-frame
+unit. Report an event-mass-balanced sliding-window view and a one-window-per-
+burst matched view so sequence length is not confounded with sample count.
+
 Commit `9b04209` is now the source/missingness probe authority. A source probe
 must use the exact ordered trainer whitelist, bind the train-ready ordered
 window SHA256, collapse repeated windows to native units, fit only grouped

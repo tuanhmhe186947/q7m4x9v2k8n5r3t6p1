@@ -131,6 +131,12 @@ one role, and bind source, feature whitelist, cache, fold, and config hashes.
 Every artifact and metric must carry the exact scope label
 `legacy-only-unreviewed-development` and `human_review_complete=false`.
 
+Build model-input tiers for window lengths `6`, `8`, `12`, and `16` only after
+temporal harmonization. All tiers inherit the same burst-level split. Compare
+both all-sliding windows with per-burst event-mass normalization and a
+deterministic one-window-per-burst matched view. Keep model settings fixed and
+change only temporal length; aggregate evaluation to the 16-frame native unit.
+
 Run the ladder in this order: read-only source audit, complete-unit short chain,
 full legacy data rebuild, leakage-safe snapshot freeze, loader sample,
 one-batch forward/backward, tiny overfit, resume, then one short development
