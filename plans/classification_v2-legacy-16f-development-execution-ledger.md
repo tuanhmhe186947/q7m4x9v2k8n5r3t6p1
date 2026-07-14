@@ -26,8 +26,8 @@ replaced by this ledger.
 | Milestone | Status | Current evidence or next gate |
 |---|---|---|
 | L0 state reconciliation | PASS | Authority, lane, counts, and claim boundary locked |
-| L1 short packet | IN_PROGRESS | Temporal/loader PASS; cache and folds pending |
-| L2 full legacy lineage | NOT_STARTED | Requires complete L1 |
+| L1 short packet | PASS | Exact cache, slot, fold, and repeat gate at `00dc2e0` |
+| L2 full legacy lineage | IN_PROGRESS | L1 authorizes the data build only |
 | L3 immutable inputs | NOT_STARTED | Requires deterministic full lineage |
 | L4 model correctness | NOT_STARTED | Requires frozen L3 snapshot |
 | L5 core baselines | NOT_STARTED | Requires L4 PASS |
@@ -73,16 +73,17 @@ Observed evidence:
 Latest completed achievement:
 
 ```text
-c41f1ed test: audit real legacy temporal tier loading
+00dc2e0 feat: complete legacy L1 cache and fold gate
 ```
 
 Verification at that boundary:
 
-- focused tests: 27 passed;
-- classification regression: 442 passed, 181 deselected;
+- focused L1 tests: 22 passed;
+- classification regression: 454 passed, 181 deselected;
 - Ruff, `py_compile`, `compileall`, diff check, and long-line scan PASS;
 - optimizer steps: zero;
-- full dataset reads: zero.
+- full dataset reads: zero;
+- bounded video decode count: 64 for each independent cache build.
 
 ## L0 Reconciliation Refresh
 
@@ -94,17 +95,25 @@ Verification at that boundary:
   with 181 deselected.
 - This documentation drift does not authorize training or change L1 gates.
 
-## L1 Remaining Gates
+## L1 PASS Evidence
 
-1. Exact selected-window to image-context slot mapping.
-2. Letterbox metadata and aspect-ratio audit.
-3. Cache and packed-index one-to-one coverage.
-4. Strict loader proof of zero source-media fallback.
-5. Recording-date/video-safe native-burst folds.
-6. Window-to-native fold inheritance and class-by-fold support.
-7. Independent repeated output hashes for all new L1 artifacts.
+- 496 exact `legacy_video_bbox` contexts and 310 window rows;
+- 2,728 image slots with zero native-unit or frame-order mismatch;
+- packed tensor shape `[496, 160, 160, 3]`, dtype `uint8`;
+- zero cache misses, source-media reads, and packed pixel mismatches;
+- 31 native bursts, four videos, three recording-date folds;
+- zero recording-group, video, or window-fold leakage;
+- exact class/source support-table reconciliation;
+- all ten primary/repeat artifacts byte-identical;
+- packed tensor SHA256
+  `982724aa0c99852dd53805c2e1a7557daf0db9677f007e6fa32dd765eda4b105`;
+- cache manifest SHA256
+  `7cc08b8f2d7796a17d5294ad706cd82f6c7f6e27a3e55269d593664632732637`.
 
-L1 completion authorizes only the full legacy data rebuild.
+This PASS authorizes only the equivalent full legacy L2 data build. Model
+training, canonical full OOF, reviewed/final naming, and Q2 claims remain false.
+Rollback is `git revert 00dc2e0`; derived bounded cache/fold artifacts may then
+be rebuilt from the retained `c41f1ed` temporal packet.
 
 ## Achievement Log
 
@@ -116,6 +125,7 @@ L1 completion authorizes only the full legacy data rebuild.
 | 2026-07-14 | Exact temporal model input binding | PASS IN CODE | `21b34fd` |
 | 2026-07-14 | Absolute burst frame indices | PASS | `2049a2d` |
 | 2026-07-14 | Strict short-packet loader audit | PASS | `c41f1ed` |
+| 2026-07-14 | Legacy L1 cache and fold gate | PASS | `00dc2e0` |
 
 ## Full-Run Boundary
 
