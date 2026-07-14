@@ -96,7 +96,7 @@ def test_cache_and_packed_index_propagate_explicit_lineage_claim(
         output_dir=cache_root,
         max_contexts=None,
         workers=1,
-        checkpoint_every=10,
+        checkpoint_every=1,
         resume=False,
         overwrite=False,
     )
@@ -111,3 +111,7 @@ def test_cache_and_packed_index_propagate_explicit_lineage_claim(
     assert cache_audit["human_review_complete"] is False
     assert packed_audit["lineage_scope"] == LEGACY_DEVELOPMENT_SCOPE
     assert packed_audit["human_review_complete"] is False
+    assert packed_audit["working_set_release_policy"] == (
+        "flush_close_reopen_each_checkpoint_v1"
+    )
+    assert packed_audit["mapping_reopen_count"] == 1

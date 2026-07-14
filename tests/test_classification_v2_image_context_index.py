@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+from collections import OrderedDict
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pandas as pd
 import pytest
 
+from pig_behavior.classification_v2.datasets import (
+    image_sequence_dataset as image_sequence_dataset_module,
+)
 from pig_behavior.classification_v2.datasets.image_context_index import (
     MANDATORY_CVAT_MEDIA_BASENAME,
     audit_image_context_identifier_contract,
@@ -152,6 +157,63 @@ def test_image_dataset_dispatches_legacy_video_bbox_source(
     )
 
     assert observed is expected
+
+
+def test_image_dataset_bounds_and_releases_video_captures(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeCapture:
+        def __init__(self) -> None:
+            self.released = False
+
+        def isOpened(self) -> bool:
+            return True
+
+        def release(self) -> None:
+            self.released = True
+
+    created: dict[str, FakeCapture] = {}
+
+    def open_capture(path: str) -> FakeCapture:
+        capture = FakeCapture()
+        created[path] = capture
+        return capture
+
+    monkeypatch.setattr(
+        image_sequence_dataset_module,
+        "cv2",
+        SimpleNamespace(VideoCapture=open_capture),
+    )
+    dataset = object.__new__(ClassificationV2ImageSequenceDataset)
+    dataset.config = ImageSequenceDatasetConfig(video_capture_cache_size=1)
+    dataset._capture_cache = OrderedDict()
+    dataset._capture_next_frame = {}
+    dataset._decoded_video_frame = {}
+    dataset.video_capture_open_count = 0
+    dataset.video_capture_eviction_count = 0
+    dataset.peak_open_video_captures = 0
+
+    first = dataset._get_video_capture("first.mp4")
+    dataset._capture_next_frame["first.mp4"] = 4
+    dataset._decoded_video_frame["first.mp4"] = (
+        3,
+        np.zeros((2, 2, 3), dtype=np.uint8),
+    )
+    second = dataset._get_video_capture("second.mp4")
+
+    assert first is created["first.mp4"]
+    assert second is created["second.mp4"]
+    assert created["first.mp4"].released is True
+    assert list(dataset._capture_cache) == ["second.mp4"]
+    assert "first.mp4" not in dataset._capture_next_frame
+    assert "first.mp4" not in dataset._decoded_video_frame
+    assert dataset.video_capture_audit() == {
+        "video_capture_cache_size": 1,
+        "active_video_captures": 1,
+        "peak_open_video_captures": 1,
+        "video_capture_open_count": 2,
+        "video_capture_eviction_count": 1,
+    }
 
 
 def test_context_index_preserves_input_window_order(tmp_path: Path) -> None:

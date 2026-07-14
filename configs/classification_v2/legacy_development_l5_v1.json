@@ -1,0 +1,197 @@
+{
+  "schema_version": "classification_v2.legacy_development_l5.config.v1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "development_accuracy_f1_authorized": true,
+  "development_root": "outputs/classification_v2/legacy_only_unreviewed_development",
+  "primary_run_id": "full_legacy_lineage_v2_20260714",
+  "l3_audit_relative_path": "13_l3_audit/legacy_development_l3_audit.json",
+  "l4_audit_relative_path": "14_l4_model_correctness/legacy_development_l4_audit.json",
+  "l5_output_relative_path": "15_l5_core_baselines",
+  "expected_counts": {
+    "selected_native_units": 4554,
+    "development_valid_native_units": 4545,
+    "policy_invalid_native_units": 9,
+    "train_native_units": 3652,
+    "validation_native_units": 245,
+    "outer_holdout_native_units": 648,
+    "image_context_rows": 72864
+  },
+  "split_contract": {
+    "outer_holdout_fold_id": "native_oof_005",
+    "development_validation_fold_id": "native_oof_006",
+    "training_role": "development_valid_and_in_neither_held_out_fold",
+    "grouping_columns": [
+      "recording_group_id",
+      "video_key"
+    ],
+    "outer_predictions_forbidden": true,
+    "outer_metrics_forbidden": true
+  },
+  "visual_view": {
+    "temporal_view_name": "legacy_t16_centered_matched_observed_time",
+    "selection_column": "legacy_t16_centered_matched_keep",
+    "sequence_length": 16,
+    "sampling_protocol": "one_centered_window_matched"
+  },
+  "temporal_matrix": {
+    "sequence_lengths": [
+      6,
+      8,
+      12,
+      16
+    ],
+    "sampling_protocols": [
+      "all_sliding_event_balanced",
+      "one_centered_window_matched"
+    ],
+    "temporal_encoders": [
+      "masked_mean",
+      "masked_tcn",
+      "small_transformer"
+    ],
+    "all_sliding_stride": 3,
+    "native_aggregation": "mean_probability_by_temporal_unit_key"
+  },
+  "cache_contract": {
+    "source": "original_video_and_bbox_context",
+    "resize_policy": "letterbox_preserve_aspect_rgb_pad_black_v1",
+    "dtype": "uint8",
+    "channel_order": "RGB_HWC",
+    "short_context_rows": 496,
+    "short_preview_rows": 40,
+    "cache_160_relative_path": "10_actor_cache_160",
+    "cache_224_relative_path": "10_actor_cache_224",
+    "short_cache_224_run_id": "short_temporal_tiers_v3_20260714",
+    "short_image_context_relative_path": "08_image_context",
+    "short_cache_224_reference_relative_path": "09_actor_cache_224",
+    "short_cache_224_relative_path": "13_c224",
+    "upscale_from_160_forbidden": true,
+    "source_media_fallback_during_training": false
+  },
+  "visual_controls": [
+    {
+      "control_id": "Vtiny",
+      "role": "tiny_performance_reference",
+      "backbone_name": "smoke_cnn",
+      "pretrained_family": "NONE_RANDOM_INIT",
+      "pretrained_weight_enum": "NONE_RANDOM_INIT",
+      "image_size": 160,
+      "frame_encoder_schedule": "all_trainable_reference"
+    },
+    {
+      "control_id": "V0",
+      "role": "engineering_visual_baseline",
+      "backbone_name": "resnet18",
+      "pretrained_family": "IMAGENET1K_V1",
+      "pretrained_weight_enum": "ResNet18_Weights.IMAGENET1K_V1",
+      "image_size": 160,
+      "frame_encoder_schedule": "frozen_all_epochs_v1"
+    },
+    {
+      "control_id": "V1",
+      "role": "resolution_control",
+      "backbone_name": "resnet18",
+      "pretrained_family": "IMAGENET1K_V1",
+      "pretrained_weight_enum": "ResNet18_Weights.IMAGENET1K_V1",
+      "image_size": 224,
+      "frame_encoder_schedule": "frozen_all_epochs_v1"
+    },
+    {
+      "control_id": "V2",
+      "role": "backbone_capacity_control",
+      "backbone_name": "resnet34",
+      "pretrained_family": "IMAGENET1K_V1",
+      "pretrained_weight_enum": "ResNet34_Weights.IMAGENET1K_V1",
+      "image_size": 224,
+      "frame_encoder_schedule": "frozen_all_epochs_v1"
+    }
+  ],
+  "common_model": {
+    "model_mode": "actor_temporal",
+    "temporal_encoder_name": "masked_mean",
+    "hidden_dim": 128,
+    "dropout": 0.1,
+    "transformer_layers": 1,
+    "transformer_heads": 4,
+    "direct_ten_class_supervision": true,
+    "spatial_enabled": false,
+    "interaction_context_enabled": false,
+    "visual_context_enabled": false,
+    "multitask_enabled": false
+  },
+  "optimization": {
+    "seeds": [
+      20260714,
+      20260715,
+      20260716
+    ],
+    "maximum_epochs": 30,
+    "minimum_epochs": 5,
+    "early_stopping_patience": 6,
+    "head_batch_size": 256,
+    "evaluation_batch_size": 512,
+    "tiny_event_batch_size": 16,
+    "learning_rate": 0.003,
+    "tiny_learning_rate": 0.001,
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 1.0,
+    "loss": "event_mass_balanced_cross_entropy",
+    "sampler": "deterministic_seeded_shuffle",
+    "augmentation": "none",
+    "deterministic": true,
+    "declared_local_gpu_vram_gib": 4,
+    "maximum_peak_vram_fraction": 0.7,
+    "short_vram_probe_required": true,
+    "oom_retry_allowed": false
+  },
+  "feature_cache": {
+    "dtype": "float32",
+    "resnet18_frame_batch_size": 16,
+    "resnet34_frame_batch_size": 8,
+    "require_packed_actor_cache": true,
+    "repeat_sample_rows": 64
+  },
+  "metric_contract": {
+    "primary_metric": "validation_native_unit_macro_f1_global_10_class",
+    "secondary_metrics": [
+      "validation_native_unit_accuracy",
+      "validation_native_unit_nll"
+    ],
+    "class_order": [
+      "drink",
+      "eat",
+      "fight",
+      "social-nose",
+      "explore",
+      "lying",
+      "stand",
+      "move",
+      "sitting",
+      "playwithtoy"
+    ],
+    "uncertainty_cluster": "video_key",
+    "bootstrap_iterations": 2000,
+    "outer_predictions_used_for_model_selection": false
+  },
+  "promotion_contract": {
+    "material_macro_f1_gain_over_tiny": 0.03,
+    "maximum_rare_group_recall_drop": 0.1,
+    "rare_classes": [
+      "fight",
+      "social-nose",
+      "playwithtoy",
+      "move"
+    ],
+    "validation_rare_class_warning_threshold": 5,
+    "minimum_positive_seed_deltas": 2,
+    "maximum_runtime_ratio_to_parent": 3.0,
+    "prefer_simpler_within_macro_f1": 0.01,
+    "pretrained_fallback_if_frozen_gate_fails": "frozen_then_layer4_v1",
+    "fallback_requires_new_short_gate": true
+  }
+}

@@ -136,6 +136,7 @@ def build_image_cache(
             image_size=image_size,
             require_complete=False,
             image_cache_size=0,
+            video_capture_cache_size=1,
         )
     )
     lineage_claim = _optional_lineage_claim(dataset.frames, dataset.windows)
@@ -259,6 +260,7 @@ def build_image_cache(
                     video_decode_count=dataset.video_decode_count,
                     video_seek_count=dataset.video_seek_count,
                     video_frame_reuse_count=dataset.video_frame_reuse_count,
+                    video_capture_audit=dataset.video_capture_audit(),
                     lineage_claim=lineage_claim,
                 )
     finally:
@@ -299,6 +301,7 @@ def build_image_cache(
         "video_decode_count": int(dataset.video_decode_count),
         "video_seek_count": int(dataset.video_seek_count),
         "video_frame_reuse_count": int(dataset.video_frame_reuse_count),
+        "video_capture_audit": dataset.video_capture_audit(),
         **lineage_claim,
         "valid": bool(
             len(manifest) > 0
@@ -449,6 +452,7 @@ def _write_cache_checkpoint(
     video_decode_count: int,
     video_seek_count: int,
     video_frame_reuse_count: int,
+    video_capture_audit: dict[str, int],
     lineage_claim: dict[str, Any],
 ) -> None:
     """Persist partial cache lineage so interrupted long builds are auditable."""
@@ -479,6 +483,7 @@ def _write_cache_checkpoint(
         "video_decode_count": int(video_decode_count),
         "video_seek_count": int(video_seek_count),
         "video_frame_reuse_count": int(video_frame_reuse_count),
+        "video_capture_audit": video_capture_audit,
         **lineage_claim,
         "complete": False,
     }

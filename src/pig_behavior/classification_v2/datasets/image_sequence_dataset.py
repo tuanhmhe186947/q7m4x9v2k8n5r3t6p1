@@ -47,6 +47,7 @@ class ImageSequenceDatasetConfig:
     require_complete: bool = True
     require_cached_images: bool = False
     image_cache_size: int = 8192
+    video_capture_cache_size: int = 8
 
 
 class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
@@ -57,6 +58,8 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
             raise ValueError("image_size must be positive")
         if config.image_cache_size < 0:
             raise ValueError("image_cache_size must be non-negative")
+        if config.video_capture_cache_size <= 0:
+            raise ValueError("video_capture_cache_size must be positive")
         self.config = config
         self.frames = pd.read_csv(config.frame_context_csv, low_memory=False)
         self.windows = pd.read_csv(config.window_context_csv, low_memory=False)
@@ -80,13 +83,16 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
             "image_context_id",
             drop=False,
         ).to_dict("index")
-        self._capture_cache: dict[str, Any] = {}
+        self._capture_cache: OrderedDict[str, Any] = OrderedDict()
         self._capture_next_frame: dict[str, int] = {}
         self._decoded_video_frame: dict[str, tuple[int, np.ndarray]] = {}
         self._image_cache: OrderedDict[str, np.ndarray] = OrderedDict()
         self.video_decode_count = 0
         self.video_seek_count = 0
         self.video_frame_reuse_count = 0
+        self.video_capture_open_count = 0
+        self.video_capture_eviction_count = 0
+        self.peak_open_video_captures = 0
         self.memory_image_cache_hits = 0
         self.disk_image_cache_hits = 0
         self.packed_image_cache_hits = 0
@@ -238,6 +244,22 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
             "packed_image_cache_hits": int(self.packed_image_cache_hits),
             "disk_image_cache_misses": int(self.disk_image_cache_misses),
             "source_image_loads": int(self.source_image_loads),
+            "video_capture_audit": self.video_capture_audit(),
+        }
+
+    def video_capture_audit(self) -> dict[str, int]:
+        """Report bounded OpenCV handle use without exposing media contents."""
+
+        return {
+            "video_capture_cache_size": int(
+                self.config.video_capture_cache_size
+            ),
+            "active_video_captures": int(len(self._capture_cache)),
+            "peak_open_video_captures": int(self.peak_open_video_captures),
+            "video_capture_open_count": int(self.video_capture_open_count),
+            "video_capture_eviction_count": int(
+                self.video_capture_eviction_count
+            ),
         }
 
     def _load_cache_manifest(self, manifest_csv: Path | None) -> dict[str, Path]:
@@ -360,11 +382,8 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         video_path = str(frame.get("resolved_media_path", ""))
         if not video_path:
             return None
-        capture = self._capture_cache.get(video_path)
+        capture = self._get_video_capture(video_path)
         if capture is None:
-            capture = cv2.VideoCapture(video_path)
-            self._capture_cache[video_path] = capture
-        if not capture.isOpened():
             return None
         frame_index = pd.to_numeric(frame.get("frame_index"), errors="coerce")
         bbox = [pd.to_numeric(frame.get(col), errors="coerce") for col in ["x1", "y1", "x2", "y2"]]
@@ -399,6 +418,31 @@ class ClassificationV2ImageSequenceDataset(Dataset[dict[str, Any]]):
         crop_rgb = cv2.cvtColor(crop_bgr, cv2.COLOR_BGR2RGB)
         crop_rgb = letterbox_rgb_uint8(crop_rgb, self.config.image_size)
         return _to_chw_float(crop_rgb)
+
+    def _get_video_capture(self, video_path: str) -> Any | None:
+        """Return one LRU-bounded capture and release evicted decoder state."""
+
+        capture = self._capture_cache.pop(video_path, None)
+        if capture is not None:
+            self._capture_cache[video_path] = capture
+            return capture
+        while len(self._capture_cache) >= self.config.video_capture_cache_size:
+            stale_path, stale_capture = self._capture_cache.popitem(last=False)
+            stale_capture.release()
+            self._capture_next_frame.pop(stale_path, None)
+            self._decoded_video_frame.pop(stale_path, None)
+            self.video_capture_eviction_count += 1
+        capture = cv2.VideoCapture(video_path)
+        if not capture.isOpened():
+            capture.release()
+            return None
+        self._capture_cache[video_path] = capture
+        self.video_capture_open_count += 1
+        self.peak_open_video_captures = max(
+            self.peak_open_video_captures,
+            len(self._capture_cache),
+        )
+        return capture
 
 
 def image_sequence_collate(batch: list[dict[str, Any]]) -> dict[str, Any]:

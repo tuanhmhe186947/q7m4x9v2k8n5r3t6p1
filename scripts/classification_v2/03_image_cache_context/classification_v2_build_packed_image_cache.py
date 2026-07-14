@@ -138,29 +138,50 @@ def build_packed_cache(
     ]
     completed_rows = start_row
     failed_rows = 0
-    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="packed-cache") as executor:
-        for row_index, image, error in executor.map(
-            lambda item: _load_cache_row(cache_manifest.parent, image_size, *item),
-            records,
-            chunksize=64,
-        ):
-            if error:
-                failed_rows += 1
-                raise ValueError(f"packed cache source row {row_index} failed: {error}")
-            packed[row_index] = image
-            completed_rows = row_index + 1
-            if completed_rows % checkpoint_every == 0:
-                packed.flush()
-                _write_partial_audit(
-                    partial_audit_path,
-                    tensor_path=tensor_path,
-                    source_manifest=cache_manifest,
-                    shape=shape,
-                    completed_rows=completed_rows,
-                    workers=workers,
-                    lineage_claim=lineage_claim,
-                )
-    packed.flush()
+    mapping_reopen_count = 0
+    try:
+        with ThreadPoolExecutor(
+            max_workers=workers,
+            thread_name_prefix="packed-cache",
+        ) as executor:
+            for row_index, image, error in executor.map(
+                lambda item: _load_cache_row(
+                    cache_manifest.parent,
+                    image_size,
+                    *item,
+                ),
+                records,
+                chunksize=64,
+            ):
+                if error:
+                    failed_rows += 1
+                    raise ValueError(
+                        f"packed cache source row {row_index} failed: {error}"
+                    )
+                packed[row_index] = image
+                completed_rows = row_index + 1
+                if completed_rows % checkpoint_every == 0:
+                    packed.flush()
+                    _close_memmap(packed)
+                    packed = np.lib.format.open_memmap(
+                        tensor_path,
+                        mode="r+",
+                        dtype=np.uint8,
+                        shape=shape,
+                    )
+                    mapping_reopen_count += 1
+                    _write_partial_audit(
+                        partial_audit_path,
+                        tensor_path=tensor_path,
+                        source_manifest=cache_manifest,
+                        shape=shape,
+                        completed_rows=completed_rows,
+                        workers=workers,
+                        lineage_claim=lineage_claim,
+                    )
+    finally:
+        packed.flush()
+        _close_memmap(packed)
     index = pd.DataFrame(
         {
             "image_context_id": manifest["image_context_id"].astype(str),
@@ -205,6 +226,8 @@ def build_packed_cache(
         "tensor_size_bytes": int(tensor_path.stat().st_size),
         "verification_sample_rows": int(verification_count),
         "verification_mismatches": int(verification_mismatches),
+        "working_set_release_policy": "flush_close_reopen_each_checkpoint_v1",
+        "mapping_reopen_count": int(mapping_reopen_count),
         "resize_policy_values": sorted(manifest["resize_policy"].astype(str).unique().tolist()),
         **lineage_claim,
         "valid": bool(
@@ -237,6 +260,14 @@ def _load_cache_row(base: Path, image_size: int, row_index: int, cache_value: st
     return row_index, image, ""
 
 
+def _close_memmap(array: np.ndarray) -> None:
+    """Close one NumPy mmap so flushed pages leave the process working set."""
+
+    mmap_handle = getattr(array, "_mmap", None)
+    if mmap_handle is not None:
+        mmap_handle.close()
+
+
 def _write_partial_audit(
     path: Path,
     *,
@@ -254,6 +285,7 @@ def _write_partial_audit(
         "shape": list(shape),
         "completed_rows": int(completed_rows),
         "workers": int(workers),
+        "working_set_release_policy": "flush_close_reopen_each_checkpoint_v1",
         **lineage_claim,
         "complete": False,
     }
