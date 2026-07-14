@@ -51,7 +51,7 @@ Root:
 
 ```text
 outputs/classification_v2/legacy_only_unreviewed_development/
-short_temporal_tiers_v2_20260714
+short_temporal_tiers_v3_20260714
 ```
 
 Observed evidence:
@@ -68,18 +68,19 @@ Observed evidence:
 - zero dropped or relabeled rows;
 - event-mass maximum error `0.0`;
 - all 13 repeated CSV outputs byte-identical;
+- every stage 00-05 CSV and audit carries the exact unreviewed claim pair;
 - strict real-tier loader audit valid for all eight views.
 
 Latest completed achievement:
 
 ```text
-00dc2e0 feat: complete legacy L1 cache and fold gate
+aae63c3 feat: preserve legacy lineage claims end to end
 ```
 
 Verification at that boundary:
 
-- focused L1 tests: 22 passed;
-- classification regression: 454 passed, 181 deselected;
+- focused claim, tier, cache, and L1 tests: 47 passed;
+- classification regression: 463 passed, 181 deselected;
 - Ruff, `py_compile`, `compileall`, diff check, and long-line scan PASS;
 - optimizer steps: zero;
 - full dataset reads: zero;
@@ -109,11 +110,13 @@ Verification at that boundary:
   `982724aa0c99852dd53805c2e1a7557daf0db9677f007e6fa32dd765eda4b105`;
 - cache manifest SHA256
   `7cc08b8f2d7796a17d5294ad706cd82f6c7f6e27a3e55269d593664632732637`.
+- refreshed L1 audit is bound to `aae63c37f5f16f032503ec4ef5bae966397e7396`;
+- its dirty-worktree record contains only the three preserved user changes.
 
 This PASS authorizes only the equivalent full legacy L2 data build. Model
 training, canonical full OOF, reviewed/final naming, and Q2 claims remain false.
-Rollback is `git revert 00dc2e0`; derived bounded cache/fold artifacts may then
-be rebuilt from the retained `c41f1ed` temporal packet.
+The cache/fold boundary remains `00dc2e0`; claim hardening rollback is
+`git revert aae63c3`.
 
 ## Achievement Log
 
@@ -126,6 +129,7 @@ be rebuilt from the retained `c41f1ed` temporal packet.
 | 2026-07-14 | Absolute burst frame indices | PASS | `2049a2d` |
 | 2026-07-14 | Strict short-packet loader audit | PASS | `c41f1ed` |
 | 2026-07-14 | Legacy L1 cache and fold gate | PASS | `00dc2e0` |
+| 2026-07-14 | End-to-end legacy lineage claims | PASS | `aae63c3` |
 
 ## Full-Run Boundary
 
