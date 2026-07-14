@@ -654,7 +654,8 @@ và semantic config không đổi; audit thất bại phải được giữ làm
   --validate-only
 ```
 
-Chỉ mở full GUI sau khi media audit trên báo `media_missing=0`:
+Chỉ mở full GUI khi media audit schema v2 báo `media_missing=0` và SHA256 của
+manifest/frame-context còn khớp bytes hiện tại:
 
 ```bat
 %PY% %S1%\review_hidden_quality_gui.py ^

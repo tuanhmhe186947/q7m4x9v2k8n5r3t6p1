@@ -8,11 +8,13 @@
   601 stratified-random No, and 24 clean controls.
 - Selection excludes behavior and target-derived fields. The manifest SHA256 is
   `3e4fec14c466a89370a1e20d913cb024bd1dda1fa8db9c1fabdf8a51fa31072e`.
+- Commit `f2179e3` binds media audit v2 to manifest/frame-context hashes. The
+  24-item smoke and 5,131-item full resolver both have `media_missing=0`.
 - Commits `32eaa2b` and `aaf8460` migrate v5 onto identifier v2, then carry all
   30 decisions into v6 with zero payload/context drift and bound SHA256 hashes.
 - Current coverage is 30/5,131 with 5,101 missing. Random and high-risk reviewed
   support are both zero, so the scientific gate is explicitly blocked.
-- Evidence is 23 focused tests and 376 classification tests with 181 deselected.
+- Evidence is 31 focused tests and 377 classification tests with 181 deselected.
   Hidden apply, reviewed snapshot, model training, and full OOF remain forbidden.
 
 ## 2026-07-14 historical baseline controls

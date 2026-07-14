@@ -77,7 +77,8 @@ Use the target-independent v6 Hidden manifest at
 `outputs/classification_v2/rebuilds/hidden_review_v6_full_20260714` for the
 next human review wave. It has 5,131 items. All 30 existing v5 decisions were
 carried through identifier v2 with zero payload/context drift, leaving 5,101
-missing decisions. The scientific gate is report-only BLOCKED, so Hidden apply
+missing decisions. Hash-bound media validation resolves all 5,131 items with
+zero missing media. The scientific gate is report-only BLOCKED, so Hidden apply
 and every training action remain forbidden.
 
 Do not resume full training from this decision alone. First create a versioned

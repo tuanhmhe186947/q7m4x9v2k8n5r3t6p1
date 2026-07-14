@@ -34,6 +34,10 @@ It contains 5,131 unique, target-independent review items:
 - 601 stratified-random Hidden No items;
 - 24 clean negative controls.
 
+Media audit v2 is bound to the manifest and frame-context hashes. Its 24-item
+dual-source smoke resolves 12 video and 12 crop items; the full gate resolves
+4,613 video and 518 crop items. Both report `media_missing=0`.
+
 Independent coverage reports zero target-derived fields, risk/stratum drift,
 missing untrusted Hidden Yes items, and high-risk cap violations. The manifest
 SHA256 is
@@ -125,6 +129,7 @@ incomplete human-review lineage.
 | Technical legacy+CVAT chain | PASS | 688/63/438 counts; 8/8 repeatability |
 | Exact model-X contract | PASS | 110 tabular fields; no review/target leakage |
 | Hidden v6 template | PASS | 5,131 target-independent items; audit clean |
+| Hidden v6 media | PASS | 5,131/5,131 resolved; hashes bound; zero missing |
 | Hidden decision carry | PASS | 30/30 preserved; hashes and context match |
 | Hidden human decisions | FAIL | 30/5,131 resolved; 5,101 missing |
 | Hidden scientific gate | BLOCKED | Random/high-risk reviewed support is zero |
@@ -181,7 +186,7 @@ not a model-quality baseline.
 
 ## Required Execution Order
 
-1. Validate v6 Hidden media on a bounded sample, then on the full template.
+1. Media gate is complete; rerun it only if manifest/context hashes change.
 2. Complete and scientifically audit all v6 Hidden decisions.
 3. Apply Hidden decisions with row/schema preservation checks.
 4. Rebuild temporal harmonization and windows from the Hidden-reviewed artifact.

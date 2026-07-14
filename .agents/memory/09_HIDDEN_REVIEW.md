@@ -51,6 +51,11 @@ The predeclared design has adequate planned random/high-risk clustered support.
 Commits `32eaa2b` and `aaf8460` preserve all 30 v5 decisions through identifier
 v2 and bind the migration/carry artifacts by SHA256.
 
+Commit `f2179e3` upgrades media evidence to schema v2 with exact manifest and
+frame-context hashes. The 24-item dual-source smoke resolves 12 video and 12
+crop items; the full gate resolves 4,613 video and 518 crop items. Both report
+zero missing or unknown-source media.
+
 Current human coverage is 30/5,131 with 5,101 missing. No random or high-risk
 item has yet been reviewed, so the report-only scientific gate is
 `BLOCKED_INCOMPLETE_OR_INSUFFICIENT_REVIEW`. Full coverage, apply, temporal

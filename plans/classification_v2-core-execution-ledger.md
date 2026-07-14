@@ -62,6 +62,7 @@ Passing gates:
 - Representative chain: `PASS`; it has 688 frames, 63 units, and 438 windows.
 - Exact X whitelist: `PASS`; 110 fields pass the technical leakage audit.
 - Hidden design/template: `PASS`; v6 has 5,131 target-independent items.
+- Hidden media: `PASS`; 5,131/5,131 resolve under hash-bound audit v2.
 - Exact CVAT resolver: `PASS`; six frames resolve to the exact `_30fps.mp4` file.
 
 Blocked human-lineage gates:
@@ -159,6 +160,7 @@ authorization.
 | 2026-07-14 | Hidden final-support preflight | PASS IN CODE | `e9a585d` |
 | 2026-07-14 | Hidden v5-to-v6 decision carry | PASS | `32eaa2b` |
 | 2026-07-14 | Hidden migration artifact hashes | PASS | `aaf8460` |
+| 2026-07-14 | Hidden media input-hash audit | PASS | `f2179e3` |
 
 ## Next Checkpoint
 

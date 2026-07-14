@@ -30,7 +30,8 @@ The current versioned full Hidden template is
 `outputs/classification_v2/rebuilds/hidden_review_v6_full_20260714`. It contains
 5,131 target-independent items and passed independent template coverage. The 30
 v5 decisions were carried through identifier v2 with bound hashes and no
-payload/context drift. Continue GUI review from that CSV; 5,101 items remain.
+payload/context drift. Hash-bound media audit v2 resolves all 5,131 items with
+zero missing media. Continue GUI review from that CSV; 5,101 items remain.
 
 The current identifier-v2 short chain is independently verified under
 `outputs/classification_v2/rebuilds/scientific_smoke_identifier_v2_20260713`.
@@ -118,7 +119,7 @@ Current state:
 - The strict loader at `111f152` aligns real fixed-six `time_delta` tensors to
   the complete window universe and binds the slot-manifest hash in checkpoint
   schema v4 and registry v3.
-- Current classification regression is 376 passed and 181 deselected. This is
+- Current classification regression is 377 passed and 181 deselected. This is
   fixture evidence, not training authorization.
 - Transformer timing plumbing now passes in code, but every model run remains
   blocked until the reviewed snapshot and its exact hashes are frozen.
