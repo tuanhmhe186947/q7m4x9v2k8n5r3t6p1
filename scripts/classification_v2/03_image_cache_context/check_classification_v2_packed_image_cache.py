@@ -24,9 +24,8 @@ def main() -> None:
         default=Path("outputs/classification_v2/image_cache_v2_letterbox"),
     )
     parser.add_argument("--sample-size", type=int, default=64)
-    parser.add_argument("--image-size", type=int, default=64)
     args = parser.parse_args()
-    audit = check_packed_cache(args.root, args.sample_size, args.image_size)
+    audit = check_packed_cache(args.root, args.sample_size)
     print(json.dumps(audit, indent=2))
     if not audit["valid"]:
         raise SystemExit(2)
@@ -35,7 +34,6 @@ def main() -> None:
 def check_packed_cache(
     root: Path,
     sample_size: int,
-    image_size: int = 64,
 ) -> dict[str, Any]:
     """Compare deterministic packed rows with individual cache bytes and loader output."""
 
@@ -47,7 +45,7 @@ def check_packed_cache(
     index = pd.read_csv(root / "packed_image_cache_index.csv", low_memory=False).sort_values(
         "image_context_id", kind="mergesort"
     )
-    tensor_path = root / f"packed_rgb_{image_size}_letterbox.npy"
+    tensor_path = root / "packed_rgb_64_letterbox.npy"
     tensor = np.load(tensor_path, mmap_mode="r")
     errors: list[str] = []
     if len(manifest) != len(index) or len(index) != tensor.shape[0]:
@@ -79,7 +77,7 @@ def check_packed_cache(
         ImageSequenceDatasetConfig(
             packed_image_cache_npy=tensor_path,
             packed_image_cache_index_csv=root / "packed_image_cache_index.csv",
-            image_size=image_size,
+            image_size=64,
             require_complete=False,
             require_cached_images=True,
             image_cache_size=0,
@@ -100,7 +98,6 @@ def check_packed_cache(
     return {
         "schema_version": "classification_v2_packed_image_cache_check_v1",
         "root": str(root),
-        "image_size": int(image_size),
         "manifest_rows": int(len(manifest)),
         "index_rows": int(len(index)),
         "tensor_shape": [int(value) for value in tensor.shape],
