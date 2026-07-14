@@ -137,6 +137,13 @@ both all-sliding windows with per-burst event-mass normalization and a
 deterministic one-window-per-burst matched view. Keep model settings fixed and
 change only temporal length; aggregate evaluation to the 16-frame native unit.
 
+Commit `21b34fd` implements the exact model-input boundary for this ladder.
+The builder emits one full-universe selection ledger and one observed-time slot
+manifest for each of the eight tier/view combinations. Training config must
+bind the matching view, selection column, manifest filename, and exact input
+length. Actor/context inputs are never truncated; padded spatial capacity is
+sliced only after post-tier masks are proven false.
+
 Run the ladder in this order: read-only source audit, complete-unit short chain,
 full legacy data rebuild, leakage-safe snapshot freeze, loader sample,
 one-batch forward/backward, tiny overfit, resume, then one short development

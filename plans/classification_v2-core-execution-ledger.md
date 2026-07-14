@@ -93,6 +93,9 @@ Independent in-progress gates:
   split/image/interaction order plus artifact, config, and code hashes.
 - Temporal views: `PASS IN CODE` at `bb225ff`; fixed-six observed-time, phase,
   native 6/16, selection-ledger, order/hash, and missing-slot contracts pass.
+- Legacy tier model inputs: `PASS IN CODE` at `21b34fd`; eight explicit
+  `T6/T8/T12/T16` sliding/matched views bind exact selection, observed timing,
+  tensor length, and common native-16 evaluation contracts.
 - Structural shortcut probes: `PASS IN CODE`; source/length/padding/timing,
   quality, availability, and metadata-to-label signatures fail closed on
   fixtures. Learned embedding probes remain a later model-stage gate.
@@ -196,11 +199,16 @@ authorization.
 | 2026-07-14 | Shared visual freeze schedule | PASS IN CODE | `2bd2fda` |
 | 2026-07-14 | Native-unit checkpoint selection | PASS IN CODE | `abae856` |
 | 2026-07-14 | Native source/missingness probe contract | PASS IN CODE | `9b04209` |
+| 2026-07-14 | Exact legacy temporal model-input tiers | PASS IN CODE | `21b34fd` |
 
 ## Next Checkpoint
 
-The next checkpoint is human completion of the v6 Hidden workload. Coverage is
-30/5,131 with 5,101 missing; random and high-risk reviewed support are both zero.
-After review, rerun complete coverage and the scientific gate without
-`--report-only`. Hidden apply remains forbidden until both pass. Behavior review
-and the immutable P0 snapshot remain downstream blockers.
+The next independent classifier checkpoint is a versioned short real-data
+legacy packet that proves all eight tier/view manifests, hashes, slot timing,
+cache alignment, exact row retention, and native-burst fold containment. It
+must pass before the equivalent full legacy rebuild and does not authorize
+training.
+
+The reviewed all-source checkpoint remains human completion of Hidden v6.
+Coverage is 30/5,131 with 5,101 missing; Hidden apply, behavior review, and the
+immutable reviewed P0 snapshot remain blocked.

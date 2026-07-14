@@ -1,5 +1,21 @@
 # Project Memory Short
 
+## 2026-07-14 exact legacy temporal model inputs
+
+- Commit `21b34fd` binds eight explicit legacy model views: `T6`, `T8`,
+  `T12`, and `T16`, each with all-sliding event-balanced and centered-matched
+  sampling.
+- The common evaluation unit remains the complete 16-frame burst. The loader
+  binds view name, selection column, slot manifest, exact observed timing, and
+  `temporal_input_frames`; it rejects malformed lengths and timing.
+- Actor and union-context tensors must already be exact `T`. Spatial tensors
+  may have capacity 16 only when every post-`T` length-mask slot is false.
+- Four synthetic tier forwards produce finite `[2, 10]` logits with the same
+  25,115 parameters. Evidence is 438 classification tests passing with 181
+  deselected, Ruff, compileall, and zero optimizer steps or weight downloads.
+- This is `PASS IN CODE`. A versioned short real-data chain must pass before a
+  full legacy rebuild, and neither action authorizes training or full OOF.
+
 ## 2026-07-14 legacy-only unreviewed development authorization
 
 - The user authorizes bounded classifier development from the 72,864-row

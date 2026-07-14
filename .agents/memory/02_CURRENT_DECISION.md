@@ -33,6 +33,13 @@ the same native-burst folds and aggregate predictions back to the 16-frame
 unit. Report an event-mass-balanced sliding-window view and a one-window-per-
 burst matched view so sequence length is not confounded with sample count.
 
+Commit `21b34fd` is the model-input authority for this ladder. It exposes eight
+view/selection/slot contracts, binds exact observed-time tensors to each `T`,
+and rejects mismatched config, image/context length, spatial padding, or timing.
+Its 438-test regression is code evidence only. The short real-data packet,
+cache alignment, and no-row-loss audit remain the next gates before any full
+legacy rebuild or model execution.
+
 Commit `9b04209` is now the source/missingness probe authority. A source probe
 must use the exact ordered trainer whitelist, bind the train-ready ordered
 window SHA256, collapse repeated windows to native units, fit only grouped
