@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 from pathlib import Path
 
@@ -15,6 +16,22 @@ from pig_behavior.classification_v2.datasets.legacy_unreviewed_development impor
 from pig_behavior.classification_v2.training.temporal_view_loader import (
     load_temporal_view_tensors,
 )
+
+_LOADER_CHECKER_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "scripts"
+    / "classification_v2"
+    / "04_baselines_smokes"
+    / "check_classification_v2_temporal_view_loader.py"
+)
+_LOADER_CHECKER_SPEC = importlib.util.spec_from_file_location(
+    "classification_v2_temporal_view_loader_checker",
+    _LOADER_CHECKER_PATH,
+)
+assert _LOADER_CHECKER_SPEC is not None
+assert _LOADER_CHECKER_SPEC.loader is not None
+_LOADER_CHECKER = importlib.util.module_from_spec(_LOADER_CHECKER_SPEC)
+_LOADER_CHECKER_SPEC.loader.exec_module(_LOADER_CHECKER)
 
 
 def _fixture_tables() -> tuple[
@@ -210,6 +227,49 @@ def test_builds_balanced_and_matched_temporal_tiers(tmp_path: Path) -> None:
         assert np.isnan(tensors.time_delta[~selected_mask]).all()
 
 
+def test_real_tier_loader_audit_accepts_complete_packet(
+    tmp_path: Path,
+) -> None:
+    selection = _write_temporal_tier_packet(tmp_path)
+
+    audit = _LOADER_CHECKER.run_legacy_tier_loader_audit(tmp_path)
+
+    assert audit["valid"] is True
+    assert audit["errors"] == []
+    assert audit["window_universe_rows"] == len(selection)
+    assert audit["loaded_view_count"] == 8
+    for view in audit["views"].values():
+        assert view["shape_valid"] is True
+        assert view["selected_nonempty"] is True
+        assert view["selected_time_delta_finite"] is True
+        assert view["unselected_time_delta_nan"] is True
+        assert view["selected_timing_valid"] is True
+        assert view["selected_observed"] is True
+        assert view["unselected_masks_clear"] is True
+
+
+def test_real_tier_loader_audit_rejects_dirty_selection_boolean(
+    tmp_path: Path,
+) -> None:
+    selection = _write_temporal_tier_packet(tmp_path)
+    column = "legacy_t6_all_sliding_keep"
+    selection[column] = selection[column].astype(object)
+    selection.loc[0, column] = "not-a-boolean"
+    selection.to_csv(
+        tmp_path / "temporal_tier_selection_manifest.csv",
+        index=False,
+    )
+
+    audit = _LOADER_CHECKER.run_legacy_tier_loader_audit(tmp_path)
+
+    assert audit["valid"] is False
+    assert audit["loaded_view_count"] == 7
+    assert any(
+        error.startswith("legacy_t6_all_sliding_observed_time:ValueError")
+        for error in audit["errors"]
+    )
+
+
 def test_accepts_absolute_frame_indices_inside_each_burst() -> None:
     source, harmonized, intervals, windows = _fixture_tables()
     frame_offset = 100
@@ -325,3 +385,19 @@ def test_rejects_wrong_stride_lattice_even_when_window_count_matches() -> None:
             intervals,
             windows,
         )
+
+
+def _write_temporal_tier_packet(tmp_path: Path) -> pd.DataFrame:
+    tables = build_legacy_unreviewed_development_manifests(*_fixture_tables())
+    selection = tables.temporal_selection.copy()
+    selection.to_csv(
+        tmp_path / "temporal_tier_selection_manifest.csv",
+        index=False,
+    )
+    for view_name, spec in LEGACY_TEMPORAL_MODEL_VIEW_SPECS.items():
+        manifest = tables.temporal_slot_manifests[view_name]
+        manifest.to_csv(
+            tmp_path / str(spec["slot_manifest_filename"]),
+            index=False,
+        )
+    return selection
