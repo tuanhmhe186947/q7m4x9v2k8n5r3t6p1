@@ -84,6 +84,16 @@ Verification at that boundary:
 - optimizer steps: zero;
 - full dataset reads: zero.
 
+## L0 Reconciliation Refresh
+
+- Reconciled HEAD: `fc6c594`; the implementation boundary remains `c41f1ed`.
+- The three pre-existing worktree changes match the prompt's preserve list.
+- Bounded packet counts, claim flags, loader status, and recorded hashes match.
+- `CLASSIFICATION_V2_CURRENT_STATE.md` and the core ledger still report the
+  earlier 429-test boundary; this lane's later verified boundary is 442 passed
+  with 181 deselected.
+- This documentation drift does not authorize training or change L1 gates.
+
 ## L1 Remaining Gates
 
 1. Exact selected-window to image-context slot mapping.
@@ -119,4 +129,3 @@ Do not mark this goal complete until L0-L8 PASS and
 `legacy_16f_goal_completion_audit.json` exists with immutable hashes. After
 completion, update project memory and return to the parent chat. The parent
 goal must re-audit reviewed all-source P0-P8 rather than inheriting a false PASS.
-
