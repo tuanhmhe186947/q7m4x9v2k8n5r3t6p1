@@ -30,7 +30,7 @@ replaced by this ledger.
 | L2 full legacy lineage | PASS | Full repeat-bound lineage at `59647e2` |
 | L3 immutable inputs | PASS | Committed-SHA gate at `0414adc` |
 | L4 model correctness | PASS | Real-cache correctness gate at `3ef4235` |
-| L5 core baselines | IN_PROGRESS | 224px cache gate PASS at `15a5368`; 4 GiB VRAM probe next |
+| L5 core baselines | IN_PROGRESS | 4 GiB VRAM probe PASS at `93449ae`; feature caches next |
 | L6 modality loop | NOT_STARTED | Requires retained L5 baseline |
 | L7 imbalance policy | NOT_STARTED | Requires retained L6 candidate |
 | L8 candidate/handback | NOT_STARTED | Requires controlled L0-L7 evidence |
@@ -134,6 +134,7 @@ The cache/fold boundary remains `00dc2e0`; claim hardening rollback is
 | 2026-07-14 | Immutable legacy L3 input gate | PASS | `0414adc` |
 | 2026-07-14 | Legacy L4 model-correctness ladder | PASS | `3ef4235` |
 | 2026-07-15 | Memory-safe L5 224px cache gate | PASS | `15a5368` |
+| 2026-07-15 | Pretrained 4 GiB VRAM gate | PASS | `93449ae` |
 
 ## L2 PASS Evidence
 
@@ -220,9 +221,33 @@ reviewed/final naming, and Q2 claims remain unauthorized.
   `15_l5_core_baselines/legacy_development_l5_224_cache_full_audit.json` and is
   bound to commit `15a5368` with status `PASS_LEGACY_DEVELOPMENT_L5_CACHE_FULL`.
 
-This gate permits only the next exact pretrained-weight and short VRAM-probe
-work. No ResNet feature expansion, baseline metric, outer-holdout prediction,
-reviewed/final naming, canonical full OOF, or Q2 claim is authorized yet.
+This gate authorized only the exact pretrained-weight and short VRAM work
+recorded below. It did not authorize a model-quality claim.
+
+## L5 Pretrained Weight And VRAM Gate Evidence
+
+- commit `93449ae` enforces a 210-character Windows weight-path limit after the
+  first long-path attempt stopped before download or CUDA initialization;
+- ResNet18 V1 weight SHA256 is
+  `f37072fd47e89c5e827621c5baffa7500819f7896bbacec160b1a16c560e07ec`;
+- ResNet34 V1 weight SHA256 is
+  `b627a593bcbe140c234610266fe4f8ae95ea42fc881d091c9b6052e6b1d0590f`;
+- CPU-only weight preparation records CUDA uninitialized before and after;
+- the RTX 3050 Laptop GPU reports 4,294,443,008 total bytes;
+- the allocator is hard-capped at 3,006,110,105 bytes with no OOM retry;
+- V0 ResNet18-160 batch 16 peaks at 125,829,120 reserved bytes;
+- V1 ResNet18-224 batch 16 peaks at 171,966,464 reserved bytes;
+- V2 ResNet34-224 batch 8 peaks at 169,869,312 reserved bytes;
+- all controls run two exact passes over 64 spread rows with identical feature
+  hashes, 512 float32 features, zero nonfinite values, and zero OOM;
+- allocated and reserved CUDA bytes return to zero after every control;
+- focused visual tests: 9 passed; classification regression: 499 passed,
+  181 deselected; Ruff, compile, diff, and long-line checks pass.
+
+The weight and probe audits are under `15_l5_core_baselines`. This gate permits
+the exact cached-feature short gate and, only if that passes unchanged, its full
+expansion. Baseline metrics, outer-holdout predictions, reviewed/final naming,
+canonical full OOF, and Q2 claims remain unauthorized.
 
 ## Full-Run Boundary
 
