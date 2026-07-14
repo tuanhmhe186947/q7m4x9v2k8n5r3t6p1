@@ -29,8 +29,8 @@ replaced by this ledger.
 | L1 short packet | PASS | Exact cache, slot, fold, and repeat gate at `00dc2e0` |
 | L2 full legacy lineage | PASS | Full repeat-bound lineage at `59647e2` |
 | L3 immutable inputs | PASS | Committed-SHA gate at `0414adc` |
-| L4 model correctness | IN_PROGRESS | Run the bounded correctness ladder |
-| L5 core baselines | NOT_STARTED | Requires L4 PASS |
+| L4 model correctness | PASS | Real-cache correctness gate at `3ef4235` |
+| L5 core baselines | IN_PROGRESS | Run controlled visual/temporal baselines |
 | L6 modality loop | NOT_STARTED | Requires retained L5 baseline |
 | L7 imbalance policy | NOT_STARTED | Requires retained L6 candidate |
 | L8 candidate/handback | NOT_STARTED | Requires controlled L0-L7 evidence |
@@ -132,6 +132,7 @@ The cache/fold boundary remains `00dc2e0`; claim hardening rollback is
 | 2026-07-14 | End-to-end legacy lineage claims | PASS | `aae63c3` |
 | 2026-07-14 | Deterministic full legacy L2 lineage | PASS | `59647e2` |
 | 2026-07-14 | Immutable legacy L3 input gate | PASS | `0414adc` |
+| 2026-07-14 | Legacy L4 model-correctness ladder | PASS | `3ef4235` |
 
 ## L2 PASS Evidence
 
@@ -176,6 +177,28 @@ The audit is `13_l3_audit/legacy_development_l3_audit.json` under the primary
 root. L3 authorizes only bounded L4 model-correctness work. Accuracy/F1
 comparison, canonical full OOF, reviewed/final naming, and Q2 claims remain
 unauthorized.
+
+## L4 PASS Evidence
+
+- exact T16 centered input and `native_oof_005` are config-hash frozen;
+- all 4,554 native units remain in lineage and nine policy-invalid units are
+  excluded from optimizer input;
+- masked-value invariance, temporal order sensitivity, and invalid-mask
+  rejection pass on real packed crops;
+- visual, temporal, and behavior-head gradients are finite and nonzero;
+- two deterministic steps match exactly, including model and optimizer state;
+- checkpoint load and the next optimizer step are exactly equivalent;
+- 20 unique real native bursts reach 1.0 memorization with loss ratio
+  `0.0002209130`;
+- one epoch covers all 3,897 eligible train bursts and 62,352 packed frames;
+- cache misses, source reads, video decodes, and train/test group overlap are 0;
+- peak VRAM is 464,460,288 bytes; held-out predictions and metrics are absent;
+- focused L4 tests: 4 passed; classification regression: 479 passed,
+  181 deselected; Ruff, compile, diff, and long-line checks pass.
+
+The audits are under `14_l4_model_correctness` in the primary root. L4
+authorizes only controlled L5 development baselines. Canonical full OOF,
+reviewed/final naming, and Q2 claims remain unauthorized.
 
 ## Full-Run Boundary
 
