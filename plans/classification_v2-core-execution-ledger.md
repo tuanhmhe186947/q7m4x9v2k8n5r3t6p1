@@ -101,6 +101,9 @@ Independent in-progress gates:
 - Production visual backbones: `PASS IN CODE` at `07ed768`; exact ResNet18/34
   weight-enum and normalization contracts support V0/V1/V2 controlled forwards
   without pretrained download or optimizer steps during tests.
+- Visual freeze schedule: `PASS IN CODE` at `2bd2fda`; actor and union-context
+  backbones share frozen, `layer4_only`, and optional full stages with stable
+  optimizer groups and differential learning rates.
 - Synthetic visual correctness: `PASS IN CODE` at `3be22f8`; deterministic
   ResNet18-160 gradients, ten-class tiny overfit, eval recalibration, and
   in-memory resume pass without project-data access or training authorization.
@@ -110,6 +113,10 @@ Independent in-progress gates:
 - Native paired evaluation: `PASS IN CODE` at `1b6ba3d`; complete authority
   coverage, fixed ten-class metrics, fold/target reconciliation, and paired
   recording-cluster lineage pass synthetic fail-closed checks.
+- Native checkpoint selection: `PASS IN CODE` at `abae856`; grouped inner
+  native-unit supported macro-F1 selects checkpoints, NLL breaks ties, and
+  outer-test predictions cannot tune the model. New runs use checkpoint v6,
+  run identity v3, run manifest v3, prediction manifest v2, and registry v5.
 - Historical baseline control: `PASS IN CODE` at `e5d6417`; the old OOF and
   legacy checkpoint are hash-registered with explicit non-promotion status.
 
@@ -126,6 +133,12 @@ Work proceeds in dependency order without fabricating human evidence:
 7. Native-collapse and paired-evaluation contracts: `COMPLETED IN CODE`.
 8. Historical baseline engineering control: `COMPLETED IN CODE`.
 9. Synthetic visual one-batch/tiny-overfit gate: `COMPLETED IN CODE`.
+10. Visual freeze and native checkpoint selection: `COMPLETED IN CODE`.
+11. Whitelist-bound native source/missingness probes: `IN_PROGRESS`.
+
+Item 11 must remove positional/all-numeric probe behavior, bind exact feature
+order and window lineage, aggregate at native-unit grain, fit only training
+roles, and keep source/availability metadata outside classifier X.
 
 ## Promotion And Full-Run Lock
 
@@ -170,6 +183,9 @@ authorization.
 | 2026-07-14 | Hidden media input-hash audit | PASS | `f2179e3` |
 | 2026-07-14 | Audited ResNet18/34 backbone interface | PASS IN CODE | `07ed768` |
 | 2026-07-14 | Synthetic visual tiny-overfit gate | PASS IN CODE | `3be22f8` |
+| 2026-07-14 | Shared visual freeze schedule | PASS IN CODE | `2bd2fda` |
+| 2026-07-14 | Native-unit checkpoint selection | PASS IN CODE | `abae856` |
+| 2026-07-14 | Source/missingness probe hardening | IN_PROGRESS | pending |
 
 ## Next Checkpoint
 
