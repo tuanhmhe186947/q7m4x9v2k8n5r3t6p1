@@ -27,8 +27,8 @@ replaced by this ledger.
 |---|---|---|
 | L0 state reconciliation | PASS | Authority, lane, counts, and claim boundary locked |
 | L1 short packet | PASS | Exact cache, slot, fold, and repeat gate at `00dc2e0` |
-| L2 full legacy lineage | IN_PROGRESS | L1 authorizes the data build only |
-| L3 immutable inputs | NOT_STARTED | Requires deterministic full lineage |
+| L2 full legacy lineage | PASS | Full repeat-bound lineage at `59647e2` |
+| L3 immutable inputs | IN_PROGRESS | Freeze caches, folds, whitelists, and views |
 | L4 model correctness | NOT_STARTED | Requires frozen L3 snapshot |
 | L5 core baselines | NOT_STARTED | Requires L4 PASS |
 | L6 modality loop | NOT_STARTED | Requires retained L5 baseline |
@@ -130,12 +130,36 @@ The cache/fold boundary remains `00dc2e0`; claim hardening rollback is
 | 2026-07-14 | Strict short-packet loader audit | PASS | `c41f1ed` |
 | 2026-07-14 | Legacy L1 cache and fold gate | PASS | `00dc2e0` |
 | 2026-07-14 | End-to-end legacy lineage claims | PASS | `aae63c3` |
+| 2026-07-14 | Deterministic full legacy L2 lineage | PASS | `59647e2` |
+
+## L2 PASS Evidence
+
+Roots:
+
+```text
+outputs/classification_v2/legacy_only_unreviewed_development/
+full_legacy_lineage_v2_20260714
+full_legacy_lineage_v2_repeat_20260714
+```
+
+- 72,864 exact frame/object rows and 4,554 native 16-frame bursts;
+- T6/T8/T12/T16 sliding rows are 18,216/13,662/9,108/4,554;
+- 45,540 all-sliding rows and 18,216 centered-matched rows;
+- all ten labels, zero row loss, label drift, cross-burst windows, or bad timing;
+- all eight strict loader views pass shape, timing, observation, and mask checks;
+- all 24 primary/repeat lineage CSV pairs are byte-identical and claim-safe;
+- 4,545 development-valid and 9 policy-invalid bursts are retained explicitly;
+- consolidated audit has zero errors and is bound to `59647e2`;
+- focused gate: 51 passed; classification regression: 467 passed, 181 deselected.
+
+The audit is `08_l2_audit/legacy_development_l2_audit.json` under the primary
+root. L2 authorizes only the L3 immutable-input freeze; model training remains
+unauthorized.
 
 ## Full-Run Boundary
 
-Necessary full legacy runs have standing user permission only after the exact
-short semantic configuration passes. A semantic change invalidates dependent
-short evidence. Canonical full OOF remains outside this goal.
+The full legacy L2 data build is complete. Any semantic change invalidates its
+dependent evidence. Canonical full OOF remains outside this goal.
 
 ## Handback Boundary
 
