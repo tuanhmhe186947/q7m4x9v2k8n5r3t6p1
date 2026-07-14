@@ -1,5 +1,18 @@
 # Project Memory Short
 
+## 2026-07-14 deterministic visual tiny-overfit gate
+
+- Commit `3be22f8` adds a data-free ResNet18 actor-temporal correctness gate for
+  one-batch gradients, 20-event ten-class overfit, and optimizer-state resume.
+- Two deterministic CUDA runs share the same semantic SHA256. The persisted
+  audit reports accuracy 1.0, loss ratio 0.076818, zero resume-logit drift,
+  778,576,384 peak VRAM bytes, and finite nonzero backbone/head gradients.
+- The gate caught train/eval BatchNorm drift during development. It now scores
+  only after post-fit running-stat recalibration; that smoke-only policy does
+  not select the final training BatchNorm policy.
+- Evidence is 35 focused tests and 385 classification tests with 181 deselected.
+  The audit explicitly denies snapshot and full-OOF authorization.
+
 ## 2026-07-14 audited ResNet backbone interface
 
 - Commit `07ed768` adds versioned `smoke_cnn`, ResNet18, and ResNet34 frame

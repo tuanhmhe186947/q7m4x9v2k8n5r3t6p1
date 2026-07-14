@@ -20,6 +20,8 @@ Current policy:
   and structural shortcut checks; active reviewed artifacts remain blocked.
 - Commit `07ed768` adds no-download forward contracts for ResNet18 160/224 and
   ResNet34 224. These are P1 interface controls, not trained candidates.
+- Commit `3be22f8` adds a deterministic synthetic-only ResNet18-160 gradient,
+  tiny-overfit, eval, and resume gate. It does not authorize active-data runs.
 
 Related documents:
 

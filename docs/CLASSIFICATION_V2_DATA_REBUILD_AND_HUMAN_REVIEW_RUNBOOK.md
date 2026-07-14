@@ -1675,6 +1675,22 @@ optimizer, không data I/O và không pretrained download:
 %PY% %S4%\check_classification_v2_visual_backbones.py --dry-run
 ```
 
+Gate synthetic tiếp theo không đọc project data, dùng 20 event cân bằng và
+chạy hai lần để kiểm deterministic semantic signature:
+
+```bat
+%PY% %S4%\check_classification_v2_visual_tiny_overfit.py ^
+  --backbone-name resnet18 --image-size 160 --steps 30 ^
+  --device cuda --repeatability-runs 2 --overwrite
+```
+
+Gate này yêu cầu gradient hữu hạn/nonzero ở backbone và final head, accuracy
+tiny-overfit tối thiểu 0,95, loss ratio tối đa 0,25 và resume logit delta bằng
+0. BatchNorm được recalibrate sau khi optimizer dừng để metric chấm ở eval
+mode; đây chỉ là correctness policy của tiny fixture, không khóa freeze/BN
+policy cho active-data pilot. Audit luôn có `synthetic_only=true`,
+`training_snapshot_allowed=false` và `full_oof_allowed=false`.
+
 Mỗi candidate phải qua one-batch forward/backward, tiny overfit 16-64 native
 event, checkpoint resume, AMP/runtime/VRAM, cache-only I/O và representative
 one-fold development run. Context candidate phải qua missingness controls ở mục

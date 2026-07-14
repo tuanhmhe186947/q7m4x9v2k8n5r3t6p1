@@ -35,6 +35,12 @@ from ResNet18-to-ResNet34 capacity, records exact ImageNet enum/normalization,
 and passes random-init forwards without downloading weights or training. This
 does not authorize a pretrained pilot before the reviewed snapshot is frozen.
 
+Commit `3be22f8` completes the independent synthetic visual correctness gate.
+ResNet18-160 reaches ten-class tiny-event accuracy 1.0 with finite backbone and
+head gradients, deterministic repeated evidence, and exact in-memory resume
+parity. The audit remains `synthetic_only` and explicitly sets snapshot/full-OOF
+authorization false; it cannot replace active reviewed-data smoke gates.
+
 Commit `111f152` now loads real ordered fixed-six `time_delta` tensors into the
 strict data module and binds the slot-manifest hash in checkpoint schema v4 and
 registry v3. Corrupt order, slot identity, masks, or timing fail closed, and
@@ -53,7 +59,7 @@ Commit `e5d6417` completes historical-baseline reconciliation as an engineering
 control. Its audit reproduces 151,440/160,740 positional mismatches and marks
 the old full OOF `HISTORICAL_ONLY`. It safely records the legacy ResNet34
 sequence checkpoint as `HISTORICAL_ARCHITECTURE_ONLY`, not as a performance
-baseline. The current regression is 381 passed and 181 deselected. Neither
+baseline. The current regression is 385 passed and 181 deselected. Neither
 historical artifact authorizes model selection, paired comparison, training,
 full OOF, or a Q2 claim.
 
