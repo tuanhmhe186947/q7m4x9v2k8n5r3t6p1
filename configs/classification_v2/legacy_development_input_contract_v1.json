@@ -1,0 +1,115 @@
+{
+  "version": "classification_v2_legacy_development_input_contract_v1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "human_review_complete": false,
+  "claim_boundary": {
+    "reviewed_or_final_claim_allowed": false,
+    "q2_claim_allowed": false,
+    "external_generalization_claim_allowed": false,
+    "canonical_full_oof_allowed": false,
+    "pig_id_identity_scope": "annotation-local only; never cross-video identity"
+  },
+  "actor_image_sequence": {
+    "enabled": true,
+    "image_size": 160,
+    "dtype": "uint8",
+    "layout": "HWC_RGB",
+    "resize_policy": "letterbox_preserve_aspect_rgb_pad_black_v1",
+    "cache_only_required": true,
+    "source_media_fallback_allowed": false
+  },
+  "temporal_contract": {
+    "native_unit_length": 16,
+    "input_tiers": [6, 8, 12, 16],
+    "sampling_protocols": [
+      "all_sliding_event_balanced",
+      "one_centered_window_matched"
+    ],
+    "primary_prediction_unit": "native_temporal_unit",
+    "primary_metric": "fixed_10_class_native_unit_macro_f1"
+  },
+  "feature_selection": {
+    "never_use_all_numeric_columns": true,
+    "fail_closed_on_unknown_columns": true,
+    "window_tabular_branch_enabled": false,
+    "predictive_spatial_groups": [
+      "bbox_xywh_n",
+      "bbox_shape_n",
+      "motion_delta",
+      "roi_class_relation",
+      "social_relation"
+    ],
+    "mask_only_spatial_groups": ["quality_mask"],
+    "spatial_feature_source_module": "pig_behavior.classification_v2.spatial_sequence_export",
+    "spatial_feature_source_symbol": "SPATIAL_FRAME_FEATURES",
+    "one_family_per_ablation": true
+  },
+  "forbidden_predictive_x_patterns": [
+    "manual_*",
+    "review_*",
+    "*review*",
+    "*behavior*",
+    "*label*",
+    "*target*",
+    "*decision*",
+    "*policy*",
+    "*reason*",
+    "*path*",
+    "*file*",
+    "*_id",
+    "*_key",
+    "*_uid",
+    "source_*",
+    "source_type",
+    "dataset_id",
+    "video_key",
+    "pig_id",
+    "track_id",
+    "object_track_key",
+    "temporal_unit_*",
+    "recording_group_*",
+    "*fold*",
+    "*split*",
+    "*train*",
+    "*eval*",
+    "*ready*",
+    "*loadable*",
+    "*available*",
+    "*availability*",
+    "*missing*",
+    "*_valid",
+    "*_mask",
+    "human_review_complete",
+    "lineage_scope",
+    "review_status"
+  ],
+  "control_only_inputs": [
+    "length_mask",
+    "observed_mask",
+    "timing_valid_mask",
+    "padding_mask",
+    "quality_mask",
+    "availability_masks",
+    "missingness_masks"
+  ],
+  "target_y": {
+    "status": "legacy_unreviewed_development_label_only",
+    "labels": [
+      "drink",
+      "eat",
+      "fight",
+      "social-nose",
+      "explore",
+      "lying",
+      "stand",
+      "move",
+      "sitting",
+      "playwithtoy"
+    ]
+  },
+  "authorization": {
+    "l3_input_freeze_only": true,
+    "model_training_authorized": false,
+    "accuracy_f1_comparison_authorized": false
+  }
+}
