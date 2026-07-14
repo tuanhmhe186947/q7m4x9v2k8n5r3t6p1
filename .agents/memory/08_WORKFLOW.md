@@ -82,6 +82,26 @@ remote fold rows are merged only through block `06`
 central registry manually. These contracts pass at `16cdb93`, but no real run
 is allowed before the reviewed snapshot and smoke gates pass.
 
+Commit `abae856` adds the model-selection layer on top of this lineage. Each
+epoch writes window and native-unit validation predictions, but only grouped
+inner-validation native-unit supported macro-F1 may select a checkpoint; NLL
+is the deterministic tie-breaker. The selected packet contains:
+
+```text
+best_validation_predictions.csv
+best_validation_native_unit_predictions.csv
+best_validation_aggregation_audit.json
+best_validation.pt
+oof_test_predictions.csv
+oof_test_native_unit_predictions.csv
+oof_test_aggregation_audit.json
+```
+
+Outer-test artifacts are evaluation-only. Native prediction rows retain source
+and split-group metadata for later grouped reports, while those fields remain
+outside model X. Resume must match the native-selection policy in checkpoint
+v6 and run identity v3; policy drift is a hard error.
+
 For a reviewed full-multimodal candidate, rerun the lineage checker with
 `--require-interaction-lineage`. Snapshot v2 must show one ordered hash for
 split, image-window, and interaction-window manifests; exporter audits must
@@ -123,13 +143,16 @@ Current state:
   full stages to actor and union-context ResNets. Backbone/head optimizer groups
   are stable across resume and bind checkpoint v5, run identity v2, run
   manifest v2, and registry v4. Its V0/V1/V2 audit has zero optimizer steps.
+- Native-unit checkpoint selection at `abae856` supersedes those lineage schema
+  versions for new runs with checkpoint v6, identity v3, manifest v3,
+  prediction manifest v2, registry v5, and run audit v3.
 - The synthetic-only visual gate at `3be22f8` passes deterministic ResNet18-160
   gradient, ten-class tiny-overfit, eval, and in-memory resume checks. It never
   authorizes an active-data run.
 - The strict loader at `111f152` aligns real fixed-six `time_delta` tensors to
   the complete window universe. Its checkpoint v4/registry v3 contract is
-  superseded for new runs by the schedule-aware v5/v4 schemas above.
-- Current classification regression is 391 passed and 181 deselected. This is
+  superseded for new runs by the native-selection v6/v5 schemas above.
+- Current classification regression is 415 passed and 181 deselected. This is
   fixture evidence, not training authorization.
 - Transformer timing plumbing now passes in code, but every model run remains
   blocked until the reviewed snapshot and its exact hashes are frozen.

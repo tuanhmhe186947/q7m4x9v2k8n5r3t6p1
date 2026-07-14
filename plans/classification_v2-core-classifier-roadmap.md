@@ -145,6 +145,14 @@ guardrail thresholds are frozen after Phase 0 baseline reconciliation.
 - An inner validation role with inadequate class support is not used alone for
   architecture selection.
 
+Implementation status: commit `abae856` enforces this policy in config,
+trainer, checkpoint/resume, prediction manifests, and the run registry. Window
+probabilities are averaged by `temporal_unit_key`; source and split-group
+metadata remain audit-only. Remote pilots/full OOF require all 10 inner classes,
+while local smoke requires at least two. Outer-test predictions are explicitly
+ineligible for model selection. This is fixture-level engineering PASS only;
+human review still blocks active-data performance evidence.
+
 ## 6. Shortcut-Control Contract
 
 ### 6.1 Source And Sequence-Length Controls

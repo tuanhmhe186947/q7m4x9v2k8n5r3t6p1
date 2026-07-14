@@ -240,6 +240,13 @@ interaction labels. Record availability by source and class for audit.
 3. Fine-tune the full backbone only if validation and runtime evidence support it.
 4. Apply early stopping to native-unit macro-F1, not window-level macro-F1.
 
+Implementation note: commit `abae856` makes item 4 executable and auditable.
+Grouped inner-validation windows collapse by `temporal_unit_key`; supported
+macro-F1 selects the checkpoint and native-unit NLL resolves exact metric ties.
+Checkpoint/resume, prediction manifests, and registry rows bind this policy.
+Outer-test predictions are marked evaluation-only and cannot tune a model.
+This does not authorize training before the reviewed snapshot is frozen.
+
 ## 7. Severe Class Imbalance Plan
 
 Current training windows range from 37,053 `sitting` samples to 472

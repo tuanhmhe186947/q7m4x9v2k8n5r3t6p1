@@ -118,9 +118,13 @@ Independent training-contract engineering is also complete in code:
   groups remain stable across checkpoint v5, run identity v2, run manifest v2,
   and registry v4 resume boundaries. Its V0/V1/V2 audit uses zero optimizer
   steps, zero project-data rows, and no pretrained download.
+- `abae856` selects checkpoints only from grouped inner-validation native-unit
+  supported macro-F1, with native NLL as tie-breaker. Checkpoint v6, run
+  identity v3, run manifest v3, prediction manifest v2, registry v5, and run
+  audit v3 bind the policy; outer-test predictions remain evaluation-only.
 - `111f152` loads real ordered fixed-six timing without dropping unselected
   windows. Its checkpoint v4 and registry v3 first bound the temporal slot
-  manifest hash; new runs use schedule-aware checkpoint v5 and registry v4.
+  manifest hash; new runs use native-selection checkpoint v6 and registry v5.
   Corrupt order, slot identity, masks, or timing still fail closed.
 - `1b6ba3d` collapses strict ten-class window probabilities to the complete
   native-unit authority, rejects fold/target/count drift, and binds paired
@@ -128,7 +132,7 @@ Independent training-contract engineering is also complete in code:
 - `e5d6417` registers the old full OOF and legacy sequence checkpoint with
   explicit non-promotion claim flags and independently checked hashes.
 
-The current classification regression is 391 passed and 181 deselected. This
+The current classification regression is 415 passed and 181 deselected. This
 evidence remains synthetic/fixture-only; it has not frozen or trained the
 incomplete human-review lineage.
 
@@ -159,6 +163,7 @@ incomplete human-review lineage.
 | ResNet18/34 backbone interface | PASS IN CODE | V0/V1/V2 forward audit PASS |
 | Visual freeze/resume schedule | PASS IN CODE | V0/V1/V2 zero-step audit PASS |
 | Synthetic visual correctness gate | PASS IN CODE | 20 events; accuracy 1.0 |
+| Native checkpoint selection | PASS IN CODE | Inner native F1/NLL; outer test excluded |
 | Native paired evaluation | PASS IN CODE | 31 focused tests; strict synthetic OOF PASS |
 | Historical baseline control | PASS IN CODE | Registered as non-performance evidence |
 | Model smoke on active snapshot | NOT RUN | Snapshot hashes are not frozen |

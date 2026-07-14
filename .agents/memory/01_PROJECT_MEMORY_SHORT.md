@@ -1,5 +1,26 @@
 # Project Memory Short
 
+## 2026-07-14 native-unit checkpoint selection
+
+- Commit `abae856` replaces window-level early stopping with grouped inner
+  validation at the native temporal-unit grain.
+- The primary score is supported-class macro-F1; native-unit NLL breaks ties.
+  Outer-test predictions are never eligible for model selection.
+- Mean class probabilities collapse windows by `temporal_unit_key`. Blank or
+  duplicate keys, target/fold/source/group conflicts, malformed probabilities,
+  nonfinite losses, and native-unit row loss fail closed.
+- New runs emit best-validation and outer-test evidence at both window and
+  native-unit levels. Native output preserves `source_type` and
+  `split_group_key` as audit-only metadata outside model X.
+- Checkpoint v6, run identity v3, run manifest v3, prediction manifest v2,
+  registry v5, and run audit v3 bind the exact selection policy.
+- Evidence is 415 classification tests passing with 181 deselected, Ruff,
+  compileall, zero overlong changed Python lines, and a passing synthetic
+  checkpoint/resume audit. No project-data training or full OOF ran.
+- Human Hidden and behavior review remain the active blockers. A bounded metric
+  test should prefer a reviewed, grouped, native-safe legacy 16f slice and must
+  be labeled `legacy-only`; it cannot support the all-source Q2 claim alone.
+
 ## 2026-07-14 audited visual freeze schedule
 
 - Commit `2bd2fda` adds one versioned schedule for actor and union-context

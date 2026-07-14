@@ -21,6 +21,15 @@ The slice must still be reviewed, grouped by video/session, native-unit safe,
 and labeled `legacy-only`; it cannot replace the all-source 10-class evaluation
 or support a Q2 claim by itself.
 
+Commit `abae856` freezes the model-selection grain for all new trainer runs.
+Select checkpoints only from grouped inner-validation predictions collapsed by
+`temporal_unit_key`, maximizing supported-class macro-F1 and using native-unit
+NLL only as a tie-breaker. Remote pilots/full OOF require all 10 classes in the
+inner-validation role; local synthetic or bounded smoke requires at least two.
+Outer-test predictions remain evaluation-only. New window/native prediction,
+aggregation, checkpoint, and registry artifacts must retain this policy and its
+hash lineage. This engineering PASS does not authorize active-data training.
+
 Commit `bb225ff` completes the temporal-view and structural shortcut contract
 in code and on synthetic fixtures. The primary view now reuses harmonized
 six-frame windows for both sources; legacy 16-frame quantile sampling is not
