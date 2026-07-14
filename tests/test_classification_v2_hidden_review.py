@@ -319,6 +319,7 @@ def test_hidden_review_census_targets_untrusted_yes_and_caps_risk() -> None:
             trusted_yes_per_stratum=1,
             random_no_per_stratum=0,
             clean_control_per_stratum=0,
+            max_high_risk_per_stratum=1,
         ),
     )
 

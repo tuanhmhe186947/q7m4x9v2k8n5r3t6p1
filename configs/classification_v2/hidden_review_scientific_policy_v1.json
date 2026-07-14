@@ -1,0 +1,14 @@
+{
+  "schema_version": "classification_v2.hidden_scientific_policy.v1",
+  "confidence_level": 0.95,
+  "bootstrap_iterations": 2000,
+  "bootstrap_seed": 20260714,
+  "random_false_negative_upper_threshold": 0.05,
+  "high_risk_yield_upper_threshold": 0.10,
+  "min_random_reviewed_items": 100,
+  "min_random_native_clusters": 50,
+  "min_random_recording_clusters": 5,
+  "min_high_risk_reviewed_items": 100,
+  "min_high_risk_native_clusters": 50,
+  "min_high_risk_recording_clusters": 5
+}

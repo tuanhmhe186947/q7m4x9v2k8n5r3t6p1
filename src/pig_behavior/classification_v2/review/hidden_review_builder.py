@@ -91,9 +91,9 @@ class HiddenReviewConfig:
 
     random_seed: int = 20260713
     trusted_yes_per_stratum: int = 1
-    random_no_per_stratum: int = 3
+    random_no_per_stratum: int = 10
     clean_control_per_stratum: int = 1
-    max_high_risk_per_stratum: int | None = 1
+    max_high_risk_per_stratum: int | None = 16
     high_risk_threshold: float = 0.35
     clean_control_max_risk: float = 0.10
     pair_iou_threshold: float = 0.01

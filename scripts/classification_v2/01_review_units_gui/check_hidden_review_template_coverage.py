@@ -20,6 +20,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input-csv", type=Path, required=True)
     parser.add_argument("--manifest-csv", type=Path, required=True)
     parser.add_argument("--audit-json", type=Path, default=None)
+    parser.add_argument("--random-seed", type=int, default=20260713)
+    parser.add_argument("--trusted-yes-per-stratum", type=int, default=1)
+    parser.add_argument("--random-no-per-stratum", type=int, default=10)
+    parser.add_argument("--clean-control-per-stratum", type=int, default=1)
+    parser.add_argument("--max-high-risk-per-stratum", type=int, default=16)
+    parser.add_argument("--high-risk-threshold", type=float, default=0.35)
+    parser.add_argument("--clean-control-max-risk", type=float, default=0.10)
     parser.add_argument(
         "--max-rows-per-source",
         type=int,
@@ -40,10 +47,19 @@ def main() -> None:
             args.max_rows_per_source,
         )
     manifest = pd.read_csv(args.manifest_csv, low_memory=False)
+    config = HiddenReviewConfig(
+        random_seed=args.random_seed,
+        trusted_yes_per_stratum=args.trusted_yes_per_stratum,
+        random_no_per_stratum=args.random_no_per_stratum,
+        clean_control_per_stratum=args.clean_control_per_stratum,
+        max_high_risk_per_stratum=args.max_high_risk_per_stratum,
+        high_risk_threshold=args.high_risk_threshold,
+        clean_control_max_risk=args.clean_control_max_risk,
+    )
     audit = audit_hidden_review_manifest(
         frames,
         manifest,
-        HiddenReviewConfig(),
+        config,
     )
     payload = json.dumps(audit, ensure_ascii=False, indent=2)
     print(payload)

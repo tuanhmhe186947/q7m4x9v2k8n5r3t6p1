@@ -15,6 +15,11 @@ from pig_behavior.classification_v2.review.hidden_review_builder import (
     build_hidden_review_frame_context,
     build_hidden_review_manifest,
 )
+from pig_behavior.classification_v2.review.hidden_review_science import (
+    build_hidden_scientific_design,
+    load_hidden_scientific_policy,
+    sha256_file,
+)
 
 TEMPLATE_FILENAMES = {
     "hidden_yes_confirmation": "hidden_yes_review_template.csv",
@@ -35,11 +40,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--random-seed", type=int, default=20260713)
     parser.add_argument("--trusted-yes-per-stratum", type=int, default=1)
-    parser.add_argument("--random-no-per-stratum", type=int, default=3)
+    parser.add_argument("--random-no-per-stratum", type=int, default=10)
     parser.add_argument("--clean-control-per-stratum", type=int, default=1)
-    parser.add_argument("--max-high-risk-per-stratum", type=int, default=1)
+    parser.add_argument("--max-high-risk-per-stratum", type=int, default=16)
     parser.add_argument("--high-risk-threshold", type=float, default=0.35)
     parser.add_argument("--clean-control-max-risk", type=float, default=0.10)
+    parser.add_argument(
+        "--scientific-policy-json",
+        type=Path,
+        default=Path(
+            "configs/classification_v2/"
+            "hidden_review_scientific_policy_v1.json"
+        ),
+        help="Predeclared uncertainty, support, and quality thresholds.",
+    )
     parser.add_argument(
         "--max-rows",
         type=int,
@@ -75,9 +89,15 @@ def main() -> None:
         args.output_dir / "hidden_review_unit_manifest.csv",
         args.output_dir / "hidden_review_frame_context.csv",
         args.output_dir / "hidden_review_template_audit.json",
+        args.output_dir / "hidden_review_scientific_design.json",
         *(args.output_dir / name for name in TEMPLATE_FILENAMES.values()),
     ]
     _guard_outputs(output_paths, overwrite=args.overwrite)
+    if not args.scientific_policy_json.exists():
+        raise FileNotFoundError(args.scientific_policy_json)
+    _, policy_payload, policy_sha256 = load_hidden_scientific_policy(
+        args.scientific_policy_json
+    )
 
     frames = pd.read_csv(args.input_csv, low_memory=False)
     if args.max_rows is not None:
@@ -104,6 +124,8 @@ def main() -> None:
     audit["output_dir"] = str(args.output_dir)
     audit["max_rows"] = args.max_rows
     audit["max_rows_per_source"] = args.max_rows_per_source
+    audit["scientific_policy_json"] = str(args.scientific_policy_json)
+    audit["scientific_policy_sha256"] = policy_sha256
     frame_context = build_hidden_review_frame_context(frames, manifest)
     audit["frame_context_rows"] = int(len(frame_context))
     audit["frame_context_frames"] = int(
@@ -116,15 +138,27 @@ def main() -> None:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     manifest.to_csv(output_paths[0], index=False)
     frame_context.to_csv(output_paths[1], index=False)
+    scientific_design = build_hidden_scientific_design(
+        manifest,
+        manifest_sha256=sha256_file(output_paths[0]),
+        policy_payload=policy_payload,
+        policy_sha256=policy_sha256,
+        selection_contract=audit["selection_contract"],
+    )
     for cohort, filename in TEMPLATE_FILENAMES.items():
         templates[cohort].to_csv(args.output_dir / filename, index=False)
     output_paths[2].write_text(
         json.dumps(audit, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+    output_paths[3].write_text(
+        json.dumps(scientific_design, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
     print(f"[PASS] Hidden review manifest rows={len(manifest)} cohorts={audit['cohort_counts']}")
     print(f"[PASS] frame context rows={len(frame_context)}")
     print(f"[PASS] audit={output_paths[2]}")
+    print(f"[PASS] scientific design={output_paths[3]}")
 
 
 def _guard_outputs(paths: list[Path], *, overwrite: bool) -> None:

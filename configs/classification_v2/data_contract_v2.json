@@ -1,5 +1,5 @@
 {
-  "contract_version": "classification_v2_data_contract_v2_3",
+  "contract_version": "classification_v2_data_contract_v2_4",
   "snapshot_name": "classification_v2_q2_multimodal_train_ready",
   "root": ".",
   "train_ready_root": "outputs/classification_v2/train_ready_windows",
@@ -57,6 +57,18 @@
         "image_cache_integrity_manifest",
         "packed_image_cache_index"
       ]
+    }
+  ],
+  "artifact_hash_bindings": [
+    {
+      "source_artifact": "hidden_review_scientific_policy",
+      "consumer_artifact": "hidden_review_scientific_gate",
+      "consumer_json_field": "policy_sha256"
+    },
+    {
+      "source_artifact": "hidden_review_scientific_design",
+      "consumer_artifact": "hidden_review_scientific_gate",
+      "consumer_json_field": "design_sha256"
     }
   ],
   "artifacts": {
@@ -148,6 +160,44 @@
       "path": "outputs/classification_v2/train_ready_windows/identifier_lineage_audit.json",
       "type": "json",
       "required": true
+    },
+    "hidden_review_scientific_policy": {
+      "path": "configs/classification_v2/hidden_review_scientific_policy_v1.json",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "schema_version": "classification_v2.hidden_scientific_policy.v1"
+      }
+    },
+    "hidden_review_scientific_design": {
+      "path": "outputs/classification_v2/hidden_review/hidden_review_scientific_design.json",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "schema_version": "classification_v2.hidden_scientific_design.v1",
+        "design_status": "PREDECLARED_WITH_PENDING_MANIFEST",
+        "resolved_items_at_declaration": 0,
+        "all_items_pending_at_declaration": true,
+        "selection_contract.target_independent": true,
+        "high_risk_is_population_prevalence": false
+      }
+    },
+    "hidden_review_scientific_gate": {
+      "path": "outputs/classification_v2/hidden_review/hidden_review_scientific_gate.json",
+      "type": "json",
+      "required": true,
+      "json_hash_fields": ["policy_sha256", "design_sha256"],
+      "required_json_values": {
+        "status": "PASS",
+        "valid": true,
+        "training_snapshot_allowed": true,
+        "target_independent_selection": true,
+        "complete_review_coverage": true,
+        "random_hidden_no_prevalence.final_estimate": true,
+        "random_hidden_no_prevalence.is_population_prevalence": true,
+        "high_risk_correction_yield.final_estimate": true,
+        "high_risk_correction_yield.is_population_prevalence": false
+      }
     },
     "native_temporal_unit_manifest": {
       "path": "outputs/classification_v2/native_temporal_units/native_temporal_unit_manifest.csv",

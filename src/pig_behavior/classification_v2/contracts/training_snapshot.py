@@ -108,6 +108,10 @@ def check_training_snapshot(
         errors.append("key_coverage_drift")
     if expected.get("model_input_audit") != current.get("model_input_audit"):
         errors.append("model_input_audit_drift")
+    if expected.get("artifact_hash_bindings") != current.get(
+        "artifact_hash_bindings"
+    ):
+        errors.append("artifact_hash_binding_drift")
     if expected.get("contract_digest") != current.get("contract_digest"):
         errors.append("contract_json_digest_changed")
     if expected.get("git_commit") != current.get("git_commit"):
@@ -165,6 +169,10 @@ def _build_snapshot(paths: SnapshotPaths, contract: dict[str, Any]) -> dict[str,
         "key_alignment": _key_alignment(contract, artifacts),
         "key_coverage": _key_coverage(contract, artifacts),
         "model_input_audit": _model_input_audit(contract, artifacts),
+        "artifact_hash_bindings": _artifact_hash_bindings(
+            contract,
+            artifacts,
+        ),
         "errors": errors,
     }
 
@@ -184,7 +192,7 @@ def _profile_artifact(path: Path, spec: dict[str, Any]) -> dict[str, Any]:
     elif spec.get("type") == "npz":
         profile.update(_profile_npz(path, spec))
     elif spec.get("type") == "json":
-        profile["json_top_level_type"] = type(json.loads(path.read_text(encoding="utf-8"))).__name__
+        profile.update(_profile_json(path, spec))
     return profile
 
 
@@ -234,6 +242,45 @@ def _profile_npz(path: Path, spec: dict[str, Any]) -> dict[str, Any]:
         "first_axis_lengths": first_axis_lengths,
         "row_count": next(iter(first_axis_lengths.values()), 0) if first_axis_lengths else 0,
     }
+
+
+def _profile_json(path: Path, spec: dict[str, Any]) -> dict[str, Any]:
+    """Read declared gate values so a failing JSON cannot satisfy snapshot."""
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    required = spec.get("required_json_values", {})
+    hash_fields = spec.get("json_hash_fields", [])
+    observed = {
+        field: _nested_json_value(payload, field)
+        for field in required
+    }
+    mismatches = {
+        field: {"expected": expected, "actual": observed.get(field)}
+        for field, expected in required.items()
+        if observed.get(field) != expected
+    }
+    return {
+        "json_top_level_type": type(payload).__name__,
+        "required_json_values": required,
+        "observed_required_json_values": observed,
+        "required_json_value_mismatches": mismatches,
+        "json_hash_fields": hash_fields,
+        "observed_json_hash_fields": {
+            field: _nested_json_value(payload, field)
+            for field in hash_fields
+        },
+    }
+
+
+def _nested_json_value(payload: Any, dotted_path: str) -> Any:
+    """Resolve one explicit dotted field without evaluating expressions."""
+
+    current = payload
+    for token in dotted_path.split("."):
+        if not isinstance(current, dict) or token not in current:
+            return None
+        current = current[token]
+    return current
 
 
 def _ordered_key_digest(path: Path, key_column: str) -> dict[str, Any]:
@@ -372,6 +419,38 @@ def _model_input_audit(contract: dict[str, Any], artifacts: dict[str, Any]) -> d
     return audits
 
 
+def _artifact_hash_bindings(
+    contract: dict[str, Any],
+    artifacts: dict[str, Any],
+) -> dict[str, Any]:
+    """Bind a gate's declared hashes to separately frozen artifacts."""
+
+    results: list[dict[str, Any]] = []
+    for binding in contract.get("artifact_hash_bindings", []):
+        source = binding.get("source_artifact")
+        consumer = binding.get("consumer_artifact")
+        field = binding.get("consumer_json_field")
+        source_hash = artifacts.get(source, {}).get("sha256")
+        declared_hash = artifacts.get(consumer, {}).get(
+            "observed_json_hash_fields",
+            {},
+        ).get(field)
+        results.append(
+            {
+                "source_artifact": source,
+                "consumer_artifact": consumer,
+                "consumer_json_field": field,
+                "source_sha256": source_hash,
+                "declared_sha256": declared_hash,
+                "matched": bool(source_hash and source_hash == declared_hash),
+            }
+        )
+    return {
+        "bindings": results,
+        "aligned": all(result["matched"] for result in results),
+    }
+
+
 def _validate_contract_profiles(contract: dict[str, Any], artifacts: dict[str, Any]) -> list[str]:
     errors: list[str] = []
     for name, spec in contract.get("artifacts", {}).items():
@@ -382,6 +461,8 @@ def _validate_contract_profiles(contract: dict[str, Any], artifacts: dict[str, A
             errors.append(f"missing_required_column:{name}.{column}")
         for array in profile.get("missing_required_arrays", []):
             errors.append(f"missing_required_array:{name}.{array}")
+        for field in profile.get("required_json_value_mismatches", {}):
+            errors.append(f"required_json_value_mismatch:{name}.{field}")
         if profile.get("duplicate_key_count", 0):
             errors.append(f"duplicate_key:{name}={profile['duplicate_key_count']}")
         if profile.get("null_key_count", 0):
@@ -408,6 +489,15 @@ def _validate_contract_profiles(contract: dict[str, Any], artifacts: dict[str, A
     for name, audit in _model_input_audit(contract, artifacts).items():
         if audit.get("forbidden_columns"):
             errors.append(f"forbidden_x_columns:{name}={audit['forbidden_columns']}")
+    hash_bindings = _artifact_hash_bindings(contract, artifacts)
+    for binding in hash_bindings["bindings"]:
+        if not binding["matched"]:
+            errors.append(
+                "artifact_hash_binding_mismatch:"
+                f"{binding['source_artifact']}->"
+                f"{binding['consumer_artifact']}."
+                f"{binding['consumer_json_field']}"
+            )
     return errors
 
 
@@ -429,6 +519,11 @@ def _compare_artifacts(
             "columns",
             "array_names",
             "arrays",
+            "required_json_values",
+            "observed_required_json_values",
+            "required_json_value_mismatches",
+            "json_hash_fields",
+            "observed_json_hash_fields",
             "ordered_key_hash_version",
             "key_set_sha256",
             "duplicate_key_count",

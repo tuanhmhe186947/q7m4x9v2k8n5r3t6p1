@@ -6,6 +6,7 @@ import pandas as pd
 import pytest
 
 from pig_behavior.classification_v2.contracts.training_snapshot import (
+    _artifact_hash_bindings,
     _key_alignment,
     _key_coverage,
     _ordered_key_digest,
@@ -153,3 +154,125 @@ def test_freeze_refuses_to_persist_invalid_snapshot(tmp_path) -> None:
         )
 
     assert output_path.exists() is False
+
+
+def test_snapshot_requires_passing_scientific_json_gate(tmp_path) -> None:
+    """An existing gate file cannot pass while its status remains blocked."""
+
+    gate_path = tmp_path / "hidden_gate.json"
+    gate_path.write_text(
+        json.dumps(
+            {
+                "status": "BLOCKED_INCOMPLETE_OR_INSUFFICIENT_REVIEW",
+                "training_snapshot_allowed": False,
+            }
+        ),
+        encoding="utf-8",
+    )
+    contract_path = tmp_path / "contract.json"
+    contract_path.write_text(
+        json.dumps(
+            {
+                "contract_version": "fixture-json-gate-v1",
+                "snapshot_name": "fixture",
+                "root": str(tmp_path),
+                "snapshot_output_dir": ".",
+                "artifacts": {
+                    "hidden_gate": {
+                        "path": "hidden_gate.json",
+                        "type": "json",
+                        "required": True,
+                        "required_json_values": {
+                            "status": "PASS",
+                            "training_snapshot_allowed": True,
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="required_json_value_mismatch"):
+        freeze_training_snapshot(
+            contract_path,
+            output_path=tmp_path / "snapshot.json",
+        )
+
+
+def test_snapshot_accepts_nested_scientific_json_assertions(tmp_path) -> None:
+    gate_path = tmp_path / "hidden_gate.json"
+    gate_path.write_text(
+        json.dumps(
+            {
+                "status": "PASS",
+                "training_snapshot_allowed": True,
+                "random_hidden_no_prevalence": {"final_estimate": True},
+            }
+        ),
+        encoding="utf-8",
+    )
+    contract_path = tmp_path / "contract.json"
+    contract_path.write_text(
+        json.dumps(
+            {
+                "contract_version": "fixture-json-gate-v1",
+                "snapshot_name": "fixture",
+                "root": str(tmp_path),
+                "snapshot_output_dir": ".",
+                "artifacts": {
+                    "hidden_gate": {
+                        "path": "hidden_gate.json",
+                        "type": "json",
+                        "required": True,
+                        "required_json_values": {
+                            "status": "PASS",
+                            "training_snapshot_allowed": True,
+                            "random_hidden_no_prevalence.final_estimate": True,
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    snapshot = freeze_training_snapshot(
+        contract_path,
+        output_path=tmp_path / "snapshot.json",
+    )
+
+    profile = snapshot["artifacts"]["hidden_gate"]
+    assert profile["required_json_value_mismatches"] == {}
+
+
+def test_snapshot_rejects_stale_scientific_gate_hash_binding() -> None:
+    contract = {
+        "artifact_hash_bindings": [
+            {
+                "source_artifact": "policy",
+                "consumer_artifact": "gate",
+                "consumer_json_field": "policy_sha256",
+            }
+        ]
+    }
+    artifacts = {
+        "policy": {"sha256": "current-policy"},
+        "gate": {
+            "observed_json_hash_fields": {
+                "policy_sha256": "stale-policy",
+            }
+        },
+    }
+
+    binding = _artifact_hash_bindings(contract, artifacts)
+    errors = _validate_contract_profiles(contract, artifacts)
+
+    assert binding["aligned"] is False
+    assert errors == ["artifact_hash_binding_mismatch:policy->gate.policy_sha256"]
+
+    artifacts["gate"]["observed_json_hash_fields"][
+        "policy_sha256"
+    ] = "current-policy"
+    assert _artifact_hash_bindings(contract, artifacts)["aligned"] is True
+    assert _validate_contract_profiles(contract, artifacts) == []
