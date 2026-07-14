@@ -16,6 +16,10 @@ from pig_behavior.classification_v2.models.multitask_fusion import (
 from pig_behavior.classification_v2.models.temporal_encoders import (
     TEMPORAL_ENCODER_NAMES,
 )
+from pig_behavior.classification_v2.models.visual_backbones import (
+    SUPPORTED_VISUAL_BACKBONES,
+    visual_backbone_errors,
+)
 
 BASE_GEOMETRY_GROUPS = (
     "bbox_xywh_n",
@@ -43,7 +47,7 @@ ALL_SPATIAL_GROUPS = (
     "social_relation",
     "quality_mask",
 )
-IMPLEMENTED_BACKBONES = frozenset({"smoke_cnn"})
+IMPLEMENTED_BACKBONES = SUPPORTED_VISUAL_BACKBONES
 
 
 @dataclass(frozen=True, slots=True)
@@ -161,6 +165,8 @@ class ModelConfigLike(Protocol):
 
     model_mode: str
     backbone_name: str
+    pretrained_weight_enum: str
+    image_size: int
     temporal_encoder_name: str
     hidden_dim: int
     dropout: float
@@ -217,8 +223,14 @@ def model_mode_errors(config: ModelConfigLike) -> list[str]:
             "model_mode_temporal_encoder_mismatch="
             f"mode:{spec.name},encoder:{config.temporal_encoder_name}"
         )
-    if config.backbone_name not in IMPLEMENTED_BACKBONES:
-        errors.append(f"unimplemented_backbone={config.backbone_name}")
+    errors.extend(
+        visual_backbone_errors(
+            config.backbone_name,
+            config.pretrained_weight_enum,
+        )
+    )
+    if config.image_size <= 0:
+        errors.append("image_size_must_be_positive")
     return errors
 
 
@@ -251,6 +263,8 @@ def build_multimodal_model(
             spatial_input_dims=spatial_input_dims,
             num_classes=num_classes,
             interaction_context_dim=interaction_context_dim,
+            backbone_name=config.backbone_name,
+            pretrained_weight_enum=config.pretrained_weight_enum,
             image_embedding_dim=config.hidden_dim,
             spatial_embedding_dim=config.hidden_dim,
             interaction_embedding_dim=max(8, config.hidden_dim // 2),

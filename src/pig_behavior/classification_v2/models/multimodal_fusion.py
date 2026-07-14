@@ -1,7 +1,5 @@
 """Mask-safe multimodal tensor modules for classification_v2.
 
-The visual encoder remains the no-download smoke backbone. The model factory
-rejects unimplemented production backbones instead of silently substituting it.
 No identifier, path, review, source, or label value enters these modules.
 """
 
@@ -16,12 +14,19 @@ from pig_behavior.classification_v2.models.temporal_encoders import (
     MaskedTemporalConvEncoder,
     build_temporal_encoder,
 )
+from pig_behavior.classification_v2.models.visual_backbones import (
+    NO_PRETRAINED_WEIGHTS,
+    VisualBackboneContract,
+    build_visual_frame_encoder,
+)
 
 MODEL_ARCHITECTURE_VERSION = "multimodal_sequence_factory_v4"
 
 
 @dataclass(slots=True)
 class ImageSequenceEncoderConfig:
+    backbone_name: str = "smoke_cnn"
+    pretrained_weight_enum: str = NO_PRETRAINED_WEIGHTS
     embedding_dim: int = 64
     dropout: float = 0.0
     temporal_encoder_name: str = "masked_tcn"
@@ -37,21 +42,13 @@ class ImageSequenceEncoder(nn.Module):
         if config.embedding_dim <= 0:
             raise ValueError("embedding_dim must be positive")
         self.config = config
-        self.frame_encoder = nn.Sequential(
-            nn.Conv2d(3, 16, kernel_size=3, stride=2, padding=1),
-            nn.GroupNorm(4, 16),
-            nn.GELU(),
-            nn.Conv2d(16, 32, kernel_size=3, stride=2, padding=1),
-            nn.GroupNorm(8, 32),
-            nn.GELU(),
-            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
-            nn.GroupNorm(8, 64),
-            nn.GELU(),
-            nn.AdaptiveAvgPool2d((1, 1)),
-            nn.Flatten(),
+        self.frame_encoder, self.backbone_contract = build_visual_frame_encoder(
+            config.backbone_name,
+            config.pretrained_weight_enum,
         )
+        self._register_normalization(self.backbone_contract)
         self.temporal_projection = nn.Sequential(
-            nn.Linear(64, config.embedding_dim),
+            nn.Linear(self.backbone_contract.output_dim, config.embedding_dim),
             nn.LayerNorm(config.embedding_dim),
             nn.GELU(),
             nn.Dropout(config.dropout),
@@ -89,12 +86,31 @@ class ImageSequenceEncoder(nn.Module):
         )
         batch_size, sequence_len = image.shape[:2]
         clean_image = _masked_values(image, mask, branch_name="image")
+        clean_image = self._normalize(clean_image)
         encoded = self.frame_encoder(
             clean_image.reshape(batch_size * sequence_len, *image.shape[2:])
         )
         encoded = encoded.reshape(batch_size, sequence_len, -1)
         projected = self.temporal_projection(encoded)
         return self.temporal_encoder(projected, mask, time_delta=time_delta)
+
+    def _register_normalization(
+        self,
+        contract: VisualBackboneContract,
+    ) -> None:
+        """Store deterministic RGB normalization outside the checkpoint state."""
+
+        mean = torch.tensor(contract.input_mean).reshape(1, 3, 1, 1)
+        std = torch.tensor(contract.input_std).reshape(1, 3, 1, 1)
+        self.register_buffer("_input_mean", mean, persistent=False)
+        self.register_buffer("_input_std", std, persistent=False)
+
+    def _normalize(self, image: torch.Tensor) -> torch.Tensor:
+        """Apply the backbone contract to cache tensors already scaled to [0, 1]."""
+
+        mean = self._input_mean.to(dtype=image.dtype)
+        std = self._input_std.to(dtype=image.dtype)
+        return (image - mean) / std
 
 
 @dataclass(slots=True)
@@ -312,6 +328,8 @@ class MultimodalFusionConfig:
     spatial_input_dims: dict[str, int]
     num_classes: int
     interaction_context_dim: int | None = None
+    backbone_name: str = "smoke_cnn"
+    pretrained_weight_enum: str = NO_PRETRAINED_WEIGHTS
     image_embedding_dim: int = 64
     spatial_embedding_dim: int = 64
     interaction_embedding_dim: int = 32
@@ -356,6 +374,8 @@ class MultimodalFusionClassifier(nn.Module):
         if config.enable_image:
             self.image_encoder = ActorEncoder(
                 ImageSequenceEncoderConfig(
+                    backbone_name=config.backbone_name,
+                    pretrained_weight_enum=config.pretrained_weight_enum,
                     embedding_dim=config.image_embedding_dim,
                     dropout=config.dropout,
                     temporal_encoder_name=config.temporal_encoder_name,
@@ -404,6 +424,8 @@ class MultimodalFusionClassifier(nn.Module):
             # branches from being forced into the same visual representation.
             self.visual_context_encoder = UnionCropEncoder(
                 ImageSequenceEncoderConfig(
+                    backbone_name=config.backbone_name,
+                    pretrained_weight_enum=config.pretrained_weight_enum,
                     embedding_dim=config.visual_context_embedding_dim,
                     dropout=config.dropout,
                     temporal_encoder_name=config.temporal_encoder_name,

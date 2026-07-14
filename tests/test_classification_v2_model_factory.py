@@ -25,6 +25,11 @@ from pig_behavior.classification_v2.models.temporal_encoders import (
     TEMPORAL_ENCODER_NAMES,
     build_temporal_encoder,
 )
+from pig_behavior.classification_v2.models.visual_backbones import (
+    IMAGENET_RGB_MEAN,
+    NO_PRETRAINED_WEIGHTS,
+    visual_backbone_contract,
+)
 from pig_behavior.classification_v2.training.config import (
     ModelConfig,
     load_training_config,
@@ -214,10 +219,59 @@ def test_actor_only_requires_non_temporal_mean_control() -> None:
         _build(config)
 
 
-def test_unimplemented_backbone_fails_without_download() -> None:
-    config = replace(_model_config("actor_temporal"), backbone_name="resnet18")
+@pytest.mark.parametrize(
+    ("backbone_name", "image_size"),
+    [("resnet18", 160), ("resnet18", 224), ("resnet34", 224)],
+)
+def test_production_visual_controls_forward_without_weight_download(
+    backbone_name: str,
+    image_size: int,
+) -> None:
+    config = replace(
+        _model_config("actor_only"),
+        backbone_name=backbone_name,
+        pretrained_weight_enum=NO_PRETRAINED_WEIGHTS,
+        image_size=image_size,
+    )
+    model = _build(config).eval()
 
-    with pytest.raises(ValueError, match="unimplemented_backbone=resnet18"):
+    with torch.no_grad():
+        output = model(
+            **_inputs(
+                config,
+                batch_size=1,
+                sequence_length=1,
+                image_size=image_size,
+            )
+        )
+
+    assert output.behavior.shape == (1, 10)
+    assert torch.isfinite(output.behavior).all()
+    encoder = model.backbone.image_encoder
+    assert encoder is not None
+    assert encoder.backbone_contract.uses_pretrained_weights is False
+    assert encoder.backbone_contract.normalization_name == "imagenet_1k_rgb"
+    assert encoder.backbone_contract.input_mean == IMAGENET_RGB_MEAN
+
+
+def test_pretrained_contract_resolves_exact_enum_without_building_model() -> None:
+    contract = visual_backbone_contract(
+        "resnet18",
+        "ResNet18_Weights.IMAGENET1K_V1",
+    )
+
+    assert contract.uses_pretrained_weights is True
+    assert contract.pretrained_weight_enum == "ResNet18_Weights.IMAGENET1K_V1"
+
+
+def test_mismatched_pretrained_enum_is_rejected_before_model_build() -> None:
+    config = replace(
+        _model_config("actor_temporal"),
+        backbone_name="resnet18",
+        pretrained_weight_enum="ResNet34_Weights.IMAGENET1K_V1",
+    )
+
+    with pytest.raises(ValueError, match="unsupported_pretrained_weight_enum"):
         _build(config)
 
 
@@ -309,14 +363,27 @@ def _build(config: ModelConfig):
     )
 
 
-def _inputs(config: ModelConfig) -> dict[str, object]:
-    batch_size, sequence_length = 2, 6
+def _inputs(
+    config: ModelConfig,
+    *,
+    batch_size: int = 2,
+    sequence_length: int = 6,
+    image_size: int = 16,
+) -> dict[str, object]:
     length = torch.ones(batch_size, sequence_length)
     observed = length.clone()
-    observed[1, -1] = 0.0
-    time_delta = torch.tensor([[0.0, 0.2, 0.2, 0.2, 0.2, 0.2]] * batch_size)
+    if batch_size > 1:
+        observed[1, -1] = 0.0
+    time_delta = torch.full((batch_size, sequence_length), 0.2)
+    time_delta[:, 0] = 0.0
     return {
-        "image": torch.rand(batch_size, sequence_length, 3, 16, 16),
+        "image": torch.rand(
+            batch_size,
+            sequence_length,
+            3,
+            image_size,
+            image_size,
+        ),
         "spatial_features": {
             name: torch.rand(batch_size, sequence_length, GROUP_DIMS[name])
             for name in config.spatial_feature_groups
@@ -340,8 +407,8 @@ def _inputs(config: ModelConfig) -> dict[str, object]:
             batch_size,
             sequence_length,
             3,
-            16,
-            16,
+            image_size,
+            image_size,
         ),
         "visual_context_length_mask": length.clone(),
         "visual_context_observed_mask": observed.clone(),

@@ -24,6 +24,24 @@
     "spatial_only_control"
   ],
   "implemented_model_architecture_version": "multimodal_sequence_factory_v4_multitask_v2",
+  "visual_backbone_contract_version": "classification_v2_visual_backbone_v1",
+  "visual_backbone_controls": [
+    {
+      "control_id": "V0",
+      "backbone_name": "resnet18",
+      "image_size": 160
+    },
+    {
+      "control_id": "V1",
+      "backbone_name": "resnet18",
+      "image_size": 224
+    },
+    {
+      "control_id": "V2",
+      "backbone_name": "resnet34",
+      "image_size": 224
+    }
+  ],
   "implemented_modules": {
     "model_factory": "src/pig_behavior/classification_v2/models/model_factory.py",
     "temporal_encoders": "src/pig_behavior/classification_v2/models/temporal_encoders.py",
@@ -53,7 +71,7 @@
   "input_branches": [
     {
       "name": "actor_image_sequence",
-      "status": "implemented_smoke",
+      "status": "implemented_smoke_and_resnet_interface",
       "tensor_role": "model_input",
       "source_artifacts": [
         "outputs/classification_v2/train_ready_windows/image_frame_context_manifest.csv",
