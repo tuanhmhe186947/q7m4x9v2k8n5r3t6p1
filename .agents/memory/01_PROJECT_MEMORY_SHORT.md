@@ -1,5 +1,20 @@
 # Project Memory Short
 
+## 2026-07-14 target-independent Hidden v6 authority
+
+- Active Hidden authority is
+  `outputs/classification_v2/rebuilds/hidden_review_v6_full_20260714`.
+- Its 5,131 unique items comprise 4,122 Yes confirmations, 384 high-risk No,
+  601 stratified-random No, and 24 clean controls.
+- Selection excludes behavior and target-derived fields. The manifest SHA256 is
+  `3e4fec14c466a89370a1e20d913cb024bd1dda1fa8db9c1fabdf8a51fa31072e`.
+- Commits `32eaa2b` and `aaf8460` migrate v5 onto identifier v2, then carry all
+  30 decisions into v6 with zero payload/context drift and bound SHA256 hashes.
+- Current coverage is 30/5,131 with 5,101 missing. Random and high-risk reviewed
+  support are both zero, so the scientific gate is explicitly blocked.
+- Evidence is 23 focused tests and 376 classification tests with 181 deselected.
+  Hidden apply, reviewed snapshot, model training, and full OOF remain forbidden.
+
 ## 2026-07-14 historical baseline controls
 
 - Commit `e5d6417` registers the commit-`18d6692` full OOF only as

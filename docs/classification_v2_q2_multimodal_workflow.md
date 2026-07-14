@@ -29,8 +29,10 @@ Related documents:
 ## Status Snapshot
 
 The active reviewed-data lineage has not reached temporal harmonization or model
-training. Complete the 5,171 Hidden v5 decisions, apply them, rebuild temporal
-and behavior-review artifacts, then complete all 4,670 behavior decisions.
+training. The target-independent Hidden v6 manifest has 30/5,131 carried human
+decisions and 5,101 missing. Complete its scientific review gate, apply it,
+rebuild temporal and behavior-review artifacts, then complete all 4,670
+behavior decisions.
 
 Technical evidence is separately PASS at
 `outputs/classification_v2/rebuilds/scientific_smoke_identifier_v2_20260713`:

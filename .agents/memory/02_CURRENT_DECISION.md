@@ -73,11 +73,12 @@ decisions, 1 pending decision, and 4,667 missing decisions. Do not call this
 artifact clean final training data. Rebuild instructions are in
 `docs/CLASSIFICATION_V2_DATA_REBUILD_AND_HUMAN_REVIEW_RUNBOOK.md`.
 
-Use the versioned v5 Hidden manifest at
-`outputs/classification_v2/rebuilds/hidden_review_v5_full_20260713` for the
-next human Hidden-review wave. Its 5,171-item template passed independent
-coverage, but it has no complete human decision file and must not be applied as
-reviewed data yet.
+Use the target-independent v6 Hidden manifest at
+`outputs/classification_v2/rebuilds/hidden_review_v6_full_20260714` for the
+next human review wave. It has 5,131 items. All 30 existing v5 decisions were
+carried through identifier v2 with zero payload/context drift, leaving 5,101
+missing decisions. The scientific gate is report-only BLOCKED, so Hidden apply
+and every training action remain forbidden.
 
 Do not resume full training from this decision alone. First create a versioned
 reviewed-data lineage, pass complete-decision and leakage-safe fold gates, then

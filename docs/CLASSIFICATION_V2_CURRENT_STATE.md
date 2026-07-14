@@ -21,23 +21,32 @@ The current rebuild starts from 245,664 enhanced frame/object rows:
 - 4,181 rows currently marked `Hidden=Yes`;
 - 241,483 rows currently marked `Hidden=No`.
 
-The versioned Hidden template is:
+The active versioned Hidden template is:
 
 ```text
-outputs/classification_v2/rebuilds/hidden_review_v5_full_20260713
+outputs/classification_v2/rebuilds/hidden_review_v6_full_20260714
 ```
 
-It contains 5,171 unique review items:
+It contains 5,131 unique, target-independent review items:
 
-- 4,121 Hidden Yes confirmations;
-- 211 high-risk Hidden No items;
-- 647 stratified-random Hidden No items;
-- 192 clean negative controls;
-- 4,649 CVAT items and 522 legacy items.
+- 4,122 Hidden Yes confirmations;
+- 384 high-risk Hidden No items;
+- 601 stratified-random Hidden No items;
+- 24 clean negative controls.
 
-Independent coverage reports zero missing untrusted Hidden Yes items, zero
-trusted-Yes quota mismatches, and zero high-risk cap violations. Human Hidden
-decisions are not complete, so no v5 hidden-reviewed frame artifact is final.
+Independent coverage reports zero target-derived fields, risk/stratum drift,
+missing untrusted Hidden Yes items, and high-risk cap violations. The manifest
+SHA256 is
+`3e4fec14c466a89370a1e20d913cb024bd1dda1fa8db9c1fabdf8a51fa31072e`.
+
+All 30 existing v5 decisions were migrated through identifier v2 and carried
+into v6 with zero payload/context drift. Current coverage is 30/5,131, leaving
+5,101 missing. The decision CSV SHA256 is
+`7bc19943f00ca4168c9fee8af0528b4d1d69899f45f33d35022acfc28609b310`;
+the root-local carry audit is
+`gui/hidden_review_decision_carry_v5_identifier_v2_to_v6_audit.json`.
+The report-only scientific gate is blocked; no v6 hidden-reviewed frame
+artifact is final.
 
 The existing behavior manifest contains 4,670 mandatory review units. The
 current decision files contain three rows: one accept, one exclude, and one
@@ -115,8 +124,10 @@ incomplete human-review lineage.
 | Enhanced frame features | PASS | 245,664 rows audited |
 | Technical legacy+CVAT chain | PASS | 688/63/438 counts; 8/8 repeatability |
 | Exact model-X contract | PASS | 110 tabular fields; no review/target leakage |
-| Hidden v5 template | PASS | 5,171 unique items, independent audit clean |
-| Hidden human decisions | FAIL | 30/5,171 resolved; 5,141 missing |
+| Hidden v6 template | PASS | 5,131 target-independent items; audit clean |
+| Hidden decision carry | PASS | 30/30 preserved; hashes and context match |
+| Hidden human decisions | FAIL | 30/5,131 resolved; 5,101 missing |
+| Hidden scientific gate | BLOCKED | Random/high-risk reviewed support is zero |
 | Hidden decision apply | BLOCKED | Requires resolved coverage |
 | Temporal rebuild from Hidden-reviewed data | BLOCKED | Upstream apply missing |
 | Behavior human decisions | FAIL | 4,667 missing, one pending |
@@ -170,8 +181,8 @@ not a model-quality baseline.
 
 ## Required Execution Order
 
-1. Validate v5 Hidden media on a bounded sample, then on the full template.
-2. Complete and audit all v5 Hidden decisions.
+1. Validate v6 Hidden media on a bounded sample, then on the full template.
+2. Complete and scientifically audit all v6 Hidden decisions.
 3. Apply Hidden decisions with row/schema preservation checks.
 4. Rebuild temporal harmonization and windows from the Hidden-reviewed artifact.
 5. Rebuild behavior review units for the same versioned lineage.

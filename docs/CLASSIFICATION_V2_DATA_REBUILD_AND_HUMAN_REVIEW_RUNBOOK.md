@@ -157,7 +157,7 @@ set MODEL=%R%\15_model_development
 ```
 
 Không chạy nguyên văn khi `RUN_ID` còn chứa `YYYYMMDD_vN`, và không dùng lại
-một `%R%` đã có artifact. Active Hidden v5 là lineage review hiện hành riêng;
+một `%R%` đã có artifact. Active Hidden v6 là lineage review hiện hành riêng;
 trạng thái và đường dẫn của nó nằm trong `CLASSIFICATION_V2_CURRENT_STATE.md`.
 Không phải mọi builder đều chặn output tồn tại. Exporter legacy, temporal smoke
 selector và một số builder CSV có thể ghi đè. Khi khởi tạo lineage mới, chạy
@@ -504,12 +504,12 @@ Random audit lưu population, inclusion probability và inverse sampling weight.
 Chỉ post-stratified random estimate được diễn giải như prevalence. Correction
 yield của high-risk cohort không phải prevalence.
 
-Hàm `_hidden_false_negative_risk()` hiện cộng score khi `behavior` là `fight`
-hoặc `social-nose`, dù docstring gọi risk là label-independent. Manifest v5 có
-333 row mang reason `interaction_scene`. Trước final Hidden lock phải chọn một
-trong hai contract: bỏ target term khỏi visibility risk, hoặc đổi tên cohort
-thành target-informed enrichment và báo cáo tách biệt. Tuyệt đối không dùng
-cohort này để ước lượng population false-negative prevalence.
+Từ commit `2c0cf21`, `_hidden_false_negative_risk()` và sampling strata không
+dùng `behavior`, `fight`, `social-nose` hoặc target-derived field. Behavior chỉ
+là descriptive metadata. Test hoán vị toàn bộ behavior phải giữ nguyên item,
+cohort, risk, stratum, probability và priority; template audit phải báo
+`target_derived_fields=[]`. High-risk cohort vẫn chỉ là enrichment yield, không
+phải population prevalence.
 
 ### 8A.1. Short builder và media gate
 
@@ -585,20 +585,20 @@ mới và phải lưu trong lineage.
   --input-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
   --output-dir %HREV% ^
   --trusted-yes-per-stratum 1 ^
-  --random-no-per-stratum 3 ^
+  --random-no-per-stratum 10 ^
   --clean-control-per-stratum 1 ^
-  --max-high-risk-per-stratum 1
+  --max-high-risk-per-stratum 16
 %PY% %S1%\check_hidden_review_template_coverage.py ^
   --input-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
   --manifest-csv %HREV%\hidden_review_unit_manifest.csv ^
   --audit-json %HREV%\hidden_review_coverage_audit.json
 ```
 
-Cap 1 là wave đầu, không phải ngưỡng khoa học cố định. Sau mỗi wave, kiểm
-high-risk correction yield. Nếu yield còn cao, tăng cap theo chuỗi 1, 2, 4, 8
-hoặc bỏ cap; giữ cùng seed để selection lồng nhau và resume decision cũ. Chỉ
-khóa final cap khi correction yield đã ổn định thấp và random weighted estimate
-có uncertainty được báo cáo. Mọi lần mở rộng phải rebuild coverage audit.
+Config v6 khóa trước `random_no_per_stratum=10` và
+`max_high_risk_per_stratum=16`, tạo 601 random items và 384 high-risk items.
+Đổi cap hoặc quota tạo review design mới; giữ cùng seed, migrate quyết định bằng
+stable item ID và lưu mapping/hash. Không điều chỉnh quota sau khi xem outcome
+mà vẫn gọi đó là cùng predeclared design.
 
 Trước khi xem kết quả wave đầu, ghi vào review-design manifest: ngưỡng chấp
 nhận false-negative, phương pháp confidence interval và strata sẽ báo cáo.
@@ -607,13 +607,41 @@ random weighted estimate và correction yield ở wave high-risk cuối đều p
 đạt ngưỡng đã khai báo; nếu không thì mở rộng wave hoặc census. Không suy ngược
 prevalence từ high-risk cohort và không đổi ngưỡng sau khi xem kết quả.
 
-Đây hiện là **implementation blocker**, không phải gate đã có sẵn. Apply audit
-mới chỉ xuất Wilson 95% CI cho tỷ lệ random không trọng số, một weighted point
-estimate và một high-risk point estimate. Nó chưa có design-based/clustered CI
-cho weighted estimate, CI cho high-risk yield, hoặc machine-readable threshold
-decision. Correlation của các frame cùng native unit/video phải được phản ánh
-trong uncertainty. Không được gọi Hidden scientifically locked cho tới khi các
-output và fail-closed checker này được cài đặt, test và bind vào snapshot.
+Commits `6949ad0` và `e9a585d` đã cài gate machine-readable. Random cohort dùng
+Hájek inverse-probability weighting. Uncertainty dùng source-stratified
+recording-cluster bootstrap, bao bởi native-unit Kish-effective Wilson interval.
+High-risk yield được báo cáo riêng và không mang nghĩa prevalence. Policy v1
+khóa upper bound random `0.05`, high-risk `0.10`, cùng minimum item/native/
+recording support. Đây không còn là implementation blocker; human evidence còn
+thiếu mới là blocker. Gate chỉ PASS khi coverage, support và threshold cùng đạt.
+
+#### 8A.2a. Carry quyết định v5 hiện có sang v6
+
+V5 dùng key cũ nên không nối thẳng bằng `hidden_review_item_id`. Nâng v5 lên
+identifier v2 trước, rồi carry sang v6. Hai operator giữ row/payload, kiểm
+context và bind SHA256. Không dùng mapping theo behavior hoặc cohort.
+
+```bat
+set HV5=outputs\classification_v2\rebuilds\hidden_review_v5_full_20260713
+set HV6=outputs\classification_v2\rebuilds\hidden_review_v6_full_20260714
+set HMIG=%HV6%\migration_v5_identifier_v2
+%PY% %S1%\classification_v2_migrate_hidden_review_identifiers.py ^
+  --legacy-manifest-csv %HV5%\hidden_review_unit_manifest.csv ^
+  --legacy-decisions-csv %HV5%\gui\hidden_review_decisions.csv ^
+  --output-manifest-csv %HMIG%\v5_hidden_review_unit_manifest_identifier_v2.csv ^
+  --output-decisions-csv %HMIG%\v5_hidden_review_decisions_identifier_v2.csv ^
+  --mapping-csv %HMIG%\v5_identifier_v2_mapping.csv ^
+  --audit-json %HMIG%\v5_identifier_v2_migration_audit.json
+%PY% %S1%\classification_v2_carry_forward_hidden_review_decisions.py ^
+  --previous-manifest-csv %HMIG%\v5_hidden_review_unit_manifest_identifier_v2.csv ^
+  --current-manifest-csv %HV6%\hidden_review_unit_manifest.csv ^
+  --decisions-csv %HMIG%\v5_hidden_review_decisions_identifier_v2.csv ^
+  --output-decisions-csv %HV6%\gui\hidden_review_decisions.csv ^
+  --audit-json %HV6%\gui\hidden_review_decision_carry_v5_to_v6_audit.json
+```
+
+Active v6 đã carry đủ 30/30 decisions. Chỉ thêm `--overwrite` khi input hashes
+và semantic config không đổi; audit thất bại phải được giữ làm evidence.
 
 ```bat
 %PY% %S1%\review_hidden_quality_gui.py ^
@@ -656,6 +684,20 @@ FAIL. `--allow-unresolved` chỉ bỏ yêu cầu resolve `pending/Unclear`; nó 
 khi thiếu decision row, duplicate hoặc unknown item. Flag này không tạo được
 fake coverage và không được dùng cho training snapshot. Non-selected CVAT No
 vẫn là untrusted, không âm thầm thành trusted No.
+
+Sau complete coverage, chạy gate khoa học không có `--report-only`:
+
+```bat
+%PY% %S1%\check_hidden_review_scientific_gate.py ^
+  --manifest-csv %HREV%\hidden_review_unit_manifest.csv ^
+  --decisions-csv %HREV%\gui\hidden_review_decisions.csv ^
+  --design-json %HREV%\hidden_review_scientific_design.json ^
+  --audit-json %HREV%\hidden_review_scientific_gate_audit.json
+```
+
+Trong lúc review dở, có thể thêm `--report-only` để ghi blocker. Output đó
+không cấp quyền apply/snapshot. Final apply yêu cầu coverage checker và
+scientific gate đều PASS.
 
 ```bat
 %PY% %S1%\classification_v2_apply_hidden_review_decisions.py ^
@@ -1574,8 +1616,9 @@ nhưng các blocker path/fold/view/model và human review vẫn còn:
 8. **RESOLVED IN CODE:** identifier-v2 tách `scene_frame_uid` và object-level
    `frame_uid`; bounded source-to-window audit đã PASS. Final reviewed lineage
    vẫn phải rebuild và chứng minh lại contract này.
-9. Hidden high-risk score còn target-informed; weighted/high-risk uncertainty
-   và predeclared threshold gate chưa được code hóa fail-closed.
+9. **RESOLVED IN CODE/V6 TEMPLATE:** Hidden risk và sampling target-independent;
+   clustered uncertainty cùng predeclared gate đã fail-closed. Human v6 review
+   vẫn phải hoàn tất trước khi threshold gate có thể PASS.
 10. **RESOLVED IN CODE:** checker đã assert exact basename
     `Pigs291119_000231_30fps.mp4`; final reviewed lineage vẫn phải chạy lại gate.
 
@@ -1731,7 +1774,7 @@ PASS:
 - [ ] Hidden apply giữ nguyên row count và non-Hidden source columns.
 - [ ] `Yes->No`, `No->Yes`, weighted false-negative rate có audit.
 - [ ] Hidden weighted/high-risk CI và predeclared threshold gate PASS.
-- [ ] Hidden target-informed enrichment không bị gọi label-independent.
+- [x] Hidden risk/sampling target-independent; target-derived field audit rỗng.
 - [ ] Enhanced, hidden-reviewed và behavior-reviewed rows bằng nhau.
 - [ ] Duplicate `temporal_unit_key=0` và duplicate `review_unit_id=0`.
 - [ ] Không output mới dùng `window_uid`.

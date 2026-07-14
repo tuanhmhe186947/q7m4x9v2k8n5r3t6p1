@@ -61,12 +61,12 @@ Passing gates:
 - Enhanced features: `PASS`; the current artifact has 245,664 rows.
 - Representative chain: `PASS`; it has 688 frames, 63 units, and 438 windows.
 - Exact X whitelist: `PASS`; 110 fields pass the technical leakage audit.
-- Hidden design/template: `PASS`; v5 has 5,171 unique review items.
+- Hidden design/template: `PASS`; v6 has 5,131 target-independent items.
 - Exact CVAT resolver: `PASS`; six frames resolve to the exact `_30fps.mp4` file.
 
 Blocked human-lineage gates:
 
-- Hidden decisions/apply: `BLOCKED`; 30/5,171 decisions are resolved.
+- Hidden decisions/apply: `BLOCKED`; 30/5,131 decisions are resolved.
 - Behavior decisions/apply: `BLOCKED`; 3/4,670 rows exist and one is pending.
 - Reviewed frames/windows: `BLOCKED` by both upstream decision gates.
 - Immutable snapshot/hashes: `BLOCKED` until the reviewed lineage passes.
@@ -75,8 +75,9 @@ Independent in-progress gates:
 
 - Identifier code contract: `PASS`; scene and object identity are versioned as
   `scene_frame_uid` and object-level `frame_uid`.
-- Hidden review key migration: `PASS`; all 5,171 workload rows and 30 existing
-  decisions map one-to-one with zero human-payload changes.
+- Hidden review key migration: `PASS`; all 5,171 v5 rows map onto identifier v2.
+  All 30 decisions then carry into v6 with zero payload/context changes and
+  byte-level input/output hashes.
 - Identifier active-lineage rebuild: `PASS`; bounded 688/63/438 evidence has
   ordered frame/window lineage and 8/8 deterministic stage pairs.
 - Snapshot/launch binding: `PASS IN CODE`; snapshot v2 and preflight v2 bind
@@ -109,13 +110,14 @@ Independent in-progress gates:
 
 Work proceeds in dependency order without fabricating human evidence:
 
-1. Complete Hidden clustered uncertainty and target-independent prevalence gates.
-2. Fixed-six manifests and structural shortcut probes: `COMPLETED IN CODE`.
-3. Fold-local preprocessing, event balancing, and lineage: `COMPLETED IN CODE`.
-4. Configurable model/mask/shape contracts: `COMPLETED IN CODE`.
-5. Real fixed-six timing loader and hash lineage: `COMPLETED IN CODE`.
-6. Native-collapse and paired-evaluation contracts: `COMPLETED IN CODE`.
-7. Historical baseline engineering control: `COMPLETED IN CODE`.
+1. Hidden target-independent clustered gate: `COMPLETED IN CODE`.
+2. Complete v6 human Hidden review: `BLOCKED ON 5,101 MISSING DECISIONS`.
+3. Fixed-six manifests and structural shortcut probes: `COMPLETED IN CODE`.
+4. Fold-local preprocessing, event balancing, and lineage: `COMPLETED IN CODE`.
+5. Configurable model/mask/shape contracts: `COMPLETED IN CODE`.
+6. Real fixed-six timing loader and hash lineage: `COMPLETED IN CODE`.
+7. Native-collapse and paired-evaluation contracts: `COMPLETED IN CODE`.
+8. Historical baseline engineering control: `COMPLETED IN CODE`.
 
 ## Promotion And Full-Run Lock
 
@@ -152,12 +154,16 @@ authorization.
 | 2026-07-14 | Strict fixed-six timing loader | PASS IN CODE | `111f152` |
 | 2026-07-14 | Native-unit paired evaluation contract | PASS IN CODE | `1b6ba3d` |
 | 2026-07-14 | Historical baseline controls | PASS IN CODE | `e5d6417` |
+| 2026-07-14 | Hidden target-independent selection | PASS IN CODE | `2c0cf21` |
+| 2026-07-14 | Hidden clustered scientific gate | PASS IN CODE | `6949ad0` |
+| 2026-07-14 | Hidden final-support preflight | PASS IN CODE | `e9a585d` |
+| 2026-07-14 | Hidden v5-to-v6 decision carry | PASS | `32eaa2b` |
+| 2026-07-14 | Hidden migration artifact hashes | PASS | `aaf8460` |
 
 ## Next Checkpoint
 
-The next isolated achievement is Hidden clustered uncertainty and
-target-independent prevalence gating. It must quantify review uncertainty at
-the recording/native-unit cluster level, preserve the probability-weighted
-random audit design, and reject target-derived risk or sampling logic. Human
-Hidden decisions remain necessary for final prevalence estimates and for
-freezing the reviewed P0 snapshot.
+The next checkpoint is human completion of the v6 Hidden workload. Coverage is
+30/5,131 with 5,101 missing; random and high-risk reviewed support are both zero.
+After review, rerun complete coverage and the scientific gate without
+`--report-only`. Hidden apply remains forbidden until both pass. Behavior review
+and the immutable P0 snapshot remain downstream blockers.

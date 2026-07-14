@@ -39,15 +39,20 @@ not automatically exclude or down-weight a sequence window.
 
 ## Evidence and status
 
-Current workload-policy implementation commit is `5212a59`. The complete
-classification regression passed with 150 tests. The balanced 64-row/source
-smoke selected 41 review items and passed the independent coverage checker.
+The active full authority is
+`outputs/classification_v2/rebuilds/hidden_review_v6_full_20260714`. Its 5,131
+items contain 4,122 Yes confirmations, 384 high-risk No, 601 random No, and 24
+clean controls. Behavior is descriptive metadata only; target-derived risk and
+sampling fields are absent.
 
-The versioned v5 full manifest contains 5,171 unique review items: 4,121 Yes
-confirmations, 211 high-risk No, 647 random No, and 192 clean controls. It has
-4,649 CVAT and 522 legacy items, zero missing untrusted Yes, zero trusted quota
-mismatches, and zero high-risk cap violations. The evidence is under
-`outputs/classification_v2/rebuilds/hidden_review_v5_full_20260713`.
+The manifest SHA256 is
+`3e4fec14c466a89370a1e20d913cb024bd1dda1fa8db9c1fabdf8a51fa31072e`.
+The predeclared design has adequate planned random/high-risk clustered support.
+Commits `32eaa2b` and `aaf8460` preserve all 30 v5 decisions through identifier
+v2 and bind the migration/carry artifacts by SHA256.
 
-Full human review and decision apply are not complete. Follow section 8A of
+Current human coverage is 30/5,131 with 5,101 missing. No random or high-risk
+item has yet been reviewed, so the report-only scientific gate is
+`BLOCKED_INCOMPLETE_OR_INSUFFICIENT_REVIEW`. Full coverage, apply, temporal
+rebuild, snapshot, and training remain blocked. Follow section 8A of
 `docs/CLASSIFICATION_V2_DATA_REBUILD_AND_HUMAN_REVIEW_RUNBOOK.md`.

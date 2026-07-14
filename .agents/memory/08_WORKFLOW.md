@@ -27,10 +27,10 @@ Detailed settled Hidden policy and validation evidence are in
 `.agents/memory/09_HIDDEN_REVIEW.md`.
 
 The current versioned full Hidden template is
-`outputs/classification_v2/rebuilds/hidden_review_v5_full_20260713`. It contains
-5,171 unique items and passed independent coverage. Continue with GUI human
-review and fail-closed decision coverage; do not treat the template alone as a
-reviewed artifact.
+`outputs/classification_v2/rebuilds/hidden_review_v6_full_20260714`. It contains
+5,131 target-independent items and passed independent template coverage. The 30
+v5 decisions were carried through identifier v2 with bound hashes and no
+payload/context drift. Continue GUI review from that CSV; 5,101 items remain.
 
 The current identifier-v2 short chain is independently verified under
 `outputs/classification_v2/rebuilds/scientific_smoke_identifier_v2_20260713`.
@@ -118,12 +118,12 @@ Current state:
 - The strict loader at `111f152` aligns real fixed-six `time_delta` tensors to
   the complete window universe and binds the slot-manifest hash in checkpoint
   schema v4 and registry v3.
-- Current classification regression is 334 passed and 181 deselected. This is
+- Current classification regression is 376 passed and 181 deselected. This is
   fixture evidence, not training authorization.
 - Transformer timing plumbing now passes in code, but every model run remains
   blocked until the reviewed snapshot and its exact hashes are frozen.
-- The active lineage stops at block `01`: the Hidden v5 template passes, but
-  human Hidden decisions are only 30/5,171 and apply is incomplete.
+- The active lineage stops at block `01`: the Hidden v6 template passes, but
+  human Hidden decisions are only 30/5,131 and apply is incomplete.
 - Behavior review also fails closed with 3/4,670 decisions, 4,667 missing, and
   one pending.
 - Do not rebuild train-ready exports, refresh model preflight, or launch model
