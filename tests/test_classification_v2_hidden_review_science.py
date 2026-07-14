@@ -227,3 +227,41 @@ def test_hidden_scientific_gate_rejects_manifest_hash_drift() -> None:
 
     assert audit["status"] == "FAIL_CONTRACT"
     assert "hidden_manifest_hash_drift" in audit["errors"]
+
+
+def test_full_hidden_design_rejects_insufficient_planned_support() -> None:
+    manifest = _manifest()
+
+    with pytest.raises(ValueError, match="insufficient planned support"):
+        build_hidden_scientific_design(
+            manifest,
+            manifest_sha256="manifest-hash",
+            policy_payload=HiddenScientificPolicy().to_payload(),
+            policy_sha256="policy-hash",
+            selection_contract=_selection_contract(),
+        )
+
+
+def test_smoke_hidden_design_can_report_but_never_authorize() -> None:
+    manifest = _manifest()
+    policy = HiddenScientificPolicy()
+    design = build_hidden_scientific_design(
+        manifest,
+        manifest_sha256="manifest-hash",
+        policy_payload=policy.to_payload(),
+        policy_sha256="policy-hash",
+        selection_contract=_selection_contract(),
+        require_final_support=False,
+    )
+    audit = evaluate_hidden_scientific_gate(
+        manifest,
+        _decisions(manifest),
+        design,
+        manifest_sha256="manifest-hash",
+        design_sha256="design-hash",
+    )
+
+    assert design["design_scope"] == "smoke"
+    assert design["planned_support_meets_final_gate"] is False
+    assert audit["status"] == "BLOCKED_INCOMPLETE_OR_INSUFFICIENT_REVIEW"
+    assert "hidden_scientific_design_scope_not_full" in audit["blockers"]

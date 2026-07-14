@@ -144,6 +144,9 @@ def main() -> None:
         policy_payload=policy_payload,
         policy_sha256=policy_sha256,
         selection_contract=audit["selection_contract"],
+        require_final_support=(
+            args.max_rows is None and args.max_rows_per_source is None
+        ),
     )
     for cohort, filename in TEMPLATE_FILENAMES.items():
         templates[cohort].to_csv(args.output_dir / filename, index=False)

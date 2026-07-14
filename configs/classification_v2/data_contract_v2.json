@@ -178,6 +178,8 @@
         "design_status": "PREDECLARED_WITH_PENDING_MANIFEST",
         "resolved_items_at_declaration": 0,
         "all_items_pending_at_declaration": true,
+        "design_scope": "full",
+        "planned_support_meets_final_gate": true,
         "selection_contract.target_independent": true,
         "high_risk_is_population_prevalence": false
       }

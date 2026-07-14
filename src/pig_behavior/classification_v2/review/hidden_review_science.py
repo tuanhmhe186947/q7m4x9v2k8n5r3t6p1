@@ -113,6 +113,7 @@ def build_hidden_scientific_design(
     policy_payload: dict[str, Any],
     policy_sha256: str,
     selection_contract: dict[str, Any],
+    require_final_support: bool = True,
 ) -> dict[str, Any]:
     """Bind a target-independent manifest to thresholds before review."""
 
@@ -145,6 +146,12 @@ def build_hidden_scientific_design(
             "Hidden scientific design is target-derived: "
             f"{selection_errors}"
         )
+    planned_support = _planned_support(manifest, policy)
+    if require_final_support and planned_support["failures"]:
+        raise ValueError(
+            "Hidden review design has insufficient planned support: "
+            f"{planned_support['failures']}"
+        )
 
     return {
         "schema_version": DESIGN_SCHEMA_VERSION,
@@ -154,6 +161,9 @@ def build_hidden_scientific_design(
         "manifest_unique_items": int(manifest["hidden_review_item_id"].nunique()),
         "resolved_items_at_declaration": int(resolved.sum()),
         "all_items_pending_at_declaration": True,
+        "design_scope": "full" if require_final_support else "smoke",
+        "planned_support": planned_support,
+        "planned_support_meets_final_gate": not planned_support["failures"],
         "policy_sha256": policy_sha256,
         "policy": policy.to_payload(),
         "selection_contract": selection_contract,
@@ -199,6 +209,10 @@ def evaluate_hidden_scientific_gate(
     joined, coverage = _join_review_decisions(manifest, decisions)
     errors.extend(coverage["errors"])
     blockers = list(coverage["blockers"])
+    if design.get("design_scope") != "full":
+        blockers.append("hidden_scientific_design_scope_not_full")
+    if design.get("planned_support_meets_final_gate") is not True:
+        blockers.append("hidden_scientific_planned_support_not_met")
 
     random_rows = joined.loc[
         joined["hidden_review_cohort"].eq(RANDOM_COHORT)
@@ -731,6 +745,42 @@ def _support_failures(
         if actual < minimum:
             failures.append(f"insufficient_{name}={actual}<{minimum}")
     return failures
+
+
+def _planned_support(
+    manifest: pd.DataFrame,
+    policy: HiddenScientificPolicy,
+) -> dict[str, Any]:
+    """Prove that the selected workload can reach final minimum support."""
+
+    def summarize(cohort: str) -> dict[str, int]:
+        rows = manifest.loc[
+            manifest["hidden_review_cohort"].eq(cohort)
+            & manifest["hidden_before_review"].map(_normalize_hidden).eq("No")
+        ]
+        recording = (
+            rows["source_type"].fillna("").astype(str)
+            + "|"
+            + rows["hidden_review_stratum_key"].fillna("").astype(str)
+        )
+        native = rows["temporal_unit_key"].fillna("").astype(str).str.strip()
+        return {
+            "reviewed_items": int(len(rows)),
+            "native_cluster_count": int(native.loc[native.ne("")].nunique()),
+            "recording_cluster_count": int(recording.nunique()),
+        }
+
+    random_stats = summarize(RANDOM_COHORT)
+    high_risk_stats = summarize(HIGH_RISK_COHORT)
+    return {
+        "random_hidden_no": random_stats,
+        "high_risk_hidden_no": high_risk_stats,
+        "failures": _support_failures(
+            random_stats,
+            high_risk_stats,
+            policy,
+        ),
+    }
 
 
 def _empty_statistics(policy: HiddenScientificPolicy) -> dict[str, Any]:
