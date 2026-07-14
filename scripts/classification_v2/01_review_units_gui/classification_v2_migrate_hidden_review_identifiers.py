@@ -63,15 +63,24 @@ def main() -> None:
             "output_manifest_csv": str(args.output_manifest_csv),
             "output_decisions_csv": str(args.output_decisions_csv),
             "mapping_csv": str(args.mapping_csv),
+            "output_manifest_sha256": None,
+            "output_decisions_sha256": None,
+            "mapping_sha256": None,
+            "outputs_written": False,
         }
     )
-    _write_json_atomic(args.audit_json, audit)
     if not audit["valid"]:
+        _write_json_atomic(args.audit_json, audit)
         raise ValueError(f"Hidden identifier migration failed: {audit['errors']}")
 
     _write_csv_atomic(args.output_manifest_csv, upgraded)
     _write_csv_atomic(args.output_decisions_csv, migrated)
     _write_csv_atomic(args.mapping_csv, mapping)
+    audit["output_manifest_sha256"] = _sha256(args.output_manifest_csv)
+    audit["output_decisions_sha256"] = _sha256(args.output_decisions_csv)
+    audit["mapping_sha256"] = _sha256(args.mapping_csv)
+    audit["outputs_written"] = True
+    _write_json_atomic(args.audit_json, audit)
     print(
         "[PASS] Hidden identifier migration: "
         f"manifest={len(upgraded)} decisions={len(migrated)} "

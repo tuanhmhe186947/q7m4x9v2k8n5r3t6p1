@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -54,19 +55,57 @@ def main() -> None:
         current,
         decisions,
     )
-    args.audit_json.parent.mkdir(parents=True, exist_ok=True)
-    args.audit_json.write_text(
-        json.dumps(audit, ensure_ascii=False, indent=2),
-        encoding="utf-8",
+    audit.update(
+        {
+            "previous_manifest_csv": str(args.previous_manifest_csv),
+            "previous_manifest_sha256": _sha256(
+                args.previous_manifest_csv
+            ),
+            "current_manifest_csv": str(args.current_manifest_csv),
+            "current_manifest_sha256": _sha256(args.current_manifest_csv),
+            "source_decisions_csv": str(args.decisions_csv),
+            "source_decisions_sha256": _sha256(args.decisions_csv),
+            "output_decisions_csv": str(args.output_decisions_csv),
+            "output_decisions_sha256": None,
+            "output_written": False,
+        }
     )
     if audit["errors"]:
+        _write_json_atomic(args.audit_json, audit)
         raise SystemExit(f"FAIL: {audit['errors']}")
-    args.output_decisions_csv.parent.mkdir(parents=True, exist_ok=True)
-    carried.to_csv(args.output_decisions_csv, index=False)
+    _write_csv_atomic(args.output_decisions_csv, carried)
+    audit["output_decisions_sha256"] = _sha256(args.output_decisions_csv)
+    audit["output_written"] = True
+    _write_json_atomic(args.audit_json, audit)
     print(
         "[PASS] Hidden decisions carried without payload loss: "
         f"rows={len(carried)} audit={args.audit_json}"
     )
+
+
+def _write_csv_atomic(path: Path, frame: pd.DataFrame) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    frame.to_csv(temporary, index=False)
+    temporary.replace(path)
+
+
+def _write_json_atomic(path: Path, payload: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    temporary.replace(path)
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 if __name__ == "__main__":

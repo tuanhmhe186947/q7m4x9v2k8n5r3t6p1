@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import runpy
 import sys
@@ -376,10 +377,71 @@ def test_hidden_review_redesign_cli_smoke(
     audit = json.loads(audit_path.read_text(encoding="utf-8"))
     assert audit["valid"] is True
     assert audit["carried_decision_rows"] == 2
+    assert audit["output_written"] is True
+    assert audit["output_decisions_sha256"] == hashlib.sha256(
+        output_path.read_bytes()
+    ).hexdigest()
     assert len(carried) == 2
     assert carried["hidden_after_review"].tolist() == decisions[
         "hidden_after_review"
     ].tolist()
+
+
+def test_hidden_review_identifier_migration_cli_hashes_outputs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _, legacy = _build_review()
+    legacy["hidden_review_item_id"] = [
+        f"legacy-item-{index}" for index in range(len(legacy))
+    ]
+    decisions = _resolved_decisions(legacy).head(2).copy()
+    legacy_path = tmp_path / "legacy.csv"
+    decisions_path = tmp_path / "legacy_decisions.csv"
+    manifest_output = tmp_path / "manifest_v2.csv"
+    decisions_output = tmp_path / "decisions_v2.csv"
+    mapping_output = tmp_path / "mapping.csv"
+    audit_output = tmp_path / "migration_audit.json"
+    legacy.to_csv(legacy_path, index=False)
+    decisions.to_csv(decisions_path, index=False)
+    script_path = (
+        Path(__file__).resolve().parents[1]
+        / "scripts"
+        / "classification_v2"
+        / "01_review_units_gui"
+        / "classification_v2_migrate_hidden_review_identifiers.py"
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            str(script_path),
+            "--legacy-manifest-csv",
+            str(legacy_path),
+            "--legacy-decisions-csv",
+            str(decisions_path),
+            "--output-manifest-csv",
+            str(manifest_output),
+            "--output-decisions-csv",
+            str(decisions_output),
+            "--mapping-csv",
+            str(mapping_output),
+            "--audit-json",
+            str(audit_output),
+        ],
+    )
+
+    runpy.run_path(str(script_path), run_name="__main__")
+
+    audit = json.loads(audit_output.read_text(encoding="utf-8"))
+    assert audit["valid"] is True
+    assert audit["outputs_written"] is True
+    for field, path in (
+        ("output_manifest_sha256", manifest_output),
+        ("output_decisions_sha256", decisions_output),
+        ("mapping_sha256", mapping_output),
+    ):
+        assert audit[field] == hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def test_hidden_review_redesign_rejects_lost_human_decision() -> None:
