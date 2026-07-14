@@ -36,6 +36,7 @@ class TemporalSmokeScopeConfig:
     blocks_per_source: int = 4
     cvat_label_stride: int = 6
     legacy_expected_sequence_length: int = 16
+    required_sources: tuple[str, ...] = SUPPORTED_SOURCES
 
     def validate(self) -> None:
         """Reject settings that could create empty or ambiguous units."""
@@ -46,6 +47,13 @@ class TemporalSmokeScopeConfig:
             raise ValueError("cvat_label_stride must be > 0")
         if self.legacy_expected_sequence_length <= 0:
             raise ValueError("legacy_expected_sequence_length must be > 0")
+        if not self.required_sources:
+            raise ValueError("required_sources must not be empty")
+        if len(set(self.required_sources)) != len(self.required_sources):
+            raise ValueError("required_sources must not contain duplicates")
+        unknown = sorted(set(self.required_sources).difference(SUPPORTED_SOURCES))
+        if unknown:
+            raise ValueError(f"unsupported required_sources={unknown}")
 
 
 def select_temporal_smoke_scope(
@@ -74,7 +82,7 @@ def select_temporal_smoke_scope(
 
     block_tables: list[pd.DataFrame] = []
     prepared_parts: list[pd.DataFrame] = []
-    for source_type in SUPPORTED_SOURCES:
+    for source_type in cfg.required_sources:
         source_rows = work.loc[source.eq(source_type)].copy()
         if source_rows.empty:
             errors.append(f"missing_source={source_type}")
@@ -100,7 +108,7 @@ def select_temporal_smoke_scope(
 
     selected_keys: list[str] = []
     selected_by_source: dict[str, list[str]] = {}
-    for source_type in SUPPORTED_SOURCES:
+    for source_type in cfg.required_sources:
         candidates = blocks.loc[
             blocks["source_type"].eq(source_type)
             & blocks["block_valid"]
@@ -165,6 +173,7 @@ def select_temporal_smoke_scope(
         "parameters": {
             "blocks_per_source": cfg.blocks_per_source,
             "cvat_label_stride": cfg.cvat_label_stride,
+            "required_sources": list(cfg.required_sources),
             "legacy_expected_sequence_length": (
                 cfg.legacy_expected_sequence_length
             ),

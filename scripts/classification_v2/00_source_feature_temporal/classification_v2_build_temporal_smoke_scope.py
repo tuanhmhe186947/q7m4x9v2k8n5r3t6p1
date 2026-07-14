@@ -9,9 +9,22 @@ from pathlib import Path
 import pandas as pd
 
 from pig_behavior.classification_v2.datasets.temporal_smoke_scope import (
+    SUPPORTED_SOURCES,
     TemporalSmokeScopeConfig,
     select_temporal_smoke_scope,
 )
+
+
+def _parse_required_sources(value: str) -> tuple[str, ...]:
+    """Parse an explicit comma-separated source contract."""
+
+    sources = tuple(part.strip() for part in value.split(",") if part.strip())
+    unknown = sorted(set(sources).difference(SUPPORTED_SOURCES))
+    if not sources or unknown:
+        raise argparse.ArgumentTypeError(
+            f"required sources must be from {SUPPORTED_SOURCES}; got {value!r}"
+        )
+    return sources
 
 
 def parse_args() -> argparse.Namespace:
@@ -27,6 +40,15 @@ def parse_args() -> argparse.Namespace:
         "--legacy-expected-sequence-length",
         type=int,
         default=16,
+    )
+    parser.add_argument(
+        "--required-sources",
+        type=_parse_required_sources,
+        default=SUPPORTED_SOURCES,
+        help=(
+            "Comma-separated sources required in this smoke scope. "
+            "Use legacy_recovered for the isolated legacy lane."
+        ),
     )
     return parser.parse_args()
 
@@ -46,6 +68,7 @@ def main() -> None:
             legacy_expected_sequence_length=(
                 args.legacy_expected_sequence_length
             ),
+            required_sources=args.required_sources,
         ),
     )
     audit["input_csv"] = str(args.input_csv)

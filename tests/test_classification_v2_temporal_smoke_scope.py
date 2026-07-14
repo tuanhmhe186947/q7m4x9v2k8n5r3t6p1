@@ -121,3 +121,24 @@ def test_smoke_scope_audits_and_skips_incomplete_candidate_block() -> None:
         "frame_index",
     ]
     assert sorted(cvat_frames.unique().tolist()) == list(range(6))
+
+
+def test_smoke_scope_supports_explicit_legacy_only_contract() -> None:
+    rows = [
+        *_legacy_block("legacy-rich", {"ID_1": "eat", "ID_2": "fight"}),
+        *_legacy_block("legacy-stand", {"ID_3": "stand"}),
+    ]
+
+    selected, audit = select_temporal_smoke_scope(
+        pd.DataFrame(rows),
+        config=TemporalSmokeScopeConfig(
+            blocks_per_source=1,
+            required_sources=("legacy_recovered",),
+        ),
+    )
+
+    assert audit["errors"] == []
+    assert audit["parameters"]["required_sources"] == ["legacy_recovered"]
+    assert audit["selected_block_counts"] == {"legacy_recovered": 1}
+    assert set(selected["source_type"]) == {"legacy_recovered"}
+    assert len(selected) == 32
