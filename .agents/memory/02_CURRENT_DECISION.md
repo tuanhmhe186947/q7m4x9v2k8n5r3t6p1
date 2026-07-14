@@ -8,10 +8,13 @@ sections are historical records. Current gate status is centralized in
 
 ## Active decision: reviewed-data rebuild
 
-The user authorizes full runs, but every new data/model lineage remains
-fail-closed until static checks, a tiny/short representative run, and
-schema/count/hash/output/runtime audits pass. A prior full authorization does
-not transfer to a changed semantic config.
+The user grants standing authorization for a full data or model run when it is
+necessary for the current milestone. Do not ask again solely because the run is
+full or long. Every new lineage must first pass static/synthetic checks, the
+exact short representative configuration, and schema/count/hash/output/runtime
+audits. Stop before full on any failure. A semantic config change invalidates
+the short evidence and requires the short gate again. This permission does not
+bypass leakage, immutable lineage, full-OOF launch, or scientific claim gates.
 
 For bounded model tests that report `accuracy` or `F1`, use an explicitly
 declared `legacy_recovered` 16-frame development lineage when it is

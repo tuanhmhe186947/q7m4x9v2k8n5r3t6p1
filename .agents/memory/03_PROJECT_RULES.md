@@ -8,10 +8,13 @@ do not request confirmation solely to create or modify `.md` files inside this
 workspace. Continue to use `apply_patch` and all Markdown safety checks below;
 this approval does not apply outside the project sandbox.
 
-Full-run permission is standing but conditional. For each changed data/model
-lineage, run static/synthetic checks, a short representative legacy+CVAT chain,
-and schema/count/hash/output/runtime audits before full. Stop on any failed
-gate; never use a full run as the first correctness test.
+Full-run permission is standing but conditional. A necessary full data or model
+run does not require another confirmation solely because it is long. For each
+changed lineage, run static/synthetic checks, the exact short representative
+chain, and schema/count/hash/output/runtime audits before full. Stop on any
+failed gate; never use a full run as the first correctness test. Repeat the
+short gate whenever data, cache, split, temporal view, model, loss, or resize
+semantics change. Full OOF still requires its technical launch gate.
 
 Current reviewed data is not human-review complete. No pending,
 `review_later`, missing, duplicate, or unexpected mandatory `review_unit_id`

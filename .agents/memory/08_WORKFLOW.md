@@ -7,6 +7,11 @@ For a new `classification_v2` data lineage, follow
 authorized only after the same semantic config passes static checks, a short
 legacy+CVAT chain, and schema/count/hash/output/runtime audits.
 
+This is standing user authorization: once those gates pass, proceed with a
+necessary full run without asking again only because it is full or long. If a
+gate fails or any semantic input changes, stop and repeat the short chain. Full
+OOF must also pass its immutable launch packet and execution gate.
+
 Required frame-data order:
 
 ```text

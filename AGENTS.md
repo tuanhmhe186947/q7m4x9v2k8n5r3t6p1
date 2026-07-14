@@ -42,6 +42,11 @@ Rules:
   workspace. This does not override sandbox boundaries or the edit-safety rules
   below.
 - Do not run long tracking/evaluation/benchmark unless the user explicitly requests it.
+- For the active `classification_v2` goal, the user grants standing permission
+  for a necessary full data or model run after the exact semantic configuration
+  passes static/synthetic checks, a short representative run, and all declared
+  audits. Do not ask again solely because the run is long. Repeat the short gate
+  after any semantic change; full OOF still requires its technical launch gate.
 - Always report which memory files were read before making changes.
 - Keep code lines within the repository formatter/linter limit before commit.
   Wrap long conditions, strings, comprehensions, function calls, and argument
