@@ -210,6 +210,47 @@ def test_builds_balanced_and_matched_temporal_tiers(tmp_path: Path) -> None:
         assert np.isnan(tensors.time_delta[~selected_mask]).all()
 
 
+def test_accepts_absolute_frame_indices_inside_each_burst() -> None:
+    source, harmonized, intervals, windows = _fixture_tables()
+    frame_offset = 100
+    harmonized["frame_index"] += frame_offset
+    intervals["label_window_start"] += frame_offset
+    intervals["label_window_end"] += frame_offset
+    windows["window_start_frame"] += frame_offset
+    windows["window_end_frame"] += frame_offset
+
+    tables = build_legacy_unreviewed_development_manifests(
+        source,
+        harmonized,
+        intervals,
+        windows,
+    )
+
+    assert tables.audit["errors"] == []
+    assert tables.audit["harmonized_frame_audit"][
+        "invalid_frame_index_rows"
+    ] == 0
+    assert tables.native_units["harmonized_interval_bounds_match"].all()
+    assert tables.native_units["native_unit_valid_for_development"].all()
+
+
+def test_rejects_harmonized_interval_boundary_drift() -> None:
+    source, harmonized, intervals, windows = _fixture_tables()
+    intervals.loc[0, "label_window_start"] += 1
+    intervals.loc[0, "label_window_end"] += 1
+
+    with pytest.raises(
+        ValueError,
+        match="harmonized_interval_bound_mismatch_units=1",
+    ):
+        build_legacy_unreviewed_development_manifests(
+            source,
+            harmonized,
+            intervals,
+            windows,
+        )
+
+
 def test_invalid_unit_is_retained_with_zero_training_mass() -> None:
     source, harmonized, intervals, windows = _fixture_tables()
     first_track = source.loc[0, "track_id"]

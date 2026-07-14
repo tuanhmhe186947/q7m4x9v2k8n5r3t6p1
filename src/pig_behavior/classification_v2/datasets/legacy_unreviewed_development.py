@@ -307,11 +307,13 @@ def _build_harmonized_unit_summary(
         harmonized_include_all=("include_in_training", _all_bool),
         harmonized_main_eval_all=("use_for_main_eval", _all_bool),
     ).reset_index()
+    frame_span = units["harmonized_frame_end"].sub(
+        units["harmonized_frame_start"]
+    ).add(1)
     units["harmonized_unit_complete"] = (
         units["harmonized_row_count"].eq(LEGACY_NATIVE_LENGTH)
         & units["harmonized_frame_count"].eq(LEGACY_NATIVE_LENGTH)
-        & units["harmonized_frame_start"].eq(0)
-        & units["harmonized_frame_end"].eq(LEGACY_NATIVE_LENGTH - 1)
+        & frame_span.eq(LEGACY_NATIVE_LENGTH)
         & units["harmonized_behavior_count"].eq(1)
     )
     invalid_frame_index = int(
@@ -319,7 +321,6 @@ def _build_harmonized_unit_summary(
             frame_index.isna()
             | frame_index.mod(1).ne(0)
             | frame_index.lt(0)
-            | frame_index.ge(LEGACY_NATIVE_LENGTH)
         ).sum()
     )
     incomplete_units = int((~units["harmonized_unit_complete"]).sum())
@@ -435,6 +436,17 @@ def _build_native_unit_manifest(
     harmonized_label_match = behavior.eq(
         native["harmonized_behavior"].astype(str)
     )
+    harmonized_start = pd.to_numeric(
+        native["harmonized_frame_start"],
+        errors="coerce",
+    )
+    harmonized_end = pd.to_numeric(
+        native["harmonized_frame_end"],
+        errors="coerce",
+    )
+    harmonized_interval_bounds_match = (
+        harmonized_start.eq(label_start) & harmonized_end.eq(label_end)
+    )
     interval_geometry_valid = (
         label_start.notna()
         & label_end.notna()
@@ -454,6 +466,7 @@ def _build_native_unit_manifest(
         & np.isclose(spatial_ratio, 1.0, atol=1e-12)
         & native["source_unit_complete"].fillna(False).astype(bool)
         & native["harmonized_unit_complete"].fillna(False).astype(bool)
+        & harmonized_interval_bounds_match
         & source_label_match
         & harmonized_label_match
         & native["source_include_all"].fillna(False).astype(bool)
@@ -464,6 +477,9 @@ def _build_native_unit_manifest(
     native["behavior_label"] = behavior
     native["native_unit_valid_for_development"] = technical_valid
     native["native_unit_valid_for_main_eval"] = technical_valid
+    native["harmonized_interval_bounds_match"] = (
+        harmonized_interval_bounds_match
+    )
     native["native_unit_validity_basis"] = "technical_unreviewed_v1"
     native["native_unit_exclusion_reason"] = [
         _native_exclusion_reason(row)
@@ -481,6 +497,11 @@ def _build_native_unit_manifest(
     if missing_harmonized:
         errors.append(
             f"native_units_missing_harmonized_rows={missing_harmonized}"
+        )
+    bound_mismatch = int((~harmonized_interval_bounds_match).sum())
+    if bound_mismatch:
+        errors.append(
+            f"harmonized_interval_bound_mismatch_units={bound_mismatch}"
         )
     if len(native) != len(source_units):
         errors.append(
@@ -502,6 +523,7 @@ def _build_native_unit_manifest(
         "invalid_interval_geometry_units": int(
             (~interval_geometry_valid).sum()
         ),
+        "harmonized_interval_bound_mismatch_units": bound_mismatch,
         "behavior_counts": _ordered_counts(behavior, VALID_BEHAVIORS),
         "human_review_complete": False,
         "hidden_used_as_exclusion": False,
@@ -1087,6 +1109,8 @@ def _native_exclusion_reason(row: Any) -> str:
         reasons.append("source_unit_incomplete")
     if not bool(row.harmonized_unit_complete):
         reasons.append("harmonized_unit_incomplete")
+    if not bool(row.harmonized_interval_bounds_match):
+        reasons.append("harmonized_interval_boundary_mismatch")
     if not bool(row.source_include_all) or not bool(row.harmonized_include_all):
         reasons.append("source_excluded")
     if not bool(row.source_main_eval_all) or not bool(
