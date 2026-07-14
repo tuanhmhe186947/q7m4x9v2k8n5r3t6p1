@@ -33,6 +33,13 @@ from pig_behavior.classification_v2.training.fold_preprocessing import (
     load_fold_preprocessing_state,
     write_fold_preprocessing_state,
 )
+from pig_behavior.classification_v2.training.run_identity import (
+    RUN_IDENTITY_SCHEMA_VERSION,
+)
+from pig_behavior.classification_v2.training.visual_freeze import (
+    VISUAL_FREEZE_CONTRACT_VERSION,
+    build_visual_optimizer_groups,
+)
 
 SNAPSHOT_SHA = "a" * 64
 CONFIG_SHA = "b" * 64
@@ -211,9 +218,9 @@ def test_checkpoint_resume_rejects_preprocessing_hash_drift(
     tmp_path: Path,
 ) -> None:
     model = torch.nn.Linear(2, 2)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=0.01)
-    scaler = torch.amp.GradScaler("cuda", enabled=False)
     config = _training_config(tmp_path)
+    optimizer = _optimizer(model, config)
+    scaler = torch.amp.GradScaler("cuda", enabled=False)
     path = tmp_path / "checkpoint.pt"
     run_identity = _run_identity(config)
     save_training_checkpoint(
@@ -245,9 +252,9 @@ def test_checkpoint_resume_rejects_preprocessing_hash_drift(
 
 def test_checkpoint_resume_rejects_run_identity_drift(tmp_path: Path) -> None:
     model = torch.nn.Linear(2, 2)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=0.01)
-    scaler = torch.amp.GradScaler("cuda", enabled=False)
     config = _training_config(tmp_path)
+    optimizer = _optimizer(model, config)
+    scaler = torch.amp.GradScaler("cuda", enabled=False)
     identity = _run_identity(config)
     path = tmp_path / "checkpoint.pt"
     save_training_checkpoint(
@@ -371,6 +378,7 @@ def _run_identity(
     config: ClassificationV2TrainingConfig,
 ) -> dict[str, object]:
     return {
+        "identity_schema_version": RUN_IDENTITY_SCHEMA_VERSION,
         "run_id": "test-run",
         "experiment_name": "fold-preprocessing-test",
         "execution_profile": "local_smoke",
@@ -392,6 +400,15 @@ def _run_identity(
         "backbone_name": config.model.backbone_name,
         "pretrained_weight_enum": config.model.pretrained_weight_enum,
         "resolution": config.model.image_size,
+        "visual_freeze_contract_version": VISUAL_FREEZE_CONTRACT_VERSION,
+        "visual_freeze_policy": config.model.visual_freeze_policy,
+        "visual_frozen_warmup_epochs": (
+            config.model.visual_frozen_warmup_epochs
+        ),
+        "visual_layer4_only_epochs": config.model.visual_layer4_only_epochs,
+        "visual_backbone_lr_multiplier": (
+            config.model.visual_backbone_lr_multiplier
+        ),
         "temporal_view": config.model.temporal_view,
         "temporal_encoder_name": config.model.temporal_encoder_name,
         "modalities": ["actor_rgb"],
@@ -401,3 +418,20 @@ def _run_identity(
         "precision": config.optimization.precision,
         "augmentation_policy": config.dataset.augmentation_policy,
     }
+
+
+def _optimizer(
+    model: torch.nn.Module,
+    config: ClassificationV2TrainingConfig,
+) -> torch.optim.AdamW:
+    groups, _ = build_visual_optimizer_groups(
+        model,
+        learning_rate=config.optimization.learning_rate,
+        backbone_lr_multiplier=config.model.visual_backbone_lr_multiplier,
+        weight_decay=config.optimization.weight_decay,
+    )
+    return torch.optim.AdamW(
+        groups,
+        lr=config.optimization.learning_rate,
+        weight_decay=config.optimization.weight_decay,
+    )

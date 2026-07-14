@@ -21,7 +21,12 @@ from pig_behavior.classification_v2.training.lineage_hashing import (
     is_sha256,
     payload_sha256,
 )
+from pig_behavior.classification_v2.training.visual_freeze import (
+    VISUAL_FREEZE_CONTRACT_VERSION,
+    visual_freeze_schedule_payload,
+)
 
+RUN_IDENTITY_SCHEMA_VERSION = "classification_v2.run_identity.v2"
 EXECUTION_PROFILES = frozenset(
     {"local_smoke", "remote_pilot", "remote_full_oof"}
 )
@@ -48,6 +53,7 @@ CODE_SCOPE_PATHS = (
 class RunIdentity:
     """Semantic fields that must remain exact across resume and artifacts."""
 
+    identity_schema_version: str
     run_id: str
     experiment_name: str
     execution_profile: str
@@ -70,6 +76,11 @@ class RunIdentity:
     backbone_name: str
     pretrained_weight_enum: str
     resolution: int
+    visual_freeze_contract_version: str
+    visual_freeze_policy: str
+    visual_frozen_warmup_epochs: int
+    visual_layer4_only_epochs: int
+    visual_backbone_lr_multiplier: float
     temporal_view: str
     temporal_encoder_name: str
     modalities: tuple[str, ...]
@@ -81,6 +92,7 @@ class RunIdentity:
 
     def to_payload(self) -> dict[str, Any]:
         return {
+            "identity_schema_version": self.identity_schema_version,
             "run_id": self.run_id,
             "experiment_name": self.experiment_name,
             "execution_profile": self.execution_profile,
@@ -107,6 +119,17 @@ class RunIdentity:
             "backbone_name": self.backbone_name,
             "pretrained_weight_enum": self.pretrained_weight_enum,
             "resolution": self.resolution,
+            "visual_freeze_contract_version": (
+                self.visual_freeze_contract_version
+            ),
+            "visual_freeze_policy": self.visual_freeze_policy,
+            "visual_frozen_warmup_epochs": (
+                self.visual_frozen_warmup_epochs
+            ),
+            "visual_layer4_only_epochs": self.visual_layer4_only_epochs,
+            "visual_backbone_lr_multiplier": (
+                self.visual_backbone_lr_multiplier
+            ),
             "temporal_view": self.temporal_view,
             "temporal_encoder_name": self.temporal_encoder_name,
             "modalities": list(self.modalities),
@@ -197,6 +220,10 @@ def build_run_identity(
     if pretrained.lower() in {"", "auto", "default", "unknown"}:
         raise ValueError("pretrained weight enum is ambiguous")
     modalities = _enabled_modalities(config)
+    freeze_schedule = visual_freeze_schedule_payload(
+        config.model,
+        total_epochs=config.optimization.epochs,
+    )
     generated_run_id = _generated_run_id(
         experiment_name=config.execution.experiment_name,
         execution_profile=config.execution.execution_profile,
@@ -208,6 +235,7 @@ def build_run_identity(
         dataset_snapshot_sha256=snapshot_hash,
     )
     identity = RunIdentity(
+        identity_schema_version=RUN_IDENTITY_SCHEMA_VERSION,
         run_id=config.execution.run_id or generated_run_id,
         experiment_name=config.execution.experiment_name,
         execution_profile=config.execution.execution_profile,
@@ -230,6 +258,13 @@ def build_run_identity(
         backbone_name=config.model.backbone_name,
         pretrained_weight_enum=pretrained,
         resolution=config.model.image_size,
+        visual_freeze_contract_version=str(freeze_schedule["contract_version"]),
+        visual_freeze_policy=str(freeze_schedule["policy"]),
+        visual_frozen_warmup_epochs=int(freeze_schedule["frozen_warmup_epochs"]),
+        visual_layer4_only_epochs=int(freeze_schedule["layer4_only_epochs"]),
+        visual_backbone_lr_multiplier=float(
+            freeze_schedule["backbone_lr_multiplier"]
+        ),
         temporal_view=config.model.temporal_view,
         temporal_encoder_name=config.model.temporal_encoder_name,
         modalities=modalities,
@@ -287,6 +322,16 @@ def _enabled_modalities(
 
 
 def _validate_identity(identity: RunIdentity) -> None:
+    if identity.identity_schema_version != RUN_IDENTITY_SCHEMA_VERSION:
+        raise ValueError(
+            "run identity schema mismatch="
+            f"{identity.identity_schema_version}"
+        )
+    if identity.visual_freeze_contract_version != VISUAL_FREEZE_CONTRACT_VERSION:
+        raise ValueError(
+            "run identity visual-freeze contract mismatch="
+            f"{identity.visual_freeze_contract_version}"
+        )
     if identity.execution_profile not in EXECUTION_PROFILES:
         raise ValueError(
             f"unsupported execution profile={identity.execution_profile}"
@@ -398,4 +443,8 @@ def _git_state() -> tuple[str, bool, str]:
     return commit, bool(global_status.strip()), digest.hexdigest()
 
 
-__all__ = ["RunIdentity", "build_run_identity"]
+__all__ = [
+    "RUN_IDENTITY_SCHEMA_VERSION",
+    "RunIdentity",
+    "build_run_identity",
+]

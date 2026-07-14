@@ -157,6 +157,19 @@ def test_existing_run_requires_resume_and_exact_identity(tmp_path: Path) -> None
             snapshot_check=snapshot,
             environment=_environment(),
         )
+    freeze_drift = replace(
+        config,
+        model=replace(
+            config.model,
+            visual_backbone_lr_multiplier=0.5,
+        ),
+    )
+    with pytest.raises(ValueError, match="resume run identity mismatch"):
+        initialize_run_lineage(
+            freeze_drift,
+            snapshot_check=snapshot,
+            environment=_environment(),
+        )
     assert (first.run_dir / "run_manifest.json").read_bytes() == manifest_before
 
     resumed = initialize_run_lineage(
@@ -235,6 +248,8 @@ def test_finalize_links_prediction_to_exact_checkpoint(tmp_path: Path) -> None:
     registry = pd.read_csv(config.execution.runs_registry_csv)
     assert registry["run_id"].tolist() == [session.identity.run_id]
     assert registry["status"].tolist() == ["completed"]
+    assert registry["visual_freeze_policy"].tolist() == ["all_trainable"]
+    assert registry["visual_backbone_lr_multiplier"].tolist() == [1.0]
 
 
 def test_registry_append_failure_preserves_completed_packet(

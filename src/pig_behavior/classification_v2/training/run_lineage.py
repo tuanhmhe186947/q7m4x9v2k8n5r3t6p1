@@ -50,7 +50,7 @@ from pig_behavior.classification_v2.training.run_registry import (
     ensure_registry_header as _ensure_registry_header,
 )
 
-RUN_MANIFEST_SCHEMA_VERSION = "classification_v2.run_manifest.v1"
+RUN_MANIFEST_SCHEMA_VERSION = "classification_v2.run_manifest.v2"
 ENVIRONMENT_SCHEMA_VERSION = "classification_v2.run_environment.v1"
 ARTIFACT_MANIFEST_SCHEMA_VERSION = "classification_v2.run_artifacts.v1"
 CHECKPOINT_MANIFEST_SCHEMA_VERSION = "classification_v2.run_checkpoints.v1"
@@ -684,6 +684,7 @@ def _registry_entry(
     environment = session.environment
     return {
         "registry_schema_version": REGISTRY_SCHEMA_VERSION,
+        "identity_schema_version": identity.identity_schema_version,
         "run_id": identity.run_id,
         "experiment_name": identity.experiment_name,
         "execution_profile": identity.execution_profile,
@@ -712,6 +713,17 @@ def _registry_entry(
         "backbone_name": identity.backbone_name,
         "pretrained_weight_enum": identity.pretrained_weight_enum,
         "resolution": identity.resolution,
+        "visual_freeze_contract_version": (
+            identity.visual_freeze_contract_version
+        ),
+        "visual_freeze_policy": identity.visual_freeze_policy,
+        "visual_frozen_warmup_epochs": (
+            identity.visual_frozen_warmup_epochs
+        ),
+        "visual_layer4_only_epochs": identity.visual_layer4_only_epochs,
+        "visual_backbone_lr_multiplier": (
+            identity.visual_backbone_lr_multiplier
+        ),
         "temporal_view": identity.temporal_view,
         "temporal_encoder_name": identity.temporal_encoder_name,
         "modalities": "|".join(identity.modalities),

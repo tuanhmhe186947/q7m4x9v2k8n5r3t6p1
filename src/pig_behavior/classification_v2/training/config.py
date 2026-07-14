@@ -16,6 +16,9 @@ from pig_behavior.classification_v2.models.multitask_fusion import MULTITASK_ARC
 from pig_behavior.classification_v2.models.temporal_encoders import (
     TEMPORAL_ENCODER_NAMES,
 )
+from pig_behavior.classification_v2.training.visual_freeze import (
+    visual_freeze_schedule_errors,
+)
 
 T = TypeVar("T")
 
@@ -64,6 +67,10 @@ class ModelConfig:
     dropout: float = 0.1
     transformer_layers: int = 2
     transformer_heads: int = 4
+    visual_freeze_policy: str = "all_trainable"
+    visual_frozen_warmup_epochs: int = 0
+    visual_layer4_only_epochs: int = 0
+    visual_backbone_lr_multiplier: float = 1.0
     spatial_feature_groups: tuple[str, ...] = ALL_SPATIAL_GROUPS
     standardize_spatial_groups: tuple[str, ...] = ()
     enable_image: bool = True
@@ -117,7 +124,7 @@ class ExecutionConfig:
     smoke_per_class: int = 1
     output_dir: Path = Path("outputs/classification_v2/model_smoke/strict_multitask")
     runs_registry_csv: Path = Path(
-        "outputs/classification_v2/run_registry/runs_registry_v3.csv"
+        "outputs/classification_v2/run_registry/runs_registry_v4.csv"
     )
     resume: bool = True
 
@@ -162,6 +169,12 @@ def validate_training_config(config: ClassificationV2TrainingConfig) -> None:
     if config.model.architecture_version != MULTITASK_ARCHITECTURE_VERSION:
         errors.append(f"architecture_version_mismatch={config.model.architecture_version}")
     errors.extend(model_mode_errors(config.model))
+    errors.extend(
+        visual_freeze_schedule_errors(
+            config.model,
+            total_epochs=config.optimization.epochs,
+        )
+    )
     auxiliary_loss_values = [
         config.loss.posture_weight,
         config.loss.motion_context_weight,

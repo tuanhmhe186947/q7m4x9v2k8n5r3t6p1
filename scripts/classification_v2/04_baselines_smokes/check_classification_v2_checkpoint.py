@@ -22,6 +22,13 @@ from pig_behavior.classification_v2.training.config import (
     ClassificationV2TrainingConfig,
     load_training_config,
 )
+from pig_behavior.classification_v2.training.run_identity import (
+    RUN_IDENTITY_SCHEMA_VERSION,
+)
+from pig_behavior.classification_v2.training.visual_freeze import (
+    VISUAL_FREEZE_CONTRACT_VERSION,
+    build_visual_optimizer_groups,
+)
 
 
 def main() -> None:
@@ -43,7 +50,17 @@ def main() -> None:
     config = load_training_config(args.config)
     _seed_all(123)
     model = nn.Sequential(nn.Linear(4, 8), nn.GELU(), nn.Linear(8, 3))
-    optimizer = torch.optim.AdamW(model.parameters(), lr=0.01)
+    optimizer_groups, _ = build_visual_optimizer_groups(
+        model,
+        learning_rate=config.optimization.learning_rate,
+        backbone_lr_multiplier=config.model.visual_backbone_lr_multiplier,
+        weight_decay=config.optimization.weight_decay,
+    )
+    optimizer = torch.optim.AdamW(
+        optimizer_groups,
+        lr=config.optimization.learning_rate,
+        weight_decay=config.optimization.weight_decay,
+    )
     scaler = torch.amp.GradScaler("cuda", enabled=False)
     x = torch.randn(5, 4)
     loss = model(x).square().mean()
@@ -177,6 +194,7 @@ def _synthetic_run_identity(
         if enabled
     ]
     return {
+        "identity_schema_version": RUN_IDENTITY_SCHEMA_VERSION,
         "run_id": "synthetic-checkpoint-contract",
         "experiment_name": "checkpoint-contract",
         "execution_profile": "local_smoke",
@@ -198,6 +216,15 @@ def _synthetic_run_identity(
         "backbone_name": config.model.backbone_name,
         "pretrained_weight_enum": config.model.pretrained_weight_enum,
         "resolution": config.model.image_size,
+        "visual_freeze_contract_version": VISUAL_FREEZE_CONTRACT_VERSION,
+        "visual_freeze_policy": config.model.visual_freeze_policy,
+        "visual_frozen_warmup_epochs": (
+            config.model.visual_frozen_warmup_epochs
+        ),
+        "visual_layer4_only_epochs": config.model.visual_layer4_only_epochs,
+        "visual_backbone_lr_multiplier": (
+            config.model.visual_backbone_lr_multiplier
+        ),
         "temporal_view": config.model.temporal_view,
         "temporal_encoder_name": config.model.temporal_encoder_name,
         "modalities": modalities,

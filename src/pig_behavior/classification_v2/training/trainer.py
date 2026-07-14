@@ -54,9 +54,15 @@ from pig_behavior.classification_v2.training.run_lineage import (
     finalize_run_lineage,
     initialize_run_lineage,
 )
+from pig_behavior.classification_v2.training.visual_freeze import (
+    build_visual_optimizer_groups,
+    configure_visual_train_stage,
+    optimizer_group_report,
+    visual_freeze_schedule_payload,
+)
 
 PREDICTION_SCHEMA_VERSION = "classification_v2_training_predictions_v1"
-RUN_AUDIT_SCHEMA_VERSION = "classification_v2_training_run_audit_v1"
+RUN_AUDIT_SCHEMA_VERSION = "classification_v2_training_run_audit_v2"
 
 
 def training_run_dir(audit: Mapping[str, Any]) -> Path:
@@ -134,8 +140,16 @@ def _run_training_impl(
         )
         probe = data.batch(train_indices[: min(len(train_indices), 2)])
         model = _build_model(config, probe).to(device)
+        optimizer_groups, optimizer_group_contract = build_visual_optimizer_groups(
+            model,
+            learning_rate=config.optimization.learning_rate,
+            backbone_lr_multiplier=(
+                config.model.visual_backbone_lr_multiplier
+            ),
+            weight_decay=config.optimization.weight_decay,
+        )
         optimizer = torch.optim.AdamW(
-            model.parameters(),
+            optimizer_groups,
             lr=config.optimization.learning_rate,
             weight_decay=config.optimization.weight_decay,
         )
@@ -221,6 +235,7 @@ def _run_training_impl(
                 epoch=epoch,
                 global_step=global_step,
                 metrics=record,
+                visual_freeze_state=train_result["visual_freeze"],
             )
             metric = float(eval_metrics["validation_window_macro_f1"])
             if metric > best_metric:
@@ -237,6 +252,7 @@ def _run_training_impl(
                     epoch=epoch,
                     global_step=global_step,
                     metrics=record,
+                    visual_freeze_state=train_result["visual_freeze"],
                 )
             else:
                 stale_epochs += 1
@@ -281,6 +297,7 @@ def _run_training_impl(
             preprocessing_state,
             preprocessing_status,
             session.identity.to_payload(),
+            optimizer_group_contract,
         )
     _write_json_atomic(output_dir / "run_audit.json", audit)
     return audit
@@ -304,6 +321,11 @@ def _train_epoch(
     """Run deterministic mini-batches and preserve sample weights as a mask/weight channel."""
 
     model.train()
+    visual_freeze = configure_visual_train_stage(
+        model,
+        config.model,
+        epoch=epoch,
+    )
     rng = np.random.default_rng(config.optimization.seed + epoch)
     ordered = rng.permutation(indices)
     if config.execution.mode == "smoke":
@@ -353,6 +375,8 @@ def _train_epoch(
         "train_loss_first": losses[0],
         "train_loss_last": losses[-1],
         "train_steps": len(losses),
+        "visual_freeze": visual_freeze,
+        "optimizer_groups": optimizer_group_report(optimizer),
     }, global_step
 
 
@@ -490,6 +514,7 @@ def _run_audit(
     preprocessing_state: FoldPreprocessingState,
     preprocessing_status: str,
     run_identity: dict[str, Any],
+    optimizer_group_contract: dict[str, Any],
 ) -> dict[str, Any]:
     config_payload = training_config_to_jsonable(config)
     git = _git_state()
@@ -520,6 +545,11 @@ def _run_audit(
         "model_parameter_count": int(
             sum(parameter.numel() for parameter in model.parameters())
         ),
+        "visual_freeze_schedule": visual_freeze_schedule_payload(
+            config.model,
+            total_epochs=config.optimization.epochs,
+        ),
+        "optimizer_group_contract": optimizer_group_contract,
         "label_order": list(VALID_BEHAVIORS),
         "feature_whitelist": list(config.model.spatial_feature_groups),
         "normalization_imputation": "bound_to_trainer_contract_and_snapshot",
