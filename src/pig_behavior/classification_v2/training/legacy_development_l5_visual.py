@@ -43,6 +43,7 @@ GIB = 1024**3
 GPU_CONTROL_IDS = ("V0", "V1", "V2")
 EXPECTED_GPU_GIB = 4
 VRAM_CAP_FRACTION = 0.7
+MAX_WINDOWS_WEIGHT_FILE_PATH_CHARS = 210
 
 _WEIGHT_ENUMS: dict[str, Any] = {
     "ResNet18_Weights.IMAGENET1K_V1": ResNet18_Weights.IMAGENET1K_V1,
@@ -106,9 +107,9 @@ def prepare_legacy_l5_pretrained_weights(
     readiness = _read_json(readiness_audit_path)
     _validate_readiness_parent(config, readiness)
     cache_root = weight_cache_root.resolve()
-    l5_root = config.l5_output_root.resolve()
-    if not cache_root.is_relative_to(l5_root):
-        raise ValueError("legacy L5 weight cache must stay under its output root")
+    development_root = config.development_root.resolve()
+    if not cache_root.is_relative_to(development_root):
+        raise ValueError("legacy L5 weight cache must stay under its lane root")
     hub_dir = cache_root / "hub"
     checkpoint_dir = hub_dir / "checkpoints"
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
@@ -123,6 +124,7 @@ def prepare_legacy_l5_pretrained_weights(
         enum = _weight_enum(control.pretrained_weight_enum)
         filename, expected_prefix = _weight_filename_and_prefix(enum.url)
         path = checkpoint_dir / filename
+        _validate_windows_weight_path(path)
         existed_before = path.is_file()
         if not existed_before and not allow_download:
             errors.append(
@@ -193,6 +195,9 @@ def prepare_legacy_l5_pretrained_weights(
         "torchvision_version": torchvision.__version__,
         "weight_cache_root": str(cache_root),
         "torch_hub_dir": str(hub_dir),
+        "windows_weight_file_path_limit_chars": (
+            MAX_WINDOWS_WEIGHT_FILE_PATH_CHARS
+        ),
         "network_download_allowed": bool(allow_download),
         "pretrained_weight_downloads": sum(
             int(report.get("downloaded_now", False))
@@ -232,6 +237,14 @@ def _weight_filename_and_prefix(url: str) -> tuple[str, str]:
     if not filename or match is None:
         raise ValueError(f"unhashable torchvision weight URL: {url}")
     return filename, match.group(1)
+
+
+def _validate_windows_weight_path(path: Path) -> None:
+    if os.name == "nt" and len(str(path)) > MAX_WINDOWS_WEIGHT_FILE_PATH_CHARS:
+        raise ValueError(
+            "legacy L5 pretrained-weight path is unsafe for Windows partial "
+            f"files: {len(str(path))}>{MAX_WINDOWS_WEIGHT_FILE_PATH_CHARS}"
+        )
 
 
 def _cached_weight_report(
@@ -775,8 +788,8 @@ def _validate_weights_parent(
     _require_parent(weights, expected, "pretrained weights")
     cache_root = Path(str(weights["weight_cache_root"])).resolve()
     hub_dir = Path(str(weights["torch_hub_dir"])).resolve()
-    if not cache_root.is_relative_to(config.l5_output_root.resolve()):
-        raise ValueError("legacy L5 pretrained-weight root escaped its output")
+    if not cache_root.is_relative_to(config.development_root.resolve()):
+        raise ValueError("legacy L5 pretrained-weight root escaped its lane")
     if hub_dir != cache_root / "hub":
         raise ValueError("legacy L5 torch hub path drift")
     checkpoint_root = hub_dir / "checkpoints"
@@ -788,6 +801,7 @@ def _validate_weights_parent(
             raise ValueError(
                 f"legacy L5 weight artifact escaped checkpoint root: {name}"
             )
+        _validate_windows_weight_path(path)
 
 
 def _require_parent(

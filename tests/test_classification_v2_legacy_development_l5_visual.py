@@ -3,9 +3,11 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+import os
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 from pig_behavior.classification_v2.training.legacy_development_l5 import (
     LegacyL5Config,
@@ -13,10 +15,12 @@ from pig_behavior.classification_v2.training.legacy_development_l5 import (
 )
 from pig_behavior.classification_v2.training.legacy_development_l5_visual import (
     GIB,
+    MAX_WINDOWS_WEIGHT_FILE_PATH_CHARS,
     _cached_weight_report,
     _device_preflight_errors,
     _load_probe_sample,
     _spread_rows,
+    _validate_windows_weight_path,
     _vram_budget_bytes,
     _weight_filename_and_prefix,
     legacy_l5_visual_probe_controls,
@@ -48,6 +52,15 @@ def test_legacy_l5_weight_filename_binds_torchvision_hash_prefix() -> None:
 
     assert filename == "resnet18-f37072fd.pth"
     assert prefix == "f37072fd"
+
+
+def test_legacy_l5_weight_path_fails_before_windows_partial_overflow() -> None:
+    if os.name != "nt":
+        pytest.skip("Windows path guard")
+    unsafe = Path("C:/") / ("x" * MAX_WINDOWS_WEIGHT_FILE_PATH_CHARS)
+
+    with pytest.raises(ValueError, match="unsafe for Windows partial"):
+        _validate_windows_weight_path(unsafe)
 
 
 def test_legacy_l5_cached_weight_report_checks_full_digest(tmp_path: Path) -> None:
@@ -187,7 +200,7 @@ def test_legacy_l5_weight_prepare_without_permission_never_downloads(
     result = prepare_legacy_l5_pretrained_weights(
         config,
         readiness_audit_path=readiness_path,
-        weight_cache_root=config.l5_output_root / "pretrained_weight_cache",
+        weight_cache_root=config.development_root / ".torch_l5",
         allow_download=False,
     )
 
