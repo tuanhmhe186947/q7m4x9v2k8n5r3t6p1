@@ -1,5 +1,36 @@
 # Workflow
 
+## One engine, two current profiles
+
+Do not maintain an independent 16-frame feature pipeline. Both profiles must
+reuse the same source, context, geometry, ROI, motion, social, posture,
+harmonization, cache, fold, and training implementations:
+
+```text
+canonical classification_v2 engine
+  + legacy-only-unreviewed-development profile
+      -> legacy source only
+      -> explicit review waiver
+      -> T6/T8/T12/T16 inside each native 16-frame burst
+      -> isolated development artifacts and claims
+  + mixed-reviewed profile
+      -> legacy plus CVAT
+      -> Hidden and behavior review required by the active Q2 protocol
+      -> fixed6_observed_time primary view
+      -> reviewed final artifacts after all gates pass
+```
+
+Review is a profile-level scientific policy, not an unavoidable code-path
+dependency. A user-authorized exploratory profile may bypass human review only
+when its manifests and outputs explicitly remain unreviewed. The current
+mixed-source Q2 lineage is review-required and stays blocked until both review
+layers pass; this does not block the separate legacy development profile.
+
+Run the legacy L0-L8 scoped goal in a new chat. On completion, write and verify
+its immutable handback audit, return to the original chat, and resume the
+parent mixed-source P0-P8 goal. Never treat legacy completion as parent-goal
+completion.
+
 ## Reviewed-data rebuild gate
 
 For a new `classification_v2` data lineage, follow

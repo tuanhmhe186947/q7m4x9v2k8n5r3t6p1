@@ -1,5 +1,26 @@
 # Project Memory Short
 
+## 2026-07-14 one canonical engine and explicit review profiles
+
+- Legacy-only development and mixed-source reviewed data use one canonical
+  data engine. Context, geometry, ROI, motion, social, posture, temporal
+  harmonization, cache, fold, and training modules must not be forked or
+  copied for the 16-frame lane.
+- `legacy-only-unreviewed-development` is a profile over that engine: select
+  only `legacy_recovered`, record an explicit human-review waiver, build
+  `T6/T8/T12/T16` views inside each 16-frame burst, and isolate outputs,
+  hashes, metrics, and claims.
+- `mixed-reviewed` selects legacy plus CVAT, requires both review layers under
+  the currently frozen Q2 protocol, and uses `fixed6_observed_time` as the
+  primary model view. Native units remain legacy 16-frame and CVAT 6-frame.
+- Human review is not a universal technical prerequisite for every exploratory
+  run. It is mandatory for artifacts called reviewed/final and for the active
+  mixed-source Q2 lineage. A waived profile must remain visibly unreviewed and
+  cannot inherit reviewed or Q2 authorization.
+- Complete the scoped legacy L0-L8 goal in a new chat, emit the immutable
+  handback audit, then return to the original chat and resume the blocked
+  parent P0-P8 goal. Legacy completion never completes the parent implicitly.
+
 ## 2026-07-14 exact legacy temporal model inputs
 
 - Commit `21b34fd` binds eight explicit legacy model views: `T6`, `T8`,

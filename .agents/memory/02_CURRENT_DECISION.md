@@ -8,6 +8,40 @@ sections are historical records. Current gate status is centralized in
 
 ## Active decision: reviewed-data rebuild
 
+### Canonical engine and review-policy boundary
+
+There is one `classification_v2` data engine, not separate legacy and mixed
+implementations. The legacy 16-frame lane differs only by source-selection,
+review policy, temporal-view config, output namespace, lineage, and claim
+flags. It must call the same canonical feature and harmonization modules.
+
+The two current profiles are:
+
+```text
+legacy-only-unreviewed-development:
+  sources = legacy_recovered
+  review_policy = explicitly_waived_for_development
+  temporal_views = T6/T8/T12/T16 within each native 16-frame burst
+
+mixed-reviewed:
+  sources = legacy_recovered + cvat_tracking_xml
+  review_policy = required_by_current_Q2_protocol
+  primary_temporal_view = fixed6_observed_time
+```
+
+Human review is configurable at the engine level. It is not an absolute
+technical requirement for exploratory training when the user explicitly
+accepts an unreviewed lineage. It is nevertheless a hard scientific gate for
+the active `mixed-reviewed` snapshot, final/reviewed naming, and Q2 evidence.
+Skipping it requires a new explicit unreviewed profile; it must never silently
+convert incomplete decisions into authorization.
+
+The separate legacy goal exists to isolate progress, artifacts, metrics, and
+claims while the parent mixed-source goal is blocked. It is not permission to
+duplicate context, ROI, motion, social, posture, or harmonization code. After
+L0-L8 complete in the new chat, return its hash-bound handback to this original
+chat and resume the parent P0-P8 goal.
+
 The user grants standing authorization for a full data or model run when it is
 necessary for the current milestone. Do not ask again solely because the run is
 full or long. Every new lineage must first pass static/synthetic checks, the
