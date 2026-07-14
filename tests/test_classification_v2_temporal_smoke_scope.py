@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import pandas as pd
+import pytest
 
 from pig_behavior.classification_v2.datasets.temporal_smoke_scope import (
     TemporalSmokeScopeConfig,
     select_temporal_smoke_scope,
 )
+
+LEGACY_DEVELOPMENT_SCOPE = "legacy-only-unreviewed-development"
 
 
 def _legacy_block(
@@ -142,3 +145,79 @@ def test_smoke_scope_supports_explicit_legacy_only_contract() -> None:
     assert audit["selected_block_counts"] == {"legacy_recovered": 1}
     assert set(selected["source_type"]) == {"legacy_recovered"}
     assert len(selected) == 32
+
+
+def test_smoke_scope_attaches_explicit_claim_pair() -> None:
+    frames = pd.DataFrame(
+        _legacy_block("legacy-claimed", {"ID_1": "stand"})
+    )
+
+    selected, audit = select_temporal_smoke_scope(
+        frames,
+        config=TemporalSmokeScopeConfig(
+            blocks_per_source=1,
+            required_sources=("legacy_recovered",),
+            lineage_scope=LEGACY_DEVELOPMENT_SCOPE,
+            human_review_complete=False,
+        ),
+    )
+
+    assert selected["lineage_scope"].eq(LEGACY_DEVELOPMENT_SCOPE).all()
+    assert selected["human_review_complete"].eq(False).all()
+    assert audit["lineage_scope"] == LEGACY_DEVELOPMENT_SCOPE
+    assert audit["human_review_complete"] is False
+
+
+@pytest.mark.parametrize(
+    ("lineage_scope", "human_review_complete"),
+    [
+        (LEGACY_DEVELOPMENT_SCOPE, None),
+        (None, False),
+        ("", False),
+        (LEGACY_DEVELOPMENT_SCOPE, "false"),
+    ],
+)
+def test_smoke_scope_rejects_invalid_configured_claim_pair(
+    lineage_scope: object,
+    human_review_complete: object,
+) -> None:
+    frames = pd.DataFrame(
+        _legacy_block("legacy-invalid-claim", {"ID_1": "stand"})
+    )
+
+    with pytest.raises(ValueError):
+        select_temporal_smoke_scope(
+            frames,
+            config=TemporalSmokeScopeConfig(
+                blocks_per_source=1,
+                required_sources=("legacy_recovered",),
+                lineage_scope=lineage_scope,
+                human_review_complete=human_review_complete,
+            ),
+        )
+
+
+def test_smoke_scope_rejects_partial_or_dirty_input_claims() -> None:
+    frames = pd.DataFrame(
+        _legacy_block("legacy-dirty-claim", {"ID_1": "stand"})
+    )
+    frames["lineage_scope"] = LEGACY_DEVELOPMENT_SCOPE
+
+    with pytest.raises(ValueError, match="partial lineage claims"):
+        select_temporal_smoke_scope(
+            frames,
+            config=TemporalSmokeScopeConfig(
+                blocks_per_source=1,
+                required_sources=("legacy_recovered",),
+            ),
+        )
+
+    frames["human_review_complete"] = "yes"
+    with pytest.raises(ValueError, match="invalid human_review_complete"):
+        select_temporal_smoke_scope(
+            frames,
+            config=TemporalSmokeScopeConfig(
+                blocks_per_source=1,
+                required_sources=("legacy_recovered",),
+            ),
+        )

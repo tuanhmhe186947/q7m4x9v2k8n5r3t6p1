@@ -9,6 +9,10 @@ from pathlib import Path
 
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.lineage_claims import (
+    LINEAGE_CLAIM_COLUMNS,
+    resolve_optional_lineage_claims,
+)
 from pig_behavior.classification_v2.contracts.output_safety import (
     require_output_paths_available,
 )
@@ -147,6 +151,8 @@ def _can_reuse_window_structure(df: pd.DataFrame, args: argparse.Namespace) -> b
     if args.disable_fast_reuse:
         return False
     if args.max_rows is not None:
+        return False
+    if set(LINEAGE_CLAIM_COLUMNS).intersection(df.columns):
         return False
     if "review_include_in_training" not in df.columns:
         return False
@@ -383,6 +389,8 @@ def _try_fast_reviewed_rebuild(args: argparse.Namespace) -> bool:
 
     header = pd.read_csv(args.input_csv, nrows=0)
     columns = set(header.columns)
+    if set(LINEAGE_CLAIM_COLUMNS).intersection(columns):
+        return False
     if "review_include_in_training" not in columns:
         return False
 
@@ -567,6 +575,10 @@ def main() -> None:
 
     temporal_audit = audit_temporal_harmonization(harmonized, intervals)
     window_audit = audit_sequence_windows(windows, intervals)
+    claims = resolve_optional_lineage_claims(
+        harmonized,
+        artifact_name="sequence build output frames",
+    )
     audit = {
         "input_csv": str(args.input_csv),
         "harmonized_frame_csv": str(harmonized_csv),
@@ -599,6 +611,8 @@ def main() -> None:
         "errors": temporal_audit.get("errors", []) + window_audit.get("errors", []),
         "warnings": temporal_audit.get("warnings", []) + window_audit.get("warnings", []),
     }
+    if claims is not None:
+        audit.update(claims.as_dict())
     _fail_if_audit_has_errors(audit, audit_json)
 
     harmonized.to_csv(harmonized_csv, index=False)

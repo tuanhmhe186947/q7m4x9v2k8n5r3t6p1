@@ -14,6 +14,9 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.lineage_claims import (
+    resolve_optional_lineage_claims,
+)
 from pig_behavior.classification_v2.contracts.temporal_tier_contract import (
     DEFAULT_TEMPORAL_TIERS,
     LEGACY_TEMPORAL_MODEL_VIEW_SPECS,
@@ -25,7 +28,7 @@ LEGACY_SOURCE = "legacy_recovered"
 LEGACY_NATIVE_LENGTH = 16
 LEGACY_DEVELOPMENT_SCOPE = "legacy-only-unreviewed-development"
 LEGACY_DEVELOPMENT_SCHEMA_VERSION = (
-    "classification_v2.legacy_unreviewed_development.v2"
+    "classification_v2.legacy_unreviewed_development.v3"
 )
 DEFAULT_LEGACY_WINDOW_STRIDE = 3
 
@@ -54,6 +57,13 @@ def build_legacy_unreviewed_development_manifests(
 ) -> LegacyUnreviewedDevelopmentTables:
     """Build native-unit and temporal-tier manifests without review fiction."""
 
+    for name, frame in {
+        "source_frames": source_frames,
+        "harmonized_frames": harmonized_frames,
+        "intervals": intervals,
+        "windows": windows,
+    }.items():
+        _require_legacy_development_claims(frame, name)
     _validate_tier_parameters(temporal_tiers, legacy_window_stride)
     source_units, source_audit = _build_source_unit_manifest(source_frames)
     frame_units, frame_audit = _build_harmonized_unit_summary(
@@ -138,6 +148,25 @@ def build_legacy_unreviewed_development_manifests(
         temporal_slot_manifests=slot_manifests,
         audit=audit,
     )
+
+
+def _require_legacy_development_claims(
+    frame: pd.DataFrame,
+    name: str,
+) -> None:
+    """Reject inputs that omit or contradict this unreviewed lane."""
+
+    claims = resolve_optional_lineage_claims(
+        frame,
+        artifact_name=name,
+    )
+    if claims is None:
+        raise ValueError(f"{name} is missing lineage claims")
+    if (
+        claims.lineage_scope != LEGACY_DEVELOPMENT_SCOPE
+        or claims.human_review_complete
+    ):
+        raise ValueError(f"{name} has invalid legacy development claims")
 
 
 def _build_source_unit_manifest(

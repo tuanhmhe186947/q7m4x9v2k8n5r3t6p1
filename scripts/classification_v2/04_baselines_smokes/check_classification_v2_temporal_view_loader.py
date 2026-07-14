@@ -9,8 +9,16 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.lineage_claims import (
+    LINEAGE_CLAIM_COLUMNS,
+    LineageClaims,
+    resolve_optional_lineage_claims,
+)
 from pig_behavior.classification_v2.contracts.temporal_tier_contract import (
     LEGACY_TEMPORAL_MODEL_VIEW_SPECS,
+)
+from pig_behavior.classification_v2.datasets.legacy_unreviewed_development import (
+    LEGACY_DEVELOPMENT_SCOPE,
 )
 from pig_behavior.classification_v2.training.temporal_view_loader import (
     load_temporal_view_tensors,
@@ -42,6 +50,9 @@ def main() -> None:
         real_packet = run_legacy_tier_loader_audit(args.legacy_tier_root)
         result["legacy_tier_real_packet"] = real_packet
         result["errors"].extend(real_packet["errors"])
+        for column in LINEAGE_CLAIM_COLUMNS:
+            if column in real_packet:
+                result[column] = real_packet[column]
         result["valid"] = not result["errors"]
     if not args.dry_run:
         args.output_json.parent.mkdir(parents=True, exist_ok=True)
@@ -122,6 +133,11 @@ def run_legacy_tier_loader_audit(root: Path) -> dict[str, Any]:
         window_ids = pd.Series(dtype="object")
     else:
         window_ids = selection["window_id"]
+    claims = _legacy_packet_claims(
+        selection,
+        artifact_name="legacy tier selection manifest",
+        errors=errors,
+    )
 
     for view_name, spec in LEGACY_TEMPORAL_MODEL_VIEW_SPECS.items():
         selection_column = str(spec["selection_column"])
@@ -131,6 +147,11 @@ def run_legacy_tier_loader_audit(root: Path) -> dict[str, Any]:
             errors.append(f"{view_name}:missing_selection_column")
             continue
         try:
+            manifest_claims = _read_manifest_claims(manifest_path)
+            if claims is None or manifest_claims != claims:
+                raise ValueError(
+                    "slot manifest lineage claims do not match selection"
+                )
             selected = _strict_bool_mask(
                 selection[selection_column],
                 selection_column,
@@ -187,12 +208,16 @@ def run_legacy_tier_loader_audit(root: Path) -> dict[str, Any]:
                 "selected_observed": selected_observed,
                 "unselected_masks_clear": unselected_masks_clear,
                 "manifest_sha256": tensors.audit["sha256"],
+                "lineage_scope": manifest_claims.lineage_scope,
+                "human_review_complete": (
+                    manifest_claims.human_review_complete
+                ),
             }
         except (FileNotFoundError, ValueError) as exc:
             errors.append(f"{view_name}:{type(exc).__name__}:{exc}")
 
-    return {
-        "schema_version": "classification_v2.legacy_tier_loader_audit.v1",
+    result = {
+        "schema_version": "classification_v2.legacy_tier_loader_audit.v2",
         "root": str(root),
         "selection_path": str(selection_path),
         "window_universe_rows": int(len(selection)),
@@ -204,6 +229,54 @@ def run_legacy_tier_loader_audit(root: Path) -> dict[str, Any]:
         "errors": errors,
         "valid": not errors,
     }
+    if claims is not None:
+        result.update(claims.as_dict())
+    return result
+
+
+def _legacy_packet_claims(
+    frame: pd.DataFrame,
+    *,
+    artifact_name: str,
+    errors: list[str],
+) -> LineageClaims | None:
+    """Resolve and enforce the exact unreviewed-development packet claim."""
+
+    try:
+        claims = resolve_optional_lineage_claims(
+            frame,
+            artifact_name=artifact_name,
+        )
+    except ValueError as exc:
+        errors.append(f"lineage_claim_contract={exc}")
+        return None
+    if claims is None:
+        errors.append(f"lineage_claim_contract={artifact_name} missing claims")
+        return None
+    if (
+        claims.lineage_scope != LEGACY_DEVELOPMENT_SCOPE
+        or claims.human_review_complete
+    ):
+        errors.append(f"lineage_claim_contract={artifact_name} invalid claims")
+        return None
+    return claims
+
+
+def _read_manifest_claims(path: Path) -> LineageClaims:
+    """Read and validate only the claim columns from one slot manifest."""
+
+    frame = pd.read_csv(
+        path,
+        usecols=list(LINEAGE_CLAIM_COLUMNS),
+        low_memory=False,
+    )
+    claims = resolve_optional_lineage_claims(
+        frame,
+        artifact_name=str(path),
+    )
+    if claims is None:
+        raise ValueError(f"{path} is missing lineage claims")
+    return claims
 
 
 def _strict_bool_mask(series: pd.Series, name: str) -> np.ndarray:

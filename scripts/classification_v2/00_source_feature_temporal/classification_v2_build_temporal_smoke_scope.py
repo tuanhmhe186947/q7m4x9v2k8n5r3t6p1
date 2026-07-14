@@ -27,6 +27,19 @@ def _parse_required_sources(value: str) -> tuple[str, ...]:
     return sources
 
 
+def _parse_strict_boolean(value: str) -> bool:
+    """Accept only explicit true/false claim values."""
+
+    normalized = value.strip().lower()
+    if normalized == "true":
+        return True
+    if normalized == "false":
+        return False
+    raise argparse.ArgumentTypeError(
+        "human review completion must be exactly true or false"
+    )
+
+
 def parse_args() -> argparse.Namespace:
     """Parse versioned smoke paths and source-unit contract settings."""
 
@@ -50,6 +63,23 @@ def parse_args() -> argparse.Namespace:
             "Use legacy_recovered for the isolated legacy lane."
         ),
     )
+    parser.add_argument(
+        "--lineage-scope",
+        default=None,
+        help=(
+            "Optional nonblank artifact claim. It must be paired with "
+            "--human-review-complete."
+        ),
+    )
+    parser.add_argument(
+        "--human-review-complete",
+        type=_parse_strict_boolean,
+        default=None,
+        help=(
+            "Optional strict true/false claim. It must be paired with "
+            "--lineage-scope."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -69,6 +99,8 @@ def main() -> None:
                 args.legacy_expected_sequence_length
             ),
             required_sources=args.required_sources,
+            lineage_scope=args.lineage_scope,
+            human_review_complete=args.human_review_complete,
         ),
     )
     audit["input_csv"] = str(args.input_csv)

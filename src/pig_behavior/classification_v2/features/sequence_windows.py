@@ -17,6 +17,12 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.lineage_claims import (
+    add_optional_lineage_claims_to_audit,
+    attach_optional_lineage_claims,
+    require_lineage_claims_preserved,
+    resolve_optional_lineage_claims,
+)
 from pig_behavior.classification_v2.features.temporal_evidence import (
     WINDOW_TEMPORAL_EVIDENCE_COLUMNS,
     TemporalEvidenceConfig,
@@ -111,6 +117,10 @@ def build_sequence_windows(
     -------
     harmonized_frames, temporal_intervals, sequence_windows
     """
+    claims = resolve_optional_lineage_claims(
+        frame_features,
+        artifact_name="sequence window input",
+    )
     config = SequenceWindowConfig(
         window_lengths=tuple(int(w) for w in window_lengths),
         legacy_window_stride=legacy_window_stride,
@@ -141,6 +151,13 @@ def build_sequence_windows(
     )
     intervals = build_temporal_label_intervals(harmonized, config=interval_config)
     windows = _build_windows_from_harmonized(harmonized, intervals, config)
+    windows = attach_optional_lineage_claims(windows, claims)
+    require_lineage_claims_preserved(
+        frame_features,
+        windows,
+        source_name="sequence window input",
+        derived_name="sequence window output",
+    )
     return harmonized, intervals, windows
 
 
@@ -198,7 +215,7 @@ def audit_sequence_windows(
     else:
         warnings.append("no_sequence_windows_generated")
 
-    return {
+    audit = {
         "window_rows": int(len(windows)),
         "temporal_intervals": int(len(intervals)) if intervals is not None else None,
         "sources": _value_counts_dict(windows, "source_type"),
@@ -234,6 +251,22 @@ def audit_sequence_windows(
         "errors": errors,
         "warnings": warnings,
     }
+    audit = add_optional_lineage_claims_to_audit(
+        audit,
+        windows,
+        artifact_name="sequence window audit table",
+    )
+    if intervals is not None:
+        try:
+            require_lineage_claims_preserved(
+                intervals,
+                windows,
+                source_name="sequence window audit intervals",
+                derived_name="sequence window audit windows",
+            )
+        except ValueError as exc:
+            audit["errors"].append(f"lineage_claim_contract={exc}")
+    return audit
 
 
 def _build_windows_from_harmonized(

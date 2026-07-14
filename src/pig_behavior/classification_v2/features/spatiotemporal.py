@@ -31,6 +31,11 @@ import numpy as np
 import pandas as pd
 
 from pig_behavior.classification_v2.contracts.identifiers import scene_frame_key
+from pig_behavior.classification_v2.contracts.lineage_claims import (
+    add_optional_lineage_claims_to_audit,
+    require_lineage_claims_preserved,
+    resolve_optional_lineage_claims,
+)
 from pig_behavior.classification_v2.features.context_policy import (
     normalize_hidden_provenance,
 )
@@ -179,6 +184,10 @@ def build_enhanced_spatiotemporal_features(
     The returned dataframe has the same number of rows and keeps all original
     columns. New columns are appended.
     """
+    resolve_optional_lineage_claims(
+        frame_features,
+        artifact_name="enhanced spatiotemporal input",
+    )
     config = EnhancedFeatureConfig(
         cvat_label_stride=cvat_label_stride,
         legacy_expected_sequence_length=legacy_expected_sequence_length,
@@ -209,6 +218,12 @@ def build_enhanced_spatiotemporal_features(
     )
     out = _add_review_helper_columns(out)
 
+    require_lineage_claims_preserved(
+        frame_features,
+        out,
+        source_name="enhanced spatiotemporal input",
+        derived_name="enhanced spatiotemporal output",
+    )
     return out
 
 
@@ -271,7 +286,7 @@ def audit_enhanced_spatiotemporal_features(df: pd.DataFrame) -> dict[str, Any]:
             f"{feature_valid_count.get('False', 0)}"
         )
 
-    return {
+    audit = {
         "rows": int(len(df)),
         "frames": int(scene_frame_key(df).nunique(dropna=True)),
         "frame_objects": int(df["frame_uid"].nunique(dropna=True))
@@ -339,6 +354,11 @@ def audit_enhanced_spatiotemporal_features(df: pd.DataFrame) -> dict[str, Any]:
         "errors": errors,
         "warnings": warnings,
     }
+    return add_optional_lineage_claims_to_audit(
+        audit,
+        df,
+        artifact_name="enhanced spatiotemporal audit frame table",
+    )
 
 
 def _normalize_basic_columns(df: pd.DataFrame) -> pd.DataFrame:

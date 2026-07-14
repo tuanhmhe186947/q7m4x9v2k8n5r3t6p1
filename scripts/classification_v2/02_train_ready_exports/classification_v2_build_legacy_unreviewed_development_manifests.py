@@ -8,6 +8,10 @@ from pathlib import Path
 
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.lineage_claims import (
+    LINEAGE_CLAIM_COLUMNS,
+    resolve_optional_lineage_claims,
+)
 from pig_behavior.classification_v2.contracts.output_safety import (
     require_output_paths_available,
 )
@@ -32,6 +36,7 @@ SOURCE_COLUMNS = [
     "include_in_training",
     "use_for_main_eval",
     "hidden",
+    *LINEAGE_CLAIM_COLUMNS,
 ]
 
 HARMONIZED_COLUMNS = [
@@ -49,6 +54,7 @@ HARMONIZED_COLUMNS = [
     "spatiotemporal_feature_valid",
     "include_in_training",
     "use_for_main_eval",
+    *LINEAGE_CLAIM_COLUMNS,
 ]
 
 INTERVAL_COLUMNS = [
@@ -70,6 +76,7 @@ INTERVAL_COLUMNS = [
     "bbox_valid_ratio_interval",
     "hidden_ratio_interval",
     "spatiotemporal_feature_valid_ratio_interval",
+    *LINEAGE_CLAIM_COLUMNS,
 ]
 
 WINDOW_COLUMNS = [
@@ -85,6 +92,7 @@ WINDOW_COLUMNS = [
     "num_temporal_units_window",
     "behavior_window_label",
     "window_valid_for_main_train",
+    *LINEAGE_CLAIM_COLUMNS,
 ]
 
 
@@ -162,6 +170,22 @@ def _read_columns(path: Path, columns: list[str], name: str) -> pd.DataFrame:
     return pd.read_csv(path, usecols=columns, low_memory=False)
 
 
+def _require_legacy_claims(frame: pd.DataFrame, name: str) -> None:
+    """Require the exact unreviewed-development claim on every input."""
+
+    claims = resolve_optional_lineage_claims(
+        frame,
+        artifact_name=name,
+    )
+    if claims is None:
+        raise ValueError(f"{name} is missing lineage claims")
+    if (
+        claims.lineage_scope != LEGACY_DEVELOPMENT_SCOPE
+        or claims.human_review_complete
+    ):
+        raise ValueError(f"{name} has invalid legacy development claims")
+
+
 def main() -> None:
     """Write hash-bound manifests after all in-memory contracts pass."""
 
@@ -193,6 +217,13 @@ def main() -> None:
         WINDOW_COLUMNS,
         "window_manifest",
     )
+    for name, frame in {
+        "source_reference": source,
+        "harmonized_frames": harmonized,
+        "intervals": intervals,
+        "window_manifest": windows,
+    }.items():
+        _require_legacy_claims(frame, name)
     tables = build_legacy_unreviewed_development_manifests(
         source,
         harmonized,

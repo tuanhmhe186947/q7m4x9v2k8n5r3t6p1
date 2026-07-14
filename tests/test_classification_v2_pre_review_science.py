@@ -3,9 +3,16 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from pig_behavior.classification_v2.features.context_policy import apply_context_policy
-from pig_behavior.classification_v2.features.sequence_windows import build_sequence_windows
+from pig_behavior.classification_v2.features.context_policy import (
+    apply_context_policy,
+    audit_context_policy,
+)
+from pig_behavior.classification_v2.features.sequence_windows import (
+    audit_sequence_windows,
+    build_sequence_windows,
+)
 from pig_behavior.classification_v2.features.temporal_harmonization import (
+    audit_temporal_harmonization,
     build_temporal_label_intervals,
     harmonize_temporal_labels,
 )
@@ -82,6 +89,37 @@ def test_legacy_native_unit_is_exact_constant_sixteen_frame_burst() -> None:
     assert interval["label_window_end"] == 115
     assert interval["behavior_temporal_final"] == "lying"
     assert bool(interval["temporal_interval_complete"]) is True
+
+
+def test_lineage_claims_reach_frame_interval_window_and_audits() -> None:
+    scope = "legacy-only-unreviewed-development"
+    frames = _frame_rows(
+        "legacy_recovered",
+        list(range(16)),
+        ["stand"] * 16,
+    )
+    frames["lineage_scope"] = scope
+    frames["human_review_complete"] = False
+
+    context = apply_context_policy(frames)
+    harmonized, intervals, windows = build_sequence_windows(
+        context,
+        window_lengths=[6, 8, 12, 16],
+    )
+
+    for table in (context, harmonized, intervals, windows):
+        assert table["lineage_scope"].eq(scope).all()
+        assert table["human_review_complete"].eq(False).all()
+
+    audits = (
+        audit_context_policy(context),
+        audit_temporal_harmonization(harmonized, intervals),
+        audit_sequence_windows(windows, intervals),
+    )
+    for audit in audits:
+        assert audit["errors"] == []
+        assert audit["lineage_scope"] == scope
+        assert audit["human_review_complete"] is False
 
 
 def test_untrusted_cvat_hidden_is_audited_but_not_used_as_effective_hidden() -> None:

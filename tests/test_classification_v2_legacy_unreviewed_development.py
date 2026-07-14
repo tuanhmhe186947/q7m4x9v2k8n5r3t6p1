@@ -138,12 +138,16 @@ def _fixture_tables() -> tuple[
                         "window_valid_for_main_train": True,
                     }
                 )
-    return (
+    tables = (
         pd.DataFrame(source_rows),
         pd.DataFrame(harmonized_rows),
         pd.DataFrame(interval_rows),
         pd.DataFrame(window_rows),
     )
+    for table in tables:
+        table["lineage_scope"] = LEGACY_DEVELOPMENT_SCOPE
+        table["human_review_complete"] = False
+    return tables
 
 
 def test_builds_balanced_and_matched_temporal_tiers(tmp_path: Path) -> None:
@@ -227,6 +231,28 @@ def test_builds_balanced_and_matched_temporal_tiers(tmp_path: Path) -> None:
         assert np.isnan(tensors.time_delta[~selected_mask]).all()
 
 
+def test_rejects_missing_or_contradictory_input_claims() -> None:
+    source, harmonized, intervals, windows = _fixture_tables()
+    source = source.drop(columns=["human_review_complete"])
+    with pytest.raises(ValueError, match="partial lineage claims"):
+        build_legacy_unreviewed_development_manifests(
+            source,
+            harmonized,
+            intervals,
+            windows,
+        )
+
+    source, harmonized, intervals, windows = _fixture_tables()
+    intervals["human_review_complete"] = True
+    with pytest.raises(ValueError, match="invalid legacy development claims"):
+        build_legacy_unreviewed_development_manifests(
+            source,
+            harmonized,
+            intervals,
+            windows,
+        )
+
+
 def test_real_tier_loader_audit_accepts_complete_packet(
     tmp_path: Path,
 ) -> None:
@@ -236,6 +262,8 @@ def test_real_tier_loader_audit_accepts_complete_packet(
 
     assert audit["valid"] is True
     assert audit["errors"] == []
+    assert audit["lineage_scope"] == LEGACY_DEVELOPMENT_SCOPE
+    assert audit["human_review_complete"] is False
     assert audit["window_universe_rows"] == len(selection)
     assert audit["loaded_view_count"] == 8
     for view in audit["views"].values():
@@ -266,6 +294,25 @@ def test_real_tier_loader_audit_rejects_dirty_selection_boolean(
     assert audit["loaded_view_count"] == 7
     assert any(
         error.startswith("legacy_t6_all_sliding_observed_time:ValueError")
+        for error in audit["errors"]
+    )
+
+
+def test_real_tier_loader_audit_rejects_claim_drift(
+    tmp_path: Path,
+) -> None:
+    selection = _write_temporal_tier_packet(tmp_path)
+    selection["human_review_complete"] = True
+    selection.to_csv(
+        tmp_path / "temporal_tier_selection_manifest.csv",
+        index=False,
+    )
+
+    audit = _LOADER_CHECKER.run_legacy_tier_loader_audit(tmp_path)
+
+    assert audit["valid"] is False
+    assert any(
+        error.startswith("lineage_claim_contract=")
         for error in audit["errors"]
     )
 

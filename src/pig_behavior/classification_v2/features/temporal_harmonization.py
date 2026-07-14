@@ -24,6 +24,12 @@ import numpy as np
 import pandas as pd
 
 from pig_behavior.classification_v2.contracts.identifiers import scene_frame_key
+from pig_behavior.classification_v2.contracts.lineage_claims import (
+    add_optional_lineage_claims_to_audit,
+    attach_optional_lineage_claims,
+    require_lineage_claims_preserved,
+    resolve_optional_lineage_claims,
+)
 from pig_behavior.classification_v2.features.context_policy import (
     normalize_hidden_provenance,
 )
@@ -90,6 +96,10 @@ def harmonize_temporal_labels(
     mutates the original ``behavior`` label. Downstream review/apply steps can
     later replace labels by writing ``behavior_train`` or similar columns.
     """
+    resolve_optional_lineage_claims(
+        frame_features,
+        artifact_name="temporal harmonization input",
+    )
     config = TemporalHarmonizationConfig(
         cvat_label_stride=cvat_label_stride,
         legacy_expected_sequence_length=legacy_expected_sequence_length,
@@ -110,6 +120,12 @@ def harmonize_temporal_labels(
     out = _map_interval_columns_to_frames(out, intervals)
     out = _add_interaction_policy_columns(out)
     out = _add_harmonization_quality_columns(out)
+    require_lineage_claims_preserved(
+        frame_features,
+        out,
+        source_name="temporal harmonization input",
+        derived_name="temporal harmonization output",
+    )
     return out
 
 
@@ -126,6 +142,10 @@ def build_temporal_label_intervals(
     :func:`harmonize_temporal_labels`. If temporal unit columns are missing, they
     are created first.
     """
+    claims = resolve_optional_lineage_claims(
+        harmonized_or_frame_features,
+        artifact_name="temporal interval input",
+    )
     if config is None:
         config = TemporalHarmonizationConfig(
             cvat_label_stride=cvat_label_stride,
@@ -310,13 +330,13 @@ def build_temporal_label_intervals(
 
     intervals = pd.DataFrame(rows)
     if intervals.empty:
-        return intervals
+        return attach_optional_lineage_claims(intervals, claims)
 
     intervals = attach_unit_evidence_to_intervals(intervals, df)
     intervals = _add_interaction_policy_columns(
         intervals, behavior_col="dominant_behavior_in_interval"
     )
-    return intervals.sort_values(
+    intervals = intervals.sort_values(
         [
             c
             for c in [
@@ -330,6 +350,14 @@ def build_temporal_label_intervals(
         ],
         kind="mergesort",
     ).reset_index(drop=True)
+    intervals = attach_optional_lineage_claims(intervals, claims)
+    require_lineage_claims_preserved(
+        harmonized_or_frame_features,
+        intervals,
+        source_name="temporal interval input",
+        derived_name="temporal interval output",
+    )
+    return intervals
 
 
 def audit_temporal_harmonization(
@@ -381,7 +409,7 @@ def audit_temporal_harmonization(
     else:
         interval_status = {}
 
-    return {
+    audit = {
         "rows": int(len(df)),
         "frames": int(scene_frame_key(df).nunique(dropna=True)),
         "frame_objects": int(df["frame_uid"].nunique(dropna=True))
@@ -403,6 +431,22 @@ def audit_temporal_harmonization(
         "errors": errors,
         "warnings": warnings,
     }
+    audit = add_optional_lineage_claims_to_audit(
+        audit,
+        df,
+        artifact_name="temporal harmonization audit frame table",
+    )
+    if intervals is not None:
+        try:
+            require_lineage_claims_preserved(
+                df,
+                intervals,
+                source_name="temporal harmonization audit frames",
+                derived_name="temporal harmonization audit intervals",
+            )
+        except ValueError as exc:
+            audit["errors"].append(f"lineage_claim_contract={exc}")
+    return audit
 
 
 def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:

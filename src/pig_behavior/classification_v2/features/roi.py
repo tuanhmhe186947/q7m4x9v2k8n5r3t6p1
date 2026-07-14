@@ -18,6 +18,11 @@ import numpy as np
 import pandas as pd
 
 from pig_behavior.classification_v2.contracts.identifiers import scene_frame_key
+from pig_behavior.classification_v2.contracts.lineage_claims import (
+    add_optional_lineage_claims_to_audit,
+    require_lineage_claims_preserved,
+    resolve_optional_lineage_claims,
+)
 from pig_behavior.classification_v2.schema import ROI_DOMINANT_BEHAVIORS
 
 ROI_CLASSES: tuple[str, ...] = ("feeder", "drinker", "toy")
@@ -148,6 +153,10 @@ def build_roi_features(
     contact_distance_n:
         Normalized bbox-to-ROI distance threshold for "contact".
     """
+    resolve_optional_lineage_claims(
+        frame_features,
+        artifact_name="ROI input",
+    )
     missing = [
         col for col in REQUIRED_ROI_INPUT_COLUMNS if col not in frame_features.columns
     ]
@@ -375,6 +384,12 @@ def build_roi_features(
         )
     )
 
+    require_lineage_claims_preserved(
+        frame_features,
+        out,
+        source_name="ROI input",
+        derived_name="ROI output",
+    )
     return out
 
 
@@ -425,7 +440,7 @@ def validate_roi_features(df: pd.DataFrame) -> dict[str, Any]:
     if required_invalid > 0:
         warnings.append(f"roi_required_invalid_count={required_invalid}")
 
-    return {
+    audit = {
         "rows": int(len(df)),
         "frames": int(scene_frame_key(df).nunique()),
         "frame_objects": int(df["frame_uid"].nunique())
@@ -445,6 +460,11 @@ def validate_roi_features(df: pd.DataFrame) -> dict[str, Any]:
         "errors": errors,
         "warnings": warnings,
     }
+    return add_optional_lineage_claims_to_audit(
+        audit,
+        df,
+        artifact_name="ROI audit frame table",
+    )
 
 
 def _polygon_from_segmentation(

@@ -18,6 +18,11 @@ import numpy as np
 import pandas as pd
 
 from pig_behavior.classification_v2.contracts.identifiers import scene_frame_key
+from pig_behavior.classification_v2.contracts.lineage_claims import (
+    add_optional_lineage_claims_to_audit,
+    require_lineage_claims_preserved,
+    resolve_optional_lineage_claims,
+)
 from pig_behavior.classification_v2.schema import GEOMETRY_FEATURE_COLUMNS
 
 REQUIRED_GEOMETRY_INPUT_COLUMNS: tuple[str, ...] = (
@@ -48,6 +53,10 @@ def build_geometry_features(frame_objects: pd.DataFrame) -> pd.DataFrame:
     - Recompute all geometry from bbox and image size.
     - Preserve training/context policy columns from previous step.
     """
+    resolve_optional_lineage_claims(
+        frame_objects,
+        artifact_name="geometry input",
+    )
     missing = [
         col for col in REQUIRED_GEOMETRY_INPUT_COLUMNS if col not in frame_objects.columns
     ]
@@ -171,6 +180,12 @@ def build_geometry_features(frame_objects: pd.DataFrame) -> pd.DataFrame:
         "geometry_quality",
     ] = "geometry_nan_or_inf"
 
+    require_lineage_claims_preserved(
+        frame_objects,
+        out,
+        source_name="geometry input",
+        derived_name="geometry output",
+    )
     return out
 
 
@@ -219,7 +234,7 @@ def validate_geometry_features(df: pd.DataFrame) -> dict[str, Any]:
     if invalid_geometry > 0:
         warnings.append(f"invalid_geometry_count={invalid_geometry}")
 
-    return {
+    audit = {
         "rows": int(len(df)),
         "frames": int(scene_frame_key(df).nunique()),
         "frame_objects": int(df["frame_uid"].nunique())
@@ -238,6 +253,11 @@ def validate_geometry_features(df: pd.DataFrame) -> dict[str, Any]:
         "errors": errors,
         "warnings": warnings,
     }
+    return add_optional_lineage_claims_to_audit(
+        audit,
+        df,
+        artifact_name="geometry audit frame table",
+    )
 
 
 def _to_bool_series(series: pd.Series) -> pd.Series:

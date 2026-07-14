@@ -13,6 +13,12 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.lineage_claims import (
+    attach_optional_lineage_claims,
+    configured_lineage_claims,
+    resolve_optional_lineage_claims,
+)
+
 SUPPORTED_SOURCES: tuple[str, ...] = (
     "cvat_tracking_xml",
     "legacy_recovered",
@@ -37,6 +43,8 @@ class TemporalSmokeScopeConfig:
     cvat_label_stride: int = 6
     legacy_expected_sequence_length: int = 16
     required_sources: tuple[str, ...] = SUPPORTED_SOURCES
+    lineage_scope: str | None = None
+    human_review_complete: bool | None = None
 
     def validate(self) -> None:
         """Reject settings that could create empty or ambiguous units."""
@@ -54,6 +62,11 @@ class TemporalSmokeScopeConfig:
         unknown = sorted(set(self.required_sources).difference(SUPPORTED_SOURCES))
         if unknown:
             raise ValueError(f"unsupported required_sources={unknown}")
+        configured_lineage_claims(
+            self.lineage_scope,
+            self.human_review_complete,
+            artifact_name="temporal scope configuration",
+        )
 
 
 def select_temporal_smoke_scope(
@@ -70,6 +83,25 @@ def select_temporal_smoke_scope(
         raise ValueError(f"frame_features missing smoke columns: {missing}")
     if frame_features.empty:
         raise ValueError("frame_features must not be empty")
+
+    input_claims = resolve_optional_lineage_claims(
+        frame_features,
+        artifact_name="temporal scope input",
+    )
+    configured_claims = configured_lineage_claims(
+        cfg.lineage_scope,
+        cfg.human_review_complete,
+        artifact_name="temporal scope configuration",
+    )
+    if (
+        input_claims is not None
+        and configured_claims is not None
+        and input_claims != configured_claims
+    ):
+        raise ValueError(
+            "temporal scope configured claims conflict with input claims"
+        )
+    claims = configured_claims or input_claims
 
     work = frame_features.copy()
     work["_smoke_source_position"] = np.arange(len(work), dtype="int64")
@@ -134,6 +166,7 @@ def select_temporal_smoke_scope(
         column for column in selected.columns if column.startswith("_smoke_")
     ]
     selected = selected.drop(columns=helper_columns).reset_index(drop=True)
+    selected = attach_optional_lineage_claims(selected, claims)
 
     selected_blocks = blocks.loc[
         blocks["block_key"].isin(selected_keys)
@@ -149,7 +182,7 @@ def select_temporal_smoke_scope(
         errors.append("smoke_scope_row_count_exceeds_input")
 
     audit = {
-        "schema_version": "classification_v2_temporal_smoke_scope_v1",
+        "schema_version": "classification_v2_temporal_smoke_scope_v2",
         "input_rows": int(len(frame_features)),
         "selected_rows": int(len(selected)),
         "not_selected_rows": int(len(frame_features) - len(selected)),
@@ -177,10 +210,18 @@ def select_temporal_smoke_scope(
             "legacy_expected_sequence_length": (
                 cfg.legacy_expected_sequence_length
             ),
+            "lineage_scope": (
+                claims.lineage_scope if claims is not None else None
+            ),
+            "human_review_complete": (
+                claims.human_review_complete if claims is not None else None
+            ),
         },
         "errors": errors,
         "warnings": warnings,
     }
+    if claims is not None:
+        audit.update(claims.as_dict())
     return selected, audit
 
 

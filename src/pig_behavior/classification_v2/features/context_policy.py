@@ -21,6 +21,11 @@ from pig_behavior.classification_v2.contracts.identifiers import (
     ensure_frame_object_identifiers,
     scene_frame_key,
 )
+from pig_behavior.classification_v2.contracts.lineage_claims import (
+    add_optional_lineage_claims_to_audit,
+    require_lineage_claims_preserved,
+    resolve_optional_lineage_claims,
+)
 from pig_behavior.classification_v2.schema import (
     DEFAULT_PIG_IDS,
     INTERACTION_BEHAVIORS,
@@ -72,6 +77,10 @@ def apply_context_policy(
         If True, use_for_main_eval is True only for full-context rows.
         Default False because legacy/selected annotations are valid partial context.
     """
+    resolve_optional_lineage_claims(
+        frame_objects,
+        artifact_name="context policy input",
+    )
     out = ensure_frame_object_identifiers(
         frame_objects,
         source_name="context_policy",
@@ -99,6 +108,12 @@ def apply_context_policy(
         require_full_8_for_eval=require_full_8_for_eval,
     )
 
+    require_lineage_claims_preserved(
+        frame_objects,
+        out,
+        source_name="context policy input",
+        derived_name="context policy output",
+    )
     return out
 
 
@@ -145,7 +160,7 @@ def audit_context_policy(df: pd.DataFrame) -> dict[str, Any]:
     else:
         social_missing_count = 0
 
-    return {
+    audit = {
         "rows": int(len(df)),
         "frames": int(scene_frame_key(df).nunique()),
         "frame_objects": int(df["frame_uid"].nunique())
@@ -179,6 +194,11 @@ def audit_context_policy(df: pd.DataFrame) -> dict[str, Any]:
         "errors": errors,
         "warnings": warnings,
     }
+    return add_optional_lineage_claims_to_audit(
+        audit,
+        df,
+        artifact_name="context policy audit frame table",
+    )
 
 
 def _normalize_labels(df: pd.DataFrame) -> pd.DataFrame:
