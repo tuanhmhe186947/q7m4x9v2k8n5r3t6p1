@@ -18,6 +18,8 @@ Current policy:
 - Checkers are colocated with the stage whose contract they validate.
 - Commit `bb225ff` adds fixture-verified fixed-six/phase/native temporal views
   and structural shortcut checks; active reviewed artifacts remain blocked.
+- Commit `07ed768` adds no-download forward contracts for ResNet18 160/224 and
+  ResNet34 224. These are P1 interface controls, not trained candidates.
 
 Related documents:
 

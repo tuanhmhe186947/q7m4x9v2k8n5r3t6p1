@@ -116,10 +116,13 @@ Current state:
   pass at `97f83c5`, `73b901d`, and `16cdb93`.
 - The mask-safe factory at `318bf58` exposes ten exact model modes and four
   temporal encoders.
+- The visual-backbone contract at `07ed768` supports audited ResNet18 160/224
+  and ResNet34 224 controls. Unit tests use random init and do not download
+  pretrained weights; active-data pilots remain blocked by the snapshot.
 - The strict loader at `111f152` aligns real fixed-six `time_delta` tensors to
   the complete window universe and binds the slot-manifest hash in checkpoint
   schema v4 and registry v3.
-- Current classification regression is 377 passed and 181 deselected. This is
+- Current classification regression is 381 passed and 181 deselected. This is
   fixture evidence, not training authorization.
 - Transformer timing plumbing now passes in code, but every model run remains
   blocked until the reviewed snapshot and its exact hashes are frozen.

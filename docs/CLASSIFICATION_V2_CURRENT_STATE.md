@@ -107,6 +107,9 @@ Independent training-contract engineering is also complete in code:
 - `318bf58` adds ten exact model modes, four mask-safe temporal encoders,
   branch availability/quality contracts, checkpoint schema v3, and registry
   v2. The smoke factory downloads no weights and performs no optimizer steps.
+- `07ed768` adds versioned ResNet18/ResNet34 frame encoders with exact ImageNet
+  enum and normalization contracts. Random-init forwards separate ResNet18
+  160/224 resolution from ResNet18/34 capacity without weight download.
 - `111f152` loads real ordered fixed-six timing without dropping unselected
   windows. Checkpoint schema v4 and registry v3 bind the separate temporal slot
   manifest hash; corrupt order, slot identity, masks, or timing fail closed.
@@ -116,7 +119,7 @@ Independent training-contract engineering is also complete in code:
 - `e5d6417` registers the old full OOF and legacy sequence checkpoint with
   explicit non-promotion claim flags and independently checked hashes.
 
-The current classification regression is 356 passed and 181 deselected. This
+The current classification regression is 381 passed and 181 deselected. This
 evidence remains synthetic/fixture-only; it has not frozen or trained the
 incomplete human-review lineage.
 
@@ -144,6 +147,7 @@ incomplete human-review lineage.
 | Fold-local preprocessing/weights | PASS IN CODE | Train-only fit and native-event tests |
 | Run lineage/registry | PASS IN CODE | 33 focused tests; checkpoint smoke PASS |
 | Model factory/mask contract | PASS IN CODE | 10 modes; 4 temporal encoders |
+| ResNet18/34 backbone interface | PASS IN CODE | V0/V1/V2 forward audit PASS |
 | Native paired evaluation | PASS IN CODE | 31 focused tests; strict synthetic OOF PASS |
 | Historical baseline control | PASS IN CODE | Registered as non-performance evidence |
 | Model smoke on active snapshot | NOT RUN | Snapshot hashes are not frozen |

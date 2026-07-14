@@ -98,6 +98,9 @@ Independent in-progress gates:
 - Configurable model factory: `PASS IN CODE` at `318bf58`; ten model modes and
   four temporal encoders enforce exact branch, mask, shape, and lineage rules.
   Checkpoint schema v3 and registry v2 bind the explicit `model_mode`.
+- Production visual backbones: `PASS IN CODE` at `07ed768`; exact ResNet18/34
+  weight-enum and normalization contracts support V0/V1/V2 controlled forwards
+  without pretrained download or optimizer steps during tests.
 - Fixed-six timing loader: `PASS IN CODE` at `111f152`; ordered real timing is
   aligned without row loss. Checkpoint schema v4 and registry v3 bind the
   separate slot-manifest hash.
@@ -115,7 +118,7 @@ Work proceeds in dependency order without fabricating human evidence:
 2. Complete v6 human Hidden review: `BLOCKED ON 5,101 MISSING DECISIONS`.
 3. Fixed-six manifests and structural shortcut probes: `COMPLETED IN CODE`.
 4. Fold-local preprocessing, event balancing, and lineage: `COMPLETED IN CODE`.
-5. Configurable model/mask/shape contracts: `COMPLETED IN CODE`.
+5. Configurable model/mask/shape/backbone contracts: `COMPLETED IN CODE`.
 6. Real fixed-six timing loader and hash lineage: `COMPLETED IN CODE`.
 7. Native-collapse and paired-evaluation contracts: `COMPLETED IN CODE`.
 8. Historical baseline engineering control: `COMPLETED IN CODE`.
@@ -161,6 +164,7 @@ authorization.
 | 2026-07-14 | Hidden v5-to-v6 decision carry | PASS | `32eaa2b` |
 | 2026-07-14 | Hidden migration artifact hashes | PASS | `aaf8460` |
 | 2026-07-14 | Hidden media input-hash audit | PASS | `f2179e3` |
+| 2026-07-14 | Audited ResNet18/34 backbone interface | PASS IN CODE | `07ed768` |
 
 ## Next Checkpoint
 

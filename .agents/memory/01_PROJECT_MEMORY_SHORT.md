@@ -1,5 +1,19 @@
 # Project Memory Short
 
+## 2026-07-14 audited ResNet backbone interface
+
+- Commit `07ed768` adds versioned `smoke_cnn`, ResNet18, and ResNet34 frame
+  encoders to the common mask-safe model factory.
+- Exact ImageNet enums and RGB mean/std are part of the contract. Tests resolve
+  pretrained metadata without downloading weights; actual forwards use
+  `NONE_RANDOM_INIT` only.
+- Controlled forwards pass for ResNet18 at 160 and 224 px and ResNet34 at
+  224 px. Parameter counts are 11,185,658, 11,185,658, and 21,293,818.
+- Evidence is 31 focused model tests, the dry-run backbone audit, and 381
+  classification tests with 181 deselected. No optimizer or training ran.
+- This closes the independent production-backbone interface only. Human Hidden
+  and behavior review still block the active snapshot and every model pilot.
+
 ## 2026-07-14 target-independent Hidden v6 authority
 
 - Active Hidden authority is

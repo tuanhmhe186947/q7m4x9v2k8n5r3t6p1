@@ -1652,9 +1652,11 @@ Audit bounded hiện tại có human authorization false nên preflight phải F
 
 ### 17.3. Model finalist gate
 
-Current `multimodal_fusion.py` dùng small ConvNet và full runner mặc định 64 px;
-nó là engineering model, không phải ResNet18/ResNet34 224 finalist trong roadmap.
-Không được gọi một lần chạy mới của model này là final Q2 classifier.
+Factory từ commit `07ed768` hỗ trợ `smoke_cnn`, ResNet18 và ResNet34 bằng một
+contract chung. Exact pretrained enum và ImageNet RGB normalization được khóa;
+unit test và structural audit chỉ dùng random-init nên không tải weight. Full
+runner lịch sử vẫn là engineering runner 64 px và không tự trở thành finalist.
+Không gọi interface PASS hoặc một random-init forward là final Q2 classifier.
 
 Trên cùng frozen snapshot/folds, development phải tách từng biến:
 
@@ -1664,6 +1666,13 @@ backbone:   ResNet18-224 -> ResNet34-224
 temporal:   masked pooling -> TCN -> small Transformer nếu TCN chưa đủ
 modality:   actor -> geometry/motion -> all-ROI -> social -> union context
 imbalance:  event CE | effective-number CE | Balanced Softmax, chọn một
+```
+
+Kiểm interface, shape và capacity trước khi có snapshot bằng dry-run không
+optimizer, không data I/O và không pretrained download:
+
+```bat
+%PY% %S4%\check_classification_v2_visual_backbones.py --dry-run
 ```
 
 Mỗi candidate phải qua one-batch forward/backward, tiny overfit 16-64 native

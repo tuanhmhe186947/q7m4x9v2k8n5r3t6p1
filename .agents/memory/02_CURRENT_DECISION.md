@@ -29,6 +29,12 @@ Commit `318bf58` completes the configurable model-factory contract in code.
 Ten model modes and four temporal encoders pass mask, shape, missing-modality,
 gradient, checkpoint, and lineage tests without downloading weights.
 
+Commit `07ed768` extends that factory with audited ResNet18 and ResNet34 frame
+encoders. The controlled interface separates ResNet18 160-to-224 resolution
+from ResNet18-to-ResNet34 capacity, records exact ImageNet enum/normalization,
+and passes random-init forwards without downloading weights or training. This
+does not authorize a pretrained pilot before the reviewed snapshot is frozen.
+
 Commit `111f152` now loads real ordered fixed-six `time_delta` tensors into the
 strict data module and binds the slot-manifest hash in checkpoint schema v4 and
 registry v3. Corrupt order, slot identity, masks, or timing fail closed, and
@@ -47,7 +53,7 @@ Commit `e5d6417` completes historical-baseline reconciliation as an engineering
 control. Its audit reproduces 151,440/160,740 positional mismatches and marks
 the old full OOF `HISTORICAL_ONLY`. It safely records the legacy ResNet34
 sequence checkpoint as `HISTORICAL_ARCHITECTURE_ONLY`, not as a performance
-baseline. The current regression is 356 passed and 181 deselected. Neither
+baseline. The current regression is 381 passed and 181 deselected. Neither
 historical artifact authorizes model selection, paired comparison, training,
 full OOF, or a Q2 claim.
 
