@@ -77,11 +77,7 @@ def main() -> None:
         if args.execute:
             audit = run_training(config)
             completed_run_dir = training_run_dir(audit)
-            validation_metrics = [
-                float(item["validation_window_macro_f1"])
-                for item in audit.get("history", [])
-                if "validation_window_macro_f1" in item
-            ]
+            best_validation_metric = _best_validation_primary(audit)
             row.update(
                 {
                     "run_dir": str(completed_run_dir),
@@ -89,28 +85,30 @@ def main() -> None:
                     "hardware": audit.get("hardware"),
                     "git": audit.get("git"),
                     "errors": audit.get("errors", []),
-                    "validation_window_macro_f1": validation_metrics[-1]
-                    if validation_metrics
-                    else None,
+                    "validation_native_unit_macro_f1_supported": (
+                        best_validation_metric
+                    ),
+                    "selected_validation_epoch": audit.get("best_epoch"),
+                    "validation_metric_source": "best_validation_checkpoint",
                     "outer_test_metrics_present_but_ignored": bool(audit.get("outer_test_metrics")),
                 }
             )
         rows.append(row)
 
     metrics = [
-        float(row["validation_window_macro_f1"])
+        float(row["validation_native_unit_macro_f1_supported"])
         for row in rows
-        if row.get("validation_window_macro_f1") is not None
+        if row.get("validation_native_unit_macro_f1_supported") is not None
     ]
     errors = _validate(rows, metrics, executed=args.execute, expected_count=len(seeds))
     result = {
-        "schema_version": "classification_v2_b4_inner_validation_seed_variance_v1",
+        "schema_version": "classification_v2_b4_inner_validation_seed_variance_v2",
         "mode": "execute" if args.execute else "plan_only",
         "config": str(args.config),
         "runtime_python_executable": sys.executable,
         "fold_id": args.fold_id,
         "seeds": seeds,
-        "metric": "validation_window_macro_f1",
+        "metric": "validation_native_unit_macro_f1_supported",
         "outer_test_used_for_threshold_tuning": False,
         "outer_test_metrics_ignored": True,
         "full_oof_executed": False,
@@ -138,6 +136,21 @@ def _parse_seeds(value: str) -> list[int]:
     if not seeds:
         raise ValueError("at least one seed is required")
     return seeds
+
+
+def _best_validation_primary(audit: dict[str, Any]) -> float:
+    """Read the native-unit score bound to the selected validation checkpoint."""
+
+    score = audit.get("best_validation_score")
+    if not isinstance(score, dict):
+        raise ValueError("training audit is missing best_validation_score")
+    try:
+        value = float(score["primary"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError("best validation primary metric is invalid") from exc
+    if not 0.0 <= value <= 1.0:
+        raise ValueError("best validation primary metric must be in [0, 1]")
+    return value
 
 
 def _summary(metrics: list[float]) -> dict[str, Any]:

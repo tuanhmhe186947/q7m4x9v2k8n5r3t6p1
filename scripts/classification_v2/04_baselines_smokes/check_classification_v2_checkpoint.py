@@ -197,7 +197,7 @@ def _synthetic_run_identity(
         "identity_schema_version": RUN_IDENTITY_SCHEMA_VERSION,
         "run_id": "synthetic-checkpoint-contract",
         "experiment_name": "checkpoint-contract",
-        "execution_profile": "local_smoke",
+        "execution_profile": config.execution.execution_profile,
         "code_sha": "0" * 40,
         "dirty_worktree": True,
         "worktree_state_sha256": "0" * 64,
@@ -224,6 +224,19 @@ def _synthetic_run_identity(
         "visual_layer4_only_epochs": config.model.visual_layer4_only_epochs,
         "visual_backbone_lr_multiplier": (
             config.model.visual_backbone_lr_multiplier
+        ),
+        "early_stopping_contract_version": (
+            config.optimization.early_stopping_contract_version
+        ),
+        "early_stopping_metric": config.optimization.early_stopping_metric,
+        "early_stopping_tiebreaker": (
+            config.optimization.early_stopping_tiebreaker
+        ),
+        "early_stopping_tie_tolerance": (
+            config.optimization.early_stopping_tie_tolerance
+        ),
+        "early_stopping_min_supported_classes": (
+            config.optimization.early_stopping_min_supported_classes
         ),
         "temporal_view": config.model.temporal_view,
         "temporal_encoder_name": config.model.temporal_encoder_name,

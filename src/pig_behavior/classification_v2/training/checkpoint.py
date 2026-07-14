@@ -16,6 +16,9 @@ from pig_behavior.classification_v2.training.config import (
     ClassificationV2TrainingConfig,
     training_config_to_jsonable,
 )
+from pig_behavior.classification_v2.training.validation_selection import (
+    validation_selection_policy,
+)
 from pig_behavior.classification_v2.training.visual_freeze import (
     optimizer_group_report,
     visual_freeze_parameter_report,
@@ -23,7 +26,7 @@ from pig_behavior.classification_v2.training.visual_freeze import (
     visual_freeze_stage_for_epoch,
 )
 
-CHECKPOINT_SCHEMA_VERSION = "classification_v2_training_checkpoint_v5"
+CHECKPOINT_SCHEMA_VERSION = "classification_v2_training_checkpoint_v6"
 RUN_IDENTITY_REQUIRED_FIELDS = (
     "identity_schema_version",
     "run_id",
@@ -52,6 +55,11 @@ RUN_IDENTITY_REQUIRED_FIELDS = (
     "visual_frozen_warmup_epochs",
     "visual_layer4_only_epochs",
     "visual_backbone_lr_multiplier",
+    "early_stopping_contract_version",
+    "early_stopping_metric",
+    "early_stopping_tiebreaker",
+    "early_stopping_tie_tolerance",
+    "early_stopping_min_supported_classes",
     "temporal_view",
     "temporal_encoder_name",
     "modalities",
@@ -110,6 +118,7 @@ def save_training_checkpoint(
             epoch=epoch,
         )
     optimizer_groups = optimizer_group_report(optimizer)
+    selection_policy = _validation_selection_policy(config)
     payload = {
         "schema_version": CHECKPOINT_SCHEMA_VERSION,
         "lineage": lineage,
@@ -119,6 +128,7 @@ def save_training_checkpoint(
         "optimizer_state_dict": optimizer.state_dict(),
         "optimizer_group_state": optimizer_groups,
         "visual_freeze_state": resolved_visual_freeze_state,
+        "validation_selection_policy": selection_policy,
         "scaler_state_dict": scaler.state_dict() if scaler is not None else None,
         "rng_state": _rng_state(),
         "metrics": metrics,
@@ -139,6 +149,7 @@ def save_training_checkpoint(
         "has_rng_state": True,
         "optimizer_group_state": optimizer_groups,
         "visual_freeze_state": resolved_visual_freeze_state,
+        "validation_selection_policy": selection_policy,
         "metrics": metrics,
         "errors": [],
         "valid": True,
@@ -193,6 +204,10 @@ def load_training_checkpoint(
         config=config,
         epoch=int(payload["epoch"]),
     )
+    observed_selection_policy = payload.get("validation_selection_policy")
+    expected_selection_policy = _validation_selection_policy(config)
+    if observed_selection_policy != expected_selection_policy:
+        raise ValueError("checkpoint validation-selection policy mismatch")
     saved_optimizer_groups = payload.get("optimizer_group_state")
     if optimizer_group_report(optimizer) != saved_optimizer_groups:
         raise ValueError("checkpoint optimizer-group contract mismatch before load")
@@ -215,6 +230,7 @@ def load_training_checkpoint(
         "lineage": observed,
         "optimizer_group_state": optimizer_groups,
         "visual_freeze_state": visual_freeze_state,
+        "validation_selection_policy": observed_selection_policy,
     }
 
 
@@ -232,6 +248,7 @@ def _lineage(
         raise ValueError(f"checkpoint run identity missing fields={missing}")
     expected = {
         "config_sha256": training_config_sha256(config),
+        "execution_profile": config.execution.execution_profile,
         "fold_id": config.execution.fold_id,
         "architecture_version": config.model.architecture_version,
         "model_mode": config.model.model_mode,
@@ -248,6 +265,19 @@ def _lineage(
         "visual_layer4_only_epochs": config.model.visual_layer4_only_epochs,
         "visual_backbone_lr_multiplier": (
             float(config.model.visual_backbone_lr_multiplier)
+        ),
+        "early_stopping_contract_version": (
+            config.optimization.early_stopping_contract_version
+        ),
+        "early_stopping_metric": config.optimization.early_stopping_metric,
+        "early_stopping_tiebreaker": (
+            config.optimization.early_stopping_tiebreaker
+        ),
+        "early_stopping_tie_tolerance": float(
+            config.optimization.early_stopping_tie_tolerance
+        ),
+        "early_stopping_min_supported_classes": int(
+            config.optimization.early_stopping_min_supported_classes
         ),
         "temporal_view": config.model.temporal_view,
         "temporal_encoder_name": config.model.temporal_encoder_name,
@@ -272,6 +302,17 @@ def _lineage(
         "train_window_id_sha256": train_window_id_sha256,
     }
     return lineage
+
+
+def _validation_selection_policy(
+    config: ClassificationV2TrainingConfig,
+) -> dict[str, Any]:
+    return validation_selection_policy(
+        tolerance=config.optimization.early_stopping_tie_tolerance,
+        min_supported_classes=(
+            config.optimization.early_stopping_min_supported_classes
+        ),
+    )
 
 
 def _validate_visual_freeze_state(

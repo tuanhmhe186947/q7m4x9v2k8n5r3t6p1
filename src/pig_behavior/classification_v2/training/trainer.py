@@ -32,6 +32,7 @@ from pig_behavior.classification_v2.training.checkpoint import (
 from pig_behavior.classification_v2.training.config import (
     ClassificationV2TrainingConfig,
     training_config_to_jsonable,
+    validate_training_config,
 )
 from pig_behavior.classification_v2.training.data_module import (
     StrictTrainingBatch,
@@ -54,6 +55,15 @@ from pig_behavior.classification_v2.training.run_lineage import (
     finalize_run_lineage,
     initialize_run_lineage,
 )
+from pig_behavior.classification_v2.training.validation_selection import (
+    VALIDATION_PRIMARY_METRIC,
+    VALIDATION_TIEBREAKER,
+    ValidationSelectionScore,
+    build_native_split_evaluation,
+    selection_score_from_metrics,
+    validation_score_is_better,
+    validation_selection_policy,
+)
 from pig_behavior.classification_v2.training.visual_freeze import (
     build_visual_optimizer_groups,
     configure_visual_train_stage,
@@ -61,8 +71,8 @@ from pig_behavior.classification_v2.training.visual_freeze import (
     visual_freeze_schedule_payload,
 )
 
-PREDICTION_SCHEMA_VERSION = "classification_v2_training_predictions_v1"
-RUN_AUDIT_SCHEMA_VERSION = "classification_v2_training_run_audit_v2"
+PREDICTION_SCHEMA_VERSION = "classification_v2_training_predictions_v2"
+RUN_AUDIT_SCHEMA_VERSION = "classification_v2_training_run_audit_v3"
 
 
 def training_run_dir(audit: Mapping[str, Any]) -> Path:
@@ -80,6 +90,7 @@ def training_run_dir(audit: Mapping[str, Any]) -> Path:
 def run_training(config: ClassificationV2TrainingConfig) -> dict[str, Any]:
     """Train one declared fold and emit checkpoints, predictions, and lineage audit."""
 
+    validate_training_config(config)
     _seed_everything(config.optimization.seed, deterministic=config.optimization.deterministic)
     device = _resolve_device(config.optimization.precision)
     if device.type == "cuda":
@@ -95,13 +106,53 @@ def run_training(config: ClassificationV2TrainingConfig) -> dict[str, Any]:
             ],
             predictions=[
                 PredictionArtifact(
+                    path=session.run_dir / "best_validation_predictions.csv",
+                    checkpoint_path=session.run_dir / "best_validation.pt",
+                    split="validation",
+                    expected_rows=int(audit["validation_rows"]),
+                ),
+                PredictionArtifact(
+                    path=(
+                        session.run_dir
+                        / "best_validation_native_unit_predictions.csv"
+                    ),
+                    checkpoint_path=session.run_dir / "best_validation.pt",
+                    split="validation",
+                    expected_rows=int(
+                        audit["best_validation_native_unit_rows"]
+                    ),
+                    key_col="temporal_unit_key",
+                    true_col="true_label",
+                    pred_col="native_predicted_behavior",
+                    split_col="prediction_split",
+                    prediction_unit="native_temporal_unit",
+                ),
+                PredictionArtifact(
                     path=session.run_dir / "oof_test_predictions.csv",
                     checkpoint_path=session.run_dir / "best_validation.pt",
                     split="test",
                     expected_rows=int(audit["test_rows"]),
-                )
+                ),
+                PredictionArtifact(
+                    path=(
+                        session.run_dir
+                        / "oof_test_native_unit_predictions.csv"
+                    ),
+                    checkpoint_path=session.run_dir / "best_validation.pt",
+                    split="test",
+                    expected_rows=int(audit["outer_test_native_unit_rows"]),
+                    key_col="temporal_unit_key",
+                    true_col="true_label",
+                    pred_col="native_predicted_behavior",
+                    split_col="prediction_split",
+                    prediction_unit="native_temporal_unit",
+                ),
             ],
-            metric_paths=[session.run_dir / "run_audit.json"],
+            metric_paths=[
+                session.run_dir / "run_audit.json",
+                session.run_dir / "best_validation_aggregation_audit.json",
+                session.run_dir / "oof_test_aggregation_audit.json",
+            ],
             peak_vram_bytes=peak_vram,
         )
     return {**audit, "run_lineage": lineage}
@@ -174,11 +225,12 @@ def _run_training_impl(
         global_step = 0
         start_epoch = 0
         resumed_from: str | None = None
-        best_metric = float("-inf")
+        best_score: ValidationSelectionScore | None = None
         best_epoch = -1
         stale_epochs = 0
         max_epochs = 1 if config.execution.mode == "smoke" else config.optimization.epochs
         last_checkpoint = output_dir / "last.pt"
+        best_validation_aggregation_audit: dict[str, Any] = {}
         if config.execution.resume and last_checkpoint.exists():
             resumed = load_training_checkpoint(
                 last_checkpoint,
@@ -195,13 +247,15 @@ def _run_training_impl(
             start_epoch = int(resumed["epoch"]) + 1
             global_step = int(resumed["global_step"])
             resumed_from = str(last_checkpoint)
-            prior_audit = output_dir / "run_audit.json"
-            if prior_audit.exists():
-                prior = json.loads(prior_audit.read_text(encoding="utf-8"))
-                history = list(prior.get("history", []))
-                best_epoch = int(prior.get("best_epoch", -1))
-                if history:
-                    best_metric = max(float(row["validation_window_macro_f1"]) for row in history)
+            history, best_score, best_epoch, stale_epochs = (
+                _restore_validation_selection_state(
+                    resumed,
+                    config,
+                )
+            )
+            best_validation_aggregation_audit = _read_json_object(
+                output_dir / "best_validation_aggregation_audit.json"
+            )
         for epoch in range(start_epoch, max_epochs):
             train_result, global_step = _train_epoch(
                 model,
@@ -217,29 +271,59 @@ def _run_training_impl(
                 epoch=epoch,
                 global_step=global_step,
             )
-            predictions, eval_metrics = _evaluate(
+            predictions, native_predictions, eval_metrics, aggregation_audit = _evaluate(
                 model, data, eval_indices, config, device, split="validation"
             )
             predictions.to_csv(output_dir / "validation_predictions.csv", index=False)
-            record = {"epoch": epoch, **train_result, **eval_metrics}
-            history.append(record)
-            save_training_checkpoint(
-                output_dir / "last.pt",
-                model=model,
-                optimizer=optimizer,
-                scaler=scaler,
-                config=config,
-                run_identity=session.identity.to_payload(),
-                preprocessing_sha256=preprocessing_state.state_sha256,
-                train_window_id_sha256=(preprocessing_state.train_window_id_sha256),
-                epoch=epoch,
-                global_step=global_step,
-                metrics=record,
-                visual_freeze_state=train_result["visual_freeze"],
+            native_predictions.to_csv(
+                output_dir / "validation_native_unit_predictions.csv",
+                index=False,
             )
-            metric = float(eval_metrics["validation_window_macro_f1"])
-            if metric > best_metric:
-                best_metric, best_epoch, stale_epochs = metric, epoch, 0
+            _write_json_atomic(
+                output_dir / "validation_aggregation_audit.json",
+                aggregation_audit,
+            )
+            candidate_score = selection_score_from_metrics(eval_metrics)
+            improved = validation_score_is_better(
+                candidate_score,
+                best_score,
+                tolerance=(
+                    config.optimization.early_stopping_tie_tolerance
+                ),
+            )
+            if improved:
+                best_score, best_epoch, stale_epochs = candidate_score, epoch, 0
+            else:
+                stale_epochs += 1
+            record = {
+                "epoch": epoch,
+                **train_result,
+                **eval_metrics,
+                "selected_as_best_validation": improved,
+            }
+            history.append(record)
+            checkpoint_metrics = _checkpoint_metrics(
+                record,
+                history,
+                best_score,
+                best_epoch,
+                stale_epochs,
+                config,
+            )
+            if improved:
+                predictions.to_csv(
+                    output_dir / "best_validation_predictions.csv",
+                    index=False,
+                )
+                native_predictions.to_csv(
+                    output_dir / "best_validation_native_unit_predictions.csv",
+                    index=False,
+                )
+                _write_json_atomic(
+                    output_dir / "best_validation_aggregation_audit.json",
+                    aggregation_audit,
+                )
+                best_validation_aggregation_audit = aggregation_audit
                 save_training_checkpoint(
                     output_dir / "best_validation.pt",
                     model=model,
@@ -251,11 +335,25 @@ def _run_training_impl(
                     train_window_id_sha256=(preprocessing_state.train_window_id_sha256),
                     epoch=epoch,
                     global_step=global_step,
-                    metrics=record,
+                    metrics=checkpoint_metrics,
                     visual_freeze_state=train_result["visual_freeze"],
                 )
-            else:
-                stale_epochs += 1
+            save_training_checkpoint(
+                output_dir / "last.pt",
+                model=model,
+                optimizer=optimizer,
+                scaler=scaler,
+                config=config,
+                run_identity=session.identity.to_payload(),
+                preprocessing_sha256=preprocessing_state.state_sha256,
+                train_window_id_sha256=(
+                    preprocessing_state.train_window_id_sha256
+                ),
+                epoch=epoch,
+                global_step=global_step,
+                metrics=checkpoint_metrics,
+                visual_freeze_state=train_result["visual_freeze"],
+            )
             if (
                 config.execution.mode != "smoke"
                 and stale_epochs >= config.optimization.early_stopping_patience
@@ -264,7 +362,7 @@ def _run_training_impl(
         best_checkpoint = output_dir / "best_validation.pt"
         if not best_checkpoint.exists():
             raise ValueError("best-validation checkpoint missing before outer-test evaluation")
-        load_training_checkpoint(
+        loaded_best = load_training_checkpoint(
             best_checkpoint,
             model=model,
             optimizer=optimizer,
@@ -276,10 +374,29 @@ def _run_training_impl(
             map_location=device,
             restore_rng=False,
         )
-        test_predictions, test_metrics = _evaluate(
+        _validate_best_validation_artifacts(
+            loaded_best,
+            best_validation_aggregation_audit,
+            best_score,
+            best_epoch,
+        )
+        (
+            test_predictions,
+            test_native_predictions,
+            test_metrics,
+            test_aggregation_audit,
+        ) = _evaluate(
             model, data, test_indices, config, device, split="test"
         )
         test_predictions.to_csv(output_dir / "oof_test_predictions.csv", index=False)
+        test_native_predictions.to_csv(
+            output_dir / "oof_test_native_unit_predictions.csv",
+            index=False,
+        )
+        _write_json_atomic(
+            output_dir / "oof_test_aggregation_audit.json",
+            test_aggregation_audit,
+        )
         audit = _run_audit(
             config,
             data,
@@ -291,9 +408,12 @@ def _run_training_impl(
             auxiliary_weights,
             history,
             best_epoch,
+            best_score,
+            best_validation_aggregation_audit,
             device,
             resumed_from,
             test_metrics,
+            test_aggregation_audit,
             preprocessing_state,
             preprocessing_status,
             session.identity.to_payload(),
@@ -389,8 +509,13 @@ def _evaluate(
     device: torch.device,
     *,
     split: str,
-) -> tuple[pd.DataFrame, dict[str, float]]:
-    """Evaluate only the held-out fold and retain identifiers strictly as output metadata."""
+) -> tuple[
+    pd.DataFrame,
+    pd.DataFrame,
+    dict[str, float | int],
+    dict[str, Any],
+]:
+    """Evaluate windows and collapse them to one strict native-unit record."""
 
     model.eval()
     rows: list[dict[str, Any]] = []
@@ -409,10 +534,15 @@ def _evaluate(
                 "window_id": batch.metadata["window_id"][row_index],
                 "temporal_unit_key": batch.metadata["temporal_unit_key"][row_index],
                 "fold_id": config.execution.fold_id,
+                "oof_fold_id": batch.metadata["oof_fold_id"][row_index],
                 "split": split,
                 "source_type": batch.metadata["source_type"][row_index],
+                "split_group_key": batch.metadata["split_group_key"][row_index],
                 "true_label": labels[int(true_values[row_index])],
                 "predicted_label": labels[int(predicted[row_index])],
+                "y_true": labels[int(true_values[row_index])],
+                "y_pred": labels[int(predicted[row_index])],
+                "prediction_split": split,
                 "confidence": float(probabilities[row_index, predicted[row_index]]),
                 "model_version": config.model.architecture_version,
                 "snapshot_id": config.dataset.snapshot_json.stem,
@@ -425,8 +555,20 @@ def _evaluate(
             )
             rows.append(row)
     predictions = pd.DataFrame(rows)
-    metric = _macro_f1(predictions["true_label"], predictions["predicted_label"], labels)
-    return predictions, {f"{split}_window_macro_f1": metric}
+    min_supported_classes = (
+        config.optimization.early_stopping_min_supported_classes
+        if split == "validation"
+        else 1
+    )
+    native_predictions, metrics, aggregation_audit = (
+        build_native_split_evaluation(
+            predictions,
+            split=split,
+            min_supported_classes=min_supported_classes,
+            label_order=tuple(labels),
+        )
+    )
+    return predictions, native_predictions, metrics, aggregation_audit
 
 
 def _build_model(
@@ -497,6 +639,137 @@ def _task_specs(config: ClassificationV2TrainingConfig) -> tuple[AuxiliaryTaskSp
     return tuple(AuxiliaryTaskSpec(name, *columns[name], weights[name]) for name in columns)
 
 
+def _checkpoint_metrics(
+    current: dict[str, Any],
+    history: list[dict[str, Any]],
+    best_score: ValidationSelectionScore | None,
+    best_epoch: int,
+    stale_epochs: int,
+    config: ClassificationV2TrainingConfig,
+) -> dict[str, Any]:
+    """Persist complete early-stopping state so interrupted runs resume exactly."""
+
+    if best_score is None or best_epoch < 0 or stale_epochs < 0:
+        raise ValueError("validation selection state is incomplete")
+    policy = validation_selection_policy(
+        tolerance=config.optimization.early_stopping_tie_tolerance,
+        min_supported_classes=(
+            config.optimization.early_stopping_min_supported_classes
+        ),
+    )
+    return {
+        "schema_version": "classification_v2.checkpoint_metrics.v1",
+        "current_epoch_metrics": current,
+        "history": history,
+        "validation_selection": {
+            **policy,
+            "best_primary": best_score.primary,
+            "best_tiebreaker": best_score.tiebreaker,
+            "best_epoch": int(best_epoch),
+            "stale_epochs": int(stale_epochs),
+        },
+    }
+
+
+def _restore_validation_selection_state(
+    resumed: dict[str, Any],
+    config: ClassificationV2TrainingConfig,
+) -> tuple[
+    list[dict[str, Any]],
+    ValidationSelectionScore,
+    int,
+    int,
+]:
+    """Restore history and native-unit selection state from the last checkpoint."""
+
+    metrics = resumed.get("metrics")
+    if not isinstance(metrics, dict):
+        raise ValueError("checkpoint metrics payload is missing")
+    if metrics.get("schema_version") != "classification_v2.checkpoint_metrics.v1":
+        raise ValueError("checkpoint metrics schema mismatch")
+    history = metrics.get("history")
+    if not isinstance(history, list) or not history:
+        raise ValueError("checkpoint validation history is missing")
+    if any(not isinstance(row, dict) for row in history):
+        raise ValueError("checkpoint validation history is malformed")
+    current = metrics.get("current_epoch_metrics")
+    if current != history[-1]:
+        raise ValueError("checkpoint current metrics do not match history tail")
+    if int(history[-1].get("epoch", -1)) != int(resumed["epoch"]):
+        raise ValueError("checkpoint validation history epoch mismatch")
+
+    state = metrics.get("validation_selection")
+    if not isinstance(state, dict):
+        raise ValueError("checkpoint validation selection state is missing")
+    expected_policy = validation_selection_policy(
+        tolerance=config.optimization.early_stopping_tie_tolerance,
+        min_supported_classes=(
+            config.optimization.early_stopping_min_supported_classes
+        ),
+    )
+    policy_mismatches = {
+        key: {"expected": value, "observed": state.get(key)}
+        for key, value in expected_policy.items()
+        if state.get(key) != value
+    }
+    if policy_mismatches:
+        raise ValueError(
+            "checkpoint validation selection policy mismatch="
+            f"{policy_mismatches}"
+        )
+    score = selection_score_from_metrics(
+        {
+            VALIDATION_PRIMARY_METRIC: state.get("best_primary"),
+            VALIDATION_TIEBREAKER: state.get("best_tiebreaker"),
+        }
+    )
+    best_epoch = int(state.get("best_epoch", -1))
+    stale_epochs = int(state.get("stale_epochs", -1))
+    if best_epoch < 0 or stale_epochs < 0:
+        raise ValueError("checkpoint validation selection counters are invalid")
+    selected_epochs = [
+        int(row["epoch"])
+        for row in history
+        if bool(row.get("selected_as_best_validation"))
+    ]
+    if not selected_epochs or selected_epochs[-1] != best_epoch:
+        raise ValueError("checkpoint best epoch disagrees with validation history")
+    if int(history[-1]["epoch"]) - best_epoch != stale_epochs:
+        raise ValueError("checkpoint stale epoch count disagrees with history")
+    return list(history), score, best_epoch, stale_epochs
+
+
+def _validate_best_validation_artifacts(
+    loaded_checkpoint: dict[str, Any],
+    aggregation_audit: dict[str, Any],
+    best_score: ValidationSelectionScore | None,
+    best_epoch: int,
+) -> None:
+    """Prove checkpoint, prediction audit, and selected score name one epoch."""
+
+    if best_score is None or best_epoch < 0:
+        raise ValueError("best validation state is missing")
+    metrics = loaded_checkpoint.get("metrics")
+    if not isinstance(metrics, dict):
+        raise ValueError("best checkpoint metrics are missing")
+    state = metrics.get("validation_selection")
+    if not isinstance(state, dict):
+        raise ValueError("best checkpoint validation-selection state is missing")
+    observed_score = selection_score_from_metrics(
+        {
+            VALIDATION_PRIMARY_METRIC: state.get("best_primary"),
+            VALIDATION_TIEBREAKER: state.get("best_tiebreaker"),
+        }
+    )
+    if observed_score != best_score or int(state.get("best_epoch", -1)) != best_epoch:
+        raise ValueError("best checkpoint selection state mismatch")
+    audit_metrics = aggregation_audit.get("metrics")
+    if not isinstance(audit_metrics, dict):
+        raise ValueError("best validation aggregation metrics are missing")
+    if selection_score_from_metrics(audit_metrics) != best_score:
+        raise ValueError("best validation prediction audit score mismatch")
+
+
 def _run_audit(
     config: ClassificationV2TrainingConfig,
     data: StrictTrainingDataModule,
@@ -508,9 +781,12 @@ def _run_audit(
     auxiliary_weights: dict[str, torch.Tensor],
     history: list[dict[str, Any]],
     best_epoch: int,
+    best_score: ValidationSelectionScore | None,
+    best_validation_aggregation_audit: dict[str, Any],
     device: torch.device,
     resumed_from: str | None,
-    test_metrics: dict[str, float],
+    test_metrics: dict[str, float | int],
+    test_aggregation_audit: dict[str, Any],
     preprocessing_state: FoldPreprocessingState,
     preprocessing_status: str,
     run_identity: dict[str, Any],
@@ -550,6 +826,12 @@ def _run_audit(
             total_epochs=config.optimization.epochs,
         ),
         "optimizer_group_contract": optimizer_group_contract,
+        "validation_selection_policy": validation_selection_policy(
+            tolerance=config.optimization.early_stopping_tie_tolerance,
+            min_supported_classes=(
+                config.optimization.early_stopping_min_supported_classes
+            ),
+        ),
         "label_order": list(VALID_BEHAVIORS),
         "feature_whitelist": list(config.model.spatial_feature_groups),
         "normalization_imputation": "bound_to_trainer_contract_and_snapshot",
@@ -571,8 +853,30 @@ def _run_audit(
         },
         "data_module_audit": data.audit(),
         "history": history,
+        "best_validation_aggregation_audit": (
+            best_validation_aggregation_audit
+        ),
         "outer_test_metrics": test_metrics,
+        "outer_test_aggregation_audit": test_aggregation_audit,
+        "outer_predictions_used_for_model_selection": False,
         "best_epoch": best_epoch,
+        "best_validation_native_unit_rows": int(
+            best_validation_aggregation_audit.get(
+                "output_native_unit_rows",
+                0,
+            )
+        ),
+        "outer_test_native_unit_rows": int(
+            test_aggregation_audit.get("output_native_unit_rows", 0)
+        ),
+        "best_validation_score": (
+            {
+                "primary": best_score.primary,
+                "tiebreaker": best_score.tiebreaker,
+            }
+            if best_score is not None
+            else None
+        ),
         "resume": {
             "enabled": config.execution.resume,
             "resumed_from": resumed_from,
@@ -582,7 +886,24 @@ def _run_audit(
             "last_checkpoint": "last.pt",
             "best_checkpoint": "best_validation.pt",
             "predictions": "validation_predictions.csv",
+            "validation_native_predictions": (
+                "validation_native_unit_predictions.csv"
+            ),
+            "best_validation_predictions": "best_validation_predictions.csv",
+            "best_validation_native_predictions": (
+                "best_validation_native_unit_predictions.csv"
+            ),
+            "validation_aggregation_audit": (
+                "validation_aggregation_audit.json"
+            ),
+            "best_validation_aggregation_audit": (
+                "best_validation_aggregation_audit.json"
+            ),
             "oof_test_predictions": "oof_test_predictions.csv",
+            "oof_test_native_predictions": (
+                "oof_test_native_unit_predictions.csv"
+            ),
+            "oof_test_aggregation_audit": "oof_test_aggregation_audit.json",
             "preprocessing": "preprocessing.json",
         },
         "errors": [],
@@ -615,17 +936,6 @@ def _require_nonempty_split(
             f"empty grouped split: train={len(train_indices)}, "
             f"validation={len(eval_indices)}, test={len(test_indices)}"
         )
-
-
-def _macro_f1(true: pd.Series, predicted: pd.Series, labels: list[str]) -> float:
-    scores = []
-    for label in labels:
-        tp = int(((true == label) & (predicted == label)).sum())
-        fp = int(((true != label) & (predicted == label)).sum())
-        fn = int(((true == label) & (predicted != label)).sum())
-        denominator = 2 * tp + fp + fn
-        scores.append((2.0 * tp / denominator) if denominator else 0.0)
-    return float(np.mean(scores))
 
 
 def _selected_id_hash(data: StrictTrainingDataModule, indices: np.ndarray) -> str:
@@ -663,3 +973,12 @@ def _write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
     temporary = path.with_suffix(path.suffix + ".tmp")
     temporary.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     temporary.replace(path)
+
+
+def _read_json_object(path: Path) -> dict[str, Any]:
+    if not path.is_file():
+        raise ValueError(f"required JSON artifact is missing: {path}")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError(f"JSON artifact must contain an object: {path}")
+    return payload

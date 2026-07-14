@@ -409,6 +409,19 @@ def _run_identity(
         "visual_backbone_lr_multiplier": (
             config.model.visual_backbone_lr_multiplier
         ),
+        "early_stopping_contract_version": (
+            config.optimization.early_stopping_contract_version
+        ),
+        "early_stopping_metric": config.optimization.early_stopping_metric,
+        "early_stopping_tiebreaker": (
+            config.optimization.early_stopping_tiebreaker
+        ),
+        "early_stopping_tie_tolerance": (
+            config.optimization.early_stopping_tie_tolerance
+        ),
+        "early_stopping_min_supported_classes": (
+            config.optimization.early_stopping_min_supported_classes
+        ),
         "temporal_view": config.model.temporal_view,
         "temporal_encoder_name": config.model.temporal_encoder_name,
         "modalities": ["actor_rgb"],

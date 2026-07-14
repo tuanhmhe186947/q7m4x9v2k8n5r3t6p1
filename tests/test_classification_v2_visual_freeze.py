@@ -193,6 +193,12 @@ def test_checkpoint_resume_crosses_frozen_to_layer4_boundary(tmp_path: Path) -> 
 
     assert saved["visual_freeze_state"]["stage"] == "frozen"
     assert resumed["visual_freeze_state"]["stage"] == "frozen"
+    assert saved["validation_selection_policy"]["primary_metric"] == (
+        "validation_native_unit_macro_f1_supported"
+    )
+    assert resumed["validation_selection_policy"] == (
+        saved["validation_selection_policy"]
+    )
     assert frozen["visual_encoder_names"] == layer4["visual_encoder_names"]
     assert layer4["stage"] == "layer4_only"
     assert optimizer_group_report(resumed_optimizer)["group_order"] == [
@@ -318,6 +324,19 @@ def _run_identity(
         "visual_layer4_only_epochs": config.model.visual_layer4_only_epochs,
         "visual_backbone_lr_multiplier": (
             config.model.visual_backbone_lr_multiplier
+        ),
+        "early_stopping_contract_version": (
+            config.optimization.early_stopping_contract_version
+        ),
+        "early_stopping_metric": config.optimization.early_stopping_metric,
+        "early_stopping_tiebreaker": (
+            config.optimization.early_stopping_tiebreaker
+        ),
+        "early_stopping_tie_tolerance": (
+            config.optimization.early_stopping_tie_tolerance
+        ),
+        "early_stopping_min_supported_classes": (
+            config.optimization.early_stopping_min_supported_classes
         ),
         "temporal_view": config.model.temporal_view,
         "temporal_encoder_name": config.model.temporal_encoder_name,

@@ -16,6 +16,13 @@ from pig_behavior.classification_v2.models.multitask_fusion import MULTITASK_ARC
 from pig_behavior.classification_v2.models.temporal_encoders import (
     TEMPORAL_ENCODER_NAMES,
 )
+from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
+from pig_behavior.classification_v2.training.validation_selection import (
+    VALIDATION_PRIMARY_METRIC,
+    VALIDATION_SELECTION_CONTRACT_VERSION,
+    VALIDATION_TIEBREAKER,
+    validation_selection_policy,
+)
 from pig_behavior.classification_v2.training.visual_freeze import (
     visual_freeze_schedule_errors,
 )
@@ -94,7 +101,13 @@ class OptimizationConfig:
     deterministic: bool = True
     checkpoint_every_steps: int = 500
     scheduler: str = "none"
-    early_stopping_metric: str = "validation_window_macro_f1"
+    early_stopping_contract_version: str = (
+        VALIDATION_SELECTION_CONTRACT_VERSION
+    )
+    early_stopping_metric: str = VALIDATION_PRIMARY_METRIC
+    early_stopping_tiebreaker: str = VALIDATION_TIEBREAKER
+    early_stopping_tie_tolerance: float = 1e-12
+    early_stopping_min_supported_classes: int = 2
     early_stopping_patience: int = 3
 
 
@@ -124,7 +137,7 @@ class ExecutionConfig:
     smoke_per_class: int = 1
     output_dir: Path = Path("outputs/classification_v2/model_smoke/strict_multitask")
     runs_registry_csv: Path = Path(
-        "outputs/classification_v2/run_registry/runs_registry_v4.csv"
+        "outputs/classification_v2/run_registry/runs_registry_v5.csv"
     )
     resume: bool = True
 
@@ -237,10 +250,37 @@ def validate_training_config(config: ClassificationV2TrainingConfig) -> None:
         errors.append(f"unsupported_optimizer={config.optimization.optimizer}")
     if config.optimization.scheduler != "none":
         errors.append(f"unsupported_scheduler={config.optimization.scheduler}")
-    if config.optimization.early_stopping_metric != "validation_window_macro_f1":
+    if (
+        config.optimization.early_stopping_contract_version
+        != VALIDATION_SELECTION_CONTRACT_VERSION
+    ):
+        errors.append(
+            "unsupported_early_stopping_contract_version="
+            f"{config.optimization.early_stopping_contract_version}"
+        )
+    if config.optimization.early_stopping_metric != VALIDATION_PRIMARY_METRIC:
         errors.append(
             f"unsupported_early_stopping_metric={config.optimization.early_stopping_metric}"
         )
+    if config.optimization.early_stopping_tiebreaker != VALIDATION_TIEBREAKER:
+        errors.append(
+            "unsupported_early_stopping_tiebreaker="
+            f"{config.optimization.early_stopping_tiebreaker}"
+        )
+    try:
+        validation_selection_policy(
+            tolerance=config.optimization.early_stopping_tie_tolerance,
+            min_supported_classes=(
+                config.optimization.early_stopping_min_supported_classes
+            ),
+        )
+    except ValueError as exc:
+        errors.append(f"invalid_early_stopping_policy={exc}")
+    if (
+        config.optimization.early_stopping_min_supported_classes
+        > len(VALID_BEHAVIORS)
+    ):
+        errors.append("early_stopping_class_support_exceeds_label_count")
     if config.optimization.precision not in {"fp32", "amp"}:
         errors.append(f"unsupported_precision={config.optimization.precision}")
     if config.loss.sample_weight_policy not in {
@@ -292,6 +332,14 @@ def validate_training_config(config: ClassificationV2TrainingConfig) -> None:
     if config.execution.execution_profile not in profiles:
         errors.append(
             f"unsupported_execution_profile={config.execution.execution_profile}"
+        )
+    if (
+        config.execution.execution_profile in {"remote_pilot", "remote_full_oof"}
+        and config.optimization.early_stopping_min_supported_classes
+        != len(VALID_BEHAVIORS)
+    ):
+        errors.append(
+            "remote_model_selection_requires_all_behavior_classes_in_inner_validation"
         )
     if (
         config.execution.execution_profile == "local_smoke"

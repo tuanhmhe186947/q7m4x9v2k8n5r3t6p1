@@ -112,7 +112,13 @@ def main() -> None:
 
 
 def _history_signature(audit: dict[str, object]) -> list[dict[str, object]]:
-    keys = ["train_loss_mean", "train_loss_first", "train_loss_last", "validation_window_macro_f1"]
+    keys = [
+        "train_loss_mean",
+        "train_loss_first",
+        "train_loss_last",
+        "validation_native_unit_macro_f1_supported",
+        "validation_native_unit_nll",
+    ]
     return [{key: row[key] for key in keys} for row in audit["history"]]
 
 

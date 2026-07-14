@@ -10,7 +10,10 @@ def main() -> None:
     parser.add_argument(
         "--audit-json",
         type=Path,
-        default=Path("outputs/classification_v2/model_smoke/b4_seed_variance_cuda/b4_seed_variance_audit.json"),
+        default=Path(
+            "outputs/classification_v2/model_smoke/"
+            "b4_seed_variance_cuda/b4_seed_variance_audit.json"
+        ),
     )
     parser.add_argument(
         "--output-json",
@@ -26,7 +29,7 @@ def main() -> None:
         errors.append(f"mode={audit.get('mode')}")
     if audit.get("valid") is not True:
         errors.append(f"audit_invalid={audit.get('errors')}")
-    if audit.get("metric") != "validation_window_macro_f1":
+    if audit.get("metric") != "validation_native_unit_macro_f1_supported":
         errors.append(f"metric={audit.get('metric')}")
     if audit.get("outer_test_used_for_threshold_tuning") is not False:
         errors.append("outer_test_used_for_threshold_tuning")
@@ -43,14 +46,18 @@ def main() -> None:
             errors.append(f"seed_{seed}_git_dirty={row.get('git', {}).get('dirty')}")
         if row.get("errors"):
             errors.append(f"seed_{seed}_errors={row.get('errors')}")
-        if row.get("validation_window_macro_f1") is None:
+        if row.get("validation_native_unit_macro_f1_supported") is None:
             errors.append(f"seed_{seed}_missing_validation_metric")
+        if row.get("validation_metric_source") != "best_validation_checkpoint":
+            errors.append(f"seed_{seed}_invalid_validation_metric_source")
+        if row.get("selected_validation_epoch") is None:
+            errors.append(f"seed_{seed}_missing_selected_validation_epoch")
     summary = audit.get("summary", {})
     if summary.get("count") != args.expected_seed_count:
         errors.append(f"summary_count={summary.get('count')}")
 
     result = {
-        "schema_version": "classification_v2_b4_seed_variance_check_audit_v1",
+        "schema_version": "classification_v2_b4_seed_variance_check_audit_v2",
         "audit_json": str(args.audit_json),
         "seed_count": len(rows),
         "summary": summary,

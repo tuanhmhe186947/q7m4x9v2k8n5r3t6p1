@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
-REGISTRY_SCHEMA_VERSION = "classification_v2.runs_registry.v4"
+REGISTRY_SCHEMA_VERSION = "classification_v2.runs_registry.v5"
 REGISTRY_FIELDS = (
     "registry_schema_version",
     "identity_schema_version",
@@ -44,6 +44,11 @@ REGISTRY_FIELDS = (
     "visual_frozen_warmup_epochs",
     "visual_layer4_only_epochs",
     "visual_backbone_lr_multiplier",
+    "early_stopping_contract_version",
+    "early_stopping_metric",
+    "early_stopping_tiebreaker",
+    "early_stopping_tie_tolerance",
+    "early_stopping_min_supported_classes",
     "temporal_view",
     "temporal_encoder_name",
     "modalities",

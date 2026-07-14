@@ -217,6 +217,7 @@ class StrictTrainingDataModule:
                 "temporal_unit_key": selected["temporal_unit_key"].astype(str).tolist(),
                 "oof_fold_id": selected["oof_fold_id"].astype(str).tolist(),
                 "source_type": selected["source_type"].astype(str).tolist(),
+                "split_group_key": selected["split_group_key"].astype(str).tolist(),
             },
         )
 
@@ -244,6 +245,7 @@ class StrictTrainingDataModule:
                 "temporal_unit_key",
                 "oof_fold_id",
                 "source_type",
+                "split_group_key",
             ],
             "auxiliary_targets_not_model_inputs": True,
             "spatial_normalization": self.spatial_normalizer_audit(),

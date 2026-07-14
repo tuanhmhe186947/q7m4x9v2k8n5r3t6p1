@@ -21,12 +21,17 @@ from pig_behavior.classification_v2.training.lineage_hashing import (
     is_sha256,
     payload_sha256,
 )
+from pig_behavior.classification_v2.training.validation_selection import (
+    VALIDATION_PRIMARY_METRIC,
+    VALIDATION_SELECTION_CONTRACT_VERSION,
+    VALIDATION_TIEBREAKER,
+)
 from pig_behavior.classification_v2.training.visual_freeze import (
     VISUAL_FREEZE_CONTRACT_VERSION,
     visual_freeze_schedule_payload,
 )
 
-RUN_IDENTITY_SCHEMA_VERSION = "classification_v2.run_identity.v2"
+RUN_IDENTITY_SCHEMA_VERSION = "classification_v2.run_identity.v3"
 EXECUTION_PROFILES = frozenset(
     {"local_smoke", "remote_pilot", "remote_full_oof"}
 )
@@ -81,6 +86,11 @@ class RunIdentity:
     visual_frozen_warmup_epochs: int
     visual_layer4_only_epochs: int
     visual_backbone_lr_multiplier: float
+    early_stopping_contract_version: str
+    early_stopping_metric: str
+    early_stopping_tiebreaker: str
+    early_stopping_tie_tolerance: float
+    early_stopping_min_supported_classes: int
     temporal_view: str
     temporal_encoder_name: str
     modalities: tuple[str, ...]
@@ -129,6 +139,17 @@ class RunIdentity:
             "visual_layer4_only_epochs": self.visual_layer4_only_epochs,
             "visual_backbone_lr_multiplier": (
                 self.visual_backbone_lr_multiplier
+            ),
+            "early_stopping_contract_version": (
+                self.early_stopping_contract_version
+            ),
+            "early_stopping_metric": self.early_stopping_metric,
+            "early_stopping_tiebreaker": self.early_stopping_tiebreaker,
+            "early_stopping_tie_tolerance": (
+                self.early_stopping_tie_tolerance
+            ),
+            "early_stopping_min_supported_classes": (
+                self.early_stopping_min_supported_classes
             ),
             "temporal_view": self.temporal_view,
             "temporal_encoder_name": self.temporal_encoder_name,
@@ -265,6 +286,19 @@ def build_run_identity(
         visual_backbone_lr_multiplier=float(
             freeze_schedule["backbone_lr_multiplier"]
         ),
+        early_stopping_contract_version=(
+            config.optimization.early_stopping_contract_version
+        ),
+        early_stopping_metric=config.optimization.early_stopping_metric,
+        early_stopping_tiebreaker=(
+            config.optimization.early_stopping_tiebreaker
+        ),
+        early_stopping_tie_tolerance=float(
+            config.optimization.early_stopping_tie_tolerance
+        ),
+        early_stopping_min_supported_classes=int(
+            config.optimization.early_stopping_min_supported_classes
+        ),
         temporal_view=config.model.temporal_view,
         temporal_encoder_name=config.model.temporal_encoder_name,
         modalities=modalities,
@@ -332,6 +366,18 @@ def _validate_identity(identity: RunIdentity) -> None:
             "run identity visual-freeze contract mismatch="
             f"{identity.visual_freeze_contract_version}"
         )
+    if (
+        identity.early_stopping_contract_version
+        != VALIDATION_SELECTION_CONTRACT_VERSION
+        or identity.early_stopping_metric != VALIDATION_PRIMARY_METRIC
+        or identity.early_stopping_tiebreaker != VALIDATION_TIEBREAKER
+    ):
+        raise ValueError("run identity validation-selection contract mismatch")
+    if (
+        identity.early_stopping_tie_tolerance < 0.0
+        or identity.early_stopping_min_supported_classes <= 0
+    ):
+        raise ValueError("run identity validation-selection values are invalid")
     if identity.execution_profile not in EXECUTION_PROFILES:
         raise ValueError(
             f"unsupported execution profile={identity.execution_profile}"

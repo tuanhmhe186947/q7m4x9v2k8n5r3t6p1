@@ -250,6 +250,60 @@ def test_finalize_links_prediction_to_exact_checkpoint(tmp_path: Path) -> None:
     assert registry["status"].tolist() == ["completed"]
     assert registry["visual_freeze_policy"].tolist() == ["all_trainable"]
     assert registry["visual_backbone_lr_multiplier"].tolist() == [1.0]
+    assert registry["early_stopping_metric"].tolist() == [
+        "validation_native_unit_macro_f1_supported"
+    ]
+    assert registry["early_stopping_tiebreaker"].tolist() == [
+        "validation_native_unit_nll"
+    ]
+
+
+def test_finalize_links_native_unit_prediction_to_checkpoint(
+    tmp_path: Path,
+) -> None:
+    config, snapshot = _fixture(tmp_path)
+    session = initialize_run_lineage(
+        config,
+        snapshot_check=snapshot,
+        environment=_environment(),
+    )
+    checkpoint = _checkpoint(session.run_dir, session.identity.to_payload())
+    prediction = session.run_dir / "native_predictions.csv"
+    pd.DataFrame(
+        {
+            "temporal_unit_key": ["unit-1", "unit-2"],
+            "true_label": ["stand", "move"],
+            "native_predicted_behavior": ["stand", "move"],
+            "prediction_split": ["validation", "validation"],
+        }
+    ).to_csv(prediction, index=False)
+
+    finalize_run_lineage(
+        session,
+        checkpoint_paths=[checkpoint],
+        predictions=[
+            PredictionArtifact(
+                path=prediction,
+                checkpoint_path=checkpoint,
+                split="validation",
+                expected_rows=2,
+                key_col="temporal_unit_key",
+                true_col="true_label",
+                pred_col="native_predicted_behavior",
+                prediction_unit="native_temporal_unit",
+            )
+        ],
+        metric_paths=[],
+    )
+
+    manifest = json.loads(
+        (session.run_dir / "prediction_manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    record = manifest["predictions"][0]
+    assert record["prediction_unit"] == "native_temporal_unit"
+    assert record["key_col"] == "temporal_unit_key"
 
 
 def test_registry_append_failure_preserves_completed_packet(

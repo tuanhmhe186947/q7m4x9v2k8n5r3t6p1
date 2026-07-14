@@ -50,11 +50,11 @@ from pig_behavior.classification_v2.training.run_registry import (
     ensure_registry_header as _ensure_registry_header,
 )
 
-RUN_MANIFEST_SCHEMA_VERSION = "classification_v2.run_manifest.v2"
+RUN_MANIFEST_SCHEMA_VERSION = "classification_v2.run_manifest.v3"
 ENVIRONMENT_SCHEMA_VERSION = "classification_v2.run_environment.v1"
 ARTIFACT_MANIFEST_SCHEMA_VERSION = "classification_v2.run_artifacts.v1"
 CHECKPOINT_MANIFEST_SCHEMA_VERSION = "classification_v2.run_checkpoints.v1"
-PREDICTION_MANIFEST_SCHEMA_VERSION = "classification_v2.run_predictions.v1"
+PREDICTION_MANIFEST_SCHEMA_VERSION = "classification_v2.run_predictions.v2"
 TERMINAL_STATUSES = frozenset({"completed", "failed"})
 
 
@@ -66,6 +66,11 @@ class PredictionArtifact:
     checkpoint_path: Path
     split: str
     expected_rows: int
+    key_col: str = "window_id"
+    true_col: str = "y_true"
+    pred_col: str = "y_pred"
+    split_col: str = "prediction_split"
+    prediction_unit: str = "window"
 
 
 @dataclass(slots=True)
@@ -529,7 +534,12 @@ def _prediction_record(
     if not path.is_file():
         raise FileNotFoundError(f"prediction file missing: {path}")
     frame = pd.read_csv(path, low_memory=False)
-    required = {"window_id", "y_true", "y_pred", "prediction_split"}
+    required = {
+        artifact.key_col,
+        artifact.true_col,
+        artifact.pred_col,
+        artifact.split_col,
+    }
     missing = sorted(required.difference(frame.columns))
     if missing:
         raise ValueError(f"prediction schema missing columns={missing}")
@@ -537,10 +547,17 @@ def _prediction_record(
         raise ValueError(
             f"prediction count mismatch={len(frame)} expected={artifact.expected_rows}"
         )
-    if frame["window_id"].fillna("").astype(str).duplicated().any():
-        raise ValueError("prediction manifest contains duplicate window_id")
+    keys = frame[artifact.key_col].fillna("").astype(str).str.strip()
+    if keys.eq("").any():
+        raise ValueError(
+            f"prediction manifest contains blank {artifact.key_col}"
+        )
+    if keys.duplicated().any():
+        raise ValueError(
+            f"prediction manifest contains duplicate {artifact.key_col}"
+        )
     observed_splits = sorted(
-        frame["prediction_split"].fillna("").astype(str).unique()
+        frame[artifact.split_col].fillna("").astype(str).unique()
     )
     if observed_splits != [artifact.split]:
         raise ValueError(
@@ -553,6 +570,11 @@ def _prediction_record(
         "size_bytes": int(path.stat().st_size),
         "rows": int(len(frame)),
         "split": artifact.split,
+        "prediction_unit": artifact.prediction_unit,
+        "key_col": artifact.key_col,
+        "true_col": artifact.true_col,
+        "pred_col": artifact.pred_col,
+        "split_col": artifact.split_col,
         "fold_id": identity.fold_id,
         "checkpoint_path": str(checkpoint_path),
         "checkpoint_sha256": checkpoint["sha256"],
@@ -723,6 +745,17 @@ def _registry_entry(
         "visual_layer4_only_epochs": identity.visual_layer4_only_epochs,
         "visual_backbone_lr_multiplier": (
             identity.visual_backbone_lr_multiplier
+        ),
+        "early_stopping_contract_version": (
+            identity.early_stopping_contract_version
+        ),
+        "early_stopping_metric": identity.early_stopping_metric,
+        "early_stopping_tiebreaker": identity.early_stopping_tiebreaker,
+        "early_stopping_tie_tolerance": (
+            identity.early_stopping_tie_tolerance
+        ),
+        "early_stopping_min_supported_classes": (
+            identity.early_stopping_min_supported_classes
         ),
         "temporal_view": identity.temporal_view,
         "temporal_encoder_name": identity.temporal_encoder_name,
