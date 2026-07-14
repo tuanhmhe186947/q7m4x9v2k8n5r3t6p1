@@ -47,8 +47,8 @@ def parse_args() -> argparse.Namespace:
 def _paths(packet_root: Path, image_size: int) -> dict[str, Path]:
     primary_context = packet_root / "08_image_context"
     repeat_context = packet_root / "08_image_context_repeat"
-    primary_cache = packet_root / "09_actor_cache_160"
-    repeat_cache = packet_root / "09_actor_cache_160_repeat"
+    primary_cache = packet_root / f"09_actor_cache_{image_size}"
+    repeat_cache = packet_root / f"09_actor_cache_{image_size}_repeat"
     primary_folds = packet_root / "10_folds"
     repeat_folds = packet_root / "10_folds_repeat"
     tensor_name = f"packed_rgb_{image_size}_letterbox.npy"

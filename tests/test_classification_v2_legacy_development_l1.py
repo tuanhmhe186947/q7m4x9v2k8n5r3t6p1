@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import runpy
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -27,6 +29,24 @@ _STARTS = {
     16: (0,),
 }
 _CENTERED_START = {6: 6, 8: 3, 12: 3, 16: 0}
+
+
+def test_l1_checker_resolves_cache_root_from_image_size(tmp_path: Path) -> None:
+    checker_path = (
+        Path(__file__).parents[1]
+        / "scripts"
+        / "classification_v2"
+        / "03_image_cache_context"
+        / "check_classification_v2_legacy_development_l1.py"
+    )
+    paths = runpy.run_path(str(checker_path))["_paths"](tmp_path, 224)
+
+    assert paths["cache_manifest"] == (
+        tmp_path / "09_actor_cache_224" / "manifest.csv"
+    )
+    assert paths["repeat_cache_manifest"] == (
+        tmp_path / "09_actor_cache_224_repeat" / "manifest.csv"
+    )
 
 
 def _claim() -> dict[str, Any]:
