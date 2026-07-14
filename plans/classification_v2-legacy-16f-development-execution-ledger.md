@@ -30,7 +30,7 @@ replaced by this ledger.
 | L2 full legacy lineage | PASS | Full repeat-bound lineage at `59647e2` |
 | L3 immutable inputs | PASS | Committed-SHA gate at `0414adc` |
 | L4 model correctness | PASS | Real-cache correctness gate at `3ef4235` |
-| L5 core baselines | IN_PROGRESS | Run controlled visual/temporal baselines |
+| L5 core baselines | IN_PROGRESS | 224px cache gate PASS at `15a5368`; 4 GiB VRAM probe next |
 | L6 modality loop | NOT_STARTED | Requires retained L5 baseline |
 | L7 imbalance policy | NOT_STARTED | Requires retained L6 candidate |
 | L8 candidate/handback | NOT_STARTED | Requires controlled L0-L7 evidence |
@@ -133,6 +133,7 @@ The cache/fold boundary remains `00dc2e0`; claim hardening rollback is
 | 2026-07-14 | Deterministic full legacy L2 lineage | PASS | `59647e2` |
 | 2026-07-14 | Immutable legacy L3 input gate | PASS | `0414adc` |
 | 2026-07-14 | Legacy L4 model-correctness ladder | PASS | `3ef4235` |
+| 2026-07-15 | Memory-safe L5 224px cache gate | PASS | `15a5368` |
 
 ## L2 PASS Evidence
 
@@ -199,6 +200,29 @@ unauthorized.
 The audits are under `14_l4_model_correctness` in the primary root. L4
 authorizes only controlled L5 development baselines. Canonical full OOF,
 reviewed/final naming, and Q2 claims remain unauthorized.
+
+## L5 224px Cache Gate Evidence
+
+- frozen config SHA256 is
+  `24bfca98440b2cc5983451eb639868610d724eadf89ea36db907540cb8f86e4c`;
+- local GPU is declared as 4 GiB with a 70% peak-VRAM ceiling;
+- ResNet18/ResNet34 frame batches are capped at 16/8 and OOM retry is forbidden;
+- all 72,864 direct-source 224px letterboxed crops exist with zero failures;
+- packed tensor shape is `[72864, 224, 224, 3]`, dtype `uint8`, with zero
+  missing files, shape mismatches, dtype mismatches, or pixel mismatches;
+- the packer uses `flush_close_reopen_each_checkpoint_v1` and records 72
+  mapping reopens; the all-row audit reopens its read-only mapping 36 times;
+- strict packed loading records 60/60 packed hits, zero cache misses, zero
+  source-media loads, and zero video decodes or seeks;
+- focused tests: 24 passed; classification regression: 490 passed,
+  181 deselected; Ruff, compile, diff, and long-line checks pass;
+- the full audit is
+  `15_l5_core_baselines/legacy_development_l5_224_cache_full_audit.json` and is
+  bound to commit `15a5368` with status `PASS_LEGACY_DEVELOPMENT_L5_CACHE_FULL`.
+
+This gate permits only the next exact pretrained-weight and short VRAM-probe
+work. No ResNet feature expansion, baseline metric, outer-holdout prediction,
+reviewed/final naming, canonical full OOF, or Q2 claim is authorized yet.
 
 ## Full-Run Boundary
 
