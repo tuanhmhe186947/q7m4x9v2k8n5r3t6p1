@@ -43,6 +43,14 @@ from ResNet18-to-ResNet34 capacity, records exact ImageNet enum/normalization,
 and passes random-init forwards without downloading weights or training. This
 does not authorize a pretrained pilot before the reviewed snapshot is frozen.
 
+Commit `2bd2fda` completes the independent visual fine-tuning schedule in code.
+Actor and union-context ResNets share frozen, `layer4_only`, and full stages;
+the backbone uses a lower LR while all optimizer parameters remain present for
+stage-boundary resume. Checkpoint v5, run identity v2, run manifest v2, and
+registry v4 bind this contract. The V0/V1/V2 checker is structural-only with
+zero optimizer steps, zero project-data rows, and no weight download. It does
+not authorize an active-data pilot or satisfy P1 performance PASS.
+
 Commit `3be22f8` completes the independent synthetic visual correctness gate.
 ResNet18-160 reaches ten-class tiny-event accuracy 1.0 with finite backbone and
 head gradients, deterministic repeated evidence, and exact in-memory resume

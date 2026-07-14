@@ -119,13 +119,17 @@ Current state:
 - The visual-backbone contract at `07ed768` supports audited ResNet18 160/224
   and ResNet34 224 controls. Unit tests use random init and do not download
   pretrained weights; active-data pilots remain blocked by the snapshot.
+- The visual schedule at `2bd2fda` applies frozen, `layer4_only`, and optional
+  full stages to actor and union-context ResNets. Backbone/head optimizer groups
+  are stable across resume and bind checkpoint v5, run identity v2, run
+  manifest v2, and registry v4. Its V0/V1/V2 audit has zero optimizer steps.
 - The synthetic-only visual gate at `3be22f8` passes deterministic ResNet18-160
   gradient, ten-class tiny-overfit, eval, and in-memory resume checks. It never
   authorizes an active-data run.
 - The strict loader at `111f152` aligns real fixed-six `time_delta` tensors to
-  the complete window universe and binds the slot-manifest hash in checkpoint
-  schema v4 and registry v3.
-- Current classification regression is 385 passed and 181 deselected. This is
+  the complete window universe. Its checkpoint v4/registry v3 contract is
+  superseded for new runs by the schedule-aware v5/v4 schemas above.
+- Current classification regression is 391 passed and 181 deselected. This is
   fixture evidence, not training authorization.
 - Transformer timing plumbing now passes in code, but every model run remains
   blocked until the reviewed snapshot and its exact hashes are frozen.

@@ -1,5 +1,20 @@
 # Project Memory Short
 
+## 2026-07-14 audited visual freeze schedule
+
+- Commit `2bd2fda` adds one versioned schedule for actor and union-context
+  backbones: frozen warm-up, ResNet `layer4` only, then optional full fine-tune.
+- All parameters enter stable optimizer groups before training. The backbone
+  uses a lower LR, frozen BatchNorm stays in eval mode, and heads stay trainable.
+- A no-download, zero-step V0/V1/V2 audit proves identical pretrained status,
+  normalization, freeze schedule, and head signature across controlled changes.
+- Checkpoint v5, run identity v2, run manifest v2, and registry v4 bind stage,
+  optimizer groups, schedule, trainable counts, config, fold, and artifact hashes.
+- Evidence is 39 focused tests, 391 classification tests with 181 deselected,
+  compileall, Ruff, checkpoint resume, and zero project-data rows read.
+- This is engineering PASS only. Hidden and behavior review still block the
+  active snapshot, pretrained pilots, model selection, and full OOF.
+
 ## 2026-07-14 deterministic visual tiny-overfit gate
 
 - Commit `3be22f8` adds a data-free ResNet18 actor-temporal correctness gate for

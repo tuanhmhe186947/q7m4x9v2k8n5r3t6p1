@@ -113,16 +113,22 @@ Independent training-contract engineering is also complete in code:
 - `3be22f8` adds a deterministic, synthetic-only ResNet18-160 gate. It verifies
   ten-class tiny overfit, backbone/head gradients, eval-safe BatchNorm
   recalibration, and in-memory model/optimizer resume without project data.
+- `2bd2fda` adds the shared frozen, `layer4_only`, and optional full visual
+  schedule for actor and union-context ResNets. Differential-LR optimizer
+  groups remain stable across checkpoint v5, run identity v2, run manifest v2,
+  and registry v4 resume boundaries. Its V0/V1/V2 audit uses zero optimizer
+  steps, zero project-data rows, and no pretrained download.
 - `111f152` loads real ordered fixed-six timing without dropping unselected
-  windows. Checkpoint schema v4 and registry v3 bind the separate temporal slot
-  manifest hash; corrupt order, slot identity, masks, or timing fail closed.
+  windows. Its checkpoint v4 and registry v3 first bound the temporal slot
+  manifest hash; new runs use schedule-aware checkpoint v5 and registry v4.
+  Corrupt order, slot identity, masks, or timing still fail closed.
 - `1b6ba3d` collapses strict ten-class window probabilities to the complete
   native-unit authority, rejects fold/target/count drift, and binds paired
   recording-cluster comparisons to identical unit mappings.
 - `e5d6417` registers the old full OOF and legacy sequence checkpoint with
   explicit non-promotion claim flags and independently checked hashes.
 
-The current classification regression is 385 passed and 181 deselected. This
+The current classification regression is 391 passed and 181 deselected. This
 evidence remains synthetic/fixture-only; it has not frozen or trained the
 incomplete human-review lineage.
 
@@ -151,6 +157,7 @@ incomplete human-review lineage.
 | Run lineage/registry | PASS IN CODE | 33 focused tests; checkpoint smoke PASS |
 | Model factory/mask contract | PASS IN CODE | 10 modes; 4 temporal encoders |
 | ResNet18/34 backbone interface | PASS IN CODE | V0/V1/V2 forward audit PASS |
+| Visual freeze/resume schedule | PASS IN CODE | V0/V1/V2 zero-step audit PASS |
 | Synthetic visual correctness gate | PASS IN CODE | 20 events; accuracy 1.0 |
 | Native paired evaluation | PASS IN CODE | 31 focused tests; strict synthetic OOF PASS |
 | Historical baseline control | PASS IN CODE | Registered as non-performance evidence |

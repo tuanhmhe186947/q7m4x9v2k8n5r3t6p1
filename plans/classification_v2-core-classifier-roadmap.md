@@ -299,6 +299,13 @@ augmentations, optimizer, folds, and seeds.
 All use the same ImageNet-1K pretrained status, exact weight enum, normalization,
 freeze schedule, and trainable-head design. Train-from-scratch is not critical.
 
+Implementation status: commit `2bd2fda` provides the shared frozen,
+`layer4_only`, and optional full schedule, stable differential-LR optimizer
+groups, BatchNorm policy, checkpoint/resume lineage, and a zero-step V0/V1/V2
+checker. The checker proves structural controls without downloading weights or
+reading project data. It is not the bounded reviewed-data pilot required for
+P1 performance PASS.
+
 ### P1 Cache And Runtime Rules
 
 - Build versioned letterboxed `160` and `224` caches once.
