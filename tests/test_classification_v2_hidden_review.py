@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import json
+import runpy
+import sys
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -29,6 +33,7 @@ from pig_behavior.classification_v2.review.hidden_review_identifiers import (
     attach_hidden_review_identifiers,
 )
 from pig_behavior.classification_v2.review.hidden_review_migration import (
+    carry_forward_hidden_review_decisions,
     migrate_hidden_review_decisions,
     upgrade_hidden_review_manifest_identifiers,
 )
@@ -261,6 +266,142 @@ def test_hidden_review_identifier_migration_preserves_human_payload() -> None:
         "hidden_reviewer",
     ):
         assert migrated[column].tolist() == decisions[column].tolist()
+
+
+def test_hidden_review_redesign_carries_human_payload_by_stable_item() -> None:
+    _, previous = _build_review()
+    decisions = _resolved_decisions(previous).head(2).copy()
+    current = previous.copy()
+    current["behavior"] = "drink"
+    decided_ids = set(decisions["hidden_review_item_id"])
+    current.loc[
+        current["hidden_review_item_id"].isin(decided_ids),
+        "hidden_review_cohort",
+    ] = "hidden_yes_confirmation"
+
+    carried, audit = carry_forward_hidden_review_decisions(
+        previous,
+        current,
+        decisions,
+    )
+
+    assert audit["valid"] is True
+    assert audit["carried_decision_rows"] == 2
+    assert audit["human_payload_changed_rows"] == 0
+    assert audit["optional_invariant_presence"]["object_track_key"] == {
+        "previous": False,
+        "current": False,
+        "compared": False,
+    }
+    assert len(carried) == len(decisions)
+    for column in (
+        "hidden_before_review",
+        "hidden_after_review",
+        "hidden_review_status",
+        "hidden_review_confidence",
+        "hidden_review_reason",
+        "hidden_reviewer",
+        "hidden_reviewed_at",
+    ):
+        assert carried[column].tolist() == decisions[column].tolist()
+
+
+def test_hidden_review_redesign_checks_optional_context_when_available() -> None:
+    _, previous = _build_review()
+    previous["object_track_key"] = [
+        f"object-track-{index}" for index in range(len(previous))
+    ]
+    decisions = _resolved_decisions(previous).head(2).copy()
+    current = previous.copy()
+    decision_id = decisions.iloc[0]["hidden_review_item_id"]
+    current.loc[
+        current["hidden_review_item_id"].eq(decision_id),
+        "object_track_key",
+    ] = "changed-object-track"
+
+    _, audit = carry_forward_hidden_review_decisions(
+        previous,
+        current,
+        decisions,
+    )
+
+    assert audit["valid"] is False
+    assert audit["context_changed_counts"]["object_track_key"] == 1
+    assert "object_track_key" in audit["compared_invariant_columns"]
+
+
+def test_hidden_review_redesign_cli_smoke(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _, previous = _build_review()
+    current = previous.copy()
+    decisions = _resolved_decisions(previous).head(2).copy()
+    previous_path = tmp_path / "previous.csv"
+    current_path = tmp_path / "current.csv"
+    decisions_path = tmp_path / "decisions.csv"
+    output_path = tmp_path / "carried.csv"
+    audit_path = tmp_path / "audit.json"
+    previous.to_csv(previous_path, index=False)
+    current.to_csv(current_path, index=False)
+    decisions.to_csv(decisions_path, index=False)
+    script_path = (
+        Path(__file__).resolve().parents[1]
+        / "scripts"
+        / "classification_v2"
+        / "01_review_units_gui"
+        / "classification_v2_carry_forward_hidden_review_decisions.py"
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            str(script_path),
+            "--previous-manifest-csv",
+            str(previous_path),
+            "--current-manifest-csv",
+            str(current_path),
+            "--decisions-csv",
+            str(decisions_path),
+            "--output-decisions-csv",
+            str(output_path),
+            "--audit-json",
+            str(audit_path),
+        ],
+    )
+
+    runpy.run_path(str(script_path), run_name="__main__")
+
+    carried = pd.read_csv(output_path, low_memory=False)
+    audit = json.loads(audit_path.read_text(encoding="utf-8"))
+    assert audit["valid"] is True
+    assert audit["carried_decision_rows"] == 2
+    assert len(carried) == 2
+    assert carried["hidden_after_review"].tolist() == decisions[
+        "hidden_after_review"
+    ].tolist()
+
+
+def test_hidden_review_redesign_rejects_lost_human_decision() -> None:
+    _, previous = _build_review()
+    decisions = _resolved_decisions(previous).head(2).copy()
+    lost_id = decisions.iloc[0]["hidden_review_item_id"]
+    current = previous.loc[
+        ~previous["hidden_review_item_id"].eq(lost_id)
+    ].copy()
+
+    _, audit = carry_forward_hidden_review_decisions(
+        previous,
+        current,
+        decisions,
+    )
+
+    assert audit["valid"] is False
+    assert audit["missing_current_decision_items"] == 1
+    assert any(
+        "human_decision_items_missing_from_current_manifest" in error
+        for error in audit["errors"]
+    )
 
 
 def test_hidden_review_identifier_migration_rejects_unknown_decision() -> None:

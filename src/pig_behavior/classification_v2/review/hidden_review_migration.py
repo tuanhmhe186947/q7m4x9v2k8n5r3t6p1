@@ -22,6 +22,9 @@ from pig_behavior.classification_v2.review.hidden_review_identifiers import (
 HIDDEN_REVIEW_MIGRATION_VERSION = (
     "classification_v2.hidden_review_identifier_migration.v1"
 )
+HIDDEN_REVIEW_REDESIGN_CARRY_VERSION = (
+    "classification_v2.hidden_review_redesign_carry.v1"
+)
 HUMAN_PAYLOAD_COLUMNS = (
     "hidden_before_review",
     "hidden_after_review",
@@ -43,6 +46,19 @@ CONTEXT_INVARIANT_COLUMNS = (
     "hidden_before_review",
     "behavior",
     "hidden_review_cohort",
+)
+REDESIGN_REQUIRED_INVARIANT_COLUMNS = (
+    "source_type",
+    "dataset_id",
+    "video_key",
+    "frame_index",
+    "pig_id",
+    "hidden_before_review",
+)
+REDESIGN_OPTIONAL_INVARIANT_COLUMNS = (
+    "object_track_key",
+    "track_id",
+    "object_id_in_image",
 )
 
 
@@ -194,6 +210,179 @@ def migrate_hidden_review_decisions(
     return mapping, migrated, audit
 
 
+def carry_forward_hidden_review_decisions(
+    previous_manifest: pd.DataFrame,
+    current_manifest: pd.DataFrame,
+    decisions: pd.DataFrame,
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """Carry reviewed payload into a redesigned target-independent workload.
+
+    Selection cohort and descriptive behavior may change across designs. Stable
+    frame/object identity, source context, and Hidden-before state may not.
+    """
+
+    required_manifest = [
+        "hidden_review_item_id",
+        "hidden_review_cohort",
+        *REDESIGN_REQUIRED_INVARIANT_COLUMNS,
+    ]
+    _require_columns(previous_manifest, required_manifest, "previous_manifest")
+    _require_columns(current_manifest, required_manifest, "current_manifest")
+    _require_columns(decisions, DECISION_COLUMNS, "decisions")
+
+    previous = previous_manifest.copy().reset_index(drop=True)
+    current = current_manifest.copy().reset_index(drop=True)
+    decision_rows = decisions.copy().reset_index(drop=True)
+    previous["_clean_item_id"] = _clean(previous["hidden_review_item_id"])
+    current["_clean_item_id"] = _clean(current["hidden_review_item_id"])
+    decision_rows["_clean_item_id"] = _clean(
+        decision_rows["hidden_review_item_id"]
+    )
+    errors: list[str] = []
+    warnings: list[str] = []
+    for name, frame in (
+        ("previous", previous),
+        ("current", current),
+        ("decision", decision_rows),
+    ):
+        _append_key_errors(errors, frame["_clean_item_id"], f"{name}_item_id")
+
+    previous_ids = set(previous["_clean_item_id"])
+    current_ids = set(current["_clean_item_id"])
+    decision_ids = set(decision_rows["_clean_item_id"])
+    unknown_previous = decision_ids.difference(previous_ids)
+    missing_current = decision_ids.difference(current_ids)
+    if unknown_previous:
+        errors.append(
+            "decision_items_missing_from_previous_manifest="
+            f"{len(unknown_previous)}"
+        )
+    if missing_current:
+        errors.append(
+            "human_decision_items_missing_from_current_manifest="
+            f"{len(missing_current)}"
+        )
+
+    previous_lookup = previous.set_index("_clean_item_id")
+    current_lookup = current.set_index("_clean_item_id")
+    carried = decision_rows.copy()
+    carried.insert(
+        0,
+        "previous_hidden_review_item_id",
+        carried["hidden_review_item_id"].fillna("").astype(str),
+    )
+    carried["hidden_review_item_id"] = carried["_clean_item_id"].map(
+        current_lookup["hidden_review_item_id"]
+    ).fillna("")
+    carried["previous_hidden_review_cohort"] = carried["_clean_item_id"].map(
+        previous_lookup["hidden_review_cohort"]
+    )
+    carried["current_hidden_review_cohort"] = carried["_clean_item_id"].map(
+        current_lookup["hidden_review_cohort"]
+    )
+    carried["hidden_review_redesign_carry_version"] = (
+        HIDDEN_REVIEW_REDESIGN_CARRY_VERSION
+    )
+
+    optional_invariant_presence = {
+        column: {
+            "previous": column in previous.columns,
+            "current": column in current.columns,
+            "compared": (
+                column in previous.columns and column in current.columns
+            ),
+        }
+        for column in REDESIGN_OPTIONAL_INVARIANT_COLUMNS
+    }
+    one_sided_optional = [
+        column
+        for column, presence in optional_invariant_presence.items()
+        if presence["previous"] != presence["current"]
+    ]
+    if one_sided_optional:
+        warnings.append(
+            "optional_redesign_invariants_present_on_one_side="
+            + ",".join(one_sided_optional)
+        )
+    compared_invariant_columns = [
+        *REDESIGN_REQUIRED_INVARIANT_COLUMNS,
+        *[
+            column
+            for column in REDESIGN_OPTIONAL_INVARIANT_COLUMNS
+            if optional_invariant_presence[column]["compared"]
+        ],
+    ]
+    context_changes: dict[str, int] = {}
+    common_decisions = decision_rows.loc[
+        decision_rows["_clean_item_id"].isin(previous_ids & current_ids)
+    ]
+    for column in compared_invariant_columns:
+        ids = common_decisions["_clean_item_id"]
+        left = ids.map(previous_lookup[column])
+        right = ids.map(current_lookup[column])
+        if column == "frame_index":
+            left = pd.to_numeric(left, errors="coerce")
+            right = pd.to_numeric(right, errors="coerce")
+        else:
+            left = _clean(left)
+            right = _clean(right)
+        changed = int(left.ne(right).sum())
+        if changed:
+            context_changes[column] = changed
+            errors.append(f"redesign_context_changed:{column}={changed}")
+
+    current_before = decision_rows["_clean_item_id"].map(
+        current_lookup["hidden_before_review"]
+    )
+    decision_before = _clean(decision_rows["hidden_before_review"])
+    before_mismatch = decision_before.ne(_clean(current_before))
+    before_mismatch &= current_before.notna()
+    if before_mismatch.any():
+        errors.append(
+            "decision_hidden_before_mismatch_current="
+            f"{int(before_mismatch.sum())}"
+        )
+
+    payload_changes = _human_payload_change_count(decision_rows, carried)
+    if payload_changes:
+        errors.append(f"human_payload_changed_rows={payload_changes}")
+    carried = carried.drop(columns=["_clean_item_id"])
+    audit = {
+        "schema_version": HIDDEN_REVIEW_REDESIGN_CARRY_VERSION,
+        "previous_manifest_rows": int(len(previous)),
+        "current_manifest_rows": int(len(current)),
+        "shared_manifest_items": int(len(previous_ids & current_ids)),
+        "decision_rows_before": int(len(decision_rows)),
+        "decision_rows_after": int(len(carried)),
+        "carried_decision_rows": int(
+            decision_rows["_clean_item_id"].isin(current_ids).sum()
+        ),
+        "resolved_decision_rows": int(
+            _clean(decision_rows["hidden_review_status"])
+            .eq("reviewed")
+            .sum()
+        ),
+        "missing_current_decision_items": int(len(missing_current)),
+        "unknown_previous_decision_items": int(len(unknown_previous)),
+        "compared_invariant_columns": compared_invariant_columns,
+        "optional_invariant_presence": optional_invariant_presence,
+        "context_changed_counts": context_changes,
+        "human_payload_changed_rows": payload_changes,
+        "previous_cohort_counts": _value_counts(
+            carried,
+            "previous_hidden_review_cohort",
+        ),
+        "current_cohort_counts": _value_counts(
+            carried,
+            "current_hidden_review_cohort",
+        ),
+        "errors": errors,
+        "warnings": warnings,
+        "valid": not errors,
+    }
+    return carried, audit
+
+
 def _build_mapping(
     old: pd.DataFrame,
     new: pd.DataFrame,
@@ -327,3 +516,10 @@ def _clean(values: pd.Series) -> pd.Series:
 def _raw_text(values: pd.Series) -> pd.Series:
     cleaned = values.fillna("").astype(str).str.strip()
     return cleaned.mask(cleaned.isin({"nan", "None", "<NA>"}), "")
+
+
+def _value_counts(frame: pd.DataFrame, column: str) -> dict[str, int]:
+    if column not in frame.columns:
+        return {}
+    values = frame[column].fillna("<NA>").astype(str)
+    return {str(key): int(value) for key, value in values.value_counts().items()}
