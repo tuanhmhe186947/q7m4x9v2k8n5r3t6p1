@@ -285,6 +285,12 @@ source interval length, missing frames, and deterministic sampling version.
 Commit `bb225ff` implements this contract and structural shortcut audits on
 synthetic fixtures. Active-lineage manifests remain blocked by human review.
 
+Commit `9b04209` implements the keyed native-unit tabular source probe and
+label-independent availability-only behavior diagnostic. It binds the exact
+trainer whitelist and ordered-window hash, fits training roles only, and keeps
+source/readiness metadata outside classifier X. Active-lineage evidence remains
+blocked by human review and context-manifest rebuild.
+
 ### P0 PASS
 
 Zero key leakage or row loss; all hashes and support tables exist; source and

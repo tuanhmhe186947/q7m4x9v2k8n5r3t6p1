@@ -21,6 +21,14 @@ The slice must still be reviewed, grouped by video/session, native-unit safe,
 and labeled `legacy-only`; it cannot replace the all-source 10-class evaluation
 or support a Q2 claim by itself.
 
+Commit `9b04209` is now the source/missingness probe authority. A source probe
+must use the exact ordered trainer whitelist, bind the train-ready ordered
+window SHA256, collapse repeated windows to native units, fit only grouped
+training roles, and test every eligible native unit once. Availability-only
+behavior diagnostics may use only registered label-independent masks;
+`interaction_context_ready` is forbidden because its current construction is
+label-gated. This engineering PASS does not authorize active-data training.
+
 Commit `abae856` freezes the model-selection grain for all new trainer runs.
 Select checkpoints only from grouped inner-validation predictions collapsed by
 `temporal_unit_key`, maximizing supported-class macro-F1 and using native-unit

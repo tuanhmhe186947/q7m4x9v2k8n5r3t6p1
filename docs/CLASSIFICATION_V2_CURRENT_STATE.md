@@ -122,6 +122,10 @@ Independent training-contract engineering is also complete in code:
   supported macro-F1, with native NLL as tie-breaker. Checkpoint v6, run
   identity v3, run manifest v3, prediction manifest v2, registry v5, and run
   audit v3 bind the policy; outer-test predictions remain evaluation-only.
+- `9b04209` binds source probes to the exact trainer whitelist and ordered-window
+  SHA256, collapses repeated windows to native units, and fits grouped training
+  roles only. Its availability-only behavior diagnostic rejects label-gated
+  masks and keeps source/readiness metadata outside classifier X.
 - `111f152` loads real ordered fixed-six timing without dropping unselected
   windows. Its checkpoint v4 and registry v3 first bound the temporal slot
   manifest hash; new runs use native-selection checkpoint v6 and registry v5.
@@ -132,7 +136,7 @@ Independent training-contract engineering is also complete in code:
 - `e5d6417` registers the old full OOF and legacy sequence checkpoint with
   explicit non-promotion claim flags and independently checked hashes.
 
-The current classification regression is 415 passed and 181 deselected. This
+The current classification regression is 429 passed and 181 deselected. This
 evidence remains synthetic/fixture-only; it has not frozen or trained the
 incomplete human-review lineage.
 
@@ -164,6 +168,7 @@ incomplete human-review lineage.
 | Visual freeze/resume schedule | PASS IN CODE | V0/V1/V2 zero-step audit PASS |
 | Synthetic visual correctness gate | PASS IN CODE | 20 events; accuracy 1.0 |
 | Native checkpoint selection | PASS IN CODE | Inner native F1/NLL; outer test excluded |
+| Native source/missingness probes | PASS IN CODE | Exact X/hash; 14 focused tests |
 | Native paired evaluation | PASS IN CODE | 31 focused tests; strict synthetic OOF PASS |
 | Historical baseline control | PASS IN CODE | Registered as non-performance evidence |
 | Model smoke on active snapshot | NOT RUN | Snapshot hashes are not frozen |

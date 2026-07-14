@@ -1,5 +1,20 @@
 # Project Memory Short
 
+## 2026-07-14 native source and missingness probes
+
+- Commit `9b04209` replaces the positional, all-numeric window source probe
+  with exact trainer-whitelist and ordered-window SHA256 binding.
+- Repeated windows are averaged once per `temporal_unit_key`; preprocessing and
+  the linear probe fit only grouped training roles, and every eligible native
+  unit must appear in outer test exactly once.
+- A separate availability-only behavior diagnostic accepts only
+  `window_image_context_complete`, `scene_context_ready`, and
+  `scene_partner_context_ready`. Label-gated `interaction_context_ready` fails.
+- Evidence is 14 focused tests and 429 classification tests with 181 deselected,
+  Ruff, compileall, import smoke, and zero overlong changed lines.
+- This is fixture-only engineering evidence. It does not authorize active-data
+  training while Hidden and behavior review remain incomplete.
+
 ## 2026-07-14 native-unit checkpoint selection
 
 - Commit `abae856` replaces window-level early stopping with grouped inner

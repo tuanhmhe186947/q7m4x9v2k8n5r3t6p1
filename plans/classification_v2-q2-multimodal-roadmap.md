@@ -727,6 +727,12 @@ Required slices:
 
 Status: CRITICAL SCIENTIFIC GATE.
 
+Engineering update: commit `9b04209` implements the exact-whitelist,
+ordered-window-hash-bound source probe and the label-independent
+availability-only behavior probe at native temporal-unit grain. This closes the
+probe correctness contract only; active reviewed-data results, learned-embedding
+probes, and source-balanced candidate metrics remain pending.
+
 ### Problem
 
 Current clean features predict `legacy_recovered` versus `cvat_tracking_xml` almost perfectly. A behavior model can therefore exploit source-correlated geometry, sequence length, missingness, ROI availability, or label prevalence instead of learning behavior.
@@ -1053,7 +1059,7 @@ Q1-style external generalization remains BLOCKED until a genuinely external farm
 | S2 Multitask loss | NOT STARTED | Mask/gradient/overfit checks and no target leakage |
 | S3 Training system | NOT STARTED | Reproducible config run, checkpoint, registry, strict whitelist |
 | S4 Q2 folds and metrics | NOT STARTED | Zero grouped leakage and one OOF prediction per native unit |
-| S5 Domain controls | NOT STARTED | Source-balanced, per-source, matched-length, embedding probes |
+| S5 Domain controls | PARTIAL IN CODE | Native probes pass; candidate evidence pending |
 | S6 Controlled experiments | BLOCKED BY S0A-S5 | Baseline/ablation OOF evidence with uncertainty |
 | S7 Active review | BLOCKED BY OOF PREDICTIONS | Train-pool shortlist, review audit, new snapshot |
 | S8 Advanced branches | EVIDENCE-GATED | Error-driven ablation improvement on intended slices |

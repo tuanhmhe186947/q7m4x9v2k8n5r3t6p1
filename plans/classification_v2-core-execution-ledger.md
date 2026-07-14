@@ -134,11 +134,13 @@ Work proceeds in dependency order without fabricating human evidence:
 8. Historical baseline engineering control: `COMPLETED IN CODE`.
 9. Synthetic visual one-batch/tiny-overfit gate: `COMPLETED IN CODE`.
 10. Visual freeze and native checkpoint selection: `COMPLETED IN CODE`.
-11. Whitelist-bound native source/missingness probes: `IN_PROGRESS`.
+11. Whitelist-bound native source/missingness probes: `COMPLETED IN CODE`.
 
-Item 11 must remove positional/all-numeric probe behavior, bind exact feature
-order and window lineage, aggregate at native-unit grain, fit only training
-roles, and keep source/availability metadata outside classifier X.
+Commit `9b04209` removes positional/all-numeric probe behavior, binds the exact
+ordered whitelist and window SHA256, aggregates repeated windows before fitting,
+and requires every eligible native unit to be outer-test exactly once. The
+availability-only behavior probe accepts only registered label-independent
+masks and keeps all source/group/readiness fields outside classifier X.
 
 ## Promotion And Full-Run Lock
 
@@ -185,7 +187,7 @@ authorization.
 | 2026-07-14 | Synthetic visual tiny-overfit gate | PASS IN CODE | `3be22f8` |
 | 2026-07-14 | Shared visual freeze schedule | PASS IN CODE | `2bd2fda` |
 | 2026-07-14 | Native-unit checkpoint selection | PASS IN CODE | `abae856` |
-| 2026-07-14 | Source/missingness probe hardening | IN_PROGRESS | pending |
+| 2026-07-14 | Native source/missingness probe contract | PASS IN CODE | `9b04209` |
 
 ## Next Checkpoint
 

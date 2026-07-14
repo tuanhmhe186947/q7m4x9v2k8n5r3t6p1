@@ -146,13 +146,17 @@ Current state:
 - Native-unit checkpoint selection at `abae856` supersedes those lineage schema
   versions for new runs with checkpoint v6, identity v3, manifest v3,
   prediction manifest v2, registry v5, and run audit v3.
+- Native source/missingness probes at `9b04209` require the exact ordered trainer
+  whitelist and train-ready window SHA256, aggregate to `temporal_unit_key`,
+  fit grouped training roles only, and emit each eligible outer-test unit once.
+  The availability probe permits only label-independent registered masks.
 - The synthetic-only visual gate at `3be22f8` passes deterministic ResNet18-160
   gradient, ten-class tiny-overfit, eval, and in-memory resume checks. It never
   authorizes an active-data run.
 - The strict loader at `111f152` aligns real fixed-six `time_delta` tensors to
   the complete window universe. Its checkpoint v4/registry v3 contract is
   superseded for new runs by the native-selection v6/v5 schemas above.
-- Current classification regression is 415 passed and 181 deselected. This is
+- Current classification regression is 429 passed and 181 deselected. This is
   fixture evidence, not training authorization.
 - Transformer timing plumbing now passes in code, but every model run remains
   blocked until the reviewed snapshot and its exact hashes are frozen.

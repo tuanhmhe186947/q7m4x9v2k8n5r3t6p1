@@ -1322,7 +1322,7 @@ bind row count cùng ordered-key hash, nên cắt hoặc reorder CSV sẽ làm c
 FAIL. Output đã tồn tại cần `--overwrite`; semantic config mới phải dùng `%R%`
 mới. Trước packet full, chạy cùng lệnh trên reviewed complete-unit short lineage.
 
-Sau đó tạo source-matched masks và grouped source probes bổ sung:
+Sau đó tạo source-matched masks và grouped spatial probe bổ sung:
 
 ```bat
 %PY% %S2%\classification_v2_build_source_matched_views.py ^
@@ -1331,15 +1331,15 @@ Sau đó tạo source-matched masks và grouped source probes bổ sung:
 %PY% %S2%\check_classification_v2_source_matched_views.py ^
   --input-csv %TRAIN%\split_manifest.csv ^
   --view-csv %TRAIN%\source_matched_views\source_matched_view_manifest.csv
-%PY% %S7%\classification_v2_evaluate_domain_controls.py ^
-  --root %TRAIN% ^
-  --grouped-roles %SPLIT%\q2_grouped_folds\q2_outer_inner_roles.csv ^
-  --output-dir %TRAIN%\domain_controls
 %PY% %S4%\check_classification_v2_grouped_spatial_source_probe.py ^
   --root %TRAIN% ^
   --grouped-roles %SPLIT%\q2_grouped_folds\q2_outer_inner_roles.csv ^
   --output-json %TRAIN%\domain_controls\spatial_source_probe_audit.json
 ```
+
+Tabular source probe và availability-only behavior probe phải đợi image và
+interaction manifests ở mục 16.5. Không dùng artifact cũ 39 feature hoặc số row
+hard-code làm authority cho lineage mới.
 
 Primary protocol là `fixed6_observed_time`: CVAT và legacy đều dùng window dài
 6 đã được tạo sau harmonization. Không lấy sáu quantile rải trên burst legacy
@@ -1492,9 +1492,40 @@ source-manifest hash, shape, image size cùng partial audit đều khớp. Khôn
   --root %TRAIN% --output-dir %TRAIN%
 ```
 
+Sau khi hai window-context manifest tồn tại, chạy canonical source và
+availability probes ở native-unit grain:
+
+```bat
+%PY% %S7%\classification_v2_evaluate_domain_controls.py ^
+  --root %TRAIN% ^
+  --native-mapping %SEQ1%\sequence_window_manifest.csv ^
+  --grouped-roles %SPLIT%\q2_grouped_folds\q2_outer_inner_roles.csv ^
+  --trainer-contract-json configs\classification_v2\trainer_contract_v1.json ^
+  --train-ready-audit-json %TRAIN%\train_ready_audit.json ^
+  --image-window-manifest %TRAIN%\image_window_context_manifest.csv ^
+  --interaction-window-manifest ^
+  %TRAIN%\interaction_window_context_manifest.csv ^
+  --output-dir %TRAIN%\domain_controls
+%PY% %S2%\check_classification_v2_domain_controls.py ^
+  --source-probe-audit ^
+  %TRAIN%\domain_controls\grouped_source_probe_audit.json ^
+  --availability-probe-audit ^
+  %TRAIN%\domain_controls\grouped_availability_behavior_probe_audit.json ^
+  --feature-shift-audit ^
+  %TRAIN%\domain_controls\domain_feature_shift_audit.json ^
+  --spatial-source-probe-audit ^
+  %TRAIN%\domain_controls\spatial_source_probe_audit.json ^
+  --output-json %TRAIN%\domain_controls\check_domain_controls.json
+```
+
 Context readiness/missingness là audit/mask, không phải evidence label. Partner
 selection phải dựa trên geometry và cùng frame/video, không dựa vào target
 `fight` hoặc `social-nose`.
+
+Availability probe chỉ nhận `window_image_context_complete`,
+`scene_context_ready` và `scene_partner_context_ready`. Không thêm
+`interaction_context_ready`: implementation hiện tại gate field này bằng
+interaction label, nên dùng nó sẽ tạo target-derived shortcut.
 
 ### 16.6. Interaction visual cache: short rồi full
 
