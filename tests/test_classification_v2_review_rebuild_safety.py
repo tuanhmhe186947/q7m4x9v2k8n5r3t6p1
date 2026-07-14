@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import sys
@@ -278,6 +279,39 @@ def test_hidden_gui_uses_video_contract_for_cvat(tmp_path: Path) -> None:
 
     assert mode == "cvat_video_bbox"
     assert path == video
+
+
+def test_hidden_gui_media_audit_binds_input_hashes(tmp_path: Path) -> None:
+    gui = _load_script(
+        "hidden_gui_media_audit_hashes",
+        "review_hidden_quality_gui.py",
+    )
+    manifest_path = tmp_path / "manifest.csv"
+    frame_features_path = tmp_path / "frame_context.csv"
+    manifest_path.write_bytes(b"manifest-fixture\n")
+    frame_features_path.write_bytes(b"frame-context-fixture\n")
+    audit = gui.build_media_validation_audit(
+        manifest_path,
+        frame_features_path,
+        [tmp_path / "videos"],
+        [tmp_path / "crops"],
+        {
+            "manifest_items": 2,
+            "video_resolved": 1,
+            "crop_resolved": 1,
+            "media_missing": 0,
+        },
+    )
+
+    assert audit["schema_version"] == (
+        "classification_v2_hidden_media_audit_v2"
+    )
+    assert audit["manifest_sha256"] == hashlib.sha256(
+        manifest_path.read_bytes()
+    ).hexdigest()
+    assert audit["frame_features_sha256"] == hashlib.sha256(
+        frame_features_path.read_bytes()
+    ).hexdigest()
 
 
 @pytest.mark.parametrize(

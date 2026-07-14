@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import re
 import tkinter as tk
@@ -820,6 +821,45 @@ def validate_media_resolution(
     }
 
 
+def build_media_validation_audit(
+    manifest_path: Path,
+    frame_features_path: Path,
+    video_roots: list[Path],
+    crop_roots: list[Path],
+    resolution: dict[str, Any],
+) -> dict[str, Any]:
+    """Bind media-resolution evidence to the exact review input bytes."""
+
+    return {
+        "schema_version": "classification_v2_hidden_media_audit_v2",
+        "manifest_csv": str(manifest_path),
+        "manifest_sha256": _sha256_file(manifest_path),
+        "frame_features_csv": str(frame_features_path),
+        "frame_features_sha256": _sha256_file(frame_features_path),
+        "video_roots": [str(path) for path in video_roots],
+        "crop_roots": [str(path) for path in crop_roots],
+        **resolution,
+    }
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(
+        json.dumps(payload, indent=2),
+        encoding="utf-8",
+    )
+    temporary.replace(path)
+
+
 def main() -> None:
     args = parse_args()
     manifest, frames = load_review_inputs(
@@ -830,19 +870,14 @@ def main() -> None:
     resolution = validate_media_resolution(manifest, video_index, args.crop_root)
     print(resolution)
     if args.validation_audit_json is not None:
-        audit = {
-            "schema_version": "classification_v2_hidden_media_audit_v1",
-            "manifest_csv": str(args.manifest_csv),
-            "frame_features_csv": str(args.frame_features_csv),
-            "video_roots": [str(path) for path in args.video_root],
-            "crop_roots": [str(path) for path in args.crop_root],
-            **resolution,
-        }
-        args.validation_audit_json.parent.mkdir(parents=True, exist_ok=True)
-        args.validation_audit_json.write_text(
-            json.dumps(audit, indent=2),
-            encoding="utf-8",
+        audit = build_media_validation_audit(
+            args.manifest_csv,
+            args.frame_features_csv,
+            args.video_root,
+            args.crop_root,
+            resolution,
         )
+        _write_json_atomic(args.validation_audit_json, audit)
     if args.validate_only:
         if resolution["media_missing"]:
             raise SystemExit(f"FAIL: missing media for {resolution['media_missing']} items")
