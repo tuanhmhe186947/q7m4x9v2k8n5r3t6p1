@@ -1,0 +1,47 @@
+{
+  "schema_version": "classification_v2.legacy_development_l4.config.v1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "human_review_complete": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "accuracy_f1_comparison_authorized": false,
+  "development_root": "outputs/classification_v2/legacy_only_unreviewed_development",
+  "primary_run_id": "full_legacy_lineage_v2_20260714",
+  "l3_audit_relative_path": "13_l3_audit/legacy_development_l3_audit.json",
+  "fold_id": "native_oof_005",
+  "temporal_view_name": "legacy_t16_centered_matched_observed_time",
+  "temporal_selection_column": "legacy_t16_centered_matched_keep",
+  "expected_selected_native_units": 4554,
+  "expected_development_valid_native_units": 4545,
+  "model": {
+    "model_mode": "actor_temporal",
+    "backbone_name": "resnet18",
+    "pretrained_weight_enum": "NONE_RANDOM_INIT",
+    "image_size": 160,
+    "sequence_length": 16,
+    "hidden_dim": 32,
+    "temporal_encoder_name": "masked_tcn",
+    "dropout": 0.0
+  },
+  "short_gate": {
+    "seed": 20260714,
+    "device": "cuda",
+    "gradient_learning_rate": 0.001,
+    "tiny_events_per_class": 2,
+    "tiny_steps": 500,
+    "tiny_learning_rate": 0.01,
+    "tiny_minimum_accuracy": 0.95,
+    "tiny_maximum_loss_ratio": 0.2,
+    "frame_batch_events": 1,
+    "maximum_peak_vram_fraction": 0.75
+  },
+  "fold_epoch": {
+    "epochs": 1,
+    "frame_batch_events": 4,
+    "train_batch_size": 256,
+    "learning_rate": 0.003,
+    "weight_decay": 0.0,
+    "maximum_peak_vram_fraction": 0.75,
+    "visual_policy": "frozen_random_resnet_correctness_only"
+  }
+}
