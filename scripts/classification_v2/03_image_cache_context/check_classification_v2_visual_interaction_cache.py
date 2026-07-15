@@ -10,7 +10,9 @@ import pandas as pd
 
 EXPECTED_RESIZE_POLICY = "actor_nearest_partner_union_letterbox_rgb_pad_black_v1"
 DEFAULT_CACHE_DIR = Path("outputs/classification_v2/visual_interaction_cache")
-DEFAULT_OUTPUT_JSON = Path("outputs/classification_v2/model_design/visual_interaction_cache_audit.json")
+DEFAULT_OUTPUT_JSON = Path(
+    "outputs/classification_v2/model_design/visual_interaction_cache_audit.json"
+)
 REQUIRED_MANIFEST_COLUMNS = {
     "visual_context_id",
     "image_context_id",
@@ -31,9 +33,12 @@ REQUIRED_MANIFEST_COLUMNS = {
 def main() -> None:
     """Check canonical full-frame actor-partner visual context artifacts."""
 
-    parser = argparse.ArgumentParser(description="Check visual interaction cache shape, masks, and lineage.")
+    parser = argparse.ArgumentParser(
+        description="Check visual interaction cache shape, masks, and lineage."
+    )
     parser.add_argument("--cache-dir", type=Path, default=DEFAULT_CACHE_DIR)
     parser.add_argument("--require-cvat-ready", action="store_true", default=True)
+    parser.add_argument("--require-legacy-ready", action="store_true")
     parser.add_argument("--sample-tensors", type=int, default=128)
     parser.add_argument("--output-json", type=Path, default=DEFAULT_OUTPUT_JSON)
     args = parser.parse_args()
@@ -41,6 +46,7 @@ def main() -> None:
     audit = check_visual_interaction_cache(
         cache_dir=args.cache_dir,
         require_cvat_ready=args.require_cvat_ready,
+        require_legacy_ready=args.require_legacy_ready,
         sample_tensors=args.sample_tensors,
     )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
@@ -54,6 +60,7 @@ def check_visual_interaction_cache(
     *,
     cache_dir: Path,
     require_cvat_ready: bool,
+    require_legacy_ready: bool,
     sample_tensors: int,
 ) -> dict[str, Any]:
     """Validate visual context is partner/full-frame context, not label gated."""
@@ -87,10 +94,10 @@ def check_visual_interaction_cache(
     legacy = manifest[manifest.get("source_type", pd.Series()).astype(str).eq("legacy_recovered")]
     cvat_ready = int(_bool_series(cvat.get("visual_context_available", pd.Series())).sum())
     legacy_ready = int(_bool_series(legacy.get("visual_context_available", pd.Series())).sum())
-    if require_cvat_ready and cvat_ready == 0:
+    if require_cvat_ready and len(cvat) and cvat_ready == 0:
         errors.append("no_cvat_visual_context_ready")
-    if legacy_ready:
-        errors.append(f"legacy_visual_context_must_be_masked={legacy_ready}")
+    if require_legacy_ready and len(legacy) and legacy_ready == 0:
+        errors.append("no_legacy_visual_context_ready")
 
     resize_policies = _unique_strings(manifest, "resize_policy")
     if resize_policies != [EXPECTED_RESIZE_POLICY]:
@@ -118,7 +125,8 @@ def check_visual_interaction_cache(
         errors.append(f"visual_context_label_gated={build_audit.get('label_gated')}")
     if build_audit.get("rows_dropped_for_missing_context") not in (0, None):
         errors.append(
-            f"visual_context_rows_dropped_for_missing_context={build_audit.get('rows_dropped_for_missing_context')}"
+            "visual_context_rows_dropped_for_missing_context="
+            f"{build_audit.get('rows_dropped_for_missing_context')}"
         )
     if build_audit.get("valid") is not True:
         errors.append(f"visual_context_build_audit_invalid={build_audit_path}")
@@ -199,7 +207,12 @@ def _check_individual_tensors(
             errors.append(f"missing_cache_file={path}")
             continue
         value = np.load(path, mmap_mode="r")
-        if value.dtype != np.uint8 or value.ndim != 3 or value.shape[-1] != 3 or value.shape[0] != value.shape[1]:
+        if (
+            value.dtype != np.uint8
+            or value.ndim != 3
+            or value.shape[-1] != 3
+            or value.shape[0] != value.shape[1]
+        ):
             errors.append(f"invalid_cache_tensor={path}:{value.shape}:{value.dtype}")
         checked += 1
     return {"checked_cache_tensors": int(checked), "errors": errors}
@@ -238,7 +251,9 @@ def _check_packed_cache(
         errors.append(f"invalid_packed_tensor={shape}:{dtype}")
     if tensor.shape[0] != available_rows or len(index) != available_rows:
         errors.append(
-            f"packed_available_row_mismatch=tensor:{tensor.shape[0]}:index:{len(index)}:available:{available_rows}"
+            "packed_available_row_mismatch="
+            f"tensor:{tensor.shape[0]}:index:{len(index)}:"
+            f"available:{available_rows}"
         )
     if packed_audit.get("valid") is not True:
         errors.append(f"packed_visual_context_audit_invalid={packed_tensor_path.parent}")

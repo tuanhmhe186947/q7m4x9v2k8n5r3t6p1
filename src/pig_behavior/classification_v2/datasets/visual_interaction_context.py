@@ -1,8 +1,8 @@
 """Build reusable actor-partner visual context without behavior-label gating.
 
-CVAT rows use the union of the actor and nearest-partner boxes from the same
-video frame. Legacy crop-only rows remain represented with an unavailable mask;
-the module never fabricates scene context and never drops unavailable rows.
+Rows from any source use the union of actor and nearest-partner boxes only when
+the same-frame video, clip, and partner geometry are available. The module
+never fabricates scene context and never drops unavailable rows.
 """
 
 from __future__ import annotations
@@ -174,7 +174,7 @@ def build_visual_interaction_cache(config: VisualInteractionCacheConfig) -> dict
         "label_gated": False,
         "rows_dropped_for_missing_context": 0,
         "errors": [] if duplicate_ids == 0 else [f"duplicate_visual_context_id={duplicate_ids}"],
-        "warnings": ["legacy crop-only rows are expected to have visual_context_available=false"],
+        "warnings": [],
     }
     audit["valid"] = not audit["errors"] and len(manifest) > 0
     (config.output_dir / "visual_context_cache_audit.json").write_text(
@@ -207,8 +207,19 @@ def _validate_config(config: VisualInteractionCacheConfig) -> None:
 
 def _validate_frames(frames: pd.DataFrame) -> None:
     required = {
-        "image_context_id", "source_type", "video_key", "resolved_media_path",
-        "frame_index", "track_id", "nearest_track_id", "x1", "y1", "x2", "y2",
+        "image_context_id",
+        "source_type",
+        "dataset_id",
+        "video_key",
+        "clip_id",
+        "resolved_media_path",
+        "frame_index",
+        "track_id",
+        "nearest_track_id",
+        "x1",
+        "y1",
+        "x2",
+        "y2",
     }
     missing = sorted(required.difference(frames.columns))
     if missing:
@@ -218,35 +229,55 @@ def _validate_frames(frames: pd.DataFrame) -> None:
         raise ValueError(f"duplicate image_context_id rows: {duplicates}")
 
 
-def _same_frame_actor_lookup(frames: pd.DataFrame) -> dict[tuple[str, int, str], dict[str, Any]]:
-    """Index partner boxes by video/frame/track; track IDs are local to a video."""
+def _same_frame_actor_lookup(
+    frames: pd.DataFrame,
+) -> dict[tuple[str, str, str, str, int, str], dict[str, Any]]:
+    """Index partner boxes without crossing source, dataset, video, or clip."""
 
-    lookup: dict[tuple[str, int, str], dict[str, Any]] = {}
+    lookup: dict[
+        tuple[str, str, str, str, int, str],
+        dict[str, Any],
+    ] = {}
     for row in frames.to_dict("records"):
         frame_index = pd.to_numeric(row["frame_index"], errors="coerce")
         if pd.isna(frame_index):
             continue
-        lookup[(str(row["video_key"]), int(frame_index), _canonical_id(row["track_id"]))] = row
+        key = _context_lookup_key(
+            row,
+            frame_index=int(frame_index),
+            track_id=_canonical_id(row["track_id"]),
+        )
+        if key in lookup:
+            raise ValueError(f"duplicate actor-partner lookup key: {key}")
+        lookup[key] = row
     return lookup
 
 
 def _resolve_context_geometry(
-    row: dict[str, Any], lookup: dict[tuple[str, int, str], dict[str, Any]], padding_ratio: float
+    row: dict[str, Any],
+    lookup: dict[
+        tuple[str, str, str, str, int, str],
+        dict[str, Any],
+    ],
+    padding_ratio: float,
 ) -> dict[str, Any]:
     empty_geometry = {name: np.nan for name in ["union_x1", "union_y1", "union_x2", "union_y2"]}
-    if str(row["source_type"]) != "cvat_tracking_xml":
+    media = str(row.get("resolved_media_path", "")).strip()
+    if not media or not Path(media).exists():
         return {
-            "status": "source_has_no_full_frame_media",
+            "status": "missing_video",
             "partner_track_id": "",
             "union_bbox": None,
             "audit_geometry": empty_geometry,
         }
-    media = str(row.get("resolved_media_path", "")).strip()
-    if not media or not Path(media).exists():
-        return {"status": "missing_video", "partner_track_id": "", "union_bbox": None, "audit_geometry": empty_geometry}
     partner_id = _canonical_id(row.get("nearest_track_id"))
     frame_index = int(pd.to_numeric(row["frame_index"], errors="raise"))
-    partner = lookup.get((str(row["video_key"]), frame_index, partner_id))
+    partner_key = _context_lookup_key(
+        row,
+        frame_index=frame_index,
+        track_id=partner_id,
+    )
+    partner = lookup.get(partner_key)
     if not partner_id or partner is None:
         return {
             "status": "missing_nearest_partner_bbox",
@@ -271,7 +302,28 @@ def _resolve_context_geometry(
     pad_y = (y2 - y1) * padding_ratio
     union = (x1 - pad_x, y1 - pad_y, x2 + pad_x, y2 + pad_y)
     audit = dict(zip(["union_x1", "union_y1", "union_x2", "union_y2"], union, strict=True))
-    return {"status": "geometry_ready", "partner_track_id": partner_id, "union_bbox": union, "audit_geometry": audit}
+    return {
+        "status": "geometry_ready",
+        "partner_track_id": partner_id,
+        "union_bbox": union,
+        "audit_geometry": audit,
+    }
+
+
+def _context_lookup_key(
+    row: dict[str, Any],
+    *,
+    frame_index: int,
+    track_id: str,
+) -> tuple[str, str, str, str, int, str]:
+    return (
+        str(row.get("source_type", "")),
+        str(row.get("dataset_id", "")),
+        str(row.get("video_key", "")),
+        str(row.get("clip_id", "")),
+        frame_index,
+        track_id,
+    )
 
 
 def _decode_union_crop(
@@ -366,7 +418,10 @@ def _validate_partial_manifest(partial: pd.DataFrame, config: VisualInteractionC
         lambda value: not (config.output_dir / value).exists()
     )
     if missing_files.any():
-        raise ValueError(f"partial visual cache has missing tensor files: {int(missing_files.sum())}")
+        raise ValueError(
+            "partial visual cache has missing tensor files: "
+            f"{int(missing_files.sum())}"
+        )
 
 
 def _write_partial_checkpoint(
