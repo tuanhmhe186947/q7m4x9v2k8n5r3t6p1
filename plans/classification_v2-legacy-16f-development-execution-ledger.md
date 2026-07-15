@@ -30,7 +30,7 @@ replaced by this ledger.
 | L2 full legacy lineage | PASS | Full repeat-bound lineage at `59647e2` |
 | L3 immutable inputs | PASS | Committed-SHA gate at `0414adc` |
 | L4 model correctness | PASS | Real-cache correctness gate at `3ef4235` |
-| L5 core baselines | IN_PROGRESS | V1/T16 PASS; V2 next; remote GPU permitted after exact gate |
+| L5 core baselines | IN_PROGRESS | V0/V1/V2 visual controls PASS; TCN temporal control next |
 | L6 modality loop | NOT_STARTED | Requires retained L5 baseline |
 | L7 imbalance policy | NOT_STARTED | Requires retained L6 candidate |
 | L8 candidate/handback | NOT_STARTED | Requires controlled L0-L7 evidence |
@@ -155,6 +155,9 @@ The cache/fold boundary remains `00dc2e0`; claim hardening rollback is
 | 2026-07-15 | Full V0/T16 centered baseline | PASS | `22875cb` |
 | 2026-07-15 | V1 resolution-only repeat gate | PASS | `4db26bf` |
 | 2026-07-15 | Full V1/T16 resolution control | PASS | `3eb5a49` |
+| 2026-07-15 | Hardware/data interpretation clarification | PASS | `65286f5` |
+| 2026-07-15 | V2 backbone-only repeat gate | PASS | `df0df10` |
+| 2026-07-15 | Full V2/T16 backbone control | PASS | `ae9cc43` |
 
 ## L2 PASS Evidence
 
@@ -436,8 +439,44 @@ evidence follows below. Canonical full OOF and Q2 claims remain false.
 - all passing runs peak at 94,371,840 reserved bytes, clean up to zero, and
   have no OOM, retry, AMP, source read, outer prediction, or process overlap.
 
-L5 remains `IN_PROGRESS`. The next gate is V2 backbone-only, ResNet18/224 to
-ResNet34/224, with its own static contract and two fresh short processes.
+## L5 V2 Backbone-Only Evidence
+
+- commit `df0df10` adds schema-v4 V2 gating. The only visual-family change is
+  ResNet18/224 to ResNet34/224; ImageNet-1K V1 family, T16 view, masked-mean
+  head, optimizer, seed, split, subset, and claim boundary remain fixed;
+- short config and implementation SHA256 values are
+  `525798bf2de9ec4917993539597384dd997e9cbe2562528b85895aca89bfb9ff`
+  and `512e85666e790e0c66c8bbace50b65265e37142e41ddcf4ae8acf7aa0eb7eb07`;
+- runs `ct_v2_t16_p_df0df10_v4` and `ct_v2_t16_r_df0df10_v4` use distinct
+  PIDs 13,512 and 2,732 with non-overlapping intervals and nine steps each;
+- all 14 equality fields pass. Parameter, prediction, and epoch-metric hashes
+  are `d021ff43e49da67ebb2f4b37335524a33414ff0e01144e7db661135ca0234328`,
+  `a44e6e46fe6362b01fc97a3b85ad0307c3b824fb1aa3d89e672f8366d4a45173`,
+  and `b443f0da0f7e1c0a95d27a05c8895ed0f39aff42ad0681ef1365dc69cd25d27b`;
+- the V2-only short gate SHA256 is
+  `317e2385ef32359f97024c2a81e945889fd5d0a5ace1407c60d277e8139905cb`;
+- commit `ae9cc43` binds full config SHA256
+  `b0fbcba16774f7efe2ad0981f2d4e544187e83dbcd6be332118e0a89f5eec9a6`;
+- `ct_v2_t16_full_ae9cc43_v4` passes 3,652 train and 245 validation units,
+  three epochs, 345 steps, and selects epoch 3 in 4.5280627 seconds;
+- bounded legacy metrics are macro-F1 `0.4245712948`, accuracy `0.6163265306`,
+  and native-unit NLL `1.0568459007`;
+- result, run-manifest, and checkpoint SHA256 values are
+  `ca7d070a343afcc2bad57e40c3e40d2c6c8311235888e080e67a1192af14a6e2`,
+  `87591f58b56ad9d6a768d3e4a9527ac32763267f9b929e440df0691ccfa280d2`,
+  and `7553d38fca70be3f3ac2878058314278b9c877c8bb3bb712d907d37bc5f65b8d`;
+- all 13 artifacts pass independent hash audits. Peak reserved VRAM is
+  94,371,840 bytes with cleanup `0/0`, no OOM/retry/source read/outer access;
+- 52 L5 tests and 533 classification tests pass with 181 deselected.
+
+Against V1, paired macro-F1 changes by `+0.071753`, but the exploratory
+33-video cluster-bootstrap interval is `[-0.038441, 0.135424]`; accuracy changes
+by `-0.040816`. This does not prove promotion on one legacy validation date.
+V1 ResNet18/224 remains the efficient temporal-search control and V2 remains
+the capacity reference. Neither result estimates merged-data rare support.
+
+L5 remains `IN_PROGRESS`. The next isolated family is masked TCN versus the
+fixed V1/T16 masked-mean control; Transformer remains conditional on TCN evidence.
 
 ## Full-Run Boundary
 
