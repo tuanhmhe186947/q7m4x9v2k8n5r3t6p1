@@ -566,7 +566,9 @@ both temporal sampling protocols. The completed ladder evidence follows.
   drop against another view, but this support is not representative of merged;
 - T16 centered and sliding are exactly equivalent in parameters,
   probabilities, and predicted labels as required by their shared one window;
-- the official evaluator and Git guard pass at committed code SHA `a929e02`.
+- the official evaluator and Git guard pass at committed code SHA `d68232c`;
+  this reissue changes only the ambiguous dataset alias in decision metadata,
+  while all eight bound model runs and numerical results remain unchanged.
 
 Decision: retain `t6_sliding` only as the bounded L6 working baseline. Sliding
 also changes window count and optimizer exposure, so no causal claim about T6
@@ -578,9 +580,9 @@ data, whose rare-behavior support is materially larger than `legacy_16f`.
 The official artifact is
 `legacy_l5_temporal_ladder_decision_v1.json` under the L5 output root. File
 SHA256 is
-`bd57fc9ed52028ac6d176cf4ca8fe5557e8c737ef94c11659cce8645a8d409b1`;
+`f3316568c797967e66a0a6ea3cac8e4804a35e12439b3d31527e10ef93abd4e1`;
 payload SHA256 is
-`2969e405176e4584588c07c911e9f3c190b0f2fce7db15ce115d02205c9ba4a5`.
+`9f727cf248401eea718ccab2c9f367f9cc2c3ea88e4a214d0e9831badf4c7919`.
 
 L5 is `PASS`. This authorizes L6 geometry-first work from the exact T6 sliding
 baseline only; reviewed/final naming, canonical full OOF, and Q2 claims remain
