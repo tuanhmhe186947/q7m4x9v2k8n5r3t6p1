@@ -1,6 +1,6 @@
 # Project Memory Short
 
-## 2026-07-15 legacy L6 ROI relation promotion decision
+## 2026-07-15 legacy L6 ROI full confirmation decision
 
 - Commits `8445ae8` through `3e59197` freeze the audited 18-feature ROI cache:
   15,588 windows, 93,528 T6 slots, complete availability, and byte-identical
@@ -14,8 +14,20 @@
 - ROI minus zero is `+0.0465165101`, with 33-video cluster interval
   `[0.0134524177, 0.0768469401]`; ROI minus availability-only is
   `+0.0480320616`, with interval `[0.0178011460, 0.0771756533]`.
-- The valid decision is `RETAIN_ROI_RELATION_FOR_FULL_LEGACY_DEVELOPMENT`.
-  Prepare the exact hash-bound full ROI confirmation next; L6 remains active.
+- The hash-bound full confirmation is complete at
+  `l6r_full_decision_v1.json` under
+  `outputs/classification_v2/legacy_only_unreviewed_development/l6r_full_v1/`;
+  its artifact SHA256 is
+  `5a9a2b4b61b7ddeef0b5155ec69b678d73f0acd53917db98d1d6271cab5f1af3`.
+- Full zero, availability-only, and ROI macro-F1 are `0.4966025667`,
+  `0.4727197983`, and `0.5082292933`. ROI minus zero is `+0.0116267266`,
+  with interval `[-0.0398806556, 0.0906766805]`; ROI minus availability-only
+  is `+0.0355094951`, with interval `[-0.0248897889, 0.0986581204]`.
+- The valid decision is
+  `DO_NOT_EXPAND_ROI_RELATION_FROM_CURRENT_SHORT_EVIDENCE`; the full gain
+  misses the margin and positive interval-low gate, and availability-only
+  fails its bounded-difference check. Continue L6 numeric social relations
+  from parameter-matched T6 zero; do not carry ROI values into the candidate.
 - This evidence applies only to unreviewed `legacy_16f`. It is not reviewed,
   final, canonical OOF, Q2, or merged-data evidence.
 
@@ -30,7 +42,7 @@
   `[-0.0260250944, 0.0233049368]`.
 - The valid decision is
   `DO_NOT_EXPAND_MOTION_FROM_CURRENT_SHORT_EVIDENCE`; no full motion run is
-  authorized. Continue L6 with all-class ROI relations from the zero control.
+  authorized. Continue L6 with numeric social relations from the zero control.
 - This applies only to unreviewed `legacy_16f`. Reassess motion on frozen
   merged-reviewed data, whose rare-class support is materially larger.
 

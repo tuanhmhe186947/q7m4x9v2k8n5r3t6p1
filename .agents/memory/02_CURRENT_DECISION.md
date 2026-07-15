@@ -10,26 +10,37 @@ sections are historical records. Current gate status is centralized in
 
 ### Legacy L6 ROI relation decision
 
-The `legacy_16f` ROI short matrix passes its predeclared paired promotion gate.
-ROI minus parameter-matched zero macro-F1 is `+0.0465165101`, with 33-video
-cluster interval `[0.0134524177, 0.0768469401]`; ROI minus availability-only is
-`+0.0480320616`, with interval `[0.0178011460, 0.0771756533]`. The
-availability-only interval crosses zero, so the constant availability channel
-is not treated as behavior evidence.
+The `legacy_16f` ROI short matrix passed its predeclared paired promotion gate,
+so one exact full confirmation was authorized. That confirmation is complete
+at `l6r_full_decision_v1.json` under
+`outputs/classification_v2/legacy_only_unreviewed_development/l6r_full_v1/`
+with SHA256
+`5a9a2b4b61b7ddeef0b5155ec69b678d73f0acd53917db98d1d6271cab5f1af3`.
 
-The decision is `RETAIN_ROI_RELATION_FOR_FULL_LEGACY_DEVELOPMENT`. Prepare and
-verify the exact hash-bound full ROI confirmation before running it. Do not
-advance to social relations until the full ROI decision closes. This does not
-authorize canonical full OOF, reviewed/final naming, Q2 evidence, or any claim
-about merged-reviewed data. L6 remains `IN_PROGRESS`.
+Full zero, availability-only, and ROI macro-F1 are `0.4966025667`,
+`0.4727197983`, and `0.5082292933`. ROI minus zero is `+0.0116267266`, with
+33-video cluster interval `[-0.0398806556, 0.0906766805]`; ROI minus
+availability-only is `+0.0355094951`, with interval
+`[-0.0248897889, 0.0986581204]`. Availability-only minus zero is
+`-0.0238827684`, with interval `[-0.0629523019, 0.0339059054]`.
+
+The decision is `DO_NOT_EXPAND_ROI_RELATION_FROM_CURRENT_SHORT_EVIDENCE`.
+The full ROI gain misses the required margin and positive interval-low gate,
+and the availability diagnostic fails its bounded-difference check. Do not
+carry ROI values into the next candidate. Continue L6 numeric social relations
+from the parameter-matched T6 zero control. This does not authorize canonical
+full OOF, reviewed/final naming, Q2 evidence, or any claim about merged-reviewed
+data. Reassess ROI on merged-reviewed data, where rare-class support is
+materially larger. L6 remains `IN_PROGRESS`.
 
 ### Legacy L6 motion decision
 
 The `legacy_16f` motion short matrix is closed as valid negative evidence.
 Motion does not meet the predeclared native-unit/video-cluster promotion gates,
 so do not run full motion or add motion values to the next L6 candidate.
-Continue from parameter-matched T6 with all-class ROI relations. Geometry and
-motion must both be reassessed on frozen merged-reviewed data; neither rejection
+Continue from parameter-matched T6 with numeric social relations; do not carry
+ROI or motion values into the next candidate. Geometry, motion, and ROI must be
+reassessed on frozen merged-reviewed data; none of these legacy-only decisions
 transfers to that lineage. The local 4 GiB GPU was only a correctness host and
 was not the rejection reason.
 

@@ -31,7 +31,7 @@ replaced by this ledger.
 | L3 immutable inputs | PASS | Committed-SHA gate at `0414adc` |
 | L4 model correctness | PASS | Real-cache correctness gate at `3ef4235` |
 | L5 core baselines | PASS | T6 sliding retained as bounded legacy_16f baseline |
-| L6 modality loop | IN_PROGRESS | ROI short retained; full ROI confirmation next |
+| L6 modality loop | IN_PROGRESS | Full ROI rejected; next gate is numeric social relations |
 | L7 imbalance policy | NOT_STARTED | Requires retained L6 candidate |
 | L8 candidate/handback | NOT_STARTED | Requires controlled L0-L7 evidence |
 
@@ -195,6 +195,9 @@ The cache/fold boundary remains `00dc2e0`; claim hardening rollback is
 | 2026-07-15 | Crash-bounded ROI short trainer | PASS | `c32d3fa` |
 | 2026-07-15 | Immutable ROI short matrix config | PASS | `6753ee7` |
 | 2026-07-15 | Paired ROI promotion decision | PASS | `821e931` |
+| 2026-07-15 | Full ROI authorization and config | PASS | `984a6c9` |
+| 2026-07-15 | Full ROI decision evaluator | PASS | `e82d6c5` |
+| 2026-07-15 | Full ROI confirmation decision | PASS | `29cfdd0` |
 
 ## L2 PASS Evidence
 
@@ -816,13 +819,45 @@ ROI minus zero macro-F1 is `+0.0465165101`, with 33-video cluster interval
 with interval `[0.0178011460, 0.0771756533]`. Availability-only minus zero is
 `-0.0015155515`, and its interval crosses zero.
 
-The valid decision is `RETAIN_ROI_RELATION_FOR_FULL_LEGACY_DEVELOPMENT`. The
-short matrix SHA256 is
+The valid short decision is `RETAIN_ROI_RELATION_FOR_FULL_LEGACY_DEVELOPMENT`.
+The short matrix SHA256 is
 `29e9a2c7fe41979c92083b84b7bc8f354a7db671ddef263e61269b318a9bdda6`;
 the decision artifact SHA256 is
 `a4ec60c2850efd84d3d52cf295ace0c22a180a15c93be8d21a6617ec73bf186d`.
-Only a hash-bound full ROI confirmation is authorized. L6 remains
-`IN_PROGRESS`; canonical full OOF and merged-data claims remain unauthorized.
+The short result authorized one exact full confirmation; it did not promote
+ROI into the next candidate.
+
+## L6 ROI Full Confirmation Decision
+
+The hash-bound full confirmation is the file
+`l6r_full_decision_v1.json` under
+`outputs/classification_v2/legacy_only_unreviewed_development/l6r_full_v1/`.
+Its artifact SHA256 is
+`5a9a2b4b61b7ddeef0b5155ec69b678d73f0acd53917db98d1d6271cab5f1af3`.
+The full training config SHA256 is
+`6ea481082e69f632395ef1483f3986214488a639e3d7fc8857a2121f96bf1103`;
+the authorization-gate SHA256 is
+`9764b6a518a0153fe66f27151321fdf005b1f2d6419519bcd19b719e211a2f90`.
+
+- Full controls use the same T6 native-unit universe and 70,704 parameters.
+- Zero, availability-only, and ROI macro-F1 are `0.4966025667`,
+  `0.4727197983`, and `0.5082292933`.
+- ROI minus zero is `+0.0116267266`, with 33-video cluster interval
+  `[-0.0398806556, 0.0906766805]`; ROI minus availability-only is
+  `+0.0355094951`, with interval `[-0.0248897889, 0.0986581204]`.
+- Availability-only minus zero is `-0.0238827684`, with interval
+  `[-0.0629523019, 0.0339059054]`.
+- All three fresh GPU processes used 1,371 steps, peaked at 73,400,320
+  reserved bytes, had no OOM/retry, and cleaned allocation/reservation to 0/0.
+
+Decision: `DO_NOT_EXPAND_ROI_RELATION_FROM_CURRENT_SHORT_EVIDENCE`.
+The full ROI gain misses the required margin and positive interval-low gate;
+the availability diagnostic also fails its bounded-difference check. Do not
+carry ROI values into the next candidate. Continue L6 numeric social relations
+from the parameter-matched T6 zero control. This rejection is limited to
+unreviewed `legacy_16f`; reassess ROI on merged-reviewed data, whose rare-class
+support is materially larger. L6 remains `IN_PROGRESS`; canonical full OOF and
+merged-data claims remain unauthorized.
 
 ## Full-Run Boundary
 

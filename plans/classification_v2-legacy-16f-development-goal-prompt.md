@@ -1,6 +1,6 @@
 # Classification V2 `legacy_16f` Development Goal Prompt
 
-Version: 1.2
+Version: 1.3
 
 Status: scoped goal authority for a separate chat
 
@@ -297,11 +297,14 @@ Current L6 handoff: geometry is rejected after full legacy confirmation, and
 the bounded T6 motion matrix remains valid negative evidence. The all-class ROI
 relation short matrix passes its paired native-unit/video-cluster promotion
 gate against both the parameter-matched zero and availability-only controls.
-Run the exact hash-bound full ROI relation confirmation next; do not advance to
-social relations until that full decision closes. L6 remains `IN_PROGRESS`.
-Reassess every retained or rejected family on frozen merged-reviewed data,
-where rare-behavior support is materially larger. Local 4 GiB VRAM remains only
-a correctness-host constraint and is not an architecture rejection reason.
+The hash-bound full ROI relation confirmation is now complete: ROI does not
+meet the full legacy promotion gate against zero, its cluster interval crosses
+zero, and the availability-only diagnostic also fails its bounded-difference
+check. Do not carry ROI values into the next candidate. Continue L6 numeric
+social relations from the parameter-matched T6 base. Reassess ROI, geometry,
+and motion on frozen merged-reviewed data, where rare-behavior support is
+materially larger. Local 4 GiB VRAM remains only a correctness-host constraint
+and is not an architecture rejection reason.
 
 ### L7 - Select One Imbalance Policy
 

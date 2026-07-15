@@ -1,6 +1,6 @@
 # Benchmark Notes
 
-## 2026-07-15 legacy L6 ROI relation benchmark
+## 2026-07-15 legacy L6 ROI relation full confirmation
 
 - The zero, availability-only, and ROI controls share the same T6 native-unit
   universe, seed, 70,704 parameters, and 30 optimizer steps.
@@ -11,9 +11,22 @@
 - ROI minus availability-only is `+0.0480320616`, with interval
   `[0.0178011460, 0.0771756533]`. Availability-only minus zero is effectively
   null, with interval `[-0.0122444323, 0.0100985531]`.
-- Promote ROI relations to an exact full legacy confirmation. Preserve this as
-  unreviewed `legacy_16f` evidence only and reassess on merged-reviewed data,
-  whose rare-behavior support is materially larger.
+- The exact full confirmation is complete. Full zero, availability-only, and
+  ROI macro-F1 are `0.4966025667`, `0.4727197983`, and `0.5082292933`.
+- ROI minus zero is `+0.0116267266`, with 33-video cluster interval
+  `[-0.0398806556, 0.0906766805]`; ROI minus availability-only is
+  `+0.0355094951`, with interval `[-0.0248897889, 0.0986581204]`.
+- Availability-only minus zero is `-0.0238827684`, with interval
+  `[-0.0629523019, 0.0339059054]`.
+- Decision: `DO_NOT_EXPAND_ROI_RELATION_FROM_CURRENT_SHORT_EVIDENCE`.
+  The full ROI gain misses the required margin and positive interval-low gate;
+  availability-only also fails its bounded-difference check. Do not carry ROI
+  values into the next candidate. Reassess ROI on merged-reviewed data, whose
+  rare-behavior support is materially larger.
+- Full artifact:
+  `l6r_full_decision_v1.json` under
+  `outputs/classification_v2/legacy_only_unreviewed_development/l6r_full_v1/`.
+  SHA256: `5a9a2b4b61b7ddeef0b5155ec69b678d73f0acd53917db98d1d6271cab5f1af3`.
 
 ## 2026-07-15 legacy L6 motion benchmark
 
