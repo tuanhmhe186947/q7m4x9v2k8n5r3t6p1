@@ -25,6 +25,10 @@ REPEAT_MANIFEST = Path(
     "full_legacy_lineage_v2_20260714/16_l6_input_context/"
     "roi_relation_cache_repeat_v1/roi_relation_cache_manifest.json"
 )
+GATE_CONFIG = Path(
+    "configs/classification_v2/"
+    "legacy_development_l6_roi_relation_cache_repeat_gate_v1.json"
+)
 
 
 def _load(path: Path) -> dict[str, object]:
@@ -57,3 +61,15 @@ def test_roi_relation_cache_repeat_is_byte_and_content_identical() -> None:
     changed = copy.deepcopy(repeat)
     changed["artifacts"]["roi_relation"]["sha256"] = "0" * 64
     assert not repeat_gate._artifact_comparison(primary, changed)["valid"]
+
+
+def test_roi_relation_cache_repeat_gate_config_is_strict() -> None:
+    payload = _load(GATE_CONFIG)
+
+    repeat_gate._validate_config(payload)
+
+    assert payload["lineage_scope"] == "legacy-only-unreviewed-development"
+    assert payload["human_review_complete"] is False
+    assert payload["primary"]["config_sha256"] != payload["repeat"][
+        "config_sha256"
+    ]
