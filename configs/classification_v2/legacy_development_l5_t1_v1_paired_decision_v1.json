@@ -1,0 +1,99 @@
+{
+  "schema_version": "classification_v2.legacy_development_l5.paired_decision_config.v1",
+  "comparison_id": "L5_T1_T16_VS_V1_T16_PAIRED_DECISION_V1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "implementation_source": {
+    "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_l5_paired_decision.py",
+    "sha256": "e384b5d2221de6983efd565f8a6b789413e25c5f15a5dd141e2c84d44be99f9f"
+  },
+  "execution_guard": {
+    "require_committed_inputs": true,
+    "allowed_dirty_paths": [
+      ".tokensave/config.json",
+      "outputs/classification_v2/train_ready_windows/feature_semantics_audit.json",
+      "scripts/diagnostics/detect_single_frame.py"
+    ],
+    "required_tracked_paths": [
+      "configs/classification_v2/legacy_development_l5_t1_v1_paired_decision_v1.json",
+      "scripts/classification_v2/07_postrun_evaluation/check_classification_v2_legacy_development_l5_paired_decision.py",
+      "src/pig_behavior/classification_v2/evaluation/legacy_development_l5_paired_decision.py"
+    ]
+  },
+  "candidate": {
+    "role": "candidate",
+    "run_root": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/ct_t1_t16_full_14c6e4b_v5",
+    "run_id": "ct_t1_t16_full_14c6e4b_v5",
+    "training_config_path": "configs/classification_v2/legacy_development_l5_cached_training_t1_t16_full_v5.json",
+    "training_config_sha256": "747ae1da9b6558be8a12ca1d085d70c52cccad828770160b4bfac1ee557f72a4",
+    "artifact_manifest_sha256": "cf13d4c21f926cc29b9fa07ef5be3dfaa1d1c1c985a521cd477bb3aed0274001",
+    "run_manifest_sha256": "da890689706fb9c8f71378f74ebbae0d03aa01d23711ef1a3edb41e3634bb9e4",
+    "expected_code_sha": "14c6e4bc35f6f7963c8447610a1b1e20382cb374",
+    "expected_training_source_sha256": "f639dd6d1dcdd83172f33054dab11a0c861eb65883f2656c8ed96d0d908fa96c",
+    "expected_temporal_encoder": "masked_tcn",
+    "expected_parameter_count": 167435
+  },
+  "baseline": {
+    "role": "baseline",
+    "run_root": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/ct_v1_t16_full_3eb5a49_v3",
+    "run_id": "ct_v1_t16_full_3eb5a49_v3",
+    "training_config_path": "configs/classification_v2/legacy_development_l5_cached_training_v1_t16_full_v3.json",
+    "training_config_sha256": "5665a8316112951562b178b7940b2e2124e72515b3007701017aff6d4e05cf15",
+    "artifact_manifest_sha256": "ffedc55edaf78d0fca20a5f26e373acf24badbf1c9ae476aea1f08f456417c43",
+    "run_manifest_sha256": "f13b75f2caa15323684448bb670c087a9711d0e6fc6286d007db23b81a304958",
+    "expected_code_sha": "3eb5a4944366b4715a42f2e2a1583aa21d77d7f7",
+    "expected_training_source_sha256": "9a1525382df94935ad780179a3d264aaeb975bf236402bb5c00e789c5d9a219b",
+    "expected_temporal_encoder": "masked_mean",
+    "expected_parameter_count": 68234
+  },
+  "paired_contract": {
+    "unit_column": "temporal_unit_key",
+    "cluster_column": "video_key",
+    "true_column": "behavior_label",
+    "predicted_column": "predicted_label",
+    "validation_fold_id": "native_oof_006",
+    "expected_native_units": 245,
+    "expected_clusters": 33,
+    "bootstrap_iterations": 2000,
+    "bootstrap_seed": 20260715,
+    "class_order": [
+      "drink",
+      "eat",
+      "fight",
+      "social-nose",
+      "explore",
+      "lying",
+      "stand",
+      "move",
+      "sitting",
+      "playwithtoy"
+    ],
+    "rare_classes": [
+      "fight",
+      "social-nose",
+      "playwithtoy",
+      "move"
+    ]
+  },
+  "decision_contract": {
+    "minimum_macro_f1_gain_to_override_simpler": 0.01,
+    "require_positive_cluster_ci_low": true,
+    "maximum_rare_group_recall_drop": 0.1,
+    "maximum_runtime_ratio_to_parent": 3.0,
+    "transformer_requires_tcn_promotion": true
+  },
+  "interpretation_boundary": {
+    "decision_scope": "legacy-only-unreviewed-development",
+    "legacy_rejection_applies_to_merged_reviewed_data": false,
+    "merged_reviewed_reassessment_required": true,
+    "local_vram_is_architecture_limit": false,
+    "rented_gpu_allowed_after_target_environment_gate": true
+  },
+  "output": {
+    "artifact_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_l5_t1_v1_paired_decision_v1.json"
+  }
+}
