@@ -1,5 +1,27 @@
 # Project Memory Short
 
+## 2026-07-16 legacy L6 full-frame-context short decision
+
+- Commit `1d22abd` freezes the paired evaluator for the six already-complete
+  full-frame short GPU processes. Every mode uses 30 optimizer steps and
+  134,924 parameters, peaks at 96,468,992 reserved bytes, has no OOM/retry,
+  and cleans CUDA allocation/reservation to zero.
+- Zero, availability-only, and full-frame macro-F1 are `0.2697662759`,
+  `0.2721987509`, and `0.2942624204`; all per-mode repeats are deterministic.
+- Full-frame minus zero is `+0.0244961445`, but its 33-video cluster interval
+  is `[-0.0668714797, 0.0725200014]` and NLL worsens by `+0.2414525889`.
+- Full-frame minus availability-only is `+0.0220636696`, with interval
+  `[-0.0809709233, 0.0671747502]`; NLL worsens by `+0.3144303865`.
+- The valid decision is
+  `DO_NOT_EXPAND_FULL_FRAME_CONTEXT_FROM_CURRENT_SHORT_EVIDENCE`. Do not run a
+  full confirmation or carry full-frame values into the legacy candidate.
+- L6 is PASS with the parameter-matched T6 zero as the retained simple base.
+  Continue L7 with separate event-balanced CE, effective-number CE, and
+  Balanced Softmax policies. Reassess every rejected modality on frozen
+  merged-reviewed data.
+- The decision artifact SHA256 is
+  `e006dc6636ede5a35e71414448be1dc96f0f71e29f5f2a1b6d0230fa0c49c6bf`.
+
 ## 2026-07-16 legacy L6 union-context short decision
 
 - Commits `27cc764` and `4a3a998` freeze the crash-bounded actor-partner union

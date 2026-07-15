@@ -1,5 +1,22 @@
 # Benchmark Notes
 
+## 2026-07-16 legacy L6 full-frame-context short decision
+
+- The parameter-matched zero, availability-only, and full-frame modes use the
+  same 245 native units, 33 video clusters, seed, 134,924 parameters, and 30
+  optimizer steps. All repeats are deterministic.
+- Native macro-F1 is `0.2697662759`, `0.2721987509`, and `0.2942624204`.
+- Full-frame minus zero is `+0.0244961445`, with cluster interval
+  `[-0.0668714797, 0.0725200014]`; accuracy changes by `+0.0122448980` and
+  NLL worsens by `+0.2414525889`.
+- Full-frame minus availability-only is `+0.0220636696`, with interval
+  `[-0.0809709233, 0.0671747502]`; NLL worsens by `+0.3144303865`.
+- Decision: `DO_NOT_EXPAND_FULL_FRAME_CONTEXT_FROM_CURRENT_SHORT_EVIDENCE`.
+  Do not run a full confirmation or carry full-frame values into the candidate.
+  This is mixed legacy-only evidence, not a merged-data architecture rejection.
+- Decision artifact SHA256:
+  `e006dc6636ede5a35e71414448be1dc96f0f71e29f5f2a1b6d0230fa0c49c6bf`.
+
 ## 2026-07-15 legacy L6 ROI relation full confirmation
 
 - The zero, availability-only, and ROI controls share the same T6 native-unit

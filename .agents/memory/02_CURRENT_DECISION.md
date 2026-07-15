@@ -8,6 +8,29 @@ sections are historical records. Current gate status is centralized in
 
 ## Active decision: reviewed-data rebuild
 
+### Legacy L6 full-frame decision and L7 handoff
+
+The `legacy_16f` full-frame short matrix and paired evaluator are complete.
+Zero, availability-only, and full-frame macro-F1 are `0.2697662759`,
+`0.2721987509`, and `0.2942624204`. Full-frame minus zero is
+`+0.0244961445`, with 33-video cluster interval
+`[-0.0668714797, 0.0725200014]`; NLL worsens by `+0.2414525889`.
+Full-frame minus availability-only is `+0.0220636696`, with interval
+`[-0.0809709233, 0.0671747502]`; NLL worsens by `+0.3144303865`.
+
+The valid decision is
+`DO_NOT_EXPAND_FULL_FRAME_CONTEXT_FROM_CURRENT_SHORT_EVIDENCE`. The macro-F1
+point estimates meet the margin, but both cluster intervals cross zero and
+NLL worsens. Do not run a full confirmation or carry full-frame values into
+the legacy candidate. The decision artifact SHA256 is
+`e006dc6636ede5a35e71414448be1dc96f0f71e29f5f2a1b6d0230fa0c49c6bf`.
+
+L6 is PASS with the parameter-matched T6 zero retained as the simplest bounded
+base. Start L7 and compare event-balanced CE, effective-number CE, and Balanced
+Softmax separately. These decisions apply only to unreviewed `legacy_16f` and
+do not authorize reviewed/final naming, canonical full OOF, Q2 claims, or an
+architecture conclusion for merged-reviewed data.
+
 ### Legacy L6 ROI relation decision
 
 The `legacy_16f` ROI short matrix passed its predeclared paired promotion gate,

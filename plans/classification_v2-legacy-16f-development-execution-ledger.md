@@ -31,8 +31,8 @@ replaced by this ledger.
 | L3 immutable inputs | PASS | Committed-SHA gate at `0414adc` |
 | L4 model correctness | PASS | Real-cache correctness gate at `3ef4235` |
 | L5 core baselines | PASS | T6 sliding retained as bounded legacy_16f baseline |
-| L6 modality loop | IN_PROGRESS | Union crop rejected; next gate is S4 full-frame context |
-| L7 imbalance policy | NOT_STARTED | Requires retained L6 candidate |
+| L6 modality loop | PASS | All declared modality families closed; retain parameter-matched T6 zero |
+| L7 imbalance policy | IN_PROGRESS | Compare three policies separately from the retained L6 base |
 | L8 candidate/handback | NOT_STARTED | Requires controlled L0-L7 evidence |
 
 ## Settled Contracts
@@ -929,6 +929,52 @@ numeric-social PASS. Because the paired S1 promotion gate failed, top-K is
 The interaction-context gap remains, so S3 actor-partner union crop is the next
 authorized one-family test from the parameter-matched T6 zero. Reassess S1 and
 S2 on frozen merged-reviewed data before any final social-architecture claim.
+
+## L6 Union-Context Short Decision
+
+Commits `27cc764` and `4a3a998` close the actor-partner union-crop matrix and
+paired decision. All six fresh GPU processes use 30 optimizer steps and
+134,924 parameters, peak at 96,468,992 reserved bytes, have no OOM/retry, and
+clean CUDA state to zero. Every per-mode repeat is deterministic.
+
+- zero, availability-only, and union macro-F1 are `0.2697662759`,
+  `0.2721987509`, and `0.2297779478`;
+- union minus zero is `-0.0399883282`, with 33-video cluster interval
+  `[-0.0909594431, 0.0147461009]`;
+- NLL worsens by `+0.2082319675`, and rare-group macro-F1 falls by
+  `-0.1033780579` against zero.
+
+Decision: `DO_NOT_EXPAND_UNION_CONTEXT_FROM_CURRENT_SHORT_EVIDENCE`. Do not
+run a full confirmation or carry union values forward. The decision artifact
+SHA256 is
+`bc37887890c0a7ea5e8eb993595547c30e69693f0f06ac8e12d0d2e453829778`.
+S3 remains insufficient, so S4 full-frame context is the final declared L6
+one-family test from the parameter-matched T6 zero.
+
+## L6 Full-Frame-Context Short Decision
+
+Commit `1d22abd` freezes the paired evaluator for the completed full-frame
+matrix. All six fresh GPU processes use 30 optimizer steps and 134,924
+parameters, peak at 96,468,992 reserved bytes, have no OOM/retry, clean CUDA
+state to zero, and preserve deterministic per-mode repeats.
+
+- zero, availability-only, and full-frame macro-F1 are `0.2697662759`,
+  `0.2721987509`, and `0.2942624204`;
+- full-frame minus zero is `+0.0244961445`, with cluster interval
+  `[-0.0668714797, 0.0725200014]` and NLL delta `+0.2414525889`;
+- full-frame minus availability-only is `+0.0220636696`, with interval
+  `[-0.0809709233, 0.0671747502]` and NLL delta `+0.3144303865`.
+
+Decision: `DO_NOT_EXPAND_FULL_FRAME_CONTEXT_FROM_CURRENT_SHORT_EVIDENCE`.
+The point estimates meet the macro-F1 margin, but both cluster intervals cross
+zero and NLL worsens. Do not run full confirmation or carry full-frame values
+forward. Decision artifact SHA256:
+`e006dc6636ede5a35e71414448be1dc96f0f71e29f5f2a1b6d0230fa0c49c6bf`.
+
+L6 is PASS with the parameter-matched T6 zero retained as the simplest bounded
+base. L7 starts from that exact base and compares each imbalance policy as one
+independent variable. Every modality conclusion remains limited to unreviewed
+`legacy_16f` and must be reassessed on frozen merged-reviewed data.
 
 ## Full-Run Boundary
 

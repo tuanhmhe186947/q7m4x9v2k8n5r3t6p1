@@ -1,6 +1,6 @@
 # Classification V2 `legacy_16f` Development Goal Prompt
 
-Version: 1.3
+Version: 1.4
 
 Status: scoped goal authority for a separate chat
 
@@ -319,9 +319,13 @@ roadmap S2 permits top-K only after numeric-social S1 passes, so top-K is
 complete and deterministic. Union context reduces macro-F1 against both the
 parameter-matched zero and availability-only controls, worsens NLL, and fails
 the rare-group guardrail; do not run its full confirmation or carry it forward.
-Because S3 remains insufficient, continue with the S4 full-frame context CNN
-from the same parameter-matched T6 zero. Reassess numeric social, top-K, and
-union context on frozen merged-reviewed data.
+The S4 full-frame matrix is also complete. Its macro-F1 point estimate rises by
+`+0.0244961445` against zero, but the 33-video interval crosses zero and NLL
+worsens by `+0.2414525889`; do not run a full confirmation or carry full-frame
+values forward. L6 is PASS with the parameter-matched T6 zero retained as the
+simplest bounded base. Continue L7 with event-balanced CE, effective-number CE,
+and Balanced Softmax as three separate one-variable policies. Reassess every
+rejected modality on frozen merged-reviewed data.
 
 ### L7 - Select One Imbalance Policy
 
