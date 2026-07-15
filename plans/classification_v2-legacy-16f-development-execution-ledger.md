@@ -644,9 +644,22 @@ Config v3 uses a separate shorter output root. Its longest declared canary path
 is 205 characters against a conservative 240-character gate. Config v3 SHA256
 is `51462300634a10244217cc1290c7af8f8a9e6597a16a47859cec41ac7e3e8ab6`.
 
-L6 remains `IN_PROGRESS`. Config v3 must be committed and repeat all CPU
-preflights before a new canary. Two fresh-process short runs for each mode are
-still required before the matrix can authorize any full geometry expansion.
+Config v3 passed all three committed CPU preflights and all six fresh-process
+short runs. Every run used 30 optimizer steps, peaked at 73,400,320 reserved
+VRAM bytes, reported no OOM or retry, and cleaned allocated/reserved bytes to
+zero. Each mode is byte-deterministic across its two runs.
+
+Native validation point metrics are:
+
+- parameter-matched zero: macro-F1 `0.2675196654`, accuracy `0.3959183673`;
+- availability-only: macro-F1 `0.2642331606`, accuracy `0.3918367347`;
+- geometry: macro-F1 `0.2982000716`, accuracy `0.4408163265`.
+
+The six-process short matrix is `PASS`; SHA256 is
+`aeeb3b14101726f68cabf63d52f9bad0f5327ebf88bb5dc6b28ee8a88f5dbc3c`.
+This is technical expansion evidence only. L6 remains `IN_PROGRESS` until the
+predeclared paired native/video-cluster decision closes geometry versus both
+controls. No full geometry training may start before that decision passes.
 
 ## Full-Run Boundary
 
