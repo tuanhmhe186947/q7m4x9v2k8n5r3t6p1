@@ -859,6 +859,32 @@ unreviewed `legacy_16f`; reassess ROI on merged-reviewed data, whose rare-class
 support is materially larger. L6 remains `IN_PROGRESS`; canonical full OOF and
 merged-data claims remain unauthorized.
 
+## L6 Numeric Social Relation Cache Evidence
+
+Commits `6372dc6` through `7a42ce6` freeze the numeric-social cache and its
+independent repeat gate. The cache exposes ten explicit distance, overlap,
+density, contact, relative-motion, and aggression-proxy values. Partner IDs are
+audit metadata only; top-K partner, geometry, motion, and ROI values do not
+enter model X.
+
+- Primary and repeat tensors have shape `[15588, 6, 10]`; 92,664 of 93,528
+  slots are available and 864 are explicitly unavailable.
+- All 15,588 windows are rebased locally, with 74,669 valid consecutive
+  same-partner pairs, zero media reads, and zero outer-holdout slots.
+- Social tensor, availability, window index, and slot index are byte-identical
+  across the two output roots.
+- The source probe is `NOT_ESTIMABLE_SINGLE_LEGACY_SOURCE`, as required for
+  this single-source lane.
+
+The primary and repeat manifest SHA256 values are
+`5a0f66842e4fd0d8af363d3da1ebb762edd118586d62dd8a3bea4f4e6399a192` and
+`c5adf7bb08ed86a5f3b4cdfc0d8aade88328fe354fb251cadabf10f1c23af111`.
+The PASS repeat-gate SHA256 is
+`3d4206c6679bc8f0cebe77c6da764ce8edb29deb2417f0cfacf82b6311d28d9f`.
+
+This closes cache materialization only. The next gate is the parameter-matched
+three-mode short trainer: zero, availability-only, and numeric-social.
+
 ## Full-Run Boundary
 
 The full legacy L2 data build is complete. Any semantic change invalidates its

@@ -1,5 +1,23 @@
 # Project Memory Short
 
+## 2026-07-15 legacy L6 numeric-social cache
+
+- Commits `6372dc6` through `7a42ce6` freeze the ten-feature numeric-social
+  cache and independent repeat evaluator for the T6 sliding universe.
+- Primary and repeat tensors have shape `[15588, 6, 10]`; 92,664 of 93,528
+  slots are available, 864 are unavailable, and all four artifacts are
+  byte-identical across separate roots.
+- All 15,588 windows are locally rebased. There are 74,669 valid consecutive
+  same-partner pairs, zero media reads, and zero outer-holdout slots.
+- Partner IDs are audit metadata only. Top-K partner, geometry, motion, and ROI
+  values do not enter model X.
+- The primary manifest SHA256 is
+  `5a0f66842e4fd0d8af363d3da1ebb762edd118586d62dd8a3bea4f4e6399a192`;
+  the repeat-gate SHA256 is
+  `3d4206c6679bc8f0cebe77c6da764ce8edb29deb2417f0cfacf82b6311d28d9f`.
+- Cache evidence is PASS only. Continue with a three-mode parameter-matched
+  short trainer before authorizing any full numeric-social confirmation.
+
 ## 2026-07-15 legacy L6 ROI full confirmation decision
 
 - Commits `8445ae8` through `3e59197` freeze the audited 18-feature ROI cache:
