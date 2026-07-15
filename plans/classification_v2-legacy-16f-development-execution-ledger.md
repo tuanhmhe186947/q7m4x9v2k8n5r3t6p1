@@ -713,6 +713,39 @@ SHA256 is
 the decision artifact SHA256 is
 `25f4e9919c3579b16ea393678027d95fc706c975b9c57be99b981cca654a2e04`.
 
+## L6 Motion Cache Evidence
+
+Commits `f6090ea`, `61061a3`, and `adf2cb6` freeze the canonical T6 motion
+cache and its independent repeat gate. Motion starts from the parameter-matched
+zero control; rejected geometry values are used only as ordering authority and
+never enter the motion tensor.
+
+- primary and repeat each contain 15,588 windows, 93,528 slots, and exact
+  `[15588, 6, 10]` float32 motion tensors;
+- 77,940 within-window frame pairs are available, while exactly 15,588 first
+  slots are zero and unavailable and no later slot is unavailable;
+- 13,277 windows start after frame zero, and 11,691 of their raw first rows have
+  nonzero burst-level motion that is reset to zero before cache materialization;
+- no unit aggregate, geometry value, media read, or outer-holdout slot enters
+  the cache;
+- motion, availability, window-index, and slot-index artifacts are byte-equal
+  across separate primary and repeat builds.
+
+The primary manifest SHA256 is
+`dabc971259e437d1374cea0f4f0c850415b02c2dbf2990a8d763d0843a6bf825`;
+the repeat manifest SHA256 is
+`5736e89cc1bed977a3e3a077af034e51f9d15509ce3e207c88a560ea2b961914`.
+The PASS repeat gate SHA256 is
+`6cdc1c796cc48430045161fc880fa8eb0031aec1ef0ce9e89900a1c344d04a17`.
+
+The first v1 build exposed a CSV empty-string/NaN audit mismatch after writing
+its artifacts. It was not retried or promoted; the preserved failure packet
+SHA256 is
+`13177898608040aec8886d338c365c41c38f78b7136ff3db5d916722557bfd85`.
+The v2 build fixed only that serialization audit and reran both caches from
+fresh output roots. L6 remains `IN_PROGRESS`: the next gate is the three-control
+short matrix for parameter-matched zero, availability-only, and motion.
+
 ## Full-Run Boundary
 
 The full legacy L2 data build is complete. Any semantic change invalidates its
