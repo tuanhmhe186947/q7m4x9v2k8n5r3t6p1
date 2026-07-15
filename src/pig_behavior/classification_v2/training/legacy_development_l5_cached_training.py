@@ -51,6 +51,9 @@ CACHED_TRAINING_CONFIG_SCHEMA_VERSION = (
 CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V2 = (
     "classification_v2.legacy_development_l5.cached_training_config.v2"
 )
+CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V3 = (
+    "classification_v2.legacy_development_l5.cached_training_config.v3"
+)
 CACHED_TRAINING_SELECTION_SCHEMA_VERSION = (
     "classification_v2.legacy_development_l5.cached_training_selection.v1"
 )
@@ -108,10 +111,17 @@ CACHED_TRAINING_REPEAT_GATE_SCHEMA_VERSION = (
 CACHED_TRAINING_REPEAT_GATE_SCHEMA_VERSION_V2 = (
     "classification_v2.legacy_development_l5.cached_training_repeat_gate.v2"
 )
+CACHED_TRAINING_REPEAT_GATE_SCHEMA_VERSION_V3 = (
+    "classification_v2.legacy_development_l5.cached_training_repeat_gate.v3"
+)
 EXPECTED_TEMPORAL_VIEW = "legacy_t16_centered_matched_observed_time"
 MODEL_VISIBLE_ROLES = ("train", "validation")
 SHORT_TRAINING_SCOPE = "short_repeat_gate"
 FULL_TRAINING_SCOPE = "full_development_baseline"
+V1_RESOLUTION_CONTROL_ID = "V1"
+V1_RESOLUTION_FROZEN_FAMILY = (
+    "V1_resnet18_224_T16_centered_masked_mean_v1"
+)
 SELECTION_FIELDS = (
     "selection_order",
     "position",
@@ -353,14 +363,20 @@ def load_legacy_l5_cached_training_config(
         "output",
     }
     schema_version = payload.get("schema_version")
-    if schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V2:
+    if schema_version in {
+        CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V2,
+        CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V3,
+    }:
         required.update({"training_scope", "expansion_contract"})
         if payload.get("training_scope") == FULL_TRAINING_SCOPE:
             required.add("short_gate_parent")
+    if schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V3:
+        required.add("ablation_contract")
     _require_exact_keys(payload, required, name="cached training config")
     if schema_version not in {
         CACHED_TRAINING_CONFIG_SCHEMA_VERSION,
         CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V2,
+        CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V3,
     }:
         raise ValueError("cached training config schema mismatch")
     training_scope = str(payload.get("training_scope", SHORT_TRAINING_SCOPE))
@@ -389,10 +405,15 @@ def load_legacy_l5_cached_training_config(
     _validate_experiment_contract(
         payload["experiment_contract"],
         training_scope=training_scope,
+        schema_version=str(schema_version),
     )
     _validate_base_config(payload["base_config"])
     _validate_consumer_parent(payload["consumer_parent"])
-    _validate_data_contract(payload["data"], training_scope=training_scope)
+    _validate_data_contract(
+        payload["data"],
+        training_scope=training_scope,
+        schema_version=str(schema_version),
+    )
     _validate_model_contract(payload["model"])
     _validate_optimization_contract(
         payload["optimization"],
@@ -408,8 +429,18 @@ def load_legacy_l5_cached_training_config(
         training_scope=training_scope,
         schema_version=str(schema_version),
     )
-    if schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V2:
-        _validate_expansion_contract(payload["expansion_contract"])
+    if schema_version in {
+        CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V2,
+        CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V3,
+    }:
+        _validate_expansion_contract(
+            payload["expansion_contract"],
+            schema_version=str(schema_version),
+        )
+    if schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V3:
+        _validate_v1_resolution_ablation_contract(
+            payload["ablation_contract"]
+        )
     if training_scope == FULL_TRAINING_SCOPE:
         _validate_short_gate_parent(payload["short_gate_parent"])
     repo_root = resolved_path.parents[2]
@@ -424,6 +455,8 @@ def load_legacy_l5_cached_training_config(
         )
     if file_sha256(config.base_config_path) != payload["base_config"]["sha256"]:
         raise ValueError("cached training base config hash drift")
+    if schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V3:
+        _validate_v1_resolution_reference(config)
     if training_scope == FULL_TRAINING_SCOPE:
         _validate_full_training_authorization(config)
     return config
@@ -544,6 +577,15 @@ def load_legacy_l5_cached_training_view(
         "feature_index_sha256"
     ]:
         raise ValueError("cached training feature index hash drift")
+    if (
+        config.payload["schema_version"]
+        == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V3
+    ):
+        _validate_v1_resolution_feature_parent(
+            config,
+            feature_manifest=feature_manifest,
+            feature_result=feature_result,
+        )
     view = build_legacy_l5_cached_feature_view(
         base,
         feature_result_path=paths["feature_result"],
@@ -658,7 +700,7 @@ def build_legacy_l5_cached_short_selection(
         manifest["position"].to_numpy(dtype=np.int64)
     ]
     selection_fields = SELECTION_FIELDS
-    if config.payload["schema_version"] == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V2:
+    if _uses_extended_training_artifacts(config):
         manifest["training_scope"] = config.training_scope
         selection_fields = SELECTION_FIELDS_V2
     manifest["lineage_scope"] = LINEAGE_SCOPE
@@ -1123,11 +1165,7 @@ def audit_legacy_l5_cached_training_repeat_gate(
         errors.append("repeat_gate_initialized_cuda")
     valid = not errors
     return {
-        "schema_version": _config_schema_version(
-            config,
-            v1=CACHED_TRAINING_REPEAT_GATE_SCHEMA_VERSION,
-            v2=CACHED_TRAINING_REPEAT_GATE_SCHEMA_VERSION_V2,
-        ),
+        "schema_version": _repeat_gate_schema_version(config),
         "status": (
             "PASS_LEGACY_DEVELOPMENT_L5_CACHED_TRAINING_SHORT_GATE"
             if valid
@@ -1151,8 +1189,7 @@ def audit_legacy_l5_cached_training_repeat_gate(
         "cuda_runtime_initialized_after": cuda_after,
         "source_media_reads": 0,
         "outer_holdout_predictions_created": 0,
-        "exact_full_v0_t16_centered_expansion_authorized": valid,
-        "other_visual_or_temporal_controls_authorized": False,
+        **_repeat_gate_authorization(config, valid=valid),
         "errors": errors,
         "valid": valid,
     }
@@ -1234,7 +1271,7 @@ def _audit_cached_training_result_packet(
         "registry_entry",
         "runs_registry",
     ]
-    if config.payload["schema_version"] == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V2:
+    if _uses_extended_training_artifacts(config):
         required_files.extend(
             [
                 "environment",
@@ -1273,7 +1310,7 @@ def _audit_cached_training_result_packet(
         "outer_holdout_predictions_created": 0,
         "valid": True,
     }
-    if config.payload["schema_version"] == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V2:
+    if _uses_extended_training_artifacts(config):
         expected.update(
             {
                 "training_scope": config.training_scope,
@@ -1308,7 +1345,7 @@ def _audit_cached_training_result_packet(
     selection_audit = _read_json(paths["selection_audit"])
     checkpoint_manifest = _read_json(paths["checkpoint_manifest"])
     prediction_manifest = _read_json(paths["prediction_manifest"])
-    if config.payload["schema_version"] == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V2:
+    if _uses_extended_training_artifacts(config):
         expected_lineage = {
             "training_scope": config.training_scope,
             "implementation_source_sha256": file_sha256(Path(__file__)),
@@ -1336,7 +1373,7 @@ def _audit_cached_training_result_packet(
         "selection_content_sha256"
     ):
         errors.append("selection_manifest_content_hash_mismatch")
-    if config.payload["schema_version"] == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V2:
+    if _uses_extended_training_artifacts(config):
         selection_frame = pd.read_csv(paths["selection_manifest"])
         if tuple(selection_frame.columns) != SELECTION_FIELDS_V2:
             errors.append("selection_manifest_schema_mismatch")
@@ -1350,7 +1387,7 @@ def _audit_cached_training_result_packet(
         "prediction_content_sha256"
     ):
         errors.append("prediction_content_hash_mismatch")
-    if config.payload["schema_version"] == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V2:
+    if _uses_extended_training_artifacts(config):
         metric_payload = _read_json(paths["validation_metrics"])
         metric_frames = (
             pd.read_csv(paths["epoch_metrics"]),
@@ -1385,8 +1422,7 @@ def _audit_cached_training_result_packet(
     predictions = pd.read_csv(paths["validation_predictions"])
     expected_prediction_fields = (
         PREDICTION_FIELDS_V2
-        if config.payload["schema_version"]
-        == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V2
+        if _uses_extended_training_artifacts(config)
         else PREDICTION_FIELDS
     )
     if tuple(predictions.columns) != expected_prediction_fields:
@@ -1759,7 +1795,7 @@ def train_legacy_l5_cached_short_core(
             epoch_records,
             columns=list(EPOCH_METRIC_FIELDS),
         )
-        if config.payload["schema_version"] == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V2:
+        if _uses_extended_training_artifacts(config):
             epoch_metrics["training_scope"] = config.training_scope
             epoch_metrics["lineage_scope"] = LINEAGE_SCOPE
             epoch_metrics["human_review_complete"] = False
@@ -2025,7 +2061,7 @@ def _cached_prediction_frame(
     for index, field in enumerate(PROBABILITY_FIELDS):
         frame[field] = probabilities[:, index].astype(np.float64)
     prediction_fields = PREDICTION_FIELDS
-    if config.payload["schema_version"] == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V2:
+    if _uses_extended_training_artifacts(config):
         frame["training_scope"] = config.training_scope
         prediction_fields = PREDICTION_FIELDS_V2
     frame["lineage_scope"] = LINEAGE_SCOPE
@@ -2086,6 +2122,50 @@ def _state_dict_sha256(state: dict[str, torch.Tensor]) -> str:
     return digest.hexdigest()
 
 
+def _uses_extended_training_artifacts(
+    config: LegacyL5CachedTrainingConfig,
+) -> bool:
+    return config.payload["schema_version"] != (
+        CACHED_TRAINING_CONFIG_SCHEMA_VERSION
+    )
+
+
+def _repeat_gate_schema_version(
+    config: LegacyL5CachedTrainingConfig,
+) -> str:
+    if config.payload["schema_version"] == (
+        CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V3
+    ):
+        return CACHED_TRAINING_REPEAT_GATE_SCHEMA_VERSION_V3
+    return _config_schema_version(
+        config,
+        v1=CACHED_TRAINING_REPEAT_GATE_SCHEMA_VERSION,
+        v2=CACHED_TRAINING_REPEAT_GATE_SCHEMA_VERSION_V2,
+    )
+
+
+def _repeat_gate_authorization(
+    config: LegacyL5CachedTrainingConfig,
+    *,
+    valid: bool,
+) -> dict[str, Any]:
+    if config.payload["schema_version"] == (
+        CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V3
+    ):
+        return {
+            "authorized_control_id": V1_RESOLUTION_CONTROL_ID,
+            "authorized_frozen_semantic_family": (
+                V1_RESOLUTION_FROZEN_FAMILY
+            ),
+            "exact_full_control_expansion_authorized": valid,
+            "other_visual_or_temporal_controls_authorized": False,
+        }
+    return {
+        "exact_full_v0_t16_centered_expansion_authorized": valid,
+        "other_visual_or_temporal_controls_authorized": False,
+    }
+
+
 def _config_schema_version(
     config: LegacyL5CachedTrainingConfig,
     *,
@@ -2130,9 +2210,50 @@ def _validate_experiment_contract(
     payload: object,
     *,
     training_scope: str,
+    schema_version: str,
 ) -> None:
     value = _object(payload, "experiment_contract")
-    if training_scope == SHORT_TRAINING_SCOPE:
+    if schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V3:
+        if training_scope == SHORT_TRAINING_SCOPE:
+            expected = {
+                "experiment_id": "L5_V1_T16_SHORT",
+                "parent_id": "ct_v0_t16_full_22875cb_v2",
+                "scientific_role": "resolution_only_control_gate",
+                "changed_family": "input_resolution_only",
+                "hypothesis": (
+                    "At fixed backbone, weights, T16, head, and optimizer, V1 "
+                    "isolates 224px."
+                ),
+                "compute_cap": (
+                    "two isolated runs, three epochs and nine steps per run"
+                ),
+                "stop_rule": (
+                    "Stop on ablation, lineage, memory, finite, repeat, or "
+                    "outer-access failure."
+                ),
+            }
+        else:
+            expected = {
+                "experiment_id": "L5_V1_T16_FULL_DEVELOPMENT",
+                "parent_id": "L5_V1_T16_SHORT",
+                "scientific_role": (
+                    "resolution_only_full_development_control"
+                ),
+                "changed_family": "bounded_to_full_train_cardinality",
+                "hypothesis": (
+                    "Unchanged V1 trains on all eligible train units without "
+                    "outer access."
+                ),
+                "compute_cap": (
+                    "one isolated run, 3652 train units, three epochs and 345 "
+                    "steps"
+                ),
+                "stop_rule": (
+                    "Stop on short-gate, ablation, lineage, memory, finite, or "
+                    "outer-access failure."
+                ),
+            }
+    elif training_scope == SHORT_TRAINING_SCOPE:
         expected = {
             "experiment_id": "L5_V0_T16_SHORT",
             "parent_id": "cfd_v0_t16_b425c86",
@@ -2207,6 +2328,7 @@ def _validate_data_contract(
     payload: object,
     *,
     training_scope: str,
+    schema_version: str,
 ) -> None:
     value = _object(payload, "data")
     required = {
@@ -2226,8 +2348,13 @@ def _validate_data_contract(
         "native_prediction_aggregation",
     }
     _require_exact_keys(value, required, name="cached training data")
+    control_id = (
+        V1_RESOLUTION_CONTROL_ID
+        if schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V3
+        else "V0"
+    )
     expected: dict[str, Any] = {
-        "control_id": "V0",
+        "control_id": control_id,
         "temporal_view_name": EXPECTED_TEMPORAL_VIEW,
         "sampling_protocol": "one_centered_window_matched",
         "sequence_length": 16,
@@ -2441,6 +2568,10 @@ def _validate_output_contract(
         if schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION
         else "legacy_l5_cached_training_short_gate_v2.json"
     )
+    if schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V3:
+        short_gate_filename = (
+            "legacy_l5_cached_training_v1_t16_short_gate_v3.json"
+        )
     expected = {
         "run_root_relative_path": "15_l5_core_baselines",
         "registry_filename": "runs_registry.csv",
@@ -2449,13 +2580,22 @@ def _validate_output_contract(
     _validate_exact_values(value, expected, name="cached training output")
     if (
         training_scope == FULL_TRAINING_SCOPE
-        and schema_version != CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V2
+        and schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION
     ):
-        raise ValueError("full cached training requires config schema v2")
+        raise ValueError("full cached training requires an extended schema")
 
 
-def _validate_expansion_contract(payload: object) -> None:
+def _validate_expansion_contract(
+    payload: object,
+    *,
+    schema_version: str,
+) -> None:
     value = _object(payload, "expansion_contract")
+    frozen_semantic_family = (
+        V1_RESOLUTION_FROZEN_FAMILY
+        if schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V3
+        else "V0_resnet18_160_T16_centered_masked_mean_v1"
+    )
     expected = {
         "short_training_scope": SHORT_TRAINING_SCOPE,
         "full_training_scope": FULL_TRAINING_SCOPE,
@@ -2470,9 +2610,7 @@ def _validate_expansion_contract(payload: object) -> None:
         "full_maximum_optimizer_steps": 345,
         "required_short_runs": 2,
         "required_full_runs": 1,
-        "frozen_semantic_family": (
-            "V0_resnet18_160_T16_centered_masked_mean_v1"
-        ),
+        "frozen_semantic_family": frozen_semantic_family,
         "allowed_expansion_diff": (
             "train_selection_cardinality_step_cap_and_run_count_only_v1"
         ),
@@ -2483,6 +2621,184 @@ def _validate_expansion_contract(payload: object) -> None:
     }
     _require_exact_keys(value, set(expected), name="cached training expansion")
     _validate_exact_values(value, expected, name="cached training expansion")
+
+
+def _validate_v1_resolution_ablation_contract(payload: object) -> None:
+    value = _object(payload, "ablation_contract")
+    expected = {
+        "ablation_id": "L5_V1_T16_RESOLUTION_ONLY",
+        "reference_control_id": "V0",
+        "candidate_control_id": V1_RESOLUTION_CONTROL_ID,
+        "changed_variable": "input_resolution",
+        "reference_value": 160,
+        "candidate_value": 224,
+        "fixed_backbone_name": "resnet18",
+        "fixed_pretrained_weight_enum": (
+            "ResNet18_Weights.IMAGENET1K_V1"
+        ),
+        "fixed_temporal_view_name": EXPECTED_TEMPORAL_VIEW,
+        "fixed_sequence_length": 16,
+        "fixed_sampling_protocol": "one_centered_window_matched",
+        "fixed_temporal_encoder_name": "masked_mean",
+        "single_variable_only": True,
+    }
+    reference_fields = {
+        "reference_full_config_path",
+        "reference_full_config_sha256",
+        "reference_full_result_path",
+        "reference_full_result_sha256",
+        "reference_full_run_manifest_path",
+        "reference_full_run_manifest_sha256",
+    }
+    _require_exact_keys(
+        value,
+        set(expected).union(reference_fields),
+        name="V1 resolution ablation",
+    )
+    _validate_exact_values(value, expected, name="V1 resolution ablation")
+    for name in (
+        "reference_full_config_sha256",
+        "reference_full_result_sha256",
+        "reference_full_run_manifest_sha256",
+    ):
+        _validate_sha256(value[name], name=f"ablation_contract.{name}")
+    for name in (
+        "reference_full_config_path",
+        "reference_full_result_path",
+        "reference_full_run_manifest_path",
+    ):
+        path = Path(str(value[name]))
+        if path.is_absolute() or ".." in path.parts:
+            raise ValueError(f"cached training unsafe ablation path={name}")
+
+
+def _validate_v1_resolution_reference(
+    config: LegacyL5CachedTrainingConfig,
+) -> None:
+    contract = _object(config.payload["ablation_contract"], "ablation_contract")
+    paths = {
+        "config": config.repo_root / str(contract["reference_full_config_path"]),
+        "result": config.repo_root / str(contract["reference_full_result_path"]),
+        "manifest": config.repo_root
+        / str(contract["reference_full_run_manifest_path"]),
+    }
+    hashes = {
+        "config": contract["reference_full_config_sha256"],
+        "result": contract["reference_full_result_sha256"],
+        "manifest": contract["reference_full_run_manifest_sha256"],
+    }
+    for name, path in paths.items():
+        resolved = path.resolve()
+        if not resolved.is_relative_to(config.repo_root):
+            raise ValueError(f"cached training ablation reference escaped={name}")
+        if not resolved.is_file():
+            raise FileNotFoundError(
+                f"cached training ablation reference missing={name}:{resolved}"
+            )
+        if file_sha256(resolved) != hashes[name]:
+            raise ValueError(f"cached training ablation reference drift={name}")
+    reference_config = _read_json(paths["config"])
+    reference_result = _read_json(paths["result"])
+    reference_manifest = _read_json(paths["manifest"])
+    _validate_exact_values(
+        reference_config,
+        {
+            "schema_version": CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V2,
+            "training_scope": FULL_TRAINING_SCOPE,
+        },
+        name="V1 reference config",
+    )
+    _validate_exact_values(
+        reference_config.get("data") or {},
+        {
+            "control_id": "V0",
+            "temporal_view_name": EXPECTED_TEMPORAL_VIEW,
+            "sampling_protocol": "one_centered_window_matched",
+            "sequence_length": 16,
+        },
+        name="V1 reference data",
+    )
+    if reference_config.get("base_config") != config.payload["base_config"]:
+        raise ValueError("cached training V1 reference base-config drift")
+    if reference_config.get("model") != config.payload["model"]:
+        raise ValueError("cached training V1 reference model drift")
+    reference_optimization = copy.deepcopy(
+        _object(reference_config.get("optimization"), "V1 reference optimization")
+    )
+    candidate_optimization = copy.deepcopy(config.payload["optimization"])
+    reference_optimization.pop("maximum_optimizer_steps", None)
+    candidate_optimization.pop("maximum_optimizer_steps", None)
+    if reference_optimization != candidate_optimization:
+        raise ValueError("cached training V1 reference optimization drift")
+    _validate_exact_values(
+        reference_result,
+        {
+            "status": (
+                "PASS_LEGACY_DEVELOPMENT_L5_CACHED_FULL_DEVELOPMENT_TRAINING"
+            ),
+            "training_scope": FULL_TRAINING_SCOPE,
+            "config_sha256": hashes["config"],
+            "train_native_units": 3_652,
+            "validation_native_units": 245,
+            "outer_holdout_rows_loaded": 0,
+            "optimizer_steps": 345,
+            "source_media_reads": 0,
+            "outer_holdout_predictions_created": 0,
+            "valid": True,
+        },
+        name="V1 reference result",
+    )
+    _validate_exact_values(
+        reference_manifest,
+        {
+            "status": "completed",
+            "config_hash": hashes["config"],
+            "control_id": "V0",
+            "backbone_name": "resnet18",
+            "pretrained_weight_enum": (
+                "ResNet18_Weights.IMAGENET1K_V1"
+            ),
+            "resolution": 160,
+            "temporal_view_name": EXPECTED_TEMPORAL_VIEW,
+            "sequence_length": 16,
+            "temporal_encoder_name": "masked_mean",
+            "run_result_sha256": hashes["result"],
+        },
+        name="V1 reference run manifest",
+    )
+
+
+def _validate_v1_resolution_feature_parent(
+    config: LegacyL5CachedTrainingConfig,
+    *,
+    feature_manifest: dict[str, Any],
+    feature_result: dict[str, Any],
+) -> None:
+    contract = _object(config.payload["ablation_contract"], "ablation_contract")
+    expected = {
+        "control_id": contract["candidate_control_id"],
+        "backbone_name": contract["fixed_backbone_name"],
+        "pretrained_weight_enum": contract["fixed_pretrained_weight_enum"],
+        "image_size": contract["candidate_value"],
+    }
+    _validate_exact_values(
+        feature_manifest,
+        expected,
+        name="V1 resolution feature manifest",
+    )
+    _validate_exact_values(
+        feature_result,
+        {
+            **expected,
+            "status": "PASS_LEGACY_DEVELOPMENT_L5_FEATURE_CACHE",
+            "source_media_loads": 0,
+            "post_cleanup_allocated_bytes": 0,
+            "post_cleanup_reserved_bytes": 0,
+            "oom": False,
+            "valid": True,
+        },
+        name="V1 resolution feature result",
+    )
 
 
 def _validate_short_gate_parent(payload: object) -> None:
@@ -2546,10 +2862,10 @@ def _validate_full_training_authorization(
     short_config = load_legacy_l5_cached_training_config(short_config_path)
     if short_config.training_scope != SHORT_TRAINING_SCOPE:
         raise ValueError("cached training parent config is not a short gate")
-    if short_config.payload["schema_version"] != (
-        CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V2
-    ):
-        raise ValueError("cached training full parent is not schema v2")
+    if short_config.payload["schema_version"] != config.payload[
+        "schema_version"
+    ]:
+        raise ValueError("cached training full parent schema drift")
     if short_config.payload["expansion_contract"] != expansion:
         raise ValueError("cached training short/full expansion contract drift")
     _validate_short_to_full_semantic_diff(short_config, config)
@@ -2561,7 +2877,7 @@ def _validate_full_training_authorization(
         raise ValueError("cached training short gate path drift")
     gate = _read_json(gate_path)
     expected_gate = {
-        "schema_version": CACHED_TRAINING_REPEAT_GATE_SCHEMA_VERSION_V2,
+        "schema_version": _repeat_gate_schema_version(short_config),
         "status": "PASS_LEGACY_DEVELOPMENT_L5_CACHED_TRAINING_SHORT_GATE",
         "lineage_scope": LINEAGE_SCOPE,
         "human_review_complete": False,
@@ -2575,8 +2891,7 @@ def _validate_full_training_authorization(
         "required_runs": 2,
         "source_media_reads": 0,
         "outer_holdout_predictions_created": 0,
-        "exact_full_v0_t16_centered_expansion_authorized": True,
-        "other_visual_or_temporal_controls_authorized": False,
+        **_repeat_gate_authorization(short_config, valid=True),
         "valid": True,
     }
     _validate_exact_values(gate, expected_gate, name="cached training short gate")
@@ -2662,8 +2977,7 @@ def _cached_training_run_paths(
     selection_audit_filename = "short_selection_audit.json"
     if (
         config is not None
-        and config.payload["schema_version"]
-        == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V2
+        and _uses_extended_training_artifacts(config)
     ):
         selection_manifest_filename = "training_selection_manifest.csv"
         selection_audit_filename = "training_selection_audit.json"
@@ -3600,12 +3914,17 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 __all__ = (
     "CACHED_TRAINING_CONFIG_SCHEMA_VERSION",
+    "CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V2",
+    "CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V3",
     "CACHED_TRAINING_METRICS_SCHEMA_VERSION",
     "CACHED_TRAINING_REPEAT_GATE_SCHEMA_VERSION",
+    "CACHED_TRAINING_REPEAT_GATE_SCHEMA_VERSION_V2",
+    "CACHED_TRAINING_REPEAT_GATE_SCHEMA_VERSION_V3",
     "CACHED_TRAINING_SELECTION_SCHEMA_VERSION",
     "LegacyL5CachedShortSelection",
     "LegacyL5CachedTrainingConfig",
     "LegacyL5CachedTrainingOutcome",
+    "V1_RESOLUTION_FROZEN_FAMILY",
     "audit_legacy_l5_cached_training_repeat_gate",
     "build_legacy_l5_cached_short_selection",
     "compute_legacy_l5_native_metrics",

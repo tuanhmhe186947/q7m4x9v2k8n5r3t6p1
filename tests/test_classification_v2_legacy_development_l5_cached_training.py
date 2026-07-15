@@ -32,6 +32,10 @@ SHORT_V2_CONFIG_PATH = Path(
     "configs/classification_v2/"
     "legacy_development_l5_cached_training_short_v2.json"
 )
+V1_SHORT_V3_CONFIG_PATH = Path(
+    "configs/classification_v2/"
+    "legacy_development_l5_cached_training_v1_t16_short_v3.json"
+)
 VALIDATION_COUNTS = {
     "drink": 20,
     "eat": 17,
@@ -173,6 +177,40 @@ def test_cached_training_v2_short_freezes_expansion_contract(
     assert selection.audit["training_scope"] == config.training_scope
     assert tuple(selection.manifest.columns) == cached_training.SELECTION_FIELDS_V2
     assert selection.manifest["training_scope"].eq(config.training_scope).all()
+
+
+def test_cached_training_v3_freezes_v1_resolution_only(
+    tmp_path: Path,
+) -> None:
+    path = _write_v1_short_config(tmp_path)
+    config = load_legacy_l5_cached_training_config(path)
+    v1_view = replace(_synthetic_view(tmp_path / "v1"), control_id="V1")
+    v1_selection = build_legacy_l5_cached_short_selection(v1_view, config)
+    v0_config = load_legacy_l5_cached_training_config(CONFIG_PATH)
+    v0_selection = build_legacy_l5_cached_short_selection(
+        replace(v1_view, control_id="V0"),
+        v0_config,
+    )
+
+    assert config.payload["ablation_contract"]["changed_variable"] == (
+        "input_resolution"
+    )
+    assert config.payload["ablation_contract"]["reference_value"] == 160
+    assert config.payload["ablation_contract"]["candidate_value"] == 224
+    assert config.payload["data"]["control_id"] == "V1"
+    assert config.payload["expansion_contract"][
+        "frozen_semantic_family"
+    ] == cached_training.V1_RESOLUTION_FROZEN_FAMILY
+    assert v1_selection.manifest["temporal_unit_key"].tolist() == (
+        v0_selection.manifest["temporal_unit_key"].tolist()
+    )
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["ablation_contract"]["candidate_value"] = 225
+    drifted = path.with_name("v1_resolution_drift.json")
+    drifted.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ValueError, match="V1 resolution ablation drift"):
+        load_legacy_l5_cached_training_config(drifted)
 
 
 def test_cached_training_config_rejects_allocator_drift(tmp_path: Path) -> None:
@@ -411,6 +449,66 @@ def test_cached_short_repeat_gate_validates_two_immutable_packets(
     assert all(audit["equality"].values())
 
 
+def test_cached_v1_repeat_gate_authorizes_only_exact_v1_full(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = load_legacy_l5_cached_training_config(
+        _write_v1_short_config(tmp_path / "contract")
+    )
+    payload = json.loads(json.dumps(config.payload))
+    payload["model"]["hidden_dim"] = 8
+    payload["optimization"]["epochs"] = 1
+    payload["optimization"]["batch_size"] = 32
+    payload["optimization"]["maximum_optimizer_steps"] = 3
+    test_config = replace(config, payload=payload)
+    view_root = tmp_path / "view"
+    view_root.mkdir()
+    view = replace(
+        _synthetic_view(view_root, with_features=True),
+        control_id="V1",
+    )
+    selection = build_legacy_l5_cached_short_selection(view, config)
+    outcome = train_legacy_l5_cached_short_core(
+        view,
+        selection,
+        test_config,
+        device="cpu",
+    )
+    primary = _write_synthetic_packet(
+        tmp_path / "v1_primary",
+        config=test_config,
+        selection=selection,
+        outcome=outcome,
+        run_id="v1_primary",
+        process_id=303,
+    )
+    repeat = _write_synthetic_packet(
+        tmp_path / "v1_repeat",
+        config=test_config,
+        selection=selection,
+        outcome=outcome,
+        run_id="v1_repeat",
+        process_id=404,
+    )
+    monkeypatch.setattr(torch.cuda, "is_initialized", lambda: False)
+
+    audit = audit_legacy_l5_cached_training_repeat_gate(
+        test_config,
+        primary_result_path=primary,
+        repeat_result_path=repeat,
+    )
+
+    assert audit["valid"] is True
+    assert audit["authorized_control_id"] == "V1"
+    assert audit["authorized_frozen_semantic_family"] == (
+        cached_training.V1_RESOLUTION_FROZEN_FAMILY
+    )
+    assert audit["exact_full_control_expansion_authorized"] is True
+    assert "exact_full_v0_t16_centered_expansion_authorized" not in audit
+    assert audit["other_visual_or_temporal_controls_authorized"] is False
+
+
 def test_cached_training_v2_full_requires_bound_short_gate(
     tmp_path: Path,
 ) -> None:
@@ -436,6 +534,112 @@ def test_cached_training_v2_full_requires_bound_short_gate(
     drifted.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(ValueError, match="short gate parent hash drift"):
         load_legacy_l5_cached_training_config(drifted)
+
+
+def _write_v1_short_config(tmp_path: Path) -> Path:
+    repo = tmp_path / "repo"
+    config_dir = repo / "configs" / "classification_v2"
+    reference_dir = repo / "references" / "v0_full"
+    config_dir.mkdir(parents=True)
+    reference_dir.mkdir(parents=True)
+    payload = json.loads(V1_SHORT_V3_CONFIG_PATH.read_text(encoding="utf-8"))
+
+    base_path = config_dir / "legacy_development_l5_v1.json"
+    base_payload = json.loads(
+        Path("configs/classification_v2/legacy_development_l5_v1.json")
+        .read_text(encoding="utf-8")
+    )
+    base_payload["development_root"] = str(repo / "outputs" / "legacy")
+    base_path.write_text(json.dumps(base_payload), encoding="utf-8")
+    payload["base_config"]["sha256"] = cached_training.file_sha256(base_path)
+
+    reference_config_path = reference_dir / "config.json"
+    reference_config = {
+        "schema_version": (
+            cached_training.CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V2
+        ),
+        "training_scope": cached_training.FULL_TRAINING_SCOPE,
+        "data": {
+            "control_id": "V0",
+            "temporal_view_name": (
+                "legacy_t16_centered_matched_observed_time"
+            ),
+            "sampling_protocol": "one_centered_window_matched",
+            "sequence_length": 16,
+        },
+        "base_config": payload["base_config"],
+        "model": payload["model"],
+        "optimization": {
+            **payload["optimization"],
+            "maximum_optimizer_steps": 345,
+        },
+    }
+    reference_config_path.write_text(
+        json.dumps(reference_config),
+        encoding="utf-8",
+    )
+    reference_config_sha = cached_training.file_sha256(reference_config_path)
+
+    reference_result_path = reference_dir / "run_result.json"
+    reference_result = {
+        "status": (
+            "PASS_LEGACY_DEVELOPMENT_L5_CACHED_FULL_DEVELOPMENT_TRAINING"
+        ),
+        "training_scope": cached_training.FULL_TRAINING_SCOPE,
+        "config_sha256": reference_config_sha,
+        "train_native_units": 3_652,
+        "validation_native_units": 245,
+        "outer_holdout_rows_loaded": 0,
+        "optimizer_steps": 345,
+        "source_media_reads": 0,
+        "outer_holdout_predictions_created": 0,
+        "valid": True,
+    }
+    reference_result_path.write_text(
+        json.dumps(reference_result),
+        encoding="utf-8",
+    )
+    reference_result_sha = cached_training.file_sha256(reference_result_path)
+
+    reference_manifest_path = reference_dir / "run_manifest.json"
+    reference_manifest = {
+        "status": "completed",
+        "config_hash": reference_config_sha,
+        "control_id": "V0",
+        "backbone_name": "resnet18",
+        "pretrained_weight_enum": "ResNet18_Weights.IMAGENET1K_V1",
+        "resolution": 160,
+        "temporal_view_name": "legacy_t16_centered_matched_observed_time",
+        "sequence_length": 16,
+        "temporal_encoder_name": "masked_mean",
+        "run_result_sha256": reference_result_sha,
+    }
+    reference_manifest_path.write_text(
+        json.dumps(reference_manifest),
+        encoding="utf-8",
+    )
+    contract = payload["ablation_contract"]
+    contract.update(
+        {
+            "reference_full_config_path": (
+                reference_config_path.relative_to(repo).as_posix()
+            ),
+            "reference_full_config_sha256": reference_config_sha,
+            "reference_full_result_path": (
+                reference_result_path.relative_to(repo).as_posix()
+            ),
+            "reference_full_result_sha256": reference_result_sha,
+            "reference_full_run_manifest_path": (
+                reference_manifest_path.relative_to(repo).as_posix()
+            ),
+            "reference_full_run_manifest_sha256": (
+                cached_training.file_sha256(reference_manifest_path)
+            ),
+        }
+    )
+    path = config_dir / "cached_training_v1_short_v3.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    return path
 
 
 def _write_authorized_v2_full_config(tmp_path: Path) -> Path:
@@ -597,7 +801,9 @@ def _write_synthetic_packet(
                 "pretrained_weight_enum": "ResNet18_Weights.IMAGENET1K_V1",
                 "pretrained_weight_sha256": "b" * 64,
                 "normalization_name": "imagenet_1k_rgb",
-                "image_size": 160,
+                "image_size": (
+                    224 if config.payload["data"]["control_id"] == "V1" else 160
+                ),
             },
         },
         preflight={"valid": True},
