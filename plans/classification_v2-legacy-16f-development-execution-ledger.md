@@ -31,7 +31,7 @@ replaced by this ledger.
 | L3 immutable inputs | PASS | Committed-SHA gate at `0414adc` |
 | L4 model correctness | PASS | Real-cache correctness gate at `3ef4235` |
 | L5 core baselines | PASS | T6 sliding retained as bounded legacy_16f baseline |
-| L6 modality loop | IN_PROGRESS | Geometry-first one-family ablation next |
+| L6 modality loop | IN_PROGRESS | Full geometry rejected; motion next from zero control |
 | L7 imbalance policy | NOT_STARTED | Requires retained L6 candidate |
 | L8 candidate/handback | NOT_STARTED | Requires controlled L0-L7 evidence |
 
@@ -678,6 +678,40 @@ and the full config SHA256 is
 `20e7ba457f27abd1e8ed93341ac77b348985f8e62f4eab39311d90d38b945198`.
 L6 remains `IN_PROGRESS`: full geometry evidence must pass before geometry can
 be retained, and this legacy-only result cannot be generalized to merged data.
+
+### Full Geometry Confirmation
+
+All three full packets passed independent audit at config commit `ae3303b`:
+
+- each used 3,652 train native units, 14,608 windows, three epochs, and 1,371
+  optimizer steps with the same selection and normalization hashes;
+- every mode used 69,404 parameters and peaked at 73,400,320 reserved bytes;
+- cleanup was 0/0 allocated/reserved, with no OOM, retry, media read, or outer
+  prediction.
+
+The paired evaluator at commit `3f02382` closed 245 validation native units and
+33 video clusters. Full point metrics are:
+
+- parameter-matched zero: macro-F1 `0.4852128908`, accuracy `0.6489795918`;
+- availability-only: macro-F1 `0.4413578715`, accuracy `0.6653061224`;
+- geometry: macro-F1 `0.4470778216`, accuracy `0.6693877551`.
+
+Geometry minus zero macro-F1 is `-0.0381350692`, with video-cluster interval
+`[-0.0872930139, 0.0770815601]`. Geometry improves NLL by `0.0694050386` and
+accuracy by `0.0204081633`, but its rare-group macro-F1 changes by
+`-0.1245920746`. Geometry minus availability-only is only `+0.0057199501`, with
+interval `[-0.0493362817, 0.0686686375]`. Availability-only minus zero is
+`-0.0438550192`, so the constant-channel diagnostic is not bounded at full
+exposure.
+
+The valid negative decision is
+`REJECT_GEOMETRY_AS_UNSUPPORTED_IN_FULL_LEGACY_DEVELOPMENT`. Continue L6 motion
+from the parameter-matched zero control. Reassess geometry on merged-reviewed
+data; this rejection does not transfer to that lineage. The decision config
+SHA256 is
+`70fb72b3819d76db8572fe715df04eb2b9f8679a030ef14de30fa24cbc235ab2`;
+the decision artifact SHA256 is
+`25f4e9919c3579b16ea393678027d95fc706c975b9c57be99b981cca654a2e04`.
 
 ## Full-Run Boundary
 
