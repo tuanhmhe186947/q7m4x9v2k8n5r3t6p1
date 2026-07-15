@@ -1,0 +1,39 @@
+{
+  "schema_version": "classification_v2.legacy_development_l6.roi_relation_full_authorization_gate.v1",
+  "status": "PASS_LEGACY_DEVELOPMENT_L6_ROI_RELATION_SHORT_DECISION",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "canonical_source_name": "legacy_16f",
+  "short_config_path": "configs/classification_v2/legacy_development_l6_roi_relation_short_v2.json",
+  "short_config_sha256": "2b6d20d1d40cb75cbfcf7cdbe2ac9c8cc561fc3f0ea915261333e0cf22f11f41",
+  "technical_matrix_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6r_short_v2/l6r_short_matrix_v1.json",
+  "technical_matrix_sha256": "dd7614013b69fe9acfe1fcc87bd7a326d88636c2e9753ae98eefdc2949e1a813",
+  "technical_matrix_status": "PASS_LEGACY_DEVELOPMENT_L6_ROI_RELATION_SHORT_MATRIX",
+  "paired_decision_config_path": "configs/classification_v2/legacy_development_l6_roi_relation_decision_v2.json",
+  "paired_decision_config_sha256": "e6f54abd6402579e3280c4d85c2d1a2830e5d4e0705ee42e48c8aea1058ce7c6",
+  "paired_decision_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6r_short_v2/l6r_short_decision_v1.json",
+  "paired_decision_sha256": "fd7e1a5159699b1a9b3157d0c9836eab41bd87273f7925ff8400fd40ae2ea1f4",
+  "paired_decision_status": "PASS_LEGACY_DEVELOPMENT_L6_ROI_RELATION_SHORT_DECISION",
+  "paired_decision": "RETAIN_ROI_RELATION_FOR_FULL_LEGACY_DEVELOPMENT",
+  "paired_decision_required": true,
+  "authorized_modes": [
+    "parameter_matched_zero",
+    "availability_only",
+    "roi_relation"
+  ],
+  "modes": [
+    "parameter_matched_zero",
+    "availability_only",
+    "roi_relation"
+  ],
+  "all_mode_repeat_gates_pass": true,
+  "full_expansion_authorized": true,
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "source_media_reads": 0,
+  "outer_holdout_predictions_created": 0,
+  "errors": [],
+  "valid": true
+}

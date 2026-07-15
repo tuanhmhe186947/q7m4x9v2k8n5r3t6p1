@@ -1,0 +1,192 @@
+{
+  "schema_version": "classification_v2.legacy_development_l6.roi_relation_full_config.v1",
+  "training_scope": "full_development_baseline",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "canonical_source_name": "legacy_16f",
+  "source_type": "legacy_recovered",
+  "dataset_id": "legacy_recovered_16f",
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "development_metrics_authorized": true,
+  "experiment_contract": {
+    "experiment_id": "L6_V1_T6_ALL_CLASS_ROI_RELATION_ABLATION_V1",
+    "parent_decision": "DO_NOT_EXPAND_MOTION_FROM_CURRENT_SHORT_EVIDENCE",
+    "baseline_source": "same_width_parameter_matched_zero",
+    "changed_family": "all_class_roi_relation_only",
+    "modes": [
+      "parameter_matched_zero",
+      "availability_only",
+      "roi_relation"
+    ],
+    "primary_metric": "validation_native_unit_macro_f1_global_10_class",
+    "uncertainty_cluster": "video_key",
+    "parameter_matched": true,
+    "availability_only_is_diagnostic": true,
+    "availability_is_behavior_evidence": false,
+    "all_roi_classes_exposed_independently": true,
+    "target_selected_roi_fields_in_model_x": false,
+    "geometry_feature_values_in_model_x": false,
+    "motion_feature_values_in_model_x": false,
+    "unit_aggregate_features_in_model_x": false,
+    "missing_modality_inference_required": true,
+    "outer_predictions_used_for_model_selection": false,
+    "legacy_only_decision": true,
+    "merged_reviewed_reassessment_required": true,
+    "local_vram_is_architecture_limit": false
+  },
+  "parents": {
+    "temporal_ladder_config": {
+      "path": "configs/classification_v2/legacy_development_l5_temporal_ladder_full_v1.json",
+      "sha256": "559d24ba29d6192291eb5a8d7b6896616b1bed782450a9242f1c4afa3bd85559"
+    },
+    "l5_decision": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_l5_temporal_ladder_decision_v1.json",
+      "sha256": "f3316568c797967e66a0a6ea3cac8e4804a35e12439b3d31527e10ef93abd4e1"
+    },
+    "l6_motion_decision": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6m_short_v1/l6m_short_decision_v1.json",
+      "sha256": "9be7fd93854771b93b58bbcd9f8fa1ed96a8ddbda8e65fa8e68a4baf30a4d978"
+    }
+  },
+  "cache": {
+    "config": {
+      "path": "configs/classification_v2/legacy_development_l6_roi_relation_cache_v1.json",
+      "sha256": "29e6add6970360a10bd99a67754c0b74a942588927066987b9f1b9d376b94265"
+    },
+    "manifest": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/roi_relation_cache_v1/roi_relation_cache_manifest.json",
+      "sha256": "6d62a2ab025619808a605313678da94efd9a6a585d9595866186d4116dd08138"
+    },
+    "repeat_gate": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/roi_relation_cache_repeat_gate_v1.json",
+      "sha256": "5b0f7bb0e31c13af3da0d4dab2f48d544f1fa6b10c4e9b18347fcf2cede05918"
+    },
+    "root_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/roi_relation_cache_v1"
+  },
+  "implementation": {
+    "core": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l6_roi_relation.py",
+      "sha256": "3f98a6e7bf64eebd76cc5879be216236961e0c609671d86f1969ef03efcbaff1"
+    },
+    "runtime": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l6_roi_relation_runtime.py",
+      "sha256": "79eda84c1b6ad2c18aca56af248009515c2a3b3434ef0b22cffb37e8f2adea7e"
+    },
+    "frozen_engine": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l5_cached_training.py",
+      "sha256": "f639dd6d1dcdd83172f33054dab11a0c861eb65883f2656c8ed96d0d908fa96c"
+    },
+    "cached_modality_engine": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l6_cached_modality.py",
+      "sha256": "6c367128a26c0a62e6c36ea130c00d6fc23185b146a3145a3e0f991feb76a719"
+    }
+  },
+  "selection": {
+    "view_id": "t6_sliding",
+    "native_unit": "complete_legacy_16_frame_burst",
+    "windows_per_native_unit": 4,
+    "short_train_native_units": 80,
+    "short_train_windows": 320,
+    "full_train_native_units": 3652,
+    "full_train_windows": 14608,
+    "validation_native_units": 245,
+    "validation_windows": 980,
+    "event_mass_per_native_unit": 1.0,
+    "normalization_fit_scope": "unique_train_frame_uid_only",
+    "outer_holdout_access": "FORBIDDEN_DURING_MODEL_SELECTION"
+  },
+  "model": {
+    "architecture": "cached_visual_roi_relation_temporal_classifier_v1",
+    "feature_control_id": "V1",
+    "backbone_name": "resnet18",
+    "input_resolution": 224,
+    "visual_feature_dim": 512,
+    "roi_relation_feature_dim": 18,
+    "availability_feature_dim": 1,
+    "model_input_dim": 531,
+    "roi_relation_modes": [
+      "parameter_matched_zero",
+      "availability_only",
+      "roi_relation"
+    ],
+    "temporal_encoder_name": "masked_mean",
+    "hidden_dim": 128,
+    "dropout": 0.1,
+    "transformer_layers": 1,
+    "transformer_heads": 4,
+    "parameter_count": 70704,
+    "native_probability_aggregation": "mean_window_probability_v1",
+    "missing_modality_policy": "zero_roi_relation_and_availability_v1"
+  },
+  "optimization": {
+    "seed": 20260714,
+    "epochs": 3,
+    "batch_size": 32,
+    "evaluation_batch_size": 64,
+    "learning_rate": 0.003,
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 1.0,
+    "loss": "event_mass_balanced_cross_entropy",
+    "sampler": "deterministic_seeded_window_shuffle_after_native_selection",
+    "checkpoint_selection": "native_global_10_class_macro_f1_then_nll",
+    "precision": "float32",
+    "autocast_enabled": false,
+    "deterministic_algorithms": true,
+    "cublas_workspace_config": ":4096:8",
+    "dataloader_num_workers": 0,
+    "pin_memory": false,
+    "persistent_workers": false,
+    "prefetch_factor": null,
+    "device": "cuda:0",
+    "declared_local_gpu_vram_gib": 4,
+    "maximum_peak_vram_fraction": 0.7,
+    "oom_retry_allowed": false,
+    "one_run_per_fresh_process": true,
+    "maximum_loaded_batch_bytes": 2200000
+  },
+  "repeat_gate": {
+    "required_runs_per_mode": 1,
+    "require_fresh_process": true,
+    "require_distinct_process_ids": false,
+    "require_non_overlapping_execution": false,
+    "require_identical_selection_hash": false,
+    "require_identical_normalization_hash": false,
+    "require_identical_parameter_hash": false,
+    "require_identical_window_prediction_hash": false,
+    "require_identical_native_prediction_hash": false,
+    "require_identical_epoch_metric_hash": false
+  },
+  "execution_guard": {
+    "allowed_dirty_paths": [
+      ".tokensave/config.json",
+      "outputs/classification_v2/train_ready_windows/feature_semantics_audit.json",
+      "scripts/diagnostics/detect_single_frame.py"
+    ],
+    "required_tracked_paths": [
+      "configs/classification_v2/legacy_development_l6_roi_relation_full_authorization_gate_v1.json",
+      "configs/classification_v2/legacy_development_l6_roi_relation_full_v1.json",
+      "configs/classification_v2/legacy_development_l6_roi_relation_short_v2.json",
+      "scripts/classification_v2/04_baselines_smokes/check_classification_v2_legacy_development_l6_roi_relation.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l5_cached_training.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l6_cached_modality.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l6_cached_modality_runtime.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l6_roi_relation.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l6_roi_relation_runtime.py",
+      "tests/test_classification_v2_legacy_l6_roi_relation_training.py"
+    ]
+  },
+  "output": {
+    "run_root_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6r_full_v1",
+    "matrix_gate_filename": "l6r_full_matrix_v1.json"
+  },
+  "full_authorization": {
+    "short_config_path": "configs/classification_v2/legacy_development_l6_roi_relation_short_v2.json",
+    "short_config_sha256": "2b6d20d1d40cb75cbfcf7cdbe2ac9c8cc561fc3f0ea915261333e0cf22f11f41",
+    "authorization_gate_path": "configs/classification_v2/legacy_development_l6_roi_relation_full_authorization_gate_v1.json",
+    "authorization_gate_sha256": "9764b6a518a0153fe66f27151321fdf005b1f2d6419519bcd19b719e211a2f90",
+    "authorized_training_scope": "full_development_baseline"
+  }
+}
