@@ -34,6 +34,8 @@ from pig_behavior.classification_v2.training.lineage_hashing import (
     file_sha256,
 )
 
+DEFAULT_CUBLAS_WORKSPACE_CONFIG = ":4096:8"
+
 RUN_RESULT_SCHEMA = (
     "classification_v2.legacy_development_l5.temporal_ladder_run_result.v1"
 )
@@ -210,6 +212,9 @@ def audit_temporal_ladder_run(
         errors.append("unknown_result_view_id")
     execution = result.get("execution") or {}
     execution_expected = {
+        "cublas_workspace_config": str(
+            config.payload["optimization"]["cublas_workspace_config"]
+        ),
         "oom": False,
         "oom_retry_count": 0,
         "source_media_reads": 0,
@@ -452,6 +457,16 @@ def _execute_cuda(
     errors: list[str] = []
     oom = False
     oom_message: str | None = None
+    expected_cublas = str(optimization["cublas_workspace_config"])
+    observed_cublas = os.environ.setdefault(
+        "CUBLAS_WORKSPACE_CONFIG",
+        expected_cublas,
+    )
+    if observed_cublas != expected_cublas:
+        errors.append(
+            "cublas_workspace_config="
+            f"{observed_cublas!r}!={expected_cublas!r}"
+        )
     device = torch.device(str(optimization["device"]))
     if device.type != "cuda":
         raise ValueError("temporal ladder production run requires CUDA")
@@ -550,6 +565,7 @@ def _execute_cuda(
         "post_cleanup_allocated_bytes": post_allocated,
         "post_cleanup_reserved_bytes": post_reserved,
         "cublas_workspaces_cleared": cublas_cleared,
+        "cublas_workspace_config": observed_cublas,
         "precision": "float32",
         "autocast_enabled": False,
         "oom": oom,
@@ -791,6 +807,9 @@ def _planned_manifest(
         "preflight_valid": preflight["valid"],
         "precision": "float32",
         "autocast_enabled": False,
+        "cublas_workspace_config": config.payload["optimization"][
+            "cublas_workspace_config"
+        ],
         "oom_retry_allowed": False,
         "source_media_reads": 0,
         "outer_predictions_created": 0,
@@ -933,6 +952,9 @@ def _failed_execution(
         "post_cleanup_allocated_bytes": None,
         "post_cleanup_reserved_bytes": None,
         "cublas_workspaces_cleared": False,
+        "cublas_workspace_config": os.environ.get(
+            "CUBLAS_WORKSPACE_CONFIG"
+        ),
         "precision": "float32",
         "autocast_enabled": False,
         "oom": isinstance(error, torch.cuda.OutOfMemoryError),
@@ -960,6 +982,7 @@ def _environment_payload(execution: dict[str, Any]) -> dict[str, Any]:
         "cuda_version": str(torch.version.cuda),
         "device_name": execution["device_name"],
         "actual_total_vram_bytes": execution["actual_total_vram_bytes"],
+        "cublas_workspace_config": execution["cublas_workspace_config"],
         "precision": "float32",
         "autocast_enabled": False,
         "dataloader_num_workers": 0,

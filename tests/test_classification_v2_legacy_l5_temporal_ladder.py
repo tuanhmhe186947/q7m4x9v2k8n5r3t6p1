@@ -136,6 +136,11 @@ def test_config_contract_rejects_hardware_or_merged_scope_drift() -> None:
     with pytest.raises(ValueError, match="experiment contract"):
         _validate_config_payload(changed_hardware)
 
+    changed_cublas = _config_payload()
+    changed_cublas["optimization"]["cublas_workspace_config"] = ":16:8"
+    with pytest.raises(ValueError, match="optimization contract"):
+        _validate_config_payload(changed_cublas)
+
     changed_claim = _config_payload()
     changed_claim["q2_claim_allowed"] = True
     with pytest.raises(ValueError, match="q2_claim_allowed"):
@@ -417,6 +422,7 @@ def _config_payload() -> dict[str, object]:
             "precision": "float32",
             "autocast_enabled": False,
             "deterministic_algorithms": True,
+            "cublas_workspace_config": ":4096:8",
             "dataloader_num_workers": 0,
             "pin_memory": False,
             "persistent_workers": False,

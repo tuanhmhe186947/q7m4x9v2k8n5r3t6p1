@@ -1219,6 +1219,7 @@ def _validate_optimization_contract(value: object) -> None:
         "precision": "float32",
         "autocast_enabled": False,
         "deterministic_algorithms": True,
+        "cublas_workspace_config": ":4096:8",
         "dataloader_num_workers": 0,
         "pin_memory": False,
         "persistent_workers": False,

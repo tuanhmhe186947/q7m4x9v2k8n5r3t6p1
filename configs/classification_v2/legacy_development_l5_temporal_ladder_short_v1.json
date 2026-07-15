@@ -33,9 +33,9 @@
   },
   "implementation": {
     "core_path": "src/pig_behavior/classification_v2/training/legacy_development_l5_temporal_ladder.py",
-    "core_sha256": "caa83814e3e22ec72ae237f02fc7cd9c44676bbdae5fbec445a62564cb433033",
+    "core_sha256": "3081ec21efcdb2f470f7a1889ca57b13c2ed486b20bcb606e1288d32bab61559",
     "runtime_path": "src/pig_behavior/classification_v2/training/legacy_development_l5_temporal_ladder_runtime.py",
-    "runtime_sha256": "c63759be98363e43e3b9448cc33ecd647d2bb9b57ac5b9afd7b6666b5acfe2c8",
+    "runtime_sha256": "0ecdd090909493a2e25f237630a349dadd8b0a53f7d87f1a2dbf82932cc14970",
     "frozen_engine_path": "src/pig_behavior/classification_v2/training/legacy_development_l5_cached_training.py",
     "frozen_engine_sha256": "f639dd6d1dcdd83172f33054dab11a0c861eb65883f2656c8ed96d0d908fa96c"
   },
@@ -193,6 +193,7 @@
     "precision": "float32",
     "autocast_enabled": false,
     "deterministic_algorithms": true,
+    "cublas_workspace_config": ":4096:8",
     "dataloader_num_workers": 0,
     "pin_memory": false,
     "persistent_workers": false,
