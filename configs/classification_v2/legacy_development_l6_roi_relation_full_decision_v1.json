@@ -1,0 +1,76 @@
+{
+  "schema_version": "classification_v2.legacy_development_l6.roi_relation_full_decision_config.v1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "training_scope": "full_development_baseline",
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "full_training_config": {
+    "path": "configs/classification_v2/legacy_development_l6_roi_relation_full_v1.json",
+    "sha256": "6ea481082e69f632395ef1483f3986214488a639e3d7fc8857a2121f96bf1103"
+  },
+  "runs": {
+    "parameter_matched_zero": {
+      "result_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6r_full_v1/parameter_matched_zero/l6r_zero_full_v1_20260715/run_result.json",
+      "result_sha256": "56981805933364a353e58f3153aebb83ad1c265cb058e9607ade140d3b307df1",
+      "run_manifest_sha256": "b51f676d4fceb3f516d9d08ec9ce69ed325c3e26821f7afd439f79058455832f",
+      "artifact_manifest_sha256": "5aa8a8039f872ff2081b96d96e5577965df11edbacf7332ae64be47716b4f7e7"
+    },
+    "availability_only": {
+      "result_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6r_full_v1/availability_only/l6r_availability_full_v1_20260715/run_result.json",
+      "result_sha256": "4877171cd96bc88abddbc174d1419260eae08467a2acad5d761164e3110061a0",
+      "run_manifest_sha256": "00059b4b5b5396b034b8793e86bc5ce245b14ff0bde036c173a9805be4b415f5",
+      "artifact_manifest_sha256": "6ae490b2dcaaefcd18b877dc40e63838b51d9db591cf36c4c596be7b1e8d9364"
+    },
+    "roi_relation": {
+      "result_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6r_full_v1/roi_relation/l6r_roi_full_v1_20260715/run_result.json",
+      "result_sha256": "582bc14cb35a1374c39e861dc889691014e39af8bbe047ca559284be5183ba07",
+      "run_manifest_sha256": "01ffdfd974a8e17c8156322411f4bd212e298c1b82b13d65600013631f617ad6",
+      "artifact_manifest_sha256": "81fdb2b8329bca13cef5c73e2a203f073c2081a312d613c9ebf00e1ebb4b666c"
+    }
+  },
+  "paired_contract": {
+    "unit_column": "temporal_unit_key",
+    "cluster_column": "video_key",
+    "validation_fold_id": "legacy_l6_full_validation_v1",
+    "expected_native_units": 245,
+    "expected_clusters": 33,
+    "bootstrap_iterations": 2000,
+    "bootstrap_seed": 20260715
+  },
+  "decision_contract": {
+    "minimum_macro_f1_gain": 0.02,
+    "maximum_absolute_availability_only_gain": 0.01,
+    "maximum_rare_group_macro_f1_drop": 0.02,
+    "require_positive_video_cluster_ci_low": true,
+    "require_nll_improvement_vs_zero": true
+  },
+  "interpretation_boundary": {
+    "legacy_only_decision": true,
+    "architecture_family_finalized": false,
+    "applies_to_merged_reviewed_data": false,
+    "merged_reviewed_reassessment_required": true,
+    "availability_only_is_behavior_evidence": false,
+    "negative_result_is_valid_evidence": true
+  },
+  "implementation": {
+    "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_l6_roi_relation_full_decision.py",
+    "sha256": "2f29b547374ba3ede9360c50974397a17d95ff4fe5625edf96fcfd960792ce40"
+  },
+  "execution_guard": {
+    "allowed_dirty_paths": [
+      ".tokensave/config.json",
+      "outputs/classification_v2/train_ready_windows/feature_semantics_audit.json",
+      "scripts/diagnostics/detect_single_frame.py"
+    ],
+    "required_tracked_paths": [
+      "configs/classification_v2/legacy_development_l6_roi_relation_full_decision_v1.json",
+      "configs/classification_v2/legacy_development_l6_roi_relation_full_v1.json",
+      "scripts/classification_v2/07_postrun_evaluation/check_classification_v2_legacy_l6_roi_relation_full_decision.py",
+      "src/pig_behavior/classification_v2/evaluation/legacy_development_l6_roi_relation_full_decision.py"
+    ]
+  },
+  "output_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6r_full_v1/l6r_full_decision_v1.json"
+}
