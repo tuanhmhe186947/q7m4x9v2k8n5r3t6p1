@@ -19,8 +19,12 @@ from pig_behavior.classification_v2.training.legacy_development_l6_geometry_cach
     single_source_probe_audit,
 )
 
-CONFIG_PATH = Path(
-    "configs/classification_v2/legacy_development_l6_geometry_cache_v1.json"
+CONFIG_PATHS = (
+    Path("configs/classification_v2/legacy_development_l6_geometry_cache_v1.json"),
+    Path(
+        "configs/classification_v2/"
+        "legacy_development_l6_geometry_cache_repeat_v1.json"
+    ),
 )
 
 
@@ -98,8 +102,11 @@ def test_source_probe_reports_single_source_as_not_estimable() -> None:
         single_source_probe_audit(drifted)
 
 
-def test_cache_config_locks_legacy_16f_and_claim_boundary() -> None:
-    payload = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+@pytest.mark.parametrize("config_path", CONFIG_PATHS)
+def test_cache_config_locks_legacy_16f_and_claim_boundary(
+    config_path: Path,
+) -> None:
+    payload = json.loads(config_path.read_text(encoding="utf-8"))
 
     _validate_cache_config_payload(payload)
 

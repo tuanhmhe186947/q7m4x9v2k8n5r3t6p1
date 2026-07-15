@@ -1,0 +1,86 @@
+{
+  "schema_version": "classification_v2.legacy_development_l6.geometry_cache_config.v1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "source_identity": {
+    "canonical_short_name": "legacy_16f",
+    "raw_authority_path": "data/raw/legacy_full_multigt_masked_nodup_16f/legacy_dense_tracklet_map.csv",
+    "raw_sha256": "ff73c158ef879eb8177b0c18783fc751945fe1d6af97a4b8235cd71681fabbcb",
+    "expected_rows": 72864,
+    "source_type": "legacy_recovered",
+    "dataset_id": "legacy_recovered_16f",
+    "merged_data": false
+  },
+  "parents": {
+    "temporal_ladder_config": {
+      "path": "configs/classification_v2/legacy_development_l5_temporal_ladder_full_v1.json",
+      "sha256": "559d24ba29d6192291eb5a8d7b6896616b1bed782450a9242f1c4afa3bd85559"
+    },
+    "l5_decision": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_l5_temporal_ladder_decision_v1.json",
+      "sha256": "f3316568c797967e66a0a6ea3cac8e4804a35e12439b3d31527e10ef93abd4e1"
+    }
+  },
+  "inputs": {
+    "image_context_manifest": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/09_image_context/image_frame_context_manifest.csv",
+      "sha256": "3a2133d9b4df79bc599076de3e7f7ad7c7dea4c87ead777e01e1f95f201076b8",
+      "expected_rows": 72864
+    },
+    "temporal_slot_manifest": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/06_temporal_tier_contract/legacy_t6_all_sliding_observed_time_manifest.csv",
+      "sha256": "29b5e3979481cf5af050ae931c073534567459a6be19897b9fb184ce9032950c",
+      "expected_rows": 109296
+    },
+    "frame_geometry": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/02_geometry/frame_geometry.csv",
+      "sha256": "9a29f757c99238864ad1024b0235f555bb9d39c7f5eca378470fd2de65310e49",
+      "expected_rows": 72864
+    }
+  },
+  "features": {
+    "view_id": "t6_sliding",
+    "temporal_view_name": "legacy_t6_all_sliding_observed_time",
+    "sequence_length": 6,
+    "model_window_rows": 15588,
+    "model_slot_rows": 93528,
+    "feature_names": [
+      "cx_n",
+      "cy_n",
+      "bw_n",
+      "bh_n",
+      "area_n",
+      "aspect_ratio",
+      "box_diag_n",
+      "box_compactness"
+    ],
+    "feature_dim": 8,
+    "feature_dtype": "float32",
+    "availability_dtype": "bool",
+    "normalization": "none_raw_cache_train_positions_only_at_consumer",
+    "source_media_fallback_allowed": false
+  },
+  "implementation": {
+    "path": "src/pig_behavior/classification_v2/training/legacy_development_l6_geometry_cache.py",
+    "sha256": "9ffcfd69290602917b51e233daf6d95ec375e1e932c054057d217af8cd2ca5f6"
+  },
+  "execution_guard": {
+    "allowed_dirty_paths": [
+      ".tokensave/config.json",
+      "outputs/classification_v2/train_ready_windows/feature_semantics_audit.json",
+      "scripts/diagnostics/detect_single_frame.py"
+    ],
+    "required_tracked_paths": [
+      "configs/classification_v2/legacy_development_l6_geometry_cache_repeat_v1.json",
+      "scripts/classification_v2/04_baselines_smokes/check_classification_v2_legacy_development_l6_geometry_cache.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l6_geometry_cache.py"
+    ]
+  },
+  "output": {
+    "cache_root_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/geometry_cache_repeat_v1"
+  }
+}
