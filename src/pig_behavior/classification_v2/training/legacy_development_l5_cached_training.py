@@ -799,6 +799,7 @@ def _execute_cuda_short_training(
     peak_allocated = 0
     peak_reserved = 0
     cleanup_errors: list[str] = []
+    cublas_workspaces_cleared = False
     if not errors:
         torch.cuda.set_per_process_memory_fraction(allocator_fraction, device)
         torch.cuda.empty_cache()
@@ -821,6 +822,18 @@ def _execute_cuda_short_training(
             gc.collect()
             try:
                 torch.cuda.synchronize(device)
+                torch.cuda.empty_cache()
+                clear_workspaces = getattr(
+                    torch._C,
+                    "_cuda_clearCublasWorkspaces",
+                    None,
+                )
+                if not callable(clear_workspaces):
+                    raise RuntimeError(
+                        "PyTorch cannot clear persistent cuBLAS workspaces"
+                    )
+                clear_workspaces()
+                cublas_workspaces_cleared = True
                 torch.cuda.empty_cache()
             except RuntimeError as error:
                 cleanup_errors.append(f"cuda_cleanup_error={error}")
@@ -851,6 +864,7 @@ def _execute_cuda_short_training(
         "peak_reserved_bytes": peak_reserved,
         "post_cleanup_allocated_bytes": post_allocated,
         "post_cleanup_reserved_bytes": post_reserved,
+        "cublas_workspaces_cleared": cublas_workspaces_cleared,
         "precision": "float32",
         "autocast_enabled": False,
         "oom": oom,
@@ -884,6 +898,7 @@ def _failed_execution_payload(
         "peak_reserved_bytes": 0,
         "post_cleanup_allocated_bytes": None,
         "post_cleanup_reserved_bytes": None,
+        "cublas_workspaces_cleared": False,
         "precision": "float32",
         "autocast_enabled": False,
         "oom": isinstance(error, torch.cuda.OutOfMemoryError),
@@ -1161,6 +1176,7 @@ def _cached_training_execution_errors(
         "oom_retry_count": 0,
         "post_cleanup_allocated_bytes": 0,
         "post_cleanup_reserved_bytes": 0,
+        "cublas_workspaces_cleared": True,
         "source_media_reads": 0,
         "outer_holdout_predictions_created": 0,
         "valid": True,
@@ -1964,6 +1980,7 @@ def _validate_execution_guard(payload: object) -> None:
     required = {
         "require_fresh_process",
         "require_committed_training_source",
+        "clear_cublas_workspaces_after_training",
         "allowed_dirty_paths",
     }
     _require_exact_keys(value, required, name="cached training execution guard")
@@ -1971,6 +1988,8 @@ def _validate_execution_guard(payload: object) -> None:
         raise ValueError("cached training fresh-process guard is disabled")
     if value["require_committed_training_source"] is not True:
         raise ValueError("cached training committed-source guard is disabled")
+    if value["clear_cublas_workspaces_after_training"] is not True:
+        raise ValueError("cached training cuBLAS cleanup guard is disabled")
     expected_dirty = [
         ".tokensave/config.json",
         (
@@ -2348,6 +2367,9 @@ def _finalize_training_environment(
             ],
             "post_cleanup_reserved_bytes": execution[
                 "post_cleanup_reserved_bytes"
+            ],
+            "cublas_workspaces_cleared": execution[
+                "cublas_workspaces_cleared"
             ],
             "failure_reason": failure_reason,
         }

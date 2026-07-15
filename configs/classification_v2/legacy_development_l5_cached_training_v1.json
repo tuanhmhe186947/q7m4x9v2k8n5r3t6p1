@@ -97,6 +97,7 @@
   "execution_guard": {
     "require_fresh_process": true,
     "require_committed_training_source": true,
+    "clear_cublas_workspaces_after_training": true,
     "allowed_dirty_paths": [
       ".tokensave/config.json",
       "outputs/classification_v2/train_ready_windows/feature_semantics_audit.json",

@@ -143,6 +143,9 @@ def test_cached_training_config_freezes_four_gib_short_semantics() -> None:
     assert config.payload["optimization"]["oom_retry_allowed"] is False
     assert config.payload["outer_holdout_predictions_authorized"] is False
     assert config.payload["execution_guard"]["require_fresh_process"] is True
+    assert config.payload["execution_guard"][
+        "clear_cublas_workspaces_after_training"
+    ] is True
 
 
 def test_cached_training_config_rejects_allocator_drift(tmp_path: Path) -> None:
@@ -176,6 +179,20 @@ def test_cached_training_config_rejects_fresh_process_weakening(
     path.write_text(json.dumps(payload), encoding="utf-8")
 
     with pytest.raises(ValueError, match="fresh-process guard is disabled"):
+        load_legacy_l5_cached_training_config(path)
+
+
+def test_cached_training_config_rejects_cublas_cleanup_weakening(
+    tmp_path: Path,
+) -> None:
+    payload = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    payload["execution_guard"][
+        "clear_cublas_workspaces_after_training"
+    ] = False
+    path = tmp_path / "weakened_cublas_config.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="cuBLAS cleanup guard is disabled"):
         load_legacy_l5_cached_training_config(path)
 
 
@@ -413,6 +430,7 @@ def _write_synthetic_packet(
         "peak_reserved_bytes": 1,
         "post_cleanup_allocated_bytes": 0,
         "post_cleanup_reserved_bytes": 0,
+        "cublas_workspaces_cleared": True,
         "precision": "float32",
         "autocast_enabled": False,
         "oom": False,
