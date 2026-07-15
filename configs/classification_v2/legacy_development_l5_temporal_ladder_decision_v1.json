@@ -1,0 +1,158 @@
+{
+  "schema_version": "classification_v2.legacy_development_l5.temporal_ladder_decision_config.v1",
+  "decision_id": "L5_V1_T6_T8_T12_T16_TWO_PROTOCOL_MATRIX_DECISION_V1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "implementation_source": {
+    "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_l5_temporal_ladder_decision.py",
+    "sha256": "21fb25e9c31e930d32c85a649bcb671be610c67b4a5870dda98c3b91ecae4289"
+  },
+  "execution_guard": {
+    "allowed_dirty_paths": [
+      ".tokensave/config.json",
+      "outputs/classification_v2/train_ready_windows/feature_semantics_audit.json",
+      "scripts/diagnostics/detect_single_frame.py"
+    ],
+    "required_tracked_paths": [
+      "configs/classification_v2/legacy_development_l5_temporal_ladder_decision_v1.json",
+      "configs/classification_v2/legacy_development_l5_temporal_ladder_full_v1.json",
+      "scripts/classification_v2/07_postrun_evaluation/check_classification_v2_legacy_l5_temporal_ladder_decision.py",
+      "src/pig_behavior/classification_v2/evaluation/legacy_development_l5_temporal_ladder_decision.py"
+    ]
+  },
+  "full_training_config": {
+    "path": "configs/classification_v2/legacy_development_l5_temporal_ladder_full_v1.json",
+    "sha256": "559d24ba29d6192291eb5a8d7b6896616b1bed782450a9242f1c4afa3bd85559"
+  },
+  "short_matrix_gate": {
+    "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_l5_v1_temporal_ladder_short_v1/legacy_l5_temporal_ladder_short_matrix_v1.json",
+    "sha256": "b36e03d85e7f8090b1e8542948fb9cbe0a6db1273339b7c3000a5930f0a471f9"
+  },
+  "runs": {
+    "t6_centered": {
+      "run_id": "tlf_t6c_f_fda8f43_v1",
+      "run_root": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_l5_v1_temporal_ladder_full_v1/tlf_t6c_f_fda8f43_v1",
+      "run_result_sha256": "4dc307a6e126e214ecc6da4dc1078fee3a3209098af7556a9c4e269b978125c7",
+      "run_manifest_sha256": "ad71c3f3d690a392059b165dfd4b7828eda3ccef84f83bd1f19cf06f0978b7d9",
+      "artifact_manifest_sha256": "d743cdfe8cd3263c7b2fb96019561b5eb8dcf4f49e11ea27e0123b43081fcb06",
+      "expected_code_sha": "fda8f43be659ae6c7d7320593e4f33559e816f31"
+    },
+    "t8_centered": {
+      "run_id": "tlf_t8c_f_fda8f43_v1",
+      "run_root": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_l5_v1_temporal_ladder_full_v1/tlf_t8c_f_fda8f43_v1",
+      "run_result_sha256": "c364139f102d41c7ac4463d8b98b30256113eb30b4fb37e961f74cd7b55ab38e",
+      "run_manifest_sha256": "fed465d6f701568035aee61424d496cda61f3ad02c7d729f303c8166e1aa956e",
+      "artifact_manifest_sha256": "1629b28fe1a384145aef795b211c3d88a325ab7b89c30d81684bdff2fd311792",
+      "expected_code_sha": "fda8f43be659ae6c7d7320593e4f33559e816f31"
+    },
+    "t12_centered": {
+      "run_id": "tlf_t12c_f_fda8f43_v1",
+      "run_root": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_l5_v1_temporal_ladder_full_v1/tlf_t12c_f_fda8f43_v1",
+      "run_result_sha256": "446a412e5d7807a3a67d7c9db9fbe6d6dd771f900062ff050502da5a4ff09b3c",
+      "run_manifest_sha256": "27fab10a391fdf083e1e2052ffdace8fe8409b77cd64228c2f49cf1e47c3d69d",
+      "artifact_manifest_sha256": "0ddf6ac0048872315bd693bc6dc195794d74c335d4c476e2bfb230e76a365727",
+      "expected_code_sha": "fda8f43be659ae6c7d7320593e4f33559e816f31"
+    },
+    "t16_centered": {
+      "run_id": "tlf_t16c_f_fda8f43_v1",
+      "run_root": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_l5_v1_temporal_ladder_full_v1/tlf_t16c_f_fda8f43_v1",
+      "run_result_sha256": "6ceb135f352398ea35a4cfae3ee0c94f66de4a5255d08f27dcd7b6ee74083be7",
+      "run_manifest_sha256": "5870e0e7b9392d75531e29e357346ee218875079c344fd8562118d5c5e5b8554",
+      "artifact_manifest_sha256": "3d0588862a687ed0c73b3e14e6b11818565d34e92abc2556d854be9d7453533c",
+      "expected_code_sha": "fda8f43be659ae6c7d7320593e4f33559e816f31"
+    },
+    "t6_sliding": {
+      "run_id": "tlf_t6s_f_fda8f43_v1",
+      "run_root": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_l5_v1_temporal_ladder_full_v1/tlf_t6s_f_fda8f43_v1",
+      "run_result_sha256": "968a2bd56e555783aaf591519de0a204b560cb40337eb1ec3c992162b6c4e86f",
+      "run_manifest_sha256": "29fd58611dfb59d881c65ceb51e5f1e7294a37af2213e9835a644d0e25707e00",
+      "artifact_manifest_sha256": "61445f34e9fd44edb934fd649f0f7f1e4d2766224d3d666ad7ff0085a02f7cd0",
+      "expected_code_sha": "fda8f43be659ae6c7d7320593e4f33559e816f31"
+    },
+    "t8_sliding": {
+      "run_id": "tlf_t8s_f_fda8f43_v1",
+      "run_root": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_l5_v1_temporal_ladder_full_v1/tlf_t8s_f_fda8f43_v1",
+      "run_result_sha256": "1fd1fd44639162a9f6e3b21fb5c4263e42471e43b545f0d7ddeb7a602d79147e",
+      "run_manifest_sha256": "0a3f33305dfadc00e11161d9573f7fb07c355d62a35ba423ce62716aabc02796",
+      "artifact_manifest_sha256": "31c8285a0f8c91f853540ca78baf62b6913b225831b128625fc995f99f535eae",
+      "expected_code_sha": "fda8f43be659ae6c7d7320593e4f33559e816f31"
+    },
+    "t12_sliding": {
+      "run_id": "tlf_t12s_f_fda8f43_v1",
+      "run_root": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_l5_v1_temporal_ladder_full_v1/tlf_t12s_f_fda8f43_v1",
+      "run_result_sha256": "7985da0a8e1b2733297b06bd8912a89372995dff268ecb283aba742604adb821",
+      "run_manifest_sha256": "1568e0daaa1d2bbaff0ee8ab312d3bf74e0343fb9135b0a114c1afb8b19a255e",
+      "artifact_manifest_sha256": "80d522696222e0a1dbecb0c8e7a0d90c17c2bbe5201c4b12bc7de737b7b3cb44",
+      "expected_code_sha": "fda8f43be659ae6c7d7320593e4f33559e816f31"
+    },
+    "t16_sliding": {
+      "run_id": "tlf_t16s_f_fda8f43_v1",
+      "run_root": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_l5_v1_temporal_ladder_full_v1/tlf_t16s_f_fda8f43_v1",
+      "run_result_sha256": "70507b19690f4346a274f20abb5e87e72dcb4eafae689e80f9f0d36e79859002",
+      "run_manifest_sha256": "93f614e9b8224b0fca56e455ef0dc01f661e1bac48e6f1eda5e289cf05001b30",
+      "artifact_manifest_sha256": "7cbc72103f57814ff86d172025804d31214e866dcdfba98c358db36e4b7d378a",
+      "expected_code_sha": "fda8f43be659ae6c7d7320593e4f33559e816f31"
+    }
+  },
+  "paired_contract": {
+    "unit_column": "temporal_unit_key",
+    "cluster_column": "video_key",
+    "true_column": "behavior_label",
+    "predicted_column": "predicted_label",
+    "validation_fold_id": "native_oof_006",
+    "expected_native_units": 245,
+    "expected_clusters": 33,
+    "bootstrap_iterations": 2000,
+    "bootstrap_seed": 20260715,
+    "class_order": [
+      "drink",
+      "eat",
+      "fight",
+      "social-nose",
+      "explore",
+      "lying",
+      "stand",
+      "move",
+      "sitting",
+      "playwithtoy"
+    ],
+    "rare_classes": [
+      "fight",
+      "social-nose",
+      "playwithtoy",
+      "move"
+    ]
+  },
+  "decision_contract": {
+    "candidate_view": "t6_sliding",
+    "matched_centered_reference": "t6_centered",
+    "established_reference": "t16_centered",
+    "minimum_macro_f1_gain": 0.01,
+    "maximum_rare_group_recall_drop": 0.1,
+    "maximum_runtime_ratio": 3.0
+  },
+  "expected_equivalence": {
+    "left_view": "t16_centered",
+    "right_view": "t16_sliding",
+    "reason": "T16_has_one_complete_window_under_both_protocols",
+    "require_exact_equivalence": true
+  },
+  "interpretation_boundary": {
+    "decision_scope": "legacy-only-unreviewed-development",
+    "legacy_dataset_is_116f_not_merged": true,
+    "legacy_rare_support_generalizes_to_merged_data": false,
+    "merged_data_has_materially_more_rare_behaviors": true,
+    "merged_reviewed_reassessment_required": true,
+    "local_vram_is_architecture_limit": false,
+    "rented_gpu_allowed_after_target_environment_gate": true,
+    "reviewed_or_final_claim_allowed": false,
+    "q2_claim_allowed": false
+  },
+  "output": {
+    "artifact_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_l5_temporal_ladder_decision_v1.json"
+  }
+}
