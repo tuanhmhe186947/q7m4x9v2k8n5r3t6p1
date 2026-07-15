@@ -1,0 +1,68 @@
+{
+  "schema_version": "classification_v2.legacy_development_l6.union_context_short_selection_config.v1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "canonical_source_name": "legacy_16f",
+  "source_type": "legacy_recovered",
+  "dataset_id": "legacy_recovered_16f",
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "inputs": {
+    "training_selection_manifest": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6s_short_v1/parameter_matched_zero/l6s_zero_primary_20260715/training_selection_manifest.csv",
+      "sha256": "a91bcd684d927423461338f90b303544d0c4a149db8dd612f06f390cca40f070"
+    },
+    "training_selection_audit": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6s_short_v1/parameter_matched_zero/l6s_zero_primary_20260715/training_selection_audit.json",
+      "sha256": "91d281314bb271fdf4a29882b25cb48994c6d1bf561f0173a3366d97e4e057fc"
+    },
+    "image_window_context_manifest": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/09_image_context/image_window_context_manifest.csv",
+      "sha256": "82c1853aff3acee34c25533403d07a91a55e45b219c525782b22c9d8a38af510"
+    },
+    "image_frame_context_manifest": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/09_image_context/image_frame_context_manifest.csv",
+      "sha256": "3a2133d9b4df79bc599076de3e7f7ad7c7dea4c87ead777e01e1f95f201076b8"
+    },
+    "window_fold_manifest": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/11_folds/window_oof_fold_manifest.csv",
+      "sha256": "0932ee8ff7ceb3ae1a9085fd897e45e91de2180a5effab6fe5d0ba5a4105174b"
+    }
+  },
+  "contract": {
+    "training_scope": "short_repeat_gate",
+    "view_id": "t6_sliding",
+    "sampling_protocol": "all_sliding_event_balanced",
+    "sequence_length": 6,
+    "windows_per_native_unit": 4,
+    "selected_windows": 1300,
+    "train_windows": 320,
+    "validation_windows": 980,
+    "train_native_units": 80,
+    "validation_native_units": 245,
+    "selected_image_context_ids": 4875,
+    "frame_context_rows": 72864,
+    "outer_holdout_fold_id": "native_oof_005",
+    "development_validation_fold_id": "native_oof_006"
+  },
+  "execution_guard": {
+    "allowed_dirty_paths": [
+      ".tokensave/config.json",
+      "outputs/classification_v2/train_ready_windows/feature_semantics_audit.json",
+      "scripts/diagnostics/detect_single_frame.py"
+    ],
+    "required_tracked_paths": [
+      "configs/classification_v2/legacy_development_l6_union_context_short_selection_v1.json",
+      "scripts/classification_v2/03_image_cache_context/classification_v2_build_union_context_short_selection.py",
+      "src/pig_behavior/classification_v2/datasets/visual_interaction_context.py",
+      "src/pig_behavior/classification_v2/datasets/visual_interaction_selection.py",
+      "tests/test_classification_v2_visual_interaction_context.py",
+      "tests/test_classification_v2_visual_interaction_selection.py"
+    ]
+  },
+  "output": {
+    "root_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/union_context_short_selection_v1"
+  }
+}
