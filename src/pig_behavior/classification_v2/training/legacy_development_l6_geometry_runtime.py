@@ -223,6 +223,7 @@ def audit_geometry_run(
         errors.append("unknown_geometry_mode")
     execution = _object(result.get("execution"), "execution")
     execution_expected = {
+        "cublas_workspaces_cleared": True,
         "oom": False,
         "oom_retry_count": 0,
         "source_media_reads": 0,
@@ -459,6 +460,7 @@ def _execute_cuda(
     outcome: LegacyL6GeometryOutcome | None = None
     peak_allocated = 0
     peak_reserved = 0
+    cublas_workspaces_cleared = False
     try:
         outcome = train_geometry_core(
             base,
@@ -477,8 +479,18 @@ def _execute_cuda(
             )
     finally:
         gc.collect()
-        torch.cuda.empty_cache()
         torch.cuda.synchronize(device)
+        torch.cuda.empty_cache()
+        clear_workspaces = getattr(
+            torch._C,
+            "_cuda_clearCublasWorkspaces",
+            None,
+        )
+        if not callable(clear_workspaces):
+            raise RuntimeError("PyTorch cannot clear cuBLAS workspaces")
+        clear_workspaces()
+        cublas_workspaces_cleared = True
+        torch.cuda.empty_cache()
     post_allocated = int(torch.cuda.memory_allocated(device))
     post_reserved = int(torch.cuda.memory_reserved(device))
     if outcome is None:
@@ -501,6 +513,7 @@ def _execute_cuda(
         "pytorch_cuda_alloc_conf": os.environ.get(
             "PYTORCH_CUDA_ALLOC_CONF"
         ),
+        "cublas_workspaces_cleared": cublas_workspaces_cleared,
         "oom": False,
         "oom_retry_count": 0,
         "source_media_reads": 0,
@@ -839,6 +852,7 @@ def _failed_execution(
         "pytorch_cuda_alloc_conf": os.environ.get(
             "PYTORCH_CUDA_ALLOC_CONF"
         ),
+        "cublas_workspaces_cleared": False,
         "oom": oom,
         "oom_retry_count": 0,
         "source_media_reads": 0,
@@ -872,6 +886,9 @@ def _environment_payload(execution: dict[str, Any]) -> dict[str, Any]:
         "allocator_limit_bytes": execution.get("allocator_limit_bytes"),
         "cublas_workspace_config": execution.get("cublas_workspace_config"),
         "pytorch_cuda_alloc_conf": execution.get("pytorch_cuda_alloc_conf"),
+        "cublas_workspaces_cleared": execution.get(
+            "cublas_workspaces_cleared"
+        ),
     }
 
 

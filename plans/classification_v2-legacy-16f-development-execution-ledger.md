@@ -621,13 +621,22 @@ The geometry training implementation is now `PASS IN CODE` before GPU launch:
   validation or outer-holdout reads;
 - missing-modality inference zeros geometry and availability together;
 - the runtime permits one run per fresh process, caps the allocator at 70% of
-  detected VRAM, forbids OOM retry, and requires zero post-run VRAM residue;
-- short config SHA256 is
-  `35351189226fc2dab00c6bb2c8e34646ea9bf32591b0d321937230113eeb8046`.
+  detected VRAM, forbids OOM retry, and requires zero post-run VRAM residue.
 
-L6 remains `IN_PROGRESS`. Commit, CPU preflight, then two fresh-process short
-runs for each mode are still required before the short matrix can authorize
-any full geometry expansion. No GPU optimizer step has run at this checkpoint.
+The first config-v1 canary was preserved as a failure packet. Training reached
+the cleanup gate without OOM, but CUDA retained a 64 MiB cuBLAS workspace after
+`empty_cache`; the process then exited and `nvidia-smi` returned to zero usage.
+No automatic retry occurred. Config v1 SHA256 is
+`35351189226fc2dab00c6bb2c8e34646ea9bf32591b0d321937230113eeb8046`.
+
+Runtime v2 explicitly clears cuBLAS workspaces before testing allocated and
+reserved bytes, matching the already proven L5 cleanup policy. Its fresh output
+root is separate, and config v2 SHA256 is
+`68e68b2db4f36c6abfdd727dee414197d3541e5f38f0b5c32d4244fb1847c377`.
+
+L6 remains `IN_PROGRESS`. Config v2 must be committed and repeat all CPU
+preflights before a new canary. Two fresh-process short runs for each mode are
+still required before the matrix can authorize any full geometry expansion.
 
 ## Full-Run Boundary
 

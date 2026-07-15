@@ -1,0 +1,169 @@
+{
+  "schema_version": "classification_v2.legacy_development_l6.geometry_short_config.v1",
+  "training_scope": "short_repeat_gate",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "canonical_source_name": "legacy_16f",
+  "source_type": "legacy_recovered",
+  "dataset_id": "legacy_recovered_16f",
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "development_metrics_authorized": true,
+  "experiment_contract": {
+    "experiment_id": "L6_V1_T6_GEOMETRY_ABLATION_V1",
+    "parent_decision": "RETAIN_T6_SLIDING_AS_BOUNDED_LEGACY_BASELINE",
+    "changed_family": "geometry_only",
+    "modes": [
+      "parameter_matched_zero",
+      "availability_only",
+      "geometry"
+    ],
+    "primary_metric": "validation_native_unit_macro_f1_global_10_class",
+    "uncertainty_cluster": "video_key",
+    "parameter_matched": true,
+    "availability_only_is_diagnostic": true,
+    "availability_is_behavior_evidence": false,
+    "missing_modality_inference_required": true,
+    "outer_predictions_used_for_model_selection": false,
+    "legacy_only_decision": true,
+    "merged_reviewed_reassessment_required": true,
+    "local_vram_is_architecture_limit": false
+  },
+  "parents": {
+    "temporal_ladder_config": {
+      "path": "configs/classification_v2/legacy_development_l5_temporal_ladder_full_v1.json",
+      "sha256": "559d24ba29d6192291eb5a8d7b6896616b1bed782450a9242f1c4afa3bd85559"
+    },
+    "l5_decision": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_l5_temporal_ladder_decision_v1.json",
+      "sha256": "f3316568c797967e66a0a6ea3cac8e4804a35e12439b3d31527e10ef93abd4e1"
+    }
+  },
+  "cache": {
+    "config": {
+      "path": "configs/classification_v2/legacy_development_l6_geometry_cache_v1.json",
+      "sha256": "a4fefc55ec12518322789b86cac248ae855c4e23b79adfb428053da61d04fc33"
+    },
+    "manifest": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/geometry_cache_v1/geometry_cache_manifest.json",
+      "sha256": "0e0b79a5423f820193717995a89748817ab9e3e62e078694d1b838521c37b5a7"
+    },
+    "repeat_gate": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/geometry_cache_repeat_gate_v1.json",
+      "sha256": "d84c1a88b1067b4c3bfeaca8bfb5cd03f860fb85bff829fe80ecf145139decd1"
+    },
+    "root_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/geometry_cache_v1"
+  },
+  "implementation": {
+    "core": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l6_geometry.py",
+      "sha256": "ac101d24b5576636be4329a1ff253aa98e375ffdac9ec58d3e01248029e24986"
+    },
+    "runtime": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l6_geometry_runtime.py",
+      "sha256": "56ccb69f5720c9e9d8bbb4a7220022ace0c01eee0168731b935897001091c8ab"
+    },
+    "frozen_engine": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l5_cached_training.py",
+      "sha256": "f639dd6d1dcdd83172f33054dab11a0c861eb65883f2656c8ed96d0d908fa96c"
+    }
+  },
+  "selection": {
+    "view_id": "t6_sliding",
+    "native_unit": "complete_legacy_16_frame_burst",
+    "windows_per_native_unit": 4,
+    "short_train_native_units": 80,
+    "short_train_windows": 320,
+    "full_train_native_units": 3652,
+    "full_train_windows": 14608,
+    "validation_native_units": 245,
+    "validation_windows": 980,
+    "event_mass_per_native_unit": 1.0,
+    "normalization_fit_scope": "unique_train_frame_uid_only",
+    "outer_holdout_access": "FORBIDDEN_DURING_MODEL_SELECTION"
+  },
+  "model": {
+    "architecture": "cached_visual_geometry_temporal_classifier_v1",
+    "feature_control_id": "V1",
+    "backbone_name": "resnet18",
+    "input_resolution": 224,
+    "visual_feature_dim": 512,
+    "geometry_feature_dim": 8,
+    "availability_feature_dim": 1,
+    "model_input_dim": 521,
+    "geometry_modes": [
+      "parameter_matched_zero",
+      "availability_only",
+      "geometry"
+    ],
+    "temporal_encoder_name": "masked_mean",
+    "hidden_dim": 128,
+    "dropout": 0.1,
+    "transformer_layers": 1,
+    "transformer_heads": 4,
+    "parameter_count": 69404,
+    "native_probability_aggregation": "mean_window_probability_v1",
+    "missing_modality_policy": "zero_geometry_and_availability_v1"
+  },
+  "optimization": {
+    "seed": 20260714,
+    "epochs": 3,
+    "batch_size": 32,
+    "evaluation_batch_size": 64,
+    "learning_rate": 0.003,
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 1.0,
+    "loss": "event_mass_balanced_cross_entropy",
+    "sampler": "deterministic_seeded_window_shuffle_after_native_selection",
+    "checkpoint_selection": "native_global_10_class_macro_f1_then_nll",
+    "precision": "float32",
+    "autocast_enabled": false,
+    "deterministic_algorithms": true,
+    "cublas_workspace_config": ":4096:8",
+    "dataloader_num_workers": 0,
+    "pin_memory": false,
+    "persistent_workers": false,
+    "prefetch_factor": null,
+    "device": "cuda:0",
+    "declared_local_gpu_vram_gib": 4,
+    "maximum_peak_vram_fraction": 0.7,
+    "oom_retry_allowed": false,
+    "one_run_per_fresh_process": true,
+    "maximum_loaded_batch_bytes": 2103552
+  },
+  "repeat_gate": {
+    "required_runs_per_mode": 2,
+    "require_fresh_process": true,
+    "require_distinct_process_ids": true,
+    "require_non_overlapping_execution": true,
+    "require_identical_selection_hash": true,
+    "require_identical_normalization_hash": true,
+    "require_identical_parameter_hash": true,
+    "require_identical_window_prediction_hash": true,
+    "require_identical_native_prediction_hash": true,
+    "require_identical_epoch_metric_hash": true
+  },
+  "execution_guard": {
+    "allowed_dirty_paths": [
+      ".tokensave/config.json",
+      "outputs/classification_v2/train_ready_windows/feature_semantics_audit.json",
+      "scripts/diagnostics/detect_single_frame.py"
+    ],
+    "required_tracked_paths": [
+      "configs/classification_v2/legacy_development_l6_geometry_short_v2.json",
+      "scripts/classification_v2/04_baselines_smokes/check_classification_v2_legacy_development_l6_geometry.py",
+      "scripts/classification_v2/07_postrun_evaluation/check_classification_v2_legacy_l6_geometry_training_gates.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l5_cached_training.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l6_geometry.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l6_geometry_runtime.py",
+      "tests/test_classification_v2_legacy_l6_geometry_training.py",
+      "tests/test_classification_v2_legacy_l6_geometry_runtime.py"
+    ]
+  },
+  "output": {
+    "run_root_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/geometry_training_short_v2",
+    "matrix_gate_filename": "legacy_l6_geometry_short_matrix_v1.json"
+  }
+}
