@@ -150,6 +150,11 @@ def build_visual_interaction_cache(config: VisualInteractionCacheConfig) -> dict
                     "visual_context_id": context_id,
                     "image_context_id": str(row["image_context_id"]),
                     "source_type": str(row["source_type"]),
+                    "lineage_scope": str(row["lineage_scope"]),
+                    "human_review_complete": _strict_bool_value(
+                        row["human_review_complete"],
+                        name="human_review_complete",
+                    ),
                     "video_key": str(row["video_key"]),
                     "frame_index": int(row["frame_index"]),
                     "actor_track_id": str(row["track_id"]),
@@ -188,6 +193,20 @@ def build_visual_interaction_cache(config: VisualInteractionCacheConfig) -> dict
     duplicate_ids = int(manifest["visual_context_id"].duplicated().sum())
     available = int(manifest["visual_context_available"].sum())
     status_counts = manifest["visual_context_status"].value_counts(dropna=False).to_dict()
+    lineage_scopes = sorted(manifest["lineage_scope"].astype(str).unique())
+    reviewed_values = sorted(
+        _strict_bool_series(
+            manifest["human_review_complete"],
+            name="human_review_complete",
+        )
+        .unique()
+        .tolist()
+    )
+    claim_errors: list[str] = []
+    if len(lineage_scopes) != 1 or not lineage_scopes[0]:
+        claim_errors.append(f"lineage_scope_values={lineage_scopes}")
+    if len(reviewed_values) != 1:
+        claim_errors.append(f"human_review_complete_values={reviewed_values}")
     audit = {
         "schema_version": "classification_v2_visual_interaction_cache_audit_v1",
         "frame_context_csv": str(config.frame_context_csv),
@@ -198,6 +217,10 @@ def build_visual_interaction_cache(config: VisualInteractionCacheConfig) -> dict
         "unavailable_rows": int(len(manifest) - available),
         "duplicate_visual_context_id": duplicate_ids,
         "status_counts": status_counts,
+        "lineage_scope": lineage_scopes[0] if len(lineage_scopes) == 1 else "",
+        "human_review_complete": (
+            reviewed_values[0] if len(reviewed_values) == 1 else None
+        ),
         "image_size": config.image_size,
         "padding_ratio": config.padding_ratio,
         "resize_policy": RESIZE_POLICY,
@@ -211,7 +234,11 @@ def build_visual_interaction_cache(config: VisualInteractionCacheConfig) -> dict
         "rows_dropped_for_missing_context": 0,
         "selection_csv": (str(config.selection_csv) if config.selection_csv is not None else ""),
         "selection_sha256": selection_sha256,
-        "errors": [] if duplicate_ids == 0 else [f"duplicate_visual_context_id={duplicate_ids}"],
+        "errors": (
+            claim_errors
+            if duplicate_ids == 0
+            else [*claim_errors, f"duplicate_visual_context_id={duplicate_ids}"]
+        ),
         "warnings": [],
     }
     audit["valid"] = not audit["errors"] and len(manifest) > 0
@@ -264,6 +291,8 @@ def _validate_frames(frames: pd.DataFrame) -> None:
         "frame_index",
         "track_id",
         "nearest_track_id",
+        "lineage_scope",
+        "human_review_complete",
         "x1",
         "y1",
         "x2",
@@ -461,6 +490,33 @@ def _canonical_id(value: Any) -> str:
     return text[:-2] if text.endswith(".0") and text[:-2].isdigit() else text
 
 
+def _strict_bool_value(value: Any, *, name: str) -> bool:
+    normalized = str(value).strip().lower()
+    if normalized in {"true", "1"}:
+        return True
+    if normalized in {"false", "0"}:
+        return False
+    raise ValueError(f"{name} contains an invalid boolean value")
+
+
+def _strict_bool_series(values: pd.Series, *, name: str) -> pd.Series:
+    return values.map(lambda value: _strict_bool_value(value, name=name)).astype(bool)
+
+
+def _single_manifest_value(frame: pd.DataFrame, column: str) -> str:
+    values = sorted(frame[column].fillna("").astype(str).unique())
+    if len(values) != 1 or not values[0]:
+        raise ValueError(f"partial visual cache {column} values={values}")
+    return values[0]
+
+
+def _single_manifest_bool(frame: pd.DataFrame, column: str) -> bool:
+    values = _strict_bool_series(frame[column], name=column).unique().tolist()
+    if len(values) != 1:
+        raise ValueError(f"partial visual cache {column} values={values}")
+    return bool(values[0])
+
+
 def _visual_context_id(image_context_id: str) -> str:
     return hashlib.sha1(f"visual_partner_v1|{image_context_id}".encode()).hexdigest()
 
@@ -511,6 +567,8 @@ def _validate_partial_manifest(
         "image_context_id",
         "cache_path",
         "preview_path",
+        "lineage_scope",
+        "human_review_complete",
         "image_size",
         "resize_policy",
     }
@@ -519,6 +577,8 @@ def _validate_partial_manifest(
         raise ValueError(f"partial visual cache manifest missing columns: {missing}")
     if partial["visual_context_id"].duplicated().any():
         raise ValueError("partial visual cache manifest has duplicate visual_context_id")
+    _single_manifest_value(partial, "lineage_scope")
+    _single_manifest_bool(partial, "human_review_complete")
     partial_ids = set(partial["image_context_id"].fillna("").astype(str))
     if not partial_ids.issubset(selected_image_context_ids):
         raise ValueError("partial visual cache escaped the selected context IDs")
@@ -566,6 +626,14 @@ def _write_partial_checkpoint(
         "padding_ratio": float(config.padding_ratio),
         "resize_policy": RESIZE_POLICY,
         "source_type_filter": config.source_type,
+        "lineage_scope": _single_manifest_value(
+            partial,
+            "lineage_scope",
+        ),
+        "human_review_complete": _single_manifest_bool(
+            partial,
+            "human_review_complete",
+        ),
         "max_contexts": config.max_contexts,
         "selection_csv": (str(config.selection_csv) if config.selection_csv is not None else ""),
         "selection_sha256": selection_sha256,
