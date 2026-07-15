@@ -227,11 +227,13 @@ def load_social_relation_cache_config(
             f"order_authority.{name}",
         )
     implementation = _object(payload["implementation"], "implementation")
-    _validate_bound_file(
-        _resolve_inside(config.repo_root, str(implementation["path"])),
-        str(implementation["sha256"]),
-        "social cache implementation",
-    )
+    for name, value in implementation.items():
+        spec = _object(value, f"implementation.{name}")
+        _validate_bound_file(
+            _resolve_inside(config.repo_root, str(spec["path"])),
+            str(spec["sha256"]),
+            f"social cache implementation.{name}",
+        )
     _load_order_authority(config)
     _validate_parent_decision(config)
     return config
@@ -365,9 +367,10 @@ def build_social_relation_cache(
         "outer_holdout_predictions_authorized": False,
         "config_path": str(config.path),
         "config_sha256": config.sha256,
-        "implementation_sha256": str(
-            config.payload["implementation"]["sha256"]
-        ),
+        "implementation_hashes": {
+            name: str(spec["sha256"])
+            for name, spec in config.payload["implementation"].items()
+        },
         "parent_view": {
             "view_id": VIEW_ID,
             "temporal_view_name": TEMPORAL_VIEW_NAME,
@@ -1046,9 +1049,10 @@ def _validate_written_manifest(
         "canonical_full_oof_authorized": False,
         "outer_holdout_predictions_authorized": False,
         "config_sha256": config.sha256,
-        "implementation_sha256": str(
-            config.payload["implementation"]["sha256"]
-        ),
+        "implementation_hashes": {
+            name: str(spec["sha256"])
+            for name, spec in config.payload["implementation"].items()
+        },
         "errors": [],
         "valid": True,
     }
@@ -1143,7 +1147,17 @@ def _validate_cache_config_payload(payload: dict[str, Any]) -> None:
     }
     if features != expected_features:
         raise ValueError("social cache feature contract drift")
-    _validate_bound_spec(payload["implementation"], "implementation")
+    implementation = _object(payload["implementation"], "implementation")
+    expected_implementation = {
+        "cache_builder",
+        "spatial_exporter",
+        "geometry_cache_helpers",
+        "motion_cache_helpers",
+    }
+    if set(implementation) != expected_implementation:
+        raise ValueError("social cache implementation set drift")
+    for name, value in implementation.items():
+        _validate_bound_spec(value, f"implementation.{name}")
     guard = _object(payload["execution_guard"], "execution_guard")
     if set(guard) != {"allowed_dirty_paths", "required_tracked_paths"}:
         raise ValueError("social cache execution guard keys drift")
