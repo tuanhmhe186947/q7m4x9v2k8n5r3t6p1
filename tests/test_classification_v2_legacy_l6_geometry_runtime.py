@@ -2,9 +2,15 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import pytest
+
+from pig_behavior.classification_v2.training import (
+    legacy_development_l6_geometry_runtime as runtime,
+)
 from pig_behavior.classification_v2.training.legacy_development_l6_geometry import (
     LINEAGE_SCOPE,
     MODES,
@@ -15,8 +21,11 @@ from pig_behavior.classification_v2.training.legacy_development_l6_geometry_runt
     REPEAT_GATE_SCHEMA,
     _audit_artifacts,
     _build_artifact_manifest,
+    _finalize_run,
     _non_overlapping_intervals,
+    _run_paths,
     _safe_run_id,
+    _validate_run_path_lengths,
     audit_geometry_short_matrix,
 )
 
@@ -26,7 +35,10 @@ def _short_config(tmp_path: Path) -> LegacyL6GeometryConfig:
     path.write_text("{}\n", encoding="utf-8")
     return LegacyL6GeometryConfig(
         path=path,
-        payload={"training_scope": SHORT_SCOPE},
+        payload={
+            "training_scope": SHORT_SCOPE,
+            "output": {"run_root_relative_path": "short"},
+        },
         repo_root=tmp_path,
     )
 
@@ -95,6 +107,32 @@ def test_runtime_run_id_and_non_overlap_guards() -> None:
     assert _non_overlapping_intervals(primary, overlapping)["valid"] is False
 
 
+def test_windows_path_length_fails_before_run_creation(tmp_path: Path) -> None:
+    config = _short_config(tmp_path)
+    audit = _validate_run_path_lengths(
+        config,
+        mode="geometry",
+        run_id="run",
+    )
+
+    assert audit["valid"] is True
+    if os.name == "nt":
+        long_config = LegacyL6GeometryConfig(
+            path=config.path,
+            payload={
+                "training_scope": SHORT_SCOPE,
+                "output": {"run_root_relative_path": "x" * 220},
+            },
+            repo_root=tmp_path,
+        )
+        with pytest.raises(ValueError, match="Windows artifact path too long"):
+            _validate_run_path_lengths(
+                long_config,
+                mode="geometry",
+                run_id="run",
+            )
+
+
 def test_artifact_manifest_detects_hash_drift(tmp_path: Path) -> None:
     artifact_path = tmp_path / "metrics.json"
     artifact_path.write_text('{"valid":true}\n', encoding="utf-8")
@@ -115,6 +153,45 @@ def test_artifact_manifest_detects_hash_drift(tmp_path: Path) -> None:
     audit = _audit_artifacts(tmp_path, manifest)
     assert audit["valid"] is False
     assert audit["errors"] == ["artifact_hash_mismatch=metrics"]
+
+
+def test_finalization_error_becomes_failed_packet(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = _short_config(tmp_path)
+    root = tmp_path / "run"
+    root.mkdir()
+    paths = _run_paths(root)
+    paths["run_manifest"].write_text("{}\n", encoding="utf-8")
+
+    def _fail_write(*args: object, **kwargs: object) -> None:
+        raise FileNotFoundError("synthetic artifact path failure")
+
+    monkeypatch.setattr(runtime, "_write_outcome", _fail_write)
+    result = _finalize_run(
+        paths,
+        config=config,
+        mode="geometry",
+        run_id="run",
+        planned={"started_at_utc": "2026-07-15T00:00:00+00:00"},
+        planned_sha="a" * 64,
+        selection={"selection_content_sha256": "b" * 64},
+        outcome=object(),
+        execution={"errors": [], "valid": True},
+        failure=None,
+        runtime_seconds=1.0,
+    )
+
+    assert result["valid"] is False
+    assert result["failure"]["failure_stage"] == "artifact_finalization"
+    assert paths["unexpected_failure"].is_file()
+    assert paths["run_result"].is_file()
+    assert paths["artifact_manifest"].is_file()
+    final_manifest = json.loads(
+        paths["run_manifest"].read_text(encoding="utf-8")
+    )
+    assert final_manifest["status"] == "failed"
 
 
 def test_short_matrix_requires_six_distinct_processes(tmp_path: Path) -> None:

@@ -167,6 +167,10 @@ def test_geometry_normalization_uses_unique_train_frames_only() -> None:
             "configs/classification_v2/"
             "legacy_development_l6_geometry_short_v2.json"
         ),
+        Path(
+            "configs/classification_v2/"
+            "legacy_development_l6_geometry_short_v3.json"
+        ),
     ],
 )
 def test_short_config_locks_canonical_source_and_claim_boundary(

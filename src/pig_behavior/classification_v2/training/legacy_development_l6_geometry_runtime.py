@@ -80,6 +80,7 @@ ARTIFACT_FILES = {
 }
 
 _RUN_EXECUTED_IN_PROCESS = False
+MAX_WINDOWS_ARTIFACT_PATH_CHARS = 240
 
 
 def run_geometry_mode(
@@ -97,6 +98,11 @@ def run_geometry_mode(
         raise ValueError(f"unknown L6 geometry mode={mode}")
     if not _safe_run_id(run_id):
         raise ValueError(f"unsafe L6 geometry run ID={run_id!r}")
+    path_length_audit = _validate_run_path_lengths(
+        config,
+        mode=mode,
+        run_id=run_id,
+    )
     preflight = preflight_geometry_mode(config, mode)
     if not preflight["gpu_launch_authorized"]:
         raise RuntimeError(f"L6 geometry preflight failed={preflight['errors']}")
@@ -119,6 +125,7 @@ def run_geometry_mode(
         normalization=normalization.to_payload(),
         preflight=preflight,
         git_guard=git_guard,
+        path_length_audit=path_length_audit,
         started_at=started_at,
     )
     _write_json_exclusive(paths["run_manifest"], planned)
@@ -541,7 +548,36 @@ def _finalize_run(
 ) -> dict[str, Any]:
     completed_at = _utc_now()
     if outcome is not None and failure is None:
-        _write_outcome(paths, config=config, mode=mode, outcome=outcome)
+        try:
+            _write_outcome(paths, config=config, mode=mode, outcome=outcome)
+        except Exception as error:
+            failure = {
+                "schema_version": (
+                    "classification_v2.legacy_development_l6."
+                    "geometry_failure.v1"
+                ),
+                "run_id": run_id,
+                "mode": mode,
+                "process_id": os.getpid(),
+                "failure_stage": "artifact_finalization",
+                "error_type": type(error).__name__,
+                "error_message": str(error),
+                "traceback": traceback.format_exc(),
+                "oom_retry_performed": False,
+                "captured_at_utc": _utc_now(),
+            }
+            if not paths["unexpected_failure"].exists():
+                _write_json_exclusive(paths["unexpected_failure"], failure)
+            execution = {
+                **execution,
+                "errors": [
+                    *execution.get("errors", []),
+                    f"artifact_finalization={type(error).__name__}: {error}",
+                ],
+                "valid": False,
+            }
+            outcome = None
+    if outcome is not None and failure is None:
         result = _success_result(
             config,
             mode=mode,
@@ -788,6 +824,7 @@ def _planned_manifest(
     normalization: dict[str, Any],
     preflight: dict[str, Any],
     git_guard: dict[str, Any],
+    path_length_audit: dict[str, Any],
     started_at: str,
 ) -> dict[str, Any]:
     return {
@@ -805,6 +842,7 @@ def _planned_manifest(
         "normalization_state_sha256": normalization["state_sha256"],
         "preflight_status": preflight["status"],
         "git_guard": git_guard,
+        "path_length_audit": path_length_audit,
         "started_at_utc": started_at,
         "completed_at_utc": None,
         "runtime_seconds": None,
@@ -1005,6 +1043,35 @@ def _mapping_errors(
         for field, value in expected.items()
         if payload.get(field) != value
     ]
+
+
+def _validate_run_path_lengths(
+    config: LegacyL6GeometryConfig,
+    *,
+    mode: str,
+    run_id: str,
+) -> dict[str, Any]:
+    root = config.output_root / mode / run_id
+    paths = _run_paths(root)
+    lengths = {name: len(str(path)) for name, path in paths.items()}
+    longest_name = max(lengths, key=lengths.__getitem__)
+    maximum = lengths[longest_name]
+    limit_applies = os.name == "nt"
+    if limit_applies and maximum > MAX_WINDOWS_ARTIFACT_PATH_CHARS:
+        raise ValueError(
+            "L6 geometry Windows artifact path too long "
+            f"name={longest_name} chars={maximum}>"
+            f"{MAX_WINDOWS_ARTIFACT_PATH_CHARS}"
+        )
+    return {
+        "platform": os.name,
+        "windows_limit_applies": limit_applies,
+        "maximum_allowed_chars": MAX_WINDOWS_ARTIFACT_PATH_CHARS,
+        "maximum_observed_chars": maximum,
+        "longest_artifact": longest_name,
+        "run_root": str(root),
+        "valid": True,
+    }
 
 
 def _run_paths(root: Path) -> dict[str, Path]:

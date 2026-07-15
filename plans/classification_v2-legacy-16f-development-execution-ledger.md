@@ -634,7 +634,17 @@ reserved bytes, matching the already proven L5 cleanup policy. Its fresh output
 root is separate, and config v2 SHA256 is
 `68e68b2db4f36c6abfdd727dee414197d3541e5f38f0b5c32d4244fb1847c377`.
 
-L6 remains `IN_PROGRESS`. Config v2 must be committed and repeat all CPU
+The config-v2 canary passed CUDA training and cleanup, then exposed a Windows
+artifact-path failure: the first blocked filename was 274 characters long.
+The partial planned packet is preserved; GPU usage again returned to zero, and
+no retry occurred. Runtime v3 now checks every artifact path before preflight or
+CUDA and converts a finalization exception into an auditable failed packet.
+
+Config v3 uses a separate shorter output root. Its longest declared canary path
+is 205 characters against a conservative 240-character gate. Config v3 SHA256
+is `51462300634a10244217cc1290c7af8f8a9e6597a16a47859cec41ac7e3e8ab6`.
+
+L6 remains `IN_PROGRESS`. Config v3 must be committed and repeat all CPU
 preflights before a new canary. Two fresh-process short runs for each mode are
 still required before the matrix can authorize any full geometry expansion.
 
