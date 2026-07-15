@@ -111,7 +111,7 @@ def evaluate_roi_relation_short_decision(
     )
     git_guard = _git_guard(
         root,
-        _object(config["execution_guard"], "execution_guard"),
+        config,
     )
     return {
         "schema_version": RESULT_SCHEMA,
