@@ -30,7 +30,7 @@ replaced by this ledger.
 | L2 full legacy lineage | PASS | Full repeat-bound lineage at `59647e2` |
 | L3 immutable inputs | PASS | Committed-SHA gate at `0414adc` |
 | L4 model correctness | PASS | Real-cache correctness gate at `3ef4235` |
-| L5 core baselines | IN_PROGRESS | 4 GiB VRAM probe PASS at `93449ae`; feature caches next |
+| L5 core baselines | IN_PROGRESS | Cached consumer PASS at `b425c86`; short train gate next |
 | L6 modality loop | NOT_STARTED | Requires retained L5 baseline |
 | L7 imbalance policy | NOT_STARTED | Requires retained L6 candidate |
 | L8 candidate/handback | NOT_STARTED | Requires controlled L0-L7 evidence |
@@ -135,6 +135,7 @@ The cache/fold boundary remains `00dc2e0`; claim hardening rollback is
 | 2026-07-14 | Legacy L4 model-correctness ladder | PASS | `3ef4235` |
 | 2026-07-15 | Memory-safe L5 224px cache gate | PASS | `15a5368` |
 | 2026-07-15 | Pretrained 4 GiB VRAM gate | PASS | `93449ae` |
+| 2026-07-15 | Crash-bounded L5 cached-feature consumer | PASS | `b425c86` |
 
 ## L2 PASS Evidence
 
@@ -280,6 +281,37 @@ canonical full OOF, and Q2 claims remain unauthorized.
 The three full packets contain the required run, environment, artifact,
 checkpoint, prediction, and registry lineage. They authorize the controlled L5
 baseline inputs only; no classifier metric or held-out prediction exists yet.
+
+## L5 Cached-Feature Consumer Evidence
+
+- commit `b425c86` adds the exact fold-to-window-to-slot-to-feature join,
+  explicit 512-value model-X whitelist, canonical temporal head, and a
+  CPU-only consumer audit CLI;
+- the committed V0/T16 centered packet is
+  `15_l5_core_baselines/cfd_v0_t16_b425c86`; run-manifest SHA256 is
+  `199a6e5e3502f3c728910461ed1ddec18e976cba326fd34f61c6bf0b2269850b`;
+- 3,652 train and 245 validation native units produce 3,897 model windows and
+  62,352 exact slots; 648 outer units remain routing-only and create zero
+  feature slots, predictions, or metrics;
+- `fold_manifest.csv` contains 4,545 eligible units with zero recording,
+  video, or native-unit role overlap; `native_routing_manifest.csv` preserves
+  all 4,554 units, including nine explicit policy-invalid exclusions;
+- the independent leakage checker accepts exactly 512 features with zero
+  forbidden fields, and the native checker reports zero duplicate keys or
+  incorrect 16-frame lengths;
+- the local hardware contract is fixed at 4 GiB, 4,294,443,008 validated
+  bytes, and a 3,006,110,105-byte allocator cap; FP32 and no AMP/retry remain
+  mandatory;
+- the bounded audit loads two 64-window batches per train/validation role,
+  peaks at 2,103,552 loaded bytes per batch, closes the mmap after every batch,
+  and records CUDA uninitialized before and after with peak VRAM zero;
+- eight focused tests and 515 classification tests pass with 181 deselected,
+  plus Ruff, compile, diff, and changed-file line-length gates.
+
+This PASS authorizes implementation and execution of the exact cached-feature
+short training gate only. L5 remains `IN_PROGRESS`; baseline metrics,
+outer-holdout predictions, reviewed/final naming, canonical full OOF, and Q2
+claims remain unauthorized.
 
 ## Full-Run Boundary
 
