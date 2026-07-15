@@ -1,0 +1,80 @@
+{
+  "schema_version": "classification_v2.legacy_development_l6.union_context_short_cache_config.v1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "canonical_source_name": "legacy_16f",
+  "source_type": "legacy_recovered",
+  "dataset_id": "legacy_recovered_16f",
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "inputs": {
+    "selection_config": {
+      "path": "configs/classification_v2/legacy_development_l6_union_context_short_selection_v1.json",
+      "sha256": "cc0d43ae09fbc9476aeb48920054d4cb3c28704aaaa889f52276cfefa5a6c6b0"
+    },
+    "selection_csv": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/union_context_short_selection_v1/visual_context_selection.csv",
+      "sha256": "e06043e12fb7944f42494a5611f313c5c6afdad87965d49704b63764008bf61a"
+    },
+    "selection_audit": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/union_context_short_selection_v1/visual_context_selection_audit.json",
+      "sha256": "0fe3479464641b243529412e040aaa7da5228f69ec530b1b6cd5bda70d25d008"
+    },
+    "frame_context_manifest": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/09_image_context/image_frame_context_manifest.csv",
+      "sha256": "3a2133d9b4df79bc599076de3e7f7ad7c7dea4c87ead777e01e1f95f201076b8"
+    }
+  },
+  "implementation": {
+    "builder_module": {
+      "path": "src/pig_behavior/classification_v2/datasets/visual_interaction_context.py",
+      "sha256": "2a0d573a41c2d0026d0a28f2c81c24c790a35f9ece4d1c80eb0d3db7cd71ce3d"
+    },
+    "builder_script": {
+      "path": "scripts/classification_v2/03_image_cache_context/classification_v2_build_visual_interaction_cache.py",
+      "sha256": "92a8a4dada344e346ae6bf6c2d999cb7432d1be25d37412032310eb5ea705c5d"
+    },
+    "runner_script": {
+      "path": "scripts/classification_v2/03_image_cache_context/classification_v2_run_union_context_short_cache.py",
+      "sha256": "3c51a769af306593c91d82b9c9f18567e06f194d26a0520dca1c57c23395623e"
+    },
+    "repeat_gate_script": {
+      "path": "scripts/classification_v2/03_image_cache_context/check_classification_v2_union_context_short_cache_repeat.py",
+      "sha256": "e086dc923d63b43f241c0339e2b34a022f03058f87c9075a61dd94c3f1d56883"
+    }
+  },
+  "cache_contract": {
+    "image_size": 224,
+    "padding_ratio": 0.15,
+    "max_contexts": null,
+    "preview_limit": 40,
+    "checkpoint_every": 250,
+    "resize_policy": "actor_nearest_partner_union_letterbox_rgb_pad_black_v1",
+    "selected_rows": 4875,
+    "expected_ready_rows": 4875,
+    "source_media_fallback_forbidden": true,
+    "repeat_required": true
+  },
+  "outputs": {
+    "primary_root_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/union_context_short_cache_primary_v1",
+    "repeat_root_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/union_context_short_cache_repeat_v1",
+    "repeat_gate_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/union_context_short_cache_repeat_gate_v1.json"
+  },
+  "execution_guard": {
+    "allowed_dirty_paths": [
+      ".tokensave/config.json",
+      "outputs/classification_v2/train_ready_windows/feature_semantics_audit.json",
+      "scripts/diagnostics/detect_single_frame.py"
+    ],
+    "required_tracked_paths": [
+      "configs/classification_v2/legacy_development_l6_union_context_short_cache_v1.json",
+      "scripts/classification_v2/03_image_cache_context/classification_v2_build_visual_interaction_cache.py",
+      "scripts/classification_v2/03_image_cache_context/classification_v2_run_union_context_short_cache.py",
+      "scripts/classification_v2/03_image_cache_context/check_classification_v2_union_context_short_cache_repeat.py",
+      "src/pig_behavior/classification_v2/datasets/visual_interaction_context.py",
+      "tests/test_classification_v2_visual_interaction_context.py"
+    ]
+  }
+}
