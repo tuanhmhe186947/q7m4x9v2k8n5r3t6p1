@@ -30,8 +30,8 @@ replaced by this ledger.
 | L2 full legacy lineage | PASS | Full repeat-bound lineage at `59647e2` |
 | L3 immutable inputs | PASS | Committed-SHA gate at `0414adc` |
 | L4 model correctness | PASS | Real-cache correctness gate at `3ef4235` |
-| L5 core baselines | IN_PROGRESS | T1 rejected for legacy T16; V1 length ladder next |
-| L6 modality loop | NOT_STARTED | Requires retained L5 baseline |
+| L5 core baselines | PASS | T6 sliding retained as bounded 116F L6 baseline |
+| L6 modality loop | IN_PROGRESS | Geometry-first one-family ablation next |
 | L7 imbalance policy | NOT_STARTED | Requires retained L6 candidate |
 | L8 candidate/handback | NOT_STARTED | Requires controlled L0-L7 evidence |
 
@@ -167,6 +167,12 @@ The cache/fold boundary remains `00dc2e0`; claim hardening rollback is
 | 2026-07-15 | Legacy L5 strategy revision | PASS | `48f332d` |
 | 2026-07-15 | T1-versus-V1 paired evaluator | PASS | `1989cdf` |
 | 2026-07-15 | Immutable T1-versus-V1 decision config | PASS | `ff4a3d8` |
+| 2026-07-15 | Temporal ladder engine and repeat gates | PASS | `4f3fc58` |
+| 2026-07-15 | Immutable temporal short matrix | PASS | `cc38244` |
+| 2026-07-15 | Deterministic CUDA workspace binding | PASS | `076501c` |
+| 2026-07-15 | Immutable temporal full matrix | PASS | `fda8f43` |
+| 2026-07-15 | Temporal ladder decision evaluator | PASS | `bec5560` |
+| 2026-07-15 | Immutable temporal decision config | PASS | `a929e02` |
 
 ## L2 PASS Evidence
 
@@ -521,8 +527,48 @@ root. File SHA256 is
 payload SHA256 is
 `a1fff465de092f32c694a8bdd317e8ff0311b98c192db2f1511c869a1eae8a8f`.
 
-L5 remains `IN_PROGRESS`. The next isolated family is the V1 masked-mean
-T6/T8/T12/T16 ladder under both frozen temporal sampling protocols.
+That decision authorized the frozen V1 masked-mean T6/T8/T12/T16 ladder under
+both temporal sampling protocols. The completed ladder evidence follows.
+
+## L5 Temporal-Ladder Decision Evidence
+
+- all eight full views pass 14/14 artifact audits after the exact short matrix
+  passed 8/8 deterministic primary/repeat checks without OOM or retry;
+- the short-matrix gate SHA256 is
+  `b36e03d85e7f8090b1e8542948fb9cbe0a6db1273339b7c3000a5930f0a471f9`;
+- the full config SHA256 is
+  `559d24ba29d6192291eb5a8d7b6896616b1bed782450a9242f1c4afa3bd85559`;
+- T6 sliding has macro-F1 `0.5343181014`, accuracy `0.6857142857`, and NLL
+  `1.1206917637` on the same 245 native units and 33 video clusters;
+- T6 sliding minus T6 centered macro-F1 is `+0.1713935431`, with paired
+  video-cluster interval `[0.0218242521, 0.2271418980]`;
+- T6 sliding minus T16 centered is `+0.1599775548`, with interval
+  `[0.0005092838, 0.2220031926]`;
+- intervals cross zero against T8 centered, T12 centered, and T8 sliding, so
+  universal pairwise superiority is not established;
+- the rare group has only 20 units; T6 sliding recall is `0.25` with no recall
+  drop against another view, but this support is not representative of merged;
+- T16 centered and sliding are exactly equivalent in parameters,
+  probabilities, and predicted labels as required by their shared one window;
+- the official evaluator and Git guard pass at committed code SHA `a929e02`.
+
+Decision: retain `t6_sliding` only as the bounded L6 working baseline. Sliding
+also changes window count and optimizer exposure, so no causal claim about T6
+length alone is allowed. Three epochs are bounded baseline evidence, not final
+convergence evidence. The architecture family is not finalized, and all
+retained or rejected controls must be reassessed on frozen merged-reviewed
+data, whose rare-behavior support is materially larger than legacy 116F.
+
+The official artifact is
+`legacy_l5_temporal_ladder_decision_v1.json` under the L5 output root. File
+SHA256 is
+`bd57fc9ed52028ac6d176cf4ca8fe5557e8c737ef94c11659cce8645a8d409b1`;
+payload SHA256 is
+`2969e405176e4584588c07c911e9f3c190b0f2fce7db15ce115d02205c9ba4a5`.
+
+L5 is `PASS`. This authorizes L6 geometry-first work from the exact T6 sliding
+baseline only; reviewed/final naming, canonical full OOF, and Q2 claims remain
+false.
 
 ## Full-Run Boundary
 

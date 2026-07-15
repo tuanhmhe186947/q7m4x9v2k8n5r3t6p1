@@ -258,9 +258,15 @@ Report metrics only after burst-level aggregation and keep native-unit
 predictions paired. Reassess retained and rejected architecture families on the
 frozen merged-reviewed lineage before any final architecture conclusion.
 
+Current L5 handoff: the hash-bound decision retains `t6_sliding` only as the
+bounded 116F working baseline. It does not establish universal pairwise or
+causal sequence-length superiority because sliding also changes window and
+optimizer exposure. Treat three epochs as baseline evidence, not convergence.
+
 ### L6 - Input And Context Improvement Loop
 
-Starting from the retained actor-temporal baseline, add one family at a time:
+Starting from that exact T6 sliding actor-temporal baseline, add one family at
+a time:
 
 1. geometry;
 2. motion;
