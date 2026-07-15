@@ -588,6 +588,35 @@ L5 is `PASS`. This authorizes L6 geometry-first work from the exact T6 sliding
 baseline only; reviewed/final naming, canonical full OOF, and Q2 claims remain
 false.
 
+## L6 Geometry Cache Evidence
+
+The frozen T6 geometry cache is the first L6 input-family artifact. It binds
+the raw `legacy_16f` authority, the L5 decision, image-context manifest,
+T6 slot manifest, and frame-geometry reference.
+
+- primary and independent-repeat caches each contain 15,588 model-visible
+  windows, 93,528 slots, and an exact `[15588, 6, 8]` float32 tensor;
+- the explicit fields are `cx_n`, `cy_n`, `bw_n`, `bh_n`, `area_n`,
+  `aspect_ratio`, `box_diag_n`, and `box_compactness`;
+- all four derived artifacts are byte-identical across the two output roots;
+- all 93,528 slots are available in this lane, so availability-only remains a
+  constant-channel diagnostic and is not behavior evidence;
+- recomputed geometry matches `frame_geometry.csv` within `1e-12`, with zero
+  media reads and zero outer-holdout slots materialized;
+- the source probe correctly reports `NOT_ESTIMABLE_SINGLE_LEGACY_SOURCE` for
+  `source_type=legacy_recovered` and `dataset_id=legacy_recovered_16f`.
+
+The primary manifest SHA256 is
+`0e0b79a5423f820193717995a89748817ab9e3e62e078694d1b838521c37b5a7`.
+The repeat manifest SHA256 is
+`f9df0e5e0361f655b6dd51b1c8e9a8b81e0232509c199fbb94d1a996d3584b60`.
+The PASS repeat-gate file SHA256 is
+`d84c1a88b1067b4c3bfeaca8bfb5cd03f860fb85bff829fe80ecf145139decd1`
+at evaluator commit `1cb0798`.
+
+L6 remains `IN_PROGRESS`. The next gate is train-only normalization plus the
+parameter-matched zero, availability-only, and geometry short controls.
+
 ## Full-Run Boundary
 
 The full legacy L2 data build is complete. Any semantic change invalidates its
