@@ -31,7 +31,7 @@ replaced by this ledger.
 | L3 immutable inputs | PASS | Committed-SHA gate at `0414adc` |
 | L4 model correctness | PASS | Real-cache correctness gate at `3ef4235` |
 | L5 core baselines | PASS | T6 sliding retained as bounded legacy_16f baseline |
-| L6 modality loop | IN_PROGRESS | Full ROI rejected; next gate is numeric social relations |
+| L6 modality loop | IN_PROGRESS | Numeric social rejected; next gate is top-K partner set |
 | L7 imbalance policy | NOT_STARTED | Requires retained L6 candidate |
 | L8 candidate/handback | NOT_STARTED | Requires controlled L0-L7 evidence |
 
@@ -198,6 +198,10 @@ The cache/fold boundary remains `00dc2e0`; claim hardening rollback is
 | 2026-07-15 | Full ROI authorization and config | PASS | `984a6c9` |
 | 2026-07-15 | Full ROI decision evaluator | PASS | `e82d6c5` |
 | 2026-07-15 | Full ROI confirmation decision | PASS | `29cfdd0` |
+| 2026-07-15 | Numeric-social cache and repeat gate | PASS | `7a42ce6` |
+| 2026-07-15 | Numeric-social short trainer | PASS | `985009a` |
+| 2026-07-15 | Immutable numeric-social short matrix | PASS | `9f46afd` |
+| 2026-07-15 | Paired numeric-social decision | PASS | `636682d` |
 
 ## L2 PASS Evidence
 
@@ -882,8 +886,32 @@ The primary and repeat manifest SHA256 values are
 The PASS repeat-gate SHA256 is
 `3d4206c6679bc8f0cebe77c6da764ce8edb29deb2417f0cfacf82b6311d28d9f`.
 
-This closes cache materialization only. The next gate is the parameter-matched
-three-mode short trainer: zero, availability-only, and numeric-social.
+### Numeric-Social Short Matrix And Decision
+
+Commits `985009a` through `636682d` close the three-mode short matrix and paired
+decision. Six fresh GPU processes each used 30 optimizer steps and 69,664
+parameters, peaked at 73,400,320 reserved bytes, had no OOM or retry, and
+cleaned CUDA allocation/reservation to zero. All per-mode repeats are
+byte-deterministic.
+
+- parameter-matched zero macro-F1 is `0.2620738697`;
+- availability-only macro-F1 is `0.2621547321`;
+- numeric-social macro-F1 is `0.2624282011`;
+- numeric-social minus zero is `+0.0003543314`, with 33-video cluster interval
+  `[-0.0342531654, 0.0398565230]`;
+- accuracy changes by `-0.0326530612`, NLL worsens by `+0.2248711988`, and
+  rare-group macro-F1 changes by `-0.0278670776` against zero.
+
+The valid decision is
+`DO_NOT_EXPAND_SOCIAL_RELATION_FROM_CURRENT_SHORT_EVIDENCE`. Do not run full
+numeric-social confirmation or carry numeric-social values into the next
+candidate. Continue L6 top-K partner-set work from the parameter-matched T6
+zero. The short matrix and decision SHA256 values are
+`1294bd8bd72e26701bbedea5c97e4fa9820b4233313b84d563153f42a5bd42a5` and
+`60c685094bddf83bf180174535afdf184133c2643d258cc09215be43b6d1ff61`.
+
+This rejection applies only to unreviewed `legacy_16f`. It is not a merged-data
+architecture conclusion, and local 4 GiB VRAM is not the rejection reason.
 
 ## Full-Run Boundary
 

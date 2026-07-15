@@ -33,7 +33,7 @@ full OOF, reviewed/final naming, Q2 evidence, or any claim about merged-reviewed
 data. Reassess ROI on merged-reviewed data, where rare-class support is
 materially larger. L6 remains `IN_PROGRESS`.
 
-### Legacy L6 numeric-social cache decision
+### Legacy L6 numeric-social short decision
 
 The ten-feature numeric-social cache and independent repeat gate pass for all
 15,588 T6 sliding windows. The tensor shape is `[15588, 6, 10]`; 92,664 of
@@ -42,10 +42,18 @@ All four cache artifacts are byte-identical across independent roots. Partner
 IDs remain audit metadata; top-K partner, geometry, motion, and ROI values are
 excluded from model X.
 
-This is cache evidence only. Continue with the parameter-matched zero,
-availability-only, and numeric-social short matrix. Do not authorize a full
-numeric-social run unless the predeclared paired native-unit/video-cluster gate
-passes.
+The six-process short matrix is deterministic and crash-bounded. Zero,
+availability-only, and numeric-social macro-F1 are `0.2620738697`,
+`0.2621547321`, and `0.2624282011`. Numeric-social minus zero is
+`+0.0003543314`, with 33-video cluster interval
+`[-0.0342531654, 0.0398565230]`; accuracy falls by `0.0326530612` and NLL
+worsens by `0.2248711988`.
+
+The decision is `DO_NOT_EXPAND_SOCIAL_RELATION_FROM_CURRENT_SHORT_EVIDENCE`.
+Do not run full numeric-social confirmation or carry its values forward.
+Continue L6 top-K partner-set work from the parameter-matched T6 zero. This
+does not transfer to merged-reviewed data or authorize reviewed/final naming,
+canonical full OOF, or a Q2 claim.
 
 ### Legacy L6 motion decision
 

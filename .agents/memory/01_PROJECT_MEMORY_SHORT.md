@@ -1,5 +1,26 @@
 # Project Memory Short
 
+## 2026-07-15 legacy L6 numeric-social short decision
+
+- Six fresh GPU processes close the parameter-matched zero,
+  availability-only, and numeric-social short matrix. Every process used 30
+  optimizer steps and 69,664 parameters, peaked at 73,400,320 reserved bytes,
+  had no OOM or retry, and cleaned CUDA allocation/reservation to zero.
+- Zero, availability-only, and numeric-social macro-F1 are `0.2620738697`,
+  `0.2621547321`, and `0.2624282011`; every per-mode repeat is deterministic.
+- Numeric-social minus zero is `+0.0003543314`, with 33-video cluster interval
+  `[-0.0342531654, 0.0398565230]`; accuracy changes by `-0.0326530612` and NLL
+  worsens by `+0.2248711988`.
+- The valid decision is
+  `DO_NOT_EXPAND_SOCIAL_RELATION_FROM_CURRENT_SHORT_EVIDENCE`. Do not run a
+  full numeric-social confirmation or carry its values into the next model.
+- Continue L6 top-K partner-set work from the parameter-matched T6 zero. This
+  legacy-only result must be reassessed on merged-reviewed data and is not a
+  reviewed, final, canonical-OOF, or Q2 result.
+- The short matrix and decision SHA256 values are
+  `1294bd8bd72e26701bbedea5c97e4fa9820b4233313b84d563153f42a5bd42a5` and
+  `60c685094bddf83bf180174535afdf184133c2643d258cc09215be43b6d1ff61`.
+
 ## 2026-07-15 legacy L6 numeric-social cache
 
 - Commits `6372dc6` through `7a42ce6` freeze the ten-feature numeric-social
@@ -15,8 +36,8 @@
   `5a0f66842e4fd0d8af363d3da1ebb762edd118586d62dd8a3bea4f4e6399a192`;
   the repeat-gate SHA256 is
   `3d4206c6679bc8f0cebe77c6da764ce8edb29deb2417f0cfacf82b6311d28d9f`.
-- Cache evidence is PASS only. Continue with a three-mode parameter-matched
-  short trainer before authorizing any full numeric-social confirmation.
+- Cache evidence is PASS. The subsequent short decision above rejects full
+  numeric-social expansion and advances L6 to top-K partner-set work.
 
 ## 2026-07-15 legacy L6 ROI full confirmation decision
 
