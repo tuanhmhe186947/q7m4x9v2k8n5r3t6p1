@@ -30,7 +30,7 @@ replaced by this ledger.
 | L2 full legacy lineage | PASS | Full repeat-bound lineage at `59647e2` |
 | L3 immutable inputs | PASS | Committed-SHA gate at `0414adc` |
 | L4 model correctness | PASS | Real-cache correctness gate at `3ef4235` |
-| L5 core baselines | IN_PROGRESS | T1 full complete; paired decision then V1 length ladder |
+| L5 core baselines | IN_PROGRESS | T1 rejected for legacy T16; V1 length ladder next |
 | L6 modality loop | NOT_STARTED | Requires retained L5 baseline |
 | L7 imbalance policy | NOT_STARTED | Requires retained L6 candidate |
 | L8 candidate/handback | NOT_STARTED | Requires controlled L0-L7 evidence |
@@ -56,13 +56,12 @@ replaced by this ledger.
   cannot reject an architecture for the future merged-reviewed lineage.
 - The local RTX 3050 remains the safe correctness host. Scientifically justified
   heavy pilots may run on rented GPUs with identical immutable lineage fields.
-- V0/V1/V2 visual controls and the T1 masked-TCN full run are complete. The
-  next gate is the formal paired T1-versus-V1 decision, not another architecture.
-- If T1 misses its paired guardrails, retain V1 masked mean for the two-protocol
-  T6/T8/T12/T16 ladder and preserve T1 as bounded negative evidence.
-- Defer a small Transformer unless a temporal-capacity hypothesis survives the
-  T1 decision. Reassess TCN, Transformer, and retained controls on frozen
-  merged-reviewed data; local VRAM is not an architecture rejection criterion.
+- The formal T1-versus-V1 paired gate rejected T1 only for this legacy T16
+  search. V1 masked mean is retained for the two-protocol T6/T8/T12/T16 ladder.
+- T1 remains bounded negative evidence, and a small Transformer is deferred
+  because no temporal-capacity benefit survived the gate.
+- Reassess TCN, Transformer, and retained controls on frozen merged-reviewed
+  data; local VRAM is not an architecture rejection criterion.
 
 ## Current Short Evidence
 
@@ -163,6 +162,11 @@ The cache/fold boundary remains `00dc2e0`; claim hardening rollback is
 | 2026-07-15 | Hardware/data interpretation clarification | PASS | `65286f5` |
 | 2026-07-15 | V2 backbone-only repeat gate | PASS | `df0df10` |
 | 2026-07-15 | Full V2/T16 backbone control | PASS | `ae9cc43` |
+| 2026-07-15 | T1 masked-TCN exact repeat gate | PASS | `5bddebc` |
+| 2026-07-15 | Full T1/T16 temporal control | PASS | `14c6e4b` |
+| 2026-07-15 | Legacy L5 strategy revision | PASS | `48f332d` |
+| 2026-07-15 | T1-versus-V1 paired evaluator | PASS | `1989cdf` |
+| 2026-07-15 | Immutable T1-versus-V1 decision config | PASS | `ff4a3d8` |
 
 ## L2 PASS Evidence
 
@@ -480,8 +484,45 @@ by `-0.040816`. This does not prove promotion on one legacy validation date.
 V1 ResNet18/224 remains the efficient temporal-search control and V2 remains
 the capacity reference. Neither result estimates merged-data rare support.
 
-L5 remains `IN_PROGRESS`. The next isolated family is masked TCN versus the
-fixed V1/T16 masked-mean control; Transformer remains conditional on TCN evidence.
+## L5 T1 Temporal-Control Decision Evidence
+
+- commit `5bddebc` adds the schema-v5 masked-TCN gate; two short runs match on
+  parameter, prediction, and epoch hashes across all 14 equality fields;
+- commit `14c6e4b` binds the full T1 config SHA256
+  `747ae1da9b6558be8a12ca1d085d70c52cccad828770160b4bfac1ee557f72a4`;
+- `ct_t1_t16_full_14c6e4b_v5` trains 3,652 units for three epochs and selects
+  epoch 1 with macro-F1 `0.3353958340`, accuracy `0.6448979592`, and NLL
+  `1.0569776080` in `33.8660293` seconds;
+- all 13 T1 artifacts independently pass their hashes; peak reserved VRAM is
+  98,566,144 bytes with cleanup `0/0` and no OOM, retry, or outer access;
+- commit `1989cdf` adds the isolated evaluator and three focused tests; commit
+  `ff4a3d8` binds its exact config without changing the historical trainer;
+- 20 focused evaluation tests and 538 classification tests pass, with 181
+  deselected; Ruff, compile, diff, and changed-code line gates pass;
+- the paired artifact covers the exact same 245 units and 33 videos with 2,000
+  deterministic video-cluster bootstrap iterations;
+- T1 minus V1 is `-0.0174224853` macro-F1, `-0.0122448980` accuracy, and
+  `-0.0147230573` NLL; the macro-F1 interval is
+  `[-0.0412497075, 0.0048069076]`;
+- the four-class legacy rare group has only 20 units and recall `0.0` for both
+  models. This is no positive rare-class evidence and says nothing about the
+  substantially larger rare support in merged-reviewed data;
+- T1 uses 167,435 parameters versus 68,234 and takes `7.3728711x` the runtime;
+  its peak reserved VRAM is only `1.0444444x`, so VRAM did not reject it;
+- decision: `RETAIN_V1_REJECT_T1_FOR_LEGACY_T16_SEARCH`; T1 fails the primary,
+  positive-CI, simpler-model margin, and runtime criteria;
+- Transformer is deferred for this legacy search. TCN and Transformer remain
+  eligible for fresh gated evaluation on frozen merged-reviewed data or rented
+  GPU hardware when scientifically justified.
+
+The artifact is `legacy_l5_t1_v1_paired_decision_v1.json` under the L5 output
+root. File SHA256 is
+`f6b9b7418272786cf9d5a0dc247ed912699b25f25d1d2fbbb8b9260c8aa17266`;
+payload SHA256 is
+`a1fff465de092f32c694a8bdd317e8ff0311b98c192db2f1511c869a1eae8a8f`.
+
+L5 remains `IN_PROGRESS`. The next isolated family is the V1 masked-mean
+T6/T8/T12/T16 ladder under both frozen temporal sampling protocols.
 
 ## Full-Run Boundary
 
