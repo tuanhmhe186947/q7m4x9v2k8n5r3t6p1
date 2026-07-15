@@ -875,16 +875,21 @@ def _validate_motion_slot_pairs(frame: pd.DataFrame) -> None:
         name="motion slot availability",
     )
     first = frame["slot_index"].astype(int).eq(0)
+    previous_frame_uid = (
+        frame["previous_frame_uid"].fillna("").astype(str)
+    )
+    motion_pair_uid = frame["motion_pair_uid"].fillna("").astype(str)
     if available[first].any():
         raise ValueError("motion first slots are available")
-    if frame.loc[first, "previous_frame_uid"].astype(str).ne("").any():
+    if previous_frame_uid[first].ne("").any():
         raise ValueError("motion first slots expose previous frame IDs")
-    if frame.loc[first, "motion_pair_uid"].astype(str).ne("").any():
+    if motion_pair_uid[first].ne("").any():
         raise ValueError("motion first slots expose pair IDs")
-    if frame.loc[available, "motion_pair_uid"].astype(str).eq("").any():
+    if motion_pair_uid[available].eq("").any():
         raise ValueError("available motion slots lack pair IDs")
     conflicts = (
         frame.loc[available]
+        .assign(motion_pair_uid=motion_pair_uid[available])
         .groupby("motion_pair_uid", sort=False)["frame_uid"]
         .nunique(dropna=False)
     )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import io
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -19,6 +20,7 @@ from pig_behavior.classification_v2.training.legacy_development_l6_motion_cache 
     MOTION_FEATURE_NAMES,
     SEQUENCE_LENGTH,
     _validate_cache_config_payload,
+    _validate_motion_slot_pairs,
     materialize_motion_cache,
 )
 
@@ -141,6 +143,10 @@ def test_motion_cache_rebases_window_start_at_frame_three(
     assert reset["raw_nonzero_after_frame_zero_start_rows"] == 1
     assert reset["cached_nonzero_first_slot_rows"] == 0
 
+    serialized = result["slot_index"].to_csv(index=False)
+    round_trip = pd.read_csv(io.StringIO(serialized))
+    _validate_motion_slot_pairs(round_trip)
+
 
 def test_motion_cache_rejects_noncontiguous_order(
     monkeypatch: pytest.MonkeyPatch,
@@ -169,6 +175,14 @@ def test_motion_cache_rejects_noncontiguous_order(
         Path(
             "configs/classification_v2/"
             "legacy_development_l6_motion_cache_repeat_v1.json"
+        ),
+        Path(
+            "configs/classification_v2/"
+            "legacy_development_l6_motion_cache_v2.json"
+        ),
+        Path(
+            "configs/classification_v2/"
+            "legacy_development_l6_motion_cache_repeat_v2.json"
         ),
     ],
 )

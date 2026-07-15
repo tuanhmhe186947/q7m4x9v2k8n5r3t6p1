@@ -1,0 +1,104 @@
+{
+  "schema_version": "classification_v2.legacy_development_l6.motion_cache_config.v1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "source_identity": {
+    "canonical_short_name": "legacy_16f",
+    "raw_authority_path": "data/raw/legacy_full_multigt_masked_nodup_16f/legacy_dense_tracklet_map.csv",
+    "raw_sha256": "ff73c158ef879eb8177b0c18783fc751945fe1d6af97a4b8235cd71681fabbcb",
+    "expected_rows": 72864,
+    "source_type": "legacy_recovered",
+    "dataset_id": "legacy_recovered_16f",
+    "merged_data": false
+  },
+  "parents": {
+    "temporal_ladder_config": {
+      "path": "configs/classification_v2/legacy_development_l5_temporal_ladder_full_v1.json",
+      "sha256": "559d24ba29d6192291eb5a8d7b6896616b1bed782450a9242f1c4afa3bd85559"
+    },
+    "l5_decision": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_l5_temporal_ladder_decision_v1.json",
+      "sha256": "f3316568c797967e66a0a6ea3cac8e4804a35e12439b3d31527e10ef93abd4e1"
+    }
+  },
+  "inputs": {
+    "harmonized_frames": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/05_sequence/harmonized_frames.csv",
+      "sha256": "4d3edc77fa021ad21d1fcb6169520d19d03d4b8fdc870ac9e063823b74ef08fc",
+      "expected_rows": 72864
+    },
+    "temporal_slot_manifest": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/06_temporal_tier_contract/legacy_t6_all_sliding_observed_time_manifest.csv",
+      "sha256": "29b5e3979481cf5af050ae931c073534567459a6be19897b9fb184ce9032950c",
+      "expected_rows": 109296
+    }
+  },
+  "order_authority": {
+    "config": {
+      "path": "configs/classification_v2/legacy_development_l6_geometry_cache_v1.json",
+      "sha256": "a4fefc55ec12518322789b86cac248ae855c4e23b79adfb428053da61d04fc33"
+    },
+    "manifest": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/geometry_cache_v1/geometry_cache_manifest.json",
+      "sha256": "0e0b79a5423f820193717995a89748817ab9e3e62e078694d1b838521c37b5a7"
+    },
+    "root_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/geometry_cache_v1",
+    "geometry_values_used": false
+  },
+  "features": {
+    "view_id": "t6_sliding",
+    "temporal_view_name": "legacy_t6_all_sliding_observed_time",
+    "sequence_length": 6,
+    "model_window_rows": 15588,
+    "model_slot_rows": 93528,
+    "feature_names": [
+      "delta_cx_n",
+      "delta_cy_n",
+      "delta_bw_n",
+      "delta_bh_n",
+      "delta_area_n",
+      "delta_aspect_ratio",
+      "speed_n_per_frame",
+      "speed_n_per_sec",
+      "abs_accel_n_per_frame2",
+      "abs_direction_change_rad"
+    ],
+    "feature_dim": 10,
+    "feature_dtype": "float32",
+    "availability_dtype": "bool",
+    "window_local_rebase": true,
+    "first_slot_zero_and_unavailable": true,
+    "unit_aggregate_features_allowed": false,
+    "normalization": "none_raw_cache_train_pairs_only_at_consumer",
+    "source_media_fallback_allowed": false
+  },
+  "implementation": {
+    "cache_builder": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l6_motion_cache.py",
+      "sha256": "8c4e54bdbf6165c06d544f5935b9fff87366ced9e4f3b60174304f4bc1644eb6"
+    },
+    "spatial_exporter": {
+      "path": "src/pig_behavior/classification_v2/spatial_sequence_export.py",
+      "sha256": "2d733a9dceecb550b8adddb1a51c87bf08cd5ba851bf8f1e78683aa8ca24aa57"
+    }
+  },
+  "execution_guard": {
+    "allowed_dirty_paths": [
+      ".tokensave/config.json",
+      "outputs/classification_v2/train_ready_windows/feature_semantics_audit.json",
+      "scripts/diagnostics/detect_single_frame.py"
+    ],
+    "required_tracked_paths": [
+      "configs/classification_v2/legacy_development_l6_motion_cache_v2.json",
+      "scripts/classification_v2/04_baselines_smokes/check_classification_v2_legacy_development_l6_motion_cache.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l6_motion_cache.py"
+    ]
+  },
+  "output": {
+    "cache_root_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/motion_cache_v2"
+  }
+}
