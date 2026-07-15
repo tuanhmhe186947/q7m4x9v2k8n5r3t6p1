@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import copy
+import json
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -18,6 +21,7 @@ from pig_behavior.classification_v2.training.legacy_development_l6_social_relati
     SEQUENCE_LENGTH,
     SOCIAL_RELATION_DIM,
     SOCIAL_RELATION_FEATURE_NAMES,
+    _validate_cache_config_payload,
     materialize_social_relation_cache,
 )
 
@@ -152,3 +156,31 @@ def test_social_feature_contract_excludes_partner_identity() -> None:
         for name in SOCIAL_RELATION_FEATURE_NAMES
         for token in ("pig_id", "track_id", "nearest_pig_id")
     )
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        Path(
+            "configs/classification_v2/"
+            "legacy_development_l6_social_relation_cache_v1.json"
+        ),
+        Path(
+            "configs/classification_v2/"
+            "legacy_development_l6_social_relation_cache_repeat_v1.json"
+        ),
+    ],
+)
+def test_social_cache_config_locks_numeric_only_contract(path: Path) -> None:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+
+    _validate_cache_config_payload(payload)
+
+    assert payload["source_identity"]["canonical_short_name"] == "legacy_16f"
+    assert payload["features"]["window_local_rebase"] is True
+    assert payload["features"]["numeric_social_only"] is True
+    assert payload["features"]["top_k_partner_features_allowed"] is False
+    changed = copy.deepcopy(payload)
+    changed["features"]["top_k_partner_features_allowed"] = True
+    with pytest.raises(ValueError, match="feature contract drift"):
+        _validate_cache_config_payload(changed)
