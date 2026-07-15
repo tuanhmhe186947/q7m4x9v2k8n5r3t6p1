@@ -51,7 +51,9 @@ worsens by `0.2248711988`.
 
 The decision is `DO_NOT_EXPAND_SOCIAL_RELATION_FROM_CURRENT_SHORT_EVIDENCE`.
 Do not run full numeric-social confirmation or carry its values forward.
-Continue L6 top-K partner-set work from the parameter-matched T6 zero. This
+Core-roadmap S2 requires S1 numeric-social PASS before top-K, so top-K is
+`DEFERRED_NOT_AUTHORIZED`. Continue L6 actor-partner union-crop work from the
+parameter-matched T6 zero because the interaction-context gap remains. This
 does not transfer to merged-reviewed data or authorize reviewed/final naming,
 canonical full OOF, or a Q2 claim.
 

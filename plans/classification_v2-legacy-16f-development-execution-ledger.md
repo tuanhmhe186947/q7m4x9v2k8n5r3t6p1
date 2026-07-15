@@ -31,7 +31,7 @@ replaced by this ledger.
 | L3 immutable inputs | PASS | Committed-SHA gate at `0414adc` |
 | L4 model correctness | PASS | Real-cache correctness gate at `3ef4235` |
 | L5 core baselines | PASS | T6 sliding retained as bounded legacy_16f baseline |
-| L6 modality loop | IN_PROGRESS | Numeric social rejected; next gate is top-K partner set |
+| L6 modality loop | IN_PROGRESS | Top-K deferred; next gate is actor-partner union crop |
 | L7 imbalance policy | NOT_STARTED | Requires retained L6 candidate |
 | L8 candidate/handback | NOT_STARTED | Requires controlled L0-L7 evidence |
 
@@ -905,13 +905,23 @@ byte-deterministic.
 The valid decision is
 `DO_NOT_EXPAND_SOCIAL_RELATION_FROM_CURRENT_SHORT_EVIDENCE`. Do not run full
 numeric-social confirmation or carry numeric-social values into the next
-candidate. Continue L6 top-K partner-set work from the parameter-matched T6
-zero. The short matrix and decision SHA256 values are
+candidate. The evaluator records top-K as its local next action, but the
+core-roadmap strategy revision below defers that action. The short matrix and
+decision SHA256 values are
 `1294bd8bd72e26701bbedea5c97e4fa9820b4233313b84d563153f42a5bd42a5` and
 `60c685094bddf83bf180174535afdf184133c2643d258cc09215be43b6d1ff61`.
 
 This rejection applies only to unreviewed `legacy_16f`. It is not a merged-data
 architecture conclusion, and local 4 GiB VRAM is not the rejection reason.
+
+### Post-S1 Social Strategy Revision
+
+The core roadmap has scientific precedence and permits S2 top-K only after S1
+numeric-social PASS. Because the paired S1 promotion gate failed, top-K is
+`DEFERRED_NOT_AUTHORIZED`; executing it now would bypass the declared matrix.
+The interaction-context gap remains, so S3 actor-partner union crop is the next
+authorized one-family test from the parameter-matched T6 zero. Reassess S1 and
+S2 on frozen merged-reviewed data before any final social-architecture claim.
 
 ## Full-Run Boundary
 

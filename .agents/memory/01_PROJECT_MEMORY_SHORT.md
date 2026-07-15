@@ -14,9 +14,10 @@
 - The valid decision is
   `DO_NOT_EXPAND_SOCIAL_RELATION_FROM_CURRENT_SHORT_EVIDENCE`. Do not run a
   full numeric-social confirmation or carry its values into the next model.
-- Continue L6 top-K partner-set work from the parameter-matched T6 zero. This
-  legacy-only result must be reassessed on merged-reviewed data and is not a
-  reviewed, final, canonical-OOF, or Q2 result.
+- Core roadmap S2 permits top-K only after numeric-social S1 passes. Therefore
+  top-K is `DEFERRED_NOT_AUTHORIZED`; continue L6 actor-partner union-crop work
+  from the parameter-matched T6 zero because the interaction-context gap
+  remains. Reassess numeric social and top-K on merged-reviewed data.
 - The short matrix and decision SHA256 values are
   `1294bd8bd72e26701bbedea5c97e4fa9820b4233313b84d563153f42a5bd42a5` and
   `60c685094bddf83bf180174535afdf184133c2643d258cc09215be43b6d1ff61`.
@@ -36,8 +37,9 @@
   `5a0f66842e4fd0d8af363d3da1ebb762edd118586d62dd8a3bea4f4e6399a192`;
   the repeat-gate SHA256 is
   `3d4206c6679bc8f0cebe77c6da764ce8edb29deb2417f0cfacf82b6311d28d9f`.
-- Cache evidence is PASS. The subsequent short decision above rejects full
-  numeric-social expansion and advances L6 to top-K partner-set work.
+- Cache evidence is PASS. The subsequent short decision rejects full
+  numeric-social expansion; the core-roadmap strategy gate advances L6 to the
+  actor-partner union crop and defers top-K.
 
 ## 2026-07-15 legacy L6 ROI full confirmation decision
 

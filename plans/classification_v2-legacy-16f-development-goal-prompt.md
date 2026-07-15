@@ -309,9 +309,11 @@ and is not an architecture rejection reason.
 The numeric-social short matrix is also complete. Its global gain over the
 parameter-matched zero is negligible, the video-cluster interval crosses zero,
 and accuracy, NLL, and rare-group guardrails do not support promotion. Do not
-run full numeric-social confirmation or carry those values forward. Continue
-with the top-K partner set from the same parameter-matched T6 zero. Reassess
-numeric-social evidence on frozen merged-reviewed data.
+run full numeric-social confirmation or carry those values forward. Core
+roadmap S2 permits top-K only after numeric-social S1 passes, so top-K is
+`DEFERRED_NOT_AUTHORIZED`. Because the interaction-context gap remains,
+continue with the actor-partner union crop from the same parameter-matched T6
+zero. Reassess numeric-social and top-K on frozen merged-reviewed data.
 
 ### L7 - Select One Imbalance Policy
 
