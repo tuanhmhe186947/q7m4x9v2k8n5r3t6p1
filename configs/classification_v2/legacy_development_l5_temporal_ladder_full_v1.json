@@ -1,0 +1,247 @@
+{
+  "schema_version": "classification_v2.legacy_development_l5.temporal_ladder_full_config.v1",
+  "training_scope": "full_development_baseline",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "development_metrics_authorized": true,
+  "experiment_contract": {
+    "experiment_id": "L5_V1_TEMPORAL_LENGTH_PROTOCOL_LADDER_V1",
+    "parent_decision": "RETAIN_V1_REJECT_T1_FOR_LEGACY_T16_SEARCH",
+    "changed_family": "temporal_input_length_and_declared_protocol_matrix",
+    "primary_metric": "validation_native_unit_macro_f1_global_10_class",
+    "uncertainty_cluster": "video_key",
+    "outer_predictions_used_for_model_selection": false,
+    "legacy_only_decision": true,
+    "merged_reviewed_reassessment_required": true,
+    "local_vram_is_architecture_limit": false
+  },
+  "base_config": {
+    "path": "configs/classification_v2/legacy_development_l5_v1.json",
+    "sha256": "24bfca98440b2cc5983451eb639868610d724eadf89ea36db907540cb8f86e4c"
+  },
+  "feature_parent": {
+    "result_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/ff_v1_e34521d/run_result.json",
+    "result_sha256": "0caef1e5c068b7988692c79c28ede74d4645d7917371c1f9d08947998b595b36",
+    "run_manifest_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/ff_v1_e34521d/run_manifest.json",
+    "run_manifest_sha256": "f12879d740b97b76be4ca88973d1b2a2f299322ae4c203819124b84c19726a9d",
+    "feature_tensor_sha256": "d5394e82343250904991d53b36f4113a07b8c6774c4b651a31de3da267f7b44b",
+    "feature_index_sha256": "34ede8120b49591a65099940e5ad1b6246f3381278ac3bccc16dd1f80223c5dc"
+  },
+  "implementation": {
+    "core_path": "src/pig_behavior/classification_v2/training/legacy_development_l5_temporal_ladder.py",
+    "core_sha256": "3081ec21efcdb2f470f7a1889ca57b13c2ed486b20bcb606e1288d32bab61559",
+    "runtime_path": "src/pig_behavior/classification_v2/training/legacy_development_l5_temporal_ladder_runtime.py",
+    "runtime_sha256": "0ecdd090909493a2e25f237630a349dadd8b0a53f7d87f1a2dbf82932cc14970",
+    "frozen_engine_path": "src/pig_behavior/classification_v2/training/legacy_development_l5_cached_training.py",
+    "frozen_engine_sha256": "f639dd6d1dcdd83172f33054dab11a0c861eb65883f2656c8ed96d0d908fa96c"
+  },
+  "views": {
+    "t6_centered": {
+      "temporal_view_name": "legacy_t6_centered_matched_observed_time",
+      "sampling_protocol": "one_centered_window_matched",
+      "sequence_length": 6,
+      "windows_per_native_unit": 1,
+      "consumer_parent": {
+        "run_id": "cfd_v1_t6c_a339355",
+        "code_sha": "a339355a1a253b1cae2e08587f79b7b879ee6bf6",
+        "run_relative_path": "15_l5_core_baselines/cfd_v1_t6c_a339355",
+        "run_manifest_sha256": "79178322a89bf9856c88bc0f407577efb021cbec8c983a3dd7700eb687460418",
+        "cached_data_audit_sha256": "21651686afac846127c925cd8fa5f4e4729173e2219c3363dc4403a50363b504",
+        "artifact_manifest_sha256": "391a3e406b5b0812108014c7e49603fe340014306070788aaf035ea1b530e482"
+      }
+    },
+    "t8_centered": {
+      "temporal_view_name": "legacy_t8_centered_matched_observed_time",
+      "sampling_protocol": "one_centered_window_matched",
+      "sequence_length": 8,
+      "windows_per_native_unit": 1,
+      "consumer_parent": {
+        "run_id": "cfd_v1_t8c_a339355",
+        "code_sha": "a339355a1a253b1cae2e08587f79b7b879ee6bf6",
+        "run_relative_path": "15_l5_core_baselines/cfd_v1_t8c_a339355",
+        "run_manifest_sha256": "83e99a37ec87d566f1794b7a9cff057a069264b85bf2f6abf5ca83f04dab223e",
+        "cached_data_audit_sha256": "843121a2ef37e8fb912cb6e1dbe1b7344d47f042e078eceff20c75918e4d36d6",
+        "artifact_manifest_sha256": "4c81aec3f3c71a89e255552a97cff108825ea9dce86334d8478dde7e11c82b0b"
+      }
+    },
+    "t12_centered": {
+      "temporal_view_name": "legacy_t12_centered_matched_observed_time",
+      "sampling_protocol": "one_centered_window_matched",
+      "sequence_length": 12,
+      "windows_per_native_unit": 1,
+      "consumer_parent": {
+        "run_id": "cfd_v1_t12c_a339355",
+        "code_sha": "a339355a1a253b1cae2e08587f79b7b879ee6bf6",
+        "run_relative_path": "15_l5_core_baselines/cfd_v1_t12c_a339355",
+        "run_manifest_sha256": "b87d32d540ba237a9c569b8d7a8cb91fbf50b49d896c5638eabdcf4abc42165c",
+        "cached_data_audit_sha256": "32878b62c66181b3a764adbb7cbabe27a00208bb50da3559b21811bd8106274d",
+        "artifact_manifest_sha256": "6a11a53e503db76d5b2fe8b0cc9d77652ea49ad2334e87e3fd1dbb00a651254e"
+      }
+    },
+    "t16_centered": {
+      "temporal_view_name": "legacy_t16_centered_matched_observed_time",
+      "sampling_protocol": "one_centered_window_matched",
+      "sequence_length": 16,
+      "windows_per_native_unit": 1,
+      "consumer_parent": {
+        "run_id": "cfd_v1_t16c_a339355",
+        "code_sha": "a339355a1a253b1cae2e08587f79b7b879ee6bf6",
+        "run_relative_path": "15_l5_core_baselines/cfd_v1_t16c_a339355",
+        "run_manifest_sha256": "59b5e24df920d60df6175450a35e1acc2fdd34ecc7ef674c1c96660f19d136dc",
+        "cached_data_audit_sha256": "08798cc75e909d87ba763885ad3a713951c406a2869923d7fdf46811ebaeaa75",
+        "artifact_manifest_sha256": "80e2152b58915b95c83382a22827d85ddafc19b0188372aa529e5de4a02601ee"
+      }
+    },
+    "t6_sliding": {
+      "temporal_view_name": "legacy_t6_all_sliding_observed_time",
+      "sampling_protocol": "all_sliding_event_balanced",
+      "sequence_length": 6,
+      "windows_per_native_unit": 4,
+      "consumer_parent": {
+        "run_id": "cfd_v1_t6s_a339355",
+        "code_sha": "a339355a1a253b1cae2e08587f79b7b879ee6bf6",
+        "run_relative_path": "15_l5_core_baselines/cfd_v1_t6s_a339355",
+        "run_manifest_sha256": "a33690798673f92b3dd3be780ad7e4a86c68c5d98eb0fe6976a5782dd19eb641",
+        "cached_data_audit_sha256": "f48e016301a86b1d2335f8f31dfddc68b0974e06bda67698eb11543069255d96",
+        "artifact_manifest_sha256": "d6e996fa9d5d8c9f184d35aeffa9f3964a971467376249979422395cf705055c"
+      }
+    },
+    "t8_sliding": {
+      "temporal_view_name": "legacy_t8_all_sliding_observed_time",
+      "sampling_protocol": "all_sliding_event_balanced",
+      "sequence_length": 8,
+      "windows_per_native_unit": 3,
+      "consumer_parent": {
+        "run_id": "cfd_v1_t8s_a339355",
+        "code_sha": "a339355a1a253b1cae2e08587f79b7b879ee6bf6",
+        "run_relative_path": "15_l5_core_baselines/cfd_v1_t8s_a339355",
+        "run_manifest_sha256": "1b8763ead3862ad3a3480457a767034011323914210360e8fd9c18d95708d287",
+        "cached_data_audit_sha256": "ac8cdca4e549d6665f5ef3da7bd1f13f6c13959ca19f01ec278a22b20cf6bfab",
+        "artifact_manifest_sha256": "fcfe42d059e834f8464b6e242b3e99727e7ff94f1c7f287cf63bc7baa1e03aa1"
+      }
+    },
+    "t12_sliding": {
+      "temporal_view_name": "legacy_t12_all_sliding_observed_time",
+      "sampling_protocol": "all_sliding_event_balanced",
+      "sequence_length": 12,
+      "windows_per_native_unit": 2,
+      "consumer_parent": {
+        "run_id": "cfd_v1_t12s_a339355",
+        "code_sha": "a339355a1a253b1cae2e08587f79b7b879ee6bf6",
+        "run_relative_path": "15_l5_core_baselines/cfd_v1_t12s_a339355",
+        "run_manifest_sha256": "9d511e52a4f4aaadfe76a15de2431885576294a4a71e3e8110818603aa1a382e",
+        "cached_data_audit_sha256": "4ee2bc01ca9546a1461cb8065945186b0c9321e28e630459f942274e8a7e683a",
+        "artifact_manifest_sha256": "20c0594a189b1bfe0c90713a4b3ae7b07bfa6355b324bd6f40b2f6ea666394fe"
+      }
+    },
+    "t16_sliding": {
+      "temporal_view_name": "legacy_t16_all_sliding_observed_time",
+      "sampling_protocol": "all_sliding_event_balanced",
+      "sequence_length": 16,
+      "windows_per_native_unit": 1,
+      "consumer_parent": {
+        "run_id": "cfd_v1_t16s_a339355",
+        "code_sha": "a339355a1a253b1cae2e08587f79b7b879ee6bf6",
+        "run_relative_path": "15_l5_core_baselines/cfd_v1_t16s_a339355",
+        "run_manifest_sha256": "dcf0c527f49eb9c7765e79a358a9604bb8b15462dce12a6b0c67a77c6b5e48bd",
+        "cached_data_audit_sha256": "0780de217d89bb2a6c83fc37c85164b2d868b8d0c304bcba7d47c755b211a79a",
+        "artifact_manifest_sha256": "7f6fc523aff31f816fb832028d24fd0b7d582e1b68559b26e1b1a6db21a6011a"
+      }
+    }
+  },
+  "selection": {
+    "native_unit": "complete_legacy_16_frame_burst",
+    "short_train_selection_policy": "sha256_rank_per_class_native_first_v1",
+    "short_native_selection_salt": "legacy_l5_temporal_ladder_short_v1",
+    "short_train_native_units_per_class": 8,
+    "short_train_native_units": 80,
+    "full_train_native_units": 3652,
+    "validation_native_units": 245,
+    "event_mass_per_native_unit": 1.0,
+    "window_expansion_after_native_selection": true,
+    "validation_selection_policy": "all_validation_native_units_v1",
+    "outer_holdout_access": "FORBIDDEN_DURING_MODEL_SELECTION"
+  },
+  "model": {
+    "architecture": "cached_frame_feature_temporal_classifier_v1",
+    "feature_control_id": "V1",
+    "backbone_name": "resnet18",
+    "input_resolution": 224,
+    "temporal_encoder_name": "masked_mean",
+    "hidden_dim": 128,
+    "dropout": 0.1,
+    "transformer_layers": 1,
+    "transformer_heads": 4,
+    "parameter_count": 68234,
+    "native_probability_aggregation": "mean_window_probability_v1"
+  },
+  "optimization": {
+    "seed": 20260714,
+    "epochs": 3,
+    "batch_size": 32,
+    "evaluation_batch_size": 64,
+    "learning_rate": 0.003,
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 1.0,
+    "loss": "event_mass_balanced_cross_entropy",
+    "sampler": "deterministic_seeded_window_shuffle_after_native_selection",
+    "checkpoint_selection": "native_global_10_class_macro_f1_then_nll",
+    "precision": "float32",
+    "autocast_enabled": false,
+    "deterministic_algorithms": true,
+    "cublas_workspace_config": ":4096:8",
+    "dataloader_num_workers": 0,
+    "pin_memory": false,
+    "persistent_workers": false,
+    "prefetch_factor": null,
+    "device": "cuda:0",
+    "declared_local_gpu_vram_gib": 4,
+    "validated_local_gpu_vram_bytes": 4294443008,
+    "maximum_peak_vram_fraction": 0.7,
+    "allocator_limit_bytes": 3006110105,
+    "oom_retry_allowed": false,
+    "maximum_loaded_batch_bytes": 2103552
+  },
+  "repeat_gate": {
+    "required_runs": 1,
+    "require_fresh_process": true,
+    "require_distinct_process_ids": false,
+    "require_non_overlapping_execution": false,
+    "require_identical_selection_hash": false,
+    "require_identical_parameter_hash": false,
+    "require_identical_window_prediction_hash": false,
+    "require_identical_native_prediction_hash": false,
+    "require_identical_epoch_metric_hash": false
+  },
+  "execution_guard": {
+    "allowed_dirty_paths": [
+      ".tokensave/config.json",
+      "outputs/classification_v2/train_ready_windows/feature_semantics_audit.json",
+      "scripts/diagnostics/detect_single_frame.py"
+    ],
+    "required_tracked_paths": [
+      "configs/classification_v2/legacy_development_l5_temporal_ladder_full_v1.json",
+      "configs/classification_v2/legacy_development_l5_temporal_ladder_short_v1.json",
+      "configs/classification_v2/legacy_development_l5_v1.json",
+      "scripts/classification_v2/04_baselines_smokes/check_classification_v2_legacy_development_l5_temporal_ladder.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l5_cached_training.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l5_temporal_ladder.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l5_temporal_ladder_runtime.py"
+    ]
+  },
+  "output": {
+    "run_root_relative_path": "15_l5_core_baselines/legacy_l5_v1_temporal_ladder_full_v1",
+    "matrix_gate_filename": "legacy_l5_temporal_ladder_short_matrix_v1.json"
+  },
+  "full_authorization": {
+    "short_config_path": "configs/classification_v2/legacy_development_l5_temporal_ladder_short_v1.json",
+    "short_config_sha256": "f42af538aa9696954d7ceff5843192f09ae7f7bff14066b075b931075fd87810",
+    "matrix_gate_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_l5_v1_temporal_ladder_short_v1/legacy_l5_temporal_ladder_short_matrix_v1.json",
+    "matrix_gate_sha256": "b36e03d85e7f8090b1e8542948fb9cbe0a6db1273339b7c3000a5930f0a471f9",
+    "authorized_training_scope": "full_development_baseline"
+  }
+}
