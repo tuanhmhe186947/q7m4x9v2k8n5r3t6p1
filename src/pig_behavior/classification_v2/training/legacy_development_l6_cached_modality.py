@@ -306,8 +306,19 @@ def fit_cached_modality_normalization(
     if len(slots) != expected_slots:
         raise ValueError(f"{modality_name} normalization slot rows={len(slots)}")
     if identity_field not in slots.columns:
-        raise ValueError(
-            f"{modality_name} normalization lacks {identity_field}"
+        if not identity_field.endswith("_window_slot_uid"):
+            raise ValueError(
+                f"{modality_name} normalization lacks {identity_field}"
+            )
+        required = {"window_id", "slot_index"}
+        if not required.issubset(slots.columns):
+            raise ValueError(
+                f"{modality_name} normalization lacks window-slot identity"
+            )
+        slots[identity_field] = (
+            slots["window_id"].astype(str)
+            + "::slot="
+            + slots["slot_index"].astype(str)
         )
     values = raw.reshape(expected_slots, feature_dim)
     available_flat = available.reshape(expected_slots)

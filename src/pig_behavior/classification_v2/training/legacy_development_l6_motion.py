@@ -187,7 +187,7 @@ def fit_motion_normalization(
         selection,
         modality_name=MODALITY_NAME,
         feature_names=MOTION_FEATURE_NAMES,
-        identity_field="motion_pair_uid",
+        identity_field="motion_window_slot_uid",
         schema_version=NORMALIZATION_SCHEMA,
     )
 
@@ -729,7 +729,7 @@ def _validate_selection_contract(value: object) -> None:
         "validation_native_units": 245,
         "validation_windows": EXPECTED_VALIDATION_WINDOWS,
         "event_mass_per_native_unit": 1.0,
-        "normalization_fit_scope": "unique_train_motion_pair_uid_only",
+        "normalization_fit_scope": "unique_train_motion_window_slot_uid_only",
         "outer_holdout_access": "FORBIDDEN_DURING_MODEL_SELECTION",
     }
     _require_equal(_object(value, "selection"), expected, "selection")

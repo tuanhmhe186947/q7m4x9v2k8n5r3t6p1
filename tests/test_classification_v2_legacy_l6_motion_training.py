@@ -108,6 +108,7 @@ def _synthetic_inputs() -> tuple[
             slot_rows.append(
                 {
                     "cache_row": cache_row,
+                    "window_id": f"w{cache_row}",
                     "slot_index": slot_index,
                     "frame_uid": f"frame-{frame_number}",
                     "motion_pair_uid": pair,
@@ -143,11 +144,11 @@ def test_motion_normalization_uses_unique_available_pairs() -> None:
     state = fit_motion_normalization(cache, selection)
 
     assert state.feature_names == MOTION_FEATURE_NAMES
-    assert state.identity_field == "motion_pair_uid"
+    assert state.identity_field == "motion_window_slot_uid"
     assert state.train_window_rows == 2
     assert state.train_slot_exposures == 10
-    assert state.unique_train_identity_rows == 8
-    assert state.duplicate_train_slot_exposures == 2
+    assert state.unique_train_identity_rows == 10
+    assert state.duplicate_train_slot_exposures == 0
     assert state.validation_rows_read_for_fit == 0
     assert state.outer_holdout_rows_read_for_fit == 0
 
