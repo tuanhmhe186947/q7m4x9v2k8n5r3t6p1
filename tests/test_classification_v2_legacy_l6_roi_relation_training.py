@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -20,6 +22,7 @@ from pig_behavior.classification_v2.training.legacy_development_l6_roi_relation 
     ROI_RELATION_FEATURE_NAMES,
     SEQUENCE_LENGTH,
     _rename_geometry_surfaces,
+    _validate_config_payload,
     build_roi_relation_model,
     build_roi_relation_view,
     fit_roi_relation_normalization,
@@ -236,3 +239,21 @@ def test_roi_relation_whitelist_and_surface_rename() -> None:
     _rename_geometry_surfaces(result)
     assert "roi_relation_mode" in result["frame"]
     assert result["metrics"]["roi_relation_mode"] == MODALITY_NAME
+
+
+def test_roi_relation_short_config_locks_width_and_family() -> None:
+    path = Path(
+        "configs/classification_v2/"
+        "legacy_development_l6_roi_relation_short_v1.json"
+    )
+    payload = json.loads(path.read_text(encoding="utf-8"))
+
+    _validate_config_payload(payload)
+
+    assert payload["canonical_source_name"] == "legacy_16f"
+    assert payload["model"]["model_input_dim"] == 531
+    assert payload["model"]["parameter_count"] == 70_704
+    assert payload["experiment_contract"]["changed_family"] == (
+        "all_class_roi_relation_only"
+    )
+    assert payload["experiment_contract"]["motion_feature_values_in_model_x"] is False
