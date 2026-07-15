@@ -1,0 +1,39 @@
+{
+  "schema_version": "classification_v2.legacy_development_l6.social_relation_cache_repeat_config.v1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "implementation_source": {
+    "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_l6_social_relation_cache_repeat.py",
+    "sha256": "69308cdee45ef42abd4ce4261a9979924bc3a9cc92f8a4f9e82ebba81c93fdf9"
+  },
+  "execution_guard": {
+    "allowed_dirty_paths": [
+      ".tokensave/config.json",
+      "outputs/classification_v2/train_ready_windows/feature_semantics_audit.json",
+      "scripts/diagnostics/detect_single_frame.py"
+    ],
+    "required_tracked_paths": [
+      "configs/classification_v2/legacy_development_l6_social_relation_cache_repeat_gate_v1.json",
+      "scripts/classification_v2/07_postrun_evaluation/check_classification_v2_legacy_l6_social_relation_cache_repeat.py",
+      "src/pig_behavior/classification_v2/evaluation/legacy_development_l6_social_relation_cache_repeat.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l6_social_relation_cache.py"
+    ]
+  },
+  "primary": {
+    "config_path": "configs/classification_v2/legacy_development_l6_social_relation_cache_v1.json",
+    "config_sha256": "327d22d1b386cd7053cc90951c28d26c3fc6ba3d6ca2bd46c957e4ad082908b3",
+    "manifest_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/social_relation_cache_v1/social_relation_cache_manifest.json",
+    "manifest_sha256": "5a0f66842e4fd0d8af363d3da1ebb762edd118586d62dd8a3bea4f4e6399a192"
+  },
+  "repeat": {
+    "config_path": "configs/classification_v2/legacy_development_l6_social_relation_cache_repeat_v1.json",
+    "config_sha256": "58aedc675dfadfbb3fb3f517479828c255b14de49cf0e0ec502954d506c3b9d8",
+    "manifest_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/social_relation_cache_repeat_v1/social_relation_cache_manifest.json",
+    "manifest_sha256": "c5adf7bb08ed86a5f3b4cdfc0d8aade88328fe354fb251cadabf10f1c23af111"
+  },
+  "output_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/social_relation_cache_repeat_gate_v1.json"
+}
