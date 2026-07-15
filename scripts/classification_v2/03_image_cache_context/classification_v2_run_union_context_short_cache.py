@@ -12,6 +12,7 @@ from typing import Any
 import pandas as pd
 
 from pig_behavior.classification_v2.datasets.visual_interaction_context import (
+    CACHE_KEY_POLICY,
     VisualInteractionCacheConfig,
     build_visual_interaction_cache,
 )
@@ -78,6 +79,8 @@ def run_union_context_short_cache(
     if output_root.exists():
         raise FileExistsError(f"union-context cache output already exists: {output_root}")
     cache = payload["cache_contract"]
+    if cache.get("cache_key_policy") != CACHE_KEY_POLICY:
+        raise ValueError("union-context cache key policy mismatch")
     start = time.perf_counter()
     build_audit = build_visual_interaction_cache(
         VisualInteractionCacheConfig(

@@ -21,6 +21,7 @@ from PIL import Image
 from pig_behavior.classification_v2.datasets.image_sequence_dataset import letterbox_rgb_uint8
 
 RESIZE_POLICY = "actor_nearest_partner_union_letterbox_rgb_pad_black_v1"
+CACHE_KEY_POLICY = "sha256_image_context_id_v1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -224,6 +225,7 @@ def build_visual_interaction_cache(config: VisualInteractionCacheConfig) -> dict
         "image_size": config.image_size,
         "padding_ratio": config.padding_ratio,
         "resize_policy": RESIZE_POLICY,
+        "cache_key_policy": CACHE_KEY_POLICY,
         "video_decode_count": decode_count,
         "video_seek_count": seek_count,
         "video_frame_reuse_count": reuse_count,
@@ -522,7 +524,8 @@ def _visual_context_id(image_context_id: str) -> str:
 
 
 def _cache_relative_path(context_id: str) -> Path:
-    return Path(context_id[:2]) / f"{context_id}.npy"
+    digest = hashlib.sha256(context_id.encode("utf-8")).hexdigest()
+    return Path(digest[:2]) / f"{digest}.npy"
 
 
 def _validate_partial_audit(
@@ -546,6 +549,7 @@ def _validate_partial_audit(
         "image_size": int(config.image_size),
         "padding_ratio": float(config.padding_ratio),
         "resize_policy": RESIZE_POLICY,
+        "cache_key_policy": CACHE_KEY_POLICY,
         "source_type_filter": config.source_type,
         "max_contexts": config.max_contexts,
     }
@@ -625,6 +629,7 @@ def _write_partial_checkpoint(
         "image_size": int(config.image_size),
         "padding_ratio": float(config.padding_ratio),
         "resize_policy": RESIZE_POLICY,
+        "cache_key_policy": CACHE_KEY_POLICY,
         "source_type_filter": config.source_type,
         "lineage_scope": _single_manifest_value(
             partial,

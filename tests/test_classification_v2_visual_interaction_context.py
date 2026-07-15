@@ -7,14 +7,28 @@ import pandas as pd
 import pytest
 
 from pig_behavior.classification_v2.datasets.visual_interaction_context import (
+    CACHE_KEY_POLICY,
     RESIZE_POLICY,
     VisualInteractionCacheConfig,
+    _cache_relative_path,
     _resolve_context_geometry,
     _same_frame_actor_lookup,
     _select_target_frames,
     _validate_frames,
     _validate_partial_audit,
 )
+
+
+def test_cache_relative_path_hashes_long_context_id() -> None:
+    context_id = "legacy-context-" + ("x" * 300)
+
+    path = _cache_relative_path(context_id)
+
+    assert path == _cache_relative_path(context_id)
+    assert path != _cache_relative_path(context_id + "y")
+    assert path.parent.name == path.stem[:2]
+    assert path.suffix == ".npy"
+    assert len(path.name) == 68
 
 
 def _row(
@@ -215,6 +229,7 @@ def test_resume_rejects_changed_selection_hash(tmp_path: Path) -> None:
                 "image_size": 64,
                 "padding_ratio": 0.15,
                 "resize_policy": RESIZE_POLICY,
+                "cache_key_policy": CACHE_KEY_POLICY,
                 "source_type_filter": None,
                 "max_contexts": None,
             }

@@ -30,7 +30,7 @@
   "implementation": {
     "builder_module": {
       "path": "src/pig_behavior/classification_v2/datasets/visual_interaction_context.py",
-      "sha256": "2a0d573a41c2d0026d0a28f2c81c24c790a35f9ece4d1c80eb0d3db7cd71ce3d"
+      "sha256": "44e675ebc1349fd97762cc5d61f8d48857d932ce2f16972fd0e346ac3fcac5a5"
     },
     "builder_script": {
       "path": "scripts/classification_v2/03_image_cache_context/classification_v2_build_visual_interaction_cache.py",
@@ -38,7 +38,7 @@
     },
     "runner_script": {
       "path": "scripts/classification_v2/03_image_cache_context/classification_v2_run_union_context_short_cache.py",
-      "sha256": "3c51a769af306593c91d82b9c9f18567e06f194d26a0520dca1c57c23395623e"
+      "sha256": "6d004204e90f4006e6627d1a45b1c1c639253a101554efa1f66ffbcaeeb7ad8a"
     },
     "repeat_gate_script": {
       "path": "scripts/classification_v2/03_image_cache_context/check_classification_v2_union_context_short_cache_repeat.py",
@@ -52,15 +52,16 @@
     "preview_limit": 40,
     "checkpoint_every": 250,
     "resize_policy": "actor_nearest_partner_union_letterbox_rgb_pad_black_v1",
+    "cache_key_policy": "sha256_image_context_id_v1",
     "selected_rows": 4875,
     "expected_ready_rows": 4875,
     "source_media_fallback_forbidden": true,
     "repeat_required": true
   },
   "outputs": {
-    "primary_root_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/union_context_short_cache_primary_v1",
-    "repeat_root_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/union_context_short_cache_repeat_v1",
-    "repeat_gate_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/union_context_short_cache_repeat_gate_v1.json"
+    "primary_root_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6u_cache_p_v1",
+    "repeat_root_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6u_cache_r_v1",
+    "repeat_gate_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6u_cache_repeat_gate_v1.json"
   },
   "execution_guard": {
     "allowed_dirty_paths": [
