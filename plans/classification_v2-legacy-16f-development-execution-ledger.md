@@ -50,7 +50,7 @@ replaced by this ledger.
 
 ## Canonical Legacy Source Identity
 
-- Use the short name `legacy_16f`; the ambiguous alias `116F` is forbidden.
+- Canonical short name: `legacy_16f`.
 - Raw authority is
   `data/raw/legacy_full_multigt_masked_nodup_16f/legacy_dense_tracklet_map.csv`.
 - Raw SHA256 is

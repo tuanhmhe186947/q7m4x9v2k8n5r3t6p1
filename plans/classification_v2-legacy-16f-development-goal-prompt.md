@@ -74,7 +74,7 @@ Forbidden claims and actions:
 
 ### Legacy Source Identity
 
-- Canonical short name: `legacy_16f`. Do not use the ambiguous alias `116F`.
+- Canonical short name: `legacy_16f`.
 - Raw authority:
   `data/raw/legacy_full_multigt_masked_nodup_16f/legacy_dense_tracklet_map.csv`.
 - Raw SHA256:
