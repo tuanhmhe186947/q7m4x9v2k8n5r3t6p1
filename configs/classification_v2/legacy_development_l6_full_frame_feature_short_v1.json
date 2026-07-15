@@ -1,0 +1,69 @@
+{
+  "schema_version": "classification_v2.legacy_development_l6.full_frame_feature_short_config.v1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "canonical_source_name": "legacy_16f",
+  "source_type": "legacy_recovered",
+  "dataset_id": "legacy_recovered_16f",
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "inputs": {
+    "primary_cache_audit": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6f_cache_p_v1/full_frame_cache_audit.json",
+      "sha256": "02162265310c867e7300a0d43bc2c430636f36bead1bac1aa82819f7c6ce774b"
+    },
+    "repeat_cache_audit": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6f_cache_r_v1/full_frame_cache_audit.json",
+      "sha256": "a11a5ca1fdf96aaa9615fc603e3bdda63410018d839acfd9cd5f14ead6f57f1f"
+    },
+    "primary_feature_audit": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6f_feat_p_v1/full_frame_feature_audit.json",
+      "sha256": "c32c3f88b5bf18a0ed00767473dd79b9ccad30746ce7c418996c759e1e5dce7e"
+    },
+    "repeat_feature_audit": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6f_feat_r_v1/full_frame_feature_audit.json",
+      "sha256": "ba07d74eda9a90f511bb1a354b217910d3c8db8093cfd990556a68967ebce437"
+    }
+  },
+  "implementation": {
+    "feature_extractor": {
+      "path": "scripts/classification_v2/03_image_cache_context/classification_v2_extract_full_frame_resnet18_features.py",
+      "sha256": "41f63d2548e1534bed892a8f7c27bfd15fe887f5b810d945d49b2a3041c2a233"
+    },
+    "repeat_checker": {
+      "path": "scripts/classification_v2/03_image_cache_context/check_classification_v2_full_frame_feature_repeat.py",
+      "sha256": "60a1db93561a2d61a72cb8deb2ad2e1b232230a5c3dfea619855e9d807a5fbc1"
+    }
+  },
+  "feature_contract": {
+    "rows": 1545,
+    "feature_dim": 512,
+    "feature_dtype": "float32",
+    "backbone_name": "resnet18",
+    "pretrained_weight_enum": "ResNet18_Weights.IMAGENET1K_V1",
+    "weights_sha256": "f37072fd47e89c5e827621c5baffa7500819f7896bbacec160b1a16c560e07ec",
+    "device": "cuda:0",
+    "batch_size": 8,
+    "outer_holdout_rows": 0,
+    "source_media_reads": 0
+  },
+  "outputs": {
+    "primary_audit_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6f_feat_p_v1/full_frame_feature_audit.json",
+    "repeat_audit_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6f_feat_r_v1/full_frame_feature_audit.json",
+    "repeat_gate_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6f_feature_repeat_gate_v1.json"
+  },
+  "execution_guard": {
+    "allowed_dirty_paths": [
+      ".tokensave/config.json",
+      "outputs/classification_v2/train_ready_windows/feature_semantics_audit.json",
+      "scripts/diagnostics/detect_single_frame.py"
+    ],
+    "required_tracked_paths": [
+      "configs/classification_v2/legacy_development_l6_full_frame_feature_short_v1.json",
+      "scripts/classification_v2/03_image_cache_context/classification_v2_extract_full_frame_resnet18_features.py",
+      "scripts/classification_v2/03_image_cache_context/check_classification_v2_full_frame_feature_repeat.py"
+    ]
+  }
+}
