@@ -1,0 +1,38 @@
+{
+  "schema_version": "classification_v2.legacy_development_l6.motion_cache_repeat_config.v1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "implementation_source": {
+    "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_l6_motion_cache_repeat.py",
+    "sha256": "a9bba2e2e22fae504858b4a31011c302777b5aaa95c8a43da82d8b6336ec4604"
+  },
+  "execution_guard": {
+    "allowed_dirty_paths": [
+      ".tokensave/config.json",
+      "outputs/classification_v2/train_ready_windows/feature_semantics_audit.json",
+      "scripts/diagnostics/detect_single_frame.py"
+    ],
+    "required_tracked_paths": [
+      "configs/classification_v2/legacy_development_l6_motion_cache_repeat_gate_v1.json",
+      "scripts/classification_v2/07_postrun_evaluation/check_classification_v2_legacy_l6_motion_cache_repeat.py",
+      "src/pig_behavior/classification_v2/evaluation/legacy_development_l6_motion_cache_repeat.py"
+    ]
+  },
+  "primary": {
+    "config_path": "configs/classification_v2/legacy_development_l6_motion_cache_v2.json",
+    "config_sha256": "691a485cca00da8942ea11358ba2c0055bd15ff2afbf800f70116dbdd541ebb0",
+    "manifest_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/motion_cache_v2/motion_cache_manifest.json",
+    "manifest_sha256": "dabc971259e437d1374cea0f4f0c850415b02c2dbf2990a8d763d0843a6bf825"
+  },
+  "repeat": {
+    "config_path": "configs/classification_v2/legacy_development_l6_motion_cache_repeat_v2.json",
+    "config_sha256": "1908d7068c040d0130c5355d68497bc5b62c52499abb994e2f02dcd50264a31e",
+    "manifest_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/motion_cache_repeat_v2/motion_cache_manifest.json",
+    "manifest_sha256": "5736e89cc1bed977a3e3a077af034e51f9d15509ce3e207c88a560ea2b961914"
+  },
+  "output_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/motion_cache_repeat_gate_v1.json"
+}
