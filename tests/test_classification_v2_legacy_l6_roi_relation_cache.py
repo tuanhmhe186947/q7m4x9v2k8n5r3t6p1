@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import copy
+import json
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -12,6 +16,7 @@ from pig_behavior.classification_v2.training.legacy_development_l6_roi_relation_
     ROI_RELATION_DIM,
     ROI_RELATION_FEATURE_NAMES,
     SEQUENCE_LENGTH,
+    _validate_cache_config_payload,
     _validate_relation_bounds,
     materialize_roi_relation_cache,
 )
@@ -117,6 +122,37 @@ def test_roi_relation_cache_locks_legacy_16f_counts() -> None:
     assert roi_cache.EXPECTED_RAW_ROWS == 72_864
     assert roi_cache.EXPECTED_MODEL_WINDOWS == 15_588
     assert roi_cache.EXPECTED_MODEL_SLOTS == 93_528
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        Path(
+            "configs/classification_v2/"
+            "legacy_development_l6_roi_relation_cache_v1.json"
+        ),
+        Path(
+            "configs/classification_v2/"
+            "legacy_development_l6_roi_relation_cache_repeat_v1.json"
+        ),
+    ],
+)
+def test_roi_relation_cache_config_is_exact_and_target_independent(
+    path: Path,
+) -> None:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+
+    _validate_cache_config_payload(payload)
+
+    assert payload["source_identity"]["canonical_short_name"] == "legacy_16f"
+    assert payload["features"]["feature_names"] == list(EXPECTED_FEATURES)
+    assert payload["features"]["target_selected_roi_fields_allowed"] is False
+    assert payload["features"]["unit_aggregate_features_allowed"] is False
+    assert payload["order_authority"]["geometry_values_used"] is False
+    changed = copy.deepcopy(payload)
+    changed["features"]["feature_names"].reverse()
+    with pytest.raises(ValueError, match="feature contract drift"):
+        _validate_cache_config_payload(changed)
 
 
 def test_roi_relation_cache_materializes_only_whitelisted_frame_features(
