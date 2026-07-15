@@ -31,7 +31,7 @@ replaced by this ledger.
 | L3 immutable inputs | PASS | Committed-SHA gate at `0414adc` |
 | L4 model correctness | PASS | Real-cache correctness gate at `3ef4235` |
 | L5 core baselines | PASS | T6 sliding retained as bounded legacy_16f baseline |
-| L6 modality loop | IN_PROGRESS | Top-K deferred; next gate is actor-partner union crop |
+| L6 modality loop | IN_PROGRESS | Union crop rejected; next gate is S4 full-frame context |
 | L7 imbalance policy | NOT_STARTED | Requires retained L6 candidate |
 | L8 candidate/handback | NOT_STARTED | Requires controlled L0-L7 evidence |
 

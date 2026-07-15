@@ -315,9 +315,13 @@ parameter-matched zero is negligible, the video-cluster interval crosses zero,
 and accuracy, NLL, and rare-group guardrails do not support promotion. Do not
 run full numeric-social confirmation or carry those values forward. Core
 roadmap S2 permits top-K only after numeric-social S1 passes, so top-K is
-`DEFERRED_NOT_AUTHORIZED`. Because the interaction-context gap remains,
-continue with the actor-partner union crop from the same parameter-matched T6
-zero. Reassess numeric-social and top-K on frozen merged-reviewed data.
+`DEFERRED_NOT_AUTHORIZED`. The actor-partner union-crop short matrix is now
+complete and deterministic. Union context reduces macro-F1 against both the
+parameter-matched zero and availability-only controls, worsens NLL, and fails
+the rare-group guardrail; do not run its full confirmation or carry it forward.
+Because S3 remains insufficient, continue with the S4 full-frame context CNN
+from the same parameter-matched T6 zero. Reassess numeric social, top-K, and
+union context on frozen merged-reviewed data.
 
 ### L7 - Select One Imbalance Policy
 

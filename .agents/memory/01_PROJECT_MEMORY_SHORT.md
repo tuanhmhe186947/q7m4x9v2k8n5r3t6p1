@@ -1,5 +1,25 @@
 # Project Memory Short
 
+## 2026-07-16 legacy L6 union-context short decision
+
+- Commits `27cc764` and `4a3a998` freeze the crash-bounded actor-partner union
+  trainer and paired evaluator. All six fresh GPU processes use 30 optimizer
+  steps and 134,924 parameters, peak at 96,468,992 reserved bytes, have no
+  OOM/retry, and clean CUDA allocation/reservation to zero.
+- Zero, availability-only, and union macro-F1 are `0.2697662759`,
+  `0.2721987509`, and `0.2297779478`; every per-mode repeat is deterministic.
+- Union minus zero is `-0.0399883282`, with 33-video cluster interval
+  `[-0.0909594431, 0.0147461009]`. Accuracy falls by `0.0204081633`, NLL
+  worsens by `0.2082319675`, and rare-group macro-F1 falls by `0.1033780579`.
+- The valid decision is
+  `DO_NOT_EXPAND_UNION_CONTEXT_FROM_CURRENT_SHORT_EVIDENCE`. Do not run a full
+  union confirmation or carry union values into the next candidate.
+- S3 remains insufficient, so core-roadmap S4 full-frame context is the next
+  authorized one-family test from the parameter-matched T6 zero. Reassess
+  union context on merged-reviewed data.
+- The decision artifact SHA256 is
+  `bc37887890c0a7ea5e8eb993595547c30e69693f0f06ac8e12d0d2e453829778`.
+
 ## 2026-07-15 legacy L6 numeric-social short decision
 
 - Six fresh GPU processes close the parameter-matched zero,
