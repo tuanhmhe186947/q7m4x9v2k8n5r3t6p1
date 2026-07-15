@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -7,6 +8,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+import pytest
 import torch
 
 from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
@@ -16,6 +18,8 @@ from pig_behavior.classification_v2.training.legacy_development_l5_temporal_ladd
 from pig_behavior.classification_v2.training.legacy_development_l6_roi_relation import (
     EXPECTED_PARAMETER_COUNT,
     FEATURE_DIM,
+    FULL_CONFIG_SCHEMA,
+    FULL_SCOPE,
     MODALITY_NAME,
     MODEL_INPUT_DIM,
     ROI_RELATION_DIM,
@@ -257,3 +261,48 @@ def test_roi_relation_short_config_locks_width_and_family() -> None:
         "all_class_roi_relation_only"
     )
     assert payload["experiment_contract"]["motion_feature_values_in_model_x"] is False
+
+
+def test_roi_relation_full_scope_requires_exact_authorization_contract() -> None:
+    path = Path(
+        "configs/classification_v2/"
+        "legacy_development_l6_roi_relation_short_v1.json"
+    )
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["schema_version"] = FULL_CONFIG_SCHEMA
+    payload["training_scope"] = FULL_SCOPE
+    payload["selection"]["full_train_native_units"] = 3_652
+    payload["selection"]["full_train_windows"] = 14_608
+    payload["repeat_gate"] = {
+        "required_runs_per_mode": 1,
+        "require_fresh_process": True,
+        "require_distinct_process_ids": False,
+        "require_non_overlapping_execution": False,
+        "require_identical_selection_hash": False,
+        "require_identical_normalization_hash": False,
+        "require_identical_parameter_hash": False,
+        "require_identical_window_prediction_hash": False,
+        "require_identical_native_prediction_hash": False,
+        "require_identical_epoch_metric_hash": False,
+    }
+    payload["output"] = {
+        "run_root_relative_path": (
+            "outputs/classification_v2/legacy_only_unreviewed_development/"
+            "l6r_full_v1"
+        ),
+        "matrix_gate_filename": "l6r_full_matrix_v1.json",
+    }
+    payload["full_authorization"] = {
+        "short_config_path": "configs/classification_v2/short.json",
+        "short_config_sha256": "a" * 64,
+        "authorization_gate_path": "configs/classification_v2/gate.json",
+        "authorization_gate_sha256": "b" * 64,
+        "authorized_training_scope": FULL_SCOPE,
+    }
+
+    _validate_config_payload(payload)
+
+    missing = copy.deepcopy(payload)
+    missing.pop("full_authorization")
+    with pytest.raises(ValueError, match="full_authorization"):
+        _validate_config_payload(missing)

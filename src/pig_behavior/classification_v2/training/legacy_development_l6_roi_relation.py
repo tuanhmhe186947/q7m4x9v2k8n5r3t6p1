@@ -73,11 +73,22 @@ AUXILIARY_DIM = ROI_RELATION_DIM + 1
 MODEL_INPUT_DIM = FEATURE_DIM + AUXILIARY_DIM
 EXPECTED_PARAMETER_COUNT = 70_704
 EXPECTED_SHORT_TRAIN_WINDOWS = 320
+EXPECTED_FULL_TRAIN_WINDOWS = 14_608
 EXPECTED_VALIDATION_WINDOWS = 980
 EXPECTED_SHORT_OPTIMIZER_STEPS = 30
+EXPECTED_FULL_OPTIMIZER_STEPS = 1_371
+
+FULL_SCOPE = "full_development_baseline"
 
 SHORT_CONFIG_SCHEMA = (
     "classification_v2.legacy_development_l6.roi_relation_short_config.v1"
+)
+FULL_CONFIG_SCHEMA = (
+    "classification_v2.legacy_development_l6.roi_relation_full_config.v1"
+)
+FULL_AUTHORIZATION_GATE_SCHEMA = (
+    "classification_v2.legacy_development_l6."
+    "roi_relation_full_authorization_gate.v1"
 )
 NORMALIZATION_SCHEMA = (
     "classification_v2.legacy_development_l6.roi_relation_normalization.v1"
@@ -92,7 +103,7 @@ WHITELIST_SCHEMA = (
 
 @dataclass(frozen=True, slots=True)
 class LegacyL6ROIRelationConfig:
-    """Hash-bound short ROI-relation experiment matrix."""
+    """Hash-bound short or full ROI-relation experiment matrix."""
 
     path: Path
     payload: dict[str, Any]
@@ -238,6 +249,8 @@ def load_roi_relation_training_config(path: Path) -> LegacyL6ROIRelationConfig:
             f"ROI relation cache {name}",
         )
     _validate_bound_cache(config)
+    if config.training_scope == FULL_SCOPE:
+        _validate_full_authorization(config)
     return config
 
 
@@ -820,10 +833,16 @@ def _validate_config_payload(payload: dict[str, Any]) -> None:
         "execution_guard",
         "output",
     }
+    if payload.get("training_scope") == FULL_SCOPE:
+        required.add("full_authorization")
     _require_exact_keys(payload, required, "L6 ROI relation config")
+    pair = (payload["schema_version"], payload["training_scope"])
+    if pair not in {
+        (SHORT_CONFIG_SCHEMA, SHORT_SCOPE),
+        (FULL_CONFIG_SCHEMA, FULL_SCOPE),
+    }:
+        raise ValueError("L6 ROI relation schema/scope mismatch")
     identity = {
-        "schema_version": SHORT_CONFIG_SCHEMA,
-        "training_scope": SHORT_SCOPE,
         "lineage_scope": LINEAGE_SCOPE,
         "canonical_source_name": CANONICAL_SOURCE_NAME,
         "source_type": SOURCE_TYPE,
@@ -863,10 +882,16 @@ def _validate_config_payload(payload: dict[str, Any]) -> None:
     )
     for name, value in implementation.items():
         _validate_bound_spec(value, f"implementation.{name}")
-    _validate_selection_contract(payload["selection"])
+    _validate_selection_contract(
+        payload["selection"],
+        scope=str(payload["training_scope"]),
+    )
     _validate_model_contract(payload["model"])
     _validate_optimization_contract(payload["optimization"])
-    _validate_repeat_contract(payload["repeat_gate"])
+    _validate_repeat_contract(
+        payload["repeat_gate"],
+        scope=str(payload["training_scope"]),
+    )
     guard = _object(payload["execution_guard"], "execution_guard")
     _require_exact_keys(
         guard,
@@ -914,7 +939,7 @@ def _validate_experiment_contract(value: object) -> None:
     _require_equal(_object(value, "experiment_contract"), expected, "experiment")
 
 
-def _validate_selection_contract(value: object) -> None:
+def _validate_selection_contract(value: object, *, scope: str) -> None:
     expected = {
         "view_id": VIEW_ID,
         "native_unit": "complete_legacy_16_frame_burst",
@@ -927,6 +952,9 @@ def _validate_selection_contract(value: object) -> None:
         "normalization_fit_scope": "unique_train_frame_uid_only",
         "outer_holdout_access": "FORBIDDEN_DURING_MODEL_SELECTION",
     }
+    if scope == FULL_SCOPE:
+        expected["full_train_native_units"] = 3_652
+        expected["full_train_windows"] = EXPECTED_FULL_TRAIN_WINDOWS
     _require_equal(_object(value, "selection"), expected, "selection")
 
 
@@ -983,20 +1011,150 @@ def _validate_optimization_contract(value: object) -> None:
     _require_equal(_object(value, "optimization"), expected, "optimization")
 
 
-def _validate_repeat_contract(value: object) -> None:
+def _validate_repeat_contract(value: object, *, scope: str) -> None:
     expected = {
-        "required_runs_per_mode": 2,
+        "required_runs_per_mode": 2 if scope == SHORT_SCOPE else 1,
         "require_fresh_process": True,
-        "require_distinct_process_ids": True,
-        "require_non_overlapping_execution": True,
-        "require_identical_selection_hash": True,
-        "require_identical_normalization_hash": True,
-        "require_identical_parameter_hash": True,
-        "require_identical_window_prediction_hash": True,
-        "require_identical_native_prediction_hash": True,
-        "require_identical_epoch_metric_hash": True,
+        "require_distinct_process_ids": scope == SHORT_SCOPE,
+        "require_non_overlapping_execution": scope == SHORT_SCOPE,
+        "require_identical_selection_hash": scope == SHORT_SCOPE,
+        "require_identical_normalization_hash": scope == SHORT_SCOPE,
+        "require_identical_parameter_hash": scope == SHORT_SCOPE,
+        "require_identical_window_prediction_hash": scope == SHORT_SCOPE,
+        "require_identical_native_prediction_hash": scope == SHORT_SCOPE,
+        "require_identical_epoch_metric_hash": scope == SHORT_SCOPE,
     }
     _require_equal(_object(value, "repeat_gate"), expected, "repeat gate")
+
+
+def _validate_full_authorization(config: LegacyL6ROIRelationConfig) -> None:
+    authorization = _object(
+        config.payload["full_authorization"],
+        "full_authorization",
+    )
+    required = {
+        "short_config_path",
+        "short_config_sha256",
+        "authorization_gate_path",
+        "authorization_gate_sha256",
+        "authorized_training_scope",
+    }
+    _require_exact_keys(authorization, required, "full_authorization")
+    _require_equal(
+        authorization["authorized_training_scope"],
+        FULL_SCOPE,
+        "authorized training scope",
+    )
+    short_path = _resolve_inside(
+        config.repo_root,
+        str(authorization["short_config_path"]),
+    )
+    gate_path = _resolve_inside(
+        config.repo_root,
+        str(authorization["authorization_gate_path"]),
+    )
+    _validate_bound_file(
+        short_path,
+        str(authorization["short_config_sha256"]),
+        "ROI short config authorization",
+    )
+    _validate_bound_file(
+        gate_path,
+        str(authorization["authorization_gate_sha256"]),
+        "ROI full authorization gate",
+    )
+    short = load_roi_relation_training_config(short_path)
+    for field in (
+        "lineage_scope",
+        "canonical_source_name",
+        "source_type",
+        "dataset_id",
+        "human_review_complete",
+        "reviewed_or_final_claim_allowed",
+        "q2_claim_allowed",
+        "canonical_full_oof_authorized",
+        "outer_holdout_predictions_authorized",
+        "development_metrics_authorized",
+        "experiment_contract",
+        "parents",
+        "cache",
+        "implementation",
+        "model",
+        "optimization",
+    ):
+        _require_equal(
+            config.payload[field],
+            short.payload[field],
+            f"full/short scientific binding.{field}",
+        )
+    full_selection = copy.deepcopy(
+        _object(config.payload["selection"], "full selection")
+    )
+    full_selection.pop("full_train_native_units")
+    full_selection.pop("full_train_windows")
+    _require_equal(
+        full_selection,
+        short.payload["selection"],
+        "full/short scientific binding.selection",
+    )
+    gate = _read_json(gate_path)
+    expected = {
+        "schema_version": FULL_AUTHORIZATION_GATE_SCHEMA,
+        "status": "PASS_LEGACY_DEVELOPMENT_L6_ROI_RELATION_SHORT_DECISION",
+        "lineage_scope": LINEAGE_SCOPE,
+        "short_config_path": str(authorization["short_config_path"]),
+        "short_config_sha256": short.sha256,
+        "technical_matrix_status": (
+            "PASS_LEGACY_DEVELOPMENT_L6_ROI_RELATION_SHORT_MATRIX"
+        ),
+        "paired_decision_status": (
+            "PASS_LEGACY_DEVELOPMENT_L6_ROI_RELATION_SHORT_DECISION"
+        ),
+        "paired_decision": "RETAIN_ROI_RELATION_FOR_FULL_LEGACY_DEVELOPMENT",
+        "paired_decision_required": True,
+        "authorized_modes": list(MODES),
+        "modes": list(MODES),
+        "all_mode_repeat_gates_pass": True,
+        "full_expansion_authorized": True,
+        "human_review_complete": False,
+        "reviewed_or_final_claim_allowed": False,
+        "q2_claim_allowed": False,
+        "canonical_full_oof_authorized": False,
+        "outer_holdout_predictions_authorized": False,
+        "source_media_reads": 0,
+        "outer_holdout_predictions_created": 0,
+        "errors": [],
+        "valid": True,
+    }
+    for field, value in expected.items():
+        _require_equal(gate.get(field), value, f"ROI full gate.{field}")
+    bound_fields = (
+        ("technical_matrix_path", "technical_matrix_sha256"),
+        ("paired_decision_config_path", "paired_decision_config_sha256"),
+        ("paired_decision_path", "paired_decision_sha256"),
+    )
+    for path_field, hash_field in bound_fields:
+        path = _resolve_inside(config.repo_root, str(gate[path_field]))
+        _validate_bound_file(path, str(gate[hash_field]), path_field)
+    matrix = _read_json(
+        _resolve_inside(config.repo_root, str(gate["technical_matrix_path"]))
+    )
+    _require_equal(matrix.get("short_config_sha256"), short.sha256, "matrix config")
+    _require_equal(matrix.get("full_expansion_authorized"), True, "matrix gate")
+    decision = _read_json(
+        _resolve_inside(config.repo_root, str(gate["paired_decision_path"]))
+    )
+    decision_payload = _object(decision.get("decision"), "paired decision")
+    _require_equal(
+        decision_payload.get("decision"),
+        "RETAIN_ROI_RELATION_FOR_FULL_LEGACY_DEVELOPMENT",
+        "paired decision value",
+    )
+    _require_equal(
+        decision_payload.get("full_roi_relation_expansion_authorized"),
+        True,
+        "paired decision authorization",
+    )
 
 
 def _validate_bound_spec(value: object, name: str) -> None:
