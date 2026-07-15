@@ -18,6 +18,12 @@
   `+0.0355094951`, with interval `[-0.0248897889, 0.0986581204]`.
 - Availability-only minus zero is `-0.0238827684`, with interval
   `[-0.0629523019, 0.0339059054]`.
+- ROI has positive class-specific feeding evidence against zero: feeding-group
+  macro-F1 rises by `+0.1796877378`, `drink` F1 rises from `0.3703703704` to
+  `0.6486486486`, and `eat` F1 rises from `0.7906976744` to `0.8717948718`.
+- `playwithtoy` support is one validation unit. Recall stays `1.0`, but F1
+  falls from `0.6666666667` to `0.3333333333` as false positives rise from
+  one to four; this class cannot support a `legacy_16f` ROI conclusion.
 - Decision: `DO_NOT_EXPAND_ROI_RELATION_FROM_CURRENT_SHORT_EVIDENCE`.
   The full ROI gain misses the required margin and positive interval-low gate;
   availability-only also fails its bounded-difference check. Do not carry ROI

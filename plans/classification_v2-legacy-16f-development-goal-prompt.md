@@ -300,11 +300,15 @@ gate against both the parameter-matched zero and availability-only controls.
 The hash-bound full ROI relation confirmation is now complete: ROI does not
 meet the full legacy promotion gate against zero, its cluster interval crosses
 zero, and the availability-only diagnostic also fails its bounded-difference
-check. Do not carry ROI values into the next candidate. Continue L6 numeric
-social relations from the parameter-matched T6 base. Reassess ROI, geometry,
-and motion on frozen merged-reviewed data, where rare-behavior support is
-materially larger. Local 4 GiB VRAM remains only a correctness-host constraint
-and is not an architecture rejection reason.
+check. This is a failure of unconditional ten-class promotion, not uniformly
+negative ROI evidence: feeding-group macro-F1 rises by `+0.1796877378`, and
+both `drink` and `eat` F1 improve against zero. `playwithtoy` has only one
+validation unit, so its ROI effect is not estimable on `legacy_16f`. Do not
+carry ROI values into the next candidate. Continue L6 numeric social relations
+from the parameter-matched T6 base. Reassess ROI, geometry, and motion on
+frozen merged-reviewed data, where rare-behavior support is materially larger.
+Local 4 GiB VRAM remains only a correctness-host constraint and is not an
+architecture rejection reason.
 
 The numeric-social short matrix is also complete. Its global gain over the
 parameter-matched zero is negligible, the video-cluster interval crosses zero,

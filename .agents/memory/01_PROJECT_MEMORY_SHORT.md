@@ -64,6 +64,13 @@
   `0.4727197983`, and `0.5082292933`. ROI minus zero is `+0.0116267266`,
   with interval `[-0.0398806556, 0.0906766805]`; ROI minus availability-only
   is `+0.0355094951`, with interval `[-0.0248897889, 0.0986581204]`.
+- This is mixed evidence, not uniformly negative ROI evidence. Against zero,
+  feeding-group macro-F1 rises by `+0.1796877378`; `drink` F1 rises from
+  `0.3703703704` to `0.6486486486`, and `eat` F1 rises from `0.7906976744`
+  to `0.8717948718` while retaining recall `1.0`.
+- `playwithtoy` has only one validation unit. Recall is `1.0` in both modes,
+  while F1 falls from `0.6666666667` to `0.3333333333` as false positives
+  increase from one to four. Its ROI effect is not estimable on `legacy_16f`.
 - The valid decision is
   `DO_NOT_EXPAND_ROI_RELATION_FROM_CURRENT_SHORT_EVIDENCE`; the full gain
   misses the margin and positive interval-low gate, and availability-only

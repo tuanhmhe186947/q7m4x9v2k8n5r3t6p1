@@ -24,6 +24,13 @@ availability-only is `+0.0355094951`, with interval
 `[-0.0248897889, 0.0986581204]`. Availability-only minus zero is
 `-0.0238827684`, with interval `[-0.0629523019, 0.0339059054]`.
 
+Do not summarize this as uniformly negative ROI evidence. Relative to zero,
+feeding-group macro-F1 improves by `+0.1796877378`; `drink` F1 improves from
+`0.3703703704` to `0.6486486486`, and `eat` F1 improves from `0.7906976744`
+to `0.8717948718`. `playwithtoy` has only one validation unit, so its ROI
+effect is not estimable: recall is `1.0` in both modes, while false positives
+rise from one to four and F1 falls from `0.6666666667` to `0.3333333333`.
+
 The decision is `DO_NOT_EXPAND_ROI_RELATION_FROM_CURRENT_SHORT_EVIDENCE`.
 The full ROI gain misses the required margin and positive interval-low gate,
 and the availability diagnostic fails its bounded-difference check. Do not

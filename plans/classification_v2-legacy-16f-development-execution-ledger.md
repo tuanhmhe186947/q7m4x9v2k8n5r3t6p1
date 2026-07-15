@@ -853,6 +853,13 @@ the authorization-gate SHA256 is
   `[-0.0629523019, 0.0339059054]`.
 - All three fresh GPU processes used 1,371 steps, peaked at 73,400,320
   reserved bytes, had no OOM/retry, and cleaned allocation/reservation to 0/0.
+- ROI retains positive class-specific feeding evidence against zero:
+  feeding-group macro-F1 rises by `+0.1796877378`; `drink` F1 rises from
+  `0.3703703704` to `0.6486486486`, and `eat` F1 rises from `0.7906976744`
+  to `0.8717948718`.
+- `playwithtoy` has one validation unit. Its recall remains `1.0`, but false
+  positives rise from one to four and F1 falls from `0.6666666667` to
+  `0.3333333333`; the ROI effect is not estimable for this class here.
 
 Decision: `DO_NOT_EXPAND_ROI_RELATION_FROM_CURRENT_SHORT_EVIDENCE`.
 The full ROI gain misses the required margin and positive interval-low gate;
