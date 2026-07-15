@@ -27,6 +27,7 @@ RESIZE_POLICY = "actor_nearest_partner_union_letterbox_rgb_pad_black_v1"
 class VisualInteractionCacheConfig:
     frame_context_csv: Path
     output_dir: Path
+    selection_csv: Path | None = None
     image_size: int = 64
     padding_ratio: float = 0.15
     max_contexts: int | None = None
@@ -40,10 +41,29 @@ def build_visual_interaction_cache(config: VisualInteractionCacheConfig) -> dict
     """Materialize actor-partner union crops and write a complete audit manifest."""
 
     _validate_config(config)
+    frame_context_sha256 = _file_sha256(config.frame_context_csv)
+    selection_sha256 = (
+        _file_sha256(config.selection_csv)
+        if config.selection_csv is not None
+        else ""
+    )
     frames = pd.read_csv(config.frame_context_csv, low_memory=False)
+    _require_unchanged_file(
+        config.frame_context_csv,
+        expected_sha256=frame_context_sha256,
+        description="frame context manifest",
+    )
     _validate_frames(frames)
     if config.source_type:
         frames = frames[frames["source_type"].astype(str).eq(config.source_type)].copy()
+    lookup = _same_frame_actor_lookup(frames)
+    frames = _select_target_frames(frames, config.selection_csv)
+    if config.selection_csv is not None:
+        _require_unchanged_file(
+            config.selection_csv,
+            expected_sha256=selection_sha256,
+            description="visual context selection",
+        )
     frames = frames.sort_values(
         ["resolved_media_path", "frame_index", "object_track_key"], kind="mergesort"
     ).reset_index(drop=True)
@@ -56,7 +76,6 @@ def build_visual_interaction_cache(config: VisualInteractionCacheConfig) -> dict
     cache_root.mkdir(parents=True, exist_ok=True)
     preview_root.mkdir(parents=True, exist_ok=True)
 
-    lookup = _same_frame_actor_lookup(frames)
     captures: dict[str, cv2.VideoCapture] = {}
     decoded: dict[str, tuple[int, np.ndarray]] = {}
     next_frame: dict[str, int] = {}
@@ -69,12 +88,26 @@ def build_visual_interaction_cache(config: VisualInteractionCacheConfig) -> dict
     resumed_rows = 0
     if config.resume and partial_manifest_path.exists():
         partial = pd.read_csv(partial_manifest_path, low_memory=False)
-        _validate_partial_manifest(partial, config)
+        _validate_partial_audit(
+            partial_audit_path,
+            config,
+            frame_context_sha256=frame_context_sha256,
+            selection_sha256=selection_sha256,
+            selected_rows=len(frames),
+        )
+        _validate_partial_manifest(
+            partial,
+            config,
+            selected_image_context_ids=set(frames["image_context_id"].astype(str)),
+        )
         manifest_rows = partial.to_dict("records")
         completed_context_ids = set(partial["visual_context_id"].astype(str))
         resumed_rows = len(manifest_rows)
         previews_written = int(
-            sum(bool(str(value).strip()) for value in partial["preview_path"].fillna(""))
+            sum(
+                bool(str(value).strip())
+                for value in partial["preview_path"].fillna("")
+            )
         )
     try:
         for row_number, row in enumerate(frames.to_dict("records"), start=1):
@@ -142,6 +175,8 @@ def build_visual_interaction_cache(config: VisualInteractionCacheConfig) -> dict
                     seek_count=seek_count,
                     reuse_count=reuse_count,
                     selected_rows=len(frames),
+                    frame_context_sha256=frame_context_sha256,
+                    selection_sha256=selection_sha256,
                 )
     finally:
         for capture in captures.values():
@@ -156,6 +191,7 @@ def build_visual_interaction_cache(config: VisualInteractionCacheConfig) -> dict
     audit = {
         "schema_version": "classification_v2_visual_interaction_cache_audit_v1",
         "frame_context_csv": str(config.frame_context_csv),
+        "frame_context_sha256": frame_context_sha256,
         "manifest_csv": str(manifest_path),
         "selected_rows": int(len(manifest)),
         "available_rows": available,
@@ -173,12 +209,15 @@ def build_visual_interaction_cache(config: VisualInteractionCacheConfig) -> dict
         "resumed_rows": int(resumed_rows),
         "label_gated": False,
         "rows_dropped_for_missing_context": 0,
+        "selection_csv": (str(config.selection_csv) if config.selection_csv is not None else ""),
+        "selection_sha256": selection_sha256,
         "errors": [] if duplicate_ids == 0 else [f"duplicate_visual_context_id={duplicate_ids}"],
         "warnings": [],
     }
     audit["valid"] = not audit["errors"] and len(manifest) > 0
     (config.output_dir / "visual_context_cache_audit.json").write_text(
-        json.dumps(audit, indent=2), encoding="utf-8"
+        json.dumps(audit, indent=2),
+        encoding="utf-8",
     )
     _write_partial_checkpoint(
         manifest.to_dict("records"),
@@ -189,12 +228,19 @@ def build_visual_interaction_cache(config: VisualInteractionCacheConfig) -> dict
         seek_count=seek_count,
         reuse_count=reuse_count,
         selected_rows=len(frames),
+        frame_context_sha256=frame_context_sha256,
+        selection_sha256=selection_sha256,
         complete=True,
     )
     return audit
 
 
 def _validate_config(config: VisualInteractionCacheConfig) -> None:
+    if not config.frame_context_csv.is_file():
+        raise FileNotFoundError(
+            "frame context manifest does not exist: "
+            f"{config.frame_context_csv}"
+        )
     if config.image_size <= 0:
         raise ValueError("image_size must be positive")
     if not 0 <= config.padding_ratio <= 1:
@@ -203,6 +249,8 @@ def _validate_config(config: VisualInteractionCacheConfig) -> None:
         raise ValueError("max_contexts must be positive")
     if config.checkpoint_every < 0:
         raise ValueError("checkpoint_every must be non-negative")
+    if config.selection_csv is not None and not config.selection_csv.is_file():
+        raise FileNotFoundError(f"visual context selection does not exist: {config.selection_csv}")
 
 
 def _validate_frames(frames: pd.DataFrame) -> None:
@@ -251,6 +299,34 @@ def _same_frame_actor_lookup(
             raise ValueError(f"duplicate actor-partner lookup key: {key}")
         lookup[key] = row
     return lookup
+
+
+def _select_target_frames(
+    frames: pd.DataFrame,
+    selection_csv: Path | None,
+) -> pd.DataFrame:
+    if selection_csv is None:
+        return frames.copy()
+    selection = pd.read_csv(selection_csv, low_memory=False)
+    if set(selection.columns) != {"image_context_id"}:
+        raise ValueError("visual context selection must contain only image_context_id")
+    identifiers = selection["image_context_id"].fillna("").astype(str)
+    if identifiers.empty:
+        raise ValueError("visual context selection must not be empty")
+    if identifiers.eq("").any() or identifiers.duplicated().any():
+        raise ValueError("visual context selection IDs must be unique and nonblank")
+    frame_ids = frames["image_context_id"].fillna("").astype(str)
+    positions = pd.Series(
+        np.arange(len(selection), dtype=np.int64),
+        index=identifiers,
+    )
+    selected = frames.loc[frame_ids.isin(positions.index)].copy()
+    if len(selected) != len(selection):
+        missing = sorted(set(identifiers) - set(selected["image_context_id"]))
+        raise ValueError(f"visual context selection missing IDs: {missing[:5]}")
+    selected["_selection_order"] = selected["image_context_id"].map(positions)
+    selected = selected.sort_values("_selection_order", kind="mergesort")
+    return selected.drop(columns="_selection_order").reset_index(drop=True)
 
 
 def _resolve_context_geometry(
@@ -393,7 +469,41 @@ def _cache_relative_path(context_id: str) -> Path:
     return Path(context_id[:2]) / f"{context_id}.npy"
 
 
-def _validate_partial_manifest(partial: pd.DataFrame, config: VisualInteractionCacheConfig) -> None:
+def _validate_partial_audit(
+    audit_path: Path,
+    config: VisualInteractionCacheConfig,
+    *,
+    frame_context_sha256: str,
+    selection_sha256: str,
+    selected_rows: int,
+) -> None:
+    """Reject resume when the immutable cache-build contract changed."""
+
+    if not audit_path.is_file():
+        raise ValueError("partial visual cache audit is missing")
+    payload = json.loads(audit_path.read_text(encoding="utf-8"))
+    expected = {
+        "schema_version": "classification_v2_visual_interaction_cache_partial_v1",
+        "frame_context_sha256": frame_context_sha256,
+        "selection_sha256": selection_sha256,
+        "selected_rows": int(selected_rows),
+        "image_size": int(config.image_size),
+        "padding_ratio": float(config.padding_ratio),
+        "resize_policy": RESIZE_POLICY,
+        "source_type_filter": config.source_type,
+        "max_contexts": config.max_contexts,
+    }
+    mismatches = [name for name, value in expected.items() if payload.get(name) != value]
+    if mismatches:
+        raise ValueError(f"partial visual cache audit contract mismatch: {sorted(mismatches)}")
+
+
+def _validate_partial_manifest(
+    partial: pd.DataFrame,
+    config: VisualInteractionCacheConfig,
+    *,
+    selected_image_context_ids: set[str],
+) -> None:
     """Reject resume state whose cache contract differs from the requested run."""
 
     required = {
@@ -409,6 +519,9 @@ def _validate_partial_manifest(partial: pd.DataFrame, config: VisualInteractionC
         raise ValueError(f"partial visual cache manifest missing columns: {missing}")
     if partial["visual_context_id"].duplicated().any():
         raise ValueError("partial visual cache manifest has duplicate visual_context_id")
+    partial_ids = set(partial["image_context_id"].fillna("").astype(str))
+    if not partial_ids.issubset(selected_image_context_ids):
+        raise ValueError("partial visual cache escaped the selected context IDs")
     if pd.to_numeric(partial["image_size"], errors="coerce").ne(config.image_size).any():
         raise ValueError("partial visual cache image_size does not match requested image_size")
     if partial["resize_policy"].astype(str).ne(RESIZE_POLICY).any():
@@ -434,6 +547,8 @@ def _write_partial_checkpoint(
     seek_count: int,
     reuse_count: int,
     selected_rows: int,
+    frame_context_sha256: str,
+    selection_sha256: str,
     complete: bool = False,
 ) -> None:
     """Persist resumable state without mutating source data or dropping failures."""
@@ -445,11 +560,35 @@ def _write_partial_checkpoint(
         "selected_rows": int(selected_rows),
         "completed_rows": int(len(partial)),
         "complete": bool(complete),
+        "frame_context_csv": str(config.frame_context_csv),
+        "frame_context_sha256": frame_context_sha256,
         "image_size": int(config.image_size),
+        "padding_ratio": float(config.padding_ratio),
         "resize_policy": RESIZE_POLICY,
         "source_type_filter": config.source_type,
+        "max_contexts": config.max_contexts,
+        "selection_csv": (str(config.selection_csv) if config.selection_csv is not None else ""),
+        "selection_sha256": selection_sha256,
         "video_decode_count_this_process": int(decode_count),
         "video_seek_count_this_process": int(seek_count),
         "video_frame_reuse_count_this_process": int(reuse_count),
     }
     audit_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _require_unchanged_file(
+    path: Path,
+    *,
+    expected_sha256: str,
+    description: str,
+) -> None:
+    if _file_sha256(path) != expected_sha256:
+        raise RuntimeError(f"{description} changed while building visual cache")

@@ -11,13 +11,23 @@ from pig_behavior.classification_v2.datasets.visual_interaction_context import (
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build reusable actor-partner visual context cache.")
+    parser = argparse.ArgumentParser(
+        description="Build reusable actor-partner visual context cache."
+    )
     parser.add_argument(
         "--frame-context-csv",
         type=Path,
-        default=Path("outputs/classification_v2/train_ready_windows/image_frame_context_manifest.csv"),
+        default=Path(
+            "outputs/classification_v2/train_ready_windows/"
+            "image_frame_context_manifest.csv"
+        ),
     )
-    parser.add_argument("--output-dir", type=Path, default=Path("outputs/classification_v2/visual_interaction_cache"))
+    parser.add_argument("--selection-csv", type=Path, default=None)
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path("outputs/classification_v2/visual_interaction_cache"),
+    )
     parser.add_argument("--image-size", type=int, default=64)
     parser.add_argument("--padding-ratio", type=float, default=0.15)
     parser.add_argument("--max-contexts", type=int, default=None)
