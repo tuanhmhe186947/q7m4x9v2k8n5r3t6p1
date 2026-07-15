@@ -75,6 +75,8 @@ Forbidden claims and actions:
 ### Legacy Source Identity
 
 - Canonical short name: `legacy_16f`.
+- This is the only allowed short name. Do not create or preserve an alternate
+  alias for this source.
 - Raw authority:
   `data/raw/legacy_full_multigt_masked_nodup_16f/legacy_dense_tracklet_map.csv`.
 - Raw SHA256:
@@ -291,14 +293,15 @@ a time:
 Every added modality requires a parameter-matched control, availability-only
 control, source probe, missing-modality test, and confusion-group report.
 
-Current L6 handoff: geometry is rejected after its full legacy confirmation,
-and the bounded T6 motion matrix is a valid negative decision. Motion does not
-meet the predeclared paired native-unit/video-cluster promotion criteria, so do
-not run a full motion expansion or carry motion values into the next candidate.
-Continue with all-class ROI relations from the same parameter-matched T6 base.
-Reassess both geometry and motion on frozen merged-reviewed data, where rare
-behavior support is materially larger. Local 4 GiB VRAM remains only a
-correctness-host constraint and is not the rejection reason.
+Current L6 handoff: geometry is rejected after full legacy confirmation, and
+the bounded T6 motion matrix remains valid negative evidence. The all-class ROI
+relation short matrix passes its paired native-unit/video-cluster promotion
+gate against both the parameter-matched zero and availability-only controls.
+Run the exact hash-bound full ROI relation confirmation next; do not advance to
+social relations until that full decision closes. L6 remains `IN_PROGRESS`.
+Reassess every retained or rejected family on frozen merged-reviewed data,
+where rare-behavior support is materially larger. Local 4 GiB VRAM remains only
+a correctness-host constraint and is not an architecture rejection reason.
 
 ### L7 - Select One Imbalance Policy
 

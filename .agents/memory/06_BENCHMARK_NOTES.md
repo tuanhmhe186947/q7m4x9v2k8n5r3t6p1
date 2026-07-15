@@ -1,5 +1,20 @@
 # Benchmark Notes
 
+## 2026-07-15 legacy L6 ROI relation benchmark
+
+- The zero, availability-only, and ROI controls share the same T6 native-unit
+  universe, seed, 70,704 parameters, and 30 optimizer steps.
+- Native macro-F1 is `0.2420943922`, `0.2405788407`, and `0.2886109023`,
+  respectively; all repeat artifacts are deterministic.
+- ROI minus zero is `+0.0465165101`, with 33-video cluster interval
+  `[0.0134524177, 0.0768469401]` and NLL delta `-0.0912769139`.
+- ROI minus availability-only is `+0.0480320616`, with interval
+  `[0.0178011460, 0.0771756533]`. Availability-only minus zero is effectively
+  null, with interval `[-0.0122444323, 0.0100985531]`.
+- Promote ROI relations to an exact full legacy confirmation. Preserve this as
+  unreviewed `legacy_16f` evidence only and reassess on merged-reviewed data,
+  whose rare-behavior support is materially larger.
+
 ## 2026-07-15 legacy L6 motion benchmark
 
 - The parameter-matched zero, availability-only, and motion controls use the

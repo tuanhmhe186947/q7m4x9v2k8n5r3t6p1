@@ -8,6 +8,21 @@ sections are historical records. Current gate status is centralized in
 
 ## Active decision: reviewed-data rebuild
 
+### Legacy L6 ROI relation decision
+
+The `legacy_16f` ROI short matrix passes its predeclared paired promotion gate.
+ROI minus parameter-matched zero macro-F1 is `+0.0465165101`, with 33-video
+cluster interval `[0.0134524177, 0.0768469401]`; ROI minus availability-only is
+`+0.0480320616`, with interval `[0.0178011460, 0.0771756533]`. The
+availability-only interval crosses zero, so the constant availability channel
+is not treated as behavior evidence.
+
+The decision is `RETAIN_ROI_RELATION_FOR_FULL_LEGACY_DEVELOPMENT`. Prepare and
+verify the exact hash-bound full ROI confirmation before running it. Do not
+advance to social relations until the full ROI decision closes. This does not
+authorize canonical full OOF, reviewed/final naming, Q2 evidence, or any claim
+about merged-reviewed data. L6 remains `IN_PROGRESS`.
+
 ### Legacy L6 motion decision
 
 The `legacy_16f` motion short matrix is closed as valid negative evidence.

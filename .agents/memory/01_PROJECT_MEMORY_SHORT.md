@@ -1,5 +1,24 @@
 # Project Memory Short
 
+## 2026-07-15 legacy L6 ROI relation promotion decision
+
+- Commits `8445ae8` through `3e59197` freeze the audited 18-feature ROI cache:
+  15,588 windows, 93,528 T6 slots, complete availability, and byte-identical
+  independent builds. Geometry supplies order only and no geometry values enter
+  the ROI tensor.
+- Commits `c32d3fa` through `821e931` close the crash-bounded short matrix and
+  paired evaluator. Six fresh GPU processes each used 30 steps, peaked at
+  73,400,320 reserved bytes, had no OOM/retry, and cleaned CUDA usage to zero.
+- ROI macro-F1 is `0.2886109023`, versus `0.2420943922` for the
+  parameter-matched zero and `0.2405788407` for availability-only.
+- ROI minus zero is `+0.0465165101`, with 33-video cluster interval
+  `[0.0134524177, 0.0768469401]`; ROI minus availability-only is
+  `+0.0480320616`, with interval `[0.0178011460, 0.0771756533]`.
+- The valid decision is `RETAIN_ROI_RELATION_FOR_FULL_LEGACY_DEVELOPMENT`.
+  Prepare the exact hash-bound full ROI confirmation next; L6 remains active.
+- This evidence applies only to unreviewed `legacy_16f`. It is not reviewed,
+  final, canonical OOF, Q2, or merged-data evidence.
+
 ## 2026-07-15 legacy L6 motion valid negative decision
 
 - Commits `cc01582`, `96e25b4`, and `6447c94` implement the crash-bounded

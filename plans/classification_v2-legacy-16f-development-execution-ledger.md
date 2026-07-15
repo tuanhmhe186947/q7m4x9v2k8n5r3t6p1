@@ -31,7 +31,7 @@ replaced by this ledger.
 | L3 immutable inputs | PASS | Committed-SHA gate at `0414adc` |
 | L4 model correctness | PASS | Real-cache correctness gate at `3ef4235` |
 | L5 core baselines | PASS | T6 sliding retained as bounded legacy_16f baseline |
-| L6 modality loop | IN_PROGRESS | Full geometry rejected; motion next from zero control |
+| L6 modality loop | IN_PROGRESS | ROI short retained; full ROI confirmation next |
 | L7 imbalance policy | NOT_STARTED | Requires retained L6 candidate |
 | L8 candidate/handback | NOT_STARTED | Requires controlled L0-L7 evidence |
 
@@ -51,6 +51,7 @@ replaced by this ledger.
 ## Canonical Legacy Source Identity
 
 - Canonical short name: `legacy_16f`.
+- This is the only allowed short name; no alternate alias may be introduced.
 - Raw authority is
   `data/raw/legacy_full_multigt_masked_nodup_16f/legacy_dense_tracklet_map.csv`.
 - Raw SHA256 is
@@ -189,6 +190,11 @@ The cache/fold boundary remains `00dc2e0`; claim hardening rollback is
 | 2026-07-15 | Immutable temporal full matrix | PASS | `fda8f43` |
 | 2026-07-15 | Temporal ladder decision evaluator | PASS | `bec5560` |
 | 2026-07-15 | Immutable temporal decision config | PASS | `a929e02` |
+| 2026-07-15 | ROI relation cache core and audits | PASS | `8445ae8` |
+| 2026-07-15 | ROI cache config and repeat gate | PASS | `3e59197` |
+| 2026-07-15 | Crash-bounded ROI short trainer | PASS | `c32d3fa` |
+| 2026-07-15 | Immutable ROI short matrix config | PASS | `6753ee7` |
+| 2026-07-15 | Paired ROI promotion decision | PASS | `821e931` |
 
 ## L2 PASS Evidence
 
@@ -782,6 +788,41 @@ the PASS decision artifact SHA256 is
 `9be7fd93854771b93b58bbcd9f8fa1ed96a8ddbda8e65fa8e68a4baf30a4d978`.
 
 L6 remains `IN_PROGRESS`; the next one-family gate is all-class ROI relations.
+
+## L6 ROI Relation Cache And Short Decision
+
+Commits `8445ae8`, `92f7925`, `9491899`, and `3e59197` freeze the canonical
+all-class ROI relation cache and its independent repeat gate.
+
+- The cache has 15,588 windows, 93,528 T6 slots, and 18 explicit feeder,
+  drinker, and toy relation features; every slot is available.
+- Geometry supplies row order only. No geometry value, target-selected field,
+  aggregate, label, identifier, path, fold, or review field enters the tensor.
+- All four data artifacts are byte-identical across independent builds.
+- Primary and repeat manifest SHA256 values are
+  `6d62a2ab025619808a605313678da94efd9a6a585d9595866186d4116dd08138`
+  and `61d3c3de23fc19971f7833da0834ccd87c68cdd2bfa1772c215f50b5d5f7c753`.
+- The PASS repeat-gate SHA256 is
+  `5b0f7bb0e31c13af3da0d4dab2f48d544f1fa6b10c4e9b18347fcf2cede05918`.
+
+All three CPU preflights and six separate GPU processes passed. Every run used
+30 optimizer steps and 70,704 parameters, peaked at 73,400,320 reserved bytes,
+had no OOM or retry, and cleaned CUDA allocation/reservation to zero. The zero,
+availability-only, and ROI macro-F1 values are `0.2420943922`, `0.2405788407`,
+and `0.2886109023`; all repeats are deterministic.
+
+ROI minus zero macro-F1 is `+0.0465165101`, with 33-video cluster interval
+`[0.0134524177, 0.0768469401]`. ROI minus availability-only is `+0.0480320616`,
+with interval `[0.0178011460, 0.0771756533]`. Availability-only minus zero is
+`-0.0015155515`, and its interval crosses zero.
+
+The valid decision is `RETAIN_ROI_RELATION_FOR_FULL_LEGACY_DEVELOPMENT`. The
+short matrix SHA256 is
+`29e9a2c7fe41979c92083b84b7bc8f354a7db671ddef263e61269b318a9bdda6`;
+the decision artifact SHA256 is
+`a4ec60c2850efd84d3d52cf295ace0c22a180a15c93be8d21a6617ec73bf186d`.
+Only a hash-bound full ROI confirmation is authorized. L6 remains
+`IN_PROGRESS`; canonical full OOF and merged-data claims remain unauthorized.
 
 ## Full-Run Boundary
 
