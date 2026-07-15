@@ -128,7 +128,9 @@ def extract_features(
         with torch.inference_mode():
             for row_start in range(start_row, source["rows"], batch_size):
                 row_end = min(row_start + batch_size, source["rows"])
-                batch = torch.from_numpy(np.asarray(tensor[row_start:row_end])).permute(
+                batch = torch.from_numpy(
+                    np.array(tensor[row_start:row_end], copy=True)
+                ).permute(
                     0, 3, 1, 2
                 )
                 batch = batch.to(torch.float32).div_(255.0)
