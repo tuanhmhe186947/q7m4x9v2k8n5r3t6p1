@@ -30,7 +30,7 @@ replaced by this ledger.
 | L2 full legacy lineage | PASS | Full repeat-bound lineage at `59647e2` |
 | L3 immutable inputs | PASS | Committed-SHA gate at `0414adc` |
 | L4 model correctness | PASS | Real-cache correctness gate at `3ef4235` |
-| L5 core baselines | IN_PROGRESS | Short train PASS at `b6f74f7`; full V0/T16 centered next |
+| L5 core baselines | IN_PROGRESS | Full V0/T16 PASS at `22875cb`; V1 resolution control next |
 | L6 modality loop | NOT_STARTED | Requires retained L5 baseline |
 | L7 imbalance policy | NOT_STARTED | Requires retained L6 candidate |
 | L8 candidate/handback | NOT_STARTED | Requires controlled L0-L7 evidence |
@@ -137,6 +137,8 @@ The cache/fold boundary remains `00dc2e0`; claim hardening rollback is
 | 2026-07-15 | Pretrained 4 GiB VRAM gate | PASS | `93449ae` |
 | 2026-07-15 | Crash-bounded L5 cached-feature consumer | PASS | `b425c86` |
 | 2026-07-15 | Deterministic L5 cached short training gate | PASS | `b6f74f7` |
+| 2026-07-15 | Schema-v2 exact repeat gate | PASS | `4b52991` |
+| 2026-07-15 | Full V0/T16 centered baseline | PASS | `22875cb` |
 
 ## L2 PASS Evidence
 
@@ -347,6 +349,42 @@ This PASS authorizes only the exact full V0/T16 centered cached-feature
 expansion. Other visual or temporal controls remain unauthorized, L5 stays
 `IN_PROGRESS`, and all reviewed/final, canonical full-OOF, and Q2 claims stay
 false. Rollback is `git revert b6f74f7` followed by `git revert 9a878e7`.
+
+## L5 Schema-V2 And Full V0/T16 Evidence
+
+- commit `4b52991` adds the crash-bounded schema-v2 trainer, audit command,
+  focused tests, and immutable short-v2 config;
+- short config SHA256 is
+  `e0de0686e4e18085f649ba701dbd7d46d785bf6092474a304f0ad45c15682045`;
+  implementation SHA256 is
+  `b6e4a8f2b6376c58c40595656a37e7a9c3e042a860127a3825471ab04278dca7`;
+- runs `ct_v0_t16_p_4b52991_v2` and `ct_v0_t16_r_4b52991_v2` use distinct
+  PIDs 10,332 and 16,584, 80 balanced train units, all 245 validation units,
+  and nine optimizer steps without overlap;
+- their parameter, prediction, and epoch-metric SHA256 values match exactly at
+  `90f8b125e90f59d2681d370c7fcfef50dc3c448525b9d05a6b475d321d092ff7`,
+  `05643dc8e21448c3c831e0b75be76848dedad0803df1a50c59ba33e19562fb7a`,
+  and `7ccd3a3309ced7f87254efe81c5e71c5802de6a94fc4db9eb4d65d5f95327cee`;
+- the 14-field short gate passes with SHA256
+  `84250309d0edb7b56d6989edc9040d668ccc203b8dc9673073409e9c61045dbb`;
+- commit `22875cb` binds the exact full V0/T16 centered config with SHA256
+  `77b4aa21a46335d93e5cacdc4f29daa3c9983eccf9a2bfc3ffa1c179f8927092`;
+- run `ct_v0_t16_full_22875cb_v2` passes on 3,652 train and 245 validation
+  native units for three epochs and 345 optimizer steps in 4.4476819 seconds;
+- selected epoch 3 has bounded development macro-F1 `0.3486204147`, accuracy
+  `0.6000000000`, and native-unit NLL `1.2490196145`;
+- result, run-manifest, and checkpoint SHA256 values are
+  `1becf8ea2bcc471a2dcb776fb0348cbbe05dca3530593c151d437baf0bbdb223`,
+  `a077b96622c9ba86cf945f585234b1f19280c368a62fc2878c91563047272538`,
+  and `1f46e2fc16ff5da0fe833f2667dc212217897162f35976ee0b02e8c6e0fb24c6`;
+- peak reserved VRAM is 94,371,840 bytes and cleanup returns allocated and
+  reserved bytes to zero in every run; no OOM, retry, AMP, source read, outer
+  row, outer prediction, or concurrent GPU process occurred;
+- CLI packet audit and the independent checker pass all 13 required artifacts.
+
+L5 remains `IN_PROGRESS`. The next gate is the isolated V1 resolution control,
+ResNet18/160 to ResNet18/224, with fresh static and two-process short evidence
+required before any full V1 run. Canonical full OOF and Q2 claims remain false.
 
 ## Full-Run Boundary
 
