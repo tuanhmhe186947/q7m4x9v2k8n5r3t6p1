@@ -1,0 +1,239 @@
+{
+  "schema_version": "classification_v2.legacy_development_l6.full_frame_context_short_config.v1",
+  "training_scope": "short_repeat_gate",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "canonical_source_name": "legacy_16f",
+  "source_type": "legacy_recovered",
+  "dataset_id": "legacy_recovered_16f",
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "development_metrics_authorized": true,
+  "experiment_contract": {
+    "experiment_id": "L6_V1_T6_FULL_FRAME_CONTEXT_S4_V1",
+    "parent_decision": "DO_NOT_EXPAND_UNION_CONTEXT_FROM_CURRENT_SHORT_EVIDENCE",
+    "baseline_source": "parameter_matched_zero_without_rejected_values",
+    "changed_family": "full_frame_context_only",
+    "modes": [
+      "parameter_matched_zero",
+      "availability_only",
+      "full_frame_context"
+    ],
+    "primary_metric": "validation_native_unit_macro_f1_global_10_class",
+    "uncertainty_cluster": "video_key",
+    "parameter_matched": true,
+    "availability_only_is_diagnostic": true,
+    "availability_is_behavior_evidence": false,
+    "full_frame_context_only": true,
+    "source_scene_ids_in_model_x": false,
+    "union_context_values_in_model_x": false,
+    "geometry_values_in_model_x": false,
+    "motion_values_in_model_x": false,
+    "roi_values_in_model_x": false,
+    "social_values_in_model_x": false,
+    "unit_aggregate_features_in_model_x": false,
+    "missing_modality_inference_required": true,
+    "outer_predictions_used_for_model_selection": false,
+    "legacy_only_decision": true,
+    "merged_reviewed_reassessment_required": true,
+    "local_vram_is_architecture_limit": false
+  },
+  "parents": {
+    "temporal_ladder_config": {
+      "path": "configs/classification_v2/legacy_development_l5_temporal_ladder_full_v1.json",
+      "sha256": "559d24ba29d6192291eb5a8d7b6896616b1bed782450a9242f1c4afa3bd85559"
+    },
+    "l5_decision": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_l5_temporal_ladder_decision_v1.json",
+      "sha256": "f3316568c797967e66a0a6ea3cac8e4804a35e12439b3d31527e10ef93abd4e1"
+    },
+    "l6_union_decision": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6u_train_short_v1/l6u_short_decision_v1.json",
+      "sha256": "bc37887890c0a7ea5e8eb993595547c30e69693f0f06ac8e12d0d2e453829778"
+    },
+    "full_frame_cache_config": {
+      "path": "configs/classification_v2/legacy_development_l6_full_frame_short_cache_v1.json",
+      "sha256": "98aebda7c8bde355563596c12e0c59bdaea25ba96e0b86a8449c6174e0e6fe62"
+    },
+    "full_frame_feature_config": {
+      "path": "configs/classification_v2/legacy_development_l6_full_frame_feature_short_v1.json",
+      "sha256": "21fe5e80348fbe76883ff9eac8044b41eae0d56b32f4782aeaf6182e90afefcb"
+    }
+  },
+  "inputs": {
+    "image_window_context_manifest": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6u_window_context_v1/image_window_context_manifest.csv",
+      "sha256": "b75d51031d5f0ae94e73d8f59ec7d699df0dff057cf1f05d3a321a226d7c8392"
+    },
+    "window_subset_audit": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6u_window_context_v1/window_subset_audit.json",
+      "sha256": "5cb2b0c7237be31fa789412a7e022d2ec4912ffef48d118d20bd06aae89c040e"
+    },
+    "feature_audit": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6f_feat_p_v1/full_frame_feature_audit.json",
+      "sha256": "c32c3f88b5bf18a0ed00767473dd79b9ccad30746ce7c418996c759e1e5dce7e"
+    },
+    "feature_index": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6f_feat_p_v1/full_frame_feature_index.csv",
+      "sha256": "bd854a73c11695af34772806ab100aff818ca89fba83042d23612430c67a7d7c"
+    },
+    "feature_tensor": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6f_feat_p_v1/full_frame_features_f32.npy",
+      "sha256": "04bf8766b3c5d5709fcf41b006eae0aaf7f6cb11d1c34924e7cfffb1121fe7b2"
+    },
+    "cache_repeat_gate": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6f_cache_repeat_gate_v1.json",
+      "sha256": "7029606fec4e76253d98ec126df5d784d2efc64514a9fcfbfdc4f648fddfedad"
+    },
+    "feature_repeat_gate": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6f_feature_repeat_gate_v1.json",
+      "sha256": "807604fdf828d478dd1745061e871d17944d07b3ef4e37251a3ccfbb261c8e88"
+    }
+  },
+  "implementation": {
+    "core": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l6_full_frame_context.py",
+      "sha256": "06211f88e427575b4ae74fbeedae43d75412803ceab424186c23c3ae755f08e5"
+    },
+    "cache_reader": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l6_full_frame_context_cache.py",
+      "sha256": "6bd03df3f2ab7b0d5b500ed2549f1ca5ed499b1d78a2af5c9e1c665e1b95ccbc"
+    },
+    "runtime": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l6_full_frame_context_runtime.py",
+      "sha256": "6729cedb4d0a1b459bc98fb9e6849402d854e5fad9d7704cfdd8f77a25d8c3fb"
+    },
+    "cached_modality_engine": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l6_cached_modality.py",
+      "sha256": "6c367128a26c0a62e6c36ea130c00d6fc23185b146a3145a3e0f991feb76a719"
+    },
+    "cached_modality_runtime": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l6_cached_modality_runtime.py",
+      "sha256": "aab727cfb0c491ab4a00c651f7acbf906896bd57156308576e2186961d60df56"
+    },
+    "frozen_engine": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l5_cached_training.py",
+      "sha256": "f639dd6d1dcdd83172f33054dab11a0c861eb65883f2656c8ed96d0d908fa96c"
+    },
+    "training_loop_engine": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l6_geometry.py",
+      "sha256": "ac101d24b5576636be4329a1ff253aa98e375ffdac9ec58d3e01248029e24986"
+    },
+    "runner_script": {
+      "path": "scripts/classification_v2/04_baselines_smokes/check_classification_v2_legacy_development_l6_full_frame_context.py",
+      "sha256": "abf4f9cf21b74e8806644a90550b01399216fa895c846f60f0c8ce3c129f21fc"
+    },
+    "training_gate_script": {
+      "path": "scripts/classification_v2/07_postrun_evaluation/check_classification_v2_legacy_l6_full_frame_context_training_gates.py",
+      "sha256": "2a3374d0c9ab750daf8e34fbb014e61ae817adde1621eb0e9dc66e64e518e668"
+    },
+    "tests": {
+      "path": "tests/test_classification_v2_legacy_l6_full_frame_context_training.py",
+      "sha256": "6aed5a47e4ac6a109a2ddc001375b3d1f5de71e99ba2b24fc2ba6325e1939736"
+    }
+  },
+  "selection": {
+    "view_id": "t6_sliding",
+    "native_unit": "complete_legacy_16_frame_burst",
+    "windows_per_native_unit": 4,
+    "short_train_native_units": 80,
+    "short_train_windows": 320,
+    "validation_native_units": 245,
+    "validation_windows": 980,
+    "selected_windows": 1300,
+    "selected_slots": 7800,
+    "selected_scene_frames": 1545,
+    "selection_content_sha256": "a91bcd684d927423461338f90b303544d0c4a149db8dd612f06f390cca40f070",
+    "event_mass_per_native_unit": 1.0,
+    "normalization_fit_scope": "unique_train_scene_frame_uid_only",
+    "outer_holdout_access": "FORBIDDEN_DURING_MODEL_SELECTION"
+  },
+  "model": {
+    "architecture": "cached_visual_full_frame_context_temporal_classifier_v1",
+    "feature_control_id": "V1",
+    "actor_backbone_name": "resnet18",
+    "context_backbone_name": "resnet18",
+    "input_resolution": 224,
+    "visual_feature_dim": 512,
+    "full_frame_context_feature_dim": 512,
+    "availability_feature_dim": 1,
+    "model_input_dim": 1025,
+    "full_frame_context_modes": [
+      "parameter_matched_zero",
+      "availability_only",
+      "full_frame_context"
+    ],
+    "temporal_encoder_name": "masked_mean",
+    "hidden_dim": 128,
+    "dropout": 0.1,
+    "transformer_layers": 1,
+    "transformer_heads": 4,
+    "parameter_count": 134924,
+    "native_probability_aggregation": "mean_window_probability_v1",
+    "missing_modality_policy": "zero_full_frame_context_and_availability_v1"
+  },
+  "optimization": {
+    "seed": 20260714,
+    "epochs": 3,
+    "batch_size": 32,
+    "evaluation_batch_size": 64,
+    "learning_rate": 0.003,
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 1.0,
+    "loss": "event_mass_balanced_cross_entropy",
+    "sampler": "deterministic_seeded_window_shuffle_after_native_selection",
+    "checkpoint_selection": "native_global_10_class_macro_f1_then_nll",
+    "precision": "float32",
+    "autocast_enabled": false,
+    "deterministic_algorithms": true,
+    "cublas_workspace_config": ":4096:8",
+    "dataloader_num_workers": 0,
+    "pin_memory": false,
+    "persistent_workers": false,
+    "prefetch_factor": null,
+    "device": "cuda:0",
+    "declared_local_gpu_vram_gib": 4,
+    "maximum_peak_vram_fraction": 0.7,
+    "oom_retry_allowed": false,
+    "one_run_per_fresh_process": true,
+    "maximum_loaded_batch_bytes": 2200000
+  },
+  "repeat_gate": {
+    "required_runs_per_mode": 2,
+    "require_fresh_process": true,
+    "require_distinct_process_ids": true,
+    "require_non_overlapping_execution": true,
+    "require_identical_selection_hash": true,
+    "require_identical_normalization_hash": true,
+    "require_identical_parameter_hash": true,
+    "require_identical_window_prediction_hash": true,
+    "require_identical_native_prediction_hash": true,
+    "require_identical_epoch_metric_hash": true
+  },
+  "execution_guard": {
+    "allowed_dirty_paths": [
+      ".tokensave/config.json",
+      "outputs/classification_v2/train_ready_windows/feature_semantics_audit.json",
+      "scripts/diagnostics/detect_single_frame.py"
+    ],
+    "required_tracked_paths": [
+      "configs/classification_v2/legacy_development_l6_full_frame_context_short_v1.json",
+      "scripts/classification_v2/04_baselines_smokes/check_classification_v2_legacy_development_l6_full_frame_context.py",
+      "scripts/classification_v2/07_postrun_evaluation/check_classification_v2_legacy_l6_full_frame_context_training_gates.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l6_full_frame_context.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l6_full_frame_context_cache.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l6_full_frame_context_runtime.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l6_cached_modality.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l6_cached_modality_runtime.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l5_cached_training.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l6_geometry.py",
+      "tests/test_classification_v2_legacy_l6_full_frame_context_training.py"
+    ]
+  },
+  "output": {
+    "run_root_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6f_train_short_v1",
+    "matrix_gate_filename": "l6f_short_matrix_v1.json"
+  }
+}
