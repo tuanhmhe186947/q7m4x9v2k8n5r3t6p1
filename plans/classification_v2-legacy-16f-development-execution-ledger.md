@@ -30,7 +30,7 @@ replaced by this ledger.
 | L2 full legacy lineage | PASS | Full repeat-bound lineage at `59647e2` |
 | L3 immutable inputs | PASS | Committed-SHA gate at `0414adc` |
 | L4 model correctness | PASS | Real-cache correctness gate at `3ef4235` |
-| L5 core baselines | IN_PROGRESS | Full V0/T16 PASS at `22875cb`; V1 resolution control next |
+| L5 core baselines | IN_PROGRESS | Full V1/T16 PASS at `3eb5a49`; V2 backbone control next |
 | L6 modality loop | NOT_STARTED | Requires retained L5 baseline |
 | L7 imbalance policy | NOT_STARTED | Requires retained L6 candidate |
 | L8 candidate/handback | NOT_STARTED | Requires controlled L0-L7 evidence |
@@ -139,6 +139,8 @@ The cache/fold boundary remains `00dc2e0`; claim hardening rollback is
 | 2026-07-15 | Deterministic L5 cached short training gate | PASS | `b6f74f7` |
 | 2026-07-15 | Schema-v2 exact repeat gate | PASS | `4b52991` |
 | 2026-07-15 | Full V0/T16 centered baseline | PASS | `22875cb` |
+| 2026-07-15 | V1 resolution-only repeat gate | PASS | `4db26bf` |
+| 2026-07-15 | Full V1/T16 resolution control | PASS | `3eb5a49` |
 
 ## L2 PASS Evidence
 
@@ -382,9 +384,46 @@ false. Rollback is `git revert b6f74f7` followed by `git revert 9a878e7`.
   row, outer prediction, or concurrent GPU process occurred;
 - CLI packet audit and the independent checker pass all 13 required artifacts.
 
-L5 remains `IN_PROGRESS`. The next gate is the isolated V1 resolution control,
-ResNet18/160 to ResNet18/224, with fresh static and two-process short evidence
-required before any full V1 run. Canonical full OOF and Q2 claims remain false.
+That gate authorized only full V0/T16. The separately gated V1 resolution
+evidence follows below. Canonical full OOF and Q2 claims remain false.
+
+## L5 V1 Resolution-Only Evidence
+
+- commit `4db26bf` adds schema-v3 V1 gating and binds the only scientific
+  change as ResNet18/160 to ResNet18/224 at fixed weights, T16 view, temporal
+  head, optimizer, split, subset, and claim boundary;
+- the V1 consumer `cfd_v1_t16_c921671` and all 25 declared parent artifacts
+  pass CPU mmap, leakage, outer-access, and independent hash audits;
+- short config and implementation SHA256 values are
+  `d868138c3cc9ab9fa6a2b37c1068d8771a97bd20bc615e23680152f60309c8e3`
+  and `9a1525382df94935ad780179a3d264aaeb975bf236402bb5c00e789c5d9a219b`;
+- `ct_v1_t16_p_4db26bf_v3_cuda` and `ct_v1_t16_r_4db26bf_v3_cuda` use
+  distinct PIDs 6,668 and 7,764, 80 balanced train units, all 245 validation
+  units, nine optimizer steps, and non-overlapping intervals;
+- all 14 equality fields pass; parameter, prediction, and epoch-metric hashes
+  are `d1e4a953a2b3ed4b7e3b0267e3f826ca1f819669c3c37a07d4a506d893301424`,
+  `caf7ca082aee1d52d7b3fb5ab06ecfaf41792015377207a23e67833b9cf3f2ce`,
+  and `d400517b47ce14ff46c211f3ec765dc12718bf2b8c9d383ec40f2461119b4e67`;
+- the V1-only gate SHA256 is
+  `51f1cb805e0fde63f1a3f40b34863f94ef65aaf78c0830322431e68b5315aa44`;
+- the CPU-only `.venv` attempt `ct_v1_t16_p_4db26bf_v3` is preserved as FAIL:
+  it stopped before model creation with zero steps and zero peak VRAM, and is
+  excluded from the gate; the CUDA 12.1 environment was then matched to V0;
+- commit `3eb5a49` binds full config SHA256
+  `5665a8316112951562b178b7940b2e2124e72515b3007701017aff6d4e05cf15`;
+- `ct_v1_t16_full_3eb5a49_v3` passes 3,652 train and 245 validation units,
+  three epochs, and 345 optimizer steps in 4.5933299 seconds;
+- selected epoch 1 has bounded development macro-F1 `0.3528183193`, accuracy
+  `0.6571428571`, and native-unit NLL `1.0717006652`;
+- result, run-manifest, and checkpoint SHA256 values are
+  `af283e487730ab9769946b7430601173abe8fafc289d74bf1c05b01cc89a6ad7`,
+  `f13b75f2caa15323684448bb670c087a9711d0e6fc6286d007db23b81a304958`,
+  and `9d9cfce1642eeb1b1be12110fe609a9831960ab6d37fda66fd33719aad2f8df6`;
+- all passing runs peak at 94,371,840 reserved bytes, clean up to zero, and
+  have no OOM, retry, AMP, source read, outer prediction, or process overlap.
+
+L5 remains `IN_PROGRESS`. The next gate is V2 backbone-only, ResNet18/224 to
+ResNet34/224, with its own static contract and two fresh short processes.
 
 ## Full-Run Boundary
 
