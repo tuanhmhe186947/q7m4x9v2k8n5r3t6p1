@@ -1,0 +1,107 @@
+{
+  "schema_version": "classification_v2.legacy_development_l6.full_frame_context_decision_config.v1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "short_training_config": {
+    "path": "configs/classification_v2/legacy_development_l6_full_frame_context_short_v1.json",
+    "sha256": "f7d8967fbdf3aa9096254184058737a56267b600a11678a30cb7446a98bf06fc"
+  },
+  "short_matrix_gate": {
+    "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6f_train_short_v1/l6f_short_matrix_v1.json",
+    "sha256": "a8cbf4b4c051322bec4214c59420afaac6795d86a4eaed8f711160235cdff86a"
+  },
+  "runs": {
+    "parameter_matched_zero": {
+      "result_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6f_train_short_v1/parameter_matched_zero/l6f_zero_primary_v1_20260716/run_result.json",
+      "result_sha256": "750ed11c712832046c7f513022d5b0ae8dbf2fa4f7a44b2bbbb6e3fe38a45a64",
+      "run_manifest_sha256": "3fe3379470a4120ffcd6be8621f00cc9454ebc60159df64b62ea04333d9dd7cd",
+      "artifact_manifest_sha256": "0571f1e83521e83ddd1da54c8146d2f5d579cd4c3013e7a5fa900ab53d29be0e",
+      "repeat_gate_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6f_train_short_v1/parameter_matched_zero/l6f_zero_repeat_gate_v1.json",
+      "repeat_gate_sha256": "99e05cbf6a7d01f6e5a4aeea7552f857523b75885eb836657439c874f4330033"
+    },
+    "availability_only": {
+      "result_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6f_train_short_v1/availability_only/l6f_availability_primary_v1_20260716/run_result.json",
+      "result_sha256": "09b9ca2ff1a22d3e23f3018201a014e6db794158f683c7e404d4bbebab0cff2d",
+      "run_manifest_sha256": "29519e2e8a5890fb863dba90874a554789809c7e0ddbcfedc937ff661c60dbfa",
+      "artifact_manifest_sha256": "7c7802517f9c6793d5da0f7f20cc70de26551cf864f9412cfc5dbe61f45b00a9",
+      "repeat_gate_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6f_train_short_v1/availability_only/l6f_availability_repeat_gate_v1.json",
+      "repeat_gate_sha256": "a641c6c085eb2ce014cd58bc19d2267dfe3b50f07d2c0196c746d4da5580072f"
+    },
+    "full_frame_context": {
+      "result_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6f_train_short_v1/full_frame_context/l6f_full_frame_primary_v1_20260716/run_result.json",
+      "result_sha256": "9696f84cfeb648c1188ee7108fe88a8c97757655b7b5c46be5f53b013a56cfab",
+      "run_manifest_sha256": "2388afdde8a6f5c1ade5a6e180e0c015d17b5d171b8e12bd38da7d3aa2de2538",
+      "artifact_manifest_sha256": "3fef3a650c3cda5ca888191f24d1cad2b0daad0dded57cd1fadfa6e18c62111f",
+      "repeat_gate_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6f_train_short_v1/full_frame_context/l6f_full_frame_repeat_gate_v1.json",
+      "repeat_gate_sha256": "a481b4c42100d71d25af75d9def28cdcef5d22e620ed8f3c8b4ed4f1432fb9a0"
+    }
+  },
+  "paired_contract": {
+    "unit_column": "temporal_unit_key",
+    "cluster_column": "video_key",
+    "validation_fold_id": "legacy_l6_short_validation_v1",
+    "expected_native_units": 245,
+    "expected_clusters": 33,
+    "bootstrap_iterations": 2000,
+    "bootstrap_seed": 20260715
+  },
+  "decision_contract": {
+    "minimum_macro_f1_gain": 0.02,
+    "maximum_absolute_availability_only_gain": 0.01,
+    "maximum_rare_group_macro_f1_drop": 0.02,
+    "require_positive_video_cluster_ci_low": true,
+    "require_nll_improvement_vs_zero": true
+  },
+  "interpretation_boundary": {
+    "legacy_only_decision": true,
+    "architecture_family_finalized": false,
+    "applies_to_merged_reviewed_data": false,
+    "merged_reviewed_reassessment_required": true,
+    "availability_only_is_behavior_evidence": false,
+    "negative_result_is_valid_evidence": true,
+    "full_frame_context_values_in_model_x": true
+  },
+  "implementation": {
+    "evaluator": {
+      "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_l6_full_frame_context_decision.py",
+      "sha256": "e1a2c342e9b938114a93e4fc808f4a186731f0dd553aba43dddea058aa97bded"
+    },
+    "paired_engine": {
+      "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_l6_geometry_decision.py",
+      "sha256": "1be3231512df000c042bd746747d1456cd0158ac7baaea29ce0b1dabbd49d1cb"
+    },
+    "training_adapter": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l6_full_frame_context.py",
+      "sha256": "06211f88e427575b4ae74fbeedae43d75412803ceab424186c23c3ae755f08e5"
+    },
+    "runtime_adapter": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l6_full_frame_context_runtime.py",
+      "sha256": "6729cedb4d0a1b459bc98fb9e6849402d854e5fad9d7704cfdd8f77a25d8c3fb"
+    },
+    "runner_script": {
+      "path": "scripts/classification_v2/07_postrun_evaluation/check_classification_v2_legacy_l6_full_frame_context_decision.py",
+      "sha256": "5330841d74c63679406a75ca0cac14ded05de1963a3302626ddaf375452edf2a"
+    }
+  },
+  "execution_guard": {
+    "allowed_dirty_paths": [
+      ".tokensave/config.json",
+      "outputs/classification_v2/train_ready_windows/feature_semantics_audit.json",
+      "scripts/diagnostics/detect_single_frame.py"
+    ],
+    "required_tracked_paths": [
+      "configs/classification_v2/legacy_development_l6_full_frame_context_decision_v1.json",
+      "scripts/classification_v2/07_postrun_evaluation/check_classification_v2_legacy_l6_full_frame_context_decision.py",
+      "src/pig_behavior/classification_v2/evaluation/legacy_development_l6_full_frame_context_decision.py",
+      "src/pig_behavior/classification_v2/evaluation/legacy_development_l6_geometry_decision.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l6_full_frame_context.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l6_full_frame_context_runtime.py",
+      "tests/test_classification_v2_legacy_l6_full_frame_context_decision.py"
+    ]
+  },
+  "output_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6f_train_short_v1/l6f_short_decision_v1.json"
+}
