@@ -1,0 +1,84 @@
+{
+  "schema_version": "classification_v2.legacy_development_l6.roi_relation_decision_config.v1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "short_training_config": {
+    "path": "configs/classification_v2/legacy_development_l6_roi_relation_short_v1.json",
+    "sha256": "e80f37575f7cb1550a7074e6ca2e2c0baaa9b1b5da880cc22d9227ee0faf9f05"
+  },
+  "short_matrix_gate": {
+    "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6r_short_v1/l6r_short_matrix_v1.json",
+    "sha256": "29e9a2c7fe41979c92083b84b7bc8f354a7db671ddef263e61269b318a9bdda6"
+  },
+  "runs": {
+    "parameter_matched_zero": {
+      "result_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6r_short_v1/parameter_matched_zero/l6r_zero_primary_20260715/run_result.json",
+      "result_sha256": "bbdad4e5cccbbe4fd275608372037ebe9e1b661b7826f2a9f5f8ddd8b38435e8",
+      "run_manifest_sha256": "e1761478c2c3196e74a2ea1dd49bd0aa54d31fa28c80b11e95f2ae170ea8f211",
+      "artifact_manifest_sha256": "4c8e6060b7f57c352035b37804e670a54c93954767cada18dfb9205f928e7abf",
+      "repeat_gate_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6r_short_v1/parameter_matched_zero/parameter_matched_zero_repeat_gate_v1.json",
+      "repeat_gate_sha256": "980a2b8af92e9ab93d8edae642570afb6fd0c255029f467f7dee1ce6592e3739"
+    },
+    "availability_only": {
+      "result_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6r_short_v1/availability_only/l6r_availability_primary_20260715/run_result.json",
+      "result_sha256": "26ae5a2671e9eca9671b052e82089e50fb2330e18d91ac58b073c074c91b0a3b",
+      "run_manifest_sha256": "d0788830b665c534d781e098e8e0cc84c82d5329795b80912fb032d9e98bda8d",
+      "artifact_manifest_sha256": "b91bd7773b998d132455a73501f93b4b10270d7f55d106507c0d8c69f9be28cf",
+      "repeat_gate_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6r_short_v1/availability_only/availability_only_repeat_gate_v1.json",
+      "repeat_gate_sha256": "a9562bb586865daf56b60dddcb7b30dadf51e2e7a4d370c3380e5a3d50fadca2"
+    },
+    "roi_relation": {
+      "result_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6r_short_v1/roi_relation/l6r_roi_primary_20260715/run_result.json",
+      "result_sha256": "a0dcaa181124730260bc9ac65e941a5c244de49f2018edde7fc8a3e9982a03d7",
+      "run_manifest_sha256": "d1c7823829f061a610ed2f943c9a0e3a9515a7f70e09bd1ee8a76f27ec3b8551",
+      "artifact_manifest_sha256": "128cb1f20476bf95635f1a4c7feb94140a476d3d6cd44ebdfaf6ae2b1b1a5710",
+      "repeat_gate_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6r_short_v1/roi_relation/roi_relation_repeat_gate_v1.json",
+      "repeat_gate_sha256": "8b09cc391ca426a18784eac1190cdaecba4891a7c7e544276ca818ede62791ad"
+    }
+  },
+  "paired_contract": {
+    "unit_column": "temporal_unit_key",
+    "cluster_column": "video_key",
+    "validation_fold_id": "legacy_l6_short_validation_v1",
+    "expected_native_units": 245,
+    "expected_clusters": 33,
+    "bootstrap_iterations": 2000,
+    "bootstrap_seed": 20260715
+  },
+  "decision_contract": {
+    "minimum_macro_f1_gain": 0.02,
+    "maximum_absolute_availability_only_gain": 0.01,
+    "maximum_rare_group_macro_f1_drop": 0.02,
+    "require_positive_video_cluster_ci_low": true,
+    "require_nll_improvement_vs_zero": true
+  },
+  "interpretation_boundary": {
+    "legacy_only_decision": true,
+    "architecture_family_finalized": false,
+    "applies_to_merged_reviewed_data": false,
+    "merged_reviewed_reassessment_required": true,
+    "availability_only_is_behavior_evidence": false,
+    "negative_result_is_valid_evidence": true
+  },
+  "implementation": {
+    "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_l6_roi_relation_decision.py",
+    "sha256": "541425018f72c826bffab18d9c6a404bf717f0b28fa050e87430b62e84230a11"
+  },
+  "execution_guard": {
+    "allowed_dirty_paths": [
+      ".tokensave/config.json",
+      "outputs/classification_v2/train_ready_windows/feature_semantics_audit.json",
+      "scripts/diagnostics/detect_single_frame.py"
+    ],
+    "required_tracked_paths": [
+      "configs/classification_v2/legacy_development_l6_roi_relation_decision_v1.json",
+      "scripts/classification_v2/07_postrun_evaluation/check_classification_v2_legacy_l6_roi_relation_decision.py",
+      "src/pig_behavior/classification_v2/evaluation/legacy_development_l6_roi_relation_decision.py"
+    ]
+  },
+  "output_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6r_short_v1/l6r_short_decision_v1.json"
+}
