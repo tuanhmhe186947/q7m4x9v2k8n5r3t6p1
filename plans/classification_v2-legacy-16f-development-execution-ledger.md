@@ -743,8 +743,45 @@ its artifacts. It was not retried or promoted; the preserved failure packet
 SHA256 is
 `13177898608040aec8886d338c365c41c38f78b7136ff3db5d916722557bfd85`.
 The v2 build fixed only that serialization audit and reran both caches from
-fresh output roots. L6 remains `IN_PROGRESS`: the next gate is the three-control
-short matrix for parameter-matched zero, availability-only, and motion.
+fresh output roots.
+
+### Motion Short Matrix And Decision
+
+Commits `cc01582`, `96e25b4`, and `6447c94` close the crash-bounded short
+motion matrix and paired decision. All three CPU preflights and six separate
+GPU processes passed. Each run used 30 optimizer steps, peaked at 73,400,320
+reserved bytes, had no OOM or retry, and cleaned CUDA allocation/reservation to
+zero. All per-mode repeats are byte-deterministic.
+
+Native validation point metrics are:
+
+- parameter-matched zero: macro-F1 `0.2620738697`, accuracy `0.4204081633`;
+- availability-only: macro-F1 `0.2572327329`, accuracy `0.4122448980`;
+- motion: macro-F1 `0.2602600258`, accuracy `0.4244897959`.
+
+Motion minus zero macro-F1 is `-0.0018138438`, with 33-video cluster interval
+`[-0.0260250944, 0.0233049368]`. Motion minus availability-only is
+`+0.0030272930`, with interval `[-0.0162803684, 0.0235850302]`. Motion improves
+NLL against zero by `0.0216145856`, but point macro-F1, both promotion margins,
+and both positive-lower-bound criteria fail. The rare-group macro-F1 change
+against zero is `-0.0031650335` on only 20 units.
+
+The valid negative decision is
+`DO_NOT_EXPAND_MOTION_FROM_CURRENT_SHORT_EVIDENCE`. Do not run full motion and
+do not put motion values into the next candidate. Continue L6 with all-class
+ROI relations from the parameter-matched T6 base. Reassess motion on frozen
+merged-reviewed data; this rejection does not transfer to that lineage.
+
+The short config SHA256 is
+`712d80ca6e6d5fd0761d3215f811edab9a360c84f37f3d9bcebb2bbee9702007`;
+the short matrix SHA256 is
+`fb7245efbe445bb4fb83ecb28a915742c5a5a93d09ffc70c3641864b06b2610a`;
+the decision config SHA256 is
+`084818121bea41da149dde955db940aedc4780c9f8f8474f7e24d7e4d573aa63`;
+the PASS decision artifact SHA256 is
+`9be7fd93854771b93b58bbcd9f8fa1ed96a8ddbda8e65fa8e68a4baf30a4d978`.
+
+L6 remains `IN_PROGRESS`; the next one-family gate is all-class ROI relations.
 
 ## Full-Run Boundary
 

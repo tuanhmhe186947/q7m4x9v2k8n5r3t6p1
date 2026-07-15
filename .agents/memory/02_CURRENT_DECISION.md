@@ -8,6 +8,16 @@ sections are historical records. Current gate status is centralized in
 
 ## Active decision: reviewed-data rebuild
 
+### Legacy L6 motion decision
+
+The `legacy_16f` motion short matrix is closed as valid negative evidence.
+Motion does not meet the predeclared native-unit/video-cluster promotion gates,
+so do not run full motion or add motion values to the next L6 candidate.
+Continue from parameter-matched T6 with all-class ROI relations. Geometry and
+motion must both be reassessed on frozen merged-reviewed data; neither rejection
+transfers to that lineage. The local 4 GiB GPU was only a correctness host and
+was not the rejection reason.
+
 ### Canonical engine and review-policy boundary
 
 There is one `classification_v2` data engine, not separate legacy and mixed

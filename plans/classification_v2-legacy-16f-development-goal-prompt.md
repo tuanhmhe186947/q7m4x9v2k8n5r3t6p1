@@ -291,6 +291,15 @@ a time:
 Every added modality requires a parameter-matched control, availability-only
 control, source probe, missing-modality test, and confusion-group report.
 
+Current L6 handoff: geometry is rejected after its full legacy confirmation,
+and the bounded T6 motion matrix is a valid negative decision. Motion does not
+meet the predeclared paired native-unit/video-cluster promotion criteria, so do
+not run a full motion expansion or carry motion values into the next candidate.
+Continue with all-class ROI relations from the same parameter-matched T6 base.
+Reassess both geometry and motion on frozen merged-reviewed data, where rare
+behavior support is materially larger. Local 4 GiB VRAM remains only a
+correctness-host constraint and is not the rejection reason.
+
 ### L7 - Select One Imbalance Policy
 
 Compare event-balanced CE, effective-number CE, and Balanced Softmax separately.

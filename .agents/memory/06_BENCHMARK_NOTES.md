@@ -1,5 +1,17 @@
 # Benchmark Notes
 
+## 2026-07-15 legacy L6 motion benchmark
+
+- The parameter-matched zero, availability-only, and motion controls use the
+  same T6 native-unit universe, seed, 69,664 parameters, and 30 steps.
+- Native macro-F1 is `0.2620738697`, `0.2572327329`, and `0.2602600258`,
+  respectively; all repeat artifacts are deterministic.
+- Motion minus zero is `-0.0018138438` with 33-video cluster interval
+  `[-0.0260250944, 0.0233049368]`; motion is not promoted to full legacy
+  development despite its NLL improvement.
+- Preserve this as `legacy_16f` negative evidence only. Reassess on merged data
+  with materially greater rare-behavior support.
+
 ## 2026-07-13 focused classifier critical path
 
 Canonical plan:

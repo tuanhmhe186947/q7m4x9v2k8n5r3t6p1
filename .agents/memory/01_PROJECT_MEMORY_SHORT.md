@@ -1,5 +1,20 @@
 # Project Memory Short
 
+## 2026-07-15 legacy L6 motion valid negative decision
+
+- Commits `cc01582`, `96e25b4`, and `6447c94` implement the crash-bounded
+  cached-motion trainer, three-control short matrix, and paired evaluator.
+- Six fresh-process GPU runs passed with 30 steps each, deterministic repeats,
+  73,400,320 peak reserved bytes, no OOM/retry, and zero cleanup residue.
+- Across 245 native units and 33 video clusters, motion minus parameter-matched
+  zero macro-F1 is `-0.0018138438`, with interval
+  `[-0.0260250944, 0.0233049368]`.
+- The valid decision is
+  `DO_NOT_EXPAND_MOTION_FROM_CURRENT_SHORT_EVIDENCE`; no full motion run is
+  authorized. Continue L6 with all-class ROI relations from the zero control.
+- This applies only to unreviewed `legacy_16f`. Reassess motion on frozen
+  merged-reviewed data, whose rare-class support is materially larger.
+
 ## 2026-07-14 one canonical engine and explicit review profiles
 
 - Legacy-only development and mixed-source reviewed data use one canonical
