@@ -4,9 +4,8 @@ import argparse
 import json
 from pathlib import Path
 
-from pig_behavior.classification_v2.training.legacy_development_l6_social_relation_cache import (
-    configured_repeat_output_path,
-    evaluate_social_relation_cache_repeat,
+from pig_behavior.classification_v2.evaluation import (
+    legacy_development_l6_social_relation_cache_repeat as repeat_gate,
 )
 
 
@@ -16,11 +15,11 @@ def main() -> None:
     parser.add_argument("--project-root", type=Path, default=Path.cwd())
     args = parser.parse_args()
     root = args.project_root.resolve()
-    result = evaluate_social_relation_cache_repeat(
+    result = repeat_gate.evaluate_social_relation_cache_repeat(
         args.config,
         project_root=root,
     )
-    output = configured_repeat_output_path(args.config, root)
+    output = repeat_gate.configured_output_path(args.config, root)
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("x", encoding="utf-8", newline="\n") as handle:
         json.dump(result, handle, indent=2, sort_keys=True)
