@@ -28,6 +28,10 @@ from pig_behavior.classification_v2.training.legacy_development_l5_cached_traini
 CONFIG_PATH = Path(
     "configs/classification_v2/legacy_development_l5_cached_training_v1.json"
 )
+SHORT_V2_CONFIG_PATH = Path(
+    "configs/classification_v2/"
+    "legacy_development_l5_cached_training_short_v2.json"
+)
 VALIDATION_COUNTS = {
     "drink": 20,
     "eat": 17,
@@ -46,12 +50,16 @@ def _synthetic_view(
     tmp_path: Path,
     *,
     with_features: bool = False,
+    train_counts: dict[str, int] | None = None,
 ) -> LegacyL5CachedFeatureView:
     records: list[dict[str, object]] = []
     targets: list[int] = []
     item_index = 0
+    train_counts = train_counts or {
+        behavior: 10 for behavior in VALID_BEHAVIORS
+    }
     for behavior_index, behavior in enumerate(VALID_BEHAVIORS):
-        for _ in range(10):
+        for _ in range(train_counts[behavior]):
             records.append(
                 _window_record(
                     item_index,
@@ -146,6 +154,25 @@ def test_cached_training_config_freezes_four_gib_short_semantics() -> None:
     assert config.payload["execution_guard"][
         "clear_cublas_workspaces_after_training"
     ] is True
+
+
+def test_cached_training_v2_short_freezes_expansion_contract(
+    tmp_path: Path,
+) -> None:
+    config = load_legacy_l5_cached_training_config(SHORT_V2_CONFIG_PATH)
+    view = _synthetic_view(tmp_path)
+    selection = build_legacy_l5_cached_short_selection(view, config)
+
+    assert config.training_scope == cached_training.SHORT_TRAINING_SCOPE
+    assert config.payload["expansion_contract"][
+        "full_expected_train_native_units"
+    ] == 3_652
+    assert config.payload["expansion_contract"][
+        "full_maximum_optimizer_steps"
+    ] == 345
+    assert selection.audit["training_scope"] == config.training_scope
+    assert tuple(selection.manifest.columns) == cached_training.SELECTION_FIELDS_V2
+    assert selection.manifest["training_scope"].eq(config.training_scope).all()
 
 
 def test_cached_training_config_rejects_allocator_drift(tmp_path: Path) -> None:
@@ -308,6 +335,33 @@ def test_cached_short_training_core_is_deterministic_and_mmap_bounded(
     assert torch.cuda.is_initialized() is cuda_initialized_before
 
 
+def test_cached_training_v2_metrics_preserve_scope(tmp_path: Path) -> None:
+    config = load_legacy_l5_cached_training_config(SHORT_V2_CONFIG_PATH)
+    payload = json.loads(json.dumps(config.payload))
+    payload["model"]["hidden_dim"] = 8
+    payload["optimization"]["epochs"] = 1
+    payload["optimization"]["batch_size"] = 32
+    payload["optimization"]["maximum_optimizer_steps"] = 3
+    test_config = replace(config, payload=payload)
+    view = _synthetic_view(tmp_path, with_features=True)
+    selection = build_legacy_l5_cached_short_selection(view, config)
+
+    outcome = train_legacy_l5_cached_short_core(
+        view,
+        selection,
+        test_config,
+        device="cpu",
+    )
+
+    assert outcome.metrics["training_scope"] == config.training_scope
+    assert outcome.predictions["training_scope"].eq(config.training_scope).all()
+    assert outcome.epoch_metrics["training_scope"].eq(config.training_scope).all()
+    assert outcome.per_class_metrics["lineage_scope"].eq(
+        cached_training.LINEAGE_SCOPE
+    ).all()
+    assert outcome.confusion["q2_claim_allowed"].eq(False).all()
+
+
 def test_cached_short_repeat_gate_validates_two_immutable_packets(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -357,6 +411,166 @@ def test_cached_short_repeat_gate_validates_two_immutable_packets(
     assert all(audit["equality"].values())
 
 
+def test_cached_training_v2_full_requires_bound_short_gate(
+    tmp_path: Path,
+) -> None:
+    full_path = _write_authorized_v2_full_config(tmp_path)
+    config = load_legacy_l5_cached_training_config(full_path)
+    train_counts = {
+        behavior: 366 if index < 2 else 365
+        for index, behavior in enumerate(VALID_BEHAVIORS)
+    }
+    view = _synthetic_view(tmp_path / "view", train_counts=train_counts)
+    selection = build_legacy_l5_cached_short_selection(view, config)
+
+    assert config.training_scope == cached_training.FULL_TRAINING_SCOPE
+    assert len(selection.train_positions) == 3_652
+    assert len(selection.validation_positions) == 245
+    assert selection.audit["train_class_counts"] == train_counts
+    assert selection.audit["training_scope"] == config.training_scope
+    assert selection.manifest["training_scope"].eq(config.training_scope).all()
+
+    payload = json.loads(full_path.read_text(encoding="utf-8"))
+    payload["short_gate_parent"]["gate_sha256"] = "0" * 64
+    drifted = full_path.with_name("full_gate_drift.json")
+    drifted.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ValueError, match="short gate parent hash drift"):
+        load_legacy_l5_cached_training_config(drifted)
+
+
+def _write_authorized_v2_full_config(tmp_path: Path) -> Path:
+    repo = tmp_path / "repo"
+    config_dir = repo / "configs" / "classification_v2"
+    config_dir.mkdir(parents=True)
+    base_path = config_dir / "legacy_development_l5_v1.json"
+    base_payload = json.loads(
+        Path("configs/classification_v2/legacy_development_l5_v1.json")
+        .read_text(encoding="utf-8")
+    )
+    base_payload["development_root"] = str(repo / "outputs" / "legacy")
+    base_path.write_text(json.dumps(base_payload), encoding="utf-8")
+
+    source_relative = Path(
+        "src/pig_behavior/classification_v2/training/"
+        "legacy_development_l5_cached_training.py"
+    )
+    source_path = repo / source_relative
+    source_path.parent.mkdir(parents=True)
+    source_path.write_bytes(Path(cached_training.__file__).read_bytes())
+    source_sha256 = cached_training.file_sha256(source_path)
+
+    short_payload = json.loads(SHORT_V2_CONFIG_PATH.read_text(encoding="utf-8"))
+    short_payload["base_config"]["sha256"] = cached_training.file_sha256(
+        base_path
+    )
+    short_path = config_dir / "cached_training_short_v2.json"
+    short_path.write_text(json.dumps(short_payload), encoding="utf-8")
+    short_config = load_legacy_l5_cached_training_config(short_path)
+    gate_path = short_config.output_root / short_payload["output"][
+        "short_gate_filename"
+    ]
+    gate_path.parent.mkdir(parents=True)
+    gate_result = {
+        "training_scope": cached_training.SHORT_TRAINING_SCOPE,
+        "config_sha256": cached_training.file_sha256(short_path),
+        "implementation_source_sha256": source_sha256,
+        "valid": True,
+    }
+    gate = {
+        "schema_version": cached_training.CACHED_TRAINING_REPEAT_GATE_SCHEMA_VERSION_V2,
+        "status": "PASS_LEGACY_DEVELOPMENT_L5_CACHED_TRAINING_SHORT_GATE",
+        "lineage_scope": cached_training.LINEAGE_SCOPE,
+        "training_scope": cached_training.SHORT_TRAINING_SCOPE,
+        "human_review_complete": False,
+        "reviewed_or_final_claim_allowed": False,
+        "q2_claim_allowed": False,
+        "canonical_full_oof_authorized": False,
+        "outer_holdout_predictions_authorized": False,
+        "config_path": str(short_path.resolve()),
+        "config_sha256": cached_training.file_sha256(short_path),
+        "implementation_source_sha256": source_sha256,
+        "required_runs": 2,
+        "reports": {
+            "primary": {
+                "result_sha256": "1" * 64,
+                "result": gate_result,
+                "errors": [],
+                "valid": True,
+            },
+            "repeat": {
+                "result_sha256": "2" * 64,
+                "result": gate_result,
+                "errors": [],
+                "valid": True,
+            },
+        },
+        "equality": {
+            name: True for name in cached_training.REPEAT_EQUALITY_FIELDS
+        },
+        "non_overlapping_execution": {"errors": [], "valid": True},
+        "source_media_reads": 0,
+        "outer_holdout_predictions_created": 0,
+        "exact_full_v0_t16_centered_expansion_authorized": True,
+        "other_visual_or_temporal_controls_authorized": False,
+        "errors": [],
+        "valid": True,
+    }
+    gate_path.write_text(json.dumps(gate), encoding="utf-8")
+
+    full_payload = json.loads(json.dumps(short_payload))
+    full_payload["training_scope"] = cached_training.FULL_TRAINING_SCOPE
+    full_payload["experiment_name"] = (
+        "legacy_l5_v0_t16_centered_masked_mean_full_development"
+    )
+    full_payload["experiment_contract"] = {
+        "experiment_id": "L5_V0_T16_FULL_DEVELOPMENT",
+        "parent_id": "L5_V0_T16_SHORT",
+        "scientific_role": "foundational_full_development_baseline",
+        "changed_family": "bounded_to_full_train_cardinality",
+        "hypothesis": (
+            "The unchanged V0 cached T16 head trains on every eligible "
+            "development-training native unit without outer access."
+        ),
+        "compute_cap": (
+            "one isolated run, 3652 train units, three epochs and 345 steps"
+        ),
+        "stop_rule": (
+            "Stop on short-gate, lineage, memory, finite, or outer-access "
+            "failure."
+        ),
+    }
+    full_payload["data"].update(
+        {
+            "train_selection_policy": "all_train_native_units_v1",
+            "train_selection_salt": "legacy_l5_cached_full_v1",
+            "train_native_units_per_class": None,
+            "expected_train_native_units": 3_652,
+        }
+    )
+    full_payload["optimization"]["maximum_optimizer_steps"] = 345
+    full_payload["repeat_gate"] = {
+        "required_runs": 1,
+        "require_distinct_run_ids": False,
+        "require_distinct_process_ids": False,
+        "require_non_overlapping_execution": False,
+        "require_identical_subset_hash": False,
+        "require_identical_parameter_hash": False,
+        "require_identical_prediction_hash": False,
+        "require_identical_epoch_metric_hash": False,
+    }
+    full_payload["short_gate_parent"] = {
+        "gate_path": gate_path.relative_to(repo).as_posix(),
+        "gate_sha256": cached_training.file_sha256(gate_path),
+        "short_config_path": short_path.relative_to(repo).as_posix(),
+        "short_config_sha256": cached_training.file_sha256(short_path),
+        "implementation_source_sha256": source_sha256,
+        "authorized_training_scope": cached_training.FULL_TRAINING_SCOPE,
+    }
+    full_path = config_dir / "cached_training_full_v2.json"
+    full_path.write_text(json.dumps(full_payload), encoding="utf-8")
+    return full_path
+
+
 def _write_synthetic_packet(
     root: Path,
     *,
@@ -367,7 +581,7 @@ def _write_synthetic_packet(
     process_id: int,
 ) -> Path:
     root.mkdir()
-    paths = cached_training._cached_training_run_paths(root)
+    paths = cached_training._cached_training_run_paths(root, config=config)
     git_guard = {
         "code_sha": "a" * 40,
         "dirty_worktree": False,

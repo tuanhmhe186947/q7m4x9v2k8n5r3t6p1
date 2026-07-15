@@ -1,4 +1,4 @@
-"""Preflight, run and repeat-gate the crash-bounded legacy L5 short head."""
+"""Preflight, run and audit crash-bounded legacy L5 cached training."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from pathlib import Path
 
 from pig_behavior.classification_v2.training.legacy_development_l5_cached_training import (
     audit_legacy_l5_cached_training_repeat_gate,
+    audit_legacy_l5_cached_training_run,
     load_legacy_l5_cached_training_config,
     preflight_legacy_l5_cached_short_training,
     run_legacy_l5_cached_short_training,
@@ -17,7 +18,7 @@ from pig_behavior.classification_v2.training.legacy_development_l5_cached_traini
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Run the legacy L5 cached-feature short-training gate."
+        description="Run gated legacy L5 cached-feature development training."
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
     preflight = subparsers.add_parser(
@@ -27,10 +28,16 @@ def main() -> None:
     _add_config_argument(preflight)
     run = subparsers.add_parser(
         "run",
-        help="Execute exactly one fresh-process CUDA short run.",
+        help="Execute one configured fresh-process CUDA run.",
     )
     _add_config_argument(run)
     run.add_argument("--run-id", required=True)
+    audit_run = subparsers.add_parser(
+        "audit-run",
+        help="Audit one completed short or full packet without CUDA.",
+    )
+    _add_config_argument(audit_run)
+    audit_run.add_argument("--result-json", type=Path, required=True)
     repeat = subparsers.add_parser(
         "repeat-gate",
         help="Compare two separate completed runs and write the short gate.",
@@ -47,6 +54,11 @@ def main() -> None:
         result = run_legacy_l5_cached_short_training(
             config,
             run_id=args.run_id,
+        )
+    elif args.command == "audit-run":
+        result = audit_legacy_l5_cached_training_run(
+            config,
+            result_path=args.result_json,
         )
     else:
         audit = audit_legacy_l5_cached_training_repeat_gate(

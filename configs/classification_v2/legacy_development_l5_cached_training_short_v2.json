@@ -1,0 +1,141 @@
+{
+  "schema_version": "classification_v2.legacy_development_l5.cached_training_config.v2",
+  "training_scope": "short_repeat_gate",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "development_metrics_authorized": true,
+  "execution_mode": "local_smoke",
+  "experiment_name": "legacy_l5_v0_t16_centered_masked_mean_short_v2",
+  "experiment_contract": {
+    "experiment_id": "L5_V0_T16_SHORT",
+    "parent_id": "cfd_v0_t16_b425c86",
+    "scientific_role": "foundational_baseline_gate",
+    "changed_family": "cached_temporal_head_training",
+    "hypothesis": "V0 cached T16 head is deterministic and finite in nine steps.",
+    "compute_cap": "two isolated runs, three epochs and nine steps per run",
+    "stop_rule": "Stop on lineage, memory, finite, repeat, or outer-access failure."
+  },
+  "base_config": {
+    "path": "configs/classification_v2/legacy_development_l5_v1.json",
+    "sha256": "24bfca98440b2cc5983451eb639868610d724eadf89ea36db907540cb8f86e4c"
+  },
+  "consumer_parent": {
+    "run_id": "cfd_v0_t16_b425c86",
+    "code_sha": "b425c8645bff29cf216f4ff70b19976283d97301",
+    "consumer_run_relative_path": "15_l5_core_baselines/cfd_v0_t16_b425c86",
+    "run_manifest_sha256": "199a6e5e3502f3c728910461ed1ddec18e976cba326fd34f61c6bf0b2269850b",
+    "cached_data_audit_sha256": "60509861d03ebbc184543ba441a36d6ee2c2473c217c4c9f07df08f6ee225e9d",
+    "feature_run_relative_path": "15_l5_core_baselines/ff_v0_e34521d",
+    "feature_manifest_sha256": "acc413445f304cf2020854307477bbb6aed8d63380594c3208983ab5f37cd932",
+    "feature_result_sha256": "e29841d705c88ef3e7be93b407908c714de4abd1832e1981023c09ff0b536655",
+    "feature_tensor_sha256": "a27f9f3ba589bc104016a132d562220b92defb6db756db19307ac0cee977f91b",
+    "feature_index_sha256": "c62b950f8d0d2936ad737a0863e722a0b1858281c9e9d132a49b7b3769355d40",
+    "dataset_snapshot_sha256": "df214c2fa78cdfeb1ee9415773e34e4bc5226e6b5241e6ec1f3823ccaea542ed",
+    "fold_manifest_sha256": "0932ee8ff7ceb3ae1a9085fd897e45e91de2180a5effab6fe5d0ba5a4105174b",
+    "feature_whitelist_sha256": "9faed123d9deb056f72d9024d3602de5ca81267de646e61b47ceb3f9b49655b2"
+  },
+  "data": {
+    "control_id": "V0",
+    "temporal_view_name": "legacy_t16_centered_matched_observed_time",
+    "sampling_protocol": "one_centered_window_matched",
+    "sequence_length": 16,
+    "feature_dim": 512,
+    "model_visible_roles": [
+      "train",
+      "validation"
+    ],
+    "outer_holdout_access": "FORBIDDEN_DURING_MODEL_SELECTION",
+    "train_selection_policy": "sha256_rank_per_class_v1",
+    "train_selection_salt": "legacy_l5_cached_short_v1",
+    "train_native_units_per_class": 8,
+    "expected_train_native_units": 80,
+    "validation_selection_policy": "all_validation_native_units_v1",
+    "expected_validation_native_units": 245,
+    "native_prediction_aggregation": "one_centered_window_per_native_unit"
+  },
+  "model": {
+    "architecture": "cached_frame_feature_temporal_classifier_v1",
+    "temporal_encoder_name": "masked_mean",
+    "hidden_dim": 128,
+    "dropout": 0.1,
+    "transformer_layers": 1,
+    "transformer_heads": 4,
+    "direct_ten_class_supervision": true,
+    "data_derived_normalization": "none",
+    "learned_input_transform": "layer_norm_and_linear_projection"
+  },
+  "optimization": {
+    "seed": 20260714,
+    "epochs": 3,
+    "batch_size": 32,
+    "evaluation_batch_size": 64,
+    "learning_rate": 0.003,
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 1.0,
+    "loss": "event_mass_balanced_cross_entropy",
+    "sampler": "deterministic_seeded_shuffle",
+    "checkpoint_selection": "validation_native_global_10_class_macro_f1_then_nll",
+    "precision": "float32",
+    "autocast_enabled": false,
+    "deterministic_algorithms": true,
+    "dataloader_num_workers": 0,
+    "pin_memory": false,
+    "persistent_workers": false,
+    "prefetch_factor": null,
+    "device": "cuda:0",
+    "declared_local_gpu_vram_gib": 4,
+    "validated_local_gpu_vram_bytes": 4294443008,
+    "maximum_peak_vram_fraction": 0.7,
+    "allocator_limit_bytes": 3006110105,
+    "oom_retry_allowed": false,
+    "maximum_optimizer_steps": 9,
+    "maximum_loaded_batch_bytes": 2103552
+  },
+  "execution_guard": {
+    "require_fresh_process": true,
+    "require_committed_training_source": true,
+    "clear_cublas_workspaces_after_training": true,
+    "allowed_dirty_paths": [
+      ".tokensave/config.json",
+      "outputs/classification_v2/train_ready_windows/feature_semantics_audit.json",
+      "scripts/diagnostics/detect_single_frame.py"
+    ]
+  },
+  "repeat_gate": {
+    "required_runs": 2,
+    "require_distinct_run_ids": true,
+    "require_distinct_process_ids": true,
+    "require_non_overlapping_execution": true,
+    "require_identical_subset_hash": true,
+    "require_identical_parameter_hash": true,
+    "require_identical_prediction_hash": true,
+    "require_identical_epoch_metric_hash": true
+  },
+  "output": {
+    "run_root_relative_path": "15_l5_core_baselines",
+    "registry_filename": "runs_registry.csv",
+    "short_gate_filename": "legacy_l5_cached_training_short_gate_v2.json"
+  },
+  "expansion_contract": {
+    "short_training_scope": "short_repeat_gate",
+    "full_training_scope": "full_development_baseline",
+    "short_train_selection_policy": "sha256_rank_per_class_v1",
+    "full_train_selection_policy": "all_train_native_units_v1",
+    "short_expected_train_native_units": 80,
+    "full_expected_train_native_units": 3652,
+    "expected_validation_native_units": 245,
+    "epochs": 3,
+    "batch_size": 32,
+    "short_maximum_optimizer_steps": 9,
+    "full_maximum_optimizer_steps": 345,
+    "required_short_runs": 2,
+    "required_full_runs": 1,
+    "frozen_semantic_family": "V0_resnet18_160_T16_centered_masked_mean_v1",
+    "allowed_expansion_diff": "train_selection_cardinality_step_cap_and_run_count_only_v1",
+    "implementation_source_relative_path": "src/pig_behavior/classification_v2/training/legacy_development_l5_cached_training.py"
+  }
+}
