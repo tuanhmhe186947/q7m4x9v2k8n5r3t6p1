@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 from pig_behavior.classification_v2.evaluation.legacy_development_l6_geometry_decision import (
-    write_geometry_short_decision,
+    write_geometry_decision,
 )
 
 
@@ -16,7 +16,7 @@ def main() -> int:
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--project-root", type=Path, default=Path.cwd())
     args = parser.parse_args()
-    output, payload = write_geometry_short_decision(
+    output, payload = write_geometry_decision(
         args.config,
         project_root=args.project_root,
     )

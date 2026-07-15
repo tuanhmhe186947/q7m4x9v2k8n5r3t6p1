@@ -8,7 +8,9 @@ import pytest
 
 from pig_behavior.classification_v2.evaluation.legacy_development_l6_geometry_decision import (
     _validate_config,
+    _validate_full_config,
     make_geometry_decision,
+    make_geometry_full_decision,
 )
 
 
@@ -86,6 +88,43 @@ def test_geometry_decision_requires_paired_cluster_support() -> None:
     ] is False
 
 
+def test_geometry_full_decision_preserves_valid_negative_evidence() -> None:
+    comparisons = {
+        "geometry_vs_parameter_matched_zero": _comparison(
+            macro_delta=-0.038,
+            nll_delta=-0.069,
+            ci_low=-0.09,
+            rare_delta=-0.01,
+        ),
+        "geometry_vs_availability_only": _comparison(
+            macro_delta=0.006,
+            nll_delta=-0.037,
+            ci_low=-0.03,
+            rare_delta=0.0,
+        ),
+        "availability_only_vs_parameter_matched_zero": _comparison(
+            macro_delta=-0.044,
+            nll_delta=-0.032,
+            ci_low=-0.09,
+            rare_delta=0.0,
+        ),
+    }
+
+    decision = make_geometry_full_decision(
+        comparisons,
+        contract=_contract(),
+    )
+
+    assert decision["geometry_retained_for_next_l6_modality"] is False
+    assert decision["negative_result_is_valid_evidence"] is True
+    assert decision["decision"] == (
+        "REJECT_GEOMETRY_AS_UNSUPPORTED_IN_FULL_LEGACY_DEVELOPMENT"
+    )
+    assert decision["next_action"] == (
+        "continue_l6_motion_from_parameter_matched_zero"
+    )
+
+
 def test_geometry_decision_config_locks_predeclared_thresholds() -> None:
     path = Path(
         "configs/classification_v2/"
@@ -99,3 +138,20 @@ def test_geometry_decision_config_locks_predeclared_thresholds() -> None:
     changed["decision_contract"]["minimum_macro_f1_gain"] = 0.0
     with pytest.raises(ValueError, match="decision contract"):
         _validate_config(changed)
+
+
+def test_geometry_full_decision_config_locks_negative_evidence() -> None:
+    path = Path(
+        "configs/classification_v2/"
+        "legacy_development_l6_geometry_full_decision_v1.json"
+    )
+    payload = json.loads(path.read_text(encoding="utf-8"))
+
+    _validate_full_config(payload)
+
+    changed = copy.deepcopy(payload)
+    changed["interpretation_boundary"][
+        "negative_result_is_valid_evidence"
+    ] = False
+    with pytest.raises(ValueError, match="interpretation boundary"):
+        _validate_full_config(changed)

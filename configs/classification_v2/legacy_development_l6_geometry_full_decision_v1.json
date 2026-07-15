@@ -1,0 +1,75 @@
+{
+  "schema_version": "classification_v2.legacy_development_l6.geometry_full_decision_config.v1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "full_training_config": {
+    "path": "configs/classification_v2/legacy_development_l6_geometry_full_v1.json",
+    "sha256": "20e7ba457f27abd1e8ed93341ac77b348985f8e62f4eab39311d90d38b945198"
+  },
+  "runs": {
+    "parameter_matched_zero": {
+      "result_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6g_full_v1/parameter_matched_zero/z_ae3303b/run_result.json",
+      "result_sha256": "5a722dea0cc668125d5c0f79f8b82dff354873855cfee11650303bf8a0d5bd37",
+      "run_manifest_sha256": "f59a429b5264aeaf2a018fe8cc795ac393f7d4706b392271875561a933d9d810",
+      "artifact_manifest_sha256": "5aa69f82fd629a43bd6a441c42ee21a67326ce74305b326ab6c4ab193b873aa7"
+    },
+    "availability_only": {
+      "result_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6g_full_v1/availability_only/a_ae3303b/run_result.json",
+      "result_sha256": "b41c4fb8316b87c527d54e42a03c2bb3819cb3d5666285746cec8c2b21eded71",
+      "run_manifest_sha256": "16ba712ddfb1c876fdfa0494a51379731461dae26af273db40ca8f5aa76ab602",
+      "artifact_manifest_sha256": "21388b492e229373819d5334768f00d692eb19f2debdbd8aa2b49e91165eff79"
+    },
+    "geometry": {
+      "result_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6g_full_v1/geometry/g_ae3303b/run_result.json",
+      "result_sha256": "358e618dbf756f831790abebd4d95abca6edc8356744289ae3963dc8268500f8",
+      "run_manifest_sha256": "81241e1697330a0fa86c95cac20f71f0ccf72cc2cf02b4d0f644fa2af1483386",
+      "artifact_manifest_sha256": "60ece4c360ea9e149d52447139c8ca783aa90f537872861efc04e0b44d1fff2f"
+    }
+  },
+  "paired_contract": {
+    "unit_column": "temporal_unit_key",
+    "cluster_column": "video_key",
+    "validation_fold_id": "legacy_l6_full_validation_v1",
+    "expected_native_units": 245,
+    "expected_clusters": 33,
+    "bootstrap_iterations": 2000,
+    "bootstrap_seed": 20260715
+  },
+  "decision_contract": {
+    "minimum_macro_f1_gain": 0.02,
+    "maximum_absolute_availability_only_gain": 0.01,
+    "maximum_rare_group_macro_f1_drop": 0.02,
+    "require_positive_video_cluster_ci_low": true,
+    "require_nll_improvement_vs_zero": true
+  },
+  "interpretation_boundary": {
+    "legacy_only_decision": true,
+    "architecture_family_finalized": false,
+    "applies_to_merged_reviewed_data": false,
+    "merged_reviewed_reassessment_required": true,
+    "availability_only_is_behavior_evidence": false,
+    "negative_result_is_valid_evidence": true
+  },
+  "implementation": {
+    "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_l6_geometry_decision.py",
+    "sha256": "1be3231512df000c042bd746747d1456cd0158ac7baaea29ce0b1dabbd49d1cb"
+  },
+  "execution_guard": {
+    "allowed_dirty_paths": [
+      ".tokensave/config.json",
+      "outputs/classification_v2/train_ready_windows/feature_semantics_audit.json",
+      "scripts/diagnostics/detect_single_frame.py"
+    ],
+    "required_tracked_paths": [
+      "configs/classification_v2/legacy_development_l6_geometry_full_decision_v1.json",
+      "scripts/classification_v2/07_postrun_evaluation/check_classification_v2_legacy_l6_geometry_decision.py",
+      "src/pig_behavior/classification_v2/evaluation/legacy_development_l6_geometry_decision.py",
+      "tests/test_classification_v2_legacy_l6_geometry_decision.py"
+    ]
+  },
+  "output_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6g_full_v1/l6g_full_decision_v1.json"
+}

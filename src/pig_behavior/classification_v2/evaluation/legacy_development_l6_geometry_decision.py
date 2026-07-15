@@ -14,6 +14,7 @@ from pig_behavior.classification_v2.evaluation.statistics import (
     paired_cluster_bootstrap,
 )
 from pig_behavior.classification_v2.training.legacy_development_l6_geometry import (
+    FULL_SCOPE,
     LINEAGE_SCOPE,
     MODES,
     SHORT_SCOPE,
@@ -32,6 +33,12 @@ CONFIG_SCHEMA = (
 )
 RESULT_SCHEMA = (
     "classification_v2.legacy_development_l6.geometry_decision.v1"
+)
+FULL_CONFIG_SCHEMA = (
+    "classification_v2.legacy_development_l6.geometry_full_decision_config.v1"
+)
+FULL_RESULT_SCHEMA = (
+    "classification_v2.legacy_development_l6.geometry_full_decision.v1"
 )
 EXPECTED_NATIVE_UNITS = 245
 EXPECTED_VIDEO_CLUSTERS = 33
@@ -78,23 +85,7 @@ def evaluate_geometry_short_decision(
     }
     universe = _validate_common_universe(packets)
     paired_contract = _object(config["paired_contract"], "paired_contract")
-    comparisons = {
-        "geometry_vs_parameter_matched_zero": _compare_packets(
-            packets["geometry"],
-            packets["parameter_matched_zero"],
-            contract=paired_contract,
-        ),
-        "geometry_vs_availability_only": _compare_packets(
-            packets["geometry"],
-            packets["availability_only"],
-            contract=paired_contract,
-        ),
-        "availability_only_vs_parameter_matched_zero": _compare_packets(
-            packets["availability_only"],
-            packets["parameter_matched_zero"],
-            contract=paired_contract,
-        ),
-    }
+    comparisons = _compare_all_packets(packets, contract=paired_contract)
     decision = make_geometry_decision(
         comparisons,
         contract=_object(config["decision_contract"], "decision_contract"),
@@ -142,9 +133,96 @@ def evaluate_geometry_short_decision(
     }
 
 
+def evaluate_geometry_full_decision(
+    config_path: Path,
+    *,
+    project_root: Path,
+) -> dict[str, Any]:
+    """Audit the three full packets and retain or reject geometry."""
+
+    root = project_root.resolve()
+    resolved_config = config_path.resolve()
+    config = _read_json(resolved_config)
+    _validate_full_config(config)
+    implementation = _resolve_inside(root, config["implementation"]["path"])
+    _validate_bound_file(
+        implementation,
+        config["implementation"]["sha256"],
+        "full decision implementation",
+    )
+    training_path = _resolve_inside(root, config["full_training_config"]["path"])
+    _validate_bound_file(
+        training_path,
+        config["full_training_config"]["sha256"],
+        "full training config",
+    )
+    training_config = load_geometry_training_config(training_path)
+    if training_config.training_scope != FULL_SCOPE:
+        raise ValueError("L6 geometry full decision requires full scope")
+    packets = {
+        mode: _load_full_packet(
+            root,
+            training_config,
+            mode=mode,
+            spec=_object(config["runs"][mode], f"runs.{mode}"),
+        )
+        for mode in MODES
+    }
+    universe = _validate_common_universe(packets)
+    comparisons = _compare_all_packets(
+        packets,
+        contract=_object(config["paired_contract"], "paired_contract"),
+    )
+    decision = make_geometry_full_decision(
+        comparisons,
+        contract=_object(config["decision_contract"], "decision_contract"),
+    )
+    git_guard = _git_guard(
+        root,
+        _object(config["execution_guard"], "execution_guard"),
+    )
+    errors = [*git_guard["errors"]]
+    valid = not errors
+    return {
+        "schema_version": FULL_RESULT_SCHEMA,
+        "status": (
+            "PASS_LEGACY_DEVELOPMENT_L6_GEOMETRY_FULL_DECISION"
+            if valid
+            else "FAIL_LEGACY_DEVELOPMENT_L6_GEOMETRY_FULL_DECISION"
+        ),
+        "lineage_scope": LINEAGE_SCOPE,
+        "training_scope": FULL_SCOPE,
+        "canonical_source_name": training_config.payload["canonical_source_name"],
+        "human_review_complete": False,
+        "reviewed_or_final_claim_allowed": False,
+        "q2_claim_allowed": False,
+        "canonical_full_oof_authorized": False,
+        "outer_holdout_predictions_authorized": False,
+        "config_path": str(resolved_config),
+        "config_sha256": file_sha256(resolved_config),
+        "full_training_config_sha256": training_config.sha256,
+        "common_native_universe": universe,
+        "packets": {
+            mode: _packet_summary(packet) for mode, packet in packets.items()
+        },
+        "comparisons": comparisons,
+        "decision": decision,
+        "source_media_reads": 0,
+        "outer_holdout_predictions_created": 0,
+        "git_guard": git_guard,
+        "errors": errors,
+        "valid": valid,
+    }
+
+
 def configured_output_path(config_path: Path, project_root: Path) -> Path:
     config = _read_json(config_path.resolve())
-    _validate_config(config)
+    if config.get("schema_version") == CONFIG_SCHEMA:
+        _validate_config(config)
+    elif config.get("schema_version") == FULL_CONFIG_SCHEMA:
+        _validate_full_config(config)
+    else:
+        raise ValueError("unknown L6 geometry decision config schema")
     return _resolve_inside(project_root.resolve(), config["output_path"])
 
 
@@ -170,6 +248,49 @@ def write_geometry_short_decision(
         handle.write(encoded)
         handle.write("\n")
     return output, payload
+
+
+def write_geometry_full_decision(
+    config_path: Path,
+    *,
+    project_root: Path,
+) -> tuple[Path, dict[str, Any]]:
+    payload = evaluate_geometry_full_decision(
+        config_path,
+        project_root=project_root,
+    )
+    output = configured_output_path(config_path, project_root)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    encoded = json.dumps(
+        payload,
+        indent=2,
+        sort_keys=True,
+        ensure_ascii=False,
+        allow_nan=False,
+    )
+    with output.open("x", encoding="utf-8", newline="\n") as handle:
+        handle.write(encoded)
+        handle.write("\n")
+    return output, payload
+
+
+def write_geometry_decision(
+    config_path: Path,
+    *,
+    project_root: Path,
+) -> tuple[Path, dict[str, Any]]:
+    config = _read_json(config_path.resolve())
+    if config.get("schema_version") == CONFIG_SCHEMA:
+        return write_geometry_short_decision(
+            config_path,
+            project_root=project_root,
+        )
+    if config.get("schema_version") == FULL_CONFIG_SCHEMA:
+        return write_geometry_full_decision(
+            config_path,
+            project_root=project_root,
+        )
+    raise ValueError("unknown L6 geometry decision config schema")
 
 
 def _load_matrix(
@@ -262,11 +383,61 @@ def _load_packet(
     }
 
 
+def _load_full_packet(
+    root: Path,
+    training_config: LegacyL6GeometryConfig,
+    *,
+    mode: str,
+    spec: dict[str, Any],
+) -> dict[str, Any]:
+    result_path = _resolve_inside(root, spec["result_path"])
+    _validate_bound_file(result_path, spec["result_sha256"], f"{mode} result")
+    audit = audit_geometry_run(training_config, result_path=result_path)
+    if not audit["valid"]:
+        raise ValueError(f"L6 geometry full run audit failed mode={mode}")
+    _require_equal(audit["mode"], mode, f"{mode} audit mode")
+    _require_equal(
+        audit["run_manifest_sha256"],
+        spec["run_manifest_sha256"],
+        f"{mode} run manifest hash",
+    )
+    _require_equal(
+        audit["artifact_manifest_sha256"],
+        spec["artifact_manifest_sha256"],
+        f"{mode} artifact manifest hash",
+    )
+    result = _object(audit["result"], f"{mode} result")
+    _require_equal(result["training_scope"], FULL_SCOPE, f"{mode} scope")
+    _require_equal(result["optimizer_steps"], 1_371, f"{mode} optimizer steps")
+    run_root = result_path.parent
+    return {
+        "mode": mode,
+        "audit": audit,
+        "result": result,
+        "predictions": pd.read_csv(run_root / "validation_native_predictions.csv"),
+        "confusion_groups": pd.read_csv(
+            run_root / "validation_confusion_groups.csv"
+        ),
+    }
+
+
 def _validate_common_universe(
     packets: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     reference: pd.DataFrame | None = None
+    lineage_reference: tuple[object, ...] | None = None
     for mode in MODES:
+        result = _object(packets[mode]["result"], f"{mode} result")
+        lineage = (
+            result["config_sha256"],
+            result["selection_content_sha256"],
+            result["normalization_state_sha256"],
+            result["optimizer_steps"],
+        )
+        if lineage_reference is None:
+            lineage_reference = lineage
+        elif lineage != lineage_reference:
+            raise ValueError(f"paired training lineage differs mode={mode}")
         frame = packets[mode]["predictions"]
         required = {
             "temporal_unit_key",
@@ -296,6 +467,7 @@ def _validate_common_universe(
         elif not metadata.equals(reference):
             raise ValueError(f"paired native universe differs mode={mode}")
     assert reference is not None
+    assert lineage_reference is not None
     clusters = int(reference["video_key"].nunique())
     _require_equal(clusters, EXPECTED_VIDEO_CLUSTERS, "video clusters")
     return {
@@ -303,6 +475,9 @@ def _validate_common_universe(
         "video_clusters": clusters,
         "modes": list(MODES),
         "exact_metadata_equality": True,
+        "exact_training_lineage_equality": True,
+        "selection_content_sha256": lineage_reference[1],
+        "normalization_state_sha256": lineage_reference[2],
         "outer_holdout_rows": 0,
     }
 
@@ -367,6 +542,30 @@ def _compare_packets(
     }
 
 
+def _compare_all_packets(
+    packets: dict[str, dict[str, Any]],
+    *,
+    contract: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    return {
+        "geometry_vs_parameter_matched_zero": _compare_packets(
+            packets["geometry"],
+            packets["parameter_matched_zero"],
+            contract=contract,
+        ),
+        "geometry_vs_availability_only": _compare_packets(
+            packets["geometry"],
+            packets["availability_only"],
+            contract=contract,
+        ),
+        "availability_only_vs_parameter_matched_zero": _compare_packets(
+            packets["availability_only"],
+            packets["parameter_matched_zero"],
+            contract=contract,
+        ),
+    }
+
+
 def make_geometry_decision(
     comparisons: dict[str, dict[str, Any]],
     *,
@@ -423,6 +622,37 @@ def make_geometry_decision(
             "prepare_hash_bound_full_geometry_config"
             if authorized
             else "retain_zero_control_and_stop_geometry_expansion"
+        ),
+    }
+
+
+def make_geometry_full_decision(
+    comparisons: dict[str, dict[str, Any]],
+    *,
+    contract: dict[str, Any],
+) -> dict[str, Any]:
+    promotion = make_geometry_decision(comparisons, contract=contract)
+    retained = bool(promotion["full_geometry_expansion_authorized"])
+    return {
+        "decision": (
+            "RETAIN_GEOMETRY_FOR_NEXT_L6_MODALITY"
+            if retained
+            else "REJECT_GEOMETRY_AS_UNSUPPORTED_IN_FULL_LEGACY_DEVELOPMENT"
+        ),
+        "criteria": promotion["criteria"],
+        "thresholds": copy.deepcopy(contract),
+        "geometry_retained_for_next_l6_modality": retained,
+        "full_confirmation_passed": retained,
+        "negative_result_is_valid_evidence": True,
+        "architecture_family_finalized": False,
+        "applies_to_merged_reviewed_data": False,
+        "merged_reviewed_reassessment_required": True,
+        "availability_only_is_behavior_evidence": False,
+        "source_probe_status": "NOT_ESTIMABLE_SINGLE_LEGACY_SOURCE",
+        "next_action": (
+            "continue_l6_motion_from_geometry"
+            if retained
+            else "continue_l6_motion_from_parameter_matched_zero"
         ),
     }
 
@@ -517,7 +747,7 @@ def _packet_summary(packet: dict[str, Any]) -> dict[str, Any]:
         or execution.get("valid") is not True
     ):
         raise ValueError(f"invalid runtime cleanup mode={packet['mode']}")
-    return {
+    summary = {
         "mode": packet["mode"],
         "run_id": result["run_id"],
         "process_id": result["process_id"],
@@ -526,8 +756,6 @@ def _packet_summary(packet: dict[str, Any]) -> dict[str, Any]:
         "artifact_manifest_sha256": packet["audit"][
             "artifact_manifest_sha256"
         ],
-        "repeat_gate_path": packet["repeat_gate_path"],
-        "repeat_gate_sha256": packet["repeat_gate_sha256"],
         "validation_metrics": _global_metrics(result["validation_metrics"]),
         "missing_validation_metrics": _global_metrics(
             result["missing_validation_metrics"]
@@ -541,6 +769,10 @@ def _packet_summary(packet: dict[str, Any]) -> dict[str, Any]:
         "oom": False,
         "valid": True,
     }
+    if "repeat_gate_path" in packet:
+        summary["repeat_gate_path"] = packet["repeat_gate_path"]
+        summary["repeat_gate_sha256"] = packet["repeat_gate_sha256"]
+    return summary
 
 
 def _validate_config(config: dict[str, Any]) -> None:
@@ -623,6 +855,102 @@ def _validate_config(config: dict[str, Any]) -> None:
         "applies_to_merged_reviewed_data": False,
         "merged_reviewed_reassessment_required": True,
         "availability_only_is_behavior_evidence": False,
+    }
+    _require_equal(
+        _object(config["interpretation_boundary"], "interpretation_boundary"),
+        boundary,
+        "interpretation boundary",
+    )
+    guard = _object(config["execution_guard"], "execution_guard")
+    _require_exact_keys(
+        guard,
+        {"allowed_dirty_paths", "required_tracked_paths"},
+        "execution_guard",
+    )
+
+
+def _validate_full_config(config: dict[str, Any]) -> None:
+    required = {
+        "schema_version",
+        "lineage_scope",
+        "human_review_complete",
+        "reviewed_or_final_claim_allowed",
+        "q2_claim_allowed",
+        "canonical_full_oof_authorized",
+        "outer_holdout_predictions_authorized",
+        "full_training_config",
+        "runs",
+        "paired_contract",
+        "decision_contract",
+        "interpretation_boundary",
+        "implementation",
+        "execution_guard",
+        "output_path",
+    }
+    _require_exact_keys(config, required, "full decision config")
+    _require_equal(config["schema_version"], FULL_CONFIG_SCHEMA, "config schema")
+    _require_equal(config["lineage_scope"], LINEAGE_SCOPE, "lineage scope")
+    for field in (
+        "human_review_complete",
+        "reviewed_or_final_claim_allowed",
+        "q2_claim_allowed",
+        "canonical_full_oof_authorized",
+        "outer_holdout_predictions_authorized",
+    ):
+        _require_equal(config[field], False, field)
+    for name in ("full_training_config", "implementation"):
+        _validate_bound_spec(config[name], name)
+    runs = _object(config["runs"], "runs")
+    _require_equal(set(runs), set(MODES), "run mode set")
+    run_fields = {
+        "result_path",
+        "result_sha256",
+        "run_manifest_sha256",
+        "artifact_manifest_sha256",
+    }
+    for mode, value in runs.items():
+        spec = _object(value, f"runs.{mode}")
+        _require_exact_keys(spec, run_fields, f"runs.{mode}")
+        for field in run_fields:
+            if field.endswith("sha256"):
+                _require_sha(spec[field], f"runs.{mode}.{field}")
+    _validate_full_scientific_contracts(config)
+
+
+def _validate_full_scientific_contracts(config: dict[str, Any]) -> None:
+    paired = {
+        "unit_column": "temporal_unit_key",
+        "cluster_column": "video_key",
+        "validation_fold_id": "legacy_l6_full_validation_v1",
+        "expected_native_units": EXPECTED_NATIVE_UNITS,
+        "expected_clusters": EXPECTED_VIDEO_CLUSTERS,
+        "bootstrap_iterations": 2000,
+        "bootstrap_seed": 20260715,
+    }
+    _require_equal(
+        _object(config["paired_contract"], "paired_contract"),
+        paired,
+        "paired contract",
+    )
+    decision = {
+        "minimum_macro_f1_gain": 0.02,
+        "maximum_absolute_availability_only_gain": 0.01,
+        "maximum_rare_group_macro_f1_drop": 0.02,
+        "require_positive_video_cluster_ci_low": True,
+        "require_nll_improvement_vs_zero": True,
+    }
+    _require_equal(
+        _object(config["decision_contract"], "decision_contract"),
+        decision,
+        "decision contract",
+    )
+    boundary = {
+        "legacy_only_decision": True,
+        "architecture_family_finalized": False,
+        "applies_to_merged_reviewed_data": False,
+        "merged_reviewed_reassessment_required": True,
+        "availability_only_is_behavior_evidence": False,
+        "negative_result_is_valid_evidence": True,
     }
     _require_equal(
         _object(config["interpretation_boundary"], "interpretation_boundary"),
