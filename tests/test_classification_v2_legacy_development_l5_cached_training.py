@@ -40,6 +40,10 @@ V2_SHORT_V4_CONFIG_PATH = Path(
     "configs/classification_v2/"
     "legacy_development_l5_cached_training_v2_t16_short_v4.json"
 )
+T1_SHORT_V5_CONFIG_PATH = Path(
+    "configs/classification_v2/"
+    "legacy_development_l5_cached_training_t1_t16_short_v5.json"
+)
 VALIDATION_COUNTS = {
     "drink": 20,
     "eat": 17,
@@ -251,6 +255,44 @@ def test_cached_training_v4_freezes_v2_backbone_only(
     drifted = path.with_name("v2_backbone_drift.json")
     drifted.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(ValueError, match="V2 backbone ablation drift"):
+        load_legacy_l5_cached_training_config(drifted)
+
+
+def test_cached_training_v5_freezes_t1_temporal_only(
+    tmp_path: Path,
+) -> None:
+    path = _write_t1_short_config(tmp_path)
+    config = load_legacy_l5_cached_training_config(path)
+    v1_view = replace(_synthetic_view(tmp_path / "t1"), control_id="V1")
+    t1_selection = build_legacy_l5_cached_short_selection(v1_view, config)
+    mean_config = load_legacy_l5_cached_training_config(
+        _write_v1_short_config(tmp_path / "mean_contract")
+    )
+    mean_selection = build_legacy_l5_cached_short_selection(
+        v1_view,
+        mean_config,
+    )
+
+    contract = config.payload["ablation_contract"]
+    assert contract["changed_variable"] == "temporal_encoder_name"
+    assert contract["reference_value"] == "masked_mean"
+    assert contract["candidate_value"] == "masked_tcn"
+    assert contract["feature_control_id"] == "V1"
+    assert config.payload["model"]["temporal_encoder_name"] == "masked_tcn"
+    assert config.payload["expansion_contract"][
+        "frozen_semantic_family"
+    ] == cached_training.T1_TEMPORAL_FROZEN_FAMILY
+    model = cached_training._build_cached_classifier(config)
+    assert sum(parameter.numel() for parameter in model.parameters()) == 167_435
+    assert t1_selection.manifest["temporal_unit_key"].tolist() == (
+        mean_selection.manifest["temporal_unit_key"].tolist()
+    )
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["ablation_contract"]["candidate_value"] = "small_transformer"
+    drifted = path.with_name("t1_temporal_drift.json")
+    drifted.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(ValueError, match="T1 temporal ablation drift"):
         load_legacy_l5_cached_training_config(drifted)
 
 
@@ -610,6 +652,66 @@ def test_cached_v2_repeat_gate_authorizes_only_exact_v2_full(
     assert audit["other_visual_or_temporal_controls_authorized"] is False
 
 
+def test_cached_t1_repeat_gate_authorizes_only_exact_t1_full(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config = load_legacy_l5_cached_training_config(
+        _write_t1_short_config(tmp_path / "contract")
+    )
+    payload = json.loads(json.dumps(config.payload))
+    payload["model"]["hidden_dim"] = 8
+    payload["optimization"]["epochs"] = 1
+    payload["optimization"]["batch_size"] = 32
+    payload["optimization"]["maximum_optimizer_steps"] = 3
+    test_config = replace(config, payload=payload)
+    view_root = tmp_path / "view"
+    view_root.mkdir()
+    view = replace(
+        _synthetic_view(view_root, with_features=True),
+        control_id="V1",
+    )
+    selection = build_legacy_l5_cached_short_selection(view, config)
+    outcome = train_legacy_l5_cached_short_core(
+        view,
+        selection,
+        test_config,
+        device="cpu",
+    )
+    primary = _write_synthetic_packet(
+        tmp_path / "t1_primary",
+        config=test_config,
+        selection=selection,
+        outcome=outcome,
+        run_id="t1_primary",
+        process_id=707,
+    )
+    repeat = _write_synthetic_packet(
+        tmp_path / "t1_repeat",
+        config=test_config,
+        selection=selection,
+        outcome=outcome,
+        run_id="t1_repeat",
+        process_id=808,
+    )
+    monkeypatch.setattr(torch.cuda, "is_initialized", lambda: False)
+
+    audit = audit_legacy_l5_cached_training_repeat_gate(
+        test_config,
+        primary_result_path=primary,
+        repeat_result_path=repeat,
+    )
+
+    assert audit["valid"] is True
+    assert audit["authorized_control_id"] == "V1"
+    assert audit["authorized_temporal_control_id"] == "T1"
+    assert audit["authorized_frozen_semantic_family"] == (
+        cached_training.T1_TEMPORAL_FROZEN_FAMILY
+    )
+    assert audit["exact_full_control_expansion_authorized"] is True
+    assert audit["other_visual_or_temporal_controls_authorized"] is False
+
+
 def test_cached_training_v2_full_requires_bound_short_gate(
     tmp_path: Path,
 ) -> None:
@@ -669,7 +771,10 @@ def _write_v1_short_config(tmp_path: Path) -> Path:
             "sequence_length": 16,
         },
         "base_config": payload["base_config"],
-        "model": payload["model"],
+        "model": {
+            **payload["model"],
+            "temporal_encoder_name": "masked_mean",
+        },
         "optimization": {
             **payload["optimization"],
             "maximum_optimizer_steps": 345,
@@ -743,13 +848,18 @@ def _write_v1_short_config(tmp_path: Path) -> Path:
     return path
 
 
-def _write_v2_short_config(tmp_path: Path) -> Path:
+def _write_v1_reference_short_config(
+    tmp_path: Path,
+    *,
+    template_path: Path,
+    filename: str,
+) -> Path:
     repo = tmp_path / "repo"
     config_dir = repo / "configs" / "classification_v2"
     reference_dir = repo / "references" / "v1_full"
     config_dir.mkdir(parents=True)
     reference_dir.mkdir(parents=True)
-    payload = json.loads(V2_SHORT_V4_CONFIG_PATH.read_text(encoding="utf-8"))
+    payload = json.loads(template_path.read_text(encoding="utf-8"))
 
     base_path = config_dir / "legacy_development_l5_v1.json"
     base_payload = json.loads(
@@ -775,7 +885,10 @@ def _write_v2_short_config(tmp_path: Path) -> Path:
             "sequence_length": 16,
         },
         "base_config": payload["base_config"],
-        "model": payload["model"],
+        "model": {
+            **payload["model"],
+            "temporal_encoder_name": "masked_mean",
+        },
         "optimization": {
             **payload["optimization"],
             "maximum_optimizer_steps": 345,
@@ -844,9 +957,25 @@ def _write_v2_short_config(tmp_path: Path) -> Path:
             ),
         }
     )
-    path = config_dir / "cached_training_v2_short_v4.json"
+    path = config_dir / filename
     path.write_text(json.dumps(payload), encoding="utf-8")
     return path
+
+
+def _write_v2_short_config(tmp_path: Path) -> Path:
+    return _write_v1_reference_short_config(
+        tmp_path,
+        template_path=V2_SHORT_V4_CONFIG_PATH,
+        filename="cached_training_v2_short_v4.json",
+    )
+
+
+def _write_t1_short_config(tmp_path: Path) -> Path:
+    return _write_v1_reference_short_config(
+        tmp_path,
+        template_path=T1_SHORT_V5_CONFIG_PATH,
+        filename="cached_training_t1_short_v5.json",
+    )
 
 
 def _write_authorized_v2_full_config(tmp_path: Path) -> Path:

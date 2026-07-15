@@ -57,6 +57,9 @@ CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V3 = (
 CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V4 = (
     "classification_v2.legacy_development_l5.cached_training_config.v4"
 )
+CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V5 = (
+    "classification_v2.legacy_development_l5.cached_training_config.v5"
+)
 CACHED_TRAINING_SELECTION_SCHEMA_VERSION = (
     "classification_v2.legacy_development_l5.cached_training_selection.v1"
 )
@@ -120,6 +123,9 @@ CACHED_TRAINING_REPEAT_GATE_SCHEMA_VERSION_V3 = (
 CACHED_TRAINING_REPEAT_GATE_SCHEMA_VERSION_V4 = (
     "classification_v2.legacy_development_l5.cached_training_repeat_gate.v4"
 )
+CACHED_TRAINING_REPEAT_GATE_SCHEMA_VERSION_V5 = (
+    "classification_v2.legacy_development_l5.cached_training_repeat_gate.v5"
+)
 EXPECTED_TEMPORAL_VIEW = "legacy_t16_centered_matched_observed_time"
 MODEL_VISIBLE_ROLES = ("train", "validation")
 SHORT_TRAINING_SCOPE = "short_repeat_gate"
@@ -131,6 +137,10 @@ V1_RESOLUTION_FROZEN_FAMILY = (
 V2_BACKBONE_CONTROL_ID = "V2"
 V2_BACKBONE_FROZEN_FAMILY = (
     "V2_resnet34_224_T16_centered_masked_mean_v1"
+)
+T1_TEMPORAL_CONTROL_ID = "T1"
+T1_TEMPORAL_FROZEN_FAMILY = (
+    "V1_resnet18_224_T16_centered_masked_tcn_v1"
 )
 SELECTION_FIELDS = (
     "selection_order",
@@ -207,6 +217,7 @@ REGISTRY_FIELDS_V2 = (
 )
 MAXIMUM_LOADED_BATCH_BYTES = 2_103_552
 EXPECTED_CACHED_CLASSIFIER_PARAMETERS = 68_234
+EXPECTED_CACHED_TCN_CLASSIFIER_PARAMETERS = 167_435
 PROBABILITY_FIELDS = tuple(
     f"prob_{behavior.replace('-', '_')}" for behavior in VALID_BEHAVIORS
 )
@@ -377,6 +388,7 @@ def load_legacy_l5_cached_training_config(
         CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V2,
         CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V3,
         CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V4,
+        CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V5,
     }:
         required.update({"training_scope", "expansion_contract"})
         if payload.get("training_scope") == FULL_TRAINING_SCOPE:
@@ -384,6 +396,7 @@ def load_legacy_l5_cached_training_config(
     if schema_version in {
         CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V3,
         CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V4,
+        CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V5,
     }:
         required.add("ablation_contract")
     _require_exact_keys(payload, required, name="cached training config")
@@ -392,6 +405,7 @@ def load_legacy_l5_cached_training_config(
         CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V2,
         CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V3,
         CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V4,
+        CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V5,
     }:
         raise ValueError("cached training config schema mismatch")
     training_scope = str(payload.get("training_scope", SHORT_TRAINING_SCOPE))
@@ -429,7 +443,10 @@ def load_legacy_l5_cached_training_config(
         training_scope=training_scope,
         schema_version=str(schema_version),
     )
-    _validate_model_contract(payload["model"])
+    _validate_model_contract(
+        payload["model"],
+        schema_version=str(schema_version),
+    )
     _validate_optimization_contract(
         payload["optimization"],
         training_scope=training_scope,
@@ -448,6 +465,7 @@ def load_legacy_l5_cached_training_config(
         CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V2,
         CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V3,
         CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V4,
+        CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V5,
     }:
         _validate_expansion_contract(
             payload["expansion_contract"],
@@ -459,6 +477,8 @@ def load_legacy_l5_cached_training_config(
         )
     if schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V4:
         _validate_v2_backbone_ablation_contract(payload["ablation_contract"])
+    if schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V5:
+        _validate_t1_temporal_ablation_contract(payload["ablation_contract"])
     if training_scope == FULL_TRAINING_SCOPE:
         _validate_short_gate_parent(payload["short_gate_parent"])
     repo_root = resolved_path.parents[2]
@@ -477,6 +497,8 @@ def load_legacy_l5_cached_training_config(
         _validate_v1_resolution_reference(config)
     if schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V4:
         _validate_v2_backbone_reference(config)
+    if schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V5:
+        _validate_t1_temporal_reference(config)
     if training_scope == FULL_TRAINING_SCOPE:
         _validate_full_training_authorization(config)
     return config
@@ -611,6 +633,15 @@ def load_legacy_l5_cached_training_view(
         == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V4
     ):
         _validate_v2_backbone_feature_parent(
+            config,
+            feature_manifest=feature_manifest,
+            feature_result=feature_result,
+        )
+    if (
+        config.payload["schema_version"]
+        == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V5
+    ):
+        _validate_t1_temporal_feature_parent(
             config,
             feature_manifest=feature_manifest,
             feature_result=feature_result,
@@ -829,7 +860,10 @@ def preflight_legacy_l5_cached_short_training(
             errors.append("cpu_preflight_nonfinite_logits")
         if output_shape != [len(probe_positions), len(VALID_BEHAVIORS)]:
             errors.append(f"cpu_preflight_logit_shape={output_shape}")
-        if parameter_count != EXPECTED_CACHED_CLASSIFIER_PARAMETERS:
+        expected_parameter_count = _expected_cached_classifier_parameters(
+            config
+        )
+        if parameter_count != expected_parameter_count:
             errors.append(f"model_parameter_count={parameter_count}")
         del batch, logits, model
         gc.collect()
@@ -1902,6 +1936,22 @@ def _build_cached_classifier(
     )
 
 
+def _expected_cached_classifier_parameters(
+    config: LegacyL5CachedTrainingConfig,
+) -> int:
+    temporal_encoder_name = str(
+        config.payload["model"]["temporal_encoder_name"]
+    )
+    if temporal_encoder_name == "masked_mean":
+        return EXPECTED_CACHED_CLASSIFIER_PARAMETERS
+    if temporal_encoder_name == "masked_tcn":
+        return EXPECTED_CACHED_TCN_CLASSIFIER_PARAMETERS
+    raise ValueError(
+        "cached training parameter count is undefined for temporal encoder="
+        f"{temporal_encoder_name}"
+    )
+
+
 def _position_batches(
     positions: np.ndarray,
     *,
@@ -2163,6 +2213,10 @@ def _repeat_gate_schema_version(
     config: LegacyL5CachedTrainingConfig,
 ) -> str:
     if config.payload["schema_version"] == (
+        CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V5
+    ):
+        return CACHED_TRAINING_REPEAT_GATE_SCHEMA_VERSION_V5
+    if config.payload["schema_version"] == (
         CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V4
     ):
         return CACHED_TRAINING_REPEAT_GATE_SCHEMA_VERSION_V4
@@ -2182,6 +2236,16 @@ def _repeat_gate_authorization(
     *,
     valid: bool,
 ) -> dict[str, Any]:
+    if config.payload["schema_version"] == (
+        CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V5
+    ):
+        return {
+            "authorized_control_id": V1_RESOLUTION_CONTROL_ID,
+            "authorized_temporal_control_id": T1_TEMPORAL_CONTROL_ID,
+            "authorized_frozen_semantic_family": T1_TEMPORAL_FROZEN_FAMILY,
+            "exact_full_control_expansion_authorized": valid,
+            "other_visual_or_temporal_controls_authorized": False,
+        }
     if config.payload["schema_version"] == (
         CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V4
     ):
@@ -2255,7 +2319,45 @@ def _validate_experiment_contract(
     schema_version: str,
 ) -> None:
     value = _object(payload, "experiment_contract")
-    if schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V4:
+    if schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V5:
+        if training_scope == SHORT_TRAINING_SCOPE:
+            expected = {
+                "experiment_id": "L5_T1_T16_SHORT",
+                "parent_id": "ct_v1_t16_full_3eb5a49_v3",
+                "scientific_role": "temporal_only_control_gate",
+                "changed_family": "temporal_encoder_only",
+                "hypothesis": (
+                    "At fixed V1/224 visual features, T16, loss, and optimizer, "
+                    "T1 isolates masked TCN."
+                ),
+                "compute_cap": (
+                    "two isolated runs, three epochs and nine steps per run"
+                ),
+                "stop_rule": (
+                    "Stop on ablation, lineage, memory, finite, repeat, or "
+                    "outer-access failure."
+                ),
+            }
+        else:
+            expected = {
+                "experiment_id": "L5_T1_T16_FULL_DEVELOPMENT",
+                "parent_id": "L5_T1_T16_SHORT",
+                "scientific_role": "temporal_only_full_development_control",
+                "changed_family": "bounded_to_full_train_cardinality",
+                "hypothesis": (
+                    "Unchanged T1 trains on all eligible train units without "
+                    "outer access."
+                ),
+                "compute_cap": (
+                    "one isolated run, 3652 train units, three epochs and 345 "
+                    "steps"
+                ),
+                "stop_rule": (
+                    "Stop on short-gate, ablation, lineage, memory, finite, or "
+                    "outer-access failure."
+                ),
+            }
+    elif schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V4:
         if training_scope == SHORT_TRAINING_SCOPE:
             expected = {
                 "experiment_id": "L5_V2_T16_SHORT",
@@ -2430,7 +2532,10 @@ def _validate_data_contract(
     _require_exact_keys(value, required, name="cached training data")
     if schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V4:
         control_id = V2_BACKBONE_CONTROL_ID
-    elif schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V3:
+    elif schema_version in {
+        CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V3,
+        CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V5,
+    }:
         control_id = V1_RESOLUTION_CONTROL_ID
     else:
         control_id = "V0"
@@ -2471,7 +2576,11 @@ def _validate_data_contract(
         raise ValueError("cached training selection salt is blank")
 
 
-def _validate_model_contract(payload: object) -> None:
+def _validate_model_contract(
+    payload: object,
+    *,
+    schema_version: str,
+) -> None:
     value = _object(payload, "model")
     required = {
         "architecture",
@@ -2485,9 +2594,14 @@ def _validate_model_contract(payload: object) -> None:
         "learned_input_transform",
     }
     _require_exact_keys(value, required, name="cached training model")
+    temporal_encoder_name = (
+        "masked_tcn"
+        if schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V5
+        else "masked_mean"
+    )
     expected = {
         "architecture": "cached_frame_feature_temporal_classifier_v1",
-        "temporal_encoder_name": "masked_mean",
+        "temporal_encoder_name": temporal_encoder_name,
         "hidden_dim": 128,
         "dropout": 0.1,
         "transformer_layers": 1,
@@ -2657,6 +2771,10 @@ def _validate_output_contract(
         short_gate_filename = (
             "legacy_l5_cached_training_v2_t16_short_gate_v4.json"
         )
+    if schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V5:
+        short_gate_filename = (
+            "legacy_l5_cached_training_t1_t16_short_gate_v5.json"
+        )
     expected = {
         "run_root_relative_path": "15_l5_core_baselines",
         "registry_filename": "runs_registry.csv",
@@ -2676,7 +2794,9 @@ def _validate_expansion_contract(
     schema_version: str,
 ) -> None:
     value = _object(payload, "expansion_contract")
-    if schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V4:
+    if schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V5:
+        frozen_semantic_family = T1_TEMPORAL_FROZEN_FAMILY
+    elif schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V4:
         frozen_semantic_family = V2_BACKBONE_FROZEN_FAMILY
     elif schema_version == CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V3:
         frozen_semantic_family = V1_RESOLUTION_FROZEN_FAMILY
@@ -2798,6 +2918,57 @@ def _validate_v2_backbone_ablation_contract(payload: object) -> None:
         name="V2 backbone ablation",
     )
     _validate_exact_values(value, expected, name="V2 backbone ablation")
+    for name in (
+        "reference_full_config_sha256",
+        "reference_full_result_sha256",
+        "reference_full_run_manifest_sha256",
+    ):
+        _validate_sha256(value[name], name=f"ablation_contract.{name}")
+    for name in (
+        "reference_full_config_path",
+        "reference_full_result_path",
+        "reference_full_run_manifest_path",
+    ):
+        path = Path(str(value[name]))
+        if path.is_absolute() or ".." in path.parts:
+            raise ValueError(f"cached training unsafe ablation path={name}")
+
+
+def _validate_t1_temporal_ablation_contract(payload: object) -> None:
+    value = _object(payload, "ablation_contract")
+    expected = {
+        "ablation_id": "L5_T1_T16_TEMPORAL_ONLY",
+        "feature_control_id": V1_RESOLUTION_CONTROL_ID,
+        "temporal_control_id": T1_TEMPORAL_CONTROL_ID,
+        "changed_variable": "temporal_encoder_name",
+        "reference_value": "masked_mean",
+        "candidate_value": "masked_tcn",
+        "fixed_backbone_name": "resnet18",
+        "fixed_input_resolution": 224,
+        "fixed_pretrained_weight_enum": (
+            "ResNet18_Weights.IMAGENET1K_V1"
+        ),
+        "fixed_feature_dim": FEATURE_DIM,
+        "fixed_temporal_view_name": EXPECTED_TEMPORAL_VIEW,
+        "fixed_sequence_length": 16,
+        "fixed_sampling_protocol": "one_centered_window_matched",
+        "fixed_loss": "event_mass_balanced_cross_entropy",
+        "single_variable_only": True,
+    }
+    reference_fields = {
+        "reference_full_config_path",
+        "reference_full_config_sha256",
+        "reference_full_result_path",
+        "reference_full_result_sha256",
+        "reference_full_run_manifest_path",
+        "reference_full_run_manifest_sha256",
+    }
+    _require_exact_keys(
+        value,
+        set(expected).union(reference_fields),
+        name="T1 temporal ablation",
+    )
+    _validate_exact_values(value, expected, name="T1 temporal ablation")
     for name in (
         "reference_full_config_sha256",
         "reference_full_result_sha256",
@@ -3006,6 +3177,112 @@ def _validate_v2_backbone_reference(
     )
 
 
+def _validate_t1_temporal_reference(
+    config: LegacyL5CachedTrainingConfig,
+) -> None:
+    contract = _object(config.payload["ablation_contract"], "ablation_contract")
+    paths = {
+        "config": config.repo_root / str(contract["reference_full_config_path"]),
+        "result": config.repo_root / str(contract["reference_full_result_path"]),
+        "manifest": config.repo_root
+        / str(contract["reference_full_run_manifest_path"]),
+    }
+    hashes = {
+        "config": contract["reference_full_config_sha256"],
+        "result": contract["reference_full_result_sha256"],
+        "manifest": contract["reference_full_run_manifest_sha256"],
+    }
+    for name, path in paths.items():
+        resolved = path.resolve()
+        if not resolved.is_relative_to(config.repo_root):
+            raise ValueError(f"cached training ablation reference escaped={name}")
+        if not resolved.is_file():
+            raise FileNotFoundError(
+                f"cached training ablation reference missing={name}:{resolved}"
+            )
+        if file_sha256(resolved) != hashes[name]:
+            raise ValueError(f"cached training ablation reference drift={name}")
+    reference_config = _read_json(paths["config"])
+    reference_result = _read_json(paths["result"])
+    reference_manifest = _read_json(paths["manifest"])
+    _validate_exact_values(
+        reference_config,
+        {
+            "schema_version": CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V3,
+            "training_scope": FULL_TRAINING_SCOPE,
+        },
+        name="T1 reference config",
+    )
+    _validate_exact_values(
+        reference_config.get("data") or {},
+        {
+            "control_id": contract["feature_control_id"],
+            "temporal_view_name": EXPECTED_TEMPORAL_VIEW,
+            "sampling_protocol": "one_centered_window_matched",
+            "sequence_length": 16,
+        },
+        name="T1 reference data",
+    )
+    if reference_config.get("base_config") != config.payload["base_config"]:
+        raise ValueError("cached training T1 reference base-config drift")
+    reference_model = copy.deepcopy(
+        _object(reference_config.get("model"), "T1 reference model")
+    )
+    candidate_model = copy.deepcopy(config.payload["model"])
+    if reference_model.pop("temporal_encoder_name", None) != contract[
+        "reference_value"
+    ]:
+        raise ValueError("cached training T1 reference encoder drift")
+    if candidate_model.pop("temporal_encoder_name", None) != contract[
+        "candidate_value"
+    ]:
+        raise ValueError("cached training T1 candidate encoder drift")
+    if reference_model != candidate_model:
+        raise ValueError("cached training T1 reference model drift")
+    reference_optimization = copy.deepcopy(
+        _object(reference_config.get("optimization"), "T1 reference optimization")
+    )
+    candidate_optimization = copy.deepcopy(config.payload["optimization"])
+    reference_optimization.pop("maximum_optimizer_steps", None)
+    candidate_optimization.pop("maximum_optimizer_steps", None)
+    if reference_optimization != candidate_optimization:
+        raise ValueError("cached training T1 reference optimization drift")
+    _validate_exact_values(
+        reference_result,
+        {
+            "status": (
+                "PASS_LEGACY_DEVELOPMENT_L5_CACHED_FULL_DEVELOPMENT_TRAINING"
+            ),
+            "training_scope": FULL_TRAINING_SCOPE,
+            "config_sha256": hashes["config"],
+            "train_native_units": 3_652,
+            "validation_native_units": 245,
+            "outer_holdout_rows_loaded": 0,
+            "optimizer_steps": 345,
+            "source_media_reads": 0,
+            "outer_holdout_predictions_created": 0,
+            "valid": True,
+        },
+        name="T1 reference result",
+    )
+    _validate_exact_values(
+        reference_manifest,
+        {
+            "status": "completed",
+            "config_hash": hashes["config"],
+            "control_id": contract["feature_control_id"],
+            "backbone_name": contract["fixed_backbone_name"],
+            "pretrained_weight_enum": contract["fixed_pretrained_weight_enum"],
+            "resolution": contract["fixed_input_resolution"],
+            "temporal_view_name": EXPECTED_TEMPORAL_VIEW,
+            "sequence_length": 16,
+            "temporal_encoder_name": contract["reference_value"],
+            "run_result_sha256": hashes["result"],
+        },
+        name="T1 reference run manifest",
+    )
+
+
 def _validate_v1_resolution_feature_parent(
     config: LegacyL5CachedTrainingConfig,
     *,
@@ -3072,6 +3349,40 @@ def _validate_v2_backbone_feature_parent(
             "valid": True,
         },
         name="V2 backbone feature result",
+    )
+
+
+def _validate_t1_temporal_feature_parent(
+    config: LegacyL5CachedTrainingConfig,
+    *,
+    feature_manifest: dict[str, Any],
+    feature_result: dict[str, Any],
+) -> None:
+    contract = _object(config.payload["ablation_contract"], "ablation_contract")
+    expected = {
+        "control_id": contract["feature_control_id"],
+        "backbone_name": contract["fixed_backbone_name"],
+        "pretrained_weight_enum": contract["fixed_pretrained_weight_enum"],
+        "image_size": contract["fixed_input_resolution"],
+    }
+    _validate_exact_values(
+        feature_manifest,
+        {**expected, "feature_dim": contract["fixed_feature_dim"]},
+        name="T1 temporal feature manifest",
+    )
+    _validate_exact_values(
+        feature_result,
+        {
+            **expected,
+            "status": "PASS_LEGACY_DEVELOPMENT_L5_FEATURE_CACHE",
+            "feature_shape": [72_864, contract["fixed_feature_dim"]],
+            "source_media_loads": 0,
+            "post_cleanup_allocated_bytes": 0,
+            "post_cleanup_reserved_bytes": 0,
+            "oom": False,
+            "valid": True,
+        },
+        name="T1 temporal feature result",
     )
 
 
@@ -4191,15 +4502,18 @@ __all__ = (
     "CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V2",
     "CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V3",
     "CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V4",
+    "CACHED_TRAINING_CONFIG_SCHEMA_VERSION_V5",
     "CACHED_TRAINING_METRICS_SCHEMA_VERSION",
     "CACHED_TRAINING_REPEAT_GATE_SCHEMA_VERSION",
     "CACHED_TRAINING_REPEAT_GATE_SCHEMA_VERSION_V2",
     "CACHED_TRAINING_REPEAT_GATE_SCHEMA_VERSION_V3",
     "CACHED_TRAINING_REPEAT_GATE_SCHEMA_VERSION_V4",
+    "CACHED_TRAINING_REPEAT_GATE_SCHEMA_VERSION_V5",
     "CACHED_TRAINING_SELECTION_SCHEMA_VERSION",
     "LegacyL5CachedShortSelection",
     "LegacyL5CachedTrainingConfig",
     "LegacyL5CachedTrainingOutcome",
+    "T1_TEMPORAL_FROZEN_FAMILY",
     "V1_RESOLUTION_FROZEN_FAMILY",
     "V2_BACKBONE_FROZEN_FAMILY",
     "audit_legacy_l5_cached_training_repeat_gate",
