@@ -249,6 +249,38 @@ the exact cached-feature short gate and, only if that passes unchanged, its full
 expansion. Baseline metrics, outer-holdout predictions, reviewed/final naming,
 canonical full OOF, and Q2 claims remain unauthorized.
 
+## L5 Pretrained Feature Cache Evidence
+
+- commit `e34521d` adds isolated, resumable FP32 feature caches with immutable
+  manifests, 2,048-row mmap checkpoints, a 70% allocator ceiling, and no OOM
+  retry;
+- CPU-only preflight resolves all six short/full V0/V1/V2 sources and leaves
+  CUDA uninitialized; 8 focused tests and 507 classification tests pass with
+  181 deselected, plus Ruff, compile, diff, and long-line gates;
+- six 496-row short runs execute in separate non-overlapping processes; every
+  primary/repeat feature tensor and index is byte-identical, with zero
+  nonfinite values, source reads, OOM, retry, optimizer step, or retained VRAM;
+- the short gate SHA256 is
+  `529dc610066fdddb9804130a31b9da100a6ffa059f8807d8e7c94ad84d89df7a`
+  and explicitly authorizes only the exact full feature-cache expansion;
+- V0 full has shape `[72864, 512]`, tensor SHA256
+  `a27f9f3ba589bc104016a132d562220b92defb6db756db19307ac0cee977f91b`,
+  index SHA256
+  `c62b950f8d0d2936ad737a0863e722a0b1858281c9e9d132a49b7b3769355d40`;
+- V1 full tensor/index SHA256 values are
+  `d5394e82343250904991d53b36f4113a07b8c6774c4b651a31de3da267f7b44b`
+  and `34ede8120b49591a65099940e5ad1b6246f3381278ac3bccc16dd1f80223c5dc`;
+- V2 full tensor/index SHA256 values are
+  `c1ca185a919c2b8ee5b925ddc0ea5ba4f96d6655e458ce6d0593a4ba101ce992`
+  and `3b984d70615ed2f351e7db709396ff5b11dfa3e5b5e68bf642a997882b72af32`;
+- every full control completes 72,864 rows with 36 input mapping opens, matches
+  its 64-row VRAM-probe feature hash, and returns CUDA allocated/reserved bytes
+  plus process-level `nvidia-smi` usage to zero before the next control.
+
+The three full packets contain the required run, environment, artifact,
+checkpoint, prediction, and registry lineage. They authorize the controlled L5
+baseline inputs only; no classifier metric or held-out prediction exists yet.
+
 ## Full-Run Boundary
 
 The full legacy L2 data build is complete. Any semantic change invalidates its
