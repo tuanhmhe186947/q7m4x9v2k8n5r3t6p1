@@ -860,8 +860,8 @@ def _packet_summary(packet: dict[str, Any]) -> dict[str, Any]:
 def _warnings(comparisons: dict[str, dict[str, Any]]) -> list[str]:
     support = next(iter(comparisons.values()))["rare_group"]["support"]
     return [
-        f"legacy_116f_rare_group_support_is_bounded={support}",
-        "legacy_116f_rare_support_must_not_be_generalized_to_merged_data",
+        f"legacy_16f_rare_group_support_is_bounded={support}",
+        "legacy_16f_rare_support_must_not_be_generalized_to_merged_data",
         "user_reports_merged_data_has_materially_more_rare_behaviors",
         "single_development_validation_fold_is_not_external_generalization",
         "sliding_protocol_changes_window_and_optimizer_step_exposure",
@@ -967,7 +967,7 @@ def _validate_config(config: dict[str, Any]) -> None:
         boundary,
         {
             "decision_scope": LINEAGE_SCOPE,
-            "legacy_dataset_is_116f_not_merged": True,
+            "legacy_dataset_is_legacy_16f_not_merged": True,
             "legacy_rare_support_generalizes_to_merged_data": False,
             "merged_data_has_materially_more_rare_behaviors": True,
             "merged_reviewed_reassessment_required": True,

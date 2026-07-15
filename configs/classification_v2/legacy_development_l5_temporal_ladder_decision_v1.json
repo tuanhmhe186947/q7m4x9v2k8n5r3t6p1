@@ -9,7 +9,7 @@
   "outer_holdout_predictions_authorized": false,
   "implementation_source": {
     "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_l5_temporal_ladder_decision.py",
-    "sha256": "21fb25e9c31e930d32c85a649bcb671be610c67b4a5870dda98c3b91ecae4289"
+    "sha256": "4da2fe587cec07747cea877be15fa700067d6b4ddd7c6c897c19319864e13fd2"
   },
   "execution_guard": {
     "allowed_dirty_paths": [
@@ -143,7 +143,7 @@
   },
   "interpretation_boundary": {
     "decision_scope": "legacy-only-unreviewed-development",
-    "legacy_dataset_is_116f_not_merged": true,
+    "legacy_dataset_is_legacy_16f_not_merged": true,
     "legacy_rare_support_generalizes_to_merged_data": false,
     "merged_data_has_materially_more_rare_behaviors": true,
     "merged_reviewed_reassessment_required": true,
