@@ -30,7 +30,7 @@ replaced by this ledger.
 | L2 full legacy lineage | PASS | Full repeat-bound lineage at `59647e2` |
 | L3 immutable inputs | PASS | Committed-SHA gate at `0414adc` |
 | L4 model correctness | PASS | Real-cache correctness gate at `3ef4235` |
-| L5 core baselines | IN_PROGRESS | V0/V1/V2 visual controls PASS; TCN temporal control next |
+| L5 core baselines | IN_PROGRESS | T1 full complete; paired decision then V1 length ladder |
 | L6 modality loop | NOT_STARTED | Requires retained L5 baseline |
 | L7 imbalance policy | NOT_STARTED | Requires retained L6 candidate |
 | L8 candidate/handback | NOT_STARTED | Requires controlled L0-L7 evidence |
@@ -56,8 +56,13 @@ replaced by this ledger.
   cannot reject an architecture for the future merged-reviewed lineage.
 - The local RTX 3050 remains the safe correctness host. Scientifically justified
   heavy pilots may run on rented GPUs with identical immutable lineage fields.
-- V2 remains the next one-variable gate. This clarification does not mix its
-  backbone-only comparison with temporal, modality, loss, or schedule changes.
+- V0/V1/V2 visual controls and the T1 masked-TCN full run are complete. The
+  next gate is the formal paired T1-versus-V1 decision, not another architecture.
+- If T1 misses its paired guardrails, retain V1 masked mean for the two-protocol
+  T6/T8/T12/T16 ladder and preserve T1 as bounded negative evidence.
+- Defer a small Transformer unless a temporal-capacity hypothesis survives the
+  T1 decision. Reassess TCN, Transformer, and retained controls on frozen
+  merged-reviewed data; local VRAM is not an architecture rejection criterion.
 
 ## Current Short Evidence
 

@@ -1,6 +1,6 @@
 # Classification V2 Legacy 16F Development Goal Prompt
 
-Version: 1.0
+Version: 1.1
 
 Status: scoped goal authority for a separate chat
 
@@ -243,9 +243,20 @@ Run the visual controls separately:
 - V1: ResNet18 at 224;
 - V2: ResNet34 at 224.
 
-Then compare masked pooling, TCN, and a small Transformer only when justified.
-Run T6/T8/T12/T16 under both temporal sampling protocols. Report metrics only
-after burst-level aggregation and keep native-unit predictions paired.
+Use V1 ResNet18/224 masked mean as the efficient temporal-length search control
+and retain V2 ResNet34/224 as a capacity reference. Close every temporal-head
+control with exact paired native-unit, per-class, rare-group, runtime, parameter,
+and recording-cluster-bootstrap evidence before promotion or rejection.
+
+Preserve a masked-TCN result as a negative legacy control when it does not pass
+those guardrails, then continue T6/T8/T12/T16 with V1 under both temporal
+sampling protocols. A legacy rejection does not reject TCN on merged-reviewed
+data. Test a small Transformer only if a temporal-capacity hypothesis remains
+after the TCN decision; lack of local VRAM is never the rejection reason.
+
+Report metrics only after burst-level aggregation and keep native-unit
+predictions paired. Reassess retained and rejected architecture families on the
+frozen merged-reviewed lineage before any final architecture conclusion.
 
 ### L6 - Input And Context Improvement Loop
 
