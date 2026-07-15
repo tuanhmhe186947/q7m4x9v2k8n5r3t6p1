@@ -30,7 +30,7 @@ replaced by this ledger.
 | L2 full legacy lineage | PASS | Full repeat-bound lineage at `59647e2` |
 | L3 immutable inputs | PASS | Committed-SHA gate at `0414adc` |
 | L4 model correctness | PASS | Real-cache correctness gate at `3ef4235` |
-| L5 core baselines | PASS | T6 sliding retained as bounded 116F L6 baseline |
+| L5 core baselines | PASS | T6 sliding retained as bounded legacy_16f baseline |
 | L6 modality loop | IN_PROGRESS | Geometry-first one-family ablation next |
 | L7 imbalance policy | NOT_STARTED | Requires retained L6 candidate |
 | L8 candidate/handback | NOT_STARTED | Requires controlled L0-L7 evidence |
@@ -47,6 +47,22 @@ replaced by this ledger.
 - Local 4 GiB VRAM controls correctness placement, not architecture scope.
 - Rented GPU pilots are permitted after the exact target-environment short gate.
 - Legacy rare-class support cannot estimate merged-data support or its ceiling.
+
+## Canonical Legacy Source Identity
+
+- Use the short name `legacy_16f`; the ambiguous alias `116F` is forbidden.
+- Raw authority is
+  `data/raw/legacy_full_multigt_masked_nodup_16f/legacy_dense_tracklet_map.csv`.
+- Raw SHA256 is
+  `ff73c158ef879eb8177b0c18783fc751945fe1d6af97a4b8235cd71681fabbcb`.
+- The raw table has 72,864 rows; the derived legacy export has 4,554 complete
+  native bursts with 16 frames each and SHA256
+  `adbdb572b976e9f63cff5f9b29ced649f37fa80dd382336b3678f71ac50ff636`.
+- Internal identity is `source_type=legacy_recovered` and
+  `dataset_id=legacy_recovered_16f`.
+- Stage `00_scope` reads a mixed staging table only as an upstream container;
+  it selects 72,864 legacy rows and zero CVAT rows for this lane. Therefore
+  this lineage is not the merged dataset.
 
 ## 2026-07-15 Goal Clarification
 
@@ -557,7 +573,7 @@ also changes window count and optimizer exposure, so no causal claim about T6
 length alone is allowed. Three epochs are bounded baseline evidence, not final
 convergence evidence. The architecture family is not finalized, and all
 retained or rejected controls must be reassessed on frozen merged-reviewed
-data, whose rare-behavior support is materially larger than legacy 116F.
+data, whose rare-behavior support is materially larger than `legacy_16f`.
 
 The official artifact is
 `legacy_l5_temporal_ladder_decision_v1.json` under the L5 output root. File

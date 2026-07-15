@@ -72,6 +72,18 @@ Forbidden claims and actions:
 - do not run canonical full OOF or mark the parent P0-P8 goal complete;
 - do not mutate, rename, or overwrite files under `data/`.
 
+### Legacy Source Identity
+
+- Canonical short name: `legacy_16f`. Do not use the ambiguous alias `116F`.
+- Raw authority:
+  `data/raw/legacy_full_multigt_masked_nodup_16f/legacy_dense_tracklet_map.csv`.
+- Raw SHA256:
+  `ff73c158ef879eb8177b0c18783fc751945fe1d6af97a4b8235cd71681fabbcb`.
+- Internal identifiers are `source_type=legacy_recovered` and
+  `dataset_id=legacy_recovered_16f`.
+- A mixed staging CSV may be used upstream, but this lane must select only the
+  72,864 legacy rows and zero CVAT rows. It is not the merged-data lineage.
+
 ### Legacy-To-Merged Interpretation Boundary
 
 - Class counts, rare-class failures, and metric ceilings observed in this
@@ -259,7 +271,7 @@ predictions paired. Reassess retained and rejected architecture families on the
 frozen merged-reviewed lineage before any final architecture conclusion.
 
 Current L5 handoff: the hash-bound decision retains `t6_sliding` only as the
-bounded 116F working baseline. It does not establish universal pairwise or
+bounded `legacy_16f` working baseline. It does not establish universal pairwise or
 causal sequence-length superiority because sliding also changes window and
 optimizer exposure. Treat three epochs as baseline evidence, not convergence.
 
