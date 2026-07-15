@@ -72,6 +72,17 @@ Forbidden claims and actions:
 - do not run canonical full OOF or mark the parent P0-P8 goal complete;
 - do not mutate, rename, or overwrite files under `data/`.
 
+### Legacy-To-Merged Interpretation Boundary
+
+- Class counts, rare-class failures, and metric ceilings observed in this
+  legacy 16-frame lane describe only `legacy_recovered`.
+- The user confirms that the merged dataset contains substantially more rare
+  behavior examples. Do not use legacy-only support to reject an architecture
+  or estimate the attainable performance of the merged lineage.
+- Use this lane for controlled engineering and architecture evidence. Reassess
+  every retained architecture on the frozen merged-reviewed lineage before any
+  final, Q2, or general model conclusion.
+
 ## Starting Evidence
 
 The starting implementation commit is `c41f1ed`. Earlier binding commits are
@@ -283,6 +294,19 @@ Any change to data, crop/resize, cache, temporal view, fold, model, loss,
 sampler, or augmentation invalidates dependent short evidence. Never use a full
 run as the first correctness test.
 
+### Hardware Placement Policy
+
+- The local RTX 3050 4 GiB GPU is a correctness and bounded-smoke host, not a
+  research-capacity limit.
+- Do not reject or weaken an architecture solely to fit local VRAM. Place a
+  gated pilot or full development run on a rented GPU when scientifically
+  justified.
+- Before a remote expansion, rerun the exact short runtime gate on the target
+  environment and bind GPU, driver, CUDA, precision, config, code, and artifact
+  hashes to the same run schema.
+- Hardware placement does not relax one-variable ablations, outer-holdout
+  isolation, review boundaries, or canonical full-OOF authorization.
+
 ## Experiment Discipline
 
 - One experiment changes one principal family.
@@ -290,8 +314,9 @@ run as the first correctness test.
   compute cap, and stop rule before execution.
 - Use the same folds, seeds, eligible bursts, aggregation, and metrics for paired
   candidates.
-- Run architecture search with ResNet18; pay ResNet34 cost only for retained
-  candidates.
+- Use ResNet18 for efficient search where it preserves the hypothesis, but do
+  not reject ResNet34, end-to-end, multimodal, or video architectures solely
+  because the local GPU cannot host their scientifically justified pilot.
 - Report pooled burst-level macro-F1 as primary development metric, with
   accuracy and window metrics only as secondary diagnostics.
 - Do not promote gains explained by source, availability, parameter count, or
@@ -371,4 +396,3 @@ full OOF.
 After each achievement report status, hypothesis/contract, changed files,
 commands, tests, row/key/hash evidence, commit SHA, rollback, next dependency,
 and any human action. Do not stop at a plan when an independent safe task remains.
-

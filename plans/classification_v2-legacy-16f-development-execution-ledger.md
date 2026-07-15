@@ -30,7 +30,7 @@ replaced by this ledger.
 | L2 full legacy lineage | PASS | Full repeat-bound lineage at `59647e2` |
 | L3 immutable inputs | PASS | Committed-SHA gate at `0414adc` |
 | L4 model correctness | PASS | Real-cache correctness gate at `3ef4235` |
-| L5 core baselines | IN_PROGRESS | Full V1/T16 PASS at `3eb5a49`; V2 backbone control next |
+| L5 core baselines | IN_PROGRESS | V1/T16 PASS; V2 next; remote GPU permitted after exact gate |
 | L6 modality loop | NOT_STARTED | Requires retained L5 baseline |
 | L7 imbalance policy | NOT_STARTED | Requires retained L6 candidate |
 | L8 candidate/handback | NOT_STARTED | Requires controlled L0-L7 evidence |
@@ -44,6 +44,20 @@ replaced by this ledger.
 - Grouping is recording/video safe; `pig_id` is annotation-local.
 - Every artifact and metric carries the legacy-only unreviewed claim flag.
 - Exact short evidence is mandatory before any full expansion.
+- Local 4 GiB VRAM controls correctness placement, not architecture scope.
+- Rented GPU pilots are permitted after the exact target-environment short gate.
+- Legacy rare-class support cannot estimate merged-data support or its ceiling.
+
+## 2026-07-15 Goal Clarification
+
+- The user confirms that rare behaviors are substantially more numerous in the
+  merged dataset than in this legacy 16-frame lane.
+- Zero or weak rare-class metrics here remain bounded legacy diagnostics; they
+  cannot reject an architecture for the future merged-reviewed lineage.
+- The local RTX 3050 remains the safe correctness host. Scientifically justified
+  heavy pilots may run on rented GPUs with identical immutable lineage fields.
+- V2 remains the next one-variable gate. This clarification does not mix its
+  backbone-only comparison with temporal, modality, loss, or schedule changes.
 
 ## Current Short Evidence
 
