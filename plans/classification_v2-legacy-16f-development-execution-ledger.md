@@ -30,7 +30,7 @@ replaced by this ledger.
 | L2 full legacy lineage | PASS | Full repeat-bound lineage at `59647e2` |
 | L3 immutable inputs | PASS | Committed-SHA gate at `0414adc` |
 | L4 model correctness | PASS | Real-cache correctness gate at `3ef4235` |
-| L5 core baselines | IN_PROGRESS | Cached consumer PASS at `b425c86`; short train gate next |
+| L5 core baselines | IN_PROGRESS | Short train PASS at `b6f74f7`; full V0/T16 centered next |
 | L6 modality loop | NOT_STARTED | Requires retained L5 baseline |
 | L7 imbalance policy | NOT_STARTED | Requires retained L6 candidate |
 | L8 candidate/handback | NOT_STARTED | Requires controlled L0-L7 evidence |
@@ -136,6 +136,7 @@ The cache/fold boundary remains `00dc2e0`; claim hardening rollback is
 | 2026-07-15 | Memory-safe L5 224px cache gate | PASS | `15a5368` |
 | 2026-07-15 | Pretrained 4 GiB VRAM gate | PASS | `93449ae` |
 | 2026-07-15 | Crash-bounded L5 cached-feature consumer | PASS | `b425c86` |
+| 2026-07-15 | Deterministic L5 cached short training gate | PASS | `b6f74f7` |
 
 ## L2 PASS Evidence
 
@@ -312,6 +313,40 @@ This PASS authorizes implementation and execution of the exact cached-feature
 short training gate only. L5 remains `IN_PROGRESS`; baseline metrics,
 outer-holdout predictions, reviewed/final naming, canonical full OOF, and Q2
 claims remain unauthorized.
+
+## L5 Cached Short Training Gate Evidence
+
+- commits `9a878e7` and `b6f74f7` add the immutable V0/T16 centered short
+  config, batchwise mmap training, fresh-process CUDA runner, complete lineage,
+  repeat comparator, and explicit release of persistent cuBLAS workspaces;
+- config SHA256 is
+  `921868d721d6e584d0880f1bd5bdd6f8d7386b6131fe95cac69310cfa4e21d15`;
+- both runs use the same 80 class-balanced training native units, all 245
+  validation native units, 68,234 model parameters, three epochs, and nine
+  optimizer steps; outer-holdout rows, predictions, and metrics remain zero;
+- primary `ct_v0_t16_p_b6f74f7` and repeat `ct_v0_t16_r_b6f74f7` run in
+  distinct PIDs 11,460 and 19,104 with non-overlapping intervals;
+- selected epoch is 3; bounded development macro-F1 is `0.2273314111`,
+  accuracy is `0.2897959184`, and native-unit NLL is `1.9787436113`;
+- parameter, prediction, and epoch-metric SHA256 values match exactly at
+  `90f8b125e90f59d2681d370c7fcfef50dc3c448525b9d05a6b475d321d092ff7`,
+  `fea4fbb59f33c59e083fc74d3c45ba9445802b8d4fe2d1e92c9a8768fa4fe89a`,
+  and `c201c65237d5dd3b38d1ae4808796801b71d6988d0d7ed01f1d94af3c2183ff6`;
+- maximum loaded batch is 2,103,552 bytes and peak reserved VRAM is 94,371,840
+  bytes in each run; post-cleanup allocated and reserved bytes are both zero;
+- the first committed attempt `ct_v0_t16_p_9a878e7` is preserved as FAIL
+  because a 64 MiB cuBLAS workspace remained inside the live process; it did
+  not OOM, retry, overlap another process, or leave GPU memory after exit;
+- all 13 required artifacts in each passing packet independently match their
+  manifest hashes; focused tests are 11 passed and classification regression is
+  526 passed with 181 deselected, plus Ruff, compile, diff, and line gates;
+- short-gate SHA256 is
+  `f63fe685fd7fb7285c2a9393f15111742a8601e6bf27937b5f1ea762a9e2fc1f`.
+
+This PASS authorizes only the exact full V0/T16 centered cached-feature
+expansion. Other visual or temporal controls remain unauthorized, L5 stays
+`IN_PROGRESS`, and all reviewed/final, canonical full-OOF, and Q2 claims stay
+false. Rollback is `git revert b6f74f7` followed by `git revert 9a878e7`.
 
 ## Full-Run Boundary
 
