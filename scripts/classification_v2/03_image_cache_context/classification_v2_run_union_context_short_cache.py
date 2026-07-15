@@ -93,6 +93,7 @@ def run_union_context_short_cache(
             source_type=str(payload["source_type"]),
             preview_limit=int(cache["preview_limit"]),
             checkpoint_every=int(cache["checkpoint_every"]),
+            max_open_videos=int(cache["max_open_videos"]),
             resume=False,
         )
     )
@@ -113,6 +114,12 @@ def run_union_context_short_cache(
         raise ValueError("union-context cache lineage scope drift")
     if build_audit.get("human_review_complete") is not False:
         raise ValueError("union-context cache review claim drift")
+    max_open_videos = int(cache["max_open_videos"])
+    peak_open_videos = int(build_audit.get("peak_open_videos", -1))
+    if int(build_audit.get("max_open_videos", -1)) != max_open_videos:
+        raise ValueError("union-context cache open-video limit drift")
+    if not 0 <= peak_open_videos <= max_open_videos:
+        raise ValueError("union-context cache exceeded open-video limit")
 
     run_manifest = {
         "schema_version": (

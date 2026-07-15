@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -11,6 +12,7 @@ from pig_behavior.classification_v2.datasets.visual_interaction_context import (
     RESIZE_POLICY,
     VisualInteractionCacheConfig,
     _cache_relative_path,
+    _decode_union_crop,
     _resolve_context_geometry,
     _same_frame_actor_lookup,
     _select_target_frames,
@@ -29,6 +31,60 @@ def test_cache_relative_path_hashes_long_context_id() -> None:
     assert path.parent.name == path.stem[:2]
     assert path.suffix == ".npy"
     assert len(path.name) == 68
+
+
+def test_decode_union_crop_evicts_lru_capture(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeCapture:
+        def __init__(self, path: str) -> None:
+            self.path = path
+            self.released = False
+
+        def isOpened(self) -> bool:
+            return True
+
+        def set(self, _property: int, _value: int) -> None:
+            return None
+
+        def read(self) -> tuple[bool, np.ndarray]:
+            return True, np.zeros((8, 8, 3), dtype=np.uint8)
+
+        def release(self) -> None:
+            self.released = True
+
+    created: dict[str, FakeCapture] = {}
+
+    def capture_factory(path: str) -> FakeCapture:
+        capture = FakeCapture(path)
+        created[path] = capture
+        return capture
+
+    monkeypatch.setattr(
+        "pig_behavior.classification_v2.datasets."
+        "visual_interaction_context.cv2.VideoCapture",
+        capture_factory,
+    )
+    captures: dict[str, FakeCapture] = {}
+    decoded: dict[str, tuple[int, np.ndarray]] = {}
+    next_frame: dict[str, int] = {}
+
+    for path in ("video-a.mp4", "video-b.mp4"):
+        image, *_ = _decode_union_crop(
+            row={"resolved_media_path": path, "frame_index": 3},
+            union_bbox=(0.0, 0.0, 8.0, 8.0),
+            captures=captures,
+            decoded=decoded,
+            next_frame=next_frame,
+            image_size=8,
+            max_open_videos=1,
+        )
+        assert image is not None
+
+    assert created["video-a.mp4"].released is True
+    assert list(captures) == ["video-b.mp4"]
+    assert list(decoded) == ["video-b.mp4"]
+    assert list(next_frame) == ["video-b.mp4"]
 
 
 def _row(
@@ -230,6 +286,7 @@ def test_resume_rejects_changed_selection_hash(tmp_path: Path) -> None:
                 "padding_ratio": 0.15,
                 "resize_policy": RESIZE_POLICY,
                 "cache_key_policy": CACHE_KEY_POLICY,
+                "max_open_videos": config.max_open_videos,
                 "source_type_filter": None,
                 "max_contexts": None,
             }

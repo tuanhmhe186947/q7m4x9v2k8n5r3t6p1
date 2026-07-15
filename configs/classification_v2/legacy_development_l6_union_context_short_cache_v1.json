@@ -30,7 +30,7 @@
   "implementation": {
     "builder_module": {
       "path": "src/pig_behavior/classification_v2/datasets/visual_interaction_context.py",
-      "sha256": "44e675ebc1349fd97762cc5d61f8d48857d932ce2f16972fd0e346ac3fcac5a5"
+      "sha256": "77edadf43cf91a8cd88157dafaed6acd1001a30e79f6c2c2fe050316418f96dd"
     },
     "builder_script": {
       "path": "scripts/classification_v2/03_image_cache_context/classification_v2_build_visual_interaction_cache.py",
@@ -38,7 +38,7 @@
     },
     "runner_script": {
       "path": "scripts/classification_v2/03_image_cache_context/classification_v2_run_union_context_short_cache.py",
-      "sha256": "6d004204e90f4006e6627d1a45b1c1c639253a101554efa1f66ffbcaeeb7ad8a"
+      "sha256": "3e4f479e043bda99339d25a5c467e6156f653f3792977e4f1cbaa7d86602b78a"
     },
     "repeat_gate_script": {
       "path": "scripts/classification_v2/03_image_cache_context/check_classification_v2_union_context_short_cache_repeat.py",
@@ -51,6 +51,7 @@
     "max_contexts": null,
     "preview_limit": 40,
     "checkpoint_every": 250,
+    "max_open_videos": 4,
     "resize_policy": "actor_nearest_partner_union_letterbox_rgb_pad_black_v1",
     "cache_key_policy": "sha256_image_context_id_v1",
     "selected_rows": 4875,

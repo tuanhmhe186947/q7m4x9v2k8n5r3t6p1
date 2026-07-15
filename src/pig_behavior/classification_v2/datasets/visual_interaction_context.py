@@ -35,6 +35,7 @@ class VisualInteractionCacheConfig:
     source_type: str | None = None
     preview_limit: int = 100
     checkpoint_every: int = 1000
+    max_open_videos: int = 4
     resume: bool = False
 
 
@@ -82,6 +83,7 @@ def build_visual_interaction_cache(config: VisualInteractionCacheConfig) -> dict
     next_frame: dict[str, int] = {}
     manifest_rows: list[dict[str, Any]] = []
     decode_count = seek_count = reuse_count = 0
+    peak_open_video_count = 0
     previews_written = 0
     partial_manifest_path = config.output_dir / "visual_context_manifest.partial.csv"
     partial_audit_path = config.output_dir / "visual_context_cache_audit.partial.json"
@@ -125,6 +127,11 @@ def build_visual_interaction_cache(config: VisualInteractionCacheConfig) -> dict
                     decoded=decoded,
                     next_frame=next_frame,
                     image_size=config.image_size,
+                    max_open_videos=config.max_open_videos,
+                )
+                peak_open_video_count = max(
+                    peak_open_video_count,
+                    len(captures),
                 )
                 decode_count += did_decode
                 seek_count += did_seek
@@ -226,6 +233,8 @@ def build_visual_interaction_cache(config: VisualInteractionCacheConfig) -> dict
         "padding_ratio": config.padding_ratio,
         "resize_policy": RESIZE_POLICY,
         "cache_key_policy": CACHE_KEY_POLICY,
+        "max_open_videos": config.max_open_videos,
+        "peak_open_videos": peak_open_video_count,
         "video_decode_count": decode_count,
         "video_seek_count": seek_count,
         "video_frame_reuse_count": reuse_count,
@@ -278,6 +287,8 @@ def _validate_config(config: VisualInteractionCacheConfig) -> None:
         raise ValueError("max_contexts must be positive")
     if config.checkpoint_every < 0:
         raise ValueError("checkpoint_every must be non-negative")
+    if config.max_open_videos <= 0:
+        raise ValueError("max_open_videos must be positive")
     if config.selection_csv is not None and not config.selection_csv.is_file():
         raise FileNotFoundError(f"visual context selection does not exist: {config.selection_csv}")
 
@@ -441,13 +452,20 @@ def _decode_union_crop(
     decoded: dict[str, tuple[int, np.ndarray]],
     next_frame: dict[str, int],
     image_size: int,
+    max_open_videos: int,
 ) -> tuple[np.ndarray | None, int, int, int]:
     path = str(row["resolved_media_path"])
     target = int(row["frame_index"])
-    capture = captures.get(path)
+    capture = captures.pop(path, None)
     if capture is None:
+        while len(captures) >= max_open_videos:
+            stale_path = next(iter(captures))
+            stale_capture = captures.pop(stale_path)
+            stale_capture.release()
+            decoded.pop(stale_path, None)
+            next_frame.pop(stale_path, None)
         capture = cv2.VideoCapture(path)
-        captures[path] = capture
+    captures[path] = capture
     if not capture.isOpened():
         return None, 0, 0, 0
     did_decode = did_seek = did_reuse = 0
@@ -550,6 +568,7 @@ def _validate_partial_audit(
         "padding_ratio": float(config.padding_ratio),
         "resize_policy": RESIZE_POLICY,
         "cache_key_policy": CACHE_KEY_POLICY,
+        "max_open_videos": int(config.max_open_videos),
         "source_type_filter": config.source_type,
         "max_contexts": config.max_contexts,
     }
@@ -630,6 +649,7 @@ def _write_partial_checkpoint(
         "padding_ratio": float(config.padding_ratio),
         "resize_policy": RESIZE_POLICY,
         "cache_key_policy": CACHE_KEY_POLICY,
+        "max_open_videos": int(config.max_open_videos),
         "source_type_filter": config.source_type,
         "lineage_scope": _single_manifest_value(
             partial,
