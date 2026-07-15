@@ -1,0 +1,38 @@
+{
+  "schema_version": "classification_v2.legacy_development_l6.geometry_full_authorization_gate.v1",
+  "status": "PASS_LEGACY_DEVELOPMENT_L6_GEOMETRY_SHORT_MATRIX",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "short_config_path": "configs/classification_v2/legacy_development_l6_geometry_short_v3.json",
+  "short_config_sha256": "51462300634a10244217cc1290c7af8f8a9e6597a16a47859cec41ac7e3e8ab6",
+  "technical_matrix_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6g_short_v3/l6g_short_matrix_v1.json",
+  "technical_matrix_sha256": "aeeb3b14101726f68cabf63d52f9bad0f5327ebf88bb5dc6b28ee8a88f5dbc3c",
+  "technical_matrix_status": "PASS_LEGACY_DEVELOPMENT_L6_GEOMETRY_SHORT_MATRIX",
+  "paired_decision_config_path": "configs/classification_v2/legacy_development_l6_geometry_decision_v1.json",
+  "paired_decision_config_sha256": "b9ccf94bb27c0bde8649c346f1b915bbee51ed4d6fd22bceacdee79a1eccc4bf",
+  "paired_decision_path": "outputs/classification_v2/legacy_only_unreviewed_development/l6g_short_v3/l6g_short_decision_v1.json",
+  "paired_decision_sha256": "180f91ff038c6c661717330365bd77df08c70883da878a287f1471fe631586f8",
+  "paired_decision_status": "PASS_LEGACY_DEVELOPMENT_L6_GEOMETRY_SHORT_DECISION",
+  "paired_decision": "RETAIN_GEOMETRY_FOR_FULL_LEGACY_DEVELOPMENT",
+  "paired_decision_required": true,
+  "authorized_modes": [
+    "parameter_matched_zero",
+    "availability_only",
+    "geometry"
+  ],
+  "modes": [
+    "parameter_matched_zero",
+    "availability_only",
+    "geometry"
+  ],
+  "all_mode_repeat_gates_pass": true,
+  "full_expansion_authorized": true,
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "source_media_reads": 0,
+  "outer_holdout_predictions_created": 0,
+  "errors": [],
+  "valid": true
+}

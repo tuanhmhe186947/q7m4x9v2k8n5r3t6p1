@@ -412,7 +412,7 @@ After this scoped goal is genuinely complete, return to the original chat and
 send:
 
 ```text
-Resume full classification_v2 Q2 goal using the completed legacy 16f handback
+Resume full classification_v2 Q2 goal using the completed `legacy_16f` handback
 and re-audit the canonical reviewed all-source P0-P8 blockers.
 ```
 

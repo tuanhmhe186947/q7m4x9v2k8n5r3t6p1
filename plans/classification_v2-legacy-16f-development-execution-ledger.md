@@ -657,9 +657,27 @@ Native validation point metrics are:
 
 The six-process short matrix is `PASS`; SHA256 is
 `aeeb3b14101726f68cabf63d52f9bad0f5327ebf88bb5dc6b28ee8a88f5dbc3c`.
-This is technical expansion evidence only. L6 remains `IN_PROGRESS` until the
-predeclared paired native/video-cluster decision closes geometry versus both
-controls. No full geometry training may start before that decision passes.
+The predeclared paired native/video-cluster decision is also `PASS`:
+
+- geometry minus parameter-matched zero macro-F1 is `+0.0306804062`, with
+  33-video cluster interval `[0.0058898605, 0.0597986455]`;
+- geometry minus availability-only macro-F1 is `+0.0339669109`, with interval
+  `[0.0052591705, 0.0667705673]`;
+- geometry improves NLL against zero by `0.0313320951` and accuracy by
+  `0.0448979592`;
+- rare-group macro-F1 changes by `-0.0078361982` against zero on only 20 units;
+- availability-only minus zero is `-0.0032865047`, and its interval crosses
+  zero, as required for the constant-channel diagnostic.
+
+The decision is `RETAIN_GEOMETRY_FOR_FULL_LEGACY_DEVELOPMENT`. Its artifact
+SHA256 is
+`180f91ff038c6c661717330365bd77df08c70883da878a287f1471fe631586f8`.
+The full authorization gate SHA256 is
+`e4637f4d6640d85a046f51c5f76d9f13a44dbff07e99280479c82c0f984aae18`,
+and the full config SHA256 is
+`20e7ba457f27abd1e8ed93341ac77b348985f8e62f4eab39311d90d38b945198`.
+L6 remains `IN_PROGRESS`: full geometry evidence must pass before geometry can
+be retained, and this legacy-only result cannot be generalized to merged data.
 
 ## Full-Run Boundary
 
