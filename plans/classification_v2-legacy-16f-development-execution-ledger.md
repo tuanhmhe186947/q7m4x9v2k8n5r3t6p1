@@ -1,6 +1,6 @@
-# Classification V2 Legacy 16F Development Execution Ledger
+# Classification V2 `legacy_16f` Development Execution Ledger
 
-Version: 1.0
+Version: 1.1
 
 Opened: 2026-07-14
 
@@ -614,8 +614,20 @@ The PASS repeat-gate file SHA256 is
 `d84c1a88b1067b4c3bfeaca8bfb5cd03f860fb85bff829fe80ecf145139decd1`
 at evaluator commit `1cb0798`.
 
-L6 remains `IN_PROGRESS`. The next gate is train-only normalization plus the
-parameter-matched zero, availability-only, and geometry short controls.
+The geometry training implementation is now `PASS IN CODE` before GPU launch:
+
+- all three controls use the same 521-wide model and 69,404 parameters;
+- normalization fits unique train `frame_uid` rows only and records zero
+  validation or outer-holdout reads;
+- missing-modality inference zeros geometry and availability together;
+- the runtime permits one run per fresh process, caps the allocator at 70% of
+  detected VRAM, forbids OOM retry, and requires zero post-run VRAM residue;
+- short config SHA256 is
+  `35351189226fc2dab00c6bb2c8e34646ea9bf32591b0d321937230113eeb8046`.
+
+L6 remains `IN_PROGRESS`. Commit, CPU preflight, then two fresh-process short
+runs for each mode are still required before the short matrix can authorize
+any full geometry expansion. No GPU optimizer step has run at this checkpoint.
 
 ## Full-Run Boundary
 

@@ -1,6 +1,6 @@
-# Classification V2 Legacy 16F Development Goal Prompt
+# Classification V2 `legacy_16f` Development Goal Prompt
 
-Version: 1.1
+Version: 1.2
 
 Status: scoped goal authority for a separate chat
 
@@ -17,7 +17,7 @@ C:\Users\ironh\Downloads\PIG_Behavior_Project
 
 Hãy tạo goal với objective:
 
-Hoàn thiện lane legacy-only-unreviewed-development từ dữ liệu legacy 16-frame
+Hoàn thiện lane legacy-only-unreviewed-development từ dữ liệu `legacy_16f`
 đến một classifier 10 lớp có bounded development evidence, bằng các input
 T6/T8/T12/T16, recording/video-safe validation, reusable letterboxed image
 caches, exact feature whitelists, immutable lineage và ablation một biến.
