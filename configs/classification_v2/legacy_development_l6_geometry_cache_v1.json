@@ -66,7 +66,7 @@
   },
   "implementation": {
     "path": "src/pig_behavior/classification_v2/training/legacy_development_l6_geometry_cache.py",
-    "sha256": "f8d49b71a093a1125e59c129696d745b28c3e20b24e0259211538b7d58cb9b32"
+    "sha256": "9ffcfd69290602917b51e233daf6d95ec375e1e932c054057d217af8cd2ca5f6"
   },
   "execution_guard": {
     "allowed_dirty_paths": [

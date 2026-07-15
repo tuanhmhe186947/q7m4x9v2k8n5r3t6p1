@@ -254,6 +254,7 @@ def build_geometry_cache(
     _, view, parent = load_temporal_ladder_view(ladder, VIEW_ID)
     slots = _load_model_slots(config, view.windows)
     context = _load_image_context(config)
+    context = context.drop(columns=["lineage_scope", "human_review_complete"])
     joined = slots.merge(
         context,
         left_on=["object_track_key_audit", "frame_index_expected_audit"],
