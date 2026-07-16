@@ -8,6 +8,34 @@ sections are historical records. Current gate status is centralized in
 
 ## Active decision: reviewed-data rebuild
 
+### Legacy L7 imbalance decision and L8 handoff
+
+The three-policy `legacy_16f` L7 short matrix is complete with two fresh,
+non-overlapping CUDA processes per policy. All repeat hashes are exact. Every
+run used 30 optimizer steps, had no OOM or retry, peaked at `73,400,320`
+reserved bytes on the local 4 GiB GPU, and cleaned allocated and reserved CUDA
+memory to zero.
+
+Event-balanced CE, effective-number CE, and Balanced Softmax native macro-F1
+are `0.2717708642`, `0.1072693320`, and `0.1429984901`. Relative to
+event-balanced CE, effective-number CE changes macro-F1 by `-0.1645015322`
+with 33-video interval `[-0.1895271242, -0.0767137732]`; Balanced Softmax
+changes it by `-0.1287723740` with interval
+`[-0.1565980560, -0.0416499788]`. Their NLL values worsen from
+`1.9439967908` to `3.3642298748` and `3.6577075450`; rare-group macro-F1
+falls from `0.2382505739` to `0.0411892030` and `0.0713385243`. Balanced
+Softmax also predicts `fight` for `70.2041%` of validation units and fails the
+majority-collapse guard.
+
+The valid decision is `RETAIN_EVENT_BALANCED_CE_REJECT_L7_ALTERNATIVES`.
+Do not run a full confirmation for either rejected alternative. Start L8 from
+the retained actor-only T6 event-balanced base. The decision artifact is
+`l7_imbalance_decision_v1.json` with SHA256
+`69c200e2b6d570b181423df30cc33cdbecb6686f175f7184b40067bd62ff1482`.
+This remains bounded three-epoch evidence, not a full-convergence claim, and
+does not transfer to merged-reviewed data, authorize reviewed/final naming,
+canonical full OOF, or Q2 evidence.
+
 ### Legacy L6 full-frame decision and L7 handoff
 
 The `legacy_16f` full-frame short matrix and paired evaluator are complete.
