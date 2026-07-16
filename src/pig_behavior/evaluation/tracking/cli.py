@@ -171,6 +171,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument("--max-frames", type=int, default=None)
+    parser.add_argument("--expected-video-count", type=int, default=None)
     parser.add_argument(
         "--profile-override",
         action="append",
@@ -285,6 +286,12 @@ def config_from_args(args: argparse.Namespace) -> TrackingEvaluationPipelineConf
             if value is not None
         }
     )
+    expected_video_count = args.expected_video_count
+    if expected_video_count is None:
+        if video_paths is not None:
+            expected_video_count = len(video_paths)
+        elif video_path is not None or args.gt_xml is not None:
+            expected_video_count = 1
 
     return TrackingEvaluationPipelineConfig(
         video_path=video_path,
@@ -313,6 +320,7 @@ def config_from_args(args: argparse.Namespace) -> TrackingEvaluationPipelineConf
         run_missing_tracker=args.run_missing_tracker,
         force_track=args.force_track,
         max_frames=args.max_frames,
+        expected_video_count=expected_video_count,
         device=args.device,
         half=args.half,
         USE_IOU_FALLBACK=args.use_iou_fallback,

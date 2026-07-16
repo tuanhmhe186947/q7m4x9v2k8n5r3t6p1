@@ -61,8 +61,10 @@ def test_evaluation_emits_xml_and_metrics_without_mp4(
 ) -> None:
     input_video = tmp_path / "input.mp4"
     input_video.write_bytes(b"")
-    gt_xml = tmp_path / "gt.xml"
+    gt_xml = tmp_path / "input.xml"
     _write_single_track_xml(gt_xml)
+    weights_path = tmp_path / "weights.pt"
+    weights_path.write_bytes(b"weights")
     prediction_root = tmp_path / "predictions"
     report_root = tmp_path / "reports"
 
@@ -82,7 +84,9 @@ def test_evaluation_emits_xml_and_metrics_without_mp4(
         gt_xml=gt_xml,
         prediction_root=prediction_root,
         output_root=report_root,
+        weights_path=weights_path,
         force_track=True,
+        expected_video_count=1,
     )
 
     _, metrics_df, run_dir = run_pipeline(config)
@@ -90,6 +94,8 @@ def test_evaluation_emits_xml_and_metrics_without_mp4(
     assert (prediction_root / "prediction.xml").exists()
     assert not metrics_df.empty
     assert (run_dir / "tracking_metrics.csv").exists()
+    assert (run_dir / "run_manifest.json").exists()
+    assert (run_dir / "artifact_manifest.json").exists()
     assert not list(prediction_root.rglob("*.mp4"))
     assert not list(report_root.rglob("*.mp4"))
 

@@ -32,6 +32,11 @@ from .evaluator import (
     pairs_to_dataframe,
     run_tracker_for_pair,
 )
+from .lineage import (
+    prepare_run_manifest,
+    validate_metric_universe,
+    write_artifact_manifest,
+)
 from .reporting import build_markdown_report
 
 
@@ -221,6 +226,7 @@ def run_pipeline(
 ) -> tuple[pd.DataFrame, pd.DataFrame, Path]:
     """Run prediction generation when needed, then evaluate available predictions."""
     pairs = build_pairs(config)
+    prepare_run_manifest(pairs, config)
     pairs = ensure_predictions(pairs, config)
     asset_df = pairs_to_dataframe(pairs)
 
@@ -274,6 +280,7 @@ def run_pipeline(
 
     metric_rows = metrics + ([aggregate_metrics(metrics)] if metrics else [])
     metrics_df = metrics_to_dataframe(metric_rows)
+    validate_metric_universe(metrics_df, pairs)
     identity_events_df = identity_events_to_dataframe(identity_events)
     remapped_identity_events_df = identity_events_to_dataframe(
         remapped_identity_events
@@ -293,4 +300,5 @@ def run_pipeline(
         run_dir,
         context="tracking evaluation report",
     )
+    write_artifact_manifest(run_dir, pairs)
     return asset_df, metrics_df, run_dir

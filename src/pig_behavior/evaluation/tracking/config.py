@@ -38,6 +38,7 @@ class TrackingEvaluationPipelineConfig:
     run_missing_tracker: bool = True
     force_track: bool = False
     max_frames: int | None = None
+    expected_video_count: int | None = None
     device: str | int | None = None
     half: bool = False
     USE_IOU_FALLBACK: bool = False
