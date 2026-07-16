@@ -1,0 +1,208 @@
+{
+  "schema_version": "classification_v2.legacy_development_l8.candidate_lock_config.v1",
+  "lock_id": "LEGACY_16F_L8_CANDIDATE_LOCK_V1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "implementation_source": {
+    "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_l8_candidate_lock.py",
+    "sha256": "739ce9b2dee2bb923a421371b49619018f891104994f3d0af6e9876e5d62f5dc"
+  },
+  "full_training_config": {
+    "path": "configs/classification_v2/legacy_development_l5_temporal_ladder_full_v1.json",
+    "sha256": "559d24ba29d6192291eb5a8d7b6896616b1bed782450a9242f1c4afa3bd85559"
+  },
+  "full_candidate_result": {
+    "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_l5_v1_temporal_ladder_full_v1/tlf_t6s_f_fda8f43_v1/run_result.json",
+    "sha256": "968a2bd56e555783aaf591519de0a204b560cb40337eb1ec3c992162b6c4e86f"
+  },
+  "l7_decision": {
+    "path": "outputs/classification_v2/legacy_only_unreviewed_development/l7_short_v1/l7_imbalance_decision_v1.json",
+    "sha256": "69c200e2b6d570b181423df30cc33cdbecb6686f175f7184b40067bd62ff1482"
+  },
+  "decision_artifacts": [
+    {
+      "experiment_id": "L5_T1_TCN",
+      "stage": "L5",
+      "principal_family": "temporal_encoder",
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_l5_t1_v1_paired_decision_v1.json",
+      "sha256": "f6b9b7418272786cf9d5a0dc247ed912699b25f25d1d2fbbb8b9260c8aa17266",
+      "status": "PASS_LEGACY_DEVELOPMENT_L5_PAIRED_DECISION",
+      "decision": "RETAIN_V1_REJECT_T1_FOR_LEGACY_T16_SEARCH",
+      "disposition": "rejected"
+    },
+    {
+      "experiment_id": "L5_T6_SLIDING_TEMPORAL_LADDER",
+      "stage": "L5",
+      "principal_family": "temporal_view_protocol",
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_l5_temporal_ladder_decision_v1.json",
+      "sha256": "f3316568c797967e66a0a6ea3cac8e4804a35e12439b3d31527e10ef93abd4e1",
+      "status": "PASS_LEGACY_DEVELOPMENT_L5_TEMPORAL_LADDER_DECISION",
+      "decision": "RETAIN_T6_SLIDING_AS_LEGACY_L6_WORKING_BASELINE_WITH_BOUNDED_UNCERTAINTY",
+      "disposition": "retained"
+    },
+    {
+      "experiment_id": "L6_GEOMETRY_FULL",
+      "stage": "L6",
+      "principal_family": "geometry",
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6g_full_v1/l6g_full_decision_v1.json",
+      "sha256": "25f4e9919c3579b16ea393678027d95fc706c975b9c57be99b981cca654a2e04",
+      "status": "PASS_LEGACY_DEVELOPMENT_L6_GEOMETRY_FULL_DECISION",
+      "decision": "REJECT_GEOMETRY_AS_UNSUPPORTED_IN_FULL_LEGACY_DEVELOPMENT",
+      "disposition": "rejected"
+    },
+    {
+      "experiment_id": "L6_MOTION_SHORT",
+      "stage": "L6",
+      "principal_family": "motion",
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6m_short_v1/l6m_short_decision_v1.json",
+      "sha256": "9be7fd93854771b93b58bbcd9f8fa1ed96a8ddbda8e65fa8e68a4baf30a4d978",
+      "status": "PASS_LEGACY_DEVELOPMENT_L6_MOTION_SHORT_DECISION",
+      "decision": "DO_NOT_EXPAND_MOTION_FROM_CURRENT_SHORT_EVIDENCE",
+      "disposition": "rejected"
+    },
+    {
+      "experiment_id": "L6_ROI_RELATION_FULL",
+      "stage": "L6",
+      "principal_family": "roi_relation",
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6r_full_v1/l6r_full_decision_v1.json",
+      "sha256": "5a9a2b4b61b7ddeef0b5155ec69b678d73f0acd53917db98d1d6271cab5f1af3",
+      "status": "PASS_LEGACY_DEVELOPMENT_L6_ROI_RELATION_FULL_DECISION",
+      "decision": "DO_NOT_EXPAND_ROI_RELATION_FROM_CURRENT_SHORT_EVIDENCE",
+      "disposition": "rejected"
+    },
+    {
+      "experiment_id": "L6_SOCIAL_RELATION_SHORT",
+      "stage": "L6",
+      "principal_family": "numeric_social_relation",
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6s_short_v1/l6s_short_decision_v1.json",
+      "sha256": "60c685094bddf83bf180174535afdf184133c2643d258cc09215be43b6d1ff61",
+      "status": "PASS_LEGACY_DEVELOPMENT_L6_SOCIAL_RELATION_SHORT_DECISION",
+      "decision": "DO_NOT_EXPAND_SOCIAL_RELATION_FROM_CURRENT_SHORT_EVIDENCE",
+      "disposition": "rejected"
+    },
+    {
+      "experiment_id": "L6_UNION_CONTEXT_SHORT",
+      "stage": "L6",
+      "principal_family": "union_context",
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6u_train_short_v1/l6u_short_decision_v1.json",
+      "sha256": "bc37887890c0a7ea5e8eb993595547c30e69693f0f06ac8e12d0d2e453829778",
+      "status": "PASS_LEGACY_DEVELOPMENT_L6_UNION_CONTEXT_SHORT_DECISION",
+      "decision": "DO_NOT_EXPAND_UNION_CONTEXT_FROM_CURRENT_SHORT_EVIDENCE",
+      "disposition": "rejected"
+    },
+    {
+      "experiment_id": "L6_FULL_FRAME_CONTEXT_SHORT",
+      "stage": "L6",
+      "principal_family": "full_frame_context",
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6f_train_short_v1/l6f_short_decision_v1.json",
+      "sha256": "e006dc6636ede5a35e71414448be1dc96f0f71e29f5f2a1b6d0230fa0c49c6bf",
+      "status": "PASS_LEGACY_DEVELOPMENT_L6_FULL_FRAME_CONTEXT_SHORT_DECISION",
+      "decision": "DO_NOT_EXPAND_FULL_FRAME_CONTEXT_FROM_CURRENT_SHORT_EVIDENCE",
+      "disposition": "rejected"
+    }
+  ],
+  "execution_guard": {
+    "allowed_dirty_paths": [
+      ".tokensave/config.json",
+      "outputs/classification_v2/train_ready_windows/feature_semantics_audit.json",
+      "scripts/diagnostics/detect_single_frame.py"
+    ],
+    "required_tracked_paths": [
+      "configs/classification_v2/legacy_development_l5_temporal_ladder_full_v1.json",
+      "configs/classification_v2/legacy_development_l7_imbalance_decision_v1.json",
+      "configs/classification_v2/legacy_development_l8_candidate_lock_v1.json",
+      "scripts/classification_v2/08_publication_reporting/lock_classification_v2_legacy_development_l8_candidate.py",
+      "src/pig_behavior/classification_v2/evaluation/legacy_development_l8_candidate_lock.py",
+      "tests/test_classification_v2_legacy_l8_candidate_lock.py"
+    ]
+  },
+  "evidence_contract": {
+    "validation_native_units": 245,
+    "validation_video_clusters": 33,
+    "class_order": [
+      "drink",
+      "eat",
+      "fight",
+      "social-nose",
+      "explore",
+      "lying",
+      "stand",
+      "move",
+      "sitting",
+      "playwithtoy"
+    ],
+    "confusion_groups": {
+      "rare": [
+        "fight",
+        "social-nose",
+        "playwithtoy",
+        "move"
+      ],
+      "interaction": [
+        "fight",
+        "social-nose",
+        "playwithtoy"
+      ],
+      "feeding": [
+        "drink",
+        "eat"
+      ],
+      "posture": [
+        "lying",
+        "stand",
+        "sitting"
+      ],
+      "locomotion_exploration": [
+        "move",
+        "explore"
+      ]
+    },
+    "bootstrap_iterations": 2000,
+    "bootstrap_seed": 20260716
+  },
+  "interpretation_boundary": {
+    "decision_scope": "legacy-only-unreviewed-development",
+    "candidate_role": "bounded_legacy_development_candidate",
+    "legacy_dataset_is_legacy_16f_not_merged": true,
+    "legacy_rare_support_generalizes_to_merged_data": false,
+    "merged_data_has_materially_more_rare_behaviors": true,
+    "merged_reviewed_reassessment_required": true,
+    "local_vram_is_architecture_limit": false,
+    "rented_gpu_allowed_after_target_environment_gate": true,
+    "reviewed_or_final_claim_allowed": false,
+    "q2_claim_allowed": false
+  },
+  "output": {
+    "root_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/l8_candidate_lock_v1"
+  },
+  "model": {
+    "architecture": "cached_frame_feature_temporal_classifier_v1",
+    "feature_control_id": "V1",
+    "backbone_name": "resnet18",
+    "input_resolution": 224,
+    "temporal_encoder_name": "masked_mean",
+    "hidden_dim": 128,
+    "dropout": 0.1,
+    "parameter_count": 68234,
+    "native_probability_aggregation": "mean_window_probability_v1"
+  },
+  "optimization": {
+    "seed": 20260714,
+    "epochs": 3,
+    "batch_size": 32,
+    "evaluation_batch_size": 64,
+    "learning_rate": 0.003,
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 1.0,
+    "loss": "event_mass_balanced_cross_entropy",
+    "sampler": "deterministic_seeded_window_shuffle_after_native_selection",
+    "checkpoint_selection": "native_global_10_class_macro_f1_then_nll",
+    "precision": "float32",
+    "autocast_enabled": false,
+    "deterministic_algorithms": true
+  }
+}
