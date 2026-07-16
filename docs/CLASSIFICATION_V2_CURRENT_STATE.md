@@ -53,7 +53,7 @@ the root-local carry audit is
 `gui/hidden_review_decision_carry_v5_identifier_v2_to_v6_audit.json`.
 The report-only scientific gate is blocked; no v6 hidden-reviewed frame
 artifact is final. The clean authority must use a new root under
-`outputs/classification_v2/human_review_runs/<RUN_ID>`, rebuild from immutable
+`human_review_workspace/classification_v2/<RUN_ID>`, rebuild from immutable
 source inputs, and must not carry these rows.
 
 The existing behavior manifest contains 4,670 mandatory review units. Three

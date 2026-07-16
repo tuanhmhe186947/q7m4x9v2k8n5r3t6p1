@@ -134,7 +134,7 @@ set PY=C:\Users\ironh\anaconda3\envs\pig_project\python.exe
 REM Replace the placeholders and use a new directory for every semantic rebuild.
 set RUN_ID=c2v2_human_review_YYYYMMDD_reviewer_vN
 set REVIEWER_NAME=replace_with_reviewer_id
-set UROOT=outputs\classification_v2\human_review_runs\%RUN_ID%
+set UROOT=human_review_workspace\classification_v2\%RUN_ID%
 set R=%UROOT%\data
 set SM=%R%\00_smoke
 set SRC=%R%\01_source_full
@@ -156,11 +156,18 @@ set SNAP=%R%\14_training_snapshot
 set MODEL=%R%\15_model_development
 ```
 
+Không bắt đầu rebuild chỉ vì đã có tài liệu này. Agent phải bàn giao trạng thái
+`READY_FOR_HUMAN_REVIEW`, exact Git SHA và semantic config đã qua short gate.
+Trước lệnh đầu tiên, operator chạy `git rev-parse HEAD` và xác nhận SHA khớp
+handoff. Nếu code classification đang có thay đổi chưa commit hoặc SHA khác,
+dừng để tránh tạo một lineage từ code thay đổi giữa chừng.
+
 Không chạy nguyên văn khi `RUN_ID` còn chứa placeholder `YYYYMMDD` hoặc
 `reviewer`, và không dùng lại
-một `%UROOT%` đã có artifact. Root này thuộc quyền vận hành của người review;
-agent chỉ được đọc trong lúc review và phải ghi audit riêng dưới một
-`outputs\classification_v2\agent_audits\<AUDIT_RUN_ID>` độc lập. Không phải
+một `%UROOT%` đã có artifact. Root này nằm ngoài `outputs\`, thuộc quyền vận
+hành của người review; agent chỉ được đọc trong lúc review và phải ghi audit
+riêng dưới một `outputs\classification_v2\agent_audits\<AUDIT_RUN_ID>` độc lập.
+Việc tách vật lý này ngăn lệnh operator xung đột với output agent. Không phải
 mọi builder đều chặn output tồn tại. Khi khởi tạo lineage mới, chạy guard sau
 đúng một lần trước khi tạo artifact:
 
@@ -200,21 +207,23 @@ set S9=scripts\classification_v2\09_final_release_audit
 ```
 
 Không tạo nhiều folder tên `smoke`, `resume_smoke`, `letterbox_smoke` ở cấp
-`outputs\classification_v2`. Data-derived artifact nằm dưới `%R%`; decision
-chỉ nằm dưới `%HSMDEC%`, `%HDEC%` hoặc `%DEC%`. Smoke và full có tên theo vai
-trò, không theo lỗi thử nghiệm.
+`outputs\classification_v2` hoặc `human_review_workspace\classification_v2`.
+Data-derived artifact nằm dưới `%R%`; decision chỉ nằm dưới `%HSMDEC%`,
+`%HDEC%` hoặc `%DEC%`. Smoke và full có tên theo vai trò, không theo lỗi thử
+nghiệm.
 
 `%UROOT%` là operator-owned: agent không chạy GUI, apply, rebuild hoặc checker
 ghi vào root này. Sau khi người dùng xác nhận một stage và gửi đúng `RUN_ID`,
 agent chỉ đọc decision/artifact, rồi ghi hash và checker mirror vào `%HANDOFF%`
 thuộc `%AROOT%`. Root review của người dùng không nhận output do agent tạo.
 
-Handoff không cần copy file. Người dùng chỉ gửi ba giá trị:
+Handoff không cần copy file. Người dùng chỉ gửi bốn giá trị:
 
 ```text
 RUN_ID=<exact folder name>
 REVIEW_STAGE=hidden_complete | behavior_complete
 REVIEWER_NAME=<reviewer id used for this root>
+REVIEW_CODE_SHA=<exact Git SHA supplied at launch>
 ```
 
 Agent phải resolve đúng `%UROOT%`, đọc coverage/hash và đặt mọi audit output ở
@@ -228,7 +237,7 @@ Ownership cố định:
 | Root | Quyền ghi | Vai trò |
 |---|---|---|
 | `data/` | Không ai trong workflow này | Raw input bất biến |
-| `%UROOT%` | Người review/operator | Rebuild, GUI decisions, apply và review lineage |
+| `%UROOT%` ngoài `outputs/` | Operator | Rebuild và review lineage |
 | `%AROOT%` | Agent | Audit mirror, hash, test và goal-development evidence |
 | canonical/rebuild cũ | Không ghi | Technical/forensic reference chỉ đọc |
 

@@ -24,7 +24,7 @@ Current lineage status:
 - The v6 Hidden design is a technical reference only. Existing 30-row Hidden
   and 3-row behavior payloads are unverified and cannot be carried.
 - Verified coverage starts at 0/5,131 Hidden and 0/4,670 behavior units under
-  `outputs/classification_v2/human_review_runs/<RUN_ID>`.
+  `human_review_workspace/classification_v2/<RUN_ID>`.
 - Agent evidence uses `outputs/classification_v2/agent_audits/<AUDIT_RUN_ID>`
   and must not write the operator-owned review root.
 - The commit-`18d6692` 13-fold run is historical engineering evidence from the

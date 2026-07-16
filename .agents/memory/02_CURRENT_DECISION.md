@@ -15,7 +15,7 @@ Hidden and 3-row behavior CSV payloads as unverified forensic/pilot artifacts,
 not review evidence. Do not carry them into the next lineage.
 
 Create the new operator-owned lineage only under
-`outputs/classification_v2/human_review_runs/<RUN_ID>`. Agent writes belong
+`human_review_workspace/classification_v2/<RUN_ID>`. Agent writes belong
 under `outputs/classification_v2/agent_audits/<AUDIT_RUN_ID>`; no agent may open
 a GUI or write the active human root. The operator owns apply/rebuild there;
 after handoff, agent checks remain read-only on that root and write evidence to
@@ -332,7 +332,8 @@ Do not call this artifact clean final training data. Rebuild instructions are in
 Keep the target-independent v6 Hidden manifest at
 `outputs/classification_v2/rebuilds/hidden_review_v6_full_20260714` for the
 technical reference only. Its 30 carried payload rows are unverified; clean
-human coverage starts at 0/5,131 in a new `human_review_runs/<RUN_ID>` root.
+human coverage starts at 0/5,131 in a new
+`human_review_workspace/classification_v2/<RUN_ID>` root.
 Hash-bound media validation of the old reference resolves all items, but the
 scientific gate remains BLOCKED until the clean authority is reviewed.
 

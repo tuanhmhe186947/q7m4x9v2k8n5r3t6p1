@@ -36,7 +36,7 @@ The active reviewed-data lineage has not reached temporal harmonization or model
 training. The user confirms zero verified Hidden and behavior decisions. Old
 30-row Hidden and 3-row behavior payloads are unverified and cannot be carried.
 Build a clean target-independent manifest below a new
-`outputs/classification_v2/human_review_runs/<RUN_ID>` root, complete its
+`human_review_workspace/classification_v2/<RUN_ID>` root, complete its
 scientific gate, then rebuild and review behavior units from zero. Agent-side
 evidence belongs under a separate `agent_audits/<AUDIT_RUN_ID>` root.
 

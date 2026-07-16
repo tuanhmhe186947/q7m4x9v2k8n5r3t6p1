@@ -27,7 +27,7 @@ Current active lineage:
 
 - A 245,664-row enhanced technical reference exists, but it is not the clean
   review authority. The new lineage rebuilds from immutable source inputs under
-  `outputs/classification_v2/human_review_runs/<RUN_ID>`.
+  `human_review_workspace/classification_v2/<RUN_ID>`.
 - The v6 reference design has 5,131 target-independent Hidden items, but its
   carried payload is unverified. Clean human coverage starts at 0/5,131.
 - Clean behavior coverage starts at 0/4,670 user-verified units.

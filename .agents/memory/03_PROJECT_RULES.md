@@ -23,10 +23,12 @@ canonical artifacts from a different lineage.
 
 The user-verified review count is zero. Existing 30-row Hidden and 3-row
 behavior payloads are unverified and must not be carried. New operator work
-uses `outputs/classification_v2/human_review_runs/<RUN_ID>`; agent-generated
+uses `human_review_workspace/classification_v2/<RUN_ID>`; agent-generated
 audits use `outputs/classification_v2/agent_audits/<AUDIT_RUN_ID>`. While review
 is active or after handoff, agents must not write the selected human root or
 open either review GUI. Agent checker output must stay in the agent audit root.
+Operator rebuild starts only after an agent supplies `READY_FOR_HUMAN_REVIEW`,
+an exact Git SHA, and a short-gate-passing semantic configuration.
 
 Hidden-specific rules:
 

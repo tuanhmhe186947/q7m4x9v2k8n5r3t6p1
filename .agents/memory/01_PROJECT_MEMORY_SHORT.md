@@ -7,7 +7,7 @@
   legacy artifacts, even where embedded metadata names `ironh`. Do not carry,
   apply, or count them as human evidence.
 - New reviewed lineage starts from zero decisions under
-  `outputs/classification_v2/human_review_runs/<RUN_ID>`.
+  `human_review_workspace/classification_v2/<RUN_ID>`.
 - Agent audits must use
   `outputs/classification_v2/agent_audits/<AUDIT_RUN_ID>`; while review is
   active and after handoff, agents may read but must not write the selected

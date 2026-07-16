@@ -13,7 +13,7 @@ Current state:
 - The technical reference has 245,664 enhanced rows and a target-independent
   5,131-item Hidden v6 design. Old decision payloads are unverified.
 - Clean human coverage starts at 0/5,131 Hidden and 0/4,670 behavior units under
-  a new `outputs/classification_v2/human_review_runs/<RUN_ID>` root.
+  a new `human_review_workspace/classification_v2/<RUN_ID>` root.
 - Therefore no reviewed train-ready snapshot is currently valid for new model
   experiments. Complete review and freeze new hashes before model smoke.
 - A full 13-fold engineering OOF run exists at commit `18d6692`, but it belongs

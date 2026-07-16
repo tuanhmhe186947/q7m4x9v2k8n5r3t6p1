@@ -58,7 +58,7 @@ crop items; the full gate resolves 4,613 video and 518 crop items. Both report
 zero missing or unknown-source media.
 
 Verified human coverage is 0/5,131. The clean authority must be rebuilt under
-`outputs/classification_v2/human_review_runs/<RUN_ID>` with zero carried rows.
+`human_review_workspace/classification_v2/<RUN_ID>` with zero carried rows.
 The scientific gate is `BLOCKED_INCOMPLETE_OR_INSUFFICIENT_REVIEW`; apply,
 temporal rebuild, snapshot, and training remain blocked. Follow section 8A of
 `docs/CLASSIFICATION_V2_DATA_REBUILD_AND_HUMAN_REVIEW_RUNBOOK.md`.

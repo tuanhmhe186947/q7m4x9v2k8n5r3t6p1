@@ -65,12 +65,16 @@ Detailed settled Hidden policy and validation evidence are in
 The old v6 root is a technical template/media reference only. Its 30 carried
 payload rows are unverified because the user confirms no review has started;
 do not continue from or carry that CSV. Build a clean root under
-`outputs/classification_v2/human_review_runs/<RUN_ID>` and start at zero.
+`human_review_workspace/classification_v2/<RUN_ID>` and start at zero.
 Decision outputs live only below that root, while agent audits use
 `outputs/classification_v2/agent_audits/<AUDIT_RUN_ID>`. During review, agents
 may read but must not write the selected human root or launch either GUI. The
 same read-only rule remains after handoff; agent evidence stays in its audit
 root.
+
+Separate roots prevent artifact collisions, but not code-version races. The
+operator starts only after `READY_FOR_HUMAN_REVIEW` handoff with an exact Git
+SHA and a short-gate-passing semantic configuration.
 
 The current identifier-v2 short chain is independently verified under
 `outputs/classification_v2/rebuilds/scientific_smoke_identifier_v2_20260713`.
