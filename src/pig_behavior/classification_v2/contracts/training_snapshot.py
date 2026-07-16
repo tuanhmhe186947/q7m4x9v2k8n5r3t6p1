@@ -19,6 +19,10 @@ import numpy as np
 import pandas as pd
 
 from pig_behavior.classification_v2.contracts.model_io import validate_model_input_columns
+from pig_behavior.classification_v2.contracts.versioned_data_contract import (
+    GENERATED_CONTRACT_SCHEMA_VERSION,
+    validate_generated_data_contract,
+)
 
 CSV_CHUNK_ROWS = 100_000
 FILE_CHUNK_BYTES = 1024 * 1024
@@ -47,7 +51,7 @@ def freeze_training_snapshot(
 ) -> dict[str, Any]:
     """Create an immutable snapshot manifest for the current artifact state."""
     contract = load_contract(contract_path)
-    paths = _resolve_paths(contract_path, contract, output_path=output_path)
+    paths = _resolve_paths(contract_path, contract)
     snapshot = _build_snapshot(paths, contract)
     if snapshot["errors"]:
         raise ValueError(
@@ -57,6 +61,16 @@ def freeze_training_snapshot(
     snapshot_id = _snapshot_id(snapshot)
     snapshot["snapshot_id"] = snapshot_id
     destination = output_path or (paths.output_dir / f"{snapshot_id}.json")
+    destination_errors = _snapshot_destination_errors(
+        destination,
+        paths=paths,
+        contract=contract,
+    )
+    if destination_errors:
+        raise ValueError(
+            "Invalid versioned snapshot destination: "
+            f"{destination_errors}"
+        )
     destination.parent.mkdir(parents=True, exist_ok=True)
 
     encoded = _stable_json(snapshot)
@@ -112,6 +126,10 @@ def check_training_snapshot(
         "artifact_hash_bindings"
     ):
         errors.append("artifact_hash_binding_drift")
+    if expected.get("versioned_contract_audit") != current.get(
+        "versioned_contract_audit"
+    ):
+        errors.append("versioned_contract_audit_drift")
     if expected.get("contract_digest") != current.get("contract_digest"):
         errors.append("contract_json_digest_changed")
     if expected.get("git_commit") != current.get("git_commit"):
@@ -133,15 +151,11 @@ def check_training_snapshot(
 def _resolve_paths(
     contract_path: Path,
     contract: dict[str, Any],
-    *,
-    output_path: Path | None = None,
 ) -> SnapshotPaths:
     # Contract roots are project-relative by design, so scripts run from the
     # repository root produce stable paths independent of the config directory.
     root = Path(contract.get("root", ".")).resolve()
     output_dir = (root / contract["snapshot_output_dir"]).resolve()
-    if output_path is not None:
-        output_dir = output_path.resolve().parent
     return SnapshotPaths(root=root, contract_json=contract_path.resolve(), output_dir=output_dir)
 
 
@@ -150,8 +164,9 @@ def _build_snapshot(paths: SnapshotPaths, contract: dict[str, Any]) -> dict[str,
         name: _profile_artifact(paths.root / spec["path"], spec)
         for name, spec in contract.get("artifacts", {}).items()
     }
+    versioned_contract_audit = _versioned_contract_audit(paths, contract)
     errors = _validate_contract_profiles(contract, artifacts)
-    return {
+    snapshot = {
         "snapshot_schema_version": SNAPSHOT_SCHEMA_VERSION,
         "contract_version": contract.get("contract_version"),
         "snapshot_name": contract.get("snapshot_name"),
@@ -173,8 +188,90 @@ def _build_snapshot(paths: SnapshotPaths, contract: dict[str, Any]) -> dict[str,
             contract,
             artifacts,
         ),
+    }
+    if versioned_contract_audit["applicable"]:
+        errors.extend(versioned_contract_audit["errors"])
+        snapshot.update(
+            {
+                "generated_contract_schema_version": contract.get(
+                    "generated_contract_schema_version"
+                ),
+                "run_id": contract.get("run_id"),
+                "profile": contract.get("profile"),
+                "lineage_roots": contract.get("lineage_roots"),
+                "template_sha256": contract.get("template_sha256"),
+                "artifact_map_sha256": contract.get(
+                    "artifact_map_sha256"
+                ),
+                "path_policy": contract.get("path_policy"),
+                "versioned_contract_audit": versioned_contract_audit,
+            }
+        )
+    snapshot["errors"] = errors
+    return snapshot
+
+
+def _versioned_contract_audit(
+    paths: SnapshotPaths,
+    contract: dict[str, Any],
+) -> dict[str, Any]:
+    """Revalidate generated contract sources while preserving legacy support."""
+
+    schema_version = contract.get("generated_contract_schema_version")
+    if schema_version is None:
+        return {
+            "applicable": False,
+            "valid": True,
+            "errors": [],
+        }
+    errors = validate_generated_data_contract(
+        paths.contract_json,
+        project_root=paths.root,
+    )
+    return {
+        "applicable": True,
+        "schema_version": schema_version,
+        "expected_schema_version": GENERATED_CONTRACT_SCHEMA_VERSION,
+        "valid": not errors,
         "errors": errors,
     }
+
+
+def _snapshot_destination_errors(
+    destination: Path,
+    *,
+    paths: SnapshotPaths,
+    contract: dict[str, Any],
+) -> list[str]:
+    """Keep new snapshots inside the declared agent-owned snapshot directory."""
+
+    if contract.get("generated_contract_schema_version") is None:
+        return []
+    errors: list[str] = []
+    resolved = destination.resolve()
+    if resolved.suffix.lower() != ".json":
+        errors.append("snapshot_destination_requires_json_suffix")
+    if resolved.parent != paths.output_dir:
+        errors.append("snapshot_destination_outside_declared_output_dir")
+    try:
+        relative = resolved.relative_to(paths.root)
+    except ValueError:
+        errors.append("snapshot_destination_outside_project_root")
+        return errors
+    run_id = contract.get("run_id")
+    if not isinstance(run_id, str) or run_id not in relative.parts:
+        errors.append("snapshot_destination_missing_exact_run_id")
+    roots = contract.get("lineage_roots")
+    agent_root = roots.get("agent_derived") if isinstance(roots, dict) else None
+    if not isinstance(agent_root, str):
+        errors.append("snapshot_destination_missing_agent_derived_root")
+        return errors
+    agent_path = (paths.root / agent_root).resolve()
+    try:
+        resolved.relative_to(agent_path)
+    except ValueError:
+        errors.append("snapshot_destination_outside_agent_derived_root")
+    return errors
 
 
 def _profile_artifact(path: Path, spec: dict[str, Any]) -> dict[str, Any]:
