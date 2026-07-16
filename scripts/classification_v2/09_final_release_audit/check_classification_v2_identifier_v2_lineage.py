@@ -247,6 +247,11 @@ def _read_csv(
     if not path.exists():
         errors.append(f"missing_csv={name}:{path}")
         return pd.DataFrame()
+    try:
+        return pd.read_csv(path, low_memory=False)
+    except (OSError, ValueError, pd.errors.ParserError) as exc:
+        errors.append(f"invalid_csv={name}:{path}:{exc}")
+        return pd.DataFrame()
 
 
 def _read_optional_csv(
@@ -263,11 +268,6 @@ def _read_optional_csv(
             errors.append(f"missing_csv={name}:{path}")
         return None
     return _read_csv(path, name, errors)
-    try:
-        return pd.read_csv(path, low_memory=False)
-    except (OSError, ValueError, pd.errors.ParserError) as exc:
-        errors.append(f"invalid_csv={name}:{path}:{exc}")
-        return pd.DataFrame()
 
 
 def _read_json(

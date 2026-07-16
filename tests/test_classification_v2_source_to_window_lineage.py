@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import importlib.util
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
@@ -14,6 +17,38 @@ from pig_behavior.classification_v2.contracts.window_alignment import (
     require_ordered_window_ids,
 )
 from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
+
+
+def _load_identifier_lineage_checker():
+    """Load the numbered operator script without making it a package API."""
+
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "scripts"
+        / "classification_v2"
+        / "09_final_release_audit"
+        / "check_classification_v2_identifier_v2_lineage.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        "classification_v2_identifier_lineage_checker",
+        path,
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_identifier_lineage_checker_reads_existing_csv(tmp_path: Path) -> None:
+    checker = _load_identifier_lineage_checker()
+    csv_path = tmp_path / "bounded.csv"
+    pd.DataFrame({"window_id": ["window-0"]}).to_csv(csv_path, index=False)
+    errors: list[str] = []
+
+    rows = checker._read_csv(csv_path, "bounded", errors)
+
+    assert rows["window_id"].tolist() == ["window-0"]
+    assert errors == []
 
 
 def test_source_to_window_lineage_accepts_complete_bounded_fixture() -> None:
