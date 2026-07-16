@@ -1,0 +1,22 @@
+{
+  "mutates_inputs": false,
+  "required_checks": [
+    "fresh_output_roots",
+    "recursive_no_mp4",
+    "raw_prediction_sha256",
+    "canonical_prediction_sha256",
+    "prediction_integrity",
+    "focused_tracking_tests",
+    "runtime_telemetry",
+    "paired_metric_guardrails"
+  ],
+  "canonical_prediction_hash_contract": {
+    "name": "cvat_xml_c14n_without_created_updated_dumped_v1",
+    "excluded_paths": [
+      "./meta/task/created",
+      "./meta/task/updated",
+      "./meta/dumped"
+    ]
+  },
+  "shared_checks": []
+}

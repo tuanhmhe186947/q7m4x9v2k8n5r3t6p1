@@ -1,5 +1,5 @@
 {
-  "schema_version": "classification_v2_skill_registry_v1",
+  "schema_version": "project_skill_registry_v2",
   "native_root": ".agents/skills",
   "skills": [
     {
@@ -57,10 +57,27 @@
       ]
     },
     {
+      "name": "tracking-experiment-guardian",
+      "status": "active",
+      "implicit": true,
+      "order": 7,
+      "triggers": [
+        "tracking",
+        "realtime",
+        "hybrid_bytetrack",
+        "bytetrack",
+        "hota",
+        "idf1",
+        "idsw",
+        "mode compare"
+      ],
+      "depends_on": []
+    },
+    {
       "name": "imbalanced-classification-evaluator",
       "status": "future",
       "implicit": false,
-      "order": 7,
+      "order": 8,
       "triggers": ["event-balanced ce", "balanced softmax", "class imbalance"],
       "depends_on": ["grouped-cv-evaluation"]
     },
@@ -68,7 +85,7 @@
       "name": "gpu-training-profiler",
       "status": "future",
       "implicit": false,
-      "order": 8,
+      "order": 9,
       "triggers": ["gpu profile", "peak vram", "batch-size search"],
       "depends_on": ["multimodal-sequence-model-builder"]
     }

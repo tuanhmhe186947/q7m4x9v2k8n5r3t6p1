@@ -9,13 +9,13 @@ description: >-
 
 # Tracking Experiment Guardian
 
-## Overview
+## Purpose
 
 Execute tracking changes as isolated, reproducible experiments. Preserve strong
 identity results, fail closed on lineage drift, and never emit MP4 artifacts
 during analysis.
 
-## Required skill selection
+## When to use
 
 Before code changes or evaluation, inspect the available skill catalog and
 record the selected skills in the working plan.
@@ -28,7 +28,26 @@ record the selected skills in the working plan.
 - Use `skill-creator` to add or improve a project-local skill only after that
   gap is demonstrated. Validate it before relying on it.
 
-## Ordered workflow
+## Project context
+
+Guard `hybrid_bytetrack`, `realtime_fast`, `realtime_balanced`, and
+`realtime_quality_delayed`. The existing detector conclusions, profile
+semantics, baseline locks, and no-MP4 constraint are settled inputs.
+
+## Required inputs
+
+Require the parent commit, dirty-file inventory, video/GT and detector hashes,
+resolved semantic config, selected profile, fresh output roots, hypothesis,
+single changed family, target weak metric, guardrails, and runtime budget.
+
+## Scientific invariants
+
+Change one family per candidate. Compare the same videos, GT, detector,
+evaluation contract, and hardware policy. Preserve negative evidence, raw
+artifact hashes, and canonical prediction hashes that exclude only declared
+volatile CVAT metadata.
+
+## Ordered procedure
 
 1. Read `AGENTS.md`, memory `01`, `02`, `03`, `08`, and tracking memory
    `04` through `07`.
@@ -43,7 +62,7 @@ record the selected skills in the working plan.
 9. Record promotion or rejection; never suppress negative evidence.
 10. Promote profile defaults only in a separate reversible commit.
 
-## Baseline and output invariants
+### Baseline and output invariants
 
 - Treat `outputs/eval/mode_compare/20260709_040751` as the current five-mode
   comparison until a hash-bound replacement is promoted.
@@ -54,7 +73,8 @@ record the selected skills in the working plan.
 - For any causal or fixed-delay claim, append future frames at every declared
   flush boundary and require already-flushed XML payloads to remain identical.
 - Preserve per-video hybrid remapped IDSW `0` as a hard guardrail.
-- Keep `000302` at IDSW `0` for realtime candidates.
+- Keep `000302` at IDSW at most `2` for `realtime_fast`, and exactly `0` for
+  `realtime_balanced` and `realtime_quality_delayed` candidates.
 - Do not blame detector weight for the current-code `000263` regression.
 - Keep `iou0_area0_condarea0_merge0`; never enable `condarea` without an
   isolated ablation.
@@ -63,7 +83,7 @@ record the selected skills in the working plan.
 - Fail if an experiment output root already exists or contains any MP4.
 - Retain XML, CSV, JSON, Markdown, and small logs needed for evidence.
 
-## Promotion gates
+### Promotion gates
 
 Promote a candidate only when all applicable gates pass:
 
@@ -91,6 +111,17 @@ artifacts, or improvements that depend on changing the evaluation contract.
 - A recursive artifact audit proving the experiment root contains no MP4.
 - A signed promotion decision that records every passed or failed gate.
 
+## Validation commands
+
+Run the project skill-pack validator and tracking discovery scenario before
+using this skill. For code changes, run Ruff, compileall, focused tracking
+tests, `git diff --check`, and the changed-file line-length scan. Audit every
+fresh root recursively for MP4. Require prediction artifact records to retain
+raw SHA256 and
+`cvat_xml_c14n_without_created_updated_dumped_v1` semantic SHA256. Use the
+[check contract](checks/check_manifest.json), [scenario](examples/scenario.md),
+and [promotion template](templates/promotion_decision.example.json).
+
 ## Stop conditions
 
 Stop before further tracking work when:
@@ -106,7 +137,14 @@ Stop before further tracking work when:
 Fix the gate and restart with a new run ID. Do not reinterpret a failed run as
 promotion evidence.
 
-## Completion report
+## Forbidden actions
+
+Do not reuse roots, overwrite evidence, generate video artifacts, compare
+different inputs or evaluation contracts, tune on outer/full results, bundle
+families, enable `condarea` implicitly, relax a locked guardrail after seeing a
+failure, or promote a default in the same commit as the candidate algorithm.
+
+## Completion report format
 
 Report:
 

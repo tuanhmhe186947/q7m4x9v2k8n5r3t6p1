@@ -1,4 +1,4 @@
-# classification_v2 Project Skills
+# Project Skills
 
 This is the native project-local skill root discovered by Codex. Each active
 skill may be invoked implicitly when its description matches the task. Future
@@ -15,15 +15,16 @@ implicit use.
 | 4 | `scientific-ablation-controller` | active | ablation/promotion | fixed smoke |
 | 5 | `multimodal-sequence-model-builder` | active | model modules and modes | dataset-only audit |
 | 6 | `grouped-cv-evaluation` | active | OOF or prediction comparison | model construction |
-| 7 | `imbalanced-classification-evaluator` | future | post-pilot loss audit | pre-pilot work |
-| 8 | `gpu-training-profiler` | future | post-pilot GPU profiling | CPU-only data audit |
+| 7 | `tracking-experiment-guardian` | active | tracking work | classification |
+| 8 | `imbalanced-classification-evaluator` | future | post-pilot loss audit | pre-pilot work |
+| 9 | `gpu-training-profiler` | future | post-pilot GPU profiling | CPU-only data audit |
 
 ## Dependency Order
 
-Use the first six skills in routing order for a new classifier change. Evaluation
-depends on the frozen data contract and lineage metadata. The model builder
-depends on the refactor guard, leakage guard, lineage contract, and ablation
-decision. Future skills may be invoked explicitly only after a one-fold pilot.
+Use the first six skills in routing order for a new classifier change.
+`tracking-experiment-guardian` independently routes tracking work to its
+required supporting skills and fail-closed gates. Future skills may be invoked
+explicitly only after a one-fold pilot.
 
 Shared deterministic resources:
 
