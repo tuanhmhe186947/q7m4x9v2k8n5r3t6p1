@@ -4,6 +4,9 @@ from pathlib import Path
 import pytest
 
 from pig_behavior.evaluation.tracking.cli import (
+    parse_args as parse_pipeline_args,
+)
+from pig_behavior.evaluation.tracking.cli import (
     parse_profile_overrides,
     selected_rule_combos,
 )
@@ -40,6 +43,12 @@ def test_parse_profile_overrides_coerces_tracking_config_values() -> None:
         "identity_swap_guard": True,
         "mask_path": None,
     }
+
+
+def test_direct_pipeline_cli_keeps_condarea_off_by_default() -> None:
+    args = parse_pipeline_args(["--video", "input.mp4"])
+
+    assert not args.use_conditional_area_occlusion_freeze
 
 
 def test_parse_profile_overrides_rejects_unknown_fields() -> None:

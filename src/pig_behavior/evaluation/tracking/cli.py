@@ -130,7 +130,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--use-conditional-area-occlusion-freeze",
         action=argparse.BooleanOptionalAction,
-        default=True,
+        default=False,
     )
     parser.add_argument("--use-merged-box-split", action="store_true")
     parser.add_argument(

@@ -64,6 +64,13 @@ from pig_behavior.tracking.visualization import (
 logger = logging.getLogger(__name__)
 
 
+def _model_to_device(device_str: str) -> str:
+    normalized = device_str.strip().lower()
+    if normalized.isdigit():
+        return f"cuda:{normalized}"
+    return normalized
+
+
 def _cuda_telemetry_device(torch: Any, device_str: str) -> str | None:
     if not torch.cuda.is_available():
         return None
@@ -177,7 +184,7 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
 
     model = YOLO(str(cfg.weights_path))
     try:
-        model.to(device_str)
+        model.to(_model_to_device(device_str))
     except Exception as e:
         if "cuda" in device_str.lower() or "cuda" in str(e).lower():
             logger.warning("CUDA initialization failed, falling back to CPU: %s", e)

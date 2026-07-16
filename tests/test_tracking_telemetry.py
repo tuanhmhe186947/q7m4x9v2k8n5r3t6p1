@@ -26,6 +26,7 @@ from pig_behavior.tracking.profiles.realtime import (
     REALTIME_QUALITY_DELAYED_CONFIG,
 )
 from pig_behavior.tracking.refinement import stabilize_realtime_motion_pairs
+from pig_behavior.tracking.runner import _model_to_device
 from pig_behavior.tracking.telemetry import (
     record_timing_sample,
     resolve_output_timing_contract,
@@ -142,6 +143,12 @@ def test_runtime_telemetry_summary_has_stable_timing_and_delay() -> None:
     assert telemetry["effective_fps"] == pytest.approx(40.0)
     assert telemetry["declared_delay_ms"] == pytest.approx(80.0)
     assert telemetry["peak_process_rss_bytes"] == 123
+
+
+def test_numeric_cuda_device_is_normalized_for_torch_model() -> None:
+    assert _model_to_device("0") == "cuda:0"
+    assert _model_to_device("cuda:1") == "cuda:1"
+    assert _model_to_device("cpu") == "cpu"
 
 
 def test_quality_report_keeps_runtime_telemetry_without_rule_counters() -> None:
