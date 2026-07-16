@@ -15,6 +15,7 @@ from typing import Any
 
 import torch
 
+from pig_behavior.classification_v2.training.imbalance_losses import LOSS_POLICIES
 from pig_behavior.classification_v2.training.legacy_development_l5_temporal_ladder_runtime import (
     _non_overlapping_intervals,
     _replace_json,
@@ -24,7 +25,6 @@ from pig_behavior.classification_v2.training.legacy_development_l5_temporal_ladd
     _write_torch_exclusive,
 )
 from pig_behavior.classification_v2.training.legacy_development_l7_imbalance import (
-    LOSS_POLICIES,
     fit_full_training_loss,
     train_l7_imbalance_core,
 )
