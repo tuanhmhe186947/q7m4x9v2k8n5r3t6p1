@@ -1,0 +1,108 @@
+{
+  "schema_version": "classification_v2.legacy_development_l7.imbalance_decision_config.v1",
+  "decision_id": "L7_T6_IMBALANCE_POLICY_PAIRED_DECISION_V1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "implementation_source": {
+    "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_l7_imbalance_decision.py",
+    "sha256": "77bd55f7974ca1cd3a2d37ee63d88852a52736251c1e79dfadb4ded8bc48d40b"
+  },
+  "short_training_config": {
+    "path": "configs/classification_v2/legacy_development_l7_imbalance_short_v1.json",
+    "sha256": "e3df5e88950c667e72110e9294a7583af6efd5f6cbbcf23417bfda92bd453860"
+  },
+  "short_matrix_gate": {
+    "path": "outputs/classification_v2/legacy_only_unreviewed_development/l7_short_v1/l7_imbalance_short_matrix_v1.json",
+    "sha256": "31175a2300b0a9d18f4f906992b631c47b8c834ec1014fc674364ec87296b02e"
+  },
+  "execution_guard": {
+    "allowed_dirty_paths": [
+      ".tokensave/config.json",
+      "outputs/classification_v2/train_ready_windows/feature_semantics_audit.json",
+      "scripts/diagnostics/detect_single_frame.py"
+    ],
+    "required_tracked_paths": [
+      "configs/classification_v2/legacy_development_l7_imbalance_decision_v1.json",
+      "configs/classification_v2/legacy_development_l7_imbalance_short_v1.json",
+      "scripts/classification_v2/04_baselines_smokes/check_classification_v2_legacy_development_l7_imbalance.py",
+      "scripts/classification_v2/04_baselines_smokes/evaluate_classification_v2_legacy_development_l7_imbalance.py",
+      "src/pig_behavior/classification_v2/evaluation/legacy_development_l7_imbalance_decision.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l7_imbalance_config.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l7_imbalance_runtime.py"
+    ]
+  },
+  "runs": {
+    "event_balanced_ce": {
+      "primary_result_path": "outputs/classification_v2/legacy_only_unreviewed_development/l7_short_v1/event_balanced_ce/primary_20260716_v1/run_result.json",
+      "primary_result_sha256": "c622a8d1ad3af306c66f2fcb828222ae07d91c29eb50c21d59cc5a527d26c2dd",
+      "repeat_gate_path": "outputs/classification_v2/legacy_only_unreviewed_development/l7_short_v1/event_balanced_ce/repeat_gate_20260716_v1.json",
+      "repeat_gate_sha256": "efa8e9aab1292e554e6d077828c3e80975e9b4dabbd3389210eebb70fecc66d0"
+    },
+    "effective_number_ce": {
+      "primary_result_path": "outputs/classification_v2/legacy_only_unreviewed_development/l7_short_v1/effective_number_ce/primary_20260716_v1/run_result.json",
+      "primary_result_sha256": "fd307690e5f1146961ed0aebc976fb09aefed75432f0ab124e7256e0a8358d05",
+      "repeat_gate_path": "outputs/classification_v2/legacy_only_unreviewed_development/l7_short_v1/effective_number_ce/repeat_gate_20260716_v1.json",
+      "repeat_gate_sha256": "f85e07b74eed3dfddc1a420f7d39c175a1f34abecee37fd48717a947c5518de1"
+    },
+    "balanced_softmax": {
+      "primary_result_path": "outputs/classification_v2/legacy_only_unreviewed_development/l7_short_v1/balanced_softmax/primary_20260716_v1/run_result.json",
+      "primary_result_sha256": "e424932ce52c4cd6cb5e1f683e26fd60697400063f84f203902966261c31cc9d",
+      "repeat_gate_path": "outputs/classification_v2/legacy_only_unreviewed_development/l7_short_v1/balanced_softmax/repeat_gate_20260716_v1.json",
+      "repeat_gate_sha256": "b7451cdf554607dc5c6580f33a327d5be614aa372c0cdc53b147920e83cf2673"
+    }
+  },
+  "paired_contract": {
+    "unit_column": "temporal_unit_key",
+    "cluster_column": "video_key",
+    "true_column": "behavior_label",
+    "predicted_column": "predicted_label",
+    "validation_fold_id": "native_oof_006",
+    "expected_native_units": 245,
+    "expected_clusters": 33,
+    "bootstrap_iterations": 2000,
+    "bootstrap_seed": 20260716,
+    "class_order": [
+      "drink",
+      "eat",
+      "fight",
+      "social-nose",
+      "explore",
+      "lying",
+      "stand",
+      "move",
+      "sitting",
+      "playwithtoy"
+    ],
+    "rare_classes": [
+      "fight",
+      "social-nose",
+      "move",
+      "playwithtoy"
+    ]
+  },
+  "decision_contract": {
+    "minimum_macro_f1_gain": 0.01,
+    "maximum_rare_group_macro_f1_drop": 0.02,
+    "maximum_predicted_class_share": 0.5,
+    "maximum_nll_increase": 0.05,
+    "maximum_ece_increase": 0.02
+  },
+  "interpretation_boundary": {
+    "decision_scope": "legacy-only-unreviewed-development",
+    "legacy_dataset_is_legacy_16f_not_merged": true,
+    "legacy_rare_support_generalizes_to_merged_data": false,
+    "merged_data_has_materially_more_rare_behaviors": true,
+    "merged_reviewed_reassessment_required": true,
+    "local_vram_is_architecture_limit": false,
+    "rented_gpu_allowed_after_target_environment_gate": true,
+    "reviewed_or_final_claim_allowed": false,
+    "q2_claim_allowed": false
+  },
+  "output": {
+    "artifact_path": "outputs/classification_v2/legacy_only_unreviewed_development/l7_short_v1/l7_imbalance_decision_v1.json"
+  }
+}
