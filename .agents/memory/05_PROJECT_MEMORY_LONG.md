@@ -21,8 +21,12 @@ Long-term target:
 Current lineage status:
 
 - The active task is rebuilding reviewed data, not promoting the old model run.
-- Hidden v5 template coverage passes, but its human decisions are incomplete.
-- Behavior review has only 3 of 4,670 decision rows and fails closed.
+- The v6 Hidden design is a technical reference only. Existing 30-row Hidden
+  and 3-row behavior payloads are unverified and cannot be carried.
+- Verified coverage starts at 0/5,131 Hidden and 0/4,670 behavior units under
+  `outputs/classification_v2/human_review_runs/<RUN_ID>`.
+- Agent evidence uses `outputs/classification_v2/agent_audits/<AUDIT_RUN_ID>`
+  and must not write the operator-owned review root.
 - The commit-`18d6692` 13-fold run is historical engineering evidence from the
   previous lineage; it is not the final thesis evaluation.
 - A future reviewed-lineage full OOF requires frozen data/cache/fold hashes,
