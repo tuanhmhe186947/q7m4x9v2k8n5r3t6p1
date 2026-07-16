@@ -1,0 +1,878 @@
+{
+  "template_schema_version": "classification_v2.data_contract_template.v1",
+  "contract_version": "classification_v2.reviewed_q2_data_contract.v1",
+  "snapshot_name": "classification_v2_reviewed_q2_train_ready",
+  "allowed_profiles": [
+    "mixed-reviewed"
+  ],
+  "claim_scope": {
+    "primary": "recording-date/video-safe internal behavior recognition",
+    "external_generalization": false,
+    "pig_id_scope": "annotation-local within video/session"
+  },
+  "native_unit_contract": {
+    "legacy_recovered_frames": 16,
+    "cvat_tracking_xml_frames": 6,
+    "training_windows_after_temporal_harmonization": true
+  },
+  "owner_policy": {
+    "human_review_root_is_read_only_after_handoff": true,
+    "agent_outputs_use_agent_derived_root": true,
+    "canonical_output_fallback_allowed": false
+  },
+  "primary_key": "window_id",
+  "row_count_alignment_group": [
+    "split_manifest",
+    "tabular_X",
+    "y_behavior",
+    "train_mask",
+    "sample_weight",
+    "spatial_sequences",
+    "event_weight_manifest",
+    "y_auxiliary_targets",
+    "temporal_view_selection_manifest",
+    "image_window_context_manifest",
+    "interaction_window_context_manifest"
+  ],
+  "window_id_source_artifact": "split_manifest",
+  "lineage_audit_artifact": "source_to_window_lineage_audit",
+  "required_ordered_window_artifacts": [
+    "split_manifest",
+    "event_weight_manifest",
+    "y_auxiliary_targets",
+    "temporal_view_selection_manifest",
+    "image_window_context_manifest",
+    "interaction_window_context_manifest"
+  ],
+  "key_alignment_group": [
+    "split_manifest",
+    "event_weight_manifest",
+    "y_auxiliary_targets",
+    "temporal_view_selection_manifest",
+    "image_window_context_manifest",
+    "interaction_window_context_manifest"
+  ],
+  "key_coverage_groups": [
+    {
+      "source_artifact": "split_manifest",
+      "artifacts": [
+        "event_weight_manifest",
+        "y_auxiliary_targets",
+        "temporal_view_selection_manifest",
+        "image_window_context_manifest",
+        "interaction_window_context_manifest"
+      ]
+    },
+    {
+      "source_artifact": "image_frame_context_manifest",
+      "artifacts": [
+        "actor_cache_manifest",
+        "actor_cache_integrity_manifest",
+        "actor_packed_cache_index"
+      ]
+    },
+    {
+      "source_artifact": "native_temporal_unit_manifest",
+      "artifacts": [
+        "q2_outer_fold_assignments"
+      ]
+    }
+  ],
+  "artifact_hash_bindings": [
+    {
+      "source_artifact": "hidden_review_scientific_policy",
+      "consumer_artifact": "hidden_review_scientific_gate",
+      "consumer_json_field": "policy_sha256"
+    },
+    {
+      "source_artifact": "hidden_review_scientific_design",
+      "consumer_artifact": "hidden_review_scientific_gate",
+      "consumer_json_field": "design_sha256"
+    },
+    {
+      "source_artifact": "hidden_review_unit_manifest",
+      "consumer_artifact": "hidden_review_scientific_gate",
+      "consumer_json_field": "manifest_sha256"
+    }
+  ],
+  "artifacts": {
+    "hidden_review_scientific_policy": {
+      "scope": "project_static",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "schema_version": "classification_v2.hidden_scientific_policy.v1"
+      }
+    },
+    "legacy_frame_object_annotations": {
+      "scope": "human_review",
+      "type": "csv",
+      "required": true
+    },
+    "merged_frame_objects": {
+      "scope": "human_review",
+      "type": "csv",
+      "required": true
+    },
+    "merged_frame_objects_audit": {
+      "scope": "human_review",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "errors": []
+      }
+    },
+    "frame_context": {
+      "scope": "human_review",
+      "type": "csv",
+      "required": true
+    },
+    "frame_context_audit": {
+      "scope": "human_review",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "errors": []
+      }
+    },
+    "frame_geometry": {
+      "scope": "human_review",
+      "type": "csv",
+      "required": true
+    },
+    "frame_geometry_audit": {
+      "scope": "human_review",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "errors": []
+      }
+    },
+    "frame_roi": {
+      "scope": "human_review",
+      "type": "csv",
+      "required": true
+    },
+    "frame_roi_audit": {
+      "scope": "human_review",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "errors": []
+      }
+    },
+    "enhanced_frame_features": {
+      "scope": "human_review",
+      "type": "csv",
+      "required": true
+    },
+    "enhanced_frame_features_audit": {
+      "scope": "human_review",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "errors": []
+      }
+    },
+    "hidden_review_unit_manifest": {
+      "scope": "human_review",
+      "type": "csv",
+      "required": true,
+      "key_column": "hidden_review_item_id",
+      "required_columns": [
+        "hidden_review_item_id",
+        "hidden_before_review",
+        "hidden_review_cohort"
+      ]
+    },
+    "hidden_review_frame_context": {
+      "scope": "human_review",
+      "type": "csv",
+      "required": true
+    },
+    "hidden_review_scientific_design": {
+      "scope": "human_review",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "schema_version": "classification_v2.hidden_scientific_design.v1",
+        "design_scope": "full",
+        "resolved_items_at_declaration": 0,
+        "all_items_pending_at_declaration": true,
+        "selection_contract.target_independent": true,
+        "high_risk_is_population_prevalence": false
+      }
+    },
+    "hidden_media_validation_audit": {
+      "scope": "human_review",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "media_missing": 0
+      }
+    },
+    "hidden_review_decisions": {
+      "scope": "human_review",
+      "type": "csv",
+      "required": true,
+      "key_column": "hidden_review_item_id",
+      "required_columns": [
+        "hidden_review_item_id",
+        "hidden_before_review",
+        "hidden_after_review",
+        "hidden_review_status",
+        "hidden_review_confidence",
+        "hidden_review_reason",
+        "hidden_reviewer",
+        "hidden_reviewed_at"
+      ]
+    },
+    "hidden_review_decision_coverage_audit": {
+      "scope": "human_review",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "missing_items": 0,
+        "unknown_items": 0,
+        "unclear_items": 0,
+        "pending_items": 0,
+        "semantic_error_items": 0,
+        "errors": []
+      }
+    },
+    "hidden_review_scientific_gate": {
+      "scope": "human_review",
+      "type": "json",
+      "required": true,
+      "json_hash_fields": [
+        "policy_sha256",
+        "design_sha256",
+        "manifest_sha256"
+      ],
+      "required_json_values": {
+        "status": "PASS",
+        "valid": true,
+        "training_snapshot_allowed": true,
+        "target_independent_selection": true,
+        "complete_review_coverage": true,
+        "random_hidden_no_prevalence.final_estimate": true,
+        "random_hidden_no_prevalence.is_population_prevalence": true,
+        "high_risk_correction_yield.final_estimate": true,
+        "high_risk_correction_yield.is_population_prevalence": false
+      }
+    },
+    "hidden_reviewed_frame_features": {
+      "scope": "human_review",
+      "type": "csv",
+      "required": true,
+      "required_columns": [
+        "hidden_review_item_id",
+        "hidden_before_review",
+        "hidden_after_review",
+        "hidden_is_trusted",
+        "hidden_review_available_mask"
+      ]
+    },
+    "hidden_apply_audit": {
+      "scope": "human_review",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "coverage.missing_items": 0,
+        "coverage.unknown_items": 0,
+        "coverage.unclear_items": 0,
+        "coverage.pending_items": 0,
+        "errors": []
+      }
+    },
+    "hidden_confusion_audit": {
+      "scope": "human_review",
+      "type": "json",
+      "required": true
+    },
+    "review_unit_manifest": {
+      "scope": "human_review",
+      "type": "csv",
+      "required": true,
+      "key_column": "review_unit_id",
+      "required_columns": [
+        "review_unit_id",
+        "temporal_unit_key",
+        "source_type",
+        "behavior_label"
+      ]
+    },
+    "full_review_unit_manifest": {
+      "scope": "human_review",
+      "type": "csv",
+      "required": true,
+      "key_column": "review_unit_id",
+      "required_columns": [
+        "review_unit_id",
+        "temporal_unit_key",
+        "source_type",
+        "behavior_label"
+      ]
+    },
+    "interaction_review_unit_template": {
+      "scope": "human_review",
+      "type": "csv",
+      "required": true,
+      "key_column": "review_unit_id"
+    },
+    "motion_review_unit_template": {
+      "scope": "human_review",
+      "type": "csv",
+      "required": true,
+      "key_column": "review_unit_id"
+    },
+    "posture_review_unit_template": {
+      "scope": "human_review",
+      "type": "csv",
+      "required": true,
+      "key_column": "review_unit_id"
+    },
+    "roi_review_unit_template": {
+      "scope": "human_review",
+      "type": "csv",
+      "required": true,
+      "key_column": "review_unit_id"
+    },
+    "temporal_consistency_review_unit_template": {
+      "scope": "human_review",
+      "type": "csv",
+      "required": true,
+      "key_column": "review_unit_id"
+    },
+    "cvat_anchor_1020_audit": {
+      "scope": "human_review",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "errors": []
+      }
+    },
+    "temporal_evidence_audit": {
+      "scope": "human_review",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "errors": []
+      }
+    },
+    "roi_behavior_decisions": {
+      "scope": "human_review",
+      "type": "csv",
+      "required": true,
+      "key_column": "review_unit_id",
+      "required_columns": [
+        "review_unit_id",
+        "manual_review_decision",
+        "manual_training_action"
+      ]
+    },
+    "motion_behavior_decisions": {
+      "scope": "human_review",
+      "type": "csv",
+      "required": true,
+      "key_column": "review_unit_id",
+      "required_columns": [
+        "review_unit_id",
+        "manual_review_decision",
+        "manual_training_action"
+      ]
+    },
+    "posture_behavior_decisions": {
+      "scope": "human_review",
+      "type": "csv",
+      "required": true,
+      "key_column": "review_unit_id",
+      "required_columns": [
+        "review_unit_id",
+        "manual_review_decision",
+        "manual_training_action"
+      ]
+    },
+    "interaction_behavior_decisions": {
+      "scope": "human_review",
+      "type": "csv",
+      "required": true,
+      "key_column": "review_unit_id",
+      "required_columns": [
+        "review_unit_id",
+        "manual_review_decision",
+        "manual_training_action"
+      ]
+    },
+    "behavior_decision_coverage_audit": {
+      "scope": "human_review",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "missing_review_unit_count": 0,
+        "unexpected_review_unit_count": 0,
+        "duplicate_review_manifest_rows": 0,
+        "duplicate_decision_rows": 0,
+        "pending_review_unit_count": 0,
+        "review_later_unit_count": 0,
+        "require_complete": true,
+        "errors": []
+      }
+    },
+    "reviewed_frame_features": {
+      "scope": "human_review",
+      "type": "csv",
+      "required": true,
+      "required_columns": [
+        "behavior_before_review",
+        "behavior_after_review",
+        "review_include_in_training"
+      ]
+    },
+    "review_unit_decisions_combined": {
+      "scope": "human_review",
+      "type": "csv",
+      "required": true,
+      "key_column": "review_unit_id"
+    },
+    "behavior_apply_audit": {
+      "scope": "human_review",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "errors": [],
+        "decision_coverage_audit.require_complete": true,
+        "decision_coverage_audit.missing_review_unit_count": 0,
+        "decision_coverage_audit.pending_review_unit_count": 0,
+        "apply_audit.pending_ignored": 0,
+        "apply_audit.duplicate_active_decision_rows": 0,
+        "apply_audit.missing_review_unit_count": 0
+      }
+    },
+    "harmonized_frames": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true
+    },
+    "temporal_label_intervals": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true,
+      "key_column": "temporal_unit_key"
+    },
+    "sequence_window_manifest": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true,
+      "key_column": "window_id"
+    },
+    "sequence_window_features": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true
+    },
+    "native_temporal_unit_manifest": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true,
+      "key_column": "temporal_unit_key",
+      "required_columns": [
+        "source_type",
+        "temporal_unit_key"
+      ]
+    },
+    "temporal_unit_audit": {
+      "scope": "agent_derived",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "errors": []
+      }
+    },
+    "recording_group_manifest": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true,
+      "key_column": "temporal_unit_key"
+    },
+    "q2_outer_fold_assignments": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true,
+      "key_column": "temporal_unit_key",
+      "required_columns": [
+        "temporal_unit_key",
+        "recording_group_id",
+        "outer_fold_id",
+        "oof_role"
+      ]
+    },
+    "q2_outer_inner_roles": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true,
+      "required_columns": [
+        "temporal_unit_key",
+        "recording_group_id",
+        "outer_fold_id",
+        "role"
+      ]
+    },
+    "q2_grouped_fold_audit": {
+      "scope": "agent_derived",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "errors": []
+      }
+    },
+    "split_manifest": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true,
+      "key_column": "window_id",
+      "required_columns": [
+        "window_id",
+        "split",
+        "split_group_key"
+      ]
+    },
+    "tabular_X": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true,
+      "model_input": true
+    },
+    "y_behavior": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true
+    },
+    "train_mask": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true
+    },
+    "sample_weight": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true
+    },
+    "spatial_sequences": {
+      "scope": "agent_derived",
+      "type": "npz",
+      "required": true,
+      "model_input": true,
+      "required_arrays": [
+        "length_mask",
+        "observed_mask",
+        "frame_index_sequence"
+      ]
+    },
+    "event_weight_manifest": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true,
+      "key_column": "window_id",
+      "required_columns": [
+        "window_id",
+        "event_balanced_sample_weight",
+        "window_valid_for_event_weight"
+      ]
+    },
+    "y_auxiliary_targets": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true,
+      "key_column": "window_id"
+    },
+    "fold_event_weight_manifest": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true,
+      "required_columns": [
+        "outer_fold_id",
+        "window_id",
+        "role",
+        "fold_event_sample_weight"
+      ]
+    },
+    "fold_event_weight_audit": {
+      "scope": "agent_derived",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "errors": []
+      }
+    },
+    "temporal_view_selection_manifest": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true,
+      "key_column": "window_id",
+      "required_columns": [
+        "window_id",
+        "fixed6_keep",
+        "fixed6_reason"
+      ]
+    },
+    "fixed6_observed_time_manifest": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true,
+      "key_column": "slot_key"
+    },
+    "temporal_view_audit": {
+      "scope": "agent_derived",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "errors": []
+      }
+    },
+    "image_frame_context_manifest": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true,
+      "key_column": "image_context_id",
+      "required_columns": [
+        "image_context_id",
+        "source_type",
+        "resolved_media_path",
+        "frame_index",
+        "x1",
+        "y1",
+        "x2",
+        "y2"
+      ]
+    },
+    "image_window_context_manifest": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true,
+      "key_column": "window_id",
+      "required_columns": [
+        "window_id",
+        "image_context_id_sequence"
+      ]
+    },
+    "interaction_window_context_manifest": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true,
+      "key_column": "window_id",
+      "required_columns": [
+        "window_id",
+        "scene_context_ready",
+        "scene_partner_context_ready",
+        "interaction_context_ready"
+      ]
+    },
+    "actor_cache_manifest": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true,
+      "key_column": "image_context_id",
+      "required_columns": [
+        "image_context_id",
+        "cache_path",
+        "image_size",
+        "resize_policy"
+      ]
+    },
+    "actor_cache_integrity_manifest": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true,
+      "key_column": "image_context_id",
+      "required_columns": [
+        "image_context_id",
+        "cache_sha256",
+        "integrity_status"
+      ]
+    },
+    "actor_packed_cache_index": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true,
+      "key_column": "image_context_id",
+      "required_columns": [
+        "image_context_id",
+        "packed_row"
+      ]
+    },
+    "actor_packed_cache_tensor": {
+      "scope": "agent_derived",
+      "type": "binary",
+      "required": true
+    },
+    "actor_cache_integrity_audit": {
+      "scope": "agent_derived",
+      "type": "json",
+      "required": true
+    },
+    "actor_packed_cache_audit": {
+      "scope": "agent_derived",
+      "type": "json",
+      "required": true
+    },
+    "visual_context_manifest": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true,
+      "key_column": "visual_context_id",
+      "required_columns": [
+        "visual_context_id",
+        "context_kind",
+        "visual_context_available"
+      ]
+    },
+    "visual_packed_cache_index": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true
+    },
+    "visual_packed_cache_tensor": {
+      "scope": "agent_derived",
+      "type": "binary",
+      "required": true
+    },
+    "visual_context_cache_audit": {
+      "scope": "agent_derived",
+      "type": "json",
+      "required": true
+    },
+    "feature_whitelist": {
+      "scope": "agent_derived",
+      "type": "json",
+      "required": true
+    },
+    "feature_blacklist": {
+      "scope": "agent_derived",
+      "type": "json",
+      "required": true
+    },
+    "feature_whitelist_audit": {
+      "scope": "agent_derived",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "errors": []
+      }
+    },
+    "model_input_contract": {
+      "scope": "agent_derived",
+      "type": "json",
+      "required": true
+    },
+    "train_ready_audit": {
+      "scope": "agent_derived",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "errors": []
+      }
+    },
+    "spatial_sequence_audit": {
+      "scope": "agent_derived",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "errors": []
+      }
+    },
+    "identifier_lineage_audit": {
+      "scope": "agent_derived",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "errors": []
+      }
+    },
+    "source_to_window_lineage_audit": {
+      "scope": "agent_derived",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "errors": []
+      }
+    },
+    "leakage_audit": {
+      "scope": "agent_derived",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "errors": []
+      }
+    },
+    "class_by_fold_support": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true
+    },
+    "source_by_fold_support": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true
+    },
+    "grouped_source_probe_audit": {
+      "scope": "agent_derived",
+      "type": "json",
+      "required": true
+    },
+    "availability_behavior_probe_audit": {
+      "scope": "agent_derived",
+      "type": "json",
+      "required": true
+    },
+    "domain_feature_shift_audit": {
+      "scope": "agent_derived",
+      "type": "json",
+      "required": true
+    },
+    "domain_controls_audit": {
+      "scope": "agent_derived",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "errors": []
+      }
+    }
+  },
+  "forbidden_x_patterns": [
+    "manual_*",
+    "review_*",
+    "*review*",
+    "*decision*",
+    "*corrected*",
+    "*behavior*",
+    "*label*",
+    "original_behavior",
+    "review_unit_id",
+    "window_id",
+    "window_uid",
+    "temporal_unit_key",
+    "video_key",
+    "dataset_id",
+    "pig_id",
+    "track_id",
+    "object_track_key",
+    "recording_group_id",
+    "source_type",
+    "source_*",
+    "split",
+    "split_*",
+    "*path*",
+    "*file*",
+    "target_roi_*",
+    "roi_target_*",
+    "outer_fold_id",
+    "oof_fold_id"
+  ],
+  "notes": [
+    "The human root contains source, Hidden, and behavior review evidence.",
+    "The agent root contains only post-handoff derived artifacts.",
+    "No native LORO artifact is required by the primary Q2 contract.",
+    "All classifier features must be selected by explicit whitelist."
+  ]
+}
