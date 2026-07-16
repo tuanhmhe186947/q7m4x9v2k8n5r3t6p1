@@ -81,6 +81,17 @@ previous commit-`18d6692` full run is historical engineering evidence only.
 The tracking rules below are historical/preserved for tracking tasks. They do
 not supersede the active classification_v2 rules above.
 
+## Skill-first execution rules
+
+1. Before evaluation, benchmark, ablation, or nontrivial implementation, review
+   the available skill catalog and record selected skills in the working plan
+   and, when applicable, the run manifest.
+2. Use `find-skills` only after a real catalog gap is demonstrated.
+3. Create or upgrade a reusable project-local skill with `skill-creator`,
+   validate it before reliance, and commit it separately from algorithm code.
+4. Tracking work must use `tracking-experiment-guardian` and obey its lineage,
+   guardrail, promotion, and recursive no-MP4 gates.
+
 ## 2026-07-03 IDSW guard rules
 
 1. Preserve the split lost-track reacquire guard implementation that produced:

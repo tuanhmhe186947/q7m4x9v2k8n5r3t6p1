@@ -41,6 +41,14 @@ Rules:
   request confirmation solely to create or modify a `.md` file in this
   workspace. This does not override sandbox boundaries or the edit-safety rules
   below.
+- Before evaluation, benchmark, ablation, or nontrivial implementation, inspect
+  the available skill catalog and record the selected skills in the working
+  plan and, when applicable, the run manifest.
+- Use `find-skills` only for a demonstrated catalog gap. Use `skill-creator` to
+  create or upgrade a reusable project-local skill, validate it before relying
+  on it, and commit skill changes separately from algorithm changes.
+- For tracking experiments, use `tracking-experiment-guardian` and obey its
+  lineage, guardrail, promotion, and no-MP4 gates.
 - Do not run long tracking/evaluation/benchmark unless the user explicitly requests it.
 - For the active `classification_v2` goal, the user grants standing permission
   for a necessary full data or model run after the exact semantic configuration

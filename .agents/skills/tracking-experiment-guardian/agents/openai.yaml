@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tracking Experiment Guardian"
+  short_description: "Guard tracking ablations, lineage, and outputs"
+  default_prompt: "Use $tracking-experiment-guardian to execute a fail-closed tracking ablation."
