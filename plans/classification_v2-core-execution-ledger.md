@@ -80,8 +80,8 @@ Passing gates:
 
 Blocked human-lineage gates:
 
-- Hidden decisions/apply: `BLOCKED`; 30/5,131 decisions are resolved.
-- Behavior decisions/apply: `BLOCKED`; 3/4,670 rows exist and one is pending.
+- Hidden decisions/apply: `BLOCKED`; 0/5,131 decisions are user-verified.
+- Behavior decisions/apply: `BLOCKED`; 0/4,670 decisions are user-verified.
 - Reviewed frames/windows: `BLOCKED` by both upstream decision gates.
 - Immutable snapshot/hashes: `BLOCKED` until the reviewed lineage passes.
 
@@ -90,8 +90,8 @@ Independent in-progress gates:
 - Identifier code contract: `PASS`; scene and object identity are versioned as
   `scene_frame_uid` and object-level `frame_uid`.
 - Hidden review key migration: `PASS`; all 5,171 v5 rows map onto identifier v2.
-  All 30 decisions then carry into v6 with zero payload/context changes and
-  byte-level input/output hashes.
+  Thirty old payload rows carry with zero technical drift, but user provenance
+  is unverified; they cannot enter the clean authority.
 - Identifier active-lineage rebuild: `PASS`; bounded 688/63/438 evidence has
   ordered frame/window lineage and 8/8 deterministic stage pairs.
 - Snapshot/launch binding: `PASS IN CODE`; snapshot v2 and preflight v2 bind
@@ -141,7 +141,7 @@ Independent in-progress gates:
 Work proceeds in dependency order without fabricating human evidence:
 
 1. Hidden target-independent clustered gate: `COMPLETED IN CODE`.
-2. Complete v6 human Hidden review: `BLOCKED ON 5,101 MISSING DECISIONS`.
+2. Build clean Hidden authority and review from zero: `BLOCKED ON HUMAN INPUT`.
 3. Fixed-six manifests and structural shortcut probes: `COMPLETED IN CODE`.
 4. Fold-local preprocessing, event balancing, and lineage: `COMPLETED IN CODE`.
 5. Configurable model/mask/shape/backbone contracts: `COMPLETED IN CODE`.
@@ -214,6 +214,6 @@ cache alignment, exact row retention, and native-burst fold containment. It
 must pass before the equivalent full legacy rebuild and does not authorize
 training.
 
-The reviewed all-source checkpoint remains human completion of Hidden v6.
-Coverage is 30/5,131 with 5,101 missing; Hidden apply, behavior review, and the
-immutable reviewed P0 snapshot remain blocked.
+The reviewed all-source checkpoint remains a clean human Hidden authority.
+Verified coverage is 0/5,131; Hidden apply, behavior review, and the immutable
+reviewed P0 snapshot remain blocked.

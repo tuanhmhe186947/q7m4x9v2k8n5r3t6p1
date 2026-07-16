@@ -25,10 +25,12 @@ Not allowed without new evidence:
 
 Current active lineage:
 
-- 245,664 enhanced frame/object rows exist and remain the review input.
-- Hidden v5 template coverage passes for 5,171 items, but human decisions are
-  incomplete.
-- Behavior review coverage is 3/4,670 units, with 4,667 missing and one pending.
+- A 245,664-row enhanced technical reference exists, but it is not the clean
+  review authority. The new lineage rebuilds from immutable source inputs under
+  `outputs/classification_v2/human_review_runs/<RUN_ID>`.
+- The v6 reference design has 5,131 target-independent Hidden items, but its
+  carried payload is unverified. Clean human coverage starts at 0/5,131.
+- Clean behavior coverage starts at 0/4,670 user-verified units.
 - Hidden apply, reviewed temporal rebuild, behavior apply, and a frozen
   train-ready snapshot are therefore blocked.
 

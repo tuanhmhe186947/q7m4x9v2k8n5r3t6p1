@@ -3,7 +3,7 @@
 ## Authority
 
 This file is the authoritative status snapshot for the active
-`classification_v2` lineage as of 2026-07-14. It records current gates, not
+`classification_v2` lineage as of 2026-07-16. It records current gates, not
 historical intent. When an older memory, plan, report, or runbook conflicts with
 this file, use this file together with `02_CURRENT_DECISION.md` and the data
 rebuild runbook.
@@ -14,14 +14,14 @@ recording-date/video-safe validation, not external-farm generalization.
 
 ## Active Data Lineage
 
-The current rebuild starts from 245,664 enhanced frame/object rows:
+The existing technical reference contains 245,664 enhanced frame/object rows:
 
 - 172,800 `cvat_tracking_xml` rows;
 - 72,864 `legacy_recovered` rows;
 - 4,181 rows currently marked `Hidden=Yes`;
 - 241,483 rows currently marked `Hidden=No`.
 
-The active versioned Hidden template is:
+The existing versioned Hidden template is a technical design reference:
 
 ```text
 outputs/classification_v2/rebuilds/hidden_review_v6_full_20260714
@@ -43,25 +43,33 @@ missing untrusted Hidden Yes items, and high-risk cap violations. The manifest
 SHA256 is
 `3e4fec14c466a89370a1e20d913cb024bd1dda1fa8db9c1fabdf8a51fa31072e`.
 
-All 30 existing v5 decisions were migrated through identifier v2 and carried
-into v6 with zero payload/context drift. Current coverage is 30/5,131, leaving
-5,101 missing. The decision CSV SHA256 is
+All 30 existing v5 payload rows were migrated through identifier v2 and carried
+into v6 with zero payload/context drift. The user has now confirmed that no
+human review has started. These rows therefore have unverified provenance and
+are not review authority, despite their embedded reviewer metadata. Verified
+human coverage is 0/5,131. The forensic decision CSV SHA256 is
 `7bc19943f00ca4168c9fee8af0528b4d1d69899f45f33d35022acfc28609b310`;
 the root-local carry audit is
 `gui/hidden_review_decision_carry_v5_identifier_v2_to_v6_audit.json`.
 The report-only scientific gate is blocked; no v6 hidden-reviewed frame
-artifact is final.
+artifact is final. The clean authority must use a new root under
+`outputs/classification_v2/human_review_runs/<RUN_ID>`, rebuild from immutable
+source inputs, and must not carry these rows.
 
-The existing behavior manifest contains 4,670 mandatory review units. The
-current decision files contain three rows: one accept, one exclude, and one
-pending. There are 4,667 missing decisions. Behavior apply is fail-closed and
-must not emit a reviewed dataset from this incomplete payload.
+The existing behavior manifest contains 4,670 mandatory review units. Three
+pilot payload rows exist, but the user has not verified them as human review.
+Verified behavior coverage is therefore 0/4,670. Behavior apply is fail-closed
+and must not emit a reviewed dataset from this payload.
 
 ## Technical Short-Chain Evidence
 
 The bounded legacy+CVAT identifier-v2 chain at
 `outputs/classification_v2/rebuilds/scientific_smoke_identifier_v2_20260713`
 passes the machine-readable lineage and technical gates at commit `a83d5a5`:
+
+Commit `23e2f71` fixes the identifier checker CSV loader and a fresh bounded
+current-code rerun again reports
+`PASS_IDENTIFIER_V2_TECHNICAL_HUMAN_REVIEW_BLOCKED`.
 
 - 688 selected, enhanced, and harmonized frame/object rows;
 - 63 native intervals and 63 review units;
@@ -145,20 +153,20 @@ incomplete human-review lineage.
 | Gate | Status | Evidence or blocker |
 |---|---|---|
 | Raw `data/` immutable | PASS | No rebuild writes under `data/` |
-| Enhanced frame features | PASS | 245,664 rows audited |
+| Enhanced technical reference | PASS | 245,664 rows audited; not clean authority |
 | Technical legacy+CVAT chain | PASS | 688/63/438 counts; 8/8 repeatability |
 | Exact model-X contract | PASS | 110 tabular fields; no review/target leakage |
 | Hidden v6 template | PASS | 5,131 target-independent items; audit clean |
 | Hidden v6 media | PASS | 5,131/5,131 resolved; hashes bound; zero missing |
-| Hidden decision carry | PASS | 30/30 preserved; hashes and context match |
-| Hidden human decisions | FAIL | 30/5,131 resolved; 5,101 missing |
+| Hidden decision carry | UNVERIFIED | 30 rows preserved technically; not human authority |
+| Hidden human decisions | FAIL | 0/5,131 user-verified decisions |
 | Hidden scientific gate | BLOCKED | Random/high-risk reviewed support is zero |
 | Hidden decision apply | BLOCKED | Requires resolved coverage |
 | Temporal rebuild from Hidden-reviewed data | BLOCKED | Upstream apply missing |
-| Behavior human decisions | FAIL | 4,667 missing, one pending |
+| Behavior human decisions | FAIL | 0/4,670 user-verified decisions |
 | Behavior decision apply | BLOCKED | Complete gate fails |
 | Reviewed train-ready snapshot | FAIL | No complete reviewed lineage exists |
-| Snapshot/preflight code contract | PASS | Ordered lineage and hash binding tested |
+| Snapshot/preflight code contract | PASS IN CODE | Active-root writer/runner integration pending |
 | Temporal-view code contract | PASS IN CODE | 22 fixture tests; active packet blocked |
 | Fixed-six timing loader/lineage | PASS IN CODE | Ordered timing and hash tests pass |
 | Fold-local preprocessing/weights | PASS IN CODE | Train-only fit and native-event tests |
@@ -212,7 +220,8 @@ not a model-quality baseline.
 ## Required Execution Order
 
 1. Media gate is complete; rerun it only if manifest/context hashes change.
-2. Complete and scientifically audit all v6 Hidden decisions.
+2. Build a clean target-independent Hidden manifest under a new human-review
+   root, then complete and scientifically audit its decisions from zero.
 3. Apply Hidden decisions with row/schema preservation checks.
 4. Rebuild temporal harmonization and windows from the Hidden-reviewed artifact.
 5. Rebuild behavior review units for the same versioned lineage.

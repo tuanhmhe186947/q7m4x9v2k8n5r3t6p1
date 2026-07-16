@@ -8,6 +8,19 @@ sections are historical records. Current gate status is centralized in
 
 ## Active decision: reviewed-data rebuild
 
+### Clean human-review authority
+
+The user confirms zero completed human decisions. Treat all existing 30-row
+Hidden and 3-row behavior CSV payloads as unverified forensic/pilot artifacts,
+not review evidence. Do not carry them into the next lineage.
+
+Create the new operator-owned lineage only under
+`outputs/classification_v2/human_review_runs/<RUN_ID>`. Agent writes belong
+under `outputs/classification_v2/agent_audits/<AUDIT_RUN_ID>`; no agent may open
+a GUI or write the active human root. The operator owns apply/rebuild there;
+after handoff, agent checks remain read-only on that root and write evidence to
+the agent audit root.
+
 ### Legacy L0-L8 completion and parent handback
 
 The scoped `legacy_16f` lane is complete at code commit `91a6c2a`. The locked
@@ -311,19 +324,17 @@ Do not use the historical full OOF metrics to judge model quality. Commit
 151,440 of 160,740 image and interaction windows. That run remains useful only
 for compute, checkpoint, and pipeline-debug evidence.
 
-The current `reviewed_frame_features.csv` is not human-review complete. The
-latest audit has 4,670 mandatory review units, 3 decision rows, 2 active
-decisions, 1 pending decision, and 4,667 missing decisions. Do not call this
-artifact clean final training data. Rebuild instructions are in
+The current `reviewed_frame_features.csv` is not human-review complete. Three
+old behavior payload rows exist, but verified behavior coverage is 0/4,670.
+Do not call this artifact clean final training data. Rebuild instructions are in
 `docs/CLASSIFICATION_V2_DATA_REBUILD_AND_HUMAN_REVIEW_RUNBOOK.md`.
 
-Use the target-independent v6 Hidden manifest at
+Keep the target-independent v6 Hidden manifest at
 `outputs/classification_v2/rebuilds/hidden_review_v6_full_20260714` for the
-next human review wave. It has 5,131 items. All 30 existing v5 decisions were
-carried through identifier v2 with zero payload/context drift, leaving 5,101
-missing decisions. Hash-bound media validation resolves all 5,131 items with
-zero missing media. The scientific gate is report-only BLOCKED, so Hidden apply
-and every training action remain forbidden.
+technical reference only. Its 30 carried payload rows are unverified; clean
+human coverage starts at 0/5,131 in a new `human_review_runs/<RUN_ID>` root.
+Hash-bound media validation of the old reference resolves all items, but the
+scientific gate remains BLOCKED until the clean authority is reviewed.
 
 Do not resume full training from this decision alone. First create a versioned
 reviewed-data lineage, pass complete-decision and leakage-safe fold gates, then

@@ -6,19 +6,16 @@ inputs, model smoke và ranh giới cho phép chạy full OOF. Tài liệu khôn
 chạy full training hoặc full OOF.
 
 Trạng thái PASS/FAIL hiện hành nằm trong
-`docs/CLASSIFICATION_V2_CURRENT_STATE.md`. Hiện tại luồng đang dừng ở human
-Hidden review; không nhảy tới temporal rebuild hoặc model training.
+`docs/CLASSIFICATION_V2_CURRENT_STATE.md`. Audit runbook ngày 2026-07-16 khóa
+trạng thái vận hành như sau: người dùng chưa bắt đầu human review, vì vậy số
+decision được người dùng xác nhận cho lineage mới là **0**. Các CSV decision cũ
+chỉ là artifact pilot/legacy chưa xác minh và không phải review authority.
 
-Audit ngày 2026-07-13 kết luận: data-generation short chain đang PASS kỹ thuật,
-nhưng end-to-end reviewed lineage tới full OOF chưa PASS. Human review chưa đủ;
-versioned snapshot và current full runner chưa có cùng path/resolution/model
-contract. Các hard stop tương ứng được ghi ngay tại từng stage bên dưới.
-
-Audit lần hai cùng ngày xác nhận luồng **chưa hoàn toàn scientific-release
-ready**. Các lỗi còn lại không làm sai reference legacy, nhưng đang chặn snapshot:
-canonical outputs lẫn lineage, identifier `frame_uid` lệch contract object-row,
-Hidden stopping rule chưa được code hóa và cache/full runner chưa dùng cùng một
-versioned contract.
+Bounded legacy+CVAT chain đã PASS kỹ thuật cho identifier-v2, alignment và
+feature contract. Legacy L0-L8 cũng đã hoàn tất riêng cho profile
+`legacy-only-unreviewed-development`. Hai bằng chứng này không thay thế human
+review của profile `mixed-reviewed`, không cấp quyền gọi data là reviewed và
+không tự cấp quyền chạy full OOF.
 
 ## 1. Trạng thái và quyền chạy full
 
@@ -38,12 +35,12 @@ Không dùng full run để dò lỗi. Thay đổi threshold, temporal contract,
 allowlist, resize policy hoặc review policy đều tạo một cấu hình mới và phải qua
 short run mới.
 
-Trạng thái dữ liệu hiện có chưa đủ để gọi là human-reviewed final. Audit gần
-nhất có 4.670 review unit bắt buộc nhưng chỉ 3 decision row, trong đó 2 active,
-1 pending và còn thiếu 4.667 unit. File `reviewed_frame_features.csv` hiện tại
-chỉ là artifact kỹ thuật đã đi qua apply logic, chưa phải ground truth sạch.
-Hidden lineage cũng chưa hoàn tất human decision; đặc biệt CVAT No hiện không
-được coi là visible trusted chỉ vì tracking đã xuất thuộc tính đó.
+Trạng thái dữ liệu hiện có chưa đủ để gọi là human-reviewed final. Các file cũ
+có 30 Hidden row và 3 behavior row, nhưng người dùng xác nhận chưa thực hiện
+review; vì vậy chúng bị loại khỏi authority mới. Không migrate, carry hoặc copy
+chúng vào decision root sạch. Mọi `reviewed_frame_features.csv` cũ chỉ là
+artifact kỹ thuật. CVAT No vẫn không được coi là visible trusted chỉ vì
+tracking đã xuất thuộc tính đó.
 
 ## 2. Bất biến khoa học
 
@@ -68,11 +65,11 @@ Hidden lineage cũng chưa hoàn tất human decision; đặc biệt CVAT No hi�
 - Audit phải kiểm cả `Yes -> No` và false negative `No -> Yes`.
 - Không lan một hidden decision sang cả interval 6/16 frame nếu reviewer không
   khai báo rõ span; mặc định decision chỉ áp đúng frame/object item.
-- Identifier contract mong muốn là `frame_uid` cho frame/object row. Code hiện
-  dùng `frame_uid` như scene-frame key dùng chung giữa nhiều pig; vì vậy không
-  được deduplicate hoặc join object row chỉ bằng cột này trước khi migration.
-- Trong trạng thái chuyển tiếp, object row phải dùng composite provenance key
-  hoặc `image_context_id`; mọi join/apply vẫn phải chứng minh one-to-one.
+- Identifier-v2 dùng `scene_frame_uid` cho scene/frame và object-level
+  `frame_uid` cho đúng một frame/object row. Không dùng hai key thay thế nhau.
+- Join/apply ở object grain phải chứng minh one-to-one bằng object-level
+  `frame_uid` hoặc composite provenance tương đương; final lineage phải chạy
+  lại identifier audit dù bounded current-code audit đã PASS.
 
 ## 3. Sơ đồ dữ liệu
 
@@ -135,16 +132,19 @@ cd /d C:\Users\ironh\Downloads\PIG_Behavior_Project
 set PYTHONPATH=%CD%\src
 set PY=C:\Users\ironh\anaconda3\envs\pig_project\python.exe
 REM Replace the placeholders and use a new directory for every semantic rebuild.
-set RUN_ID=c2v2_rebuild_YYYYMMDD_vN
+set RUN_ID=c2v2_human_review_YYYYMMDD_reviewer_vN
 set REVIEWER_NAME=replace_with_reviewer_id
-set R=outputs\classification_v2\rebuilds\%RUN_ID%
+set UROOT=outputs\classification_v2\human_review_runs\%RUN_ID%
+set R=%UROOT%\data
 set SM=%R%\00_smoke
 set SRC=%R%\01_source_full
 set FEAT=%R%\02_frame_features
 set HREV=%R%\03_hidden_review
 set SEQ0=%R%\04_sequence_unreviewed
 set REV=%R%\05_review_units
-set DEC=%R%\06_review_decisions
+set HSMDEC=%UROOT%\human_decisions\hidden_smoke
+set HDEC=%UROOT%\human_decisions\hidden
+set DEC=%UROOT%\human_decisions\behavior
 set RFRAME=%R%\07_reviewed_frames
 set SEQ1=%R%\08_sequence_reviewed
 set NATIVE=%R%\09_native_units
@@ -156,15 +156,28 @@ set SNAP=%R%\14_training_snapshot
 set MODEL=%R%\15_model_development
 ```
 
-Không chạy nguyên văn khi `RUN_ID` còn chứa `YYYYMMDD_vN`, và không dùng lại
-một `%R%` đã có artifact. Active Hidden v6 là lineage review hiện hành riêng;
-trạng thái và đường dẫn của nó nằm trong `CLASSIFICATION_V2_CURRENT_STATE.md`.
-Không phải mọi builder đều chặn output tồn tại. Exporter legacy, temporal smoke
-selector và một số builder CSV có thể ghi đè. Khi khởi tạo lineage mới, chạy
-guard sau đúng một lần trước khi tạo artifact:
+Không chạy nguyên văn khi `RUN_ID` còn chứa placeholder `YYYYMMDD` hoặc
+`reviewer`, và không dùng lại
+một `%UROOT%` đã có artifact. Root này thuộc quyền vận hành của người review;
+agent chỉ được đọc trong lúc review và phải ghi audit riêng dưới một
+`outputs\classification_v2\agent_audits\<AUDIT_RUN_ID>` độc lập. Không phải
+mọi builder đều chặn output tồn tại. Khi khởi tạo lineage mới, chạy guard sau
+đúng một lần trước khi tạo artifact:
 
 ```bat
-if exist "%R%" (echo ERROR: RUN_ID already exists: %R% & exit /b 2)
+if exist "%UROOT%" (echo ERROR: RUN_ID already exists: %UROOT% & exit /b 2)
+```
+
+Agent không dùng `%UROOT%` làm working hoặc audit root. Chỉ sau khi người dùng
+handoff một stage, agent tạo namespace riêng bằng lệnh sau; `AUDIT_RUN_ID` mới
+được dùng cho mỗi audit có semantic config khác:
+
+```bat
+set AUDIT_RUN_ID=c2v2_agent_audit_YYYYMMDD_vN
+set AROOT=outputs\classification_v2\agent_audits\%AUDIT_RUN_ID%
+set HANDOFF=%AROOT%\review_handoff
+if exist "%AROOT%" ^
+  (echo ERROR: AUDIT_RUN_ID already exists: %AROOT% & exit /b 2)
 ```
 
 Chỉ thêm `--overwrite` khi lặp lại đúng semantic config sau short PASS. Đổi
@@ -187,8 +200,37 @@ set S9=scripts\classification_v2\09_final_release_audit
 ```
 
 Không tạo nhiều folder tên `smoke`, `resume_smoke`, `letterbox_smoke` ở cấp
-`outputs\classification_v2`. Mọi artifact của lần rebuild này nằm dưới `%R%`.
-Smoke và full có tên theo vai trò, không theo lỗi thử nghiệm.
+`outputs\classification_v2`. Data-derived artifact nằm dưới `%R%`; decision
+chỉ nằm dưới `%HSMDEC%`, `%HDEC%` hoặc `%DEC%`. Smoke và full có tên theo vai
+trò, không theo lỗi thử nghiệm.
+
+`%UROOT%` là operator-owned: agent không chạy GUI, apply, rebuild hoặc checker
+ghi vào root này. Sau khi người dùng xác nhận một stage và gửi đúng `RUN_ID`,
+agent chỉ đọc decision/artifact, rồi ghi hash và checker mirror vào `%HANDOFF%`
+thuộc `%AROOT%`. Root review của người dùng không nhận output do agent tạo.
+
+Handoff không cần copy file. Người dùng chỉ gửi ba giá trị:
+
+```text
+RUN_ID=<exact folder name>
+REVIEW_STAGE=hidden_complete | behavior_complete
+REVIEWER_NAME=<reviewer id used for this root>
+```
+
+Agent phải resolve đúng `%UROOT%`, đọc coverage/hash và đặt mọi audit output ở
+`%AROOT%`. Agent không tự apply hoặc sửa `%UROOT%`; các lệnh apply/rebuild trong
+tài liệu là lệnh operator chạy. Không tự dò và chọn CSV ở folder khác có cùng
+tên. Một downstream agent run chỉ được consume artifact người dùng handoff và
+phải ghi sang root versioned riêng.
+
+Ownership cố định:
+
+| Root | Quyền ghi | Vai trò |
+|---|---|---|
+| `data/` | Không ai trong workflow này | Raw input bất biến |
+| `%UROOT%` | Người review/operator | Rebuild, GUI decisions, apply và review lineage |
+| `%AROOT%` | Agent | Audit mirror, hash, test và goal-development evidence |
+| canonical/rebuild cũ | Không ghi | Technical/forensic reference chỉ đọc |
 
 Không dùng canonical folder hiện có làm authority cho rebuild mới. Audit đã thấy
 `frame_features\geometry_audit.json` chỉ có 173.664 row, gồm 100.800 CVAT row và
@@ -495,8 +537,8 @@ Bốn cohort không được trộn ý nghĩa thống kê:
 - `hidden_yes_confirmation`: census `Hidden=Yes` chưa tin cậy, đồng thời lấy
   mẫu phân tầng từ `Hidden=Yes` trusted để kiểm tra lại prior review;
 - `hidden_no_high_risk`: targeted enrichment theo overlap, proximity,
-  bbox/shape change và, trong implementation hiện tại, original interaction
-  label;
+  bbox/shape change, pair geometry và temporal visibility evidence; tuyệt đối
+  không dùng behavior hoặc interaction label;
 - `hidden_no_random_audit`: random phân tầng để ước lượng false-negative rate;
 - `hidden_no_clean_control`: kiểm specificity ở nhóm risk thấp.
 
@@ -528,7 +570,7 @@ set HSM=%SM%\hidden_review
 %PY% %S1%\review_hidden_quality_gui.py ^
   --manifest-csv %HSM%\hidden_review_unit_manifest.csv ^
   --frame-features-csv %HSM%\hidden_review_frame_context.csv ^
-  --output-dir %HSM%\gui --reviewer %REVIEWER_NAME% ^
+  --output-dir %HSMDEC% --reviewer %REVIEWER_NAME% ^
   --video-root data\videos ^
   --crop-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
   --validation-audit-json %HSM%\hidden_media_validation_audit.json ^
@@ -547,7 +589,7 @@ Mở GUI pilot sau media gate:
 %PY% %S1%\review_hidden_quality_gui.py ^
   --manifest-csv %HSM%\hidden_review_unit_manifest.csv ^
   --frame-features-csv %HSM%\hidden_review_frame_context.csv ^
-  --output-dir %HSM%\gui --reviewer %REVIEWER_NAME% ^
+  --output-dir %HSMDEC% --reviewer %REVIEWER_NAME% ^
   --video-root data\videos ^
   --crop-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
   --max-items 5
@@ -559,12 +601,12 @@ và apply. Không tạo fake decision để ép smoke PASS.
 ```bat
 %PY% %S1%\check_hidden_review_decision_coverage.py ^
   --manifest-csv %HSM%\hidden_review_unit_manifest.csv ^
-  --decisions-csv %HSM%\gui\hidden_review_decisions.csv ^
+  --decisions-csv %HSMDEC%\hidden_review_decisions.csv ^
   --audit-json %HSM%\hidden_review_decision_coverage_audit.json
 %PY% %S1%\classification_v2_apply_hidden_review_decisions.py ^
   --input-csv %SSCOPE%\frame_features_complete_units.csv ^
   --manifest-csv %HSM%\hidden_review_unit_manifest.csv ^
-  --decisions-csv %HSM%\gui\hidden_review_decisions.csv ^
+  --decisions-csv %HSMDEC%\hidden_review_decisions.csv ^
   --output-csv %HSM%\hidden_reviewed_frame_features.csv ^
   --audit-json %HSM%\apply_hidden_review_audit.json ^
   --confusion-audit-json %HSM%\hidden_confusion_audit.json
@@ -594,11 +636,13 @@ mới và phải lưu trong lineage.
   --audit-json %HREV%\hidden_review_coverage_audit.json
 ```
 
-Config v6 khóa trước `random_no_per_stratum=10` và
-`max_high_risk_per_stratum=16`, tạo 601 random items và 384 high-risk items.
-Đổi cap hoặc quota tạo review design mới; giữ cùng seed, migrate quyết định bằng
-stable item ID và lưu mapping/hash. Không điều chỉnh quota sau khi xem outcome
-mà vẫn gọi đó là cùng predeclared design.
+Với reference input hiện có, config v6 khóa trước
+`random_no_per_stratum=10` và `max_high_risk_per_stratum=16`, tạo 601 random
+items và 384 high-risk items. Rebuild mới phải lấy count từ audit, không ép số.
+Đổi cap hoặc quota tạo review design mới. Current clean run không migrate
+decision nào. Chỉ một future redesign có verified human provenance mới được
+carry bằng stable item ID, mapping và hash riêng. Không điều chỉnh quota sau
+khi xem outcome mà vẫn gọi đó là cùng predeclared design.
 
 Trước khi xem kết quả wave đầu, ghi vào review-design manifest: ngưỡng chấp
 nhận false-negative, phương pháp confidence interval và strata sẽ báo cáo.
@@ -615,39 +659,26 @@ khóa upper bound random `0.05`, high-risk `0.10`, cùng minimum item/native/
 recording support. Đây không còn là implementation blocker; human evidence còn
 thiếu mới là blocker. Gate chỉ PASS khi coverage, support và threshold cùng đạt.
 
-#### 8A.2a. Carry quyết định v5 hiện có sang v6
+#### 8A.2a. Khởi tạo decision authority sạch
 
-V5 dùng key cũ nên không nối thẳng bằng `hidden_review_item_id`. Nâng v5 lên
-identifier v2 trước, rồi carry sang v6. Hai operator giữ row/payload, kiểm
-context và bind SHA256. Không dùng mapping theo behavior hoặc cohort.
+Không chạy migration/carry từ v5/v6 hoặc từ bất kỳ pilot CSV nào. Người dùng
+xác nhận chưa review, nên metadata cũ gắn reviewer không đủ provenance để được
+chấp nhận. Giữ file cũ nguyên trạng cho forensic audit, nhưng decision authority
+mới phải bắt đầu tại `%HDEC%` và chưa có `hidden_review_decisions.csv`.
+
+Trước lần mở GUI đầu tiên, lệnh sau phải PASS. Sau khi GUI đã ghi quyết định,
+không chạy lại guard này vì cùng `%HDEC%` được dùng để resume có chủ ý.
 
 ```bat
-set HV5=outputs\classification_v2\rebuilds\hidden_review_v5_full_20260713
-set HV6=outputs\classification_v2\rebuilds\hidden_review_v6_full_20260714
-set HMIG=%HV6%\migration_v5_identifier_v2
-%PY% %S1%\classification_v2_migrate_hidden_review_identifiers.py ^
-  --legacy-manifest-csv %HV5%\hidden_review_unit_manifest.csv ^
-  --legacy-decisions-csv %HV5%\gui\hidden_review_decisions.csv ^
-  --output-manifest-csv %HMIG%\v5_hidden_review_unit_manifest_identifier_v2.csv ^
-  --output-decisions-csv %HMIG%\v5_hidden_review_decisions_identifier_v2.csv ^
-  --mapping-csv %HMIG%\v5_identifier_v2_mapping.csv ^
-  --audit-json %HMIG%\v5_identifier_v2_migration_audit.json
-%PY% %S1%\classification_v2_carry_forward_hidden_review_decisions.py ^
-  --previous-manifest-csv %HMIG%\v5_hidden_review_unit_manifest_identifier_v2.csv ^
-  --current-manifest-csv %HV6%\hidden_review_unit_manifest.csv ^
-  --decisions-csv %HMIG%\v5_hidden_review_decisions_identifier_v2.csv ^
-  --output-decisions-csv %HV6%\gui\hidden_review_decisions.csv ^
-  --audit-json %HV6%\gui\hidden_review_decision_carry_v5_to_v6_audit.json
+if exist "%HDEC%\hidden_review_decisions.csv" ^
+  (echo ERROR: clean Hidden decision root is not empty & exit /b 2)
 ```
-
-Active v6 đã carry đủ 30/30 decisions. Chỉ thêm `--overwrite` khi input hashes
-và semantic config không đổi; audit thất bại phải được giữ làm evidence.
 
 ```bat
 %PY% %S1%\review_hidden_quality_gui.py ^
   --manifest-csv %HREV%\hidden_review_unit_manifest.csv ^
   --frame-features-csv %HREV%\hidden_review_frame_context.csv ^
-  --output-dir %HREV%\gui --reviewer %REVIEWER_NAME% ^
+  --output-dir %HDEC% --reviewer %REVIEWER_NAME% ^
   --video-root data\videos ^
   --crop-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
   --validation-audit-json %HREV%\hidden_media_validation_audit.json ^
@@ -657,11 +688,14 @@ và semantic config không đổi; audit thất bại phải được giữ làm
 Chỉ mở full GUI khi media audit schema v2 báo `media_missing=0` và SHA256 của
 manifest/frame-context còn khớp bytes hiện tại:
 
+Đây là **Hidden handoff point**. Agent dừng sau validate-only và báo `RUN_ID`,
+manifest hash cùng media-audit path. Chỉ người dùng mở GUI trong `%HDEC%`.
+
 ```bat
 %PY% %S1%\review_hidden_quality_gui.py ^
   --manifest-csv %HREV%\hidden_review_unit_manifest.csv ^
   --frame-features-csv %HREV%\hidden_review_frame_context.csv ^
-  --output-dir %HREV%\gui --reviewer %REVIEWER_NAME% ^
+  --output-dir %HDEC% --reviewer %REVIEWER_NAME% ^
   --video-root data\videos ^
   --crop-root data\raw\legacy_full_multigt_masked_nodup_16f\crops
 ```
@@ -676,7 +710,7 @@ nguồn.
 ```bat
 %PY% %S1%\check_hidden_review_decision_coverage.py ^
   --manifest-csv %HREV%\hidden_review_unit_manifest.csv ^
-  --decisions-csv %HREV%\gui\hidden_review_decisions.csv ^
+  --decisions-csv %HDEC%\hidden_review_decisions.csv ^
   --audit-json %HREV%\hidden_review_decision_coverage_audit.json
 ```
 
@@ -691,7 +725,7 @@ Sau complete coverage, chạy gate khoa học không có `--report-only`:
 ```bat
 %PY% %S1%\check_hidden_review_scientific_gate.py ^
   --manifest-csv %HREV%\hidden_review_unit_manifest.csv ^
-  --decisions-csv %HREV%\gui\hidden_review_decisions.csv ^
+  --decisions-csv %HDEC%\hidden_review_decisions.csv ^
   --design-json %HREV%\hidden_review_scientific_design.json ^
   --audit-json %HREV%\hidden_review_scientific_gate_audit.json
 ```
@@ -704,7 +738,7 @@ scientific gate đều PASS.
 %PY% %S1%\classification_v2_apply_hidden_review_decisions.py ^
   --input-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
   --manifest-csv %HREV%\hidden_review_unit_manifest.csv ^
-  --decisions-csv %HREV%\gui\hidden_review_decisions.csv ^
+  --decisions-csv %HDEC%\hidden_review_decisions.csv ^
   --output-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --audit-json %HREV%\apply_hidden_review_audit.json ^
   --confusion-audit-json %HREV%\hidden_confusion_audit.json
@@ -870,6 +904,18 @@ GUI smoke là kiểm tra bắt buộc trước khi review hàng nghìn unit. Dù
 output directory sẽ dùng cho full review; lần chạy sau tự resume, không ghi đè
 decision cũ. Không dùng `--fresh` và không xóa CSV giữa các session.
 
+Behavior decision schema hiện có 24 cột nhưng chưa nhúng reviewer/timestamp.
+Vì vậy `RUN_ID` phải chứa reviewer ID, `%UROOT%` chỉ thuộc một reviewer và
+handoff phải khóa path/hash. Double review phải dùng một `RUN_ID` khác. Trước
+lần mở GUI đầu tiên, xác nhận bốn decision root đều sạch:
+
+```bat
+if exist "%DEC%\roi\behavior_unit_review_decisions.csv" exit /b 2
+if exist "%DEC%\motion\behavior_unit_review_decisions.csv" exit /b 2
+if exist "%DEC%\posture\behavior_unit_review_decisions.csv" exit /b 2
+if exist "%DEC%\interaction\behavior_unit_review_decisions.csv" exit /b 2
+```
+
 ### 11.1. Năm unit mỗi nhóm
 
 ```bat
@@ -929,6 +975,7 @@ video `Pigs291119_000231_30fps.mp4`; resolver phải mở được key không c�
 
 Chạy lại cùng output directory và bỏ `--max-items`. Có thể đóng/mở nhiều lần;
 GUI nạp CSV cũ, chặn blank/duplicate ID và ghi deterministic order.
+Đây là **behavior handoff point**; agent không mở GUI hoặc ghi `%DEC%`.
 
 ```bat
 %PY% %S1%\review_temporal_unit_gui.py ^
@@ -1007,7 +1054,7 @@ behavior hợp lệ và không `window_uid`.
 %PY% %S1%\classification_v2_apply_review_unit_decisions.py ^
   --frame-features-csv ^
   %HREV%\hidden_reviewed_frame_features.csv ^
-  --review-unit-manifest-csv %REV%\review_unit_manifest.csv ^
+  --review-unit-manifest-csv %REV%\full_review_unit_manifest.csv ^
   --decisions-csv ^
   %DEC%\roi\behavior_unit_review_decisions.csv ^
   %DEC%\motion\behavior_unit_review_decisions.csv ^
@@ -1572,21 +1619,24 @@ phải có modality dropout và missingness ablation ở giai đoạn training.
 ### 17.0. Technical reference gate
 
 Current bounded code/data-generation evidence is checked independently from
-human coverage:
+human coverage. Hai reference root và `%UROOT%` chỉ được đọc; audit mới được
+ghi dưới `%HANDOFF%` thuộc `%AROOT%`, không overwrite reference hoặc human
+output:
 
 ```bat
 set S9=scripts\classification_v2\09_final_release_audit
 set BASE=outputs\classification_v2\rebuilds
-set ROOT=%BASE%\scientific_smoke_identifier_v2_20260713
-set REPEAT=%BASE%\scientific_smoke_identifier_v2_repeat_20260713
+set REF_ROOT=%BASE%\scientific_smoke_identifier_v2_20260713
+set REF_REPEAT=%BASE%\scientific_smoke_identifier_v2_repeat_20260713
+if not exist "%HANDOFF%" mkdir "%HANDOFF%"
 %PY% %S9%\check_classification_v2_identifier_v2_lineage.py ^
-  --root %ROOT% ^
-  --repeat-root %REPEAT% ^
-  --overwrite
+  --root %REF_ROOT% ^
+  --repeat-root %REF_REPEAT% ^
+  --output-json %HANDOFF%\technical_reference_identifier_audit.json
 %PY% %S9%\check_classification_v2_technical_smoke_gate.py ^
-  --root %ROOT% ^
-  --repeat-root %REPEAT% ^
-  --overwrite
+  --root %REF_ROOT% ^
+  --repeat-root %REF_REPEAT% ^
+  --output-json %HANDOFF%\technical_reference_smoke_gate.json
 ```
 
 Expected statuses are `PASS_IDENTIFIER_V2_TECHNICAL_HUMAN_REVIEW_BLOCKED` and
@@ -1602,7 +1652,7 @@ certutil -hashfile %SRC%\merged_frame_objects.csv SHA256
 certutil -hashfile ^
   %FEAT%\spatiotemporal_frame_features_enhanced.csv SHA256
 certutil -hashfile %HREV%\hidden_review_unit_manifest.csv SHA256
-certutil -hashfile %HREV%\gui\hidden_review_decisions.csv SHA256
+certutil -hashfile %HDEC%\hidden_review_decisions.csv SHA256
 certutil -hashfile %HREV%\hidden_reviewed_frame_features.csv SHA256
 certutil -hashfile %RFRAME%\reviewed_frame_features.csv SHA256
 certutil -hashfile %SEQ1%\sequence_window_manifest.csv SHA256
@@ -1627,37 +1677,29 @@ Không gọi một folder là final nếu hash/audit chưa khóa.
 ### 17.2. Versioned snapshot hard stop
 
 Artifact dưới `%R%` là candidate versioned. Không copy đè canonical để né path
-contract. Trạng thái dưới đây đã được đối chiếu lại sau `7cb4637` và `dd0e6ff`.
-Snapshot v2 đã khóa ordered split/image/interaction và preflight đã bind lineage,
-nhưng các blocker path/fold/view/model và human review vẫn còn:
+contract. Phải phân biệt component PASS với integration chưa hoàn tất:
 
-1. `data_contract_v2.json` đang trỏ canonical train-ready/native/fold paths và
-   packed cache 64 px, trong khi runbook tạo lineage `%R%` và cache 224 px.
-2. `classification_v2_write_model_input_manifest.py` giả định canonical child
-   folder names, không khớp layout `09_native_units/10_grouped_splits` ở đây.
-3. Trainer-contract checker chỉ hiểu v1/canonical, chưa kiểm được candidate v2
-   bằng explicit `%TRAIN%` paths.
-4. Preflight/full runner chỉ override cache paths; CLI chưa nhận train-ready
-   root, reviewed sequence manifest, native OOF manifest và event weights.
-5. Full runner hiện dùng leave-one-group-out, không consume Q2 outer/inner roles
-   và không có fold-local inner model selection/early stopping.
-6. `view_matched_6frame` mới là selection mask; trainer chưa consume một fixed-6
-   primary view đã loại/calibrate length, cadence và availability shortcuts.
-7. Canonical feature artifacts đang lẫn ít nhất hai source allowlist; không có
-   một canonical root hiện tại đủ điều kiện làm snapshot authority.
-8. **RESOLVED IN CODE:** identifier-v2 tách `scene_frame_uid` và object-level
-   `frame_uid`; bounded source-to-window audit đã PASS. Final reviewed lineage
-   vẫn phải rebuild và chứng minh lại contract này.
-9. **RESOLVED IN CODE/V6 TEMPLATE:** Hidden risk và sampling target-independent;
-   clustered uncertainty cùng predeclared gate đã fail-closed. Human v6 review
-   vẫn phải hoàn tất trước khi threshold gate có thể PASS.
-10. **RESOLVED IN CODE:** checker đã assert exact basename
-    `Pigs291119_000231_30fps.mp4`; final reviewed lineage vẫn phải chạy lại gate.
+1. Identifier-v2, target-independent Hidden design, exact video resolver,
+   fixed-six loader, fold-local preprocessing, native-event weighting và inner
+   native-unit selection đã PASS ở code/fixture hoặc bounded audit.
+2. Snapshot/preflight v2 đã bind order/hash chặt hơn, nhưng
+   `configs/classification_v2/data_contract_v2.json` vẫn trỏ canonical paths.
+3. `classification_v2_write_model_input_manifest.py` vẫn suy child folder theo
+   canonical layout, chưa map trực tiếp layout `%R%` của runbook.
+4. Historical full runner CLI chưa nhận train-ready root, reviewed sequence,
+   Q2 outer/inner roles, temporal-view packet và event-weight paths đầy đủ.
+5. Historical runner vẫn dùng native leave-one-group-out path; fixed-six loader
+   và inner-selection implementation chưa chứng minh đã tích hợp end-to-end vào
+   runner đó.
+6. Canonical/historical outputs có mixed lineage hoặc known positional mismatch
+   nên không được dùng để lấp các path còn thiếu.
+7. Final reviewed lineage vẫn phải chạy lại identifier, exact basename,
+   source/missingness và ordered-interaction gates trên chính bytes của nó.
 
-Vì vậy **chưa có lệnh snapshot/full hợp lệ trực tiếp cho `%R%`**. Trước model
-smoke phải sửa module chính để mọi path trên đi qua một versioned contract, thêm
-loader/preflight tests và không fallback canonical. Sau khi patch đó PASS, lệnh
-snapshot chuẩn phải có dạng:
+Vì vậy **chưa có lệnh snapshot/full hợp lệ trực tiếp cho `%R%`**. Human review
+vẫn có thể hoàn tất trước, nhưng trước model/full smoke phải sửa integration
+module chính, thêm path/loader/preflight tests và cấm fallback canonical. Sau
+khi patch đó PASS, lệnh snapshot chuẩn mới có dạng:
 
 ```bat
 %PY% %S2%\classification_v2_freeze_training_snapshot.py ^
@@ -1831,7 +1873,7 @@ PASS:
 - [ ] Hidden apply giữ nguyên row count và non-Hidden source columns.
 - [ ] `Yes->No`, `No->Yes`, weighted false-negative rate có audit.
 - [ ] Hidden weighted/high-risk CI và predeclared threshold gate PASS.
-- [x] Hidden risk/sampling target-independent; target-derived field audit rỗng.
+- [ ] Final Hidden manifest xác nhận target-independent và target-derived audit rỗng.
 - [ ] Enhanced, hidden-reviewed và behavior-reviewed rows bằng nhau.
 - [ ] Duplicate `temporal_unit_key=0` và duplicate `review_unit_id=0`.
 - [ ] Không output mới dùng `window_uid`.
@@ -1850,7 +1892,7 @@ PASS:
       run đã predeclare.
 - [ ] X whitelist không có label/review/manual/ID/path/policy/split field.
 - [ ] X/y/mask/weights/spatial/image/interaction row/order/key hash khớp.
-- [ ] `frame_uid` object-row contract đã migrate hoặc schema revision được khóa.
+- [ ] Identifier-v2 có `scene_frame_uid`/object `frame_uid` và lineage audit PASS.
 - [ ] Không có global normalization/class weight fit trước fold.
 - [ ] Legacy crop và CVAT video+bbox loader smoke PASS.
 - [ ] Case `000231` exact basename `_30fps.mp4` được checker assert và PASS.

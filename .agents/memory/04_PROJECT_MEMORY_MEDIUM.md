@@ -10,9 +10,10 @@ Current state:
 - The data/review/train-ready path has been upgraded toward a multimodal
   spatio-temporal design using bbox actor images, ROI relations, motion,
   social/partner context, and leakage-safe tabular features.
-- The active rebuild has 245,664 enhanced rows and a valid 5,171-item Hidden v5
-  template. Human Hidden decisions are incomplete.
-- Behavior review coverage is 3/4,670 units, with 4,667 missing and one pending.
+- The technical reference has 245,664 enhanced rows and a target-independent
+  5,131-item Hidden v6 design. Old decision payloads are unverified.
+- Clean human coverage starts at 0/5,131 Hidden and 0/4,670 behavior units under
+  a new `outputs/classification_v2/human_review_runs/<RUN_ID>` root.
 - Therefore no reviewed train-ready snapshot is currently valid for new model
   experiments. Complete review and freeze new hashes before model smoke.
 - A full 13-fold engineering OOF run exists at commit `18d6692`, but it belongs

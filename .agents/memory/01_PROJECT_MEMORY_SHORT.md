@@ -1,5 +1,20 @@
 # Project Memory Short
 
+## 2026-07-16 clean human-review authority reset
+
+- The user confirms that no Hidden or behavior human review has started.
+- Existing 30-row Hidden and 3-row behavior payloads are unverified pilot/
+  legacy artifacts, even where embedded metadata names `ironh`. Do not carry,
+  apply, or count them as human evidence.
+- New reviewed lineage starts from zero decisions under
+  `outputs/classification_v2/human_review_runs/<RUN_ID>`.
+- Agent audits must use
+  `outputs/classification_v2/agent_audits/<AUDIT_RUN_ID>`; while review is
+  active and after handoff, agents may read but must not write the selected
+  human root. Downstream agent output uses another versioned root.
+- The runbook and current-state authority were corrected on 2026-07-16. Human
+  handoff requires exact `RUN_ID`, review stage, reviewer ID, and file hashes.
+
 ## 2026-07-16 legacy_16f L0-L8 goal completion
 
 - Commits `6798d8b` and `fca9c80` lock the bounded T6 event-balanced
@@ -292,9 +307,9 @@
 - This closes the independent production-backbone interface only. Human Hidden
   and behavior review still block the active snapshot and every model pilot.
 
-## 2026-07-14 target-independent Hidden v6 authority
+## 2026-07-14 historical target-independent Hidden v6 reference
 
-- Active Hidden authority is
+- The technical reference is
   `outputs/classification_v2/rebuilds/hidden_review_v6_full_20260714`.
 - Its 5,131 unique items comprise 4,122 Yes confirmations, 384 high-risk No,
   601 stratified-random No, and 24 clean controls.
@@ -302,10 +317,10 @@
   `3e4fec14c466a89370a1e20d913cb024bd1dda1fa8db9c1fabdf8a51fa31072e`.
 - Commit `f2179e3` binds media audit v2 to manifest/frame-context hashes. The
   24-item smoke and 5,131-item full resolver both have `media_missing=0`.
-- Commits `32eaa2b` and `aaf8460` migrate v5 onto identifier v2, then carry all
-  30 decisions into v6 with zero payload/context drift and bound SHA256 hashes.
-- Current coverage is 30/5,131 with 5,101 missing. Random and high-risk reviewed
-  support are both zero, so the scientific gate is explicitly blocked.
+- Commits `32eaa2b` and `aaf8460` migrate v5 onto identifier v2, then carry 30
+  payload rows with zero technical drift. User provenance is now unverified.
+- Artifact coverage was 30/5,131, but verified human coverage is now 0/5,131.
+  Random/high-risk support is zero, so the scientific gate is blocked.
 - Evidence is 31 focused tests and 377 classification tests with 181 deselected.
   Hidden apply, reviewed snapshot, model training, and full OOF remain forbidden.
 
@@ -380,8 +395,8 @@
   resume/hash audits, and lineage-aware caller paths.
 - Evidence is 33 focused tests, 292 classification tests with 181 deselected,
   zero overlong Python lines, and a passing checkpoint/resume smoke.
-- No model training or OOF ran. Hidden remains 30/5,171 and behavior remains
-  3/4,670 with one pending, so the reviewed snapshot is still blocked.
+- No model training or OOF ran. Those historical payload counts are superseded;
+  verified Hidden/behavior coverage is now 0/5,131 and 0/4,670.
 - The next independent task is the configurable model factory with explicit
   modality availability/quality masks and forward-shape contracts.
 
@@ -446,17 +461,16 @@
 - Five repeated enhanced/harmonized/interval/window CSV pairs are byte-identical.
 - Builders now exit nonzero on audit errors and require explicit `--overwrite`
   before replacing derived artifacts.
-- This is code/data-generation assurance only. Hidden coverage is 30/5,171 and
-  behavior coverage is 3/4,670 with one pending, so reviewed training remains
-  blocked.
+- This is code/data-generation assurance only. Current verified Hidden and
+  behavior coverage is 0/5,131 and 0/4,670, so reviewed training remains blocked.
 
 ## 2026-07-13 authoritative classification_v2 state
 
 - Use `docs/CLASSIFICATION_V2_CURRENT_STATE.md` as the status authority.
 - The active path is the reviewed-data rebuild, not postrun promotion of the
   previous full OOF artifact.
-- Hidden v5 has a valid 5,171-item template but no complete human decisions.
-- Behavior coverage is 3/4,670 units, with 4,667 missing and one pending.
+- Historical v5/v6 templates have no user-verified decision authority.
+- Current verified coverage is 0/5,131 Hidden and 0/4,670 behavior units.
 - Therefore Hidden apply, behavior apply, the reviewed train-ready snapshot,
   model smoke on that snapshot, and a new full OOF are all blocked.
 - The old commit-`18d6692` full OOF is historical engineering evidence only.

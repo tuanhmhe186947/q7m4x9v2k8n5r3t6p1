@@ -62,12 +62,15 @@ source copies for a new lineage.
 Detailed settled Hidden policy and validation evidence are in
 `.agents/memory/09_HIDDEN_REVIEW.md`.
 
-The current versioned full Hidden template is
-`outputs/classification_v2/rebuilds/hidden_review_v6_full_20260714`. It contains
-5,131 target-independent items and passed independent template coverage. The 30
-v5 decisions were carried through identifier v2 with bound hashes and no
-payload/context drift. Hash-bound media audit v2 resolves all 5,131 items with
-zero missing media. Continue GUI review from that CSV; 5,101 items remain.
+The old v6 root is a technical template/media reference only. Its 30 carried
+payload rows are unverified because the user confirms no review has started;
+do not continue from or carry that CSV. Build a clean root under
+`outputs/classification_v2/human_review_runs/<RUN_ID>` and start at zero.
+Decision outputs live only below that root, while agent audits use
+`outputs/classification_v2/agent_audits/<AUDIT_RUN_ID>`. During review, agents
+may read but must not write the selected human root or launch either GUI. The
+same read-only rule remains after handoff; agent evidence stays in its audit
+root.
 
 The current identifier-v2 short chain is independently verified under
 `outputs/classification_v2/rebuilds/scientific_smoke_identifier_v2_20260713`.
@@ -229,10 +232,9 @@ Current state:
   fixture evidence, not training authorization.
 - Transformer timing plumbing now passes in code, but every model run remains
   blocked until the reviewed snapshot and its exact hashes are frozen.
-- The active lineage stops at block `01`: the Hidden v6 template passes, but
-  human Hidden decisions are only 30/5,131 and apply is incomplete.
-- Behavior review also fails closed with 3/4,670 decisions, 4,667 missing, and
-  one pending.
+- The active lineage stops at block `01`: the reference Hidden design passes,
+  but verified human coverage is 0/5,131 and apply is incomplete.
+- Behavior review also starts at 0/4,670 verified decisions in the clean root.
 - Do not rebuild train-ready exports, refresh model preflight, or launch model
   training until both review layers pass and versioned hashes are frozen.
 - The 73,668-window/32,727-native-unit full OOF at commit `18d6692` had
