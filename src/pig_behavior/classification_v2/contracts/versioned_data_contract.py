@@ -18,7 +18,7 @@ from pig_behavior.classification_v2.contracts.output_safety import (
     require_output_paths_available,
 )
 
-ARTIFACT_MAP_SCHEMA_VERSION = "classification_v2.artifact_map.v1"
+ARTIFACT_MAP_SCHEMA_VERSION = "classification_v2.artifact_map.v2"
 DATA_CONTRACT_TEMPLATE_SCHEMA_VERSION = (
     "classification_v2.data_contract_template.v1"
 )
@@ -32,7 +32,11 @@ ALLOWED_PROFILES = {
     "legacy-only-unreviewed-development",
     "mixed-reviewed",
 }
-ALLOWED_ARTIFACT_SCOPES = {"lineage", "project_static"}
+ALLOWED_ARTIFACT_SCOPES = {
+    "agent_derived",
+    "human_review",
+    "project_static",
+}
 ALLOWED_ARTIFACT_TYPES = {"binary", "csv", "json", "npz"}
 PROJECT_STATIC_PREFIXES = {"configs", "scripts"}
 RUN_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{2,127}$")
@@ -95,6 +99,7 @@ def build_versioned_data_contract(
     roots, root_errors = _validated_lineage_roots(
         artifact_map.get("lineage_roots"),
         run_id,
+        profile=artifact_map.get("profile"),
     )
     errors.extend(root_errors)
     errors.extend(
@@ -329,31 +334,60 @@ def _validate_root_contracts(
 def _validated_lineage_roots(
     values: Any,
     run_id: str,
-) -> tuple[list[str], list[str]]:
+    *,
+    profile: Any,
+) -> tuple[dict[str, str], list[str]]:
     errors: list[str] = []
-    if not isinstance(values, list) or not values:
-        return [], ["lineage_roots_must_be_nonempty_list"]
-    roots: list[str] = []
-    for index, value in enumerate(values):
+    if not isinstance(values, dict) or not values:
+        return {}, ["lineage_roots_must_be_nonempty_object"]
+    required_roles = {"agent_derived"}
+    if profile == "mixed-reviewed":
+        required_roles.add("human_review")
+    unknown_roles = sorted(set(values).difference(required_roles))
+    missing_roles = sorted(required_roles.difference(values))
+    if missing_roles:
+        errors.append(f"lineage_root_roles_missing={missing_roles}")
+    if unknown_roles:
+        errors.append(f"lineage_root_roles_unknown={unknown_roles}")
+    roots: dict[str, str] = {}
+    for role in sorted(set(values).intersection(required_roles)):
+        value = values[role]
         try:
             normalized = _normalize_relative_path(value)
         except ValueError as exc:
-            errors.append(f"invalid_lineage_root:{index}:{exc}")
+            errors.append(f"invalid_lineage_root:{role}:{exc}")
             continue
         if run_id not in PurePosixPath(normalized).parts:
-            errors.append(f"lineage_root_missing_exact_run_id:{normalized}")
+            errors.append(
+                f"lineage_root_missing_exact_run_id:{role}:{normalized}"
+            )
         if _is_project_static_path(normalized):
-            errors.append(f"lineage_root_uses_static_namespace:{normalized}")
-        roots.append(normalized)
-    if len(set(roots)) != len(roots):
+            errors.append(
+                f"lineage_root_uses_static_namespace:{role}:{normalized}"
+            )
+        parts = PurePosixPath(normalized).parts
+        if role == "human_review" and parts and parts[0] == "outputs":
+            errors.append("human_review_root_must_be_outside_outputs")
+        if (
+            role == "agent_derived"
+            and parts
+            and parts[0] == "human_review_workspace"
+        ):
+            errors.append("agent_derived_root_must_be_outside_human_workspace")
+        roots[role] = normalized
+    if len(set(roots.values())) != len(roots):
         errors.append("duplicate_lineage_roots")
-    for index, left in enumerate(roots):
+    root_items = list(roots.items())
+    for index, (left_role, left) in enumerate(root_items):
         left_parts = PurePosixPath(left).parts
-        for right in roots[index + 1 :]:
+        for right_role, right in root_items[index + 1 :]:
             right_parts = PurePosixPath(right).parts
             shorter = min(len(left_parts), len(right_parts))
             if left_parts[:shorter] == right_parts[:shorter]:
-                errors.append(f"overlapping_lineage_roots:{left}:{right}")
+                errors.append(
+                    "overlapping_lineage_roots:"
+                    f"{left_role}:{left}:{right_role}:{right}"
+                )
     return roots, errors
 
 
@@ -361,7 +395,7 @@ def _validate_artifacts(
     template_artifacts: Any,
     mapped_artifacts: Any,
     *,
-    roots: list[str],
+    roots: dict[str, str],
     run_id: str,
     project_root: Path,
 ) -> tuple[list[str], dict[str, dict[str, Any]]]:
@@ -415,9 +449,10 @@ def _validate_artifacts(
                 f"duplicate_artifact_path:{observed_paths[path]}:{name}:{path}"
             )
         observed_paths[path] = name
-        if scope == "lineage":
-            if not _inside_any_root(path, roots):
-                errors.append(f"lineage_artifact_outside_roots:{name}:{path}")
+        if scope in {"agent_derived", "human_review"}:
+            expected_root = roots.get(scope)
+            if not expected_root or not _inside_root(path, expected_root):
+                errors.append(f"{scope}_artifact_outside_root:{name}:{path}")
             if run_id not in PurePosixPath(path).parts:
                 errors.append(f"lineage_artifact_missing_exact_run_id:{name}")
         elif scope == "project_static":
@@ -438,7 +473,7 @@ def _validate_lineage_path_field(
     field: str,
     value: Any,
     *,
-    roots: list[str],
+    roots: dict[str, str],
     run_id: str,
 ) -> list[str]:
     try:
@@ -446,8 +481,9 @@ def _validate_lineage_path_field(
     except ValueError as exc:
         return [f"{field}_invalid:{exc}"]
     errors: list[str] = []
-    if not _inside_any_root(path, roots):
-        errors.append(f"{field}_outside_lineage_roots")
+    agent_root = roots.get("agent_derived")
+    if not agent_root or not _inside_root(path, agent_root):
+        errors.append(f"{field}_outside_agent_derived_root")
     if run_id not in PurePosixPath(path).parts:
         errors.append(f"{field}_missing_exact_run_id")
     return errors
@@ -455,12 +491,13 @@ def _validate_lineage_path_field(
 
 def _validate_map_location(
     path: str,
-    roots: list[str],
+    roots: dict[str, str],
     run_id: str,
 ) -> list[str]:
     errors: list[str] = []
-    if not _inside_any_root(path, roots):
-        errors.append("artifact_map_file_outside_lineage_roots")
+    agent_root = roots.get("agent_derived")
+    if not agent_root or not _inside_root(path, agent_root):
+        errors.append("artifact_map_file_outside_agent_derived_root")
     if run_id not in PurePosixPath(path).parts:
         errors.append("artifact_map_file_missing_exact_run_id")
     return errors
@@ -468,14 +505,15 @@ def _validate_map_location(
 
 def _validate_output_location(
     path: str,
-    roots: list[str],
+    roots: dict[str, str],
     run_id: str,
 ) -> list[str]:
     errors: list[str] = []
     if PurePosixPath(path).suffix.lower() != ".json":
         errors.append("output_json_requires_json_suffix")
-    if not _inside_any_root(path, roots):
-        errors.append("output_json_outside_lineage_roots")
+    agent_root = roots.get("agent_derived")
+    if not agent_root or not _inside_root(path, agent_root):
+        errors.append("output_json_outside_agent_derived_root")
     if run_id not in PurePosixPath(path).parts:
         errors.append("output_json_missing_exact_run_id")
     return errors
@@ -503,7 +541,7 @@ def _generated_contract(
     artifact_map_path: str,
     artifact_map_sha256: str,
     resolved_artifacts: dict[str, dict[str, Any]],
-    lineage_roots: list[str],
+    lineage_roots: dict[str, str],
 ) -> dict[str, Any]:
     dynamic_fields = {
         "artifacts",
@@ -545,6 +583,8 @@ def _path_policy() -> dict[str, Any]:
         "canonical_fallback_allowed": False,
         "project_relative_paths_required": True,
         "exact_run_id_in_lineage_paths_required": True,
+        "owner_separated_lineage_roots_required": True,
+        "agent_writes_human_review_root_allowed": False,
     }
 
 
@@ -569,7 +609,8 @@ def _build_audit(
         "output_json": output_path,
         "output_exists": bool(output_exists),
         "artifact_count": len(scopes),
-        "lineage_artifact_count": scopes.count("lineage"),
+        "agent_derived_artifact_count": scopes.count("agent_derived"),
+        "human_review_artifact_count": scopes.count("human_review"),
         "project_static_artifact_count": scopes.count("project_static"),
         "all_artifact_paths_explicit": True,
         "canonical_fallback_allowed": False,
@@ -623,12 +664,10 @@ def _normalize_relative_path(value: Any) -> str:
     return normalized
 
 
-def _inside_any_root(path: str, roots: list[str]) -> bool:
+def _inside_root(path: str, root: str) -> bool:
     path_parts = PurePosixPath(path).parts
-    return any(
-        path_parts[: len(root_parts)] == root_parts
-        for root_parts in (PurePosixPath(root).parts for root in roots)
-    )
+    root_parts = PurePosixPath(root).parts
+    return path_parts[: len(root_parts)] == root_parts
 
 
 def _is_project_static_path(path: str) -> bool:

@@ -37,11 +37,18 @@ def test_explicit_artifact_map_builds_run_bound_contract(
     assert build.contract["run_id"] == RUN_ID
     assert build.contract["path_policy"]["canonical_fallback_allowed"] is False
     assert build.contract["artifacts"]["split_manifest"]["path"].startswith(
-        f"lineages/{RUN_ID}/"
+        f"derived/{RUN_ID}/"
     )
     assert build.contract["artifacts"]["trainer_contract"]["scope"] == (
         "project_static"
     )
+    assert build.contract["artifacts"]["reviewed_frames"]["scope"] == (
+        "human_review"
+    )
+    assert build.contract["lineage_roots"] == {
+        "agent_derived": f"derived/{RUN_ID}",
+        "human_review": f"human_review_workspace/classification_v2/{RUN_ID}",
+    }
     assert len(build.contract["template_sha256"]) == 64
     assert len(build.contract["artifact_map_sha256"]) == 64
     assert build.audit["dataset_rows_read"] == 0
@@ -113,7 +120,7 @@ def test_write_requires_explicit_overwrite(tmp_path: Path) -> None:
                     )
                 }
             ),
-            "lineage_artifact_outside_roots",
+            "agent_derived_artifact_outside_root",
         ),
         (
             lambda payload: payload["artifacts"]["trainer_contract"].update(
@@ -165,6 +172,27 @@ def test_template_cannot_supply_fallback_artifact_path(tmp_path: Path) -> None:
     )
 
 
+def test_agent_output_cannot_use_human_review_root(tmp_path: Path) -> None:
+    template_path, map_path, _ = _fixture(tmp_path)
+    human_output = (
+        tmp_path
+        / "human_review_workspace"
+        / "classification_v2"
+        / RUN_ID
+        / "contract.json"
+    )
+
+    with pytest.raises(VersionedDataContractError) as exc_info:
+        build_versioned_data_contract(
+            template_path,
+            map_path,
+            output_path=human_output,
+            project_root=tmp_path,
+        )
+
+    assert "output_json_outside_agent_derived_root" in exc_info.value.errors
+
+
 def test_generated_contract_detects_artifact_map_drift(tmp_path: Path) -> None:
     template_path, map_path, output_path = _fixture(tmp_path)
     build = build_versioned_data_contract(
@@ -176,7 +204,7 @@ def test_generated_contract_detects_artifact_map_drift(tmp_path: Path) -> None:
     write_versioned_data_contract(build, dry_run=False, overwrite=False)
     payload = json.loads(map_path.read_text(encoding="utf-8"))
     payload["snapshot_output_dir"] = (
-        f"lineages/{RUN_ID}/snapshots_changed"
+        f"derived/{RUN_ID}/snapshots_changed"
     )
     map_path.write_text(json.dumps(payload), encoding="utf-8")
 
@@ -193,9 +221,16 @@ def test_generated_contract_detects_artifact_map_drift(tmp_path: Path) -> None:
 
 def _fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
     static_dir = tmp_path / "configs" / "classification_v2"
-    lineage_dir = tmp_path / "lineages" / RUN_ID
+    lineage_dir = tmp_path / "derived" / RUN_ID
+    human_dir = (
+        tmp_path
+        / "human_review_workspace"
+        / "classification_v2"
+        / RUN_ID
+    )
     static_dir.mkdir(parents=True)
     lineage_dir.mkdir(parents=True)
+    human_dir.mkdir(parents=True)
     static_contract = static_dir / "trainer_contract.json"
     static_contract.write_text("{}", encoding="utf-8")
     template_path = static_dir / "data_contract_template.json"
@@ -211,7 +246,7 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
                 "primary_key": "window_id",
                 "artifacts": {
                     "split_manifest": {
-                        "scope": "lineage",
+                        "scope": "agent_derived",
                         "type": "csv",
                         "required": True,
                         "key_column": "window_id",
@@ -219,6 +254,11 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
                     "trainer_contract": {
                         "scope": "project_static",
                         "type": "json",
+                        "required": True,
+                    },
+                    "reviewed_frames": {
+                        "scope": "human_review",
+                        "type": "csv",
                         "required": True,
                     },
                 },
@@ -233,13 +273,19 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
                 "schema_version": ARTIFACT_MAP_SCHEMA_VERSION,
                 "run_id": RUN_ID,
                 "profile": "mixed-reviewed",
-                "lineage_roots": [f"lineages/{RUN_ID}"],
-                "train_ready_root": f"lineages/{RUN_ID}/train_ready",
-                "snapshot_output_dir": f"lineages/{RUN_ID}/snapshots",
+                "lineage_roots": {
+                    "agent_derived": f"derived/{RUN_ID}",
+                    "human_review": (
+                        "human_review_workspace/classification_v2/"
+                        f"{RUN_ID}"
+                    ),
+                },
+                "train_ready_root": f"derived/{RUN_ID}/train_ready",
+                "snapshot_output_dir": f"derived/{RUN_ID}/snapshots",
                 "artifacts": {
                     "split_manifest": {
-                        "path": f"lineages/{RUN_ID}/train_ready/split.csv",
-                        "scope": "lineage",
+                        "path": f"derived/{RUN_ID}/train_ready/split.csv",
+                        "scope": "agent_derived",
                     },
                     "trainer_contract": {
                         "path": (
@@ -247,6 +293,13 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
                             "trainer_contract.json"
                         ),
                         "scope": "project_static",
+                    },
+                    "reviewed_frames": {
+                        "path": (
+                            "human_review_workspace/classification_v2/"
+                            f"{RUN_ID}/reviewed_frames.csv"
+                        ),
+                        "scope": "human_review",
                     },
                 },
             }
