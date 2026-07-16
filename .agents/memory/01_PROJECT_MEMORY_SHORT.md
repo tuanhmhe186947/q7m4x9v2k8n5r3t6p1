@@ -1,5 +1,20 @@
 # Project Memory Short
 
+## 2026-07-16 agent-output isolation for reviewed Q2 rebuild
+
+- While human review has not been handed off, agent work is limited to static,
+  synthetic and read-only audits.
+- Agent-owned writes use a unique
+  `outputs/classification_v2/agent_audits/<AUDIT_RUN_ID>` root.
+- Human review remains operator-owned under
+  `human_review_workspace/classification_v2/<RUN_ID>`; the agent must not open
+  its GUI or write apply/rebuild artifacts there.
+- After handoff, generated map, `data_contract.json`,
+  `model_input_contract.json`, `snapshot.json` and P0 audit remain under the
+  same agent root. Never fall back to canonical output folders.
+- A short/synthetic gate is required before each semantic full run; no full
+  training or full OOF is authorized by this isolation rule.
+
 ## 2026-07-16 clean human-review authority reset
 
 - The user confirms that no Hidden or behavior human review has started.

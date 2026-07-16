@@ -12,6 +12,24 @@ The active objective is a leakage-safe, reproducible 10-class multimodal
 spatio-temporal classifier. The accepted claim boundary is internal
 recording-date/video-safe validation, not external-farm generalization.
 
+## Current Execution Boundary
+
+Human review has not started and no reviewed lineage has been handed off.
+Current agent work therefore stops before apply, post-review rebuild, snapshot,
+project-data model smoke and training. Agent writes use only a fresh
+`outputs/classification_v2/agent_audits/<AUDIT_RUN_ID>` root; the operator-owned
+`human_review_workspace/classification_v2/<RUN_ID>` root is read-only to agents.
+
+Commits `5675235` and `ee70389` complete the generated-contract train-ready
+export and independent reviewed-Q2 P0 preflight in code. They require explicit
+agent-root paths, reject canonical fallback and cannot write the human root.
+This is fixture-level engineering PASS, not a real positive P0 integration.
+That integration waits for a clean `REVIEW_STAGE=behavior_complete` handoff.
+
+After handoff, map, contract, model-input manifest, snapshot and P0 output must
+remain under the same agent root. P0 may authorize model smoke when every
+review/data/leakage gate passes, but `full_oof_authorized` remains false.
+
 ## Active Data Lineage
 
 The existing technical reference contains 245,664 enhanced frame/object rows:

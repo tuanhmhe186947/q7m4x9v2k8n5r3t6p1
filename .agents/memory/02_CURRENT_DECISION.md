@@ -8,6 +8,19 @@ sections are historical records. Current gate status is centralized in
 
 ## Active decision: reviewed-data rebuild
 
+### Agent execution isolation
+
+Until the user hands off a clean reviewed lineage, do not run review GUI,
+apply, temporal rebuild, snapshot or model jobs against project data. Agent
+audits use a fresh
+`outputs/classification_v2/agent_audits/<AUDIT_RUN_ID>` root and may not write
+canonical output folders.
+
+After `REVIEW_STAGE=behavior_complete`, consume only the exact handed-off
+`RUN_ID` as read-only input. Build the reviewed-Q2 artifact map, generated
+contract, model-input manifest, snapshot and P0 report under that one agent
+root. P0 can authorize model smoke only; it never authorizes full OOF.
+
 ### Clean human-review authority
 
 The user confirms zero completed human decisions. Treat all existing 30-row

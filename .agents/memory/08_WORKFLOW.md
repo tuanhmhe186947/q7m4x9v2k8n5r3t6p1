@@ -1,5 +1,20 @@
 # Workflow
 
+## Isolated reviewed-Q2 execution roots
+
+Operator commands for source rebuild, Hidden review, behavior review and apply
+write only below
+`human_review_workspace/classification_v2/<RUN_ID>`. Agent commands never write
+that root and never reuse current canonical output folders. Every agent audit
+or downstream artifact uses one unique
+`outputs/classification_v2/agent_audits/<AUDIT_RUN_ID>` root.
+
+The operator sends `RUN_ID`, `REVIEW_STAGE`, reviewer and review-code SHA at
+handoff. Until `REVIEW_STAGE=behavior_complete`, the agent stops before
+post-review rebuild, snapshot and project-data model smoke. After handoff, the
+artifact map, generated contract, model-input manifest, snapshot and P0 audit
+must all stay under the same agent root. Follow runbook section 17.2.1.
+
 ## One engine, two current profiles
 
 Do not maintain an independent 16-frame feature pipeline. Both profiles must

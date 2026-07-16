@@ -124,6 +124,18 @@ trước đã exit 0.
 
 ## 4. Chuẩn bị môi trường và lineage
 
+### 4.1. Ranh giới output khi agent đang chuẩn bị
+
+Trong giai đoạn hiện tại, agent chỉ được ghi audit và artifact phát sinh vào
+`outputs/classification_v2/agent_audits/<AUDIT_RUN_ID>`. Agent không mở GUI,
+không chạy apply/rebuild vào root review và không ghi vào các thư mục output
+canonical đang có dữ liệu. Root `human_review_workspace` chỉ thuộc operator;
+agent chỉ được đọc sau khi người dùng handoff đúng `RUN_ID` và `REVIEW_STAGE`.
+
+Mọi command writer phải nhận path rõ ràng. Không bỏ qua biến root để script tự
+suy ra đường dẫn canonical. Trước handoff, chỉ chạy static/synthetic hoặc
+`--dry-run`; sau handoff vẫn phải giữ cùng `AUDIT_RUN_ID` cho toàn bộ chain.
+
 Mở **CMD**, không chạy các lệnh pipeline trong PowerShell. Đổi `RUN_ID` cho mỗi
 lineage mới; không tái dùng thư mục của một cấu hình khác.
 
@@ -1711,40 +1723,32 @@ Không gọi một folder là final nếu hash/audit chưa khóa.
 
 ### 17.2. Versioned snapshot hard stop
 
-Artifact dưới `%R%` là candidate versioned. Không copy đè canonical để né path
-contract. Phải phân biệt component PASS với integration chưa hoàn tất:
+Artifact dưới `%AROOT%` là candidate versioned của agent. `%R%` chỉ là data
+root thuộc human-review lineage. Không copy đè canonical để né path contract.
+Phải phân biệt component PASS với integration PASS và luôn giữ hash lineage:
 
 1. Identifier-v2, target-independent Hidden design, exact video resolver,
    fixed-six loader, fold-local preprocessing, native-event weighting và inner
    native-unit selection đã PASS ở code/fixture hoặc bounded audit.
-2. Snapshot/preflight v2 đã bind order/hash chặt hơn, nhưng
-   `configs/classification_v2/data_contract_v2.json` vẫn trỏ canonical paths.
-3. `classification_v2_write_model_input_manifest.py` vẫn suy child folder theo
-   canonical layout, chưa map trực tiếp layout `%R%` của runbook.
-4. Historical full runner CLI chưa nhận train-ready root, reviewed sequence,
-   Q2 outer/inner roles, temporal-view packet và event-weight paths đầy đủ.
-5. Historical runner vẫn dùng native leave-one-group-out path; fixed-six loader
-   và inner-selection implementation chưa chứng minh đã tích hợp end-to-end vào
-   runner đó.
+2. Generated reviewed-Q2 contract v2 được build từ artifact map explicit và
+   không dùng `configs/classification_v2/data_contract_v2.json` làm fallback.
+3. `classification_v2_write_model_input_manifest.py` nhận generated contract và
+   ghi manifest vào agent root, không tự suy child folder canonical.
+4. Snapshot writer và P0 checker bind path, order, hash, lineage và project root
+   explicit; integration này đã PASS bằng fixture tests.
+5. Historical runner/OOF vẫn là gate riêng. Code contract PASS không tự cấp
+   quyền chạy model smoke, full training hoặc full OOF.
 6. Canonical/historical outputs có mixed lineage hoặc known positional mismatch
    nên không được dùng để lấp các path còn thiếu.
 7. Final reviewed lineage vẫn phải chạy lại identifier, exact basename,
    source/missingness và ordered-interaction gates trên chính bytes của nó.
 
-Vì vậy **chưa có lệnh snapshot/full hợp lệ trực tiếp cho `%R%`**. Human review
-vẫn có thể hoàn tất trước, nhưng trước model/full smoke phải sửa integration
-module chính, thêm path/loader/preflight tests và cấm fallback canonical. Sau
-khi patch đó PASS, lệnh snapshot chuẩn mới có dạng:
+Vì vậy **không có lệnh snapshot/full nào được phép ghi trực tiếp vào `%R%`**.
+Sau khi người dùng handoff đủ Hidden và behavior review, agent dùng sequence
+explicit dưới đây; mọi output phát sinh đều nằm dưới `%AROOT%`.
 
-```bat
-%PY% %S2%\classification_v2_freeze_training_snapshot.py ^
-  --contract-json %SNAP%\data_contract.json ^
-  --output-json %SNAP%\training_snapshot.json
-%PY% %S2%\check_classification_v2_training_snapshot.py ^
-  --snapshot-json %SNAP%\training_snapshot.json ^
-  --contract-json %SNAP%\data_contract.json ^
-  --output-json %SNAP%\training_snapshot_check.json
-```
+Không chạy snapshot riêng lẻ trước contract/manifest. Thứ tự executable duy
+nhất cho phase này nằm ở mục 17.2.1.
 
 Contract phải tham chiếu duy nhất artifact của cùng `RUN_ID`, fixed temporal
 view, 224 caches và Q2 primary roles; native OOF manifest chỉ bắt buộc nếu chạy
@@ -1756,7 +1760,58 @@ Trước freeze final, chạy identifier audit với
 `--lineage-audit-json`; audit phải bind đúng bytes của X/y/mask/weights,
 spatial, image và interaction trong snapshot. Authorization v2 tiếp tục bind
 snapshot ID, snapshot SHA, lineage SHA, ordered-window SHA, config và Git SHA.
-Audit bounded hiện tại có human authorization false nên preflight phải FAIL.
+Audit bounded hiện tại có human authorization false nên P0 phải FAIL.
+
+### 17.2.1. Command sequence sau handoff, chỉ ghi dưới agent root
+
+Chỉ chạy block này sau khi người dùng gửi `RUN_ID`,
+`REVIEW_STAGE=behavior_complete`,
+reviewer và Git SHA. Không tự dò một root khác có cùng tên. Các writer dưới đây
+đều phải dùng cùng `AUDIT_RUN_ID`; không đổi root giữa các bước:
+
+```bat
+set S2=scripts\classification_v2\02_train_ready_exports
+set S5=scripts\classification_v2\05_preflight_authorization
+set TEMPLATE=configs\classification_v2\reviewed_q2_data_contract_template_v1.json
+set LAYOUT=configs\classification_v2\reviewed_q2_artifact_layout_v1.json
+set CONTRACTS=%AROOT%\contracts
+set SNAP=%AROOT%\data\14_training_snapshot
+set PREFLIGHT=%AROOT%\preflight
+
+%PY% %S2%\classification_v2_write_reviewed_q2_artifact_map.py ^
+  --human-review-run-id %RUN_ID% ^
+  --agent-audit-run-id %AUDIT_RUN_ID% ^
+  --template-json %TEMPLATE% ^
+  --layout-json %LAYOUT% ^
+  --output-json %CONTRACTS%\reviewed_q2_artifact_map.json ^
+  --project-root %CD%
+%PY% %S2%\classification_v2_build_versioned_data_contract.py ^
+  --template-json %TEMPLATE% ^
+  --artifact-map-json %CONTRACTS%\reviewed_q2_artifact_map.json ^
+  --output-json %CONTRACTS%\data_contract.json ^
+  --project-root %CD%
+%PY% %S2%\classification_v2_write_model_input_manifest.py ^
+  --data-contract-json %CONTRACTS%\data_contract.json ^
+  --output-json %CONTRACTS%\model_input_contract.json ^
+  --project-root %CD%
+%PY% %S2%\classification_v2_freeze_training_snapshot.py ^
+  --contract-json %CONTRACTS%\data_contract.json ^
+  --output-json %SNAP%\snapshot.json
+%PY% %S2%\check_classification_v2_training_snapshot.py ^
+  --snapshot-json %SNAP%\snapshot.json ^
+  --contract-json %CONTRACTS%\data_contract.json ^
+  --output-json %SNAP%\training_snapshot_check.json
+%PY% %S5%\check_classification_v2_reviewed_q2_p0_preflight.py ^
+  --data-contract-json %CONTRACTS%\data_contract.json ^
+  --snapshot-json %SNAP%\snapshot.json ^
+  --output-json %PREFLIGHT%\reviewed_q2_p0_preflight.json ^
+  --project-root %CD%
+```
+
+Block trên chỉ tạo contract, manifest, snapshot và audit; nó không chạy GUI,
+không tự apply decision và không authorize full OOF. `model_smoke_authorized`
+phải được kiểm riêng trước model smoke; `full_oof_authorized` vẫn false cho
+đến khi các gate tiếp theo được hoàn tất.
 
 ### 17.3. Model finalist gate
 
