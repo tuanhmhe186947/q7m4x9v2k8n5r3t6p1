@@ -316,6 +316,7 @@ def _manifest_payload(
         "data_contract_sha256": contract_sha256,
         "template_sha256": contract["template_sha256"],
         "artifact_map_sha256": contract["artifact_map_sha256"],
+        "lineage_ids": contract["lineage_ids"],
         "lineage_roots": contract["lineage_roots"],
         "train_ready_root": contract["train_ready_root"],
         "output_json": output_relative,

@@ -1,0 +1,122 @@
+{
+  "schema_version": "classification_v2.reviewed_q2_artifact_layout.v1",
+  "template_schema_version": "classification_v2.data_contract_template.v1",
+  "profile": "mixed-reviewed",
+  "train_ready_relative_root": "data/11_train_ready",
+  "snapshot_relative_root": "data/14_training_snapshot",
+  "artifacts": {
+    "hidden_review_scientific_policy":
+      "configs/classification_v2/hidden_review_scientific_policy_v1.json",
+    "legacy_frame_object_annotations":
+      "data/01_source_full/legacy_export/legacy_frame_object_annotations.csv",
+    "merged_frame_objects": "data/01_source_full/merged_frame_objects.csv",
+    "merged_frame_objects_audit": "data/01_source_full/merged_frame_objects_audit.json",
+    "frame_context": "data/02_frame_features/frame_context.csv",
+    "frame_context_audit": "data/02_frame_features/frame_context_audit.json",
+    "frame_geometry": "data/02_frame_features/frame_geometry.csv",
+    "frame_geometry_audit": "data/02_frame_features/frame_geometry_audit.json",
+    "frame_roi": "data/02_frame_features/frame_roi.csv",
+    "frame_roi_audit": "data/02_frame_features/frame_roi_audit.json",
+    "enhanced_frame_features": "data/02_frame_features/spatiotemporal_frame_features_enhanced.csv",
+    "enhanced_frame_features_audit":
+      "data/02_frame_features/spatiotemporal_frame_features_enhanced_audit.json",
+    "hidden_review_unit_manifest": "data/03_hidden_review/hidden_review_unit_manifest.csv",
+    "hidden_review_frame_context": "data/03_hidden_review/hidden_review_frame_context.csv",
+    "hidden_review_scientific_design": "data/03_hidden_review/hidden_review_scientific_design.json",
+    "hidden_media_validation_audit": "data/03_hidden_review/hidden_media_validation_audit.json",
+    "hidden_review_decisions": "human_decisions/hidden/hidden_review_decisions.csv",
+    "hidden_review_decision_coverage_audit":
+      "data/03_hidden_review/hidden_review_decision_coverage_audit.json",
+    "hidden_review_scientific_gate":
+      "data/03_hidden_review/hidden_review_scientific_gate_audit.json",
+    "hidden_reviewed_frame_features": "data/03_hidden_review/hidden_reviewed_frame_features.csv",
+    "hidden_apply_audit": "data/03_hidden_review/apply_hidden_review_audit.json",
+    "hidden_confusion_audit": "data/03_hidden_review/hidden_confusion_audit.json",
+    "review_unit_manifest": "data/05_review_units/review_unit_manifest.csv",
+    "full_review_unit_manifest": "data/05_review_units/full_review_unit_manifest.csv",
+    "interaction_review_unit_template": "data/05_review_units/interaction_review_unit_template.csv",
+    "motion_review_unit_template": "data/05_review_units/motion_review_unit_template.csv",
+    "posture_review_unit_template": "data/05_review_units/posture_review_unit_template.csv",
+    "roi_review_unit_template": "data/05_review_units/roi_review_unit_template.csv",
+    "temporal_consistency_review_unit_template":
+      "data/05_review_units/temporal_consistency_review_unit_template.csv",
+    "cvat_anchor_1020_audit": "data/05_review_units/cvat_anchor_1020_audit.json",
+    "temporal_evidence_audit": "data/05_review_units/temporal_evidence_audit.json",
+    "roi_behavior_decisions": "human_decisions/behavior/roi/behavior_unit_review_decisions.csv",
+    "motion_behavior_decisions":
+      "human_decisions/behavior/motion/behavior_unit_review_decisions.csv",
+    "posture_behavior_decisions":
+      "human_decisions/behavior/posture/behavior_unit_review_decisions.csv",
+    "interaction_behavior_decisions":
+      "human_decisions/behavior/interaction/behavior_unit_review_decisions.csv",
+    "behavior_decision_coverage_audit":
+      "human_decisions/behavior/decision_coverage_final_audit.json",
+    "reviewed_frame_features": "data/07_reviewed_frames/reviewed_frame_features.csv",
+    "review_unit_decisions_combined": "data/07_reviewed_frames/review_unit_decisions_combined.csv",
+    "behavior_apply_audit": "data/07_reviewed_frames/apply_review_unit_decisions_audit.json",
+    "harmonized_frames": "data/08_sequence_reviewed/harmonized_frames.csv",
+    "temporal_label_intervals": "data/08_sequence_reviewed/temporal_label_intervals.csv",
+    "sequence_window_manifest": "data/08_sequence_reviewed/sequence_window_manifest.csv",
+    "sequence_window_features": "data/08_sequence_reviewed/sequence_window_features.csv",
+    "native_temporal_unit_manifest": "data/09_native_units/native_temporal_unit_manifest.csv",
+    "temporal_unit_audit": "data/09_native_units/check_native_temporal_units_audit.json",
+    "recording_group_manifest":
+      "data/10_grouped_splits/recording_groups/recording_group_manifest.csv",
+    "q2_outer_fold_assignments":
+      "data/10_grouped_splits/q2_grouped_folds/q2_outer_fold_assignments.csv",
+    "q2_outer_inner_roles": "data/10_grouped_splits/q2_grouped_folds/q2_outer_inner_roles.csv",
+    "q2_grouped_fold_audit": "data/10_grouped_splits/q2_grouped_folds/q2_grouped_fold_audit.json",
+    "split_manifest": "data/11_train_ready/split_manifest.csv",
+    "tabular_X": "data/11_train_ready/X_window_features.csv",
+    "y_behavior": "data/11_train_ready/y_behavior.csv",
+    "train_mask": "data/11_train_ready/train_mask.csv",
+    "sample_weight": "data/11_train_ready/sample_weight.csv",
+    "spatial_sequences": "data/11_train_ready/X_spatial_sequences.npz",
+    "event_weight_manifest": "data/11_train_ready/event_weight_manifest.csv",
+    "y_auxiliary_targets": "data/11_train_ready/y_auxiliary_targets.csv",
+    "fold_event_weight_manifest": "data/11_train_ready/fold_event_weight_manifest.csv",
+    "fold_event_weight_audit": "data/11_train_ready/fold_event_weight_audit.json",
+    "temporal_view_selection_manifest":
+      "data/11_train_ready/temporal_views/temporal_view_selection_manifest.csv",
+    "fixed6_observed_time_manifest":
+      "data/11_train_ready/temporal_views/fixed6_observed_time_manifest.csv",
+    "temporal_view_audit": "data/11_train_ready/temporal_views/temporal_shortcut_audit.json",
+    "image_frame_context_manifest": "data/11_train_ready/image_frame_context_manifest.csv",
+    "image_window_context_manifest": "data/11_train_ready/image_window_context_manifest.csv",
+    "interaction_window_context_manifest":
+      "data/11_train_ready/interaction_window_context_manifest.csv",
+    "actor_cache_manifest": "data/12_actor_cache_224_letterbox/manifest.csv",
+    "actor_cache_integrity_manifest":
+      "data/12_actor_cache_224_letterbox/image_cache_integrity_manifest.csv",
+    "actor_packed_cache_index": "data/12_actor_cache_224_letterbox/packed_image_cache_index.csv",
+    "actor_packed_cache_tensor": "data/12_actor_cache_224_letterbox/packed_rgb_224_letterbox.npy",
+    "actor_cache_integrity_audit": "data/12_actor_cache_224_letterbox/integrity_release_check.json",
+    "actor_packed_cache_audit": "data/12_actor_cache_224_letterbox/packed_image_cache_audit.json",
+    "visual_context_manifest":
+      "data/13_interaction_cache_224_letterbox/visual_context_manifest.csv",
+    "visual_packed_cache_index":
+      "data/13_interaction_cache_224_letterbox/packed_image_cache_index.csv",
+    "visual_packed_cache_tensor":
+      "data/13_interaction_cache_224_letterbox/packed_rgb_224_letterbox.npy",
+    "visual_context_cache_audit":
+      "data/13_interaction_cache_224_letterbox/check_visual_interaction_cache.json",
+    "feature_whitelist": "data/11_train_ready/feature_whitelist.json",
+    "feature_blacklist": "data/11_train_ready/feature_blacklist.json",
+    "feature_whitelist_audit": "data/11_train_ready/feature_whitelist_audit.json",
+    "model_input_contract": "contracts/model_input_contract.json",
+    "train_ready_audit": "data/11_train_ready/train_ready_audit.json",
+    "spatial_sequence_audit": "data/11_train_ready/spatial_sequence_audit.json",
+    "identifier_lineage_audit": "audits/identifier_lineage_audit.json",
+    "source_to_window_lineage_audit": "audits/source_to_window_lineage_audit.json",
+    "leakage_audit": "audits/leakage_audit.json",
+    "class_by_fold_support": "data/10_grouped_splits/q2_grouped_folds/class_by_fold_support.csv",
+    "source_by_fold_support": "data/10_grouped_splits/q2_grouped_folds/source_by_fold_support.csv",
+    "grouped_source_probe_audit":
+      "data/11_train_ready/domain_controls/grouped_source_probe_audit.json",
+    "availability_behavior_probe_audit":
+      "data/11_train_ready/domain_controls/grouped_availability_behavior_probe_audit.json",
+    "domain_feature_shift_audit":
+      "data/11_train_ready/domain_controls/domain_feature_shift_audit.json",
+    "domain_controls_audit": "data/11_train_ready/domain_controls/check_domain_controls.json"
+  }
+}

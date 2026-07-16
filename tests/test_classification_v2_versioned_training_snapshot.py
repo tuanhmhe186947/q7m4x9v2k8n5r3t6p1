@@ -16,7 +16,8 @@ from pig_behavior.classification_v2.contracts.versioned_data_contract import (
     write_versioned_data_contract,
 )
 
-RUN_ID = "c2v2_reviewed_snapshot_20260716_v1"
+RUN_ID = "c2v2_agent_snapshot_fixture_v1"
+HUMAN_RUN_ID = "c2v2_human_snapshot_fixture_v1"
 
 
 def test_historical_snapshot_payload_remains_unversioned(
@@ -47,6 +48,7 @@ def test_historical_snapshot_payload_remains_unversioned(
         "generated_contract_schema_version",
         "run_id",
         "profile",
+        "lineage_ids",
         "lineage_roots",
         "template_sha256",
         "artifact_map_sha256",
@@ -67,6 +69,10 @@ def test_versioned_snapshot_binds_run_map_and_owner_roots(
     assert Path(snapshot["snapshot_path"]).parent == snapshot_dir
     assert snapshot["run_id"] == RUN_ID
     assert snapshot["profile"] == "mixed-reviewed"
+    assert snapshot["lineage_ids"] == {
+        "agent_derived": RUN_ID,
+        "human_review": HUMAN_RUN_ID,
+    }
     assert snapshot["versioned_contract_audit"]["valid"] is True
     assert snapshot["versioned_contract_audit"]["applicable"] is True
     assert len(snapshot["artifact_map_sha256"]) == 64
@@ -78,7 +84,10 @@ def test_versioned_snapshot_rejects_map_drift_before_write(
 ) -> None:
     contract_path, snapshot_dir, map_path = _fixture(tmp_path)
     map_payload = json.loads(map_path.read_text(encoding="utf-8"))
-    map_payload["train_ready_root"] = f"derived/{RUN_ID}/changed_train_ready"
+    map_payload["train_ready_root"] = (
+        "outputs/classification_v2/agent_audits/"
+        f"{RUN_ID}/changed_train_ready"
+    )
     map_path.write_text(json.dumps(map_payload), encoding="utf-8")
     monkeypatch.chdir(tmp_path)
 
@@ -97,7 +106,7 @@ def test_versioned_snapshot_rejects_human_workspace_destination(
         tmp_path
         / "human_review_workspace"
         / "classification_v2"
-        / RUN_ID
+        / HUMAN_RUN_ID
         / "snapshot.json"
     )
     monkeypatch.chdir(tmp_path)
@@ -117,12 +126,18 @@ def test_versioned_snapshot_rejects_human_workspace_destination(
 
 def _fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
     config_dir = tmp_path / "configs" / "classification_v2"
-    agent_root = tmp_path / "derived" / RUN_ID
+    agent_root = (
+        tmp_path
+        / "outputs"
+        / "classification_v2"
+        / "agent_audits"
+        / RUN_ID
+    )
     human_root = (
         tmp_path
         / "human_review_workspace"
         / "classification_v2"
-        / RUN_ID
+        / HUMAN_RUN_ID
     )
     config_dir.mkdir(parents=True)
     agent_root.mkdir(parents=True)
@@ -177,19 +192,33 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
                 "schema_version": ARTIFACT_MAP_SCHEMA_VERSION,
                 "run_id": RUN_ID,
                 "profile": "mixed-reviewed",
+                "lineage_ids": {
+                    "agent_derived": RUN_ID,
+                    "human_review": HUMAN_RUN_ID,
+                },
                 "lineage_roots": {
-                    "agent_derived": f"derived/{RUN_ID}",
-                    "human_review": (
-                        "human_review_workspace/classification_v2/"
+                    "agent_derived": (
+                        "outputs/classification_v2/agent_audits/"
                         f"{RUN_ID}"
                     ),
+                    "human_review": (
+                        "human_review_workspace/classification_v2/"
+                        f"{HUMAN_RUN_ID}"
+                    ),
                 },
-                "train_ready_root": f"derived/{RUN_ID}/train_ready",
-                "snapshot_output_dir": f"derived/{RUN_ID}/snapshots",
+                "train_ready_root": (
+                    "outputs/classification_v2/agent_audits/"
+                    f"{RUN_ID}/train_ready"
+                ),
+                "snapshot_output_dir": (
+                    "outputs/classification_v2/agent_audits/"
+                    f"{RUN_ID}/snapshots"
+                ),
                 "artifacts": {
                     "split_manifest": {
                         "path": (
-                            f"derived/{RUN_ID}/train_ready/"
+                            "outputs/classification_v2/agent_audits/"
+                            f"{RUN_ID}/train_ready/"
                             "split_manifest.csv"
                         ),
                         "scope": "agent_derived",

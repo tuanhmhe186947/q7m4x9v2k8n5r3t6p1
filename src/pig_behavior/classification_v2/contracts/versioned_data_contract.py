@@ -18,14 +18,21 @@ from pig_behavior.classification_v2.contracts.output_safety import (
     require_output_paths_available,
 )
 
-ARTIFACT_MAP_SCHEMA_VERSION = "classification_v2.artifact_map.v2"
+ARTIFACT_MAP_SCHEMA_VERSION = "classification_v2.artifact_map.v3"
+LEGACY_ARTIFACT_MAP_SCHEMA_VERSION = "classification_v2.artifact_map.v2"
 DATA_CONTRACT_TEMPLATE_SCHEMA_VERSION = (
     "classification_v2.data_contract_template.v1"
 )
 GENERATED_CONTRACT_SCHEMA_VERSION = (
+    "classification_v2.versioned_data_contract.v2"
+)
+LEGACY_GENERATED_CONTRACT_SCHEMA_VERSION = (
     "classification_v2.versioned_data_contract.v1"
 )
-PATH_POLICY_SCHEMA_VERSION = "classification_v2.artifact_path_policy.v1"
+PATH_POLICY_SCHEMA_VERSION = "classification_v2.artifact_path_policy.v2"
+LEGACY_PATH_POLICY_SCHEMA_VERSION = (
+    "classification_v2.artifact_path_policy.v1"
+)
 BUILD_AUDIT_SCHEMA_VERSION = "classification_v2.data_contract_build_audit.v1"
 
 ALLOWED_PROFILES = {
@@ -94,26 +101,30 @@ def build_versioned_data_contract(
     artifact_map = _read_json_object(artifact_map_file, "artifact_map")
 
     errors = _validate_root_contracts(template, artifact_map)
-    raw_run_id = artifact_map.get("run_id")
-    run_id = raw_run_id.strip() if isinstance(raw_run_id, str) else ""
+    lineage_ids, lineage_id_errors = _validated_lineage_ids(
+        artifact_map,
+        profile=artifact_map.get("profile"),
+    )
+    errors.extend(lineage_id_errors)
     roots, root_errors = _validated_lineage_roots(
         artifact_map.get("lineage_roots"),
-        run_id,
+        lineage_ids,
         profile=artifact_map.get("profile"),
+        schema_version=artifact_map.get("schema_version"),
     )
     errors.extend(root_errors)
     errors.extend(
         _validate_map_location(
             artifact_map_rel,
             roots,
-            run_id,
+            lineage_ids,
         )
     )
     errors.extend(
         _validate_output_location(
             destination_rel,
             roots,
-            run_id,
+            lineage_ids,
         )
     )
 
@@ -123,7 +134,7 @@ def build_versioned_data_contract(
         template_artifacts,
         mapped_artifacts,
         roots=roots,
-        run_id=run_id,
+        lineage_ids=lineage_ids,
         project_root=root,
     )
     errors.extend(artifact_errors)
@@ -133,7 +144,7 @@ def build_versioned_data_contract(
                 field,
                 artifact_map.get(field),
                 roots=roots,
-                run_id=run_id,
+                lineage_ids=lineage_ids,
             )
         )
 
@@ -151,6 +162,7 @@ def build_versioned_data_contract(
         artifact_map_sha256=artifact_map_sha256,
         resolved_artifacts=resolved_artifacts,
         lineage_roots=roots,
+        lineage_ids=lineage_ids,
     )
     audit = _build_audit(
         contract,
@@ -213,16 +225,18 @@ def validate_generated_data_contract(
     )
     contract = _read_json_object(contract_file, "generated_contract")
     errors: list[str] = []
-    if (
-        contract.get("generated_contract_schema_version")
-        != GENERATED_CONTRACT_SCHEMA_VERSION
-    ):
+    generated_schema = contract.get("generated_contract_schema_version")
+    supported_generated_schemas = {
+        GENERATED_CONTRACT_SCHEMA_VERSION,
+        LEGACY_GENERATED_CONTRACT_SCHEMA_VERSION,
+    }
+    if generated_schema not in supported_generated_schemas:
         errors.append("generated_contract_schema_version_mismatch")
     policy = contract.get("path_policy")
     if not isinstance(policy, dict):
         errors.append("path_policy_must_be_object")
     else:
-        expected_policy = _path_policy()
+        expected_policy = _path_policy(generated_schema)
         if policy != expected_policy:
             errors.append("path_policy_mismatch")
     source_paths: dict[str, Path] = {}
@@ -275,13 +289,19 @@ def _validate_root_contracts(
         "snapshot_output_dir",
         "artifacts",
     }
+    schema_version = artifact_map.get("schema_version")
+    if schema_version == ARTIFACT_MAP_SCHEMA_VERSION:
+        required_map_fields.add("lineage_ids")
     unknown_map_fields = sorted(set(artifact_map).difference(required_map_fields))
     missing_map_fields = sorted(required_map_fields.difference(artifact_map))
     if missing_map_fields:
         errors.append(f"artifact_map_missing_fields={missing_map_fields}")
     if unknown_map_fields:
         errors.append(f"artifact_map_unknown_fields={unknown_map_fields}")
-    if artifact_map.get("schema_version") != ARTIFACT_MAP_SCHEMA_VERSION:
+    if schema_version not in {
+        ARTIFACT_MAP_SCHEMA_VERSION,
+        LEGACY_ARTIFACT_MAP_SCHEMA_VERSION,
+    }:
         errors.append("artifact_map_schema_version_mismatch")
     if (
         template.get("template_schema_version")
@@ -331,11 +351,58 @@ def _validate_root_contracts(
     return errors
 
 
-def _validated_lineage_roots(
-    values: Any,
-    run_id: str,
+def _validated_lineage_ids(
+    artifact_map: dict[str, Any],
     *,
     profile: Any,
+) -> tuple[dict[str, str], list[str]]:
+    """Resolve role-specific IDs while preserving artifact-map v2 replay."""
+
+    run_value = artifact_map.get("run_id")
+    run_id = run_value.strip() if isinstance(run_value, str) else ""
+    schema_version = artifact_map.get("schema_version")
+    required_roles = {"agent_derived"}
+    if profile == "mixed-reviewed":
+        required_roles.add("human_review")
+    if schema_version == LEGACY_ARTIFACT_MAP_SCHEMA_VERSION:
+        return {role: run_id for role in required_roles}, []
+
+    values = artifact_map.get("lineage_ids")
+    if not isinstance(values, dict):
+        return {}, ["lineage_ids_must_be_object"]
+    errors: list[str] = []
+    missing = sorted(required_roles.difference(values))
+    unknown = sorted(set(values).difference(required_roles))
+    if missing:
+        errors.append(f"lineage_id_roles_missing={missing}")
+    if unknown:
+        errors.append(f"lineage_id_roles_unknown={unknown}")
+    lineage_ids: dict[str, str] = {}
+    for role in sorted(required_roles.intersection(values)):
+        value = values[role]
+        lineage_id = value.strip() if isinstance(value, str) else ""
+        if not RUN_ID_PATTERN.fullmatch(lineage_id):
+            errors.append(f"lineage_id_not_path_safe:{role}")
+        if any(token in lineage_id.lower() for token in PLACEHOLDER_TOKENS):
+            errors.append(f"lineage_id_contains_placeholder:{role}")
+        lineage_ids[role] = lineage_id
+    if lineage_ids.get("agent_derived") != run_id:
+        errors.append("run_id_must_equal_agent_derived_lineage_id")
+    if (
+        profile == "mixed-reviewed"
+        and lineage_ids.get("human_review")
+        == lineage_ids.get("agent_derived")
+    ):
+        errors.append("mixed_reviewed_lineage_ids_must_be_distinct")
+    return lineage_ids, errors
+
+
+def _validated_lineage_roots(
+    values: Any,
+    lineage_ids: dict[str, str],
+    *,
+    profile: Any,
+    schema_version: Any,
 ) -> tuple[dict[str, str], list[str]]:
     errors: list[str] = []
     if not isinstance(values, dict) or not values:
@@ -357,9 +424,10 @@ def _validated_lineage_roots(
         except ValueError as exc:
             errors.append(f"invalid_lineage_root:{role}:{exc}")
             continue
-        if run_id not in PurePosixPath(normalized).parts:
+        lineage_id = lineage_ids.get(role)
+        if not lineage_id or lineage_id not in PurePosixPath(normalized).parts:
             errors.append(
-                f"lineage_root_missing_exact_run_id:{role}:{normalized}"
+                f"lineage_root_missing_exact_lineage_id:{role}:{normalized}"
             )
         if _is_project_static_path(normalized):
             errors.append(
@@ -374,6 +442,15 @@ def _validated_lineage_roots(
             and parts[0] == "human_review_workspace"
         ):
             errors.append("agent_derived_root_must_be_outside_human_workspace")
+        if schema_version == ARTIFACT_MAP_SCHEMA_VERSION:
+            errors.extend(
+                _reviewed_q2_namespace_errors(
+                    role,
+                    normalized,
+                    lineage_id=lineage_id,
+                    profile=profile,
+                )
+            )
         roots[role] = normalized
     if len(set(roots.values())) != len(roots):
         errors.append("duplicate_lineage_roots")
@@ -391,12 +468,43 @@ def _validated_lineage_roots(
     return roots, errors
 
 
+def _reviewed_q2_namespace_errors(
+    role: str,
+    path: str,
+    *,
+    lineage_id: str | None,
+    profile: Any,
+) -> list[str]:
+    """Lock mixed-reviewed v3 roots to separate operator/agent namespaces."""
+
+    if profile != "mixed-reviewed" or not lineage_id:
+        return []
+    expected = {
+        "human_review": (
+            "human_review_workspace",
+            "classification_v2",
+            lineage_id,
+        ),
+        "agent_derived": (
+            "outputs",
+            "classification_v2",
+            "agent_audits",
+            lineage_id,
+        ),
+    }.get(role)
+    if expected is None:
+        return []
+    if PurePosixPath(path).parts != expected:
+        return [f"reviewed_q2_lineage_root_not_exact:{role}:{path}"]
+    return []
+
+
 def _validate_artifacts(
     template_artifacts: Any,
     mapped_artifacts: Any,
     *,
     roots: dict[str, str],
-    run_id: str,
+    lineage_ids: dict[str, str],
     project_root: Path,
 ) -> tuple[list[str], dict[str, dict[str, Any]]]:
     if not isinstance(template_artifacts, dict) or not isinstance(
@@ -453,8 +561,11 @@ def _validate_artifacts(
             expected_root = roots.get(scope)
             if not expected_root or not _inside_root(path, expected_root):
                 errors.append(f"{scope}_artifact_outside_root:{name}:{path}")
-            if run_id not in PurePosixPath(path).parts:
-                errors.append(f"lineage_artifact_missing_exact_run_id:{name}")
+            lineage_id = lineage_ids.get(scope)
+            if not lineage_id or lineage_id not in PurePosixPath(path).parts:
+                errors.append(
+                    f"lineage_artifact_missing_exact_lineage_id:{name}"
+                )
         elif scope == "project_static":
             if not _is_project_static_path(path):
                 errors.append(f"project_static_artifact_outside_policy:{name}")
@@ -474,7 +585,7 @@ def _validate_lineage_path_field(
     value: Any,
     *,
     roots: dict[str, str],
-    run_id: str,
+    lineage_ids: dict[str, str],
 ) -> list[str]:
     try:
         path = _normalize_relative_path(value)
@@ -484,29 +595,31 @@ def _validate_lineage_path_field(
     agent_root = roots.get("agent_derived")
     if not agent_root or not _inside_root(path, agent_root):
         errors.append(f"{field}_outside_agent_derived_root")
-    if run_id not in PurePosixPath(path).parts:
-        errors.append(f"{field}_missing_exact_run_id")
+    agent_lineage_id = lineage_ids.get("agent_derived")
+    if not agent_lineage_id or agent_lineage_id not in PurePosixPath(path).parts:
+        errors.append(f"{field}_missing_exact_agent_lineage_id")
     return errors
 
 
 def _validate_map_location(
     path: str,
     roots: dict[str, str],
-    run_id: str,
+    lineage_ids: dict[str, str],
 ) -> list[str]:
     errors: list[str] = []
     agent_root = roots.get("agent_derived")
     if not agent_root or not _inside_root(path, agent_root):
         errors.append("artifact_map_file_outside_agent_derived_root")
-    if run_id not in PurePosixPath(path).parts:
-        errors.append("artifact_map_file_missing_exact_run_id")
+    agent_lineage_id = lineage_ids.get("agent_derived")
+    if not agent_lineage_id or agent_lineage_id not in PurePosixPath(path).parts:
+        errors.append("artifact_map_file_missing_exact_agent_lineage_id")
     return errors
 
 
 def _validate_output_location(
     path: str,
     roots: dict[str, str],
-    run_id: str,
+    lineage_ids: dict[str, str],
 ) -> list[str]:
     errors: list[str] = []
     if PurePosixPath(path).suffix.lower() != ".json":
@@ -514,8 +627,9 @@ def _validate_output_location(
     agent_root = roots.get("agent_derived")
     if not agent_root or not _inside_root(path, agent_root):
         errors.append("output_json_outside_agent_derived_root")
-    if run_id not in PurePosixPath(path).parts:
-        errors.append("output_json_missing_exact_run_id")
+    agent_lineage_id = lineage_ids.get("agent_derived")
+    if not agent_lineage_id or agent_lineage_id not in PurePosixPath(path).parts:
+        errors.append("output_json_missing_exact_agent_lineage_id")
     return errors
 
 
@@ -542,6 +656,7 @@ def _generated_contract(
     artifact_map_sha256: str,
     resolved_artifacts: dict[str, dict[str, Any]],
     lineage_roots: dict[str, str],
+    lineage_ids: dict[str, str],
 ) -> dict[str, Any]:
     dynamic_fields = {
         "artifacts",
@@ -552,11 +667,18 @@ def _generated_contract(
     static_template = {
         key: value for key, value in template.items() if key not in dynamic_fields
     }
-    return {
+    is_legacy = (
+        artifact_map.get("schema_version")
+        == LEGACY_ARTIFACT_MAP_SCHEMA_VERSION
+    )
+    generated_schema = (
+        LEGACY_GENERATED_CONTRACT_SCHEMA_VERSION
+        if is_legacy
+        else GENERATED_CONTRACT_SCHEMA_VERSION
+    )
+    payload = {
         **static_template,
-        "generated_contract_schema_version": (
-            GENERATED_CONTRACT_SCHEMA_VERSION
-        ),
+        "generated_contract_schema_version": generated_schema,
         "root": ".",
         "run_id": artifact_map["run_id"],
         "profile": artifact_map["profile"],
@@ -571,14 +693,21 @@ def _generated_contract(
         "template_sha256": template_sha256,
         "artifact_map_path": artifact_map_path,
         "artifact_map_sha256": artifact_map_sha256,
-        "path_policy": _path_policy(),
+        "path_policy": _path_policy(generated_schema),
         "artifacts": resolved_artifacts,
     }
+    if not is_legacy:
+        payload["lineage_ids"] = lineage_ids
+    return payload
 
 
-def _path_policy() -> dict[str, Any]:
-    return {
-        "schema_version": PATH_POLICY_SCHEMA_VERSION,
+def _path_policy(generated_schema: Any) -> dict[str, Any]:
+    policy = {
+        "schema_version": (
+            LEGACY_PATH_POLICY_SCHEMA_VERSION
+            if generated_schema == LEGACY_GENERATED_CONTRACT_SCHEMA_VERSION
+            else PATH_POLICY_SCHEMA_VERSION
+        ),
         "all_artifact_paths_explicit": True,
         "canonical_fallback_allowed": False,
         "project_relative_paths_required": True,
@@ -586,6 +715,12 @@ def _path_policy() -> dict[str, Any]:
         "owner_separated_lineage_roots_required": True,
         "agent_writes_human_review_root_allowed": False,
     }
+    if generated_schema == LEGACY_GENERATED_CONTRACT_SCHEMA_VERSION:
+        return policy
+    policy["exact_run_id_in_lineage_paths_required"] = False
+    policy["exact_role_lineage_id_in_paths_required"] = True
+    policy["mixed_reviewed_lineage_ids_must_be_distinct"] = True
+    return policy
 
 
 def _build_audit(
@@ -601,6 +736,7 @@ def _build_audit(
         "valid": True,
         "errors": [],
         "run_id": contract["run_id"],
+        "lineage_ids": contract.get("lineage_ids"),
         "profile": contract["profile"],
         "template_path": contract["template_path"],
         "template_sha256": contract["template_sha256"],

@@ -9,13 +9,17 @@ from pig_behavior.classification_v2.contracts.versioned_data_contract import (
     ARTIFACT_MAP_SCHEMA_VERSION,
     DATA_CONTRACT_TEMPLATE_SCHEMA_VERSION,
     GENERATED_CONTRACT_SCHEMA_VERSION,
+    LEGACY_ARTIFACT_MAP_SCHEMA_VERSION,
+    LEGACY_GENERATED_CONTRACT_SCHEMA_VERSION,
     VersionedDataContractError,
     build_versioned_data_contract,
     validate_generated_data_contract,
     write_versioned_data_contract,
 )
 
-RUN_ID = "c2v2_reviewed_20260716_v1"
+AUDIT_RUN_ID = "c2v2_agent_audit_fixture_v1"
+HUMAN_RUN_ID = "c2v2_human_review_fixture_v1"
+RUN_ID = AUDIT_RUN_ID
 
 
 def test_explicit_artifact_map_builds_run_bound_contract(
@@ -37,7 +41,8 @@ def test_explicit_artifact_map_builds_run_bound_contract(
     assert build.contract["run_id"] == RUN_ID
     assert build.contract["path_policy"]["canonical_fallback_allowed"] is False
     assert build.contract["artifacts"]["split_manifest"]["path"].startswith(
-        f"derived/{RUN_ID}/"
+        "outputs/classification_v2/agent_audits/"
+        f"{AUDIT_RUN_ID}/"
     )
     assert build.contract["artifacts"]["trainer_contract"]["scope"] == (
         "project_static"
@@ -46,8 +51,18 @@ def test_explicit_artifact_map_builds_run_bound_contract(
         "human_review"
     )
     assert build.contract["lineage_roots"] == {
-        "agent_derived": f"derived/{RUN_ID}",
-        "human_review": f"human_review_workspace/classification_v2/{RUN_ID}",
+        "agent_derived": (
+            "outputs/classification_v2/agent_audits/"
+            f"{AUDIT_RUN_ID}"
+        ),
+        "human_review": (
+            "human_review_workspace/classification_v2/"
+            f"{HUMAN_RUN_ID}"
+        ),
+    }
+    assert build.contract["lineage_ids"] == {
+        "agent_derived": AUDIT_RUN_ID,
+        "human_review": HUMAN_RUN_ID,
     }
     assert len(build.contract["template_sha256"]) == 64
     assert len(build.contract["artifact_map_sha256"]) == 64
@@ -178,7 +193,7 @@ def test_agent_output_cannot_use_human_review_root(tmp_path: Path) -> None:
         tmp_path
         / "human_review_workspace"
         / "classification_v2"
-        / RUN_ID
+        / HUMAN_RUN_ID
         / "contract.json"
     )
 
@@ -204,7 +219,8 @@ def test_generated_contract_detects_artifact_map_drift(tmp_path: Path) -> None:
     write_versioned_data_contract(build, dry_run=False, overwrite=False)
     payload = json.loads(map_path.read_text(encoding="utf-8"))
     payload["snapshot_output_dir"] = (
-        f"derived/{RUN_ID}/snapshots_changed"
+        "outputs/classification_v2/agent_audits/"
+        f"{AUDIT_RUN_ID}/snapshots_changed"
     )
     map_path.write_text(json.dumps(payload), encoding="utf-8")
 
@@ -219,14 +235,56 @@ def test_generated_contract_detects_artifact_map_drift(tmp_path: Path) -> None:
     ]
 
 
+def test_legacy_v2_map_replays_without_role_specific_ids(
+    tmp_path: Path,
+) -> None:
+    template_path, map_path, output_path = _fixture(tmp_path)
+    payload = json.loads(map_path.read_text(encoding="utf-8"))
+    payload["schema_version"] = LEGACY_ARTIFACT_MAP_SCHEMA_VERSION
+    payload.pop("lineage_ids")
+    old_human_root = payload["lineage_roots"]["human_review"]
+    new_human_root = (
+        "human_review_workspace/classification_v2/"
+        f"{AUDIT_RUN_ID}"
+    )
+    payload["lineage_roots"]["human_review"] = new_human_root
+    for artifact in payload["artifacts"].values():
+        path = artifact["path"]
+        if path.startswith(old_human_root):
+            artifact["path"] = path.replace(
+                old_human_root,
+                new_human_root,
+                1,
+            )
+    map_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    build = build_versioned_data_contract(
+        template_path,
+        map_path,
+        output_path=output_path,
+        project_root=tmp_path,
+    )
+
+    assert build.contract["generated_contract_schema_version"] == (
+        LEGACY_GENERATED_CONTRACT_SCHEMA_VERSION
+    )
+    assert "lineage_ids" not in build.contract
+
+
 def _fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
     static_dir = tmp_path / "configs" / "classification_v2"
-    lineage_dir = tmp_path / "derived" / RUN_ID
+    lineage_dir = (
+        tmp_path
+        / "outputs"
+        / "classification_v2"
+        / "agent_audits"
+        / AUDIT_RUN_ID
+    )
     human_dir = (
         tmp_path
         / "human_review_workspace"
         / "classification_v2"
-        / RUN_ID
+        / HUMAN_RUN_ID
     )
     static_dir.mkdir(parents=True)
     lineage_dir.mkdir(parents=True)
@@ -271,20 +329,36 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
         json.dumps(
             {
                 "schema_version": ARTIFACT_MAP_SCHEMA_VERSION,
-                "run_id": RUN_ID,
+                "run_id": AUDIT_RUN_ID,
                 "profile": "mixed-reviewed",
+                "lineage_ids": {
+                    "agent_derived": AUDIT_RUN_ID,
+                    "human_review": HUMAN_RUN_ID,
+                },
                 "lineage_roots": {
-                    "agent_derived": f"derived/{RUN_ID}",
+                    "agent_derived": (
+                        "outputs/classification_v2/agent_audits/"
+                        f"{AUDIT_RUN_ID}"
+                    ),
                     "human_review": (
                         "human_review_workspace/classification_v2/"
-                        f"{RUN_ID}"
+                        f"{HUMAN_RUN_ID}"
                     ),
                 },
-                "train_ready_root": f"derived/{RUN_ID}/train_ready",
-                "snapshot_output_dir": f"derived/{RUN_ID}/snapshots",
+                "train_ready_root": (
+                    "outputs/classification_v2/agent_audits/"
+                    f"{AUDIT_RUN_ID}/train_ready"
+                ),
+                "snapshot_output_dir": (
+                    "outputs/classification_v2/agent_audits/"
+                    f"{AUDIT_RUN_ID}/snapshots"
+                ),
                 "artifacts": {
                     "split_manifest": {
-                        "path": f"derived/{RUN_ID}/train_ready/split.csv",
+                        "path": (
+                            "outputs/classification_v2/agent_audits/"
+                            f"{AUDIT_RUN_ID}/train_ready/split.csv"
+                        ),
                         "scope": "agent_derived",
                     },
                     "trainer_contract": {
@@ -297,7 +371,7 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
                     "reviewed_frames": {
                         "path": (
                             "human_review_workspace/classification_v2/"
-                            f"{RUN_ID}/reviewed_frames.csv"
+                            f"{HUMAN_RUN_ID}/reviewed_frames.csv"
                         ),
                         "scope": "human_review",
                     },

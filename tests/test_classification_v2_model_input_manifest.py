@@ -26,6 +26,7 @@ SOURCE_TEMPLATE = (
     / "reviewed_q2_data_contract_template_v1.json"
 )
 RUN_ID = "c2v2_model_input_manifest_fixture_v1"
+HUMAN_RUN_ID = "c2v2_human_review_manifest_fixture_v1"
 
 
 def test_model_input_manifest_uses_only_contract_declared_paths(
@@ -87,7 +88,7 @@ def test_model_input_manifest_rejects_human_owned_destination(
         tmp_path
         / "human_review_workspace"
         / "classification_v2"
-        / RUN_ID
+        / HUMAN_RUN_ID
         / "model_input_contract.json"
     )
 
@@ -189,7 +190,10 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path, dict[str, object]]:
     )
 
     agent_root = f"outputs/classification_v2/agent_audits/{RUN_ID}"
-    human_root = f"human_review_workspace/classification_v2/{RUN_ID}"
+    human_root = (
+        "human_review_workspace/classification_v2/"
+        f"{HUMAN_RUN_ID}"
+    )
     artifacts = {
         name: {
             "path": _artifact_path(
@@ -210,6 +214,10 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path, dict[str, object]]:
                 "schema_version": ARTIFACT_MAP_SCHEMA_VERSION,
                 "run_id": RUN_ID,
                 "profile": "mixed-reviewed",
+                "lineage_ids": {
+                    "agent_derived": RUN_ID,
+                    "human_review": HUMAN_RUN_ID,
+                },
                 "lineage_roots": {
                     "agent_derived": agent_root,
                     "human_review": human_root,

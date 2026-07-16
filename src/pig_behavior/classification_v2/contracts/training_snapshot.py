@@ -198,6 +198,7 @@ def _build_snapshot(paths: SnapshotPaths, contract: dict[str, Any]) -> dict[str,
                 ),
                 "run_id": contract.get("run_id"),
                 "profile": contract.get("profile"),
+                "lineage_ids": contract.get("lineage_ids"),
                 "lineage_roots": contract.get("lineage_roots"),
                 "template_sha256": contract.get("template_sha256"),
                 "artifact_map_sha256": contract.get(
