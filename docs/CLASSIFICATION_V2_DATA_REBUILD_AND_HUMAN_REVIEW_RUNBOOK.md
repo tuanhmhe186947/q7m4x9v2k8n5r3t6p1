@@ -146,15 +146,10 @@ set HSMDEC=%UROOT%\human_decisions\hidden_smoke
 set HDEC=%UROOT%\human_decisions\hidden
 set DEC=%UROOT%\human_decisions\behavior
 set RFRAME=%R%\07_reviewed_frames
-set SEQ1=%R%\08_sequence_reviewed
-set NATIVE=%R%\09_native_units
-set SPLIT=%R%\10_grouped_splits
-set TRAIN=%R%\11_train_ready
-set CACHE=%R%\12_actor_cache_224_letterbox
-set VCACHE=%R%\13_interaction_cache_224_letterbox
-set SNAP=%R%\14_training_snapshot
-set MODEL=%R%\15_model_development
 ```
+
+`%UROOT%` intentionally stops at `%RFRAME%`. Do not declare reviewed sequence,
+fold, train-ready, cache, snapshot, or model output below the human root.
 
 Không bắt đầu rebuild chỉ vì đã có tài liệu này. Agent phải bàn giao trạng thái
 `READY_FOR_HUMAN_REVIEW`, exact Git SHA và semantic config đã qua short gate.
@@ -183,6 +178,15 @@ handoff một stage, agent tạo namespace riêng bằng lệnh sau; `AUDIT_RUN_
 set AUDIT_RUN_ID=c2v2_agent_audit_YYYYMMDD_vN
 set AROOT=outputs\classification_v2\agent_audits\%AUDIT_RUN_ID%
 set HANDOFF=%AROOT%\review_handoff
+set DROOT=%AROOT%\data
+set SEQ1=%DROOT%\08_sequence_reviewed
+set NATIVE=%DROOT%\09_native_units
+set SPLIT=%DROOT%\10_grouped_splits
+set TRAIN=%DROOT%\11_train_ready
+set CACHE=%DROOT%\12_actor_cache_224_letterbox
+set VCACHE=%DROOT%\13_interaction_cache_224_letterbox
+set SNAP=%DROOT%\14_training_snapshot
+set MODEL=%DROOT%\15_model_development
 if exist "%AROOT%" ^
   (echo ERROR: AUDIT_RUN_ID already exists: %AROOT% & exit /b 2)
 ```
@@ -208,9 +212,10 @@ set S9=scripts\classification_v2\09_final_release_audit
 
 Không tạo nhiều folder tên `smoke`, `resume_smoke`, `letterbox_smoke` ở cấp
 `outputs\classification_v2` hoặc `human_review_workspace\classification_v2`.
-Data-derived artifact nằm dưới `%R%`; decision chỉ nằm dưới `%HSMDEC%`,
-`%HDEC%` hoặc `%DEC%`. Smoke và full có tên theo vai trò, không theo lỗi thử
-nghiệm.
+Human-review artifact kết thúc dưới `%RFRAME%`; decision chỉ nằm dưới
+`%HSMDEC%`, `%HDEC%` hoặc `%DEC%`. Agent-derived artifact từ reviewed
+harmonization trở đi chỉ nằm dưới `%DROOT%`. Smoke và full có tên theo vai trò,
+không theo lỗi thử nghiệm.
 
 `%UROOT%` là operator-owned: agent không chạy GUI, apply, rebuild hoặc checker
 ghi vào root này. Sau khi người dùng xác nhận một stage và gửi đúng `RUN_ID`,
@@ -238,15 +243,16 @@ Ownership cố định:
 |---|---|---|
 | `data/` | Không ai trong workflow này | Raw input bất biến |
 | `%UROOT%` ngoài `outputs/` | Operator | Rebuild và review lineage |
-| `%AROOT%` | Agent | Audit mirror, hash, test và goal-development evidence |
+| `%AROOT%` | Agent | Handoff audit và mọi downstream artifact sau review |
 | canonical/rebuild cũ | Không ghi | Technical/forensic reference chỉ đọc |
 
 Không dùng canonical folder hiện có làm authority cho rebuild mới. Audit đã thấy
 `frame_features\geometry_audit.json` chỉ có 173.664 row, gồm 100.800 CVAT row và
 còn chứa dataset `Tracking_annotation_Pigs291119_000263_30fps`. Trong khi đó,
 enhanced audit cùng canonical tree có 245.664 row, gồm 172.800 CVAT row từ
-allowlist 12 XML. Đây là mixed lineage. Mọi stage phải đọc artifact ngay trước
-nó dưới cùng `%R%`; không được ghép một canonical intermediate vào lineage mới.
+allowlist 12 XML. Đây là mixed lineage. Mọi stage phải đọc artifact được map
+chính xác từ cùng cặp `RUN_ID`/`AUDIT_RUN_ID`; không được ghép một canonical
+intermediate vào lineage mới.
 
 ## 5. Kiểm kê nguồn bất biến
 
@@ -1097,10 +1103,30 @@ Gate:
 - excluded/corrected frame counts được ghi;
 - label distribution trước/sau được kiểm và mọi delta truy về decision.
 
+### 12.3. Handoff bắt buộc trước downstream rebuild
+
+Sau khi section 12.1 và 12.2 PASS, operator dừng và gửi handoff
+`behavior_complete`. Không tự chạy section 13 trở đi trong `%UROOT%`.
+
+Agent chỉ đọc `%RFRAME%\reviewed_frame_features.csv`, decisions và audit đã
+handoff. Agent tạo một `AUDIT_RUN_ID` mới, sinh artifact map hash-bound, rồi ghi
+mọi output section 13-17 dưới `%AROOT%`. Không copy hay sửa file trong
+`%UROOT%`; input human được tham chiếu bằng exact path và SHA256.
+
+Hard stop:
+
+```bat
+if not defined AROOT ^
+  (echo ERROR: wait for behavior_complete handoff and agent root & exit /b 2)
+if /i "%AROOT%"=="%UROOT%" ^
+  (echo ERROR: human and agent roots must differ & exit /b 2)
+```
+
 ## 13. Rebuild reviewed windows và native units
 
 Rebuild reviewed sequence phải full-recompute vì corrected label có thể đổi
-target và temporal status. Không dùng fast overlay canonical.
+target và temporal status. Từ section này, input `%RFRAME%` là read-only và mọi
+output dùng `%DROOT%`; không dùng fast overlay canonical.
 
 ### 13.1. Reviewed sequence windows
 
