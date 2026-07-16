@@ -180,6 +180,13 @@ def test_registry_and_finalist_keep_legacy_claim_boundary(tmp_path) -> None:
     )
     registry = outputs["ablation_registry"]
     assert registry["one_principal_family_only"].all()
+    l7_rows = outputs["experiment_matrix"].loc[
+        outputs["experiment_matrix"]["stage"].eq("L7")
+    ]
+    assert set(l7_rows["decision_artifact_path"]) == {str(l7_path)}
+    assert set(l7_rows["decision_artifact_sha256"]) == {
+        candidate.file_sha256(l7_path)
+    }
 
 
 def test_config_validation_requires_candidate_model_and_optimization() -> None:

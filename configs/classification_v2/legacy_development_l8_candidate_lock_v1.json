@@ -9,7 +9,7 @@
   "outer_holdout_predictions_authorized": false,
   "implementation_source": {
     "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_l8_candidate_lock.py",
-    "sha256": "739ce9b2dee2bb923a421371b49619018f891104994f3d0af6e9876e5d62f5dc"
+    "sha256": "9218e36608ab4de9169df528355aa80611c31da432a02773ad808586f364aec4"
   },
   "full_training_config": {
     "path": "configs/classification_v2/legacy_development_l5_temporal_ladder_full_v1.json",

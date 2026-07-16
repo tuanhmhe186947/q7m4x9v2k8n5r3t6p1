@@ -493,7 +493,11 @@ def _build_outputs(
     decision_records: list[dict[str, Any]],
     evidence: dict[str, Any],
 ) -> dict[str, Any]:
-    experiment_rows = _experiment_rows(decision_records, l7_decision)
+    experiment_rows = _experiment_rows(
+        decision_records,
+        l7_decision,
+        l7_decision_path,
+    )
     rejected = _rejected_experiments(experiment_rows)
     run_root = result_path.parent
     checkpoint_path = run_root / "best_validation_checkpoint.pt"
@@ -575,6 +579,7 @@ def _build_outputs(
 def _experiment_rows(
     decision_records: list[dict[str, Any]],
     l7_decision: dict[str, Any],
+    l7_decision_path: Path,
 ) -> list[dict[str, Any]]:
     rows = [
         {
@@ -605,10 +610,8 @@ def _experiment_rows(
                 "decision": "REJECT_ALTERNATIVE_LOSS_POLICY",
                 "disposition": "rejected",
                 "selected_for_candidate": False,
-                "decision_artifact_path": l7_decision["config_path"],
-                "decision_artifact_sha256": l7_decision[
-                    "decision_payload_sha256"
-                ],
+                "decision_artifact_path": str(l7_decision_path),
+                "decision_artifact_sha256": file_sha256(l7_decision_path),
                 "lineage_scope": LINEAGE_SCOPE,
                 "applies_to_merged_reviewed_data": False,
                 "reviewed_or_final_claim_allowed": False,
@@ -632,10 +635,8 @@ def _experiment_rows(
             "decision": "RETAIN_EVENT_BALANCED_CE",
             "disposition": "retained",
             "selected_for_candidate": True,
-            "decision_artifact_path": l7_decision["config_path"],
-            "decision_artifact_sha256": l7_decision[
-                "decision_payload_sha256"
-            ],
+            "decision_artifact_path": str(l7_decision_path),
+            "decision_artifact_sha256": file_sha256(l7_decision_path),
             "lineage_scope": LINEAGE_SCOPE,
             "applies_to_merged_reviewed_data": False,
             "reviewed_or_final_claim_allowed": False,
