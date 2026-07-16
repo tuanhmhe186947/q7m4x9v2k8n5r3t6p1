@@ -94,6 +94,7 @@ def test_evaluation_emits_xml_and_metrics_without_mp4(
     assert (prediction_root / "prediction.xml").exists()
     assert not metrics_df.empty
     assert (run_dir / "tracking_metrics.csv").exists()
+    assert (run_dir / "tracking_runtime_telemetry.csv").exists()
     assert (run_dir / "run_manifest.json").exists()
     assert (run_dir / "artifact_manifest.json").exists()
     assert not list(prediction_root.rglob("*.mp4"))

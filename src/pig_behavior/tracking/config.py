@@ -36,8 +36,8 @@ from pig_behavior.tracking.constants import (
     DEFAULT_VISUAL_OPACITY,
     DEFAULT_WEIGHTS_PATH,
     ID_VALUES,
-    TRACKING_TELEMETRY_KEYS,
 )
+from pig_behavior.tracking.telemetry import summarize_tracking_telemetry
 
 logger = logging.getLogger(__name__)
 
@@ -337,10 +337,9 @@ def tracking_rule_flags_enabled(cfg: TrackingConfig) -> bool:
     )
 
 
-def get_telemetry_summary(source: Any) -> dict[str, int]:
-    """Return telemetry counters in a stable schema for benchmark comparison."""
-    telemetry = source.telemetry
-    return {key: int(telemetry.get(key, 0)) for key in TRACKING_TELEMETRY_KEYS}
+def get_telemetry_summary(source: Any) -> dict[str, int | float | str]:
+    """Return telemetry in a stable schema for benchmark comparison."""
+    return summarize_tracking_telemetry(source)
 
 
 def validate_config(cfg: TrackingConfig) -> None:

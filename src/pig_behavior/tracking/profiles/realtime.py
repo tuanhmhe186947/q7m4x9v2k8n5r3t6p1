@@ -65,7 +65,9 @@ PRESENTATION_PROFILES: dict[str, dict[str, object]] = {
     "realtime": {
         "mode": "realtime",
         "eval_config": "realtime_quality_delayed",
-        "description": "Best current realtime profile: short-delay motion-pair stabilization.",
+        "description": (
+            "Best current post-video quality profile; not fixed-delay causal."
+        ),
     },
     "realtime_fast": {
         "mode": "realtime",
@@ -80,6 +82,9 @@ PRESENTATION_PROFILES: dict[str, dict[str, object]] = {
     "realtime_quality_delayed": {
         "mode": "realtime",
         "eval_config": "realtime_quality_delayed",
-        "description": "Quality-delayed realtime profile validated on the 13-video runtime set.",
+        "description": (
+            "Post-video global-graph quality profile; fixed-delay causality "
+            "is not yet proven."
+        ),
     },
 }

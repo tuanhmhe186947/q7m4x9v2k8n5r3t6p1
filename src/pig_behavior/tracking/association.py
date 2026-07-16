@@ -35,6 +35,10 @@ from pig_behavior.tracking.schemas import (
     OcclusionContext,
     TrackingRuntimeState,
 )
+from pig_behavior.tracking.telemetry import (
+    record_association_event,
+    record_association_phase,
+)
 from pig_behavior.tracking.tracks import (
     detection_needs_motion_gate,
     lk_predict_box,
@@ -522,6 +526,7 @@ def append_association_debug_event(
     cfg: TrackingConfig,
     event: dict[str, object],
 ) -> None:
+    record_association_event(runtime, event.get("event"))
     if runtime is None or not cfg.association_debug:
         return
     runtime.association_debug_events.append(event)
@@ -1169,6 +1174,10 @@ def match_and_update_tracks(
 ) -> None:
     from scipy.optimize import linear_sum_assignment
 
+    if runtime is not None:
+        runtime.telemetry["association_calls"] = (
+            int(runtime.telemetry.get("association_calls", 0)) + 1
+        )
     advance_reentry_unowned_raw_quarantine(runtime)
     height, width = frame.shape[:2]
     ordered_tracks = [tracks[idx] for idx in range(1, cfg.expected_pigs + 1)]
@@ -1214,6 +1223,7 @@ def match_and_update_tracks(
     ) -> None:
         if not candidate_tracks or not detection_indices:
             return
+        record_association_phase(runtime, phase_name)
 
         costs = np.zeros(
             (len(candidate_tracks), len(detection_indices)),

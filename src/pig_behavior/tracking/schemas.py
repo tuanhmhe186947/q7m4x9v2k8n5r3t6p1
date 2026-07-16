@@ -64,9 +64,10 @@ class TrackingRuntimeState:
     group_hard_frames: dict[tuple[int, ...], int] = field(default_factory=dict)
     group_recovery_remaining: dict[tuple[int, ...], int] = field(default_factory=dict)
     current_recovery_track_ids: set[int] = field(default_factory=set)
-    telemetry: dict[str, int] = field(
+    telemetry: dict[str, int | float | str] = field(
         default_factory=lambda: {key: 0 for key in TRACKING_TELEMETRY_KEYS}
     )
+    timing_samples_seconds: dict[str, list[float]] = field(default_factory=dict)
     association_debug_events: list[dict[str, object]] = field(default_factory=list)
     reentry_unowned_raw_quarantine: dict[int, int] = field(default_factory=dict)
     reentry_unowned_raw_episode_history: dict[tuple[int, int, int], list[int]] = field(
@@ -357,7 +358,11 @@ class FixedTrack:
             self.occlusion_count += 1
         else:
             self.state = "VISIBLE"
-            self.state_reason = "detected_high_conf" if det.score >= cfg.track_high_conf else "detected_low_conf"
+            self.state_reason = (
+                "detected_high_conf"
+                if det.score >= cfg.track_high_conf
+                else "detected_low_conf"
+            )
             self.occlusion_count = 0
 
         if learn_identity:
@@ -437,7 +442,7 @@ class TrackingSummary:
     start_frame: int
     source_fps: float
     output_fps: float
-    telemetry: dict[str, int]
+    telemetry: dict[str, int | float | str]
 
 
 def _clip_box(box: np.ndarray, width: int, height: int) -> np.ndarray:

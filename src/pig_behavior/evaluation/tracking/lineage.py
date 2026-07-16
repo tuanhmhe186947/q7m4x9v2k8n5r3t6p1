@@ -311,6 +311,7 @@ def write_artifact_manifest(
         "tracking_eval_config.json",
         "tracking_metrics.csv",
         "tracking_report.md",
+        "tracking_runtime_telemetry.csv",
     }
     missing = sorted(
         name for name in required_names if not (run_dir / name).is_file()
@@ -329,11 +330,26 @@ def write_artifact_manifest(
         for pair in pairs
         if pair.pred_xml is not None and pair.pred_xml.is_file()
     ]
+    prediction_telemetry_paths = [
+        (
+            "prediction_runtime_telemetry",
+            pair.pred_xml.with_name("tracking_quality_report.json"),
+        )
+        for pair in pairs
+        if pair.pred_xml is not None
+        and pair.pred_xml.with_name("tracking_quality_report.json").is_file()
+    ]
     payload = {
         "schema_version": 1,
         "created_at_utc": datetime.now(UTC).isoformat(),
         "run_manifest_sha256": file_sha256(run_dir / "run_manifest.json"),
-        "artifacts": _artifact_records([*output_paths, *prediction_paths]),
+        "artifacts": _artifact_records(
+            [
+                *output_paths,
+                *prediction_paths,
+                *prediction_telemetry_paths,
+            ]
+        ),
         "mp4_count": 0,
     }
     manifest_path = run_dir / "artifact_manifest.json"

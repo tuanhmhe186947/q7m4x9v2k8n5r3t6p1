@@ -103,10 +103,58 @@ SCENE_HARD_OCCLUSION_ARMED = "HARD_OCCLUSION_ARMED"
 SCENE_HARD_MERGED = "HARD_MERGED"
 SCENE_SPLIT_RECOVERY = "SPLIT_RECOVERY"
 
-TRACKING_TELEMETRY_KEYS = (
+TRACKING_RULE_TELEMETRY_KEYS = (
     "hard_merges_triggered",
     "detections_intentionally_ignored",
     "recovery_frames_applied",
+)
+TRACKING_ASSOCIATION_PHASES = (
+    "visible",
+    "visible_high_conf",
+    "reid",
+    "low_conf_recovery",
+)
+TRACKING_TIMING_STAGES = (
+    "frame",
+    "detector",
+    "association",
+)
+TRACKING_INTEGER_TELEMETRY_KEYS = (
+    *TRACKING_RULE_TELEMETRY_KEYS,
+    "frames_processed",
+    "detection_frames",
+    "skipped_detection_frames",
+    "association_calls",
+    *(
+        f"association_phase_{phase_name}_calls"
+        for phase_name in TRACKING_ASSOCIATION_PHASES
+    ),
+    "association_assignments_accepted",
+    "association_assignments_rejected",
+    "association_assignments_held",
+    "association_assignments_preferred",
+    "declared_delay_frames",
+    "peak_process_rss_bytes",
+    "peak_cuda_memory_allocated_bytes",
+    "peak_cuda_memory_reserved_bytes",
+)
+TRACKING_FLOAT_TELEMETRY_KEYS = (
+    *(
+        f"{stage}_time_ms_{statistic}"
+        for stage in TRACKING_TIMING_STAGES
+        for statistic in ("total", "mean", "p50", "p95")
+    ),
+    "postprocess_time_ms_total",
+    "tracking_loop_effective_fps",
+    "effective_fps",
+    "source_fps",
+    "declared_delay_ms",
+)
+TRACKING_TEXT_TELEMETRY_KEYS = ("output_timing_contract",)
+TRACKING_TELEMETRY_KEYS = (
+    *TRACKING_INTEGER_TELEMETRY_KEYS,
+    *TRACKING_FLOAT_TELEMETRY_KEYS,
+    *TRACKING_TEXT_TELEMETRY_KEYS,
 )
 
 
@@ -179,7 +227,13 @@ __all__ = [
     "SCENE_HARD_OCCLUSION_ARMED",
     "SCENE_SOFT_PROXIMITY",
     "SCENE_SPLIT_RECOVERY",
+    "TRACKING_ASSOCIATION_PHASES",
+    "TRACKING_FLOAT_TELEMETRY_KEYS",
+    "TRACKING_INTEGER_TELEMETRY_KEYS",
+    "TRACKING_RULE_TELEMETRY_KEYS",
     "TRACKING_TELEMETRY_KEYS",
+    "TRACKING_TEXT_TELEMETRY_KEYS",
+    "TRACKING_TIMING_STAGES",
     "TRACK_COLORS_BGR",
     "build_pig_label_schema",
     "DEFAULT_NMS_IOU_THRESHOLD",

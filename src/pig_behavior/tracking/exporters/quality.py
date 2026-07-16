@@ -13,7 +13,7 @@ from pig_behavior.tracking.config import (
     TrackingConfig,
     tracking_rule_flags_enabled,
 )
-from pig_behavior.tracking.constants import TRACKING_TELEMETRY_KEYS
+from pig_behavior.tracking.constants import TRACKING_RULE_TELEMETRY_KEYS
 from pig_behavior.tracking.refinement import (
     _shape_attributes_dict,
     clean_training_shapes,
@@ -72,7 +72,7 @@ def build_quality_report(
     video_path: Path,
     source_fps: float,
     source_frame_count: int,
-    telemetry: dict[str, int] | None = None,
+    telemetry: dict[str, int | float | str] | None = None,
 ) -> dict[str, Any]:
     """Summarize frames/tracks that need manual review."""
     frames = sorted({int(shape["frame"]) for shape in shapes})
@@ -432,9 +432,7 @@ def build_quality_report(
             "issue_frame_count": len(issue_frames),
             "issue_frames": issue_frames,
         },
-        "telemetry": (
-            {key: int((telemetry or {}).get(key, 0)) for key in TRACKING_TELEMETRY_KEYS}
-        ),
+        "telemetry": dict(telemetry or {}),
         "frames": frame_rows,
         "tracks": track_rows,
     }
@@ -476,7 +474,8 @@ def build_quality_report(
             report["thresholds"].pop(key, None)
         report["summary"].pop("area_occluded_shapes", None)
         report["summary"].pop("merged_box_split_shapes", None)
-        report.pop("telemetry", None)
+        for key in TRACKING_RULE_TELEMETRY_KEYS:
+            report["telemetry"].pop(key, None)
     return report
 
 

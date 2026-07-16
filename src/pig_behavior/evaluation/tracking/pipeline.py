@@ -159,6 +159,32 @@ def tracking_rule_overrides(
     return overrides
 
 
+def runtime_telemetry_to_dataframe(
+    pairs: list[TrackingPair],
+) -> pd.DataFrame:
+    """Collect per-video tracker telemetry beside each prediction XML."""
+    rows: list[dict[str, object]] = []
+    for pair in pairs:
+        telemetry_path = (
+            pair.pred_xml.with_name("tracking_quality_report.json")
+            if pair.pred_xml is not None
+            else None
+        )
+        row: dict[str, object] = {
+            "video_stem": pair.video_stem,
+            "telemetry_available": False,
+            "telemetry_path": str(telemetry_path) if telemetry_path else "",
+        }
+        if telemetry_path is not None and telemetry_path.is_file():
+            payload = json.loads(telemetry_path.read_text(encoding="utf-8"))
+            telemetry = payload.get("telemetry")
+            if isinstance(telemetry, dict):
+                row.update(telemetry)
+                row["telemetry_available"] = True
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
 def save_pipeline_report(
     pairs: list[TrackingPair],
     metrics_df: pd.DataFrame,
@@ -167,6 +193,7 @@ def save_pipeline_report(
     remapped_identity_events_df: pd.DataFrame | None = None,
     identity_mapping_df: pd.DataFrame | None = None,
     continuity_gaps_df: pd.DataFrame | None = None,
+    runtime_telemetry_df: pd.DataFrame | None = None,
 ) -> Path:
     """Save assets, metrics, and config for one evaluation run."""
     run_dir = config.output_root
@@ -187,6 +214,11 @@ def save_pipeline_report(
     if continuity_gaps_df is not None:
         continuity_gaps_df.to_csv(
             run_dir / "tracking_continuity_gaps.csv",
+            index=False,
+        )
+    if runtime_telemetry_df is not None:
+        runtime_telemetry_df.to_csv(
+            run_dir / "tracking_runtime_telemetry.csv",
             index=False,
         )
     (run_dir / "tracking_report.md").write_text(
@@ -287,6 +319,7 @@ def run_pipeline(
     )
     identity_mapping_df = identity_mapping_to_dataframe(identity_mapping_rows)
     continuity_gaps_df = continuity_gaps_to_dataframe(continuity_gap_rows)
+    runtime_telemetry_df = runtime_telemetry_to_dataframe(pairs)
     run_dir = save_pipeline_report(
         pairs,
         metrics_df,
@@ -295,6 +328,7 @@ def run_pipeline(
         remapped_identity_events_df=remapped_identity_events_df,
         identity_mapping_df=identity_mapping_df,
         continuity_gaps_df=continuity_gaps_df,
+        runtime_telemetry_df=runtime_telemetry_df,
     )
     assert_no_mp4_artifacts(
         run_dir,

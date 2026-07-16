@@ -50,6 +50,11 @@ from pig_behavior.tracking.schemas import (
     TrackingRuntimeState,
     TrackingSummary,
 )
+from pig_behavior.tracking.telemetry import (
+    peak_process_rss_bytes,
+    record_timing_sample,
+    resolve_output_timing_contract,
+)
 from pig_behavior.tracking.tracks import frame_shapes, initialize_tracks
 from pig_behavior.tracking.visualization import (
     draw_tracks,
@@ -57,6 +62,17 @@ from pig_behavior.tracking.visualization import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _cuda_telemetry_device(torch: Any, device_str: str) -> str | None:
+    if not torch.cuda.is_available():
+        return None
+    normalized = device_str.strip().lower()
+    if normalized == "cuda" or normalized.startswith("cuda:"):
+        return normalized
+    if normalized.isdigit():
+        return f"cuda:{normalized}"
+    return None
 
 
 def _render_output_video(
@@ -172,6 +188,19 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
             raise
     tracks: dict[int, FixedTrack] | None = None
     runtime = TrackingRuntimeState()
+    output_timing_contract, declared_delay_frames = (
+        resolve_output_timing_contract(cfg)
+    )
+    runtime.telemetry.update(
+        {
+            "output_timing_contract": output_timing_contract,
+            "declared_delay_frames": declared_delay_frames,
+            "source_fps": source_fps,
+        }
+    )
+    cuda_telemetry_device = _cuda_telemetry_device(torch, device_str)
+    if cuda_telemetry_device is not None:
+        torch.cuda.reset_peak_memory_stats(cuda_telemetry_device)
     shapes: list[dict[str, Any]] = []
     hidden_shape_count = 0
     review_shape_count = 0
@@ -229,6 +258,10 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
             num_dets = 0
 
             if is_detect_frame:
+                runtime.telemetry["detection_frames"] = (
+                    int(runtime.telemetry["detection_frames"]) + 1
+                )
+                detector_start = time.perf_counter()
                 inference_args = {
                     "source": detector_frame,
                     "conf": cfg.det_conf,
@@ -256,8 +289,14 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
                     parse_detections(results[0], frame, mask, cfg),
                     cfg,
                 )
+                record_timing_sample(
+                    runtime,
+                    "detector",
+                    time.perf_counter() - detector_start,
+                )
                 num_dets = len(detections)
 
+                association_start = time.perf_counter()
                 if tracks is None:
                     tracks = initialize_tracks(detections, mask, width, height, cfg)
                 else:
@@ -270,15 +309,36 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
                         runtime,
                         frame_index=frame_index,
                     )
+                record_timing_sample(
+                    runtime,
+                    "association",
+                    time.perf_counter() - association_start,
+                )
             else:
+                runtime.telemetry["skipped_detection_frames"] = (
+                    int(runtime.telemetry["skipped_detection_frames"]) + 1
+                )
                 # Skip detection: update tracks using motion prediction only
                 if tracks is not None:
                     from pig_behavior.tracking.tracks import lk_predict_box
+
                     for track in tracks.values():
-                        lk_box = lk_predict_box(prev_frame, frame, track.last_box, width, height)
+                        lk_box = lk_predict_box(
+                            prev_frame,
+                            frame,
+                            track.last_box,
+                            width,
+                            height,
+                        )
                         if lk_box is None:
                             lk_box = track.predicted_box(width, height)
-                        track.update_predicted(lk_box, width, height, cfg=cfg, is_skip_frame=True)
+                        track.update_predicted(
+                            lk_box,
+                            width,
+                            height,
+                            cfg=cfg,
+                            is_skip_frame=True,
+                        )
 
             current_shapes = frame_shapes(tracks, frame_index, cfg)
             shapes.extend(current_shapes)
@@ -288,6 +348,10 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
             t_end = time.perf_counter()
             frame_time = t_end - t_start
             total_process_time += frame_time
+            runtime.telemetry["frames_processed"] = (
+                int(runtime.telemetry["frames_processed"]) + 1
+            )
+            record_timing_sample(runtime, "frame", frame_time)
 
             # Log frame statistics
             if tracks is not None:
@@ -344,6 +408,7 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
     if frames_written == 0:
         raise RuntimeError("No frames were processed.")
 
+    postprocess_start = time.perf_counter()
     if cfg.enable_offline_smoothing and cfg.identity_swap_guard:
         shapes = apply_identity_swap_guard(shapes, width, height, cfg)
     if cfg.enable_offline_smoothing and (cfg.smooth_boxes or cfg.refine_boxes):
@@ -356,6 +421,18 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
         shapes = suppress_overlapped_small_low_confidence_boxes(shapes, cfg)
         shapes = repair_hidden_suffix_id_swaps(shapes, cfg)
     shapes = stabilize_realtime_motion_pairs(shapes, width, height, cfg)
+    runtime.telemetry["postprocess_time_ms_total"] = (
+        time.perf_counter() - postprocess_start
+    ) * 1000.0
+    runtime.telemetry["peak_process_rss_bytes"] = peak_process_rss_bytes()
+    if cuda_telemetry_device is not None:
+        runtime.telemetry["peak_cuda_memory_allocated_bytes"] = int(
+            torch.cuda.max_memory_allocated(cuda_telemetry_device)
+        )
+        runtime.telemetry["peak_cuda_memory_reserved_bytes"] = int(
+            torch.cuda.max_memory_reserved(cuda_telemetry_device)
+        )
+    telemetry_summary = get_telemetry_summary(runtime)
     hidden_shape_count = sum(
         1 for shape in shapes if shape_hidden_value(shape) == "Yes"
     )
@@ -412,7 +489,7 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
         cfg.video_path,
         source_fps,
         source_frame_count,
-        get_telemetry_summary(runtime),
+        telemetry_summary,
     )
     write_quality_report_json(quality_report_json, quality_report)
     write_quality_report_csv(quality_report_csv, quality_report)
@@ -446,7 +523,7 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
         start_frame=cfg.start_frame,
         source_fps=source_fps,
         output_fps=cfg.output_fps,
-        telemetry=get_telemetry_summary(runtime),
+        telemetry=telemetry_summary,
     )
 
 
