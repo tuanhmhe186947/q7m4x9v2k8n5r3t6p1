@@ -1,5 +1,264 @@
 • Kế Hoạch Tương Lai
 
+## Bổ sung chủ động 2026-07-16: tối ưu tracking không hồi quy
+
+Phần này là kế hoạch đang có hiệu lực. Nội dung cũ bên dưới được giữ làm lịch
+sử, nhưng không được dùng để bỏ qua các gate mới.
+
+### 0. Mốc phải khóa trước khi tối ưu
+
+- Hybrid chuẩn là `hybrid_bytetrack_best` với rule
+  `iou0_area0_condarea0_merge0`.
+- Artifact đúng hiện có là run `20260707_230230`: 13 video đều có
+  `remapped_idsw=0`, HOTA `97.26%`, IDF1 `98.58%`, FP `2911`, FN `2346`,
+  và gap-tolerant fragments `55`.
+- Không dùng hàng `ALL` của `codex_visible_suffix_gate_full`: artifact đó đang
+  đọc sai/stale GT `000216` và báo `remapped_idsw=33`.
+- Run `outputs/eval/mode_compare/20260709_040751` là mốc so sánh mode hiện có.
+  Nó đã gồm raw, hybrid và đủ ba profile realtime; không lập kế hoạch tạo lại
+  các profile này.
+- `realtime_fast`: IDSW `56`, HOTA `93.10%`, IDF1 `92.91%`, FP/FN
+  `2367/1019`.
+- `realtime_balanced`: IDSW `75`, HOTA `92.77%`, IDF1 `93.12%`, FP/FN
+  `2320/1055`.
+- `realtime_quality_delayed`: IDSW `21`, HOTA `96.60%`, IDF1 `97.02%`,
+  FP/FN `2320/1055`.
+- Các video quality-delayed còn yếu là `000114=2`, `000231=6`, `000233=9`,
+  `000263=2`, `000327=2`.
+
+Mỗi baseline lock phải ghi SHA commit, hash detector weight, danh sách video,
+ánh xạ video-GT, hash GT/XML, semantic config và output root mới. Sai stem,
+trùng video, thiếu file hoặc output root đã tồn tại phải fail closed.
+
+### 1. Tách hai lane độc lập
+
+- Ba profile realtime đã được triển khai trong code và đã benchmark tại
+  `20260709_040751`. Giữ nguyên tên/profile; không tạo bản trùng lặp.
+- `hybrid_bytetrack`: offline/high-quality; IDSW bằng `0` trên từng video là
+  hard guardrail. Mục tiêu mới là HOTA, IDF1, FP/FN và fragmentation.
+- `realtime_fast` và `realtime_balanced`: causal, không sửa output đã phát.
+- `realtime_quality_delayed`: chỉ được gọi fixed-delay sau khi chứng minh mọi
+  quyết định dùng buffer hữu hạn và frame tương lai ngoài buffer không thể đổi
+  output đã commit.
+- Không chuyển suffix repair, hidden-suffix repair hoặc full-video graph từ
+  hybrid sang realtime.
+
+### 1.1. Output contract: cấm sinh MP4 khi thử nghiệm
+
+- Video `.mp4` trong `data/videos` chỉ là input read-only.
+- Mọi benchmark, probe, ablation, optimizer và hard-scene analysis không được
+  tạo `.mp4` mới dưới `outputs/` hoặc thư mục tạm.
+- Chỉ giữ artifact cần cho phân tích: prediction XML, CSV, JSON, Markdown và
+  log nhỏ. Không render tracked preview, overlay video hoặc event clip.
+- Run `20260709_040751` chỉ còn CSV/JSON/Markdown trong eval root; đây là dạng
+  artifact cần giữ cho các run sau.
+
+Code hiện tại chưa bảo đảm contract này: `run_tracker_for_pair` gọi
+`run_tracking`, còn `run_tracking` luôn gọi `render_annotation_video` và mặc
+định tạo `tracked_pigs_with_ids.mp4`. Vì vậy trước benchmark tiếp theo phải:
+
+1. Thêm cờ fail-closed kiểu `write_output_video=false` cho evaluation.
+2. Evaluation/optimizer/hard-scene mặc định tắt preview, overlay và clip.
+3. Chỉ flow tracking phục vụ người dùng mới được render khi bật rõ ràng.
+4. Cho phép `TrackingSummary.output_video` không tồn tại khi video bị tắt.
+5. Sau mỗi run, scan đệ quy output root; thấy bất kỳ `.mp4` mới thì run FAIL.
+
+Test bắt buộc phải chứng minh khi video output tắt:
+
+- `render_annotation_video` không được gọi;
+- prediction XML và metric vẫn được sinh đầy đủ;
+- config/CLI truyền đúng cờ qua mọi mode;
+- không có file `.mp4` trong output root.
+
+### 2. Metric contract và điều kiện promote
+
+Hybrid chỉ được promote khi toàn bộ điều kiện sau cùng đúng:
+
+- Cả 13 video vẫn có `remapped_idsw=0`; `000302` luôn bằng `0`.
+- Aggregate HOTA và IDF1 không giảm; không video nào giảm HOTA quá `0.10`
+  điểm phần trăm hoặc IDF1 quá `0.05` điểm phần trăm.
+- FP, FN và gap-tolerant fragments không tăng ngoài sai số đã khai báo.
+- Có cải thiện thật: aggregate HOTA tăng ít nhất `0.10` điểm phần trăm, hoặc
+  tổng FP+FN giảm ít nhất `1%` mà fragmentation không tăng.
+- Repeat độc lập cho cùng config phải cho metric và semantic hash giống nhau.
+
+Realtime chỉ được promote khi:
+
+- Không video nào tăng remapped IDSW; `000302` vẫn bằng `0`.
+- Tổng IDSW giảm ít nhất `2`, hoặc HOTA tăng ít nhất `0.20` điểm phần trăm
+  trong khi IDSW và IDF1 không xấu đi.
+- FP và FN mỗi loại không tăng quá `0.5%`.
+- Báo cáo đủ FPS, frame-time p50/p95, detector/association/postprocess time,
+  buffer-delay frames/ms và peak memory.
+- `realtime_fast` không chậm hơn baseline; `realtime_balanced` có p95 không
+  quá `110%` baseline. Quality-delayed phải khai báo delay cứng.
+
+Hybrid weak set hiện tại được suy ra từ baseline, không gắn cứng vào optimizer:
+
+- `000225`: HOTA `93.94%`, FP `652`, gap-tolerant fragments `12`.
+- `000233`: HOTA `94.38%`, FN `644`, gap-tolerant fragments `7`.
+- `000231`: gap-tolerant fragments `14`.
+- `000216`: HOTA `96.75%`, FP/FN `255/221`, nhưng phải khóa đúng GT trước.
+
+Sau mỗi baseline mới, weak set phải được tính lại bằng metric, không chọn video
+theo kết quả thuận lợi của candidate.
+
+### 3. Trình tự thực hiện bắt buộc
+
+P0 - Khóa lineage, chưa đổi thuật toán:
+
+- Tạo manifest 13 video với đường dẫn và SHA256 của video, GT, weight.
+- Fail closed nếu `video_stem`, GT stem và row trong report không khớp.
+- Ghi commit SHA, profile semantic diff, seed, CLI và hash output.
+- Output mỗi run là thư mục versioned mới; cấm ghi đè baseline.
+- Khóa `20260707_230230` cho hybrid và `20260709_040751` cho mode comparison.
+- Hoàn thành no-MP4 gate trước bất kỳ run tracker/evaluation mới nào.
+
+P1 - Thêm test và telemetry, prediction phải byte-identical:
+
+- Test profile tách biệt raw/realtime/hybrid và default flag không đổi.
+- Test evaluator không nhận GT sai stem, video trùng hoặc universe thiếu.
+- Test evaluation tạo XML/metric nhưng không gọi renderer và không sinh MP4.
+- Ghi timing từng stage, FPS, delay và peak memory.
+- Ghi counter theo phase association, lý do reject/hold và repair trigger.
+- Nếu prediction hoặc metric đổi ở P1 thì dừng, không gọi là instrumentation.
+
+P2 - Gate nhỏ cho từng candidate:
+
+- Static/config semantic diff, compile, import và focused unit tests.
+- Synthetic crossing, occlusion, low-confidence, long-gap và dense-crowd.
+- Một video target, sau đó target cộng guardrail `000302`.
+- Hard set realtime:
+  `000114/000231/000233/000263/000327/000302`.
+- Hard set hybrid được tính từ bottom metric của baseline.
+
+P3 - Chỉ sau khi P2 pass:
+
+- Chạy full 13-video cùng manifest và weight.
+- Chạy repeat độc lập vào output root khác.
+- So paired per-video, không chỉ hàng `ALL`.
+- Chỉ promote ở commit riêng sau khi promotion report PASS.
+- Kế hoạch này không tự cấp quyền chạy benchmark dài; chỉ chạy khi người dùng
+  yêu cầu giai đoạn thực thi.
+
+### 4. Các họ thí nghiệm, mỗi lần chỉ đổi một họ
+
+Hybrid H1 - Matching theo confidence:
+
+- Giả thuyết: `hybrid_bytetrack` ghép `all_detection_indices` quá sớm làm tăng
+  FP/FN hoặc gap dù ID sau repair đã đúng.
+- Thử high-confidence visible/reid trước, low-confidence recovery sau bằng một
+  flag opt-in. Không đổi owner guard, post-processing hoặc detector.
+
+Hybrid H2 - Geometry-only refinement:
+
+- Khóa toàn bộ ID payload và repair quyết định identity.
+- Chỉ ablate smoothing/refinement bbox để tăng DetA/MOTP/HOTA.
+- Reject ngay nếu ID, Hidden policy hoặc số shape đổi ngoài contract.
+
+Hybrid H3 - Visibility và short-gap recovery:
+
+- Chẩn đoán gap theo ID ở `000225/000233/000231/000216`.
+- Chỉ fill gap ngắn có motion/visibility support; không relabel ID.
+- Không bật `condarea` mặc định và không chạy detector-only sweep khi chưa có
+  bằng chứng detection threshold là nguyên nhân.
+
+Realtime R0 - Sửa đúng semantic trước tối ưu:
+
+- Hiện `stabilize_realtime_motion_pairs` chạy sau vòng xử lý video và dùng
+  planned-edge graph của toàn bộ chuỗi; chưa chứng minh fixed-delay causal.
+- `local_pair_swap_repair=true` cũng chưa chạy trong profile realtime vì nằm
+  sau gate `enable_offline_smoothing=false`.
+- Trước tiên phải thêm causality test và reclassify profile hoặc viết rolling
+  fixed-lag implementation; chưa được quảng bá nó là realtime thuần.
+
+Realtime R1 - Association causal:
+
+- Dùng state quá khứ hữu hạn cho competitor/reentry conflict còn lại.
+- Không port suffix repair hay hybrid post-processing; mỗi guard là một ablation.
+
+Realtime R2 - Rolling short buffer:
+
+- Thử một delay cố định trong `12/15/30` frame cho local swap, hidden island và
+  short gap; frame đã flush là immutable.
+- Test bắt buộc: thêm frame tương lai ngoài buffer không đổi output đã flush.
+
+Realtime R3 - Speed:
+
+- Chỉ sau R1/R2, ablate `detect_every_n_frames` và LK/motion prediction như một
+  họ riêng; không đổi cadence cùng association.
+
+### 5. Chuỗi commit an toàn và có thể rollback
+
+Mỗi commit chỉ có một vai trò:
+
+1. `docs(tracking): lock benchmark and promotion contract`.
+2. `test(tracking): add lineage, causality and regression gates`.
+3. `feat(tracking): disable video rendering for experiment pipelines`.
+4. `chore(tracking): add prediction-invariant telemetry`.
+5. `feat(tracking): add one opt-in candidate family`.
+6. `docs(tracking): record paired promotion or rejection evidence`.
+7. `feat(tracking): promote validated profile` chỉ sau full-13 và repeat PASS.
+
+Không bật candidate mặc định trong commit triển khai. Commit promote phải tách
+riêng để rollback bằng một `git revert` mà không xóa implementation/test.
+
+Trước mỗi commit:
+
+- Ghi starting SHA và `git status`; không stage thay đổi ngoài tracking.
+- Đặc biệt không stage các file classification và diagnostic đang dirty.
+- Xem `git diff -- <file>` cho từng file.
+- Chạy `git diff --check` và scan `^.{101,}$` trên mọi file thay đổi.
+- Chạy compile/import, Ruff và focused tracking tests.
+- Tối thiểu gồm `test_tracking_pipeline.py`,
+  `test_tracking_improvements.py`, `test_tracking_profiles.py` và
+  `test_tracking_eval_config_overrides.py`.
+- So semantic config diff; reject nếu đổi nhiều họ ngoài khai báo.
+- Ghi exact command, exit code, test counts và artifact hashes.
+
+Không dùng commit metric nếu output bị ghi đè, manifest khác baseline, thiếu
+per-video row, repeat không deterministic hoặc có regression chưa giải thích.
+
+### 6. Sổ thí nghiệm và stop rule
+
+Mỗi run phải cập nhật các artifact versioned:
+
+- `tracking_experiment_matrix.csv`;
+- `tracking_ablation_registry.csv`;
+- `tracking_promotion_decisions.json`;
+- `tracking_rejected_experiments.json`;
+- `tracking_finalist_lock.json`.
+
+Ma trận khởi đầu:
+
+- `MC0`: mode comparison `20260709_040751`, đủ năm presentation mode.
+- `HB0`: hybrid `20260707_230230`, baseline khóa.
+- `H1`: staged high/low-confidence matching, parent `HB0`.
+- `H2`: geometry-only refinement, parent `HB0`.
+- `H3`: visibility/short-gap recovery, parent `HB0`.
+- `RF0`: `realtime_fast` từ `MC0`.
+- `RB0`: `realtime_balanced` từ `MC0`, causal baseline.
+- `RQ0`: quality-delayed từ `MC0`, ghi rõ post-video/global-graph.
+- `R1`: causal association memory, parent `RB0`.
+- `R2-D12`, `R2-D15`, `R2-D30`: rolling fixed-delay, parent `RB0`.
+- `R3`: cadence/LK speed ablation, parent của finalist R1 hoặc R2.
+
+Stop ngay khi xảy ra một trong các điều kiện:
+
+- Baseline, GT mapping, weight hash hoặc semantic config chưa khóa.
+- Một diff đổi hơn một họ thuật toán.
+- Infrastructure-only commit làm prediction thay đổi.
+- Bất kỳ bước phân tích nào sinh `.mp4` mới trong output root.
+- Hybrid xuất hiện bất kỳ per-video IDSW lớn hơn `0`.
+- Realtime dùng future ngoài delay đã khai báo hoặc sửa frame đã flush.
+- Candidate chỉ thắng hàng `ALL` nhưng thua guardrail/per-video.
+- Focused test, full-13, repeat hoặc latency gate không PASS.
+
+Bước thực thi kế tiếp hợp lệ là P0 lineage lock cùng no-MP4 test/implementation;
+chưa sửa association/refinement và chưa chạy benchmark dài trong lần lập kế
+hoạch này. Các mục lịch sử bên dưới về việc tạo ba profile realtime đã hoàn
+thành và không được thực hiện lại.
+
   Kết quả mới sau khi sửa GT 216 cho thấy cấu hình hiện tại đã rất mạnh về identity: 13 video đều remapped_idsw=0. Vì vậy hướng tiếp theo
   không nên tiếp tục “vá IDSW” bừa bãi nữa, mà nên tách dự án thành 3 chế độ rõ ràng theo mục tiêu sử dụng.
 
