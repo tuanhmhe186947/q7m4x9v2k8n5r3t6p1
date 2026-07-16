@@ -117,6 +117,12 @@
       "data/11_train_ready/domain_controls/grouped_availability_behavior_probe_audit.json",
     "domain_feature_shift_audit":
       "data/11_train_ready/domain_controls/domain_feature_shift_audit.json",
-    "domain_controls_audit": "data/11_train_ready/domain_controls/check_domain_controls.json"
+    "domain_controls_audit": "data/11_train_ready/domain_controls/check_domain_controls.json",
+    "source_matched_view_manifest":
+      "data/11_train_ready/source_matched_views/source_matched_view_manifest.csv",
+    "source_matched_view_audit":
+      "data/11_train_ready/source_matched_views/source_matched_view_audit.json",
+    "source_matched_view_check_audit":
+      "data/11_train_ready/source_matched_views/check_source_matched_view_audit.json"
   }
 }

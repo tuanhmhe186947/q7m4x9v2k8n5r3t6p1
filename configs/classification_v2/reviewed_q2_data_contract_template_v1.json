@@ -837,6 +837,35 @@
       "required_json_values": {
         "errors": []
       }
+    },
+    "source_matched_view_manifest": {
+      "scope": "agent_derived",
+      "type": "csv",
+      "required": true,
+      "key_column": "window_id",
+      "required_columns": [
+        "window_id",
+        "source_type",
+        "view_matched_6frame",
+        "source_class_balance_keep"
+      ]
+    },
+    "source_matched_view_audit": {
+      "scope": "agent_derived",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "errors": []
+      }
+    },
+    "source_matched_view_check_audit": {
+      "scope": "agent_derived",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "errors": [],
+        "valid": true
+      }
     }
   },
   "forbidden_x_patterns": [

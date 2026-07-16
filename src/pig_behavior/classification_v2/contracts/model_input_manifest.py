@@ -48,6 +48,7 @@ MASK_CONTROL_ARTIFACTS = (
     "fold_event_weight_manifest",
     "temporal_view_selection_manifest",
     "fixed6_observed_time_manifest",
+    "source_matched_view_manifest",
 )
 TARGET_ARTIFACTS = (
     "y_behavior",
@@ -94,6 +95,8 @@ DATA_AUDIT_ARTIFACTS = (
     "class_by_fold_support",
     "source_by_fold_support",
     "domain_controls_audit",
+    "source_matched_view_audit",
+    "source_matched_view_check_audit",
 )
 
 ARTIFACT_GROUPS = {
