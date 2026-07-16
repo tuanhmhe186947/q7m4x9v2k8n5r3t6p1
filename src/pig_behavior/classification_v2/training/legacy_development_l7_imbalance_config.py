@@ -373,6 +373,7 @@ def _validate_payload(payload: dict[str, Any]) -> None:
         "loss_engine",
         "config_engine",
         "runtime",
+        "synthetic_gate",
         "frozen_training_engine",
         "frozen_temporal_engine",
     }

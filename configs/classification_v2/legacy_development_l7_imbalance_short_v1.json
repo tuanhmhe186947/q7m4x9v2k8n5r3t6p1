@@ -69,11 +69,15 @@
     },
     "config_engine": {
       "path": "src/pig_behavior/classification_v2/training/legacy_development_l7_imbalance_config.py",
-      "sha256": "02760223d32be5cdb967a351053e4f0598124088068232c81bcd840118fb43f7"
+      "sha256": "00e1b83ad838680aad819f51a4f7e808d7992b27b37169a8c2e4752fd79a32f2"
     },
     "runtime": {
       "path": "src/pig_behavior/classification_v2/training/legacy_development_l7_imbalance_runtime.py",
       "sha256": "a62cd849858f8dcc405add30a2ad42142a82cfb574bed197981ad23f68afb54c"
+    },
+    "synthetic_gate": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l7_synthetic.py",
+      "sha256": "b009f33aadf8604b7799ff14289c888d23f2bc0f4eac896755bdf7f446217796"
     },
     "frozen_training_engine": {
       "path": "src/pig_behavior/classification_v2/training/legacy_development_l5_cached_training.py",
@@ -108,6 +112,7 @@
       "src/pig_behavior/classification_v2/training/legacy_development_l7_imbalance.py",
       "src/pig_behavior/classification_v2/training/legacy_development_l7_imbalance_config.py",
       "src/pig_behavior/classification_v2/training/legacy_development_l7_imbalance_runtime.py",
+      "src/pig_behavior/classification_v2/training/legacy_development_l7_synthetic.py",
       "src/pig_behavior/classification_v2/training/legacy_development_l5_cached_training.py",
       "src/pig_behavior/classification_v2/training/legacy_development_l5_temporal_ladder.py"
     ]
