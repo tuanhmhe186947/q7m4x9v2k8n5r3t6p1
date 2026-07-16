@@ -1,0 +1,225 @@
+{
+  "schema_version": "classification_v2.legacy_development.goal_completion_config.v1",
+  "audit_id": "LEGACY_16F_L0_L8_GOAL_COMPLETION_V1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "implementation_source": {
+    "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_goal_completion.py",
+    "sha256": "a1a00d672aa015507a62f9fde485253fb3743f43d45ecd8439fc73435ebd15c8"
+  },
+  "goal_authority": {
+    "path": "plans/classification_v2-legacy-16f-development-goal-prompt.md",
+    "sha256": "f469ff8d72289c150298df00c4320f70f2eec99a1598bb3addd375ee8c9ae145"
+  },
+  "frozen_inputs": {
+    "raw_authority": {
+      "path": "data/raw/legacy_full_multigt_masked_nodup_16f/legacy_dense_tracklet_map.csv",
+      "sha256": "ff73c158ef879eb8177b0c18783fc751945fe1d6af97a4b8235cd71681fabbcb",
+      "expected_rows": 72864
+    },
+    "snapshot": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/12_input_freeze/legacy_development_input_snapshot_v1.json",
+      "sha256": "dacbcca725e7a4f27c1b296441224c833da5f0963d518339f4bf30f210a029f2"
+    },
+    "lineage_manifest": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/12_input_freeze/legacy_development_lineage_manifest_v1.csv",
+      "sha256": "b057cee7b16ee08a154a13da54c010e89731cfddc7f33b096c389be6052cf21d",
+      "expected_rows": 40
+    },
+    "native_folds": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/11_folds/native_oof_fold_manifest.csv",
+      "sha256": "8e3c2f68cd389af11490db6b5ae96a3fd3f32c724fdf6c9b6e1d6e3b0ed5a422",
+      "expected_rows": 4554
+    },
+    "window_folds": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/11_folds/window_oof_fold_manifest.csv",
+      "sha256": "0932ee8ff7ceb3ae1a9085fd897e45e91de2180a5effab6fe5d0ba5a4105174b",
+      "expected_rows": 45540
+    },
+    "feature_contract": {
+      "path": "configs/classification_v2/legacy_development_input_contract_v1.json",
+      "sha256": "4a128101d6c47809867b7bf45b02a2aac4ab72381df8fde44baa5875a6204778"
+    },
+    "feature_whitelist": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/cfd_v1_t6s_a339355/feature_whitelist.json",
+      "sha256": "9faed123d9deb056f72d9024d3602de5ca81267de646e61b47ceb3f9b49655b2"
+    },
+    "packed_actor_cache": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/10_actor_cache_160/packed_rgb_160_letterbox.npy",
+      "sha256": "d6b55bcd3807c4eea8286502a84666c583327a6222ef41b8407df85bdd32a2e2",
+      "size_bytes": 5595955328,
+      "verification_audit_sha256": "fd84520a20c026058c6a86fa9c887998fead25fc7f018f7a784cf4381c5bdf67"
+    }
+  },
+  "milestones": {
+    "L1": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/short_temporal_tiers_v3_20260714/11_l1_audit/legacy_development_l1_audit.json",
+      "sha256": "0555f304eaa9032de0ae670342cdf40eddfcb0f7f08439ea9b69ce595c52a18f"
+    },
+    "L2": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/08_l2_audit/legacy_development_l2_audit.json",
+      "sha256": "f3f526395772614665ad4566e411a8225bfe16ca6b4a210c508cc24886701036"
+    },
+    "L3": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/13_l3_audit/legacy_development_l3_audit.json",
+      "sha256": "fd84520a20c026058c6a86fa9c887998fead25fc7f018f7a784cf4381c5bdf67"
+    },
+    "L4_short": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/14_l4_model_correctness/legacy_development_l4_short_audit.json",
+      "sha256": "d54a871e13a75ad898f36a8736707151a76f40b6496ef869d50d710e05512003"
+    },
+    "L4": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/14_l4_model_correctness/legacy_development_l4_audit.json",
+      "sha256": "33ac84b0abec54db0e30386fec5f798b3eff62ef1bafc9a1fc3161276765d6d2"
+    },
+    "L5": {
+      "foundation": [
+        {
+          "name": "L5 readiness",
+          "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_development_l5_readiness_audit.json",
+          "sha256": "8f736a54d8d6e5ef869098f6b3cfc2b4c2903fff065beb2e890dbf4611346d73",
+          "expected_status": "PASS_LEGACY_DEVELOPMENT_L5_READINESS"
+        },
+        {
+          "name": "L5 224 cache",
+          "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_development_l5_224_cache_full_audit.json",
+          "sha256": "5d98fa74c65c83975f525f1a79fee06ac3f946e9ef8a7c385411ba8e9c9b6f8e",
+          "expected_status": "PASS_LEGACY_DEVELOPMENT_L5_CACHE_FULL"
+        },
+        {
+          "name": "L5 VRAM probe",
+          "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_development_l5_vram_probe_audit.json",
+          "sha256": "8c452a3583d8377eb9cff4710d54fecdd41f5b5f64106f49c88032c20ec170a8",
+          "expected_status": "PASS_LEGACY_DEVELOPMENT_L5_VRAM_PROBE"
+        },
+        {
+          "name": "L5 feature short gate",
+          "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_development_l5_feature_short_gate_e34521d.json",
+          "sha256": "529dc610066fdddb9804130a31b9da100a6ffa059f8807d8e7c94ad84d89df7a",
+          "expected_status": "PASS_LEGACY_DEVELOPMENT_L5_FEATURE_SHORT_GATE"
+        }
+      ],
+      "visual_runs": [
+        {
+          "name": "V0 ResNet18 160 T16",
+          "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/ct_v0_t16_full_22875cb_v2/run_result.json",
+          "sha256": "1becf8ea2bcc471a2dcb776fb0348cbbe05dca3530593c151d437baf0bbdb223",
+          "expected_status": "PASS_LEGACY_DEVELOPMENT_L5_CACHED_FULL_DEVELOPMENT_TRAINING",
+          "expected_run_id": "ct_v0_t16_full_22875cb_v2"
+        },
+        {
+          "name": "V1 ResNet18 224 T16",
+          "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/ct_v1_t16_full_3eb5a49_v3/run_result.json",
+          "sha256": "af283e487730ab9769946b7430601173abe8fafc289d74bf1c05b01cc89a6ad7",
+          "expected_status": "PASS_LEGACY_DEVELOPMENT_L5_CACHED_FULL_DEVELOPMENT_TRAINING",
+          "expected_run_id": "ct_v1_t16_full_3eb5a49_v3"
+        },
+        {
+          "name": "V2 ResNet34 224 T16",
+          "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/ct_v2_t16_full_ae9cc43_v4/run_result.json",
+          "sha256": "ca7d070a343afcc2bad57e40c3e40d2c6c8311235888e080e67a1192af14a6e2",
+          "expected_status": "PASS_LEGACY_DEVELOPMENT_L5_CACHED_FULL_DEVELOPMENT_TRAINING",
+          "expected_run_id": "ct_v2_t16_full_ae9cc43_v4"
+        }
+      ],
+      "tcn_run": {
+        "name": "T1 masked TCN 224 T16",
+        "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/ct_t1_t16_full_14c6e4b_v5/run_result.json",
+        "sha256": "3bbbbed80a416a64dcf8cfcc8f56c4a107d907af4a58ceea1e5ef28374b1e1b2",
+        "expected_status": "PASS_LEGACY_DEVELOPMENT_L5_CACHED_FULL_DEVELOPMENT_TRAINING",
+        "expected_run_id": "ct_t1_t16_full_14c6e4b_v5"
+      },
+      "t1_decision": {
+        "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_l5_t1_v1_paired_decision_v1.json",
+        "sha256": "f6b9b7418272786cf9d5a0dc247ed912699b25f25d1d2fbbb8b9260c8aa17266"
+      },
+      "temporal_decision": {
+        "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_l5_temporal_ladder_decision_v1.json",
+        "sha256": "f3316568c797967e66a0a6ea3cac8e4804a35e12439b3d31527e10ef93abd4e1"
+      }
+    },
+    "L6": {
+      "decisions": [
+        {
+          "name": "geometry full",
+          "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6g_full_v1/l6g_full_decision_v1.json",
+          "sha256": "25f4e9919c3579b16ea393678027d95fc706c975b9c57be99b981cca654a2e04",
+          "expected_status": "PASS_LEGACY_DEVELOPMENT_L6_GEOMETRY_FULL_DECISION",
+          "expected_decision": "REJECT_GEOMETRY_AS_UNSUPPORTED_IN_FULL_LEGACY_DEVELOPMENT"
+        },
+        {
+          "name": "motion short",
+          "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6m_short_v1/l6m_short_decision_v1.json",
+          "sha256": "9be7fd93854771b93b58bbcd9f8fa1ed96a8ddbda8e65fa8e68a4baf30a4d978",
+          "expected_status": "PASS_LEGACY_DEVELOPMENT_L6_MOTION_SHORT_DECISION",
+          "expected_decision": "DO_NOT_EXPAND_MOTION_FROM_CURRENT_SHORT_EVIDENCE"
+        },
+        {
+          "name": "ROI relation full",
+          "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6r_full_v1/l6r_full_decision_v1.json",
+          "sha256": "5a9a2b4b61b7ddeef0b5155ec69b678d73f0acd53917db98d1d6271cab5f1af3",
+          "expected_status": "PASS_LEGACY_DEVELOPMENT_L6_ROI_RELATION_FULL_DECISION",
+          "expected_decision": "DO_NOT_EXPAND_ROI_RELATION_FROM_CURRENT_SHORT_EVIDENCE"
+        },
+        {
+          "name": "numeric social short",
+          "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6s_short_v1/l6s_short_decision_v1.json",
+          "sha256": "60c685094bddf83bf180174535afdf184133c2643d258cc09215be43b6d1ff61",
+          "expected_status": "PASS_LEGACY_DEVELOPMENT_L6_SOCIAL_RELATION_SHORT_DECISION",
+          "expected_decision": "DO_NOT_EXPAND_SOCIAL_RELATION_FROM_CURRENT_SHORT_EVIDENCE"
+        },
+        {
+          "name": "union context short",
+          "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6u_train_short_v1/l6u_short_decision_v1.json",
+          "sha256": "bc37887890c0a7ea5e8eb993595547c30e69693f0f06ac8e12d0d2e453829778",
+          "expected_status": "PASS_LEGACY_DEVELOPMENT_L6_UNION_CONTEXT_SHORT_DECISION",
+          "expected_decision": "DO_NOT_EXPAND_UNION_CONTEXT_FROM_CURRENT_SHORT_EVIDENCE"
+        },
+        {
+          "name": "full frame context short",
+          "path": "outputs/classification_v2/legacy_only_unreviewed_development/l6f_train_short_v1/l6f_short_decision_v1.json",
+          "sha256": "e006dc6636ede5a35e71414448be1dc96f0f71e29f5f2a1b6d0230fa0c49c6bf",
+          "expected_status": "PASS_LEGACY_DEVELOPMENT_L6_FULL_FRAME_CONTEXT_SHORT_DECISION",
+          "expected_decision": "DO_NOT_EXPAND_FULL_FRAME_CONTEXT_FROM_CURRENT_SHORT_EVIDENCE"
+        }
+      ],
+      "top_k_disposition": {
+        "status": "DEFERRED_NOT_AUTHORIZED",
+        "reason": "numeric_social_prerequisite_did_not_pass",
+        "values_enter_candidate_x": false,
+        "applies_to_merged_reviewed_data": false,
+        "reassess_on_merged_reviewed_data": true
+      }
+    },
+    "L7": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/l7_short_v1/l7_imbalance_decision_v1.json",
+      "sha256": "69c200e2b6d570b181423df30cc33cdbecb6686f175f7184b40067bd62ff1482"
+    },
+    "L8": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/l8_candidate_lock_v1/candidate_lock.json",
+      "sha256": "b91949711e15c493a07375c4f7fa5f44535220dfdbac68f095d2effee4be6ba6"
+    }
+  },
+  "execution_guard": {
+    "allowed_dirty_paths": [
+      ".tokensave/config.json",
+      "outputs/classification_v2/train_ready_windows/feature_semantics_audit.json",
+      "scripts/diagnostics/detect_single_frame.py"
+    ],
+    "required_tracked_paths": [
+      "configs/classification_v2/legacy_development_goal_completion_v1.json",
+      "configs/classification_v2/legacy_development_l8_candidate_lock_v1.json",
+      "scripts/classification_v2/09_final_release_audit/write_classification_v2_legacy_goal_completion_audit.py",
+      "src/pig_behavior/classification_v2/evaluation/legacy_development_goal_completion.py",
+      "src/pig_behavior/classification_v2/evaluation/legacy_development_l8_candidate_lock.py",
+      "tests/test_classification_v2_legacy_goal_completion.py"
+    ]
+  },
+  "output": {
+    "path": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_goal_completion_audit.json"
+  }
+}
