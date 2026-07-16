@@ -93,10 +93,11 @@ def _full_training_view(tmp_path: Path) -> LegacyL5CachedFeatureView:
 
 def test_full_loss_fit_uses_all_native_training_events(tmp_path: Path) -> None:
     view = _full_training_view(tmp_path)
-    fit = fit_full_training_loss(
-        view,
-        policy="effective_number_ce",
-    )
+    fits = {
+        policy: fit_full_training_loss(view, policy=policy)
+        for policy in LOSS_POLICIES
+    }
+    fit = fits["effective_number_ce"]
     assert fit.train_windows == EXPECTED_FULL_TRAIN_WINDOWS
     assert fit.train_native_units == EXPECTED_FULL_TRAIN_NATIVE_UNITS
     assert np.isclose(fit.event_mass, EXPECTED_FULL_TRAIN_NATIVE_UNITS)
@@ -119,6 +120,8 @@ def test_full_loss_fit_uses_all_native_training_events(tmp_path: Path) -> None:
         "outer_holdout_rows_read_for_fit": 0,
         "one_total_mass_per_native_unit": True,
     }
+    assert len({value.source_sha256 for value in fits.values()}) == 1
+    assert len({value.state_sha256 for value in fits.values()}) == 3
 
 
 def test_l7_one_batch_gradients_are_finite_for_each_policy(

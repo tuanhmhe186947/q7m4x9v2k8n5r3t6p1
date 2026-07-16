@@ -281,6 +281,7 @@ def audit_l7_imbalance_repeat_gate(
         "loss_policy",
         "selection_content_sha256",
         "loss_fit_audit_sha256",
+        "loss_fit_source_sha256",
         "loss_state_sha256",
         "parameter_sha256",
         "window_prediction_sha256",
@@ -373,7 +374,7 @@ def audit_l7_imbalance_short_matrix(
         left = (gate.get("primary") or {}).get("result") or {}
         right = (gate.get("repeat") or {}).get("result") or {}
         selection_hashes.add(str(left.get("selection_content_sha256")))
-        fit_hashes.add(str(left.get("loss_fit_audit_sha256")))
+        fit_hashes.add(str(left.get("loss_fit_source_sha256")))
         process_ids.extend(
             [int(left.get("process_id", -1)), int(right.get("process_id", -1))]
         )
@@ -665,6 +666,7 @@ def _finalize_run(
         "best_epoch": outcome.best_epoch,
         "validation_metrics": outcome.validation_metrics,
         "loss_fit_audit_sha256": outcome.loss_fit.fit_audit_sha256,
+        "loss_fit_source_sha256": outcome.loss_fit.source_sha256,
         "loss_state_sha256": outcome.loss_fit.state_sha256,
         "parameter_sha256": outcome.parameter_sha256,
         "window_prediction_sha256": outcome.window_prediction_sha256,

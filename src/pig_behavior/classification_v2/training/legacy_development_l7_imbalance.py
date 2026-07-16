@@ -59,6 +59,35 @@ class LegacyL7LossFitAudit:
     def state_sha256(self) -> str:
         return self.state.state_sha256
 
+    def source_semantic_payload(self) -> dict[str, Any]:
+        """Return fit-input identity without policy-specific coefficients."""
+
+        return {
+            "schema_version": (
+                "classification_v2.legacy_development_l7.loss_fit_source.v1"
+            ),
+            "lineage_scope": LINEAGE_SCOPE,
+            "view_id": VIEW_ID,
+            "train_windows": self.train_windows,
+            "train_native_units": self.train_native_units,
+            "event_mass": self.event_mass,
+            "class_order": list(VALID_BEHAVIORS),
+            "class_native_units": list(self.class_native_units),
+            "ordered_window_id_sha256": self.ordered_window_id_sha256,
+            "ordered_native_unit_sha256": self.ordered_native_unit_sha256,
+            "fit_contract": {
+                "complete_training_role_used": True,
+                "short_optimizer_subset_used_for_fit": False,
+                "validation_rows_read_for_fit": 0,
+                "outer_holdout_rows_read_for_fit": 0,
+                "one_total_mass_per_native_unit": True,
+            },
+        }
+
+    @property
+    def source_sha256(self) -> str:
+        return _payload_sha256(self.source_semantic_payload())
+
     def semantic_payload(self) -> dict[str, Any]:
         return {
             "schema_version": (
@@ -74,6 +103,7 @@ class LegacyL7LossFitAudit:
             "class_native_units": list(self.class_native_units),
             "ordered_window_id_sha256": self.ordered_window_id_sha256,
             "ordered_native_unit_sha256": self.ordered_native_unit_sha256,
+            "fit_source_sha256": self.source_sha256,
             "fit_contract": {
                 "complete_training_role_used": True,
                 "short_optimizer_subset_used_for_fit": False,
