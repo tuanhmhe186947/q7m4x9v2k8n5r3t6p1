@@ -618,12 +618,25 @@ Mở GUI pilot sau media gate:
   --frame-features-csv %HSM%\hidden_review_frame_context.csv ^
   --output-dir %HSMDEC% --reviewer %REVIEWER_NAME% ^
   --video-root data\videos ^
-  --crop-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
-  --max-items 5
+--crop-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
+--max-items 5
 ```
 
-Sau pilot, chạy lại không `--max-items` để hoàn thành short manifest, rồi kiểm
-và apply. Không tạo fake decision để ép smoke PASS.
+Sau khi Hidden smoke PASS, chạy GUI lại trên cùng manifest nhưng không giới hạn
+`--max-items`. Đây là lệnh full Hidden review; ghi vào `%HDEC%` để giữ
+decision smoke trong `%HSMDEC%` tách biệt với decision authority chính:
+
+```bat
+%PY% %S1%\review_hidden_quality_gui.py ^
+  --manifest-csv %HSM%\hidden_review_unit_manifest.csv ^
+  --frame-features-csv %HSM%\hidden_review_frame_context.csv ^
+  --output-dir %HDEC% --reviewer %REVIEWER_NAME% ^
+  --video-root data\videos ^
+  --crop-root data\raw\legacy_full_multigt_masked_nodup_16f\crops
+```
+
+Sau khi full GUI hoàn tất, chạy coverage checker và apply theo đúng các lệnh
+ngay bên dưới. Không tạo fake decision để ép smoke hoặc full review PASS.
 
 ```bat
 %PY% %S1%\check_hidden_review_decision_coverage.py ^
