@@ -756,10 +756,12 @@ def _artifact_manifest(
     allow_partial: bool = False,
 ) -> dict[str, Any]:
     artifacts: dict[str, Any] = {}
+    missing: list[str] = []
     for name, filename in ARTIFACT_FILES.items():
         path = paths[name]
         if not path.is_file():
             if allow_partial:
+                missing.append(name)
                 continue
             raise ValueError(f"L7 artifact missing={name}")
         if path.name != filename:
@@ -769,15 +771,17 @@ def _artifact_manifest(
             "sha256": file_sha256(path),
             "size_bytes": int(path.stat().st_size),
         }
+    errors = [f"artifact_missing={name}" for name in missing]
     return {
         "schema_version": ARTIFACT_MANIFEST_SCHEMA,
         "run_id": run_id,
         "loss_policy": policy,
-        "status": "completed",
+        "status": "partial" if allow_partial else "completed",
         "artifacts": artifacts,
         "artifact_count": len(artifacts),
-        "errors": [],
-        "valid": True,
+        "missing_artifacts": missing,
+        "errors": errors,
+        "valid": not errors,
     }
 
 
