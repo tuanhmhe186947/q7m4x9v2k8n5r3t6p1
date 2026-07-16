@@ -114,6 +114,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--output-dir", type=Path, default=None)
     parser.add_argument("--output-video", type=Path, default=None)
     parser.add_argument(
+        "--no-output-video",
+        action="store_true",
+        help="Skip MP4 rendering while retaining annotation and quality exports.",
+    )
+    parser.add_argument(
         "--profile-override",
         action="append",
         default=[],
@@ -514,6 +519,7 @@ def _tracking_config_from_args(
         mask_path=mask_path,
         output_dir=output_dir,
         output_video=args.output_video,
+        write_output_video=not args.no_output_video,
         annotations_json=args.annotations_json,
         coco_annotations_json=args.coco_json,
         clean_coco_annotations_json=args.clean_coco_json,
@@ -643,7 +649,8 @@ def _tracking_config_from_args(
 
     exclude_profile_keys = {
         "video_path", "weights_path", "mask_path", "output_dir",
-        "output_video", "annotations_json", "coco_annotations_json",
+        "output_video", "write_output_video", "annotations_json",
+        "coco_annotations_json",
         "clean_coco_annotations_json", "cvat_video_xml", "labels_json",
         "tracker_yaml", "quality_report_json", "quality_report_csv",
         "overrides",
@@ -668,6 +675,8 @@ def _tracking_config_from_args(
         cfg.emit_hidden_tracks = False
 
     _apply_profile_overrides(cfg, args.profile_override)
+    if args.no_output_video:
+        cfg.write_output_video = False
 
     return cfg
 
@@ -683,7 +692,10 @@ def _video_paths_from_args(
 
 def print_tracking_summary(cfg: TrackingConfig, summary: TrackingSummary) -> None:
     print(f"[OK] input video: {cfg.video_path}")
-    print(f"[OK] video: {summary.output_video}")
+    if cfg.write_output_video:
+        print(f"[OK] video: {summary.output_video}")
+    else:
+        print("[OK] video: disabled (no MP4 written)")
     print(f"[OK] cvat json annotations: {summary.annotations_json}")
     print(f"[OK] cvat video xml: {summary.cvat_video_xml}")
     print(f"[OK] coco annotations: {summary.coco_annotations_json}")
@@ -859,6 +871,8 @@ def main(argv: list[str] | None = None) -> int:
     summaries: list[TrackingSummary] = []
     for video_path in _video_paths_from_args(args, profile):
         cfg = _tracking_config_from_args(args, profile, video_path)
+        if args.display_inline and not cfg.write_output_video:
+            raise ValueError("--display-inline requires MP4 output.")
 
         if args.rgbd:
             from pig_behavior.tracking.rgbd.runner_rgbd import run_rgbd_tracking

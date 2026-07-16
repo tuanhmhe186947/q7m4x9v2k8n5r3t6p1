@@ -58,6 +58,7 @@ class TrackingConfig:
     mask_path: Path | None = DEFAULT_MASK_PATH
     output_dir: Path = DEFAULT_OUTPUT_DIR
     output_video: Path | None = None
+    write_output_video: bool = True
     annotations_json: Path | None = None
     coco_annotations_json: Path | None = None
     clean_coco_annotations_json: Path | None = None

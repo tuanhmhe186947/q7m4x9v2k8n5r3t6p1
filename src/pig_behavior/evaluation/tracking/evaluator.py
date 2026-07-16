@@ -12,6 +12,7 @@ from typing import Any
 
 import pandas as pd
 
+from .artifact_guard import assert_no_mp4_artifacts
 from .assets import (
     DETECTOR_WEIGHTS,
     EVAL_OUTPUT_ROOT,
@@ -411,6 +412,8 @@ def run_tracker_for_pair(
     )
 
     mask_path = mask_path or resolve_mask_path()
+    tracker_kwargs = dict(tracking_overrides or {})
+    tracker_kwargs["write_output_video"] = False
     cfg = TrackingConfig(
         video_path=pair.video_path,
         weights_path=weights_path,
@@ -419,7 +422,11 @@ def run_tracker_for_pair(
         max_frames=max_frames,
         display_inline=False,
         show=False,
-        **(tracking_overrides or {}),
+        **tracker_kwargs,
     )
     summary = run_tracking(cfg)
+    assert_no_mp4_artifacts(
+        Path(summary.output_video).parent,
+        context=f"tracking prediction for {pair.video_stem}",
+    )
     return Path(summary.cvat_video_xml)

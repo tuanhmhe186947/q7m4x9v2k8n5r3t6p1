@@ -59,6 +59,28 @@ from pig_behavior.tracking.visualization import (
 logger = logging.getLogger(__name__)
 
 
+def _render_output_video(
+    cfg: TrackingConfig,
+    output_video: Path,
+    shapes: list[dict[str, Any]],
+    frames_written: int,
+) -> None:
+    if not cfg.write_output_video:
+        logger.info("MP4 rendering disabled; annotation exports remain enabled.")
+        return
+    rendered_frames = render_annotation_video(
+        cfg.video_path,
+        output_video,
+        shapes,
+        cfg,
+        frame_limit=frames_written,
+    )
+    if rendered_frames != frames_written:
+        raise RuntimeError(
+            f"Rendered {rendered_frames} frames, but tracked {frames_written} frames."
+        )
+
+
 def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
     """Run YOLOv8 + mask + stabilized eight-ID tracking."""
     validate_config(cfg)
@@ -270,7 +292,11 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
             # Log frame statistics
             if tracks is not None:
                 v_count = sum(1 for trk in tracks.values() if trk.get_state() == "VISIBLE")
-                m_count = sum(1 for trk in tracks.values() if trk.get_state() in ("MISSING", "LOST"))
+                m_count = sum(
+                    1
+                    for trk in tracks.values()
+                    if trk.get_state() in ("MISSING", "LOST")
+                )
                 o_count = sum(1 for trk in tracks.values() if trk.get_state() == "OCCLUDED")
                 logger.debug(
                     "Frame %d: Latency=%.2fms | Dets=%d | Visible=%d | Missing=%d | Occluded=%d",
@@ -309,7 +335,11 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
             cv2.destroyAllWindows()
         if frames_written > 0:
             avg_fps = frames_written / max(total_process_time, 1e-6)
-            logger.info("Tracking finished. Total Frames: %d, Average FPS: %.2f", frames_written, avg_fps)
+            logger.info(
+                "Tracking finished. Total Frames: %d, Average FPS: %.2f",
+                frames_written,
+                avg_fps,
+            )
 
     if frames_written == 0:
         raise RuntimeError("No frames were processed.")
@@ -342,17 +372,7 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
             or shape.get("_identity_swap_guard")
         )
     )
-    rendered_frames = render_annotation_video(
-        cfg.video_path,
-        output_video,
-        shapes,
-        cfg,
-        frame_limit=frames_written,
-    )
-    if rendered_frames != frames_written:
-        raise RuntimeError(
-            f"Rendered {rendered_frames} frames, but tracked {frames_written} frames."
-        )
+    _render_output_video(cfg, output_video, shapes, frames_written)
 
     write_annotation_json(annotations_json, shapes)
     write_coco_annotation_json(

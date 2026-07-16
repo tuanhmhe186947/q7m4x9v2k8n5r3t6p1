@@ -23,6 +23,9 @@ import numpy as np
 import pandas as pd
 
 from pig_behavior.config import PROJECT_ROOT
+from pig_behavior.evaluation.tracking.artifact_guard import (
+    assert_no_mp4_artifacts,
+)
 from pig_behavior.evaluation.tracking.cvat_io import (
     TrackingObject,
     parse_cvat_video_xml,
@@ -57,6 +60,7 @@ class HardSceneEvalConfig:
     event_clip_padding_frames: int = 30
     include_hidden: bool = False
     top_n_overlay_events: int = 10
+    render_video: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -1207,8 +1211,14 @@ def run_hard_scene_evaluation(
     ) as f:
         json.dump(metrics, f, ensure_ascii=False, indent=2, default=str)
 
-    # §10 Overlay video
-    render_overlay_video(config, per_frame_rows, frame_scores, swap_events)
+    # §10 Overlay video is explicit opt-in; analysis defaults to no MP4.
+    if config.render_video:
+        render_overlay_video(config, per_frame_rows, frame_scores, swap_events)
+    else:
+        assert_no_mp4_artifacts(
+            config.output_dir,
+            context="hard-scene evaluation",
+        )
 
     logger.info("Hard-scene evaluation complete → %s", config.output_dir)
     return metrics
@@ -1253,6 +1263,11 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--event-clip-padding-frames", type=int, default=30)
     parser.add_argument("--include-hidden", action="store_true")
     parser.add_argument("--top-n-overlay-events", type=int, default=10)
+    parser.add_argument(
+        "--render-video",
+        action="store_true",
+        help="Explicitly render MP4 overlay and event clips.",
+    )
     return parser
 
 
@@ -1341,6 +1356,7 @@ def main(argv: list[str] | None = None) -> int:
             event_clip_padding_frames=args.event_clip_padding_frames,
             include_hidden=args.include_hidden,
             top_n_overlay_events=args.top_n_overlay_events,
+            render_video=args.render_video,
         )
         metrics = run_hard_scene_evaluation(config)
         print(f"\n--- Hard-Scene Metrics for {gt_xml.stem} ---")

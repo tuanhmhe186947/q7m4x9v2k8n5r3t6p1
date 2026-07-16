@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from .artifact_guard import assert_no_mp4_artifacts
 from .assets import (
     TrackingPair,
     find_prediction_xml,
@@ -53,7 +54,10 @@ def build_pairs(config: TrackingEvaluationPipelineConfig) -> list[TrackingPair]:
             resolved_video = video_path.resolve()
             gt_xml = find_gt_xml_for_video(resolved_video, config.gt_dir)
             if gt_xml is None:
-                print(f"Warning: Skipping video '{resolved_video.name}' because no matching GT XML was found.")
+                print(
+                    f"Warning: Skipping video '{resolved_video.name}' because "
+                    "no matching GT XML was found."
+                )
                 continue
             pred_xml = find_prediction_xml(
                 resolved_video.stem,
@@ -284,5 +288,9 @@ def run_pipeline(
         remapped_identity_events_df=remapped_identity_events_df,
         identity_mapping_df=identity_mapping_df,
         continuity_gaps_df=continuity_gaps_df,
+    )
+    assert_no_mp4_artifacts(
+        run_dir,
+        context="tracking evaluation report",
     )
     return asset_df, metrics_df, run_dir
