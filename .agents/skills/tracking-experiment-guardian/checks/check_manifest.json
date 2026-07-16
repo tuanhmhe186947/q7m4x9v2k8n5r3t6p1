@@ -5,10 +5,14 @@
     "recursive_no_mp4",
     "raw_prediction_sha256",
     "canonical_prediction_sha256",
+    "clean_commit_bound_auditor",
+    "current_input_rehash",
+    "artifact_rehash",
     "prediction_integrity",
     "focused_tracking_tests",
     "runtime_telemetry",
-    "paired_metric_guardrails"
+    "paired_metric_guardrails",
+    "primary_repeat_authority_lock"
   ],
   "canonical_prediction_hash_contract": {
     "name": "cvat_xml_c14n_without_created_updated_dumped_v1",

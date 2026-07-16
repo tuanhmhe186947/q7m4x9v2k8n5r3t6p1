@@ -59,8 +59,10 @@ volatile CVAT metadata.
 6. Pass static, synthetic, no-MP4, and prediction-integrity checks.
 7. Run one target video, then its guardrail set, before a full comparison.
 8. Compare paired per-video metrics and repeat the exact candidate.
-9. Record promotion or rejection; never suppress negative evidence.
-10. Promote profile defaults only in a separate reversible commit.
+9. Run `scripts/audit_tracking_repeatability.py` on every completed
+   primary/repeat pair. Keep input rehashing enabled for authority evidence.
+10. Record promotion or rejection; never suppress negative evidence.
+11. Promote profile defaults only in a separate reversible commit.
 
 ### Baseline and output invariants
 
@@ -109,6 +111,8 @@ artifacts, or improvements that depend on changing the evaluation contract.
 - A per-video `tracking_runtime_telemetry.csv` linked to hashed quality reports.
 - A paired baseline/candidate delta table for every evaluated video.
 - A recursive artifact audit proving the experiment root contains no MP4.
+- An immutable repeatability audit that rehashes inputs and artifacts, checks
+  canonical predictions, and compares metrics exactly outside `pred_xml`.
 - A signed promotion decision that records every passed or failed gate.
 
 ## Validation commands
@@ -121,6 +125,10 @@ raw SHA256 and
 `cvat_xml_c14n_without_created_updated_dumped_v1` semantic SHA256. Use the
 [check contract](checks/check_manifest.json), [scenario](examples/scenario.md),
 and [promotion template](templates/promotion_decision.example.json).
+The repeatability checker must run from a clean, commit-bound worktree and PASS
+before a run becomes baseline, candidate, or promotion authority.
+`--skip-input-rehash` and `--allow-dirty-auditor` are test-only and cannot
+support promotion evidence.
 
 ## Stop conditions
 
