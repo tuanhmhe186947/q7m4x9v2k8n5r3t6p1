@@ -11,11 +11,33 @@ from pig_behavior.evaluation.tracking.config import (
     TrackingEvaluationPipelineConfig,
 )
 from pig_behavior.evaluation.tracking.lineage import (
+    cvat_prediction_semantic_sha256,
     file_sha256,
     prepare_run_manifest,
     validate_metric_universe,
     validate_tracking_pairs,
 )
+
+
+def _write_timestamped_prediction_xml(
+    path: Path,
+    *,
+    timestamp: str,
+) -> None:
+    path.write_text(
+        (
+            "<annotations><meta><task><name>pig_video</name>"
+            f"<created>{timestamp}</created><updated>{timestamp}</updated>"
+            f"</task><dumped>{timestamp}</dumped></meta>"
+            '<track id="0" label="Pig_1">'
+            '<box frame="0" xtl="0" ytl="0" xbr="20" ybr="20" '
+            'outside="0">'
+            '<attribute name="ID">ID_1</attribute>'
+            '<attribute name="Hidden">No</attribute>'
+            "</box></track></annotations>"
+        ),
+        encoding="utf-8",
+    )
 
 
 def _write_cvat_xml(path: Path, task_name: str) -> None:
@@ -32,6 +54,35 @@ def _write_cvat_xml(path: Path, task_name: str) -> None:
         ),
         encoding="utf-8",
     )
+
+
+@pytest.mark.parametrize(
+    ("original", "changed"),
+    [
+        ('xbr="20"', 'xbr="21"'),
+        (">ID_1<", ">ID_2<"),
+        (">No<", ">Yes<"),
+    ],
+)
+def test_prediction_semantic_hash_ignores_only_cvat_timestamps(
+    tmp_path: Path,
+    original: str,
+    changed: str,
+) -> None:
+    primary = tmp_path / "primary.xml"
+    repeated = tmp_path / "repeated.xml"
+    _write_timestamped_prediction_xml(primary, timestamp="2026-07-16T01:00:00Z")
+    _write_timestamped_prediction_xml(repeated, timestamp="2026-07-16T02:00:00Z")
+
+    assert file_sha256(primary) != file_sha256(repeated)
+    expected_semantic_hash = cvat_prediction_semantic_sha256(primary)
+    assert cvat_prediction_semantic_sha256(repeated) == expected_semantic_hash
+
+    repeated.write_text(
+        repeated.read_text(encoding="utf-8").replace(original, changed),
+        encoding="utf-8",
+    )
+    assert cvat_prediction_semantic_sha256(repeated) != expected_semantic_hash
 
 
 def _make_pair(tmp_path: Path, stem: str = "pig_video") -> TrackingPair:

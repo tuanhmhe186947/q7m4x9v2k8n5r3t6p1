@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -97,6 +98,20 @@ def test_evaluation_emits_xml_and_metrics_without_mp4(
     assert (run_dir / "tracking_runtime_telemetry.csv").exists()
     assert (run_dir / "run_manifest.json").exists()
     assert (run_dir / "artifact_manifest.json").exists()
+    artifact_manifest = json.loads(
+        (run_dir / "artifact_manifest.json").read_text(encoding="utf-8")
+    )
+    prediction_artifact = next(
+        item
+        for item in artifact_manifest["artifacts"]
+        if item["role"] == "prediction_xml"
+    )
+    assert len(prediction_artifact["sha256"]) == 64
+    assert len(prediction_artifact["prediction_semantic_sha256"]) == 64
+    assert (
+        prediction_artifact["prediction_semantic_hash_contract"]
+        == "cvat_xml_c14n_without_created_updated_dumped_v1"
+    )
     assert not list(prediction_root.rglob("*.mp4"))
     assert not list(report_root.rglob("*.mp4"))
 

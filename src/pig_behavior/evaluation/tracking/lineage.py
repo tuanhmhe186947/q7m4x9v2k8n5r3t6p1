@@ -7,6 +7,7 @@ import json
 import platform
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 from collections import Counter
 from collections.abc import Iterable
 from dataclasses import asdict
@@ -51,6 +52,14 @@ NON_SEMANTIC_CONFIG_FIELDS = {
     "mask_path",
     "expected_video_count",
 }
+CVAT_PREDICTION_SEMANTIC_HASH_CONTRACT = (
+    "cvat_xml_c14n_without_created_updated_dumped_v1"
+)
+_CVAT_VOLATILE_METADATA_FIELDS = (
+    ("./meta/task", "created"),
+    ("./meta/task", "updated"),
+    ("./meta", "dumped"),
+)
 
 
 @lru_cache(maxsize=256)
@@ -68,6 +77,23 @@ def file_sha256(path: Path) -> str:
     resolved = path.resolve()
     stat = resolved.stat()
     return _sha256_cached(str(resolved), stat.st_size, stat.st_mtime_ns)
+
+
+def cvat_prediction_semantic_sha256(path: Path) -> str:
+    """Hash prediction content while excluding three CVAT timestamps."""
+    root = ET.parse(path).getroot()
+    for parent_path, child_tag in _CVAT_VOLATILE_METADATA_FIELDS:
+        parent = root.find(parent_path)
+        if parent is None:
+            continue
+        for child in list(parent):
+            if child.tag == child_tag:
+                parent.remove(child)
+    canonical_xml = ET.canonicalize(
+        ET.tostring(root, encoding="unicode"),
+        strip_text=True,
+    )
+    return hashlib.sha256(canonical_xml.encode("utf-8")).hexdigest()
 
 
 def _jsonable(value: Any) -> Any:
@@ -296,6 +322,13 @@ def _artifact_records(paths: Iterable[tuple[str, Path]]) -> list[dict[str, Any]]
             continue
         seen.add(resolved)
         record = {"role": role, **_input_record(resolved)}
+        if role == "prediction_xml":
+            record["prediction_semantic_sha256"] = (
+                cvat_prediction_semantic_sha256(resolved)
+            )
+            record["prediction_semantic_hash_contract"] = (
+                CVAT_PREDICTION_SEMANTIC_HASH_CONTRACT
+            )
         records.append(record)
     return sorted(records, key=lambda item: (item["role"], item["path"]))
 
@@ -361,6 +394,8 @@ def write_artifact_manifest(
 
 
 __all__ = [
+    "CVAT_PREDICTION_SEMANTIC_HASH_CONTRACT",
+    "cvat_prediction_semantic_sha256",
     "file_sha256",
     "payload_sha256",
     "prepare_run_manifest",
