@@ -1,6 +1,6 @@
 # Classification V2 `legacy_16f` Development Execution Ledger
 
-Version: 1.1
+Version: 1.2
 
 Opened: 2026-07-14
 
@@ -32,8 +32,8 @@ replaced by this ledger.
 | L4 model correctness | PASS | Real-cache correctness gate at `3ef4235` |
 | L5 core baselines | PASS | T6 sliding retained as bounded legacy_16f baseline |
 | L6 modality loop | PASS | All declared modality families closed; retain parameter-matched T6 zero |
-| L7 imbalance policy | IN_PROGRESS | Compare three policies separately from the retained L6 base |
-| L8 candidate/handback | NOT_STARTED | Requires controlled L0-L7 evidence |
+| L7 imbalance policy | PASS | Event-balanced CE retained; both alternatives rejected |
+| L8 candidate/handback | PASS | Immutable candidate lock and L0-L8 handback at `91a6c2a` |
 
 ## Settled Contracts
 
@@ -47,6 +47,21 @@ replaced by this ledger.
 - Local 4 GiB VRAM controls correctness placement, not architecture scope.
 - Rented GPU pilots are permitted after the exact target-environment short gate.
 - Legacy rare-class support cannot estimate merged-data support or its ceiling.
+
+## 2026-07-16 L7-L8 Completion And Handback
+
+- L7 retains event-balanced CE and rejects the two tested alternatives. The
+  decision artifact SHA256 is
+  `69c200e2b6d570b181423df30cc33cdbecb6686f175f7184b40067bd62ff1482`.
+- The L8 candidate lock binds the T6 checkpoint, native predictions, metrics,
+  model card, experiment matrix, and rejection registry. Its SHA256 is
+  `b91949711e15c493a07375c4f7fa5f44535220dfdbac68f095d2effee4be6ba6`.
+- Commit `91a6c2a` adds the committed-input L0-L8 completion checker. The final
+  handback SHA256 is
+  `4b6bad32834fbede2001dee5627e5fbfa0005afb758f2c6a3cbfb125be3166f6`.
+- All nine milestone requirements pass. Every reviewed/final, canonical OOF,
+  outer-holdout, and Q2 authorization flag remains false. The parent reviewed
+  all-source P0-P8 goal remains incomplete and must be resumed separately.
 
 ## Canonical Legacy Source Identity
 
@@ -157,6 +172,9 @@ The cache/fold boundary remains `00dc2e0`; claim hardening rollback is
 
 | Date | Achievement | Result | Commit |
 |---|---|---|---|
+| 2026-07-16 | Legacy L7 imbalance decision | PASS | `405c965` |
+| 2026-07-16 | Legacy L8 candidate lock | PASS | `fca9c80` |
+| 2026-07-16 | Legacy L0-L8 completion audit | PASS | `91a6c2a` |
 | 2026-07-14 | Legacy development lane authorized | PASS | `a2323a7` |
 | 2026-07-14 | Temporal tier controls documented | PASS | `1e9b393` |
 | 2026-07-14 | Tier manifests and audits | PASS IN CODE | `ef0b3bd` |

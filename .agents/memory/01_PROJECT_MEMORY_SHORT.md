@@ -1,5 +1,23 @@
 # Project Memory Short
 
+## 2026-07-16 legacy_16f L0-L8 goal completion
+
+- Commits `6798d8b` and `fca9c80` lock the bounded T6 event-balanced
+  development candidate, its checkpoint/prediction/metric links, model card,
+  experiment matrix, ablation registry, and rejected-experiment registry.
+- The candidate has native macro-F1 `0.5343181014`, accuracy `0.6857142857`,
+  NLL `1.1206917661`, and a 33-video macro-F1 interval
+  `[0.3893135266, 0.5734933334]` on 245 development-validation native units.
+- The L8 candidate lock SHA256 is
+  `b91949711e15c493a07375c4f7fa5f44535220dfdbac68f095d2effee4be6ba6`.
+- Commit `91a6c2a` adds the fail-closed L0-L8 completion checker. The handback
+  `legacy_16f_goal_completion_audit.json` has SHA256
+  `4b6bad32834fbede2001dee5627e5fbfa0005afb758f2c6a3cbfb125be3166f6`.
+- L0-L8 are PASS only for `legacy-only-unreviewed-development`. Human review,
+  reviewed/final naming, canonical full OOF, outer-holdout prediction, and Q2
+  claim authorization all remain false. Resume and re-audit the parent
+  reviewed all-source P0-P8 goal separately.
+
 ## 2026-07-16 legacy L6 full-frame-context short decision
 
 - Commit `1d22abd` freezes the paired evaluator for the six already-complete

@@ -8,6 +8,26 @@ sections are historical records. Current gate status is centralized in
 
 ## Active decision: reviewed-data rebuild
 
+### Legacy L0-L8 completion and parent handback
+
+The scoped `legacy_16f` lane is complete at code commit `91a6c2a`. The locked
+candidate is `legacy_16f_t6_sliding_event_balanced_v1`, with native macro-F1
+`0.5343181014`, accuracy `0.6857142857`, and NLL `1.1206917661` on the fixed
+245-unit, 33-video development validation set.
+
+The L8 candidate-lock SHA256 is
+`b91949711e15c493a07375c4f7fa5f44535220dfdbac68f095d2effee4be6ba6`.
+The L0-L8 handback is
+`outputs/classification_v2/legacy_only_unreviewed_development/`
+`legacy_16f_goal_completion_audit.json`, with SHA256
+`4b6bad32834fbede2001dee5627e5fbfa0005afb758f2c6a3cbfb125be3166f6`.
+Every milestone is PASS, while human review, reviewed/final naming, canonical
+full OOF, outer-holdout prediction, and Q2 claims remain unauthorized.
+
+The next action is to resume the parent classification_v2 goal and re-audit
+the canonical reviewed all-source P0-P8 blockers. Do not inherit a parent PASS
+from this bounded legacy handback.
+
 ### Legacy L7 imbalance decision and L8 handoff
 
 The three-policy `legacy_16f` L7 short matrix is complete with two fresh,
