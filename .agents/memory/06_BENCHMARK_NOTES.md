@@ -1,5 +1,25 @@
 # Benchmark Notes
 
+## 2026-07-16 tracking P0 historical baseline lock
+
+- Generator commit: `6265f1b3f0d80d622a5d2727cfb6cb1d62aca5d7`.
+- Audit:
+  `outputs/eval/baseline_locks/20260716_p0_tracking_baselines.json`.
+- Audit status is `INCOMPLETE`, not promotion-grade `PASS`.
+- Hybrid `20260707_230230` and all five mode-comparison branches have the same
+  13-video/GT universe SHA256:
+  `30cc7ea80fb1d0a23bc1e3c4d38e15b76e3bf86b8cc244f65afe7e0fb38af980`.
+- Metrics match the accepted baselines, all report roots have MP4 count `0`,
+  and detector/mask SHA256 values are locked.
+- All historical prediction roots are absent: hybrid is missing 13 XML files
+  and each mode-comparison branch is missing 13 XML files.
+- Therefore these runs remain metrics/report evidence only. Do not claim
+  prediction-byte lineage or use them as a repeatability PASS.
+- Before ablation, regenerate a no-MP4 baseline under fresh prediction/eval
+  roots with commit-bound run and artifact manifests.
+- Audit SHA256:
+  `6ce129972b7bdb422d51edbf91ef88cf1a886814964bb344c46661949580da53`.
+
 ## 2026-07-16 legacy L6 full-frame-context short decision
 
 - The parameter-matched zero, availability-only, and full-frame modes use the
