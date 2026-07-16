@@ -48,6 +48,11 @@ record the selected skills in the working plan.
 - Treat `outputs/eval/mode_compare/20260709_040751` as the current five-mode
   comparison until a hash-bound replacement is promoted.
 - Preserve the three existing realtime profiles; do not create duplicates.
+- Treat `realtime_fast` and `realtime_balanced` as causal zero-delay profiles.
+- Treat `realtime_quality_delayed` as `post_video_global_graph` with delay `-1`
+  until a prefix-invariance test proves a finite flush boundary.
+- For any causal or fixed-delay claim, append future frames at every declared
+  flush boundary and require already-flushed XML payloads to remain identical.
 - Preserve per-video hybrid remapped IDSW `0` as a hard guardrail.
 - Keep `000302` at IDSW `0` for realtime candidates.
 - Do not blame detector weight for the current-code `000263` regression.
@@ -68,6 +73,8 @@ Promote a candidate only when all applicable gates pass:
 - Improve the declared weak metric in both identical runs, not only aggregate.
 - Preserve every declared per-video IDSW and prediction-integrity guardrail.
 - Stay within the latency and memory budget of the affected realtime profile.
+- Record frame, detector, association and postprocess timing, p50/p95 latency,
+  effective FPS, peak process RSS, peak CUDA memory, output contract and delay.
 - Show telemetry consistent with the declared changed family and hypothesis.
 - Keep the algorithm or profile-default promotion in a separate commit.
 
@@ -79,6 +86,7 @@ artifacts, or improvements that depend on changing the evaluation contract.
 - A run manifest with selected skills, lineage hashes, profile, hypothesis,
   changed family, commands, environment, and output roots.
 - Per-video predictions and HOTA, IDF1, IDSW, detection, and runtime metrics.
+- A per-video `tracking_runtime_telemetry.csv` linked to hashed quality reports.
 - A paired baseline/candidate delta table for every evaluated video.
 - A recursive artifact audit proving the experiment root contains no MP4.
 - A signed promotion decision that records every passed or failed gate.
@@ -92,6 +100,7 @@ Stop before further tracking work when:
 - Static, synthetic, prediction-integrity, or focused regression tests fail.
 - A candidate changes more than its declared family or evaluation contract.
 - A required guardrail regresses, even when the aggregate metric improves.
+- Future frames change already-flushed output for a causal/fixed-delay profile.
 - Telemetry cannot explain the observed prediction or identity change.
 
 Fix the gate and restart with a new run ID. Do not reinterpret a failed run as
