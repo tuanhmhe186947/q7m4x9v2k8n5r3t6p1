@@ -92,12 +92,17 @@ def check_training_snapshot(
     snapshot_path: Path,
     *,
     contract_path: Path | None = None,
+    project_root: Path | None = None,
 ) -> dict[str, Any]:
     """Compare current artifacts against a frozen snapshot and report deterministic drift."""
     expected = json.loads(snapshot_path.read_text(encoding="utf-8"))
     contract_file = contract_path or Path(expected["contract_path"])
     contract = load_contract(contract_file)
-    paths = _resolve_paths(contract_file, contract)
+    paths = _resolve_paths(
+        contract_file,
+        contract,
+        project_root=project_root,
+    )
     current = _build_snapshot(paths, contract)
     current["snapshot_id"] = _snapshot_id(current)
 
@@ -151,10 +156,16 @@ def check_training_snapshot(
 def _resolve_paths(
     contract_path: Path,
     contract: dict[str, Any],
+    *,
+    project_root: Path | None = None,
 ) -> SnapshotPaths:
-    # Contract roots are project-relative by design, so scripts run from the
-    # repository root produce stable paths independent of the config directory.
-    root = Path(contract.get("root", ".")).resolve()
+    # Prefer the explicit caller root so a checker cannot follow its shell cwd
+    # into a different canonical output tree.
+    root = (
+        project_root.resolve()
+        if project_root is not None
+        else Path(contract.get("root", ".")).resolve()
+    )
     output_dir = (root / contract["snapshot_output_dir"]).resolve()
     return SnapshotPaths(root=root, contract_json=contract_path.resolve(), output_dir=output_dir)
 

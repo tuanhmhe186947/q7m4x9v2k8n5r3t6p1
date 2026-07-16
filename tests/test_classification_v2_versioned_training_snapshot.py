@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 
 from pig_behavior.classification_v2.contracts.training_snapshot import (
+    check_training_snapshot,
     freeze_training_snapshot,
 )
 from pig_behavior.classification_v2.contracts.versioned_data_contract import (
@@ -16,6 +17,7 @@ from pig_behavior.classification_v2.contracts.versioned_data_contract import (
     write_versioned_data_contract,
 )
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RUN_ID = "c2v2_agent_snapshot_fixture_v1"
 HUMAN_RUN_ID = "c2v2_human_snapshot_fixture_v1"
 
@@ -122,6 +124,25 @@ def test_versioned_snapshot_rejects_human_workspace_destination(
 
     assert human_output.exists() is False
     assert list(snapshot_dir.glob("*.json")) == []
+
+
+def test_snapshot_checker_honors_explicit_project_root(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    contract_path, snapshot_dir, _ = _fixture(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    snapshot = freeze_training_snapshot(contract_path)
+    snapshot_path = Path(snapshot["snapshot_path"])
+
+    monkeypatch.chdir(PROJECT_ROOT)
+    checked = check_training_snapshot(
+        snapshot_path,
+        contract_path=contract_path,
+        project_root=tmp_path,
+    )
+
+    assert checked["valid"] is True
 
 
 def _fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
