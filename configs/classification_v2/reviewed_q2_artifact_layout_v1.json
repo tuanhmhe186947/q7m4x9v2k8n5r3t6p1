@@ -7,6 +7,8 @@
   "artifacts": {
     "hidden_review_scientific_policy":
       "configs/classification_v2/hidden_review_scientific_policy_v1.json",
+    "tabular_feature_spec":
+      "configs/classification_v2/reviewed_q2_tabular_feature_spec_v1.json",
     "legacy_frame_object_annotations":
       "data/01_source_full/legacy_export/legacy_frame_object_annotations.csv",
     "merged_frame_objects": "data/01_source_full/merged_frame_objects.csv",

@@ -16,6 +16,18 @@ TEMPLATE_PATH = (
     / "classification_v2"
     / "reviewed_q2_data_contract_template_v1.json"
 )
+FEATURE_SPEC_PATH = (
+    PROJECT_ROOT
+    / "configs"
+    / "classification_v2"
+    / "reviewed_q2_tabular_feature_spec_v1.json"
+)
+TRAINER_CONTRACT_PATH = (
+    PROJECT_ROOT
+    / "configs"
+    / "classification_v2"
+    / "trainer_contract_v1.json"
+)
 RUN_ID = "c2v2_reviewed_q2_contract_fixture_v1"
 HUMAN_RUN_ID = "c2v2_human_review_contract_fixture_v1"
 
@@ -106,6 +118,35 @@ def test_reviewed_q2_template_locks_regression_case_evidence() -> None:
     assert resolver["mandatory_gui_video_case.ok"] is True
 
 
+def test_reviewed_q2_tabular_spec_is_explicit_unique_and_migrated() -> None:
+    feature_spec = json.loads(FEATURE_SPEC_PATH.read_text(encoding="utf-8"))
+    trainer_contract = json.loads(
+        TRAINER_CONTRACT_PATH.read_text(encoding="utf-8")
+    )
+    features = feature_spec["features"]
+
+    assert feature_spec["profile"] == "mixed-reviewed"
+    assert feature_spec["selection_policy"] == {
+        "explicit_ordered_whitelist": True,
+        "all_numeric_selection_allowed": False,
+        "unknown_feature_fails_closed": True,
+        "inference_available_only": True,
+    }
+    assert len(features) == 110
+    assert len(features) == len(set(features))
+    assert features == trainer_contract["tabular_feature_whitelist"]
+
+
+def test_train_ready_audit_requires_complete_run_bound_export() -> None:
+    required = _load_template()["artifacts"]["train_ready_audit"][
+        "required_json_values"
+    ]
+
+    assert required["complete_export"] is True
+    assert required["canonical_fallback_used"] is False
+    assert required["valid"] is True
+
+
 def test_reviewed_q2_template_builds_with_owner_separated_map(
     tmp_path: Path,
 ) -> None:
@@ -135,6 +176,16 @@ def test_reviewed_q2_template_builds_with_owner_separated_map(
                 )
             }
         ),
+        encoding="utf-8",
+    )
+    feature_spec_path = (
+        tmp_path
+        / "configs"
+        / "classification_v2"
+        / FEATURE_SPEC_PATH.name
+    )
+    feature_spec_path.write_text(
+        FEATURE_SPEC_PATH.read_text(encoding="utf-8"),
         encoding="utf-8",
     )
 
@@ -207,10 +258,17 @@ def _mapped_path(
 ) -> str:
     scope = str(spec["scope"])
     if scope == "project_static":
-        return (
-            "configs/classification_v2/"
-            "hidden_review_scientific_policy_v1.json"
-        )
+        static_paths = {
+            "hidden_review_scientific_policy": (
+                "configs/classification_v2/"
+                "hidden_review_scientific_policy_v1.json"
+            ),
+            "tabular_feature_spec": (
+                "configs/classification_v2/"
+                "reviewed_q2_tabular_feature_spec_v1.json"
+            ),
+        }
+        return static_paths[name]
     suffix = {
         "binary": ".npy",
         "csv": ".csv",

@@ -25,6 +25,12 @@ SOURCE_TEMPLATE = (
     / "classification_v2"
     / "reviewed_q2_data_contract_template_v1.json"
 )
+SOURCE_FEATURE_SPEC = (
+    PROJECT_ROOT
+    / "configs"
+    / "classification_v2"
+    / "reviewed_q2_tabular_feature_spec_v1.json"
+)
 RUN_ID = "c2v2_model_input_manifest_fixture_v1"
 HUMAN_RUN_ID = "c2v2_human_review_manifest_fixture_v1"
 
@@ -192,6 +198,11 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path, dict[str, object]]:
         ),
         encoding="utf-8",
     )
+    feature_spec_path = config_dir / SOURCE_FEATURE_SPEC.name
+    feature_spec_path.write_text(
+        SOURCE_FEATURE_SPEC.read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
 
     agent_root = f"outputs/classification_v2/agent_audits/{RUN_ID}"
     human_root = (
@@ -265,10 +276,17 @@ def _artifact_path(
     human_root: str,
 ) -> str:
     if spec["scope"] == "project_static":
-        return (
-            "configs/classification_v2/"
-            "hidden_review_scientific_policy_v1.json"
-        )
+        static_paths = {
+            "hidden_review_scientific_policy": (
+                "configs/classification_v2/"
+                "hidden_review_scientific_policy_v1.json"
+            ),
+            "tabular_feature_spec": (
+                "configs/classification_v2/"
+                "reviewed_q2_tabular_feature_spec_v1.json"
+            ),
+        }
+        return static_paths[name]
     suffix = {
         "binary": ".npy",
         "csv": ".csv",

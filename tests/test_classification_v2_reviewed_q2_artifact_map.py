@@ -27,6 +27,12 @@ SOURCE_LAYOUT = (
     / "classification_v2"
     / "reviewed_q2_artifact_layout_v1.json"
 )
+SOURCE_FEATURE_SPEC = (
+    PROJECT_ROOT
+    / "configs"
+    / "classification_v2"
+    / "reviewed_q2_tabular_feature_spec_v1.json"
+)
 HUMAN_RUN_ID = "c2v2_human_review_fixture_v1"
 AGENT_RUN_ID = "c2v2_agent_audit_fixture_v1"
 
@@ -192,6 +198,11 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
                 )
             }
         ),
+        encoding="utf-8",
+    )
+    feature_spec = config / SOURCE_FEATURE_SPEC.name
+    feature_spec.write_text(
+        SOURCE_FEATURE_SPEC.read_text(encoding="utf-8"),
         encoding="utf-8",
     )
     output = (

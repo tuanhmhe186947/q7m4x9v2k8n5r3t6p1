@@ -93,6 +93,11 @@
       "source_artifact": "hidden_review_unit_manifest",
       "consumer_artifact": "hidden_review_scientific_gate",
       "consumer_json_field": "manifest_sha256"
+    },
+    {
+      "source_artifact": "tabular_feature_spec",
+      "consumer_artifact": "feature_whitelist",
+      "consumer_json_field": "feature_spec_sha256"
     }
   ],
   "artifacts": {
@@ -102,6 +107,20 @@
       "required": true,
       "required_json_values": {
         "schema_version": "classification_v2.hidden_scientific_policy.v1"
+      }
+    },
+    "tabular_feature_spec": {
+      "scope": "project_static",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "schema_version":
+          "classification_v2.reviewed_q2_tabular_feature_spec.v1",
+        "profile": "mixed-reviewed",
+        "selection_policy.explicit_ordered_whitelist": true,
+        "selection_policy.all_numeric_selection_allowed": false,
+        "selection_policy.unknown_feature_fails_closed": true,
+        "selection_policy.inference_available_only": true
       }
     },
     "legacy_frame_object_annotations": {
@@ -787,18 +806,34 @@
     "feature_whitelist": {
       "scope": "agent_derived",
       "type": "json",
-      "required": true
+      "required": true,
+      "json_hash_fields": [
+        "feature_spec_sha256"
+      ],
+      "required_json_values": {
+        "schema_version": "classification_v2.feature_whitelist.v1",
+        "profile": "mixed-reviewed",
+        "feature_count": 110
+      }
     },
     "feature_blacklist": {
       "scope": "agent_derived",
       "type": "json",
-      "required": true
+      "required": true,
+      "required_json_values": {
+        "schema_version": "classification_v2.feature_blacklist.v1",
+        "profile": "mixed-reviewed"
+      }
     },
     "feature_whitelist_audit": {
       "scope": "agent_derived",
       "type": "json",
       "required": true,
       "required_json_values": {
+        "schema_version": "classification_v2.feature_whitelist_audit.v1",
+        "valid": true,
+        "never_use_all_numeric_columns": true,
+        "fail_closed_on_unknown_columns": true,
         "errors": []
       }
     },
@@ -822,6 +857,11 @@
       "type": "json",
       "required": true,
       "required_json_values": {
+        "schema_version": "classification_v2.train_ready_export_audit.v2",
+        "profile": "mixed-reviewed",
+        "valid": true,
+        "complete_export": true,
+        "canonical_fallback_used": false,
         "errors": []
       }
     },
@@ -943,7 +983,7 @@
     "source_*",
     "split",
     "split_*",
-    "*path*",
+    "*_path",
     "*file*",
     "target_roi_*",
     "roi_target_*",
