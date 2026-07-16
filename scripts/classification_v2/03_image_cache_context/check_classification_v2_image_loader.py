@@ -8,6 +8,14 @@ from typing import Any
 import pandas as pd
 from PIL import Image
 
+from pig_behavior.classification_v2.datasets.image_context_index import (
+    MANDATORY_CVAT_FRAME_INDICES,
+    MANDATORY_CVAT_MEDIA_BASENAME,
+    MANDATORY_CVAT_PIG_ID,
+    MANDATORY_CVAT_VIDEO_KEY,
+    audit_mandatory_cvat_video_case,
+)
+
 try:
     import cv2  # type: ignore
 except Exception:  # pragma: no cover
@@ -84,7 +92,11 @@ def _build_video_index(root: Path) -> dict[str, Path]:
     return index
 
 
-def _resolve_video_path(row: pd.Series, video_root: Path, video_index: dict[str, Path]) -> Path | None:
+def _resolve_video_path(
+    row: pd.Series,
+    video_root: Path,
+    video_index: dict[str, Path],
+) -> Path | None:
     raw_source_path = row.get("source_video_path")
     if pd.notna(raw_source_path):
         raw = str(raw_source_path).strip()
@@ -218,7 +230,11 @@ def _check_cvat_row(
     video_index: dict[str, Path],
     capture_cache: dict[str, Any],
 ) -> dict[str, Any]:
-    result: dict[str, Any] = {"kind": "cvat_video_bbox", "identity": _row_identity(row), "ok": False}
+    result: dict[str, Any] = {
+        "kind": "cvat_video_bbox",
+        "identity": _row_identity(row),
+        "ok": False,
+    }
     if cv2 is None:
         result["error"] = "cv2_unavailable"
         return result
@@ -288,13 +304,20 @@ def _sample_rows(df: pd.DataFrame, source_type: str, sample_size: int) -> pd.Dat
     source = df[df["source_type"].astype(str).eq(source_type)].copy()
     if source.empty or sample_size <= 0:
         return source.head(0)
-    sort_cols = [
-        c for c in ["video_key", "pig_id", "track_id", "object_track_key", "frame_index"] if c in source.columns
+    candidates = [
+        "video_key",
+        "pig_id",
+        "track_id",
+        "object_track_key",
+        "frame_index",
     ]
+    sort_cols = [column for column in candidates if column in source.columns]
     source = source.sort_values(sort_cols).reset_index(drop=True)
     if len(source) <= sample_size:
         return source
-    positions = sorted({round(i * (len(source) - 1) / max(1, sample_size - 1)) for i in range(sample_size)})
+    source_span = len(source) - 1
+    sample_span = max(1, sample_size - 1)
+    positions = sorted({round(i * source_span / sample_span) for i in range(sample_size)})
     return source.iloc[positions].copy()
 
 
@@ -302,11 +325,45 @@ def _mandatory_cvat_case(df: pd.DataFrame) -> pd.DataFrame:
     frame_index = pd.to_numeric(df.get("frame_index"), errors="coerce")
     mask = (
         df["source_type"].astype(str).eq("cvat_tracking_xml")
-        & df["video_key"].astype(str).eq("Pigs291119_000231")
-        & df["pig_id"].astype(str).eq("ID_4")
-        & frame_index.between(678, 683)
+        & df["video_key"].astype(str).eq(MANDATORY_CVAT_VIDEO_KEY)
+        & df["pig_id"].astype(str).eq(MANDATORY_CVAT_PIG_ID)
+        & frame_index.isin(MANDATORY_CVAT_FRAME_INDICES)
     )
     return df.loc[mask].copy()
+
+
+def _audit_mandatory_gui_case(
+    results: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Convert pixel-loader results into the shared exact-basename contract."""
+
+    rows: list[dict[str, Any]] = []
+    for result in results:
+        if result.get("kind") != "cvat_video_bbox":
+            continue
+        identity = result.get("identity")
+        if not isinstance(identity, dict):
+            continue
+        rows.append(
+            {
+                "video_key": identity.get("video_key"),
+                "pig_id": identity.get("pig_id"),
+                "frame_index": identity.get("frame_index"),
+                "resolved_media_path": result.get("resolved_video_path"),
+                "image_context_loadable": bool(result.get("ok")),
+            }
+        )
+    frame = pd.DataFrame(
+        rows,
+        columns=[
+            "video_key",
+            "pig_id",
+            "frame_index",
+            "resolved_media_path",
+            "image_context_loadable",
+        ],
+    )
+    return audit_mandatory_cvat_video_case(frame)
 
 
 def run_check(args: argparse.Namespace) -> dict[str, Any]:
@@ -328,8 +385,15 @@ def run_check(args: argparse.Namespace) -> dict[str, Any]:
             ignore_index=True,
         )
         if not cvat_rows.empty:
+            identity_columns = [
+                "source_type",
+                "video_key",
+                "pig_id",
+                "track_id",
+                "frame_index",
+            ]
             cvat_rows = cvat_rows.drop_duplicates(
-                subset=[c for c in ["source_type", "video_key", "pig_id", "track_id", "frame_index"] if c in cvat_rows],
+                subset=[column for column in identity_columns if column in cvat_rows],
                 keep="first",
             )
 
@@ -345,16 +409,14 @@ def run_check(args: argparse.Namespace) -> dict[str, Any]:
                 pass
 
     errors = [r for r in results if not r.get("ok")]
-    mandatory_case = [
-        r
-        for r in results
-        if r.get("kind") == "cvat_video_bbox"
-        and r.get("identity", {}).get("video_key") == "Pigs291119_000231"
-        and r.get("identity", {}).get("pig_id") == "ID_4"
-        and 678 <= int(r.get("identity", {}).get("frame_index", -1)) <= 683
-    ]
+    mandatory_case = _audit_mandatory_gui_case(results)
+    result_kinds = [result.get("kind") for result in results]
+    checked_by_kind = {}
+    if result_kinds:
+        checked_by_kind = pd.Series(result_kinds).value_counts(dropna=False).to_dict()
 
     audit = {
+        "schema_version": "classification_v2.source_image_loader_audit.v2",
         "input_csv": str(args.input_csv),
         "video_root": str(args.video_root),
         "legacy_crop_root": str(args.legacy_crop_root),
@@ -363,21 +425,24 @@ def run_check(args: argparse.Namespace) -> dict[str, Any]:
         "video_index_size": len(video_index),
         "source_rows": df["source_type"].value_counts(dropna=False).to_dict(),
         "checked_rows": len(results),
-        "checked_by_kind": pd.Series([r.get("kind") for r in results]).value_counts(dropna=False).to_dict()
-        if results
-        else {},
+        "checked_by_kind": checked_by_kind,
         "ok_rows": sum(1 for r in results if r.get("ok")),
         "error_rows": len(errors),
         "errors": errors[:50],
-        "mandatory_gui_video_case_checked_rows": len(mandatory_case),
-        "mandatory_gui_video_case_ok": bool(mandatory_case) and all(r.get("ok") for r in mandatory_case),
+        "mandatory_gui_video_case_checked_rows": mandatory_case["rows"],
+        "mandatory_gui_video_case_expected_basename": (MANDATORY_CVAT_MEDIA_BASENAME),
+        "mandatory_gui_video_case_resolved_basenames": mandatory_case["resolved_media_basenames"],
+        "mandatory_gui_video_case_ok": mandatory_case["ok"],
+        "mandatory_gui_video_case": mandatory_case,
         "results": results,
     }
     return audit
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Smoke test classification_v2 image loading for train-ready windows.")
+    parser = argparse.ArgumentParser(
+        description=("Smoke test classification_v2 image loading for train-ready windows.")
+    )
     parser.add_argument("--input-csv", type=Path, default=DEFAULT_INPUT)
     parser.add_argument("--video-root", type=Path, default=DEFAULT_VIDEO_ROOT)
     parser.add_argument("--legacy-crop-root", type=Path, default=DEFAULT_LEGACY_CROP_ROOT)
@@ -387,9 +452,13 @@ def main() -> None:
 
     audit = run_check(args)
     args.output_audit.parent.mkdir(parents=True, exist_ok=True)
-    args.output_audit.write_text(json.dumps(audit, indent=2, default=_json_default), encoding="utf-8")
+    args.output_audit.write_text(
+        json.dumps(audit, indent=2, default=_json_default),
+        encoding="utf-8",
+    )
 
-    print(json.dumps({k: audit[k] for k in audit if k != "results"}, indent=2, default=_json_default))
+    summary = {key: audit[key] for key in audit if key != "results"}
+    print(json.dumps(summary, indent=2, default=_json_default))
     if audit["error_rows"] or not audit["mandatory_gui_video_case_ok"]:
         raise SystemExit(1)
 

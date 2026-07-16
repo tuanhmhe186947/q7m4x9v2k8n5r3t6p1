@@ -83,6 +83,8 @@
     "temporal_view_audit": "data/11_train_ready/temporal_views/temporal_shortcut_audit.json",
     "image_frame_context_manifest": "data/11_train_ready/image_frame_context_manifest.csv",
     "image_window_context_manifest": "data/11_train_ready/image_window_context_manifest.csv",
+    "source_image_loader_audit":
+      "data/11_train_ready/source_image_loader_smoke_audit.json",
     "interaction_window_context_manifest":
       "data/11_train_ready/interaction_window_context_manifest.csv",
     "actor_cache_manifest": "data/12_actor_cache_224_letterbox/manifest.csv",
@@ -104,6 +106,7 @@
     "feature_blacklist": "data/11_train_ready/feature_blacklist.json",
     "feature_whitelist_audit": "data/11_train_ready/feature_whitelist_audit.json",
     "model_input_contract": "contracts/model_input_contract.json",
+    "loader_input_audit": "audits/loader_input_audit.json",
     "train_ready_audit": "data/11_train_ready/train_ready_audit.json",
     "spatial_sequence_audit": "data/11_train_ready/spatial_sequence_audit.json",
     "identifier_lineage_audit": "audits/identifier_lineage_audit.json",

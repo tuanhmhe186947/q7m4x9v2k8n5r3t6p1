@@ -80,6 +80,10 @@ def test_model_input_manifest_uses_only_contract_declared_paths(
     assert len(written["output_sha256"]) == 64
 
 
+def test_loader_audit_is_post_manifest_evidence_not_manifest_input() -> None:
+    assert "loader_input_audit" not in REQUIRED_ARTIFACTS
+
+
 def test_model_input_manifest_rejects_human_owned_destination(
     tmp_path: Path,
 ) -> None:

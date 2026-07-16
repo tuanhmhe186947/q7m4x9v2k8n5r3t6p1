@@ -17,6 +17,7 @@ TEMPLATE_PATH = (
     / "reviewed_q2_data_contract_template_v1.json"
 )
 RUN_ID = "c2v2_reviewed_q2_contract_fixture_v1"
+HUMAN_RUN_ID = "c2v2_human_review_contract_fixture_v1"
 
 
 def test_reviewed_q2_template_is_path_free_and_scope_complete() -> None:
@@ -68,6 +69,8 @@ def test_reviewed_q2_template_is_path_free_and_scope_complete() -> None:
         "feature_whitelist",
         "feature_blacklist",
         "leakage_audit",
+        "loader_input_audit",
+        "source_image_loader_audit",
     }
     assert required_human.issubset(artifacts)
     assert required_agent.issubset(artifacts)
@@ -83,6 +86,24 @@ def test_reviewed_q2_template_is_path_free_and_scope_complete() -> None:
         "native_oof" in name or "loro" in name
         for name in artifacts
     )
+
+
+def test_reviewed_q2_template_locks_regression_case_evidence() -> None:
+    artifacts = _load_template()["artifacts"]
+    anchor = artifacts["cvat_anchor_1020_audit"]["required_json_values"]
+    resolver = artifacts["source_image_loader_audit"]["required_json_values"]
+
+    assert anchor["video_key"] == "Pigs281119_000085_30fps"
+    assert anchor["pig_id"] == "ID_4"
+    assert anchor["anchor"] == 1020
+    assert anchor["expected_behavior"] == "social-nose"
+    assert anchor["expected_template"] == "interaction"
+    assert anchor["valid"] is True
+    assert resolver["mandatory_gui_video_case.rows"] == 6
+    assert resolver[
+        "mandatory_gui_video_case.expected_media_basename"
+    ] == "Pigs291119_000231_30fps.mp4"
+    assert resolver["mandatory_gui_video_case.ok"] is True
 
 
 def test_reviewed_q2_template_builds_with_owner_separated_map(
@@ -118,7 +139,10 @@ def test_reviewed_q2_template_builds_with_owner_separated_map(
     )
 
     agent_root = f"outputs/classification_v2/agent_audits/{RUN_ID}"
-    human_root = f"human_review_workspace/classification_v2/{RUN_ID}"
+    human_root = (
+        "human_review_workspace/classification_v2/"
+        f"{HUMAN_RUN_ID}"
+    )
     mapped = {
         name: {
             "path": _mapped_path(
@@ -139,6 +163,10 @@ def test_reviewed_q2_template_builds_with_owner_separated_map(
                 "schema_version": ARTIFACT_MAP_SCHEMA_VERSION,
                 "run_id": RUN_ID,
                 "profile": "mixed-reviewed",
+                "lineage_ids": {
+                    "agent_derived": RUN_ID,
+                    "human_review": HUMAN_RUN_ID,
+                },
                 "lineage_roots": {
                     "agent_derived": agent_root,
                     "human_review": human_root,

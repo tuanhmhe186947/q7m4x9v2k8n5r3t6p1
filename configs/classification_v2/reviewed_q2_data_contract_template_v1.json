@@ -349,6 +349,12 @@
       "type": "json",
       "required": true,
       "required_json_values": {
+        "video_key": "Pigs281119_000085_30fps",
+        "pig_id": "ID_4",
+        "anchor": 1020,
+        "expected_behavior": "social-nose",
+        "expected_template": "interaction",
+        "valid": true,
         "errors": []
       }
     },
@@ -656,6 +662,42 @@
         "image_context_id_sequence"
       ]
     },
+    "source_image_loader_audit": {
+      "scope": "agent_derived",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "schema_version": "classification_v2.source_image_loader_audit.v2",
+        "error_rows": 0,
+        "mandatory_gui_video_case.video_key": "Pigs291119_000231",
+        "mandatory_gui_video_case.pig_id": "ID_4",
+        "mandatory_gui_video_case.expected_frame_indices": [
+          678,
+          679,
+          680,
+          681,
+          682,
+          683
+        ],
+        "mandatory_gui_video_case.expected_media_basename":
+          "Pigs291119_000231_30fps.mp4",
+        "mandatory_gui_video_case.rows": 6,
+        "mandatory_gui_video_case.observed_frame_indices": [
+          678,
+          679,
+          680,
+          681,
+          682,
+          683
+        ],
+        "mandatory_gui_video_case.resolved_media_basenames": [
+          "Pigs291119_000231_30fps.mp4"
+        ],
+        "mandatory_gui_video_case.unloadable_rows": 0,
+        "mandatory_gui_video_case.ok": true,
+        "mandatory_gui_video_case.errors": []
+      }
+    },
     "interaction_window_context_manifest": {
       "scope": "agent_derived",
       "type": "csv",
@@ -764,6 +806,16 @@
       "scope": "agent_derived",
       "type": "json",
       "required": true
+    },
+    "loader_input_audit": {
+      "scope": "agent_derived",
+      "type": "json",
+      "required": true,
+      "required_json_values": {
+        "schema_version": "classification_v2.loader_input_audit.v2",
+        "valid": true,
+        "errors": []
+      }
     },
     "train_ready_audit": {
       "scope": "agent_derived",
