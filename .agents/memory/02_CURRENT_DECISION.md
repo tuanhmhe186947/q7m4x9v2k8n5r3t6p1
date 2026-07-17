@@ -51,6 +51,18 @@ monotonic. Commits are `7254670` for the algorithm and `e74a8fa` for the
 separate profile promotion. The authoritative decision is
 `docs/TRACKING_PROMOTION_DECISION_20260718_HYBRID_FAR_IDENTITY_GUARD.json`.
 
+The causal `realtime_fast` profile now also promotes
+`realtime_visible_better_competitor_prefer=true`. Full-13 primary and repeat
+are semantically identical and improve aggregate IDSW `87 -> 69`, HOTA
+`93.89% -> 94.35%`, IDF1 `93.21% -> 93.91%`, FP/FN `564/688 -> 506/630`, and
+fragments `114 -> 110`. Only `000231` improves (`30 -> 12` IDSW); the other 12
+videos are unchanged and no video regresses. The profile promotion is
+`456fc97`; authority and rollback are recorded in
+`docs/TRACKING_PROMOTION_DECISION_20260718_REALTIME_FAST_VISIBLE_PREFER.json`.
+The timing contract remains causal framewise with delay `0`, and all prediction
+and evaluation roots have `mp4_count=0`. Runtime differences between repeats
+are recorded, so no speed claim is made.
+
 Synthetic R0 causality, repeatability, baseline-lock and telemetry checks pass
 `23/23` for the two causal realtime profiles. Runtime R0 also passes on the
 `000263` hard event: prefix 210 versus extended 240 frames preserves all 1,680

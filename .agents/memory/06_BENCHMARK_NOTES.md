@@ -1,5 +1,30 @@
 # Benchmark Notes
 
+## 2026-07-18 realtime_fast visible-competitor preference promotion
+
+- Parent authority:
+  `outputs/eval/tracking_candidate_locks/`
+  `20260717_94a8232_includehidden_realtime_fast_baseline_repeatability_v1.json`.
+- Candidate primary and repeat:
+  `20260718_7f36b57_r1_visible_prefer_fast_full13_primary_v1` and
+  `20260718_7f36b57_r1_visible_prefer_fast_full13_repeat_v2` under
+  `outputs/eval/tracking_candidates`.
+- The only profile change is
+  `realtime_visible_better_competitor_prefer=true` in `realtime_fast`.
+  Both runs use `include_hidden=true`, the corrected rule combo, causal delay
+  `0`, and no generated MP4.
+- Aggregate quality changes are IDSW `87 -> 69`, HOTA `93.89% -> 94.35%`,
+  IDF1 `93.21% -> 93.91%`, FP/FN `564/688 -> 506/630`, and fragments
+  `114 -> 110`. `000231` improves IDSW `30 -> 12`; all other videos tie and
+  no video regresses. Primary/repeat semantic prediction hashes match.
+- Recursive audits report zero MP4 in both prediction and evaluation roots.
+  Primary/repeat tracking totals are about `860.27/831.58` seconds; mean
+  per-video effective FPS is `27.40/28.16`. Runtime is not promoted as a
+  speed claim because the repeats differ.
+- The profile promotion is commit `456fc97`; the complete decision and
+  rollback are in
+  `docs/TRACKING_PROMOTION_DECISION_20260718_REALTIME_FAST_VISIBLE_PREFER.json`.
+
 ## 2026-07-18 realtime R0 runtime causality gate
 
 - `realtime_fast` and `realtime_balanced` were run on `000263` through frame

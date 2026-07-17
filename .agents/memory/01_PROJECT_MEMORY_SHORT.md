@@ -1,5 +1,22 @@
 # Project Memory Short
 
+## 2026-07-18 realtime_fast visible-competitor preference promotion
+
+- Full-13 primary and repeat use `include_hidden=true`,
+  `iou0_area0_condarea0_merge0`, causal framewise output, and no MP4. Their
+  prediction semantic hashes are identical for all 13 videos.
+- Promoting `realtime_visible_better_competitor_prefer=true` in the named
+  `realtime_fast` profile reduces aggregate IDSW `87 -> 69`, HOTA
+  `93.89% -> 94.35%`, IDF1 `93.21% -> 93.91%`, FP/FN `564/688 -> 506/630`,
+  and fragments `114 -> 110`.
+- The gain is concentrated in `000231` (`IDSW 30 -> 12`); the other 12 videos
+  are unchanged and no video regresses in IDSW. This is accepted as an overall
+  tracking improvement; the per-video concentration remains a risk to test on
+  newly sampled sessions.
+- Profile promotion is commit `456fc97`. The authoritative decision,
+  lineage, rollback, and runtime claim boundary are in
+  `docs/TRACKING_PROMOTION_DECISION_20260718_REALTIME_FAST_VISIBLE_PREFER.json`.
+
 ## 2026-07-18 hybrid far-camera identity guard
 
 - Commits `7254670` and `e74a8fa` add and separately promote a far-camera veto
