@@ -98,6 +98,8 @@ def _build_run(
     timestamp: str,
     identity: str = "ID_1",
     first_video_idsw: int = 0,
+    frame_time_multiplier: float = 1.0,
+    peak_memory_multiplier: float = 1.0,
 ) -> tuple[Path, Path]:
     weights, mask, input_pairs = _ensure_inputs(tmp_path)
     run_dir = tmp_path / f"{label}_eval"
@@ -164,11 +166,17 @@ def _build_run(
                 "video_stem": pair.video_stem,
                 "telemetry_available": True,
                 "frames_processed": 10,
-                "frame_time_ms_total": 1000 + index,
+                "frame_time_ms_total": (1000 + index) * frame_time_multiplier,
                 "frame_time_ms_p95": 110 + index,
-                "peak_process_rss_bytes": 1000 + index,
-                "peak_cuda_memory_allocated_bytes": 2000 + index,
-                "peak_cuda_memory_reserved_bytes": 3000 + index,
+                "peak_process_rss_bytes": int(
+                    (1000 + index) * peak_memory_multiplier
+                ),
+                "peak_cuda_memory_allocated_bytes": int(
+                    (2000 + index) * peak_memory_multiplier
+                ),
+                "peak_cuda_memory_reserved_bytes": int(
+                    (3000 + index) * peak_memory_multiplier
+                ),
             }
         )
     metrics.append(
@@ -253,10 +261,14 @@ def test_repeatability_audit_passes_and_writes_fresh_lock(tmp_path: Path) -> Non
 
     payload = audit_tracking_repeatability(config)
 
+    assert payload["schema_version"] == 3
     assert payload["status"] == "PASS"
     assert payload["verified_prediction_count"] == 4
     assert payload["mp4_count"] == 0
     assert len(payload["prediction_semantic_hashes"]) == 2
+    runtime_guardrails = payload["runtime"]["guardrails"]
+    assert runtime_guardrails["tracking_loop_effective_fps"]["actual_ratio"] == 1.0
+    assert runtime_guardrails["peak_memory"]["status"] == "PASS"
     output = tmp_path / "locks/repeatability.json"
     write_tracking_repeatability_audit(config, output)
     assert json.loads(output.read_text(encoding="utf-8"))["status"] == "PASS"
@@ -348,4 +360,77 @@ def test_repeatability_audit_rejects_dirty_auditor(
     config = replace(_audit_config(primary, repeated), require_clean_auditor=True)
 
     with pytest.raises(ValueError, match="auditor worktree must be clean"):
+        audit_tracking_repeatability(config)
+
+
+def test_repeatability_audit_rejects_runtime_fps_regression(
+    tmp_path: Path,
+) -> None:
+    primary, _ = _build_run(
+        tmp_path,
+        label="primary",
+        timestamp="2026-07-17T01:00:00Z",
+    )
+    repeated, _ = _build_run(
+        tmp_path,
+        label="repeat",
+        timestamp="2026-07-17T02:00:00Z",
+        frame_time_multiplier=2.0,
+    )
+
+    with pytest.raises(ValueError, match="Runtime FPS repeatability guard failed"):
+        audit_tracking_repeatability(_audit_config(primary, repeated))
+
+
+def test_repeatability_audit_rejects_peak_memory_regression(
+    tmp_path: Path,
+) -> None:
+    primary, _ = _build_run(
+        tmp_path,
+        label="primary",
+        timestamp="2026-07-17T01:00:00Z",
+    )
+    repeated, _ = _build_run(
+        tmp_path,
+        label="repeat",
+        timestamp="2026-07-17T02:00:00Z",
+        peak_memory_multiplier=1.25,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Runtime memory repeatability guard failed",
+    ):
+        audit_tracking_repeatability(_audit_config(primary, repeated))
+
+
+@pytest.mark.parametrize(
+    ("field_name", "invalid_value"),
+    [
+        ("min_repeat_tracking_fps_ratio", float("nan")),
+        ("max_repeat_peak_memory_ratio", float("nan")),
+        ("max_repeat_peak_memory_ratio", float("inf")),
+    ],
+)
+def test_repeatability_audit_rejects_non_finite_runtime_guardrails(
+    tmp_path: Path,
+    field_name: str,
+    invalid_value: float,
+) -> None:
+    primary, _ = _build_run(
+        tmp_path,
+        label="primary",
+        timestamp="2026-07-17T01:00:00Z",
+    )
+    repeated, _ = _build_run(
+        tmp_path,
+        label="repeat",
+        timestamp="2026-07-17T02:00:00Z",
+    )
+    config = replace(
+        _audit_config(primary, repeated),
+        **{field_name: invalid_value},
+    )
+
+    with pytest.raises(ValueError, match="must be finite"):
         audit_tracking_repeatability(config)

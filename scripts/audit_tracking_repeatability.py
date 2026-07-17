@@ -51,6 +51,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--expected-delay-frames", type=int)
     parser.add_argument("--expected-timing-contract")
     parser.add_argument(
+        "--min-repeat-tracking-fps-ratio",
+        type=float,
+        default=0.90,
+    )
+    parser.add_argument(
+        "--max-repeat-peak-memory-ratio",
+        type=float,
+        default=1.10,
+    )
+    parser.add_argument(
         "--skip-input-rehash",
         action="store_true",
         help="Skip current input rehashing; intended only for focused tests.",
@@ -80,6 +90,8 @@ def _config_from_args(args: argparse.Namespace) -> TrackingRepeatabilityAuditCon
         guard_video_max_remapped_idsw=guards,
         expected_delay_frames=args.expected_delay_frames,
         expected_timing_contract=args.expected_timing_contract,
+        min_repeat_tracking_fps_ratio=args.min_repeat_tracking_fps_ratio,
+        max_repeat_peak_memory_ratio=args.max_repeat_peak_memory_ratio,
         verify_input_hashes=not args.skip_input_rehash,
         require_clean_auditor=not args.allow_dirty_auditor,
     )

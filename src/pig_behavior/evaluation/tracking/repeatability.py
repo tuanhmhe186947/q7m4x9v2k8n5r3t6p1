@@ -8,6 +8,7 @@ import os
 import subprocess
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from math import isfinite
 from pathlib import Path
 from typing import Any
 
@@ -44,6 +45,8 @@ class TrackingRepeatabilityAuditConfig:
     guard_video_max_remapped_idsw: dict[str, int] = field(default_factory=dict)
     expected_delay_frames: int | None = None
     expected_timing_contract: str | None = None
+    min_repeat_tracking_fps_ratio: float = 0.90
+    max_repeat_peak_memory_ratio: float = 1.10
     verify_input_hashes: bool = True
     require_clean_auditor: bool = True
 
@@ -316,6 +319,80 @@ def _runtime_summary(run_dir: Path, *, expected_video_count: int) -> dict[str, A
     }
 
 
+def _runtime_repeatability_guardrails(
+    primary: dict[str, Any],
+    repeated: dict[str, Any],
+    *,
+    min_fps_ratio: float,
+    max_memory_ratio: float,
+) -> dict[str, Any]:
+    if not isfinite(min_fps_ratio) or not 0.0 < min_fps_ratio <= 1.0:
+        raise ValueError("Minimum repeat FPS ratio must be finite and in (0, 1].")
+    if not isfinite(max_memory_ratio) or max_memory_ratio < 1.0:
+        raise ValueError("Maximum repeat memory ratio must be finite and at least 1.")
+
+    primary_fps = float(primary["tracking_loop_effective_fps"])
+    repeat_fps = float(repeated["tracking_loop_effective_fps"])
+    if (
+        not isfinite(primary_fps)
+        or primary_fps <= 0.0
+        or not isfinite(repeat_fps)
+        or repeat_fps <= 0.0
+    ):
+        raise ValueError("Primary and repeat effective FPS must be finite and positive.")
+    fps_ratio = repeat_fps / primary_fps if primary_fps > 0.0 else 0.0
+    if fps_ratio < min_fps_ratio:
+        raise ValueError(
+            "Runtime FPS repeatability guard failed: "
+            f"minimum_ratio={min_fps_ratio:.3f}, actual_ratio={fps_ratio:.3f}, "
+            f"primary_fps={primary_fps:.3f}, repeat_fps={repeat_fps:.3f}"
+        )
+
+    memory_results: dict[str, dict[str, float | int | str]] = {}
+    memory_fields = (
+        "peak_process_rss_bytes",
+        "peak_cuda_memory_allocated_bytes",
+        "peak_cuda_memory_reserved_bytes",
+    )
+    for metric_name in memory_fields:
+        primary_bytes = int(primary[metric_name])
+        repeat_bytes = int(repeated[metric_name])
+        if primary_bytes < 0 or repeat_bytes < 0:
+            raise ValueError(f"Runtime memory telemetry must be non-negative: {metric_name}")
+        if primary_bytes == 0:
+            ratio = 1.0 if repeat_bytes == 0 else float("inf")
+        else:
+            ratio = repeat_bytes / primary_bytes
+        if ratio > max_memory_ratio:
+            raise ValueError(
+                "Runtime memory repeatability guard failed: "
+                f"field={metric_name}, maximum_ratio={max_memory_ratio:.3f}, "
+                f"actual_ratio={ratio:.3f}, primary_bytes={primary_bytes}, "
+                f"repeat_bytes={repeat_bytes}"
+            )
+        memory_results[metric_name] = {
+            "primary_bytes": primary_bytes,
+            "repeat_bytes": repeat_bytes,
+            "ratio": ratio,
+            "status": "PASS",
+        }
+
+    return {
+        "tracking_loop_effective_fps": {
+            "primary": primary_fps,
+            "repeat": repeat_fps,
+            "minimum_ratio": min_fps_ratio,
+            "actual_ratio": fps_ratio,
+            "status": "PASS",
+        },
+        "peak_memory": {
+            "maximum_ratio": max_memory_ratio,
+            "fields": memory_results,
+            "status": "PASS",
+        },
+    }
+
+
 def _weak_videos(rows: dict[str, dict[str, str]]) -> dict[str, list[dict[str, Any]]]:
     videos = [row for stem, row in rows.items() if stem != "ALL"]
     lowest_hota = sorted(videos, key=lambda row: float(row["remapped_hota_pct"]))
@@ -456,11 +533,26 @@ def audit_tracking_repeatability(
             "status": "PASS",
         }
 
+    primary_runtime = _runtime_summary(
+        primary_dir,
+        expected_video_count=config.expected_video_count,
+    )
+    repeat_runtime = _runtime_summary(
+        repeat_dir,
+        expected_video_count=config.expected_video_count,
+    )
+    runtime_guardrails = _runtime_repeatability_guardrails(
+        primary_runtime,
+        repeat_runtime,
+        min_fps_ratio=config.min_repeat_tracking_fps_ratio,
+        max_memory_ratio=config.max_repeat_peak_memory_ratio,
+    )
+
     artifact_count = len(primary_artifacts["artifacts"]) + len(
         repeat_artifacts["artifacts"]
     )
     result = {
-        "schema_version": 2,
+        "schema_version": 3,
         "status": "PASS",
         "created_at_utc": datetime.now(UTC).isoformat(),
         "auditor": auditor,
@@ -483,14 +575,9 @@ def audit_tracking_repeatability(
             for stem, timing in repeat_timing.items()
         },
         "runtime": {
-            "primary": _runtime_summary(
-                primary_dir,
-                expected_video_count=config.expected_video_count,
-            ),
-            "repeat": _runtime_summary(
-                repeat_dir,
-                expected_video_count=config.expected_video_count,
-            ),
+            "primary": primary_runtime,
+            "repeat": repeat_runtime,
+            "guardrails": runtime_guardrails,
         },
         "primary": {
             "evaluation_dir": str(primary_dir),

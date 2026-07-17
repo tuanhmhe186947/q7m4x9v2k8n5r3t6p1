@@ -95,6 +95,8 @@ Promote a candidate only when all applicable gates pass:
 - Improve the declared weak metric in both identical runs, not only aggregate.
 - Preserve every declared per-video IDSW and prediction-integrity guardrail.
 - Stay within the latency and memory budget of the affected realtime profile.
+- Require repeat effective FPS to be at least 90% of primary effective FPS.
+- Require repeat peak RSS and CUDA memory to stay within 110% of primary.
 - Record frame, detector, association and postprocess timing, p50/p95 latency,
   effective FPS, peak process RSS, peak CUDA memory, output contract and delay.
 - Show telemetry consistent with the declared changed family and hypothesis.
@@ -127,6 +129,7 @@ raw SHA256 and
 and [promotion template](templates/promotion_decision.example.json).
 The repeatability checker must run from a clean, commit-bound worktree and PASS
 before a run becomes baseline, candidate, or promotion authority.
+Keep its default FPS and peak-memory ratio guards enabled for authority runs.
 `--skip-input-rehash` and `--allow-dirty-auditor` are test-only and cannot
 support promotion evidence.
 
