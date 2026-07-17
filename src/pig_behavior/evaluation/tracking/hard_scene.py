@@ -32,6 +32,14 @@ from pig_behavior.evaluation.tracking.cvat_io import (
     read_task_name,
 )
 from pig_behavior.evaluation.tracking.matching import iou_xyxy, match_frame
+from pig_behavior.evaluation.tracking.spatial_strata import (
+    SpatialSceneContext,
+    SpatialStrataThresholds,
+    calibrate_perspective_small,
+    load_spatial_scene_context,
+    spatial_features_for_bbox,
+    summarize_spatial_strata,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +69,25 @@ class HardSceneEvalConfig:
     include_hidden: bool = False
     top_n_overlay_events: int = 10
     render_video: bool = False
+    mask_path: Path | None = None
+    near_wall_distance_bbox_scale: float = 0.25
+    far_pen_relative_x: float = 0.67
+    absolute_small_area_ratio: float = 0.02
+    perspective_small_quantile: float = 0.10
+
+
+def spatial_strata_thresholds(
+    config: HardSceneEvalConfig,
+) -> SpatialStrataThresholds:
+    """Resolve the immutable spatial thresholds recorded by the evaluator."""
+    return SpatialStrataThresholds(
+        near_wall_distance_bbox_scale=(
+            config.near_wall_distance_bbox_scale
+        ),
+        far_pen_relative_x=config.far_pen_relative_x,
+        absolute_small_area_ratio=config.absolute_small_area_ratio,
+        perspective_small_quantile=config.perspective_small_quantile,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -453,6 +480,8 @@ def build_per_frame_rows(
     frame_scores: dict[int, tuple[float, float, dict[str, Any]]],
     pred_conf: dict[tuple[int, str], float | None],
     video_name: str,
+    spatial_context: SpatialSceneContext | None = None,
+    spatial_thresholds: SpatialStrataThresholds | None = None,
 ) -> list[dict[str, Any]]:
     """Build per-frame identity analysis rows (one per GT object per frame)."""
     rows: list[dict[str, Any]] = []
@@ -501,6 +530,13 @@ def build_per_frame_rows(
                 f"{gt_obj.bbox[0]:.1f},{gt_obj.bbox[1]:.1f},"
                 f"{gt_obj.bbox[2]:.1f},{gt_obj.bbox[3]:.1f}"
             )
+            spatial_features: dict[str, float | bool | str] = {}
+            if spatial_context is not None and spatial_thresholds is not None:
+                spatial_features = spatial_features_for_bbox(
+                    spatial_context,
+                    gt_obj.bbox,
+                    spatial_thresholds,
+                )
 
             rows.append(
                 {
@@ -526,6 +562,7 @@ def build_per_frame_rows(
                     "num_nearby_tracks": components.get("num_nearby", 0),
                     "num_competing_tracks": fmr.competing_matches,
                     "detection_confidence": conf,
+                    **spatial_features,
                 }
             )
     return rows
@@ -888,23 +925,42 @@ def build_hard_frame_summary(
         num_wrong = sum(1 for r in frame_rows if r.get("is_id_wrong"))
         num_swaps = sum(1 for r in frame_rows if r.get("is_swap"))
 
-        summary_rows.append(
-            {
-                "video_name": video_name,
-                "frame_idx": frame,
-                "difficulty": difficulty,
-                "hardness_score": hardness,
-                "occlusion_score": occlusion,
-                "num_gt": len(fmr.gt_objects),
-                "num_pred": len(fmr.pred_objects),
-                "num_missing": len(fmr.unmatched_gt),
-                "num_wrong_id": num_wrong,
-                "num_swaps": num_swaps,
-                "max_pair_iou": components.get("pair_overlap", 0.0),
-                "min_center_distance": components.get("center_distance", 1.0),
-                "num_competing_tracks": fmr.competing_matches,
-            }
-        )
+        summary_row = {
+            "video_name": video_name,
+            "frame_idx": frame,
+            "difficulty": difficulty,
+            "hardness_score": hardness,
+            "occlusion_score": occlusion,
+            "num_gt": len(fmr.gt_objects),
+            "num_pred": len(fmr.pred_objects),
+            "num_missing": len(fmr.unmatched_gt),
+            "num_wrong_id": num_wrong,
+            "num_swaps": num_swaps,
+            "max_pair_iou": components.get("pair_overlap", 0.0),
+            "min_center_distance": components.get("center_distance", 1.0),
+            "num_competing_tracks": fmr.competing_matches,
+        }
+        if frame_rows and "is_near_wall" in frame_rows[0]:
+            summary_row.update(
+                {
+                    "num_near_wall": sum(
+                        bool(row.get("is_near_wall")) for row in frame_rows
+                    ),
+                    "num_far_camera_proxy": sum(
+                        bool(row.get("is_far_camera_proxy"))
+                        for row in frame_rows
+                    ),
+                    "num_absolute_small": sum(
+                        bool(row.get("is_absolute_small"))
+                        for row in frame_rows
+                    ),
+                    "num_perspective_residual_small": sum(
+                        bool(row.get("is_perspective_residual_small"))
+                        for row in frame_rows
+                    ),
+                }
+            )
+        summary_rows.append(summary_row)
     return summary_rows
 
 
@@ -1125,11 +1181,19 @@ def run_hard_scene_evaluation(
     config.output_dir = make_win_long_path(config.output_dir)
     if config.video_path:
         config.video_path = make_win_long_path(config.video_path)
+    if config.mask_path:
+        config.mask_path = make_win_long_path(config.mask_path)
 
     config.output_dir.mkdir(parents=True, exist_ok=True)
 
     video_name = read_task_name(config.gt_xml) or config.gt_xml.stem
 
+
+    spatial_context = None
+    spatial_thresholds = None
+    if config.mask_path is not None:
+        spatial_thresholds = spatial_strata_thresholds(config)
+        spatial_context = load_spatial_scene_context(config.mask_path)
 
     # Parse GT and prediction
     gt_by_frame = parse_cvat_video_xml(
@@ -1163,8 +1227,20 @@ def run_hard_scene_evaluation(
 
     # §6 Per-frame CSV rows
     per_frame_rows = build_per_frame_rows(
-        frame_results, canonical_mapping, frame_scores, pred_conf, video_name
+        frame_results,
+        canonical_mapping,
+        frame_scores,
+        pred_conf,
+        video_name,
+        spatial_context=spatial_context,
+        spatial_thresholds=spatial_thresholds,
     )
+    spatial_calibration = None
+    if spatial_thresholds is not None:
+        spatial_calibration = calibrate_perspective_small(
+            per_frame_rows,
+            spatial_thresholds,
+        )
 
     # §7 Swap detection (also back-fills is_swap in rows)
     swap_events, per_frame_rows = detect_swap_events(
@@ -1179,6 +1255,17 @@ def run_hard_scene_evaluation(
         config,
         predicted_frame_count,
     )
+    if (
+        spatial_thresholds is not None
+        and spatial_calibration is not None
+        and spatial_context is not None
+    ):
+        metrics["spatial_strata"] = summarize_spatial_strata(
+            per_frame_rows,
+            spatial_thresholds,
+            spatial_calibration,
+            spatial_context,
+        )
     if not metrics["evaluation_valid"]:
         logger.warning(
             "Hard-scene evaluation has incomplete prediction coverage: %s",
@@ -1229,6 +1316,36 @@ def run_hard_scene_evaluation(
 # ---------------------------------------------------------------------------
 
 
+def _add_spatial_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--mask-path",
+        type=Path,
+        default=None,
+        help="Enable wall/far/small strata with this binary pen mask.",
+    )
+    parser.add_argument(
+        "--near-wall-distance-bbox-scale",
+        type=float,
+        default=0.25,
+    )
+    parser.add_argument(
+        "--far-pen-relative-x",
+        type=float,
+        default=0.67,
+        help="Right-side pen-relative x threshold for the far-camera proxy.",
+    )
+    parser.add_argument(
+        "--absolute-small-area-ratio",
+        type=float,
+        default=0.02,
+    )
+    parser.add_argument(
+        "--perspective-small-quantile",
+        type=float,
+        default=0.10,
+    )
+
+
 def _build_parser() -> argparse.ArgumentParser:
     from pig_behavior.evaluation.tracking.assets import (
         PREDICTION_ROOT,
@@ -1268,6 +1385,7 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Explicitly render MP4 overlay and event clips.",
     )
+    _add_spatial_arguments(parser)
     return parser
 
 
@@ -1357,6 +1475,13 @@ def main(argv: list[str] | None = None) -> int:
             include_hidden=args.include_hidden,
             top_n_overlay_events=args.top_n_overlay_events,
             render_video=args.render_video,
+            mask_path=args.mask_path,
+            near_wall_distance_bbox_scale=(
+                args.near_wall_distance_bbox_scale
+            ),
+            far_pen_relative_x=args.far_pen_relative_x,
+            absolute_small_area_ratio=args.absolute_small_area_ratio,
+            perspective_small_quantile=args.perspective_small_quantile,
         )
         metrics = run_hard_scene_evaluation(config)
         print(f"\n--- Hard-Scene Metrics for {gt_xml.stem} ---")
@@ -1405,6 +1530,7 @@ def _build_compare_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional benchmark summary CSV to merge HOTA/MOTA/IDF1 columns.",
     )
+    _add_spatial_arguments(parser)
     return parser
 
 
@@ -1605,6 +1731,17 @@ def main_compare(argv: list[str] | None = None) -> int:
                     critical_threshold=args.critical_threshold,
                     long_swap_threshold=args.long_swap_threshold,
                     include_hidden=args.include_hidden,
+                    mask_path=args.mask_path,
+                    near_wall_distance_bbox_scale=(
+                        args.near_wall_distance_bbox_scale
+                    ),
+                    far_pen_relative_x=args.far_pen_relative_x,
+                    absolute_small_area_ratio=(
+                        args.absolute_small_area_ratio
+                    ),
+                    perspective_small_quantile=(
+                        args.perspective_small_quantile
+                    ),
                 )
                 metrics = run_hard_scene_evaluation(config)
                 row = {"config_name": name}
@@ -1635,6 +1772,26 @@ def main_compare(argv: list[str] | None = None) -> int:
                     "critical_error_rate",
                 ):
                     row[key] = metrics.get(key, "")
+                spatial_metrics = metrics.get("spatial_strata")
+                if isinstance(spatial_metrics, dict):
+                    for stratum_name in (
+                        "near_wall",
+                        "far_camera_proxy",
+                        "absolute_small",
+                        "perspective_residual_small",
+                    ):
+                        stratum = spatial_metrics.get(stratum_name, {})
+                        if not isinstance(stratum, dict):
+                            continue
+                        for metric_name in (
+                            "instance_count",
+                            "id_accuracy",
+                            "wrong_id_rate",
+                            "missing_rate",
+                        ):
+                            row[f"{stratum_name}_{metric_name}"] = (
+                                stratum.get(metric_name, "")
+                            )
                 comparison_rows.append(row)
 
             comparison_df = pd.DataFrame(comparison_rows)

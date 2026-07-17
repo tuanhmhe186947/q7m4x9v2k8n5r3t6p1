@@ -435,8 +435,9 @@ def test_main_auto_mapping_single_video(tmp_path: Path) -> None:
         "--output-dir", str(output_dir),
     ])
     
-    assert (output_dir / "per_frame_identity_analysis.csv").exists()
-    assert (output_dir / "hard_scene_metrics.json").exists()
+    video_output_dir = output_dir / "pig_video_1"
+    assert (video_output_dir / "per_frame_identity_analysis.csv").exists()
+    assert (video_output_dir / "hard_scene_metrics.json").exists()
 
 
 def test_main_missing_xml_errors(tmp_path: Path) -> None:
@@ -543,9 +544,10 @@ def test_main_compare_auto_mapping(tmp_path: Path) -> None:
     
     # Config directories: "yolov8_iou0_area1_condarea1_merge0",
     # "yolov26_iou0_area1_condarea1_merge0"
-    assert (output_dir / "yolov8_iou0_area1_condarea1_merge0").exists()
-    assert (output_dir / "yolov26_iou0_area1_condarea1_merge0").exists()
-    assert (output_dir / "hard_scene_config_comparison.csv").exists()
+    video_output_dir = output_dir / "pig_video_1"
+    assert (video_output_dir / "yolov8_iou0_area1_condarea1_merge0").exists()
+    assert (video_output_dir / "yolov26_iou0_area1_condarea1_merge0").exists()
+    assert (video_output_dir / "hard_scene_config_comparison.csv").exists()
     
     # Test explicit --run-dir pointing to run_1
     # (which is empty and should raise FileNotFoundError)
