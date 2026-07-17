@@ -268,6 +268,45 @@ def test_realtime_profiles_declare_truthful_causality_contracts() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "profile",
+    [REALTIME_FAST_CONFIG, REALTIME_BALANCED_CONFIG],
+)
+def test_causal_realtime_profiles_keep_prefix_immutable_with_future_frames(
+    profile: dict[str, object],
+) -> None:
+    cfg = TrackingConfig(mode="realtime", **profile)
+    prefix = [
+        _shape(0, 1, 10.0),
+        _shape(0, 2, 110.0),
+        _shape(1, 1, 12.0),
+        _shape(1, 2, 108.0),
+    ]
+    future = [
+        _shape(2, 1, 110.0),
+        _shape(2, 2, 10.0),
+    ]
+
+    prefix_output = stabilize_realtime_motion_pairs(
+        deepcopy(prefix),
+        200,
+        100,
+        cfg,
+    )
+    extended_output = stabilize_realtime_motion_pairs(
+        deepcopy([*prefix, *future]),
+        200,
+        100,
+        cfg,
+    )
+
+    for frame in (0, 1):
+        assert _frame_ids_by_center(prefix_output, frame) == (
+            _frame_ids_by_center(extended_output, frame)
+        )
+    assert resolve_output_timing_contract(cfg) == ("causal_framewise", 0)
+
+
 def test_global_graph_profile_can_change_past_output_with_future_frames() -> None:
     cfg = TrackingConfig(
         mode="realtime",

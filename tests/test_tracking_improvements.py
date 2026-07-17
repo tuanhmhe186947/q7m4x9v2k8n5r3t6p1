@@ -87,6 +87,24 @@ def _set_hidden(shape: dict, hidden: bool) -> dict:
     return shape
 
 
+def _config_with_existing_video(
+    tmp_path: Path,
+    **kwargs: object,
+) -> TrackingConfig:
+    video_path = tmp_path / "tracking_fixture.mp4"
+    weights_path = tmp_path / "tracking_fixture.pt"
+    mask_path = tmp_path / "tracking_fixture.png"
+    video_path.write_bytes(b"fixture")
+    weights_path.write_bytes(b"fixture")
+    mask_path.write_bytes(b"fixture")
+    return TrackingConfig(
+        video_path=video_path,
+        weights_path=weights_path,
+        mask_path=mask_path,
+        **kwargs,
+    )
+
+
 def test_nearby_anchor_indices_default_remains_symmetric() -> None:
     shapes = [{"frame": frame} for frame in (0, 20, 40)]
     cfg = TrackingConfig(refine_max_gap_frames=30)
@@ -142,8 +160,14 @@ def test_overlap_hidden_stabilization_restores_hidden_owner() -> None:
     assert frame_2["Pig_8"]["occluded"] is True
 
 
-def test_hybrid_bytetrack_uses_hybrid_defaults_without_forced_postprocessing() -> None:
-    cfg = TrackingConfig(mode="hybrid_bytetrack", detect_every_n_frames=3)
+def test_hybrid_bytetrack_uses_hybrid_defaults_without_forced_postprocessing(
+    tmp_path: Path,
+) -> None:
+    cfg = _config_with_existing_video(
+        tmp_path,
+        mode="hybrid_bytetrack",
+        detect_every_n_frames=3,
+    )
 
     validate_config(cfg)
 
@@ -162,8 +186,11 @@ def test_hybrid_bytetrack_uses_hybrid_defaults_without_forced_postprocessing() -
     assert cfg.enable_offline_smoothing is False
 
 
-def test_hybrid_bytetrack_keeps_rule_flag_defaults() -> None:
-    cfg = TrackingConfig(mode="hybrid_bytetrack")
+def test_hybrid_bytetrack_keeps_rule_flag_defaults(tmp_path: Path) -> None:
+    cfg = _config_with_existing_video(
+        tmp_path,
+        mode="hybrid_bytetrack",
+    )
     validate_config(cfg)
 
     assert cfg.USE_IOU_FALLBACK is False
@@ -172,8 +199,11 @@ def test_hybrid_bytetrack_keeps_rule_flag_defaults() -> None:
     assert cfg.enable_offline_smoothing is False
 
 
-def test_hybrid_bytetrack_keeps_explicit_threshold_overrides() -> None:
-    cfg = TrackingConfig(
+def test_hybrid_bytetrack_keeps_explicit_threshold_overrides(
+    tmp_path: Path,
+) -> None:
+    cfg = _config_with_existing_video(
+        tmp_path,
         mode="hybrid_bytetrack",
         det_conf=0.30,
         nms_iou=0.70,
@@ -189,8 +219,11 @@ def test_hybrid_bytetrack_keeps_explicit_threshold_overrides() -> None:
     assert cfg.track_high_conf == 0.50
 
 
-def test_hybrid_bytetrack_keeps_explicit_legacy_iou_alias() -> None:
-    cfg = TrackingConfig(
+def test_hybrid_bytetrack_keeps_explicit_legacy_iou_alias(
+    tmp_path: Path,
+) -> None:
+    cfg = _config_with_existing_video(
+        tmp_path,
         mode="hybrid_bytetrack",
         iou=0.72,
         overrides={"iou"},

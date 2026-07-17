@@ -32,7 +32,7 @@ class TrackingEvaluationPipelineConfig:
     detector_name: str = "yolov8"
     mask_path: Path | None = None
     iou_threshold: float = 0.5
-    include_hidden: bool = False
+    include_hidden: bool = True
     gap_tolerance_frames: int = 15
     # Bật tắt việc chạy tracker cho các video chưa có prediction XML
     run_missing_tracker: bool = True

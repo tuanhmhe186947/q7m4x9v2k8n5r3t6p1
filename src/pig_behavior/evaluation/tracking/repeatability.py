@@ -43,6 +43,7 @@ class TrackingRepeatabilityAuditConfig:
     expected_video_count: int = 13
     expected_commit: str | None = None
     guard_video_max_remapped_idsw: dict[str, int] = field(default_factory=dict)
+    expected_include_hidden: bool | None = True
     expected_delay_frames: int | None = None
     expected_timing_contract: str | None = None
     min_repeat_tracking_fps_ratio: float = 0.90
@@ -106,6 +107,7 @@ def _validate_run_manifest(
     *,
     expected_commit: str | None,
     expected_video_count: int,
+    expected_include_hidden: bool | None,
     verify_input_hashes: bool,
 ) -> tuple[dict[str, Any], list[dict[str, str]]]:
     manifest = _read_json(run_dir / "run_manifest.json")
@@ -122,6 +124,15 @@ def _validate_run_manifest(
         raise ValueError(f"Missing semantic config: {run_dir}")
     if payload_sha256(semantic_config) != manifest.get("semantic_config_sha256"):
         raise ValueError(f"Semantic config hash is invalid: {run_dir}")
+    if (
+        expected_include_hidden is not None
+        and semantic_config.get("include_hidden") is not expected_include_hidden
+    ):
+        raise ValueError(
+            "Tracking evaluation Hidden contract mismatch: "
+            f"expected include_hidden={expected_include_hidden}, "
+            f"actual={semantic_config.get('include_hidden')!r}"
+        )
 
     inputs = manifest.get("inputs", {})
     pairs = inputs.get("pairs", [])
@@ -442,12 +453,14 @@ def audit_tracking_repeatability(
         primary_dir,
         expected_commit=config.expected_commit,
         expected_video_count=config.expected_video_count,
+        expected_include_hidden=config.expected_include_hidden,
         verify_input_hashes=config.verify_input_hashes,
     )
     repeat_run, repeat_assets = _validate_run_manifest(
         repeat_dir,
         expected_commit=config.expected_commit,
         expected_video_count=config.expected_video_count,
+        expected_include_hidden=config.expected_include_hidden,
         verify_input_hashes=config.verify_input_hashes,
     )
     if primary_run["git"]["commit"] != repeat_run["git"]["commit"]:
@@ -558,6 +571,11 @@ def audit_tracking_repeatability(
         "auditor": auditor,
         "source_commit": primary_run["git"]["commit"],
         "semantic_config_sha256": primary_run["semantic_config_sha256"],
+        "evaluation_contract": {
+            "include_hidden": primary_run["semantic_config"].get(
+                "include_hidden"
+            ),
+        },
         "universe_sha256": payload_sha256(primary_universe),
         "prediction_semantic_hash_contract": (
             CVAT_PREDICTION_SEMANTIC_HASH_CONTRACT

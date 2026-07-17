@@ -51,6 +51,16 @@ def test_direct_pipeline_cli_keeps_condarea_off_by_default() -> None:
     assert not args.use_conditional_area_occlusion_freeze
 
 
+def test_direct_pipeline_cli_uses_corrected_hidden_contract_by_default() -> None:
+    primary = parse_pipeline_args(["--video", "input.mp4"])
+    compatibility = parse_pipeline_args(
+        ["--video", "input.mp4", "--exclude-hidden"]
+    )
+
+    assert primary.include_hidden is True
+    assert compatibility.include_hidden is False
+
+
 def test_parse_profile_overrides_rejects_unknown_fields() -> None:
     with pytest.raises(ValueError, match="Unknown TrackingConfig override"):
         parse_profile_overrides(["not_a_tracking_field=1"], {"det_conf"})

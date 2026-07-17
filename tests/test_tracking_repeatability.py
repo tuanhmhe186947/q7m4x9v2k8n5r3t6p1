@@ -201,6 +201,7 @@ def _build_run(
 
     semantic_config = {
         "tracking_mode": "realtime",
+        "include_hidden": True,
         "profile_overrides": {"profile": "test"},
     }
     manifest = {
@@ -309,6 +310,32 @@ def test_repeatability_audit_rejects_metric_drift(tmp_path: Path) -> None:
     )
 
     with pytest.raises(ValueError, match="metric mismatch"):
+        audit_tracking_repeatability(_audit_config(primary, repeated))
+
+
+def test_repeatability_audit_rejects_exclude_hidden_contract(
+    tmp_path: Path,
+) -> None:
+    primary, _ = _build_run(
+        tmp_path,
+        label="primary",
+        timestamp="2026-07-17T01:00:00Z",
+    )
+    repeated, _ = _build_run(
+        tmp_path,
+        label="repeat",
+        timestamp="2026-07-17T02:00:00Z",
+    )
+    for run_dir in (primary, repeated):
+        manifest_path = run_dir / "run_manifest.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["semantic_config"]["include_hidden"] = False
+        manifest["semantic_config_sha256"] = payload_sha256(
+            manifest["semantic_config"]
+        )
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="Hidden contract mismatch"):
         audit_tracking_repeatability(_audit_config(primary, repeated))
 
 

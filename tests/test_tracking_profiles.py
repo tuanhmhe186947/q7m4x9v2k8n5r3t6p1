@@ -149,6 +149,28 @@ def test_run_tracking_mode_science_metadata_marks_raw_baseline() -> None:
     assert metadata["uses_delayed_repair"] == "false"
 
 
+def test_run_tracking_mode_science_metadata_marks_global_graph_truthfully() -> None:
+    script_path = Path(__file__).resolve().parents[1] / "scripts" / "run_tracking_mode.py"
+    spec = importlib.util.spec_from_file_location("run_tracking_mode_script", script_path)
+    assert spec is not None
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+
+    metadata = module._mode_science_metadata(
+        "realtime_quality_delayed",
+        "realtime",
+        "realtime_quality_delayed",
+        module.get_eval_config("realtime_quality_delayed"),
+    )
+
+    assert metadata["baseline_role"] == "realtime_quality_delayed_candidate"
+    assert metadata["causality_level"] == "post_video_global_graph"
+    assert metadata["output_timing_contract"] == "post_video_global_graph"
+    assert metadata["declared_delay_frames"] == "-1"
+    assert metadata["latency_window_frames"] == ""
+
+
 def test_run_tracking_mode_has_clear_two_task_model() -> None:
     script_path = Path(__file__).resolve().parents[1] / "scripts" / "run_tracking_mode.py"
     spec = importlib.util.spec_from_file_location("run_tracking_mode_script", script_path)

@@ -51,6 +51,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--expected-delay-frames", type=int)
     parser.add_argument("--expected-timing-contract")
     parser.add_argument(
+        "--allow-exclude-hidden-compatibility",
+        action="store_true",
+        help=(
+            "Allow an exclude-Hidden compatibility audit; the default "
+            "authority contract requires include_hidden=true."
+        ),
+    )
+    parser.add_argument(
         "--min-repeat-tracking-fps-ratio",
         type=float,
         default=0.90,
@@ -88,6 +96,9 @@ def _config_from_args(args: argparse.Namespace) -> TrackingRepeatabilityAuditCon
         expected_video_count=args.expected_video_count,
         expected_commit=args.expected_commit,
         guard_video_max_remapped_idsw=guards,
+        expected_include_hidden=(
+            None if args.allow_exclude_hidden_compatibility else True
+        ),
         expected_delay_frames=args.expected_delay_frames,
         expected_timing_contract=args.expected_timing_contract,
         min_repeat_tracking_fps_ratio=args.min_repeat_tracking_fps_ratio,
