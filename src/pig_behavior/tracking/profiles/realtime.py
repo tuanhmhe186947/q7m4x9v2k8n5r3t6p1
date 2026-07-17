@@ -19,6 +19,7 @@ REALTIME_FAST_CONFIG: dict[str, object] = {
     "detect_every_n_frames": 2,
     "max_raw_detections": 32,
     "occlusion_aware_matching": False,
+    "realtime_visible_better_competitor_prefer": True,
 }
 
 REALTIME_BALANCED_CONFIG: dict[str, object] = {

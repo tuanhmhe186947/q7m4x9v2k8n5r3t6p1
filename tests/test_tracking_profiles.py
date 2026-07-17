@@ -22,12 +22,15 @@ def test_presentation_profiles_map_to_clear_modes() -> None:
 
 def test_profile_configs_keep_expected_behavior_separation() -> None:
     raw = EVAL_CONFIG_OVERRIDES["bytetrack_raw"]
+    realtime_fast = EVAL_CONFIG_OVERRIDES["realtime_fast"]
     realtime = EVAL_CONFIG_OVERRIDES["realtime_quality_delayed"]
     hybrid = EVAL_CONFIG_OVERRIDES["hybrid_bytetrack_best"]
 
     assert raw["enable_offline_smoothing"] is False
     assert raw["hidden_suffix_id_swap_repair"] is False
     assert raw["realtime_motion_pair_stabilizer"] is False
+
+    assert realtime_fast["realtime_visible_better_competitor_prefer"] is True
 
     assert realtime["enable_offline_smoothing"] is False
     assert realtime["realtime_motion_pair_stabilizer"] is True
