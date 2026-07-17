@@ -41,8 +41,20 @@ claim fixed-delay causality or an absolute FPS improvement. The corrected
 decision authority is
 `docs/TRACKING_PROMOTION_DECISION_20260717_P2_QUALITY_DELAYED_INCLUDE_HIDDEN.json`.
 
-Next, close any remaining corrected realtime compatibility evidence and audit
-R0 causality before opening a new isolated realtime ablation.
+The hybrid far-camera identity guard is now promoted. In two identical full-13
+runs it reduces aggregate IDSW `10 -> 8`, entirely by fixing `000216: 2 -> 0`,
+with no per-video IDSW regression. HOTA and IDF1 remain `98.31%` and `99.13%`
+at report precision. The raw trade-off is FP/FN `1628 -> 1630`, concentrated in
+`000302: 68 -> 75`, while `000216` improves `330 -> 325`. Judge this as an
+overall tracking improvement, not by requiring every raw metric to be
+monotonic. Commits are `7254670` for the opt-in algorithm and `e74a8fa` for the
+separate profile promotion. The authoritative decision is
+`docs/TRACKING_PROMOTION_DECISION_20260718_HYBRID_FAR_IDENTITY_GUARD.json`.
+
+Synthetic R0 causality, repeatability, baseline-lock and telemetry checks pass
+`23/23` for the two causal realtime profiles. Next, bind a runtime-level R0
+audit and then open one isolated weak-event ablation at a time. Every run must
+use `include_hidden=true`, a fresh output root and recursive `mp4_count=0`.
 
 ## Paused decision: reviewed-data rebuild
 

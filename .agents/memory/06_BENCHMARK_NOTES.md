@@ -1,5 +1,27 @@
 # Benchmark Notes
 
+## 2026-07-18 hybrid far-camera identity guard promotion
+
+- Parent authority:
+  `outputs/eval/tracking_candidates/20260717_6e65b22_baseline_include_hidden_audit_v1`.
+- Candidate primary and repeat:
+  `20260717_6e65b22_identity_guard_far_full13_primary_v1` and
+  `20260717_6e65b22_identity_guard_far_full13_repeat_v1` under
+  `outputs/eval/tracking_candidates`.
+- Both full-13 runs use `include_hidden=true` and return IDSW `8`, versus parent
+  `10`. The only identity change is `000216: 2 -> 0`; no video regresses.
+- Report-precision HOTA/IDF1 remain `98.31%/99.13%`. Raw FP/FN change
+  `1628 -> 1630`; `000216` improves by five each and `000302` worsens by seven
+  each. This is accepted as an overall quality improvement with the local
+  geometry trade-off retained for the next isolated ablation.
+- Recursive no-output-video audit across target, guardrail, primary, repeat,
+  and prediction roots found `mp4_count=0`.
+- Algorithm and profile commits are `7254670` and `e74a8fa`. Roll back the
+  profile first, then the algorithm, using the exact order recorded in
+  `docs/TRACKING_PROMOTION_DECISION_20260718_HYBRID_FAR_IDENTITY_GUARD.json`.
+- Runtime timing varied between repeats, so this decision authorizes a quality
+  promotion but no speed claim.
+
 ## 2026-07-16 tracking P0 historical baseline lock
 
 - Generator commit: `6265f1b3f0d80d622a5d2727cfb6cb1d62aca5d7`.

@@ -1,5 +1,21 @@
 # Project Memory Short
 
+## 2026-07-18 hybrid far-camera identity guard
+
+- Commits `7254670` and `e74a8fa` add and separately promote a far-camera veto
+  for mixed detected/occlusion-hold identity swaps in `hybrid_bytetrack`.
+- The camera contract is left-near/clear/large and right-far/blurred/small;
+  the opt-in threshold is normalized center-x `0.67`. Wall behavior remains
+  outside the far-only veto and the scene wall source is `mask.png`.
+- Full-13 primary and repeat both improve IDSW `10 -> 8` with no per-video
+  IDSW regression. HOTA/IDF1 stay `98.31%/99.13%` at report precision.
+- The raw trade-off is FP/FN `1628 -> 1630`, accepted as an overall tracking
+  improvement. Keep the `000302` local geometry delta as a separate next
+  ablation target; do not hide or reinterpret it.
+- All target, guardrail, primary, repeat, and prediction roots have zero MP4.
+  The authority and rollback are in
+  `docs/TRACKING_PROMOTION_DECISION_20260718_HYBRID_FAR_IDENTITY_GUARD.json`.
+
 ## 2026-07-16 agent-output isolation for reviewed Q2 rebuild
 
 - While human review has not been handed off, agent work is limited to static,
