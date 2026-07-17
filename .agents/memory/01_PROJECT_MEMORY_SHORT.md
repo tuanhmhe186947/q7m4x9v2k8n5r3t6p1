@@ -5,7 +5,7 @@
 - Commits `7254670` and `e74a8fa` add and separately promote a far-camera veto
   for mixed detected/occlusion-hold identity swaps in `hybrid_bytetrack`.
 - The camera contract is left-near/clear/large and right-far/blurred/small;
-  the opt-in threshold is normalized center-x `0.67`. Wall behavior remains
+  the promoted threshold is normalized center-x `0.67`. Wall behavior remains
   outside the far-only veto and the scene wall source is `mask.png`.
 - Full-13 primary and repeat both improve IDSW `10 -> 8` with no per-video
   IDSW regression. HOTA/IDF1 stay `98.31%/99.13%` at report precision.

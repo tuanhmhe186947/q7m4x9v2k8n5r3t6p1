@@ -1,0 +1,86 @@
+{
+  "schema_version": "tracking_causality_decision_v1",
+  "status": "PASS_R0_RUNTIME_PREFIX_INVARIANCE",
+  "decision_date": "2026-07-18",
+  "experiment_commit":
+    "4d6a3178f02fe14cbb9958fa8d65eee200f86cc7",
+  "auditor_commit": "f8e1b6e",
+  "video": "Pigs291119_000263_30fps",
+  "hard_event_frames": [193, 195],
+  "prefix_frame_exclusive": 210,
+  "extended_processed_frames": 240,
+  "evaluation_contract": {
+    "include_hidden": true,
+    "expected_timing_contract": "causal_framewise",
+    "expected_delay_frames": 0,
+    "generated_mp4_allowed": false
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "safe-refactor-test-guardian",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility"
+  ],
+  "inputs": {
+    "video_sha256":
+      "24274a8c7e8638f223e11ddc7dce4632e1099a0c6ee200d1febda492315842ad",
+    "gt_sha256":
+      "4636c3beb1d6e43a2c58dd45c050c62ee9d37d05010c26e578db1b9200ac21b8",
+    "detector_sha256":
+      "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+    "mask_sha256":
+      "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658"
+  },
+  "profiles": {
+    "realtime_fast": {
+      "prefix_run_id": "20260718_4d6a317_r0_fast_prefix210_v1",
+      "extended_run_id": "20260718_4d6a317_r0_fast_extended240_v1",
+      "prefix_run_manifest_sha256":
+        "41e4317eb5063553ffb319fa5d9bc692201e8a5def0fd7a4fd043bd33cd0a5e6",
+      "extended_run_manifest_sha256":
+        "3d12724ef01a0323aac3fba87a77a479471ab541befb92b92f3c679d4cf7be54",
+      "compared_payload_count": 1680,
+      "prefix_payload_sha256":
+        "0f2f42ed5d996e2a22eda0ecfd0a712e2f3b71e972d1f41910601e5337a867b4",
+      "payloads_equal": true,
+      "mp4_count": 0,
+      "audit_sha256":
+        "6d65094ae7420fb198e8a79f551612d38af19ddfd3b00ed604ed05c973727cde"
+    },
+    "realtime_balanced": {
+      "prefix_run_id": "20260718_4d6a317_r0_balanced_prefix210_v1",
+      "extended_run_id": "20260718_4d6a317_r0_balanced_extended240_v1",
+      "prefix_run_manifest_sha256":
+        "4108fb535e7a322615f76ea2d1bc95df922b1c5323635f6a8e26a556891b8165",
+      "extended_run_manifest_sha256":
+        "eef68378d6ac4db4ff8cc0a8e81a0c728f57ea41264833fea1b2e346b4b7e7e6",
+      "compared_payload_count": 1680,
+      "prefix_payload_sha256":
+        "c6d10ce2949bf3d3b8f8cae2c655a206a02064474ab35a2d53cb7e40a2686fb6",
+      "payloads_equal": true,
+      "mp4_count": 0,
+      "audit_sha256":
+        "5736321431f888e2cbf26697fe37dc3bbb324a181d36e5251f6cbfa987f924dd"
+    }
+  },
+  "static_and_synthetic_checks": {
+    "causality_repeatability_baseline_telemetry_tests": "23 passed",
+    "prefix_auditor_and_telemetry_tests": "11 passed",
+    "ruff": "PASS",
+    "py_compile": "PASS"
+  },
+  "decision": [
+    "realtime_fast and realtime_balanced retain causal-framewise delay-0",
+    "claims for the tested runtime path. Appending 30 future frames after",
+    "the hard 000263 occlusion event did not change any of 1,680 flushed",
+    "XML box payloads in either profile."
+  ],
+  "claim_boundary": [
+    "This closes R0 for the tested hard-event prefix boundary.",
+    "realtime_quality_delayed remains post-video global-graph delay -1."
+  ],
+  "rollback": "git revert f8e1b6e",
+  "next_step":
+    "Open one isolated realtime weak-event ablation with target and guardrails."
+}

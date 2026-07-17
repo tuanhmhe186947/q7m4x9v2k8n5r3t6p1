@@ -1,5 +1,19 @@
 # Benchmark Notes
 
+## 2026-07-18 realtime R0 runtime causality gate
+
+- `realtime_fast` and `realtime_balanced` were run on `000263` through frame
+  210 and independently through frame 240, covering the hard occlusion at
+  frames `193/195` before appending 30 future frames.
+- Both profiles preserve all 1,680 already-flushed XML box payloads, declare
+  `causal_framewise` with delay `0`, and have zero MP4 across prediction and
+  evaluation roots.
+- Auditor and tests are committed at `f8e1b6e`. The two immutable audit JSONs
+  are under `outputs/eval/tracking_causality/`
+  `20260718_f8e1b6e_r0_prefix_invariance_audit_v1`.
+- Hashes, run IDs, claim boundary and rollback are locked in
+  `docs/TRACKING_CAUSALITY_DECISION_20260718_R0.json`.
+
 ## 2026-07-18 hybrid far-camera identity guard promotion
 
 - Parent authority:

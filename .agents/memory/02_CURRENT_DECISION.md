@@ -47,14 +47,19 @@ with no per-video IDSW regression. HOTA and IDF1 remain `98.31%` and `99.13%`
 at report precision. The raw trade-off is FP/FN `1628 -> 1630`, concentrated in
 `000302: 68 -> 75`, while `000216` improves `330 -> 325`. Judge this as an
 overall tracking improvement, not by requiring every raw metric to be
-monotonic. Commits are `7254670` for the opt-in algorithm and `e74a8fa` for the
+monotonic. Commits are `7254670` for the algorithm and `e74a8fa` for the
 separate profile promotion. The authoritative decision is
 `docs/TRACKING_PROMOTION_DECISION_20260718_HYBRID_FAR_IDENTITY_GUARD.json`.
 
 Synthetic R0 causality, repeatability, baseline-lock and telemetry checks pass
-`23/23` for the two causal realtime profiles. Next, bind a runtime-level R0
-audit and then open one isolated weak-event ablation at a time. Every run must
-use `include_hidden=true`, a fresh output root and recursive `mp4_count=0`.
+`23/23` for the two causal realtime profiles. Runtime R0 also passes on the
+`000263` hard event: prefix 210 versus extended 240 frames preserves all 1,680
+flushed XML box payloads for both fast and balanced, with declared delay `0`
+and `mp4_count=0`. Auditor commit is `f8e1b6e`; authority is
+`docs/TRACKING_CAUSALITY_DECISION_20260718_R0.json`.
+
+Next, open one isolated weak-event ablation at a time. Every run must use
+`include_hidden=true`, a fresh output root and recursive `mp4_count=0`.
 
 ## Paused decision: reviewed-data rebuild
 
