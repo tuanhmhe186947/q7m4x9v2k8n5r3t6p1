@@ -37,6 +37,9 @@ def test_profile_configs_keep_expected_behavior_separation() -> None:
     assert hybrid["overlap_small_box_suppression"] is True
     assert hybrid["hidden_suffix_id_swap_repair"] is True
     assert hybrid["suffix_pair_swap_repair"] is True
+    assert hybrid["identity_swap_guard_skip_mixed_occlusion_hold"] is True
+    assert hybrid["identity_swap_guard_skip_mixed_occlusion_hold_far_only"] is True
+    assert hybrid["identity_swap_guard_far_x_threshold"] == 0.67
 
 
 def test_get_presentation_profile_returns_mutable_copy() -> None:

@@ -45,6 +45,9 @@ HYBRID_BEST_CONFIG: dict[str, object] = {
     "hidden_suffix_id_swap_repair": True,
     "suffix_pair_swap_repair": True,
     "suffix_pair_swap_min_suffix_frames": 1500,
+    "identity_swap_guard_skip_mixed_occlusion_hold": True,
+    "identity_swap_guard_skip_mixed_occlusion_hold_far_only": True,
+    "identity_swap_guard_far_x_threshold": 0.67,
 }
 
 EVAL_CONFIGS: dict[str, dict[str, object]] = {
@@ -78,6 +81,8 @@ PRESENTATION_PROFILES: dict[str, dict[str, object]] = {
     "hybrid_bytetrack": {
         "mode": "hybrid_bytetrack",
         "eval_config": "hybrid_bytetrack_best",
-        "description": "Best current hybrid profile with offline smoothing and validated ID repairs.",
+        "description": (
+            "Best current hybrid profile with offline smoothing and validated ID repairs."
+        ),
     },
 }
