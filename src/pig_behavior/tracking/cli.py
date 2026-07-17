@@ -344,6 +344,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--mid-conf-smooth-alpha", type=float, default=0.55)
     parser.add_argument("--low-conf-smooth-alpha", type=float, default=0.35)
     parser.add_argument("--refine-max-gap", type=int, default=15)
+    parser.add_argument("--refine-max-previous-gap", type=int, default=0)
     parser.add_argument("--refine-size-jump-threshold", type=float, default=0.45)
     parser.add_argument("--visual-opacity", type=float, default=DEFAULT_VISUAL_OPACITY)
     parser.add_argument("--no-mask", action="store_true")
@@ -510,6 +511,8 @@ def _tracking_config_from_args(
             cfg_overrides.add("dup_iou_threshold")
         elif key == "refine_max_gap":
             cfg_overrides.add("refine_max_gap_frames")
+        elif key == "refine_max_previous_gap":
+            cfg_overrides.add("refine_max_previous_gap_frames")
         elif key == "max_box_scale_change":
             cfg_overrides.add("max_box_scale_change_per_frame")
 
@@ -632,6 +635,7 @@ def _tracking_config_from_args(
         smooth_boxes=not args.no_smooth_boxes,
         refine_boxes=not args.no_refine_boxes,
         refine_max_gap_frames=args.refine_max_gap,
+        refine_max_previous_gap_frames=args.refine_max_previous_gap,
         refine_size_jump_threshold=args.refine_size_jump_threshold,
         max_box_scale_change_per_frame=args.max_box_scale_change,
         max_box_scale_change_after_gap=args.max_box_scale_change_after_gap,

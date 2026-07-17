@@ -323,7 +323,10 @@ def stabilize_overlap_hidden_islands(
             for second in candidate_shapes[idx + 1 :]:
                 if bbox_iou(shape_box(first), shape_box(second)) < threshold:
                     continue
-                first_hidden_history = nearby_hidden_count(shape_fixed_id(first), int(first["frame"]))
+                first_hidden_history = nearby_hidden_count(
+                    shape_fixed_id(first),
+                    int(first["frame"]),
+                )
                 second_hidden_history = nearby_hidden_count(
                     shape_fixed_id(second),
                     int(second["frame"]),
@@ -378,10 +381,15 @@ def nearby_anchor_indices(
     frame = int(track_shapes[current_index]["frame"])
     previous_idx = None
     next_idx = None
+    previous_gap_limit = (
+        cfg.refine_max_previous_gap_frames
+        if cfg.refine_max_previous_gap_frames > 0
+        else cfg.refine_max_gap_frames
+    )
     for idx in reversed(stable_indices):
         if idx >= current_index:
             continue
-        if frame - int(track_shapes[idx]["frame"]) <= cfg.refine_max_gap_frames:
+        if frame - int(track_shapes[idx]["frame"]) <= previous_gap_limit:
             previous_idx = idx
         break
     for idx in stable_indices:
@@ -1132,9 +1140,16 @@ def find_episode_anchor(
 ) -> dict[str, Any] | None:
     frames = by_id_frame.get(fixed_id, {})
     if before:
-        candidates = range(start_frame - 1, start_frame - cfg.episode_pair_swap_anchor_window_frames - 1, -1)
+        candidates = range(
+            start_frame - 1,
+            start_frame - cfg.episode_pair_swap_anchor_window_frames - 1,
+            -1,
+        )
     else:
-        candidates = range(end_frame + 1, end_frame + cfg.episode_pair_swap_anchor_window_frames + 1)
+        candidates = range(
+            end_frame + 1,
+            end_frame + cfg.episode_pair_swap_anchor_window_frames + 1,
+        )
     for frame in candidates:
         shape = frames.get(frame)
         if shape is not None and shape_is_visible_for_local_swap(shape):
@@ -1219,8 +1234,16 @@ def repair_episode_pair_swaps(
                     continue
 
                 episode_frames = range(start_frame, end_frame + 1)
-                first_episode_shapes = [first_frames[frame] for frame in episode_frames if frame in first_frames]
-                second_episode_shapes = [second_frames[frame] for frame in episode_frames if frame in second_frames]
+                first_episode_shapes = [
+                    first_frames[frame]
+                    for frame in episode_frames
+                    if frame in first_frames
+                ]
+                second_episode_shapes = [
+                    second_frames[frame]
+                    for frame in episode_frames
+                    if frame in second_frames
+                ]
                 if not first_episode_shapes or not second_episode_shapes:
                     continue
 

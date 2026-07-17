@@ -308,6 +308,7 @@ class TrackingConfig:
     smooth_boxes: bool = True
     refine_boxes: bool = True
     refine_max_gap_frames: int = 15
+    refine_max_previous_gap_frames: int = 0
     refine_size_jump_threshold: float = 0.45
     max_box_scale_change_per_frame: float = 0.25
     max_box_scale_change_after_gap: float = 0.75
@@ -578,6 +579,8 @@ def validate_config(cfg: TrackingConfig) -> None:
             raise ValueError(f"{name} must be between 0 and 2.")
     if cfg.refine_max_gap_frames < 1:
         raise ValueError("refine_max_gap_frames must be >= 1.")
+    if cfg.refine_max_previous_gap_frames < 0:
+        raise ValueError("refine_max_previous_gap_frames must be >= 0.")
     if not 0.0 <= cfg.refine_size_jump_threshold <= 2.0:
         raise ValueError("refine_size_jump_threshold must be between 0 and 2.")
     alpha_values = {

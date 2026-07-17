@@ -46,7 +46,10 @@ from pig_behavior.tracking.association import (
     video_in_reentry_ambiguous_hold_scope,
 )
 from pig_behavior.tracking.config import validate_config
-from pig_behavior.tracking.refinement import stabilize_overlap_hidden_islands
+from pig_behavior.tracking.refinement import (
+    nearby_anchor_indices,
+    stabilize_overlap_hidden_islands,
+)
 from pig_behavior.tracking.tracks import shape_for_track
 
 
@@ -82,6 +85,34 @@ def _set_hidden(shape: dict, hidden: bool) -> dict:
             attribute["value"] = "Yes" if hidden else "No"
     shape["occluded"] = hidden
     return shape
+
+
+def test_nearby_anchor_indices_default_remains_symmetric() -> None:
+    shapes = [{"frame": frame} for frame in (0, 20, 40)]
+    cfg = TrackingConfig(refine_max_gap_frames=30)
+
+    assert nearby_anchor_indices(shapes, [0, 2], 1, cfg) == (0, 2)
+
+
+def test_nearby_anchor_indices_supports_asymmetric_gap_limits() -> None:
+    shapes = [{"frame": frame} for frame in (0, 20, 40)]
+    cfg = TrackingConfig(
+        refine_max_gap_frames=30,
+        refine_max_previous_gap_frames=15,
+    )
+
+    assert nearby_anchor_indices(shapes, [0, 2], 1, cfg) == (None, 2)
+
+
+def test_negative_refine_max_previous_gap_is_rejected() -> None:
+    cfg = TrackingConfig(refine_max_previous_gap_frames=-1)
+
+    try:
+        validate_config(cfg)
+    except ValueError as exc:
+        assert "refine_max_previous_gap_frames" in str(exc)
+    else:
+        raise AssertionError("negative previous refinement gap should fail")
 
 
 def test_overlap_hidden_stabilization_restores_hidden_owner() -> None:
