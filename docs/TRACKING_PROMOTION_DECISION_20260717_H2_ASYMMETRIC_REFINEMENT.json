@@ -1,0 +1,161 @@
+{
+  "schema_version": "tracking_promotion_decision_v1",
+  "status": "rejected",
+  "decision_date": "2026-07-17",
+  "parent_prediction_commit": "ec67d27b49b4bb375b805d52aaf87c22f4211e4e",
+  "candidate_commit": "e55973f4d8311f996828207e5b9b79031fdbb58d",
+  "contract_commit": "d7b134034cfed580f16fba4658fb01e11bf8eb8a",
+  "profile": "hybrid_bytetrack_best",
+  "changed_family": "hybrid_temporal_bbox_refinement",
+  "hypothesis": "Longer future anchors improve bbox matching without identity drift.",
+  "parent_values": {
+    "refine_max_gap_frames": 15,
+    "refine_max_previous_gap_frames": 0
+  },
+  "candidate_values": {
+    "refine_max_gap_frames": 30,
+    "refine_max_previous_gap_frames": 15
+  },
+  "run_ids": {
+    "target": "20260717_e55973f_h2_pastonly15_future30_target216_v2",
+    "guard": "20260717_e55973f_h2_pastonly15_future30_guard302_v2",
+    "full13": "20260717_e55973f_h2_pastonly15_future30_full13_v2",
+    "baseline_replay": "20260717_e55973f_includehidden_full13_baseline_ec67d27_v1"
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "safe-refactor-test-guardian",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility"
+  ],
+  "evaluation_contract": {
+    "include_hidden": true,
+    "hidden_attribute_is_optimization_target": false,
+    "exclude_hidden_compatibility_only": true,
+    "iou_threshold": 0.5,
+    "gap_tolerance_frames": 15,
+    "video_count": 13,
+    "gt_detections": 187200,
+    "prediction_detections": 187200,
+    "condarea_enabled": false
+  },
+  "lineage": {
+    "detector_sha256": "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+    "baseline_origin_semantic_config_sha256":
+      "152e6a08eb5334420f746dc5436a52d41d22a962cf0bf6d4d36d5d98ff582626",
+    "baseline_replay_semantic_config_sha256":
+      "f1807590252c70289c37ca73f6c7f18b0e537e61b3bb37aad3f9950d68ba30e9",
+    "candidate_semantic_config_sha256":
+      "f1b9ccebe88915e99303cec6cdfaff1ccbd77d6d6ac36ab82865463eb8367c24",
+    "baseline_replay_run_manifest_sha256":
+      "9645bbb6002d6951550f410f837632997a1f7ace8fdff5e6358a553a0c3e8608",
+    "candidate_run_manifest_sha256":
+      "3ac3215a62b2e8b466c42c0df3d809788a634b0980527e1134c82421b19e30dc",
+    "baseline_metrics_sha256": "9cf88f4af4b76856964af9f00061ae7055208eb53d07eb42097db9aa4b95dc68",
+    "candidate_metrics_sha256": "ffe9e1334bd365f512f3fd7b766661b66880b3d253369b4be17726d2d683a767",
+    "baseline_artifact_manifest_sha256":
+      "9454658403b2cd2fc9bc1206f744d4a0b8b940d95ebf7f81bb1a127310941f5f",
+    "candidate_artifact_manifest_sha256":
+      "4c973947b5e941d6aaab0e50b90efd6e62bd8ec12c8efff14e31eaf0b5408134"
+  },
+  "aggregate_quality": {
+    "baseline": {
+      "matches": 185572,
+      "fp": 1628,
+      "fn": 1628,
+      "remapped_idsw": 10,
+      "remapped_fragments": 429,
+      "remapped_gap_tolerant_fragments": 5,
+      "remapped_hota": 0.9831034229640333,
+      "remapped_idf1": 0.9912713675213676,
+      "motp_iou": 0.9184802388052747
+    },
+    "candidate": {
+      "matches": 185646,
+      "fp": 1554,
+      "fn": 1554,
+      "remapped_idsw": 14,
+      "remapped_fragments": 421,
+      "remapped_gap_tolerant_fragments": 6,
+      "remapped_hota": 0.9838219866279395,
+      "remapped_idf1": 0.991650641025641,
+      "motp_iou": 0.9183476581574659
+    },
+    "candidate_minus_baseline": {
+      "matches": 74,
+      "fp": -74,
+      "fn": -74,
+      "remapped_idsw": 4,
+      "remapped_fragments": -8,
+      "remapped_gap_tolerant_fragments": 1,
+      "remapped_hota_percentage_points": 0.07185636639062132,
+      "remapped_idf1_percentage_points": 0.03792735042734696,
+      "motp_iou_percentage_points": -0.013258064780885537
+    }
+  },
+  "per_video_guardrail_failures": {
+    "Pigs281119_000085_30fps": {
+      "remapped_idsw": [0, 2],
+      "remapped_hota": [0.9909350182007693, 0.9907265081491429],
+      "remapped_idf1": [0.9954166666666666, 0.9952777777777778]
+    },
+    "Pigs301119_000328_30fps": {
+      "remapped_idsw": [4, 6],
+      "remapped_hota": [0.983171737330971, 0.9813085661390792],
+      "remapped_idf1": [0.99125, 0.9902083333333334],
+      "fp": [123, 137],
+      "fn": [123, 137]
+    },
+    "Pigs291119_000231_30fps": {
+      "remapped_gap_tolerant_fragments": [1, 2]
+    }
+  },
+  "changed_family_payload_integrity": {
+    "shape_keys_equal": true,
+    "shape_count_per_run": 187200,
+    "bbox_changes": 4628,
+    "track_id_and_behavior_values_equal": true,
+    "non_geometry_payload_equal": false,
+    "hidden_occluded_changes": 68,
+    "hidden_yes_to_no": 67,
+    "hidden_no_to_yes": 1,
+    "cause": "Refined boxes feed downstream overlap Hidden stabilization."
+  },
+  "guardrails": {
+    "recursive_no_mp4": true,
+    "baseline_mp4_count": 0,
+    "candidate_mp4_count": 0,
+    "per_video_idsw_non_regression": false,
+    "geometry_only_payload_integrity": false,
+    "per_video_hota_drop_limit": false,
+    "per_video_idf1_drop_limit": false,
+    "gap_tolerant_fragments_non_increase": false
+  },
+  "repeatability": {
+    "status": "not_run_primary_failed",
+    "reason": "Primary full-13 failed identity and payload-integrity gates."
+  },
+  "validation": {
+    "focused_refinement_tests": "3 passed",
+    "tracking_tests": "96 passed, 4 deselected for absent optional assets",
+    "ruff": "pass",
+    "compileall": "pass",
+    "full13_exit_code": 0,
+    "git_dirty_at_run_start": false
+  },
+  "failed_gates": [
+    "per_video_idsw_non_regression",
+    "geometry_only_non_geometry_payload_equal",
+    "per_video_hota_drop_max_0_10_percentage_points",
+    "per_video_idf1_drop_max_0_05_percentage_points",
+    "gap_tolerant_fragments_non_increase"
+  ],
+  "decision": "reject_do_not_repeat_do_not_promote",
+  "defaults_after_decision": {
+    "refine_max_gap_frames": 15,
+    "refine_max_previous_gap_frames": 0
+  },
+  "rollback": "No default changed; optionally revert e55973f then e1374af.",
+  "next_step": "Replay realtime evidence under include_hidden=true."
+}

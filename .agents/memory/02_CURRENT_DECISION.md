@@ -6,7 +6,29 @@ Only the active decision immediately below controls current work. All later
 sections are historical records. Current gate status is centralized in
 `docs/CLASSIFICATION_V2_CURRENT_STATE.md`.
 
-## Active decision: reviewed-data rebuild
+## Active decision: tracking-only roadmap
+
+The user explicitly moved tracking work to `PIG_task_tracking` on branch
+`task/update-tracking`. Do not touch classification code, data, or model work.
+
+Tracking GT was seeded by an older tracker and manually corrected for bbox/ID.
+Primary evaluation therefore uses `include_hidden=true`; the 1,930
+tracker-derived `Hidden` values are not a visibility target. Exclude-Hidden
+metrics are compatibility evidence only.
+
+The H2 asymmetric refinement candidate at `e55973f` is rejected. Its full-13
+run improved matches by 74 and aggregate HOTA by 0.0719 percentage points, but
+increased IDSW from 10 to 14, including `000085: 0 -> 2` and `000328: 4 -> 6`.
+It also changed 68 `Hidden/occluded` payloads after bbox refinement, so it was
+not geometry-only through the complete post-processing chain. Do not repeat or
+promote `refine_max_gap_frames=30` plus
+`refine_max_previous_gap_frames=15`. Defaults remain unchanged at `15/0`.
+
+Next, replay hash-bound realtime baselines and prior candidates with
+`include_hidden=true`, preserve no-MP4 and latency gates, and retain or reject
+each existing promotion under the corrected contract before a new ablation.
+
+## Paused decision: reviewed-data rebuild
 
 ### Agent execution isolation
 
