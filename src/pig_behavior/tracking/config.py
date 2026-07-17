@@ -205,6 +205,9 @@ class TrackingConfig:
     hard_occlusion_recovery_frames: int = DEFAULT_SPLIT_RECOVERY_FRAMES
     hard_occlusion_score_threshold: float = 0.65
     identity_swap_guard: bool = True
+    identity_swap_guard_skip_mixed_occlusion_hold: bool = False
+    identity_swap_guard_skip_mixed_occlusion_hold_far_only: bool = False
+    identity_swap_guard_far_x_threshold: float = 0.67
     identity_swap_min_gain: float = 0.015
     identity_swap_iom_threshold: float = 0.10
     # Experimental: frame-local motion repair did not affect the 20260703_221004

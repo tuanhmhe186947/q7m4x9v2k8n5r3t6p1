@@ -522,7 +522,30 @@ def identity_swap_reason(
     current_second: dict[str, Any],
     gain: float,
     cfg: TrackingConfig,
+    frame_width: int | None = None,
 ) -> str | None:
+    if cfg.identity_swap_guard_skip_mixed_occlusion_hold:
+        current_shapes = (current_first, current_second)
+        hold_count = sum(
+            bool(shape.get("_occlusion_hold")) for shape in current_shapes
+        )
+        detected_count = sum(
+            shape.get("_track_source") == "detected"
+            and not shape.get("_occlusion_hold")
+            for shape in current_shapes
+        )
+        if hold_count == 1 and detected_count == 1:
+            if not cfg.identity_swap_guard_skip_mixed_occlusion_hold_far_only:
+                return None
+            if frame_width is None or frame_width <= 0:
+                return None
+            mean_center_x = sum(
+                (shape_box(shape)[0] + shape_box(shape)[2]) / 2.0
+                for shape in current_shapes
+            ) / len(current_shapes)
+            if mean_center_x / frame_width >= cfg.identity_swap_guard_far_x_threshold:
+                return None
+
     previous_iom = bbox_iom(shape_box(previous_first), shape_box(previous_second))
     current_iom = bbox_iom(shape_box(current_first), shape_box(current_second))
     if max(previous_iom, current_iom) >= cfg.identity_swap_iom_threshold:
@@ -672,6 +695,7 @@ def apply_identity_swap_guard(
                         cur_second,
                         gain,
                         cfg,
+                        frame_width=width,
                     )
                     if reason is None:
                         continue

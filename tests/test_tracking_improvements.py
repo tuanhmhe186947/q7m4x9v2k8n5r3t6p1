@@ -302,6 +302,75 @@ def test_identity_swap_guard_swaps_geometry_without_relabeling() -> None:
     assert frame_one["Pig_2"]["_identity_swap_with"] == 1
 
 
+def test_identity_swap_guard_mixed_hold_veto_is_opt_in() -> None:
+    shapes = [
+        _shape(0, 1, [0, 0, 20, 20]),
+        _shape(0, 2, [100, 0, 120, 20]),
+        _shape(1, 1, [102, 0, 122, 20]),
+        _shape(1, 2, [2, 0, 22, 20]),
+    ]
+    shapes[-1]["_track_source"] = "predicted"
+    shapes[-1]["_occlusion_hold"] = True
+
+    default_guarded = apply_identity_swap_guard(
+        shapes,
+        width=200,
+        height=100,
+        cfg=TrackingConfig(identity_swap_min_gain=0.01),
+    )
+    explicit_default_guarded = apply_identity_swap_guard(
+        shapes,
+        width=200,
+        height=100,
+        cfg=TrackingConfig(
+            identity_swap_min_gain=0.01,
+            identity_swap_guard_skip_mixed_occlusion_hold=False,
+        ),
+    )
+    vetoed = apply_identity_swap_guard(
+        shapes,
+        width=200,
+        height=100,
+        cfg=TrackingConfig(
+            identity_swap_min_gain=0.01,
+            identity_swap_guard_skip_mixed_occlusion_hold=True,
+        ),
+    )
+
+    assert default_guarded == explicit_default_guarded
+    assert default_guarded[2]["points"] == [2, 0, 22, 20]
+    assert vetoed[2]["points"] == [102, 0, 122, 20]
+    assert vetoed[3]["points"] == [2, 0, 22, 20]
+    assert "_identity_swap_guard" not in vetoed[2]
+    assert "_identity_swap_guard" not in vetoed[3]
+
+
+def test_identity_swap_guard_far_only_keeps_wall_mixed_hold_behavior() -> None:
+    shapes = [
+        _shape(0, 1, [100, 0, 120, 20]),
+        _shape(0, 2, [160, 0, 180, 20]),
+        _shape(1, 1, [162, 0, 182, 20]),
+        _shape(1, 2, [102, 0, 122, 20]),
+    ]
+    shapes[-1]["_track_source"] = "predicted"
+    shapes[-1]["_occlusion_hold"] = True
+
+    far_only = apply_identity_swap_guard(
+        shapes,
+        width=200,
+        height=100,
+        cfg=TrackingConfig(
+            identity_swap_min_gain=0.01,
+            identity_swap_guard_skip_mixed_occlusion_hold=True,
+            identity_swap_guard_skip_mixed_occlusion_hold_far_only=True,
+        ),
+    )
+
+    assert far_only[2]["points"] == [162, 0, 182, 20]
+    assert far_only[3]["points"] == [102, 0, 122, 20]
+    assert "_identity_swap_guard" not in far_only[2]
+
+
 def test_initialize_tracks_uses_spatial_anchor_ids() -> None:
     cfg = TrackingConfig(expected_pigs=2, initial_track_conf=0.5)
     hist = np.full((16 * 16 * 4,), 1.0 / (16 * 16 * 4), dtype=np.float32)
