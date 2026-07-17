@@ -101,7 +101,9 @@ def test_nearby_anchor_indices_supports_asymmetric_gap_limits() -> None:
         refine_max_previous_gap_frames=15,
     )
 
-    assert nearby_anchor_indices(shapes, [0, 2], 1, cfg) == (None, 2)
+    assert nearby_anchor_indices(shapes, [0, 2], 1, cfg) == (0, 2)
+    assert nearby_anchor_indices(shapes[:2], [0], 1, cfg) == (None, None)
+    assert nearby_anchor_indices(shapes[1:], [1], 0, cfg) == (None, 1)
 
 
 def test_negative_refine_max_previous_gap_is_rejected() -> None:

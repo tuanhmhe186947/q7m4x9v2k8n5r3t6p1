@@ -308,6 +308,7 @@ class TrackingConfig:
     smooth_boxes: bool = True
     refine_boxes: bool = True
     refine_max_gap_frames: int = 15
+    # Zero keeps symmetric behavior; positive values cap past-only fallback.
     refine_max_previous_gap_frames: int = 0
     refine_size_jump_threshold: float = 0.45
     max_box_scale_change_per_frame: float = 0.25

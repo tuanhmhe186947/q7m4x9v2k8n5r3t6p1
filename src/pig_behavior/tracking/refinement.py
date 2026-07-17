@@ -381,15 +381,10 @@ def nearby_anchor_indices(
     frame = int(track_shapes[current_index]["frame"])
     previous_idx = None
     next_idx = None
-    previous_gap_limit = (
-        cfg.refine_max_previous_gap_frames
-        if cfg.refine_max_previous_gap_frames > 0
-        else cfg.refine_max_gap_frames
-    )
     for idx in reversed(stable_indices):
         if idx >= current_index:
             continue
-        if frame - int(track_shapes[idx]["frame"]) <= previous_gap_limit:
+        if frame - int(track_shapes[idx]["frame"]) <= cfg.refine_max_gap_frames:
             previous_idx = idx
         break
     for idx in stable_indices:
@@ -398,6 +393,14 @@ def nearby_anchor_indices(
         if int(track_shapes[idx]["frame"]) - frame <= cfg.refine_max_gap_frames:
             next_idx = idx
         break
+    if (
+        previous_idx is not None
+        and next_idx is None
+        and cfg.refine_max_previous_gap_frames > 0
+        and frame - int(track_shapes[previous_idx]["frame"])
+        > cfg.refine_max_previous_gap_frames
+    ):
+        previous_idx = None
     return previous_idx, next_idx
 
 
