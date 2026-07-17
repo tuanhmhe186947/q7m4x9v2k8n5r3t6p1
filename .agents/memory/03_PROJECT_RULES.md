@@ -81,6 +81,25 @@ previous commit-`18d6692` full run is historical engineering evidence only.
 The tracking rules below are historical/preserved for tracking tasks. They do
 not supersede the active classification_v2 rules above.
 
+## 2026-07-17 tracking GT and Hidden contract
+
+1. Tracking GT was seeded by an older tracker and then manually corrected for
+   bbox and ID. Treat the corrected bbox and ID as the evaluation authority.
+2. The 1,930 `Hidden` values may preserve errors from the older tracker. Do not
+   treat them as human-confirmed visibility or optimize a tracker to reproduce
+   them.
+3. Primary geometry and identity evaluation must use `include_hidden=true` so
+   corrected bbox/ID rows are not discarded. An exclude-Hidden replay is only
+   a compatibility report and cannot authorize promotion.
+4. Compare every candidate with a baseline replayed under the identical
+   include-Hidden contract. Require per-video remapped IDSW delta to be at most
+   zero; require exact IDSW zero only where that same-contract baseline is zero.
+5. A geometry-only ablation must preserve track IDs, shape keys, Behavior,
+   `Hidden`, `occluded`, and all non-geometry payload. Reject it before repeat
+   if downstream post-processing changes any of those fields.
+6. Never generate MP4, preview, overlay, or event clips during tracking
+   evaluation, replay, diagnosis, ablation, or benchmark.
+
 ## Skill-first execution rules
 
 1. Before evaluation, benchmark, ablation, or nontrivial implementation, review

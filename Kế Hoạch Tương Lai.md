@@ -9,14 +9,22 @@ sử, nhưng không được dùng để bỏ qua các gate mới.
 
 - Hybrid chuẩn là `hybrid_bytetrack_best` với rule
   `iou0_area0_condarea0_merge0`.
-- Artifact đúng hiện có là run `20260707_230230`: 13 video đều có
+- Run `20260707_230230` là mốc tương thích exclude-Hidden: 13 video đều có
   `remapped_idsw=0`, HOTA `97.26%`, IDF1 `98.58%`, FP `2911`, FN `2346`,
-  và gap-tolerant fragments `55`.
+  và gap-tolerant fragments `55`. Không dùng nó làm authority cho promotion.
+- Baseline chính theo GT đúng là prediction
+  `20260717_ec67d27_full13_primary_hybrid_best`, replay tại
+  `20260717_e55973f_includehidden_full13_baseline_ec67d27_v1` với
+  `include_hidden=true`: IDSW `10`, HOTA `98.31%`, IDF1 `99.13%`, FP/FN
+  `1628/1628`, và gap-tolerant fragments `5`.
+- GT được tracker cũ sinh trước rồi con người sửa bbox/ID. Khoảng 1.930 giá trị
+  `Hidden` có thể là lỗi tracker cũ, không phải visibility đã được xác nhận.
+  Vì vậy bbox/ID là authority; `Hidden` không phải target tối ưu.
 - Không dùng hàng `ALL` của `codex_visible_suffix_gate_full`: artifact đó đang
   đọc sai/stale GT `000216` và báo `remapped_idsw=33`.
-- Run `outputs/eval/mode_compare/20260709_040751` là mốc so sánh mode hiện có.
-  Nó đã gồm raw, hybrid và đủ ba profile realtime; không lập kế hoạch tạo lại
-  các profile này.
+- Run `outputs/eval/mode_compare/20260709_040751` đã gồm raw, hybrid và đủ ba
+  profile realtime, nhưng dùng `include_hidden=false`. Giữ nó để tương thích;
+  phải replay hoặc tái tạo hash-bound với `include_hidden=true` trước promotion.
 - `realtime_fast`: IDSW `56`, HOTA `93.10%`, IDF1 `92.91%`, FP/FN
   `2367/1019`.
 - `realtime_balanced`: IDSW `75`, HOTA `92.77%`, IDF1 `93.12%`, FP/FN
@@ -26,6 +34,9 @@ sử, nhưng không được dùng để bỏ qua các gate mới.
 - Các video quality-delayed còn yếu là `000114=2`, `000231=6`, `000233=9`,
   `000263=2`, `000327=2`.
 
+Các số realtime ở trên đều thuộc hợp đồng exclude-Hidden lịch sử. Không dùng
+chúng để chọn hoặc promote candidate cho đến khi có baseline include-Hidden.
+
 Mỗi baseline lock phải ghi SHA commit, hash detector weight, danh sách video,
 ánh xạ video-GT, hash GT/XML, semantic config và output root mới. Sai stem,
 trùng video, thiếu file hoặc output root đã tồn tại phải fail closed.
@@ -34,8 +45,9 @@ trùng video, thiếu file hoặc output root đã tồn tại phải fail close
 
 - Ba profile realtime đã được triển khai trong code và đã benchmark tại
   `20260709_040751`. Giữ nguyên tên/profile; không tạo bản trùng lặp.
-- `hybrid_bytetrack`: offline/high-quality; IDSW bằng `0` trên từng video là
-  hard guardrail. Mục tiêu mới là HOTA, IDF1, FP/FN và fragmentation.
+- `hybrid_bytetrack`: offline/high-quality; không video nào được tăng IDSW so
+  với baseline include-Hidden cùng contract. Chỉ yêu cầu đúng `0` khi baseline
+  cùng contract của video đó bằng `0`.
 - `realtime_fast` và `realtime_balanced`: causal, không sửa output đã phát.
 - `realtime_quality_delayed`: chỉ được gọi fixed-delay sau khi chứng minh mọi
   quyết định dùng buffer hữu hạn và frame tương lai ngoài buffer không thể đổi
@@ -74,7 +86,10 @@ Test bắt buộc phải chứng minh khi video output tắt:
 
 Hybrid chỉ được promote khi toàn bộ điều kiện sau cùng đúng:
 
-- Cả 13 video vẫn có `remapped_idsw=0`; `000302` luôn bằng `0`.
+- Baseline, candidate và repeat đều dùng `include_hidden=true`; báo cáo loại
+  Hidden chỉ dùng để đối chiếu tương thích.
+- Không video nào tăng remapped IDSW so với baseline cùng contract; video có
+  baseline IDSW bằng `0` phải giữ bằng `0`.
 - Aggregate HOTA và IDF1 không giảm; không video nào giảm HOTA quá `0.10`
   điểm phần trăm hoặc IDF1 quá `0.05` điểm phần trăm.
 - FP, FN và gap-tolerant fragments không tăng ngoài sai số đã khai báo.
@@ -84,7 +99,8 @@ Hybrid chỉ được promote khi toàn bộ điều kiện sau cùng đúng:
 
 Realtime chỉ được promote khi:
 
-- Không video nào tăng remapped IDSW; `000302` vẫn bằng `0`.
+- Không video nào tăng remapped IDSW, kể cả `000302`, so với baseline
+  include-Hidden của chính profile đó.
 - Tổng IDSW giảm ít nhất `2`, hoặc HOTA tăng ít nhất `0.20` điểm phần trăm
   trong khi IDSW và IDF1 không xấu đi.
 - FP và FN mỗi loại không tăng quá `0.5%`.
@@ -154,7 +170,9 @@ Hybrid H2 - Geometry-only refinement:
 
 - Khóa toàn bộ ID payload và repair quyết định identity.
 - Chỉ ablate smoothing/refinement bbox để tăng DetA/MOTP/HOTA.
-- Reject ngay nếu ID, Hidden policy hoặc số shape đổi ngoài contract.
+- Trước full/repeat, so toàn XML và reject nếu track ID, shape key, Behavior,
+  `Hidden`, `occluded` hoặc non-geometry payload đổi. Bbox thay đổi không được
+  phép kích hoạt một family hậu xử lý visibility khác.
 
 Hybrid H3 - Visibility và short-gap recovery:
 
@@ -249,7 +267,8 @@ Stop ngay khi xảy ra một trong các điều kiện:
 - Một diff đổi hơn một họ thuật toán.
 - Infrastructure-only commit làm prediction thay đổi.
 - Bất kỳ bước phân tích nào sinh `.mp4` mới trong output root.
-- Hybrid xuất hiện bất kỳ per-video IDSW lớn hơn `0`.
+- Candidate hybrid làm tăng per-video IDSW so với baseline include-Hidden cùng
+  contract, hoặc làm video baseline-zero xuất hiện IDSW.
 - Realtime dùng future ngoài delay đã khai báo hoặc sửa frame đã flush.
 - Candidate chỉ thắng hàng `ALL` nhưng thua guardrail/per-video.
 - Focused test, full-13, repeat hoặc latency gate không PASS.
@@ -259,22 +278,27 @@ chưa sửa association/refinement và chưa chạy benchmark dài trong lần l
 hoạch này. Các mục lịch sử bên dưới về việc tạo ba profile realtime đã hoàn
 thành và không được thực hiện lại.
 
-  Kết quả mới sau khi sửa GT 216 cho thấy cấu hình hiện tại đã rất mạnh về identity: 13 video đều remapped_idsw=0. Vì vậy hướng tiếp theo
-  không nên tiếp tục “vá IDSW” bừa bãi nữa, mà nên tách dự án thành 3 chế độ rõ ràng theo mục tiêu sử dụng.
+  Kết quả mới sau khi sửa GT 216 cho thấy cấu hình hiện tại đã rất mạnh về
+  identity: 13 video đều remapped_idsw=0. Vì vậy hướng tiếp theo không nên tiếp
+  tục “vá IDSW” bừa bãi nữa, mà nên tách dự án thành 3 chế độ rõ ràng theo mục
+  tiêu sử dụng.
 
   1. Phân Rõ 3 Mode
 
   bytetrack_raw
 
-  Đây nên là baseline kỹ thuật: dùng ByteTrack/Ultralytics gần như nguyên bản, không dùng các guard/repair/smoothing nâng cao của project. Mục
+  Đây nên là baseline kỹ thuật: dùng ByteTrack/Ultralytics gần như nguyên bản,
+  không dùng các guard/repair/smoothing nâng cao của project. Mục
   đích là làm mốc so sánh khoa học: “nếu không có logic cải tiến thì kết quả thế nào”.
 
-  Trong code hiện tại, mode đúng nên gọi là bytetrack_raw. Lưu ý bytetrack đang là legacy alias và bị map về hybrid_bytetrack, nên trong báo
+  Trong code hiện tại, mode đúng nên gọi là bytetrack_raw. Lưu ý bytetrack đang
+  là legacy alias và bị map về hybrid_bytetrack, nên trong báo
   cáo/README nên tránh gọi bytetrack nếu muốn nói baseline thô.
 
   hybrid_bytetrack
 
-  Đây là mode chất lượng cao nhất. Nó nên là mode chính cho xuất CVAT, đánh giá khoa học, tạo annotation, và kết quả tracking cuối cùng.
+  Đây là mode chất lượng cao nhất. Nó nên là mode chính cho xuất CVAT, đánh giá
+  khoa học, tạo annotation, và kết quả tracking cuối cùng.
 
   Nó có thể dùng toàn bộ logic hiện tại:
 
@@ -290,10 +314,12 @@ thành và không được thực hiện lại.
 
   realtime
 
-  Đây nên là mode streaming/low-latency đúng nghĩa. Nó không nên bê nguyên toàn bộ hybrid_bytetrack sang, vì nhiều phần của hybrid cần nhìn
+  Đây nên là mode streaming/low-latency đúng nghĩa. Nó không nên bê nguyên toàn
+  bộ hybrid_bytetrack sang, vì nhiều phần của hybrid cần nhìn
   toàn video hoặc nhìn suffix dài phía sau.
 
-  Realtime nên dùng thiết kế “causal only”: chỉ dùng frame hiện tại và quá khứ, hoặc một buffer rất ngắn nếu chấp nhận delay.
+  Realtime nên dùng thiết kế “causal only”: chỉ dùng frame hiện tại và quá khứ,
+  hoặc một buffer rất ngắn nếu chấp nhận delay.
 
   2. Có Lấy Gì Từ Hybrid Sang Realtime Được Không?
 
@@ -318,7 +344,8 @@ thành và không được thực hiện lại.
   - overlap small-box suppression
   - local pair repair
 
-  Các phần này có thể chạy với buffer 5-15 frame, chấp nhận delay nhỏ. Ví dụ camera realtime vẫn hiển thị trễ 0.2-0.5 giây để đổi lấy ID ổn
+  Các phần này có thể chạy với buffer 5-15 frame, chấp nhận delay nhỏ. Ví dụ
+  camera realtime vẫn hiển thị trễ 0.2-0.5 giây để đổi lấy ID ổn
   định hơn.
 
   Không nên chuyển trực tiếp:
@@ -328,7 +355,8 @@ thành và không được thực hiện lại.
   - long suffix repair
   - các repair cần nhìn hàng trăm frame tương lai
 
-  Đây là logic hậu xử lý offline. Nếu đưa thẳng vào realtime sẽ sai bản chất “realtime”. Nếu muốn dùng, phải đổi thành delayed_realtime với
+  Đây là logic hậu xử lý offline. Nếu đưa thẳng vào realtime sẽ sai bản chất
+  “realtime”. Nếu muốn dùng, phải đổi thành delayed_realtime với
   buffer dài, không gọi là realtime thuần.
 
   3. Thiết Kế Realtime Đề Xuất
@@ -368,7 +396,8 @@ thành và không được thực hiện lại.
 
   4. Hướng Cải Thiện Tiếp Cho Hybrid
 
-  Với hybrid hiện tại, không nên ưu tiên IDSW nữa vì đã đạt 0 trên 13 video. Nếu cải thiện tiếp thì chuyển mục tiêu sang:
+  Với hybrid hiện tại, không nên ưu tiên IDSW nữa vì đã đạt 0 trên 13 video.
+  Nếu cải thiện tiếp thì chuyển mục tiêu sang:
 
   - giảm FP/FN
   - giảm fragment
@@ -442,10 +471,12 @@ thành và không được thực hiện lại.
 
   6. Kết Luận Kỹ Thuật
 
-  Cấu hình tốt nhất hiện tại nên được giữ làm hybrid_bytetrack quality baseline, không nên ép nó thành realtime. Nhưng realtime có thể học từ
+  Cấu hình tốt nhất hiện tại nên được giữ làm hybrid_bytetrack quality
+  baseline, không nên ép nó thành realtime. Nhưng realtime có thể học từ
   hybrid ở phần association/guard causal.
 
-  • Các bước nâng cấp realtime nên đi theo hướng không copy nguyên hybrid_bytetrack, mà tách phần nào dùng được online, phần nào phải bỏ hoặc
+  • Các bước nâng cấp realtime nên đi theo hướng không copy nguyên
+  hybrid_bytetrack, mà tách phần nào dùng được online, phần nào phải bỏ hoặc
   viết lại bằng short-buffer.
 
   Mục tiêu realtime
@@ -456,10 +487,12 @@ thành và không được thực hiện lại.
      Chạy nhanh nhất, detect mỗi N frame, motion/LK predict giữa các frame, ít guard.
 
   2. realtime_balanced
-     Dùng các guard online đã chứng minh từ hybrid_bytetrack, ưu tiên giảm IDSW nhưng vẫn giữ latency thấp.
+     Dùng các guard online đã chứng minh từ hybrid_bytetrack, ưu tiên giảm IDSW
+     nhưng vẫn giữ latency thấp.
 
   3. realtime_quality_delayed
-     Cho phép delay ngắn 15-30 frame để sửa local conflict, nhưng không dùng repair suffix dài như offline.
+     Cho phép delay ngắn 15-30 frame để sửa local conflict, nhưng không dùng
+     repair suffix dài như offline.
 
   Bước 1: Đóng băng baseline realtime hiện tại
 
@@ -594,4 +627,5 @@ thành và không được thực hiện lại.
   - realtime_balanced: ứng dụng camera trực tiếp.
   - realtime_quality_delayed: ứng dụng gần realtime, chấp nhận delay ngắn để tăng ổn định ID.
 
-  Bước tiếp theo thực tế nên làm là benchmark realtime hiện tại trước, rồi mới port từng guard từ hybrid_bytetrack.
+  Bước tiếp theo thực tế nên làm là benchmark realtime hiện tại trước, rồi mới
+  port từng guard từ hybrid_bytetrack.

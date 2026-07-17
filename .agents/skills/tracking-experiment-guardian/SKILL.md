@@ -34,6 +34,10 @@ Guard `hybrid_bytetrack`, `realtime_fast`, `realtime_balanced`, and
 `realtime_quality_delayed`. The existing detector conclusions, profile
 semantics, baseline locks, and no-MP4 constraint are settled inputs.
 
+Tracking GT was seeded by an older tracker and manually corrected for bbox and
+ID. Treat corrected bbox/ID as authoritative. Treat the 1,930 `Hidden` values
+as tracker-derived and not human-confirmed visibility.
+
 ## Required inputs
 
 Require the parent commit, dirty-file inventory, video/GT and detector hashes,
@@ -46,6 +50,10 @@ Change one family per candidate. Compare the same videos, GT, detector,
 evaluation contract, and hardware policy. Preserve negative evidence, raw
 artifact hashes, and canonical prediction hashes that exclude only declared
 volatile CVAT metadata.
+
+Use `include_hidden=true` for primary geometry and identity metrics. This keeps
+corrected bbox/ID rows without making `Hidden` a target. Use exclude-Hidden
+metrics only as a separately labeled compatibility replay.
 
 ## Ordered procedure
 
@@ -74,9 +82,11 @@ volatile CVAT metadata.
   until a prefix-invariance test proves a finite flush boundary.
 - For any causal or fixed-delay claim, append future frames at every declared
   flush boundary and require already-flushed XML payloads to remain identical.
-- Preserve per-video hybrid remapped IDSW `0` as a hard guardrail.
-- Keep `000302` at IDSW at most `2` for `realtime_fast`, and exactly `0` for
-  `realtime_balanced` and `realtime_quality_delayed` candidates.
+- Preserve or improve per-video remapped IDSW against the same-contract
+  include-Hidden baseline. Require exact zero only where that baseline is zero.
+- Preserve or improve `000302` IDSW for each realtime profile against its
+  include-Hidden baseline. Historical fixed limits from exclude-Hidden reports
+  are compatibility evidence only.
 - Do not blame detector weight for the current-code `000263` regression.
 - Keep `iou0_area0_condarea0_merge0`; never enable `condarea` without an
   isolated ablation.
@@ -91,9 +101,14 @@ Promote a candidate only when all applicable gates pass:
 
 - Bind parent and candidate to exact commits, inputs, detector, profile, and
   semantic-config hashes.
+- Require `include_hidden=true` in the primary baseline, candidate, and repeat.
+  Never promote an improvement that depends on excluding tracker-derived
+  `Hidden` rows.
 - Produce no MP4 anywhere under the fresh experiment root.
 - Improve the declared weak metric in both identical runs, not only aggregate.
 - Preserve every declared per-video IDSW and prediction-integrity guardrail.
+- For a geometry-only family, require equal track IDs, shape keys, Behavior,
+  `Hidden`, `occluded`, and other non-geometry payload before full or repeat.
 - Stay within the latency and memory budget of the affected realtime profile.
 - Require repeat effective FPS to be at least 90% of primary effective FPS.
 - Require repeat peak RSS and CUDA memory to stay within 110% of primary.

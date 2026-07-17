@@ -8,12 +8,16 @@
   "hypothesis": "TO_BE_FILLED",
   "changed_family": "TO_BE_FILLED",
   "target_metric": "TO_BE_FILLED",
+  "evaluation_contract": {
+    "include_hidden": true,
+    "hidden_attribute_is_optimization_target": false,
+    "exclude_hidden_compatibility_only": true
+  },
   "guardrails": {
     "no_mp4": true,
-    "hybrid_per_video_idsw_max": 0,
-    "realtime_fast_000302_idsw_max": 2,
-    "realtime_balanced_000302_idsw_max": 0,
-    "realtime_quality_delayed_000302_idsw_max": 0
+    "per_video_idsw_delta_max": 0,
+    "realtime_000302_idsw_delta_max": 0,
+    "geometry_only_non_geometry_payload_equal": true
   },
   "repeatability": {
     "raw_sha256_recorded": false,
