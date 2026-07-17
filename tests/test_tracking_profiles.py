@@ -31,7 +31,7 @@ def test_profile_configs_keep_expected_behavior_separation() -> None:
 
     assert realtime["enable_offline_smoothing"] is False
     assert realtime["realtime_motion_pair_stabilizer"] is True
-    assert realtime["realtime_motion_pair_simple_min_gain"] == 0.005
+    assert realtime["realtime_motion_pair_simple_min_gain"] == 0.003
 
     assert hybrid["enable_offline_smoothing"] is True
     assert hybrid["overlap_small_box_suppression"] is True
@@ -68,7 +68,16 @@ def test_run_tracking_mode_accepts_mode_name() -> None:
     assert spec.loader is not None
     spec.loader.exec_module(module)
 
-    args, extra_args = module.parse_args(["--mode", "realtime_fast", "--task", "eval", "-v", "Pigs291119_000263_30fps"])
+    args, extra_args = module.parse_args(
+        [
+            "--mode",
+            "realtime_fast",
+            "--task",
+            "eval",
+            "-v",
+            "Pigs291119_000263_30fps",
+        ]
+    )
 
     assert args.mode == "realtime_fast"
     assert args.task == "eval"
@@ -148,7 +157,16 @@ def test_run_tracking_mode_has_clear_two_task_model() -> None:
     assert spec.loader is not None
     spec.loader.exec_module(module)
 
-    args, _ = module.parse_args(["--mode", "hybrid_bytetrack", "--task", "track", "-v", "Pigs291119_000263_30fps"])
+    args, _ = module.parse_args(
+        [
+            "--mode",
+            "hybrid_bytetrack",
+            "--task",
+            "track",
+            "-v",
+            "Pigs291119_000263_30fps",
+        ]
+    )
 
     assert args.task == "track"
     assert args.eval_existing is False
@@ -193,7 +211,8 @@ def test_run_tracking_mode_compare_summary_writes_csv_and_markdown(tmp_path) -> 
         encoding="utf-8",
     )
     metrics_csv.write_text(
-        metrics_csv.read_text(encoding="utf-8") + "Pigs291119_000263_30fps,100,98,95,96.94,95.0,92.0,81.0,93.0,"
+        metrics_csv.read_text(encoding="utf-8")
+        + "Pigs291119_000263_30fps,100,98,95,96.94,95.0,92.0,81.0,93.0,"
         "94.0,4,2,94.0,98.5,99.0,98.0,100.0,1,3,5,2,3,1,8,6,1800\n",
         encoding="utf-8",
     )

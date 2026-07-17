@@ -51,7 +51,7 @@ REALTIME_QUALITY_DELAYED_CONFIG: dict[str, object] = {
     "realtime_motion_pair_dense_fallback_max_support_ratio": 0.35,
     "realtime_motion_pair_dense_fallback_min_median_gain": 0.05,
     "realtime_motion_pair_dense_fallback_min_edge_gain": 0.04,
-    "realtime_motion_pair_simple_min_gain": 0.005,
+    "realtime_motion_pair_simple_min_gain": 0.003,
     "realtime_motion_pair_simple_max_component_size": 2,
 }
 
