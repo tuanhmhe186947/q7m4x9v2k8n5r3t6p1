@@ -1,0 +1,94 @@
+{
+  "schema_version": "tracking_promotion_decision_v1",
+  "status": "promoted",
+  "decision_date": "2026-07-17",
+  "parent_commit": "dccad96c08368798ed4314d6044cdd79d7b90029",
+  "candidate_commit": "c5d5e45acfd5e31aea23a4a530936d808fa3e0c5",
+  "profile": "realtime_quality_delayed",
+  "changed_family": "realtime_motion_pair_stabilizer",
+  "changed_key": "realtime_motion_pair_simple_min_gain",
+  "parent_value": 0.005,
+  "candidate_value": 0.003,
+  "hypothesis": "A lower simple-pair gain floor recovers weak identity swaps.",
+  "run_ids": [
+    "20260717_dccad96_p2_simple_gain003_full13_primary_v6",
+    "20260717_dccad96_p2_simple_gain003_full13_repeat_v6"
+  ],
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "safe-refactor-test-guardian",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility"
+  ],
+  "quality": {
+    "baseline": {
+      "remapped_idsw": 21,
+      "remapped_hota_pct": 96.08,
+      "remapped_idf1_pct": 96.57,
+      "fp": 3943,
+      "fn": 1037
+    },
+    "candidate": {
+      "remapped_idsw": 17,
+      "remapped_hota_pct": 96.08,
+      "remapped_idf1_pct": 96.57,
+      "fp": 3943,
+      "fn": 1037
+    },
+    "per_video_idsw_delta": {
+      "Pigs291119_000231_30fps": -2,
+      "Pigs291119_000263_30fps": -2
+    },
+    "regressed_video_count": 0
+  },
+  "guardrails": {
+    "no_mp4": true,
+    "mp4_count": 0,
+    "condarea_enabled": false,
+    "Pigs291119_000231_30fps_idsw_max": 4,
+    "Pigs291119_000233_30fps_idsw_max": 9,
+    "Pigs291119_000263_30fps_idsw_max": 0,
+    "Pigs291119_000302_30fps_idsw_max": 0
+  },
+  "repeatability": {
+    "raw_sha256_recorded": true,
+    "canonical_sha256_equal": true,
+    "metrics_equal_outside_pred_xml": true,
+    "verified_prediction_count": 26,
+    "verified_artifact_count": 72,
+    "semantic_config_sha256": "2a4396cd1e0dc86a70c3dd038df1b7de282ae094940611510a52bfaa18b7a2e3",
+    "universe_sha256": "64a3035d9f8f364eca9f14539fb8d12944d999d5ed932b5cbae58047421122ae"
+  },
+  "runtime": {
+    "primary_loop_fps": 12.085928242557097,
+    "repeat_loop_fps": 12.759420861630579,
+    "repeat_spread_pct": 5.57,
+    "peak_process_rss_bytes": 1665773568,
+    "peak_cuda_memory_reserved_bytes": 358612992,
+    "candidate_postprocess_to_association_pct": [
+      4.62,
+      4.73
+    ],
+    "baseline_postprocess_to_association_pct": [
+      6.24,
+      5.05
+    ],
+    "gate": "pass"
+  },
+  "validation": {
+    "focused_tests": "93 passed",
+    "ruff": "pass",
+    "compileall": "pass",
+    "line_length": "pass",
+    "diff_check": "pass"
+  },
+  "authority": {
+    "lock_dir": "outputs/eval/tracking_candidate_locks",
+    "lock_name": "20260717_dccad96_p2_simple_gain003_full13_v6.json",
+    "authority_sha256": "fd6b36b5ddf2bdb07bdf35ea370f4d1703c7bd230774b8bca01cf980cf6a5012"
+  },
+  "decision": "promote_realtime_quality_delayed_default",
+  "failed_gates": [],
+  "rollback": "git revert c5d5e45acfd5e31aea23a4a530936d808fa3e0c5"
+}
