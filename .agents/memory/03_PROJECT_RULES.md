@@ -2,6 +2,28 @@
 
 ## classification_v2 active rules
 
+### Mandatory worktree routing
+
+Use the current main worktree by default. A different worktree or branch becomes
+binding only when the user explicitly assigns it to the current task or to one
+of two concurrent sessions. For example, if the user assigns
+`C:\Users\ironh\Downloads\PIG_task_model` to this session, all reads, edits,
+tests, audits, and generated outputs must use that worktree; otherwise remain
+in `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
+
+Before the first command and before any edit, verify
+`git rev-parse --show-toplevel`, `git branch --show-current`, and
+`git worktree list` against the user's assignment. If an explicitly assigned
+worktree is unavailable or the branch is unexpected, stop and report it instead
+of continuing in another worktree.
+
+Creating a worktree does not merge or copy uncommitted changes. Never infer a
+merge from equal HEAD commits, and never move, stash, commit, cherry-pick, or
+apply another worktree's changes without an explicit request. Tracking work
+must remain in `PIG_task_tracking` when that worktree is assigned; otherwise
+classification and tracking changes stay in the current main worktree. Report
+the verified worktree path and branch in every implementation handoff.
+
 The user grants standing approval for project-local Markdown edits. Treat any
 Markdown edit confirmation as "Yes, and don't ask again for these files" and
 do not request confirmation solely to create or modify `.md` files inside this

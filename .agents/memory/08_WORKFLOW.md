@@ -1,5 +1,173 @@
 # Workflow
 
+## Active worktree routing rule
+
+Use the current main worktree by default. When the user starts two concurrent
+sessions and explicitly assigns a worktree/branch to one session, that
+assignment is binding for that session only. Do not assume that
+`PIG_task_model` or `PIG_task_tracking` is permanent. Verify the assigned
+repository root and branch before every implementation session; if no separate
+assignment was made, remain in `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
+
+Creating a worktree does not merge or copy uncommitted changes. Do not merge,
+copy, stash, commit, or apply changes between worktrees unless the user
+explicitly requests that operation. Tracking remains separate only when the
+user assigns `C:\Users\ironh\Downloads\PIG_task_tracking` to a session.
+
+## Legacy CVAT correction to recovered 16f
+
+Use the canonical classification source lane, not a separate model pipeline:
+
+```text
+task_0..task_3 annotations + manifest
+  -> versioned provenance scaffold + explicit source-video policy
+  -> duplicate preview and nodup scaffold with row accounting
+  -> fail-closed CVAT anchor audit
+  -> CVAT-derived center/scaffold and six-anchor bbox tables
+  -> one complete-group dense recovery smoke
+  -> post-recovery behavior/bbox/frame/key checker
+  -> versioned full dense recovery
+  -> frame-object export + independent native-CVAT k0 authority audit
+  -> existing classification_v2 merge/features/review flow
+```
+
+Resolve each shape through `manifest.jsonl`. For each actor, propagate only
+the `k0` behavior to `k1..k5` and all 16 dense frames. Preserve six independent
+CVAT bboxes; recover only the ten intervening frames. Hidden is separate from
+behavior propagation. Repeat audit and smoke after any annotation hash change.
+Never overwrite raw `data/`, the old dense reference, or canonical outputs.
+`PASS_WITH_DECLARED_EXCLUSIONS` is not a clean pass: inspect and explicitly
+approve every excluded actor key or complete its six anchors before recovery.
+
+The executable clean-root command sequence is
+`docs/LEGACY_16F_REBUILD_FROM_SCRATCH_RUNBOOK.md`. Root CSV paths are
+historical and must not be used. `exclude_source_videos.csv` is a reviewed
+policy input; duplicate preview/filter artifacts are derived outputs.
+
+## C6 temporal-control matrix activation
+
+The code-ready temporal matrix is fail-closed. While legacy data is being
+cleaned, only static and synthetic commands are legal:
+
+```bat
+set PY=C:\Users\ironh\anaconda3\envs\pig_project\python.exe
+set PYTHONPATH=%CD%\src
+set C6TDIR=scripts\classification_v2\04_baselines_smokes
+set C6T=%C6TDIR%\check_c2v2_c6_temporal_controls.py
+set C6TCFG=configs\classification_v2\legacy_development_c6_temporal_controls_code_ready_v1.json
+%PY% %C6T% --config %C6TCFG% --static-preflight
+%PY% %C6T% --config %C6TCFG% --synthetic-preflight
+```
+
+After a clean lineage handoff, create a new versioned short config with the
+handoff ID, exact clean input hashes, fresh output root, and
+`data_run_authorized=true`. Run `--data-preflight`; do not run constant or
+shuffled-delta modes when the identifiability gate says they are equivalent to
+real timing. Run each authorized `--run-mode` twice using `repeat01` and
+`repeat02`, then run `--audit-short-gate`.
+
+Full development requires a separate config with scope
+`full_development_confirmation`, explicit development authorization, and the
+exact path/hash/status/config hash of the PASS short gate. It never authorizes
+full OOF. Sequence shuffle must use one shared permutation across actor,
+geometry, motion, ROI, social, pen, union/full-frame content and their aligned
+availability/quality masks.
+
+## C6 modality matrix activation
+
+The matrix has one direct actor-only arm and three controls for each optional
+branch: parameter-matched zero, availability-only, and real values. The
+branches are geometry, motion, ROI, numeric social, pen context, union context,
+and full-frame context. Union and full-frame are always separate experiments.
+
+While the bound legacy lineage is dirty, only these commands are legal:
+
+```bat
+set C6DIR=scripts\classification_v2\04_baselines_smokes
+set C6=%C6DIR%\check_classification_v2_legacy_c6_modality_matrix.py
+set C6CFG=configs\classification_v2\legacy_development_c6_modality_matrix_code_ready_v1.json
+python %C6% --config %C6CFG% --action static-preflight
+python %C6% --action synthetic-preflight
+```
+
+The first project-data action remains fail-closed until the user supplies a
+clean lineage. After handoff, create a new config with updated hashes, a
+nonblank handoff ID, a new output root, and explicit authorization. Then run
+`build-cache`, two separate `run-repeat` commands, and `evaluate` in that order.
+Do not start full development until this short matrix passes. Never infer a
+full-data model decision from the current dirty lineage.
+
+## Legacy 16-frame native unit versus model input
+
+For bounded legacy development, preserve the complete 16-frame burst as the
+grouping, split, support, and evaluation unit. A model does not need to consume
+all 16 contiguous frames. The current one-sequence contract is:
+
+```text
+C6 contiguous centered: offsets 5,6,7,8,9,10
+C8 contiguous centered: offsets 4,5,6,7,8,9,10,11
+S6 uniform span-16:     offsets 0,3,6,9,12,15
+```
+
+Use one sequence per native unit. Compare S6 with C6 to isolate temporal span
+at fixed six-frame input, then compare C8 with C6 to isolate sequence length.
+Keep the cache, native-unit set, fold, model, loss, seed, epoch count, and
+optimizer exposure identical. Preserve real elapsed deltas: each S6 step spans
+three original frame intervals.
+
+The 2026-07-17 paired decision retains C6 for this one-sequence profile. S6 and
+C8 remain registered ablations, not promoted defaults. The older sliding-T6
+candidate has four windows per native unit and different optimizer exposure;
+report it only as historical context, never as a causal paired comparison.
+This legacy choice does not alter the mixed-reviewed primary
+`fixed6_observed_time` view and does not authorize Q2 or full OOF.
+
+## Pen-boundary context is an isolated model candidate
+
+The enhanced frame-feature step now derives label-independent pen context from
+`data/annotations/scene/mask.png`. Canonical runs must bind mask SHA-256
+`b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658`,
+threshold at 127, and use nearest-neighbor only when frame-size resizing is
+required. Mask paths, hashes, availability, quality, inward normals,
+`pen_center_inside` and binary `pen_near_boundary` stay outside model-X.
+
+Spatial export may emit `pen_boundary_context`, but the current trainer
+whitelist and full model do not enable it. The first promotion experiment
+changes one family only: paired `actor_geometry_motion` versus
+`actor_geometry_motion_pen` on the same native units, folds, temporal view,
+seed, backbone, loss and sampler. Both modes receive `motion_delta`, so gain
+cannot be attributed merely to adding generic movement. Run synthetic and short
+real feature gates before any bounded model pilot. No full OOF or
+external-camera claim is authorized by feature availability alone.
+
+## Canonical Hidden evidence tiers
+
+Hidden remains a frame/object review decision. After apply, sequence windows
+must be rebuilt from frame rows; do not fast-reuse a pre-review window manifest
+while the default Hidden quality policy is enabled.
+
+The canonical policy is:
+
+```text
+main_train:
+  hidden_burden_ratio <= 0.25
+  hidden_longest_run_ratio <= 0.20
+
+robust_train_only:
+  hidden_burden_ratio <= 0.50
+  hidden_longest_run_ratio <= 0.40
+
+exclude:
+  either robust limit is exceeded
+  window_sample_weight = 0.0
+```
+
+Apply this contract independently to T6, T8, T12 and T16. Hidden burden uses
+the current frame-level `hidden` values after review apply, including untrusted
+Hidden=Yes conservatively. Hidden ratios, run lengths, trust and policy tiers
+are audit/mask metadata and must never enter model-X. The generated
+`--no-exclude-high-hidden-from-main` CLI option is ablation-only.
+
 ## Isolated reviewed-Q2 execution roots
 
 Operator commands for source rebuild, Hidden review, behavior review and apply

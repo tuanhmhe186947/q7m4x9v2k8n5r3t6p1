@@ -11,7 +11,7 @@ from .anchor_builder import build_anchor_records
 from .config import RecoveryConfig
 from .detector import YoloPigDetector
 from .extractor import frame_filename, output_dir, safe_video_id, write_crop, write_full_frame
-from .legacy_gt_loader import LegacyGtMap
+from .legacy_gt_loader import LegacyGtMap, hidden_seed_for_frame
 from .mask_utils import bbox_mask_metrics, filter_detections_by_mask, load_scene_mask
 from .path_utils import SourceResources
 from .runtime import RuntimeReporter, write_progress_state
@@ -32,9 +32,18 @@ def _append_failed_manifest_rows(
     legacy_gt_mode = "multi_anchor" if anchor.get("legacy_gt_by_frame") else "single_anchor"
     legacy_gt_by_frame = anchor.get("legacy_gt_by_frame", {})
     legacy_gt_support_frames = sorted(int(frame) for frame in legacy_gt_by_frame)
-    x1, y1, x2, y2 = anchor["anchor_bbox"]
     for frame_index in anchor["dense_frame_indices"]:
         gt_available = int(frame_index) in legacy_gt_by_frame
+        gt_record = legacy_gt_by_frame.get(int(frame_index))
+        if gt_record is None:
+            x1, y1, x2, y2 = anchor["anchor_bbox"]
+        else:
+            x1, y1, x2, y2 = gt_record["bbox"]
+        hidden_seed = hidden_seed_for_frame(
+            int(frame_index),
+            legacy_gt_by_frame,
+            fallback_hidden=anchor["hidden"],
+        )
         rows.append(
             {
                 "tracklet_id": anchor["tracklet_id"],
@@ -42,7 +51,12 @@ def _append_failed_manifest_rows(
                 "sample_id": anchor["sample_id"],
                 "pig_id": anchor["pig_id"],
                 "behavior": anchor["behavior"],
-                "hidden": anchor["hidden"],
+                **hidden_seed,
+                "label_source": anchor["label_source"],
+                "behavior_authority_slot": anchor["behavior_authority_slot"],
+                "behavior_propagation_policy": anchor[
+                    "behavior_propagation_policy"
+                ],
                 "day_final": anchor["day_final"],
                 "source_video_original": resources.source_video_original,
                 "source_video_resolved": resources.source_video_resolved,
@@ -61,7 +75,10 @@ def _append_failed_manifest_rows(
                 ),
                 "det_confidence": None,
                 "track_confidence": 0.0,
-                "is_anchor_frame": frame_index == anchor["legacy_anchor_frame"],
+                "is_anchor_frame": (
+                    gt_available
+                    or frame_index == anchor["legacy_anchor_frame"]
+                ),
                 "is_gt_support_frame": gt_available or frame_index in support_frames,
                 "is_interpolated": False,
                 "tracking_status": "failed",
@@ -296,6 +313,11 @@ def build_dense_tracklets(
         )
         for tracked_box in tracked_iterator:
             frame_index = int(tracked_box.frame_index)
+            hidden_seed = hidden_seed_for_frame(
+                frame_index,
+                anchor.get("legacy_gt_by_frame", {}),
+                fallback_hidden=anchor["hidden"],
+            )
             frame = frame_cache.get(frame_index)
             crop_path = ""
             full_path = ""
@@ -342,7 +364,12 @@ def build_dense_tracklets(
                 "sample_id": anchor["sample_id"],
                 "pig_id": anchor["pig_id"],
                 "behavior": anchor["behavior"],
-                "hidden": anchor["hidden"],
+                **hidden_seed,
+                "label_source": anchor["label_source"],
+                "behavior_authority_slot": anchor["behavior_authority_slot"],
+                "behavior_propagation_policy": anchor[
+                    "behavior_propagation_policy"
+                ],
                 "day_final": anchor["day_final"],
                 "source_video_original": resources.source_video_original,
                 "source_video_resolved": resources.source_video_resolved,

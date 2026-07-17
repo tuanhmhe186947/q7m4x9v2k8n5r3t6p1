@@ -8,6 +8,54 @@ sections are historical records. Current gate status is centralized in
 
 ## Active decision: reviewed-data rebuild
 
+### Legacy CVAT rebuild blocker
+
+The legacy source must now be rebuilt from native CVAT six-anchor annotations
+before any legacy or mixed-data model work resumes. Per actor, `k0` behavior
+maps to `k1..k5` and all recovered 16 frames, while each `k0..k5` bbox remains
+an independent GT anchor. Hidden is not governed by this behavior propagation
+rule and retains a separate frame-level review policy.
+
+The current real-data audit fails on two duplicate anchor identities (four
+rows), so no recovery-input CSV, dense recovery, frame-object export, cache, or
+training run is authorized. It also reports eight k0 actor keys without all six
+anchors; after the duplicate fix, those exclusions still require explicit
+review/approval or CVAT completion. After CVAT correction, use a new versioned
+root, rerun audit-only, generate recovery inputs, pass a one-burst recovery and
+post-recovery checker, then run the necessary full recovery. The final export
+must reload native CVAT and independently verify per-actor k0 behavior.
+
+Use `docs/LEGACY_16F_REBUILD_FROM_SCRATCH_RUNBOOK.md` and a fresh run root.
+The former root CSVs are archived, not active inputs. Recreate the nodup
+metadata scaffold in-lineage; require an explicit source-video exclusion
+policy and do not reuse historical manual review as new review authority.
+
+### C6 temporal-control hold
+
+The temporal perturbation implementation is code-ready, not data-ready. It
+contains the requested mean, TCN, Transformer timing controls, sequence
+shuffle controls, and capacity-matched pooling controls. Current config keeps
+`data_run_authorized=false`; do not run it on the dirty legacy lineage.
+
+A future clean handoff must pass delta-identifiability and timing-source audits
+before timing modes run. Two fresh short repeats and the generated short-gate
+artifact are mandatory before a hash-bound full-development config can run.
+Legacy evidence can only select `RETEST` or `DROP`; the final base still needs
+paired mixed-reviewed, per-source, cluster-uncertainty, and seed evidence.
+
+### Legacy C6 matrix hold
+
+The current legacy 16f data is dirty and is being rebuilt by the user. The C6
+single-modality matrix is code-ready only. Do not build its cache or run model
+training from the current lineage, and do not use existing 16f metrics for a
+model decision.
+
+The code-ready config keeps `data_run_authorized=false`. Only a new clean
+lineage handoff may replace the bound hashes, set a nonblank handoff ID, choose
+a fresh output root, and enable the data run. Even then, run static and
+synthetic checks followed by two short repeats before any full-development
+confirmation. Full OOF remains separately gated.
+
 ### Agent execution isolation
 
 Until the user hands off a clean reviewed lineage, do not run review GUI,
@@ -33,6 +81,90 @@ under `outputs/classification_v2/agent_audits/<AUDIT_RUN_ID>`; no agent may open
 a GUI or write the active human root. The operator owns apply/rebuild there;
 after handoff, agent checks remain read-only on that root and write evidence to
 the agent audit root.
+
+### Full-data base selection boundary
+
+Legacy Stage A v3 carries `SF128` only as the simplest control and marks
+`A128` for a conditional mixed-reviewed retest. It does not select a final
+base. The decision packet SHA256 is
+`b3250ed5391d46e37469a22f16353bbc5f038fa250897c37056fe64a132a6910`.
+
+After a clean behavior-complete handoff, compare at least `SF128` and `A128`
+on the same frozen mixed-reviewed native-unit folds. The decision must report
+pooled and per-source metrics, source-balanced support, missing-modality
+strata, target behavior groups, paired video-cluster uncertainty, parameters,
+runtime, and complete lineage hashes. A pooled gain driven by only one source
+or by availability metadata cannot promote a candidate. Ambiguous evidence
+retains the simpler control. Run the exact short gate before any authorized
+full mixed-data confirmation; full OOF keeps its separate launch gate.
+
+### Legacy one-sequence temporal sampling decision
+
+The post-L8 controlled comparison keeps one complete 16-frame burst as the
+native evaluation unit and feeds exactly one model sequence per unit. The views
+are C6 `[5,6,7,8,9,10]`, C8 `[4,5,6,7,8,9,10,11]`, and S6
+`[0,3,6,9,12,15]`; no contiguous T16 candidate is included.
+
+On the fixed 245-unit, 33-video development validation set, C6, C8, and S6
+macro-F1 are `0.3708555386`, `0.3588478457`, and `0.3334808033`. S6 minus C6
+is `-0.0373747353`, with 2,000-video-cluster interval
+`[-0.0871566209, 0.0263536824]`. C8 minus C6 is `-0.0120076929`, with interval
+`[-0.0414907389, 0.0171363991]`.
+
+Retain `c6_contiguous_centered` as the one-sequence working view. S6 has only
+descriptive point gains for `drink` and `move`; both F1 intervals include zero,
+and `move` has eight validation units. C8 has better NLL (`1.0379915527`) than
+C6 (`1.0664057500`) but does not improve macro-F1. Do not promote either view.
+
+This decision does not supersede the locked sliding-T6 L8 candidate because
+that protocol uses four windows per native unit and different optimizer
+exposure. It applies only to legacy unreviewed development and must be repeated
+on merged reviewed data. Decision SHA256 is
+`cdd24a27162ec46bc68214e6820e3aa41aebe86da53acd6903da175bcced2cfa`.
+
+### Legacy post-handback pen-context decision
+
+The parameter-matched `legacy_16f` pen-boundary experiment is closed as valid
+short negative evidence. All cache, preflight, tiny-overfit, resume, six-run
+repeat, and exact 245-native-unit/33-video pairing gates pass. Zero,
+availability-only, and pen-context macro-F1 are `0.2774732055`, `0.2752044192`,
+and `0.2773207312`.
+
+Pen context minus zero changes macro-F1 by `-0.0001524743`, with the declared
+2,000-sample video-cluster interval `[-0.0183285810, 0.0193813458]`. NLL
+improves by `-0.0099586087`, and the `stand/move/explore` focus macro-F1
+improves by `+0.0107610350`, but the global gain and positive interval-low
+gates fail. Availability-only remains bounded at `-0.0022687862`, so no strong
+missingness shortcut was detected in this short diagnostic.
+
+A support-aware post-hoc diagnostic shows that this is conditional utility,
+not evidence that pen context is generally useless. Pen-minus-zero F1 changes
+are `drink +0.0334` (20 units), `eat +0.0133` (17), `move +0.0300` (8), and
+`sitting +0.0306` (70), while `lying -0.0778` (62) is the main harm. The
+`move` gain comes from reducing false positives from 39 to 29 without changing
+its 3/8 recall; `sitting` gains five true positives, while `lying` loses six
+correct units and its confusion into `sitting` rises from 16 to 23.
+
+For 117 persistent-boundary units, pen context improves accuracy from
+`0.4017` to `0.4188`, global-ten-class macro-F1 from `0.2461` to `0.2560`,
+and NLL from `1.8372` to `1.7790`. For 110 interior-only units, it degrades
+accuracy from `0.3545` to `0.3364`, macro-F1 from `0.2702` to `0.2601`, and
+NLL from `1.8411` to `1.8809`, driven mainly by `lying`. The four T6 windows
+expose 15 of the declared 16 frames and 14 unique frame pairs per native unit,
+so this diagnostic is not a complete T16 exposure analysis. These results are
+exploratory and do not change the locked promotion decision. The next legal
+test is a predeclared boundary-gated or residual pen branch, with zero,
+availability-only, and always-on controls, after the same short gates pass.
+
+The decision is
+`DO_NOT_EXPAND_PEN_CONTEXT_FROM_CURRENT_SHORT_EVIDENCE`. Do not run its full
+legacy expansion or add pen values to the locked legacy candidate. The audit
+artifact is `pen_context_short_decision.json`, SHA256
+`673ddab840e5d69f984b47c9d832e2415147681f3df6b81448270766ab673e1c`.
+This post-handback short experiment does not supersede the locked L0-L8 full
+candidate, transfer to mixed-reviewed data, authorize Q2 claims, or prove that
+pen context is generally useless. Reassess it only on a frozen reviewed
+all-source lineage under the same parameter-matched controls.
 
 ### Legacy L0-L8 completion and parent handback
 

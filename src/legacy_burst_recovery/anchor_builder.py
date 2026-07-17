@@ -41,6 +41,18 @@ def build_anchor_records(
                 "pig_id": pig_id,
                 "behavior": row["behavior"],
                 "hidden": row["hidden"],
+                "label_source": row.get(
+                    "label_source",
+                    "legacy_dense_behavior",
+                ),
+                "behavior_authority_slot": row.get(
+                    "behavior_authority_slot",
+                    pd.NA,
+                ),
+                "behavior_propagation_policy": row.get(
+                    "behavior_propagation_policy",
+                    "",
+                ),
                 "day_final": row["day_final"],
                 "video_final": row["video_final"],
                 "img_name": row["img_name"],

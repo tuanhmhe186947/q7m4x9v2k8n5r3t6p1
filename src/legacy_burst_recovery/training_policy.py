@@ -161,7 +161,7 @@ def _compute_tracklet_policy(group: pd.DataFrame) -> dict[str, object]:
     track_confidence_min = float(track_confidence.min()) if len(ordered) else 0.0
 
     if legacy_gt_mode == "multi_anchor":
-        has_missing_legacy_gt_support = legacy_gt_support_count < 3
+        has_missing_legacy_gt_support = legacy_gt_support_count < 6
         include_in_training = all(
             [
                 not has_failed_frames,

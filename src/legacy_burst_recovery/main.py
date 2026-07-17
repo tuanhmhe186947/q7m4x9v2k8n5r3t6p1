@@ -26,6 +26,58 @@ from .training_policy import apply_training_policy, build_manual_review_template
 from .video_utils import count_video_frames
 
 
+def legacy_gt_preflight_errors(
+    accepted_df: pd.DataFrame,
+    legacy_gt_map: dict[tuple[str, str], dict[int, dict[str, object]]],
+    legacy_gt_audit_df: pd.DataFrame,
+) -> list[str]:
+    """Validate canonical multi-anchor GT before any video or detector work."""
+    errors: list[str] = []
+    if legacy_gt_audit_df.empty:
+        return ["legacy_gt_support_audit_is_empty"]
+
+    bad_audit = legacy_gt_audit_df.loc[
+        legacy_gt_audit_df["qa_status"].fillna("").astype(str).ne("ok")
+    ]
+    if not bad_audit.empty:
+        errors.append(f"invalid_legacy_gt_actor_keys={len(bad_audit)}")
+
+    actor_columns = ["group_id", "pig_id"]
+    duplicate_centers = accepted_df.duplicated(actor_columns, keep=False)
+    if duplicate_centers.any():
+        errors.append(f"duplicate_center_actor_rows={int(duplicate_centers.sum())}")
+
+    expected = set(
+        accepted_df[actor_columns]
+        .astype(str)
+        .itertuples(index=False, name=None)
+    )
+    available = set(legacy_gt_map)
+    if missing := expected.difference(available):
+        errors.append(f"center_actor_keys_missing_six_anchor_gt={len(missing)}")
+
+    center_behavior = (
+        accepted_df.assign(
+            group_id=accepted_df["group_id"].astype(str),
+            pig_id=accepted_df["pig_id"].astype(str),
+        )
+        .drop_duplicates(actor_columns)
+        .set_index(actor_columns)["behavior"]
+        .astype(str)
+    )
+    behavior_mismatches = 0
+    for key in expected.intersection(available):
+        anchor_behaviors = {
+            str(record.get("behavior", ""))
+            for record in legacy_gt_map[key].values()
+        }
+        if anchor_behaviors != {str(center_behavior.loc[key])}:
+            behavior_mismatches += 1
+    if behavior_mismatches:
+        errors.append(f"center_anchor_behavior_mismatches={behavior_mismatches}")
+    return errors
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Recover legacy burst CSV rows into dense training-ready tracklets.")
     parser.add_argument("--input-csv", required=True, type=Path)
@@ -178,6 +230,22 @@ def main() -> None:
             legacy_gt_mode = "multi_anchor" if config.legacy_burst_bbox_csv is not None else "single_anchor"
             reporter.log(f"legacy_gt_mode={legacy_gt_mode}")
             reporter.log(f"legacy GT group+pig keys={len(legacy_gt_map)}")
+            if legacy_gt_mode == "multi_anchor":
+                preflight_errors = legacy_gt_preflight_errors(
+                    accepted_df,
+                    legacy_gt_map,
+                    legacy_gt_audit_df,
+                )
+                legacy_gt_audit_path = (
+                    config.output_root / "legacy_gt_support_audit.csv"
+                )
+                legacy_gt_audit_df.to_csv(legacy_gt_audit_path, index=False)
+                reporter.log(f"WROTE {legacy_gt_audit_path}")
+                if preflight_errors:
+                    raise ValueError(
+                        "Legacy six-anchor GT preflight failed before video work: "
+                        + "; ".join(preflight_errors)
+                    )
 
         with reporter.stage("path_resolution"):
             resources_by_video, path_report = collect_path_resolution(

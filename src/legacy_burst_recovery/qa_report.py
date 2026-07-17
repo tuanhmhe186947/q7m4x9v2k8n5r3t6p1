@@ -93,7 +93,7 @@ def build_qa_summary(
         int(
             (
                 tracklet_level["legacy_gt_mode"].eq("multi_anchor")
-                & pd.to_numeric(tracklet_level["legacy_gt_support_count"], errors="coerce").ge(3)
+                & pd.to_numeric(tracklet_level["legacy_gt_support_count"], errors="coerce").ge(6)
             ).sum()
         )
         if {"legacy_gt_mode", "legacy_gt_support_count"}.issubset(tracklet_level.columns)
@@ -113,7 +113,7 @@ def build_qa_summary(
         int(
             (
                 tracklet_level["legacy_gt_mode"].eq("multi_anchor")
-                & pd.to_numeric(tracklet_level["legacy_gt_support_count"], errors="coerce").lt(3)
+                & pd.to_numeric(tracklet_level["legacy_gt_support_count"], errors="coerce").lt(6)
             ).sum()
         )
         if {"legacy_gt_mode", "legacy_gt_support_count"}.issubset(tracklet_level.columns)

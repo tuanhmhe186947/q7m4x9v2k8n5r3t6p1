@@ -1,5 +1,126 @@
 # Project Memory Short
 
+## 2026-07-18 legacy 16f clean-root workflow
+
+- Seven legacy root CSV artifacts were moved, with SHA-256 manifest, to
+  `outputs/_archive/legacy_16f_root_artifacts_20260718`; no raw data moved.
+- No root-level legacy CSV is current input authority. Recreate provenance,
+  duplicate filtering and the nodup metadata scaffold inside a versioned run.
+- `exclude_source_videos.csv` is operator policy and cannot be inferred or
+  replaced by an empty file. `manual_review_stable.csv` is historical review
+  evidence and is not carried into the new human-review lineage.
+- Use `docs/LEGACY_16F_REBUILD_FROM_SCRATCH_RUNBOOK.md`. Duplicate utilities
+  now require explicit input/output paths and fail closed on unresolved keys.
+- A full recovery is allowed only after unchanged input hashes, CVAT audit PASS
+  and a complete one-group recovery/output check PASS.
+
+## 2026-07-17 legacy CVAT six-anchor rebuild contract
+
+- Rebuild legacy 16f from all native `data/data/task_0..task_3` exports; the
+  old dense map is comparison evidence, not current bbox/behavior authority.
+- For each `(group_id, pig_id)`, CVAT slot `k0` behavior is the only target
+  authority. It maps to `k1..k5` and every frame in the recovered 16f burst.
+  Later-slot behavior is disagreement evidence only and never votes.
+- Every CVAT bbox at `k0..k5` is an independent GT anchor. The ten intervening
+  frames are recovered between anchors; a `k0` bbox is never copied forward.
+- CVAT task frame indices must resolve through each task's `manifest.jsonl`;
+  global task frame 0 is not the behavior authority.
+- Input audit is fail-closed on duplicate `(group_id, slot, pig_id)`, invalid
+  `k0`, invalid bbox, or slot/frame-map errors. Output validation must prove
+  k0 behavior propagation, exact anchor bboxes, 16-frame completeness, key
+  preservation, and no duplicates before frame-object export.
+- The 2026-07-17 real-data audit is currently blocked by two duplicate anchor
+  identities (four rows). Do not run recovery or model training until a new
+  CVAT hash passes the short audit and one-burst recovery gate.
+
+## 2026-07-17 C6 temporal perturbation matrix code-ready hold
+
+- The isolated C6 temporal matrix now covers masked mean, masked TCN, small
+  Transformer with real/constant/shuffled deltas, and TCN/Transformer sequence
+  shuffle. `MW317` and `MW381` are capacity-matched mean controls.
+- Sequence shuffle is deterministic per native-unit key and must be applied to
+  every time-aligned modality and content mask. Delta shuffle preserves frame
+  order and the within-unit positive-delta multiset.
+- Timing claims require real-versus-constant and real-versus-shuffled controls
+  to differ by the declared identifiability threshold. Uniform legacy timing
+  cannot support a negative conclusion about timing utility.
+- Timing-only source identification, paired native-unit evidence, per-source
+  effects, recording-cluster uncertainty, and seed robustness are required
+  before transfer to the frozen mixed-reviewed full-data base.
+- Config `legacy_development_c6_temporal_controls_code_ready_v1.json` remains
+  fail-closed. Only static/synthetic checks are authorized until a clean
+  lineage handoff supplies hashes, ID, fresh output root, and authorization.
+
+## 2026-07-17 C6 modality matrix code-ready hold
+
+- The legacy 16f source is being cleaned by the user. Do not build the C6
+  modality cache, train, or interpret existing legacy metrics until a new
+  clean-lineage handoff is provided.
+- The code-ready matrix is actor-only plus separate geometry, motion, ROI,
+  numeric-social, pen, union, and full-frame branches. Every optional branch
+  has parameter-matched-zero, availability-only, and real-value controls.
+- Config
+  `legacy_development_c6_modality_matrix_code_ready_v1.json` is fail-closed
+  with `data_run_authorized=false`. A clean handoff requires new input hashes,
+  a nonblank handoff ID, and a new versioned output root before enabling it.
+- Static and synthetic gates cover 22 modes, forward/backward, missingness,
+  train-only normalization, exact C6 offsets, and checkpoint resume. They read
+  zero project-data rows and create zero project-data optimizer steps.
+- After handoff, build the cache and run two short repeats first. Full
+  development remains forbidden until paired real-versus-zero and
+  real-versus-availability evidence passes the declared gate. Full OOF is not
+  authorized by this matrix.
+
+## 2026-07-17 temporal base transfer boundary
+
+- Stage A v3 is a legacy screening packet, not a full-data base decision.
+- `SF128` is the simplest carried control. `A128` is a conditional
+  mixed-reviewed retest. `M128`, `TCN128`, and `TR128` are not carried from
+  the legacy expansion.
+- The packet SHA256 is
+  `b3250ed5391d46e37469a22f16353bbc5f038fa250897c37056fe64a132a6910`.
+- A final base must be chosen on frozen mixed-reviewed native units with
+  paired source, missingness, group-metric, support, and uncertainty reports.
+- A legacy gain cannot promote a model when it is source-specific or driven by
+  availability, unsupported classes, or an unmatched protocol.
+
+## 2026-07-17 legacy one-sequence temporal sampling decision
+
+- Keep each complete legacy 16-frame burst as the native evaluation unit, but
+  do not use contiguous T16 as a model input in this comparison.
+- The controlled views are C6 offsets `5-10`, C8 offsets `4-11`, and S6
+  offsets `0,3,6,9,12,15`, with exactly one sequence per native unit.
+- S6 versus C6 is the primary span-at-fixed-length comparison. C8 versus C6
+  is the secondary sequence-length comparison. Cache, native units, model,
+  loss, seed, epochs, and 345 optimizer steps are identical.
+- Full development macro-F1 is C6 `0.3708555386`, C8 `0.3588478457`, and S6
+  `0.3334808033` on 245 native units and 33 video clusters.
+- S6 minus C6 is `-0.0373747353`, interval
+  `[-0.0871566209, 0.0263536824]`. C8 minus C6 is `-0.0120076929`, interval
+  `[-0.0414907389, 0.0171363991]`.
+- Retain C6 as the one-sequence legacy working view. S6 has descriptive gains
+  for `drink` and `move`, but their class intervals include zero and `move`
+  has only eight units. C8 improves NLL but not macro-F1.
+- Historical sliding T6 remains context only because it uses four windows per
+  native unit and different optimizer exposure; it is not a paired control.
+- Decision SHA256: `cdd24a27162ec46bc68214e6820e3aa41aebe86da53acd6903da175bcced2cfa`.
+  This is unreviewed legacy development evidence, not Q2 or full-OOF evidence.
+
+## 2026-07-17 pen-boundary context candidate
+
+- The fixed-camera pen mask is suitable as label-independent spatial context,
+  but it is camera calibration rather than a biological invariant.
+- Enhanced frame features bind the mask hash and derive signed boundary
+  distance, bbox-inside ratio, near-boundary state, approach/retreat speed and
+  parallel speed without dropping rows.
+- Spatial group `pen_boundary_context` is not in the current trainer whitelist
+  or full model. Its first legal promotion comparison is paired
+  `actor_geometry_motion` versus `actor_geometry_motion_pen`; both receive the
+  same generic motion group and all other variables stay fixed.
+- Mask path/hash, availability, quality, inward normals, `pen_center_inside`
+  and binary `pen_near_boundary` are audit or derivation only. They must not
+  enter model-X.
+
 ## 2026-07-16 agent-output isolation for reviewed Q2 rebuild
 
 - While human review has not been handed off, agent work is limited to static,

@@ -113,7 +113,7 @@ def _track_dense_range_multi_anchor(
         detections = detections_by_frame.get(frame_index, [])
         start_gt_frame, end_gt_frame = _gt_segment(frame_index, legacy_gt_by_frame)
         gt_record = legacy_gt_by_frame.get(frame_index)
-        is_anchor = frame_index == dense_frames[0]
+        is_anchor = frame_index in legacy_gt_by_frame
 
         if gt_record is not None:
             gt_bbox = tuple(float(v) for v in gt_record["bbox"])  # type: ignore[index]

@@ -14,6 +14,50 @@ Module chính:
 src\legacy_burst_recovery
 ```
 
+> **Current classification_v2 override (2026-07-17):** after CVAT behavior and
+> bbox corrections, do not start from the old center/all-bbox CSV pair below.
+> Follow
+> `docs/LEGACY_16F_REBUILD_FROM_SCRATCH_RUNBOOK.md`: rebuild
+> center and six-anchor inputs from `data/data/task_0..task_3`, map each actor's
+> `k0` behavior to `k1..k5` and all 16 dense frames, and preserve each CVAT
+> anchor bbox independently. The older commands remain historical reference.
+
+The pre-CVAT combined/all-bbox CSVs and the old generated 16-frame export are
+archived under
+`outputs/_archive/legacy_16f_pre_cvat_rebuild_20260717` and
+`outputs/_archive/legacy_16f_root_artifacts_20260718`. No root-level legacy CSV
+is an input to the current rebuild. The nodup center table is recreated inside
+the versioned run root and is used as metadata scaffold only.
+
+### Provenance trace guard
+
+`truy_nguon_multi_bbox.py` is a historical provenance scaffold, not the
+current CVAT annotation authority and not a training-data builder. It resolves
+source-video and manifest metadata for old burst rows; current CVAT behavior
+authority remains `k0`, and current CVAT bbox authority remains the independent
+`k0..k5` anchors handled by the CVAT rebuild modules.
+
+The trace script now fails closed unless every `(group_id, pig_id)` has exactly
+one valid row for each `k/order` in `0..5`, image-name fields agree with
+`group_id`, bbox coordinates are valid, and group frame mapping is unique.
+Manifest metadata is authoritative. Candidate metadata is fallback only when
+manifest video metadata is absent. A behavior-side `video` column is isolated
+and can never override either source. Conflicting duplicate manifest/candidate
+rows, manifest/candidate video disagreement, row multiplication, unresolved
+videos, and a video hash that does not match the group id stop the run.
+
+Write derived outputs to a fresh output directory outside `data/`,
+`src/`, `scripts/`, and `tests/`. Use `--dry-run` for the validation gate
+and `--overwrite` only when replacing a deliberately versioned output. Use
+`--allow-incomplete-actor-keys` or `--allow-unresolved-video` only for an
+explicit audit artifact; those flags must not be used for train-ready data.
+The backward-compatible center CSV still selects historical `k3` and is
+metadata evidence only.
+
+At the time of this rebuild, `src/legacy_burst_recovery` contains no generated
+CSV files. The archived nodup center CSV and other historical artifacts must
+not be mistaken for the new CVAT-derived lineage.
+
 Output full 13-frame hiện tại:
 
 ```text

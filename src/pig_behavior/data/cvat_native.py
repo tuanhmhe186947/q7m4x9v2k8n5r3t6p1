@@ -135,7 +135,11 @@ def load_cvat_task(task_dir: Path) -> pd.DataFrame:
             frame_info = manifest[frame_idx]
             img_name = frame_file_name(frame_info)
             group_id, order = parse_burst_from_filename(img_name)
-            attrs = parse_attrs(shape.get("attributes", []))
+            raw_attrs = shape.get("attributes", [])
+            attrs = parse_attrs(raw_attrs)
+            hidden_value = attrs["Hidden"]
+            if hidden_value is None:
+                hidden_value = "No"
 
             rows.append(
                 {
@@ -152,7 +156,11 @@ def load_cvat_task(task_dir: Path) -> pd.DataFrame:
                     "y2": y2,
                     "pig_id": attrs["ID"],
                     "behavior": attrs["Behavior"],
-                    "hidden": attrs["Hidden"] or "No",
+                    "hidden": hidden_value,
+                    "hidden_attribute_present": _has_attribute(
+                        raw_attrs,
+                        "Hidden",
+                    ),
                     "group_id": group_id,
                     "order": order,
                     "category_name": label,
@@ -163,6 +171,17 @@ def load_cvat_task(task_dir: Path) -> pd.DataFrame:
     df = pd.DataFrame(rows)
     print(f"[LOAD] {task_dir.name}: {len(df)} boxes | subset={subset!r}")
     return df
+
+
+def _has_attribute(attrs: Any, name: str) -> bool:
+    if isinstance(attrs, dict):
+        return name in attrs
+    if isinstance(attrs, list):
+        return any(
+            isinstance(item, dict) and item.get("name") == name
+            for item in attrs
+        )
+    return False
 
 
 def load_all_cvat_tasks(export_root: Path) -> pd.DataFrame:

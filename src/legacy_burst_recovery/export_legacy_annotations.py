@@ -1,9 +1,14 @@
 import argparse
+import json
 import re
 from pathlib import Path
 
 #from xml.etree.ElementTree import Element, ElementTree, SubElement
 import pandas as pd
+
+from legacy_burst_recovery.cvat_behavior_overlay import (
+    apply_cvat_k0_behavior_authority,
+)
 
 BEHAVIOR_CLASSES = [
     "drink",
@@ -81,25 +86,28 @@ def normalize_source_video_key(path_value: str) -> str:
 
     # Full legacy path:
     # .../pigs291119/PIGS291119/000302/color.mp4
-    m = re.search(r"(pigs\d{6})/pigs\d{6}/(\d{3,6})/color\.mp4", lowered)
+    m = re.search(
+        r"(pigs\d{6}[a-z]?)/pigs\d{6}[a-z]?/(\d{3,6})/color\.mp4",
+        lowered,
+    )
     if m:
         return f"{m.group(1)}/{m.group(2).zfill(6)}"
 
     # Legacy path:
     # .../pigs291119/000302/color.mp4
-    m = re.search(r"(pigs\d{6})/(\d{3,6})/color\.mp4", lowered)
+    m = re.search(r"(pigs\d{6}[a-z]?)/(\d{3,6})/color\.mp4", lowered)
     if m:
         return f"{m.group(1)}/{m.group(2).zfill(6)}"
 
     # Already normalized:
     # pigs291119/000302
-    m = re.search(r"(pigs\d{6})/(\d{3,6})(?:$|/)", lowered)
+    m = re.search(r"(pigs\d{6}[a-z]?)/(\d{3,6})(?:$|/)", lowered)
     if m:
         return f"{m.group(1)}/{m.group(2).zfill(6)}"
 
     # MP4 filename:
     # Pigs291119_000302_30fps.mp4
-    m = re.search(r"(pigs\d{6})[_-](\d{3,6})", lowered)
+    m = re.search(r"(pigs\d{6}[a-z]?)[_-](\d{3,6})", lowered)
     if m:
         return f"{m.group(1)}/{m.group(2).zfill(6)}"
 
@@ -534,7 +542,14 @@ def build_frame_object_csv(
         df["hidden"] = "No"
 
     df["is_actor_label"] = True
-    df["label_source"] = "legacy_dense_behavior"
+    if "label_source" not in df.columns:
+        df["label_source"] = "legacy_dense_behavior"
+    else:
+        missing_label_source = (
+            df["label_source"].isna()
+            | df["label_source"].astype(str).str.strip().eq("")
+        )
+        df.loc[missing_label_source, "label_source"] = "legacy_dense_behavior"
 
     if "bbox_source" not in df.columns:
         df["bbox_source"] = "legacy_recovered_bbox"
@@ -637,8 +652,28 @@ def build_frame_object_csv(
         "behavior",
         "behavior_coarse",
         "hidden",
+        "hidden_source",
+        "hidden_review_status",
+        "hidden_is_trusted",
+        "hidden_trust_status",
+        "visibility_quality",
+        "hidden_seed_method",
         "is_actor_label",
         "label_source",
+        "legacy_behavior_before_cvat_k0",
+        "legacy_behavior_authority_label",
+        "legacy_behavior_authority_status",
+        "legacy_behavior_authority_task",
+        "legacy_behavior_authority_task_frame",
+        "legacy_behavior_authority_image_name",
+        "legacy_behavior_authority_slot",
+        "legacy_behavior_authority_source_frame",
+        "legacy_behavior_changed_by_cvat_k0",
+        "legacy_behavior_propagation_policy",
+        "legacy_sampled_behavior_disagreement_count",
+        "legacy_sampled_behavior_observation_count",
+        "legacy_sampled_behavior_labels",
+        "legacy_sampled_behavior_consistent",
         "x1_raw",
         "y1_raw",
         "x2_raw",
@@ -1016,6 +1051,145 @@ def print_summary(frame_df: pd.DataFrame) -> None:
     print("context_overfull true=", int(frame_df["context_overfull"].sum()))
 
 
+def build_export_audit(
+    dense_df: pd.DataFrame,
+    frame_df: pd.DataFrame,
+    *,
+    behavior_authority_audit: dict[str, object] | None,
+    training_only: bool,
+) -> dict[str, object]:
+    """Audit row/key preservation and canonical CVAT authority consistency."""
+    errors: list[str] = []
+    warnings: list[str] = []
+    key = ["group_id", "pig_id", "frame_index"]
+    missing_key_columns = sorted(
+        set(key).difference(dense_df.columns).union(
+            set(key).difference(frame_df.columns)
+        )
+    )
+    input_duplicates = 0
+    output_duplicates = 0
+    hidden_mismatches: dict[str, int] = {}
+    if missing_key_columns:
+        errors.append(f"missing_frame_object_key_columns={missing_key_columns}")
+    else:
+        input_duplicates = int(dense_df.duplicated(key, keep=False).sum())
+        output_duplicates = int(frame_df.duplicated(key, keep=False).sum())
+        if input_duplicates:
+            errors.append(f"duplicate_input_frame_object_rows={input_duplicates}")
+        if output_duplicates:
+            errors.append(f"duplicate_output_frame_object_rows={output_duplicates}")
+
+    if not training_only and len(dense_df) != len(frame_df):
+        errors.append(
+            f"row_count_mismatch:input={len(dense_df)},output={len(frame_df)}"
+        )
+    elif training_only and len(frame_df) > len(dense_df):
+        errors.append("training_only_export_gained_rows")
+
+    invalid_bbox = (
+        int((~frame_df["bbox_valid"].fillna(False).astype(bool)).sum())
+        if "bbox_valid" in frame_df.columns
+        else len(frame_df)
+    )
+    if invalid_bbox:
+        errors.append(f"invalid_output_bbox_rows={invalid_bbox}")
+
+    canonical_cvat = behavior_authority_audit is not None
+    provenance_columns = [
+        "hidden",
+        "hidden_source",
+        "hidden_review_status",
+        "hidden_is_trusted",
+        "hidden_trust_status",
+        "visibility_quality",
+        "hidden_seed_method",
+    ]
+    if canonical_cvat:
+        missing_provenance = sorted(
+            set(provenance_columns).difference(dense_df.columns).union(
+                set(provenance_columns).difference(frame_df.columns)
+            )
+        )
+        if missing_provenance:
+            errors.append(f"missing_hidden_provenance_columns={missing_provenance}")
+        elif not input_duplicates and not output_duplicates:
+            hidden_mismatches = _column_mismatch_counts(
+                dense_df,
+                frame_df,
+                key=key,
+                columns=provenance_columns,
+            )
+            for column, count in hidden_mismatches.items():
+                if count:
+                    errors.append(f"export_changed_{column}_rows={count}")
+
+        authority_counts = behavior_authority_audit.get("counts", {})
+        changed_rows = int(authority_counts.get("rows_changed_by_k0", 0))
+        duplicate_rows = int(authority_counts.get("sampled_duplicate_rows", 0))
+        incomplete_keys = int(
+            authority_counts.get("sampled_incomplete_anchor_keys", 0)
+        )
+        missing_k0 = int(authority_counts.get("dense_keys_missing_k0", 0))
+        if changed_rows:
+            errors.append(f"stale_dense_behavior_rows_changed_by_overlay={changed_rows}")
+        if duplicate_rows:
+            errors.append(f"duplicate_cvat_anchor_rows={duplicate_rows}")
+        if incomplete_keys:
+            errors.append(f"incomplete_cvat_anchor_actor_keys={incomplete_keys}")
+        if missing_k0:
+            errors.append(f"dense_actor_keys_missing_k0={missing_k0}")
+
+    return {
+        "schema_version": 1,
+        "status": "FAIL" if errors else "PASS",
+        "policy": {
+            "row_preservation": "required_unless_training_only",
+            "frame_object_key": key,
+            "canonical_cvat_overlay_behavior_changes": 0,
+            "hidden_provenance": "preserve_exactly",
+        },
+        "counts": {
+            "dense_rows_input": int(len(dense_df)),
+            "frame_rows_output": int(len(frame_df)),
+            "input_duplicate_rows": input_duplicates,
+            "output_duplicate_rows": output_duplicates,
+            "invalid_output_bbox_rows": invalid_bbox,
+        },
+        "hidden_provenance_mismatch_counts": hidden_mismatches,
+        "errors": errors,
+        "warnings": warnings,
+    }
+
+
+def _column_mismatch_counts(
+    left: pd.DataFrame,
+    right: pd.DataFrame,
+    *,
+    key: list[str],
+    columns: list[str],
+) -> dict[str, int]:
+    joined = left[key + columns].merge(
+        right[key + columns],
+        on=key,
+        how="outer",
+        suffixes=("_input", "_output"),
+        indicator=True,
+        validate="one_to_one",
+    )
+    counts: dict[str, int] = {}
+    for column in columns:
+        before = joined[f"{column}_input"].fillna("").astype(str).str.strip()
+        after = joined[f"{column}_output"].fillna("").astype(str).str.strip()
+        if column == "hidden":
+            before = before.map(normalize_hidden)
+            after = after.map(normalize_hidden)
+        counts[column] = int(
+            (joined["_merge"].ne("both") | before.ne(after)).sum()
+        )
+    return counts
+
+
 def main():
     parser = argparse.ArgumentParser()
 
@@ -1078,6 +1252,24 @@ def main():
         help="Optional leading-row limit for a bounded pipeline smoke test.",
     )
     parser.add_argument(
+        "--cvat-behavior-authority-root",
+        default=None,
+        help=(
+            "Optional CVAT native export root containing task_* folders. "
+            "Each pig's selected k0 label becomes the behavior authority for "
+            "its complete recovered legacy burst."
+        ),
+    )
+    parser.add_argument(
+        "--behavior-authority-slot",
+        type=int,
+        default=0,
+        help=(
+            "Selected slot used as burst behavior authority. Keep 0 for k0; "
+            "this is not global CVAT task frame 0."
+        ),
+    )
+    parser.add_argument(
         "--training-only",
         action="store_true",
         help=(
@@ -1090,17 +1282,51 @@ def main():
         action="store_true",
         help="If set, use_for_main_eval requires global_context_complete_8=True.",
     )
+    parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Explicitly allow replacement of existing export artifacts.",
+    )
 
     args = parser.parse_args()
 
     dense_csv = Path(args.dense_csv)
     out_dir = Path(args.output_dir)
+    out_frame_csv = out_dir / "legacy_frame_object_annotations.csv"
+    export_audit_path = out_dir / "legacy_frame_object_export_audit.json"
+    target_paths = [out_frame_csv, export_audit_path]
+    if args.cvat_behavior_authority_root:
+        target_paths.extend(
+            [
+                out_dir / "legacy_cvat_behavior_authority_audit.json",
+                out_dir / "legacy_cvat_behavior_discrepancies.csv",
+            ]
+        )
+    existing = [path for path in target_paths if path.exists()]
+    if existing and not args.overwrite:
+        raise FileExistsError(
+            "Refusing to overwrite existing legacy export artifacts: "
+            + ", ".join(str(path) for path in existing)
+        )
     out_dir.mkdir(parents=True, exist_ok=True)
 
     anchor_relative_frames = parse_anchor_frames(args.anchor_relative_frames)
 
     print(f"reading dense csv: {dense_csv}", flush=True)
     dense = pd.read_csv(dense_csv, low_memory=False)
+    behavior_authority_audit = None
+    behavior_authority_discrepancies = None
+    if args.cvat_behavior_authority_root:
+        print("applying CVAT k0 behavior authority...", flush=True)
+        (
+            dense,
+            behavior_authority_audit,
+            behavior_authority_discrepancies,
+        ) = apply_cvat_k0_behavior_authority(
+            dense,
+            args.cvat_behavior_authority_root,
+            authority_slot=args.behavior_authority_slot,
+        )
     if args.max_rows is not None:
         if args.max_rows <= 0:
             raise ValueError("--max-rows must be > 0")
@@ -1122,12 +1348,39 @@ def main():
         require_full_8_for_eval=args.require_full_8_for_eval,
     )
 
-    out_frame_csv = out_dir / "legacy_frame_object_annotations.csv"
+    export_audit = build_export_audit(
+        dense,
+        frame_df,
+        behavior_authority_audit=behavior_authority_audit,
+        training_only=args.training_only,
+    )
+    export_audit_path.write_text(
+        json.dumps(export_audit, indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    if behavior_authority_audit is not None:
+        audit_path = out_dir / "legacy_cvat_behavior_authority_audit.json"
+        audit_path.write_text(
+            json.dumps(behavior_authority_audit, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        discrepancy_path = out_dir / "legacy_cvat_behavior_discrepancies.csv"
+        behavior_authority_discrepancies.to_csv(discrepancy_path, index=False)
+        print(f"saved: {audit_path}", flush=True)
+        print(f"saved: {discrepancy_path}", flush=True)
+
+    if export_audit["errors"]:
+        raise ValueError(
+            "Legacy frame-object export audit failed: "
+            + "; ".join(export_audit["errors"])
+        )
 
     print(f"writing csv: {out_frame_csv}", flush=True)
     frame_df.to_csv(out_frame_csv, index=False)
 
     print("saved:", out_frame_csv, flush=True)
+    print("saved:", export_audit_path, flush=True)
     print_summary(frame_df)
 
 
