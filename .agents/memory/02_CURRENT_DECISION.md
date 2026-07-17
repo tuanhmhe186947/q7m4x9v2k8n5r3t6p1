@@ -24,9 +24,25 @@ not geometry-only through the complete post-processing chain. Do not repeat or
 promote `refine_max_gap_frames=30` plus
 `refine_max_previous_gap_frames=15`. Defaults remain unchanged at `15/0`.
 
-Next, replay hash-bound realtime baselines and prior candidates with
-`include_hidden=true`, preserve no-MP4 and latency gates, and retain or reject
-each existing promotion under the corrected contract before a new ablation.
+The three hash-bound realtime baselines have now been replayed with
+`include_hidden=true`. Aggregate IDSW is `87` for fast, `133` for balanced,
+and `168` for the quality-delayed parent. These replace the exclude-Hidden
+values only for primary scientific evaluation; the old reports remain
+compatibility evidence.
+
+Retain the existing quality-delayed default
+`realtime_motion_pair_simple_min_gain=0.003`. Against the same-contract parent
+at `0.005`, both primary and repeat improve aggregate IDSW `168 -> 166`, with
+only `000263: 44 -> 42`; no video regresses, FP/FN and fragmentation are
+unchanged, HOTA/IDF1 do not decrease, and the candidate repeatability audit
+passes with 26 prediction XML files, 72 artifacts and `mp4_count=0`. Continue
+to classify this profile as `post_video_global_graph` with delay `-1`; do not
+claim fixed-delay causality or an absolute FPS improvement. The corrected
+decision authority is
+`docs/TRACKING_PROMOTION_DECISION_20260717_P2_QUALITY_DELAYED_INCLUDE_HIDDEN.json`.
+
+Next, close any remaining corrected realtime compatibility evidence and audit
+R0 causality before opening a new isolated realtime ablation.
 
 ## Paused decision: reviewed-data rebuild
 

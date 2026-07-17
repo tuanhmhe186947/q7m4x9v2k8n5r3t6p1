@@ -37,6 +37,25 @@ sử, nhưng không được dùng để bỏ qua các gate mới.
 Các số realtime ở trên đều thuộc hợp đồng exclude-Hidden lịch sử. Không dùng
 chúng để chọn hoặc promote candidate cho đến khi có baseline include-Hidden.
 
+Replay hash-bound theo hợp đồng chính `include_hidden=true` tại commit
+`9a2979d` đã khóa lại ba baseline:
+
+- `realtime_fast`: IDSW `87`, HOTA `93.8897%`, IDF1 `93.2109%`, FP/FN
+  `564/688`.
+- `realtime_balanced`: IDSW `133`, HOTA `93.9254%`, IDF1 `93.7140%`, FP/FN
+  `449/587`.
+- Parent `realtime_quality_delayed` với simple gain `0.005`: IDSW `168`,
+  HOTA `97.6610%`, IDF1 `97.5782%`, FP/FN `449/587`.
+
+Candidate quality-delayed đã promote trước đó với simple gain `0.003` được giữ
+lại sau khi sửa contract. Primary và repeat đều cho IDSW `166`; chỉ `000263`
+cải thiện `44 -> 42`, không video nào tăng IDSW, FP/FN và fragmentation không
+đổi, HOTA/IDF1 không giảm. Repeatability lock kiểm tra 26 prediction XML, 72
+artifact và `mp4_count=0`. Profile này vẫn là `post_video_global_graph` với
+delay `-1`, không phải causal hoặc fixed-delay. Không dùng biến động FPS tuyệt
+đối giữa các run để tuyên bố tăng tốc; chỉ candidate repeatability và memory
+gate đã PASS.
+
 Mỗi baseline lock phải ghi SHA commit, hash detector weight, danh sách video,
 ánh xạ video-GT, hash GT/XML, semantic config và output root mới. Sai stem,
 trùng video, thiếu file hoặc output root đã tồn tại phải fail closed.
