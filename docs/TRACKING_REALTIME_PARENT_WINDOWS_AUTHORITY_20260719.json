@@ -1,0 +1,89 @@
+{
+  "schema_version": "tracking_realtime_parent_windows_authority_v1",
+  "status": "PASS",
+  "decision_date": "2026-07-19",
+  "scope": {
+    "worktree": "PIG_task_tracking",
+    "branch": "task/update-tracking",
+    "tracking_only": true,
+    "classification_touched": false
+  },
+  "frozen_plan": {
+    "commit": "c71f8459bc562d2f93642e23b4389a3a2cb24fd1",
+    "path": "docs/TRACKING_REALTIME_PARETO_FUNNEL_PLAN_20260719.json",
+    "sha256": "5046ff636ce4a4d8c02864eef72778e070b9b3e96c5db7f152c8150460b58302"
+  },
+  "window_manifest": {
+    "path": [
+      "outputs/eval/tracking_realtime_optimization",
+      "20260719_realtime_parent_windows_v1/window_manifest.json"
+    ],
+    "sha256": "216ff241df7f1c9b0c3a6db77fc0760921df327ddbc233abfc2b9b4bc39aebfe"
+  },
+  "event_definition": {
+    "filter": "event contains id_switch",
+    "included_values": [
+      "id_switch",
+      "id_switch_and_mismatch"
+    ],
+    "scientific_reason": [
+      "This is the definition used by the official evaluator.",
+      "Exact equality would undercount fast as 30 instead of 69.",
+      "Exact equality would undercount balanced as 61 instead of 121.",
+      "Exact equality would undercount quality-delayed as 77 instead of 166."
+    ]
+  },
+  "window_contract": {
+    "cluster_gap_frames": 15,
+    "score_padding_before": 15,
+    "score_padding_after": 15,
+    "warmup_frames": 120,
+    "warmup_excluded_from_scoring": true,
+    "candidate_outputs_used": false
+  },
+  "profile_windows": {
+    "realtime_fast": {
+      "csv": "fast_hard_event_windows.csv",
+      "sha256": "67d489238f8e58ca3646a3043018db90cf1149a6a2105f5cdb71b06c2d17bdf4",
+      "windows": 22,
+      "videos": 9,
+      "switch_rows": 69,
+      "metric_idsw": 69
+    },
+    "realtime_balanced": {
+      "csv": "balanced_hard_event_windows.csv",
+      "sha256": "eccea2f5cf4fdc8d9c5c1c10e9c188cc4c695e0ccc618426602d4f194d5d5a91",
+      "windows": 27,
+      "videos": 11,
+      "switch_rows": 121,
+      "metric_idsw": 121,
+      "top_episode": "Pigs291119_000263_30fps__switch_801_846",
+      "top_episode_switch_rows": 34
+    },
+    "realtime_quality_delayed": {
+      "csv": "quality_delayed_hard_event_windows.csv",
+      "sha256": "cd4548aa797c4fffaa8b06db827adf2f1e7c234e65a4c49e3d16fb2ced8f1b39",
+      "windows": 37,
+      "videos": 10,
+      "switch_rows": 166,
+      "metric_idsw": 166
+    }
+  },
+  "checks": {
+    "all_source_hashes_match_plan": true,
+    "all_event_totals_match_metrics": true,
+    "all_windows_parent_derived": true,
+    "recursive_mp4_count": 0
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "next_step": [
+    "Run static and synthetic RB1 causal smoothing checks.",
+    "Score parent and RB1 on the frozen top windows before a full video."
+  ]
+}
