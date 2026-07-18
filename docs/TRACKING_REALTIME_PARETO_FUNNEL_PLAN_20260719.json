@@ -1,0 +1,368 @@
+{
+  "schema_version": "tracking_realtime_pareto_funnel_plan_v1",
+  "status": "frozen_before_rb1_candidate",
+  "decision_date": "2026-07-19",
+  "worktree": "PIG_task_tracking",
+  "branch": "task/update-tracking",
+  "starting_commit": "504524cc56e1f3a18affcf8b29c3cf6e5935376f",
+  "scope": {
+    "tracking_only": true,
+    "classification_or_model_changes_allowed": false,
+    "generated_mp4_allowed": false,
+    "preview_overlay_or_event_clip_allowed": false
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "skill_validation": {
+    "project_skill_pack": "PASS",
+    "skill_creator_quick_validate": "PASS",
+    "tracking_discovery_scenario": "PASS_BY_CONTRACT_INSPECTION",
+    "hard_window_builder": [
+      ".agents/skills/tracking-experiment-guardian/scripts",
+      "build_hard_event_windows.py"
+    ]
+  },
+  "evaluation_contract": {
+    "include_hidden": true,
+    "hidden_attribute_is_optimization_target": false,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "iou_threshold": 0.5,
+    "gap_tolerance_frames": 15,
+    "video_count": 13,
+    "gt_detections": 187200,
+    "detector_sha256":
+      "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+    "mask_sha256":
+      "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658"
+  },
+  "hybrid_authority": {
+    "status": "lane_complete",
+    "profile": "hybrid_bytetrack_best",
+    "promotion_commit": "c3850ac545ad6deed7567e78ef3dcdbd0139383f",
+    "decision": "docs/TRACKING_HYBRID_LANE_COMPLETION_DECISION_20260719.json",
+    "idsw": 0,
+    "hota": 0.9835062270290739,
+    "idf1": 0.9914903846153846,
+    "fp": 1593,
+    "fn": 1593,
+    "runtime_contract": "post_video_offline",
+    "reopen_rule": "only_for_a_predeclared_failure_on_untouched_sessions"
+  },
+  "realtime_authorities": {
+    "realtime_fast": {
+      "role": "operational_identity_and_speed_reference",
+      "timing_contract": "causal_framewise",
+      "declared_delay_frames": 0,
+      "git_commit": "7f36b5709c794a824bdd4ddd4ff7e62ae73ead06",
+      "promotion_commit": "456fc97",
+      "evaluation_root": [
+        "outputs/eval/tracking_candidates",
+        "20260718_7f36b57_r1_visible_prefer_fast_full13_primary_v1",
+        "iou0_area0_condarea0_merge0"
+      ],
+      "run_manifest_sha256":
+        "27589f32161653976a26899a9a6e289629ed4b6bc98f00cee7bcb63b743bdc6a",
+      "metrics_sha256":
+        "411a1fdcff9a39930e35df5f0381dcf9930a10cfb65c4fa2838f27136eef67df",
+      "identity_events_sha256":
+        "15733d2c84cd4aaf8f5746f3a582781c0216248d12c279c9de1e23cb5e2dcbe9",
+      "assets_sha256":
+        "362abf52353bb8e7a7ac1b508588722e15c0ba5224aa8e3c6560c71d35dc7633",
+      "runtime_sha256":
+        "eb9f586ca3d9cf9794b76351385fc87ed222ecb8064a56f18dd9bc36e7305511",
+      "idsw": 69,
+      "hota": 0.9434658955189228,
+      "idf1": 0.9390984193482884,
+      "fp": 506,
+      "fn": 630,
+      "fragments": 110,
+      "loop_fps": 27.200892458036197,
+      "mean_effective_fps": 27.398960103513293,
+      "max_frame_p95_ms": 62.49316500397981,
+      "peak_process_rss_bytes": 1682157568
+    },
+    "realtime_balanced": {
+      "role": "primary_causal_quality_target",
+      "timing_contract": "causal_framewise",
+      "declared_delay_frames": 0,
+      "git_commit": "80e46000994deb7207930f705c723abfab091397",
+      "promotion_commit": "e8d39d7",
+      "evaluation_root": [
+        "outputs/eval/tracking_windows",
+        "20260718_80e4600_gain017_alt025_full13"
+      ],
+      "run_manifest_sha256":
+        "7fe9a89bb2a152f252f403853beac06a6345a9cc76d4357c3a2f2e913e91ba5a",
+      "metrics_sha256":
+        "7bd74ed55d30347b3b61d5635049954d2b200041e9280cb43a3b2e244c23680d",
+      "identity_events_sha256":
+        "d73b5a9c2a453553d4761a764afa1bab2402f50f2e3cb0cc0720460ee9e1ff79",
+      "assets_sha256":
+        "179c1dd0dbd0fbe4698f2cefb32b537f9df0b36a20c176a735de7e9714c543db",
+      "runtime_sha256":
+        "ba9fe7de2d91618e3e54fcf66ef5f604df4d09a8d3ffb72d665b69b00db8bad5",
+      "idsw": 121,
+      "hota": 0.956846244204177,
+      "idf1": 0.9575751746102997,
+      "fp": 448,
+      "fn": 586,
+      "fragments": 127,
+      "loop_fps": 26.75486156310947,
+      "mean_effective_fps": 26.76807107692426,
+      "max_frame_p95_ms": 41.17715499014594,
+      "peak_process_rss_bytes": 1748262912
+    },
+    "realtime_quality_delayed": {
+      "role": "post_video_quality_target",
+      "timing_contract": "post_video_global_graph",
+      "declared_delay_frames": -1,
+      "fixed_delay_or_causal_claim_allowed": false,
+      "git_commit": "9a2979de331db5127333e24a27e2bed2ee6c724a",
+      "promotion_commit": "c5d5e45acfd5e31aea23a4a530936d808fa3e0c5",
+      "evaluation_root": [
+        "outputs/eval/tracking_replays",
+        "20260717_9a2979d_includehidden_realtime_quality_delayed_candidate_",
+        "dccad96_gain003_v1"
+      ],
+      "run_manifest_sha256":
+        "9217c991c957a15238233bf62fe1d6c86200f08cd685916d83307390258d529b",
+      "metrics_sha256":
+        "221fe69832d6891de2f70890d271e91030ecd51559a3803815e2f95616bbe57b",
+      "identity_events_sha256":
+        "fd59b4ea00ca27990c01a839c5d0918ebd36dc36d1b72aafc70945f13b60cb54",
+      "assets_sha256":
+        "6e7f8eea147c5ef557e5c7fa2991b9d7916300ff6ea474917a931706fe06fcf7",
+      "runtime_sha256":
+        "4350e1fb2a702d3ba33b321f2715973fc58fa08cfedc7ebf8ab30c8a0021abaa",
+      "idsw": 166,
+      "hota": 0.9766216982135155,
+      "idf1": 0.9757870155131967,
+      "fp": 449,
+      "fn": 587,
+      "fragments": 130,
+      "loop_fps": 12.085928242557099,
+      "max_frame_p95_ms": 139.8104699999635,
+      "peak_process_rss_bytes": 1665773568
+    }
+  },
+  "pareto_interpretation": {
+    "balanced_minus_fast": {
+      "idsw": 52,
+      "hota_percentage_points": 1.33803486852542,
+      "idf1_percentage_points": 1.84767552620113,
+      "fp": -58,
+      "fn": -44,
+      "loop_fps_relative_pct": -1.63976769548961
+    },
+    "fast_dominates_balanced": false,
+    "reason": [
+      "Balanced retains materially better HOTA, IDF1, FP and FN.",
+      "Balanced is not operationally ready while its IDSW penalty is 52.",
+      "The first realtime lane therefore reduces Balanced identity churn",
+      "while preserving its quality and causal runtime advantages."
+    ],
+    "optimization_order": [
+      "realtime_balanced",
+      "realtime_fast",
+      "realtime_quality_delayed"
+    ]
+  },
+  "identity_event_contract": {
+    "source": "tracking_remapped_identity_events.csv",
+    "filter": "event contains id_switch",
+    "accepted_values": [
+      "id_switch",
+      "id_switch_and_mismatch"
+    ],
+    "rejected_shortcut": "event == id_switch",
+    "reason": "The evaluator uses str.contains and exact equality undercounts IDSW.",
+    "counts": {
+      "realtime_fast": {
+        "id_switch": 30,
+        "id_switch_and_mismatch": 39,
+        "metric_idsw": 69
+      },
+      "realtime_balanced": {
+        "id_switch": 61,
+        "id_switch_and_mismatch": 60,
+        "metric_idsw": 121
+      },
+      "realtime_quality_delayed": {
+        "id_switch": 77,
+        "id_switch_and_mismatch": 89,
+        "metric_idsw": 166
+      }
+    }
+  },
+  "parent_derived_balanced_residuals": {
+    "largest_per_video_idsw": {
+      "Pigs291119_000263_30fps": 38,
+      "Pigs291119_000233_30fps": 27,
+      "Pigs291119_000231_30fps": 26,
+      "Pigs281119_000114_30fps": 6
+    },
+    "primary_episode": {
+      "video": "Pigs291119_000263_30fps",
+      "frames": [801, 846],
+      "switch_event_rows": 34,
+      "ids": ["ID_1", "ID_2"],
+      "parent_mechanism": [
+        "One track alternates between detected and occlusion-hold states.",
+        "Detected geometry repeatedly changes the evaluator match between two pigs.",
+        "Both GT identities are visible, so include-Hidden is not causing this cluster."
+      ]
+    },
+    "critical_guardrail_episode": {
+      "video": "Pigs291119_000216_30fps",
+      "frames": [1076, 1098],
+      "reason": "A broader hidden reservation threshold previously caused a long error."
+    }
+  },
+  "hard_window_freeze": {
+    "output_root": [
+      "outputs/eval/tracking_realtime_optimization",
+      "20260719_realtime_parent_windows_v1"
+    ],
+    "profiles": [
+      "realtime_fast",
+      "realtime_balanced",
+      "realtime_quality_delayed"
+    ],
+    "cluster_gap_frames": 15,
+    "score_padding_before": 15,
+    "score_padding_after": 15,
+    "warmup_frames": 120,
+    "min_switch_rows": 1,
+    "parent_events_only": true,
+    "candidate_output_used_to_select_windows": false,
+    "warmup_excluded_from_scoring": true
+  },
+  "rb1_candidate": {
+    "name": "causal_online_box_smoothing_v1",
+    "profile": "realtime_balanced",
+    "changed_family": "causal_detected_box_geometry_smoothing",
+    "semantic_diff": {
+      "smooth_boxes": [false, true]
+    },
+    "unchanged": [
+      "detector and detector confidence",
+      "detection cadence",
+      "association and hidden-reservation guards",
+      "raw-ID learning",
+      "offline smoothing and every post-video repair",
+      "evaluation contract"
+    ],
+    "hypothesis": [
+      "Past-and-current-only box smoothing damps merged-detection flicker.",
+      "It should reduce the 000263 ID_1/ID_2 switch cluster without delay.",
+      "It must preserve Balanced HOTA, IDF1 and coverage on other videos."
+    ],
+    "causality_claim": "candidate_is_past_and_current_frame_only",
+    "causality_proof_required": "prefix_invariance_PASS",
+    "default_enabled_before_promotion": false
+  },
+  "funnel": {
+    "stage_order": [
+      "parent-derived hard-event windows",
+      "full Pigs291119_000263_30fps",
+      "seven-video hard set",
+      "full-13 primary",
+      "full-13 independent repeat",
+      "separate profile promotion"
+    ],
+    "hard_set": [
+      "Pigs281119_000114_30fps",
+      "Pigs291119_000216_30fps",
+      "Pigs291119_000231_30fps",
+      "Pigs291119_000233_30fps",
+      "Pigs291119_000263_30fps",
+      "Pigs291119_000302_30fps",
+      "Pigs301119_000327_30fps"
+    ],
+    "window_to_full_target": {
+      "independent_episodes_improved_min": 2,
+      "independent_videos_improved_min": 2,
+      "new_switch_episode_allowed": false,
+      "hota_or_idf1_regression_allowed": false,
+      "mp4_count_required": 0
+    },
+    "full_target_to_hard_set": {
+      "target_idsw_delta_max": -4,
+      "target_hota_delta_min": 0.0,
+      "target_idf1_delta_min": 0.0,
+      "target_fp_or_fn_increase_allowed": false
+    },
+    "hard_set_to_full13": {
+      "aggregate_idsw_delta_max": -4,
+      "difficult_videos_improved_min": 2,
+      "per_video_idsw_regression_max": 0,
+      "aggregate_hota_delta_min": 0.0,
+      "aggregate_idf1_delta_min": 0.0,
+      "Pigs291119_000302_30fps_idsw_max": 0
+    },
+    "full13_promotion": {
+      "aggregate_idsw_max": 113,
+      "aggregate_idsw_delta_max": -8,
+      "per_video_idsw_regression_max": 0,
+      "aggregate_hota_min": 0.956846244204177,
+      "aggregate_idf1_min": 0.9575751746102997,
+      "fp_max": 450,
+      "fn_max": 588,
+      "fragments_max": 127,
+      "loop_fps_min": 24.079375406798524,
+      "max_frame_p95_ms_max": 45.29487048916054,
+      "peak_process_rss_bytes_max": 1923089203,
+      "repeat_to_primary_fps_ratio_min": 0.9,
+      "repeat_to_primary_peak_memory_ratio_max": 1.1,
+      "prefix_invariance_required": true,
+      "prediction_integrity_required": true,
+      "current_input_rehash_required": true,
+      "recursive_mp4_count_required": 0
+    }
+  },
+  "balanced_lane_completion_target": {
+    "aggregate_idsw_max": 86,
+    "idsw_gap_to_fast_max": 17,
+    "hota_min": 0.956846244204177,
+    "idf1_min": 0.9575751746102997,
+    "loop_fps_min": 24.079375406798524,
+    "meaning": [
+      "This target may require more than one separately promoted family.",
+      "Do not declare Balanced operationally ready after a smaller first gain."
+    ]
+  },
+  "later_profile_contracts": {
+    "realtime_fast": {
+      "start_only_after_balanced_candidate_is_decided": true,
+      "preserve_causal_zero_delay": true,
+      "per_video_idsw_regression_max": 0,
+      "aggregate_hota_and_idf1_non_regression": true,
+      "loop_fps_non_regression": true
+    },
+    "realtime_quality_delayed": {
+      "start_only_after_fast_candidate_is_decided": true,
+      "preserve_post_video_global_graph_label": true,
+      "fixed_delay_claim_allowed_without_prefix_proof": false,
+      "per_video_idsw_regression_max": 0,
+      "aggregate_hota_and_idf1_non_regression": true
+    }
+  },
+  "stop_conditions": [
+    "Any input, parent artifact, semantic config or source hash drifts.",
+    "A candidate changes more than the declared family.",
+    "A causal candidate changes an already flushed prefix after future append.",
+    "Any stage emits MP4, preview, overlay or event clips.",
+    "Any critical guardrail fails or a per-video IDSW regression appears.",
+    "A stage is advanced without satisfying every earlier frozen gate."
+  ],
+  "next_step": [
+    "Build three parent-only hard-window CSV manifests with the frozen settings.",
+    "Audit their event totals against the official per-profile IDSW metrics.",
+    "Run static and synthetic checks for RB1 before any tracker window run."
+  ]
+}
