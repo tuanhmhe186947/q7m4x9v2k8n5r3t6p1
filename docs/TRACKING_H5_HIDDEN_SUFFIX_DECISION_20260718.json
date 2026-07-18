@@ -1,0 +1,120 @@
+{
+  "schema_version": "tracking_h5_hidden_suffix_decision_v1",
+  "status": "rejected_window_gate",
+  "decision_date": "2026-07-18",
+  "candidate_id": "H5a",
+  "candidate_name": "hidden_suffix_commit_after_run_v1",
+  "priority": "hybrid_bytetrack_residual_first",
+  "changed_family": "hidden_suffix_identity_commit_boundary",
+  "parent_commit": "b66428e22609adc38d8d36ce96a0b3025c0ba0aa",
+  "replay_code_commit": "291f237adb8a6171b5c5c9d0afa0b3e452490def",
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian",
+    "skill-creator"
+  ],
+  "hypothesis": "Move the hidden-suffix identity commit to the first frame after the Hidden run.",
+  "evaluation_contract": {
+    "mode": "hybrid_bytetrack",
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "include_hidden": true,
+    "hidden_is_optimization_target": false,
+    "iou_threshold": 0.5,
+    "gap_tolerance_frames": 15,
+    "runtime_contract": "post_video_identity_payload_replay",
+    "tracker_runtime_status": "NOT_APPLICABLE",
+    "generated_mp4_allowed": false,
+    "classification_scope_allowed": false
+  },
+  "frozen_inputs": {
+    "plan": {
+      "path": "docs/TRACKING_H5_HIDDEN_SUFFIX_COMMIT_PLAN_20260718.json",
+      "sha256": "cd1c7c195e397ef9de9e4a05d165feddbb0b3021439cc875b537281b7fd81423"
+    },
+    "event_window": {
+      "path": "outputs/eval/tracking_hybrid_residual/20260718_f463119_h4_parent_windows_v1/hard_event_windows.csv",
+      "sha256": "dc2d05568442ddfb99e1b5b81e66c06e0e25618abf52c798d154619a722d040a",
+      "video": "Pigs291119_000233_30fps",
+      "score_frames": [1104, 1119],
+      "switch_frames": [1111, 1114]
+    },
+    "parent_prediction_semantic_sha256": "7af872259f59ec3d3c0846221ea008ae607bf46927256f43cb8c69ed750f8ee8",
+    "candidate_prediction_semantic_sha256": "221da6b57d1b833e75ab176d076fbec049e9bdf25555d623bf0d2b74bb751db"
+  },
+  "replay": {
+    "manifest": "outputs/pred/tracking_hybrid_residual/20260718_h5_identity_replay_screen_000233_v1/iou0_area0_condarea0_merge0/hybrid_bytetrack/Pigs291119_000233_30fps/identity_replay_manifest.json",
+    "manifest_sha256": "de0e5f65f8704471edae42921d4a94bced2958e99b3a90f115ed1e43533e9830",
+    "identity_delta_sha256": "e51f59a9357765529a2e9aff4e559a9730effbf09c1d43546251f653cdb544b9",
+    "changed_id_rows": 16,
+    "changed_labels": ["Pig_1", "Pig_8"],
+    "changed_payload": ["ID attribute"],
+    "non_id_payload_equal": true,
+    "shape_keys_equal": true,
+    "candidate_json_reparsed": true,
+    "candidate_xml_reparsed": true
+  },
+  "window_metrics": {
+    "parent": {
+      "run_manifest_sha256": "694528c9bde50e5347fe0ed616c70a8c9fb143eeed7635071223d477b76fb39a",
+      "artifact_manifest_sha256": "1f0e5c44b30d6054c5de72bb918448b0371b940ffde1f52e05c001bc20fd1486",
+      "remapped_idsw": 4,
+      "remapped_idf1_pct": 93.75,
+      "remapped_hota_pct": 91.76,
+      "fp": 6,
+      "fn": 6,
+      "remapped_fragments": 2,
+      "remapped_gap_tolerant_fragments": 0
+    },
+    "candidate": {
+      "run_manifest_sha256": "9dbdfc8f4c587b93835084e09804a21304d24b037677186f4bbdf3df1040814b",
+      "artifact_manifest_sha256": "8bcb333a1748bcb3111ca402320910856351ca48226644810aa9c16432410d8a",
+      "remapped_idsw": 4,
+      "remapped_idf1_pct": 89.06,
+      "remapped_hota_pct": 88.54,
+      "fp": 6,
+      "fn": 6,
+      "remapped_fragments": 2,
+      "remapped_gap_tolerant_fragments": 0
+    },
+    "delta": {
+      "remapped_idsw": 0,
+      "remapped_idf1_pct": -4.69,
+      "remapped_hota_pct": -3.22,
+      "fp": 0,
+      "fn": 0
+    }
+  },
+  "gates": {
+    "clean_commit_bound_lineage": "PASS",
+    "include_hidden_primary_contract": "PASS",
+    "identity_only_payload": "PASS",
+    "frozen_window_binding": "PASS",
+    "dry_run": "PASS",
+    "window_idsw_gain": "FAIL",
+    "window_quality_non_regression": "FAIL",
+    "recursive_no_mp4": "PASS",
+    "full_target_authorized": false,
+    "hard_set_authorized": false,
+    "full13_authorized": false,
+    "profile_promotion_authorized": false
+  },
+  "decision": [
+    "Reject H5a at the frozen event-window gate.",
+    "Do not run full 000233, hard-set, full-13, or promote H5a.",
+    "Retain H5a as negative evidence for a commit-after-hidden-run rule.",
+    "Open one separately frozen H5b persistence-boundary hypothesis only.",
+    "Keep realtime lanes closed until a separate hybrid lane-completion decision."
+  ],
+  "residual_interpretation": {
+    "identity_switch_not_reduced": true,
+    "candidate_worsened_association_quality": true,
+    "next_hypothesis_allowed": "commit at the first geometry-supported persistent-overlap boundary",
+    "gt_used_to_generate_prediction": false,
+    "video_or_absolute_frame_hardcode_used": false
+  },
+  "recursive_mp4_count": 0,
+  "rollback": "Retain parent H4 authority; do not apply H5a replay IDs."
+}
