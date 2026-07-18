@@ -1,5 +1,25 @@
 # Project Memory Short
 
+## 2026-07-18 realtime_balanced hidden-reservation promotion
+
+- `realtime_balanced` promotes causal hidden-detection reservation with
+  `min_iom=0.96`, `min_gain=0.17`, `max_alternative_cost=0.25`, visible hold,
+  and `hold_min_gain=0.17`.
+- Full-13 improves IDSW `133 -> 121`, IDF1 `93.71% -> 95.76%`, HOTA
+  `93.93% -> 95.68%`, FP/FN `449/587 -> 448/586`, and fragments `130 -> 127`.
+  Five videos improve and eight tie; none regress in IDSW, IDF1, or HOTA.
+- `000231` has the declared FP/FN trade-off `61/79 -> 62/80`, while IDSW
+  improves `28 -> 26`, IDF1 `76.06% -> 93.92%`, and HOTA
+  `77.29% -> 92.97%`.
+- Reject `max_alternative_cost=0.30`: despite aggregate IDSW `119`, it drops
+  `000216` IDF1/HOTA to `90.10%/91.45%` through a persistent ID 5/8 error.
+  Threshold `0.25` blocks cost `0.283780` and retains the useful `000233`
+  event at cost `0.238421`.
+- Primary/repeat metrics and semantic predictions match; authority is `PASS`
+  and all roots contain zero MP4. Promotion commit is `e8d39d7`; lineage and
+  rollback are in
+  `docs/TRACKING_PROMOTION_DECISION_20260718_REALTIME_BALANCED_HIDDEN_RESERVATION.json`.
+
 ## 2026-07-18 realtime_fast visible-competitor preference promotion
 
 - Full-13 primary and repeat use `include_hidden=true`,

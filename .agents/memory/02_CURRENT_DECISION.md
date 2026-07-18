@@ -16,6 +16,22 @@ Primary evaluation therefore uses `include_hidden=true`; the 1,930
 tracker-derived `Hidden` values are not a visibility target. Exclude-Hidden
 metrics are compatibility evidence only.
 
+The causal `realtime_balanced` profile now promotes hidden-detection
+reservation at `min_iom=0.96`, `min_gain=0.17`,
+`max_alternative_cost=0.25`, visible hold enabled, and `hold_min_gain=0.17`.
+Full-13 primary and repeat improve IDSW `133 -> 121`, IDF1 `93.71% -> 95.76%`,
+HOTA `93.93% -> 95.68%`, FP/FN `449/587 -> 448/586`, and fragments
+`130 -> 127`. Five videos improve and eight tie; no video regresses in IDSW,
+IDF1, or HOTA. The small `000231` FP/FN trade-off is retained explicitly.
+
+Reject `max_alternative_cost=0.30` even though aggregate IDSW reaches `119`:
+it creates persistent `000216` ID 5/8 corruption and drops that video's
+IDF1/HOTA from `99.55%/99.26%` to `90.10%/91.45%`. The selected `0.25`
+threshold excludes cost `0.283780` while retaining the useful `000233` event
+at `0.238421`. Promotion commit is `e8d39d7`; authority is
+`docs/TRACKING_PROMOTION_DECISION_20260718_REALTIME_BALANCED_HIDDEN_RESERVATION.json`.
+`realtime_quality_delayed` keeps its reservation-disabled semantics.
+
 The H2 asymmetric refinement candidate at `e55973f` is rejected. Its full-13
 run improved matches by 74 and aggregate HOTA by 0.0719 percentage points, but
 increased IDSW from 10 to 14, including `000085: 0 -> 2` and `000328: 4 -> 6`.
@@ -70,8 +86,11 @@ flushed XML box payloads for both fast and balanced, with declared delay `0`
 and `mp4_count=0`. Auditor commit is `f8e1b6e`; authority is
 `docs/TRACKING_CAUSALITY_DECISION_20260718_R0.json`.
 
-Next, open one isolated weak-event ablation at a time. Every run must use
-`include_hidden=true`, a fresh output root and recursive `mp4_count=0`.
+Freeze these 13 videos as development evidence. Any further change must start
+with one isolated weak-event window, then a full difficult video and hard set;
+run full-13 only after those gates pass. Final unbiased claims require
+untouched sessions selected before more optimization. Every run keeps
+`include_hidden=true`, a fresh output root, and recursive `mp4_count=0`.
 
 ## Paused decision: reviewed-data rebuild
 

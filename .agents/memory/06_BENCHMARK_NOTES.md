@@ -1,5 +1,27 @@
 # Benchmark Notes
 
+## 2026-07-18 realtime_balanced hidden-reservation promotion
+
+- Parent and candidate roots are `20260718_80e4600_parent_eval_full13` and
+  `20260718_80e4600_gain017_alt025_full13`; the independent repeat ends in
+  `gain017_alt025_repeat_full13`, under `outputs/eval/tracking_windows`.
+- The candidate uses `include_hidden=true`, start frame `0`,
+  `iou0_area0_condarea0_merge0`, causal delay `0`, and no generated MP4.
+- Aggregate IDSW improves `133 -> 121`, IDF1 `93.71% -> 95.76%`, HOTA
+  `93.93% -> 95.68%`, FP/FN `449/587 -> 448/586`, and fragments `130 -> 127`.
+  Five videos improve; eight tie; none regress in IDSW, IDF1, or HOTA.
+- `max_alternative_cost=0.30` is negative evidence: it reaches IDSW `119` but
+  drops `000216` IDF1/HOTA from `99.55%/99.26%` to `90.10%/91.45%` through
+  persistent ID 5/8 corruption. The promoted `0.25` blocks cost `0.283780`
+  and retains the useful `000233` cost `0.238421`.
+- Repeatability authority SHA256 is
+  `757d57b146b98d047b583f1e3025480b9646fda60a25543e29ee6df0d0b91429`;
+  it verifies 26 predictions, 72 artifacts, matching semantic predictions,
+  runtime guardrails, and `mp4_count=0`.
+- Profile promotion commit is `e8d39d7`; exact config, hashes, and rollback
+  are in
+  `docs/TRACKING_PROMOTION_DECISION_20260718_REALTIME_BALANCED_HIDDEN_RESERVATION.json`.
+
 ## 2026-07-18 realtime_fast visible-competitor preference promotion
 
 - Parent authority:

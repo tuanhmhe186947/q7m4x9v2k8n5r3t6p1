@@ -1,0 +1,230 @@
+{
+  "schema_version": "tracking_promotion_decision_v2",
+  "status": "promoted_overall_quality",
+  "decision_date": "2026-07-18",
+  "profile": "realtime_balanced",
+  "output_timing_contract": "causal_framewise",
+  "declared_delay_frames": 0,
+  "experiment_commit": "80e46000994deb7207930f705c723abfab091397",
+  "profile_promotion_commit": "e8d39d7",
+  "algorithm_commits": ["90e756b", "b9003a0", "5aea6c8"],
+  "changed_family": "causal_hidden_detection_reservation",
+  "hypothesis": [
+    "Reserve a detection only when a recently hidden track has a much stronger",
+    "causal claim than the visible alternative, preventing identity theft",
+    "without using future frames or optimizing the tracker-derived Hidden flag."
+  ],
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "safe-refactor-test-guardian",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility"
+  ],
+  "evaluation_contract": {
+    "include_hidden": true,
+    "hidden_attribute_is_optimization_target": false,
+    "start_frame": 0,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "video_count": 13,
+    "gt_detections": 187200,
+    "generated_mp4_allowed": false
+  },
+  "promoted_config": {
+    "causal_hidden_detection_reservation": true,
+    "causal_hidden_detection_reservation_min_iom": 0.96,
+    "causal_hidden_detection_reservation_min_gain": 0.17,
+    "causal_hidden_detection_reservation_max_alternative_cost": 0.25,
+    "causal_hidden_detection_reservation_allow_visible_hold": true,
+    "causal_hidden_detection_reservation_hold_min_gain": 0.17
+  },
+  "profile_isolation": {
+    "realtime_quality_delayed_evaluated_with_candidate": false,
+    "realtime_quality_delayed_reservation_enabled": false,
+    "realtime_quality_delayed_min_iom": 0.55,
+    "realtime_quality_delayed_min_gain": 0.08,
+    "realtime_quality_delayed_max_alternative_cost": 0.78,
+    "realtime_quality_delayed_allow_visible_hold": false,
+    "realtime_quality_delayed_hold_min_gain": 0.10
+  },
+  "run_roots": {
+    "parent": "outputs/eval/tracking_windows/20260718_80e4600_parent_eval_full13",
+    "candidate_primary":
+      "outputs/eval/tracking_windows/20260718_80e4600_gain017_alt025_full13",
+    "candidate_repeat":
+      "outputs/eval/tracking_windows/20260718_80e4600_gain017_alt025_repeat_full13",
+    "rejected_alt030":
+      "outputs/eval/tracking_windows/20260718_80e4600_gain017_alt030_full13",
+    "repeatability_authority":
+      "outputs/eval/tracking_windows/20260718_80e4600_gain017_alt025_repeatability_audit.json"
+  },
+  "lineage": {
+    "parent_semantic_config_sha256":
+      "c7c1c5949989f5f0ced84e7d0d419c96277116420a3eb07098fafc5593ee1d18",
+    "candidate_semantic_config_sha256":
+      "b849c6ca93c9d3ec7c535cb8e13acb3cac368fd0f38b99a6a72b75b2e260428c",
+    "rejected_alt030_semantic_config_sha256":
+      "adb198e38331e2c42f7808a5ae879d0f2222c70060b7e2d21c8f5129fdeb544f",
+    "parent_run_manifest_sha256":
+      "f69b9dc2a4792eb0bb5dc8cff1cfdcd06c42927ffb13d5a3597f520e36fc2aa7",
+    "parent_metrics_sha256":
+      "f09bb0fc47c1b61d387111804629d2f2d8752b0097901bb8017530f042cf2047",
+    "candidate_primary_run_manifest_sha256":
+      "7fe9a89bb2a152f252f403853beac06a6345a9cc76d4357c3a2f2e913e91ba5a",
+    "candidate_primary_metrics_sha256":
+      "7bd74ed55d30347b3b61d5635049954d2b200041e9280cb43a3b2e244c23680d",
+    "candidate_repeat_run_manifest_sha256":
+      "7cf224bde35a2e70a4e45f5f0e59fc33c618703e7c1328db996764b191695e67",
+    "candidate_repeat_metrics_sha256":
+      "bfc5725765c2fa0461d31dd9e0d2f05b63bebfc6bef54cc94c42b840afc959f9",
+    "repeatability_authority_sha256":
+      "757d57b146b98d047b583f1e3025480b9646fda60a25543e29ee6df0d0b91429"
+  },
+  "aggregate_quality": {
+    "parent": {
+      "fp": 449,
+      "fn": 587,
+      "remapped_idsw": 133,
+      "fragments": 130,
+      "remapped_idf1": 0.9371402920948426,
+      "remapped_hota": 0.9392535141777455
+    },
+    "candidate": {
+      "fp": 448,
+      "fn": 586,
+      "remapped_idsw": 121,
+      "fragments": 127,
+      "remapped_idf1": 0.9575751746102997,
+      "remapped_hota": 0.956846244204177
+    },
+    "candidate_minus_parent": {
+      "fp": -1,
+      "fn": -1,
+      "remapped_idsw": -12,
+      "fragments": -3,
+      "remapped_idf1_percentage_points": 2.04348825154571,
+      "remapped_hota_percentage_points": 1.75927300264315
+    },
+    "paper_precision": {
+      "remapped_idf1_pct": [93.71, 95.76],
+      "remapped_hota_pct": [93.93, 95.68]
+    }
+  },
+  "per_video_changes": {
+    "Pigs291119_000231_30fps": {
+      "remapped_idsw": [28, 26],
+      "idf1_pct": [76.06, 93.92],
+      "hota_pct": [77.29, 92.97],
+      "fp_fn": [[61, 79], [62, 80]]
+    },
+    "Pigs291119_000233_30fps": {
+      "remapped_idsw": [29, 27],
+      "idf1_pct": [84.52, 87.47],
+      "hota_pct": [85.09, 89.12]
+    },
+    "Pigs301119_000327_30fps": {
+      "remapped_idsw": [10, 6],
+      "idf1_pct": [97.88, 97.90],
+      "hota_pct": [97.08, 97.10]
+    },
+    "Pigs301119_000330_30fps": {
+      "remapped_idsw": [4, 2],
+      "idf1_pct": [88.22, 93.95],
+      "hota_pct": [88.27, 93.48]
+    },
+    "Pigs291119_000263_30fps": {
+      "remapped_idsw": [40, 38],
+      "idf1_pct": [94.09, 94.11],
+      "hota_pct": [93.11, 93.14]
+    },
+    "video_count_improved_ids": 5,
+    "video_count_equal": 8,
+    "video_count_with_idsw_regression": 0,
+    "video_count_with_idf1_or_hota_regression": 0
+  },
+  "rejected_candidate": {
+    "max_alternative_cost": 0.30,
+    "aggregate_remapped_idsw": 119,
+    "aggregate_idf1_pct": 95.03,
+    "aggregate_hota_pct": 95.09,
+    "blocking_video": "Pigs291119_000216_30fps",
+    "blocking_video_idf1_pct": [99.55, 90.10],
+    "blocking_video_hota_pct": [99.26, 91.45],
+    "failure_event": {
+      "reservation_frame": 1076,
+      "persistent_wrong_identity_frames": [1098, 1799],
+      "affected_ids": [5, 8],
+      "replacement_cost": 0.283780
+    },
+    "selected_threshold_rationale": {
+      "harmful_000216_cost_excluded": 0.283780,
+      "beneficial_000233_frame": 1376,
+      "beneficial_000233_cost_retained": 0.238421
+    },
+    "decision": "reject_despite_lower_aggregate_idsw"
+  },
+  "repeatability": {
+    "status": "PASS",
+    "quality_metrics_match_primary": true,
+    "per_video_metrics_match_primary": true,
+    "prediction_semantic_hashes_match_primary": true,
+    "verified_prediction_count": 26,
+    "verified_artifact_count": 72,
+    "recursive_mp4_count": 0
+  },
+  "runtime": {
+    "primary_tracking_loop_effective_fps": 26.75486156310947,
+    "repeat_tracking_loop_effective_fps": 26.14511669236692,
+    "repeat_to_primary_ratio": 0.9772099411053098,
+    "runtime_repeat_guardrail": "PASS",
+    "speed_claim_authorized": false
+  },
+  "promotion_validation": {
+    "profile_tests_passed": 12,
+    "focused_tracking_tests_passed": 119,
+    "ruff": "PASS",
+    "compileall": "PASS",
+    "skill_pack_validator": "PASS",
+    "tracking_skill_discovery_scenario": "PASS",
+    "profile_resolves_to_authority_config": true,
+    "quality_delayed_semantics_unchanged": true
+  },
+  "guardrails": {
+    "overall_quality_improved": true,
+    "per_video_idsw_non_regression": true,
+    "per_video_idf1_hota_non_regression": true,
+    "candidate_repeatability": true,
+    "recursive_no_mp4": true,
+    "causal_timing_contract": true
+  },
+  "decision_rule": [
+    "Promote the repeatable overall improvement: five videos improve and",
+    "eight tie, with no IDSW, IDF1, or HOTA regression. The small 000231",
+    "FP/FN trade-off is retained explicitly and outweighed by its large",
+    "identity-quality gain. Reject 0.30 because aggregate IDSW alone hides a",
+    "long persistent identity corruption on 000216."
+  ],
+  "residual_risks": [
+    "The GT was tracker-seeded and manually corrected; final unbiased claims",
+    "still require untouched sessions selected before further optimization.",
+    "The authority covers realtime_balanced only, not quality-delayed.",
+    "No parent-versus-candidate speed improvement is claimed."
+  ],
+  "decision": "promote_causal_hidden_reservation_in_realtime_balanced",
+  "rollback": {
+    "profile_only": "git revert e8d39d7",
+    "algorithm_remains_dormant_after_profile_rollback": true,
+    "remove_algorithm_in_reverse_order": [
+      "git revert 5aea6c8",
+      "git revert b9003a0",
+      "git revert 90e756b"
+    ]
+  },
+  "next_step": [
+    "Use e8d39d7 as the realtime_balanced development parent.",
+    "Freeze the current 13 videos as development evidence.",
+    "Evaluate future changes through hard windows, hard videos, hard set,",
+    "then full-13 only after the declared funnel gates pass.",
+    "Reserve untouched sessions for the final unbiased test set."
+  ]
+}
