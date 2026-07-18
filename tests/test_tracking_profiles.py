@@ -31,6 +31,9 @@ def test_profile_configs_keep_expected_behavior_separation() -> None:
     assert raw["hidden_suffix_id_swap_repair"] is False
     assert raw["realtime_motion_pair_stabilizer"] is False
 
+    for non_hybrid in (raw, realtime_fast, realtime_balanced, realtime):
+        assert "near_wall_hidden_geometry_refine" not in non_hybrid
+
     assert realtime_fast["realtime_visible_better_competitor_prefer"] is True
 
     assert realtime_balanced["causal_hidden_detection_reservation"] is True
@@ -70,6 +73,12 @@ def test_profile_configs_keep_expected_behavior_separation() -> None:
     assert hybrid["identity_swap_guard_skip_mixed_occlusion_hold"] is True
     assert hybrid["identity_swap_guard_skip_mixed_occlusion_hold_far_only"] is True
     assert hybrid["identity_swap_guard_far_x_threshold"] == 0.67
+    assert hybrid["near_wall_hidden_geometry_refine"] is True
+    assert hybrid["near_wall_hidden_geometry_max_gap_frames"] == 30
+    assert hybrid["near_wall_hidden_geometry_distance_bbox_scale"] == 0.25
+    assert hybrid["near_wall_hidden_geometry_min_width_excess"] == 0.08
+    assert hybrid["near_wall_hidden_geometry_max_center_shift"] == 0.04
+    assert hybrid["near_wall_hidden_geometry_original_weight"] == 0.50
 
 
 def test_get_presentation_profile_returns_mutable_copy() -> None:

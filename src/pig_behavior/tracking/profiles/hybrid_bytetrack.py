@@ -48,6 +48,12 @@ HYBRID_BEST_CONFIG: dict[str, object] = {
     "identity_swap_guard_skip_mixed_occlusion_hold": True,
     "identity_swap_guard_skip_mixed_occlusion_hold_far_only": True,
     "identity_swap_guard_far_x_threshold": 0.67,
+    "near_wall_hidden_geometry_refine": True,
+    "near_wall_hidden_geometry_max_gap_frames": 30,
+    "near_wall_hidden_geometry_distance_bbox_scale": 0.25,
+    "near_wall_hidden_geometry_min_width_excess": 0.08,
+    "near_wall_hidden_geometry_max_center_shift": 0.04,
+    "near_wall_hidden_geometry_original_weight": 0.50,
 }
 
 EVAL_CONFIGS: dict[str, dict[str, object]] = {
