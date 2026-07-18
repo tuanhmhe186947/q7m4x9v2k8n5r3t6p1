@@ -33,6 +33,7 @@ from .evaluator import (
     run_tracker_for_pair,
 )
 from .lineage import (
+    finalize_run_manifest,
     prepare_run_manifest,
     validate_metric_universe,
     write_artifact_manifest,
@@ -344,5 +345,6 @@ def run_pipeline(
         run_dir,
         context="tracking evaluation report",
     )
+    finalize_run_manifest(run_dir)
     write_artifact_manifest(run_dir, pairs)
     return asset_df, metrics_df, run_dir

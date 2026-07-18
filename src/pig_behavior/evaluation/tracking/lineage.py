@@ -303,6 +303,24 @@ def prepare_run_manifest(
     return manifest_path
 
 
+def finalize_run_manifest(run_dir: Path) -> Path:
+    """Mark a successfully reported tracking run as completed."""
+    manifest_path = run_dir / "run_manifest.json"
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if payload.get("status") != "planned":
+        raise ValueError(
+            "Tracking run manifest must be planned before completion: "
+            f"{manifest_path}"
+        )
+    payload["status"] = "completed"
+    payload["completed_at_utc"] = datetime.now(UTC).isoformat()
+    manifest_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return manifest_path
+
+
 def validate_metric_universe(
     metrics_df: pd.DataFrame,
     pairs: list[TrackingPair],
@@ -416,6 +434,7 @@ __all__ = [
     "CVAT_PREDICTION_SEMANTIC_HASH_CONTRACT",
     "cvat_prediction_semantic_sha256",
     "file_sha256",
+    "finalize_run_manifest",
     "payload_sha256",
     "prepare_run_manifest",
     "validate_metric_universe",

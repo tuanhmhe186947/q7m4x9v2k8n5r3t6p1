@@ -13,6 +13,7 @@ from pig_behavior.evaluation.tracking.config import (
 from pig_behavior.evaluation.tracking.lineage import (
     cvat_prediction_semantic_sha256,
     file_sha256,
+    finalize_run_manifest,
     prepare_run_manifest,
     validate_metric_universe,
     validate_tracking_pairs,
@@ -144,6 +145,21 @@ def test_prepare_run_manifest_hash_binds_inputs_and_skills(
     assert "tracking-experiment-guardian" in payload["selected_skills"]
     assert payload["semantic_config"]["tracking_mode"] == "hybrid_bytetrack"
     assert len(payload["semantic_config_sha256"]) == 64
+
+
+def test_finalize_run_manifest_marks_successful_run_completed(
+    tmp_path: Path,
+) -> None:
+    pair = _make_pair(tmp_path)
+    config = _make_config(tmp_path)
+    manifest_path = prepare_run_manifest([pair], config)
+
+    finalized_path = finalize_run_manifest(config.output_root)
+    payload = json.loads(finalized_path.read_text(encoding="utf-8"))
+
+    assert finalized_path == manifest_path
+    assert payload["status"] == "completed"
+    assert payload["completed_at_utc"]
 
 
 def test_prepare_run_manifest_rejects_reused_output_root(
