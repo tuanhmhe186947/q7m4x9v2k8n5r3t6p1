@@ -118,6 +118,7 @@ models/
 # ==========================================
 # 6. Runtime Outputs, Logs & Experiments
 # ==========================================
+configs/tracking_paths_experiment_local.json
 outputs/
 human_review_workspace/
 logs/
