@@ -89,6 +89,10 @@ metrics only as a separately labeled compatibility replay.
   `annotations_cvat_shapes.json` and matching XML. Require equal shape keys and
   non-geometry payload, then score the frozen window before any full-video
   metric evaluation.
+- Audit a geometry replay with `--post-video-geometry-replay`. Require one
+  telemetry row per video with `telemetry_available=false`, zero prediction
+  runtime artifacts, and explicit `NOT_APPLICABLE` tracker FPS/RSS guardrails.
+  Reject missing, mixed, or tracker-runtime claims under this contract.
 - Never use geometry replay for detection, association, identity, visibility,
   causal, or runtime claims. Creating a full-length replay artifact is not a
   full-video evaluation and does not advance the funnel by itself.
@@ -109,6 +113,12 @@ metrics only as a separately labeled compatibility replay.
 
 ### Baseline and output invariants
 
+- Complete and authority-lock `hybrid_bytetrack` before transferring any
+  mechanism to realtime. Do not tune a realtime profile in the same experiment.
+- After hybrid promotion, use `realtime_fast` as the operational realtime
+  reference. Accept `realtime_balanced` only when it passes a predeclared
+  identity-stability and latency gate and adds material value relative to fast;
+  improvement over an older balanced run alone is insufficient.
 - Treat `outputs/eval/mode_compare/20260709_040751` as the current five-mode
   comparison until a hash-bound replacement is promoted.
 - Preserve the three existing realtime profiles; do not create duplicates.
@@ -186,6 +196,9 @@ its first artifact-producing invocation.
 The repeatability checker must run from a clean, commit-bound worktree and PASS
 before a run becomes baseline, candidate, or promotion authority.
 Keep its default FPS and peak-memory ratio guards enabled for authority runs.
+For post-video geometry replay, replace those tracker-runtime gates only through
+`--post-video-geometry-replay`; require explicit runtime absence and record the
+gates as `NOT_APPLICABLE`, never silently skipped.
 `--skip-input-rehash` and `--allow-dirty-auditor` are test-only and cannot
 support promotion evidence.
 

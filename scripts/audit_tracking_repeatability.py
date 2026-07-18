@@ -51,6 +51,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--expected-delay-frames", type=int)
     parser.add_argument("--expected-timing-contract")
     parser.add_argument(
+        "--post-video-geometry-replay",
+        action="store_true",
+        help=(
+            "Audit deterministic XML geometry replay. Require tracker runtime "
+            "to be explicitly unavailable instead of applying FPS/RSS gates."
+        ),
+    )
+    parser.add_argument(
         "--allow-exclude-hidden-compatibility",
         action="store_true",
         help=(
@@ -103,6 +111,11 @@ def _config_from_args(args: argparse.Namespace) -> TrackingRepeatabilityAuditCon
         expected_timing_contract=args.expected_timing_contract,
         min_repeat_tracking_fps_ratio=args.min_repeat_tracking_fps_ratio,
         max_repeat_peak_memory_ratio=args.max_repeat_peak_memory_ratio,
+        runtime_contract=(
+            "post_video_geometry_replay"
+            if args.post_video_geometry_replay
+            else "tracker"
+        ),
         verify_input_hashes=not args.skip_input_rehash,
         require_clean_auditor=not args.allow_dirty_auditor,
     )
@@ -132,11 +145,17 @@ def main(argv: list[str] | None = None) -> int:
         f"artifacts={payload['verified_artifact_count']} "
         f"mp4={payload['mp4_count']}"
     )
-    print(
-        "  runtime loop FPS primary/repeat: "
-        f"{runtime['primary']['tracking_loop_effective_fps']:.3f}/"
-        f"{runtime['repeat']['tracking_loop_effective_fps']:.3f}"
-    )
+    if runtime["guardrails"]["status"] == "NOT_APPLICABLE":
+        print(
+            "  tracker runtime: NOT_APPLICABLE "
+            "(post-video geometry replay)"
+        )
+    else:
+        print(
+            "  runtime loop FPS primary/repeat: "
+            f"{runtime['primary']['tracking_loop_effective_fps']:.3f}/"
+            f"{runtime['repeat']['tracking_loop_effective_fps']:.3f}"
+        )
     print(f"  authority_sha256: {payload['authority_sha256']}")
     return 0
 

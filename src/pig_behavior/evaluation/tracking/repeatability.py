@@ -22,6 +22,7 @@ from .lineage import (
 )
 
 IGNORED_REPEAT_METRIC_FIELDS = frozenset({"pred_xml"})
+RUNTIME_CONTRACTS = frozenset({"tracker", "post_video_geometry_replay"})
 REQUIRED_EVALUATION_ARTIFACTS = frozenset(
     {
         "run_manifest.json",
@@ -48,6 +49,7 @@ class TrackingRepeatabilityAuditConfig:
     expected_timing_contract: str | None = None
     min_repeat_tracking_fps_ratio: float = 0.90
     max_repeat_peak_memory_ratio: float = 1.10
+    runtime_contract: str = "tracker"
     verify_input_hashes: bool = True
     require_clean_auditor: bool = True
 
@@ -200,6 +202,7 @@ def _validate_artifact_manifest(
     assets: list[dict[str, str]],
     *,
     expected_video_count: int,
+    require_prediction_runtime_telemetry: bool = True,
 ) -> tuple[dict[str, Any], dict[str, str], dict[str, tuple[int, str]]]:
     path = run_dir / "artifact_manifest.json"
     manifest = _read_json(path)
@@ -259,10 +262,17 @@ def _validate_artifact_manifest(
             "Prediction artifact count mismatch: "
             f"expected={expected_video_count}, actual={prediction_count}"
         )
-    if telemetry_count != expected_video_count or set(timing) != expected_stems:
+    expected_telemetry_count = (
+        expected_video_count if require_prediction_runtime_telemetry else 0
+    )
+    expected_timing_stems = expected_stems if require_prediction_runtime_telemetry else set()
+    if (
+        telemetry_count != expected_telemetry_count
+        or set(timing) != expected_timing_stems
+    ):
         raise ValueError(
             "Runtime telemetry artifact count mismatch: "
-            f"expected={expected_video_count}, actual={telemetry_count}"
+            f"expected={expected_telemetry_count}, actual={telemetry_count}"
         )
     return manifest, semantic_hashes, timing
 
@@ -327,6 +337,28 @@ def _runtime_summary(run_dir: Path, *, expected_video_count: int) -> dict[str, A
         "peak_cuda_memory_reserved_bytes": max(
             int(row["peak_cuda_memory_reserved_bytes"]) for row in rows
         ),
+    }
+
+
+def _post_video_geometry_runtime_summary(
+    run_dir: Path,
+    *,
+    expected_video_count: int,
+) -> dict[str, Any]:
+    """Require explicit tracker-runtime absence for geometry-only replay."""
+    rows = _read_csv(run_dir / "tracking_runtime_telemetry.csv")
+    if len(rows) != expected_video_count:
+        raise ValueError(f"Runtime telemetry row count mismatch: {run_dir}")
+    if any(row.get("telemetry_available", "").lower() != "false" for row in rows):
+        raise ValueError(
+            "Post-video geometry replay must not claim tracker runtime: "
+            f"{run_dir}"
+        )
+    return {
+        "status": "NOT_APPLICABLE",
+        "contract": "post_video_geometry_replay",
+        "reason": "geometry replay does not execute detector or tracker",
+        "explicit_unavailable_rows": len(rows),
     }
 
 
@@ -434,6 +466,21 @@ def audit_tracking_repeatability(
     config: TrackingRepeatabilityAuditConfig,
 ) -> dict[str, Any]:
     """Validate two completed runs and return a hash-bound PASS record."""
+    if config.runtime_contract not in RUNTIME_CONTRACTS:
+        raise ValueError(
+            "Unknown repeatability runtime contract: "
+            f"{config.runtime_contract!r}"
+        )
+    geometry_replay = (
+        config.runtime_contract == "post_video_geometry_replay"
+    )
+    if geometry_replay and (
+        config.expected_delay_frames is not None
+        or config.expected_timing_contract is not None
+    ):
+        raise ValueError(
+            "Post-video geometry replay cannot declare tracker timing."
+        )
     auditor = _auditor_git_state()
     if config.require_clean_auditor and auditor["dirty"]:
         raise ValueError(
@@ -492,12 +539,14 @@ def audit_tracking_repeatability(
             primary_dir,
             primary_assets,
             expected_video_count=config.expected_video_count,
+            require_prediction_runtime_telemetry=not geometry_replay,
         )
     )
     repeat_artifacts, repeat_hashes, repeat_timing = _validate_artifact_manifest(
         repeat_dir,
         repeat_assets,
         expected_video_count=config.expected_video_count,
+        require_prediction_runtime_telemetry=not geometry_replay,
     )
     if primary_hashes != repeat_hashes:
         changed = sorted(
@@ -546,20 +595,35 @@ def audit_tracking_repeatability(
             "status": "PASS",
         }
 
-    primary_runtime = _runtime_summary(
-        primary_dir,
-        expected_video_count=config.expected_video_count,
-    )
-    repeat_runtime = _runtime_summary(
-        repeat_dir,
-        expected_video_count=config.expected_video_count,
-    )
-    runtime_guardrails = _runtime_repeatability_guardrails(
-        primary_runtime,
-        repeat_runtime,
-        min_fps_ratio=config.min_repeat_tracking_fps_ratio,
-        max_memory_ratio=config.max_repeat_peak_memory_ratio,
-    )
+    if geometry_replay:
+        primary_runtime = _post_video_geometry_runtime_summary(
+            primary_dir,
+            expected_video_count=config.expected_video_count,
+        )
+        repeat_runtime = _post_video_geometry_runtime_summary(
+            repeat_dir,
+            expected_video_count=config.expected_video_count,
+        )
+        runtime_guardrails = {
+            "status": "NOT_APPLICABLE",
+            "contract": config.runtime_contract,
+            "reason": "detector and tracker are not executed by geometry replay",
+        }
+    else:
+        primary_runtime = _runtime_summary(
+            primary_dir,
+            expected_video_count=config.expected_video_count,
+        )
+        repeat_runtime = _runtime_summary(
+            repeat_dir,
+            expected_video_count=config.expected_video_count,
+        )
+        runtime_guardrails = _runtime_repeatability_guardrails(
+            primary_runtime,
+            repeat_runtime,
+            min_fps_ratio=config.min_repeat_tracking_fps_ratio,
+            max_memory_ratio=config.max_repeat_peak_memory_ratio,
+        )
 
     artifact_count = len(primary_artifacts["artifacts"]) + len(
         repeat_artifacts["artifacts"]
@@ -575,6 +639,7 @@ def audit_tracking_repeatability(
             "include_hidden": primary_run["semantic_config"].get(
                 "include_hidden"
             ),
+            "runtime_contract": config.runtime_contract,
         },
         "universe_sha256": payload_sha256(primary_universe),
         "prediction_semantic_hash_contract": (

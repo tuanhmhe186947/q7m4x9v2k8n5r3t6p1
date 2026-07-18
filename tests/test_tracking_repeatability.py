@@ -100,6 +100,7 @@ def _build_run(
     first_video_idsw: int = 0,
     frame_time_multiplier: float = 1.0,
     peak_memory_multiplier: float = 1.0,
+    telemetry_available: bool = True,
 ) -> tuple[Path, Path]:
     weights, mask, input_pairs = _ensure_inputs(tmp_path)
     run_dir = tmp_path / f"{label}_eval"
@@ -122,17 +123,18 @@ def _build_run(
             identity=identity,
         )
         quality_report = pred_xml.with_name("tracking_quality_report.json")
-        quality_report.write_text(
-            json.dumps(
-                {
-                    "telemetry": {
-                        "declared_delay_frames": 0,
-                        "output_timing_contract": "online_causal",
+        if telemetry_available:
+            quality_report.write_text(
+                json.dumps(
+                    {
+                        "telemetry": {
+                            "declared_delay_frames": 0,
+                            "output_timing_contract": "online_causal",
+                        }
                     }
-                }
-            ),
-            encoding="utf-8",
-        )
+                ),
+                encoding="utf-8",
+            )
         pair = TrackingPair(
             video_stem=input_pair.video_stem,
             video_path=input_pair.video_path,
@@ -161,24 +163,35 @@ def _build_run(
                 "fn": 1 + index,
             }
         )
-        runtime_rows.append(
-            {
-                "video_stem": pair.video_stem,
-                "telemetry_available": True,
-                "frames_processed": 10,
-                "frame_time_ms_total": (1000 + index) * frame_time_multiplier,
-                "frame_time_ms_p95": 110 + index,
-                "peak_process_rss_bytes": int(
-                    (1000 + index) * peak_memory_multiplier
-                ),
-                "peak_cuda_memory_allocated_bytes": int(
-                    (2000 + index) * peak_memory_multiplier
-                ),
-                "peak_cuda_memory_reserved_bytes": int(
-                    (3000 + index) * peak_memory_multiplier
-                ),
-            }
-        )
+        if telemetry_available:
+            runtime_rows.append(
+                {
+                    "video_stem": pair.video_stem,
+                    "telemetry_available": True,
+                    "frames_processed": 10,
+                    "frame_time_ms_total": (
+                        (1000 + index) * frame_time_multiplier
+                    ),
+                    "frame_time_ms_p95": 110 + index,
+                    "peak_process_rss_bytes": int(
+                        (1000 + index) * peak_memory_multiplier
+                    ),
+                    "peak_cuda_memory_allocated_bytes": int(
+                        (2000 + index) * peak_memory_multiplier
+                    ),
+                    "peak_cuda_memory_reserved_bytes": int(
+                        (3000 + index) * peak_memory_multiplier
+                    ),
+                }
+            )
+        else:
+            runtime_rows.append(
+                {
+                    "video_stem": pair.video_stem,
+                    "telemetry_available": False,
+                    "telemetry_path": str(quality_report.resolve()),
+                }
+            )
     metrics.append(
         {
             "video_stem": "ALL",
@@ -275,6 +288,65 @@ def test_repeatability_audit_passes_and_writes_fresh_lock(tmp_path: Path) -> Non
     assert json.loads(output.read_text(encoding="utf-8"))["status"] == "PASS"
     with pytest.raises(FileExistsError, match="already exists"):
         write_tracking_repeatability_audit(config, output)
+
+
+def test_geometry_replay_audit_requires_explicit_runtime_absence(
+    tmp_path: Path,
+) -> None:
+    primary, _ = _build_run(
+        tmp_path,
+        label="primary_geometry",
+        timestamp="2026-07-17T01:00:00Z",
+        telemetry_available=False,
+    )
+    repeated, _ = _build_run(
+        tmp_path,
+        label="repeat_geometry",
+        timestamp="2026-07-17T02:00:00Z",
+        telemetry_available=False,
+    )
+    config = replace(
+        _audit_config(primary, repeated),
+        expected_delay_frames=None,
+        expected_timing_contract=None,
+        runtime_contract="post_video_geometry_replay",
+    )
+
+    payload = audit_tracking_repeatability(config)
+
+    assert payload["status"] == "PASS"
+    assert payload["evaluation_contract"]["runtime_contract"] == (
+        "post_video_geometry_replay"
+    )
+    assert payload["runtime"]["guardrails"]["status"] == "NOT_APPLICABLE"
+    assert payload["runtime"]["primary"]["explicit_unavailable_rows"] == 2
+
+
+def test_geometry_replay_audit_rejects_tracker_runtime_claim(
+    tmp_path: Path,
+) -> None:
+    primary, _ = _build_run(
+        tmp_path,
+        label="primary_geometry_runtime",
+        timestamp="2026-07-17T01:00:00Z",
+    )
+    repeated, _ = _build_run(
+        tmp_path,
+        label="repeat_geometry_runtime",
+        timestamp="2026-07-17T02:00:00Z",
+    )
+    config = replace(
+        _audit_config(primary, repeated),
+        expected_delay_frames=None,
+        expected_timing_contract=None,
+        runtime_contract="post_video_geometry_replay",
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Runtime telemetry artifact count mismatch",
+    ):
+        audit_tracking_repeatability(config)
 
 
 def test_repeatability_audit_rejects_semantic_prediction_drift(
