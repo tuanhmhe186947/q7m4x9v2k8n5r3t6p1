@@ -1,0 +1,91 @@
+{
+  "schema_version": "tracking_rb1_causal_smoothing_static_gate_v1",
+  "status": "PASS",
+  "decision_date": "2026-07-19",
+  "scope": {
+    "worktree": "PIG_task_tracking",
+    "branch": "task/update-tracking",
+    "tracking_only": true,
+    "classification_touched": false,
+    "generated_mp4_allowed": false
+  },
+  "code": {
+    "commit": "ba95fde8162dd23c52600a59a58b3ba2e8daa61c",
+    "dirty_after_commit": false,
+    "override_propagation_fix": "ba95fde8162dd23c52600a59a58b3ba2e8daa61c"
+  },
+  "frozen_authorities": {
+    "pareto_plan": {
+      "path": "docs/TRACKING_REALTIME_PARETO_FUNNEL_PLAN_20260719.json",
+      "sha256": "5046ff636ce4a4d8c02864eef72778e070b9b3e96c5db7f152c8150460b58302"
+    },
+    "parent_windows": {
+      "path": "docs/TRACKING_REALTIME_PARENT_WINDOWS_AUTHORITY_20260719.json",
+      "sha256": "4b9759a01afbb02fd20cf2f86552faf6751f9bae395cd8d9976bde4de9d9fe97"
+    }
+  },
+  "candidate": {
+    "name": "causal_online_box_smoothing_v1",
+    "profile": "realtime_balanced",
+    "changed_family": "causal_detected_box_geometry_smoothing",
+    "semantic_diff": {
+      "smooth_boxes": [
+        false,
+        true
+      ]
+    },
+    "enable_offline_smoothing": false,
+    "refine_boxes": false,
+    "default_enabled_before_promotion": false
+  },
+  "static_checks": {
+    "profile_diff_only_smooth_boxes": true,
+    "explicit_override_survives_realtime_validation": true,
+    "parent_smooth_boxes_remains_false": true,
+    "candidate_smooth_boxes_resolves_true": true,
+    "offline_postprocess_remains_disabled": true,
+    "classification_files_changed": 0
+  },
+  "synthetic_checks": {
+    "past_and_current_frame_only": true,
+    "future_append_keeps_smoothed_prefix_equal": true,
+    "smoothing_changes_current_geometry": true,
+    "status": "PASS"
+  },
+  "verification": {
+    "new_targeted_tests": {
+      "passed": 3,
+      "failed": 0
+    },
+    "focused_tracking_tests": {
+      "passed": 134,
+      "failed": 0
+    },
+    "no_mp4_lineage_window_tests": {
+      "passed": 25,
+      "failed": 0
+    },
+    "ruff": "PASS",
+    "py_compile": "PASS",
+    "compileall": "PASS",
+    "skill_pack_validator": "PASS",
+    "tracking_discovery_scenario": "PASS"
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "remaining_gate": {
+    "actual_tracker_prefix_invariance": "REQUIRED",
+    "parent_and_candidate_hard_window_scoring": "REQUIRED",
+    "full_video_authorized": false
+  },
+  "next_step": [
+    "Run candidate prefix and future-extended tracker outputs from frame zero.",
+    "Audit framewise prefix invariance and recursive MP4 count zero.",
+    "Run paired parent and RB1 on frozen top windows only after that PASS."
+  ]
+}
