@@ -286,7 +286,7 @@ def test_trainer_whitelist_and_semantics_cover_every_new_window_feature() -> Non
         )
     )
     semantics = json.loads(
-        Path("configs/classification_v2/feature_semantics_v1.json").read_text(
+        Path("configs/classification_v2/feature_semantics_v2.json").read_text(
             encoding="utf-8"
         )
     )

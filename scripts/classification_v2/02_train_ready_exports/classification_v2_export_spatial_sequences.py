@@ -10,6 +10,9 @@ import pandas as pd
 from pig_behavior.classification_v2.contracts.output_safety import (
     require_output_paths_available,
 )
+from pig_behavior.classification_v2.features.pen_context import (
+    PEN_CONTEXT_MODEL_FEATURE_COLUMNS,
+)
 from pig_behavior.classification_v2.spatial_sequence_export import export_spatial_sequences
 
 
@@ -126,6 +129,7 @@ def main() -> None:
         "geometry_feature_valid",
         "spatiotemporal_feature_valid",
     }
+    needed.update(PEN_CONTEXT_MODEL_FEATURE_COLUMNS)
     usecols = [c for c in header if c in needed]
     frames = pd.read_csv(args.frame_features_csv, usecols=usecols, low_memory=False)
 

@@ -1,0 +1,118 @@
+{
+  "schema_version": "classification_v2.legacy_development.temporal_base_decision_config.v1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "experiment_contract": {
+    "experiment_id": "POST_L8_LEGACY_TEMPORAL_BASE_STAGE_A_V2",
+    "native_evaluation_unit": "complete_16_frame_burst",
+    "paired_native_universe_required": true,
+    "outer_predictions_used_for_model_selection": false,
+    "legacy_sets_final_full_data_base": false,
+    "transfer_actions": ["CARRY", "DROP", "RETEST"],
+    "full_data_profile": "mixed-reviewed",
+    "full_oof_authorized": false
+  },
+  "implementation": {
+    "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_temporal_base_selection_decision.py",
+    "sha256": "b73c1350faacd33e2b1f0371e9b94c73c716b679d6460b81ab4a9cfb043429c1"
+  },
+  "metric_engine": {
+    "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_temporal_sampling_decision.py",
+    "sha256": "4b704dc321bc1a36d204ba2e76f129dad13f96dff65c19da782e56af62b1b220"
+  },
+  "full_training_config": {
+    "path": "configs/classification_v2/legacy_development_temporal_base_selection_full_v1.json",
+    "sha256": "e5432798fefb8da98d34cf2b5f9ed36f9cbc6ce1de577b4047f51572c4c3a9b8"
+  },
+  "short_matrix_gate": {
+    "path": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_base_selection_20260717_v1/temporal_base_short_matrix.json",
+    "sha256": "5c13263ae84f5af696636dc903901aad5fff598ef3086065cbef368bc76aa6f6"
+  },
+  "runs": {
+    "SF128": {
+      "run_result": {
+        "path": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_base_selection_20260717_v1/full_development_confirmation/SF128/full01/run_result.json",
+        "sha256": "66644f3feb2672330cc074696523cbb80a008ddb5cead18fbf766bfa1dd6237f"
+      },
+      "artifact_manifest": {
+        "path": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_base_selection_20260717_v1/full_development_confirmation/SF128/full01/artifact_manifest.json",
+        "sha256": "e625de49b5cb6c56cd0adab18e404a035b27f22563c710deb9eb6b6413b38929"
+      }
+    },
+    "M128": {
+      "run_result": {
+        "path": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_base_selection_20260717_v1/full_development_confirmation/M128/full01/run_result.json",
+        "sha256": "ab31414cee0dcab47e6b34c633ca9270234fcd8daa8deccaa125a6f4f11833df"
+      },
+      "artifact_manifest": {
+        "path": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_base_selection_20260717_v1/full_development_confirmation/M128/full01/artifact_manifest.json",
+        "sha256": "c6c57831985d9feedb261a9f553c431a140a5019a130c15579457bd3f162bce8"
+      }
+    },
+    "A128": {
+      "run_result": {
+        "path": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_base_selection_20260717_v1/full_development_confirmation/A128/full01/run_result.json",
+        "sha256": "4ca8d98f499e13845d7fa97652c2ecb9214802636e454a077d4c1a5122515231"
+      },
+      "artifact_manifest": {
+        "path": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_base_selection_20260717_v1/full_development_confirmation/A128/full01/artifact_manifest.json",
+        "sha256": "9620021f1c67ab73b6e5b3b43b4f8145ee4274cb6e85a1a27b5412ad44916725"
+      }
+    },
+    "MW317": {
+      "run_result": {
+        "path": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_base_selection_20260717_v1/full_development_confirmation/MW317/full01/run_result.json",
+        "sha256": "a204825b3a454ace118a072cfe9db3183006224b714772f85bf4075337a42fe9"
+      },
+      "artifact_manifest": {
+        "path": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_base_selection_20260717_v1/full_development_confirmation/MW317/full01/artifact_manifest.json",
+        "sha256": "cb3956cfd9fba875efafda7f18f7902949366e431d01794637028f48d5524cf9"
+      }
+    },
+    "TCN128": {
+      "run_result": {
+        "path": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_base_selection_20260717_v1/full_development_confirmation/TCN128/full01/run_result.json",
+        "sha256": "e181738610091e0410837f756d1bc76fbcd81e27b91ef7162aa06231aed89d77"
+      },
+      "artifact_manifest": {
+        "path": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_base_selection_20260717_v1/full_development_confirmation/TCN128/full01/artifact_manifest.json",
+        "sha256": "45ae495a84460746fe251c6c61f237cf2c2859558cdeacc6045618101d104289"
+      }
+    },
+    "MW381": {
+      "run_result": {
+        "path": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_base_selection_20260717_v1/full_development_confirmation/MW381/full01/run_result.json",
+        "sha256": "c6af085397f6991bbef2bca33d2b0087eec1836e60bb9f9c2cbefe59747001c2"
+      },
+      "artifact_manifest": {
+        "path": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_base_selection_20260717_v1/full_development_confirmation/MW381/full01/artifact_manifest.json",
+        "sha256": "acdd195d06283af59d69c74ad45b62bce86dafd4cf82183e649c8f1036ecb36e"
+      }
+    },
+    "TR128": {
+      "run_result": {
+        "path": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_base_selection_20260717_v1/full_development_confirmation/TR128/full01/run_result.json",
+        "sha256": "aabc7216ae27998572c9ffbc998dd6167809999bba379126b7dc7abf99d76f28"
+      },
+      "artifact_manifest": {
+        "path": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_base_selection_20260717_v1/full_development_confirmation/TR128/full01/artifact_manifest.json",
+        "sha256": "d47fb48f5af1b5d1be85b875b3954b6a2217d9a4530922714c106263edaeb529"
+      }
+    }
+  },
+  "analysis_contract": {
+    "bootstrap_method": "paired_video_cluster_bootstrap_percentile",
+    "bootstrap_iterations": 2000,
+    "bootstrap_seed": 20260717,
+    "material_negative_ci_limit": 0.02,
+    "maximum_group_macro_f1_drop": 0.05,
+    "primary_metric": "macro_f1_global_10_class",
+    "candidate_limit": 3
+  },
+  "output": {
+    "summary_json": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_base_selection_20260717_v1/paired_decision_stage_a_v2/temporal_base_transfer_decision.json",
+    "per_class_csv": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_base_selection_20260717_v1/paired_decision_stage_a_v2/paired_per_class_effects.csv",
+    "group_metrics_csv": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_base_selection_20260717_v1/paired_decision_stage_a_v2/paired_group_effects.csv",
+    "confusion_csv": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_base_selection_20260717_v1/paired_decision_stage_a_v2/confusion_matrix.csv",
+    "mode_summary_csv": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_base_selection_20260717_v1/paired_decision_stage_a_v2/mode_summary.csv"
+  }
+}

@@ -17,11 +17,14 @@ from pig_behavior.classification_v2.features.context_policy import (
     apply_context_policy,
 )
 from pig_behavior.classification_v2.features.sequence_windows import (
+    audit_sequence_windows,
     build_sequence_windows,
 )
 from pig_behavior.classification_v2.review.hidden_review_builder import (
     DECISION_COLUMNS,
     HiddenReviewConfig,
+    _hidden_confusion_audit,
+    _merge_hidden_review_authorities,
     apply_hidden_review_decisions,
     audit_hidden_decision_coverage,
     audit_hidden_review_manifest,
@@ -635,11 +638,126 @@ def test_apply_hidden_review_supports_all_four_transitions_without_row_loss() ->
     assert not reviewed.loc[unreviewed_cvat, "hidden_is_trusted"].any()
 
 
+def test_gui_metadata_keeps_manifest_cohort_authority_during_apply() -> None:
+    frames, manifest = _build_review()
+    decisions = _resolved_decisions(manifest)
+    manifest_by_item = manifest.set_index("hidden_review_item_id")
+    copied_metadata = (
+        "hidden_review_cohort",
+        "source_type",
+        "video_key",
+        "hidden_false_negative_risk_score",
+    )
+    for column in copied_metadata:
+        decisions[column] = decisions["hidden_review_item_id"].map(
+            manifest_by_item[column]
+        )
+
+    random_item = manifest.loc[
+        manifest["hidden_review_cohort"].eq("hidden_no_random_audit")
+    ].iloc[0]
+    high_risk_item = manifest.loc[
+        manifest["hidden_review_cohort"].eq("hidden_no_high_risk")
+    ].iloc[0]
+    corrected_ids = {
+        random_item["hidden_review_item_id"],
+        high_risk_item["hidden_review_item_id"],
+    }
+    decisions.loc[
+        decisions["hidden_review_item_id"].isin(corrected_ids),
+        "hidden_after_review",
+    ] = "Yes"
+
+    joined, mismatch_counts = _merge_hidden_review_authorities(
+        manifest,
+        decisions,
+    )
+    assert mismatch_counts == {}
+    assert "hidden_review_cohort" in joined.columns
+    assert "hidden_review_cohort_decision" in joined.columns
+    assert "hidden_review_cohort_manifest" not in joined.columns
+
+    reviewed, audit, confusion = apply_hidden_review_decisions(
+        frames,
+        manifest,
+        decisions,
+    )
+    direct_confusion = _hidden_confusion_audit(manifest, decisions)
+    expected_cohorts = {
+        str(key): int(value)
+        for key, value in manifest["hidden_review_cohort"].value_counts().items()
+    }
+    assert len(reviewed) == len(frames)
+    assert reviewed["hidden_review_item_id"].is_unique
+    assert audit["coverage"]["decision_metadata_mismatch_counts"] == {}
+    assert confusion == direct_confusion
+    assert confusion["cohort_counts"] == expected_cohorts
+    assert confusion["reviewed_cohort_counts"] == expected_cohorts
+    assert confusion["random_hidden_no_false_negatives"] == 1
+    assert confusion["high_risk_hidden_no_corrected_to_yes"] == 1
+    assert confusion["errors"] == []
+
+
+def test_gui_metadata_mismatch_fails_closed() -> None:
+    _, manifest = _build_review()
+    decisions = _resolved_decisions(manifest)
+    manifest_by_item = manifest.set_index("hidden_review_item_id")
+    decisions["hidden_review_cohort"] = decisions["hidden_review_item_id"].map(
+        manifest_by_item["hidden_review_cohort"]
+    )
+    decisions.loc[0, "hidden_review_cohort"] = "mismatched_gui_copy"
+
+    audit = audit_hidden_decision_coverage(manifest, decisions)
+
+    assert audit["decision_metadata_mismatch_counts"] == {
+        "hidden_review_cohort": 1
+    }
+    assert "decision_metadata_mismatch:hidden_review_cohort=1" in audit["errors"]
+    with pytest.raises(ValueError, match="Hidden decision metadata mismatch"):
+        _hidden_confusion_audit(manifest, decisions)
+
+
+def test_low_confidence_resolved_hidden_decision_fails_closed() -> None:
+    frames, manifest = _build_review()
+    decisions = _resolved_decisions(manifest)
+    decisions.loc[0, "hidden_review_confidence"] = "low"
+
+    audit = audit_hidden_decision_coverage(manifest, decisions)
+
+    assert audit["decision_confidence_counts"]["low"] == 1
+    assert audit["semantic_error_counts"] == {
+        "low_confidence_requires_unclear": 1
+    }
+    with pytest.raises(ValueError, match="coverage failed"):
+        apply_hidden_review_decisions(frames, manifest, decisions)
+
+
+def test_medium_confidence_does_not_change_weight_or_mask() -> None:
+    frames, manifest = _build_review()
+    frames["sample_weight"] = 1.0
+    decisions = _resolved_decisions(manifest)
+    item_id = decisions.loc[0, "hidden_review_item_id"]
+    decisions.loc[0, "hidden_review_confidence"] = "medium"
+
+    reviewed, audit, _ = apply_hidden_review_decisions(
+        frames,
+        manifest,
+        decisions,
+    )
+    row = reviewed.loc[reviewed["hidden_review_item_id"].eq(item_id)].iloc[0]
+
+    assert audit["coverage"]["decision_confidence_counts"]["medium"] == 1
+    assert row["hidden_review_confidence"] == "medium"
+    assert bool(row["hidden_review_available_mask"])
+    assert bool(row["hidden_is_trusted"])
+    assert reviewed["sample_weight"].eq(1.0).all()
+
 def test_unclear_hidden_decision_is_fail_closed_by_default() -> None:
     frames, manifest = _build_review()
     decisions = _resolved_decisions(manifest)
     decisions.loc[0, "hidden_review_status"] = "unclear"
     decisions.loc[0, "hidden_after_review"] = ""
+    decisions.loc[0, "hidden_review_confidence"] = "low"
 
     audit = audit_hidden_decision_coverage(manifest, decisions)
     assert any("unclear_decision_items" in error for error in audit["errors"])
@@ -745,6 +863,47 @@ def test_context_policy_does_not_trust_cvat_hidden_metadata() -> None:
     assert out.loc[0, "hidden_trust_status"] == "unclear_current_review"
 
 
+def test_rebuilt_legacy_hidden_seed_stays_untrusted_through_context() -> None:
+    frames = _frame_rows().iloc[[0]].copy()
+    frames["global_context_pig_count"] = 1
+    frames["hidden_source"] = "cvat_native_anchor"
+    frames["hidden_is_trusted"] = False
+    frames["hidden_review_status"] = "seed_unreviewed"
+    frames["hidden_trust_status"] = "untrusted_cvat_seed"
+    frames["visibility_quality"] = "cvat_anchor_seed_unreviewed"
+
+    out = apply_context_policy(frames, recompute_context=True)
+
+    assert not bool(out.iloc[0]["hidden_is_trusted"])
+    assert out.iloc[0]["hidden_source"] == "cvat_native_anchor"
+    assert out.iloc[0]["hidden_review_status"] == "seed_unreviewed"
+    assert out.iloc[0]["hidden_trust_status"] == "untrusted_cvat_seed"
+    assert out.iloc[0]["visibility_quality"] == "cvat_anchor_seed_unreviewed"
+
+
+def test_rebuilt_legacy_hidden_seed_stays_untrusted_in_review_manifest() -> None:
+    frames = _frame_rows().iloc[[0]].copy()
+    frames["hidden_source"] = "cvat_native_anchor"
+    frames["hidden_is_trusted"] = False
+    frames["hidden_review_status"] = "seed_unreviewed"
+    frames["hidden_trust_status"] = "untrusted_cvat_seed"
+    frames["visibility_quality"] = "cvat_anchor_seed_unreviewed"
+
+    manifest, _, _ = build_hidden_review_manifest(
+        frames,
+        config=HiddenReviewConfig(
+            trusted_yes_per_stratum=0,
+            random_no_per_stratum=0,
+            clean_control_per_stratum=0,
+        ),
+    )
+
+    row = manifest.iloc[0]
+    assert not bool(row["hidden_is_trusted_before_review"])
+    assert row["hidden_source"] == "cvat_native_anchor"
+    assert row["hidden_trust_status_before_review"] == "untrusted_cvat_seed"
+
+
 def _legacy_window_frames() -> pd.DataFrame:
     rows = []
     for frame_index in range(16):
@@ -771,7 +930,7 @@ def _legacy_window_frames() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def test_high_hidden_ratio_is_audited_but_not_excluded_by_default() -> None:
+def test_high_hidden_ratio_is_excluded_by_default_with_explicit_opt_out() -> None:
     frames = _legacy_window_frames()
     _, _, default_windows = build_sequence_windows(
         frames,
@@ -781,15 +940,97 @@ def test_high_hidden_ratio_is_audited_but_not_excluded_by_default() -> None:
     assert len(default_windows) == 1
     row = default_windows.iloc[0]
     assert bool(row["high_hidden_ratio_window"])
-    assert bool(row["window_valid_for_main_train"])
-    assert not bool(row["hidden_exclusion_policy_enabled"])
+    assert not bool(row["window_valid_for_main_train"])
+    assert bool(row["hidden_exclusion_policy_enabled"])
+    assert row["hidden_window_policy_tier"] == "exclude"
+    assert row["window_training_tier_recommendation"] == "exclude"
 
-    _, _, strict_windows = build_sequence_windows(
+    _, _, audit_only_windows = build_sequence_windows(
         frames,
         window_lengths=[16],
         legacy_window_stride=1,
-        exclude_high_hidden_from_main=True,
+        exclude_high_hidden_from_main=False,
     )
-    strict = strict_windows.iloc[0]
-    assert not bool(strict["window_valid_for_main_train"])
-    assert "hidden_ratio_above_threshold" in strict["window_exclusion_reason"]
+    audit_only = audit_only_windows.iloc[0]
+    assert bool(audit_only["window_valid_for_main_train"])
+    assert audit_only["hidden_window_policy_tier"] == "audit_only"
+
+
+@pytest.mark.parametrize(
+    ("length", "main_indices", "robust_indices", "exclude_indices"),
+    [
+        (6, [0], [0, 2], [0, 1, 2, 3]),
+        (8, [0, 2], [0, 2, 4], [0, 1, 2, 3, 4]),
+        (12, [0, 2, 4], [0, 2, 4, 6], [0, 1, 2, 3, 4, 5, 6]),
+        (16, [0, 2, 4, 6], [0, 2, 4, 6, 8], list(range(9))),
+    ],
+)
+def test_hidden_policy_tiers_cover_all_temporal_views(
+    length: int,
+    main_indices: list[int],
+    robust_indices: list[int],
+    exclude_indices: list[int],
+) -> None:
+    expected = [
+        (main_indices, "main_train"),
+        (robust_indices, "robust_train_only"),
+        (exclude_indices, "exclude"),
+    ]
+    for hidden_indices, tier in expected:
+        frames = _legacy_window_frames()
+        frames["hidden"] = "No"
+        frames.loc[frames["frame_index"].isin(hidden_indices), "hidden"] = "Yes"
+        _, _, windows = build_sequence_windows(
+            frames,
+            window_lengths=[length],
+            legacy_window_stride=1,
+        )
+        row = windows.loc[windows["window_start_frame"].eq(0)].iloc[0]
+        assert row["hidden_window_policy_tier"] == tier
+        assert row["window_training_tier_recommendation"] == tier
+        assert bool(row["window_valid_for_main_train"]) is (tier == "main_train")
+        expected_weight = 0.0 if tier == "exclude" else 1.0
+        assert row["window_sample_weight"] == pytest.approx(expected_weight)
+
+
+def test_long_contiguous_hidden_run_excludes_even_below_total_ratio_limit() -> None:
+    frames = _legacy_window_frames()
+    frames["hidden"] = "No"
+    frames.loc[frames["frame_index"].lt(7), "hidden"] = "Yes"
+
+    _, _, windows = build_sequence_windows(
+        frames,
+        window_lengths=[16],
+        legacy_window_stride=1,
+    )
+
+    row = windows.iloc[0]
+    assert row["hidden_burden_ratio_window"] == pytest.approx(7 / 16)
+    assert row["hidden_longest_run_ratio_window"] == pytest.approx(7 / 16)
+    assert row["hidden_window_policy_tier"] == "exclude"
+    assert "hidden_run_above_robust_threshold" in row["window_exclusion_reason"]
+
+
+def test_hidden_policy_rejects_inverted_main_and_robust_thresholds() -> None:
+    with pytest.raises(
+        ValueError,
+        match="max_hidden_ratio_main must not exceed max_hidden_ratio_robust",
+    ):
+        build_sequence_windows(
+            _legacy_window_frames(),
+            window_lengths=[16],
+            max_hidden_ratio_main=0.6,
+            max_hidden_ratio_robust=0.5,
+        )
+
+
+def test_hidden_policy_audit_rejects_nonzero_excluded_weight() -> None:
+    _, intervals, windows = build_sequence_windows(
+        _legacy_window_frames(),
+        window_lengths=[16],
+    )
+    windows.loc[:, "window_sample_weight"] = 1.0
+
+    audit = audit_sequence_windows(windows, intervals)
+
+    assert "excluded_windows_have_nonzero_weight=1" in audit["errors"]

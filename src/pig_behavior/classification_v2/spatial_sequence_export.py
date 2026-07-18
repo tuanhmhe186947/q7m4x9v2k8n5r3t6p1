@@ -11,6 +11,9 @@ import pandas as pd
 from pig_behavior.classification_v2.contracts.window_alignment import (
     require_ordered_window_ids,
 )
+from pig_behavior.classification_v2.features.pen_context import (
+    PEN_CONTEXT_MODEL_FEATURE_COLUMNS,
+)
 
 FORBIDDEN_SUBSTRINGS = (
     "behavior",
@@ -76,6 +79,7 @@ SPATIAL_FRAME_FEATURES: dict[str, list[str]] = {
         "pair_contact_with_nearest",
         "aggression_score_proxy",
     ],
+    "pen_boundary_context": list(PEN_CONTEXT_MODEL_FEATURE_COLUMNS),
     "quality_mask": [
         "bbox_valid",
         "actor_bbox_valid",
@@ -215,6 +219,9 @@ def export_spatial_sequences(
     social_rebased_windows = 0
     social_valid_pair_count = 0
     social_reset_row_count = 0
+    pen_rebased_windows = 0
+    pen_valid_pair_count = 0
+    pen_reset_row_count = 0
     for object_key, window_group in work_windows.groupby("object_track_key", sort=False):
         frame_data = grouped.get(str(object_key))
         for i, row in window_group.iterrows():
@@ -257,12 +264,20 @@ def export_spatial_sequences(
                 wanted_frames[valid],
                 partner_keys[valid_positions],
             )
+            values, pen_audit = _rebase_window_pen_motion(
+                values,
+                flat_feature_names,
+                wanted_frames[valid],
+            )
             motion_rebased_windows += int(motion_audit["rebased"])
             motion_valid_pair_count += int(motion_audit["valid_pairs"])
             motion_reset_row_count += int(motion_audit["reset_rows"])
             social_rebased_windows += int(social_audit["rebased"])
             social_valid_pair_count += int(social_audit["valid_pairs"])
             social_reset_row_count += int(social_audit["reset_rows"])
+            pen_rebased_windows += int(pen_audit["rebased"])
+            pen_valid_pair_count += int(pen_audit["valid_pairs"])
+            pen_reset_row_count += int(pen_audit["reset_rows"])
             for name, col_slice in group_slices.items():
                 arrays[name][i, slot_positions, :] = values[:, col_slice]
             missing_frame_slots += int((~valid).sum())
@@ -304,6 +319,9 @@ def export_spatial_sequences(
         "social_rebased_windows": int(social_rebased_windows),
         "social_valid_pair_count": int(social_valid_pair_count),
         "social_reset_row_count": int(social_reset_row_count),
+        "pen_rebased_windows": int(pen_rebased_windows),
+        "pen_valid_pair_count": int(pen_valid_pair_count),
+        "pen_reset_row_count": int(pen_reset_row_count),
         "social_partner_available_frame_rows": int(
             work_frames["_social_partner_key"].ne("").sum()
         ),
@@ -408,6 +426,94 @@ def _rebase_window_motion(
         frame_delta,
         valid_pair,
     )
+    return out, {
+        "rebased": True,
+        "valid_pairs": int(valid_pair.sum()),
+        "reset_rows": int(len(out) - valid_pair.sum()),
+    }
+
+
+def _rebase_window_pen_motion(
+    values: np.ndarray,
+    feature_names: list[str],
+    frame_indices: np.ndarray,
+) -> tuple[np.ndarray, dict[str, int | bool]]:
+    """Recompute boundary approach/parallel motion inside each window."""
+
+    derived = [
+        "pen_distance_delta_n_per_frame",
+        "pen_approach_speed_n_per_frame",
+        "pen_retreat_speed_n_per_frame",
+        "pen_parallel_speed_n_per_frame",
+    ]
+    present = [column for column in derived if column in feature_names]
+    if not present or len(values) == 0:
+        return values, {"rebased": False, "valid_pairs": 0, "reset_rows": 0}
+
+    out = values.copy()
+    indices = {column: feature_names.index(column) for column in feature_names}
+    for column in present:
+        out[:, indices[column]] = 0.0
+    required = {
+        "cx_n",
+        "cy_n",
+        "pen_center_signed_distance_n",
+    }
+    if not required.issubset(indices):
+        return out, {
+            "rebased": True,
+            "valid_pairs": 0,
+            "reset_rows": int(len(out)),
+        }
+
+    frame_delta = np.diff(frame_indices.astype("float64"))
+    distance = out[:, indices["pen_center_signed_distance_n"]]
+    distance_delta = np.diff(distance)
+    # Signed distance is positive inside the calibrated pen. Deriving this
+    # validity condition avoids exposing the highly camera-correlated binary
+    # ``pen_center_inside`` flag as a model feature.
+    inside = distance > 0.0
+    row_valid = inside & np.isfinite(distance)
+    valid_pair = (
+        np.isfinite(frame_delta)
+        & (frame_delta > 0)
+        & np.isfinite(distance_delta)
+        & row_valid[:-1]
+        & row_valid[1:]
+    )
+    pair_rows = np.flatnonzero(valid_pair) + 1
+    if pair_rows.size:
+        previous_rows = pair_rows - 1
+        denominator = frame_delta[valid_pair]
+        delta = distance_delta[valid_pair] / denominator
+        dx = (
+            out[pair_rows, indices["cx_n"]]
+            - out[previous_rows, indices["cx_n"]]
+        ) / denominator
+        dy = (
+            out[pair_rows, indices["cy_n"]]
+            - out[previous_rows, indices["cy_n"]]
+        ) / denominator
+        total_speed = np.hypot(dx, dy)
+        normal_speed = np.minimum(np.abs(delta), total_speed)
+        parallel = np.sqrt(np.maximum(total_speed**2 - normal_speed**2, 0.0))
+        if "pen_distance_delta_n_per_frame" in indices:
+            out[pair_rows, indices["pen_distance_delta_n_per_frame"]] = delta
+        if "pen_approach_speed_n_per_frame" in indices:
+            out[pair_rows, indices["pen_approach_speed_n_per_frame"]] = np.clip(
+                -delta,
+                0.0,
+                None,
+            )
+        if "pen_retreat_speed_n_per_frame" in indices:
+            out[pair_rows, indices["pen_retreat_speed_n_per_frame"]] = np.clip(
+                delta,
+                0.0,
+                None,
+            )
+        if "pen_parallel_speed_n_per_frame" in indices:
+            out[pair_rows, indices["pen_parallel_speed_n_per_frame"]] = parallel
+
     return out, {
         "rebased": True,
         "valid_pairs": int(valid_pair.sum()),

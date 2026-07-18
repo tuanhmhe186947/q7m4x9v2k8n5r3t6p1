@@ -1,5 +1,49 @@
 # Project Memory Short
 
+## 2026-07-19 legacy 16f P0-P10 rebuild PASS
+
+- Run `outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2` completed
+  P0-P10 without training, OOF, raw-data edits or tracking changes.
+- Filter accounting is exact: 27,665 raw CVAT rows minus five rows from three
+  declared task_3 actor keys equals 27,660; minus 330 reviewed video-policy
+  rows equals 27,330 retained anchors.
+- The canonical universe has 4,555 actors, 666 groups and 72,880 rows. Every
+  actor has six anchors at relative offsets `0,3,6,9,12,15` and 16 frames.
+- The three task_3 exclusions are actor-level, not a whole-task exclusion:
+  `11c02639_300/ID_3`, `5532ba8c_200/ID_5`, and `77fe4f70_33/ID_1` occur zero
+  times in behavior source, P5 inputs, dense recovery and canonical export.
+- P5 applies the same reviewed actor policy before authority and anchor
+  coverage. Its canonical audit is `PASS` with zero errors, warnings,
+  incomplete retained actors or new authority keys.
+- P9 reloads raw CVAT for source hashes, then audits only retained actor keys.
+  Export has zero authority discrepancy, invalid bbox or Hidden mismatch.
+- Native anchor coordinates are exact in `x1_raw..y2_raw`; operational bbox
+  columns clip image-bound values and report 94 clipped anchor coordinates.
+- Final audit is `08_audits/legacy_16f_rebuild_completion_audit.json` with
+  `status=PASS` and `errors=[]`.
+
+## 2026-07-18 mixed CVAT XML/JSON authority
+
+- Legacy 16f ingestion selects one annotation authority per task: XML first
+  when `annotations.xml` exists, otherwise `annotations.json`. It never merges
+  both formats inside one task and never falls back to stale JSON after an XML
+  parse or manifest-binding failure.
+- The current source binding is `task_0..task_2 = XML` and `task_3 = JSON`.
+  XML `image@id` and JSON `shape.frame` must resolve to the exact image name in
+  each task's `data/manifest.jsonl`.
+- Behavior authority is the actor label on the lowest CVAT task frame within
+  each burst, not suffix `k0`. Current data has 149/674 bursts whose first task
+  frame is `k1..k4`. The selected slot/frame/name must remain explicit audit
+  metadata. Slots `k0..k5` remain independent bbox/Hidden anchors.
+- The read-only native-source audit loads 27,626 boxes with no missing ID,
+  missing behavior or invalid bbox. It still finds two conflicting rows for
+  `(burst_color_1ec47b87_14233, k4, ID_1)` in `task_2`: one `fight` bbox and
+  one `eat` bbox. Full recovery remains blocked.
+- First-frame audit selects 4,606 actor authorities: 4,598 have complete
+  `k0..k5`, eight have incomplete anchor sets, and seven additional sampled
+  actors are absent from the first task frame and must be excluded. Final
+  counts must be recomputed against the fresh nodup metadata scaffold.
+
 ## 2026-07-18 legacy 16f clean-root workflow
 
 - Seven legacy root CSV artifacts were moved, with SHA-256 manifest, to
@@ -18,17 +62,17 @@
 
 - Rebuild legacy 16f from all native `data/data/task_0..task_3` exports; the
   old dense map is comparison evidence, not current bbox/behavior authority.
-- For each `(group_id, pig_id)`, CVAT slot `k0` behavior is the only target
-  authority. It maps to `k1..k5` and every frame in the recovered 16f burst.
-  Later-slot behavior is disagreement evidence only and never votes.
+- The former fixed-`k0` behavior contract is superseded. The actor label on the
+  first CVAT task frame in each burst maps to all anchors and recovered frames.
+  Other labels are disagreement evidence only and never vote.
 - Every CVAT bbox at `k0..k5` is an independent GT anchor. The ten intervening
   frames are recovered between anchors; a `k0` bbox is never copied forward.
 - CVAT task frame indices must resolve through each task's `manifest.jsonl`;
-  global task frame 0 is not the behavior authority.
+  choose the minimum task frame separately inside each burst.
 - Input audit is fail-closed on duplicate `(group_id, slot, pig_id)`, invalid
-  `k0`, invalid bbox, or slot/frame-map errors. Output validation must prove
-  k0 behavior propagation, exact anchor bboxes, 16-frame completeness, key
-  preservation, and no duplicates before frame-object export.
+  authority behavior, invalid bbox, or slot/frame-map errors. Validation must
+  prove first-frame behavior propagation, exact anchor bboxes, 16-frame
+  completeness, key preservation, and no duplicates before export.
 - The 2026-07-17 real-data audit is currently blocked by two duplicate anchor
   identities (four rows). Do not run recovery or model training until a new
   CVAT hash passes the short audit and one-burst recovery gate.

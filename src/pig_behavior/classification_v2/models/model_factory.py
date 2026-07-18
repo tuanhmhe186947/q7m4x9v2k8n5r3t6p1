@@ -32,6 +32,19 @@ MOTION_GROUPS = (
     "motion_delta",
     "quality_mask",
 )
+PEN_CONTEXT_GROUPS = (
+    "bbox_xywh_n",
+    "bbox_shape_n",
+    "pen_boundary_context",
+    "quality_mask",
+)
+PEN_MOTION_GROUPS = (
+    "bbox_xywh_n",
+    "bbox_shape_n",
+    "motion_delta",
+    "pen_boundary_context",
+    "quality_mask",
+)
 ROI_GROUPS = (
     "bbox_xywh_n",
     "bbox_shape_n",
@@ -96,6 +109,24 @@ MODEL_MODE_REGISTRY: dict[str, ModelModeSpec] = {
     "actor_geometry_motion": ModelModeSpec(
         name="actor_geometry_motion",
         spatial_feature_groups=MOTION_GROUPS,
+        enable_image=True,
+        enable_spatial=True,
+        enable_interaction_context=False,
+        enable_visual_context=False,
+        enable_multitask=False,
+    ),
+    "actor_geometry_pen": ModelModeSpec(
+        name="actor_geometry_pen",
+        spatial_feature_groups=PEN_CONTEXT_GROUPS,
+        enable_image=True,
+        enable_spatial=True,
+        enable_interaction_context=False,
+        enable_visual_context=False,
+        enable_multitask=False,
+    ),
+    "actor_geometry_motion_pen": ModelModeSpec(
+        name="actor_geometry_motion_pen",
+        spatial_feature_groups=PEN_MOTION_GROUPS,
         enable_image=True,
         enable_spatial=True,
         enable_interaction_context=False,
@@ -327,6 +358,8 @@ __all__ = [
     "MODEL_MODE_NAMES",
     "MODEL_MODE_REGISTRY",
     "MOTION_GROUPS",
+    "PEN_CONTEXT_GROUPS",
+    "PEN_MOTION_GROUPS",
     "ModelModeSpec",
     "ROI_GROUPS",
     "build_multimodal_model",

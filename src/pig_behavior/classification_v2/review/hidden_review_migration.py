@@ -472,8 +472,10 @@ def _human_payload_change_count(
     after_rows = after.reset_index(drop=True)
     changed = pd.Series(False, index=before_rows.index)
     for column in HUMAN_PAYLOAD_COLUMNS:
-        changed |= before_rows[column].fillna("").astype(str).ne(
-            after_rows[column].fillna("").astype(str)
+        before_values = before_rows.get(column, pd.Series("", index=before_rows.index))
+        after_values = after_rows.get(column, pd.Series("", index=after_rows.index))
+        changed |= before_values.fillna("").astype(str).ne(
+            after_values.fillna("").astype(str)
         )
     return int(changed.sum())
 

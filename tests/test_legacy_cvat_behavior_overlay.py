@@ -13,7 +13,7 @@ from legacy_burst_recovery.cvat_anchor_rebuild import (
     build_legacy_recovery_inputs,
 )
 from legacy_burst_recovery.cvat_behavior_overlay import (
-    apply_cvat_k0_behavior_authority,
+    apply_cvat_first_frame_behavior_authority,
 )
 from legacy_burst_recovery.cvat_recovery_validation import (
     validate_cvat_recovered_dense,
@@ -37,6 +37,7 @@ def _write_cvat_task(
     *,
     later_behavior: str = "stand",
     hidden_by_slot: dict[int, str] | None = None,
+    task_slot_order: list[int] | None = None,
 ) -> Path:
     task_dir = root / "task_0"
     data_dir = task_dir / "data"
@@ -55,7 +56,16 @@ def _write_cvat_task(
                     "slot": slot,
                 }
             )
-    image_records.sort(key=lambda item: str(item["name"]))
+    if task_slot_order is None:
+        image_records.sort(key=lambda item: str(item["name"]))
+    else:
+        slot_rank = {slot: rank for rank, slot in enumerate(task_slot_order)}
+        image_records.sort(
+            key=lambda item: (
+                str(item["group_id"]),
+                slot_rank[int(item["slot"])],
+            )
+        )
 
     manifest = [{"version": "1.1"}, {"type": "images"}]
     manifest.extend(
@@ -76,11 +86,14 @@ def _write_cvat_task(
     for task_frame, image in enumerate(image_records):
         group_id = str(image["group_id"])
         slot = int(image["slot"])
-        for pig_index, (pig_id, k0_behavior) in enumerate(
+        for pig_index, (pig_id, authority_behavior) in enumerate(
             labels[group_id].items(),
             start=1,
         ):
-            behavior = k0_behavior if slot == 0 else later_behavior
+            behavior = (
+                authority_behavior if task_frame % len(OFFSETS) == 0
+                else later_behavior
+            )
             shapes.append(
                 {
                     "type": "rectangle",
@@ -177,7 +190,7 @@ def _write_scaffold(
     return path
 
 
-def test_k0_is_burst_authority_not_global_task_frame(tmp_path: Path) -> None:
+def test_first_task_frame_is_burst_behavior_authority(tmp_path: Path) -> None:
     labels = {
         "burst_color_aaa11111_100": {"ID_1": "explore", "ID_2": "lying"},
         "burst_color_bbb22222_200": {"ID_1": "drink"},
@@ -186,10 +199,18 @@ def test_k0_is_burst_authority_not_global_task_frame(tmp_path: Path) -> None:
     dense = _dense_rows(labels)
     original_non_behavior = dense[["hidden", "x1", "y1", "x2", "y2"]].copy()
 
-    out, audit, discrepancies = apply_cvat_k0_behavior_authority(dense, tmp_path)
+    out, audit, discrepancies = apply_cvat_first_frame_behavior_authority(
+        dense,
+        tmp_path,
+    )
 
     assert len(out) == len(dense) == 48
     assert not out.duplicated(["group_id", "pig_id", "frame_index"]).any()
+    assert audit["status"] == "PASS"
+    assert audit["warnings"] == []
+    assert audit["informational_findings"] == [
+        "other sampled labels disagree with first-frame authority and are audit-only"
+    ]
     pd.testing.assert_frame_equal(
         out[["hidden", "x1", "y1", "x2", "y2"]].reset_index(drop=True),
         original_non_behavior.reset_index(drop=True),
@@ -200,7 +221,7 @@ def test_k0_is_burst_authority_not_global_task_frame(tmp_path: Path) -> None:
             assert selected["behavior"].eq(behavior).all()
             assert selected["legacy_behavior_authority_slot"].eq(0).all()
             assert selected["label_source"].eq(
-                "cvat_native_k0_burst_authority"
+                "cvat_native_first_task_frame_behavior_authority"
             ).all()
 
     second_group = out[out["group_id"].eq("burst_color_bbb22222_200")]
@@ -210,7 +231,45 @@ def test_k0_is_burst_authority_not_global_task_frame(tmp_path: Path) -> None:
     assert discrepancies.empty
 
 
-def test_missing_k0_is_retained_but_excluded(tmp_path: Path) -> None:
+def test_non_k0_first_frame_controls_behavior_but_not_center_bbox(
+    tmp_path: Path,
+) -> None:
+    group_id = "burst_color_aaa11111_100"
+    labels = {group_id: {"ID_1": "explore"}}
+    _write_cvat_task(
+        tmp_path / "cvat",
+        labels,
+        later_behavior="stand",
+        task_slot_order=[2, 0, 1, 3, 4, 5],
+    )
+    scaffold_path = _write_scaffold(
+        tmp_path / "scaffold.csv",
+        {group_id: {"ID_1": "stand"}},
+    )
+
+    center, anchors, audit, _ = build_legacy_recovery_inputs(
+        cvat_export_root=tmp_path / "cvat",
+        metadata_scaffold_csv=scaffold_path,
+    )
+
+    assert audit["errors"] == []
+    assert len(center) == 1
+    assert center.loc[0, "behavior"] == "explore"
+    assert center.loc[0, "behavior_authority_slot"] == 2
+    assert center.loc[0, "behavior_authority_task_frame"] == 0
+    assert str(center.loc[0, "behavior_authority_image_name"]).endswith(
+        "_k2.jpg"
+    )
+    assert center.loc[0, "bbox_anchor_slot"] == 0
+    assert anchors["behavior"].eq("explore").all()
+    assert anchors["behavior_authority_slot"].eq(2).all()
+    before = anchors.sort_values("legacy_order")[
+        "behavior_before_authority_mapping"
+    ].tolist()
+    assert before == ["stand", "stand", "explore", "stand", "stand", "stand"]
+
+
+def test_actor_missing_from_first_task_frame_is_excluded(tmp_path: Path) -> None:
     cvat_labels = {"burst_color_aaa11111_100": {"ID_1": "explore"}}
     dense_labels = {
         "burst_color_aaa11111_100": {
@@ -221,28 +280,33 @@ def test_missing_k0_is_retained_but_excluded(tmp_path: Path) -> None:
     _write_cvat_task(tmp_path, cvat_labels)
     dense = _dense_rows(dense_labels)
 
-    out, audit, discrepancies = apply_cvat_k0_behavior_authority(dense, tmp_path)
+    out, audit, discrepancies = apply_cvat_first_frame_behavior_authority(
+        dense,
+        tmp_path,
+    )
 
     missing = out[out["pig_id"].eq("ID_2")]
     assert len(missing) == 16
     assert missing["behavior"].isna().all()
     assert (~missing["include_in_training"]).all()
     assert missing["legacy_behavior_authority_status"].eq(
-        "missing_k0_excluded"
+        "missing_first_frame_actor_excluded"
     ).all()
     assert missing["label_source"].eq(
-        "missing_cvat_k0_no_training_label"
+        "missing_cvat_first_frame_actor_no_training_label"
     ).all()
-    assert audit["counts"]["dense_keys_missing_k0"] == 1
-    assert discrepancies["join_status"].tolist() == ["dense_missing_k0"]
+    assert audit["counts"]["dense_keys_missing_authority"] == 1
+    assert discrepancies["join_status"].tolist() == [
+        "dense_missing_first_frame_actor"
+    ]
 
 
-def test_frame_export_preserves_k0_provenance(tmp_path: Path) -> None:
+def test_frame_export_preserves_first_frame_provenance(tmp_path: Path) -> None:
     labels = {"burst_color_aaa11111_100": {"ID_1": "drink"}}
     _write_cvat_task(tmp_path, labels)
     dense = _dense_rows(labels)
     dense["behavior"] = "drink"
-    overlaid, authority_audit, _ = apply_cvat_k0_behavior_authority(
+    overlaid, authority_audit, _ = apply_cvat_first_frame_behavior_authority(
         dense,
         tmp_path,
     )
@@ -269,9 +333,11 @@ def test_frame_export_preserves_k0_provenance(tmp_path: Path) -> None:
 
     assert len(exported) == 16
     assert exported["behavior"].eq("drink").all()
-    assert exported["label_source"].eq("cvat_native_k0_burst_authority").all()
+    assert exported["label_source"].eq(
+        "cvat_native_first_task_frame_behavior_authority"
+    ).all()
     assert exported["legacy_behavior_authority_status"].eq(
-        "authoritative_k0"
+        "authoritative_first_task_frame"
     ).all()
     assert exported["sequence_complete"].all()
     export_audit = build_export_audit(
@@ -287,7 +353,7 @@ def test_frame_export_preserves_k0_provenance(tmp_path: Path) -> None:
     canonical = load_legacy_frame_objects(export_path)
     assert len(canonical) == 16
     assert canonical["label_source"].eq(
-        "cvat_native_k0_burst_authority"
+        "cvat_native_first_task_frame_behavior_authority"
     ).all()
     assert (~canonical["hidden_is_trusted"].astype(bool)).all()
     assert canonical["hidden_source"].eq("cvat_native_anchor").all()
@@ -298,7 +364,7 @@ def test_export_audit_rejects_stale_dense_behavior_overlay(tmp_path: Path) -> No
     labels = {"burst_color_aaa11111_100": {"ID_1": "explore"}}
     _write_cvat_task(tmp_path, labels)
     dense = _dense_rows(labels)
-    overlaid, authority_audit, _ = apply_cvat_k0_behavior_authority(
+    overlaid, authority_audit, _ = apply_cvat_first_frame_behavior_authority(
         dense,
         tmp_path,
     )
@@ -336,6 +402,152 @@ def test_export_audit_rejects_stale_dense_behavior_overlay(tmp_path: Path) -> No
     assert "stale_dense_behavior_rows_changed_by_overlay=16" in audit["errors"]
 
 
+def test_export_audit_allows_incomplete_cvat_actor_excluded_from_dense(
+    tmp_path: Path,
+) -> None:
+    retained_group = "burst_color_aaa11111_100"
+    excluded_group = "burst_color_bbb22222_200"
+    labels = {
+        retained_group: {"ID_1": "explore"},
+        excluded_group: {"ID_1": "drink"},
+    }
+    task_dir = _write_cvat_task(tmp_path, labels)
+    annotation_path = task_dir / "annotations.json"
+    payload = json.loads(annotation_path.read_text(encoding="utf-8"))
+    payload[0]["shapes"] = [
+        shape
+        for shape in payload[0]["shapes"]
+        if shape["frame"] < len(OFFSETS) or shape["frame"] == len(OFFSETS)
+    ]
+    annotation_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    dense = _dense_rows({retained_group: labels[retained_group]})
+    dense["behavior"] = "explore"
+    overlaid, authority_audit, _ = apply_cvat_first_frame_behavior_authority(
+        dense,
+        tmp_path,
+    )
+    for column, value in {
+        "hidden_source": "cvat_native_anchor",
+        "hidden_is_trusted": False,
+        "hidden_review_status": "seed_unreviewed",
+        "hidden_trust_status": "untrusted_cvat_seed",
+        "visibility_quality": "cvat_anchor_seed_unreviewed",
+        "hidden_seed_method": "cvat_anchor_exact",
+    }.items():
+        overlaid[column] = value
+    exported = build_frame_object_csv(
+        dense_df=overlaid,
+        image_width=1280,
+        image_height=720,
+        training_only=False,
+        dataset_id="synthetic_legacy",
+        source_type="legacy_recovered",
+        expected_sequence_length=16,
+        anchor_relative_frames=OFFSETS,
+        expected_pig_count=8,
+        fps=None,
+        require_full_8_for_eval=False,
+    )
+
+    assert (
+        authority_audit["counts"][
+            "source_sampled_incomplete_anchor_keys"
+        ]
+        == 1
+    )
+    assert authority_audit["counts"]["sampled_incomplete_anchor_keys"] == 0
+    assert (
+        authority_audit["counts"][
+            "sampled_incomplete_anchor_keys_in_dense"
+        ]
+        == 0
+    )
+    audit = build_export_audit(
+        overlaid,
+        exported,
+        behavior_authority_audit=authority_audit,
+        training_only=False,
+    )
+    assert audit["errors"] == [], audit
+    assert audit["status"] == "PASS"
+    assert audit["warnings"] == []
+
+
+def test_export_audit_rejects_incomplete_cvat_actor_retained_in_dense(
+    tmp_path: Path,
+) -> None:
+    complete_group = "burst_color_aaa11111_100"
+    incomplete_group = "burst_color_bbb22222_200"
+    labels = {
+        complete_group: {"ID_1": "explore"},
+        incomplete_group: {"ID_1": "drink"},
+    }
+    task_dir = _write_cvat_task(tmp_path, labels)
+    annotation_path = task_dir / "annotations.json"
+    payload = json.loads(annotation_path.read_text(encoding="utf-8"))
+    payload[0]["shapes"] = [
+        shape
+        for shape in payload[0]["shapes"]
+        if shape["frame"] < len(OFFSETS) or shape["frame"] == len(OFFSETS)
+    ]
+    annotation_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    dense = _dense_rows(labels)
+    dense["behavior"] = dense["group_id"].map(
+        {complete_group: "explore", incomplete_group: "drink"}
+    )
+    overlaid, authority_audit, _ = apply_cvat_first_frame_behavior_authority(
+        dense,
+        tmp_path,
+    )
+    for column, value in {
+        "hidden_source": "cvat_native_anchor",
+        "hidden_is_trusted": False,
+        "hidden_review_status": "seed_unreviewed",
+        "hidden_trust_status": "untrusted_cvat_seed",
+        "visibility_quality": "cvat_anchor_seed_unreviewed",
+        "hidden_seed_method": "cvat_anchor_exact",
+    }.items():
+        overlaid[column] = value
+    exported = build_frame_object_csv(
+        dense_df=overlaid,
+        image_width=1280,
+        image_height=720,
+        training_only=False,
+        dataset_id="synthetic_legacy",
+        source_type="legacy_recovered",
+        expected_sequence_length=16,
+        anchor_relative_frames=OFFSETS,
+        expected_pig_count=8,
+        fps=None,
+        require_full_8_for_eval=False,
+    )
+
+    assert (
+        authority_audit["counts"][
+            "sampled_incomplete_anchor_keys_in_dense"
+        ]
+        == 1
+    )
+    assert (
+        authority_audit["counts"][
+            "source_sampled_incomplete_anchor_keys"
+        ]
+        == 1
+    )
+    audit = build_export_audit(
+        overlaid,
+        exported,
+        behavior_authority_audit=authority_audit,
+        training_only=False,
+    )
+    assert audit["status"] == "FAIL"
+    assert audit["errors"] == [
+        "incomplete_cvat_anchor_actor_keys_in_dense=1"
+    ]
+
+
 def test_recovery_inputs_add_actor_and_keep_each_anchor_bbox(tmp_path: Path) -> None:
     group_id = "burst_color_aaa11111_100"
     cvat_labels = {group_id: {"ID_1": "explore", "ID_2": "drink"}}
@@ -356,9 +568,12 @@ def test_recovery_inputs_add_actor_and_keep_each_anchor_bbox(tmp_path: Path) -> 
     )
 
     assert audit["errors"] == []
-    assert audit["counts"]["new_k0_keys"] == 1
-    assert audit["counts"]["behavior_disagreement_rows_mapped_to_k0"] == 10
-    assert audit["behavior_disagreement_by_slot_mapped_to_k0"] == {
+    assert audit["counts"]["new_authority_keys"] == 1
+    assert (
+        audit["counts"]["behavior_disagreement_rows_mapped_to_authority"]
+        == 10
+    )
+    assert audit["behavior_disagreement_by_slot_mapped_to_authority"] == {
         "0": 0,
         "1": 2,
         "2": 2,
@@ -392,7 +607,7 @@ def test_recovery_inputs_add_actor_and_keep_each_anchor_bbox(tmp_path: Path) -> 
     assert stale_spatial_columns.isdisjoint(anchors.columns)
     id1 = anchors[anchors["pig_id"].eq("ID_1")].sort_values("legacy_order")
     assert id1["behavior"].eq("explore").all()
-    assert id1["behavior_before_k0_mapping"].tolist() == [
+    assert id1["behavior_before_authority_mapping"].tolist() == [
         "explore",
         "stand",
         "stand",
@@ -404,7 +619,9 @@ def test_recovery_inputs_add_actor_and_keep_each_anchor_bbox(tmp_path: Path) -> 
     assert id1["hidden"].tolist() == ["No", "No", "Yes", "Yes", "No", "No"]
     assert (~id1["hidden_is_trusted"]).all()
     assert id1["hidden_review_status"].eq("seed_unreviewed").all()
-    assert issues["code"].eq("new_k0_actor_key").any()
+    assert issues["code"].eq(
+        "new_first_frame_authority_actor_key"
+    ).any()
 
     accepted, rejected = validate_legacy_dataframe(center)
     assert rejected.empty
@@ -590,6 +807,61 @@ def test_recovery_inputs_exclude_actor_without_all_six_anchors(
     assert excluded["severity"].tolist() == ["excluded"]
 
 
+def test_recovery_inputs_apply_actor_policy_before_coverage(
+    tmp_path: Path,
+) -> None:
+    group_id = "burst_color_aaa11111_100"
+    labels = {group_id: {"ID_1": "explore", "ID_2": "drink"}}
+    task_dir = _write_cvat_task(tmp_path / "cvat", labels)
+    annotation_path = task_dir / "annotations.json"
+    payload = json.loads(annotation_path.read_text(encoding="utf-8"))
+    payload[0]["shapes"] = [
+        shape
+        for shape in payload[0]["shapes"]
+        if not (
+            next(
+                item["value"]
+                for item in shape["attributes"]
+                if item["name"] == "ID"
+            )
+            == "ID_2"
+            and int(shape["frame"]) != 0
+        )
+    ]
+    annotation_path.write_text(json.dumps(payload), encoding="utf-8")
+    scaffold_path = _write_scaffold(
+        tmp_path / "scaffold.csv",
+        {group_id: {"ID_1": "explore"}},
+    )
+    policy_path = tmp_path / "excluded_actor_keys.csv"
+    pd.DataFrame(
+        [
+            {
+                "group_id": group_id,
+                "pig_id": "ID_2",
+                "reason": "incomplete native anchor set",
+            }
+        ]
+    ).to_csv(policy_path, index=False)
+
+    center, anchors, audit, issues = build_legacy_recovery_inputs(
+        cvat_export_root=tmp_path / "cvat",
+        metadata_scaffold_csv=scaffold_path,
+        actor_exclusion_policy_csv=policy_path,
+    )
+
+    assert audit["status"] == "PASS"
+    assert audit["errors"] == []
+    assert audit["warnings"] == []
+    assert audit["counts"]["actor_exclusion_policy_keys"] == 1
+    assert audit["counts"]["actor_exclusion_rows_removed"] == 1
+    assert audit["counts"]["incomplete_authority_keys"] == 0
+    assert audit["counts"]["excluded_below_min_anchor_count"] == 0
+    assert center["pig_id"].tolist() == ["ID_1"]
+    assert anchors["pig_id"].eq("ID_1").all()
+    assert not issues["pig_id"].eq("ID_2").any()
+
+
 def test_recovery_inputs_fail_on_duplicate_anchor_identity(tmp_path: Path) -> None:
     group_id = "burst_color_aaa11111_100"
     labels = {group_id: {"ID_1": "explore"}}
@@ -617,7 +889,7 @@ def test_recovery_inputs_fail_on_duplicate_anchor_identity(tmp_path: Path) -> No
     assert issues["code"].eq("duplicate_anchor_identity").any()
 
 
-def test_duplicate_k0_authority_is_rejected(tmp_path: Path) -> None:
+def test_duplicate_first_frame_authority_is_rejected(tmp_path: Path) -> None:
     labels = {"burst_color_aaa11111_100": {"ID_1": "explore"}}
     task_dir = _write_cvat_task(tmp_path, labels)
     path = task_dir / "annotations.json"
@@ -628,7 +900,10 @@ def test_duplicate_k0_authority_is_rejected(tmp_path: Path) -> None:
     path.write_text(json.dumps(payload), encoding="utf-8")
 
     with pytest.raises(ValueError, match="duplicate_authority_keys"):
-        apply_cvat_k0_behavior_authority(_dense_rows(labels), tmp_path)
+        apply_cvat_first_frame_behavior_authority(
+            _dense_rows(labels),
+            tmp_path,
+        )
 
 
 def _recovered_validation_fixture() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -709,7 +984,7 @@ def _recovered_validation_fixture() -> tuple[pd.DataFrame, pd.DataFrame, pd.Data
     return center, anchors, pd.DataFrame(dense_rows)
 
 
-def test_recovered_dense_keeps_k0_behavior_and_each_cvat_anchor_bbox() -> None:
+def test_recovered_dense_keeps_authority_behavior_and_each_anchor_bbox() -> None:
     center, anchors, dense = _recovered_validation_fixture()
 
     audit = validate_cvat_recovered_dense(center, anchors, dense)
@@ -718,8 +993,8 @@ def test_recovered_dense_keeps_k0_behavior_and_each_cvat_anchor_bbox() -> None:
     assert audit["errors"] == []
     assert audit["counts"]["dense_rows"] == 16
     assert audit["behavior_checks"] == {
-        "anchor_behavior_not_mapped_from_k0": 0,
-        "dense_behavior_not_mapped_from_k0": 0,
+        "anchor_behavior_not_mapped_from_authority": 0,
+        "dense_behavior_not_mapped_from_authority": 0,
     }
     assert all(count == 0 for count in audit["anchor_checks"].values())
     assert all(count == 0 for count in audit["center_checks"].values())
@@ -734,8 +1009,8 @@ def test_recovered_dense_validator_rejects_behavior_or_bbox_drift() -> None:
     audit = validate_cvat_recovered_dense(center, anchors, dense)
 
     assert audit["status"] == "FAIL"
-    assert "anchor_behavior_not_mapped_from_k0=1" in audit["errors"]
-    assert "dense_behavior_not_mapped_from_k0=1" in audit["errors"]
+    assert "anchor_behavior_not_mapped_from_authority=1" in audit["errors"]
+    assert "dense_behavior_not_mapped_from_authority=1" in audit["errors"]
     assert "cvat_anchor_bbox_mismatches=1" in audit["errors"]
 
 

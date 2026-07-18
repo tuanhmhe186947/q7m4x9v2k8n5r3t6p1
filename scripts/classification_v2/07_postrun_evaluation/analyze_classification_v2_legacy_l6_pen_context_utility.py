@@ -1,0 +1,47 @@
+"""Write support-aware utility diagnostics for the legacy pen-context run."""
+
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+from pig_behavior.classification_v2.evaluation.legacy_development_l6_pen_context_diagnostic import (
+    write_pen_context_utility_diagnostic,
+)
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--config", type=Path, required=True)
+    parser.add_argument("--project-root", type=Path, default=Path.cwd())
+    return parser
+
+
+def main() -> int:
+    args = _parser().parse_args()
+    output, payload = write_pen_context_utility_diagnostic(
+        args.config,
+        project_root=args.project_root,
+    )
+    print(
+        json.dumps(
+            {
+                "output": str(output),
+                "status": payload["status"],
+                "analysis_scope": payload["analysis_scope"],
+                "promotion_decision_changed": payload[
+                    "promotion_decision_changed"
+                ],
+                "errors": payload["errors"],
+                "valid": payload["valid"],
+            },
+            indent=2,
+            sort_keys=True,
+        )
+    )
+    return 0 if payload["valid"] else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

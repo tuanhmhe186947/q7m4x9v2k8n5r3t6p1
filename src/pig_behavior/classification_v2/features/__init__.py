@@ -8,6 +8,11 @@ from pig_behavior.classification_v2.features.geometry import (
     build_geometry_features,
     validate_geometry_features,
 )
+from pig_behavior.classification_v2.features.pen_context import (
+    audit_pen_context_features,
+    build_pen_context_features,
+    summarize_pen_context,
+)
 from pig_behavior.classification_v2.features.review_policy import (
     add_roi_label_review_attributes,
     apply_behavior_review_decisions,
@@ -25,6 +30,9 @@ __all__ = [
     "audit_context_policy",
     "build_geometry_features",
     "validate_geometry_features",
+    "build_pen_context_features",
+    "audit_pen_context_features",
+    "summarize_pen_context",
     "build_roi_features",
     "load_scene_rois_from_coco",
     "validate_roi_features",

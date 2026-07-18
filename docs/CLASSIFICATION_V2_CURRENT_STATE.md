@@ -3,7 +3,7 @@
 ## Authority
 
 This file is the authoritative status snapshot for the active
-`classification_v2` lineage as of 2026-07-16. It records current gates, not
+`classification_v2` lineage as of 2026-07-19. It records current gates, not
 historical intent. When an older memory, plan, report, or runbook conflicts with
 this file, use this file together with `02_CURRENT_DECISION.md` and the data
 rebuild runbook.
@@ -32,10 +32,36 @@ review/data/leakage gate passes, but `full_oof_authorized` remains false.
 
 ## Active Data Lineage
 
-The existing technical reference contains 245,664 enhanced frame/object rows:
+Canonical legacy 16f source is:
+
+```text
+outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2
+```
+
+P0-P10 PASS. After explicit source-policy filtering, it contains 27,330 anchors,
+4,555 actors, 666 groups and 72,880 export rows. Each retained actor has 16
+frames and all six anchors. The canonical export SHA256 is
+`fbd6300fca8fdab0b2c644626397ec6c6aa79f80b48a383f54e745cbcbcbcad3`.
+
+This is a structural/source/lineage PASS only. It is not human-reviewed data.
+Verified coverage for the new lineage remains `Hidden=0 decisions` and
+`behavior=0 decisions`. Legacy 16f must still complete two-sided frame/object
+Hidden review and complete native-unit 16-frame behavior review. Until both
+gates PASS, active-data training, reviewed snapshot, model smoke and full OOF
+remain blocked.
+
+The three excluded actor keys are source-quality exclusions, not review
+decisions:
+
+- `burst_color_11c02639_300 / ID_3`
+- `burst_color_5532ba8c_200 / ID_5`
+- `burst_color_77fe4f70_33 / ID_1`
+
+The older mixed technical reference contains 245,664 enhanced frame/object
+rows and is historical, not the expected count for a canonical rebuild:
 
 - 172,800 `cvat_tracking_xml` rows;
-- 72,864 `legacy_recovered` rows;
+- 72,864 pre-rebuild `legacy_recovered` rows;
 - 4,181 rows currently marked `Hidden=Yes`;
 - 241,483 rows currently marked `Hidden=No`.
 

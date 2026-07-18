@@ -23,6 +23,10 @@ from pig_behavior.classification_v2.contracts.lineage_claims import (
     require_lineage_claims_preserved,
     resolve_optional_lineage_claims,
 )
+from pig_behavior.classification_v2.features.pen_context import (
+    empty_pen_context_summary,
+    summarize_pen_context,
+)
 from pig_behavior.classification_v2.features.temporal_evidence import (
     WINDOW_TEMPORAL_EVIDENCE_COLUMNS,
     TemporalEvidenceConfig,
@@ -49,8 +53,11 @@ class SequenceWindowConfig:
     legacy_expected_sequence_length: int = 16
     default_fps: float | None = None
     min_bbox_valid_ratio: float = 1.0
-    max_hidden_ratio_main: float = 0.5
-    exclude_high_hidden_from_main: bool = False
+    max_hidden_ratio_main: float = 0.25
+    max_hidden_run_ratio_main: float = 0.20
+    max_hidden_ratio_robust: float = 0.50
+    max_hidden_run_ratio_robust: float = 0.40
+    exclude_high_hidden_from_main: bool = True
     min_spatiotemporal_valid_ratio: float = 1.0
     include_mixed_windows: bool = True
     max_windows_per_track: int | None = None
@@ -76,6 +83,21 @@ class SequenceWindowConfig:
             raise ValueError("min_bbox_valid_ratio must be in [0, 1]")
         if not (0 <= self.max_hidden_ratio_main <= 1):
             raise ValueError("max_hidden_ratio_main must be in [0, 1]")
+        if not (0 <= self.max_hidden_run_ratio_main <= 1):
+            raise ValueError("max_hidden_run_ratio_main must be in [0, 1]")
+        if not (0 <= self.max_hidden_ratio_robust <= 1):
+            raise ValueError("max_hidden_ratio_robust must be in [0, 1]")
+        if not (0 <= self.max_hidden_run_ratio_robust <= 1):
+            raise ValueError("max_hidden_run_ratio_robust must be in [0, 1]")
+        if self.max_hidden_ratio_main > self.max_hidden_ratio_robust:
+            raise ValueError(
+                "max_hidden_ratio_main must not exceed max_hidden_ratio_robust"
+            )
+        if self.max_hidden_run_ratio_main > self.max_hidden_run_ratio_robust:
+            raise ValueError(
+                "max_hidden_run_ratio_main must not exceed "
+                "max_hidden_run_ratio_robust"
+            )
         if not (0 <= self.min_spatiotemporal_valid_ratio <= 1):
             raise ValueError("min_spatiotemporal_valid_ratio must be in [0, 1]")
         if self.max_windows_per_track is not None and self.max_windows_per_track <= 0:
@@ -102,8 +124,11 @@ def build_sequence_windows(
     legacy_expected_sequence_length: int = 16,
     default_fps: float | None = None,
     min_bbox_valid_ratio: float = 1.0,
-    max_hidden_ratio_main: float = 0.5,
-    exclude_high_hidden_from_main: bool = False,
+    max_hidden_ratio_main: float = 0.25,
+    max_hidden_run_ratio_main: float = 0.20,
+    max_hidden_ratio_robust: float = 0.50,
+    max_hidden_run_ratio_robust: float = 0.40,
+    exclude_high_hidden_from_main: bool = True,
     min_spatiotemporal_valid_ratio: float = 1.0,
     include_mixed_windows: bool = True,
     max_windows_per_track: int | None = None,
@@ -130,6 +155,9 @@ def build_sequence_windows(
         default_fps=default_fps,
         min_bbox_valid_ratio=min_bbox_valid_ratio,
         max_hidden_ratio_main=max_hidden_ratio_main,
+        max_hidden_run_ratio_main=max_hidden_run_ratio_main,
+        max_hidden_ratio_robust=max_hidden_ratio_robust,
+        max_hidden_run_ratio_robust=max_hidden_run_ratio_robust,
         exclude_high_hidden_from_main=exclude_high_hidden_from_main,
         min_spatiotemporal_valid_ratio=min_spatiotemporal_valid_ratio,
         include_mixed_windows=include_mixed_windows,
@@ -177,7 +205,11 @@ def audit_sequence_windows(
         "behavior_window_label",
         "sequence_label_status",
         "window_valid_for_main_train",
+        "window_training_tier_recommendation",
         "window_exclusion_reason",
+        "hidden_burden_ratio_window",
+        "hidden_longest_run_ratio_window",
+        "hidden_window_policy_tier",
     ]
     missing = [c for c in required if c not in windows.columns]
     if missing:
@@ -203,6 +235,54 @@ def audit_sequence_windows(
         ]
         if len(invalid_main):
             errors.append(f"main_train_windows_not_stable={len(invalid_main)}")
+
+        main_mask = _to_bool_series(
+            windows.get(
+                "window_valid_for_main_train",
+                pd.Series(False, index=windows.index),
+            )
+        )
+        hidden_tier = windows.get(
+            "hidden_window_policy_tier",
+            pd.Series("", index=windows.index),
+        ).astype(str)
+        policy_enabled = _to_bool_series(
+            windows.get(
+                "hidden_exclusion_policy_enabled",
+                pd.Series(False, index=windows.index),
+            )
+        )
+        invalid_hidden_main = main_mask & policy_enabled & hidden_tier.ne("main_train")
+        if invalid_hidden_main.any():
+            errors.append(
+                "main_train_windows_fail_hidden_policy="
+                f"{int(invalid_hidden_main.sum())}"
+            )
+        training_tier = windows.get(
+            "window_training_tier_recommendation",
+            pd.Series("", index=windows.index),
+        ).astype(str)
+        invalid_hidden_exclude = hidden_tier.eq("exclude") & training_tier.ne(
+            "exclude"
+        )
+        if invalid_hidden_exclude.any():
+            errors.append(
+                "hidden_exclude_windows_not_excluded="
+                f"{int(invalid_hidden_exclude.sum())}"
+            )
+        sample_weight = pd.to_numeric(
+            windows.get(
+                "window_sample_weight",
+                pd.Series(0.0, index=windows.index),
+            ),
+            errors="coerce",
+        ).fillna(0.0)
+        nonzero_excluded_weight = training_tier.eq("exclude") & sample_weight.ne(0.0)
+        if nonzero_excluded_weight.any():
+            errors.append(
+                "excluded_windows_have_nonzero_weight="
+                f"{int(nonzero_excluded_weight.sum())}"
+            )
 
         mixed = int(
             windows.get("sequence_label_status", pd.Series(dtype=str))
@@ -242,6 +322,18 @@ def audit_sequence_windows(
         "hidden_review_coverage_ratio_window": _numeric_summary(
             windows,
             "hidden_review_coverage_ratio_window",
+        ),
+        "hidden_burden_ratio_window": _numeric_summary(
+            windows,
+            "hidden_burden_ratio_window",
+        ),
+        "hidden_longest_run_ratio_window": _numeric_summary(
+            windows,
+            "hidden_longest_run_ratio_window",
+        ),
+        "hidden_window_policy_tier": _value_counts_dict(
+            windows,
+            "hidden_window_policy_tier",
         ),
         "high_hidden_ratio_window": _value_counts_dict(
             windows,
@@ -583,6 +675,15 @@ def _summarize_window(
     hidden_ratio = float(hidden_effective.mean()) if len(wg) else 0.0
     hidden_untrusted_ratio = float((hidden_raw & ~hidden_trust).mean()) if len(wg) else 0.0
     hidden_review_coverage = float(hidden_trust.mean()) if len(wg) else 0.0
+    hidden_longest_run_frames = _longest_hidden_run_frames(wg, hidden_raw)
+    hidden_longest_run_ratio = (
+        hidden_longest_run_frames / length if length > 0 else 0.0
+    )
+    hidden_policy_tier, hidden_policy_reasons = _classify_hidden_window(
+        hidden_ratio=hidden_ratio_raw,
+        longest_run_ratio=hidden_longest_run_ratio,
+        config=config,
+    )
     spatio_ratio = _bool_mean(
         wg.get("spatiotemporal_feature_valid", pd.Series(True, index=wg.index))
     )
@@ -597,28 +698,48 @@ def _summarize_window(
     )
 
     reasons: list[str] = []
+    hard_exclusion = False
     if label_status != "stable":
         reasons.append(f"label_{label_status}")
+        hard_exclusion |= label_status not in {"transition", "mixed"}
     if not label_coverage_complete:
         reasons.append("label_coverage_incomplete")
+        hard_exclusion = True
     if bbox_valid_ratio < config.min_bbox_valid_ratio:
         reasons.append("bbox_valid_ratio_below_threshold")
-    high_hidden_ratio = hidden_ratio > config.max_hidden_ratio_main
-    if config.exclude_high_hidden_from_main and high_hidden_ratio:
-        reasons.append("hidden_ratio_above_threshold")
+        hard_exclusion = True
+    reasons.extend(hidden_policy_reasons)
+    hard_exclusion |= hidden_policy_tier == "exclude"
     if spatio_ratio < config.min_spatiotemporal_valid_ratio:
         reasons.append("spatiotemporal_valid_ratio_below_threshold")
+        hard_exclusion = True
     if review_summary["review_excluded_frame_count_window"] > 0:
         reasons.append("review_excluded_rows_in_window")
+        hard_exclusion = True
+    if label_status in {"transition", "mixed"} and not config.include_mixed_windows:
+        hard_exclusion = True
 
-    valid_main = not reasons and label_status == "stable"
+    valid_main = (
+        label_status == "stable"
+        and not hard_exclusion
+        and hidden_policy_tier in {"main_train", "audit_only"}
+    )
+    robust_eligible = not hard_exclusion and (
+        hidden_policy_tier == "robust_train_only"
+        or (
+            label_status in {"transition", "mixed"}
+            and config.include_mixed_windows
+        )
+    )
     training_tier = (
         "main_train"
         if valid_main
         else "robust_train_only"
-        if label_status in {"transition", "mixed"} and config.include_mixed_windows
+        if robust_eligible
         else "exclude"
     )
+    if training_tier == "exclude":
+        review_summary["window_sample_weight"] = 0.0
 
     temporal_unit_keys = _temporal_unit_keys(wg)
     row: dict[str, Any] = {
@@ -667,7 +788,16 @@ def _summarize_window(
         "hidden_ratio_trusted_window": hidden_ratio,
         "hidden_metadata_untrusted_ratio_window": hidden_untrusted_ratio,
         "hidden_review_coverage_ratio_window": hidden_review_coverage,
-        "high_hidden_ratio_window": high_hidden_ratio,
+        "hidden_burden_ratio_window": hidden_ratio_raw,
+        "hidden_longest_run_frames_window": hidden_longest_run_frames,
+        "hidden_longest_run_ratio_window": hidden_longest_run_ratio,
+        "hidden_window_policy_tier": hidden_policy_tier,
+        "high_hidden_ratio_window": (
+            hidden_ratio_raw > config.max_hidden_ratio_main
+        ),
+        "long_hidden_run_window": (
+            hidden_longest_run_ratio > config.max_hidden_run_ratio_main
+        ),
         "hidden_exclusion_policy_enabled": config.exclude_high_hidden_from_main,
         "spatiotemporal_feature_valid_ratio_window": spatio_ratio,
         **review_summary,
@@ -730,7 +860,12 @@ def _empty_invalid_window(
         "hidden_ratio_trusted_window": 0.0,
         "hidden_metadata_untrusted_ratio_window": 0.0,
         "hidden_review_coverage_ratio_window": 0.0,
+        "hidden_burden_ratio_window": 0.0,
+        "hidden_longest_run_frames_window": 0,
+        "hidden_longest_run_ratio_window": 0.0,
+        "hidden_window_policy_tier": "exclude",
         "high_hidden_ratio_window": False,
+        "long_hidden_run_window": False,
         "hidden_exclusion_policy_enabled": False,
         "spatiotemporal_feature_valid_ratio_window": 0.0,
         "review_include_ratio_window": 1.0,
@@ -868,6 +1003,7 @@ def _aggregate_window_features(
     out["aggression_score_proxy_max_window"] = social_motion[
         "aggression_score_proxy_max"
     ]
+    out.update(summarize_pen_context(wg))
     out.update(
         summarize_temporal_evidence(
             wg,
@@ -988,6 +1124,7 @@ def _empty_aggregate_features() -> dict[str, Any]:
         "aggression_score_proxy_max_window",
     ]
     out = {k: 0.0 if not k.endswith("count_window") else 0 for k in keys}
+    out.update(empty_pen_context_summary())
     out.update(
         {
             key: 0 if key.endswith(("count_window", "valid_window")) else 0.0
@@ -1183,6 +1320,73 @@ def _window_hidden_trust(window_rows: pd.DataFrame) -> pd.Series:
         .astype(str)
     )
     return source.eq(LEGACY_SOURCE_TYPE)
+
+
+def _longest_hidden_run_frames(
+    window_rows: pd.DataFrame,
+    hidden: pd.Series,
+) -> int:
+    """Count the longest run of Hidden rows on consecutive frame indices."""
+    if window_rows.empty:
+        return 0
+    if "frame_index" in window_rows.columns:
+        frame_index = pd.to_numeric(window_rows["frame_index"], errors="coerce")
+    else:
+        frame_index = pd.Series(
+            np.arange(len(window_rows), dtype=int),
+            index=window_rows.index,
+        )
+    ordered = pd.DataFrame(
+        {
+            "frame_index": frame_index,
+            "hidden": hidden.reindex(window_rows.index).fillna(False).astype(bool),
+        }
+    ).sort_values("frame_index", kind="mergesort")
+
+    longest = 0
+    current = 0
+    previous_frame: int | None = None
+    for frame_value, is_hidden in ordered.itertuples(index=False, name=None):
+        if pd.isna(frame_value):
+            current = 0
+            previous_frame = None
+            continue
+        frame = int(frame_value)
+        if is_hidden:
+            current = current + 1 if previous_frame == frame - 1 else 1
+            longest = max(longest, current)
+        else:
+            current = 0
+        previous_frame = frame
+    return longest
+
+
+def _classify_hidden_window(
+    *,
+    hidden_ratio: float,
+    longest_run_ratio: float,
+    config: SequenceWindowConfig,
+) -> tuple[str, list[str]]:
+    """Assign a visibility-evidence tier without using Hidden as model X."""
+    if not config.exclude_high_hidden_from_main:
+        return "audit_only", []
+
+    robust_reasons: list[str] = []
+    if hidden_ratio > config.max_hidden_ratio_robust:
+        robust_reasons.append("hidden_ratio_above_robust_threshold")
+    if longest_run_ratio > config.max_hidden_run_ratio_robust:
+        robust_reasons.append("hidden_run_above_robust_threshold")
+    if robust_reasons:
+        return "exclude", robust_reasons
+
+    main_reasons: list[str] = []
+    if hidden_ratio > config.max_hidden_ratio_main:
+        main_reasons.append("hidden_ratio_above_main_threshold")
+    if longest_run_ratio > config.max_hidden_run_ratio_main:
+        main_reasons.append("hidden_run_above_main_threshold")
+    if main_reasons:
+        return "robust_train_only", main_reasons
+    return "main_train", []
 
 
 def _to_bool_series(s: pd.Series | Iterable[Any]) -> pd.Series:

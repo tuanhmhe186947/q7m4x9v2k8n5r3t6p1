@@ -1,0 +1,193 @@
+{
+  "version": "classification_v2_feature_semantics_v2",
+  "supersedes": "configs/classification_v2/feature_semantics_v1.json",
+  "trainer_contract_json": "configs/classification_v2/trainer_contract_v2.json",
+  "tabular_trainer_contract_json": "configs/classification_v2/trainer_contract_v1.json",
+  "tabular_x_csv": "outputs/classification_v2/train_ready_windows/X_window_features.csv",
+  "spatial_npz": "outputs/classification_v2/train_ready_windows/X_spatial_sequences.npz",
+  "forbidden_x_patterns": [
+    "manual_*",
+    "review_*",
+    "*behavior*",
+    "original_behavior",
+    "review_unit_id",
+    "window_id",
+    "temporal_unit_key",
+    "video_key",
+    "dataset_id",
+    "pig_id",
+    "track_id",
+    "*_path"
+  ],
+  "tabular_families": {
+    "temporal_window_meta": {
+      "description": "Window length, duration, and sampling rate.",
+      "prediction_time_available": true,
+      "leakage_risk": "low",
+      "prefixes": ["window_length", "window_duration", "effective_fps"]
+    },
+    "quality_visibility": {
+      "description": "Inference-time row, frame, bbox, and timing quality.",
+      "prediction_time_available": true,
+      "leakage_risk": "low",
+      "prefixes": [
+        "observed_",
+        "bbox_valid_",
+        "spatiotemporal_feature_valid_",
+        "temporal_observation_",
+        "temporal_pair_coverage_",
+        "temporal_contiguous_pair_",
+        "temporal_max_gap_",
+        "temporal_duplicate_frame_",
+        "temporal_timing_valid_"
+      ]
+    },
+    "motion_kinematics": {
+      "description": "Label-independent actor motion and trajectory evidence.",
+      "prediction_time_available": true,
+      "leakage_risk": "low",
+      "prefixes": [
+        "speed_",
+        "path_length_",
+        "motion_",
+        "accel_",
+        "direction_change_",
+        "displacement_",
+        "shape_transition_",
+        "bbox_stability_",
+        "turning_",
+        "trajectory_"
+      ]
+    },
+    "geometry_shape": {
+      "description": "Normalized bbox scale and shape evidence.",
+      "prediction_time_available": true,
+      "leakage_risk": "low",
+      "prefixes": [
+        "area_n_",
+        "aspect_ratio_",
+        "bbox_area_",
+        "bbox_aspect_",
+        "bbox_shape_change_"
+      ]
+    },
+    "social_context": {
+      "description": "Label-independent same-frame social geometry.",
+      "prediction_time_available": true,
+      "leakage_risk": "low-to-medium; partner selection must ignore labels",
+      "prefixes": [
+        "nearest_",
+        "social_density_",
+        "pair_contact_",
+        "approach_",
+        "separation_",
+        "aggression_score_proxy_",
+        "social_neighbor_",
+        "social_partner_",
+        "social_pair_",
+        "social_contact_",
+        "social_approach_",
+        "social_nearest_",
+        "social_aggression_"
+      ]
+    },
+    "roi_context": {
+      "description": "All-class feeder, drinker, and toy relations.",
+      "prediction_time_available": true,
+      "leakage_risk": "low-to-medium; audit availability shortcuts",
+      "prefixes": ["roi_feeder_", "roi_drinker_", "roi_toy_"]
+    },
+    "pen_boundary_context": {
+      "description": "Fixed-camera pen-boundary proximity and persistence.",
+      "prediction_time_available": true,
+      "leakage_risk": "medium; bind mask hash and audit camera/source shortcut",
+      "prefixes": ["pen_"]
+    }
+  },
+  "spatial_arrays": {
+    "bbox_xywh_n": {
+      "family": "geometry_sequence",
+      "model_input_role": "model_input",
+      "model_input_allowed": true,
+      "description": "Per-frame normalized actor bbox position and size."
+    },
+    "bbox_shape_n": {
+      "family": "geometry_sequence",
+      "model_input_role": "model_input",
+      "model_input_allowed": true,
+      "description": "Per-frame actor area and aspect evidence."
+    },
+    "motion_delta": {
+      "family": "motion_sequence",
+      "model_input_role": "model_input",
+      "model_input_allowed": true,
+      "description": "Window-local actor motion deltas."
+    },
+    "roi_class_relation": {
+      "family": "roi_context_sequence",
+      "model_input_role": "model_input",
+      "model_input_allowed": true,
+      "description": "All-class label-independent ROI relation sequence."
+    },
+    "social_relation": {
+      "family": "social_context_sequence",
+      "model_input_role": "model_input",
+      "model_input_allowed": true,
+      "description": "Window-local label-independent social relation sequence."
+    },
+    "pen_boundary_context": {
+      "family": "pen_boundary_context_sequence",
+      "model_input_role": "model_input_candidate",
+      "model_input_allowed": true,
+      "description": [
+        "Hash-bound fixed-camera pen distance, bbox overlap, approach, and",
+        "parallel-motion sequence. Enable only in an explicit pen ablation."
+      ]
+    },
+    "quality_mask": {
+      "family": "quality_sequence",
+      "model_input_role": "model_input",
+      "model_input_allowed": true,
+      "description": "Inference-time geometry and feature-validity sequence."
+    },
+    "length_mask": {
+      "family": "sequence_mask",
+      "model_input_role": "mask_only",
+      "model_input_allowed": false,
+      "description": "Window-length mask for padded sequence positions."
+    },
+    "observed_mask": {
+      "family": "sequence_mask",
+      "model_input_role": "mask_only",
+      "model_input_allowed": false,
+      "description": "Observed-frame mask; missing frames remain masked."
+    },
+    "frame_index_sequence": {
+      "family": "sequence_index",
+      "model_input_role": "audit_index",
+      "model_input_allowed": false,
+      "description": "Frame indices for alignment audit, not model X."
+    }
+  },
+  "expected_scientific_families": [
+    "temporal_window_meta",
+    "quality_visibility",
+    "motion_kinematics",
+    "geometry_shape",
+    "social_context",
+    "roi_context",
+    "roi_context_sequence",
+    "geometry_sequence",
+    "motion_sequence",
+    "social_context_sequence",
+    "pen_boundary_context",
+    "pen_boundary_context_sequence"
+  ],
+  "notes": [
+    "The current trainer whitelist does not enable pen_boundary_context.",
+    "Use actor_geometry_motion versus actor_geometry_motion_pen first.",
+    "Bind mask hash and frame-size contract before every pen-context run.",
+    "Do not promote pen context without per-source and availability controls.",
+    "Hidden, review, mask path, and mask hash remain outside model X."
+  ]
+}

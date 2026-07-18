@@ -11,12 +11,17 @@ import pandas as pd
 
 from legacy_burst_recovery.csv_loader import REQUIRED_COLUMNS, parse_frames
 from legacy_burst_recovery.cvat_behavior_overlay import (
+    AUTHORITY_POLICY,
     LABEL_SOURCE,
     PROPAGATION_POLICY,
     load_cvat_legacy_rows,
+    select_first_task_frame_authority,
 )
 from legacy_burst_recovery.export_legacy_annotations import (
     normalize_source_video_key,
+)
+from pig_behavior.data.classification_dataset import (
+    load_actor_exclusion_policy,
 )
 
 EXPECTED_SLOTS = frozenset(range(6))
@@ -38,12 +43,15 @@ def build_legacy_recovery_inputs(
     *,
     cvat_export_root: str | Path,
     metadata_scaffold_csv: str | Path,
-    behavior_authority_slot: int = 0,
+    behavior_authority_policy: str = AUTHORITY_POLICY,
     min_anchor_count: int = EXPECTED_ANCHOR_COUNT,
+    actor_exclusion_policy_csv: str | Path | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, Any], pd.DataFrame]:
     """Return rebuilt center/scaffold rows, six-anchor rows, audit, and issues."""
-    if behavior_authority_slot != 0:
-        raise ValueError("legacy behavior authority must remain k0 (slot 0)")
+    if behavior_authority_policy != AUTHORITY_POLICY:
+        raise ValueError(
+            f"behavior_authority_policy must be {AUTHORITY_POLICY!r}"
+        )
     if min_anchor_count != EXPECTED_ANCHOR_COUNT:
         raise ValueError(
             "Canonical legacy recovery requires exactly six CVAT anchors; "
@@ -56,7 +64,34 @@ def build_legacy_recovery_inputs(
     if missing_columns:
         raise ValueError(f"Metadata scaffold is missing columns: {missing_columns}")
 
-    prepared, source_files = load_cvat_legacy_rows(cvat_export_root)
+    source_prepared, source_files = load_cvat_legacy_rows(cvat_export_root)
+    exclusions, exclusion_policy_path = load_actor_exclusion_policy(
+        None
+        if actor_exclusion_policy_csv is None
+        else Path(actor_exclusion_policy_csv)
+    )
+    exclusion_keys = {
+        (str(row["group_id"]), str(row["pig_id"])) for row in exclusions
+    }
+    source_keys = set(
+        zip(
+            source_prepared["group_id"].astype(str),
+            source_prepared["pig_id"].astype(str),
+            strict=True,
+        )
+    )
+    unknown_exclusion_keys = sorted(exclusion_keys.difference(source_keys))
+    if unknown_exclusion_keys:
+        raise ValueError(
+            "actor_exclusion_policy_unknown_keys="
+            f"{unknown_exclusion_keys}"
+        )
+    exclusion_mask = pd.Series(False, index=source_prepared.index)
+    for group_id, pig_id in exclusion_keys:
+        exclusion_mask |= source_prepared["group_id"].astype(str).eq(
+            group_id
+        ) & source_prepared["pig_id"].astype(str).eq(pig_id)
+    prepared = source_prepared.loc[~exclusion_mask].copy()
     scaffold = scaffold.copy()
     scaffold["group_id"] = scaffold["group_id"].astype(str)
     scaffold["pig_id"] = scaffold["pig_id"].astype(str)
@@ -103,16 +138,14 @@ def build_legacy_recovery_inputs(
     _audit_anchor_rows(current, issues, errors)
     _audit_group_frame_maps(scaffold, current, issues, errors)
 
-    authority = current.loc[
-        current["selected_slot"].eq(behavior_authority_slot)
-    ].copy()
+    authority = select_first_task_frame_authority(current)
     duplicate_authority = authority.duplicated(
         ["group_id", "pig_id"],
         keep=False,
     )
     if duplicate_authority.any():
         count = int(duplicate_authority.sum())
-        errors.append(f"duplicate_k0_authority_rows={count}")
+        errors.append(f"duplicate_first_frame_authority_rows={count}")
 
     old_keys = scaffold[["group_id", "pig_id"]].drop_duplicates()
     authority_keys = authority[["group_id", "pig_id"]].drop_duplicates()
@@ -144,9 +177,11 @@ def build_legacy_recovery_inputs(
         authority,
     )
     behavior_disagreement_rows = sum(behavior_disagreement_by_slot.values())
+    informational_findings: list[str] = []
     if behavior_disagreement_rows:
-        warnings.append(
-            "k1..k5 behavior disagreements were mapped to k0 and retained in audit"
+        informational_findings.append(
+            "non-authority behavior labels were mapped to first-frame authority "
+            "and retained as evidence"
         )
 
     recoverable_keys = coverage.loc[
@@ -158,7 +193,7 @@ def build_legacy_recovery_inputs(
     )
     if excluded_for_anchor_count:
         warnings.append(
-            "k0 keys without exactly six anchors were excluded from recovery inputs"
+            "authority keys without exactly six anchors were excluded"
         )
     if key_join["_merge"].ne("both").any():
         warnings.append("old/new actor-key differences are recorded in issues")
@@ -185,12 +220,24 @@ def build_legacy_recovery_inputs(
             "sha256": _sha256(scaffold_path),
         },
     ]
+    if exclusion_policy_path is not None:
+        policy_path = Path(exclusion_policy_path)
+        source_files.append(
+            {
+                "task": "actor_exclusion_policy",
+                "path": str(policy_path),
+                "sha256": _sha256(policy_path),
+            }
+        )
     audit = {
         "schema_version": 1,
         "status": status,
         "policy": {
             "valid_group_universe": "metadata_scaffold_group_id",
-            "behavior_authority_slot": behavior_authority_slot,
+            "actor_exclusion_policy": exclusion_policy_path,
+            "actor_exclusion_stage": "before_authority_and_anchor_coverage",
+            "behavior_authority_policy": behavior_authority_policy,
+            "behavior_authority_ordering_field": "task_frame",
             "behavior_propagation_policy": PROPAGATION_POLICY,
             "bbox_authority": "each_native_cvat_k0_to_k5_shape",
             "min_anchor_count": min_anchor_count,
@@ -207,6 +254,9 @@ def build_legacy_recovery_inputs(
             "scaffold_duplicate_actor_rows": int(scaffold_duplicate_actor.sum()),
             **source_key_audit,
             **source_hash_audit,
+            "cvat_rows_all_groups_raw": int(len(source_prepared)),
+            "actor_exclusion_policy_keys": int(len(exclusion_keys)),
+            "actor_exclusion_rows_removed": int(exclusion_mask.sum()),
             "cvat_rows_all_groups": int(len(prepared)),
             "cvat_rows_valid_groups": int(len(current)),
             "cvat_groups_outside_scaffold": int(
@@ -215,28 +265,33 @@ def build_legacy_recovery_inputs(
                     "group_id",
                 ].nunique()
             ),
-            "k0_authority_keys": int(len(authority_keys)),
-            "old_keys_missing_k0": int(key_join["_merge"].eq("left_only").sum()),
-            "new_k0_keys": int(key_join["_merge"].eq("right_only").sum()),
+            "behavior_authority_keys": int(len(authority_keys)),
+            "old_keys_missing_authority": int(
+                key_join["_merge"].eq("left_only").sum()
+            ),
+            "new_authority_keys": int(
+                key_join["_merge"].eq("right_only").sum()
+            ),
             "complete_six_anchor_keys": int(coverage["complete_anchor_set"].sum()),
-            "incomplete_k0_keys": int(
+            "incomplete_authority_keys": int(
                 (~coverage["complete_anchor_set"]).sum()
             ),
             "excluded_below_min_anchor_count": excluded_for_anchor_count,
             "recoverable_actor_keys": int(len(recoverable_keys)),
-            "behavior_disagreement_rows_mapped_to_k0": int(
+            "behavior_disagreement_rows_mapped_to_authority": int(
                 behavior_disagreement_rows
             ),
             "center_rows_output": int(len(center)),
             "anchor_rows_output": int(len(anchors)),
         },
-        "behavior_disagreement_by_slot_mapped_to_k0": {
+        "behavior_disagreement_by_slot_mapped_to_authority": {
             str(slot): int(behavior_disagreement_by_slot.get(slot, 0))
             for slot in sorted(EXPECTED_SLOTS)
         },
         "source_files": source_files,
         "errors": errors,
         "warnings": warnings,
+        "informational_findings": informational_findings,
     }
     issue_df = pd.DataFrame(
         issues,
@@ -476,11 +531,13 @@ def _audit_anchor_rows(
             issues,
         )
     if invalid_behavior.any():
-        errors.append(f"invalid_k0_behavior_rows={int(invalid_behavior.sum())}")
+        errors.append(
+            f"invalid_cvat_behavior_rows={int(invalid_behavior.sum())}"
+        )
         _append_anchor_field_issues(
             current,
             invalid_behavior,
-            "invalid_k0_behavior",
+            "invalid_cvat_behavior",
             issues,
         )
     if invalid_hidden.any():
@@ -598,10 +655,10 @@ def _append_key_join_issues(
         issues.append(
             _issue(
                 "excluded",
-                "scaffold_actor_missing_k0",
+                "scaffold_actor_missing_first_frame_authority",
                 row.group_id,
                 row.pig_id,
-                0,
+                "",
                 "No behavior authority; dense fallback is forbidden",
             )
         )
@@ -609,10 +666,10 @@ def _append_key_join_issues(
         issues.append(
             _issue(
                 "info",
-                "new_k0_actor_key",
+                "new_first_frame_authority_actor_key",
                 row.group_id,
                 row.pig_id,
-                0,
+                "",
                 "New actor key is eligible only if anchor coverage passes",
             )
         )
@@ -649,13 +706,15 @@ def _behavior_disagreement_counts(
 ) -> dict[int, int]:
     mapped = current.merge(
         authority[["group_id", "pig_id", "behavior"]].rename(
-            columns={"behavior": "k0_behavior"}
+            columns={"behavior": "authority_behavior"}
         ),
         on=["group_id", "pig_id"],
         how="inner",
         validate="many_to_one",
     )
-    mismatch = mapped.loc[mapped["behavior"].ne(mapped["k0_behavior"])]
+    mismatch = mapped.loc[
+        mapped["behavior"].ne(mapped["authority_behavior"])
+    ]
     return {
         int(slot): int(count)
         for slot, count in mismatch["selected_slot"].value_counts().items()
@@ -668,13 +727,24 @@ def _build_anchor_table(
     scaffold: pd.DataFrame,
 ) -> pd.DataFrame:
     authority_fields = authority[
-        ["group_id", "pig_id", "behavior", "task", "task_frame", "img_name"]
+        [
+            "group_id",
+            "pig_id",
+            "behavior",
+            "task",
+            "task_frame",
+            "img_name",
+            "selected_slot",
+            "selected_source_frame",
+        ]
     ].rename(
         columns={
-            "behavior": "k0_behavior",
+            "behavior": "authority_behavior",
             "task": "behavior_authority_task",
             "task_frame": "behavior_authority_task_frame",
             "img_name": "behavior_authority_image_name",
+            "selected_slot": "behavior_authority_slot",
+            "selected_source_frame": "behavior_authority_source_frame",
         }
     )
     out = current.merge(
@@ -683,8 +753,8 @@ def _build_anchor_table(
         how="inner",
         validate="many_to_one",
     )
-    out["behavior_before_k0_mapping"] = out["behavior"]
-    out["behavior"] = out["k0_behavior"]
+    out["behavior_before_authority_mapping"] = out["behavior"]
+    out["behavior"] = out["authority_behavior"]
     out["hidden"] = out["hidden"].map(_normalize_hidden_strict)
     out["hidden_source"] = "cvat_native_anchor"
     out["hidden_is_trusted"] = False
@@ -699,7 +769,6 @@ def _build_anchor_table(
     out["legacy_frame_index"] = out["frame_index"]
     out["cvat_frame_index"] = out["task_frame"].astype(int)
     out["label_source"] = LABEL_SOURCE
-    out["behavior_authority_slot"] = 0
     out["behavior_propagation_policy"] = PROPAGATION_POLICY
     out["bbox_source"] = "cvat_native_six_anchor"
 
@@ -722,7 +791,7 @@ def _build_anchor_table(
         "group_id",
         "pig_id",
         "behavior",
-        "behavior_before_k0_mapping",
+        "behavior_before_authority_mapping",
         "hidden",
         "img_name",
         "image_path",
@@ -807,10 +876,15 @@ def _build_center_table(
                 "x2": float(chosen["x2"]),
                 "y2": float(chosen["y2"]),
                 "label_source": LABEL_SOURCE,
-                "behavior_authority_slot": 0,
+                "behavior_authority_slot": int(
+                    authority_row.selected_slot
+                ),
                 "behavior_authority_task": authority_row.task,
                 "behavior_authority_task_frame": int(authority_row.task_frame),
                 "behavior_authority_image_name": authority_row.img_name,
+                "behavior_authority_source_frame": int(
+                    authority_row.selected_source_frame
+                ),
                 "behavior_propagation_policy": PROPAGATION_POLICY,
                 "bbox_anchor_slot": int(chosen["legacy_order"]),
                 "anchor_count": int(actor_anchors["legacy_order"].nunique()),

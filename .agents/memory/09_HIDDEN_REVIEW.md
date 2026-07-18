@@ -33,9 +33,30 @@ Default coverage rejects missing, duplicate, pending and unclear decisions.
 Apply writes `hidden_reviewed_frame_features.csv`, preserves row count and
 changes only Hidden plus declared provenance fields.
 
+Hidden review is deliberately one-action: the reviewer chooses Yes, No, or
+Unclear. The GUI automatically writes `hidden_review_confidence=high` for a
+resolved Yes/No and `low` for Unclear. It also supplies a compatible default
+reason. Confidence is compatibility provenance, not an extra human task, and
+does not alter sample weight, training inclusion, availability masks, or model
+inputs. Blank, invalid, or manually created resolved-low payloads fail coverage.
+
+Do not collect blur, small/distant subject, low light, weak bbox, or frame-edge
+flags in the Hidden GUI: they are not model inputs and slow this review. Use
+Unclear when image quality prevents a defensible Hidden decision. Occlusion is
+the reviewed target; detailed pig/scene reasons remain optional audit metadata.
+
 Unselected CVAT No remains `untrusted_tracking_derived`. Do not silently promote
-it to visible trusted metadata. High trusted-Hidden ratio is audited and does
-not automatically exclude or down-weight a sequence window.
+it to visible trusted metadata. After frame/object apply and harmonization, the
+canonical window policy uses current row-level Hidden as conservative visual
+burden: main thresholds are total ratio `0.25` and longest-run ratio `0.20`;
+robust-only limits are `0.50` and `0.40`; exceeding either robust limit excludes
+the window from training and forces its sample weight to zero. This policy is
+enabled by default for every T6/T8/T12/T16 view and forces a frame-derived
+rebuild instead of fast window reuse.
+
+Hidden ratios, trust, review coverage and policy tier are audit/mask metadata,
+never model-X. `--no-exclude-high-hidden-from-main` is an explicit ablation only
+and cannot authorize a canonical reviewed lineage.
 
 ## Evidence and status
 

@@ -71,9 +71,16 @@ def validate_cvat_recovered_dense(
     authority_slot = pd.to_numeric(
         center["behavior_authority_slot"], errors="coerce"
     )
-    invalid_authority = int(authority_slot.ne(0).sum())
+    invalid_authority = int(
+        (
+            authority_slot.isna()
+            | ~authority_slot.isin(range(6))
+        ).sum()
+    )
     if invalid_authority:
-        errors.append(f"non_k0_behavior_authority_rows={invalid_authority}")
+        errors.append(
+            f"invalid_first_frame_behavior_authority_rows={invalid_authority}"
+        )
 
     center_keys = _key_set(center)
     anchor_keys = _key_set(anchors)
@@ -203,16 +210,20 @@ def _behavior_mismatch_counts(
     dense: pd.DataFrame,
 ) -> dict[str, int]:
     authority = center[[*ACTOR_KEY, "behavior"]].rename(
-        columns={"behavior": "k0_behavior"}
+        columns={"behavior": "expected_behavior"}
     )
     anchor_join = anchors.merge(authority, on=ACTOR_KEY, how="left")
     dense_join = dense.merge(authority, on=ACTOR_KEY, how="left")
     return {
-        "anchor_behavior_not_mapped_from_k0": int(
-            anchor_join["behavior"].ne(anchor_join["k0_behavior"]).sum()
+        "anchor_behavior_not_mapped_from_authority": int(
+            anchor_join["behavior"]
+            .ne(anchor_join["expected_behavior"])
+            .sum()
         ),
-        "dense_behavior_not_mapped_from_k0": int(
-            dense_join["behavior"].ne(dense_join["k0_behavior"]).sum()
+        "dense_behavior_not_mapped_from_authority": int(
+            dense_join["behavior"]
+            .ne(dense_join["expected_behavior"])
+            .sum()
         ),
     }
 
@@ -405,7 +416,9 @@ def _audit(
         "schema_version": 1,
         "status": "FAIL" if errors else "PASS",
         "policy": {
-            "behavior_authority": "per_actor_k0_to_k1_k5_and_all_dense_frames",
+            "behavior_authority": (
+                "per_actor_first_task_frame_to_all_anchors_and_dense_frames"
+            ),
             "bbox_authority": "independent_native_cvat_bbox_at_each_k0_to_k5",
             "hidden_authority": "exact_cvat_anchor_plus_conservative_pair_seed",
             "hidden_trust": "untrusted_until_frame_object_human_review",

@@ -40,6 +40,8 @@ REQUIRED_MODEL_MODES = {
     "actor_only",
     "actor_temporal",
     "actor_geometry",
+    "actor_geometry_motion_pen",
+    "actor_geometry_pen",
     "actor_geometry_roi",
     "actor_geometry_roi_social",
     "actor_partner_union",
@@ -52,6 +54,7 @@ GROUP_DIMS = {
     "motion_delta": 5,
     "roi_class_relation": 6,
     "social_relation": 7,
+    "pen_boundary_context": 7,
     "quality_mask": 2,
 }
 
@@ -60,6 +63,21 @@ def test_registry_contains_every_required_model_mode() -> None:
     assert REQUIRED_MODEL_MODES.issubset(MODEL_MODE_NAMES)
     assert "spatial_only_control" in MODEL_MODE_NAMES
     assert "actor_geometry_motion" in MODEL_MODE_NAMES
+    assert model_mode_spec("actor_geometry_pen").spatial_feature_groups == (
+        "bbox_xywh_n",
+        "bbox_shape_n",
+        "pen_boundary_context",
+        "quality_mask",
+    )
+    assert model_mode_spec(
+        "actor_geometry_motion_pen"
+    ).spatial_feature_groups == (
+        "bbox_xywh_n",
+        "bbox_shape_n",
+        "motion_delta",
+        "pen_boundary_context",
+        "quality_mask",
+    )
 
 
 @pytest.mark.parametrize("mode", sorted(MODEL_MODE_NAMES))

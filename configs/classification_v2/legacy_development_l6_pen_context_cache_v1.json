@@ -1,0 +1,95 @@
+{
+  "schema_version": "classification_v2.legacy_development_l6.pen_context_cache_config.v1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "source_identity": {
+    "canonical_short_name": "legacy_16f",
+    "raw_authority_path": "data/raw/legacy_full_multigt_masked_nodup_16f/legacy_dense_tracklet_map.csv",
+    "raw_sha256": "ff73c158ef879eb8177b0c18783fc751945fe1d6af97a4b8235cd71681fabbcb",
+    "expected_rows": 72864,
+    "source_type": "legacy_recovered",
+    "dataset_id": "legacy_recovered_16f",
+    "merged_data": false
+  },
+  "mask_contract": {
+    "path": "data/annotations/scene/mask.png",
+    "sha256": "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658",
+    "width": 1280,
+    "height": 720,
+    "threshold": 127,
+    "resize_interpolation": "nearest",
+    "near_boundary_clearance_ratio": 1.0,
+    "camera_scope": "current_single_fixed_camera_only"
+  },
+  "parents": {
+    "temporal_ladder_config": {
+      "path": "configs/classification_v2/legacy_development_l5_temporal_ladder_full_v1.json",
+      "sha256": "559d24ba29d6192291eb5a8d7b6896616b1bed782450a9242f1c4afa3bd85559"
+    },
+    "l5_decision": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/15_l5_core_baselines/legacy_l5_temporal_ladder_decision_v1.json",
+      "sha256": "f3316568c797967e66a0a6ea3cac8e4804a35e12439b3d31527e10ef93abd4e1"
+    }
+  },
+  "inputs": {
+    "harmonized_frames": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/05_sequence/harmonized_frames.csv",
+      "sha256": "4d3edc77fa021ad21d1fcb6169520d19d03d4b8fdc870ac9e063823b74ef08fc"
+    }
+  },
+  "order_authority": {
+    "config": {
+      "path": "configs/classification_v2/legacy_development_l6_geometry_cache_v1.json",
+      "sha256": "a4fefc55ec12518322789b86cac248ae855c4e23b79adfb428053da61d04fc33"
+    },
+    "manifest": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/geometry_cache_v1/geometry_cache_manifest.json",
+      "sha256": "0e0b79a5423f820193717995a89748817ab9e3e62e078694d1b838521c37b5a7"
+    },
+    "root_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/geometry_cache_v1"
+  },
+  "features": {
+    "view_id": "t6_sliding",
+    "sequence_length": 6,
+    "model_window_rows": 15588,
+    "model_slot_rows": 93528,
+    "feature_names": [
+      "pen_center_signed_distance_n",
+      "pen_center_clearance_box_ratio",
+      "pen_bbox_inside_ratio",
+      "pen_distance_delta_n_per_frame",
+      "pen_approach_speed_n_per_frame",
+      "pen_retreat_speed_n_per_frame",
+      "pen_parallel_speed_n_per_frame"
+    ],
+    "feature_dim": 7,
+    "feature_dtype": "float32",
+    "mask_dtype": "bool",
+    "window_local_pair_rebase": true,
+    "binary_near_boundary_allowed_in_model_x": false,
+    "source_media_fallback_allowed": false
+  },
+  "implementation": {
+    "cache_builder": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l6_pen_context_cache.py",
+      "sha256": "0439a90d617aad8b61f2559676258beda5a09aaa456e29f2ebb8d33cb07167e7"
+    },
+    "pen_feature_builder": {
+      "path": "src/pig_behavior/classification_v2/features/pen_context.py",
+      "sha256": "f480087297a12238afa14a8fa30925254588112fd17a93615c95c5a63cc60ffa"
+    },
+    "spatial_exporter": {
+      "path": "src/pig_behavior/classification_v2/spatial_sequence_export.py",
+      "sha256": "d6e4ceed49bba651fbb86e5935fec9e0ab6ad2e7da22149dad006d3ca67e4c9e"
+    }
+  },
+  "output": {
+    "primary_cache_root_relative_path": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/cache/primary",
+    "repeat_cache_root_relative_path": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/cache/repeat",
+    "repeat_gate_relative_path": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/cache/cache_repeat_gate.json"
+  }
+}

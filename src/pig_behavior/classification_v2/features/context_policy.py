@@ -230,33 +230,88 @@ def normalize_hidden_provenance(df: pd.DataFrame) -> pd.DataFrame:
     reviewed = _reviewed_hidden_mask(out)
     unresolved = _unresolved_hidden_mask(out)
     legacy = source.eq("legacy_recovered")
+    declared_trust = _optional_bool_column(out, "hidden_is_trusted")
+    explicit_untrusted_legacy = (
+        legacy & declared_trust.eq(False).fillna(False) & ~reviewed & ~unresolved
+    )
+    prior_review_legacy = legacy & ~explicit_untrusted_legacy & ~unresolved
+
+    declared_source = _declared_text(out, "hidden_source")
+    declared_review_status = _declared_text(out, "hidden_review_status")
+    declared_trust_status = _declared_text(out, "hidden_trust_status")
+    declared_visibility = _declared_text(out, "visibility_quality")
 
     out["hidden_source"] = "unknown_unreviewed"
-    out.loc[legacy, "hidden_source"] = "legacy_prior_review"
+    out.loc[prior_review_legacy, "hidden_source"] = "legacy_prior_review"
+    out.loc[explicit_untrusted_legacy, "hidden_source"] = declared_source.where(
+        declared_source.ne(""),
+        "legacy_cvat_seed",
+    )
     out.loc[source.eq("cvat_tracking_xml"), "hidden_source"] = "cvat_tracking_derived"
     out.loc[reviewed, "hidden_source"] = "current_human_review"
     out.loc[unresolved, "hidden_source"] = "current_human_review_unclear"
 
     out["hidden_review_status"] = "tracking_derived_unreviewed"
-    out.loc[legacy, "hidden_review_status"] = "prior_review_trusted"
+    out.loc[prior_review_legacy, "hidden_review_status"] = "prior_review_trusted"
+    out.loc[explicit_untrusted_legacy, "hidden_review_status"] = (
+        declared_review_status.where(
+            declared_review_status.ne(""),
+            "seed_unreviewed",
+        )
+    )
     out.loc[reviewed, "hidden_review_status"] = "reviewed"
     out.loc[unresolved, "hidden_review_status"] = "unclear"
 
-    out["hidden_is_trusted"] = (legacy & ~unresolved) | reviewed
+    out["hidden_is_trusted"] = prior_review_legacy | reviewed
     out["hidden_trust_status"] = "untrusted_tracking_derived"
-    out.loc[legacy, "hidden_trust_status"] = "trusted_prior_review"
+    out.loc[prior_review_legacy, "hidden_trust_status"] = "trusted_prior_review"
+    out.loc[explicit_untrusted_legacy, "hidden_trust_status"] = (
+        declared_trust_status.where(
+            declared_trust_status.ne(""),
+            "untrusted_cvat_seed",
+        )
+    )
     out.loc[reviewed, "hidden_trust_status"] = "trusted_current_review"
     out.loc[unresolved, "hidden_trust_status"] = "unclear_current_review"
 
     out["visibility_quality"] = "unreviewed_tracking_derived"
-    out.loc[legacy & out["hidden"].eq("No"), "visibility_quality"] = "visible_prior_review"
-    out.loc[legacy & out["hidden"].eq("Yes"), "visibility_quality"] = "hidden_prior_review"
+    out.loc[
+        prior_review_legacy & out["hidden"].eq("No"),
+        "visibility_quality",
+    ] = "visible_prior_review"
+    out.loc[
+        prior_review_legacy & out["hidden"].eq("Yes"),
+        "visibility_quality",
+    ] = "hidden_prior_review"
+    out.loc[explicit_untrusted_legacy, "visibility_quality"] = (
+        declared_visibility.where(
+            declared_visibility.ne(""),
+            "cvat_seed_unreviewed",
+        )
+    )
     out.loc[reviewed & out["hidden"].eq("No"), "visibility_quality"] = "visible_reviewed"
     out.loc[reviewed & out["hidden"].eq("Yes"), "visibility_quality"] = "hidden_reviewed"
     out.loc[unresolved, "visibility_quality"] = "unclear"
     out["hidden_effective_for_policy"] = out["hidden"].eq("Yes") & out["hidden_is_trusted"]
 
     return out
+
+
+def _declared_text(df: pd.DataFrame, column: str) -> pd.Series:
+    if column not in df.columns:
+        return pd.Series("", index=df.index, dtype="object")
+    values = df[column].fillna("").astype(str).str.strip()
+    return values.mask(values.str.lower().isin({"nan", "none", "<na>"}), "")
+
+
+def _optional_bool_column(df: pd.DataFrame, column: str) -> pd.Series:
+    values = pd.Series(pd.NA, index=df.index, dtype="boolean")
+    if column not in df.columns:
+        return values
+    text = df[column].fillna("").astype(str).str.strip().str.lower()
+    values.loc[text.isin({"true", "1", "yes", "y", "t"})] = True
+    values.loc[text.isin({"false", "0", "no", "n", "f"})] = False
+    return values
 
 
 def _reviewed_hidden_mask(df: pd.DataFrame) -> pd.Series:

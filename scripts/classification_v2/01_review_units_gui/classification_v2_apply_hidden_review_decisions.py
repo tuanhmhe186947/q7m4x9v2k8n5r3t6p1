@@ -40,7 +40,11 @@ def main() -> None:
             + ", ".join(str(path) for path in existing)
         )
 
-    frames = pd.read_csv(args.input_csv, low_memory=False)
+    frames = pd.read_csv(
+        args.input_csv,
+        low_memory=False,
+        float_precision="round_trip",
+    )
     manifest = pd.read_csv(args.manifest_csv, low_memory=False)
     decisions = pd.read_csv(args.decisions_csv, low_memory=False)
     reviewed, audit, confusion = apply_hidden_review_decisions(
@@ -52,7 +56,7 @@ def main() -> None:
 
     for path in outputs:
         path.parent.mkdir(parents=True, exist_ok=True)
-    reviewed.to_csv(args.output_csv, index=False)
+    reviewed.to_csv(args.output_csv, index=False, float_format="%.17g")
     args.audit_json.write_text(
         json.dumps(audit, ensure_ascii=False, indent=2),
         encoding="utf-8",

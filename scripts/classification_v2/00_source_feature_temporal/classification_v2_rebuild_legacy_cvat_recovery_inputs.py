@@ -10,14 +10,26 @@ from pathlib import Path
 from legacy_burst_recovery.cvat_anchor_rebuild import (
     build_legacy_recovery_inputs,
 )
+from legacy_burst_recovery.cvat_behavior_overlay import AUTHORITY_POLICY
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cvat-export-root", type=Path, required=True)
     parser.add_argument("--metadata-scaffold-csv", type=Path, required=True)
+    parser.add_argument(
+        "--exclude-actor-key-csv",
+        type=Path,
+        required=True,
+        help="Apply the reviewed actor policy before authority/coverage checks.",
+    )
     parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--behavior-authority-slot", type=int, default=0)
+    parser.add_argument(
+        "--behavior-authority-policy",
+        choices=[AUTHORITY_POLICY],
+        default=AUTHORITY_POLICY,
+        help="Behavior comes from the lowest CVAT task frame in each burst.",
+    )
     parser.add_argument(
         "--min-anchor-count",
         type=int,
@@ -49,8 +61,9 @@ def main() -> None:
     center, anchors, audit, issues = build_legacy_recovery_inputs(
         cvat_export_root=args.cvat_export_root,
         metadata_scaffold_csv=args.metadata_scaffold_csv,
-        behavior_authority_slot=args.behavior_authority_slot,
+        behavior_authority_policy=args.behavior_authority_policy,
         min_anchor_count=args.min_anchor_count,
+        actor_exclusion_policy_csv=args.exclude_actor_key_csv,
     )
     audit_path.write_text(
         json.dumps(audit, indent=2, ensure_ascii=False),
@@ -82,8 +95,12 @@ def main() -> None:
         "anchor_csv": str(anchors_path),
         "anchor_rows": int(len(anchors)),
         "anchor_sha256": _sha256(anchors_path),
-        "behavior_authority_slot": args.behavior_authority_slot,
+        "behavior_authority_policy": args.behavior_authority_policy,
         "min_anchor_count": args.min_anchor_count,
+        "actor_exclusion_policy_csv": str(args.exclude_actor_key_csv),
+        "actor_exclusion_policy_sha256": _sha256(
+            args.exclude_actor_key_csv
+        ),
     }
     manifest_path.write_text(
         json.dumps(manifest, indent=2, ensure_ascii=False),

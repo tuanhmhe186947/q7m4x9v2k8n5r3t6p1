@@ -25,6 +25,7 @@ from pig_behavior.classification_v2.datasets.image_context_index import (
     resolve_legacy_crop,
 )
 from pig_behavior.classification_v2.review.hidden_review_builder import (
+    hidden_confidence_semantic_error,
     hidden_decision_semantic_error,
 )
 
@@ -66,6 +67,7 @@ DECISION_COLUMNS = [
     "hidden_false_negative_risk_reasons",
 ]
 REASON_OPTIONS = [
+    "occluded_or_not_visible",
     "clearly_visible",
     "occluded_by_pig",
     "occluded_by_scene",
@@ -208,7 +210,6 @@ class HiddenQualityReviewApp:
 
         self.info_var = tk.StringVar()
         self.status_var = tk.StringVar()
-        self.confidence_var = tk.StringVar(value="high")
         self.reason_var = tk.StringVar(value="")
         self.note_var = tk.StringVar()
         self._build_ui()
@@ -277,14 +278,6 @@ class HiddenQualityReviewApp:
 
         metadata = tk.Frame(self.root)
         metadata.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=4)
-        tk.Label(metadata, text="Confidence").pack(side=tk.LEFT)
-        ttk.Combobox(
-            metadata,
-            textvariable=self.confidence_var,
-            values=["high", "medium", "low"],
-            state="readonly",
-            width=10,
-        ).pack(side=tk.LEFT, padx=5)
         tk.Label(metadata, text="Reason").pack(side=tk.LEFT)
         self.reason_combo = ttk.Combobox(
             metadata,
@@ -369,13 +362,12 @@ class HiddenQualityReviewApp:
         row = self.items.iloc[self.index]
         item_id = str(row["hidden_review_item_id"])
         previous = self.decisions.get(item_id)
-        reason = self.reason_var.get().strip()
-        if not reason and status == "reviewed" and hidden_after == "No":
-            reason = "clearly_visible"
-            self.reason_var.set(reason)
-        if not reason and status == "unclear":
-            reason = "ambiguous"
-            self.reason_var.set(reason)
+        confidence, reason = automatic_decision_metadata(
+            hidden_after=hidden_after,
+            status=status,
+            reason=self.reason_var.get(),
+        )
+        self.reason_var.set(reason)
         note = self.note_var.get().strip()
         if note:
             reason = f"{reason};note={note}"
@@ -383,6 +375,10 @@ class HiddenQualityReviewApp:
             hidden_after=hidden_after,
             review_status=status,
             reason=reason,
+        )
+        semantic_error = semantic_error or hidden_confidence_semantic_error(
+            confidence=confidence,
+            review_status=status,
         )
         if semantic_error is not None:
             messagebox.showerror(
@@ -396,7 +392,7 @@ class HiddenQualityReviewApp:
             row,
             hidden_after=hidden_after,
             status=status,
-            confidence=self.confidence_var.get(),
+            confidence=confidence,
             reason=reason,
             reviewer=self.reviewer,
         )
@@ -486,6 +482,24 @@ def make_decision_record(
     return record
 
 
+def automatic_decision_metadata(
+    *,
+    hidden_after: str,
+    status: str,
+    reason: str,
+) -> tuple[str, str]:
+    """Fill compatibility metadata without adding reviewer interactions."""
+    normalized_reason = reason.strip()
+    if not normalized_reason and status == "reviewed" and hidden_after == "Yes":
+        normalized_reason = "occluded_or_not_visible"
+    if not normalized_reason and status == "reviewed" and hidden_after == "No":
+        normalized_reason = "clearly_visible"
+    if not normalized_reason and status == "unclear":
+        normalized_reason = "ambiguous"
+    confidence = "low" if status == "unclear" else "high"
+    return confidence, normalized_reason
+
+
 def load_decisions(path: Path) -> dict[str, dict[str, str]]:
     """Load resumable decisions and reject duplicate item keys."""
     if not path.exists():
@@ -512,6 +526,10 @@ def is_completed_decision(record: dict[str, str]) -> bool:
             hidden_after=record.get("hidden_after_review", ""),
             review_status=status,
             reason=record.get("hidden_review_reason", ""),
+        )
+        error = error or hidden_confidence_semantic_error(
+            confidence=record.get("hidden_review_confidence", ""),
+            review_status=status,
         )
     except ValueError:
         return False
@@ -542,6 +560,23 @@ def decision_error_message(error_code: str) -> str:
         "visible_no_with_hidden_only_reason": (
             "Visible = No conflicts with an occlusion-only reason. "
             "Choose clearly_visible or another compatible reason."
+        ),
+        "resolved_with_ambiguous_reason": (
+            "A resolved Yes/No decision cannot use reason ambiguous. "
+            "Choose Unclear instead."
+        ),
+        "missing_hidden_review_confidence": (
+            "Decision confidence metadata is missing. Save this item again."
+        ),
+        "invalid_hidden_review_confidence": (
+            "Decision confidence metadata is invalid. Save this item again."
+        ),
+        "low_confidence_requires_unclear": (
+            "Low confidence cannot resolve Hidden to Yes/No. Choose Unclear, "
+            "or use medium/high only when the binary decision is defensible."
+        ),
+        "unclear_requires_low_confidence": (
+            "Unclear decisions must use low confidence."
         ),
     }
     return messages.get(error_code, f"Invalid Hidden decision: {error_code}")

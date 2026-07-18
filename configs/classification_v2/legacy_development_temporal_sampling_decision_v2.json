@@ -1,0 +1,78 @@
+{
+  "schema_version": "classification_v2.legacy_development.temporal_sampling_decision_config.v1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "experiment_contract": {
+    "experiment_id": "POST_L8_LEGACY_TEMPORAL_SAMPLING_V2_DECISION_V2",
+    "supersedes": "legacy_development_temporal_sampling_decision_v1.json",
+    "supersession_reason": "bootstrap effect field now reports observed delta",
+    "primary_pair": "s6_uniform_span16_vs_c6_contiguous_centered",
+    "primary_changed_factor": "temporal_sampling_span_at_fixed_six_frames",
+    "secondary_pair": "c8_contiguous_centered_vs_c6_contiguous_centered",
+    "secondary_changed_factor": "sequence_length_at_contiguous_centered_sampling",
+    "native_evaluation_unit": "complete_16_frame_burst",
+    "one_sequence_per_native_unit": true,
+    "outer_predictions_used_for_model_selection": false,
+    "reviewed_or_final_claim_allowed": false,
+    "q2_claim_allowed": false
+  },
+  "implementation": {
+    "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_temporal_sampling_decision.py",
+    "sha256": "4b704dc321bc1a36d204ba2e76f129dad13f96dff65c19da782e56af62b1b220"
+  },
+  "full_training_config": {
+    "path": "configs/classification_v2/legacy_development_temporal_sampling_full_v2.json",
+    "sha256": "227533ee904a66ad16b015d6424cdd065c08614360e4487b0b0c27fc3a5e1e5b"
+  },
+  "short_matrix_gate": {
+    "path": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_sampling_20260717_v2/temporal_sampling_short_matrix.json",
+    "sha256": "7fb583a60984b7b3c86d4f7d25ede8971ab24c6e4d775d7f3cdce31bdd9686a6"
+  },
+  "runs": {
+    "c6_contiguous_centered": {
+      "run_result": {
+        "path": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_sampling_20260717_v2/full_development_confirmation/c6_contiguous_centered/full01/run_result.json",
+        "sha256": "72be8a3eafd14815cde4553bb2556ea99f35b75d7e18e9234198bf1bc8f01669"
+      },
+      "artifact_manifest": {
+        "path": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_sampling_20260717_v2/full_development_confirmation/c6_contiguous_centered/full01/artifact_manifest.json",
+        "sha256": "20f41706d645923f4141c7ef1b5020613659cd368cca0b7fc3fbe367ed978089"
+      }
+    },
+    "c8_contiguous_centered": {
+      "run_result": {
+        "path": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_sampling_20260717_v2/full_development_confirmation/c8_contiguous_centered/full01/run_result.json",
+        "sha256": "8c3a31ba824a02beac206c938924d5d8655d9d1338656bedd74374bc61b54588"
+      },
+      "artifact_manifest": {
+        "path": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_sampling_20260717_v2/full_development_confirmation/c8_contiguous_centered/full01/artifact_manifest.json",
+        "sha256": "342471af70365eab9824e30290204e6832aa779bfd8d0f4c83f17e09f10c501c"
+      }
+    },
+    "s6_uniform_span16": {
+      "run_result": {
+        "path": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_sampling_20260717_v2/full_development_confirmation/s6_uniform_span16/full01/run_result.json",
+        "sha256": "626ce3aaf7a058f504785c7a6febed1abcb47c2f581d80463a535ea227978b3e"
+      },
+      "artifact_manifest": {
+        "path": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_sampling_20260717_v2/full_development_confirmation/s6_uniform_span16/full01/artifact_manifest.json",
+        "sha256": "be5146429552f93a19e7dd71bbf68444b6451e8a764ab4b5161a5f2bbd208dd1"
+      }
+    }
+  },
+  "analysis_contract": {
+    "bootstrap_unit": "video_key",
+    "bootstrap_iterations": 2000,
+    "bootstrap_seed": 20260717,
+    "global_label_set": "fixed_10_class",
+    "rare_classes": ["fight", "social-nose", "playwithtoy", "move"],
+    "maximum_rare_macro_f1_drop": 0.05,
+    "fold_role": "development_validation_only",
+    "full_oof": false
+  },
+  "output": {
+    "summary_json": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_sampling_20260717_v2/paired_decision_v2/temporal_sampling_decision.json",
+    "per_class_csv": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_sampling_20260717_v2/paired_decision_v2/temporal_sampling_per_class.csv",
+    "group_metrics_csv": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_sampling_20260717_v2/paired_decision_v2/temporal_sampling_group_metrics.csv",
+    "confusion_csv": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_sampling_20260717_v2/paired_decision_v2/temporal_sampling_confusion.csv"
+  }
+}

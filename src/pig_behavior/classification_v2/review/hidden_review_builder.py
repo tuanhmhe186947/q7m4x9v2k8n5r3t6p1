@@ -29,6 +29,12 @@ HIDDEN_REVIEW_COHORTS: tuple[str, ...] = (
     "hidden_no_clean_control",
 )
 
+HIDDEN_REVIEW_CONFIDENCE_LEVELS: tuple[str, ...] = (
+    "high",
+    "medium",
+    "low",
+)
+
 HIDDEN_RISK_INPUT_COLUMNS: tuple[str, ...] = (
     "bbox_was_clipped",
     "nearest_pair_iou",
@@ -65,8 +71,22 @@ DECISION_COLUMNS: tuple[str, ...] = (
     "hidden_reviewed_at",
 )
 
+HUMAN_DECISION_AUTHORITY_COLUMNS: frozenset[str] = frozenset(
+    {
+        "hidden_after_review",
+        "hidden_review_status",
+        "hidden_review_confidence",
+        "hidden_review_reason",
+        "hidden_review_note",
+        "hidden_review_notes",
+        "hidden_reviewer",
+        "hidden_reviewed_at",
+    }
+)
+
 HIDDEN_ONLY_REASON_CODES: frozenset[str] = frozenset(
     {
+        "occluded_or_not_visible",
         "occluded_by_pig",
         "occluded_by_scene",
         "partial_bbox_or_frame_edge",
@@ -739,7 +759,7 @@ def audit_hidden_decision_coverage(
     if require_resolved and pending.any():
         errors.append(f"pending_decision_items={int(pending.sum())}")
 
-    semantic_errors = normalized.apply(
+    decision_semantic_errors = normalized.apply(
         lambda row: hidden_decision_semantic_error(
             hidden_after=row["hidden_after_review"],
             review_status=row["hidden_review_status"],
@@ -747,7 +767,21 @@ def audit_hidden_decision_coverage(
         ),
         axis=1,
     )
+    confidence_semantic_errors = normalized.apply(
+        lambda row: hidden_confidence_semantic_error(
+            confidence=row["hidden_review_confidence"],
+            review_status=row["hidden_review_status"],
+        ),
+        axis=1,
+    )
+    semantic_errors = pd.concat(
+        [
+            decision_semantic_errors,
+            confidence_semantic_errors,
+        ]
+    )
     semantic_errors = semantic_errors.loc[semantic_errors.notna()]
+    semantic_error_items = int(semantic_errors.index.nunique())
     semantic_error_counts = {
         str(key): int(value)
         for key, value in semantic_errors.value_counts().sort_index().items()
@@ -755,19 +789,19 @@ def audit_hidden_decision_coverage(
     for error_code, count in semantic_error_counts.items():
         errors.append(f"{error_code}={count}")
 
-    joined = manifest[["hidden_review_item_id", "hidden_before_review"]].merge(
-        normalized[["hidden_review_item_id", "hidden_before_review"]],
-        on="hidden_review_item_id",
-        how="inner",
-        suffixes=("_manifest", "_decision"),
-    )
-    stale = (
-        joined["hidden_before_review_manifest"]
-        .map(_normalize_hidden)
-        .ne(joined["hidden_before_review_decision"].map(_normalize_hidden))
-    )
-    if stale.any():
-        errors.append(f"stale_hidden_before_review={int(stale.sum())}")
+    metadata_mismatch_counts: dict[str, int] = {}
+    if not duplicate_manifest and not duplicate_decisions:
+        _, metadata_mismatch_counts = _merge_hidden_review_authorities(
+            manifest,
+            normalized,
+        )
+        stale_count = metadata_mismatch_counts.get("hidden_before_review", 0)
+        if stale_count:
+            errors.append(f"stale_hidden_before_review={stale_count}")
+        for column, count in metadata_mismatch_counts.items():
+            if column == "hidden_before_review":
+                continue
+            errors.append(f"decision_metadata_mismatch:{column}={count}")
 
     return {
         "manifest_items": int(len(manifest)),
@@ -778,12 +812,44 @@ def audit_hidden_decision_coverage(
         "resolved_items": int(resolved.sum()),
         "unclear_items": int(unclear.sum()),
         "pending_items": int(pending.sum()),
-        "semantic_error_items": int(len(semantic_errors)),
+        "semantic_error_items": semantic_error_items,
         "semantic_error_counts": semantic_error_counts,
+        "decision_confidence_counts": _counts(
+            normalized,
+            "hidden_review_confidence",
+        ),
+        "decision_metadata_mismatch_counts": metadata_mismatch_counts,
         "decision_status_counts": _counts(normalized, "hidden_review_status"),
         "errors": errors,
         "warnings": warnings,
     }
+
+
+def hidden_confidence_semantic_error(
+    *,
+    confidence: object,
+    review_status: object,
+) -> str | None:
+    """Validate compatibility confidence against the Hidden decision status."""
+    status = _stable_text(review_status)
+    status = {
+        "complete": "reviewed",
+        "resolved": "reviewed",
+        "ambiguous": "unclear",
+    }.get(status, status)
+    if status not in {"reviewed", "unclear"}:
+        return None
+
+    confidence_text = _stable_text(confidence)
+    if not confidence_text:
+        return "missing_hidden_review_confidence"
+    if confidence_text not in HIDDEN_REVIEW_CONFIDENCE_LEVELS:
+        return "invalid_hidden_review_confidence"
+    if status == "reviewed" and confidence_text == "low":
+        return "low_confidence_requires_unclear"
+    if status == "unclear" and confidence_text != "low":
+        return "unclear_requires_low_confidence"
+    return None
 
 
 def hidden_decision_semantic_error(
@@ -810,6 +876,8 @@ def hidden_decision_semantic_error(
         return None
 
     after = _normalize_hidden(hidden_after)
+    if reason_code == "ambiguous":
+        return "resolved_with_ambiguous_reason"
     if after == "Yes" and reason_code == "clearly_visible":
         return "hidden_yes_with_clearly_visible_reason"
     if after == "No" and reason_code in HIDDEN_ONLY_REASON_CODES:
@@ -969,6 +1037,7 @@ def _hidden_risk_band(
 def _initialize_hidden_provenance(df: pd.DataFrame) -> pd.DataFrame:
     """Initialize source-aware trust without accepting CVAT tracking metadata."""
     out = df.copy()
+    declared_visibility = _existing_text(out, "visibility_quality")
     current_hidden = out["hidden"].map(_normalize_hidden)
     if "hidden_before_review" in out.columns:
         before = out["hidden_before_review"].fillna("").astype(str).str.strip()
@@ -988,8 +1057,20 @@ def _initialize_hidden_provenance(df: pd.DataFrame) -> pd.DataFrame:
     out["hidden_reviewed_at"] = ""
     out["visibility_quality"] = "unreviewed_tracking_derived"
     legacy = out["source_type"].astype(str).eq("legacy_recovered")
-    out.loc[legacy & current_hidden.eq("Yes"), "visibility_quality"] = "hidden_prior_review"
-    out.loc[legacy & current_hidden.eq("No"), "visibility_quality"] = "visible_prior_review"
+    trusted_legacy = legacy & _to_bool(out["hidden_is_trusted"])
+    untrusted_legacy = legacy & ~_to_bool(out["hidden_is_trusted"])
+    out.loc[
+        trusted_legacy & current_hidden.eq("Yes"),
+        "visibility_quality",
+    ] = "hidden_prior_review"
+    out.loc[
+        trusted_legacy & current_hidden.eq("No"),
+        "visibility_quality",
+    ] = "visible_prior_review"
+    out.loc[untrusted_legacy, "visibility_quality"] = declared_visibility.where(
+        declared_visibility.ne(""),
+        "cvat_seed_unreviewed",
+    )
     out.loc[out["hidden_review_status"].eq("unclear"), "visibility_quality"] = "unclear"
     return out
 
@@ -1078,18 +1159,68 @@ def _audit_applied_hidden(
     }
 
 
+def _merge_hidden_review_authorities(
+    manifest: pd.DataFrame,
+    decisions: pd.DataFrame,
+) -> tuple[pd.DataFrame, dict[str, int]]:
+    """Merge without allowing GUI-copied metadata to replace manifest authority."""
+    item_column = "hidden_review_item_id"
+    decision_renames = {
+        column: f"{column}_decision"
+        for column in decisions.columns
+        if column != item_column
+    }
+    collisions = sorted(set(manifest.columns).intersection(decision_renames.values()))
+    if collisions:
+        raise ValueError(
+            "Manifest columns collide with decision suffix contract: "
+            f"{collisions}"
+        )
+
+    decision_payload = decisions.rename(columns=decision_renames)
+    joined = manifest.merge(
+        decision_payload,
+        on=item_column,
+        how="left",
+        validate="one_to_one",
+    )
+    metadata_columns = sorted(
+        set(manifest.columns)
+        .intersection(decisions.columns)
+        .difference({item_column})
+        .difference(HUMAN_DECISION_AUTHORITY_COLUMNS)
+    )
+    matched = joined[item_column].astype(str).isin(
+        set(decisions[item_column].astype(str))
+    )
+    mismatch_counts: dict[str, int] = {}
+    for column in metadata_columns:
+        manifest_values = joined[column]
+        decision_values = joined[f"{column}_decision"]
+        equal = manifest_values.eq(decision_values) | (
+            manifest_values.isna() & decision_values.isna()
+        )
+        mismatch_count = int((matched & ~equal).sum())
+        if mismatch_count:
+            mismatch_counts[column] = mismatch_count
+    return joined, mismatch_counts
+
+
 def _hidden_confusion_audit(
     manifest: pd.DataFrame,
     decisions: pd.DataFrame,
 ) -> dict[str, Any]:
     """Estimate Hidden false negatives from the random negative audit cohort."""
-    joined = manifest.merge(
+    joined, metadata_mismatch_counts = _merge_hidden_review_authorities(
+        manifest,
         decisions,
-        on="hidden_review_item_id",
-        how="left",
-        suffixes=("_manifest", "_decision"),
     )
-    before_col = "hidden_before_review_manifest"
+    if metadata_mismatch_counts:
+        raise ValueError(
+            "Hidden decision metadata mismatch: "
+            f"{metadata_mismatch_counts}"
+        )
+    before_col = "hidden_before_review"
     after_col = "hidden_after_review_decision"
     resolved = joined.get(
         "hidden_review_status_decision",
@@ -1123,17 +1254,19 @@ def _hidden_confusion_audit(
     )
     high_risk_reviewed = int(high_risk.sum())
     high_risk_corrected = int((high_risk & after_normalized.eq("Yes")).sum())
-    transitions = (
-        joined.loc[resolved]
-        .assign(
-            hidden_transition=lambda x: (
-                x[before_col].map(_normalize_hidden) + "->" + x[after_col].map(_normalize_hidden)
-            )
-        )["hidden_transition"]
-        .value_counts(dropna=False)
-        .sort_index()
+    resolved_rows = joined.loc[resolved]
+    transition_values = (
+        resolved_rows[before_col].map(_normalize_hidden)
+        + "->"
+        + resolved_rows[after_col].map(_normalize_hidden)
     )
+    transitions = transition_values.value_counts(dropna=False).sort_index()
     return {
+        "cohort_counts": _counts(joined, "hidden_review_cohort"),
+        "reviewed_cohort_counts": _counts(
+            joined.loc[resolved],
+            "hidden_review_cohort",
+        ),
         "reviewed_transition_counts": {str(key): int(value) for key, value in transitions.items()},
         "random_hidden_no_audited": audited,
         "random_hidden_no_false_negatives": false_negative,
@@ -1150,6 +1283,9 @@ def _hidden_confusion_audit(
             "audit and its inverse inclusion weights. High-risk correction "
             "yield is enrichment evidence, not population prevalence."
         ),
+        "decision_metadata_mismatch_counts": metadata_mismatch_counts,
+        "errors": [],
+        "warnings": [],
     }
 
 
@@ -1167,6 +1303,9 @@ def _normalize_decisions(decisions: pd.DataFrame) -> pd.DataFrame:
         }
     )
     out["hidden_review_status"] = status
+    out["hidden_review_confidence"] = (
+        out["hidden_review_confidence"].fillna("").astype(str).str.strip().str.lower()
+    )
     out["hidden_before_review"] = out["hidden_before_review"].map(_normalize_hidden)
     after = out["hidden_after_review"].fillna("").astype(str).str.strip()
     resolved = status.eq("reviewed")
@@ -1339,9 +1478,11 @@ def _stable_sample(
 
 def _initial_hidden_source(df: pd.DataFrame) -> pd.Series:
     source = df["source_type"].astype(str)
-    values = pd.Series("unknown_unreviewed", index=df.index, dtype="object")
-    values.loc[source.eq("legacy_recovered")] = "legacy_prior_review"
-    values.loc[source.eq("cvat_tracking_xml")] = "cvat_tracking_derived"
+    values = _existing_text(df, "hidden_source")
+    blank = values.eq("")
+    values.loc[blank] = "unknown_unreviewed"
+    values.loc[blank & source.eq("legacy_recovered")] = "legacy_prior_review"
+    values.loc[blank & source.eq("cvat_tracking_xml")] = "cvat_tracking_derived"
     reviewed = _reviewed_status_mask(df)
     unresolved = _unresolved_status_mask(df)
     values.loc[reviewed] = "current_human_review"
@@ -1352,30 +1493,36 @@ def _initial_hidden_source(df: pd.DataFrame) -> pd.Series:
 def _initial_hidden_trust(df: pd.DataFrame) -> pd.Series:
     legacy = df["source_type"].astype(str).eq("legacy_recovered")
     unresolved = _unresolved_status_mask(df)
-    return ((legacy & ~unresolved) | _reviewed_status_mask(df)).astype(bool)
+    reviewed = _reviewed_status_mask(df)
+    values = ((legacy & ~unresolved) | reviewed).astype(bool)
+    declared = _optional_bool_column(df, "hidden_is_trusted")
+    explicit_false = declared.eq(False).fillna(False) & ~reviewed
+    values.loc[explicit_false] = False
+    return values
 
 
 def _initial_review_status(df: pd.DataFrame) -> pd.Series:
-    status = pd.Series(
-        "tracking_derived_unreviewed",
-        index=df.index,
-        dtype="object",
-    )
+    status = _existing_text(df, "hidden_review_status")
+    blank = status.eq("")
+    status.loc[blank] = "tracking_derived_unreviewed"
     legacy = df["source_type"].astype(str).eq("legacy_recovered")
-    status.loc[legacy] = "prior_review_trusted"
+    status.loc[blank & legacy] = "prior_review_trusted"
     status.loc[_reviewed_status_mask(df)] = "reviewed"
     status.loc[_unresolved_status_mask(df)] = "unclear"
     return status
 
 
 def _initial_trust_status(df: pd.DataFrame) -> pd.Series:
-    status = pd.Series(
-        "untrusted_tracking_derived",
-        index=df.index,
-        dtype="object",
-    )
+    status = _existing_text(df, "hidden_trust_status")
+    blank = status.eq("")
+    status.loc[blank] = "untrusted_tracking_derived"
     legacy = df["source_type"].astype(str).eq("legacy_recovered")
-    status.loc[legacy] = "trusted_prior_review"
+    explicit_false = _optional_bool_column(
+        df,
+        "hidden_is_trusted",
+    ).eq(False).fillna(False)
+    status.loc[blank & legacy & ~explicit_false] = "trusted_prior_review"
+    status.loc[blank & legacy & explicit_false] = "untrusted_cvat_seed"
     status.loc[_reviewed_status_mask(df)] = "trusted_current_review"
     status.loc[_unresolved_status_mask(df)] = "unclear_current_review"
     return status
@@ -1393,6 +1540,23 @@ def _unresolved_status_mask(df: pd.DataFrame) -> pd.Series:
         return pd.Series(False, index=df.index)
     status = df["hidden_review_status"].fillna("").astype(str).str.lower()
     return status.isin(["unclear", "ambiguous"])
+
+
+def _existing_text(df: pd.DataFrame, column: str) -> pd.Series:
+    if column not in df.columns:
+        return pd.Series("", index=df.index, dtype="object")
+    values = df[column].fillna("").astype(str).str.strip()
+    return values.mask(values.str.lower().isin({"nan", "none", "<na>"}), "")
+
+
+def _optional_bool_column(df: pd.DataFrame, column: str) -> pd.Series:
+    values = pd.Series(pd.NA, index=df.index, dtype="boolean")
+    if column not in df.columns:
+        return values
+    text = df[column].fillna("").astype(str).str.strip().str.lower()
+    values.loc[text.isin({"true", "1", "yes", "y", "t"})] = True
+    values.loc[text.isin({"false", "0", "no", "n", "f"})] = False
+    return values
 
 
 def _review_track_key(df: pd.DataFrame) -> pd.Series:

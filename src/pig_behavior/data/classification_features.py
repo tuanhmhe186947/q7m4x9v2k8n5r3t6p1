@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -22,34 +21,124 @@ BEHAVIOR_TO_COARSE = {
     "fight": "social",
 }
 
+AUTHORITY_POLICY = "first_task_frame_per_group_pig"
+ACTOR_KEY = ["group_id", "pig_id"]
+ACTOR_SLOT_KEY = ["group_id", "pig_id", "order"]
+EXPECTED_ORDERS = tuple(range(6))
 
-def majority_fix_in_burst(df: pd.DataFrame, behaviors: list[str]) -> pd.DataFrame:
-    """Normalize behavior per (burst group, pig ID) by majority vote."""
-    df = df.copy()
-    priority = {behavior: idx for idx, behavior in enumerate(behaviors)}
+def apply_first_task_frame_behavior_authority(
+    df: pd.DataFrame,
+    behaviors: list[str],
+) -> pd.DataFrame:
+    """Map each actor's first displayed-frame behavior to all six anchors."""
+    required = {
+        "group_id",
+        "pig_id",
+        "order",
+        "frame",
+        "behavior",
+        "is_burst_first_task_frame",
+    }
+    missing = sorted(required.difference(df.columns))
+    if missing:
+        raise ValueError(f"Missing behavior-authority columns: {missing}")
 
-    def majority_behavior(sub: pd.DataFrame) -> str | None:
-        counts = sub["behavior"].dropna().value_counts()
-        if counts.empty:
-            return None
-        max_count = counts.max()
-        candidates = counts[counts == max_count].index.tolist()
-        return sorted(candidates, key=lambda b: priority.get(b, 999))[0]
+    out = df.copy()
+    out["order"] = pd.to_numeric(out["order"], errors="coerce")
+    invalid_order = out["order"].isna() | ~out["order"].isin(EXPECTED_ORDERS)
+    if invalid_order.any():
+        sample = out.loc[
+            invalid_order,
+            ["group_id", "pig_id", "frame", "order"],
+        ].head(10)
+        raise ValueError(
+            "invalid_legacy_anchor_order="
+            f"{int(invalid_order.sum())}; sample={sample.to_dict(orient='records')}"
+        )
+    out["order"] = out["order"].astype(int)
 
-    majority_map: dict[tuple[Any, Any], str | None] = {}
-    mixed = 0
-    for key, sub in df.groupby(["group_id", "pig_id"], dropna=False):
-        unique_behaviors = sub["behavior"].dropna().unique()
-        if len(unique_behaviors) > 1:
-            mixed += 1
-        majority_map[key] = majority_behavior(sub)
+    duplicate_slots = out.duplicated(ACTOR_SLOT_KEY, keep=False)
+    if duplicate_slots.any():
+        sample = out.loc[
+            duplicate_slots,
+            [*ACTOR_SLOT_KEY, "task", "frame", "behavior"],
+        ].head(10)
+        raise ValueError(
+            "duplicate_actor_slot="
+            f"{int(duplicate_slots.sum())}; sample={sample.to_dict(orient='records')}"
+        )
 
-    print(f"[MAJ] groups with mixed behaviors: {mixed}/{len(majority_map)}")
-    df["behavior"] = [
-        majority_map.get((row.group_id, row.pig_id), row.behavior)
-        for row in df.itertuples(index=False)
-    ]
-    return df
+    coverage = out.groupby(ACTOR_KEY, dropna=False)["order"].agg(
+        lambda values: tuple(sorted(set(int(value) for value in values)))
+    )
+    incomplete = coverage[coverage.map(lambda orders: orders != EXPECTED_ORDERS)]
+    if not incomplete.empty:
+        sample = [
+            {
+                "group_id": str(group_id),
+                "pig_id": str(pig_id),
+                "orders": list(orders),
+            }
+            for (group_id, pig_id), orders in incomplete.head(10).items()
+        ]
+        raise ValueError(
+            f"incomplete_actor_anchor_sets={len(incomplete)}; sample={sample}"
+        )
+
+    authority = out.loc[out["is_burst_first_task_frame"].eq(True)].copy()
+    authority_counts = authority.groupby(ACTOR_KEY, dropna=False).size()
+    all_actor_keys = pd.MultiIndex.from_frame(out[ACTOR_KEY].drop_duplicates())
+    missing_authority = all_actor_keys.difference(authority_counts.index)
+    duplicate_authority = authority_counts[authority_counts.ne(1)]
+    if len(missing_authority) or not duplicate_authority.empty:
+        raise ValueError(
+            "invalid_behavior_authority_coverage="
+            f"missing={len(missing_authority)},"
+            f"non_unique={len(duplicate_authority)},"
+            f"missing_sample={list(missing_authority[:10])},"
+            f"non_unique_sample={list(duplicate_authority.index[:10])}"
+        )
+
+    valid_behaviors = set(behaviors)
+    authority["behavior"] = authority["behavior"].astype("string").str.strip()
+    invalid_authority = ~authority["behavior"].isin(valid_behaviors)
+    if invalid_authority.any():
+        sample = authority.loc[
+            invalid_authority,
+            [*ACTOR_KEY, "frame", "order", "behavior"],
+        ].head(10)
+        raise ValueError(
+            "invalid_first_frame_behavior="
+            f"{int(invalid_authority.sum())}; "
+            f"sample={sample.to_dict(orient='records')}"
+        )
+
+    authority_table = authority[
+        [*ACTOR_KEY, "behavior", "frame", "order"]
+    ].rename(
+        columns={
+            "behavior": "behavior_authority_value",
+            "frame": "behavior_authority_task_frame",
+            "order": "behavior_authority_slot",
+        }
+    )
+    out["behavior_before_authority"] = out["behavior"].astype("string").str.strip()
+    before_rows = len(out)
+    out = out.merge(
+        authority_table,
+        on=ACTOR_KEY,
+        how="left",
+        validate="many_to_one",
+    )
+    if len(out) != before_rows:
+        raise ValueError("behavior_authority_merge_changed_row_count")
+
+    out["behavior_disagrees_with_authority"] = out[
+        "behavior_before_authority"
+    ].ne(out["behavior_authority_value"])
+    out["behavior"] = out["behavior_authority_value"]
+    out["behavior_authority_policy"] = AUTHORITY_POLICY
+    return out.drop(columns=["behavior_authority_value"])
 
 
 def clean_merged_annotations(
@@ -57,72 +146,100 @@ def clean_merged_annotations(
     behaviors: list[str],
     drop_hidden: bool = False,
 ) -> pd.DataFrame:
-    """Filter and normalize raw CVAT rows."""
+    """Validate CVAT rows and apply first-task-frame behavior authority."""
     df = df_raw.copy()
     behavior_set = set(behaviors)
 
-    before = len(df)
-    df = df[df["behavior"].isin(behavior_set)].copy()
-    print(f"[FILTER] invalid behavior: {before - len(df)} boxes")
-
-    before = len(df)
-    df = df.dropna(
-        subset=["img_name", "pig_id", "behavior", "x1", "y1", "x2", "y2"]
-    )
-    print(f"[FILTER] missing required values: {before - len(df)} boxes")
-
     if drop_hidden:
-        before = len(df)
-        df = df[df["hidden"].astype(str).str.lower() != "yes"].copy()
-        print(f"[FILTER] Hidden == Yes: {before - len(df)} boxes")
+        raise ValueError(
+            "drop_hidden is forbidden for canonical six-anchor provenance"
+        )
 
-    invalid = (df["x2"] <= df["x1"]) | (df["y2"] <= df["y1"])
-    if invalid.any():
-        print(f"[FILTER] invalid bbox before clamp: {int(invalid.sum())} boxes")
-        df = df[~invalid].copy()
+    required_values = [
+        "img_name",
+        "group_id",
+        "pig_id",
+        "behavior",
+        "hidden",
+        "x1",
+        "y1",
+        "x2",
+        "y2",
+        "width",
+        "height",
+    ]
+    missing_values = df[required_values].isna().any(axis=1)
+    if missing_values.any():
+        sample = df.loc[
+            missing_values,
+            ["task", "frame", "img_name", "group_id", "pig_id"],
+        ].head(10)
+        raise ValueError(
+            "missing_required_annotation_values="
+            f"{int(missing_values.sum())}; "
+            f"sample={sample.to_dict(orient='records')}"
+        )
 
-    for col in ["width", "height"]:
+    df["behavior"] = df["behavior"].astype("string").str.strip()
+    invalid_behavior = ~df["behavior"].isin(behavior_set)
+    if invalid_behavior.any():
+        values = sorted(df.loc[invalid_behavior, "behavior"].astype(str).unique())
+        raise ValueError(
+            f"invalid_behavior_rows={int(invalid_behavior.sum())}; values={values}"
+        )
+
+    df["hidden"] = df["hidden"].astype("string").str.strip()
+    invalid_hidden = ~df["hidden"].isin({"Yes", "No"})
+    if invalid_hidden.any():
+        values = sorted(df.loc[invalid_hidden, "hidden"].astype(str).unique())
+        raise ValueError(
+            f"invalid_hidden_rows={int(invalid_hidden.sum())}; values={values}"
+        )
+
+    for col in ["width", "height", "x1", "y1", "x2", "y2"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    df["x1"] = df.apply(
-        lambda r: max(0.0, min(float(r.x1), float(r.width)))
-        if pd.notna(r.width)
-        else r.x1,
-        axis=1,
+    invalid_numeric = df[
+        ["width", "height", "x1", "y1", "x2", "y2"]
+    ].isna().any(axis=1)
+    invalid_bbox = (
+        invalid_numeric
+        | df["width"].le(0)
+        | df["height"].le(0)
+        | df["x2"].le(df["x1"])
+        | df["y2"].le(df["y1"])
     )
-    df["x2"] = df.apply(
-        lambda r: max(0.0, min(float(r.x2), float(r.width)))
-        if pd.notna(r.width)
-        else r.x2,
-        axis=1,
-    )
-    df["y1"] = df.apply(
-        lambda r: max(0.0, min(float(r.y1), float(r.height)))
-        if pd.notna(r.height)
-        else r.y1,
-        axis=1,
-    )
-    df["y2"] = df.apply(
-        lambda r: max(0.0, min(float(r.y2), float(r.height)))
-        if pd.notna(r.height)
-        else r.y2,
-        axis=1,
-    )
+    if invalid_bbox.any():
+        sample = df.loc[
+            invalid_bbox,
+            ["task", "frame", "img_name", "pig_id", "x1", "y1", "x2", "y2"],
+        ].head(10)
+        raise ValueError(
+            f"invalid_bbox_rows={int(invalid_bbox.sum())}; "
+            f"sample={sample.to_dict(orient='records')}"
+        )
 
-    invalid_after = (df["x2"] <= df["x1"]) | (df["y2"] <= df["y1"])
-    if invalid_after.any():
-        print(f"[FILTER] invalid bbox after clamp: {int(invalid_after.sum())} boxes")
-        df = df[~invalid_after].copy()
-
-    df = majority_fix_in_burst(df, behaviors)
+    df["bbox_outside_image"] = (
+        df["x1"].lt(0)
+        | df["y1"].lt(0)
+        | df["x2"].gt(df["width"])
+        | df["y2"].gt(df["height"])
+    )
+    df = apply_first_task_frame_behavior_authority(df, behaviors)
     df = df.sort_values(["group_id", "order", "pig_id", "task", "frame"])
     df = df.reset_index(drop=True)
 
-    print("===== SUMMARY CLEAN =====")
+    print("===== SUMMARY VALIDATED =====")
     print("Rows:", len(df))
     print("Images:", df["img_name"].nunique())
     print("Groups:", df["group_id"].nunique())
     print("Pig IDs:", sorted(df["pig_id"].dropna().unique().tolist()))
+    print("Behavior authority:", AUTHORITY_POLICY)
+    print(
+        "Rows disagreeing with first-frame authority:",
+        int(df["behavior_disagrees_with_authority"].sum()),
+    )
+    print("Bboxes outside image bounds:", int(df["bbox_outside_image"].sum()))
     print("Behavior distribution:")
     print(df["behavior"].value_counts())
     return df

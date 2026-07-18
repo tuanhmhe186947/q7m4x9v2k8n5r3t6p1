@@ -27,6 +27,7 @@ from pig_behavior.classification_v2.contracts.identifiers import (
 from pig_behavior.classification_v2.schema import (
     CANONICAL_FRAME_OBJECT_COLUMNS,
     DEFAULT_PIG_IDS,
+    HIDDEN_PROVENANCE_COLUMNS,
     SOURCE_TYPE_LEGACY,
     behavior_to_coarse,
     normalize_behavior,
@@ -419,8 +420,13 @@ def _from_frame_object_export(
     out["behavior"] = _get_series(df, "behavior", default="")
     out["behavior_coarse"] = out["behavior"].map(behavior_to_coarse)
     out["hidden"] = _get_series(df, "hidden", default="No")
+    _copy_hidden_provenance(df, out)
     out["is_actor_label"] = True
-    out["label_source"] = "legacy_recovered"
+    out["label_source"] = _get_series(
+        df,
+        "label_source",
+        default="legacy_recovered",
+    )
     out["bbox_source"] = _get_series(df, "bbox_source", default="legacy_recovered")
 
     out["global_context_pig_count"] = _to_numeric(
@@ -659,8 +665,13 @@ def _from_dense_tracklet_map(
     out["behavior"] = _get_series(df, "behavior", default="")
     out["behavior_coarse"] = out["behavior"].map(behavior_to_coarse)
     out["hidden"] = _get_series(df, "hidden", default="No")
+    _copy_hidden_provenance(df, out)
     out["is_actor_label"] = True
-    out["label_source"] = "legacy_recovered"
+    out["label_source"] = _get_series(
+        df,
+        "label_source",
+        default="legacy_recovered",
+    )
     out["bbox_source"] = _get_series(df, "bbox_source", default="legacy_recovered")
 
     out["annotation_scope"] = "unknown"
@@ -839,7 +850,6 @@ def _copy_bbox_columns(source: pd.DataFrame, out: pd.DataFrame) -> None:
     """Copy bbox columns and compute basic geometry fallback."""
     for col in ["x1", "y1", "x2", "y2"]:
         out[col] = _to_numeric(_get_series(source, col, default=pd.NA))
-
     out["bbox_w"] = _to_numeric(
         _get_series(source, "bbox_w", default=out["x2"] - out["x1"])
     )
@@ -882,6 +892,12 @@ def _copy_bbox_columns(source: pd.DataFrame, out: pd.DataFrame) -> None:
         out["bw_n"].fillna(0) ** 2 + out["bh_n"].fillna(0) ** 2
     ) ** 0.5
     out["box_compactness"] = out["area_n"] / (out["box_diag_n"] ** 2).replace(0, pd.NA)
+
+
+def _copy_hidden_provenance(source: pd.DataFrame, out: pd.DataFrame) -> None:
+    """Preserve source-declared Hidden trust without inventing defaults."""
+    for column in HIDDEN_PROVENANCE_COLUMNS:
+        out[column] = _get_series(source, column, default=pd.NA)
 
 
 def _bbox_valid(df: pd.DataFrame) -> pd.Series:

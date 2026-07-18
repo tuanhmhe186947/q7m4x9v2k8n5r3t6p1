@@ -1,0 +1,80 @@
+{
+  "schema_version": "classification_v2.legacy_development_l6.pen_context_decision_config.v1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "short_training_config": {
+    "path": "configs/classification_v2/legacy_development_l6_pen_context_short_v1.json",
+    "sha256": "626bbae0bef5b816082d1691bf26950f83ed0ecb61294609aee578998020284c"
+  },
+  "short_matrix_gate": {
+    "path": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/short_runs/pen_context_short_matrix.json",
+    "sha256": "8bee420e82f0387f896b0f560c801a31f8ecbcaf647cf5c61fad215b19c477bf"
+  },
+  "runs": {
+    "parameter_matched_zero": {
+      "result_path": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/short_runs/parameter_matched_zero/repeat01/run_result.json",
+      "result_sha256": "dace20095b539dcfec2773cc43bfc0da96d7dd253e9d2bc0b8af4bb1c0091eac",
+      "run_manifest_sha256": "960fac1d5b6da43daee16376148685f40a2a28f2f2ac03d0111232ae6a3c2440",
+      "artifact_manifest_sha256": "720b143414c1f4b93e0e8c481d788dbed43e40d0e2987386ed001098ae81a2e8",
+      "repeat_gate_path": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/short_runs/parameter_matched_zero/repeat_gate.json",
+      "repeat_gate_sha256": "49b72443ddf89a5866bd07b83e74c7c8fa6b53b14bd7b65534309d92fcf0dfce"
+    },
+    "availability_only": {
+      "result_path": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/short_runs/availability_only/repeat01/run_result.json",
+      "result_sha256": "90ac36286368f3467d43bd63d15ae6e83e18499ca07998985c2f6e34d4d6c7e1",
+      "run_manifest_sha256": "3a9086d0afc8ee26314540672827a4213d02086e29e821710a415658f74a4f19",
+      "artifact_manifest_sha256": "94cc92f0d1d683b45e2b96bc62117172a688856bb105a7e87ce27ea51ae49db8",
+      "repeat_gate_path": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/short_runs/availability_only/repeat_gate.json",
+      "repeat_gate_sha256": "3679313c881553a5017c3f7abd30ee833b44d824baf399a97609db1afb9aadc0"
+    },
+    "pen_context": {
+      "result_path": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/short_runs/pen_context/repeat01/run_result.json",
+      "result_sha256": "9b9ef40048b7ecd93f078b25f1c1f23f40da212fc321575f43b39b777d3cbcb4",
+      "run_manifest_sha256": "caf150be2b276c2326e91d44cb5f9e6e1d73a021c8c6518ec50cb301939597b6",
+      "artifact_manifest_sha256": "3c639b2f95aed12871b790fadc57bc5577308172bc75beb0d2b2d870923f77c2",
+      "repeat_gate_path": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/short_runs/pen_context/repeat_gate.json",
+      "repeat_gate_sha256": "be5ac51caceaf790d671357b17b6adcb114a446df3e063e6c267796a8ddb0194"
+    }
+  },
+  "paired_contract": {
+    "unit_column": "temporal_unit_key",
+    "cluster_column": "video_key",
+    "validation_fold_id": "legacy_l6_pen_context_short_validation_v1",
+    "expected_native_units": 245,
+    "expected_clusters": 33,
+    "bootstrap_iterations": 2000,
+    "bootstrap_seed": 20260717,
+    "focus_group": [
+      "stand",
+      "move",
+      "explore"
+    ]
+  },
+  "decision_contract": {
+    "minimum_macro_f1_gain": 0.01,
+    "minimum_focus_group_macro_f1_gain": 0.01,
+    "maximum_absolute_availability_only_gain": 0.01,
+    "maximum_rare_group_macro_f1_drop": 0.02,
+    "require_positive_video_cluster_ci_low": true,
+    "require_nll_improvement_vs_zero": true,
+    "bootstrap_iterations": 2000,
+    "bootstrap_seed": 20260717
+  },
+  "interpretation_boundary": {
+    "legacy_only_decision": true,
+    "architecture_family_finalized": false,
+    "applies_to_merged_reviewed_data": false,
+    "merged_reviewed_reassessment_required": true,
+    "availability_only_is_behavior_evidence": false,
+    "negative_result_is_valid_evidence": true
+  },
+  "implementation": {
+    "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_l6_pen_context_decision.py",
+    "sha256": "167103d4c6874d632d02253c8b3b0041be12bfcf911d4b15ae2b3e1c9ece056b"
+  },
+  "output_path": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/decision/pen_context_short_decision.json"
+}

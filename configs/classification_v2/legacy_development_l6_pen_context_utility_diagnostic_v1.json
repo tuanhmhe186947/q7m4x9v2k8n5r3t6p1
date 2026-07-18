@@ -1,0 +1,64 @@
+{
+  "schema_version": "classification_v2.legacy_l6.pen_context_utility_diagnostic_config.v1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "analysis_scope": "post_hoc_exploratory_not_promotion_evidence",
+  "decision_artifact": {
+    "path": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/decision/pen_context_short_decision.json",
+    "sha256": "673ddab840e5d69f984b47c9d832e2415147681f3df6b81448270766ab673e1c"
+  },
+  "predictions": {
+    "parameter_matched_zero": {
+      "path": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/short_runs/parameter_matched_zero/repeat01/validation_native_predictions.csv",
+      "sha256": "95209596e128e33b488368fe910206730c1bdd859a0d12a394ad95b2a04767c6"
+    },
+    "availability_only": {
+      "path": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/short_runs/availability_only/repeat01/validation_native_predictions.csv",
+      "sha256": "cd1cec91ae494075772c1a569767f26c770c2d84b9b3ccebb437caf41a728ef1"
+    },
+    "pen_context": {
+      "path": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/short_runs/pen_context/repeat01/validation_native_predictions.csv",
+      "sha256": "42f05483c8a3cae6184f34a09a9e7c885efe561981cc081a445ca7289bb9c5e6"
+    }
+  },
+  "pen_cache": {
+    "manifest": {
+      "path": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/cache/primary/pen_context_cache_manifest.json",
+      "sha256": "b592a861ad4b8af9cd62406dc1beda354ba2d0c321aef795e0ba916fb7ad9f74"
+    },
+    "window_index": {
+      "path": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/cache/primary/pen_context_window_index.csv",
+      "sha256": "c3ef0c97ca273d09109eaae30e2d786056d319b14d26f611c6a98ab7fb3d5c05"
+    },
+    "slot_index": {
+      "path": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/cache/primary/pen_context_slot_index.csv",
+      "sha256": "802c8944f1bd4119259d459a6dc8511e77b3b12eb61c3c8146d8effb4eb2569a"
+    },
+    "pen_tensor": {
+      "path": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/cache/primary/pen_context_raw_f32.npy",
+      "sha256": "a24d790a8c8ea656b640ea180913aa7c2aac9611378747141b5a432be0fc08ff"
+    }
+  },
+  "analysis_contract": {
+    "expected_native_units": 245,
+    "expected_video_clusters": 33,
+    "expected_validation_windows": 980,
+    "declared_frames_per_native_unit": 16,
+    "expected_exposed_frames_per_native_unit": 15,
+    "expected_exposed_pairs_per_native_unit": 14,
+    "near_boundary_clearance_ratio": 1.0,
+    "persistent_boundary_min_fraction": 0.5,
+    "bootstrap_iterations": 2000,
+    "bootstrap_seed": 20260717
+  },
+  "implementation": {
+    "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_l6_pen_context_diagnostic.py",
+    "sha256": "2888143d7bd228ced0bd8a12f33c65c6d7b084ab4c579fd0f4854fd6c76117ea"
+  },
+  "output": {
+    "summary_json": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/diagnostics/pen_context_utility_diagnostic.json",
+    "per_class_csv": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/diagnostics/pen_context_per_class_diagnostic.csv",
+    "boundary_strata_csv": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/diagnostics/pen_context_boundary_strata.csv",
+    "class_boundary_csv": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/diagnostics/pen_context_class_boundary.csv",
+    "native_exposure_csv": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/diagnostics/pen_context_native_exposure.csv"
+  }
+}

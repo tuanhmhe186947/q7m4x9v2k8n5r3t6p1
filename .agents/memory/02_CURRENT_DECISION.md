@@ -8,27 +8,26 @@ sections are historical records. Current gate status is centralized in
 
 ## Active decision: reviewed-data rebuild
 
-### Legacy CVAT rebuild blocker
+### Legacy CVAT rebuild completed
 
-The legacy source must now be rebuilt from native CVAT six-anchor annotations
-before any legacy or mixed-data model work resumes. Per actor, `k0` behavior
-maps to `k1..k5` and all recovered 16 frames, while each `k0..k5` bbox remains
-an independent GT anchor. Hidden is not governed by this behavior propagation
-rule and retains a separate frame-level review policy.
+The scientific legacy 16-frame rebuild completed P0-P10 in
+`outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2`. The canonical
+export has 72,880 rows for 4,555 actors and 666 groups; every actor has six
+native anchors and 16 frames. Behavior comes from the lowest CVAT task frame
+per burst, whose suffix may be `k0..k5`.
 
-The current real-data audit fails on two duplicate anchor identities (four
-rows), so no recovery-input CSV, dense recovery, frame-object export, cache, or
-training run is authorized. It also reports eight k0 actor keys without all six
-anchors; after the duplicate fix, those exclusions still require explicit
-review/approval or CVAT completion. After CVAT correction, use a new versioned
-root, rerun audit-only, generate recovery inputs, pass a one-burst recovery and
-post-recovery checker, then run the necessary full recovery. The final export
-must reload native CVAT and independently verify per-actor k0 behavior.
+The active mixed-format contract remains `task_0..task_2 = XML` and
+`task_3 = JSON`. Task_3 is retained. Exactly three declared bad actor keys are
+filtered before recovery, and all occur zero times after P2. The row equation
+is `27,665 - 5 actor-policy - 330 video-policy = 27,330 anchors`.
+P5 applies that same policy before authority/coverage and must report clean
+`PASS`; `PASS_WITH_DECLARED_EXCLUSIONS` is not accepted for retained input.
 
-Use `docs/LEGACY_16F_REBUILD_FROM_SCRATCH_RUNBOOK.md` and a fresh run root.
-The former root CSVs are archived, not active inputs. Recreate the nodup
-metadata scaffold in-lineage; require an explicit source-video exclusion
-policy and do not reuse historical manual review as new review authority.
+The final audit is
+`08_audits/legacy_16f_rebuild_completion_audit.json` with `status=PASS` and
+`errors=[]`. This authorizes the canonical data handoff only. It does not call
+the artifact human-reviewed, does not authorize training or OOF, and does not
+unlock a Q2 claim. Hidden review and reviewed-lineage gates remain separate.
 
 ### C6 temporal-control hold
 

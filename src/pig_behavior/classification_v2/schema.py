@@ -258,6 +258,15 @@ BBOX_COLUMNS: Final[list[str]] = [
     "box_compactness",
 ]
 
+HIDDEN_PROVENANCE_COLUMNS: Final[list[str]] = [
+    "hidden_source",
+    "hidden_review_status",
+    "hidden_is_trusted",
+    "hidden_trust_status",
+    "visibility_quality",
+    "hidden_effective_for_policy",
+]
+
 LABEL_COLUMNS: Final[list[str]] = [
     "behavior",
     "behavior_coarse",
@@ -265,7 +274,7 @@ LABEL_COLUMNS: Final[list[str]] = [
     "is_actor_label",
     "label_source",
     "bbox_source",
-]
+] + HIDDEN_PROVENANCE_COLUMNS
 
 CONTEXT_COLUMNS: Final[list[str]] = [
     "global_context_pig_count",

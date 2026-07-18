@@ -68,13 +68,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--legacy-expected-sequence-length", type=int, default=16)
     parser.add_argument("--default-fps", type=float, default=None)
     parser.add_argument("--min-bbox-valid-ratio", type=float, default=1.0)
-    parser.add_argument("--max-hidden-ratio-main", type=float, default=0.5)
+    parser.add_argument("--max-hidden-ratio-main", type=float, default=0.25)
+    parser.add_argument("--max-hidden-run-ratio-main", type=float, default=0.20)
+    parser.add_argument("--max-hidden-ratio-robust", type=float, default=0.50)
+    parser.add_argument("--max-hidden-run-ratio-robust", type=float, default=0.40)
     parser.add_argument(
         "--exclude-high-hidden-from-main",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
+        default=True,
         help=(
-            "Opt-in exclusion policy. Default only audits trusted Hidden ratio "
-            "and does not exclude or down-weight a window."
+            "Enable the default tiered Hidden evidence policy. Use the generated "
+            "--no-exclude-high-hidden-from-main only for an explicit ablation."
         ),
     )
     parser.add_argument("--min-spatiotemporal-valid-ratio", type=float, default=1.0)
@@ -150,6 +154,8 @@ def _to_bool_series(s: pd.Series) -> pd.Series:
 def _can_reuse_window_structure(df: pd.DataFrame, args: argparse.Namespace) -> bool:
     if args.disable_fast_reuse:
         return False
+    if args.exclude_high_hidden_from_main:
+        return False
     if args.max_rows is not None:
         return False
     if set(LINEAGE_CLAIM_COLUMNS).intersection(df.columns):
@@ -190,6 +196,11 @@ def _base_window_evidence_contract_matches(args: argparse.Namespace) -> bool:
         "stationary_speed_threshold": args.stationary_speed_threshold,
         "active_speed_threshold": args.active_speed_threshold,
         "turning_angle_threshold_deg": args.turning_angle_threshold_deg,
+        "max_hidden_ratio_main": args.max_hidden_ratio_main,
+        "max_hidden_run_ratio_main": args.max_hidden_run_ratio_main,
+        "max_hidden_ratio_robust": args.max_hidden_ratio_robust,
+        "max_hidden_run_ratio_robust": args.max_hidden_run_ratio_robust,
+        "exclude_high_hidden_from_main": args.exclude_high_hidden_from_main,
     }
     return all(parameters.get(key) == value for key, value in expected.items())
 
@@ -378,6 +389,8 @@ def _try_fast_reviewed_rebuild(args: argparse.Namespace) -> bool:
     """
     if args.disable_fast_reuse or args.max_rows is not None:
         return False
+    if args.exclude_high_hidden_from_main:
+        return False
 
     base_dir = Path("outputs/classification_v2/sequence_features")
     base_manifest = base_dir / "sequence_window_manifest.csv"
@@ -467,6 +480,9 @@ def _try_fast_reviewed_rebuild(args: argparse.Namespace) -> bool:
             "default_fps": args.default_fps,
             "min_bbox_valid_ratio": args.min_bbox_valid_ratio,
             "max_hidden_ratio_main": args.max_hidden_ratio_main,
+            "max_hidden_run_ratio_main": args.max_hidden_run_ratio_main,
+            "max_hidden_ratio_robust": args.max_hidden_ratio_robust,
+            "max_hidden_run_ratio_robust": args.max_hidden_run_ratio_robust,
             "exclude_high_hidden_from_main": (args.exclude_high_hidden_from_main),
             "min_spatiotemporal_valid_ratio": args.min_spatiotemporal_valid_ratio,
             "stationary_speed_threshold": args.stationary_speed_threshold,
@@ -548,6 +564,9 @@ def main() -> None:
             default_fps=args.default_fps,
             min_bbox_valid_ratio=args.min_bbox_valid_ratio,
             max_hidden_ratio_main=args.max_hidden_ratio_main,
+            max_hidden_run_ratio_main=args.max_hidden_run_ratio_main,
+            max_hidden_ratio_robust=args.max_hidden_ratio_robust,
+            max_hidden_run_ratio_robust=args.max_hidden_run_ratio_robust,
             exclude_high_hidden_from_main=(args.exclude_high_hidden_from_main),
             min_spatiotemporal_valid_ratio=args.min_spatiotemporal_valid_ratio,
             include_mixed_windows=not args.exclude_mixed_windows,
@@ -595,6 +614,9 @@ def main() -> None:
             "default_fps": args.default_fps,
             "min_bbox_valid_ratio": args.min_bbox_valid_ratio,
             "max_hidden_ratio_main": args.max_hidden_ratio_main,
+            "max_hidden_run_ratio_main": args.max_hidden_run_ratio_main,
+            "max_hidden_ratio_robust": args.max_hidden_ratio_robust,
+            "max_hidden_run_ratio_robust": args.max_hidden_run_ratio_robust,
             "exclude_high_hidden_from_main": (args.exclude_high_hidden_from_main),
             "min_spatiotemporal_valid_ratio": args.min_spatiotemporal_valid_ratio,
             "stationary_speed_threshold": args.stationary_speed_threshold,

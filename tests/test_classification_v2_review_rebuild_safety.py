@@ -357,24 +357,91 @@ def test_hidden_gui_requeues_semantically_invalid_decisions() -> None:
     valid = {
         "hidden_review_status": "reviewed",
         "hidden_after_review": "No",
+        "hidden_review_confidence": "high",
         "hidden_review_reason": "clearly_visible",
     }
     invalid = {
         "hidden_review_status": "reviewed",
         "hidden_after_review": "Yes",
+        "hidden_review_confidence": "high",
         "hidden_review_reason": "clearly_visible",
     }
     unclear = {
         "hidden_review_status": "unclear",
         "hidden_after_review": "",
+        "hidden_review_confidence": "low",
         "hidden_review_reason": "ambiguous",
+    }
+    low_resolved = {
+        "hidden_review_status": "reviewed",
+        "hidden_after_review": "No",
+        "hidden_review_confidence": "low",
+        "hidden_review_reason": "clearly_visible",
     }
 
     completed = gui.completed_decision_ids(
-        {"valid": valid, "invalid": invalid, "unclear": unclear}
+        {
+            "valid": valid,
+            "invalid": invalid,
+            "unclear": unclear,
+            "low_resolved": low_resolved,
+        }
     )
 
     assert completed == {"valid"}
+
+
+def test_hidden_gui_automatic_metadata_keeps_review_one_action() -> None:
+    gui = _load_script(
+        "hidden_gui_automatic_metadata",
+        "review_hidden_quality_gui.py",
+    )
+
+    assert gui.automatic_decision_metadata(
+        hidden_after="Yes",
+        status="reviewed",
+        reason="",
+    ) == ("high", "occluded_or_not_visible")
+    assert gui.automatic_decision_metadata(
+        hidden_after="No",
+        status="reviewed",
+        reason="",
+    ) == ("high", "clearly_visible")
+    assert gui.automatic_decision_metadata(
+        hidden_after="",
+        status="unclear",
+        reason="",
+    ) == ("low", "ambiguous")
+
+
+def test_sequence_cli_enables_tiered_hidden_policy_and_disables_fast_reuse(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    script = _load_source_script(
+        "sequence_cli_hidden_policy",
+        "classification_v2_build_sequence_windows.py",
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "classification_v2_build_sequence_windows.py",
+            "--input-csv",
+            "input.csv",
+            "--output-dir",
+            "output",
+        ],
+    )
+
+    args = script.parse_args()
+
+    assert args.exclude_high_hidden_from_main is True
+    assert args.max_hidden_ratio_main == pytest.approx(0.25)
+    assert args.max_hidden_run_ratio_main == pytest.approx(0.20)
+    assert args.max_hidden_ratio_robust == pytest.approx(0.50)
+    assert args.max_hidden_run_ratio_robust == pytest.approx(0.40)
+    assert not script._can_reuse_window_structure(pd.DataFrame(), args)
+    assert not script._try_fast_reviewed_rebuild(args)
 
 
 def test_decision_coverage_requires_no_missing_or_pending() -> None:

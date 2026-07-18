@@ -7,7 +7,8 @@ from pathlib import Path
 import pandas as pd
 
 from legacy_burst_recovery.cvat_behavior_overlay import (
-    apply_cvat_k0_behavior_authority,
+    AUTHORITY_POLICY,
+    apply_cvat_first_frame_behavior_authority,
 )
 
 BEHAVIOR_CLASSES = [
@@ -660,7 +661,7 @@ def build_frame_object_csv(
         "hidden_seed_method",
         "is_actor_label",
         "label_source",
-        "legacy_behavior_before_cvat_k0",
+        "legacy_behavior_before_cvat_authority",
         "legacy_behavior_authority_label",
         "legacy_behavior_authority_status",
         "legacy_behavior_authority_task",
@@ -668,7 +669,7 @@ def build_frame_object_csv(
         "legacy_behavior_authority_image_name",
         "legacy_behavior_authority_slot",
         "legacy_behavior_authority_source_frame",
-        "legacy_behavior_changed_by_cvat_k0",
+        "legacy_behavior_changed_by_cvat_authority",
         "legacy_behavior_propagation_policy",
         "legacy_sampled_behavior_disagreement_count",
         "legacy_sampled_behavior_observation_count",
@@ -1125,20 +1126,33 @@ def build_export_audit(
                     errors.append(f"export_changed_{column}_rows={count}")
 
         authority_counts = behavior_authority_audit.get("counts", {})
-        changed_rows = int(authority_counts.get("rows_changed_by_k0", 0))
-        duplicate_rows = int(authority_counts.get("sampled_duplicate_rows", 0))
-        incomplete_keys = int(
-            authority_counts.get("sampled_incomplete_anchor_keys", 0)
+        changed_rows = int(
+            authority_counts.get("rows_changed_by_authority", 0)
         )
-        missing_k0 = int(authority_counts.get("dense_keys_missing_k0", 0))
+        duplicate_rows = int(authority_counts.get("sampled_duplicate_rows", 0))
+        incomplete_keys_in_dense = int(
+            authority_counts.get(
+                "sampled_incomplete_anchor_keys_in_dense",
+                authority_counts.get("sampled_incomplete_anchor_keys", 0),
+            )
+        )
+        missing_authority = int(
+            authority_counts.get("dense_keys_missing_authority", 0)
+        )
         if changed_rows:
             errors.append(f"stale_dense_behavior_rows_changed_by_overlay={changed_rows}")
         if duplicate_rows:
             errors.append(f"duplicate_cvat_anchor_rows={duplicate_rows}")
-        if incomplete_keys:
-            errors.append(f"incomplete_cvat_anchor_actor_keys={incomplete_keys}")
-        if missing_k0:
-            errors.append(f"dense_actor_keys_missing_k0={missing_k0}")
+        if incomplete_keys_in_dense:
+            errors.append(
+                "incomplete_cvat_anchor_actor_keys_in_dense="
+                f"{incomplete_keys_in_dense}"
+            )
+        if missing_authority:
+            errors.append(
+                "dense_actor_keys_missing_behavior_authority="
+                f"{missing_authority}"
+            )
 
     return {
         "schema_version": 1,
@@ -1256,17 +1270,16 @@ def main():
         default=None,
         help=(
             "Optional CVAT native export root containing task_* folders. "
-            "Each pig's selected k0 label becomes the behavior authority for "
-            "its complete recovered legacy burst."
+            "Each pig's label on the first CVAT task frame of its burst "
+            "becomes behavior authority."
         ),
     )
     parser.add_argument(
-        "--behavior-authority-slot",
-        type=int,
-        default=0,
+        "--behavior-authority-policy",
+        choices=[AUTHORITY_POLICY],
+        default=AUTHORITY_POLICY,
         help=(
-            "Selected slot used as burst behavior authority. Keep 0 for k0; "
-            "this is not global CVAT task frame 0."
+            "Fixed scientific policy; k0..k5 remain bbox slots only."
         ),
     )
     parser.add_argument(
@@ -1317,15 +1330,14 @@ def main():
     behavior_authority_audit = None
     behavior_authority_discrepancies = None
     if args.cvat_behavior_authority_root:
-        print("applying CVAT k0 behavior authority...", flush=True)
+        print("applying CVAT first-frame behavior authority...", flush=True)
         (
             dense,
             behavior_authority_audit,
             behavior_authority_discrepancies,
-        ) = apply_cvat_k0_behavior_authority(
+        ) = apply_cvat_first_frame_behavior_authority(
             dense,
             args.cvat_behavior_authority_root,
-            authority_slot=args.behavior_authority_slot,
         )
     if args.max_rows is not None:
         if args.max_rows <= 0:

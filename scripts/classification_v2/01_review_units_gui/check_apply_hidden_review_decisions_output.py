@@ -34,10 +34,27 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _series_values_equal(left: pd.Series, right: pd.Series) -> bool:
+    if pd.api.types.is_numeric_dtype(left) and pd.api.types.is_numeric_dtype(right):
+        equal = left.eq(right) | (left.isna() & right.isna())
+        return bool(equal.all())
+    normalized_left = left.fillna("<NA>").astype(str)
+    normalized_right = right.fillna("<NA>").astype(str)
+    return normalized_left.equals(normalized_right)
+
+
 def main() -> None:
     args = parse_args()
-    before = pd.read_csv(args.input_csv, low_memory=False)
-    after = pd.read_csv(args.output_csv, low_memory=False)
+    before = pd.read_csv(
+        args.input_csv,
+        low_memory=False,
+        float_precision="round_trip",
+    )
+    after = pd.read_csv(
+        args.output_csv,
+        low_memory=False,
+        float_precision="round_trip",
+    )
     errors: list[str] = []
     if len(before) != len(after):
         errors.append(f"row_count_changed={len(before)}->{len(after)}")
@@ -55,9 +72,7 @@ def main() -> None:
     changed_protected: list[str] = []
     if len(before) == len(after):
         for column in protected:
-            left = before[column].fillna("<NA>").astype(str)
-            right = after[column].fillna("<NA>").astype(str)
-            if not left.equals(right):
+            if not _series_values_equal(before[column], after[column]):
                 changed_protected.append(column)
     if changed_protected:
         errors.append(f"unexpected_changed_columns={changed_protected}")

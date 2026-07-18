@@ -74,7 +74,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--weights",
         type=Path,
-        default=PROJECT_ROOT / "models" / "detector" / "pig_detector_yolov8.pt",
+        default=PROJECT_ROOT / "models" / "detector" / "pig_detector_yolov8_roboflow_2.pt",
         help="Path to the detector model weights.",
     )
     parser.add_argument(

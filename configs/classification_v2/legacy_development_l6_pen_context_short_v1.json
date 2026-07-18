@@ -1,0 +1,217 @@
+{
+  "schema_version": "classification_v2.legacy_development_l6.pen_context_short_config.v1",
+  "training_scope": "short_repeat_gate",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "canonical_source_name": "legacy_16f",
+  "source_type": "legacy_recovered",
+  "dataset_id": "legacy_recovered_16f",
+  "human_review_complete": false,
+  "reviewed_or_final_claim_allowed": false,
+  "q2_claim_allowed": false,
+  "canonical_full_oof_authorized": false,
+  "outer_holdout_predictions_authorized": false,
+  "development_metrics_authorized": true,
+  "experiment_contract": {
+    "experiment_id": "L6_V1_T6_PEN_CONTEXT_ABLATION_V1",
+    "changed_family": "fixed_camera_pen_boundary_context_only",
+    "modes": [
+      "parameter_matched_zero",
+      "availability_only",
+      "pen_context"
+    ],
+    "fixed_modalities": [
+      "actor_visual",
+      "geometry",
+      "motion"
+    ],
+    "parameter_matched": true,
+    "availability_only_is_diagnostic": true,
+    "availability_is_behavior_evidence": false,
+    "primary_metric": "validation_native_unit_macro_f1_global_10_class",
+    "uncertainty_cluster": "video_key",
+    "outer_predictions_used_for_model_selection": false,
+    "legacy_only_decision": true,
+    "merged_reviewed_reassessment_required": true
+  },
+  "parents": {
+    "temporal_ladder_config": {
+      "path": "configs/classification_v2/legacy_development_l5_temporal_ladder_full_v1.json",
+      "sha256": "559d24ba29d6192291eb5a8d7b6896616b1bed782450a9242f1c4afa3bd85559"
+    },
+    "legacy_goal_completion_audit": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_goal_completion_audit.json",
+      "sha256": "4b6bad32834fbede2001dee5627e5fbfa0005afb758f2c6a3cbfb125be3166f6"
+    }
+  },
+  "caches": {
+    "geometry": {
+      "config": {
+        "path": "configs/classification_v2/legacy_development_l6_geometry_cache_v1.json",
+        "sha256": "a4fefc55ec12518322789b86cac248ae855c4e23b79adfb428053da61d04fc33"
+      },
+      "manifest": {
+        "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/geometry_cache_v1/geometry_cache_manifest.json",
+        "sha256": "0e0b79a5423f820193717995a89748817ab9e3e62e078694d1b838521c37b5a7"
+      },
+      "manifest_filename": "geometry_cache_manifest.json",
+      "root_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/geometry_cache_v1"
+    },
+    "motion": {
+      "config": {
+        "path": "configs/classification_v2/legacy_development_l6_motion_cache_v2.json",
+        "sha256": "691a485cca00da8942ea11358ba2c0055bd15ff2afbf800f70116dbdd541ebb0"
+      },
+      "manifest": {
+        "path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/motion_cache_v2/motion_cache_manifest.json",
+        "sha256": "dabc971259e437d1374cea0f4f0c850415b02c2dbf2990a8d763d0843a6bf825"
+      },
+      "manifest_filename": "motion_cache_manifest.json",
+      "root_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/full_legacy_lineage_v2_20260714/16_l6_input_context/motion_cache_v2"
+    },
+    "pen": {
+      "config": {
+        "path": "configs/classification_v2/legacy_development_l6_pen_context_cache_v1.json",
+        "sha256": "be0f377bf487b3b0b73f75b768984f27cfa3fe678f0784187d9fd77b8721ba4a"
+      },
+      "manifest": {
+        "path": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/cache/primary/pen_context_cache_manifest.json",
+        "sha256": "b592a861ad4b8af9cd62406dc1beda354ba2d0c321aef795e0ba916fb7ad9f74"
+      },
+      "repeat_gate": {
+        "path": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/cache/cache_repeat_gate.json",
+        "sha256": "50c24ae7bedaa11f4c0d9437da27b171bfc68e71dcbc011a0690dec9df4e92fe"
+      },
+      "manifest_filename": "pen_context_cache_manifest.json",
+      "root_relative_path": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/cache/primary"
+    }
+  },
+  "implementation": {
+    "core": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l6_pen_context.py",
+      "sha256": "df663a1cd305f4317cbf5f63ac2417391e37fc4e89bd6cea157ede68aaa7b55b"
+    },
+    "runtime": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l6_pen_context_runtime.py",
+      "sha256": "25bca0b736af4fe63f3db5222afd1db9af771bc2684546aa3bb2b5551274b110"
+    },
+    "cached_modality_engine": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l6_cached_modality.py",
+      "sha256": "6c367128a26c0a62e6c36ea130c00d6fc23185b146a3145a3e0f991feb76a719"
+    },
+    "cached_runtime_engine": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l6_cached_modality_runtime.py",
+      "sha256": "aab727cfb0c491ab4a00c651f7acbf906896bd57156308576e2186961d60df56"
+    },
+    "frozen_training_engine": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l5_cached_training.py",
+      "sha256": "f639dd6d1dcdd83172f33054dab11a0c861eb65883f2656c8ed96d0d908fa96c"
+    },
+    "geometry_normalizer_and_loop": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l6_geometry.py",
+      "sha256": "ac101d24b5576636be4329a1ff253aa98e375ffdac9ec58d3e01248029e24986"
+    },
+    "motion_normalizer": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l6_motion.py",
+      "sha256": "b7aae2392e903d2f669d9b69235ec7cecaf9aaf1ca7c4a230b3dea89ad2e11d3"
+    },
+    "pen_cache_builder": {
+      "path": "src/pig_behavior/classification_v2/training/legacy_development_l6_pen_context_cache.py",
+      "sha256": "0439a90d617aad8b61f2559676258beda5a09aaa456e29f2ebb8d33cb07167e7"
+    }
+  },
+  "selection": {
+    "view_id": "t6_sliding",
+    "native_unit": "complete_legacy_16_frame_burst",
+    "windows_per_native_unit": 4,
+    "short_train_native_units": 80,
+    "short_train_windows": 320,
+    "validation_native_units": 245,
+    "validation_windows": 980,
+    "event_mass_per_native_unit": 1.0,
+    "normalization_fit_scope": "train_unique_frame_or_pair_only",
+    "outer_holdout_access": "FORBIDDEN_DURING_MODEL_SELECTION"
+  },
+  "model": {
+    "architecture": "cached_visual_geometry_motion_pen_temporal_v1",
+    "feature_control_id": "V1",
+    "backbone_name": "resnet18",
+    "input_resolution": 224,
+    "visual_feature_dim": 512,
+    "geometry_feature_dim": 8,
+    "motion_feature_dim": 10,
+    "pen_feature_dim": 7,
+    "availability_feature_dim": 3,
+    "model_input_dim": 540,
+    "pen_context_modes": [
+      "parameter_matched_zero",
+      "availability_only",
+      "pen_context"
+    ],
+    "temporal_encoder_name": "masked_mean",
+    "hidden_dim": 128,
+    "dropout": 0.1,
+    "transformer_layers": 1,
+    "transformer_heads": 4,
+    "parameter_count": 71874,
+    "native_probability_aggregation": "mean_window_probability_v1",
+    "missing_modality_policy": "zero_pen_only_keep_geometry_motion_v1"
+  },
+  "optimization": {
+    "seed": 20260714,
+    "epochs": 3,
+    "batch_size": 32,
+    "evaluation_batch_size": 64,
+    "learning_rate": 0.003,
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 1.0,
+    "loss": "event_mass_balanced_cross_entropy",
+    "sampler": "deterministic_seeded_window_shuffle_after_native_selection",
+    "checkpoint_selection": "native_global_10_class_macro_f1_then_nll",
+    "precision": "float32",
+    "autocast_enabled": false,
+    "deterministic_algorithms": true,
+    "cublas_workspace_config": ":4096:8",
+    "dataloader_num_workers": 0,
+    "pin_memory": false,
+    "persistent_workers": false,
+    "prefetch_factor": null,
+    "device": "cuda:0",
+    "declared_local_gpu_vram_gib": 4,
+    "maximum_peak_vram_fraction": 0.7,
+    "oom_retry_allowed": false,
+    "one_run_per_fresh_process": true,
+    "maximum_loaded_batch_bytes": 2300000
+  },
+  "repeat_gate": {
+    "required_runs_per_mode": 2,
+    "require_fresh_process": true,
+    "require_distinct_process_ids": true,
+    "require_non_overlapping_execution": true,
+    "require_identical_selection_hash": true,
+    "require_identical_normalization_hash": true,
+    "require_identical_parameter_hash": true,
+    "require_identical_window_prediction_hash": true,
+    "require_identical_native_prediction_hash": true,
+    "require_identical_epoch_metric_hash": true
+  },
+  "promotion_contract": {
+    "minimum_macro_f1_gain": 0.01,
+    "minimum_focus_group_macro_f1_gain": 0.01,
+    "maximum_absolute_availability_only_gain": 0.01,
+    "maximum_rare_group_macro_f1_drop": 0.02,
+    "require_positive_video_cluster_ci_low": true,
+    "require_nll_improvement_vs_zero": true,
+    "bootstrap_iterations": 2000,
+    "bootstrap_seed": 20260717
+  },
+  "execution_guard": {
+    "record_dirty_worktree": true,
+    "allow_hash_bound_uncommitted_classification_changes": true,
+    "forbid_raw_data_worktree_changes": true,
+    "classification_only": true
+  },
+  "output": {
+    "run_root_relative_path": "outputs/classification_v2/agent_experiments/legacy_16f_pen_context_20260717_v1/short_runs",
+    "matrix_gate_filename": "pen_context_short_matrix.json"
+  }
+}

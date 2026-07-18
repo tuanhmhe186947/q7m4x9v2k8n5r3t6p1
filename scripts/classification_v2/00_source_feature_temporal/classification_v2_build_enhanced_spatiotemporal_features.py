@@ -12,6 +12,11 @@ import pandas as pd
 from pig_behavior.classification_v2.contracts.output_safety import (
     require_output_paths_available,
 )
+from pig_behavior.classification_v2.features.pen_context import (
+    DEFAULT_PEN_MASK_SHA256,
+    audit_pen_context_features,
+    build_pen_context_features,
+)
 from pig_behavior.classification_v2.features.spatiotemporal import (
     audit_enhanced_spatiotemporal_features,
     build_enhanced_spatiotemporal_features,
@@ -36,6 +41,34 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--stationary-speed-threshold", type=float, default=0.002)
     parser.add_argument("--active-speed-threshold", type=float, default=0.006)
     parser.add_argument("--turning-angle-threshold-deg", type=float, default=30.0)
+    parser.add_argument(
+        "--pen-mask",
+        type=Path,
+        default=Path("data/annotations/scene/mask.png"),
+        help="Fixed-camera pen calibration mask used for pen-context features.",
+    )
+    parser.add_argument("--pen-mask-threshold", type=int, default=127)
+    parser.add_argument(
+        "--expected-pen-mask-sha256",
+        type=str,
+        default=DEFAULT_PEN_MASK_SHA256,
+        help="Required fail-closed SHA-256 for fixed-camera mask calibration.",
+    )
+    parser.add_argument(
+        "--pen-near-boundary-clearance-ratio",
+        type=float,
+        default=1.0,
+        help="Near-wall threshold measured in actor half-diagonal units.",
+    )
+    parser.add_argument(
+        "--pen-context",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "Append hash-bound pen-boundary features. Use --no-pen-context "
+            "only for an explicit feature ablation."
+        ),
+    )
     parser.add_argument("--max-rows", type=int, default=None)
     parser.add_argument(
         "--overwrite",
@@ -95,7 +128,38 @@ def main() -> None:
         active_speed_threshold=args.active_speed_threshold,
         turning_angle_threshold_rad=math.radians(args.turning_angle_threshold_deg),
     )
+    pen_audit: dict[str, object] | None = None
+    if args.pen_context:
+        if not str(args.expected_pen_mask_sha256 or "").strip():
+            raise ValueError(
+                "Pen context requires --expected-pen-mask-sha256"
+            )
+        out = build_pen_context_features(
+            out,
+            mask_path=args.pen_mask,
+            mask_threshold=args.pen_mask_threshold,
+            near_boundary_clearance_ratio=(
+                args.pen_near_boundary_clearance_ratio
+            ),
+            expected_mask_sha256=args.expected_pen_mask_sha256,
+        )
+        pen_audit = audit_pen_context_features(
+            out,
+            mask_path=args.pen_mask,
+            mask_threshold=args.pen_mask_threshold,
+            near_boundary_clearance_ratio=(
+                args.pen_near_boundary_clearance_ratio
+            ),
+            input_rows=len(df),
+            expected_mask_sha256=args.expected_pen_mask_sha256,
+        )
     audit = audit_enhanced_spatiotemporal_features(out)
+    if pen_audit is not None:
+        audit["pen_context"] = pen_audit
+        audit["errors"] = [
+            *audit.get("errors", []),
+            *[f"pen_context={error}" for error in pen_audit["errors"]],
+        ]
     audit["input_csv"] = str(args.input_csv)
     audit["output_csv"] = str(args.output_csv)
     audit["parameters"] = {
@@ -107,6 +171,13 @@ def main() -> None:
         "stationary_speed_threshold": args.stationary_speed_threshold,
         "active_speed_threshold": args.active_speed_threshold,
         "turning_angle_threshold_deg": args.turning_angle_threshold_deg,
+        "pen_context": args.pen_context,
+        "pen_mask": str(args.pen_mask) if args.pen_context else None,
+        "pen_mask_threshold": args.pen_mask_threshold,
+        "expected_pen_mask_sha256": args.expected_pen_mask_sha256,
+        "pen_near_boundary_clearance_ratio": (
+            args.pen_near_boundary_clearance_ratio
+        ),
         "max_rows": args.max_rows,
         "overwrite": args.overwrite,
     }

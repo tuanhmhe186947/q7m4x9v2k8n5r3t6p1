@@ -4,16 +4,45 @@ Tài liệu này mô tả luồng tạo lại dữ liệu legacy 16-frame từ �
 `legacy_frame_object_annotations.csv`. Luồng này chỉ tạo và kiểm tra dữ liệu
 legacy; không chạy training, không chạy OOF và không sửa tracking.
 
+## Verified run 2026-07-19
+
+Run `legacy_16f_rebuild_20260718_v2` completed P0-P10 under
+`outputs/legacy_16f_rebuild/`. Native CVAT row filtering is explicit:
+
+```text
+27,665 raw CVAT rows
+-     5 rows from three declared task_3 actor exclusions
+=27,660 behavior/provenance rows
+-   330 rows from the reviewed source-video policy
+=27,330 retained CVAT anchors
+```
+
+The retained universe has 4,555 actors, 666 groups, 72,880 dense rows and
+72,880 canonical frame-object rows. Every retained actor has six anchors and
+16 frames. The three excluded task_3 actors occur zero times after P2.
+
+P9 reloads all native CVAT files for hashes, then restricts authority and
+completeness checks to retained dense actor keys. Raw-source issues remain P1
+lineage evidence; they are not warnings in the clean export audit. Any
+incomplete actor still present in retained keys remains a hard failure.
+
+CVAT anchor coordinates are preserved exactly in `x1_raw..y2_raw`. Export
+columns `x1..y2` are bounded operational coordinates; 94 anchor coordinates
+were clipped at image limits and are reported without changing raw evidence.
+The final completion audit is
+`08_audits/legacy_16f_rebuild_completion_audit.json` and has `status=PASS`.
+
 ## 1. Phạm vi và nguyên tắc
 
 - `data/` là raw input bất biến. Không sửa, xóa, đổi tên hoặc overwrite.
 - Native CVAT `task_0..task_3` là nguồn annotation hiện hành.
-- Với mỗi `(group_id, pig_id)`, behavior của slot `k0` là authority duy nhất.
+- Với mỗi burst, ảnh có CVAT task frame nhỏ nhất là behavior authority.
+  Authority slot có thể là `k0..k5`; không suy authority từ suffix `k`.
 - Sáu bbox CVAT ở `k0..k5` là sáu GT anchor độc lập.
 - Mười frame giữa các anchor được recovery; không copy bbox `k0` cho cả burst.
 - Hidden của CVAT chỉ là seed chưa trusted; không suy Hidden từ behavior.
-- Duplicate `(group_id, slot, pig_id)`, thiếu `k0`, frame-map sai hoặc bbox sai
-  phải dừng trước khi sinh recovery CSV.
+- Duplicate `(group_id, slot, pig_id)`, actor vắng ở authority frame,
+  frame-map sai hoặc bbox sai phải dừng trước khi sinh recovery CSV.
 - Mọi output mới phải ở một thư mục versioned, không ghi vào output cũ.
 
 `legacy_frame_object_annotations.csv` có thể có đủ 16 frame cho mỗi actor,
@@ -53,6 +82,7 @@ set PYTHONPATH=%CD%\src
 set S0=scripts\classification_v2\00_source_feature_temporal
 set RUN_ID=legacy_16f_rebuild_20260718_v1
 set RUN=%CD%\outputs\legacy_16f_rebuild\%RUN_ID%
+set SOURCE_INPUT=%RUN%\00_behavior_source
 set PROV=%RUN%\01_provenance
 set POLICY=%RUN%\02_video_policy
 set CVAT_AUDIT=%RUN%\03_cvat_audit
@@ -66,7 +96,8 @@ if exist "%RUN%" (
   echo ERROR: lineage already exists; choose a new RUN_ID
   exit /b 2
 )
-mkdir "%PROV%" "%POLICY%" "%CVAT_AUDIT%" "%CVAT_INPUT%" "%SMOKE%" "%FULL%" "%EXPORT%" "%AUDIT%"
+mkdir "%SOURCE_INPUT%" "%PROV%" "%POLICY%" "%CVAT_AUDIT%"
+mkdir "%CVAT_INPUT%" "%SMOKE%" "%FULL%" "%EXPORT%" "%AUDIT%"
 ```
 
 `RUN_ID` không chỉ là tên thư mục: nó bind toàn bộ input hash, code version,
@@ -79,31 +110,78 @@ Trước khi sinh bất kỳ CSV derived nào, kiểm tra các file tồn tại 
 Các lệnh dưới đây chỉ đọc input.
 
 ```bat
-dir /b data\data\task_0\annotations.json data\data\task_0\data\manifest.jsonl
-dir /b data\data\task_1\annotations.json data\data\task_1\data\manifest.jsonl
-dir /b data\data\task_2\annotations.json data\data\task_2\data\manifest.jsonl
+dir /b data\data\task_0\annotations.xml data\data\task_0\data\manifest.jsonl
+dir /b data\data\task_1\annotations.xml data\data\task_1\data\manifest.jsonl
+dir /b data\data\task_2\annotations.xml data\data\task_2\data\manifest.jsonl
 dir /b data\data\task_3\annotations.json data\data\task_3\data\manifest.jsonl
+dir /b data\annotations\roi\ROI_annotations.coco.json
 dir /b data\videos
 dir /b data\annotations\scene\mask.png models\detector\pig_detector_yolov8.pt
 
-certutil -hashfile data\data\task_0\annotations.json SHA256
+certutil -hashfile data\data\task_0\annotations.xml SHA256
 certutil -hashfile data\data\task_0\data\manifest.jsonl SHA256
-certutil -hashfile data\data\task_1\annotations.json SHA256
+certutil -hashfile data\data\task_1\annotations.xml SHA256
 certutil -hashfile data\data\task_1\data\manifest.jsonl SHA256
-certutil -hashfile data\data\task_2\annotations.json SHA256
+certutil -hashfile data\data\task_2\annotations.xml SHA256
 certutil -hashfile data\data\task_2\data\manifest.jsonl SHA256
 certutil -hashfile data\data\task_3\annotations.json SHA256
 certutil -hashfile data\data\task_3\data\manifest.jsonl SHA256
-certutil -hashfile ^
-  data\processed\classification\20260620_131805\behavior_with_feats_rectROI.csv ^
-  SHA256
+certutil -hashfile data\annotations\roi\ROI_annotations.coco.json SHA256
 certutil -hashfile data\annotations\scene\mask.png SHA256
 certutil -hashfile models\detector\pig_detector_yolov8.pt SHA256
 ```
 
+Annotation authority được chọn riêng cho từng task theo rule xác định:
+
+- nếu có `annotations.xml`, XML là authority duy nhất;
+- nếu không có XML, dùng `annotations.json`;
+- không trộn box từ hai format trong cùng task;
+- XML lỗi hoặc không khớp manifest phải FAIL, không fallback âm thầm về JSON cũ.
+
 Không dùng hash hoặc CSV của
 `outputs/_archive/legacy_16f_pre_cvat_rebuild_20260717` làm annotation
 authority. Archive chỉ dùng để forensic comparison.
+
+## 4.1. Tạo lại behavior source CSV từ CVAT hiện hành
+
+Không tái sử dụng
+`data\processed\classification\20260620_131805\behavior_with_feats_rectROI.csv`.
+CSV đó thuộc annotation lineage cũ. Trước hết chạy quality checker chỉ đọc:
+
+```bat
+%PY% %S0%\check_cvat_annotation_quality.py ^
+  --task-export-root "%CD%\data\data" ^
+  --print-issues
+```
+
+Mọi `missing_anchor`, `actor_absent_authority_frame`, duplicate identity hoặc
+schema error phải được sửa trong CVAT/re-export, hoặc có exclusion policy riêng.
+Không tự điền bbox/behavior để vượt gate. Sau đó chạy generator ở chế độ audit:
+
+```bat
+%PY% -m pig_behavior.data.classification_dataset ^
+  --cvat-export-root "%CD%\data\data" ^
+  --roi-coco-json "%CD%\data\annotations\roi\ROI_annotations.coco.json" ^
+  --output-dir "%SOURCE_INPUT%" ^
+  --dry-run
+```
+
+Chỉ khi dry-run PASS mới ghi ba artifact source:
+
+```bat
+%PY% -m pig_behavior.data.classification_dataset ^
+  --cvat-export-root "%CD%\data\data" ^
+  --roi-coco-json "%CD%\data\annotations\roi\ROI_annotations.coco.json" ^
+  --output-dir "%SOURCE_INPUT%"
+
+certutil -hashfile "%SOURCE_INPUT%\behavior_with_feats_rectROI.csv" SHA256
+type "%SOURCE_INPUT%\classification_source_lineage.json"
+```
+
+Generator chọn XML trước JSON theo từng task, không trộn format. Behavior của
+mỗi actor lấy từ ảnh có CVAT task frame nhỏ nhất trong burst, dù ảnh đó mang
+suffix `k0..k5`; năm anchor còn lại chỉ giữ disagreement evidence. Bbox và
+Hidden vẫn là annotation frame-level, không được broadcast theo behavior.
 
 ## 5. Xác nhận video-exclusion policy
 
@@ -114,13 +192,11 @@ tên file. Trước khi tiếp tục phải có file mới ở `%POLICY%` với 
 video_file,day_key,clip_id,source_video_key
 ```
 
-Nếu policy cũ vẫn đúng, operator có thể sao chép bản archive sau khi kiểm tra
-từng dòng; đây là quyết định dữ liệu, không phải bước tự động của agent:
+Repository hiện không giữ một bản policy có thể sao chép tự động. Operator
+phải handoff file đã xác nhận với schema trên vào:
 
-```bat
-copy /Y ^
-  outputs\_archive\legacy_16f_root_artifacts_20260718\exclude_source_videos.csv ^
-  "%POLICY%\exclude_source_videos.csv"
+```text
+%POLICY%\exclude_source_videos.csv
 ```
 
 Nếu danh sách phải làm lại, tạo file mới theo video đã xác nhận. Không tạo file
@@ -141,40 +217,34 @@ handoff một file mới có hash và phạm vi rõ ràng.
 
 `truy_nguon_multi_bbox.py` chỉ nối burst với video/path và giữ evidence cũ.
 Nó không có quyền quyết định behavior hoặc bbox cho rebuild CVAT. Script này
-thường chạy trên Colab, nơi các source folder đang nằm trong Google Drive.
-Không dùng `--allow-unresolved-video` cho input training.
-
-Phương án Colab hiện hành:
-
-```bash
-mkdir -p /content/legacy_16f_provenance
-python /content/truy_nguon_multi_bbox.py \
-  --behavior-csv /content/behavior_with_feats_rectROI.csv \
-  --search-roots \
-    "/content/drive/MyDrive/pig-selected_frame_attribute_(1)" \
-    "/content/drive/MyDrive/pig-selected_frame_attribute_(2)" \
-    "/content/drive/MyDrive/pig-selected_frame_attribute_(3)" \
-    "/content/drive/MyDrive/pig-selected_frame_attribute_(4)" \
-    "/content/drive/MyDrive/pig-selected_frame_attribute_(5)" \
-  --out-center-csv /content/legacy_16f_provenance/old_burst_center_keyframes_combined.csv \
-  --out-all-bbox-csv /content/legacy_16f_provenance/old_burst_all_keyframe_bboxes_combined.csv \
-  --out-audit-csv /content/legacy_16f_provenance/legacy_gt_support_audit.csv \
-  --out-missing-csv /content/legacy_16f_provenance/missing_old_burst_groups.csv \
-  --out-lineage-json /content/legacy_16f_provenance/legacy_source_trace_lineage.json \
-  --require-video-exists
-```
-
-Sau khi Colab PASS, đưa đúng năm output cùng hash vào `%PROV%`. Không chỉ tải
-hai CSV rồi bỏ audit/lineage. Nếu Google Drive đã mount ở Windows, có thể chạy
-phương án local tương đương dưới đây.
+chạy trực tiếp trên Windows với Google Drive đã mount. `video_final` giữ nguyên
+canonical Colab path để `group_id` hash không đổi; `video_local_path` là đường
+dẫn Windows dùng riêng cho existence/runtime check. Không dùng
+`--allow-unresolved-video` cho input training.
 
 ```bat
-set BEHAVIOR_CSV=%CD%\data\processed\classification\20260620_131805\behavior_with_feats_rectROI.csv
-set SEARCH1=G:\My Drive
+set BEHAVIOR_CSV=%SOURCE_INPUT%\behavior_with_feats_rectROI.csv
 
-%PY% truy_nguon_multi_bbox.py ^
+%PY% src\legacy_burst_recovery\truy_nguon_multi_bbox.py ^
   --behavior-csv "%BEHAVIOR_CSV%" ^
-  --search-roots "%SEARCH1%" ^
+  --drive-root "G:\My Drive" ^
+  --out-center-csv "%PROV%\old_burst_center_keyframes_combined.csv" ^
+  --out-all-bbox-csv "%PROV%\old_burst_all_keyframe_bboxes_combined.csv" ^
+  --out-audit-csv "%PROV%\legacy_gt_support_audit.csv" ^
+  --out-missing-csv "%PROV%\missing_old_burst_groups.csv" ^
+  --out-lineage-json "%PROV%\legacy_source_trace_lineage.json" ^
+  --require-video-exists ^
+  --dry-run
+```
+
+Dry-run phải resolve đúng năm source root. Source 4 có thể được resolve qua
+`G:\.shortcut-targets-by-id`; thiếu hoặc có nhiều target cùng tên phải FAIL.
+Sau khi dry-run PASS, chạy lại đúng cấu hình và bỏ duy nhất `--dry-run`:
+
+```bat
+%PY% src\legacy_burst_recovery\truy_nguon_multi_bbox.py ^
+  --behavior-csv "%BEHAVIOR_CSV%" ^
+  --drive-root "G:\My Drive" ^
   --out-center-csv "%PROV%\old_burst_center_keyframes_combined.csv" ^
   --out-all-bbox-csv "%PROV%\old_burst_all_keyframe_bboxes_combined.csv" ^
   --out-audit-csv "%PROV%\legacy_gt_support_audit.csv" ^
@@ -191,6 +261,11 @@ set SEARCH1=G:\My Drive
   thay thế sáu bbox native CVAT.
 - `legacy_gt_support_audit.csv`: kiểm đủ sáu order `k0..k5` của provenance cũ.
 - `legacy_source_trace_lineage.json`: hash, nguồn tìm thấy và row mapping.
+
+Mỗi row đã resolve phải có `day_final`, canonical `video_final` chứa đúng
+day component, và `video_local_path` phải tồn tại khi bật
+`--require-video-exists`. Manifest là authority; candidate chỉ fallback. Nếu
+hai nguồn cùng có metadata nhưng khác day/video thì phải FAIL.
 
 Nếu mapping/path audit FAIL, dừng và sửa nguồn mapping. Không dùng
 `--allow-incomplete-actor-keys` để đưa actor thiếu anchor vào recovery.
@@ -257,16 +332,18 @@ overwrite lineage đang audit.
 
 ## 8. CVAT six-anchor audit-only
 
-Đây là gate quan trọng nhất. `annotations.json.shape.frame` là chỉ số ảnh
-trong từng task; phải resolve qua `data\manifest.jsonl`. Không dùng global task
-frame 0 để suy ra `k0`.
+Đây là gate quan trọng nhất. `annotations.json.shape.frame` hoặc
+`annotations.xml/image@id` là chỉ số ảnh trong từng task; phải resolve qua
+`data\manifest.jsonl` và tên ảnh phải khớp chính xác. Trong từng burst, chọn
+ảnh có task frame nhỏ nhất; không mặc định suffix `k0` là behavior authority.
 
 ```bat
 %PY% %S0%\classification_v2_rebuild_legacy_cvat_recovery_inputs.py ^
   --cvat-export-root data\data ^
   --metadata-scaffold-csv "%POLICY%\nodup\old_burst_center_keyframes_nodup_videos.csv" ^
+  --exclude-actor-key-csv "%POLICY%\excluded_actor_keys.csv" ^
   --output-dir "%CVAT_AUDIT%" ^
-  --behavior-authority-slot 0 ^
+  --behavior-authority-policy first_task_frame_per_group ^
   --min-anchor-count 6 ^
   --audit-only
 ```
@@ -276,18 +353,18 @@ Audit-only không ghi `center`/`anchor` CSV khi còn lỗi. Phải đạt:
 - `errors=[]` và không có issue mức `error`;
 - không duplicate `(group_id, selected_slot, pig_id)`;
 - mỗi actor được giữ lại có đúng `k0..k5` và frame span 15;
-- k0 behavior hợp lệ và bbox hợp lệ;
+- behavior tại first task frame hợp lệ và mọi bbox anchor hợp lệ;
 - mọi frame map được qua manifest của task;
-- các disagreement ở `k1..k5` chỉ là evidence, không được vote thay k0.
+- label ở năm ảnh còn lại chỉ là disagreement evidence, không được vote.
 
 Diễn giải `status` phải bám đúng audit, không chỉ nhìn chuỗi `PASS`:
 
 - `PASS`: không lỗi, không warning và không actor bị loại;
 - `PASS_WITH_WARNINGS`: chỉ chấp nhận warning thông tin đã hiểu rõ, ví dụ
-  `source_video_key` được derive xác định hoặc disagreement `k1..k5` đã map về
-  `k0`;
+  `source_video_key` được derive xác định hoặc disagreement đã map về
+  first-frame authority;
 - `PASS_WITH_DECLARED_EXCLUSIONS`: chỉ tiếp tục sau khi kiểm tra từng issue mức
-  `excluded` và chấp thuận chính xác danh sách actor thiếu `k0`/thiếu anchor;
+  `excluded` và chấp thuận actor vắng ở authority frame/thiếu anchor;
 - `FAIL`: dừng tuyệt đối; không sinh recovery input.
 
 Không được gọi một actor thiếu anchor là complete. Nếu chưa có quyết định loại
@@ -312,8 +389,9 @@ if exist "%CVAT_INPUT%"\legacy_recovery_input_manifest.json (
 %PY% %S0%\classification_v2_rebuild_legacy_cvat_recovery_inputs.py ^
   --cvat-export-root data\data ^
   --metadata-scaffold-csv "%POLICY%\nodup\old_burst_center_keyframes_nodup_videos.csv" ^
+  --exclude-actor-key-csv "%POLICY%\excluded_actor_keys.csv" ^
   --output-dir "%CVAT_INPUT%" ^
-  --behavior-authority-slot 0 ^
+  --behavior-authority-policy first_task_frame_per_group ^
   --min-anchor-count 6
 ```
 
@@ -328,8 +406,10 @@ legacy_cvat_recovery_input_issues.csv
 ```
 
 `legacy_center_keyframes_from_cvat.csv` giữ metadata group/video từ scaffold,
-nhưng behavior k0 và sáu bbox đến từ native CVAT. `legacy_six_anchor_bboxes...`
-là input multi-GT; không thay bằng file combined cũ.
+nhưng behavior first-frame và sáu bbox đến từ native CVAT.
+`legacy_six_anchor_bboxes...` là input multi-GT; không thay bằng file combined
+cũ. Bbox/Hidden center vẫn lấy anchor `k0`; điều này độc lập với behavior
+authority slot.
 
 ## 10. Short one-burst recovery gate
 
@@ -368,7 +448,7 @@ Short gate PASS phải chứng minh cùng lúc:
 
 - mỗi actor có đúng 16 dense frame trong khoảng anchor đầu đến anchor cuối;
 - frame-object key không duplicate;
-- behavior trên dense row đúng behavior k0;
+- behavior trên dense row đúng first-task-frame authority;
 - sáu anchor giữ nguyên bbox CVAT với tolerance đã khai báo;
 - anchor được đánh dấu `bbox_source=gt_legacy`;
 - Hidden provenance được giữ nguyên và vẫn untrusted;
@@ -432,7 +512,7 @@ contract của output frame-object.
   --anchor-relative-frames 0,3,6,9,12,15 ^
   --expected-pig-count 8 ^
   --cvat-behavior-authority-root "%CD%\data\data" ^
-  --behavior-authority-slot 0
+  --behavior-authority-policy first_task_frame_per_group
 ```
 
 Expected primary artifact:
@@ -445,9 +525,8 @@ Expected primary artifact:
 ```
 
 Việc nạp lại CVAT ở export là kiểm tra độc lập cuối cùng: behavior trong dense
-map phải khớp authority `k0` của đúng `(group_id, pig_id)`. Discrepancy không
-được tự sửa im lặng; phải xuất hiện trong audit và làm gate dừng khi vi phạm
-contract.
+map phải khớp actor trên first task frame của đúng burst. Discrepancy không
+được tự sửa im lặng; phải xuất hiện trong audit và làm gate dừng khi vi phạm.
 
 Không dùng `--training-only` ở export canonical: giữ cả row để có context và
 để audit row preservation. `include_in_training`/`training_tier` là policy
@@ -481,23 +560,25 @@ PASS tối thiểu:
 - mọi actor hợp lệ có 16 frame;
 - anchor relative frame là `0,3,6,9,12,15`;
 - export audit có `status=PASS`, không invalid bbox và không row-count mismatch;
-- behavior dense/export chỉ đến từ k0 authority;
+- behavior dense/export chỉ đến từ first-task-frame authority;
 - sáu bbox anchor và Hidden provenance không bị export thay đổi;
 - output path thuộc `%RUN%`, không thuộc `data/` và không overwrite canonical.
 
-Nếu một actor bị loại vì thiếu k0/đủ anchor, phải xem `issues.csv` và báo cáo số
-actor bị loại; không tự điền bbox, behavior hoặc Hidden để đạt đủ 16 row.
+Nếu actor vắng ở authority frame hoặc thiếu anchor, phải xem `issues.csv` và
+báo cáo số actor bị loại; không tự điền bbox, behavior hoặc Hidden.
 
 ## 14. Luồng artifact và ý nghĩa
 
 ```text
-behavior_with_feats_rectROI.csv
+CVAT task_0..task_3 mixed XML/JSON authority
+  -> pig_behavior.data.classification_dataset
+  -> behavior_with_feats_rectROI.csv + source lineage
   -> truy_nguon_multi_bbox.py
   -> provenance combined CSV + lineage audit
   -> check_duplicate_videos.py
   -> make_nodup_legacy_csvs.py
   -> metadata scaffold đã lọc
-  -> CVAT annotations.json + manifest.jsonl
+  -> CVAT annotations.xml hoặc annotations.json + manifest.jsonl
   -> cvat_anchor_rebuild (k0..k5 audit)
   -> legacy_center_keyframes_from_cvat.csv
   -> legacy_six_anchor_bboxes_from_cvat.csv
@@ -509,11 +590,12 @@ behavior_with_feats_rectROI.csv
 
 Vai trò của từng lớp:
 
-1. Provenance chỉ giải thích row đến từ video/folder/frame nào.
-2. Policy lọc duplicate source video trước khi tạo valid-group universe.
-3. Native CVAT quyết định behavior k0, sáu bbox và Hidden seed.
-4. Recovery tạo bbox/interpolation cho frame không phải anchor và giữ audit.
-5. Export đổi schema sang frame-object; không được đổi annotation authority.
+1. Generator khóa mixed-format CVAT authority và tạo sáu anchor source rows.
+2. Provenance chỉ giải thích row đến từ video/folder/frame nào.
+3. Policy lọc duplicate source video trước khi tạo valid-group universe.
+4. First CVAT task frame quyết định behavior; sáu anchor quyết định bbox/Hidden.
+5. Recovery tạo bbox/interpolation cho frame không phải anchor và giữ audit.
+6. Export đổi schema sang frame-object; không được đổi annotation authority.
 
 ## 15. Ranh giới với classification_v2
 
@@ -543,7 +625,7 @@ Dừng ngay, không chạy full, nếu có một trong các điều kiện sau:
 - CVAT audit có duplicate anchor identity hoặc lỗi frame-map.
 - Không có file exclusion policy mới/đã xác nhận.
 - Source video không resolve được mà không có quyết định loại rõ ràng.
-- K0 thiếu, behavior k0 không hợp lệ hoặc bbox anchor không hợp lệ.
+- Actor vắng ở first task frame, behavior authority hoặc bbox không hợp lệ.
 - Short recovery audit không PASS.
 - Dense output không đủ 16 frame/actor hoặc có duplicate frame-object key.
 - Export audit thay đổi bbox/behavior/Hidden provenance.
@@ -554,7 +636,7 @@ Không được giải quyết stop condition bằng cách:
 
 - copy k0 bbox cho tất cả frame;
 - bỏ qua duplicate bằng `drop_duplicates` không audit;
-- đổi behavior k1..k5 để làm mất disagreement;
+- đổi behavior ở các frame không authority để làm mất disagreement;
 - điền Hidden mặc định;
 - bật `--allow-unresolved-video` cho training input;
 - dùng `--max-rows` làm full/short temporal sample;
@@ -567,6 +649,7 @@ Trước khi giao file cho classification_v2, lưu các artifact sau cùng một
 
 ```text
 [ ] input hashes và CVAT task/manifest hashes
+[ ] classification_source_lineage.json và behavior source CSV hash
 [ ] legacy_source_trace_lineage.json
 [ ] exclusion policy hash và duplicate audit
 [ ] legacy_cvat_recovery_input_audit.json

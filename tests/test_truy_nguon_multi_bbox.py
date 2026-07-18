@@ -5,7 +5,8 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-import truy_nguon_multi_bbox as trace
+
+from legacy_burst_recovery import truy_nguon_multi_bbox as trace
 
 
 def _paths(tmp_path: Path) -> dict[str, Path]:
@@ -40,6 +41,7 @@ def _fixture(
             ),
             "group_id": group_id,
             "order": order,
+            "frame": order,
             "pig_id": "ID_1",
             "x1": 1,
             "y1": 2,
@@ -47,6 +49,13 @@ def _fixture(
             "y2": 30,
             "behavior": "stand",
             "hidden": "No",
+            "hidden_attribute_present": True,
+            "behavior_before_authority": "stand",
+            "behavior_authority_task_frame": 0,
+            "behavior_authority_slot": 0,
+            "behavior_disagrees_with_authority": False,
+            "behavior_authority_policy": "first_task_frame_per_group_pig",
+            "is_burst_first_task_frame": order == 0,
         }
         if behavior_video is not None:
             row["video"] = behavior_video
@@ -62,7 +71,7 @@ def _fixture(
                 {
                     "img_path": f"/images/{row['img_name']}",
                     "video": video,
-                    "day": "day01",
+                    "day": "pigs010101",
                     "center_frame": 0,
                     "center_ts": 0.4,
                     "group_id": group_id,
@@ -79,7 +88,7 @@ def _fixture(
                 {
                     "group_id": "pigs010101/color/400",
                     "video": video,
-                    "day": "day01",
+                    "day": "pigs010101",
                     "center_frame": 0,
                     "center_ts": 0.4,
                 }
@@ -137,6 +146,24 @@ def test_manifest_conflict_fails_closed(tmp_path: Path) -> None:
         trace.load_manifest_sources([source])
 
 
+def test_manifest_source_group_key_can_differ_from_canonical_burst_id(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    behavior, source, _, _ = _fixture(tmp_path)
+    manifest_path = source / "manifest_frame_attribute.csv"
+    manifest = pd.read_csv(manifest_path)
+    manifest["group_id"] = "pigs010101/color/400"
+    manifest.to_csv(manifest_path, index=False)
+    paths = _paths(tmp_path)
+
+    _run_main(monkeypatch, _common_args(behavior, source, paths))
+
+    output = pd.read_csv(paths["all"])
+    assert len(output) == 6
+    assert output["group_id"].str.endswith("_400").all()
+
+
 def test_candidate_conflict_fails_closed(tmp_path: Path) -> None:
     _, source, group_id, video = _fixture(
         tmp_path, include_manifest=False, include_candidate=True
@@ -146,6 +173,23 @@ def test_candidate_conflict_fails_closed(tmp_path: Path) -> None:
     candidates.to_csv(source / "bursts_candidates_conflict.csv", index=False)
     with pytest.raises(ValueError, match="conflicting_candidate_authority_keys"):
         trace.load_candidate_sources([source], {group_id})
+
+
+def test_stale_csv_without_first_frame_authority_evidence_fails(
+    tmp_path: Path,
+) -> None:
+    behavior, _, _, _ = _fixture(tmp_path)
+    frame = pd.read_csv(behavior)
+    frame = frame.drop(columns=list(trace.BEHAVIOR_AUTHORITY_COLUMNS))
+
+    contract = trace.validate_behavior_contract(
+        trace.parse_behavior_group(trace.parse_img_name_fields(frame))
+    )
+
+    assert any(
+        issue.startswith("missing_behavior_authority_columns")
+        for issue in contract["issues"]
+    )
 
 
 def test_duplicate_actor_slot_fails_closed(
@@ -212,6 +256,119 @@ def test_output_under_code_directory_is_rejected(tmp_path: Path) -> None:
     args = trace.parse_args(_common_args(behavior, source, paths))
     with pytest.raises(ValueError, match="cannot be written under a code directory"):
         trace.validate_output_paths(args)
+
+
+def test_default_search_roots_resolve_drive_shortcut_target(
+    tmp_path: Path,
+) -> None:
+    drive_root = tmp_path / "My Drive"
+    drive_root.mkdir()
+    for index in (1, 2, 3, 5):
+        (drive_root / f"pig-selected_frame_attribute_({index})").mkdir()
+    shortcut_target = (
+        tmp_path
+        / ".shortcut-targets-by-id"
+        / "source-four-id"
+        / "pig-selected_frame_attribute_(4)"
+    )
+    shortcut_target.mkdir(parents=True)
+
+    roots, records = trace.resolve_default_search_roots(drive_root)
+
+    assert len(roots) == 5
+    assert roots[3] == shortcut_target.resolve()
+    assert records[3]["resolution"] == "shortcut_target"
+
+
+def test_ambiguous_drive_shortcut_target_fails_closed(tmp_path: Path) -> None:
+    drive_root = tmp_path / "My Drive"
+    drive_root.mkdir()
+    for index in (1, 2, 3, 5):
+        (drive_root / f"pig-selected_frame_attribute_({index})").mkdir()
+    for target_id in ("first", "second"):
+        (
+            tmp_path
+            / ".shortcut-targets-by-id"
+            / target_id
+            / "pig-selected_frame_attribute_(4)"
+        ).mkdir(parents=True)
+
+    with pytest.raises(ValueError, match="ambiguous Drive shortcut target"):
+        trace.resolve_default_search_roots(drive_root)
+
+
+def test_video_existence_uses_local_path_but_hash_uses_canonical(
+    tmp_path: Path,
+) -> None:
+    drive_root = tmp_path / "My Drive"
+    local_video = (
+        drive_root
+        / "pig_data_unzipped"
+        / "pigs010101"
+        / "PIGS010101"
+        / "000001"
+        / "color.mp4"
+    )
+    local_video.parent.mkdir(parents=True)
+    local_video.touch()
+    canonical = (
+        "/content/drive/MyDrive/pig_data_unzipped/"
+        "pigs010101/PIGS010101/000001/color.mp4"
+    )
+    group_id = f"burst_color_{trace.md5_code(canonical)}_400"
+    combined = pd.DataFrame(
+        {
+            "group_id": [group_id],
+            "video_final": [canonical],
+            "video_local_path": [
+                trace.resolve_video_local_path(
+                    canonical,
+                    drive_root=drive_root,
+                )
+            ],
+        }
+    )
+
+    audit = trace.validate_resolved_video_contract(
+        combined,
+        allow_unresolved=False,
+        require_exists=True,
+    )
+
+    assert audit["resolved_rows"] == 1
+    assert Path(combined.loc[0, "video_local_path"]) == local_video
+
+
+def test_day_must_match_canonical_video_path() -> None:
+    combined = pd.DataFrame(
+        {
+            "group_id": ["burst_color_deadbeef_400"],
+            "day_final": ["pigs020202"],
+            "video_final": [
+                "/content/drive/MyDrive/pig_data_unzipped/"
+                "pigs010101/PIGS010101/000001/color.mp4"
+            ],
+        }
+    )
+
+    with pytest.raises(ValueError, match="day_video_path_mismatch"):
+        trace.validate_day_contract(combined)
+
+
+def test_manifest_candidate_day_mismatch_fails_closed() -> None:
+    combined = pd.DataFrame(
+        {
+            "group_id": ["burst_color_deadbeef_400"],
+            "img_name": ["burst_color_deadbeef_400_f0_k0.jpg"],
+            "manifest__video": ["/same/video.mp4"],
+            "candidate__video": ["/same/video.mp4"],
+            "manifest__day": ["pigs010101"],
+            "candidate__day": ["pigs020202"],
+        }
+    )
+
+    with pytest.raises(ValueError, match="manifest_candidate_day_mismatch"):
+        trace.validate_manifest_candidate_agreement(combined)
 
 
 def test_existing_outputs_require_explicit_overwrite(

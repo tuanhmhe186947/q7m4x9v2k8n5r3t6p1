@@ -1,5 +1,26 @@
 # Benchmark Notes
 
+## 2026-07-17 classification temporal base screening
+
+- Stage A used seven controlled modes on 245 native validation units from 33
+  video clusters, with matched folds, optimizer exposure, and paired
+  video-cluster uncertainty.
+- `SF128` macro-F1 is `0.355783`. `A128` macro-F1 is `0.372852`, but the
+  operational `A128-SF128` interval crosses zero and locomotion macro-F1 drops
+  by `0.086392`; therefore `A128` is a mixed-reviewed `RETEST`, not a carry.
+- TCN and Transformer fail their parameter-matched mechanism controls. Do not
+  spend legacy compute on their order/timing diagnostics.
+- Stage C retains centered C6 as the one-sequence legacy view. S6 and C8 do
+  not improve macro-F1 under matched exposure.
+- Pen-boundary context is a valid short negative globally, with conditional
+  target-group signals. Reassess it only as an isolated branch on reviewed
+  mixed data.
+- Final base selection requires paired pooled, per-source, source-balanced,
+  missingness, target-group, uncertainty, resource, and lineage evidence on a
+  frozen mixed-reviewed snapshot. No legacy-only rank is final.
+- Stage A v3 SHA256:
+  `b3250ed5391d46e37469a22f16353bbc5f038fa250897c37056fe64a132a6910`.
+
 ## 2026-07-16 tracking P0 historical baseline lock
 
 - Generator commit: `6265f1b3f0d80d622a5d2727cfb6cb1d62aca5d7`.

@@ -19,8 +19,19 @@ src\legacy_burst_recovery
 > Follow
 > `docs/LEGACY_16F_REBUILD_FROM_SCRATCH_RUNBOOK.md`: rebuild
 > center and six-anchor inputs from `data/data/task_0..task_3`, map each actor's
-> `k0` behavior to `k1..k5` and all 16 dense frames, and preserve each CVAT
-> anchor bbox independently. The older commands remain historical reference.
+> behavior from the first CVAT task frame in its burst to all six anchors and
+> all 16 dense frames, and preserve each CVAT anchor bbox independently. The
+> authority slot may be `k0..k5`; older commands remain historical reference.
+
+> **Verified scientific rebuild (2026-07-19):** run
+> `outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2` completed P0-P10.
+> The source filter removed five rows from three declared task_3 actor keys,
+> then 330 rows from reviewed duplicate-video policy, leaving 27,330 anchors,
+> 4,555 actors and 72,880 canonical frame-object rows. P9 audits only retained
+> actor keys after reloading raw CVAT, so already-filtered source defects do
+> not reappear as clean-export warnings. `x1_raw..y2_raw` preserve CVAT bbox
+> authority exactly; bounded `x1..y2` remain operational columns. No training,
+> OOF, raw-data edit or tracking change belongs to this run.
 
 The pre-CVAT combined/all-bbox CSVs and the old generated 16-frame export are
 archived under
@@ -29,13 +40,113 @@ archived under
 is an input to the current rebuild. The nodup center table is recreated inside
 the versioned run root and is used as metadata scaffold only.
 
+## Canonical 16-frame rebuild workflow
+
+Phần này là hướng dẫn thực thi hiện hành. Các lệnh 13-frame và root CSV cũ ở
+phần lịch sử bên dưới chỉ dùng forensic comparison, không dùng để rebuild.
+Chi tiết stop condition nằm trong
+`docs/LEGACY_16F_REBUILD_FROM_SCRATCH_RUNBOOK.md`.
+
+### 0. Khởi tạo môi trường và lineage
+
+```bat
+cd /d C:\Users\ironh\Downloads\PIG_Behavior_Project
+set PY=C:\Users\ironh\anaconda3\envs\pig_project\python.exe
+set PYTHONPATH=%CD%\src
+set S0=scripts\classification_v2\00_source_feature_temporal
+set RUN_ID=legacy_16f_rebuild_REPLACE_DATE_v1
+set RUN=%CD%\outputs\legacy_16f_rebuild\%RUN_ID%
+set SOURCE_INPUT=%RUN%\00_behavior_source
+set PROV=%RUN%\01_provenance
+set POLICY=%RUN%\02_video_policy
+set CVAT_AUDIT=%RUN%\03_cvat_audit
+set CVAT_INPUT=%RUN%\04_cvat_inputs
+set SMOKE=%RUN%\05_short_smoke
+set FULL=%RUN%\06_full_recovery
+set EXPORT=%RUN%\07_export
+set AUDIT=%RUN%\08_audits
+
+if exist "%RUN%" (
+  echo ERROR: choose a fresh RUN_ID
+  exit /b 2
+)
+mkdir "%SOURCE_INPUT%" "%PROV%" "%POLICY%" "%CVAT_AUDIT%"
+mkdir "%CVAT_INPUT%" "%SMOKE%" "%FULL%" "%EXPORT%" "%AUDIT%"
+```
+
+Mỗi thư mục là một lineage stage. Không overwrite output cũ hoặc ghi derived
+artifact dưới `data/`.
+
+### 0.1. Freeze input authority
+
+Authority hiện hành là XML cho `task_0..task_2` và JSON cho `task_3`; mỗi task
+chỉ dùng một format. Lưu các hash này cùng run manifest trước khi chạy:
+
+```bat
+certutil -hashfile data\data\task_0\annotations.xml SHA256
+certutil -hashfile data\data\task_0\data\manifest.jsonl SHA256
+certutil -hashfile data\data\task_1\annotations.xml SHA256
+certutil -hashfile data\data\task_1\data\manifest.jsonl SHA256
+certutil -hashfile data\data\task_2\annotations.xml SHA256
+certutil -hashfile data\data\task_2\data\manifest.jsonl SHA256
+certutil -hashfile data\data\task_3\annotations.json SHA256
+certutil -hashfile data\data\task_3\data\manifest.jsonl SHA256
+certutil -hashfile data\annotations\roi\ROI_annotations.coco.json SHA256
+certutil -hashfile data\annotations\scene\mask.png SHA256
+certutil -hashfile models\detector\pig_detector_yolov8.pt SHA256
+```
+
+Nếu source hash đổi sau short gate, tạo `RUN_ID` mới và chạy lại từ đầu. XML
+lỗi không được fallback âm thầm sang JSON cũ.
+
+### 1. Audit native CVAT và tạo behavior source
+
+Quality checker chỉ đọc source và chỉ rõ task/frame cần sửa:
+
+```bat
+%PY% %S0%\check_cvat_annotation_quality.py ^
+  --task-export-root "%CD%\data\data" ^
+  --print-issues
+```
+
+Phải không còn missing anchor, actor vắng authority frame, duplicate identity,
+invalid bbox hoặc manifest mismatch. Sau đó chạy generator audit-only:
+
+```bat
+%PY% -m pig_behavior.data.classification_dataset ^
+  --cvat-export-root "%CD%\data\data" ^
+  --roi-coco-json "%CD%\data\annotations\roi\ROI_annotations.coco.json" ^
+  --output-dir "%SOURCE_INPUT%" ^
+  --dry-run
+```
+
+Khi dry-run PASS, ghi source bằng đúng semantic config:
+
+```bat
+%PY% -m pig_behavior.data.classification_dataset ^
+  --cvat-export-root "%CD%\data\data" ^
+  --roi-coco-json "%CD%\data\annotations\roi\ROI_annotations.coco.json" ^
+  --output-dir "%SOURCE_INPUT%"
+```
+
+Ba output là:
+
+```text
+behavior_clean_merged.csv
+behavior_with_feats_rectROI.csv
+classification_source_lineage.json
+```
+
+Behavior lấy từ frame có CVAT task index nhỏ nhất trong burst, không phải luôn
+`k0`. Bbox và Hidden vẫn giữ theo từng anchor frame.
+
 ### Provenance trace guard
 
 `truy_nguon_multi_bbox.py` is a historical provenance scaffold, not the
 current CVAT annotation authority and not a training-data builder. It resolves
 source-video and manifest metadata for old burst rows; current CVAT behavior
-authority remains `k0`, and current CVAT bbox authority remains the independent
-`k0..k5` anchors handled by the CVAT rebuild modules.
+authority is the first task frame per burst, while current CVAT bbox authority
+remains the independent `k0..k5` anchors handled by the rebuild modules.
 
 The trace script now fails closed unless every `(group_id, pig_id)` has exactly
 one valid row for each `k/order` in `0..5`, image-name fields agree with
@@ -54,9 +165,324 @@ explicit audit artifact; those flags must not be used for train-ready data.
 The backward-compatible center CSV still selects historical `k3` and is
 metadata evidence only.
 
+### 2. Truy nguồn ngày và source video
+
+Chạy audit trước:
+
+```bat
+set BEHAVIOR_CSV=%SOURCE_INPUT%\behavior_with_feats_rectROI.csv
+
+%PY% src\legacy_burst_recovery\truy_nguon_multi_bbox.py ^
+  --behavior-csv "%BEHAVIOR_CSV%" ^
+  --drive-root "G:\My Drive" ^
+  --out-center-csv "%PROV%\old_burst_center_keyframes_combined.csv" ^
+  --out-all-bbox-csv "%PROV%\old_burst_all_keyframe_bboxes_combined.csv" ^
+  --out-audit-csv "%PROV%\legacy_gt_support_audit.csv" ^
+  --out-missing-csv "%PROV%\missing_old_burst_groups.csv" ^
+  --out-lineage-json "%PROV%\legacy_source_trace_lineage.json" ^
+  --require-video-exists ^
+  --dry-run
+```
+
+Khi PASS, chạy write mode:
+
+```bat
+%PY% src\legacy_burst_recovery\truy_nguon_multi_bbox.py ^
+  --behavior-csv "%BEHAVIOR_CSV%" ^
+  --drive-root "G:\My Drive" ^
+  --out-center-csv "%PROV%\old_burst_center_keyframes_combined.csv" ^
+  --out-all-bbox-csv "%PROV%\old_burst_all_keyframe_bboxes_combined.csv" ^
+  --out-audit-csv "%PROV%\legacy_gt_support_audit.csv" ^
+  --out-missing-csv "%PROV%\missing_old_burst_groups.csv" ^
+  --out-lineage-json "%PROV%\legacy_source_trace_lineage.json" ^
+  --require-video-exists
+```
+
+`video_final` là canonical path dùng cho hash; `video_local_path` là Windows
+path dùng để đọc video. `day_final` phải khớp thành phần ngày trong
+`video_final`.
+
 At the time of this rebuild, `src/legacy_burst_recovery` contains no generated
 CSV files. The archived nodup center CSV and other historical artifacts must
 not be mistaken for the new CVAT-derived lineage.
+
+### 3. Áp source-video exclusion policy và tạo nodup scaffold
+
+`%POLICY%\exclude_source_videos.csv` là quyết định operator đã kiểm tra, không
+phải file agent được tự suy ra hoặc tạo rỗng. Repository hiện không giữ một
+bản policy có thể copy tự động. Operator phải handoff file đã xác nhận với
+schema `video_file,day_key,clip_id,source_video_key` vào đúng đường dẫn:
+
+```text
+%POLICY%\exclude_source_videos.csv
+```
+
+Sau handoff, gate sự tồn tại bằng lệnh:
+
+```bat
+if not exist "%POLICY%\exclude_source_videos.csv" (
+  echo STOP: reviewed exclusion policy is required
+  exit /b 2
+)
+```
+
+Audit duplicate trước:
+
+```bat
+%PY% -m legacy_burst_recovery.check_duplicate_videos ^
+  --legacy-csv "%PROV%\old_burst_center_keyframes_combined.csv" ^
+  --exclude-csv "%POLICY%\exclude_source_videos.csv" ^
+  --output-csv "%POLICY%\duplicate_video_preview.csv" ^
+  --audit-json "%POLICY%\duplicate_video_filter_audit.json" ^
+  --dry-run
+```
+
+Sau PASS, ghi preview/audit bằng đúng input:
+
+```bat
+%PY% -m legacy_burst_recovery.check_duplicate_videos ^
+  --legacy-csv "%PROV%\old_burst_center_keyframes_combined.csv" ^
+  --exclude-csv "%POLICY%\exclude_source_videos.csv" ^
+  --output-csv "%POLICY%\duplicate_video_preview.csv" ^
+  --audit-json "%POLICY%\duplicate_video_filter_audit.json"
+```
+
+Sau đó audit nodup scaffold trước:
+
+```bat
+%PY% -m legacy_burst_recovery.make_nodup_legacy_csvs ^
+  --center-csv "%PROV%\old_burst_center_keyframes_combined.csv" ^
+  --bbox-csv "%PROV%\old_burst_all_keyframe_bboxes_combined.csv" ^
+  --exclude-csv "%POLICY%\exclude_source_videos.csv" ^
+  --output-dir "%POLICY%\nodup" ^
+  --dry-run
+```
+
+Khi PASS, ghi nodup scaffold:
+
+```bat
+%PY% -m legacy_burst_recovery.make_nodup_legacy_csvs ^
+  --center-csv "%PROV%\old_burst_center_keyframes_combined.csv" ^
+  --bbox-csv "%PROV%\old_burst_all_keyframe_bboxes_combined.csv" ^
+  --exclude-csv "%POLICY%\exclude_source_videos.csv" ^
+  --output-dir "%POLICY%\nodup"
+```
+
+Nodup center chỉ cung cấp metadata group/video; sáu bbox và behavior authority
+vẫn phải nạp lại từ native CVAT.
+
+### 4. Audit và tạo CVAT six-anchor recovery inputs
+
+Audit-only không được ghi center/anchor CSV khi còn lỗi:
+
+```bat
+%PY% %S0%\classification_v2_rebuild_legacy_cvat_recovery_inputs.py ^
+  --cvat-export-root "%CD%\data\data" ^
+  --metadata-scaffold-csv ^
+  "%POLICY%\nodup\old_burst_center_keyframes_nodup_videos.csv" ^
+  --exclude-actor-key-csv "%POLICY%\excluded_actor_keys.csv" ^
+  --output-dir "%CVAT_AUDIT%" ^
+  --behavior-authority-policy first_task_frame_per_group ^
+  --min-anchor-count 6 ^
+  --audit-only
+```
+
+Sau clean PASS, ghi recovery input vào thư mục tách biệt:
+
+```bat
+%PY% %S0%\classification_v2_rebuild_legacy_cvat_recovery_inputs.py ^
+  --cvat-export-root "%CD%\data\data" ^
+  --metadata-scaffold-csv ^
+  "%POLICY%\nodup\old_burst_center_keyframes_nodup_videos.csv" ^
+  --exclude-actor-key-csv "%POLICY%\excluded_actor_keys.csv" ^
+  --output-dir "%CVAT_INPUT%" ^
+  --behavior-authority-policy first_task_frame_per_group ^
+  --min-anchor-count 6
+```
+
+Output có ý nghĩa:
+
+```text
+legacy_center_keyframes_from_cvat.csv
+  metadata một actor-burst để recovery
+legacy_six_anchor_bboxes_from_cvat.csv
+  sáu bbox GT độc lập tại 0,3,6,9,12,15
+legacy_recovery_input_manifest.json
+  hash và contract của recovery input
+legacy_cvat_recovery_input_audit.json
+  row/key/error/exclusion accounting
+```
+
+### 5. One-complete-group recovery smoke
+
+Chọn thủ công một `group_id` đã được audit là complete:
+
+```bat
+set SMOKE_GROUP=REPLACE_WITH_COMPLETE_GROUP_ID
+
+%PY% -m legacy_burst_recovery.main ^
+  --input-csv "%CVAT_INPUT%\legacy_center_keyframes_from_cvat.csv" ^
+  --legacy-burst-bbox-csv ^
+  "%CVAT_INPUT%\legacy_six_anchor_bboxes_from_cvat.csv" ^
+  --drive-root "G:\My Drive" ^
+  --output-root "%SMOKE%\recovery" ^
+  --detector-weights "%CD%\models\detector\pig_detector_yolov8.pt" ^
+  --scene-mask "%CD%\data\annotations\scene\mask.png" ^
+  --mask-filter-detections ^
+  --mask-min-bbox-coverage 0.50 ^
+  --mask-require-center-inside ^
+  --track-end-mode full_legacy_burst ^
+  --extract-crops ^
+  --filter-group-id "%SMOKE_GROUP%" ^
+  --sequence-views legacy_old_pattern_6 ^
+  --progress
+
+%PY% %S0%\check_classification_v2_legacy_cvat_recovery_output.py ^
+  --center-csv "%CVAT_INPUT%\legacy_center_keyframes_from_cvat.csv" ^
+  --anchor-csv "%CVAT_INPUT%\legacy_six_anchor_bboxes_from_cvat.csv" ^
+  --dense-csv "%SMOKE%\recovery\legacy_dense_tracklet_map.csv" ^
+  --audit-json "%SMOKE%\recovery\cvat_recovery_output_audit.json" ^
+  --filter-group-id "%SMOKE_GROUP%"
+```
+
+Smoke phải chứng minh đủ 16 frame, giữ nguyên sáu GT bbox và không duplicate
+frame/object key. Không dùng `--max-rows` vì có thể cắt giữa native unit.
+
+### 6. Full dense recovery sau short gate
+
+Chỉ chạy full khi checker của chính smoke trên PASS, config không đổi và hash
+input vẫn khớp. Không dùng `--resume` cho output root chưa từng chạy:
+
+```bat
+%PY% -m legacy_burst_recovery.main ^
+  --input-csv "%CVAT_INPUT%\legacy_center_keyframes_from_cvat.csv" ^
+  --legacy-burst-bbox-csv ^
+  "%CVAT_INPUT%\legacy_six_anchor_bboxes_from_cvat.csv" ^
+  --drive-root "G:\My Drive" ^
+  --output-root "%FULL%" ^
+  --detector-weights "%CD%\models\detector\pig_detector_yolov8.pt" ^
+  --scene-mask "%CD%\data\annotations\scene\mask.png" ^
+  --mask-filter-detections ^
+  --mask-min-bbox-coverage 0.50 ^
+  --mask-require-center-inside ^
+  --track-end-mode full_legacy_burst ^
+  --extract-crops ^
+  --sequence-views legacy_old_pattern_6 ^
+  --progress ^
+  --log-file "%FULL%\legacy_16f_recovery.log" ^
+  --flush-every 500
+```
+
+Không truyền `--manual-review-csv`. Full recovery này tạo dense source và
+không được gắn nhãn human-reviewed. Nếu job bị gián đoạn, chỉ resume trong
+cùng output root khi config và mọi input hash không đổi.
+
+### 7. Audit toàn bộ dense recovery
+
+Chạy checker không có `--filter-group-id` để audit tất cả actor-burst:
+
+```bat
+%PY% %S0%\check_classification_v2_legacy_cvat_recovery_output.py ^
+  --center-csv "%CVAT_INPUT%\legacy_center_keyframes_from_cvat.csv" ^
+  --anchor-csv "%CVAT_INPUT%\legacy_six_anchor_bboxes_from_cvat.csv" ^
+  --dense-csv "%FULL%\legacy_dense_tracklet_map.csv" ^
+  --audit-json "%AUDIT%\full_cvat_recovery_output_audit.json"
+```
+
+Audit phải xác nhận đủ 16 frame mỗi actor, đúng sáu anchor
+`0,3,6,9,12,15`, không duplicate key, bảo toàn behavior/Hidden/bbox và khớp
+row accounting. Có actor bị loại hoặc row bị mất thì phải có issue và lý do
+rõ; exit code 0 đơn lẻ chưa đủ để PASS.
+
+### 8. Export `legacy_frame_object_annotations.csv`
+
+Export đọc dense map vừa PASS, không đọc CSV combined cũ:
+
+```bat
+%PY% -m legacy_burst_recovery.export_legacy_annotations ^
+  --dense-csv "%FULL%\legacy_dense_tracklet_map.csv" ^
+  --output-dir "%EXPORT%" ^
+  --dataset-id legacy_recovered_16f ^
+  --source-type legacy_recovered ^
+  --expected-sequence-length 16 ^
+  --anchor-relative-frames 0,3,6,9,12,15 ^
+  --expected-pig-count 8 ^
+  --cvat-behavior-authority-root "%CD%\data\data" ^
+  --behavior-authority-policy first_task_frame_per_group
+```
+
+Không dùng `--training-only`: canonical export phải giữ mọi row để audit và
+giữ context. Export nạp lại native CVAT để xác minh độc lập behavior authority;
+discrepancy phải làm gate dừng, không được tự sửa label.
+
+### 9. Kiểm tra export và khóa hash
+
+Các artifact bắt buộc:
+
+```text
+legacy_frame_object_annotations.csv
+legacy_frame_object_export_audit.json
+legacy_cvat_behavior_authority_audit.json
+legacy_cvat_behavior_discrepancies.csv
+```
+
+Kiểm tra row, key, 16-frame contract, class và sáu anchor:
+
+```bat
+%PY% -c ^
+  "import pandas as pd; ^
+  p=r'%EXPORT%\legacy_frame_object_annotations.csv'; ^
+  d=pd.read_csv(p,low_memory=False); ^
+  k=['group_id','pig_id','frame_index']; ^
+  print('rows=',len(d)); ^
+  print('duplicate_keys=',int(d.duplicated(k).sum())); ^
+  print(d.groupby(k[:2])['frame_index'].nunique().value_counts()); ^
+  print(d['behavior'].value_counts(dropna=False).sort_index()); ^
+  print(d.loc[d['is_legacy_gt_anchor'],'relative_frame_index'].value_counts())"
+```
+
+Kết quả phải có `duplicate_keys=0`, mọi actor hợp lệ có 16 frame và đúng sáu
+anchor. Audit JSON phải `status=PASS`, không invalid bbox, mismatch row count
+hoặc behavior-authority discrepancy.
+
+Khóa hash artifact dùng cho handoff:
+
+```bat
+certutil -hashfile ^
+  "%CVAT_INPUT%\legacy_recovery_input_manifest.json" SHA256
+certutil -hashfile "%FULL%\legacy_dense_tracklet_map.csv" SHA256
+certutil -hashfile ^
+  "%EXPORT%\legacy_frame_object_annotations.csv" SHA256
+certutil -hashfile ^
+  "%EXPORT%\legacy_frame_object_export_audit.json" SHA256
+```
+
+### 10. Xử lý lỗi và stop conditions
+
+- Lỗi code hoặc checker: vá tối thiểu, thêm regression test, chạy lại static
+  check và chính one-group smoke trước khi cho phép full.
+- Lỗi derived artifact: sửa logic rồi sinh lại trong lineage versioned sạch;
+  không sửa CSV output bằng tay.
+- Lỗi native CVAT: báo đúng task, frame, group, pig và issue để người dùng sửa
+  rồi re-export; không sửa file dưới `data/`.
+- Policy chưa rõ, như video exclusion: dừng và xin quyết định; không tự tạo
+  default hoặc file rỗng để vượt gate.
+
+Dừng tuyệt đối nếu còn missing anchor, duplicate identity, invalid bbox,
+unresolved video, actor vắng behavior-authority frame, row loss, duplicate
+frame/object key, mismatch hash hoặc short audit chưa PASS. Không vượt gate
+bằng `drop_duplicates`, copied bbox, default label/Hidden,
+`--allow-unresolved-video`, `--max-rows` hoặc audit rỗng.
+
+File cuối chỉ đủ điều kiện handoff khi toàn bộ source/provenance/policy/CVAT,
+short/full recovery và export audit cùng nằm trong một `%RUN%`, đều có hash và
+không còn error chưa giải quyết. Human review và feature building diễn ra ở
+lineage `classification_v2` riêng sau đó; không chạy training hoặc OOF ở đây.
+
+## Historical 13-frame reference
+
+Các phần dưới đây mô tả output và lệnh cũ để forensic comparison. Không dùng
+chúng để tạo lineage 16f hiện hành.
 
 Output full 13-frame hiện tại:
 

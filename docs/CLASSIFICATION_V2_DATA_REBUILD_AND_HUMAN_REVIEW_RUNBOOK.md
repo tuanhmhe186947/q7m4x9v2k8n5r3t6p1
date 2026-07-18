@@ -22,6 +22,34 @@ feature contract. Legacy L0-L8 cũng đã hoàn tất riêng cho profile
 review của profile `mixed-reviewed`, không cấp quyền gọi data là reviewed và
 không tự cấp quyền chạy full OOF.
 
+### Trạng thái canonical của legacy 16f ngày 2026-07-19
+
+Run canonical là
+`outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2`. P0-P10 đã PASS:
+27.665 raw CVAT rows, loại đúng 5 source rows thuộc 3 actor lỗi, giữ 27.660
+source rows, loại 330 rows theo reviewed-video policy, còn 27.330 anchors,
+4.555 actors, 666 groups và 72.880 export rows. Mỗi actor được giữ có đủ 16
+frames và sáu anchors `0,3,6,9,12,15`.
+
+`P0-P10 PASS` hoặc `technically clean` chỉ xác nhận cấu trúc, nguồn, policy,
+lineage và export nhất quán. Nó không xác nhận nhãn behavior đúng về sinh học
+và không biến Hidden thành human-trusted. Ba actor bị loại là source-quality
+policy, không phải human-review decision:
+
+- `burst_color_11c02639_300 / ID_3`
+- `burst_color_5532ba8c_200 / ID_5`
+- `burst_color_77fe4f70_33 / ID_1`
+
+Legacy 16f vẫn phải đi qua cả hai lớp review trước khi train-ready:
+
+1. review Hidden hai chiều ở grain frame/object sau enhanced frame features;
+2. review behavior ở complete native unit 16-frame.
+
+Coverage được xác minh của lineage mới hiện vẫn là `Hidden = 0 decisions` và
+`behavior = 0 decisions`. Không được dùng trạng thái sạch kỹ thuật để bypass
+hai gate này, tạo final reviewed snapshot, chạy training trên active data hoặc
+chạy full OOF.
+
 ## 1. Trạng thái và quyền chạy full
 
 Người dùng đã cho phép chạy full. Quyền này là **có điều kiện** và không bỏ qua
@@ -50,7 +78,9 @@ tracking đã xuất thuộc tính đó.
 ## 2. Bất biến khoa học
 
 - Không sửa, xóa, đổi tên hoặc overwrite bất kỳ file nào dưới `data\`.
-- Không drop row để làm số đẹp. Exclude phải giữ row và ghi mask/weight/action.
+- Không drop row để làm số đẹp. Source-defect policy được phép loại row khỏi
+  retained universe, nhưng phải giữ đầy đủ policy/audit accounting. Exclusion
+  do human review phải giữ row và ghi mask/weight/action.
 - Không đổi label ngoài GUI decision và apply audit.
 - Legacy dùng native/review unit 16 frame; decision áp cho cả burst.
 - CVAT dùng anchor `k` cho interval `k..k+5`; decision áp cho cả 6 frame.
@@ -79,8 +109,8 @@ tracking đã xuất thuộc tính đó.
 ## 3. Sơ đồ dữ liệu
 
 ```text
-CVAT task_0..task_3 annotations.json + manifest.jsonl
-  -> audit k0 behavior authority và sáu bbox anchor k0..k5
+CVAT task_0..task_2 XML + task_3 JSON + manifest.jsonl
+  -> audit first-task-frame behavior authority và sáu bbox anchor k0..k5
   -> legacy center/scaffold CSV + six-anchor bbox CSV
   -> dense legacy recovery: 16 frame, mười frame xen giữa được khôi phục
   -> legacy_dense_tracklet_map.csv mới trong versioned root
@@ -168,6 +198,13 @@ set HSMDEC=%UROOT%\human_decisions\hidden_smoke
 set HDEC=%UROOT%\human_decisions\hidden
 set DEC=%UROOT%\human_decisions\behavior
 set RFRAME=%R%\07_reviewed_frames
+set L16RUN=outputs\legacy_16f_rebuild\legacy_16f_rebuild_20260718_v2
+set L16EXPORT=%L16RUN%\07_export
+set L16CROPS=%L16RUN%\06_full_recovery\crops
+set L16POLICY=%L16RUN%\02_video_policy
+set L16SCAFFOLD=%L16POLICY%\nodup\old_burst_center_keyframes_nodup_videos.csv
+set L16ACTORPOLICY=%L16POLICY%\excluded_actor_keys.csv
+set L16P10=%L16RUN%\08_audits\legacy_16f_rebuild_completion_audit.json
 ```
 
 `%UROOT%` intentionally stops at `%RFRAME%`. Do not declare reviewed sequence,
@@ -281,18 +318,21 @@ intermediate vào lineage mới.
 Kiểm tra file tồn tại trước khi chạy. Lệnh chỉ đọc:
 
 ```bat
-dir /b data\raw\legacy_full_multigt_masked_nodup_16f
+dir /b "%L16EXPORT%"
+dir /b "%L16CROPS%"
+dir /b "%L16POLICY%"
 dir /b data\annotations\tracking
 dir /b data\videos
 certutil -hashfile ^
-  data\raw\legacy_full_multigt_masked_nodup_16f\legacy_dense_tracklet_map.csv ^
-  SHA256
-certutil -hashfile old_burst_center_keyframes_nodup_videos.csv SHA256
-certutil -hashfile data\data\task_0\annotations.json SHA256
+"%L16EXPORT%\legacy_frame_object_annotations.csv" SHA256
+certutil -hashfile "%L16P10%" SHA256
+certutil -hashfile "%L16SCAFFOLD%" SHA256
+certutil -hashfile "%L16ACTORPOLICY%" SHA256
+certutil -hashfile data\data\task_0\annotations.xml SHA256
 certutil -hashfile data\data\task_0\data\manifest.jsonl SHA256
-certutil -hashfile data\data\task_1\annotations.json SHA256
+certutil -hashfile data\data\task_1\annotations.xml SHA256
 certutil -hashfile data\data\task_1\data\manifest.jsonl SHA256
-certutil -hashfile data\data\task_2\annotations.json SHA256
+certutil -hashfile data\data\task_2\annotations.xml SHA256
 certutil -hashfile data\data\task_2\data\manifest.jsonl SHA256
 certutil -hashfile data\data\task_3\annotations.json SHA256
 certutil -hashfile data\data\task_3\data\manifest.jsonl SHA256
@@ -338,46 +378,43 @@ lần chạy sau nghĩa là lineage mới và phải chạy short chain lại.
 
 ### 6.0. Reference hiện có và lineage mới
 
-File người dùng nêu là derived reference, không phải raw input bất biến. Bản
-cũ đã được chuyển vào archive để tách khỏi output của lần rebuild mới:
+Canonical handoff hiện hành là output P10 đã khóa của run 2026-07-18:
 
 ```text
-outputs\_archive\legacy_16f_pre_cvat_rebuild_20260717\legacy_full_multigt_masked_nodup_16f\exports_v2\
-legacy_frame_object_annotations.csv
+%L16EXPORT%\legacy_frame_object_annotations.csv
+SHA256=fbd6300fca8fdab0b2c644626397ec6c6aa79f80b48a383f54e745cbcbcbcad3
 ```
 
-Audit hiện tại của reference: 72.864 row, 4.554 tracklet, mỗi tracklet đúng 16
-frame, 0 duplicate tracklet/frame, 0 behavior thay đổi trong burst, 0 bbox
-invalid và đủ 10 behavior. SHA256 hiện tại là:
+Artifact này có 72.880 rows, 4.555 actors và 666 groups. Completion audit là
+`%L16P10%`; export discrepancy rows bằng 0. Downstream human-review rebuild
+phải consume export này, không tự chạy lại full recovery. Chỉ rebuild P0-P10
+khi source, code hoặc semantic configuration thay đổi.
 
-```text
-adbdb572b976e9f63cff5f9b29ced649f37fa80dd382336b3678f71ac50ff636
-```
-
-Xác nhận lại bằng lệnh chỉ đọc:
+Reference 72.864 rows/4.554 actors và hash
+`adbdb572b976e9f63cff5f9b29ced649f37fa80dd382336b3678f71ac50ff636` chỉ là
+archive lịch sử trước rebuild; không dùng làm expected count hoặc authority.
+Xác nhận canonical handoff bằng lệnh chỉ đọc:
 
 ```bat
-certutil -hashfile ^
-  outputs\_archive\legacy_16f_pre_cvat_rebuild_20260717\legacy_full_multigt_masked_nodup_16f\exports_v2\^
-legacy_frame_object_annotations.csv SHA256
+certutil -hashfile "%L16EXPORT%\legacy_frame_object_annotations.csv" SHA256
+type "%L16P10%"
 ```
 
-Không overwrite reference này khi rebuild. Mỗi run phải xuất bản mới dưới
-`%SRC%\legacy_export`, rồi so row/schema/hash với reference. Hash khác không tự
-động là lỗi, nhưng phải giải thích bằng code SHA, input hash hoặc config diff.
+Không overwrite canonical run. Một rebuild mới phải dùng root versioned mới và
+được so với P10 bằng input hash, code SHA, config và policy diff.
 
-Nhãn behavior authority của legacy phải được nạp lại từ toàn bộ CVAT native
-export `data\data\task_0..task_3`. `annotations.json.shape.frame` là chỉ số ảnh
-toàn task; nó phải map qua `data\manifest.jsonl`. Authority là slot `k0` của
-**từng** `(group_id, pig_id)`, không phải global task frame `0`. Manifest sắp
-lexicographical nên thứ tự task có thể là `k0,k4,k5,k1,k2,k3`; không được suy
-slot bằng vị trí liên tiếp hoặc công thức task-frame.
+Nhãn behavior authority của legacy được nạp từ toàn bộ CVAT native export
+`data\data\task_0..task_3`. Task 0-2 dùng `annotations.xml`; task 3 dùng
+`annotations.json`. Frame ID phải map qua `data\manifest.jsonl` của đúng task.
+Authority là CVAT task frame nhỏ nhất trong từng group, không nhất thiết là slot
+`k0`. Trong canonical export, 147/666 groups có authority khác k0 và 1.069/4.555
+actors thuộc các group này; phân bố slot là k0=519, k1=34, k2=45, k3=68.
 
 Chính sách legacy 16f:
 
-- behavior `k0` của từng `(group_id, pig_id)` là authority duy nhất;
-- behavior đó được map sang đúng năm anchor `k1..k5`, rồi giữ nguyên trên đủ
-  16 dense frame; nhãn behavior tại `k1..k5` chỉ dùng làm disagreement audit;
+- behavior ở first task frame của group là authority duy nhất và được giữ
+  nguyên trên đủ 16 dense frames;
+- behavior ở các task frame còn lại chỉ dùng làm disagreement audit;
 - bbox ở từng `k0..k5` là sáu GT độc lập từ CVAT, không copy bbox `k0`;
 - mười frame không phải anchor được detector/tracker khôi phục có ràng buộc
   giữa các GT lân cận; tại anchor, bbox CVAT luôn thắng;
@@ -387,9 +424,10 @@ Chính sách legacy 16f:
 - mọi Hidden sinh từ CVAT phải giữ `hidden_is_trusted=False`, status
   `seed_unreviewed`/`untrusted_cvat_seed`; downstream frame-level Hidden review
   mới có quyền chuyển nó thành trusted;
-- thiếu `k0` thì actor không có target hợp lệ và bị loại khỏi recovery input;
-- duplicate `(group_id, slot, pig_id)`, behavior `k0` không hợp lệ hoặc bbox
-  không hợp lệ làm audit dừng trước khi sinh recovery CSV;
+- actor không xuất hiện ở behavior-authority frame hoặc thiếu một trong sáu
+  anchors thì bị loại khỏi recovery input theo policy khai báo;
+- duplicate `(group_id, slot, pig_id)`, behavior authority không hợp lệ hoặc
+  bbox không hợp lệ làm audit dừng trước khi sinh recovery CSV;
 - không fallback về behavior hoặc bbox dense cũ khi CVAT authority bị thiếu.
 
 ### 6.1. Audit và dựng recovery input từ CVAT
@@ -403,17 +441,18 @@ if exist "%LCVAT_AUDIT%" ^
   (echo ERROR: legacy CVAT audit root exists & exit /b 2)
 %PY% %S0%\classification_v2_rebuild_legacy_cvat_recovery_inputs.py ^
   --cvat-export-root data\data ^
-  --metadata-scaffold-csv old_burst_center_keyframes_nodup_videos.csv ^
+  --metadata-scaffold-csv "%L16SCAFFOLD%" ^
+  --exclude-actor-key-csv "%L16ACTORPOLICY%" ^
   --output-dir "%LCVAT_AUDIT%" ^
-  --behavior-authority-slot 0 ^
+  --behavior-authority-policy first_task_frame_per_group ^
   --min-anchor-count 6 ^
   --audit-only
 ```
 
 PASS yêu cầu `errors=[]`, không duplicate anchor identity và không invalid
-`k0` behavior/bbox/Hidden. Chỉ actor có đúng sáu slot `k0..k5` mới được đưa vào
-recovery input. Actor có 1-5 anchor, thiếu `k0`, sai slot hoặc sai frame map phải
-bị loại có khai báo trong issues CSV. Không tự chọn một bbox duplicate.
+first-frame behavior/bbox/Hidden. Chỉ actor có đúng sáu slot `k0..k5` và xuất
+hiện ở first task frame mới được đưa vào recovery input. Actor thiếu anchor,
+vắng ở authority frame, sai slot hoặc sai frame map phải bị loại có khai báo.
 
 Sau khi audit PASS, dùng root versioned mới và bỏ `--audit-only`:
 
@@ -422,9 +461,10 @@ set LCVAT=%SRC%\legacy_cvat_rebuild
 if exist "%LCVAT%" (echo ERROR: legacy CVAT rebuild root exists & exit /b 2)
 %PY% %S0%\classification_v2_rebuild_legacy_cvat_recovery_inputs.py ^
   --cvat-export-root data\data ^
-  --metadata-scaffold-csv old_burst_center_keyframes_nodup_videos.csv ^
+  --metadata-scaffold-csv "%L16SCAFFOLD%" ^
+  --exclude-actor-key-csv "%L16ACTORPOLICY%" ^
   --output-dir "%LCVAT%" ^
-  --behavior-authority-slot 0 ^
+  --behavior-authority-policy first_task_frame_per_group ^
   --min-anchor-count 6
 ```
 
@@ -451,8 +491,8 @@ source_video_key
 The old actor-level values in the scaffold are not annotation authority. In
 particular, do not copy or validate old `trigger_type`, `roi_name`,
 `near_roi`, ROI distances, center-derived coordinates, or other stale spatial
-features. CVAT is authoritative for each actor's six native boxes, k0
-behavior, and anchor Hidden value. `classification_v2` recomputes ROI,
+features. CVAT is authoritative for each actor's six native boxes,
+first-task-frame behavior and anchor Hidden value. `classification_v2` recomputes ROI,
 geometry, motion, social, and pen features from the rebuilt frame/object rows.
 
 If `source_video_key` is blank, the rebuild may derive it deterministically
@@ -463,7 +503,8 @@ the parseable video path or `day_final` is an error; no default key is used.
 The center row is always the exact CVAT k0 row. Its bbox, Hidden, image name,
 `center_frame_from_img`, and `center_frame_final` must come from k0, with
 `bbox_anchor_slot=0` and `frame_mismatch=False`. The old scaffold center frame
-must never select a different anchor.
+must never select a different anchor. Đây chỉ là center-bbox authority; nó không
+ghi đè behavior authority nếu first task frame của group là k1, k2 hoặc k3.
 
 ### 6.2. Một-burst dense recovery smoke
 
@@ -485,6 +526,7 @@ if exist "%LSMREC%" (echo ERROR: recovery smoke root exists & exit /b 2)
   --scene-mask data\annotations\scene\mask.png ^
   --mask-filter-detections --mask-min-bbox-coverage 0.50 ^
   --mask-require-center-inside --track-end-mode full_legacy_burst ^
+  --sequence-views legacy_old_pattern_6 ^
   --extract-crops --filter-group-id "%LEGACY_SMOKE_GROUP%" ^
   --progress --log-file "%LSMREC%.log"
 %PY% %S0%\check_classification_v2_legacy_cvat_recovery_output.py ^
@@ -516,6 +558,7 @@ if exist "%LFREC%" (echo ERROR: full recovery root exists & exit /b 2)
   --scene-mask data\annotations\scene\mask.png ^
   --mask-filter-detections --mask-min-bbox-coverage 0.50 ^
   --mask-require-center-inside --track-end-mode full_legacy_burst ^
+  --sequence-views legacy_old_pattern_6 ^
   --extract-crops --progress --flush-every 500 ^
   --log-file "%LFREC%.log"
 %PY% %S0%\check_classification_v2_legacy_cvat_recovery_output.py ^
@@ -525,9 +568,9 @@ if exist "%LFREC%" (echo ERROR: full recovery root exists & exit /b 2)
   --audit-json "%LFREC%\cvat_recovery_output_audit.json"
 ```
 
-Checker phải PASS với mọi dense behavior bằng behavior `k0`, mọi bbox anchor
-khớp CVAT trong tolerance, đủ frame liên tục, không duplicate và không mất
-actor. Nếu fail, không export frame-object và không dùng `--resume` để che lỗi.
+Checker phải PASS với mọi dense behavior bằng first-task-frame authority, mọi
+bbox anchor khớp CVAT trong tolerance, đủ frame liên tục, không duplicate và
+không mất actor. Nếu fail, không export và không dùng `--resume` để che lỗi.
 
 ### 6.4. Frame-object export smoke
 
@@ -537,7 +580,7 @@ if exist "%SM%\legacy_export\legacy_frame_object_annotations.csv" ^
 %PY% src\legacy_burst_recovery\export_legacy_annotations.py ^
   --dense-csv "%LSMREC%\legacy_dense_tracklet_map.csv" ^
   --cvat-behavior-authority-root data\data ^
-  --behavior-authority-slot 0 ^
+  --behavior-authority-policy first_task_frame_per_group ^
   --output-dir %SM%\legacy_export ^
   --expected-sequence-length 16 ^
   --anchor-relative-frames 0,3,6,9,12,15 ^
@@ -549,8 +592,8 @@ tracklet đủ 16 frame. Nếu số khác, đọc summary và xác định do in
 hay do regression. Không thêm
 `--training-only`: context row phải còn để tạo social feature. Không thêm
 `--require-full-8-for-eval`: thiếu full-pen context không được làm mất sample.
-Overlay authority audit phải không đổi behavior nào vì dense recovery đã dùng
-cùng `k0` authority; thay đổi tại đây là dấu hiệu lineage/config không đồng bộ.
+Overlay audit phải không đổi behavior vì dense recovery đã dùng cùng
+first-task-frame authority; thay đổi là dấu hiệu lineage/config không đồng bộ.
 
 ### 6.5. Full export sau khi recovery và export smoke PASS
 
@@ -560,7 +603,7 @@ if exist "%SRC%\legacy_export\legacy_frame_object_annotations.csv" ^
 %PY% src\legacy_burst_recovery\export_legacy_annotations.py ^
   --dense-csv "%LFREC%\legacy_dense_tracklet_map.csv" ^
   --cvat-behavior-authority-root data\data ^
-  --behavior-authority-slot 0 ^
+  --behavior-authority-policy first_task_frame_per_group ^
   --output-dir %SRC%\legacy_export ^
   --expected-sequence-length 16 ^
   --anchor-relative-frames 0,3,6,9,12,15 ^
@@ -579,18 +622,18 @@ Output chính:
 Exporter fail nếu artifact đích đã tồn tại; chỉ dùng `--overwrite` khi cố ý chạy
 lại đúng lineage. Gate: CSV không rỗng; row count bằng `%LFREC%` dense input;
 không duplicate `group_id,pig_id,frame_index`; recovery checker, export audit và
-overlay audit đều có `errors=[]`. `legacy_behavior_changed_by_cvat_k0` phải bằng
-0 ở mọi row và Hidden/provenance phải giữ nguyên qua export. Bất kỳ mismatch nào
-nghĩa là center/anchor/dense/CVAT hash không cùng lineage. Ghi hash của CVAT
-inputs, recovery input manifest, dense output, recovery audit, export audit và
+overlay audit đều có `errors=[]`.
+`legacy_behavior_changed_by_cvat_authority` phải bằng 0 ở mọi row và
+Hidden/provenance phải giữ nguyên qua export. Bất kỳ mismatch nào nghĩa là
+center/anchor/dense/CVAT hash không cùng lineage. Ghi hash của CVAT inputs,
+recovery input manifest, dense output, recovery audit, export audit và
 frame-object output ở mục 17.
 
-Audit read-only ngày 2026-07-17 đang fail-closed do hai duplicate anchor key,
-tương ứng bốn row; vì vậy chưa được sinh recovery CSV hoặc chạy full recovery.
-Audit cũng chứng minh mapping behavior: số disagreement bị map về `k0` tại
-`k1..k5` lần lượt là `32, 46, 52, 50, 50` (tổng 230; `k0=0`).
-Sau khi CVAT được sửa, phải tạo `RUN_ID`/root mới và chạy lại từ 6.1. Không dùng
-các count cũ làm expected hard-code cho annotation hash mới.
+Canonical P5 đã PASS với `errors=[]`, `warnings=[]` và retained incomplete actor
+count bằng 0. Explicit actor policy loại đúng 5 source rows thuộc ba actor lỗi;
+reviewed-video policy loại 330 rows, còn 27.330 anchors. Ba actor đó phải vắng
+trong mọi downstream artifact nhưng vẫn hiện diện trong policy/audit accounting.
+Đây là source-quality exclusion, không tạo Hidden hoặc behavior review coverage.
 
 Các cột legacy như `behavior_coarse` và `use_for_*_training` là metadata
 target-derived để tương thích/audit, không phải feature. Context policy hiện
@@ -625,7 +668,7 @@ review đáng tin và policy mới có audit riêng.
 
 ```bat
 %PY% %S0%\classification_v2_merge_sources.py ^
-  --legacy-csv %SM%\legacy_export\legacy_frame_object_annotations.csv ^
+  --legacy-csv "%L16EXPORT%\legacy_frame_object_annotations.csv" ^
   --cvat-tracking-xml %X01% --cvat-tracking-xml %X02% ^
   --cvat-tracking-xml %X03% --cvat-tracking-xml %X04% ^
   --cvat-tracking-xml %X05% --cvat-tracking-xml %X06% ^
@@ -646,7 +689,7 @@ bố lớp.
 
 ```bat
 %PY% %S0%\classification_v2_merge_sources.py ^
-  --legacy-csv %SRC%\legacy_export\legacy_frame_object_annotations.csv ^
+  --legacy-csv "%L16EXPORT%\legacy_frame_object_annotations.csv" ^
   --cvat-tracking-xml %X01% --cvat-tracking-xml %X02% ^
   --cvat-tracking-xml %X03% --cvat-tracking-xml %X04% ^
   --cvat-tracking-xml %X05% --cvat-tracking-xml %X06% ^
@@ -771,9 +814,9 @@ if exist "%SSCOPE%\frame_features_complete_units.csv" ^
 ```
 
 Gate: `errors=[]`, hai source, complete CVAT 6-frame actor units, complete legacy
-16-frame tracklets và không selected incomplete block. Reference hiện tại có
-688 row, 63 native unit và đủ 10 behavior; số khác phải được giải thích, không
-ép về 688 bằng cách cắt row.
+16-frame tracklets và không selected incomplete block. Scope 688 rows/63 native
+units là reference lịch sử; canonical lineage phải lấy expected count từ audit
+mới và không cắt row để ép về số cũ.
 
 Reference scope 688-row không chứa case anchor 1020. Vì vậy technical smoke này
 không được dùng làm bằng chứng cho case bắt buộc; checker ở mục 10.2 phải chạy
@@ -786,6 +829,10 @@ Hidden review độc lập với behavior review. Mục tiêu không chỉ xác 
 đã có `Hidden=Yes`, mà còn phát hiện false negative trong `Hidden=No`. CVAT là
 nguồn yếu nhất vì Hidden chủ yếu đến từ tracking; row CVAT chưa review phải giữ
 `hidden_trust_status=untrusted_tracking_derived`.
+
+Canonical legacy 16f sạch kỹ thuật vẫn nằm trong population review này. Builder
+và coverage audit phải chứng minh có legacy frame/object items ở cả hai chiều;
+P10 PASS hoặc đủ 72.880 crop files không được tính là Hidden decision.
 
 Bốn cohort không được trộn ý nghĩa thống kê:
 
@@ -827,7 +874,7 @@ set HSM=%SM%\hidden_review
   --frame-features-csv %HSM%\hidden_review_frame_context.csv ^
   --output-dir %HSMDEC% --reviewer %REVIEWER_NAME% ^
   --video-root data\videos ^
-  --crop-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
+  --crop-root "%L16CROPS%" ^
   --validation-audit-json %HSM%\hidden_media_validation_audit.json ^
   --validate-only
 ```
@@ -846,7 +893,7 @@ Mở GUI pilot sau media gate:
   --frame-features-csv %HSM%\hidden_review_frame_context.csv ^
   --output-dir %HSMDEC% --reviewer %REVIEWER_NAME% ^
   --video-root data\videos ^
---crop-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
+  --crop-root "%L16CROPS%" ^
 --max-items 5
 ```
 
@@ -860,7 +907,7 @@ decision smoke trong `%HSMDEC%` tách biệt với decision authority chính:
   --frame-features-csv %HSM%\hidden_review_frame_context.csv ^
   --output-dir %HDEC% --reviewer %REVIEWER_NAME% ^
   --video-root data\videos ^
-  --crop-root data\raw\legacy_full_multigt_masked_nodup_16f\crops
+  --crop-root "%L16CROPS%"
 ```
 
 Sau khi full GUI hoàn tất, chạy coverage checker và apply theo đúng các lệnh
@@ -948,7 +995,7 @@ if exist "%HDEC%\hidden_review_decisions.csv" ^
   --frame-features-csv %HREV%\hidden_review_frame_context.csv ^
   --output-dir %HDEC% --reviewer %REVIEWER_NAME% ^
   --video-root data\videos ^
-  --crop-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
+  --crop-root "%L16CROPS%" ^
   --validation-audit-json %HREV%\hidden_media_validation_audit.json ^
   --validate-only
 ```
@@ -965,7 +1012,7 @@ manifest hash cùng media-audit path. Chỉ người dùng mở GUI trong `%HDEC
   --frame-features-csv %HREV%\hidden_review_frame_context.csv ^
   --output-dir %HDEC% --reviewer %REVIEWER_NAME% ^
   --video-root data\videos ^
-  --crop-root data\raw\legacy_full_multigt_masked_nodup_16f\crops
+  --crop-root "%L16CROPS%"
 ```
 
 GUI hiển thị full frame với actor và bbox context, kèm actor crop letterbox.
@@ -1217,6 +1264,11 @@ GUI smoke là kiểm tra bắt buộc trước khi review hàng nghìn unit. Dù
 output directory sẽ dùng cho full review; lần chạy sau tự resume, không ghi đè
 decision cũ. Không dùng `--fresh` và không xóa CSV giữa các session.
 
+Behavior review phải bao gồm mọi retained legacy actor ở complete native unit
+16-frame, ngoài các CVAT unit theo contract. Không review từng frame rời và
+không coi ba source-policy exclusions là behavior decisions. Gate phải kiểm
+coverage theo source và native-unit grain trước khi apply.
+
 Behavior decision schema hiện có 24 cột nhưng chưa nhúng reviewer/timestamp.
 Vì vậy `RUN_ID` phải chứa reviewer ID, `%UROOT%` chỉ thuộc một reviewer và
 handoff phải khóa path/hash. Double review phải dùng một `RUN_ID` khác. Trước
@@ -1236,20 +1288,20 @@ if exist "%DEC%\interaction\behavior_unit_review_decisions.csv" exit /b 2
   --review-units-csv %REV%\roi_review_unit_template.csv ^
   --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --output-dir %DEC%\roi --video-root data\videos ^
-  --raw-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
+  --raw-root "%L16CROPS%" ^
   --roi-coco-json data\annotations\roi\ROI_annotations.coco.json ^
   --max-items 5 --copy-contact-sheets
 %PY% %S1%\review_temporal_unit_gui.py ^
   --review-units-csv %REV%\motion_review_unit_template.csv ^
   --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --output-dir %DEC%\motion --video-root data\videos ^
-  --raw-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
+  --raw-root "%L16CROPS%" ^
   --max-items 5 --copy-contact-sheets
 %PY% %S1%\review_temporal_unit_gui.py ^
   --review-units-csv %REV%\posture_review_unit_template.csv ^
   --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --output-dir %DEC%\posture --video-root data\videos ^
-  --raw-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
+  --raw-root "%L16CROPS%" ^
   --max-items 5 --copy-contact-sheets
 ```
 
@@ -1262,7 +1314,7 @@ full frame cho CVAT. Nếu actor/partner/role vẫn không đủ rõ, chọn
   --review-units-csv %REV%\interaction_review_unit_template.csv ^
   --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --output-dir %DEC%\interaction --video-root data\videos ^
-  --raw-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
+  --raw-root "%L16CROPS%" ^
   --padding 10 --max-items 5 --copy-contact-sheets
 ```
 
@@ -1295,20 +1347,20 @@ GUI nạp CSV cũ, chặn blank/duplicate ID và ghi deterministic order.
   --review-units-csv %REV%\roi_review_unit_template.csv ^
   --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --output-dir %DEC%\roi --video-root data\videos ^
-  --raw-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
+  --raw-root "%L16CROPS%" ^
   --roi-coco-json data\annotations\roi\ROI_annotations.coco.json ^
   --copy-contact-sheets
 %PY% %S1%\review_temporal_unit_gui.py ^
   --review-units-csv %REV%\motion_review_unit_template.csv ^
   --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --output-dir %DEC%\motion --video-root data\videos ^
-  --raw-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
+  --raw-root "%L16CROPS%" ^
   --copy-contact-sheets
 %PY% %S1%\review_temporal_unit_gui.py ^
   --review-units-csv %REV%\posture_review_unit_template.csv ^
   --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --output-dir %DEC%\posture --video-root data\videos ^
-  --raw-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
+  --raw-root "%L16CROPS%" ^
   --copy-contact-sheets
 ```
 
@@ -1317,7 +1369,7 @@ GUI nạp CSV cũ, chặn blank/duplicate ID và ghi deterministic order.
   --review-units-csv %REV%\interaction_review_unit_template.csv ^
   --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --output-dir %DEC%\interaction --video-root data\videos ^
-  --raw-root data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
+  --raw-root "%L16CROPS%" ^
   --padding 10 --copy-contact-sheets
 ```
 
@@ -1331,9 +1383,10 @@ Quy tắc quyết định:
 - `fight`: chỉ actor trực tiếp tham gia, không bystander.
 - `social-nose`: actor-only mặc định, không hard-propagate sang receiver.
 
-Full review hiện tại tương đương khoảng 4.670 unit. Con số phải lấy từ manifest
-mới, không hard-code. Nên double-review 10-20% nhóm hiếm/confusion và báo
-agreement riêng; GUI decision không được dùng làm model feature.
+Số review unit phải lấy từ manifest mới sau khi merge canonical 72.880-row
+legacy export; không dùng estimate 4.670 lịch sử. Nên double-review 10-20% nhóm
+hiếm/confusion và báo agreement riêng; GUI decision không được dùng làm model
+feature.
 
 Với kết quả paper-facing, subset double-review phải được chọn theo strata trước
 khi xem disagreement, review lần hai ở chế độ blind và lưu reviewer/run riêng.
@@ -1745,11 +1798,11 @@ matched-context subset và modality-dropout controls.
 
 ### 16.0. Disk và cache-lineage preflight
 
-Với 245.664 actor row và 172.800 CVAT visual-context row ở 224 px, raw `uint8`
-pixel chiếm xấp xỉ 37 GB cho actor và 26 GB cho interaction. Giữ cả individual
-NPY và packed NPY nhân đôi thành khoảng 126 GB, chưa tính preview, manifest,
-integrity, partial checkpoint và filesystem overhead. Khuyến nghị có ít nhất
-160 GB trống trước khi build cả hai cache:
+Ước lượng 37 GB actor, 26 GB interaction và khoảng 126 GB khi giữ cả individual
+và packed NPY dựa trên lineage lịch sử 245.664 rows. Canonical rebuild phải lấy
+row count từ reviewed manifest mới rồi tính lại dung lượng; không dùng estimate
+lịch sử làm gate cứng. Trước khi có estimate mới, 160 GB trống chỉ là mức
+preflight bảo thủ:
 
 ```bat
 %PY% -c "import shutil; print(shutil.disk_usage('C:/').free // 2**30)"
@@ -1764,16 +1817,14 @@ Không xóa cache cũ hoặc raw data để giải phóng chỗ mà chưa kiểm
 %PY% %S3%\check_classification_v2_image_loader.py ^
   --input-csv %SEQ1%\sequence_window_manifest.csv ^
   --video-root data\videos ^
-  --legacy-crop-root ^
-  data\raw\legacy_full_multigt_masked_nodup_16f\crops ^
+  --legacy-crop-root "%L16CROPS%" ^
   --output-audit %TRAIN%\source_image_loader_smoke_audit.json ^
   --sample-per-source 24
 %PY% %S3%\classification_v2_build_image_context_index.py ^
   --frame-features-csv %RFRAME%\reviewed_frame_features.csv ^
   --window-manifest-csv %SEQ1%\sequence_window_manifest.csv ^
   --output-dir %TRAIN% --video-root data\videos ^
-  --legacy-crop-root ^
-  data\raw\legacy_full_multigt_masked_nodup_16f\crops
+  --legacy-crop-root "%L16CROPS%"
 %PY% %S3%\check_classification_v2_image_context_index.py ^
   --frame-context-csv %TRAIN%\image_frame_context_manifest.csv ^
   --window-context-csv %TRAIN%\image_window_context_manifest.csv ^
@@ -2238,13 +2289,16 @@ PASS:
 - [ ] Input hashes và allowlist 12 behavior XML đã khóa.
 - [ ] Mọi artifact thuộc cùng `RUN_ID`; không canonical intermediate lẫn lineage.
 - [ ] Raw `data\` không thay đổi.
-- [ ] Legacy export giữ native burst 16 frame.
+- [ ] P10 bind đúng canonical export hash `fbd6300...cad3` và 72.880 rows.
+- [ ] Ba actor source-policy lỗi vắng downstream nhưng còn đủ audit accounting.
+- [ ] Legacy export giữ 4.555 native actor bursts, mỗi burst đủ 16 frames.
 - [ ] CVAT anchor interval đúng 6 frame và non-anchor kế thừa target.
 - [ ] Scientific smoke dùng complete units, không leading-row temporal scope.
 - [ ] Case `000085 / ID_4 / anchor 1020 = social-nose + interaction` PASS.
 - [ ] Mọi untrusted `Hidden=Yes` có item; trusted Yes đạt quota phân tầng.
 - [ ] `Hidden=No` có high-risk, stratified-random và clean-control audit.
 - [ ] CVAT chưa review giữ `untrusted_tracking_derived`, không silent trust.
+- [ ] Legacy Hidden frame/object coverage đầy đủ; P10 không thay thế decision.
 - [ ] Hidden decisions unique, resolved và áp đúng frame/object key.
 - [ ] Hidden apply giữ nguyên row count và non-Hidden source columns.
 - [ ] `Yes->No`, `No->Yes`, weighted false-negative rate có audit.
@@ -2256,6 +2310,7 @@ PASS:
 - [ ] ROI/motion/posture/interaction templates đúng policy.
 - [ ] `playwithtoy` review coverage đầy đủ.
 - [ ] Bốn decision CSV đủ schema, không pending/missing/review_later.
+- [ ] Legacy behavior coverage đầy đủ ở complete native unit 16-frame.
 - [ ] Applied, excluded và corrected frame/unit counts có audit.
 - [ ] Label distribution trước/sau truy được về decision.
 - [ ] Reviewed windows rebuild bằng `--disable-fast-reuse`.
@@ -2282,6 +2337,9 @@ PASS:
 Nếu bất kỳ mục nào FAIL, kết luận là `NOT TRAIN-READY`. Không dùng số row lớn,
 training accuracy hoặc việc script exit 0 để thay cho gate thiếu. Sau PASS, bước
 kế tiếp chỉ là model/local smoke theo roadmap, chưa phải full OOF.
+
+Đặc biệt, `technically clean`, P0-P10 PASS hoặc export hash đúng không thể làm
+hai checklist Hidden/behavior tự PASS.
 
 Full OOF chỉ được phép khi thêm các mục sau PASS:
 

@@ -1,0 +1,102 @@
+{
+  "schema_version": "classification_v2.legacy_development.temporal_sampling_config.v1",
+  "training_scope": "short_repeat_gate",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "experiment_contract": {
+    "experiment_id": "POST_L8_LEGACY_TEMPORAL_SAMPLING_V2",
+    "changed_family": "temporal_sampling_pattern_and_length",
+    "primary_pair": "s6_uniform_span16_vs_c6_contiguous_centered",
+    "secondary_pair": "c8_contiguous_centered_vs_c6_contiguous_centered",
+    "native_evaluation_unit": "complete_16_frame_burst",
+    "one_sequence_per_native_unit": true,
+    "fixed_controls": [
+      "frame_feature_cache",
+      "native_train_selection",
+      "validation_native_units",
+      "recording_video_safe_fold",
+      "backbone",
+      "resolution",
+      "temporal_encoder",
+      "loss",
+      "optimizer",
+      "seed",
+      "epochs",
+      "optimizer_steps"
+    ],
+    "outer_predictions_used_for_model_selection": false,
+    "reviewed_or_final_claim_allowed": false,
+    "q2_claim_allowed": false
+  },
+  "source_ladder_config": {
+    "path": "configs/classification_v2/legacy_development_l5_temporal_ladder_short_v1.json",
+    "sha256": "f42af538aa9696954d7ceff5843192f09ae7f7bff14066b075b931075fd87810"
+  },
+  "views": {
+    "c6_contiguous_centered": {
+      "temporal_view_name": "legacy_c6_contiguous_centered_span6_v1",
+      "sampling_protocol": "one_contiguous_centered_sequence_per_native",
+      "sequence_length": 6,
+      "native_frame_offsets": [5, 6, 7, 8, 9, 10],
+      "temporal_span_frames": 6,
+      "historical_alignment": false
+    },
+    "c8_contiguous_centered": {
+      "temporal_view_name": "legacy_c8_contiguous_centered_span8_v1",
+      "sampling_protocol": "one_contiguous_centered_sequence_per_native",
+      "sequence_length": 8,
+      "native_frame_offsets": [4, 5, 6, 7, 8, 9, 10, 11],
+      "temporal_span_frames": 8,
+      "historical_alignment": false
+    },
+    "s6_uniform_span16": {
+      "temporal_view_name": "legacy_s6_uniform_offsets_0_3_6_9_12_15_v1",
+      "sampling_protocol": "one_uniform_span16_sequence_per_native",
+      "sequence_length": 6,
+      "native_frame_offsets": [0, 3, 6, 9, 12, 15],
+      "temporal_span_frames": 16,
+      "historical_alignment": true
+    }
+  },
+  "model": {
+    "architecture": "cached_frame_feature_temporal_classifier_v1",
+    "feature_control_id": "V1",
+    "backbone_name": "resnet18",
+    "input_resolution": 224,
+    "temporal_encoder_name": "masked_mean",
+    "hidden_dim": 128,
+    "dropout": 0.1,
+    "transformer_layers": 1,
+    "transformer_heads": 4,
+    "parameter_count": 68234
+  },
+  "optimization": {
+    "seed": 20260714,
+    "epochs": 3,
+    "batch_size": 32,
+    "evaluation_batch_size": 64,
+    "learning_rate": 0.003,
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 1.0,
+    "loss": "event_mass_balanced_cross_entropy",
+    "sampler": "frozen_native_first_selection_then_seeded_shuffle",
+    "checkpoint_selection": "native_global_10_class_macro_f1_then_nll",
+    "precision": "float32",
+    "maximum_loaded_batch_bytes": 2103552
+  },
+  "implementation": {
+    "path": "src/pig_behavior/classification_v2/training/legacy_development_temporal_sampling.py",
+    "sha256": "84b23d4928d135cf0b6843f7bde50cfd7beefbd91bfef35a6e2dceadb6323d64"
+  },
+  "execution": {
+    "mode": "local_smoke",
+    "device": "cpu",
+    "required_repeats": ["repeat01", "repeat02"],
+    "require_fresh_process": true,
+    "require_distinct_process_ids": true,
+    "require_non_overlapping_execution": true,
+    "oom_retry_allowed": false
+  },
+  "output": {
+    "root": "outputs/classification_v2/agent_experiments/legacy_16f_temporal_sampling_20260717_v2"
+  }
+}

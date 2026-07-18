@@ -412,6 +412,34 @@ remain fixed; only temporal input length changes. The centered control prevents
 extra placements at shorter tiers from being mistaken for a sequence-length
 gain.
 
+### P2 Legacy One-Sequence Sampling Decision
+
+The controlled post-L8 matrix additionally tests one sequence per complete
+16-frame native unit:
+
+| ID | Native offsets | Isolated question |
+|---|---|---|
+| C6 | `5,6,7,8,9,10` | contiguous six-frame control |
+| C8 | `4,5,6,7,8,9,10,11` | sequence length versus C6 |
+| S6 | `0,3,6,9,12,15` | temporal span versus C6 |
+
+S6 versus C6 is primary because both expose six images and differ only in
+sampling span. C8 versus C6 is secondary because both are contiguous and
+differ only in length. All views use one sequence per native unit, exact
+observed timing, 3,652 train units, 245 validation units, 33 video clusters,
+the same 68,234-parameter model, and 345 optimizer steps.
+
+The 2026-07-17 paired result retains C6. Macro-F1 is `0.3708555386` for C6,
+`0.3588478457` for C8, and `0.3334808033` for S6. The S6-minus-C6 interval is
+`[-0.0871566209, 0.0263536824]`; the C8-minus-C6 interval is
+`[-0.0414907389, 0.0171363991]`. Neither candidate passes promotion.
+
+S6 point gains for `drink` and `move` are support-limited and their intervals
+include zero. C8 improves NLL but not macro-F1. Do not compare these values
+causally with the older sliding-T6 candidate, which uses four windows per
+native unit and different optimizer exposure. Repeat the matrix on frozen
+merged-reviewed data before changing the canonical mixed-source view.
+
 These legacy-only metrics support architecture development and comparison with
 the historical legacy model. They are not reviewed all-source evidence and
 cannot authorize a Q2 claim or full OOF run.
