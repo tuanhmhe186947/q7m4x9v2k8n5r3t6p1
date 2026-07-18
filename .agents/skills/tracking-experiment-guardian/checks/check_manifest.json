@@ -23,7 +23,9 @@
     "hard_set_multi_video_gain",
     "changed_family_payload_integrity",
     "paired_metric_guardrails",
-    "primary_repeat_authority_lock"
+    "primary_repeat_authority_lock",
+    "candidate_authority_not_lane_completion",
+    "hybrid_residual_stop_gate_before_realtime"
   ],
   "canonical_prediction_hash_contract": {
     "name": "cvat_xml_c14n_without_created_updated_dumped_v1",

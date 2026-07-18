@@ -38,6 +38,11 @@ Tracking GT was seeded by an older tracker and manually corrected for bbox and
 ID. Treat corrected bbox/ID as authoritative. Treat the 1,930 `Hidden` values
 as tracker-derived and not human-confirmed visibility.
 
+A promotion authority closes one candidate experiment, not the whole hybrid
+lane. Keep `hybrid_bytetrack` as the optimization priority until an explicit
+residual-error audit and predeclared stop gate close that lane. Do not open
+realtime merely because one hybrid candidate was promoted.
+
 ## Required inputs
 
 Require the parent commit, dirty-file inventory, video/GT and detector hashes,
@@ -74,6 +79,9 @@ metrics only as a separately labeled compatibility replay.
    primary/repeat pair. Keep input rehashing enabled for authority evidence.
 11. Record promotion or rejection; never suppress negative evidence.
 12. Promote profile defaults only in a separate reversible commit.
+13. Recompute hybrid residual events after every promotion. Either start the
+    next isolated hybrid family or record a separate lane-completion decision
+    with its stop-gate evidence before transferring technology to realtime.
 
 ### Staged evidence funnel
 

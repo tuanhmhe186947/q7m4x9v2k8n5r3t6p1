@@ -24,7 +24,9 @@ only after the full-13 quality and runtime gates pass. Run
 `scripts/audit_tracking_repeatability.py` with current input rehashing and
 same-contract aggregate and critical guardrail checks. Only a fresh immutable
 JSON lock with `status=PASS` may become authority evidence.
-Only after hybrid has that authority may its mechanism enter a separate
+A candidate authority closes only that experiment. Recompute the residual
+hybrid events and continue isolated hybrid work until a separate, predeclared
+lane-completion gate passes. Only then may a proven mechanism enter a separate
 realtime experiment. Use `realtime_fast` as the operational reference and
 require balanced to pass a predeclared identity-stability/latency gate relative
 to fast, not merely improve over an older balanced result.
