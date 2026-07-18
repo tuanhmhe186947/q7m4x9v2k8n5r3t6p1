@@ -367,6 +367,76 @@ def test_overlap_hidden_stabilization_restores_hidden_owner() -> None:
     assert frame_2["Pig_8"]["occluded"] is True
 
 
+def test_realtime_keeps_explicit_causal_box_smoothing(
+    tmp_path: Path,
+) -> None:
+    cfg = _config_with_existing_video(
+        tmp_path,
+        mode="realtime",
+        enable_offline_smoothing=False,
+        smooth_boxes=True,
+        refine_boxes=False,
+        overrides={
+            "enable_offline_smoothing",
+            "smooth_boxes",
+            "refine_boxes",
+        },
+    )
+
+    validate_config(cfg)
+
+    assert cfg.enable_offline_smoothing is False
+    assert cfg.smooth_boxes is True
+    assert cfg.refine_boxes is False
+
+
+def test_causal_box_smoothing_keeps_prefix_immutable() -> None:
+    cfg = TrackingConfig(
+        mode="realtime",
+        enable_offline_smoothing=False,
+        smooth_boxes=True,
+        refine_boxes=False,
+    )
+    prefix = [
+        [10.0, 20.0, 110.0, 100.0],
+        [18.0, 20.0, 140.0, 100.0],
+        [26.0, 20.0, 120.0, 100.0],
+    ]
+    future = [
+        [180.0, 20.0, 300.0, 100.0],
+        [40.0, 20.0, 130.0, 100.0],
+    ]
+
+    def run_sequence(boxes: list[list[float]]) -> list[np.ndarray]:
+        track = FixedTrack(
+            fixed_id=1,
+            last_box=np.asarray(boxes[0], dtype=np.float32),
+            ever_detected=True,
+            hits=1,
+        )
+        outputs = [track.last_box.copy()]
+        for box in boxes[1:]:
+            detection = Detection(
+                box=np.asarray(box, dtype=np.float32),
+                score=0.90,
+                raw_id=1,
+                class_id=0,
+                hist=np.ones(4, dtype=np.float32),
+            )
+            track.update_detected(detection, 400, 200, cfg)
+            outputs.append(track.last_box.copy())
+        return outputs
+
+    prefix_outputs = run_sequence(prefix)
+    extended_outputs = run_sequence([*prefix, *future])
+
+    np.testing.assert_allclose(
+        np.stack(prefix_outputs),
+        np.stack(extended_outputs[: len(prefix_outputs)]),
+    )
+    assert not np.allclose(prefix_outputs[1], np.asarray(prefix[1]))
+
+
 def test_hybrid_bytetrack_uses_hybrid_defaults_without_forced_postprocessing(
     tmp_path: Path,
 ) -> None:

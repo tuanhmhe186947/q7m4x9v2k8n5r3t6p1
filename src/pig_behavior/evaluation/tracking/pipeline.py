@@ -157,6 +157,7 @@ def tracking_rule_overrides(
     }
     if config.profile_overrides:
         overrides.update(config.profile_overrides)
+    overrides["overrides"] = set(overrides)
     return overrides
 
 

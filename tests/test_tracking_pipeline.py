@@ -137,6 +137,11 @@ def test_tracking_rule_overrides_forwards_gpu_options() -> None:
         USE_AREA_OCCLUSION_FREEZE=True,
         USE_CONDITIONAL_AREA_OCCLUSION_FREEZE=False,
         USE_MERGED_BOX_SPLIT=True,
+        profile_overrides={
+            "enable_offline_smoothing": False,
+            "smooth_boxes": True,
+            "refine_boxes": False,
+        },
     )
 
     overrides = tracking_rule_overrides(config)
@@ -147,6 +152,10 @@ def test_tracking_rule_overrides_forwards_gpu_options() -> None:
     assert overrides["USE_AREA_OCCLUSION_FREEZE"] is True
     assert overrides["USE_CONDITIONAL_AREA_OCCLUSION_FREEZE"] is False
     assert overrides["USE_MERGED_BOX_SPLIT"] is True
+    assert overrides["enable_offline_smoothing"] is False
+    assert overrides["smooth_boxes"] is True
+    assert overrides["refine_boxes"] is False
+    assert overrides["overrides"] == set(overrides) - {"overrides"}
 
 
 def test_rank_aggregate_benchmark_rows_prioritizes_hota_then_identity() -> None:
