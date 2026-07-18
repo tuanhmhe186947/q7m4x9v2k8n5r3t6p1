@@ -11,6 +11,7 @@ from pig_behavior.tracking.detections import hist_distance
 from pig_behavior.tracking.geometry import (
     area_log_ratio,
     bbox_center,
+    bbox_iom,
     bbox_iou_matrix,
     bbox_size,
     center_distance_norm,
@@ -594,6 +595,85 @@ def append_detection_candidate_rank_events(
                     ),
                     "candidate_is_raw_owner": owner_id == track.fixed_id,
                     "cost": round(float(costs[row, col]), 6),
+                    "threshold": round(
+                        float(association_cost_threshold(track, cfg)),
+                        6,
+                    ),
+                    "det_raw_owner": owner_id,
+                    "same_raw_id": track.top_raw_id() == det.raw_id,
+                    **track_debug_state(track),
+                    **detection_debug_state(det, det_idx),
+                },
+            )
+
+
+def append_hidden_detection_claim_probe_events(
+    runtime: TrackingRuntimeState | None,
+    cfg: TrackingConfig,
+    frame_index: int | None,
+    hidden_tracks: list[FixedTrack],
+    detection_indices: list[int],
+    detections: list[Detection],
+    occlusion_context: OcclusionContext,
+    width: int,
+    height: int,
+    raw_owner: dict[int, int],
+    raw_owner_tracks: dict[int, FixedTrack],
+) -> None:
+    """Record hidden claims before visible matching without changing assignment."""
+    if runtime is None or not cfg.association_debug or cfg.mode != "realtime":
+        return
+
+    for det_idx in detection_indices:
+        det = detections[det_idx]
+        claims: list[tuple[float, FixedTrack, float, float, bool]] = []
+        for track in hidden_tracks:
+            if not track.ever_detected:
+                continue
+            cost = track_detection_cost(
+                track,
+                det,
+                det_idx,
+                occlusion_context,
+                width,
+                height,
+                cfg,
+                raw_owner,
+                raw_owner_tracks,
+            )
+            reference = association_reference_box(track, det, width, height, cfg)
+            plausible = bool(np.isfinite(cost) and cost < 1_000_000.0)
+            claims.append(
+                (
+                    float(cost),
+                    track,
+                    bbox_iom(reference, det.box),
+                    center_distance_norm(reference, det.box, width, height),
+                    plausible,
+                )
+            )
+
+        owner_id = raw_owner.get(det.raw_id) if det.raw_id is not None else None
+        ranked_claims = sorted(
+            claims,
+            key=lambda item: (item[0], item[1].fixed_id),
+        )
+        for rank, (cost, track, overlap, center_cost, plausible) in enumerate(
+            ranked_claims[:3],
+            start=1,
+        ):
+            append_association_debug_event(
+                runtime,
+                cfg,
+                {
+                    "event": "hidden_detection_claim_probe",
+                    "frame": frame_index,
+                    "phase": "pre_visible_hidden_claim",
+                    "claim_rank": rank,
+                    "claim_iom": round(float(overlap), 6),
+                    "claim_center_distance": round(float(center_cost), 6),
+                    "claim_plausible": plausible,
+                    "cost": round(cost, 6),
                     "threshold": round(
                         float(association_cost_threshold(track, cfg)),
                         6,
@@ -1781,6 +1861,19 @@ def match_and_update_tracks(
             ]
             run_matching_phase(reid_tracks, remaining_detection_indices, "reid")
         else:
+            append_hidden_detection_claim_probe_events(
+                runtime,
+                cfg,
+                frame_index,
+                reid_tracks,
+                all_detection_indices,
+                detections,
+                occlusion_context,
+                width,
+                height,
+                raw_owner,
+                raw_owner_tracks,
+            )
             high_conf_indices = [
                 idx
                 for idx in all_detection_indices

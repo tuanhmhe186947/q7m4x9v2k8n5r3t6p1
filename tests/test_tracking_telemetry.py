@@ -255,6 +255,75 @@ def test_association_telemetry_does_not_change_track_predictions() -> None:
     assert runtime.association_debug_events == []
 
 
+def test_hidden_claim_probe_is_prediction_invariant() -> None:
+    base_cfg = TrackingConfig(
+        mode="realtime",
+        occlusion_aware_matching=False,
+        smooth_boxes=False,
+    )
+    debug_cfg = TrackingConfig(
+        mode="realtime",
+        occlusion_aware_matching=False,
+        smooth_boxes=False,
+        association_debug=True,
+    )
+    detections = [_detection(fixed_id, 35.0 * fixed_id) for fixed_id in range(1, 9)]
+    base_tracks = initialize_tracks(detections, None, 400, 120, base_cfg)
+    assert base_tracks[1].ever_detected
+    base_tracks[1].update_predicted(
+        base_tracks[1].last_box.copy(),
+        400,
+        120,
+        ambiguous=True,
+        hold=True,
+        cfg=base_cfg,
+    )
+    next_detections = [
+        _detection(fixed_id, 35.0 * fixed_id + 1.0)
+        for fixed_id in range(1, 9)
+    ]
+    frame = np.zeros((120, 400, 3), dtype=np.uint8)
+    without_debug = deepcopy(base_tracks)
+    with_debug = deepcopy(base_tracks)
+    runtime = TrackingRuntimeState()
+
+    match_and_update_tracks(
+        without_debug,
+        deepcopy(next_detections),
+        frame,
+        None,
+        base_cfg,
+        runtime=None,
+        frame_index=1,
+    )
+    match_and_update_tracks(
+        with_debug,
+        deepcopy(next_detections),
+        frame,
+        None,
+        debug_cfg,
+        runtime=runtime,
+        frame_index=1,
+    )
+
+    assert _track_snapshot(with_debug) == _track_snapshot(without_debug)
+    claim_events = [
+        event
+        for event in runtime.association_debug_events
+        if event.get("event") == "hidden_detection_claim_probe"
+        and event.get("track_id") == 1
+        and event.get("same_raw_id") is True
+    ]
+    assert len(claim_events) == 1
+    assert claim_events[0]["phase"] == "pre_visible_hidden_claim"
+    assert claim_events[0]["claim_rank"] == 1
+    assert claim_events[0]["claim_plausible"] is True
+    assert float(claim_events[0]["claim_iom"]) > 0.90
+    assert float(claim_events[0]["claim_center_distance"]) < 0.01
+    telemetry = get_telemetry_summary(runtime)
+    assert telemetry["association_assignments_accepted"] == 8
+
+
 def test_realtime_profiles_declare_truthful_causality_contracts() -> None:
     fast = TrackingConfig(mode="realtime", **REALTIME_FAST_CONFIG)
     balanced = TrackingConfig(mode="realtime", **REALTIME_BALANCED_CONFIG)
