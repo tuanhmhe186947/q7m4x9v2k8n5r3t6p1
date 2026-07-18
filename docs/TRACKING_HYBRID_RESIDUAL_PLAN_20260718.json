@@ -1,0 +1,119 @@
+{
+  "schema_version": "tracking_hybrid_residual_plan_v1",
+  "status": "active",
+  "created_date": "2026-07-18",
+  "worktree": "PIG_task_tracking",
+  "branch": "task/update-tracking",
+  "starting_commit": "ddea121",
+  "priority": "hybrid_bytetrack_residual_first",
+  "parent_authority": {
+    "decision": "docs/TRACKING_PROMOTION_DECISION_20260718_HYBRID_NEAR_WALL_GEOMETRY.json",
+    "profile": "hybrid_bytetrack_best",
+    "remapped_idsw": 8,
+    "remapped_hota_pct": 98.32,
+    "remapped_idf1_pct": 99.13,
+    "fp": 1622,
+    "fn": 1622
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian",
+    "skill-creator"
+  ],
+  "evaluation_contract": {
+    "include_hidden": true,
+    "hidden_is_optimization_target": false,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "fresh_output_roots": true,
+    "generated_mp4_allowed": false,
+    "recursive_mp4_count_required": 0,
+    "classification_scope_allowed": false
+  },
+  "residual_events": [
+    {
+      "video": "Pigs291119_000233_30fps",
+      "frames": [1111, 1114],
+      "remapped_idsw": 4,
+      "failure_family": "identity_payload_hidden_overlap"
+    },
+    {
+      "video": "Pigs301119_000328_30fps",
+      "frames": [1347, 1355],
+      "remapped_idsw": 4,
+      "failure_family": "far_camera_hidden_bbox_geometry"
+    }
+  ],
+  "candidate_order": [
+    {
+      "id": "H4",
+      "family": "post_identity_far_camera_hidden_bbox_geometry",
+      "target": "Pigs301119_000328_30fps",
+      "hypothesis": [
+        "The emitted IDs remain stable.",
+        "A far-right Hidden bbox expands over a visible neighbor.",
+        "A future-anchor-bounded offline geometry pass can restore matching",
+        "without changing identity, visibility, behavior, or shape keys."
+      ]
+    },
+    {
+      "id": "H5",
+      "family": "hidden_overlap_identity_payload",
+      "target": "Pigs291119_000233_30fps",
+      "dependency": "H4 decision recorded",
+      "constraint": "No video ID, frame ID, or GT-derived runtime hardcode."
+    }
+  ],
+  "funnel": [
+    "parent-derived hard window",
+    "full target video",
+    "hard set with at least three difficult videos",
+    "full-13 primary",
+    "full-13 independent repeat",
+    "clean repeatability authority",
+    "separate profile promotion"
+  ],
+  "advance_gates": {
+    "window_to_video": "target mechanism improves without payload drift",
+    "video_to_hard_set": "full target improves declared metric",
+    "hard_set_to_full13": [
+      "at least two difficult videos improve",
+      "no critical per-video IDSW regression",
+      "all frozen local budgets pass"
+    ],
+    "full13_to_repeat": [
+      "aggregate quality improves",
+      "no undeclared regression",
+      "recursive MP4 count is zero"
+    ]
+  },
+  "hybrid_lane_completion_gate": {
+    "separate_decision_required": true,
+    "aspirational_remapped_idsw": 0,
+    "minimum_material_target_remapped_idsw": 4,
+    "requirements": [
+      "Both residual clusters have a recorded scientific decision.",
+      "No high-confidence bounded hybrid family remains untested.",
+      "Every promoted result is repeatable and hash-bound.",
+      "Any remaining residual is classified with negative evidence.",
+      "Aggregate HOTA and IDF1 guardrails remain satisfied."
+    ],
+    "plateau_rule": [
+      "At most two isolated candidate families per residual cluster.",
+      "A plateau decision may close the lane only after both fail safely.",
+      "Realtime cannot be opened by a candidate promotion alone."
+    ]
+  },
+  "realtime_after_completion": {
+    "operational_reference": "realtime_fast",
+    "primary_target": "realtime_balanced",
+    "balanced_requirement": [
+      "Retain material coverage or quality value versus fast.",
+      "Pass a frozen identity-stability gate relative to fast.",
+      "Pass the declared practical latency and memory budget."
+    ]
+  },
+  "protected_untracked_file": "configs/tracking_paths_experiment_local.json"
+}

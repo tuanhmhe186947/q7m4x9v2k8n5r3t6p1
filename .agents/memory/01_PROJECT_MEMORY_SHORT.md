@@ -1,5 +1,19 @@
 # Project Memory Short
 
+## 2026-07-18 hybrid residual-first correction
+
+- Promoting one hybrid candidate closes only that experiment. It does not mean
+  that the `hybrid_bytetrack` lane is complete or authorize realtime work.
+- The promoted include-Hidden authority still has eight IDSW: four on `000233`
+  at frames `1111-1114` and four on `000328` at frames `1347-1355`.
+- `000328` is currently classified as a geometry/occlusion-hold failure: IDs
+  remain stable, but the far-right Hidden `ID_7` bbox expands over visible
+  `ID_5`. `000233` is a separate identity-payload conflict.
+- Continue hybrid through isolated residual families and the staged funnel.
+  Open realtime only after a separate hybrid lane-completion decision passes.
+- The active frozen plan is
+  `docs/TRACKING_HYBRID_RESIDUAL_PLAN_20260718.json`.
+
 ## 2026-07-18 hybrid near-wall geometry promotion and priority lock
 
 - The critical path is `hybrid_bytetrack` first. Realtime transfer is a

@@ -5,6 +5,9 @@
 Only the active decision immediately below controls current work. All later
 sections are historical records. The active tracking authority is
 `docs/TRACKING_PROMOTION_DECISION_20260718_HYBRID_NEAR_WALL_GEOMETRY.json`.
+That authority locks the current parent, not completion of the hybrid lane.
+The active execution plan is
+`docs/TRACKING_HYBRID_RESIDUAL_PLAN_20260718.json`.
 `docs/CLASSIFICATION_V2_CURRENT_STATE.md` applies only to the paused
 classification workstream.
 
@@ -20,6 +23,14 @@ Near-wall Hidden bbox geometry is now promoted in `hybrid_bytetrack_best`:
 IDSW stays `8`, FP/FN improve `1630 -> 1622`, HOTA improves
 `98.31% -> 98.32%`, and raw IDF1 increases. Primary/repeat and all
 non-geometry payload checks pass with zero MP4.
+
+The promotion above closes only the near-wall experiment. Hybrid remains the
+active optimization lane because its authority still has eight IDSW. Four are
+the `000233` identity conflict at frames `1111-1114`; four are the `000328`
+far-camera Hidden bbox conflict at frames `1347-1355`. Diagnose and test these
+as separate families through hard-window, full-video, hard-set, and only then
+full-13 gates. Realtime stays frozen until a separate hybrid lane-completion
+decision records the residual audit and stop-gate evidence.
 
 Realtime notes below remain evidence but no longer set task order. The next
 realtime study must use `realtime_fast` as its operational reference.

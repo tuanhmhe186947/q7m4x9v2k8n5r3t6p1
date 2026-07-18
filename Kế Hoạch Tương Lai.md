@@ -5,6 +5,21 @@
 Phần này là kế hoạch đang có hiệu lực. Nội dung cũ bên dưới được giữ làm lịch
 sử, nhưng không được dùng để bỏ qua các gate mới.
 
+### -2. Hiệu chỉnh hybrid-residual-first ngày 2026-07-18
+
+- Một authority promote candidate chỉ đóng experiment đó, không có nghĩa lane
+  `hybrid_bytetrack` đã hoàn tất.
+- Authority hiện tại còn tám IDSW: `000233` có bốn tại frames `1111-1114`,
+  `000328` có bốn tại frames `1347-1355`.
+- Xử lý hai cụm này như hai family riêng. `000328` là lỗi geometry của bbox
+  Hidden vùng xa bên phải; `000233` là lỗi identity payload.
+- Tiếp tục funnel hard-window, full target video, hard set ít nhất ba video,
+  rồi mới full-13 và repeat. Không mở lane realtime chỉ vì near-wall candidate
+  đã được promote.
+- Chỉ chuyển công nghệ sang realtime sau một decision riêng xác nhận hybrid
+  đã qua residual audit và stop gate. Khi đó fast là mốc vận hành và balanced
+  phải chứng minh đủ ổn định để dùng thực tế so với fast.
+
 ### -1. Thứ tự critical path khóa ngày 2026-07-18
 
 - Hoàn thiện và khóa authority cho `hybrid_bytetrack` trước khi chuyển bất kỳ

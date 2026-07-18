@@ -4,14 +4,15 @@
 
 1. Work only in `PIG_task_tracking` on `task/update-tracking`; classification
    code, data, and models are out of scope until the user switches workstreams.
-2. Optimize and authority-lock `hybrid_bytetrack` before transferring any
-   mechanism to realtime. Do not tune both lanes in one experiment.
+2. Optimize `hybrid_bytetrack` first. A candidate promotion locks only that
+   experiment; it never completes the hybrid lane by implication.
 3. Use the staged funnel: hard window, full target video, at least three hard
    videos, then full-13. Freeze gates before seeing candidate results.
-4. After hybrid is locked, use `realtime_fast` as the operational reference.
-   Balanced must pass a predeclared identity-stability and latency gate and
-   add material value relative to fast. Improvement versus old balanced alone
-   is insufficient.
+4. Transfer technology only after a separate hybrid lane-completion decision
+   passes its residual-error and stopping gates. Then use `realtime_fast` as
+   the operational reference. Balanced must pass a predeclared
+   identity-stability and latency gate and add material value relative to fast;
+   improvement versus old balanced alone is insufficient.
 5. Use `include_hidden=true`, `iou0_area0_condarea0_merge0`, fresh roots, exact
    lineage hashes, primary/repeat confirmation, and recursive zero-MP4 checks.
 6. Never generate MP4, preview, overlay, or event clips during tracking

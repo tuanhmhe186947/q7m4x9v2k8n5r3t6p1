@@ -7,15 +7,17 @@ explicitly switches workstreams.
 
 1. Work only in `PIG_task_tracking` on `task/update-tracking`.
 2. Keep classification code, data, model runs, and review artifacts untouched.
-3. Complete hybrid through hard window, full video, hard set, full-13, repeat,
-   clean authority audit, and separate profile promotion.
+3. Repeat the hybrid funnel per isolated residual family: hard window, full
+   video, hard set, full-13, repeat, clean authority audit, and separate
+   profile promotion. One promoted candidate does not complete the lane.
 4. Use `include_hidden=true`, `iou0_area0_condarea0_merge0`, fresh roots, input
    rehashing, payload-integrity checks, and zero generated MP4.
 5. Hybrid near-wall geometry is promoted at `4876217`; authority SHA256 is
    `6b6899109ddbca43042645b503896e41c985bd838eb64513eeb72a9210015665`.
-6. Only after the hybrid lock, open a separate realtime transfer study. Use
-   fast as the operational reference; balanced must pass a predeclared
-   identity-stability and latency gate relative to fast.
+6. Recompute residual hybrid events after every promotion. Open a realtime
+   transfer study only after a separate hybrid lane-completion decision passes.
+   Then use fast as the operational reference; balanced must pass a
+   predeclared identity-stability and latency gate relative to fast.
 
 ## Isolated reviewed-Q2 execution roots
 
