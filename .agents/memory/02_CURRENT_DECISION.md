@@ -1,32 +1,30 @@
 # Current Decision
 
-## Active hybrid H5b+H4 decision 2026-07-19
+## Active hybrid lane-completion decision 2026-07-19
 
-Promote H5b overlap-persistence identity repair and H4 far-camera Hidden bbox
-geometry together in `hybrid_bytetrack_best`. Paired full-13 control and two
-independent combined runs improve IDSW `8 -> 0`, HOTA
-`98.33687663% -> 98.35062270%`, IDF1 `99.14102564% -> 99.14903846%`, and
-FP/FN `1603/1603 -> 1593/1593`.
+Lock `hybrid_bytetrack_best` at IDSW `0`, HOTA `98.35062270%`, IDF1
+`99.14903846%`, and FP/FN `1593/1593`. All 13 videos have zero IDSW, and the
+remapped identity-event artifact has zero rows. The two frozen residual
+clusters, `000233` H5b and `000328` H4, are resolved with repeatable,
+hash-bound evidence and zero MP4.
 
-H5b alone fixes `000233: 4 -> 0` IDSW without changing the other 12 video
-metrics. H4 then fixes `000328: 4 -> 0`, changing exactly 10 `ID_7` bbox rows;
-the other 12 video geometries remain unchanged. Primary/repeat metrics and 26
-semantic prediction hashes match. Current input rehash, four critical-video
-IDSW guards, payload integrity, and recursive zero-MP4 gates pass.
+Close the hybrid optimization lane. Remaining weak rows are localization and
+continuity residuals, led by `000216`, rather than a bounded identity-switch
+family. Reopen hybrid only for a predeclared failure on untouched sessions.
 
-This authorizes the exact profile promotion recorded in
-`docs/TRACKING_PROMOTION_DECISION_20260719_HYBRID_H5B_H4.json`. It makes no
-speed claim. Recompute residuals and issue a separate hybrid lane-completion
-decision before opening realtime.
+Realtime planning is now open. Use `realtime_fast` as the operational
+reference and optimize `realtime_balanced` first; balanced must add material
+quality or coverage value over fast while passing identity, latency, memory,
+causality, and zero-MP4 gates. Preserve the window -> video -> hard-set ->
+full-13 funnel.
 
 ## Decision precedence
 
 Only the active decision immediately below controls current work. All later
 sections are historical records. The active tracking authority is
-`docs/TRACKING_PROMOTION_DECISION_20260719_HYBRID_H5B_H4.json`.
-That authority permits the exact profile promotion but does not itself close
-the hybrid lane. The active execution plan is
-`docs/TRACKING_H5B_H4_COMBINED_FULL13_PLAN_20260718.json`.
+`docs/TRACKING_HYBRID_LANE_COMPLETION_DECISION_20260719.json`.
+That authority closes hybrid and opens realtime planning. No realtime
+candidate is authorized until a separate Pareto and funnel plan is frozen.
 `docs/CLASSIFICATION_V2_CURRENT_STATE.md` applies only to the paused
 classification workstream.
 

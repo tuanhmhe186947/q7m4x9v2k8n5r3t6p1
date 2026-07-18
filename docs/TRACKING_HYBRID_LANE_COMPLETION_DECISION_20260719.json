@@ -1,0 +1,164 @@
+{
+  "schema_version": "tracking_hybrid_lane_completion_v1",
+  "decision_date": "2026-07-19",
+  "status": "PASS",
+  "decision": "close_hybrid_optimization_lane_and_open_realtime",
+  "scope": {
+    "worktree": "PIG_task_tracking",
+    "branch": "task/update-tracking",
+    "tracking_only": true,
+    "classification_touched": false
+  },
+  "current_profile": {
+    "name": "hybrid_bytetrack_best",
+    "promotion_commit": "c3850ac545ad6deed7567e78ef3dcdbd0139383f",
+    "profile_sha256": {
+      "sha256": "b3c63faffa705915e2e9e9b7823068af229ceedd9b263a68579e7d7b384500e6"
+    },
+    "promotion_tests": {
+      "tracking_tests_passed": 186,
+      "ruff": "PASS",
+      "compileall": "PASS"
+    }
+  },
+  "promotion_authority": {
+    "decision_commit": "e2b85b1",
+    "path": "docs/TRACKING_PROMOTION_DECISION_20260719_HYBRID_H5B_H4.json",
+    "file_sha256": {
+      "sha256": "76b480461ab004bd52bf68e0f61de8caea8998eb9667c75f21bd88b0facbe6ed"
+    },
+    "repeatability_authority_sha256": {
+      "sha256": "c88fe8241c85c609b67753ad229e3bcf23ac9f8ca8ac8d3485a8fcbafd8327bb"
+    }
+  },
+  "evaluation_contract": {
+    "mode": "hybrid_bytetrack",
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "include_hidden": true,
+    "hidden_attribute_is_optimization_target": false,
+    "video_count": 13,
+    "gt_detections": 187200,
+    "runtime_contract": "post_video_offline",
+    "generated_mp4_allowed": false
+  },
+  "residual_identity_audit": {
+    "source_evaluation": [
+      "outputs/eval/tracking_hybrid_residual",
+      "20260719_h5b_h4_full13_combined_v2"
+    ],
+    "evaluated_video_count": 13,
+    "videos_with_nonzero_idsw": 0,
+    "aggregate_idsw": 0,
+    "remapped_identity_event_rows": 0,
+    "remapped_identity_events_sha256": {
+      "sha256": "b79dd4ee748436cfb838c137decfeb6ba18f0e129f39aa00084f3822af09277c"
+    },
+    "resolved_clusters": [
+      {
+        "video": "Pigs291119_000233_30fps",
+        "family": "hidden_overlap_identity_payload",
+        "idsw_before": 4,
+        "idsw_after": 0,
+        "resolution": "H5b_overlap_persistence"
+      },
+      {
+        "video": "Pigs301119_000328_30fps",
+        "family": "far_camera_hidden_bbox_geometry",
+        "idsw_before": 4,
+        "idsw_after": 0,
+        "resolution": "H4_future_anchor_geometry"
+      }
+    ]
+  },
+  "aggregate_quality": {
+    "matches": 185607,
+    "fp": 1593,
+    "fn": 1593,
+    "idsw": 0,
+    "fragments": 426,
+    "gap_tolerant_fragments": 6,
+    "mota": 0.9829807692307693,
+    "motp_iou": 0.9184347314214578,
+    "idf1": 0.9914903846153846,
+    "hota": 0.9835062270290739
+  },
+  "remaining_non_identity_residuals": [
+    {
+      "video": "Pigs291119_000216_30fps",
+      "fp": 325,
+      "fn": 325,
+      "fragments": 65,
+      "gap_tolerant_fragments": 2,
+      "idf1": 0.9774305555555556,
+      "hota": 0.9581526065488326,
+      "classification": "localization_and_continuity_not_identity_switch"
+    },
+    {
+      "video": "Pigs291119_000231_30fps",
+      "fp": 185,
+      "fn": 185,
+      "fragments": 54,
+      "gap_tolerant_fragments": 1,
+      "idf1": 0.9871527777777778,
+      "hota": 0.9750404374903665,
+      "classification": "localization_and_continuity_not_identity_switch"
+    },
+    {
+      "video": "Pigs281119_000114_30fps",
+      "fp": 184,
+      "fn": 184,
+      "fragments": 58,
+      "gap_tolerant_fragments": 0,
+      "idf1": 0.9872222222222222,
+      "hota": 0.9750546326467866,
+      "classification": "localization_and_continuity_not_identity_switch"
+    }
+  ],
+  "stop_gate": {
+    "aspirational_idsw_zero_met": true,
+    "both_residual_clusters_decided": true,
+    "all_identity_residual_clusters_resolved": true,
+    "no_high_confidence_bounded_identity_family_remains": true,
+    "every_promotion_repeatable_and_hash_bound": true,
+    "remaining_residuals_classified": true,
+    "aggregate_hota_guardrail_passed": true,
+    "aggregate_idf1_guardrail_passed": true,
+    "recursive_no_mp4_passed": true,
+    "separate_lane_decision_present": true
+  },
+  "stop_rationale": [
+    "The predeclared aspirational identity target is reached on all 13 videos.",
+    "Further tuning on the same development set would increase overfitting risk.",
+    "Remaining errors are localization or continuity, not an IDSW cluster.",
+    "Reopen hybrid only for a predeclared failure on untouched session evidence."
+  ],
+  "realtime_transfer_contract": {
+    "status": "OPEN",
+    "operational_reference": "realtime_fast",
+    "primary_optimization_target": "realtime_balanced",
+    "secondary_target": "realtime_quality_delayed",
+    "fast_may_improve_if_reference_guardrails_pass": true,
+    "balanced_must_add_material_value_over_fast": true,
+    "preserve_profile_causality_and_latency_contracts": true,
+    "funnel": [
+      "hard_event_window",
+      "full_difficult_video",
+      "multi_video_hard_set",
+      "full_13_only_after_hard_set_pass"
+    ],
+    "include_hidden": true,
+    "generated_mp4_allowed": false
+  },
+  "claim_limits": [
+    "Hybrid results are development evidence, not an untouched final test claim.",
+    "No speed claim is transferred from the post-video hybrid profile.",
+    "Hybrid post-video technology is not automatically causal in realtime modes."
+  ],
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ]
+}

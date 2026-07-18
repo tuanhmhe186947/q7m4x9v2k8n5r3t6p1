@@ -1,5 +1,20 @@
 # Benchmark Notes
 
+## 2026-07-19 hybrid lane completion
+
+- The promoted `hybrid_bytetrack_best` resolves all full-13 identity residuals:
+  13 videos have IDSW `0`, and the remapped identity-event CSV has zero rows.
+- Final aggregate quality is HOTA `98.35062270%`, IDF1 `99.14903846%`,
+  FP/FN `1593/1593`, strict fragments `426`, and gap-tolerant fragments `6`.
+- Remaining weak videos are localization/continuity residuals rather than
+  identity-switch clusters. The lowest HOTA is `000216` at `95.81526065%`,
+  with FP/FN `325/325` and IDSW `0`.
+- The predeclared aspirational IDSW target and every hybrid stop gate pass.
+  Further tuning on these 13 development videos is stopped to limit overfit.
+- Realtime planning is open with `realtime_fast` as the operational reference
+  and `realtime_balanced` as the first optimization target. Full-13 remains
+  gated by window, full-video, and hard-set evidence.
+
 ## 2026-07-19 hybrid H5b plus H4 promotion authority
 
 - Paired full-13 control and combined candidate improve aggregate IDSW
