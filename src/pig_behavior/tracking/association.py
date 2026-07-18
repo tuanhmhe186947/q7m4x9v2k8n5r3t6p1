@@ -722,7 +722,9 @@ def apply_causal_hidden_detection_reservation(
 
     while True:
         selected_pairs = list(zip(rows, cols, strict=True))
-        candidates: list[tuple[float, int, int, int, FixedTrack, float, float]] = []
+        candidates: list[
+            tuple[float, int, int, int, FixedTrack, float, float, bool]
+        ] = []
         for row, col in selected_pairs:
             visible_track = candidate_tracks[row]
             det_idx = detection_indices[col]
@@ -748,9 +750,6 @@ def apply_causal_hidden_detection_reservation(
                 )
                 for alt_col in range(costs.shape[1])
             )
-            if not has_alternative:
-                continue
-
             for hidden_track in hidden_tracks:
                 if hidden_track.fixed_id in matched_tracks:
                     continue
@@ -803,6 +802,20 @@ def apply_causal_hidden_detection_reservation(
                 gain = selected_cost - float(claim_cost)
                 if gain < cfg.causal_hidden_detection_reservation_min_gain:
                     continue
+                allow_visible_hold = bool(
+                    cfg.causal_hidden_detection_reservation_allow_visible_hold
+                    and not has_alternative
+                    and selected_cost
+                    >= cfg.causal_hidden_detection_reservation_hold_min_visible_cost
+                    and claim_iom
+                    >= cfg.causal_hidden_detection_reservation_hold_min_iom
+                    and claim_cost
+                    <= cfg.causal_hidden_detection_reservation_hold_max_claim_cost
+                    and gain
+                    >= cfg.causal_hidden_detection_reservation_hold_min_gain
+                )
+                if not has_alternative and not allow_visible_hold:
+                    continue
                 candidates.append(
                     (
                         -gain,
@@ -812,13 +825,23 @@ def apply_causal_hidden_detection_reservation(
                         hidden_track,
                         float(claim_cost),
                         float(claim_iom),
+                        allow_visible_hold,
                     )
                 )
 
         if not candidates:
             return rows, cols
 
-        _, row, col, det_idx, hidden_track, claim_cost, claim_iom = min(
+        (
+            _,
+            row,
+            col,
+            det_idx,
+            hidden_track,
+            claim_cost,
+            claim_iom,
+            allow_visible_hold,
+        ) = min(
             candidates,
             key=lambda item: (item[0], item[3], item[4].fixed_id),
         )
@@ -837,16 +860,21 @@ def apply_causal_hidden_detection_reservation(
             )
         }
         replacement_col = trial_col_by_track.get(visible_track.fixed_id)
-        if replacement_col is None or replacement_col == col:
+        visible_track_held = bool(
+            replacement_col is None or replacement_col == col
+        )
+        if visible_track_held and not allow_visible_hold:
             continue
-        replacement_cost = float(trial_costs[row, replacement_col])
-        if (
-            not np.isfinite(replacement_cost)
-            or replacement_cost >= 1_000_000.0
-            or replacement_cost
-            > cfg.causal_hidden_detection_reservation_max_alternative_cost
-        ):
-            continue
+        replacement_cost: float | None = None
+        if not visible_track_held:
+            replacement_cost = float(trial_costs[row, replacement_col])
+            if (
+                not np.isfinite(replacement_cost)
+                or replacement_cost >= 1_000_000.0
+                or replacement_cost
+                > cfg.causal_hidden_detection_reservation_max_alternative_cost
+            ):
+                continue
         reserved_target_assigned = any(
             trial_col == col and trial_costs[trial_row, trial_col] < 1_000_000.0
             for trial_row, trial_col in zip(
@@ -876,8 +904,13 @@ def apply_causal_hidden_detection_reservation(
                 "hidden_claim_cost": round(claim_cost, 6),
                 "hidden_claim_iom": round(claim_iom, 6),
                 "reservation_gain": round(selected_cost - claim_cost, 6),
-                "replacement_cost": round(replacement_cost, 6),
+                "replacement_cost": (
+                    round(replacement_cost, 6)
+                    if replacement_cost is not None
+                    else None
+                ),
                 "hidden_missed": hidden_track.missed,
+                "visible_track_held": visible_track_held,
                 "learn_identity": False,
             },
         )

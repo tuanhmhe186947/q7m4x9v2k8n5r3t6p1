@@ -184,6 +184,11 @@ class TrackingConfig:
     causal_hidden_detection_reservation_max_center_distance: float = 0.09
     causal_hidden_detection_reservation_min_gain: float = 0.08
     causal_hidden_detection_reservation_max_alternative_cost: float = 0.78
+    causal_hidden_detection_reservation_allow_visible_hold: bool = False
+    causal_hidden_detection_reservation_hold_min_iom: float = 0.96
+    causal_hidden_detection_reservation_hold_max_claim_cost: float = 0.10
+    causal_hidden_detection_reservation_hold_min_gain: float = 0.10
+    causal_hidden_detection_reservation_hold_min_visible_cost: float = 0.20
     realtime_motion_pair_stabilizer: bool = False
     realtime_motion_pair_max_jump: float = 0.10
     realtime_motion_pair_min_gain: float = 0.01
@@ -538,6 +543,18 @@ def validate_config(cfg: TrackingConfig) -> None:
         ),
         "causal_hidden_detection_reservation_max_alternative_cost": (
             cfg.causal_hidden_detection_reservation_max_alternative_cost
+        ),
+        "causal_hidden_detection_reservation_hold_min_iom": (
+            cfg.causal_hidden_detection_reservation_hold_min_iom
+        ),
+        "causal_hidden_detection_reservation_hold_max_claim_cost": (
+            cfg.causal_hidden_detection_reservation_hold_max_claim_cost
+        ),
+        "causal_hidden_detection_reservation_hold_min_gain": (
+            cfg.causal_hidden_detection_reservation_hold_min_gain
+        ),
+        "causal_hidden_detection_reservation_hold_min_visible_cost": (
+            cfg.causal_hidden_detection_reservation_hold_min_visible_cost
         ),
     }
     for name, value in causal_reservation_values.items():

@@ -1225,6 +1225,44 @@ def test_causal_hidden_reservation_releases_detection_for_hidden_track() -> None
     assert event["det_idx"] == 0
 
 
+def test_causal_hidden_reservation_can_hold_visible_without_an_alternative() -> None:
+    cfg, visible_track, hidden_track, detections, context = (
+        _causal_reservation_fixture()
+    )
+    cfg.causal_hidden_detection_reservation_allow_visible_hold = True
+    runtime = TrackingRuntimeState()
+    costs = np.array([[0.40]], dtype=np.float32)
+
+    rows, cols = apply_causal_hidden_detection_reservation(
+        costs,
+        [visible_track],
+        [0],
+        detections,
+        [hidden_track],
+        set(),
+        context,
+        100,
+        40,
+        cfg,
+        {},
+        {},
+        runtime,
+        7,
+        "visible_high_conf",
+    )
+
+    np.testing.assert_array_equal(rows, np.array([0]))
+    np.testing.assert_array_equal(cols, np.array([0]))
+    assert costs[0, 0] >= 1_000_000.0
+    event = next(
+        event
+        for event in runtime.association_debug_events
+        if event["event"] == "assignment_reserve_hidden_detection"
+    )
+    assert event["visible_track_held"] is True
+    assert event["replacement_cost"] is None
+
+
 def test_causal_hidden_reservation_requires_a_valid_visible_alternative() -> None:
     cfg, visible_track, hidden_track, detections, context = (
         _causal_reservation_fixture()
