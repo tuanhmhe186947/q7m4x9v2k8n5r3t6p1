@@ -1,5 +1,26 @@
 # Benchmark Notes
 
+## 2026-07-19 hybrid H5b plus H4 promotion authority
+
+- Paired full-13 control and combined candidate improve aggregate IDSW
+  `8 -> 0`, HOTA `98.33687663% -> 98.35062270%`, IDF1
+  `99.14102564% -> 99.14903846%`, and FP/FN
+  `1603/1603 -> 1593/1593`.
+- H5b alone changes only `000233`, fixing IDSW `4 -> 0`; the other 12 video
+  metrics are identical. H4 then changes exactly 10 `ID_7` bbox rows on
+  `000328`, fixing IDSW `4 -> 0`; the other 12 video geometries are unchanged.
+- Primary and repeat combined metrics match across all 14 rows. The auditor
+  verifies 26 semantic predictions, 46 artifacts, current input hashes, four
+  zero-IDSW critical-video guards, and `mp4_count=0`.
+- Repeatability authority SHA256 is
+  `c88fe8241c85c609b67753ad229e3bcf23ac9f8ca8ac8d3485a8fcbafd8327bb`.
+- Strict fragments and tracklets each increase by one, while gap-tolerant
+  fragments stay at `6`; aggregate MOTP IoU decreases by
+  `0.0000195086394853`. These are retained as non-blocking trade-offs.
+- This is a post-video quality promotion with no speed claim. Exact config,
+  lineage, rollback, and claim limits are recorded in
+  `docs/TRACKING_PROMOTION_DECISION_20260719_HYBRID_H5B_H4.json`.
+
 ## 2026-07-18 hybrid near-wall Hidden bbox geometry promotion
 
 - Parent/candidate aggregate: matches `185570 -> 185578`, FP/FN

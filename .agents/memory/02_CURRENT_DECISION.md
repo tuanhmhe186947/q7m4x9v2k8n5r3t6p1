@@ -1,25 +1,32 @@
 # Current Decision
 
-## Active H5 decision 2026-07-18
+## Active hybrid H5b+H4 decision 2026-07-19
 
-H4 is accepted as a hybrid component for the `000328` far-camera Hidden
-geometry family. It reduces full-video IDSW `4 -> 0` while improving HOTA,
-IDF1, matches, FP, and FN. Its four-video hard set has no regression, but
-only one difficult video improves; the frozen gate requires two. Therefore
-H4-only full-13 and profile promotion are not authorized.
+Promote H5b overlap-persistence identity repair and H4 far-camera Hidden bbox
+geometry together in `hybrid_bytetrack_best`. Paired full-13 control and two
+independent combined runs improve IDSW `8 -> 0`, HOTA
+`98.33687663% -> 98.35062270%`, IDF1 `99.14102564% -> 99.14903846%`, and
+FP/FN `1603/1603 -> 1593/1593`.
 
-Proceed with H5 for the separate `000233` Hidden-overlap identity-payload
-family. Re-run the staged funnel with H4 and H5 combined before any full-13
-run. Do not open realtime until a separate hybrid lane-completion decision.
+H5b alone fixes `000233: 4 -> 0` IDSW without changing the other 12 video
+metrics. H4 then fixes `000328: 4 -> 0`, changing exactly 10 `ID_7` bbox rows;
+the other 12 video geometries remain unchanged. Primary/repeat metrics and 26
+semantic prediction hashes match. Current input rehash, four critical-video
+IDSW guards, payload integrity, and recursive zero-MP4 gates pass.
+
+This authorizes the exact profile promotion recorded in
+`docs/TRACKING_PROMOTION_DECISION_20260719_HYBRID_H5B_H4.json`. It makes no
+speed claim. Recompute residuals and issue a separate hybrid lane-completion
+decision before opening realtime.
 
 ## Decision precedence
 
 Only the active decision immediately below controls current work. All later
 sections are historical records. The active tracking authority is
-`docs/TRACKING_PROMOTION_DECISION_20260718_HYBRID_NEAR_WALL_GEOMETRY.json`.
-That authority locks the current parent, not completion of the hybrid lane.
-The active execution plan is
-`docs/TRACKING_HYBRID_RESIDUAL_PLAN_20260718.json`.
+`docs/TRACKING_PROMOTION_DECISION_20260719_HYBRID_H5B_H4.json`.
+That authority permits the exact profile promotion but does not itself close
+the hybrid lane. The active execution plan is
+`docs/TRACKING_H5B_H4_COMBINED_FULL13_PLAN_20260718.json`.
 `docs/CLASSIFICATION_V2_CURRENT_STATE.md` applies only to the paused
 classification workstream.
 
