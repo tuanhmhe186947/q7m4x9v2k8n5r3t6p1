@@ -92,6 +92,39 @@ def _config() -> object:
     )
 
 
+def _persistent_overlap_parent() -> list[dict]:
+    shapes = []
+    for frame in range(8, 20):
+        hidden = 10 <= frame <= 15
+        high_overlap = frame in {13, 14}
+        partner_points = [0.0, 0.0, 12.0, 12.0]
+        hidden_points = (
+            [0.0, 0.0, 12.0, 12.0]
+            if high_overlap
+            else [30.0, 30.0, 42.0, 42.0]
+        )
+        repaired = frame >= 13
+        shapes.extend(
+            [
+                _shape(
+                    frame,
+                    1,
+                    id_value="ID_2" if repaired else "ID_1",
+                    points=partner_points,
+                ),
+                _shape(
+                    frame,
+                    2,
+                    id_value="ID_1" if repaired else "ID_2",
+                    hidden=hidden,
+                    score=0.3 if hidden else 0.9,
+                    points=hidden_points,
+                ),
+            ]
+        )
+    return shapes
+
+
 def _valid_plan() -> dict:
     return {
         "schema_version": "tracking_h5_hidden_suffix_commit_plan_v1",
@@ -159,6 +192,34 @@ def test_identity_replay_delays_commit_until_after_hidden_run() -> None:
     assert [
         IDENTITY_REPLAY.payload_without_id(shape) for shape in parent
     ] == [IDENTITY_REPLAY.payload_without_id(shape) for shape in candidate]
+
+
+def test_persistent_overlap_replay_commits_at_second_support_frame() -> None:
+    parent = _persistent_overlap_parent()
+    config = IDENTITY_REPLAY.PersistenceReplayConfig(
+        min_hidden_frames=5,
+        max_hidden_frames=7,
+        min_overlap_iou=0.6,
+        max_hidden_median_score=0.5,
+        start_back_frames=2,
+        min_suffix_frames=6,
+        min_overlap_persistence_frames=2,
+    )
+
+    candidate, events = IDENTITY_REPLAY.replay_hidden_suffix_commit_boundary(
+        parent,
+        config,
+        candidate_name=IDENTITY_REPLAY.CANDIDATE_PERSISTENT_OVERLAP,
+    )
+
+    candidate_ids = _id_by_key(candidate)
+    assert candidate_ids[("Pig_1", 13)] == "ID_1"
+    assert candidate_ids[("Pig_2", 13)] == "ID_2"
+    assert candidate_ids[("Pig_1", 14)] == "ID_2"
+    assert candidate_ids[("Pig_2", 14)] == "ID_1"
+    assert events[0]["candidate_commit_start"] == 14
+    assert events[0]["overlap_persistence_frames"] == 2
+    assert events[0]["overlap_persistence_start"] == 13
 
 
 def test_identity_replay_does_not_invent_an_unapplied_parent_repair() -> None:

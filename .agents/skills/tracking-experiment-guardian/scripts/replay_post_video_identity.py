@@ -63,7 +63,13 @@ SELECTED_SKILLS = [
     "experiment-lineage-reproducibility",
     "skill-creator",
 ]
-CANDIDATE = "hidden_suffix_commit_after_run_v1"
+CANDIDATE_AFTER_RUN = "hidden_suffix_commit_after_run_v1"
+CANDIDATE_PERSISTENT_OVERLAP = (
+    "hidden_suffix_commit_after_overlap_persistence_v1"
+)
+CANDIDATES = (CANDIDATE_AFTER_RUN, CANDIDATE_PERSISTENT_OVERLAP)
+# Keep the original public name for callers and fixtures that target H5a.
+CANDIDATE = CANDIDATE_AFTER_RUN
 RUNTIME_CONTRACT = "post_video_identity_payload_replay"
 DELTA_FIELDS = [
     "frame",
@@ -93,6 +99,13 @@ class ReplayConfig:
     min_suffix_frames: int = 600
 
 
+@dataclass(frozen=True)
+class PersistenceReplayConfig(ReplayConfig):
+    """Thresholds for a geometry-persistent hidden-overlap commit."""
+
+    min_overlap_persistence_frames: int = 2
+
+
 def bounded_unit_float(raw: str) -> float:
     """Parse a float in the closed unit interval."""
 
@@ -106,7 +119,7 @@ def parse_args() -> argparse.Namespace:
     """Parse the fail-closed identity replay command line."""
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--candidate", choices=(CANDIDATE,), required=True)
+    parser.add_argument("--candidate", choices=CANDIDATES, required=True)
     parser.add_argument("--parent-shapes-json", type=Path, required=True)
     parser.add_argument("--parent-xml", type=Path, required=True)
     parser.add_argument("--parent-run-manifest", type=Path, required=True)
@@ -130,6 +143,10 @@ def parse_args() -> argparse.Namespace:
         type=nonnegative_int,
     )
     parser.add_argument("--min-suffix-frames", type=positive_int)
+    parser.add_argument(
+        "--min-overlap-persistence-frames",
+        type=positive_int,
+    )
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
 
@@ -227,11 +244,33 @@ def parent_has_old_repair(
     )
 
 
+def first_persistent_overlap_boundary(
+    overlap_by_frame: dict[int, float],
+    min_overlap_iou: float,
+    persistence_frames: int,
+) -> int | None:
+    """Return the last frame of the first qualifying overlap run."""
+
+    if persistence_frames <= 0:
+        raise ValueError("overlap persistence must be positive")
+    qualifying = sorted(
+        frame
+        for frame, overlap in overlap_by_frame.items()
+        if overlap >= min_overlap_iou
+    )
+    for run_start, run_end in contiguous_runs(qualifying):
+        if run_end - run_start + 1 >= persistence_frames:
+            return run_start + persistence_frames - 1
+    return None
+
+
 def replay_hidden_suffix_commit_boundary(
     shapes: list[dict[str, Any]],
     cfg: ReplayConfig,
+    *,
+    candidate_name: str = CANDIDATE,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Move an applied hidden-suffix ID commit to the first unhidden frame."""
+    """Move an applied hidden-suffix ID commit to a frozen boundary."""
 
     candidate_shapes = copy.deepcopy(shapes)
     by_label_frame: dict[int, dict[int, dict[str, Any]]] = {}
@@ -260,9 +299,20 @@ def replay_hidden_suffix_commit_boundary(
                 continue
             if cfg.max_hidden_frames > 0 and run_length > cfg.max_hidden_frames:
                 continue
-            new_start = run_end + 1
-            reappeared = hidden_frames.get(new_start)
-            if reappeared is None or hidden_value(reappeared) == "Yes":
+            persistence_frames = getattr(
+                cfg,
+                "min_overlap_persistence_frames",
+                None,
+            )
+            reappearance_frame = run_end + 1
+            reappeared = hidden_frames.get(reappearance_frame)
+            if (
+                persistence_frames is None
+                and (
+                    reappeared is None
+                    or hidden_value(reappeared) == "Yes"
+                )
+            ):
                 continue
             hidden_run_shapes = [hidden_frames[f] for f in range(run_start, run_end + 1)]
             median_score = statistics.median(
@@ -272,15 +322,23 @@ def replay_hidden_suffix_commit_boundary(
                 continue
 
             partner_overlaps: dict[int, list[float]] = {}
+            partner_overlap_by_frame: dict[int, dict[int, float]] = {}
             for hidden_shape in hidden_run_shapes:
                 frame = int(hidden_shape["frame"])
                 for other in by_frame.get(frame, []):
                     partner_id = label_identity(other)
                     if partner_id == hidden_id or hidden_value(other) == "Yes":
                         continue
-                    partner_overlaps.setdefault(partner_id, []).append(
-                        bbox_iou(hidden_shape["points"], other["points"])
+                    overlap = bbox_iou(
+                        hidden_shape["points"],
+                        other["points"],
                     )
+                    partner_overlaps.setdefault(partner_id, []).append(
+                        overlap
+                    )
+                    partner_overlap_by_frame.setdefault(partner_id, {})[
+                        frame
+                    ] = overlap
             if not partner_overlaps:
                 continue
             partner_id, overlaps = max(
@@ -293,13 +351,23 @@ def replay_hidden_suffix_commit_boundary(
             if pair in consumed_pairs:
                 continue
             partner_frames = by_label_frame[partner_id]
-            partner_reappeared = partner_frames.get(new_start)
-            if partner_reappeared is None:
-                continue
-            if hidden_value(partner_reappeared) == "Yes":
-                continue
 
             old_start = max(run_start, run_end - cfg.start_back_frames)
+            if persistence_frames is None:
+                new_start = reappearance_frame
+                partner_reappeared = partner_frames.get(new_start)
+                if partner_reappeared is None:
+                    continue
+                if hidden_value(partner_reappeared) == "Yes":
+                    continue
+            else:
+                new_start = first_persistent_overlap_boundary(
+                    partner_overlap_by_frame[partner_id],
+                    cfg.min_overlap_iou,
+                    persistence_frames,
+                )
+                if new_start is None or new_start <= old_start:
+                    continue
             suffix_frames = sorted(
                 frame
                 for frame in set(hidden_frames) & set(partner_frames)
@@ -328,22 +396,26 @@ def replay_hidden_suffix_commit_boundary(
                 set_id_value(hidden_frames[frame], f"ID_{hidden_id}")
                 set_id_value(partner_frames[frame], f"ID_{partner_id}")
                 for shape in (hidden_frames[frame], partner_frames[frame]):
-                    shape["_identity_payload_replay"] = CANDIDATE
-            events.append(
-                {
-                    "hidden_label": f"Pig_{hidden_id}",
-                    "partner_label": f"Pig_{partner_id}",
-                    "run_start": run_start,
-                    "run_end": run_end,
-                    "run_length": run_length,
-                    "hidden_median_score": round(float(median_score), 6),
-                    "max_partner_iou": round(float(max(overlaps)), 6),
-                    "old_commit_start": old_start,
-                    "candidate_commit_start": new_start,
-                    "common_suffix_frames": len(suffix_frames),
-                    "changed_frames": changed_frames,
-                }
-            )
+                    shape["_identity_payload_replay"] = candidate_name
+            event = {
+                "hidden_label": f"Pig_{hidden_id}",
+                "partner_label": f"Pig_{partner_id}",
+                "run_start": run_start,
+                "run_end": run_end,
+                "run_length": run_length,
+                "hidden_median_score": round(float(median_score), 6),
+                "max_partner_iou": round(float(max(overlaps)), 6),
+                "old_commit_start": old_start,
+                "candidate_commit_start": new_start,
+                "common_suffix_frames": len(suffix_frames),
+                "changed_frames": changed_frames,
+            }
+            if persistence_frames is not None:
+                event["overlap_persistence_frames"] = persistence_frames
+                event["overlap_persistence_start"] = (
+                    new_start - persistence_frames + 1
+                )
+            events.append(event)
             consumed_pairs.add(pair)
     return candidate_shapes, events
 
@@ -515,15 +587,23 @@ def validated_replay_config(
 ) -> ReplayConfig:
     """Build the candidate config and reject every CLI parameter drift."""
 
+    candidate_name = str(plan.get("candidate", {}).get("name", ""))
+    config_type: type[ReplayConfig]
+    if candidate_name == CANDIDATE_PERSISTENT_OVERLAP:
+        config_type = PersistenceReplayConfig
+    elif candidate_name == CANDIDATE_AFTER_RUN:
+        config_type = ReplayConfig
+    else:
+        raise ValueError("candidate does not have a supported config")
     parameters = plan.get("candidate", {}).get("parameters", {})
-    expected_fields = set(ReplayConfig.__dataclass_fields__)
+    expected_fields = set(config_type.__dataclass_fields__)
     if set(parameters) != expected_fields:
-        raise ValueError("candidate parameters do not match ReplayConfig")
-    cfg = ReplayConfig(**parameters)
+        raise ValueError("candidate parameters do not match its config")
+    cfg = config_type(**parameters)
     if cfg.max_hidden_frames < cfg.min_hidden_frames:
         raise ValueError("max_hidden_frames must be >= min_hidden_frames")
     for field, expected in asdict(cfg).items():
-        supplied = getattr(args, field)
+        supplied = getattr(args, field, None)
         if supplied is not None and supplied != expected:
             raise ValueError(f"CLI parameter {field} differs from frozen plan")
     return cfg
@@ -652,7 +732,14 @@ def validate_plan(path: Path, candidate: str) -> dict[str, Any]:
     """Require a frozen H5 plan that names this replay candidate."""
 
     payload = json.loads(path.read_text(encoding="utf-8"))
-    if payload.get("schema_version") != "tracking_h5_hidden_suffix_commit_plan_v1":
+    schema_to_candidate = {
+        "tracking_h5_hidden_suffix_commit_plan_v1": CANDIDATE_AFTER_RUN,
+        "tracking_h5_hidden_suffix_persistence_plan_v1": (
+            CANDIDATE_PERSISTENT_OVERLAP
+        ),
+    }
+    schema = payload.get("schema_version")
+    if schema not in schema_to_candidate:
         raise ValueError("experiment plan schema is not supported")
     if payload.get("status") != "frozen_before_replay":
         raise ValueError("experiment plan must be frozen_before_replay")
@@ -660,6 +747,8 @@ def validate_plan(path: Path, candidate: str) -> dict[str, Any]:
         raise ValueError("experiment plan does not keep hybrid first")
     if payload.get("candidate", {}).get("name") != candidate:
         raise ValueError("experiment plan candidate does not match replay")
+    if schema_to_candidate[schema] != candidate:
+        raise ValueError("experiment plan schema does not match replay candidate")
     candidate_contract = payload.get("candidate", {})
     if candidate_contract.get("gt_used_to_generate_prediction") is not False:
         raise ValueError("experiment plan must forbid GT-generated prediction")
@@ -681,6 +770,11 @@ def validate_plan(path: Path, candidate: str) -> dict[str, Any]:
     for key, expected in expected_evaluation.items():
         if evaluation.get(key) != expected:
             raise ValueError(f"experiment evaluation contract mismatch: {key}")
+    if candidate == CANDIDATE_PERSISTENT_OVERLAP:
+        parameters = candidate_contract.get("parameters", {})
+        persistence = parameters.get("min_overlap_persistence_frames")
+        if not isinstance(persistence, int) or persistence < 2:
+            raise ValueError("persistent-overlap plan requires at least two frames")
     return payload
 
 
@@ -717,6 +811,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     candidate_shapes, events = replay_hidden_suffix_commit_boundary(
         parent_shapes,
         cfg,
+        candidate_name=args.candidate,
     )
     if len(parent_shapes) != len(candidate_shapes):
         raise ValueError("identity replay changed the shape count")
