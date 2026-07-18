@@ -34,6 +34,7 @@ from pig_behavior.tracking.masks import apply_mask_to_frame, load_mask
 from pig_behavior.tracking.refinement import (
     apply_identity_swap_guard,
     clean_training_shapes,
+    refine_far_camera_hidden_geometry,
     refine_near_wall_hidden_geometry,
     refine_shapes_temporally,
     repair_episode_pair_swaps,
@@ -430,6 +431,7 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
         shapes = repair_hidden_suffix_id_swaps(shapes, cfg)
     shapes = stabilize_realtime_motion_pairs(shapes, width, height, cfg)
     shapes = refine_near_wall_hidden_geometry(shapes, width, height, mask, cfg)
+    shapes = refine_far_camera_hidden_geometry(shapes, width, height, cfg)
     runtime.telemetry["postprocess_time_ms_total"] = (
         time.perf_counter() - postprocess_start
     ) * 1000.0
@@ -457,6 +459,7 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
             or shape.get("_merged_box_split")
             or shape.get("_identity_swap_guard")
             or shape.get("_near_wall_hidden_geometry_refined")
+            or shape.get("_far_camera_hidden_geometry_refined")
         )
     )
     _render_output_video(cfg, output_video, shapes, frames_written)

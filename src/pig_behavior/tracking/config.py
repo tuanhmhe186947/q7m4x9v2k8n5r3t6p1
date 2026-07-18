@@ -334,6 +334,14 @@ class TrackingConfig:
     near_wall_hidden_geometry_min_width_excess: float = 0.08
     near_wall_hidden_geometry_max_center_shift: float = 0.04
     near_wall_hidden_geometry_original_weight: float = 0.50
+    far_camera_hidden_geometry_refine: bool = False
+    far_camera_hidden_geometry_x_threshold: float = 0.67
+    far_camera_hidden_geometry_max_future_gap_frames: int = 15
+    far_camera_hidden_geometry_min_height_excess: float = 0.15
+    far_camera_hidden_geometry_min_visible_overlap_iou: float = 0.65
+    far_camera_hidden_geometry_min_overlap_reduction: float = 0.10
+    far_camera_hidden_geometry_max_center_shift: float = 0.12
+    far_camera_hidden_geometry_original_weight: float = 0.10
     max_box_scale_change_per_frame: float = 0.25
     max_box_scale_change_after_gap: float = 0.75
     high_conf_smooth_alpha: float = 0.75
@@ -671,6 +679,33 @@ def validate_config(cfg: TrackingConfig) -> None:
             "near_wall_hidden_geometry_refine requires use_mask=True "
             "and mask_path."
         )
+    if cfg.far_camera_hidden_geometry_max_future_gap_frames < 1:
+        raise ValueError(
+            "far_camera_hidden_geometry_max_future_gap_frames must be >= 1."
+        )
+    far_camera_geometry_values = {
+        "far_camera_hidden_geometry_x_threshold": (
+            cfg.far_camera_hidden_geometry_x_threshold
+        ),
+        "far_camera_hidden_geometry_min_height_excess": (
+            cfg.far_camera_hidden_geometry_min_height_excess
+        ),
+        "far_camera_hidden_geometry_min_visible_overlap_iou": (
+            cfg.far_camera_hidden_geometry_min_visible_overlap_iou
+        ),
+        "far_camera_hidden_geometry_min_overlap_reduction": (
+            cfg.far_camera_hidden_geometry_min_overlap_reduction
+        ),
+        "far_camera_hidden_geometry_max_center_shift": (
+            cfg.far_camera_hidden_geometry_max_center_shift
+        ),
+        "far_camera_hidden_geometry_original_weight": (
+            cfg.far_camera_hidden_geometry_original_weight
+        ),
+    }
+    for name, value in far_camera_geometry_values.items():
+        if not 0.0 <= value <= 1.0:
+            raise ValueError(f"{name} must be between 0 and 1.")
     alpha_values = {
         "high_conf_smooth_alpha": cfg.high_conf_smooth_alpha,
         "mid_conf_smooth_alpha": cfg.mid_conf_smooth_alpha,

@@ -79,6 +79,7 @@ def test_profile_configs_keep_expected_behavior_separation() -> None:
     assert hybrid["near_wall_hidden_geometry_min_width_excess"] == 0.08
     assert hybrid["near_wall_hidden_geometry_max_center_shift"] == 0.04
     assert hybrid["near_wall_hidden_geometry_original_weight"] == 0.50
+    assert "far_camera_hidden_geometry_refine" not in hybrid
 
 
 def test_get_presentation_profile_returns_mutable_copy() -> None:

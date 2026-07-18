@@ -634,6 +634,136 @@ def refine_near_wall_hidden_geometry(
     return refined_shapes
 
 
+def refine_far_camera_hidden_geometry(
+    shapes: list[dict[str, Any]],
+    width: int,
+    height: int,
+    cfg: TrackingConfig,
+) -> list[dict[str, Any]]:
+    """Pull anomalously tall far-camera Hidden boxes toward a future anchor.
+
+    This pass is geometry-only and runs after identity/visibility processing.
+    It requires a nearby visible same-ID anchor and a measurable reduction in
+    overlap with a visible different-ID box.
+    """
+    if not cfg.far_camera_hidden_geometry_refine:
+        return shapes
+    if width < 1 or height < 1:
+        raise ValueError("far-camera geometry requires positive frame size.")
+
+    refined_shapes = [shape.copy() for shape in shapes]
+    by_identity: dict[str, list[dict[str, Any]]] = {}
+    visible_by_frame: dict[int, list[dict[str, Any]]] = {}
+    for shape in refined_shapes:
+        if shape.get("outside", False):
+            continue
+        attributes = _shape_attributes_dict(shape)
+        identity_key = str(attributes.get("ID") or shape.get("label", ""))
+        by_identity.setdefault(identity_key, []).append(shape)
+        if shape_hidden_value(shape) == "No":
+            visible_by_frame.setdefault(int(shape["frame"]), []).append(shape)
+
+    for identity_key, track_shapes in by_identity.items():
+        track_shapes.sort(key=lambda item: int(item["frame"]))
+        future_anchor: dict[str, Any] | None = None
+        for shape in reversed(track_shapes):
+            hidden_value = shape_hidden_value(shape)
+            if hidden_value == "No":
+                if float(shape.get("score", 0.0)) >= cfg.det_conf:
+                    future_anchor = shape
+                continue
+            if hidden_value != "Yes" or future_anchor is None:
+                continue
+
+            frame = int(shape["frame"])
+            anchor_frame = int(future_anchor["frame"])
+            frame_gap = anchor_frame - frame
+            if not (
+                0 < frame_gap
+                <= cfg.far_camera_hidden_geometry_max_future_gap_frames
+            ):
+                continue
+
+            original = shape_box(shape)
+            anchor_box = shape_box(future_anchor)
+            original_center_x = float((original[0] + original[2]) / 2.0)
+            anchor_center_x = float((anchor_box[0] + anchor_box[2]) / 2.0)
+            far_threshold = cfg.far_camera_hidden_geometry_x_threshold * width
+            if min(original_center_x, anchor_center_x) < far_threshold:
+                continue
+
+            original_height = max(float(original[3] - original[1]), 1e-6)
+            anchor_height = max(float(anchor_box[3] - anchor_box[1]), 1e-6)
+            height_excess = original_height / anchor_height - 1.0
+            if (
+                height_excess
+                < cfg.far_camera_hidden_geometry_min_height_excess
+            ):
+                continue
+
+            center_shift = center_distance_norm(
+                original,
+                anchor_box,
+                width,
+                height,
+            )
+            if center_shift > cfg.far_camera_hidden_geometry_max_center_shift:
+                continue
+
+            rivals: list[tuple[float, dict[str, Any]]] = []
+            for other in visible_by_frame.get(frame, []):
+                other_attributes = _shape_attributes_dict(other)
+                other_identity = str(
+                    other_attributes.get("ID") or other.get("label", "")
+                )
+                if other_identity == identity_key:
+                    continue
+                rivals.append((bbox_iou(original, shape_box(other)), other))
+            if not rivals:
+                continue
+
+            overlap_before, rival = max(rivals, key=lambda item: item[0])
+            if (
+                overlap_before
+                < cfg.far_camera_hidden_geometry_min_visible_overlap_iou
+            ):
+                continue
+
+            original_weight = cfg.far_camera_hidden_geometry_original_weight
+            blended = (
+                original_weight * original
+                + (1.0 - original_weight) * anchor_box
+            )
+            overlap_after = bbox_iou(blended, shape_box(rival))
+            overlap_reduction = overlap_before - overlap_after
+            if (
+                overlap_reduction
+                < cfg.far_camera_hidden_geometry_min_overlap_reduction
+            ):
+                continue
+
+            rival_attributes = _shape_attributes_dict(rival)
+            shape["_far_camera_hidden_geometry_original_points"] = [
+                round(float(value), 2) for value in original
+            ]
+            shape["_far_camera_hidden_geometry_refined"] = True
+            shape["_far_camera_hidden_geometry_height_excess"] = round(
+                float(height_excess),
+                4,
+            )
+            shape["_far_camera_hidden_geometry_overlap_iou"] = [
+                round(float(overlap_before), 4),
+                round(float(overlap_after), 4),
+            ]
+            shape["_far_camera_hidden_geometry_anchor_frame"] = anchor_frame
+            shape["_far_camera_hidden_geometry_overlap_identity"] = str(
+                rival_attributes.get("ID") or rival.get("label", "")
+            )
+            set_shape_box(shape, blended, width, height)
+
+    return refined_shapes
+
+
 def _clipped_shape_bbox(
     box: np.ndarray,
     width: int,

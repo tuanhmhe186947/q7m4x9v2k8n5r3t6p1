@@ -50,6 +50,7 @@ from pig_behavior.tracking.association import (
 from pig_behavior.tracking.config import validate_config
 from pig_behavior.tracking.refinement import (
     nearby_anchor_indices,
+    refine_far_camera_hidden_geometry,
     refine_near_wall_hidden_geometry,
     stabilize_overlap_hidden_islands,
 )
@@ -239,6 +240,105 @@ def test_near_wall_hidden_geometry_ignores_far_box() -> None:
 
     assert refined[1]["points"] == shapes[1]["points"]
     assert "_near_wall_hidden_geometry_refined" not in refined[1]
+
+
+def test_far_camera_hidden_geometry_rejects_invalid_future_gap() -> None:
+    cfg = TrackingConfig(
+        far_camera_hidden_geometry_refine=True,
+        far_camera_hidden_geometry_max_future_gap_frames=0,
+    )
+
+    try:
+        validate_config(cfg)
+    except ValueError as exc:
+        assert "far_camera_hidden_geometry_max_future_gap_frames" in str(exc)
+    else:
+        raise AssertionError("zero far-camera future gap should fail")
+
+
+def test_far_camera_hidden_geometry_refines_only_bbox_payload() -> None:
+    hidden = _set_hidden(
+        _shape(1, 7, [68.0, 20.0, 98.0, 80.0]),
+        True,
+    )
+    shapes = [
+        hidden,
+        _shape(1, 5, [68.0, 30.0, 98.0, 80.0]),
+        _shape(3, 7, [72.0, 24.0, 96.0, 60.0]),
+    ]
+    hidden_before = {
+        key: value
+        for key, value in hidden.items()
+        if key != "points" and not key.startswith("_")
+    }
+    cfg = TrackingConfig(far_camera_hidden_geometry_refine=True)
+
+    refined = refine_far_camera_hidden_geometry(
+        shapes,
+        width=100,
+        height=100,
+        cfg=cfg,
+    )
+
+    assert refined[0]["points"] == [71.6, 23.6, 96.2, 62.0]
+    assert refined[1]["points"] == shapes[1]["points"]
+    assert refined[2]["points"] == shapes[2]["points"]
+    assert refined[0]["_far_camera_hidden_geometry_refined"] is True
+    assert refined[0]["_far_camera_hidden_geometry_anchor_frame"] == 3
+    assert refined[0]["_far_camera_hidden_geometry_overlap_identity"] == "ID_5"
+    assert {
+        key: value
+        for key, value in refined[0].items()
+        if key != "points" and not key.startswith("_")
+    } == hidden_before
+    assert shapes[0]["points"] == [68.0, 20.0, 98.0, 80.0]
+
+
+def test_far_camera_hidden_geometry_requires_visible_identity_conflict() -> None:
+    shapes = [
+        _set_hidden(
+            _shape(1, 7, [68.0, 20.0, 98.0, 80.0]),
+            True,
+        ),
+        _set_hidden(
+            _shape(1, 5, [68.0, 30.0, 98.0, 80.0]),
+            True,
+        ),
+        _shape(3, 7, [72.0, 24.0, 96.0, 60.0]),
+    ]
+    cfg = TrackingConfig(far_camera_hidden_geometry_refine=True)
+
+    refined = refine_far_camera_hidden_geometry(
+        shapes,
+        width=100,
+        height=100,
+        cfg=cfg,
+    )
+
+    assert refined[0]["points"] == shapes[0]["points"]
+    assert "_far_camera_hidden_geometry_refined" not in refined[0]
+
+
+def test_far_camera_hidden_geometry_ignores_near_camera_box() -> None:
+    shapes = [
+        _set_hidden(
+            _shape(1, 7, [8.0, 20.0, 38.0, 80.0]),
+            True,
+        ),
+        _shape(1, 5, [8.0, 30.0, 38.0, 80.0]),
+        _shape(3, 7, [12.0, 24.0, 36.0, 60.0]),
+    ]
+    cfg = TrackingConfig(far_camera_hidden_geometry_refine=True)
+
+    refined = refine_far_camera_hidden_geometry(
+        shapes,
+        width=100,
+        height=100,
+        cfg=cfg,
+    )
+
+    assert refined[0]["points"] == shapes[0]["points"]
+    assert "_far_camera_hidden_geometry_refined" not in refined[0]
 
 
 def test_overlap_hidden_stabilization_restores_hidden_owner() -> None:
