@@ -1,5 +1,17 @@
 # Current Decision
 
+## Active H5 decision 2026-07-18
+
+H4 is accepted as a hybrid component for the `000328` far-camera Hidden
+geometry family. It reduces full-video IDSW `4 -> 0` while improving HOTA,
+IDF1, matches, FP, and FN. Its four-video hard set has no regression, but
+only one difficult video improves; the frozen gate requires two. Therefore
+H4-only full-13 and profile promotion are not authorized.
+
+Proceed with H5 for the separate `000233` Hidden-overlap identity-payload
+family. Re-run the staged funnel with H4 and H5 combined before any full-13
+run. Do not open realtime until a separate hybrid lane-completion decision.
+
 ## Decision precedence
 
 Only the active decision immediately below controls current work. All later

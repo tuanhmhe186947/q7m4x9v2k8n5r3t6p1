@@ -1,5 +1,18 @@
 # Workflow
 
+## 2026-07-18 H4-to-H5 execution update
+
+1. Treat H4 as a proven component, not a promoted profile or completed lane.
+2. Do not run H4-only full-13: its hard set improves only one difficult video,
+   below the frozen minimum of two.
+3. Open H5 on parent-derived `000233` frames `1104-1119`.
+4. Screen H5 by hard window, full `000233`, then the same four-video hard set.
+5. Evaluate H4 and H5 together at the hard-set stage. Full-13 opens only if
+   at least two difficult videos improve and aggregate guardrails pass.
+6. Keep `include_hidden=true`, fresh roots, input rehashing, and zero MP4.
+7. Keep every realtime profile closed until hybrid has a separate stop-gate
+   and lane-completion decision.
+
 ## 2026-07-18 active tracking-only workflow override
 
 This section overrides the classification workflow below until the user

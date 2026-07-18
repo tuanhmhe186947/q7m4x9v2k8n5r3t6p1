@@ -49,6 +49,8 @@
   "candidate_order": [
     {
       "id": "H4",
+      "status": "accepted_component_full13_blocked_by_scope_gate",
+      "decision": "docs/TRACKING_H4_FAR_CAMERA_GEOMETRY_DECISION_20260718.json",
       "family": "post_identity_far_camera_hidden_bbox_geometry",
       "target": "Pigs301119_000328_30fps",
       "hypothesis": [
@@ -60,6 +62,7 @@
     },
     {
       "id": "H5",
+      "status": "active_next",
       "family": "hidden_overlap_identity_payload",
       "target": "Pigs291119_000233_30fps",
       "dependency": "H4 decision recorded",

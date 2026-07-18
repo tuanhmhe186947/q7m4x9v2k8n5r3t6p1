@@ -1,5 +1,19 @@
 • Kế Hoạch Tương Lai
 
+## Cập nhật H4 sang H5 ngày 2026-07-18
+
+- H4 đã sửa đúng family bbox Hidden vùng xa của `000328`: full-video IDSW
+  `4 -> 0`, đồng thời HOTA, IDF1, matches, FP và FN đều tốt hơn.
+- Hard set bốn video không có regression và aggregate IDSW `8 -> 4`, nhưng
+  chỉ một video khó cải thiện. Vì gate đã khóa cần ít nhất hai video, không
+  chạy full-13 và không promote profile chỉ với H4.
+- Giữ H4 làm component đã có bằng chứng và chuyển sang H5 cho conflict
+  identity payload của `000233`.
+- Sau khi H5 qua window và full target, đánh giá H4+H5 trên cùng hard set.
+  Chỉ khi ít nhất hai video khó tốt hơn mới được mở full-13.
+- Các lane realtime vẫn đóng; sau khi hybrid hoàn tất mới lấy fast làm mốc
+  vận hành và balanced làm target thực dụng.
+
 ## Bổ sung chủ động 2026-07-16: tối ưu tracking không hồi quy
 
 Phần này là kế hoạch đang có hiệu lực. Nội dung cũ bên dưới được giữ làm lịch

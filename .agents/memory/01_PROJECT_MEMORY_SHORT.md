@@ -1,5 +1,18 @@
 # Project Memory Short
 
+## 2026-07-18 H4 far-camera component decision
+
+- H4 fixes the `000328` far-right Hidden bbox family: full-video IDSW
+  `4 -> 0`, HOTA `98.317% -> 98.476%`, IDF1 `99.125% -> 99.215%`,
+  and remapped FP/FN `126/126 -> 113/113`.
+- The four-video hard set improves aggregate IDSW `8 -> 4` with no
+  regression, but only `000328` changes. The frozen two-video gain gate
+  blocks H4-only full-13 and profile promotion.
+- H4 remains a proven component. H5 for the independent `000233`
+  identity-payload family is active next; realtime remains closed.
+- Decision authority is
+  `docs/TRACKING_H4_FAR_CAMERA_GEOMETRY_DECISION_20260718.json`.
+
 ## 2026-07-18 hybrid residual-first correction
 
 - Promoting one hybrid candidate closes only that experiment. It does not mean

@@ -1,0 +1,148 @@
+{
+  "schema_version": "tracking_h4_far_camera_geometry_decision_v1",
+  "status": "accepted_component_hardset_scope_gate_stop",
+  "decision_date": "2026-07-18",
+  "candidate_id": "H4",
+  "changed_family": "post_identity_far_camera_hidden_bbox_geometry",
+  "plan": {
+    "path": "docs/TRACKING_H4_FAR_CAMERA_GEOMETRY_PLAN_20260718.json",
+    "commit": "c371a1bca3ffe2262d539cdb7b0ecad9c59e1825"
+  },
+  "evaluation_contract": {
+    "mode": "hybrid_bytetrack",
+    "profile_parent": "hybrid_bytetrack_best",
+    "include_hidden": true,
+    "iou_threshold": 0.5,
+    "gap_tolerance_frames": 15,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "runtime_contract": "post_video_geometry_replay",
+    "generated_mp4_allowed": false
+  },
+  "evidence_sha256": {
+    "replay_manifest": "8900c23f5d7cdf499f0751af50c1d8a72c4d1d6ede73a21e6b42aee971c1cdeb",
+    "window_parent_manifest": "fb1bfc506d5777265697806b39111e05c1d7b8310b6608e36f4941f64ba278fc",
+    "window_candidate_manifest": "f418e7538bf620f6e8f63ccff787f9677cb532a0f1b33def0d0036ff17aa8a7a",
+    "full_parent_manifest": "ea5804c0231e02adec3d4ecbbf8b90cb45e5adc6e0d6bf1ce4b50f8a99ccacf8",
+    "full_candidate_manifest": "1ea6c5ce09762cd3809a7efb8676a6f5e0e7c98245870de313f2c31691b72d83",
+    "hardset_parent_manifest": "bda63243388df7d3d1444449910e325ab713b28fb63ccf851598a8aefb216033",
+    "hardset_candidate_manifest": "4d8ce0ccbcb02aa9dcd7da864fcf61059d437d856c593f20c5bcc849e5b48d77"
+  },
+  "payload_integrity": {
+    "status": "PASS",
+    "shape_count": 14400,
+    "changed_bbox_count": 10,
+    "changed_ids": [
+      "ID_7"
+    ],
+    "changed_frame_range": [
+      1345,
+      1354
+    ],
+    "shape_keys_equal": true,
+    "non_geometry_payload_equal": true,
+    "non_geometry_payload": {
+      "sha256": "5ad905b9f2e40ece5fa288523f7bcbaefdc2270f9abd0174e545baaee0610ddc"
+    }
+  },
+  "window_000328": {
+    "frames": [
+      1340,
+      1360
+    ],
+    "parent": {
+      "remapped_idsw": 4,
+      "remapped_hota": 0.864730087500552,
+      "remapped_idf1": 0.8690476190476191,
+      "matches": 149,
+      "fp": 19,
+      "fn": 19
+    },
+    "candidate": {
+      "remapped_idsw": 0,
+      "remapped_hota": 0.9260815939451923,
+      "remapped_idf1": 0.9464285714285714,
+      "matches": 159,
+      "fp": 9,
+      "fn": 9
+    },
+    "gate": "PASS"
+  },
+  "full_000328": {
+    "parent": {
+      "remapped_idsw": 4,
+      "remapped_hota": 0.983171737330971,
+      "remapped_idf1": 0.99125,
+      "remapped_idtp": 14274,
+      "remapped_idfp": 126,
+      "remapped_idfn": 126
+    },
+    "candidate": {
+      "remapped_idsw": 0,
+      "remapped_hota": 0.984754562520036,
+      "remapped_idf1": 0.9921527777777778,
+      "remapped_idtp": 14287,
+      "remapped_idfp": 113,
+      "remapped_idfn": 113
+    },
+    "gate": "PASS"
+  },
+  "hard_set": {
+    "videos": [
+      "Pigs301119_000328_30fps",
+      "Pigs291119_000233_30fps",
+      "Pigs291119_000263_30fps",
+      "Pigs291119_000231_30fps"
+    ],
+    "parent": {
+      "remapped_idsw": 8,
+      "remapped_hota": 0.9832958740655189,
+      "remapped_idf1": 0.9914236111111111,
+      "remapped_idtp": 57106,
+      "remapped_idfp": 494,
+      "remapped_idfn": 494
+    },
+    "candidate": {
+      "remapped_idsw": 4,
+      "remapped_hota": 0.9836916065513768,
+      "remapped_idf1": 0.9916493055555555,
+      "remapped_idtp": 57119,
+      "remapped_idfp": 481,
+      "remapped_idfn": 481
+    },
+    "per_video_prediction_change": {
+      "Pigs301119_000328_30fps": "changed_and_improved",
+      "Pigs291119_000233_30fps": "sha256_identical",
+      "Pigs291119_000263_30fps": "sha256_identical",
+      "Pigs291119_000231_30fps": "sha256_identical"
+    },
+    "aggregate_non_regression_gate": "PASS",
+    "difficult_videos_improved": 1,
+    "difficult_videos_improved_required": 2,
+    "multi_video_gain_gate": "FAIL_SCOPE"
+  },
+  "gates": {
+    "clean_commit_bound_lineage": "PASS",
+    "same_semantic_evaluation_config": "PASS",
+    "include_hidden_primary_contract": "PASS",
+    "geometry_only_payload": "PASS",
+    "window_mechanism": "PASS",
+    "full_target": "PASS",
+    "hardset_aggregate_non_regression": "PASS",
+    "hardset_multi_video_gain": "FAIL_SCOPE",
+    "recursive_no_mp4": "PASS",
+    "full13_authorized": false,
+    "profile_promotion_authorized": false
+  },
+  "decision": [
+    "Retain H4 as a proven hybrid component for the 000328 failure family.",
+    "Do not run full-13 or promote the profile for H4 alone.",
+    "Proceed to H5 for the independent 000233 identity-payload family.",
+    "Re-run the staged funnel with H4 and H5 combined before full-13.",
+    "Do not open any realtime lane."
+  ],
+  "rollback": {
+    "algorithm_commit": "befaa58c4bc4228e714a187999aa12abb72f00b8",
+    "profile_default_changed": false
+  },
+  "recursive_mp4_count": 0
+}
