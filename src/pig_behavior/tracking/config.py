@@ -175,6 +175,15 @@ class TrackingConfig:
     realtime_low_conf_recovery_min_score: float = 0.50
     realtime_low_conf_recovery_min_missed: int = 3
     realtime_low_conf_recovery_max_missed: int = 20
+    # Opt-in causal guard: reserve a strong hidden-track claim before a
+    # visible track consumes the same detection in the high-confidence phase.
+    causal_hidden_detection_reservation: bool = False
+    causal_hidden_detection_reservation_max_missed: int = 5
+    causal_hidden_detection_reservation_max_claim_cost: float = 0.25
+    causal_hidden_detection_reservation_min_iom: float = 0.55
+    causal_hidden_detection_reservation_max_center_distance: float = 0.09
+    causal_hidden_detection_reservation_min_gain: float = 0.08
+    causal_hidden_detection_reservation_max_alternative_cost: float = 0.78
     realtime_motion_pair_stabilizer: bool = False
     realtime_motion_pair_max_jump: float = 0.10
     realtime_motion_pair_min_gain: float = 0.01
@@ -510,6 +519,30 @@ def validate_config(cfg: TrackingConfig) -> None:
         raise ValueError("occlusion_hold_max_frames must be >= 0.")
     if cfg.occlusion_hold_hidden_frames < 1:
         raise ValueError("occlusion_hold_hidden_frames must be >= 1.")
+    if cfg.causal_hidden_detection_reservation_max_missed < 1:
+        raise ValueError(
+            "causal_hidden_detection_reservation_max_missed must be >= 1."
+        )
+    causal_reservation_values = {
+        "causal_hidden_detection_reservation_max_claim_cost": (
+            cfg.causal_hidden_detection_reservation_max_claim_cost
+        ),
+        "causal_hidden_detection_reservation_min_iom": (
+            cfg.causal_hidden_detection_reservation_min_iom
+        ),
+        "causal_hidden_detection_reservation_max_center_distance": (
+            cfg.causal_hidden_detection_reservation_max_center_distance
+        ),
+        "causal_hidden_detection_reservation_min_gain": (
+            cfg.causal_hidden_detection_reservation_min_gain
+        ),
+        "causal_hidden_detection_reservation_max_alternative_cost": (
+            cfg.causal_hidden_detection_reservation_max_alternative_cost
+        ),
+    }
+    for name, value in causal_reservation_values.items():
+        if not 0.0 <= value <= 1.0:
+            raise ValueError(f"{name} must be between 0 and 1.")
     if cfg.USE_IOU_FALLBACK and not 0.0 <= cfg.iou_fallback_threshold <= 1.0:
         raise ValueError("iou_fallback_threshold must be between 0 and 1.")
     if cfg.USE_AREA_OCCLUSION_FREEZE or cfg.USE_CONDITIONAL_AREA_OCCLUSION_FREEZE:

@@ -15,6 +15,7 @@ from pig_behavior.evaluation.tracking.api import (
 from pig_behavior.tracking import (
     Detection,
     FixedTrack,
+    OcclusionContext,
     TrackingConfig,
     TrackingRuntimeState,
     apply_identity_swap_guard,
@@ -32,6 +33,7 @@ from pig_behavior.tracking import (
     track_detection_overlap_score,
 )
 from pig_behavior.tracking.association import (
+    apply_causal_hidden_detection_reservation,
     frame_in_reentry_ambiguous_hold_window,
     hidden_owner_conflict_should_freeze_identity,
     occlusion_reid_bad_match_should_hold,
@@ -1116,6 +1118,231 @@ def test_association_debug_is_silent_by_default() -> None:
     )
 
     assert runtime.association_debug_events == []
+
+
+def _causal_reservation_fixture() -> tuple[
+    TrackingConfig,
+    FixedTrack,
+    FixedTrack,
+    list[Detection],
+    OcclusionContext,
+]:
+    cfg = TrackingConfig(
+        mode="realtime",
+        expected_pigs=2,
+        association_debug=True,
+        causal_hidden_detection_reservation=True,
+        use_mask_iou=False,
+        occlusion_aware_matching=False,
+        directional_y_prior=False,
+        identity_swap_guard=False,
+        smooth_boxes=False,
+    )
+    hist = _hist_at(0)
+    visible_track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([5, 0, 25, 20], dtype=np.float32),
+        reliable_box=np.array([5, 0, 25, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+        hits=3,
+        state="VISIBLE",
+    )
+    hidden_track = FixedTrack(
+        fixed_id=2,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        missed=1,
+        last_score=0.3,
+        last_source="occlusion_hold",
+        ever_detected=True,
+        hits=3,
+        state="OCCLUDED",
+    )
+    visible_track.hist_bank.append(hist)
+    hidden_track.hist_bank.append(hist)
+    detections = [
+        Detection(
+            box=np.array([0, 0, 20, 20], dtype=np.float32),
+            score=0.95,
+            raw_id=10,
+            class_id=0,
+            hist=hist,
+        ),
+        Detection(
+            box=np.array([10, 0, 30, 20], dtype=np.float32),
+            score=0.95,
+            raw_id=11,
+            class_id=0,
+            hist=hist,
+        ),
+    ]
+    context = OcclusionContext(
+        predicted_boxes={},
+        occluded_track_ids=set(),
+        detection_competitors={},
+        active_detection_owners={},
+        appearance_costs={},
+    )
+    return cfg, visible_track, hidden_track, detections, context
+
+
+def test_causal_hidden_reservation_releases_detection_for_hidden_track() -> None:
+    cfg, visible_track, hidden_track, detections, context = (
+        _causal_reservation_fixture()
+    )
+    runtime = TrackingRuntimeState()
+    costs = np.array([[0.40, 0.70]], dtype=np.float32)
+
+    rows, cols = apply_causal_hidden_detection_reservation(
+        costs,
+        [visible_track],
+        [0, 1],
+        detections,
+        [hidden_track],
+        set(),
+        context,
+        100,
+        40,
+        cfg,
+        {},
+        {},
+        runtime,
+        7,
+        "visible_high_conf",
+    )
+
+    np.testing.assert_array_equal(rows, np.array([0]))
+    np.testing.assert_array_equal(cols, np.array([1]))
+    assert costs[0, 0] >= 1_000_000.0
+    event = next(
+        event
+        for event in runtime.association_debug_events
+        if event["event"] == "assignment_reserve_hidden_detection"
+    )
+    assert event["reserved_for_track_id"] == 2
+    assert event["det_idx"] == 0
+
+
+def test_causal_hidden_reservation_requires_a_valid_visible_alternative() -> None:
+    cfg, visible_track, hidden_track, detections, context = (
+        _causal_reservation_fixture()
+    )
+    runtime = TrackingRuntimeState()
+    costs = np.array([[0.40, 0.90]], dtype=np.float32)
+
+    rows, cols = apply_causal_hidden_detection_reservation(
+        costs,
+        [visible_track],
+        [0, 1],
+        detections,
+        [hidden_track],
+        set(),
+        context,
+        100,
+        40,
+        cfg,
+        {},
+        {},
+        runtime,
+        7,
+        "visible_high_conf",
+    )
+
+    np.testing.assert_array_equal(rows, np.array([0]))
+    np.testing.assert_array_equal(cols, np.array([0]))
+    assert not any(
+        event["event"] == "assignment_reserve_hidden_detection"
+        for event in runtime.association_debug_events
+    )
+
+
+def test_causal_hidden_reservation_rejects_stale_hidden_track() -> None:
+    cfg, visible_track, hidden_track, detections, context = (
+        _causal_reservation_fixture()
+    )
+    hidden_track.missed = cfg.causal_hidden_detection_reservation_max_missed + 1
+    runtime = TrackingRuntimeState()
+    costs = np.array([[0.40, 0.70]], dtype=np.float32)
+
+    rows, cols = apply_causal_hidden_detection_reservation(
+        costs,
+        [visible_track],
+        [0, 1],
+        detections,
+        [hidden_track],
+        set(),
+        context,
+        100,
+        40,
+        cfg,
+        {},
+        {},
+        runtime,
+        7,
+        "visible_high_conf",
+    )
+
+    np.testing.assert_array_equal(rows, np.array([0]))
+    np.testing.assert_array_equal(cols, np.array([0]))
+    assert not any(
+        event["event"] == "assignment_reserve_hidden_detection"
+        for event in runtime.association_debug_events
+    )
+
+
+def test_causal_hidden_reservation_changes_only_the_cross_phase_assignment() -> None:
+    cfg, visible_track, hidden_track, detections, _context = (
+        _causal_reservation_fixture()
+    )
+    tracks = {1: visible_track, 2: hidden_track}
+    runtime = TrackingRuntimeState()
+    frame = np.zeros((40, 100, 3), dtype=np.uint8)
+
+    match_and_update_tracks(
+        tracks,
+        detections,
+        frame,
+        prev_frame=None,
+        cfg=cfg,
+        runtime=runtime,
+        frame_index=7,
+    )
+
+    assert np.allclose(tracks[1].last_box, detections[1].box)
+    assert np.allclose(tracks[2].last_box, detections[0].box)
+    assert any(
+        event["event"] == "assignment_reserve_hidden_detection"
+        for event in runtime.association_debug_events
+    )
+
+
+def test_causal_hidden_reservation_flag_off_preserves_assignment() -> None:
+    cfg, visible_track, hidden_track, detections, _context = (
+        _causal_reservation_fixture()
+    )
+    cfg.causal_hidden_detection_reservation = False
+    tracks = {1: visible_track, 2: hidden_track}
+    runtime = TrackingRuntimeState()
+    frame = np.zeros((40, 100, 3), dtype=np.uint8)
+
+    match_and_update_tracks(
+        tracks,
+        detections,
+        frame,
+        prev_frame=None,
+        cfg=cfg,
+        runtime=runtime,
+        frame_index=7,
+    )
+
+    assert np.allclose(tracks[1].last_box, detections[0].box)
+    assert np.allclose(tracks[2].last_box, detections[1].box)
+    assert not any(
+        event["event"] == "assignment_reserve_hidden_detection"
+        for event in runtime.association_debug_events
+    )
 
 
 def test_ambiguity_owner_guard_rejects_close_raw_owner_conflict() -> None:
