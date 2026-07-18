@@ -20,6 +20,7 @@ from pig_behavior.evaluation.tracking.spatial_strata import (
     calibrate_perspective_small,
     load_spatial_scene_context,
     spatial_features_for_bbox,
+    summarize_spatial_strata,
 )
 
 
@@ -100,6 +101,60 @@ def test_perspective_small_is_residual_after_expected_size_fit() -> None:
     assert "perspective_area_log_residual" in rows[0]
 
 
+def test_spatial_strata_report_geometry_quality_at_primary_iou(
+    tmp_path: Path,
+) -> None:
+    mask_path = tmp_path / "mask.png"
+    _write_mask(mask_path)
+    context = load_spatial_scene_context(mask_path)
+    rows = [
+        {
+            "is_near_wall": True,
+            "is_matched": True,
+            "is_id_correct": True,
+            "is_id_wrong": False,
+            "is_missing": False,
+            "matched_iou": 0.90,
+        },
+        {
+            "is_near_wall": True,
+            "is_matched": True,
+            "is_id_correct": False,
+            "is_id_wrong": True,
+            "is_missing": False,
+            "matched_iou": 0.49,
+        },
+        {
+            "is_near_wall": True,
+            "is_matched": False,
+            "is_id_correct": False,
+            "is_id_wrong": False,
+            "is_missing": True,
+            "matched_iou": float("nan"),
+        },
+    ]
+
+    summary = summarize_spatial_strata(
+        rows,
+        SpatialStrataThresholds(),
+        {},
+        context,
+        source_match_iou_threshold=0.30,
+        quality_iou_threshold=0.50,
+    )
+    near_wall = summary["near_wall"]
+
+    assert summary["all_instances"] == near_wall
+    assert near_wall["instance_count"] == 3
+    assert near_wall["quality_match_count"] == 1
+    assert near_wall["quality_match_rate"] == 0.333333
+    assert near_wall["low_iou_match_count"] == 1
+    assert near_wall["low_iou_match_rate"] == 0.333333
+    assert near_wall["mean_matched_iou"] == 0.695
+    assert near_wall["median_matched_iou"] == 0.695
+    assert near_wall["p10_matched_iou"] == 0.531
+
+
 def test_hard_scene_spatial_strata_are_opt_in_and_no_mp4(
     tmp_path: Path,
 ) -> None:
@@ -139,6 +194,12 @@ def test_hard_scene_spatial_strata_are_opt_in_and_no_mp4(
     ).hexdigest()
     assert metrics["spatial_strata"]["mask_width"] == 100
     assert metrics["spatial_strata"]["mask_height"] == 100
+    assert metrics["spatial_strata"]["all_instances"][
+        "quality_match_count"
+    ] == 10
+    assert metrics["spatial_strata"]["all_instances"][
+        "mean_matched_iou"
+    ] == 1.0
     assert stored["config"]["include_hidden"] is True
     assert stored["spatial_strata"]["perspective_axis"] == PERSPECTIVE_AXIS
     assert not list(output_dir.rglob("*.mp4"))

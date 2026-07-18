@@ -237,15 +237,58 @@ def summarize_spatial_strata(
     thresholds: SpatialStrataThresholds,
     calibration: dict[str, int | float | str],
     context: SpatialSceneContext,
+    *,
+    source_match_iou_threshold: float = 0.30,
+    quality_iou_threshold: float = 0.50,
 ) -> dict[str, Any]:
-    """Summarize identity and missing rates for every spatial stratum."""
+    """Summarize identity, missing, and bbox quality by spatial stratum."""
 
-    def summarize(flag: str) -> dict[str, int | float]:
-        selected = [row for row in rows if bool(row.get(flag, False))]
+    for name, value in {
+        "source_match_iou_threshold": source_match_iou_threshold,
+        "quality_iou_threshold": quality_iou_threshold,
+    }.items():
+        if not 0.0 < float(value) <= 1.0:
+            raise ValueError(f"{name} must be between 0 and 1.")
+
+    def summarize(flag: str | None) -> dict[str, int | float]:
+        selected = (
+            rows
+            if flag is None
+            else [row for row in rows if bool(row.get(flag, False))]
+        )
         matched = [row for row in selected if bool(row.get("is_matched"))]
         correct = [row for row in matched if bool(row.get("is_id_correct"))]
         wrong = [row for row in matched if bool(row.get("is_id_wrong"))]
         missing = [row for row in selected if bool(row.get("is_missing"))]
+        try:
+            matched_ious = np.asarray(
+                [float(row["matched_iou"]) for row in matched],
+                dtype=np.float64,
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ValueError(
+                "Matched spatial rows require numeric matched_iou values."
+            ) from exc
+        if not np.all(np.isfinite(matched_ious)):
+            raise ValueError(
+                "Matched spatial rows require finite matched_iou values."
+            )
+        quality_match_count = int(
+            np.count_nonzero(matched_ious >= quality_iou_threshold)
+        )
+        low_iou_match_count = len(matched) - quality_match_count
+
+        def iou_statistic(kind: str) -> float:
+            if not matched_ious.size:
+                return 0.0
+            if kind == "mean":
+                value = float(np.mean(matched_ious))
+            elif kind == "median":
+                value = float(np.median(matched_ious))
+            else:
+                value = float(np.quantile(matched_ious, 0.10))
+            return round(value, 6)
+
         return {
             "instance_count": len(selected),
             "matched_count": len(matched),
@@ -267,6 +310,23 @@ def summarize_spatial_strata(
             )
             if selected
             else 0.0,
+            "mean_matched_iou": iou_statistic("mean"),
+            "median_matched_iou": iou_statistic("median"),
+            "p10_matched_iou": iou_statistic("p10"),
+            "quality_match_count": quality_match_count,
+            "quality_match_rate": round(
+                quality_match_count / len(selected),
+                6,
+            )
+            if selected
+            else 0.0,
+            "low_iou_match_count": low_iou_match_count,
+            "low_iou_match_rate": round(
+                low_iou_match_count / len(selected),
+                6,
+            )
+            if selected
+            else 0.0,
         }
 
     return {
@@ -276,6 +336,10 @@ def summarize_spatial_strata(
         "mask_width": context.width,
         "mask_height": context.height,
         "perspective_axis": PERSPECTIVE_AXIS,
+        "geometry_quality_contract": {
+            "source_match_iou_threshold": source_match_iou_threshold,
+            "quality_iou_threshold": quality_iou_threshold,
+        },
         "thresholds": {
             "near_wall_distance_bbox_scale": (
                 thresholds.near_wall_distance_bbox_scale
@@ -289,6 +353,7 @@ def summarize_spatial_strata(
             ),
         },
         "perspective_size_calibration": calibration,
+        "all_instances": summarize(None),
         "near_wall": summarize("is_near_wall"),
         "far_camera_proxy": summarize("is_far_camera_proxy"),
         "absolute_small": summarize("is_absolute_small"),

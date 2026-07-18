@@ -1265,6 +1265,8 @@ def run_hard_scene_evaluation(
             spatial_thresholds,
             spatial_calibration,
             spatial_context,
+            source_match_iou_threshold=config.match_iou_threshold,
+            quality_iou_threshold=config.stable_match_iou_threshold,
         )
     if not metrics["evaluation_valid"]:
         logger.warning(
