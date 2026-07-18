@@ -14,6 +14,7 @@ from .assets import (
     TRACKING_GT_DIR,
     VIDEO_DIR,
 )
+from .frame_window import validate_frame_bounds
 
 
 @dataclass(slots=True)
@@ -38,6 +39,8 @@ class TrackingEvaluationPipelineConfig:
     run_missing_tracker: bool = True
     force_track: bool = False
     max_frames: int | None = None
+    evaluation_start_frame: int | None = None
+    evaluation_end_frame: int | None = None
     expected_video_count: int | None = None
     device: str | int | None = None
     half: bool = False
@@ -47,3 +50,11 @@ class TrackingEvaluationPipelineConfig:
     USE_MERGED_BOX_SPLIT: bool = False
     tracking_mode: str = "hybrid_bytetrack"
     profile_overrides: dict[str, Any] | None = None
+
+    def __post_init__(self) -> None:
+        """Fail closed on invalid inclusive score bounds."""
+
+        validate_frame_bounds(
+            self.evaluation_start_frame,
+            self.evaluation_end_frame,
+        )

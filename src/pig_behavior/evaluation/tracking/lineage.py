@@ -27,6 +27,7 @@ from .assets import (
 )
 from .config import TrackingEvaluationPipelineConfig
 from .cvat_io import read_task_name
+from .frame_window import validate_generated_frame_coverage
 
 SELECTED_TRACKING_SKILLS = (
     "tracking-experiment-guardian",
@@ -211,6 +212,24 @@ def prepare_run_manifest(
         or (config.run_missing_tracker and pair.pred_xml is None)
         for pair in pairs
     )
+    if should_track:
+        tracking_start_frame = (config.profile_overrides or {}).get(
+            "start_frame",
+            0,
+        )
+        if isinstance(tracking_start_frame, bool) or not isinstance(
+            tracking_start_frame,
+            int,
+        ):
+            raise ValueError(
+                "profile_overrides.start_frame must be a non-negative integer."
+            )
+        validate_generated_frame_coverage(
+            tracking_start_frame=tracking_start_frame,
+            max_frames=config.max_frames,
+            evaluation_start_frame=config.evaluation_start_frame,
+            evaluation_end_frame=config.evaluation_end_frame,
+        )
     if should_track and config.prediction_root.exists():
         raise FileExistsError(
             f"Prediction output root already exists: {config.prediction_root}"

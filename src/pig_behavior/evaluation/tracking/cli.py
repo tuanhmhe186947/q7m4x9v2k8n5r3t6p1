@@ -184,6 +184,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument("--max-frames", type=int, default=None)
+    parser.add_argument(
+        "--evaluation-start-frame",
+        type=int,
+        default=None,
+        help="First frame scored by metrics, inclusive; earlier frames are warm-up.",
+    )
+    parser.add_argument(
+        "--evaluation-end-frame",
+        type=int,
+        default=None,
+        help="Last frame scored by metrics, inclusive.",
+    )
     parser.add_argument("--expected-video-count", type=int, default=None)
     parser.add_argument(
         "--profile-override",
@@ -333,6 +345,8 @@ def config_from_args(args: argparse.Namespace) -> TrackingEvaluationPipelineConf
         run_missing_tracker=args.run_missing_tracker,
         force_track=args.force_track,
         max_frames=args.max_frames,
+        evaluation_start_frame=args.evaluation_start_frame,
+        evaluation_end_frame=args.evaluation_end_frame,
         expected_video_count=expected_video_count,
         device=args.device,
         half=args.half,
