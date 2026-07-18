@@ -23,6 +23,7 @@ def test_presentation_profiles_map_to_clear_modes() -> None:
 def test_profile_configs_keep_expected_behavior_separation() -> None:
     raw = EVAL_CONFIG_OVERRIDES["bytetrack_raw"]
     realtime_fast = EVAL_CONFIG_OVERRIDES["realtime_fast"]
+    realtime_balanced = EVAL_CONFIG_OVERRIDES["realtime_balanced"]
     realtime = EVAL_CONFIG_OVERRIDES["realtime_quality_delayed"]
     hybrid = EVAL_CONFIG_OVERRIDES["hybrid_bytetrack_best"]
 
@@ -32,7 +33,33 @@ def test_profile_configs_keep_expected_behavior_separation() -> None:
 
     assert realtime_fast["realtime_visible_better_competitor_prefer"] is True
 
+    assert realtime_balanced["causal_hidden_detection_reservation"] is True
+    assert realtime_balanced["causal_hidden_detection_reservation_min_iom"] == 0.96
+    assert realtime_balanced["causal_hidden_detection_reservation_min_gain"] == 0.17
+    assert (
+        realtime_balanced[
+            "causal_hidden_detection_reservation_max_alternative_cost"
+        ]
+        == 0.25
+    )
+    assert (
+        realtime_balanced[
+            "causal_hidden_detection_reservation_allow_visible_hold"
+        ]
+        is True
+    )
+    assert (
+        realtime_balanced["causal_hidden_detection_reservation_hold_min_gain"]
+        == 0.17
+    )
+
     assert realtime["enable_offline_smoothing"] is False
+    assert realtime["causal_hidden_detection_reservation"] is False
+    assert realtime["causal_hidden_detection_reservation_min_iom"] == 0.55
+    assert realtime["causal_hidden_detection_reservation_min_gain"] == 0.08
+    assert realtime["causal_hidden_detection_reservation_max_alternative_cost"] == 0.78
+    assert realtime["causal_hidden_detection_reservation_allow_visible_hold"] is False
+    assert realtime["causal_hidden_detection_reservation_hold_min_gain"] == 0.10
     assert realtime["realtime_motion_pair_stabilizer"] is True
     assert realtime["realtime_motion_pair_simple_min_gain"] == 0.003
 
