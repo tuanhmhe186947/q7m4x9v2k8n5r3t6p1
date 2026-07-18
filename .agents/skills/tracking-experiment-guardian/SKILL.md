@@ -65,12 +65,38 @@ metrics only as a separately labeled compatibility replay.
 4. Declare one parent, one candidate, one changed family, and one hypothesis.
 5. Reject diffs that change another family or settled detector conclusions.
 6. Pass static, synthetic, no-MP4, and prediction-integrity checks.
-7. Run one target video, then its guardrail set, before a full comparison.
-8. Compare paired per-video metrics and repeat the exact candidate.
-9. Run `scripts/audit_tracking_repeatability.py` on every completed
+7. Freeze difficult event windows from parent artifacts only. Keep tracker
+   warm-up frames separate from the scored interval.
+8. Screen in order: event windows, one full target video, a multi-video hard
+   set, then full-13 only after the hard-set gate passes.
+9. Compare paired per-video metrics and repeat the exact finalist.
+10. Run `scripts/audit_tracking_repeatability.py` on every completed
    primary/repeat pair. Keep input rehashing enabled for authority evidence.
-10. Record promotion or rejection; never suppress negative evidence.
-11. Promote profile defaults only in a separate reversible commit.
+11. Record promotion or rejection; never suppress negative evidence.
+12. Promote profile defaults only in a separate reversible commit.
+
+### Staged evidence funnel
+
+- Build windows from the locked parent's remapped switch events, never from a
+  candidate. Use `scripts/build_hard_event_windows.py` to freeze the window
+  manifest and its source hashes.
+- Start tracking before the scored interval so causal state can warm up. Score
+  only `[score_start_frame, score_end_frame]`; never score warm-up frames or
+  reset the tracker at the first difficult frame.
+- Treat window results as screening evidence, not promotion evidence. Reject a
+  candidate immediately when it misses its target mechanism or creates a
+  severe local failure.
+- Advance to a full target video only after improvement appears in at least
+  two independent episodes. Advance to the hard set only after the full target
+  video improves.
+- Require the hard set to contain at least three difficult videos plus every
+  declared guardrail. Advance to full-13 only when the hard-set aggregate
+  improves and gains occur on at least two difficult videos.
+- Judge non-regression on the declared aggregate and critical guardrails. A
+  bounded per-video trade-off is allowed when its limit was declared before
+  execution, the multi-video aggregate improves, and the trade-off is reported.
+- Freeze gates before execution. Never change windows, local regression
+  budgets, or guardrails after seeing candidate results.
 
 ### Baseline and output invariants
 
@@ -82,8 +108,9 @@ metrics only as a separately labeled compatibility replay.
   until a prefix-invariance test proves a finite flush boundary.
 - For any causal or fixed-delay claim, append future frames at every declared
   flush boundary and require already-flushed XML payloads to remain identical.
-- Preserve or improve per-video remapped IDSW against the same-contract
-  include-Hidden baseline. Require exact zero only where that baseline is zero.
+- Preserve the same-contract aggregate quality and every predeclared critical
+  guardrail. Report all paired per-video changes, including accepted local
+  trade-offs.
 - Preserve or improve `000302` IDSW for each realtime profile against its
   include-Hidden baseline. Historical fixed limits from exclude-Hidden reports
   are compatibility evidence only.
@@ -105,8 +132,9 @@ Promote a candidate only when all applicable gates pass:
   Never promote an improvement that depends on excluding tracker-derived
   `Hidden` rows.
 - Produce no MP4 anywhere under the fresh experiment root.
-- Improve the declared weak metric in both identical runs, not only aggregate.
-- Preserve every declared per-video IDSW and prediction-integrity guardrail.
+- Improve the declared aggregate weak metric in both identical confirmation
+  runs and pass every predeclared critical guardrail.
+- Keep every local regression within its frozen budget and report it plainly.
 - For a geometry-only family, require equal track IDs, shape keys, Behavior,
   `Hidden`, `occluded`, and other non-geometry payload before full or repeat.
 - Stay within the latency and memory budget of the affected realtime profile.
@@ -156,7 +184,7 @@ Stop before further tracking work when:
 - An input, detector, GT, profile, config, or commit cannot be hash-bound.
 - Static, synthetic, prediction-integrity, or focused regression tests fail.
 - A candidate changes more than its declared family or evaluation contract.
-- A required guardrail regresses, even when the aggregate metric improves.
+- A critical guardrail fails or a local regression exceeds its frozen budget.
 - Future frames change already-flushed output for a causal/fixed-delay profile.
 - Telemetry cannot explain the observed prediction or identity change.
 
@@ -175,7 +203,8 @@ failure, or promote a default in the same commit as the candidate algorithm.
 Report:
 
 1. Parent and candidate commits, run IDs, hashes, and selected skills.
-2. Hypothesis, changed family, target weak metric, and guardrails.
+2. Hypothesis, changed family, frozen windows, stage gates, target metric, and
+   guardrails.
 3. Per-video and aggregate HOTA, IDF1, IDSW, detection, and runtime deltas.
 4. Repeatability, prediction-integrity, and recursive no-MP4 audit results.
 5. Promotion or rejection, failed gates, residual risks, and the exact next

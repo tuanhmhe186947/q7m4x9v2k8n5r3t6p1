@@ -13,6 +13,10 @@
     "prediction_integrity",
     "focused_tracking_tests",
     "runtime_telemetry",
+    "parent_derived_event_window_manifest",
+    "warmup_excluded_from_scoring",
+    "window_to_video_to_hard_set_funnel",
+    "hard_set_multi_video_gain",
     "changed_family_payload_integrity",
     "paired_metric_guardrails",
     "primary_repeat_authority_lock"
