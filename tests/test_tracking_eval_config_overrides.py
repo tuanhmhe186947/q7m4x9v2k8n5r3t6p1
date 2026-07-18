@@ -32,6 +32,8 @@ def test_parse_profile_overrides_coerces_tracking_config_values() -> None:
             "det_conf=0.20",
             "max_raw_detections=64",
             "identity_swap_guard=true",
+            "hidden_suffix_id_swap_use_overlap_persistence=true",
+            "hidden_suffix_id_swap_min_overlap_persistence_frames=2",
             "mask_path=null",
         ],
         allowed_fields,
@@ -41,6 +43,8 @@ def test_parse_profile_overrides_coerces_tracking_config_values() -> None:
         "det_conf": 0.20,
         "max_raw_detections": 64,
         "identity_swap_guard": True,
+        "hidden_suffix_id_swap_use_overlap_persistence": True,
+        "hidden_suffix_id_swap_min_overlap_persistence_frames": 2,
         "mask_path": None,
     }
 

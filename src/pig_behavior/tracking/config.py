@@ -258,6 +258,8 @@ class TrackingConfig:
     hidden_suffix_id_swap_max_hidden_median_score: float = 0.50
     hidden_suffix_id_swap_start_back_frames: int = 7
     hidden_suffix_id_swap_min_suffix_frames: int = 600
+    hidden_suffix_id_swap_use_overlap_persistence: bool = False
+    hidden_suffix_id_swap_min_overlap_persistence_frames: int = 2
     association_debug: bool = False
     ambiguity_owner_guard: bool = False
     ambiguity_owner_guard_cost_margin: float = 0.04
@@ -638,6 +640,26 @@ def validate_config(cfg: TrackingConfig) -> None:
         raise ValueError("hidden_overlap_iou_threshold must be between 0 and 1.")
     if cfg.hidden_overlap_window_frames < 1:
         raise ValueError("hidden_overlap_window_frames must be >= 1.")
+    if cfg.hidden_suffix_id_swap_min_hidden_frames < 1:
+        raise ValueError("hidden_suffix_id_swap_min_hidden_frames must be >= 1.")
+    if cfg.hidden_suffix_id_swap_max_hidden_frames < 0:
+        raise ValueError("hidden_suffix_id_swap_max_hidden_frames must be >= 0.")
+    if not 0.0 <= cfg.hidden_suffix_id_swap_min_overlap_iou <= 1.0:
+        raise ValueError(
+            "hidden_suffix_id_swap_min_overlap_iou must be between 0 and 1."
+        )
+    if not 0.0 <= cfg.hidden_suffix_id_swap_max_hidden_median_score <= 1.0:
+        raise ValueError(
+            "hidden_suffix_id_swap_max_hidden_median_score must be between 0 and 1."
+        )
+    if cfg.hidden_suffix_id_swap_start_back_frames < 0:
+        raise ValueError("hidden_suffix_id_swap_start_back_frames must be >= 0.")
+    if cfg.hidden_suffix_id_swap_min_suffix_frames < 1:
+        raise ValueError("hidden_suffix_id_swap_min_suffix_frames must be >= 1.")
+    if cfg.hidden_suffix_id_swap_min_overlap_persistence_frames < 1:
+        raise ValueError(
+            "hidden_suffix_id_swap_min_overlap_persistence_frames must be >= 1."
+        )
     scale_values = {
         "max_box_scale_change_per_frame": cfg.max_box_scale_change_per_frame,
         "max_box_scale_change_after_gap": cfg.max_box_scale_change_after_gap,

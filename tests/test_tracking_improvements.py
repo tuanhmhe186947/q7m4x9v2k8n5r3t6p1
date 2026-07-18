@@ -28,6 +28,7 @@ from pig_behavior.tracking import (
     repair_local_pair_swaps,
     repair_long_pair_swaps,
     repair_suffix_pair_swaps,
+    shape_fixed_id,
     shape_hidden_value,
     suppress_overlapped_small_low_confidence_boxes,
     track_detection_overlap_score,
@@ -3475,6 +3476,84 @@ def test_hidden_suffix_id_swap_is_opt_in() -> None:
     assert repaired is shapes
     assert _shape_id_value(repaired[0]) == "ID_1"
     assert _shape_id_value(repaired[1]) == "ID_8"
+
+
+def test_hidden_suffix_id_swap_can_use_persistent_overlap_boundary() -> None:
+    cfg = TrackingConfig(
+        hidden_suffix_id_swap_repair=True,
+        hidden_suffix_id_swap_min_hidden_frames=4,
+        hidden_suffix_id_swap_max_hidden_frames=5,
+        hidden_suffix_id_swap_min_overlap_iou=0.40,
+        hidden_suffix_id_swap_max_hidden_median_score=0.50,
+        hidden_suffix_id_swap_start_back_frames=1,
+        hidden_suffix_id_swap_min_suffix_frames=5,
+        hidden_suffix_id_swap_use_overlap_persistence=True,
+        hidden_suffix_id_swap_min_overlap_persistence_frames=2,
+    )
+    shapes = []
+    for frame in range(1, 9):
+        partner = _shape(frame, 1, [0.0, 0.0, 100.0, 100.0])
+        hidden = _shape(frame, 8, [150.0, 0.0, 250.0, 100.0])
+        if frame in {2, 3, 4, 5}:
+            hidden["score"] = 0.30
+            _set_hidden(hidden, True)
+        if frame in {4, 5}:
+            hidden["points"] = [10.0, 10.0, 90.0, 90.0]
+        shapes.extend([partner, hidden])
+
+    repaired = repair_hidden_suffix_id_swaps(shapes, cfg)
+    by_frame_label = {
+        (int(shape["frame"]), shape["label"]): shape for shape in repaired
+    }
+
+    assert _shape_id_value(by_frame_label[(4, "Pig_1")]) == "ID_1"
+    assert _shape_id_value(by_frame_label[(4, "Pig_8")]) == "ID_8"
+    assert _shape_id_value(by_frame_label[(5, "Pig_1")]) == "ID_8"
+    assert _shape_id_value(by_frame_label[(5, "Pig_8")]) == "ID_1"
+
+
+def test_hidden_suffix_overlap_persistence_must_be_positive() -> None:
+    cfg = TrackingConfig(
+        hidden_suffix_id_swap_min_overlap_persistence_frames=0,
+    )
+
+    try:
+        validate_config(cfg)
+    except ValueError as exc:
+        assert "min_overlap_persistence_frames" in str(exc)
+    else:
+        raise AssertionError("zero hidden suffix overlap persistence should fail")
+
+
+def test_hidden_suffix_overlap_persistence_requires_consecutive_frames() -> None:
+    cfg = TrackingConfig(
+        hidden_suffix_id_swap_repair=True,
+        hidden_suffix_id_swap_min_hidden_frames=4,
+        hidden_suffix_id_swap_max_hidden_frames=5,
+        hidden_suffix_id_swap_min_overlap_iou=0.40,
+        hidden_suffix_id_swap_max_hidden_median_score=0.50,
+        hidden_suffix_id_swap_start_back_frames=3,
+        hidden_suffix_id_swap_min_suffix_frames=7,
+        hidden_suffix_id_swap_use_overlap_persistence=True,
+        hidden_suffix_id_swap_min_overlap_persistence_frames=2,
+    )
+    shapes = []
+    for frame in range(1, 9):
+        partner = _shape(frame, 1, [0.0, 0.0, 100.0, 100.0])
+        hidden = _shape(frame, 8, [150.0, 0.0, 250.0, 100.0])
+        if frame in {2, 3, 4, 5}:
+            hidden["score"] = 0.30
+            _set_hidden(hidden, True)
+        if frame in {3, 5}:
+            hidden["points"] = [10.0, 10.0, 90.0, 90.0]
+        shapes.extend([partner, hidden])
+
+    repaired = repair_hidden_suffix_id_swaps(shapes, cfg)
+
+    assert all(
+        _shape_id_value(shape) == f"ID_{shape_fixed_id(shape)}"
+        for shape in repaired
+    )
 
 
 def test_occlusion_reid_bad_match_can_require_unowned_raw() -> None:

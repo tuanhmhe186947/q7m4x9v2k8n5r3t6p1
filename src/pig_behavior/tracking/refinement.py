@@ -176,6 +176,25 @@ def _median_score(shapes: list[dict[str, Any]]) -> float:
     return float(np.median(np.asarray([float(shape.get("score", 0.0)) for shape in shapes])))
 
 
+def _first_persistent_overlap_boundary(
+    overlap_by_frame: dict[int, float],
+    min_overlap_iou: float,
+    persistence_frames: int,
+) -> int | None:
+    """Return the last frame of the first qualifying contiguous overlap run."""
+    if persistence_frames < 1:
+        raise ValueError("overlap persistence must be positive")
+    qualifying_frames = sorted(
+        frame
+        for frame, overlap in overlap_by_frame.items()
+        if overlap >= min_overlap_iou
+    )
+    for run_start, run_end in _contiguous_runs(qualifying_frames):
+        if run_end - run_start + 1 >= persistence_frames:
+            return run_start + persistence_frames - 1
+    return None
+
+
 def repair_hidden_suffix_id_swaps(
     shapes: list[dict[str, Any]],
     cfg: TrackingConfig,
@@ -228,6 +247,7 @@ def repair_hidden_suffix_id_swaps(
                 continue
 
             partner_overlaps: dict[int, list[float]] = {}
+            partner_overlap_by_frame: dict[int, dict[int, float]] = {}
             for hidden_shape in hidden_run_shapes:
                 frame = int(hidden_shape["frame"])
                 for other in by_frame.get(frame, []):
@@ -236,9 +256,11 @@ def repair_hidden_suffix_id_swaps(
                         continue
                     if shape_hidden_value(other) == "Yes":
                         continue
-                    partner_overlaps.setdefault(partner_id, []).append(
-                        bbox_iou(shape_box(hidden_shape), shape_box(other))
-                    )
+                    overlap = bbox_iou(shape_box(hidden_shape), shape_box(other))
+                    partner_overlaps.setdefault(partner_id, []).append(overlap)
+                    partner_overlap_by_frame.setdefault(partner_id, {})[
+                        frame
+                    ] = overlap
             if not partner_overlaps:
                 continue
 
@@ -252,21 +274,37 @@ def repair_hidden_suffix_id_swaps(
             if pair_key in repaired_pairs:
                 continue
 
-            swap_start = max(
+            old_swap_start = max(
                 run_start,
                 run_end - cfg.hidden_suffix_id_swap_start_back_frames,
             )
+            swap_start = old_swap_start
+            if cfg.hidden_suffix_id_swap_use_overlap_persistence:
+                swap_start = _first_persistent_overlap_boundary(
+                    partner_overlap_by_frame[partner_id],
+                    cfg.hidden_suffix_id_swap_min_overlap_iou,
+                    cfg.hidden_suffix_id_swap_min_overlap_persistence_frames,
+                )
+                if swap_start is None or swap_start <= old_swap_start:
+                    continue
+                if swap_start not in by_id_frame[partner_id]:
+                    continue
             common_suffix_frames = sorted(
                 frame
                 for frame in set(hidden_frames_by_frame) & set(by_id_frame[partner_id])
-                if frame >= swap_start
+                if frame >= old_swap_start
             )
             if len(common_suffix_frames) < cfg.hidden_suffix_id_swap_min_suffix_frames:
+                continue
+            repair_frames = [
+                frame for frame in common_suffix_frames if frame >= swap_start
+            ]
+            if not repair_frames:
                 continue
 
             hidden_id_value = f"ID_{hidden_id}"
             partner_id_value = f"ID_{partner_id}"
-            for frame in common_suffix_frames:
+            for frame in repair_frames:
                 hidden_shape = hidden_frames_by_frame[frame]
                 partner_shape = by_id_frame[partner_id][frame]
                 _set_shape_id_value(hidden_shape, partner_id_value)
