@@ -18,11 +18,18 @@
     "authority":
       "docs/TRACKING_PROMOTION_DECISION_20260718_HYBRID_NEAR_WALL_GEOMETRY.json",
     "prediction_root": "outputs/pred/tracking_profile_funnel",
+    "run_manifest_path":
+      "outputs/eval/tracking_profile_funnel/20260718_b66428e_hybrid_wall_geometry_candidate_primary_authority_v1/run_manifest.json",
     "run_id":
       "20260718_b66428e_hybrid_wall_geometry_candidate_primary_authority_v1",
+    "git_commit": "b66428e22609adc38d8d36ce96a0b3025c0ba0aa",
     "rule_combo": "iou0_area0_condarea0_merge0",
     "mode": "hybrid_bytetrack",
     "video": "Pigs291119_000233_30fps",
+    "prediction_shapes_path":
+      "outputs/pred/tracking_profile_funnel/20260718_b66428e_hybrid_wall_geometry_candidate_primary_authority_v1/iou0_area0_condarea0_merge0/hybrid_bytetrack/Pigs291119_000233_30fps/annotations_cvat_shapes.json",
+    "prediction_xml_path":
+      "outputs/pred/tracking_profile_funnel/20260718_b66428e_hybrid_wall_geometry_candidate_primary_authority_v1/iou0_area0_condarea0_merge0/hybrid_bytetrack/Pigs291119_000233_30fps/annotations_cvat_video_1_1.xml",
     "shapes_sha256":
       "8a380656ec0d6c67801c8d93a783ecaaeca46028ecca4001554413c5d11d5c41",
     "xml_sha256":
@@ -36,6 +43,8 @@
     "directory":
       "outputs/eval/tracking_hybrid_residual/20260718_f463119_h4_parent_windows_v1",
     "filename": "hard_event_windows.csv",
+    "path":
+      "outputs/eval/tracking_hybrid_residual/20260718_f463119_h4_parent_windows_v1/hard_event_windows.csv",
     "manifest_sha256":
       "dc2d05568442ddfb99e1b5b81e66c06e0e25618abf52c798d154619a722d040a",
     "event_id": "Pigs291119_000233_30fps__switch_1111_1114",
@@ -84,6 +93,14 @@
     "old_commit_boundary": "max(run_start, run_end - start_back_frames)",
     "candidate_commit_boundary": "run_end + 1",
     "candidate_requires_first_unhidden_shape": true,
+    "parameters": {
+      "min_hidden_frames": 8,
+      "max_hidden_frames": 15,
+      "min_overlap_iou": 0.7,
+      "max_hidden_median_score": 0.5,
+      "start_back_frames": 7,
+      "min_suffix_frames": 600
+    },
     "gt_used_to_generate_prediction": false,
     "video_or_frame_hardcode_allowed": false
   },
