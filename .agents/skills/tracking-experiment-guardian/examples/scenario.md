@@ -10,6 +10,10 @@ shape key, Behavior, `Hidden`, `occluded`, or other non-geometry payload changes
 Freeze difficult windows from parent switch events. Run each window with a
 past-only warm-up interval that is excluded from scoring, then advance through
 one full target video and a hard set containing at least three difficult videos.
+If a strictly post-video geometry pass cannot reproduce the parent's state
+after tracker reset, replay it from the hash-matched parent shapes JSON and XML.
+Require equal shape keys and non-geometry payload, and score the frozen window
+before evaluating the full replay.
 Run full-13 only after the hard-set aggregate improves across at least two
 difficult videos and every critical guardrail passes. Declare any allowed local
 regression budget before execution and report all per-video trade-offs. Repeat

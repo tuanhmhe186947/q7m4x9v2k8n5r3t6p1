@@ -83,6 +83,15 @@ metrics only as a separately labeled compatibility replay.
 - Start tracking before the scored interval so causal state can warm up. Score
   only `[score_start_frame, score_end_frame]`; never score warm-up frames or
   reset the tracker at the first difficult frame.
+- For a strictly post-video geometry family, use
+  `scripts/replay_post_video_geometry.py` when a tracker-reset window cannot
+  reproduce the locked parent's state. Replay only from the parent's hashed
+  `annotations_cvat_shapes.json` and matching XML. Require equal shape keys and
+  non-geometry payload, then score the frozen window before any full-video
+  metric evaluation.
+- Never use geometry replay for detection, association, identity, visibility,
+  causal, or runtime claims. Creating a full-length replay artifact is not a
+  full-video evaluation and does not advance the funnel by itself.
 - Treat window results as screening evidence, not promotion evidence. Reject a
   candidate immediately when it misses its target mechanism or creates a
   severe local failure.
@@ -155,6 +164,8 @@ artifacts, or improvements that depend on changing the evaluation contract.
 - Per-video predictions and HOTA, IDF1, IDSW, detection, and runtime metrics.
 - A per-video `tracking_runtime_telemetry.csv` linked to hashed quality reports.
 - A paired baseline/candidate delta table for every evaluated video.
+- For geometry replay, a hash-bound replay manifest and per-box geometry delta
+  CSV proving parent JSON/XML integrity and non-geometry payload equality.
 - A recursive artifact audit proving the experiment root contains no MP4.
 - An immutable repeatability audit that rehashes inputs and artifacts, checks
   canonical predictions, and compares metrics exactly outside `pred_xml`.
@@ -170,6 +181,8 @@ raw SHA256 and
 `cvat_xml_c14n_without_created_updated_dumped_v1` semantic SHA256. Use the
 [check contract](checks/check_manifest.json), [scenario](examples/scenario.md),
 and [promotion template](templates/promotion_decision.example.json).
+Run the geometry replay script with `--dry-run` against the exact parent before
+its first artifact-producing invocation.
 The repeatability checker must run from a clean, commit-bound worktree and PASS
 before a run becomes baseline, candidate, or promotion authority.
 Keep its default FPS and peak-memory ratio guards enabled for authority runs.
