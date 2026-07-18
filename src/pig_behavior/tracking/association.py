@@ -802,9 +802,8 @@ def apply_causal_hidden_detection_reservation(
                 gain = selected_cost - float(claim_cost)
                 if gain < cfg.causal_hidden_detection_reservation_min_gain:
                     continue
-                allow_visible_hold = bool(
+                hold_eligible = bool(
                     cfg.causal_hidden_detection_reservation_allow_visible_hold
-                    and not has_alternative
                     and selected_cost
                     >= cfg.causal_hidden_detection_reservation_hold_min_visible_cost
                     and claim_iom
@@ -814,7 +813,7 @@ def apply_causal_hidden_detection_reservation(
                     and gain
                     >= cfg.causal_hidden_detection_reservation_hold_min_gain
                 )
-                if not has_alternative and not allow_visible_hold:
+                if not has_alternative and not hold_eligible:
                     continue
                 candidates.append(
                     (
@@ -825,7 +824,7 @@ def apply_causal_hidden_detection_reservation(
                         hidden_track,
                         float(claim_cost),
                         float(claim_iom),
-                        allow_visible_hold,
+                        hold_eligible,
                     )
                 )
 
@@ -840,7 +839,7 @@ def apply_causal_hidden_detection_reservation(
             hidden_track,
             claim_cost,
             claim_iom,
-            allow_visible_hold,
+            hold_eligible,
         ) = min(
             candidates,
             key=lambda item: (item[0], item[3], item[4].fixed_id),
@@ -863,7 +862,7 @@ def apply_causal_hidden_detection_reservation(
         visible_track_held = bool(
             replacement_col is None or replacement_col == col
         )
-        if visible_track_held and not allow_visible_hold:
+        if visible_track_held and not hold_eligible:
             continue
         replacement_cost: float | None = None
         if not visible_track_held:
