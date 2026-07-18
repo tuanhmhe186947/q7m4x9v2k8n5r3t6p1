@@ -33,6 +33,8 @@ def test_profile_configs_keep_expected_behavior_separation() -> None:
 
     for non_hybrid in (raw, realtime_fast, realtime_balanced, realtime):
         assert "near_wall_hidden_geometry_refine" not in non_hybrid
+        assert "far_camera_hidden_geometry_refine" not in non_hybrid
+        assert "hidden_suffix_id_swap_use_overlap_persistence" not in non_hybrid
 
     assert realtime_fast["realtime_visible_better_competitor_prefer"] is True
 
@@ -69,6 +71,8 @@ def test_profile_configs_keep_expected_behavior_separation() -> None:
     assert hybrid["enable_offline_smoothing"] is True
     assert hybrid["overlap_small_box_suppression"] is True
     assert hybrid["hidden_suffix_id_swap_repair"] is True
+    assert hybrid["hidden_suffix_id_swap_use_overlap_persistence"] is True
+    assert hybrid["hidden_suffix_id_swap_min_overlap_persistence_frames"] == 2
     assert hybrid["suffix_pair_swap_repair"] is True
     assert hybrid["identity_swap_guard_skip_mixed_occlusion_hold"] is True
     assert hybrid["identity_swap_guard_skip_mixed_occlusion_hold_far_only"] is True
@@ -79,7 +83,14 @@ def test_profile_configs_keep_expected_behavior_separation() -> None:
     assert hybrid["near_wall_hidden_geometry_min_width_excess"] == 0.08
     assert hybrid["near_wall_hidden_geometry_max_center_shift"] == 0.04
     assert hybrid["near_wall_hidden_geometry_original_weight"] == 0.50
-    assert "far_camera_hidden_geometry_refine" not in hybrid
+    assert hybrid["far_camera_hidden_geometry_refine"] is True
+    assert hybrid["far_camera_hidden_geometry_x_threshold"] == 0.67
+    assert hybrid["far_camera_hidden_geometry_max_future_gap_frames"] == 15
+    assert hybrid["far_camera_hidden_geometry_min_height_excess"] == 0.15
+    assert hybrid["far_camera_hidden_geometry_min_visible_overlap_iou"] == 0.65
+    assert hybrid["far_camera_hidden_geometry_min_overlap_reduction"] == 0.10
+    assert hybrid["far_camera_hidden_geometry_max_center_shift"] == 0.12
+    assert hybrid["far_camera_hidden_geometry_original_weight"] == 0.10
 
 
 def test_get_presentation_profile_returns_mutable_copy() -> None:
