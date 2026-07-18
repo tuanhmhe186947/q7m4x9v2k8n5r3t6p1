@@ -33,6 +33,7 @@ from pig_behavior.tracking.exporters.cvat_xml import (  # noqa: E402
 )
 from pig_behavior.tracking.masks import load_mask  # noqa: E402
 from pig_behavior.tracking.refinement import (  # noqa: E402
+    refine_far_camera_hidden_geometry,
     refine_near_wall_hidden_geometry,
 )
 
@@ -43,7 +44,12 @@ SELECTED_SKILLS = [
     "scientific-ablation-controller",
     "experiment-lineage-reproducibility",
 ]
-GEOMETRY_CANDIDATE = "near_wall_hidden_geometry_v1"
+NEAR_WALL_GEOMETRY_CANDIDATE = "near_wall_hidden_geometry_v1"
+FAR_CAMERA_GEOMETRY_CANDIDATE = "far_camera_hidden_geometry_v1"
+GEOMETRY_CANDIDATES = (
+    NEAR_WALL_GEOMETRY_CANDIDATE,
+    FAR_CAMERA_GEOMETRY_CANDIDATE,
+)
 DELTA_FIELDS = [
     "frame",
     "label",
@@ -51,8 +57,13 @@ DELTA_FIELDS = [
     "parent_points",
     "candidate_points",
     "width_excess",
+    "height_excess",
     "previous_anchor_frame",
     "following_anchor_frame",
+    "future_anchor_frame",
+    "overlap_identity",
+    "overlap_iou_before",
+    "overlap_iou_after",
 ]
 
 
@@ -97,7 +108,11 @@ def parse_args() -> argparse.Namespace:
     """Parse CLI arguments."""
 
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--candidate", choices=[GEOMETRY_CANDIDATE], required=True)
+    parser.add_argument(
+        "--candidate",
+        choices=GEOMETRY_CANDIDATES,
+        required=True,
+    )
     parser.add_argument("--parent-shapes-json", type=Path, required=True)
     parser.add_argument("--parent-xml", type=Path, required=True)
     parser.add_argument("--parent-run-manifest", type=Path, required=True)
@@ -127,6 +142,41 @@ def parse_args() -> argparse.Namespace:
         "--original-weight",
         type=bounded_unit_float,
         default=0.50,
+    )
+    parser.add_argument(
+        "--far-x-threshold",
+        type=bounded_unit_float,
+        default=0.67,
+    )
+    parser.add_argument(
+        "--far-max-future-gap-frames",
+        type=positive_int,
+        default=15,
+    )
+    parser.add_argument(
+        "--far-min-height-excess",
+        type=bounded_unit_float,
+        default=0.15,
+    )
+    parser.add_argument(
+        "--far-min-visible-overlap-iou",
+        type=bounded_unit_float,
+        default=0.65,
+    )
+    parser.add_argument(
+        "--far-min-overlap-reduction",
+        type=bounded_unit_float,
+        default=0.10,
+    )
+    parser.add_argument(
+        "--far-max-center-shift",
+        type=bounded_unit_float,
+        default=0.12,
+    )
+    parser.add_argument(
+        "--far-original-weight",
+        type=bounded_unit_float,
+        default=0.10,
     )
     parser.add_argument(
         "--allow-no-change",
@@ -318,17 +368,40 @@ def validate_frame_window(args: argparse.Namespace) -> None:
 def replay_config(args: argparse.Namespace, mask_path: Path) -> TrackingConfig:
     """Build the exact isolated geometry candidate config."""
 
+    if args.candidate == NEAR_WALL_GEOMETRY_CANDIDATE:
+        return TrackingConfig(
+            mask_path=mask_path,
+            use_mask=True,
+            near_wall_hidden_geometry_refine=True,
+            near_wall_hidden_geometry_max_gap_frames=args.max_gap_frames,
+            near_wall_hidden_geometry_distance_bbox_scale=(
+                args.distance_bbox_scale
+            ),
+            near_wall_hidden_geometry_min_width_excess=args.min_width_excess,
+            near_wall_hidden_geometry_max_center_shift=args.max_center_shift,
+            near_wall_hidden_geometry_original_weight=args.original_weight,
+        )
     return TrackingConfig(
         mask_path=mask_path,
         use_mask=True,
-        near_wall_hidden_geometry_refine=True,
-        near_wall_hidden_geometry_max_gap_frames=args.max_gap_frames,
-        near_wall_hidden_geometry_distance_bbox_scale=(
-            args.distance_bbox_scale
+        far_camera_hidden_geometry_refine=True,
+        far_camera_hidden_geometry_x_threshold=args.far_x_threshold,
+        far_camera_hidden_geometry_max_future_gap_frames=(
+            args.far_max_future_gap_frames
         ),
-        near_wall_hidden_geometry_min_width_excess=args.min_width_excess,
-        near_wall_hidden_geometry_max_center_shift=args.max_center_shift,
-        near_wall_hidden_geometry_original_weight=args.original_weight,
+        far_camera_hidden_geometry_min_height_excess=(
+            args.far_min_height_excess
+        ),
+        far_camera_hidden_geometry_min_visible_overlap_iou=(
+            args.far_min_visible_overlap_iou
+        ),
+        far_camera_hidden_geometry_min_overlap_reduction=(
+            args.far_min_overlap_reduction
+        ),
+        far_camera_hidden_geometry_max_center_shift=(
+            args.far_max_center_shift
+        ),
+        far_camera_hidden_geometry_original_weight=args.far_original_weight,
     )
 
 
@@ -353,12 +426,32 @@ def build_delta_rows(
                     "_near_wall_hidden_geometry_width_excess",
                     "",
                 ),
+                "height_excess": candidate.get(
+                    "_far_camera_hidden_geometry_height_excess",
+                    "",
+                ),
                 "previous_anchor_frame": candidate.get(
                     "_near_wall_hidden_geometry_anchor_frames",
                     ["", ""],
                 )[0],
                 "following_anchor_frame": candidate.get(
                     "_near_wall_hidden_geometry_anchor_frames",
+                    ["", ""],
+                )[1],
+                "future_anchor_frame": candidate.get(
+                    "_far_camera_hidden_geometry_anchor_frame",
+                    "",
+                ),
+                "overlap_identity": candidate.get(
+                    "_far_camera_hidden_geometry_overlap_identity",
+                    "",
+                ),
+                "overlap_iou_before": candidate.get(
+                    "_far_camera_hidden_geometry_overlap_iou",
+                    ["", ""],
+                )[0],
+                "overlap_iou_after": candidate.get(
+                    "_far_camera_hidden_geometry_overlap_iou",
                     ["", ""],
                 )[1],
             }
@@ -431,13 +524,21 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     width, height = frame_size_from_parent_xml(parent_xml)
     cfg = replay_config(args, mask_path)
     mask = load_mask(mask_path, width, height, cfg)
-    candidate_shapes = refine_near_wall_hidden_geometry(
-        parent_shapes,
-        width,
-        height,
-        mask,
-        cfg,
-    )
+    if args.candidate == NEAR_WALL_GEOMETRY_CANDIDATE:
+        candidate_shapes = refine_near_wall_hidden_geometry(
+            parent_shapes,
+            width,
+            height,
+            mask,
+            cfg,
+        )
+    else:
+        candidate_shapes = refine_far_camera_hidden_geometry(
+            parent_shapes,
+            width,
+            height,
+            cfg,
+        )
     if len(parent_shapes) != len(candidate_shapes):
         raise ValueError("geometry replay changed the shape count")
 
@@ -517,6 +618,15 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "min_width_excess": args.min_width_excess,
             "max_center_shift": args.max_center_shift,
             "original_weight": args.original_weight,
+            "far_x_threshold": args.far_x_threshold,
+            "far_max_future_gap_frames": args.far_max_future_gap_frames,
+            "far_min_height_excess": args.far_min_height_excess,
+            "far_min_visible_overlap_iou": (
+                args.far_min_visible_overlap_iou
+            ),
+            "far_min_overlap_reduction": args.far_min_overlap_reduction,
+            "far_max_center_shift": args.far_max_center_shift,
+            "far_original_weight": args.far_original_weight,
             "score_start_frame": args.score_start_frame,
             "score_end_frame": args.score_end_frame,
         },

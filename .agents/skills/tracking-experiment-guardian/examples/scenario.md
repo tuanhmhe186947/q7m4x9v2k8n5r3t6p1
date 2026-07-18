@@ -12,6 +12,8 @@ past-only warm-up interval that is excluded from scoring, then advance through
 one full target video and a hard set containing at least three difficult videos.
 If a strictly post-video geometry pass cannot reproduce the parent's state
 after tracker reset, replay it from the hash-matched parent shapes JSON and XML.
+Select the exact geometry candidate and retain its candidate-specific parameters
+in the replay manifest and per-box delta CSV.
 Require equal shape keys and non-geometry payload, and score the frozen window
 before evaluating the full replay. Audit that pair with
 `--post-video-geometry-replay`: every video must explicitly declare

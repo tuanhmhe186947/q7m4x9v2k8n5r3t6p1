@@ -201,6 +201,9 @@ raw SHA256 and
 and [promotion template](templates/promotion_decision.example.json).
 Run the geometry replay script with `--dry-run` against the exact parent before
 its first artifact-producing invocation.
+Select `near_wall_hidden_geometry_v1` or
+`far_camera_hidden_geometry_v1`; record the selected candidate and its
+candidate-specific parameters in the replay manifest.
 The repeatability checker must run from a clean, commit-bound worktree and PASS
 before a run becomes baseline, candidate, or promotion authority.
 Keep its default FPS and peak-memory ratio guards enabled for authority runs.

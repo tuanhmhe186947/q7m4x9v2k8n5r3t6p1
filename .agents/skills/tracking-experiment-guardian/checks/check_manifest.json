@@ -16,6 +16,7 @@
     "runtime_contract_declared",
     "geometry_replay_explicit_runtime_absence",
     "geometry_replay_no_prediction_runtime_artifacts",
+    "candidate_specific_geometry_replay_manifest",
     "parent_derived_event_window_manifest",
     "warmup_excluded_from_scoring",
     "post_video_geometry_replay_integrity",
