@@ -500,6 +500,152 @@ def refine_shapes_temporally(
     return refined_shapes
 
 
+def refine_near_wall_hidden_geometry(
+    shapes: list[dict[str, Any]],
+    width: int,
+    height: int,
+    mask: np.ndarray | None,
+    cfg: TrackingConfig,
+) -> list[dict[str, Any]]:
+    """Refine oversized hidden boxes near the known pen wall.
+
+    This pass is deliberately geometry-only and runs after identity and
+    visibility decisions. It requires visible anchors on both sides of a
+    hidden span, so it cannot relabel a track or invent a long-range path.
+    """
+    if not cfg.near_wall_hidden_geometry_refine:
+        return shapes
+    if mask is None:
+        raise ValueError(
+            "near_wall_hidden_geometry_refine requires a pen mask."
+        )
+
+    import cv2
+
+    mask_array = np.asarray(mask)
+    if mask_array.ndim != 2 or mask_array.shape != (height, width):
+        raise ValueError(
+            "near_wall_hidden_geometry_refine mask shape must match video."
+        )
+    pen_mask = (mask_array > 0).astype(np.uint8)
+    if not np.any(pen_mask):
+        raise ValueError("near_wall_hidden_geometry_refine mask is empty.")
+    wall_distance = cv2.distanceTransform(pen_mask, cv2.DIST_L2, 5)
+    refined_shapes = [shape.copy() for shape in shapes]
+    by_identity: dict[str, list[dict[str, Any]]] = {}
+    for shape in refined_shapes:
+        attributes = _shape_attributes_dict(shape)
+        identity_key = str(attributes.get("ID") or shape.get("label", ""))
+        by_identity.setdefault(identity_key, []).append(shape)
+
+    for track_shapes in by_identity.values():
+        track_shapes.sort(key=lambda item: int(item["frame"]))
+        anchors = [
+            shape
+            for shape in track_shapes
+            if not shape.get("outside", False)
+            and shape_hidden_value(shape) == "No"
+            and float(shape.get("score", 0.0)) >= cfg.review_conf
+        ]
+        if len(anchors) < 2:
+            continue
+
+        for shape in track_shapes:
+            if shape.get("outside", False) or shape_hidden_value(shape) != "Yes":
+                continue
+            frame = int(shape["frame"])
+            previous = next(
+                (
+                    anchor
+                    for anchor in reversed(anchors)
+                    if 0 < frame - int(anchor["frame"])
+                    <= cfg.near_wall_hidden_geometry_max_gap_frames
+                ),
+                None,
+            )
+            following = next(
+                (
+                    anchor
+                    for anchor in anchors
+                    if 0 < int(anchor["frame"]) - frame
+                    <= cfg.near_wall_hidden_geometry_max_gap_frames
+                ),
+                None,
+            )
+            if previous is None or following is None:
+                continue
+
+            original = shape_box(shape)
+            expected = interpolate_box(previous, following, frame)
+            original_width, _ = bbox_size(original)
+            expected_width, _ = bbox_size(expected)
+            width_excess = original_width / max(expected_width, 1e-6) - 1.0
+            if (
+                width_excess
+                < cfg.near_wall_hidden_geometry_min_width_excess
+            ):
+                continue
+            center_shift = center_distance_norm(
+                original,
+                expected,
+                width,
+                height,
+            )
+            if center_shift > cfg.near_wall_hidden_geometry_max_center_shift:
+                continue
+
+            left, top, right, bottom = _clipped_shape_bbox(
+                original,
+                width,
+                height,
+            )
+            bbox_distance = float(
+                np.quantile(wall_distance[top:bottom, left:right], 0.10)
+            )
+            bbox_area = max(1.0, float((original[2] - original[0]) * (
+                original[3] - original[1]
+            )))
+            distance_scale = bbox_distance / max(np.sqrt(bbox_area), 1.0)
+            if (
+                distance_scale
+                > cfg.near_wall_hidden_geometry_distance_bbox_scale
+            ):
+                continue
+
+            blended = (
+                cfg.near_wall_hidden_geometry_original_weight * original
+                + (1.0 - cfg.near_wall_hidden_geometry_original_weight)
+                * expected
+            )
+            shape["_near_wall_hidden_geometry_original_points"] = [
+                round(float(value), 2) for value in original
+            ]
+            shape["_near_wall_hidden_geometry_refined"] = True
+            shape["_near_wall_hidden_geometry_width_excess"] = round(
+                float(width_excess),
+                4,
+            )
+            shape["_near_wall_hidden_geometry_anchor_frames"] = [
+                int(previous["frame"]),
+                int(following["frame"]),
+            ]
+            set_shape_box(shape, blended, width, height)
+
+    return refined_shapes
+
+
+def _clipped_shape_bbox(
+    box: np.ndarray,
+    width: int,
+    height: int,
+) -> tuple[int, int, int, int]:
+    left = max(0, min(width - 1, int(np.floor(box[0]))))
+    top = max(0, min(height - 1, int(np.floor(box[1]))))
+    right = max(left + 1, min(width, int(np.ceil(box[2]))))
+    bottom = max(top + 1, min(height, int(np.ceil(box[3]))))
+    return left, top, right, bottom
+
+
 def shape_fixed_id(shape: dict[str, Any]) -> int:
     return int(str(shape["label"]).removeprefix("Pig_"))
 

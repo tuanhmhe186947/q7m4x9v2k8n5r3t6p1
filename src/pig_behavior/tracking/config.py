@@ -328,6 +328,12 @@ class TrackingConfig:
     # Zero keeps symmetric behavior; positive values cap past-only fallback.
     refine_max_previous_gap_frames: int = 0
     refine_size_jump_threshold: float = 0.45
+    near_wall_hidden_geometry_refine: bool = False
+    near_wall_hidden_geometry_max_gap_frames: int = 30
+    near_wall_hidden_geometry_distance_bbox_scale: float = 0.25
+    near_wall_hidden_geometry_min_width_excess: float = 0.08
+    near_wall_hidden_geometry_max_center_shift: float = 0.04
+    near_wall_hidden_geometry_original_weight: float = 0.50
     max_box_scale_change_per_frame: float = 0.25
     max_box_scale_change_after_gap: float = 0.75
     high_conf_smooth_alpha: float = 0.75
@@ -637,6 +643,34 @@ def validate_config(cfg: TrackingConfig) -> None:
         raise ValueError("refine_max_previous_gap_frames must be >= 0.")
     if not 0.0 <= cfg.refine_size_jump_threshold <= 2.0:
         raise ValueError("refine_size_jump_threshold must be between 0 and 2.")
+    if cfg.near_wall_hidden_geometry_max_gap_frames < 1:
+        raise ValueError(
+            "near_wall_hidden_geometry_max_gap_frames must be >= 1."
+        )
+    near_wall_geometry_values = {
+        "near_wall_hidden_geometry_distance_bbox_scale": (
+            cfg.near_wall_hidden_geometry_distance_bbox_scale
+        ),
+        "near_wall_hidden_geometry_min_width_excess": (
+            cfg.near_wall_hidden_geometry_min_width_excess
+        ),
+        "near_wall_hidden_geometry_max_center_shift": (
+            cfg.near_wall_hidden_geometry_max_center_shift
+        ),
+        "near_wall_hidden_geometry_original_weight": (
+            cfg.near_wall_hidden_geometry_original_weight
+        ),
+    }
+    for name, value in near_wall_geometry_values.items():
+        if not 0.0 <= value <= 1.0:
+            raise ValueError(f"{name} must be between 0 and 1.")
+    if cfg.near_wall_hidden_geometry_refine and (
+        not cfg.use_mask or cfg.mask_path is None
+    ):
+        raise ValueError(
+            "near_wall_hidden_geometry_refine requires use_mask=True "
+            "and mask_path."
+        )
     alpha_values = {
         "high_conf_smooth_alpha": cfg.high_conf_smooth_alpha,
         "mid_conf_smooth_alpha": cfg.mid_conf_smooth_alpha,

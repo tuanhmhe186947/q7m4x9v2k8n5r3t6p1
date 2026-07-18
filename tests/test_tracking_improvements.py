@@ -50,6 +50,7 @@ from pig_behavior.tracking.association import (
 from pig_behavior.tracking.config import validate_config
 from pig_behavior.tracking.refinement import (
     nearby_anchor_indices,
+    refine_near_wall_hidden_geometry,
     stabilize_overlap_hidden_islands,
 )
 from pig_behavior.tracking.tracks import shape_for_track
@@ -135,6 +136,109 @@ def test_negative_refine_max_previous_gap_is_rejected() -> None:
         assert "refine_max_previous_gap_frames" in str(exc)
     else:
         raise AssertionError("negative previous refinement gap should fail")
+
+
+def test_near_wall_hidden_geometry_requires_mask_config() -> None:
+    cfg = TrackingConfig(
+        near_wall_hidden_geometry_refine=True,
+        use_mask=False,
+        mask_path=None,
+    )
+
+    try:
+        validate_config(cfg)
+    except ValueError as exc:
+        assert "near_wall_hidden_geometry_refine requires" in str(exc)
+    else:
+        raise AssertionError("near-wall geometry without a mask should fail")
+
+
+def test_near_wall_hidden_geometry_refines_only_bbox_payload() -> None:
+    mask = np.zeros((100, 100), dtype=np.uint8)
+    mask[10:90, 10:90] = 255
+    shapes = [
+        _shape(0, 1, [10.0, 40.0, 30.0, 60.0]),
+        _set_hidden(_shape(1, 1, [8.0, 40.0, 34.0, 60.0]), True),
+        _shape(2, 1, [10.0, 40.0, 30.0, 60.0]),
+    ]
+    hidden_before = {
+        key: value
+        for key, value in shapes[1].items()
+        if key != "points" and not key.startswith("_")
+    }
+    cfg = TrackingConfig(
+        near_wall_hidden_geometry_refine=True,
+        near_wall_hidden_geometry_original_weight=0.50,
+    )
+
+    refined = refine_near_wall_hidden_geometry(
+        shapes,
+        width=100,
+        height=100,
+        mask=mask,
+        cfg=cfg,
+    )
+
+    assert refined[0]["points"] == shapes[0]["points"]
+    assert refined[1]["points"] == [9.0, 40.0, 32.0, 60.0]
+    assert refined[2]["points"] == shapes[2]["points"]
+    assert refined[1]["_near_wall_hidden_geometry_refined"] is True
+    assert {
+        key: value
+        for key, value in refined[1].items()
+        if key != "points" and not key.startswith("_")
+    } == hidden_before
+    assert shapes[1]["points"] == [8.0, 40.0, 34.0, 60.0]
+
+
+def test_near_wall_hidden_geometry_uses_final_id_not_label_slot() -> None:
+    mask = np.zeros((100, 100), dtype=np.uint8)
+    mask[10:90, 10:90] = 255
+    hidden = _set_hidden(
+        _shape(1, 1, [8.0, 40.0, 34.0, 60.0]),
+        True,
+    )
+    hidden["attributes"][0]["value"] = "ID_2"
+    shapes = [
+        _shape(0, 2, [10.0, 40.0, 30.0, 60.0]),
+        hidden,
+        _shape(2, 2, [10.0, 40.0, 30.0, 60.0]),
+    ]
+    cfg = TrackingConfig(near_wall_hidden_geometry_refine=True)
+
+    refined = refine_near_wall_hidden_geometry(
+        shapes,
+        width=100,
+        height=100,
+        mask=mask,
+        cfg=cfg,
+    )
+
+    assert refined[1]["points"] == [9.0, 40.0, 32.0, 60.0]
+    assert refined[1]["label"] == "Pig_1"
+    assert refined[1]["attributes"][0]["value"] == "ID_2"
+
+
+def test_near_wall_hidden_geometry_ignores_far_box() -> None:
+    mask = np.zeros((100, 100), dtype=np.uint8)
+    mask[10:90, 10:90] = 255
+    shapes = [
+        _shape(0, 1, [40.0, 40.0, 60.0, 60.0]),
+        _set_hidden(_shape(1, 1, [38.0, 40.0, 64.0, 60.0]), True),
+        _shape(2, 1, [40.0, 40.0, 60.0, 60.0]),
+    ]
+    cfg = TrackingConfig(near_wall_hidden_geometry_refine=True)
+
+    refined = refine_near_wall_hidden_geometry(
+        shapes,
+        width=100,
+        height=100,
+        mask=mask,
+        cfg=cfg,
+    )
+
+    assert refined[1]["points"] == shapes[1]["points"]
+    assert "_near_wall_hidden_geometry_refined" not in refined[1]
 
 
 def test_overlap_hidden_stabilization_restores_hidden_owner() -> None:
