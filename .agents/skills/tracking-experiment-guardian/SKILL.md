@@ -164,6 +164,9 @@ Promote a candidate only when all applicable gates pass:
 - Keep every local regression within its frozen budget and report it plainly.
 - For a geometry-only family, require equal track IDs, shape keys, Behavior,
   `Hidden`, `occluded`, and other non-geometry payload before full or repeat.
+- For an identity-payload family, permit only the declared `ID` attribute to
+  change. Keep bbox points, label/frame keys, Behavior, `Hidden`, `occluded`,
+  outside, score, source, and all other exported fields equal.
 - Stay within the latency and memory budget of the affected realtime profile.
 - Require repeat effective FPS to be at least 90% of primary effective FPS.
 - Require repeat peak RSS and CUDA memory to stay within 110% of primary.
@@ -184,6 +187,8 @@ artifacts, or improvements that depend on changing the evaluation contract.
 - A paired baseline/candidate delta table for every evaluated video.
 - For geometry replay, a hash-bound replay manifest and per-box geometry delta
   CSV proving parent JSON/XML integrity and non-geometry payload equality.
+- For identity replay, a hash-bound manifest and per-row identity delta CSV
+  proving parent JSON/XML integrity and ID-only payload equality.
 - A recursive artifact audit proving the experiment root contains no MP4.
 - An immutable repeatability audit that rehashes inputs and artifacts, checks
   canonical predictions, and compares metrics exactly outside `pred_xml`.
@@ -204,6 +209,24 @@ its first artifact-producing invocation.
 Select `near_wall_hidden_geometry_v1` or
 `far_camera_hidden_geometry_v1`; record the selected candidate and its
 candidate-specific parameters in the replay manifest.
+For a strictly post-video identity-payload family, run
+`scripts/replay_post_video_identity.py --dry-run` against a full,
+include-Hidden parent before creating artifacts. The identity replay must not
+accept a GT path, video name, or absolute frame as a candidate rule. It may
+only move a declared ID boundary detected from parent shapes. Use identity
+replay for window screening only; rerun the actual tracker/post-processing
+path on the full target before treating the result as identity evidence.
+Declare `post_video_identity_payload_replay` with tracker runtime and speed
+claims `NOT_APPLICABLE`; it is not a geometry replay and must not be audited
+with the geometry-only contract.
+The identity replay plan must hash-bind the parent run manifest, prediction
+JSON/XML, source video, and parent-derived frozen window. Bind the parent
+commit, semantic config, candidate parameters, and score interval as well.
+Reject dirty worktrees, non-ancestor commits, arbitrary score/parameter CLI
+overrides, and any `allow-no-change` bypass. Reparse candidate JSON/XML after
+writing and fail unless only the declared `ID` attribute differs. Invoke the
+dry-run with `python -B` or an equivalent no-bytecode policy so validation does
+not leave side-effect files.
 The repeatability checker must run from a clean, commit-bound worktree and PASS
 before a run becomes baseline, candidate, or promotion authority.
 Keep its default FPS and peak-memory ratio guards enabled for authority runs.
@@ -224,6 +247,8 @@ Stop before further tracking work when:
 - A critical guardrail fails or a local regression exceeds its frozen budget.
 - Future frames change already-flushed output for a causal/fixed-delay profile.
 - Telemetry cannot explain the observed prediction or identity change.
+- An identity replay changes any exported field other than the declared ID
+  attribute, or its trigger depends on GT/video/frame hardcoding.
 
 Fix the gate and restart with a new run ID. Do not reinterpret a failed run as
 promotion evidence.

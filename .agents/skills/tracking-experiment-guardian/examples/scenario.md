@@ -19,6 +19,18 @@ before evaluating the full replay. Audit that pair with
 `--post-video-geometry-replay`: every video must explicitly declare
 `telemetry_available=false`, prediction runtime artifacts must be absent, and
 tracker FPS/RSS guardrails must be recorded as `NOT_APPLICABLE`.
+For a post-video identity-payload candidate, bind the plan, parent run
+manifest, source video, prediction JSON/XML, and parent-derived window by their
+SHA256 values before replay. Candidate parameters and the score interval must
+come from the frozen plan; reject differing CLI values and provide no
+allow-no-change escape hatch. Require a clean commit descended from the frozen
+start and parent commits. Reparse candidate JSON/XML and prove that only the
+declared `ID` attribute changed; points, label/frame keys, Behavior, Hidden,
+occluded, outside, score, source, and every other exported field stay equal.
+Run identity replay with `python -B` (or equivalent no-bytecode policy) and
+verify that dry-run creates no output directory or side-effect artifacts.
+Identity replay is screening evidence only; rerun the actual tracker path on
+the full target before an identity claim, with replay runtime `NOT_APPLICABLE`.
 Run full-13 only after the hard-set aggregate improves across at least two
 difficult videos and every critical guardrail passes. Declare any allowed local
 regression budget before execution and report all per-video trade-offs. Repeat
