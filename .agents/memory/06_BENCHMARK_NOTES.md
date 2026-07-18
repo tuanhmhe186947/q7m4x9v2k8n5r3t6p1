@@ -1,5 +1,26 @@
 # Benchmark Notes
 
+## 2026-07-18 hybrid near-wall Hidden bbox geometry promotion
+
+- Parent/candidate aggregate: matches `185570 -> 185578`, FP/FN
+  `1630/1630 -> 1622/1622`, IDSW `8 -> 8`, HOTA
+  `98.31% -> 98.32%`, and MOTA `98.25% -> 98.26%`.
+- Raw IDF1 improves by `0.0000427350`; both sides round to `99.13%`.
+  Raw MOTP decreases by `0.0000055769` because eight additional difficult
+  matches enter the matched population.
+- Exactly 111 bbox rows change: `000114=5`, `000231=28`, `000233=78`.
+  Ten videos are metric-identical. All 26 replay manifests pass shape-key and
+  non-geometry payload equality.
+- Strict fragments increase `426 -> 427`, while gap-tolerant fragments stay
+  `6`. The known `000233` ID_6 frames 1140-1147 IoU decrease remains above
+  `0.90` and creates no FP/FN or IDSW regression.
+- Clean authority commit is `b66428e`; the repeatability authority SHA256 is
+  `6b6899109ddbca43042645b503896e41c985bd838eb64513eeb72a9210015665`.
+  It verifies 26 predictions, 46 artifacts, current input hashes, explicit
+  geometry runtime absence, and `mp4_count=0`.
+- Algorithm/profile commits are `3391dbd` and `4876217`. Full lineage is in
+  `docs/TRACKING_PROMOTION_DECISION_20260718_HYBRID_NEAR_WALL_GEOMETRY.json`.
+
 ## 2026-07-18 realtime_balanced hidden-reservation promotion
 
 - Parent and candidate roots are `20260718_80e4600_parent_eval_full13` and

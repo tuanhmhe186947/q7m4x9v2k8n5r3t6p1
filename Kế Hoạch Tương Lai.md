@@ -5,6 +5,19 @@
 Phần này là kế hoạch đang có hiệu lực. Nội dung cũ bên dưới được giữ làm lịch
 sử, nhưng không được dùng để bỏ qua các gate mới.
 
+### -1. Thứ tự critical path khóa ngày 2026-07-18
+
+- Hoàn thiện và khóa authority cho `hybrid_bytetrack` trước khi chuyển bất kỳ
+  cơ chế nào sang realtime. Không tối ưu hai lane trong cùng một experiment.
+- Near-wall Hidden bbox geometry đã được promote vào `hybrid_bytetrack_best`:
+  IDSW giữ `8`, FP/FN `1630 -> 1622`, HOTA `98.31% -> 98.32%`, raw IDF1 tăng,
+  primary/repeat khớp và `mp4_count=0`.
+- Lane realtime tiếp theo dùng `realtime_fast` làm mốc vận hành. Balanced chỉ
+  được công nhận khi qua gate identity-stability và latency khai báo trước,
+  đồng thời tạo giá trị thực so với fast; tốt hơn balanced cũ là chưa đủ.
+- Authority và bằng chứng âm được khóa tại
+  `docs/TRACKING_PROMOTION_DECISION_20260718_HYBRID_NEAR_WALL_GEOMETRY.json`.
+
 ### 0. Mốc phải khóa trước khi tối ưu
 
 - Hybrid chuẩn là `hybrid_bytetrack_best` với rule

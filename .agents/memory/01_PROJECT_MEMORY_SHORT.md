@@ -1,5 +1,25 @@
 # Project Memory Short
 
+## 2026-07-18 hybrid near-wall geometry promotion and priority lock
+
+- The critical path is `hybrid_bytetrack` first. Realtime transfer is a
+  separate later experiment; do not tune realtime in the hybrid experiment.
+- Near-wall Hidden bbox geometry is promoted in `hybrid_bytetrack_best`.
+  Full-13 primary/repeat preserve IDSW `8`, improve FP/FN `1630 -> 1622`,
+  HOTA `98.31% -> 98.32%`, and raw IDF1 despite both reports rounding to
+  `99.13%`.
+- Exactly 111 bbox rows change on three videos. IDs, shape keys, Behavior,
+  `Hidden`, `occluded`, and every other non-geometry payload remain equal.
+- Repeatability authority is `PASS`: 26 semantic predictions, 46 artifacts,
+  input rehash enabled, tracker runtime `NOT_APPLICABLE`, and zero MP4.
+- Algorithm, auditor, and profile commits are `3391dbd`, `b66428e`, and
+  `4876217`. Full lineage and negative evidence are in
+  `docs/TRACKING_PROMOTION_DECISION_20260718_HYBRID_NEAR_WALL_GEOMETRY.json`.
+- For the later realtime lane, use `realtime_fast` as the operational
+  reference. Balanced must pass a predeclared identity-stability/latency gate
+  and add material value versus fast; improving only over old balanced is not
+  sufficient.
+
 ## 2026-07-18 realtime_balanced hidden-reservation promotion
 
 - `realtime_balanced` promotes causal hidden-detection reservation with

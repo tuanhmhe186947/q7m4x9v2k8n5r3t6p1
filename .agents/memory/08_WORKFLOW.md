@@ -1,5 +1,22 @@
 # Workflow
 
+## 2026-07-18 active tracking-only workflow override
+
+This section overrides the classification workflow below until the user
+explicitly switches workstreams.
+
+1. Work only in `PIG_task_tracking` on `task/update-tracking`.
+2. Keep classification code, data, model runs, and review artifacts untouched.
+3. Complete hybrid through hard window, full video, hard set, full-13, repeat,
+   clean authority audit, and separate profile promotion.
+4. Use `include_hidden=true`, `iou0_area0_condarea0_merge0`, fresh roots, input
+   rehashing, payload-integrity checks, and zero generated MP4.
+5. Hybrid near-wall geometry is promoted at `4876217`; authority SHA256 is
+   `6b6899109ddbca43042645b503896e41c985bd838eb64513eeb72a9210015665`.
+6. Only after the hybrid lock, open a separate realtime transfer study. Use
+   fast as the operational reference; balanced must pass a predeclared
+   identity-stability and latency gate relative to fast.
+
 ## Isolated reviewed-Q2 execution roots
 
 Operator commands for source rebuild, Hidden review, behavior review and apply

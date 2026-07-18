@@ -1,0 +1,265 @@
+{
+  "schema_version": "tracking_promotion_decision_v3",
+  "status": "promoted_aggregate_quality_non_regression",
+  "decision_date": "2026-07-18",
+  "priority": "hybrid_bytetrack_first",
+  "profile": "hybrid_bytetrack_best",
+  "output_timing_contract": "post_video_offline",
+  "declared_delay_frames": -1,
+  "parent_profile_commit":
+    "e74a8fa1a5aab8f677ba3fd4b7b5253b44a6ad67",
+  "parent_algorithm_commit":
+    "72546708c793c84c46166e93fe4bb4ed1831f822",
+  "candidate_algorithm_commit":
+    "3391dbd285eee61a58a9999cf73f792d8bc151b7",
+  "auditor_commit":
+    "b66428e22609adc38d8d36ce96a0b3025c0ba0aa",
+  "profile_promotion_commit":
+    "4876217d7e4351a8fdeb823171415738f7c61173",
+  "changed_family": "post_identity_near_wall_hidden_bbox_geometry",
+  "hypothesis": [
+    "A Hidden bbox near the pen wall can become too wide while its center",
+    "remains stable. Interpolating only its geometry from same-ID anchors",
+    "should recover valid matches without changing identity or annotations."
+  ],
+  "camera_geometry_contract": {
+    "wall_source": "data/annotations/scene/mask.png",
+    "near_clear_large_side": "left",
+    "far_blurred_small_side": "right",
+    "bbox_size_tends_to_decrease_toward": "right",
+    "wall_behavior_changed": false
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "safe-refactor-test-guardian",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "skill-creator"
+  ],
+  "evaluation_contract": {
+    "include_hidden": true,
+    "hidden_attribute_is_optimization_target": false,
+    "corrected_bbox_and_id_are_authoritative": true,
+    "iou_threshold": 0.5,
+    "gap_tolerance_frames": 15,
+    "video_count": 13,
+    "gt_detections": 187200,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "condarea_enabled": false,
+    "runtime_contract": "post_video_geometry_replay",
+    "generated_mp4_allowed": false
+  },
+  "candidate_config": {
+    "near_wall_hidden_geometry_refine": true,
+    "near_wall_hidden_geometry_max_gap_frames": 30,
+    "near_wall_hidden_geometry_distance_bbox_scale": 0.25,
+    "near_wall_hidden_geometry_min_width_excess": 0.08,
+    "near_wall_hidden_geometry_max_center_shift": 0.04,
+    "near_wall_hidden_geometry_original_weight": 0.5
+  },
+  "output_namespace": {
+    "prediction_prefix": "outputs/pred/tracking_profile_funnel",
+    "evaluation_prefix": "outputs/eval/tracking_profile_funnel"
+  },
+  "run_ids": {
+    "parent_clean":
+      "20260718_b66428e_hybrid_wall_geometry_parent_clean_authority_v1",
+    "candidate_primary":
+      "20260718_b66428e_hybrid_wall_geometry_candidate_primary_authority_v1",
+    "candidate_repeat":
+      "20260718_b66428e_hybrid_wall_geometry_candidate_repeat_authority_v1",
+    "repeatability_lock":
+      "20260718_b66428e_hybrid_wall_geometry_candidate_repeatability_authority_v1"
+  },
+  "frozen_plan": {
+    "directory": "outputs/eval/tracking_profile_funnel",
+    "source_name":
+      "20260718_3391dbd_hybrid_wall_geometry_full13_plan.json",
+    "source_sha256":
+      "44d8fcc16b75801dcea8987a667b9194e60ca77459d591d206f2e45e90a64166",
+    "authority_name":
+      "20260718_b66428e_hybrid_wall_geometry_authority_plan_v1.json",
+    "authority_sha256":
+      "167f2ed6b4df5f8ce26d04f93ae7070e471483611d887ad5682f6cc02606cbd7",
+    "semantic_changes": []
+  },
+  "lineage": {
+    "detector_sha256":
+      "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+    "mask_sha256":
+      "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658",
+    "evaluation_semantic_config_sha256":
+      "c55edca9a215e838c607203fee23d731908c7d9ebe84afff7a96223e8e02c5cd",
+    "input_universe_sha256":
+      "64a3035d9f8f364eca9f14539fb8d12944d999d5ed932b5cbae58047421122ae",
+    "parent_run_manifest_sha256":
+      "f7f25b1bad832465842e5dbb861db2307f559f8db157ecc3b83ddbba1fb6f3c8",
+    "parent_metrics_sha256":
+      "aa2e38a94962252411d64b8cc66fd4744f03bb8529e6ca4483419b51835ca8dc",
+    "primary_run_manifest_sha256":
+      "15476dfb9ec844a2528c70394b590a47cc4c5629cc6639c4f81cda23d08c8932",
+    "primary_metrics_sha256":
+      "455aab6430f5c6fcd9dd7a76d28dda794ef7f76c1533a1ea8d08a71a641f666a",
+    "repeat_run_manifest_sha256":
+      "d3faa0257220a1ab50519c6ec06aecbc29c05e4b040c5fb7ccf0e89e9a381dbf",
+    "repeat_metrics_sha256":
+      "ef1631d056cd3739f785b69f1a0097b4f50e74df41e55a1e68bdedbeec913022",
+    "repeatability_file_sha256":
+      "804cbf9395fbac21a9690bcbb5d43de965e26ece0602a5a70cb65d60872cf770",
+    "repeatability_authority_sha256":
+      "6b6899109ddbca43042645b503896e41c985bd838eb64513eeb72a9210015665"
+  },
+  "geometry_payload_integrity": {
+    "primary_manifest_count": 13,
+    "repeat_manifest_count": 13,
+    "payload_integrity_pass_count": 26,
+    "shape_keys_equal": true,
+    "non_geometry_payload_equal": true,
+    "changed_bbox_count_per_run": 111,
+    "changed_video_count": 3,
+    "unchanged_video_count": 10,
+    "changed_videos": {
+      "Pigs281119_000114_30fps": 5,
+      "Pigs291119_000231_30fps": 28,
+      "Pigs291119_000233_30fps": 78
+    }
+  },
+  "aggregate_quality": {
+    "parent": {
+      "matches": 185570,
+      "fp": 1630,
+      "fn": 1630,
+      "remapped_idsw": 8,
+      "fragments": 426,
+      "gap_tolerant_fragments": 6,
+      "mota": 0.982542735042735,
+      "motp_iou": 0.9184873309773551,
+      "remapped_idf1": 0.9912660256410256,
+      "remapped_hota": 0.9830907065241391
+    },
+    "candidate": {
+      "matches": 185578,
+      "fp": 1622,
+      "fn": 1622,
+      "remapped_idsw": 8,
+      "fragments": 427,
+      "gap_tolerant_fragments": 6,
+      "mota": 0.9826282051282051,
+      "motp_iou": 0.9184817541203224,
+      "remapped_idf1": 0.9913087606837607,
+      "remapped_hota": 0.9831728824163695
+    },
+    "candidate_minus_parent": {
+      "matches": 8,
+      "fp": -8,
+      "fn": -8,
+      "remapped_idsw": 0,
+      "fragments": 1,
+      "gap_tolerant_fragments": 0,
+      "mota": 0.0000854700854701,
+      "motp_iou": -0.0000055768570327,
+      "remapped_idf1": 0.0000427350427351,
+      "remapped_hota": 0.0000821758922304
+    },
+    "paper_precision": {
+      "mota_pct": [98.25, 98.26],
+      "motp_iou_pct": [91.85, 91.85],
+      "remapped_idf1_pct": [99.13, 99.13],
+      "remapped_hota_pct": [98.31, 98.32]
+    }
+  },
+  "per_video_changes": {
+    "Pigs281119_000114_30fps": {
+      "matches": [14216, 14216],
+      "fp": [184, 184],
+      "fn": [184, 184],
+      "remapped_idsw": [0, 0],
+      "motp_iou": [0.9135444842725645, 0.9135514367188274],
+      "remapped_idf1": [0.9872222222222222, 0.9872222222222222],
+      "remapped_hota": [0.9750546326467866, 0.9750546326467866]
+    },
+    "Pigs291119_000231_30fps": {
+      "matches": [14206, 14208],
+      "fp": [194, 192],
+      "fn": [194, 192],
+      "remapped_idsw": [0, 0],
+      "fragments": [53, 55],
+      "gap_tolerant_fragments": [1, 1],
+      "remapped_idf1": [0.9865277777777778, 0.9866666666666667],
+      "remapped_hota": [0.9738963745559266, 0.9741496464310907]
+    },
+    "Pigs291119_000233_30fps": {
+      "matches": [14269, 14275],
+      "fp": [131, 125],
+      "fn": [131, 125],
+      "remapped_idsw": [4, 4],
+      "fragments": [33, 32],
+      "gap_tolerant_fragments": [0, 0],
+      "remapped_idf1": [0.9907638888888889, 0.9911805555555555],
+      "remapped_hota": [0.9818108961760634, 0.9826260520014307]
+    },
+    "metric_tie_video_count": 10,
+    "video_count_with_idsw_regression": 0
+  },
+  "repeatability": {
+    "status": "PASS",
+    "quality_metrics_match_primary": true,
+    "per_video_metrics_match_primary": true,
+    "canonical_prediction_hashes_equal": true,
+    "raw_artifacts_rehashed": true,
+    "verified_prediction_count": 26,
+    "verified_artifact_count": 46,
+    "recursive_mp4_count": 0
+  },
+  "runtime": {
+    "contract": "post_video_geometry_replay",
+    "tracker_runtime_status": "NOT_APPLICABLE",
+    "primary_explicit_unavailable_rows": 13,
+    "repeat_explicit_unavailable_rows": 13,
+    "speed_claim_authorized": false
+  },
+  "guardrails": {
+    "aggregate_hota_improved": true,
+    "aggregate_idf1_improved": true,
+    "aggregate_fp_fn_improved": true,
+    "aggregate_idsw_non_regression": true,
+    "critical_video_idsw_non_regression": true,
+    "per_video_hota_budget_passed": true,
+    "per_video_idf1_budget_passed": true,
+    "per_video_fp_fn_budget_passed": true,
+    "geometry_only_payload_passed": true,
+    "candidate_repeatability_passed": true,
+    "recursive_no_mp4_passed": true
+  },
+  "negative_evidence": [
+    "Aggregate MOTP IoU decreases by 0.0000055768570327 because eight",
+    "additional low-IoU-threshold matches enter the matched population.",
+    "Strict fragments increase 426 to 427; gap-tolerant fragments stay 6.",
+    "On 000231 strict fragments increase 53 to 55 while FP/FN improve.",
+    "On 000233, ID_6 frames 1140-1147 fall from about 0.976 IoU to",
+    "about 0.906. They remain above 0.90 and create no FP/FN or IDSW loss."
+  ],
+  "decision_rule": [
+    "Promote because both independent full-13 runs improve aggregate HOTA,",
+    "IDF1, MOTA, FP and FN while preserving aggregate and critical IDSW.",
+    "The declared bounded local evidence does not cross any blocking gate.",
+    "The change is geometry-only and every non-geometry payload is equal."
+  ],
+  "failed_blocking_gates": [],
+  "residual_risks": [
+    "Incremental post-processing latency was not benchmarked for a speed claim.",
+    "This authority supports the offline hybrid profile, not realtime transfer."
+  ],
+  "decision": "promote_near_wall_hidden_geometry_in_hybrid_best",
+  "rollback": [
+    "Revert profile commit 4876217 to remove the promoted behavior.",
+    "Revert algorithm commit 3391dbd only if the implementation is unwanted."
+  ],
+  "next_step": [
+    "Keep hybrid_bytetrack as the completed quality source of truth.",
+    "Open a separate realtime transfer study only after this hybrid lock.",
+    "Use realtime_fast as the operational reference for that later study.",
+    "Require balanced to pass a predeclared identity-stability and latency gate."
+  ]
+}

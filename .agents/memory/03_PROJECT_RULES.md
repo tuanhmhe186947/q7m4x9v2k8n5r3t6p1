@@ -1,5 +1,25 @@
 # Project Rules
 
+## 2026-07-18 tracking-only priority rules
+
+1. Work only in `PIG_task_tracking` on `task/update-tracking`; classification
+   code, data, and models are out of scope until the user switches workstreams.
+2. Optimize and authority-lock `hybrid_bytetrack` before transferring any
+   mechanism to realtime. Do not tune both lanes in one experiment.
+3. Use the staged funnel: hard window, full target video, at least three hard
+   videos, then full-13. Freeze gates before seeing candidate results.
+4. After hybrid is locked, use `realtime_fast` as the operational reference.
+   Balanced must pass a predeclared identity-stability and latency gate and
+   add material value relative to fast. Improvement versus old balanced alone
+   is insufficient.
+5. Use `include_hidden=true`, `iou0_area0_condarea0_merge0`, fresh roots, exact
+   lineage hashes, primary/repeat confirmation, and recursive zero-MP4 checks.
+6. Never generate MP4, preview, overlay, or event clips during tracking
+   analysis, evaluation, ablation, replay, or benchmark.
+7. Inspect and record skills before nontrivial work. Upgrade reusable skills
+   with `skill-creator`, validate them, and commit skill changes separately
+   from algorithm changes.
+
 ## classification_v2 active rules
 
 The user grants standing approval for project-local Markdown edits. Treat any

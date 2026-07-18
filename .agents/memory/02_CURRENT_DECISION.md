@@ -3,13 +3,29 @@
 ## Decision precedence
 
 Only the active decision immediately below controls current work. All later
-sections are historical records. Current gate status is centralized in
-`docs/CLASSIFICATION_V2_CURRENT_STATE.md`.
+sections are historical records. The active tracking authority is
+`docs/TRACKING_PROMOTION_DECISION_20260718_HYBRID_NEAR_WALL_GEOMETRY.json`.
+`docs/CLASSIFICATION_V2_CURRENT_STATE.md` applies only to the paused
+classification workstream.
 
 ## Active decision: tracking-only roadmap
 
 The user explicitly moved tracking work to `PIG_task_tracking` on branch
 `task/update-tracking`. Do not touch classification code, data, or model work.
+
+### Critical-path override 2026-07-18
+
+Complete and authority-lock `hybrid_bytetrack` before any realtime transfer.
+Near-wall Hidden bbox geometry is now promoted in `hybrid_bytetrack_best`:
+IDSW stays `8`, FP/FN improve `1630 -> 1622`, HOTA improves
+`98.31% -> 98.32%`, and raw IDF1 increases. Primary/repeat and all
+non-geometry payload checks pass with zero MP4.
+
+Realtime notes below remain evidence but no longer set task order. The next
+realtime study must use `realtime_fast` as its operational reference.
+`realtime_balanced` is not considered solved merely because it improves over
+its older baseline; it must pass a predeclared identity-stability and latency
+gate and provide material value relative to fast.
 
 Tracking GT was seeded by an older tracker and manually corrected for bbox/ID.
 Primary evaluation therefore uses `include_hidden=true`; the 1,930
