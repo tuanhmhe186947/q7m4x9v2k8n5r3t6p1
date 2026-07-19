@@ -2,6 +2,23 @@
 
 ## Override chọn realtime winner ngày 2026-07-19
 
+### Quyền chọn của realtime Quality (bắt buộc)
+
+- `realtime_quality` (profile hiện có: `realtime_quality_delayed`) là ứng viên
+  realtime chính thức, có cùng quyền thắng Pareto như Fast và Balanced.
+- Không được loại Quality chỉ vì bảng paper cuối cùng có thể chỉ giữ một
+  profile realtime. Việc bỏ bớt profile là quyết định trình bày sau khi đã
+  sàng lọc đầy đủ, không phải lý do để bỏ qua thí nghiệm Quality.
+- Nếu một bản Quality causal hoặc fixed-delay vượt qua prefix invariance,
+  identity, HOTA/IDF1, runtime, repeatability, lineage và zero-MP4, rồi thắng
+  Pareto, nó thay thế Fast/Balanced trong chuỗi paper:
+  `bytetrack_raw -> realtime_quality -> hybrid_bytetrack_best`.
+- Quality delay `-1` hiện tại chỉ là upper bound post-video; không được gọi là
+  realtime winner, nhưng phải giữ làm bằng chứng chất lượng và mốc so sánh.
+- Vì các candidate finite-delay hiện tại chưa qua runtime gate, bước raw
+  authority kế tiếp không xóa Quality khỏi kế hoạch; chỉ mở lại một family
+  Quality mới khi có giả thuyết và funnel riêng được khai báo trước.
+
 - `hybrid_bytetrack_best` đã hoàn tất trước với full-13 IDSW `0`, HOTA
   `98.3506%` và IDF1 `99.1490%`.
 - Sau Hybrid, Fast, Balanced và Quality là ba ứng viên trong cùng một phép
