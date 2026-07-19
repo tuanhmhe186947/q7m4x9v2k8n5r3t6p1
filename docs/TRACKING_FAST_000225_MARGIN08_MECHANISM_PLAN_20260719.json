@@ -60,7 +60,7 @@
     "required": [
       "the switch boundary is reproduced inside the scored window",
       "both conflicting tracks are causally observable in the parent trace",
-      "the preferred track cost is at most 0.35",
+      "both selected and competitor costs are at most 0.35",
       "the relevant cost gap is greater than 0.012 and at most 0.08",
       "no future-frame or post-video evidence is used"
     ],

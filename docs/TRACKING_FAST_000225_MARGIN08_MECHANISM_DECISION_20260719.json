@@ -24,10 +24,12 @@
   },
   "mechanism_gate": {
     "switch_frame": 780,
-    "visible_cost": 0.342428,
-    "visible_competitor_cost": 0.369623,
+    "selected_cost": 0.342428,
+    "competitor_cost": 0.369623,
+    "max_cost": 0.35,
+    "cost_cap_pass": false,
     "cost_gap": 0.027195,
-    "mechanism_match": true
+    "mechanism_match": false
   },
   "paired_metrics": {
     "parent": {
@@ -52,8 +54,9 @@
     "prediction_raw_sha256_equal": true,
     "interpretation": [
       "The candidate is safe on this independent window.",
-      "The implementation did not trigger on the mechanism trace, so no",
-      "independent quality gain is demonstrated."
+      "The numerical cost gap is close, but the competitor cost exceeds the",
+      "guard's max-cost eligibility; no mechanism trigger or quality gain is",
+      "demonstrated."
     ]
   },
   "runtime_screening_only": {
