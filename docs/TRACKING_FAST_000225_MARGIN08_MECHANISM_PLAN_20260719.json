@@ -1,0 +1,94 @@
+{
+  "schema_version": "tracking_fast_mechanism_gated_window_plan_v1",
+  "plan_date": "2026-07-19",
+  "status": "FROZEN_BEFORE_RUN",
+  "starting_commit": "45e81bb",
+  "scope": {
+    "tracking_only": true,
+    "profile": "realtime_fast",
+    "video": "Pigs291119_000225_30fps",
+    "frame_range_processed": [0, 820],
+    "score_range": [740, 800],
+    "warmup_before_score_frames": 740,
+    "include_hidden": true,
+    "gap_tolerance_frames": 15,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "association_debug": true,
+    "write_output_video": false,
+    "mp4_allowed": false
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "frozen_parent_source": {
+    "run_id": "20260718_7f36b57_r1_visible_prefer_fast_full13_primary_v1",
+    "switch_frame": 780,
+    "switch_ids": ["ID_4", "ID_5"],
+    "full_video_remapped_idsw": 2,
+    "sha256": {
+      "run_manifest":
+        "27589f32161653976a26899a9a6e289629ed4b6bc98f00cee7bcb63b743bdc6a",
+      "remapped_identity_events":
+        "15733d2c84cd4aaf8f5746f3a582781c0216248d12c279c9de1e23cb5e2dcbe9",
+      "prediction_xml":
+        "8ec9303e3e0d746488483015db1ddc25b3e81f2675abc72833177ca7cb986b19"
+    }
+  },
+  "parent_diagnostic": {
+    "run_id": "20260719_45e81bb_fast_000225_parent_diag_w4_v1",
+    "realtime_visible_close_competitor_guard": false,
+    "realtime_visible_close_competitor_margin": 0.012
+  },
+  "conditional_candidate": {
+    "run_id": "20260719_45e81bb_fast_000225_margin08_w4_v1",
+    "changed_family": "visible_competitor_guard_threshold",
+    "semantic_diff": {
+      "realtime_visible_close_competitor_guard": [false, true],
+      "realtime_visible_close_competitor_margin": [0.012, 0.08]
+    },
+    "all_other_fast_profile_values_unchanged": true
+  },
+  "hypothesis": [
+    "The parent-derived ID_4/ID_5 switch at frame 780 is an independent",
+    "Fast episode. Run the parent trace first and expose the candidate only",
+    "if the causal visible-competitor costs match the declared margin family."
+  ],
+  "mechanism_gate_before_candidate": {
+    "required": [
+      "the switch boundary is reproduced inside the scored window",
+      "both conflicting tracks are causally observable in the parent trace",
+      "the preferred track cost is at most 0.35",
+      "the relevant cost gap is greater than 0.012 and at most 0.08",
+      "no future-frame or post-video evidence is used"
+    ],
+    "failure_action": [
+      "Do not run the margin 0.08 candidate on this episode.",
+      "Record a mechanism mismatch and continue to another parent-derived",
+      "episode without changing the threshold."
+    ]
+  },
+  "paired_gate_if_candidate_runs": {
+    "guardrails": [
+      "candidate remapped IDSW < parent for an independent gain",
+      "candidate remapped HOTA >= parent",
+      "candidate remapped IDF1 >= parent",
+      "candidate FP <= parent",
+      "candidate FN <= parent",
+      "causal framewise output remains declared",
+      "recursive mp4_count equals zero"
+    ],
+    "advance_rule": [
+      "Only a causal independent gain can satisfy the second-episode gate.",
+      "A tie or regression keeps full 000302 closed."
+    ]
+  },
+  "fresh_roots": {
+    "base_prediction": "outputs/pred/tracking_realtime_optimization",
+    "base_evaluation": "outputs/eval/tracking_realtime_optimization",
+    "parent_run": "20260719_45e81bb_fast_000225_parent_diag_w4_v1",
+    "candidate_run": "20260719_45e81bb_fast_000225_margin08_w4_v1"
+  }
+}
