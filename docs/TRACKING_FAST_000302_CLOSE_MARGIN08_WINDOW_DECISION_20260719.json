@@ -1,0 +1,69 @@
+{
+  "schema_version": "tracking_fast_candidate_window_decision_v1",
+  "decision_date": "2026-07-19",
+  "status": "PASS_SCREENING_WINDOW",
+  "parent_commit": "66bc1218339c2e4413a1d405694c928d5df1f4c6",
+  "candidate_commit": "c4c12ce1f3d7cbe183f895ed2ab10d822c8348fe",
+  "parent_run_id": "20260719_66bc121_fast_000302_parent_diag_v1",
+  "candidate_run_id": "20260719_c4c12ce_fast_000302_closeguard_margin08_w1_v1",
+  "changed_family": "visible_competitor_guard_threshold",
+  "semantic_diff": {
+    "realtime_visible_close_competitor_guard": [false, true],
+    "realtime_visible_close_competitor_margin": [0.012, 0.08]
+  },
+  "contract": {
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "score_range": [540, 590],
+    "warmup_range": [0, 539],
+    "write_output_video": false,
+    "mp4_count": 0,
+    "output_timing_contract": "causal_framewise"
+  },
+  "paired_metrics": {
+    "parent": {
+      "remapped_idsw": 6,
+      "remapped_hota_pct": 88.31,
+      "remapped_idf1_pct": 87.75,
+      "fp": 20,
+      "fn": 20
+    },
+    "candidate": {
+      "remapped_idsw": 0,
+      "remapped_hota_pct": 99.06,
+      "remapped_idf1_pct": 99.51,
+      "fp": 2,
+      "fn": 2
+    }
+  },
+  "passed_gates": [
+    "window remapped IDSW <= 2",
+    "HOTA and IDF1 are above parent",
+    "FP and FN are below parent",
+    "one assignment_prefer_visible_close_competitor event occurs at frame 554",
+    "causal framewise output remains declared",
+    "recursive mp4_count equals zero",
+    "only the declared visible-competitor threshold family differs"
+  ],
+  "runtime_evidence": {
+    "candidate_effective_fps": 21.5620,
+    "candidate_frame_time_p95_ms": 68.8936,
+    "speed_claim": "NOT_APPLICABLE",
+    "reason": "a screening window is not a paired runtime authority"
+  },
+  "lineage": {
+    "sha256": {
+      "candidate_run_manifest":
+        "938f553c96638a377c76aab7de6b70584d514091169d39956718ef51cb582f46",
+      "candidate_prediction_xml":
+        "d2ced53ed7f331a9a87aa6021c016d671e283e24cd4f7bfa234860cd890e178a"
+    },
+    "prediction_root_base": "outputs/pred/tracking_realtime_optimization",
+    "evaluation_root_base": "outputs/eval/tracking_realtime_optimization"
+  },
+  "advance_rule": [
+    "This is screening evidence, not promotion evidence.",
+    "Find and pass a second independent Fast switch episode before full 000302.",
+    "Then rerun the exact candidate on full 000302 and apply runtime gates."
+  ]
+}
