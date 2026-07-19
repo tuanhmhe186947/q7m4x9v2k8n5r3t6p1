@@ -1,5 +1,21 @@
 # Current Decision
 
+## Active realtime Pareto decision 2026-07-20
+
+Promote the validated far-right close-competitor guard in `realtime_fast`.
+The full-13 candidate/repeat pass causal, prefix, lineage, repeatability and
+zero-MP4 gates: IDSW `69 -> 59`, HOTA `94.35% -> 95.63%`, IDF1
+`93.91% -> 95.37%`, FP/FN `506/630 -> 486/610`, and `000302` IDSW `6 -> 0`.
+The profile commit is `74cad2b`, separate from algorithm commit `62f140b` and
+the evidence commits.
+
+Keep `bytetrack_raw` fixed at its existing authority (`145`, `88.91%`,
+`88.47%`) and do not rerun it. Its runtime is historical labeled evidence;
+the final realtime winner remains pending native-throughput and common-harness
+runtime gates. Balanced stays a valid quality reference, while Quality stays
+post-video/fixed-delay rejection evidence. Authority:
+`docs/TRACKING_REALTIME_PARETO_SELECTION_DECISION_20260720.json`.
+
 ## Active hybrid lane-completion decision 2026-07-19
 
 Lock `hybrid_bytetrack_best` at IDSW `0`, HOTA `98.35062270%`, IDF1

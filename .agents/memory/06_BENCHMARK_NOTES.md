@@ -1,5 +1,18 @@
 # Benchmark Notes
 
+## 2026-07-20 Fast promotion and runtime boundary
+
+- `realtime_fast` far-right guard full-13 primary/repeat: IDSW `59`, HOTA
+  `95.63%`, IDF1 `95.37%`, FP/FN `486/610`, fragments `107`, gap-tolerant
+  fragments `8`; no per-video IDSW regression and `000302=0`.
+- The candidate/repeat loop-FPS is `19.08/25.48`; hard-7 candidate/parent
+  runtime ratio `0.9588` passes its frozen screen, but full-13 timing is noisy.
+  No speed advantage is claimed and native realtime is not yet locked.
+- Raw authority remains `145/88.91%/88.47%` and is not rerun. Balanced keeps
+  the quality trade-off (`121/95.68%/95.76%`); Quality remains delay-`-1`
+  upper-bound evidence.
+- Authority: `docs/TRACKING_REALTIME_PARETO_SELECTION_DECISION_20260720.json`.
+
 ## 2026-07-19 realtime selection metrics are multi-objective
 
 - Accuracy is necessary but not sufficient for a realtime winner. The frozen

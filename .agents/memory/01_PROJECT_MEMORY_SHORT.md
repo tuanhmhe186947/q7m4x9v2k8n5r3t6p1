@@ -1,5 +1,19 @@
 # Project Memory Short
 
+## 2026-07-20 Fast promotion and Pareto refresh
+
+- The far-right visible close-competitor guard is promoted in
+  `realtime_fast` at profile commit `74cad2b`; algorithm commit is `62f140b`.
+- Full-13 primary/repeat improve IDSW `69 -> 59`, HOTA `94.35% -> 95.63%`,
+  IDF1 `93.91% -> 95.37%`, FP/FN `506/630 -> 486/610`, with no per-video
+  IDSW regression. `000302` improves `6 -> 0`.
+- Raw remains an immutable authority (`145/88.91%/88.47%`); it is not rerun
+  because its code, inputs and evaluation contract are unchanged.
+- Fast is promoted as a causal quality reference, not a speed winner. Native
+  throughput/common-harness gates remain pending. Balanced remains a
+  non-dominated quality trade-off; Quality remains delayed/negative evidence.
+- Authority: `docs/TRACKING_REALTIME_PARETO_SELECTION_DECISION_20260720.json`.
+
 ## 2026-07-19 realtime selection is multi-objective
 
 - A realtime winner is not the profile with the highest HOTA/IDF1 or lowest

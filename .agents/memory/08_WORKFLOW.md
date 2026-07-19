@@ -1,5 +1,18 @@
 # Workflow
 
+## 2026-07-20 tracking Pareto update
+
+1. Hybrid remains complete and `bytetrack_raw` remains a fixed quality/runtime
+   authority; never rerun raw solely to compare a new tracking candidate.
+2. The Fast far-right guard is promoted at `74cad2b` after full-13/repeat
+   PASS (`IDSW 59`, HOTA `95.63%`, IDF1 `95.37%`, `000302=0`, MP4 `0`).
+3. Fast is a causal quality reference, not a speed winner: native-throughput
+   and common-harness runtime gates remain open. Do not claim it is faster.
+4. Balanced remains a non-dominated quality reference but no new family opens
+   without a predeclared window gate; Quality remains delayed/rejected evidence.
+5. Use `docs/TRACKING_REALTIME_PARETO_SELECTION_DECISION_20260720.json` as the
+   current Pareto authority and preserve no-MP4/lineage rules.
+
 ## 2026-07-19 tracking paper critical-path override
 
 1. Keep dependency order separate from selection rank. Hybrid is complete;
