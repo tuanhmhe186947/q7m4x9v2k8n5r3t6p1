@@ -470,24 +470,34 @@ def test_global_graph_profile_can_change_past_output_with_future_frames() -> Non
 
 
 @pytest.mark.parametrize(
-    ("fixed_lag_frames", "min_gain", "max_component_edges"),
+    (
+        "fixed_lag_frames",
+        "min_gain",
+        "max_component_edges",
+        "memory_frames",
+    ),
     [
-        pytest.param(12, 0.05, 2, id="lag-d12"),
-        pytest.param(15, 0.05, 2, id="lag-d15"),
-        pytest.param(30, 0.05, 2, id="lag-d30"),
-        pytest.param(15, 0.02, 1, id="rq2-s1"),
-        pytest.param(15, 0.04, 1, id="rq2-s2"),
-        pytest.param(15, 0.06, 1, id="rq2-s3"),
+        pytest.param(12, 0.05, 2, 30, id="lag-d12"),
+        pytest.param(15, 0.05, 2, 30, id="lag-d15"),
+        pytest.param(30, 0.05, 2, 30, id="lag-d30"),
+        pytest.param(15, 0.02, 1, 30, id="rq2-s1"),
+        pytest.param(15, 0.04, 1, 30, id="rq2-s2"),
+        pytest.param(15, 0.06, 1, 30, id="rq2-s3"),
+        pytest.param(15, 0.02, 1, 10, id="rq3-m10"),
+        pytest.param(15, 0.02, 1, 15, id="rq3-m15"),
+        pytest.param(15, 0.02, 1, 20, id="rq3-m20"),
     ],
 )
 def test_fixed_lag_motion_pair_output_is_prefix_invariant(
     fixed_lag_frames: int,
     min_gain: float,
     max_component_edges: int,
+    memory_frames: int,
 ) -> None:
     cfg = _fixed_lag_motion_pair_config(fixed_lag_frames)
     cfg.realtime_motion_pair_min_gain = min_gain
     cfg.realtime_motion_pair_max_component_edges = max_component_edges
+    cfg.realtime_motion_pair_memory_frames = memory_frames
     prefix = [
         _shape(0, 1, 10.0),
         _shape(0, 2, 110.0),
