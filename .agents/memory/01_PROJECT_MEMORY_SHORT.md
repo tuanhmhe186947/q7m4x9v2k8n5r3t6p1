@@ -1,5 +1,25 @@
 # Project Memory Short
 
+## 2026-07-19 paper priority and profile-redesign lock
+
+- Optimization order is `hybrid_bytetrack` -> `realtime_fast` ->
+  `realtime_balanced` -> `realtime_quality`. Hybrid is complete; fast is the
+  current causal reference. Finish the bounded RB3 balanced decision before
+  opening the quality challenger; do not expand lanes in parallel.
+- The paper-critical table needs only same-contract `bytetrack_raw`, one
+  selected causal realtime method, and `hybrid_bytetrack_best`. Three realtime
+  modes are optional and must earn inclusion through distinct scientific value.
+- A weak or semantically misleading profile implementation may be superseded
+  or rebuilt. Preserve its old artifacts as labeled evidence; the replacement
+  must pass frozen causal, quality, latency, lineage, and zero-MP4 gates against
+  the relevant raw and operational references.
+- Quality remains eligible to become the paper's selected realtime method if a
+  causal or finite-delay version passes prefix/latency gates and wins the
+  declared Pareto comparison. The current delay-`-1` global-post-video profile
+  can be reported only as delayed/post-video evidence, not as a realtime winner.
+- Authority is
+  `docs/TRACKING_PAPER_PRIORITY_AND_REDESIGN_POLICY_20260719.json`.
+
 ## 2026-07-18 H4 far-camera component decision
 
 - H4 fixes the `000328` far-right Hidden bbox family: full-video IDSW

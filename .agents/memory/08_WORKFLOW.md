@@ -1,5 +1,27 @@
 # Workflow
 
+## 2026-07-19 tracking paper critical-path override
+
+1. Apply the lane priority `hybrid_bytetrack` -> `realtime_fast` ->
+   `realtime_balanced` -> `realtime_quality`. Hybrid and fast are already
+   authority-locked; do not reopen them without new predeclared evidence.
+2. Let the in-progress RB3 balanced full-13 primary finish and audit it. Do not
+   start quality-delayed or another balanced family in parallel.
+3. Continue or repeat balanced only when its result can add material Pareto
+   value relative to fast. Improvement over the old balanced parent alone is
+   not a paper-critical milestone.
+4. After balanced is decided, assess quality as the next selection challenger.
+   A causal or finite-delay quality implementation can become the paper's
+   realtime method if it passes prefix/latency gates and wins Pareto. Keep the
+   current delay-`-1` global-post-video implementation separately labeled.
+5. Select one valid realtime method, lock a same-contract include-Hidden
+   `bytetrack_raw` authority, then build the paper comparison
+   raw -> selected realtime -> hybrid.
+6. Do not spend time completing three realtime modes unless each earns a
+   distinct scientific claim. A weak or semantically incorrect profile may be
+   rebuilt; retain its old artifacts as labeled evidence and validate the
+   replacement through the frozen staged funnel with zero generated MP4.
+
 ## 2026-07-18 H4-to-H5 execution update
 
 1. Treat H4 as a proven component, not a promoted profile or completed lane.

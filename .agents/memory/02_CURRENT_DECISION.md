@@ -12,11 +12,29 @@ Close the hybrid optimization lane. Remaining weak rows are localization and
 continuity residuals, led by `000216`, rather than a bounded identity-switch
 family. Reopen hybrid only for a predeclared failure on untouched sessions.
 
-Realtime planning is now open. Use `realtime_fast` as the operational
-reference and optimize `realtime_balanced` first; balanced must add material
-quality or coverage value over fast while passing identity, latency, memory,
-causality, and zero-MP4 gates. Preserve the window -> video -> hard-set ->
-full-13 funnel.
+The optimization priority is now locked as `hybrid_bytetrack` ->
+`realtime_fast` -> `realtime_balanced` -> `realtime_quality`. Hybrid is
+complete and fast is the current causal operational/paper reference. Finish
+the already-authorized bounded RB3 balanced decision before opening quality;
+do not optimize lanes in parallel. Further balanced work must have a
+predeclared path to material Pareto value over fast while passing identity,
+quality, latency, memory, causality, lineage, and zero-MP4 gates.
+
+The paper-critical comparison is `bytetrack_raw` -> one selected valid realtime
+method -> `hybrid_bytetrack_best`, all under the same include-Hidden contract,
+video universe, detector, GT, and evaluator. Three realtime profiles are not a
+deliverable by themselves. Quality remains a selection challenger: if a causal
+or finite-delay version passes prefix/latency gates and wins the declared
+Pareto comparison, it replaces fast/balanced as the paper's realtime method.
+The current delay-`-1` global-post-video implementation is eligible only as a
+separately labeled delayed method until that realtime contract is proved.
+
+The no-regression rule protects accepted overall evidence, not an objectively
+weak implementation. A profile whose implementation conflicts with its named
+speed/quality role may be superseded or rebuilt. Keep its old result as labeled
+negative/baseline evidence, freeze the replacement design before testing, and
+promote only against the relevant raw and operational references through the
+window -> video -> hard-set -> full-13 funnel.
 
 ## Decision precedence
 

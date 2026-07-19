@@ -20,6 +20,29 @@
 7. Inspect and record skills before nontrivial work. Upgrade reusable skills
    with `skill-creator`, validate them, and commit skill changes separately
    from algorithm changes.
+8. Tracking optimization priority is `hybrid_bytetrack` ->
+   `realtime_fast` -> `realtime_balanced` -> `realtime_quality`. A later
+   profile must not delay closure of an earlier one. Completed lanes are not
+   reopened without a predeclared failure on untouched sessions.
+9. The paper does not require three realtime profiles. The minimum meaningful
+   comparison is the same-contract `bytetrack_raw`, one selected causal
+   realtime method, and `hybrid_bytetrack_best`. Additional realtime profiles
+   are included only when they support a distinct, validated scientific claim.
+10. Profile names preserve semantic contracts, not weak implementations. If a
+    profile is materially weak or contradicts its intended speed/quality role,
+    its implementation may be superseded or rebuilt. Preserve the old evidence
+    as a labeled baseline, freeze the replacement hypothesis and gates, and
+    accept the replacement only when it improves the declared overall result
+    against the relevant raw/reference baselines.
+11. `realtime_fast` is the current causal paper reference. Balanced work is
+    useful only if it adds material Pareto value relative to fast while passing
+    identity, quality, latency, causality, lineage, and zero-MP4 gates. A gain
+    over an older balanced run alone does not justify further optimization.
+12. Quality remains a paper-selection challenger after balanced is decided. It
+    may replace fast/balanced when a causal or finite-delay implementation
+    passes prefix invariance, latency, quality, and Pareto gates. The current
+    delay-`-1` global-post-video implementation must be labeled delayed and
+    cannot be ranked as a realtime winner.
 
 ## classification_v2 active rules
 
