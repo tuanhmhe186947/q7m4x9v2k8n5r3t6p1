@@ -1,0 +1,122 @@
+{
+  "schema_version": "tracking_realtime_operational_gate_v1",
+  "decision_date": "2026-07-19",
+  "status": "FROZEN_BEFORE_COMMON_HARNESS",
+  "scope": {
+    "worktree": "PIG_task_tracking",
+    "branch": "task/update-tracking",
+    "tracking_only": true,
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "generated_mp4_allowed": false
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "deployment_contract": {
+    "source_fps": 30.0,
+    "frame_period_ms": 33.333333333333336,
+    "primary_use_case": "live_zero_delay_tracking_at_native_input_rate",
+    "native_realtime_claim_requires": [
+      "causal output or a separately declared finite delay",
+      "tracking_loop_effective_fps divided by source_fps at least 1.0",
+      "sustained backlog growth no greater than 0 frames per second",
+      "frame service-time p50, p95 and deadline-miss rate reported",
+      "bounded end-to-end output age including compute and buffering",
+      "primary and repeat runs on the same hardware and harness"
+    ],
+    "failure_label": [
+      "If throughput is below source FPS without a declared drop policy,",
+      "label the profile near-realtime rather than native realtime."
+    ],
+    "frame_drop_policy": {
+      "allowed_implicitly": false,
+      "required_if_used": [
+        "declared input sampling rate",
+        "declared output update rate",
+        "drop or queue policy",
+        "quality evaluation under the same policy"
+      ]
+    }
+  },
+  "winner_rule": {
+    "accuracy_only_is_sufficient": false,
+    "hard_eligibility_first": true,
+    "pareto_dimensions": [
+      "IDSW, per-video IDSW, IDF1 and identity continuity",
+      "HOTA, FP, FN, fragments and coverage",
+      "effective FPS, loop-FPS and realtime factor",
+      "service p50/p95, deadline misses and stage timing",
+      "algorithmic delay, queue growth and end-to-end output age",
+      "peak RSS, CUDA memory, repeatability and deployment complexity"
+    ],
+    "selection": [
+      "Reject candidates that fail any hard operational gate.",
+      "Among eligible candidates, retain the non-dominated Pareto set.",
+      "Select the candidate matching the declared live use case and report",
+      "all remaining trade-offs; do not create a post-hoc accuracy score."
+    ]
+  },
+  "existing_evidence_is_provisional": {
+    "realtime_fast": {
+      "mean_effective_fps": 27.398960103513293,
+      "realtime_factor": 0.9132986701171098,
+      "max_frame_p95_ms": 62.49316500397981,
+      "backlog_growth_frames_per_second": 2.601039896486707,
+      "native_realtime_status": "NOT_PROVEN"
+    },
+    "realtime_balanced": {
+      "mean_effective_fps": 26.76807107692426,
+      "realtime_factor": 0.8922690358974754,
+      "max_frame_p95_ms": 41.17715499014594,
+      "backlog_growth_frames_per_second": 3.23192892307574,
+      "native_realtime_status": "NOT_PROVEN"
+    },
+    "comparison_limitations": [
+      "The authorities were run at different commits and times.",
+      "Balanced enabled association debug while Fast did not.",
+      "The manifests do not bind a complete CPU and GPU inventory.",
+      "A speed winner cannot be selected from these values."
+    ]
+  },
+  "bounded_common_harness": {
+    "video": "Pigs291119_000302_30fps",
+    "frames": 1800,
+    "modes": [
+      "bytetrack_raw",
+      "realtime_fast",
+      "realtime_balanced"
+    ],
+    "primary_order": [
+      "bytetrack_raw",
+      "realtime_fast",
+      "realtime_balanced"
+    ],
+    "repeat_order": [
+      "realtime_balanced",
+      "realtime_fast",
+      "bytetrack_raw"
+    ],
+    "invariants": [
+      "same commit, Python environment, hardware, video, GT and detector",
+      "association_debug=false",
+      "write_output_video=false",
+      "include_hidden=true",
+      "fresh isolated output roots",
+      "recursive MP4 count equals zero"
+    ],
+    "purpose": [
+      "Screen operational semantics before deeper Fast accuracy tuning.",
+      "This bounded run cannot authorize the final full-13 speed claim."
+    ]
+  },
+  "next_step": [
+    "Dry-run and validate both bounded harness orders.",
+    "Run primary and reverse repeat only after every invariant is visible.",
+    "Audit quality, runtime, lineage and recursive zero-MP4 together."
+  ]
+}
