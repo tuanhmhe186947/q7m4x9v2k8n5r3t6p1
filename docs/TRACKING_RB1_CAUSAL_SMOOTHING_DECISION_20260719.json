@@ -1,0 +1,210 @@
+{
+  "schema_version": "tracking_rb1_causal_smoothing_decision_v1",
+  "status": "REJECTED_AT_FROZEN_WINDOW_1",
+  "decision_date": "2026-07-19",
+  "candidate_id": "RB1",
+  "candidate_name": "causal_online_box_smoothing_v1",
+  "scope": {
+    "worktree": "PIG_task_tracking",
+    "branch": "task/update-tracking",
+    "tracking_only": true,
+    "classification_touched": false,
+    "generated_mp4_allowed": false
+  },
+  "code": {
+    "commit": "6afd3c97522d59d98d48bf366862eb8bb13c1cc3",
+    "dirty_before_decision": false,
+    "profile_default_changed": false
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "candidate_contract": {
+    "profile": "realtime_balanced",
+    "timing_contract": "causal_framewise",
+    "declared_delay_frames": 0,
+    "changed_family": "causal_detected_box_geometry_smoothing",
+    "semantic_diff": {
+      "smooth_boxes": [false, true]
+    },
+    "enable_offline_smoothing": false,
+    "refine_boxes": false,
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0"
+  },
+  "frozen_authorities": {
+    "pareto_plan": {
+      "path": "docs/TRACKING_REALTIME_PARETO_FUNNEL_PLAN_20260719.json",
+      "sha256": "5046ff636ce4a4d8c02864eef72778e070b9b3e96c5db7f152c8150460b58302"
+    },
+    "parent_windows_authority": {
+      "path": [
+        "docs",
+        "TRACKING_REALTIME_PARENT_WINDOWS_AUTHORITY_20260719.json"
+      ],
+      "sha256": "4b9759a01afbb02fd20cf2f86552faf6751f9bae395cd8d9976bde4de9d9fe97"
+    },
+    "window_manifest": {
+      "path": [
+        "outputs/eval/tracking_realtime_optimization",
+        "20260719_realtime_parent_windows_v1/window_manifest.json"
+      ],
+      "sha256": "216ff241df7f1c9b0c3a6db77fc0760921df327ddbc233abfc2b9b4bc39aebfe"
+    },
+    "balanced_windows": {
+      "path": [
+        "outputs/eval/tracking_realtime_optimization",
+        "20260719_realtime_parent_windows_v1/balanced_hard_event_windows.csv"
+      ],
+      "sha256": "eccea2f5cf4fdc8d9c5c1c10e9c188cc4c695e0ccc618426602d4f194d5d5a91"
+    }
+  },
+  "lineage": {
+    "video_sha256": "24274a8c7e8638f223e11ddc7dce4632e1099a0c6ee200d1febda492315842ad",
+    "gt_sha256": "4636c3beb1d6e43a2c58dd45c050c62ee9d37d05010c26e578db1b9200ac21b8",
+    "detector_sha256": "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+    "mask_sha256": "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658",
+    "parent_semantic_config_sha256":
+      "f9649866ee234b36681a3814ca1f88e6ff7823ed6054b0301526fb5a1c699e32",
+    "candidate_semantic_config_sha256":
+      "498c09725381758409f35777316b9011f2010250f959aaa1827f49f63879eed7"
+  },
+  "pre_window_gates": {
+    "static_gate": {
+      "status": "PASS",
+      "path": "docs/TRACKING_RB1_CAUSAL_SMOOTHING_STATIC_GATE_20260719.json",
+      "sha256": "6787380ec88bae00aa84217c2e416dfedec1c1d2633c834fb7fba2b8845087c8"
+    },
+    "actual_tracker_prefix_invariance": {
+      "status": "PASS",
+      "path": [
+        "outputs/eval/tracking_realtime_optimization",
+        "20260719_6afd3c9_rb1_prefix_invariance_v1.json"
+      ],
+      "sha256": "0f4b7539715984f3498a8525d2c16751e83952278959a9bcebe29e1160baad9e",
+      "frame_exclusive": 862,
+      "compared_payload_count": 6896,
+      "payload_sha256":
+        "e89f7b47bbd8563ff154f1ab2639bbdb6cdc5cbecf42676592bea7c0c92d7913",
+      "future_append_payload_equal": true,
+      "mp4_count": 0
+    }
+  },
+  "frozen_window_1": {
+    "event_id": "Pigs291119_000263_30fps__switch_801_846",
+    "video": "Pigs291119_000263_30fps",
+    "tracking_start_frame": 666,
+    "max_frames": 196,
+    "warmup_frames": 120,
+    "score_frames": [786, 861],
+    "warmup_excluded_from_scoring": true,
+    "parent": {
+      "run_root": [
+        "outputs/eval/tracking_realtime_optimization",
+        "20260719_6afd3c9_rb1_w01_000263_parent_v1"
+      ],
+      "run_manifest_sha256":
+        "a8c1a112da754eed03c1fd65f744ee5571719adf7ce0279f3264b01d089d8016",
+      "artifact_manifest_sha256":
+        "5920bf895a81d2bf2ab3b3292ff92ee0b7d08c2e6745c2b9317ccd6ea1f7a2f7",
+      "metrics_sha256":
+        "7fdcb18f3ec81b08f69a3780bc743f50efa269bc966265b439c8ed30de15af32",
+      "prediction_raw_sha256":
+        "40f4d4e68d2906c599e15721ae775af75d38317e9b621802f864078415fa98a3",
+      "prediction_semantic_sha256":
+        "26f72c521ac9260fea6886906afe4e55b452221da5341df40ed39ac1e088c83e",
+      "matches": 602,
+      "fp": 5,
+      "fn": 6,
+      "idsw": 34,
+      "idf1": 0.8905349794238683,
+      "idtp": 541,
+      "idfp": 66,
+      "idfn": 67,
+      "hota": 0.907391986703821
+    },
+    "candidate": {
+      "run_root": [
+        "outputs/eval/tracking_realtime_optimization",
+        "20260719_6afd3c9_rb1_w01_000263_candidate_v1"
+      ],
+      "run_manifest_sha256":
+        "68a72fe6e928aab42ccdddf85c73914074b842b221209aac62bd4caedce7b4b5",
+      "artifact_manifest_sha256":
+        "6e9c1ab6735feac62c1054a00a3ba4475f8faa38da3f8d95e652a0113d2fd0ef",
+      "metrics_sha256":
+        "ff5634e16bea34b42e86509bbecd6e3564605c0e1bd609d030f8adc324c3c6d8",
+      "prediction_raw_sha256":
+        "edb932528e0f9b6fc3b61444bac5bd70b399d8ea98190bebfcd70dbb8592600a",
+      "prediction_semantic_sha256":
+        "b6590b4455770e6d24af4cfef7d559e37f11e5c48cb7022d3cb56ba1a6317088",
+      "matches": 603,
+      "fp": 4,
+      "fn": 5,
+      "idsw": 30,
+      "idf1": 0.8855967078189301,
+      "idtp": 538,
+      "idfp": 69,
+      "idfn": 70,
+      "hota": 0.9077552238525718
+    },
+    "candidate_minus_parent": {
+      "matches": 1,
+      "fp": -1,
+      "fn": -1,
+      "idsw": -4,
+      "idf1": -0.0049382716049382,
+      "idf1_percentage_points": -0.49382716049382,
+      "idtp": -3,
+      "idfp": 3,
+      "idfn": 3,
+      "hota": 0.0003632371487508,
+      "hota_percentage_points": 0.03632371487508
+    }
+  },
+  "gates": {
+    "clean_commit_bound_lineage": "PASS",
+    "same_input_and_evaluation_contract": "PASS",
+    "semantic_diff_only_smooth_boxes": "PASS",
+    "include_hidden_primary_contract": "PASS",
+    "causal_prefix_invariance": "PASS",
+    "window_idsw_improvement": "PASS",
+    "window_hota_non_regression": "PASS",
+    "window_idf1_non_regression": "FAIL",
+    "recursive_no_mp4": "PASS",
+    "window_2_authorized": false,
+    "full_target_authorized": false,
+    "hard_set_authorized": false,
+    "full13_authorized": false,
+    "profile_promotion_authorized": false
+  },
+  "interpretation": [
+    "Causal geometry smoothing reduces rapid evaluator assignment alternation.",
+    "It also preserves a wrong assignment longer and reduces IDTP by three.",
+    "The lower IDSW therefore does not represent a safe identity improvement.",
+    "Association logic, not generic box smoothing, is the next diagnostic family."
+  ],
+  "stages_not_run": [
+    "frozen_window_2",
+    "full_Pigs291119_000263_30fps",
+    "seven_video_hard_set",
+    "full_13_primary",
+    "full_13_repeat"
+  ],
+  "decision": [
+    "Reject RB1 at the first frozen-window quality guardrail.",
+    "Retain the prefix-invariance PASS as causality evidence only.",
+    "Do not promote smooth_boxes in realtime_balanced.",
+    "Diagnose parent association for IDs 5 and 6 over frames 801 through 846.",
+    "Freeze a separate causal association hypothesis before any RB2 run."
+  ],
+  "rollback": {
+    "profile_default_changed": false,
+    "realtime_balanced_smooth_boxes": false
+  },
+  "recursive_mp4_count": 0
+}
