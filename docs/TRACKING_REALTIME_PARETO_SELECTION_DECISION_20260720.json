@@ -1,0 +1,199 @@
+{
+  "schema_version": "tracking_realtime_pareto_selection_decision_v2",
+  "decision_date": "2026-07-20",
+  "status": "FAST_QUALITY_AUTHORITY_PROMOTED_RUNTIME_SELECTION_PENDING",
+  "supersedes":
+    "docs/TRACKING_REALTIME_PARETO_SELECTION_DECISION_20260719.json",
+  "scope": {
+    "worktree": "PIG_task_tracking",
+    "branch": "task/update-tracking",
+    "tracking_only": true,
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "gap_tolerance_frames": 15,
+    "generated_mp4_preview_overlay_allowed": false
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "selection_contract": {
+    "winner_is_multi_objective": true,
+    "accuracy_only_is_insufficient": true,
+    "hard_gates": [
+      "causal_or_declared_finite_delay",
+      "prefix_invariance",
+      "per_video_identity_guardrails",
+      "repeatable_prediction_and_lineage",
+      "recursive_mp4_count_zero",
+      "runtime_telemetry_and_memory",
+      "native_realtime_or_declared_drop_policy"
+    ],
+    "selection_dimensions": [
+      "IDSW, per-video IDSW, IDF1 and identity continuity",
+      "HOTA, FP, FN, fragments and coverage",
+      "effective FPS, loop-FPS and realtime factor",
+      "frame-time p50/p95, stage timing and deadline misses",
+      "declared delay, queue growth and output age",
+      "memory, determinism, lineage and deployment usability"
+    ],
+    "speed_claim_rule": [
+      "Do not call a profile faster until comparable primary/repeat",
+      "runtime measurements use one declared harness and pass its gates."
+    ],
+    "delay_minus_one_global_graph_is_realtime": false
+  },
+  "authorities": {
+    "bytetrack_raw": {
+      "role": "same_contract_technical_baseline",
+      "timing_contract": "causal_framewise",
+      "declared_delay_frames": 0,
+      "authority_run":
+        "outputs/eval/tracking_raw_authority/20260719_7e38234_raw_repeatability_v1.json",
+      "authority_sha256":
+        "ddb24f10340a77293af3dbe2a2e8c12859b0e32176b9eb15b8829189db3d45c0",
+      "remapped_idsw": 145,
+      "remapped_hota": 0.8890894714488002,
+      "remapped_idf1": 0.8847222222222222,
+      "fp": 1640,
+      "fn": 1640,
+      "fragments": 496,
+      "repeatability": "PASS",
+      "recursive_mp4_count": 0,
+      "rerun_for_this_decision": false
+    },
+    "realtime_fast": {
+      "role": "promoted_causal_quality_reference",
+      "timing_contract": "causal_framewise",
+      "declared_delay_frames": 0,
+      "algorithm_commit":
+        "62f140b9249825bcc2eb1f419c0eacaaa3146883",
+      "profile_promotion_commit":
+        "74cad2b7b5346acf09459efad348afd25f50e8f6",
+      "promotion_decision":
+        "docs/TRACKING_PROMOTION_DECISION_20260720_REALTIME_FAST_FAR_RIGHT_GUARD.json",
+      "full13_candidate_run":
+        "20260720_62f140b_fast_far_right_full13_candidate_v1",
+      "full13_repeat_run":
+        "20260720_62f140b_fast_far_right_full13_candidate_repeat_v1",
+      "remapped_idsw": 59,
+      "remapped_hota": 0.9563112112640403,
+      "remapped_idf1": 0.9537186461328004,
+      "fp": 486,
+      "fn": 610,
+      "fragments": 107,
+      "gap_tolerant_fragments": 8,
+      "profile_guard": {
+        "Pigs291119_000302_30fps_baseline_idsw": 6,
+        "Pigs291119_000302_30fps_candidate_idsw": 0,
+        "status": "PASS"
+      },
+      "causal_prefix_status": "PASS",
+      "repeatability_status": "PASS",
+      "recursive_mp4_count": 0,
+      "speed_claim_authorized": false
+    },
+    "realtime_balanced": {
+      "role": "causal_quality_tradeoff_reference",
+      "timing_contract": "causal_framewise",
+      "declared_delay_frames": 0,
+      "promotion_commit": "e8d39d7",
+      "authority_run":
+        "20260718_80e4600_gain017_alt025_full13",
+      "remapped_idsw": 121,
+      "remapped_hota": 0.956846244204177,
+      "remapped_idf1": 0.9575751746102997,
+      "fp": 448,
+      "fn": 586,
+      "fragments": 127,
+      "idsw_gap_to_fast": 62,
+      "balanced_target_idsw_max": 86,
+      "quality_reference_status": "PASS",
+      "identity_priority_target_status": "FAIL",
+      "new_family_authorized": false
+    },
+    "realtime_quality_delayed": {
+      "role": "post_video_quality_upper_bound",
+      "timing_contract": "post_video_global_graph",
+      "declared_delay_frames": -1,
+      "remapped_idsw": 166,
+      "remapped_hota": 0.9766216982135155,
+      "remapped_idf1": 0.9757870155131967,
+      "effective_fps": 12.085928242557099,
+      "status": "NOT_REALTIME_AUTHORITY",
+      "finite_delay_status": "REJECTED_RUNTIME_AND_REPEATABILITY_GATE"
+    },
+    "hybrid_bytetrack_best": {
+      "role": "offline_quality_authority",
+      "timing_contract": "post_video_offline",
+      "declared_delay_frames": null,
+      "remapped_idsw": 0,
+      "remapped_hota": 0.9835062270290739,
+      "remapped_idf1": 0.9914903846153846,
+      "fp": 1593,
+      "fn": 1593,
+      "status": "LANE_COMPLETE"
+    }
+  },
+  "lineage": {
+    "universe_sha256":
+      "30cc7ea80fb1d0a23bc1e3c4d38e15b76e3bf86b8cc244f65afe7e0fb38af980",
+    "detector_sha256":
+      "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+    "mask_sha256":
+      "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658",
+    "fast_repeatability_authority_sha256":
+      "0e38e9d3f2acf23fcfbbae7f8346c2017259ef78f4c774b9d633cc3aef5ba702"
+  },
+  "pareto_interpretation": {
+    "raw_vs_fast": [
+      "Fast improves IDSW 145 -> 59, HOTA 88.91% -> 95.63%",
+      "and IDF1 88.47% -> 95.37% under the same include-Hidden contract."
+    ],
+    "fast_vs_balanced": {
+      "fast_identity_advantage": "IDSW 59 versus 121",
+      "balanced_quality_advantage":
+        "HOTA 95.68% versus 95.63%, IDF1 95.76% versus 95.37%,",
+      "balanced_coverage_advantage": "FP/FN 448/586 versus 486/610",
+      "relationship": "non_dominated_tradeoff"
+    },
+    "quality": [
+      "Quality has the highest post-video quality but is not a realtime",
+      "authority because delay -1 is a global graph.",
+      "Its finite-delay challenger remains rejected by frozen runtime gates."
+    ]
+  },
+  "decision": {
+    "hybrid_status": "complete",
+    "fast_status": "promoted_quality_reference",
+    "balanced_status": "retain_quality_reference_without_new_family",
+    "quality_status": "retain_delayed_negative_evidence",
+    "final_operational_winner": "NONE_PENDING_COMMON_RUNTIME_GATE",
+    "paper_minimum_comparison": [
+      "bytetrack_raw_same_contract",
+      "one_selected_valid_causal_realtime_method",
+      "hybrid_bytetrack_best"
+    ],
+    "paper_minimum_comparison_ready": false,
+    "reason": [
+      "Fast now passes its 000302 identity guard and full-13 quality gates.",
+      "Fast and Balanced remain non-dominated on different quality dimensions.",
+      "The operational gate requires native-rate throughput or an explicit",
+      "drop policy, plus comparable runtime evidence.",
+      "No speed advantage is claimed from runs with different order, timing",
+      "or hardware state."
+    ]
+  },
+  "next_step": [
+    "Keep bytetrack_raw immutable; do not rerun its quality evaluation.",
+    "Use its existing runtime authority only as labeled evidence, not as a",
+    "new common-harness speed claim.",
+    "If a common-harness audit is needed, benchmark Fast and Balanced under",
+    "the declared no-MP4 harness without regenerating raw predictions.",
+    "Do not reopen Balanced or Quality without a new predeclared family and",
+    "window-level gate.",
+    "Keep no MP4, preview, overlay or event clips."
+  ]
+}
