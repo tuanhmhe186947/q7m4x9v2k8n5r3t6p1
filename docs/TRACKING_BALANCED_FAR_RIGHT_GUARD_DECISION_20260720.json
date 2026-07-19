@@ -1,0 +1,155 @@
+{
+  "schema_version": "tracking_balanced_far_right_guard_decision_v1",
+  "decision_date": "2026-07-20",
+  "status": "REJECTED_SCREENING_NO_TWO_POSITIVE_EPISODES",
+  "plan": "docs/TRACKING_BALANCED_FAR_RIGHT_GUARD_PLAN_20260720.json",
+  "worktree": "PIG_task_tracking",
+  "branch": "task/update-tracking",
+  "screening_commit": "d722202c9be75967b749b56c306a7b7cdedfdc38",
+  "profile": "realtime_balanced",
+  "changed_family": "far_right_visible_close_competitor_guard",
+  "candidate_values": {
+    "realtime_visible_close_competitor_guard": true,
+    "realtime_visible_close_competitor_margin": 0.08,
+    "realtime_visible_close_competitor_max_cost": 0.40,
+    "realtime_visible_close_competitor_min_center_x_ratio": 0.67
+  },
+  "contract": {
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "gap_tolerance_frames": 15,
+    "timing_contract": "causal_framewise",
+    "declared_delay_frames": 0,
+    "write_output_video": false,
+    "recursive_mp4_count": 0,
+    "bytetrack_raw_rerun": false
+  },
+  "lineage": {
+    "universe_sha256":
+      "30cc7ea80fb1d0a23bc1e3c4d38e15b76e3bf86b8cc244f65afe7e0fb38af980",
+    "detector_sha256":
+      "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+    "mask_sha256":
+      "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658",
+    "parent_profile_promotion_commit": "e8d39d7",
+    "parent": {
+      "w01_semantic_config_sha256":
+        "70abbdb4c1c1057d1c57de5045467253d97c9430705b52f69ec38853acc3fd1e",
+      "w02_semantic_config_sha256":
+        "2647bab1ea8a6e713871750cfdadb8518eacb915c18a0f94cd4597cb7d09d53e"
+    },
+    "candidate": {
+      "w01_semantic_config_sha256":
+        "df0bd55fcbcdcb637e1c3e2179b30eefa79ad5791957d381856d85b9b7aec6b0",
+      "w02_semantic_config_sha256":
+        "105542719f661c507dcd352c64c2b563fde48c0def971decdb5f7a98fa07932a"
+    }
+  },
+  "runs": {
+    "w01": {
+      "video": "Pigs301119_000327_30fps",
+      "processed_frames": [1650, 1799],
+      "score_frames": [1740, 1799],
+      "role": "positive_far_right_candidate",
+      "parent_run": "20260720_74cad2b_balanced_far_right_w01_parent",
+      "candidate_run": "20260720_74cad2b_balanced_far_right_w01_candidate",
+      "parent_metrics": {
+        "remapped_idsw": 0,
+        "remapped_hota": 1.0,
+        "remapped_idf1": 1.0,
+        "fp": 0,
+        "fn": 0
+      },
+      "candidate_metrics": {
+        "remapped_idsw": 0,
+        "remapped_hota": 1.0,
+        "remapped_idf1": 1.0,
+        "fp": 0,
+        "fn": 0
+      },
+      "result": "TIE_NO_POSITIVE_GAIN"
+    },
+    "w02": {
+      "video": "Pigs291119_000302_30fps",
+      "processed_frames": [450, 610],
+      "score_frames": [530, 590],
+      "role": "zero_idsw_guardrail",
+      "parent_run": "20260720_74cad2b_balanced_far_right_w02_parent",
+      "candidate_run": "20260720_74cad2b_balanced_far_right_w02_candidate",
+      "parent_metrics": {
+        "remapped_idsw": 0,
+        "remapped_hota": 1.0,
+        "remapped_idf1": 1.0,
+        "fp": 0,
+        "fn": 0
+      },
+      "candidate_metrics": {
+        "remapped_idsw": 0,
+        "remapped_hota": 1.0,
+        "remapped_idf1": 1.0,
+        "fp": 0,
+        "fn": 0
+      },
+      "result": "TIE_GUARDRAIL_PRESERVED"
+    }
+  },
+  "artifact_hashes": {
+    "w01_parent_run_manifest":
+      "ab4937434997433c97528a642d3bdbb38c872b65a0743205853985440b3696aa",
+    "w01_parent_metrics":
+      "f03ec9e0ac73eab03b0a943f052aca42b61589519e25d58e7b9e6266c9f895fa",
+    "w01_parent_runtime":
+      "6d871d0b72ffec2b9bcc6cd8d61ef5ee4dabfa590317dc75bed09fc319bf4d88",
+    "w01_parent_artifacts":
+      "60f17834a4340b1f8434e808277e29a50e547c21f6fc88ed93aabddd49e68148",
+    "w01_candidate_run_manifest":
+      "39a4bebecd4a6f7ffc942544f43418b08a810d915c7128d656cace4289e1032e",
+    "w01_candidate_metrics":
+      "a76edb3f073a9aa3a362a7d215a1bf8e8a761a0917156d857f01a23dc0066f31",
+    "w01_candidate_runtime":
+      "2faf502655cbd9087e6d472ac35b65b45c5a2ef327fc9b629b770f9bc29f6be1",
+    "w01_candidate_artifacts":
+      "1934ddff823978ed184d8338d92516fdb77c2cd14c247aaaeccdc0f8849a2c03",
+    "w02_parent_run_manifest":
+      "26b79bc806b3c7749b199b52a22b98756c13f334bcb16fcdbb50e0190ef34fc3",
+    "w02_parent_metrics":
+      "b9aef004654507e680f6fa76fa8890c7b90b718ac6ed8f0692520e87445d8312",
+    "w02_parent_runtime":
+      "c34f9a114b928b8d0f0b98c9c1a2bdf0b5f43d555b870a9d3fe04cd5f6f737ec",
+    "w02_parent_artifacts":
+      "68859a3279c13980c16bc4d67020a9ec0897029ea94d5074c5ba0bc84b606108",
+    "w02_candidate_run_manifest":
+      "58f93078e7f0c45fe68372ac47d139b532937664d343b5ef1b09552cce0743eb",
+    "w02_candidate_metrics":
+      "fcb597514d2488ed9235afb96d08b067aa4863c940517baeb614b25030dcbd4f",
+    "w02_candidate_runtime":
+      "eab80c47cbdd7f2601175df9a51625ed90c6c85ccb0a76bbf799dc362b6bef88",
+    "w02_candidate_artifacts":
+      "4d4689fab83f9077cc578dd1ccb4ee5ded14dd83804cb5201113bba27ad213d1"
+  },
+  "gate_results": {
+    "w01_candidate_quality_non_regression": true,
+    "w02_zero_idsw_guardrail": true,
+    "per_window_idsw_regression": false,
+    "positive_episodes": 0,
+    "positive_episodes_required": 2,
+    "recursive_no_mp4": true,
+    "full_video_authorized": false,
+    "profile_promotion_authorized": false
+  },
+  "decision": [
+    "Reject this Balanced family at window screening because it produced no",
+    "positive identity episode in W01 or W02.",
+    "Retain realtime_balanced defaults and its existing authority unchanged.",
+    "Do not run W03-W05, full target, hard set or full-13 for this family.",
+    "This rejection does not invalidate the same guard's Fast promotion.",
+    "A future Balanced experiment requires a different predeclared hypothesis."
+  ],
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "rollback": "No profile or algorithm change was made."
+}
