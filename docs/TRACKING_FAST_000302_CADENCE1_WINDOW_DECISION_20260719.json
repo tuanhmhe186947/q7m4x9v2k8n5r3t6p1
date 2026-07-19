@@ -1,0 +1,62 @@
+{
+  "schema_version": "tracking_fast_candidate_window_decision_v1",
+  "decision_date": "2026-07-19",
+  "status": "REJECTED_AT_WINDOW",
+  "parent_commit": "66bc1218339c2e4413a1d405694c928d5df1f4c6",
+  "candidate_commit": "97cb5918da44f7b93c663239a83faf5c85e76e0b",
+  "parent_run_id": "20260719_66bc121_fast_000302_parent_diag_v1",
+  "candidate_run_id": "20260719_07ac8e7_fast_000302_cadence1_w1_v1",
+  "changed_family": "realtime_detection_cadence",
+  "semantic_diff": {
+    "detect_every_n_frames": [2, 1]
+  },
+  "contract": {
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "score_range": [540, 590],
+    "warmup_range": [0, 539],
+    "write_output_video": false,
+    "mp4_count": 0
+  },
+  "paired_metrics": {
+    "parent": {
+      "remapped_idsw": 6,
+      "remapped_hota_pct": 88.31,
+      "remapped_idf1_pct": 87.75,
+      "fp": 20,
+      "fn": 20
+    },
+    "candidate": {
+      "remapped_idsw": 14,
+      "remapped_hota_pct": 87.96,
+      "remapped_idf1_pct": 86.27,
+      "fp": 19,
+      "fn": 19
+    }
+  },
+  "failed_gates": [
+    "window remapped IDSW increased by 8",
+    "HOTA decreased by 0.35 percentage points",
+    "IDF1 decreased by 1.48 percentage points"
+  ],
+  "runtime_evidence": {
+    "candidate_effective_fps": 19.9463,
+    "candidate_frame_time_p95_ms": 74.4125,
+    "speed_claim": "NOT_APPLICABLE",
+    "reason": "window runtime is screening evidence and was not a paired authority run"
+  },
+  "lineage": {
+    "sha256": {
+      "candidate_run_manifest":
+        "aa5af505addb97ec168d98403675f1ed3046b4720ec3f842a3f1bc17ea9e1dd7",
+      "candidate_prediction_xml":
+        "85636901c07d9dd0c743a7b5a9f5dbf08e2804cf22e7e370d6a8971c3b53ba40"
+    },
+    "prediction_root_base": "outputs/pred/tracking_realtime_optimization",
+    "evaluation_root_base": "outputs/eval/tracking_realtime_optimization"
+  },
+  "action": [
+    "Do not run full video or promote cadence=1.",
+    "Test the isolated visible-competitor guard next."
+  ]
+}
