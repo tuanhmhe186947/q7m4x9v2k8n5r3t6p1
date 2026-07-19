@@ -16,15 +16,15 @@
    ratio. Do not run later Quality windows, video, hard set, or full-13 from
    this family.
 5. Compare valid Fast, Balanced, and Quality authorities before locking the
-   realtime winner. A valid finite-delay Quality implementation becomes the
-   paper's realtime method when it is Pareto-best. The current finite-delay
-   candidates are invalid, so retain them as negative evidence and keep the
-   delay-`-1` global graph as a post-video upper bound. The paper still need
-   not show all three realtime profiles.
-6. Only after the Quality decision, select one valid realtime method and lock a
-   same-contract include-Hidden
-   `bytetrack_raw` authority, then build the paper comparison
-   raw -> selected realtime -> hybrid.
+   realtime winner. Quality is mandatory: a valid finite-delay Quality
+   implementation becomes the paper method when Pareto-best. Current Quality
+   finite-delay candidates fail runtime, so retain them as negative evidence;
+   delay `-1` remains a post-video upper bound. Fast is selected provisionally
+   because it has the lowest valid causal IDSW; Balanced remains a quality
+   reference until its identity gap closes.
+6. Only after the Quality decision, lock a same-contract include-Hidden
+   `bytetrack_raw` authority for the provisional Fast selection, then build the
+   paper comparison raw -> selected realtime -> hybrid.
 7. Do not spend time completing three realtime modes unless each earns a
    distinct scientific claim. A weak or semantically incorrect profile may be
    rebuilt; retain its old artifacts as labeled evidence and validate the

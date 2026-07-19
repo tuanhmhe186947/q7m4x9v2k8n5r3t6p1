@@ -1,0 +1,138 @@
+{
+  "schema_version": "tracking_realtime_pareto_selection_decision_v1",
+  "decision_date": "2026-07-19",
+  "status": "FAST_SELECTED_PENDING_RAW_AUTHORITY",
+  "scope": {
+    "worktree": "PIG_task_tracking",
+    "branch": "task/update-tracking",
+    "tracking_only": true,
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "gap_tolerance_frames": 15,
+    "generated_mp4_preview_overlay_allowed": false
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "selection_contract": {
+    "quality_must_be_screened_before_lock": true,
+    "realtime_eligibility": [
+      "causal_framewise_or_frozen_finite_delay",
+      "include_hidden_true",
+      "repeatable_prediction_and_lineage",
+      "recursive_mp4_count_zero"
+    ],
+    "priority": [
+      "identity_switch_non_regression_and_low_IDSW",
+      "HOTA_IDF1_and_detection_quality",
+      "latency_and_runtime_claims_only_when_their_gates_pass"
+    ],
+    "delay_minus_one_global_graph_is_realtime": false
+  },
+  "candidates": {
+    "realtime_fast": {
+      "role": "selected_causal_identity_reference",
+      "timing_contract": "causal_framewise",
+      "declared_delay_frames": 0,
+      "promotion_commit": "456fc97",
+      "idsw": 69,
+      "hota": 0.9434658955189228,
+      "idf1": 0.9390984193482884,
+      "fp": 506,
+      "fn": 630,
+      "fragments": 110,
+      "mean_effective_fps_primary": 27.398960103513293,
+      "max_frame_p95_ms": 62.49316500397981,
+      "repeatability": "PASS",
+      "speed_claim_authorized": false,
+      "valid_causal_quality_authority": true
+    },
+    "realtime_balanced": {
+      "role": "causal_quality_candidate_not_selected",
+      "timing_contract": "causal_framewise",
+      "declared_delay_frames": 0,
+      "promotion_commit": "e8d39d7",
+      "idsw": 121,
+      "hota": 0.956846244204177,
+      "idf1": 0.9575751746102997,
+      "fp": 448,
+      "fn": 586,
+      "fragments": 127,
+      "loop_fps_primary": 26.75486156310947,
+      "max_frame_p95_ms": 41.17715499014594,
+      "idsw_gap_to_fast": 52,
+      "balanced_lane_target_idsw_max": 86,
+      "repeatability": "PASS",
+      "valid_causal_quality_authority": true,
+      "selection_status": "fails_identity_priority_target"
+    },
+    "realtime_quality": {
+      "role": "mandatory_challenger_rejected_for_realtime_selection",
+      "post_video_authority": {
+        "timing_contract": "post_video_global_graph",
+        "declared_delay_frames": -1,
+        "idsw": 166,
+        "hota": 0.9766216982135155,
+        "idf1": 0.9757870155131967,
+        "loop_fps": 12.085928242557099,
+        "max_frame_p95_ms": 139.8104699999635,
+        "selection_status": "upper_bound_only"
+      },
+      "finite_delay_screen": {
+        "authority":
+          "docs/TRACKING_RQ4_QUALITY_COPY_PERFORMANCE_DECISION_20260719.json",
+        "quality_idsw": 32,
+        "quality_hota": 0.9475099291098478,
+        "quality_idf1": 0.9593810444874274,
+        "primary_effective_fps": 19.41775738118046,
+        "repeat_effective_fps": 16.91099521882784,
+        "primary_p95_ms": 60.83632001536897,
+        "repeat_p95_ms": 91.0152599972207,
+        "selection_status": "runtime_and_repeatability_gate_failed"
+      },
+      "valid_causal_quality_authority": false
+    }
+  },
+  "pareto_interpretation": {
+    "fast_vs_balanced": "non_dominated_tradeoff",
+    "balanced_quality_advantage":
+      "HOTA +1.3380 pp, IDF1 +1.8477 pp, FP -58, FN -44",
+    "fast_identity_advantage": "IDSW 69 versus 121",
+    "quality_not_selected_reason": [
+      "No finite-delay candidate passes frozen runtime/repeatability gates.",
+      "Delay -1 is post-video only."
+    ]
+  },
+  "decision": {
+    "selected_realtime_method": "realtime_fast",
+    "selection_reason": [
+      "It is the lowest-IDSW valid causal authority.",
+      "Its full-13 primary/repeat semantic predictions and quality gates pass.",
+      "Its measured runtime is reported without making an unauthorized speed claim."
+    ],
+    "balanced": [
+      "Retain as a valid causal quality reference.",
+      "Do not call it operational winner until its identity gap is closed."
+    ],
+    "quality": [
+      "Retain post-video upper-bound and finite-delay rejection evidence.",
+      "Quality was evaluated and cannot be skipped retroactively."
+    ],
+    "raw_authority_pending": true,
+    "paper_comparison_locked_after_raw": [
+      "bytetrack_raw_same_contract",
+      "realtime_fast",
+      "hybrid_bytetrack_best"
+    ]
+  },
+  "next_step": [
+    "Create a fresh include-Hidden bytetrack_raw authority under the same 13-video contract.",
+    "Do not generate MP4, preview, overlay, or event clips.",
+    "Reopen Balanced or Quality only for a new predeclared family.",
+    "The family must beat the selected identity and contract gates."
+  ]
+}

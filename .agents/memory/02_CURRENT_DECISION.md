@@ -73,6 +73,24 @@ RQ3 decision and RQ4 plan:
 RQ4 decision:
 `docs/TRACKING_RQ4_QUALITY_COPY_PERFORMANCE_DECISION_20260719.json`.
 
+## Active realtime Pareto selection 2026-07-19
+
+Quality was screened as a mandatory challenger and is not silently omitted:
+the delay-`-1` graph is post-video upper-bound evidence, while RQ4's finite
+delay candidate fails effective FPS, p95, and repeat runtime ratio. RB1/RB2
+were rejected at the first frozen window for IDF1/HOTA regression; RB3's
+repeatable IDSW gain fails p95 and the locked Balanced identity target.
+
+Select `realtime_fast` as the current realtime method because it is the lowest
+IDSW valid causal authority (`69` versus Balanced `121`) with repeatability
+PASS. Balanced remains a useful causal quality reference (`HOTA 95.68%`,
+`IDF1 95.76%`) but is not operationally selected until its identity gap is
+closed. This selection is pending a fresh same-contract `bytetrack_raw`
+authority; it does not authorize a paper claim yet.
+
+Authority:
+`docs/TRACKING_REALTIME_PARETO_SELECTION_DECISION_20260719.json`.
+
 ## Decision precedence
 
 Only the active decision immediately below controls current work. All later

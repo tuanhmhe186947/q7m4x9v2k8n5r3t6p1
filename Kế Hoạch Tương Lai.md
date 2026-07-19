@@ -14,8 +14,12 @@
   không mở later window, full video, hard set hoặc full-13.
 - Quality delay `-1` dùng toàn video chỉ là post-video upper bound, không được
   xếp làm realtime winner.
-- Bước kế tiếp là khóa bảng Pareto Fast/Balanced/Quality, chọn một realtime
-  winner, rồi mới so cùng contract: raw -> realtime winner -> Hybrid.
+- Bảng Pareto Fast/Balanced/Quality đã được khóa: Fast được chọn tạm thời vì
+  IDSW thấp nhất trong các authority causal hợp lệ; Balanced vẫn là quality
+  reference, còn Quality chưa qua finite-delay runtime gate.
+- Bước kế tiếp là tạo raw authority cùng contract, rồi mới so: raw -> Fast ->
+  Hybrid. Nếu Quality có candidate causal/fixed-delay mới thắng Pareto, được
+  phép thay Fast theo đúng gate.
 - Mọi thử nghiệm tiếp tục dùng `include_hidden=true`, rule
   `iou0_area0_condarea0_merge0` và tuyệt đối không sinh MP4.
 

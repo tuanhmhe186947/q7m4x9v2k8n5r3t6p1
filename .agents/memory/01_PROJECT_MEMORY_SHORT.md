@@ -19,6 +19,25 @@
 - Authority is
   `docs/TRACKING_RQ4_QUALITY_COPY_PERFORMANCE_DECISION_20260719.json`.
 
+## 2026-07-19 realtime Pareto selection
+
+- RB1 and RB2 Balanced candidates were rejected at frozen window 1 because
+  lower IDSW came with IDF1/HOTA regression. RB3 improved IDSW `121 -> 111`
+  but failed repeat p95 and the Balanced identity target.
+- Fast remains the lowest-IDSW valid causal authority: IDSW `69`, HOTA
+  `94.35%`, IDF1 `93.91%`, FP/FN `506/630`, with repeatability PASS. Its
+  measured timing is reported without an authorized speed claim.
+- Balanced remains a valid causal quality reference with HOTA `95.68%` and
+  IDF1 `95.76%`, but IDSW `121` is `52` above Fast and misses the locked
+  Balanced target `<=86`; it is not the operational winner.
+- Quality was evaluated as the mandatory challenger. Delay `-1` is upper-bound
+  evidence only, and no finite-delay candidate passed all runtime gates.
+- Select `realtime_fast` as the current realtime method pending a fresh raw
+  authority. The paper minimum remains raw -> Fast -> hybrid; Balanced and
+  Quality stay in the comparison evidence.
+- Authority is
+  `docs/TRACKING_REALTIME_PARETO_SELECTION_DECISION_20260719.json`.
+
 ## 2026-07-19 RQ3 rejection and RQ4 performance gate
 
 - RQ3 memory horizons `10/15/20` all preserve the RQ2 S1 prediction and QW01

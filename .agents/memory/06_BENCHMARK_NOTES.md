@@ -18,6 +18,23 @@
 - Decision authority:
   `docs/TRACKING_RQ4_QUALITY_COPY_PERFORMANCE_DECISION_20260719.json`.
 
+## 2026-07-19 realtime Pareto selection
+
+- Fast is the selected causal identity reference: IDSW `69`, HOTA `94.35%`,
+  IDF1 `93.91%`, FP/FN `506/630`, and repeatability PASS.
+- Balanced is non-dominated on localization/coverage quality (HOTA `95.68%`,
+  IDF1 `95.76%`, FP/FN `448/586`) but has IDSW `121`, a gap of `52` to Fast,
+  and misses the locked Balanced target `86`.
+- Quality has the highest post-video HOTA/IDF1 but is not a realtime authority:
+  delay `-1` is global-graph evidence, and finite-delay RQ4 fails runtime.
+- Therefore the current paper selection is Fast pending a fresh raw authority;
+  the comparison will be raw -> Fast -> hybrid under one contract.
+- The three profiles remain available as evidence, but Quality cannot be
+  skipped in future winner decisions and may replace Fast if a valid candidate
+  later passes every frozen gate and wins the Pareto comparison.
+- Authority:
+  `docs/TRACKING_REALTIME_PARETO_SELECTION_DECISION_20260719.json`.
+
 ## 2026-07-19 hybrid lane completion
 
 - The promoted `hybrid_bytetrack_best` resolves all full-13 identity residuals:
