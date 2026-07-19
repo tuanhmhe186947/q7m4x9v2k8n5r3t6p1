@@ -1,0 +1,50 @@
+{
+  "schema_version": "tracking_fast_diagnostic_plan_v1",
+  "plan_date": "2026-07-19",
+  "status": "FROZEN_BEFORE_RUN",
+  "parent_commit": "65496c1",
+  "scope": {
+    "tracking_only": true,
+    "profile": "realtime_fast",
+    "video": "Pigs291119_000302_30fps",
+    "frame_range_processed": [0, 630],
+    "score_range": [540, 590],
+    "warmup_before_score_frames": 540,
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "association_debug": true,
+    "write_output_video": false,
+    "mp4_allowed": false
+  },
+  "hypothesis": [
+    "Fast IDSW 6 is caused by a causal association decision around frames 570-580,",
+    "not by a detector-weight change or by excluding Hidden GT rows.",
+    "The diagnostic must identify raw-owner, visible-competitor, threshold,",
+    "or reentry/hold behavior before any algorithm family is changed."
+  ],
+  "known_episode": {
+    "switch_frames": [570, 572, 574, 576, 580],
+    "track_ids": [4, 8],
+    "gap_context": "ID_8 gap 555-570 followed by 571-574 and 575-580"
+  },
+  "changed_family": "none_parent_diagnostic_only",
+  "guardrails": [
+    "no prediction or profile default change",
+    "causal framewise output",
+    "semantic input/config hashes bound",
+    "recursive MP4 count equals zero"
+  ],
+  "decision_rule": [
+    "Do not patch from a single debug row.",
+    "Choose at most one causal association family only after the event mechanism",
+    "is reproducible and a synthetic regression test is written.",
+    "A candidate must pass the hard window before any full-video run."
+  ],
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ]
+}
