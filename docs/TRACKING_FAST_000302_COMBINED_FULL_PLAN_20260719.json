@@ -1,0 +1,86 @@
+{
+  "schema_version": "tracking_fast_paired_full_video_plan_v1",
+  "plan_date": "2026-07-19",
+  "status": "FROZEN_BEFORE_RUN",
+  "starting_commit": "68d7fc2",
+  "scope": {
+    "tracking_only": true,
+    "profile": "realtime_fast",
+    "video": "Pigs291119_000302_30fps",
+    "frame_range_processed": [0, 630],
+    "score_range": [0, 630],
+    "include_hidden": true,
+    "gap_tolerance_frames": 15,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "association_debug": true,
+    "write_output_video": false,
+    "mp4_allowed": false
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "parent": {
+    "run_id": "20260719_68d7fc2_fast_000302_parent_full_v6_v1",
+    "semantic_values": {
+      "realtime_visible_close_competitor_guard": false,
+      "realtime_visible_close_competitor_margin": 0.012,
+      "realtime_visible_close_competitor_max_cost": 0.35
+    }
+  },
+  "candidate": {
+    "run_id": "20260719_68d7fc2_fast_000302_combined_full_v6_v1",
+    "changed_families_from_parent": [
+      "visible_competitor_guard_activation",
+      "visible_competitor_margin",
+      "visible_competitor_max_cost"
+    ],
+    "semantic_values": {
+      "realtime_visible_close_competitor_guard": true,
+      "realtime_visible_close_competitor_margin": 0.08,
+      "realtime_visible_close_competitor_max_cost": 0.40
+    },
+    "promotion_basis": [
+      "margin 0.08 passed 000302 window with IDSW 6 to 0",
+      "max_cost 0.40 passed independent 000225 window with IDSW 2 to 0"
+    ]
+  },
+  "hypothesis": [
+    "The combined causal close-competitor guard should preserve the 000302",
+    "window repair and not introduce full-video identity or detection errors."
+  ],
+  "paired_gate": {
+    "target": "candidate remapped IDSW <= 2",
+    "guardrails": [
+      "candidate remapped IDSW <= parent",
+      "candidate remapped HOTA >= parent",
+      "candidate remapped IDF1 >= parent",
+      "candidate FP <= parent",
+      "candidate FN <= parent",
+      "no new identity-switch episode outside the repaired event",
+      "causal framewise output remains declared",
+      "recursive mp4_count equals zero"
+    ],
+    "advance_rule": [
+      "Reject and do not open hard set if any per-video guardrail regresses.",
+      "If full quality passes, run the predeclared hard set before full-13.",
+      "Runtime remains provisional until repeated common-harness measurement."
+    ]
+  },
+  "frozen_authority": {
+    "full13_parent_run_id":
+      "20260718_7f36b57_r1_visible_prefer_fast_full13_primary_v1",
+    "full13_run_manifest_sha256":
+      "27589f32161653976a26899a9a6e289629ed4b6bc98f00cee7bcb63b743bdc6a",
+    "000302_prediction_xml_sha256":
+      "ded468af51be2f0a402b101c49d9cae3dd2c1c2718a71ffe4b63055a858eed6a"
+  },
+  "fresh_roots": {
+    "base_prediction": "outputs/pred/tracking_realtime_optimization",
+    "base_evaluation": "outputs/eval/tracking_realtime_optimization",
+    "parent_run": "20260719_68d7fc2_fast_000302_parent_full_v6_v1",
+    "candidate_run": "20260719_68d7fc2_fast_000302_combined_full_v6_v1"
+  }
+}

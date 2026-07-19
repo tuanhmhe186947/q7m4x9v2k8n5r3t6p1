@@ -137,6 +137,10 @@ TRACKING_INTEGER_TELEMETRY_KEYS = (
     "peak_process_rss_bytes",
     "peak_cuda_memory_allocated_bytes",
     "peak_cuda_memory_reserved_bytes",
+    "frame_deadline_miss_count",
+    "output_age_deadline_miss_count",
+    "max_backlog_frames",
+    "final_backlog_frames",
 )
 TRACKING_FLOAT_TELEMETRY_KEYS = (
     *(
@@ -149,6 +153,17 @@ TRACKING_FLOAT_TELEMETRY_KEYS = (
     "effective_fps",
     "source_fps",
     "declared_delay_ms",
+    "realtime_factor",
+    "backlog_growth_frames_per_second",
+    "frame_deadline_ms",
+    "frame_deadline_miss_rate",
+    "output_age_deadline_ms",
+    "output_age_deadline_miss_rate",
+    "output_age_ms_mean",
+    "output_age_ms_p50",
+    "output_age_ms_p95",
+    "output_age_ms_max",
+    "output_age_ms_final",
 )
 TRACKING_TEXT_TELEMETRY_KEYS = ("output_timing_contract",)
 TRACKING_TELEMETRY_KEYS = (

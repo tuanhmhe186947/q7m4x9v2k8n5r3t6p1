@@ -1,0 +1,154 @@
+{
+  "schema_version": "tracking_fast_far_right_window_decision_v1",
+  "decision_date": "2026-07-20",
+  "status": "REJECTED_WINDOW_PROTOCOL_STATE_RESET",
+  "plan":
+    "docs/TRACKING_FAST_FAR_RIGHT_CLOSE_GUARD_PLAN_20260720.json",
+  "plan_sha256":
+    "6381fcc59c444af452615c664712994d451bee2af4afbc664604e8377b633a6f",
+  "plan_commit": "450f8cb",
+  "algorithm_commit": "62f140b",
+  "worktree": "PIG_task_tracking",
+  "branch": "task/update-tracking",
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "contract": {
+    "profile": "realtime_fast",
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "gap_tolerance_frames": 15,
+    "output_timing_contract": "causal_framewise",
+    "declared_delay_frames": 0,
+    "write_output_video": false,
+    "recursive_mp4_count": 0,
+    "bytetrack_raw_rerun": false
+  },
+  "candidate_values": {
+    "realtime_visible_close_competitor_guard": true,
+    "realtime_visible_close_competitor_margin": 0.08,
+    "realtime_visible_close_competitor_max_cost": 0.40,
+    "realtime_visible_close_competitor_min_center_x_ratio": 0.67
+  },
+  "runs": {
+    "302_parent": {
+      "run_id":
+        "20260720_62f140b_fast_far_right_302_p1_parent_v1",
+      "run_manifest_sha256":
+        "8bd66c70bd41eb564af6a343fe93f56289dfe8c154a5775d5c8174a5a29c574d",
+      "metrics_sha256":
+        "f0b5cd658b82230a973fbf0a5555c30fe4d6c2a8cad189a3ec4ed51f525c5230",
+      "runtime_sha256":
+        "3adaf24e27eddd61674c2b870aa666fce17033b2da6863c82864d4695f05a9ca",
+      "artifact_manifest_sha256":
+        "a5b1aeacb13f578d8df8ef3119a1b7a8da25e8c5dd13e25c6ec89d57a1259abb"
+    },
+    "302_candidate": {
+      "run_id":
+        "20260720_62f140b_fast_far_right_302_p1_candidate_v1",
+      "run_manifest_sha256":
+        "8916978ac6c88cb7cf747c0cfb07c7a21f718b266b7358706e46c9d088701f44",
+      "metrics_sha256":
+        "e79154046ee91019c1f786deb8ebc4526be3093b318508ff2da4dacc2c1a6c9d",
+      "runtime_sha256":
+        "af28ed2a7e671209c4a6e0d400b783f46507d148acdb06f2d5386ce6caaf7f97",
+      "artifact_manifest_sha256":
+        "f77527bb0ec52afe5277ff7034c94c4cfcecb4c257619dbadd0d5c7df4da52fe"
+    },
+    "327_parent": {
+      "run_id":
+        "20260720_62f140b_fast_far_right_327_p2_parent_v1",
+      "run_manifest_sha256":
+        "3a4e74f8d8b9c9834abb70cbcece76f0b115c52bc627185d51bec8b6b92df117",
+      "metrics_sha256":
+        "16d2e98fbcad99c47ab5738e702affe06d9c144c71770a92273f7ec60eb4693c",
+      "runtime_sha256":
+        "0a94d105e2a3e99f7f72bb50467442e8f6b4b9b156ba5bbbf699b253fda14df3",
+      "artifact_manifest_sha256":
+        "1ab04a48e0ef3184f740d1eb78fbe9c45c8cd95b1724c975b27c77a5e30bef98"
+    },
+    "327_candidate": {
+      "run_id":
+        "20260720_62f140b_fast_far_right_327_p2_candidate_v1",
+      "run_manifest_sha256":
+        "4344cfa3a091bdb4da4a211dbcc673e3f079c53ea7669a535c6a37cd3de6f926",
+      "metrics_sha256":
+        "41f89592003c480f12269df352791fca214c7ebd32e6793d1696e2bdfe4e3b51",
+      "runtime_sha256":
+        "65952926a965bb574ee7792f0d923eb45cd7fb0512e1a01e828c7d21be1a59b8",
+      "artifact_manifest_sha256":
+        "beb119891ddc409642eea31d4e30d6115b44c0e544223c9bf35c5ae8b7b6acbd"
+    }
+  },
+  "window_results": [
+    {
+      "video": "Pigs291119_000302_30fps",
+      "processed_frames": [450, 610],
+      "score_frames": [530, 590],
+      "remapped_idsw": [6, 0],
+      "remapped_hota_pct": [89.30, 99.21],
+      "remapped_idf1_pct": [89.75, 99.59],
+      "fp": [20, 2],
+      "fn": [20, 2],
+      "gate": "PASS"
+    },
+    {
+      "video": "Pigs301119_000327_30fps",
+      "processed_frames": [1650, 1799],
+      "score_frames": [1740, 1799],
+      "remapped_idsw": [0, 2],
+      "remapped_hota_pct": [100.0, 90.98],
+      "remapped_idf1_pct": [100.0, 88.33],
+      "fp": [0, 2],
+      "fn": [0, 2],
+      "gate": "FAIL_PARENT_EVENT_NOT_REPRODUCED"
+    }
+  ],
+  "full_state_cross_check": {
+    "source_parent_run":
+      "20260719_ba775e0_fast_combined_hard7_parent_v1",
+    "source_broad_candidate_run":
+      "20260719_ba775e0_fast_combined_hard7_candidate_v1",
+    "full_video_327_remapped_idsw": [4, 2],
+    "parent_switch_frames_in_target_region": [1772, 1774],
+    "broad_candidate_switch_frames_in_target_region": [],
+    "broad_candidate_guard_trigger_frame": 1772,
+    "trigger_center_x_ratio": 0.80861015625
+  },
+  "diagnosis": [
+    "Starting at frame 1650 reinitialized track identity state.",
+    "The truncated parent no longer reproduced the full-state 1772/1774",
+    "switch family, so the candidate comparison inverted at frame 1772.",
+    "This window cannot support a candidate quality claim in either direction."
+  ],
+  "gate_results": {
+    "302_positive_episode_improves": true,
+    "327_parent_event_reproduced": false,
+    "327_positive_episode_improves": false,
+    "two_positive_episode_gate": false,
+    "negative_windows_opened": false,
+    "full_target_opened": false,
+    "hard7_opened": false,
+    "full13_opened": false,
+    "recursive_no_mp4": true
+  },
+  "decision": [
+    "Reject this truncated-state window protocol.",
+    "Do not use its 327 regression as evidence against the full-state candidate.",
+    "Do not advance this plan to negative windows or any broader stage.",
+    "Preserve all four roots as immutable negative protocol evidence."
+  ],
+  "next_reversible_step": {
+    "action": "freeze a full-prefix 327 window before rerun",
+    "requirements": [
+      "process frames 0 through 1799 to preserve causal state",
+      "score only frames 1740 through 1799",
+      "require parent switches at 1772 and 1774",
+      "require candidate to remove both without quality regression",
+      "use fresh roots and retain the zero-MP4 gate"
+    ]
+  }
+}

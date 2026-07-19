@@ -1,0 +1,132 @@
+{
+  "schema_version": "tracking_fast_hard7_decision_v1",
+  "decision_date": "2026-07-19",
+  "status": "REJECTED_HARD_SET",
+  "plan": "docs/TRACKING_FAST_COMBINED_HARD7_PLAN_20260719.json",
+  "plan_sha256": "7148ca8419890850da49aedea2e8434e47335355c34f67aa1c6492311f2be57c",
+  "worktree": "PIG_task_tracking",
+  "branch": "task/update-tracking",
+  "tracking_only": true,
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "single_changed_family": "causal_visible_close_competitor_guard_operating_point",
+  "contract": {
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "gap_tolerance_frames": 15,
+    "output_timing_contract": "causal_framewise",
+    "declared_delay_frames": 0,
+    "recursive_mp4_count": 0
+  },
+  "parent_run": {
+    "run_id": "20260719_ba775e0_fast_combined_hard7_parent_v1",
+    "run_manifest_sha256": "15ca96f3fe8d77dffdd44a19c14056270f72b7e97c25250a354804138caac546",
+    "metrics_sha256": "136e79be91c15b7e5048ebc28b6e5e9dd82802dd4295e439d76d6917b01c97c7",
+    "runtime_sha256": "b5a02e7344f3fb23aa67880ac7f8f751e7dc7ab6ecfcaf5e642ce54e2008e8f0",
+    "artifact_manifest_sha256": "f0427b47df1f9124c40c11f807ee4933a28bf113be197141a970b0f71a1e1860"
+  },
+  "candidate_run": {
+    "run_id": "20260719_ba775e0_fast_combined_hard7_candidate_v1",
+    "run_manifest_sha256": "13d55815cd5cbac9ea4366034cfd704e07f1437d90cda4d25ceb03d3a8cd7af3",
+    "metrics_sha256": "542c50acf36a5b7e7edb11185d0a367ef1df2334b60c754b723ad1b840db48f2",
+    "runtime_sha256": "69b93cc8ec03dcbc72cb8503c09a0fa828557ed64ade68c8b8c7e44af147e62c",
+    "artifact_manifest_sha256": "9bf8b908ccbeff7b203cd7c393cb8a19bec773e1b265c311626a59f2634bec88"
+  },
+  "aggregate": {
+    "remapped_idsw": [61, 64],
+    "remapped_hota_pct": [92.27, 90.82],
+    "remapped_idf1_pct": [92.07, 89.81],
+    "fp": [347, 379],
+    "fn": [471, 503],
+    "mean_effective_fps": [19.9489854771, 25.6964553089]
+  },
+  "per_video_delta_candidate_minus_parent": [
+    {
+      "video": "Pigs281119_000114_30fps",
+      "idsw": 2,
+      "hota_pct": -6.79,
+      "idf1_pct": -6.47,
+      "fp": 2,
+      "fn": 2
+    },
+    {
+      "video": "Pigs291119_000216_30fps",
+      "idsw": -2,
+      "hota_pct": 3.38,
+      "idf1_pct": 2.39,
+      "fp": -1,
+      "fn": -1
+    },
+    {
+      "video": "Pigs291119_000231_30fps",
+      "idsw": 6,
+      "hota_pct": -2.01,
+      "idf1_pct": -5.43,
+      "fp": 3,
+      "fn": 3
+    },
+    {
+      "video": "Pigs291119_000233_30fps",
+      "idsw": 1,
+      "hota_pct": -5.24,
+      "idf1_pct": -3.84,
+      "fp": 43,
+      "fn": 43
+    },
+    {
+      "video": "Pigs291119_000263_30fps",
+      "idsw": 4,
+      "hota_pct": -8.02,
+      "idf1_pct": -10.67,
+      "fp": 5,
+      "fn": 5
+    },
+    {
+      "video": "Pigs291119_000302_30fps",
+      "idsw": -6,
+      "hota_pct": 7.71,
+      "idf1_pct": 7.97,
+      "fp": -18,
+      "fn": -18
+    },
+    {
+      "video": "Pigs301119_000327_30fps",
+      "idsw": -2,
+      "hota_pct": 0.31,
+      "idf1_pct": 0.20,
+      "fp": -2,
+      "fn": -2
+    }
+  ],
+  "gate_results": {
+    "aggregate_idsw_delta_at_most_minus4": false,
+    "difficult_videos_improved_at_least2": false,
+    "per_video_idsw_regression_zero": false,
+    "aggregate_hota_non_regression": false,
+    "aggregate_idf1_non_regression": false,
+    "aggregate_fp_non_regression": false,
+    "aggregate_fn_non_regression": false,
+    "000302_idsw_at_most0": true,
+    "causal_contract": true,
+    "recursive_no_mp4": true
+  },
+  "decision": [
+    "Reject the candidate as a hard-set promotion candidate.",
+    "Do not run full-13 primary, repeat, or promote these thresholds.",
+    "Retain all parent and candidate artifacts as immutable negative evidence.",
+    "The gain is session-specific to 000302 and unsafe to transfer unchanged."
+  ],
+  "next_reversible_step": {
+    "action": "analyze hard-set regression episodes before declaring a new candidate family",
+    "constraints": [
+      "do not tune on full-13",
+      "do not rerun bytetrack_raw",
+      "do not generate MP4/preview/overlay",
+      "keep include_hidden=true and the same rule combo"
+    ]
+  }
+}

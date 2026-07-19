@@ -1,0 +1,154 @@
+{
+  "schema_version": "tracking_h4_far_camera_geometry_plan_v1",
+  "status": "locked_before_candidate_artifact",
+  "created_date": "2026-07-18",
+  "priority": "hybrid_bytetrack_residual_first",
+  "candidate_id": "H4",
+  "changed_family": "post_identity_far_camera_hidden_bbox_geometry",
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian",
+    "skill-creator"
+  ],
+  "commits": {
+    "parent_algorithm": "b66428e22609adc38d8d36ce96a0b3025c0ba0aa",
+    "candidate_algorithm": "befaa58c4bc4228e714a187999aa12abb72f00b8",
+    "replay_harness": "c92740a81b3c1e8a391c69598e64b8b4f7c842ab",
+    "lineage_ready": "f463119e06f40de63bb4d2fa870d10eb09aad93b"
+  },
+  "parent_authority": {
+    "run_id": [
+      "20260718_b66428e",
+      "hybrid_wall_geometry_candidate_primary_authority_v1"
+    ],
+    "profile": "hybrid_bytetrack_best",
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "include_hidden": true,
+    "semantic_config_sha256": "c55edca9a215e838c607203fee23d731908c7d9ebe84afff7a96223e8e02c5cd",
+    "run_manifest_sha256": "15476dfb9ec844a2528c70394b590a47cc4c5629cc6639c4f81cda23d08c8932",
+    "aggregate": {
+      "remapped_idsw": 8,
+      "remapped_hota": 0.9832,
+      "remapped_idf1": 0.9913,
+      "fp": 1622,
+      "fn": 1622
+    }
+  },
+  "target_inputs": {
+    "video_stem": "Pigs301119_000328_30fps",
+    "video_sha256": "7e8ca6981d8c05be0967475f71ad5360dcb0e58e05213828f497f4bc2c61772b",
+    "gt_sha256": "2e00b57423688ee74e1228e75f7ba13d0a4ecc05ed5a5f0295d92e68fe2f5f76",
+    "parent_xml_sha256": "4a5dfe21e3ed12da6603f026b22bb14cc654f9396ff77f050a3922a4bba7ffbe",
+    "parent_shapes_sha256": "b37f3aae087e141e46efd6d61c990a9303a31d03f81cedaf15a4f7773f1ed344",
+    "detector_sha256": "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+    "mask_sha256": "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658"
+  },
+  "frozen_window_manifest": {
+    "relative_path": [
+      "outputs/eval/tracking_hybrid_residual",
+      "20260718_f463119_h4_parent_windows_v1",
+      "hard_event_windows.csv"
+    ],
+    "sha256": "dc2d05568442ddfb99e1b5b81e66c06e0e25618abf52c798d154619a722d040a",
+    "source_events_sha256": "bab79b1d6dd4ff643684c40f5cf6d02fd94ad7515bfda371abcc6d3a794b31b5",
+    "score_start_frame": 1340,
+    "score_end_frame": 1360,
+    "first_switch_frame": 1347,
+    "last_switch_frame": 1355
+  },
+  "hypothesis": [
+    "Emitted identity payload remains stable for ID_5 and ID_7.",
+    "The far-right Hidden ID_7 bbox expands over visible ID_5.",
+    "A bounded future visible same-ID anchor can correct only bbox points.",
+    "The correction reduces evaluator identity switches without payload drift."
+  ],
+  "camera_contract": {
+    "near_clear_side": "left",
+    "far_blurry_side": "right",
+    "expected_bbox_scale": "decreases from left to right",
+    "normalized_far_x_threshold": 0.67
+  },
+  "candidate_config": {
+    "enabled": true,
+    "max_future_gap_frames": 15,
+    "min_height_excess": 0.15,
+    "min_visible_overlap_iou": 0.65,
+    "min_overlap_reduction": 0.10,
+    "max_center_shift": 0.12,
+    "original_weight": 0.10,
+    "profile_default_changed": false
+  },
+  "payload_invariants": [
+    "Equal shape count and ordered shape keys.",
+    "Equal label, ID, Behavior, Hidden, occluded and outside values.",
+    "Equal all exported non-geometry payload fields.",
+    "Only points may change; no GT-derived runtime condition is allowed."
+  ],
+  "dry_run_expectation": {
+    "changed_bbox_count": 10,
+    "changed_ids": [
+      "ID_7"
+    ],
+    "changed_frame_range": [
+      1345,
+      1354
+    ]
+  },
+  "window_gate": {
+    "parent_remapped_idsw": 4,
+    "candidate_remapped_idsw_max": 0,
+    "other_identity_event_increase_max": 0,
+    "payload_integrity_required": true,
+    "recursive_mp4_count": 0
+  },
+  "full_target_parent": {
+    "matches": 14274,
+    "fp": 126,
+    "fn": 126,
+    "remapped_idsw": 4,
+    "remapped_idf1": 0.99125,
+    "remapped_hota": 0.983171737330971
+  },
+  "full_target_gate": {
+    "remapped_idsw_max": 0,
+    "matches_min": 14274,
+    "fp_max": 126,
+    "fn_max": 126,
+    "remapped_idf1_min": 0.99125,
+    "remapped_hota_min": 0.983171737330971,
+    "payload_integrity_required": true,
+    "recursive_mp4_count": 0
+  },
+  "hard_set": {
+    "videos": [
+      "Pigs301119_000328_30fps",
+      "Pigs291119_000233_30fps",
+      "Pigs291119_000263_30fps",
+      "Pigs291119_000231_30fps"
+    ],
+    "aggregate_hota_delta_min": 0.0,
+    "aggregate_idf1_delta_min": 0.0,
+    "critical_idsw_regression_max": 0,
+    "difficult_videos_improved_min": 2,
+    "if_only_one_video_improves": "stop_full13_and_continue_H5"
+  },
+  "full13_gate": {
+    "requires_hard_set_pass": true,
+    "aggregate_hota_delta_min": 0.0,
+    "aggregate_idf1_delta_min": 0.0,
+    "aggregate_idsw_max": 4,
+    "critical_video_idsw_regression_max": 0,
+    "primary_repeat_required": true,
+    "recursive_mp4_count": 0
+  },
+  "decision_boundaries": [
+    "Window evidence is screening evidence only.",
+    "H4 acceptance does not complete hybrid_bytetrack.",
+    "If H4 improves only 000328, do not run full-13 for H4 alone.",
+    "Open H5 after recording the H4 decision.",
+    "Open realtime only after a separate hybrid lane-completion decision."
+  ]
+}

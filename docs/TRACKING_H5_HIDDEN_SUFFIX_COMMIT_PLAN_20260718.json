@@ -1,0 +1,159 @@
+{
+  "schema_version": "tracking_h5_hidden_suffix_commit_plan_v1",
+  "status": "frozen_before_replay",
+  "decision_date": "2026-07-18",
+  "starting_commit": "97ae22e4b66473b471bbf956a28cd8d55bc04e43",
+  "candidate_id": "H5a",
+  "priority": "hybrid_bytetrack_residual_first",
+  "changed_family": "hidden_suffix_identity_commit_boundary",
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian",
+    "skill-creator"
+  ],
+  "parent": {
+    "authority":
+      "docs/TRACKING_PROMOTION_DECISION_20260718_HYBRID_NEAR_WALL_GEOMETRY.json",
+    "prediction_root": "outputs/pred/tracking_profile_funnel",
+    "run_manifest_path":
+      "outputs/eval/tracking_profile_funnel/20260718_b66428e_hybrid_wall_geometry_candidate_primary_authority_v1/run_manifest.json",
+    "run_id":
+      "20260718_b66428e_hybrid_wall_geometry_candidate_primary_authority_v1",
+    "git_commit": "b66428e22609adc38d8d36ce96a0b3025c0ba0aa",
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "mode": "hybrid_bytetrack",
+    "video": "Pigs291119_000233_30fps",
+    "prediction_shapes_path":
+      "outputs/pred/tracking_profile_funnel/20260718_b66428e_hybrid_wall_geometry_candidate_primary_authority_v1/iou0_area0_condarea0_merge0/hybrid_bytetrack/Pigs291119_000233_30fps/annotations_cvat_shapes.json",
+    "prediction_xml_path":
+      "outputs/pred/tracking_profile_funnel/20260718_b66428e_hybrid_wall_geometry_candidate_primary_authority_v1/iou0_area0_condarea0_merge0/hybrid_bytetrack/Pigs291119_000233_30fps/annotations_cvat_video_1_1.xml",
+    "shapes_sha256":
+      "8a380656ec0d6c67801c8d93a783ecaaeca46028ecca4001554413c5d11d5c41",
+    "xml_sha256":
+      "aa4fd0b387f010e5781012dd94d8d3870e6597905f998c199570021f50023de7",
+    "run_manifest_sha256":
+      "15476dfb9ec844a2528c70394b590a47cc4c5629cc6639c4f81cda23d08c8932",
+    "gt_sha256":
+      "348f4ffa83ab7f7ac3c603a60a4f00528cf222d3f13129e2f04c399d7cb4158c"
+  },
+  "frozen_window": {
+    "directory":
+      "outputs/eval/tracking_hybrid_residual/20260718_f463119_h4_parent_windows_v1",
+    "filename": "hard_event_windows.csv",
+    "path":
+      "outputs/eval/tracking_hybrid_residual/20260718_f463119_h4_parent_windows_v1/hard_event_windows.csv",
+    "manifest_sha256":
+      "dc2d05568442ddfb99e1b5b81e66c06e0e25618abf52c798d154619a722d040a",
+    "event_id": "Pigs291119_000233_30fps__switch_1111_1114",
+    "score_frames": [1104, 1119],
+    "switch_frames": [1111, 1114],
+    "parent_remapped_idsw": 4
+  },
+  "evaluation_contract": {
+    "include_hidden": true,
+    "hidden_is_optimization_target": false,
+    "iou_threshold": 0.5,
+    "gap_tolerance_frames": 15,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "generated_mp4_allowed": false,
+    "classification_scope_allowed": false
+  },
+  "parent_only_diagnosis": {
+    "repair": "repair_hidden_suffix_id_swaps",
+    "hidden_label": "Pig_8",
+    "partner_label": "Pig_1",
+    "hidden_run_frames": [1107, 1118],
+    "hidden_run_length": 12,
+    "hidden_median_score": 0.44445,
+    "max_visible_partner_iou": 0.731968,
+    "old_swap_start": 1111,
+    "first_unhidden_frame": 1119,
+    "common_suffix_frames": 689,
+    "id_values_at_1110": ["ID_1", "ID_8"],
+    "id_values_at_1111": ["ID_8", "ID_1"],
+    "id_values_at_1119": ["ID_8", "ID_1"],
+    "all_local_cross_transition_gains_negative": true,
+    "largest_cross_transition_gain": -0.047893
+  },
+  "hypothesis": [
+    "The existing repair correctly identifies a long ID_1 and ID_8 suffix",
+    "but commits the identity payload while one member is still Hidden.",
+    "Primary include-Hidden scoring observes that premature commit and emits",
+    "four residual ID switches before the hidden track becomes visible again.",
+    "Committing at the first frame after the Hidden run preserves the suffix",
+    "repair while avoiding identity relabeling during unresolved occlusion."
+  ],
+  "candidate": {
+    "name": "hidden_suffix_commit_after_run_v1",
+    "config_family": "hidden_suffix_id_swap_commit_after_hidden_run",
+    "default_before_promotion": false,
+    "old_commit_boundary": "max(run_start, run_end - start_back_frames)",
+    "candidate_commit_boundary": "run_end + 1",
+    "candidate_requires_first_unhidden_shape": true,
+    "parameters": {
+      "min_hidden_frames": 8,
+      "max_hidden_frames": 15,
+      "min_overlap_iou": 0.7,
+      "max_hidden_median_score": 0.5,
+      "start_back_frames": 7,
+      "min_suffix_frames": 600
+    },
+    "gt_used_to_generate_prediction": false,
+    "video_or_frame_hardcode_allowed": false
+  },
+  "identity_replay_contract": {
+    "purpose": "screen one post-video identity family before tracker rerun",
+    "allowed_payload_change": ["ID attribute"],
+    "required_equal_payload": [
+      "shape keys",
+      "points",
+      "Behavior",
+      "Hidden",
+      "occluded",
+      "outside",
+      "label",
+      "score",
+      "source"
+    ],
+    "full_parent_prediction_required": true,
+    "geometry_replay_contract_allowed": false,
+    "runtime_claim_allowed": false,
+    "profile_promotion_allowed": false
+  },
+  "funnel": [
+    "dry-run identity replay",
+    "frozen 000233 hard window",
+    "full 000233",
+    "H4 plus H5 four-video hard set",
+    "full-13 only after the two-difficult-video gain gate",
+    "independent repeat and clean authority audit",
+    "separate profile promotion"
+  ],
+  "advance_gates": {
+    "window_to_full_target": [
+      "remapped IDSW decreases from 4",
+      "HOTA and IDF1 do not decrease",
+      "identity replay payload contract passes",
+      "recursive MP4 count is zero"
+    ],
+    "full_target_to_hard_set": [
+      "full 000233 remapped IDSW decreases from 4",
+      "no undeclared HOTA, IDF1, FP, FN, or fragment regression"
+    ],
+    "hard_set_to_full13": [
+      "000328 retains the H4 gain",
+      "000233 improves through H5",
+      "at least two difficult videos improve",
+      "000263 and 000231 pass frozen guardrails"
+    ]
+  },
+  "stop_conditions": [
+    "The candidate trigger needs GT, video name, or absolute frame numbers.",
+    "Any payload outside the ID attribute changes in identity replay.",
+    "The frozen window does not improve or any critical guardrail regresses.",
+    "Any fresh experiment root contains an MP4."
+  ]
+}

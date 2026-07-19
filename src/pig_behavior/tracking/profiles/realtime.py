@@ -19,10 +19,21 @@ REALTIME_FAST_CONFIG: dict[str, object] = {
     "detect_every_n_frames": 2,
     "max_raw_detections": 32,
     "occlusion_aware_matching": False,
+    "realtime_visible_better_competitor_prefer": True,
+    "realtime_visible_close_competitor_guard": True,
+    "realtime_visible_close_competitor_margin": 0.08,
+    "realtime_visible_close_competitor_max_cost": 0.40,
+    "realtime_visible_close_competitor_min_center_x_ratio": 0.67,
 }
 
 REALTIME_BALANCED_CONFIG: dict[str, object] = {
     **REALTIME_BASE_CONFIG,
+    "causal_hidden_detection_reservation": True,
+    "causal_hidden_detection_reservation_min_iom": 0.96,
+    "causal_hidden_detection_reservation_min_gain": 0.17,
+    "causal_hidden_detection_reservation_max_alternative_cost": 0.25,
+    "causal_hidden_detection_reservation_allow_visible_hold": True,
+    "causal_hidden_detection_reservation_hold_min_gain": 0.17,
     "det_conf": 0.20,
     "low_conf_max_center_jump": 0.10,
     "low_conf_max_box_jump_scale": 2.00,
@@ -36,6 +47,12 @@ REALTIME_BALANCED_CONFIG: dict[str, object] = {
 
 REALTIME_QUALITY_DELAYED_CONFIG: dict[str, object] = {
     **REALTIME_BALANCED_CONFIG,
+    "causal_hidden_detection_reservation": False,
+    "causal_hidden_detection_reservation_min_iom": 0.55,
+    "causal_hidden_detection_reservation_min_gain": 0.08,
+    "causal_hidden_detection_reservation_max_alternative_cost": 0.78,
+    "causal_hidden_detection_reservation_allow_visible_hold": False,
+    "causal_hidden_detection_reservation_hold_min_gain": 0.10,
     "local_pair_swap_repair": True,
     "local_pair_swap_window_frames": 12,
     "local_pair_swap_max_gap_frames": 3,
@@ -51,7 +68,7 @@ REALTIME_QUALITY_DELAYED_CONFIG: dict[str, object] = {
     "realtime_motion_pair_dense_fallback_max_support_ratio": 0.35,
     "realtime_motion_pair_dense_fallback_min_median_gain": 0.05,
     "realtime_motion_pair_dense_fallback_min_edge_gain": 0.04,
-    "realtime_motion_pair_simple_min_gain": 0.005,
+    "realtime_motion_pair_simple_min_gain": 0.003,
     "realtime_motion_pair_simple_max_component_size": 2,
 }
 

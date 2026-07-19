@@ -32,6 +32,8 @@ def test_parse_profile_overrides_coerces_tracking_config_values() -> None:
             "det_conf=0.20",
             "max_raw_detections=64",
             "identity_swap_guard=true",
+            "hidden_suffix_id_swap_use_overlap_persistence=true",
+            "hidden_suffix_id_swap_min_overlap_persistence_frames=2",
             "mask_path=null",
         ],
         allowed_fields,
@@ -41,6 +43,8 @@ def test_parse_profile_overrides_coerces_tracking_config_values() -> None:
         "det_conf": 0.20,
         "max_raw_detections": 64,
         "identity_swap_guard": True,
+        "hidden_suffix_id_swap_use_overlap_persistence": True,
+        "hidden_suffix_id_swap_min_overlap_persistence_frames": 2,
         "mask_path": None,
     }
 
@@ -49,6 +53,16 @@ def test_direct_pipeline_cli_keeps_condarea_off_by_default() -> None:
     args = parse_pipeline_args(["--video", "input.mp4"])
 
     assert not args.use_conditional_area_occlusion_freeze
+
+
+def test_direct_pipeline_cli_uses_corrected_hidden_contract_by_default() -> None:
+    primary = parse_pipeline_args(["--video", "input.mp4"])
+    compatibility = parse_pipeline_args(
+        ["--video", "input.mp4", "--exclude-hidden"]
+    )
+
+    assert primary.include_hidden is True
+    assert compatibility.include_hidden is False
 
 
 def test_parse_profile_overrides_rejects_unknown_fields() -> None:

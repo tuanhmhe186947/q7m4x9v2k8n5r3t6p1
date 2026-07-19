@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
+from .frame_window import frame_is_in_bounds, validate_frame_bounds
+
 
 @dataclass(slots=True)
 class TrackingObject:
@@ -54,8 +56,11 @@ def parse_cvat_video_xml(
     xml_path: Path,
     *,
     include_hidden: bool = False,
+    start_frame: int | None = None,
+    end_frame: int | None = None,
 ) -> dict[int, list[TrackingObject]]:
-    """Parse CVAT for video 1.1 XML into frame-indexed boxes."""
+    """Parse CVAT boxes inside optional inclusive frame bounds."""
+    validate_frame_bounds(start_frame, end_frame)
     tree = ET.parse(xml_path)
     root = tree.getroot()
     by_frame: dict[int, list[TrackingObject]] = defaultdict(list)
@@ -66,10 +71,12 @@ def parse_cvat_video_xml(
         for box_el in track_el.findall("box"):
             if is_outside(box_el):
                 continue
+            frame = int(box_el.attrib["frame"])
+            if not frame_is_in_bounds(frame, start_frame, end_frame):
+                continue
             hidden = box_hidden(box_el)
             if hidden and not include_hidden:
                 continue
-            frame = int(box_el.attrib["frame"])
             bbox = (
                 float(box_el.attrib["xtl"]),
                 float(box_el.attrib["ytl"]),

@@ -1,0 +1,98 @@
+{
+  "schema_version": "tracking_rq3_quality_runtime_horizon_decision_v1",
+  "decision_date": "2026-07-19",
+  "status": "REJECTED_AT_QW01_RUNTIME",
+  "lineage": {
+    "plan": "docs/TRACKING_RQ3_QUALITY_RUNTIME_HORIZON_PLAN_20260719.json",
+    "algorithm_commit": "f21775fefda8468bdd9e057f44659d1d8fb73877",
+    "run_commit": "b3409a88860bcfda9cee8fe72f22ce430b551d3e",
+    "changed_family": "motion_pair_memory_horizon",
+    "tracking_only": true,
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "generated_mp4_preview_overlay_allowed": false
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "quality_result": {
+    "memory_frames_tested": [10, 15, 20],
+    "idsw": 32,
+    "hota": 0.9475099291,
+    "idf1": 0.9593810445,
+    "fp": 5,
+    "fn": 6,
+    "prediction_semantic_sha256":
+      "8472ed8760bf071645c39707a631817445c0ed353011f30307031fe918086857",
+    "all_horizons_semantically_equal": true
+  },
+  "diagnostic_runs": [
+    {
+      "id": "RQ3_M10_BGLOAD",
+      "root":
+        "outputs/eval/tracking_realtime_optimization/20260719_b3409a8_rq3_qw01_m10_v1",
+      "postprocess_time_ms": 2072.3271,
+      "runtime_authoritative": false
+    },
+    {
+      "id": "RQ3_M15_BGLOAD",
+      "root":
+        "outputs/eval/tracking_realtime_optimization/20260719_b3409a8_rq3_qw01_m15_bgload_v1",
+      "postprocess_time_ms": 2669.5770,
+      "runtime_authoritative": false
+    },
+    {
+      "id": "RQ3_M20_BGLOAD",
+      "root":
+        "outputs/eval/tracking_realtime_optimization/20260719_b3409a8_rq3_qw01_m20_bgload_v1",
+      "postprocess_time_ms": 3364.7845,
+      "runtime_authoritative": false
+    }
+  ],
+  "authoritative_m10_run": {
+    "root":
+      "outputs/eval/tracking_realtime_optimization/20260719_b3409a8_rq3_qw01_m10_clean_v1",
+    "effective_fps": 17.2034172,
+    "tracking_loop_effective_fps": 20.7836853,
+    "frame_time_p95_ms": 72.2091800,
+    "postprocess_time_ms": 2172.8913,
+    "peak_process_rss_bytes": 1512394752,
+    "mp4_count": 0
+  },
+  "runtime_gate": {
+    "effective_fps_min": 24.0793754,
+    "frame_time_p95_ms_max": 45.2948705,
+    "peak_process_rss_bytes_max": 1923089203,
+    "effective_fps": "FAIL",
+    "frame_time_p95_ms": "FAIL",
+    "peak_process_rss_bytes": "PASS",
+    "optimistic_effective_fps_using_best_prior_loop": 21.2408946,
+    "optimistic_shortfall_percent": 11.7880166
+  },
+  "gates": {
+    "quality_non_regression": "PASS",
+    "synthetic_prefix_invariance_m10_m15_m20": "PASS",
+    "semantic_prediction_equality": "PASS",
+    "recursive_mp4_count": 0,
+    "runtime": "FAIL",
+    "advance_to_later_windows": false,
+    "advance_to_full_video": false,
+    "profile_promotion_authorized": false
+  },
+  "decision": [
+    "Memory 10 is the least expensive horizon and preserves the RQ2 S1 gain.",
+    "Memory 15 and 20 produce the same prediction with higher postprocess cost.",
+    "Do not run RQ3 on later windows, a full video, a hard set, or full-13.",
+    "Open a separate output-equivalent implementation performance experiment."
+  ],
+  "next_reversible_step": {
+    "id": "RQ4",
+    "changed_family": "fixed_lag_copy_performance_implementation",
+    "semantic_change_allowed": false,
+    "profile_default_change_allowed": false
+  }
+}

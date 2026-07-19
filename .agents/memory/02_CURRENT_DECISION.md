@@ -1,10 +1,158 @@
 # Current Decision
 
+## Active realtime runtime decision 2026-07-20
+
+The common GPU harness is complete at instrumentation commit `7c9179e`.
+`realtime_fast` and `realtime_balanced` both remain causal and prediction-
+repeatable, but neither reaches the 30 FPS native gate. Fast reaches
+`27.3398/27.6077` FPS (primary/repeat); Balanced reaches `28.7192/28.8994`.
+Balanced has lower backlog and output age, while Fast retains the full-13
+identity advantage. Therefore there is no native operational winner yet.
+Do not claim a speed winner or silently label either profile native realtime;
+future work needs a throughput improvement or an explicit drop policy.
+
+The runtime decision is recorded in
+`docs/TRACKING_REALTIME_RUNTIME_PROBE_DECISION_20260720.json`. The added
+deadline, backlog and output-age telemetry is prediction-invariant and was
+validated with 217 tracking tests. `bytetrack_raw` was not rerun.
+
+## Active realtime Pareto decision 2026-07-20
+
+Promote the validated far-right close-competitor guard in `realtime_fast`.
+The full-13 candidate/repeat pass causal, prefix, lineage, repeatability and
+zero-MP4 gates: IDSW `69 -> 59`, HOTA `94.35% -> 95.63%`, IDF1
+`93.91% -> 95.37%`, FP/FN `506/630 -> 486/610`, and `000302` IDSW `6 -> 0`.
+The profile commit is `74cad2b`, separate from algorithm commit `62f140b` and
+the evidence commits.
+
+Keep `bytetrack_raw` fixed at its existing authority (`145`, `88.91%`,
+`88.47%`) and do not rerun it. Its runtime is historical labeled evidence;
+the common-harness runtime gate now proves that neither causal profile is
+native realtime. Balanced stays a valid quality reference, while Quality stays
+in the Pareto comparison as delayed/finite-delay evidence; only its current
+realtime-winner eligibility is withheld. Authority:
+`docs/TRACKING_REALTIME_PARETO_SELECTION_DECISION_20260720.json`.
+
+The first post-Fast Balanced family was screened only on difficult windows.
+The far-right threshold candidate tied its parent on both W01 `000327` and W02
+`000302`; therefore it was rejected before W03-W05, full video and full-13.
+Keep `realtime_balanced` unchanged and retain the negative evidence at
+`docs/TRACKING_BALANCED_FAR_RIGHT_GUARD_DECISION_20260720.json`.
+
+## Active hybrid lane-completion decision 2026-07-19
+
+Lock `hybrid_bytetrack_best` at IDSW `0`, HOTA `98.35062270%`, IDF1
+`99.14903846%`, and FP/FN `1593/1593`. All 13 videos have zero IDSW, and the
+remapped identity-event artifact has zero rows. The two frozen residual
+clusters, `000233` H5b and `000328` H4, are resolved with repeatable,
+hash-bound evidence and zero MP4.
+
+Close the hybrid optimization lane. Remaining weak rows are localization and
+continuity residuals, led by `000216`, rather than a bounded identity-switch
+family. Reopen hybrid only for a predeclared failure on untouched sessions.
+
+Hybrid is the first dependency and is complete. The realtime selection is not
+pre-ranked as Fast, Balanced, then Quality: Fast is the causal operational
+control, while every valid Fast, Balanced, and Quality authority enters the
+same Pareto selection. Quality cannot be skipped; if a truthful causal or
+finite-delay Quality candidate wins, it replaces Fast/Balanced in the paper.
+RB3 Balanced is closed because repeat p95 failed, and the current finite-delay
+Quality screen is now also closed without promotion.
+
+The paper-critical comparison is `bytetrack_raw` -> one selected valid realtime
+method -> `hybrid_bytetrack_best`, all under the same include-Hidden contract,
+video universe, detector, GT, and evaluator. Three realtime profiles are not a
+deliverable by themselves. Quality remains a selection challenger: if a causal
+or finite-delay version passes prefix/latency gates and wins the declared
+Pareto comparison, it replaces fast/balanced as the paper's realtime method and
+the main comparison becomes raw -> Quality -> hybrid.
+The current delay-`-1` global-post-video implementation is eligible only as a
+separately labeled delayed method until that realtime contract is proved.
+
+The no-regression rule protects accepted overall evidence, not an objectively
+weak implementation. A profile whose implementation conflicts with its named
+speed/quality role may be superseded or rebuilt. Keep its old result as labeled
+negative/baseline evidence, freeze the replacement design before testing, and
+promote only against the relevant raw and operational references through the
+window -> video -> hard-set -> full-13 funnel.
+
+## Active realtime Quality selection gate 2026-07-19
+
+`realtime_quality` is a mandatory selection challenger before any realtime
+winner is locked. This does not require all three realtime profiles in the
+paper table; it requires a fair validation attempt under a truthful causal or
+finite-delay contract.
+
+Retain the existing Quality authority in the Pareto/report evidence as a
+post-video upper bound (`IDSW 166`,
+HOTA `97.66%`, IDF1 `97.58%`, delay `-1`), not as a realtime winner. RQ1 lags
+`12/15/30` all failed frozen QW01: IDSW improved `36 -> 32`, but HOTA fell
+`91.51% -> 91.12%` and IDF1 fell `91.17% -> 89.88%`. Do not run later RQ1
+stages. RQ2 S1 then improved QW01 HOTA/IDF1, but QW02-QW04 produced no second
+independent gain and its `18.99 FPS` missed the frozen `24.08 FPS` floor. RQ2 is
+closed without promotion. RQ3 horizons `10/15/20` preserve the S1 prediction,
+but the fastest horizon reaches only `17.20 FPS` and fails p95. RQ3 is closed.
+RQ4 retains an output-equivalent `2.221x` copy-performance improvement, but its
+QW01 primary/repeat reach only `19.42/16.91 FPS`, p95 `60.84/91.02 ms`, and a
+repeat loop-FPS ratio of `0.856`. Quality therefore remains unpromoted; do not
+run later windows, a full video, hard set, or full-13 from RQ4.
+
+Authority:
+`docs/TRACKING_REALTIME_QUALITY_SELECTION_GATE_20260719.json`.
+RB3 decision:
+`docs/TRACKING_RB3_RESERVED_REID_HOLD_DECISION_20260719.json`.
+RQ1 decision and RQ2 plan:
+`docs/TRACKING_RQ1_FIXED_LAG_DECISION_20260719.json` and
+`docs/TRACKING_RQ2_QUALITY_ID_SAFE_PLAN_20260719.json`.
+RQ2 decision and RQ3 plan:
+`docs/TRACKING_RQ2_QUALITY_ID_SAFE_DECISION_20260719.json` and
+`docs/TRACKING_RQ3_QUALITY_RUNTIME_HORIZON_PLAN_20260719.json`.
+RQ3 decision and RQ4 plan:
+`docs/TRACKING_RQ3_QUALITY_RUNTIME_HORIZON_DECISION_20260719.json` and
+`docs/TRACKING_RQ4_QUALITY_COPY_PERFORMANCE_PLAN_20260719.json`.
+RQ4 decision:
+`docs/TRACKING_RQ4_QUALITY_COPY_PERFORMANCE_DECISION_20260719.json`.
+
+## Active realtime Pareto selection 2026-07-19
+
+Quality was screened as a mandatory challenger and is not silently omitted:
+the delay-`-1` graph is post-video upper-bound evidence, while RQ4's finite
+delay candidate fails effective FPS, p95, and repeat runtime ratio. RB1/RB2
+were rejected at the first frozen window for IDF1/HOTA regression; RB3's
+repeatable IDSW gain fails p95 and the locked Balanced identity target.
+
+Select `realtime_fast` as the current causal reference because it has the
+lowest zero-delay IDSW (`69` versus Balanced `121`) with repeatability PASS.
+This is a multi-objective reference decision, not an accuracy-only ranking:
+causal validity, prefix integrity, no-MP4 lineage, measured throughput,
+latency, memory and delay remain selection dimensions. Fast's timing is
+retained as evidence, but no speed advantage is claimed until raw/Fast/Balanced
+are measured with one common harness and pass the frozen runtime gates.
+
+Fast is not the final winner yet: its profile-specific `000302` guard is open
+(`6` observed versus the frozen ceiling `2`). Run a targeted include-Hidden
+follow-up before promoting it as the operational choice.
+
+Balanced remains a useful causal quality reference (`HOTA 95.68%`,
+`IDF1 95.76%`, FP/FN `448/586`) but its IDSW gap is still `52`; Quality has no
+valid finite-delay runtime authority. The raw same-contract authority now
+passes with IDSW `145`, HOTA `88.91%`, IDF1 `88.47%`, loop-FPS `22.65/27.03`,
+repeatability PASS and zero MP4. Therefore raw -> Fast -> hybrid is the planned
+paper chain, not yet a locked claim; the Fast guard and common runtime audit
+must pass before a realtime method is selected.
+
+Authority:
+`docs/TRACKING_REALTIME_PARETO_SELECTION_DECISION_20260719.json`.
+
 ## Decision precedence
 
 Only the active decision immediately below controls current work. All later
-sections are historical records. Current gate status is centralized in
-`docs/CLASSIFICATION_V2_CURRENT_STATE.md`.
+sections are historical records. The active tracking authority is
+`docs/TRACKING_HYBRID_LANE_COMPLETION_DECISION_20260719.json`.
+That authority closes hybrid and opens realtime planning. No realtime
+candidate is authorized until a separate Pareto and funnel plan is frozen.
+`docs/CLASSIFICATION_V2_CURRENT_STATE.md` applies only to the paused
+classification workstream.
 
 ## Active source-lineage decision: reviewed mixed legacy + XML
 
@@ -143,6 +291,113 @@ absent. `max-native-events` now limits target units without truncating the full
 frame table needed for causal history and scene/social context.
 
 ## Active decision: reviewed-data rebuild
+## Completed tracking-only roadmap (merged 2026-07-20)
+
+The user explicitly moved tracking work to `PIG_task_tracking` on branch
+`task/update-tracking`. Do not touch classification code, data, or model work.
+
+### Critical-path override 2026-07-18
+
+Complete and authority-lock `hybrid_bytetrack` before any realtime transfer.
+Near-wall Hidden bbox geometry is now promoted in `hybrid_bytetrack_best`:
+IDSW stays `8`, FP/FN improve `1630 -> 1622`, HOTA improves
+`98.31% -> 98.32%`, and raw IDF1 increases. Primary/repeat and all
+non-geometry payload checks pass with zero MP4.
+
+The promotion above closes only the near-wall experiment. Hybrid remains the
+active optimization lane because its authority still has eight IDSW. Four are
+the `000233` identity conflict at frames `1111-1114`; four are the `000328`
+far-camera Hidden bbox conflict at frames `1347-1355`. Diagnose and test these
+as separate families through hard-window, full-video, hard-set, and only then
+full-13 gates. Realtime stays frozen until a separate hybrid lane-completion
+decision records the residual audit and stop-gate evidence.
+
+Realtime notes below remain evidence but no longer set task order. The next
+realtime study must use `realtime_fast` as its operational reference.
+`realtime_balanced` is not considered solved merely because it improves over
+its older baseline; it must pass a predeclared identity-stability and latency
+gate and provide material value relative to fast.
+
+Tracking GT was seeded by an older tracker and manually corrected for bbox/ID.
+Primary evaluation therefore uses `include_hidden=true`; the 1,930
+tracker-derived `Hidden` values are not a visibility target. Exclude-Hidden
+metrics are compatibility evidence only.
+
+The causal `realtime_balanced` profile now promotes hidden-detection
+reservation at `min_iom=0.96`, `min_gain=0.17`,
+`max_alternative_cost=0.25`, visible hold enabled, and `hold_min_gain=0.17`.
+Full-13 primary and repeat improve IDSW `133 -> 121`, IDF1 `93.71% -> 95.76%`,
+HOTA `93.93% -> 95.68%`, FP/FN `449/587 -> 448/586`, and fragments
+`130 -> 127`. Five videos improve and eight tie; no video regresses in IDSW,
+IDF1, or HOTA. The small `000231` FP/FN trade-off is retained explicitly.
+
+Reject `max_alternative_cost=0.30` even though aggregate IDSW reaches `119`:
+it creates persistent `000216` ID 5/8 corruption and drops that video's
+IDF1/HOTA from `99.55%/99.26%` to `90.10%/91.45%`. The selected `0.25`
+threshold excludes cost `0.283780` while retaining the useful `000233` event
+at `0.238421`. Promotion commit is `e8d39d7`; authority is
+`docs/TRACKING_PROMOTION_DECISION_20260718_REALTIME_BALANCED_HIDDEN_RESERVATION.json`.
+`realtime_quality_delayed` keeps its reservation-disabled semantics.
+
+The H2 asymmetric refinement candidate at `e55973f` is rejected. Its full-13
+run improved matches by 74 and aggregate HOTA by 0.0719 percentage points, but
+increased IDSW from 10 to 14, including `000085: 0 -> 2` and `000328: 4 -> 6`.
+It also changed 68 `Hidden/occluded` payloads after bbox refinement, so it was
+not geometry-only through the complete post-processing chain. Do not repeat or
+promote `refine_max_gap_frames=30` plus
+`refine_max_previous_gap_frames=15`. Defaults remain unchanged at `15/0`.
+
+The three hash-bound realtime baselines have now been replayed with
+`include_hidden=true`. Aggregate IDSW is `87` for fast, `133` for balanced,
+and `168` for the quality-delayed parent. These replace the exclude-Hidden
+values only for primary scientific evaluation; the old reports remain
+compatibility evidence.
+
+Retain the existing quality-delayed default
+`realtime_motion_pair_simple_min_gain=0.003`. Against the same-contract parent
+at `0.005`, both primary and repeat improve aggregate IDSW `168 -> 166`, with
+only `000263: 44 -> 42`; no video regresses, FP/FN and fragmentation are
+unchanged, HOTA/IDF1 do not decrease, and the candidate repeatability audit
+passes with 26 prediction XML files, 72 artifacts and `mp4_count=0`. Continue
+to classify this profile as `post_video_global_graph` with delay `-1`; do not
+claim fixed-delay causality or an absolute FPS improvement. The corrected
+decision authority is
+`docs/TRACKING_PROMOTION_DECISION_20260717_P2_QUALITY_DELAYED_INCLUDE_HIDDEN.json`.
+
+The hybrid far-camera identity guard is now promoted. In two identical full-13
+runs it reduces aggregate IDSW `10 -> 8`, entirely by fixing `000216: 2 -> 0`,
+with no per-video IDSW regression. HOTA and IDF1 remain `98.31%` and `99.13%`
+at report precision. The raw trade-off is FP/FN `1628 -> 1630`, concentrated in
+`000302: 68 -> 75`, while `000216` improves `330 -> 325`. Judge this as an
+overall tracking improvement, not by requiring every raw metric to be
+monotonic. Commits are `7254670` for the algorithm and `e74a8fa` for the
+separate profile promotion. The authoritative decision is
+`docs/TRACKING_PROMOTION_DECISION_20260718_HYBRID_FAR_IDENTITY_GUARD.json`.
+
+The causal `realtime_fast` profile now also promotes
+`realtime_visible_better_competitor_prefer=true`. Full-13 primary and repeat
+are semantically identical and improve aggregate IDSW `87 -> 69`, HOTA
+`93.89% -> 94.35%`, IDF1 `93.21% -> 93.91%`, FP/FN `564/688 -> 506/630`, and
+fragments `114 -> 110`. Only `000231` improves (`30 -> 12` IDSW); the other 12
+videos are unchanged and no video regresses. The profile promotion is
+`456fc97`; authority and rollback are recorded in
+`docs/TRACKING_PROMOTION_DECISION_20260718_REALTIME_FAST_VISIBLE_PREFER.json`.
+The timing contract remains causal framewise with delay `0`, and all prediction
+and evaluation roots have `mp4_count=0`. Runtime differences between repeats
+are recorded, so no speed claim is made.
+
+Synthetic R0 causality, repeatability, baseline-lock and telemetry checks pass
+`23/23` for the two causal realtime profiles. Runtime R0 also passes on the
+`000263` hard event: prefix 210 versus extended 240 frames preserves all 1,680
+flushed XML box payloads for both fast and balanced, with declared delay `0`
+and `mp4_count=0`. Auditor commit is `f8e1b6e`; authority is
+`docs/TRACKING_CAUSALITY_DECISION_20260718_R0.json`.
+
+Freeze these 13 videos as development evidence. Any further change must start
+with one isolated weak-event window, then a full difficult video and hard set;
+run full-13 only after those gates pass. Final unbiased claims require
+untouched sessions selected before more optimization. Every run keeps
+`include_hidden=true`, a fresh output root, and recursive `mp4_count=0`.
 
 ### Main-versus-legacy source boundary
 

@@ -1,0 +1,150 @@
+{
+  "schema_version": "tracking_h5_hidden_suffix_persistence_plan_v1",
+  "status": "frozen_before_replay",
+  "decision_date": "2026-07-18",
+  "starting_commit": "bd7066cafbe575f0901dc98f5d22ff4bb5337faa",
+  "candidate_id": "H5b",
+  "priority": "hybrid_bytetrack_residual_first",
+  "changed_family": "hidden_suffix_identity_commit_overlap_persistence",
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian",
+    "skill-creator"
+  ],
+  "parent": {
+    "authority": "docs/TRACKING_PROMOTION_DECISION_20260718_HYBRID_NEAR_WALL_GEOMETRY.json",
+    "prediction_root": "outputs/pred/tracking_profile_funnel",
+    "run_manifest_path": "outputs/eval/tracking_profile_funnel/20260718_b66428e_hybrid_wall_geometry_candidate_primary_authority_v1/run_manifest.json",
+    "run_id": "20260718_b66428e_hybrid_wall_geometry_candidate_primary_authority_v1",
+    "git_commit": "b66428e22609adc38d8d36ce96a0b3025c0ba0aa",
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "mode": "hybrid_bytetrack",
+    "video": "Pigs291119_000233_30fps",
+    "prediction_shapes_path": "outputs/pred/tracking_profile_funnel/20260718_b66428e_hybrid_wall_geometry_candidate_primary_authority_v1/iou0_area0_condarea0_merge0/hybrid_bytetrack/Pigs291119_000233_30fps/annotations_cvat_shapes.json",
+    "prediction_xml_path": "outputs/pred/tracking_profile_funnel/20260718_b66428e_hybrid_wall_geometry_candidate_primary_authority_v1/iou0_area0_condarea0_merge0/hybrid_bytetrack/Pigs291119_000233_30fps/annotations_cvat_video_1_1.xml",
+    "shapes_sha256": "8a380656ec0d6c67801c8d93a783ecaaeca46028ecca4001554413c5d11d5c41",
+    "xml_sha256": "aa4fd0b387f010e5781012dd94d8d3870e6597905f998c199570021f50023de7",
+    "run_manifest_sha256": "15476dfb9ec844a2528c70394b590a47cc4c5629cc6639c4f81cda23d08c8932",
+    "gt_sha256": "348f4ffa83ab7f7ac3c603a60a4f00528cf222d3f13129e2f04c399d7cb4158c"
+  },
+  "frozen_window": {
+    "directory": "outputs/eval/tracking_hybrid_residual/20260718_f463119_h4_parent_windows_v1",
+    "filename": "hard_event_windows.csv",
+    "path": "outputs/eval/tracking_hybrid_residual/20260718_f463119_h4_parent_windows_v1/hard_event_windows.csv",
+    "manifest_sha256": "dc2d05568442ddfb99e1b5b81e66c06e0e25618abf52c798d154619a722d040a",
+    "event_id": "Pigs291119_000233_30fps__switch_1111_1114",
+    "score_frames": [1104, 1119],
+    "switch_frames": [1111, 1114],
+    "parent_remapped_idsw": 4
+  },
+  "evaluation_contract": {
+    "mode": "hybrid_bytetrack",
+    "include_hidden": true,
+    "hidden_is_optimization_target": false,
+    "iou_threshold": 0.5,
+    "gap_tolerance_frames": 15,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "generated_mp4_allowed": false,
+    "classification_scope_allowed": false,
+    "runtime_contract": "post_video_identity_payload_replay"
+  },
+  "parent_only_diagnosis": {
+    "repair": "repair_hidden_suffix_id_swaps",
+    "hidden_label": "Pig_8",
+    "partner_label": "Pig_1",
+    "hidden_run_frames": [1107, 1118],
+    "hidden_run_length": 12,
+    "hidden_median_score": 0.44445,
+    "overlap_by_frame": {
+      "1111": 0.731968,
+      "1112": 0.701459,
+      "1113": 0.63877,
+      "1114": 0.621268
+    },
+    "old_commit_start": 1111,
+    "h5a_commit_start": 1119,
+    "h5a_decision": "docs/TRACKING_H5_HIDDEN_SUFFIX_DECISION_20260718.json"
+  },
+  "hypothesis": [
+    "H5a delayed the identity commit beyond the useful overlap evidence and failed the window gate.",
+    "The first consecutive run of geometry overlap at or above the frozen threshold identifies a stronger causal boundary.",
+    "Committing at the last frame of a persistence run preserves the existing suffix repair while correcting the preceding swapped frame.",
+    "The rule must derive the boundary from parent shapes only and must not use GT, video name, or an absolute frame."
+  ],
+  "candidate": {
+    "name": "hidden_suffix_commit_after_overlap_persistence_v1",
+    "config_family": "hidden_suffix_id_swap_commit_after_overlap_persistence",
+    "default_before_promotion": false,
+    "boundary_rule": "first qualifying overlap run end = run_start + min_overlap_persistence_frames - 1",
+    "changed_frames_rule": "old_commit_start <= frame < candidate_commit_start",
+    "candidate_requires_first_unhidden_shape": false,
+    "candidate_requires_partner_shape_at_boundary": true,
+    "parameters": {
+      "min_hidden_frames": 8,
+      "max_hidden_frames": 15,
+      "min_overlap_iou": 0.7,
+      "max_hidden_median_score": 0.5,
+      "start_back_frames": 7,
+      "min_suffix_frames": 600,
+      "min_overlap_persistence_frames": 2
+    },
+    "gt_used_to_generate_prediction": false,
+    "video_or_frame_hardcode_allowed": false
+  },
+  "identity_replay_contract": {
+    "purpose": "screen one post-video identity family before tracker rerun",
+    "allowed_payload_change": ["ID attribute"],
+    "required_equal_payload": [
+      "shape keys",
+      "points",
+      "Behavior",
+      "Hidden",
+      "occluded",
+      "outside",
+      "label",
+      "score",
+      "source"
+    ],
+    "full_parent_prediction_required": true,
+    "geometry_replay_contract_allowed": false,
+    "runtime_claim_allowed": false,
+    "profile_promotion_allowed": false
+  },
+  "funnel": [
+    "dry-run identity replay",
+    "frozen 000233 hard window",
+    "full 000233 only after window pass",
+    "H4 plus H5b four-video hard set only after full target pass",
+    "full-13 only after the two-difficult-video gain gate",
+    "independent repeat and clean authority audit",
+    "separate profile promotion"
+  ],
+  "advance_gates": {
+    "window_to_full_target": [
+      "remapped IDSW decreases from 4",
+      "HOTA and IDF1 do not decrease",
+      "identity replay payload contract passes",
+      "recursive MP4 count is zero"
+    ],
+    "full_target_to_hard_set": [
+      "full 000233 remapped IDSW decreases from 4",
+      "no undeclared HOTA, IDF1, FP, FN, or fragment regression"
+    ],
+    "hard_set_to_full13": [
+      "000328 retains the H4 gain",
+      "000233 improves through H5b",
+      "at least two difficult videos improve",
+      "000263 and 000231 pass frozen guardrails"
+    ]
+  },
+  "stop_conditions": [
+    "The candidate trigger needs GT, video name, or an absolute frame number.",
+    "The persistence boundary is not derived from consecutive parent geometry.",
+    "Any payload outside the ID attribute changes in identity replay.",
+    "The frozen window does not improve or any critical guardrail regresses.",
+    "Any fresh experiment root contains an MP4."
+  ]
+}

@@ -271,7 +271,103 @@ the current frame-level `hidden` values after review apply, including untrusted
 Hidden=Yes conservatively. Hidden ratios, run lengths, trust and policy tiers
 are audit/mask metadata and must never enter model-X. The generated
 `--no-exclude-high-hidden-from-main` CLI option is ablation-only.
+## 2026-07-20 runtime gate closure
 
+1. Keep `bytetrack_raw` immutable; a common-harness runtime probe must not
+   regenerate its quality predictions.
+2. The current GPU harness uses one video, detector, GT, mask and environment
+   with primary/reverse Fast and Balanced orders, `include_hidden=true`,
+   `iou0_area0_condarea0_merge0`, and zero generated MP4.
+3. Both causal profiles are prediction-repeatable but below 30 FPS. Balanced
+   is closer to native with lower backlog/output age; Fast keeps the stronger
+   full-13 identity result. Neither is a native operational winner.
+4. Keep `realtime_quality_delayed` in the Pareto/report evidence as a
+   post-video upper bound, but do not call it a realtime winner. Reopen its
+   realtime contract only with a new causal/fixed-delay hypothesis and the
+   staged funnel.
+5. Authority: `docs/TRACKING_REALTIME_RUNTIME_PROBE_DECISION_20260720.json`.
+
+## 2026-07-20 tracking Pareto update
+
+1. Hybrid remains complete and `bytetrack_raw` remains a fixed quality/runtime
+   authority; never rerun raw solely to compare a new tracking candidate.
+2. The Fast far-right guard is promoted at `74cad2b` after full-13/repeat
+   PASS (`IDSW 59`, HOTA `95.63%`, IDF1 `95.37%`, `000302=0`, MP4 `0`).
+3. Fast is a causal quality reference, not a speed winner: native-throughput
+   and common-harness runtime gates remain open. Do not claim it is faster.
+4. Balanced remains a non-dominated quality reference but no new family opens
+   without a predeclared window gate; Quality remains retained delayed evidence
+   while its finite-delay candidates remain rejected by the declared gates.
+5. Use `docs/TRACKING_REALTIME_PARETO_SELECTION_DECISION_20260720.json` as the
+   current Pareto authority and preserve no-MP4/lineage rules.
+6. The first Balanced far-right screen tied on both frozen windows and is
+   rejected; do not advance it to full video or full-13.
+
+## 2026-07-19 tracking paper critical-path override
+
+1. Keep dependency order separate from selection rank. Hybrid is complete;
+   then compare every valid Fast, Balanced, and Quality authority. Fast is the
+   operational control, while Quality is a mandatory challenger with full
+   right to become the paper realtime winner.
+2. RB3 Balanced has repeatable quality at `IDSW 111`, but repeat p95
+   `60.06 ms` fails the frozen `45.29 ms` gate. Keep it opt-in and do not open
+   another Balanced family without new predeclared evidence.
+3. RQ1 rolling lags `12/15/30` are rejected at frozen QW01 because IDF1 and
+   HOTA regress despite lower IDSW. Do not run RQ1 on later windows or videos.
+4. RQ2 and RQ3 are closed without promotion. RQ4 retains the output-equivalent
+   clone optimization, but QW01 fails effective FPS, p95, and repeat runtime
+   ratio. Do not run later Quality windows, video, hard set, or full-13 from
+   this family.
+5. Compare valid Fast, Balanced, and Quality authorities before locking the
+   realtime winner. Quality is mandatory: a valid finite-delay Quality
+   implementation becomes the paper method when Pareto-best. Current Quality
+   finite-delay candidates fail runtime, so retain them as negative evidence;
+   delay `-1` remains a post-video upper bound. The decision is multi-objective:
+   identity, HOTA/IDF1, throughput, p50/p95, delay, memory, lineage and
+   application cost all matter; accuracy alone cannot select the winner.
+6. The same-contract include-Hidden `bytetrack_raw` authority now passes
+   (IDSW `145`, HOTA `88.91%`, IDF1 `88.47%`, loop-FPS `22.65/27.03`, zero
+   MP4). Fast is the current causal reference because it has the lowest
+   causal IDSW, but its `000302` guard is open (`6` versus ceiling `2`) and its
+   speed claim remains pending a common-harness runtime audit. Run the targeted
+   Fast follow-up before building the paper comparison as raw -> selected
+   realtime -> hybrid.
+7. Do not spend time completing three realtime modes unless each earns a
+   distinct scientific claim. A weak or semantically incorrect profile may be
+   rebuilt; retain its old artifacts as labeled evidence and validate the
+   replacement through the frozen staged funnel with zero generated MP4.
+
+## 2026-07-18 H4-to-H5 execution update
+
+1. Treat H4 as a proven component, not a promoted profile or completed lane.
+2. Do not run H4-only full-13: its hard set improves only one difficult video,
+   below the frozen minimum of two.
+3. Open H5 on parent-derived `000233` frames `1104-1119`.
+4. Screen H5 by hard window, full `000233`, then the same four-video hard set.
+5. Evaluate H4 and H5 together at the hard-set stage. Full-13 opens only if
+   at least two difficult videos improve and aggregate guardrails pass.
+6. Keep `include_hidden=true`, fresh roots, input rehashing, and zero MP4.
+7. Keep every realtime profile closed until hybrid has a separate stop-gate
+   and lane-completion decision.
+
+## 2026-07-18 active tracking-only workflow override
+
+This section overrides the classification workflow below until the user
+explicitly switches workstreams.
+
+1. Work only in `PIG_task_tracking` on `task/update-tracking`.
+2. Keep classification code, data, model runs, and review artifacts untouched.
+3. Repeat the hybrid funnel per isolated residual family: hard window, full
+   video, hard set, full-13, repeat, clean authority audit, and separate
+   profile promotion. One promoted candidate does not complete the lane.
+4. Use `include_hidden=true`, `iou0_area0_condarea0_merge0`, fresh roots, input
+   rehashing, payload-integrity checks, and zero generated MP4.
+5. Hybrid near-wall geometry is promoted at `4876217`; authority SHA256 is
+   `6b6899109ddbca43042645b503896e41c985bd838eb64513eeb72a9210015665`.
+6. Recompute residual hybrid events after every promotion. Open a realtime
+   transfer study only after a separate hybrid lane-completion decision passes.
+   Then use fast as the operational reference; balanced must pass a
+   predeclared identity-stability and latency gate relative to fast.
 ## Isolated reviewed-Q2 execution roots
 
 Operator commands for source rebuild, Hidden review, behavior review and apply

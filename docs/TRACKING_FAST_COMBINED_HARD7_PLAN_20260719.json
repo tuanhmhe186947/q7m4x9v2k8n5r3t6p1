@@ -1,0 +1,96 @@
+{
+  "schema_version": "tracking_fast_hard7_plan_v1",
+  "plan_date": "2026-07-19",
+  "status": "FROZEN_BEFORE_RUN",
+  "starting_commit": "ba775e0",
+  "scope": {
+    "tracking_only": true,
+    "profile": "realtime_fast",
+    "include_hidden": true,
+    "gap_tolerance_frames": 15,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "full_videos": true,
+    "expected_video_count": 7,
+    "output_timing_contract": "causal_framewise",
+    "declared_delay_frames": 0,
+    "write_output_video": false,
+    "mp4_allowed": false
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "hard_set_source": {
+    "plan": "docs/TRACKING_REALTIME_PARETO_FUNNEL_PLAN_20260719.json",
+    "candidate_outputs_used_for_selection": false,
+    "videos": [
+      "Pigs281119_000114_30fps",
+      "Pigs291119_000216_30fps",
+      "Pigs291119_000231_30fps",
+      "Pigs291119_000233_30fps",
+      "Pigs291119_000263_30fps",
+      "Pigs291119_000302_30fps",
+      "Pigs301119_000327_30fps"
+    ]
+  },
+  "single_changed_family": "causal_visible_close_competitor_guard_operating_point",
+  "parent": {
+    "run_id": "20260719_ba775e0_fast_combined_hard7_parent_v1",
+    "semantic_values": {
+      "realtime_visible_close_competitor_guard": false,
+      "realtime_visible_close_competitor_margin": 0.012,
+      "realtime_visible_close_competitor_max_cost": 0.35
+    }
+  },
+  "candidate": {
+    "run_id": "20260719_ba775e0_fast_combined_hard7_candidate_v1",
+    "semantic_values": {
+      "realtime_visible_close_competitor_guard": true,
+      "realtime_visible_close_competitor_margin": 0.08,
+      "realtime_visible_close_competitor_max_cost": 0.40
+    }
+  },
+  "full_target_authority": {
+    "parent_run": "20260719_d1346b9_fast_000302_parent_actual_full_v1",
+    "candidate_run": "20260719_d1346b9_fast_000302_candidate_actual_full_v1",
+    "parent_run_manifest_sha256":
+      "06a300ce7b39fcd229741c19eaa7ef663e04a822ed095dce05b793d5150f2262",
+    "candidate_run_manifest_sha256":
+      "8be428ad9a5579dc9e44b07683cea94fd8b508ab1c0cc7f2a3897470a959f016",
+    "idsw": [6, 0],
+    "hota_pct": [92.21, 99.92],
+    "idf1_pct": [91.99, 99.96],
+    "fp": [24, 6],
+    "fn": [24, 6],
+    "effective_fps": [20.1076897039, 24.2440540308],
+    "frame_p95_ms": [71.6597100007, 57.0076399934],
+    "peak_process_rss_bytes": [1505800192, 1520508928],
+    "recursive_mp4_count": 0,
+    "status": "PASS"
+  },
+  "hard_set_gate": {
+    "aggregate_idsw_delta_max": -4,
+    "difficult_videos_improved_min": 2,
+    "per_video_idsw_regression_max": 0,
+    "aggregate_hota_delta_min": 0.0,
+    "aggregate_idf1_delta_min": 0.0,
+    "aggregate_fp_increase_max": 0,
+    "aggregate_fn_increase_max": 0,
+    "Pigs291119_000302_30fps_idsw_max": 0,
+    "candidate_to_parent_effective_fps_ratio_min": 0.90,
+    "candidate_to_parent_peak_rss_ratio_max": 1.10,
+    "recursive_mp4_count_required": 0,
+    "advance_rule": [
+      "Reject and do not run full-13 if any hard-set gate fails.",
+      "Run full-13 primary only after gains occur on at least two videos."
+    ]
+  },
+  "fresh_roots": {
+    "prediction_base": "outputs/pred/tracking_realtime_optimization",
+    "evaluation_base": "outputs/eval/tracking_realtime_optimization",
+    "parent_run": "20260719_ba775e0_fast_combined_hard7_parent_v1",
+    "candidate_run": "20260719_ba775e0_fast_combined_hard7_candidate_v1"
+  }
+}

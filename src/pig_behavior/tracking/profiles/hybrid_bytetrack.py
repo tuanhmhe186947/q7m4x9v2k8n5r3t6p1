@@ -43,8 +43,27 @@ HYBRID_BEST_CONFIG: dict[str, object] = {
     "occlusion_reid_bad_match_max_cost": 0.70,
     "overlap_small_box_suppression": True,
     "hidden_suffix_id_swap_repair": True,
+    "hidden_suffix_id_swap_use_overlap_persistence": True,
+    "hidden_suffix_id_swap_min_overlap_persistence_frames": 2,
     "suffix_pair_swap_repair": True,
     "suffix_pair_swap_min_suffix_frames": 1500,
+    "identity_swap_guard_skip_mixed_occlusion_hold": True,
+    "identity_swap_guard_skip_mixed_occlusion_hold_far_only": True,
+    "identity_swap_guard_far_x_threshold": 0.67,
+    "near_wall_hidden_geometry_refine": True,
+    "near_wall_hidden_geometry_max_gap_frames": 30,
+    "near_wall_hidden_geometry_distance_bbox_scale": 0.25,
+    "near_wall_hidden_geometry_min_width_excess": 0.08,
+    "near_wall_hidden_geometry_max_center_shift": 0.04,
+    "near_wall_hidden_geometry_original_weight": 0.50,
+    "far_camera_hidden_geometry_refine": True,
+    "far_camera_hidden_geometry_x_threshold": 0.67,
+    "far_camera_hidden_geometry_max_future_gap_frames": 15,
+    "far_camera_hidden_geometry_min_height_excess": 0.15,
+    "far_camera_hidden_geometry_min_visible_overlap_iou": 0.65,
+    "far_camera_hidden_geometry_min_overlap_reduction": 0.10,
+    "far_camera_hidden_geometry_max_center_shift": 0.12,
+    "far_camera_hidden_geometry_original_weight": 0.10,
 }
 
 EVAL_CONFIGS: dict[str, dict[str, object]] = {
@@ -78,6 +97,8 @@ PRESENTATION_PROFILES: dict[str, dict[str, object]] = {
     "hybrid_bytetrack": {
         "mode": "hybrid_bytetrack",
         "eval_config": "hybrid_bytetrack_best",
-        "description": "Best current hybrid profile with offline smoothing and validated ID repairs.",
+        "description": (
+            "Best current hybrid profile with offline smoothing and validated ID repairs."
+        ),
     },
 }

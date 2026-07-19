@@ -1,0 +1,151 @@
+{
+  "schema_version": "tracking_realtime_quality_selection_gate_v1",
+  "decision_date": "2026-07-19",
+  "status": "active_after_rb3_quality_pass_latency_fail",
+  "scope": {
+    "worktree": "PIG_task_tracking",
+    "branch": "task/update-tracking",
+    "tracking_only": true,
+    "classification_or_model_changes_allowed": false,
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "gap_tolerance_frames": 15,
+    "generated_mp4_preview_overlay_allowed": false
+  },
+  "lineage": {
+    "parent_policy":
+      "docs/TRACKING_PAPER_PRIORITY_AND_REDESIGN_POLICY_20260719.json",
+    "rb3_algorithm_commit":
+      "1f1a96b75328721fb329cf6cb193dad2c8ad2f3a",
+    "rb3_attempted_profile_promotion_commit":
+      "1f98b50c1d180a43c1d9bbfde4b39c9a32453930",
+    "rb3_profile_revert_commit":
+      "3d030975c488a7419a054429fa92f8e84ba97987",
+    "rb3_repeatability_authority":
+      "outputs/eval/tracking_candidate_locks/20260719_a7ee451_rb3_full13_repeatability_v2.json",
+    "historical_quality_authority":
+      "docs/TRACKING_PROMOTION_DECISION_20260717_P2_QUALITY_DELAYED_INCLUDE_HIDDEN.json"
+  },
+  "rb3_balanced_boundary": {
+    "status": "quality_repeatable_latency_gate_failed_not_promoted",
+    "primary_repeat_metrics": {
+      "idsw": [111, 111],
+      "hota": [0.9568698270703746, 0.9568698270703746],
+      "idf1": [0.9575912061603903, 0.9575912061603903],
+      "fp": [448, 448],
+      "fn": [586, 586],
+      "fragments": [127, 127]
+    },
+    "operational_fast_reference": {
+      "idsw": 69,
+      "hota": 0.9434658955189228,
+      "idf1": 0.9390984193482884,
+      "mean_effective_fps": 27.398960103513293
+    },
+    "interpretation": [
+      "RB3 improves the old Balanced authority 121 -> 111 with no per-video IDSW regression.",
+      "Primary p95 is 40.9321 ms but repeat p95 is 60.0628 ms.",
+      "The frozen maximum is 45.2949 ms, so profile promotion is rejected.",
+      "Balanced remains above Fast on IDSW and does not meet the frozen lane target 86.",
+      "Do not open another Balanced family without new predeclared evidence."
+    ]
+  },
+  "quality_current_evidence": {
+    "profile": "realtime_quality_delayed",
+    "timing_contract": "post_video_global_graph",
+    "declared_delay_frames": -1,
+    "status": "post_video_upper_bound_only",
+    "include_hidden_metrics": {
+      "idsw": 166,
+      "hota": 0.9766216982135155,
+      "idf1": 0.9757870155131967,
+      "fp": 449,
+      "fn": 587,
+      "mean_effective_fps": 12.085928242557099,
+      "max_frame_p95_ms": 139.8104699999635
+    },
+    "why_not_realtime_winner": [
+      "The global graph can revise already emitted frames.",
+      "The current telemetry declares delay -1 and has no finite flush proof.",
+      "Its quality advantage is valuable evidence, not causal or fixed-delay evidence."
+    ]
+  },
+  "mandatory_selection_rule": {
+    "quality_evaluation_required_before_realtime_winner_lock": true,
+    "three_realtime_profiles_required_in_paper_table": false,
+    "winner_candidates": [
+      "realtime_fast",
+      "realtime_balanced",
+      "realtime_quality_fixed_lag"
+    ],
+    "quality_can_replace_fast_or_balanced":
+      "valid_finite_delay_pareto_best",
+    "fallback_if_quality_contract_fails":
+      "retain_valid_causal_and_label_delay_minus_one_upper_bound",
+    "paper_table_rule":
+      "after_quality_decision_lock_raw_selected_realtime_hybrid"
+  },
+  "quality_redesign": {
+    "parent": "last promoted realtime_balanced causal authority",
+    "changed_family": "finite_lag_quality_stabilizer",
+    "hypothesis":
+      "A bounded buffer preserves motion consistency and freezes flushed output.",
+    "candidate_delays_frames": [12, 15, 30],
+    "timing_contract": "fixed_lag_framewise",
+    "flush_rule":
+      "Commit only after lag; later frames cannot change committed payload.",
+    "rb3_identity_component_status": "opt_in_until_latency_gate_passes",
+    "do_not_port_without_isolated_ablation": [
+      "full-video planned-edge graph",
+      "suffix or GT-shaped identity repair",
+      "offline smoothing hidden behind a realtime name",
+      "condarea"
+    ]
+  },
+  "quality_funnel": {
+    "window_source": {
+      "root":
+        "outputs/eval/tracking_realtime_optimization/20260719_realtime_parent_windows_v1",
+      "file": "quality_delayed_hard_event_windows.csv"
+    },
+    "stage_order": [
+      "parent-derived quality windows",
+      "one full difficult video",
+      "seven-video hard set",
+      "full-13 primary",
+      "independent full-13 repeat",
+      "separate profile promotion"
+    ],
+    "priority_videos": [
+      "Pigs291119_000263_30fps",
+      "Pigs291119_000233_30fps",
+      "Pigs291119_000231_30fps",
+      "Pigs281119_000114_30fps"
+    ],
+    "full13_only_after": [
+      "at least two independent difficult episodes improve",
+      "no declared guardrail regression",
+      "prefix invariance passes for the selected lag",
+      "recursive MP4 count is zero"
+    ]
+  },
+  "quality_gates": {
+    "same_input_gt_detector_evaluator": true,
+    "include_hidden_true": true,
+    "per_video_idsw_regression_max": 0,
+    "hota_idf1_non_regression": true,
+    "fp_fn_and_fragment_tradeoffs_declared_before_run": true,
+    "prefix_invariance_required": true,
+    "runtime_and_memory_repeatability_required": true,
+    "operational_latency_must_be_reported": true,
+    "recursive_mp4_count": 0,
+    "quality_winner_requires_material_pareto_value": true
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ]
+}

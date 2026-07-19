@@ -1,0 +1,132 @@
+{
+  "schema_version": "tracking_rq1_fixed_lag_decision_v1",
+  "decision_date": "2026-07-19",
+  "status": "REJECTED_AT_QW01",
+  "candidate": {
+    "id": "RQ1",
+    "name": "rolling_motion_pair_fixed_lag_v1",
+    "implementation_commit": "f21775fefda8468bdd9e057f44659d1d8fb73877",
+    "changed_family": "finite_lag_quality_stabilizer",
+    "profile_default_changed": false
+  },
+  "scope": {
+    "worktree": "PIG_task_tracking",
+    "branch": "task/update-tracking",
+    "tracking_only": true,
+    "classification_or_model_changes": false,
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "gap_tolerance_frames": 15,
+    "generated_mp4_allowed": false
+  },
+  "parent": {
+    "profile": "realtime_balanced",
+    "contract": "causal_framewise",
+    "window": "QW01",
+    "root":
+      "outputs/eval/tracking_realtime_optimization/20260719_f21775f_rq1_qw01_parent_v1",
+    "metrics_sha256":
+      "e0c0e8c25858a416aebfa50b2b341b22b3417356b732c360f85459e2c73237c6",
+    "idsw": 36,
+    "hota": 0.915139902808385,
+    "idf1": 0.9116698903932946,
+    "fp": 5,
+    "fn": 6,
+    "fragments": 3
+  },
+  "candidate_runs": [
+    {
+      "lag_frames": 12,
+      "root":
+        "outputs/eval/tracking_realtime_optimization/20260719_f21775f_rq1_qw01_d12_v1",
+      "metrics_sha256":
+        "a93ab32f4ac97b44197869b4beff1a68a17f7553dfde0a305d67da559375ff45",
+      "runtime_sha256":
+        "dd7032cf732fca33c734d27af63d85ef10d7f368b859f2dd58d0094493503a1f",
+      "idsw": 32,
+      "hota": 0.9112218243332233,
+      "idf1": 0.8987749838813669,
+      "fp": 5,
+      "fn": 6,
+      "fragments": 3,
+      "effective_fps": 17.705634669592474,
+      "frame_time_p95_ms": 46.857139997882754,
+      "output_timing_contract": "fixed_lag_framewise",
+      "declared_delay_frames": 12,
+      "mp4_count": 0
+    },
+    {
+      "lag_frames": 15,
+      "root":
+        "outputs/eval/tracking_realtime_optimization/20260719_f21775f_rq1_qw01_d15_v1",
+      "metrics_sha256":
+        "425d995c4df5c48654f4427204d9ca7e976b8ec64eedd1689c7ffaca71efe2ca",
+      "idsw": 32,
+      "hota": 0.9112218243332233,
+      "idf1": 0.8987749838813669,
+      "fp": 5,
+      "fn": 6,
+      "fragments": 3,
+      "effective_fps": 17.709898285517564,
+      "frame_time_p95_ms": 38.398760004201904,
+      "output_timing_contract": "fixed_lag_framewise",
+      "declared_delay_frames": 15,
+      "mp4_count": 0
+    },
+    {
+      "lag_frames": 30,
+      "root":
+        "outputs/eval/tracking_realtime_optimization/20260719_f21775f_rq1_qw01_d30_v1",
+      "metrics_sha256":
+        "790c5adaf6e0b0d302edd1e0206d24d72ba68f1ee137bb09d0da96978e5a8cdc",
+      "idsw": 32,
+      "hota": 0.9112218243332233,
+      "idf1": 0.8987749838813669,
+      "fp": 5,
+      "fn": 6,
+      "fragments": 3,
+      "effective_fps": 11.504472164815766,
+      "frame_time_p95_ms": 64.75598000106399,
+      "output_timing_contract": "fixed_lag_framewise",
+      "declared_delay_frames": 30,
+      "mp4_count": 0
+    }
+  ],
+  "gates": {
+    "same_input_and_gt": "PASS",
+    "negative_lag_validation": "PASS",
+    "synthetic_prefix_invariance": "PASS",
+    "per_window_idsw_non_regression": "PASS",
+    "hota_non_regression": "FAIL",
+    "idf1_non_regression": "FAIL",
+    "fp_fn_guard": "PASS",
+    "operational_latency": "FAIL",
+    "recursive_mp4_count": 0,
+    "later_windows_authorized": false,
+    "full_video_authorized": false,
+    "profile_promotion_authorized": false
+  },
+  "diagnosis": {
+    "changed_payload_rows_vs_parent": 61,
+    "changed_frame_ranges": [[809, 838], [863, 878]],
+    "mechanism": [
+      "Motion-only graph relabeling reduces switch rows.",
+      "It holds an unsafe ID5/ID6 assignment over long runs."
+    ],
+    "interpretation":
+      "Lower IDSW without IDF1/HOTA preservation is not an identity improvement."
+  },
+  "decision": [
+    "Reject all three RQ1 lag values at the first frozen window.",
+    "Do not run QW02-QW04, difficult video, hard set, or full-13 for RQ1.",
+    "Keep the fixed-lag implementation opt-in and retain the global Quality upper bound label.",
+    "Open only a predeclared identity-safe pair-gate ablation before another Quality window run."
+  ],
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ]
+}

@@ -1,0 +1,96 @@
+{
+  "schema_version": "tracking_rq4_quality_copy_performance_plan_v1",
+  "decision_date": "2026-07-19",
+  "status": "FROZEN_BEFORE_IMPLEMENTATION",
+  "starting_commit": "b3409a88860bcfda9cee8fe72f22ce430b551d3e",
+  "scope": {
+    "worktree": "PIG_task_tracking",
+    "branch": "task/update-tracking",
+    "tracking_only": true,
+    "classification_or_model_changes_allowed": false,
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "gap_tolerance_frames": 15,
+    "generated_mp4_preview_overlay_allowed": false
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "parent": {
+    "decision":
+      "docs/TRACKING_RQ3_QUALITY_RUNTIME_HORIZON_DECISION_20260719.json",
+    "candidate": "RQ3_M10",
+    "fixed_lag_frames": 15,
+    "memory_frames": 10,
+    "idsw": 32,
+    "hota": 0.9475099291,
+    "idf1": 0.9593810445,
+    "effective_fps": 17.2034172
+  },
+  "hypothesis":
+    "Schema-aware shape cloning removes deepcopy overhead without output drift.",
+  "changed_family": "fixed_lag_copy_performance_implementation",
+  "implementation_boundary": {
+    "target": "motion-pair shape cloning only",
+    "algorithm_or_threshold_change_allowed": false,
+    "fixed_lag_or_memory_change_allowed": false,
+    "fast_or_balanced_behavior_change_allowed": false,
+    "global_and_fixed_lag_output_must_remain_equal": true
+  },
+  "profile_evidence": {
+    "parent_shapes_json_sha256":
+      "664b262e9de3884e079455240821d3c471d0ac0bad91ad8dbe2c93e8cbd92025",
+    "baseline_output_sha256":
+      "0d198e93c579f8d54ecf27b73babe48be19e8c8b76a4675a6f4029fbde9cfd8c",
+    "baseline_wallclock_median_seconds": 1.4470691,
+    "baseline_repeats": 5,
+    "cprofile_deepcopy_cumulative_seconds": 4.167,
+    "cprofile_total_seconds": 5.562,
+    "targeted_clone_microbenchmark_speedup": 19.85
+  },
+  "pre_tracking_gates": {
+    "static_and_focused_tests": "PASS_REQUIRED",
+    "clone_input_independence": "PASS_REQUIRED",
+    "synthetic_global_output_equality": "PASS_REQUIRED",
+    "synthetic_fixed_lag_output_equality": "PASS_REQUIRED",
+    "real_parent_shape_output_equality": "PASS_REQUIRED",
+    "real_parent_shape_output_sha256":
+      "0d198e93c579f8d54ecf27b73babe48be19e8c8b76a4675a6f4029fbde9cfd8c",
+    "wallclock_median_max_seconds": 0.7235346,
+    "recursive_mp4_count": 0
+  },
+  "qw01_gate": {
+    "tracking_frames": [662, 878],
+    "score_frames": [782, 878],
+    "hota_min": 0.9475099291,
+    "idf1_min": 0.9593810445,
+    "idsw_max": 32,
+    "fp_max": 5,
+    "fn_max": 6,
+    "effective_fps_min": 24.0793754,
+    "frame_time_p95_ms_max": 45.2948705,
+    "peak_process_rss_bytes_max": 1923089203,
+    "prediction_semantic_sha256":
+      "8472ed8760bf071645c39707a631817445c0ed353011f30307031fe918086857",
+    "recursive_mp4_count": 0
+  },
+  "funnel": {
+    "first_stage": "static equivalence and QW01 runtime only",
+    "runtime_enablement_is_profile_promotion": false,
+    "existing_two_episode_gate_still_applies": true,
+    "later_windows":
+      "Only a separate quality family may seek a second independent gain.",
+    "full13": "not authorized by RQ4"
+  },
+  "stop_conditions": [
+    "Any output payload differs from the frozen parent output.",
+    "Fast or Balanced semantics change.",
+    "The median microbenchmark misses the frozen performance target.",
+    "QW01 quality, runtime, memory, prefix, or no-MP4 gate fails."
+  ],
+  "profile_default_enabled_before_promotion": false
+}

@@ -1,0 +1,94 @@
+{
+  "schema_version": "tracking_fast_paired_window_decision_v1",
+  "decision_date": "2026-07-19",
+  "status": "PASS_GUARDRAIL_TIE_NO_ADVANCE",
+  "execution_commit": "f6edaf8be00aee465b37cc361ae8c46c7f5fd75a",
+  "parent_run_id": "20260719_0837b9b_fast_000263_parent_w2_v1",
+  "candidate_run_id": "20260719_0837b9b_fast_000263_margin08_w2_v1",
+  "changed_family": "visible_competitor_guard_threshold",
+  "semantic_diff": {
+    "realtime_visible_close_competitor_guard": [false, true],
+    "realtime_visible_close_competitor_margin": [0.012, 0.08]
+  },
+  "contract": {
+    "video": "Pigs291119_000263_30fps",
+    "processed_frames": [0, 480],
+    "score_frames": [400, 440],
+    "include_hidden": true,
+    "gap_tolerance_frames": 15,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "output_timing_contract": "causal_framewise",
+    "declared_delay_frames": 0,
+    "write_output_video": false,
+    "mp4_count": 0
+  },
+  "paired_metrics": {
+    "parent": {
+      "remapped_idsw": 2,
+      "remapped_hota_pct": 90.94,
+      "remapped_idf1_pct": 89.02,
+      "fp": 2,
+      "fn": 2
+    },
+    "candidate": {
+      "remapped_idsw": 2,
+      "remapped_hota_pct": 90.94,
+      "remapped_idf1_pct": 89.02,
+      "fp": 2,
+      "fn": 2
+    }
+  },
+  "causal_observation": {
+    "candidate_preference_events": 0,
+    "candidate_association_assignments_preferred": 0,
+    "interpretation": [
+      "The candidate does not over-trigger on this guardrail episode.",
+      "It also does not repair the parent switch, so this is not an",
+      "independent gain episode."
+    ]
+  },
+  "runtime_screening_only": {
+    "parent_effective_fps": 19.3581,
+    "candidate_effective_fps": 22.9966,
+    "parent_frame_time_p95_ms": 75.7288,
+    "candidate_frame_time_p95_ms": 64.3384,
+    "speed_claim": "NOT_APPLICABLE",
+    "reason": "single sequential windows are not repeat runtime authority"
+  },
+  "lineage": {
+    "input_sha256": {
+      "detector":
+        "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+      "mask":
+        "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658",
+      "video":
+        "24274a8c7e8638f223e11ddc7dce4632e1099a0c6ee200d1febda492315842ad",
+      "gt_xml":
+        "4636c3beb1d6e43a2c58dd45c050c62ee9d37d05010c26e578db1b9200ac21b8"
+    },
+    "artifact_sha256": {
+      "parent_run_manifest":
+        "b13bdc23c5353551b9f6b2d9b723e2df8c8c77c89001ce15f9a555fb885fa23b",
+      "candidate_run_manifest":
+        "8f899b7542eebb106336e8ccde01e8caeed5195c5a73e8e891db50cbea92717b",
+      "parent_prediction_xml":
+        "2726aea871231b51a158c5792dde23c7ab3c967d7f9f1667c54ec4870c3f226e",
+      "candidate_prediction_xml":
+        "f1ccdb9d442be4a36f667379e2459488712f6bf4932221d7141f314d9a210c3b",
+      "shared_prediction_semantic_sha256":
+        "22d8be9af08e2560392df6138258871ba6ca9c2e333cc3f84f7d483e87eb7a30"
+    }
+  },
+  "gate_decision": {
+    "guardrail_safety": "PASS",
+    "second_independent_gain": "FAIL",
+    "advance_to_full_000302": false,
+    "advance_to_hard_set": false,
+    "advance_to_full_13": false,
+    "next_step": [
+      "Keep margin 0.08 as a live screening candidate.",
+      "Use another parent-derived Fast switch episode and require a causal",
+      "mechanism match before running the candidate window."
+    ]
+  }
+}

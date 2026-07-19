@@ -1,0 +1,145 @@
+{
+  "schema_version": "tracking_rb3_reserved_reid_hold_plan_v1",
+  "decision_date": "2026-07-19",
+  "status": "frozen_before_rb3_implementation",
+  "scope": {
+    "worktree": "PIG_task_tracking",
+    "branch": "task/update-tracking",
+    "tracking_only": true,
+    "classification_or_model_changes_allowed": false,
+    "generated_mp4_preview_overlay_allowed": false
+  },
+  "authorities": {
+    "pareto_plan_sha256":
+      "5046ff636ce4a4d8c02864eef72778e070b9b3e96c5db7f152c8150460b58302",
+    "window_authority_sha256":
+      "4b9759a01afbb02fd20cf2f86552faf6751f9bae395cd8d9976bde4de9d9fe97",
+    "rb2_decision": [
+      "docs",
+      "TRACKING_RB2_HIDDEN_RESERVATION_HORIZON_DECISION_20260719.json"
+    ],
+    "rb2_decision_commit": "9e69537"
+  },
+  "diagnosis": {
+    "rb2_result": {
+      "idsw": [34, 30],
+      "idf1": [0.8905349794238683, 0.8865131578947368],
+      "hota": [0.907391986703821, 0.9071519075292748],
+      "idtp": [541, 539]
+    },
+    "mechanism": [
+      "RB2 creates new strong reservations at frames 820 and 823.",
+      "The reserved detection is later accepted in re-ID as unambiguous.",
+      "That re-ID accept uses learn_identity=true and updates detected geometry.",
+      "Switch rows fall, but persistent mismatch rows rise and IDTP falls."
+    ]
+  },
+  "candidate": {
+    "id": "RB3",
+    "name": "causal_reserved_reid_hold_v1",
+    "changed_family": "causal_hidden_reservation_assignment_action",
+    "rb2_control_diff": {
+      "causal_hidden_detection_reservation_hold_reserved_reid": [false, true]
+    },
+    "retained_rb2_horizon": {
+      "causal_hidden_detection_reservation_max_missed": 15
+    },
+    "factorial_interpretation": [
+      "Operational parent is horizon5 plus ordinary reserved re-ID accept.",
+      "RB2 is the frozen horizon15-only negative control.",
+      "RB3 changes only the reserved re-ID action relative to RB2.",
+      "Promotion requires RB3 to beat the operational parent, not only RB2."
+    ],
+    "implementation_contract": [
+      "Record the reserved detection to hidden-track owner for the current frame.",
+      "When that exact pair reaches re-ID, consume the detection and hold the track.",
+      "Mark the assignment ambiguous and never learn appearance or raw identity.",
+      "Do not change non-reserved matching, costs, thresholds or geometry rules."
+    ],
+    "uses_gt_video_or_absolute_frame": false
+  },
+  "hypothesis": [
+    "A detection claimed by both visible and hidden tracks is identity-ambiguous.",
+    "Updating the hidden track as detected turns a safe reservation into a snap.",
+    "Holding the prior reliable box should prevent mismatch persistence.",
+    "The action remains causal because it uses only current and past state."
+  ],
+  "evaluation_contract": {
+    "mode": "realtime",
+    "profile": "realtime_balanced",
+    "timing_contract": "causal_framewise",
+    "declared_delay_frames": 0,
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "iou_threshold": 0.5,
+    "gap_tolerance_frames": 15,
+    "association_debug": true,
+    "recursive_mp4_count_required": 0
+  },
+  "pre_window_gates": {
+    "new_flag_default_false": true,
+    "rb2_behavior_unchanged_when_flag_false": true,
+    "reserved_pair_is_held_when_flag_true": true,
+    "reserved_detection_is_consumed_once": true,
+    "identity_learning_disabled": true,
+    "non_reserved_assignment_unchanged": true,
+    "focused_tracking_tests_required": true,
+    "actual_tracker_prefix_frames": [862, 892],
+    "prefix_invariance_required": true
+  },
+  "ordered_windows": [
+    {
+      "id": "W01",
+      "video": "Pigs291119_000263_30fps",
+      "track": [666, 861],
+      "score": [786, 861]
+    },
+    {
+      "id": "W02",
+      "video": "Pigs291119_000233_30fps",
+      "track": [944, 1107],
+      "score": [1064, 1107]
+    },
+    {
+      "id": "W03",
+      "video": "Pigs291119_000231_30fps",
+      "track": [594, 756],
+      "score": [714, 756]
+    }
+  ],
+  "w01_gates": {
+    "idsw_max": 32,
+    "idf1_min": 0.8905349794238683,
+    "hota_min": 0.907391986703821,
+    "idtp_min": 541,
+    "fp_max": 5,
+    "fn_max": 6,
+    "new_switch_episode_allowed": false
+  },
+  "later_gates": {
+    "distinct_videos_improved_min_after_w03": 2,
+    "full_target_and_hard_set_source":
+      "docs/TRACKING_REALTIME_PARETO_FUNNEL_PLAN_20260719.json",
+    "funnel": [
+      "full Pigs291119_000263_30fps",
+      "seven-video hard set",
+      "full-13 primary",
+      "full-13 repeat",
+      "separate profile promotion"
+    ]
+  },
+  "stop_conditions": [
+    "Static or synthetic behavior differs outside the reserved re-ID action.",
+    "Future append changes any already-flushed prefix payload.",
+    "W01 IDSW, IDF1, HOTA, IDTP, FP or FN guard fails.",
+    "Any output root contains MP4, preview, overlay or event clip.",
+    "Fewer than two distinct videos improve after W03."
+  ],
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ]
+}

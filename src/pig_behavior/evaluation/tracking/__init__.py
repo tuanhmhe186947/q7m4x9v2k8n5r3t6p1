@@ -21,4 +21,5 @@ __all__ = [
     "metrics",
     "pipeline",
     "reporting",
+    "repeatability",
 ]

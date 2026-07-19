@@ -22,6 +22,8 @@ def test_presentation_profiles_map_to_clear_modes() -> None:
 
 def test_profile_configs_keep_expected_behavior_separation() -> None:
     raw = EVAL_CONFIG_OVERRIDES["bytetrack_raw"]
+    realtime_fast = EVAL_CONFIG_OVERRIDES["realtime_fast"]
+    realtime_balanced = EVAL_CONFIG_OVERRIDES["realtime_balanced"]
     realtime = EVAL_CONFIG_OVERRIDES["realtime_quality_delayed"]
     hybrid = EVAL_CONFIG_OVERRIDES["hybrid_bytetrack_best"]
 
@@ -29,14 +31,73 @@ def test_profile_configs_keep_expected_behavior_separation() -> None:
     assert raw["hidden_suffix_id_swap_repair"] is False
     assert raw["realtime_motion_pair_stabilizer"] is False
 
+    for non_hybrid in (raw, realtime_fast, realtime_balanced, realtime):
+        assert "near_wall_hidden_geometry_refine" not in non_hybrid
+        assert "far_camera_hidden_geometry_refine" not in non_hybrid
+        assert "hidden_suffix_id_swap_use_overlap_persistence" not in non_hybrid
+
+    assert realtime_fast["realtime_visible_better_competitor_prefer"] is True
+    assert realtime_fast["realtime_visible_close_competitor_guard"] is True
+    assert realtime_fast["realtime_visible_close_competitor_margin"] == 0.08
+    assert realtime_fast["realtime_visible_close_competitor_max_cost"] == 0.40
+    assert (
+        realtime_fast["realtime_visible_close_competitor_min_center_x_ratio"]
+        == 0.67
+    )
+
+    assert realtime_balanced["causal_hidden_detection_reservation"] is True
+    assert realtime_balanced["causal_hidden_detection_reservation_min_iom"] == 0.96
+    assert realtime_balanced["causal_hidden_detection_reservation_min_gain"] == 0.17
+    assert (
+        realtime_balanced[
+            "causal_hidden_detection_reservation_max_alternative_cost"
+        ]
+        == 0.25
+    )
+    assert (
+        realtime_balanced[
+            "causal_hidden_detection_reservation_allow_visible_hold"
+        ]
+        is True
+    )
+    assert (
+        realtime_balanced["causal_hidden_detection_reservation_hold_min_gain"]
+        == 0.17
+    )
+
     assert realtime["enable_offline_smoothing"] is False
+    assert realtime["causal_hidden_detection_reservation"] is False
+    assert realtime["causal_hidden_detection_reservation_min_iom"] == 0.55
+    assert realtime["causal_hidden_detection_reservation_min_gain"] == 0.08
+    assert realtime["causal_hidden_detection_reservation_max_alternative_cost"] == 0.78
+    assert realtime["causal_hidden_detection_reservation_allow_visible_hold"] is False
+    assert realtime["causal_hidden_detection_reservation_hold_min_gain"] == 0.10
     assert realtime["realtime_motion_pair_stabilizer"] is True
-    assert realtime["realtime_motion_pair_simple_min_gain"] == 0.005
+    assert realtime["realtime_motion_pair_simple_min_gain"] == 0.003
 
     assert hybrid["enable_offline_smoothing"] is True
     assert hybrid["overlap_small_box_suppression"] is True
     assert hybrid["hidden_suffix_id_swap_repair"] is True
+    assert hybrid["hidden_suffix_id_swap_use_overlap_persistence"] is True
+    assert hybrid["hidden_suffix_id_swap_min_overlap_persistence_frames"] == 2
     assert hybrid["suffix_pair_swap_repair"] is True
+    assert hybrid["identity_swap_guard_skip_mixed_occlusion_hold"] is True
+    assert hybrid["identity_swap_guard_skip_mixed_occlusion_hold_far_only"] is True
+    assert hybrid["identity_swap_guard_far_x_threshold"] == 0.67
+    assert hybrid["near_wall_hidden_geometry_refine"] is True
+    assert hybrid["near_wall_hidden_geometry_max_gap_frames"] == 30
+    assert hybrid["near_wall_hidden_geometry_distance_bbox_scale"] == 0.25
+    assert hybrid["near_wall_hidden_geometry_min_width_excess"] == 0.08
+    assert hybrid["near_wall_hidden_geometry_max_center_shift"] == 0.04
+    assert hybrid["near_wall_hidden_geometry_original_weight"] == 0.50
+    assert hybrid["far_camera_hidden_geometry_refine"] is True
+    assert hybrid["far_camera_hidden_geometry_x_threshold"] == 0.67
+    assert hybrid["far_camera_hidden_geometry_max_future_gap_frames"] == 15
+    assert hybrid["far_camera_hidden_geometry_min_height_excess"] == 0.15
+    assert hybrid["far_camera_hidden_geometry_min_visible_overlap_iou"] == 0.65
+    assert hybrid["far_camera_hidden_geometry_min_overlap_reduction"] == 0.10
+    assert hybrid["far_camera_hidden_geometry_max_center_shift"] == 0.12
+    assert hybrid["far_camera_hidden_geometry_original_weight"] == 0.10
 
 
 def test_get_presentation_profile_returns_mutable_copy() -> None:
@@ -68,7 +129,16 @@ def test_run_tracking_mode_accepts_mode_name() -> None:
     assert spec.loader is not None
     spec.loader.exec_module(module)
 
-    args, extra_args = module.parse_args(["--mode", "realtime_fast", "--task", "eval", "-v", "Pigs291119_000263_30fps"])
+    args, extra_args = module.parse_args(
+        [
+            "--mode",
+            "realtime_fast",
+            "--task",
+            "eval",
+            "-v",
+            "Pigs291119_000263_30fps",
+        ]
+    )
 
     assert args.mode == "realtime_fast"
     assert args.task == "eval"
@@ -140,6 +210,52 @@ def test_run_tracking_mode_science_metadata_marks_raw_baseline() -> None:
     assert metadata["uses_delayed_repair"] == "false"
 
 
+def test_run_tracking_mode_science_metadata_marks_global_graph_truthfully() -> None:
+    script_path = Path(__file__).resolve().parents[1] / "scripts" / "run_tracking_mode.py"
+    spec = importlib.util.spec_from_file_location("run_tracking_mode_script", script_path)
+    assert spec is not None
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+
+    metadata = module._mode_science_metadata(
+        "realtime_quality_delayed",
+        "realtime",
+        "realtime_quality_delayed",
+        module.get_eval_config("realtime_quality_delayed"),
+    )
+
+    assert metadata["baseline_role"] == "realtime_quality_delayed_candidate"
+    assert metadata["causality_level"] == "post_video_global_graph"
+    assert metadata["output_timing_contract"] == "post_video_global_graph"
+    assert metadata["declared_delay_frames"] == "-1"
+    assert metadata["latency_window_frames"] == ""
+
+
+def test_run_tracking_mode_science_metadata_marks_fixed_lag_truthfully() -> None:
+    script_path = Path(__file__).resolve().parents[1] / "scripts" / "run_tracking_mode.py"
+    spec = importlib.util.spec_from_file_location("run_tracking_mode_script", script_path)
+    assert spec is not None
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    overrides = module.get_eval_config("realtime_quality_delayed")
+    overrides["realtime_motion_pair_fixed_lag_frames"] = 15
+
+    metadata = module._mode_science_metadata(
+        "realtime_quality_delayed",
+        "realtime",
+        "realtime_quality_delayed",
+        overrides,
+    )
+
+    assert metadata["baseline_role"] == "realtime_quality_fixed_lag_candidate"
+    assert metadata["causality_level"] == "fixed_lag_realtime"
+    assert metadata["output_timing_contract"] == "fixed_lag_framewise"
+    assert metadata["declared_delay_frames"] == "15"
+    assert metadata["latency_window_frames"] == "15"
+
+
 def test_run_tracking_mode_has_clear_two_task_model() -> None:
     script_path = Path(__file__).resolve().parents[1] / "scripts" / "run_tracking_mode.py"
     spec = importlib.util.spec_from_file_location("run_tracking_mode_script", script_path)
@@ -148,7 +264,16 @@ def test_run_tracking_mode_has_clear_two_task_model() -> None:
     assert spec.loader is not None
     spec.loader.exec_module(module)
 
-    args, _ = module.parse_args(["--mode", "hybrid_bytetrack", "--task", "track", "-v", "Pigs291119_000263_30fps"])
+    args, _ = module.parse_args(
+        [
+            "--mode",
+            "hybrid_bytetrack",
+            "--task",
+            "track",
+            "-v",
+            "Pigs291119_000263_30fps",
+        ]
+    )
 
     assert args.task == "track"
     assert args.eval_existing is False
@@ -193,7 +318,8 @@ def test_run_tracking_mode_compare_summary_writes_csv_and_markdown(tmp_path) -> 
         encoding="utf-8",
     )
     metrics_csv.write_text(
-        metrics_csv.read_text(encoding="utf-8") + "Pigs291119_000263_30fps,100,98,95,96.94,95.0,92.0,81.0,93.0,"
+        metrics_csv.read_text(encoding="utf-8")
+        + "Pigs291119_000263_30fps,100,98,95,96.94,95.0,92.0,81.0,93.0,"
         "94.0,4,2,94.0,98.5,99.0,98.0,100.0,1,3,5,2,3,1,8,6,1800\n",
         encoding="utf-8",
     )

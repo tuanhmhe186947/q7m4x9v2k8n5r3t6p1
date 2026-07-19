@@ -103,6 +103,8 @@ def build_markdown_report(
         f"- IoU threshold: `{config.iou_threshold}`",
         f"- Include hidden boxes: `{config.include_hidden}`",
         f"- Gap tolerance frames: `{config.gap_tolerance_frames}`",
+        f"- Evaluation start frame: `{config.evaluation_start_frame}`",
+        f"- Evaluation end frame: `{config.evaluation_end_frame}`",
         f"- Run missing tracker: `{config.run_missing_tracker}`",
         f"- Force track: `{config.force_track}`",
         f"- Ground-truth directory: `{config.gt_dir}`",

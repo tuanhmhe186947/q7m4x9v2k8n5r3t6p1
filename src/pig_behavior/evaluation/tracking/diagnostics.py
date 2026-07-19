@@ -23,13 +23,20 @@ def identity_events_for_pair(
     iou_threshold: float = 0.5,
     include_hidden: bool = False,
     remap_ids: bool = False,
+    evaluation_start_frame: int | None = None,
+    evaluation_end_frame: int | None = None,
 ) -> list[dict[str, Any]]:
     """Return frame-level ID mismatches and switches for one GT/prediction pair."""
     if pair.pred_xml is None or not pair.pred_xml.exists():
         return []
 
-    gt_by_frame = parse_cvat_video_xml(pair.gt_xml, include_hidden=include_hidden)
-    pred_by_frame = parse_cvat_video_xml(pair.pred_xml, include_hidden=include_hidden)
+    parse_kwargs = {
+        "include_hidden": include_hidden,
+        "start_frame": evaluation_start_frame,
+        "end_frame": evaluation_end_frame,
+    }
+    gt_by_frame = parse_cvat_video_xml(pair.gt_xml, **parse_kwargs)
+    pred_by_frame = parse_cvat_video_xml(pair.pred_xml, **parse_kwargs)
     id_mapping: dict[str, str] = {}
     if remap_ids:
         pred_by_frame, id_mapping, _mapped_matches, _coverage = remap_prediction_ids(
@@ -113,13 +120,20 @@ def identity_mapping_for_pair(
     *,
     iou_threshold: float = 0.5,
     include_hidden: bool = False,
+    evaluation_start_frame: int | None = None,
+    evaluation_end_frame: int | None = None,
 ) -> list[dict[str, Any]]:
     """Return the fixed prediction->GT ID remapping used for paper metrics."""
     if pair.pred_xml is None or not pair.pred_xml.exists():
         return []
 
-    gt_by_frame = parse_cvat_video_xml(pair.gt_xml, include_hidden=include_hidden)
-    pred_by_frame = parse_cvat_video_xml(pair.pred_xml, include_hidden=include_hidden)
+    parse_kwargs = {
+        "include_hidden": include_hidden,
+        "start_frame": evaluation_start_frame,
+        "end_frame": evaluation_end_frame,
+    }
+    gt_by_frame = parse_cvat_video_xml(pair.gt_xml, **parse_kwargs)
+    pred_by_frame = parse_cvat_video_xml(pair.pred_xml, **parse_kwargs)
     pair_counts = matched_identity_counts(
         gt_by_frame,
         pred_by_frame,
@@ -167,14 +181,21 @@ def continuity_gaps_for_pair(
     include_hidden: bool = False,
     gap_tolerance_frames: int = 15,
     remap_ids: bool = True,
+    evaluation_start_frame: int | None = None,
+    evaluation_end_frame: int | None = None,
 ) -> list[dict[str, Any]]:
     """Return matched-track gaps used to diagnose fragmentation."""
     if pair.pred_xml is None or not pair.pred_xml.exists():
         return []
 
     tolerance = max(0, int(gap_tolerance_frames))
-    gt_by_frame = parse_cvat_video_xml(pair.gt_xml, include_hidden=include_hidden)
-    pred_by_frame = parse_cvat_video_xml(pair.pred_xml, include_hidden=include_hidden)
+    parse_kwargs = {
+        "include_hidden": include_hidden,
+        "start_frame": evaluation_start_frame,
+        "end_frame": evaluation_end_frame,
+    }
+    gt_by_frame = parse_cvat_video_xml(pair.gt_xml, **parse_kwargs)
+    pred_by_frame = parse_cvat_video_xml(pair.pred_xml, **parse_kwargs)
     if remap_ids:
         pred_by_frame, _mapping, _mapped_matches, _coverage = remap_prediction_ids(
             gt_by_frame,

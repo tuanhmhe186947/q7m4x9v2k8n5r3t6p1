@@ -70,7 +70,20 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--mask", type=Path, default=None)
     parser.add_argument("--iou-threshold", type=float, default=0.5)
-    parser.add_argument("--include-hidden", action="store_true")
+    hidden_group = parser.add_mutually_exclusive_group()
+    hidden_group.add_argument(
+        "--include-hidden",
+        dest="include_hidden",
+        action="store_true",
+        default=True,
+        help="Evaluate every corrected GT bbox/ID row (primary contract).",
+    )
+    hidden_group.add_argument(
+        "--exclude-hidden",
+        dest="include_hidden",
+        action="store_false",
+        help="Exclude Hidden=Yes rows for a labeled compatibility replay only.",
+    )
     parser.add_argument(
         "--gap-tolerance-frames",
         type=int,
@@ -171,6 +184,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         ),
     )
     parser.add_argument("--max-frames", type=int, default=None)
+    parser.add_argument(
+        "--evaluation-start-frame",
+        type=int,
+        default=None,
+        help="First frame scored by metrics, inclusive; earlier frames are warm-up.",
+    )
+    parser.add_argument(
+        "--evaluation-end-frame",
+        type=int,
+        default=None,
+        help="Last frame scored by metrics, inclusive.",
+    )
     parser.add_argument("--expected-video-count", type=int, default=None)
     parser.add_argument(
         "--profile-override",
@@ -320,6 +345,8 @@ def config_from_args(args: argparse.Namespace) -> TrackingEvaluationPipelineConf
         run_missing_tracker=args.run_missing_tracker,
         force_track=args.force_track,
         max_frames=args.max_frames,
+        evaluation_start_frame=args.evaluation_start_frame,
+        evaluation_end_frame=args.evaluation_end_frame,
         expected_video_count=expected_video_count,
         device=args.device,
         half=args.half,

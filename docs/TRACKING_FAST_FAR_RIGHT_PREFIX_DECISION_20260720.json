@@ -1,0 +1,123 @@
+{
+  "schema_version": "tracking_fast_far_right_prefix_decision_v1",
+  "decision_date": "2026-07-20",
+  "status": "PASS_PREFIX_WINDOW",
+  "plan":
+    "docs/TRACKING_FAST_FAR_RIGHT_FULL_PREFIX_WINDOW_PLAN_20260720.json",
+  "plan_sha256":
+    "51b9492d06d504f7a03f9c82c8dd961cac907388ebe90a4251c684b469786a5f",
+  "plan_commit": "94cc96b",
+  "algorithm_commit": "62f140b",
+  "corrected_protocol_decision":
+    "docs/TRACKING_FAST_FAR_RIGHT_WINDOW_DECISION_20260720.json",
+  "worktree": "PIG_task_tracking",
+  "branch": "task/update-tracking",
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "contract": {
+    "profile": "realtime_fast",
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "gap_tolerance_frames": 15,
+    "output_timing_contract": "causal_framewise",
+    "declared_delay_frames": 0,
+    "processed_frames": [0, 1799],
+    "score_frames": [1740, 1799],
+    "write_output_video": false,
+    "recursive_mp4_count": 0,
+    "bytetrack_raw_rerun": false
+  },
+  "parent": {
+    "run_id":
+      "20260720_62f140b_fast_far_right_327_prefix_parent_v1",
+    "run_manifest_sha256":
+      "314239da723c32a98e207463bab27fb7b93c6a19641e6d2d88e0a8b6eecffd0a",
+    "metrics_sha256":
+      "b4126a2f509491747514ab97dc894a1f7934cc5bde63234a7e336675c9669146",
+    "runtime_sha256":
+      "1b8db833443b9af9b069057fd7456ba780acc9995fc1134c62ed161b83d3f63c",
+    "remapped_events_sha256":
+      "f74489b7a36ae231eb1dbaba81e5486cac19c09da1118cfa2c81c774faf85af9",
+    "artifact_manifest_sha256":
+      "47e085ae7dc68810f6b85e4b9cf6cffbbb427f4a1f8a9add3b0f7fde5062b35b"
+  },
+  "candidate": {
+    "run_id":
+      "20260720_62f140b_fast_far_right_327_prefix_candidate_v1",
+    "run_manifest_sha256":
+      "03ab9872ad3d15f02e979a1132ed70fe068d60d0f40231ddaf4223bf0cda67f2",
+    "metrics_sha256":
+      "a5d74938da19f356e51b07d5fc423ecef55f1d8db5e4492083c2de7d2e08078f",
+    "runtime_sha256":
+      "1c83232ab0610c0716d7ce74199002092f4b23db15ca3e4dbb8b03af57c38a62",
+    "remapped_events_sha256":
+      "b79dd4ee748436cfb838c137decfeb6ba18f0e129f39aa00084f3822af09277c",
+    "artifact_manifest_sha256":
+      "bef1f2936e34ff89cf09363ca7bbdbd1d1c32b1e63ac726718c87bf4799f3da0"
+  },
+  "prefix_metrics": {
+    "remapped_idsw": [2, 0],
+    "remapped_hota_pct": [90.98, 100.0],
+    "remapped_idf1_pct": [88.33, 100.0],
+    "fp": [2, 0],
+    "fn": [2, 0],
+    "parent_switch_frames": [1772, 1774],
+    "candidate_switch_frames": [],
+    "candidate_guard_trigger_frame": 1772,
+    "candidate_guard_trigger_center_x_ratio": 0.80861015625
+  },
+  "runtime_screen": {
+    "parent_effective_fps": 21.6805593565,
+    "candidate_effective_fps": 17.3693339361,
+    "candidate_to_parent_fps_ratio": 0.8008,
+    "parent_p95_ms": 65.35156,
+    "candidate_p95_ms": 87.784175,
+    "status": "INFORMATIONAL_ONLY",
+    "promotion_runtime_gate": "RECHECK_ON_FULL_TARGET_AND_HARD7"
+  },
+  "two_episode_gate": {
+    "episode_1": {
+      "video": "Pigs291119_000302_30fps",
+      "window": [530, 590],
+      "remapped_idsw": [6, 0],
+      "status": "PASS"
+    },
+    "episode_2": {
+      "video": "Pigs301119_000327_30fps",
+      "window": [1740, 1799],
+      "remapped_idsw": [2, 0],
+      "status": "PASS"
+    },
+    "status": "PASS"
+  },
+  "gate_results": {
+    "causal_prefix_preserved": true,
+    "parent_event_reproduced": true,
+    "two_independent_positive_episodes": true,
+    "quality_non_regression_in_window": true,
+    "zero_mp4": true,
+    "full_target_authorized": true,
+    "hard7_authorized": false,
+    "full13_authorized": false,
+    "repeat_authorized": false
+  },
+  "decision": [
+    "Accept the corrected full-prefix window as screening evidence.",
+    "The scoped far-right candidate may advance to full 000302 and 000327.",
+    "Do not claim realtime promotion or speed improvement from this window.",
+    "Keep the 0.90 effective-FPS ratio and p95 gates for later authority."
+  ],
+  "next_reversible_step": {
+    "action": "run paired full target videos 000302 and 000327",
+    "constraints": [
+      "use fresh roots and the same include-Hidden contract",
+      "score complete videos with no MP4 output",
+      "do not run bytetrack_raw",
+      "open hard7 only if full target passes"
+    ]
+  }
+}

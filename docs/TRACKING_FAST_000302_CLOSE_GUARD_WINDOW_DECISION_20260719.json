@@ -1,0 +1,63 @@
+{
+  "schema_version": "tracking_fast_candidate_window_decision_v1",
+  "decision_date": "2026-07-19",
+  "status": "REJECTED_AT_WINDOW",
+  "parent_commit": "66bc1218339c2e4413a1d405694c928d5df1f4c6",
+  "candidate_commit": "733122a1e5032112099baa5aa41120fac6ee7f73",
+  "parent_run_id": "20260719_66bc121_fast_000302_parent_diag_v1",
+  "candidate_run_id": "20260719_733122a_fast_000302_closeguard_w1_v1",
+  "changed_family": "realtime_visible_close_competitor_guard",
+  "semantic_diff": {
+    "realtime_visible_close_competitor_guard": [false, true]
+  },
+  "contract": {
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "score_range": [540, 590],
+    "warmup_range": [0, 539],
+    "write_output_video": false,
+    "mp4_count": 0
+  },
+  "paired_metrics": {
+    "parent": {
+      "remapped_idsw": 6,
+      "remapped_hota_pct": 88.31,
+      "remapped_idf1_pct": 87.75,
+      "fp": 20,
+      "fn": 20
+    },
+    "candidate": {
+      "remapped_idsw": 6,
+      "remapped_hota_pct": 88.31,
+      "remapped_idf1_pct": 87.75,
+      "fp": 20,
+      "fn": 20
+    }
+  },
+  "failed_gates": [
+    "window target remapped_idsw <= 2 was not reached",
+    "candidate emitted zero visible-close preference events in the scored episode",
+    "candidate prediction remained quality-equivalent to the parent"
+  ],
+  "runtime_evidence": {
+    "candidate_effective_fps": 26.4331,
+    "candidate_frame_time_p95_ms": 51.3026,
+    "speed_claim": "NOT_APPLICABLE",
+    "reason": "window runtime is screening evidence and was not a paired authority run"
+  },
+  "lineage": {
+    "sha256": {
+      "candidate_run_manifest":
+        "7435b6d47a74d5fe481db1fd4431ed833c6c523a2af0300afc4bb50f4a64ab38",
+      "candidate_prediction_xml":
+        "be4f94cac09815c2459c58456b5a3181a1af403fd740b38f0ef3cc33584f76d6"
+    },
+    "prediction_root_base": "outputs/pred/tracking_realtime_optimization",
+    "evaluation_root_base": "outputs/eval/tracking_realtime_optimization"
+  },
+  "action": [
+    "Do not run full video or promote the close-competitor guard alone.",
+    "The next candidate must address the hidden/visible crossing as one",
+    "predeclared association family rather than enabling a no-op guard."
+  ]
+}

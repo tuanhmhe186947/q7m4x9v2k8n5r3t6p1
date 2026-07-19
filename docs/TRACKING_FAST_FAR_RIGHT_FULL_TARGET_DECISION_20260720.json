@@ -1,0 +1,141 @@
+{
+  "schema_version": "tracking_fast_far_right_full_target_decision_v1",
+  "decision_date": "2026-07-20",
+  "status": "PASS_FULL_TARGET",
+  "plan":
+    "docs/TRACKING_FAST_FAR_RIGHT_FULL_PREFIX_WINDOW_PLAN_20260720.json",
+  "prefix_decision":
+    "docs/TRACKING_FAST_FAR_RIGHT_PREFIX_DECISION_20260720.json",
+  "prefix_decision_sha256":
+    "5c23451475c8a7a19ab308d2b58461a698b43c904b1c58fbd488e7432f330da1",
+  "algorithm_commit": "62f140b",
+  "worktree": "PIG_task_tracking",
+  "branch": "task/update-tracking",
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "contract": {
+    "profile": "realtime_fast",
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "gap_tolerance_frames": 15,
+    "output_timing_contract": "causal_framewise",
+    "declared_delay_frames": 0,
+    "write_output_video": false,
+    "recursive_mp4_count": 0,
+    "bytetrack_raw_rerun": false
+  },
+  "candidate_values": {
+    "realtime_visible_close_competitor_guard": true,
+    "realtime_visible_close_competitor_margin": 0.08,
+    "realtime_visible_close_competitor_max_cost": 0.40,
+    "realtime_visible_close_competitor_min_center_x_ratio": 0.67
+  },
+  "parent": {
+    "run_id":
+      "20260720_62f140b_fast_far_right_fulltarget_parent_v1",
+    "run_manifest_sha256":
+      "f50be5681596ba3f7c28384b96fe2f4d4ae7ad38fee7451618e716c96dfee8c4",
+    "metrics_sha256":
+      "ff60f9bbd57cc6e886a3ead13fbddb2db149d0821adbb7b4d5c4c53c864a46a8",
+    "runtime_sha256":
+      "c736a155f800b7b2cfeabf7e80646419c46e8a95d8db9e06acc5e39f6f9d2a6a",
+    "remapped_events_sha256":
+      "5f49281d2a95417d692232e8c684a9c38230669f5be6571678ec4dff7f3f8200",
+    "artifact_manifest_sha256":
+      "7c2f79ab45633b7e6fcd692cb248744e9d39500c518b1c5facf9c43c8f7f07b7"
+  },
+  "candidate": {
+    "run_id":
+      "20260720_62f140b_fast_far_right_fulltarget_candidate_v1",
+    "run_manifest_sha256":
+      "5302f09e0202d122c657cc92d3a643b66cdd361147ae22eaf7ae2c690596c362",
+    "metrics_sha256":
+      "02078b8d96f901753becec12a4a270e038ce0931e54ab6757caa946cc87234ce",
+    "runtime_sha256":
+      "0d1432a91198a9b4ac6e6a2f462600baf1fa3a3a185826608dbd05a22a63c8e2",
+    "remapped_events_sha256":
+      "0c8f34b2e675dbf8f9d6ed32a8bce460fcbaa4a9d457703c1bcbfc70e5f92688",
+    "artifact_manifest_sha256":
+      "279930156fbc5c8c1b28ae27d7b5e7b11364780e290d26d22bc0ab5044c5a207"
+  },
+  "per_video_metrics": [
+    {
+      "video": "Pigs291119_000302_30fps",
+      "remapped_idsw": [6, 0],
+      "remapped_hota_pct": [92.21, 99.92],
+      "remapped_idf1_pct": [91.99, 99.96],
+      "fp": [24, 6],
+      "fn": [24, 6],
+      "idsw_delta": -6,
+      "hota_delta_pct": 7.71,
+      "idf1_delta_pct": 7.97
+    },
+    {
+      "video": "Pigs301119_000327_30fps",
+      "remapped_idsw": [4, 2],
+      "remapped_hota_pct": [96.77, 97.08],
+      "remapped_idf1_pct": [97.67, 97.87],
+      "fp": [17, 15],
+      "fn": [17, 15],
+      "idsw_delta": -2,
+      "hota_delta_pct": 0.31,
+      "idf1_delta_pct": 0.20
+    }
+  ],
+  "aggregate_metrics": {
+    "remapped_idsw": [10, 2],
+    "remapped_hota_pct": [94.52, 98.51],
+    "remapped_idf1_pct": [94.83, 98.91],
+    "fp": [41, 21],
+    "fn": [41, 21],
+    "idsw_delta": -8,
+    "hota_delta_pct": 3.99,
+    "idf1_delta_pct": 4.08
+  },
+  "runtime_metrics": {
+    "aggregate_effective_fps": [16.27, 17.84],
+    "candidate_to_parent_effective_fps_ratio": 1.0965,
+    "per_video_p95_ms": {
+      "000302": [83.50471, 62.629025],
+      "000327": [63.726915, 72.16735]
+    },
+    "p95_note":
+      "000327 p95 is a local increase; aggregate speed gate still passes",
+    "declared_delay_frames": [0, 0]
+  },
+  "gate_results": {
+    "two_difficult_videos_improved": true,
+    "per_video_idsw_regression_zero": true,
+    "aggregate_hota_non_regression": true,
+    "aggregate_idf1_non_regression": true,
+    "aggregate_fp_non_regression": true,
+    "aggregate_fn_non_regression": true,
+    "effective_fps_ratio_at_least_0_90": true,
+    "causal_framewise": true,
+    "recursive_no_mp4": true,
+    "hard7_authorized": true,
+    "full13_authorized": false,
+    "repeat_authorized": false
+  },
+  "decision": [
+    "Accept the far-right candidate at the full-target stage.",
+    "Do not promote the profile default in this algorithm commit.",
+    "Advance to paired hard-7 primary with all declared guardrail videos.",
+    "Recheck local 000327 p95 and memory before any promotion decision."
+  ],
+  "next_reversible_step": {
+    "action": "run paired hard-7 primary",
+    "constraints": [
+      "use fresh parent and candidate roots",
+      "keep include_hidden and the same rule combo",
+      "require aggregate IDSW improvement of at least 4",
+      "require gains on at least two difficult videos",
+      "require no per-video IDSW regression",
+      "do not run full13 or repeat until hard7 passes"
+    ]
+  }
+}

@@ -33,6 +33,7 @@ from .evaluator import (
     run_tracker_for_pair,
 )
 from .lineage import (
+    finalize_run_manifest,
     prepare_run_manifest,
     validate_metric_universe,
     write_artifact_manifest,
@@ -156,6 +157,7 @@ def tracking_rule_overrides(
     }
     if config.profile_overrides:
         overrides.update(config.profile_overrides)
+    overrides["overrides"] = set(overrides)
     return overrides
 
 
@@ -275,6 +277,8 @@ def run_pipeline(
             iou_threshold=config.iou_threshold,
             include_hidden=config.include_hidden,
             gap_tolerance_frames=config.gap_tolerance_frames,
+            evaluation_start_frame=config.evaluation_start_frame,
+            evaluation_end_frame=config.evaluation_end_frame,
         )
         if result is not None:
             metrics.append(result)
@@ -283,6 +287,8 @@ def run_pipeline(
                     pair,
                     iou_threshold=config.iou_threshold,
                     include_hidden=config.include_hidden,
+                    evaluation_start_frame=config.evaluation_start_frame,
+                    evaluation_end_frame=config.evaluation_end_frame,
                 )
             )
             remapped_identity_events.extend(
@@ -291,6 +297,8 @@ def run_pipeline(
                     iou_threshold=config.iou_threshold,
                     include_hidden=config.include_hidden,
                     remap_ids=True,
+                    evaluation_start_frame=config.evaluation_start_frame,
+                    evaluation_end_frame=config.evaluation_end_frame,
                 )
             )
             identity_mapping_rows.extend(
@@ -298,6 +306,8 @@ def run_pipeline(
                     pair,
                     iou_threshold=config.iou_threshold,
                     include_hidden=config.include_hidden,
+                    evaluation_start_frame=config.evaluation_start_frame,
+                    evaluation_end_frame=config.evaluation_end_frame,
                 )
             )
             continuity_gap_rows.extend(
@@ -307,6 +317,8 @@ def run_pipeline(
                     include_hidden=config.include_hidden,
                     gap_tolerance_frames=config.gap_tolerance_frames,
                     remap_ids=True,
+                    evaluation_start_frame=config.evaluation_start_frame,
+                    evaluation_end_frame=config.evaluation_end_frame,
                 )
             )
 
@@ -334,5 +346,6 @@ def run_pipeline(
         run_dir,
         context="tracking evaluation report",
     )
+    finalize_run_manifest(run_dir)
     write_artifact_manifest(run_dir, pairs)
     return asset_df, metrics_df, run_dir

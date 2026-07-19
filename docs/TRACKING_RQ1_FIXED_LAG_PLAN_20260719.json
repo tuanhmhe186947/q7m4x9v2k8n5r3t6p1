@@ -1,0 +1,167 @@
+{
+  "schema_version": "tracking_rq1_fixed_lag_plan_v1",
+  "decision_date": "2026-07-19",
+  "status": "frozen_before_rq1_implementation",
+  "starting_commit":
+    "7cee3e9116bcd4f16f924913938f4c76ba71ab50",
+  "scope": {
+    "worktree": "PIG_task_tracking",
+    "branch": "task/update-tracking",
+    "tracking_only": true,
+    "classification_or_model_changes_allowed": false,
+    "generated_mp4_preview_overlay_allowed": false
+  },
+  "authorities": {
+    "quality_selection_gate":
+      "docs/TRACKING_REALTIME_QUALITY_SELECTION_GATE_20260719.json",
+    "pareto_plan":
+      "docs/TRACKING_REALTIME_PARETO_FUNNEL_PLAN_20260719.json",
+    "window_manifest": {
+      "root":
+        "outputs/eval/tracking_realtime_optimization/20260719_realtime_parent_windows_v1",
+      "file": "window_manifest.json",
+      "quality_windows_sha256":
+        "cd4548aa797c4fffaa8b06db827adf2f1e7c234e65a4c49e3d16fb2ced8f1b39"
+    }
+  },
+  "parent_contract": {
+    "profile": "realtime_balanced",
+    "role": "last_promoted_causal_quality_base",
+    "timing_contract": "causal_framewise",
+    "delay_frames": 0,
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "gap_tolerance_frames": 15
+  },
+  "upper_bound_contract": {
+    "profile": "realtime_quality_delayed",
+    "role": "post_video_quality_upper_bound_only",
+    "timing_contract": "post_video_global_graph",
+    "delay_frames": -1,
+    "idsw": 166,
+    "hota": 0.9766216982135155,
+    "idf1": 0.9757870155131967
+  },
+  "candidate": {
+    "id": "RQ1",
+    "name": "rolling_motion_pair_fixed_lag_v1",
+    "changed_family": "finite_lag_quality_stabilizer",
+    "new_config_key": "realtime_motion_pair_fixed_lag_frames",
+    "new_key_default": 0,
+    "candidate_values": [12, 15, 30],
+    "timing_contract": "fixed_lag_framewise",
+    "current_global_graph_behavior_unchanged_at_default": true,
+    "profile_default_enabled_before_promotion": false,
+    "uses_gt_video_or_absolute_frame": false
+  },
+  "hypothesis": [
+    "The current graph gains come from short motion consistency.",
+    "A bounded lookahead should retain useful pair evidence.",
+    "Frames older than the selected lag can be flushed immutably.",
+    "The shortest passing lag is preferred when quality is tied."
+  ],
+  "implementation_contract": [
+    "Process frames in chronological order with a bounded future window.",
+    "Use only committed past state plus at most D future frames.",
+    "Never relabel an already committed past frame.",
+    "Copy only the current flush frame from each rolling decision.",
+    "Preserve current global-graph output when fixed lag is zero.",
+    "Do not activate local swap, suffix repair, condarea, or offline smoothing."
+  ],
+  "pre_window_gates": {
+    "negative_lag_rejected": true,
+    "global_graph_regression_test_required": true,
+    "causal_profile_regression_test_required": true,
+    "synthetic_prefix_invariance_each_lag": [12, 15, 30],
+    "fixed_lag_telemetry_exact": true,
+    "no_video_rendering_path": true,
+    "ruff_compile_focused_tests_required": true
+  },
+  "ordered_windows": [
+    {
+      "id": "QW01",
+      "video": "Pigs291119_000263_30fps",
+      "tracking_frames": [662, 878],
+      "score_frames": [782, 878],
+      "parent_switch_rows": 30
+    },
+    {
+      "id": "QW02",
+      "video": "Pigs291119_000233_30fps",
+      "tracking_frames": [784, 950],
+      "score_frames": [904, 950],
+      "parent_switch_rows": 9
+    },
+    {
+      "id": "QW03",
+      "video": "Pigs281119_000114_30fps",
+      "tracking_frames": [596, 763],
+      "score_frames": [716, 763],
+      "parent_switch_rows": 8
+    },
+    {
+      "id": "QW04",
+      "video": "Pigs291119_000231_30fps",
+      "tracking_frames": [1528, 1703],
+      "score_frames": [1648, 1703],
+      "parent_switch_rows": 8
+    }
+  ],
+  "window_selection": {
+    "compare_all_lags_on_same_windows": true,
+    "candidate_output_used_to_choose_windows": false,
+    "independent_episodes_improved_min": 2,
+    "per_window_idsw_regression_max": 0,
+    "aggregate_hota_idf1_non_regression": true,
+    "fp_fn_increase_allowed": false,
+    "recursive_mp4_count": 0,
+    "tie_break_order": [
+      "lower aggregate IDSW",
+      "higher HOTA",
+      "higher IDF1",
+      "shorter delay"
+    ]
+  },
+  "later_funnel": {
+    "stage_order": [
+      "one full difficult video",
+      "seven-video hard set",
+      "full-13 primary",
+      "full-13 independent repeat",
+      "separate profile promotion"
+    ],
+    "hard_set": [
+      "Pigs281119_000114_30fps",
+      "Pigs291119_000216_30fps",
+      "Pigs291119_000231_30fps",
+      "Pigs291119_000233_30fps",
+      "Pigs291119_000263_30fps",
+      "Pigs291119_000302_30fps",
+      "Pigs301119_000327_30fps"
+    ],
+    "full13_only_after_hard_set_pass": true
+  },
+  "full13_runtime_gates": {
+    "effective_fps_min": 24.079375406798524,
+    "max_frame_p95_ms": 45.29487048916054,
+    "peak_process_rss_bytes_max": 1923089203,
+    "repeat_to_primary_fps_ratio_min": 0.9,
+    "repeat_to_primary_peak_memory_ratio_max": 1.1,
+    "prefix_invariance_required": true,
+    "recursive_mp4_count": 0
+  },
+  "stop_conditions": [
+    "A change affects association, detector cadence, or another family.",
+    "Any already flushed payload changes after frames beyond the lag append.",
+    "Any window gains a new ID switch or loses HOTA/IDF1.",
+    "Fewer than two independent episodes improve.",
+    "Any output root contains MP4, preview, overlay, or event clips."
+  ],
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ]
+}

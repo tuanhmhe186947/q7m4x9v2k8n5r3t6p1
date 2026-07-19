@@ -1,0 +1,186 @@
+{
+  "schema_version": "tracking_promotion_decision_v2",
+  "status": "retained_under_corrected_contract",
+  "decision_date": "2026-07-17",
+  "profile": "realtime_quality_delayed",
+  "output_timing_contract": "post_video_global_graph",
+  "declared_delay_frames": -1,
+  "parent_prediction_commit":
+    "ec67d27b49b4bb375b805d52aaf87c22f4211e4e",
+  "candidate_prediction_commit":
+    "dccad96c08368798ed4314d6044cdd79d7b90029",
+  "original_promotion_commit":
+    "c5d5e45acfd5e31aea23a4a530936d808fa3e0c5",
+  "corrected_gt_contract_commit":
+    "d7b134034cfed580f16fba4658fb01e11bf8eb8a",
+  "evaluation_commit":
+    "9a2979de331db5127333e24a27e2bed2ee6c724a",
+  "changed_family": "realtime_motion_pair_stabilizer",
+  "changed_key": "realtime_motion_pair_simple_min_gain",
+  "hypothesis": "A lower simple-pair gain floor recovers weak ID swaps.",
+  "parent_value": 0.005,
+  "candidate_value": 0.003,
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "safe-refactor-test-guardian",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility"
+  ],
+  "evaluation_contract": {
+    "include_hidden": true,
+    "hidden_attribute_is_optimization_target": false,
+    "exclude_hidden_compatibility_only": true,
+    "iou_threshold": 0.5,
+    "gap_tolerance_frames": 15,
+    "video_count": 13,
+    "gt_detections": 187200,
+    "condarea_enabled": false
+  },
+  "run_ids": {
+    "parent_primary":
+      "20260717_9a2979d_includehidden_realtime_quality_delayed_parent_ec67d27_v1",
+    "parent_repeat":
+      "20260717_9a2979d_includehidden_realtime_quality_delayed_parent_ec67d27_repeat_v1",
+    "candidate_primary":
+      "20260717_9a2979d_includehidden_realtime_quality_delayed_candidate_dccad96_gain003_v1",
+    "candidate_repeat":
+      "20260717_9a2979d_includehidden_realtime_quality_delayed_candidate_dccad96_gain003_repeat_v1"
+  },
+  "lineage": {
+    "detector_sha256":
+      "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+    "parent_semantic_config_sha256":
+      "51d62d1c6ff8ac654f733bbd75a8e2929d2055001b73c0bef1f88f009a2b5089",
+    "candidate_semantic_config_sha256":
+      "e7ce420dc400a4f344409cad1009627d14a34dbdf3a2d2d7db9c34001fd16f5d",
+    "parent_primary_run_manifest_sha256":
+      "cbe41c4398eee8fe353cb1dc5cde8da062475866c726a49dd355902bc4804660",
+    "parent_repeat_run_manifest_sha256":
+      "451fbfc51778f02407b2821453c48d98daa5a7fe44ffa03ab26efe1bfd9eec0c",
+    "candidate_primary_run_manifest_sha256":
+      "9217c991c957a15238233bf62fe1d6c86200f08cd685916d83307390258d529b",
+    "candidate_repeat_run_manifest_sha256":
+      "502799c50938a4c3b8f4c828aab648b7d8be964b37f7e8fba7c3e892e68c4110",
+    "parent_primary_metrics_sha256":
+      "6538566e8d1e6c5b3a568ddd12695753a0c1b39a75d9c93e2a0a1ac12d66a9fd",
+    "parent_repeat_metrics_sha256":
+      "7137f66eb9365ac8a6dfff034302aaac088a7cac535c9b106203a4592881e3ed",
+    "candidate_primary_metrics_sha256":
+      "221fe69832d6891de2f70890d271e91030ecd51559a3803815e2f95616bbe57b",
+    "candidate_repeat_metrics_sha256":
+      "1ec1f802dbdb2c940de9742214ca407a7cffb4853d588083fbde9b72beaec02f",
+    "candidate_repeatability_lock_sha256":
+      "15bba6b6bfa7b77abe6629bb52ad56b180992e6060214bf4cda9e57de3011936",
+    "candidate_repeatability_authority_sha256":
+      "3d3cc78d92eaf07e5312ff35861285d666fa558cd2d700c4132f617ad42a0d82"
+  },
+  "aggregate_quality": {
+    "parent": {
+      "pred_detections": 187062,
+      "matches": 186613,
+      "fp": 449,
+      "fn": 587,
+      "remapped_idsw": 168,
+      "remapped_fragments": 130,
+      "remapped_gap_tolerant_fragments": 9,
+      "remapped_hota": 0.9766099693961209,
+      "remapped_idf1": 0.9757816716631664,
+      "motp_iou": 0.9140111762729379
+    },
+    "candidate": {
+      "pred_detections": 187062,
+      "matches": 186613,
+      "fp": 449,
+      "fn": 587,
+      "remapped_idsw": 166,
+      "remapped_fragments": 130,
+      "remapped_gap_tolerant_fragments": 9,
+      "remapped_hota": 0.9766216982135155,
+      "remapped_idf1": 0.9757870155131967,
+      "motp_iou": 0.9140111762729379
+    },
+    "candidate_minus_parent": {
+      "matches": 0,
+      "fp": 0,
+      "fn": 0,
+      "remapped_idsw": -2,
+      "remapped_fragments": 0,
+      "remapped_gap_tolerant_fragments": 0,
+      "remapped_hota_percentage_points": 0.0011728817394578432,
+      "remapped_idf1_percentage_points": 0.0005343850030301576,
+      "motp_iou_percentage_points": 0.0
+    }
+  },
+  "per_video_changes": {
+    "Pigs291119_000231_30fps": {
+      "remapped_idsw": [37, 37],
+      "remapped_hota_delta": 0.000051
+    },
+    "Pigs291119_000263_30fps": {
+      "remapped_idsw": [44, 42],
+      "remapped_hota_delta": 0.000104,
+      "remapped_idf1_delta": 0.000069
+    },
+    "other_video_count_with_metric_change": 0,
+    "video_count_with_idsw_regression": 0
+  },
+  "repeatability": {
+    "candidate_status": "PASS",
+    "metrics_equal_ignoring": ["pred_xml"],
+    "semantic_predictions_equal": true,
+    "verified_prediction_count": 26,
+    "verified_artifact_count": 72,
+    "mp4_count": 0
+  },
+  "runtime": {
+    "candidate_repeatability_status": "PASS",
+    "candidate_primary_loop_fps": 12.085928242557095,
+    "candidate_repeat_loop_fps": 12.75942086163058,
+    "candidate_repeat_fps_ratio": 1.0557253531178492,
+    "candidate_peak_process_rss_bytes": 1665773568,
+    "candidate_peak_cuda_reserved_bytes": 358612992,
+    "parent_primary_loop_fps": 22.792989653950308,
+    "parent_repeat_loop_fps": 16.767679379453423,
+    "parent_repeat_fps_ratio": 0.7356533214632793,
+    "parent_repeatability_under_current_0_90_fps_gate": "FAIL",
+    "parent_postprocess_to_association_pct": [
+      6.240354586212678,
+      5.05218955641623
+    ],
+    "candidate_postprocess_to_association_pct": [
+      4.622477510881232,
+      4.733521492686753
+    ],
+    "absolute_cross_lineage_fps_comparison":
+      "inconclusive_due_to_detector_and_association_timing_shift",
+    "speed_claim_authorized": false
+  },
+  "guardrails": {
+    "per_video_idsw_non_regression": true,
+    "aggregate_idsw_improvement_at_least_2": true,
+    "hota_non_regression": true,
+    "idf1_non_regression": true,
+    "fp_fn_non_regression": true,
+    "fragment_non_regression": true,
+    "Pigs291119_000302_30fps_idsw_zero": true,
+    "candidate_repeatability": true,
+    "candidate_runtime_repeatability": true,
+    "recursive_no_mp4": true,
+    "timing_contract_declared": true,
+    "fixed_delay_or_causal_claim": false
+  },
+  "failed_promotion_gates": [],
+  "residual_risks": [
+    "Parent total FPS was not repeatable under the current 0.90 ratio gate.",
+    "Absolute parent-to-candidate speed change is not scientifically identified.",
+    "The profile remains a full-video global graph with delay -1."
+  ],
+  "decision": "retain_realtime_quality_delayed_default_0_003",
+  "default_after_decision": 0.003,
+  "code_change_in_this_decision": false,
+  "rollback":
+    "git revert c5d5e45acfd5e31aea23a4a530936d808fa3e0c5",
+  "next_step":
+    "Close corrected realtime evidence, then address R0 causality before a new realtime ablation."
+}

@@ -1,0 +1,142 @@
+{
+  "schema_version": "tracking_h5b_h4_combined_full13_plan_v1",
+  "status": "frozen_before_full13",
+  "decision_date": "2026-07-18",
+  "worktree": "PIG_task_tracking",
+  "branch": "task/update-tracking",
+  "starting_commit": "c11a2f4037cc20db996ce370adf4558c93d85474",
+  "priority": "hybrid_bytetrack_residual_first",
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "changed_families": [
+    "hidden_suffix_identity_commit_overlap_persistence",
+    "post_identity_far_camera_hidden_bbox_geometry"
+  ],
+  "combination_contract": {
+    "h5b": "actual_tracker_candidate_on_all_videos",
+    "h4": "same offline geometry replay applied to all 13 videos",
+    "h4_expected_scope": "only 000328 may change, verified after replay",
+    "candidate_routing_by_video": false,
+    "gt_used_to_generate_prediction": false,
+    "video_or_frame_hardcode_in_algorithm": false,
+    "runtime_claim": "quality_only_offline_hybrid",
+    "generated_mp4_allowed": false
+  },
+  "workstream_order": {
+    "active_lane": "hybrid_bytetrack",
+    "realtime_status": "frozen_until_hybrid_lane_completion",
+    "realtime_operational_reference_after_open": "realtime_fast",
+    "balanced_acceptance": "material quality and stability value versus fast within latency gate",
+    "improvement_over_old_balanced_alone_is_sufficient": false
+  },
+  "evaluation_contract": {
+    "mode": "hybrid_bytetrack",
+    "include_hidden": true,
+    "hidden_is_optimization_target": false,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "iou_threshold": 0.5,
+    "gap_tolerance_frames": 15,
+    "video_count": 13,
+    "recursive_mp4_count_required": 0
+  },
+  "video_manifest": [
+    "Pigs281119_000085_30fps",
+    "Pigs281119_000114_30fps",
+    "Pigs291119_000216_30fps",
+    "Pigs291119_000225_30fps",
+    "Pigs291119_000226_30fps",
+    "Pigs291119_000231_30fps",
+    "Pigs291119_000233_30fps",
+    "Pigs291119_000263_30fps",
+    "Pigs291119_000302_30fps",
+    "Pigs301119_000327_30fps",
+    "Pigs301119_000328_30fps",
+    "Pigs301119_000329_30fps",
+    "Pigs301119_000330_30fps"
+  ],
+  "h5b_parameters": {
+    "hidden_suffix_id_swap_use_overlap_persistence": true,
+    "hidden_suffix_id_swap_min_overlap_persistence_frames": 2,
+    "min_hidden_frames": 8,
+    "max_hidden_frames": 15,
+    "min_overlap_iou": 0.7,
+    "max_hidden_median_score": 0.5,
+    "start_back_frames": 7,
+    "min_suffix_frames": 600
+  },
+  "h4_parameters": {
+    "far_x_threshold": 0.67,
+    "far_max_future_gap_frames": 15,
+    "far_min_height_excess": 0.15,
+    "far_min_visible_overlap_iou": 0.65,
+    "far_min_overlap_reduction": 0.10,
+    "far_max_center_shift": 0.12,
+    "far_original_weight": 0.10,
+    "evidence_target_video": "Pigs301119_000328_30fps",
+    "evidence_score_window": [1340, 1360],
+    "replay_video_count": 13,
+    "allow_no_change_for_non_triggering_videos": true
+  },
+  "hardset_evidence": {
+    "control_run":
+      "outputs/eval/tracking_hybrid_residual/20260718_c11a2f4_h5b_hardset_control_aggregate_v2",
+    "combined_candidate_run": [
+      "outputs/eval/tracking_hybrid_residual",
+      "20260718_c11a2f4_h5b_h4_combined_hardset_candidate_aggregate_v1"
+    ],
+    "control_remapped_idsw": 8,
+    "candidate_remapped_idsw": 0,
+    "control_remapped_hota": 0.983519,
+    "candidate_remapped_hota": 0.983965,
+    "control_remapped_idf1": 0.991545,
+    "candidate_remapped_idf1": 0.991806,
+    "control_fp": 482,
+    "candidate_fp": 472,
+    "control_fn": 482,
+    "candidate_fn": 472,
+    "difficult_videos_improved": 2
+  },
+  "full13_gates": {
+    "aggregate_idsw_max": 8,
+    "aggregate_hota_min_delta": 0.0,
+    "aggregate_idf1_min_delta": 0.0,
+    "critical_video_idsw_regression_max": 0,
+    "at_least_two_difficult_videos_improve": true,
+    "primary_repeat_required": true,
+    "prediction_integrity_required": true,
+    "recursive_no_mp4_required": true,
+    "realtime_authorized": false
+  },
+  "output_roots": {
+    "control_prediction":
+      "outputs/pred/tracking_hybrid_residual/20260718_h5b_h4_full13_control",
+    "control_evaluation":
+      "outputs/eval/tracking_hybrid_residual/20260718_h5b_h4_full13_control",
+    "h5b_prediction":
+      "outputs/pred/tracking_hybrid_residual/20260718_h5b_full13_candidate",
+    "h5b_evaluation":
+      "outputs/eval/tracking_hybrid_residual/20260718_h5b_full13_candidate",
+    "combined_replay_prediction":
+      "outputs/pred/tracking_hybrid_residual/20260718_h5b_h4_full13_combined",
+    "combined_evaluation":
+      "outputs/eval/tracking_hybrid_residual/20260718_h5b_h4_full13_combined"
+  },
+  "stop_conditions": [
+    "Any output root exists or contains an MP4.",
+    "Any per-video IDSW regression exceeds zero.",
+    "H5b changes non-ID payload or H4 changes non-geometry payload.",
+    "H4 is not replayed under the same generic rule for all 13 videos.",
+    "Aggregate HOTA or IDF1 decreases.",
+    "Input, detector, GT, profile, or commit hash cannot be bound."
+  ],
+  "next_step": [
+    "Run paired current-code full13 control and H5b candidate.",
+    "Replay H4 generically on all 13 candidate videos.",
+    "Aggregate and evaluate the combined predictions."
+  ]
+}

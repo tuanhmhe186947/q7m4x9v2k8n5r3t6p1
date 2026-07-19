@@ -1,0 +1,167 @@
+{
+  "schema_version": "tracking_promotion_decision_v2",
+  "status": "promoted_overall_quality_tradeoff",
+  "decision_date": "2026-07-18",
+  "profile": "hybrid_bytetrack",
+  "output_timing_contract": "post_video_offline",
+  "declared_delay_frames": -1,
+  "parent_prediction_commit":
+    "ec67d27b49b4bb375b805d52aaf87c22f4211e4e",
+  "candidate_experiment_commit":
+    "6e65b227d278c651fbb35229698e8d7b63f69dbe",
+  "algorithm_commit":
+    "7254670",
+  "profile_promotion_commit":
+    "e74a8fa",
+  "changed_family": "offline_identity_swap_guard",
+  "hypothesis": [
+    "A mixed detected/occlusion-hold pair in the far-camera region should",
+    "not be swapped by the offline identity guard because a valid hold is",
+    "more likely than an observed identity exchange in that perspective."
+  ],
+  "camera_contract": {
+    "near_clear_large_side": "left",
+    "far_blurred_small_side": "right",
+    "far_x_threshold_normalized": 0.67,
+    "wall_source": "data/annotations/scene/mask.png",
+    "wall_behavior_changed": false
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "safe-refactor-test-guardian",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility"
+  ],
+  "evaluation_contract": {
+    "include_hidden": true,
+    "hidden_attribute_is_optimization_target": false,
+    "iou_threshold": 0.5,
+    "gap_tolerance_frames": 15,
+    "video_count": 13,
+    "gt_detections": 187200,
+    "condarea_enabled": false,
+    "generated_mp4_allowed": false
+  },
+  "run_ids": {
+    "parent":
+      "20260717_6e65b22_baseline_include_hidden_audit_v1",
+    "target":
+      "20260717_6e65b22_identity_guard_far_target216_probe_v1",
+    "guardrail":
+      "20260717_6e65b22_identity_guard_far_guard3_probe_v1",
+    "candidate_primary":
+      "20260717_6e65b22_identity_guard_far_full13_primary_v1",
+    "candidate_repeat":
+      "20260717_6e65b22_identity_guard_far_full13_repeat_v1"
+  },
+  "lineage": {
+    "detector_sha256":
+      "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+    "mask_sha256":
+      "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658",
+    "parent_semantic_config_sha256":
+      "f1807590252c70289c37ca73f6c7f18b0e537e61b3bb37aad3f9950d68ba30e9",
+    "candidate_semantic_config_sha256":
+      "7ecd82bb97dfd46ef7e5e7fb9b3d4f72054bfbcbb75be9eee43dada6f87f13b4",
+    "parent_run_manifest_sha256":
+      "a61b982b31d52f3b9b6c43964f04c6930ae0207d8c4c2a9b50af28157daaf519",
+    "parent_metrics_sha256":
+      "9cf88f4af4b76856964af9f00061ae7055208eb53d07eb42097db9aa4b95dc68",
+    "candidate_primary_run_manifest_sha256":
+      "f5b4d89538b3eab5b2fcec20e55f1dd974a2f635f015679aec5594f82f410595",
+    "candidate_primary_metrics_sha256":
+      "2a1955f626349831a7ce7abdf494092949f6edac87cb97c67d96d64085cdad7f",
+    "candidate_repeat_run_manifest_sha256":
+      "61a3316f7a851da523cf40a8ddc7686df4db4ceedd4c73d17f042c59c2863592",
+    "candidate_repeat_metrics_sha256":
+      "a3c95c485da371a57d5cc2374d6e9189e26887d1aa1ae87b22c928c000ee8abd"
+  },
+  "aggregate_quality": {
+    "parent": {
+      "fp": 1628,
+      "fn": 1628,
+      "remapped_idsw": 10,
+      "remapped_idf1": 0.9912713675213676,
+      "remapped_hota": 0.9831034229640333
+    },
+    "candidate": {
+      "fp": 1630,
+      "fn": 1630,
+      "remapped_idsw": 8,
+      "remapped_idf1": 0.9912660256410256,
+      "remapped_hota": 0.9830907065241391
+    },
+    "candidate_minus_parent": {
+      "fp": 2,
+      "fn": 2,
+      "remapped_idsw": -2,
+      "remapped_idsw_relative_pct": -20.0,
+      "remapped_idf1_percentage_points": -0.0005341880342013545,
+      "remapped_hota_percentage_points": -0.0012716439894235876
+    },
+    "paper_precision": {
+      "remapped_idf1_pct": [99.13, 99.13],
+      "remapped_hota_pct": [98.31, 98.31]
+    }
+  },
+  "per_video_changes": {
+    "Pigs291119_000216_30fps": {
+      "remapped_idsw": [2, 0],
+      "fp": [330, 325],
+      "fn": [330, 325],
+      "remapped_hota": [0.9573969955416188, 0.9581526065488326]
+    },
+    "Pigs291119_000302_30fps": {
+      "remapped_idsw": [0, 0],
+      "fp": [68, 75],
+      "fn": [68, 75],
+      "remapped_hota": [0.9907940578844937, 0.9898735848681665]
+    },
+    "video_count_with_idsw_regression": 0
+  },
+  "repeatability": {
+    "quality_metrics_match_primary": true,
+    "per_video_metrics_match_primary": true,
+    "recursive_mp4_count": 0
+  },
+  "runtime": {
+    "primary_tracking_loop_fps": 23.519878135230815,
+    "repeat_tracking_loop_fps": 18.32744515741839,
+    "primary_effective_fps": 21.65780293006291,
+    "repeat_effective_fps": 16.804740471994936,
+    "primary_peak_process_rss_bytes": 1685889024,
+    "repeat_peak_process_rss_bytes": 1671729152,
+    "peak_cuda_reserved_bytes": 358612992,
+    "speed_claim_authorized": false
+  },
+  "guardrails": {
+    "overall_quality_improved": true,
+    "idsw_improved_in_both_runs": true,
+    "per_video_idsw_non_regression": true,
+    "paper_precision_hota_idf1_non_regression": true,
+    "candidate_repeatability": true,
+    "recursive_no_mp4": true,
+    "raw_hota_non_regression": false,
+    "raw_idf1_non_regression": false,
+    "fp_fn_non_regression": false
+  },
+  "decision_rule": [
+    "Overall tracking quality is judged jointly, not by requiring every raw",
+    "metric to be monotonic. The repeatable 20% IDSW reduction is accepted",
+    "because report-precision HOTA and IDF1 are unchanged and no video gains",
+    "an ID switch. The two aggregate FP/FN and raw-score deltas remain",
+    "reported as a small trade-off."
+  ],
+  "failed_blocking_gates": [],
+  "residual_risks": [
+    "The local 000302 geometry trade-off should be targeted separately.",
+    "Runtime FPS was not repeatable enough for a speed claim."
+  ],
+  "decision": "promote_far_view_identity_guard_in_hybrid_best",
+  "rollback": "git revert e74a8fa then git revert 7254670",
+  "next_step": [
+    "Use e74a8fa as the hybrid development parent.",
+    "Continue isolated realtime causality and weak-event ablations."
+  ]
+}

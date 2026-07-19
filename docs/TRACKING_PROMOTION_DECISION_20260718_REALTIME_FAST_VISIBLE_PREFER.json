@@ -1,0 +1,166 @@
+{
+  "schema_version": "tracking_promotion_decision_v2",
+  "status": "promoted_overall_quality",
+  "decision_date": "2026-07-18",
+  "profile": "realtime_fast",
+  "output_timing_contract": "causal_framewise",
+  "declared_delay_frames": 0,
+  "parent_prediction_commit": "94a82324acf876416a2119bf8efd7d65c2cfa756",
+  "candidate_experiment_commit": "7f36b5709c794a824bdd4ddd4ff7e62ae73ead06",
+  "profile_promotion_commit": "456fc97",
+  "changed_family": "realtime_visible_better_competitor_prefer",
+  "hypothesis": [
+    "When a visible detection is a materially better competitor for an",
+    "otherwise unserved track, preferring that assignment reduces causal",
+    "identity switches without changing detector coverage or delayed repair."
+  ],
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "safe-refactor-test-guardian",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility"
+  ],
+  "evaluation_contract": {
+    "include_hidden": true,
+    "hidden_attribute_is_optimization_target": false,
+    "iou_threshold": 0.5,
+    "gap_tolerance_frames": 15,
+    "video_count": 13,
+    "gt_detections": 187200,
+    "condarea_enabled": false,
+    "generated_mp4_allowed": false
+  },
+  "run_ids": {
+    "parent_authority":
+      "20260717_94a8232_includehidden_realtime_fast_baseline_repeatability_v1",
+    "target":
+      "20260718_7f36b57_r1_visible_prefer_fast_target231_includehidden_v1",
+    "guardrail":
+      "20260718_7f36b57_r1_visible_prefer_fast_guard302_includehidden_v1",
+    "hard_set":
+      "20260718_7f36b57_r1_visible_prefer_fast_hard4_includehidden_v1",
+    "candidate_primary":
+      "20260718_7f36b57_r1_visible_prefer_fast_full13_primary_v1",
+    "candidate_repeat":
+      "20260718_7f36b57_r1_visible_prefer_fast_full13_repeat_v2"
+  },
+  "lineage": {
+    "detector_sha256":
+      "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+    "mask_sha256":
+      "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658",
+    "parent_semantic_config_sha256":
+      "c983ef47ebcfd0fc6fba2749f3ea40b9ad724ea5af491d3ef6bb6b1a74572b90",
+    "candidate_semantic_config_sha256":
+      "b154444e2350322f58d9e50df886d53b38e6d48def89cf64a0c752a736ba10e4",
+    "parent_run_manifest_sha256":
+      "4c6ab269e94ec231fd6c4841f506c6b427ebdbe1ab4cec38a4750305d28a8a15",
+    "parent_metrics_sha256":
+      "840743e2fa69638fba2350c62b05cd27fbf3c838d27817ffbdf10556588a05ab",
+    "candidate_primary_run_manifest_sha256":
+      "27589f32161653976a26899a9a6e289629ed4b6bc98f00cee7bcb63b743bdc6a",
+    "candidate_primary_metrics_sha256":
+      "411a1fdcff9a39930e35df5f0381dcf9930a10cfb65c4fa2838f27136eef67df",
+    "candidate_repeat_run_manifest_sha256":
+      "893167dfc8e3b3f0a2421d3cb80b88d75363f38e72d64ae7e24655324d0a7f10",
+    "candidate_repeat_metrics_sha256":
+      "063458595b907c1adaf0594d0bf71b253fbb2ea160d2c33d58b916af3b5e5ca8"
+  },
+  "aggregate_quality": {
+    "parent": {
+      "fp": 564,
+      "fn": 688,
+      "remapped_idsw": 87,
+      "fragments": 114,
+      "remapped_idf1": 0.9321089249644647,
+      "remapped_hota": 0.938897138298361
+    },
+    "candidate": {
+      "fp": 506,
+      "fn": 630,
+      "remapped_idsw": 69,
+      "fragments": 110,
+      "remapped_idf1": 0.9390984193482884,
+      "remapped_hota": 0.9434658955189228
+    },
+    "candidate_minus_parent": {
+      "fp": -58,
+      "fn": -58,
+      "remapped_idsw": -18,
+      "remapped_idsw_relative_pct": -20.689655172413794,
+      "fragments": -4,
+      "remapped_idf1_percentage_points": 0.698949438382368,
+      "remapped_hota_percentage_points": 0.4568757220561825
+    },
+    "paper_precision": {
+      "remapped_idf1_pct": [93.21, 93.91],
+      "remapped_hota_pct": [93.89, 94.35]
+    }
+  },
+  "per_video_changes": {
+    "Pigs291119_000231_30fps": {
+      "remapped_idsw": [30, 12],
+      "fp": [128, 70],
+      "fn": [128, 70],
+      "fragments": [11, 7],
+      "remapped_hota": [0.7623634286712083, 0.8315977701207928],
+      "remapped_idf1": [0.7384722222222222, 0.8293055555555555]
+    },
+    "video_count_improved": 1,
+    "video_count_equal": 12,
+    "video_count_with_idsw_regression": 0
+  },
+  "repeatability": {
+    "quality_metrics_match_primary": true,
+    "per_video_metrics_match_primary": true,
+    "prediction_semantic_hashes_match_primary": true,
+    "prediction_count_per_run": 13,
+    "recursive_mp4_count": 0
+  },
+  "runtime": {
+    "primary_total_tracking_seconds": 860.27,
+    "repeat_total_tracking_seconds": 831.58,
+    "primary_mean_video_effective_fps": 27.4,
+    "repeat_mean_video_effective_fps": 28.16,
+    "primary_min_video_effective_fps": 22.53,
+    "repeat_min_video_effective_fps": 26.53,
+    "primary_max_frame_time_p95_ms": 62.49,
+    "repeat_max_frame_time_p95_ms": 49.29,
+    "speed_claim_authorized": false,
+    "timing_contract_all_videos": "causal_framewise",
+    "declared_delay_frames_all_videos": 0
+  },
+  "guardrails": {
+    "overall_quality_improved": true,
+    "idsw_improved_in_both_runs": true,
+    "per_video_idsw_non_regression": true,
+    "aggregate_fp_fn_non_regression": true,
+    "aggregate_hota_non_regression": true,
+    "aggregate_idf1_non_regression": true,
+    "candidate_repeatability": true,
+    "recursive_no_mp4": true,
+    "causal_timing_contract": true
+  },
+  "decision_rule": [
+    "Overall tracking quality is judged jointly, not by requiring every video",
+    "to improve. The repeatable aggregate gains are promoted because IDSW,",
+    "FP/FN and fragments all decrease, HOTA and IDF1 increase, and no video",
+    "has an IDSW regression. The single improved video and twelve unchanged",
+    "videos are reported explicitly rather than hidden by aggregate scores."
+  ],
+  "failed_blocking_gates": [],
+  "residual_risks": [
+    "The largest gain is concentrated in 000231; future realtime work must",
+    "verify that the same preference remains safe on newly sampled sessions.",
+    "Runtime varied between primary and repeat, so no speed improvement is",
+    "claimed."
+  ],
+  "decision": "promote_visible_competitor_preference_in_realtime_fast",
+  "rollback": "git revert 456fc97",
+  "next_step": [
+    "Use 456fc97 as the realtime_fast development parent.",
+    "Continue isolated realtime_balanced weak-event ablations under the same",
+    "include_hidden=true and no-MP4 contract."
+  ]
+}

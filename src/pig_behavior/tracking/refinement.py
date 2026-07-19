@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from bisect import bisect_left, bisect_right
 from copy import deepcopy
 from typing import Any
 
@@ -19,6 +20,26 @@ from pig_behavior.tracking.geometry import (
 )
 
 logger = logging.getLogger(__name__)
+
+def _clone_motion_pair_shape(shape: dict[str, Any]) -> dict[str, Any]:
+    """Clone mutable fields in the frame-shape contract without full deepcopy."""
+    cloned = shape.copy()
+
+    points = shape.get("points")
+    if isinstance(points, list):
+        cloned["points"] = points.copy()
+
+    attributes = shape.get("attributes")
+    if isinstance(attributes, list):
+        cloned["attributes"] = [
+            attribute.copy() if isinstance(attribute, dict) else deepcopy(attribute)
+            for attribute in attributes
+        ]
+
+    elements = shape.get("elements")
+    if isinstance(elements, list):
+        cloned["elements"] = deepcopy(elements) if elements else []
+    return cloned
 
 
 def _shape_attributes_dict(shape: dict[str, Any]) -> dict[str, Any]:
@@ -176,6 +197,25 @@ def _median_score(shapes: list[dict[str, Any]]) -> float:
     return float(np.median(np.asarray([float(shape.get("score", 0.0)) for shape in shapes])))
 
 
+def _first_persistent_overlap_boundary(
+    overlap_by_frame: dict[int, float],
+    min_overlap_iou: float,
+    persistence_frames: int,
+) -> int | None:
+    """Return the last frame of the first qualifying contiguous overlap run."""
+    if persistence_frames < 1:
+        raise ValueError("overlap persistence must be positive")
+    qualifying_frames = sorted(
+        frame
+        for frame, overlap in overlap_by_frame.items()
+        if overlap >= min_overlap_iou
+    )
+    for run_start, run_end in _contiguous_runs(qualifying_frames):
+        if run_end - run_start + 1 >= persistence_frames:
+            return run_start + persistence_frames - 1
+    return None
+
+
 def repair_hidden_suffix_id_swaps(
     shapes: list[dict[str, Any]],
     cfg: TrackingConfig,
@@ -228,6 +268,7 @@ def repair_hidden_suffix_id_swaps(
                 continue
 
             partner_overlaps: dict[int, list[float]] = {}
+            partner_overlap_by_frame: dict[int, dict[int, float]] = {}
             for hidden_shape in hidden_run_shapes:
                 frame = int(hidden_shape["frame"])
                 for other in by_frame.get(frame, []):
@@ -236,9 +277,11 @@ def repair_hidden_suffix_id_swaps(
                         continue
                     if shape_hidden_value(other) == "Yes":
                         continue
-                    partner_overlaps.setdefault(partner_id, []).append(
-                        bbox_iou(shape_box(hidden_shape), shape_box(other))
-                    )
+                    overlap = bbox_iou(shape_box(hidden_shape), shape_box(other))
+                    partner_overlaps.setdefault(partner_id, []).append(overlap)
+                    partner_overlap_by_frame.setdefault(partner_id, {})[
+                        frame
+                    ] = overlap
             if not partner_overlaps:
                 continue
 
@@ -252,21 +295,37 @@ def repair_hidden_suffix_id_swaps(
             if pair_key in repaired_pairs:
                 continue
 
-            swap_start = max(
+            old_swap_start = max(
                 run_start,
                 run_end - cfg.hidden_suffix_id_swap_start_back_frames,
             )
+            swap_start = old_swap_start
+            if cfg.hidden_suffix_id_swap_use_overlap_persistence:
+                swap_start = _first_persistent_overlap_boundary(
+                    partner_overlap_by_frame[partner_id],
+                    cfg.hidden_suffix_id_swap_min_overlap_iou,
+                    cfg.hidden_suffix_id_swap_min_overlap_persistence_frames,
+                )
+                if swap_start is None or swap_start <= old_swap_start:
+                    continue
+                if swap_start not in by_id_frame[partner_id]:
+                    continue
             common_suffix_frames = sorted(
                 frame
                 for frame in set(hidden_frames_by_frame) & set(by_id_frame[partner_id])
-                if frame >= swap_start
+                if frame >= old_swap_start
             )
             if len(common_suffix_frames) < cfg.hidden_suffix_id_swap_min_suffix_frames:
+                continue
+            repair_frames = [
+                frame for frame in common_suffix_frames if frame >= swap_start
+            ]
+            if not repair_frames:
                 continue
 
             hidden_id_value = f"ID_{hidden_id}"
             partner_id_value = f"ID_{partner_id}"
-            for frame in common_suffix_frames:
+            for frame in repair_frames:
                 hidden_shape = hidden_frames_by_frame[frame]
                 partner_shape = by_id_frame[partner_id][frame]
                 _set_shape_id_value(hidden_shape, partner_id_value)
@@ -323,7 +382,10 @@ def stabilize_overlap_hidden_islands(
             for second in candidate_shapes[idx + 1 :]:
                 if bbox_iou(shape_box(first), shape_box(second)) < threshold:
                     continue
-                first_hidden_history = nearby_hidden_count(shape_fixed_id(first), int(first["frame"]))
+                first_hidden_history = nearby_hidden_count(
+                    shape_fixed_id(first),
+                    int(first["frame"]),
+                )
                 second_hidden_history = nearby_hidden_count(
                     shape_fixed_id(second),
                     int(second["frame"]),
@@ -390,6 +452,14 @@ def nearby_anchor_indices(
         if int(track_shapes[idx]["frame"]) - frame <= cfg.refine_max_gap_frames:
             next_idx = idx
         break
+    if (
+        previous_idx is not None
+        and next_idx is None
+        and cfg.refine_max_previous_gap_frames > 0
+        and frame - int(track_shapes[previous_idx]["frame"])
+        > cfg.refine_max_previous_gap_frames
+    ):
+        previous_idx = None
     return previous_idx, next_idx
 
 
@@ -489,6 +559,282 @@ def refine_shapes_temporally(
     return refined_shapes
 
 
+def refine_near_wall_hidden_geometry(
+    shapes: list[dict[str, Any]],
+    width: int,
+    height: int,
+    mask: np.ndarray | None,
+    cfg: TrackingConfig,
+) -> list[dict[str, Any]]:
+    """Refine oversized hidden boxes near the known pen wall.
+
+    This pass is deliberately geometry-only and runs after identity and
+    visibility decisions. It requires visible anchors on both sides of a
+    hidden span, so it cannot relabel a track or invent a long-range path.
+    """
+    if not cfg.near_wall_hidden_geometry_refine:
+        return shapes
+    if mask is None:
+        raise ValueError(
+            "near_wall_hidden_geometry_refine requires a pen mask."
+        )
+
+    import cv2
+
+    mask_array = np.asarray(mask)
+    if mask_array.ndim != 2 or mask_array.shape != (height, width):
+        raise ValueError(
+            "near_wall_hidden_geometry_refine mask shape must match video."
+        )
+    pen_mask = (mask_array > 0).astype(np.uint8)
+    if not np.any(pen_mask):
+        raise ValueError("near_wall_hidden_geometry_refine mask is empty.")
+    wall_distance = cv2.distanceTransform(pen_mask, cv2.DIST_L2, 5)
+    refined_shapes = [shape.copy() for shape in shapes]
+    by_identity: dict[str, list[dict[str, Any]]] = {}
+    for shape in refined_shapes:
+        attributes = _shape_attributes_dict(shape)
+        identity_key = str(attributes.get("ID") or shape.get("label", ""))
+        by_identity.setdefault(identity_key, []).append(shape)
+
+    for track_shapes in by_identity.values():
+        track_shapes.sort(key=lambda item: int(item["frame"]))
+        anchors = [
+            shape
+            for shape in track_shapes
+            if not shape.get("outside", False)
+            and shape_hidden_value(shape) == "No"
+            and float(shape.get("score", 0.0)) >= cfg.review_conf
+        ]
+        if len(anchors) < 2:
+            continue
+
+        for shape in track_shapes:
+            if shape.get("outside", False) or shape_hidden_value(shape) != "Yes":
+                continue
+            frame = int(shape["frame"])
+            previous = next(
+                (
+                    anchor
+                    for anchor in reversed(anchors)
+                    if 0 < frame - int(anchor["frame"])
+                    <= cfg.near_wall_hidden_geometry_max_gap_frames
+                ),
+                None,
+            )
+            following = next(
+                (
+                    anchor
+                    for anchor in anchors
+                    if 0 < int(anchor["frame"]) - frame
+                    <= cfg.near_wall_hidden_geometry_max_gap_frames
+                ),
+                None,
+            )
+            if previous is None or following is None:
+                continue
+
+            original = shape_box(shape)
+            expected = interpolate_box(previous, following, frame)
+            original_width, _ = bbox_size(original)
+            expected_width, _ = bbox_size(expected)
+            width_excess = original_width / max(expected_width, 1e-6) - 1.0
+            if (
+                width_excess
+                < cfg.near_wall_hidden_geometry_min_width_excess
+            ):
+                continue
+            center_shift = center_distance_norm(
+                original,
+                expected,
+                width,
+                height,
+            )
+            if center_shift > cfg.near_wall_hidden_geometry_max_center_shift:
+                continue
+
+            left, top, right, bottom = _clipped_shape_bbox(
+                original,
+                width,
+                height,
+            )
+            bbox_distance = float(
+                np.quantile(wall_distance[top:bottom, left:right], 0.10)
+            )
+            bbox_area = max(1.0, float((original[2] - original[0]) * (
+                original[3] - original[1]
+            )))
+            distance_scale = bbox_distance / max(np.sqrt(bbox_area), 1.0)
+            if (
+                distance_scale
+                > cfg.near_wall_hidden_geometry_distance_bbox_scale
+            ):
+                continue
+
+            blended = (
+                cfg.near_wall_hidden_geometry_original_weight * original
+                + (1.0 - cfg.near_wall_hidden_geometry_original_weight)
+                * expected
+            )
+            shape["_near_wall_hidden_geometry_original_points"] = [
+                round(float(value), 2) for value in original
+            ]
+            shape["_near_wall_hidden_geometry_refined"] = True
+            shape["_near_wall_hidden_geometry_width_excess"] = round(
+                float(width_excess),
+                4,
+            )
+            shape["_near_wall_hidden_geometry_anchor_frames"] = [
+                int(previous["frame"]),
+                int(following["frame"]),
+            ]
+            set_shape_box(shape, blended, width, height)
+
+    return refined_shapes
+
+
+def refine_far_camera_hidden_geometry(
+    shapes: list[dict[str, Any]],
+    width: int,
+    height: int,
+    cfg: TrackingConfig,
+) -> list[dict[str, Any]]:
+    """Pull anomalously tall far-camera Hidden boxes toward a future anchor.
+
+    This pass is geometry-only and runs after identity/visibility processing.
+    It requires a nearby visible same-ID anchor and a measurable reduction in
+    overlap with a visible different-ID box.
+    """
+    if not cfg.far_camera_hidden_geometry_refine:
+        return shapes
+    if width < 1 or height < 1:
+        raise ValueError("far-camera geometry requires positive frame size.")
+
+    refined_shapes = [shape.copy() for shape in shapes]
+    by_identity: dict[str, list[dict[str, Any]]] = {}
+    visible_by_frame: dict[int, list[dict[str, Any]]] = {}
+    for shape in refined_shapes:
+        if shape.get("outside", False):
+            continue
+        attributes = _shape_attributes_dict(shape)
+        identity_key = str(attributes.get("ID") or shape.get("label", ""))
+        by_identity.setdefault(identity_key, []).append(shape)
+        if shape_hidden_value(shape) == "No":
+            visible_by_frame.setdefault(int(shape["frame"]), []).append(shape)
+
+    for identity_key, track_shapes in by_identity.items():
+        track_shapes.sort(key=lambda item: int(item["frame"]))
+        future_anchor: dict[str, Any] | None = None
+        for shape in reversed(track_shapes):
+            hidden_value = shape_hidden_value(shape)
+            if hidden_value == "No":
+                if float(shape.get("score", 0.0)) >= cfg.det_conf:
+                    future_anchor = shape
+                continue
+            if hidden_value != "Yes" or future_anchor is None:
+                continue
+
+            frame = int(shape["frame"])
+            anchor_frame = int(future_anchor["frame"])
+            frame_gap = anchor_frame - frame
+            if not (
+                0 < frame_gap
+                <= cfg.far_camera_hidden_geometry_max_future_gap_frames
+            ):
+                continue
+
+            original = shape_box(shape)
+            anchor_box = shape_box(future_anchor)
+            original_center_x = float((original[0] + original[2]) / 2.0)
+            anchor_center_x = float((anchor_box[0] + anchor_box[2]) / 2.0)
+            far_threshold = cfg.far_camera_hidden_geometry_x_threshold * width
+            if min(original_center_x, anchor_center_x) < far_threshold:
+                continue
+
+            original_height = max(float(original[3] - original[1]), 1e-6)
+            anchor_height = max(float(anchor_box[3] - anchor_box[1]), 1e-6)
+            height_excess = original_height / anchor_height - 1.0
+            if (
+                height_excess
+                < cfg.far_camera_hidden_geometry_min_height_excess
+            ):
+                continue
+
+            center_shift = center_distance_norm(
+                original,
+                anchor_box,
+                width,
+                height,
+            )
+            if center_shift > cfg.far_camera_hidden_geometry_max_center_shift:
+                continue
+
+            rivals: list[tuple[float, dict[str, Any]]] = []
+            for other in visible_by_frame.get(frame, []):
+                other_attributes = _shape_attributes_dict(other)
+                other_identity = str(
+                    other_attributes.get("ID") or other.get("label", "")
+                )
+                if other_identity == identity_key:
+                    continue
+                rivals.append((bbox_iou(original, shape_box(other)), other))
+            if not rivals:
+                continue
+
+            overlap_before, rival = max(rivals, key=lambda item: item[0])
+            if (
+                overlap_before
+                < cfg.far_camera_hidden_geometry_min_visible_overlap_iou
+            ):
+                continue
+
+            original_weight = cfg.far_camera_hidden_geometry_original_weight
+            blended = (
+                original_weight * original
+                + (1.0 - original_weight) * anchor_box
+            )
+            overlap_after = bbox_iou(blended, shape_box(rival))
+            overlap_reduction = overlap_before - overlap_after
+            if (
+                overlap_reduction
+                < cfg.far_camera_hidden_geometry_min_overlap_reduction
+            ):
+                continue
+
+            rival_attributes = _shape_attributes_dict(rival)
+            shape["_far_camera_hidden_geometry_original_points"] = [
+                round(float(value), 2) for value in original
+            ]
+            shape["_far_camera_hidden_geometry_refined"] = True
+            shape["_far_camera_hidden_geometry_height_excess"] = round(
+                float(height_excess),
+                4,
+            )
+            shape["_far_camera_hidden_geometry_overlap_iou"] = [
+                round(float(overlap_before), 4),
+                round(float(overlap_after), 4),
+            ]
+            shape["_far_camera_hidden_geometry_anchor_frame"] = anchor_frame
+            shape["_far_camera_hidden_geometry_overlap_identity"] = str(
+                rival_attributes.get("ID") or rival.get("label", "")
+            )
+            set_shape_box(shape, blended, width, height)
+
+    return refined_shapes
+
+
+def _clipped_shape_bbox(
+    box: np.ndarray,
+    width: int,
+    height: int,
+) -> tuple[int, int, int, int]:
+    left = max(0, min(width - 1, int(np.floor(box[0]))))
+    top = max(0, min(height - 1, int(np.floor(box[1]))))
+    right = max(left + 1, min(width, int(np.ceil(box[2]))))
+    bottom = max(top + 1, min(height, int(np.ceil(box[3]))))
+    return left, top, right, bottom
+
+
 def shape_fixed_id(shape: dict[str, Any]) -> int:
     return int(str(shape["label"]).removeprefix("Pig_"))
 
@@ -511,7 +857,30 @@ def identity_swap_reason(
     current_second: dict[str, Any],
     gain: float,
     cfg: TrackingConfig,
+    frame_width: int | None = None,
 ) -> str | None:
+    if cfg.identity_swap_guard_skip_mixed_occlusion_hold:
+        current_shapes = (current_first, current_second)
+        hold_count = sum(
+            bool(shape.get("_occlusion_hold")) for shape in current_shapes
+        )
+        detected_count = sum(
+            shape.get("_track_source") == "detected"
+            and not shape.get("_occlusion_hold")
+            for shape in current_shapes
+        )
+        if hold_count == 1 and detected_count == 1:
+            if not cfg.identity_swap_guard_skip_mixed_occlusion_hold_far_only:
+                return None
+            if frame_width is None or frame_width <= 0:
+                return None
+            mean_center_x = sum(
+                (shape_box(shape)[0] + shape_box(shape)[2]) / 2.0
+                for shape in current_shapes
+            ) / len(current_shapes)
+            if mean_center_x / frame_width >= cfg.identity_swap_guard_far_x_threshold:
+                return None
+
     previous_iom = bbox_iom(shape_box(previous_first), shape_box(previous_second))
     current_iom = bbox_iom(shape_box(current_first), shape_box(current_second))
     if max(previous_iom, current_iom) >= cfg.identity_swap_iom_threshold:
@@ -661,6 +1030,7 @@ def apply_identity_swap_guard(
                         cur_second,
                         gain,
                         cfg,
+                        frame_width=width,
                     )
                     if reason is None:
                         continue
@@ -844,8 +1214,9 @@ def realtime_motion_pair_candidates(
     cfg: TrackingConfig,
     *,
     allowed_edges: set[tuple[str, str]] | None = None,
+    mutable_start_frame: int | None = None,
 ) -> tuple[list[dict[str, Any]], list[tuple[str, str, float]]]:
-    stabilized = [deepcopy(shape) for shape in shapes]
+    stabilized = [_clone_motion_pair_shape(shape) for shape in shapes]
     by_frame: dict[int, list[dict[str, Any]]] = {}
     for shape in stabilized:
         if shape_is_visible_for_local_swap(shape):
@@ -900,6 +1271,8 @@ def realtime_motion_pair_candidates(
             shape = frame_shapes[index]
             current_id = shape_id_value(shape)
             if current_id is None or current_id == proposed_id:
+                continue
+            if mutable_start_frame is not None and frame < mutable_start_frame:
                 continue
             current_center = shape_center_xy(shape)
             if current_id in active_previous:
@@ -1006,19 +1379,22 @@ def motion_pair_allowed_edges(
     return allowed
 
 
-def stabilize_realtime_motion_pairs(
+def _stabilize_realtime_motion_pair_graph(
     shapes: list[dict[str, Any]],
     width: int,
     height: int,
     cfg: TrackingConfig,
+    *,
+    mutable_start_frame: int | None = None,
 ) -> list[dict[str, Any]]:
-    """Relabel short-memory motion components for delayed realtime quality."""
-    if not cfg.realtime_motion_pair_stabilizer:
-        return shapes
-    if cfg.mode != "realtime":
-        return shapes
-
-    _, planned_edges = realtime_motion_pair_candidates(shapes, width, height, cfg)
+    """Apply the existing global edge-selection graph to one shape window."""
+    _, planned_edges = realtime_motion_pair_candidates(
+        shapes,
+        width,
+        height,
+        cfg,
+        mutable_start_frame=mutable_start_frame,
+    )
     if not planned_edges:
         return shapes
     allowed_edges = motion_pair_allowed_edges(planned_edges, cfg)
@@ -1030,6 +1406,7 @@ def stabilize_realtime_motion_pairs(
         height,
         cfg,
         allowed_edges=allowed_edges,
+        mutable_start_frame=mutable_start_frame,
     )
     simple_min_gain = float(cfg.realtime_motion_pair_simple_min_gain)
     if 0.0 < simple_min_gain < cfg.realtime_motion_pair_min_gain:
@@ -1053,6 +1430,7 @@ def stabilize_realtime_motion_pairs(
             width,
             height,
             simple_cfg,
+            mutable_start_frame=mutable_start_frame,
         )
         simple_allowed_edges = motion_pair_allowed_edges(simple_planned_edges, simple_cfg)
         if simple_allowed_edges:
@@ -1062,6 +1440,7 @@ def stabilize_realtime_motion_pairs(
                 height,
                 simple_cfg,
                 allowed_edges=simple_allowed_edges,
+                mutable_start_frame=mutable_start_frame,
             )
             changed_edges.extend(simple_changed_edges)
     if changed_edges:
@@ -1070,6 +1449,72 @@ def stabilize_realtime_motion_pairs(
             len(changed_edges),
         )
     return stabilized
+
+
+def _stabilize_realtime_motion_pairs_fixed_lag(
+    shapes: list[dict[str, Any]],
+    width: int,
+    height: int,
+    cfg: TrackingConfig,
+    fixed_lag_frames: int,
+) -> list[dict[str, Any]]:
+    stabilized = [_clone_motion_pair_shape(shape) for shape in shapes]
+    indices_by_frame: dict[int, list[int]] = {}
+    for index, shape in enumerate(stabilized):
+        indices_by_frame.setdefault(int(shape["frame"]), []).append(index)
+    ordered_frames = sorted(indices_by_frame)
+    memory_frames = max(0, int(cfg.realtime_motion_pair_memory_frames))
+
+    for flush_frame in ordered_frames:
+        window_start = flush_frame - memory_frames
+        window_end = flush_frame + fixed_lag_frames
+        left = bisect_left(ordered_frames, window_start)
+        right = bisect_right(ordered_frames, window_end)
+        window_indices = [
+            index
+            for frame in ordered_frames[left:right]
+            for index in indices_by_frame[frame]
+        ]
+        window_shapes = [stabilized[index] for index in window_indices]
+        window_result = _stabilize_realtime_motion_pair_graph(
+            window_shapes,
+            width,
+            height,
+            cfg,
+            mutable_start_frame=flush_frame,
+        )
+        for window_index, source_index in enumerate(window_indices):
+            if int(stabilized[source_index]["frame"]) != flush_frame:
+                continue
+            stabilized[source_index] = _clone_motion_pair_shape(
+                window_result[window_index]
+            )
+
+    return stabilized
+
+
+def stabilize_realtime_motion_pairs(
+    shapes: list[dict[str, Any]],
+    width: int,
+    height: int,
+    cfg: TrackingConfig,
+) -> list[dict[str, Any]]:
+    """Relabel motion components under a global or finite-lag contract."""
+    if not cfg.realtime_motion_pair_stabilizer or cfg.mode != "realtime":
+        return shapes
+
+    fixed_lag_frames = int(cfg.realtime_motion_pair_fixed_lag_frames)
+    if fixed_lag_frames < 0:
+        raise ValueError("realtime_motion_pair_fixed_lag_frames must be >= 0.")
+    if fixed_lag_frames == 0:
+        return _stabilize_realtime_motion_pair_graph(shapes, width, height, cfg)
+    return _stabilize_realtime_motion_pairs_fixed_lag(
+        shapes,
+        width,
+        height,
+        cfg,
+        fixed_lag_frames,
+    )
 
 
 def median_shape_center(shapes: list[dict[str, Any]]) -> tuple[float, float]:
@@ -1132,9 +1577,16 @@ def find_episode_anchor(
 ) -> dict[str, Any] | None:
     frames = by_id_frame.get(fixed_id, {})
     if before:
-        candidates = range(start_frame - 1, start_frame - cfg.episode_pair_swap_anchor_window_frames - 1, -1)
+        candidates = range(
+            start_frame - 1,
+            start_frame - cfg.episode_pair_swap_anchor_window_frames - 1,
+            -1,
+        )
     else:
-        candidates = range(end_frame + 1, end_frame + cfg.episode_pair_swap_anchor_window_frames + 1)
+        candidates = range(
+            end_frame + 1,
+            end_frame + cfg.episode_pair_swap_anchor_window_frames + 1,
+        )
     for frame in candidates:
         shape = frames.get(frame)
         if shape is not None and shape_is_visible_for_local_swap(shape):
@@ -1219,8 +1671,16 @@ def repair_episode_pair_swaps(
                     continue
 
                 episode_frames = range(start_frame, end_frame + 1)
-                first_episode_shapes = [first_frames[frame] for frame in episode_frames if frame in first_frames]
-                second_episode_shapes = [second_frames[frame] for frame in episode_frames if frame in second_frames]
+                first_episode_shapes = [
+                    first_frames[frame]
+                    for frame in episode_frames
+                    if frame in first_frames
+                ]
+                second_episode_shapes = [
+                    second_frames[frame]
+                    for frame in episode_frames
+                    if frame in second_frames
+                ]
                 if not first_episode_shapes or not second_episode_shapes:
                     continue
 

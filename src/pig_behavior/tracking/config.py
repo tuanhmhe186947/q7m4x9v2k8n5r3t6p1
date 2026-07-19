@@ -167,6 +167,7 @@ class TrackingConfig:
     realtime_visible_close_competitor_margin: float = 0.012
     realtime_visible_close_competitor_max_cost: float = 0.35
     realtime_visible_close_competitor_min_hits: int = 3
+    realtime_visible_close_competitor_min_center_x_ratio: float = 0.0
     realtime_visible_better_competitor_reject: bool = False
     realtime_visible_better_competitor_prefer: bool = False
     realtime_visible_better_competitor_min_cost: float = 0.50
@@ -175,7 +176,23 @@ class TrackingConfig:
     realtime_low_conf_recovery_min_score: float = 0.50
     realtime_low_conf_recovery_min_missed: int = 3
     realtime_low_conf_recovery_max_missed: int = 20
+    # Opt-in causal guard: reserve a strong hidden-track claim before a
+    # visible track consumes the same detection in the high-confidence phase.
+    causal_hidden_detection_reservation: bool = False
+    causal_hidden_detection_reservation_max_missed: int = 5
+    causal_hidden_detection_reservation_max_claim_cost: float = 0.25
+    causal_hidden_detection_reservation_min_iom: float = 0.55
+    causal_hidden_detection_reservation_max_center_distance: float = 0.09
+    causal_hidden_detection_reservation_min_gain: float = 0.08
+    causal_hidden_detection_reservation_max_alternative_cost: float = 0.78
+    causal_hidden_detection_reservation_allow_visible_hold: bool = False
+    causal_hidden_detection_reservation_hold_reserved_reid: bool = False
+    causal_hidden_detection_reservation_hold_min_iom: float = 0.96
+    causal_hidden_detection_reservation_hold_max_claim_cost: float = 0.10
+    causal_hidden_detection_reservation_hold_min_gain: float = 0.10
+    causal_hidden_detection_reservation_hold_min_visible_cost: float = 0.20
     realtime_motion_pair_stabilizer: bool = False
+    realtime_motion_pair_fixed_lag_frames: int = 0
     realtime_motion_pair_max_jump: float = 0.10
     realtime_motion_pair_min_gain: float = 0.01
     realtime_motion_pair_memory_frames: int = 30
@@ -205,6 +222,9 @@ class TrackingConfig:
     hard_occlusion_recovery_frames: int = DEFAULT_SPLIT_RECOVERY_FRAMES
     hard_occlusion_score_threshold: float = 0.65
     identity_swap_guard: bool = True
+    identity_swap_guard_skip_mixed_occlusion_hold: bool = False
+    identity_swap_guard_skip_mixed_occlusion_hold_far_only: bool = False
+    identity_swap_guard_far_x_threshold: float = 0.67
     identity_swap_min_gain: float = 0.015
     identity_swap_iom_threshold: float = 0.10
     # Experimental: frame-local motion repair did not affect the 20260703_221004
@@ -241,6 +261,8 @@ class TrackingConfig:
     hidden_suffix_id_swap_max_hidden_median_score: float = 0.50
     hidden_suffix_id_swap_start_back_frames: int = 7
     hidden_suffix_id_swap_min_suffix_frames: int = 600
+    hidden_suffix_id_swap_use_overlap_persistence: bool = False
+    hidden_suffix_id_swap_min_overlap_persistence_frames: int = 2
     association_debug: bool = False
     ambiguity_owner_guard: bool = False
     ambiguity_owner_guard_cost_margin: float = 0.04
@@ -308,7 +330,23 @@ class TrackingConfig:
     smooth_boxes: bool = True
     refine_boxes: bool = True
     refine_max_gap_frames: int = 15
+    # Zero keeps symmetric behavior; positive values cap past-only fallback.
+    refine_max_previous_gap_frames: int = 0
     refine_size_jump_threshold: float = 0.45
+    near_wall_hidden_geometry_refine: bool = False
+    near_wall_hidden_geometry_max_gap_frames: int = 30
+    near_wall_hidden_geometry_distance_bbox_scale: float = 0.25
+    near_wall_hidden_geometry_min_width_excess: float = 0.08
+    near_wall_hidden_geometry_max_center_shift: float = 0.04
+    near_wall_hidden_geometry_original_weight: float = 0.50
+    far_camera_hidden_geometry_refine: bool = False
+    far_camera_hidden_geometry_x_threshold: float = 0.67
+    far_camera_hidden_geometry_max_future_gap_frames: int = 15
+    far_camera_hidden_geometry_min_height_excess: float = 0.15
+    far_camera_hidden_geometry_min_visible_overlap_iou: float = 0.65
+    far_camera_hidden_geometry_min_overlap_reduction: float = 0.10
+    far_camera_hidden_geometry_max_center_shift: float = 0.12
+    far_camera_hidden_geometry_original_weight: float = 0.10
     max_box_scale_change_per_frame: float = 0.25
     max_box_scale_change_after_gap: float = 0.75
     high_conf_smooth_alpha: float = 0.75
@@ -501,10 +539,57 @@ def validate_config(cfg: TrackingConfig) -> None:
     for name, value in occlusion_values.items():
         if not 0.0 <= value <= 1.0:
             raise ValueError(f"{name} must be between 0 and 1.")
+    if not (
+        0.0
+        <= cfg.realtime_visible_close_competitor_min_center_x_ratio
+        <= 1.0
+    ):
+        raise ValueError(
+            "realtime_visible_close_competitor_min_center_x_ratio must be "
+            "between 0 and 1."
+        )
     if cfg.occlusion_hold_max_frames < 0:
         raise ValueError("occlusion_hold_max_frames must be >= 0.")
     if cfg.occlusion_hold_hidden_frames < 1:
         raise ValueError("occlusion_hold_hidden_frames must be >= 1.")
+    if cfg.causal_hidden_detection_reservation_max_missed < 1:
+        raise ValueError(
+            "causal_hidden_detection_reservation_max_missed must be >= 1."
+        )
+    causal_reservation_values = {
+        "causal_hidden_detection_reservation_max_claim_cost": (
+            cfg.causal_hidden_detection_reservation_max_claim_cost
+        ),
+        "causal_hidden_detection_reservation_min_iom": (
+            cfg.causal_hidden_detection_reservation_min_iom
+        ),
+        "causal_hidden_detection_reservation_max_center_distance": (
+            cfg.causal_hidden_detection_reservation_max_center_distance
+        ),
+        "causal_hidden_detection_reservation_min_gain": (
+            cfg.causal_hidden_detection_reservation_min_gain
+        ),
+        "causal_hidden_detection_reservation_max_alternative_cost": (
+            cfg.causal_hidden_detection_reservation_max_alternative_cost
+        ),
+        "causal_hidden_detection_reservation_hold_min_iom": (
+            cfg.causal_hidden_detection_reservation_hold_min_iom
+        ),
+        "causal_hidden_detection_reservation_hold_max_claim_cost": (
+            cfg.causal_hidden_detection_reservation_hold_max_claim_cost
+        ),
+        "causal_hidden_detection_reservation_hold_min_gain": (
+            cfg.causal_hidden_detection_reservation_hold_min_gain
+        ),
+        "causal_hidden_detection_reservation_hold_min_visible_cost": (
+            cfg.causal_hidden_detection_reservation_hold_min_visible_cost
+        ),
+    }
+    for name, value in causal_reservation_values.items():
+        if not 0.0 <= value <= 1.0:
+            raise ValueError(f"{name} must be between 0 and 1.")
+    if cfg.realtime_motion_pair_fixed_lag_frames < 0:
+        raise ValueError("realtime_motion_pair_fixed_lag_frames must be >= 0.")
     if cfg.USE_IOU_FALLBACK and not 0.0 <= cfg.iou_fallback_threshold <= 1.0:
         raise ValueError("iou_fallback_threshold must be between 0 and 1.")
     if cfg.USE_AREA_OCCLUSION_FREEZE or cfg.USE_CONDITIONAL_AREA_OCCLUSION_FREEZE:
@@ -569,6 +654,26 @@ def validate_config(cfg: TrackingConfig) -> None:
         raise ValueError("hidden_overlap_iou_threshold must be between 0 and 1.")
     if cfg.hidden_overlap_window_frames < 1:
         raise ValueError("hidden_overlap_window_frames must be >= 1.")
+    if cfg.hidden_suffix_id_swap_min_hidden_frames < 1:
+        raise ValueError("hidden_suffix_id_swap_min_hidden_frames must be >= 1.")
+    if cfg.hidden_suffix_id_swap_max_hidden_frames < 0:
+        raise ValueError("hidden_suffix_id_swap_max_hidden_frames must be >= 0.")
+    if not 0.0 <= cfg.hidden_suffix_id_swap_min_overlap_iou <= 1.0:
+        raise ValueError(
+            "hidden_suffix_id_swap_min_overlap_iou must be between 0 and 1."
+        )
+    if not 0.0 <= cfg.hidden_suffix_id_swap_max_hidden_median_score <= 1.0:
+        raise ValueError(
+            "hidden_suffix_id_swap_max_hidden_median_score must be between 0 and 1."
+        )
+    if cfg.hidden_suffix_id_swap_start_back_frames < 0:
+        raise ValueError("hidden_suffix_id_swap_start_back_frames must be >= 0.")
+    if cfg.hidden_suffix_id_swap_min_suffix_frames < 1:
+        raise ValueError("hidden_suffix_id_swap_min_suffix_frames must be >= 1.")
+    if cfg.hidden_suffix_id_swap_min_overlap_persistence_frames < 1:
+        raise ValueError(
+            "hidden_suffix_id_swap_min_overlap_persistence_frames must be >= 1."
+        )
     scale_values = {
         "max_box_scale_change_per_frame": cfg.max_box_scale_change_per_frame,
         "max_box_scale_change_after_gap": cfg.max_box_scale_change_after_gap,
@@ -578,8 +683,65 @@ def validate_config(cfg: TrackingConfig) -> None:
             raise ValueError(f"{name} must be between 0 and 2.")
     if cfg.refine_max_gap_frames < 1:
         raise ValueError("refine_max_gap_frames must be >= 1.")
+    if cfg.refine_max_previous_gap_frames < 0:
+        raise ValueError("refine_max_previous_gap_frames must be >= 0.")
     if not 0.0 <= cfg.refine_size_jump_threshold <= 2.0:
         raise ValueError("refine_size_jump_threshold must be between 0 and 2.")
+    if cfg.near_wall_hidden_geometry_max_gap_frames < 1:
+        raise ValueError(
+            "near_wall_hidden_geometry_max_gap_frames must be >= 1."
+        )
+    near_wall_geometry_values = {
+        "near_wall_hidden_geometry_distance_bbox_scale": (
+            cfg.near_wall_hidden_geometry_distance_bbox_scale
+        ),
+        "near_wall_hidden_geometry_min_width_excess": (
+            cfg.near_wall_hidden_geometry_min_width_excess
+        ),
+        "near_wall_hidden_geometry_max_center_shift": (
+            cfg.near_wall_hidden_geometry_max_center_shift
+        ),
+        "near_wall_hidden_geometry_original_weight": (
+            cfg.near_wall_hidden_geometry_original_weight
+        ),
+    }
+    for name, value in near_wall_geometry_values.items():
+        if not 0.0 <= value <= 1.0:
+            raise ValueError(f"{name} must be between 0 and 1.")
+    if cfg.near_wall_hidden_geometry_refine and (
+        not cfg.use_mask or cfg.mask_path is None
+    ):
+        raise ValueError(
+            "near_wall_hidden_geometry_refine requires use_mask=True "
+            "and mask_path."
+        )
+    if cfg.far_camera_hidden_geometry_max_future_gap_frames < 1:
+        raise ValueError(
+            "far_camera_hidden_geometry_max_future_gap_frames must be >= 1."
+        )
+    far_camera_geometry_values = {
+        "far_camera_hidden_geometry_x_threshold": (
+            cfg.far_camera_hidden_geometry_x_threshold
+        ),
+        "far_camera_hidden_geometry_min_height_excess": (
+            cfg.far_camera_hidden_geometry_min_height_excess
+        ),
+        "far_camera_hidden_geometry_min_visible_overlap_iou": (
+            cfg.far_camera_hidden_geometry_min_visible_overlap_iou
+        ),
+        "far_camera_hidden_geometry_min_overlap_reduction": (
+            cfg.far_camera_hidden_geometry_min_overlap_reduction
+        ),
+        "far_camera_hidden_geometry_max_center_shift": (
+            cfg.far_camera_hidden_geometry_max_center_shift
+        ),
+        "far_camera_hidden_geometry_original_weight": (
+            cfg.far_camera_hidden_geometry_original_weight
+        ),
+    }
+    for name, value in far_camera_geometry_values.items():
+        if not 0.0 <= value <= 1.0:
+            raise ValueError(f"{name} must be between 0 and 1.")
     alpha_values = {
         "high_conf_smooth_alpha": cfg.high_conf_smooth_alpha,
         "mid_conf_smooth_alpha": cfg.mid_conf_smooth_alpha,

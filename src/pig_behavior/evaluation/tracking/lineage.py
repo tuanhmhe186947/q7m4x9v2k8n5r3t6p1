@@ -27,6 +27,7 @@ from .assets import (
 )
 from .config import TrackingEvaluationPipelineConfig
 from .cvat_io import read_task_name
+from .frame_window import validate_generated_frame_coverage
 
 SELECTED_TRACKING_SKILLS = (
     "tracking-experiment-guardian",
@@ -211,6 +212,24 @@ def prepare_run_manifest(
         or (config.run_missing_tracker and pair.pred_xml is None)
         for pair in pairs
     )
+    if should_track:
+        tracking_start_frame = (config.profile_overrides or {}).get(
+            "start_frame",
+            0,
+        )
+        if isinstance(tracking_start_frame, bool) or not isinstance(
+            tracking_start_frame,
+            int,
+        ):
+            raise ValueError(
+                "profile_overrides.start_frame must be a non-negative integer."
+            )
+        validate_generated_frame_coverage(
+            tracking_start_frame=tracking_start_frame,
+            max_frames=config.max_frames,
+            evaluation_start_frame=config.evaluation_start_frame,
+            evaluation_end_frame=config.evaluation_end_frame,
+        )
     if should_track and config.prediction_root.exists():
         raise FileExistsError(
             f"Prediction output root already exists: {config.prediction_root}"
@@ -279,6 +298,24 @@ def prepare_run_manifest(
     manifest_path = config.output_root / "run_manifest.json"
     manifest_path.write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    return manifest_path
+
+
+def finalize_run_manifest(run_dir: Path) -> Path:
+    """Mark a successfully reported tracking run as completed."""
+    manifest_path = run_dir / "run_manifest.json"
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if payload.get("status") != "planned":
+        raise ValueError(
+            "Tracking run manifest must be planned before completion: "
+            f"{manifest_path}"
+        )
+    payload["status"] = "completed"
+    payload["completed_at_utc"] = datetime.now(UTC).isoformat()
+    manifest_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
     return manifest_path
@@ -397,6 +434,7 @@ __all__ = [
     "CVAT_PREDICTION_SEMANTIC_HASH_CONTRACT",
     "cvat_prediction_semantic_sha256",
     "file_sha256",
+    "finalize_run_manifest",
     "payload_sha256",
     "prepare_run_manifest",
     "validate_metric_universe",

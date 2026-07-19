@@ -200,13 +200,20 @@ def evaluate_pair(
     iou_threshold: float = 0.5,
     include_hidden: bool = False,
     gap_tolerance_frames: int = 15,
+    evaluation_start_frame: int | None = None,
+    evaluation_end_frame: int | None = None,
 ) -> TrackingMetrics | None:
     """Evaluate one pair when a prediction XML is available."""
     if pair.pred_xml is None or not pair.pred_xml.exists():
         return None
 
-    gt = parse_cvat_video_xml(pair.gt_xml, include_hidden=include_hidden)
-    pred = parse_cvat_video_xml(pair.pred_xml, include_hidden=include_hidden)
+    parse_kwargs = {
+        "include_hidden": include_hidden,
+        "start_frame": evaluation_start_frame,
+        "end_frame": evaluation_end_frame,
+    }
+    gt = parse_cvat_video_xml(pair.gt_xml, **parse_kwargs)
+    pred = parse_cvat_video_xml(pair.pred_xml, **parse_kwargs)
     metrics = evaluate_tracking(
         gt,
         pred,
@@ -298,6 +305,8 @@ def evaluate_dataset(
     video_dir: Path = VIDEO_DIR,
     prediction_root: Path = PREDICTION_ROOT,
     output_root: Path = EVAL_OUTPUT_ROOT,
+    evaluation_start_frame: int | None = None,
+    evaluation_end_frame: int | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, Path]:
     """Evaluate all matched GT/prediction pairs and save reports."""
     pairs = list_tracking_pairs(
@@ -318,6 +327,8 @@ def evaluate_dataset(
             iou_threshold=iou_threshold,
             include_hidden=include_hidden,
             gap_tolerance_frames=gap_tolerance_frames,
+            evaluation_start_frame=evaluation_start_frame,
+            evaluation_end_frame=evaluation_end_frame,
         )
         if result is not None:
             metrics.append(result)
@@ -326,6 +337,8 @@ def evaluate_dataset(
                     pair,
                     iou_threshold=iou_threshold,
                     include_hidden=include_hidden,
+                    evaluation_start_frame=evaluation_start_frame,
+                    evaluation_end_frame=evaluation_end_frame,
                 )
             )
             remapped_identity_events.extend(
@@ -334,6 +347,8 @@ def evaluate_dataset(
                     iou_threshold=iou_threshold,
                     include_hidden=include_hidden,
                     remap_ids=True,
+                    evaluation_start_frame=evaluation_start_frame,
+                    evaluation_end_frame=evaluation_end_frame,
                 )
             )
             identity_mapping_rows.extend(
@@ -341,6 +356,8 @@ def evaluate_dataset(
                     pair,
                     iou_threshold=iou_threshold,
                     include_hidden=include_hidden,
+                    evaluation_start_frame=evaluation_start_frame,
+                    evaluation_end_frame=evaluation_end_frame,
                 )
             )
             continuity_gap_rows.extend(
@@ -350,6 +367,8 @@ def evaluate_dataset(
                     include_hidden=include_hidden,
                     gap_tolerance_frames=gap_tolerance_frames,
                     remap_ids=True,
+                    evaluation_start_frame=evaluation_start_frame,
+                    evaluation_end_frame=evaluation_end_frame,
                 )
             )
 
@@ -382,6 +401,8 @@ def evaluate_dataset(
                 "iou_threshold": iou_threshold,
                 "include_hidden": include_hidden,
                 "gap_tolerance_frames": gap_tolerance_frames,
+                "evaluation_start_frame": evaluation_start_frame,
+                "evaluation_end_frame": evaluation_end_frame,
                 "tracking_gt_dir": str(tracking_gt_dir),
                 "video_dir": str(video_dir),
                 "prediction_root": str(prediction_root),

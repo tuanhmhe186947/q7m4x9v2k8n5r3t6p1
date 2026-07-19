@@ -1,0 +1,225 @@
+{
+  "schema_version": "tracking_realtime_pareto_selection_decision_v1",
+  "decision_date": "2026-07-19",
+  "status": "FAST_REFERENCE_PENDING_OPERATIONAL_GATES",
+  "scope": {
+    "worktree": "PIG_task_tracking",
+    "branch": "task/update-tracking",
+    "tracking_only": true,
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "gap_tolerance_frames": 15,
+    "generated_mp4_preview_overlay_allowed": false
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "selection_contract": {
+    "quality_must_be_screened_before_lock": true,
+    "winner_is_multi_objective": true,
+    "hard_eligibility_gates": [
+      "causal_framewise_or_frozen_finite_delay",
+      "include_hidden_true",
+      "prefix_invariance_for_causal_or_fixed_delay_claim",
+      "repeatable_prediction_and_lineage",
+      "recursive_mp4_count_zero",
+      "per_video_identity_guardrails",
+      "profile_specific_000302_guard",
+      "runtime_telemetry_and_memory_recorded"
+    ],
+    "selection_dimensions": [
+      "identity: IDSW, per-video IDSW, IDF1 and identity continuity",
+      "tracking_quality: HOTA, detection quality, FP/FN and fragments",
+      "throughput: effective FPS and loop-FPS under the same harness",
+      "latency: frame-time p50/p95 and stage timing",
+      "delay: causal zero or declared finite buffer delay",
+      "application: memory, determinism, deployment cost and usability",
+      "lineage: repeatability, input hashes and no-MP4 compliance"
+    ],
+    "pareto_rule": [
+      "Accuracy alone cannot select a realtime winner.",
+      "A candidate must pass every hard gate.",
+      "It must also be non-dominated across identity, quality, throughput,",
+      "latency, delay and application dimensions."
+    ],
+    "runtime_claim_rule": [
+      "Timing is a selection dimension.",
+      "A speed advantage is claimable only after comparable primary/repeat",
+      "measurements pass the frozen runtime gates."
+    ],
+    "role_rule": [
+      "If no candidate dominates every dimension, select the non-dominated",
+      "candidate whose trade-off matches the declared realtime use case.",
+      "Report the remaining trade-offs explicitly."
+    ],
+    "delay_minus_one_global_graph_is_realtime": false
+  },
+  "candidates": {
+    "bytetrack_raw": {
+      "role": "same_contract_technical_baseline",
+      "timing_contract": "causal_framewise",
+      "declared_delay_frames": 0,
+      "authority_run":
+        "outputs/eval/tracking_raw_authority/20260719_7e38234_raw_repeatability_v1.json",
+      "source_commit": "e7fc039a674437b4c25f7a75c5adbc341fc15fa1",
+      "authority_sha256":
+        "ddb24f10340a77293af3dbe2a2e8c12859b0e32176b9eb15b8829189db3d45c0",
+      "idsw": 145,
+      "hota": 0.8890894714488002,
+      "idf1": 0.8847222222222222,
+      "fp": 1640,
+      "fn": 1640,
+      "fragments": 496,
+      "loop_fps_primary": 22.650907761247705,
+      "loop_fps_repeat": 27.033651005213294,
+      "max_frame_p95_ms_primary": 108.04304998600854,
+      "max_frame_p95_ms_repeat": 54.313744994578876,
+      "repeat_loop_fps_ratio": 1.1934908432881353,
+      "peak_process_rss_bytes_primary": 1684672512,
+      "peak_process_rss_bytes_repeat": 1684869120,
+      "repeatability": "PASS",
+      "speed_claim_authorized": false,
+      "valid_causal_quality_authority": true,
+      "recursive_mp4_count": 0
+    },
+    "realtime_fast": {
+      "role": "current_causal_reference_not_final_winner",
+      "timing_contract": "causal_framewise",
+      "declared_delay_frames": 0,
+      "promotion_commit": "456fc97",
+      "idsw": 69,
+      "hota": 0.9434658955189228,
+      "idf1": 0.9390984193482884,
+      "fp": 506,
+      "fn": 630,
+      "fragments": 110,
+      "mean_effective_fps_primary": 27.398960103513293,
+      "max_frame_p95_ms": 62.49316500397981,
+      "repeatability": "PASS",
+      "speed_claim_authorized": false,
+      "valid_causal_quality_authority": true,
+      "profile_specific_guard": {
+        "Pigs291119_000302_30fps_max_idsw": 2,
+        "actual_idsw": 6,
+        "status": "FAIL_REQUIRES_FAST_FOLLOW_UP"
+      }
+    },
+    "realtime_balanced": {
+      "role": "causal_quality_candidate_not_selected",
+      "timing_contract": "causal_framewise",
+      "declared_delay_frames": 0,
+      "promotion_commit": "e8d39d7",
+      "idsw": 121,
+      "hota": 0.956846244204177,
+      "idf1": 0.9575751746102997,
+      "fp": 448,
+      "fn": 586,
+      "fragments": 127,
+      "loop_fps_primary": 26.75486156310947,
+      "max_frame_p95_ms": 41.17715499014594,
+      "idsw_gap_to_fast": 52,
+      "balanced_lane_target_idsw_max": 86,
+      "repeatability": "PASS",
+      "valid_causal_quality_authority": true,
+      "selection_status": "fails_identity_priority_target"
+    },
+    "realtime_quality": {
+      "role": "mandatory_challenger_rejected_for_realtime_selection",
+      "post_video_authority": {
+        "timing_contract": "post_video_global_graph",
+        "declared_delay_frames": -1,
+        "idsw": 166,
+        "hota": 0.9766216982135155,
+        "idf1": 0.9757870155131967,
+        "loop_fps": 12.085928242557099,
+        "max_frame_p95_ms": 139.8104699999635,
+        "selection_status": "upper_bound_only"
+      },
+      "finite_delay_screen": {
+        "authority":
+          "docs/TRACKING_RQ4_QUALITY_COPY_PERFORMANCE_DECISION_20260719.json",
+        "quality_idsw": 32,
+        "quality_hota": 0.9475099291098478,
+        "quality_idf1": 0.9593810444874274,
+        "primary_effective_fps": 19.41775738118046,
+        "repeat_effective_fps": 16.91099521882784,
+        "primary_p95_ms": 60.83632001536897,
+        "repeat_p95_ms": 91.0152599972207,
+        "selection_status": "runtime_and_repeatability_gate_failed"
+      },
+      "valid_causal_quality_authority": false
+    }
+  },
+  "pareto_interpretation": {
+    "fast_vs_balanced": "non_dominated_tradeoff",
+    "fast_profile_guard": {
+      "Pigs291119_000302_30fps_max_idsw": 2,
+      "actual_idsw": 6,
+      "status": "FAIL_REQUIRES_FAST_FOLLOW_UP"
+    },
+    "balanced_quality_advantage":
+      "HOTA +1.3380 pp, IDF1 +1.8477 pp, FP -58, FN -44",
+    "fast_identity_advantage": "IDSW 69 versus 121",
+    "quality_not_selected_reason": [
+      "No finite-delay candidate passes frozen runtime/repeatability gates.",
+      "Delay -1 is post-video only."
+    ]
+  },
+  "decision": {
+    "selected_realtime_method": "realtime_fast_reference_only",
+    "selection_scope": "no_final_operational_winner",
+    "selection_reason": [
+      "It is the lowest-IDSW causal reference: 69 versus Balanced 121.",
+      "It passes causal, prefix, prediction-integrity, repeatability and no-MP4 checks.",
+      "Its measured throughput and latency are retained as evidence.",
+      "No speed advantage is claimed until the same-harness runtime comparison",
+      "is complete.",
+      "Its frozen realtime_fast guard is not met: 000302 has IDSW 6 but the",
+      "profile-specific ceiling is 2.",
+      "Balanced has better HOTA/IDF1 and FP/FN, but its identity gap prevents",
+      "it from being the current operational choice.",
+      "Quality has no valid causal or finite-delay authority under the frozen runtime gates."
+    ],
+    "balanced": [
+      "Retain as a valid causal quality reference.",
+      "Do not call it operational winner until its identity gap is closed."
+    ],
+    "quality": [
+      "Retain post-video upper-bound and finite-delay rejection evidence.",
+      "Quality was evaluated and cannot be skipped retroactively."
+    ],
+    "raw_authority_pending": false,
+    "raw_authority": {
+      "status": "PASS",
+      "authority_sha256":
+        "ddb24f10340a77293af3dbe2a2e8c12859b0e32176b9eb15b8829189db3d45c0",
+      "idsw": 145,
+      "hota": 0.8890894714488002,
+      "idf1": 0.8847222222222222,
+      "loop_fps_primary": 22.650907761247705,
+      "loop_fps_repeat": 27.033651005213294,
+      "recursive_mp4_count": 0
+    },
+    "final_operational_winner": "NONE_PENDING_FAST_GUARD_AND_COMMON_RUNTIME_AUDIT",
+    "paper_comparison_locked_after_raw": false,
+    "paper_comparison_plan_after_raw": [
+      "bytetrack_raw_same_contract",
+      "realtime_fast_reference",
+      "hybrid_bytetrack_best"
+    ]
+  },
+  "next_step": [
+    "Run a targeted include-Hidden Fast follow-up for the 000302 guard before",
+    "calling Fast a final winner.",
+    "Run a common-harness runtime audit for raw, Fast and Balanced before",
+    "making a final speed claim.",
+    "Keep delay, p50/p95, effective FPS, memory and no-MP4 as selection dimensions.",
+    "Do not generate MP4, preview, overlay, or event clips.",
+    "Reopen Balanced or Quality only for a new predeclared family.",
+    "A new family must beat the selected identity and operational gates, not only accuracy."
+  ]
+}

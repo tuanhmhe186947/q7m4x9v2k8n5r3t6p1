@@ -1,0 +1,92 @@
+{
+  "schema_version": "tracking_fast_paired_window_decision_v1",
+  "decision_date": "2026-07-19",
+  "status": "PASS_SECOND_INDEPENDENT_GAIN_WINDOW",
+  "execution_commit": "4c0f339",
+  "parent_run_id": "20260719_45e81bb_fast_000225_margin08_w4_v1",
+  "candidate_run_id": "20260719_cc22fe1_fast_000225_maxcost040_w5_v1",
+  "changed_family": "visible_competitor_max_cost",
+  "semantic_diff": {
+    "realtime_visible_close_competitor_max_cost": [0.35, 0.40]
+  },
+  "contract": {
+    "video": "Pigs291119_000225_30fps",
+    "processed_frames": [0, 820],
+    "score_frames": [740, 800],
+    "include_hidden": true,
+    "gap_tolerance_frames": 15,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "output_timing_contract": "causal_framewise",
+    "declared_delay_frames": 0,
+    "write_output_video": false,
+    "mp4_count": 0
+  },
+  "paired_metrics": {
+    "parent": {
+      "remapped_idsw": 2,
+      "remapped_hota_pct": 92.08,
+      "remapped_idf1_pct": 91.39,
+      "fp": 0,
+      "fn": 0
+    },
+    "candidate": {
+      "remapped_idsw": 0,
+      "remapped_hota_pct": 100.0,
+      "remapped_idf1_pct": 100.0,
+      "fp": 0,
+      "fn": 0
+    }
+  },
+  "causal_observation": {
+    "candidate_preference_events": 1,
+    "candidate_preferred_frame": 780,
+    "candidate_preferred_track_id": 4,
+    "candidate_selected_cost": 0.342428,
+    "candidate_competitor_cost": 0.369623,
+    "candidate_max_cost": 0.40,
+    "output_timing_contract": "causal_framewise"
+  },
+  "runtime_screening_only": {
+    "parent_effective_fps": 25.7783,
+    "candidate_effective_fps": 18.1365,
+    "parent_frame_time_p95_ms": 52.8947,
+    "candidate_frame_time_p95_ms": 91.7354,
+    "candidate_peak_process_rss_bytes": 1478651904,
+    "speed_claim": "NOT_APPLICABLE",
+    "risk": "candidate window was slower; require common-harness repeated runtime gate"
+  },
+  "lineage": {
+    "input_sha256": {
+      "detector":
+        "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+      "mask":
+        "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658"
+    },
+    "artifact_sha256": {
+      "parent_run_manifest":
+        "c7ce4228b8db3a22f9d962fff480b7c79d30089350208b5f5af8e489b54bf580",
+      "candidate_run_manifest":
+        "33cbb16c40d0ee8d09fd47ecc0a80039fbf2be921564cd10ce4079fbd512373d",
+      "candidate_remapped_identity_events":
+        "b79dd4ee748436cfb838c137decfeb6ba18f0e129f39aa00084f3822af09277c",
+      "candidate_prediction_xml":
+        "113a75ab11ef7df06d711873e6ff0fee4ee261465c132ebf035eb7480e38b60a",
+      "candidate_prediction_semantic_sha256":
+        "e0c2ec97686359fbc10f1b056b6cf7418f52b6223d53369285f9a4d861de3eca"
+    }
+  },
+  "gate_decision": {
+    "quality_window": "PASS",
+    "causal_integrity": "PASS",
+    "zero_mp4": "PASS",
+    "independent_gain_episode": "PASS",
+    "runtime_promotion": "PENDING_COMMON_HARNESS",
+    "advance_to_full_000302": true,
+    "advance_to_hard_set": false,
+    "advance_to_full_13": false,
+    "next_step": [
+      "Run the combined candidate on full difficult video 000302.",
+      "Keep max_cost promotion provisional until repeated runtime passes."
+    ]
+  }
+}

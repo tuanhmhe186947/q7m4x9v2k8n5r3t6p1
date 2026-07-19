@@ -1,0 +1,74 @@
+{
+  "schema_version": "tracking_fast_mechanism_gated_window_decision_v1",
+  "decision_date": "2026-07-19",
+  "status": "MECHANISM_MISMATCH_NO_CANDIDATE",
+  "execution_commit": "42a23ef508cff373e6c99f97333df03512dbfd51",
+  "parent_run_id": "20260719_8401816_fast_000216_parent_diag_w3_v1",
+  "candidate_run_id": null,
+  "changed_family": "visible_competitor_guard_threshold",
+  "contract": {
+    "video": "Pigs291119_000216_30fps",
+    "processed_frames": [0, 230],
+    "score_frames": [150, 190],
+    "include_hidden": true,
+    "gap_tolerance_frames": 15,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "output_timing_contract": "causal_framewise",
+    "declared_delay_frames": 0,
+    "write_output_video": false,
+    "mp4_count": 0
+  },
+  "parent_metrics": {
+    "remapped_idsw": 2,
+    "remapped_hota_pct": 91.05,
+    "remapped_idf1_pct": 88.11,
+    "fp": 1,
+    "fn": 1
+  },
+  "mechanism_trace": {
+    "switch_frame": 172,
+    "switch_ids": ["ID_1", "ID_5"],
+    "visible_assignment_cost": 0.095466,
+    "occluded_reid_assignment_cost": 0.242871,
+    "cost_gap": 0.147405,
+    "candidate_margin": 0.08,
+    "candidate_margin_max_cost": 0.35,
+    "mechanism_match": false,
+    "reason": [
+      "The reproduced switch is a visible-versus-occluded/re-ID conflict.",
+      "Its cost gap is outside the declared close-competitor margin.",
+      "Running margin 0.08 here would not be a predeclared mechanism test."
+    ]
+  },
+  "lineage": {
+    "input_sha256": {
+      "detector":
+        "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+      "mask":
+        "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658",
+      "video":
+        "e88f09d7183e045345a69c0a404cf0dabd9925502d275120f44e77657d11f39f",
+      "gt_xml":
+        "e1b922d422c86307231b80c7f6d9186290086be24be5cd13731d25dcdfeac5c4"
+    },
+    "artifact_sha256": {
+      "run_manifest":
+        "5c7d14448f1d0aed5f3c6dc0b806abda00a810a7d5023c93f9d06c8c17101dc5",
+      "prediction_xml":
+        "bd02bbdb4279d8483f3afb7c82d11567b293ae91cccbbf18eaf3c0c7603c0c22",
+      "prediction_semantic_sha256":
+        "dd339e795210c773cab92f63783f8d1934564514f17e5c7fe328bcbfbd2f16a5"
+    }
+  },
+  "gate_decision": {
+    "parent_reproduction": "PASS",
+    "mechanism_gate": "FAIL",
+    "candidate_executed": false,
+    "full_000302_allowed": false,
+    "next_step": [
+      "Preserve this negative diagnostic evidence.",
+      "Select another parent-derived Fast switch episode whose trace",
+      "matches the visible-close-competitor family before candidate execution."
+    ]
+  }
+}

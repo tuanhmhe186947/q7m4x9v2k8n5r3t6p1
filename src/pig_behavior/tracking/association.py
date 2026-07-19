@@ -11,6 +11,7 @@ from pig_behavior.tracking.detections import hist_distance
 from pig_behavior.tracking.geometry import (
     area_log_ratio,
     bbox_center,
+    bbox_iom,
     bbox_iou_matrix,
     bbox_size,
     center_distance_norm,
@@ -606,6 +607,317 @@ def append_detection_candidate_rank_events(
             )
 
 
+def append_hidden_detection_claim_probe_events(
+    runtime: TrackingRuntimeState | None,
+    cfg: TrackingConfig,
+    frame_index: int | None,
+    hidden_tracks: list[FixedTrack],
+    detection_indices: list[int],
+    detections: list[Detection],
+    occlusion_context: OcclusionContext,
+    width: int,
+    height: int,
+    raw_owner: dict[int, int],
+    raw_owner_tracks: dict[int, FixedTrack],
+) -> None:
+    """Record hidden claims before visible matching without changing assignment."""
+    if runtime is None or not cfg.association_debug or cfg.mode != "realtime":
+        return
+
+    for det_idx in detection_indices:
+        det = detections[det_idx]
+        claims: list[tuple[float, FixedTrack, float, float, bool]] = []
+        for track in hidden_tracks:
+            if not track.ever_detected:
+                continue
+            cost = track_detection_cost(
+                track,
+                det,
+                det_idx,
+                occlusion_context,
+                width,
+                height,
+                cfg,
+                raw_owner,
+                raw_owner_tracks,
+            )
+            reference = association_reference_box(track, det, width, height, cfg)
+            plausible = bool(np.isfinite(cost) and cost < 1_000_000.0)
+            claims.append(
+                (
+                    float(cost),
+                    track,
+                    bbox_iom(reference, det.box),
+                    center_distance_norm(reference, det.box, width, height),
+                    plausible,
+                )
+            )
+
+        owner_id = raw_owner.get(det.raw_id) if det.raw_id is not None else None
+        ranked_claims = sorted(
+            claims,
+            key=lambda item: (item[0], item[1].fixed_id),
+        )
+        for rank, (cost, track, overlap, center_cost, plausible) in enumerate(
+            ranked_claims[:3],
+            start=1,
+        ):
+            append_association_debug_event(
+                runtime,
+                cfg,
+                {
+                    "event": "hidden_detection_claim_probe",
+                    "frame": frame_index,
+                    "phase": "pre_visible_hidden_claim",
+                    "claim_rank": rank,
+                    "claim_iom": round(float(overlap), 6),
+                    "claim_center_distance": round(float(center_cost), 6),
+                    "claim_plausible": plausible,
+                    "cost": round(cost, 6),
+                    "threshold": round(
+                        float(association_cost_threshold(track, cfg)),
+                        6,
+                    ),
+                    "det_raw_owner": owner_id,
+                    "same_raw_id": track.top_raw_id() == det.raw_id,
+                    **track_debug_state(track),
+                    **detection_debug_state(det, det_idx),
+                },
+            )
+
+
+def apply_causal_hidden_detection_reservation(
+    costs: np.ndarray,
+    candidate_tracks: list[FixedTrack],
+    detection_indices: list[int],
+    detections: list[Detection],
+    hidden_tracks: list[FixedTrack],
+    matched_tracks: set[int],
+    occlusion_context: OcclusionContext,
+    width: int,
+    height: int,
+    cfg: TrackingConfig,
+    raw_owner: dict[int, int],
+    raw_owner_tracks: dict[int, FixedTrack],
+    runtime: TrackingRuntimeState | None,
+    frame_index: int | None,
+    phase_name: str,
+    reserved_hidden_detection_owners: dict[int, int] | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Reserve a strong hidden claim before visible realtime matching."""
+    from scipy.optimize import linear_sum_assignment
+
+    rows, cols = linear_sum_assignment(costs)
+    if (
+        not cfg.causal_hidden_detection_reservation
+        or cfg.mode != "realtime"
+        or phase_name != "visible_high_conf"
+        or not candidate_tracks
+        or not hidden_tracks
+    ):
+        return rows, cols
+
+    attempted_pairs: set[tuple[int, int]] = set()
+    reserved_hidden_ids: set[int] = set()
+    reserved_detection_indices: set[int] = set()
+
+    while True:
+        selected_pairs = list(zip(rows, cols, strict=True))
+        candidates: list[
+            tuple[float, int, int, int, FixedTrack, float, float, bool]
+        ] = []
+        for row, col in selected_pairs:
+            visible_track = candidate_tracks[row]
+            det_idx = detection_indices[col]
+            pair_key = (visible_track.fixed_id, det_idx)
+            selected_cost = float(costs[row, col])
+            if pair_key in attempted_pairs or det_idx in reserved_detection_indices:
+                continue
+            if visible_track.fixed_id in matched_tracks:
+                continue
+            if selected_cost >= 1_000_000.0:
+                continue
+            track_threshold = association_cost_threshold(visible_track, cfg)
+            if selected_cost > track_threshold:
+                continue
+
+            has_alternative = any(
+                alt_col != col
+                and np.isfinite(costs[row, alt_col])
+                and costs[row, alt_col] < 1_000_000.0
+                and (
+                    costs[row, alt_col]
+                    <= cfg.causal_hidden_detection_reservation_max_alternative_cost
+                )
+                for alt_col in range(costs.shape[1])
+            )
+            for hidden_track in hidden_tracks:
+                if hidden_track.fixed_id in matched_tracks:
+                    continue
+                if hidden_track.fixed_id in reserved_hidden_ids:
+                    continue
+                if not hidden_track.ever_detected:
+                    continue
+                if not 1 <= hidden_track.missed <= (
+                    cfg.causal_hidden_detection_reservation_max_missed
+                ):
+                    continue
+                if hidden_track.last_source not in {"occlusion_hold", "predicted"}:
+                    continue
+                claim_cost = track_detection_cost(
+                    hidden_track,
+                    detections[det_idx],
+                    det_idx,
+                    occlusion_context,
+                    width,
+                    height,
+                    cfg,
+                    raw_owner,
+                    raw_owner_tracks,
+                )
+                if not np.isfinite(claim_cost) or claim_cost >= 1_000_000.0:
+                    continue
+                reference = association_reference_box(
+                    hidden_track,
+                    detections[det_idx],
+                    width,
+                    height,
+                    cfg,
+                )
+                claim_iom = bbox_iom(reference, detections[det_idx].box)
+                claim_center = center_distance_norm(
+                    reference,
+                    detections[det_idx].box,
+                    width,
+                    height,
+                )
+                if claim_cost > cfg.causal_hidden_detection_reservation_max_claim_cost:
+                    continue
+                if claim_iom < cfg.causal_hidden_detection_reservation_min_iom:
+                    continue
+                if (
+                    claim_center
+                    > cfg.causal_hidden_detection_reservation_max_center_distance
+                ):
+                    continue
+                gain = selected_cost - float(claim_cost)
+                if gain < cfg.causal_hidden_detection_reservation_min_gain:
+                    continue
+                hold_eligible = bool(
+                    cfg.causal_hidden_detection_reservation_allow_visible_hold
+                    and selected_cost
+                    >= cfg.causal_hidden_detection_reservation_hold_min_visible_cost
+                    and claim_iom
+                    >= cfg.causal_hidden_detection_reservation_hold_min_iom
+                    and claim_cost
+                    <= cfg.causal_hidden_detection_reservation_hold_max_claim_cost
+                    and gain
+                    >= cfg.causal_hidden_detection_reservation_hold_min_gain
+                )
+                if not has_alternative and not hold_eligible:
+                    continue
+                candidates.append(
+                    (
+                        -gain,
+                        row,
+                        col,
+                        det_idx,
+                        hidden_track,
+                        float(claim_cost),
+                        float(claim_iom),
+                        hold_eligible,
+                    )
+                )
+
+        if not candidates:
+            return rows, cols
+
+        (
+            _,
+            row,
+            col,
+            det_idx,
+            hidden_track,
+            claim_cost,
+            claim_iom,
+            hold_eligible,
+        ) = min(
+            candidates,
+            key=lambda item: (item[0], item[3], item[4].fixed_id),
+        )
+        visible_track = candidate_tracks[row]
+        selected_cost = float(costs[row, col])
+        attempted_pairs.add((visible_track.fixed_id, det_idx))
+        trial_costs = costs.copy()
+        trial_costs[:, col] = 1_000_000.0
+        trial_rows, trial_cols = linear_sum_assignment(trial_costs)
+        trial_col_by_track = {
+            candidate_tracks[trial_row].fixed_id: trial_col
+            for trial_row, trial_col in zip(
+                trial_rows,
+                trial_cols,
+                strict=True,
+            )
+        }
+        replacement_col = trial_col_by_track.get(visible_track.fixed_id)
+        visible_track_held = bool(
+            replacement_col is None or replacement_col == col
+        )
+        if visible_track_held and not hold_eligible:
+            continue
+        replacement_cost: float | None = None
+        if not visible_track_held:
+            replacement_cost = float(trial_costs[row, replacement_col])
+            if (
+                not np.isfinite(replacement_cost)
+                or replacement_cost >= 1_000_000.0
+                or replacement_cost
+                > cfg.causal_hidden_detection_reservation_max_alternative_cost
+            ):
+                continue
+        reserved_target_assigned = any(
+            trial_col == col and trial_costs[trial_row, trial_col] < 1_000_000.0
+            for trial_row, trial_col in zip(
+                trial_rows,
+                trial_cols,
+                strict=True,
+            )
+        )
+        if reserved_target_assigned:
+            continue
+
+        costs[:, :] = trial_costs
+        rows, cols = trial_rows, trial_cols
+        reserved_hidden_ids.add(hidden_track.fixed_id)
+        reserved_detection_indices.add(det_idx)
+        if reserved_hidden_detection_owners is not None:
+            reserved_hidden_detection_owners[det_idx] = hidden_track.fixed_id
+        append_association_debug_event(
+            runtime,
+            cfg,
+            {
+                "event": "assignment_reserve_hidden_detection",
+                "frame": frame_index,
+                "phase": phase_name,
+                "track_id": visible_track.fixed_id,
+                "det_idx": det_idx,
+                "cost": round(selected_cost, 6),
+                "reserved_for_track_id": hidden_track.fixed_id,
+                "hidden_claim_cost": round(claim_cost, 6),
+                "hidden_claim_iom": round(claim_iom, 6),
+                "reservation_gain": round(selected_cost - claim_cost, 6),
+                "replacement_cost": (
+                    round(replacement_cost, 6)
+                    if replacement_cost is not None
+                    else None
+                ),
+                "hidden_missed": hidden_track.missed,
+                "visible_track_held": visible_track_held,
+                "learn_identity": False,
+            },
+        )
+
+
 def realtime_visible_close_competitor_should_prefer(
     selected_track: FixedTrack,
     competitor_track: FixedTrack,
@@ -613,6 +925,7 @@ def realtime_visible_close_competitor_should_prefer(
     selected_cost: float,
     competitor_cost: float,
     competitor_selected_cost: float | None,
+    width: int,
     cfg: TrackingConfig,
     phase_name: str,
 ) -> bool:
@@ -625,6 +938,15 @@ def realtime_visible_close_competitor_should_prefer(
         return False
     if det.score < cfg.track_high_conf:
         return False
+    min_center_x_ratio = (
+        cfg.realtime_visible_close_competitor_min_center_x_ratio
+    )
+    if min_center_x_ratio > 0.0:
+        if width <= 0:
+            return False
+        det_center_x, _ = bbox_center(det.box)
+        if det_center_x / float(width) < min_center_x_ratio:
+            return False
     if selected_cost > cfg.realtime_visible_close_competitor_max_cost:
         return False
     if competitor_cost > cfg.realtime_visible_close_competitor_max_cost:
@@ -1215,6 +1537,12 @@ def match_and_update_tracks(
         height,
         cfg,
     )
+    hidden_tracks_for_reservation = [
+        track
+        for track in ordered_tracks
+        if not track_is_visible_for_association(track)
+    ]
+    reserved_hidden_detection_owners: dict[int, int] = {}
 
     def run_matching_phase(
         candidate_tracks: list[FixedTrack],
@@ -1254,6 +1582,25 @@ def match_and_update_tracks(
             cfg,
         )
         rows, cols = linear_sum_assignment(costs)
+        if phase_name == "visible_high_conf":
+            rows, cols = apply_causal_hidden_detection_reservation(
+                costs,
+                candidate_tracks,
+                detection_indices,
+                detections,
+                hidden_tracks_for_reservation,
+                matched_tracks,
+                occlusion_context,
+                width,
+                height,
+                cfg,
+                raw_owner,
+                raw_owner_tracks,
+                runtime,
+                frame_index,
+                phase_name,
+                reserved_hidden_detection_owners,
+            )
         selected_track_by_det = {
             detection_indices[col]: candidate_tracks[row].fixed_id
             for row, col in zip(rows, cols, strict=True)
@@ -1402,6 +1749,7 @@ def match_and_update_tracks(
                     float(costs[row, col]),
                     float(competing_cost),
                     competitor_selected_cost,
+                    width,
                     cfg,
                     phase_name,
                 )
@@ -1525,6 +1873,27 @@ def match_and_update_tracks(
                 and track.fixed_id in runtime.current_recovery_track_ids
             )
             ambiguous = ambiguous or in_split_recovery
+            reserved_owner_id = reserved_hidden_detection_owners.get(det_idx)
+            if (
+                cfg.causal_hidden_detection_reservation_hold_reserved_reid
+                and phase_name == "reid"
+                and reserved_owner_id == track.fixed_id
+            ):
+                append_association_debug_event(
+                    runtime,
+                    cfg,
+                    {
+                        **base_debug_event,
+                        "event": "assignment_hold_reserved_hidden_detection",
+                        "ambiguous": True,
+                        "reserved_for_track_id": reserved_owner_id,
+                        "learn_identity": False,
+                    },
+                )
+                freeze_area_occluded_track(track, width, height, cfg)
+                matched_tracks.add(track.fixed_id)
+                matched_detections.add(det_idx)
+                continue
             if area_occlusion_should_freeze(
                 track,
                 det,
@@ -1781,6 +2150,19 @@ def match_and_update_tracks(
             ]
             run_matching_phase(reid_tracks, remaining_detection_indices, "reid")
         else:
+            append_hidden_detection_claim_probe_events(
+                runtime,
+                cfg,
+                frame_index,
+                reid_tracks,
+                all_detection_indices,
+                detections,
+                occlusion_context,
+                width,
+                height,
+                raw_owner,
+                raw_owner_tracks,
+            )
             high_conf_indices = [
                 idx
                 for idx in all_detection_indices

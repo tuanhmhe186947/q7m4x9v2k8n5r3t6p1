@@ -1,0 +1,146 @@
+{
+  "schema_version": "tracking_realtime_runtime_probe_decision_v1",
+  "decision_date": "2026-07-20",
+  "status": "NO_NATIVE_REALTIME_PROFILE",
+  "scope": {
+    "worktree": "PIG_task_tracking",
+    "branch": "task/update-tracking",
+    "tracking_only": true,
+    "video": "Pigs291119_000302_30fps",
+    "frames": 1800,
+    "source_fps": 30.0,
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "generated_mp4_allowed": false,
+    "generated_mp4_count": 0,
+    "raw_quality_rerun": false
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "lineage": {
+    "instrumentation_commit": "7c9179e",
+    "profile_fast_commit": "74cad2b7b5346acf09459efad348afd25f50e8f6",
+    "profile_balanced_commit": "e8d39d7",
+    "universe_sha256":
+      "30cc7ea80fb1d0a23bc1e3c4d38e15b76e3bf86b8cc244f65afe7e0fb38af980",
+    "detector_sha256":
+      "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+    "mask_sha256":
+      "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658",
+    "environment": {
+      "python": "3.11",
+      "torch": "2.5.1+cu121",
+      "cuda": "12.1",
+      "ultralytics": "8.4.76",
+      "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU"
+    }
+  },
+  "runs": {
+    "realtime_fast": {
+      "primary": {
+        "root":
+          "outputs/eval/tracking_realtime_selection/20260720_fb_runtime_postinstr_primary_fast_v1",
+        "artifact_manifest_sha256":
+          "E51DEBD8449540860AAD3445241C1A310DC7375FDAE309A55F23339F17CDC6A6",
+        "prediction_semantic_sha256":
+          "6b0ce6863e6166422a96c0275eb681b941c8322cabe4a22c392089002305082b",
+        "idsw": 0,
+        "hota": 0.9991675918056196,
+        "idf1": 0.9995833333333334,
+        "effective_fps": 27.339756692800815,
+        "realtime_factor": 0.9113252230933605,
+        "p50_ms": 33.302749987342395,
+        "p95_ms": 49.19851499435027,
+        "backlog_growth_frames_per_second": 2.6602433071991847,
+        "final_backlog_frames": 176,
+        "final_output_age_ms": 5871.511733138078
+      },
+      "repeat": {
+        "root":
+          "outputs/eval/tracking_realtime_selection/20260720_fb_runtime_postinstr_reverse_fast_v1",
+        "artifact_manifest_sha256":
+          "D6F7D0BA0B57A3286949253FE12587B4C24E452F5ECC016DD9848420A30A94C9",
+        "prediction_semantic_sha256":
+          "6b0ce6863e6166422a96c0275eb681b941c8322cabe4a22c392089002305082b",
+        "idsw": 0,
+        "hota": 0.9991675918056196,
+        "idf1": 0.9995833333333334,
+        "effective_fps": 27.607699988444093,
+        "realtime_factor": 0.9202566662814697,
+        "p50_ms": 37.71595000580419,
+        "p95_ms": 46.921475004637614,
+        "backlog_growth_frames_per_second": 2.392300011555907,
+        "final_backlog_frames": 156,
+        "final_output_age_ms": 5232.528032626334
+      },
+      "prediction_repeatability": "PASS",
+      "runtime_repeatability_ratio": 1.0098,
+      "native_realtime": "FAIL"
+    },
+    "realtime_balanced": {
+      "primary": {
+        "root":
+          "outputs/eval/tracking_realtime_selection/20260720_fb_runtime_postinstr_primary_balanced_v1",
+        "artifact_manifest_sha256":
+          "950C07C2627E8A2C1F2235F558591C314A5B6C98E8C1CE5A0383E6DFE516B25D",
+        "prediction_semantic_sha256":
+          "645b41062caca5467cd1a6bb9bd489a5efd7637cc977dfc7df218c1bf6985512",
+        "idsw": 0,
+        "hota": 0.9994452150220623,
+        "idf1": 0.9997222222222222,
+        "effective_fps": 28.719245524965746,
+        "realtime_factor": 0.9573081841655249,
+        "p50_ms": 34.40309999859892,
+        "p95_ms": 36.2438450087211,
+        "backlog_growth_frames_per_second": 1.2807544750342537,
+        "final_backlog_frames": 81,
+        "final_output_age_ms": 2709.068033968407
+      },
+      "repeat": {
+        "root":
+          "outputs/eval/tracking_realtime_selection/20260720_fb_runtime_postinstr_reverse_balanced_v1",
+        "artifact_manifest_sha256":
+          "FF05982E748AC1622266FBC1024EAB369DD7E63571ACC96C023630963254FDA9",
+        "prediction_semantic_sha256":
+          "645b41062caca5467cd1a6bb9bd489a5efd7637cc977dfc7df218c1bf6985512",
+        "idsw": 0,
+        "hota": 0.9994452150220623,
+        "idf1": 0.9997222222222222,
+        "effective_fps": 28.89944553544958,
+        "realtime_factor": 0.9633148511816526,
+        "p50_ms": 34.212500002468005,
+        "p95_ms": 35.98669500352116,
+        "backlog_growth_frames_per_second": 1.1005544645504202,
+        "final_backlog_frames": 69,
+        "final_output_age_ms": 2318.2588328859592
+      },
+      "prediction_repeatability": "PASS",
+      "runtime_repeatability_ratio": 1.0063,
+      "native_realtime": "FAIL"
+    }
+  },
+  "gates": {
+    "same_gpu_and_harness": "PASS",
+    "causal_zero_delay": "PASS",
+    "prediction_repeatability": "PASS",
+    "runtime_telemetry": "PASS",
+    "recursive_no_mp4": "PASS",
+    "native_30fps_throughput": "FAIL_BOTH",
+    "bounded_output_age": "FAIL_BOTH",
+    "operational_winner": "NONE"
+  },
+  "interpretation": [
+    "Balanced is the operationally closer profile: higher effective FPS, lower backlog",
+    "and lower output age in both orders.",
+    "Balanced still remains below the 30 FPS native gate and accumulates backlog.",
+    "Fast retains the full-13 identity advantage and remains the causal quality reference,",
+    "but its runtime is not native or stable enough to claim a speed win.",
+    "The probe does not rerun bytetrack_raw; its quality and runtime authorities remain immutable.",
+    "No profile is promoted as the final live winner without a declared drop policy or a throughput improvement."
+  ]
+}

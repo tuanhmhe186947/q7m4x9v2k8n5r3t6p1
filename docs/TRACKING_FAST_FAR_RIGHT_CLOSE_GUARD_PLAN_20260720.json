@@ -1,0 +1,260 @@
+{
+  "schema_version": "tracking_fast_far_right_close_guard_plan_v1",
+  "plan_date": "2026-07-20",
+  "status": "FROZEN_BEFORE_IMPLEMENTATION",
+  "starting_commit": "f69c8f2c77a99c355ab058376ea11a7c52b5081e",
+  "scope": {
+    "tracking_only": true,
+    "profile": "realtime_fast",
+    "include_hidden": true,
+    "gap_tolerance_frames": 15,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "output_timing_contract": "causal_framewise",
+    "declared_delay_frames": 0,
+    "write_output_video": false,
+    "mp4_allowed": false,
+    "rerun_bytetrack_raw": false
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "skill_gates": {
+    "skill_pack_validator": "PASS",
+    "tracking_discovery_scenario": "PASS",
+    "validated_before_plan": true
+  },
+  "single_changed_family": "causal_visible_close_competitor_spatial_scope",
+  "parent": {
+    "profile": "realtime_fast",
+    "semantic_values": {
+      "realtime_visible_close_competitor_guard": false,
+      "realtime_visible_close_competitor_margin": 0.012,
+      "realtime_visible_close_competitor_max_cost": 0.35
+    },
+    "full13_authority": {
+      "remapped_idsw": 69,
+      "remapped_hota_pct": 94.35,
+      "remapped_idf1_pct": 93.91,
+      "fp": 506,
+      "fn": 630
+    }
+  },
+  "rejected_broad_reference": {
+    "decision":
+      "docs/TRACKING_FAST_COMBINED_HARD7_DECISION_20260719.json",
+    "decision_sha256":
+      "4e58ba38f92db7a29ff121e40ffc0ed06bb20bd4a2a50651f314e211a9d876c4",
+    "candidate_values": {
+      "realtime_visible_close_competitor_guard": true,
+      "realtime_visible_close_competitor_margin": 0.08,
+      "realtime_visible_close_competitor_max_cost": 0.40
+    },
+    "hard7_remapped_idsw": [61, 64],
+    "hard7_remapped_hota_pct": [92.27, 90.82],
+    "hard7_remapped_idf1_pct": [92.07, 89.81],
+    "status": "REJECTED_HARD_SET"
+  },
+  "candidate": {
+    "semantic_values": {
+      "realtime_visible_close_competitor_guard": true,
+      "realtime_visible_close_competitor_margin": 0.08,
+      "realtime_visible_close_competitor_max_cost": 0.40,
+      "realtime_visible_close_competitor_min_center_x_ratio": 0.67
+    },
+    "implementation_default_for_new_ratio": 0.0,
+    "profile_default_change_in_algorithm_commit": false,
+    "all_other_fast_values_unchanged": true
+  },
+  "camera_contract": {
+    "frame_width_px": 1280,
+    "view": "lower-left camera looking from above toward upper-right",
+    "left_region": "nearer, clearer, and larger pig boxes",
+    "right_region": "farther, blurrier, and smaller pig boxes",
+    "far_right_min_center_x_ratio": 0.67,
+    "threshold_source": "promoted hybrid far-camera identity guard",
+    "wall_source": "mask.png",
+    "wall_used_by_this_candidate": false
+  },
+  "hypothesis": [
+    "The rejected broad guard contains two independent far-right gains.",
+    "Its regressions occur only in left or middle camera regions.",
+    "A causal detection-center gate at x ratio 0.67 should retain the",
+    "000302 and 000327 gains while blocking every observed harmful trigger."
+  ],
+  "source_lineage": {
+    "broad_candidate_run":
+      "20260719_ba775e0_fast_combined_hard7_candidate_v1",
+    "candidate_run_manifest_sha256":
+      "13d55815cd5cbac9ea4366034cfd704e07f1437d90cda4d25ceb03d3a8cd7af3",
+    "parent_run_manifest_sha256":
+      "15ca96f3fe8d77dffdd44a19c14056270f72b7e97c25250a354804138caac546",
+    "detector_sha256":
+      "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+    "mask_sha256":
+      "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658"
+  },
+  "event_evidence": [
+    {
+      "video": "Pigs291119_000302_30fps",
+      "frame": 554,
+      "broad_candidate_idsw_delta": -6,
+      "det_x1_x2": [895.783, 1074.067],
+      "det_center_x_ratio": 0.76947265625,
+      "role": "positive",
+      "association_debug_sha256":
+        "8bcb57f3933cf13211c0a8dbece3147f349bf4f23c4b32a85d8b78609f36f8a9"
+    },
+    {
+      "video": "Pigs301119_000327_30fps",
+      "frame": 1772,
+      "broad_candidate_idsw_delta": -2,
+      "det_x1_x2": [947.249, 1122.793],
+      "det_center_x_ratio": 0.80861015625,
+      "role": "positive",
+      "association_debug_sha256":
+        "4fb57205a8415c69b6ef51f15883f977f7640336672e7f8b59e13107aad73ffa"
+    },
+    {
+      "video": "Pigs281119_000114_30fps",
+      "frame": 1334,
+      "broad_candidate_idsw_delta": 2,
+      "det_x1_x2": [621.423, 847.305],
+      "det_center_x_ratio": 0.573721875,
+      "role": "negative_guard",
+      "association_debug_sha256":
+        "d17e08affe96ec9e09cb11b8e9004451b786681e90fb9f351fd77ae44470ae4e"
+    },
+    {
+      "video": "Pigs291119_000231_30fps",
+      "frame": 1188,
+      "broad_candidate_idsw_delta": 6,
+      "det_x1_x2": [270.109, 528.822],
+      "det_center_x_ratio": 0.312082421875,
+      "role": "negative_guard",
+      "association_debug_sha256":
+        "33f03c793d6f929d49b392e9bf18e032a040f9486f80d8538490c0d3325e24ff"
+    },
+    {
+      "video": "Pigs291119_000233_30fps",
+      "frames": [356, 916],
+      "broad_candidate_idsw_delta": 1,
+      "det_center_x_ratios": [0.486296875, 0.291147265625],
+      "role": "negative_guard",
+      "association_debug_sha256":
+        "fe28fd094bab1dc1c070c01e4d4048569356f77ea7c64f4a1e1d031bbc112c1e"
+    },
+    {
+      "video": "Pigs291119_000263_30fps",
+      "frames": [790, 814],
+      "broad_candidate_idsw_delta": 4,
+      "det_center_x_ratios": [0.272546484375, 0.22531328125],
+      "role": "negative_guard",
+      "association_debug_sha256":
+        "74e1980df552c916a52862efaceaec1ff25e70b749ebbc9eed0ef8597462d701"
+    },
+    {
+      "video": "Pigs291119_000216_30fps",
+      "frame": 168,
+      "broad_candidate_idsw_delta": -2,
+      "det_x1_x2": [180.324, 437.525],
+      "det_center_x_ratio": 0.241347265625,
+      "role": "left_positive_counterexample",
+      "expected_gated_result": "tie parent without regression",
+      "association_debug_sha256":
+        "ea825aaec8d4a45d274a5beda8f919fdbe2630a2e4ebdfe7b7360ed01f8441c9"
+    }
+  ],
+  "implementation_gate": {
+    "required": [
+      "new ratio defaults to 0.0 and preserves existing behavior",
+      "ratio validation accepts the closed interval zero to one",
+      "far-right exact event geometry allows the guard",
+      "left and middle exact event geometry blocks the guard",
+      "no video, frame, session, GT, or ID hardcoding",
+      "Ruff, compileall, focused tracking tests, diff check, line scan pass"
+    ],
+    "algorithm_commit_separate_from_plan": true,
+    "promotion_commit_separate_from_algorithm": true
+  },
+  "window_funnel": {
+    "positive_windows": [
+      {
+        "video": "Pigs291119_000302_30fps",
+        "processed_frames": [450, 610],
+        "score_frames": [530, 590]
+      },
+      {
+        "video": "Pigs301119_000327_30fps",
+        "processed_frames": [1650, 1799],
+        "score_frames": [1740, 1799]
+      }
+    ],
+    "negative_windows": [
+      ["Pigs281119_000114_30fps", 1220, 1390, 1310, 1360],
+      ["Pigs291119_000231_30fps", 1070, 1240, 1160, 1210],
+      ["Pigs291119_000233_30fps", 250, 410, 330, 380],
+      ["Pigs291119_000233_30fps", 800, 1040, 890, 1020],
+      ["Pigs291119_000263_30fps", 680, 870, 760, 840],
+      ["Pigs291119_000216_30fps", 80, 220, 140, 190]
+    ],
+    "positive_gate": "both positive episodes improve IDSW without quality loss",
+    "negative_gate": "every negative window ties or improves its parent",
+    "failure_action": "reject before full target video"
+  },
+  "full_target_gate": {
+    "videos": [
+      "Pigs291119_000302_30fps",
+      "Pigs301119_000327_30fps"
+    ],
+    "aggregate_idsw_delta_max": -4,
+    "per_video_idsw_regression_max": 0,
+    "aggregate_hota_delta_min": 0.0,
+    "aggregate_idf1_delta_min": 0.0,
+    "aggregate_fp_increase_max": 0,
+    "aggregate_fn_increase_max": 0,
+    "recursive_mp4_count_required": 0,
+    "failure_action": "reject before hard set"
+  },
+  "hard7_gate": {
+    "videos": [
+      "Pigs281119_000114_30fps",
+      "Pigs291119_000216_30fps",
+      "Pigs291119_000231_30fps",
+      "Pigs291119_000233_30fps",
+      "Pigs291119_000263_30fps",
+      "Pigs291119_000302_30fps",
+      "Pigs301119_000327_30fps"
+    ],
+    "aggregate_idsw_delta_max": -4,
+    "difficult_videos_improved_min": 2,
+    "per_video_idsw_regression_max": 0,
+    "aggregate_hota_delta_min": 0.0,
+    "aggregate_idf1_delta_min": 0.0,
+    "aggregate_fp_increase_max": 0,
+    "aggregate_fn_increase_max": 0,
+    "candidate_to_parent_effective_fps_ratio_min": 0.90,
+    "candidate_to_parent_peak_rss_ratio_max": 1.10,
+    "recursive_mp4_count_required": 0,
+    "failure_action": "reject without full13"
+  },
+  "full13_gate": {
+    "open_only_after_hard7_pass": true,
+    "primary_and_repeat_required": true,
+    "same_contract_as_locked_parent": true,
+    "rerun_bytetrack_raw": false,
+    "per_video_idsw_regression_max": 0,
+    "aggregate_hota_delta_min": 0.0,
+    "aggregate_idf1_delta_min": 0.0,
+    "repeat_effective_fps_ratio_min": 0.90,
+    "repeat_peak_rss_ratio_max": 1.10,
+    "recursive_mp4_count_required": 0
+  },
+  "fresh_root_prefixes": {
+    "prediction": "outputs/pred/tracking_realtime_optimization",
+    "evaluation": "outputs/eval/tracking_realtime_optimization",
+    "run_family": "20260720_fast_far_right_close_guard"
+  }
+}

@@ -1,0 +1,187 @@
+{
+  "schema_version": "tracking_hybrid_h5b_h4_promotion_v1",
+  "decision_date": "2026-07-19",
+  "status": "profile_promotion_authorized",
+  "decision": "promote_h5b_and_h4_in_hybrid_bytetrack_best",
+  "scope": {
+    "worktree": "PIG_task_tracking",
+    "branch": "task/update-tracking",
+    "tracking_only": true,
+    "classification_touched": false
+  },
+  "audited_code": {
+    "commit": "31d360ba96b4065ce5125c0d88765531cc5898ae",
+    "dirty": false,
+    "h5b_algorithm_commit": "c11a2f4037cc20db996ce370adf4558c93d85474",
+    "h4_algorithm_commit": "befaa58c4bc4228e714a187999aa12abb72f00b8"
+  },
+  "evaluation_contract": {
+    "mode": "hybrid_bytetrack",
+    "profile": "hybrid_bytetrack_best",
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "include_hidden": true,
+    "hidden_attribute_is_optimization_target": false,
+    "iou_threshold": 0.5,
+    "gap_tolerance_frames": 15,
+    "video_count": 13,
+    "gt_detections": 187200,
+    "runtime_contract": "post_video_offline",
+    "generated_mp4_allowed": false
+  },
+  "frozen_plan": {
+    "path": "docs/TRACKING_H5B_H4_COMBINED_FULL13_PLAN_20260718.json",
+    "sha256": "a5ce2d682637c343838aab1880d6a4d344cca1b6c2a2bb7720cd05d764687743"
+  },
+  "promoted_config": {
+    "hidden_suffix_id_swap_use_overlap_persistence": true,
+    "hidden_suffix_id_swap_min_overlap_persistence_frames": 2,
+    "far_camera_hidden_geometry_refine": true,
+    "far_camera_hidden_geometry_x_threshold": 0.67,
+    "far_camera_hidden_geometry_max_future_gap_frames": 15,
+    "far_camera_hidden_geometry_min_height_excess": 0.15,
+    "far_camera_hidden_geometry_min_visible_overlap_iou": 0.65,
+    "far_camera_hidden_geometry_min_overlap_reduction": 0.1,
+    "far_camera_hidden_geometry_max_center_shift": 0.12,
+    "far_camera_hidden_geometry_original_weight": 0.1
+  },
+  "aggregate_quality": {
+    "control": {
+      "matches": 185597,
+      "fp": 1603,
+      "fn": 1603,
+      "idsw": 8,
+      "fragments": 425,
+      "gap_tolerant_fragments": 6,
+      "mota": 0.9828311965811966,
+      "motp_iou": 0.9184542400609431,
+      "idf1": 0.9914102564102564,
+      "hota": 0.9833687663407253
+    },
+    "h5b_only": {
+      "matches": 185597,
+      "fp": 1603,
+      "fn": 1603,
+      "idsw": 4,
+      "fragments": 425,
+      "gap_tolerant_fragments": 6,
+      "mota": 0.982852564102564,
+      "motp_iou": 0.9184542400609431,
+      "idf1": 0.9914209401709402,
+      "hota": 0.9833844758844446
+    },
+    "combined": {
+      "matches": 185607,
+      "fp": 1593,
+      "fn": 1593,
+      "idsw": 0,
+      "fragments": 426,
+      "gap_tolerant_fragments": 6,
+      "mota": 0.9829807692307693,
+      "motp_iou": 0.9184347314214578,
+      "idf1": 0.9914903846153846,
+      "hota": 0.9835062270290739
+    },
+    "combined_minus_control": {
+      "matches": 10,
+      "fp": -10,
+      "fn": -10,
+      "idsw": -8,
+      "fragments": 1,
+      "gap_tolerant_fragments": 0,
+      "idf1": 0.0000801282051282,
+      "hota": 0.0001374606883486
+    }
+  },
+  "component_attribution": {
+    "h5b": {
+      "video": "Pigs291119_000233_30fps",
+      "idsw": [4, 0],
+      "aggregate_idsw": [8, 4],
+      "other_video_metrics_unchanged": true
+    },
+    "h4": {
+      "video": "Pigs301119_000328_30fps",
+      "idsw": [4, 0],
+      "changed_bbox_count_per_run": 10,
+      "changed_ids": ["ID_7"],
+      "other_video_geometry_unchanged": true
+    },
+    "difficult_videos_improved": 2,
+    "metric_unchanged_videos": 11
+  },
+  "repeatability": {
+    "status": "PASS",
+    "audit_path": [
+      "outputs/eval/tracking_hybrid_residual",
+      "20260719_h5b_h4_full13_repeatability_audit_v2.json"
+    ],
+    "audit_file_sha256": {
+      "sha256": "a4772b453955332a3a8c942db9a3b1c4dc176b405cc7017f804a494aced96927"
+    },
+    "authority_sha256": {
+      "sha256": "c88fe8241c85c609b67753ad229e3bcf23ac9f8ca8ac8d3485a8fcbafd8327bb"
+    },
+    "verified_prediction_count": 26,
+    "verified_artifact_count": 46,
+    "current_input_rehash": true,
+    "semantic_prediction_contract": "cvat_xml_c14n_without_created_updated_dumped_v1",
+    "metrics_equal_ignoring": ["pred_xml"],
+    "mp4_count": 0
+  },
+  "lineage": {
+    "universe_sha256": "64a3035d9f8f364eca9f14539fb8d12944d999d5ed932b5cbae58047421122ae",
+    "semantic_config_sha256": {
+      "sha256": "8fd0be4bdf8101b8ffd3b05027ca058042a47082cdf06b232a992e7201c18d53"
+    },
+    "detector_sha256": {
+      "sha256": "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed"
+    },
+    "mask_sha256": {
+      "sha256": "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658"
+    },
+    "control_run_manifest_sha256": {
+      "sha256": "0eea79080209cf3323748b7f79dbd4aa3cc450283255c00a4de43ab0ab039c5e"
+    },
+    "primary_run_manifest_sha256": {
+      "sha256": "529993303fabaa64ac7ccf1e8aff55731e57b1afe1892a18c0ffd7ac4f9a3483"
+    },
+    "repeat_run_manifest_sha256": {
+      "sha256": "9ac39d8a115b99a7f6b2c4131b308e9258f405fcb629a2f4cddc71c57d0137e9"
+    }
+  },
+  "guardrails": {
+    "aggregate_idsw_improved": true,
+    "aggregate_hota_improved": true,
+    "aggregate_idf1_improved": true,
+    "aggregate_fp_fn_improved": true,
+    "per_video_idsw_non_regression": true,
+    "critical_video_idsw_zero": true,
+    "two_difficult_videos_improved": true,
+    "non_geometry_payload_equal": true,
+    "prediction_integrity_passed": true,
+    "repeatability_passed": true,
+    "recursive_no_mp4_passed": true
+  },
+  "negative_evidence_and_claim_limits": [
+    "Strict fragments and tracklets each increase by one; gap-tolerant fragments do not.",
+    "Aggregate MOTP IoU decreases by 0.0000195086394853.",
+    "The promotion is a post-video quality claim and makes no speed claim.",
+    "The 13 videos remain development evidence, not an untouched final test set."
+  ],
+  "rollback": {
+    "hidden_suffix_id_swap_use_overlap_persistence": false,
+    "far_camera_hidden_geometry_refine": false
+  },
+  "next_step": [
+    "Promote the exact config in hybrid_bytetrack_best in a separate commit.",
+    "Recompute the hybrid residual audit after profile promotion.",
+    "Issue a separate hybrid lane-completion decision before opening realtime."
+  ],
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ]
+}

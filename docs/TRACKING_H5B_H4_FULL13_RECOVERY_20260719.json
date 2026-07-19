@@ -1,0 +1,64 @@
+{
+  "schema_version": "tracking_h5b_h4_full13_recovery_v1",
+  "status": "frozen_before_retry",
+  "decision_date": "2026-07-19",
+  "parent_plan": {
+    "path": "docs/TRACKING_H5B_H4_COMBINED_FULL13_PLAN_20260718.json",
+    "commit": "81b8075"
+  },
+  "failure_class": "orchestration_turn_transition",
+  "algorithm_failure": false,
+  "semantic_config_changed": false,
+  "failed_control": {
+    "prediction_root": [
+      "outputs/pred/tracking_hybrid_residual",
+      "20260718_h5b_h4_full13_control"
+    ],
+    "evaluation_root": [
+      "outputs/eval/tracking_hybrid_residual",
+      "20260718_h5b_h4_full13_control"
+    ],
+    "manifest_status": "planned",
+    "manifest_sha256":
+      "394065cb0c05e5687cc5cfc3a9c94f8060651c0e0e08421ab1008b95b246e377",
+    "completed_prediction_xml_count": 10,
+    "expected_prediction_xml_count": 13,
+    "recursive_mp4_count": 0,
+    "evidence_retained": true,
+    "promotion_evidence_allowed": false
+  },
+  "retry_roots": {
+    "control_prediction": [
+      "outputs/pred/tracking_hybrid_residual",
+      "20260719_h5b_h4_full13_control_v2"
+    ],
+    "control_evaluation": [
+      "outputs/eval/tracking_hybrid_residual",
+      "20260719_h5b_h4_full13_control_v2"
+    ],
+    "h5b_prediction": [
+      "outputs/pred/tracking_hybrid_residual",
+      "20260719_h5b_full13_candidate_v2"
+    ],
+    "h5b_evaluation": [
+      "outputs/eval/tracking_hybrid_residual",
+      "20260719_h5b_full13_candidate_v2"
+    ],
+    "combined_prediction": [
+      "outputs/pred/tracking_hybrid_residual",
+      "20260719_h5b_h4_full13_combined_v2"
+    ],
+    "combined_evaluation": [
+      "outputs/eval/tracking_hybrid_residual",
+      "20260719_h5b_h4_full13_combined_v2"
+    ]
+  },
+  "execution_contract": {
+    "background_process": true,
+    "hidden_window": true,
+    "stdout_stderr_logs_outside_experiment_roots": true,
+    "reuse_failed_root": false,
+    "generated_mp4_allowed": false,
+    "realtime_authorized": false
+  }
+}

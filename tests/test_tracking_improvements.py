@@ -15,6 +15,7 @@ from pig_behavior.evaluation.tracking.api import (
 from pig_behavior.tracking import (
     Detection,
     FixedTrack,
+    OcclusionContext,
     TrackingConfig,
     TrackingRuntimeState,
     apply_identity_swap_guard,
@@ -27,15 +28,18 @@ from pig_behavior.tracking import (
     repair_local_pair_swaps,
     repair_long_pair_swaps,
     repair_suffix_pair_swaps,
+    shape_fixed_id,
     shape_hidden_value,
     suppress_overlapped_small_low_confidence_boxes,
     track_detection_overlap_score,
 )
 from pig_behavior.tracking.association import (
+    apply_causal_hidden_detection_reservation,
     frame_in_reentry_ambiguous_hold_window,
     hidden_owner_conflict_should_freeze_identity,
     occlusion_reid_bad_match_should_hold,
     raw_owner_conflict_is_ambiguous,
+    realtime_visible_close_competitor_should_prefer,
     reentry_ambiguous_assignment_should_hold,
     reentry_assignment_cost_allows_hold,
     reentry_raw_evidence_allows_hold,
@@ -46,7 +50,12 @@ from pig_behavior.tracking.association import (
     video_in_reentry_ambiguous_hold_scope,
 )
 from pig_behavior.tracking.config import validate_config
-from pig_behavior.tracking.refinement import stabilize_overlap_hidden_islands
+from pig_behavior.tracking.refinement import (
+    nearby_anchor_indices,
+    refine_far_camera_hidden_geometry,
+    refine_near_wall_hidden_geometry,
+    stabilize_overlap_hidden_islands,
+)
 from pig_behavior.tracking.tracks import shape_for_track
 
 
@@ -84,6 +93,337 @@ def _set_hidden(shape: dict, hidden: bool) -> dict:
     return shape
 
 
+def _config_with_existing_video(
+    tmp_path: Path,
+    **kwargs: object,
+) -> TrackingConfig:
+    video_path = tmp_path / "tracking_fixture.mp4"
+    weights_path = tmp_path / "tracking_fixture.pt"
+    mask_path = tmp_path / "tracking_fixture.png"
+    video_path.write_bytes(b"fixture")
+    weights_path.write_bytes(b"fixture")
+    mask_path.write_bytes(b"fixture")
+    return TrackingConfig(
+        video_path=video_path,
+        weights_path=weights_path,
+        mask_path=mask_path,
+        **kwargs,
+    )
+
+
+def test_nearby_anchor_indices_default_remains_symmetric() -> None:
+    shapes = [{"frame": frame} for frame in (0, 20, 40)]
+    cfg = TrackingConfig(refine_max_gap_frames=30)
+
+    assert nearby_anchor_indices(shapes, [0, 2], 1, cfg) == (0, 2)
+
+
+def test_nearby_anchor_indices_supports_asymmetric_gap_limits() -> None:
+    shapes = [{"frame": frame} for frame in (0, 20, 40)]
+    cfg = TrackingConfig(
+        refine_max_gap_frames=30,
+        refine_max_previous_gap_frames=15,
+    )
+
+    assert nearby_anchor_indices(shapes, [0, 2], 1, cfg) == (0, 2)
+    assert nearby_anchor_indices(shapes[:2], [0], 1, cfg) == (None, None)
+    assert nearby_anchor_indices(shapes[1:], [1], 0, cfg) == (None, 1)
+
+
+def test_negative_refine_max_previous_gap_is_rejected() -> None:
+    cfg = TrackingConfig(refine_max_previous_gap_frames=-1)
+
+    try:
+        validate_config(cfg)
+    except ValueError as exc:
+        assert "refine_max_previous_gap_frames" in str(exc)
+    else:
+        raise AssertionError("negative previous refinement gap should fail")
+
+
+def test_realtime_close_competitor_can_be_limited_to_far_right() -> None:
+    cfg = TrackingConfig(
+        mode="realtime",
+        occlusion_aware_matching=False,
+        realtime_visible_close_competitor_guard=True,
+        realtime_visible_close_competitor_margin=0.08,
+        realtime_visible_close_competitor_max_cost=0.40,
+        realtime_visible_close_competitor_min_center_x_ratio=0.67,
+    )
+    selected_track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([850, 400, 1000, 550], dtype=np.float32),
+        hits=20,
+        ever_detected=True,
+        last_source="detected",
+        state="VISIBLE",
+    )
+    competitor_track = FixedTrack(
+        fixed_id=2,
+        last_box=np.array([900, 400, 1050, 550], dtype=np.float32),
+        hits=20,
+        ever_detected=True,
+        last_source="detected",
+        state="VISIBLE",
+    )
+    hist = np.zeros((16 * 16 * 4,), dtype=np.float32)
+    far_detection = Detection(
+        box=np.array([895.783, 465.226, 1074.067, 567.833]),
+        score=0.90,
+        raw_id=4,
+        class_id=0,
+        hist=hist,
+    )
+    left_detection = Detection(
+        box=np.array([270.109, 156.079, 528.822, 411.506]),
+        score=0.90,
+        raw_id=6,
+        class_id=0,
+        hist=hist,
+    )
+
+    common = {
+        "selected_track": selected_track,
+        "competitor_track": competitor_track,
+        "selected_cost": 0.21,
+        "competitor_cost": 0.28,
+        "competitor_selected_cost": None,
+        "width": 1280,
+        "cfg": cfg,
+        "phase_name": "visible_high_conf",
+    }
+    assert realtime_visible_close_competitor_should_prefer(
+        det=far_detection,
+        **common,
+    )
+    assert not realtime_visible_close_competitor_should_prefer(
+        det=left_detection,
+        **common,
+    )
+
+    cfg.realtime_visible_close_competitor_min_center_x_ratio = 0.0
+    assert realtime_visible_close_competitor_should_prefer(
+        det=left_detection,
+        **common,
+    )
+
+
+def test_realtime_close_competitor_center_ratio_is_validated() -> None:
+    for value in (-0.01, 1.01):
+        cfg = TrackingConfig(
+            realtime_visible_close_competitor_min_center_x_ratio=value,
+        )
+
+        try:
+            validate_config(cfg)
+        except ValueError as exc:
+            assert "min_center_x_ratio" in str(exc)
+        else:
+            raise AssertionError("invalid center-x ratio should fail")
+
+
+def test_near_wall_hidden_geometry_requires_mask_config() -> None:
+    cfg = TrackingConfig(
+        near_wall_hidden_geometry_refine=True,
+        use_mask=False,
+        mask_path=None,
+    )
+
+    try:
+        validate_config(cfg)
+    except ValueError as exc:
+        assert "near_wall_hidden_geometry_refine requires" in str(exc)
+    else:
+        raise AssertionError("near-wall geometry without a mask should fail")
+
+
+def test_near_wall_hidden_geometry_refines_only_bbox_payload() -> None:
+    mask = np.zeros((100, 100), dtype=np.uint8)
+    mask[10:90, 10:90] = 255
+    shapes = [
+        _shape(0, 1, [10.0, 40.0, 30.0, 60.0]),
+        _set_hidden(_shape(1, 1, [8.0, 40.0, 34.0, 60.0]), True),
+        _shape(2, 1, [10.0, 40.0, 30.0, 60.0]),
+    ]
+    hidden_before = {
+        key: value
+        for key, value in shapes[1].items()
+        if key != "points" and not key.startswith("_")
+    }
+    cfg = TrackingConfig(
+        near_wall_hidden_geometry_refine=True,
+        near_wall_hidden_geometry_original_weight=0.50,
+    )
+
+    refined = refine_near_wall_hidden_geometry(
+        shapes,
+        width=100,
+        height=100,
+        mask=mask,
+        cfg=cfg,
+    )
+
+    assert refined[0]["points"] == shapes[0]["points"]
+    assert refined[1]["points"] == [9.0, 40.0, 32.0, 60.0]
+    assert refined[2]["points"] == shapes[2]["points"]
+    assert refined[1]["_near_wall_hidden_geometry_refined"] is True
+    assert {
+        key: value
+        for key, value in refined[1].items()
+        if key != "points" and not key.startswith("_")
+    } == hidden_before
+    assert shapes[1]["points"] == [8.0, 40.0, 34.0, 60.0]
+
+
+def test_near_wall_hidden_geometry_uses_final_id_not_label_slot() -> None:
+    mask = np.zeros((100, 100), dtype=np.uint8)
+    mask[10:90, 10:90] = 255
+    hidden = _set_hidden(
+        _shape(1, 1, [8.0, 40.0, 34.0, 60.0]),
+        True,
+    )
+    hidden["attributes"][0]["value"] = "ID_2"
+    shapes = [
+        _shape(0, 2, [10.0, 40.0, 30.0, 60.0]),
+        hidden,
+        _shape(2, 2, [10.0, 40.0, 30.0, 60.0]),
+    ]
+    cfg = TrackingConfig(near_wall_hidden_geometry_refine=True)
+
+    refined = refine_near_wall_hidden_geometry(
+        shapes,
+        width=100,
+        height=100,
+        mask=mask,
+        cfg=cfg,
+    )
+
+    assert refined[1]["points"] == [9.0, 40.0, 32.0, 60.0]
+    assert refined[1]["label"] == "Pig_1"
+    assert refined[1]["attributes"][0]["value"] == "ID_2"
+
+
+def test_near_wall_hidden_geometry_ignores_far_box() -> None:
+    mask = np.zeros((100, 100), dtype=np.uint8)
+    mask[10:90, 10:90] = 255
+    shapes = [
+        _shape(0, 1, [40.0, 40.0, 60.0, 60.0]),
+        _set_hidden(_shape(1, 1, [38.0, 40.0, 64.0, 60.0]), True),
+        _shape(2, 1, [40.0, 40.0, 60.0, 60.0]),
+    ]
+    cfg = TrackingConfig(near_wall_hidden_geometry_refine=True)
+
+    refined = refine_near_wall_hidden_geometry(
+        shapes,
+        width=100,
+        height=100,
+        mask=mask,
+        cfg=cfg,
+    )
+
+    assert refined[1]["points"] == shapes[1]["points"]
+    assert "_near_wall_hidden_geometry_refined" not in refined[1]
+
+
+def test_far_camera_hidden_geometry_rejects_invalid_future_gap() -> None:
+    cfg = TrackingConfig(
+        far_camera_hidden_geometry_refine=True,
+        far_camera_hidden_geometry_max_future_gap_frames=0,
+    )
+
+    try:
+        validate_config(cfg)
+    except ValueError as exc:
+        assert "far_camera_hidden_geometry_max_future_gap_frames" in str(exc)
+    else:
+        raise AssertionError("zero far-camera future gap should fail")
+
+
+def test_far_camera_hidden_geometry_refines_only_bbox_payload() -> None:
+    hidden = _set_hidden(
+        _shape(1, 7, [68.0, 20.0, 98.0, 80.0]),
+        True,
+    )
+    shapes = [
+        hidden,
+        _shape(1, 5, [68.0, 30.0, 98.0, 80.0]),
+        _shape(3, 7, [72.0, 24.0, 96.0, 60.0]),
+    ]
+    hidden_before = {
+        key: value
+        for key, value in hidden.items()
+        if key != "points" and not key.startswith("_")
+    }
+    cfg = TrackingConfig(far_camera_hidden_geometry_refine=True)
+
+    refined = refine_far_camera_hidden_geometry(
+        shapes,
+        width=100,
+        height=100,
+        cfg=cfg,
+    )
+
+    assert refined[0]["points"] == [71.6, 23.6, 96.2, 62.0]
+    assert refined[1]["points"] == shapes[1]["points"]
+    assert refined[2]["points"] == shapes[2]["points"]
+    assert refined[0]["_far_camera_hidden_geometry_refined"] is True
+    assert refined[0]["_far_camera_hidden_geometry_anchor_frame"] == 3
+    assert refined[0]["_far_camera_hidden_geometry_overlap_identity"] == "ID_5"
+    assert {
+        key: value
+        for key, value in refined[0].items()
+        if key != "points" and not key.startswith("_")
+    } == hidden_before
+    assert shapes[0]["points"] == [68.0, 20.0, 98.0, 80.0]
+
+
+def test_far_camera_hidden_geometry_requires_visible_identity_conflict() -> None:
+    shapes = [
+        _set_hidden(
+            _shape(1, 7, [68.0, 20.0, 98.0, 80.0]),
+            True,
+        ),
+        _set_hidden(
+            _shape(1, 5, [68.0, 30.0, 98.0, 80.0]),
+            True,
+        ),
+        _shape(3, 7, [72.0, 24.0, 96.0, 60.0]),
+    ]
+    cfg = TrackingConfig(far_camera_hidden_geometry_refine=True)
+
+    refined = refine_far_camera_hidden_geometry(
+        shapes,
+        width=100,
+        height=100,
+        cfg=cfg,
+    )
+
+    assert refined[0]["points"] == shapes[0]["points"]
+    assert "_far_camera_hidden_geometry_refined" not in refined[0]
+
+
+def test_far_camera_hidden_geometry_ignores_near_camera_box() -> None:
+    shapes = [
+        _set_hidden(
+            _shape(1, 7, [8.0, 20.0, 38.0, 80.0]),
+            True,
+        ),
+        _shape(1, 5, [8.0, 30.0, 38.0, 80.0]),
+        _shape(3, 7, [12.0, 24.0, 36.0, 60.0]),
+    ]
+    cfg = TrackingConfig(far_camera_hidden_geometry_refine=True)
+
+    refined = refine_far_camera_hidden_geometry(
+        shapes,
+        width=100,
+        height=100,
+        cfg=cfg,
+    )
+
+    assert refined[0]["points"] == shapes[0]["points"]
+    assert "_far_camera_hidden_geometry_refined" not in refined[0]
+
+
 def test_overlap_hidden_stabilization_restores_hidden_owner() -> None:
     cfg = TrackingConfig()
     id1_box = [100.0, 100.0, 260.0, 220.0]
@@ -109,8 +449,84 @@ def test_overlap_hidden_stabilization_restores_hidden_owner() -> None:
     assert frame_2["Pig_8"]["occluded"] is True
 
 
-def test_hybrid_bytetrack_uses_hybrid_defaults_without_forced_postprocessing() -> None:
-    cfg = TrackingConfig(mode="hybrid_bytetrack", detect_every_n_frames=3)
+def test_realtime_keeps_explicit_causal_box_smoothing(
+    tmp_path: Path,
+) -> None:
+    cfg = _config_with_existing_video(
+        tmp_path,
+        mode="realtime",
+        enable_offline_smoothing=False,
+        smooth_boxes=True,
+        refine_boxes=False,
+        overrides={
+            "enable_offline_smoothing",
+            "smooth_boxes",
+            "refine_boxes",
+        },
+    )
+
+    validate_config(cfg)
+
+    assert cfg.enable_offline_smoothing is False
+    assert cfg.smooth_boxes is True
+    assert cfg.refine_boxes is False
+
+
+def test_causal_box_smoothing_keeps_prefix_immutable() -> None:
+    cfg = TrackingConfig(
+        mode="realtime",
+        enable_offline_smoothing=False,
+        smooth_boxes=True,
+        refine_boxes=False,
+    )
+    prefix = [
+        [10.0, 20.0, 110.0, 100.0],
+        [18.0, 20.0, 140.0, 100.0],
+        [26.0, 20.0, 120.0, 100.0],
+    ]
+    future = [
+        [180.0, 20.0, 300.0, 100.0],
+        [40.0, 20.0, 130.0, 100.0],
+    ]
+
+    def run_sequence(boxes: list[list[float]]) -> list[np.ndarray]:
+        track = FixedTrack(
+            fixed_id=1,
+            last_box=np.asarray(boxes[0], dtype=np.float32),
+            ever_detected=True,
+            hits=1,
+        )
+        outputs = [track.last_box.copy()]
+        for box in boxes[1:]:
+            detection = Detection(
+                box=np.asarray(box, dtype=np.float32),
+                score=0.90,
+                raw_id=1,
+                class_id=0,
+                hist=np.ones(4, dtype=np.float32),
+            )
+            track.update_detected(detection, 400, 200, cfg)
+            outputs.append(track.last_box.copy())
+        return outputs
+
+    prefix_outputs = run_sequence(prefix)
+    extended_outputs = run_sequence([*prefix, *future])
+
+    np.testing.assert_allclose(
+        np.stack(prefix_outputs),
+        np.stack(extended_outputs[: len(prefix_outputs)]),
+    )
+    assert not np.allclose(prefix_outputs[1], np.asarray(prefix[1]))
+
+
+def test_hybrid_bytetrack_uses_hybrid_defaults_without_forced_postprocessing(
+    tmp_path: Path,
+) -> None:
+    cfg = _config_with_existing_video(
+        tmp_path,
+        mode="hybrid_bytetrack",
+        detect_every_n_frames=3,
+    )
 
     validate_config(cfg)
 
@@ -129,8 +545,11 @@ def test_hybrid_bytetrack_uses_hybrid_defaults_without_forced_postprocessing() -
     assert cfg.enable_offline_smoothing is False
 
 
-def test_hybrid_bytetrack_keeps_rule_flag_defaults() -> None:
-    cfg = TrackingConfig(mode="hybrid_bytetrack")
+def test_hybrid_bytetrack_keeps_rule_flag_defaults(tmp_path: Path) -> None:
+    cfg = _config_with_existing_video(
+        tmp_path,
+        mode="hybrid_bytetrack",
+    )
     validate_config(cfg)
 
     assert cfg.USE_IOU_FALLBACK is False
@@ -139,8 +558,11 @@ def test_hybrid_bytetrack_keeps_rule_flag_defaults() -> None:
     assert cfg.enable_offline_smoothing is False
 
 
-def test_hybrid_bytetrack_keeps_explicit_threshold_overrides() -> None:
-    cfg = TrackingConfig(
+def test_hybrid_bytetrack_keeps_explicit_threshold_overrides(
+    tmp_path: Path,
+) -> None:
+    cfg = _config_with_existing_video(
+        tmp_path,
         mode="hybrid_bytetrack",
         det_conf=0.30,
         nms_iou=0.70,
@@ -156,8 +578,11 @@ def test_hybrid_bytetrack_keeps_explicit_threshold_overrides() -> None:
     assert cfg.track_high_conf == 0.50
 
 
-def test_hybrid_bytetrack_keeps_explicit_legacy_iou_alias() -> None:
-    cfg = TrackingConfig(
+def test_hybrid_bytetrack_keeps_explicit_legacy_iou_alias(
+    tmp_path: Path,
+) -> None:
+    cfg = _config_with_existing_video(
+        tmp_path,
         mode="hybrid_bytetrack",
         iou=0.72,
         overrides={"iou"},
@@ -234,6 +659,75 @@ def test_identity_swap_guard_swaps_geometry_without_relabeling() -> None:
     assert frame_one["Pig_2"]["attributes"][0]["value"] == "ID_2"
     assert frame_one["Pig_1"]["_identity_swap_guard"] is True
     assert frame_one["Pig_2"]["_identity_swap_with"] == 1
+
+
+def test_identity_swap_guard_mixed_hold_veto_is_opt_in() -> None:
+    shapes = [
+        _shape(0, 1, [0, 0, 20, 20]),
+        _shape(0, 2, [100, 0, 120, 20]),
+        _shape(1, 1, [102, 0, 122, 20]),
+        _shape(1, 2, [2, 0, 22, 20]),
+    ]
+    shapes[-1]["_track_source"] = "predicted"
+    shapes[-1]["_occlusion_hold"] = True
+
+    default_guarded = apply_identity_swap_guard(
+        shapes,
+        width=200,
+        height=100,
+        cfg=TrackingConfig(identity_swap_min_gain=0.01),
+    )
+    explicit_default_guarded = apply_identity_swap_guard(
+        shapes,
+        width=200,
+        height=100,
+        cfg=TrackingConfig(
+            identity_swap_min_gain=0.01,
+            identity_swap_guard_skip_mixed_occlusion_hold=False,
+        ),
+    )
+    vetoed = apply_identity_swap_guard(
+        shapes,
+        width=200,
+        height=100,
+        cfg=TrackingConfig(
+            identity_swap_min_gain=0.01,
+            identity_swap_guard_skip_mixed_occlusion_hold=True,
+        ),
+    )
+
+    assert default_guarded == explicit_default_guarded
+    assert default_guarded[2]["points"] == [2, 0, 22, 20]
+    assert vetoed[2]["points"] == [102, 0, 122, 20]
+    assert vetoed[3]["points"] == [2, 0, 22, 20]
+    assert "_identity_swap_guard" not in vetoed[2]
+    assert "_identity_swap_guard" not in vetoed[3]
+
+
+def test_identity_swap_guard_far_only_keeps_wall_mixed_hold_behavior() -> None:
+    shapes = [
+        _shape(0, 1, [100, 0, 120, 20]),
+        _shape(0, 2, [160, 0, 180, 20]),
+        _shape(1, 1, [162, 0, 182, 20]),
+        _shape(1, 2, [102, 0, 122, 20]),
+    ]
+    shapes[-1]["_track_source"] = "predicted"
+    shapes[-1]["_occlusion_hold"] = True
+
+    far_only = apply_identity_swap_guard(
+        shapes,
+        width=200,
+        height=100,
+        cfg=TrackingConfig(
+            identity_swap_min_gain=0.01,
+            identity_swap_guard_skip_mixed_occlusion_hold=True,
+            identity_swap_guard_skip_mixed_occlusion_hold_far_only=True,
+        ),
+    )
+
+    assert far_only[2]["points"] == [162, 0, 182, 20]
+    assert far_only[3]["points"] == [102, 0, 122, 20]
+    assert "_identity_swap_guard" not in far_only[2]
 
 
 def test_initialize_tracks_uses_spatial_anchor_ids() -> None:
@@ -981,6 +1475,304 @@ def test_association_debug_is_silent_by_default() -> None:
     )
 
     assert runtime.association_debug_events == []
+
+
+def _causal_reservation_fixture() -> tuple[
+    TrackingConfig,
+    FixedTrack,
+    FixedTrack,
+    list[Detection],
+    OcclusionContext,
+]:
+    cfg = TrackingConfig(
+        mode="realtime",
+        expected_pigs=2,
+        association_debug=True,
+        causal_hidden_detection_reservation=True,
+        use_mask_iou=False,
+        occlusion_aware_matching=False,
+        directional_y_prior=False,
+        identity_swap_guard=False,
+        smooth_boxes=False,
+    )
+    hist = _hist_at(0)
+    visible_track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([5, 0, 25, 20], dtype=np.float32),
+        reliable_box=np.array([5, 0, 25, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+        hits=3,
+        state="VISIBLE",
+    )
+    hidden_track = FixedTrack(
+        fixed_id=2,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        reliable_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        missed=1,
+        last_score=0.3,
+        last_source="occlusion_hold",
+        ever_detected=True,
+        hits=3,
+        state="OCCLUDED",
+    )
+    visible_track.hist_bank.append(hist)
+    hidden_track.hist_bank.append(hist)
+    detections = [
+        Detection(
+            box=np.array([0, 0, 20, 20], dtype=np.float32),
+            score=0.95,
+            raw_id=10,
+            class_id=0,
+            hist=hist,
+        ),
+        Detection(
+            box=np.array([10, 0, 30, 20], dtype=np.float32),
+            score=0.95,
+            raw_id=11,
+            class_id=0,
+            hist=hist,
+        ),
+    ]
+    context = OcclusionContext(
+        predicted_boxes={},
+        occluded_track_ids=set(),
+        detection_competitors={},
+        active_detection_owners={},
+        appearance_costs={},
+    )
+    return cfg, visible_track, hidden_track, detections, context
+
+
+def test_causal_hidden_reservation_releases_detection_for_hidden_track() -> None:
+    cfg, visible_track, hidden_track, detections, context = (
+        _causal_reservation_fixture()
+    )
+    runtime = TrackingRuntimeState()
+    costs = np.array([[0.40, 0.70]], dtype=np.float32)
+
+    rows, cols = apply_causal_hidden_detection_reservation(
+        costs,
+        [visible_track],
+        [0, 1],
+        detections,
+        [hidden_track],
+        set(),
+        context,
+        100,
+        40,
+        cfg,
+        {},
+        {},
+        runtime,
+        7,
+        "visible_high_conf",
+    )
+
+    np.testing.assert_array_equal(rows, np.array([0]))
+    np.testing.assert_array_equal(cols, np.array([1]))
+    assert costs[0, 0] >= 1_000_000.0
+    event = next(
+        event
+        for event in runtime.association_debug_events
+        if event["event"] == "assignment_reserve_hidden_detection"
+    )
+    assert event["reserved_for_track_id"] == 2
+    assert event["det_idx"] == 0
+
+
+def test_causal_hidden_reservation_can_hold_visible_without_an_alternative() -> None:
+    cfg, visible_track, hidden_track, detections, context = (
+        _causal_reservation_fixture()
+    )
+    cfg.causal_hidden_detection_reservation_allow_visible_hold = True
+    runtime = TrackingRuntimeState()
+    costs = np.array([[0.40]], dtype=np.float32)
+
+    rows, cols = apply_causal_hidden_detection_reservation(
+        costs,
+        [visible_track],
+        [0],
+        detections,
+        [hidden_track],
+        set(),
+        context,
+        100,
+        40,
+        cfg,
+        {},
+        {},
+        runtime,
+        7,
+        "visible_high_conf",
+    )
+
+    np.testing.assert_array_equal(rows, np.array([0]))
+    np.testing.assert_array_equal(cols, np.array([0]))
+    assert costs[0, 0] >= 1_000_000.0
+    event = next(
+        event
+        for event in runtime.association_debug_events
+        if event["event"] == "assignment_reserve_hidden_detection"
+    )
+    assert event["visible_track_held"] is True
+    assert event["replacement_cost"] is None
+
+
+def test_causal_hidden_reservation_requires_a_valid_visible_alternative() -> None:
+    cfg, visible_track, hidden_track, detections, context = (
+        _causal_reservation_fixture()
+    )
+    runtime = TrackingRuntimeState()
+    costs = np.array([[0.40, 0.90]], dtype=np.float32)
+
+    rows, cols = apply_causal_hidden_detection_reservation(
+        costs,
+        [visible_track],
+        [0, 1],
+        detections,
+        [hidden_track],
+        set(),
+        context,
+        100,
+        40,
+        cfg,
+        {},
+        {},
+        runtime,
+        7,
+        "visible_high_conf",
+    )
+
+    np.testing.assert_array_equal(rows, np.array([0]))
+    np.testing.assert_array_equal(cols, np.array([0]))
+    assert not any(
+        event["event"] == "assignment_reserve_hidden_detection"
+        for event in runtime.association_debug_events
+    )
+
+
+def test_causal_hidden_reservation_rejects_stale_hidden_track() -> None:
+    cfg, visible_track, hidden_track, detections, context = (
+        _causal_reservation_fixture()
+    )
+    hidden_track.missed = cfg.causal_hidden_detection_reservation_max_missed + 1
+    runtime = TrackingRuntimeState()
+    costs = np.array([[0.40, 0.70]], dtype=np.float32)
+
+    rows, cols = apply_causal_hidden_detection_reservation(
+        costs,
+        [visible_track],
+        [0, 1],
+        detections,
+        [hidden_track],
+        set(),
+        context,
+        100,
+        40,
+        cfg,
+        {},
+        {},
+        runtime,
+        7,
+        "visible_high_conf",
+    )
+
+    np.testing.assert_array_equal(rows, np.array([0]))
+    np.testing.assert_array_equal(cols, np.array([0]))
+    assert not any(
+        event["event"] == "assignment_reserve_hidden_detection"
+        for event in runtime.association_debug_events
+    )
+
+
+def test_causal_hidden_reservation_changes_only_the_cross_phase_assignment() -> None:
+    cfg, visible_track, hidden_track, detections, _context = (
+        _causal_reservation_fixture()
+    )
+    tracks = {1: visible_track, 2: hidden_track}
+    runtime = TrackingRuntimeState()
+    frame = np.zeros((40, 100, 3), dtype=np.uint8)
+
+    match_and_update_tracks(
+        tracks,
+        detections,
+        frame,
+        prev_frame=None,
+        cfg=cfg,
+        runtime=runtime,
+        frame_index=7,
+    )
+
+    assert np.allclose(tracks[1].last_box, detections[1].box)
+    assert np.allclose(tracks[2].last_box, detections[0].box)
+    assert any(
+        event["event"] == "assignment_reserve_hidden_detection"
+        for event in runtime.association_debug_events
+    )
+
+
+def test_causal_hidden_reservation_can_hold_reserved_reid_assignment() -> None:
+    cfg, visible_track, hidden_track, detections, _context = (
+        _causal_reservation_fixture()
+    )
+    cfg.causal_hidden_detection_reservation_hold_reserved_reid = True
+    tracks = {1: visible_track, 2: hidden_track}
+    runtime = TrackingRuntimeState()
+    frame = np.zeros((40, 100, 3), dtype=np.uint8)
+    hidden_hits = hidden_track.hits
+    hidden_hist_count = len(hidden_track.hist_bank)
+
+    match_and_update_tracks(
+        tracks,
+        detections,
+        frame,
+        prev_frame=None,
+        cfg=cfg,
+        runtime=runtime,
+        frame_index=7,
+    )
+
+    assert np.allclose(tracks[1].last_box, detections[1].box)
+    assert tracks[2].last_source == "occlusion_hold"
+    assert tracks[2].hits == hidden_hits
+    assert len(tracks[2].hist_bank) == hidden_hist_count
+    hold_event = next(
+        event
+        for event in runtime.association_debug_events
+        if event["event"] == "assignment_hold_reserved_hidden_detection"
+    )
+    assert hold_event["reserved_for_track_id"] == 2
+    assert hold_event["ambiguous"] is True
+    assert hold_event["learn_identity"] is False
+
+
+def test_causal_hidden_reservation_flag_off_preserves_assignment() -> None:
+    cfg, visible_track, hidden_track, detections, _context = (
+        _causal_reservation_fixture()
+    )
+    cfg.causal_hidden_detection_reservation = False
+    tracks = {1: visible_track, 2: hidden_track}
+    runtime = TrackingRuntimeState()
+    frame = np.zeros((40, 100, 3), dtype=np.uint8)
+
+    match_and_update_tracks(
+        tracks,
+        detections,
+        frame,
+        prev_frame=None,
+        cfg=cfg,
+        runtime=runtime,
+        frame_index=7,
+    )
+
+    assert np.allclose(tracks[1].last_box, detections[0].box)
+    assert np.allclose(tracks[2].last_box, detections[1].box)
+    assert not any(
+        event["event"] == "assignment_reserve_hidden_detection"
+        for event in runtime.association_debug_events
+    )
 
 
 def test_ambiguity_owner_guard_rejects_close_raw_owner_conflict() -> None:
@@ -2871,6 +3663,84 @@ def test_hidden_suffix_id_swap_is_opt_in() -> None:
     assert repaired is shapes
     assert _shape_id_value(repaired[0]) == "ID_1"
     assert _shape_id_value(repaired[1]) == "ID_8"
+
+
+def test_hidden_suffix_id_swap_can_use_persistent_overlap_boundary() -> None:
+    cfg = TrackingConfig(
+        hidden_suffix_id_swap_repair=True,
+        hidden_suffix_id_swap_min_hidden_frames=4,
+        hidden_suffix_id_swap_max_hidden_frames=5,
+        hidden_suffix_id_swap_min_overlap_iou=0.40,
+        hidden_suffix_id_swap_max_hidden_median_score=0.50,
+        hidden_suffix_id_swap_start_back_frames=1,
+        hidden_suffix_id_swap_min_suffix_frames=5,
+        hidden_suffix_id_swap_use_overlap_persistence=True,
+        hidden_suffix_id_swap_min_overlap_persistence_frames=2,
+    )
+    shapes = []
+    for frame in range(1, 9):
+        partner = _shape(frame, 1, [0.0, 0.0, 100.0, 100.0])
+        hidden = _shape(frame, 8, [150.0, 0.0, 250.0, 100.0])
+        if frame in {2, 3, 4, 5}:
+            hidden["score"] = 0.30
+            _set_hidden(hidden, True)
+        if frame in {4, 5}:
+            hidden["points"] = [10.0, 10.0, 90.0, 90.0]
+        shapes.extend([partner, hidden])
+
+    repaired = repair_hidden_suffix_id_swaps(shapes, cfg)
+    by_frame_label = {
+        (int(shape["frame"]), shape["label"]): shape for shape in repaired
+    }
+
+    assert _shape_id_value(by_frame_label[(4, "Pig_1")]) == "ID_1"
+    assert _shape_id_value(by_frame_label[(4, "Pig_8")]) == "ID_8"
+    assert _shape_id_value(by_frame_label[(5, "Pig_1")]) == "ID_8"
+    assert _shape_id_value(by_frame_label[(5, "Pig_8")]) == "ID_1"
+
+
+def test_hidden_suffix_overlap_persistence_must_be_positive() -> None:
+    cfg = TrackingConfig(
+        hidden_suffix_id_swap_min_overlap_persistence_frames=0,
+    )
+
+    try:
+        validate_config(cfg)
+    except ValueError as exc:
+        assert "min_overlap_persistence_frames" in str(exc)
+    else:
+        raise AssertionError("zero hidden suffix overlap persistence should fail")
+
+
+def test_hidden_suffix_overlap_persistence_requires_consecutive_frames() -> None:
+    cfg = TrackingConfig(
+        hidden_suffix_id_swap_repair=True,
+        hidden_suffix_id_swap_min_hidden_frames=4,
+        hidden_suffix_id_swap_max_hidden_frames=5,
+        hidden_suffix_id_swap_min_overlap_iou=0.40,
+        hidden_suffix_id_swap_max_hidden_median_score=0.50,
+        hidden_suffix_id_swap_start_back_frames=3,
+        hidden_suffix_id_swap_min_suffix_frames=7,
+        hidden_suffix_id_swap_use_overlap_persistence=True,
+        hidden_suffix_id_swap_min_overlap_persistence_frames=2,
+    )
+    shapes = []
+    for frame in range(1, 9):
+        partner = _shape(frame, 1, [0.0, 0.0, 100.0, 100.0])
+        hidden = _shape(frame, 8, [150.0, 0.0, 250.0, 100.0])
+        if frame in {2, 3, 4, 5}:
+            hidden["score"] = 0.30
+            _set_hidden(hidden, True)
+        if frame in {3, 5}:
+            hidden["points"] = [10.0, 10.0, 90.0, 90.0]
+        shapes.extend([partner, hidden])
+
+    repaired = repair_hidden_suffix_id_swaps(shapes, cfg)
+
+    assert all(
+        _shape_id_value(shape) == f"ID_{shape_fixed_id(shape)}"
+        for shape in repaired
+    )
 
 
 def test_occlusion_reid_bad_match_can_require_unowned_raw() -> None:

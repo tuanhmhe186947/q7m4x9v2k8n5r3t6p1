@@ -1,0 +1,111 @@
+{
+  "schema_version": "tracking_paper_priority_and_redesign_policy_v1",
+  "decision_date": "2026-07-19",
+  "status": "active_priority_override",
+  "scope": {
+    "worktree": "PIG_task_tracking",
+    "branch": "task/update-tracking",
+    "tracking_only": true,
+    "classification_or_model_changes_allowed": false,
+    "generated_mp4_preview_overlay_allowed": false
+  },
+  "lineage": {
+    "supersedes_scope": "task_order_and_paper_scope_only",
+    "frozen_pareto_plan":
+      "docs/TRACKING_REALTIME_PARETO_FUNNEL_PLAN_20260719.json",
+    "frozen_pareto_plan_sha256":
+      "5046ff636ce4a4d8c02864eef72778e070b9b3e96c5db7f152c8150460b58302",
+    "active_rb3_plan":
+      "docs/TRACKING_RB3_RESERVED_REID_HOLD_PLAN_20260719.json",
+    "rb3_decision":
+      "docs/TRACKING_RB3_RESERVED_REID_HOLD_DECISION_20260719.json",
+    "quality_selection_gate":
+      "docs/TRACKING_REALTIME_QUALITY_SELECTION_GATE_20260719.json",
+    "frozen_candidate_gates_modified": false,
+    "historical_evidence_modified": false
+  },
+  "optimization_priority": [
+    {
+      "rank": 1,
+      "lane": "hybrid_bytetrack",
+      "state": "complete",
+      "reopen_only_for": "predeclared_failure_on_untouched_sessions"
+    },
+    {
+      "rank": 2,
+      "lane": "realtime_fast",
+      "state": "complete_current_causal_reference",
+      "paper_selection_default": true
+    },
+    {
+      "rank": 3,
+      "lane": "realtime_balanced",
+      "state": "finish_already_authorized_rb3_decision_only",
+      "automatic_next_family_allowed": false
+    },
+    {
+      "rank": 4,
+      "lane": "realtime_quality_delayed",
+      "state": "later_realtime_selection_challenger",
+      "current_contract": "post_video_global_graph_delay_minus_one",
+      "paper_selection_rule":
+        "eligible_if_rebuilt_and_proven_causal_or_fixed_delay_and_pareto_best"
+    }
+  ],
+  "paper_scope": {
+    "minimum_meaningful_comparison": [
+      "bytetrack_raw_same_contract",
+      "one_selected_valid_realtime_method",
+      "hybrid_bytetrack_best"
+    ],
+    "three_realtime_profiles_required": false,
+    "quality_evaluation_required_before_realtime_winner_lock": true,
+    "selected_realtime_may_be": [
+      "realtime_fast",
+      "realtime_balanced",
+      "realtime_quality_if_causal_or_fixed_delay_contract_passes"
+    ],
+    "extra_profile_inclusion_rule":
+      "evaluate_quality_before_winner_lock_then_include_only_distinct_validated_claim",
+    "raw_authority_pending": true,
+    "raw_authority_requirement": [
+      "include_hidden_true",
+      "same_13_video_universe",
+      "same_detector_and_gt",
+      "same_evaluator_contract",
+      "recursive_mp4_count_zero"
+    ]
+  },
+  "profile_redesign_policy": {
+    "semantic_contract_has_priority_over_existing_implementation": true,
+    "weak_or_misnamed_implementation_may_be_rebuilt": true,
+    "preserve_old_artifacts_as_labeled_evidence": true,
+    "rewrite_history_or_delete_negative_evidence": false,
+    "no_regression_meaning":
+      "protect_the_accepted_overall_result_not_a_known_weak_implementation",
+    "replacement_acceptance": [
+      "freeze_hypothesis_changed_family_and_gates_before_candidate_results",
+      "compare_against_relevant_raw_and_operational_references",
+      "pass_causality_identity_quality_latency_memory_and_lineage_gates",
+      "pass_the_window_video_hard_set_full13_funnel_when_applicable",
+      "produce_zero_mp4_preview_overlay_or_event_clip_artifacts"
+    ]
+  },
+  "current_execution_boundary": [
+    "allow_the_in_progress_rb3_full13_primary_to_finish",
+    "audit_actual_metrics_lineage_integrity_runtime_and_zero_mp4",
+    "do_not_start_quality_delayed_or_another_balanced_family_in_parallel",
+    "then_assess_quality_as_the_next_ranked_realtime_selection_challenger",
+    "quality_assessment_is_required_before_locking_any_realtime_winner",
+    "do_not_rank_delay_minus_one_global_post_video_as_a_realtime_winner",
+    "select_quality_if_a_valid_causal_or_fixed_delay_version_is_pareto_best",
+    "then_lock_raw_and_build_the_raw_realtime_hybrid_paper_comparison"
+  ],
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ]
+}

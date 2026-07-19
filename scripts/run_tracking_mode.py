@@ -33,6 +33,8 @@ SUMMARY_COLUMNS = [
     "uses_delayed_repair",
     "detect_every_n_frames",
     "latency_window_frames",
+    "output_timing_contract",
+    "declared_delay_frames",
     "tracking_mode",
     "eval_config",
     "rule_output",
@@ -83,6 +85,8 @@ RUNTIME_COLUMNS = [
     "video_frame_count",
     "video_duration_sec",
     "compare_realtime_factor",
+    "output_timing_contract",
+    "declared_delay_frames",
 ]
 SCIENTIFIC_COLUMNS = [
     "presentation_mode",
@@ -93,6 +97,8 @@ SCIENTIFIC_COLUMNS = [
     "uses_delayed_repair",
     "detect_every_n_frames",
     "latency_window_frames",
+    "output_timing_contract",
+    "declared_delay_frames",
     "evaluated_video_count",
     "evaluated_frames",
     "video_frame_count",
@@ -166,11 +172,24 @@ Use --all-rule-combos to run the full rule benchmark matrix instead.
     parser.add_argument(
         "--eval-existing",
         action="store_true",
-        help="With --task eval, evaluate existing predictions only and do not run missing tracking.",
+        help=(
+            "With --task eval, evaluate existing predictions only and do not "
+            "run missing tracking."
+        ),
     )
     group = parser.add_mutually_exclusive_group(required=False)
-    group.add_argument("-v", "--video", type=str, help="Comma-separated names, paths, keys, or aliases.")
-    group.add_argument("-a", "--all-videos", action="store_true", help="Run on all configured videos.")
+    group.add_argument(
+        "-v",
+        "--video",
+        type=str,
+        help="Comma-separated names, paths, keys, or aliases.",
+    )
+    group.add_argument(
+        "-a",
+        "--all-videos",
+        action="store_true",
+        help="Run on all configured videos.",
+    )
     parser.add_argument(
         "--path-profile",
         type=str,
@@ -358,34 +377,61 @@ def _mode_science_metadata(
         "realtime_visible_better_competitor_prefer",
         "realtime_low_conf_recovery_guard",
     ]
-    delayed_repair_keys = [
-        "local_pair_swap_repair",
-        "realtime_motion_pair_stabilizer",
-    ]
-    uses_identity_repair = any(_truthy(overrides.get(key, False)) for key in identity_repair_keys)
-    uses_delayed_repair = any(_truthy(overrides.get(key, False)) for key in delayed_repair_keys)
+    uses_identity_repair = any(
+        _truthy(overrides.get(key, False)) for key in identity_repair_keys
+    )
+    uses_motion_pair_stabilizer = (
+        tracking_mode == "realtime"
+        and _truthy(overrides.get("realtime_motion_pair_stabilizer", False))
+    )
+    fixed_lag_frames = int(
+        overrides.get("realtime_motion_pair_fixed_lag_frames", 0) or 0
+    )
+    uses_fixed_lag = uses_motion_pair_stabilizer and fixed_lag_frames > 0
+    uses_global_graph = uses_motion_pair_stabilizer and not uses_fixed_lag
+    uses_delayed_repair = uses_motion_pair_stabilizer or (
+        offline_smoothing
+        and _truthy(overrides.get("local_pair_swap_repair", False))
+    )
     detect_every_n_frames = str(overrides.get("detect_every_n_frames", ""))
     latency_window = ""
-    if _truthy(overrides.get("realtime_motion_pair_stabilizer", False)):
-        latency_window = str(overrides.get("realtime_motion_pair_memory_frames", ""))
-    elif _truthy(overrides.get("local_pair_swap_repair", False)):
+    if uses_fixed_lag:
+        latency_window = str(fixed_lag_frames)
+    elif offline_smoothing and _truthy(
+        overrides.get("local_pair_swap_repair", False)
+    ):
         latency_window = str(overrides.get("local_pair_swap_window_frames", ""))
 
     if presentation_mode == "bytetrack_raw" or eval_config == "bytetrack_raw":
         baseline_role = "raw_bytetrack_baseline_same_detector_pipeline"
         causality_level = "online_raw"
-    elif tracking_mode == "realtime" and uses_delayed_repair:
+        output_timing_contract = "causal_framewise"
+        declared_delay_frames = 0
+    elif uses_fixed_lag:
+        baseline_role = "realtime_quality_fixed_lag_candidate"
+        causality_level = "fixed_lag_realtime"
+        output_timing_contract = "fixed_lag_framewise"
+        declared_delay_frames = fixed_lag_frames
+    elif uses_global_graph:
         baseline_role = "realtime_quality_delayed_candidate"
-        causality_level = "short_delay_realtime"
+        causality_level = "post_video_global_graph"
+        output_timing_contract = "post_video_global_graph"
+        declared_delay_frames = -1
     elif tracking_mode == "realtime":
         baseline_role = "causal_realtime_candidate"
         causality_level = "online_realtime"
+        output_timing_contract = "causal_framewise"
+        declared_delay_frames = 0
     elif offline_smoothing:
         baseline_role = "offline_quality_upper_bound"
         causality_level = "offline_postprocessed"
+        output_timing_contract = "post_video_offline"
+        declared_delay_frames = -1
     else:
         baseline_role = "tracking_candidate"
         causality_level = "online_or_near_online"
+        output_timing_contract = "causal_framewise"
+        declared_delay_frames = 0
 
     return {
         "baseline_role": baseline_role,
@@ -395,6 +441,8 @@ def _mode_science_metadata(
         "uses_delayed_repair": str(uses_delayed_repair).lower(),
         "detect_every_n_frames": detect_every_n_frames,
         "latency_window_frames": latency_window,
+        "output_timing_contract": output_timing_contract,
+        "declared_delay_frames": str(declared_delay_frames),
     }
 
 
@@ -417,7 +465,11 @@ def _asset_rows_by_video(metrics_csv: Path) -> dict[str, dict[str, str]]:
             "video_stem": "ALL",
             "video_frame_count": _format_float(total_frames, digits=0),
             "video_fps": "",
-            "video_duration_sec": _format_float(sum(duration_values), digits=4) if duration_values else "",
+            "video_duration_sec": (
+                _format_float(sum(duration_values), digits=4)
+                if duration_values
+                else ""
+            ),
         }
     return assets
 
@@ -452,8 +504,16 @@ def _runtime_context(
     elapsed = _safe_float(metadata.get("compare_elapsed_sec"))
     evaluated_frames = _safe_float(row.get("evaluated_frames"))
     duration = _safe_float(video_duration_sec)
-    evaluated_fps = evaluated_frames / elapsed if evaluated_frames is not None and elapsed and elapsed > 0 else None
-    realtime_factor = duration / elapsed if duration is not None and elapsed and elapsed > 0 else None
+    evaluated_fps = (
+        evaluated_frames / elapsed
+        if evaluated_frames is not None and elapsed and elapsed > 0
+        else None
+    )
+    realtime_factor = (
+        duration / elapsed
+        if duration is not None and elapsed and elapsed > 0
+        else None
+    )
     return {
         "compare_elapsed_sec": metadata.get("compare_elapsed_sec", ""),
         "compare_evaluated_fps": _format_float(evaluated_fps),
@@ -526,7 +586,10 @@ def _write_compare_summary(
                     "fragments": row.get("fragments", ""),
                     "remapped_fragments": row.get("remapped_fragments", ""),
                     "gap_tolerant_fragments": row.get("gap_tolerant_fragments", ""),
-                    "remapped_gap_tolerant_fragments": row.get("remapped_gap_tolerant_fragments", ""),
+                    "remapped_gap_tolerant_fragments": row.get(
+                        "remapped_gap_tolerant_fragments",
+                        "",
+                    ),
                     "tracklets": row.get("tracklets", ""),
                     "remapped_tracklets": row.get("remapped_tracklets", ""),
                     "evaluated_frames": row.get("evaluated_frames", ""),
@@ -550,7 +613,8 @@ def _write_compare_summary(
         handle.write("| " + " | ".join(SUMMARY_COLUMNS) + " |\n")
         handle.write("| " + " | ".join("---" for _ in SUMMARY_COLUMNS) + " |\n")
         for row in summary_rows:
-            handle.write("| " + " | ".join(str(row.get(column, "")) for column in SUMMARY_COLUMNS) + " |\n")
+            values = (str(row.get(column, "")) for column in SUMMARY_COLUMNS)
+            handle.write("| " + " | ".join(values) + " |\n")
     return csv_path, md_path
 
 
@@ -562,7 +626,11 @@ def _write_runtime_summary(
     rows: list[dict[str, str]] = []
     summary_csv = compare_output_root / "mode_comparison_summary.csv"
     summary_rows = _read_metrics_rows(summary_csv) if summary_csv.exists() else []
-    all_rows = {row.get("presentation_mode", ""): row for row in summary_rows if row.get("video_stem") == "ALL"}
+    all_rows = {
+        row.get("presentation_mode", ""): row
+        for row in summary_rows
+        if row.get("video_stem") == "ALL"
+    }
     for presentation_mode, metadata in mode_metadata.items():
         runtime = runtime_metadata.get(presentation_mode, {})
         all_row = all_rows.get(presentation_mode, {})
@@ -600,7 +668,8 @@ def _write_runtime_summary(
         handle.write("| " + " | ".join(RUNTIME_COLUMNS) + " |\n")
         handle.write("| " + " | ".join("---" for _ in RUNTIME_COLUMNS) + " |\n")
         for row in rows:
-            handle.write("| " + " | ".join(str(row.get(column, "")) for column in RUNTIME_COLUMNS) + " |\n")
+            values = (str(row.get(column, "")) for column in RUNTIME_COLUMNS)
+            handle.write("| " + " | ".join(values) + " |\n")
     return csv_path, md_path
 
 
@@ -653,7 +722,11 @@ def _write_scientific_summary(compare_output_root: Path) -> tuple[Path, Path]:
     for presentation_mode in modes:
         if not presentation_mode:
             continue
-        mode_rows = [row for row in summary_rows if row.get("presentation_mode") == presentation_mode]
+        mode_rows = [
+            row
+            for row in summary_rows
+            if row.get("presentation_mode") == presentation_mode
+        ]
         all_row = next((row for row in mode_rows if row.get("video_stem") == "ALL"), {})
         per_video_rows = [row for row in mode_rows if row.get("video_stem") != "ALL"]
         hota_stats = _scientific_stat(per_video_rows, "remapped_hota_pct", "per_video")
@@ -701,12 +774,16 @@ def _write_scientific_summary(compare_output_root: Path) -> tuple[Path, Path]:
     with md_path.open("w", encoding="utf-8") as handle:
         handle.write("# Mode Scientific Summary\n\n")
         handle.write(
-            "Per-video mean/std/median columns exclude the aggregate `ALL` row; total columns use the `ALL` row.\n\n"
+            "Per-video mean/std/median columns exclude the aggregate `ALL` "
+            "row; total columns use the `ALL` row.\n\n"
         )
         handle.write("| " + " | ".join(SCIENTIFIC_COLUMNS) + " |\n")
         handle.write("| " + " | ".join("---" for _ in SCIENTIFIC_COLUMNS) + " |\n")
         for row in rows:
-            handle.write("| " + " | ".join(str(row.get(column, "")) for column in SCIENTIFIC_COLUMNS) + " |\n")
+            values = (
+                str(row.get(column, "")) for column in SCIENTIFIC_COLUMNS
+            )
+            handle.write("| " + " | ".join(values) + " |\n")
     return csv_path, md_path
 
 

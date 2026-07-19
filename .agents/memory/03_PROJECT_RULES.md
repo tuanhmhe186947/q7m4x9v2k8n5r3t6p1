@@ -1,5 +1,63 @@
 # Project Rules
 
+## 2026-07-18 tracking-only priority rules
+
+1. Work only in `PIG_task_tracking` on `task/update-tracking`; classification
+   code, data, and models are out of scope until the user switches workstreams.
+2. Optimize `hybrid_bytetrack` first. A candidate promotion locks only that
+   experiment; it never completes the hybrid lane by implication.
+3. Use the staged funnel: hard window, full target video, at least three hard
+   videos, then full-13. Freeze gates before seeing candidate results.
+4. Transfer technology only after a separate hybrid lane-completion decision
+   passes its residual-error and stopping gates. Then use `realtime_fast` as
+   the operational reference. Balanced must pass a predeclared
+   identity-stability and latency gate and add material value relative to fast;
+   improvement versus old balanced alone is insufficient.
+5. Use `include_hidden=true`, `iou0_area0_condarea0_merge0`, fresh roots, exact
+   lineage hashes, primary/repeat confirmation, and recursive zero-MP4 checks.
+6. Never generate MP4, preview, overlay, or event clips during tracking
+   analysis, evaluation, ablation, replay, or benchmark.
+7. Inspect and record skills before nontrivial work. Upgrade reusable skills
+   with `skill-creator`, validate them, and commit skill changes separately
+   from algorithm changes.
+8. Separate dependency order from final ranking. Complete
+   `hybrid_bytetrack` first; then select one realtime winner from valid Fast,
+   Balanced, and Quality authorities. Fast is the operational control, not a
+   predetermined winner. Quality is a mandatory challenger and replaces the
+   others if it wins the frozen causal/fixed-delay Pareto comparison.
+9. The paper does not require three realtime profiles. The minimum meaningful
+   comparison is the same-contract `bytetrack_raw`, one selected causal
+   realtime method, and `hybrid_bytetrack_best`. Additional realtime profiles
+   are included only when they support a distinct, validated scientific claim.
+10. Profile names preserve semantic contracts, not weak implementations. If a
+    profile is materially weak or contradicts its intended speed/quality role,
+    its implementation may be superseded or rebuilt. Preserve the old evidence
+    as a labeled baseline, freeze the replacement hypothesis and gates, and
+    accept the replacement only when it improves the declared overall result
+    against the relevant raw/reference baselines.
+11. `realtime_fast` is the current causal paper reference. Balanced work is
+    useful only if it adds material Pareto value relative to fast while passing
+    identity, quality, latency, causality, lineage, and zero-MP4 gates. A gain
+    over an older balanced run alone does not justify further optimization.
+12. Quality must be evaluated before any realtime winner is locked. The paper
+    still need not include all three realtime profiles, but omission is a
+    presentation choice after the Quality challenger has been screened.
+13. Quality may replace fast/balanced when a causal or finite-delay
+    implementation passes prefix invariance, latency, quality, and Pareto
+    gates. The current delay-`-1` global-post-video implementation must be
+    labeled delayed and cannot be ranked as a realtime winner. Use the
+    `12/15/30`-frame rolling-lag funnel in
+    `docs/TRACKING_REALTIME_QUALITY_SELECTION_GATE_20260719.json`.
+14. Never select a realtime winner from accuracy alone. Require all applicable
+    causal/fixed-delay, prefix, per-video identity, repeatability, lineage,
+    no-MP4, FPS, p50/p95, stage-latency, memory and application gates. If no
+    candidate dominates every dimension, report the Pareto trade-off and
+    select only for the declared use case.
+15. Fast is currently a causal reference, not a final winner. Its include-Hidden
+    authority has `000302` IDSW `6` against the frozen ceiling `2`, and its
+    speed claim lacks a common-harness audit. Resolve both before locking the
+    paper realtime method.
+
 ## classification_v2 active rules
 
 ### Two-pass model and modality research authority
@@ -144,6 +202,25 @@ previous commit-`18d6692` full run is historical engineering evidence only.
 
 The tracking rules below are historical/preserved for tracking tasks. They do
 not supersede the active classification_v2 rules above.
+
+## 2026-07-17 tracking GT and Hidden contract
+
+1. Tracking GT was seeded by an older tracker and then manually corrected for
+   bbox and ID. Treat the corrected bbox and ID as the evaluation authority.
+2. The 1,930 `Hidden` values may preserve errors from the older tracker. Do not
+   treat them as human-confirmed visibility or optimize a tracker to reproduce
+   them.
+3. Primary geometry and identity evaluation must use `include_hidden=true` so
+   corrected bbox/ID rows are not discarded. An exclude-Hidden replay is only
+   a compatibility report and cannot authorize promotion.
+4. Compare every candidate with a baseline replayed under the identical
+   include-Hidden contract. Require per-video remapped IDSW delta to be at most
+   zero; require exact IDSW zero only where that same-contract baseline is zero.
+5. A geometry-only ablation must preserve track IDs, shape keys, Behavior,
+   `Hidden`, `occluded`, and all non-geometry payload. Reject it before repeat
+   if downstream post-processing changes any of those fields.
+6. Never generate MP4, preview, overlay, or event clips during tracking
+   evaluation, replay, diagnosis, ablation, or benchmark.
 
 ## Skill-first execution rules
 

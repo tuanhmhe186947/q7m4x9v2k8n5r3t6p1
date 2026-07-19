@@ -1,0 +1,148 @@
+{
+  "schema_version": "tracking_rb2_hidden_reservation_horizon_decision_v1",
+  "decision_date": "2026-07-19",
+  "status": "REJECTED_AT_FROZEN_WINDOW_1",
+  "candidate": {
+    "id": "RB2",
+    "name": "causal_hidden_reservation_horizon15_v1",
+    "commit": "0fac355e46a89a0c19214c9d02b0cdabc5901557",
+    "changed_family": "causal_hidden_detection_reservation_horizon",
+    "semantic_diff": {
+      "causal_hidden_detection_reservation_max_missed": [5, 15]
+    }
+  },
+  "scope": {
+    "worktree": "PIG_task_tracking",
+    "branch": "task/update-tracking",
+    "tracking_only": true,
+    "classification_touched": false,
+    "generated_mp4_allowed": false
+  },
+  "evaluation_contract": {
+    "profile": "realtime_balanced",
+    "timing_contract": "causal_framewise",
+    "delay_frames": 0,
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "score_frames": [786, 861]
+  },
+  "pre_window_gates": {
+    "static_resolution": "PASS",
+    "focused_tests": "PASS_115",
+    "synthetic_horizon_boundary": "PASS",
+    "prefix_invariance": {
+      "status": "PASS",
+      "path": [
+        "outputs/eval/tracking_realtime_optimization",
+        "20260719_4c298c0_rb2_h15_prefix_invariance_v1.json"
+      ],
+      "frame_exclusive": 862,
+      "compared_payload_count": 6896,
+      "payload_sha256":
+        "2b17ec5c47006a2b0484f68c049324375021860c08a1e7e7dc393506d51e5386",
+      "payloads_equal": true,
+      "mp4_count": 0
+    }
+  },
+  "frozen_window_1": {
+    "video": "Pigs291119_000263_30fps",
+    "parent": {
+      "commit": "4c298c0b7d4a96c8addcc490680ef9c9ed7599da",
+      "run_id": "20260719_4c298c0_rb_parent_debug_w01_000263_v1",
+      "semantic_config_sha256":
+        "f6543eb1e002166b8f530f05f7ad03df8bc6f835bf0e39f132afc31363f08117",
+      "prediction_semantic_sha256":
+        "26f72c521ac9260fea6886906afe4e55b452221da5341df40ed39ac1e088c83e",
+      "idsw": 34,
+      "idf1": 0.8905349794238683,
+      "hota": 0.907391986703821,
+      "fp": 5,
+      "fn": 6,
+      "idtp": 541,
+      "matches": 602
+    },
+    "candidate": {
+      "run_id": "20260719_4c298c0_rb2_h15_w01_000263_candidate_v1",
+      "semantic_config_sha256":
+        "16ab24ae1700fb91bf76aa44b707100ea527f5ebaee76463b28f6dc31aa42cdd",
+      "prediction_semantic_sha256":
+        "21f81c3d8131fbf7e973674ccabaa601e0b02ddf5f41119318a4d57d9e163cf9",
+      "idsw": 30,
+      "idf1": 0.8865131578947368,
+      "hota": 0.9071519075292748,
+      "fp": 5,
+      "fn": 5,
+      "idtp": 539,
+      "matches": 603
+    },
+    "candidate_minus_parent": {
+      "idsw": -4,
+      "idf1": -0.0040218215291315,
+      "hota": -0.0002400791745462,
+      "fp": 0,
+      "fn": -1,
+      "idtp": -2,
+      "matches": 1
+    }
+  },
+  "gates": {
+    "idsw_guard": "PASS",
+    "idf1_non_regression": "FAIL",
+    "hota_non_regression": "FAIL",
+    "fp_guard": "PASS",
+    "fn_guard": "PASS",
+    "recursive_no_mp4": "PASS",
+    "window_2_authorized": false,
+    "window_3_authorized": false,
+    "full_video_authorized": false,
+    "hard_set_authorized": false,
+    "full13_authorized": false,
+    "profile_promotion_authorized": false
+  },
+  "debug_evidence": {
+    "parent_reservation_events": 4,
+    "candidate_reservation_events": 6,
+    "candidate_reservation_frames": [790, 791, 797, 820, 823, 861],
+    "interpretation": [
+      "The longer horizon suppresses four switch rows in W01.",
+      "It also lowers IDTP by two and lowers both IDF1 and HOTA.",
+      "The lower IDSW is unsafe under the frozen identity-quality guards."
+    ]
+  },
+  "stages_not_run": [
+    "W02",
+    "W03",
+    "full_Pigs291119_000263_30fps",
+    "seven_video_hard_set",
+    "full13_primary",
+    "full13_repeat"
+  ],
+  "artifact_hashes": {
+    "parent_run_manifest":
+      "c1790df48625365e5870558971f0cf8d3727b7065cc9107a96ba68290153109c",
+    "parent_artifact_manifest":
+      "2dac9db10377588d56a36ca0f06e64f0773d2d4e71177dd9c5eacce7ffceada6",
+    "parent_metrics":
+      "2157f88f6bd95aed0a5c5ffd82643fc995daa743f1f61d498fc431e451b641aa",
+    "candidate_run_manifest":
+      "d64c7aa8cd74df62346702db185a350990dd5f66b3b4b187fb69c6de97a0ef6e",
+    "candidate_artifact_manifest":
+      "ea03e29998ab8d5106e6b53714548aa56b5ebd17106984102c769cbfadcfe7cf",
+    "candidate_metrics":
+      "363fd198288386d834a3e6836a5788834a2b3e6b1fa504c54555f6c3b4d2630a"
+  },
+  "decision": [
+    "Reject RB2 at the first frozen-window quality guardrail.",
+    "Retain prefix and synthetic PASS results as negative-evidence lineage.",
+    "Do not change the realtime_balanced profile or run later stages.",
+    "Return to an association hypothesis with an identity-quality guard."
+  ],
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "recursive_mp4_count": 0
+}

@@ -1,0 +1,80 @@
+{
+  "schema_version": "tracking_fast_candidate_window_plan_v1",
+  "plan_date": "2026-07-19",
+  "status": "FROZEN_BEFORE_RUN",
+  "starting_commit": "a97ce9a",
+  "scope": {
+    "tracking_only": true,
+    "profile": "realtime_fast",
+    "video": "Pigs291119_000302_30fps",
+    "frame_range_processed": [0, 630],
+    "score_range": [540, 590],
+    "warmup_before_score_frames": 540,
+    "include_hidden": true,
+    "gap_tolerance_frames": 15,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "association_debug": true,
+    "write_output_video": false,
+    "mp4_allowed": false
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "parent": {
+    "run_id": "20260719_66bc121_fast_000302_parent_diag_v1",
+    "semantic_values": {
+      "detect_every_n_frames": 2,
+      "realtime_low_conf_recovery_guard": false,
+      "realtime_visible_close_competitor_guard": false,
+      "realtime_visible_close_competitor_margin": 0.012
+    },
+    "remapped_idsw": 6,
+    "remapped_hota_pct": 88.31,
+    "remapped_idf1_pct": 87.75,
+    "fp": 20,
+    "fn": 20
+  },
+  "candidate": {
+    "run_id": "20260719_a97ce9a_fast_000302_closeguard_margin08_w1_v1",
+    "changed_family": "visible_competitor_guard_threshold",
+    "semantic_diff": {
+      "realtime_visible_close_competitor_guard": [false, true],
+      "realtime_visible_close_competitor_margin": [0.012, 0.08]
+    },
+    "parameters_frozen": {
+      "realtime_visible_close_competitor_max_cost": 0.35,
+      "realtime_visible_close_competitor_min_hits": 3
+    },
+    "all_other_fast_profile_values_unchanged": true
+  },
+  "hypothesis": [
+    "At frame 554 Fast has a visible crossing with costs 0.134553",
+    "for track 8 and 0.195689 for track 4; the default margin 0.012",
+    "cannot recognize this near-tie. A frozen margin 0.08 should let",
+    "the causal guard reserve the competing track without future frames."
+  ],
+  "window_gate": {
+    "target": "remapped_idsw <= 2",
+    "guardrails": [
+      "remapped_hota_pct >= 88.31",
+      "remapped_idf1_pct >= 87.75",
+      "fp <= 20",
+      "fn <= 20",
+      "causal_framewise output remains declared",
+      "recursive mp4_count equals zero",
+      "only the declared visible-competitor threshold family differs"
+    ],
+    "advance_rule": [
+      "Do not run the full video unless this window gate passes.",
+      "A passing window remains screening evidence, not promotion evidence."
+    ]
+  },
+  "fresh_roots": {
+    "base_prediction": "outputs/pred/tracking_realtime_optimization",
+    "base_evaluation": "outputs/eval/tracking_realtime_optimization",
+    "run_name": "20260719_a97ce9a_fast_000302_closeguard_margin08_w1_v1"
+  }
+}
