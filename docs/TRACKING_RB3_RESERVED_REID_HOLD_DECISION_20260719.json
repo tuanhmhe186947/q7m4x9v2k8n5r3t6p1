@@ -1,0 +1,143 @@
+{
+  "schema_version": "tracking_rb3_reserved_reid_hold_decision_v1",
+  "decision_date": "2026-07-19",
+  "status": "quality_pass_latency_fail_not_promoted",
+  "profile": "realtime_balanced",
+  "timing_contract": "causal_framewise",
+  "declared_delay_frames": 0,
+  "changed_family": "causal_hidden_reservation_assignment_action",
+  "lineage": {
+    "frozen_plan":
+      "docs/TRACKING_RB3_RESERVED_REID_HOLD_PLAN_20260719.json",
+    "algorithm_commit":
+      "1f1a96b75328721fb329cf6cb193dad2c8ad2f3a",
+    "run_source_commit":
+      "ad6b13bcf693274ea225157a19cdc464c4350b67",
+    "auditor_fix_commit":
+      "a7ee4512dc90e509adad71512e0658b4f9711add",
+    "attempted_profile_promotion_commit":
+      "1f98b50c1d180a43c1d9bbfde4b39c9a32453930",
+    "profile_revert_commit":
+      "3d030975c488a7419a054429fa92f8e84ba97987",
+    "semantic_config_sha256":
+      "0dbbdca3a6e76e42a309ebea3e4f1763a2d25bef5c48a017906c1a687675392b",
+    "universe_sha256":
+      "30cc7ea80fb1d0a23bc1e3c4d38e15b76e3bf86b8cc244f65afe7e0fb38af980"
+  },
+  "candidate": {
+    "causal_hidden_detection_reservation_max_missed": [5, 15],
+    "causal_hidden_detection_reservation_hold_reserved_reid": [false, true],
+    "uses_gt_video_or_absolute_frame": false,
+    "default_after_decision": false
+  },
+  "evaluation_contract": {
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "gap_tolerance_frames": 15,
+    "video_count": 13,
+    "write_output_video": false,
+    "recursive_mp4_count_required": 0
+  },
+  "runs": {
+    "primary": {
+      "id": "20260719_ad6b13b_rb3_full13_controlled_primary_v1",
+      "run_manifest_sha256":
+        "d67e445a29e7625a6ffe6289c5933732532f920b1baab02f4f01baca99ee9cfc",
+      "artifact_manifest_sha256":
+        "18f123ab7e9a91a915e6c95bb87e64786ef67f6332fd0e6b60d1d564d48a49b7"
+    },
+    "repeat": {
+      "id": "20260719_ad6b13b_rb3_full13_clean_repeat_v1",
+      "run_manifest_sha256":
+        "7f762b3b15311ec59b087529eb21e47e4096f3b7896ba9ecbebfca33dd9a54ce",
+      "artifact_manifest_sha256":
+        "cdbe2519ecb0044cdf979262dbd1a5fe0c3f9fe342a3e0bc1f03dafa972ff39c"
+    },
+    "repeatability_authority": {
+      "path":
+        "outputs/eval/tracking_candidate_locks/20260719_a7ee451_rb3_full13_repeatability_v2.json",
+      "sha256":
+        "1186470f993f722e0bb331324bfb49cc9786357af6e07b8327798412a689d48f",
+      "status": "PASS"
+    }
+  },
+  "aggregate_quality": {
+    "parent": {
+      "idsw": 121,
+      "hota": 0.956846244204177,
+      "idf1": 0.9575751746102997,
+      "fp": 448,
+      "fn": 586,
+      "fragments": 127
+    },
+    "candidate_primary_repeat": {
+      "idsw": [111, 111],
+      "hota": [0.9568698270703746, 0.9568698270703746],
+      "idf1": [0.9575912061603903, 0.9575912061603903],
+      "fp": [448, 448],
+      "fn": [586, 586],
+      "fragments": [127, 127]
+    },
+    "candidate_minus_parent": {
+      "idsw": -10,
+      "hota": 0.000023582866197635,
+      "idf1": 0.000016031550090602,
+      "fp": 0,
+      "fn": 0,
+      "fragments": 0
+    }
+  },
+  "per_video_identity_changes": {
+    "Pigs291119_000231_30fps": [26, 20],
+    "Pigs291119_000263_30fps": [38, 34],
+    "other_videos_tied": 11,
+    "videos_with_idsw_regression": 0,
+    "Pigs291119_000302_30fps": [0, 0]
+  },
+  "repeatability": {
+    "semantic_predictions_equal": true,
+    "verified_prediction_count": 26,
+    "verified_artifact_count": 72,
+    "current_input_rehash": true,
+    "mp4_count": 0
+  },
+  "runtime": {
+    "primary_loop_fps": 27.404316697861837,
+    "repeat_loop_fps": 26.922207461463778,
+    "repeat_to_primary_fps_ratio": 0.9824075439751551,
+    "minimum_fps_ratio": 0.9,
+    "primary_peak_rss_bytes": 1737371648,
+    "repeat_peak_rss_bytes": 1731149824,
+    "peak_rss_ratio": 0.9964188295537328,
+    "maximum_peak_rss_ratio": 1.1,
+    "primary_max_frame_p95_ms": 40.9320800245041,
+    "repeat_max_frame_p95_ms": 60.06277500564465,
+    "maximum_frame_p95_ms": 45.29487048916054
+  },
+  "gates": {
+    "aggregate_quality_improvement": "PASS",
+    "per_video_idsw_non_regression": "PASS",
+    "causality_prefix_invariance": "PASS",
+    "prediction_repeatability": "PASS",
+    "fps_repeatability": "PASS",
+    "memory_repeatability": "PASS",
+    "recursive_zero_mp4": "PASS",
+    "absolute_repeat_p95_latency": "FAIL",
+    "balanced_lane_target_idsw_86": "FAIL"
+  },
+  "decision": {
+    "quality_component_valid": true,
+    "profile_default_promoted": false,
+    "automatic_next_balanced_family_allowed": false,
+    "next_lane": "realtime_quality_selection_challenger",
+    "reason":
+      "Do not relax or reinterpret the frozen p95 gate after observing the repeat."
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ]
+}

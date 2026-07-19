@@ -14,11 +14,10 @@ family. Reopen hybrid only for a predeclared failure on untouched sessions.
 
 The optimization priority is now locked as `hybrid_bytetrack` ->
 `realtime_fast` -> `realtime_balanced` -> `realtime_quality`. Hybrid is
-complete and fast is the current causal operational/paper reference. Finish
-the already-authorized bounded RB3 balanced decision before opening quality;
-do not optimize lanes in parallel. Further balanced work must have a
-predeclared path to material Pareto value over fast while passing identity,
-quality, latency, memory, causality, lineage, and zero-MP4 gates.
+complete and fast is the current causal operational/paper reference. The
+bounded RB3 decision is closed without profile promotion because repeat p95
+failed; Quality is active. Further Balanced work requires new predeclared
+evidence and must not delay Quality.
 
 The paper-critical comparison is `bytetrack_raw` -> one selected valid realtime
 method -> `hybrid_bytetrack_best`, all under the same include-Hidden contract,
@@ -35,6 +34,25 @@ speed/quality role may be superseded or rebuilt. Keep its old result as labeled
 negative/baseline evidence, freeze the replacement design before testing, and
 promote only against the relevant raw and operational references through the
 window -> video -> hard-set -> full-13 funnel.
+
+## Active realtime Quality selection gate 2026-07-19
+
+`realtime_quality` is a mandatory selection challenger before any realtime
+winner is locked. This does not require all three realtime profiles in the
+paper table; it requires a fair validation attempt under a truthful causal or
+finite-delay contract.
+
+Retain the existing Quality authority as a post-video upper bound (`IDSW 166`,
+HOTA `97.66%`, IDF1 `97.58%`, delay `-1`), not as a realtime winner. RB3
+quality is repeatable (`IDSW 121 -> 111`), but repeat p95 `60.06 ms` fails the
+frozen `45.29 ms` gate, so RB3 stays opt-in. Start Quality from the last
+promoted causal base and test rolling lags `12/15/30` with prefix, identity,
+runtime/memory, and zero-MP4 gates. Select it only when Pareto-best.
+
+Authority:
+`docs/TRACKING_REALTIME_QUALITY_SELECTION_GATE_20260719.json`.
+RB3 decision:
+`docs/TRACKING_RB3_RESERVED_REID_HOLD_DECISION_20260719.json`.
 
 ## Decision precedence
 

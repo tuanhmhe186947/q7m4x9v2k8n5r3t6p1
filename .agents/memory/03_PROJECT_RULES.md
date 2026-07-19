@@ -38,11 +38,15 @@
     useful only if it adds material Pareto value relative to fast while passing
     identity, quality, latency, causality, lineage, and zero-MP4 gates. A gain
     over an older balanced run alone does not justify further optimization.
-12. Quality remains a paper-selection challenger after balanced is decided. It
-    may replace fast/balanced when a causal or finite-delay implementation
-    passes prefix invariance, latency, quality, and Pareto gates. The current
-    delay-`-1` global-post-video implementation must be labeled delayed and
-    cannot be ranked as a realtime winner.
+12. Quality must be evaluated before any realtime winner is locked. The paper
+    still need not include all three realtime profiles, but omission is a
+    presentation choice after the Quality challenger has been screened.
+13. Quality may replace fast/balanced when a causal or finite-delay
+    implementation passes prefix invariance, latency, quality, and Pareto
+    gates. The current delay-`-1` global-post-video implementation must be
+    labeled delayed and cannot be ranked as a realtime winner. Use the
+    `12/15/30`-frame rolling-lag funnel in
+    `docs/TRACKING_REALTIME_QUALITY_SELECTION_GATE_20260719.json`.
 
 ## classification_v2 active rules
 

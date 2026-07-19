@@ -17,6 +17,10 @@
       "5046ff636ce4a4d8c02864eef72778e070b9b3e96c5db7f152c8150460b58302",
     "active_rb3_plan":
       "docs/TRACKING_RB3_RESERVED_REID_HOLD_PLAN_20260719.json",
+    "rb3_decision":
+      "docs/TRACKING_RB3_RESERVED_REID_HOLD_DECISION_20260719.json",
+    "quality_selection_gate":
+      "docs/TRACKING_REALTIME_QUALITY_SELECTION_GATE_20260719.json",
     "frozen_candidate_gates_modified": false,
     "historical_evidence_modified": false
   },
@@ -55,13 +59,14 @@
       "hybrid_bytetrack_best"
     ],
     "three_realtime_profiles_required": false,
+    "quality_evaluation_required_before_realtime_winner_lock": true,
     "selected_realtime_may_be": [
       "realtime_fast",
       "realtime_balanced",
       "realtime_quality_if_causal_or_fixed_delay_contract_passes"
     ],
     "extra_profile_inclusion_rule":
-      "include_only_when_it_supports_a_distinct_validated_scientific_claim",
+      "evaluate_quality_before_winner_lock_then_include_only_distinct_validated_claim",
     "raw_authority_pending": true,
     "raw_authority_requirement": [
       "include_hidden_true",
@@ -91,6 +96,7 @@
     "audit_actual_metrics_lineage_integrity_runtime_and_zero_mp4",
     "do_not_start_quality_delayed_or_another_balanced_family_in_parallel",
     "then_assess_quality_as_the_next_ranked_realtime_selection_challenger",
+    "quality_assessment_is_required_before_locking_any_realtime_winner",
     "do_not_rank_delay_minus_one_global_post_video_as_a_realtime_winner",
     "select_quality_if_a_valid_causal_or_fixed_delay_version_is_pareto_best",
     "then_lock_raw_and_build_the_raw_realtime_hybrid_paper_comparison"

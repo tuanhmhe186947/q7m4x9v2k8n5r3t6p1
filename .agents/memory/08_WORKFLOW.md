@@ -5,16 +5,18 @@
 1. Apply the lane priority `hybrid_bytetrack` -> `realtime_fast` ->
    `realtime_balanced` -> `realtime_quality`. Hybrid and fast are already
    authority-locked; do not reopen them without new predeclared evidence.
-2. Let the in-progress RB3 balanced full-13 primary finish and audit it. Do not
-   start quality-delayed or another balanced family in parallel.
-3. Continue or repeat balanced only when its result can add material Pareto
-   value relative to fast. Improvement over the old balanced parent alone is
-   not a paper-critical milestone.
-4. After balanced is decided, assess quality as the next selection challenger.
-   A causal or finite-delay quality implementation can become the paper's
-   realtime method if it passes prefix/latency gates and wins Pareto. Keep the
-   current delay-`-1` global-post-video implementation separately labeled.
-5. Select one valid realtime method, lock a same-contract include-Hidden
+2. RB3 Balanced has repeatable quality at `IDSW 111`, but repeat p95
+   `60.06 ms` fails the frozen `45.29 ms` gate. Keep it opt-in and do not open
+   another Balanced family without new predeclared evidence.
+3. Evaluate Quality before locking any realtime winner. Start from the last
+   promoted causal base and screen rolling lags `12/15/30` on frozen Quality
+   windows; require prefix invariance, runtime/memory gates, and zero MP4.
+4. A valid finite-delay Quality implementation becomes the paper's realtime
+   method when it is Pareto-best. Otherwise retain the best valid causal
+   profile and label the current delay-`-1` global graph as a post-video upper
+   bound. The paper still need not show all three realtime profiles.
+5. Only after the Quality decision, select one valid realtime method and lock a
+   same-contract include-Hidden
    `bytetrack_raw` authority, then build the paper comparison
    raw -> selected realtime -> hybrid.
 6. Do not spend time completing three realtime modes unless each earns a

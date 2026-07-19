@@ -4,8 +4,8 @@
 
 - Optimization order is `hybrid_bytetrack` -> `realtime_fast` ->
   `realtime_balanced` -> `realtime_quality`. Hybrid is complete; fast is the
-  current causal reference. Finish the bounded RB3 balanced decision before
-  opening the quality challenger; do not expand lanes in parallel.
+  current causal reference. The bounded RB3 decision is closed without profile
+  promotion; Quality is now the active challenger.
 - The paper-critical table needs only same-contract `bytetrack_raw`, one
   selected causal realtime method, and `hybrid_bytetrack_best`. Three realtime
   modes are optional and must earn inclusion through distinct scientific value.
@@ -19,6 +19,26 @@
   can be reported only as delayed/post-video evidence, not as a realtime winner.
 - Authority is
   `docs/TRACKING_PAPER_PRIORITY_AND_REDESIGN_POLICY_20260719.json`.
+
+## 2026-07-19 realtime quality selection gate
+
+- `realtime_quality` must be evaluated before locking any realtime winner. The
+  paper may still show fewer than three realtime profiles, but profile-table
+  omission is a presentation decision, not permission to skip Quality.
+- The current Quality result (`IDSW 166`, HOTA `97.66%`, IDF1 `97.58%`) is a
+  useful post-video upper bound only: it uses a global graph, delay `-1`, and
+  about `12.09 FPS`. It cannot be called the realtime winner.
+- RB3 quality is repeatable (`IDSW 121 -> 111`), but its repeat p95
+  `60.06 ms` fails the frozen `45.29 ms` gate, so it remains opt-in. Rebuild
+  Quality from the last promoted causal base and test rolling fixed-lag
+  candidates at `12/15/30` frames with identity, runtime, and zero-MP4 gates.
+- If a valid finite-delay Quality profile is Pareto-best, select it for the
+  paper; otherwise retain the best valid causal profile and label the old
+  global-graph result as delayed evidence.
+- The detailed authority is
+  `docs/TRACKING_REALTIME_QUALITY_SELECTION_GATE_20260719.json`.
+- The RB3 decision authority is
+  `docs/TRACKING_RB3_RESERVED_REID_HOLD_DECISION_20260719.json`.
 
 ## 2026-07-18 H4 far-camera component decision
 
