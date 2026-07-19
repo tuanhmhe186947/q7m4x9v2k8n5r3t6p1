@@ -1,5 +1,23 @@
 # Benchmark Notes
 
+## 2026-07-19 realtime selection metrics are multi-objective
+
+- Accuracy is necessary but not sufficient for a realtime winner. The frozen
+  comparison includes IDSW/per-video identity, HOTA/IDF1, FP/FN, fragments,
+  effective FPS, loop-FPS, p50/p95 latency, stage timing, delay, memory,
+  repeatability, lineage and zero-MP4 compliance.
+- Raw authority PASS: IDSW `145`, HOTA `88.91%`, IDF1 `88.47%`, loop-FPS
+  `22.65/27.03`, p95 `108.04/54.31 ms`, repeat loop-FPS ratio `1.193`, and
+  recursive `mp4_count=0`.
+- Fast is the current causal reference (IDSW `69`), but its profile-specific
+  `000302` guard is open (`6` versus ceiling `2`) and its speed claim is not
+  authorized until raw/Fast/Balanced use one comparable runtime harness.
+  Balanced's higher HOTA/IDF1 does not dominate its IDSW gap; Quality's
+  finite-delay runtime gate remains failed. No final operational winner is
+  locked yet.
+- Authority:
+  `docs/TRACKING_REALTIME_PARETO_SELECTION_DECISION_20260719.json`.
+
 ## 2026-07-19 RQ4 Quality copy-performance decision
 
 - Schema-aware motion-pair cloning preserves every tested global/fixed-lag
@@ -20,15 +38,17 @@
 
 ## 2026-07-19 realtime Pareto selection
 
-- Fast is the selected causal identity reference: IDSW `69`, HOTA `94.35%`,
-  IDF1 `93.91%`, FP/FN `506/630`, and repeatability PASS.
+- Fast is the current causal identity reference: IDSW `69`, HOTA `94.35%`,
+  IDF1 `93.91%`, FP/FN `506/630`, and repeatability PASS. Its `000302` guard
+  is still open (`6` versus ceiling `2`).
 - Balanced is non-dominated on localization/coverage quality (HOTA `95.68%`,
   IDF1 `95.76%`, FP/FN `448/586`) but has IDSW `121`, a gap of `52` to Fast,
   and misses the locked Balanced target `86`.
 - Quality has the highest post-video HOTA/IDF1 but is not a realtime authority:
   delay `-1` is global-graph evidence, and finite-delay RQ4 fails runtime.
-- Therefore the current paper selection is Fast pending a fresh raw authority;
-  the comparison will be raw -> Fast -> hybrid under one contract.
+- Therefore no final operational winner is locked. After the Fast guard and
+  common-harness runtime audit pass, the comparison can be raw -> Fast ->
+  hybrid under one contract.
 - The three profiles remain available as evidence, but Quality cannot be
   skipped in future winner decisions and may replace Fast if a valid candidate
   later passes every frozen gate and wins the Pareto comparison.

@@ -19,12 +19,16 @@
    realtime winner. Quality is mandatory: a valid finite-delay Quality
    implementation becomes the paper method when Pareto-best. Current Quality
    finite-delay candidates fail runtime, so retain them as negative evidence;
-   delay `-1` remains a post-video upper bound. Fast is selected provisionally
-   because it has the lowest valid causal IDSW; Balanced remains a quality
-   reference until its identity gap closes.
-6. Only after the Quality decision, lock a same-contract include-Hidden
-   `bytetrack_raw` authority for the provisional Fast selection, then build the
-   paper comparison raw -> selected realtime -> hybrid.
+   delay `-1` remains a post-video upper bound. The decision is multi-objective:
+   identity, HOTA/IDF1, throughput, p50/p95, delay, memory, lineage and
+   application cost all matter; accuracy alone cannot select the winner.
+6. The same-contract include-Hidden `bytetrack_raw` authority now passes
+   (IDSW `145`, HOTA `88.91%`, IDF1 `88.47%`, loop-FPS `22.65/27.03`, zero
+   MP4). Fast is the current causal reference because it has the lowest
+   causal IDSW, but its `000302` guard is open (`6` versus ceiling `2`) and its
+   speed claim remains pending a common-harness runtime audit. Run the targeted
+   Fast follow-up before building the paper comparison as raw -> selected
+   realtime -> hybrid.
 7. Do not spend time completing three realtime modes unless each earns a
    distinct scientific claim. A weak or semantically incorrect profile may be
    rebuilt; retain its old artifacts as labeled evidence and validate the

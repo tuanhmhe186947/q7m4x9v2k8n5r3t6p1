@@ -48,6 +48,15 @@
     labeled delayed and cannot be ranked as a realtime winner. Use the
     `12/15/30`-frame rolling-lag funnel in
     `docs/TRACKING_REALTIME_QUALITY_SELECTION_GATE_20260719.json`.
+14. Never select a realtime winner from accuracy alone. Require all applicable
+    causal/fixed-delay, prefix, per-video identity, repeatability, lineage,
+    no-MP4, FPS, p50/p95, stage-latency, memory and application gates. If no
+    candidate dominates every dimension, report the Pareto trade-off and
+    select only for the declared use case.
+15. Fast is currently a causal reference, not a final winner. Its include-Hidden
+    authority has `000302` IDSW `6` against the frozen ceiling `2`, and its
+    speed claim lacks a common-harness audit. Resolve both before locking the
+    paper realtime method.
 
 ## classification_v2 active rules
 

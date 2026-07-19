@@ -81,12 +81,25 @@ delay candidate fails effective FPS, p95, and repeat runtime ratio. RB1/RB2
 were rejected at the first frozen window for IDF1/HOTA regression; RB3's
 repeatable IDSW gain fails p95 and the locked Balanced identity target.
 
-Select `realtime_fast` as the current realtime method because it is the lowest
-IDSW valid causal authority (`69` versus Balanced `121`) with repeatability
-PASS. Balanced remains a useful causal quality reference (`HOTA 95.68%`,
-`IDF1 95.76%`) but is not operationally selected until its identity gap is
-closed. This selection is pending a fresh same-contract `bytetrack_raw`
-authority; it does not authorize a paper claim yet.
+Select `realtime_fast` as the current causal reference because it has the
+lowest zero-delay IDSW (`69` versus Balanced `121`) with repeatability PASS.
+This is a multi-objective reference decision, not an accuracy-only ranking:
+causal validity, prefix integrity, no-MP4 lineage, measured throughput,
+latency, memory and delay remain selection dimensions. Fast's timing is
+retained as evidence, but no speed advantage is claimed until raw/Fast/Balanced
+are measured with one common harness and pass the frozen runtime gates.
+
+Fast is not the final winner yet: its profile-specific `000302` guard is open
+(`6` observed versus the frozen ceiling `2`). Run a targeted include-Hidden
+follow-up before promoting it as the operational choice.
+
+Balanced remains a useful causal quality reference (`HOTA 95.68%`,
+`IDF1 95.76%`, FP/FN `448/586`) but its IDSW gap is still `52`; Quality has no
+valid finite-delay runtime authority. The raw same-contract authority now
+passes with IDSW `145`, HOTA `88.91%`, IDF1 `88.47%`, loop-FPS `22.65/27.03`,
+repeatability PASS and zero MP4. Therefore raw -> Fast -> hybrid is the planned
+paper chain, not yet a locked claim; the Fast guard and common runtime audit
+must pass before a realtime method is selected.
 
 Authority:
 `docs/TRACKING_REALTIME_PARETO_SELECTION_DECISION_20260719.json`.

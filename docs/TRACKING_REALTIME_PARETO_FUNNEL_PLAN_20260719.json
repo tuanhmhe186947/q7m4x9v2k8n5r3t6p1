@@ -1,6 +1,6 @@
 {
   "schema_version": "tracking_realtime_pareto_funnel_plan_v1",
-  "status": "frozen_before_rb1_candidate",
+  "status": "raw_authority_pass_pareto_selection_active",
   "decision_date": "2026-07-19",
   "worktree": "PIG_task_tracking",
   "branch": "task/update-tracking",
@@ -40,6 +40,34 @@
     "mask_sha256":
       "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658"
   },
+  "winner_selection_contract": {
+    "accuracy_only_is_insufficient": true,
+    "hard_gates": [
+      "causal_or_declared_finite_delay",
+      "prefix_invariance",
+      "per_video_identity_guardrails",
+      "profile_specific_000302_guard",
+      "repeatability_and_lineage",
+      "runtime_telemetry_and_memory",
+      "recursive_mp4_count_zero"
+    ],
+    "pareto_dimensions": [
+      "identity and continuity",
+      "HOTA/IDF1 and FP/FN",
+      "effective FPS and loop-FPS",
+      "p50/p95 and stage latency",
+      "declared delay",
+      "memory, determinism and deployment usability"
+    ],
+    "speed_claim_rule": [
+      "Use one common runtime harness and passing primary/repeat gates",
+      "before claiming a speed advantage."
+    ],
+    "selection_rule": [
+      "Select a non-dominated candidate whose trade-off matches the",
+      "declared realtime use case; report all remaining trade-offs."
+    ]
+  },
   "hybrid_authority": {
     "status": "lane_complete",
     "profile": "hybrid_bytetrack_best",
@@ -54,8 +82,30 @@
     "reopen_rule": "only_for_a_predeclared_failure_on_untouched_sessions"
   },
   "realtime_authorities": {
+    "bytetrack_raw": {
+      "role": "same_contract_technical_baseline",
+      "timing_contract": "causal_framewise",
+      "declared_delay_frames": 0,
+      "source_commit": "e7fc039a674437b4c25f7a75c5adbc341fc15fa1",
+      "authority_run":
+        "outputs/eval/tracking_raw_authority/20260719_7e38234_raw_repeatability_v1.json",
+      "authority_sha256":
+        "ddb24f10340a77293af3dbe2a2e8c12859b0e32176b9eb15b8829189db3d45c0",
+      "idsw": 145,
+      "hota": 0.8890894714488002,
+      "idf1": 0.8847222222222222,
+      "fp": 1640,
+      "fn": 1640,
+      "loop_fps_primary": 22.650907761247705,
+      "loop_fps_repeat": 27.033651005213294,
+      "max_frame_p95_ms_primary": 108.04304998600854,
+      "max_frame_p95_ms_repeat": 54.313744994578876,
+      "repeatability": "PASS",
+      "speed_claim_authorized": false,
+      "recursive_mp4_count": 0
+    },
     "realtime_fast": {
-      "role": "operational_identity_and_speed_reference",
+      "role": "current_causal_reference_not_final_winner",
       "timing_contract": "causal_framewise",
       "declared_delay_frames": 0,
       "git_commit": "7f36b5709c794a824bdd4ddd4ff7e62ae73ead06",
@@ -84,7 +134,12 @@
       "loop_fps": 27.200892458036197,
       "mean_effective_fps": 27.398960103513293,
       "max_frame_p95_ms": 62.49316500397981,
-      "peak_process_rss_bytes": 1682157568
+      "peak_process_rss_bytes": 1682157568,
+      "profile_specific_guard": {
+        "Pigs291119_000302_30fps_max_idsw": 2,
+        "actual_idsw": 6,
+        "status": "FAIL_REQUIRES_FAST_FOLLOW_UP"
+      }
     },
     "realtime_balanced": {
       "role": "primary_causal_quality_target",
@@ -166,11 +221,18 @@
       "The first realtime lane therefore reduces Balanced identity churn",
       "while preserving its quality and causal runtime advantages."
     ],
-    "optimization_order": [
-      "realtime_balanced",
+    "dependency_order": [
+      "hybrid_bytetrack",
       "realtime_fast",
+      "realtime_balanced",
       "realtime_quality_delayed"
-    ]
+    ],
+    "selection_order": [
+      "All valid Fast, Balanced and Quality authorities enter the same Pareto",
+      "comparison; dependency order is not ranking."
+    ],
+    "final_operational_winner":
+      "NONE_PENDING_FAST_GUARD_AND_COMMON_RUNTIME_AUDIT"
   },
   "identity_event_contract": {
     "source": "tracking_remapped_identity_events.csv",
@@ -338,14 +400,23 @@
   },
   "later_profile_contracts": {
     "realtime_fast": {
-      "start_only_after_balanced_candidate_is_decided": true,
+      "start_only_after_hybrid_lane_is_complete": true,
       "preserve_causal_zero_delay": true,
       "per_video_idsw_regression_max": 0,
+      "Pigs291119_000302_30fps_idsw_max": 2,
+      "aggregate_hota_and_idf1_non_regression": true,
+      "loop_fps_non_regression": true
+    },
+    "realtime_balanced": {
+      "start_only_after_fast_candidate_is_decided": true,
+      "preserve_causal_zero_delay": true,
+      "per_video_idsw_regression_max": 0,
+      "Pigs291119_000302_30fps_idsw_max": 0,
       "aggregate_hota_and_idf1_non_regression": true,
       "loop_fps_non_regression": true
     },
     "realtime_quality_delayed": {
-      "start_only_after_fast_candidate_is_decided": true,
+      "start_only_after_fast_and_balanced_are_decided": true,
       "preserve_post_video_global_graph_label": true,
       "fixed_delay_claim_allowed_without_prefix_proof": false,
       "per_video_idsw_regression_max": 0,
@@ -361,8 +432,10 @@
     "A stage is advanced without satisfying every earlier frozen gate."
   ],
   "next_step": [
-    "Build three parent-only hard-window CSV manifests with the frozen settings.",
-    "Audit their event totals against the official per-profile IDSW metrics.",
-    "Run static and synthetic checks for RB1 before any tracker window run."
+    "Keep the paired raw/Fast/Balanced/Quality/Hybrid evidence table as the current comparison.",
+    "Run a targeted include-Hidden Fast follow-up for the 000302 guard.",
+    "Run a common-harness runtime audit before making a final speed claim.",
+    "Do not generate MP4, preview, overlay or event clips.",
+    "Open a new candidate family only after a predeclared hypothesis and funnel."
   ]
 }

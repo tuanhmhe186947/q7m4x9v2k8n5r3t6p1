@@ -1,5 +1,23 @@
 # Project Memory Short
 
+## 2026-07-19 realtime selection is multi-objective
+
+- A realtime winner is not the profile with the highest HOTA/IDF1 or lowest
+  IDSW alone. It must first pass causal/fixed-delay, prefix, repeatability,
+  lineage, memory and zero-MP4 gates.
+- The Pareto comparison then includes identity, HOTA/IDF1, FP/FN, fragments,
+  effective FPS, loop-FPS, p50/p95 latency, stage timing, delay and deployment
+  cost. A speed claim requires comparable primary/repeat runtime measurements.
+- Raw authority is now PASS: IDSW `145`, HOTA `88.91%`, IDF1 `88.47%`,
+  loop-FPS `22.65/27.03`, repeatability PASS, and `mp4_count=0`.
+- Fast remains the current causal reference (IDSW `69`), but its profile guard
+  is open because `000302` has IDSW `6` versus the frozen ceiling `2`. The final
+  operational winner therefore remains pending both a Fast guard follow-up and
+  a common-harness runtime audit. Balanced and Quality retain their measured
+  trade-offs and cannot be judged by accuracy alone.
+- Authority:
+  `docs/TRACKING_REALTIME_PARETO_SELECTION_DECISION_20260719.json`.
+
 ## 2026-07-19 RQ4 closure and realtime Quality role
 
 - Commit `1a1d008` replaces motion-pair `deepcopy` with schema-aware cloning.
@@ -24,17 +42,17 @@
 - RB1 and RB2 Balanced candidates were rejected at frozen window 1 because
   lower IDSW came with IDF1/HOTA regression. RB3 improved IDSW `121 -> 111`
   but failed repeat p95 and the Balanced identity target.
-- Fast remains the lowest-IDSW valid causal authority: IDSW `69`, HOTA
-  `94.35%`, IDF1 `93.91%`, FP/FN `506/630`, with repeatability PASS. Its
-  measured timing is reported without an authorized speed claim.
+- Fast remains the lowest-IDSW causal reference: IDSW `69`, HOTA `94.35%`,
+  IDF1 `93.91%`, FP/FN `506/630`, with repeatability PASS. Its `000302` guard
+  is open (`6` versus ceiling `2`), and its measured timing has no speed claim.
 - Balanced remains a valid causal quality reference with HOTA `95.68%` and
   IDF1 `95.76%`, but IDSW `121` is `52` above Fast and misses the locked
   Balanced target `<=86`; it is not the operational winner.
 - Quality was evaluated as the mandatory challenger. Delay `-1` is upper-bound
   evidence only, and no finite-delay candidate passed all runtime gates.
-- Select `realtime_fast` as the current realtime method pending a fresh raw
-  authority. The paper minimum remains raw -> Fast -> hybrid; Balanced and
-  Quality stay in the comparison evidence.
+- Retain `realtime_fast` as the current causal reference after raw authority
+  PASS, but do not call it the final winner until the `000302` guard and common
+  runtime audit pass. Balanced and Quality stay in comparison evidence.
 - Authority is
   `docs/TRACKING_REALTIME_PARETO_SELECTION_DECISION_20260719.json`.
 

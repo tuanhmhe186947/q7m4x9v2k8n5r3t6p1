@@ -2,6 +2,24 @@
 
 ## Override chọn realtime winner ngày 2026-07-19
 
+### Tiêu chí chọn realtime: Pareto đa mục tiêu
+
+- Không chọn realtime chỉ theo HOTA, IDF1 hoặc IDSW. Candidate phải qua các
+  hard gate về causal/fixed-delay, prefix invariance, repeatability, lineage,
+  memory và zero-MP4.
+- Sau khi đủ điều kiện, so đồng thời identity, HOTA/IDF1, FP/FN, fragments,
+  effective FPS, loop-FPS, p50/p95, stage timing, delay và chi phí triển khai.
+- Một cấu hình chỉ được gọi là winner khi không bị candidate khác trội trên
+  toàn bộ các chiều và trade-off phù hợp use case realtime đã công bố.
+  Nếu không có cấu hình trội tuyệt đối, phải báo rõ mặt đánh đổi còn lại.
+- Đo tốc độ là tiêu chí bắt buộc, nhưng không được tuyên bố nhanh hơn nếu
+  primary/repeat chưa dùng cùng harness và chưa qua runtime gate.
+- Raw authority cùng contract đã PASS: IDSW `145`, HOTA `88.91%`, IDF1
+  `88.47%`, loop-FPS `22.65/27.03`, repeatability PASS và `mp4_count=0`.
+- Fast hiện là causal reference (IDSW `69`) chứ chưa phải winner cuối cùng:
+  `000302` đang có IDSW `6` so với ceiling `2`, và speed claim chờ
+  common-harness runtime audit.
+
 ### Quyền chọn của realtime Quality (bắt buộc)
 
 - `realtime_quality` (profile hiện có: `realtime_quality_delayed`) là ứng viên
