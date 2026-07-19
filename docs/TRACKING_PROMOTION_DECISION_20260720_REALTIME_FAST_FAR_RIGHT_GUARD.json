@@ -1,0 +1,261 @@
+{
+  "schema_version": "tracking_promotion_decision_v3",
+  "status": "PROMOTION_AUTHORIZED",
+  "decision_date": "2026-07-20",
+  "profile": "realtime_fast",
+  "output_timing_contract": "causal_framewise",
+  "declared_delay_frames": 0,
+  "algorithm_commit": "62f140b9249825bcc2eb1f419c0eacaaa3146883",
+  "evidence_commit": "92c6d01412c14aed9b52a00f3054d1f423aab3d9",
+  "profile_promotion_commit": null,
+  "changed_family": "far_right_visible_close_competitor_guard",
+  "hypothesis": [
+    "The close-competitor guard fixes valid causal identity conflicts on the",
+    "far-right, less-clear camera region while its normalized center-x gate",
+    "blocks harmful left and middle triggers."
+  ],
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "evaluation_contract": {
+    "include_hidden": true,
+    "hidden_attribute_is_optimization_target": false,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "gap_tolerance_frames": 15,
+    "video_count": 13,
+    "gt_detections": 187200,
+    "condarea_enabled": false,
+    "write_output_video": false,
+    "generated_mp4_allowed": false,
+    "recursive_mp4_count": 0
+  },
+  "existing_raw_authority": {
+    "rerun": false,
+    "reason": "Raw inputs, code path and evaluation contract are unchanged.",
+    "authority":
+      "outputs/eval/tracking_raw_authority/20260719_7e38234_raw_repeatability_v1.json",
+    "authority_sha256":
+      "ddb24f10340a77293af3dbe2a2e8c12859b0e32176b9eb15b8829189db3d45c0",
+    "remapped_idsw": 145,
+    "remapped_hota": 0.8890894714488002,
+    "remapped_idf1": 0.8847222222222222
+  },
+  "funnel": {
+    "plan":
+      "docs/TRACKING_FAST_FAR_RIGHT_CLOSE_GUARD_PLAN_20260720.json",
+    "window_decision":
+      "docs/TRACKING_FAST_FAR_RIGHT_WINDOW_DECISION_20260720.json",
+    "prefix_decision":
+      "docs/TRACKING_FAST_FAR_RIGHT_PREFIX_DECISION_20260720.json",
+    "full_target_decision":
+      "docs/TRACKING_FAST_FAR_RIGHT_FULL_TARGET_DECISION_20260720.json",
+    "hard7_decision":
+      "docs/TRACKING_FAST_FAR_RIGHT_HARD7_DECISION_20260720.json",
+    "window_status": "PASS",
+    "prefix_status": "PASS",
+    "full_target_status": "PASS",
+    "hard7_status": "PASS",
+    "full13_status": "PASS",
+    "repeatability_status": "PASS"
+  },
+  "candidate_values": {
+    "realtime_visible_close_competitor_guard": true,
+    "realtime_visible_close_competitor_margin": 0.08,
+    "realtime_visible_close_competitor_max_cost": 0.4,
+    "realtime_visible_close_competitor_min_center_x_ratio": 0.67
+  },
+  "run_ids": {
+    "parent": "20260720_62f140b_fast_far_right_full13_parent_v1",
+    "candidate_primary":
+      "20260720_62f140b_fast_far_right_full13_candidate_v1",
+    "candidate_repeat":
+      "20260720_62f140b_fast_far_right_full13_candidate_repeat_v1",
+    "repeatability_audit":
+      "20260720_62f140b_fast_far_right_full13_repeatability_v1"
+  },
+  "lineage": {
+    "universe_sha256":
+      "30cc7ea80fb1d0a23bc1e3c4d38e15b76e3bf86b8cc244f65afe7e0fb38af980",
+    "detector_sha256":
+      "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+    "mask_sha256":
+      "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658",
+    "parent_semantic_config_sha256":
+      "b4547deb00092fd61e613f7ecb59ebd6765e6dde881a12669ec669502ebda7fe",
+    "candidate_semantic_config_sha256":
+      "9bff6adf78be60b01a333f580dd48728a063098ef8f72980f01d479d6e7d99ba",
+    "parent": {
+      "run_manifest_sha256":
+        "b37f428cbb932d165f1244e54f4d91c4ace9ef18059e8f085914d56670337fda",
+      "metrics_sha256":
+        "12537001c8a73c7d70f6157edf6c680bea784153557e65a6093e651ebff82480",
+      "runtime_sha256":
+        "0b1f4198f23029d20b00b37da0af8afad475be7190d0b59739d518d74e10e2d9",
+      "remapped_events_sha256":
+        "2653cbe32bb44510f192d73f9a744d5e84eb596b7474d1fb37130c2db41d1e88",
+      "artifact_manifest_sha256":
+        "2ff5cab2a24ac34a75f4f1fad7f1f5b585f3d01fb5e9b7bb568c02351c6c7ba1"
+    },
+    "candidate_primary": {
+      "run_manifest_sha256":
+        "1bd54799f7dacebc273f3b25a6d51c5ba750e430ccc04d415899fdc7af829818",
+      "metrics_sha256":
+        "b1d4d79ffc04ad6c9ff81a9aedd83e08f7f6e1a6b8fbbab8f6733ac4fa0a8072",
+      "runtime_sha256":
+        "1f3ee571e494feb02be803420d338d06238d7e8a2742adefad5b4107f4a210de",
+      "remapped_events_sha256":
+        "162d58bffd6fceb63894723c47c5443e5f87092b5498d4698700410fe155b368",
+      "artifact_manifest_sha256":
+        "c40f2c9f995eee589fb5824d692bd69912365d1c0fe22f759f0472bf98ba5d5c"
+    },
+    "candidate_repeat": {
+      "run_manifest_sha256":
+        "e2099980a8adb84c30c309b885f1ee7b5fd9d449a213c87029879497631b6190",
+      "metrics_sha256":
+        "8e857073900ba2423308c43941eccbe7d4a457c33af4139f5d1b282da5e634a3",
+      "runtime_sha256":
+        "9b4285030fbceac00bcbeaa967df1560a99a3db067ae19bc833e64673b7df010",
+      "remapped_events_sha256":
+        "7d2c9670f169a271a6443146cec1e2ba2976bb4089a3ab81df6e41a5ceca2a9b",
+      "artifact_manifest_sha256":
+        "5e257d9ff56eef36b25a2dacc9af88baf91fc17c0ca41097b4e781e49bcfef96"
+    },
+    "repeatability_file_sha256":
+      "dbf248c61d455d9ad7a848b1371cd7a344fc3c219975515d75d280e78d68eedb",
+    "repeatability_authority_sha256":
+      "0e38e9d3f2acf23fcfbbae7f8346c2017259ef78f4c774b9d633cc3aef5ba702"
+  },
+  "aggregate_quality": {
+    "parent": {
+      "fp": 506,
+      "fn": 630,
+      "remapped_idsw": 69,
+      "remapped_fragments": 110,
+      "remapped_gap_tolerant_fragments": 8,
+      "remapped_idf1": 0.9390984193482884,
+      "remapped_hota": 0.9434658955189228
+    },
+    "candidate": {
+      "fp": 486,
+      "fn": 610,
+      "remapped_idsw": 59,
+      "remapped_fragments": 107,
+      "remapped_gap_tolerant_fragments": 8,
+      "remapped_idf1": 0.9537186461328004,
+      "remapped_hota": 0.9563112112640403
+    },
+    "candidate_minus_parent": {
+      "fp": -20,
+      "fn": -20,
+      "remapped_idsw": -10,
+      "remapped_fragments": -3,
+      "remapped_gap_tolerant_fragments": 0,
+      "remapped_idf1_percentage_points": 1.462022678451202,
+      "remapped_hota_percentage_points": 1.284531574511746
+    },
+    "paper_precision": {
+      "remapped_idf1_pct": [93.91, 95.37],
+      "remapped_hota_pct": [94.35, 95.63]
+    }
+  },
+  "per_video_changes": {
+    "Pigs291119_000225_30fps": {
+      "remapped_idsw": [2, 0],
+      "remapped_hota": [0.9083034489821913, 0.9942664842249581],
+      "remapped_idf1": [0.88875, 0.9970833333333333],
+      "fp": [42, 42],
+      "fn": [42, 42]
+    },
+    "Pigs291119_000302_30fps": {
+      "remapped_idsw": [6, 0],
+      "remapped_hota": [0.9221489773886228, 0.9991675918056196],
+      "remapped_idf1": [0.9198611111111111, 0.9995833333333334],
+      "fp": [24, 6],
+      "fn": [24, 6]
+    },
+    "Pigs301119_000327_30fps": {
+      "remapped_idsw": [4, 2],
+      "remapped_hota": [0.9677112538879342, 0.9707804997799686],
+      "remapped_idf1": [0.9767361111111111, 0.9786805555555556],
+      "fp": [17, 15],
+      "fn": [17, 15]
+    },
+    "video_count_improved": 3,
+    "video_count_semantically_equal": 10,
+    "video_count_with_idsw_regression": 0
+  },
+  "repeatability": {
+    "audit_status": "PASS",
+    "quality_metrics_match_primary": true,
+    "per_video_metrics_match_primary": true,
+    "prediction_semantic_hashes_match_primary": true,
+    "verified_prediction_count": 26,
+    "verified_artifact_count": 72,
+    "input_rehash_enabled": true,
+    "recursive_mp4_count": 0
+  },
+  "runtime": {
+    "hard7_candidate_to_parent_loop_fps_ratio": 0.9588,
+    "hard7_runtime_gate_status": "PASS",
+    "full13_parent_loop_fps": 21.3219,
+    "full13_candidate_primary_loop_fps": 19.08414858882768,
+    "full13_candidate_to_parent_loop_fps_ratio": 0.895,
+    "candidate_primary_loop_fps": 19.08414858882768,
+    "candidate_repeat_loop_fps": 25.47971281695983,
+    "candidate_repeat_to_primary_loop_fps_ratio": 1.33512442005803,
+    "candidate_primary_max_frame_p95_ms": 104.84786502347559,
+    "candidate_repeat_max_frame_p95_ms": 73.63453499274328,
+    "candidate_primary_peak_process_rss_bytes": 1587118080,
+    "candidate_repeat_peak_process_rss_bytes": 1739776000,
+    "candidate_repeat_to_primary_peak_rss_ratio": 1.0961856095798492,
+    "speed_improvement_claim_authorized": false,
+    "note": [
+      "The frozen candidate-to-parent runtime gate was evaluated at hard-7",
+      "and passed. Full-13 parent/candidate timing is retained as noisy",
+      "evidence and does not authorize a speed advantage claim."
+    ]
+  },
+  "guardrails": {
+    "full13_idsw_improved": true,
+    "per_video_idsw_non_regression": true,
+    "aggregate_hota_improved": true,
+    "aggregate_idf1_improved": true,
+    "aggregate_fp_non_regression": true,
+    "aggregate_fn_non_regression": true,
+    "gap_tolerant_fragments_non_regression": true,
+    "candidate_repeatability": true,
+    "repeat_effective_fps_ratio_at_least_0_90": true,
+    "repeat_peak_rss_ratio_at_most_1_10": true,
+    "causal_framewise": true,
+    "declared_delay_zero": true,
+    "recursive_no_mp4": true,
+    "bytetrack_raw_rerun": false,
+    "profile_promotion_authorized": true
+  },
+  "decision": [
+    "Promote the validated four-value far-right guard into realtime_fast.",
+    "This is an overall quality improvement, not a speed improvement claim.",
+    "Keep the existing bytetrack_raw authority fixed and do not rerun it.",
+    "Commit the profile default separately from algorithm and evidence."
+  ],
+  "failed_blocking_gates": [],
+  "residual_risks": [
+    "Only three development videos change; untouched-session validation is",
+    "still required for an unbiased final paper claim.",
+    "Full-13 parent/candidate timing varied, so the Pareto report must retain",
+    "the measured runtime trade-off and cannot claim that this guard is faster."
+  ],
+  "rollback": {
+    "before_profile_commit": "Keep the four candidate values out of the profile.",
+    "after_profile_commit": "Revert the separate realtime_fast profile commit."
+  },
+  "next_step": [
+    "Commit this promotion authorization separately.",
+    "Promote the four validated values in REALTIME_FAST_CONFIG.",
+    "Run profile, static, focused and full tracking tests.",
+    "Refresh the common-contract Pareto authority without rerunning raw."
+  ]
+}
