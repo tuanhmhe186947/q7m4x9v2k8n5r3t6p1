@@ -185,6 +185,7 @@ class TrackingConfig:
     causal_hidden_detection_reservation_min_gain: float = 0.08
     causal_hidden_detection_reservation_max_alternative_cost: float = 0.78
     causal_hidden_detection_reservation_allow_visible_hold: bool = False
+    causal_hidden_detection_reservation_hold_reserved_reid: bool = False
     causal_hidden_detection_reservation_hold_min_iom: float = 0.96
     causal_hidden_detection_reservation_hold_max_claim_cost: float = 0.10
     causal_hidden_detection_reservation_hold_min_gain: float = 0.10

@@ -702,6 +702,7 @@ def apply_causal_hidden_detection_reservation(
     runtime: TrackingRuntimeState | None,
     frame_index: int | None,
     phase_name: str,
+    reserved_hidden_detection_owners: dict[int, int] | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Reserve a strong hidden claim before visible realtime matching."""
     from scipy.optimize import linear_sum_assignment
@@ -889,6 +890,8 @@ def apply_causal_hidden_detection_reservation(
         rows, cols = trial_rows, trial_cols
         reserved_hidden_ids.add(hidden_track.fixed_id)
         reserved_detection_indices.add(det_idx)
+        if reserved_hidden_detection_owners is not None:
+            reserved_hidden_detection_owners[det_idx] = hidden_track.fixed_id
         append_association_debug_event(
             runtime,
             cfg,
@@ -1529,6 +1532,7 @@ def match_and_update_tracks(
         for track in ordered_tracks
         if not track_is_visible_for_association(track)
     ]
+    reserved_hidden_detection_owners: dict[int, int] = {}
 
     def run_matching_phase(
         candidate_tracks: list[FixedTrack],
@@ -1585,6 +1589,7 @@ def match_and_update_tracks(
                 runtime,
                 frame_index,
                 phase_name,
+                reserved_hidden_detection_owners,
             )
         selected_track_by_det = {
             detection_indices[col]: candidate_tracks[row].fixed_id
@@ -1857,6 +1862,27 @@ def match_and_update_tracks(
                 and track.fixed_id in runtime.current_recovery_track_ids
             )
             ambiguous = ambiguous or in_split_recovery
+            reserved_owner_id = reserved_hidden_detection_owners.get(det_idx)
+            if (
+                cfg.causal_hidden_detection_reservation_hold_reserved_reid
+                and phase_name == "reid"
+                and reserved_owner_id == track.fixed_id
+            ):
+                append_association_debug_event(
+                    runtime,
+                    cfg,
+                    {
+                        **base_debug_event,
+                        "event": "assignment_hold_reserved_hidden_detection",
+                        "ambiguous": True,
+                        "reserved_for_track_id": reserved_owner_id,
+                        "learn_identity": False,
+                    },
+                )
+                freeze_area_occluded_track(track, width, height, cfg)
+                matched_tracks.add(track.fixed_id)
+                matched_detections.add(det_idx)
+                continue
             if area_occlusion_should_freeze(
                 track,
                 det,

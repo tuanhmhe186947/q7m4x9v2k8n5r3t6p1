@@ -1631,6 +1631,41 @@ def test_causal_hidden_reservation_changes_only_the_cross_phase_assignment() -> 
     )
 
 
+def test_causal_hidden_reservation_can_hold_reserved_reid_assignment() -> None:
+    cfg, visible_track, hidden_track, detections, _context = (
+        _causal_reservation_fixture()
+    )
+    cfg.causal_hidden_detection_reservation_hold_reserved_reid = True
+    tracks = {1: visible_track, 2: hidden_track}
+    runtime = TrackingRuntimeState()
+    frame = np.zeros((40, 100, 3), dtype=np.uint8)
+    hidden_hits = hidden_track.hits
+    hidden_hist_count = len(hidden_track.hist_bank)
+
+    match_and_update_tracks(
+        tracks,
+        detections,
+        frame,
+        prev_frame=None,
+        cfg=cfg,
+        runtime=runtime,
+        frame_index=7,
+    )
+
+    assert np.allclose(tracks[1].last_box, detections[1].box)
+    assert tracks[2].last_source == "occlusion_hold"
+    assert tracks[2].hits == hidden_hits
+    assert len(tracks[2].hist_bank) == hidden_hist_count
+    hold_event = next(
+        event
+        for event in runtime.association_debug_events
+        if event["event"] == "assignment_hold_reserved_hidden_detection"
+    )
+    assert hold_event["reserved_for_track_id"] == 2
+    assert hold_event["ambiguous"] is True
+    assert hold_event["learn_identity"] is False
+
+
 def test_causal_hidden_reservation_flag_off_preserves_assignment() -> None:
     cfg, visible_track, hidden_track, detections, _context = (
         _causal_reservation_fixture()
