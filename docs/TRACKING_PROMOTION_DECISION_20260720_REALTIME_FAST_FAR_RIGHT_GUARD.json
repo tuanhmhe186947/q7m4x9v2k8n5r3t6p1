@@ -1,13 +1,14 @@
 {
   "schema_version": "tracking_promotion_decision_v3",
-  "status": "PROMOTION_AUTHORIZED",
+  "status": "PROMOTED_OVERALL_QUALITY",
   "decision_date": "2026-07-20",
   "profile": "realtime_fast",
   "output_timing_contract": "causal_framewise",
   "declared_delay_frames": 0,
   "algorithm_commit": "62f140b9249825bcc2eb1f419c0eacaaa3146883",
   "evidence_commit": "92c6d01412c14aed9b52a00f3054d1f423aab3d9",
-  "profile_promotion_commit": null,
+  "profile_promotion_commit":
+    "74cad2b7b5346acf09459efad348afd25f50e8f6",
   "changed_family": "far_right_visible_close_competitor_guard",
   "hypothesis": [
     "The close-competitor guard fixes valid causal identity conflicts on the",
@@ -253,8 +254,6 @@
     "after_profile_commit": "Revert the separate realtime_fast profile commit."
   },
   "next_step": [
-    "Commit this promotion authorization separately.",
-    "Promote the four validated values in REALTIME_FAST_CONFIG.",
     "Run profile, static, focused and full tracking tests.",
     "Refresh the common-contract Pareto authority without rerunning raw."
   ]
