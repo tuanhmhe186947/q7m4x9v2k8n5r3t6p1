@@ -1,5 +1,31 @@
 • Kế Hoạch Tương Lai
 
+## Goal mới: realtime online challenger — 2026-07-20
+
+- Mục tiêu vận hành realtime chuyển sang một challenger online-only; chỉ dùng
+  frame hiện tại và state/lịch sử quá khứ hữu hạn, không dùng future frame.
+- Giữ `realtime_fast` và `realtime_balanced` làm control bất biến. Fast là
+  identity reference; Balanced là quality/coverage reference. Không chạy lại
+  raw quality authority.
+- Không coi `realtime_quality_delayed` hiện tại là ứng viên realtime: delay
+  `-1`/global graph không đúng semantic online. Giữ nó làm upper-bound paper và
+  bằng chứng âm; challenger mới thay vai trò realtime quality nếu thắng gate.
+- Có thể học các cơ chế Hybrid đã chứng minh nhưng chỉ port phần causal:
+  hidden-owner/re-entry guard, gap-over-bad-match và motion prediction. Không
+  port suffix repair, full-video smoothing, future-anchor hay global graph.
+- Challenger phải giải quyết cả identity và vận hành: `include_hidden=true`,
+  IDSW/HOTA/IDF1/FP/FN/fragments, causal delay `0`, FPS, p50/p95, backlog,
+  output age, memory, repeatability và lineage. Native 30 FPS hoặc drop policy
+  được khai báo là gate bắt buộc; không gọi profile dưới gate là realtime winner.
+- Funnel cố định: hard event windows -> một video khó -> hard set ít nhất ba
+  video -> full-13 chỉ sau khi hard-set PASS. Không sinh MP4, preview, overlay
+  hay event clip ở bất kỳ bước nào.
+- Mỗi candidate chỉ đổi một family, có parent/candidate/repeat manifest riêng.
+  Base cũ là control để so sánh, không phải nền bắt buộc; nếu challenger thắng
+  đa mục tiêu và không vi phạm guardrail, được phép thay thế profile cũ bằng
+  commit thuật toán và commit profile promotion tách biệt.
+- Classification/model nằm ngoài phạm vi goal này.
+
 ## Override chọn realtime winner ngày 2026-07-19
 
 ### Tiêu chí chọn realtime: Pareto đa mục tiêu
