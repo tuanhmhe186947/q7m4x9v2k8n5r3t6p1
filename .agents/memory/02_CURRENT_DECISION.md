@@ -1,5 +1,21 @@
 # Current Decision
 
+## Active realtime runtime decision 2026-07-20
+
+The common GPU harness is complete at instrumentation commit `7c9179e`.
+`realtime_fast` and `realtime_balanced` both remain causal and prediction-
+repeatable, but neither reaches the 30 FPS native gate. Fast reaches
+`27.3398/27.6077` FPS (primary/repeat); Balanced reaches `28.7192/28.8994`.
+Balanced has lower backlog and output age, while Fast retains the full-13
+identity advantage. Therefore there is no native operational winner yet.
+Do not claim a speed winner or silently label either profile native realtime;
+future work needs a throughput improvement or an explicit drop policy.
+
+The runtime decision is recorded in
+`docs/TRACKING_REALTIME_RUNTIME_PROBE_DECISION_20260720.json`. The added
+deadline, backlog and output-age telemetry is prediction-invariant and was
+validated with 217 tracking tests. `bytetrack_raw` was not rerun.
+
 ## Active realtime Pareto decision 2026-07-20
 
 Promote the validated far-right close-competitor guard in `realtime_fast`.
@@ -11,9 +27,10 @@ the evidence commits.
 
 Keep `bytetrack_raw` fixed at its existing authority (`145`, `88.91%`,
 `88.47%`) and do not rerun it. Its runtime is historical labeled evidence;
-the final realtime winner remains pending native-throughput and common-harness
-runtime gates. Balanced stays a valid quality reference, while Quality stays
-post-video/fixed-delay rejection evidence. Authority:
+the common-harness runtime gate now proves that neither causal profile is
+native realtime. Balanced stays a valid quality reference, while Quality stays
+in the Pareto comparison as delayed/finite-delay evidence; only its current
+realtime-winner eligibility is withheld. Authority:
 `docs/TRACKING_REALTIME_PARETO_SELECTION_DECISION_20260720.json`.
 
 The first post-Fast Balanced family was screened only on difficult windows.
@@ -66,7 +83,8 @@ winner is locked. This does not require all three realtime profiles in the
 paper table; it requires a fair validation attempt under a truthful causal or
 finite-delay contract.
 
-Retain the existing Quality authority as a post-video upper bound (`IDSW 166`,
+Retain the existing Quality authority in the Pareto/report evidence as a
+post-video upper bound (`IDSW 166`,
 HOTA `97.66%`, IDF1 `97.58%`, delay `-1`), not as a realtime winner. RQ1 lags
 `12/15/30` all failed frozen QW01: IDSW improved `36 -> 32`, but HOTA fell
 `91.51% -> 91.12%` and IDF1 fell `91.17% -> 89.88%`. Do not run later RQ1

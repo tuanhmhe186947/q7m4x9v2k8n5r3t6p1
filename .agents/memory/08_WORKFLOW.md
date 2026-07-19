@@ -1,5 +1,21 @@
 # Workflow
 
+## 2026-07-20 runtime gate closure
+
+1. Keep `bytetrack_raw` immutable; a common-harness runtime probe must not
+   regenerate its quality predictions.
+2. The current GPU harness uses one video, detector, GT, mask and environment
+   with primary/reverse Fast and Balanced orders, `include_hidden=true`,
+   `iou0_area0_condarea0_merge0`, and zero generated MP4.
+3. Both causal profiles are prediction-repeatable but below 30 FPS. Balanced
+   is closer to native with lower backlog/output age; Fast keeps the stronger
+   full-13 identity result. Neither is a native operational winner.
+4. Keep `realtime_quality_delayed` in the Pareto/report evidence as a
+   post-video upper bound, but do not call it a realtime winner. Reopen its
+   realtime contract only with a new causal/fixed-delay hypothesis and the
+   staged funnel.
+5. Authority: `docs/TRACKING_REALTIME_RUNTIME_PROBE_DECISION_20260720.json`.
+
 ## 2026-07-20 tracking Pareto update
 
 1. Hybrid remains complete and `bytetrack_raw` remains a fixed quality/runtime
@@ -9,7 +25,8 @@
 3. Fast is a causal quality reference, not a speed winner: native-throughput
    and common-harness runtime gates remain open. Do not claim it is faster.
 4. Balanced remains a non-dominated quality reference but no new family opens
-   without a predeclared window gate; Quality remains delayed/rejected evidence.
+   without a predeclared window gate; Quality remains retained delayed evidence
+   while its finite-delay candidates remain rejected by the declared gates.
 5. Use `docs/TRACKING_REALTIME_PARETO_SELECTION_DECISION_20260720.json` as the
    current Pareto authority and preserve no-MP4/lineage rules.
 6. The first Balanced far-right screen tied on both frozen windows and is

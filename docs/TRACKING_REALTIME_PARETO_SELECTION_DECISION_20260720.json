@@ -1,7 +1,7 @@
 {
   "schema_version": "tracking_realtime_pareto_selection_decision_v2",
   "decision_date": "2026-07-20",
-  "status": "FAST_QUALITY_AUTHORITY_PROMOTED_RUNTIME_SELECTION_PENDING",
+  "status": "FAST_QUALITY_AUTHORITY_NO_NATIVE_REALTIME_PROFILE",
   "supersedes":
     "docs/TRACKING_REALTIME_PARETO_SELECTION_DECISION_20260719.json",
   "scope": {
@@ -127,6 +127,9 @@
       "remapped_idf1": 0.9757870155131967,
       "effective_fps": 12.085928242557099,
       "status": "NOT_REALTIME_AUTHORITY",
+      "pareto_selection_status": "RETAINED_IN_COMPARISON_AS_DELAYED_EVIDENCE",
+      "paper_reporting_role":
+        "separate_delayed_quality_row_not_realtime_winner",
       "finite_delay_status": "REJECTED_RUNTIME_AND_REPEATABILITY_GATE"
     },
     "hybrid_bytetrack_best": {
@@ -164,17 +167,34 @@
       "relationship": "non_dominated_tradeoff"
     },
     "quality": [
-      "Quality has the highest post-video quality but is not a realtime",
-      "authority because delay -1 is a global graph.",
+      "Quality remains in the Pareto matrix and report evidence, with the",
+      "highest post-video quality; it is not a realtime authority because",
+      "delay -1 is a global graph.",
+      "Only realtime-winner eligibility is withheld under the current contract.",
       "Its finite-delay challenger remains rejected by frozen runtime gates."
     ]
+  },
+  "runtime_probe": {
+    "decision":
+      "docs/TRACKING_REALTIME_RUNTIME_PROBE_DECISION_20260720.json",
+    "instrumentation_commit": "7c9179e",
+    "same_gpu_harness": "PASS",
+    "fast_effective_fps_primary_repeat": [27.3398, 27.6077],
+    "balanced_effective_fps_primary_repeat": [28.7192, 28.8994],
+    "fast_native_realtime": "FAIL",
+    "balanced_native_realtime": "FAIL",
+    "fast_prediction_repeatability": "PASS",
+    "balanced_prediction_repeatability": "PASS",
+    "no_mp4": "PASS",
+    "raw_quality_rerun": false
   },
   "decision": {
     "hybrid_status": "complete",
     "fast_status": "promoted_quality_reference",
     "balanced_status": "retain_quality_reference_without_new_family",
-    "quality_status": "retain_delayed_negative_evidence",
-    "final_operational_winner": "NONE_PENDING_COMMON_RUNTIME_GATE",
+    "quality_status":
+      "retain_delayed_evidence_finite_delay_not_promoted",
+    "final_operational_winner": "NONE_NATIVE_GATE_FAILED",
     "paper_minimum_comparison": [
       "bytetrack_raw_same_contract",
       "one_selected_valid_causal_realtime_method",
@@ -184,18 +204,17 @@
     "reason": [
       "Fast now passes its 000302 identity guard and full-13 quality gates.",
       "Fast and Balanced remain non-dominated on different quality dimensions.",
-      "The operational gate requires native-rate throughput or an explicit",
-      "drop policy, plus comparable runtime evidence.",
-      "No speed advantage is claimed from runs with different order, timing",
-      "or hardware state."
+      "The common GPU harness now reports throughput, deadline, backlog and output age.",
+      "Both causal profiles remain below 30 FPS and accumulate output age.",
+      "No profile is authorized as native realtime without a drop policy or throughput improvement."
     ]
   },
   "next_step": [
     "Keep bytetrack_raw immutable; do not rerun its quality evaluation.",
     "Use its existing runtime authority only as labeled evidence, not as a",
     "new common-harness speed claim.",
-    "If a common-harness audit is needed, benchmark Fast and Balanced under",
-    "the declared no-MP4 harness without regenerating raw predictions.",
+    "The common-harness audit is complete; retain Fast/Balanced evidence and do not rerun raw.",
+    "Any future realtime candidate must improve throughput or declare and evaluate a drop policy.",
     "Do not reopen Balanced or Quality without a new predeclared family and",
     "window-level gate.",
     "Keep no MP4, preview, overlay or event clips."
