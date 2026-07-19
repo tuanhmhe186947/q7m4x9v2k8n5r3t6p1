@@ -14,6 +14,63 @@ The extended research and publication ideas remain in
 `classification_v2-scientific-performance-upgrade-roadmap.md`, but they do not
 block the core phases defined here.
 
+## Binding Two-Pass Research Strategy
+
+Use one controlled screening pass, one joint-tuning stage, and one
+confirmatory pass:
+
+1. Build a sufficiently strong and stable base. Tune enough to obtain stable
+   grouped-validation ranking and calibration, but keep it a measurement
+   instrument rather than spending the final search budget.
+2. Freeze base, folds, seeds, exposure, preprocessing, and metrics. Screen seven
+   singles, all 21 pairs, beam-search larger subsets, and leave-one-out using
+   parameter-matched-zero, availability-only, and real controls.
+3. Freeze the selected modality set, then compare fusion structures using
+   paired evidence for every one of the ten behaviors, not macro-F1 alone.
+4. Jointly tune visual backbone, temporal model, and selected fusion at scale
+   on rented GPUs.
+5. Repeat confirmatory matched modality ablations on the tuned finalist.
+
+The rented-GPU candidate set is not limited by the local RTX 3050. It includes
+strong 2D encoders with pooling/TCN/Transformer sequence heads and credible
+end-to-end video backbones. Use progressive budgets: static and synthetic
+correctness, representative short pilot, grouped inner-fold search, then
+multi-seed full development. Outer-fold predictions never select architecture,
+fusion weights, thresholds, or hyperparameters.
+
+Rank with pooled 10-class macro-F1 plus NLL/ECE and predeclared behavior-group
+guardrails. Report per-class precision, recall, F1, support, paired
+video-cluster uncertainty, source/availability strata, compute, and calibration.
+Lock finalists and rerun zero/availability/real ablations before the separate
+full-OOF gate. Preserve and reuse valid runs, caches, checkpoints, predictions,
+and diagnostics; rerun only after semantic changes or failed artifact audits.
+
+The all-seven real arm is an endpoint and interaction stress test, not a search
+for the best subset or fusion rule. Subset selection and fusion-family selection
+are separate scientific families.
+
+### Failure attribution before modality rejection
+
+Every negative or uncertain modality result must end with one diagnosis:
+
+- `DATA_QUALITY_FAILURE`: missing, noisy, misaligned, or unavailable input;
+- `NO_SIGNAL`: modality-only and permutation controls show no extractable value;
+- `REDUNDANT_WITH_ACTOR`: modality-only works but actor-residual gain is absent;
+- `UNDERPOWERED`: support or paired uncertainty cannot resolve the effect;
+- `OPTIMIZATION_FAILURE`: gradients, convergence or seed stability fail;
+- `FUSION_CAPACITY_FAILURE`: residual signal exists but the joint model misses
+  it and a stronger mask-aware fusion recovers it.
+
+Required evidence is an availability/quality audit, modality-only probe,
+actor-residual probe, within-stratum permutation control, learning curves,
+gradient health, seed stability, and a stronger fusion control. Only
+`NO_SIGNAL` with adequate power may support `DROP`. Other classes route to data
+repair, `RETEST_FULL_DATA`, or `RETEST_STRONGER_MODEL`.
+
+Legacy 16f may validate this machinery with synthetic and representative short
+canaries. The exhaustive subset ladder and every final ranking run only on the
+frozen reviewed main lineage; low-support legacy ranking cannot select it.
+
 ## 1. Scope And Success Definition
 
 Primary task:
@@ -161,11 +218,12 @@ human review still blocks active-data performance evidence.
 `fixed6_observed_time`:
 
 - CVAT reuses each harmonized six-frame anchor-interval window;
-- legacy reuses existing harmonized six-frame subwindows within its burst;
-- do not sample six quantiles across a legacy 16-frame burst;
-- a legacy native unit may contribute multiple windows, but it never crosses a
-  split and event weighting controls repeated event mass;
-- both sources expose six keyed slots with identical length/padding semantics;
+- the current main source manifest excludes legacy 16f;
+- if a future source decision promotes legacy, it must reuse harmonized
+  six-frame subwindows within a burst, never six quantiles;
+- any promoted legacy native unit remains within one split and uses event
+  weighting to control repeated event mass;
+- every selected source exposes six keyed slots with identical semantics;
 - timestamps and frame deltas remain only when shortcut audits permit them;
 - every original window stays in a selection ledger and every native unit stays
   in audit/native-ablation artifacts.
@@ -437,11 +495,11 @@ The 2026-07-17 paired result retains C6. Macro-F1 is `0.3708555386` for C6,
 S6 point gains for `drink` and `move` are support-limited and their intervals
 include zero. C8 improves NLL but not macro-F1. Do not compare these values
 causally with the older sliding-T6 candidate, which uses four windows per
-native unit and different optimizer exposure. Repeat the matrix on frozen
-merged-reviewed data before changing the canonical mixed-source view.
+native unit and different optimizer exposure. Retest nominated configurations
+on the frozen reviewed main-branch manifest before changing its model config.
 
 These legacy-only metrics support architecture development and comparison with
-the historical legacy model. They are not reviewed all-source evidence and
+the historical legacy model. They are not reviewed main-branch evidence and
 cannot authorize a Q2 claim or full OOF run.
 
 ### P2 PASS
@@ -480,6 +538,21 @@ actor-temporal wider-MLP control. Report source probes and class-group metrics.
 
 Retain only feature families with stable gains on their hypothesized classes and
 no evidence that source, missingness, or parameter count explains the gain.
+
+### C6 reviewed-lineage behavior-conditional rule
+
+The legacy C6 global promotion gate is a compute-selection gate, not a claim
+that a modality is useless for every behavior. On the frozen reviewed main
+lineage, retest geometry, motion, ROI, numeric social, pen context, union
+context, and full-frame context with all ten classes and the declared
+zero/availability/real controls. Report per-class F1, precision, recall,
+support, confusion, paired video-cluster uncertainty, source/availability
+strata, calibration/NLL, and non-target harm bounds.
+
+Keep a non-promoted branch as `deferred` when it has a predeclared class-level
+hypothesis but fails a global aggregate gate. Behavior-conditional or residual
+fusion may be selected only from development-fold evidence after correctness
+and short gates pass; outer-fold predictions remain ineligible for selection.
 
 ## 13. Phase 4: Social And Interaction Context
 

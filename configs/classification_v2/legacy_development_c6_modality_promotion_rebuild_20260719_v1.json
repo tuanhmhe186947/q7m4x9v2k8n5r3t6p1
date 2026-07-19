@@ -1,0 +1,73 @@
+{
+  "schema_version": "classification_v2.legacy_c6_modality_promotion_config.v1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "short_matrix": {
+    "path": "outputs/classification_v2/legacy_only_unreviewed_development/c6mm_20260719_v1/c6_short_decision.json",
+    "sha256": "d20610127901eb8cae8f2861e7718fdd9c640a9cdefbd74b2dba428e596949bb"
+  },
+  "short_training_config": {
+    "path": "configs/classification_v2/legacy_development_c6_modality_matrix_rebuild_20260719_v2.json",
+    "sha256": "3c59107ae87b1126073ede05d3eabef7437d8bd04cec988e3e6e7928709c4137"
+  },
+  "short_cache_manifest": {
+    "path": "outputs/classification_v2/legacy_only_unreviewed_development/c6mm_20260719_v1/cache/c6_modality_cache_manifest.json",
+    "sha256": "d1af472d681224e7e37d3dbea549967f64fd7237ada77b2154a1b78c7efd7984"
+  },
+  "temporal_base_freeze": {
+    "path": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_c6_temporal_controls_20260719_v3_cpu/c6_temporal_base_freeze.json",
+    "sha256": "150b61fddc42464d4d4767d55d5615d63507a02df6b74805c0ba85faffcf9a69"
+  },
+  "run_root": "outputs/classification_v2/legacy_only_unreviewed_development/c6mm_20260719_v1/runs",
+  "decision_contract": {
+    "minimum_macro_f1_gain": 0.02,
+    "pen_minimum_macro_f1_gain": 0.01,
+    "pen_minimum_focus_group_macro_f1_gain": 0.01,
+    "maximum_absolute_availability_only_gain": 0.01,
+    "maximum_rare_group_macro_f1_drop": 0.02,
+    "require_positive_video_cluster_ci_low": true,
+    "require_nll_improvement_vs_zero": true
+  },
+  "criteria_authority": [
+    {
+      "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_l6_geometry_decision.py",
+      "sha256": "1be3231512df000c042bd746747d1456cd0158ac7baaea29ce0b1dabbd49d1cb"
+    },
+    {
+      "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_l6_motion_decision.py",
+      "sha256": "d49a9556d935135c46a59f144b45bf0ec4a505aa3aa5c2d18df876fccda15552"
+    },
+    {
+      "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_l6_roi_relation_decision.py",
+      "sha256": "5bb93bcef8e0ecfcdc72f83ce4c20fbd5861b258db0151793b356dc128d9e08d"
+    },
+    {
+      "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_l6_social_relation_decision.py",
+      "sha256": "0a0893b5eb5f3d4a7983dbc34303e4796aab7ec171cb97df6d9fa937a733e93f"
+    },
+    {
+      "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_l6_pen_context_decision.py",
+      "sha256": "167103d4c6874d632d02253c8b3b0041be12bfcf911d4b15ae2b3e1c9ece056b"
+    },
+    {
+      "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_l6_union_context_decision.py",
+      "sha256": "9a545741756b03b9d81f803e88d441b92ea05800a4bd48a363ddf8461fef5639"
+    },
+    {
+      "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_l6_full_frame_context_decision.py",
+      "sha256": "e1a2c342e9b938114a93e4fc808f4a186731f0dd553aba43dddea058aa97bded"
+    }
+  ],
+  "implementation": {
+    "path": "src/pig_behavior/classification_v2/evaluation/legacy_c6_modality_promotion.py",
+    "sha256": "b99d8a60069dea1da030e43908398f1dd614e9249abffb32ad4ab674860334c5"
+  },
+  "claims": {
+    "human_review_complete": false,
+    "reviewed_or_final_claim_allowed": false,
+    "q2_claim_allowed": false,
+    "full_oof_authorized": false
+  },
+  "output": {
+    "path": "outputs/classification_v2/legacy_only_unreviewed_development/c6mm_20260719_v1/c6_modality_promotion_freeze.json"
+  }
+}

@@ -2,6 +2,39 @@
 
 ## classification_v2 active rules
 
+### Two-pass model and modality research authority
+
+Use this order for classifier model search:
+
+1. Tune a sufficiently strong, stable base only enough to make it a reliable
+   measurement instrument.
+2. On that frozen base, screen seven singles, all 21 pairs, beam-search larger
+   subsets, and leave-one-out confirmation. Keep folds, seeds, exposure and the
+   three matched controls fixed.
+3. Freeze the selected modality set before comparing fusion architectures.
+   Select both stages from paired ten-behavior evidence, calibration,
+   uncertainty, support, availability, and non-target harm.
+4. Jointly tune backbone, temporal model, and selected fusion at large scale
+   on rented GPUs.
+5. Confirm every retained modality with matched ablations on the tuned strong
+   finalist before model lock or full-OOF promotion.
+
+Do not deeply tune an information-incomplete architecture before screening.
+Do not turn controlled-base screening into a final architecture verdict. Local
+RTX 3050 capacity affects only correctness-run placement, not candidate scope.
+Preserve valid runs, caches, predictions, and diagnostics; rerun only after a
+semantic contract change or an artifact audit failure.
+
+An all-seven real arm is a boundary/reference test only. It cannot establish
+an optimal subset, optimal fusion rule, or completion of fusion search. Before
+dropping a modality, assign a failure class using modality-only, actor-residual,
+permutation, optimization and stronger-fusion probes. An unresolved or
+underpowered result is `RETEST_FULL_DATA` or `RETEST_STRONGER_MODEL`, not `DROP`.
+
+Do not spend legacy 16f compute on exhaustive subset ranking. It may validate
+the engine with synthetic and representative short canaries, but the complete
+ladder and model-selection decisions belong to frozen reviewed main data.
+
 ### Mandatory worktree routing
 
 Use the current main worktree by default. A different worktree or branch becomes
@@ -99,6 +132,15 @@ previous commit-`18d6692` full run is historical engineering evidence only.
     it matches the hypothesis. Mark the metric `legacy-only` and use it for
     historical comparison, not as a substitute for all-source evaluation or a
     Q2 claim. Do not use this preference to bypass Hidden/behavior review.
+12. A global modality gate controls compute/promotion only. It must not be
+    interpreted as proof that the modality cannot help any individual class.
+13. Preserve and report all ten behavior rows for every modality/control.
+    Classify non-promoted branches as `deferred for reviewed-lineage retest`,
+    not deleted, unless a separate predeclared per-class decision supports it.
+14. Behavior-conditional selection requires paired per-class evidence,
+    recording/video-cluster uncertainty, minimum support, availability/source
+    strata, calibration, and non-target harm bounds. Never omit a low-support
+    class from a table without naming it and reporting its support.
 
 The tracking rules below are historical/preserved for tracking tasks. They do
 not supersede the active classification_v2 rules above.

@@ -34,6 +34,9 @@ from pig_behavior.classification_v2.spatial_sequence_export import (
 from pig_behavior.classification_v2.training import (
     legacy_development_l5_cached_training as frozen_engine,
 )
+from pig_behavior.classification_v2.training.legacy_c6_prepared_source import (
+    load_legacy_c6_prepared_source,
+)
 from pig_behavior.classification_v2.training.legacy_development_l5_cached_data import (
     FEATURE_DIM,
     LegacyL5CachedFeatureClassifier,
@@ -73,13 +76,22 @@ from pig_behavior.classification_v2.training.legacy_development_temporal_base_se
 from pig_behavior.classification_v2.training.lineage_hashing import file_sha256
 
 CONFIG_SCHEMA = "classification_v2.legacy_development.c6_modality_matrix.v1"
+CONFIG_SCHEMA_V2 = "classification_v2.legacy_development.c6_modality_matrix.v2"
+CONFIG_SCHEMA_V3 = "classification_v2.legacy_development.c6_modality_matrix.v3"
+CONFIG_SCHEMA_V4 = "classification_v2.legacy_development.c6_modality_matrix.v4"
 CACHE_SCHEMA = "classification_v2.legacy_development.c6_modality_cache.v1"
 RUN_SCHEMA = "classification_v2.legacy_development.c6_modality_run.v1"
 MATRIX_SCHEMA = "classification_v2.legacy_development.c6_modality_decision.v1"
+MATRIX_SCHEMA_V2 = (
+    "classification_v2.legacy_development.c6_combined_modality_decision.v2"
+)
 LINEAGE_SCOPE = "legacy-only-unreviewed-development"
 C6_OFFSETS = (5, 6, 7, 8, 9, 10)
 SEQUENCE_LENGTH = len(C6_OFFSETS)
 CONTROL_MODES = ("parameter_matched_zero", "availability_only", "real")
+SINGLE_MODALITY_FAMILY = "single_optional_modality"
+COMBINED_ALL7_FAMILY = "combined_all7_modalities"
+COMBINED_ALL7_MODE = "combined_all7"
 PEN_STATIC_FEATURE_COUNT = 3
 
 MODALITY_FEATURES: dict[str, tuple[str, ...]] = {
@@ -211,13 +223,15 @@ class C6NormalizationState:
 
 @dataclass(frozen=True, slots=True)
 class C6MatrixView:
-    """Actor A128 inputs with one optional, explicitly masked modality."""
+    """Actor A128 inputs with single or combined explicitly masked modalities."""
 
     base: LegacyL5CachedFeatureView
     cache: C6ModalityCache
     modality: str | None
     control: str
     normalization: C6NormalizationState | None
+    combined_modalities: tuple[str, ...] = ()
+    combined_normalizations: tuple[C6NormalizationState, ...] = ()
     missing_modality: bool = False
 
     @property
@@ -242,12 +256,20 @@ class C6MatrixView:
 
     @property
     def mode_id(self) -> str:
+        if self.combined_modalities:
+            return f"{COMBINED_ALL7_MODE}__{self.control}"
         if self.modality is None:
             return "actor_only"
         return f"{self.modality}__{self.control}"
 
     @property
     def input_dim(self) -> int:
+        if self.combined_modalities:
+            auxiliary_dim = sum(
+                len(MODALITY_FEATURES[name]) + 1
+                for name in self.combined_modalities
+            )
+            return FEATURE_DIM + auxiliary_dim
         if self.modality is None:
             return FEATURE_DIM
         return FEATURE_DIM + len(MODALITY_FEATURES[self.modality]) + 1
@@ -258,13 +280,40 @@ class C6MatrixView:
     def load_sequences(self, positions: np.ndarray) -> np.ndarray:
         rows = _validated_rows(positions, len(self.windows))
         actor = self.base.load_sequences(rows)
+        if self.combined_modalities:
+            if len(self.combined_normalizations) != len(
+                self.combined_modalities
+            ):
+                raise ValueError("C6 combined normalization state drift")
+            branches = [
+                self._load_modality_branch(modality, state, rows)
+                for modality, state in zip(
+                    self.combined_modalities,
+                    self.combined_normalizations,
+                    strict=True,
+                )
+            ]
+            return self._combine_actor_and_auxiliary(actor, branches, rows)
         if self.modality is None:
             return actor
         if self.normalization is None:
             raise ValueError("C6 optional modality lacks normalization state")
-        values = self.cache.load_values(self.modality, rows)
-        feature_mask = self.cache.load_feature_mask(self.modality, rows)
-        availability = self.cache.load_availability(self.modality, rows)
+        branch = self._load_modality_branch(
+            self.modality,
+            self.normalization,
+            rows,
+        )
+        return self._combine_actor_and_auxiliary(actor, [branch], rows)
+
+    def _load_modality_branch(
+        self,
+        modality: str,
+        normalization: C6NormalizationState,
+        rows: np.ndarray,
+    ) -> np.ndarray:
+        values = self.cache.load_values(modality, rows)
+        feature_mask = self.cache.load_feature_mask(modality, rows)
+        availability = self.cache.load_availability(modality, rows)
         zeros = np.zeros_like(values, dtype=np.float32)
         if self.missing_modality or self.control == "parameter_matched_zero":
             normalized = zeros
@@ -273,8 +322,8 @@ class C6MatrixView:
             normalized = zeros
             branch = availability.astype(np.float32)
         elif self.control == "real":
-            mean = np.asarray(self.normalization.mean, dtype=np.float32)
-            scale = np.asarray(self.normalization.scale, dtype=np.float32)
+            mean = np.asarray(normalization.mean, dtype=np.float32)
+            scale = np.asarray(normalization.scale, dtype=np.float32)
             normalized = np.where(
                 feature_mask,
                 (values - mean) / scale,
@@ -287,6 +336,15 @@ class C6MatrixView:
             [normalized, branch[..., None]],
             axis=2,
         )
+        return auxiliary
+
+    def _combine_actor_and_auxiliary(
+        self,
+        actor: np.ndarray,
+        branches: list[np.ndarray],
+        rows: np.ndarray,
+    ) -> np.ndarray:
+        auxiliary = np.concatenate(branches, axis=2)
         auxiliary[~self.observed_mask[rows]] = 0.0
         combined = np.concatenate([actor, auxiliary], axis=2)
         expected = (len(rows), SEQUENCE_LENGTH, self.input_dim)
@@ -327,7 +385,21 @@ def load_c6_matrix_config(path: Path) -> C6MatrixConfig:
         payload=payload,
         repo_root=resolved.parents[2],
     )
-    for section in ("source_temporal_config", "implementation"):
+    bound_sections = [_source_spec_name(payload), "implementation"]
+    if payload["schema_version"] in {
+        CONFIG_SCHEMA_V2,
+        CONFIG_SCHEMA_V3,
+        CONFIG_SCHEMA_V4,
+    }:
+        bound_sections.append("temporal_base_freeze")
+    if payload["schema_version"] == CONFIG_SCHEMA_V3:
+        bound_sections.append("promotion_freeze")
+    if (
+        payload["schema_version"] == CONFIG_SCHEMA_V4
+        and payload["training_scope"] == "full_development_confirmation"
+    ):
+        bound_sections.append("short_fusion_gate")
+    for section in bound_sections:
         _verify_bound_spec(config.repo_root, _object(payload[section], section))
     for spec in _object(payload["inputs"], "inputs").values():
         _verify_bound_spec(config.repo_root, _object(spec, "inputs item"))
@@ -339,12 +411,12 @@ def build_c6_modality_cache(config: C6MatrixConfig) -> dict[str, Any]:
 
     if config.payload["execution"].get("data_run_authorized") is not True:
         raise RuntimeError("C6 cache build is disabled until clean lineage handoff")
+    gate_errors = _execution_gate_errors(config)
+    if gate_errors:
+        raise RuntimeError(f"C6 execution gates failed={gate_errors}")
     root = config.cache_root
     root.mkdir(parents=True, exist_ok=False)
-    source_config = load_temporal_base_selection_config(
-        config.bound_path("source_temporal_config")
-    )
-    source = load_temporal_base_source(source_config)
+    source, _ = _load_c6_matrix_source(config)
     derived = derive_temporal_base_view(source.base_view, "A128")
     base = derived.view
     frames = _read_required_frames(config.bound_path("inputs", "harmonized_frames"))
@@ -368,13 +440,24 @@ def build_c6_modality_cache(config: C6MatrixConfig) -> dict[str, Any]:
         pen_frames,
         max_window_length=SEQUENCE_LENGTH,
     )
-    arrays = _numeric_modality_arrays(
+    selected_modalities = _configured_modalities(config.payload)
+    numeric_arrays = _numeric_modality_arrays(
         exported,
         pen_frames,
         slot_index,
     )
-    context = _context_modality_arrays(config, slot_index)
-    arrays.update(context)
+    arrays = {
+        name: values
+        for name, values in numeric_arrays.items()
+        if name in selected_modalities
+    }
+    arrays.update(
+        _context_modality_arrays(
+            config,
+            slot_index,
+            selected_modalities,
+        )
+    )
     _validate_all_arrays(arrays, len(window_index))
     window_path = root / "c6_window_index.csv"
     slot_path = root / "c6_slot_index.csv"
@@ -401,7 +484,15 @@ def build_c6_modality_cache(config: C6MatrixConfig) -> dict[str, Any]:
         "status": "PASS_LEGACY_C6_MODALITY_CACHE",
         "lineage_scope": LINEAGE_SCOPE,
         "config_sha256": config.sha256,
-        "source_temporal_config_sha256": source_config.sha256,
+        "source_temporal_config_sha256": file_sha256(
+            config.bound_path(_source_spec_name(config.payload))
+        ),
+        "temporal_base_freeze_sha256": (
+            file_sha256(config.bound_path("temporal_base_freeze"))
+            if config.payload["schema_version"]
+            in {CONFIG_SCHEMA_V2, CONFIG_SCHEMA_V3, CONFIG_SCHEMA_V4}
+            else None
+        ),
         "temporal_base_mode": "A128",
         "temporal_encoder": "masked_attention",
         "native_frame_offsets": list(C6_OFFSETS),
@@ -450,7 +541,10 @@ def load_c6_modality_cache(config: C6MatrixConfig) -> C6ModalityCache:
         if manifest.get(name) != value:
             errors.append(f"manifest_{name}_drift")
     specs = [manifest["window_index"], manifest["slot_index"]]
-    for modality in MODALITY_FEATURES:
+    configured_modalities = _configured_modalities(config.payload)
+    if set(manifest.get("modalities", {})) != set(configured_modalities):
+        errors.append("manifest_modality_set_drift")
+    for modality in configured_modalities:
         item = manifest.get("modalities", {}).get(modality)
         if not isinstance(item, dict):
             errors.append(f"missing_modality={modality}")
@@ -474,11 +568,25 @@ def load_c6_modality_cache(config: C6MatrixConfig) -> C6ModalityCache:
     )
 
 
-def c6_mode_ids() -> tuple[str, ...]:
-    """Return the exact actor and single-modality matrix in stable order."""
+def c6_mode_ids(
+    modalities: tuple[str, ...] | None = None,
+    *,
+    experiment_family: str = SINGLE_MODALITY_FAMILY,
+) -> tuple[str, ...]:
+    """Return the exact modes for a single or all-seven fusion contract."""
 
     modes = ["actor_only"]
-    for modality in MODALITY_FEATURES:
+    if experiment_family == COMBINED_ALL7_FAMILY:
+        selected = modalities or tuple(MODALITY_FEATURES)
+        if selected != tuple(MODALITY_FEATURES):
+            raise ValueError("C6 combined experiment requires all seven modalities")
+        modes.extend(
+            f"{COMBINED_ALL7_MODE}__{control}" for control in CONTROL_MODES
+        )
+        return tuple(modes)
+    if experiment_family != SINGLE_MODALITY_FAMILY:
+        raise ValueError(f"unknown C6 experiment family={experiment_family}")
+    for modality in modalities or tuple(MODALITY_FEATURES):
         modes.extend(f"{modality}__{control}" for control in CONTROL_MODES)
     return tuple(modes)
 
@@ -570,6 +678,21 @@ def build_c6_view(
 
     modality, control = _parse_mode_id(mode_id)
     _validate_base_cache_alignment(base, cache)
+    if modality == COMBINED_ALL7_MODE:
+        combined_modalities = tuple(MODALITY_FEATURES)
+        combined_normalizations = tuple(
+            fit_c6_normalization(cache, name, train_positions)
+            for name in combined_modalities
+        )
+        return C6MatrixView(
+            base=base,
+            cache=cache,
+            modality=None,
+            control=control,
+            normalization=None,
+            combined_modalities=combined_modalities,
+            combined_normalizations=combined_normalizations,
+        )
     normalization = (
         None
         if modality is None
@@ -595,7 +718,7 @@ def build_c6_model(view: C6MatrixView, config: C6MatrixConfig) -> nn.Module:
         "transformer_layers": 1,
         "transformer_heads": 4,
     }
-    if view.modality is None:
+    if view.input_dim == FEATURE_DIM:
         return LegacyL5CachedFeatureClassifier(**common)
     return LegacyL6CachedModalityClassifier(
         input_dim=view.input_dim,
@@ -609,7 +732,7 @@ def static_c6_matrix_preflight(config: C6MatrixConfig) -> dict[str, Any]:
     errors: list[str] = []
     warnings: list[str] = []
     cuda_before = torch.cuda.is_initialized()
-    expected_modes = c6_mode_ids()
+    expected_modes = _configured_mode_ids(config.payload)
     for path_name, path in _declared_input_paths(config).items():
         if not path.is_file():
             errors.append(f"missing_{path_name}={path}")
@@ -619,8 +742,12 @@ def static_c6_matrix_preflight(config: C6MatrixConfig) -> dict[str, Any]:
         C6_OFFSETS
     ):
         errors.append("c6_offsets_drift")
-    if config.payload["execution"].get("data_run_authorized") is not False:
+    authorized = bool(
+        config.payload["execution"].get("data_run_authorized")
+    )
+    if config.payload["schema_version"] == CONFIG_SCHEMA and authorized:
         errors.append("dirty_legacy_data_run_must_remain_disabled")
+    errors.extend(_execution_gate_errors(config))
     if config.cache_root.exists():
         warnings.append("cache_root_already_exists_not_touched")
     cuda_after = torch.cuda.is_initialized()
@@ -631,6 +758,7 @@ def static_c6_matrix_preflight(config: C6MatrixConfig) -> dict[str, Any]:
         "status": "PASS" if not errors else "FAIL",
         "config_sha256": config.sha256,
         "lineage_scope": LINEAGE_SCOPE,
+        "experiment_family": _experiment_family(config.payload),
         "mode_count": len(expected_modes),
         "mode_ids": list(expected_modes),
         "native_frame_offsets": list(C6_OFFSETS),
@@ -638,7 +766,7 @@ def static_c6_matrix_preflight(config: C6MatrixConfig) -> dict[str, Any]:
         "data_rows_read": 0,
         "optimizer_steps": 0,
         "source_media_reads": 0,
-        "data_run_authorized": False,
+        "data_run_authorized": authorized,
         "cuda_initialized_before": cuda_before,
         "cuda_initialized_after": cuda_after,
         "warnings": warnings,
@@ -647,7 +775,11 @@ def static_c6_matrix_preflight(config: C6MatrixConfig) -> dict[str, Any]:
     }
 
 
-def synthetic_c6_functional_preflight() -> dict[str, Any]:
+def synthetic_c6_functional_preflight(
+    *,
+    experiment_family: str = SINGLE_MODALITY_FAMILY,
+    modalities: tuple[str, ...] | None = None,
+) -> dict[str, Any]:
     """Exercise every input width, mask path, backward, and resume in memory."""
 
     torch.manual_seed(20260717)
@@ -657,11 +789,21 @@ def synthetic_c6_functional_preflight() -> dict[str, Any]:
     mask = torch.ones(batch_size, SEQUENCE_LENGTH)
     time_delta = torch.zeros(batch_size, SEQUENCE_LENGTH)
     time_delta[:, 1:] = 1.0 / 6.0
-    for mode_id in c6_mode_ids():
+    mode_ids = c6_mode_ids(
+        modalities,
+        experiment_family=experiment_family,
+    )
+    for mode_id in mode_ids:
         modality, _ = _parse_mode_id(mode_id)
-        width = FEATURE_DIM
-        if modality is not None:
+        if modality == COMBINED_ALL7_MODE:
+            width = FEATURE_DIM + sum(
+                len(names) + 1 for names in MODALITY_FEATURES.values()
+            )
+        elif modality is not None:
+            width = FEATURE_DIM
             width += len(MODALITY_FEATURES[modality]) + 1
+        else:
+            width = FEATURE_DIM
         model = _synthetic_model(width)
         features = torch.randn(batch_size, SEQUENCE_LENGTH, width)
         logits = model(features, mask, time_delta=time_delta)
@@ -681,18 +823,24 @@ def synthetic_c6_functional_preflight() -> dict[str, Any]:
             "forward_shape": list(logits.shape),
             "backward_finite": bool(torch.isfinite(loss)),
         }
-    for modality in MODALITY_FEATURES:
+    controlled_names = (
+        (COMBINED_ALL7_MODE,)
+        if experiment_family == COMBINED_ALL7_FAMILY
+        else tuple(MODALITY_FEATURES)
+    )
+    for name in controlled_names:
         counts = {
-            modes[f"{modality}__{control}"]["parameter_count"]
+            modes[f"{name}__{control}"]["parameter_count"]
             for control in CONTROL_MODES
         }
         if len(counts) != 1:
-            errors.append(f"{modality}:control_parameter_count_drift")
+            errors.append(f"{name}:control_parameter_count_drift")
     resume = _synthetic_resume_audit()
     errors.extend(resume["errors"])
     return {
         "schema_version": "classification_v2.c6_modality_synthetic_gate.v1",
         "status": "PASS" if not errors else "FAIL",
+        "experiment_family": experiment_family,
         "modes": modes,
         "resume_audit": resume,
         "project_data_rows_read": 0,
@@ -809,7 +957,18 @@ def train_c6_mode(
                     "mode_id": view.mode_id,
                 }
             )
-        expected_steps = int(optimization["maximum_optimizer_steps"])
+        configured_steps = optimization.get("maximum_optimizer_steps")
+        expected_steps = (
+            int(configured_steps)
+            if configured_steps is not None
+            else int(optimization["epochs"])
+            * int(
+                np.ceil(
+                    len(selection.train_positions)
+                    / int(optimization["batch_size"])
+                )
+            )
+        )
         if optimizer_steps != expected_steps or best is None:
             raise RuntimeError(
                 f"C6 optimizer/checkpoint drift={optimizer_steps}/{expected_steps}"
@@ -861,21 +1020,33 @@ def run_c6_repeat(
 
     if config.payload["execution"].get("data_run_authorized") is not True:
         raise RuntimeError("C6 repeat is disabled until clean lineage handoff")
+    gate_errors = _execution_gate_errors(config)
+    if gate_errors:
+        raise RuntimeError(f"C6 execution gates failed={gate_errors}")
     cache = load_c6_modality_cache(config)
-    source_config = load_temporal_base_selection_config(
-        config.bound_path("source_temporal_config")
-    )
-    source = load_temporal_base_source(source_config)
+    source, source_config = _load_c6_matrix_source(config)
     derived = derive_temporal_base_view(source.base_view, "A128")
-    _, selection = build_training_adapter(
-        source_config,
-        source,
-        derived,
-    )
+    if source_config is None:
+        selection = replace(
+            source.selection,
+            audit={
+                **source.selection.audit,
+                "selection_content_sha256": frozen_engine._dataframe_sha256(
+                    source.selection.manifest
+                ),
+                "training_scope": config.training_scope,
+            },
+        )
+    else:
+        _, selection = build_training_adapter(
+            source_config,
+            source,
+            derived,
+        )
     repeat_root = config.output_root / "runs" / repeat_id
     repeat_root.mkdir(parents=True, exist_ok=False)
     results: dict[str, Any] = {}
-    for mode_id in c6_mode_ids():
+    for mode_id in _configured_mode_ids(config.payload):
         view = build_c6_view(
             derived.view,
             cache,
@@ -916,16 +1087,39 @@ def evaluate_c6_short_matrix(config: C6MatrixConfig) -> dict[str, Any]:
     """Audit deterministic repeats and paired real-versus-control effects."""
 
     repeats = [str(value) for value in config.payload["execution"]["repeats"]]
+    cache = load_c6_modality_cache(config)
     packets: dict[str, list[dict[str, Any]]] = {}
     errors: list[str] = []
-    for mode_id in c6_mode_ids():
+    repeat_process_ids: dict[str, int] = {}
+    configured_modes = _configured_mode_ids(config.payload)
+    for mode_id in configured_modes:
         packets[mode_id] = []
         for repeat_id in repeats:
             path = config.output_root / "runs" / repeat_id / mode_id / "run.json"
             if not path.is_file():
                 errors.append(f"missing_run={mode_id}:{repeat_id}")
                 continue
-            packets[mode_id].append(_read_json(path))
+            packet = _read_json(path)
+            packet_errors = _validate_c6_run_packet(
+                packet,
+                mode_id=mode_id,
+                repeat_id=repeat_id,
+                config_sha256=config.sha256,
+                cache_manifest_sha256=cache.manifest_sha256,
+            )
+            errors.extend(packet_errors)
+            if packet_errors:
+                continue
+            process_id = int(packet["process_id"])
+            previous = repeat_process_ids.get(repeat_id)
+            if previous is not None and previous != process_id:
+                errors.append(f"mixed_process={repeat_id}")
+            repeat_process_ids[repeat_id] = process_id
+            packets[mode_id].append(packet)
+    if len(repeat_process_ids) == len(repeats):
+        process_ids = list(repeat_process_ids.values())
+        if len(set(process_ids)) != len(process_ids):
+            errors.append("repeats_not_fresh_processes")
     comparisons: dict[str, Any] = {}
     for mode_id, mode_packets in packets.items():
         if len(mode_packets) != len(repeats):
@@ -933,17 +1127,30 @@ def evaluate_c6_short_matrix(config: C6MatrixConfig) -> dict[str, Any]:
         hashes = {packet["prediction_sha256"] for packet in mode_packets}
         if len(hashes) != 1:
             errors.append(f"nondeterministic_repeat={mode_id}")
-    for modality in MODALITY_FEATURES:
-        real = _prediction_path(config, repeats[0], f"{modality}__real")
+    experiment_family = _experiment_family(config.payload)
+    controlled_names = (
+        (COMBINED_ALL7_MODE,)
+        if experiment_family == COMBINED_ALL7_FAMILY
+        else _configured_modalities(config.payload)
+    )
+    for name in controlled_names:
+        parameter_counts = {
+            int(packet["parameter_count"])
+            for control in CONTROL_MODES
+            for packet in packets.get(f"{name}__{control}", [])
+        }
+        if len(parameter_counts) != 1:
+            errors.append(f"control_parameter_count_drift={name}")
+        real = _prediction_path(config, repeats[0], f"{name}__real")
         for control in CONTROL_MODES[:2]:
             baseline = _prediction_path(
                 config,
                 repeats[0],
-                f"{modality}__{control}",
+                f"{name}__{control}",
             )
             if not real.is_file() or not baseline.is_file():
                 continue
-            comparisons[f"{modality}__real_minus_{control}"] = (
+            comparisons[f"{name}__real_minus_{control}"] = (
                 _paired_prediction_comparison(
                     pd.read_csv(real),
                     pd.read_csv(baseline),
@@ -951,23 +1158,103 @@ def evaluate_c6_short_matrix(config: C6MatrixConfig) -> dict[str, Any]:
                     seed=int(config.payload["evaluation"]["bootstrap_seed"]),
                 )
             )
-    valid = not errors and len(comparisons) == len(MODALITY_FEATURES) * 2
+    valid = not errors and len(comparisons) == len(controlled_names) * 2
     payload = {
-        "schema_version": MATRIX_SCHEMA,
+        "schema_version": (
+            MATRIX_SCHEMA_V2
+            if experiment_family == COMBINED_ALL7_FAMILY
+            else MATRIX_SCHEMA
+        ),
         "status": "PASS" if valid else "FAIL",
         "lineage_scope": LINEAGE_SCOPE,
+        "training_scope": config.training_scope,
+        "experiment_family": experiment_family,
         "config_sha256": config.sha256,
-        "mode_count": len(c6_mode_ids()),
+        "mode_count": len(configured_modes),
         "repeat_ids": repeats,
+        "repeat_process_ids": repeat_process_ids,
         "comparisons": comparisons,
-        "legacy_data_quality_status": "REQUIRES_CLEAN_LINEAGE_HANDOFF",
-        "full_development_authorized_modalities": [],
+        "legacy_data_quality_status": (
+            "TECHNICALLY_CLEAN_UNREVIEWED_DOUBLE_CHECK_PENDING"
+            if config.payload["schema_version"]
+            in {CONFIG_SCHEMA_V2, CONFIG_SCHEMA_V3, CONFIG_SCHEMA_V4}
+            else "REQUIRES_CLEAN_LINEAGE_HANDOFF"
+        ),
+        "temporal_base_freeze_sha256": (
+            file_sha256(config.bound_path("temporal_base_freeze"))
+            if config.payload["schema_version"]
+            in {CONFIG_SCHEMA_V2, CONFIG_SCHEMA_V3, CONFIG_SCHEMA_V4}
+            else None
+        ),
+        "full_development_authorized": bool(
+            valid
+            and experiment_family == COMBINED_ALL7_FAMILY
+            and config.training_scope == "short_repeat_gate"
+        ),
+        "full_development_authorized_modalities": (
+            list(MODALITY_FEATURES)
+            if valid and experiment_family == COMBINED_ALL7_FAMILY
+            else []
+        ),
         "full_oof_authorized": False,
         "errors": errors,
         "valid": valid,
     }
-    _write_json_exclusive(config.output_root / "c6_short_decision.json", payload)
+    decision_filename = (
+        "c6_combined_short_decision.json"
+        if config.training_scope == "short_repeat_gate"
+        and experiment_family == COMBINED_ALL7_FAMILY
+        else "c6_full_development_decision.json"
+        if config.training_scope == "full_development_confirmation"
+        and experiment_family == COMBINED_ALL7_FAMILY
+        else "c6_short_decision.json"
+    )
+    _write_json_exclusive(config.output_root / decision_filename, payload)
     return payload
+
+
+def _validate_c6_run_packet(
+    packet: dict[str, Any],
+    *,
+    mode_id: str,
+    repeat_id: str,
+    config_sha256: str,
+    cache_manifest_sha256: str,
+) -> list[str]:
+    """Fail closed when a run packet is from the wrong mode or lineage."""
+
+    errors: list[str] = []
+    expected = {
+        "status": "completed",
+        "mode_id": mode_id,
+        "repeat_id": repeat_id,
+        "config_sha256": config_sha256,
+        "cache_manifest_sha256": cache_manifest_sha256,
+        "lineage_scope": LINEAGE_SCOPE,
+        "human_review_complete": False,
+        "reviewed_or_final_claim_allowed": False,
+        "q2_claim_allowed": False,
+        "full_oof_authorized": False,
+        "valid": True,
+    }
+    for field, expected_value in expected.items():
+        if packet.get(field) != expected_value:
+            errors.append(
+                f"packet_mismatch={mode_id}:{repeat_id}:{field}"
+            )
+    process_id = packet.get("process_id")
+    if not isinstance(process_id, int) or process_id <= 0:
+        errors.append(f"invalid_process_id={mode_id}:{repeat_id}")
+    for field in (
+        "selection_sha256",
+        "parameter_sha256",
+        "prediction_sha256",
+        "checkpoint_sha256",
+    ):
+        value = packet.get(field)
+        if not isinstance(value, str) or len(value) != 64:
+            errors.append(f"invalid_packet_hash={mode_id}:{repeat_id}:{field}")
+    return errors
 
 
 def _read_required_frames(path: Path) -> pd.DataFrame:
@@ -976,6 +1263,9 @@ def _read_required_frames(path: Path) -> pd.DataFrame:
         for columns in SPATIAL_FRAME_FEATURES.values()
         for column in columns
     }
+    # The canonical exporter derives this label-independent mask from the
+    # nearest partner identifiers; it is not a required source column.
+    feature_columns.discard("social_neighbor_available")
     required = {
         "temporal_unit_key",
         "frame_uid",
@@ -1200,6 +1490,7 @@ def _numeric_modality_arrays(
 def _context_modality_arrays(
     config: C6MatrixConfig,
     slot_index: pd.DataFrame,
+    selected_modalities: tuple[str, ...],
 ) -> dict[str, dict[str, np.ndarray]]:
     context = pd.read_csv(
         config.bound_path("inputs", "image_window_context_manifest"),
@@ -1215,30 +1506,37 @@ def _context_modality_arrays(
             previous = frame_to_context.setdefault(frame_uid, context_id)
             if previous != context_id:
                 raise ValueError("C6 frame maps to conflicting union contexts")
-    union_index = pd.read_csv(
-        config.bound_path("inputs", "union_feature_index")
-    )
-    full_index = pd.read_csv(
-        config.bound_path("inputs", "full_frame_feature_index")
-    )
-    union_keys = slot_index["frame_uid"].astype(str).map(frame_to_context).fillna("")
-    slot_index["image_context_id"] = union_keys
-    union = _materialize_context_features(
-        union_keys,
-        union_index,
-        key_column="image_context_id",
-        tensor_path=config.bound_path("inputs", "union_feature_tensor"),
-    )
-    full = _materialize_context_features(
-        slot_index["scene_frame_uid"].fillna("").astype(str),
-        full_index,
-        key_column="scene_frame_uid",
-        tensor_path=config.bound_path("inputs", "full_frame_feature_tensor"),
-    )
-    return {
-        "union_context": union,
-        "full_frame_context": full,
-    }
+    output: dict[str, dict[str, np.ndarray]] = {}
+    if "union_context" in selected_modalities:
+        union_index = pd.read_csv(
+            config.bound_path("inputs", "union_feature_index")
+        )
+        union_keys = (
+            slot_index["frame_uid"]
+            .astype(str)
+            .map(frame_to_context)
+            .fillna("")
+        )
+        slot_index["image_context_id"] = union_keys
+        output["union_context"] = _materialize_context_features(
+            union_keys,
+            union_index,
+            key_column="image_context_id",
+            tensor_path=config.bound_path("inputs", "union_feature_tensor"),
+        )
+    if "full_frame_context" in selected_modalities:
+        full_index = pd.read_csv(
+            config.bound_path("inputs", "full_frame_feature_index")
+        )
+        output["full_frame_context"] = _materialize_context_features(
+            slot_index["scene_frame_uid"].fillna("").astype(str),
+            full_index,
+            key_column="scene_frame_uid",
+            tensor_path=config.bound_path(
+                "inputs", "full_frame_feature_tensor"
+            ),
+        )
+    return output
 
 
 def _materialize_context_features(
@@ -1298,10 +1596,10 @@ def _validate_all_arrays(
     arrays: dict[str, dict[str, np.ndarray]],
     native_units: int,
 ) -> None:
-    if set(arrays) != set(MODALITY_FEATURES):
+    if not set(arrays).issubset(MODALITY_FEATURES):
         raise ValueError("C6 modality set drift")
-    for modality, feature_names in MODALITY_FEATURES.items():
-        payload = arrays[modality]
+    for modality, payload in arrays.items():
+        feature_names = MODALITY_FEATURES[modality]
         expected = (native_units, SEQUENCE_LENGTH, len(feature_names))
         if payload["values"].shape != expected:
             raise ValueError(
@@ -1413,7 +1711,8 @@ def _parse_mode_id(mode_id: str) -> tuple[str | None, str]:
     if len(parts) != 2:
         raise ValueError(f"invalid C6 mode_id={mode_id}")
     modality, control = parts
-    if modality not in MODALITY_FEATURES or control not in CONTROL_MODES:
+    supported = set(MODALITY_FEATURES) | {COMBINED_ALL7_MODE}
+    if modality not in supported or control not in CONTROL_MODES:
         raise ValueError(f"unknown C6 mode_id={mode_id}")
     return modality, control
 
@@ -1581,6 +1880,29 @@ def _group_metrics(per_class: pd.DataFrame, mode_id: str) -> pd.DataFrame:
     return pd.DataFrame.from_records(rows)
 
 
+def _view_normalization_payload(view: C6MatrixView) -> dict[str, Any]:
+    if view.combined_modalities:
+        states = {
+            modality: state.to_payload()
+            for modality, state in zip(
+                view.combined_modalities,
+                view.combined_normalizations,
+                strict=True,
+            )
+        }
+        return {"states": states}
+    state = None if view.normalization is None else view.normalization.to_payload()
+    return {"state": state}
+
+
+def _view_normalization_sha256(view: C6MatrixView) -> str | None:
+    if view.combined_modalities:
+        return _payload_sha256(_view_normalization_payload(view))
+    if view.normalization is None:
+        return None
+    return view.normalization.state_sha256
+
+
 def _write_c6_run(
     config: C6MatrixConfig,
     cache: C6ModalityCache,
@@ -1599,10 +1921,8 @@ def _write_c6_run(
     _write_dataframe_exclusive(root / "metrics_per_group.csv", outcome.group_metrics)
     _write_dataframe_exclusive(root / "epoch_metrics.csv", outcome.epoch_metrics)
     _write_json_exclusive(root / "metrics_global.json", outcome.metrics)
-    normalization = (
-        None if view.normalization is None else view.normalization.to_payload()
-    )
-    _write_json_exclusive(root / "normalization.json", {"state": normalization})
+    normalization = _view_normalization_payload(view)
+    _write_json_exclusive(root / "normalization.json", normalization)
     checkpoint = {
         "schema_version": "classification_v2.c6_checkpoint.v1",
         "config_sha256": config.sha256,
@@ -1633,9 +1953,7 @@ def _write_c6_run(
         "config_sha256": config.sha256,
         "cache_manifest_sha256": cache.manifest_sha256,
         "selection_sha256": selection.audit["selection_content_sha256"],
-        "normalization_sha256": (
-            None if view.normalization is None else view.normalization.state_sha256
-        ),
+        "normalization_sha256": _view_normalization_sha256(view),
         "parameter_count": sum(
             parameter.numel() for parameter in resumed.parameters()
         ),
@@ -1740,8 +2058,199 @@ def _metrics_from_prediction_frame(
     return metrics, per_class
 
 
+def _execution_gate_errors(config: C6MatrixConfig) -> list[str]:
+    schema = config.payload["schema_version"]
+    errors: list[str] = []
+    if schema in {CONFIG_SCHEMA_V2, CONFIG_SCHEMA_V3, CONFIG_SCHEMA_V4}:
+        errors.extend(_temporal_freeze_errors(config))
+    if schema == CONFIG_SCHEMA_V3:
+        errors.extend(_promotion_freeze_errors(config))
+    if (
+        schema == CONFIG_SCHEMA_V4
+        and config.training_scope == "full_development_confirmation"
+    ):
+        errors.extend(_combined_short_gate_errors(config))
+    return errors
+
+
+def _combined_short_gate_errors(config: C6MatrixConfig) -> list[str]:
+    payload = _read_json(config.bound_path("short_fusion_gate"))
+    expected = {
+        "schema_version": MATRIX_SCHEMA_V2,
+        "status": "PASS",
+        "lineage_scope": LINEAGE_SCOPE,
+        "training_scope": "short_repeat_gate",
+        "experiment_family": COMBINED_ALL7_FAMILY,
+        "full_development_authorized": True,
+        "full_development_authorized_modalities": list(MODALITY_FEATURES),
+        "full_oof_authorized": False,
+        "valid": True,
+    }
+    errors = [
+        f"short_fusion_gate_{key}_drift"
+        for key, value in expected.items()
+        if payload.get(key) != value
+    ]
+    expected_comparisons = {
+        f"{COMBINED_ALL7_MODE}__real_minus_{control}"
+        for control in CONTROL_MODES[:2]
+    }
+    if set(payload.get("comparisons", {})) != expected_comparisons:
+        errors.append("short_fusion_gate_comparison_set_drift")
+    freeze_sha = file_sha256(config.bound_path("temporal_base_freeze"))
+    if payload.get("temporal_base_freeze_sha256") != freeze_sha:
+        errors.append("short_fusion_gate_temporal_freeze_drift")
+    return errors
+
+
+def _temporal_freeze_errors(config: C6MatrixConfig) -> list[str]:
+    """Require the paired-control freeze before authorized schema-v2 runs."""
+
+    path = config.bound_path("temporal_base_freeze")
+    if not path.is_file():
+        return [f"missing_temporal_base_freeze={path}"]
+    payload = _read_json(path)
+    if payload.get("schema_version") == (
+        "classification_v2.legacy_c6_temporal_base_freeze.v2"
+    ):
+        return _evaluated_temporal_freeze_errors(config, payload)
+    expected = {
+        "schema_version": "classification_v2.legacy_c6_temporal_base_freeze.v1",
+        "status": "PASS_C6_TEMPORAL_BASE_FREEZE",
+        "decision": "FREEZE_PRIOR_A128_FOR_C6_MODALITY_SCREENING",
+        "selected_base_mode": "A128",
+        "modality_matrix_authorized": True,
+        "lineage_scope": LINEAGE_SCOPE,
+        "human_review_complete": False,
+        "reviewed_or_final_claim_allowed": False,
+        "q2_claim_allowed": False,
+        "full_oof_authorized": False,
+        "valid": True,
+    }
+    return [
+        f"temporal_base_freeze_{key}_drift"
+        for key, value in expected.items()
+        if payload.get(key) != value
+    ]
+
+
+def _evaluated_temporal_freeze_errors(
+    config: C6MatrixConfig,
+    payload: dict[str, Any],
+) -> list[str]:
+    expected = {
+        "status": "PASS_C6_TEMPORAL_BASE_FREEZE",
+        "decision": (
+            "FREEZE_EVALUATED_A128_FOR_LEGACY_16F_MODALITY_SCREENING"
+        ),
+        "selected_base_mode": "A128",
+        "selected_base_is_carried_prior_not_tested_in_this_matrix": False,
+        "modality_matrix_authorized": True,
+        "lineage_scope": LINEAGE_SCOPE,
+        "human_review_complete": False,
+        "reviewed_or_final_claim_allowed": False,
+        "q2_claim_allowed": False,
+        "full_oof_authorized": False,
+        "valid": True,
+    }
+    errors = [
+        f"temporal_base_freeze_{key}_drift"
+        for key, value in expected.items()
+        if payload.get(key) != value
+    ]
+    spec = payload.get("base_selection_decision")
+    if not isinstance(spec, dict) or set(spec) != {"path", "sha256"}:
+        errors.append("temporal_base_freeze_decision_spec_drift")
+        return errors
+    try:
+        decision_path = _resolve_inside(config.repo_root, str(spec["path"]))
+    except ValueError:
+        errors.append("temporal_base_freeze_decision_path_invalid")
+        return errors
+    if not decision_path.is_file():
+        errors.append("temporal_base_freeze_decision_missing")
+        return errors
+    if file_sha256(decision_path) != str(spec["sha256"]):
+        errors.append("temporal_base_freeze_decision_hash_drift")
+        return errors
+    decision = _read_json(decision_path)
+    if decision.get("common_native_universe") != payload.get(
+        "common_native_universe"
+    ):
+        errors.append("temporal_base_freeze_native_universe_drift")
+    return errors
+
+
+def _promotion_freeze_errors(config: C6MatrixConfig) -> list[str]:
+    """Require selected full-development modalities to be gate-authorized."""
+
+    payload = _read_json(config.bound_path("promotion_freeze"))
+    errors: list[str] = []
+    expected = {
+        "schema_version": (
+            "classification_v2.legacy_c6_modality_promotion_freeze.v1"
+        ),
+        "status": "PASS_C6_MODALITY_PROMOTION_FREEZE",
+        "lineage_scope": LINEAGE_SCOPE,
+        "human_review_complete": False,
+        "reviewed_or_final_claim_allowed": False,
+        "q2_claim_allowed": False,
+        "full_oof_authorized": False,
+        "main_branch_promotion_allowed": False,
+        "valid": True,
+    }
+    errors.extend(
+        f"promotion_freeze_{key}_drift"
+        for key, value in expected.items()
+        if payload.get(key) != value
+    )
+    authorized = set(
+        str(value)
+        for value in payload.get("full_development_authorized_modalities", [])
+    )
+    selected = set(_configured_modalities(config.payload))
+    if not selected.issubset(authorized):
+        errors.append(
+            "promotion_freeze_selected_modalities_not_authorized"
+        )
+    return errors
+
+
+def _configured_modalities(payload: dict[str, Any]) -> tuple[str, ...]:
+    """Return the ordered modality subset declared by one matrix config."""
+
+    matrix = _object(payload.get("matrix"), "matrix")
+    values = matrix.get("modalities")
+    if values is None:
+        return tuple(MODALITY_FEATURES)
+    if not isinstance(values, list) or not values:
+        raise ValueError("C6 matrix modalities must be a nonempty list")
+    if len(set(values)) != len(values):
+        raise ValueError("C6 matrix modalities must be unique")
+    unknown = set(values).difference(MODALITY_FEATURES)
+    if unknown:
+        raise ValueError(f"unknown C6 matrix modalities={sorted(unknown)}")
+    return tuple(str(value) for value in values)
+
+
+def _experiment_family(payload: dict[str, Any]) -> str:
+    contract = _object(payload.get("experiment_contract"), "experiment_contract")
+    value = str(contract.get("changed_scientific_family", ""))
+    if value not in {SINGLE_MODALITY_FAMILY, COMBINED_ALL7_FAMILY}:
+        raise ValueError(f"unknown C6 experiment family={value}")
+    return value
+
+
+def _configured_mode_ids(payload: dict[str, Any]) -> tuple[str, ...]:
+    return c6_mode_ids(
+        _configured_modalities(payload),
+        experiment_family=_experiment_family(payload),
+    )
+
+
 def _declared_input_paths(config: C6MatrixConfig) -> dict[str, Path]:
-    paths = {"source_temporal_config": config.bound_path("source_temporal_config")}
+    source_field = _source_spec_name(config.payload)
+    paths = {source_field: config.bound_path(source_field)}
     paths.update(
         {
             name: config.bound_path("inputs", name)
@@ -1749,16 +2258,32 @@ def _declared_input_paths(config: C6MatrixConfig) -> dict[str, Path]:
         }
     )
     paths["implementation"] = config.bound_path("implementation")
+    if config.payload["schema_version"] in {
+        CONFIG_SCHEMA_V2,
+        CONFIG_SCHEMA_V3,
+        CONFIG_SCHEMA_V4,
+    }:
+        paths["temporal_base_freeze"] = config.bound_path(
+            "temporal_base_freeze"
+        )
+    if config.payload["schema_version"] == CONFIG_SCHEMA_V3:
+        paths["promotion_freeze"] = config.bound_path("promotion_freeze")
+    if (
+        config.payload["schema_version"] == CONFIG_SCHEMA_V4
+        and config.training_scope == "full_development_confirmation"
+    ):
+        paths["short_fusion_gate"] = config.bound_path("short_fusion_gate")
     return paths
 
 
 def _validate_config_payload(payload: dict[str, Any]) -> None:
+    source_field = _source_spec_name(payload)
     required = {
         "schema_version",
         "training_scope",
         "lineage_scope",
         "experiment_contract",
-        "source_temporal_config",
+        source_field,
         "inputs",
         "pen_context",
         "temporal_contract",
@@ -1770,26 +2295,47 @@ def _validate_config_payload(payload: dict[str, Any]) -> None:
         "implementation",
         "output",
     }
+    if payload["schema_version"] in {
+        CONFIG_SCHEMA_V2,
+        CONFIG_SCHEMA_V3,
+        CONFIG_SCHEMA_V4,
+    }:
+        required.add("temporal_base_freeze")
+    if payload["schema_version"] == CONFIG_SCHEMA_V3:
+        required.add("promotion_freeze")
+    if (
+        payload["schema_version"] == CONFIG_SCHEMA_V4
+        and payload["training_scope"] == "full_development_confirmation"
+    ):
+        required.add("short_fusion_gate")
     if set(payload) != required:
         raise ValueError(
             "C6 config keys differ: "
             f"missing={sorted(required - set(payload))},"
             f"extra={sorted(set(payload) - required)}"
         )
-    expected = {
-        "schema_version": CONFIG_SCHEMA,
-        "lineage_scope": LINEAGE_SCOPE,
-    }
-    for name, value in expected.items():
-        if payload[name] != value:
-            raise ValueError(f"C6 config {name}={payload[name]!r}")
+    if payload["schema_version"] not in {
+        CONFIG_SCHEMA,
+        CONFIG_SCHEMA_V2,
+        CONFIG_SCHEMA_V3,
+        CONFIG_SCHEMA_V4,
+    }:
+        raise ValueError("C6 config schema drift")
+    if payload["lineage_scope"] != LINEAGE_SCOPE:
+        raise ValueError(f"C6 config lineage_scope={payload['lineage_scope']!r}")
     if payload["training_scope"] not in {
         "short_repeat_gate",
         "full_development_confirmation",
     }:
         raise ValueError("C6 config training_scope is unsupported")
     contract = _object(payload["experiment_contract"], "experiment_contract")
-    if contract.get("changed_scientific_family") != "single_optional_modality":
+    family = _experiment_family(payload)
+    expected_family = (
+        COMBINED_ALL7_FAMILY
+        if payload["schema_version"] == CONFIG_SCHEMA_V4
+        else SINGLE_MODALITY_FAMILY
+    )
+    if family != expected_family:
         raise ValueError("C6 config changed-family drift")
     if contract.get("outer_predictions_used_for_model_selection") is not False:
         raise ValueError("C6 outer predictions cannot select the architecture")
@@ -1806,12 +2352,20 @@ def _validate_config_payload(payload: dict[str, Any]) -> None:
     if temporal != expected_temporal:
         raise ValueError("C6 temporal contract drift")
     matrix = _object(payload["matrix"], "matrix")
-    if matrix.get("mode_ids") != list(c6_mode_ids()):
+    configured_modalities = _configured_modalities(payload)
+    if matrix.get("mode_ids") != list(_configured_mode_ids(payload)):
         raise ValueError("C6 matrix mode IDs drift")
     if matrix.get("controls") != list(CONTROL_MODES):
         raise ValueError("C6 matrix controls drift")
-    if matrix.get("modalities") != list(MODALITY_FEATURES):
-        raise ValueError("C6 matrix modality order drift")
+    if payload["schema_version"] in {
+        CONFIG_SCHEMA,
+        CONFIG_SCHEMA_V2,
+        CONFIG_SCHEMA_V4,
+    }:
+        if configured_modalities != tuple(MODALITY_FEATURES):
+            raise ValueError("C6 matrix modality order drift")
+    elif payload["training_scope"] != "full_development_confirmation":
+        raise ValueError("C6 v3 is reserved for full development")
     model = _object(payload["model"], "model")
     expected_model = {
         "actor_feature_control": "V1_resnet18_224_imagenet1k_v1",
@@ -1830,7 +2384,21 @@ def _validate_config_payload(payload: dict[str, Any]) -> None:
         "clean_lineage_handoff_id"
     ):
         raise ValueError("C6 data run lacks clean lineage handoff ID")
-    for section in ("source_temporal_config", "implementation"):
+    bound_sections = [source_field, "implementation"]
+    if payload["schema_version"] in {
+        CONFIG_SCHEMA_V2,
+        CONFIG_SCHEMA_V3,
+        CONFIG_SCHEMA_V4,
+    }:
+        bound_sections.append("temporal_base_freeze")
+    if payload["schema_version"] == CONFIG_SCHEMA_V3:
+        bound_sections.append("promotion_freeze")
+    if (
+        payload["schema_version"] == CONFIG_SCHEMA_V4
+        and payload["training_scope"] == "full_development_confirmation"
+    ):
+        bound_sections.append("short_fusion_gate")
+    for section in bound_sections:
         _validate_hash_spec(_object(payload[section], section), section)
     inputs = _object(payload["inputs"], "inputs")
     required_inputs = {
@@ -1839,9 +2407,15 @@ def _validate_config_payload(payload: dict[str, Any]) -> None:
         "image_window_context_manifest",
         "union_feature_tensor",
         "union_feature_index",
-        "full_frame_feature_tensor",
-        "full_frame_feature_index",
     }
+    if payload["schema_version"] in {
+        CONFIG_SCHEMA,
+        CONFIG_SCHEMA_V2,
+        CONFIG_SCHEMA_V4,
+    }:
+        required_inputs.update(
+            {"full_frame_feature_tensor", "full_frame_feature_index"}
+        )
     if set(inputs) != required_inputs:
         raise ValueError("C6 input set drift")
     for name, value in inputs.items():
@@ -1852,6 +2426,29 @@ def _validate_config_payload(payload: dict[str, Any]) -> None:
     path = Path(str(output["root_relative_path"]))
     if path.is_absolute() or ".." in path.parts:
         raise ValueError("C6 output path is unsafe")
+
+
+def _source_spec_name(payload: dict[str, Any]) -> str:
+    schema = payload.get("schema_version")
+    if schema == CONFIG_SCHEMA:
+        return "source_temporal_config"
+    if schema in {CONFIG_SCHEMA_V2, CONFIG_SCHEMA_V3, CONFIG_SCHEMA_V4}:
+        return "prepared_source"
+    raise ValueError("C6 config schema drift")
+
+
+def _load_c6_matrix_source(config: C6MatrixConfig) -> tuple[Any, Any | None]:
+    source_field = _source_spec_name(config.payload)
+    if source_field == "prepared_source":
+        source = load_legacy_c6_prepared_source(
+            config.bound_path(source_field),
+            repo_root=config.repo_root,
+        )
+        return source, None
+    source_config = load_temporal_base_selection_config(
+        config.bound_path(source_field)
+    )
+    return load_temporal_base_source(source_config), source_config
 
 
 def _validate_hash_spec(spec: dict[str, Any], name: str) -> None:
@@ -1991,6 +2588,9 @@ def _close_memmap(array: np.ndarray) -> None:
 
 
 __all__ = [
+    "COMBINED_ALL7_FAMILY",
+    "COMBINED_ALL7_MODE",
+    "CONFIG_SCHEMA_V4",
     "C6MatrixConfig",
     "C6MatrixView",
     "C6ModalityCache",

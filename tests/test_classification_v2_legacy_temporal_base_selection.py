@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import numpy as np
@@ -16,9 +17,11 @@ from pig_behavior.classification_v2.training.legacy_development_l5_temporal_ladd
     TemporalLadderSelection,
 )
 from pig_behavior.classification_v2.training.legacy_development_temporal_base_selection import (
+    CONFIG_SCHEMA_V2,
     CONTROLLED_PAIRS,
     MODE_SPECS,
     TemporalBaseSelectionConfig,
+    _validate_config,
     build_training_adapter,
     derive_temporal_base_view,
 )
@@ -194,6 +197,29 @@ def test_adapter_rejects_outer_holdout_access(tmp_path: Path) -> None:
     )
     with pytest.raises(ValueError, match="exposes outer holdout"):
         build_training_adapter(config, unsafe, derived)
+
+
+def test_rebuild_config_accepts_hash_bound_prepared_source() -> None:
+    path = Path(
+        "configs/classification_v2/"
+        "legacy_development_temporal_base_selection_short_v1.json"
+    )
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["schema_version"] = CONFIG_SCHEMA_V2
+    payload["prepared_source"] = payload.pop("source_ladder_config")
+    payload["model_implementation"] = {
+        "path": "src/pig_behavior/classification_v2/models/temporal_encoders.py",
+        "sha256": "a" * 64,
+    }
+    payload["execution"].update(
+        {
+            "data_run_authorized": True,
+            "clean_lineage_handoff_id": "legacy_16f_rebuild_test",
+            "full_oof_authorized": False,
+        }
+    )
+
+    _validate_config(payload)
 
 
 def _model(mode_id: str) -> LegacyL5CachedFeatureClassifier:

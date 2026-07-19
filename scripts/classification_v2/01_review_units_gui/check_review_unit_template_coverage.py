@@ -17,6 +17,14 @@ parser.add_argument(
         "Unexpected labels and all structural errors still fail."
     ),
 )
+parser.add_argument(
+    "--require-complete-legacy",
+    action="store_true",
+    help=(
+        "Require every retained legacy_burst_16 unit in review_unit_manifest "
+        "to appear in full_review_unit_manifest."
+    ),
+)
 args = parser.parse_args()
 
 root = args.review_unit_dir
@@ -60,6 +68,12 @@ required_groups = {
     "motion": {"move", "explore", "stand"},
     "posture": {"lying", "sitting"},
 }
+
+temporal = dfs.get("temporal")
+if temporal is not None and not temporal.empty:
+    errors.append(
+        f"temporal_consistency_template_must_be_empty={len(temporal)}"
+    )
 
 print("\n\n=== REQUIRED GROUP COVERAGE ===")
 for group, labels in required_groups.items():
@@ -136,6 +150,31 @@ if full_review is not None:
     print("full not in components =", len(full_ids - union_ids))
     if union_ids != full_ids:
         errors.append("full_review_manifest_does_not_equal_template_union")
+
+if args.require_complete_legacy and all_units is not None and full_review is not None:
+    all_legacy = all_units[
+        all_units["source_type"].astype(str).eq("legacy_recovered")
+    ]
+    full_legacy = full_review[
+        full_review["source_type"].astype(str).eq("legacy_recovered")
+    ]
+    expected_legacy = set(all_legacy["review_unit_id"].astype(str))
+    reviewed_legacy = set(full_legacy["review_unit_id"].astype(str))
+    missing_legacy = expected_legacy - reviewed_legacy
+    unexpected_legacy = reviewed_legacy - expected_legacy
+    print("\n=== COMPLETE LEGACY REVIEW CHECK ===")
+    print("retained legacy units =", len(expected_legacy))
+    print("reviewed legacy units =", len(reviewed_legacy))
+    print("missing legacy units =", len(missing_legacy))
+    print("unexpected legacy units =", len(unexpected_legacy))
+    if not expected_legacy:
+        errors.append("required_complete_legacy_review_but_no_legacy_units")
+    if missing_legacy:
+        errors.append(f"missing_complete_legacy_review_units={len(missing_legacy)}")
+    if unexpected_legacy:
+        errors.append(
+            f"unexpected_complete_legacy_review_units={len(unexpected_legacy)}"
+        )
 
 if errors:
     print("\n[FAIL] review template coverage errors:")

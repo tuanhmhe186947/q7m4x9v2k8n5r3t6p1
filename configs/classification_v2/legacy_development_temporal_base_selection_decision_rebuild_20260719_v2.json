@@ -1,0 +1,122 @@
+{
+  "schema_version": "classification_v2.legacy_development.temporal_base_decision_config.v2",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "prediction_universe": {
+    "expected_native_units": 241,
+    "expected_video_clusters": 32
+  },
+  "experiment_contract": {
+    "experiment_id": "LEGACY_16F_REBUILD_20260719_TEMPORAL_BASE_DECISION_V2",
+    "native_evaluation_unit": "complete_16_frame_burst",
+    "paired_native_universe_required": true,
+    "outer_predictions_used_for_model_selection": false,
+    "legacy_sets_final_full_data_base": false,
+    "transfer_actions": ["CARRY", "DROP", "RETEST"],
+    "full_data_profile": "mixed-reviewed",
+    "full_oof_authorized": false
+  },
+  "implementation": {
+    "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_temporal_base_selection_decision.py",
+    "sha256": "045aa71aa2e3f07abf7b3fe701d5db0c011db4c79cc5e6abe5b873d2e10f1eee"
+  },
+  "metric_engine": {
+    "path": "src/pig_behavior/classification_v2/evaluation/legacy_development_temporal_sampling_decision.py",
+    "sha256": "4b704dc321bc1a36d204ba2e76f129dad13f96dff65c19da782e56af62b1b220"
+  },
+  "full_training_config": {
+    "path": "configs/classification_v2/legacy_development_temporal_base_selection_full_rebuild_20260719_v2.json",
+    "sha256": "131df1dc997bf65d214154e6384642a58e3bac89081128d1ffb970c29e13ae90"
+  },
+  "short_matrix_gate": {
+    "path": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_temporal_base_selection_rebuild_20260719_v4/temporal_base_short_matrix.json",
+    "sha256": "bb59cd992b6eabeccc6bf0c007ddeca36be9d366e4eb844109127440d475a572"
+  },
+  "runs": {
+    "SF128": {
+      "run_result": {
+        "path": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_temporal_base_selection_rebuild_20260719_v4/full_development_confirmation/SF128/full01/run_result.json",
+        "sha256": "4efedac9418c4368a89b6db4208e322e28d29e8d7045cc966cc2dcef03e07903"
+      },
+      "artifact_manifest": {
+        "path": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_temporal_base_selection_rebuild_20260719_v4/full_development_confirmation/SF128/full01/artifact_manifest.json",
+        "sha256": "781be43bff03f6d191bcf65f0e2134f27147495b13a7e93f15322d76d9fe2e2c"
+      }
+    },
+    "M128": {
+      "run_result": {
+        "path": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_temporal_base_selection_rebuild_20260719_v4/full_development_confirmation/M128/full01/run_result.json",
+        "sha256": "9d1eb7db64b64aa52df0d4e4c98d8399f5e68de17692f8fae2238e37a283a41e"
+      },
+      "artifact_manifest": {
+        "path": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_temporal_base_selection_rebuild_20260719_v4/full_development_confirmation/M128/full01/artifact_manifest.json",
+        "sha256": "b764017015fe5d99058298d96769c8ac9d6bf62a5aaeeb466e1367fa63ea0794"
+      }
+    },
+    "A128": {
+      "run_result": {
+        "path": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_temporal_base_selection_rebuild_20260719_v4/full_development_confirmation/A128/full01/run_result.json",
+        "sha256": "e990b2fb06e7c0a7cc213de88b8c40e1af9ad9efa30fa4c3427e6017493bd695"
+      },
+      "artifact_manifest": {
+        "path": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_temporal_base_selection_rebuild_20260719_v4/full_development_confirmation/A128/full01/artifact_manifest.json",
+        "sha256": "2db07d13c17bfb66b42730f7fe6b6d04c0e58ab85e9304b62488b96730953880"
+      }
+    },
+    "MW317": {
+      "run_result": {
+        "path": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_temporal_base_selection_rebuild_20260719_v4/full_development_confirmation/MW317/full01/run_result.json",
+        "sha256": "9b75097ab5d278a4cfeb6194e49ee53327fb9a0030381cc0c5411b51649d6514"
+      },
+      "artifact_manifest": {
+        "path": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_temporal_base_selection_rebuild_20260719_v4/full_development_confirmation/MW317/full01/artifact_manifest.json",
+        "sha256": "d80914aa4f698d45d87bf3e5f33f6773f5fb11148f58c52007707f4692bfbb86"
+      }
+    },
+    "TCN128": {
+      "run_result": {
+        "path": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_temporal_base_selection_rebuild_20260719_v4/full_development_confirmation/TCN128/full01/run_result.json",
+        "sha256": "885b77becad8548afa064c50ceef517d1d803243f49c8b04320f84a148e58c91"
+      },
+      "artifact_manifest": {
+        "path": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_temporal_base_selection_rebuild_20260719_v4/full_development_confirmation/TCN128/full01/artifact_manifest.json",
+        "sha256": "01443e2eccca84d26d148c8d6d27dbf98171bcb0a16710f3f84e602b2425c3d3"
+      }
+    },
+    "MW381": {
+      "run_result": {
+        "path": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_temporal_base_selection_rebuild_20260719_v4/full_development_confirmation/MW381/full01/run_result.json",
+        "sha256": "275b4648692d4af7a38f030c6e1ba2a54e03f06cf9b855be7eae683027a07380"
+      },
+      "artifact_manifest": {
+        "path": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_temporal_base_selection_rebuild_20260719_v4/full_development_confirmation/MW381/full01/artifact_manifest.json",
+        "sha256": "b4e8ba1e72b9b18e499e19fa6adbcaa89b4f5504b6c890defc07564957f5aa16"
+      }
+    },
+    "TR128": {
+      "run_result": {
+        "path": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_temporal_base_selection_rebuild_20260719_v4/full_development_confirmation/TR128/full01/run_result.json",
+        "sha256": "47d1524631813137aa972330f210c24d14fc7ae1e3c275e4e15ce2f366b3ef2f"
+      },
+      "artifact_manifest": {
+        "path": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_temporal_base_selection_rebuild_20260719_v4/full_development_confirmation/TR128/full01/artifact_manifest.json",
+        "sha256": "465053f5651cf6d0480632e3f9fedabcc3892fb66fe25601ce22aaacc7c40653"
+      }
+    }
+  },
+  "analysis_contract": {
+    "bootstrap_method": "paired_video_cluster_bootstrap_percentile",
+    "bootstrap_iterations": 2000,
+    "bootstrap_seed": 20260719,
+    "material_negative_ci_limit": 0.02,
+    "maximum_group_macro_f1_drop": 0.05,
+    "primary_metric": "macro_f1_global_10_class",
+    "candidate_limit": 3
+  },
+  "output": {
+    "summary_json": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_temporal_base_selection_rebuild_20260719_v4/paired_decision_stage_a_rebuild_v2/temporal_base_transfer_decision.json",
+    "per_class_csv": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_temporal_base_selection_rebuild_20260719_v4/paired_decision_stage_a_rebuild_v2/paired_per_class_effects.csv",
+    "group_metrics_csv": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_temporal_base_selection_rebuild_20260719_v4/paired_decision_stage_a_rebuild_v2/paired_group_effects.csv",
+    "confusion_csv": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_temporal_base_selection_rebuild_20260719_v4/paired_decision_stage_a_rebuild_v2/confusion_matrix.csv",
+    "mode_summary_csv": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_temporal_base_selection_rebuild_20260719_v4/paired_decision_stage_a_rebuild_v2/mode_summary.csv"
+  }
+}

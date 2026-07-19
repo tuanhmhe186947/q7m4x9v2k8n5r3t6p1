@@ -956,6 +956,24 @@ def test_high_hidden_ratio_is_excluded_by_default_with_explicit_opt_out() -> Non
     assert audit_only["hidden_window_policy_tier"] == "audit_only"
 
 
+def test_untrusted_hidden_is_diagnostic_but_not_training_exclusion() -> None:
+    frames = _legacy_window_frames()
+    frames["hidden_is_trusted"] = False
+
+    _, _, windows = build_sequence_windows(
+        frames,
+        window_lengths=[16],
+        legacy_window_stride=1,
+    )
+
+    row = windows.iloc[0]
+    assert row["hidden_burden_ratio_window"] == pytest.approx(1.0)
+    assert row["hidden_ratio_trusted_window"] == pytest.approx(0.0)
+    assert row["hidden_trusted_longest_run_ratio_window"] == pytest.approx(0.0)
+    assert row["hidden_window_policy_tier"] == "main_train"
+    assert bool(row["window_valid_for_main_train"])
+
+
 @pytest.mark.parametrize(
     ("length", "main_indices", "robust_indices", "exclude_indices"),
     [

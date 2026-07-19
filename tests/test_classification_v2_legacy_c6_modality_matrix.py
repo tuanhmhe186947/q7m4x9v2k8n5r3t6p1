@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -8,22 +9,29 @@ import pandas as pd
 import pytest
 
 from pig_behavior.classification_v2.training.legacy_development_c6_modality_matrix import (
+    COMBINED_ALL7_FAMILY,
+    COMBINED_ALL7_MODE,
+    CONFIG_SCHEMA_V2,
     CONTROL_MODES,
     MODALITY_FEATURES,
     C6MatrixConfig,
     C6ModalityCache,
+    _evaluated_temporal_freeze_errors,
     _exact_c6_alignment,
     _materialize_context_features,
     _numeric_modality_arrays,
+    _validate_c6_run_packet,
     build_c6_modality_cache,
     build_c6_view,
     c6_mode_ids,
     fit_c6_normalization,
+    static_c6_matrix_preflight,
     synthetic_c6_functional_preflight,
 )
 from pig_behavior.classification_v2.training.legacy_development_l5_cached_data import (
     LegacyL5CachedFeatureView,
 )
+from pig_behavior.classification_v2.training.lineage_hashing import file_sha256
 
 
 def _base_view(tmp_path: Path) -> LegacyL5CachedFeatureView:
@@ -124,6 +132,43 @@ def _geometry_cache(tmp_path: Path) -> C6ModalityCache:
     )
 
 
+def _all7_cache(tmp_path: Path) -> C6ModalityCache:
+    cache = _geometry_cache(tmp_path)
+    rows = len(cache.window_index)
+    for modality_index, (modality, names) in enumerate(
+        MODALITY_FEATURES.items()
+    ):
+        if modality == "geometry":
+            continue
+        values = np.arange(
+            rows * 6 * len(names), dtype=np.float32
+        ).reshape(rows, 6, len(names))
+        feature_mask = np.ones_like(values, dtype=np.bool_)
+        availability = np.ones((rows, 6), dtype=np.bool_)
+        unavailable_slot = modality_index % 6
+        values[:, unavailable_slot] = 0.0
+        feature_mask[:, unavailable_slot] = False
+        availability[:, unavailable_slot] = False
+        if modality == "motion":
+            values[:, 0] = 0.0
+            feature_mask[:, 0] = False
+            availability[:, 0] = False
+        if modality == "pen_context":
+            values[:, 0, 3:] = 0.0
+            feature_mask[:, 0, 3:] = False
+        artifacts = {}
+        for kind, array in {
+            "values": values,
+            "feature_mask": feature_mask,
+            "availability": availability,
+        }.items():
+            path = tmp_path / f"{modality}_{kind}.npy"
+            np.save(path, array, allow_pickle=False)
+            artifacts[kind] = {"filename": path.name}
+        cache.manifest["modalities"][modality] = {"artifacts": artifacts}
+    return cache
+
+
 def test_c6_matrix_has_actor_and_three_controls_per_modality() -> None:
     modes = c6_mode_ids()
     assert modes[0] == "actor_only"
@@ -134,6 +179,43 @@ def test_c6_matrix_has_actor_and_three_controls_per_modality() -> None:
         ]
 
 
+def test_c6_matrix_can_bind_a_gate_authorized_modality_subset() -> None:
+    modes = c6_mode_ids(("roi", "union_context"))
+
+    assert modes == (
+        "actor_only",
+        "roi__parameter_matched_zero",
+        "roi__availability_only",
+        "roi__real",
+        "union_context__parameter_matched_zero",
+        "union_context__availability_only",
+        "union_context__real",
+    )
+
+
+def test_c6_combined_matrix_has_actor_and_three_equal_width_controls() -> None:
+    modes = c6_mode_ids(experiment_family=COMBINED_ALL7_FAMILY)
+
+    assert modes == (
+        "actor_only",
+        f"{COMBINED_ALL7_MODE}__parameter_matched_zero",
+        f"{COMBINED_ALL7_MODE}__availability_only",
+        f"{COMBINED_ALL7_MODE}__real",
+    )
+    audit = synthetic_c6_functional_preflight(
+        experiment_family=COMBINED_ALL7_FAMILY
+    )
+    assert audit["valid"] is True
+    assert set(audit["modes"]) == set(modes)
+    counts = {
+        audit["modes"][f"{COMBINED_ALL7_MODE}__{control}"][
+            "parameter_count"
+        ]
+        for control in CONTROL_MODES
+    }
+    assert len(counts) == 1
+
+
 def test_synthetic_functional_preflight_covers_all_widths_and_resume() -> None:
     audit = synthetic_c6_functional_preflight()
     assert audit["valid"] is True
@@ -141,6 +223,55 @@ def test_synthetic_functional_preflight_covers_all_widths_and_resume() -> None:
     assert audit["optimizer_steps_on_project_data"] == 0
     assert set(audit["modes"]) == set(c6_mode_ids())
     assert audit["resume_audit"]["valid"] is True
+
+
+def test_combined_all7_controls_keep_train_only_states_and_seven_masks(
+    tmp_path: Path,
+) -> None:
+    base = _base_view(tmp_path)
+    cache = _all7_cache(tmp_path)
+    train_rows = np.asarray([0, 1, 2], dtype=np.int64)
+    views = {
+        control: build_c6_view(
+            base,
+            cache,
+            f"{COMBINED_ALL7_MODE}__{control}",
+            train_rows,
+        )
+        for control in CONTROL_MODES
+    }
+    positions = np.asarray([0, 3], dtype=np.int64)
+    sequences = {
+        control: view.load_sequences(positions)
+        for control, view in views.items()
+    }
+    expected_width = 512 + sum(
+        len(names) + 1 for names in MODALITY_FEATURES.values()
+    )
+    assert {values.shape for values in sequences.values()} == {
+        (2, 6, expected_width)
+    }
+    assert np.all(sequences["parameter_matched_zero"][..., 512:] == 0.0)
+    cursor = 512
+    observed_masks = []
+    for modality, names in MODALITY_FEATURES.items():
+        value_end = cursor + len(names)
+        assert np.all(sequences["availability_only"][..., cursor:value_end] == 0.0)
+        observed = sequences["availability_only"][..., value_end]
+        expected = cache.load_availability(modality, positions).astype(np.float32)
+        assert np.array_equal(observed, expected)
+        observed_masks.append(observed)
+        cursor = value_end + 1
+    assert len({mask.tobytes() for mask in observed_masks}) == 7
+    real = views["real"]
+    assert len(real.combined_normalizations) == 7
+    assert all(
+        state.validation_rows_read_for_fit == 0
+        and state.outer_rows_read_for_fit == 0
+        for state in real.combined_normalizations
+    )
+    missing = real.with_missing_modality().load_sequences(positions)
+    assert np.all(missing[..., 512:] == 0.0)
 
 
 def test_normalization_and_controls_are_train_only_and_parameter_matched(
@@ -221,6 +352,103 @@ def test_project_data_build_is_disabled_before_clean_handoff(tmp_path: Path) -> 
     )
     with pytest.raises(RuntimeError, match="clean lineage handoff"):
         build_c6_modality_cache(config)
+
+
+def test_run_packet_validation_requires_exact_lineage_and_claim_flags() -> None:
+    packet = {
+        "status": "completed",
+        "mode_id": "geometry__real",
+        "repeat_id": "repeat01",
+        "process_id": 123,
+        "config_sha256": "c" * 64,
+        "cache_manifest_sha256": "d" * 64,
+        "lineage_scope": "legacy-only-unreviewed-development",
+        "human_review_complete": False,
+        "reviewed_or_final_claim_allowed": False,
+        "q2_claim_allowed": False,
+        "full_oof_authorized": False,
+        "selection_sha256": "e" * 64,
+        "parameter_sha256": "f" * 64,
+        "prediction_sha256": "a" * 64,
+        "checkpoint_sha256": "b" * 64,
+        "valid": True,
+    }
+    assert _validate_c6_run_packet(
+        packet,
+        mode_id="geometry__real",
+        repeat_id="repeat01",
+        config_sha256="c" * 64,
+        cache_manifest_sha256="d" * 64,
+    ) == []
+    packet["human_review_complete"] = True
+    assert "packet_mismatch=geometry__real:repeat01:human_review_complete" in (
+        _validate_c6_run_packet(
+            packet,
+            mode_id="geometry__real",
+            repeat_id="repeat01",
+            config_sha256="c" * 64,
+            cache_manifest_sha256="d" * 64,
+        )
+    )
+
+
+def test_static_preflight_reports_authorized_prepared_source(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config_path = tmp_path / "config.json"
+    config_path.write_text("{}\n", encoding="utf-8")
+    freeze_path = tmp_path / "freeze.json"
+    freeze_path.write_text(
+        json.dumps(
+            {
+                "schema_version": (
+                    "classification_v2.legacy_c6_temporal_base_freeze.v1"
+                ),
+                "status": "PASS_C6_TEMPORAL_BASE_FREEZE",
+                "decision": "FREEZE_PRIOR_A128_FOR_C6_MODALITY_SCREENING",
+                "selected_base_mode": "A128",
+                "modality_matrix_authorized": True,
+                "lineage_scope": "legacy-only-unreviewed-development",
+                "human_review_complete": False,
+                "reviewed_or_final_claim_allowed": False,
+                "q2_claim_allowed": False,
+                "full_oof_authorized": False,
+                "valid": True,
+            }
+        ),
+        encoding="utf-8",
+    )
+    config = C6MatrixConfig(
+        path=config_path,
+        payload={
+            "schema_version": CONFIG_SCHEMA_V2,
+            "experiment_contract": {
+                "changed_scientific_family": "single_optional_modality"
+            },
+            "temporal_base_freeze": {
+                "path": "freeze.json",
+                "sha256": "a" * 64,
+            },
+            "execution": {"data_run_authorized": True},
+            "matrix": {"mode_ids": list(c6_mode_ids())},
+            "temporal_contract": {
+                "native_frame_offsets": [5, 6, 7, 8, 9, 10],
+            },
+            "output": {"root_relative_path": "fresh-c6-output"},
+        },
+        repo_root=tmp_path,
+    )
+    monkeypatch.setattr(
+        "pig_behavior.classification_v2.training."
+        "legacy_development_c6_modality_matrix._declared_input_paths",
+        lambda _: {},
+    )
+
+    audit = static_c6_matrix_preflight(config)
+
+    assert audit["valid"] is True
+    assert audit["data_run_authorized"] is True
 
 
 def test_numeric_materialization_resets_window_local_features() -> None:
@@ -319,3 +547,48 @@ def test_context_materialization_preserves_missingness(tmp_path: Path) -> None:
     assert payload["values"].shape == (2, 6, 512)
     assert payload["availability"].sum() == 6
     assert np.all(payload["values"][~payload["feature_mask"]] == 0.0)
+
+
+def test_evaluated_temporal_freeze_binds_base_decision(
+    tmp_path: Path,
+) -> None:
+    universe = {
+        "native_units": 241,
+        "video_clusters": 32,
+        "outer_holdout_rows": 0,
+    }
+    decision_path = tmp_path / "base_decision.json"
+    decision_path.write_text(
+        json.dumps({"common_native_universe": universe}),
+        encoding="utf-8",
+    )
+    freeze = {
+        "schema_version": (
+            "classification_v2.legacy_c6_temporal_base_freeze.v2"
+        ),
+        "status": "PASS_C6_TEMPORAL_BASE_FREEZE",
+        "decision": (
+            "FREEZE_EVALUATED_A128_FOR_LEGACY_16F_MODALITY_SCREENING"
+        ),
+        "selected_base_mode": "A128",
+        "selected_base_is_carried_prior_not_tested_in_this_matrix": False,
+        "modality_matrix_authorized": True,
+        "lineage_scope": "legacy-only-unreviewed-development",
+        "human_review_complete": False,
+        "reviewed_or_final_claim_allowed": False,
+        "q2_claim_allowed": False,
+        "full_oof_authorized": False,
+        "valid": True,
+        "base_selection_decision": {
+            "path": decision_path.name,
+            "sha256": file_sha256(decision_path),
+        },
+        "common_native_universe": universe,
+    }
+
+    errors = _evaluated_temporal_freeze_errors(
+        SimpleNamespace(repo_root=tmp_path),
+        freeze,
+    )
+
+    assert errors == []

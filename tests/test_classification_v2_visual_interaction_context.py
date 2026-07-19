@@ -18,6 +18,7 @@ from pig_behavior.classification_v2.datasets.visual_interaction_context import (
     _select_target_frames,
     _validate_frames,
     _validate_partial_audit,
+    _write_or_validate_cache_image,
 )
 
 
@@ -31,6 +32,23 @@ def test_cache_relative_path_hashes_long_context_id() -> None:
     assert path.parent.name == path.stem[:2]
     assert path.suffix == ".npy"
     assert len(path.name) == 68
+
+
+def test_resume_reuses_only_identical_orphan_cache_image(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "orphan.npy"
+    image = np.arange(24, dtype=np.uint8).reshape(2, 4, 3)
+    _write_or_validate_cache_image(path, image, resume=False)
+
+    _write_or_validate_cache_image(path, image.copy(), resume=True)
+
+    with pytest.raises(ValueError, match="resume cache image differs"):
+        _write_or_validate_cache_image(
+            path,
+            np.zeros_like(image),
+            resume=True,
+        )
 
 
 def test_decode_union_crop_evicts_lru_capture(

@@ -12,13 +12,61 @@ The active objective is a leakage-safe, reproducible 10-class multimodal
 spatio-temporal classifier. The accepted claim boundary is internal
 recording-date/video-safe validation, not external-farm generalization.
 
+## Human-Review Execution Contract
+
+Hidden smoke is isolated to `%HSM%` and `%HSMDEC%`. Full Hidden decisions begin
+only from `%HREV%` and are written to `%HDEC%`; no smoke row is carried into
+the clean full authority.
+
+A complete legacy 16f behavior review must build review units with
+`--include-all-retained-legacy-units` and pass template coverage with
+`--require-complete-legacy`. The full review manifest must contain every
+retained `legacy_burst_16` native unit. A selective review queue is not complete
+legacy coverage.
+
+## Active Model-Search Sequence
+
+The binding research order is:
+
+1. create a strong, stable base with moderate tuning so it is a trustworthy
+   measurement instrument;
+2. freeze it and screen seven singles, all 21 pairs, beam-search larger subsets,
+   and leave-one-out with three matched controls;
+3. freeze the selected subset, then choose fusion structures from paired
+   evidence for all ten behaviors;
+4. jointly tune backbone, temporal model, and fusion on rented GPUs;
+5. repeat matched modality ablations on the tuned strong finalist.
+
+The first legacy screening pass is complete: A128 is best only among seven
+measured bases, and seed-matched all-seven fusion shows modality signal without
+beating actor-only or improving NLL. Rented-GPU joint tuning and tuned-finalist
+confirmatory ablation have not run. Therefore neither naive concatenation nor
+A128 is the final architecture. Keep all valid prior artifacts reusable and
+rerun only after a semantic change or failed artifact audit.
+
+The all-seven run is a diagnostic endpoint only. Pairwise, larger-subset beam,
+leave-one-out, fixed-subset fusion-family search, and failure attribution remain
+incomplete. No modality can be dropped until input quality, modality-only,
+actor-residual, permutation, optimization and stronger-fusion probes distinguish
+absence of signal from redundancy, low power, or model-capacity failure.
+
+No exhaustive combination search is authorized on legacy 16f. It remains a
+method/correctness pilot; complete subset and fusion selection waits for the
+review-complete frozen main snapshot.
+
 ## Current Execution Boundary
 
-Human review has not started and no reviewed lineage has been handed off.
-Current agent work therefore stops before apply, post-review rebuild, snapshot,
-project-data model smoke and training. Agent writes use only a fresh
+For the active main classification branch, human review has not started and no
+reviewed lineage has been handed off. Main-branch agent work therefore stops
+before apply, post-review rebuild, snapshot, project-data model smoke and
+training. Agent writes use only a fresh
 `outputs/classification_v2/agent_audits/<AUDIT_RUN_ID>` root; the operator-owned
 `human_review_workspace/classification_v2/<RUN_ID>` root is read-only to agents.
+
+The isolated `legacy-only-unreviewed-development` lane has separate explicit
+development authority and is now closed by its C6 full-development handback.
+That authority never transfers training, review, OOF or Q2 permission to the
+main branch.
 
 Commits `5675235` and `ee70389` complete the generated-contract train-ready
 export and independent reviewed-Q2 P0 preflight in code. They require explicit
@@ -30,9 +78,19 @@ After handoff, map, contract, model-input manifest, snapshot and P0 output must
 remain under the same agent root. P0 may authorize model smoke when every
 review/data/leakage gate passes, but `full_oof_authorized` remains false.
 
-## Active Data Lineage
+## Main Classification And Legacy Lineage Boundary
 
-Canonical legacy 16f source is:
+Legacy 16f is not currently part of the active source manifest for the main
+classification branch. The main branch must bind its own versioned source
+manifest; it must not implicitly consume a legacy export or inherit a legacy
+goal's authorization, PASS state, snapshot, folds, metrics, or review coverage.
+
+The previous `legacy-only-unreviewed-development` lane was an isolated prompt/
+goal-orchestration and configuration-screening lane. Its handback can nominate
+configs or hypotheses for retesting, but no result transfers to the main branch
+without fresh main-lineage review, data, fold, shortcut and short-run gates.
+
+The canonical standalone legacy 16f reference is:
 
 ```text
 outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2
@@ -46,9 +104,10 @@ frames and all six anchors. The canonical export SHA256 is
 This is a structural/source/lineage PASS only. It is not human-reviewed data.
 Verified coverage for the new lineage remains `Hidden=0 decisions` and
 `behavior=0 decisions`. Legacy 16f must still complete two-sided frame/object
-Hidden review and complete native-unit 16-frame behavior review. Until both
-gates PASS, active-data training, reviewed snapshot, model smoke and full OOF
-remain blocked.
+Hidden review and complete native-unit 16-frame behavior review before this
+legacy lineage can be called reviewed or used as train-ready evidence. These
+legacy review gates are separate from the main branch and do not block or
+satisfy main-branch coverage while legacy remains outside its source manifest.
 
 The three excluded actor keys are source-quality exclusions, not review
 decisions:
@@ -104,6 +163,50 @@ The existing behavior manifest contains 4,670 mandatory review units. Three
 pilot payload rows exist, but the user has not verified them as human review.
 Verified behavior coverage is therefore 0/4,670. Behavior apply is fail-closed
 and must not emit a reviewed dataset from this payload.
+
+## Legacy 16f C6 full-development handback (2026-07-19)
+
+The isolated rebuild-bound lane completed temporal controls, A128 freeze,
+22-mode short modality screening, paired promotion freeze, fresh full-source
+actor/union features, a seven-mode full-development confirmation, paired
+evaluation and final freeze. Short screening produced 44 valid run packets and
+promoted only ROI and union context to the full-development confirmation.
+
+The 22-mode screen included actor-only plus geometry, motion, ROI, numeric
+social, pen, union, and full-frame branches under zero, availability-only, and
+real controls. Its per-class artifacts retain all ten behaviors. Promotion of
+only ROI and union was a global compute/promotion decision; it did not delete
+the other five branches or establish that they cannot help a subset of
+behaviors.
+
+The full packet contains 3,650 train and 241 validation native units. Process
+`8652` completed actor-only plus ROI and union zero/availability/real modes at
+345 optimizer steps each. ROI real minus zero is `+0.0173996682`, with interval
+`[-0.0453411623,0.0837155156]`, so it misses gain and positive-CI gates. Union
+real minus zero is `+0.0317916340`, with interval
+`[-0.0382937684,0.1025301139]`; its NLL worsens by `+0.1611725788` and rare
+group macro-F1 changes by `-0.0444444444`.
+
+Final artifact:
+`outputs/c6fd_20260719_v6/full_matrix/`
+`c6_full_development_freeze.json`. Its status is
+`PASS_C6_FULL_DEVELOPMENT_FREEZE`, decision is
+`RETAIN_A128_ACTOR_ONLY_FOR_C6_LEGACY_HANDBACK`, and SHA256 is
+`bf7cc849e49c56458af4ea91c1824ab46b839f527e799945b64dc96fc4d86e61`.
+The quality status remains
+`TECHNICALLY_CLEAN_UNREVIEWED_DOUBLE_CHECK_PENDING`.
+
+This closes only legacy C6 development. It does not alter the main source
+manifest, complete Hidden or behavior review, authorize full OOF, or permit a
+Q2 claim. ROI, union and A128 remain retest hypotheses for the future frozen
+reviewed main lineage; the legacy result cannot reject them on full data.
+
+The retest universe is broader than ROI and union. Geometry, motion, numeric
+social, pen, and full-frame context also remain deferred hypotheses because
+short point estimates show class-specific gains that a global macro-F1 gate can
+hide. Main-lineage selection must report all ten classes, paired per-class
+video-cluster uncertainty, source/availability strata, calibration, and harm
+bounds before any behavior-conditional fusion or modality rejection.
 
 ## Technical Short-Chain Evidence
 
@@ -261,6 +364,50 @@ ResNet34 architecture reference. It has no verified reviewed-data hash,
 grouped split, paired predictions, training config, or seed lineage, so it is
 not a model-quality baseline.
 
+## Pig-STRENet causal-history artifact status
+
+The exporter and bounded audit are implemented in:
+
+```text
+src/pig_behavior/classification_v2/features/pig_strenet_artifacts.py
+scripts/classification_v2/03_image_cache_context/
+classification_v2_build_pig_strenet_artifacts.py
+```
+
+The implementation exports causal history/target pairs, T0-PM controls,
+stabilized actor-crop differences, all-class ROI dynamics and geometry, fixed
+top-K social graphs, numeric history/transition features, model-X whitelists,
+packed tensors, masks and immutable artifact hashes. Legacy relative positions
+and actual source frames are separate fields. Derived-view weights conserve one
+unit of native-event mass.
+
+The current verified bounded run is
+`outputs/classification_v2/agent_audits/pig_strenet_media_bridge_legacy_20260719_canary11`.
+It passed 8 events, 96 slots, 288 ROI rows, fixed `K=3` social edges and an
+`[8,11,32,32]` difference tensor. Actor crops came from legacy crop files;
+scene ROI pixels came from the source video. Training, OOF and data
+modification were all false. The input remains unreviewed-development lineage.
+
+The media bridge also resolves XML/CVAT scene frames from the real video and
+actor crops from video plus bbox when no crop file exists. It rejects static
+`background.png`/`Image #1` candidates as temporal scene media and writes
+`media_manifest.json` plus per-pixel provenance indexes.
+
+A full one-video XML technical canary is
+`outputs/classification_v2/agent_audits/pig_strenet_media_bridge_xml_20260719_canary02`.
+It passed 2,400 pairs, difference shape `[2400,11,32,32]`, and 86,256/86,256
+expected ROI pixel patches. The 144 additional XML rows are naturally missing
+frame-zero history slots and are excluded from the expected pixel denominator.
+Both corrected canaries have `media_manifest.valid=true` and no future-frame
+use. This validates media/export lineage only; it does not authorize review,
+training, accuracy claims, OOF or promotion.
+
+The earlier XML technical canary remains preserved at
+`outputs/classification_v2/agent_audits/pig_strenet_xml_real_20260719_canary01/`
+`07_pig_strenet_attempt2`; its prior scene-pixel block was an exporter media
+resolution limitation. The corrected canary supersedes that limitation without
+deleting the old evidence.
+
 ## Required Execution Order
 
 1. Media gate is complete; rerun it only if manifest/context hashes change.
@@ -274,9 +421,17 @@ not a model-quality baseline.
 8. Rebuild reviewed windows, native units, X/y/masks/weights, and image indexes.
 9. Build fixed-six/phase/native temporal views and pass shortcut audits.
 10. Freeze data, cache, feature-whitelist, fold, and temporal-view hashes.
-11. Run one-batch, tiny-overfit, resume, runtime, and one-fold smoke gates.
-12. Obtain a new full-run authorization bound to frozen hashes and code SHA.
-13. Run finalists only, then grouped native-unit evaluation and completion gates.
+11. Pair `SF128` against `A128` on the frozen main development folds.
+12. Retest all seven modality branches with three controls and all ten classes;
+    require behavior-specific uncertainty, availability strata, and harm bounds.
+13. Test only predeclared behavior-conditional fusion candidates, one family at
+    a time, using development predictions rather than outer-fold predictions.
+14. Run one-batch, tiny-overfit, resume, runtime, and representative short gates
+    after every semantic change; bounded full-development confirms survivors.
+15. Lock finalist configs, seeds, folds, hashes, metrics, and compute estimate.
+16. Obtain full-OOF authorization bound to the finalist and current code SHA.
+17. Run finalists only, then calibration, grouped native-unit evaluation,
+    confusion/ablation reports, registry registration, and completion gates.
 
 Detailed commands are in
 `CLASSIFICATION_V2_DATA_REBUILD_AND_HUMAN_REVIEW_RUNBOOK.md`. Script ownership

@@ -1,5 +1,60 @@
 # Benchmark Notes
 
+## 2026-07-19 seed-matched base and all-seven fusion result
+
+- Scope correction: this all-seven result is a naive-concatenation endpoint,
+  not an optimized fusion result. The subset ladder, fixed-subset fusion-family
+  comparison, and failure-attribution diagnostics remain unmeasured.
+- Among seven measured frozen-ResNet18 temporal bases, A128 is the controlled
+  measurement base: macro-F1 `0.4016091326`, accuracy `0.6680497925`, and NLL
+  `0.9581952707`. This is not a global-best architecture claim.
+- The seed-matched all-seven real fusion has macro-F1 `0.3990463886`, accuracy
+  `0.6182572614`, and NLL `1.2583320608`. It beats same-width zero by
+  `+0.0597244883` and availability-only by `+0.0475594846` in macro-F1, but
+  both paired cluster intervals include zero.
+- Against same-run actor-only, real fusion changes macro-F1 by
+  `-0.0025627441`, with interval `[-0.0870213782, 0.0927085883]`, and worsens
+  accuracy and NLL. Thus real values contain signal, while naive concatenation
+  is not the final fusion structure.
+- Per-class real-minus-actor F1 deltas are: `drink -0.047619`, `eat +0.078078`,
+  `fight -0.400000`, `social-nose 0.000000`, `explore -0.065692`,
+  `lying -0.084046`, `stand +0.285714`, `move +0.285714`,
+  `sitting -0.077778`, and `playwithtoy 0.000000`.
+- Continue with the five-stage authority: controlled strong base, matched
+  modality/fusion screen, behavior-specific fusion selection, rented-GPU joint
+  tuning, then confirmatory modality ablation on the tuned finalist.
+- Preserve superseded seed runs and all valid caches, predictions, and
+  diagnostics. Reuse them when contracts match; rerun only for semantic change
+  or failed artifact integrity.
+
+## 2026-07-19 C6 per-behavior modality screen
+
+- The comparator below is short-run `actor_only`; values are descriptive F1
+  point deltas from the two repeat packets, not reviewed-lineage confidence
+  claims. All ten classes remain in scope.
+- `drink` (`n=8`): ROI `+0.235`, geometry `+0.154`, motion `+0.145`, numeric
+  social `+0.101`.
+- `eat` (`n=17`): pen `+0.118`, ROI `+0.073`, union `+0.033`, motion and
+  numeric social `+0.017`.
+- `fight` (`n=4`): numeric social `+0.036`, motion `+0.016`; support is too
+  small for a promotion claim.
+- `social-nose` (`n=8`): motion and numeric social each `+0.063`.
+- `explore` (`n=43`): pen `+0.032`.
+- `lying` (`n=56`): union `+0.063`, ROI `+0.047`, numeric social `+0.044`,
+  pen `+0.029`.
+- `stand` (`n=11`): pen `+0.123`.
+- `move` (`n=8`): motion `+0.076`, numeric social `+0.069`, ROI `+0.061`,
+  geometry `+0.014`, union `+0.004`.
+- `sitting` (`n=85`): union `+0.099`, ROI `+0.093`, pen `+0.055`, motion
+  `+0.015`.
+- `playwithtoy` (`n=1`): no positive point delta; support is insufficient.
+- Full-frame context has no positive per-class delta against actor-only in this
+  short packet. Some real-versus-zero effects differ because parameter-matched
+  zero and availability controls answer different mechanism questions.
+- These signals keep all seven branches eligible for predeclared
+  behavior-conditional retest on the frozen reviewed main lineage. They do not
+  override global NLL, calibration, availability, uncertainty, or harm gates.
+
 ## 2026-07-17 classification temporal base screening
 
 - Stage A used seven controlled modes on 245 native validation units from 33
@@ -140,6 +195,44 @@ The 10-class task remains the thesis primary result. ResNet18 `160x160` is the
 engineering pilot; pretrained ResNet34 `224x224` is the main visual baseline
 after runtime gates. Offline longitudinal analysis is primary, while causal
 near-real-time is a separately evaluated secondary protocol.
+
+## 2026-07-19 Pig-STRENet artifact canary
+
+Canary09 used input SHA256
+`d76a0b5b12e1c38eb050e7787776e51df8110114bf8afb1c2ecff847918e5805`
+and passed with 8 native events, 8 causal pairs, 96 slots, 288 all-class ROI
+rows and 288 fixed top-K social edges. Native-event mass min/max was `1.0`.
+Stabilized actor-crop differences had shape `[8,11,32,32]` with zero skipped
+pairs. No training, OOF or data writes occurred.
+
+The social tensor contract was fixed `K=3` for all 96 pair-slot groups. ROI
+dynamics packed to `[288,11]`; social edges packed to `[288,19]`. Geometry
+selection was available for all 288 actor-ROI rows. Full-scene ROI union pixel
+patches were correctly masked unavailable because no scene-image path exists in
+the input CSV. This is not evidence against ROI visual context.
+
+This result validates export, leakage controls, masks, event weighting and
+lineage only. It is not an accuracy result and cannot select a modality,
+fusion architecture or classifier.
+
+## 2026-07-19 Pig-STRENet real XML technical canary
+
+The bounded real-CVAT source `data/annotations/classification/
+Pigs281119_000085.xml` was processed under
+`xml-only-unreviewed-technical-canary` at
+`outputs/classification_v2/agent_audits/pig_strenet_xml_real_20260719_canary01/`
+`07_pig_strenet_attempt2`.
+The run passed with 2,400 native actor-target pairs, 28,800 slots, 86,400
+all-class ROI rows, and 86,400 fixed-K social edges. Event mass was exactly
+`1.0`; causal checks found no future-frame use and all tensor/model-X schemas
+matched Canary09.
+
+Eight pairs at target frame zero have unavailable history, as required by the
+causal boundary; 2,392 pairs have complete six-frame history. Difference maps
+were explicitly skipped and full-scene ROI pixels remained blocked because
+the XML-derived table has no scene-image path. The result is technical export
+evidence only: no training, OOF, accuracy claim, review completion or
+promotion is authorized.
 
 ## Active classification_v2 benchmark direction
 

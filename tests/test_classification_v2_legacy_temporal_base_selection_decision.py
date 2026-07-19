@@ -12,8 +12,14 @@ from pig_behavior.classification_v2.evaluation import (
 from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
 
 
-def _prediction_frame(mode_id: str, predicted: list[str]) -> pd.DataFrame:
-    true_labels = list(VALID_BEHAVIORS) * 2
+def _prediction_frame(
+    mode_id: str,
+    predicted: list[str],
+    *,
+    video_clusters: int | None = None,
+) -> pd.DataFrame:
+    labels = list(VALID_BEHAVIORS)
+    true_labels = [labels[index % len(labels)] for index in range(len(predicted))]
     rows = []
     for index, (true_label, predicted_label) in enumerate(
         zip(true_labels, predicted, strict=True)
@@ -24,7 +30,11 @@ def _prediction_frame(mode_id: str, predicted: list[str]) -> pd.DataFrame:
         row = {
             "temporal_unit_key": f"unit-{index:02d}",
             "recording_group_id": f"date-{index // 10}",
-            "video_key": f"video-{index // 10}",
+            "video_key": (
+                f"video-{index // 10}"
+                if video_clusters is None
+                else f"video-{index % video_clusters}"
+            ),
             "source_type": "legacy_recovered",
             "dataset_id": "legacy_recovered_16f",
             "behavior_label": true_label,
@@ -62,6 +72,22 @@ def _matrix() -> dict[str, pd.DataFrame]:
     return {
         mode_id: _prediction_frame(mode_id, predicted)
         for mode_id, predicted in predictions.items()
+    }
+
+
+def _matrix_with_project_counts(
+    native_units: int,
+    video_clusters: int,
+) -> dict[str, pd.DataFrame]:
+    labels = list(VALID_BEHAVIORS)
+    predicted = [labels[index % len(labels)] for index in range(native_units)]
+    return {
+        mode_id: _prediction_frame(
+            mode_id,
+            predicted,
+            video_clusters=video_clusters,
+        )
+        for mode_id in base_decision.MODE_IDS
     }
 
 
@@ -139,6 +165,28 @@ def test_evaluator_rejects_duplicate_native_unit() -> None:
             material_negative_ci_limit=0.02,
             maximum_group_macro_f1_drop=0.05,
             enforce_project_counts=False,
+        )
+
+
+def test_schema_v2_project_counts_accept_rebuild_universe() -> None:
+    ordered = base_decision._validate_prediction_universe(
+        _matrix_with_project_counts(241, 32),
+        enforce_project_counts=True,
+        expected_native_units=241,
+        expected_video_clusters=32,
+    )
+
+    assert len(ordered["SF128"]) == 241
+    assert ordered["SF128"]["video_key"].nunique() == 32
+
+
+def test_schema_v2_project_counts_reject_wrong_rebuild_cluster_count() -> None:
+    with pytest.raises(ValueError, match="video clusters=32"):
+        base_decision._validate_prediction_universe(
+            _matrix_with_project_counts(241, 32),
+            enforce_project_counts=True,
+            expected_native_units=241,
+            expected_video_clusters=33,
         )
 
 

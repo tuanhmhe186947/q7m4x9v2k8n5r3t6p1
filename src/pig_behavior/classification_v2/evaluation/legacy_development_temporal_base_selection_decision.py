@@ -27,6 +27,9 @@ from pig_behavior.classification_v2.training.lineage_hashing import (
 CONFIG_SCHEMA = (
     "classification_v2.legacy_development.temporal_base_decision_config.v1"
 )
+CONFIG_SCHEMA_V2 = (
+    "classification_v2.legacy_development.temporal_base_decision_config.v2"
+)
 RESULT_SCHEMA = (
     "classification_v2.legacy_development.temporal_base_decision.v1"
 )
@@ -99,6 +102,8 @@ def evaluate_temporal_base_predictions(
     material_negative_ci_limit: float,
     maximum_group_macro_f1_drop: float,
     enforce_project_counts: bool = True,
+    expected_native_units: int = EXPECTED_NATIVE_UNITS,
+    expected_video_clusters: int = EXPECTED_VIDEO_CLUSTERS,
 ) -> tuple[
     dict[str, Any],
     pd.DataFrame,
@@ -117,6 +122,8 @@ def evaluate_temporal_base_predictions(
     ordered = _validate_prediction_universe(
         predictions,
         enforce_project_counts=enforce_project_counts,
+        expected_native_units=expected_native_units,
+        expected_video_clusters=expected_video_clusters,
     )
     summaries = _validate_run_summaries(run_summaries, ordered)
     metrics = {
@@ -207,6 +214,8 @@ def _validate_prediction_universe(
     predictions: dict[str, pd.DataFrame],
     *,
     enforce_project_counts: bool,
+    expected_native_units: int = EXPECTED_NATIVE_UNITS,
+    expected_video_clusters: int = EXPECTED_VIDEO_CLUSTERS,
 ) -> dict[str, pd.DataFrame]:
     if set(predictions) != set(MODE_IDS):
         raise ValueError("temporal-base prediction mode set differs")
@@ -232,10 +241,10 @@ def _validate_prediction_universe(
             "temporal_unit_key",
             kind="mergesort",
         ).reset_index(drop=True)
-        if enforce_project_counts and len(frame) != EXPECTED_NATIVE_UNITS:
+        if enforce_project_counts and len(frame) != expected_native_units:
             raise ValueError(f"{mode_id} native units={len(frame)}")
         clusters = frame["video_key"].astype(str).nunique()
-        if enforce_project_counts and clusters != EXPECTED_VIDEO_CLUSTERS:
+        if enforce_project_counts and clusters != expected_video_clusters:
             raise ValueError(f"{mode_id} video clusters={clusters}")
         _validate_prediction_rows(frame, mode_id)
         metadata = frame[list(METADATA_COLUMNS)].astype(str)
@@ -573,6 +582,9 @@ def write_temporal_base_decision(
     resolved_config = config_path.resolve()
     config = _read_json(resolved_config)
     _validate_config(config)
+    expected_native_units, expected_video_clusters = (
+        _prediction_universe_contract(config)
+    )
     _verify_file_spec(root, config["implementation"], "implementation")
     metric_path = _verify_file_spec(
         root,
@@ -607,6 +619,7 @@ def write_temporal_base_decision(
             mode_id=mode_id,
             spec=config["runs"][mode_id],
             full_config_sha256=file_sha256(full_config_path),
+            expected_native_units=expected_native_units,
         )
         predictions[mode_id] = frame
         summaries[mode_id] = summary
@@ -623,6 +636,8 @@ def write_temporal_base_decision(
             maximum_group_macro_f1_drop=float(
                 contract["maximum_group_macro_f1_drop"]
             ),
+            expected_native_units=expected_native_units,
+            expected_video_clusters=expected_video_clusters,
         )
     )
     outputs = {
@@ -642,6 +657,10 @@ def write_temporal_base_decision(
             "metric_engine": _bound_file(metric_path),
             "runs": summaries,
             "analysis_contract": dict(contract),
+            "prediction_universe_contract": {
+                "expected_native_units": expected_native_units,
+                "expected_video_clusters": expected_video_clusters,
+            },
             "artifacts": {
                 "per_class_csv": _bound_table(
                     outputs["per_class_csv"],
@@ -675,6 +694,7 @@ def _load_run_packet(
     mode_id: str,
     spec: dict[str, Any],
     full_config_sha256: str,
+    expected_native_units: int,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     result_path = _verify_file_spec(root, spec["run_result"], f"{mode_id} result")
     artifact_path = _verify_file_spec(
@@ -696,7 +716,7 @@ def _load_run_packet(
     frame = pd.read_csv(paths["validation_native_predictions.csv"])
     epoch_metrics = pd.read_csv(paths["epoch_metrics.csv"])
     run_manifest = _read_json(paths["run_manifest.json"])
-    if len(frame) != EXPECTED_NATIVE_UNITS:
+    if len(frame) != expected_native_units:
         raise ValueError(f"{mode_id} prediction rows differ")
     if int(result["optimizer_steps"]) != int(
         epoch_metrics["optimizer_steps_cumulative"].iloc[-1]
@@ -782,10 +802,14 @@ def _validate_config(config: dict[str, Any]) -> None:
         "analysis_contract",
         "output",
     }
+    schema = config.get("schema_version")
+    if schema == CONFIG_SCHEMA_V2:
+        required.add("prediction_universe")
     if set(config) != required:
         raise ValueError("temporal-base decision config keys differ")
-    if config["schema_version"] != CONFIG_SCHEMA:
+    if schema not in {CONFIG_SCHEMA, CONFIG_SCHEMA_V2}:
         raise ValueError("temporal-base decision config schema differs")
+    _prediction_universe_contract(config)
     if config["lineage_scope"] != LINEAGE_SCOPE:
         raise ValueError("temporal-base decision lineage differs")
     if set(config["runs"]) != set(MODE_IDS):
@@ -823,6 +847,22 @@ def _validate_config(config: dict[str, Any]) -> None:
             raise ValueError(f"{mode_id} decision run keys differ")
         _validate_file_spec(run["run_result"], f"{mode_id} run result")
         _validate_file_spec(run["artifact_manifest"], f"{mode_id} artifacts")
+
+
+def _prediction_universe_contract(config: dict[str, Any]) -> tuple[int, int]:
+    if config.get("schema_version") == CONFIG_SCHEMA:
+        return EXPECTED_NATIVE_UNITS, EXPECTED_VIDEO_CLUSTERS
+    contract = config.get("prediction_universe")
+    expected_keys = {"expected_native_units", "expected_video_clusters"}
+    if not isinstance(contract, dict) or set(contract) != expected_keys:
+        raise ValueError("temporal-base prediction universe contract differs")
+    expected_native_units = int(contract["expected_native_units"])
+    expected_video_clusters = int(contract["expected_video_clusters"])
+    if expected_native_units <= 0 or expected_video_clusters <= 0:
+        raise ValueError("temporal-base prediction universe counts invalid")
+    if expected_video_clusters > expected_native_units:
+        raise ValueError("temporal-base video clusters exceed native units")
+    return expected_native_units, expected_video_clusters
 
 
 def _validate_file_spec(spec: dict[str, Any], name: str) -> None:
@@ -893,6 +933,7 @@ def _write_json_exclusive(path: Path, payload: dict[str, Any]) -> None:
 
 __all__ = [
     "CONFIG_SCHEMA",
+    "CONFIG_SCHEMA_V2",
     "MODE_IDS",
     "OPERATIONAL_PAIR_SPECS",
     "PAIR_SPECS",

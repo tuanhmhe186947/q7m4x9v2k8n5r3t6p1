@@ -1,6 +1,6 @@
 # Classification V2 `legacy_16f` Development Execution Ledger
 
-Version: 1.2
+Version: 1.3
 
 Opened: 2026-07-14
 
@@ -11,6 +11,55 @@ Goal authority:
 
 Parent goal: canonical reviewed all-source P0-P8, currently blocked and not
 replaced by this ledger.
+
+## Locked continuation sequence
+
+The research handback follows two passes around one tuning stage:
+
+1. establish a strong, stable, moderately tuned measurement base;
+2. screen modality and fusion effects with parameter-matched-zero,
+   availability-only, and real controls;
+3. select behavior-specific fusion candidates from all ten classes;
+4. jointly tune backbone, temporal model, and fusion on rented GPUs;
+5. confirm retained modality effects on that tuned strong finalist.
+
+A128, seven singles and seed-matched all-seven complete only the base, single,
+and endpoint diagnostics. Pairwise, beam, leave-one-out, failure attribution,
+and fixed-subset fusion-family search remain open. Valid earlier runs remain
+immutable evidence and are reused whenever their semantic contracts match.
+
+## Seed-matched all-seven fusion closure
+
+The authoritative full root is:
+
+```text
+outputs/c6r_20260719_v1/c6_combined_all7_full_v2_seed_matched
+```
+
+- Seed `20260719` matches selected A128; 3,650 train and 241 validation units
+  span 32 video clusters.
+- Actor-only exactly reproduces A128: macro-F1 `0.4016091326`, accuracy
+  `0.6680497925`, and NLL `0.9581952707`.
+- Real all-seven fusion reaches macro-F1 `0.3990463886`, accuracy
+  `0.6182572614`, and NLL `1.2583320608`.
+- Real-minus-zero macro-F1 is `+0.0597244883`; real-minus-availability is
+  `+0.0475594846`. Both paired cluster intervals include zero.
+- Real-minus-actor macro-F1 is `-0.0025627441`, with interval
+  `[-0.0870213782, 0.0927085883]`; actor width is explicitly unmatched.
+- Decision SHA256 is
+  `67bc3d84005a5abdcf07cd52e8149a08a2634d6494d7e77a75609ad9725105df`.
+- Actor-reference SHA256 is
+  `c10b84d228259740adf28c93e3d6832f956768ed9de8e17b3c2b7dce199c637d`.
+
+Interpretation: true modality values carry signal relative to same-width
+controls, but naive concatenation does not beat actor-only and worsens
+calibration. This is behavior-specific fusion evidence, not model promotion.
+It is also not an optimized subset or completed fusion search.
+
+Failure attribution is mandatory before rejection. Each negative receives one
+of `DATA_QUALITY_FAILURE`, `NO_SIGNAL`, `REDUNDANT_WITH_ACTOR`, `UNDERPOWERED`,
+`OPTIMIZATION_FAILURE`, or `FUSION_CAPACITY_FAILURE`, supported by the declared
+input, modality-only, residual, permutation, optimization and fusion probes.
 
 ## Status Vocabulary
 
@@ -31,9 +80,20 @@ replaced by this ledger.
 | L3 immutable inputs | PASS | Committed-SHA gate at `0414adc` |
 | L4 model correctness | PASS | Real-cache correctness gate at `3ef4235` |
 | L5 core baselines | PASS | T6 sliding retained as bounded legacy_16f baseline |
-| L6 modality loop | PASS | All declared modality families closed; retain parameter-matched T6 zero |
+| L6 modality loop | PASS | All modalities closed; keep matched T6 zero |
 | L7 imbalance policy | PASS | Event-balanced CE retained; both alternatives rejected |
 | L8 candidate/handback | PASS | Immutable candidate lock and L0-L8 handback at `91a6c2a` |
+| C6 temporal controls | PASS | 18/18 packets; A128 freeze is hash-bound |
+| C6 modality promotion | PASS | 44/44 short packets; ROI and union promoted to full development |
+| C6 full-development handback | PASS | 7/7 packets; retain A128 actor-only in legacy handback |
+| Seven-base selection | PASS | A128 selected among seven measured bases only |
+| Seed-matched all-seven fusion | PASS | Three matched controls complete; no main promotion |
+| Pairwise subset ladder | NOT_STARTED | Deferred to reviewed main; legacy canary only |
+| Beam and leave-one-out | NOT_STARTED | Deferred to reviewed main lineage |
+| Failure attribution | NOT_STARTED | Required before any modality `DROP` |
+| Fixed-subset fusion families | NOT_STARTED | Starts after subset freeze |
+| Rented-GPU joint tuning | NOT_STARTED | Launch plan only; outside this legacy result |
+| Tuned-finalist modality confirmation | NOT_STARTED | Runs after joint tuning |
 
 ## Settled Contracts
 
@@ -47,6 +107,25 @@ replaced by this ledger.
 - Local 4 GiB VRAM controls correctness placement, not architecture scope.
 - Rented GPU pilots are permitted after the exact target-environment short gate.
 - Legacy rare-class support cannot estimate merged-data support or its ceiling.
+
+## 2026-07-19 C6 Full-Development Closure
+
+- Prepared full source: 3,650 train and 241 validation native units, with zero
+  outer-holdout media, feature or prediction creation.
+- Static/synthetic gates, full modality cache and all seven `full01` packets
+  pass. Each actor/ROI/union mode used 345 optimizer steps; process ID is
+  `8652`, config SHA256 is
+  `d8b70deaa1e7544f9c241976f61e73e27ae296a0e87771eb77bf3f4d5c729cb8`,
+  and cache SHA256 is
+  `d9c5fbd39d09de4aa86082f12ce928b6c5693925b827e750a8d166c141946502`.
+- ROI fails the `0.02` gain and positive cluster-CI gates. Union passes point
+  gain margins but fails positive-CI, NLL and rare-group guardrails.
+- Final freeze status is `PASS_C6_FULL_DEVELOPMENT_FREEZE`; retained modality
+  list is empty and decision is
+  `RETAIN_A128_ACTOR_ONLY_FOR_C6_LEGACY_HANDBACK`. Freeze SHA256 is
+  `bf7cc849e49c56458af4ea91c1824ab46b839f527e799945b64dc96fc4d86e61`.
+- Human review, full OOF, Q2, reviewed/final naming and main-branch promotion
+  remain false. A main frozen reviewed lineage must retest every hypothesis.
 
 ## 2026-07-16 L7-L8 Completion And Handback
 
@@ -993,6 +1072,24 @@ L6 is PASS with the parameter-matched T6 zero retained as the simplest bounded
 base. L7 starts from that exact base and compares each imbalance policy as one
 independent variable. Every modality conclusion remains limited to unreviewed
 `legacy_16f` and must be reassessed on frozen merged-reviewed data.
+
+## 2026-07-19 C6 rebuild-bound screening continuation
+
+This continuation is separate from the historical L0-L8 handback and does not
+change the main-branch review boundary.
+
+- Temporal controls: `PASS`, 9 modes x 2 fresh repeats; freeze decision
+  `FREEZE_PRIOR_A128_FOR_C6_MODALITY_SCREENING`.
+- Short-stage modality cache: `PASS`, 321 native units (80 train, 241
+  validation), 1,926 C6 slots, zero outer rows and zero source-media reads.
+- Modality matrix: `PASS`, 22 modes x 2 repeats, 44 valid run packets and 14
+  paired video-cluster comparisons with 2,000 draws each.
+- Fresh-process IDs: `repeat01=29324`, `repeat02=5064`. Decision artifact
+  records no errors and all reviewed/final/Q2/full-OOF flags remain false.
+- This short stage is technically clean but unreviewed double-check evidence;
+  by itself it did not authorize full development or Q2. The later promotion
+  freeze authorized ROI/union only, and the final full-development closure is
+  recorded above.
 
 ## Full-Run Boundary
 

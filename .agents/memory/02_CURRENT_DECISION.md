@@ -6,7 +6,132 @@ Only the active decision immediately below controls current work. All later
 sections are historical records. Current gate status is centralized in
 `docs/CLASSIFICATION_V2_CURRENT_STATE.md`.
 
+## Active human-review execution authority
+
+Hidden smoke uses `%HSM%` and `%HSMDEC%` only. `%HDEC%` is reserved for the
+full `%HREV%` manifest; smoke decisions never satisfy or seed full authority.
+
+Complete legacy 16f behavior review requires both
+`--include-all-retained-legacy-units` at review-unit build time and
+`--require-complete-legacy` at template coverage time. This binds every
+retained 16-frame legacy native unit into the human review manifest. The
+default selective queue remains valid for bounded diagnostics but cannot earn
+complete legacy behavior-review status.
+
+## Active model-search authority: controlled screen, joint tune, confirm
+
+Use this exact five-stage flow for classifier research and the future rented-
+GPU lane:
+
+1. Build a sufficiently strong and stable base, with only enough tuning to
+   serve as a reliable measurement instrument.
+2. Screen modalities by a predeclared ladder: seven singles, all 21 pairs,
+   beam-search triples and larger subsets, then leave-one-out confirmation.
+   Every subset uses parameter-matched-zero, availability-only, and real-value
+   controls on identical folds, seeds, exposure, and optimization budget.
+3. Freeze the selected modality set before comparing fusion structures. Do not
+   change subset and fusion architecture in one uncontrolled comparison.
+4. Jointly tune the visual backbone, temporal model, and selected fusion at
+   larger scale on rented GPUs.
+5. Repeat confirmatory modality ablations on the tuned strong model before
+   locking the candidate.
+
+Do not deeply tune a potentially information-incomplete base before modality
+screening, and do not treat screening on a controlled base as the final model
+decision. Local RTX 3050 limits correctness-batch placement only. Preserve all
+valid older runs under their exact seed/config lineage and reuse their caches,
+predictions, and diagnostics whenever contracts match.
+
+`combined_all7__real` is a retained endpoint/stress test, not an optimization
+result. It cannot close subset search or fusion-family search. A negative
+modality result also cannot become `DROP` until diagnostics distinguish
+bad/absent input, no extractable signal, actor redundancy, underpowered data,
+optimization failure, and encoder/fusion-capacity failure. Required probes are
+modality-only, actor-residual, within-stratum permutation, learning/gradient,
+and at least one stronger mask-aware fusion control.
+
+Compute boundary: legacy 16f is a method/correctness host, not the lineage for
+exhaustive subset selection. Preserve its singles and all-seven endpoint; add
+only synthetic or representative pair canaries needed to validate the ladder
+and failure taxonomy. The full 21-pair, beam and leave-one-out search begins on
+the frozen reviewed main lineage, where class support and source relevance are
+adequate.
+
+## Active Pig-STRENet artifact authority
+
+Causal history uses only `[s-6..s-1] -> [s..s+5]`. Never read after `s+5`.
+Legacy pair manifests must carry both relative burst coordinates and actual
+source-frame coordinates. XML pairs use actual target coordinates directly.
+Completeness, masks and gaps must be computed in one coordinate system.
+
+Legacy 16f has persistence by construction because one label was propagated
+through a burst. History conclusions therefore require XML-only, legacy-only,
+source-balanced and history-by-source reports. XML reviewed targets are the
+primary evidence for transfer; legacy is a development canary and supporting
+training source only.
+
+Derived windows conserve native-event mass: all pair weights from one native
+event sum to `1.0`. Primary evaluation collapses predictions back to the native
+event. Overlapping derived-window metrics are diagnostic only.
+
+The predeclared controls are `T0/T1/H0/HA/HS/HR/HRev/PM`. Availability,
+completeness, gap and duration fields are audit/mask metadata by default and
+enter only the HA missingness control. Social partners are geometry-selected,
+fixed top-K with explicit masks, and never selected by behavior labels.
+
+Canary09 passed the exporter/audit contract under
+`outputs/classification_v2/agent_audits/pig_strenet_20260719_canary09`.
+This authorizes artifact reuse only. Trainer/fusion/GAT/ROI-Align integration,
+training, OOF and model promotion remain unimplemented and unauthorized.
+The media bridge now resolves lineage-bound scene frames from the real source
+video (`video_key/source_video_path + frame_index`) and actor crops from either
+existing crop files or the same video plus bbox. `background.png` and static
+`Image #1` candidates are rejected as temporal scene media.
+
+The real XML bounded canary at
+`outputs/classification_v2/agent_audits/pig_strenet_xml_real_20260719_canary01/`
+`07_pig_strenet_attempt2`
+also passes the artifact schema: 2,400 native pairs, 28,800 slots, event mass
+`1.0`, no future-frame use, and the same model-X/ROI/social tensor schemas as
+Canary09. Eight frame-zero pairs correctly have unavailable six-frame history;
+the other 2,392 pairs are complete. This remains
+`xml-only-unreviewed-technical-canary`: it is export/lineage evidence only, not
+accuracy evidence, review completion, training authorization or promotion.
+
+The corrected media-bridge canaries are:
+
+- legacy: `pig_strenet_media_bridge_legacy_20260719_canary11`, difference
+  `PASS` for 96/96 actor slots and ROI pixels `PASS` for 288/288;
+- XML: `pig_strenet_media_bridge_xml_20260719_canary02`, difference `PASS`
+  for 2,400/2,400 pairs and ROI pixels `PASS` for 86,256/86,256 expected rows.
+
+Both have `media_manifest.valid=true`, `background_as_temporal_scene_used=false`,
+and no future-frame use. The 144 XML ROI rows outside the expected count are
+natural frame-zero history slots, not unresolved media. The prior blocked result
+was an exporter-resolution limitation, not evidence that source pixels were
+absent. `max-native-events` now limits target units without truncating the full
+frame table needed for causal history and scene/social context.
+
 ## Active decision: reviewed-data rebuild
+
+### Main-versus-legacy source boundary
+
+The user confirms that legacy 16f is a relatively clean standalone lineage,
+not a source currently used by the main classification branch. The prior
+`legacy-only-unreviewed-development` lane was created to exercise prompt/goal
+orchestration and screen configurations or hypotheses for later main-branch
+testing. It was not a data merge into the main branch.
+
+Legacy goal completion and its handback do not activate, resume, authorize or
+mark PASS any parent/main classifier goal. A candidate configuration must be
+retested against the main branch's own versioned source manifest, reviewed
+snapshot, folds, shortcut audits and short-run gates. Do not implicitly merge
+the canonical legacy export into the main lineage.
+
+Legacy 16f still requires its own two-sided frame/object Hidden review and
+complete native-unit 16-frame behavior review before it can be called reviewed
+or used as train-ready evidence. Those decisions neither satisfy nor block the
+main branch while legacy remains outside the main source manifest.
 
 ### Legacy CVAT rebuild completed
 
@@ -29,31 +154,66 @@ The final audit is
 the artifact human-reviewed, does not authorize training or OOF, and does not
 unlock a Q2 claim. Hidden review and reviewed-lineage gates remain separate.
 
-### C6 temporal-control hold
+### C6 2026-07-19 full-development handback
 
-The temporal perturbation implementation is code-ready, not data-ready. It
-contains the requested mean, TCN, Transformer timing controls, sequence
-shuffle controls, and capacity-matched pooling controls. Current config keeps
-`data_run_authorized=false`; do not run it on the dirty legacy lineage.
+The new rebuild-bound C6 configs supersede the earlier code-ready holds only
+inside the isolated `legacy-only-unreviewed-development` lane. Temporal
+controls passed 18/18 fresh repeats and froze A128 for modality screening.
+The modality matrix then passed 22 modes x 2 repeats and 14 paired
+comparisons. Process IDs were `29324` and `5064`; packet, config, cache and
+claim audits passed. That promotion freeze authorized only ROI and union
+context for a full-development confirmation.
 
-A future clean handoff must pass delta-identifiability and timing-source audits
-before timing modes run. Two fresh short repeats and the generated short-gate
-artifact are mandatory before a hash-bound full-development config can run.
-Legacy evidence can only select `RETEST` or `DROP`; the final base still needs
-paired mixed-reviewed, per-source, cluster-uncertainty, and seed evidence.
+The `full01` confirmation used 3,650 train and 241 validation native units and
+completed all seven actor/ROI/union control modes at 345 optimizer steps each.
+ROI did not meet the minimum gain or positive cluster-CI gates. Union met the
+point-gain margins but failed positive-CI, NLL and rare-group guardrails. The
+final decision is `RETAIN_A128_ACTOR_ONLY_FOR_C6_LEGACY_HANDBACK`; freeze
+SHA256 is
+`bf7cc849e49c56458af4ea91c1824ab46b839f527e799945b64dc96fc4d86e61`.
 
-### Legacy C6 matrix hold
+This evidence remains `TECHNICALLY_CLEAN_UNREVIEWED_DOUBLE_CHECK_PENDING`.
+It closes C6 legacy development only. It does not authorize OOF, make
+Hidden/behavior review complete, or transfer a result to the main source
+manifest. The main reviewed lineage must retest A128, ROI and union under its
+own snapshot, folds, availability controls and paired uncertainty.
 
-The current legacy 16f data is dirty and is being rebuilt by the user. The C6
-single-modality matrix is code-ready only. Do not build its cache or run model
-training from the current lineage, and do not use existing 16f metrics for a
-model decision.
+### C6 temporal-control decision
 
-The code-ready config keeps `data_run_authorized=false`. Only a new clean
-lineage handoff may replace the bound hashes, set a nonblank handoff ID, choose
-a fresh output root, and enable the data run. Even then, run static and
-synthetic checks followed by two short repeats before any full-development
-confirmation. Full OOF remains separately gated.
+The rebuild-bound temporal matrix is complete and its freeze keeps A128 for
+the C6 legacy handback. The freeze SHA256 is
+`150b61fddc42464d4d4767d55d5615d63507a02df6b74805c0ba85faffcf9a69`.
+This is not the final main-data temporal choice. A128 and the simpler control
+must be paired again on the frozen reviewed main lineage.
+
+### Legacy C6 matrix closure
+
+The legacy C6 short matrix, promotion freeze, full-development cache, `full01`
+run, paired evaluation and final freeze are complete. No optional C6 modality
+is retained for this legacy handback. Do not reinterpret zero/availability
+controls as deployable candidates and do not generalize the legacy rejection
+to reviewed full data. Full OOF and Q2 remain separately blocked.
+
+This closure is a global legacy-handback decision, not a per-behavior modality
+rejection. The short matrix covered geometry, motion, ROI, numeric social, pen,
+union, and full-frame branches and retained all ten classes in per-class
+metrics. ROI and union alone reached the legacy full-development confirmation;
+geometry, motion, numeric social, pen, and full-frame context are deferred for
+reviewed-lineage retest rather than removed from the model-design universe.
+
+Descriptive short evidence assigns different hypotheses to different classes:
+ROI to `drink/eat/lying/move/sitting`; motion and numeric social to
+`drink/fight/social-nose/move`; pen context to
+`eat/explore/lying/stand/sitting`; union to `eat/lying/sitting`; and geometry
+mainly to `drink/move`. `fight`, `move`, and `playwithtoy` have low support, so
+zero or positive point estimates cannot settle their utility.
+
+After a behavior-complete main-lineage handoff, rerun all seven branches with
+the same actor base, folds, seeds, temporal view, three modality controls, and
+all ten behaviors. Promotion must combine behavior-specific paired uncertainty
+and non-target harm bounds with the global NLL/calibration and missingness
+guardrails. Only then may a predeclared behavior-conditional fusion candidate
+enter short confirmation, finalist lock, and the separate full-OOF launch gate.
 
 ### Agent execution isolation
 

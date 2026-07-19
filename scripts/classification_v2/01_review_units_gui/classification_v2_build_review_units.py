@@ -51,6 +51,14 @@ def main() -> None:
             "Use pilot builders for sampled review instead of truncating canonical files."
         ),
     )
+    parser.add_argument(
+        "--include-all-retained-legacy-units",
+        action="store_true",
+        help=(
+            "Include every retained legacy_burst_16 native unit in the full "
+            "behavior-review manifest. Required for complete legacy 16f review."
+        ),
+    )
     args = parser.parse_args()
 
     window_review = args.window_review_manifest_csv
@@ -64,6 +72,9 @@ def main() -> None:
             window_review_manifest_csv=window_review,
             output_dir=args.output_dir,
             max_units_per_template=args.max_units_per_template,
+            include_all_retained_legacy_units=(
+                args.include_all_retained_legacy_units
+            ),
         )
     )
 

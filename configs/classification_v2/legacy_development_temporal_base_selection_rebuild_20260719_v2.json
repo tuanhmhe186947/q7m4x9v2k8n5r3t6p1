@@ -1,0 +1,144 @@
+{
+  "schema_version": "classification_v2.legacy_development.temporal_base_selection_config.v2",
+  "training_scope": "short_repeat_gate",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "experiment_contract": {
+    "experiment_id": "LEGACY_16F_REBUILD_TEMPORAL_BASE_SELECTION_20260719_V2",
+    "changed_family": "predeclared_temporal_base_matrix",
+    "native_evaluation_unit": "complete_16_frame_burst",
+    "one_sequence_per_native_unit": true,
+    "controlled_pairs": {
+      "multiple_frames": ["M128", "SF128"],
+      "content_weighting": ["A128", "M128"],
+      "ordered_tcn": ["TCN128", "MW317"],
+      "timed_transformer": ["TR128", "MW381"]
+    },
+    "skills": [
+      "safe-refactor-test-guardian",
+      "dataset-contract-leakage-guard",
+      "experiment-lineage-reproducibility",
+      "scientific-ablation-controller",
+      "multimodal-sequence-model-builder",
+      "grouped-cv-evaluation"
+    ],
+    "outer_predictions_used_for_model_selection": false,
+    "legacy_sets_final_full_data_base": false,
+    "transfer_actions": ["CARRY", "DROP", "RETEST"],
+    "reviewed_or_final_claim_allowed": false,
+    "q2_claim_allowed": false,
+    "full_oof_authorized": false
+  },
+  "prepared_source": {
+    "path": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_c6_screening_20260719_v1/06_c6_prepared_source/prepared_source_manifest.json",
+    "sha256": "873d5c9d9d5e573dbda17ed434a4305453c7dc70f3791312bc87bf5a0afb446f"
+  },
+  "modes": {
+    "SF128": {
+      "native_frame_offsets": [7],
+      "temporal_encoder_name": "masked_mean",
+      "hidden_dim": 128,
+      "transformer_layers": 1,
+      "transformer_heads": 4,
+      "expected_parameter_count": 68234,
+      "timing_contract": "ignored"
+    },
+    "M128": {
+      "native_frame_offsets": [5, 6, 7, 8, 9, 10],
+      "temporal_encoder_name": "masked_mean",
+      "hidden_dim": 128,
+      "transformer_layers": 1,
+      "transformer_heads": 4,
+      "expected_parameter_count": 68234,
+      "timing_contract": "ignored"
+    },
+    "A128": {
+      "native_frame_offsets": [5, 6, 7, 8, 9, 10],
+      "temporal_encoder_name": "masked_attention",
+      "hidden_dim": 128,
+      "transformer_layers": 1,
+      "transformer_heads": 4,
+      "expected_parameter_count": 68363,
+      "timing_contract": "ignored"
+    },
+    "MW317": {
+      "native_frame_offsets": [5, 6, 7, 8, 9, 10],
+      "temporal_encoder_name": "masked_mean",
+      "hidden_dim": 317,
+      "transformer_layers": 1,
+      "transformer_heads": 1,
+      "expected_parameter_count": 167459,
+      "timing_contract": "ignored"
+    },
+    "TCN128": {
+      "native_frame_offsets": [5, 6, 7, 8, 9, 10],
+      "temporal_encoder_name": "masked_tcn",
+      "hidden_dim": 128,
+      "transformer_layers": 1,
+      "transformer_heads": 4,
+      "expected_parameter_count": 167435,
+      "timing_contract": "ordered_slots_without_elapsed_time"
+    },
+    "MW381": {
+      "native_frame_offsets": [5, 6, 7, 8, 9, 10],
+      "temporal_encoder_name": "masked_mean",
+      "hidden_dim": 381,
+      "transformer_layers": 1,
+      "transformer_heads": 1,
+      "expected_parameter_count": 201059,
+      "timing_contract": "ignored"
+    },
+    "TR128": {
+      "native_frame_offsets": [5, 6, 7, 8, 9, 10],
+      "temporal_encoder_name": "small_transformer",
+      "hidden_dim": 128,
+      "transformer_layers": 1,
+      "transformer_heads": 4,
+      "expected_parameter_count": 200843,
+      "timing_contract": "ordered_slots_with_real_elapsed_time"
+    }
+  },
+  "model_common": {
+    "architecture": "cached_frame_feature_temporal_classifier_v1",
+    "feature_control_id": "V1",
+    "backbone_name": "resnet18",
+    "input_resolution": 224,
+    "dropout": 0.1
+  },
+  "optimization": {
+    "seed": 20260719,
+    "epochs": 3,
+    "batch_size": 32,
+    "evaluation_batch_size": 64,
+    "learning_rate": 0.003,
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 1.0,
+    "loss": "event_mass_balanced_cross_entropy",
+    "sampler": "frozen_native_first_selection_then_seeded_shuffle",
+    "checkpoint_selection": "native_global_10_class_macro_f1_then_nll",
+    "precision": "float32",
+    "maximum_loaded_batch_bytes": 2103552
+  },
+  "implementation": {
+    "path": "src/pig_behavior/classification_v2/training/legacy_development_temporal_base_selection.py",
+    "sha256": "77a9c9a3b0236c874b57fe70da80918e71667f3a9fc5c53a13772c102967b9df"
+  },
+  "model_implementation": {
+    "path": "src/pig_behavior/classification_v2/models/temporal_encoders.py",
+    "sha256": "f215301bf333f65c760199c3365d2c1c1d7e384181ab53cce8b305ac802e5e91"
+  },
+  "execution": {
+    "mode": "authorized_short_rebuild_16f",
+    "device": "cuda:0",
+    "required_repeats": ["repeat01", "repeat02"],
+    "require_fresh_process": true,
+    "require_distinct_process_ids": true,
+    "require_non_overlapping_execution": true,
+    "oom_retry_allowed": false,
+    "data_run_authorized": true,
+    "clean_lineage_handoff_id": "legacy_16f_rebuild_20260718_v2_p10_pass_base_selection_20260719_v2",
+    "full_oof_authorized": false
+  },
+  "output": {
+    "root": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_temporal_base_selection_rebuild_20260719_v4"
+  }
+}

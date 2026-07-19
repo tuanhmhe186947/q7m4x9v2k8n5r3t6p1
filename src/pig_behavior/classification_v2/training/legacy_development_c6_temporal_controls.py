@@ -22,6 +22,9 @@ from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
 from pig_behavior.classification_v2.training import (
     legacy_development_l5_cached_training as cached_engine,
 )
+from pig_behavior.classification_v2.training.legacy_c6_prepared_source import (
+    load_legacy_c6_prepared_source,
+)
 from pig_behavior.classification_v2.training.legacy_development_l5 import git_state
 from pig_behavior.classification_v2.training.legacy_development_l5_cached_data import (
     FEATURE_DIM,
@@ -56,6 +59,7 @@ from pig_behavior.classification_v2.training.temporal_perturbation_controls impo
 )
 
 CONFIG_SCHEMA = "classification_v2.legacy_c6_temporal_controls_config.v1"
+CONFIG_SCHEMA_V2 = "classification_v2.legacy_c6_temporal_controls_config.v2"
 PREFLIGHT_SCHEMA = "classification_v2.legacy_c6_temporal_controls_preflight.v1"
 RUN_SCHEMA = "classification_v2.legacy_c6_temporal_controls_run.v1"
 SHORT_GATE_SCHEMA = "classification_v2.legacy_c6_temporal_controls_short_gate.v1"
@@ -118,7 +122,7 @@ def load_c6_temporal_control_config(path: Path) -> C6TemporalControlConfig:
         payload=payload,
         repo_root=resolved.parents[2],
     )
-    _verify_file_spec(config.repo_root, payload["source_temporal_config"])
+    _verify_file_spec(config.repo_root, payload[_source_spec_name(payload)])
     _verify_file_spec(config.repo_root, payload["implementation"])
     _verify_file_spec(config.repo_root, payload["control_implementation"])
     _verify_file_spec(config.repo_root, payload["launcher"])
@@ -364,10 +368,7 @@ def data_c6_temporal_control_preflight(
 
     _require_data_authorization(config)
     full_gate = _validate_full_development_launch(config)
-    source_config = load_temporal_base_selection_config(
-        config.bound_path("source_temporal_config")
-    )
-    source = load_temporal_base_source(source_config)
+    source = _load_c6_source(config)
     base = derive_temporal_base_view(source.base_view, "M128").view
     keys = base.windows["temporal_unit_key"].astype(str).tolist()
     controls = config.payload["controls"]
@@ -926,12 +927,13 @@ def _write_run_artifacts(
 
 
 def _validate_config(payload: dict[str, Any]) -> None:
+    source_field = _source_spec_name(payload)
     required = {
         "schema_version",
         "training_scope",
         "lineage_scope",
         "experiment_contract",
-        "source_temporal_config",
+        source_field,
         "implementation",
         "control_implementation",
         "launcher",
@@ -947,7 +949,7 @@ def _validate_config(payload: dict[str, Any]) -> None:
     }
     if set(payload) != required:
         raise ValueError("C6 temporal-control config keys differ")
-    if payload["schema_version"] != CONFIG_SCHEMA:
+    if payload["schema_version"] not in {CONFIG_SCHEMA, CONFIG_SCHEMA_V2}:
         raise ValueError("C6 temporal-control config schema drift")
     if payload["training_scope"] not in {SHORT_SCOPE, FULL_SCOPE}:
         raise ValueError("C6 temporal-control training scope unsupported")
@@ -1000,7 +1002,7 @@ def _validate_config(payload: dict[str, Any]) -> None:
     if execution["data_run_authorized"]:
         _validate_authorized_execution(execution)
     for field in (
-        "source_temporal_config",
+        source_field,
         "implementation",
         "control_implementation",
         "launcher",
@@ -1008,6 +1010,28 @@ def _validate_config(payload: dict[str, Any]) -> None:
         spec = payload[field]
         if set(spec) != {"path", "sha256"} or not is_sha256(spec["sha256"]):
             raise ValueError(f"C6 temporal-control invalid file spec={field}")
+
+
+def _source_spec_name(payload: dict[str, Any]) -> str:
+    schema = payload.get("schema_version")
+    if schema == CONFIG_SCHEMA:
+        return "source_temporal_config"
+    if schema == CONFIG_SCHEMA_V2:
+        return "prepared_source"
+    raise ValueError("C6 temporal-control config schema drift")
+
+
+def _load_c6_source(config: C6TemporalControlConfig) -> Any:
+    source_field = _source_spec_name(config.payload)
+    if source_field == "prepared_source":
+        return load_legacy_c6_prepared_source(
+            config.bound_path(source_field),
+            repo_root=config.repo_root,
+        )
+    source_config = load_temporal_base_selection_config(
+        config.bound_path(source_field)
+    )
+    return load_temporal_base_source(source_config)
 
 
 def _require_data_authorization(config: C6TemporalControlConfig) -> None:

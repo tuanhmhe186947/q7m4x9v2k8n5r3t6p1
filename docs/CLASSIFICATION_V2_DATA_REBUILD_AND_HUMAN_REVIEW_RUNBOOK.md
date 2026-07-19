@@ -1,9 +1,30 @@
 # Classification V2 Data Rebuild And Human Review Runbook
 
-Tài liệu này hướng dẫn tái tạo dữ liệu `classification_v2` từ việc xuất
+## Model-search authority after reviewed-data handoff
+
+Human review and source freezing remain prerequisites. Once the selected main
+lineage is review-complete, use this scientific order:
+
+1. establish a strong, stable base with only enough tuning to act as a reliable
+   measurement instrument;
+2. freeze it and screen every modality/fusion using parameter-matched-zero,
+   availability-only, and real controls on identical grouped folds;
+3. select fusion candidates from all ten behavior rows, paired cluster
+   uncertainty, support, calibration, availability, and harm bounds;
+4. jointly tune backbone, temporal model, and selected fusion on rented GPUs;
+5. repeat matched confirmatory modality ablations on the tuned finalist.
+
+The screening pass narrows hypotheses but does not lock the final model. Deep
+tuning begins only after useful inputs and fusion candidates have evidence.
+Local RTX 3050 capacity is a correctness constraint, not an architecture limit.
+Preserve valid legacy/main runs and reusable caches, predictions, checkpoints,
+and diagnostics. Rerun only when semantics change or artifact integrity fails.
+Current legacy A128/all-seven evidence does not prove that steps 4 or 5 ran.
+
+Tài liệu này giữ candidate integration path từ
 `legacy_frame_object_annotations.csv` đến reviewed data, leakage-safe model
-inputs, model smoke và ranh giới cho phép chạy full OOF. Tài liệu không tự khởi
-chạy full training hoặc full OOF.
+inputs và model gates. Legacy 16f hiện không nằm trong main classification
+source manifest; tài liệu không tự kích hoạt merge, training hoặc full OOF.
 
 Luồng tạo lại legacy 16f từ raw/provenance/CVAT đến frame-object export nằm ở
 `docs/LEGACY_16F_REBUILD_FROM_SCRATCH_RUNBOOK.md`. Không dùng các lệnh trong
@@ -19,8 +40,27 @@ chỉ là artifact pilot/legacy chưa xác minh và không phải review authori
 Bounded legacy+CVAT chain đã PASS kỹ thuật cho identifier-v2, alignment và
 feature contract. Legacy L0-L8 cũng đã hoàn tất riêng cho profile
 `legacy-only-unreviewed-development`. Hai bằng chứng này không thay thế human
-review của profile `mixed-reviewed`, không cấp quyền gọi data là reviewed và
+review của legacy hoặc nhánh chính, không cấp quyền gọi data là reviewed và
 không tự cấp quyền chạy full OOF.
+
+### Ranh giới với nhánh classification chính ngày 2026-07-19
+
+Legacy 16f hiện là lineage/reference riêng và không nằm trong source manifest
+đang hoạt động của nhánh classification chính. Các lệnh merge legacy+CVAT trong
+runbook này mô tả một candidate integration path, không phải trạng thái active.
+Không chạy chúng cho nhánh chính nếu chưa có quyết định source mới và manifest
+versioned ghi rõ `legacy_16f` được đưa vào.
+
+Lane `legacy-only-unreviewed-development` trước đây được tạo để thử prompt/goal
+orchestration và sàng lọc cấu hình hoặc giả thuyết cho nhánh chính. Kết quả của
+lane này chỉ là bounded development evidence. Goal hoặc handback của legacy
+không tự kích hoạt, resume, PASS hay cấp quyền chạy goal P0-P8 của nhánh chính;
+mọi cấu hình muốn chuyển sang nhánh chính phải được test lại trên snapshot,
+folds, review gates và short gate của chính nhánh đó.
+
+Legacy 16f vẫn cần review Hidden và behavior nếu muốn gọi chính lineage này là
+reviewed hoặc dùng nó cho train-ready evidence. Review đó độc lập với review của
+nhánh chính và không được tính thay cho coverage của nhánh chính.
 
 ### Trạng thái canonical của legacy 16f ngày 2026-07-19
 
@@ -49,6 +89,49 @@ Coverage được xác minh của lineage mới hiện vẫn là `Hidden = 0 dec
 `behavior = 0 decisions`. Không được dùng trạng thái sạch kỹ thuật để bypass
 hai gate này, tạo final reviewed snapshot, chạy training trên active data hoặc
 chạy full OOF.
+
+## C6 screening record ngày 2026-07-19
+
+Sau handoff kỹ thuật của rebuild mới, thứ tự chạy đúng là: C6 temporal
+controls (18/18 fresh repeats), freeze A128, dựng modality inputs/cache, rồi
+C6 modality matrix (22 mode x 2 fresh processes) và paired evaluation. Decision
+đạt `PASS` với 44 packet hợp lệ, 14 paired comparisons, 2.000 bootstrap draws
+cho mỗi comparison, 241 validation native units, 32 video clusters và không có
+lỗi packet.
+
+Config là
+`configs/classification_v2/legacy_development_c6_modality_matrix_rebuild_20260719_v2.json`;
+output là
+`outputs/classification_v2/legacy_only_unreviewed_development/c6mm_20260719_v1`.
+Đây vẫn là `legacy-only-unreviewed-development` và quality status là
+`TECHNICALLY_CLEAN_UNREVIEWED_DOUBLE_CHECK_PENDING`. Hidden/behavior review
+chỉ là double-check; không có full development, full OOF hoặc Q2 claim nào
+được mở. Input model dùng các feature cache `.npy` hash-bound và training đọc
+zero source media.
+
+### C6 behavior-conditional interpretation and main-lineage retest
+
+The C6 screen contains all seven optional branches and all ten behavior
+classes. A branch that fails the global legacy promotion gate is `deferred`,
+not removed and not proven useless for every class. Preserve its per-class
+precision, recall, F1, confusion, support, and paired predictions.
+
+After the exact main lineage reaches `REVIEW_STAGE=behavior_complete`, freeze
+its source manifest, snapshot, native units, folds, actor base, temporal view,
+feature whitelist, seeds, and metric contract. Then:
+
+1. retest geometry, motion, ROI, numeric social, pen, union, and full-frame
+   context with parameter-matched-zero, availability-only, and real controls;
+2. report all ten behaviors, behavior groups, sources, availability strata,
+   NLL/calibration, and paired video-cluster intervals per class;
+3. predeclare target behaviors and non-target harm bounds for each modality;
+4. test behavior-conditional or residual fusion only on development folds,
+   without selecting weights from outer-fold predictions;
+5. repeat correctness and short gates after every semantic change, then lock
+   finalists before requesting full OOF authorization.
+
+No legacy point estimate transfers to the main lineage. No main data/model run
+starts from this section while Hidden or behavior review is incomplete.
 
 ## 1. Trạng thái và quyền chạy full
 
@@ -641,7 +724,12 @@ hành phải recompute eligibility theo `schema.py`; review policy mới là aut
 cho interaction/ROI/motion/posture. Cấm đưa các cột legacy này vào X hoặc dùng
 chúng để route modality, partner hay image context.
 
-## 7. Merge legacy và CVAT
+## 7. Candidate merge legacy và CVAT - hiện không active
+
+Mục này chỉ giữ flow tích hợp dự phòng. Main classification source manifest
+hiện không chứa legacy 16f, nên không chạy short/full merge bên dưới cho main.
+Muốn kích hoạt lại phải có quyết định source mới, `RUN_ID` mới và full lineage
+audit; việc P0-P10 legacy PASS không đủ để bật merge.
 
 Khai báo allowlist một lần trong cùng cửa sổ CMD:
 
@@ -685,7 +773,7 @@ trong 10 lớp hợp lệ, key được tạo và không source nào mất toàn
 theo từng source, chỉ dùng để kiểm parser/schema, không dùng để ước lượng phân
 bố lớp.
 
-### 7.2. Full merge
+### 7.2. Full candidate merge
 
 ```bat
 %PY% %S0%\classification_v2_merge_sources.py ^
@@ -897,21 +985,23 @@ Mở GUI pilot sau media gate:
 --max-items 5
 ```
 
-Sau khi Hidden smoke PASS, chạy GUI lại trên cùng manifest nhưng không giới hạn
-`--max-items`. Đây là lệnh full Hidden review; ghi vào `%HDEC%` để giữ
-decision smoke trong `%HSMDEC%` tách biệt với decision authority chính:
+Sau pilot 5 item, chạy lại đúng manifest smoke và đúng `%HSMDEC%`, nhưng bỏ
+`--max-items`, để hoàn tất toàn bộ decision của short scope. Đây vẫn chỉ là
+Hidden smoke; tuyệt đối chưa ghi vào `%HDEC%`. `%HDEC%` chỉ bắt đầu ở mục
+8A.2a với full manifest `%HREV%`:
 
 ```bat
 %PY% %S1%\review_hidden_quality_gui.py ^
   --manifest-csv %HSM%\hidden_review_unit_manifest.csv ^
   --frame-features-csv %HSM%\hidden_review_frame_context.csv ^
-  --output-dir %HDEC% --reviewer %REVIEWER_NAME% ^
+  --output-dir %HSMDEC% --reviewer %REVIEWER_NAME% ^
   --video-root data\videos ^
   --crop-root "%L16CROPS%"
 ```
 
-Sau khi full GUI hoàn tất, chạy coverage checker và apply theo đúng các lệnh
-ngay bên dưới. Không tạo fake decision để ép smoke hoặc full review PASS.
+Chỉ sau khi short-scope GUI hoàn tất mới chạy coverage checker và apply smoke
+ngay bên dưới. Không dùng artifact này làm full review authority và không tạo
+fake decision để ép smoke hoặc full review PASS.
 
 ```bat
 %PY% %S1%\check_hidden_review_decision_coverage.py ^
@@ -1233,9 +1323,11 @@ không được diễn giải như bằng chứng chắc chắn về ăn/uống 
   --sequence-window-manifest-csv %SEQ0%\sequence_window_manifest.csv ^
   --output-dir %REV% ^
   --max-units-per-template 100000 ^
+  --include-all-retained-legacy-units ^
   --disable-window-review-overlay
 %PY% %S1%\check_review_unit_template_coverage.py ^
-  --review-unit-dir %REV%
+  --review-unit-dir %REV% ^
+  --require-complete-legacy
 %PY% %S0%\check_classification_v2_cvat_anchor_case.py ^
   --enhanced-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --intervals-csv %SEQ0%\temporal_label_intervals.csv ^
@@ -1250,13 +1342,31 @@ không được diễn giải như bằng chứng chắc chắn về ăn/uống 
   --output-json %REV%\temporal_evidence_audit.json
 ```
 
+Flag `--include-all-retained-legacy-units` đưa mọi native unit legacy 16-frame
+được giữ vào behavior-review manifest, kể cả unit ổn định không có evidence
+conflict. Flag `--require-complete-legacy` đối chiếu
+`review_unit_manifest.csv` với `full_review_unit_manifest.csv` và fail nếu thiếu
+bất kỳ legacy unit nào. Đây là cặp gate bắt buộc khi gọi legacy 16f là complete
+behavior-reviewed.
+
+Hai flag này chỉ kiểm tra các `legacy_recovered` unit đã hiện diện trong
+`%SEQ0%\temporal_label_intervals.csv`; chúng không tự nhập standalone legacy 16f
+vào main source manifest. Nếu lineage hiện tại không có legacy (trạng thái main
+hiện tại), checker vẫn PASS cho phần CVAT nhưng không được gọi đó là legacy
+behavior review. Muốn review standalone legacy 16f phải tạo `RUN_ID`/source
+manifest/feature chain riêng, bind trực tiếp với export P0-P10 và dùng Hidden,
+review-unit, decision root riêng; không trộn hoặc tái sử dụng artifact của main.
+
 Flag `--disable-window-review-overlay` ngăn builder đọc window-review artifact
 canonical cũ. Chỉ bật overlay khi có file review window thuộc đúng `RUN_ID` và
 hash đã khóa.
 
 Gate: duplicate `review_unit_id=0`, không có `window_uid`, template labels đúng
-policy, `full_review_unit_manifest.csv` bằng union của các template và temporal
-evidence audit không phát hiện label/review leakage vào trainer whitelist.
+policy, mọi retained legacy unit đều có trong full review, và
+`full_review_unit_manifest.csv` bằng union của các template. Builder vẫn tạo
+`temporal_consistency_review_unit_template.csv`; với 10 behavior canonical file
+này phải rỗng. Nếu nó có row thì dừng thay vì bỏ qua. Temporal evidence audit
+không được phát hiện label/review leakage vào trainer whitelist.
 
 ## 11. GUI smoke và human review đầy đủ
 

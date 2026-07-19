@@ -36,6 +36,16 @@ Rules:
 
 - When asked to audit, do not modify code.
 - When asked to patch, keep the patch small and reversible.
+- Before executing a user issue, prompt, or requested workflow, inspect the
+  relevant local authority, source, config, data contract, and current state.
+  Resolve discoverable technical facts with read-only checks first. If the
+  intended outcome, scope, terminology, authority, source lineage, acceptance
+  criteria, or a material design choice is still not fully clear, stop before
+  edits, runs, or external effects and ask the user concise clarifying questions.
+  State what is known, exactly what remains ambiguous, and why the answer changes
+  the implementation or result. Do not silently choose a direction or continue
+  until the user answers. Do not ask about facts that can be safely discovered
+  from authoritative project sources.
 - The user grants standing approval for project-local Markdown edits. Treat
   Markdown confirmation as "Yes, and don't ask again for these files"; do not
   request confirmation solely to create or modify a `.md` file in this

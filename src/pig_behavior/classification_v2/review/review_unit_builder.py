@@ -53,6 +53,7 @@ class ReviewUnitConfig:
     output_dir: Path
     window_review_manifest_csv: Path | None = None
     max_units_per_template: int = 0
+    include_all_retained_legacy_units: bool = False
 
 
 def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
@@ -113,8 +114,37 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
         units["review_reasons_window"] = ""
         units["review_priority_window_max"] = 0.0
 
-    units = _finalize_unit_review_fields(units)
+    units = _finalize_unit_review_fields(
+        units,
+        include_all_retained_legacy_units=config.include_all_retained_legacy_units,
+    )
     behavior_evidence_audit = audit_behavior_review_evidence(units)
+
+    legacy_units = units[units["review_unit_type"].astype(str).eq("legacy_burst_16")]
+    reviewed_legacy_units = legacy_units[
+        legacy_units["include_in_review"].astype(bool)
+    ]
+    expected_legacy_ids = set(legacy_units["review_unit_id"].astype(str))
+    reviewed_legacy_ids = set(reviewed_legacy_units["review_unit_id"].astype(str))
+    missing_legacy_ids = sorted(expected_legacy_ids - reviewed_legacy_ids)
+    review_scope = {
+        "include_all_retained_legacy_units": bool(
+            config.include_all_retained_legacy_units
+        ),
+        "expected_legacy_native_units": int(len(expected_legacy_ids)),
+        "reviewed_legacy_native_units": int(len(reviewed_legacy_ids)),
+        "missing_legacy_native_units": int(len(missing_legacy_ids)),
+        "missing_legacy_native_unit_sample": missing_legacy_ids[:20],
+    }
+    errors: list[str] = []
+    if config.include_all_retained_legacy_units:
+        if not expected_legacy_ids:
+            errors.append("required_complete_legacy_review_but_no_legacy_units")
+        elif missing_legacy_ids:
+            errors.append(
+                "missing_complete_legacy_review_units="
+                f"{len(missing_legacy_ids)}"
+            )
 
     contract_audit = audit_review_unit_contract(units)
     input_errors = _input_contract_errors(intervals, windows, units)
@@ -122,7 +152,7 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
         units,
         config.max_units_per_template,
     )
-    errors = input_errors + list(contract_audit["errors"]) + capacity_errors
+    errors.extend(input_errors + list(contract_audit["errors"]) + capacity_errors)
     errors.extend(behavior_evidence_audit["errors"])
     warnings = list(contract_audit["warnings"])
     warnings.extend(behavior_evidence_audit["warnings"])
@@ -139,6 +169,7 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
             },
             "review_unit_contract": contract_audit,
             "behavior_evidence": behavior_evidence_audit,
+            "review_scope": review_scope,
         }
         audit_path = config.output_dir / "review_unit_audit.json"
         audit_path.write_text(
@@ -189,6 +220,7 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
         },
         "review_unit_contract": contract_audit,
         "behavior_evidence": behavior_evidence_audit,
+        "review_scope": review_scope,
         "template_partition": template_audit,
         "review_reason_counts": _counts(
             units[units["include_in_review"].astype(bool)],
@@ -471,7 +503,11 @@ def _validate_window_review_overlay_keys(
         raise ValueError("window review overlay key contract failed: " + "; ".join(errors))
 
 
-def _finalize_unit_review_fields(units: pd.DataFrame) -> pd.DataFrame:
+def _finalize_unit_review_fields(
+    units: pd.DataFrame,
+    *,
+    include_all_retained_legacy_units: bool = False,
+) -> pd.DataFrame:
     out = units.copy()
     sort_columns = [
         "source_type",
@@ -521,6 +557,14 @@ def _finalize_unit_review_fields(units: pd.DataFrame) -> pd.DataFrame:
 
     out["review_reason"] = reason.fillna("")
     out["include_in_review"] = out["review_reason"].astype(str).ne("")
+
+    if include_all_retained_legacy_units:
+        legacy_mask = out["review_unit_type"].astype(str).eq("legacy_burst_16")
+        out.loc[
+            legacy_mask & out["review_reason"].astype(str).eq(""),
+            "review_reason",
+        ] = "full_legacy_native_unit_review"
+        out.loc[legacy_mask, "include_in_review"] = True
 
     priority = pd.to_numeric(out["review_priority_window_max"], errors="coerce").fillna(0.0)
     evidence_priority = pd.to_numeric(

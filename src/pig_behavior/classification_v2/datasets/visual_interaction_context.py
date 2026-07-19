@@ -143,8 +143,13 @@ def build_visual_interaction_cache(config: VisualInteractionCacheConfig) -> dict
             preview_rel = ""
             if image is not None:
                 rel = _cache_relative_path(context_id)
-                (cache_root / rel).parent.mkdir(parents=True, exist_ok=True)
-                np.save(cache_root / rel, image)
+                cache_path = cache_root / rel
+                cache_path.parent.mkdir(parents=True, exist_ok=True)
+                _write_or_validate_cache_image(
+                    cache_path,
+                    image,
+                    resume=config.resume,
+                )
                 cache_rel = str(Path(cache_root.name) / rel)
                 if previews_written < config.preview_limit:
                     preview_name = f"{previews_written:04d}_{context_id[:12]}.jpg"
@@ -675,6 +680,29 @@ def _file_sha256(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _write_or_validate_cache_image(
+    path: Path,
+    image: np.ndarray,
+    *,
+    resume: bool,
+) -> None:
+    """Write one cache row or verify an orphan created after a checkpoint."""
+
+    if path.exists():
+        if not resume:
+            raise FileExistsError(path)
+        existing = np.load(path, allow_pickle=False)
+        if (
+            existing.shape != image.shape
+            or existing.dtype != image.dtype
+            or not np.array_equal(existing, image)
+        ):
+            raise ValueError(f"resume cache image differs: {path}")
+        return
+    with path.open("xb") as handle:
+        np.save(handle, image, allow_pickle=False)
 
 
 def _require_unchanged_file(

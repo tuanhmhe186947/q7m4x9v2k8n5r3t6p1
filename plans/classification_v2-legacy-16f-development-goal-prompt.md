@@ -6,7 +6,58 @@ Status: scoped goal authority for a separate chat
 
 Use this prompt to create a project goal dedicated to the
 `legacy-only-unreviewed-development` lane. It does not replace the canonical
-reviewed all-source P0-P8 goal.
+main reviewed P0-P8 goal or define that goal's source membership.
+
+Current boundary, 2026-07-19: this prompt was exercised as an isolated prompt/
+goal-orchestration and configuration-screening lane. Legacy 16f is not currently
+an input of the main classification branch. Reusing this prompt creates only a
+new isolated legacy goal; it cannot activate or resume the main goal. Main-branch
+experiments must use the core execution prompt and bind the main source manifest,
+reviewed snapshot, folds, hashes and authorization independently.
+
+## C6 screening completion record (2026-07-19)
+
+The rebuild-bound continuation completed the requested order: temporal controls,
+A128 freeze, modality input/cache build, then modality matrix evaluation.
+Temporal controls passed 18/18 fresh repeats. The modality matrix passed 22
+modes x 2 fresh processes and 14 paired comparisons with zero packet errors.
+This is bounded `legacy-only-unreviewed-development` evidence only; Hidden and
+behavior review remain double-check pending. The authorized bounded legacy
+full-development runs are complete; full OOF, Q2 and main-branch promotion
+remain unauthorized.
+
+## Locked model-search authority (2026-07-19)
+
+Continue classifier research in exactly this order:
+
+1. Build a sufficiently strong and stable base, tuning only enough for it to
+   be a reliable measurement instrument.
+2. Freeze that base and run seven singles, all 21 pairs, beam-search larger
+   subsets, and leave-one-out. Every subset has parameter-matched-zero,
+   availability-only, and real-value controls.
+3. Freeze the selected subset before comparing fusion structures. Use all ten
+   behaviors, paired uncertainty, calibration, support, and non-target harm.
+4. Jointly tune backbone, temporal model, and selected fusion at scale on
+   rented GPUs.
+5. Repeat confirmatory modality ablations on the tuned strong model.
+
+Controlled-base screening is not the final model decision, and deep tuning
+must not begin from an architecture known to omit untested useful inputs. The
+local RTX 3050 is a correctness host, not a research limit. Preserve and reuse
+valid runs, caches, predictions, and diagnostics; rerun only after a semantic
+change or failed artifact audit. The existing A128 and all-seven results satisfy
+screening evidence only; they do not claim that rented-GPU joint tuning or the
+final confirmatory ablation has already run.
+
+The all-seven result is one endpoint/reference, not completion of subset or
+fusion-family search. Before rejecting a modality, classify the failure using
+input quality, modality-only, actor-residual, permutation, optimization and
+stronger-fusion probes. Route unresolved negatives to full-data or stronger-
+model retest instead of recording an unsupported `DROP`.
+
+Legacy 16f is limited to engine validation, synthetic checks and representative
+short subset canaries. Do not run its complete 21-pair/beam ladder as final
+model selection. Hand that executable design to the frozen reviewed main goal.
 
 ## Goal Request
 
@@ -448,8 +499,9 @@ After this scoped goal is genuinely complete, return to the original chat and
 send:
 
 ```text
-Resume full classification_v2 Q2 goal using the completed `legacy_16f` handback
-and re-audit the canonical reviewed all-source P0-P8 blockers.
+Resume the main classification_v2 Q2 goal. Use the completed `legacy_16f`
+handback only to nominate configs for retest, then bind and audit the main
+source manifest, reviewed snapshot and P0-P8 blockers independently.
 ```
 
 The parent goal remains blocked/incomplete until resumed. Legacy completion

@@ -1,0 +1,147 @@
+{
+  "schema_version": "classification_v2.legacy_development.c6_modality_matrix.v3",
+  "training_scope": "full_development_confirmation",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "experiment_contract": {
+    "experiment_id": "LEGACY_C6_MODALITY_FULL_DEVELOPMENT_20260719_V1",
+    "changed_scientific_family": "single_optional_modality",
+    "outer_predictions_used_for_model_selection": false,
+    "reviewed_or_final_claim_allowed": false,
+    "q2_claim_allowed": false,
+    "full_oof_authorized": false,
+    "main_branch_promotion_allowed": false,
+    "selected_skills": [
+      "safe-refactor-test-guardian",
+      "dataset-contract-leakage-guard",
+      "experiment-lineage-reproducibility",
+      "scientific-ablation-controller",
+      "multimodal-sequence-model-builder",
+      "grouped-cv-evaluation",
+      "computer-vision-opencv"
+    ]
+  },
+  "prepared_source": {
+    "path": "outputs/classification_v2/legacy_only_unreviewed_development/c6fd_20260719_v3/06_c6_prepared_source/prepared_source_manifest.json",
+    "sha256": "11df7557a3262a05aca2187d90febe6721f624ee9d8ffc7343ebb0e853ff2622"
+  },
+  "temporal_base_freeze": {
+    "path": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_c6_temporal_controls_20260719_v3_cpu/c6_temporal_base_freeze.json",
+    "sha256": "150b61fddc42464d4d4767d55d5615d63507a02df6b74805c0ba85faffcf9a69"
+  },
+  "promotion_freeze": {
+    "path": "outputs/classification_v2/legacy_only_unreviewed_development/c6mm_20260719_v1/c6_modality_promotion_freeze.json",
+    "sha256": "d10f387bfa55eccf2ccdd653c122356e2bfb11ae30888cd4477f5159506968da"
+  },
+  "inputs": {
+    "harmonized_frames": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_c6_screening_20260719_v1/03_sequence/training_ready_frame_features_harmonized_preview.csv",
+      "sha256": "d76a0b5b12e1c38eb050e7787776e51df8110114bf8afb1c2ecff847918e5805"
+    },
+    "pen_mask": {
+      "path": "data/annotations/scene/mask.png",
+      "sha256": "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658"
+    },
+    "image_window_context_manifest": {
+      "path": "outputs/c6fd_20260719_v6/union_inputs/image_window_context_manifest.csv",
+      "sha256": "d121e93d3b95923fef04df386dd7b08cf4c8a25b596dab932f4e653ccf7bd8ae"
+    },
+    "union_feature_tensor": {
+      "path": "outputs/c6fd_20260719_v6/union_features/resnet18_features_f32.npy",
+      "sha256": "ea55f1bffc23f4d9aaa349d8fbb0e9642aeaed86272c406554936eb7bb505f13"
+    },
+    "union_feature_index": {
+      "path": "outputs/c6fd_20260719_v6/union_features/resnet18_feature_index.csv",
+      "sha256": "b1f4cfb0509be3ccb57436425224b56f128de652595e5d36cb9255629e7a248f"
+    }
+  },
+  "pen_context": {
+    "mask_threshold": 127,
+    "near_boundary_clearance_ratio": 1.0,
+    "fixed_camera_calibration_only": true
+  },
+  "temporal_contract": {
+    "base_mode": "A128",
+    "native_frame_offsets": [5, 6, 7, 8, 9, 10],
+    "sequence_length": 6,
+    "one_sequence_per_native_unit": true,
+    "native_evaluation_unit": "complete_16_frame_burst"
+  },
+  "matrix": {
+    "modalities": [
+      "roi",
+      "union_context"
+    ],
+    "controls": [
+      "parameter_matched_zero",
+      "availability_only",
+      "real"
+    ],
+    "mode_ids": [
+      "actor_only",
+      "roi__parameter_matched_zero",
+      "roi__availability_only",
+      "roi__real",
+      "union_context__parameter_matched_zero",
+      "union_context__availability_only",
+      "union_context__real"
+    ]
+  },
+  "model": {
+    "actor_feature_control": "V1_resnet18_224_imagenet1k_v1",
+    "actor_feature_dim": 512,
+    "temporal_encoder_name": "masked_attention",
+    "hidden_dim": 128,
+    "dropout": 0.1,
+    "final_behavior_classes": [
+      "drink",
+      "eat",
+      "fight",
+      "social-nose",
+      "explore",
+      "lying",
+      "stand",
+      "move",
+      "sitting",
+      "playwithtoy"
+    ]
+  },
+  "optimization": {
+    "device": "cuda:0",
+    "seed": 20260717,
+    "epochs": 3,
+    "batch_size": 32,
+    "evaluation_batch_size": 64,
+    "learning_rate": 0.003,
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 1.0,
+    "loss": "event_mass_balanced_cross_entropy",
+    "sampler": "frozen_native_first_selection_then_seeded_shuffle",
+    "checkpoint_selection": "native_global_10_class_macro_f1_then_nll",
+    "maximum_loaded_batch_bytes": 8388608,
+    "maximum_optimizer_steps": 345
+  },
+  "evaluation": {
+    "native_unit": "complete_16_frame_burst",
+    "cluster_unit": "video_key",
+    "bootstrap_draws": 2000,
+    "bootstrap_seed": 20260719,
+    "report_per_class_and_behavior_group": true
+  },
+  "execution": {
+    "profile": "authorized_full_development_rebuild_16f",
+    "data_run_authorized": true,
+    "clean_lineage_handoff_id": "legacy_16f_rebuild_20260718_v2_c6_full_development_20260719_v1",
+    "repeats": ["full01"],
+    "short_gate_required_before_full_development": true,
+    "full_oof_authorized": false,
+    "q2_claim_allowed": false,
+    "main_branch_promotion_allowed": false
+  },
+  "implementation": {
+    "path": "src/pig_behavior/classification_v2/training/legacy_development_c6_modality_matrix.py",
+    "sha256": "e2f6924faf19c4298a68625bc41b972f41d4b84104ae16dc7b6f681a2567e334"
+  },
+  "output": {
+    "root_relative_path": "outputs/c6fd_20260719_v6/full_matrix"
+  }
+}

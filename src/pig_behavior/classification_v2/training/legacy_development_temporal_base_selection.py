@@ -21,6 +21,10 @@ from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
 from pig_behavior.classification_v2.training import (
     legacy_development_l5_cached_training as cached_engine,
 )
+from pig_behavior.classification_v2.training.legacy_c6_prepared_source import (
+    LegacyC6PreparedSource,
+    load_legacy_c6_prepared_source,
+)
 from pig_behavior.classification_v2.training.legacy_development_l5 import (
     git_state,
 )
@@ -49,6 +53,9 @@ from pig_behavior.classification_v2.training.lineage_hashing import (
 
 CONFIG_SCHEMA = (
     "classification_v2.legacy_development.temporal_base_selection_config.v1"
+)
+CONFIG_SCHEMA_V2 = (
+    "classification_v2.legacy_development.temporal_base_selection_config.v2"
 )
 PREFLIGHT_SCHEMA = (
     "classification_v2.legacy_development.temporal_base_selection_preflight.v1"
@@ -156,7 +163,8 @@ class TemporalBaseSelectionConfig:
 
     @property
     def source_config_path(self) -> Path:
-        value = str(self.payload["source_ladder_config"]["path"])
+        source_field = _source_spec_name(self.payload)
+        value = str(self.payload[source_field]["path"])
         return self.repo_root / value
 
     @property
@@ -187,16 +195,27 @@ def load_temporal_base_selection_config(
         payload=payload,
         repo_root=resolved.parents[2],
     )
-    _verify_file_spec(config.repo_root, payload["source_ladder_config"])
+    source_field = _source_spec_name(payload)
+    _verify_file_spec(config.repo_root, payload[source_field])
     _verify_file_spec(config.repo_root, payload["implementation"])
+    if config.payload["schema_version"] == CONFIG_SCHEMA_V2:
+        _verify_file_spec(config.repo_root, payload["model_implementation"])
     return config
 
 
 def load_temporal_base_source(
     config: TemporalBaseSelectionConfig,
-) -> TemporalSamplingSource:
+) -> TemporalSamplingSource | LegacyC6PreparedSource:
     """Reuse the frozen T16 source and its native-first grouped selection."""
 
+    if config.payload["schema_version"] == CONFIG_SCHEMA_V2:
+        execution = config.payload["execution"]
+        if execution.get("data_run_authorized") is not True:
+            raise PermissionError("rebuild temporal-base data run is fail-closed")
+        return load_legacy_c6_prepared_source(
+            config.source_config_path,
+            repo_root=config.repo_root,
+        )
     shim = TemporalSamplingConfig(
         path=config.path,
         payload={
@@ -305,7 +324,7 @@ def derive_temporal_base_view(
 
 def build_training_adapter(
     config: TemporalBaseSelectionConfig,
-    source: TemporalSamplingSource,
+    source: TemporalSamplingSource | LegacyC6PreparedSource,
     derived: DerivedTemporalBaseView,
 ) -> tuple[LegacyL5CachedTrainingConfig, LegacyL5CachedShortSelection]:
     """Bind one mode to the canonical cached trainer and frozen selection."""
@@ -566,7 +585,7 @@ def execute_temporal_base_run(
         adapter, selection = build_training_adapter(config, source, derived)
         device = str(config.payload["execution"]["device"])
         if device.startswith("cuda"):
-            torch.cuda.reset_peak_memory_stats(torch.device(device))
+            torch.cuda.reset_peak_memory_stats()
         outcome = train_legacy_l5_cached_short_core(
             derived.view,
             selection,
@@ -718,7 +737,7 @@ def _write_success_artifacts(
     *,
     run_root: Path,
     mode_id: str,
-    source: TemporalSamplingSource,
+    source: TemporalSamplingSource | LegacyC6PreparedSource,
     derived: DerivedTemporalBaseView,
     selection: LegacyL5CachedShortSelection,
     adapter: LegacyL5CachedTrainingConfig,
@@ -979,10 +998,11 @@ def _validate_adapter(
     adapter: LegacyL5CachedTrainingConfig,
 ) -> None:
     data = adapter.payload["data"]
-    expected_train = 80 if config.training_scope == SHORT_SCOPE else 3_652
+    expected_train = int(data["expected_train_native_units"])
+    expected_validation = int(data["expected_validation_native_units"])
     if len(selection.train_positions) != expected_train:
         raise ValueError("temporal-base train native count drift")
-    if len(selection.validation_positions) != 245:
+    if len(selection.validation_positions) != expected_validation:
         raise ValueError("temporal-base validation native count drift")
     if selection.audit.get("outer_holdout_rows") != 0:
         raise ValueError("temporal-base selection exposes outer holdout")
@@ -1031,12 +1051,13 @@ def _mode_spec(mode_id: str) -> dict[str, Any]:
 
 
 def _validate_config(payload: dict[str, Any]) -> None:
+    source_field = _source_spec_name(payload)
     required = {
         "schema_version",
         "training_scope",
         "lineage_scope",
         "experiment_contract",
-        "source_ladder_config",
+        source_field,
         "modes",
         "model_common",
         "optimization",
@@ -1044,9 +1065,11 @@ def _validate_config(payload: dict[str, Any]) -> None:
         "execution",
         "output",
     }
+    if payload.get("schema_version") == CONFIG_SCHEMA_V2:
+        required.add("model_implementation")
     if set(payload) != required:
         raise ValueError("temporal-base config keys differ")
-    if payload["schema_version"] != CONFIG_SCHEMA:
+    if payload["schema_version"] not in {CONFIG_SCHEMA, CONFIG_SCHEMA_V2}:
         raise ValueError("temporal-base config schema drift")
     if payload["training_scope"] not in {SHORT_SCOPE, FULL_SCOPE}:
         raise ValueError("unsupported temporal-base training scope")
@@ -1088,10 +1111,29 @@ def _validate_config(payload: dict[str, Any]) -> None:
     if payload["training_scope"] == SHORT_SCOPE:
         if execution.get("required_repeats") != ["repeat01", "repeat02"]:
             raise ValueError("temporal-base short repeats drift")
-    for field in ("source_ladder_config", "implementation"):
+    if payload["schema_version"] == CONFIG_SCHEMA_V2:
+        if execution.get("data_run_authorized") is not True:
+            raise ValueError("rebuild temporal-base run is not authorized")
+        if not str(execution.get("clean_lineage_handoff_id", "")).strip():
+            raise ValueError("rebuild temporal-base clean handoff is missing")
+        if execution.get("full_oof_authorized") is not False:
+            raise ValueError("rebuild temporal-base cannot authorize full OOF")
+    fields = [source_field, "implementation"]
+    if payload["schema_version"] == CONFIG_SCHEMA_V2:
+        fields.append("model_implementation")
+    for field in fields:
         spec = payload[field]
         if set(spec) != {"path", "sha256"} or not is_sha256(spec["sha256"]):
             raise ValueError(f"invalid temporal-base {field}")
+
+
+def _source_spec_name(payload: dict[str, Any]) -> str:
+    schema = payload.get("schema_version")
+    if schema == CONFIG_SCHEMA:
+        return "source_ladder_config"
+    if schema == CONFIG_SCHEMA_V2:
+        return "prepared_source"
+    raise ValueError("temporal-base config schema drift")
 
 
 def _verify_file_spec(root: Path, spec: dict[str, Any]) -> Path:

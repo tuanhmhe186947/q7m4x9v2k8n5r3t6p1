@@ -243,7 +243,10 @@ def _continuous_time_encoding(
     *,
     dtype: torch.dtype,
 ) -> torch.Tensor:
-    elapsed = torch.cumsum(time_delta, dim=1)
+    elapsed_parts = [torch.zeros_like(time_delta[:, 0])]
+    for position in range(1, time_delta.shape[1]):
+        elapsed_parts.append(elapsed_parts[-1] + time_delta[:, position])
+    elapsed = torch.stack(elapsed_parts, dim=1)
     half = max(1, embedding_dim // 2)
     denominator = max(1, half - 1)
     frequencies = torch.exp(

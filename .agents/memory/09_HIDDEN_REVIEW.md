@@ -7,8 +7,18 @@ harmonization. Hidden is a frame/object visibility attribute, not a behavior
 target and not a native-unit decision.
 
 CVAT Hidden values are tracking-derived and untrusted until current human
-review. Legacy values retain prior-review provenance unless a current reviewer
-marks the item unclear.
+review. Legacy values may retain prior provenance as audit metadata, but the
+canonical 16f P0-P10 PASS does not establish current human trust. The standalone
+legacy 16f lineage still requires two-sided frame/object Hidden review before
+reviewed or train-ready use.
+
+Legacy 16f is currently outside the main classification source manifest. Its
+Hidden decisions therefore neither satisfy nor block main-branch coverage; the
+main branch must bind and review its own selected source population.
+
+Hidden smoke and full authority use disjoint roots. Smoke review and apply use
+`%HSM%` plus `%HSMDEC%`; full review uses `%HREV%` plus `%HDEC%`. Never direct a
+smoke manifest into `%HDEC%`, and never count `%HSMDEC%` toward full coverage.
 
 ## Review design
 

@@ -679,9 +679,16 @@ def _summarize_window(
     hidden_longest_run_ratio = (
         hidden_longest_run_frames / length if length > 0 else 0.0
     )
+    hidden_trusted_longest_run_frames = _longest_hidden_run_frames(
+        wg,
+        hidden_effective,
+    )
+    hidden_trusted_longest_run_ratio = (
+        hidden_trusted_longest_run_frames / length if length > 0 else 0.0
+    )
     hidden_policy_tier, hidden_policy_reasons = _classify_hidden_window(
-        hidden_ratio=hidden_ratio_raw,
-        longest_run_ratio=hidden_longest_run_ratio,
+        hidden_ratio=hidden_ratio,
+        longest_run_ratio=hidden_trusted_longest_run_ratio,
         config=config,
     )
     spatio_ratio = _bool_mean(
@@ -791,6 +798,12 @@ def _summarize_window(
         "hidden_burden_ratio_window": hidden_ratio_raw,
         "hidden_longest_run_frames_window": hidden_longest_run_frames,
         "hidden_longest_run_ratio_window": hidden_longest_run_ratio,
+        "hidden_trusted_longest_run_frames_window": (
+            hidden_trusted_longest_run_frames
+        ),
+        "hidden_trusted_longest_run_ratio_window": (
+            hidden_trusted_longest_run_ratio
+        ),
         "hidden_window_policy_tier": hidden_policy_tier,
         "high_hidden_ratio_window": (
             hidden_ratio_raw > config.max_hidden_ratio_main
@@ -863,6 +876,8 @@ def _empty_invalid_window(
         "hidden_burden_ratio_window": 0.0,
         "hidden_longest_run_frames_window": 0,
         "hidden_longest_run_ratio_window": 0.0,
+        "hidden_trusted_longest_run_frames_window": 0,
+        "hidden_trusted_longest_run_ratio_window": 0.0,
         "hidden_window_policy_tier": "exclude",
         "high_hidden_ratio_window": False,
         "long_hidden_run_window": False,

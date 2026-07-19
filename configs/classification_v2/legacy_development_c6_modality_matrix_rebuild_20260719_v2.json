@@ -1,0 +1,167 @@
+{
+  "schema_version": "classification_v2.legacy_development.c6_modality_matrix.v2",
+  "training_scope": "short_repeat_gate",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "experiment_contract": {
+    "experiment_id": "LEGACY_C6_MODALITY_REBUILD_20260719_V2",
+    "changed_scientific_family": "single_optional_modality",
+    "outer_predictions_used_for_model_selection": false,
+    "reviewed_or_final_claim_allowed": false,
+    "q2_claim_allowed": false,
+    "full_oof_authorized": false,
+    "selected_skills": [
+      "safe-refactor-test-guardian",
+      "dataset-contract-leakage-guard",
+      "experiment-lineage-reproducibility",
+      "scientific-ablation-controller",
+      "multimodal-sequence-model-builder",
+      "grouped-cv-evaluation",
+      "computer-vision-opencv"
+    ]
+  },
+  "prepared_source": {
+    "path": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_c6_screening_20260719_v1/06_c6_prepared_source/prepared_source_manifest.json",
+    "sha256": "873d5c9d9d5e573dbda17ed434a4305453c7dc70f3791312bc87bf5a0afb446f"
+  },
+  "temporal_base_freeze": {
+    "path": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_c6_temporal_controls_20260719_v3_cpu/c6_temporal_base_freeze.json",
+    "sha256": "150b61fddc42464d4d4767d55d5615d63507a02df6b74805c0ba85faffcf9a69"
+  },
+  "inputs": {
+    "harmonized_frames": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_16f_c6_screening_20260719_v1/03_sequence/training_ready_frame_features_harmonized_preview.csv",
+      "sha256": "d76a0b5b12e1c38eb050e7787776e51df8110114bf8afb1c2ecff847918e5805"
+    },
+    "pen_mask": {
+      "path": "data/annotations/scene/mask.png",
+      "sha256": "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658"
+    },
+    "image_window_context_manifest": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/c6mi_20260719_v1/image_window_context_manifest.csv",
+      "sha256": "5ced37a4b0292b8404557ab96aa41bfccc591913ca1d7b1cc647b297bec1b1c3"
+    },
+    "union_feature_tensor": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/c6mi_20260719_v1/union_features/resnet18_features_f32.npy",
+      "sha256": "cc2c66d1cccb9e131c251d4c563cb7575e335a71edf66ee2886365560ded8ced"
+    },
+    "union_feature_index": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/c6mi_20260719_v1/union_features/resnet18_feature_index.csv",
+      "sha256": "ad507183572044cefd60d8d8ab12199a8409ed693b221bf0ac9d5b062f368f8d"
+    },
+    "full_frame_feature_tensor": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/c6mi_20260719_v1/full_frame_features/full_frame_features_f32.npy",
+      "sha256": "0bba732949e164e26ce01f7f81ea7f780c905bfc72876fc94ae885683f22ac8a"
+    },
+    "full_frame_feature_index": {
+      "path": "outputs/classification_v2/legacy_only_unreviewed_development/c6mi_20260719_v1/full_frame_features/full_frame_feature_index.csv",
+      "sha256": "bc8c9c4a8cbb983ca7083a9341cfef6595740b5dbf70698e13caa46fd0db54da"
+    }
+  },
+  "pen_context": {
+    "mask_threshold": 127,
+    "near_boundary_clearance_ratio": 1.0,
+    "fixed_camera_calibration_only": true
+  },
+  "temporal_contract": {
+    "base_mode": "A128",
+    "native_frame_offsets": [5, 6, 7, 8, 9, 10],
+    "sequence_length": 6,
+    "one_sequence_per_native_unit": true,
+    "native_evaluation_unit": "complete_16_frame_burst"
+  },
+  "matrix": {
+    "modalities": [
+      "geometry",
+      "motion",
+      "roi",
+      "numeric_social",
+      "pen_context",
+      "union_context",
+      "full_frame_context"
+    ],
+    "controls": [
+      "parameter_matched_zero",
+      "availability_only",
+      "real"
+    ],
+    "mode_ids": [
+      "actor_only",
+      "geometry__parameter_matched_zero",
+      "geometry__availability_only",
+      "geometry__real",
+      "motion__parameter_matched_zero",
+      "motion__availability_only",
+      "motion__real",
+      "roi__parameter_matched_zero",
+      "roi__availability_only",
+      "roi__real",
+      "numeric_social__parameter_matched_zero",
+      "numeric_social__availability_only",
+      "numeric_social__real",
+      "pen_context__parameter_matched_zero",
+      "pen_context__availability_only",
+      "pen_context__real",
+      "union_context__parameter_matched_zero",
+      "union_context__availability_only",
+      "union_context__real",
+      "full_frame_context__parameter_matched_zero",
+      "full_frame_context__availability_only",
+      "full_frame_context__real"
+    ]
+  },
+  "model": {
+    "actor_feature_control": "V1_resnet18_224_imagenet1k_v1",
+    "actor_feature_dim": 512,
+    "temporal_encoder_name": "masked_attention",
+    "hidden_dim": 128,
+    "dropout": 0.1,
+    "final_behavior_classes": [
+      "drink",
+      "eat",
+      "fight",
+      "social-nose",
+      "explore",
+      "lying",
+      "stand",
+      "move",
+      "sitting",
+      "playwithtoy"
+    ]
+  },
+  "optimization": {
+    "device": "cuda:0",
+    "seed": 20260717,
+    "epochs": 3,
+    "batch_size": 32,
+    "evaluation_batch_size": 64,
+    "learning_rate": 0.003,
+    "weight_decay": 0.0001,
+    "gradient_clip_norm": 1.0,
+    "loss": "event_mass_balanced_cross_entropy",
+    "sampler": "frozen_native_first_selection_then_seeded_shuffle",
+    "checkpoint_selection": "native_global_10_class_macro_f1_then_nll",
+    "maximum_loaded_batch_bytes": 8388608
+  },
+  "evaluation": {
+    "native_unit": "complete_16_frame_burst",
+    "cluster_unit": "video_key",
+    "bootstrap_draws": 2000,
+    "bootstrap_seed": 20260719,
+    "report_per_class_and_behavior_group": true
+  },
+  "execution": {
+    "profile": "authorized_short_rebuild_16f",
+    "data_run_authorized": true,
+    "clean_lineage_handoff_id": "legacy_16f_rebuild_20260718_v2_p10_pass_c6_screening_20260719_v1",
+    "repeats": ["repeat01", "repeat02"],
+    "short_gate_required_before_full_development": true,
+    "full_oof_authorized": false
+  },
+  "implementation": {
+    "path": "src/pig_behavior/classification_v2/training/legacy_development_c6_modality_matrix.py",
+    "sha256": "ca3c9a4ffaad1ffa1cabfdc02658fcd5e5a3dcff900f02e1b7ea4b456dde2ff5"
+  },
+  "output": {
+    "root_relative_path": "outputs/classification_v2/legacy_only_unreviewed_development/c6mm_20260719_v1"
+  }
+}

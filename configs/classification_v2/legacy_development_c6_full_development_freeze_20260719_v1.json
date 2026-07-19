@@ -1,0 +1,46 @@
+{
+  "schema_version": "classification_v2.legacy_c6_full_development_freeze_config.v1",
+  "lineage_scope": "legacy-only-unreviewed-development",
+  "full_matrix": {
+    "path": "outputs/c6fd_20260719_v6/full_matrix/c6_short_decision.json",
+    "sha256": "f2024498664e6bc22591e1650e2f86337c314ebaa2df03291473f89a69616a92"
+  },
+  "training_config": {
+    "path": "configs/classification_v2/legacy_development_c6_modality_matrix_full_development_20260719_v1.json",
+    "sha256": "d8b70deaa1e7544f9c241976f61e73e27ae296a0e87771eb77bf3f4d5c729cb8"
+  },
+  "cache_manifest": {
+    "path": "outputs/c6fd_20260719_v6/full_matrix/cache/c6_modality_cache_manifest.json",
+    "sha256": "d9c5fbd39d09de4aa86082f12ce928b6c5693925b827e750a8d166c141946502"
+  },
+  "temporal_base_freeze": {
+    "path": "outputs/classification_v2/legacy_only_unreviewed_development/legacy_c6_temporal_controls_20260719_v3_cpu/c6_temporal_base_freeze.json",
+    "sha256": "150b61fddc42464d4d4767d55d5615d63507a02df6b74805c0ba85faffcf9a69"
+  },
+  "short_promotion_freeze": {
+    "path": "outputs/classification_v2/legacy_only_unreviewed_development/c6mm_20260719_v1/c6_modality_promotion_freeze.json",
+    "sha256": "d10f387bfa55eccf2ccdd653c122356e2bfb11ae30888cd4477f5159506968da"
+  },
+  "run_root": "outputs/c6fd_20260719_v6/full_matrix/runs",
+  "decision_contract": {
+    "minimum_macro_f1_gain": 0.02,
+    "maximum_absolute_availability_only_gain": 0.01,
+    "maximum_rare_group_macro_f1_drop": 0.02,
+    "require_positive_video_cluster_ci_low": true,
+    "require_nll_improvement_vs_zero": true
+  },
+  "implementation": {
+    "path": "src/pig_behavior/classification_v2/evaluation/legacy_c6_full_development_freeze.py",
+    "sha256": "02f21bf9932fe2bf3633e5db417958fef1596d03bc4f97db20147bca1db102c3"
+  },
+  "claims": {
+    "human_review_complete": false,
+    "reviewed_or_final_claim_allowed": false,
+    "q2_claim_allowed": false,
+    "full_oof_authorized": false,
+    "main_branch_promotion_allowed": false
+  },
+  "output": {
+    "path": "outputs/c6fd_20260719_v6/full_matrix/c6_full_development_freeze.json"
+  }
+}

@@ -44,18 +44,28 @@ completion status, while its evidence records independent work that can continue
 - P5 imbalance, mapped to M2/M8/M9: `BLOCKED` by the missing strong P4 model.
 - P6 hierarchy, mapped to M5/M8/M9: `BLOCKED` by P1-P5 error analysis and review.
 
-An independent `legacy-only-unreviewed-development` lane is now `IN_PROGRESS`.
-It may exercise P0-P5 engineering and bounded development-fold metrics after
-its own leakage-safe snapshot passes. It does not change the blocked status of
-the reviewed all-source P0-P8 path and cannot promote a Q2 finalist.
+The independent `legacy-only-unreviewed-development` lane is complete and
+historical. It exercised prompt/goal orchestration, P0-P5 engineering and
+bounded development-fold configuration screening. Legacy 16f is not currently
+part of the main classification source manifest. The lane cannot promote a Q2
+finalist or transfer a PASS/authorization to the main P0-P8 path.
 Its temporal ablation set is `T6/T8/T12/T16`, with common burst-level folds,
 native-16 evaluation, event-mass-balanced sliding views, and a matched
 one-window-per-burst sensitivity view.
 
-New-chat execution for this lane is governed by
+The 2026-07-19 rebuild-bound C6 lane completed temporal controls, a 44-packet
+short modality matrix, promotion freeze and a seven-packet full-development
+confirmation. ROI and union both failed the final gate, so the legacy handback
+retains A128 actor-only. Final freeze SHA256 is
+`bf7cc849e49c56458af4ea91c1824ab46b839f527e799945b64dc96fc4d86e61`.
+Its quality status remains
+`TECHNICALLY_CLEAN_UNREVIEWED_DOUBLE_CHECK_PENDING`. It does not unblock main
+P0-P8, main full development, full OOF or Q2.
+
+Historical new-chat execution for this lane was governed by
 `classification_v2-legacy-16f-development-goal-prompt.md` and its dedicated
-L0-L8 ledger. Completing that scoped goal produces a handback artifact; it does
-not complete or unblock the canonical reviewed all-source P0-P8 path by itself.
+L0-L8 ledger. Its handback may nominate configurations for a fresh main-branch
+retest only; it does not complete, activate or unblock main P0-P8 by itself.
 
 ### P7-P8 Confirmatory Phases
 
@@ -214,6 +224,6 @@ cache alignment, exact row retention, and native-burst fold containment. It
 must pass before the equivalent full legacy rebuild and does not authorize
 training.
 
-The reviewed all-source checkpoint remains a clean human Hidden authority.
-Verified coverage is 0/5,131; Hidden apply, behavior review, and the immutable
-reviewed P0 snapshot remain blocked.
+The historical mixed-source Hidden checkpoint is only a design reference.
+The main branch must regenerate coverage from its own source manifest; Hidden
+apply, behavior review and the immutable reviewed P0 snapshot remain blocked.

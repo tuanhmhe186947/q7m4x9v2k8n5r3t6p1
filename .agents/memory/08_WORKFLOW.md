@@ -1,5 +1,43 @@
 # Workflow
 
+## Authoritative two-pass classifier research flow
+
+1. Establish a stable measurement base. Search credible sequence heads and
+   visual backbones with grouped inner validation, progressive budgets, and
+   modest tuning; stop when rank and calibration are stable enough to measure
+   input effects rather than spending the final compute budget.
+2. Freeze its data, folds, seeds, preprocessing, optimizer exposure, capacity
+   envelope, and metrics. Run seven singles and all 21 pairs, then use a
+   predeclared beam to add one modality per level. Stop on a frozen no-gain rule.
+3. Confirm the selected set with leave-one-out and the all-seven endpoint. Each
+   subset uses parameter-matched-zero, availability-only, and real controls.
+   Freeze the subset before comparing fusion architectures separately.
+4. On rented GPUs, jointly tune the selected visual backbone, temporal model,
+   and fusion. Increase budgets progressively from correctness and short pilots
+   to multi-seed development; never select from outer-fold predictions.
+5. On the tuned strong finalist, repeat matched zero/availability/real
+   ablations for every retained modality. Lock a candidate only after global
+   and behavior-specific confirmatory gates pass.
+
+Candidate families may include strong 2D image encoders with sequence heads
+and end-to-end video backbones; the RTX 3050 does not prune this search space.
+Use the local GPU for semantic/correctness gates and bind remote runs to the
+same manifest and implementation SHA. Reuse valid caches, predictions,
+checkpoints, and diagnostics; rerun only after semantic changes or failed
+artifact audits. Existing legacy results remain screening evidence, not proof
+that high-capacity joint tuning or confirmatory ablation has been executed.
+
+The existing all-seven run is only the ladder endpoint/reference. A negative
+subset result enters failure attribution before rejection: input/availability
+audit, modality-only probe, actor-residual probe, within-stratum permutation,
+learning curves and gradient health, then a stronger mask-aware fusion control.
+Classify the outcome as `NO_SIGNAL`, `REDUNDANT_WITH_ACTOR`, `UNDERPOWERED`,
+`OPTIMIZATION_FAILURE`, `FUSION_CAPACITY_FAILURE`, or `DATA_QUALITY_FAILURE`.
+
+Run only synthetic and representative subset canaries on legacy 16f. Its rare
+class support and unreviewed source make exhaustive ranking low-value. Execute
+the complete 21-pair and beam ladder after the reviewed main snapshot is frozen.
+
 ## Active worktree routing rule
 
 Use the current main worktree by default. When the user starts two concurrent
@@ -73,6 +111,44 @@ full OOF. Sequence shuffle must use one shared permutation across actor,
 geometry, motion, ROI, social, pen, union/full-frame content and their aligned
 availability/quality masks.
 
+## C6 2026-07-19 rebuild screening record
+
+After the clean technical rebuild handoff, the required order was completed:
+
+1. C6 temporal controls: 9 modes x 2 fresh repeats, then A128 freeze.
+2. C6 modality inputs/cache from the new rebuild lineage.
+3. C6 modality matrix: 22 modes x 2 fresh processes, then paired evaluate.
+
+The modality decision is `PASS` with 44 valid packets, 14 paired comparisons,
+2,000 video-cluster bootstrap draws per comparison, and zero errors. It is
+still `legacy-only-unreviewed-development`; Hidden and behavior review remain
+double-check pending. The actor/context pipeline uses hash-bound `.npy`
+features and records zero source-media reads. No full development, Q2 or
+main-branch authorization follows from this screening.
+
+Interpret this matrix at two levels. The global gate may defer a branch from
+legacy full-development, but it must not erase its per-class evidence. Preserve
+all ten behavior rows and classify every branch as `retained`, `deferred for
+reviewed-lineage retest`, or `unsupported because of insufficient class
+support`; never rewrite `deferred` as generally useless.
+
+For the future main reviewed lineage, run behavior-conditional modality work in
+this order:
+
+1. Freeze the reviewed source manifest, snapshot, native units, folds, actor
+   base, temporal view, feature whitelist, seeds, and metric contract.
+2. Run the seven-single, 21-pair, beam and leave-one-out subset ladder with all
+   three controls; report all ten classes and behavior groups.
+3. Add paired intervals, calibration/NLL, source/availability strata, harm
+   bounds and the failure-attribution probes before rejecting a branch.
+4. Freeze the selected subset, then compare fusion families from predeclared
+   class-modality hypotheses or a declared factorial design.
+5. Repeat static, synthetic, tiny-overfit, resume, and representative short
+   gates after every semantic change. Run bounded full-development only for
+   candidates that pass both behavior-specific and global safety gates.
+6. Lock finalists before requesting the separate full-OOF authorization. Do
+   not use outer-fold predictions to choose class-modality weights.
+
 ## C6 modality matrix activation
 
 The matrix has one direct actor-only arm and three controls for each optional
@@ -119,8 +195,8 @@ The 2026-07-17 paired decision retains C6 for this one-sequence profile. S6 and
 C8 remain registered ablations, not promoted defaults. The older sliding-T6
 candidate has four windows per native unit and different optimizer exposure;
 report it only as historical context, never as a causal paired comparison.
-This legacy choice does not alter the mixed-reviewed primary
-`fixed6_observed_time` view and does not authorize Q2 or full OOF.
+This legacy choice does not alter the main branch's source manifest or primary
+temporal view and does not authorize Q2 or full OOF.
 
 ## Pen-boundary context is an isolated model candidate
 
@@ -183,25 +259,32 @@ post-review rebuild, snapshot and project-data model smoke. After handoff, the
 artifact map, generated contract, model-input manifest, snapshot and P0 audit
 must all stay under the same agent root. Follow runbook section 17.2.1.
 
-## One engine, two current profiles
+## One engine, isolated lineage profiles
 
-Do not maintain an independent 16-frame feature pipeline. Both profiles must
-reuse the same source, context, geometry, ROI, motion, social, posture,
-harmonization, cache, fold, and training implementations:
+Do not maintain an independent 16-frame feature implementation. Shared modules
+may be reused, but source manifests, data hashes, reviews, folds, snapshots,
+goals, authorizations, metrics and claims remain isolated by lineage:
 
 ```text
 canonical classification_v2 engine
   + legacy-only-unreviewed-development profile
       -> legacy source only
-      -> explicit review waiver
+      -> historical prompt/goal and configuration-screening lane
       -> T6/T8/T12/T16 inside each native 16-frame burst
       -> isolated development artifacts and claims
-  + mixed-reviewed profile
-      -> legacy plus CVAT
-      -> Hidden and behavior review required by the active Q2 protocol
+      -> no automatic activation or PASS transfer to the main goal
+  + main classification profile
+      -> source set bound only by its own versioned manifest
+      -> legacy 16f currently excluded; no implicit legacy merge
+      -> Hidden and behavior review required for its own selected data
       -> fixed6_observed_time primary view
       -> reviewed final artifacts after all gates pass
 ```
+
+Legacy 16f remains unreviewed even though P0-P10 is technically clean. It needs
+its own Hidden and behavior review before reviewed/train-ready use. While it is
+outside the main source manifest, those decisions do not replace or block the
+main profile's review coverage.
 
 Review is a profile-level scientific policy, not an unavoidable code-path
 dependency. A user-authorized exploratory profile may bypass human review only
@@ -293,6 +376,41 @@ windows; never sample six quantiles across a legacy burst. Keep all original
 windows in the selection ledger and keep source/native-length metadata outside
 model tensors. An unmitigated source shortcut is a training hard stop.
 
+For Pig-STRENet artifact work, build the causal pair manifest before any model
+integration. Legacy windows use explicit relative starts but export actual
+frame boundaries; XML uses its native six-frame target and preceding same-track
+history. Reject mixed-coordinate completeness calculations.
+
+Run the control matrix in this order:
+
+```text
+T0 -> T1 -> H0 -> HA -> HS -> HR -> HRev -> PM
+```
+
+All derived views from one native event must have weights summing to `1.0`.
+Pack ROI dynamics and fixed top-K social edges with deterministic row indexes
+and masks. Partner routing is geometry-only. Keep availability/provenance out
+of default model X and expose it only to HA. A bounded artifact canary must bind
+input, code, config, environment and artifact hashes before trainer work.
+
+The corrected media-bridge canary is
+`pig_strenet_media_bridge_legacy_20260719_canary11`. It is an exporter/audit
+PASS only: actor-crop difference maps are materialized from legacy crop files,
+and full-scene ROI patches are decoded from the bound source video. The XML
+follow-up `pig_strenet_media_bridge_xml_20260719_canary02` also passes both
+pixel branches. The resolver rejects static `background.png`/`Image #1`, binds
+video path plus frame index, records source hashes and writes per-pixel
+provenance. Repeat the short gate after any semantic change.
+
+The earlier XML follow-up canary at
+`pig_strenet_xml_real_20260719_canary01/07_pig_strenet_attempt2` is retained as
+pre-bridge evidence. Its scene-pixel block was an exporter-resolution issue,
+not a source-data absence. The corrected XML run remains
+`xml-only-unreviewed-technical-canary`: it cannot be treated as reviewed data
+or used to claim accuracy, promotion or training readiness. `max-native-events`
+must select target keys without truncating the full frame table, so causal
+history and scene/social context remain available.
+
 Training-contract code now uses fold-local preprocessing, native-event mass
 weighting, and immutable lineage. A requested `output_dir` is an output root,
 not the artifact directory. The trainer owns this exact layout:
@@ -375,7 +493,7 @@ full legacy data rebuild, leakage-safe snapshot freeze, loader sample,
 one-batch forward/backward, tiny overfit, resume, then one short development
 fold. A full or long run is permitted only after the exact short configuration
 passes and receives the existing explicit authorization. Results from this lane
-cannot support the reviewed all-source Q2 claim.
+cannot support a reviewed main-branch Q2 claim.
 
 ## Active classification_v2 Workflow Override
 

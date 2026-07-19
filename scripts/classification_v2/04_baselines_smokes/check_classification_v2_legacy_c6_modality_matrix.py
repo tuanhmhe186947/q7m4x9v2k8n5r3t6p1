@@ -37,7 +37,18 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.action == "synthetic-preflight":
-        result = synthetic_c6_functional_preflight()
+        if args.config is None:
+            result = synthetic_c6_functional_preflight()
+        else:
+            config = load_c6_matrix_config(args.config)
+            result = synthetic_c6_functional_preflight(
+                experiment_family=str(
+                    config.payload["experiment_contract"][
+                        "changed_scientific_family"
+                    ]
+                ),
+                modalities=tuple(config.payload["matrix"]["modalities"]),
+            )
     else:
         if args.config is None:
             parser.error("--config is required for this action")

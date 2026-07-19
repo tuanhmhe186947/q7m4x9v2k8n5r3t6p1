@@ -1,5 +1,141 @@
 # Project Memory Short
 
+## 2026-07-19 human-review execution correction
+
+- Hidden smoke stays entirely on `%HSM%` plus `%HSMDEC%`; it never writes the
+  full decision authority `%HDEC%`. Full Hidden review starts only from
+  `%HREV%` and writes decisions to `%HDEC%`.
+- A lineage claiming complete legacy 16f behavior review must build with
+  `--include-all-retained-legacy-units` and check with
+  `--require-complete-legacy`. The full review manifest must contain every
+  retained `legacy_burst_16` native unit, including stable units with no
+  evidence conflict.
+- The default builder remains a selective review queue when the full-legacy
+  flag is absent. Selective coverage cannot be renamed complete legacy review.
+
+## 2026-07-19 seed-matched all-seven fusion and model-search direction
+
+- `combined_all7__real` is one diagnostic endpoint and a stress test for naive
+  concatenation. It is not a modality-subset optimization and must never be
+  reported as the best fusion search.
+- Subset search is staged: seven singles, all 21 pairs, predeclared beam search
+  for triples and larger sets, leave-one-out around the best set and all-seven,
+  then fusion-family comparisons on a frozen modality set. Every subset keeps
+  parameter-matched-zero, availability-only, and real controls.
+- A negative result must receive one failure code before `DROP`: bad/absent
+  input, no extractable signal, actor-redundant signal, underpowered evidence,
+  optimization failure, or encoder/fusion-capacity failure. Use modality-only,
+  actor-residual, permutation, learning/gradient, and stronger-fusion probes to
+  separate these causes and route `RETEST_FULL_DATA` or
+  `RETEST_STRONGER_MODEL` when appropriate.
+- Do not execute the exhaustive subset ladder to select a final model on legacy
+  16f. Use this lineage only for implementation, synthetic checks, short
+  representative canaries and failure-taxonomy validation. Run the full
+  7-single/21-pair/beam/leave-one-out search on frozen reviewed main data.
+- The measured temporal-base matrix selected `A128` only as the best of seven
+  tested frozen-ResNet18 temporal bases. It is a strong controlled reference,
+  not a global-best model claim and not an architecture limit imposed by the
+  local RTX 3050.
+- The authoritative all-seven fusion lineage uses seed `20260719`, matching
+  the selected A128 run. Its actor-only arm exactly reproduces macro-F1
+  `0.4016091326`, accuracy `0.6680497925`, and NLL `0.9581952707` on 241
+  validation units in 32 video clusters.
+- Naive all-seven real fusion reaches macro-F1 `0.3990463886`. It improves
+  over same-width zero by `+0.0597244883` and availability-only by
+  `+0.0475594846`, but both cluster intervals include zero. Against same-run
+  actor-only it is `-0.0025627441`, interval
+  `[-0.0870213782,0.0927085883]`, with lower accuracy and worse NLL.
+- Preserve every earlier seed/config run as diagnostic evidence. Never delete
+  it or rerun it merely because a later lineage supersedes interpretation;
+  rerun only after an actual semantic change or failed artifact audit.
+- Use a two-pass research flow: establish a strong controlled base; screen
+  modalities/fusion with matched controls; jointly tune visual backbone,
+  temporal model and fusion on rented GPUs; then repeat confirmatory modality
+  ablations on the tuned finalist. RTX 3050 is a correctness host, not a
+  research-capacity boundary.
+
+## 2026-07-19 C6 modality interpretation correction
+
+- The C6 short matrix tested all seven optional branches—`geometry`, `motion`,
+  `roi`, `numeric_social`, `pen_context`, `union_context`, and
+  `full_frame_context`—with parameter-matched-zero, availability-only, and
+  real-value controls. All ten behavior classes remain in the per-class
+  outputs, including low-support `fight`, `move`, and `playwithtoy`.
+- Only ROI and union context were authorized for the legacy full-development
+  confirmation. The other five branches are deferred by the global promotion
+  gate; they are not deleted, disproven for every behavior, or removed from
+  future reviewed-lineage hypotheses.
+- Short point estimates show conditional utility: ROI is positive for
+  `drink/eat/lying/move/sitting`, motion for `drink/eat/fight/social-nose/move/`
+  `sitting`, numeric social for `drink/eat/fight/social-nose/lying/move`, and
+  pen context for `eat/explore/lying/stand/sitting`. Union context is positive
+  for `eat/lying/move/sitting`; geometry is positive mainly for `drink/move`.
+  These are descriptive per-behavior signals, not promotion claims.
+- The correct future question is behavior-conditional fusion on the frozen
+  reviewed main lineage: measure per-class F1/precision/recall, paired
+  video-cluster uncertainty, NLL/calibration, availability strata, and harm
+  bounds before selecting a modality or fusion rule. Do not reduce this to a
+  single global macro-F1 rejection.
+
+## 2026-07-19 C6 legacy full-development handback
+
+- The promotion freeze authorized only `roi` and `union_context` for one
+  full-development confirmation. The fresh full packet has 3,650 train and
+  241 validation native units; actor and union inputs are fixed ResNet18
+  ImageNet1K V1 `.npy` features.
+- Static and synthetic gates passed. The modality cache has 3,891 units and
+  23,346 C6 slots, with ROI shape `[3891,6,18]`, union shape
+  `[3891,6,512]`, 216 explicitly unavailable union slots, and zero media or
+  outer-holdout reads during cache/training.
+- Process `8652` completed all seven `full01` modes at 345 optimizer steps
+  each. ROI real minus zero is `+0.0173996682`, interval
+  `[-0.0453411623,0.0837155156]`; ROI misses the `0.02` margin and positive-CI
+  gates. Union real minus zero is `+0.0317916340`, interval
+  `[-0.0382937684,0.1025301139]`, but NLL worsens by `+0.1611725788` and the
+  rare-group macro-F1 delta is `-0.0444444444`.
+- Final freeze status is `PASS_C6_FULL_DEVELOPMENT_FREEZE`; both modalities
+  are not retained and the handback decision is
+  `RETAIN_A128_ACTOR_ONLY_FOR_C6_LEGACY_HANDBACK`. Freeze SHA256 is
+  `bf7cc849e49c56458af4ea91c1824ab46b839f527e799945b64dc96fc4d86e61`.
+- This remains unreviewed legacy development evidence. Hidden/behavior review,
+  full OOF, Q2, reviewed/final naming, and main-branch promotion remain false;
+  every conclusion requires retest on the main frozen reviewed lineage.
+
+## 2026-07-19 main classification excludes legacy 16f
+
+- Legacy 16f is a relatively clean standalone reference lineage, but it is not
+  currently selected by the main classification source manifest.
+- The completed `legacy-only-unreviewed-development` lane exercised prompt/goal
+  orchestration and screened configurations or hypotheses for main-branch
+  retesting. Its handback does not transfer PASS, authorization, review
+  coverage, snapshot, folds or metrics to the main goal.
+- Legacy 16f still requires two-sided frame/object Hidden review and complete
+  native-unit 16-frame behavior review before reviewed/train-ready use.
+- While legacy remains outside the main manifest, legacy review neither
+  satisfies nor blocks the main branch's own review coverage.
+- A main experiment must bind its own source manifest, reviewed snapshot,
+  folds, hashes, shortcut audits and short-run authorization.
+
+## 2026-07-19 C6 legacy screening result
+
+- C6 temporal controls completed 18/18 runs (9 modes x 2 fresh repeats) on
+  the rebuild lineage. Freeze artifact status is `PASS_C6_TEMPORAL_BASE_FREEZE`
+  with decision `FREEZE_PRIOR_A128_FOR_C6_MODALITY_SCREENING`; freeze SHA256 is
+  `150b61fddc42464d4d4767d55d5615d63507a02df6b74805c0ba85faffcf9a69`.
+- C6 modality matrix then completed 22 modes x 2 fresh repeats and 14 paired
+  comparisons. Decision is `PASS`; process IDs are `29324` and `5064`, with
+  zero packet errors and two-sided claim flags still disabled.
+- Config SHA256 is
+  `3c59107ae87b1126073ede05d3eabef7437d8bd04cec988e3e6e7928709c4137`;
+  cache manifest SHA256 is
+  `d1af472d681224e7e37d3dbea549967f64fd7237ada77b2154a1b78c7efd7984`;
+  decision SHA256 is
+  `d20610127901eb8cae8f2861e7718fdd9c640a9cdefbd74b2dba428e596949bb`.
+- This is technically clean but unreviewed double-check evidence: it does
+  not authorize full development, reviewed/final claims, Q2, or main-branch
+  classification. Actor and context inputs are fixed `.npy` feature caches;
+  the run records zero source-media reads.
+
 ## 2026-07-19 legacy 16f P0-P10 rebuild PASS
 
 - Run `outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2` completed
