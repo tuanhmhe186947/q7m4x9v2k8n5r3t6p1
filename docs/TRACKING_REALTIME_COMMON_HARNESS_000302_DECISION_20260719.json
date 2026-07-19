@@ -1,0 +1,137 @@
+{
+  "schema_version": "tracking_realtime_common_harness_decision_v1",
+  "decision_date": "2026-07-19",
+  "status": "RUNTIME_REPEATABILITY_FAIL_NO_PROMOTION",
+  "parent_commit": "0d451369275fc617134e1109777fbcacdc6daa36",
+  "scope": {
+    "worktree": "PIG_task_tracking",
+    "branch": "task/update-tracking",
+    "tracking_only": true,
+    "video": "Pigs291119_000302_30fps",
+    "frames": 1800,
+    "source_fps": 30.0,
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "association_debug": false,
+    "write_output_video": false,
+    "mp4_allowed": false,
+    "path_config_sha256": "a0163b04dfef5652cc8219c2614da130389fce29449089629e38449635323ab9"
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "runs": {
+    "primary": {
+      "root": "outputs/eval/tracking_realtime_selection/20260719_0d45136_common_000302_primary_v5",
+      "prediction_root": "outputs/pred/tracking_realtime_selection/20260719_0d45136_common_000302_primary_v5",
+      "order": ["bytetrack_raw", "realtime_fast", "realtime_balanced"],
+      "status": "PASS",
+      "metrics": {
+        "bytetrack_raw": {
+          "idsw": 0,
+          "hota": 0.9993065574078192,
+          "idf1": 0.9996527777777777,
+          "fps": 23.631667999970887,
+          "p50_ms": 37.2514499904355,
+          "p95_ms": 59.91766000952338,
+          "peak_rss_bytes": 1541480448
+        },
+        "realtime_fast": {
+          "idsw": 6,
+          "hota": 0.9221489773886228,
+          "idf1": 0.9198611111111111,
+          "fps": 26.156460454075262,
+          "p50_ms": 35.807550011668354,
+          "p95_ms": 52.60046498588053,
+          "peak_rss_bytes": 1515991040
+        },
+        "realtime_balanced": {
+          "idsw": 0,
+          "hota": 0.9994452150220623,
+          "idf1": 0.9997222222222222,
+          "fps": 28.32634177825608,
+          "p50_ms": 34.83625000808388,
+          "p95_ms": 37.48662499128841,
+          "peak_rss_bytes": 1509179392
+        }
+      }
+    },
+    "reverse": {
+      "root": "outputs/eval/tracking_realtime_selection/20260719_0d45136_common_000302_reverse_v1",
+      "prediction_root": "outputs/pred/tracking_realtime_selection/20260719_0d45136_common_000302_reverse_v1",
+      "order": ["realtime_balanced", "realtime_fast", "bytetrack_raw"],
+      "status": "PASS",
+      "metrics": {
+        "bytetrack_raw": {
+          "idsw": 0,
+          "hota": 0.9993065574078192,
+          "idf1": 0.9996527777777777,
+          "fps": 26.985740222183622,
+          "p50_ms": 36.45534999668598,
+          "p95_ms": 40.25381998508237,
+          "peak_rss_bytes": 1526829056
+        },
+        "realtime_fast": {
+          "idsw": 6,
+          "hota": 0.9221489773886228,
+          "idf1": 0.9198611111111111,
+          "fps": 14.082715705415117,
+          "p50_ms": 66.26049998158123,
+          "p95_ms": 134.97089497541313,
+          "peak_rss_bytes": 1511686144
+        },
+        "realtime_balanced": {
+          "idsw": 0,
+          "hota": 0.9994452150220623,
+          "idf1": 0.9997222222222222,
+          "fps": 12.848794802513021,
+          "p50_ms": 80.3151500003878,
+          "p95_ms": 114.97862999240171,
+          "peak_rss_bytes": 1488625664
+        }
+      }
+    }
+  },
+  "prediction_integrity": {
+    "semantic_hash_contract": "cvat_xml_c14n_without_created_updated_dumped_v1",
+    "bytetrack_raw": "63db132312c4b4241201f5dfbcf8a16ccb8998009600d15aaacdb12d6d5dd1dd",
+    "realtime_fast": "3b965292ed86e4dfc61ef9ef3067062dcb9c06a263823f50d6717fe7c68cae4f",
+    "realtime_balanced": "645b41062caca5467cd1a6bb9bd489a5efd7637cc977dfc7df218c1bf6985512",
+    "primary_equals_reverse": true,
+    "recursive_mp4_count": 0
+  },
+  "gate_results": {
+    "same_commit_python_and_contract": "PASS",
+    "same_input_detector_gt_and_mask": "PASS",
+    "causal_zero_delay": "PASS",
+    "prediction_repeatability": "PASS",
+    "no_mp4": "PASS",
+    "fast_000302_idsw_ceiling_2": "FAIL_ACTUAL_6",
+    "native_30fps_throughput": "FAIL_ALL_PROFILES_ON_THIS_HARD_VIDEO",
+    "runtime_repeatability_ratio_min_0_9": {
+      "bytetrack_raw": 1.1419312518361746,
+      "realtime_fast": 0.5384029589990256,
+      "realtime_balanced": 0.45359880577223133,
+      "status": "FAIL_FAST_AND_BALANCED"
+    },
+    "speed_claim": "NOT_AUTHORIZED",
+    "operational_winner": "NONE"
+  },
+  "interpretation": [
+    "Raw was rerun only to obtain paired runtime evidence; its quality authority remains unchanged.",
+    "On the primary order Balanced dominates Fast on 000302 quality, FPS and p95.",
+    "On the reverse order both realtime profiles slow sharply while Raw recovers, proving an order/system effect.",
+    "Therefore neither Fast nor Balanced may be called the fastest realtime profile from this harness.",
+    "Fast remains invalid for promotion because 000302 IDSW is 6 against ceiling 2."
+  ],
+  "next_step": [
+    "Do not run full-13 or promote a profile from these runtime values.",
+    "Run a short warmup-controlled/runtime-stability probe with system telemetry.",
+    "Run Fast association_debug on the parent hard window 540-590 with warmup.",
+    "Keep all failed and successful roots immutable and MP4-free."
+  ]
+}
