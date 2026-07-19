@@ -30,6 +30,8 @@ REALTIME_BALANCED_CONFIG: dict[str, object] = {
     "causal_hidden_detection_reservation_max_alternative_cost": 0.25,
     "causal_hidden_detection_reservation_allow_visible_hold": True,
     "causal_hidden_detection_reservation_hold_min_gain": 0.17,
+    "causal_hidden_detection_reservation_max_missed": 15,
+    "causal_hidden_detection_reservation_hold_reserved_reid": True,
     "det_conf": 0.20,
     "low_conf_max_center_jump": 0.10,
     "low_conf_max_box_jump_scale": 2.00,
