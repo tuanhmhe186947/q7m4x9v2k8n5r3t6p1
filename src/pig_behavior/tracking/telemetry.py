@@ -30,6 +30,105 @@ def _percentile(values: list[float], quantile: float) -> float:
     return ordered[lower] * (1.0 - weight) + ordered[upper] * weight
 
 
+def _stream_runtime_metrics(
+    frame_seconds_values: list[float],
+    source_fps: float,
+    delay_frames: int,
+) -> dict[str, int | float]:
+    metrics: dict[str, int | float] = {
+        "frame_deadline_ms": 0.0,
+        "frame_deadline_miss_count": 0,
+        "frame_deadline_miss_rate": 0.0,
+        "max_backlog_frames": 0,
+        "final_backlog_frames": 0,
+        "output_age_deadline_ms": 0.0,
+        "output_age_deadline_miss_count": 0,
+        "output_age_deadline_miss_rate": 0.0,
+        "output_age_ms_mean": 0.0,
+        "output_age_ms_p50": 0.0,
+        "output_age_ms_p95": 0.0,
+        "output_age_ms_max": 0.0,
+        "output_age_ms_final": 0.0,
+    }
+    if delay_frames < 0:
+        metrics.update(
+            {
+                "output_age_deadline_ms": -1.0,
+                "output_age_deadline_miss_count": -1,
+                "output_age_deadline_miss_rate": -1.0,
+                "output_age_ms_mean": -1.0,
+                "output_age_ms_p50": -1.0,
+                "output_age_ms_p95": -1.0,
+                "output_age_ms_max": -1.0,
+                "output_age_ms_final": -1.0,
+            }
+        )
+    if not frame_seconds_values or source_fps <= 0.0:
+        return metrics
+
+    period_seconds = 1.0 / source_fps
+    deadline_misses = sum(
+        value > period_seconds + 1e-12 for value in frame_seconds_values
+    )
+    metrics["frame_deadline_ms"] = period_seconds * 1000.0
+    metrics["frame_deadline_miss_count"] = deadline_misses
+    metrics["frame_deadline_miss_rate"] = (
+        deadline_misses / len(frame_seconds_values)
+    )
+
+    completion_seconds = 0.0
+    max_backlog_frames = 0
+    service_output_ages: list[float] = []
+    for frame_index, service_seconds in enumerate(frame_seconds_values):
+        arrival_seconds = frame_index * period_seconds
+        completion_seconds = (
+            max(completion_seconds, arrival_seconds) + service_seconds
+        )
+        service_output_ages.append(completion_seconds - arrival_seconds)
+        completed_frames = frame_index + 1
+        queued_frames = math.ceil(
+            max(
+                0.0,
+                completion_seconds * source_fps - completed_frames - 1e-12,
+            )
+        )
+        max_backlog_frames = max(max_backlog_frames, queued_frames)
+    metrics["max_backlog_frames"] = max_backlog_frames
+    metrics["final_backlog_frames"] = math.ceil(
+        max(
+            0.0,
+            completion_seconds * source_fps - len(frame_seconds_values) - 1e-12,
+        )
+    )
+
+    if delay_frames < 0:
+        return metrics
+    declared_delay_seconds = delay_frames * period_seconds
+    output_ages = [
+        age_seconds + declared_delay_seconds
+        for age_seconds in service_output_ages
+    ]
+    output_deadline_seconds = (delay_frames + 1) * period_seconds
+    output_deadline_misses = sum(
+        value > output_deadline_seconds + 1e-12 for value in output_ages
+    )
+    metrics.update(
+        {
+            "output_age_deadline_ms": output_deadline_seconds * 1000.0,
+            "output_age_deadline_miss_count": output_deadline_misses,
+            "output_age_deadline_miss_rate": (
+                output_deadline_misses / len(output_ages)
+            ),
+            "output_age_ms_mean": sum(output_ages) * 1000.0 / len(output_ages),
+            "output_age_ms_p50": _percentile(output_ages, 0.50) * 1000.0,
+            "output_age_ms_p95": _percentile(output_ages, 0.95) * 1000.0,
+            "output_age_ms_max": max(output_ages) * 1000.0,
+            "output_age_ms_final": output_ages[-1] * 1000.0,
+        }
+    )
+    return metrics
+
+
 def record_timing_sample(
     runtime: Any,
     stage: str,
@@ -181,6 +280,22 @@ def summarize_tracking_telemetry(source: Any) -> dict[str, int | float | str]:
 
     delay_frames = int(summary["declared_delay_frames"])
     source_fps = float(summary["source_fps"])
+    effective_fps = float(summary["effective_fps"])
+    summary["realtime_factor"] = (
+        effective_fps / source_fps if source_fps > 0.0 else 0.0
+    )
+    summary["backlog_growth_frames_per_second"] = (
+        max(0.0, source_fps - effective_fps)
+        if frames and source_fps > 0.0
+        else 0.0
+    )
+    summary.update(
+        _stream_runtime_metrics(
+            list(timing_samples.get("frame", [])),
+            source_fps,
+            delay_frames,
+        )
+    )
     summary["declared_delay_ms"] = (
         delay_frames * 1000.0 / source_fps
         if delay_frames >= 0 and source_fps > 0.0

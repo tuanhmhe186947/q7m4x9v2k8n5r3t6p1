@@ -224,8 +224,72 @@ def test_runtime_telemetry_summary_has_stable_timing_and_delay() -> None:
     assert telemetry["association_time_ms_mean"] == pytest.approx(3.0)
     assert telemetry["tracking_loop_effective_fps"] == pytest.approx(50.0)
     assert telemetry["effective_fps"] == pytest.approx(40.0)
+    assert telemetry["realtime_factor"] == pytest.approx(1.6)
+    assert telemetry["backlog_growth_frames_per_second"] == 0.0
+    assert telemetry["frame_deadline_ms"] == pytest.approx(40.0)
+    assert telemetry["frame_deadline_miss_count"] == 0
+    assert telemetry["frame_deadline_miss_rate"] == 0.0
+    assert telemetry["max_backlog_frames"] == 0
+    assert telemetry["final_backlog_frames"] == 0
+    assert telemetry["output_age_ms_p50"] == pytest.approx(100.0)
+    assert telemetry["output_age_ms_p95"] == pytest.approx(109.0)
+    assert telemetry["output_age_ms_max"] == pytest.approx(110.0)
+    assert telemetry["output_age_ms_final"] == pytest.approx(110.0)
+    assert telemetry["output_age_deadline_ms"] == pytest.approx(120.0)
+    assert telemetry["output_age_deadline_miss_count"] == 0
+    assert telemetry["output_age_deadline_miss_rate"] == 0.0
     assert telemetry["declared_delay_ms"] == pytest.approx(80.0)
     assert telemetry["peak_process_rss_bytes"] == 123
+
+
+def test_runtime_telemetry_reports_stream_backlog_and_deadline_misses() -> None:
+    runtime = TrackingRuntimeState()
+    runtime.telemetry.update(
+        {
+            "frames_processed": 3,
+            "source_fps": 30.0,
+            "declared_delay_frames": 0,
+            "output_timing_contract": "causal_framewise",
+        }
+    )
+    for value in (0.020, 0.050, 0.050):
+        record_timing_sample(runtime, "frame", value)
+
+    telemetry = get_telemetry_summary(runtime)
+
+    assert telemetry["effective_fps"] == pytest.approx(25.0)
+    assert telemetry["realtime_factor"] == pytest.approx(5.0 / 6.0)
+    assert telemetry["backlog_growth_frames_per_second"] == pytest.approx(5.0)
+    assert telemetry["frame_deadline_miss_count"] == 2
+    assert telemetry["frame_deadline_miss_rate"] == pytest.approx(2.0 / 3.0)
+    assert telemetry["max_backlog_frames"] == 1
+    assert telemetry["final_backlog_frames"] == 1
+    assert telemetry["output_age_ms_max"] == pytest.approx(200.0 / 3.0)
+    assert telemetry["output_age_ms_final"] == pytest.approx(200.0 / 3.0)
+    assert telemetry["output_age_deadline_miss_count"] == 2
+    assert telemetry["output_age_deadline_miss_rate"] == pytest.approx(2.0 / 3.0)
+
+
+def test_post_video_runtime_telemetry_marks_output_age_unavailable() -> None:
+    runtime = TrackingRuntimeState()
+    runtime.telemetry.update(
+        {
+            "frames_processed": 1,
+            "source_fps": 30.0,
+            "declared_delay_frames": -1,
+            "output_timing_contract": "post_video_global_graph",
+        }
+    )
+    record_timing_sample(runtime, "frame", 0.020)
+
+    telemetry = get_telemetry_summary(runtime)
+
+    assert telemetry["frame_deadline_miss_count"] == 0
+    assert telemetry["output_age_deadline_ms"] == -1.0
+    assert telemetry["output_age_deadline_miss_count"] == -1
+    assert telemetry["output_age_deadline_miss_rate"] == -1.0
+    assert telemetry["output_age_ms_max"] == -1.0
+    assert telemetry["output_age_ms_final"] == -1.0
 
 
 def test_numeric_cuda_device_is_normalized_for_torch_model() -> None:
