@@ -37,6 +37,13 @@ def test_profile_configs_keep_expected_behavior_separation() -> None:
         assert "hidden_suffix_id_swap_use_overlap_persistence" not in non_hybrid
 
     assert realtime_fast["realtime_visible_better_competitor_prefer"] is True
+    assert realtime_fast["realtime_visible_close_competitor_guard"] is True
+    assert realtime_fast["realtime_visible_close_competitor_margin"] == 0.08
+    assert realtime_fast["realtime_visible_close_competitor_max_cost"] == 0.40
+    assert (
+        realtime_fast["realtime_visible_close_competitor_min_center_x_ratio"]
+        == 0.67
+    )
 
     assert realtime_balanced["causal_hidden_detection_reservation"] is True
     assert realtime_balanced["causal_hidden_detection_reservation_min_iom"] == 0.96

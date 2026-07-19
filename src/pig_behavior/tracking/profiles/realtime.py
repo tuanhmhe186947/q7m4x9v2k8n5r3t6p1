@@ -20,6 +20,10 @@ REALTIME_FAST_CONFIG: dict[str, object] = {
     "max_raw_detections": 32,
     "occlusion_aware_matching": False,
     "realtime_visible_better_competitor_prefer": True,
+    "realtime_visible_close_competitor_guard": True,
+    "realtime_visible_close_competitor_margin": 0.08,
+    "realtime_visible_close_competitor_max_cost": 0.40,
+    "realtime_visible_close_competitor_min_center_x_ratio": 0.67,
 }
 
 REALTIME_BALANCED_CONFIG: dict[str, object] = {
