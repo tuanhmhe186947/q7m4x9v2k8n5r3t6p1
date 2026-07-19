@@ -2,25 +2,25 @@
 
 ## 2026-07-19 tracking paper critical-path override
 
-1. Apply the development dependency `hybrid_bytetrack` -> `realtime_fast` ->
-   `realtime_balanced` -> `realtime_quality`; do not interpret it as the final
-   realtime ranking. Hybrid and fast are already authority-locked; do not
-   reopen them without new predeclared evidence.
+1. Keep dependency order separate from selection rank. Hybrid is complete;
+   then compare every valid Fast, Balanced, and Quality authority. Fast is the
+   operational control, while Quality is a mandatory challenger with full
+   right to become the paper realtime winner.
 2. RB3 Balanced has repeatable quality at `IDSW 111`, but repeat p95
    `60.06 ms` fails the frozen `45.29 ms` gate. Keep it opt-in and do not open
    another Balanced family without new predeclared evidence.
 3. RQ1 rolling lags `12/15/30` are rejected at frozen QW01 because IDF1 and
    HOTA regress despite lower IDSW. Do not run RQ1 on later windows or videos.
-4. RQ2 and RQ3 are closed without promotion. Memory 10 preserves S1 quality
-   but still misses the frozen FPS and p95 gates; do not run later RQ3 stages.
-   Run RQ4 as implementation-only copy optimization. Require exact output
-   equality before rerunning QW01 runtime, and do not treat runtime enablement
-   as satisfying the two-independent-episode quality gate.
+4. RQ2 and RQ3 are closed without promotion. RQ4 retains the output-equivalent
+   clone optimization, but QW01 fails effective FPS, p95, and repeat runtime
+   ratio. Do not run later Quality windows, video, hard set, or full-13 from
+   this family.
 5. Compare valid Fast, Balanced, and Quality authorities before locking the
    realtime winner. A valid finite-delay Quality implementation becomes the
-   paper's realtime method when it is Pareto-best. Otherwise retain the best valid causal
-   profile and label the current delay-`-1` global graph as a post-video upper
-   bound. The paper still need not show all three realtime profiles.
+   paper's realtime method when it is Pareto-best. The current finite-delay
+   candidates are invalid, so retain them as negative evidence and keep the
+   delay-`-1` global graph as a post-video upper bound. The paper still need
+   not show all three realtime profiles.
 6. Only after the Quality decision, select one valid realtime method and lock a
    same-contract include-Hidden
    `bytetrack_raw` authority, then build the paper comparison

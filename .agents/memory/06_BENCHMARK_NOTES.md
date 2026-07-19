@@ -1,5 +1,23 @@
 # Benchmark Notes
 
+## 2026-07-19 RQ4 Quality copy-performance decision
+
+- Schema-aware motion-pair cloning preserves every tested global/fixed-lag
+  output and improves the real-artifact median from `1.4471 s` to `0.6514 s`.
+- QW01 primary/repeat are quality-identical: IDSW `32`, HOTA `94.75%`, IDF1
+  `95.94%`, FP/FN `5/6`, semantic hash `8472ed87...86857`.
+- Postprocess falls to `876.25/794.78 ms`, but end-to-end effective FPS is
+  only `19.42/16.91`; p95 is `60.84/91.02 ms`. Repeat loop FPS is only
+  `85.56%` of primary, below the frozen `90%` repeatability gate.
+- The causal parent control also misses the session floor at `23.64 FPS` and
+  p95 `47.41 ms`. This exposes host variation but does not authorize relaxing
+  the frozen Quality thresholds after observing the result.
+- All primary, repeat, and parent prediction/eval roots recursively contain
+  zero MP4. Retain commit `1a1d008` as implementation improvement; reject RQ4
+  profile promotion and all later funnel stages.
+- Decision authority:
+  `docs/TRACKING_RQ4_QUALITY_COPY_PERFORMANCE_DECISION_20260719.json`.
+
 ## 2026-07-19 hybrid lane completion
 
 - The promoted `hybrid_bytetrack_best` resolves all full-13 identity residuals:

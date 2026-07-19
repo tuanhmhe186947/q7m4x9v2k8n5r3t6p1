@@ -1,0 +1,139 @@
+{
+  "schema_version": "tracking_rq4_quality_copy_performance_decision_v1",
+  "decision_date": "2026-07-19",
+  "status": "IMPLEMENTATION_ACCEPTED_END_TO_END_RUNTIME_GATE_FAILED",
+  "lineage": {
+    "plan":
+      "docs/TRACKING_RQ4_QUALITY_COPY_PERFORMANCE_PLAN_20260719.json",
+    "algorithm_commit": "1a1d008d87c2fd38299de9370b5fdfbe7e17b0c9",
+    "run_commit": "1a1d008d87c2fd38299de9370b5fdfbe7e17b0c9",
+    "dirty_at_run": false,
+    "changed_family": "fixed_lag_copy_performance_implementation",
+    "tracking_only": true,
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "generated_mp4_preview_overlay_allowed": false
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "pre_tracking_equivalence": {
+    "focused_tracking_tests_passed": 211,
+    "baseline_wallclock_median_seconds": 1.4470691,
+    "candidate_wallclock_median_seconds": 0.6514215,
+    "speedup": 2.221,
+    "deepcopy_reference_variants": [
+      "global_graph",
+      "fixed_lag_10",
+      "fixed_lag_15",
+      "fixed_lag_20",
+      "fixed_lag_30"
+    ],
+    "all_variant_outputs_equal_to_deepcopy_reference": true,
+    "clone_input_independence": true,
+    "real_parent_shape_output_sha256":
+      "0d198e93c579f8d54ecf27b73babe48be19e8c8b76a4675a6f4029fbde9cfd8c"
+  },
+  "quality_result": {
+    "primary_and_repeat_equal": true,
+    "idsw": 32,
+    "hota": 0.9475099291098478,
+    "idf1": 0.9593810444874274,
+    "fp": 5,
+    "fn": 6,
+    "prediction_semantic_sha256":
+      "8472ed8760bf071645c39707a631817445c0ed353011f30307031fe918086857"
+  },
+  "runtime_gate": {
+    "effective_fps_min": 24.0793754,
+    "frame_time_p95_ms_max": 45.2948705,
+    "peak_process_rss_bytes_max": 1923089203,
+    "primary": {
+      "root":
+        "outputs/eval/tracking_realtime_optimization/20260719_1a1d008_rq4_qw01_m10_primary_v1",
+      "tracking_loop_effective_fps": 21.06983678912729,
+      "effective_fps": 19.41775738118046,
+      "frame_time_p95_ms": 60.83632001536897,
+      "postprocess_time_ms": 876.2548000086099,
+      "peak_process_rss_bytes": 1496649728,
+      "effective_fps_status": "FAIL",
+      "frame_time_p95_status": "FAIL",
+      "peak_process_rss_status": "PASS"
+    },
+    "repeat": {
+      "root":
+        "outputs/eval/tracking_realtime_optimization/20260719_1a1d008_rq4_qw01_m10_repeat_v1",
+      "tracking_loop_effective_fps": 18.02759007175798,
+      "effective_fps": 16.91099521882784,
+      "frame_time_p95_ms": 91.0152599972207,
+      "postprocess_time_ms": 794.7829000186175,
+      "peak_process_rss_bytes": 1511792640,
+      "effective_fps_status": "FAIL",
+      "frame_time_p95_status": "FAIL",
+      "peak_process_rss_status": "PASS"
+    },
+    "parent_control": {
+      "root":
+        "outputs/eval/tracking_realtime_optimization/20260719_1a1d008_rq4_qw01_parent_control_v1",
+      "tracking_loop_effective_fps": 23.639710849010914,
+      "effective_fps": 23.639691534423683,
+      "frame_time_p95_ms": 47.40632000612094,
+      "postprocess_time_ms": 0.007499998901039362,
+      "peak_process_rss_bytes": 1498812416,
+      "effective_fps_status": "FAIL",
+      "frame_time_p95_status": "FAIL",
+      "peak_process_rss_status": "PASS"
+    },
+    "repeat_tracking_fps_ratio": 0.855611282,
+    "repeat_tracking_fps_ratio_min": 0.9,
+    "repeatability_runtime_guard": "FAIL",
+    "parent_control_interpretation": [
+      "The paired session was slower than the frozen parent floor.",
+      "This does not waive the candidate runtime failure."
+    ]
+  },
+  "artifact_gates": {
+    "primary_recursive_mp4_count": 0,
+    "repeat_recursive_mp4_count": 0,
+    "parent_control_recursive_mp4_count": 0,
+    "primary_and_repeat_semantic_config_equal": true,
+    "input_rehash_attempted_by_repeatability_auditor": true
+  },
+  "gates": {
+    "implementation_output_equivalence": "PASS",
+    "implementation_microbenchmark": "PASS",
+    "quality_non_regression": "PASS",
+    "semantic_prediction_repeatability": "PASS",
+    "peak_memory": "PASS",
+    "recursive_no_mp4": "PASS",
+    "effective_fps": "FAIL",
+    "frame_time_p95": "FAIL",
+    "repeat_runtime_ratio": "FAIL",
+    "advance_to_later_windows": false,
+    "advance_to_full_video": false,
+    "advance_to_hard_set": false,
+    "advance_to_full13": false,
+    "quality_profile_promotion_authorized": false
+  },
+  "decision": [
+    "Retain the schema-aware clone as an output-equivalent implementation improvement.",
+    "Do not promote the finite-delay Quality profile from RQ4.",
+    "Do not reinterpret or relax the frozen runtime and repeatability gates.",
+    "Close the current Quality implementation screen.",
+    "Proceed to the declared realtime Pareto selection."
+  ],
+  "quality_selection_role": {
+    "quality_was_a_mandatory_challenger": true,
+    "finite_delay_quality_is_a_valid_realtime_finalist": false,
+    "delay_minus_one_global_graph_role": "post_video_upper_bound_only",
+    "next_steps": [
+      "Compare valid Fast and Balanced authorities.",
+      "Retain Quality as rejected finite-delay evidence.",
+      "Select one realtime method before the paper comparison."
+    ]
+  }
+}

@@ -1,5 +1,24 @@
 • Kế Hoạch Tương Lai
 
+## Override chọn realtime winner ngày 2026-07-19
+
+- `hybrid_bytetrack_best` đã hoàn tất trước với full-13 IDSW `0`, HOTA
+  `98.3506%` và IDF1 `99.1490%`.
+- Sau Hybrid, Fast, Balanced và Quality là ba ứng viên trong cùng một phép
+  chọn Pareto; thứ tự tên không phải thứ hạng kết quả. Fast là mốc causal vận
+  hành, còn Quality là challenger bắt buộc và được chọn nếu thắng hợp lệ.
+- Quality chỉ đủ tư cách thắng khi causal hoặc finite-delay, qua prefix
+  invariance, chất lượng, FPS, p95, memory, repeatability và zero-MP4.
+- RQ1-RQ4 đã sàng lọc finite-delay Quality công bằng nhưng chưa có candidate
+  hợp lệ. RQ4 giữ cải tiến clone output-equivalent, song fail runtime nên
+  không mở later window, full video, hard set hoặc full-13.
+- Quality delay `-1` dùng toàn video chỉ là post-video upper bound, không được
+  xếp làm realtime winner.
+- Bước kế tiếp là khóa bảng Pareto Fast/Balanced/Quality, chọn một realtime
+  winner, rồi mới so cùng contract: raw -> realtime winner -> Hybrid.
+- Mọi thử nghiệm tiếp tục dùng `include_hidden=true`, rule
+  `iou0_area0_condarea0_merge0` và tuyệt đối không sinh MP4.
+
 ## Cập nhật H4 sang H5 ngày 2026-07-18
 
 - H4 đã sửa đúng family bbox Hidden vùng xa của `000328`: full-video IDSW

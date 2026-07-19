@@ -1,5 +1,24 @@
 # Project Memory Short
 
+## 2026-07-19 RQ4 closure and realtime Quality role
+
+- Commit `1a1d008` replaces motion-pair `deepcopy` with schema-aware cloning.
+  Five global/fixed-lag reference variants remain output-equivalent; the real
+  artifact benchmark improves from median `1.4471 s` to `0.6514 s` (`2.221x`).
+- QW01 primary/repeat preserve IDSW `32`, HOTA `94.75%`, IDF1 `95.94%`,
+  FP/FN `5/6`, and semantic hash `8472ed87...86857`.
+- End-to-end runtime still fails: effective FPS is `19.42/16.91`, p95 is
+  `60.84/91.02 ms`, and repeat loop-FPS ratio is `0.856`. The paired parent
+  also misses the frozen floor at `23.64 FPS` and p95 `47.41 ms`; this does
+  not waive the candidate gate.
+- Retain the output-equivalent implementation improvement, but do not promote
+  finite-delay Quality or run later windows, video, hard set, or full-13.
+- Quality was a mandatory realtime challenger, not an optional final step.
+  Its finite-delay screen is now closed as invalid; delay `-1` remains only a
+  post-video upper bound. Proceed to Pareto selection among valid authorities.
+- Authority is
+  `docs/TRACKING_RQ4_QUALITY_COPY_PERFORMANCE_DECISION_20260719.json`.
+
 ## 2026-07-19 RQ3 rejection and RQ4 performance gate
 
 - RQ3 memory horizons `10/15/20` all preserve the RQ2 S1 prediction and QW01

@@ -12,13 +12,13 @@ Close the hybrid optimization lane. Remaining weak rows are localization and
 continuity residuals, led by `000216`, rather than a bounded identity-switch
 family. Reopen hybrid only for a predeclared failure on untouched sessions.
 
-The development dependency is now locked as `hybrid_bytetrack` ->
-`realtime_fast` -> `realtime_balanced` -> `realtime_quality`; this is not the
-final realtime ranking. Hybrid is complete and fast is the current causal
-operational/paper reference. The bounded RB3 decision is closed without profile
-promotion because repeat p95 failed; Quality is the active mandatory challenger.
-Further Balanced work requires new predeclared evidence and must not delay
-Quality.
+Hybrid is the first dependency and is complete. The realtime selection is not
+pre-ranked as Fast, Balanced, then Quality: Fast is the causal operational
+control, while every valid Fast, Balanced, and Quality authority enters the
+same Pareto selection. Quality cannot be skipped; if a truthful causal or
+finite-delay Quality candidate wins, it replaces Fast/Balanced in the paper.
+RB3 Balanced is closed because repeat p95 failed, and the current finite-delay
+Quality screen is now also closed without promotion.
 
 The paper-critical comparison is `bytetrack_raw` -> one selected valid realtime
 method -> `hybrid_bytetrack_best`, all under the same include-Hidden contract,
@@ -52,8 +52,10 @@ stages. RQ2 S1 then improved QW01 HOTA/IDF1, but QW02-QW04 produced no second
 independent gain and its `18.99 FPS` missed the frozen `24.08 FPS` floor. RQ2 is
 closed without promotion. RQ3 horizons `10/15/20` preserve the S1 prediction,
 but the fastest horizon reaches only `17.20 FPS` and fails p95. RQ3 is closed.
-RQ4 is active as output-equivalent copy-performance work; it may enable Quality
-runtime but cannot bypass the existing two-independent-episode gate.
+RQ4 retains an output-equivalent `2.221x` copy-performance improvement, but its
+QW01 primary/repeat reach only `19.42/16.91 FPS`, p95 `60.84/91.02 ms`, and a
+repeat loop-FPS ratio of `0.856`. Quality therefore remains unpromoted; do not
+run later windows, a full video, hard set, or full-13 from RQ4.
 
 Authority:
 `docs/TRACKING_REALTIME_QUALITY_SELECTION_GATE_20260719.json`.
@@ -68,6 +70,8 @@ RQ2 decision and RQ3 plan:
 RQ3 decision and RQ4 plan:
 `docs/TRACKING_RQ3_QUALITY_RUNTIME_HORIZON_DECISION_20260719.json` and
 `docs/TRACKING_RQ4_QUALITY_COPY_PERFORMANCE_PLAN_20260719.json`.
+RQ4 decision:
+`docs/TRACKING_RQ4_QUALITY_COPY_PERFORMANCE_DECISION_20260719.json`.
 
 ## Decision precedence
 

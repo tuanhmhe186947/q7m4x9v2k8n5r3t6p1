@@ -20,10 +20,11 @@
 7. Inspect and record skills before nontrivial work. Upgrade reusable skills
    with `skill-creator`, validate them, and commit skill changes separately
    from algorithm changes.
-8. Tracking optimization priority is `hybrid_bytetrack` ->
-   `realtime_fast` -> `realtime_balanced` -> `realtime_quality`. A later
-   profile must not delay closure of an earlier one. Completed lanes are not
-   reopened without a predeclared failure on untouched sessions.
+8. Separate dependency order from final ranking. Complete
+   `hybrid_bytetrack` first; then select one realtime winner from valid Fast,
+   Balanced, and Quality authorities. Fast is the operational control, not a
+   predetermined winner. Quality is a mandatory challenger and replaces the
+   others if it wins the frozen causal/fixed-delay Pareto comparison.
 9. The paper does not require three realtime profiles. The minimum meaningful
    comparison is the same-contract `bytetrack_raw`, one selected causal
    realtime method, and `hybrid_bytetrack_best`. Additional realtime profiles
