@@ -16,6 +16,12 @@ runtime gates. Balanced stays a valid quality reference, while Quality stays
 post-video/fixed-delay rejection evidence. Authority:
 `docs/TRACKING_REALTIME_PARETO_SELECTION_DECISION_20260720.json`.
 
+The first post-Fast Balanced family was screened only on difficult windows.
+The far-right threshold candidate tied its parent on both W01 `000327` and W02
+`000302`; therefore it was rejected before W03-W05, full video and full-13.
+Keep `realtime_balanced` unchanged and retain the negative evidence at
+`docs/TRACKING_BALANCED_FAR_RIGHT_GUARD_DECISION_20260720.json`.
+
 ## Active hybrid lane-completion decision 2026-07-19
 
 Lock `hybrid_bytetrack_best` at IDSW `0`, HOTA `98.35062270%`, IDF1

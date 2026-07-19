@@ -12,6 +12,9 @@
 - Fast is promoted as a causal quality reference, not a speed winner. Native
   throughput/common-harness gates remain pending. Balanced remains a
   non-dominated quality trade-off; Quality remains delayed/negative evidence.
+- A Balanced far-right guard screen was rejected at two frozen windows: both
+  parent/candidate pairs tied at IDSW `0`, HOTA/IDF1 `100%`, FP/FN `0/0`.
+  No Balanced default changed and no later stage was opened.
 - Authority: `docs/TRACKING_REALTIME_PARETO_SELECTION_DECISION_20260720.json`.
 
 ## 2026-07-19 realtime selection is multi-objective

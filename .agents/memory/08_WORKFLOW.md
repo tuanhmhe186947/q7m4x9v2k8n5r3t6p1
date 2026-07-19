@@ -12,6 +12,8 @@
    without a predeclared window gate; Quality remains delayed/rejected evidence.
 5. Use `docs/TRACKING_REALTIME_PARETO_SELECTION_DECISION_20260720.json` as the
    current Pareto authority and preserve no-MP4/lineage rules.
+6. The first Balanced far-right screen tied on both frozen windows and is
+   rejected; do not advance it to full video or full-13.
 
 ## 2026-07-19 tracking paper critical-path override
 

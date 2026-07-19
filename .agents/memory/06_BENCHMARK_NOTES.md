@@ -11,6 +11,9 @@
 - Raw authority remains `145/88.91%/88.47%` and is not rerun. Balanced keeps
   the quality trade-off (`121/95.68%/95.76%`); Quality remains delay-`-1`
   upper-bound evidence.
+- Balanced far-right screening produced no gain in W01 `000327` or W02
+  `000302`; both parent/candidate windows were perfect ties. The family is
+  rejected without a full-video or full-13 run.
 - Authority: `docs/TRACKING_REALTIME_PARETO_SELECTION_DECISION_20260720.json`.
 
 ## 2026-07-19 realtime selection metrics are multi-objective
