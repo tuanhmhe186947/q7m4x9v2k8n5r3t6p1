@@ -112,7 +112,11 @@
       "balanced_target_idsw_max": 86,
       "quality_reference_status": "PASS",
       "identity_priority_target_status": "FAIL",
-      "new_family_authorized": false
+      "new_family_authorized": false,
+      "far_right_screen_decision":
+        "docs/TRACKING_BALANCED_FAR_RIGHT_GUARD_DECISION_20260720.json",
+      "far_right_screen_status":
+        "REJECTED_NO_TWO_POSITIVE_EPISODES"
     },
     "realtime_quality_delayed": {
       "role": "post_video_quality_upper_bound",
