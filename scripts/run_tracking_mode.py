@@ -377,18 +377,27 @@ def _mode_science_metadata(
         "realtime_visible_better_competitor_prefer",
         "realtime_low_conf_recovery_guard",
     ]
-    uses_identity_repair = any(_truthy(overrides.get(key, False)) for key in identity_repair_keys)
-    uses_global_graph = (
+    uses_identity_repair = any(
+        _truthy(overrides.get(key, False)) for key in identity_repair_keys
+    )
+    uses_motion_pair_stabilizer = (
         tracking_mode == "realtime"
         and _truthy(overrides.get("realtime_motion_pair_stabilizer", False))
     )
-    uses_delayed_repair = uses_global_graph or (
+    fixed_lag_frames = int(
+        overrides.get("realtime_motion_pair_fixed_lag_frames", 0) or 0
+    )
+    uses_fixed_lag = uses_motion_pair_stabilizer and fixed_lag_frames > 0
+    uses_global_graph = uses_motion_pair_stabilizer and not uses_fixed_lag
+    uses_delayed_repair = uses_motion_pair_stabilizer or (
         offline_smoothing
         and _truthy(overrides.get("local_pair_swap_repair", False))
     )
     detect_every_n_frames = str(overrides.get("detect_every_n_frames", ""))
     latency_window = ""
-    if offline_smoothing and _truthy(
+    if uses_fixed_lag:
+        latency_window = str(fixed_lag_frames)
+    elif offline_smoothing and _truthy(
         overrides.get("local_pair_swap_repair", False)
     ):
         latency_window = str(overrides.get("local_pair_swap_window_frames", ""))
@@ -398,6 +407,11 @@ def _mode_science_metadata(
         causality_level = "online_raw"
         output_timing_contract = "causal_framewise"
         declared_delay_frames = 0
+    elif uses_fixed_lag:
+        baseline_role = "realtime_quality_fixed_lag_candidate"
+        causality_level = "fixed_lag_realtime"
+        output_timing_contract = "fixed_lag_framewise"
+        declared_delay_frames = fixed_lag_frames
     elif uses_global_graph:
         baseline_role = "realtime_quality_delayed_candidate"
         causality_level = "post_video_global_graph"

@@ -225,6 +225,30 @@ def test_run_tracking_mode_science_metadata_marks_global_graph_truthfully() -> N
     assert metadata["latency_window_frames"] == ""
 
 
+def test_run_tracking_mode_science_metadata_marks_fixed_lag_truthfully() -> None:
+    script_path = Path(__file__).resolve().parents[1] / "scripts" / "run_tracking_mode.py"
+    spec = importlib.util.spec_from_file_location("run_tracking_mode_script", script_path)
+    assert spec is not None
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+    overrides = module.get_eval_config("realtime_quality_delayed")
+    overrides["realtime_motion_pair_fixed_lag_frames"] = 15
+
+    metadata = module._mode_science_metadata(
+        "realtime_quality_delayed",
+        "realtime",
+        "realtime_quality_delayed",
+        overrides,
+    )
+
+    assert metadata["baseline_role"] == "realtime_quality_fixed_lag_candidate"
+    assert metadata["causality_level"] == "fixed_lag_realtime"
+    assert metadata["output_timing_contract"] == "fixed_lag_framewise"
+    assert metadata["declared_delay_frames"] == "15"
+    assert metadata["latency_window_frames"] == "15"
+
+
 def test_run_tracking_mode_has_clear_two_task_model() -> None:
     script_path = Path(__file__).resolve().parents[1] / "scripts" / "run_tracking_mode.py"
     spec = importlib.util.spec_from_file_location("run_tracking_mode_script", script_path)

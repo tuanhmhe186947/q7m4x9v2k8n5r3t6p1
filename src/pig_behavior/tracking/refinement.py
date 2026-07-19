@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from bisect import bisect_left, bisect_right
 from copy import deepcopy
 from typing import Any
 
@@ -1193,6 +1194,7 @@ def realtime_motion_pair_candidates(
     cfg: TrackingConfig,
     *,
     allowed_edges: set[tuple[str, str]] | None = None,
+    mutable_start_frame: int | None = None,
 ) -> tuple[list[dict[str, Any]], list[tuple[str, str, float]]]:
     stabilized = [deepcopy(shape) for shape in shapes]
     by_frame: dict[int, list[dict[str, Any]]] = {}
@@ -1249,6 +1251,8 @@ def realtime_motion_pair_candidates(
             shape = frame_shapes[index]
             current_id = shape_id_value(shape)
             if current_id is None or current_id == proposed_id:
+                continue
+            if mutable_start_frame is not None and frame < mutable_start_frame:
                 continue
             current_center = shape_center_xy(shape)
             if current_id in active_previous:
@@ -1355,19 +1359,22 @@ def motion_pair_allowed_edges(
     return allowed
 
 
-def stabilize_realtime_motion_pairs(
+def _stabilize_realtime_motion_pair_graph(
     shapes: list[dict[str, Any]],
     width: int,
     height: int,
     cfg: TrackingConfig,
+    *,
+    mutable_start_frame: int | None = None,
 ) -> list[dict[str, Any]]:
-    """Relabel short-memory motion components for delayed realtime quality."""
-    if not cfg.realtime_motion_pair_stabilizer:
-        return shapes
-    if cfg.mode != "realtime":
-        return shapes
-
-    _, planned_edges = realtime_motion_pair_candidates(shapes, width, height, cfg)
+    """Apply the existing global edge-selection graph to one shape window."""
+    _, planned_edges = realtime_motion_pair_candidates(
+        shapes,
+        width,
+        height,
+        cfg,
+        mutable_start_frame=mutable_start_frame,
+    )
     if not planned_edges:
         return shapes
     allowed_edges = motion_pair_allowed_edges(planned_edges, cfg)
@@ -1379,6 +1386,7 @@ def stabilize_realtime_motion_pairs(
         height,
         cfg,
         allowed_edges=allowed_edges,
+        mutable_start_frame=mutable_start_frame,
     )
     simple_min_gain = float(cfg.realtime_motion_pair_simple_min_gain)
     if 0.0 < simple_min_gain < cfg.realtime_motion_pair_min_gain:
@@ -1402,6 +1410,7 @@ def stabilize_realtime_motion_pairs(
             width,
             height,
             simple_cfg,
+            mutable_start_frame=mutable_start_frame,
         )
         simple_allowed_edges = motion_pair_allowed_edges(simple_planned_edges, simple_cfg)
         if simple_allowed_edges:
@@ -1411,6 +1420,7 @@ def stabilize_realtime_motion_pairs(
                 height,
                 simple_cfg,
                 allowed_edges=simple_allowed_edges,
+                mutable_start_frame=mutable_start_frame,
             )
             changed_edges.extend(simple_changed_edges)
     if changed_edges:
@@ -1419,6 +1429,70 @@ def stabilize_realtime_motion_pairs(
             len(changed_edges),
         )
     return stabilized
+
+
+def _stabilize_realtime_motion_pairs_fixed_lag(
+    shapes: list[dict[str, Any]],
+    width: int,
+    height: int,
+    cfg: TrackingConfig,
+    fixed_lag_frames: int,
+) -> list[dict[str, Any]]:
+    stabilized = [deepcopy(shape) for shape in shapes]
+    indices_by_frame: dict[int, list[int]] = {}
+    for index, shape in enumerate(stabilized):
+        indices_by_frame.setdefault(int(shape["frame"]), []).append(index)
+    ordered_frames = sorted(indices_by_frame)
+    memory_frames = max(0, int(cfg.realtime_motion_pair_memory_frames))
+
+    for flush_frame in ordered_frames:
+        window_start = flush_frame - memory_frames
+        window_end = flush_frame + fixed_lag_frames
+        left = bisect_left(ordered_frames, window_start)
+        right = bisect_right(ordered_frames, window_end)
+        window_indices = [
+            index
+            for frame in ordered_frames[left:right]
+            for index in indices_by_frame[frame]
+        ]
+        window_shapes = [stabilized[index] for index in window_indices]
+        window_result = _stabilize_realtime_motion_pair_graph(
+            window_shapes,
+            width,
+            height,
+            cfg,
+            mutable_start_frame=flush_frame,
+        )
+        for window_index, source_index in enumerate(window_indices):
+            if int(stabilized[source_index]["frame"]) != flush_frame:
+                continue
+            stabilized[source_index] = deepcopy(window_result[window_index])
+
+    return stabilized
+
+
+def stabilize_realtime_motion_pairs(
+    shapes: list[dict[str, Any]],
+    width: int,
+    height: int,
+    cfg: TrackingConfig,
+) -> list[dict[str, Any]]:
+    """Relabel motion components under a global or finite-lag contract."""
+    if not cfg.realtime_motion_pair_stabilizer or cfg.mode != "realtime":
+        return shapes
+
+    fixed_lag_frames = int(cfg.realtime_motion_pair_fixed_lag_frames)
+    if fixed_lag_frames < 0:
+        raise ValueError("realtime_motion_pair_fixed_lag_frames must be >= 0.")
+    if fixed_lag_frames == 0:
+        return _stabilize_realtime_motion_pair_graph(shapes, width, height, cfg)
+    return _stabilize_realtime_motion_pairs_fixed_lag(
+        shapes,
+        width,
+        height,
+        cfg,
+        fixed_lag_frames,
+    )
 
 
 def median_shape_center(shapes: list[dict[str, Any]]) -> tuple[float, float]:

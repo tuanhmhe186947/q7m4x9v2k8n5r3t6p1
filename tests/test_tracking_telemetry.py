@@ -18,6 +18,7 @@ from pig_behavior.tracking import (
     get_telemetry_summary,
     initialize_tracks,
     match_and_update_tracks,
+    validate_config,
 )
 from pig_behavior.tracking.exporters.quality import build_quality_report
 from pig_behavior.tracking.profiles.realtime import (
@@ -111,6 +112,22 @@ def _frame_ids_by_center(
         center_x = (float(points[0]) + float(points[2])) / 2.0
         result[center_x] = _shape_id(shape)
     return result
+
+
+def _fixed_lag_motion_pair_config(fixed_lag_frames: int) -> TrackingConfig:
+    return TrackingConfig(
+        mode="realtime",
+        realtime_motion_pair_stabilizer=True,
+        realtime_motion_pair_fixed_lag_frames=fixed_lag_frames,
+        realtime_motion_pair_max_jump=0.50,
+        realtime_motion_pair_min_gain=0.05,
+        realtime_motion_pair_memory_frames=30,
+        realtime_motion_pair_max_component_size=2,
+        realtime_motion_pair_max_component_edges=2,
+        realtime_motion_pair_dense_fallback_max_edges=0,
+        realtime_motion_pair_dense_fallback_max_support_ratio=0.0,
+        realtime_motion_pair_simple_min_gain=0.0,
+    )
 
 
 def test_runtime_telemetry_summary_has_stable_timing_and_delay() -> None:
@@ -337,6 +354,26 @@ def test_realtime_profiles_declare_truthful_causality_contracts() -> None:
     )
 
 
+@pytest.mark.parametrize("fixed_lag_frames", [12, 15, 30])
+def test_fixed_lag_quality_declares_exact_delay(fixed_lag_frames: int) -> None:
+    cfg = _fixed_lag_motion_pair_config(fixed_lag_frames)
+
+    assert resolve_output_timing_contract(cfg) == (
+        "fixed_lag_framewise",
+        fixed_lag_frames,
+    )
+
+
+def test_negative_motion_pair_fixed_lag_is_rejected() -> None:
+    cfg = _fixed_lag_motion_pair_config(-1)
+
+    with pytest.raises(
+        ValueError,
+        match="realtime_motion_pair_fixed_lag_frames must be >= 0",
+    ):
+        validate_config(cfg)
+
+
 @pytest.mark.parametrize(
     "profile",
     [REALTIME_FAST_CONFIG, REALTIME_BALANCED_CONFIG],
@@ -429,4 +466,63 @@ def test_global_graph_profile_can_change_past_output_with_future_frames() -> Non
     assert resolve_output_timing_contract(cfg) == (
         "post_video_global_graph",
         -1,
+    )
+
+
+@pytest.mark.parametrize("fixed_lag_frames", [12, 15, 30])
+def test_fixed_lag_motion_pair_output_is_prefix_invariant(
+    fixed_lag_frames: int,
+) -> None:
+    cfg = _fixed_lag_motion_pair_config(fixed_lag_frames)
+    prefix = [
+        _shape(0, 1, 10.0),
+        _shape(0, 2, 110.0),
+        _shape(0, 3, 210.0),
+        _shape(1, 1, 110.0),
+        _shape(1, 2, 10.0),
+        _shape(1, 3, 210.0),
+    ]
+    for frame in range(2, fixed_lag_frames + 2):
+        prefix.extend(
+            [
+                _shape(frame, 1, 10.0),
+                _shape(frame, 2, 110.0),
+                _shape(frame, 3, 210.0),
+            ]
+        )
+    future_frame = fixed_lag_frames + 2
+    future = [
+        _shape(future_frame, 1, 10.0),
+        _shape(future_frame, 2, 210.0),
+        _shape(future_frame, 3, 110.0),
+    ]
+
+    prefix_output = stabilize_realtime_motion_pairs(
+        deepcopy(prefix),
+        300,
+        100,
+        cfg,
+    )
+    extended_output = stabilize_realtime_motion_pairs(
+        deepcopy([*prefix, *future]),
+        300,
+        100,
+        cfg,
+    )
+
+    expected_committed_ids = {
+        10.0: "ID_1",
+        110.0: "ID_2",
+        210.0: "ID_3",
+    }
+    assert _frame_ids_by_center(prefix_output, 1) == expected_committed_ids
+    assert _frame_ids_by_center(extended_output, 1) == expected_committed_ids
+    assert [
+        shape for shape in prefix_output if int(shape["frame"]) <= 1
+    ] == [
+        shape for shape in extended_output if int(shape["frame"]) <= 1
+    ]
+    assert resolve_output_timing_contract(cfg) == (
+        "fixed_lag_framewise",
+        fixed_lag_frames,
     )
