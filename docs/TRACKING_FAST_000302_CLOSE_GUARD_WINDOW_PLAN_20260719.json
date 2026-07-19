@@ -1,0 +1,78 @@
+{
+  "schema_version": "tracking_fast_candidate_window_plan_v1",
+  "plan_date": "2026-07-19",
+  "status": "FROZEN_BEFORE_RUN",
+  "starting_commit": "999f68a",
+  "scope": {
+    "tracking_only": true,
+    "profile": "realtime_fast",
+    "video": "Pigs291119_000302_30fps",
+    "frame_range_processed": [0, 630],
+    "score_range": [540, 590],
+    "warmup_before_score_frames": 540,
+    "include_hidden": true,
+    "gap_tolerance_frames": 15,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "association_debug": true,
+    "write_output_video": false,
+    "mp4_allowed": false
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "parent": {
+    "run_id": "20260719_66bc121_fast_000302_parent_diag_v1",
+    "semantic_values": {
+      "detect_every_n_frames": 2,
+      "realtime_low_conf_recovery_guard": false,
+      "realtime_visible_close_competitor_guard": false
+    },
+    "remapped_idsw": 6,
+    "remapped_hota_pct": 88.31,
+    "remapped_idf1_pct": 87.75,
+    "fp": 20,
+    "fn": 20
+  },
+  "candidate": {
+    "run_id": "20260719_999f68a_fast_000302_closeguard_w1_v1",
+    "changed_family": "realtime_visible_close_competitor_guard",
+    "semantic_diff": {
+      "realtime_visible_close_competitor_guard": [false, true]
+    },
+    "parameters_frozen": {
+      "realtime_visible_close_competitor_margin": 0.012,
+      "realtime_visible_close_competitor_max_cost": 0.35,
+      "realtime_visible_close_competitor_min_hits": 3
+    },
+    "all_other_fast_profile_values_unchanged": true
+  },
+  "hypothesis": [
+    "The causal visible-competitor guard may resolve a near-tie before",
+    "the skipped-frame episode becomes an ID swap. It is tested alone",
+    "to distinguish association protection from cadence and recovery guards."
+  ],
+  "window_gate": {
+    "target": "remapped_idsw <= 2",
+    "guardrails": [
+      "remapped_hota_pct >= 88.31",
+      "remapped_idf1_pct >= 87.75",
+      "fp <= 20",
+      "fn <= 20",
+      "causal_framewise output remains declared",
+      "recursive mp4_count equals zero",
+      "only the declared visible-competitor family differs"
+    ],
+    "advance_rule": [
+      "Do not run the full video unless this window gate passes.",
+      "A passing window remains screening evidence, not promotion evidence."
+    ]
+  },
+  "fresh_roots": {
+    "base_prediction": "outputs/pred/tracking_realtime_optimization",
+    "base_evaluation": "outputs/eval/tracking_realtime_optimization",
+    "run_name": "20260719_999f68a_fast_000302_closeguard_w1_v1"
+  }
+}
