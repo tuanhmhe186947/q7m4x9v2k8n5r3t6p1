@@ -1,0 +1,99 @@
+{
+  "schema_version": "tracking_fast_paired_window_decision_v1",
+  "decision_date": "2026-07-19",
+  "status": "PASS_GUARDRAIL_TIE_NO_ADVANCE",
+  "execution_commit": "e618bbdd76ca8f0fe36458133dcd3422d57a0020",
+  "parent_run_id": "20260719_45e81bb_fast_000225_parent_diag_w4_v1",
+  "candidate_run_id": "20260719_45e81bb_fast_000225_margin08_w4_v1",
+  "changed_family": "visible_competitor_guard_threshold",
+  "semantic_diff": {
+    "realtime_visible_close_competitor_guard": [false, true],
+    "realtime_visible_close_competitor_margin": [0.012, 0.08]
+  },
+  "contract": {
+    "video": "Pigs291119_000225_30fps",
+    "processed_frames": [0, 820],
+    "score_frames": [740, 800],
+    "include_hidden": true,
+    "gap_tolerance_frames": 15,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "output_timing_contract": "causal_framewise",
+    "declared_delay_frames": 0,
+    "write_output_video": false,
+    "mp4_count": 0
+  },
+  "mechanism_gate": {
+    "switch_frame": 780,
+    "visible_cost": 0.342428,
+    "visible_competitor_cost": 0.369623,
+    "cost_gap": 0.027195,
+    "mechanism_match": true
+  },
+  "paired_metrics": {
+    "parent": {
+      "remapped_idsw": 2,
+      "remapped_hota_pct": 92.08,
+      "remapped_idf1_pct": 91.39,
+      "fp": 0,
+      "fn": 0
+    },
+    "candidate": {
+      "remapped_idsw": 2,
+      "remapped_hota_pct": 92.08,
+      "remapped_idf1_pct": 91.39,
+      "fp": 0,
+      "fn": 0
+    }
+  },
+  "causal_observation": {
+    "candidate_preference_events": 0,
+    "candidate_association_assignments_preferred": 0,
+    "prediction_semantic_hash_equal": true,
+    "prediction_raw_sha256_equal": true,
+    "interpretation": [
+      "The candidate is safe on this independent window.",
+      "The implementation did not trigger on the mechanism trace, so no",
+      "independent quality gain is demonstrated."
+    ]
+  },
+  "runtime_screening_only": {
+    "parent_effective_fps": 21.1027,
+    "candidate_effective_fps": 25.7783,
+    "parent_frame_time_p95_ms": 63.7656,
+    "candidate_frame_time_p95_ms": 52.8947,
+    "speed_claim": "NOT_APPLICABLE",
+    "reason": "single sequential windows are not repeat runtime authority"
+  },
+  "lineage": {
+    "input_sha256": {
+      "detector":
+        "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+      "mask":
+        "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658"
+    },
+    "artifact_sha256": {
+      "parent_run_manifest":
+        "5d42baa72fcf7ea7b9180c18900358193378f214069cec37d5c058d340630974",
+      "candidate_run_manifest":
+        "c7ce4228b8db3a22f9d962fff480b7c79d30089350208b5f5af8e489b54bf580",
+      "parent_prediction_xml":
+        "60063808275c751be8866eb04aa322322e5d2a9f812fe35a019ac09f66da0901",
+      "candidate_prediction_xml":
+        "60063808275c751be8866eb04aa322322e5d2a9f812fe35a019ac09f66da0901",
+      "shared_prediction_semantic_sha256":
+        "2c336e75f3cd77005d1f1e1e90ab17f2a1aad4e7f242ba6e4676d07beacb99ff"
+    }
+  },
+  "gate_decision": {
+    "guardrail_safety": "PASS",
+    "independent_gain": "FAIL",
+    "advance_to_full_000302": false,
+    "advance_to_hard_set": false,
+    "advance_to_full_13": false,
+    "next_step": [
+      "Keep margin 0.08 as a screening candidate only.",
+      "Use another parent-derived episode or a new explicitly declared",
+      "association family; do not promote this threshold from ties."
+    ]
+  }
+}
