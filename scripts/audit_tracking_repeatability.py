@@ -35,6 +35,14 @@ def _idsw_guard(value: str) -> tuple[str, int]:
     return stem, maximum
 
 
+def _runtime_guardrails_not_applicable(runtime: dict[str, object]) -> bool:
+    guardrails = runtime.get("guardrails")
+    return (
+        isinstance(guardrails, dict)
+        and guardrails.get("status") == "NOT_APPLICABLE"
+    )
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--primary-eval-dir", type=Path, required=True)
@@ -145,7 +153,7 @@ def main(argv: list[str] | None = None) -> int:
         f"artifacts={payload['verified_artifact_count']} "
         f"mp4={payload['mp4_count']}"
     )
-    if runtime["guardrails"]["status"] == "NOT_APPLICABLE":
+    if _runtime_guardrails_not_applicable(runtime):
         print(
             "  tracker runtime: NOT_APPLICABLE "
             "(post-video geometry replay)"
