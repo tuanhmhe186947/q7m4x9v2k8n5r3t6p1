@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+import pig_behavior.tracking.refinement as tracking_refinement
 from pig_behavior.evaluation.tracking.assets import TrackingPair
 from pig_behavior.evaluation.tracking.pipeline import (
     runtime_telemetry_to_dataframe,
@@ -128,6 +129,71 @@ def _fixed_lag_motion_pair_config(fixed_lag_frames: int) -> TrackingConfig:
         realtime_motion_pair_dense_fallback_max_support_ratio=0.0,
         realtime_motion_pair_simple_min_gain=0.0,
     )
+
+
+def test_motion_pair_shape_clone_preserves_input_independence() -> None:
+    shape = _shape(0, 1, 10.0)
+    shape["elements"] = [{"points": [1.0, 2.0]}]
+
+    cloned = tracking_refinement._clone_motion_pair_shape(shape)
+
+    assert cloned == shape
+    cloned["points"][0] = -1.0
+    cloned["attributes"][0]["value"] = "ID_8"
+    cloned["elements"][0]["points"][0] = -2.0
+    assert shape["points"][0] != -1.0
+    assert shape["attributes"][0]["value"] == "ID_1"
+    assert shape["elements"][0]["points"][0] == 1.0
+
+
+@pytest.mark.parametrize(
+    ("fixed_lag_frames", "memory_frames"),
+    [(0, 30), (15, 10), (15, 15), (15, 20), (15, 30)],
+)
+def test_motion_pair_schema_clone_matches_deepcopy_output(
+    monkeypatch: pytest.MonkeyPatch,
+    fixed_lag_frames: int,
+    memory_frames: int,
+) -> None:
+    cfg = _fixed_lag_motion_pair_config(fixed_lag_frames)
+    cfg.realtime_motion_pair_memory_frames = memory_frames
+    shapes = [
+        _shape(0, 1, 10.0),
+        _shape(0, 2, 110.0),
+        _shape(0, 3, 210.0),
+        _shape(1, 1, 110.0),
+        _shape(1, 2, 10.0),
+        _shape(1, 3, 210.0),
+    ]
+    for frame in range(2, 20):
+        shapes.extend(
+            [
+                _shape(frame, 1, 10.0),
+                _shape(frame, 2, 110.0),
+                _shape(frame, 3, 210.0),
+            ]
+        )
+
+    with monkeypatch.context() as reference_patch:
+        reference_patch.setattr(
+            tracking_refinement,
+            "_clone_motion_pair_shape",
+            deepcopy,
+        )
+        reference = stabilize_realtime_motion_pairs(
+            shapes,
+            300,
+            100,
+            cfg,
+        )
+    candidate = stabilize_realtime_motion_pairs(
+        shapes,
+        300,
+        100,
+        cfg,
+    )
+
+    assert candidate == reference
 
 
 def test_runtime_telemetry_summary_has_stable_timing_and_delay() -> None:

@@ -21,6 +21,26 @@ from pig_behavior.tracking.geometry import (
 
 logger = logging.getLogger(__name__)
 
+def _clone_motion_pair_shape(shape: dict[str, Any]) -> dict[str, Any]:
+    """Clone mutable fields in the frame-shape contract without full deepcopy."""
+    cloned = shape.copy()
+
+    points = shape.get("points")
+    if isinstance(points, list):
+        cloned["points"] = points.copy()
+
+    attributes = shape.get("attributes")
+    if isinstance(attributes, list):
+        cloned["attributes"] = [
+            attribute.copy() if isinstance(attribute, dict) else deepcopy(attribute)
+            for attribute in attributes
+        ]
+
+    elements = shape.get("elements")
+    if isinstance(elements, list):
+        cloned["elements"] = deepcopy(elements) if elements else []
+    return cloned
+
 
 def _shape_attributes_dict(shape: dict[str, Any]) -> dict[str, Any]:
     return {
@@ -1196,7 +1216,7 @@ def realtime_motion_pair_candidates(
     allowed_edges: set[tuple[str, str]] | None = None,
     mutable_start_frame: int | None = None,
 ) -> tuple[list[dict[str, Any]], list[tuple[str, str, float]]]:
-    stabilized = [deepcopy(shape) for shape in shapes]
+    stabilized = [_clone_motion_pair_shape(shape) for shape in shapes]
     by_frame: dict[int, list[dict[str, Any]]] = {}
     for shape in stabilized:
         if shape_is_visible_for_local_swap(shape):
@@ -1438,7 +1458,7 @@ def _stabilize_realtime_motion_pairs_fixed_lag(
     cfg: TrackingConfig,
     fixed_lag_frames: int,
 ) -> list[dict[str, Any]]:
-    stabilized = [deepcopy(shape) for shape in shapes]
+    stabilized = [_clone_motion_pair_shape(shape) for shape in shapes]
     indices_by_frame: dict[int, list[int]] = {}
     for index, shape in enumerate(stabilized):
         indices_by_frame.setdefault(int(shape["frame"]), []).append(index)
@@ -1466,7 +1486,9 @@ def _stabilize_realtime_motion_pairs_fixed_lag(
         for window_index, source_index in enumerate(window_indices):
             if int(stabilized[source_index]["frame"]) != flush_frame:
                 continue
-            stabilized[source_index] = deepcopy(window_result[window_index])
+            stabilized[source_index] = _clone_motion_pair_shape(
+                window_result[window_index]
+            )
 
     return stabilized
 
