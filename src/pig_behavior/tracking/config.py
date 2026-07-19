@@ -167,6 +167,7 @@ class TrackingConfig:
     realtime_visible_close_competitor_margin: float = 0.012
     realtime_visible_close_competitor_max_cost: float = 0.35
     realtime_visible_close_competitor_min_hits: int = 3
+    realtime_visible_close_competitor_min_center_x_ratio: float = 0.0
     realtime_visible_better_competitor_reject: bool = False
     realtime_visible_better_competitor_prefer: bool = False
     realtime_visible_better_competitor_min_cost: float = 0.50
@@ -538,6 +539,15 @@ def validate_config(cfg: TrackingConfig) -> None:
     for name, value in occlusion_values.items():
         if not 0.0 <= value <= 1.0:
             raise ValueError(f"{name} must be between 0 and 1.")
+    if not (
+        0.0
+        <= cfg.realtime_visible_close_competitor_min_center_x_ratio
+        <= 1.0
+    ):
+        raise ValueError(
+            "realtime_visible_close_competitor_min_center_x_ratio must be "
+            "between 0 and 1."
+        )
     if cfg.occlusion_hold_max_frames < 0:
         raise ValueError("occlusion_hold_max_frames must be >= 0.")
     if cfg.occlusion_hold_hidden_frames < 1:

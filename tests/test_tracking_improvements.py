@@ -39,6 +39,7 @@ from pig_behavior.tracking.association import (
     hidden_owner_conflict_should_freeze_identity,
     occlusion_reid_bad_match_should_hold,
     raw_owner_conflict_is_ambiguous,
+    realtime_visible_close_competitor_should_prefer,
     reentry_ambiguous_assignment_should_hold,
     reentry_assignment_cost_allows_hold,
     reentry_raw_evidence_allows_hold,
@@ -138,6 +139,87 @@ def test_negative_refine_max_previous_gap_is_rejected() -> None:
         assert "refine_max_previous_gap_frames" in str(exc)
     else:
         raise AssertionError("negative previous refinement gap should fail")
+
+
+def test_realtime_close_competitor_can_be_limited_to_far_right() -> None:
+    cfg = TrackingConfig(
+        mode="realtime",
+        occlusion_aware_matching=False,
+        realtime_visible_close_competitor_guard=True,
+        realtime_visible_close_competitor_margin=0.08,
+        realtime_visible_close_competitor_max_cost=0.40,
+        realtime_visible_close_competitor_min_center_x_ratio=0.67,
+    )
+    selected_track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([850, 400, 1000, 550], dtype=np.float32),
+        hits=20,
+        ever_detected=True,
+        last_source="detected",
+        state="VISIBLE",
+    )
+    competitor_track = FixedTrack(
+        fixed_id=2,
+        last_box=np.array([900, 400, 1050, 550], dtype=np.float32),
+        hits=20,
+        ever_detected=True,
+        last_source="detected",
+        state="VISIBLE",
+    )
+    hist = np.zeros((16 * 16 * 4,), dtype=np.float32)
+    far_detection = Detection(
+        box=np.array([895.783, 465.226, 1074.067, 567.833]),
+        score=0.90,
+        raw_id=4,
+        class_id=0,
+        hist=hist,
+    )
+    left_detection = Detection(
+        box=np.array([270.109, 156.079, 528.822, 411.506]),
+        score=0.90,
+        raw_id=6,
+        class_id=0,
+        hist=hist,
+    )
+
+    common = {
+        "selected_track": selected_track,
+        "competitor_track": competitor_track,
+        "selected_cost": 0.21,
+        "competitor_cost": 0.28,
+        "competitor_selected_cost": None,
+        "width": 1280,
+        "cfg": cfg,
+        "phase_name": "visible_high_conf",
+    }
+    assert realtime_visible_close_competitor_should_prefer(
+        det=far_detection,
+        **common,
+    )
+    assert not realtime_visible_close_competitor_should_prefer(
+        det=left_detection,
+        **common,
+    )
+
+    cfg.realtime_visible_close_competitor_min_center_x_ratio = 0.0
+    assert realtime_visible_close_competitor_should_prefer(
+        det=left_detection,
+        **common,
+    )
+
+
+def test_realtime_close_competitor_center_ratio_is_validated() -> None:
+    for value in (-0.01, 1.01):
+        cfg = TrackingConfig(
+            realtime_visible_close_competitor_min_center_x_ratio=value,
+        )
+
+        try:
+            validate_config(cfg)
+        except ValueError as exc:
+            assert "min_center_x_ratio" in str(exc)
+        else:
+            raise AssertionError("invalid center-x ratio should fail")
 
 
 def test_near_wall_hidden_geometry_requires_mask_config() -> None:

@@ -925,6 +925,7 @@ def realtime_visible_close_competitor_should_prefer(
     selected_cost: float,
     competitor_cost: float,
     competitor_selected_cost: float | None,
+    width: int,
     cfg: TrackingConfig,
     phase_name: str,
 ) -> bool:
@@ -937,6 +938,15 @@ def realtime_visible_close_competitor_should_prefer(
         return False
     if det.score < cfg.track_high_conf:
         return False
+    min_center_x_ratio = (
+        cfg.realtime_visible_close_competitor_min_center_x_ratio
+    )
+    if min_center_x_ratio > 0.0:
+        if width <= 0:
+            return False
+        det_center_x, _ = bbox_center(det.box)
+        if det_center_x / float(width) < min_center_x_ratio:
+            return False
     if selected_cost > cfg.realtime_visible_close_competitor_max_cost:
         return False
     if competitor_cost > cfg.realtime_visible_close_competitor_max_cost:
@@ -1739,6 +1749,7 @@ def match_and_update_tracks(
                     float(costs[row, col]),
                     float(competing_cost),
                     competitor_selected_cost,
+                    width,
                     cfg,
                     phase_name,
                 )
