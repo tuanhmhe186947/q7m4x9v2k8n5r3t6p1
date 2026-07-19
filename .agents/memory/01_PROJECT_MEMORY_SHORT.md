@@ -1,5 +1,21 @@
 # Project Memory Short
 
+## 2026-07-19 RQ3 rejection and RQ4 performance gate
+
+- RQ3 memory horizons `10/15/20` all preserve the RQ2 S1 prediction and QW01
+  quality: IDSW `32`, HOTA `94.75%`, IDF1 `95.94%`, and FP/FN `5/6`.
+- Memory 10 has the lowest postprocess cost, but its clean run reaches only
+  `17.20 FPS` with p95 `72.21 ms`, below the frozen `24.08 FPS` and
+  `45.29 ms` gates. Even its optimistic paired-loop ceiling is `21.24 FPS`.
+- RQ3 is rejected at QW01. Do not run its later windows, full video, hard set,
+  or full-13. All RQ3 roots have zero MP4.
+- RQ4 is frozen as output-equivalent implementation work: replace expensive
+  motion-pair shape `deepcopy` operations with schema-aware cloning, require
+  exact synthetic and real-artifact equality, then rerun only QW01 runtime.
+- Authorities are
+  `docs/TRACKING_RQ3_QUALITY_RUNTIME_HORIZON_DECISION_20260719.json` and
+  `docs/TRACKING_RQ4_QUALITY_COPY_PERFORMANCE_PLAN_20260719.json`.
+
 ## 2026-07-19 RQ2 Quality decision and RQ3 runtime gate
 
 - RQ2 S1 (`min_gain=0.02`, two-ID component gate) improves QW01 from IDSW
