@@ -72,7 +72,6 @@ def main() -> int:
         detector_name="yolov8",
         mask_path=PROJECT_ROOT / "data" / "annotations" / "scene" / "mask.png",
         iou_threshold=0.5,
-        include_hidden=False,
         gap_tolerance_frames=15,
         run_missing_tracker=True,
         force_track=True,

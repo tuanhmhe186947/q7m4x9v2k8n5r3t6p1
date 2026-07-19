@@ -70,18 +70,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--mask", type=Path, default=None)
     parser.add_argument("--iou-threshold", type=float, default=0.5)
-    hidden_group = parser.add_mutually_exclusive_group()
-    hidden_group.add_argument(
-        "--include-hidden",
-        dest="include_hidden",
-        action="store_true",
-        default=True,
-        help="Evaluate every corrected GT bbox/ID row (primary contract).",
-    )
-    hidden_group.add_argument(
+    parser.add_argument(
         "--exclude-hidden",
         dest="include_hidden",
         action="store_false",
+        default=True,
         help="Exclude Hidden=Yes rows for a labeled compatibility replay only.",
     )
     parser.add_argument(

@@ -1,4 +1,5 @@
 import importlib.util
+import inspect
 from pathlib import Path
 
 import pytest
@@ -9,6 +10,22 @@ from pig_behavior.evaluation.tracking.cli import (
 from pig_behavior.evaluation.tracking.cli import (
     parse_profile_overrides,
     selected_rule_combos,
+)
+from pig_behavior.evaluation.tracking.cvat_io import parse_cvat_video_xml
+from pig_behavior.evaluation.tracking.diagnostics import (
+    continuity_gaps_for_pair,
+    identity_events_for_pair,
+    identity_mapping_for_pair,
+)
+from pig_behavior.evaluation.tracking.evaluator import (
+    evaluate_dataset,
+    evaluate_pair,
+)
+from pig_behavior.evaluation.tracking.hard_scene import (
+    HardSceneEvalConfig,
+    _build_compare_parser,
+    _build_parser,
+    _parse_with_confidence,
 )
 from pig_behavior.tracking.config import TrackingConfig
 
@@ -63,6 +80,31 @@ def test_direct_pipeline_cli_uses_corrected_hidden_contract_by_default() -> None
 
     assert primary.include_hidden is True
     assert compatibility.include_hidden is False
+
+
+def test_tracking_evaluation_apis_default_to_corrected_hidden_contract() -> None:
+    functions = [
+        parse_cvat_video_xml,
+        identity_events_for_pair,
+        identity_mapping_for_pair,
+        continuity_gaps_for_pair,
+        evaluate_pair,
+        evaluate_dataset,
+        _parse_with_confidence,
+    ]
+
+    assert all(
+        inspect.signature(function).parameters["include_hidden"].default is True
+        for function in functions
+    )
+    assert HardSceneEvalConfig().include_hidden is True
+    assert _build_parser().parse_args([]).include_hidden is True
+    assert _build_compare_parser().parse_args([]).include_hidden is True
+    assert _build_parser().parse_args(["--exclude-hidden"]).include_hidden is False
+    assert (
+        _build_compare_parser().parse_args(["--exclude-hidden"]).include_hidden
+        is False
+    )
 
 
 def test_parse_profile_overrides_rejects_unknown_fields() -> None:

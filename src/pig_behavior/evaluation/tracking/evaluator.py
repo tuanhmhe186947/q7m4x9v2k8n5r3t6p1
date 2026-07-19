@@ -198,7 +198,7 @@ def evaluate_pair(
     pair: TrackingPair,
     *,
     iou_threshold: float = 0.5,
-    include_hidden: bool = False,
+    include_hidden: bool = True,
     gap_tolerance_frames: int = 15,
     evaluation_start_frame: int | None = None,
     evaluation_end_frame: int | None = None,
@@ -299,7 +299,7 @@ def pairs_to_dataframe(pairs: list[TrackingPair]) -> pd.DataFrame:
 def evaluate_dataset(
     *,
     iou_threshold: float = 0.5,
-    include_hidden: bool = False,
+    include_hidden: bool = True,
     gap_tolerance_frames: int = 15,
     tracking_gt_dir: Path = TRACKING_GT_DIR,
     video_dir: Path = VIDEO_DIR,

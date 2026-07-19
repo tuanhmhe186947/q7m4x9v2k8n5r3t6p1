@@ -55,7 +55,7 @@ def is_outside(box_el: ET.Element) -> bool:
 def parse_cvat_video_xml(
     xml_path: Path,
     *,
-    include_hidden: bool = False,
+    include_hidden: bool = True,
     start_frame: int | None = None,
     end_frame: int | None = None,
 ) -> dict[int, list[TrackingObject]]:

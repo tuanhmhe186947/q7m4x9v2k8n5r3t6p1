@@ -66,7 +66,7 @@ class HardSceneEvalConfig:
     critical_threshold: float = 0.80
     long_swap_threshold: int = 15
     event_clip_padding_frames: int = 30
-    include_hidden: bool = False
+    include_hidden: bool = True
     top_n_overlay_events: int = 10
     render_video: bool = False
     mask_path: Path | None = None
@@ -120,7 +120,7 @@ def _read_box_confidence(box_el: ET.Element) -> float | None:
 def _parse_with_confidence(
     xml_path: Path,
     *,
-    include_hidden: bool = False,
+    include_hidden: bool = True,
 ) -> tuple[dict[int, list[TrackingObject]], dict[tuple[int, str], float | None]]:
     """Parse CVAT XML and also extract per-box confidence values.
 
@@ -1380,7 +1380,13 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--critical-threshold", type=float, default=0.80)
     parser.add_argument("--long-swap-threshold", type=int, default=15)
     parser.add_argument("--event-clip-padding-frames", type=int, default=30)
-    parser.add_argument("--include-hidden", action="store_true")
+    parser.add_argument(
+        "--exclude-hidden",
+        dest="include_hidden",
+        action="store_false",
+        default=True,
+        help="Exclude Hidden rows for a labeled compatibility replay only.",
+    )
     parser.add_argument("--top-n-overlay-events", type=int, default=10)
     parser.add_argument(
         "--render-video",
@@ -1525,7 +1531,13 @@ def _build_compare_parser() -> argparse.ArgumentParser:
     parser.add_argument("--hard-threshold", type=float, default=0.60)
     parser.add_argument("--critical-threshold", type=float, default=0.80)
     parser.add_argument("--long-swap-threshold", type=int, default=15)
-    parser.add_argument("--include-hidden", action="store_true")
+    parser.add_argument(
+        "--exclude-hidden",
+        dest="include_hidden",
+        action="store_false",
+        default=True,
+        help="Exclude Hidden rows for a labeled compatibility replay only.",
+    )
     parser.add_argument(
         "--benchmark-csv",
         type=Path,
