@@ -1,0 +1,76 @@
+{
+  "schema_version": "tracking_fast_paired_window_plan_v1",
+  "plan_date": "2026-07-19",
+  "status": "FROZEN_BEFORE_RUN",
+  "starting_commit": "cc22fe1",
+  "scope": {
+    "tracking_only": true,
+    "profile": "realtime_fast",
+    "video": "Pigs291119_000225_30fps",
+    "frame_range_processed": [0, 820],
+    "score_range": [740, 800],
+    "warmup_before_score_frames": 740,
+    "include_hidden": true,
+    "gap_tolerance_frames": 15,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "association_debug": true,
+    "write_output_video": false,
+    "mp4_allowed": false
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "parent": {
+    "run_id": "20260719_45e81bb_fast_000225_margin08_w4_v1",
+    "semantic_values": {
+      "realtime_visible_close_competitor_guard": true,
+      "realtime_visible_close_competitor_margin": 0.08,
+      "realtime_visible_close_competitor_max_cost": 0.35
+    },
+    "remapped_idsw": 2,
+    "remapped_hota_pct": 92.08,
+    "remapped_idf1_pct": 91.39,
+    "fp": 0,
+    "fn": 0
+  },
+  "candidate": {
+    "run_id": "20260719_cc22fe1_fast_000225_maxcost040_w5_v1",
+    "changed_family": "visible_competitor_max_cost",
+    "semantic_diff": {
+      "realtime_visible_close_competitor_max_cost": [0.35, 0.40]
+    },
+    "all_other_fast_profile_values_unchanged": true
+  },
+  "hypothesis": [
+    "The parent trace has a close visible competitor at costs 0.342428",
+    "and 0.369623. The margin family is active, but max_cost 0.35",
+    "silently excludes the competitor. Raising only max_cost to 0.40",
+    "should allow the causal preference to evaluate this episode."
+  ],
+  "paired_gate": {
+    "guardrails": [
+      "candidate remapped IDSW < parent for an independent gain",
+      "candidate remapped HOTA >= parent",
+      "candidate remapped IDF1 >= parent",
+      "candidate FP <= parent",
+      "candidate FN <= parent",
+      "no additional identity-switch episode",
+      "causal framewise output remains declared",
+      "recursive mp4_count equals zero"
+    ],
+    "advance_rule": [
+      "A tie is safe but does not count as a second independent gain.",
+      "A regression rejects max_cost 0.40 immediately.",
+      "Only an independent gain can unlock full 000302 advancement."
+    ]
+  },
+  "fresh_roots": {
+    "base_prediction": "outputs/pred/tracking_realtime_optimization",
+    "base_evaluation": "outputs/eval/tracking_realtime_optimization",
+    "parent_run": "20260719_45e81bb_fast_000225_margin08_w4_v1",
+    "candidate_run": "20260719_cc22fe1_fast_000225_maxcost040_w5_v1"
+  }
+}
