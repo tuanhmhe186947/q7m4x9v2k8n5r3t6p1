@@ -1,0 +1,145 @@
+{
+  "schema_version": "tracking_fast_far_right_hard7_decision_v1",
+  "decision_date": "2026-07-20",
+  "status": "PASS_HARD7",
+  "plan": "docs/TRACKING_FAST_FAR_RIGHT_FULL_PREFIX_WINDOW_PLAN_20260720.json",
+  "prefix_decision": "docs/TRACKING_FAST_FAR_RIGHT_PREFIX_DECISION_20260720.json",
+  "full_target_decision": "docs/TRACKING_FAST_FAR_RIGHT_FULL_TARGET_DECISION_20260720.json",
+  "algorithm_commit": "62f140b",
+  "worktree": "PIG_task_tracking",
+  "branch": "task/update-tracking",
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "contract": {
+    "profile": "realtime_fast",
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "gap_tolerance_frames": 15,
+    "output_timing_contract": "causal_framewise",
+    "declared_delay_frames": 0,
+    "write_output_video": false,
+    "recursive_mp4_count": 0,
+    "bytetrack_raw_rerun": false,
+    "video_universe": [
+      "Pigs281119_000114_30fps",
+      "Pigs291119_000216_30fps",
+      "Pigs291119_000231_30fps",
+      "Pigs291119_000233_30fps",
+      "Pigs291119_000263_30fps",
+      "Pigs291119_000302_30fps",
+      "Pigs301119_000327_30fps"
+    ]
+  },
+  "candidate_values": {
+    "realtime_visible_close_competitor_guard": true,
+    "realtime_visible_close_competitor_margin": 0.08,
+    "realtime_visible_close_competitor_max_cost": 0.40,
+    "realtime_visible_close_competitor_min_center_x_ratio": 0.67
+  },
+  "parent": {
+    "run_id": "20260720_62f140b_fast_far_right_hard7_parent_v1",
+    "run_manifest_sha256": "15383fc17bf32fb140dfd50147f4ace0b12bb028f3fd9ef77d334ae4285ca1ae",
+    "metrics_sha256": "ab55f8091fb42912498dc3472cff2513433118dd890eea8ea101af399cb568e1",
+    "runtime_sha256": "e107fdf0ff829906d0c21628dc06393e2f777fb81156d445b0a78eb9b72d6641",
+    "remapped_events_sha256": "194c757f3cce7e2e06f5f1dd8db2272a0b51cbf2e42d5801b6abdefd46f6359b",
+    "artifact_manifest_sha256": "cc22691ddc80482f1d20e8c6278ab5613fd74e20c42b529a7df64577412c3a10"
+  },
+  "candidate": {
+    "run_id": "20260720_62f140b_fast_far_right_hard7_candidate_v1",
+    "run_manifest_sha256": "3368f6a8ea404eaabf92347ade32a582ce77675179cd8a294fc6e752cc1f9b5c",
+    "metrics_sha256": "ba6e143fb2229d03fa891c554ef5ccc55181e1c4933e022373e0365ddfa05c8a",
+    "runtime_sha256": "94f96ef252f6eb1297462b5eba4670a041d4c782c8419cf72cc4ebab0b0a0327",
+    "remapped_events_sha256": "a2532677ad306d31877f3e38815c8b5f97d5c193d7ba76602a386a7c623b0cb6",
+    "artifact_manifest_sha256": "e01a95bb8da4bbe78a0d5621505e058ef1c33da41d1ad4f1727cd09b7c228e23"
+  },
+  "per_video_metrics": [
+    {
+      "video": "000114", "remapped_idsw": [0, 0],
+      "hota_pct": [99.92, 99.92], "idf1_pct": [99.96, 99.96],
+      "fp": [6, 6], "fn": [6, 6]
+    },
+    {
+      "video": "000216", "remapped_idsw": [4, 4],
+      "hota_pct": [90.15, 90.15], "idf1_pct": [91.80, 91.80],
+      "fp": [18, 18], "fn": [18, 18]
+    },
+    {
+      "video": "000231", "remapped_idsw": [12, 12],
+      "hota_pct": [83.16, 83.16], "idf1_pct": [82.93, 82.93],
+      "fp": [70, 70], "fn": [70, 70]
+    },
+    {
+      "video": "000233", "remapped_idsw": [17, 17],
+      "hota_pct": [83.98, 83.98], "idf1_pct": [81.18, 81.18],
+      "fp": [193, 193], "fn": [317, 317]
+    },
+    {
+      "video": "000263", "remapped_idsw": [18, 18],
+      "hota_pct": [98.38, 98.38], "idf1_pct": [98.94, 98.94],
+      "fp": [19, 19], "fn": [19, 19]
+    },
+    {
+      "video": "000302", "remapped_idsw": [6, 0],
+      "hota_pct": [92.21, 99.92], "idf1_pct": [91.99, 99.96],
+      "fp": [24, 6], "fn": [24, 6]
+    },
+    {
+      "video": "000327", "remapped_idsw": [4, 2],
+      "hota_pct": [96.77, 97.08], "idf1_pct": [97.67, 97.87],
+      "fp": [17, 15], "fn": [17, 15]
+    }
+  ],
+  "aggregate_metrics": {
+    "remapped_idsw": [61, 53],
+    "remapped_hota_pct": [92.27, 93.45],
+    "remapped_idf1_pct": [92.07, 93.24],
+    "fp": [347, 327],
+    "fn": [471, 451],
+    "remapped_fragments": [65, 62],
+    "idsw_delta": -8,
+    "hota_delta_pct": 1.18,
+    "idf1_delta_pct": 1.17
+  },
+  "runtime_metrics": {
+    "benchmark_fps": [18.59, 18.02],
+    "candidate_to_parent_fps_ratio": 0.969,
+    "runtime_claim": "informational_hard7_screen_only",
+    "full_target_effective_fps": [16.27, 17.84],
+    "full_target_candidate_to_parent_effective_fps_ratio": 1.0965
+  },
+  "gate_results": {
+    "aggregate_idsw_improvement_at_least_4": true,
+    "two_difficult_videos_improved": true,
+    "per_video_idsw_regression_zero": true,
+    "aggregate_hota_non_regression": true,
+    "aggregate_idf1_non_regression": true,
+    "aggregate_fp_non_regression": true,
+    "aggregate_fn_non_regression": true,
+    "fps_ratio_at_least_0_90": true,
+    "causal_framewise": true,
+    "recursive_no_mp4": true,
+    "full13_authorized": true,
+    "repeat_authorized": false,
+    "profile_promotion_authorized": false
+  },
+  "decision": [
+    "Accept the scoped far-right candidate at hard-7.",
+    "No per-video IDSW regression occurred; gains are localized to 000302 and 000327.",
+    "Advance to paired full-13 primary with fresh parent and candidate roots.",
+    "Do not rerun bytetrack_raw; retain its existing hash-bound authority.",
+    "Do not promote realtime_fast default in the algorithm commit."
+  ],
+  "next_reversible_step": {
+    "action": "run paired full-13 primary",
+    "requirements": [
+      "same detector, GT, include-Hidden contract and rule combo",
+      "fresh output roots and no MP4/preview/overlay artifacts",
+      "per-video and aggregate guardrail audit",
+      "repeat only after full-13 primary passes"
+    ]
+  }
+}
