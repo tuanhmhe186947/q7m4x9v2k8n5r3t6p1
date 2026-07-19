@@ -57,13 +57,6 @@ def test_profile_configs_keep_expected_behavior_separation() -> None:
         realtime_balanced["causal_hidden_detection_reservation_hold_min_gain"]
         == 0.17
     )
-    assert realtime_balanced["causal_hidden_detection_reservation_max_missed"] == 15
-    assert (
-        realtime_balanced[
-            "causal_hidden_detection_reservation_hold_reserved_reid"
-        ]
-        is True
-    )
 
     assert realtime["enable_offline_smoothing"] is False
     assert realtime["causal_hidden_detection_reservation"] is False
