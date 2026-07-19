@@ -2,24 +2,28 @@
 
 ## 2026-07-19 tracking paper critical-path override
 
-1. Apply the lane priority `hybrid_bytetrack` -> `realtime_fast` ->
-   `realtime_balanced` -> `realtime_quality`. Hybrid and fast are already
-   authority-locked; do not reopen them without new predeclared evidence.
+1. Apply the development dependency `hybrid_bytetrack` -> `realtime_fast` ->
+   `realtime_balanced` -> `realtime_quality`; do not interpret it as the final
+   realtime ranking. Hybrid and fast are already authority-locked; do not
+   reopen them without new predeclared evidence.
 2. RB3 Balanced has repeatable quality at `IDSW 111`, but repeat p95
    `60.06 ms` fails the frozen `45.29 ms` gate. Keep it opt-in and do not open
    another Balanced family without new predeclared evidence.
-3. Evaluate Quality before locking any realtime winner. Start from the last
-   promoted causal base and screen rolling lags `12/15/30` on frozen Quality
-   windows; require prefix invariance, runtime/memory gates, and zero MP4.
-4. A valid finite-delay Quality implementation becomes the paper's realtime
-   method when it is Pareto-best. Otherwise retain the best valid causal
+3. RQ1 rolling lags `12/15/30` are rejected at frozen QW01 because IDF1 and
+   HOTA regress despite lower IDSW. Do not run RQ1 on later windows or videos.
+4. Run RQ2 only on QW01 first: lag 15, conservative two-ID components, no
+   dense fallback or simple pass. Open QW02-QW04 only after one grid candidate
+   passes all identity, latency, prefix, FP/FN, and zero-MP4 gates.
+5. Compare valid Fast, Balanced, and Quality authorities before locking the
+   realtime winner. A valid finite-delay Quality implementation becomes the
+   paper's realtime method when it is Pareto-best. Otherwise retain the best valid causal
    profile and label the current delay-`-1` global graph as a post-video upper
    bound. The paper still need not show all three realtime profiles.
-5. Only after the Quality decision, select one valid realtime method and lock a
+6. Only after the Quality decision, select one valid realtime method and lock a
    same-contract include-Hidden
    `bytetrack_raw` authority, then build the paper comparison
    raw -> selected realtime -> hybrid.
-6. Do not spend time completing three realtime modes unless each earns a
+7. Do not spend time completing three realtime modes unless each earns a
    distinct scientific claim. A weak or semantically incorrect profile may be
    rebuilt; retain its old artifacts as labeled evidence and validate the
    replacement through the frozen staged funnel with zero generated MP4.

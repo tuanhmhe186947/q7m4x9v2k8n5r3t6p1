@@ -1,11 +1,31 @@
 # Project Memory Short
 
+## 2026-07-19 RQ1 rejection and RQ2 Quality gate
+
+- RQ1 fixed-lag implementation is commit `f21775f`; global lag `0`, Fast, and
+  Balanced remain unchanged, and 199 tracking tests pass.
+- On frozen Quality QW01, lags `12/15/30` all reduce IDSW `36 -> 32` but also
+  reduce HOTA `91.51% -> 91.12%` and IDF1 `91.17% -> 89.88%`. Reject RQ1 at
+  QW01; do not run its later windows, video, hard set, or full-13.
+- All four QW01 roots have MP4 count zero. RQ1 changed 61 payload rows over
+  frames `809-838` and `863-878`, showing an unsafe persistent ID5/ID6 relabel.
+- RQ2 is the active Quality experiment. It keeps lag 15 and Balanced intact,
+  then tests only conservative two-ID motion components with no dense fallback
+  or simple pass. QW02-QW04 open only if one RQ2 candidate passes every QW01
+  HOTA, IDF1, IDSW, FP/FN, prefix, latency, and no-MP4 gate.
+- Authorities are `docs/TRACKING_RQ1_FIXED_LAG_DECISION_20260719.json` and
+  `docs/TRACKING_RQ2_QUALITY_ID_SAFE_PLAN_20260719.json`.
+
 ## 2026-07-19 paper priority and profile-redesign lock
 
-- Optimization order is `hybrid_bytetrack` -> `realtime_fast` ->
-  `realtime_balanced` -> `realtime_quality`. Hybrid is complete; fast is the
-  current causal reference. The bounded RB3 decision is closed without profile
-  promotion; Quality is now the active challenger.
+- The dependency order `hybrid_bytetrack` -> `realtime_fast` ->
+  `realtime_balanced` -> `realtime_quality` controls experiment sequencing,
+  not the final realtime ranking. Hybrid is complete; fast is the current
+  causal reference. The bounded RB3 decision is closed without profile
+  promotion; Quality is now the active mandatory challenger.
+- Final realtime selection must compare every valid Fast, Balanced, and Quality
+  authority. If finite-delay Quality is Pareto-best, it becomes the paper's
+  selected realtime method and the main table is raw -> Quality -> hybrid.
 - The paper-critical table needs only same-contract `bytetrack_raw`, one
   selected causal realtime method, and `hybrid_bytetrack_best`. Three realtime
   modes are optional and must earn inclusion through distinct scientific value.

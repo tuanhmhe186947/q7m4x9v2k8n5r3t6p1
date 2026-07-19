@@ -12,19 +12,21 @@ Close the hybrid optimization lane. Remaining weak rows are localization and
 continuity residuals, led by `000216`, rather than a bounded identity-switch
 family. Reopen hybrid only for a predeclared failure on untouched sessions.
 
-The optimization priority is now locked as `hybrid_bytetrack` ->
-`realtime_fast` -> `realtime_balanced` -> `realtime_quality`. Hybrid is
-complete and fast is the current causal operational/paper reference. The
-bounded RB3 decision is closed without profile promotion because repeat p95
-failed; Quality is active. Further Balanced work requires new predeclared
-evidence and must not delay Quality.
+The development dependency is now locked as `hybrid_bytetrack` ->
+`realtime_fast` -> `realtime_balanced` -> `realtime_quality`; this is not the
+final realtime ranking. Hybrid is complete and fast is the current causal
+operational/paper reference. The bounded RB3 decision is closed without profile
+promotion because repeat p95 failed; Quality is the active mandatory challenger.
+Further Balanced work requires new predeclared evidence and must not delay
+Quality.
 
 The paper-critical comparison is `bytetrack_raw` -> one selected valid realtime
 method -> `hybrid_bytetrack_best`, all under the same include-Hidden contract,
 video universe, detector, GT, and evaluator. Three realtime profiles are not a
 deliverable by themselves. Quality remains a selection challenger: if a causal
 or finite-delay version passes prefix/latency gates and wins the declared
-Pareto comparison, it replaces fast/balanced as the paper's realtime method.
+Pareto comparison, it replaces fast/balanced as the paper's realtime method and
+the main comparison becomes raw -> Quality -> hybrid.
 The current delay-`-1` global-post-video implementation is eligible only as a
 separately labeled delayed method until that realtime contract is proved.
 
@@ -43,16 +45,20 @@ paper table; it requires a fair validation attempt under a truthful causal or
 finite-delay contract.
 
 Retain the existing Quality authority as a post-video upper bound (`IDSW 166`,
-HOTA `97.66%`, IDF1 `97.58%`, delay `-1`), not as a realtime winner. RB3
-quality is repeatable (`IDSW 121 -> 111`), but repeat p95 `60.06 ms` fails the
-frozen `45.29 ms` gate, so RB3 stays opt-in. Start Quality from the last
-promoted causal base and test rolling lags `12/15/30` with prefix, identity,
-runtime/memory, and zero-MP4 gates. Select it only when Pareto-best.
+HOTA `97.66%`, IDF1 `97.58%`, delay `-1`), not as a realtime winner. RQ1 lags
+`12/15/30` all failed frozen QW01: IDSW improved `36 -> 32`, but HOTA fell
+`91.51% -> 91.12%` and IDF1 fell `91.17% -> 89.88%`. Do not run later RQ1
+stages. RQ2 is active and tests a conservative two-ID commit gate at lag 15;
+select Quality only if a candidate passes every identity, latency, prefix, and
+zero-MP4 gate and is Pareto-best.
 
 Authority:
 `docs/TRACKING_REALTIME_QUALITY_SELECTION_GATE_20260719.json`.
 RB3 decision:
 `docs/TRACKING_RB3_RESERVED_REID_HOLD_DECISION_20260719.json`.
+RQ1 decision and RQ2 plan:
+`docs/TRACKING_RQ1_FIXED_LAG_DECISION_20260719.json` and
+`docs/TRACKING_RQ2_QUALITY_ID_SAFE_PLAN_20260719.json`.
 
 ## Decision precedence
 

@@ -1,0 +1,110 @@
+{
+  "schema_version": "tracking_rq2_quality_id_safe_plan_v1",
+  "decision_date": "2026-07-19",
+  "status": "frozen_before_window_run",
+  "starting_commit": "f21775fefda8468bdd9e057f44659d1d8fb73877",
+  "scope": {
+    "worktree": "PIG_task_tracking",
+    "branch": "task/update-tracking",
+    "tracking_only": true,
+    "classification_or_model_changes_allowed": false,
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "gap_tolerance_frames": 15,
+    "generated_mp4_preview_overlay_allowed": false
+  },
+  "paper_selection_contract": {
+    "development_order_is_final_ranking": false,
+    "quality_is_mandatory_challenger": true,
+    "winner_candidates": [
+      "realtime_fast",
+      "realtime_balanced",
+      "realtime_quality_fixed_lag"
+    ],
+    "if_quality_fixed_lag_is_pareto_best":
+      "select raw -> Quality -> hybrid as the paper-critical comparison",
+    "delay_minus_one_global_graph_is_realtime_winner_eligible": false
+  },
+  "parent": {
+    "profile": "realtime_balanced",
+    "contract": "causal_framewise",
+    "window": "QW01",
+    "tracking_frames": [662, 878],
+    "score_frames": [782, 878]
+  },
+  "prior_evidence": {
+    "decision": "docs/TRACKING_RQ1_FIXED_LAG_DECISION_20260719.json",
+    "failure": "motion-only relabeling lowered HOTA and IDF1 while lowering IDSW",
+    "changed_frame_ranges": [[809, 838], [863, 878]]
+  },
+  "candidate": {
+    "id": "RQ2",
+    "name": "identity_safe_motion_pair_gate_v1",
+    "changed_family": "motion_pair_commit_guard",
+    "timing_contract": "fixed_lag_framewise",
+    "fixed_lag_frames": 15,
+    "profile_default_enabled_before_promotion": false,
+    "unchanged": [
+      "detector and detector cadence",
+      "Balanced association and hidden reservation",
+      "include_hidden and evaluator",
+      "all geometry and condarea rules",
+      "no video rendering"
+    ]
+  },
+  "grid": [
+    {
+      "id": "RQ2_S1",
+      "realtime_motion_pair_min_gain": 0.02,
+      "realtime_motion_pair_max_component_size": 2,
+      "realtime_motion_pair_max_component_edges": 1,
+      "realtime_motion_pair_dense_fallback_max_edges": 0,
+      "realtime_motion_pair_simple_min_gain": 0.0
+    },
+    {
+      "id": "RQ2_S2",
+      "realtime_motion_pair_min_gain": 0.04,
+      "realtime_motion_pair_max_component_size": 2,
+      "realtime_motion_pair_max_component_edges": 1,
+      "realtime_motion_pair_dense_fallback_max_edges": 0,
+      "realtime_motion_pair_simple_min_gain": 0.0
+    },
+    {
+      "id": "RQ2_S3",
+      "realtime_motion_pair_min_gain": 0.06,
+      "realtime_motion_pair_max_component_size": 2,
+      "realtime_motion_pair_max_component_edges": 1,
+      "realtime_motion_pair_dense_fallback_max_edges": 0,
+      "realtime_motion_pair_simple_min_gain": 0.0
+    }
+  ],
+  "pre_window_gates": {
+    "static_and_focused_tests": "PASS_REQUIRED",
+    "synthetic_prefix_invariance": "PASS_REQUIRED",
+    "same_QW01_parent_input": true,
+    "per_window_idsw_regression_max": 0,
+    "hota_and_idf1_non_regression": true,
+    "fp_fn_increase_allowed": false,
+    "recursive_mp4_count": 0
+  },
+  "funnel": {
+    "first_stage": "QW01 only",
+    "advance_to_QW02_QW04": "at least one S candidate passes every QW01 gate",
+    "advance_to_full_video":
+      "at least two independent episodes improve without any quality regression",
+    "full13": "not authorized until hard-set gate and repeatability pass"
+  },
+  "stop_conditions": [
+    "Any candidate changes association, detector cadence, or a second family.",
+    "Any IDSW reduction is accompanied by HOTA or IDF1 loss.",
+    "Any payload outside the finite lag changes after append.",
+    "Any output root contains MP4, preview, overlay, or event clip."
+  ],
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ]
+}
