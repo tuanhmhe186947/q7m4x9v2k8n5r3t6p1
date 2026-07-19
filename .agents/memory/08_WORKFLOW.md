@@ -11,9 +11,10 @@
    another Balanced family without new predeclared evidence.
 3. RQ1 rolling lags `12/15/30` are rejected at frozen QW01 because IDF1 and
    HOTA regress despite lower IDSW. Do not run RQ1 on later windows or videos.
-4. Run RQ2 only on QW01 first: lag 15, conservative two-ID components, no
-   dense fallback or simple pass. Open QW02-QW04 only after one grid candidate
-   passes all identity, latency, prefix, FP/FN, and zero-MP4 gates.
+4. RQ2 is closed without promotion: S1 improves only one independent episode
+   and misses the frozen realtime FPS floor. Do not run its full video or
+   full-13. Run RQ3 only on QW01 first, changing memory horizon `10/15/20`
+   while keeping the S1 identity-safe gate fixed.
 5. Compare valid Fast, Balanced, and Quality authorities before locking the
    realtime winner. A valid finite-delay Quality implementation becomes the
    paper's realtime method when it is Pareto-best. Otherwise retain the best valid causal

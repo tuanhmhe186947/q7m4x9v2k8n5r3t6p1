@@ -1,0 +1,154 @@
+{
+  "schema_version": "tracking_rq2_quality_id_safe_decision_v1",
+  "decision_date": "2026-07-19",
+  "status": "REJECTED_AT_WINDOW_FUNNEL_AND_RUNTIME",
+  "lineage": {
+    "plan": "docs/TRACKING_RQ2_QUALITY_ID_SAFE_PLAN_20260719.json",
+    "algorithm_commit": "f21775fefda8468bdd9e057f44659d1d8fb73877",
+    "run_commit": "015b6a4",
+    "changed_family": "motion_pair_commit_guard",
+    "tracking_only": true,
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "gap_tolerance_frames": 15,
+    "generated_mp4_preview_overlay_allowed": false
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "parent_contract": {
+    "profile": "realtime_balanced",
+    "timing_contract": "causal_framewise",
+    "fixed_lag_frames": 0,
+    "qw01_root":
+      "outputs/eval/tracking_realtime_optimization/20260719_f21775f_rq1_qw01_parent_v1"
+  },
+  "qw01": {
+    "window": {
+      "video": "Pigs291119_000263_30fps",
+      "tracking_frames": [662, 878],
+      "score_frames": [782, 878]
+    },
+    "parent": {
+      "idsw": 36,
+      "hota": 0.9151399028,
+      "idf1": 0.9116698904,
+      "fp": 5,
+      "fn": 6,
+      "effective_fps": 17.7098983,
+      "frame_time_p95_ms": 38.3987600,
+      "root":
+        "outputs/eval/tracking_realtime_optimization/20260719_f21775f_rq1_qw01_parent_v1"
+    },
+    "candidates": {
+      "RQ2_S1": {
+        "min_gain": 0.02,
+        "idsw": 32,
+        "hota": 0.9475099291,
+        "idf1": 0.9593810445,
+        "fp": 5,
+        "fn": 6,
+        "effective_fps": 18.9872877,
+        "frame_time_p95_ms": 39.0168400,
+        "root":
+          "outputs/eval/tracking_realtime_optimization/20260719_015b6a4_rq2_qw01_s1_v1"
+      },
+      "RQ2_S2": {
+        "min_gain": 0.04,
+        "idsw": 42,
+        "hota": 0.9069843076,
+        "idf1": 0.8755641522,
+        "fp": 5,
+        "fn": 6,
+        "effective_fps": 19.8519980,
+        "frame_time_p95_ms": 38.4618000,
+        "root":
+          "outputs/eval/tracking_realtime_optimization/20260719_015b6a4_rq2_qw01_s2_v1"
+      },
+      "RQ2_S3": {
+        "min_gain": 0.06,
+        "idsw": 36,
+        "hota": 0.9151399028,
+        "idf1": 0.9116698904,
+        "fp": 5,
+        "fn": 6,
+        "effective_fps": 21.2165663,
+        "frame_time_p95_ms": 37.8563400,
+        "root":
+          "outputs/eval/tracking_realtime_optimization/20260719_015b6a4_rq2_qw01_s3_v1"
+      }
+    }
+  },
+  "later_windows": [
+    {
+      "id": "QW02",
+      "video": "Pigs291119_000233_30fps",
+      "parent": {"idsw": 7, "hota": 0.824227, "idf1": 0.824468},
+      "candidate": {"idsw": 7, "hota": 0.824243, "idf1": 0.824468},
+      "material_improvement": false,
+      "candidate_root":
+        "outputs/eval/tracking_realtime_optimization/20260719_015b6a4_rq2_qw02_s1_v1",
+      "parent_root":
+        "outputs/eval/tracking_realtime_optimization/20260719_015b6a4_rq2_qw02_parent_v1"
+    },
+    {
+      "id": "QW03",
+      "video": "Pigs281119_000114_30fps",
+      "parent": {"idsw": 0, "hota": 1.0, "idf1": 1.0},
+      "candidate": {"idsw": 0, "hota": 1.0, "idf1": 1.0},
+      "material_improvement": false,
+      "candidate_root":
+        "outputs/eval/tracking_realtime_optimization/20260719_015b6a4_rq2_qw03_s1_v1",
+      "parent_root":
+        "outputs/eval/tracking_realtime_optimization/20260719_015b6a4_rq2_qw03_parent_v1"
+    },
+    {
+      "id": "QW04",
+      "video": "Pigs291119_000231_30fps",
+      "parent": {"idsw": 0, "hota": 1.0, "idf1": 1.0},
+      "candidate": {"idsw": 0, "hota": 1.0, "idf1": 1.0},
+      "material_improvement": false,
+      "candidate_root":
+        "outputs/eval/tracking_realtime_optimization/20260719_015b6a4_rq2_qw04_s1_v1",
+      "parent_root":
+        "outputs/eval/tracking_realtime_optimization/20260719_015b6a4_rq2_qw04_parent_v1"
+    }
+  ],
+  "gates": {
+    "synthetic_prefix_invariance_rq2_s1_s2_s3": "PASS",
+    "qw01_quality_guard": "S1_PASS_S2_FAIL_S3_TIE",
+    "per_video_idsw_regression": "PASS",
+    "hota_idf1_non_regression": "PASS_FOR_S1",
+    "fp_fn_guard": "PASS",
+    "promotion_effective_fps_min": 24.0793754,
+    "qw01_s1_effective_fps": 18.9872877,
+    "runtime_gate": "FAIL",
+    "independent_episodes_improved": 1,
+    "independent_episodes_required": 2,
+    "funnel_gate": "FAIL",
+    "recursive_mp4_count_all_roots": 0,
+    "profile_promotion_authorized": false,
+    "full_video_authorized": false,
+    "full13_authorized": false
+  },
+  "decision": [
+    "Retain S1 as a positive QW01 quality signal, not a promoted profile.",
+    "Reject S2 for HOTA and IDF1 regression despite its higher IDSW.",
+    "Reject S3 as a non-material tie with the parent.",
+    "Do not run full video, hard set, or full-13 for RQ2 S1.",
+    "Keep delay-minus-one Quality as post-video evidence only.",
+    "Predeclare a runtime-horizon ablation before another Quality window run."
+  ],
+  "next_reversible_step": {
+    "id": "RQ3",
+    "hypothesis":
+      "A shorter motion-pair history can retain S1's identity gain while restoring realtime FPS.",
+    "changed_family": "motion_pair_memory_horizon",
+    "screen": "QW01 only before any later window or full video",
+    "profile_default_enabled_before_promotion": false
+  }
+}

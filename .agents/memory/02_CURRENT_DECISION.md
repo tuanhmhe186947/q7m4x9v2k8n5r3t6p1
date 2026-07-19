@@ -48,9 +48,11 @@ Retain the existing Quality authority as a post-video upper bound (`IDSW 166`,
 HOTA `97.66%`, IDF1 `97.58%`, delay `-1`), not as a realtime winner. RQ1 lags
 `12/15/30` all failed frozen QW01: IDSW improved `36 -> 32`, but HOTA fell
 `91.51% -> 91.12%` and IDF1 fell `91.17% -> 89.88%`. Do not run later RQ1
-stages. RQ2 is active and tests a conservative two-ID commit gate at lag 15;
-select Quality only if a candidate passes every identity, latency, prefix, and
-zero-MP4 gate and is Pareto-best.
+stages. RQ2 S1 then improved QW01 HOTA/IDF1, but QW02-QW04 produced no second
+independent gain and its `18.99 FPS` missed the frozen `24.08 FPS` floor. RQ2 is
+closed without promotion. RQ3 is active and screens only memory horizons
+`10/15/20` on QW01; select Quality only if a candidate passes every identity,
+latency, prefix, runtime, and zero-MP4 gate and is Pareto-best.
 
 Authority:
 `docs/TRACKING_REALTIME_QUALITY_SELECTION_GATE_20260719.json`.
@@ -59,6 +61,9 @@ RB3 decision:
 RQ1 decision and RQ2 plan:
 `docs/TRACKING_RQ1_FIXED_LAG_DECISION_20260719.json` and
 `docs/TRACKING_RQ2_QUALITY_ID_SAFE_PLAN_20260719.json`.
+RQ2 decision and RQ3 plan:
+`docs/TRACKING_RQ2_QUALITY_ID_SAFE_DECISION_20260719.json` and
+`docs/TRACKING_RQ3_QUALITY_RUNTIME_HORIZON_PLAN_20260719.json`.
 
 ## Decision precedence
 

@@ -1,5 +1,21 @@
 # Project Memory Short
 
+## 2026-07-19 RQ2 Quality decision and RQ3 runtime gate
+
+- RQ2 S1 (`min_gain=0.02`, two-ID component gate) improves QW01 from IDSW
+  `36 -> 32`, HOTA `91.51% -> 94.75%`, and IDF1 `91.17% -> 95.94%`, with
+  FP/FN unchanged at `5/6`.
+- S2 regresses to IDSW `42`, HOTA `90.70%`, and IDF1 `87.56%`; S3 ties the
+  parent. On QW02-QW04 S1 has no material gain, so only one independent episode
+  improves and the two-episode funnel gate fails.
+- S1 is also below the frozen realtime promotion floor at `18.99 FPS` versus
+  `24.08 FPS`; every RQ2 root has recursive `mp4_count=0`. Do not run its full
+  video, hard set, or full-13. Decision authority:
+  `docs/TRACKING_RQ2_QUALITY_ID_SAFE_DECISION_20260719.json`.
+- RQ3 is frozen as a single-family memory-horizon screen (`10/15/20` frames)
+  on QW01 only, keeping the S1 identity gate and fixed lag 15. It is the next
+  Quality action; no profile default changes before promotion evidence.
+
 ## 2026-07-19 RQ1 rejection and RQ2 Quality gate
 
 - RQ1 fixed-lag implementation is commit `f21775f`; global lag `0`, Fast, and
@@ -9,10 +25,9 @@
   QW01; do not run its later windows, video, hard set, or full-13.
 - All four QW01 roots have MP4 count zero. RQ1 changed 61 payload rows over
   frames `809-838` and `863-878`, showing an unsafe persistent ID5/ID6 relabel.
-- RQ2 is the active Quality experiment. It keeps lag 15 and Balanced intact,
-  then tests only conservative two-ID motion components with no dense fallback
-  or simple pass. QW02-QW04 open only if one RQ2 candidate passes every QW01
-  HOTA, IDF1, IDSW, FP/FN, prefix, latency, and no-MP4 gate.
+- RQ2 was the completed Quality experiment. Its S1 signal passed QW01 quality
+  but failed the runtime/two-episode promotion gate; RQ3 is the active
+  continuation under a separately frozen authority.
 - Authorities are `docs/TRACKING_RQ1_FIXED_LAG_DECISION_20260719.json` and
   `docs/TRACKING_RQ2_QUALITY_ID_SAFE_PLAN_20260719.json`.
 

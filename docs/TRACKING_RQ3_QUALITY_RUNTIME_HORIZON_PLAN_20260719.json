@@ -1,0 +1,106 @@
+{
+  "schema_version": "tracking_rq3_quality_runtime_horizon_plan_v1",
+  "decision_date": "2026-07-19",
+  "status": "FROZEN_BEFORE_QW01_RUN",
+  "starting_commit": "015b6a4",
+  "scope": {
+    "worktree": "PIG_task_tracking",
+    "branch": "task/update-tracking",
+    "tracking_only": true,
+    "classification_or_model_changes_allowed": false,
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "gap_tolerance_frames": 15,
+    "generated_mp4_preview_overlay_allowed": false
+  },
+  "selection_contract": {
+    "mandatory_realtime_challenger": true,
+    "realtime_comparison_set": [
+      "realtime_fast",
+      "realtime_balanced",
+      "realtime_quality_fixed_lag"
+    ],
+    "winner_rule": "Select fixed-lag Quality when it is valid and Pareto-best.",
+    "paper_chain_if_quality_wins": [
+      "bytetrack_raw",
+      "realtime_quality_fixed_lag",
+      "hybrid_bytetrack_best"
+    ],
+    "delay_minus_one_global_graph_role": "post_video_upper_bound_only"
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "parent": {
+    "profile": "realtime_quality_fixed_lag_candidate",
+    "source_decision":
+      "docs/TRACKING_RQ2_QUALITY_ID_SAFE_DECISION_20260719.json",
+    "fixed_lag_frames": 15,
+    "motion_pair_min_gain": 0.02,
+    "motion_pair_max_component_size": 2,
+    "motion_pair_max_component_edges": 1,
+    "motion_pair_dense_fallback_max_edges": 0,
+    "motion_pair_simple_min_gain": 0.0,
+    "memory_frames": 30,
+    "qw01_metrics": {
+      "idsw": 32,
+      "hota": 0.9475099291,
+      "idf1": 0.9593810445,
+      "fp": 5,
+      "fn": 6,
+      "effective_fps": 18.9872877,
+      "frame_time_p95_ms": 39.01684
+    }
+  },
+  "hypothesis":
+    "Shorter history retains the S1 identity gain while reducing graph cost.",
+  "changed_family": "motion_pair_memory_horizon",
+  "grid": [
+    {"id": "RQ3_M10", "memory_frames": 10},
+    {"id": "RQ3_M15", "memory_frames": 15},
+    {"id": "RQ3_M20", "memory_frames": 20}
+  ],
+  "unchanged": [
+    "detector and detector cadence",
+    "Balanced hidden reservation",
+    "fixed lag of 15 frames",
+    "motion-pair gain and component gate",
+    "include_hidden evaluator contract",
+    "geometry and condarea rules",
+    "no video rendering"
+  ],
+  "qw01_gate": {
+    "tracking_frames": [662, 878],
+    "score_frames": [782, 878],
+    "hota_min": 0.9475099291,
+    "idf1_min": 0.9593810445,
+    "idsw_max": 32,
+    "fp_max": 5,
+    "fn_max": 6,
+    "effective_fps_min": 24.0793754,
+    "frame_time_p95_ms_max": 45.2948705,
+    "peak_process_rss_bytes_max": 1923089203,
+    "synthetic_prefix_invariance": "PASS_REQUIRED",
+    "recursive_mp4_count": 0
+  },
+  "funnel": {
+    "first_stage": "QW01 only",
+    "advance_to_QW02_QW04":
+      "one candidate passes every QW01 quality and runtime gate",
+    "advance_to_full_video":
+      "two independent episodes improve with no declared regression",
+    "full13": "not authorized until hard-set and repeatability pass"
+  },
+  "stop_conditions": [
+    "Any family other than memory horizon changes.",
+    "HOTA, IDF1, IDSW, FP or FN misses the frozen QW01 gate.",
+    "Effective FPS or p95 latency misses the frozen runtime gate.",
+    "Any prefix payload changes after future-frame append.",
+    "Any output root contains MP4, preview, overlay or event clip."
+  ],
+  "profile_default_enabled_before_promotion": false
+}
