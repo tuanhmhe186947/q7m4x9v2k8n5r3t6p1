@@ -48,6 +48,10 @@ HIDDEN_RISK_INPUT_COLUMNS: tuple[str, ...] = (
     "object_track_key",
     "track_id",
     "pig_id",
+    "adjacent_hidden",
+    "persistent_pair_contact",
+    "persistent_pair_overlap",
+    "bbox_instability_adjacent",
 )
 
 FORBIDDEN_SELECTION_FIELD_TOKENS: tuple[str, ...] = (
@@ -121,6 +125,9 @@ class HiddenReviewConfig:
     nearest_distance_threshold: float = 0.08
     shape_change_threshold: float = 0.25
     area_delta_threshold: float = 0.20
+    adjacent_frame_step: int = 1
+    persistent_pair_iou_threshold: float = 0.01
+    bbox_instability_threshold: float = 0.15
     stratum_columns: tuple[str, ...] = (
         "source_type",
         "hidden_review_stratum_key",
@@ -140,6 +147,12 @@ class HiddenReviewConfig:
                 raise ValueError("max_high_risk_per_stratum must be > 0")
         if not 0 <= self.clean_control_max_risk <= self.high_risk_threshold <= 1:
             raise ValueError("risk thresholds must satisfy 0 <= clean <= high <= 1")
+        if self.adjacent_frame_step <= 0:
+            raise ValueError("adjacent_frame_step must be > 0")
+        if not 0 <= self.persistent_pair_iou_threshold <= 1:
+            raise ValueError("persistent_pair_iou_threshold must be in [0, 1]")
+        if not 0 <= self.bbox_instability_threshold <= 1:
+            raise ValueError("bbox_instability_threshold must be in [0, 1]")
         forbidden = _target_derived_selection_fields(self.stratum_columns)
         if forbidden:
             raise ValueError(
@@ -998,20 +1011,25 @@ def _hidden_false_negative_risk(
         0.10,
         "abrupt_area_change",
     )
-    hidden_yes = frame_features["hidden_before_review"].eq("Yes")
-    track_key = _review_track_key(frame_features)
-    ordered = pd.DataFrame(
-        {
-            "track_key": track_key,
-            "frame_index": _numeric(frame_features, "frame_index"),
-            "hidden_yes": hidden_yes,
-        },
-        index=frame_features.index,
-    ).sort_values(["track_key", "frame_index"], kind="mergesort")
-    near_hidden = ordered.groupby("track_key", dropna=False)["hidden_yes"].shift(1).fillna(
-        False
-    ) | ordered.groupby("track_key", dropna=False)["hidden_yes"].shift(-1).fillna(False)
-    add(near_hidden.reindex(frame_features.index), 0.25, "adjacent_hidden")
+    derived = _adjacent_visibility_evidence(frame_features, config)
+    add(derived["adjacent_hidden"], 0.25, "adjacent_hidden")
+    add(
+        derived["persistent_pair_contact"],
+        0.20,
+        "persistent_pair_contact",
+    )
+    add(
+        derived["persistent_pair_overlap"],
+        0.15,
+        "persistent_pair_overlap",
+    )
+    add(
+        derived["bbox_instability_adjacent"].ge(
+            config.bbox_instability_threshold
+        ),
+        0.15,
+        "adjacent_bbox_instability",
+    )
 
     score = score.clip(lower=0.0, upper=1.0)
     reason_series = pd.Series(
@@ -1020,6 +1038,108 @@ def _hidden_false_negative_risk(
         dtype="object",
     )
     return score, reason_series
+
+
+def _adjacent_visibility_evidence(
+    frame_features: pd.DataFrame,
+    config: HiddenReviewConfig,
+) -> pd.DataFrame:
+    """Derive local visibility evidence only from truly adjacent frames.
+
+    A sorted row is not automatically a temporal neighbor: CVAT exports may
+    contain sparse annotated frames. The exact frame-index step is therefore
+    required before hidden, pair, or bbox continuity evidence is propagated.
+    """
+
+    track_key = _review_track_key(frame_features)
+    ordered = pd.DataFrame(
+        {
+            "track_key": track_key,
+            "frame_index": _numeric(frame_features, "frame_index"),
+            "hidden_yes": frame_features["hidden_before_review"].eq("Yes"),
+            "pair_contact": _bool_column(
+                frame_features,
+                "pair_contact_with_nearest",
+            ),
+            "pair_iou": _numeric(frame_features, "nearest_pair_iou"),
+            "cx": _first_numeric(frame_features, ("cx_n", "cx")),
+            "cy": _first_numeric(frame_features, ("cy_n", "cy")),
+            "bw": _first_numeric(frame_features, ("bw_n", "bbox_w")),
+            "bh": _first_numeric(frame_features, ("bh_n", "bbox_h")),
+        },
+        index=frame_features.index,
+    ).sort_values(["track_key", "frame_index"], kind="mergesort")
+    groups = ordered.groupby("track_key", dropna=False, sort=False)
+    previous_frame = groups["frame_index"].shift(1)
+    next_frame = groups["frame_index"].shift(-1)
+    previous_adjacent = previous_frame.sub(ordered["frame_index"]).abs().eq(
+        config.adjacent_frame_step
+    )
+    next_adjacent = next_frame.sub(ordered["frame_index"]).abs().eq(
+        config.adjacent_frame_step
+    )
+
+    previous_hidden = groups["hidden_yes"].shift(1).fillna(False)
+    next_hidden = groups["hidden_yes"].shift(-1).fillna(False)
+    adjacent_hidden = (previous_adjacent & previous_hidden) | (
+        next_adjacent & next_hidden
+    )
+
+    previous_contact = groups["pair_contact"].shift(1).fillna(False)
+    next_contact = groups["pair_contact"].shift(-1).fillna(False)
+    persistent_pair_contact = (
+        ordered["pair_contact"]
+        & ((previous_adjacent & previous_contact) | (next_adjacent & next_contact))
+    )
+
+    overlap_now = ordered["pair_iou"].ge(config.persistent_pair_iou_threshold)
+    previous_iou = groups["pair_iou"].shift(1)
+    next_iou = groups["pair_iou"].shift(-1)
+    persistent_pair_overlap = overlap_now & (
+        (previous_adjacent & previous_iou.ge(config.persistent_pair_iou_threshold))
+        | (next_adjacent & next_iou.ge(config.persistent_pair_iou_threshold))
+    )
+
+    previous_geometry = pd.DataFrame(
+        {
+            "cx": groups["cx"].shift(1),
+            "cy": groups["cy"].shift(1),
+            "bw": groups["bw"].shift(1),
+            "bh": groups["bh"].shift(1),
+        },
+        index=ordered.index,
+    )
+    next_geometry = pd.DataFrame(
+        {
+            "cx": groups["cx"].shift(-1),
+            "cy": groups["cy"].shift(-1),
+            "bw": groups["bw"].shift(-1),
+            "bh": groups["bh"].shift(-1),
+        },
+        index=ordered.index,
+    )
+    current_geometry = ordered[["cx", "cy", "bw", "bh"]]
+    previous_delta = current_geometry.subtract(previous_geometry).abs().mean(axis=1)
+    next_delta = current_geometry.subtract(next_geometry).abs().mean(axis=1)
+    previous_delta = previous_delta.where(previous_adjacent, 0.0)
+    next_delta = next_delta.where(next_adjacent, 0.0)
+    bbox_instability = pd.concat([previous_delta, next_delta], axis=1).max(axis=1)
+
+    return pd.DataFrame(
+        {
+            "adjacent_hidden": adjacent_hidden.reindex(frame_features.index).fillna(False),
+            "persistent_pair_contact": persistent_pair_contact.reindex(
+                frame_features.index
+            ).fillna(False),
+            "persistent_pair_overlap": persistent_pair_overlap.reindex(
+                frame_features.index
+            ).fillna(False),
+            "bbox_instability_adjacent": bbox_instability.reindex(
+                frame_features.index
+            ).fillna(0.0),
+        },
+        index=frame_features.index,
+    )
 
 
 def _hidden_risk_band(
@@ -1642,6 +1762,19 @@ def _numeric(df: pd.DataFrame, column: str) -> pd.Series:
     if column not in df.columns:
         return pd.Series(float("nan"), index=df.index)
     return pd.to_numeric(df[column], errors="coerce")
+
+
+def _first_numeric(
+    df: pd.DataFrame,
+    columns: Iterable[str],
+) -> pd.Series:
+    """Use the first available numeric geometry representation."""
+
+    values = pd.Series(float("nan"), index=df.index, dtype="float64")
+    for column in columns:
+        candidate = _numeric(df, column)
+        values = values.where(values.notna(), candidate)
+    return values
 
 
 def _stable_text(value: object) -> str:

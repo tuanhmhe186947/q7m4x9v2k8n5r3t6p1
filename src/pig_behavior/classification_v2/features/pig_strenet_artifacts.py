@@ -52,6 +52,7 @@ MODEL_X_AUDIT_TOKENS = (
     "gap_count",
     "duration_sec",
     "target_gap_sec",
+    "transition_available",
 )
 
 PAIR_REQUIRED_COLUMNS = {
@@ -913,7 +914,12 @@ def _empty_segment_summary(prefix: str, *, expected_count: int) -> dict[str, Any
 
 
 def _transition_features(history: dict[str, Any], target: dict[str, Any]) -> dict[str, Any]:
+    transition_available = bool(
+        history.get("history_complete", False)
+        and target.get("target_complete", False)
+    )
     result: dict[str, Any] = {
+        "history_target_transition_available": transition_available,
         "activity_delta_history_to_target": (
             target["target_speed_mean"] - history["history_speed_mean"]
         ),
@@ -958,6 +964,10 @@ def _transition_features(history: dict[str, Any], target: dict[str, Any]) -> dic
             history[f"history_{roi_class}_contact_ratio"]
             * max(0.0, target[f"target_{roi_class}_dist_slope"])
         )
+    if not transition_available:
+        for column in result:
+            if column != "history_target_transition_available":
+                result[column] = 0.0
     return result
 
 

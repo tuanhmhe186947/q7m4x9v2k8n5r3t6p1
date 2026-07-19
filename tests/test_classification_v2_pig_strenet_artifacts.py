@@ -9,6 +9,11 @@ from pig_behavior.classification_v2.features.pig_strenet_artifacts import (
     compute_stabilized_difference_maps,
     model_x_columns,
 )
+from pig_behavior.classification_v2.review.pig_strenet_review_evidence import (
+    PIG_REVIEW_EVIDENCE_COLUMNS,
+    attach_pig_strenet_review_evidence,
+    build_pig_strenet_review_evidence,
+)
 
 
 def _frames(
@@ -145,8 +150,95 @@ def test_cvat_history_is_missing_without_prior_frames() -> None:
     assert artifacts.pair_manifest["history_available_ratio"].eq(0.0).all()
     assert artifacts.history_features["history_expected_frame_count"].eq(6).all()
     assert artifacts.history_features["history_gap_count"].eq(6).all()
+    assert not artifacts.history_features[
+        "history_target_transition_available"
+    ].any()
+    transition_columns = [
+        "activity_delta_history_to_target",
+        "speed_delta_history_to_target",
+        "stationary_to_motion_score",
+        "motion_to_stationary_score",
+        "distance_delta_history_to_target",
+        "approach_to_contact_score",
+        "contact_persistence_score",
+        "contact_to_separation_score",
+        "partner_change_count",
+        "shape_change_history_to_target",
+        "feeder_approach_to_engagement",
+        "feeder_engagement_to_departure",
+        "drinker_approach_to_engagement",
+        "drinker_engagement_to_departure",
+        "toy_approach_to_engagement",
+        "toy_engagement_to_departure",
+    ]
+    assert artifacts.history_features[transition_columns].eq(0.0).all().all()
+    assert "history_target_transition_available" in availability_columns(
+        artifacts.history_features
+    )
+    assert "history_target_transition_available" not in model_x_columns(
+        artifacts.history_features
+    )
     xml_hr = artifacts.control_matrix.query("control_id == 'HR'")
     assert xml_hr["history_window_spec"].str.startswith("actual[").all()
+
+
+def test_complete_history_enables_transition_features() -> None:
+    artifacts = build_pig_strenet_artifacts(
+        _frames(source_type="cvat_tracking_xml")
+    )
+
+    assert artifacts.history_features[
+        "history_target_transition_available"
+    ].all()
+    assert artifacts.history_features[
+        "activity_delta_history_to_target"
+    ].ne(0.0).all()
+
+
+def test_review_evidence_masks_missing_history_and_ignores_labels() -> None:
+    artifacts = build_pig_strenet_artifacts(
+        _frames(source_type="cvat_tracking_xml", missing_history=True)
+    )
+    pairs = artifacts.pair_manifest.copy()
+    pairs["behavior_label_audit_only"] = ["fight", "sitting"]
+
+    evidence, audit = build_pig_strenet_review_evidence(
+        pairs,
+        artifacts.history_features,
+        roi_dynamics=artifacts.roi_dynamics,
+        social_edges=artifacts.social_edges,
+    )
+
+    assert audit["valid"] is True
+    assert audit["transition_invalid_pairs"] == 2
+    assert not evidence["review_pig_history_transition_available"].any()
+    assert evidence["review_pig_motion_transition_score"].eq(0.0).all()
+    assert evidence["review_pig_social_phase_score"].eq(0.0).all()
+    assert not any("behavior" in column for column in evidence.columns)
+
+
+def test_review_evidence_attach_preserves_labels_and_rows() -> None:
+    artifacts = build_pig_strenet_artifacts(
+        _frames(source_type="cvat_tracking_xml")
+    )
+    evidence, _ = build_pig_strenet_review_evidence(
+        artifacts.pair_manifest,
+        artifacts.history_features,
+        roi_dynamics=artifacts.roi_dynamics,
+        social_edges=artifacts.social_edges,
+    )
+    units = artifacts.pair_manifest[
+        ["temporal_unit_key", "behavior_label_audit_only"]
+    ].rename(columns={"behavior_label_audit_only": "behavior_temporal_final"})
+
+    attached = attach_pig_strenet_review_evidence(units, evidence)
+
+    assert len(attached) == len(units)
+    assert attached["behavior_temporal_final"].equals(
+        units["behavior_temporal_final"]
+    )
+    assert set(PIG_REVIEW_EVIDENCE_COLUMNS).issubset(attached.columns)
+    assert attached["review_pig_history_transition_available"].all()
 
 
 def test_difference_maps_mask_missing_slots() -> None:

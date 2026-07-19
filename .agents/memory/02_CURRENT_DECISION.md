@@ -6,6 +6,20 @@ Only the active decision immediately below controls current work. All later
 sections are historical records. Current gate status is centralized in
 `docs/CLASSIFICATION_V2_CURRENT_STATE.md`.
 
+## Active source-lineage decision: reviewed mixed legacy + XML
+
+The current rebuild target is one mixed source lineage containing the locked
+legacy 16f P0-P10 export and the exact 12 behavior XML files under
+`data/annotations/classification`. The merged source must retain source type,
+input hashes, row counts and an output hash. XML files under
+`data/annotations/tracking` are not behavior authority for this lineage.
+
+Legacy and XML remain distinct native contracts during review: legacy native
+units are 16-frame units and XML native targets are six-frame units. They are
+merged for downstream review/training only after source audit; no legacy-only
+metric or review decision transfers automatically. Mixed data remains blocked
+from training until both review layers and all downstream gates pass.
+
 ## Active human-review execution authority
 
 Hidden smoke uses `%HSM%` and `%HSMDEC%` only. `%HDEC%` is reserved for the
@@ -17,6 +31,22 @@ Complete legacy 16f behavior review requires both
 retained 16-frame legacy native unit into the human review manifest. The
 default selective queue remains valid for bounded diagnostics but cannot earn
 complete legacy behavior-review status.
+
+Behavior review consumes same-lineage Pig-STRENet evidence after temporal
+harmonization. History transitions require complete history and target;
+invalid history is masked and cannot create conflict evidence. The GUI may
+show valid history before target frames, but evidence never auto-changes label.
+
+The behavior queue is five-way: mandatory census, high-risk,
+probability-sampled random residual audit, clean control and not-selected.
+Only random supports an inverse-probability-weighted residual intervention
+estimate. High-risk and clean-control results are separate; neither means
+not-selected units are clean.
+
+Write the exact behavior scientific design before the first decision. A final
+training snapshot requires exact selected-unit coverage and a PASS gate with
+source/video/native-unit clustered uncertainty. Every review_pig and sampling
+field remains outside model-X.
 
 ## Active model-search authority: controlled screen, joint tune, confirm
 

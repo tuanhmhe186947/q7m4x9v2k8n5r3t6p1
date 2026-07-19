@@ -21,10 +21,22 @@ Preserve valid legacy/main runs and reusable caches, predictions, checkpoints,
 and diagnostics. Rerun only when semantics change or artifact integrity fails.
 Current legacy A128/all-seven evidence does not prove that steps 4 or 5 ran.
 
-Tài liệu này giữ candidate integration path từ
-`legacy_frame_object_annotations.csv` đến reviewed data, leakage-safe model
-inputs và model gates. Legacy 16f hiện không nằm trong main classification
-source manifest; tài liệu không tự kích hoạt merge, training hoặc full OOF.
+### Active mixed reviewed lineage decision ngày 2026-07-20
+
+Mục tiêu active của runbook này là tạo một mixed lineage gồm legacy 16f P0-P10
+đã PASS và đúng 12 behavior XML mới trong
+`data\annotations\classification`. Video tương ứng được resolve từ
+`data\videos`; source provenance của legacy và XML phải được giữ riêng trong
+merged manifest.
+
+Không dùng XML trong `data\annotations\tracking` làm behavior authority. Đây
+là artifact tracking cũ/forensic và có thể khác behavior/Hidden của XML mới.
+Không gọi mixed export là reviewed hoặc train-ready trước khi Hidden review,
+behavior review, snapshot và downstream leakage gates đều PASS.
+
+Tài liệu này là active mixed integration path từ
+`07_export\legacy_frame_object_annotations.csv` và 12 XML classification đến
+reviewed data, leakage-safe model inputs và model gates.
 
 Luồng tạo lại legacy 16f từ raw/provenance/CVAT đến frame-object export nằm ở
 `docs/LEGACY_16F_REBUILD_FROM_SCRATCH_RUNBOOK.md`. Không dùng các lệnh trong
@@ -43,13 +55,11 @@ feature contract. Legacy L0-L8 cũng đã hoàn tất riêng cho profile
 review của legacy hoặc nhánh chính, không cấp quyền gọi data là reviewed và
 không tự cấp quyền chạy full OOF.
 
-### Ranh giới với nhánh classification chính ngày 2026-07-19
+### Historical boundary của legacy-only lane ngày 2026-07-19
 
-Legacy 16f hiện là lineage/reference riêng và không nằm trong source manifest
-đang hoạt động của nhánh classification chính. Các lệnh merge legacy+CVAT trong
-runbook này mô tả một candidate integration path, không phải trạng thái active.
-Không chạy chúng cho nhánh chính nếu chưa có quyết định source mới và manifest
-versioned ghi rõ `legacy_16f` được đưa vào.
+Các ghi chú legacy-only bên dưới là historical development evidence. Chúng
+không chuyển metric hoặc quyền promotion sang mixed reviewed lineage mới.
+Mixed lineage phải tạo source manifest, hash, folds và snapshot riêng.
 
 Lane `legacy-only-unreviewed-development` trước đây được tạo để thử prompt/goal
 orchestration và sàng lọc cấu hình hoặc giả thuyết cho nhánh chính. Kết quả của
@@ -130,8 +140,8 @@ feature whitelist, seeds, and metric contract. Then:
 5. repeat correctness and short gates after every semantic change, then lock
    finalists before requesting full OOF authorization.
 
-No legacy point estimate transfers to the main lineage. No main data/model run
-starts from this section while Hidden or behavior review is incomplete.
+No legacy-only point estimate transfers to the mixed reviewed lineage. No
+mixed data/model run starts while Hidden or behavior review is incomplete.
 
 ## 1. Trạng thái và quyền chạy full
 
@@ -205,6 +215,7 @@ CVAT task_0..task_2 XML + task_3 JSON + manifest.jsonl
   -> hidden_reviewed_frame_features.csv
   -> temporal harmonization: legacy 16f, CVAT 6f
   -> unreviewed sequence windows
+  -> causal Pig-STRENet review evidence with validity masks
   -> review_unit_manifest + 4 policy templates
   -> GUI decision CSVs
   -> complete-decision audit
@@ -276,6 +287,7 @@ set SRC=%R%\01_source_full
 set FEAT=%R%\02_frame_features
 set HREV=%R%\03_hidden_review
 set SEQ0=%R%\04_sequence_unreviewed
+set PIGREV=%R%\04a_pig_strenet_review_evidence
 set REV=%R%\05_review_units
 set HSMDEC=%UROOT%\human_decisions\hidden_smoke
 set HDEC=%UROOT%\human_decisions\hidden
@@ -392,8 +404,10 @@ Không dùng canonical folder hiện có làm authority cho rebuild mới. Audit
 `frame_features\geometry_audit.json` chỉ có 173.664 row, gồm 100.800 CVAT row và
 còn chứa dataset `Tracking_annotation_Pigs291119_000263_30fps`. Trong khi đó,
 enhanced audit cùng canonical tree có 245.664 row, gồm 172.800 CVAT row từ
-allowlist 12 XML. Đây là mixed lineage. Mọi stage phải đọc artifact được map
-chính xác từ cùng cặp `RUN_ID`/`AUDIT_RUN_ID`; không được ghép một canonical
+allowlist 12 XML. Đây là historical mixed artifact, không phải active input.
+Active mixed output dự kiến có 72.880 legacy export rows cộng 172.800 XML rows
+trước các downstream review masks. Mọi stage phải đọc artifact được map chính
+xác từ cùng cặp `RUN_ID`/`AUDIT_RUN_ID`; không được ghép một canonical
 intermediate vào lineage mới.
 
 ## 5. Kiểm kê nguồn bất biến
@@ -404,7 +418,7 @@ Kiểm tra file tồn tại trước khi chạy. Lệnh chỉ đọc:
 dir /b "%L16EXPORT%"
 dir /b "%L16CROPS%"
 dir /b "%L16POLICY%"
-dir /b data\annotations\tracking
+dir /b data\annotations\classification
 dir /b data\videos
 certutil -hashfile ^
 "%L16EXPORT%\legacy_frame_object_annotations.csv" SHA256
@@ -420,38 +434,51 @@ certutil -hashfile data\data\task_2\data\manifest.jsonl SHA256
 certutil -hashfile data\data\task_3\annotations.json SHA256
 certutil -hashfile data\data\task_3\data\manifest.jsonl SHA256
 certutil -hashfile data\annotations\roi\ROI_annotations.coco.json SHA256
+certutil -hashfile data\annotations\classification\Pigs281119_000085.xml SHA256
+certutil -hashfile data\annotations\classification\Pigs281119_000114.xml SHA256
+certutil -hashfile data\annotations\classification\Pigs291119_000216.xml SHA256
+certutil -hashfile data\annotations\classification\Pigs291119_000225.xml SHA256
+certutil -hashfile data\annotations\classification\Pigs291119_000226.xml SHA256
+certutil -hashfile data\annotations\classification\Pigs291119_000231.xml SHA256
+certutil -hashfile data\annotations\classification\Pigs291119_000233.xml SHA256
+certutil -hashfile data\annotations\classification\Pigs291119_000302.xml SHA256
+certutil -hashfile data\annotations\classification\Pigs301119_000327.xml SHA256
+certutil -hashfile data\annotations\classification\Pigs301119_000328.xml SHA256
+certutil -hashfile data\annotations\classification\Pigs301119_000329.xml SHA256
+certutil -hashfile data\annotations\classification\Pigs301119_000330.xml SHA256
 ```
 
 Dense map cũ chỉ là reference so sánh; không còn là bbox/behavior input của
 legacy rebuild khi CVAT đã được sửa. CSV center cũ chỉ cung cấp group/video/path
 metadata và valid-group universe; actor behavior và sáu bbox lấy lại từ CVAT.
 
-Thư mục tracking hiện có 13 XML nhưng lineage hành vi đã xác nhận chỉ có 12
-video. **Không** truyền cả directory bằng `--cvat-tracking-dir`, vì file sau có
-thể là tracking-only hoặc stale cho behavior:
+Thư mục tracking cũ có 13 XML và không được dùng làm behavior authority. XML
+behavior authority hiện tại là allowlist 12 file trong
+`data\annotations\classification`; **không** truyền cả directory bằng
+`--cvat-tracking-dir`:
 
 ```text
-Tracking_annotation_Pigs291119_000263_30fps.xml
+data\annotations\tracking\Tracking_annotation_Pigs291119_000263_30fps.xml
 ```
 
-Chỉ thêm `000263` sau một audit riêng chứng minh XML có Behavior labels đúng,
-temporal contract đúng và không làm thay đổi source lineage ngoài dự kiến.
+Không thêm `000263` vào mixed lineage. Task này thuộc nhánh tracking cũ và bị
+loại khỏi behavior source hiện tại.
 
-Behavior XML allowlist hiện tại:
+Behavior XML allowlist hiện tại dưới `data\annotations\classification`:
 
 ```text
-Pigs281119_000085_30fps.xml
-Pigs281119_000114_30fps.xml
-Pigs291119_000216_30fps.xml
-Pigs291119_000225_30fps.xml
-Pigs291119_000226_30fps.xml
-Pigs291119_000231_30fps.xml
-Pigs291119_000233_30fps.xml
-Pigs291119_000302_30fps.xml
-Pigs301119_000327_30fps.xml
-Pigs301119_000328_30fps.xml
-Pigs301119_000329_30fps.xml
-Pigs301119_000330_30fps.xml
+Pigs281119_000085.xml
+Pigs281119_000114.xml
+Pigs291119_000216.xml
+Pigs291119_000225.xml
+Pigs291119_000226.xml
+Pigs291119_000231.xml
+Pigs291119_000233.xml
+Pigs291119_000302.xml
+Pigs301119_000327.xml
+Pigs301119_000328.xml
+Pigs301119_000329.xml
+Pigs301119_000330.xml
 ```
 
 Ghi lại SHA256 của input trong audit notebook hoặc run manifest. Hash khác ở
@@ -724,28 +751,29 @@ hành phải recompute eligibility theo `schema.py`; review policy mới là aut
 cho interaction/ROI/motion/posture. Cấm đưa các cột legacy này vào X hoặc dùng
 chúng để route modality, partner hay image context.
 
-## 7. Candidate merge legacy và CVAT - hiện không active
+## 7. Merge mixed legacy 16f và behavior XML
 
-Mục này chỉ giữ flow tích hợp dự phòng. Main classification source manifest
-hiện không chứa legacy 16f, nên không chạy short/full merge bên dưới cho main.
-Muốn kích hoạt lại phải có quyết định source mới, `RUN_ID` mới và full lineage
-audit; việc P0-P10 legacy PASS không đủ để bật merge.
+Đây là bước tạo source manifest active cho mixed reviewed lineage. Legacy input
+chỉ được lấy từ `%L16EXPORT%` của run P0-P10 đã khóa; XML phải lấy đúng 12 biến
+`X01..X12` từ `data\annotations\classification`. Không truyền directory và
+không dùng XML tracking cũ. Mọi input path, SHA256, row count và source_type
+phải được ghi trong merge audit trước khi chạy feature chain.
 
 Khai báo allowlist một lần trong cùng cửa sổ CMD:
 
 ```bat
-set X01=data\annotations\tracking\Pigs281119_000085_30fps.xml
-set X02=data\annotations\tracking\Pigs281119_000114_30fps.xml
-set X03=data\annotations\tracking\Pigs291119_000216_30fps.xml
-set X04=data\annotations\tracking\Pigs291119_000225_30fps.xml
-set X05=data\annotations\tracking\Pigs291119_000226_30fps.xml
-set X06=data\annotations\tracking\Pigs291119_000231_30fps.xml
-set X07=data\annotations\tracking\Pigs291119_000233_30fps.xml
-set X08=data\annotations\tracking\Pigs291119_000302_30fps.xml
-set X09=data\annotations\tracking\Pigs301119_000327_30fps.xml
-set X10=data\annotations\tracking\Pigs301119_000328_30fps.xml
-set X11=data\annotations\tracking\Pigs301119_000329_30fps.xml
-set X12=data\annotations\tracking\Pigs301119_000330_30fps.xml
+set X01=data\annotations\classification\Pigs281119_000085.xml
+set X02=data\annotations\classification\Pigs281119_000114.xml
+set X03=data\annotations\classification\Pigs291119_000216.xml
+set X04=data\annotations\classification\Pigs291119_000225.xml
+set X05=data\annotations\classification\Pigs291119_000226.xml
+set X06=data\annotations\classification\Pigs291119_000231.xml
+set X07=data\annotations\classification\Pigs291119_000233.xml
+set X08=data\annotations\classification\Pigs291119_000302.xml
+set X09=data\annotations\classification\Pigs301119_000327.xml
+set X10=data\annotations\classification\Pigs301119_000328.xml
+set X11=data\annotations\classification\Pigs301119_000329.xml
+set X12=data\annotations\classification\Pigs301119_000330.xml
 ```
 
 Không dùng `--trust-hidden` mặc định. Hidden vẫn được bảo tồn, nhưng không tự
@@ -765,7 +793,14 @@ review đáng tin và policy mới có audit riêng.
   --cvat-tracking-xml %X11% --cvat-tracking-xml %X12% ^
   --max-rows-per-source 96 ^
   --output-csv %SM%\merged_frame_objects.csv ^
-  --audit-json %SM%\merged_frame_objects_audit.json
+  --audit-json %SM%\merged_frame_objects_audit.json ^
+  --lineage-json %SM%\merged_frame_objects_lineage.json
+%PY% %S0%\check_classification_v2_mixed_source_lineage.py ^
+  --lineage-json %SM%\merged_frame_objects_lineage.json ^
+  --legacy-export "%L16EXPORT%\legacy_frame_object_annotations.csv" ^
+  --classification-dir data\annotations\classification ^
+  --expected-xml-count 12 ^
+  --output-json %SM%\mixed_source_lineage_gate.json
 ```
 
 Smoke PASS khi audit có `errors=[]`, hai source đều xuất hiện, behavior nằm
@@ -785,10 +820,17 @@ bố lớp.
   --cvat-tracking-xml %X09% --cvat-tracking-xml %X10% ^
   --cvat-tracking-xml %X11% --cvat-tracking-xml %X12% ^
   --output-csv %SRC%\merged_frame_objects.csv ^
-  --audit-json %SRC%\merged_frame_objects_audit.json
+  --audit-json %SRC%\merged_frame_objects_audit.json ^
+  --lineage-json %SRC%\merged_frame_objects_lineage.json
+%PY% %S0%\check_classification_v2_mixed_source_lineage.py ^
+  --lineage-json %SRC%\merged_frame_objects_lineage.json ^
+  --legacy-export "%L16EXPORT%\legacy_frame_object_annotations.csv" ^
+  --classification-dir data\annotations\classification ^
+  --expected-xml-count 12 ^
+  --output-json %SRC%\mixed_source_lineage_gate.json
 ```
 
-Gate full merge:
+Gate full mixed merge:
 
 - audit `errors=[]`;
 - source distribution có `legacy_recovered` và `cvat_tracking_xml`;
@@ -942,6 +984,11 @@ là descriptive metadata. Test hoán vị toàn bộ behavior phải giữ nguy�
 cohort, risk, stratum, probability và priority; template audit phải báo
 `target_derived_fields=[]`. High-risk cohort vẫn chỉ là enrichment yield, không
 phải population prevalence.
+
+Temporal Hidden risk chỉ được truyền giữa frame thật sự kề nhau:
+absolute frame-index delta phải bằng 1. Sorted sparse CVAT rows không tự động
+được coi là adjacent. Persistent pair contact/overlap và bbox instability cũng
+chỉ được cộng khi cặp frame này hợp lệ; toàn bộ logic vẫn độc lập behavior.
 
 ### 8A.1. Short builder và media gate
 
@@ -1301,6 +1348,49 @@ cấp ngữ cảnh cho reviewer; chúng không tự đổi label, weight hoặc 
 mọi `review_*` field bị cấm khỏi X. ROI bbox contact chỉ là proxy không gian,
 không được diễn giải như bằng chứng chắc chắn về ăn/uống nếu thiếu head/snout.
 
+Behavior queue có năm cohort rời nhau: mandatory census, high-risk,
+stratified random residual audit, clean control và not-selected. Mandatory gồm
+interaction/rare/temporal-unstable theo policy và toàn bộ retained legacy khi
+bật complete-legacy. Random lưu population, probability và inverse weight.
+Behavior not-selected và clean control không phải human-verified clean.
+
+### 10.0. Pig-STRENet review evidence
+
+Build causal review evidence after temporal harmonization and before review
+unit selection. Input must be the same-lineage harmonized frame table. Every
+temporal unit must match exactly; missing or extra evidence keys fail closed.
+Transition evidence is zero unless history and target are both complete.
+
+~~~bat
+set PIGSM=%TSM%\pig_strenet_review_evidence
+%PY% %S3%\classification_v2_build_pig_strenet_artifacts.py ^
+  --input-csv %TSM%\harmonized_frames.csv --output-dir %PIGSM% ^
+  --history-length 6 --target-length 6 --legacy-target-starts 6 ^
+  --top-k-neighbors 3 --roi-coco data\annotations\roi\ROI_annotations.coco.json ^
+  --video-root data\videos --legacy-crop-root "%L16CROPS%" ^
+  --run-scope smoke
+%PY% %S3%\check_classification_v2_pig_strenet_artifacts.py ^
+  --artifact-dir %PIGSM% --input-csv %TSM%\harmonized_frames.csv ^
+  --expected-run-scope smoke ^
+  --output-json %PIGSM%\pig_strenet_artifact_gate.json
+%PY% %S3%\classification_v2_build_pig_strenet_artifacts.py ^
+  --input-csv %SEQ0%\harmonized_frames.csv --output-dir %PIGREV% ^
+  --history-length 6 --target-length 6 --legacy-target-starts 6 ^
+  --top-k-neighbors 3 --roi-coco data\annotations\roi\ROI_annotations.coco.json ^
+  --video-root data\videos --legacy-crop-root "%L16CROPS%" ^
+  --run-scope full
+%PY% %S3%\check_classification_v2_pig_strenet_artifacts.py ^
+  --artifact-dir %PIGREV% --input-csv %SEQ0%\harmonized_frames.csv ^
+  --expected-run-scope full ^
+  --output-json %PIGREV%\pig_strenet_artifact_gate.json
+~~~
+
+The builder and checker are both mandatory; a builder exit 0 is not a media
+gate. Difference maps use actor pixels from crop or source video. ROI visual
+evidence uses source-video scene frames. Static background.png or Image #1 is
+never accepted as temporal scene evidence. Pair labels are ignored by the
+review bridge, and all emitted review_pig fields remain forbidden from model-X.
+
 ### 10.1. Builder smoke
 
 ```bat
@@ -1309,10 +1399,16 @@ không được diễn giải như bằng chứng chắc chắn về ăn/uống 
   --sequence-window-manifest-csv %TSM%\sequence_window_manifest.csv ^
   --output-dir %SM%\review_units ^
   --max-units-per-template 100000 ^
+  --pig-strenet-artifact-dir %PIGSM% ^
   --disable-window-review-overlay
 %PY% %S1%\check_review_unit_template_coverage.py ^
   --review-unit-dir %SM%\review_units ^
   --allow-incomplete-label-coverage
+%PY% %S1%\classification_v2_write_behavior_scientific_design.py ^
+  --manifest-csv %SM%\review_units\full_review_unit_manifest.csv ^
+  --review-audit-json %SM%\review_units\review_unit_audit.json ^
+  --output-json %SM%\review_units\behavior_scientific_design.json ^
+  --smoke
 ```
 
 ### 10.2. Full review-unit build
@@ -1323,11 +1419,16 @@ không được diễn giải như bằng chứng chắc chắn về ăn/uống 
   --sequence-window-manifest-csv %SEQ0%\sequence_window_manifest.csv ^
   --output-dir %REV% ^
   --max-units-per-template 100000 ^
+  --pig-strenet-artifact-dir %PIGREV% ^
   --include-all-retained-legacy-units ^
   --disable-window-review-overlay
 %PY% %S1%\check_review_unit_template_coverage.py ^
   --review-unit-dir %REV% ^
   --require-complete-legacy
+%PY% %S1%\classification_v2_write_behavior_scientific_design.py ^
+  --manifest-csv %REV%\full_review_unit_manifest.csv ^
+  --review-audit-json %REV%\review_unit_audit.json ^
+  --output-json %REV%\behavior_review_scientific_design.json
 %PY% %S0%\check_classification_v2_cvat_anchor_case.py ^
   --enhanced-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --intervals-csv %SEQ0%\temporal_label_intervals.csv ^
@@ -1350,12 +1451,10 @@ bất kỳ legacy unit nào. Đây là cặp gate bắt buộc khi gọi legacy 
 behavior-reviewed.
 
 Hai flag này chỉ kiểm tra các `legacy_recovered` unit đã hiện diện trong
-`%SEQ0%\temporal_label_intervals.csv`; chúng không tự nhập standalone legacy 16f
-vào main source manifest. Nếu lineage hiện tại không có legacy (trạng thái main
-hiện tại), checker vẫn PASS cho phần CVAT nhưng không được gọi đó là legacy
-behavior review. Muốn review standalone legacy 16f phải tạo `RUN_ID`/source
-manifest/feature chain riêng, bind trực tiếp với export P0-P10 và dùng Hidden,
-review-unit, decision root riêng; không trộn hoặc tái sử dụng artifact của main.
+`%SEQ0%\temporal_label_intervals.csv`; chúng không tự nhập legacy ngoài source
+manifest. Với active mixed lineage, sự hiện diện của legacy là bắt buộc và
+`--require-complete-legacy` phải PASS. Nếu sau này chạy CVAT-only sensitivity,
+phải bỏ cả hai flag và không gọi kết quả đó là complete legacy review.
 
 Flag `--disable-window-review-overlay` ngăn builder đọc window-review artifact
 canonical cũ. Chỉ bật overlay khi có file review window thuộc đúng `RUN_ID` và
@@ -1368,11 +1467,20 @@ policy, mọi retained legacy unit đều có trong full review, và
 này phải rỗng. Nếu nó có row thì dừng thay vì bỏ qua. Temporal evidence audit
 không được phát hiện label/review leakage vào trainer whitelist.
 
+Behavior scientific design phải được ghi trước decision đầu tiên. Full design
+bind exact manifest hash, policy hash, cohort support và residual estimand.
+Smoke design chỉ kiểm tra contract; nó luôn non-authorizing.
+
 ## 11. GUI smoke và human review đầy đủ
 
 GUI smoke là kiểm tra bắt buộc trước khi review hàng nghìn unit. Dùng đúng
 output directory sẽ dùng cho full review; lần chạy sau tự resume, không ghi đè
 decision cũ. Không dùng `--fresh` và không xóa CSV giữa các session.
+
+Khi causal history complete, GUI hiển thị H frames trước T target frames và
+ghi rõ frame range. History thiếu hoặc có gap không được bịa ảnh hay dùng
+transition score; GUI chỉ hiển thị target và validity metadata. Review-Pig
+evidence là ngữ cảnh để con người kiểm tra, không phải auto-label authority.
 
 Behavior review phải bao gồm mọi retained legacy actor ở complete native unit
 16-frame, ngoài các CVAT unit theo contract. Không review từng frame rời và
@@ -1415,8 +1523,11 @@ if exist "%DEC%\interaction\behavior_unit_review_decisions.csv" exit /b 2
   --max-items 5 --copy-contact-sheets
 ```
 
-Interaction cần scene/partner context rộng. `--padding 10` clamp crop về gần
-full frame cho CVAT. Nếu actor/partner/role vẫn không đủ rõ, chọn
+Interaction cần scene/partner context rộng. GUI interaction hiện hiển thị
+full-frame CVAT context trực tiếp; `--padding` không mở rộng interaction vì
+nhánh này không dùng actor crop padding. Legacy chỉ có scene/partner context
+nếu resolver tìm được video/frame-specific scene; actor crop đơn lẻ không được
+coi là đủ bằng chứng. Nếu actor/partner/role vẫn không đủ rõ, chọn
 `review_later`; không đoán label.
 
 ```bat
@@ -1425,7 +1536,7 @@ full frame cho CVAT. Nếu actor/partner/role vẫn không đủ rõ, chọn
   --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --output-dir %DEC%\interaction --video-root data\videos ^
   --raw-root "%L16CROPS%" ^
-  --padding 10 --max-items 5 --copy-contact-sheets
+  --max-items 5 --copy-contact-sheets
 ```
 
 Sau smoke, chạy coverage ở chế độ chưa bắt complete. Missing unit là warning;
@@ -1480,7 +1591,7 @@ GUI nạp CSV cũ, chặn blank/duplicate ID và ghi deterministic order.
   --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --output-dir %DEC%\interaction --video-root data\videos ^
   --raw-root "%L16CROPS%" ^
-  --padding 10 --copy-contact-sheets
+  --copy-contact-sheets
 ```
 
 Quy tắc quyết định:
@@ -1518,7 +1629,21 @@ reviewer, phải ghi đây là limitation thay vì claim annotation reliability 
   %DEC%\interaction\behavior_unit_review_decisions.csv ^
   --audit-json %DEC%\decision_coverage_final_audit.json ^
   --require-complete
+%PY% %S1%\check_behavior_review_scientific_gate.py ^
+  --manifest-csv %REV%\full_review_unit_manifest.csv ^
+  --decisions-csv ^
+  %DEC%\roi\behavior_unit_review_decisions.csv ^
+  %DEC%\motion\behavior_unit_review_decisions.csv ^
+  %DEC%\posture\behavior_unit_review_decisions.csv ^
+  %DEC%\interaction\behavior_unit_review_decisions.csv ^
+  --design-json %REV%\behavior_review_scientific_design.json ^
+  --audit-json %DEC%\behavior_scientific_gate.json
 ```
+
+Scientific gate dùng inverse-probability weighting cho random residual cohort,
+cluster uncertainty theo source/video/native unit và báo high-risk yield riêng.
+Nếu gate không PASS, phần not-selected chưa đủ bằng chứng để authorize training
+snapshot; không được đổi tên low-risk thành clean.
 
 Không chạy apply nếu lệnh này FAIL. Điều kiện PASS gồm đủ 24 column, không
 duplicate/missing/unexpected ID, không pending, không `review_later`, corrected
@@ -2143,6 +2268,9 @@ and 8/8 deterministic stage pairs. These gates must never bypass sections 8A,
 
 ```bat
 certutil -hashfile %SRC%\merged_frame_objects.csv SHA256
+certutil -hashfile %SRC%\merged_frame_objects_audit.json SHA256
+certutil -hashfile %SRC%\merged_frame_objects_lineage.json SHA256
+certutil -hashfile %SRC%\mixed_source_lineage_gate.json SHA256
 certutil -hashfile ^
   %FEAT%\spatiotemporal_frame_features_enhanced.csv SHA256
 certutil -hashfile %HREV%\hidden_review_unit_manifest.csv SHA256
@@ -2158,6 +2286,9 @@ if exist "%SPLIT%\native_oof_folds\native_oof_fold_manifest.csv" ^
 certutil -hashfile %TRAIN%\X_window_features.csv SHA256
 certutil -hashfile %TRAIN%\X_spatial_sequences.npz SHA256
 certutil -hashfile %TRAIN%\feature_semantics_audit.json SHA256
+certutil -hashfile %PIGREV%\pig_strenet_artifact_audit.json SHA256
+certutil -hashfile %PIGREV%\pig_strenet_artifact_gate.json SHA256
+certutil -hashfile %PIGREV%\run_manifest.json SHA256
 certutil -hashfile %CACHE%\manifest.csv SHA256
 certutil -hashfile %CACHE%\packed_rgb_224_letterbox.npy SHA256
 certutil -hashfile %VCACHE%\visual_context_manifest.csv SHA256

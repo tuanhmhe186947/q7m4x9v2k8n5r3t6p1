@@ -1,5 +1,38 @@
 # Project Memory Short
 
+## 2026-07-20 active mixed reviewed lineage decision
+
+- The active training target is a mixed lineage: the locked legacy 16f
+  P0-P10 export plus the exact 12 behavior XML files under
+  `data/annotations/classification`, with videos resolved from `data/videos`.
+- `data/annotations/tracking` is forensic/stale behavior input and must not be
+  used as behavior authority. Source paths, hashes, row counts and source type
+  must be recorded in the merged-source lineage manifest.
+- The mixed export is not reviewed or train-ready until two-sided Hidden review,
+  complete behavior review, Pig-STRENet artifact gate, snapshot and leakage
+  gates pass. The older legacy-outside-main note below is historical.
+
+## 2026-07-20 review-evidence and sampling authority
+
+- Build Pig-STRENet review artifacts after temporal harmonization and before
+  behavior review-unit selection. Join exactly by temporal_unit_key; missing or
+  extra keys fail closed. Pair labels are ignored by the review bridge.
+- History-to-target evidence is valid only when both history and target are
+  complete. Missing history zeroes transition features; GUI shows H frames
+  before T frames only when history is complete.
+- Behavior review uses mandatory census, high-risk, random residual audit,
+  clean control and not-selected cohorts. Random stores exact inclusion
+  probability and inverse weight. Clean control or not-selected never means
+  human-verified clean.
+- The predeclared behavior scientific gate estimates intervention only in the
+  post-mandatory/high-risk residual pool, with source/video/native-unit
+  uncertainty. High-risk yield is enrichment evidence, not prevalence.
+- Hidden adjacent evidence requires absolute frame-index delta 1. Persistent
+  pair contact/overlap and bbox instability use only real adjacent frames and
+  remain independent of behavior labels.
+- Every review_pig and review sampling field is audit-only and forbidden from
+  model-X.
+
 ## 2026-07-19 human-review execution correction
 
 - Hidden smoke stays entirely on `%HSM%` plus `%HSMDEC%`; it never writes the

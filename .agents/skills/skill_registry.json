@@ -88,6 +88,21 @@
       "order": 9,
       "triggers": ["gpu profile", "peak vram", "batch-size search"],
       "depends_on": ["multimodal-sequence-model-builder"]
+    },
+    {
+      "name": "andrej-karpathy-skills",
+      "status": "active",
+      "implicit": true,
+      "order": 10,
+      "triggers": [
+        "guidelines",
+        "karpathy",
+        "rules",
+        "best practices",
+        "coding style",
+        "refactor"
+      ],
+      "depends_on": []
     }
   ]
 }

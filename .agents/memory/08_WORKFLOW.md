@@ -1,5 +1,33 @@
 # Workflow
 
+## Active mixed source workflow (2026-07-20)
+
+Build the mixed source from the locked legacy P0-P10 export and the 12 XML
+behavior files in `data/annotations/classification`. Never substitute the
+older `data/annotations/tracking` directory. Hash every source and the merged
+CSV before Hidden review. Preserve `legacy_recovered` and
+`cvat_tracking_xml` provenance through temporal harmonization, review units,
+folds and the training snapshot.
+
+## Human-review evidence and sampling workflow
+
+Use this order for each exact source lineage:
+
+1. Finish two-sided frame/object Hidden review and apply it.
+2. Harmonize native temporal units and build unreviewed windows.
+3. Build causal Pig-STRENet artifacts from the harmonized frame table.
+4. Exact-join validity-masked review evidence and assign behavior cohorts.
+5. Write the immutable behavior scientific design before any decision.
+6. Run GUI smoke, then resume full review on the same decision roots.
+7. Require exact coverage and PASS the behavior scientific gate before
+   authorizing a reviewed training snapshot.
+
+History-to-target features require complete history and target. Random behavior
+audit estimates only the post-high-risk residual intervention rate using exact
+sampling weights. High-risk yield and clean controls remain diagnostic;
+unselected units are never renamed human-verified clean. Review and sampling
+fields are prohibited from model-X.
+
 ## Authoritative two-pass classifier research flow
 
 1. Establish a stable measurement base. Search credible sequence heads and

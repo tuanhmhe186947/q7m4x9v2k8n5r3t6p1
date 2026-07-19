@@ -1,5 +1,14 @@
 # Classification V2 Hidden Review Memory
 
+## Active mixed source boundary (2026-07-20)
+
+The active review population is the mixed legacy 16f P0-P10 export plus the
+12 behavior XML files under `data/annotations/classification`. The historical
+statement that legacy is outside the main source manifest is superseded for
+this rebuild target; it remains a historical boundary for prior experiments.
+Both source types require the same current two-sided Hidden review before
+reviewed/train-ready use.
+
 ## Active decision
 
 Hidden review is required after enhanced frame features and before temporal
@@ -32,6 +41,12 @@ Use four disjoint cohorts:
 Random rows must store stratum population, inclusion probability and inverse
 sampling weight. Report the post-stratified random false-negative estimate
 separately from high-risk correction yield.
+
+Temporal proximity is conservative. A previous or next sorted row contributes
+adjacent Hidden evidence only when absolute frame-index delta equals 1.
+Persistent pair contact/overlap and adjacent bbox instability use the same
+valid adjacency gate. Sparse CVAT annotations are not silently treated as
+contiguous, and no behavior or target label participates in this risk score.
 
 ## Operator contract
 

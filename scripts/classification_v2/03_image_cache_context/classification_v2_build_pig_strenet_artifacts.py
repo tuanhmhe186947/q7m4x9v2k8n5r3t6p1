@@ -53,6 +53,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-native-events", type=int, default=None)
     parser.add_argument("--difference-size", type=int, default=64)
     parser.add_argument("--visual-size", type=int, default=64)
+    parser.add_argument(
+        "--run-scope",
+        choices=("smoke", "full"),
+        required=True,
+        help="Declare whether this artifact run is a bounded smoke or full run.",
+    )
     parser.add_argument("--skip-difference", action="store_true")
     parser.add_argument("--overwrite", action="store_true")
     return parser.parse_args()
@@ -214,6 +220,7 @@ def main() -> None:
         "max_native_events": args.max_native_events,
         "difference_size": args.difference_size,
         "visual_size": args.visual_size,
+        "run_scope": args.run_scope,
     }
     audit_path = args.output_dir / "pig_strenet_artifact_audit.json"
     audit_path.write_text(
@@ -223,7 +230,8 @@ def main() -> None:
     artifact_manifest = _write_artifact_manifest(args.output_dir)
     run_manifest = {
         "schema_version": SCHEMA_VERSION,
-        "run_type": "bounded_artifact_canary",
+        "run_type": f"pig_strenet_review_artifacts_{args.run_scope}",
+        "run_scope": args.run_scope,
         "lineage_scope": _lineage_scope(frames),
         "human_review_complete": _review_claim(frames),
         "input": {"path": str(args.input_csv), "sha256": _sha256(args.input_csv)},
@@ -252,6 +260,8 @@ def main() -> None:
         encoding="utf-8",
     )
     print(json.dumps(audit, indent=2, ensure_ascii=False, sort_keys=True))
+    if not audit.get("valid", False):
+        raise SystemExit("FAIL: Pig-STRENet artifact/media contract")
 
 
 def _select_target_unit_keys(

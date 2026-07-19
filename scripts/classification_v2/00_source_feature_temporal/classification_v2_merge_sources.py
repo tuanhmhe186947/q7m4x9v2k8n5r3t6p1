@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -83,6 +84,12 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=None,
         help="Optional audit JSON output path.",
+    )
+    parser.add_argument(
+        "--lineage-json",
+        type=Path,
+        required=True,
+        help="Write input/output hashes and merged-source provenance.",
     )
     parser.add_argument(
         "--max-rows-per-source",
@@ -184,9 +191,46 @@ def main() -> None:
         audit_json=args.audit_json,
     )
 
+    lineage = {
+        "schema_version": "classification_v2.merged_source_lineage.v1",
+        "source_files": [
+            {
+                "path": str(Path(name).resolve()),
+                "size": Path(name).stat().st_size,
+                "sha256": _sha256(Path(name)),
+            }
+            for name in names
+        ],
+        "output": {
+            "path": str(args.output_csv.resolve()),
+            "size": args.output_csv.stat().st_size,
+            "sha256": _sha256(args.output_csv),
+        },
+        "audit_json": (
+            None if args.audit_json is None else str(args.audit_json.resolve())
+        ),
+        "source_type_counts": audit.get("sources", {}),
+        "rows": int(len(merged)),
+        "errors": audit.get("errors", []),
+    }
+    args.lineage_json.parent.mkdir(parents=True, exist_ok=True)
+    args.lineage_json.write_text(
+        json.dumps(lineage, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
     print(f"saved csv: {args.output_csv}")
     if args.audit_json is not None:
         print(f"saved audit: {args.audit_json}")
+    print(f"saved lineage: {args.lineage_json}")
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 if __name__ == "__main__":

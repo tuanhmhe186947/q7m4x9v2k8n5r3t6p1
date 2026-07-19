@@ -98,7 +98,7 @@ def test_fight_without_partner_evidence_is_high_priority() -> None:
     assert scored.iloc[0]["review_evidence_conflict_score"] == 0.0
     assert scored.iloc[0]["review_evidence_insufficiency_score"] == 1.0
     assert not bool(scored.iloc[0]["review_social_evidence_available"])
-    assert scored.iloc[0]["review_evidence_priority_auto"] >= 75.0
+    assert scored.iloc[0]["review_evidence_priority_auto"] >= 60.0
     assert "social_evidence_unavailable" in scored.iloc[0][
         "review_evidence_reason_auto"
     ]
@@ -122,6 +122,57 @@ def test_available_social_context_can_contradict_fight_label() -> None:
     assert scored.iloc[0]["review_evidence_insufficiency_score"] == 0.0
     assert scored.iloc[0]["review_evidence_conflict_score"] == 1.0
     assert "fight_without_persistent_contact_or_aggression" in scored.iloc[0][
+        "review_evidence_reason_auto"
+    ]
+
+
+def test_pig_strenet_motion_support_is_validity_masked() -> None:
+    base = _unit("move")
+    base.update(
+        {
+            "review_pig_evidence_available": True,
+            "review_pig_diff_valid_ratio": 1.0,
+            "review_pig_diff_active_pixel_ratio": 1.0,
+            "review_pig_history_transition_available": False,
+            "review_pig_stationary_to_motion_score": 1.0,
+        }
+    )
+    valid_diff = add_behavior_review_evidence(pd.DataFrame([base])).iloc[0]
+    no_diff = dict(base)
+    no_diff["review_pig_diff_valid_ratio"] = 0.0
+    masked = add_behavior_review_evidence(pd.DataFrame([no_diff])).iloc[0]
+
+    assert valid_diff["review_evidence_conflict_score"] == 0.0
+    assert masked["review_evidence_conflict_score"] > 0.9
+    assert masked["review_temporal_phase_support_score"] == 0.0
+
+
+def test_explore_roi_contact_requires_stationary_pattern_for_conflict() -> None:
+    roi_contact = {
+        "roi_feeder_near_ratio_unit": 1.0,
+        "roi_feeder_contact_ratio_unit": 1.0,
+        "roi_feeder_contact_longest_run_ratio_unit": 1.0,
+    }
+    moving = add_behavior_review_evidence(
+        pd.DataFrame(
+            [
+                _unit(
+                    "explore",
+                    motion_active_ratio_unit=1.0,
+                    motion_stationary_ratio_unit=0.0,
+                    motion_speed_p90_unit=0.02,
+                    **roi_contact,
+                )
+            ]
+        )
+    ).iloc[0]
+    stationary = add_behavior_review_evidence(
+        pd.DataFrame([_unit("explore", **roi_contact)])
+    ).iloc[0]
+
+    assert moving["review_evidence_conflict_score"] < 0.45
+    assert stationary["review_evidence_conflict_score"] > 0.65
+    assert "stationary_persistent_roi_contact" in stationary[
         "review_evidence_reason_auto"
     ]
 
@@ -235,7 +286,10 @@ def test_complete_legacy_review_includes_stable_native_unit() -> None:
 
     assert not bool(selected.iloc[0]["include_in_review"])
     assert bool(complete.iloc[0]["include_in_review"])
-    assert complete.iloc[0]["review_reason"] == "full_legacy_native_unit_review"
+    assert "full_legacy_native_unit_review" in complete.iloc[0]["review_reason"]
+    assert complete.iloc[0]["behavior_review_cohort"] == (
+        "behavior_mandatory_census"
+    )
     assert complete.iloc[0]["review_template"] == "roi"
 
 

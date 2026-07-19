@@ -36,6 +36,10 @@ REVIEW_EVIDENCE_COLUMNS: tuple[str, ...] = (
     "review_roi_support_score",
     "review_social_support_score",
     "review_posture_transition_score",
+    "review_temporal_phase_support_score",
+    "review_difference_motion_support_score",
+    "review_social_phase_support_score",
+    "review_pig_strenet_conflict_score",
     "review_evidence_conflict_score",
     "review_evidence_priority_auto",
     "review_confusion_pairs_auto",
@@ -203,23 +207,28 @@ def _score_behavior_row(
 ) -> dict[str, float | bool | str]:
     """Score one unit using behavior-specific, transparent rules."""
 
-    if not evidence_available:
-        return _empty_score()
     behavior = str(row.get(behavior_col, "")).strip().lower()
+    pig = _pig_strenet_support(row, behavior)
+    if not evidence_available and not pig["evidence_available"]:
+        return _empty_score()
     quality = _quality_score(row)
     availability = _branch_availability(row, behavior)
     relevant_available = _relevant_evidence_available(
         behavior,
         availability,
     )
+    relevant_available = bool(
+        relevant_available or pig["relevant_available"]
+    )
     insufficiency = 0.0 if relevant_available else 1.0
-    motion = _motion_support(row)
-    roi_support = _roi_support(row, behavior)
-    social = _social_support(row, config)
+    motion = max(_motion_support(row), pig["target_motion"])
+    roi_support = max(_roi_support(row, behavior), pig["target_roi"])
+    social = max(_social_support(row, config), pig["social_contact"])
     posture_transition = _scaled(
         _number(row, "bbox_shape_change_p90_unit"),
         config.shape_transition_reference,
     )
+    posture_transition = max(posture_transition, pig["shape_transition"])
     if relevant_available:
         conflict, reasons, pairs = _behavior_conflict(
             row,
@@ -228,6 +237,7 @@ def _score_behavior_row(
             roi_support=roi_support,
             social=social,
             posture_transition=posture_transition,
+            pig=pig,
             config=config,
         )
         evidence_status = "sufficient"
@@ -242,15 +252,15 @@ def _score_behavior_row(
         + 60.0 * insufficiency
         + 20.0 * quality_penalty
     )
-    if behavior in INTERACTION_BEHAVIORS:
-        priority += 15.0
-    if behavior == "playwithtoy":
-        priority += 10.0
     if conflict < config.conflict_review_threshold and insufficiency == 0.0:
         reasons = []
         pairs = []
+    elif conflict >= config.conflict_review_threshold and not reasons:
+        reasons = ["behavior_evidence_conflict"]
     return {
-        "review_evidence_available": True,
+        "review_evidence_available": bool(
+            evidence_available or pig["evidence_available"]
+        ),
         "review_motion_evidence_available": availability["motion"],
         "review_roi_evidence_available": availability["roi"],
         "review_social_evidence_available": availability["social"],
@@ -262,6 +272,10 @@ def _score_behavior_row(
         "review_roi_support_score": roi_support,
         "review_social_support_score": social,
         "review_posture_transition_score": posture_transition,
+        "review_temporal_phase_support_score": pig["temporal_phase"],
+        "review_difference_motion_support_score": pig["target_motion"],
+        "review_social_phase_support_score": pig["social_phase"],
+        "review_pig_strenet_conflict_score": pig["conflict_hint"],
         "review_evidence_conflict_score": conflict,
         "review_evidence_priority_auto": float(np.clip(priority, 0.0, 100.0)),
         "review_confusion_pairs_auto": "|".join(_unique(pairs)),
@@ -278,6 +292,7 @@ def _behavior_conflict(
     roi_support: float,
     social: float,
     posture_transition: float,
+    pig: dict[str, float | bool],
     config: BehaviorEvidenceConfig,
 ) -> tuple[float, list[str], list[str]]:
     """Return conflict strength plus explicit reason/confusion tokens."""
@@ -286,29 +301,43 @@ def _behavior_conflict(
     pairs: list[str] = []
     conflict = 0.0
     if behavior == "move":
-        conflict = 1.0 - motion
-        if motion < config.low_motion_support:
+        move_support = max(
+            motion,
+            float(pig["stationary_to_motion"]),
+            float(pig["target_motion"]),
+        )
+        conflict = 1.0 - move_support
+        if move_support < config.low_motion_support:
             reasons.append("move_with_weak_motion_evidence")
         pairs.append("move_vs_explore_vs_stand")
     elif behavior == "stand":
-        conflict = motion
-        if motion > config.strong_motion_support:
+        stand_conflict = max(
+            motion,
+            float(pig["stationary_to_motion"]),
+            float(pig["target_motion"]),
+        )
+        conflict = stand_conflict
+        if stand_conflict > config.strong_motion_support:
             reasons.append("stand_with_strong_motion_evidence")
         pairs.append("move_vs_explore_vs_stand")
     elif behavior == "explore":
         roi_max = _maximum_roi_support(row)
-        conflict = max(abs(motion - 0.5) * 0.5, roi_max)
-        if roi_max > config.strong_roi_support:
-            reasons.append("explore_with_persistent_roi_contact")
+        roi_persistence = max(roi_max, float(pig["maximum_roi"]))
+        feeding_like = roi_persistence * (1.0 - motion)
+        move_like = max(0.0, motion - config.strong_motion_support)
+        conflict = max(feeding_like, move_like)
+        if feeding_like >= config.conflict_review_threshold:
+            reasons.append("explore_with_stationary_persistent_roi_contact")
             pairs.append("explore_vs_eat_drink_playwithtoy")
-        else:
-            reasons.append("explore_motion_intent_ambiguous")
+        if move_like >= config.conflict_review_threshold:
+            reasons.append("explore_with_move_like_motion")
             pairs.append("move_vs_explore_vs_stand")
     elif behavior in ROI_BEHAVIOR_TO_CLASS:
         best_other = _maximum_roi_support(
             row,
             exclude=ROI_BEHAVIOR_TO_CLASS[behavior],
         )
+        best_other = max(best_other, float(pig["maximum_other_roi"]))
         conflict = max(1.0 - roi_support, best_other)
         if roi_support < config.low_roi_support:
             reasons.append("roi_label_without_persistent_target_support")
@@ -320,7 +349,16 @@ def _behavior_conflict(
             _number(row, "social_aggression_proxy_p90_unit"),
             config.aggression_reference,
         )
-        fight_support = float(np.clip(0.55 * social + 0.45 * aggression, 0.0, 1.0))
+        fight_support = float(
+            np.clip(
+                0.35 * social
+                + 0.25 * aggression
+                + 0.20 * float(pig["social_phase"])
+                + 0.20 * float(pig["pair_motion"]),
+                0.0,
+                1.0,
+            )
+        )
         conflict = 1.0 - fight_support
         if fight_support < config.low_social_support:
             reasons.append("fight_without_persistent_contact_or_aggression")
@@ -330,16 +368,30 @@ def _behavior_conflict(
             _number(row, "social_aggression_proxy_p90_unit"),
             config.aggression_reference,
         )
-        conflict = max(1.0 - social, aggression)
-        if social < config.low_social_support:
+        social_support = max(
+            social,
+            float(pig["social_contact"]),
+            float(pig["contact_persistence"]),
+        )
+        fight_like = max(
+            aggression,
+            float(pig["pair_motion"]) * float(pig["social_phase"]),
+        )
+        conflict = max(1.0 - social_support, fight_like)
+        if social_support < config.low_social_support:
             reasons.append("social_nose_without_persistent_partner_contact")
-        if aggression > config.strong_social_support:
+        if fight_like > config.strong_social_support:
             reasons.append("social_nose_with_fight_like_motion")
         pairs.append("social-nose_vs_fight_stand")
     elif behavior in POSTURE_BEHAVIORS:
-        conflict = posture_transition
+        conflict = max(
+            posture_transition,
+            0.50 * float(pig["target_motion"]),
+        )
         if posture_transition >= config.conflict_review_threshold:
             reasons.append("posture_label_during_strong_shape_transition")
+        elif conflict >= config.conflict_review_threshold:
+            reasons.append("posture_label_with_strong_pixel_motion")
         pairs.append("lying_vs_sitting")
     return float(np.clip(conflict, 0.0, 1.0)), reasons, pairs
 
@@ -480,6 +532,114 @@ def _social_support(row: pd.Series, config: BehaviorEvidenceConfig) -> float:
     return float(np.clip(support, 0.0, 1.0))
 
 
+def _pig_strenet_support(
+    row: pd.Series,
+    behavior: str,
+) -> dict[str, float | bool]:
+    evidence_available = _truth(row.get("review_pig_evidence_available", False))
+    transition_available = _truth(
+        row.get("review_pig_history_transition_available", False)
+    )
+    diff_valid = _number(row, "review_pig_diff_valid_ratio") > 0
+    social_valid = _number(row, "review_pig_social_valid_ratio") > 0
+    target_motion = max(
+        _number(row, "review_pig_diff_active_pixel_ratio"),
+        _scaled(_number(row, "review_pig_diff_inner_mean"), 0.20),
+    ) if diff_valid else 0.0
+    stationary_to_motion = (
+        _number(row, "review_pig_stationary_to_motion_score")
+        if transition_available
+        else 0.0
+    )
+    motion_to_stationary = (
+        _number(row, "review_pig_motion_to_stationary_score")
+        if transition_available
+        else 0.0
+    )
+    roi_class = ROI_BEHAVIOR_TO_CLASS.get(behavior)
+    roi_values = {
+        name: (
+            _number(row, f"review_pig_roi_{name}_phase_score")
+            if _number(row, f"review_pig_roi_{name}_valid_ratio") > 0
+            and transition_available
+            else 0.0
+        )
+        for name in ("feeder", "drinker", "toy")
+    }
+    target_roi = roi_values.get(roi_class or "", 0.0)
+    other_roi = max(
+        (value for name, value in roi_values.items() if name != roi_class),
+        default=0.0,
+    )
+    social_phase = (
+        _number(row, "review_pig_social_phase_score")
+        if transition_available
+        else 0.0
+    )
+    social_contact = (
+        max(
+            _number(row, "review_pig_topk_contact_ratio"),
+            _number(row, "review_pig_contact_persistence_score"),
+        )
+        if social_valid
+        else 0.0
+    )
+    pair_motion = (
+        _number(row, "review_pig_pair_motion_source_percentile")
+        if social_valid
+        else 0.0
+    )
+    shape_transition = (
+        _number(row, "review_pig_shape_transition_score")
+        if transition_available
+        else 0.0
+    )
+    relevant_available = False
+    if behavior in MOTION_BEHAVIORS:
+        relevant_available = diff_valid or transition_available
+    elif behavior in ROI_BEHAVIOR_TO_CLASS:
+        relevant_available = bool(
+            roi_class
+            and _number(row, f"review_pig_roi_{roi_class}_valid_ratio") > 0
+        )
+    elif behavior in INTERACTION_BEHAVIORS:
+        relevant_available = social_valid
+    elif behavior in POSTURE_BEHAVIORS:
+        relevant_available = diff_valid or transition_available
+    return {
+        "evidence_available": evidence_available,
+        "relevant_available": relevant_available,
+        "temporal_phase": max(stationary_to_motion, motion_to_stationary),
+        "target_motion": float(np.clip(target_motion, 0.0, 1.0)),
+        "stationary_to_motion": stationary_to_motion,
+        "motion_to_stationary": motion_to_stationary,
+        "target_roi": target_roi,
+        "maximum_roi": max(roi_values.values(), default=0.0),
+        "maximum_other_roi": other_roi,
+        "social_phase": social_phase,
+        "social_contact": social_contact,
+        "contact_persistence": _number(
+            row,
+            "review_pig_contact_persistence_score",
+        ) if transition_available else 0.0,
+        "pair_motion": pair_motion,
+        "shape_transition": shape_transition,
+        "conflict_hint": max(
+            target_motion,
+            social_phase,
+            shape_transition,
+            stationary_to_motion,
+            motion_to_stationary,
+        ),
+    }
+
+
+def _truth(value: Any) -> bool:
+    if isinstance(value, (bool, np.bool_)):
+        return bool(value)
+    return str(value).strip().lower() in {"1", "true", "yes", "y"}
+
+
 def _empty_score() -> dict[str, float | bool | str]:
     """Return backward-compatible unavailable evidence without a decision."""
 
@@ -496,6 +656,10 @@ def _empty_score() -> dict[str, float | bool | str]:
         "review_roi_support_score": 0.0,
         "review_social_support_score": 0.0,
         "review_posture_transition_score": 0.0,
+        "review_temporal_phase_support_score": 0.0,
+        "review_difference_motion_support_score": 0.0,
+        "review_social_phase_support_score": 0.0,
+        "review_pig_strenet_conflict_score": 0.0,
         "review_evidence_conflict_score": 0.0,
         "review_evidence_priority_auto": 0.0,
         "review_confusion_pairs_auto": "",

@@ -10,7 +10,7 @@ Design rule:
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +24,16 @@ from pig_behavior.classification_v2.review.behavior_evidence import (
 )
 from pig_behavior.classification_v2.review.behavior_review_contract import (
     audit_review_unit_contract,
+)
+from pig_behavior.classification_v2.review.behavior_review_selection import (
+    BehaviorReviewSelectionConfig,
+    assign_behavior_review_cohorts,
+    audit_behavior_review_selection,
+)
+from pig_behavior.classification_v2.review.pig_strenet_review_evidence import (
+    PIG_REVIEW_EVIDENCE_COLUMNS,
+    attach_pig_strenet_review_evidence,
+    load_pig_strenet_review_evidence,
 )
 
 LEGACY_SOURCE = "legacy_recovered"
@@ -54,11 +64,40 @@ class ReviewUnitConfig:
     window_review_manifest_csv: Path | None = None
     max_units_per_template: int = 0
     include_all_retained_legacy_units: bool = False
+    pig_strenet_artifact_dir: Path | None = None
+    behavior_selection: BehaviorReviewSelectionConfig = field(
+        default_factory=BehaviorReviewSelectionConfig
+    )
 
 
 def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
     intervals = pd.read_csv(config.intervals_csv, low_memory=False)
     windows = pd.read_csv(config.sequence_window_manifest_csv, low_memory=False)
+    pig_strenet_audit: dict[str, Any] = {
+        "configured": False,
+        "valid": True,
+        "errors": [],
+        "warnings": ["pig_strenet_review_evidence_not_configured"],
+    }
+    if config.pig_strenet_artifact_dir is not None:
+        pig_evidence, pig_strenet_audit = load_pig_strenet_review_evidence(
+            config.pig_strenet_artifact_dir
+        )
+        interval_keys = set(intervals["temporal_unit_key"].astype(str))
+        evidence_keys = set(pig_evidence["temporal_unit_key"].astype(str))
+        missing_evidence = sorted(interval_keys.difference(evidence_keys))
+        unused_evidence = sorted(evidence_keys.difference(interval_keys))
+        if missing_evidence or unused_evidence:
+            raise ValueError(
+                "Pig-STRENet review evidence key mismatch: "
+                f"missing={len(missing_evidence)} unused={len(unused_evidence)}"
+            )
+        intervals = attach_pig_strenet_review_evidence(
+            intervals,
+            pig_evidence,
+        )
+        pig_strenet_audit["configured"] = True
+        pig_strenet_audit["matched_temporal_units"] = int(len(intervals))
 
     _validate_columns(
         intervals,
@@ -117,8 +156,13 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
     units = _finalize_unit_review_fields(
         units,
         include_all_retained_legacy_units=config.include_all_retained_legacy_units,
+        behavior_selection=config.behavior_selection,
     )
     behavior_evidence_audit = audit_behavior_review_evidence(units)
+    behavior_selection_audit = audit_behavior_review_selection(
+        units,
+        config.behavior_selection,
+    )
 
     legacy_units = units[units["review_unit_type"].astype(str).eq("legacy_burst_16")]
     reviewed_legacy_units = legacy_units[
@@ -154,8 +198,12 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
     )
     errors.extend(input_errors + list(contract_audit["errors"]) + capacity_errors)
     errors.extend(behavior_evidence_audit["errors"])
+    errors.extend(behavior_selection_audit["errors"])
+    errors.extend(pig_strenet_audit.get("errors", []))
     warnings = list(contract_audit["warnings"])
     warnings.extend(behavior_evidence_audit["warnings"])
+    warnings.extend(behavior_selection_audit["warnings"])
+    warnings.extend(pig_strenet_audit.get("warnings", []))
 
     config.output_dir.mkdir(parents=True, exist_ok=True)
     if errors:
@@ -169,6 +217,8 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
             },
             "review_unit_contract": contract_audit,
             "behavior_evidence": behavior_evidence_audit,
+            "behavior_selection": behavior_selection_audit,
+            "pig_strenet_review_evidence": pig_strenet_audit,
             "review_scope": review_scope,
         }
         audit_path = config.output_dir / "review_unit_audit.json"
@@ -198,6 +248,9 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
             "window_review_manifest_csv": str(config.window_review_manifest_csv)
             if config.window_review_manifest_csv
             else None,
+            "pig_strenet_artifact_dir": str(config.pig_strenet_artifact_dir)
+            if config.pig_strenet_artifact_dir
+            else None,
         },
         "rows": {
             "intervals": int(len(intervals)),
@@ -220,6 +273,8 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
         },
         "review_unit_contract": contract_audit,
         "behavior_evidence": behavior_evidence_audit,
+        "behavior_selection": behavior_selection_audit,
+        "pig_strenet_review_evidence": pig_strenet_audit,
         "review_scope": review_scope,
         "template_partition": template_audit,
         "review_reason_counts": _counts(
@@ -316,6 +371,7 @@ def _base_units_from_intervals(intervals: pd.DataFrame) -> pd.DataFrame:
         "roi_context_quality",
         "use_for_roi_training",
         *REVIEW_EVIDENCE_COLUMNS,
+        *PIG_REVIEW_EVIDENCE_COLUMNS,
     ]
     for col in keep:
         if col not in out.columns:
@@ -507,6 +563,7 @@ def _finalize_unit_review_fields(
     units: pd.DataFrame,
     *,
     include_all_retained_legacy_units: bool = False,
+    behavior_selection: BehaviorReviewSelectionConfig | None = None,
 ) -> pd.DataFrame:
     out = units.copy()
     sort_columns = [
@@ -610,6 +667,12 @@ def _finalize_unit_review_fields(
     ]:
         if col not in out.columns:
             out[col] = ""
+
+    out, _ = assign_behavior_review_cohorts(
+        out,
+        config=behavior_selection,
+        include_all_retained_legacy_units=include_all_retained_legacy_units,
+    )
 
     first_cols = [
         "review_item_id",

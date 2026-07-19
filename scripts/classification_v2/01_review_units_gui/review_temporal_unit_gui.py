@@ -466,6 +466,21 @@ class ReviewUnitGui:
             "review_reasons_window",
             "review_templates_hit",
         ]
+        keys.extend(
+            sorted(
+                key
+                for key in unit.index
+                if str(key).startswith("review_pig_")
+            )
+        )
+        keys.extend(
+            [
+                "behavior_review_cohort",
+                "behavior_sampling_design",
+                "behavior_sampling_probability",
+                "behavior_sampling_weight",
+            ]
+        )
         lines = []
         for k in keys:
             if k in unit.index:
@@ -490,7 +505,7 @@ class ReviewUnitGui:
         elif "track_id" in df.columns and pd.notna(unit.get("track_id")):
             mask &= df["track_id"].astype(str).eq(str(unit.get("track_id")))
 
-        wanted = self._display_frames(unit)
+        wanted = self._all_display_frames(unit)
         if wanted:
             mask &= df["frame_index"].isin(wanted)
         else:
@@ -501,7 +516,25 @@ class ReviewUnitGui:
         return out.sort_values("frame_index")
 
     def _display_frames(self, unit: pd.Series) -> list[int]:
-        text = str(unit.get("display_frame_indices", ""))
+        return self._parse_frame_indices(unit.get("display_frame_indices", ""))
+
+    def _history_display_frames(self, unit: pd.Series) -> list[int]:
+        try:
+            available = float(unit.get("review_pig_history_available_ratio", 0.0))
+        except (TypeError, ValueError):
+            available = 0.0
+        if available < 1.0:
+            return []
+        return self._parse_frame_indices(
+            unit.get("review_pig_history_display_frame_indices", "")
+        )
+
+    def _all_display_frames(self, unit: pd.Series) -> list[int]:
+        return self._history_display_frames(unit) + self._display_frames(unit)
+
+    @staticmethod
+    def _parse_frame_indices(value: object) -> list[int]:
+        text = str(value)
         vals = []
         for token in text.split(","):
             token = token.strip()
@@ -511,14 +544,14 @@ class ReviewUnitGui:
                 vals.append(int(float(token)))
             except Exception:
                 pass
-        return vals
+        return list(dict.fromkeys(vals))
 
     def _make_contact_sheet(
         self,
         unit: pd.Series,
         rows: pd.DataFrame,
     ) -> tuple[Image.Image, list[str]]:
-        wanted = self._display_frames(unit)
+        wanted = self._all_display_frames(unit)
         if not wanted:
             try:
                 wanted = list(range(int(unit["unit_start_frame"]), int(unit["unit_end_frame"]) + 1))
@@ -564,7 +597,8 @@ class ReviewUnitGui:
             sheet.paste(thumb, (x + (tw - thumb.width) // 2, y + 22))
             draw = ImageDraw.Draw(sheet)
             draw.rectangle([x, y, x + tw - 1, y + th - 1], outline="black")
-            label = f"f{frame_idx}"
+            role = "H" if frame_idx in self._history_display_frames(unit) else "T"
+            label = f"{role}f{frame_idx}"
             if msg and msg != "ok":
                 label += f" | {msg[:22]}"
             draw.text((x + 4, y + 4), label, fill="black")
@@ -873,7 +907,7 @@ class ReviewUnitGui:
         )
 
         decision = str(normalized.iloc[0]["manual_review_decision"])
-        wanted = self._display_frames(unit)
+        wanted = self._all_display_frames(unit)
         frame_rows = self._frame_rows_for_unit(unit)
         observed = pd.to_numeric(frame_rows["frame_index"], errors="coerce")
         observed_frames = sorted(observed.dropna().astype(int).tolist())

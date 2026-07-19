@@ -24,6 +24,7 @@ from pig_behavior.classification_v2.review.hidden_review_builder import (
     DECISION_COLUMNS,
     HiddenReviewConfig,
     _hidden_confusion_audit,
+    _hidden_false_negative_risk,
     _merge_hidden_review_authorities,
     apply_hidden_review_decisions,
     audit_hidden_decision_coverage,
@@ -179,6 +180,17 @@ def test_hidden_selection_is_invariant_to_behavior_targets() -> None:
         "interaction_scene",
         regex=False,
     ).any()
+
+
+def test_hidden_adjacent_evidence_requires_actual_frame_adjacency() -> None:
+    frames = _frame_rows()
+    frames["hidden_before_review"] = frames["hidden"]
+    _, reasons = _hidden_false_negative_risk(
+        frames,
+        HiddenReviewConfig(),
+    )
+
+    assert "adjacent_hidden" not in reasons.iloc[8]
 
 
 def test_hidden_sampling_config_rejects_target_derived_strata() -> None:

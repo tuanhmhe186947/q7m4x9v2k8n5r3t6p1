@@ -8,6 +8,19 @@ historical intent. When an older memory, plan, report, or runbook conflicts with
 this file, use this file together with `02_CURRENT_DECISION.md` and the data
 rebuild runbook.
 
+## Active source decision updated 2026-07-20
+
+The next reviewed training target is a mixed lineage: the locked legacy 16f
+P0-P10 export plus the exact 12 behavior XML files in
+`data/annotations/classification`. The older `data/annotations/tracking`
+directory is not behavior authority. The mixed source must bind input hashes,
+row counts, source types and merged-output hash before review starts.
+
+The legacy-outside-main statements below describe the prior 2026-07-19
+development boundary and remain historical for those earlier experiments. They
+do not authorize training: both Hidden and behavior review remain required for
+the new mixed lineage.
+
 The active objective is a leakage-safe, reproducible 10-class multimodal
 spatio-temporal classifier. The accepted claim boundary is internal
 recording-date/video-safe validation, not external-farm generalization.
@@ -78,7 +91,7 @@ After handoff, map, contract, model-input manifest, snapshot and P0 output must
 remain under the same agent root. P0 may authorize model smoke when every
 review/data/leakage gate passes, but `full_oof_authorized` remains false.
 
-## Main Classification And Legacy Lineage Boundary
+## Historical Main Classification And Legacy Lineage Boundary (2026-07-19)
 
 Legacy 16f is not currently part of the active source manifest for the main
 classification branch. The main branch must bind its own versioned source
