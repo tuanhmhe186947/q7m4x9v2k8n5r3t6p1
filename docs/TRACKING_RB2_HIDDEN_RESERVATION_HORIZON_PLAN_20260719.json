@@ -1,0 +1,132 @@
+{
+  "schema_version": "tracking_rb2_hidden_reservation_horizon_plan_v1",
+  "status": "frozen_before_rb2_execution",
+  "decision_date": "2026-07-19",
+  "scope": {
+    "worktree": "PIG_task_tracking",
+    "branch": "task/update-tracking",
+    "tracking_only": true,
+    "classification_or_model_changes_allowed": false,
+    "generated_mp4_preview_overlay_allowed": false
+  },
+  "parent": {
+    "commit": "4c298c0",
+    "profile": "realtime_balanced",
+    "pareto_plan_sha256":
+      "5046ff636ce4a4d8c02864eef72778e070b9b3e96c5db7f152c8150460b58302",
+    "window_authority_sha256":
+      "4b9759a01afbb02fd20cf2f86552faf6751f9bae395cd8d9976bde4de9d9fe97",
+    "diagnosis_sha256":
+      "d66147b73c3d4f991fb4009484db8b9bab33911180cbfed7e84a4539edf891c0",
+    "w01_debug_run":
+      "20260719_4c298c0_rb_parent_debug_w01_000263_v1",
+    "w01_prediction_semantic_sha256":
+      "26f72c521ac9260fea6886906afe4e55b452221da5341df40ed39ac1e088c83e"
+  },
+  "candidate": {
+    "id": "RB2",
+    "name": "causal_hidden_reservation_horizon15_v1",
+    "changed_family": "causal_hidden_detection_reservation_horizon",
+    "semantic_diff": {
+      "causal_hidden_detection_reservation_max_missed": [5, 15]
+    },
+    "unchanged": [
+      "detector, confidence and cadence",
+      "all reservation quality thresholds",
+      "all other association guards",
+      "box geometry and smoothing",
+      "offline and post-video processing",
+      "evaluation contract"
+    ],
+    "horizon_reason": [
+      "15 frames is the frozen gap-tolerance contract.",
+      "At 30 FPS it is a bounded 0.5 second causal history.",
+      "It remains below the existing 30-frame occlusion-hold horizon."
+    ],
+    "uses_gt_video_or_absolute_frame": false
+  },
+  "hypothesis": [
+    "The five-frame reservation horizon expires during supported occlusion.",
+    "Extending only that horizon exposes existing high-IoM guarded claims.",
+    "Earlier reservations prevent pair drift without smoothing wrong boxes."
+  ],
+  "evaluation_contract": {
+    "mode": "realtime",
+    "profile": "realtime_balanced",
+    "timing_contract": "causal_framewise",
+    "declared_delay_frames": 0,
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "iou_threshold": 0.5,
+    "gap_tolerance_frames": 15,
+    "association_debug": true,
+    "recursive_mp4_count_required": 0
+  },
+  "pre_window_gates": {
+    "semantic_diff_exactly_one_parameter": true,
+    "source_code_change_required": false,
+    "profile_default_change_allowed": false,
+    "actual_tracker_prefix_invariance_required": true,
+    "prefix_frames": [862, 892],
+    "prefix_audit":
+      "20260719_4c298c0_rb2_h15_prefix_invariance_v1.json"
+  },
+  "ordered_distinct_video_windows": [
+    {
+      "id": "W01",
+      "video": "Pigs291119_000263_30fps",
+      "track": [666, 861],
+      "score": [786, 861],
+      "parent_idsw": 34
+    },
+    {
+      "id": "W02",
+      "video": "Pigs291119_000233_30fps",
+      "track": [944, 1107],
+      "score": [1064, 1107],
+      "parent_switch_rows": 13
+    },
+    {
+      "id": "W03",
+      "video": "Pigs291119_000231_30fps",
+      "track": [594, 756],
+      "score": [714, 756],
+      "parent_switch_rows": 6
+    }
+  ],
+  "window_gates": {
+    "w01_idsw_max": 32,
+    "w01_idf1_min": 0.8905349794238683,
+    "w01_hota_min": 0.907391986703821,
+    "w01_fp_max": 5,
+    "w01_fn_max": 6,
+    "per_window_hota_or_idf1_regression_allowed": false,
+    "per_window_idsw_regression_allowed": false,
+    "new_switch_episode_allowed": false,
+    "distinct_videos_improved_min": 2,
+    "stop_after_w03_if_gain_videos_below_two": true
+  },
+  "funnel_after_windows": [
+    "full Pigs291119_000263_30fps",
+    "seven-video hard set",
+    "full-13 primary",
+    "full-13 repeat",
+    "separate profile promotion"
+  ],
+  "later_gates_source":
+    "docs/TRACKING_REALTIME_PARETO_FUNNEL_PLAN_20260719.json",
+  "stop_conditions": [
+    "Any prefix payload changes after future append.",
+    "Any window IDSW, HOTA, IDF1, FP or FN guardrail fails.",
+    "The candidate changes more than the reservation horizon.",
+    "Any root contains MP4, preview, overlay or event clips.",
+    "Fewer than two distinct videos improve after W03."
+  ],
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ]
+}

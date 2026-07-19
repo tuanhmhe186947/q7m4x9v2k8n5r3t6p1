@@ -1,0 +1,70 @@
+{
+  "schema_version": "tracking_rb_parent_association_diagnosis_v1",
+  "status": "PASS",
+  "decision_date": "2026-07-19",
+  "scope": {
+    "worktree": "PIG_task_tracking",
+    "branch": "task/update-tracking",
+    "tracking_only": true,
+    "classification_touched": false,
+    "generated_mp4_allowed": false
+  },
+  "code_commit": "4c298c0",
+  "contract": {
+    "profile": "realtime_balanced",
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "smooth_boxes": false,
+    "association_debug": true,
+    "tracking_frames": [666, 861],
+    "score_frames": [786, 861]
+  },
+  "evidence_sha256": {
+    "run_manifest":
+      "c1790df48625365e5870558971f0cf8d3727b7065cc9107a96ba68290153109c",
+    "artifact_manifest":
+      "2dac9db10377588d56a36ca0f06e64f0773d2d4e71177dd9c5eacce7ffceada6",
+    "metrics":
+      "2157f88f6bd95aed0a5c5ffd82643fc995daa743f1f61d498fc431e451b641aa",
+    "association_debug":
+      "fe3038493e1b4c676fcd43b6ed97bfa888cd1fee59ac8f05239938136ef89bf9"
+  },
+  "prediction_integrity": {
+    "parent_and_debug_semantic_sha256":
+      "26f72c521ac9260fea6886906afe4e55b452221da5341df40ed39ac1e088c83e",
+    "metrics_equal": true,
+    "idsw": 34,
+    "idf1": 0.8905349794238683,
+    "hota": 0.907391986703821,
+    "fp_fn": [5, 6],
+    "mp4_count": 0
+  },
+  "mechanism": {
+    "fixed_track_mapping": {"5": "GT_ID_1", "6": "GT_ID_2"},
+    "reservation_max_missed": 5,
+    "occlusion_hold_max_frames": 30,
+    "eligible_horizon15_frames": [820, 822, 824],
+    "eligible_hidden_missed": [7, 9, 11],
+    "eligible_claim_iom": [0.989529, 0.990192, 0.994162],
+    "eligible_gain": [0.344447, 0.28596, 0.314428],
+    "terminal_wrong_reentry_frame": 846
+  },
+  "interpretation": [
+    "Reservation expires before the supported occlusion hold.",
+    "Track 6 consumes geometry anchored to hidden track 5.",
+    "Generic smoothing reduces switches by prolonging wrong geometry.",
+    "A horizon-only reservation ablation is the narrow next family."
+  ],
+  "scientific_limits": [
+    "GT was used only to interpret the locked parent failure.",
+    "The candidate trigger uses tracker state and geometry only.",
+    "This diagnosis is not promotion evidence."
+  ],
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "computer-vision-opencv",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ]
+}
