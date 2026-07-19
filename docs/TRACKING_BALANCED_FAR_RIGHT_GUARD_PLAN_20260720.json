@@ -1,0 +1,118 @@
+{
+  "schema_version": "tracking_balanced_far_right_guard_plan_v1",
+  "decision_date": "2026-07-20",
+  "status": "FROZEN_BEFORE_SCREENING",
+  "worktree": "PIG_task_tracking",
+  "branch": "task/update-tracking",
+  "starting_commit": "4c77716",
+  "scope": {
+    "tracking_only": true,
+    "classification_or_model_changes_allowed": false,
+    "profile": "realtime_balanced",
+    "timing_contract": "causal_framewise",
+    "declared_delay_frames": 0,
+    "include_hidden": true,
+    "rule_combo": "iou0_area0_condarea0_merge0",
+    "generated_mp4_preview_overlay_allowed": false,
+    "bytetrack_raw_rerun": false
+  },
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "scientific-ablation-controller",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "parent": {
+    "profile_promotion_commit": "e8d39d7",
+    "full13_remapped_idsw": 121,
+    "full13_remapped_hota": 0.956846244204177,
+    "full13_remapped_idf1": 0.9575751746102997,
+    "full13_fp": 448,
+    "full13_fn": 586,
+    "full13_fragments": 127,
+    "identity_target_max_idsw": 86
+  },
+  "changed_family": "far_right_visible_close_competitor_guard",
+  "hypothesis": [
+    "Balanced already keeps the close-competitor guard enabled, but its",
+    "unscoped thresholds may admit harmful left/middle triggers or miss the",
+    "far-right conflicts that the Fast family resolves.",
+    "Using the validated far-right center-x gate and thresholds may reduce",
+    "Balanced identity churn without changing detector, cadence, delay or",
+    "hidden-reservation semantics."
+  ],
+  "candidate_values": {
+    "realtime_visible_close_competitor_guard": true,
+    "realtime_visible_close_competitor_margin": 0.08,
+    "realtime_visible_close_competitor_max_cost": 0.40,
+    "realtime_visible_close_competitor_min_center_x_ratio": 0.67
+  },
+  "unchanged": [
+    "detector and detector hash",
+    "realtime_balanced detection confidence and cadence",
+    "causal hidden detection reservation values",
+    "association and postprocess flags outside this family",
+    "include-Hidden evaluator and GT",
+    "source video and mask"
+  ],
+  "screening_windows": [
+    {
+      "id": "W01",
+      "video": "Pigs301119_000327_30fps",
+      "processed_frames": [1650, 1799],
+      "score_frames": [1740, 1799],
+      "role": "positive_far_right_candidate"
+    },
+    {
+      "id": "W02",
+      "video": "Pigs291119_000302_30fps",
+      "processed_frames": [450, 610],
+      "score_frames": [530, 590],
+      "role": "zero-IDSW_guardrail"
+    },
+    {
+      "id": "W03",
+      "video": "Pigs291119_000231_30fps",
+      "processed_frames": [1070, 1240],
+      "score_frames": [1160, 1210],
+      "role": "negative_left-middle_control"
+    },
+    {
+      "id": "W04",
+      "video": "Pigs291119_000233_30fps",
+      "processed_frames": [800, 1040],
+      "score_frames": [890, 1020],
+      "role": "negative_dense-occlusion_control"
+    },
+    {
+      "id": "W05",
+      "video": "Pigs291119_000263_30fps",
+      "processed_frames": [680, 870],
+      "score_frames": [760, 840],
+      "role": "negative_fight-control"
+    }
+  ],
+  "window_gate": {
+    "candidate_must_not_increase_idsw": true,
+    "candidate_must_not_decrease_hota_or_idf1": true,
+    "candidate_must_not_increase_fp": true,
+    "candidate_must_not_increase_fn": true,
+    "zero_idsw_guardrail_must_remain_zero": true,
+    "independent_positive_episodes_required_for_full_target": 2,
+    "failure_action": "reject_without_full_video",
+    "screening_is_not_promotion_evidence": true
+  },
+  "artifact_contract": {
+    "fresh_prediction_root_required": true,
+    "fresh_evaluation_root_required": true,
+    "write_output_video": false,
+    "recursive_mp4_count_required": 0,
+    "input_rehash_required": true
+  },
+  "next_step": [
+    "Run parent and candidate for each frozen window with current commit.",
+    "Compare paired metrics and event telemetry per window.",
+    "Stop before full video on any critical regression or fewer than two",
+    "independent positive episodes."
+  ]
+}
