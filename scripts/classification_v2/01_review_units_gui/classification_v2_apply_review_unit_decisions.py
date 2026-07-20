@@ -261,6 +261,8 @@ def apply_decisions_to_frames(
     out = frames.copy()
     out["behavior_before_review"] = out["behavior"].fillna("").astype(str)
     out["behavior_after_review"] = out["behavior_before_review"]
+    out["behavior_annotation_original"] = out["behavior_before_review"]
+    out["behavior_reviewed_final"] = out["behavior_before_review"]
     out["review_decision_applied"] = False
     out["review_unit_id_applied"] = ""
     out["review_template_applied"] = ""
@@ -270,8 +272,14 @@ def apply_decisions_to_frames(
     out["review_label_strength"] = ""
     out["review_training_action"] = ""
     out["review_sample_weight"] = pd.NA
-    out["review_include_in_training"] = True
+    out["review_include_in_training"] = False
     out["review_note"] = ""
+    out["behavior_review_unit_id"] = ""
+    out["behavior_review_action"] = ""
+    out["behavior_review_decision_present"] = False
+    out["behavior_review_label_resolved"] = False
+    out["behavior_review_include_in_training"] = False
+    out["behavior_review_sample_weight"] = 0.0
 
     if decisions.empty:
         return out, {
@@ -402,10 +410,22 @@ def apply_decisions_to_frames(
         out.loc[mask, "review_sample_weight"] = weight
         out.loc[mask, "review_include_in_training"] = include
         out.loc[mask, "review_note"] = row.get("manual_note", "")
+        resolved = decision in {"accept", "corrected"}
+        out.loc[mask, "behavior_review_unit_id"] = unit_id
+        out.loc[mask, "behavior_review_action"] = action
+        out.loc[mask, "behavior_review_decision_present"] = True
+        out.loc[mask, "behavior_review_label_resolved"] = resolved
+        out.loc[mask, "behavior_review_include_in_training"] = include and resolved
+        out.loc[mask, "behavior_review_sample_weight"] = (
+            float(weight) if include and resolved and pd.notna(weight) else 0.0
+        )
 
         if decision == "corrected":
             out.loc[mask, "behavior_after_review"] = corrected
             out.loc[mask, "behavior"] = corrected
+            out.loc[mask, "behavior_reviewed_final"] = corrected
+        elif decision == "accept":
+            out.loc[mask, "behavior_reviewed_final"] = out.loc[mask, "behavior"]
 
         touched_total += n
         applied_count += 1

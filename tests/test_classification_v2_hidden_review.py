@@ -383,6 +383,7 @@ def test_hidden_review_redesign_cli_smoke(
             str(output_path),
             "--audit-json",
             str(audit_path),
+            "--apply",
         ],
     )
 

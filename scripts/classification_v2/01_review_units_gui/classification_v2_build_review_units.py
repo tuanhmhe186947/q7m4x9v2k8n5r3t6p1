@@ -25,12 +25,21 @@ def main() -> None:
     parser.add_argument(
         "--sequence-window-manifest-csv",
         type=Path,
-        default=Path(r"outputs/classification_v2/sequence_features/sequence_window_manifest.csv"),
+        default=None,
+        help=(
+            "Optional window manifest used only for affected-window coverage. "
+            "Omit it for native-only review-unit construction."
+        ),
+    )
+    parser.add_argument(
+        "--native-only",
+        action="store_true",
+        help="Build review units directly from temporal intervals without windows.",
     )
     parser.add_argument(
         "--window-review-manifest-csv",
         type=Path,
-        default=Path(r"outputs/classification_v2/review_templates/full_review_manifest.csv"),
+        default=None,
     )
     parser.add_argument(
         "--disable-window-review-overlay",
@@ -63,6 +72,14 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--full-native-unit-behavior-review",
+        action="store_true",
+        help=(
+            "Put every retained legacy 16f burst and CVAT 6f interval into "
+            "the behavior-review manifest."
+        ),
+    )
+    parser.add_argument(
         "--pig-strenet-artifact-dir",
         type=Path,
         default=None,
@@ -80,19 +97,34 @@ def main() -> None:
     parser.add_argument("--behavior-rare-census-max", type=int, default=64)
     args = parser.parse_args()
 
+    if args.native_only and args.sequence_window_manifest_csv is not None:
+        raise SystemExit("--native-only cannot be combined with --sequence-window-manifest-csv")
+    window_manifest = None if args.native_only else args.sequence_window_manifest_csv
     window_review = args.window_review_manifest_csv
-    if args.disable_window_review_overlay or not window_review.exists():
+    if (
+        args.disable_window_review_overlay
+        or window_review is None
+        or not window_review.exists()
+    ):
         window_review = None
+    if window_review is not None and window_manifest is None:
+        raise SystemExit(
+            "window-review overlay requires --sequence-window-manifest-csv; "
+            "omit the overlay in --native-only mode"
+        )
 
     audit = build_review_units(
         ReviewUnitConfig(
             intervals_csv=args.intervals_csv,
-            sequence_window_manifest_csv=args.sequence_window_manifest_csv,
-            window_review_manifest_csv=window_review,
             output_dir=args.output_dir,
+            sequence_window_manifest_csv=window_manifest,
+            window_review_manifest_csv=window_review,
             max_units_per_template=args.max_units_per_template,
             include_all_retained_legacy_units=(
                 args.include_all_retained_legacy_units
+            ),
+            include_all_retained_native_units=(
+                args.full_native_unit_behavior_review
             ),
             pig_strenet_artifact_dir=args.pig_strenet_artifact_dir,
             behavior_selection=BehaviorReviewSelectionConfig(

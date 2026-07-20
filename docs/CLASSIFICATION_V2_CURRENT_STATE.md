@@ -1,5 +1,20 @@
 # Classification V2 Current State
 
+## Active blocker-patch status (2026-07-21)
+
+Current v1 run `c2v2_human_review_20260720_reviewer01_v1` has Hidden review
+PASS at 5,240/5,240 decisions over 245,680 rows. Behavior decisions remain
+0. The run stopped before the behavior GUI because annotation-consistent
+windows were not sufficient scientific evidence for main training.
+
+The existing `%SEQ0%` (`data\\04_sequence_unreviewed`) is preserved as
+`PROVISIONAL_UNREVIEWED`; it is not train-ready and is not reused as `%SEQ1%`.
+The patched contract requires full native-unit behavior review (legacy 16f,
+CVAT 6f), frame-level apply, and full window recomputation afterward. A new
+code SHA and new run ID are required. Hidden decisions may be carried forward
+only through an exact key/hash audit and dry-run, never by copying a decision
+CSV blindly.
+
 ## Authority
 
 This file is the authoritative status snapshot for the active

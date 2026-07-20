@@ -95,6 +95,12 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument("--max-windows-per-track", type=int, default=None)
+    parser.add_argument(
+        "--behavior-review-requirement",
+        choices=["full_native_unit_review_required", "optional_for_diagnostic"],
+        default="full_native_unit_review_required",
+        help="Require reviewed native-unit behavior for main-train eligibility.",
+    )
     parser.add_argument("--max-rows", type=int, default=None)
     parser.add_argument(
         "--overwrite",
@@ -155,6 +161,8 @@ def _can_reuse_window_structure(df: pd.DataFrame, args: argparse.Namespace) -> b
     if args.disable_fast_reuse:
         return False
     if args.exclude_high_hidden_from_main:
+        return False
+    if args.behavior_review_requirement == "full_native_unit_review_required":
         return False
     if args.max_rows is not None:
         return False
@@ -389,6 +397,8 @@ def _try_fast_reviewed_rebuild(args: argparse.Namespace) -> bool:
     """
     if args.disable_fast_reuse or args.max_rows is not None:
         return False
+    if args.behavior_review_requirement == "full_native_unit_review_required":
+        return False
     if args.exclude_high_hidden_from_main:
         return False
 
@@ -576,6 +586,7 @@ def main() -> None:
             turning_angle_threshold_rad=math.radians(
                 args.turning_angle_threshold_deg
             ),
+            behavior_review_requirement=args.behavior_review_requirement,
         )
 
     output_dir = args.output_dir
@@ -626,6 +637,7 @@ def main() -> None:
             "disable_fast_reuse": args.disable_fast_reuse,
             "max_windows_per_track": args.max_windows_per_track,
             "max_rows": args.max_rows,
+            "behavior_review_requirement": args.behavior_review_requirement,
             "overwrite": args.overwrite,
         },
         "temporal_harmonization": temporal_audit,

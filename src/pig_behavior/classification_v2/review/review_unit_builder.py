@@ -59,12 +59,13 @@ ALWAYS_REVIEW_REASON_BY_BEHAVIOR = {
 @dataclass(slots=True)
 class ReviewUnitConfig:
     intervals_csv: Path
-    sequence_window_manifest_csv: Path
     output_dir: Path
+    sequence_window_manifest_csv: Path | None = None
     window_review_manifest_csv: Path | None = None
     max_units_per_template: int = 0
     include_all_retained_legacy_units: bool = False
     pig_strenet_artifact_dir: Path | None = None
+    include_all_retained_native_units: bool = False
     behavior_selection: BehaviorReviewSelectionConfig = field(
         default_factory=BehaviorReviewSelectionConfig
     )
@@ -72,7 +73,9 @@ class ReviewUnitConfig:
 
 def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
     intervals = pd.read_csv(config.intervals_csv, low_memory=False)
-    windows = pd.read_csv(config.sequence_window_manifest_csv, low_memory=False)
+    windows = None
+    if config.sequence_window_manifest_csv is not None:
+        windows = pd.read_csv(config.sequence_window_manifest_csv, low_memory=False)
     pig_strenet_audit: dict[str, Any] = {
         "configured": False,
         "valid": True,
@@ -116,29 +119,38 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
         ],
         "intervals_csv",
     )
-    _validate_columns(
-        windows,
-        [
-            "window_id",
-            "source_type",
-            "dataset_id",
-            "video_key",
-            "object_track_key",
-            "pig_id",
-            "window_length_frames",
-            "window_start_frame",
-            "window_end_frame",
-            "behavior_window_label",
-            "sequence_label_status",
-            "window_valid_for_main_train",
-        ],
-        "sequence_window_manifest_csv",
-    )
+    if windows is not None:
+        _validate_columns(
+            windows,
+            [
+                "window_id",
+                "source_type",
+                "dataset_id",
+                "video_key",
+                "object_track_key",
+                "pig_id",
+                "window_length_frames",
+                "window_start_frame",
+                "window_end_frame",
+                "behavior_window_label",
+                "sequence_label_status",
+                "window_valid_for_main_train",
+            ],
+            "sequence_window_manifest_csv",
+        )
 
     units = _base_units_from_intervals(intervals)
-    units = _add_window_coverage(units, windows)
+    if windows is None:
+        units = _add_native_only_window_fields(units)
+    else:
+        units = _add_window_coverage(units, windows)
 
     review_manifest = None
+    if config.window_review_manifest_csv and windows is None:
+        raise ValueError(
+            "window-review overlay requires sequence_window_manifest_csv; "
+            "use native-only mode without --window-review-manifest-csv"
+        )
     if config.window_review_manifest_csv and config.window_review_manifest_csv.exists():
         review_manifest = pd.read_csv(config.window_review_manifest_csv, low_memory=False)
         if "window_id" not in review_manifest.columns:
@@ -156,6 +168,7 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
     units = _finalize_unit_review_fields(
         units,
         include_all_retained_legacy_units=config.include_all_retained_legacy_units,
+        include_all_retained_native_units=config.include_all_retained_native_units,
         behavior_selection=config.behavior_selection,
     )
     behavior_evidence_audit = audit_behavior_review_evidence(units)
@@ -212,7 +225,7 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
             "warnings": warnings,
             "rows": {
                 "intervals": int(len(intervals)),
-                "windows": int(len(windows)),
+                "windows": int(len(windows)) if windows is not None else None,
                 "review_units": int(len(units)),
             },
             "review_unit_contract": contract_audit,
@@ -244,7 +257,11 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
         "warnings": warnings,
         "inputs": {
             "intervals_csv": str(config.intervals_csv),
-            "sequence_window_manifest_csv": str(config.sequence_window_manifest_csv),
+            "sequence_window_manifest_csv": (
+                str(config.sequence_window_manifest_csv)
+                if config.sequence_window_manifest_csv
+                else None
+            ),
             "window_review_manifest_csv": str(config.window_review_manifest_csv)
             if config.window_review_manifest_csv
             else None,
@@ -254,7 +271,7 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
         },
         "rows": {
             "intervals": int(len(intervals)),
-            "windows": int(len(windows)),
+        "windows": int(len(windows)) if windows is not None else None,
             "review_units": int(len(units)),
         },
         "unit_distribution": {
@@ -379,6 +396,25 @@ def _base_units_from_intervals(intervals: pd.DataFrame) -> pd.DataFrame:
     return out[keep].copy()
 
 
+def _add_native_only_window_fields(units: pd.DataFrame) -> pd.DataFrame:
+    """Mark window coverage as intentionally unavailable in native-only mode."""
+
+    out = units.copy()
+    out["window_dependency_mode"] = "native_only"
+    out["window_coverage_computed"] = False
+    out["review_population_source"] = "native_intervals"
+    for column in [
+        "affected_window_count",
+        "affected_window_lengths",
+        "affected_main_train_windows",
+        "affected_stable_windows",
+        "affected_uncertain_or_transition_windows",
+        "affected_behavior_labels",
+    ]:
+        out[column] = pd.NA
+    return out
+
+
 def _add_window_coverage(units: pd.DataFrame, windows: pd.DataFrame) -> pd.DataFrame:
     keys = ["source_type", "dataset_id", "video_key", "object_track_key", "pig_id"]
     w = windows[
@@ -451,6 +487,9 @@ def _add_window_coverage(units: pd.DataFrame, windows: pd.DataFrame) -> pd.DataF
         if col not in out.columns:
             out[col] = value
         out[col] = out[col].fillna(value)
+    out["window_dependency_mode"] = "manifest"
+    out["window_coverage_computed"] = True
+    out["review_population_source"] = "native_intervals_plus_windows"
     return out
 
 
@@ -563,6 +602,7 @@ def _finalize_unit_review_fields(
     units: pd.DataFrame,
     *,
     include_all_retained_legacy_units: bool = False,
+    include_all_retained_native_units: bool = False,
     behavior_selection: BehaviorReviewSelectionConfig | None = None,
 ) -> pd.DataFrame:
     out = units.copy()
@@ -672,6 +712,7 @@ def _finalize_unit_review_fields(
         out,
         config=behavior_selection,
         include_all_retained_legacy_units=include_all_retained_legacy_units,
+        include_all_retained_native_units=include_all_retained_native_units,
     )
 
     first_cols = [
@@ -722,7 +763,7 @@ def _template_capacity_errors(units: pd.DataFrame, cap: int) -> list[str]:
 
 def _input_contract_errors(
     intervals: pd.DataFrame,
-    windows: pd.DataFrame,
+    windows: pd.DataFrame | None,
     units: pd.DataFrame,
 ) -> list[str]:
     """Check one-to-one lineage before any canonical review file is written."""
@@ -737,21 +778,27 @@ def _input_contract_errors(
         errors.append(f"interval_review_unit_row_mismatch={len(intervals)}:{len(units)}")
     if set(interval_keys) != set(units["temporal_unit_key"].astype(str)):
         errors.append("interval_review_unit_key_set_mismatch")
-    uncovered_units = int(
-        pd.to_numeric(units["affected_window_count"], errors="coerce")
-        .fillna(0)
-        .eq(0)
-        .sum()
-    )
-    if uncovered_units:
-        errors.append(f"review_units_without_window_coverage={uncovered_units}")
+    if windows is not None:
+        uncovered_units = int(
+            pd.to_numeric(units["affected_window_count"], errors="coerce")
+            .fillna(0)
+            .eq(0)
+            .sum()
+        )
+        if uncovered_units:
+            errors.append(f"review_units_without_window_coverage={uncovered_units}")
 
-    window_ids = windows["window_id"].fillna("").astype(str).str.strip()
-    if window_ids.eq("").any():
-        errors.append(f"blank_window_id={int(window_ids.eq('').sum())}")
-    if window_ids.duplicated(keep=False).any():
-        errors.append(f"duplicate_window_id={int(window_ids.duplicated(keep=False).sum())}")
-    if "window_uid" in intervals.columns or "window_uid" in windows.columns:
+    if windows is not None:
+        window_ids = windows["window_id"].fillna("").astype(str).str.strip()
+        if window_ids.eq("").any():
+            errors.append(f"blank_window_id={int(window_ids.eq('').sum())}")
+        if window_ids.duplicated(keep=False).any():
+            errors.append(
+                f"duplicate_window_id={int(window_ids.duplicated(keep=False).sum())}"
+            )
+    if "window_uid" in intervals.columns or (
+        windows is not None and "window_uid" in windows.columns
+    ):
         errors.append("forbidden_window_uid_column")
     return errors
 

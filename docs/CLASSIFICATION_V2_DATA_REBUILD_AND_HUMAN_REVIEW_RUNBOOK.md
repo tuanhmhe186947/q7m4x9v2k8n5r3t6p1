@@ -1,5 +1,50 @@
 # Classification V2 Data Rebuild And Human Review Runbook
 
+## Classification V2 blocker patch (2026-07-21)
+
+The active order is now: Hidden-reviewed frames and temporal harmonization,
+native review units (legacy complete 16f bursts and CVAT complete 6f
+intervals), native-unit evidence, full behavior review/apply, then a
+full-recompute of 6/8/12/16-frame windows. Before behavior review, only
+synthetic or complete-unit smoke is permitted; do not build the full
+unreviewed window population in a new lineage.
+
+The v1 `data\\04_sequence_unreviewed` root (`%SEQ0%`) is retained as
+`PROVISIONAL_UNREVIEWED`. It is diagnostic evidence only, must not be copied
+or promoted to training, and must not be overwritten. Final windows belong in
+the new `%SEQ1%` root and must be rebuilt from `reviewed_frame_features.csv`.
+The main policy is `FULL_NATIVE_UNIT_BEHAVIOR_REVIEW_REQUIRED`: every retained
+legacy 16f burst and CVAT 6f interval needs a decision; excluded/uncertain or
+unreviewed rows remain in audits with `include=false` and zero weight.
+
+For every apply/check command, pass the same-lineage manifest explicitly:
+`--review-unit-manifest-csv %REV%\\full_review_unit_manifest.csv`.
+
+The standalone temporal producer uses the exact CLI flags
+`--input-csv`, `--output-csv`, `--intervals-csv`, and `--audit-json`. Its
+canonical native-unit output for the new pre-review lineage is
+`%SEQ0%\\temporal_intervals_standalone.csv`; native-only review consumes that
+file directly and does not invoke the sequence-window builder:
+
+```bat
+%PY% %S0%\classification_v2_build_temporal_harmonization.py ^
+  --input-csv %HREV%\hidden_reviewed_frame_features.csv ^
+  --output-csv %SEQ0%\harmonized_frames.csv ^
+  --intervals-csv %SEQ0%\temporal_intervals_standalone.csv ^
+  --audit-json %SEQ0%\temporal_harmonization_audit.json ^
+  --cvat-label-stride 6 ^
+  --legacy-expected-sequence-length 16
+%PY% %S1%\classification_v2_build_review_units.py ^
+  --intervals-csv %SEQ0%\temporal_intervals_standalone.csv ^
+  --output-dir %REV% ^
+  --native-only ^
+  --full-native-unit-behavior-review
+%PY% %S1%\check_review_unit_gui_contract.py ^
+  --review-units-csv %REV%\full_review_unit_manifest.csv ^
+  --frame-features-csv %SEQ0%\harmonized_frames.csv ^
+  --audit-json %REV%\gui_contract_audit.json
+```
+
 ## Model-search authority after reviewed-data handoff
 
 Human review and source freezing remain prerequisites. Once the selected main

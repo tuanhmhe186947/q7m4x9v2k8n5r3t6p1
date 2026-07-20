@@ -59,6 +59,7 @@ def assign_behavior_review_cohorts(
     *,
     config: BehaviorReviewSelectionConfig | None = None,
     include_all_retained_legacy_units: bool = False,
+    include_all_retained_native_units: bool = False,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     """Assign disjoint cohorts and exact random inclusion probabilities."""
 
@@ -100,6 +101,8 @@ def assign_behavior_review_cohorts(
     mandatory = temporal_bad | behavior.isin(MANDATORY_BEHAVIORS) | rare
     if include_all_retained_legacy_units:
         mandatory |= legacy
+    if include_all_retained_native_units:
+        mandatory |= True
     _assign(
         out,
         mandatory,

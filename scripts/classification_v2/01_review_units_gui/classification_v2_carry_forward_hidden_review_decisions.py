@@ -24,6 +24,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-decisions-csv", type=Path, required=True)
     parser.add_argument("--audit-json", type=Path, required=True)
     parser.add_argument("--overwrite", action="store_true")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Validate identity/hash/decision coverage without writing outputs.",
+    )
+    parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="Explicitly write carried decisions after all audits pass.",
+    )
     return parser.parse_args()
 
 
@@ -31,6 +41,10 @@ def main() -> None:
     """Carry decisions only after all identity and payload audits pass."""
 
     args = parse_args()
+    if args.dry_run and args.apply:
+        raise SystemExit("choose exactly one of --dry-run or --apply")
+    if not args.dry_run and not args.apply:
+        raise SystemExit("explicit --dry-run or --apply is required")
     inputs = [
         args.previous_manifest_csv,
         args.current_manifest_csv,
@@ -73,6 +87,15 @@ def main() -> None:
     if audit["errors"]:
         _write_json_atomic(args.audit_json, audit)
         raise SystemExit(f"FAIL: {audit['errors']}")
+    if args.dry_run:
+        audit["dry_run"] = True
+        audit["output_written"] = False
+        print(
+            "[PASS] Hidden carry-forward dry-run; no outputs written: "
+            f"rows={len(carried)}"
+        )
+        return
+    audit["apply_confirmed"] = True
     _write_csv_atomic(args.output_decisions_csv, carried)
     audit["output_decisions_sha256"] = _sha256(args.output_decisions_csv)
     audit["output_written"] = True

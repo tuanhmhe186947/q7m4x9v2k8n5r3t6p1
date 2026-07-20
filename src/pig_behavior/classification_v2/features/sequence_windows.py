@@ -65,6 +65,7 @@ class SequenceWindowConfig:
     stationary_speed_threshold: float = 0.002
     active_speed_threshold: float = 0.006
     turning_angle_threshold_rad: float = float(np.pi / 6.0)
+    behavior_review_requirement: str = "optional_for_diagnostic"
 
     def validate(self) -> None:
         if not self.window_lengths:
@@ -103,6 +104,11 @@ class SequenceWindowConfig:
         if self.max_windows_per_track is not None and self.max_windows_per_track <= 0:
             raise ValueError("max_windows_per_track must be None or > 0")
         self.temporal_evidence_config().validate()
+        if self.behavior_review_requirement not in {
+            "optional_for_diagnostic",
+            "full_native_unit_review_required",
+        }:
+            raise ValueError("invalid behavior_review_requirement")
 
     def temporal_evidence_config(self) -> TemporalEvidenceConfig:
         """Return thresholds shared by every generated window."""
@@ -135,6 +141,7 @@ def build_sequence_windows(
     stationary_speed_threshold: float = 0.002,
     active_speed_threshold: float = 0.006,
     turning_angle_threshold_rad: float = float(np.pi / 6.0),
+    behavior_review_requirement: str = "optional_for_diagnostic",
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Build harmonized frame features, intervals, and window manifest.
 
@@ -165,6 +172,7 @@ def build_sequence_windows(
         stationary_speed_threshold=stationary_speed_threshold,
         active_speed_threshold=active_speed_threshold,
         turning_angle_threshold_rad=turning_angle_threshold_rad,
+        behavior_review_requirement=behavior_review_requirement,
     )
     config.validate()
 
@@ -210,6 +218,13 @@ def audit_sequence_windows(
         "hidden_burden_ratio_window",
         "hidden_longest_run_ratio_window",
         "hidden_window_policy_tier",
+        "annotation_consistency_status",
+        "human_reviewed_behavior_consistency_status",
+        "behavior_review_coverage_ratio_window",
+        "behavior_review_label_resolution_ratio_window",
+        "all_temporal_units_behavior_reviewed",
+        "all_temporal_units_behavior_label_resolved",
+        "all_temporal_units_behavior_train_eligible",
     ]
     missing = [c for c in required if c not in windows.columns]
     if missing:
@@ -235,6 +250,35 @@ def audit_sequence_windows(
         ]
         if len(invalid_main):
             errors.append(f"main_train_windows_not_stable={len(invalid_main)}")
+
+        coverage = pd.to_numeric(
+            windows.get("behavior_review_coverage_ratio_window", 0.0), errors="coerce"
+        ).fillna(0.0)
+        resolution = pd.to_numeric(
+            windows.get("behavior_review_label_resolution_ratio_window", 0.0), errors="coerce"
+        ).fillna(0.0)
+        review_status = windows.get(
+            "human_reviewed_behavior_consistency_status",
+            pd.Series("unreviewed", index=windows.index),
+        ).astype(str)
+        fields_present = _to_bool_series(
+            windows.get("behavior_review_fields_present", pd.Series(False, index=windows.index))
+        )
+        invalid_review = _to_bool_series(
+            windows.get("window_valid_for_main_train", pd.Series(False, index=windows.index))
+        ) & (
+            fields_present
+            & (
+                (coverage < 1.0)
+                | (resolution < 1.0)
+                | ~review_status.eq("stable")
+            )
+        )
+        if invalid_review.any():
+            errors.append(
+                "main_train_windows_fail_behavior_review_policy="
+                f"{int(invalid_review.sum())}"
+            )
 
         main_mask = _to_bool_series(
             windows.get(
@@ -302,6 +346,15 @@ def audit_sequence_windows(
         "window_length_frames": _value_counts_dict(windows, "window_length_frames"),
         "sequence_label_status": _value_counts_dict(windows, "sequence_label_status"),
         "window_valid_for_main_train": _value_counts_dict(windows, "window_valid_for_main_train"),
+        "human_reviewed_behavior_consistency_status": _value_counts_dict(
+            windows, "human_reviewed_behavior_consistency_status"
+        ),
+        "behavior_review_coverage_ratio_window": _numeric_summary(
+            windows, "behavior_review_coverage_ratio_window"
+        ),
+        "behavior_review_label_resolution_ratio_window": _numeric_summary(
+            windows, "behavior_review_label_resolution_ratio_window"
+        ),
         "behavior_window_label": _value_counts_dict(windows, "behavior_window_label"),
         "label_propagation_policy": _value_counts_dict(windows, "label_propagation_policy"),
         "window_exclusion_reason_top": _value_counts_dict(windows, "window_exclusion_reason"),
@@ -649,11 +702,13 @@ def _summarize_window(
         )
 
     first = wg.iloc[0]
-    behavior_source = (
-        interval_subset["behavior_temporal_final"].fillna("").astype(str)
-        if interval_subset is not None and "behavior_temporal_final" in interval_subset.columns
-        else wg.get("behavior_temporal_final", wg["behavior"]).fillna("").astype(str)
-    )
+    if (
+        interval_subset is not None
+        and "behavior_temporal_final" in interval_subset.columns
+    ):
+        behavior_source = interval_subset["behavior_temporal_final"].fillna("").astype(str)
+    else:
+        behavior_source = wg.get("behavior_temporal_final", wg["behavior"]).fillna("").astype(str)
     behavior_values = [b for b in behavior_source.tolist() if b]
     unique_behaviors = sorted(set(behavior_values))
     dominant = pd.Series(behavior_values).value_counts().idxmax() if behavior_values else ""
@@ -695,6 +750,16 @@ def _summarize_window(
         wg.get("spatiotemporal_feature_valid", pd.Series(True, index=wg.index))
     )
     review_summary = _review_training_summary(wg)
+    behavior_review = _behavior_review_summary(wg)
+    reviewed_status = behavior_review[
+        "human_reviewed_behavior_consistency_status"
+    ]
+    effective_status = (
+        reviewed_status
+        if behavior_review["behavior_review_fields_present"]
+        and reviewed_status in {"stable", "transition"}
+        else label_status
+    )
 
     ts_start, ts_end, duration_from_ts = _timestamp_span(wg)
     effective_fps = _infer_effective_fps(wg, start, end, duration_from_ts, config.default_fps)
@@ -707,7 +772,7 @@ def _summarize_window(
     reasons: list[str] = []
     hard_exclusion = False
     if label_status != "stable":
-        reasons.append(f"label_{label_status}")
+        reasons.append(f"annotation_label_{label_status}")
         hard_exclusion |= label_status not in {"transition", "mixed"}
     if not label_coverage_complete:
         reasons.append("label_coverage_incomplete")
@@ -723,18 +788,26 @@ def _summarize_window(
     if review_summary["review_excluded_frame_count_window"] > 0:
         reasons.append("review_excluded_rows_in_window")
         hard_exclusion = True
-    if label_status in {"transition", "mixed"} and not config.include_mixed_windows:
+    if behavior_review["behavior_review_fields_present"] and (
+        behavior_review["human_reviewed_behavior_consistency_status"] != "stable"
+    ):
+        reasons.append(
+            "behavior_review_"
+            f"{behavior_review['human_reviewed_behavior_consistency_status']}"
+        )
+        hard_exclusion = True
+    if effective_status in {"transition", "mixed"} and not config.include_mixed_windows:
         hard_exclusion = True
 
     valid_main = (
-        label_status == "stable"
+        effective_status == "stable"
         and not hard_exclusion
         and hidden_policy_tier in {"main_train", "audit_only"}
     )
     robust_eligible = not hard_exclusion and (
         hidden_policy_tier == "robust_train_only"
         or (
-            label_status in {"transition", "mixed"}
+            effective_status in {"transition", "mixed"}
             and config.include_mixed_windows
         )
     )
@@ -783,8 +856,12 @@ def _summarize_window(
         else 0,
         "num_behaviors_window": int(len(unique_behaviors)),
         "unique_behaviors_window": "|".join(unique_behaviors),
-        "behavior_window_label": str(dominant),
-        "sequence_label_status": label_status,
+        "behavior_window_label": str(
+            behavior_review.get("behavior_reviewed_window_label") or dominant
+        ),
+        "sequence_label_status": effective_status,
+        "annotation_consistency_status": label_status,
+        **behavior_review,
         "window_valid_for_main_train": bool(valid_main),
         "window_training_tier_recommendation": training_tier,
         "window_exclusion_reason": ";".join(reasons),
@@ -863,6 +940,16 @@ def _empty_invalid_window(
         "unique_behaviors_window": "",
         "behavior_window_label": "",
         "sequence_label_status": "incomplete",
+        "annotation_consistency_status": "incomplete",
+        "human_reviewed_behavior_consistency_status": "unreviewed",
+        "behavior_reviewed_window_label": "",
+        "behavior_review_fields_present": False,
+        "behavior_review_coverage_ratio_window": 0.0,
+        "behavior_review_label_resolution_ratio_window": 0.0,
+        "behavior_review_train_eligibility_ratio_window": 0.0,
+        "all_temporal_units_behavior_reviewed": False,
+        "all_temporal_units_behavior_label_resolved": False,
+        "all_temporal_units_behavior_train_eligible": False,
         "window_valid_for_main_train": False,
         "window_training_tier_recommendation": "exclude",
         "window_exclusion_reason": reason,
@@ -1044,6 +1131,115 @@ def _temporal_unit_keys(window_rows: pd.DataFrame) -> list[str]:
         .str.strip()
     )
     return sorted(set(values.loc[values.ne("")]))
+
+
+def _behavior_review_summary(wg: pd.DataFrame) -> dict[str, Any]:
+    """Compute native-unit behavior review coverage without dropping rows."""
+    fields_present = any(
+        c in wg.columns
+        for c in (
+            "behavior_review_decision_present",
+            "behavior_review_label_resolved",
+            "behavior_reviewed_final",
+        )
+    )
+    if not fields_present:
+        return {
+            "behavior_review_fields_present": False,
+            "human_reviewed_behavior_consistency_status": "not_applicable",
+            "behavior_reviewed_window_label": "",
+            "behavior_review_coverage_ratio_window": np.nan,
+            "behavior_review_label_resolution_ratio_window": np.nan,
+            "behavior_review_train_eligibility_ratio_window": np.nan,
+            "all_temporal_units_behavior_reviewed": False,
+            "all_temporal_units_behavior_label_resolved": False,
+            "all_temporal_units_behavior_train_eligible": False,
+        }
+    key = wg.get("temporal_unit_key", pd.Series(index=wg.index, dtype=str))
+    key = key.fillna("").astype(str).str.strip()
+    if key.eq("").all():
+        key = pd.Series([f"frame:{i}" for i in wg.index], index=wg.index)
+    present_col = (
+        "behavior_review_decision_present"
+        if "behavior_review_decision_present" in wg.columns
+        else "review_decision_applied"
+    )
+    resolved_col = (
+        "behavior_review_label_resolved"
+        if "behavior_review_label_resolved" in wg.columns
+        else None
+    )
+    eligible_col = (
+        "behavior_review_include_in_training"
+        if "behavior_review_include_in_training" in wg.columns
+        else "review_include_in_training"
+    )
+    present = _to_bool_series(wg.get(present_col, pd.Series(False, index=wg.index)))
+    resolved = (
+        _to_bool_series(wg[resolved_col])
+        if resolved_col is not None
+        else present
+        & wg.get("behavior_after_review", wg.get("behavior", ""))
+        .fillna("")
+        .astype(str)
+        .ne("")
+    )
+    eligible = _to_bool_series(wg.get(eligible_col, pd.Series(False, index=wg.index)))
+    final_label = wg.get(
+        "behavior_reviewed_final",
+        wg.get("behavior_after_review", wg.get("behavior", "")),
+    ).fillna("").astype(str).str.strip()
+    units = pd.DataFrame(
+        {
+            "present": present,
+            "resolved": resolved,
+            "eligible": eligible,
+            "label": final_label,
+            "unit": key,
+        }
+    ).groupby("unit", sort=False).agg(
+        present=("present", "all"),
+        resolved=("resolved", "all"),
+        eligible=("eligible", "all"),
+        label=("label", lambda s: "|".join(sorted(set(v for v in s if v)))),
+    )
+    total = len(units)
+    reviewed = units["present"]
+    resolved_all = units["resolved"]
+    eligible_all = units["eligible"]
+    coverage = float(reviewed.mean()) if total else 0.0
+    resolution = float((reviewed & resolved_all).mean()) if total else 0.0
+    eligibility = float((reviewed & resolved_all & eligible_all).mean()) if total else 0.0
+    labels = units.loc[reviewed & resolved_all, "label"]
+    final_values = final_label.loc[present & resolved & final_label.ne("")]
+    final_dominant = (
+        str(final_values.value_counts().idxmax()) if not final_values.empty else ""
+    )
+    if coverage < 1.0:
+        status = "unreviewed" if coverage == 0.0 else "partial"
+    elif resolution < 1.0:
+        status = "unresolved"
+    elif eligibility < 1.0:
+        status = "excluded"
+    elif len(set(labels[labels.ne("")])) == 1:
+        status = "stable"
+    else:
+        status = "transition"
+    return {
+        "behavior_review_fields_present": True,
+        "human_reviewed_behavior_consistency_status": status,
+        "behavior_reviewed_window_label": final_dominant,
+        "behavior_review_coverage_ratio_window": coverage,
+        "behavior_review_label_resolution_ratio_window": resolution,
+        "behavior_review_train_eligibility_ratio_window": eligibility,
+        "all_temporal_units_behavior_reviewed": bool(total and reviewed.all()),
+        "all_temporal_units_behavior_label_resolved": bool(
+            total and (reviewed & resolved_all).all()
+        ),
+        "all_temporal_units_behavior_train_eligible": bool(
+            total and (reviewed & resolved_all & eligible_all).all()
+        ),
+    }
 
 
 def _review_training_summary(wg: pd.DataFrame) -> dict[str, Any]:
