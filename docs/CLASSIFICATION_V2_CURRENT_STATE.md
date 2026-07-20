@@ -1,5 +1,30 @@
 # Classification V2 Current State
 
+## Hidden complete-unit smoke contract patch (2026-07-21)
+
+Code authority `150b2b9929b412d3882ebc118bc2432185e0987b` created operator
+lineage `c2v2_human_review_20260721_reviewer01_v2`. Its source/frame rebuild
+passed with 245,680 rows and exact v1 key/hash equivalence. The complete-unit
+scope also passed at 704 rows and 64 native units: 32 legacy 16f plus 32 CVAT
+6f units.
+
+V2 then stopped at the Hidden complete-unit builder because the CLI inferred
+full scientific support validation from the absence of row caps. It is frozen
+as `STOPPED_AT_HIDDEN_COMPLETE_UNIT_SMOKE`, `FAILED_UPSTREAM_GATE`,
+`NOT_RESUMABLE_AFTER_SEMANTIC_CHANGE`, `NOT_REVIEW_AUTHORITY`, and
+`NOT_TRAIN_READY`. The partial manifest/context CSVs under its smoke root are
+failure evidence only and must not be used or overwritten. Hidden carry-forward,
+temporal full build, behavior review, and downstream sequence work did not run.
+Behavior decisions remain zero; no GUI or training ran.
+
+The replacement builder contract requires explicit
+`--design-scope {smoke,full}`. Row caps only bound debug input and never select
+scientific scope. Smoke preserves structural checks without final-support
+quotas; full requires final support and rejects row caps. Canonical outputs are
+published transactionally only after every gate passes. The next operator
+lineage must use a new code SHA and a new versioned RUN_ID, proposed as
+`c2v2_human_review_20260721_reviewer01_v3`; it must not resume v2.
+
 ## Active blocker-patch status (2026-07-21)
 
 Current v1 run `c2v2_human_review_20260720_reviewer01_v1` has Hidden review

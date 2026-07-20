@@ -2,6 +2,16 @@
 
 ## Classification V2 blocker patch (2026-07-21)
 
+Operator lineage `c2v2_human_review_20260721_reviewer01_v2` is frozen as
+`STOPPED_AT_HIDDEN_COMPLETE_UNIT_SMOKE`. Its source/frame rebuild passed, but
+the Hidden builder incorrectly inferred full scientific support validation
+from the absence of row caps. The two CSV files left in
+`data\00_smoke\hidden_review` are failed-build evidence only: they are not a
+review manifest authority and must not be renamed, overwritten, or resumed.
+No GUI, Hidden carry-forward, behavior decision, temporal full build, sequence
+build, or training step is authorized on v2. A semantic fix requires a new
+code SHA and the proposed versioned v3 lineage.
+
 The active order is now: Hidden-reviewed frames and temporal harmonization,
 native review units (legacy complete 16f bursts and CVAT complete 6f
 intervals), native-unit evidence, full behavior review/apply, then a
@@ -1041,7 +1051,8 @@ chỉ được cộng khi cặp frame này hợp lệ; toàn bộ logic vẫn đ
 set HSM=%SM%\hidden_review
 %PY% %S1%\classification_v2_build_hidden_review_units.py ^
   --input-csv %SSCOPE%\frame_features_complete_units.csv ^
-  --output-dir %HSM%
+  --output-dir %HSM% ^
+  --design-scope smoke
 ```
 
 ```bat
@@ -1064,6 +1075,19 @@ lần thứ hai. Short PASS khi hai source đều có mặt, input có cả Yes/
 untrusted Yes, trusted Yes đạt quota phân tầng, negative cohorts tồn tại, key
 unique và media missing bằng 0. Builder xuất frame-context subset để GUI không
 đọc lại full enhanced CSV.
+
+`--design-scope` là semantic contract bắt buộc, độc lập với input bounding.
+`smoke` vẫn chạy tất cả structural checks nhưng không yêu cầu full-support
+quota. `--max-rows` và `--max-rows-per-source` chỉ giới hạn input debug; chúng
+không đổi design scope hay scientific threshold. Canonical complete-unit smoke
+không dùng row cap. `--design-scope full` kết hợp với bất kỳ row cap nào phải
+hard-fail.
+
+Builder chỉ publish canonical manifest, frame context, templates, template
+audit và scientific design sau khi toàn bộ validation PASS. Failure phải
+rollback toàn bộ canonical output set và chỉ có thể ghi
+`hidden_review_build_failure.json` với `no_outputs_published=true`. Không reuse
+output directory của một failed build làm authority.
 
 Mở GUI pilot sau media gate:
 
@@ -1123,6 +1147,7 @@ mới và phải lưu trong lineage.
 %PY% %S1%\classification_v2_build_hidden_review_units.py ^
   --input-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
   --output-dir %HREV% ^
+  --design-scope full ^
   --trusted-yes-per-stratum 1 ^
   --random-no-per-stratum 10 ^
   --clean-control-per-stratum 1 ^

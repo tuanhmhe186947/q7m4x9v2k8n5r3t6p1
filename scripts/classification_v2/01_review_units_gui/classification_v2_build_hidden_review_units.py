@@ -3,8 +3,15 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import os
+import shutil
+import subprocess
+import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -28,6 +35,9 @@ TEMPLATE_FILENAMES = {
     "hidden_no_clean_control": "hidden_no_clean_control_template.csv",
 }
 
+FAILURE_AUDIT_FILENAME = "hidden_review_build_failure.json"
+DESIGN_SCOPES = ("smoke", "full")
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -38,6 +48,16 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--input-csv", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument(
+        "--design-scope",
+        choices=DESIGN_SCOPES,
+        required=True,
+        help=(
+            "Scientific validation scope. 'smoke' keeps structural gates but "
+            "does not require final-support quotas; 'full' requires all final "
+            "support thresholds and cannot be combined with row caps."
+        ),
+    )
     parser.add_argument("--random-seed", type=int, default=20260713)
     parser.add_argument("--trusted-yes-per-stratum", type=int, default=1)
     parser.add_argument("--random-no-per-stratum", type=int, default=10)
@@ -58,13 +78,19 @@ def parse_args() -> argparse.Namespace:
         "--max-rows",
         type=int,
         default=None,
-        help="Smoke-only input row cap. Do not use for the full review build.",
+        help=(
+            "Optional debug input row cap. This never changes --design-scope "
+            "or scientific thresholds."
+        ),
     )
     parser.add_argument(
         "--max-rows-per-source",
         type=int,
         default=None,
-        help="Smoke-only cap that retains rows from both legacy and CVAT.",
+        help=(
+            "Optional debug cap per source. This never changes "
+            "--design-scope or scientific thresholds."
+        ),
     )
     parser.add_argument(
         "--overwrite",
@@ -76,37 +102,86 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    _validate_args(args)
     if not args.input_csv.exists():
         raise FileNotFoundError(args.input_csv)
+    if not args.scientific_policy_json.exists():
+        raise FileNotFoundError(args.scientific_policy_json)
+    output_names = _canonical_output_names()
+    output_paths = [args.output_dir / name for name in output_names]
+    failure_path = args.output_dir / FAILURE_AUDIT_FILENAME
+    _guard_outputs(
+        [*output_paths, failure_path],
+        overwrite=args.overwrite,
+    )
+
+    try:
+        payloads, manifest, frame_context, audit, scientific_design = (
+            _build_output_payloads(args)
+        )
+        _publish_output_transaction(
+            args.output_dir,
+            payloads,
+            overwrite=args.overwrite,
+        )
+    except Exception as error:
+        _write_failure_audit(args, output_paths, error)
+        raise
+
+    print(f"[PASS] Hidden review manifest rows={len(manifest)} cohorts={audit['cohort_counts']}")
+    print(f"[PASS] frame context rows={len(frame_context)}")
+    print(f"[PASS] audit={args.output_dir / 'hidden_review_template_audit.json'}")
+    print(
+        "[PASS] scientific design="
+        f"{args.output_dir / 'hidden_review_scientific_design.json'}"
+    )
+
+
+def _validate_args(args: argparse.Namespace) -> None:
     if args.max_rows is not None and args.max_rows <= 0:
         raise ValueError("--max-rows must be > 0")
     if args.max_rows_per_source is not None and args.max_rows_per_source <= 0:
         raise ValueError("--max-rows-per-source must be > 0")
     if args.max_rows is not None and args.max_rows_per_source is not None:
-        raise ValueError("Use only one smoke row cap")
+        raise ValueError("Use only one input row cap")
+    if args.design_scope == "full" and _input_was_bounded(args):
+        raise ValueError(
+            "--design-scope full cannot be combined with --max-rows or "
+            "--max-rows-per-source"
+        )
 
-    output_paths = [
-        args.output_dir / "hidden_review_unit_manifest.csv",
-        args.output_dir / "hidden_review_frame_context.csv",
-        args.output_dir / "hidden_review_template_audit.json",
-        args.output_dir / "hidden_review_scientific_design.json",
-        *(args.output_dir / name for name in TEMPLATE_FILENAMES.values()),
+
+def _canonical_output_names() -> list[str]:
+    return [
+        "hidden_review_unit_manifest.csv",
+        "hidden_review_frame_context.csv",
+        "hidden_review_template_audit.json",
+        "hidden_review_scientific_design.json",
+        *TEMPLATE_FILENAMES.values(),
     ]
-    _guard_outputs(output_paths, overwrite=args.overwrite)
-    if not args.scientific_policy_json.exists():
-        raise FileNotFoundError(args.scientific_policy_json)
+
+
+def _build_output_payloads(
+    args: argparse.Namespace,
+) -> tuple[
+    dict[str, bytes],
+    pd.DataFrame,
+    pd.DataFrame,
+    dict[str, Any],
+    dict[str, Any],
+]:
     _, policy_payload, policy_sha256 = load_hidden_scientific_policy(
         args.scientific_policy_json
     )
-
-    frames = pd.read_csv(args.input_csv, low_memory=False)
-    if args.max_rows is not None:
-        frames = frames.head(args.max_rows).copy()
-    elif args.max_rows_per_source is not None:
-        frames = balanced_hidden_smoke_scope(
-            frames,
-            args.max_rows_per_source,
+    all_frames = pd.read_csv(args.input_csv, low_memory=False)
+    frames = _bound_input(all_frames, args)
+    structural_audit = _audit_input_structure(frames)
+    if structural_audit["errors"]:
+        raise ValueError(
+            "Hidden input structural audit failed: "
+            f"{structural_audit['errors']}"
         )
+
     config = HiddenReviewConfig(
         random_seed=args.random_seed,
         trusted_yes_per_stratum=args.trusted_yes_per_stratum,
@@ -120,48 +195,326 @@ def main() -> None:
         frames,
         config=config,
     )
-    audit["input_csv"] = str(args.input_csv)
-    audit["output_dir"] = str(args.output_dir)
-    audit["max_rows"] = args.max_rows
-    audit["max_rows_per_source"] = args.max_rows_per_source
-    audit["scientific_policy_json"] = str(args.scientific_policy_json)
-    audit["scientific_policy_sha256"] = policy_sha256
     frame_context = build_hidden_review_frame_context(frames, manifest)
-    audit["frame_context_rows"] = int(len(frame_context))
-    audit["frame_context_frames"] = int(
-        scene_frame_key(frame_context).nunique(dropna=True)
-    )
-    audit["frame_context_objects"] = int(
-        frame_context["frame_uid"].nunique(dropna=True)
-    )
-
-    args.output_dir.mkdir(parents=True, exist_ok=True)
-    manifest.to_csv(output_paths[0], index=False)
-    frame_context.to_csv(output_paths[1], index=False)
+    manifest_bytes = _dataframe_bytes(manifest)
+    require_final_support = args.design_scope == "full"
     scientific_design = build_hidden_scientific_design(
         manifest,
-        manifest_sha256=sha256_file(output_paths[0]),
+        manifest_sha256=_sha256_bytes(manifest_bytes),
         policy_payload=policy_payload,
         policy_sha256=policy_sha256,
         selection_contract=audit["selection_contract"],
-        require_final_support=(
-            args.max_rows is None and args.max_rows_per_source is None
-        ),
+        require_final_support=require_final_support,
     )
+
+    audit.update(
+        {
+            "input_csv": str(args.input_csv),
+            "input_csv_sha256": sha256_file(args.input_csv),
+            "output_dir": str(args.output_dir),
+            "input_rows_before_bounding": int(len(all_frames)),
+            "input_rows_after_bounding": int(len(frames)),
+            "design_scope": args.design_scope,
+            "require_final_support": require_final_support,
+            "max_rows": args.max_rows,
+            "max_rows_per_source": args.max_rows_per_source,
+            "input_was_bounded": _input_was_bounded(args),
+            "input_bounding_mode": _input_bounding_mode(args),
+            "scientific_policy_json": str(args.scientific_policy_json),
+            "scientific_policy_sha256": policy_sha256,
+            "final_support_policy_version": policy_payload["schema_version"],
+            "structural_checks_pass": True,
+            "structural_audit": structural_audit,
+            "final_support_checks_required": require_final_support,
+            "final_support_checks_pass": scientific_design[
+                "planned_support_meets_final_gate"
+            ],
+            "frame_context_rows": int(len(frame_context)),
+            "frame_context_frames": int(
+                scene_frame_key(frame_context).nunique(dropna=True)
+            ),
+            "frame_context_objects": int(
+                frame_context["frame_uid"].nunique(dropna=True)
+            ),
+            "output_transaction_status": "committed",
+            "outputs_published": True,
+        }
+    )
+
+    payloads = {
+        "hidden_review_unit_manifest.csv": manifest_bytes,
+        "hidden_review_frame_context.csv": _dataframe_bytes(frame_context),
+        "hidden_review_scientific_design.json": _json_bytes(scientific_design),
+    }
     for cohort, filename in TEMPLATE_FILENAMES.items():
-        templates[cohort].to_csv(args.output_dir / filename, index=False)
-    output_paths[2].write_text(
-        json.dumps(audit, ensure_ascii=False, indent=2),
-        encoding="utf-8",
+        payloads[filename] = _dataframe_bytes(templates[cohort])
+    audit["published_file_hashes"] = {
+        name: _sha256_bytes(payload)
+        for name, payload in sorted(payloads.items())
+    }
+    payloads["hidden_review_template_audit.json"] = _json_bytes(audit)
+    return payloads, manifest, frame_context, audit, scientific_design
+
+
+def _bound_input(
+    frames: pd.DataFrame,
+    args: argparse.Namespace,
+) -> pd.DataFrame:
+    if args.max_rows is not None:
+        return frames.head(args.max_rows).copy()
+    if args.max_rows_per_source is not None:
+        return balanced_hidden_smoke_scope(
+            frames,
+            args.max_rows_per_source,
+        )
+    return frames.copy()
+
+
+def _audit_input_structure(frames: pd.DataFrame) -> dict[str, Any]:
+    errors: list[str] = []
+    required = [
+        "source_type",
+        "dataset_id",
+        "video_key",
+        "frame_uid",
+        "frame_index",
+        "object_track_key",
+        "temporal_unit_key",
+        "hidden",
+    ]
+    missing = sorted(set(required).difference(frames.columns))
+    if missing:
+        return {
+            "rows": int(len(frames)),
+            "errors": [f"missing_structural_columns={missing}"],
+        }
+
+    for column in required:
+        blank = frames[column].isna() | frames[column].astype(str).str.strip().eq("")
+        if blank.any():
+            errors.append(f"blank_{column}={int(blank.sum())}")
+    duplicate_frames = frames["frame_uid"].astype(str).duplicated(keep=False)
+    if duplicate_frames.any():
+        errors.append(f"duplicate_frame_uid={int(duplicate_frames.sum())}")
+
+    hidden_values = frames["hidden"].fillna("").astype(str).str.strip().str.lower()
+    invalid_hidden = ~hidden_values.isin({"yes", "no", "true", "false", "1", "0", "y", "n"})
+    if invalid_hidden.any():
+        errors.append(f"invalid_hidden_values={int(invalid_hidden.sum())}")
+
+    expected_lengths = {
+        "legacy_recovered": 16,
+        "cvat_tracking_xml": 6,
+    }
+    unsupported = sorted(
+        set(frames["source_type"].dropna().astype(str)).difference(
+            expected_lengths
+        )
     )
-    output_paths[3].write_text(
-        json.dumps(scientific_design, ensure_ascii=False, indent=2),
-        encoding="utf-8",
+    if unsupported:
+        errors.append(f"unsupported_source_types={unsupported}")
+
+    unit_count = 0
+    source_unit_counts: dict[str, int] = {}
+    for _, unit in frames.groupby("temporal_unit_key", sort=False, dropna=False):
+        unit_count += 1
+        source_values = unit["source_type"].dropna().astype(str).unique()
+        if len(source_values) != 1:
+            errors.append("cross_source_temporal_unit")
+            continue
+        source = source_values[0]
+        source_unit_counts[source] = source_unit_counts.get(source, 0) + 1
+        for column, code in (
+            ("dataset_id", "cross_dataset_temporal_unit"),
+            ("video_key", "cross_video_temporal_unit"),
+            ("object_track_key", "cross_actor_temporal_unit"),
+        ):
+            if unit[column].fillna("").astype(str).nunique() != 1:
+                errors.append(code)
+        expected = expected_lengths.get(source)
+        if expected is not None and len(unit) != expected:
+            errors.append(
+                f"invalid_native_span:{source}:{len(unit)}!={expected}"
+            )
+        indices = pd.to_numeric(unit["frame_index"], errors="coerce")
+        if indices.isna().any() or indices.duplicated().any():
+            errors.append("invalid_temporal_unit_frame_indices")
+        elif len(indices) > 1:
+            ordered = sorted(indices.astype(int).tolist())
+            if any(
+                right - left != 1
+                for left, right in zip(ordered[:-1], ordered[1:], strict=True)
+            ):
+                errors.append("noncontiguous_temporal_unit_frame_indices")
+
+    errors = sorted(set(errors))
+    return {
+        "rows": int(len(frames)),
+        "unique_frame_uids": int(frames["frame_uid"].nunique(dropna=True)),
+        "temporal_unit_count": unit_count,
+        "source_row_counts": {
+            str(key): int(value)
+            for key, value in frames["source_type"].value_counts().items()
+        },
+        "source_unit_counts": source_unit_counts,
+        "errors": errors,
+    }
+
+
+def _publish_output_transaction(
+    output_dir: Path,
+    payloads: dict[str, bytes],
+    *,
+    overwrite: bool,
+) -> None:
+    output_dir.parent.mkdir(parents=True, exist_ok=True)
+    staging_dir = Path(
+        tempfile.mkdtemp(
+            prefix=f".{output_dir.name}.hidden-review-staging-",
+            dir=output_dir.parent,
+        )
     )
-    print(f"[PASS] Hidden review manifest rows={len(manifest)} cohorts={audit['cohort_counts']}")
-    print(f"[PASS] frame context rows={len(frame_context)}")
-    print(f"[PASS] audit={output_paths[2]}")
-    print(f"[PASS] scientific design={output_paths[3]}")
+    backup_dir = staging_dir / "backups"
+    published: list[Path] = []
+    backups: dict[Path, Path] = {}
+    try:
+        for name, payload in payloads.items():
+            staged = staging_dir / name
+            staged.write_bytes(payload)
+            if _sha256_bytes(staged.read_bytes()) != _sha256_bytes(payload):
+                raise RuntimeError(f"staging hash mismatch: {name}")
+        output_dir.mkdir(parents=True, exist_ok=True)
+        if overwrite:
+            backup_dir.mkdir()
+            for name in payloads:
+                target = output_dir / name
+                if target.exists():
+                    backup = backup_dir / name
+                    _replace_for_commit(target, backup)
+                    backups[target] = backup
+        for name in payloads:
+            target = output_dir / name
+            _replace_for_commit(staging_dir / name, target)
+            published.append(target)
+    except Exception:
+        for path in reversed(published):
+            path.unlink(missing_ok=True)
+        for target, backup in backups.items():
+            if backup.exists():
+                os.replace(backup, target)
+        raise
+    finally:
+        shutil.rmtree(staging_dir, ignore_errors=True)
+
+
+def _replace_for_commit(source: Path, destination: Path) -> None:
+    os.replace(source, destination)
+
+
+def _write_failure_audit(
+    args: argparse.Namespace,
+    output_paths: list[Path],
+    error: Exception,
+) -> None:
+    no_outputs_published = not any(path.exists() for path in output_paths)
+    payload = {
+        "schema_version": "classification_v2.hidden_review_build_failure.v1",
+        "created_at_utc": datetime.now(timezone.utc).isoformat(),
+        "code_sha": _git_sha(),
+        "design_scope": args.design_scope,
+        "require_final_support": args.design_scope == "full",
+        "final_support_checks_required": args.design_scope == "full",
+        "final_support_checks_pass": False,
+        "structural_checks_pass": "structural audit failed" not in str(error),
+        "input_bounding_mode": _input_bounding_mode(args),
+        "input_was_bounded": _input_was_bounded(args),
+        "max_rows": args.max_rows,
+        "max_rows_per_source": args.max_rows_per_source,
+        "input_csv": str(args.input_csv),
+        "input_csv_sha256": _sha256_if_file(args.input_csv),
+        "scientific_policy_json": str(args.scientific_policy_json),
+        "scientific_policy_sha256": _sha256_if_file(
+            args.scientific_policy_json
+        ),
+        "final_support_policy_version": _policy_version_if_file(
+            args.scientific_policy_json
+        ),
+        "exception_type": type(error).__name__,
+        "exception": str(error),
+        "validation_errors": [str(error)],
+        "output_transaction_status": "aborted",
+        "outputs_published": False,
+        "no_outputs_published": no_outputs_published,
+    }
+    if not no_outputs_published:
+        raise RuntimeError(
+            "Hidden output transaction failed and canonical outputs remain"
+        ) from error
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    _atomic_write_bytes(
+        args.output_dir / FAILURE_AUDIT_FILENAME,
+        _json_bytes(payload),
+    )
+
+
+def _atomic_write_bytes(path: Path, payload: bytes) -> None:
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    try:
+        temporary.write_bytes(payload)
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def _input_was_bounded(args: argparse.Namespace) -> bool:
+    return args.max_rows is not None or args.max_rows_per_source is not None
+
+
+def _input_bounding_mode(args: argparse.Namespace) -> str:
+    if args.max_rows is not None:
+        return "max_rows"
+    if args.max_rows_per_source is not None:
+        return "max_rows_per_source"
+    return "none"
+
+
+def _dataframe_bytes(frame: pd.DataFrame) -> bytes:
+    return frame.to_csv(index=False, lineterminator="\n").encode("utf-8")
+
+
+def _json_bytes(payload: dict[str, Any]) -> bytes:
+    return json.dumps(
+        payload,
+        ensure_ascii=False,
+        indent=2,
+    ).encode("utf-8")
+
+
+def _sha256_bytes(payload: bytes) -> str:
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _sha256_if_file(path: Path) -> str | None:
+    return sha256_file(path) if path.exists() and path.is_file() else None
+
+
+def _policy_version_if_file(path: Path) -> str | None:
+    if not path.exists() or not path.is_file():
+        return None
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return payload.get("schema_version")
+
+
+def _git_sha() -> str | None:
+    repository_root = Path(__file__).resolve().parents[3]
+    result = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=repository_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return result.stdout.strip() if result.returncode == 0 else None
 
 
 def _guard_outputs(paths: list[Path], *, overwrite: bool) -> None:

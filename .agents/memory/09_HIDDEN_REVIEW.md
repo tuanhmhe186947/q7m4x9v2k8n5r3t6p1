@@ -11,6 +11,21 @@ reviewed/train-ready use.
 
 ## Active decision
 
+Operator lineage `c2v2_human_review_20260721_reviewer01_v2` is frozen at the
+failed complete-unit Hidden smoke. Its 704-row/64-unit input was valid, but the
+builder at code SHA `150b2b9929b412d3882ebc118bc2432185e0987b` incorrectly
+used absence of row caps as a full-support semantic switch. The partial smoke
+manifest/context CSVs are failure evidence, not authority; v2 cannot resume
+after the semantic patch.
+
+The active builder contract requires explicit
+`--design-scope {smoke,full}`. Row caps only bound debug input. Smoke keeps all
+structural checks and does not require final-support quotas; full enforces the
+predeclared quotas and rejects bounded input. Canonical output files are
+published only as one validated transaction. A failed build may leave only a
+failure audit declaring `no_outputs_published=true`. The next operator lineage
+must use a new code SHA and new versioned RUN_ID.
+
 Hidden review is required after enhanced frame features and before temporal
 harmonization. Hidden is a frame/object visibility attribute, not a behavior
 target and not a native-unit decision.
