@@ -327,6 +327,172 @@ def test_invalid_core_unassigned_threshold_is_rejected() -> None:
         raise AssertionError("negative core tiebreak threshold should fail")
 
 
+def _core_pairwise_fixture() -> tuple[
+    TrackingConfig,
+    list[FixedTrack],
+    list[Detection],
+    np.ndarray,
+]:
+    cfg = TrackingConfig(
+        mode="realtime",
+        realtime_core_pairwise_tiebreak=True,
+        association_debug=True,
+    )
+    first_core = np.zeros((16 * 16 * 4,), dtype=np.float32)
+    first_core[0] = 1.0
+    second_core = np.zeros_like(first_core)
+    second_core[1] = 1.0
+    tracks = [
+        FixedTrack(
+            fixed_id=1,
+            last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+            last_score=0.9,
+            last_source="detected",
+            ever_detected=True,
+            hits=5,
+        ),
+        FixedTrack(
+            fixed_id=2,
+            last_box=np.array([4, 0, 24, 20], dtype=np.float32),
+            last_score=0.8,
+            last_source="detected",
+            ever_detected=True,
+            hits=5,
+        ),
+    ]
+    tracks[0].core_hist_bank.append(second_core)
+    tracks[1].core_hist_bank.append(first_core)
+    detections = [
+        Detection(
+            box=np.array([0, 0, 20, 20], dtype=np.float32),
+            score=0.9,
+            raw_id=None,
+            class_id=0,
+            hist=first_core,
+            core_hist=first_core,
+        ),
+        Detection(
+            box=np.array([4, 0, 24, 20], dtype=np.float32),
+            score=0.8,
+            raw_id=None,
+            class_id=0,
+            hist=second_core,
+            core_hist=second_core,
+        ),
+    ]
+    costs = np.array(
+        [
+            [0.20, 0.42],
+            [0.38, 0.56],
+        ],
+        dtype=np.float32,
+    )
+    return cfg, tracks, detections, costs
+
+
+def test_core_pairwise_tiebreak_is_disabled_by_default() -> None:
+    cfg, tracks, detections, costs = _core_pairwise_fixture()
+    cfg.realtime_core_pairwise_tiebreak = False
+    rows = np.array([0, 1])
+    cols = np.array([0, 1])
+
+    actual_rows, actual_cols = (
+        association_module.apply_realtime_core_pairwise_tiebreak(
+            costs,
+            tracks,
+            [0, 1],
+            detections,
+            rows,
+            cols,
+            cfg,
+            "visible_high_conf",
+        )
+    )
+
+    np.testing.assert_array_equal(actual_rows, rows)
+    np.testing.assert_array_equal(actual_cols, cols)
+
+
+def test_core_pairwise_tiebreak_swaps_conserved_detection_pair() -> None:
+    cfg, tracks, detections, costs = _core_pairwise_fixture()
+    runtime = TrackingRuntimeState()
+
+    rows, cols = association_module.apply_realtime_core_pairwise_tiebreak(
+        costs,
+        tracks,
+        [0, 1],
+        detections,
+        np.array([0, 1]),
+        np.array([0, 1]),
+        cfg,
+        "visible_high_conf",
+        runtime,
+        1390,
+    )
+
+    np.testing.assert_array_equal(rows, np.array([0, 1]))
+    np.testing.assert_array_equal(cols, np.array([1, 0]))
+    before_score = detections[0].score + detections[1].score
+    after_score = detections[int(cols[0])].score + detections[int(cols[1])].score
+    assert after_score == before_score
+    event = runtime.association_debug_events[0]
+    assert event["event"] == "core_pairwise_tiebreak"
+    assert event["frame"] == 1390
+    assert event["first_track_id"] == 1
+    assert event["second_track_id"] == 2
+
+
+def test_core_pairwise_tiebreak_rejects_failed_guardrails() -> None:
+    scenarios = (
+        "cost_increase",
+        "overlap",
+        "mutual_core_preference",
+        "swapped_threshold",
+    )
+    for scenario in scenarios:
+        cfg, tracks, detections, costs = _core_pairwise_fixture()
+        if scenario == "cost_increase":
+            costs[0, 1] = 0.50
+        elif scenario == "overlap":
+            detections[1].box = np.array([18, 0, 38, 20], dtype=np.float32)
+        elif scenario == "mutual_core_preference":
+            tracks[1].core_hist_bank.clear()
+            tracks[1].core_hist_bank.append(detections[1].core_hist)
+        else:
+            costs[0, 1] = 0.79
+            costs[1, 0] = 0.01
+
+        _, cols = association_module.apply_realtime_core_pairwise_tiebreak(
+            costs,
+            tracks,
+            [0, 1],
+            detections,
+            np.array([0, 1]),
+            np.array([0, 1]),
+            cfg,
+            "visible_high_conf",
+        )
+
+        np.testing.assert_array_equal(
+            cols,
+            np.array([0, 1]),
+            err_msg=scenario,
+        )
+
+
+def test_invalid_core_pairwise_threshold_is_rejected() -> None:
+    cfg = TrackingConfig(
+        realtime_core_pairwise_max_total_cost_increase=-0.01,
+    )
+
+    try:
+        validate_config(cfg)
+    except ValueError as exc:
+        assert "realtime_core_pairwise_max_total_cost_increase" in str(exc)
+    else:
+        raise AssertionError("negative pairwise core threshold should fail")
+
+
 def test_lk_point_batch_matches_scalar_for_mixed_rois(monkeypatch) -> None:
     import cv2
 

@@ -1612,6 +1612,201 @@ def apply_realtime_core_unassigned_tiebreak(
     return rows, updated_cols
 
 
+def apply_realtime_core_pairwise_tiebreak(
+    costs: np.ndarray,
+    candidate_tracks: list[FixedTrack],
+    detection_indices: list[int],
+    detections: list[Detection],
+    rows: np.ndarray,
+    cols: np.ndarray,
+    cfg: TrackingConfig,
+    phase_name: str,
+    runtime: TrackingRuntimeState | None = None,
+    frame_index: int | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Use core appearance to reverse a conservative 2x2 LAP near-tie."""
+    if (
+        not cfg.realtime_core_pairwise_tiebreak
+        or cfg.mode != "realtime"
+        or phase_name != "visible_high_conf"
+        or len(rows) < 2
+    ):
+        return rows, cols
+
+    proposals: list[
+        tuple[
+            float,
+            float,
+            int,
+            int,
+            int,
+            int,
+            int,
+            int,
+            float,
+            float,
+            float,
+            float,
+        ]
+    ] = []
+    for first_position in range(len(rows) - 1):
+        first_row = int(rows[first_position])
+        first_col = int(cols[first_position])
+        first_track = candidate_tracks[first_row]
+        first_det = detections[detection_indices[first_col]]
+        if first_det.core_hist is None:
+            continue
+        first_mean_core = first_track.mean_core_hist()
+        if first_mean_core is None:
+            continue
+
+        for second_position in range(first_position + 1, len(rows)):
+            second_row = int(rows[second_position])
+            second_col = int(cols[second_position])
+            second_track = candidate_tracks[second_row]
+            second_det = detections[detection_indices[second_col]]
+            if second_det.core_hist is None:
+                continue
+            second_mean_core = second_track.mean_core_hist()
+            if second_mean_core is None:
+                continue
+            if bbox_iou(first_det.box, second_det.box) < (
+                cfg.realtime_core_pairwise_min_detection_iou
+            ):
+                continue
+
+            first_selected_cost = float(costs[first_row, first_col])
+            second_selected_cost = float(costs[second_row, second_col])
+            first_swapped_cost = float(costs[first_row, second_col])
+            second_swapped_cost = float(costs[second_row, first_col])
+            pair_costs = (
+                first_selected_cost,
+                second_selected_cost,
+                first_swapped_cost,
+                second_swapped_cost,
+            )
+            if not all(np.isfinite(value) for value in pair_costs):
+                continue
+            if any(value >= 1_000_000.0 for value in pair_costs):
+                continue
+            if first_swapped_cost > association_cost_threshold(first_track, cfg):
+                continue
+            if second_swapped_cost > association_cost_threshold(second_track, cfg):
+                continue
+
+            first_best_cost = float(np.min(costs[first_row, :]))
+            second_best_cost = float(np.min(costs[second_row, :]))
+            if (
+                first_selected_cost <= first_best_cost + 1e-6
+                and second_selected_cost <= second_best_cost + 1e-6
+            ):
+                continue
+
+            selected_total = first_selected_cost + second_selected_cost
+            swapped_total = first_swapped_cost + second_swapped_cost
+            cost_increase = swapped_total - selected_total
+            if cost_increase < -1e-6 or cost_increase > (
+                cfg.realtime_core_pairwise_max_total_cost_increase
+            ):
+                continue
+
+            first_selected_core_cost = hist_distance(
+                first_mean_core,
+                first_det.core_hist,
+            )
+            first_swapped_core_cost = hist_distance(
+                first_mean_core,
+                second_det.core_hist,
+            )
+            second_selected_core_cost = hist_distance(
+                second_mean_core,
+                second_det.core_hist,
+            )
+            second_swapped_core_cost = hist_distance(
+                second_mean_core,
+                first_det.core_hist,
+            )
+            first_gain = first_selected_core_cost - first_swapped_core_cost
+            second_gain = second_selected_core_cost - second_swapped_core_cost
+            if first_gain <= 0.0 or second_gain <= 0.0:
+                continue
+            total_gain = first_gain + second_gain
+            if total_gain < (
+                cfg.realtime_core_pairwise_min_total_appearance_gain
+            ):
+                continue
+            proposals.append(
+                (
+                    -total_gain,
+                    cost_increase,
+                    first_position,
+                    second_position,
+                    first_row,
+                    second_row,
+                    first_col,
+                    second_col,
+                    first_selected_core_cost,
+                    first_swapped_core_cost,
+                    second_selected_core_cost,
+                    second_swapped_core_cost,
+                )
+            )
+
+    updated_cols = cols.copy()
+    used_positions: set[int] = set()
+    for proposal in sorted(proposals):
+        (
+            neg_total_gain,
+            cost_increase,
+            first_position,
+            second_position,
+            first_row,
+            second_row,
+            first_col,
+            second_col,
+            first_selected_core_cost,
+            first_swapped_core_cost,
+            second_selected_core_cost,
+            second_swapped_core_cost,
+        ) = proposal
+        if (
+            first_position in used_positions
+            or second_position in used_positions
+            or int(updated_cols[first_position]) != first_col
+            or int(updated_cols[second_position]) != second_col
+        ):
+            continue
+        updated_cols[first_position] = second_col
+        updated_cols[second_position] = first_col
+        used_positions.update((first_position, second_position))
+        append_association_debug_event(
+            runtime,
+            cfg,
+            {
+                "event": "core_pairwise_tiebreak",
+                "frame": frame_index,
+                "phase": phase_name,
+                "first_track_id": candidate_tracks[first_row].fixed_id,
+                "second_track_id": candidate_tracks[second_row].fixed_id,
+                "first_selected_det_idx": detection_indices[first_col],
+                "second_selected_det_idx": detection_indices[second_col],
+                "total_cost_increase": round(cost_increase, 6),
+                "total_core_appearance_gain": round(-neg_total_gain, 6),
+                "first_selected_core_cost": round(
+                    first_selected_core_cost,
+                    6,
+                ),
+                "first_swapped_core_cost": round(first_swapped_core_cost, 6),
+                "second_selected_core_cost": round(
+                    second_selected_core_cost,
+                    6,
+                ),
+                "second_swapped_core_cost": round(second_swapped_core_cost, 6),
+            },
+        )
+    return rows, updated_cols
+
+
 def match_and_update_tracks(
     tracks: dict[int, FixedTrack],
     detections: list[Detection],
@@ -1729,6 +1924,18 @@ def match_and_update_tracks(
                 reserved_hidden_detection_owners,
             )
             rows, cols = apply_realtime_core_unassigned_tiebreak(
+                costs,
+                candidate_tracks,
+                detection_indices,
+                detections,
+                rows,
+                cols,
+                cfg,
+                phase_name,
+                runtime,
+                frame_index,
+            )
+            rows, cols = apply_realtime_core_pairwise_tiebreak(
                 costs,
                 candidate_tracks,
                 detection_indices,

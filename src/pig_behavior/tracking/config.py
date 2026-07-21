@@ -164,6 +164,10 @@ class TrackingConfig:
     realtime_core_unassigned_min_appearance_gain: float = 0.01
     realtime_core_unassigned_min_detection_iou: float = 0.30
     realtime_core_unassigned_max_selected_cost: float = 0.40
+    realtime_core_pairwise_tiebreak: bool = False
+    realtime_core_pairwise_max_total_cost_increase: float = 0.05
+    realtime_core_pairwise_min_total_appearance_gain: float = 0.10
+    realtime_core_pairwise_min_detection_iou: float = 0.30
     directional_y_prior: bool = True
     directional_y_penalty_weight: float = 0.12
     directional_y_velocity_epsilon_px: float = 3.0
@@ -571,6 +575,20 @@ def validate_config(cfg: TrackingConfig) -> None:
         ),
     }
     for name, value in realtime_core_unassigned_values.items():
+        if not 0.0 <= value <= 1.0:
+            raise ValueError(f"{name} must be between 0 and 1.")
+    realtime_core_pairwise_values = {
+        "realtime_core_pairwise_max_total_cost_increase": (
+            cfg.realtime_core_pairwise_max_total_cost_increase
+        ),
+        "realtime_core_pairwise_min_total_appearance_gain": (
+            cfg.realtime_core_pairwise_min_total_appearance_gain
+        ),
+        "realtime_core_pairwise_min_detection_iou": (
+            cfg.realtime_core_pairwise_min_detection_iou
+        ),
+    }
+    for name, value in realtime_core_pairwise_values.items():
         if not 0.0 <= value <= 1.0:
             raise ValueError(f"{name} must be between 0 and 1.")
     if cfg.occlusion_hold_max_frames < 0:

@@ -229,6 +229,7 @@ def parse_detections(
         if (
             cfg.appearance_hist_foreground_core
             or cfg.realtime_core_unassigned_tiebreak
+            or cfg.realtime_core_pairwise_tiebreak
         ):
             core_hist = extract_hist_hsv(
                 frame,
