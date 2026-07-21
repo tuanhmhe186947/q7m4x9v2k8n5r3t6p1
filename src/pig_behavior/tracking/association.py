@@ -1511,14 +1511,13 @@ def apply_realtime_core_unassigned_tiebreak(
     proposals: list[tuple[float, float, int, int, int, float, float]] = []
     for row, selected_col in zip(rows, cols, strict=True):
         track = candidate_tracks[int(row)]
-        mean_core_hist = track.mean_core_hist()
         selected_det = detections[detection_indices[int(selected_col)]]
-        if mean_core_hist is None or selected_det.core_hist is None:
+        if selected_det.core_hist is None:
             continue
         selected_cost = float(costs[int(row), int(selected_col)])
         if selected_cost > cfg.realtime_core_unassigned_max_selected_cost:
             continue
-        selected_core_cost = hist_distance(mean_core_hist, selected_det.core_hist)
+        eligible_alternatives: list[tuple[int, float, Detection]] = []
         for alternative_col in range(costs.shape[1]):
             if alternative_col in selected_cols:
                 continue
@@ -1535,6 +1534,19 @@ def apply_realtime_core_unassigned_tiebreak(
                 cfg.realtime_core_unassigned_min_detection_iou
             ):
                 continue
+            eligible_alternatives.append(
+                (alternative_col, baseline_delta, alternative_det)
+            )
+
+        if not eligible_alternatives:
+            continue
+        mean_core_hist = track.mean_core_hist()
+        if mean_core_hist is None:
+            continue
+        selected_core_cost = hist_distance(mean_core_hist, selected_det.core_hist)
+        for alternative_col, baseline_delta, alternative_det in (
+            eligible_alternatives
+        ):
             alternative_core_cost = hist_distance(
                 mean_core_hist,
                 alternative_det.core_hist,
