@@ -329,20 +329,40 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
                 )
                 # Skip detection: update tracks using motion prediction only
                 if tracks is not None:
-                    from pig_behavior.tracking.tracks import lk_predict_box
+                    from pig_behavior.tracking.tracks import (
+                        lk_predict_box,
+                        lk_predict_boxes_batched,
+                    )
 
-                    for track in tracks.values():
-                        lk_box = lk_predict_box(
+                    if cfg.realtime_lk_point_batching:
+                        track_values = list(tracks.values())
+                        lk_boxes = lk_predict_boxes_batched(
                             prev_frame,
                             frame,
-                            track.last_box,
+                            [track.last_box for track in track_values],
                             width,
                             height,
                         )
-                        if lk_box is None:
-                            lk_box = track.predicted_box(width, height)
+                        track_boxes = zip(track_values, lk_boxes, strict=True)
+                    else:
+                        track_boxes = (
+                            (
+                                track,
+                                lk_predict_box(
+                                    prev_frame,
+                                    frame,
+                                    track.last_box,
+                                    width,
+                                    height,
+                                ),
+                            )
+                            for track in tracks.values()
+                        )
+                    for track, predicted_box in track_boxes:
+                        if predicted_box is None:
+                            predicted_box = track.predicted_box(width, height)
                         track.update_predicted(
-                            lk_box,
+                            predicted_box,
                             width,
                             height,
                             cfg=cfg,

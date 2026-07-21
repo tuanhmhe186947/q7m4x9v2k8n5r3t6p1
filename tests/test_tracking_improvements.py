@@ -56,7 +56,83 @@ from pig_behavior.tracking.refinement import (
     refine_near_wall_hidden_geometry,
     stabilize_overlap_hidden_islands,
 )
-from pig_behavior.tracking.tracks import shape_for_track
+from pig_behavior.tracking.tracks import (
+    lk_predict_box,
+    lk_predict_boxes_batched,
+    shape_for_track,
+)
+
+
+def _translated_lk_frames() -> tuple[np.ndarray, np.ndarray]:
+    import cv2
+
+    rng = np.random.default_rng(20260721)
+    previous = np.zeros((128, 160, 3), dtype=np.uint8)
+    previous[10:50, 10:50] = rng.integers(
+        0,
+        256,
+        size=(40, 40, 3),
+        dtype=np.uint8,
+    )
+    previous[70:110, 90:140] = rng.integers(
+        0,
+        256,
+        size=(40, 50, 3),
+        dtype=np.uint8,
+    )
+    transform = np.float32([[1, 0, 2], [0, 1, 1]])
+    current = cv2.warpAffine(previous, transform, (160, 128))
+    return previous, current
+
+
+def test_lk_point_batch_matches_scalar_for_mixed_rois(monkeypatch) -> None:
+    import cv2
+
+    previous, current = _translated_lk_frames()
+    boxes = [
+        np.array([10, 10, 50, 50], dtype=np.float32),
+        np.array([5, 5, 5, 20], dtype=np.float32),
+        np.array([55, 5, 85, 30], dtype=np.float32),
+        np.array([90, 70, 140, 110], dtype=np.float32),
+    ]
+    scalar = [
+        lk_predict_box(previous, current, box, 160, 128)
+        for box in boxes
+    ]
+
+    original_pyr_lk = cv2.calcOpticalFlowPyrLK
+    calls = 0
+
+    def counted_pyr_lk(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        return original_pyr_lk(*args, **kwargs)
+
+    monkeypatch.setattr(cv2, "calcOpticalFlowPyrLK", counted_pyr_lk)
+    batched = lk_predict_boxes_batched(previous, current, boxes, 160, 128)
+
+    assert calls == 1
+    assert len(batched) == len(scalar)
+    for scalar_box, batched_box in zip(scalar, batched, strict=True):
+        if scalar_box is None:
+            assert batched_box is None
+        else:
+            assert batched_box is not None
+            assert np.array_equal(batched_box, scalar_box)
+
+
+def test_lk_point_batch_without_previous_frame_skips_pyr_lk(monkeypatch) -> None:
+    import cv2
+
+    _previous, current = _translated_lk_frames()
+    boxes = [np.array([10, 10, 50, 50], dtype=np.float32)]
+
+    def unexpected_pyr_lk(*_args, **_kwargs):
+        raise AssertionError("PyrLK must not run without a previous frame")
+
+    monkeypatch.setattr(cv2, "calcOpticalFlowPyrLK", unexpected_pyr_lk)
+
+    assert lk_predict_boxes_batched(None, current, boxes, 160, 128) == [None]
 
 
 def _shape(frame: int, fixed_id: int, points: list[float]) -> dict:

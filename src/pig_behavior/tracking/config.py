@@ -89,6 +89,7 @@ class TrackingConfig:
     mode: str = "realtime"  # realtime, bytetrack_raw, or hybrid_bytetrack
     imgsz: int = 640
     detect_every_n_frames: int = DEFAULT_DETECT_EVERY_N_FRAMES
+    realtime_lk_point_batching: bool = False
     max_raw_detections: int = DEFAULT_MAX_RAW_DETECTIONS
     target_fps: float = DEFAULT_TARGET_FPS
     enable_offline_smoothing: bool = DEFAULT_ENABLE_OFFLINE_SMOOTHING

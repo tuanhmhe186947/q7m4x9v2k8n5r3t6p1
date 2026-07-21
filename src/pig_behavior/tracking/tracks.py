@@ -71,6 +71,87 @@ def lk_predict_box(
     return clip_box(predicted, width, height)
 
 
+def lk_predict_boxes_batched(
+    prev_frame: np.ndarray | None,
+    frame: np.ndarray,
+    last_boxes: list[np.ndarray],
+    width: int,
+    height: int,
+) -> list[np.ndarray | None]:
+    """Predict boxes with one grayscale pair and one shared PyrLK call."""
+    if prev_frame is None:
+        return [None] * len(last_boxes)
+
+    import cv2
+
+    prev_gray = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY)
+    curr_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    point_batches: list[np.ndarray] = []
+    point_ranges: list[tuple[int, int] | None] = []
+    point_count = 0
+
+    for last_box in last_boxes:
+        x1, y1, x2, y2 = clip_box(last_box, width, height).astype(int)
+        if x2 <= x1 or y2 <= y1:
+            point_ranges.append(None)
+            continue
+        roi = prev_gray[y1:y2, x1:x2]
+        if roi.size < 64:
+            point_ranges.append(None)
+            continue
+        points = cv2.goodFeaturesToTrack(
+            roi,
+            maxCorners=60,
+            qualityLevel=0.01,
+            minDistance=4,
+        )
+        if points is None:
+            point_ranges.append(None)
+            continue
+        points = points.reshape(-1, 1, 2)
+        points[:, :, 0] += x1
+        points[:, :, 1] += y1
+        next_count = point_count + len(points)
+        point_batches.append(points)
+        point_ranges.append((point_count, next_count))
+        point_count = next_count
+
+    if not point_batches:
+        return [None] * len(last_boxes)
+
+    all_points = np.concatenate(point_batches, axis=0)
+    next_points, status, _err = cv2.calcOpticalFlowPyrLK(
+        prev_gray,
+        curr_gray,
+        all_points,
+        None,
+        winSize=(15, 15),
+        maxLevel=2,
+        criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03),
+    )
+    if next_points is None or status is None:
+        return [None] * len(last_boxes)
+
+    predictions: list[np.ndarray | None] = []
+    for last_box, point_range in zip(last_boxes, point_ranges, strict=True):
+        if point_range is None:
+            predictions.append(None)
+            continue
+        start, end = point_range
+        good = status[start:end].reshape(-1) == 1
+        if not np.any(good):
+            predictions.append(None)
+            continue
+        delta = (
+            next_points[start:end][good] - all_points[start:end][good]
+        ).reshape(-1, 2)
+        predicted = last_box.copy()
+        predicted[[0, 2]] += float(np.median(delta[:, 0]))
+        predicted[[1, 3]] += float(np.median(delta[:, 1]))
+        predictions.append(clip_box(predicted, width, height))
+    return predictions
+
+
 def initialize_tracks(
     detections: list[Detection],
     mask: np.ndarray | None,
@@ -239,6 +320,7 @@ __all__ = [
     "frame_shapes",
     "initialize_tracks",
     "lk_predict_box",
+    "lk_predict_boxes_batched",
     "shape_for_track",
     "track_is_hidden",
     "track_is_lost_for_association",
