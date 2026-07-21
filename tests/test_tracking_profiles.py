@@ -35,6 +35,8 @@ def test_profile_configs_keep_expected_behavior_separation() -> None:
         assert "near_wall_hidden_geometry_refine" not in non_hybrid
         assert "far_camera_hidden_geometry_refine" not in non_hybrid
         assert "hidden_suffix_id_swap_use_overlap_persistence" not in non_hybrid
+        assert "realtime_core_unassigned_tiebreak" not in non_hybrid
+    assert "realtime_core_unassigned_tiebreak" not in hybrid
 
     assert realtime_fast["realtime_visible_better_competitor_prefer"] is True
     assert realtime_fast["realtime_visible_close_competitor_guard"] is True

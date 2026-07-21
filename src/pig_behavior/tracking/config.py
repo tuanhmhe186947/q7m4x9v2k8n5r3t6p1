@@ -158,6 +158,11 @@ class TrackingConfig:
     occlusion_appearance_penalty: float = 0.30
     occlusion_appearance_margin: float = 0.08
     appearance_hist_foreground_core: bool = False
+    realtime_core_unassigned_tiebreak: bool = False
+    realtime_core_unassigned_max_cost_delta: float = 0.01
+    realtime_core_unassigned_min_appearance_gain: float = 0.01
+    realtime_core_unassigned_min_detection_iou: float = 0.30
+    realtime_core_unassigned_max_selected_cost: float = 0.40
     directional_y_prior: bool = True
     directional_y_penalty_weight: float = 0.12
     directional_y_velocity_epsilon_px: float = 3.0
@@ -550,6 +555,23 @@ def validate_config(cfg: TrackingConfig) -> None:
             "realtime_visible_close_competitor_min_center_x_ratio must be "
             "between 0 and 1."
         )
+    realtime_core_unassigned_values = {
+        "realtime_core_unassigned_max_cost_delta": (
+            cfg.realtime_core_unassigned_max_cost_delta
+        ),
+        "realtime_core_unassigned_min_appearance_gain": (
+            cfg.realtime_core_unassigned_min_appearance_gain
+        ),
+        "realtime_core_unassigned_min_detection_iou": (
+            cfg.realtime_core_unassigned_min_detection_iou
+        ),
+        "realtime_core_unassigned_max_selected_cost": (
+            cfg.realtime_core_unassigned_max_selected_cost
+        ),
+    }
+    for name, value in realtime_core_unassigned_values.items():
+        if not 0.0 <= value <= 1.0:
+            raise ValueError(f"{name} must be between 0 and 1.")
     if cfg.occlusion_hold_max_frames < 0:
         raise ValueError("occlusion_hold_max_frames must be >= 0.")
     if cfg.occlusion_hold_hidden_frames < 1:

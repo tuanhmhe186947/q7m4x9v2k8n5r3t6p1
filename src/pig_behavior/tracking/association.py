@@ -12,6 +12,7 @@ from pig_behavior.tracking.geometry import (
     area_log_ratio,
     bbox_center,
     bbox_iom,
+    bbox_iou,
     bbox_iou_matrix,
     bbox_size,
     center_distance_norm,
@@ -1485,6 +1486,115 @@ def frame_in_reentry_ambiguous_hold_window(
     return False
 
 
+def apply_realtime_core_unassigned_tiebreak(
+    costs: np.ndarray,
+    candidate_tracks: list[FixedTrack],
+    detection_indices: list[int],
+    detections: list[Detection],
+    rows: np.ndarray,
+    cols: np.ndarray,
+    cfg: TrackingConfig,
+    phase_name: str,
+    runtime: TrackingRuntimeState | None = None,
+    frame_index: int | None = None,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Use core appearance only to break a near-tie with an unused detection."""
+    if (
+        not cfg.realtime_core_unassigned_tiebreak
+        or cfg.mode != "realtime"
+        or phase_name != "visible_high_conf"
+        or len(detection_indices) <= len(cols)
+    ):
+        return rows, cols
+
+    selected_cols = {int(col) for col in cols}
+    proposals: list[tuple[float, float, int, int, int, float, float]] = []
+    for row, selected_col in zip(rows, cols, strict=True):
+        track = candidate_tracks[int(row)]
+        mean_core_hist = track.mean_core_hist()
+        selected_det = detections[detection_indices[int(selected_col)]]
+        if mean_core_hist is None or selected_det.core_hist is None:
+            continue
+        selected_cost = float(costs[int(row), int(selected_col)])
+        if selected_cost > cfg.realtime_core_unassigned_max_selected_cost:
+            continue
+        selected_core_cost = hist_distance(mean_core_hist, selected_det.core_hist)
+        for alternative_col in range(costs.shape[1]):
+            if alternative_col in selected_cols:
+                continue
+            alternative_cost = float(costs[int(row), alternative_col])
+            if not np.isfinite(alternative_cost) or alternative_cost >= 1_000_000.0:
+                continue
+            baseline_delta = alternative_cost - selected_cost
+            if baseline_delta > cfg.realtime_core_unassigned_max_cost_delta:
+                continue
+            alternative_det = detections[detection_indices[alternative_col]]
+            if alternative_det.core_hist is None:
+                continue
+            if bbox_iou(selected_det.box, alternative_det.box) < (
+                cfg.realtime_core_unassigned_min_detection_iou
+            ):
+                continue
+            alternative_core_cost = hist_distance(
+                mean_core_hist,
+                alternative_det.core_hist,
+            )
+            appearance_gain = selected_core_cost - alternative_core_cost
+            if appearance_gain < cfg.realtime_core_unassigned_min_appearance_gain:
+                continue
+            proposals.append(
+                (
+                    -appearance_gain,
+                    baseline_delta,
+                    int(row),
+                    int(selected_col),
+                    alternative_col,
+                    selected_core_cost,
+                    alternative_core_cost,
+                )
+            )
+
+    updated_cols = cols.copy()
+    claimed_alternatives: set[int] = set()
+    for proposal in sorted(proposals):
+        (
+            neg_gain,
+            baseline_delta,
+            row,
+            selected_col,
+            alternative_col,
+            selected_core_cost,
+            alternative_core_cost,
+        ) = proposal
+        if alternative_col in claimed_alternatives:
+            continue
+        row_position = np.flatnonzero(rows == row)
+        if row_position.size != 1:
+            continue
+        position = int(row_position[0])
+        if int(updated_cols[position]) != selected_col:
+            continue
+        updated_cols[position] = alternative_col
+        claimed_alternatives.add(alternative_col)
+        append_association_debug_event(
+            runtime,
+            cfg,
+            {
+                "event": "core_unassigned_tiebreak",
+                "frame": frame_index,
+                "phase": phase_name,
+                "track_id": candidate_tracks[row].fixed_id,
+                "selected_det_idx": detection_indices[selected_col],
+                "preferred_det_idx": detection_indices[alternative_col],
+                "baseline_cost_delta": round(baseline_delta, 6),
+                "core_appearance_gain": round(-neg_gain, 6),
+                "selected_core_cost": round(selected_core_cost, 6),
+                "preferred_core_cost": round(alternative_core_cost, 6),
+            },
+        )
+    return rows, updated_cols
+
+
 def match_and_update_tracks(
     tracks: dict[int, FixedTrack],
     detections: list[Detection],
@@ -1600,6 +1710,18 @@ def match_and_update_tracks(
                 frame_index,
                 phase_name,
                 reserved_hidden_detection_owners,
+            )
+            rows, cols = apply_realtime_core_unassigned_tiebreak(
+                costs,
+                candidate_tracks,
+                detection_indices,
+                detections,
+                rows,
+                cols,
+                cfg,
+                phase_name,
+                runtime,
+                frame_index,
             )
         selected_track_by_det = {
             detection_indices[col]: candidate_tracks[row].fixed_id

@@ -1,4 +1,5 @@
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 
@@ -51,6 +52,7 @@ from pig_behavior.tracking.association import (
     video_in_reentry_ambiguous_hold_scope,
 )
 from pig_behavior.tracking.config import validate_config
+from pig_behavior.tracking.detections import parse_detections
 from pig_behavior.tracking.refinement import (
     nearby_anchor_indices,
     refine_far_camera_hidden_geometry,
@@ -114,6 +116,179 @@ def test_foreground_core_hist_is_opt_in_by_default() -> None:
         extract_hist_hsv(frame, box),
         extract_hist_hsv(frame, box, foreground_core=False),
     )
+
+
+def _core_tiebreak_fixture() -> tuple[
+    TrackingConfig,
+    FixedTrack,
+    list[Detection],
+]:
+    cfg = TrackingConfig(
+        mode="realtime",
+        realtime_core_unassigned_tiebreak=True,
+        association_debug=True,
+    )
+    track = FixedTrack(
+        fixed_id=1,
+        last_box=np.array([0, 0, 20, 20], dtype=np.float32),
+        last_score=0.9,
+        last_source="detected",
+        ever_detected=True,
+        hits=5,
+    )
+    matching_core = np.zeros((16 * 16 * 4,), dtype=np.float32)
+    matching_core[0] = 1.0
+    different_core = np.zeros_like(matching_core)
+    different_core[1] = 1.0
+    track.core_hist_bank.append(matching_core)
+    detections = [
+        Detection(
+            box=np.array([0, 0, 20, 20], dtype=np.float32),
+            score=0.9,
+            raw_id=None,
+            class_id=0,
+            hist=different_core,
+            core_hist=different_core,
+        ),
+        Detection(
+            box=np.array([4, 0, 24, 20], dtype=np.float32),
+            score=0.9,
+            raw_id=None,
+            class_id=0,
+            hist=matching_core,
+            core_hist=matching_core,
+        ),
+    ]
+    return cfg, track, detections
+
+
+def test_core_unassigned_tiebreak_is_disabled_by_default() -> None:
+    cfg, track, detections = _core_tiebreak_fixture()
+    cfg.realtime_core_unassigned_tiebreak = False
+    rows = np.array([0])
+    cols = np.array([0])
+
+    actual_rows, actual_cols = (
+        association_module.apply_realtime_core_unassigned_tiebreak(
+            np.array([[0.200, 0.205]], dtype=np.float32),
+            [track],
+            [0, 1],
+            detections,
+            rows,
+            cols,
+            cfg,
+            "visible_high_conf",
+        )
+    )
+
+    np.testing.assert_array_equal(actual_rows, rows)
+    np.testing.assert_array_equal(actual_cols, cols)
+
+
+def test_core_unassigned_tiebreak_preserves_full_primary_histogram() -> None:
+    class BoxesStub(SimpleNamespace):
+        def __len__(self) -> int:
+            return len(self.xyxy)
+
+    frame = np.full((40, 40, 3), (20, 20, 220), dtype=np.uint8)
+    frame[8:32, 8:32] = (80, 150, 110)
+    boxes = BoxesStub(
+        xyxy=np.array([[0, 0, 40, 40]], dtype=np.float32),
+        conf=np.array([0.9], dtype=np.float32),
+        cls=np.array([0], dtype=np.float32),
+        id=None,
+    )
+    result = SimpleNamespace(boxes=boxes, names={0: "pig"}, masks=None)
+    cfg = TrackingConfig(
+        mode="realtime",
+        realtime_core_unassigned_tiebreak=True,
+        appearance_hist_foreground_core=False,
+    )
+
+    detection = parse_detections(result, frame, None, cfg)[0]
+
+    np.testing.assert_array_equal(
+        detection.hist,
+        extract_hist_hsv(frame, detection.box),
+    )
+    np.testing.assert_array_equal(
+        detection.core_hist,
+        extract_hist_hsv(frame, detection.box, foreground_core=True),
+    )
+    assert not np.array_equal(detection.hist, detection.core_hist)
+
+
+def test_core_unassigned_tiebreak_prefers_core_appearance_near_tie() -> None:
+    cfg, track, detections = _core_tiebreak_fixture()
+    runtime = TrackingRuntimeState()
+
+    rows, cols = association_module.apply_realtime_core_unassigned_tiebreak(
+        np.array([[0.200, 0.205]], dtype=np.float32),
+        [track],
+        [0, 1],
+        detections,
+        np.array([0]),
+        np.array([0]),
+        cfg,
+        "visible_high_conf",
+        runtime,
+        992,
+    )
+
+    np.testing.assert_array_equal(rows, np.array([0]))
+    np.testing.assert_array_equal(cols, np.array([1]))
+    event = runtime.association_debug_events[0]
+    assert event["event"] == "core_unassigned_tiebreak"
+    assert event["frame"] == 992
+    assert event["selected_det_idx"] == 0
+    assert event["preferred_det_idx"] == 1
+
+
+def test_core_unassigned_tiebreak_rejects_failed_guardrails() -> None:
+    scenarios = ("cost_delta", "overlap", "appearance_gain")
+    for scenario in scenarios:
+        cfg, track, detections = _core_tiebreak_fixture()
+        costs = np.array([[0.200, 0.205]], dtype=np.float32)
+        if scenario == "cost_delta":
+            costs[0, 1] = 0.211
+        elif scenario == "overlap":
+            detections[1].box = np.array([15, 0, 35, 20], dtype=np.float32)
+        else:
+            detections[1].core_hist = detections[0].core_hist
+
+        _, cols = association_module.apply_realtime_core_unassigned_tiebreak(
+            costs,
+            [track],
+            [0, 1],
+            detections,
+            np.array([0]),
+            np.array([0]),
+            cfg,
+            "visible_high_conf",
+        )
+
+        np.testing.assert_array_equal(cols, np.array([0]), err_msg=scenario)
+
+
+def test_update_detected_learns_core_hist_with_primary_hist() -> None:
+    cfg, track, detections = _core_tiebreak_fixture()
+
+    track.update_detected(detections[1], 100, 100, cfg)
+
+    assert len(track.hist_bank) == 1
+    assert len(track.core_hist_bank) == 2
+    np.testing.assert_array_equal(track.mean_core_hist(), detections[1].core_hist)
+
+
+def test_invalid_core_unassigned_threshold_is_rejected() -> None:
+    cfg = TrackingConfig(realtime_core_unassigned_max_cost_delta=-0.01)
+
+    try:
+        validate_config(cfg)
+    except ValueError as exc:
+        assert "realtime_core_unassigned_max_cost_delta" in str(exc)
+    else:
+        raise AssertionError("negative core tiebreak threshold should fail")
 
 
 def test_lk_point_batch_matches_scalar_for_mixed_rois(monkeypatch) -> None:

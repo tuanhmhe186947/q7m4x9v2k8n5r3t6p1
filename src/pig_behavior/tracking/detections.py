@@ -224,18 +224,26 @@ def parse_detections(
         raw_id = None
         if raw_ids is not None and idx < len(raw_ids):
             raw_id = int(raw_ids[idx])
+        full_hist = extract_hist_hsv(frame, box)
+        core_hist = None
+        if (
+            cfg.appearance_hist_foreground_core
+            or cfg.realtime_core_unassigned_tiebreak
+        ):
+            core_hist = extract_hist_hsv(
+                frame,
+                box,
+                foreground_core=True,
+            )
         detections.append(
             Detection(
                 box=box,
                 score=float(conf[idx]),
                 raw_id=raw_id,
                 class_id=class_id,
-                hist=extract_hist_hsv(
-                    frame,
-                    box,
-                    foreground_core=cfg.appearance_hist_foreground_core,
-                ),
+                hist=(core_hist if cfg.appearance_hist_foreground_core else full_hist),
                 mask=masks[idx] if idx < len(masks) else None,
+                core_hist=core_hist,
             )
         )
 

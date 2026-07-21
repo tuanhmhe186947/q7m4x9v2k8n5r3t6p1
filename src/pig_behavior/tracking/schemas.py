@@ -23,6 +23,7 @@ class Detection:
     class_id: int | None
     hist: np.ndarray
     mask: np.ndarray | None = None
+    core_hist: np.ndarray | None = None
 
 
 @dataclass(slots=True)
@@ -86,6 +87,9 @@ class FixedTrack:
     last_box: np.ndarray
     reliable_box: np.ndarray | None = None
     hist_bank: deque[np.ndarray] = field(default_factory=lambda: deque(maxlen=80))
+    core_hist_bank: deque[np.ndarray] = field(
+        default_factory=lambda: deque(maxlen=80)
+    )
     raw_id_counts: Counter[int] = field(default_factory=Counter)
     velocity_xy: np.ndarray = field(default_factory=lambda: np.zeros(2, np.float32))
     reliable_velocity_xy: np.ndarray = field(
@@ -131,6 +135,11 @@ class FixedTrack:
         if not self.hist_bank:
             return None
         return np.mean(np.stack(tuple(self.hist_bank), axis=0), axis=0)
+
+    def mean_core_hist(self) -> np.ndarray | None:
+        if not self.core_hist_bank:
+            return None
+        return np.mean(np.stack(tuple(self.core_hist_bank), axis=0), axis=0)
 
     def top_raw_id(self) -> int | None:
         if not self.raw_id_counts:
@@ -367,6 +376,8 @@ class FixedTrack:
 
         if learn_identity:
             self.hist_bank.append(det.hist)
+        if learn_identity and det.core_hist is not None:
+            self.core_hist_bank.append(det.core_hist)
         if learn_identity and det.raw_id is not None:
             self.raw_id_counts.update([int(det.raw_id)])
         if learn_identity and not ambiguous and det.score >= cfg.track_high_conf:
