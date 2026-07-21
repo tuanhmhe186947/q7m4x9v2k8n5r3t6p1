@@ -455,6 +455,59 @@ def test_core_pairwise_tiebreak_swaps_conserved_detection_pair() -> None:
     assert float(probe["total_core_appearance_gain"]) >= 0.10
 
 
+def test_core_tiebreaks_share_track_mean_cache(monkeypatch) -> None:
+    cfg, tracks, detections, pairwise_costs = _core_pairwise_fixture()
+    cfg.realtime_core_unassigned_tiebreak = True
+    cfg.realtime_core_unassigned_require_score_nondecrease = True
+    extra = Detection(
+        box=np.array([4, 0, 24, 20], dtype=np.float32),
+        score=0.9,
+        raw_id=None,
+        class_id=0,
+        hist=tracks[0].core_hist_bank[0],
+        core_hist=tracks[0].core_hist_bank[0],
+    )
+    detections.append(extra)
+    costs = np.column_stack(
+        (pairwise_costs, np.array([0.205, 0.90], dtype=np.float32))
+    )
+    calls = {1: 0, 2: 0}
+    original = FixedTrack.mean_core_hist
+
+    def counted_mean(track: FixedTrack) -> np.ndarray | None:
+        calls[track.fixed_id] += 1
+        return original(track)
+
+    monkeypatch.setattr(FixedTrack, "mean_core_hist", counted_mean)
+    cache: dict[int, np.ndarray | None] = {}
+    rows = np.array([0, 1])
+    cols = np.array([0, 1])
+    association_module.apply_realtime_core_unassigned_tiebreak(
+        costs,
+        tracks,
+        [0, 1, 2],
+        detections,
+        rows,
+        cols,
+        cfg,
+        "visible_high_conf",
+        mean_core_cache=cache,
+    )
+    association_module.apply_realtime_core_pairwise_tiebreak(
+        costs,
+        tracks,
+        [0, 1, 2],
+        detections,
+        rows,
+        cols,
+        cfg,
+        "visible_high_conf",
+        mean_core_cache=cache,
+    )
+
+    assert calls == {1: 1, 2: 1}
+
+
 def test_core_pairwise_tiebreak_rejects_failed_guardrails() -> None:
     scenarios = (
         "cost_increase",

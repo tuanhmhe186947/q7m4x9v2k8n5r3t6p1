@@ -1497,6 +1497,7 @@ def apply_realtime_core_unassigned_tiebreak(
     phase_name: str,
     runtime: TrackingRuntimeState | None = None,
     frame_index: int | None = None,
+    mean_core_cache: dict[int, np.ndarray | None] | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Use core appearance only to break a near-tie with an unused detection."""
     if (
@@ -1507,6 +1508,8 @@ def apply_realtime_core_unassigned_tiebreak(
     ):
         return rows, cols
 
+    if mean_core_cache is None:
+        mean_core_cache = {}
     selected_cols = {int(col) for col in cols}
     proposals: list[tuple[float, float, int, int, int, float, float]] = []
     for row, selected_col in zip(rows, cols, strict=True):
@@ -1545,7 +1548,10 @@ def apply_realtime_core_unassigned_tiebreak(
 
         if not eligible_alternatives:
             continue
-        mean_core_hist = track.mean_core_hist()
+        track_id = track.fixed_id
+        if track_id not in mean_core_cache:
+            mean_core_cache[track_id] = track.mean_core_hist()
+        mean_core_hist = mean_core_cache[track_id]
         if mean_core_hist is None:
             continue
         selected_core_cost = hist_distance(mean_core_hist, selected_det.core_hist)
@@ -1623,6 +1629,7 @@ def apply_realtime_core_pairwise_tiebreak(
     phase_name: str,
     runtime: TrackingRuntimeState | None = None,
     frame_index: int | None = None,
+    mean_core_cache: dict[int, np.ndarray | None] | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Use core appearance to reverse a conservative 2x2 LAP near-tie."""
     if (
@@ -1649,7 +1656,16 @@ def apply_realtime_core_pairwise_tiebreak(
             float,
         ]
     ] = []
-    mean_core_cache: dict[int, np.ndarray | None] = {}
+    if mean_core_cache is None:
+        mean_core_cache = {}
+    selected_costs = [
+        float(costs[int(row), int(col)])
+        for row, col in zip(rows, cols, strict=True)
+    ]
+    selected_is_row_best = [
+        selected_cost <= float(np.min(costs[int(row), :])) + 1e-6
+        for selected_cost, row in zip(selected_costs, rows, strict=True)
+    ]
     for first_position in range(len(rows) - 1):
         first_row = int(rows[first_position])
         first_col = int(cols[first_position])
@@ -1659,6 +1675,11 @@ def apply_realtime_core_pairwise_tiebreak(
             continue
 
         for second_position in range(first_position + 1, len(rows)):
+            if (
+                selected_is_row_best[first_position]
+                and selected_is_row_best[second_position]
+            ):
+                continue
             second_row = int(rows[second_position])
             second_col = int(cols[second_position])
             second_track = candidate_tracks[second_row]
@@ -1670,8 +1691,8 @@ def apply_realtime_core_pairwise_tiebreak(
             ):
                 continue
 
-            first_selected_cost = float(costs[first_row, first_col])
-            second_selected_cost = float(costs[second_row, second_col])
+            first_selected_cost = selected_costs[first_position]
+            second_selected_cost = selected_costs[second_position]
             first_swapped_cost = float(costs[first_row, second_col])
             second_swapped_cost = float(costs[second_row, first_col])
             pair_costs = (
@@ -1689,14 +1710,6 @@ def apply_realtime_core_pairwise_tiebreak(
             if second_swapped_cost > association_cost_threshold(second_track, cfg):
                 continue
 
-            first_best_cost = float(np.min(costs[first_row, :]))
-            second_best_cost = float(np.min(costs[second_row, :]))
-            if (
-                first_selected_cost <= first_best_cost + 1e-6
-                and second_selected_cost <= second_best_cost + 1e-6
-            ):
-                continue
-
             selected_total = first_selected_cost + second_selected_cost
             swapped_total = first_swapped_cost + second_swapped_cost
             cost_increase = swapped_total - selected_total
@@ -1705,12 +1718,14 @@ def apply_realtime_core_pairwise_tiebreak(
             ):
                 continue
 
-            if first_row not in mean_core_cache:
-                mean_core_cache[first_row] = first_track.mean_core_hist()
-            if second_row not in mean_core_cache:
-                mean_core_cache[second_row] = second_track.mean_core_hist()
-            first_mean_core = mean_core_cache[first_row]
-            second_mean_core = mean_core_cache[second_row]
+            first_track_id = first_track.fixed_id
+            second_track_id = second_track.fixed_id
+            if first_track_id not in mean_core_cache:
+                mean_core_cache[first_track_id] = first_track.mean_core_hist()
+            if second_track_id not in mean_core_cache:
+                mean_core_cache[second_track_id] = second_track.mean_core_hist()
+            first_mean_core = mean_core_cache[first_track_id]
+            second_mean_core = mean_core_cache[second_track_id]
             if first_mean_core is None or second_mean_core is None:
                 continue
             first_selected_core_cost = hist_distance(
@@ -1926,6 +1941,7 @@ def match_and_update_tracks(
         )
         rows, cols = linear_sum_assignment(costs)
         if phase_name == "visible_high_conf":
+            mean_core_cache: dict[int, np.ndarray | None] = {}
             rows, cols = apply_causal_hidden_detection_reservation(
                 costs,
                 candidate_tracks,
@@ -1955,6 +1971,7 @@ def match_and_update_tracks(
                 phase_name,
                 runtime,
                 frame_index,
+                mean_core_cache,
             )
             rows, cols = apply_realtime_core_pairwise_tiebreak(
                 costs,
@@ -1967,6 +1984,7 @@ def match_and_update_tracks(
                 phase_name,
                 runtime,
                 frame_index,
+                mean_core_cache,
             )
         selected_track_by_det = {
             detection_indices[col]: candidate_tracks[row].fixed_id
