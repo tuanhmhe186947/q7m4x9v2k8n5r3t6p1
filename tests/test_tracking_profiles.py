@@ -40,10 +40,13 @@ def test_profile_configs_keep_expected_behavior_separation() -> None:
     assert realtime_fast["realtime_visible_close_competitor_guard"] is True
     assert realtime_fast["realtime_visible_close_competitor_margin"] == 0.08
     assert realtime_fast["realtime_visible_close_competitor_max_cost"] == 0.40
+    assert realtime_fast["realtime_lk_point_batching"] is True
     assert (
         realtime_fast["realtime_visible_close_competitor_min_center_x_ratio"]
         == 0.67
     )
+    assert "realtime_lk_point_batching" not in realtime_balanced
+    assert "realtime_lk_point_batching" not in realtime
 
     assert realtime_balanced["causal_hidden_detection_reservation"] is True
     assert realtime_balanced["causal_hidden_detection_reservation_min_iom"] == 0.96

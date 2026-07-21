@@ -17,6 +17,7 @@ REALTIME_FAST_CONFIG: dict[str, object] = {
     **REALTIME_BASE_CONFIG,
     "det_conf": 0.25,
     "detect_every_n_frames": 2,
+    "realtime_lk_point_batching": True,
     "max_raw_detections": 32,
     "occlusion_aware_matching": False,
     "realtime_visible_better_competitor_prefer": True,
