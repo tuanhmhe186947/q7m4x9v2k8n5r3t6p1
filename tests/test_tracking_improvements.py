@@ -435,7 +435,11 @@ def test_core_pairwise_tiebreak_swaps_conserved_detection_pair() -> None:
     before_score = detections[0].score + detections[1].score
     after_score = detections[int(cols[0])].score + detections[int(cols[1])].score
     assert after_score == before_score
-    event = runtime.association_debug_events[0]
+    event = next(
+        item
+        for item in runtime.association_debug_events
+        if item["event"] == "core_pairwise_tiebreak"
+    )
     assert event["event"] == "core_pairwise_tiebreak"
     assert event["frame"] == 1390
     assert event["first_track_id"] == 1

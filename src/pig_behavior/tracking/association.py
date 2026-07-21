@@ -1728,6 +1728,26 @@ def apply_realtime_core_pairwise_tiebreak(
             )
             first_gain = first_selected_core_cost - first_swapped_core_cost
             second_gain = second_selected_core_cost - second_swapped_core_cost
+            append_association_debug_event(
+                runtime,
+                cfg,
+                {
+                    "event": "core_pairwise_probe",
+                    "frame": frame_index,
+                    "phase": phase_name,
+                    "first_track_id": first_track.fixed_id,
+                    "second_track_id": second_track.fixed_id,
+                    "first_selected_det_idx": detection_indices[first_col],
+                    "second_selected_det_idx": detection_indices[second_col],
+                    "total_cost_increase": round(cost_increase, 6),
+                    "first_core_gain": round(first_gain, 6),
+                    "second_core_gain": round(second_gain, 6),
+                    "total_core_appearance_gain": round(
+                        first_gain + second_gain,
+                        6,
+                    ),
+                },
+            )
             if first_gain <= 0.0 or second_gain <= 0.0:
                 continue
             total_gain = first_gain + second_gain
