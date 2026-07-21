@@ -1649,15 +1649,13 @@ def apply_realtime_core_pairwise_tiebreak(
             float,
         ]
     ] = []
+    mean_core_cache: dict[int, np.ndarray | None] = {}
     for first_position in range(len(rows) - 1):
         first_row = int(rows[first_position])
         first_col = int(cols[first_position])
         first_track = candidate_tracks[first_row]
         first_det = detections[detection_indices[first_col]]
         if first_det.core_hist is None:
-            continue
-        first_mean_core = first_track.mean_core_hist()
-        if first_mean_core is None:
             continue
 
         for second_position in range(first_position + 1, len(rows)):
@@ -1666,9 +1664,6 @@ def apply_realtime_core_pairwise_tiebreak(
             second_track = candidate_tracks[second_row]
             second_det = detections[detection_indices[second_col]]
             if second_det.core_hist is None:
-                continue
-            second_mean_core = second_track.mean_core_hist()
-            if second_mean_core is None:
                 continue
             if bbox_iou(first_det.box, second_det.box) < (
                 cfg.realtime_core_pairwise_min_detection_iou
@@ -1710,6 +1705,14 @@ def apply_realtime_core_pairwise_tiebreak(
             ):
                 continue
 
+            if first_row not in mean_core_cache:
+                mean_core_cache[first_row] = first_track.mean_core_hist()
+            if second_row not in mean_core_cache:
+                mean_core_cache[second_row] = second_track.mean_core_hist()
+            first_mean_core = mean_core_cache[first_row]
+            second_mean_core = mean_core_cache[second_row]
+            if first_mean_core is None or second_mean_core is None:
+                continue
             first_selected_core_cost = hist_distance(
                 first_mean_core,
                 first_det.core_hist,
