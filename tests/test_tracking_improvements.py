@@ -270,6 +270,42 @@ def test_core_unassigned_tiebreak_rejects_failed_guardrails() -> None:
         np.testing.assert_array_equal(cols, np.array([0]), err_msg=scenario)
 
 
+def test_core_unassigned_tiebreak_can_require_score_nondecrease() -> None:
+    cfg, track, detections = _core_tiebreak_fixture()
+    cfg.realtime_core_unassigned_require_score_nondecrease = True
+    detections[0].score = 0.90
+    detections[1].score = 0.80
+
+    _, lower_score_cols = (
+        association_module.apply_realtime_core_unassigned_tiebreak(
+            np.array([[0.200, 0.205]], dtype=np.float32),
+            [track],
+            [0, 1],
+            detections,
+            np.array([0]),
+            np.array([0]),
+            cfg,
+            "visible_high_conf",
+        )
+    )
+
+    np.testing.assert_array_equal(lower_score_cols, np.array([0]))
+    detections[1].score = detections[0].score
+    _, equal_score_cols = (
+        association_module.apply_realtime_core_unassigned_tiebreak(
+            np.array([[0.200, 0.205]], dtype=np.float32),
+            [track],
+            [0, 1],
+            detections,
+            np.array([0]),
+            np.array([0]),
+            cfg,
+            "visible_high_conf",
+        )
+    )
+    np.testing.assert_array_equal(equal_score_cols, np.array([1]))
+
+
 def test_update_detected_learns_core_hist_with_primary_hist() -> None:
     cfg, track, detections = _core_tiebreak_fixture()
 

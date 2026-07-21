@@ -1530,6 +1530,11 @@ def apply_realtime_core_unassigned_tiebreak(
             alternative_det = detections[detection_indices[alternative_col]]
             if alternative_det.core_hist is None:
                 continue
+            if (
+                cfg.realtime_core_unassigned_require_score_nondecrease
+                and alternative_det.score < selected_det.score
+            ):
+                continue
             if bbox_iou(selected_det.box, alternative_det.box) < (
                 cfg.realtime_core_unassigned_min_detection_iou
             ):

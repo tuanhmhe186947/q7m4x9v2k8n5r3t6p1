@@ -159,6 +159,7 @@ class TrackingConfig:
     occlusion_appearance_margin: float = 0.08
     appearance_hist_foreground_core: bool = False
     realtime_core_unassigned_tiebreak: bool = False
+    realtime_core_unassigned_require_score_nondecrease: bool = False
     realtime_core_unassigned_max_cost_delta: float = 0.01
     realtime_core_unassigned_min_appearance_gain: float = 0.01
     realtime_core_unassigned_min_detection_iou: float = 0.30
