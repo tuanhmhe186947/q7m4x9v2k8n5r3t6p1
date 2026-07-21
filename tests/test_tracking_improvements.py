@@ -416,6 +416,11 @@ def test_core_pairwise_tiebreak_is_disabled_by_default() -> None:
 def test_core_pairwise_tiebreak_swaps_conserved_detection_pair() -> None:
     cfg, tracks, detections, costs = _core_pairwise_fixture()
     runtime = TrackingRuntimeState()
+    mixed_core = np.zeros_like(detections[0].core_hist)
+    mixed_core[0] = 0.49
+    mixed_core[1] = 0.51
+    tracks[1].core_hist_bank.clear()
+    tracks[1].core_hist_bank.append(mixed_core)
 
     rows, cols = association_module.apply_realtime_core_pairwise_tiebreak(
         costs,
@@ -444,13 +449,17 @@ def test_core_pairwise_tiebreak_swaps_conserved_detection_pair() -> None:
     assert event["frame"] == 1390
     assert event["first_track_id"] == 1
     assert event["second_track_id"] == 2
+    probe = runtime.association_debug_events[0]
+    assert float(probe["first_core_gain"]) > 0.0
+    assert float(probe["second_core_gain"]) < 0.0
+    assert float(probe["total_core_appearance_gain"]) >= 0.10
 
 
 def test_core_pairwise_tiebreak_rejects_failed_guardrails() -> None:
     scenarios = (
         "cost_increase",
         "overlap",
-        "mutual_core_preference",
+        "total_core_gain",
         "swapped_threshold",
     )
     for scenario in scenarios:
@@ -459,7 +468,9 @@ def test_core_pairwise_tiebreak_rejects_failed_guardrails() -> None:
             costs[0, 1] = 0.50
         elif scenario == "overlap":
             detections[1].box = np.array([18, 0, 38, 20], dtype=np.float32)
-        elif scenario == "mutual_core_preference":
+        elif scenario == "total_core_gain":
+            tracks[0].core_hist_bank.clear()
+            tracks[0].core_hist_bank.append(detections[0].core_hist)
             tracks[1].core_hist_bank.clear()
             tracks[1].core_hist_bank.append(detections[1].core_hist)
         else:

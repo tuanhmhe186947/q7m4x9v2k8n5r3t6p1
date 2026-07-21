@@ -1748,8 +1748,6 @@ def apply_realtime_core_pairwise_tiebreak(
                     ),
                 },
             )
-            if first_gain <= 0.0 or second_gain <= 0.0:
-                continue
             total_gain = first_gain + second_gain
             if total_gain < (
                 cfg.realtime_core_pairwise_min_total_appearance_gain
