@@ -69,7 +69,12 @@ def _result_masks(
     return out
 
 
-def extract_hist_hsv(frame: np.ndarray, box: np.ndarray) -> np.ndarray:
+def extract_hist_hsv(
+    frame: np.ndarray,
+    box: np.ndarray,
+    *,
+    foreground_core: bool = False,
+) -> np.ndarray:
     import cv2
 
     height, width = frame.shape[:2]
@@ -77,16 +82,29 @@ def extract_hist_hsv(frame: np.ndarray, box: np.ndarray) -> np.ndarray:
     if x2 <= x1 or y2 <= y1:
         return np.full((16 * 16 * 4,), 1.0 / (16 * 16 * 4), dtype=np.float32)
 
+    if foreground_core:
+        inset_x = int(round((x2 - x1) * 0.10))
+        inset_y = int(round((y2 - y1) * 0.10))
+        if x2 - x1 > 2 * inset_x and y2 - y1 > 2 * inset_y:
+            x1 += inset_x
+            x2 -= inset_x
+            y1 += inset_y
+            y2 -= inset_y
+
     crop = frame[y1:y2, x1:x2]
     if crop.size == 0:
         return np.full((16 * 16 * 4,), 1.0 / (16 * 16 * 4), dtype=np.float32)
 
     crop = cv2.resize(crop, (96, 96), interpolation=cv2.INTER_AREA)
     hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
+    hist_mask = None
+    if foreground_core:
+        hist_mask = np.zeros((96, 96), dtype=np.uint8)
+        cv2.ellipse(hist_mask, (48, 48), (43, 38), 0, 0, 360, 255, -1)
     hist = cv2.calcHist(
         [hsv],
         [0, 1, 2],
-        None,
+        hist_mask,
         [16, 16, 4],
         [0, 180, 0, 256, 0, 256],
     ).astype(np.float32)
@@ -119,34 +137,48 @@ def deduplicate_detections(
             iou = bbox_iou(det.box, other.box)
             iom = bbox_iom(det.box, other.box)
             center_dist = center_distance_norm(det.box, other.box, width, height)
-            
+
             # Calculate area ratio
             det_area = (det.box[2] - det.box[0]) * (det.box[3] - det.box[1])
             other_area = (other.box[2] - other.box[0]) * (other.box[3] - other.box[1])
             min_area = min(det_area, other_area)
             max_area = max(det_area, other_area)
             area_ratio = min_area / max(max_area, 1e-6)
-            
-            # 1. High IoU check: combined with center distance and area ratio to confirm it's a duplicate
+
+            # High IoU plus similar center and area confirms a duplicate.
             if (
                 iou > cfg.dup_iou_threshold
                 and center_dist < cfg.dup_center_threshold
                 and area_ratio >= cfg.dup_area_ratio_threshold
             ):
                 logger.debug(
-                    "Deduplication drop [duplicate_iou] at frame %s: det %s dropped because of other %s. "
+                    "Deduplication drop [duplicate_iou] at frame %s: "
+                    "det %s dropped because of other %s. "
                     "iou=%.3f, center_dist=%.3f, area_ratio=%.3f",
-                    frame_id, det.box.tolist(), other.box.tolist(), iou, center_dist, area_ratio
+                    frame_id,
+                    det.box.tolist(),
+                    other.box.tolist(),
+                    iou,
+                    center_dist,
+                    area_ratio,
                 )
                 is_dup = True
                 break
-                
-            # 2. Containment check: one box is almost entirely inside another, combined with center distance
-            if iom > cfg.dup_containment_threshold and center_dist < cfg.dup_center_threshold:
+
+            # Strong containment plus a similar center confirms a duplicate.
+            if (
+                iom > cfg.dup_containment_threshold
+                and center_dist < cfg.dup_center_threshold
+            ):
                 logger.debug(
-                    "Deduplication drop [duplicate_containment] at frame %s: det %s dropped because of other %s. "
+                    "Deduplication drop [duplicate_containment] at frame %s: "
+                    "det %s dropped because of other %s. "
                     "iom=%.3f, center_dist=%.3f",
-                    frame_id, det.box.tolist(), other.box.tolist(), iom, center_dist
+                    frame_id,
+                    det.box.tolist(),
+                    other.box.tolist(),
+                    iom,
+                    center_dist,
                 )
                 is_dup = True
                 break
@@ -198,7 +230,11 @@ def parse_detections(
                 score=float(conf[idx]),
                 raw_id=raw_id,
                 class_id=class_id,
-                hist=extract_hist_hsv(frame, box),
+                hist=extract_hist_hsv(
+                    frame,
+                    box,
+                    foreground_core=cfg.appearance_hist_foreground_core,
+                ),
                 mask=masks[idx] if idx < len(masks) else None,
             )
         )

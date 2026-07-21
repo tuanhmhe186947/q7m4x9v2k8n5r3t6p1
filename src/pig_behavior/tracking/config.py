@@ -157,6 +157,7 @@ class TrackingConfig:
     occlusion_competitor_margin: float = 0.12
     occlusion_appearance_penalty: float = 0.30
     occlusion_appearance_margin: float = 0.08
+    appearance_hist_foreground_core: bool = False
     directional_y_prior: bool = True
     directional_y_penalty_weight: float = 0.12
     directional_y_velocity_epsilon_px: float = 3.0

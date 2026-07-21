@@ -20,6 +20,7 @@ from pig_behavior.tracking import (
     TrackingRuntimeState,
     apply_identity_swap_guard,
     center_distance_norm,
+    extract_hist_hsv,
     get_telemetry_summary,
     initialize_tracks,
     match_and_update_tracks,
@@ -83,6 +84,36 @@ def _translated_lk_frames() -> tuple[np.ndarray, np.ndarray]:
     transform = np.float32([[1, 0, 2], [0, 1, 1]])
     current = cv2.warpAffine(previous, transform, (160, 128))
     return previous, current
+
+
+def test_foreground_core_hist_excludes_bbox_border_background() -> None:
+    first = np.full((100, 100, 3), (20, 20, 220), dtype=np.uint8)
+    second = np.full((100, 100, 3), (220, 20, 20), dtype=np.uint8)
+    first[13:87, 13:87] = (80, 150, 110)
+    second[13:87, 13:87] = (80, 150, 110)
+    box = np.array([0.0, 0.0, 100.0, 100.0], dtype=np.float32)
+
+    full_first = extract_hist_hsv(first, box)
+    full_second = extract_hist_hsv(second, box)
+    core_first = extract_hist_hsv(first, box, foreground_core=True)
+    core_second = extract_hist_hsv(second, box, foreground_core=True)
+
+    assert np.isclose(full_first.sum(), 1.0)
+    assert np.isclose(core_first.sum(), 1.0)
+    assert not np.allclose(full_first, full_second)
+    assert np.allclose(core_first, core_second, atol=1e-6)
+
+
+def test_foreground_core_hist_is_opt_in_by_default() -> None:
+    cfg = TrackingConfig(video_path=Path("video.mp4"))
+    frame = np.full((32, 48, 3), 127, dtype=np.uint8)
+    box = np.array([2.0, 3.0, 42.0, 29.0], dtype=np.float32)
+
+    assert cfg.appearance_hist_foreground_core is False
+    assert np.array_equal(
+        extract_hist_hsv(frame, box),
+        extract_hist_hsv(frame, box, foreground_core=False),
+    )
 
 
 def test_lk_point_batch_matches_scalar_for_mixed_rois(monkeypatch) -> None:
