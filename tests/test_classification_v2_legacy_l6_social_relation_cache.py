@@ -82,6 +82,7 @@ def _synthetic_frames() -> pd.DataFrame:
             "frame_uid": [f"frame-{value}" for value in frame_index],
             "object_track_key": ["track-a"] * len(frame_index),
             "frame_index": frame_index,
+            "timestamp_sec": frame_index / 30.0,
             "lineage_scope": [LINEAGE_SCOPE] * len(frame_index),
             "human_review_complete": [False] * len(frame_index),
             "nearest_pig_id": [

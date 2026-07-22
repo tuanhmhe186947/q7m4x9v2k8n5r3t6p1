@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 
 from pig_behavior.classification_v2.features.temporal_evidence import (
+    MODEL_WINDOW_TEMPORAL_EVIDENCE_COLUMNS,
     TEMPORAL_EVIDENCE_BASE_COLUMNS,
     UNIT_TEMPORAL_EVIDENCE_COLUMNS,
     WINDOW_TEMPORAL_EVIDENCE_COLUMNS,
@@ -97,7 +98,7 @@ def audit_temporal_evidence_lineage(
         for column in trainer_contract.get("tabular_feature_whitelist", [])
     ]
     missing_whitelist = sorted(
-        set(WINDOW_TEMPORAL_EVIDENCE_COLUMNS).difference(whitelist)
+        set(MODEL_WINDOW_TEMPORAL_EVIDENCE_COLUMNS).difference(whitelist)
     )
     leaked_review_columns = sorted(
         set(REVIEW_EVIDENCE_COLUMNS).intersection(whitelist)
@@ -313,9 +314,9 @@ def _source_support(intervals: pd.DataFrame) -> dict[str, Any]:
     return {
         str(source): {
             "rows": int(len(group)),
-            "motion_active_ratio_mean": _mean(
+            "motion_active_ratio_per_second_mean": _mean(
                 group,
-                "motion_active_ratio_unit",
+                "motion_active_ratio_per_second_unit",
             ),
             "roi_feeder_availability_mean": _mean(
                 group,

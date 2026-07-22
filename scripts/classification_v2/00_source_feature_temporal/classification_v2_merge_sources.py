@@ -71,7 +71,10 @@ def parse_args() -> argparse.Namespace:
         "--fps",
         type=float,
         default=30.0,
-        help="FPS used for CVAT timestamp_sec. Default: 30.",
+        help=(
+            "Canonical decoded-video FPS used for both legacy and CVAT "
+            "timestamp_sec. Default: 30."
+        ),
     )
     parser.add_argument(
         "--output-csv",
@@ -124,6 +127,7 @@ def main() -> None:
         df = load_legacy_frame_objects(
             legacy_csv,
             max_rows=args.max_rows_per_source,
+            source_fps=args.fps,
         )
         frames.append(df)
         names.append(str(legacy_csv))
@@ -210,6 +214,9 @@ def main() -> None:
             None if args.audit_json is None else str(args.audit_json.resolve())
         ),
         "source_type_counts": audit.get("sources", {}),
+        "canonical_source_fps": float(args.fps),
+        "canonical_timestamp_formula": "source_frame_index/source_fps",
+        "times_txt_role": "acquisition_audit_only_not_motion_clock",
         "rows": int(len(merged)),
         "errors": audit.get("errors", []),
     }

@@ -65,9 +65,14 @@ def main() -> None:
         "motion_delta",
         "roi_class_relation",
         "social_relation",
-        "quality_mask",
         "length_mask",
         "observed_mask",
+        "spatial_quality_mask",
+        "roi_validity_mask",
+        "social_validity_mask",
+        "pen_validity_mask",
+        "adjacent_motion_pair_mask",
+        "sparse_velocity_pair_mask",
         "frame_index_sequence",
     }
     missing = sorted(required_arrays.difference(data.files))
@@ -93,6 +98,11 @@ def main() -> None:
         if "length_mask" in data.files
         else np.zeros((0, 0), dtype=np.float32)
     )
+    quality = (
+        data["spatial_quality_mask"]
+        if "spatial_quality_mask" in data.files
+        else np.zeros((0, 0), dtype=np.float32)
+    )
     if observed.size and not ((observed == 0.0) | (observed == 1.0)).all():
         errors.append("observed_mask_not_binary")
     if length.size and not ((length == 0.0) | (length == 1.0)).all():
@@ -101,6 +111,20 @@ def main() -> None:
         errors.append(f"mask_shape_mismatch observed={observed.shape} length={length.shape}")
     elif observed.size and (observed > length).any():
         errors.append("observed_mask_has_values_outside_length_mask")
+    if quality.size and not ((quality == 0.0) | (quality == 1.0)).all():
+        errors.append("spatial_quality_mask_not_binary")
+    if quality.shape != observed.shape:
+        errors.append(
+            f"quality_mask_shape_mismatch quality={quality.shape} "
+            f"observed={observed.shape}"
+        )
+    elif quality.size and (quality > observed).any():
+        errors.append("spatial_quality_mask_has_values_outside_observed_mask")
+    if quality.size:
+        invalid = quality == 0.0
+        for group in ["bbox_xywh_n", "bbox_shape_n", "motion_delta"]:
+            if group in data.files and np.any(data[group][invalid] != 0.0):
+                errors.append(f"{group}_nonzero_at_invalid_spatial_slot")
 
     train_mask_audit = _audit_train_mask_completeness(
         args.train_mask_csv,

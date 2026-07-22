@@ -92,6 +92,54 @@ def test_uniform_span16_recomputes_real_elapsed_deltas(tmp_path: Path) -> None:
     assert np.allclose(result.view.time_delta, expected[None, :])
     assert result.audit["temporal_span_frames"] == 16
     assert result.view.sequence_length == 6
+    assert result.view.windows["view_type"].eq("S6@16").all()
+    assert result.audit["primary_cross_source_eligible"] is False
+    assert result.audit["pair_derived_parent_aggregate_reuse"] is False
+    assert result.audit["feature_computation_grain"] == "FINAL_VIEW_FEATURES"
+    assert result.audit["pair_recomputed_for_view"] is True
+    assert result.audit["aggregate_recomputed_for_view"] is True
+    assert result.view.windows["pair_scope_key"].equals(
+        result.view.windows["window_id"]
+    )
+    assert result.view.windows["selected_frame_indices"].eq(
+        "[0,3,6,9,12,15]"
+    ).all()
+    assert result.slot_manifest["pair_delta_frames"].tolist() == (
+        [0, 3, 3, 3, 3, 3] * 3
+    )
+    assert not result.slot_manifest["adjacent_motion_pair_valid"].any()
+    assert result.slot_manifest.loc[
+        result.slot_manifest["slot_index"].gt(0),
+        "sparse_velocity_pair_valid",
+    ].all()
+
+
+def test_s6_span16_is_deterministic_for_same_selected_frames(
+    tmp_path: Path,
+) -> None:
+    base = _base_view(tmp_path)
+
+    first = derive_temporal_sampling_view(base, "s6_uniform_span16")
+    second = derive_temporal_sampling_view(base, "s6_uniform_span16")
+
+    assert np.array_equal(first.view.feature_rows, second.view.feature_rows)
+    assert np.array_equal(first.view.time_delta, second.view.time_delta)
+    pd.testing.assert_frame_equal(first.slot_manifest, second.slot_manifest)
+
+
+def test_t6_and_s6_span16_have_distinct_view_identity(tmp_path: Path) -> None:
+    base = _base_view(tmp_path)
+    contiguous = derive_temporal_sampling_view(
+        base,
+        "c6_contiguous_centered",
+    )
+    sparse = derive_temporal_sampling_view(base, "s6_uniform_span16")
+
+    assert contiguous.audit["view_type"] == "T6_contiguous"
+    assert sparse.audit["view_type"] == "S6@16"
+    assert contiguous.audit["sampling_pattern"] != sparse.audit[
+        "sampling_pattern"
+    ]
 
 
 def test_contiguous_views_keep_consecutive_elapsed_deltas(tmp_path: Path) -> None:

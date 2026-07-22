@@ -22,13 +22,13 @@ from pig_behavior.classification_v2.evaluation.statistics import (
     paired_cluster_bootstrap,
 )
 from pig_behavior.classification_v2.features.pen_context import (
-    PEN_CONTEXT_MODEL_FEATURE_COLUMNS,
+    PEN_CONTEXT_LEGACY_MODEL_FEATURE_COLUMNS,
     REQUIRED_PEN_CONTEXT_INPUT_COLUMNS,
     build_pen_context_features,
 )
 from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
 from pig_behavior.classification_v2.spatial_sequence_export import (
-    SPATIAL_FRAME_FEATURES,
+    LEGACY_SPATIAL_FRAME_FEATURES,
     export_spatial_sequences,
 )
 from pig_behavior.classification_v2.training import (
@@ -99,7 +99,7 @@ MODALITY_FEATURES: dict[str, tuple[str, ...]] = {
     "motion": tuple(MOTION_FEATURE_NAMES),
     "roi": tuple(ROI_RELATION_FEATURE_NAMES),
     "numeric_social": tuple(SOCIAL_RELATION_FEATURE_NAMES),
-    "pen_context": tuple(PEN_CONTEXT_MODEL_FEATURE_COLUMNS),
+    "pen_context": tuple(PEN_CONTEXT_LEGACY_MODEL_FEATURE_COLUMNS),
     "union_context": tuple(f"union_feature_{index:03d}" for index in range(512)),
     "full_frame_context": tuple(
         f"full_frame_feature_{index:03d}" for index in range(512)
@@ -439,6 +439,7 @@ def build_c6_modality_cache(config: C6MatrixConfig) -> dict[str, Any]:
         window_index,
         pen_frames,
         max_window_length=SEQUENCE_LENGTH,
+        feature_schema=LEGACY_SPATIAL_FRAME_FEATURES,
     )
     selected_modalities = _configured_modalities(config.payload)
     numeric_arrays = _numeric_modality_arrays(
@@ -1260,7 +1261,7 @@ def _validate_c6_run_packet(
 def _read_required_frames(path: Path) -> pd.DataFrame:
     feature_columns = {
         column
-        for columns in SPATIAL_FRAME_FEATURES.values()
+        for columns in LEGACY_SPATIAL_FRAME_FEATURES.values()
         for column in columns
     }
     # The canonical exporter derives this label-independent mask from the

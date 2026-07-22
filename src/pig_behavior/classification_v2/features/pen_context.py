@@ -3,7 +3,7 @@
 The scene mask is fixed camera calibration. It is never a target label and its
 path/hash stay in the audit surface rather than model X. Per-row features keep
 the actor's relation to the pen boundary after actor cropping removes that
-context. Temporal derivatives are grouped only within ``object_track_key``.
+context. Temporal derivatives reset at source/video/actor/native-unit boundaries.
 """
 
 from __future__ import annotations
@@ -27,20 +27,47 @@ DEFAULT_PEN_MASK_SHA256 = (
     "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658"
 )
 
-PEN_CONTEXT_MODEL_FEATURE_COLUMNS: tuple[str, ...] = (
+PEN_CONTEXT_FRAME_LOCAL_FEATURE_COLUMNS: tuple[str, ...] = (
     "pen_center_signed_distance_n",
     "pen_center_clearance_box_ratio",
     "pen_bbox_inside_ratio",
+)
+
+PEN_CONTEXT_PER_FRAME_AUDIT_COLUMNS: tuple[str, ...] = (
     "pen_distance_delta_n_per_frame",
     "pen_approach_speed_n_per_frame",
     "pen_retreat_speed_n_per_frame",
     "pen_parallel_speed_n_per_frame",
 )
 
+PEN_CONTEXT_MODEL_FEATURE_COLUMNS: tuple[str, ...] = (
+    *PEN_CONTEXT_FRAME_LOCAL_FEATURE_COLUMNS,
+    "pen_approach_speed_n_per_second",
+    "pen_retreat_speed_n_per_second",
+    "pen_parallel_speed_n_per_second",
+)
+
+PEN_CONTEXT_LEGACY_MODEL_FEATURE_COLUMNS: tuple[str, ...] = (
+    *PEN_CONTEXT_FRAME_LOCAL_FEATURE_COLUMNS,
+    *PEN_CONTEXT_PER_FRAME_AUDIT_COLUMNS,
+)
+
+PEN_CONTEXT_ALL_FEATURE_COLUMNS: tuple[str, ...] = tuple(
+    dict.fromkeys(
+        (
+            *PEN_CONTEXT_MODEL_FEATURE_COLUMNS,
+            *PEN_CONTEXT_PER_FRAME_AUDIT_COLUMNS,
+        )
+    )
+)
+
 PEN_CONTEXT_QUALITY_COLUMNS: tuple[str, ...] = (
     "pen_context_available",
     "pen_context_quality_valid",
     "pen_motion_context_valid",
+    "pen_velocity_context_valid",
+    "pen_adjacent_motion_pair_valid",
+    "pen_sparse_velocity_pair_valid",
 )
 
 PEN_CONTEXT_DERIVATION_COLUMNS: tuple[str, ...] = (
@@ -54,7 +81,9 @@ REQUIRED_PEN_CONTEXT_INPUT_COLUMNS: tuple[str, ...] = (
     "video_key",
     "frame_uid",
     "frame_index",
+    "timestamp_sec",
     "object_track_key",
+    "temporal_unit_key",
     "bbox_valid",
     "x1",
     "y1",
@@ -207,7 +236,7 @@ def audit_pen_context_features(
     path = Path(mask_path)
     errors: list[str] = []
     warnings: list[str] = []
-    required = set(PEN_CONTEXT_MODEL_FEATURE_COLUMNS)
+    required = set(PEN_CONTEXT_ALL_FEATURE_COLUMNS)
     required.update(PEN_CONTEXT_QUALITY_COLUMNS)
     required.update(PEN_CONTEXT_DERIVATION_COLUMNS)
     missing = sorted(required.difference(frame_features.columns))
@@ -293,6 +322,7 @@ def audit_pen_context_features(
         "audit_only_columns": [
             "pen_center_inside",
             "pen_near_boundary",
+            *PEN_CONTEXT_PER_FRAME_AUDIT_COLUMNS,
             *PEN_CONTEXT_QUALITY_COLUMNS,
             *PEN_CONTEXT_DERIVATION_COLUMNS,
         ],
@@ -379,7 +409,60 @@ def summarize_pen_context(window_rows: pd.DataFrame) -> dict[str, Any]:
             available,
             operation="max",
         ),
+        "pen_approach_speed_n_per_second_mean_window": _safe_numeric(
+            ordered,
+            "pen_approach_speed_n_per_second",
+            available,
+            operation="mean",
+        ),
+        "pen_approach_speed_n_per_second_max_window": _safe_numeric(
+            ordered,
+            "pen_approach_speed_n_per_second",
+            available,
+            operation="max",
+        ),
+        "pen_parallel_speed_n_per_second_mean_window": _safe_numeric(
+            ordered,
+            "pen_parallel_speed_n_per_second",
+            available,
+            operation="mean",
+        ),
+        "pen_parallel_speed_n_per_second_max_window": _safe_numeric(
+            ordered,
+            "pen_parallel_speed_n_per_second",
+            available,
+            operation="max",
+        ),
     }
+
+
+def recompute_pen_motion_for_view(frame_rows: pd.DataFrame) -> pd.DataFrame:
+    """Recompute pen motion only from selected rows in one temporal view."""
+
+    if frame_rows.empty:
+        return frame_rows.copy()
+    required = set(REQUIRED_PEN_CONTEXT_INPUT_COLUMNS)
+    required.update(PEN_CONTEXT_DERIVATION_COLUMNS)
+    required.update({"pen_context_available", "pen_center_inside"})
+    missing = sorted(required.difference(frame_rows.columns))
+    if missing:
+        raise ValueError(f"Missing pen view-recompute columns: {missing}")
+    identity = [
+        "source_type",
+        "dataset_id",
+        "video_key",
+        "object_track_key",
+    ]
+    nonunique = [
+        column
+        for column in identity
+        if frame_rows[column].fillna("").astype(str).nunique(dropna=False) != 1
+    ]
+    if nonunique:
+        raise ValueError(f"Pen view spans multiple identities: {nonunique}")
+    out = frame_rows.copy()
+    out["temporal_unit_key"] = "__selected_view__"
+    return _add_pen_temporal_derivatives(out)
 
 
 def empty_pen_context_summary() -> dict[str, Any]:
@@ -399,6 +482,10 @@ def empty_pen_context_summary() -> dict[str, Any]:
         "pen_approach_speed_max_window": 0.0,
         "pen_parallel_speed_mean_window": 0.0,
         "pen_parallel_speed_max_window": 0.0,
+        "pen_approach_speed_n_per_second_mean_window": 0.0,
+        "pen_approach_speed_n_per_second_max_window": 0.0,
+        "pen_parallel_speed_n_per_second_mean_window": 0.0,
+        "pen_parallel_speed_n_per_second_max_window": 0.0,
     }
 
 
@@ -417,6 +504,13 @@ def _initialize_pen_columns(out: pd.DataFrame) -> None:
         "pen_approach_speed_n_per_frame",
         "pen_retreat_speed_n_per_frame",
         "pen_parallel_speed_n_per_frame",
+        "pen_distance_delta_n_per_second",
+        "pen_normal_speed_n_per_second",
+        "pen_approach_speed_n_per_second",
+        "pen_retreat_speed_n_per_second",
+        "pen_parallel_speed_n_per_second",
+        "pen_motion_delta_frames",
+        "pen_motion_delta_seconds",
     ]:
         out[column] = 0.0
     for column in [
@@ -576,24 +670,33 @@ def _bbox_inside_ratio(
 
 def _add_pen_temporal_derivatives(frame: pd.DataFrame) -> pd.DataFrame:
     out = frame.copy()
+    grain = [
+        "source_type",
+        "dataset_id",
+        "video_key",
+        "object_track_key",
+        "temporal_unit_key",
+    ]
     ordered = out.sort_values(
-        ["object_track_key", "frame_index"],
+        [*grain, "frame_index"],
         kind="mergesort",
     )
-    group = ordered.groupby("object_track_key", dropna=False, sort=False)
+    group = ordered.groupby(grain, dropna=False, sort=False)
     frame_index = pd.to_numeric(ordered["frame_index"], errors="coerce")
     previous_frame = group["frame_index"].shift(1)
     frame_delta = frame_index - pd.to_numeric(previous_frame, errors="coerce")
+    timestamp = pd.to_numeric(ordered["timestamp_sec"], errors="coerce")
+    previous_timestamp = group["timestamp_sec"].shift(1)
+    time_delta = timestamp - pd.to_numeric(previous_timestamp, errors="coerce")
     available = _to_bool_series(ordered["pen_context_available"])
     inside = _to_bool_series(ordered["pen_center_inside"])
     previous_available = group["pen_context_available"].shift(1)
     previous_inside = group["pen_center_inside"].shift(1)
-    pair_valid = (
+    geometry_pair_valid = (
         available
         & inside
         & _to_bool_series(previous_available)
         & _to_bool_series(previous_inside)
-        & frame_delta.gt(0)
     )
 
     signed_distance = pd.to_numeric(
@@ -601,40 +704,107 @@ def _add_pen_temporal_derivatives(frame: pd.DataFrame) -> pd.DataFrame:
         errors="coerce",
     )
     previous_distance = group["pen_center_signed_distance_n"].shift(1)
-    distance_delta = (
+    raw_distance_delta = (
         signed_distance - pd.to_numeric(previous_distance, errors="coerce")
-    ) / frame_delta
-    center_x_n = (
+    )
+    ordered["_pen_center_x_px"] = (
         pd.to_numeric(ordered["x1"], errors="coerce")
         + pd.to_numeric(ordered["x2"], errors="coerce")
-    ) / (2.0 * pd.to_numeric(ordered["image_width"], errors="coerce"))
-    center_y_n = (
+    ) / 2.0
+    ordered["_pen_center_y_px"] = (
         pd.to_numeric(ordered["y1"], errors="coerce")
         + pd.to_numeric(ordered["y2"], errors="coerce")
-    ) / (2.0 * pd.to_numeric(ordered["image_height"], errors="coerce"))
-    previous_x_n = center_x_n.groupby(ordered["object_track_key"]).shift(1)
-    previous_y_n = center_y_n.groupby(ordered["object_track_key"]).shift(1)
-    dx = (center_x_n - previous_x_n) / frame_delta
-    dy = (center_y_n - previous_y_n) / frame_delta
-    total_speed = np.hypot(dx, dy)
-    normal_speed = np.minimum(np.abs(distance_delta), total_speed)
-    parallel_speed = np.sqrt(np.maximum(total_speed**2 - normal_speed**2, 0.0))
+    ) / 2.0
+    group = ordered.groupby(grain, dropna=False, sort=False)
+    previous_x_px = group["_pen_center_x_px"].shift(1)
+    previous_y_px = group["_pen_center_y_px"].shift(1)
+    width = pd.to_numeric(ordered["image_width"], errors="coerce")
+    height = pd.to_numeric(ordered["image_height"], errors="coerce")
+    previous_width = pd.to_numeric(
+        group["image_width"].shift(1),
+        errors="coerce",
+    )
+    previous_height = pd.to_numeric(
+        group["image_height"].shift(1),
+        errors="coerce",
+    )
+    image_diag = pd.Series(np.hypot(width, height), index=ordered.index)
+    dx_metric = (ordered["_pen_center_x_px"] - previous_x_px) / image_diag
+    dy_metric = (ordered["_pen_center_y_px"] - previous_y_px) / image_diag
+    normal_x = pd.to_numeric(
+        ordered["pen_boundary_inward_normal_x"],
+        errors="coerce",
+    )
+    normal_y = pd.to_numeric(
+        ordered["pen_boundary_inward_normal_y"],
+        errors="coerce",
+    )
+    finite_projection = (
+        np.isfinite(dx_metric)
+        & np.isfinite(dy_metric)
+        & np.isfinite(normal_x)
+        & np.isfinite(normal_y)
+        & image_diag.gt(0)
+        & width.eq(previous_width)
+        & height.eq(previous_height)
+    )
+    adjacent_pair_valid = (
+        geometry_pair_valid
+        & frame_delta.eq(1)
+        & time_delta.gt(0)
+        & finite_projection
+    )
+    sparse_pair_valid = (
+        geometry_pair_valid
+        & frame_delta.gt(1)
+        & time_delta.gt(0)
+        & finite_projection
+    )
+    velocity_pair_valid = adjacent_pair_valid | sparse_pair_valid
+    normal_delta = dx_metric * normal_x + dy_metric * normal_y
+    tangent_delta = -dx_metric * normal_y + dy_metric * normal_x
+    normal_per_frame = normal_delta / frame_delta
 
-    ordered["pen_motion_context_valid"] = pair_valid & distance_delta.notna()
-    ordered["pen_distance_delta_n_per_frame"] = distance_delta.where(
-        pair_valid,
+    ordered["pen_motion_delta_frames"] = frame_delta
+    ordered["pen_motion_delta_seconds"] = time_delta
+    ordered["pen_adjacent_motion_pair_valid"] = adjacent_pair_valid
+    ordered["pen_sparse_velocity_pair_valid"] = sparse_pair_valid
+    ordered["pen_motion_context_valid"] = adjacent_pair_valid
+    ordered["pen_velocity_context_valid"] = velocity_pair_valid
+    ordered["pen_distance_delta_n_per_frame"] = (
+        raw_distance_delta / frame_delta
+    ).where(
+        adjacent_pair_valid,
         0.0,
     )
-    ordered["pen_approach_speed_n_per_frame"] = (-distance_delta).clip(
+    ordered["pen_approach_speed_n_per_frame"] = (-normal_per_frame).clip(
         lower=0.0
-    ).where(pair_valid, 0.0)
-    ordered["pen_retreat_speed_n_per_frame"] = distance_delta.clip(
+    ).where(adjacent_pair_valid, 0.0)
+    ordered["pen_retreat_speed_n_per_frame"] = normal_per_frame.clip(
         lower=0.0
-    ).where(pair_valid, 0.0)
-    ordered["pen_parallel_speed_n_per_frame"] = pd.Series(
-        parallel_speed,
-        index=ordered.index,
-    ).where(pair_valid, 0.0)
+    ).where(adjacent_pair_valid, 0.0)
+    ordered["pen_parallel_speed_n_per_frame"] = (
+        tangent_delta.abs() / frame_delta
+    ).where(adjacent_pair_valid, 0.0)
+
+    normal_per_second = normal_delta / time_delta
+    ordered["pen_distance_delta_n_per_second"] = (
+        raw_distance_delta / time_delta
+    ).where(velocity_pair_valid, 0.0)
+    ordered["pen_normal_speed_n_per_second"] = normal_per_second.where(
+        velocity_pair_valid,
+        0.0,
+    )
+    ordered["pen_approach_speed_n_per_second"] = (
+        -normal_per_second
+    ).clip(lower=0.0).where(velocity_pair_valid, 0.0)
+    ordered["pen_retreat_speed_n_per_second"] = normal_per_second.clip(
+        lower=0.0
+    ).where(velocity_pair_valid, 0.0)
+    ordered["pen_parallel_speed_n_per_second"] = (
+        tangent_delta.abs() / time_delta
+    ).where(velocity_pair_valid, 0.0)
+    ordered = ordered.drop(columns=["_pen_center_x_px", "_pen_center_y_px"])
     return ordered.sort_index(kind="mergesort")
 
 
@@ -645,7 +815,7 @@ def _numeric_contract_errors(
     if available is None:
         return []
     errors: list[str] = []
-    for column in PEN_CONTEXT_MODEL_FEATURE_COLUMNS:
+    for column in PEN_CONTEXT_ALL_FEATURE_COLUMNS:
         if column not in frame.columns:
             continue
         values = pd.to_numeric(frame.loc[available, column], errors="coerce")
@@ -821,8 +991,12 @@ def _sha256_file(path: Path) -> str:
 
 __all__ = [
     "DEFAULT_PEN_MASK_SHA256",
+    "PEN_CONTEXT_ALL_FEATURE_COLUMNS",
     "PEN_CONTEXT_DERIVATION_COLUMNS",
+    "PEN_CONTEXT_FRAME_LOCAL_FEATURE_COLUMNS",
+    "PEN_CONTEXT_LEGACY_MODEL_FEATURE_COLUMNS",
     "PEN_CONTEXT_MODEL_FEATURE_COLUMNS",
+    "PEN_CONTEXT_PER_FRAME_AUDIT_COLUMNS",
     "PEN_CONTEXT_QUALITY_COLUMNS",
     "PenContextConfig",
     "audit_pen_context_features",

@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from pig_behavior.classification_v2.features.pig_strenet_artifacts import (
+    _segment_summary,
     availability_columns,
     build_pig_strenet_artifacts,
     compute_stabilized_difference_maps,
@@ -105,6 +107,9 @@ def test_legacy_history_artifacts_preserve_event_mass_and_controls() -> None:
     assert not set(availability_columns(artifacts.history_features)).intersection(
         model_x_columns(artifacts.history_features)
     )
+    injected = artifacts.history_features.assign(unexpected_numeric_feature=999.0)
+    assert "unexpected_numeric_feature" not in model_x_columns(injected)
+    assert "history_speed_n_per_second_mean" in model_x_columns(injected)
     for _, group in artifacts.social_edges.groupby(
         ["pair_id", "slot_index", "actor_node_key"], sort=False
     ):
@@ -139,6 +144,27 @@ def test_multiple_legacy_views_conserve_native_event_mass() -> None:
     assert mass.eq(1.0).all()
 
 
+def test_pig_strenet_pair_motion_resets_at_history_target_boundary() -> None:
+    artifacts = build_pig_strenet_artifacts(_frames())
+    pair_id = artifacts.pair_manifest.iloc[0]["pair_id"]
+    rank_one = artifacts.social_edges.loc[
+        artifacts.social_edges["pair_id"].eq(pair_id)
+        & artifacts.social_edges["neighbor_rank"].eq(1)
+    ].sort_values("slot_index")
+
+    assert rank_one.loc[
+        rank_one["slot_index"].isin([0, 6]),
+        "pair_motion_energy_n_per_second2",
+    ].eq(0.0).all()
+    assert rank_one.loc[
+        rank_one["slot_index"].isin([1, 7]),
+        "pair_motion_energy_n_per_second2",
+    ].gt(0.0).all()
+    assert rank_one.iloc[-1]["pair_contact_duration_sec"] == pytest.approx(
+        0.5
+    )
+
+
 def test_cvat_history_is_missing_without_prior_frames() -> None:
     artifacts = build_pig_strenet_artifacts(
         _frames(source_type="cvat_tracking_xml", missing_history=True)
@@ -158,6 +184,9 @@ def test_cvat_history_is_missing_without_prior_frames() -> None:
         "speed_delta_history_to_target",
         "stationary_to_motion_score",
         "motion_to_stationary_score",
+        "stationary_per_second_to_motion_score",
+        "motion_to_stationary_per_second_score",
+        "speed_n_per_second_delta_history_to_target",
         "distance_delta_history_to_target",
         "approach_to_contact_score",
         "contact_persistence_score",
@@ -183,16 +212,63 @@ def test_cvat_history_is_missing_without_prior_frames() -> None:
 
 
 def test_complete_history_enables_transition_features() -> None:
+    frames = _frames(source_type="cvat_tracking_xml")
+    for _, actor in frames.groupby("object_track_key", sort=False):
+        ordered = actor.sort_values("relative_frame_index")
+        history_end = float(
+            ordered.loc[
+                ordered["relative_frame_index"].eq(5),
+                "cx_n",
+            ].iloc[0]
+        )
+        target = ordered["relative_frame_index"].ge(6)
+        relative = ordered.loc[target, "relative_frame_index"].to_numpy()
+        frames.loc[ordered.index[target], "cx_n"] = (
+            history_end + 0.04 * (relative - 5)
+        )
+    frames["speed_n_per_frame"] = 999.0
+    frames["speed_n_per_second"] = 999.0
     artifacts = build_pig_strenet_artifacts(
-        _frames(source_type="cvat_tracking_xml")
+        frames
     )
 
     assert artifacts.history_features[
         "history_target_transition_available"
     ].all()
     assert artifacts.history_features[
-        "activity_delta_history_to_target"
+        "activity_n_per_second_delta_history_to_target"
     ].ne(0.0).all()
+    assert artifacts.history_features[
+        "speed_n_per_second_delta_history_to_target"
+    ].tolist() == pytest.approx([0.18, 0.18])
+    pair = artifacts.pair_manifest.iloc[0]
+    assert pair["target_duration_sec"] == pytest.approx(1.0)
+    assert pair["target_observed_timestamp_span_seconds"] == pytest.approx(
+        5.0 / 6.0
+    )
+
+
+def test_segment_pair_aggregates_exclude_nonexistent_or_invalid_pairs() -> None:
+    segment = pd.DataFrame(
+        {
+            "frame_index": list(range(6)),
+            "timestamp_sec": [float(value) for value in range(6)],
+            "source_fps": [1.0] * 6,
+            "cx_n": [0.0, 1.0, 3.0, 6.0, 10.0, 15.0],
+            "cy_n": [0.0] * 6,
+            "bbox_valid": [True] * 6,
+            "nearest_track_id": ["track-b"] * 6,
+            "nearest_dist_n": [1.0, 0.9, 0.8, 0.7, 0.6, 0.5],
+            "pair_contact_with_nearest": [True] * 6,
+        }
+    )
+
+    summary = _segment_summary(segment, "history", expected_count=6)
+
+    assert summary["history_acceleration_n_per_second2_abs_mean"] == (
+        pytest.approx(1.0)
+    )
+    assert summary["history_approach_ratio_per_second"] == pytest.approx(1.0)
 
 
 def test_review_evidence_masks_missing_history_and_ignores_labels() -> None:

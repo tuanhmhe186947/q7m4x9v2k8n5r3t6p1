@@ -715,6 +715,96 @@ def _load_or_run_one_fold(
     return predictions, audit
 
 
+def _resolve_window_fold_authority(
+    sequence: pd.DataFrame,
+    folds: pd.DataFrame,
+) -> pd.DataFrame:
+    """Resolve a window fold only when every constituent unit agrees."""
+
+    required_sequence = {
+        "window_id",
+        "temporal_unit_keys_json",
+        "num_temporal_units_window",
+    }
+    missing_sequence = sorted(required_sequence.difference(sequence.columns))
+    if missing_sequence:
+        raise ValueError(
+            "sequence manifest missing constituent-unit authority: "
+            f"{missing_sequence}"
+        )
+    required_folds = {
+        "temporal_unit_key",
+        "oof_fold_id",
+        "native_unit_valid_for_main_eval",
+    }
+    missing_folds = sorted(required_folds.difference(folds.columns))
+    if missing_folds:
+        raise ValueError(f"fold manifest missing columns: {missing_folds}")
+    fold_keys = folds["temporal_unit_key"].fillna("").astype(str)
+    duplicate_keys = fold_keys.ne("") & fold_keys.duplicated(keep=False)
+    if duplicate_keys.any():
+        raise ValueError(
+            "fold manifest has duplicate temporal_unit_key rows: "
+            f"count={int(duplicate_keys.sum())}"
+        )
+    fold_lookup = folds.assign(temporal_unit_key=fold_keys).set_index(
+        "temporal_unit_key"
+    )
+
+    records: list[dict[str, Any]] = []
+    for row in sequence.itertuples(index=False):
+        raw = row.temporal_unit_keys_json
+        try:
+            parsed = json.loads(str(raw))
+        except (TypeError, ValueError, json.JSONDecodeError) as exc:
+            raise ValueError(
+                "invalid temporal_unit_keys_json for window_id="
+                f"{row.window_id}"
+            ) from exc
+        if not isinstance(parsed, list):
+            raise ValueError(
+                "temporal_unit_keys_json must be a list for window_id="
+                f"{row.window_id}"
+            )
+        keys = [str(value).strip() for value in parsed if str(value).strip()]
+        if len(keys) != len(set(keys)):
+            raise ValueError(
+                "duplicate constituent temporal units for window_id="
+                f"{row.window_id}"
+            )
+        declared_count = int(row.num_temporal_units_window)
+        if len(keys) != declared_count:
+            raise ValueError(
+                "constituent temporal-unit count mismatch for window_id="
+                f"{row.window_id}: "
+                f"declared={declared_count}, parsed={len(keys)}"
+            )
+        resolved = fold_lookup.reindex(keys)
+        all_found = bool(keys) and not resolved["oof_fold_id"].isna().any()
+        fold_ids = (
+            resolved["oof_fold_id"].fillna("").astype(str).str.strip()
+        )
+        unique_folds = sorted(set(value for value in fold_ids if value))
+        fold_consistent = all_found and len(unique_folds) == 1
+        native_valid = _to_bool(
+            resolved["native_unit_valid_for_main_eval"]
+        )
+        records.append(
+            {
+                "window_id": str(row.window_id),
+                "oof_fold_id": unique_folds[0] if fold_consistent else "",
+                "native_unit_valid_for_main_eval": bool(
+                    fold_consistent and native_valid.all()
+                ),
+                "native_unit_fold_consistent": bool(fold_consistent),
+                "resolved_native_unit_count": int(
+                    resolved["oof_fold_id"].notna().sum()
+                ),
+            }
+        )
+    return pd.DataFrame.from_records(records)
+
+
 def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
     """Load train-ready rows and keep identity/source columns as metadata only."""
 
@@ -722,7 +812,14 @@ def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
         name: value for name, value in np.load(config.root / "X_spatial_sequences.npz").items()
     }
     missing_arrays = [
-        name for name in [*MODEL_GROUPS, "length_mask", "observed_mask"] if name not in arrays
+        name
+        for name in [
+            *MODEL_GROUPS,
+            "length_mask",
+            "observed_mask",
+            "spatial_quality_mask",
+        ]
+        if name not in arrays
     ]
     if missing_arrays:
         raise ValueError(f"missing spatial arrays: {missing_arrays}")
@@ -735,9 +832,16 @@ def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
         usecols=[
             "window_id",
             "temporal_unit_keys_window",
+            "temporal_unit_keys_json",
             "num_temporal_units_window",
             "window_valid_for_main_train",
             "window_sample_weight",
+            "view_type",
+            "sampling_pattern",
+            "feature_computation_grain",
+            "pair_scope_key",
+            "pair_recomputed_for_view",
+            "aggregate_recomputed_for_view",
         ],
         low_memory=False,
     )
@@ -791,12 +895,40 @@ def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
         how="left",
         validate="one_to_one",
     ).rename(columns={"temporal_unit_keys_window": "temporal_unit_key"})
-    frame = frame.merge(folds, on="temporal_unit_key", how="left")
+    window_fold_authority = _resolve_window_fold_authority(sequence, folds)
+    frame = frame.merge(
+        window_fold_authority,
+        on="window_id",
+        how="left",
+        validate="one_to_one",
+    )
     frame = frame.merge(event_weights, on="window_id", how="left", validate="one_to_one")
     frame["window_image_context_complete"] = _to_bool(
         image_windows["window_image_context_complete"]
     )
     frame["window_valid_for_main_train"] = _to_bool(frame["window_valid_for_main_train"])
+    frame["pair_recomputed_for_view"] = _to_bool(
+        frame["pair_recomputed_for_view"]
+    )
+    frame["aggregate_recomputed_for_view"] = _to_bool(
+        frame["aggregate_recomputed_for_view"]
+    )
+    invalid_grain = frame["feature_computation_grain"].fillna("").astype(
+        str
+    ).ne("FINAL_VIEW_FEATURES")
+    if invalid_grain.any():
+        raise ValueError(
+            "sequence manifest contains non-final computation grain: "
+            f"count={int(invalid_grain.sum())}"
+        )
+    invalid_pair_scope = frame["pair_scope_key"].fillna("").astype(str).ne(
+        frame["window_id"].fillna("").astype(str)
+    )
+    if invalid_pair_scope.any():
+        raise ValueError(
+            "sequence manifest pair_scope_key does not match window_id: "
+            f"count={int(invalid_pair_scope.sum())}"
+        )
     frame["native_unit_valid_for_main_eval"] = _to_bool(frame["native_unit_valid_for_main_eval"])
     frame["window_valid_for_event_weight"] = _to_bool(frame["window_valid_for_event_weight"])
     frame["event_balanced_sample_weight"] = pd.to_numeric(
@@ -808,12 +940,18 @@ def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
     frame["eligible"] = (
         frame["train_mask"]
         & frame["window_valid_for_main_train"]
+        & frame["pair_recomputed_for_view"]
+        & frame["aggregate_recomputed_for_view"]
         & frame["native_unit_valid_for_main_eval"]
         & frame["window_image_context_complete"]
-        & frame["num_temporal_units_window"].eq(1)
+        & frame["native_unit_fold_consistent"]
+        & frame["resolved_native_unit_count"].eq(
+            frame["num_temporal_units_window"]
+        )
         & frame["behavior_true"].isin(VALID_BEHAVIORS)
         & frame["oof_fold_id"].fillna("").astype(str).ne("")
     )
+    _validate_primary_view_identity(frame)
     if config.sample_weight_policy in {"event", "event_class"}:
         invalid_event_training_rows = frame["eligible"] & (
             ~frame["window_valid_for_event_weight"]
@@ -861,6 +999,45 @@ def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
         frame=frame,
         load_audit=load_audit,
     )
+
+
+def _validate_primary_view_identity(frame: pd.DataFrame) -> tuple[str, str]:
+    """Reject absent, mixed, sparse, or internally inconsistent primary views."""
+
+    eligible_view_types = sorted(
+        frame.loc[frame["eligible"], "view_type"]
+        .fillna("")
+        .astype(str)
+        .unique()
+        .tolist()
+    )
+    eligible_sampling_patterns = sorted(
+        frame.loc[frame["eligible"], "sampling_pattern"]
+        .fillna("")
+        .astype(str)
+        .unique()
+        .tolist()
+    )
+    if len(eligible_view_types) != 1 or not eligible_view_types[0]:
+        raise ValueError(
+            "primary model cannot mix or omit temporal view types: "
+            f"{eligible_view_types}"
+        )
+    if len(eligible_sampling_patterns) != 1 or not eligible_sampling_patterns[0]:
+        raise ValueError(
+            "primary model cannot mix or omit sampling patterns: "
+            f"{eligible_sampling_patterns}"
+        )
+    if eligible_view_types[0] == "S6@16":
+        raise ValueError("S6@16 is legacy-only ablation, not a primary view")
+    view_type = eligible_view_types[0]
+    sampling_pattern = eligible_sampling_patterns[0]
+    if view_type.endswith("_contiguous") and sampling_pattern != "contiguous":
+        raise ValueError(
+            "contiguous primary view has noncontiguous sampling pattern: "
+            f"view_type={view_type}, sampling_pattern={sampling_pattern}"
+        )
+    return view_type, sampling_pattern
 
 
 def _batch_from_indices(
@@ -928,6 +1105,11 @@ def _batch_from_indices(
         "spatial_observed_mask": torch.from_numpy(bundle.arrays["observed_mask"][indices])
         .float()
         .to(device),
+        "spatial_quality_mask": torch.from_numpy(
+            bundle.arrays["spatial_quality_mask"][indices]
+        )
+        .float()
+        .to(device),
         "interaction_context_features": torch.from_numpy(
             bundle.interaction_context_features[indices]
         )
@@ -959,6 +1141,7 @@ def _forward_model(model: MultimodalFusionClassifier, batch: dict[str, Any]) -> 
         image_observed_mask=batch["image_observed_mask"],
         spatial_length_mask=batch["spatial_length_mask"],
         spatial_observed_mask=batch["spatial_observed_mask"],
+        spatial_quality_mask=batch["spatial_quality_mask"],
         interaction_context_features=batch["interaction_context_features"],
         interaction_context_available_mask=batch["interaction_context_available_mask"],
         visual_context_image=batch["visual_context_image"],

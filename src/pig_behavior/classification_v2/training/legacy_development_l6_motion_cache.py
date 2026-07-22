@@ -15,7 +15,7 @@ import pandas as pd
 import torch
 
 from pig_behavior.classification_v2.spatial_sequence_export import (
-    SPATIAL_FRAME_FEATURES,
+    LEGACY_SPATIAL_FRAME_FEATURES,
     SpatialSequenceExport,
     export_spatial_sequences,
 )
@@ -38,7 +38,7 @@ from pig_behavior.classification_v2.training.legacy_development_l6_geometry_cach
 from pig_behavior.classification_v2.training.lineage_hashing import file_sha256
 
 EXPECTED_TEMPORAL_SLOT_ROWS = 109_296
-MOTION_FEATURE_NAMES = tuple(SPATIAL_FRAME_FEATURES["motion_delta"])
+MOTION_FEATURE_NAMES = tuple(LEGACY_SPATIAL_FRAME_FEATURES["motion_delta"])
 MOTION_DIM = len(MOTION_FEATURE_NAMES)
 MOTION_DTYPE = np.dtype(np.float32)
 AVAILABILITY_DTYPE = np.dtype(np.bool_)
@@ -63,6 +63,7 @@ MOTION_FRAME_COLUMNS = (
     "frame_uid",
     "object_track_key",
     "frame_index",
+    "timestamp_sec",
     "lineage_scope",
     "human_review_complete",
     *MOTION_POSITION_FIELDS,
@@ -402,6 +403,7 @@ def materialize_motion_cache(
         [
             "object_track_key",
             "frame_index",
+            "timestamp_sec",
             *MOTION_POSITION_FIELDS,
             *MOTION_FEATURE_NAMES,
             *MOTION_QUALITY_FIELDS,
@@ -411,6 +413,7 @@ def materialize_motion_cache(
         windows,
         export_frames,
         max_window_length=SEQUENCE_LENGTH,
+        feature_schema=LEGACY_SPATIAL_FRAME_FEATURES,
     )
     _validate_spatial_export(exported)
     motion = np.asarray(
@@ -798,7 +801,6 @@ def _motion_pair_availability(
     exported: SpatialSequenceExport,
 ) -> np.ndarray:
     observed = np.asarray(exported.arrays["observed_mask"], dtype=bool)
-    frame_index = np.asarray(exported.arrays["frame_index_sequence"])
     quality = np.asarray(exported.arrays["quality_mask"], dtype=np.float32)
     names = list(exported.feature_names["quality_mask"])
     missing = sorted(set(MOTION_QUALITY_FIELDS) - set(names))
@@ -807,16 +809,14 @@ def _motion_pair_availability(
     row_valid = observed.copy()
     for field in MOTION_QUALITY_FIELDS:
         row_valid &= quality[..., names.index(field)] > 0.5
-    pair_valid = (
-        observed[:, :-1]
-        & observed[:, 1:]
-        & row_valid[:, :-1]
-        & row_valid[:, 1:]
-        & (np.diff(frame_index, axis=1) > 0)
+    adjacent = np.asarray(
+        exported.arrays["adjacent_motion_pair_mask"],
+        dtype=bool,
     )
-    availability = np.zeros(observed.shape, dtype=AVAILABILITY_DTYPE)
-    availability[:, 1:] = pair_valid
-    expected_pairs = int(exported.audit["motion_valid_pair_count"])
+    availability = (
+        adjacent & observed & row_valid
+    ).astype(AVAILABILITY_DTYPE)
+    expected_pairs = int(exported.audit["motion_adjacent_pair_count"])
     if int(availability.sum()) != expected_pairs:
         raise ValueError(
             "motion availability/export pair count drift "

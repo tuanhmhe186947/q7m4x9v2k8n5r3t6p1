@@ -17,10 +17,89 @@ from pig_behavior.classification_v2.training.full_multimodal_oof import (
     _effective_training_step_count,
     _fold_local_class_weights,
     _fold_training_coverage_complete,
+    _resolve_window_fold_authority,
     _save_training_checkpoint,
     _training_batches,
     _training_sample_weights,
+    _validate_primary_view_identity,
 )
+
+
+def test_multi_unit_window_requires_complete_consistent_fold_authority() -> None:
+    sequence = pd.DataFrame(
+        {
+            "window_id": ["t8-window"],
+            "temporal_unit_keys_json": ['["unit-a","unit-b"]'],
+            "num_temporal_units_window": [2],
+        }
+    )
+    folds = pd.DataFrame(
+        {
+            "temporal_unit_key": ["unit-a", "unit-b"],
+            "oof_fold_id": ["fold-0", "fold-0"],
+            "native_unit_valid_for_main_eval": [True, True],
+        }
+    )
+
+    resolved = _resolve_window_fold_authority(sequence, folds).iloc[0]
+
+    assert resolved["oof_fold_id"] == "fold-0"
+    assert bool(resolved["native_unit_fold_consistent"]) is True
+    assert bool(resolved["native_unit_valid_for_main_eval"]) is True
+    assert resolved["resolved_native_unit_count"] == 2
+
+    folds.loc[1, "oof_fold_id"] = "fold-1"
+    inconsistent = _resolve_window_fold_authority(sequence, folds).iloc[0]
+    assert inconsistent["oof_fold_id"] == ""
+    assert bool(inconsistent["native_unit_fold_consistent"]) is False
+    assert bool(inconsistent["native_unit_valid_for_main_eval"]) is False
+
+
+def test_primary_model_rejects_mixed_or_mislabeled_temporal_views() -> None:
+    frame = pd.DataFrame(
+        {
+            "eligible": [True, True],
+            "view_type": ["T6_contiguous", "T8_contiguous"],
+            "sampling_pattern": ["contiguous", "contiguous"],
+        }
+    )
+
+    with pytest.raises(ValueError, match="cannot mix or omit temporal view"):
+        _validate_primary_view_identity(frame)
+
+    frame["view_type"] = "T6_contiguous"
+    frame["sampling_pattern"] = "uniform_sparse_offsets_0_3_6_9_12_15"
+    with pytest.raises(ValueError, match="noncontiguous sampling pattern"):
+        _validate_primary_view_identity(frame)
+
+    frame["sampling_pattern"] = "contiguous"
+    assert _validate_primary_view_identity(frame) == (
+        "T6_contiguous",
+        "contiguous",
+    )
+
+
+def test_window_fold_authority_rejects_missing_constituent_unit() -> None:
+    sequence = pd.DataFrame(
+        {
+            "window_id": ["t8-window"],
+            "temporal_unit_keys_json": ['["unit-a","unit-b"]'],
+            "num_temporal_units_window": [2],
+        }
+    )
+    folds = pd.DataFrame(
+        {
+            "temporal_unit_key": ["unit-a"],
+            "oof_fold_id": ["fold-0"],
+            "native_unit_valid_for_main_eval": [True],
+        }
+    )
+
+    resolved = _resolve_window_fold_authority(sequence, folds).iloc[0]
+
+    assert resolved["resolved_native_unit_count"] == 1
+    assert bool(resolved["native_unit_fold_consistent"]) is False
+    assert bool(resolved["native_unit_valid_for_main_eval"]) is False
 
 
 def test_ordered_window_alignment_rejects_same_keys_in_wrong_order() -> None:

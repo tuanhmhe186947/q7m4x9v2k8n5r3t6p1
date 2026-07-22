@@ -13,8 +13,14 @@ import pandas as pd
 import torch
 from torch import nn
 
-from pig_behavior.classification_v2.evaluation.metrics import DEFAULT_LABEL_ORDER, evaluate_predictions
-from pig_behavior.classification_v2.models.spatial_tcn import SpatialTCNClassifier, SpatialTCNConfig
+from pig_behavior.classification_v2.evaluation.metrics import (
+    DEFAULT_LABEL_ORDER,
+    evaluate_predictions,
+)
+from pig_behavior.classification_v2.models.spatial_tcn import (
+    SpatialTCNClassifier,
+    SpatialTCNConfig,
+)
 
 MODEL_GROUPS = (
     "bbox_xywh_n",
@@ -22,7 +28,6 @@ MODEL_GROUPS = (
     "motion_delta",
     "roi_class_relation",
     "social_relation",
-    "quality_mask",
 )
 
 
@@ -89,7 +94,11 @@ def run_spatial_tcn_smoke_train(config: SpatialTCNSmokeTrainConfig) -> SpatialTC
             dropout=config.dropout,
         )
     ).to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
+    optimizer = torch.optim.AdamW(
+        model.parameters(),
+        lr=config.lr,
+        weight_decay=config.weight_decay,
+    )
     loss_fn = nn.CrossEntropyLoss()
 
     train_batch = _batch_from_indices(bundle, train_indices, label_to_idx, device)
@@ -110,13 +119,32 @@ def run_spatial_tcn_smoke_train(config: SpatialTCNSmokeTrainConfig) -> SpatialTC
 
     predictions = pd.concat(
         [
-            predict_indices(model, bundle, train_indices, label_order, split_name="train_smoke", device=device),
-            predict_indices(model, bundle, eval_indices, label_order, split_name="val_smoke", device=device),
+            predict_indices(
+                model,
+                bundle,
+                train_indices,
+                label_order,
+                split_name="train_smoke",
+                device=device,
+            ),
+            predict_indices(
+                model,
+                bundle,
+                eval_indices,
+                label_order,
+                split_name="val_smoke",
+                device=device,
+            ),
         ],
         ignore_index=True,
     )
     metrics = {
-        split: evaluate_predictions(group, y_true_col="y_true", y_pred_col="y_pred", label_order=label_order)
+        split: evaluate_predictions(
+            group,
+            y_true_col="y_true",
+            y_pred_col="y_pred",
+            label_order=label_order,
+        )
         for split, group in predictions.groupby("prediction_split", sort=True)
     }
 
@@ -183,10 +211,19 @@ def predict_indices(
     device: torch.device,
 ) -> pd.DataFrame:
     """Write one prediction row per selected window index."""
-    batch = _batch_from_indices(bundle, indices, {label: i for i, label in enumerate(label_order)}, device)
+    batch = _batch_from_indices(
+        bundle,
+        indices,
+        {label: i for i, label in enumerate(label_order)},
+        device,
+    )
     model.eval()
     with torch.no_grad():
-        logits = model(batch["features"], length_mask=batch["length_mask"], observed_mask=batch["observed_mask"])
+        logits = model(
+            batch["features"],
+            length_mask=batch["length_mask"],
+            observed_mask=batch["observed_mask"],
+        )
         probs = torch.softmax(logits, dim=1).cpu().numpy()
     pred_idx = probs.argmax(axis=1)
     rows = bundle.split.iloc[indices].reset_index(drop=True)
@@ -196,11 +233,22 @@ def predict_indices(
             "window_id": rows["window_id"].astype(str) if "window_id" in rows else "",
             "prediction_split": split_name,
             "source_split": rows["split"].astype(str) if "split" in rows else "",
-            "split_group_key": rows["split_group_key"].astype(str) if "split_group_key" in rows else "",
+            "split_group_key": (
+                rows["split_group_key"].astype(str)
+                if "split_group_key" in rows
+                else ""
+            ),
             "y_true": bundle.y.iloc[indices].to_numpy(dtype=str),
             "y_pred": [label_order[i] for i in pred_idx],
             "confidence": probs.max(axis=1),
-            "correct": [label_order[i] == y for i, y in zip(pred_idx, bundle.y.iloc[indices], strict=True)],
+            "correct": [
+                label_order[i] == y
+                for i, y in zip(
+                    pred_idx,
+                    bundle.y.iloc[indices],
+                    strict=True,
+                )
+            ],
         }
     )
 
@@ -215,7 +263,11 @@ class _SpatialBundle:
 
 def _load_bundle(root: Path) -> _SpatialBundle:
     arrays = {name: value for name, value in np.load(root / "X_spatial_sequences.npz").items()}
-    missing = [name for name in [*MODEL_GROUPS, "length_mask", "observed_mask"] if name not in arrays]
+    missing = [
+        name
+        for name in [*MODEL_GROUPS, "length_mask", "observed_mask"]
+        if name not in arrays
+    ]
     if missing:
         raise ValueError(f"missing spatial arrays: {missing}")
     y = pd.read_csv(root / "y_behavior.csv").iloc[:, 0].fillna("").astype(str)
@@ -236,13 +288,23 @@ def _batch_from_indices(
     label_to_idx: dict[str, int],
     device: torch.device,
 ) -> dict[str, Any]:
-    features = {name: torch.from_numpy(bundle.arrays[name][indices]).float().to(device) for name in MODEL_GROUPS}
+    features = {
+        name: torch.from_numpy(bundle.arrays[name][indices]).float().to(device)
+        for name in MODEL_GROUPS
+    }
     target_labels = bundle.y.iloc[indices].tolist()
-    target = torch.tensor([label_to_idx[label] for label in target_labels], dtype=torch.long).to(device)
+    target = torch.tensor(
+        [label_to_idx[label] for label in target_labels],
+        dtype=torch.long,
+    ).to(device)
     return {
         "features": features,
         "length_mask": torch.from_numpy(bundle.arrays["length_mask"][indices]).float().to(device),
-        "observed_mask": torch.from_numpy(bundle.arrays["observed_mask"][indices]).float().to(device),
+        "observed_mask": torch.from_numpy(
+            bundle.arrays["observed_mask"][indices]
+        )
+        .float()
+        .to(device),
         "target": target,
     }
 

@@ -63,6 +63,56 @@ def test_temporal_views_are_deterministic_under_frame_reordering() -> None:
     assert first.audit["fixed6_slot_key_sha256"] == second.audit["fixed6_slot_key_sha256"]
 
 
+def test_contiguous_t6_may_cross_two_reviewed_native_intervals() -> None:
+    intervals = pd.DataFrame(
+        {
+            "temporal_unit_key": ["unit-a", "unit-b"],
+            "source_type": ["cvat_tracking_xml"] * 2,
+            "object_track_key": ["track-a"] * 2,
+            "label_window_start": [0, 6],
+            "label_window_end": [5, 11],
+            "label_frame_count": [6, 6],
+        }
+    )
+    frames = pd.DataFrame(
+        {
+            "frame_uid": [f"frame-{value}" for value in range(12)],
+            "source_type": ["cvat_tracking_xml"] * 12,
+            "object_track_key": ["track-a"] * 12,
+            "temporal_unit_key": ["unit-a"] * 6 + ["unit-b"] * 6,
+            "frame_index": list(range(12)),
+            "timestamp_sec": [value / 30.0 for value in range(12)],
+            "bbox_valid": [True] * 12,
+            "spatiotemporal_feature_valid": [True] * 12,
+        }
+    )
+    window_id = "track-a|T6|3-8"
+    windows = pd.DataFrame(
+        {
+            "window_id": [window_id],
+            "source_type": ["cvat_tracking_xml"],
+            "object_track_key": ["track-a"],
+            "window_start_frame": [3],
+            "window_end_frame": [8],
+            "window_length_frames": [6],
+            "temporal_unit_keys_json": ['["unit-a","unit-b"]'],
+            "feature_computation_grain": ["FINAL_VIEW_FEATURES"],
+            "pair_scope_key": [window_id],
+            "view_type": ["T6_contiguous"],
+            "sampling_pattern": ["contiguous"],
+            "selected_frame_indices": ["[3,4,5,6,7,8]"],
+            "pair_recomputed_for_view": [True],
+            "aggregate_recomputed_for_view": [True],
+        }
+    )
+
+    result = build_temporal_views(windows, frames, intervals)
+
+    assert result.fixed6_observed_time_manifest[
+        "temporal_unit_key"
+    ].tolist() == ["unit-a"] * 3 + ["unit-b"] * 3
+
+
 def test_missing_frame_is_masked_without_losing_expected_slot() -> None:
     windows, frames, intervals = _inputs()
     frames = frames.loc[~frames["frame_uid"].eq("legacy-frame-3")].reset_index(drop=True)
@@ -162,6 +212,28 @@ def test_structural_shortcut_audit_accepts_shared_fixed_patterns() -> None:
     assert audit["phase_timing_pattern_shared_across_sources"] is True
     assert audit["native_length_confound_expected"] is True
     assert audit["training_authorized"] is False
+
+
+def test_shortcut_audit_rejects_sparse_six_as_primary_t6() -> None:
+    result = build_temporal_views(*_inputs())
+    selection = result.selection_manifest.copy()
+    legacy = selection["window_id"].eq("legacy-fixed6")
+    selection.loc[legacy, "view_type"] = "S6@16"
+    selection.loc[legacy, "sampling_pattern"] = "sparse_0_3_6_9_12_15"
+
+    audit = audit_temporal_view_shortcuts(
+        selection,
+        result.fixed6_observed_time_manifest,
+        result.fixed6_normalized_phase_manifest,
+        result.native6_16_manifest,
+        result.contract,
+    )
+
+    assert audit["valid"] is False
+    assert any(
+        "selection_fixed6_keep_does_not_match_exact_T6_contiguous" in error
+        for error in audit["errors"]
+    )
 
 
 def test_phase_timing_source_signature_stops_training() -> None:
@@ -427,6 +499,25 @@ def _inputs() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
             "window_start_frame": [0, 100, 0],
             "window_end_frame": [15, 105, 5],
             "window_length_frames": [16, 6, 6],
+            "feature_computation_grain": ["FINAL_VIEW_FEATURES"] * 3,
+            "pair_scope_key": [
+                "legacy-native16",
+                "cvat-fixed6",
+                "legacy-fixed6",
+            ],
+            "view_type": [
+                "T16_contiguous",
+                "T6_contiguous",
+                "T6_contiguous",
+            ],
+            "sampling_pattern": ["contiguous"] * 3,
+            "selected_frame_indices": [
+                json.dumps(list(range(16)), separators=(",", ":")),
+                json.dumps(list(range(100, 106)), separators=(",", ":")),
+                json.dumps(list(range(6)), separators=(",", ":")),
+            ],
+            "pair_recomputed_for_view": [True] * 3,
+            "aggregate_recomputed_for_view": [True] * 3,
             "temporal_unit_keys_json": [
                 '["legacy-unit"]',
                 '["cvat-unit"]',

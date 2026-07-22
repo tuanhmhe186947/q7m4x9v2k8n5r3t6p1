@@ -315,6 +315,7 @@ class StrictTrainingDataModule:
             raw["spatial_features"],
             length_mask=raw["spatial_length_mask"],
             observed_mask=raw["spatial_observed_mask"],
+            quality_mask=raw["spatial_quality_mask"],
         )
 
     def _validate_behavior_target_alignment(self) -> None:
@@ -422,7 +423,12 @@ class StrictTrainingDataModule:
 
         spatial_length = raw["spatial_length_mask"]
         spatial_observed = raw["spatial_observed_mask"]
-        if spatial_length.ndim != 2 or spatial_observed.shape != spatial_length.shape:
+        spatial_quality = raw["spatial_quality_mask"]
+        if (
+            spatial_length.ndim != 2
+            or spatial_observed.shape != spatial_length.shape
+            or spatial_quality.shape != spatial_length.shape
+        ):
             raise ValueError("invalid spatial temporal-mask shapes")
         available = int(spatial_length.shape[1])
         if available < expected:
@@ -438,6 +444,7 @@ class StrictTrainingDataModule:
             raise ValueError("selected window has spatial length beyond its tier")
         raw["spatial_length_mask"] = spatial_length[:, :expected]
         raw["spatial_observed_mask"] = spatial_observed[:, :expected]
+        raw["spatial_quality_mask"] = spatial_quality[:, :expected]
         raw["spatial_features"] = {
             name: values[:, :expected]
             for name, values in raw["spatial_features"].items()
@@ -806,7 +813,7 @@ def _strict_model_inputs(raw: dict[str, Any]) -> dict[str, Any]:
         "image_available_mask": raw["image_observed_mask"],
         "image_quality_mask": raw["image_observed_mask"],
         "spatial_available_mask": raw["spatial_observed_mask"],
-        "spatial_quality_mask": raw["spatial_observed_mask"],
+        "spatial_quality_mask": raw["spatial_quality_mask"],
         "interaction_context_quality_mask": raw[
             "interaction_context_available_mask"
         ],

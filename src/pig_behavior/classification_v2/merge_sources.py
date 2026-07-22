@@ -18,6 +18,9 @@ from pig_behavior.classification_v2.schema import (
     SOURCE_TYPES,
     VALID_BEHAVIOR_SET,
 )
+from pig_behavior.classification_v2.sources.temporal_provenance import (
+    audit_source_frame_clock,
+)
 
 
 def merge_frame_object_sources(
@@ -167,6 +170,25 @@ def audit_merged_frame_objects(df: pd.DataFrame) -> dict[str, Any]:
     duplicate_object_rows = _duplicate_object_row_count(df)
     if duplicate_object_rows:
         errors.append(f"duplicate_frame_object_rows={duplicate_object_rows}")
+    source_fps = pd.to_numeric(
+        df.get("source_fps", pd.Series(pd.NA, index=df.index)),
+        errors="coerce",
+    )
+    timestamp_clock_audit: dict[str, Any] = {
+        "rows": int(len(df)),
+        "source_fps_values": [],
+        "errors": [],
+        "status": "not_declared",
+    }
+    if source_fps.notna().any():
+        timestamp_clock_audit = audit_source_frame_clock(df)
+        timestamp_clock_audit["status"] = (
+            "pass" if not timestamp_clock_audit["errors"] else "fail"
+        )
+        errors.extend(
+            f"timestamp_clock_contract={error}"
+            for error in timestamp_clock_audit["errors"]
+        )
 
     return {
         "rows": int(len(df)),
@@ -186,6 +208,7 @@ def audit_merged_frame_objects(df: pd.DataFrame) -> dict[str, Any]:
         "bbox_valid": _value_counts_dict(df, "bbox_valid"),
         "invalid_bbox_count": invalid_bbox_count,
         "duplicate_frame_object_rows": duplicate_object_rows,
+        "timestamp_clock_audit": timestamp_clock_audit,
         "identifier_audit": identifier_audit,
         "errors": errors,
         "warnings": warnings,

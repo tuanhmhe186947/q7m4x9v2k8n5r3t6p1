@@ -39,7 +39,9 @@ def _frame_rows() -> pd.DataFrame:
                 "video_key": "video-a",
                 "frame_uid": f"frame-{frame_index}",
                 "frame_index": frame_index,
+                "timestamp_sec": frame_index / 30.0,
                 "object_track_key": "legacy|video-a|track=1",
+                "temporal_unit_key": "legacy|video-a|track=1|unit=0-15",
                 "bbox_valid": True,
                 "x1": center_x - 2.0,
                 "y1": center_y - 2.0,
@@ -197,6 +199,22 @@ def test_spatial_export_keeps_pen_context_in_an_isolated_feature_group(
             "window_start_frame": [0],
             "window_end_frame": [3],
             "window_length_frames": [4],
+            "feature_computation_grain": ["FINAL_VIEW_FEATURES"],
+            "pair_scope_key": ["legacy|video-a|track=1|win=4|0-3"],
+            "view_type": ["T4_contiguous"],
+            "sampling_pattern": ["contiguous"],
+            "selected_frame_offsets": ["[0,1,2,3]"],
+            "selected_frame_indices": ["[0,1,2,3]"],
+            "selected_timestamps_seconds": [
+                "[0.0,0.03333333333333333,0.06666666666666667,0.1]"
+            ],
+            "pair_delta_frames": ["[1,1,1]"],
+            "pair_delta_seconds": [
+                "[0.03333333333333333,0.03333333333333333,"
+                "0.03333333333333333]"
+            ],
+            "pair_recomputed_for_view": [True],
+            "aggregate_recomputed_for_view": [True],
         }
     )
 
@@ -206,8 +224,8 @@ def test_spatial_export_keeps_pen_context_in_an_isolated_feature_group(
     values = exported.arrays["pen_boundary_context"][0]
     assert names == list(PEN_CONTEXT_MODEL_FEATURE_COLUMNS)
     assert values.shape == (4, len(PEN_CONTEXT_MODEL_FEATURE_COLUMNS))
-    assert values[0, names.index("pen_approach_speed_n_per_frame")] == 0.0
-    assert values[1, names.index("pen_approach_speed_n_per_frame")] > 0.0
+    assert values[0, names.index("pen_approach_speed_n_per_second")] == 0.0
+    assert values[1, names.index("pen_approach_speed_n_per_second")] > 0.0
     assert exported.audit["pen_rebased_windows"] == 1
     assert exported.audit["pen_valid_pair_count"] == 3
     assert "pen_context_available" not in names

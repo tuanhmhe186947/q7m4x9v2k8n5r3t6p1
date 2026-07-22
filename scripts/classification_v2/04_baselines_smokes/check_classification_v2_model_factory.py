@@ -31,7 +31,6 @@ GROUP_DIMS = {
     "motion_delta": 5,
     "roi_class_relation": 6,
     "social_relation": 7,
-    "quality_mask": 2,
 }
 
 

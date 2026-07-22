@@ -221,7 +221,7 @@ def _validate_contract(contract: dict[str, Any], errors: list[str]) -> None:
     missing_tensor_fields = sorted(set(MODEL_TENSOR_COLUMNS) - set(model_columns))
     if missing_tensor_fields:
         errors.append(f"missing_temporal_tensor_fields={missing_tensor_fields}")
-    if contract.get("selection_rule") != "existing_harmonized_window_length_equals_6":
+    if contract.get("selection_rule") != "exact_final_T6_contiguous_only":
         errors.append("unsupported_fixed6_selection_rule")
     if contract.get("window_uid_created") is not False:
         errors.append("temporal_contract_must_forbid_window_uid")
@@ -235,6 +235,8 @@ def _validate_selection(selection: pd.DataFrame, errors: list[str]) -> None:
         "window_id",
         "source_type",
         "window_length_frames",
+        "view_type",
+        "sampling_pattern",
         "fixed6_keep",
         "fixed6_reason",
     }
@@ -257,8 +259,18 @@ def _validate_selection(selection: pd.DataFrame, errors: list[str]) -> None:
         errors.append("selection_input_window_order_not_contiguous")
     keep = selection["fixed6_keep"].map(_bool_scalar)
     lengths = pd.to_numeric(selection["window_length_frames"], errors="coerce")
-    if not keep.equals(lengths.eq(6)):
-        errors.append("selection_fixed6_keep_does_not_match_length_six")
+    expected_keep = (
+        lengths.eq(6)
+        & selection["view_type"].astype(str).eq("T6_contiguous")
+        & selection["sampling_pattern"].astype(str).eq("contiguous")
+    )
+    if not keep.equals(expected_keep):
+        errors.append(
+            "selection_fixed6_keep_does_not_match_exact_T6_contiguous"
+        )
+    selected_reason = selection.loc[keep, "fixed6_reason"].astype(str)
+    if not selected_reason.eq("selected_exact_T6_contiguous_window").all():
+        errors.append("selection_fixed6_selected_reason_mismatch")
 
 
 def _validate_artifact_contract(

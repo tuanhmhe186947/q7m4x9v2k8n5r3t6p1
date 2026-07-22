@@ -384,6 +384,11 @@ def build_roi_features(
         )
     )
 
+    out["feature_computation_grain"] = "FRAME_LOCAL_PRIMITIVES"
+    out["pair_scope_key"] = ""
+    out["pair_recomputed_for_view"] = False
+    out["aggregate_recomputed_for_view"] = False
+
     require_lineage_claims_preserved(
         frame_features,
         out,

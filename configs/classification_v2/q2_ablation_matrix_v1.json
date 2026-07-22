@@ -19,7 +19,7 @@
       "enable_interaction_context": false,
       "enable_visual_context": false,
       "enable_multitask": false,
-      "spatial_groups": ["bbox_xywh_n", "bbox_shape_n", "motion_delta", "roi_class_relation", "social_relation", "quality_mask"]
+      "spatial_groups": ["bbox_xywh_n", "bbox_shape_n", "motion_delta", "roi_class_relation", "social_relation"]
     },
     {
       "id": "B3",
@@ -41,7 +41,7 @@
       "enable_interaction_context": false,
       "enable_visual_context": false,
       "enable_multitask": false,
-      "spatial_groups": ["bbox_xywh_n", "bbox_shape_n", "motion_delta", "roi_class_relation", "social_relation", "quality_mask"]
+      "spatial_groups": ["bbox_xywh_n", "bbox_shape_n", "motion_delta", "roi_class_relation", "social_relation"]
     },
     {
       "id": "B5",
@@ -52,7 +52,7 @@
       "enable_interaction_context": true,
       "enable_visual_context": true,
       "enable_multitask": false,
-      "spatial_groups": ["bbox_xywh_n", "bbox_shape_n", "motion_delta", "roi_class_relation", "social_relation", "quality_mask"]
+      "spatial_groups": ["bbox_xywh_n", "bbox_shape_n", "motion_delta", "roi_class_relation", "social_relation"]
     },
     {
       "id": "B6",
@@ -63,7 +63,7 @@
       "enable_interaction_context": true,
       "enable_visual_context": true,
       "enable_multitask": true,
-      "spatial_groups": ["bbox_xywh_n", "bbox_shape_n", "motion_delta", "roi_class_relation", "social_relation", "quality_mask"]
+      "spatial_groups": ["bbox_xywh_n", "bbox_shape_n", "motion_delta", "roi_class_relation", "social_relation"]
     },
     {
       "id": "B7",
@@ -74,7 +74,7 @@
       "enable_interaction_context": true,
       "enable_visual_context": true,
       "enable_multitask": true,
-      "spatial_groups": ["bbox_xywh_n", "bbox_shape_n", "motion_delta", "roi_class_relation", "social_relation", "quality_mask"],
+      "spatial_groups": ["bbox_xywh_n", "bbox_shape_n", "motion_delta", "roi_class_relation", "social_relation"],
       "weight_policy": "source_class_balanced",
       "matched_6frame_report_required": true
     }

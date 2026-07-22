@@ -68,6 +68,14 @@ BEHAVIOR_TO_TARGET_ROI: dict[str, str] = {
     "playwithtoy": "toy",
 }
 
+MOTION_GRAIN_COLUMNS: tuple[str, ...] = (
+    "source_type",
+    "dataset_id",
+    "video_key",
+    "object_track_key",
+    "temporal_unit_key",
+)
+
 REQUIRED_INPUT_COLUMNS: tuple[str, ...] = (
     "source_type",
     "dataset_id",
@@ -140,6 +148,8 @@ class EnhancedFeatureConfig:
     max_frame_group_size_for_social: int = 64
     stationary_speed_threshold: float = 0.002
     active_speed_threshold: float = 0.006
+    stationary_speed_threshold_per_second: float = 0.06
+    active_speed_threshold_per_second: float = 0.18
     turning_angle_threshold_rad: float = float(np.pi / 6.0)
 
     def validate(self) -> None:
@@ -163,6 +173,12 @@ class EnhancedFeatureConfig:
         return TemporalEvidenceConfig(
             stationary_speed_threshold=self.stationary_speed_threshold,
             active_speed_threshold=self.active_speed_threshold,
+            stationary_speed_threshold_per_second=(
+                self.stationary_speed_threshold_per_second
+            ),
+            active_speed_threshold_per_second=(
+                self.active_speed_threshold_per_second
+            ),
             turning_angle_threshold_rad=self.turning_angle_threshold_rad,
         )
 
@@ -177,6 +193,8 @@ def build_enhanced_spatiotemporal_features(
     social_contact_overlap_threshold: float = 0.05,
     stationary_speed_threshold: float = 0.002,
     active_speed_threshold: float = 0.006,
+    stationary_speed_threshold_per_second: float = 0.06,
+    active_speed_threshold_per_second: float = 0.18,
     turning_angle_threshold_rad: float = float(np.pi / 6.0),
 ) -> pd.DataFrame:
     """Add enhanced spatio-temporal, ROI-duration, and social-context features.
@@ -196,6 +214,10 @@ def build_enhanced_spatiotemporal_features(
         social_contact_overlap_threshold=social_contact_overlap_threshold,
         stationary_speed_threshold=stationary_speed_threshold,
         active_speed_threshold=active_speed_threshold,
+        stationary_speed_threshold_per_second=(
+            stationary_speed_threshold_per_second
+        ),
+        active_speed_threshold_per_second=active_speed_threshold_per_second,
         turning_angle_threshold_rad=turning_angle_threshold_rad,
     )
     config.validate()
@@ -203,6 +225,18 @@ def build_enhanced_spatiotemporal_features(
     missing = [c for c in REQUIRED_INPUT_COLUMNS if c not in frame_features.columns]
     if missing:
         raise ValueError(f"Missing enhanced spatiotemporal input columns: {missing}")
+    if "feature_computation_grain" in frame_features.columns:
+        input_grains = set(
+            frame_features["feature_computation_grain"]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+        )
+        if input_grains != {"FRAME_LOCAL_PRIMITIVES"}:
+            raise ValueError(
+                "enhanced spatiotemporal input must be FRAME_LOCAL_PRIMITIVES: "
+                f"found={sorted(input_grains)}"
+            )
 
     out = frame_features.copy().reset_index(drop=True)
     out = _normalize_basic_columns(out)
@@ -217,6 +251,10 @@ def build_enhanced_spatiotemporal_features(
         config=config.temporal_evidence_config(),
     )
     out = _add_review_helper_columns(out)
+    out["feature_computation_grain"] = "NATIVE_UNIT_REVIEW_EVIDENCE"
+    out["pair_scope_key"] = out["temporal_unit_key"].astype(str)
+    out["pair_recomputed_for_view"] = False
+    out["aggregate_recomputed_for_view"] = False
 
     require_lineage_claims_preserved(
         frame_features,
@@ -244,20 +282,59 @@ def audit_enhanced_spatiotemporal_features(df: pd.DataFrame) -> dict[str, Any]:
         "label_window_end",
         "source_sequence_length",
         "behavior_consistency_in_unit",
-        "speed_n_per_frame",
-        "motion_energy_unit",
+        "speed_n_per_second",
+        "motion_energy_n_per_second2_unit",
         "target_roi_contact_ratio_unit",
         "nearest_pig_id",
         "nearest_dist_n",
         "social_density_near_count",
-        "motion_active_ratio_unit",
+        "motion_active_ratio_per_second_unit",
         "roi_feeder_contact_ratio_unit",
         "social_partner_persistence_ratio_unit",
         "spatiotemporal_feature_valid",
+        "feature_computation_grain",
+        "pair_scope_key",
+        "pair_recomputed_for_view",
+        "aggregate_recomputed_for_view",
     ]
     missing_new = [c for c in required_new if c not in df.columns]
     if missing_new:
         errors.append(f"missing_enhanced_columns={missing_new}")
+
+    grain_mismatch = 0
+    pair_scope_mismatch = 0
+    invalid_view_recompute_claim = 0
+    if "feature_computation_grain" in df.columns:
+        grain_mismatch = int(
+            df["feature_computation_grain"]
+            .fillna("")
+            .astype(str)
+            .ne("NATIVE_UNIT_REVIEW_EVIDENCE")
+            .sum()
+        )
+        if grain_mismatch:
+            errors.append(f"invalid_feature_computation_grain={grain_mismatch}")
+    if {"pair_scope_key", "temporal_unit_key"}.issubset(df.columns):
+        pair_scope_mismatch = int(
+            df["pair_scope_key"]
+            .fillna("")
+            .astype(str)
+            .ne(df["temporal_unit_key"].fillna("").astype(str))
+            .sum()
+        )
+        if pair_scope_mismatch:
+            errors.append(f"native_pair_scope_mismatch={pair_scope_mismatch}")
+    for column in (
+        "pair_recomputed_for_view",
+        "aggregate_recomputed_for_view",
+    ):
+        if column in df.columns:
+            invalid_view_recompute_claim += int(_to_bool_series(df[column]).sum())
+    if invalid_view_recompute_claim:
+        errors.append(
+            "native_evidence_claims_final_view_recompute="
+            f"{invalid_view_recompute_claim}"
+        )
 
     if "behavior" in df.columns:
         invalid_behaviors = sorted(
@@ -302,13 +379,16 @@ def audit_enhanced_spatiotemporal_features(df: pd.DataFrame) -> dict[str, Any]:
         "source_sequence_complete_auto": _value_counts_dict(df, "source_sequence_complete_auto"),
         "spatiotemporal_feature_valid": feature_valid_count,
         "roi_target_contact_ratio_unit": _numeric_summary(df, "target_roi_contact_ratio_unit"),
-        "speed_n_per_frame": _numeric_summary(df, "speed_n_per_frame"),
+        "speed_n_per_second": _numeric_summary(df, "speed_n_per_second"),
         "nearest_dist_n": _numeric_summary(df, "nearest_dist_n"),
-        "motion_energy_unit": _numeric_summary(df, "motion_energy_unit"),
-        "social_density_near_count": _numeric_summary(df, "social_density_near_count"),
-        "motion_active_ratio_unit": _numeric_summary(
+        "motion_energy_n_per_second2_unit": _numeric_summary(
             df,
-            "motion_active_ratio_unit",
+            "motion_energy_n_per_second2_unit",
+        ),
+        "social_density_near_count": _numeric_summary(df, "social_density_near_count"),
+        "motion_active_ratio_per_second_unit": _numeric_summary(
+            df,
+            "motion_active_ratio_per_second_unit",
         ),
         "roi_feeder_contact_ratio_unit": _numeric_summary(
             df,
@@ -318,6 +398,12 @@ def audit_enhanced_spatiotemporal_features(df: pd.DataFrame) -> dict[str, Any]:
             df,
             "social_partner_persistence_ratio_unit",
         ),
+        "feature_computation_grain": _value_counts_dict(
+            df,
+            "feature_computation_grain",
+        ),
+        "pair_scope_mismatch": pair_scope_mismatch,
+        "invalid_view_recompute_claim": invalid_view_recompute_claim,
         "new_feature_columns": [
             c
             for c in df.columns
@@ -556,9 +642,13 @@ def _add_temporal_unit_columns(df: pd.DataFrame, config: EnhancedFeatureConfig) 
 
 def _add_temporal_deltas(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
-    out = out.sort_values(["object_track_key", "frame_index"], kind="mergesort")
-
-    g = out.groupby("object_track_key", dropna=False, sort=False)
+    grain = [column for column in MOTION_GRAIN_COLUMNS if column in out.columns]
+    if "temporal_unit_key" not in out.columns:
+        # Direct helper callers without native-unit authority may still use
+        # frame-local partner geometry, but pair features must fail closed.
+        grain.append("frame_index")
+    out = out.sort_values([*grain, "frame_index"], kind="mergesort")
+    g = out.groupby(grain, dropna=False, sort=False)
 
     out["prev_frame_index"] = g["frame_index"].shift(1)
     out["next_frame_index"] = g["frame_index"].shift(-1)
@@ -572,36 +662,137 @@ def _add_temporal_deltas(df: pd.DataFrame) -> pd.DataFrame:
         out["prev_timestamp_sec"] = np.nan
         out["delta_time_prev_sec"] = np.nan
 
-    denom_frame = out["delta_frame_prev"].replace(0, np.nan)
-    denom_time = out["delta_time_prev_sec"].replace(0, np.nan)
-
     for col in ["cx_n", "cy_n", "bw_n", "bh_n", "area_n", "aspect_ratio", "box_diag_n"]:
         if col not in out.columns:
             out[col] = np.nan
 
-    out["delta_cx_n"] = g["cx_n"].diff()
-    out["delta_cy_n"] = g["cy_n"].diff()
-    out["delta_bw_n"] = g["bw_n"].diff()
-    out["delta_bh_n"] = g["bh_n"].diff()
-    out["delta_area_n"] = g["area_n"].diff()
-    out["delta_aspect_ratio"] = g["aspect_ratio"].diff()
-    out["delta_box_diag_n"] = g["box_diag_n"].diff()
+    row_valid = _to_bool_series(
+        out.get("bbox_valid", pd.Series(True, index=out.index))
+    )
+    previous_row_valid = row_valid.groupby(
+        [out[column] for column in grain],
+        dropna=False,
+        sort=False,
+    ).shift(1).fillna(False)
+    finite_geometry = out[["cx_n", "cy_n"]].notna().all(axis=1)
+    previous_finite_geometry = finite_geometry.groupby(
+        [out[column] for column in grain],
+        dropna=False,
+        sort=False,
+    ).shift(1).fillna(False)
+    pair_scope_valid = row_valid & previous_row_valid
+    pair_scope_valid &= finite_geometry & previous_finite_geometry
+    frame_positive = out["delta_frame_prev"].gt(0)
+    time_positive = out["delta_time_prev_sec"].gt(0)
+    out["motion_delta_frames"] = out["delta_frame_prev"]
+    out["motion_delta_seconds"] = out["delta_time_prev_sec"]
+    out["adjacent_motion_pair_valid"] = (
+        pair_scope_valid & out["delta_frame_prev"].eq(1) & time_positive
+    )
+    out["sparse_velocity_pair_valid"] = (
+        pair_scope_valid & out["delta_frame_prev"].gt(1) & time_positive
+    )
+    out["motion_velocity_pair_valid"] = (
+        out["adjacent_motion_pair_valid"]
+        | out["sparse_velocity_pair_valid"]
+    )
+    out["motion_pair_invalid_nonpositive_frame"] = (
+        out["prev_frame_index"].notna() & ~frame_positive
+    )
+    out["motion_pair_invalid_nonpositive_time"] = (
+        out["prev_timestamp_sec"].notna() & ~time_positive
+    )
 
-    out["displacement_n"] = np.sqrt(out["delta_cx_n"] ** 2 + out["delta_cy_n"] ** 2)
+    raw_delta: dict[str, pd.Series] = {}
+    for source_column, delta_column in [
+        ("cx_n", "delta_cx_n"),
+        ("cy_n", "delta_cy_n"),
+        ("bw_n", "delta_bw_n"),
+        ("bh_n", "delta_bh_n"),
+        ("area_n", "delta_area_n"),
+        ("aspect_ratio", "delta_aspect_ratio"),
+        ("box_diag_n", "delta_box_diag_n"),
+    ]:
+        raw_delta[source_column] = g[source_column].diff()
+        out[delta_column] = raw_delta[source_column].where(
+            out["adjacent_motion_pair_valid"],
+            0.0,
+        )
+
+    raw_displacement = np.hypot(
+        raw_delta["cx_n"],
+        raw_delta["cy_n"],
+    )
+    out["displacement_n"] = raw_displacement.where(
+        out["adjacent_motion_pair_valid"],
+        0.0,
+    )
+    out["sparse_displacement_n"] = raw_displacement.where(
+        out["sparse_velocity_pair_valid"],
+        0.0,
+    )
+    denom_frame = out["delta_frame_prev"].where(
+        out["adjacent_motion_pair_valid"]
+    )
+    denom_time = out["delta_time_prev_sec"].where(
+        out["motion_velocity_pair_valid"]
+    )
     out["vx_n_per_frame"] = out["delta_cx_n"] / denom_frame
     out["vy_n_per_frame"] = out["delta_cy_n"] / denom_frame
     out["speed_n_per_frame"] = out["displacement_n"] / denom_frame
-    out["speed_n_per_sec"] = out["displacement_n"] / denom_time
+    out["speed_n_per_second"] = raw_displacement / denom_time
+    out["speed_n_per_sec"] = out["speed_n_per_second"]
+    out["vx_n_per_second"] = raw_delta["cx_n"] / denom_time
+    out["vy_n_per_second"] = raw_delta["cy_n"] / denom_time
+    out["bw_rate_n_per_second"] = raw_delta["bw_n"] / denom_time
+    out["bh_rate_n_per_second"] = raw_delta["bh_n"] / denom_time
+    out["area_rate_n_per_second"] = raw_delta["area_n"] / denom_time
+    out["aspect_ratio_rate_per_second"] = (
+        raw_delta["aspect_ratio"] / denom_time
+    )
 
     out["prev_speed_n_per_frame"] = g["speed_n_per_frame"].shift(1)
     out["accel_n_per_frame2"] = (
         out["speed_n_per_frame"] - out["prev_speed_n_per_frame"]
-    ) / denom_frame
+    ).where(out["adjacent_motion_pair_valid"])
     out["abs_accel_n_per_frame2"] = out["accel_n_per_frame2"].abs()
 
-    out["direction_rad"] = np.arctan2(out["delta_cy_n"], out["delta_cx_n"])
+    previous_speed_per_second = g["speed_n_per_second"].shift(1)
+    previous_velocity_valid = g["motion_velocity_pair_valid"].shift(1)
+    previous_delta_seconds = g["motion_delta_seconds"].shift(1)
+    acceleration_delta_seconds = (
+        out["motion_delta_seconds"] + previous_delta_seconds
+    ) / 2.0
+    acceleration_valid = (
+        out["motion_velocity_pair_valid"]
+        & _to_bool_series(previous_velocity_valid)
+        & acceleration_delta_seconds.gt(0)
+    )
+    out["acceleration_pair_valid"] = acceleration_valid
+    out["acceleration_delta_seconds"] = acceleration_delta_seconds.where(
+        acceleration_valid
+    )
+    out["acceleration_n_per_second2"] = (
+        out["speed_n_per_second"] - previous_speed_per_second
+    ).div(acceleration_delta_seconds).where(acceleration_valid, 0.0)
+    out["abs_acceleration_n_per_second2"] = out[
+        "acceleration_n_per_second2"
+    ].abs()
+
+    out["direction_rad"] = np.arctan2(
+        out["delta_cy_n"],
+        out["delta_cx_n"],
+    ).where(out["adjacent_motion_pair_valid"])
     out["prev_direction_rad"] = g["direction_rad"].shift(1)
-    out["direction_change_rad"] = _angle_diff(out["direction_rad"], out["prev_direction_rad"])
+    previous_adjacent = g["adjacent_motion_pair_valid"].shift(1)
+    heading_pair_valid = (
+        out["adjacent_motion_pair_valid"]
+        & _to_bool_series(previous_adjacent)
+    )
+    out["direction_change_rad"] = _angle_diff(
+        out["direction_rad"],
+        out["prev_direction_rad"],
+    ).where(heading_pair_valid, 0.0)
     out["abs_direction_change_rad"] = out["direction_change_rad"].abs()
 
     out["shape_change_score"] = np.sqrt(
@@ -621,14 +812,25 @@ def _add_temporal_deltas(df: pd.DataFrame) -> pd.DataFrame:
         "delta_aspect_ratio",
         "delta_box_diag_n",
         "displacement_n",
+        "sparse_displacement_n",
         "vx_n_per_frame",
         "vy_n_per_frame",
         "speed_n_per_frame",
+        "speed_n_per_second",
+        "speed_n_per_sec",
+        "vx_n_per_second",
+        "vy_n_per_second",
+        "bw_rate_n_per_second",
+        "bh_rate_n_per_second",
+        "area_rate_n_per_second",
+        "aspect_ratio_rate_per_second",
         "accel_n_per_frame2",
         "abs_accel_n_per_frame2",
         "direction_change_rad",
         "abs_direction_change_rad",
         "shape_change_score",
+        "acceleration_n_per_second2",
+        "abs_acceleration_n_per_second2",
     ]
     for col in fill_zero_cols:
         out[col] = out[col].replace([np.inf, -np.inf], np.nan).fillna(0.0)
@@ -665,8 +867,9 @@ def _add_roi_temporal_columns(df: pd.DataFrame) -> pd.DataFrame:
             out[col] = np.nan
         out[col] = pd.to_numeric(out[col], errors="coerce")
 
-    out = out.sort_values(["object_track_key", "frame_index"], kind="mergesort")
-    g = out.groupby("object_track_key", dropna=False, sort=False)
+    grain = list(MOTION_GRAIN_COLUMNS)
+    out = out.sort_values([*grain, "frame_index"], kind="mergesort")
+    g = out.groupby(grain, dropna=False, sort=False)
 
     out["prev_roi_target_contact"] = (
         g["roi_target_contact"]
@@ -682,13 +885,49 @@ def _add_roi_temporal_columns(df: pd.DataFrame) -> pd.DataFrame:
         .fillna(False)
         .astype(bool)
     )
-    out["roi_target_entry_event"] = out["roi_target_contact"] & ~out["prev_roi_target_contact"]
-    out["roi_target_exit_event"] = ~out["roi_target_contact"] & out["prev_roi_target_contact"]
-    out["roi_target_near_entry_event"] = out["roi_target_near"] & ~out["prev_roi_target_near"]
-    out["roi_target_near_exit_event"] = ~out["roi_target_near"] & out["prev_roi_target_near"]
+    previous_roi_available = (
+        g["roi_target_available"]
+        .shift(1)
+        .astype("boolean")
+        .fillna(False)
+        .astype(bool)
+    )
+    adjacent_pair_valid = _to_bool_series(
+        out.get("adjacent_motion_pair_valid", pd.Series(False, index=out.index))
+    )
+    out["roi_transition_pair_valid"] = (
+        adjacent_pair_valid
+        & out["roi_target_available"]
+        & previous_roi_available
+    )
+    out["roi_target_entry_event"] = (
+        out["roi_transition_pair_valid"]
+        & out["roi_target_contact"]
+        & ~out["prev_roi_target_contact"]
+    )
+    out["roi_target_exit_event"] = (
+        out["roi_transition_pair_valid"]
+        & ~out["roi_target_contact"]
+        & out["prev_roi_target_contact"]
+    )
+    out["roi_target_near_entry_event"] = (
+        out["roi_transition_pair_valid"]
+        & out["roi_target_near"]
+        & ~out["prev_roi_target_near"]
+    )
+    out["roi_target_near_exit_event"] = (
+        out["roi_transition_pair_valid"]
+        & ~out["roi_target_near"]
+        & out["prev_roi_target_near"]
+    )
     out["roi_motion_inside_score"] = np.where(
         out["roi_target_contact"] | out["roi_target_near"],
         out.get("speed_n_per_frame", 0.0),
+        0.0,
+    )
+    out["roi_motion_inside_score_per_second"] = np.where(
+        out["roi_target_contact"] | out["roi_target_near"],
+        out.get("speed_n_per_second", 0.0),
         0.0,
     )
 
@@ -808,8 +1047,13 @@ def _add_social_context_columns(df: pd.DataFrame, config: EnhancedFeatureConfig)
     out["social_contact_count"] = contact_count_arr
     out["social_context_frame_size"] = frame_size_arr
 
-    out = out.sort_values(["object_track_key", "frame_index"], kind="mergesort")
-    g = out.groupby("object_track_key", dropna=False, sort=False)
+    grain = [column for column in MOTION_GRAIN_COLUMNS if column in out.columns]
+    if "temporal_unit_key" not in out.columns:
+        # Frame-local partner geometry remains valid without unit authority,
+        # while every pair-derived social field is forced to reset.
+        grain.append("frame_index")
+    out = out.sort_values([*grain, "frame_index"], kind="mergesort")
+    g = out.groupby(grain, dropna=False, sort=False)
     denom_frame = (
         out["delta_frame_prev"].replace(0, np.nan)
         if "delta_frame_prev" in out.columns
@@ -823,18 +1067,44 @@ def _add_social_context_columns(df: pd.DataFrame, config: EnhancedFeatureConfig)
         .eq(out["prev_nearest_pig_id"].astype(str))
         & out["nearest_pig_id"].astype(str).ne("")
     )
+    finite_partner_distance = (
+        out["nearest_dist_n"].notna() & out["prev_nearest_dist_n"].notna()
+    )
+    adjacent_pair_valid = _to_bool_series(
+        out.get("adjacent_motion_pair_valid", pd.Series(False, index=out.index))
+    )
+    velocity_pair_valid = _to_bool_series(
+        out.get("motion_velocity_pair_valid", pd.Series(False, index=out.index))
+    )
+    out["social_adjacent_pair_valid"] = (
+        same_neighbor & finite_partner_distance & adjacent_pair_valid
+    )
+    out["social_velocity_pair_valid"] = (
+        same_neighbor & finite_partner_distance & velocity_pair_valid
+    )
+    raw_partner_delta = out["nearest_dist_n"] - out["prev_nearest_dist_n"]
     out["nearest_dist_delta"] = np.where(
-        same_neighbor,
-        out["nearest_dist_n"] - out["prev_nearest_dist_n"],
-        np.nan,
+        out["social_adjacent_pair_valid"],
+        raw_partner_delta,
+        0.0,
+    )
+    out["nearest_dist_delta_sparse"] = np.where(
+        out["social_velocity_pair_valid"] & ~out["social_adjacent_pair_valid"],
+        raw_partner_delta,
+        0.0,
+    )
+    out["partner_distance_delta_n"] = np.where(
+        out["social_velocity_pair_valid"],
+        raw_partner_delta,
+        0.0,
     )
     out["approach_speed_n_per_frame"] = np.where(
-        same_neighbor,
+        out["social_adjacent_pair_valid"],
         -out["nearest_dist_delta"] / denom_frame,
         0.0,
     )
     out["separation_speed_n_per_frame"] = np.where(
-        same_neighbor,
+        out["social_adjacent_pair_valid"],
         out["nearest_dist_delta"] / denom_frame,
         0.0,
     )
@@ -850,6 +1120,26 @@ def _add_social_context_columns(df: pd.DataFrame, config: EnhancedFeatureConfig)
         .fillna(0.0)
         .clip(lower=0.0)
     )
+    delta_seconds = pd.to_numeric(
+        out.get("motion_delta_seconds", np.nan),
+        errors="coerce",
+    )
+    signed_partner_velocity = pd.Series(
+        np.where(
+            out["social_velocity_pair_valid"],
+            raw_partner_delta / delta_seconds,
+            0.0,
+        ),
+        index=out.index,
+        dtype="float64",
+    ).replace([np.inf, -np.inf], np.nan).fillna(0.0)
+    out["approach_speed_n_per_second"] = (-signed_partner_velocity).clip(
+        lower=0.0
+    )
+    out["retreat_speed_n_per_second"] = signed_partner_velocity.clip(lower=0.0)
+    out["separation_speed_n_per_second"] = out[
+        "retreat_speed_n_per_second"
+    ]
 
     out["pair_contact_with_nearest"] = (
         out["nearest_pair_iou"] >= config.social_contact_iou_threshold
@@ -862,6 +1152,17 @@ def _add_social_context_columns(df: pd.DataFrame, config: EnhancedFeatureConfig)
         * (
             out.get("speed_n_per_frame", 0.0).fillna(0.0)
             + out["approach_speed_n_per_frame"].fillna(0.0)
+        )
+        * (1.0 + out["social_density_near_count"].fillna(0.0))
+    )
+    out["aggression_score_proxy_per_second"] = (
+        out["pair_contact_with_nearest"].astype(float)
+        * (
+            out.get(
+                "speed_n_per_second",
+                pd.Series(0.0, index=out.index),
+            ).fillna(0.0)
+            + out["approach_speed_n_per_second"].fillna(0.0)
         )
         * (1.0 + out["social_density_near_count"].fillna(0.0))
     )
@@ -905,19 +1206,36 @@ def _social_frame_group_key(rows: pd.DataFrame) -> pd.Series:
 
 def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
+    internal_columns = [
+        "_speed_n_per_frame_valid_pair",
+        "_speed_n_per_second_valid_pair",
+        "_acceleration_n_per_second2_valid_pair",
+    ]
+    out[internal_columns[0]] = pd.to_numeric(
+        out["speed_n_per_frame"],
+        errors="coerce",
+    ).where(_to_bool_series(out["adjacent_motion_pair_valid"]))
+    out[internal_columns[1]] = pd.to_numeric(
+        out["speed_n_per_second"],
+        errors="coerce",
+    ).where(_to_bool_series(out["motion_velocity_pair_valid"]))
+    out[internal_columns[2]] = pd.to_numeric(
+        out["abs_acceleration_n_per_second2"],
+        errors="coerce",
+    ).where(_to_bool_series(out["acceleration_pair_valid"]))
     g = out.groupby("temporal_unit_key", dropna=False, sort=False)
 
     agg_spec: dict[str, tuple[str, str | Any]] = {
-        "speed_mean_unit": ("speed_n_per_frame", "mean"),
-        "speed_max_unit": ("speed_n_per_frame", "max"),
-        "speed_std_unit": ("speed_n_per_frame", "std"),
+        "speed_mean_unit": (internal_columns[0], "mean"),
+        "speed_max_unit": (internal_columns[0], "max"),
+        "speed_std_unit": (internal_columns[0], "std"),
         "accel_abs_mean_unit": ("abs_accel_n_per_frame2", "mean"),
         "accel_abs_max_unit": ("abs_accel_n_per_frame2", "max"),
         "direction_change_abs_mean_unit": ("abs_direction_change_rad", "mean"),
         "direction_change_abs_max_unit": ("abs_direction_change_rad", "max"),
         "path_length_n_unit": ("displacement_n", "sum"),
         "motion_energy_unit": (
-            "speed_n_per_frame",
+            internal_columns[0],
             lambda s: float(
                 np.nansum(np.asarray(s, dtype="float64") ** 2)
             ),
@@ -942,6 +1260,42 @@ def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
         "aggression_score_proxy_max_unit": ("aggression_score_proxy", "max"),
         "aggression_score_proxy_mean_unit": ("aggression_score_proxy", "mean"),
     }
+    physical_agg_spec: dict[str, tuple[str, str | Any]] = {
+        "speed_n_per_second_mean_unit": (internal_columns[1], "mean"),
+        "speed_n_per_second_max_unit": (internal_columns[1], "max"),
+        "speed_n_per_second_std_unit": (internal_columns[1], "std"),
+        "motion_energy_n_per_second2_unit": (
+            internal_columns[1],
+            lambda s: float(
+                np.nansum(np.asarray(s, dtype="float64") ** 2)
+            ),
+        ),
+        "acceleration_n_per_second2_abs_mean_unit": (
+            internal_columns[2],
+            "mean",
+        ),
+        "acceleration_n_per_second2_abs_max_unit": (
+            internal_columns[2],
+            "max",
+        ),
+        "approach_speed_n_per_second_max_unit": (
+            "approach_speed_n_per_second",
+            "max",
+        ),
+        "retreat_speed_n_per_second_max_unit": (
+            "retreat_speed_n_per_second",
+            "max",
+        ),
+        "aggression_score_proxy_per_second_max_unit": (
+            "aggression_score_proxy_per_second",
+            "max",
+        ),
+        "aggression_score_proxy_per_second_mean_unit": (
+            "aggression_score_proxy_per_second",
+            "mean",
+        ),
+    }
+    agg_spec.update(physical_agg_spec)
 
     available_agg = {
         out_col: pd.NamedAgg(column=in_col, aggfunc=func)
@@ -962,6 +1316,10 @@ def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
     unit_agg["motion_burstiness_unit"] = unit_agg.get("speed_std_unit", np.nan) / (
         unit_agg.get("speed_mean_unit", np.nan) + 1e-9
     )
+    unit_agg["motion_burstiness_n_per_second_unit"] = unit_agg.get(
+        "speed_n_per_second_std_unit",
+        np.nan,
+    ) / (unit_agg.get("speed_n_per_second_mean_unit", np.nan) + 1e-9)
     unit_agg["bbox_stability_unit"] = 1.0 / (
         1.0
         + unit_agg.get("area_n_std_unit", np.nan).fillna(0.0)
@@ -997,12 +1355,19 @@ def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
         "direction_change_abs_max_unit",
         "path_length_n_unit",
         "motion_energy_unit",
+        "motion_energy_n_per_second2_unit",
         "shape_transition_score_unit",
         "target_roi_contact_ratio_unit",
         "target_roi_near_ratio_unit",
         "pair_contact_ratio_unit",
         "motion_burstiness_unit",
+        "motion_burstiness_n_per_second_unit",
         "bbox_stability_unit",
+        "speed_n_per_second_mean_unit",
+        "speed_n_per_second_max_unit",
+        "speed_n_per_second_std_unit",
+        "acceleration_n_per_second2_abs_mean_unit",
+        "acceleration_n_per_second2_abs_max_unit",
     ]
     for col in numeric_fill:
         if col in out.columns:
@@ -1012,7 +1377,7 @@ def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
                 .fillna(0.0)
             )
 
-    return out
+    return out.drop(columns=internal_columns)
 
 
 def _add_review_helper_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -1042,12 +1407,16 @@ def _add_review_helper_columns(df: pd.DataFrame) -> pd.DataFrame:
     )
     add_reason(
         out["is_motion_behavior"]
-        & out.get("speed_mean_unit", 0).fillna(0).lt(0.002),
+        & out.get("speed_n_per_second_mean_unit", 0)
+        .fillna(0)
+        .lt(0.06),
         "motion_label_low_motion",
     )
     add_reason(
         out["behavior"].eq("stand")
-        & out.get("speed_mean_unit", 0).fillna(0).gt(0.01),
+        & out.get("speed_n_per_second_mean_unit", 0)
+        .fillna(0)
+        .gt(0.30),
         "stand_label_high_motion",
     )
     add_reason(

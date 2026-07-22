@@ -18,7 +18,7 @@ from pig_behavior.classification_v2.datasets.legacy_unreviewed_development impor
 )
 from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
 from pig_behavior.classification_v2.spatial_sequence_export import (
-    SPATIAL_FRAME_FEATURES,
+    LEGACY_SPATIAL_FRAME_FEATURES,
 )
 from pig_behavior.classification_v2.training.lineage_hashing import (
     file_sha256,
@@ -195,11 +195,11 @@ def audit_legacy_feature_contract(
 
     feature_payload = {
         "predictive_groups": {
-            group: SPATIAL_FRAME_FEATURES[group]
+            group: LEGACY_SPATIAL_FRAME_FEATURES[group]
             for group in PREDICTIVE_SPATIAL_GROUPS
         },
         "mask_only_groups": {
-            group: SPATIAL_FRAME_FEATURES[group]
+            group: LEGACY_SPATIAL_FRAME_FEATURES[group]
             for group in MASK_ONLY_SPATIAL_GROUPS
         },
     }
@@ -230,10 +230,10 @@ def _features_for_groups(
 ) -> list[str]:
     features: list[str] = []
     for group in groups:
-        if group not in SPATIAL_FRAME_FEATURES:
+        if group not in LEGACY_SPATIAL_FRAME_FEATURES:
             errors.append(f"unknown_spatial_feature_group={group}")
             continue
-        features.extend(SPATIAL_FRAME_FEATURES[group])
+        features.extend(LEGACY_SPATIAL_FRAME_FEATURES[group])
     return features
 
 

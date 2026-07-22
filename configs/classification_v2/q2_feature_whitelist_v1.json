@@ -44,10 +44,10 @@
       "source_contract": "configs/classification_v2/trainer_contract_v2.json#spatial_sequence_feature_whitelist",
       "allowed_feature_families": [
         "per_frame_bbox_geometry",
-        "per_frame_motion_delta",
+        "window_recomputed_physical_motion_sequence",
         "per_frame_roi_relation",
         "per_frame_social_relation",
-        "per_frame_quality_mask_without_annotation_hidden"
+        "spatial_quality_mask_as_encoder_gate_not_predictive_feature"
       ]
     },
     "partner_full_frame_context": {
@@ -82,6 +82,7 @@
     ]
   },
   "mask_and_weight_inputs": [
+    "spatial_quality_mask",
     "review_include_in_training",
     "review_training_action",
     "window_valid_for_main_train",

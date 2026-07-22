@@ -85,16 +85,25 @@ class FoldPreprocessingState:
         *,
         length_mask: torch.Tensor,
         observed_mask: torch.Tensor,
+        quality_mask: torch.Tensor,
     ) -> dict[str, torch.Tensor]:
         """Transform one batch while keeping padding and missing slots at zero."""
 
-        if length_mask.shape != observed_mask.shape:
+        if (
+            length_mask.shape != observed_mask.shape
+            or quality_mask.shape != length_mask.shape
+        ):
             raise ValueError(
                 "preprocessing mask shape mismatch: "
                 f"length={tuple(length_mask.shape)}, "
-                f"observed={tuple(observed_mask.shape)}"
+                f"observed={tuple(observed_mask.shape)}, "
+                f"quality={tuple(quality_mask.shape)}"
             )
-        valid_slots = length_mask.bool() & observed_mask.bool()
+        valid_slots = (
+            length_mask.bool()
+            & observed_mask.bool()
+            & quality_mask.bool()
+        )
         transformed: dict[str, torch.Tensor] = {}
         for group in self.feature_groups:
             if group not in features:
@@ -190,7 +199,7 @@ def fit_fold_preprocessing(
             "standardized groups are outside feature groups: "
             f"{unknown_standardized}"
         )
-    length_mask, observed_mask = _validate_array_contract(
+    length_mask, observed_mask, quality_mask = _validate_array_contract(
         arrays,
         expected_rows=len(frame),
     )
@@ -198,6 +207,7 @@ def fit_fold_preprocessing(
     valid_train_slots = (
         length_mask[train_indices].astype(bool)
         & observed_mask[train_indices].astype(bool)
+        & quality_mask[train_indices].astype(bool)
     )
 
     group_contracts: dict[str, dict[str, Any]] = {}
@@ -455,16 +465,26 @@ def _validate_array_contract(
     arrays: Mapping[str, np.ndarray],
     *,
     expected_rows: int,
-) -> tuple[np.ndarray, np.ndarray]:
-    missing = sorted({"length_mask", "observed_mask"}.difference(arrays))
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    missing = sorted(
+        {"length_mask", "observed_mask", "spatial_quality_mask"}.difference(
+            arrays
+        )
+    )
     if missing:
         raise ValueError(f"preprocessing arrays missing masks={missing}")
     length_mask = np.asarray(arrays["length_mask"])
     observed_mask = np.asarray(arrays["observed_mask"])
-    if length_mask.ndim != 2 or observed_mask.shape != length_mask.shape:
+    quality_mask = np.asarray(arrays["spatial_quality_mask"])
+    if (
+        length_mask.ndim != 2
+        or observed_mask.shape != length_mask.shape
+        or quality_mask.shape != length_mask.shape
+    ):
         raise ValueError(
             "preprocessing mask contract failed: "
-            f"length={length_mask.shape}, observed={observed_mask.shape}"
+            f"length={length_mask.shape}, observed={observed_mask.shape}, "
+            f"quality={quality_mask.shape}"
         )
     if length_mask.shape[0] != expected_rows:
         raise ValueError(
@@ -473,7 +493,9 @@ def _validate_array_contract(
         )
     if (observed_mask.astype(bool) & ~length_mask.astype(bool)).any():
         raise ValueError("preprocessing observed mask extends outside length mask")
-    return length_mask, observed_mask
+    if (quality_mask.astype(bool) & ~observed_mask.astype(bool)).any():
+        raise ValueError("preprocessing quality mask extends outside observed mask")
+    return length_mask, observed_mask, quality_mask
 
 
 def _validate_group_array(

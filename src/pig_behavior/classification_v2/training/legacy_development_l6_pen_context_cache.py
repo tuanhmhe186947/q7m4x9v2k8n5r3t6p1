@@ -19,12 +19,13 @@ import numpy as np
 import pandas as pd
 
 from pig_behavior.classification_v2.features.pen_context import (
-    PEN_CONTEXT_MODEL_FEATURE_COLUMNS,
+    PEN_CONTEXT_LEGACY_MODEL_FEATURE_COLUMNS,
     REQUIRED_PEN_CONTEXT_INPUT_COLUMNS,
     audit_pen_context_features,
     build_pen_context_features,
 )
 from pig_behavior.classification_v2.spatial_sequence_export import (
+    LEGACY_SPATIAL_FRAME_FEATURES,
     export_spatial_sequences,
 )
 from pig_behavior.classification_v2.training.legacy_development_l6_geometry_cache import (
@@ -42,7 +43,7 @@ from pig_behavior.classification_v2.training.legacy_development_l6_geometry_cach
 )
 from pig_behavior.classification_v2.training.lineage_hashing import file_sha256
 
-PEN_FEATURE_NAMES = tuple(PEN_CONTEXT_MODEL_FEATURE_COLUMNS)
+PEN_FEATURE_NAMES = tuple(PEN_CONTEXT_LEGACY_MODEL_FEATURE_COLUMNS)
 PEN_STATIC_FEATURE_COUNT = 3
 PEN_DIM = len(PEN_FEATURE_NAMES)
 PEN_DTYPE = np.dtype(np.float32)
@@ -446,6 +447,7 @@ def materialize_pen_context_cache(
         export_windows,
         derived,
         max_window_length=SEQUENCE_LENGTH,
+        feature_schema=LEGACY_SPATIAL_FRAME_FEATURES,
     )
     names = tuple(exported.feature_names.get("pen_boundary_context", []))
     if names != PEN_FEATURE_NAMES:

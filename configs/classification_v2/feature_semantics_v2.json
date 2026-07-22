@@ -146,9 +146,15 @@
     },
     "quality_mask": {
       "family": "quality_sequence",
-      "model_input_role": "model_input",
-      "model_input_allowed": true,
-      "description": "Inference-time geometry and feature-validity sequence."
+      "model_input_role": "deprecated_mask_array",
+      "model_input_allowed": false,
+      "description": "Deprecated feature group; use spatial_quality_mask."
+    },
+    "spatial_quality_mask": {
+      "family": "quality_sequence",
+      "model_input_role": "mask_only",
+      "model_input_allowed": false,
+      "description": "Geometry-validity gate; invalid spatial slots are zero."
     },
     "length_mask": {
       "family": "sequence_mask",

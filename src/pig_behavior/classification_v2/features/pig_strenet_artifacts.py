@@ -21,6 +21,9 @@ import pandas as pd
 from pig_behavior.classification_v2.features.roi import (
     load_scene_rois_from_coco,
 )
+from pig_behavior.classification_v2.features.temporal_evidence import (
+    TemporalEvidenceConfig,
+)
 
 ROI_CLASSES = ("feeder", "drinker", "toy")
 HISTORY_LENGTH = 6
@@ -53,6 +56,113 @@ MODEL_X_AUDIT_TOKENS = (
     "duration_sec",
     "target_gap_sec",
     "transition_available",
+)
+PER_FRAME_AUDIT_ONLY_HISTORY_COLUMNS = {
+    f"{prefix}_{metric}"
+    for prefix in ("history", "target")
+    for metric in (
+        "speed_mean",
+        "speed_max",
+        "speed_std",
+        "stationary_ratio",
+        "acceleration_mean",
+        "motion_burstiness",
+        "pair_motion_energy",
+        "nearest_dist_slope",
+        "approach_ratio",
+        "retreat_ratio",
+    )
+} | {
+    "activity_delta_history_to_target",
+    "speed_delta_history_to_target",
+    "stationary_to_motion_score",
+    "motion_to_stationary_score",
+    "approach_to_contact_score",
+    "contact_to_separation_score",
+}
+PER_FRAME_AUDIT_ONLY_HISTORY_COLUMNS.update(
+    f"{prefix}_{roi_class}_dist_slope"
+    for prefix in ("history", "target")
+    for roi_class in ROI_CLASSES
+)
+PER_FRAME_AUDIT_ONLY_HISTORY_COLUMNS.update(
+    f"{roi_class}_{suffix}"
+    for roi_class in ROI_CLASSES
+    for suffix in (
+        "approach_to_engagement",
+        "engagement_to_departure",
+    )
+)
+
+MODEL_X_HISTORY_COLUMNS: tuple[str, ...] = (
+    "history_speed_n_per_second_mean",
+    "history_speed_n_per_second_max",
+    "history_speed_n_per_second_std",
+    "history_path_length_n",
+    "history_sparse_path_length_n",
+    "history_displacement_n",
+    "history_stationary_ratio_per_second",
+    "history_acceleration_n_per_second2_abs_mean",
+    "history_direction_change_sum",
+    "history_turn_count",
+    "history_motion_burstiness_per_second",
+    "history_area_mean",
+    "history_nearest_dist_mean",
+    "history_nearest_dist_min",
+    "history_nearest_dist_slope_n_per_second",
+    "history_approach_ratio_per_second",
+    "history_retreat_ratio_per_second",
+    "history_contact_ratio",
+    "history_pair_iou_mean",
+    "history_pair_motion_energy_n_per_second2",
+    "history_partner_persistence",
+    "history_partner_switch_count",
+    *(
+        feature
+        for roi_class in ROI_CLASSES
+        for feature in (
+            f"history_{roi_class}_dist_slope_n_per_second",
+            f"history_{roi_class}_contact_ratio",
+            f"history_{roi_class}_dwell_sec",
+            f"history_{roi_class}_near_ratio",
+            f"history_{roi_class}_distance_mean",
+        )
+    ),
+    "speed_n_per_second_delta_history_to_target",
+    "activity_n_per_second_delta_history_to_target",
+    "stationary_per_second_to_motion_score",
+    "motion_to_stationary_per_second_score",
+    "distance_delta_history_to_target",
+    "approach_per_second_to_contact_score",
+    "contact_persistence_score",
+    "contact_to_separation_per_second_score",
+    "partner_change_count",
+    "shape_change_history_to_target",
+    *(
+        feature
+        for roi_class in ROI_CLASSES
+        for feature in (
+            f"{roi_class}_approach_n_per_second_to_engagement",
+            f"{roi_class}_engagement_to_departure_n_per_second",
+        )
+    ),
+)
+
+HISTORY_AVAILABILITY_COLUMNS: tuple[str, ...] = (
+    "history_frame_count",
+    "history_expected_frame_count",
+    "history_available_ratio",
+    "history_complete",
+    "history_gap_count",
+    "history_duration_sec",
+    "history_declared_window_duration_seconds",
+    "history_observed_timestamp_span_seconds",
+    "history_adjacent_observed_duration_seconds",
+    "history_physical_span_seconds",
+    "history_effective_observation_rate_hz",
+    "history_adjacent_pair_coverage_ratio",
+    "history_target_transition_available",
+    *(f"history_{roi_class}_available_ratio" for roi_class in ROI_CLASSES),
 )
 
 PAIR_REQUIRED_COLUMNS = {
@@ -377,6 +487,23 @@ def _build_pair_and_slot_manifests(
                 target_start - 1,
                 relative_coordinates=rel is not None,
             )
+            source_fps = _resolve_source_fps(
+                source_rows.sort_values("frame_index", kind="mergesort")
+            )
+            history_ordered, history_motion = _segment_motion_arrays(history)
+            target_ordered, target_motion = _segment_motion_arrays(target)
+            history_timing = _segment_timing_summary(
+                history_ordered,
+                expected_count=history_length,
+                adjacent_pair_valid=history_motion["adjacent_pair_valid"],
+                source_fps=source_fps,
+            )
+            target_timing = _segment_timing_summary(
+                target_ordered,
+                expected_count=target_length,
+                adjacent_pair_valid=target_motion["adjacent_pair_valid"],
+                source_fps=source_fps,
+            )
             pair_records.append(
                 {
                     "pair_id": pair_id,
@@ -419,8 +546,43 @@ def _build_pair_and_slot_manifests(
                     "history_same_track": True,
                     "history_gap_count": _gap_count(observed_history, history_expected),
                     "history_max_gap_sec": _max_gap_seconds(history, history_expected),
-                    "history_duration_sec": _duration_seconds(history),
-                    "target_duration_sec": _duration_seconds(target),
+                    "source_fps": source_fps,
+                    "history_duration_sec": history_timing[
+                        "declared_window_duration_seconds"
+                    ],
+                    "target_duration_sec": target_timing[
+                        "declared_window_duration_seconds"
+                    ],
+                    "history_declared_window_duration_seconds": history_timing[
+                        "declared_window_duration_seconds"
+                    ],
+                    "target_declared_window_duration_seconds": target_timing[
+                        "declared_window_duration_seconds"
+                    ],
+                    "history_observed_timestamp_span_seconds": history_timing[
+                        "observed_timestamp_span_seconds"
+                    ],
+                    "target_observed_timestamp_span_seconds": target_timing[
+                        "observed_timestamp_span_seconds"
+                    ],
+                    "history_adjacent_observed_duration_seconds": history_timing[
+                        "adjacent_observed_duration_seconds"
+                    ],
+                    "target_adjacent_observed_duration_seconds": target_timing[
+                        "adjacent_observed_duration_seconds"
+                    ],
+                    "history_effective_observation_rate_hz": history_timing[
+                        "effective_observation_rate_hz"
+                    ],
+                    "target_effective_observation_rate_hz": target_timing[
+                        "effective_observation_rate_hz"
+                    ],
+                    "history_adjacent_pair_coverage_ratio": history_timing[
+                        "adjacent_pair_coverage_ratio"
+                    ],
+                    "target_adjacent_pair_coverage_ratio": target_timing[
+                        "adjacent_pair_coverage_ratio"
+                    ],
                     "history_target_gap_sec": _boundary_gap_seconds(history, target),
                     "derived_view": (
                         "legacy_derived_6f" if source == "legacy_recovered" else "cvat_target_6f"
@@ -537,6 +699,22 @@ def _build_roi_dynamics(frames: pd.DataFrame, slots: pd.DataFrame) -> pd.DataFra
     records: list[dict[str, Any]] = []
     for pair_id, group in slots.groupby("pair_id", sort=False):
         ordered = group.sort_values("global_slot_index")
+        speed_per_frame: dict[str, float] = {}
+        speed_per_second: dict[str, float] = {}
+        for role in ("history", "target"):
+            segment = _slot_rows(frames, slots, pair_id, role, lookup)
+            if segment.empty:
+                continue
+            local_rows, local_motion = _segment_motion_arrays(segment)
+            for position, frame_uid in enumerate(
+                local_rows["frame_uid"].fillna("").astype(str)
+            ):
+                speed_per_frame[frame_uid] = float(
+                    local_motion["speed_n_per_frame"][position]
+                )
+                speed_per_second[frame_uid] = float(
+                    local_motion["speed_n_per_second"][position]
+                )
         for roi_class in ROI_CLASSES:
             contact_run = 0
             previous_contact = False
@@ -585,7 +763,12 @@ def _build_roi_dynamics(frames: pd.DataFrame, slots: pd.DataFrame) -> pd.DataFra
                         "exit": previous_contact and not contact,
                         "contact_run_length": contact_run,
                         "motion_inside": (
-                            _number_or_zero(source, "speed_n_per_frame")
+                            speed_per_frame.get(str(row.frame_uid), 0.0)
+                            if contact
+                            else 0.0
+                        ),
+                        "motion_inside_n_per_second": (
+                            speed_per_second.get(str(row.frame_uid), 0.0)
                             if contact
                             else 0.0
                         ),
@@ -793,10 +976,286 @@ def _build_social_graph(
     edges = pd.DataFrame.from_records(edge_records)
     edges["neighbor_rank"] = edges["neighbor_rank"].astype(int)
     edges["pair_motion_energy"] = edges["pair_motion_energy"].astype(float)
+    edges["pair_motion_energy_n_per_second2"] = edges[
+        "pair_motion_energy_n_per_second2"
+    ].astype(float)
     _add_partner_persistence_columns(edges)
     _add_edge_temporal_features(edges, frames)
     _copy_partner_audit_to_nodes(nodes, edges)
     return nodes, edges
+
+
+def _segment_motion_arrays(
+    segment: pd.DataFrame,
+) -> tuple[pd.DataFrame, dict[str, np.ndarray]]:
+    """Recompute every pair-derived signal inside one history/target segment."""
+    ordered = segment.sort_values("frame_index", kind="mergesort").copy()
+    row_count = len(ordered)
+    frame = pd.to_numeric(ordered["frame_index"], errors="coerce").to_numpy(
+        dtype="float64"
+    )
+    timestamp = pd.to_numeric(
+        ordered.get("timestamp_sec", pd.Series(np.nan, index=ordered.index)),
+        errors="coerce",
+    ).to_numpy(dtype="float64")
+    cx = _values(ordered, "cx_n")
+    cy = _values(ordered, "cy_n")
+    row_valid = np.isfinite(frame) & np.isfinite(timestamp)
+    row_valid &= np.isfinite(cx) & np.isfinite(cy)
+    for column in (
+        "bbox_valid",
+        "actor_bbox_valid",
+        "geometry_feature_valid",
+        "spatiotemporal_feature_valid",
+    ):
+        if column in ordered:
+            row_valid &= _bool_values(ordered, column)
+
+    frame_delta = np.diff(frame)
+    time_delta = np.diff(timestamp)
+    dx = np.diff(cx)
+    dy = np.diff(cy)
+    pair_valid = (
+        np.isfinite(frame_delta)
+        & (frame_delta > 0)
+        & np.isfinite(time_delta)
+        & (time_delta > 0)
+        & np.isfinite(dx)
+        & np.isfinite(dy)
+        & row_valid[:-1]
+        & row_valid[1:]
+    )
+    adjacent = pair_valid & np.isclose(frame_delta, 1.0)
+    sparse = pair_valid & (frame_delta > 1.0)
+    distance = np.hypot(dx, dy)
+
+    speed_per_frame = np.zeros(row_count, dtype="float64")
+    speed_per_second = np.zeros(row_count, dtype="float64")
+    adjacent_displacement = np.zeros(row_count, dtype="float64")
+    sparse_displacement = np.zeros(row_count, dtype="float64")
+    if row_count > 1:
+        speed_per_frame[1:] = np.where(
+            adjacent,
+            distance / np.where(adjacent, frame_delta, 1.0),
+            0.0,
+        )
+        speed_per_second[1:] = np.where(
+            pair_valid,
+            distance / np.where(pair_valid, time_delta, 1.0),
+            0.0,
+        )
+        adjacent_displacement[1:] = np.where(adjacent, distance, 0.0)
+        sparse_displacement[1:] = np.where(sparse, distance, 0.0)
+
+    acceleration_per_frame = np.zeros(row_count, dtype="float64")
+    acceleration_per_second = np.zeros(row_count, dtype="float64")
+    direction_change = np.zeros(row_count, dtype="float64")
+    adjacent_acceleration_mask = np.zeros(row_count, dtype=bool)
+    physical_acceleration_mask = np.zeros(row_count, dtype=bool)
+    heading_change_mask = np.zeros(row_count, dtype=bool)
+    if row_count > 2:
+        adjacent_acceleration_valid = adjacent[:-1] & adjacent[1:]
+        adjacent_acceleration = np.zeros(row_count - 2, dtype="float64")
+        adjacent_acceleration[adjacent_acceleration_valid] = np.abs(
+            np.diff(speed_per_frame[1:])[adjacent_acceleration_valid]
+        )
+        acceleration_per_frame[2:] = adjacent_acceleration
+        adjacent_acceleration_mask[2:] = adjacent_acceleration_valid
+
+        acceleration_time = (time_delta[:-1] + time_delta[1:]) / 2.0
+        physical_acceleration_valid = (
+            pair_valid[:-1]
+            & pair_valid[1:]
+            & np.isfinite(acceleration_time)
+            & (acceleration_time > 0)
+        )
+        physical_acceleration = np.zeros(row_count - 2, dtype="float64")
+        physical_acceleration[physical_acceleration_valid] = np.abs(
+            np.diff(speed_per_second[1:])[physical_acceleration_valid]
+            / acceleration_time[physical_acceleration_valid]
+        )
+        acceleration_per_second[2:] = physical_acceleration
+        physical_acceleration_mask[2:] = physical_acceleration_valid
+
+        direction = np.arctan2(dy, dx)
+        heading_valid = adjacent[:-1] & adjacent[1:]
+        raw_change = np.abs(
+            (np.diff(direction) + np.pi) % (2.0 * np.pi) - np.pi
+        )
+        direction_change[2:] = np.where(heading_valid, raw_change, 0.0)
+        heading_change_mask[2:] = heading_valid
+
+    partner_distance = _values(ordered, "nearest_dist_n")
+    partner_delta = np.diff(partner_distance)
+    same_partner = _same_partner_pair_mask(ordered)
+    social_velocity_valid = (
+        pair_valid
+        & same_partner
+        & np.isfinite(partner_delta)
+    )
+    approach_per_frame = np.zeros(row_count, dtype="float64")
+    retreat_per_frame = np.zeros(row_count, dtype="float64")
+    approach_per_second = np.zeros(row_count, dtype="float64")
+    retreat_per_second = np.zeros(row_count, dtype="float64")
+    if row_count > 1:
+        adjacent_social = social_velocity_valid & adjacent
+        approach_per_frame[1:] = np.where(
+            adjacent_social,
+            np.clip(-partner_delta, 0.0, None),
+            0.0,
+        )
+        retreat_per_frame[1:] = np.where(
+            adjacent_social,
+            np.clip(partner_delta, 0.0, None),
+            0.0,
+        )
+        signed_velocity = np.zeros(row_count - 1, dtype="float64")
+        signed_velocity[social_velocity_valid] = (
+            partner_delta[social_velocity_valid]
+            / time_delta[social_velocity_valid]
+        )
+        approach_per_second[1:] = np.clip(-signed_velocity, 0.0, None)
+        retreat_per_second[1:] = np.clip(signed_velocity, 0.0, None)
+
+    adjacent_mask = np.zeros(row_count, dtype=bool)
+    velocity_mask = np.zeros(row_count, dtype=bool)
+    social_adjacent_mask = np.zeros(row_count, dtype=bool)
+    social_velocity_mask = np.zeros(row_count, dtype=bool)
+    if row_count > 1:
+        adjacent_mask[1:] = adjacent
+        velocity_mask[1:] = pair_valid
+        social_adjacent_mask[1:] = social_velocity_valid & adjacent
+        social_velocity_mask[1:] = social_velocity_valid
+    return ordered, {
+        "adjacent_pair_valid": adjacent,
+        "adjacent_motion_pair_mask": adjacent_mask,
+        "velocity_motion_pair_mask": velocity_mask,
+        "adjacent_acceleration_pair_mask": adjacent_acceleration_mask,
+        "physical_acceleration_pair_mask": physical_acceleration_mask,
+        "heading_change_pair_mask": heading_change_mask,
+        "social_adjacent_pair_mask": social_adjacent_mask,
+        "social_velocity_pair_mask": social_velocity_mask,
+        "speed_n_per_frame": speed_per_frame,
+        "speed_n_per_second": speed_per_second,
+        "adjacent_displacement_n": adjacent_displacement,
+        "sparse_displacement_n": sparse_displacement,
+        "abs_acceleration_n_per_frame2": acceleration_per_frame,
+        "abs_acceleration_n_per_second2": acceleration_per_second,
+        "abs_direction_change_rad": direction_change,
+        "approach_speed_n_per_frame": approach_per_frame,
+        "retreat_speed_n_per_frame": retreat_per_frame,
+        "approach_speed_n_per_second": approach_per_second,
+        "retreat_speed_n_per_second": retreat_per_second,
+    }
+
+
+def _same_partner_pair_mask(segment: pd.DataFrame) -> np.ndarray:
+    column = "nearest_track_id" if "nearest_track_id" in segment else "nearest_pig_id"
+    if column not in segment or len(segment) < 2:
+        return np.zeros(max(0, len(segment) - 1), dtype=bool)
+    values = segment[column].fillna("").astype(str).str.strip().to_numpy()
+    return (values[:-1] != "") & (values[:-1] == values[1:])
+
+
+def _segment_timing_summary(
+    ordered: pd.DataFrame,
+    *,
+    expected_count: int,
+    adjacent_pair_valid: np.ndarray,
+    source_fps: float | None = None,
+) -> dict[str, float]:
+    frame = pd.to_numeric(ordered["frame_index"], errors="coerce").to_numpy(
+        dtype="float64"
+    )
+    timestamp = pd.to_numeric(
+        ordered.get("timestamp_sec", pd.Series(np.nan, index=ordered.index)),
+        errors="coerce",
+    ).to_numpy(dtype="float64")
+    resolved_fps = _resolve_source_fps(ordered)
+    if source_fps is not None:
+        if not np.isfinite(source_fps) or source_fps <= 0:
+            raise ValueError("Pig-STRENet source_fps override must be positive")
+        if np.isfinite(resolved_fps) and not np.isclose(
+            resolved_fps,
+            source_fps,
+            rtol=0.0,
+            atol=1e-9,
+        ):
+            raise ValueError(
+                "Pig-STRENet segment source_fps differs from pair authority"
+            )
+        resolved_fps = float(source_fps)
+    finite_timestamp = timestamp[np.isfinite(timestamp)]
+    observed_span = (
+        float(finite_timestamp.max() - finite_timestamp.min())
+        if len(finite_timestamp) >= 2
+        else float("nan")
+    )
+    observed_count = int(np.unique(frame[np.isfinite(frame)]).size)
+    time_delta = np.diff(timestamp)
+    adjacent_duration = float(
+        np.sum(time_delta[adjacent_pair_valid])
+    ) if len(time_delta) else 0.0
+    denominator = max(0, int(expected_count) - 1)
+    return {
+        "declared_window_duration_seconds": (
+            float(expected_count / resolved_fps)
+            if expected_count > 0 and np.isfinite(resolved_fps)
+            else float("nan")
+        ),
+        "physical_span_seconds": (
+            float(denominator / resolved_fps)
+            if np.isfinite(resolved_fps)
+            else float("nan")
+        ),
+        "observed_timestamp_span_seconds": observed_span,
+        "adjacent_observed_duration_seconds": adjacent_duration,
+        "effective_observation_rate_hz": (
+            float((observed_count - 1) / observed_span)
+            if observed_count >= 2 and np.isfinite(observed_span) and observed_span > 0
+            else float("nan")
+        ),
+        "adjacent_pair_coverage_ratio": (
+            float(adjacent_pair_valid.sum() / denominator)
+            if denominator > 0
+            else 0.0
+        ),
+    }
+
+
+def _resolve_source_fps(rows: pd.DataFrame) -> float:
+    fps_values = pd.to_numeric(
+        rows.get("source_fps", pd.Series(np.nan, index=rows.index)),
+        errors="coerce",
+    ).dropna()
+    fps_values = fps_values[fps_values > 0]
+    unique_fps = np.unique(np.round(fps_values.to_numpy(dtype="float64"), 9))
+    if len(unique_fps) > 1:
+        raise ValueError(f"Pig-STRENet segment has mixed source_fps={unique_fps.tolist()}")
+    if len(unique_fps) == 1:
+        return float(unique_fps[0])
+    if rows.empty:
+        return float("nan")
+    frame = pd.to_numeric(rows["frame_index"], errors="coerce").to_numpy(
+        dtype="float64"
+    )
+    timestamp = pd.to_numeric(
+        rows.get("timestamp_sec", pd.Series(np.nan, index=rows.index)),
+        errors="coerce",
+    ).to_numpy(dtype="float64")
+    frame_delta = np.diff(frame)
+    time_delta = np.diff(timestamp)
+    valid = (
+        np.isfinite(frame_delta)
+        & (frame_delta > 0)
+        & np.isfinite(time_delta)
+        & (time_delta > 0)
+    )
+    return (
+        float(np.median(frame_delta[valid] / time_delta[valid]))
+        if valid.any()
+        else float("nan")
+    )
 
 
 def _segment_summary(
@@ -808,14 +1267,36 @@ def _segment_summary(
     expected = max(0, int(expected_count))
     if segment.empty:
         return _empty_segment_summary(prefix, expected_count=expected)
-    frame = pd.to_numeric(segment.get("frame_index"), errors="coerce").dropna().astype(int)
-    speed = _values(segment, "speed_n_per_frame")
-    speed = speed[np.isfinite(speed)]
-    displacement = _values(segment, "displacement_n")
-    accel = _values(segment, "abs_accel_n_per_frame2")
-    direction = _values(segment, "abs_direction_change_rad")
+    ordered, motion = _segment_motion_arrays(segment)
+    frame = pd.to_numeric(ordered.get("frame_index"), errors="coerce")
+    frame = frame.dropna().astype(int)
+    timing = _segment_timing_summary(
+        ordered,
+        expected_count=expected,
+        adjacent_pair_valid=motion["adjacent_pair_valid"],
+    )
+    speed_per_frame = motion["speed_n_per_frame"]
+    speed_per_second = motion["speed_n_per_second"]
+    valid_speed_per_frame = speed_per_frame[
+        motion["adjacent_motion_pair_mask"]
+    ]
+    valid_speed_per_second = speed_per_second[
+        motion["velocity_motion_pair_mask"]
+    ]
+    displacement = motion["adjacent_displacement_n"]
+    accel_per_frame = motion["abs_acceleration_n_per_frame2"]
+    accel_per_second = motion["abs_acceleration_n_per_second2"]
+    direction = motion["abs_direction_change_rad"]
+    valid_accel_per_frame = accel_per_frame[
+        motion["adjacent_acceleration_pair_mask"]
+    ]
+    valid_accel_per_second = accel_per_second[
+        motion["physical_acceleration_pair_mask"]
+    ]
+    valid_direction = direction[motion["heading_change_pair_mask"]]
+    physical_config = TemporalEvidenceConfig()
     contact = {
-        name: _bool_values(segment, f"roi_{name}_contact") for name in ROI_CLASSES
+        name: _bool_values(ordered, f"roi_{name}_contact") for name in ROI_CLASSES
     }
     result: dict[str, Any] = {
         f"{prefix}_frame_count": int(len(frame)),
@@ -823,40 +1304,125 @@ def _segment_summary(
         f"{prefix}_available_ratio": float(len(frame) / expected) if expected else 0.0,
         f"{prefix}_complete": bool(expected > 0 and len(frame) == expected),
         f"{prefix}_gap_count": max(0, expected - len(frame)),
-        f"{prefix}_duration_sec": _duration_seconds(segment),
-        f"{prefix}_speed_mean": _mean(speed),
-        f"{prefix}_speed_max": _max(speed),
-        f"{prefix}_speed_std": _std(speed),
-        f"{prefix}_path_length_n": float(np.nansum(displacement)) if len(displacement) else 0.0,
-        f"{prefix}_displacement_n": _endpoint_displacement(segment),
-        f"{prefix}_stationary_ratio": _ratio(speed <= 0.002),
-        f"{prefix}_acceleration_mean": _mean(accel),
-        f"{prefix}_direction_change_sum": float(np.nansum(direction)) if len(direction) else 0.0,
+        f"{prefix}_duration_sec": timing["declared_window_duration_seconds"],
+        f"{prefix}_declared_window_duration_seconds": timing[
+            "declared_window_duration_seconds"
+        ],
+        f"{prefix}_observed_timestamp_span_seconds": timing[
+            "observed_timestamp_span_seconds"
+        ],
+        f"{prefix}_adjacent_observed_duration_seconds": timing[
+            "adjacent_observed_duration_seconds"
+        ],
+        f"{prefix}_physical_span_seconds": timing["physical_span_seconds"],
+        f"{prefix}_effective_observation_rate_hz": timing[
+            "effective_observation_rate_hz"
+        ],
+        f"{prefix}_adjacent_pair_coverage_ratio": timing[
+            "adjacent_pair_coverage_ratio"
+        ],
+        f"{prefix}_speed_mean": _mean(valid_speed_per_frame),
+        f"{prefix}_speed_max": _max(valid_speed_per_frame),
+        f"{prefix}_speed_std": _std(valid_speed_per_frame),
+        f"{prefix}_speed_n_per_second_mean": _mean(valid_speed_per_second),
+        f"{prefix}_speed_n_per_second_max": _max(valid_speed_per_second),
+        f"{prefix}_speed_n_per_second_std": _std(valid_speed_per_second),
+        f"{prefix}_path_length_n": float(np.nansum(displacement)),
+        f"{prefix}_sparse_path_length_n": float(
+            np.nansum(motion["sparse_displacement_n"])
+        ),
+        f"{prefix}_displacement_n": _endpoint_displacement(ordered),
+        f"{prefix}_stationary_ratio": _ratio(
+            valid_speed_per_frame
+            <= physical_config.stationary_speed_threshold
+        ),
+        f"{prefix}_stationary_ratio_per_second": _ratio(
+            valid_speed_per_second
+            <= physical_config.stationary_speed_threshold_per_second
+        ),
+        f"{prefix}_acceleration_mean": _mean(valid_accel_per_frame),
+        f"{prefix}_acceleration_n_per_second2_abs_mean": _mean(
+            valid_accel_per_second
+        ),
+        f"{prefix}_direction_change_sum": (
+            float(np.nansum(valid_direction)) if len(valid_direction) else 0.0
+        ),
         f"{prefix}_turn_count": (
-            int(np.sum(direction >= math.radians(30.0)))
-            if len(direction)
+            int(np.sum(valid_direction >= math.radians(30.0)))
+            if len(valid_direction)
             else 0
         ),
-        f"{prefix}_motion_burstiness": float(_std(speed) / (_mean(speed) + 1e-9)),
-        f"{prefix}_area_mean": _mean(_values(segment, "area_n")),
-        f"{prefix}_nearest_dist_mean": _mean(_values(segment, "nearest_dist_n")),
-        f"{prefix}_nearest_dist_min": _min(_values(segment, "nearest_dist_n")),
-        f"{prefix}_nearest_dist_slope": _slope(segment, "nearest_dist_n"),
-        f"{prefix}_approach_ratio": _ratio(_values(segment, "approach_speed_n_per_frame") > 0),
-        f"{prefix}_retreat_ratio": _ratio(_values(segment, "separation_speed_n_per_frame") > 0),
-        f"{prefix}_contact_ratio": _ratio(_bool_values(segment, "pair_contact_with_nearest")),
-        f"{prefix}_pair_iou_mean": _mean(_values(segment, "nearest_pair_iou")),
-        f"{prefix}_pair_motion_energy": float(np.nansum(np.square(speed))) if len(speed) else 0.0,
-        f"{prefix}_partner_persistence": _partner_persistence(segment),
-        f"{prefix}_partner_switch_count": _partner_switch_count(segment),
+        f"{prefix}_motion_burstiness": float(
+            _std(valid_speed_per_frame) / (_mean(valid_speed_per_frame) + 1e-9)
+        ),
+        f"{prefix}_motion_burstiness_per_second": float(
+            _std(valid_speed_per_second)
+            / (_mean(valid_speed_per_second) + 1e-9)
+        ),
+        f"{prefix}_area_mean": _mean(_values(ordered, "area_n")),
+        f"{prefix}_nearest_dist_mean": _mean(_values(ordered, "nearest_dist_n")),
+        f"{prefix}_nearest_dist_min": _min(_values(ordered, "nearest_dist_n")),
+        f"{prefix}_nearest_dist_slope": _slope(ordered, "nearest_dist_n"),
+        f"{prefix}_nearest_dist_slope_n_per_second": _slope_per_second(
+            ordered,
+            "nearest_dist_n",
+        ),
+        f"{prefix}_approach_ratio": _ratio(
+            motion["approach_speed_n_per_frame"][
+                motion["social_adjacent_pair_mask"]
+            ]
+            > 0
+        ),
+        f"{prefix}_retreat_ratio": _ratio(
+            motion["retreat_speed_n_per_frame"][
+                motion["social_adjacent_pair_mask"]
+            ]
+            > 0
+        ),
+        f"{prefix}_approach_ratio_per_second": _ratio(
+            motion["approach_speed_n_per_second"][
+                motion["social_velocity_pair_mask"]
+            ]
+            > 0
+        ),
+        f"{prefix}_retreat_ratio_per_second": _ratio(
+            motion["retreat_speed_n_per_second"][
+                motion["social_velocity_pair_mask"]
+            ]
+            > 0
+        ),
+        f"{prefix}_contact_ratio": _ratio(
+            _bool_values(ordered, "pair_contact_with_nearest")
+        ),
+        f"{prefix}_pair_iou_mean": _mean(_values(ordered, "nearest_pair_iou")),
+        f"{prefix}_pair_motion_energy": float(
+            np.nansum(np.square(valid_speed_per_frame))
+        ),
+        f"{prefix}_pair_motion_energy_n_per_second2": float(
+            np.nansum(np.square(valid_speed_per_second))
+        ),
+        f"{prefix}_partner_persistence": _partner_persistence(ordered),
+        f"{prefix}_partner_switch_count": _partner_switch_count(ordered),
     }
     for roi_class, values in contact.items():
-        distances = _values(segment, f"roi_{roi_class}_min_dist_n")
+        distances = _values(ordered, f"roi_{roi_class}_min_dist_n")
         result.update(
             {
-                f"{prefix}_{roi_class}_dist_slope": _slope(segment, f"roi_{roi_class}_min_dist_n"),
+                f"{prefix}_{roi_class}_dist_slope": _slope(
+                    ordered,
+                    f"roi_{roi_class}_min_dist_n",
+                ),
+                f"{prefix}_{roi_class}_dist_slope_n_per_second": (
+                    _slope_per_second(
+                        ordered,
+                        f"roi_{roi_class}_min_dist_n",
+                    )
+                ),
                 f"{prefix}_{roi_class}_contact_ratio": _ratio(values),
-                f"{prefix}_{roi_class}_dwell_sec": _duration_from_mask(segment, values),
+                f"{prefix}_{roi_class}_dwell_sec": _duration_from_mask(
+                    ordered,
+                    values,
+                ),
             }
         )
         result[f"{prefix}_{roi_class}_available_ratio"] = _ratio(
@@ -877,25 +1443,42 @@ def _empty_segment_summary(prefix: str, *, expected_count: int) -> dict[str, Any
         f"{prefix}_complete": False,
         f"{prefix}_gap_count": int(expected_count),
         f"{prefix}_duration_sec": 0.0,
+        f"{prefix}_declared_window_duration_seconds": 0.0,
+        f"{prefix}_observed_timestamp_span_seconds": 0.0,
+        f"{prefix}_adjacent_observed_duration_seconds": 0.0,
+        f"{prefix}_physical_span_seconds": 0.0,
+        f"{prefix}_effective_observation_rate_hz": 0.0,
+        f"{prefix}_adjacent_pair_coverage_ratio": 0.0,
         f"{prefix}_speed_mean": 0.0,
         f"{prefix}_speed_max": 0.0,
         f"{prefix}_speed_std": 0.0,
+        f"{prefix}_speed_n_per_second_mean": 0.0,
+        f"{prefix}_speed_n_per_second_max": 0.0,
+        f"{prefix}_speed_n_per_second_std": 0.0,
         f"{prefix}_path_length_n": 0.0,
+        f"{prefix}_sparse_path_length_n": 0.0,
         f"{prefix}_displacement_n": 0.0,
         f"{prefix}_stationary_ratio": 0.0,
+        f"{prefix}_stationary_ratio_per_second": 0.0,
         f"{prefix}_acceleration_mean": 0.0,
+        f"{prefix}_acceleration_n_per_second2_abs_mean": 0.0,
         f"{prefix}_direction_change_sum": 0.0,
         f"{prefix}_turn_count": 0,
         f"{prefix}_motion_burstiness": 0.0,
+        f"{prefix}_motion_burstiness_per_second": 0.0,
         f"{prefix}_area_mean": 0.0,
         f"{prefix}_nearest_dist_mean": 0.0,
         f"{prefix}_nearest_dist_min": 0.0,
         f"{prefix}_nearest_dist_slope": 0.0,
+        f"{prefix}_nearest_dist_slope_n_per_second": 0.0,
         f"{prefix}_approach_ratio": 0.0,
         f"{prefix}_retreat_ratio": 0.0,
+        f"{prefix}_approach_ratio_per_second": 0.0,
+        f"{prefix}_retreat_ratio_per_second": 0.0,
         f"{prefix}_contact_ratio": 0.0,
         f"{prefix}_pair_iou_mean": 0.0,
         f"{prefix}_pair_motion_energy": 0.0,
+        f"{prefix}_pair_motion_energy_n_per_second2": 0.0,
         f"{prefix}_partner_persistence": 0.0,
         f"{prefix}_partner_switch_count": 0,
     }
@@ -903,6 +1486,7 @@ def _empty_segment_summary(prefix: str, *, expected_count: int) -> dict[str, Any
         result.update(
             {
                 f"{prefix}_{roi_class}_dist_slope": 0.0,
+                f"{prefix}_{roi_class}_dist_slope_n_per_second": 0.0,
                 f"{prefix}_{roi_class}_contact_ratio": 0.0,
                 f"{prefix}_{roi_class}_dwell_sec": 0.0,
                 f"{prefix}_{roi_class}_available_ratio": 0.0,
@@ -926,6 +1510,14 @@ def _transition_features(history: dict[str, Any], target: dict[str, Any]) -> dic
         "speed_delta_history_to_target": (
             target["target_speed_mean"] - history["history_speed_mean"]
         ),
+        "speed_n_per_second_delta_history_to_target": (
+            target["target_speed_n_per_second_mean"]
+            - history["history_speed_n_per_second_mean"]
+        ),
+        "activity_n_per_second_delta_history_to_target": (
+            target["target_speed_n_per_second_mean"]
+            - history["history_speed_n_per_second_mean"]
+        ),
         "stationary_to_motion_score": (
             history["history_stationary_ratio"]
             * (1.0 - target["target_stationary_ratio"])
@@ -934,6 +1526,14 @@ def _transition_features(history: dict[str, Any], target: dict[str, Any]) -> dic
             (1.0 - history["history_stationary_ratio"])
             * target["target_stationary_ratio"]
         ),
+        "stationary_per_second_to_motion_score": (
+            history["history_stationary_ratio_per_second"]
+            * (1.0 - target["target_stationary_ratio_per_second"])
+        ),
+        "motion_to_stationary_per_second_score": (
+            (1.0 - history["history_stationary_ratio_per_second"])
+            * target["target_stationary_ratio_per_second"]
+        ),
         "distance_delta_history_to_target": (
             target["target_nearest_dist_mean"]
             - history["history_nearest_dist_mean"]
@@ -941,11 +1541,19 @@ def _transition_features(history: dict[str, Any], target: dict[str, Any]) -> dic
         "approach_to_contact_score": (
             history["history_approach_ratio"] * target["target_contact_ratio"]
         ),
+        "approach_per_second_to_contact_score": (
+            history["history_approach_ratio_per_second"]
+            * target["target_contact_ratio"]
+        ),
         "contact_persistence_score": (
             history["history_contact_ratio"] * target["target_contact_ratio"]
         ),
         "contact_to_separation_score": (
             history["history_contact_ratio"] * target["target_retreat_ratio"]
+        ),
+        "contact_to_separation_per_second_score": (
+            history["history_contact_ratio"]
+            * target["target_retreat_ratio_per_second"]
         ),
         "partner_change_count": (
             target["target_partner_switch_count"]
@@ -960,9 +1568,21 @@ def _transition_features(history: dict[str, Any], target: dict[str, Any]) -> dic
             history[f"history_{roi_class}_dist_slope"] * -1.0
             * target[f"target_{roi_class}_contact_ratio"]
         )
+        result[f"{roi_class}_approach_n_per_second_to_engagement"] = (
+            history[f"history_{roi_class}_dist_slope_n_per_second"]
+            * -1.0
+            * target[f"target_{roi_class}_contact_ratio"]
+        )
         result[f"{roi_class}_engagement_to_departure"] = (
             history[f"history_{roi_class}_contact_ratio"]
             * max(0.0, target[f"target_{roi_class}_dist_slope"])
+        )
+        result[f"{roi_class}_engagement_to_departure_n_per_second"] = (
+            history[f"history_{roi_class}_contact_ratio"]
+            * max(
+                0.0,
+                target[f"target_{roi_class}_dist_slope_n_per_second"],
+            )
         )
     if not transition_available:
         for column in result:
@@ -996,28 +1616,11 @@ def _edge_record(
     distance = float(np.hypot(dx, dy))
     pair_iou = _box_iou(_box_from_row(actor), _box_from_row(neighbor))
     overlap = _box_overlap_ratio(_box_from_row(actor), _box_from_row(neighbor))
-    actor_speed = _number_or_zero(actor, "speed_n_per_frame")
-    neighbor_speed = _number_or_zero(neighbor, "speed_n_per_frame")
-    raw_vx = _number_or_nan(actor, "vx_n")
-    raw_vy = _number_or_nan(actor, "vy_n")
-    if not np.isfinite(raw_vx):
-        raw_vx = _number_or_nan(actor, "vx_n_per_frame")
-    if not np.isfinite(raw_vy):
-        raw_vy = _number_or_nan(actor, "vy_n_per_frame")
-    actor_vx = 0.0 if not np.isfinite(raw_vx) else raw_vx
-    actor_vy = 0.0 if not np.isfinite(raw_vy) else raw_vy
-    dot = actor_vx * dx + actor_vy * dy
-    cross = actor_vx * dy - actor_vy * dx
-    relative_angle = float(np.arctan2(cross, dot))
-    angle_available = bool(
-        np.isfinite(raw_vx) and np.isfinite(raw_vy) and distance > 0.0
-    )
     contact = bool(
         _bool_value(actor.get("pair_contact_with_nearest", False))
         if rank == 1
         else pair_iou > 0.0
     )
-    motion_energy = actor_speed**2 + neighbor_speed**2
     return {
         "pair_id": str(pair_id),
         "native_event_id": str(slot.native_event_id),
@@ -1029,18 +1632,30 @@ def _edge_record(
         "distance_n": distance,
         "relative_dx_n": dx,
         "relative_dy_n": dy,
-        "relative_speed_n": neighbor_speed - actor_speed,
-        "relative_angle": relative_angle,
-        "relative_angle_available": angle_available,
-        "approach_speed_n": max(0.0, -_number_or_zero(actor, "nearest_dist_delta")),
-        "separation_speed_n": max(0.0, _number_or_zero(actor, "nearest_dist_delta")),
+        "actor_cx_n_audit_only": _scalar(actor.get("cx_n")),
+        "actor_cy_n_audit_only": _scalar(actor.get("cy_n")),
+        "neighbor_cx_n_audit_only": _scalar(neighbor.get("cx_n")),
+        "neighbor_cy_n_audit_only": _scalar(neighbor.get("cy_n")),
+        "frame_index_audit_only": _scalar(actor.get("frame_index")),
+        "slot_role_audit_only": str(slot.slot_role),
+        "relative_speed_n": 0.0,
+        "relative_speed_n_per_second": 0.0,
+        "relative_angle": 0.0,
+        "relative_angle_available": False,
+        "approach_speed_n": 0.0,
+        "separation_speed_n": 0.0,
+        "approach_speed_n_per_second": 0.0,
+        "separation_speed_n_per_second": 0.0,
         "pair_iou": pair_iou,
         "pair_overlap_ratio": overlap,
         "pair_contact": contact,
         "pair_contact_duration_frames": 0,
+        "pair_contact_observed_span_sec": 0.0,
         "timestamp_sec": _number_or_nan(actor, "timestamp_sec"),
-        "pair_motion_energy": motion_energy,
-        "pair_contact_motion_intensity": motion_energy if contact else 0.0,
+        "pair_motion_energy": 0.0,
+        "pair_motion_energy_n_per_second2": 0.0,
+        "pair_contact_motion_intensity": 0.0,
+        "pair_contact_motion_intensity_n_per_second2": 0.0,
     }
 
 
@@ -1056,18 +1671,30 @@ def _missing_edge_record(pair_id: object, slot: Any, rank: int) -> dict[str, Any
         "distance_n": 0.0,
         "relative_dx_n": 0.0,
         "relative_dy_n": 0.0,
+        "actor_cx_n_audit_only": float("nan"),
+        "actor_cy_n_audit_only": float("nan"),
+        "neighbor_cx_n_audit_only": float("nan"),
+        "neighbor_cy_n_audit_only": float("nan"),
+        "frame_index_audit_only": float("nan"),
+        "slot_role_audit_only": str(slot.slot_role),
         "relative_speed_n": 0.0,
+        "relative_speed_n_per_second": 0.0,
         "relative_angle": 0.0,
         "relative_angle_available": False,
         "approach_speed_n": 0.0,
         "separation_speed_n": 0.0,
+        "approach_speed_n_per_second": 0.0,
+        "separation_speed_n_per_second": 0.0,
         "pair_iou": 0.0,
         "pair_overlap_ratio": 0.0,
         "pair_contact": False,
         "pair_contact_duration_frames": 0,
+        "pair_contact_observed_span_sec": 0.0,
         "timestamp_sec": float("nan"),
         "pair_motion_energy": 0.0,
+        "pair_motion_energy_n_per_second2": 0.0,
         "pair_contact_motion_intensity": 0.0,
+        "pair_contact_motion_intensity_n_per_second2": 0.0,
     }
 
 
@@ -1102,30 +1729,239 @@ def _add_partner_persistence_columns(edges: pd.DataFrame) -> None:
 
 
 def _add_edge_temporal_features(edges: pd.DataFrame, frames: pd.DataFrame) -> None:
-    """Add contact runs and neutral motion/contact interactions per edge rank."""
+    """Recompute edge motion/contact inside each pair and rank scope."""
 
+    del frames
     for _, group in edges.groupby(
-        ["pair_id", "actor_node_key", "neighbor_rank"], sort=False
+        ["pair_id", "actor_node_key", "neighbor_rank"],
+        sort=False,
     ):
         ordered = group.sort_values("slot_index")
-        run = 0
-        start_time: float | None = None
-        for index, row in ordered.iterrows():
-            contact = bool(row["edge_available"] and row["pair_contact"])
-            timestamp = _scalar(row.get("timestamp_sec"))
-            if contact:
-                run += 1
-                if start_time is None:
-                    start_time = timestamp if np.isfinite(timestamp) else None
+        index = ordered.index
+        row_count = len(ordered)
+        available = ordered["edge_available"].astype(bool).to_numpy()
+        neighbor_key = (
+            ordered["neighbor_node_key"].fillna("").astype(str).to_numpy()
+        )
+        slot_role = (
+            ordered["slot_role_audit_only"].fillna("").astype(str).to_numpy()
+        )
+        frame_index = pd.to_numeric(
+            ordered["frame_index_audit_only"],
+            errors="coerce",
+        ).to_numpy(dtype="float64")
+        timestamp = pd.to_numeric(
+            ordered["timestamp_sec"],
+            errors="coerce",
+        ).to_numpy(dtype="float64")
+        actor_x = pd.to_numeric(
+            ordered["actor_cx_n_audit_only"],
+            errors="coerce",
+        ).to_numpy(dtype="float64")
+        actor_y = pd.to_numeric(
+            ordered["actor_cy_n_audit_only"],
+            errors="coerce",
+        ).to_numpy(dtype="float64")
+        neighbor_x = pd.to_numeric(
+            ordered["neighbor_cx_n_audit_only"],
+            errors="coerce",
+        ).to_numpy(dtype="float64")
+        neighbor_y = pd.to_numeric(
+            ordered["neighbor_cy_n_audit_only"],
+            errors="coerce",
+        ).to_numpy(dtype="float64")
+        distance = pd.to_numeric(
+            ordered["distance_n"],
+            errors="coerce",
+        ).to_numpy(dtype="float64")
+
+        frame_delta = np.diff(frame_index)
+        time_delta = np.diff(timestamp)
+        same_neighbor = (
+            (neighbor_key[:-1] != "")
+            & (neighbor_key[:-1] == neighbor_key[1:])
+        )
+        finite_position = (
+            np.isfinite(actor_x)
+            & np.isfinite(actor_y)
+            & np.isfinite(neighbor_x)
+            & np.isfinite(neighbor_y)
+        )
+        velocity_pair_valid = (
+            available[:-1]
+            & available[1:]
+            & same_neighbor
+            & (slot_role[:-1] == slot_role[1:])
+            & finite_position[:-1]
+            & finite_position[1:]
+            & np.isfinite(frame_delta)
+            & (frame_delta > 0)
+            & np.isfinite(time_delta)
+            & (time_delta > 0)
+        )
+        adjacent_pair_valid = velocity_pair_valid & np.isclose(
+            frame_delta,
+            1.0,
+        )
+
+        actor_distance = np.hypot(np.diff(actor_x), np.diff(actor_y))
+        neighbor_distance = np.hypot(
+            np.diff(neighbor_x),
+            np.diff(neighbor_y),
+        )
+        actor_speed_per_second = np.zeros(row_count, dtype="float64")
+        neighbor_speed_per_second = np.zeros(row_count, dtype="float64")
+        actor_speed_per_frame = np.zeros(row_count, dtype="float64")
+        neighbor_speed_per_frame = np.zeros(row_count, dtype="float64")
+        if row_count > 1:
+            actor_speed_per_second[1:] = np.where(
+                velocity_pair_valid,
+                actor_distance / np.where(velocity_pair_valid, time_delta, 1.0),
+                0.0,
+            )
+            neighbor_speed_per_second[1:] = np.where(
+                velocity_pair_valid,
+                neighbor_distance
+                / np.where(velocity_pair_valid, time_delta, 1.0),
+                0.0,
+            )
+            actor_speed_per_frame[1:] = np.where(
+                adjacent_pair_valid,
+                actor_distance,
+                0.0,
+            )
+            neighbor_speed_per_frame[1:] = np.where(
+                adjacent_pair_valid,
+                neighbor_distance,
+                0.0,
+            )
+
+        distance_delta = np.diff(distance)
+        approach_per_second = np.zeros(row_count, dtype="float64")
+        separation_per_second = np.zeros(row_count, dtype="float64")
+        approach_per_frame = np.zeros(row_count, dtype="float64")
+        separation_per_frame = np.zeros(row_count, dtype="float64")
+        signed_velocity = np.zeros(max(0, row_count - 1), dtype="float64")
+        valid_distance = velocity_pair_valid & np.isfinite(distance_delta)
+        if row_count > 1:
+            signed_velocity[valid_distance] = (
+                distance_delta[valid_distance] / time_delta[valid_distance]
+            )
+            approach_per_second[1:] = np.clip(-signed_velocity, 0.0, None)
+            separation_per_second[1:] = np.clip(signed_velocity, 0.0, None)
+            adjacent_distance = adjacent_pair_valid & np.isfinite(distance_delta)
+            approach_per_frame[1:] = np.where(
+                adjacent_distance,
+                np.clip(-distance_delta, 0.0, None),
+                0.0,
+            )
+            separation_per_frame[1:] = np.where(
+                adjacent_distance,
+                np.clip(distance_delta, 0.0, None),
+                0.0,
+            )
+
+        motion_energy_per_frame = (
+            actor_speed_per_frame**2 + neighbor_speed_per_frame**2
+        )
+        motion_energy_per_second = (
+            actor_speed_per_second**2 + neighbor_speed_per_second**2
+        )
+        contact = (
+            available
+            & ordered["pair_contact"].astype(bool).to_numpy()
+        )
+        contact_run = np.zeros(row_count, dtype="int64")
+        contact_duration = np.zeros(row_count, dtype="float64")
+        contact_span = np.zeros(row_count, dtype="float64")
+        run_start_time: float | None = None
+        for position in range(row_count):
+            continues = bool(
+                position > 0
+                and contact[position]
+                and contact[position - 1]
+                and adjacent_pair_valid[position - 1]
+            )
+            if not contact[position]:
+                run_start_time = None
+                continue
+            if continues:
+                contact_run[position] = contact_run[position - 1] + 1
+                contact_duration[position] = (
+                    contact_duration[position - 1] + time_delta[position - 1]
+                )
             else:
-                run = 0
-                start_time = None
-            if start_time is not None and np.isfinite(timestamp):
-                duration_sec = max(0.0, timestamp - start_time + 1.0 / 6.0)
-            else:
-                duration_sec = run / 6.0
-            edges.loc[index, "pair_contact_duration_frames"] = int(run)
-            edges.loc[index, "pair_contact_duration_sec"] = float(duration_sec)
+                contact_run[position] = 1
+                run_start_time = (
+                    timestamp[position]
+                    if np.isfinite(timestamp[position])
+                    else None
+                )
+            if run_start_time is not None and np.isfinite(timestamp[position]):
+                contact_span[position] = max(
+                    0.0,
+                    timestamp[position] - run_start_time,
+                )
+
+        relative_dx = pd.to_numeric(
+            ordered["relative_dx_n"],
+            errors="coerce",
+        ).to_numpy(dtype="float64")
+        relative_dy = pd.to_numeric(
+            ordered["relative_dy_n"],
+            errors="coerce",
+        ).to_numpy(dtype="float64")
+        actor_vx = np.zeros(row_count, dtype="float64")
+        actor_vy = np.zeros(row_count, dtype="float64")
+        if row_count > 1:
+            actor_vx[1:] = np.where(
+                velocity_pair_valid,
+                np.diff(actor_x) / np.where(velocity_pair_valid, time_delta, 1.0),
+                0.0,
+            )
+            actor_vy[1:] = np.where(
+                velocity_pair_valid,
+                np.diff(actor_y) / np.where(velocity_pair_valid, time_delta, 1.0),
+                0.0,
+            )
+        angle_available = (
+            np.hypot(actor_vx, actor_vy) > 0
+        ) & np.isfinite(relative_dx) & np.isfinite(relative_dy)
+        relative_angle = np.zeros(row_count, dtype="float64")
+        relative_angle[angle_available] = np.arctan2(
+            actor_vx[angle_available] * relative_dy[angle_available]
+            - actor_vy[angle_available] * relative_dx[angle_available],
+            actor_vx[angle_available] * relative_dx[angle_available]
+            + actor_vy[angle_available] * relative_dy[angle_available],
+        )
+
+        edges.loc[index, "relative_speed_n"] = (
+            neighbor_speed_per_frame - actor_speed_per_frame
+        )
+        edges.loc[index, "relative_speed_n_per_second"] = (
+            neighbor_speed_per_second - actor_speed_per_second
+        )
+        edges.loc[index, "relative_angle"] = relative_angle
+        edges.loc[index, "relative_angle_available"] = angle_available
+        edges.loc[index, "approach_speed_n"] = approach_per_frame
+        edges.loc[index, "separation_speed_n"] = separation_per_frame
+        edges.loc[index, "approach_speed_n_per_second"] = approach_per_second
+        edges.loc[index, "separation_speed_n_per_second"] = separation_per_second
+        edges.loc[index, "pair_motion_energy"] = motion_energy_per_frame
+        edges.loc[index, "pair_motion_energy_n_per_second2"] = (
+            motion_energy_per_second
+        )
+        edges.loc[index, "pair_contact_motion_intensity"] = np.where(
+            contact,
+            motion_energy_per_frame,
+            0.0,
+        )
+        edges.loc[index, "pair_contact_motion_intensity_n_per_second2"] = (
+            np.where(contact, motion_energy_per_second, 0.0)
+        )
+        edges.loc[index, "pair_contact_duration_frames"] = contact_run
+        edges.loc[index, "pair_contact_duration_sec"] = contact_duration
+        edges.loc[index, "pair_contact_observed_span_sec"] = contact_span
 
     if "pair_contact_duration_sec" not in edges:
         edges["pair_contact_duration_sec"] = 0.0
@@ -1213,18 +2049,25 @@ def _slot_rows(
     frame_lookup: dict[str, pd.Series],
 ) -> pd.DataFrame:
     selected = slots[(slots["pair_id"] == pair_id) & slots["slot_role"].eq(role)]
-    rows = [
-        frame_lookup[str(value)]
-        for value in selected["frame_uid"]
-        if str(value) in frame_lookup
-    ]
+    rows: list[pd.Series] = []
+    for value in selected["frame_uid"]:
+        key = str(value)
+        if key not in frame_lookup:
+            continue
+        row = frame_lookup[key].copy()
+        row["frame_uid"] = key
+        rows.append(row)
     return pd.DataFrame(rows) if rows else frames.iloc[0:0].copy()
 
 
 def _build_artifact_audit(**tables: pd.DataFrame) -> dict[str, Any]:
     pairs = tables["pairs"]
     return {
-        "schema_version": "classification_v2.pig_strenet_artifacts.v2",
+        "schema_version": "classification_v2.pig_strenet_artifacts.v3",
+        "primary_motion_time_basis": "source_frame_timestamp_seconds",
+        "per_frame_motion_columns_audit_only": sorted(
+            PER_FRAME_AUDIT_ONLY_HISTORY_COLUMNS
+        ),
         "status": "PASS_PIG_STRENET_ARTIFACT_SCHEMA",
         "native_event_count": int(pairs["native_event_id"].nunique()),
         "pair_count": int(len(pairs)),
@@ -1256,43 +2099,34 @@ def model_x_columns(
     *,
     include_availability: bool = False,
 ) -> list[str]:
-    """Return causal numeric features, excluding audit/mask fields by default."""
+    """Return only the explicit physical-unit Pig-STRENet model allowlist."""
 
-    excluded = {
-        "pair_id",
-        "native_event_id",
-        "source_type",
-        "event_weight",
-    }
-    columns: list[str] = []
-    for column in features.columns:
-        lower = column.lower()
-        if column in excluded or any(token in lower for token in MODEL_X_FORBIDDEN_TOKENS):
-            continue
-        if not include_availability and any(
-            token in lower for token in MODEL_X_AUDIT_TOKENS
-        ):
-            continue
-        if (
+    allowed = list(MODEL_X_HISTORY_COLUMNS)
+    if include_availability:
+        allowed.extend(HISTORY_AVAILABILITY_COLUMNS)
+    return [
+        column
+        for column in allowed
+        if column in features.columns
+        and (
             pd.api.types.is_numeric_dtype(features[column])
             or pd.api.types.is_bool_dtype(features[column])
-        ):
-            columns.append(column)
-    return columns
+        )
+    ]
 
 
 def availability_columns(features: pd.DataFrame) -> list[str]:
-    """Return audit/mask fields reserved for HA and missingness controls."""
+    """Return explicit audit/mask fields reserved for missingness controls."""
 
-    columns: list[str] = []
-    for column in features.columns:
-        lower = column.lower()
-        if any(token in lower for token in MODEL_X_AUDIT_TOKENS) and (
+    return [
+        column
+        for column in HISTORY_AVAILABILITY_COLUMNS
+        if column in features.columns
+        and (
             pd.api.types.is_numeric_dtype(features[column])
             or pd.api.types.is_bool_dtype(features[column])
-        ):
-            columns.append(column)
-    return columns
+        )
+    ]
 
 
 def _validate_model_x_names(features: pd.DataFrame) -> None:
@@ -1494,17 +2328,6 @@ def _max_gap_seconds(frame: pd.DataFrame, expected: Iterable[int]) -> float:
     return float(times.diff().dropna().max())
 
 
-def _duration_seconds(frame: pd.DataFrame) -> float:
-    if frame.empty or "timestamp_sec" not in frame:
-        return 0.0
-    values = pd.to_numeric(frame["timestamp_sec"], errors="coerce").dropna()
-    if len(values) < 2:
-        return 0.0
-    deltas = values.sort_values().diff().dropna()
-    step = float(deltas.median()) if not deltas.empty else 0.0
-    return float(max(0.0, values.max() - values.min() + max(step, 0.0)))
-
-
 def _boundary_gap_seconds(history: pd.DataFrame, target: pd.DataFrame) -> float:
     if (
         history.empty
@@ -1532,13 +2355,26 @@ def _endpoint_displacement(frame: pd.DataFrame) -> float:
 
 
 def _duration_from_mask(frame: pd.DataFrame, mask: np.ndarray) -> float:
-    if "timestamp_sec" not in frame:
-        return float(np.sum(mask))
-    timestamps = pd.to_numeric(frame["timestamp_sec"], errors="coerce").to_numpy(dtype=float)
-    valid = mask & np.isfinite(timestamps)
-    if valid.sum() < 2:
-        return float(valid.sum())
-    return float(np.sum(np.diff(timestamps)[valid[:-1]]))
+    if "timestamp_sec" not in frame or "frame_index" not in frame:
+        return 0.0
+    timestamps = pd.to_numeric(
+        frame["timestamp_sec"],
+        errors="coerce",
+    ).to_numpy(dtype=float)
+    frames = pd.to_numeric(
+        frame["frame_index"],
+        errors="coerce",
+    ).to_numpy(dtype=float)
+    time_delta = np.diff(timestamps)
+    frame_delta = np.diff(frames)
+    adjacent_contact = (
+        mask[:-1]
+        & mask[1:]
+        & np.isfinite(time_delta)
+        & (time_delta > 0)
+        & np.isclose(frame_delta, 1.0)
+    )
+    return float(np.sum(time_delta[adjacent_contact]))
 
 
 def _slope(frame: pd.DataFrame, column: str) -> float:
@@ -1549,6 +2385,23 @@ def _slope(frame: pd.DataFrame, column: str) -> float:
     x = np.arange(len(values), dtype=float)[valid]
     y = values[valid]
     return float(np.polyfit(x, y, 1)[0])
+
+
+def _slope_per_second(frame: pd.DataFrame, column: str) -> float:
+    if column not in frame.columns:
+        return 0.0
+    values = _values(frame.sort_values("frame_index"), column)
+    timestamps = pd.to_numeric(
+        frame.sort_values("frame_index").get(
+            "timestamp_sec",
+            pd.Series(np.nan, index=frame.index),
+        ),
+        errors="coerce",
+    ).to_numpy(dtype="float64")
+    valid = np.isfinite(values) & np.isfinite(timestamps)
+    if valid.sum() < 2 or np.unique(timestamps[valid]).size < 2:
+        return 0.0
+    return float(np.polyfit(timestamps[valid], values[valid], 1)[0])
 
 
 def _partner_persistence(frame: pd.DataFrame) -> float:

@@ -170,6 +170,7 @@ def test_strict_model_inputs_expose_timing_without_metadata() -> None:
         "spatial_features": {},
         "spatial_length_mask": mask,
         "spatial_observed_mask": mask,
+        "spatial_quality_mask": mask,
         "spatial_time_delta": delta,
         "interaction_context_features": torch.zeros(1, 2),
         "interaction_context_available_mask": torch.ones(1),
@@ -228,6 +229,7 @@ def test_data_module_trims_only_spatial_padding_for_tier() -> None:
         "visual_context_observed_mask": torch.ones(2, 8),
         "spatial_length_mask": spatial_length,
         "spatial_observed_mask": spatial_length.clone(),
+        "spatial_quality_mask": spatial_length.clone(),
         "spatial_features": {
             "geometry_raw": torch.zeros(2, 16, 3),
         },
@@ -253,6 +255,7 @@ def test_data_module_rejects_spatial_content_beyond_tier() -> None:
         "visual_context_observed_mask": torch.ones(1, 8),
         "spatial_length_mask": torch.ones(1, 16),
         "spatial_observed_mask": torch.ones(1, 16),
+        "spatial_quality_mask": torch.ones(1, 16),
         "spatial_features": {
             "geometry_raw": torch.zeros(1, 16, 3),
         },

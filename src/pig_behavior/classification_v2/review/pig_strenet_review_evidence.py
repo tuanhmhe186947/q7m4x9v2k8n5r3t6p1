@@ -186,14 +186,17 @@ def build_pig_strenet_review_evidence(
 
     motion_transition = _row_max(
         pair,
-        ["stationary_to_motion_score", "motion_to_stationary_score"],
+        [
+            "stationary_per_second_to_motion_score",
+            "motion_to_stationary_per_second_score",
+        ],
     )
     social_phase = _row_max(
         pair,
         [
-            "approach_to_contact_score",
+            "approach_per_second_to_contact_score",
             "contact_persistence_score",
-            "contact_to_separation_score",
+            "contact_to_separation_per_second_score",
         ],
     )
     out["review_pig_motion_transition_score"] = _masked(
@@ -201,15 +204,21 @@ def build_pig_strenet_review_evidence(
         transition_valid,
     )
     out["review_pig_stationary_to_motion_score"] = _masked(
-        _numeric(pair.get("stationary_to_motion_score", 0.0)).clip(0.0, 1.0),
+        _numeric(
+            pair.get("stationary_per_second_to_motion_score", 0.0)
+        ).clip(0.0, 1.0),
         transition_valid,
     )
     out["review_pig_motion_to_stationary_score"] = _masked(
-        _numeric(pair.get("motion_to_stationary_score", 0.0)).clip(0.0, 1.0),
+        _numeric(
+            pair.get("motion_to_stationary_per_second_score", 0.0)
+        ).clip(0.0, 1.0),
         transition_valid,
     )
     out["review_pig_history_motion_burstiness_score"] = _masked(
-        _numeric(pair.get("history_motion_burstiness", 0.0)).div(2.0).clip(0.0, 1.0),
+        _numeric(
+            pair.get("history_motion_burstiness_per_second", 0.0)
+        ).div(2.0).clip(0.0, 1.0),
         history_complete,
     )
     out["review_pig_social_phase_score"] = _masked(social_phase, transition_valid)
@@ -232,8 +241,8 @@ def build_pig_strenet_review_evidence(
             _row_max(
                 pair,
                 [
-                    f"{roi_class}_approach_to_engagement",
-                    f"{roi_class}_engagement_to_departure",
+                    f"{roi_class}_approach_n_per_second_to_engagement",
+                    f"{roi_class}_engagement_to_departure_n_per_second",
                 ],
             ),
             transition_valid,
@@ -267,7 +276,8 @@ def build_pig_strenet_review_evidence(
     )
     collapsed = _collapse_native_units(out)
     audit = {
-        "schema_version": "classification_v2.pig_strenet_review_evidence.v1",
+        "schema_version": "classification_v2.pig_strenet_review_evidence.v2",
+        "primary_motion_time_basis": "source_frame_timestamp_seconds",
         "pair_rows": int(len(pair_manifest)),
         "review_unit_rows": int(len(collapsed)),
         "transition_valid_pairs": int(transition_valid.sum()),
@@ -332,7 +342,7 @@ def _social_summary(
             "edge_available",
             "pair_overlap_ratio",
             "pair_contact",
-            "pair_motion_energy",
+            "pair_motion_energy_n_per_second2",
         ],
         "social_edges",
     )
@@ -348,7 +358,7 @@ def _social_summary(
         slot_available=("edge_available", "max"),
         slot_overlap=("pair_overlap_ratio", "max"),
         slot_contact=("pair_contact", "max"),
-        slot_motion=("pair_motion_energy", "max"),
+        slot_motion=("pair_motion_energy_n_per_second2", "max"),
     ).reset_index()
     return slot.groupby("pair_id", sort=False).agg(
         review_pig_topk_overlap_score=("slot_overlap", "max"),
@@ -366,7 +376,13 @@ def _roi_summary(roi: pd.DataFrame | None) -> pd.DataFrame:
         return pd.DataFrame({"pair_id": pd.Series(dtype="object")})
     _require_columns(
         roi,
-        ["pair_id", "slot_role", "roi_class", "available", "motion_inside"],
+        [
+            "pair_id",
+            "slot_role",
+            "roi_class",
+            "available",
+            "motion_inside_n_per_second",
+        ],
         "roi_dynamics",
     )
     target = roi[roi["slot_role"].astype(str).eq("target")].copy()
@@ -383,7 +399,7 @@ def _roi_summary(roi: pd.DataFrame | None) -> pd.DataFrame:
                     "mean",
                 ),
                 f"review_pig_roi_{roi_class}_motion_inside_p90": (
-                    "motion_inside",
+                    "motion_inside_n_per_second",
                     lambda values: float(pd.to_numeric(values).quantile(0.90)),
                 ),
             }

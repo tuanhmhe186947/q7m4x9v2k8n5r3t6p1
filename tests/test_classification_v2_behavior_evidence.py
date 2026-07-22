@@ -29,9 +29,9 @@ def _unit(behavior: str, **overrides: float) -> dict[str, object]:
         "temporal_observation_ratio_unit": 1.0,
         "temporal_pair_coverage_ratio_unit": 1.0,
         "bbox_valid_ratio_interval": 1.0,
-        "motion_active_ratio_unit": 0.0,
-        "motion_stationary_ratio_unit": 1.0,
-        "motion_speed_p90_unit": 0.0,
+        "motion_active_ratio_per_second_unit": 0.0,
+        "motion_stationary_ratio_per_second_unit": 1.0,
+        "motion_speed_n_per_second_p90_unit": 0.0,
         "trajectory_straightness_unit": 0.0,
         "bbox_shape_change_p90_unit": 0.0,
         "roi_feeder_near_ratio_unit": 0.0,
@@ -50,7 +50,7 @@ def _unit(behavior: str, **overrides: float) -> dict[str, object]:
         "social_neighbor_availability_ratio_unit": 0.0,
         "social_partner_persistence_ratio_unit": 0.0,
         "social_nearest_dist_p50_unit": 1.0,
-        "social_aggression_proxy_p90_unit": 0.0,
+        "social_aggression_proxy_n_per_second_p90_unit": 0.0,
     }
     row.update(overrides)
     return row
@@ -158,9 +158,9 @@ def test_explore_roi_contact_requires_stationary_pattern_for_conflict() -> None:
             [
                 _unit(
                     "explore",
-                    motion_active_ratio_unit=1.0,
-                    motion_stationary_ratio_unit=0.0,
-                    motion_speed_p90_unit=0.02,
+                    motion_active_ratio_per_second_unit=1.0,
+                    motion_stationary_ratio_per_second_unit=0.0,
+                    motion_speed_n_per_second_p90_unit=0.60,
                     **roi_contact,
                 )
             ]
@@ -198,15 +198,15 @@ def test_missing_target_roi_is_insufficient_not_contradictory() -> None:
 
 def test_review_scores_are_never_selected_for_model_x() -> None:
     scored = add_behavior_review_evidence(pd.DataFrame([_unit("move")]))
-    scored["speed_mean_window"] = 0.0
-    scored["motion_active_ratio_window"] = 0.5
+    scored["speed_n_per_second_mean_window"] = 0.0
+    scored["motion_active_ratio_per_second_window"] = 0.5
     scored["roi_feeder_contact_ratio_window"] = 0.25
     scored["social_partner_persistence_ratio_window"] = 0.75
 
     selected = select_window_feature_columns(scored)
 
-    assert "speed_mean_window" in selected
-    assert "motion_active_ratio_window" in selected
+    assert "speed_n_per_second_mean_window" in selected
+    assert "motion_active_ratio_per_second_window" in selected
     assert "roi_feeder_contact_ratio_window" in selected
     assert "social_partner_persistence_ratio_window" in selected
     assert not set(REVIEW_EVIDENCE_COLUMNS).intersection(selected)

@@ -93,6 +93,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-items", type=int, default=None)
     parser.add_argument("--include-reviewed", action="store_true")
     parser.add_argument(
+        "--resume-back",
+        type=int,
+        default=0,
+        help=(
+            "Reopen this many completed manifest items immediately before the "
+            "normal resume point. Existing decisions are retained and replaced "
+            "only if the reviewer saves a new decision."
+        ),
+    )
+    parser.add_argument(
         "--validate-only",
         action="store_true",
         help="Validate manifest and media resolution without opening Tk.",
@@ -547,6 +557,37 @@ def completed_decision_ids(
     }
 
 
+def select_review_items(
+    manifest: pd.DataFrame,
+    decisions: dict[str, dict[str, str]],
+    *,
+    include_reviewed: bool,
+    resume_back: int,
+) -> pd.DataFrame:
+    """Select pending review items with an optional bounded look-back window."""
+
+    if resume_back < 0:
+        raise ValueError("--resume-back must be >= 0")
+    if include_reviewed and resume_back:
+        raise ValueError("--resume-back cannot be combined with --include-reviewed")
+    if include_reviewed:
+        return manifest.copy()
+
+    completed_ids = completed_decision_ids(decisions)
+    item_ids = manifest["hidden_review_item_id"].astype(str)
+    completed = item_ids.isin(completed_ids)
+    pending_positions = completed[~completed].index
+    resume_position = (
+        int(manifest.index.get_loc(pending_positions[0]))
+        if len(pending_positions)
+        else len(manifest)
+    )
+    if resume_back > len(manifest):
+        raise ValueError("--resume-back cannot exceed the manifest item count")
+    start_position = max(0, resume_position - resume_back)
+    return manifest.iloc[start_position:].copy()
+
+
 def decision_error_message(error_code: str) -> str:
     """Translate stable audit codes into concise reviewer instructions."""
     messages = {
@@ -921,12 +962,12 @@ def main() -> None:
 
     decision_path = args.output_dir / DECISION_FILENAME
     decisions = load_decisions(decision_path)
-    if args.include_reviewed:
-        items = manifest.copy()
-    else:
-        completed_ids = completed_decision_ids(decisions)
-        item_ids = manifest["hidden_review_item_id"].astype(str)
-        items = manifest.loc[~item_ids.isin(completed_ids)].copy()
+    items = select_review_items(
+        manifest,
+        decisions,
+        include_reviewed=args.include_reviewed,
+        resume_back=args.resume_back,
+    )
     if args.max_items is not None:
         if args.max_items <= 0:
             raise ValueError("--max-items must be > 0")

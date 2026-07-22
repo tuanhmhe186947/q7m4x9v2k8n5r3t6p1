@@ -28,7 +28,7 @@ from pig_behavior.classification_v2.datasets.legacy_unreviewed_development impor
 )
 from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
 from pig_behavior.classification_v2.spatial_sequence_export import (
-    SPATIAL_FRAME_FEATURES,
+    LEGACY_SPATIAL_FRAME_FEATURES,
 )
 from pig_behavior.classification_v2.training.lineage_hashing import file_sha256
 
@@ -281,7 +281,7 @@ def _contract() -> dict:
 def _all_spatial_columns() -> list[str]:
     return [
         feature
-        for features in SPATIAL_FRAME_FEATURES.values()
+        for features in LEGACY_SPATIAL_FRAME_FEATURES.values()
         for feature in features
     ]
 

@@ -31,7 +31,7 @@
     "transformer_layers": 2,
     "transformer_heads": 4,
     "spatial_feature_groups": [
-      "bbox_xywh_n", "bbox_shape_n", "motion_delta", "roi_class_relation", "social_relation", "quality_mask"
+      "bbox_xywh_n", "bbox_shape_n", "motion_delta", "roi_class_relation", "social_relation"
     ],
     "standardize_spatial_groups": ["bbox_shape_n", "motion_delta", "roi_class_relation", "social_relation"],
     "enable_image": false,

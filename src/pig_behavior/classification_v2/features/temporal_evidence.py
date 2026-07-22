@@ -23,6 +23,8 @@ class TemporalEvidenceConfig:
 
     stationary_speed_threshold: float = 0.002
     active_speed_threshold: float = 0.006
+    stationary_speed_threshold_per_second: float = 0.06
+    active_speed_threshold_per_second: float = 0.18
     turning_angle_threshold_rad: float = float(np.pi / 6.0)
 
     def validate(self) -> None:
@@ -33,6 +35,18 @@ class TemporalEvidenceConfig:
         if self.active_speed_threshold <= self.stationary_speed_threshold:
             raise ValueError(
                 "active_speed_threshold must exceed stationary_speed_threshold"
+            )
+        if self.stationary_speed_threshold_per_second < 0:
+            raise ValueError(
+                "stationary_speed_threshold_per_second must be >= 0"
+            )
+        if (
+            self.active_speed_threshold_per_second
+            <= self.stationary_speed_threshold_per_second
+        ):
+            raise ValueError(
+                "active_speed_threshold_per_second must exceed "
+                "stationary_speed_threshold_per_second"
             )
         if not 0 < self.turning_angle_threshold_rad <= np.pi:
             raise ValueError("turning_angle_threshold_rad must be in (0, pi]")
@@ -49,9 +63,19 @@ MOTION_EVIDENCE_COLUMNS: tuple[str, ...] = (
     "motion_speed_p50",
     "motion_speed_p90",
     "motion_speed_p95",
+    "motion_speed_n_per_second_p10",
+    "motion_speed_n_per_second_p50",
+    "motion_speed_n_per_second_p90",
+    "motion_speed_n_per_second_p95",
     "motion_active_ratio",
     "motion_stationary_ratio",
     "motion_intermediate_ratio",
+    "motion_active_ratio_per_second",
+    "motion_stationary_ratio_per_second",
+    "motion_intermediate_ratio_per_second",
+    "motion_adjacent_pair_count",
+    "motion_sparse_velocity_pair_count",
+    "motion_sparse_velocity_pair_ratio",
     "motion_longest_active_run_ratio",
     "motion_longest_stationary_run_ratio",
     "motion_active_episode_count",
@@ -60,11 +84,14 @@ MOTION_EVIDENCE_COLUMNS: tuple[str, ...] = (
     "motion_speed_trend_valid",
     "motion_jerk_abs_mean",
     "motion_jerk_abs_p90",
+    "motion_acceleration_n_per_second2_abs_mean",
+    "motion_acceleration_n_per_second2_abs_p90",
     "turning_abs_mean",
     "turning_rate",
     "turning_direction_concentration",
     "turning_pair_coverage_ratio",
     "trajectory_path_length_n",
+    "trajectory_sparse_path_length_n",
     "trajectory_displacement_n",
     "trajectory_straightness",
     "trajectory_tortuosity_log1p",
@@ -111,6 +138,7 @@ SOCIAL_EVIDENCE_COLUMNS: tuple[str, ...] = (
     "social_nearest_dist_p50",
     "social_nearest_dist_p90",
     "social_aggression_proxy_p90",
+    "social_aggression_proxy_n_per_second_p90",
 )
 
 TEMPORAL_EVIDENCE_BASE_COLUMNS: tuple[str, ...] = (
@@ -126,6 +154,35 @@ UNIT_TEMPORAL_EVIDENCE_COLUMNS: tuple[str, ...] = tuple(
 
 WINDOW_TEMPORAL_EVIDENCE_COLUMNS: tuple[str, ...] = tuple(
     f"{column}_window" for column in TEMPORAL_EVIDENCE_BASE_COLUMNS
+)
+
+PER_FRAME_AUDIT_ONLY_EVIDENCE_COLUMNS: tuple[str, ...] = (
+    "motion_speed_p10",
+    "motion_speed_p50",
+    "motion_speed_p90",
+    "motion_speed_p95",
+    "motion_active_ratio",
+    "motion_stationary_ratio",
+    "motion_intermediate_ratio",
+    "motion_longest_active_run_ratio",
+    "motion_longest_stationary_run_ratio",
+    "motion_active_episode_count",
+    "motion_stationary_episode_count",
+    "motion_speed_trend",
+    "motion_speed_trend_valid",
+    "motion_jerk_abs_mean",
+    "motion_jerk_abs_p90",
+    "social_aggression_proxy_p90",
+)
+
+MODEL_TEMPORAL_EVIDENCE_COLUMNS: tuple[str, ...] = tuple(
+    column
+    for column in TEMPORAL_EVIDENCE_BASE_COLUMNS
+    if column not in set(PER_FRAME_AUDIT_ONLY_EVIDENCE_COLUMNS)
+)
+
+MODEL_WINDOW_TEMPORAL_EVIDENCE_COLUMNS: tuple[str, ...] = tuple(
+    f"{column}_window" for column in MODEL_TEMPORAL_EVIDENCE_COLUMNS
 )
 
 
@@ -287,7 +344,12 @@ def _temporal_quality_summary(
 
     timestamps = _numeric_array(work, "timestamp_sec")
     time_deltas = np.diff(timestamps)
-    valid_time = np.isfinite(time_deltas) & (time_deltas > 0)
+    valid_time = (
+        np.isfinite(deltas)
+        & (deltas > 0)
+        & np.isfinite(time_deltas)
+        & (time_deltas > 0)
+    )
     return {
         "temporal_observation_ratio": _bounded_ratio(unique_count, expected_count),
         "temporal_pair_coverage_ratio": _bounded_ratio(
@@ -321,10 +383,12 @@ def _motion_summary(
 
     cx = _numeric_array(work, "cx_n")
     cy = _numeric_array(work, "cy_n")
+    timestamps = _numeric_array(work, "timestamp_sec")
     delta_frame = np.diff(frames)
+    delta_seconds = np.diff(timestamps)
     dx = np.diff(cx)
     dy = np.diff(cy)
-    pair_valid = (
+    geometry_pair_valid = (
         np.isfinite(delta_frame)
         & (delta_frame > 0)
         & np.isfinite(dx)
@@ -332,31 +396,93 @@ def _motion_summary(
         & row_valid[:-1]
         & row_valid[1:]
     )
-    contiguous = pair_valid & np.isclose(delta_frame, 1.0)
+    time_pair_valid = np.isfinite(delta_seconds) & (delta_seconds > 0)
+    adjacent_pair_valid = (
+        geometry_pair_valid
+        & np.isclose(delta_frame, 1.0)
+        & time_pair_valid
+    )
+    sparse_velocity_pair_valid = (
+        geometry_pair_valid
+        & (delta_frame > 1.0)
+        & time_pair_valid
+    )
+    velocity_pair_valid = adjacent_pair_valid | sparse_velocity_pair_valid
+    contiguous = adjacent_pair_valid
     distance = np.hypot(dx, dy)
-    speed = np.full(distance.shape, np.nan, dtype="float64")
-    speed[pair_valid] = distance[pair_valid] / delta_frame[pair_valid]
-    valid_speed = speed[np.isfinite(speed)]
+    speed_per_frame = np.full(distance.shape, np.nan, dtype="float64")
+    speed_per_frame[adjacent_pair_valid] = distance[adjacent_pair_valid]
+    valid_speed_per_frame = speed_per_frame[np.isfinite(speed_per_frame)]
+    speed_per_second = np.full(distance.shape, np.nan, dtype="float64")
+    speed_per_second[velocity_pair_valid] = (
+        distance[velocity_pair_valid] / delta_seconds[velocity_pair_valid]
+    )
+    valid_speed_per_second = speed_per_second[
+        np.isfinite(speed_per_second)
+    ]
 
-    active = pair_valid & (speed >= config.active_speed_threshold)
-    stationary = pair_valid & (speed <= config.stationary_speed_threshold)
-    intermediate = pair_valid & ~(active | stationary)
-    valid_pair_count = int(pair_valid.sum())
-    active_run = _pair_run_stats(active, pair_valid, contiguous)
-    stationary_run = _pair_run_stats(stationary, pair_valid, contiguous)
+    active = adjacent_pair_valid & (
+        speed_per_frame >= config.active_speed_threshold
+    )
+    stationary = adjacent_pair_valid & (
+        speed_per_frame <= config.stationary_speed_threshold
+    )
+    intermediate = adjacent_pair_valid & ~(active | stationary)
+    physical_active = velocity_pair_valid & (
+        speed_per_second >= config.active_speed_threshold_per_second
+    )
+    physical_stationary = velocity_pair_valid & (
+        speed_per_second <= config.stationary_speed_threshold_per_second
+    )
+    physical_intermediate = velocity_pair_valid & ~(
+        physical_active | physical_stationary
+    )
+    adjacent_pair_count = int(adjacent_pair_valid.sum())
+    velocity_pair_count = int(velocity_pair_valid.sum())
+    active_run = _pair_run_stats(active, adjacent_pair_valid, contiguous)
+    stationary_run = _pair_run_stats(
+        stationary,
+        adjacent_pair_valid,
+        contiguous,
+    )
 
     speed_trend, speed_trend_valid = _linear_trend(
-        frames[1:][pair_valid],
-        speed[pair_valid],
+        frames[1:][adjacent_pair_valid],
+        speed_per_frame[adjacent_pair_valid],
     )
-    jerk = _jerk_values(speed, pair_valid, contiguous)
-    turning = _turning_summary(speed, dx, dy, pair_valid, contiguous, config)
+    jerk = _jerk_values(
+        speed_per_frame,
+        adjacent_pair_valid,
+        contiguous,
+    )
+    acceleration_per_second2 = _acceleration_values_per_second(
+        speed_per_second,
+        delta_seconds,
+        velocity_pair_valid,
+    )
+    turning = _turning_summary(
+        speed_per_second,
+        dx,
+        dy,
+        adjacent_pair_valid,
+        contiguous,
+        config,
+    )
 
-    path_length = float(np.nansum(distance[pair_valid])) if pair_valid.any() else 0.0
+    path_length = (
+        float(np.nansum(distance[adjacent_pair_valid]))
+        if adjacent_pair_valid.any()
+        else 0.0
+    )
+    sparse_path_length = (
+        float(np.nansum(distance[velocity_pair_valid]))
+        if velocity_pair_valid.any()
+        else 0.0
+    )
     displacement = _connected_displacement(
         cx,
         cy,
-        pair_valid,
+        adjacent_pair_valid,
     )
     straightness = (
         float(np.clip(displacement / path_length, 0.0, 1.0))
@@ -369,26 +495,65 @@ def _motion_summary(
     )
     tortuosity = float(np.log1p(tortuosity_excess)) if path_length > 0 else 0.0
     return {
-        "motion_speed_p10": _quantile(valid_speed, 0.10),
-        "motion_speed_p50": _quantile(valid_speed, 0.50),
-        "motion_speed_p90": _quantile(valid_speed, 0.90),
-        "motion_speed_p95": _quantile(valid_speed, 0.95),
-        "motion_active_ratio": _bounded_ratio(int(active.sum()), valid_pair_count),
+        "motion_speed_p10": _quantile(valid_speed_per_frame, 0.10),
+        "motion_speed_p50": _quantile(valid_speed_per_frame, 0.50),
+        "motion_speed_p90": _quantile(valid_speed_per_frame, 0.90),
+        "motion_speed_p95": _quantile(valid_speed_per_frame, 0.95),
+        "motion_speed_n_per_second_p10": _quantile(
+            valid_speed_per_second,
+            0.10,
+        ),
+        "motion_speed_n_per_second_p50": _quantile(
+            valid_speed_per_second,
+            0.50,
+        ),
+        "motion_speed_n_per_second_p90": _quantile(
+            valid_speed_per_second,
+            0.90,
+        ),
+        "motion_speed_n_per_second_p95": _quantile(
+            valid_speed_per_second,
+            0.95,
+        ),
+        "motion_active_ratio": _bounded_ratio(
+            int(active.sum()),
+            adjacent_pair_count,
+        ),
         "motion_stationary_ratio": _bounded_ratio(
             int(stationary.sum()),
-            valid_pair_count,
+            adjacent_pair_count,
         ),
         "motion_intermediate_ratio": _bounded_ratio(
             int(intermediate.sum()),
-            valid_pair_count,
+            adjacent_pair_count,
+        ),
+        "motion_active_ratio_per_second": _bounded_ratio(
+            int(physical_active.sum()),
+            velocity_pair_count,
+        ),
+        "motion_stationary_ratio_per_second": _bounded_ratio(
+            int(physical_stationary.sum()),
+            velocity_pair_count,
+        ),
+        "motion_intermediate_ratio_per_second": _bounded_ratio(
+            int(physical_intermediate.sum()),
+            velocity_pair_count,
+        ),
+        "motion_adjacent_pair_count": adjacent_pair_count,
+        "motion_sparse_velocity_pair_count": int(
+            sparse_velocity_pair_valid.sum()
+        ),
+        "motion_sparse_velocity_pair_ratio": _bounded_ratio(
+            int(sparse_velocity_pair_valid.sum()),
+            velocity_pair_count,
         ),
         "motion_longest_active_run_ratio": _bounded_ratio(
             active_run["longest"],
-            valid_pair_count,
+            adjacent_pair_count,
         ),
         "motion_longest_stationary_run_ratio": _bounded_ratio(
             stationary_run["longest"],
-            valid_pair_count,
+            adjacent_pair_count,
         ),
         "motion_active_episode_count": int(active_run["episodes"]),
         "motion_stationary_episode_count": int(stationary_run["episodes"]),
@@ -396,8 +561,16 @@ def _motion_summary(
         "motion_speed_trend_valid": speed_trend_valid,
         "motion_jerk_abs_mean": _mean_abs(jerk),
         "motion_jerk_abs_p90": _quantile(np.abs(jerk), 0.90),
+        "motion_acceleration_n_per_second2_abs_mean": _mean_abs(
+            acceleration_per_second2
+        ),
+        "motion_acceleration_n_per_second2_abs_p90": _quantile(
+            np.abs(acceleration_per_second2),
+            0.90,
+        ),
         **turning,
         "trajectory_path_length_n": path_length,
+        "trajectory_sparse_path_length_n": sparse_path_length,
         "trajectory_displacement_n": displacement,
         "trajectory_straightness": straightness,
         "trajectory_tortuosity_log1p": tortuosity,
@@ -414,7 +587,9 @@ def _turning_summary(
 ) -> dict[str, float]:
     """Measure direction stability only while the actor is visibly moving."""
 
-    moving = pair_valid & (speed > config.stationary_speed_threshold)
+    moving = pair_valid & (
+        speed > config.stationary_speed_threshold_per_second
+    )
     direction = np.full(speed.shape, np.nan, dtype="float64")
     direction[moving] = np.arctan2(dy[moving], dx[moving])
     turn_valid = moving[:-1] & moving[1:] & contiguous[:-1] & contiguous[1:]
@@ -551,6 +726,15 @@ def _social_summary(
         neighbor_available,
         contact,
     )
+    _, _, aggression_per_second, _ = _within_span_social_motion(
+        work,
+        frames,
+        row_valid,
+        partner,
+        neighbor_available,
+        contact,
+        per_second=True,
+    )
     nearest_dist = _finite(
         _numeric_array(work, "nearest_dist_n")[neighbor_available]
     )
@@ -581,6 +765,10 @@ def _social_summary(
         "social_nearest_dist_p50": _quantile(nearest_dist, 0.50),
         "social_nearest_dist_p90": _quantile(nearest_dist, 0.90),
         "social_aggression_proxy_p90": _quantile(aggression, 0.90),
+        "social_aggression_proxy_n_per_second_p90": _quantile(
+            aggression_per_second,
+            0.90,
+        ),
     }
 
 
@@ -605,11 +793,34 @@ def summarize_social_motion_dynamics(
         neighbor_available,
         contact,
     )
+    approach_per_second, retreat_per_second, aggression_per_second, _ = (
+        _within_span_social_motion(
+            work,
+            frames,
+            row_valid,
+            partner,
+            neighbor_available,
+            contact,
+            per_second=True,
+        )
+    )
     return {
         "approach_speed_max": _finite_max(approach),
         "separation_speed_max": _finite_max(separation),
         "aggression_score_proxy_mean": _finite_mean(aggression),
         "aggression_score_proxy_max": _finite_max(aggression),
+        "approach_speed_n_per_second_max": _finite_max(
+            approach_per_second
+        ),
+        "retreat_speed_n_per_second_max": _finite_max(
+            retreat_per_second
+        ),
+        "aggression_score_proxy_n_per_second_mean": _finite_mean(
+            aggression_per_second
+        ),
+        "aggression_score_proxy_n_per_second_max": _finite_max(
+            aggression_per_second
+        ),
     }
 
 
@@ -636,16 +847,24 @@ def _within_span_social_motion(
     partner: np.ndarray,
     neighbor_available: np.ndarray,
     contact: np.ndarray,
+    *,
+    per_second: bool = False,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, int]:
-    """Recompute approach and aggression without reading outside-span deltas."""
+    """Recompute social rates without reading outside-span deltas."""
 
     row_count = len(work)
-    approach = np.zeros(row_count, dtype="float64")
-    separation = np.zeros(row_count, dtype="float64")
-    actor_speed = np.zeros(row_count, dtype="float64")
+    approach = np.full(row_count, np.nan, dtype="float64")
+    separation = np.full(row_count, np.nan, dtype="float64")
+    actor_speed = np.full(row_count, np.nan, dtype="float64")
     if row_count > 1:
         delta_frame = np.diff(frames)
         positive_delta = np.isfinite(delta_frame) & (delta_frame > 0)
+        if per_second:
+            timestamps = _numeric_array(work, "timestamp_sec")
+            denominator = np.diff(timestamps)
+        else:
+            denominator = delta_frame
+        denominator_valid = np.isfinite(denominator) & (denominator > 0)
         same_partner = (
             neighbor_available[:-1]
             & neighbor_available[1:]
@@ -655,21 +874,22 @@ def _within_span_social_motion(
         distance_delta = np.diff(distance)
         comparable = (
             positive_delta
+            & denominator_valid
             & same_partner
             & np.isfinite(distance_delta)
             & row_valid[:-1]
             & row_valid[1:]
         )
-        approach_values = np.zeros(row_count - 1, dtype="float64")
+        approach_values = np.full(row_count - 1, np.nan, dtype="float64")
         approach_values[comparable] = np.clip(
-            -distance_delta[comparable] / delta_frame[comparable],
+            -distance_delta[comparable] / denominator[comparable],
             0.0,
             None,
         )
         approach[1:] = approach_values
-        separation_values = np.zeros(row_count - 1, dtype="float64")
+        separation_values = np.full(row_count - 1, np.nan, dtype="float64")
         separation_values[comparable] = np.clip(
-            distance_delta[comparable] / delta_frame[comparable],
+            distance_delta[comparable] / denominator[comparable],
             0.0,
             None,
         )
@@ -680,13 +900,14 @@ def _within_span_social_motion(
         actor_distance = np.hypot(np.diff(cx), np.diff(cy))
         actor_pair_valid = (
             positive_delta
+            & denominator_valid
             & np.isfinite(actor_distance)
             & row_valid[:-1]
             & row_valid[1:]
         )
-        actor_values = np.zeros(row_count - 1, dtype="float64")
+        actor_values = np.full(row_count - 1, np.nan, dtype="float64")
         actor_values[actor_pair_valid] = (
-            actor_distance[actor_pair_valid] / delta_frame[actor_pair_valid]
+            actor_distance[actor_pair_valid] / denominator[actor_pair_valid]
         )
         actor_speed[1:] = actor_values
         comparable_count = int(comparable.sum())
@@ -776,6 +997,27 @@ def _jerk_values(
     accel[accel_valid] = speed[1:][accel_valid] - speed[:-1][accel_valid]
     jerk_valid = np.isfinite(accel[:-1]) & np.isfinite(accel[1:])
     return (accel[1:] - accel[:-1])[jerk_valid]
+
+
+def _acceleration_values_per_second(
+    speed_per_second: np.ndarray,
+    delta_seconds: np.ndarray,
+    velocity_pair_valid: np.ndarray,
+) -> np.ndarray:
+    """Return acceleration using velocity-sample midpoint time separation."""
+
+    if speed_per_second.size < 2:
+        return np.array([], dtype="float64")
+    valid = velocity_pair_valid[:-1] & velocity_pair_valid[1:]
+    midpoint_delta = (
+        delta_seconds[:-1] + delta_seconds[1:]
+    ) / 2.0
+    valid &= np.isfinite(midpoint_delta) & (midpoint_delta > 0)
+    values = np.full(speed_per_second.size - 1, np.nan, dtype="float64")
+    values[valid] = (
+        speed_per_second[1:][valid] - speed_per_second[:-1][valid]
+    ) / midpoint_delta[valid]
+    return values[np.isfinite(values)]
 
 
 def _linear_trend(x: np.ndarray, y: np.ndarray) -> tuple[float, bool]:

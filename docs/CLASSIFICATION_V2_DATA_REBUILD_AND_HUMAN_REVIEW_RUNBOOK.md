@@ -1,6 +1,207 @@
 # Classification V2 Data Rebuild And Human Review Runbook
 
-## Classification V2 blocker patch (2026-07-21)
+## Current authority and stop state (2026-07-22)
+
+This section is the current operational authority. If an older section below
+conflicts with it, this section wins. The code parent under repair is
+`9af70d649f61261939465a281801b189b4c05acd`.
+
+Lineage `c2v2_human_review_20260721_reviewer01_v3` is frozen with all of these
+statuses:
+
+- `STOPPED_AFTER_TEMPORAL_HARMONIZATION`
+- `SPATIOTEMPORAL_SCIENTIFIC_AUDIT_FAILED`
+- `NOT_RESUMABLE_AFTER_SEMANTIC_CHANGE`
+- `NOT_BEHAVIOR_REVIEW_AUTHORITY`
+- `NOT_TRAIN_READY`
+
+Do not continue Pig-STRENet, native behavior-unit creation, behavior GUI,
+behavior decisions, final sequence windows, train-ready export, or training
+from v3. Do not overwrite its workspace. Its `harmonized_frames.csv` and
+enhanced spatiotemporal frame features may be read only for before/after audit;
+they are not authority after the semantic patch.
+
+Any content under `data/04a_pig_strenet_review_evidence` from the stopped run is
+classified as `FAILED_DIAGNOSTIC_PRE_MOTION_FIX`, `NOT_REUSABLE`, and
+`NOT_REVIEW_EVIDENCE`. Inventory it by path, size, modification time, and hash,
+but never resume or promote it.
+
+The next lineage may be named
+`c2v2_human_review_20260722_reviewer01_v4`, but it must not be created until the
+patch, full validation, active-data audit, Hidden-impact audit, and clean commit
+all pass.
+
+## Required v4 execution order
+
+After a new code authority exists, execute v4 in this exact order:
+
+1. Rebuild source/frame-local geometry, ROI, social/partner, and pen primitives
+   from immutable source authority. Do not compute pair-derived motion here.
+2. Rebuild and audit the Hidden sampling manifest with fixed code.
+3. Carry forward Hidden decisions only by exact stable review key with identical
+   frame/object identity, span, and visual-media authority.
+4. Human-review every new-only Hidden item, then dry-run, apply, and independently
+   check the complete fixed manifest.
+5. Run temporal harmonization from fixed, Hidden-reviewed frames.
+6. Build Pig-STRENet native-unit review evidence from the fixed harmonized
+   frames; do not reuse any v3 diagnostic output.
+7. Build native behavior-review units: complete legacy 16-frame bursts and
+   complete CVAT 6-frame intervals.
+8. Complete behavior review, audit decisions, apply them, and independently
+   check reviewed-frame authority.
+9. Recompute final T6/T8/T12/T16 and declared ablation views from reviewed
+   frame-local primitives.
+10. Run the independent sequence checker, leakage gates, determinism checks,
+    snapshot/hash gates, and only then create train-ready exports.
+
+No positional Hidden matching is permitted. Old-only decisions remain audit
+evidence and never migrate to another unit. New-only items are never accepted
+automatically. Behavior review cannot begin until Hidden is complete on the
+fixed manifest, and training cannot begin until behavior review and final-view
+recompute are complete.
+
+The 2026-07-22 fixed-code read-only comparison currently records 5,240 old v1
+items and 5,233 rebuilt items. There are 5,227 exact common review keys, 13
+old-only keys, and 6 new-only keys. All 5,227 common keys have identical
+identity, span, and visual-media authority, so their visual decisions are
+carry-forward candidates. The 6 new-only items require human Hidden review in
+v4. Risk/stratum/priority rationale changes remain audit evidence and scientific
+support must be recomputed on the new manifest.
+
+Hidden selection no longer consumes external pair/motion columns. It derives
+adjacent visibility geometry directly from frame-local bbox primitives and
+resets that evidence at `temporal_unit_key`. Full-data perturbation of every
+available motion-derived input leaves all 5,233 rebuilt keys, strata,
+priorities, scores, and reasons unchanged. The old 5,240-item manifest is still
+not interchangeable with the fixed manifest because removing historical
+pair contamination changes the selected key set.
+
+## Scientific motion, timing, and mask contract
+
+Frame/native-unit pair evidence resets at source, dataset, video, actor, track,
+and `temporal_unit_key`. The first row of every native unit has no inherited
+displacement, speed, acceleration, ROI transition, partner-distance delta, or
+pen-motion delta. Final windows recompute pair features from the exact selected
+rows and never consume a pair whose first endpoint lies before the window.
+
+Two pair classes are distinct:
+
+- `adjacent_motion_pair_valid`: `motion_delta_frames == 1` and positive finite
+  elapsed time;
+- `sparse_velocity_pair_valid`: `motion_delta_frames > 1` and positive finite
+  elapsed time.
+
+Sparse pairs may estimate velocity with real `motion_delta_seconds`, but they
+are not contiguous path pairs. Non-positive frame/time deltas and boundary
+crossings invalidate the pair. Primary thresholds use
+`speed_n_per_second`, `acceleration_n_per_second2`, and corresponding physical
+social/pen rates. Historical per-frame columns are audit/ablation fields only.
+
+Pen velocity, inward normal, tangent, and signed-distance delta must share one
+image-diagonal metric coordinate system. Compute normal and parallel motion by
+dot product; do not combine independently normalized scalars with Pythagoras.
+
+`observed_mask`, `spatial_quality_mask`, ROI validity, social validity, pen
+validity, Hidden/review eligibility, and motion-pair masks are separate. A slot
+with `spatial_quality_mask=0` has zeroed spatial values and contributes nothing
+to the encoder. Replacing the quality mask with the observed mask is forbidden.
+
+## Canonical three-grain computation order
+
+The pipeline has three separate computation grains:
+
+1. `FRAME_LOCAL_PRIMITIVES` contains only one-frame geometry, ROI/pen/partner
+   distances, image/posture evidence, Hidden state, labels, and timestamps. It
+   has no diff, shift, rolling, pair-derived value, or temporal aggregate.
+2. `NATIVE_UNIT_REVIEW_EVIDENCE` recomputes pairs inside one exact legacy
+   16-frame burst or one exact CVAT 6-frame interval. Its pair scope is the
+   `temporal_unit_key`; it is review evidence, not a final-window aggregate.
+3. `FINAL_VIEW_FEATURES` is created only after behavior apply. It selects exact
+   frames for one declared view, recomputes all pairs inside that view, then
+   aggregates and computes masks/eligibility for that view alone.
+
+The canonical flow is:
+
+```text
+raw/source data -> frame-local primitives -> Hidden apply
+-> temporal harmonization -> native-unit review evidence
+-> behavior review/apply -> reviewed frame-local data
+-> exact-view selection -> exact-view pair recomputation
+-> exact-view aggregation -> masks/eligibility -> train-ready export
+```
+
+A final view may reuse only frame-local primitives. It must not sum native-unit
+aggregates, import native-unit pair columns, or reuse another view's aggregate.
+Every derived artifact carries `feature_computation_grain`, `pair_scope_key`,
+`view_type`, `sampling_pattern`, `selected_frame_indices`,
+`pair_delta_frames`, `pair_delta_seconds`, `constituent_native_unit_keys`,
+`pair_recomputed_for_view`, and `aggregate_recomputed_for_view` as applicable.
+
+## Cross-length and temporal-sampling views
+
+`T6_contiguous`, `T8_contiguous`, `T12_contiguous`, and `T16_contiguous` are
+distinct exact-span views. `S6@16` is a distinct sparse legacy-only ablation
+with offsets `[0,3,6,9,12,15]`; it is never named or treated as contiguous T6.
+Its five pairs have frame deltas `[3,3,3,3,3]`, use real elapsed seconds, and
+carry a sparse-pair mask. Sparse path length is separate from full T16 path.
+
+For a CVAT T8/T12/T16 view, enumerate every native interval intersecting the
+exact span. All constituent intervals must be human-reviewed, label-resolved,
+train-eligible, and share one final label. A pair across two intervals is valid
+only when the selected frames are consecutive and elapsed time is positive.
+
+Each view records `selected_frame_offsets`, `selected_frame_indices`,
+`selected_timestamps_seconds`, `physical_span_seconds`, `expected_slot_count`,
+`observed_slot_count`, and `constituent_native_unit_keys`. Declared duration,
+observed timestamp span, adjacent observed duration, effective observation
+rate, and adjacent-pair coverage remain separate timing fields.
+
+Hard-fail a build or checker when any of these occurs:
+
+- `pair_scope_key` differs from the current native unit or final `window_id`;
+- a final window consumes a pair whose first endpoint is outside the view;
+- a final view imports pair/aggregate values from another grain or view;
+- `S6@16` is labeled as contiguous T6;
+- a CVAT multi-unit final window includes an unreviewed, unresolved,
+  ineligible, or differently labeled native unit;
+- primary training silently mixes `view_type` or `sampling_pattern`.
+
+Do not promote `S6@16` as a cross-source primary view when only legacy supplies
+it. Treat it as `legacy_only_ablation`. Select a primary cross-source view only
+after reporting physical-span distributions and source predictability from
+view metadata; a frame-count match alone is not a physical-time match.
+
+The 2026-07-22 pre-review structural audit is explicitly not review or training
+authority. At 30 FPS it finds identical cross-source physical spans for each
+contiguous view: T6 `0.166667 s`, T8 `0.233333 s`, T12 `0.366667 s`, and T16
+`0.500000 s`. All four are structurally available in both sources without a
+view-metadata timing shortcut. It recommends T6 as the primary representation
+to validate after behavior apply; T8/T12/T16 remain cross-length ablations.
+Only legacy supplies 4,555 S6@16 candidates, so S6@16 remains a legacy-only
+ablation. Final counts and eligibility must be recomputed after human behavior
+review; the structural audit consumes no behavior label.
+
+The earlier apparent source separation by physical span was a timestamp-authority
+bug: legacy used `times.txt`, while CVAT used `frame_index / 30`. The user has
+confirmed that the source videos are 30 FPS, 1,800-frame, 60-second recordings.
+The full read-only audit opened all 678 active videos: every container reports
+30 FPS, 1,800 frames, and 60 seconds. Both source types have source-frame stride
+one. The old median deltas were `0.162406 s` for legacy and `0.033333 s` for
+CVAT; both become `0.033333 s` under the decoded-frame clock.
+
+The canonical motion formula is therefore
+`timestamp_sec = source_frame_index / source_fps`, with `source_fps = 30` for
+this active authority. Preserve the original `times.txt` value as
+`acquisition_timestamp_sec` and its source as audit-only provenance; never use
+it as the default motion clock or let source type select the clock. This makes
+cross-source T6 physical meaning equivalent and requires no source-driven
+resampling. It does not make `S6@16` contiguous or cross-source.
+
+The reproducible evidence is in `timestamp_provenance_audit_v2.json` and
+`active_data_before_after_v3.json` under
+`outputs/classification_v2/audits/spatiotemporal_semantic_patch_20260722`.
+
+## Historical Classification V2 blocker patch (2026-07-21)
 
 Operator lineage `c2v2_human_review_20260721_reviewer01_v2` is frozen as
 `STOPPED_AT_HIDDEN_COMPLETE_UNIT_SMOKE`. Its source/frame rebuild passed, but
@@ -846,6 +1047,7 @@ review đáng tin và policy mới có audit riêng.
   --cvat-tracking-xml %X07% --cvat-tracking-xml %X08% ^
   --cvat-tracking-xml %X09% --cvat-tracking-xml %X10% ^
   --cvat-tracking-xml %X11% --cvat-tracking-xml %X12% ^
+  --fps 30 ^
   --max-rows-per-source 96 ^
   --output-csv %SM%\merged_frame_objects.csv ^
   --audit-json %SM%\merged_frame_objects_audit.json ^
@@ -874,6 +1076,7 @@ bố lớp.
   --cvat-tracking-xml %X07% --cvat-tracking-xml %X08% ^
   --cvat-tracking-xml %X09% --cvat-tracking-xml %X10% ^
   --cvat-tracking-xml %X11% --cvat-tracking-xml %X12% ^
+  --fps 30 ^
   --output-csv %SRC%\merged_frame_objects.csv ^
   --audit-json %SRC%\merged_frame_objects_audit.json ^
   --lineage-json %SRC%\merged_frame_objects_lineage.json
@@ -891,6 +1094,8 @@ Gate full mixed merge:
 - source distribution có `legacy_recovered` và `cvat_tracking_xml`;
 - đúng 12 CVAT behavior dataset dự kiến;
 - không có `Tracking_annotation_Pigs291119_000263_30fps` trong lineage;
+- lineage ghi `canonical_source_fps=30`, formula
+  `source_frame_index/source_fps`, và `times.txt` là acquisition-audit only;
 - invalid bbox, unknown label và row count đều được ghi, không bị xóa;
 - không dùng `--require-full-8-for-eval`.
 

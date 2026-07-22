@@ -56,6 +56,7 @@ def _frame_rows() -> pd.DataFrame:
                 "video_key": "legacy_video" if index < 4 else "cvat_video",
                 "frame_uid": f"frame_{index}",
                 "frame_index": index * 6,
+                "temporal_unit_key": f"unit_{index}",
                 "pig_id": f"ID_{(index % 4) + 1}",
                 "track_id": f"track_{index % 4}",
                 "object_id_in_image": index,
@@ -191,6 +192,67 @@ def test_hidden_adjacent_evidence_requires_actual_frame_adjacency() -> None:
     )
 
     assert "adjacent_hidden" not in reasons.iloc[8]
+
+
+def test_hidden_adjacent_evidence_requires_native_unit_authority() -> None:
+    frames = _frame_rows().drop(columns=["temporal_unit_key"])
+    frames["hidden_before_review"] = frames["hidden"]
+
+    with pytest.raises(ValueError, match="requires temporal_unit_key"):
+        _hidden_false_negative_risk(frames, HiddenReviewConfig())
+
+
+def test_hidden_adjacent_evidence_resets_at_native_unit_boundary() -> None:
+    frames = _frame_rows().iloc[:2].copy()
+    frames["frame_index"] = [0, 1]
+    frames["track_id"] = "same-track"
+    frames["pig_id"] = "ID_1"
+    frames["temporal_unit_key"] = ["unit-a", "unit-b"]
+    frames["hidden"] = ["Yes", "No"]
+    frames["hidden_before_review"] = frames["hidden"]
+    frames.loc[frames.index[1], ["bw_n", "bh_n", "area_n"]] = 10.0
+
+    _, reasons = _hidden_false_negative_risk(frames, HiddenReviewConfig())
+
+    assert "adjacent_hidden" not in reasons.iloc[1]
+    assert "abrupt_shape_change" not in reasons.iloc[1]
+    assert "abrupt_area_change" not in reasons.iloc[1]
+
+
+def test_hidden_manifest_is_invariant_to_motion_column_perturbation() -> None:
+    frames = _frame_rows()
+    config = HiddenReviewConfig(
+        random_no_per_stratum=0,
+        clean_control_per_stratum=0,
+        max_high_risk_per_stratum=None,
+        high_risk_threshold=0.20,
+    )
+    baseline, _, _ = build_hidden_review_manifest(frames, config=config)
+    perturbed = frames.copy()
+    for column in (
+        "shape_change_score",
+        "delta_area_n",
+        "speed_n_per_frame",
+        "speed_n_per_second",
+        "acceleration_n_per_second2",
+        "path_length_n_unit",
+        "approach_speed_n_per_second",
+        "roi_target_entry_event",
+    ):
+        perturbed[column] = 1_000_000.0
+    changed, _, _ = build_hidden_review_manifest(perturbed, config=config)
+
+    compared = [
+        "hidden_review_item_id",
+        "hidden_review_cohort",
+        "hidden_review_priority",
+        "hidden_sampling_stratum",
+        "hidden_false_negative_risk_score",
+        "hidden_false_negative_risk_reasons",
+    ]
+    baseline = baseline[compared].sort_values(compared[0]).reset_index(drop=True)
+    changed = changed[compared].sort_values(compared[0]).reset_index(drop=True)
+    pd.testing.assert_frame_equal(baseline, changed)
 
 
 def test_hidden_sampling_config_rejects_target_derived_strata() -> None:

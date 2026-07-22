@@ -14,12 +14,12 @@ import pandas as pd
 from pig_behavior.classification_v2.contracts.output_safety import (
     require_output_paths_available,
 )
-from pig_behavior.classification_v2.contracts.window_alignment import (
-    require_ordered_window_ids,
-)
 from pig_behavior.classification_v2.contracts.versioned_data_contract import (
     GENERATED_CONTRACT_SCHEMA_VERSION,
     validate_generated_data_contract,
+)
+from pig_behavior.classification_v2.contracts.window_alignment import (
+    require_ordered_window_ids,
 )
 from pig_behavior.classification_v2.train_ready_features import (
     build_train_ready_window_tables,
@@ -40,7 +40,7 @@ FEATURE_AUDIT_SCHEMA_VERSION = (
 TRAIN_READY_AUDIT_SCHEMA_VERSION = (
     "classification_v2.train_ready_export_audit.v2"
 )
-EXPECTED_TABULAR_FEATURE_COUNT = 110
+EXPECTED_TABULAR_FEATURE_COUNT = 102
 
 
 def parse_args() -> argparse.Namespace:

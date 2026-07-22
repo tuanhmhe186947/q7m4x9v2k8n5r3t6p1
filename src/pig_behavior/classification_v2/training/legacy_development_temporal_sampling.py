@@ -72,6 +72,10 @@ VIEW_SPECS: dict[str, dict[str, Any]] = {
         "native_frame_offsets": [5, 6, 7, 8, 9, 10],
         "temporal_span_frames": 6,
         "historical_alignment": False,
+        "view_type": "T6_contiguous",
+        "sampling_pattern": "contiguous",
+        "source_scope": "legacy_only_ablation",
+        "primary_cross_source_eligible": False,
     },
     "c8_contiguous_centered": {
         "temporal_view_name": "legacy_c8_contiguous_centered_span8_v1",
@@ -80,6 +84,10 @@ VIEW_SPECS: dict[str, dict[str, Any]] = {
         "native_frame_offsets": [4, 5, 6, 7, 8, 9, 10, 11],
         "temporal_span_frames": 8,
         "historical_alignment": False,
+        "view_type": "T8_contiguous",
+        "sampling_pattern": "contiguous",
+        "source_scope": "legacy_only_ablation",
+        "primary_cross_source_eligible": False,
     },
     "s6_uniform_span16": {
         "temporal_view_name": "legacy_s6_uniform_offsets_0_3_6_9_12_15_v1",
@@ -88,6 +96,13 @@ VIEW_SPECS: dict[str, dict[str, Any]] = {
         "native_frame_offsets": [0, 3, 6, 9, 12, 15],
         "temporal_span_frames": 16,
         "historical_alignment": True,
+        "view_type": "S6@16",
+        "sampling_pattern": "uniform_sparse_offsets_0_3_6_9_12_15",
+        "source_scope": "legacy_only_ablation",
+        "primary_cross_source_eligible": False,
+        "pair_delta_frames": [3, 3, 3, 3, 3],
+        "contiguous_path_semantics": False,
+        "pair_derived_parent_aggregate_reuse": False,
     },
 }
 
@@ -225,6 +240,64 @@ def derive_temporal_sampling_view(
         spec["native_frame_offsets"],
         separators=(",", ":"),
     )
+    windows["view_type"] = str(spec["view_type"])
+    windows["sampling_pattern"] = str(spec["sampling_pattern"])
+    windows["feature_computation_grain"] = "FINAL_VIEW_FEATURES"
+    windows["pair_scope_key"] = windows["window_id"].astype(str)
+    windows["pair_recomputed_for_view"] = True
+    windows["aggregate_recomputed_for_view"] = True
+    windows["selected_frame_offsets"] = json.dumps(
+        spec["native_frame_offsets"],
+        separators=(",", ":"),
+    )
+    if "window_start_frame" in windows.columns:
+        starts = pd.to_numeric(
+            windows["window_start_frame"],
+            errors="coerce",
+        )
+        windows["selected_frame_indices"] = [
+            json.dumps(
+                [int(start + offset) for offset in offsets],
+                separators=(",", ":"),
+            )
+            if np.isfinite(start)
+            else "[]"
+            for start in starts
+        ]
+        windows["selected_frame_index_reference"] = "absolute_frame_index"
+    else:
+        windows["selected_frame_indices"] = json.dumps(
+            spec["native_frame_offsets"],
+            separators=(",", ":"),
+        )
+        windows["selected_frame_index_reference"] = "native_relative_offset"
+    windows["selected_timestamps_seconds"] = [
+        json.dumps(
+            [float(value) for value in row],
+            separators=(",", ":"),
+        )
+        for row in selected_elapsed
+    ]
+    windows["selected_timestamp_reference"] = "native_unit_elapsed_origin"
+    windows["pair_delta_frames"] = json.dumps(
+        np.diff(offsets).astype(int).tolist(),
+        separators=(",", ":"),
+    )
+    windows["pair_delta_seconds"] = [
+        json.dumps(
+            [float(value) for value in row[1:]],
+            separators=(",", ":"),
+        )
+        for row in selected_delta
+    ]
+    windows["expected_slot_count"] = int(spec["sequence_length"])
+    windows["observed_slot_count"] = selected_mask.sum(axis=1).astype(int)
+    windows["physical_span_seconds"] = selected_elapsed[:, -1]
+    windows["constituent_native_unit_keys"] = windows[
+        "temporal_unit_key"
+    ].astype(str).map(
+        lambda value: json.dumps([value], separators=(",", ":"))
+    )
     if windows["temporal_unit_key"].astype(str).duplicated().any():
         raise ValueError("derived temporal view is not one row per native unit")
     derived_audit = {
@@ -232,6 +305,12 @@ def derive_temporal_sampling_view(
         "view_id": view_id,
         "temporal_view_name": spec["temporal_view_name"],
         "sampling_protocol": spec["sampling_protocol"],
+        "view_type": spec["view_type"],
+        "sampling_pattern": spec["sampling_pattern"],
+        "source_scope": spec["source_scope"],
+        "primary_cross_source_eligible": bool(
+            spec["primary_cross_source_eligible"]
+        ),
         "native_frame_offsets": list(spec["native_frame_offsets"]),
         "sequence_length": int(spec["sequence_length"]),
         "temporal_span_frames": int(spec["temporal_span_frames"]),
@@ -243,6 +322,11 @@ def derive_temporal_sampling_view(
             (windows["l5_role"] == "validation").sum()
         ),
         "selected_slot_rows": int(selected_rows.size),
+        "pair_derived_parent_aggregate_reuse": False,
+        "feature_computation_grain": "FINAL_VIEW_FEATURES",
+        "pair_recomputed_for_view": True,
+        "aggregate_recomputed_for_view": True,
+        "cached_feature_semantics": "selected_frame_local_embedding_rows",
         "rows_dropped": 0,
         "labels_changed": 0,
         "source_media_reads": 0,
@@ -842,6 +926,11 @@ def _build_slot_manifest(
     records: list[dict[str, Any]] = []
     for position, row in enumerate(view.windows.itertuples(index=False)):
         for slot_index, offset in enumerate(offsets):
+            pair_delta_frames = (
+                0
+                if slot_index == 0
+                else int(offset - offsets[slot_index - 1])
+            )
             records.append(
                 {
                     "temporal_sampling_view_id": str(
@@ -852,6 +941,28 @@ def _build_slot_manifest(
                     "l5_role": str(row.l5_role),
                     "slot_index": slot_index,
                     "native_frame_offset": int(offset),
+                    "view_type": str(row.view_type),
+                    "sampling_pattern": str(row.sampling_pattern),
+                    "feature_computation_grain": str(
+                        row.feature_computation_grain
+                    ),
+                    "pair_scope_key": str(row.pair_scope_key),
+                    "pair_recomputed_for_view": bool(
+                        row.pair_recomputed_for_view
+                    ),
+                    "aggregate_recomputed_for_view": bool(
+                        row.aggregate_recomputed_for_view
+                    ),
+                    "pair_delta_frames": pair_delta_frames,
+                    "pair_delta_seconds": float(
+                        view.time_delta[position, slot_index]
+                    ),
+                    "adjacent_motion_pair_valid": bool(
+                        slot_index > 0 and pair_delta_frames == 1
+                    ),
+                    "sparse_velocity_pair_valid": bool(
+                        slot_index > 0 and pair_delta_frames > 1
+                    ),
                     "feature_row": int(view.feature_rows[position, slot_index]),
                     "observed_mask": bool(
                         view.observed_mask[position, slot_index]

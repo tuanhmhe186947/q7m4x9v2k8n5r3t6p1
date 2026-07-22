@@ -34,6 +34,9 @@ from pig_behavior.classification_v2.schema import (
     normalize_hidden,
     normalize_pig_id,
 )
+from pig_behavior.classification_v2.sources.temporal_provenance import (
+    apply_source_frame_clock,
+)
 
 DEFAULT_LEGACY_IMAGE_WIDTH = 1280
 DEFAULT_LEGACY_IMAGE_HEIGHT = 720
@@ -46,6 +49,7 @@ def load_legacy_frame_objects(
     max_rows: int | None = None,
     default_image_width: int = DEFAULT_LEGACY_IMAGE_WIDTH,
     default_image_height: int = DEFAULT_LEGACY_IMAGE_HEIGHT,
+    source_fps: float | None = None,
 ) -> pd.DataFrame:
     """Load a legacy recovered CSV and return canonical frame objects.
 
@@ -62,6 +66,10 @@ def load_legacy_frame_objects(
         Fallback width when the source CSV has no image_width column.
     default_image_height:
         Fallback height when the source CSV has no image_height column.
+    source_fps:
+        Explicit decoded-video FPS. When provided, timestamp_sec is rebuilt
+        from source frame index and the input timestamp is retained only as
+        acquisition provenance.
 
     Returns
     -------
@@ -102,6 +110,12 @@ def load_legacy_frame_objects(
             f"Columns found: {sorted(df_raw.columns.tolist())}"
         )
 
+    if source_fps is not None:
+        canonical = apply_source_frame_clock(
+            canonical,
+            source_fps=source_fps,
+            preserve_input_as_acquisition=True,
+        )
     canonical = _normalize_common_fields(canonical)
     canonical = add_legacy_context_counts(canonical)
     canonical = _ensure_canonical_columns(canonical)
@@ -365,12 +379,26 @@ def _from_frame_object_export(
 
     out["image_name"] = _get_series(df, "image_name", default="")
     out["frame_index"] = _to_numeric(_get_series(df, "frame_index", default=0))
+    out["source_frame_index"] = _to_numeric(
+        _first_existing_series(
+            df,
+            ["source_frame_index"],
+            default=out["frame_index"],
+        )
+    )
 
     out["relative_frame_index"] = _to_numeric(
         _first_existing_series(
             df,
             ["relative_frame_index"],
             default=out["frame_index"],
+        )
+    )
+    out["native_offset"] = _to_numeric(
+        _first_existing_series(
+            df,
+            ["native_offset", "relative_frame_index"],
+            default=out["relative_frame_index"],
         )
     )
     out["timestamp_sec"] = _to_numeric(
@@ -381,6 +409,21 @@ def _from_frame_object_export(
         df,
         ["timestamp_source"],
         default=_timestamp_source(out["timestamp_sec"]),
+    )
+    out["source_fps"] = _to_numeric(
+        _get_series(df, "source_fps", default=pd.NA)
+    )
+    out["acquisition_timestamp_sec"] = _to_numeric(
+        _first_existing_series(
+            df,
+            ["acquisition_timestamp_sec", "timestamp_sec"],
+            default=pd.NA,
+        )
+    )
+    out["acquisition_timestamp_source"] = _first_existing_series(
+        df,
+        ["acquisition_timestamp_source", "timestamp_source"],
+        default=_timestamp_source(out["acquisition_timestamp_sec"]),
     )
 
     out["image_width"] = _to_numeric(
@@ -608,11 +651,46 @@ def _from_dense_tracklet_map(
     out["image_key"] = out["scene_frame_uid"]
     out["image_name"] = _get_series(df, "image_name", default="")
     out["frame_index"] = _to_numeric(frame_index)
-    out["relative_frame_index"] = out["frame_index"]
+    out["source_frame_index"] = _to_numeric(
+        _first_existing_series(
+            df,
+            ["source_frame_index"],
+            default=out["frame_index"],
+        )
+    )
+    out["relative_frame_index"] = _to_numeric(
+        _first_existing_series(
+            df,
+            ["relative_frame_index"],
+            default=out["frame_index"],
+        )
+    )
+    out["native_offset"] = _to_numeric(
+        _first_existing_series(
+            df,
+            ["native_offset", "relative_frame_index"],
+            default=out["relative_frame_index"],
+        )
+    )
     out["timestamp_sec"] = _to_numeric(
         _get_series(df, "timestamp_sec", default=pd.NA)
     )
     out["timestamp_source"] = _timestamp_source(out["timestamp_sec"])
+    out["source_fps"] = _to_numeric(
+        _get_series(df, "source_fps", default=pd.NA)
+    )
+    out["acquisition_timestamp_sec"] = _to_numeric(
+        _first_existing_series(
+            df,
+            ["acquisition_timestamp_sec", "timestamp_sec"],
+            default=pd.NA,
+        )
+    )
+    out["acquisition_timestamp_source"] = _first_existing_series(
+        df,
+        ["acquisition_timestamp_source", "timestamp_source"],
+        default=_timestamp_source(out["acquisition_timestamp_sec"]),
+    )
 
     out["image_width"] = _to_numeric(
         _get_series(df, "image_width", default=default_image_width)

@@ -44,6 +44,9 @@ from pig_behavior.classification_v2.schema import (
     normalize_hidden,
     normalize_pig_id,
 )
+from pig_behavior.classification_v2.sources.temporal_provenance import (
+    CANONICAL_TIMESTAMP_SOURCE,
+)
 
 
 def load_cvat_tracking_xml(
@@ -125,7 +128,9 @@ def load_cvat_tracking_xml(
                     "image_name": f"{resolved_video_key}__f{frame_index:06d}.jpg",
                     "object_id_in_image": pd.NA,
                     "frame_index": frame_index,
+                    "source_frame_index": frame_index,
                     "relative_frame_index": frame_index,
+                    "native_offset": frame_index % 6,
                     "sequence_frame_count": task_size if task_size > 0 else pd.NA,
                     "legacy_sequence_mode": pd.NA,
                     "legacy_expected_sequence_length": pd.NA,
@@ -133,8 +138,15 @@ def load_cvat_tracking_xml(
                     "is_legacy_gt_anchor": False,
                     "sequence_complete": pd.NA,
                     "sequence_range_valid": pd.NA,
+                    "source_fps": fps if fps and fps > 0 else pd.NA,
                     "timestamp_sec": _timestamp_from_frame(frame_index, fps),
-                    "timestamp_source": "fps" if fps and fps > 0 else "unknown",
+                    "timestamp_source": (
+                        CANONICAL_TIMESTAMP_SOURCE
+                        if fps and fps > 0
+                        else "unknown"
+                    ),
+                    "acquisition_timestamp_sec": pd.NA,
+                    "acquisition_timestamp_source": "not_available",
                     "image_width": image_width if image_width > 0 else pd.NA,
                     "image_height": image_height if image_height > 0 else pd.NA,
                     "pig_id": pig_id,

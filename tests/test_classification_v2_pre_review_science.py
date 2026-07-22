@@ -204,7 +204,11 @@ def test_cvat_eight_frame_window_does_not_use_frames_beyond_its_span() -> None:
         list(range(0, 12)),
         ["stand"] * 12,
     )
-    frames["displacement_n"] = 1.0
+    frames["timestamp_sec"] = frames["frame_index"] / 30.0
+    frames["cx_n"] = frames["frame_index"].astype(float)
+    frames["cy_n"] = 0.0
+    frames["displacement_n"] = 1_000.0
+    frames.loc[frames["frame_index"] >= 8, "cx_n"] = 10_000.0
 
     _, _, windows = build_sequence_windows(frames, window_lengths=[8])
 
@@ -213,7 +217,8 @@ def test_cvat_eight_frame_window_does_not_use_frames_beyond_its_span() -> None:
     assert first["window_end_frame"] == 7
     assert first["observed_frame_count_window"] == 8
     assert first["observed_row_count_window"] == 8
-    assert first["path_length_n_window"] == 8.0
+    assert first["adjacent_motion_pair_count_window"] == 7
+    assert first["path_length_n_window"] == 7.0
 
 
 @pytest.mark.parametrize("bad_index", [None, "bad", 0.5, -1])
@@ -304,8 +309,7 @@ def test_hidden_metadata_is_audit_only_and_never_selected_for_model_x() -> None:
     assert "bbox_valid_ratio_window" in selected
     assert "hidden_ratio_window" not in selected
     assert "visible_ratio_window" not in selected
-    assert "hidden" not in SPATIAL_FRAME_FEATURES["quality_mask"]
-    assert "roi_feature_valid" not in SPATIAL_FRAME_FEATURES["quality_mask"]
+    assert "quality_mask" not in SPATIAL_FRAME_FEATURES
 
 
 def test_explicit_feature_whitelist_preserves_contract_order() -> None:

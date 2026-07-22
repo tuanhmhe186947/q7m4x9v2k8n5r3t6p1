@@ -18,6 +18,8 @@ from pig_behavior.classification_v2.features.sequence_windows import (
     build_sequence_windows,
 )
 from pig_behavior.classification_v2.features.temporal_evidence import (
+    MODEL_WINDOW_TEMPORAL_EVIDENCE_COLUMNS,
+    PER_FRAME_AUDIT_ONLY_EVIDENCE_COLUMNS,
     TEMPORAL_EVIDENCE_BASE_COLUMNS,
     UNIT_TEMPORAL_EVIDENCE_COLUMNS,
     WINDOW_TEMPORAL_EVIDENCE_COLUMNS,
@@ -297,7 +299,11 @@ def test_trainer_whitelist_and_semantics_cover_every_new_window_feature() -> Non
     )
 
     assert len(whitelist) == len(set(whitelist))
-    assert set(WINDOW_TEMPORAL_EVIDENCE_COLUMNS).issubset(whitelist)
+    assert set(MODEL_WINDOW_TEMPORAL_EVIDENCE_COLUMNS).issubset(whitelist)
+    audit_only = {
+        f"{column}_window" for column in PER_FRAME_AUDIT_ONLY_EVIDENCE_COLUMNS
+    }
+    assert audit_only.isdisjoint(whitelist)
     assert all(assignments.values())
 
 

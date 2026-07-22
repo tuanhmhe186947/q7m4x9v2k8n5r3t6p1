@@ -43,8 +43,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--max-review-rows", type=int, default=None)
     parser.add_argument("--write-full-annotated", action="store_true")
-    parser.add_argument("--motion-low-threshold", type=float, default=0.006)
-    parser.add_argument("--motion-strong-threshold", type=float, default=0.025)
+    parser.add_argument("--motion-low-threshold", type=float, default=0.18)
+    parser.add_argument("--motion-strong-threshold", type=float, default=0.75)
     parser.add_argument("--boundary-frame-gap", type=int, default=12)
     parser.add_argument("--window-radius", type=int, default=3)
     return parser.parse_args()
@@ -72,10 +72,19 @@ def main() -> None:
     template.to_csv(template_path, index=False)
 
     priority_template = template.sort_values(
-        ["review_priority", "ambiguity_group_auto", "behavior", "video_key", "frame_index"],
+        [
+            "review_priority",
+            "ambiguity_group_auto",
+            "behavior",
+            "video_key",
+            "frame_index",
+        ],
         kind="mergesort",
     )
-    priority_template.to_csv(args.output_dir / "behavior_strength_review_template_priority.csv", index=False)
+    priority_template.to_csv(
+        args.output_dir / "behavior_strength_review_template_priority.csv",
+        index=False,
+    )
 
     if args.write_full_annotated:
         annotated.to_csv(args.output_dir / "frame_features_with_auto_review_attrs.csv", index=False)
@@ -101,6 +110,17 @@ def add_review_attributes(
     window_radius: int,
 ) -> pd.DataFrame:
     out = df.copy()
+    required_motion_scope = {
+        "temporal_unit_key",
+        "timestamp_sec",
+        "frame_index",
+    }
+    missing_scope = sorted(required_motion_scope.difference(out.columns))
+    if missing_scope:
+        raise ValueError(
+            "behavior template requires native-unit physical-time scope: "
+            f"missing={missing_scope}"
+        )
     out["behavior"] = out.get("behavior", "").astype(str).str.strip()
 
     ensure_columns(out)
@@ -173,7 +193,15 @@ def ensure_columns(df: pd.DataFrame) -> None:
         if col not in df.columns:
             df[col] = default
 
-    for col in ["frame_index", "relative_frame_index", "cx_n", "cy_n", "interaction_partner_count", "sample_weight"]:
+    for col in [
+        "frame_index",
+        "relative_frame_index",
+        "timestamp_sec",
+        "cx_n",
+        "cy_n",
+        "interaction_partner_count",
+        "sample_weight",
+    ]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
 
@@ -221,19 +249,40 @@ def add_motion_and_boundary_features(
     boundary_frame_gap: int,
     window_radius: int,
 ) -> None:
-    df.sort_values(["entity_key", "frame_index", "relative_frame_index"], kind="mergesort", inplace=True)
+    df.sort_values(
+        [
+            "entity_key",
+            "temporal_unit_key",
+            "frame_index",
+            "relative_frame_index",
+        ],
+        kind="mergesort",
+        inplace=True,
+    )
 
-    grouped = df.groupby("entity_key", sort=False, group_keys=False)
+    grouped = df.groupby(
+        ["entity_key", "temporal_unit_key"],
+        sort=False,
+        group_keys=False,
+    )
     df["prev_behavior_auto"] = grouped["behavior"].shift(1)
     df["next_behavior_auto"] = grouped["behavior"].shift(-1)
     df["prev_frame_index_auto"] = grouped["frame_index"].shift(1)
     df["next_frame_index_auto"] = grouped["frame_index"].shift(-1)
     df["prev_cx_n_auto"] = grouped["cx_n"].shift(1)
     df["prev_cy_n_auto"] = grouped["cy_n"].shift(1)
+    df["prev_timestamp_sec_auto"] = grouped["timestamp_sec"].shift(1)
 
     dx = df["cx_n"] - df["prev_cx_n_auto"]
     dy = df["cy_n"] - df["prev_cy_n_auto"]
-    df["step_disp_n_auto"] = np.sqrt(dx * dx + dy * dy)
+    displacement = np.sqrt(dx * dx + dy * dy)
+    delta_frame = df["frame_index"] - df["prev_frame_index_auto"]
+    delta_seconds = df["timestamp_sec"] - df["prev_timestamp_sec_auto"]
+    adjacent_pair_valid = delta_frame.eq(1) & delta_seconds.gt(0)
+    df["adjacent_motion_pair_valid_auto"] = adjacent_pair_valid
+    df["step_speed_n_per_second_auto"] = (
+        displacement.div(delta_seconds).where(adjacent_pair_valid, 0.0)
+    )
 
     frame_gap_prev = (df["frame_index"] - df["prev_frame_index_auto"]).abs()
     frame_gap_next = (df["next_frame_index_auto"] - df["frame_index"]).abs()
@@ -247,12 +296,16 @@ def add_motion_and_boundary_features(
         next_changed & frame_gap_next.le(boundary_frame_gap)
     )
 
-    # Rolling motion over an entity. This is a review/debug feature, not a causal feature.
+    # Review/debug rolling evidence remains inside one native temporal unit.
     def rolling_motion(s: pd.Series) -> pd.Series:
         return s.rolling(window=2 * window_radius + 1, min_periods=1, center=True).mean()
 
-    df["window_disp_mean_n_auto"] = grouped["step_disp_n_auto"].transform(rolling_motion)
-    df["window_disp_max_n_auto"] = grouped["step_disp_n_auto"].transform(
+    df["window_speed_mean_n_per_second_auto"] = grouped[
+        "step_speed_n_per_second_auto"
+    ].transform(rolling_motion)
+    df["window_speed_max_n_per_second_auto"] = grouped[
+        "step_speed_n_per_second_auto"
+    ].transform(
         lambda s: s.rolling(window=2 * window_radius + 1, min_periods=1, center=True).max()
     )
 
@@ -329,12 +382,20 @@ def infer_row_review_attrs(
         groups.append("aggression_social")
         partners = safe_float(row.get("interaction_partner_count"), 0.0)
         social_quality = norm(row.get("social_feature_quality"))
-        motion = safe_float(row.get("window_disp_mean_n_auto"), np.nan)
+        motion = safe_float(
+            row.get("window_speed_mean_n_per_second_auto"),
+            np.nan,
+        )
 
         review_required = True
         priority = min(priority, 1 if behavior == "fight" else 2)
         if behavior == "fight":
-            if partners <= 0 or social_quality in {"missing_context", "missing_partner", "unknown", ""}:
+            if partners <= 0 or social_quality in {
+                "missing_context",
+                "missing_partner",
+                "unknown",
+                "",
+            }:
                 reasons.append("fight_without_clear_partner_context")
                 strength = min_strength(strength, "weak")
             elif not np.isnan(motion) and motion >= motion_strong_threshold:
@@ -345,7 +406,12 @@ def infer_row_review_attrs(
                 strength = min_strength(strength, "weak")
             suggested_action = "manual_strength_required"
         else:
-            if partners <= 0 or social_quality in {"missing_context", "missing_partner", "unknown", ""}:
+            if partners <= 0 or social_quality in {
+                "missing_context",
+                "missing_partner",
+                "unknown",
+                "",
+            }:
                 reasons.append("social_nose_without_clear_partner_context")
                 strength = min_strength(strength, "weak")
             else:
@@ -375,7 +441,10 @@ def infer_row_review_attrs(
 
     if behavior in MOTION_STATE:
         groups.append("motion_state")
-        motion = safe_float(row.get("window_disp_mean_n_auto"), np.nan)
+        motion = safe_float(
+            row.get("window_speed_mean_n_per_second_auto"),
+            np.nan,
+        )
         if behavior == "move":
             if np.isnan(motion):
                 reasons.append("move_motion_unavailable")
@@ -472,8 +541,8 @@ def make_review_template(df: pd.DataFrame) -> pd.DataFrame:
         "prev_behavior_auto",
         "next_behavior_auto",
         "label_boundary_auto",
-        "window_disp_mean_n_auto",
-        "window_disp_max_n_auto",
+        "window_speed_mean_n_per_second_auto",
+        "window_speed_max_n_per_second_auto",
         "roi_target_class",
         "roi_target_min_dist_n",
         "roi_target_contact",
@@ -506,7 +575,11 @@ def make_review_template(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def build_audit(annotated: pd.DataFrame, template: pd.DataFrame, args: argparse.Namespace) -> dict[str, Any]:
+def build_audit(
+    annotated: pd.DataFrame,
+    template: pd.DataFrame,
+    args: argparse.Namespace,
+) -> dict[str, Any]:
     return {
         "input_csv": str(args.input_csv),
         "rows": int(len(annotated)),

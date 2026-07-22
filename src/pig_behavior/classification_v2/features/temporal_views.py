@@ -1,9 +1,9 @@
 """Audited temporal input views built after temporal harmonization.
 
-The primary view reuses existing six-frame sequence windows. It does not
-resample six positions across a legacy burst because that would expose native
-source span and cadence as an avoidable shortcut. Every original window stays
-in a selection ledger, including windows that are not part of the primary view.
+The primary view consumes only exact ``T6_contiguous`` final windows. Legacy
+and CVAT windows share this view when their selected source frames are dense;
+``S6@16`` remains a separately identified legacy-only ablation. Every input
+window stays in a selection ledger, including non-primary views.
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ from pig_behavior.classification_v2.contracts.window_alignment import (
 FIXED6_OBSERVED_TIME = "fixed6_observed_time"
 FIXED6_NORMALIZED_PHASE = "fixed6_normalized_phase"
 NATIVE6_16 = "native6_16"
-TEMPORAL_VIEW_VERSION = "classification_v2_temporal_views_v1"
+TEMPORAL_VIEW_VERSION = "classification_v2_temporal_views_v2"
 
 SOURCE_NATIVE_LENGTHS = {
     "legacy_recovered": 16,
@@ -211,6 +211,13 @@ def _validate_windows(windows: pd.DataFrame) -> pd.DataFrame:
         "window_end_frame",
         "window_length_frames",
         "temporal_unit_keys_json",
+        "feature_computation_grain",
+        "pair_scope_key",
+        "view_type",
+        "sampling_pattern",
+        "selected_frame_indices",
+        "pair_recomputed_for_view",
+        "aggregate_recomputed_for_view",
     }
     _require_columns(windows, required, "windows")
     out = windows.reset_index(drop=True).copy()
@@ -221,11 +228,10 @@ def _validate_windows(windows: pd.DataFrame) -> pd.DataFrame:
         "window_length_frames",
     ]:
         out[column] = _strict_integer_series(out[column], column)
-    span = out["window_end_frame"] - out["window_start_frame"] + 1
     invalid = (
         out["window_length_frames"].le(0)
         | out["window_start_frame"].lt(0)
-        | span.ne(out["window_length_frames"])
+        | out["window_end_frame"].lt(out["window_start_frame"])
     )
     if invalid.any():
         raise ValueError(f"invalid window span rows={int(invalid.sum())}")
@@ -238,6 +244,27 @@ def _validate_windows(windows: pd.DataFrame) -> pd.DataFrame:
     out["temporal_unit_keys_parsed"] = out["temporal_unit_keys_json"].map(
         _parse_unit_keys
     )
+    out["selected_frame_indices_parsed"] = [
+        _parse_selected_frame_indices(row)
+        for row in out.itertuples(index=False)
+    ]
+    invalid_grain = out["feature_computation_grain"].astype(str).ne(
+        "FINAL_VIEW_FEATURES"
+    )
+    invalid_scope = out["pair_scope_key"].astype(str).ne(
+        out["window_id"].astype(str)
+    )
+    invalid_recompute = ~out["pair_recomputed_for_view"].map(_bool_scalar)
+    invalid_recompute |= ~out["aggregate_recomputed_for_view"].map(
+        _bool_scalar
+    )
+    if invalid_grain.any() or invalid_scope.any() or invalid_recompute.any():
+        raise ValueError(
+            "invalid final-view computation contract: "
+            f"grain={int(invalid_grain.sum())}, "
+            f"scope={int(invalid_scope.sum())}, "
+            f"recompute={int(invalid_recompute.sum())}"
+        )
     return out
 
 
@@ -403,12 +430,16 @@ def _build_selection_manifest(
 ) -> pd.DataFrame:
     """Retain every input window and mark the deterministic primary subset."""
 
-    selected = windows["window_length_frames"].eq(fixed_length)
+    selected = (
+        windows["view_type"].astype(str).eq(f"T{fixed_length}_contiguous")
+        & windows["sampling_pattern"].astype(str).eq("contiguous")
+        & windows["window_length_frames"].eq(fixed_length)
+    )
     unit_counts = windows["temporal_unit_keys_parsed"].map(len)
-    invalid_selected = selected & unit_counts.ne(1)
+    invalid_selected = selected & unit_counts.lt(1)
     if invalid_selected.any():
         raise ValueError(
-            "fixed-six windows must map to exactly one native unit: "
+            "fixed-six windows must map to at least one native unit: "
             f"rows={int(invalid_selected.sum())}"
         )
     keep_columns = [
@@ -419,6 +450,9 @@ def _build_selection_manifest(
         "window_end_frame",
         "window_length_frames",
         "temporal_unit_keys_json",
+        "view_type",
+        "sampling_pattern",
+        "selected_frame_indices",
     ]
     for optional in ["behavior_window_label", "window_valid_for_main_train"]:
         if optional in windows.columns:
@@ -428,7 +462,7 @@ def _build_selection_manifest(
     out["native_unit_count_in_window"] = unit_counts.astype(int)
     out["fixed6_keep"] = selected.astype(bool)
     out["fixed6_reason"] = "retained_nonprimary_length_for_audit"
-    out.loc[selected, "fixed6_reason"] = "selected_existing_harmonized_6frame_window"
+    out.loc[selected, "fixed6_reason"] = "selected_exact_T6_contiguous_window"
     return out
 
 
@@ -454,26 +488,33 @@ def _build_fixed_slots(
     records: list[dict[str, Any]] = []
     for item_order, row in enumerate(windows.itertuples(index=False)):
         unit_keys = list(row.temporal_unit_keys_parsed)
-        unit_key = unit_keys[0]
-        interval = interval_lookup.loc[unit_key]
         source_type = str(row.source_type)
-        if source_type != str(interval["source_type"]):
-            raise ValueError(f"fixed window source mismatch={row.window_id}")
-        if str(row.object_track_key) != str(interval["object_track_key"]):
-            raise ValueError(f"fixed window object mismatch={row.window_id}")
-        if (
-            int(row.window_start_frame) < int(interval["label_window_start"])
-            or int(row.window_end_frame) > int(interval["label_window_end"])
-        ):
-            raise ValueError(f"fixed window exceeds native interval={row.window_id}")
-        wanted = range(int(row.window_start_frame), int(row.window_end_frame) + 1)
+        wanted = list(row.selected_frame_indices_parsed)
         if len(wanted) != fixed_length:
             raise ValueError(f"fixed window slot mismatch={row.window_id}")
         for slot_index, frame_index in enumerate(wanted):
             frame = frame_lookup.get((str(row.object_track_key), frame_index))
+            candidate_units = [
+                unit_key
+                for unit_key in unit_keys
+                if int(interval_lookup.loc[unit_key, "label_window_start"])
+                <= frame_index
+                <= int(interval_lookup.loc[unit_key, "label_window_end"])
+            ]
+            if len(candidate_units) != 1:
+                raise ValueError(
+                    "fixed window frame lacks unique constituent authority="
+                    f"{row.window_id}@{frame_index}"
+                )
+            unit_key = candidate_units[0]
+            interval = interval_lookup.loc[unit_key]
+            if source_type != str(interval["source_type"]):
+                raise ValueError(f"fixed window source mismatch={row.window_id}")
+            if str(row.object_track_key) != str(interval["object_track_key"]):
+                raise ValueError(f"fixed window object mismatch={row.window_id}")
             if frame is not None and str(frame["temporal_unit_key"]) != unit_key:
                 raise ValueError(
-                    f"fixed window crosses native unit={row.window_id}@{frame_index}"
+                    f"fixed window frame/unit mismatch={row.window_id}@{frame_index}"
                 )
             records.append(
                 _slot_record(
@@ -666,12 +707,16 @@ def _build_contract(frames: pd.DataFrame, fixed_length: int) -> dict[str, Any]:
         "native_ablation_view": NATIVE6_16,
         "fixed_length": fixed_length,
         "source_native_lengths": SOURCE_NATIVE_LENGTHS,
-        "selection_rule": "existing_harmonized_window_length_equals_6",
+        "selection_rule": "exact_final_T6_contiguous_only",
         "legacy_fixed6_policy": (
-            "reuse post-harmonization six-frame windows; do not sample "
-            "six quantiles across a 16-frame burst"
+            "select six consecutive source frames; S6@16 remains a "
+            "separate legacy-only ablation"
         ),
-        "cvat_fixed6_policy": "reuse the complete anchor interval k..k+5 window",
+        "cvat_fixed6_policy": (
+            "select six consecutive source frames; a window may cross "
+            "reviewed interval boundaries only with complete constituent "
+            "authority"
+        ),
         "unused_window_policy": "retain every input window in the selection manifest",
         "native_unit_policy": "preserve every native unit and every expected slot",
         "fixed6_padding_policy": "six conceptual slots and zero padding for both sources",
@@ -928,6 +973,64 @@ def _parse_unit_keys(value: object) -> tuple[str, ...]:
     if len(set(cleaned)) != len(cleaned):
         raise ValueError("temporal_unit_keys_json contains duplicate keys")
     return cleaned
+
+
+def _parse_selected_frame_indices(row: Any) -> tuple[int, ...]:
+    try:
+        parsed = json.loads(str(row.selected_frame_indices))
+    except (TypeError, ValueError, json.JSONDecodeError) as exc:
+        raise ValueError(
+            "invalid selected_frame_indices JSON for window_id="
+            f"{row.window_id}"
+        ) from exc
+    if not isinstance(parsed, list) or any(
+        isinstance(value, bool) or not isinstance(value, int)
+        for value in parsed
+    ):
+        raise ValueError(
+            "selected_frame_indices must be an integer list for window_id="
+            f"{row.window_id}"
+        )
+    indices = tuple(int(value) for value in parsed)
+    expected_count = int(row.window_length_frames)
+    if (
+        len(indices) != expected_count
+        or not indices
+        or indices[0] != int(row.window_start_frame)
+        or indices[-1] != int(row.window_end_frame)
+    ):
+        raise ValueError(
+            "selected frame/span contract failed for window_id="
+            f"{row.window_id}"
+        )
+    deltas = [
+        current - previous
+        for previous, current in zip(indices, indices[1:], strict=False)
+    ]
+    view_type = str(row.view_type)
+    sampling_pattern = str(row.sampling_pattern)
+    if view_type == "S6@16":
+        valid_identity = (
+            indices
+            == tuple(
+                int(row.window_start_frame) + value
+                for value in (0, 3, 6, 9, 12, 15)
+            )
+            and sampling_pattern
+            == "uniform_sparse_offsets_0_3_6_9_12_15"
+        )
+    else:
+        valid_identity = (
+            view_type == f"T{expected_count}_contiguous"
+            and sampling_pattern == "contiguous"
+            and deltas == [1] * max(0, expected_count - 1)
+        )
+    if not valid_identity:
+        raise ValueError(
+            "temporal view identity/sampling mismatch for window_id="
+            f"{row.window_id}"
+        )
+    return indices
 
 
 def _strict_integer_series(series: pd.Series, name: str) -> pd.Series:

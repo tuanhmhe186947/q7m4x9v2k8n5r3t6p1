@@ -50,14 +50,14 @@ REVIEW_EVIDENCE_COLUMNS: tuple[str, ...] = (
 REQUIRED_EVIDENCE_COLUMNS: tuple[str, ...] = (
     "temporal_observation_ratio_unit",
     "temporal_pair_coverage_ratio_unit",
-    "motion_active_ratio_unit",
-    "motion_stationary_ratio_unit",
-    "motion_speed_p90_unit",
+    "motion_active_ratio_per_second_unit",
+    "motion_stationary_ratio_per_second_unit",
+    "motion_speed_n_per_second_p90_unit",
     "trajectory_straightness_unit",
     "bbox_shape_change_p90_unit",
     "social_pair_contact_ratio_unit",
     "social_partner_persistence_ratio_unit",
-    "social_aggression_proxy_p90_unit",
+    "social_aggression_proxy_n_per_second_p90_unit",
 )
 
 
@@ -72,8 +72,9 @@ class BehaviorEvidenceConfig:
     low_social_support: float = 0.25
     strong_social_support: float = 0.60
     conflict_review_threshold: float = 0.45
-    aggression_reference: float = 0.02
+    aggression_reference_n_per_second: float = 0.60
     shape_transition_reference: float = 0.20
+    motion_speed_reference_n_per_second: float = 0.36
 
     def validate(self) -> None:
         """Reject invalid review-score ranges before building a queue."""
@@ -95,10 +96,14 @@ class BehaviorEvidenceConfig:
             raise ValueError("ROI support thresholds are not ordered")
         if self.low_social_support >= self.strong_social_support:
             raise ValueError("social support thresholds are not ordered")
-        if self.aggression_reference <= 0:
-            raise ValueError("aggression_reference must be > 0")
+        if self.aggression_reference_n_per_second <= 0:
+            raise ValueError(
+                "aggression_reference_n_per_second must be > 0"
+            )
         if self.shape_transition_reference <= 0:
             raise ValueError("shape_transition_reference must be > 0")
+        if self.motion_speed_reference_n_per_second <= 0:
+            raise ValueError("motion_speed_reference_n_per_second must be > 0")
 
 
 def add_behavior_review_evidence(
@@ -221,7 +226,7 @@ def _score_behavior_row(
         relevant_available or pig["relevant_available"]
     )
     insufficiency = 0.0 if relevant_available else 1.0
-    motion = max(_motion_support(row), pig["target_motion"])
+    motion = max(_motion_support(row, config), pig["target_motion"])
     roi_support = max(_roi_support(row, behavior), pig["target_roi"])
     social = max(_social_support(row, config), pig["social_contact"])
     posture_transition = _scaled(
@@ -346,8 +351,8 @@ def _behavior_conflict(
         pairs.append(f"{behavior}_vs_stand_explore")
     elif behavior == "fight":
         aggression = _scaled(
-            _number(row, "social_aggression_proxy_p90_unit"),
-            config.aggression_reference,
+            _number(row, "social_aggression_proxy_n_per_second_p90_unit"),
+            config.aggression_reference_n_per_second,
         )
         fight_support = float(
             np.clip(
@@ -365,8 +370,8 @@ def _behavior_conflict(
         pairs.append("fight_vs_social-nose_stand_move")
     elif behavior == "social-nose":
         aggression = _scaled(
-            _number(row, "social_aggression_proxy_p90_unit"),
-            config.aggression_reference,
+            _number(row, "social_aggression_proxy_n_per_second_p90_unit"),
+            config.aggression_reference_n_per_second,
         )
         social_support = max(
             social,
@@ -477,12 +482,18 @@ def _confusion_pair(behavior: str) -> str:
     return ""
 
 
-def _motion_support(row: pd.Series) -> float:
+def _motion_support(
+    row: pd.Series,
+    config: BehaviorEvidenceConfig,
+) -> float:
     """Combine active duration, high speed, and net trajectory evidence."""
 
-    active = _number(row, "motion_active_ratio_unit")
-    stationary = _number(row, "motion_stationary_ratio_unit")
-    speed = _scaled(_number(row, "motion_speed_p90_unit"), 0.012)
+    active = _number(row, "motion_active_ratio_per_second_unit")
+    stationary = _number(row, "motion_stationary_ratio_per_second_unit")
+    speed = _scaled(
+        _number(row, "motion_speed_n_per_second_p90_unit"),
+        config.motion_speed_reference_n_per_second,
+    )
     straightness = _number(row, "trajectory_straightness_unit")
     support = 0.45 * active + 0.25 * (1.0 - stationary)
     support += 0.20 * speed + 0.10 * straightness

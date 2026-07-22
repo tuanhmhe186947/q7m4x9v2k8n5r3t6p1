@@ -25,6 +25,7 @@ from pig_behavior.classification_v2.contracts.lineage_claims import (
 )
 from pig_behavior.classification_v2.features.pen_context import (
     empty_pen_context_summary,
+    recompute_pen_motion_for_view,
     summarize_pen_context,
 )
 from pig_behavior.classification_v2.features.temporal_evidence import (
@@ -39,6 +40,9 @@ from pig_behavior.classification_v2.features.temporal_harmonization import (
     TemporalHarmonizationConfig,
     build_temporal_label_intervals,
     harmonize_temporal_labels,
+)
+from pig_behavior.classification_v2.sources.temporal_provenance import (
+    audit_source_frame_clock,
 )
 
 
@@ -64,8 +68,11 @@ class SequenceWindowConfig:
     aggregate_observed_rows_only: bool = True
     stationary_speed_threshold: float = 0.002
     active_speed_threshold: float = 0.006
+    stationary_speed_threshold_per_second: float = 0.06
+    active_speed_threshold_per_second: float = 0.18
     turning_angle_threshold_rad: float = float(np.pi / 6.0)
     behavior_review_requirement: str = "optional_for_diagnostic"
+    include_legacy_sparse_s6_at16: bool = False
 
     def validate(self) -> None:
         if not self.window_lengths:
@@ -116,6 +123,12 @@ class SequenceWindowConfig:
         return TemporalEvidenceConfig(
             stationary_speed_threshold=self.stationary_speed_threshold,
             active_speed_threshold=self.active_speed_threshold,
+            stationary_speed_threshold_per_second=(
+                self.stationary_speed_threshold_per_second
+            ),
+            active_speed_threshold_per_second=(
+                self.active_speed_threshold_per_second
+            ),
             turning_angle_threshold_rad=self.turning_angle_threshold_rad,
         )
 
@@ -140,8 +153,11 @@ def build_sequence_windows(
     max_windows_per_track: int | None = None,
     stationary_speed_threshold: float = 0.002,
     active_speed_threshold: float = 0.006,
+    stationary_speed_threshold_per_second: float = 0.06,
+    active_speed_threshold_per_second: float = 0.18,
     turning_angle_threshold_rad: float = float(np.pi / 6.0),
     behavior_review_requirement: str = "optional_for_diagnostic",
+    include_legacy_sparse_s6_at16: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     """Build harmonized frame features, intervals, and window manifest.
 
@@ -171,8 +187,13 @@ def build_sequence_windows(
         max_windows_per_track=max_windows_per_track,
         stationary_speed_threshold=stationary_speed_threshold,
         active_speed_threshold=active_speed_threshold,
+        stationary_speed_threshold_per_second=(
+            stationary_speed_threshold_per_second
+        ),
+        active_speed_threshold_per_second=active_speed_threshold_per_second,
         turning_angle_threshold_rad=turning_angle_threshold_rad,
         behavior_review_requirement=behavior_review_requirement,
+        include_legacy_sparse_s6_at16=include_legacy_sparse_s6_at16,
     )
     config.validate()
 
@@ -225,6 +246,19 @@ def audit_sequence_windows(
         "all_temporal_units_behavior_reviewed",
         "all_temporal_units_behavior_label_resolved",
         "all_temporal_units_behavior_train_eligible",
+        "feature_computation_grain",
+        "pair_scope_key",
+        "view_type",
+        "sampling_pattern",
+        "selected_frame_offsets",
+        "selected_frame_indices",
+        "selected_timestamps_seconds",
+        "pair_delta_frames",
+        "pair_delta_seconds",
+        "constituent_native_unit_keys",
+        "primary_cross_source_eligible",
+        "pair_recomputed_for_view",
+        "aggregate_recomputed_for_view",
     ]
     missing = [c for c in required if c not in windows.columns]
     if missing:
@@ -286,6 +320,64 @@ def audit_sequence_windows(
                 pd.Series(False, index=windows.index),
             )
         )
+        grain = windows["feature_computation_grain"].fillna("").astype(str)
+        invalid_grain = grain.ne("FINAL_VIEW_FEATURES")
+        if invalid_grain.any():
+            errors.append(
+                "invalid_final_view_feature_grain="
+                f"{int(invalid_grain.sum())}"
+            )
+        invalid_pair_scope = (
+            windows["pair_scope_key"]
+            .fillna("")
+            .astype(str)
+            .ne(windows["window_id"].fillna("").astype(str))
+        )
+        if invalid_pair_scope.any():
+            errors.append(
+                f"final_view_pair_scope_mismatch={int(invalid_pair_scope.sum())}"
+            )
+        pair_recomputed = _to_bool_series(windows["pair_recomputed_for_view"])
+        aggregate_recomputed = _to_bool_series(
+            windows["aggregate_recomputed_for_view"]
+        )
+        invalid_recompute_claim = main_mask & (
+            ~pair_recomputed | ~aggregate_recomputed
+        )
+        if invalid_recompute_claim.any():
+            errors.append(
+                "main_train_view_not_recomputed="
+                f"{int(invalid_recompute_claim.sum())}"
+            )
+        view_identity = windows["view_type"].fillna("").astype(str)
+        sampling_identity = windows["sampling_pattern"].fillna("").astype(str)
+        sparse_s6 = view_identity.eq("S6@16")
+        expected_view_type = "T" + windows["window_length_frames"].astype(
+            "int64"
+        ).astype(str) + "_contiguous"
+        invalid_view_identity = (~sparse_s6) & (
+            view_identity.ne(expected_view_type)
+            | sampling_identity.ne("contiguous")
+        )
+        invalid_sparse_identity = sparse_s6 & (
+            ~windows["source_type"].fillna("").astype(str).eq(LEGACY_SOURCE_TYPE)
+            | ~windows["window_length_frames"].eq(6)
+            | ~sampling_identity.eq("uniform_sparse_offsets_0_3_6_9_12_15")
+            | ~windows["selected_frame_offsets"]
+            .fillna("")
+            .astype(str)
+            .eq("[0,3,6,9,12,15]")
+            | ~windows["pair_delta_frames"]
+            .fillna("")
+            .astype(str)
+            .eq("[3,3,3,3,3]")
+            | _to_bool_series(windows["primary_cross_source_eligible"])
+        )
+        invalid_view_identity |= invalid_sparse_identity
+        if invalid_view_identity.any():
+            errors.append(
+                f"invalid_contiguous_view_identity={int(invalid_view_identity.sum())}"
+            )
         hidden_tier = windows.get(
             "hidden_window_policy_tier",
             pd.Series("", index=windows.index),
@@ -393,6 +485,12 @@ def audit_sequence_windows(
             "high_hidden_ratio_window",
         ),
         "bbox_valid_ratio_window": _numeric_summary(windows, "bbox_valid_ratio_window"),
+        "feature_computation_grain": _value_counts_dict(
+            windows,
+            "feature_computation_grain",
+        ),
+        "view_type": _value_counts_dict(windows, "view_type"),
+        "sampling_pattern": _value_counts_dict(windows, "sampling_pattern"),
         "errors": errors,
         "warnings": warnings,
     }
@@ -469,6 +567,7 @@ def _build_windows_from_harmonized(
 
 
 def _generate_legacy_windows(g: pd.DataFrame, config: SequenceWindowConfig) -> list[dict[str, Any]]:
+    _validate_legacy_dense_source_mapping(g)
     rows: list[dict[str, Any]] = []
     frames_available = sorted(set(g["frame_index"].astype(int).tolist()))
     if not frames_available:
@@ -506,6 +605,73 @@ def _generate_legacy_windows(g: pd.DataFrame, config: SequenceWindowConfig) -> l
                 and produced >= config.max_windows_per_track
             ):
                 return rows
+    if config.include_legacy_sparse_s6_at16:
+        sparse_rows = _generate_legacy_sparse_s6_at16_windows(g, config)
+        for row in sparse_rows:
+            rows.append(row)
+            produced += 1
+            if (
+                config.max_windows_per_track is not None
+                and produced >= config.max_windows_per_track
+            ):
+                return rows
+    return rows
+
+
+def _generate_legacy_sparse_s6_at16_windows(
+    g: pd.DataFrame,
+    config: SequenceWindowConfig,
+) -> list[dict[str, Any]]:
+    """Build one reviewed sparse six-slot ablation per exact legacy burst."""
+
+    if "temporal_unit_key" not in g.columns:
+        raise ValueError("legacy S6@16 requires temporal_unit_key")
+    offsets = np.asarray([0, 3, 6, 9, 12, 15], dtype="int64")
+    rows: list[dict[str, Any]] = []
+    for _, unit in g.groupby("temporal_unit_key", dropna=False, sort=False):
+        unit = unit.sort_values("frame_index", kind="mergesort")
+        if unit.empty:
+            continue
+        declared_start = pd.to_numeric(
+            unit.get(
+                "label_window_start",
+                pd.Series(np.nan, index=unit.index),
+            ),
+            errors="coerce",
+        ).dropna()
+        start = (
+            int(declared_start.iloc[0])
+            if not declared_start.empty
+            else int(pd.to_numeric(unit["frame_index"]).min())
+        )
+        end = start + 15
+        expected_full = set(range(start, end + 1))
+        actual_full = set(
+            pd.to_numeric(unit["frame_index"], errors="coerce")
+            .dropna()
+            .astype(int)
+        )
+        selected_indices = (start + offsets).tolist()
+        selected = unit.loc[
+            pd.to_numeric(unit["frame_index"], errors="coerce").isin(
+                selected_indices
+            )
+        ]
+        complete = expected_full.issubset(actual_full) and len(selected) == 6
+        rows.append(
+            _summarize_window(
+                selected,
+                6,
+                start,
+                end,
+                config,
+                label_coverage_complete=complete,
+                source_window_type="legacy_sparse_s6_at16_ablation",
+                authority_rows=unit,
+                view_type="S6@16",
+                sampling_pattern="uniform_sparse_offsets_0_3_6_9_12_15",
+            )
+        )
     return rows
 
 
@@ -649,6 +815,74 @@ def _validate_window_frame_contract(frames: pd.DataFrame) -> None:
             f"sample_source_indices={sample}"
         )
     frames["frame_index"] = frame_index.astype(int)
+    clock_columns = {
+        "source_frame_index",
+        "source_fps",
+        "timestamp_sec",
+        "timestamp_source",
+    }
+    provenance_declared = bool(
+        {"source_frame_index", "source_fps"}.intersection(frames.columns)
+    )
+    if provenance_declared and not clock_columns.issubset(frames.columns):
+        raise ValueError(
+            "Incomplete source-frame clock contract: "
+            f"missing={sorted(clock_columns.difference(frames.columns))}"
+        )
+    if clock_columns.issubset(frames.columns):
+        fps = pd.to_numeric(frames["source_fps"], errors="coerce")
+        if fps.notna().any():
+            clock_audit = audit_source_frame_clock(frames)
+            if clock_audit["errors"]:
+                raise ValueError(
+                    "Source-frame timestamp contract failed: "
+                    f"{clock_audit['errors']}"
+                )
+
+
+def _validate_legacy_dense_source_mapping(frame: pd.DataFrame) -> None:
+    """Prove consecutive legacy native offsets are decoded source frames."""
+    offset_column = (
+        "native_offset"
+        if "native_offset" in frame
+        else "relative_frame_index"
+        if "relative_frame_index" in frame
+        else None
+    )
+    source_column = (
+        "source_frame_index"
+        if "source_frame_index" in frame
+        else "frame_index"
+    )
+    if offset_column is None:
+        return
+    grain = (
+        ["temporal_unit_key"]
+        if "temporal_unit_key" in frame
+        else ["object_track_key"]
+    )
+    violations = 0
+    for _, unit in frame.groupby(grain, dropna=False, sort=False):
+        ordered = unit.assign(
+            _native_offset=pd.to_numeric(
+                unit[offset_column],
+                errors="coerce",
+            ),
+            _source_frame=pd.to_numeric(
+                unit[source_column],
+                errors="coerce",
+            ),
+        ).sort_values("_native_offset", kind="mergesort")
+        offset_delta = ordered["_native_offset"].diff()
+        source_delta = ordered["_source_frame"].diff()
+        violations += int(
+            (offset_delta.eq(1) & source_delta.ne(1)).fillna(False).sum()
+        )
+    if violations:
+        raise ValueError(
+            "Legacy consecutive native offsets are not contiguous decoded "
+            f"source frames: violating_pairs={violations}"
+        )
 
 
 def _validate_cvat_interval_contract(intervals: pd.DataFrame) -> None:
@@ -690,6 +924,9 @@ def _summarize_window(
     label_coverage_complete: bool,
     source_window_type: str,
     interval_subset: pd.DataFrame | None = None,
+    authority_rows: pd.DataFrame | None = None,
+    view_type: str | None = None,
+    sampling_pattern: str = "contiguous",
 ) -> dict[str, Any]:
     if wg.empty:
         return _empty_invalid_window(
@@ -699,16 +936,26 @@ def _summarize_window(
             end,
             "no_observed_rows_in_window",
             source_window_type=source_window_type,
+            view_type=view_type,
+            sampling_pattern=sampling_pattern,
         )
 
     first = wg.iloc[0]
+    authority = (
+        authority_rows
+        if authority_rows is not None and not authority_rows.empty
+        else wg
+    )
     if (
         interval_subset is not None
         and "behavior_temporal_final" in interval_subset.columns
     ):
         behavior_source = interval_subset["behavior_temporal_final"].fillna("").astype(str)
     else:
-        behavior_source = wg.get("behavior_temporal_final", wg["behavior"]).fillna("").astype(str)
+        behavior_source = authority.get(
+            "behavior_temporal_final",
+            authority["behavior"],
+        ).fillna("").astype(str)
     behavior_values = [b for b in behavior_source.tolist() if b]
     unique_behaviors = sorted(set(behavior_values))
     dominant = pd.Series(behavior_values).value_counts().idxmax() if behavior_values else ""
@@ -750,7 +997,7 @@ def _summarize_window(
         wg.get("spatiotemporal_feature_valid", pd.Series(True, index=wg.index))
     )
     review_summary = _review_training_summary(wg)
-    behavior_review = _behavior_review_summary(wg)
+    behavior_review = _behavior_review_summary(authority)
     reviewed_status = behavior_review[
         "human_reviewed_behavior_consistency_status"
     ]
@@ -761,12 +1008,12 @@ def _summarize_window(
         else label_status
     )
 
-    ts_start, ts_end, duration_from_ts = _timestamp_span(wg)
-    effective_fps = _infer_effective_fps(wg, start, end, duration_from_ts, config.default_fps)
-    window_duration_sec = (
-        duration_from_ts
-        if duration_from_ts and duration_from_ts > 0
-        else (length / effective_fps if effective_fps and effective_fps > 0 else np.nan)
+    timing = _window_timing_summary(
+        wg,
+        start=start,
+        end=end,
+        expected_slot_count=length,
+        default_fps=config.default_fps,
     )
 
     reasons: list[str] = []
@@ -787,6 +1034,13 @@ def _summarize_window(
         hard_exclusion = True
     if review_summary["review_excluded_frame_count_window"] > 0:
         reasons.append("review_excluded_rows_in_window")
+        hard_exclusion = True
+    review_required = (
+        config.behavior_review_requirement
+        == "full_native_unit_review_required"
+    )
+    if review_required and not behavior_review["behavior_review_fields_present"]:
+        reasons.append("behavior_review_required_but_missing")
         hard_exclusion = True
     if behavior_review["behavior_review_fields_present"] and (
         behavior_review["human_reviewed_behavior_consistency_status"] != "stable"
@@ -821,10 +1075,57 @@ def _summarize_window(
     if training_tier == "exclude":
         review_summary["window_sample_weight"] = 0.0
 
-    temporal_unit_keys = _temporal_unit_keys(wg)
+    constituent_rows = (
+        interval_subset
+        if interval_subset is not None and not interval_subset.empty
+        else authority
+    )
+    temporal_unit_keys = _temporal_unit_keys(constituent_rows)
+    selected_offsets = (
+        [0, 3, 6, 9, 12, 15]
+        if view_type == "S6@16"
+        else list(range(length))
+    )
+    selected_indices = [int(start + value) for value in selected_offsets]
+    selected_timestamps = _selected_view_coordinates(
+        wg,
+        selected_indices,
+    )
+    pair_delta_frames, pair_delta_seconds = _selected_view_pair_deltas(
+        selected_indices,
+        selected_timestamps,
+    )
+    window_id = _make_window_id(first, length, start, end)
     row: dict[str, Any] = {
-        "window_id": _make_window_id(first, length, start, end),
+        "window_id": window_id,
+        "feature_computation_grain": "FINAL_VIEW_FEATURES",
+        "pair_scope_key": window_id,
+        "pair_recomputed_for_view": True,
+        "aggregate_recomputed_for_view": True,
         "source_window_type": source_window_type,
+        "view_type": view_type or f"T{length}_contiguous",
+        "sampling_pattern": sampling_pattern,
+        "primary_cross_source_eligible": (view_type != "S6@16"),
+        "selected_frame_offsets": json.dumps(
+            selected_offsets,
+            separators=(",", ":"),
+        ),
+        "selected_frame_indices": json.dumps(
+            selected_indices,
+            separators=(",", ":"),
+        ),
+        "selected_timestamps_seconds": json.dumps(
+            selected_timestamps,
+            separators=(",", ":"),
+        ),
+        "pair_delta_frames": json.dumps(
+            pair_delta_frames,
+            separators=(",", ":"),
+        ),
+        "pair_delta_seconds": json.dumps(
+            pair_delta_seconds,
+            separators=(",", ":"),
+        ),
         "source_type": str(first.get("source_type", "")),
         "dataset_id": str(first.get("dataset_id", "")),
         "video_key": str(first.get("video_key", "")),
@@ -834,10 +1135,11 @@ def _summarize_window(
         "window_length_frames": int(length),
         "window_start_frame": int(start),
         "window_end_frame": int(end),
-        "window_duration_sec": _float_or_nan(window_duration_sec),
-        "effective_fps": _float_or_nan(effective_fps),
-        "timestamp_start_sec": _float_or_nan(ts_start),
-        "timestamp_end_sec": _float_or_nan(ts_end),
+        "window_duration_sec": timing["declared_window_duration_seconds"],
+        "effective_fps": timing["effective_observation_rate_hz"],
+        "timestamp_start_sec": timing["timestamp_start_sec"],
+        "timestamp_end_sec": timing["timestamp_end_sec"],
+        **timing,
         "observed_row_count_window": int(len(wg)),
         "observed_frame_count_window": int(wg["frame_index"].nunique(dropna=True))
         if "frame_index" in wg.columns
@@ -845,6 +1147,11 @@ def _summarize_window(
         "label_coverage_complete": bool(label_coverage_complete),
         "temporal_unit_keys_window": "|".join(temporal_unit_keys),
         "temporal_unit_keys_json": json.dumps(
+            temporal_unit_keys,
+            ensure_ascii=True,
+            separators=(",", ":"),
+        ),
+        "constituent_native_unit_keys": json.dumps(
             temporal_unit_keys,
             ensure_ascii=True,
             separators=(",", ":"),
@@ -861,6 +1168,7 @@ def _summarize_window(
         ),
         "sequence_label_status": effective_status,
         "annotation_consistency_status": label_status,
+        "behavior_review_requirement": config.behavior_review_requirement,
         **behavior_review,
         "window_valid_for_main_train": bool(valid_main),
         "window_training_tier_recommendation": training_tier,
@@ -897,7 +1205,7 @@ def _summarize_window(
     row.update(
         _aggregate_window_features(
             wg,
-            window_duration_sec,
+            timing["declared_window_duration_seconds"],
             expected_start=start,
             expected_end=end,
             evidence_config=config.temporal_evidence_config(),
@@ -914,11 +1222,29 @@ def _empty_invalid_window(
     reason: str,
     *,
     source_window_type: str = "unknown_window",
+    view_type: str | None = None,
+    sampling_pattern: str = "contiguous",
 ) -> dict[str, Any]:
     first = g.iloc[0] if g is not None and not g.empty else pd.Series(dtype=object)
+    window_id = _make_window_id(first, length, start, end)
+    sparse_s6 = view_type == "S6@16"
     row = {
-        "window_id": _make_window_id(first, length, start, end),
+        "window_id": window_id,
+        "feature_computation_grain": "FINAL_VIEW_FEATURES",
+        "pair_scope_key": window_id,
+        "pair_recomputed_for_view": False,
+        "aggregate_recomputed_for_view": False,
         "source_window_type": source_window_type,
+        "view_type": view_type or f"T{length}_contiguous",
+        "sampling_pattern": sampling_pattern,
+        "primary_cross_source_eligible": (view_type != "S6@16"),
+        "selected_frame_offsets": (
+            "[0,3,6,9,12,15]" if sparse_s6 else "[]"
+        ),
+        "selected_frame_indices": "[]",
+        "selected_timestamps_seconds": "[]",
+        "pair_delta_frames": "[3,3,3,3,3]" if sparse_s6 else "[]",
+        "pair_delta_seconds": "[]",
         "source_type": str(first.get("source_type", "")),
         "dataset_id": str(first.get("dataset_id", "")),
         "video_key": str(first.get("video_key", "")),
@@ -930,11 +1256,23 @@ def _empty_invalid_window(
         "window_end_frame": int(end),
         "window_duration_sec": np.nan,
         "effective_fps": np.nan,
+        "declared_window_duration_seconds": np.nan,
+        "observed_timestamp_span_seconds": np.nan,
+        "adjacent_observed_duration_seconds": 0.0,
+        "physical_span_seconds": np.nan,
+        "expected_slot_count": int(length),
+        "observed_slot_count": 0,
+        "effective_observation_rate_hz": np.nan,
+        "adjacent_pair_coverage_ratio": 0.0,
+        "declared_timeline_fps": np.nan,
+        "timestamp_start_sec": np.nan,
+        "timestamp_end_sec": np.nan,
         "observed_row_count_window": 0,
         "observed_frame_count_window": 0,
         "label_coverage_complete": False,
         "temporal_unit_keys_window": "",
         "temporal_unit_keys_json": "[]",
+        "constituent_native_unit_keys": "[]",
         "num_temporal_units_window": 0,
         "num_behaviors_window": 0,
         "unique_behaviors_window": "",
@@ -981,6 +1319,264 @@ def _empty_invalid_window(
     return row
 
 
+def _recompute_view_motion(window_rows: pd.DataFrame) -> dict[str, Any]:
+    """Recompute pair-derived motion from exact selected view rows."""
+
+    ordered = window_rows.sort_values("frame_index", kind="mergesort")
+    row_count = len(ordered)
+    zeros = np.zeros(row_count, dtype="float64")
+
+    def values(column: str) -> np.ndarray:
+        return pd.to_numeric(
+            ordered.get(column, pd.Series(np.nan, index=ordered.index)),
+            errors="coerce",
+        ).to_numpy(dtype="float64")
+
+    frames = values("frame_index")
+    timestamps = values("timestamp_sec")
+    cx = values("cx_n")
+    cy = values("cy_n")
+    row_valid = np.ones(row_count, dtype=bool)
+    for column in [
+        "bbox_valid",
+        "geometry_feature_valid",
+        "spatiotemporal_feature_valid",
+    ]:
+        if column in ordered.columns:
+            row_valid &= _to_bool_series(ordered[column]).to_numpy(dtype=bool)
+
+    frame_delta = np.diff(frames)
+    time_delta = np.diff(timestamps)
+    dx = np.diff(cx)
+    dy = np.diff(cy)
+    geometry_pair_valid = (
+        np.isfinite(frame_delta)
+        & (frame_delta > 0)
+        & np.isfinite(dx)
+        & np.isfinite(dy)
+        & row_valid[:-1]
+        & row_valid[1:]
+    )
+    time_valid = np.isfinite(time_delta) & (time_delta > 0)
+    adjacent = geometry_pair_valid & np.isclose(frame_delta, 1.0) & time_valid
+    sparse = geometry_pair_valid & (frame_delta > 1.0) & time_valid
+    velocity_valid = adjacent | sparse
+    distance = np.hypot(dx, dy)
+
+    displacement = zeros.copy()
+    displacement[1:] = np.where(adjacent, distance, 0.0)
+    speed_per_frame = np.full(row_count, np.nan, dtype="float64")
+    speed_per_frame[1:] = np.where(adjacent, distance, np.nan)
+    speed_per_second = np.full(row_count, np.nan, dtype="float64")
+    speed_per_second[1:] = np.where(
+        velocity_valid,
+        distance / time_delta,
+        np.nan,
+    )
+
+    acceleration_per_frame = np.full(row_count, np.nan, dtype="float64")
+    acceleration_per_second = np.full(row_count, np.nan, dtype="float64")
+    if row_count >= 3:
+        consecutive_adjacent = adjacent[:-1] & adjacent[1:]
+        frame_acceleration = np.diff(speed_per_frame[1:])
+        acceleration_per_frame[2:] = np.where(
+            consecutive_adjacent,
+            frame_acceleration,
+            np.nan,
+        )
+        consecutive_velocity = velocity_valid[:-1] & velocity_valid[1:]
+        acceleration_time = (time_delta[:-1] + time_delta[1:]) / 2.0
+        acceleration_valid = (
+            consecutive_velocity
+            & np.isfinite(acceleration_time)
+            & (acceleration_time > 0)
+        )
+        physical_acceleration = (
+            np.diff(speed_per_second[1:]) / acceleration_time
+        )
+        acceleration_per_second[2:] = np.where(
+            acceleration_valid,
+            physical_acceleration,
+            np.nan,
+        )
+
+    direction = np.full(max(0, row_count - 1), np.nan, dtype="float64")
+    direction[adjacent] = np.arctan2(dy[adjacent], dx[adjacent])
+    direction_change = np.full(row_count, np.nan, dtype="float64")
+    if row_count >= 3:
+        heading_valid = adjacent[:-1] & adjacent[1:]
+        raw_change = (np.diff(direction) + np.pi) % (2 * np.pi) - np.pi
+        direction_change[2:] = np.where(heading_valid, raw_change, np.nan)
+
+    shape_change = np.full(row_count, np.nan, dtype="float64")
+    shape_components: list[np.ndarray] = []
+    for column, scale in [
+        ("bw_n", 1.0),
+        ("bh_n", 1.0),
+        ("area_n", 1.0),
+        ("aspect_ratio", 10.0),
+    ]:
+        component = np.diff(values(column)) / scale
+        component = np.where(np.isfinite(component), component, 0.0)
+        shape_components.append(component)
+    if shape_components:
+        shape_distance = np.sqrt(
+            np.sum(np.square(np.vstack(shape_components)), axis=0)
+        )
+        shape_change[1:] = np.where(adjacent, shape_distance, np.nan)
+
+    connected_displacement = _connected_view_displacement(
+        cx,
+        cy,
+        adjacent,
+    )
+    index = ordered.index
+    return {
+        "speed_n_per_frame": pd.Series(speed_per_frame, index=index),
+        "speed_n_per_second": pd.Series(speed_per_second, index=index),
+        "displacement_n": pd.Series(displacement, index=index),
+        "abs_acceleration_n_per_frame2": pd.Series(
+            np.abs(acceleration_per_frame),
+            index=index,
+        ),
+        "abs_acceleration_n_per_second2": pd.Series(
+            np.abs(acceleration_per_second),
+            index=index,
+        ),
+        "abs_direction_change_rad": pd.Series(
+            np.abs(direction_change),
+            index=index,
+        ),
+        "shape_change_score": pd.Series(shape_change, index=index),
+        "connected_displacement_n": connected_displacement,
+        "adjacent_pair_count": int(adjacent.sum()),
+        "sparse_velocity_pair_count": int(sparse.sum()),
+    }
+
+
+def _connected_view_displacement(
+    cx: np.ndarray,
+    cy: np.ndarray,
+    adjacent_pair_valid: np.ndarray,
+) -> float:
+    total = 0.0
+    start: int | None = None
+    for pair_index, valid in enumerate(adjacent_pair_valid):
+        if valid and start is None:
+            start = pair_index
+        last_pair = pair_index == len(adjacent_pair_valid) - 1
+        if start is not None and (not valid or last_pair):
+            end = pair_index + 1 if valid and last_pair else pair_index
+            total += float(np.hypot(cx[end] - cx[start], cy[end] - cy[start]))
+            start = None
+    return total
+
+
+def _recompute_view_roi_transitions(
+    window_rows: pd.DataFrame,
+) -> dict[str, int]:
+    ordered = window_rows.sort_values("frame_index", kind="mergesort")
+    if len(ordered) < 2:
+        return {
+            "entry_count": 0,
+            "exit_count": 0,
+            "near_entry_count": 0,
+            "near_exit_count": 0,
+            "valid_pair_count": 0,
+        }
+    frames = pd.to_numeric(ordered["frame_index"], errors="coerce").to_numpy(
+        dtype="float64"
+    )
+    timestamps = pd.to_numeric(
+        ordered.get("timestamp_sec", pd.Series(np.nan, index=ordered.index)),
+        errors="coerce",
+    ).to_numpy(dtype="float64")
+    available = _to_bool_series(
+        ordered.get(
+            "roi_target_available",
+            pd.Series(False, index=ordered.index),
+        )
+    ).to_numpy(dtype=bool)
+    contact = _to_bool_series(
+        ordered.get("roi_target_contact", pd.Series(False, index=ordered.index))
+    ).to_numpy(dtype=bool)
+    near = _to_bool_series(
+        ordered.get("roi_target_near", pd.Series(False, index=ordered.index))
+    ).to_numpy(dtype=bool)
+    pair_valid = (
+        np.isclose(np.diff(frames), 1.0)
+        & np.isfinite(np.diff(timestamps))
+        & (np.diff(timestamps) > 0)
+        & available[:-1]
+        & available[1:]
+    )
+    return {
+        "entry_count": int((pair_valid & ~contact[:-1] & contact[1:]).sum()),
+        "exit_count": int((pair_valid & contact[:-1] & ~contact[1:]).sum()),
+        "near_entry_count": int((pair_valid & ~near[:-1] & near[1:]).sum()),
+        "near_exit_count": int((pair_valid & near[:-1] & ~near[1:]).sum()),
+        "valid_pair_count": int(pair_valid.sum()),
+    }
+
+
+def _frame_local_primitives_for_view(rows: pd.DataFrame) -> pd.DataFrame:
+    """Remove parent-grain pair/aggregate columns before final recomputation."""
+
+    derived_prefixes = (
+        "prev_",
+        "delta_",
+        "motion_",
+        "displacement_",
+        "sparse_displacement_",
+        "vx_",
+        "vy_",
+        "speed_",
+        "accel_",
+        "abs_accel_",
+        "acceleration_",
+        "abs_acceleration_",
+        "direction_",
+        "abs_direction_",
+        "shape_change_",
+        "approach_speed_",
+        "separation_speed_",
+        "retreat_speed_",
+        "aggression_score_proxy",
+        "partner_distance_delta",
+        "nearest_dist_delta",
+        "pen_distance_delta_",
+        "pen_normal_speed_",
+        "pen_approach_speed_",
+        "pen_retreat_speed_",
+        "pen_parallel_speed_",
+        "pen_motion_delta_",
+        "pen_adjacent_motion_pair_",
+        "pen_sparse_velocity_pair_",
+    )
+    derived_exact = {
+        "adjacent_motion_pair_valid",
+        "sparse_velocity_pair_valid",
+        "motion_velocity_pair_valid",
+        "roi_transition_pair_valid",
+        "roi_target_entry_event",
+        "roi_target_exit_event",
+        "roi_target_near_entry_event",
+        "roi_target_near_exit_event",
+        "roi_motion_inside_score",
+        "roi_motion_inside_score_per_second",
+        "social_adjacent_pair_valid",
+        "social_velocity_pair_valid",
+    }
+    drop = [
+        column
+        for column in rows.columns
+        if column.endswith("_unit")
+        or column in derived_exact
+        or column.startswith(derived_prefixes)
+    ]
+    return rows.drop(columns=drop, errors="ignore").copy()
+
+
 def _aggregate_window_features(
     wg: pd.DataFrame,
     window_duration_sec: float | None,
@@ -989,6 +1585,52 @@ def _aggregate_window_features(
     expected_end: int,
     evidence_config: TemporalEvidenceConfig,
 ) -> dict[str, Any]:
+    if "feature_computation_grain" in wg.columns:
+        grain_values = (
+            wg["feature_computation_grain"]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+        )
+        input_grains = set(grain_values)
+        invalid_grains = input_grains.difference(
+            {"FRAME_LOCAL_PRIMITIVES", "NATIVE_UNIT_REVIEW_EVIDENCE"}
+        )
+        if invalid_grains:
+            raise ValueError(
+                "final view cannot consume another final-view artifact: "
+                f"found={sorted(invalid_grains)}"
+            )
+        native_rows = grain_values.eq("NATIVE_UNIT_REVIEW_EVIDENCE")
+        if native_rows.any():
+            required_scope = {"pair_scope_key", "temporal_unit_key"}
+            if not required_scope.issubset(wg.columns):
+                raise ValueError(
+                    "native review evidence lacks explicit pair scope"
+                )
+            invalid_native_scope = native_rows & (
+                wg["pair_scope_key"]
+                .fillna("")
+                .astype(str)
+                .ne(wg["temporal_unit_key"].fillna("").astype(str))
+            )
+            if invalid_native_scope.any():
+                raise ValueError(
+                    "native pair_scope_key does not match temporal_unit_key: "
+                    f"count={int(invalid_native_scope.sum())}"
+                )
+    for claim_column in (
+        "pair_recomputed_for_view",
+        "aggregate_recomputed_for_view",
+    ):
+        if claim_column in wg.columns and _to_bool_series(
+            wg[claim_column]
+        ).any():
+            raise ValueError(
+                "final view cannot import a recomputed parent view: "
+                f"column={claim_column}"
+            )
+    wg = _frame_local_primitives_for_view(wg)
     out: dict[str, Any] = {}
 
     def num(col: str) -> pd.Series:
@@ -996,12 +1638,16 @@ def _aggregate_window_features(
             return pd.Series(dtype="float64")
         return pd.to_numeric(wg[col], errors="coerce").replace([np.inf, -np.inf], np.nan)
 
-    speed = num("speed_n_per_frame")
-    speed_sec = num("speed_n_per_sec")
-    disp = num("displacement_n")
-    accel = num("abs_accel_n_per_frame2")
-    direction = num("abs_direction_change_rad")
-    shape = num("shape_change_score")
+    motion = _recompute_view_motion(wg)
+    speed = motion["speed_n_per_frame"]
+    speed_sec = motion["speed_n_per_second"]
+    disp = motion["displacement_n"]
+    accel = motion["abs_acceleration_n_per_frame2"]
+    acceleration_per_second2 = motion[
+        "abs_acceleration_n_per_second2"
+    ]
+    direction = motion["abs_direction_change_rad"]
+    shape = motion["shape_change_score"]
     area = num("area_n")
     aspect = num("aspect_ratio")
 
@@ -1010,6 +1656,15 @@ def _aggregate_window_features(
     out["speed_std_window"] = _safe_std(speed)
     out["speed_per_sec_mean_window"] = _safe_mean(speed_sec)
     out["speed_per_sec_max_window"] = _safe_max(speed_sec)
+    out["speed_n_per_second_mean_window"] = _safe_mean(speed_sec)
+    out["speed_n_per_second_max_window"] = _safe_max(speed_sec)
+    out["speed_n_per_second_std_window"] = _safe_std(speed_sec)
+    out["adjacent_motion_pair_count_window"] = motion[
+        "adjacent_pair_count"
+    ]
+    out["sparse_velocity_pair_count_window"] = motion[
+        "sparse_velocity_pair_count"
+    ]
     out["path_length_n_window"] = _safe_sum(disp)
     out["path_length_n_per_sec_window"] = (
         out["path_length_n_window"] / window_duration_sec
@@ -1028,6 +1683,12 @@ def _aggregate_window_features(
     )
     out["accel_abs_mean_window"] = _safe_mean(accel)
     out["accel_abs_max_window"] = _safe_max(accel)
+    out["acceleration_n_per_second2_abs_mean_window"] = _safe_mean(
+        acceleration_per_second2
+    )
+    out["acceleration_n_per_second2_abs_max_window"] = _safe_max(
+        acceleration_per_second2
+    )
     out["direction_change_abs_mean_window"] = _safe_mean(direction)
     out["direction_change_abs_max_window"] = _safe_max(direction)
     out["shape_transition_score_window"] = _safe_max(shape)
@@ -1037,22 +1698,7 @@ def _aggregate_window_features(
         1.0 + _nan_to_zero(out["area_n_std_window"]) + _nan_to_zero(out["aspect_ratio_std_window"])
     )
 
-    # First-last displacement ratio.
-    if {"cx_n", "cy_n"}.issubset(wg.columns) and len(wg) >= 2:
-        coords = wg.sort_values("frame_index")[["cx_n", "cy_n"]].apply(
-            pd.to_numeric, errors="coerce"
-        )
-        first = coords.iloc[0]
-        last = coords.iloc[-1]
-        displacement = (
-            float(
-                np.sqrt((last["cx_n"] - first["cx_n"]) ** 2 + (last["cy_n"] - first["cy_n"]) ** 2)
-            )
-            if coords.notna().all(axis=None)
-            else np.nan
-        )
-    else:
-        displacement = np.nan
+    displacement = float(motion["connected_displacement_n"])
     out["displacement_n_window"] = displacement
     out["displacement_ratio_window"] = (
         displacement / out["path_length_n_window"]
@@ -1073,14 +1719,18 @@ def _aggregate_window_features(
     out["target_roi_overlap_max_window"] = _safe_max(num("roi_target_max_overlap_ratio"))
     out["target_roi_min_dist_n_mean_window"] = _safe_mean(num("roi_target_min_dist_n"))
     out["target_roi_min_dist_n_min_window"] = _safe_min(num("roi_target_min_dist_n"))
-    out["target_roi_entry_count_window"] = (
-        int(_safe_sum(num("roi_target_entry_event")))
-        if "roi_target_entry_event" in wg.columns
-        else 0
-    )
-    out["target_roi_exit_count_window"] = (
-        int(_safe_sum(num("roi_target_exit_event"))) if "roi_target_exit_event" in wg.columns else 0
-    )
+    roi_transitions = _recompute_view_roi_transitions(wg)
+    out["target_roi_entry_count_window"] = roi_transitions["entry_count"]
+    out["target_roi_exit_count_window"] = roi_transitions["exit_count"]
+    out["target_roi_near_entry_count_window"] = roi_transitions[
+        "near_entry_count"
+    ]
+    out["target_roi_near_exit_count_window"] = roi_transitions[
+        "near_exit_count"
+    ]
+    out["roi_transition_valid_pair_count_window"] = roi_transitions[
+        "valid_pair_count"
+    ]
 
     # Social/interaction relation.
     out["nearest_dist_mean_window"] = _safe_mean(num("nearest_dist_n"))
@@ -1099,22 +1749,60 @@ def _aggregate_window_features(
     out["separation_speed_max_window"] = social_motion[
         "separation_speed_max"
     ]
+    out["approach_speed_n_per_second_max_window"] = social_motion[
+        "approach_speed_n_per_second_max"
+    ]
+    out["retreat_speed_n_per_second_max_window"] = social_motion[
+        "retreat_speed_n_per_second_max"
+    ]
     out["aggression_score_proxy_mean_window"] = social_motion[
         "aggression_score_proxy_mean"
     ]
     out["aggression_score_proxy_max_window"] = social_motion[
         "aggression_score_proxy_max"
     ]
-    out.update(summarize_pen_context(wg))
-    out.update(
-        summarize_temporal_evidence(
-            wg,
-            expected_start=expected_start,
-            expected_end=expected_end,
-            suffix="_window",
-            config=evidence_config,
+    out["aggression_score_proxy_n_per_second_mean_window"] = social_motion[
+        "aggression_score_proxy_n_per_second_mean"
+    ]
+    out["aggression_score_proxy_n_per_second_max_window"] = social_motion[
+        "aggression_score_proxy_n_per_second_max"
+    ]
+    pen_rows = wg
+    pen_recompute_required = {
+        "pen_context_available",
+        "pen_center_inside",
+        "pen_boundary_inward_normal_x",
+        "pen_boundary_inward_normal_y",
+        "image_width",
+        "image_height",
+        "timestamp_sec",
+    }
+    pen_available = _to_bool_series(
+        wg.get(
+            "pen_context_available",
+            pd.Series(False, index=wg.index),
         )
     )
+    if pen_available.any() and not pen_recompute_required.issubset(wg.columns):
+        missing_pen = sorted(pen_recompute_required.difference(wg.columns))
+        raise ValueError(
+            "final view cannot recompute available pen context: "
+            f"missing={missing_pen}"
+        )
+    if pen_recompute_required.issubset(wg.columns):
+        pen_rows = recompute_pen_motion_for_view(wg)
+    out.update(summarize_pen_context(pen_rows))
+    temporal_summary = summarize_temporal_evidence(
+        wg,
+        expected_start=expected_start,
+        expected_end=expected_end,
+        suffix="_window",
+        config=evidence_config,
+    )
+    out.update(temporal_summary)
+    out["sparse_path_length_n_window"] = temporal_summary[
+        "trajectory_sparse_path_length_n_window"
+    ]
 
     return out
 
@@ -1299,12 +1987,20 @@ def _empty_aggregate_features() -> dict[str, Any]:
         "speed_std_window",
         "speed_per_sec_mean_window",
         "speed_per_sec_max_window",
+        "speed_n_per_second_mean_window",
+        "speed_n_per_second_max_window",
+        "speed_n_per_second_std_window",
+        "adjacent_motion_pair_count_window",
+        "sparse_velocity_pair_count_window",
         "path_length_n_window",
+        "sparse_path_length_n_window",
         "path_length_n_per_sec_window",
         "motion_energy_window",
         "motion_burstiness_window",
         "accel_abs_mean_window",
         "accel_abs_max_window",
+        "acceleration_n_per_second2_abs_mean_window",
+        "acceleration_n_per_second2_abs_max_window",
         "direction_change_abs_mean_window",
         "direction_change_abs_max_window",
         "shape_transition_score_window",
@@ -1322,6 +2018,9 @@ def _empty_aggregate_features() -> dict[str, Any]:
         "target_roi_min_dist_n_min_window",
         "target_roi_entry_count_window",
         "target_roi_exit_count_window",
+        "target_roi_near_entry_count_window",
+        "target_roi_near_exit_count_window",
+        "roi_transition_valid_pair_count_window",
         "nearest_dist_mean_window",
         "nearest_dist_min_window",
         "nearest_pair_iou_max_window",
@@ -1331,8 +2030,12 @@ def _empty_aggregate_features() -> dict[str, Any]:
         "pair_contact_ratio_window",
         "approach_speed_max_window",
         "separation_speed_max_window",
+        "approach_speed_n_per_second_max_window",
+        "retreat_speed_n_per_second_max_window",
         "aggression_score_proxy_mean_window",
         "aggression_score_proxy_max_window",
+        "aggression_score_proxy_n_per_second_mean_window",
+        "aggression_score_proxy_n_per_second_max_window",
     ]
     out = {k: 0.0 if not k.endswith("count_window") else 0 for k in keys}
     out.update(empty_pen_context_summary())
@@ -1442,35 +2145,142 @@ def _looks_like_transition(interval_subset: pd.DataFrame | None, wg: pd.DataFram
     return changes <= max(1, len(set(ordered)))
 
 
-def _timestamp_span(wg: pd.DataFrame) -> tuple[float, float, float | None]:
-    if "timestamp_sec" not in wg.columns:
-        return np.nan, np.nan, None
-    ts = pd.to_numeric(wg["timestamp_sec"], errors="coerce").dropna().sort_values()
-    if ts.empty:
-        return np.nan, np.nan, None
-    start = float(ts.min())
-    end = float(ts.max())
-    if len(ts) >= 2:
-        deltas = ts.diff().dropna()
-        median_delta = float(deltas.median()) if not deltas.empty and deltas.median() > 0 else 0.0
-        duration = max(0.0, end - start + median_delta)
-    else:
-        duration = None
-    return start, end, duration
+def _selected_view_coordinates(
+    window_rows: pd.DataFrame,
+    selected_indices: list[int],
+) -> list[float | None]:
+    ordered = window_rows.assign(
+        _selected_frame_index=pd.to_numeric(
+            window_rows["frame_index"],
+            errors="coerce",
+        ),
+        _selected_timestamp=pd.to_numeric(
+            window_rows.get(
+                "timestamp_sec",
+                pd.Series(np.nan, index=window_rows.index),
+            ),
+            errors="coerce",
+        ),
+    ).dropna(subset=["_selected_frame_index"])
+    timestamp_by_frame = ordered.set_index("_selected_frame_index")[
+        "_selected_timestamp"
+    ]
+    return [
+        float(timestamp_by_frame.loc[index])
+        if index in timestamp_by_frame.index
+        and np.isfinite(timestamp_by_frame.loc[index])
+        else None
+        for index in selected_indices
+    ]
 
 
-def _infer_effective_fps(
-    wg: pd.DataFrame, start: int, end: int, duration: float | None, default_fps: float | None
-) -> float:
-    observed_frames = (
-        int(wg["frame_index"].nunique(dropna=True)) if "frame_index" in wg.columns else int(len(wg))
+def _selected_view_pair_deltas(
+    selected_indices: list[int],
+    selected_timestamps: list[float | None],
+) -> tuple[list[int], list[float | None]]:
+    frame_deltas = [int(value) for value in np.diff(selected_indices)]
+    time_deltas: list[float | None] = []
+    for previous, current in zip(
+        selected_timestamps,
+        selected_timestamps[1:],
+        strict=False,
+    ):
+        time_deltas.append(
+            float(current - previous)
+            if previous is not None and current is not None
+            else None
+        )
+    return frame_deltas, time_deltas
+
+
+def _window_timing_summary(
+    window_rows: pd.DataFrame,
+    *,
+    start: int,
+    end: int,
+    expected_slot_count: int,
+    default_fps: float | None,
+) -> dict[str, float | int]:
+    """Separate declared timeline duration from sparse observation timing."""
+
+    ordered = window_rows.sort_values("frame_index", kind="mergesort")
+    frames = pd.to_numeric(ordered["frame_index"], errors="coerce").to_numpy(
+        dtype="float64"
     )
-    if duration is not None and duration > 0 and observed_frames > 1:
-        return float(observed_frames / duration)
-    if default_fps is not None and default_fps > 0:
-        return float(default_fps)
-    frame_span = max(1, int(end - start + 1))
-    return float(frame_span)
+    timestamps = pd.to_numeric(
+        ordered.get("timestamp_sec", pd.Series(np.nan, index=ordered.index)),
+        errors="coerce",
+    ).to_numpy(dtype="float64")
+    frame_delta = np.diff(frames)
+    time_delta = np.diff(timestamps)
+    valid_velocity_pair = (
+        np.isfinite(frame_delta)
+        & (frame_delta > 0)
+        & np.isfinite(time_delta)
+        & (time_delta > 0)
+    )
+    fps_samples = frame_delta[valid_velocity_pair] / time_delta[
+        valid_velocity_pair
+    ]
+    declared_fps = (
+        float(np.median(fps_samples))
+        if fps_samples.size
+        else float(default_fps)
+        if default_fps is not None and default_fps > 0
+        else np.nan
+    )
+    finite_timestamps = timestamps[np.isfinite(timestamps)]
+    timestamp_start = (
+        float(finite_timestamps.min()) if finite_timestamps.size else np.nan
+    )
+    timestamp_end = (
+        float(finite_timestamps.max()) if finite_timestamps.size else np.nan
+    )
+    observed_span = (
+        max(0.0, timestamp_end - timestamp_start)
+        if finite_timestamps.size >= 2
+        else np.nan
+    )
+    observed_count = int(np.unique(frames[np.isfinite(frames)]).size)
+    observation_rate = (
+        float((observed_count - 1) / observed_span)
+        if observed_count >= 2
+        and np.isfinite(observed_span)
+        and observed_span > 0
+        else np.nan
+    )
+    adjacent_valid = valid_velocity_pair & np.isclose(frame_delta, 1.0)
+    expected_pairs = max(0, int(expected_slot_count) - 1)
+    physical_span = (
+        float((end - start) / declared_fps)
+        if np.isfinite(declared_fps) and declared_fps > 0
+        else np.nan
+    )
+    declared_timeline_slot_count = max(0, int(end) - int(start) + 1)
+    declared_duration = (
+        float(declared_timeline_slot_count / declared_fps)
+        if np.isfinite(declared_fps) and declared_fps > 0
+        else np.nan
+    )
+    return {
+        "declared_window_duration_seconds": declared_duration,
+        "observed_timestamp_span_seconds": observed_span,
+        "adjacent_observed_duration_seconds": float(
+            np.sum(time_delta[adjacent_valid])
+        ),
+        "physical_span_seconds": physical_span,
+        "expected_slot_count": int(expected_slot_count),
+        "observed_slot_count": observed_count,
+        "effective_observation_rate_hz": observation_rate,
+        "adjacent_pair_coverage_ratio": (
+            float(adjacent_valid.sum() / expected_pairs)
+            if expected_pairs
+            else 0.0
+        ),
+        "declared_timeline_fps": declared_fps,
+        "timestamp_start_sec": timestamp_start,
+        "timestamp_end_sec": timestamp_end,
+    }
 
 
 def _interaction_policy_for_behavior(behavior: str) -> dict[str, Any]:

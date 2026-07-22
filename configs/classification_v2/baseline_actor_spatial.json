@@ -35,8 +35,7 @@
       "bbox_shape_n",
       "motion_delta",
       "roi_class_relation",
-      "social_relation",
-      "quality_mask"
+      "social_relation"
     ],
     "standardize_spatial_groups": ["bbox_shape_n", "motion_delta", "roi_class_relation", "social_relation"],
     "enable_image": true,

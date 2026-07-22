@@ -36,6 +36,9 @@ from pig_behavior.classification_v2.schema import (
     normalize_hidden,
     normalize_pig_id,
 )
+from pig_behavior.classification_v2.sources.temporal_provenance import (
+    CANONICAL_TIMESTAMP_SOURCE,
+)
 
 
 def load_cvat_selected_native(
@@ -169,7 +172,9 @@ def load_cvat_selected_native(
                 "image_name": image_name,
                 "object_id_in_image": pd.NA,
                 "frame_index": frame_index,
+                "source_frame_index": frame_index,
                 "relative_frame_index": frame_index,
+                "native_offset": frame_index % 6,
                 "sequence_frame_count": pd.NA,
                 "legacy_sequence_mode": pd.NA,
                 "legacy_expected_sequence_length": pd.NA,
@@ -177,8 +182,13 @@ def load_cvat_selected_native(
                 "is_legacy_gt_anchor": False,
                 "sequence_complete": pd.NA,
                 "sequence_range_valid": pd.NA,
+                "source_fps": fps if fps and fps > 0 else pd.NA,
                 "timestamp_sec": _timestamp_from_frame(frame_index, fps),
-                "timestamp_source": "fps" if fps else "unknown",
+                "timestamp_source": (
+                    CANONICAL_TIMESTAMP_SOURCE if fps else "unknown"
+                ),
+                "acquisition_timestamp_sec": pd.NA,
+                "acquisition_timestamp_source": "not_available",
                 "image_width": resolved_width,
                 "image_height": resolved_height,
                 "pig_id": pig_id,

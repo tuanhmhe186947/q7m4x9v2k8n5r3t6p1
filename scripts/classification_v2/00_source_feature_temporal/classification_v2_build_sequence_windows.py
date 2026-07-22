@@ -66,6 +66,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--cvat-window-stride-intervals", type=int, default=1)
     parser.add_argument("--cvat-label-stride", type=int, default=6)
     parser.add_argument("--legacy-expected-sequence-length", type=int, default=16)
+    parser.add_argument(
+        "--include-legacy-sparse-s6-at16",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "Build reviewed legacy-only S6@16 ablation views from exact "
+            "offsets 0,3,6,9,12,15."
+        ),
+    )
     parser.add_argument("--default-fps", type=float, default=None)
     parser.add_argument("--min-bbox-valid-ratio", type=float, default=1.0)
     parser.add_argument("--max-hidden-ratio-main", type=float, default=0.25)
@@ -84,6 +93,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-spatiotemporal-valid-ratio", type=float, default=1.0)
     parser.add_argument("--stationary-speed-threshold", type=float, default=0.002)
     parser.add_argument("--active-speed-threshold", type=float, default=0.006)
+    parser.add_argument(
+        "--stationary-speed-threshold-per-second",
+        type=float,
+        default=0.06,
+    )
+    parser.add_argument(
+        "--active-speed-threshold-per-second",
+        type=float,
+        default=0.18,
+    )
     parser.add_argument("--turning-angle-threshold-deg", type=float, default=30.0)
     parser.add_argument("--exclude-mixed-windows", action="store_true")
     parser.add_argument(
@@ -158,28 +177,10 @@ def _to_bool_series(s: pd.Series) -> pd.Series:
 
 
 def _can_reuse_window_structure(df: pd.DataFrame, args: argparse.Namespace) -> bool:
-    if args.disable_fast_reuse:
-        return False
-    if args.exclude_high_hidden_from_main:
-        return False
-    if args.behavior_review_requirement == "full_native_unit_review_required":
-        return False
-    if args.max_rows is not None:
-        return False
-    if set(LINEAGE_CLAIM_COLUMNS).intersection(df.columns):
-        return False
-    if "review_include_in_training" not in df.columns:
-        return False
-    if {"behavior_before_review", "behavior_after_review"}.issubset(df.columns):
-        changed = (
-            df["behavior_before_review"]
-            .fillna("")
-            .astype(str)
-            .ne(df["behavior_after_review"].fillna("").astype(str))
-        )
-        if bool(changed.any()):
-            return False
-    return _base_window_evidence_contract_matches(args)
+    del df, args
+    # Final-view semantics require exact pair and aggregate recomputation.
+    # Reusing any prior sequence manifest is therefore forbidden.
+    return False
 
 
 def _base_window_evidence_contract_matches(args: argparse.Namespace) -> bool:
@@ -203,6 +204,12 @@ def _base_window_evidence_contract_matches(args: argparse.Namespace) -> bool:
     expected = {
         "stationary_speed_threshold": args.stationary_speed_threshold,
         "active_speed_threshold": args.active_speed_threshold,
+        "stationary_speed_threshold_per_second": (
+            args.stationary_speed_threshold_per_second
+        ),
+        "active_speed_threshold_per_second": (
+            args.active_speed_threshold_per_second
+        ),
         "turning_angle_threshold_deg": args.turning_angle_threshold_deg,
         "max_hidden_ratio_main": args.max_hidden_ratio_main,
         "max_hidden_run_ratio_main": args.max_hidden_run_ratio_main,
@@ -497,6 +504,12 @@ def _try_fast_reviewed_rebuild(args: argparse.Namespace) -> bool:
             "min_spatiotemporal_valid_ratio": args.min_spatiotemporal_valid_ratio,
             "stationary_speed_threshold": args.stationary_speed_threshold,
             "active_speed_threshold": args.active_speed_threshold,
+            "stationary_speed_threshold_per_second": (
+                args.stationary_speed_threshold_per_second
+            ),
+            "active_speed_threshold_per_second": (
+                args.active_speed_threshold_per_second
+            ),
             "turning_angle_threshold_deg": args.turning_angle_threshold_deg,
             "include_mixed_windows": not args.exclude_mixed_windows,
             "disable_fast_reuse": args.disable_fast_reuse,
@@ -583,10 +596,19 @@ def main() -> None:
             max_windows_per_track=args.max_windows_per_track,
             stationary_speed_threshold=args.stationary_speed_threshold,
             active_speed_threshold=args.active_speed_threshold,
+            stationary_speed_threshold_per_second=(
+                args.stationary_speed_threshold_per_second
+            ),
+            active_speed_threshold_per_second=(
+                args.active_speed_threshold_per_second
+            ),
             turning_angle_threshold_rad=math.radians(
                 args.turning_angle_threshold_deg
             ),
             behavior_review_requirement=args.behavior_review_requirement,
+            include_legacy_sparse_s6_at16=(
+                args.include_legacy_sparse_s6_at16
+            ),
         )
 
     output_dir = args.output_dir
@@ -622,6 +644,9 @@ def main() -> None:
             "cvat_window_stride_intervals": args.cvat_window_stride_intervals,
             "cvat_label_stride": args.cvat_label_stride,
             "legacy_expected_sequence_length": args.legacy_expected_sequence_length,
+            "include_legacy_sparse_s6_at16": (
+                args.include_legacy_sparse_s6_at16
+            ),
             "default_fps": args.default_fps,
             "min_bbox_valid_ratio": args.min_bbox_valid_ratio,
             "max_hidden_ratio_main": args.max_hidden_ratio_main,
@@ -632,6 +657,12 @@ def main() -> None:
             "min_spatiotemporal_valid_ratio": args.min_spatiotemporal_valid_ratio,
             "stationary_speed_threshold": args.stationary_speed_threshold,
             "active_speed_threshold": args.active_speed_threshold,
+            "stationary_speed_threshold_per_second": (
+                args.stationary_speed_threshold_per_second
+            ),
+            "active_speed_threshold_per_second": (
+                args.active_speed_threshold_per_second
+            ),
             "turning_angle_threshold_deg": args.turning_angle_threshold_deg,
             "include_mixed_windows": not args.exclude_mixed_windows,
             "disable_fast_reuse": args.disable_fast_reuse,

@@ -72,6 +72,7 @@ def _arrays() -> dict[str, np.ndarray]:
         "quality": np.ones((5, 2, 1), dtype=np.float32),
         "length_mask": np.ones((5, 2), dtype=np.float32),
         "observed_mask": np.ones((5, 2), dtype=np.float32),
+        "spatial_quality_mask": np.ones((5, 2), dtype=np.float32),
     }
 
 
@@ -151,6 +152,7 @@ def test_transform_imputes_nonfinite_and_zeroes_missing_slots() -> None:
         features,
         length_mask=torch.tensor([[1.0, 1.0]]),
         observed_mask=torch.tensor([[1.0, 0.0]]),
+        quality_mask=torch.tensor([[1.0, 1.0]]),
     )
 
     assert transformed["geometry"][0, 0].tolist() == [0.0, 0.0]

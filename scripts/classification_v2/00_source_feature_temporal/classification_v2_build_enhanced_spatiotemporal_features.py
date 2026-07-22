@@ -40,6 +40,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--social-contact-overlap-threshold", type=float, default=0.05)
     parser.add_argument("--stationary-speed-threshold", type=float, default=0.002)
     parser.add_argument("--active-speed-threshold", type=float, default=0.006)
+    parser.add_argument(
+        "--stationary-speed-threshold-per-second",
+        type=float,
+        default=0.06,
+    )
+    parser.add_argument(
+        "--active-speed-threshold-per-second",
+        type=float,
+        default=0.18,
+    )
     parser.add_argument("--turning-angle-threshold-deg", type=float, default=30.0)
     parser.add_argument(
         "--pen-mask",
@@ -126,6 +136,12 @@ def main() -> None:
         social_contact_overlap_threshold=args.social_contact_overlap_threshold,
         stationary_speed_threshold=args.stationary_speed_threshold,
         active_speed_threshold=args.active_speed_threshold,
+        stationary_speed_threshold_per_second=(
+            args.stationary_speed_threshold_per_second
+        ),
+        active_speed_threshold_per_second=(
+            args.active_speed_threshold_per_second
+        ),
         turning_angle_threshold_rad=math.radians(args.turning_angle_threshold_deg),
     )
     pen_audit: dict[str, object] | None = None
@@ -170,6 +186,12 @@ def main() -> None:
         "social_contact_overlap_threshold": args.social_contact_overlap_threshold,
         "stationary_speed_threshold": args.stationary_speed_threshold,
         "active_speed_threshold": args.active_speed_threshold,
+        "stationary_speed_threshold_per_second": (
+            args.stationary_speed_threshold_per_second
+        ),
+        "active_speed_threshold_per_second": (
+            args.active_speed_threshold_per_second
+        ),
         "turning_angle_threshold_deg": args.turning_angle_threshold_deg,
         "pen_context": args.pen_context,
         "pen_mask": str(args.pen_mask) if args.pen_context else None,

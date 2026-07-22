@@ -132,7 +132,7 @@ def test_reviewed_q2_tabular_spec_is_explicit_unique_and_migrated() -> None:
         "unknown_feature_fails_closed": True,
         "inference_available_only": True,
     }
-    assert len(features) == 110
+    assert len(features) == 102
     assert len(features) == len(set(features))
     assert features == trainer_contract["tabular_feature_whitelist"]
 

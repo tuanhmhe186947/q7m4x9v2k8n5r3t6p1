@@ -41,17 +41,28 @@ HIDDEN_RISK_INPUT_COLUMNS: tuple[str, ...] = (
     "nearest_pair_overlap_ratio",
     "nearest_dist_n",
     "pair_contact_with_nearest",
-    "shape_change_score",
-    "delta_area_n",
     "hidden_before_review",
     "frame_index",
+    "temporal_unit_key",
     "object_track_key",
     "track_id",
     "pig_id",
+    "cx_n",
+    "cx",
+    "cy_n",
+    "cy",
+    "bw_n",
+    "bbox_w",
+    "bh_n",
+    "bbox_h",
+    "area_n",
+    "aspect_ratio",
     "adjacent_hidden",
     "persistent_pair_contact",
     "persistent_pair_overlap",
     "bbox_instability_adjacent",
+    "bbox_shape_change_adjacent",
+    "bbox_area_delta_adjacent",
 )
 
 FORBIDDEN_SELECTION_FIELD_TOKENS: tuple[str, ...] = (
@@ -1001,17 +1012,21 @@ def _hidden_false_negative_risk(
         0.20,
         "pair_contact",
     )
+    derived = _adjacent_visibility_evidence(frame_features, config)
     add(
-        _numeric(frame_features, "shape_change_score").ge(config.shape_change_threshold),
+        derived["bbox_shape_change_adjacent"].ge(
+            config.shape_change_threshold
+        ),
         0.15,
         "abrupt_shape_change",
     )
     add(
-        _numeric(frame_features, "delta_area_n").abs().ge(config.area_delta_threshold),
+        derived["bbox_area_delta_adjacent"].ge(
+            config.area_delta_threshold
+        ),
         0.10,
         "abrupt_area_change",
     )
-    derived = _adjacent_visibility_evidence(frame_features, config)
     add(derived["adjacent_hidden"], 0.25, "adjacent_hidden")
     add(
         derived["persistent_pair_contact"],
@@ -1051,10 +1066,22 @@ def _adjacent_visibility_evidence(
     required before hidden, pair, or bbox continuity evidence is propagated.
     """
 
+    if "temporal_unit_key" not in frame_features.columns:
+        raise ValueError(
+            "Hidden adjacency evidence requires temporal_unit_key authority"
+        )
     track_key = _review_track_key(frame_features)
+    unit_key = frame_features["temporal_unit_key"].fillna("").astype(str)
+    blank_unit = unit_key.str.strip().eq("")
+    if blank_unit.any():
+        raise ValueError(
+            "Hidden adjacency evidence has blank temporal_unit_key rows="
+            f"{int(blank_unit.sum())}"
+        )
     ordered = pd.DataFrame(
         {
             "track_key": track_key,
+            "temporal_unit_key": unit_key,
             "frame_index": _numeric(frame_features, "frame_index"),
             "hidden_yes": frame_features["hidden_before_review"].eq("Yes"),
             "pair_contact": _bool_column(
@@ -1066,10 +1093,19 @@ def _adjacent_visibility_evidence(
             "cy": _first_numeric(frame_features, ("cy_n", "cy")),
             "bw": _first_numeric(frame_features, ("bw_n", "bbox_w")),
             "bh": _first_numeric(frame_features, ("bh_n", "bbox_h")),
+            "area": _numeric(frame_features, "area_n"),
+            "aspect_ratio": _numeric(frame_features, "aspect_ratio"),
         },
         index=frame_features.index,
-    ).sort_values(["track_key", "frame_index"], kind="mergesort")
-    groups = ordered.groupby("track_key", dropna=False, sort=False)
+    ).sort_values(
+        ["track_key", "temporal_unit_key", "frame_index"],
+        kind="mergesort",
+    )
+    groups = ordered.groupby(
+        ["track_key", "temporal_unit_key"],
+        dropna=False,
+        sort=False,
+    )
     previous_frame = groups["frame_index"].shift(1)
     next_frame = groups["frame_index"].shift(-1)
     previous_adjacent = previous_frame.sub(ordered["frame_index"]).abs().eq(
@@ -1125,6 +1161,45 @@ def _adjacent_visibility_evidence(
     next_delta = next_delta.where(next_adjacent, 0.0)
     bbox_instability = pd.concat([previous_delta, next_delta], axis=1).max(axis=1)
 
+    def adjacent_shape_change(direction: int) -> tuple[pd.Series, pd.Series]:
+        adjacent = previous_adjacent if direction > 0 else next_adjacent
+        shifted = pd.DataFrame(
+            {
+                "bw": groups["bw"].shift(direction),
+                "bh": groups["bh"].shift(direction),
+                "area": groups["area"].shift(direction),
+                "aspect_ratio": groups["aspect_ratio"].shift(direction),
+            },
+            index=ordered.index,
+        )
+        delta = ordered[["bw", "bh", "area", "aspect_ratio"]].subtract(
+            shifted
+        )
+        shape_complete = delta.notna().all(axis=1) & adjacent
+        area_complete = delta["area"].notna() & adjacent
+        shape_change = (
+            delta["bw"].pow(2)
+            + delta["bh"].pow(2)
+            + delta["area"].pow(2)
+            + delta["aspect_ratio"].div(10.0).pow(2)
+        ).pow(0.5)
+        area_delta = delta["area"].abs()
+        return (
+            shape_change.where(shape_complete, 0.0),
+            area_delta.where(area_complete, 0.0),
+        )
+
+    previous_shape, previous_area = adjacent_shape_change(1)
+    next_shape, next_area = adjacent_shape_change(-1)
+    bbox_shape_change = pd.concat(
+        [previous_shape, next_shape],
+        axis=1,
+    ).max(axis=1)
+    bbox_area_delta = pd.concat(
+        [previous_area, next_area],
+        axis=1,
+    ).max(axis=1)
+
     return pd.DataFrame(
         {
             "adjacent_hidden": adjacent_hidden.reindex(frame_features.index).fillna(False),
@@ -1135,6 +1210,12 @@ def _adjacent_visibility_evidence(
                 frame_features.index
             ).fillna(False),
             "bbox_instability_adjacent": bbox_instability.reindex(
+                frame_features.index
+            ).fillna(0.0),
+            "bbox_shape_change_adjacent": bbox_shape_change.reindex(
+                frame_features.index
+            ).fillna(0.0),
+            "bbox_area_delta_adjacent": bbox_area_delta.reindex(
                 frame_features.index
             ).fillna(0.0),
         },

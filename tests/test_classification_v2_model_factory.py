@@ -55,7 +55,6 @@ GROUP_DIMS = {
     "roi_class_relation": 6,
     "social_relation": 7,
     "pen_boundary_context": 7,
-    "quality_mask": 2,
 }
 
 
@@ -67,7 +66,6 @@ def test_registry_contains_every_required_model_mode() -> None:
         "bbox_xywh_n",
         "bbox_shape_n",
         "pen_boundary_context",
-        "quality_mask",
     )
     assert model_mode_spec(
         "actor_geometry_motion_pen"
@@ -76,7 +74,6 @@ def test_registry_contains_every_required_model_mode() -> None:
         "bbox_shape_n",
         "motion_delta",
         "pen_boundary_context",
-        "quality_mask",
     )
 
 
@@ -166,6 +163,22 @@ def test_masked_modality_values_cannot_change_logits() -> None:
     altered = model(**changed).behavior
 
     torch.testing.assert_close(original, altered)
+
+
+def test_spatial_quality_mask_blocks_extreme_invalid_slot_values() -> None:
+    torch.manual_seed(17)
+    config = _model_config("actor_geometry_motion")
+    model = _build(config).eval()
+    inputs = _inputs(config, batch_size=1)
+    inputs["spatial_quality_mask"][0, 3] = 0.0
+    original = model(**inputs).behavior
+
+    changed = _clone_inputs(inputs)
+    for value in changed["spatial_features"].values():
+        value[0, 3] = 1.0e9
+    altered = model(**changed).behavior
+
+    torch.testing.assert_close(original, altered, atol=1e-6, rtol=0.0)
 
 
 def test_model_runs_when_optional_context_is_fully_missing() -> None:

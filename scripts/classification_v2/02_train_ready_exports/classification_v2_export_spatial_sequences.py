@@ -10,10 +10,11 @@ import pandas as pd
 from pig_behavior.classification_v2.contracts.output_safety import (
     require_output_paths_available,
 )
-from pig_behavior.classification_v2.features.pen_context import (
-    PEN_CONTEXT_MODEL_FEATURE_COLUMNS,
+from pig_behavior.classification_v2.spatial_sequence_export import (
+    DERIVATION_COLUMNS,
+    SPATIAL_FRAME_FEATURES,
+    export_spatial_sequences,
 )
-from pig_behavior.classification_v2.spatial_sequence_export import export_spatial_sequences
 
 
 def parse_args() -> argparse.Namespace:
@@ -75,61 +76,15 @@ def main() -> None:
     needed = {
         "object_track_key",
         "frame_index",
-        "cx_n",
-        "cy_n",
-        "bw_n",
-        "bh_n",
-        "area_n",
-        "aspect_ratio",
-        "delta_cx_n",
-        "delta_cy_n",
-        "delta_bw_n",
-        "delta_bh_n",
-        "delta_area_n",
-        "delta_aspect_ratio",
-        "speed_n_per_frame",
-        "speed_n_per_sec",
-        "abs_accel_n_per_frame2",
-        "abs_direction_change_rad",
-        "roi_feeder_min_dist_n",
-        "roi_feeder_available",
-        "roi_feeder_max_overlap_ratio",
-        "roi_feeder_max_iou",
-        "roi_feeder_center_inside",
-        "roi_feeder_near",
-        "roi_feeder_contact",
-        "roi_drinker_min_dist_n",
-        "roi_drinker_available",
-        "roi_drinker_max_overlap_ratio",
-        "roi_drinker_max_iou",
-        "roi_drinker_center_inside",
-        "roi_drinker_near",
-        "roi_drinker_contact",
-        "roi_toy_min_dist_n",
-        "roi_toy_available",
-        "roi_toy_max_overlap_ratio",
-        "roi_toy_max_iou",
-        "roi_toy_center_inside",
-        "roi_toy_near",
-        "roi_toy_contact",
-        "nearest_dist_n",
         "nearest_pig_id",
         "nearest_track_id",
-        "nearest_pair_iou",
-        "nearest_pair_overlap_ratio",
-        "social_density_near_count",
-        "social_contact_count",
-        "nearest_dist_delta",
-        "approach_speed_n_per_frame",
-        "separation_speed_n_per_frame",
-        "pair_contact_with_nearest",
-        "aggression_score_proxy",
-        "bbox_valid",
-        "actor_bbox_valid",
-        "geometry_feature_valid",
-        "spatiotemporal_feature_valid",
     }
-    needed.update(PEN_CONTEXT_MODEL_FEATURE_COLUMNS)
+    needed.update(DERIVATION_COLUMNS)
+    needed.update(
+        feature
+        for group in SPATIAL_FRAME_FEATURES.values()
+        for feature in group
+    )
     usecols = [c for c in header if c in needed]
     frames = pd.read_csv(args.frame_features_csv, usecols=usecols, low_memory=False)
 

@@ -12,7 +12,7 @@ import pandas as pd
 import torch
 
 from pig_behavior.classification_v2.spatial_sequence_export import (
-    SPATIAL_FRAME_FEATURES,
+    LEGACY_SPATIAL_FRAME_FEATURES,
     SpatialSequenceExport,
     export_spatial_sequences,
 )
@@ -53,7 +53,7 @@ from pig_behavior.classification_v2.training.legacy_development_l6_motion_cache 
 from pig_behavior.classification_v2.training.lineage_hashing import file_sha256
 
 SOCIAL_RELATION_FEATURE_NAMES = tuple(
-    SPATIAL_FRAME_FEATURES["social_relation"]
+    LEGACY_SPATIAL_FRAME_FEATURES["social_relation"]
 )
 SOCIAL_RELATION_DIM = len(SOCIAL_RELATION_FEATURE_NAMES)
 SOCIAL_RELATION_DTYPE = np.dtype(np.float32)
@@ -75,6 +75,7 @@ SOCIAL_FRAME_COLUMNS = (
     "frame_uid",
     "object_track_key",
     "frame_index",
+    "timestamp_sec",
     "source_type",
     "dataset_id",
     "lineage_scope",
@@ -430,6 +431,7 @@ def materialize_social_relation_cache(
         [
             "object_track_key",
             "frame_index",
+            "timestamp_sec",
             "nearest_pig_id",
             "nearest_track_id",
             *SOCIAL_HELPER_FIELDS,
@@ -441,6 +443,7 @@ def materialize_social_relation_cache(
         windows,
         export_frames,
         max_window_length=SEQUENCE_LENGTH,
+        feature_schema=LEGACY_SPATIAL_FRAME_FEATURES,
     )
     _validate_spatial_export(exported)
     social = np.asarray(

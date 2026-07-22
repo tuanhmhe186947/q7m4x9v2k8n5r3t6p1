@@ -24,33 +24,28 @@ from pig_behavior.classification_v2.models.visual_backbones import (
 BASE_GEOMETRY_GROUPS = (
     "bbox_xywh_n",
     "bbox_shape_n",
-    "quality_mask",
 )
 MOTION_GROUPS = (
     "bbox_xywh_n",
     "bbox_shape_n",
     "motion_delta",
-    "quality_mask",
 )
 PEN_CONTEXT_GROUPS = (
     "bbox_xywh_n",
     "bbox_shape_n",
     "pen_boundary_context",
-    "quality_mask",
 )
 PEN_MOTION_GROUPS = (
     "bbox_xywh_n",
     "bbox_shape_n",
     "motion_delta",
     "pen_boundary_context",
-    "quality_mask",
 )
 ROI_GROUPS = (
     "bbox_xywh_n",
     "bbox_shape_n",
     "motion_delta",
     "roi_class_relation",
-    "quality_mask",
 )
 ALL_SPATIAL_GROUPS = (
     "bbox_xywh_n",
@@ -58,7 +53,6 @@ ALL_SPATIAL_GROUPS = (
     "motion_delta",
     "roi_class_relation",
     "social_relation",
-    "quality_mask",
 )
 IMPLEMENTED_BACKBONES = SUPPORTED_VISUAL_BACKBONES
 
