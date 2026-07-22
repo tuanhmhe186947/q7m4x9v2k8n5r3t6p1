@@ -79,6 +79,11 @@ REASON_OPTIONS = [
 ]
 VIDEO_EXTENSIONS = {".mp4", ".avi", ".mov", ".mkv"}
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
+TERMINAL_DECISION_STATUSES = {"reviewed", "resolved", "complete"}
+NONTERMINAL_DECISION_STATUSES = {"unclear", "ambiguous"}
+SUPPORTED_DECISION_STATUSES = (
+    TERMINAL_DECISION_STATUSES | NONTERMINAL_DECISION_STATUSES
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -112,6 +117,17 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=None,
         help="Optional JSON evidence path for the media-resolution gate.",
+    )
+    parser.add_argument(
+        "--validate-worklist-only",
+        action="store_true",
+        help="Audit the exact resume worklist without resolving media or opening Tk.",
+    )
+    parser.add_argument(
+        "--worklist-audit-json",
+        type=Path,
+        default=None,
+        help="Optional deterministic JSON output for the resume-worklist audit.",
     )
     return parser.parse_args()
 
@@ -332,6 +348,7 @@ class HiddenQualityReviewApp:
                 [
                     f"Item {self.index + 1}/{len(self.items)} | "
                     f"completed={len(self.completed_ids)} | stored={len(self.decisions)}",
+                    f"queue_role={_text(row.get('_worklist_role', 'unresolved'))}",
                     f"cohort={row['hidden_review_cohort']} | "
                     f"before={row['hidden_before_review']} | risk={risk}",
                     f"source={row['source_type']} | video={row['video_key']} | "
@@ -443,7 +460,9 @@ class HiddenQualityReviewApp:
         self._show_current()
 
     def _save_and_exit(self) -> None:
-        write_decisions(self.decision_path, self.decisions)
+        # Every explicit decision and undo is persisted immediately. Closing a
+        # session must not rewrite a carried authority that the reviewer did
+        # not change.
         self.reader.close()
         self.root.destroy()
 
@@ -510,26 +529,43 @@ def automatic_decision_metadata(
     return confidence, normalized_reason
 
 
-def load_decisions(path: Path) -> dict[str, dict[str, str]]:
-    """Load resumable decisions and reject duplicate item keys."""
+def load_decision_rows(path: Path) -> pd.DataFrame:
+    """Load raw resumable rows without losing duplicate or invalid evidence."""
     if not path.exists():
-        return {}
-    rows = list(csv.DictReader(path.open("r", encoding="utf-8-sig", newline="")))
-    decisions: dict[str, dict[str, str]] = {}
-    for row in rows:
-        item_id = str(row.get("hidden_review_item_id", "")).strip()
-        if not item_id:
-            raise ValueError("Decision row missing hidden_review_item_id")
-        if item_id in decisions:
-            raise ValueError(f"Duplicate decision item: {item_id}")
-        decisions[item_id] = {column: str(row.get(column, "")) for column in DECISION_COLUMNS}
-    return decisions
+        return pd.DataFrame(columns=DECISION_COLUMNS)
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle)
+        missing = sorted(set(DECISION_COLUMNS).difference(reader.fieldnames or []))
+        if missing:
+            raise ValueError(f"Decision CSV missing columns: {missing}")
+        records = [
+            {column: _text(row.get(column, "")) for column in DECISION_COLUMNS}
+            for row in reader
+        ]
+    return pd.DataFrame(records, columns=DECISION_COLUMNS)
+
+
+def load_decisions(path: Path) -> dict[str, dict[str, str]]:
+    """Load resumable decisions and reject blank or duplicate item keys."""
+    rows = load_decision_rows(path)
+    keys = rows["hidden_review_item_id"].map(_text)
+    if keys.eq("").any():
+        raise ValueError("Decision row missing hidden_review_item_id")
+    duplicate = keys.duplicated(keep=False)
+    if duplicate.any():
+        raise ValueError(
+            f"Duplicate decision item keys: {int(keys.loc[duplicate].nunique())}"
+        )
+    return {
+        key: {column: _text(row[column]) for column in DECISION_COLUMNS}
+        for key, (_, row) in zip(keys, rows.iterrows(), strict=True)
+    }
 
 
 def is_completed_decision(record: dict[str, str]) -> bool:
     """Accept only resolved, semantically coherent records for GUI resume."""
     status = _text(record.get("hidden_review_status", "")).lower()
-    if status not in {"reviewed", "resolved", "complete"}:
+    if status not in TERMINAL_DECISION_STATUSES:
         return False
     try:
         error = hidden_decision_semantic_error(
@@ -557,6 +593,179 @@ def completed_decision_ids(
     }
 
 
+def build_review_worklist(
+    manifest: pd.DataFrame,
+    decision_rows: pd.DataFrame,
+    *,
+    include_reviewed: bool,
+    resume_back: int,
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """Build an exact canonical-key worklist and its fail-closed audit."""
+    if "hidden_review_item_id" not in manifest.columns:
+        raise ValueError("Manifest missing hidden_review_item_id")
+    missing_decision_columns = sorted(
+        set(DECISION_COLUMNS).difference(decision_rows.columns)
+    )
+    if missing_decision_columns:
+        raise ValueError(
+            f"Decision rows missing columns: {missing_decision_columns}"
+        )
+    if resume_back < 0:
+        raise ValueError("--resume-back must be >= 0")
+    if resume_back > len(manifest):
+        raise ValueError("--resume-back cannot exceed the manifest item count")
+    if include_reviewed and resume_back:
+        raise ValueError("--resume-back cannot be combined with --include-reviewed")
+
+    work = manifest.copy().reset_index(drop=True)
+    stored = decision_rows.copy().reset_index(drop=True)
+    manifest_keys = work["hidden_review_item_id"].map(_text)
+    decision_keys = stored["hidden_review_item_id"].map(_text)
+    blank_manifest = manifest_keys.eq("")
+    blank_decisions = decision_keys.eq("")
+    duplicate_manifest = manifest_keys.ne("") & manifest_keys.duplicated(keep=False)
+    duplicate_decisions = decision_keys.ne("") & decision_keys.duplicated(keep=False)
+    duplicate_manifest_keys = int(manifest_keys.loc[duplicate_manifest].nunique())
+    duplicate_decision_keys = int(decision_keys.loc[duplicate_decisions].nunique())
+    manifest_key_set = set(manifest_keys.loc[~blank_manifest])
+    decision_key_set = set(decision_keys.loc[~blank_decisions])
+    unknown_keys = decision_key_set.difference(manifest_key_set)
+
+    errors: list[str] = []
+    if blank_manifest.any():
+        errors.append(f"blank_manifest_keys={int(blank_manifest.sum())}")
+    if blank_decisions.any():
+        errors.append(f"blank_decision_keys={int(blank_decisions.sum())}")
+    if duplicate_manifest_keys:
+        errors.append(f"duplicate_manifest_keys={duplicate_manifest_keys}")
+    if duplicate_decision_keys:
+        errors.append(f"duplicate_decision_keys={duplicate_decision_keys}")
+    if unknown_keys:
+        errors.append(f"unknown_decision_keys={len(unknown_keys)}")
+
+    statuses = stored["hidden_review_status"].map(_text).str.lower()
+    unsupported = ~statuses.isin(SUPPORTED_DECISION_STATUSES)
+    if unsupported.any():
+        errors.append(f"unsupported_decision_status={int(unsupported.sum())}")
+    terminal = statuses.isin(TERMINAL_DECISION_STATUSES)
+    semantic_errors = stored.apply(_stored_decision_semantic_error, axis=1)
+    malformed = semantic_errors.notna()
+    if malformed.any():
+        errors.append(f"malformed_decision_rows={int(malformed.sum())}")
+
+    before_mismatches = pd.Series(False, index=stored.index)
+    if (
+        "hidden_before_review" in work.columns
+        and not blank_manifest.any()
+        and not duplicate_manifest_keys
+        and not duplicate_decision_keys
+    ):
+        manifest_before = pd.Series(
+            work["hidden_before_review"].map(_text).to_numpy(),
+            index=manifest_keys,
+        )
+        expected_before = decision_keys.map(manifest_before)
+        before_mismatches = (
+            decision_keys.isin(manifest_key_set)
+            & stored["hidden_before_review"].map(_text).ne(expected_before)
+        )
+        if before_mismatches.any():
+            errors.append(
+                "hidden_before_review_mismatches="
+                f"{int(before_mismatches.sum())}"
+            )
+
+    valid_rows = (
+        ~blank_decisions
+        & ~duplicate_decisions
+        & decision_keys.isin(manifest_key_set)
+        & ~unsupported
+        & ~malformed
+        & ~before_mismatches
+    )
+    valid_keys = set(decision_keys.loc[valid_rows])
+    resolved_keys = set(decision_keys.loc[valid_rows & terminal])
+    unresolved_mask = ~manifest_keys.isin(resolved_keys)
+    unresolved = work.loc[unresolved_mask].copy()
+    unresolved["_worklist_role"] = "unresolved"
+
+    revisit = work.iloc[0:0].copy()
+    if include_reviewed:
+        revisit = work.loc[~unresolved_mask].copy()
+        unresolved = work.loc[unresolved_mask].copy()
+        revisit["_worklist_role"] = "revisit"
+        unresolved["_worklist_role"] = "unresolved"
+    elif resume_back:
+        unresolved_positions = [
+            position
+            for position, is_unresolved in enumerate(unresolved_mask)
+            if is_unresolved
+        ]
+        cutoff = unresolved_positions[0] if unresolved_positions else len(work)
+        prior_resolved = work.iloc[:cutoff].loc[
+            manifest_keys.iloc[:cutoff].isin(resolved_keys)
+        ]
+        revisit = prior_resolved.tail(resume_back).copy()
+        revisit["_worklist_role"] = "revisit"
+
+    if include_reviewed:
+        worklist = work.copy()
+        worklist["_worklist_role"] = "unresolved"
+        worklist.loc[
+            manifest_keys.isin(resolved_keys),
+            "_worklist_role",
+        ] = "revisit"
+    else:
+        worklist = pd.concat([revisit, unresolved], ignore_index=True)
+    worklist = worklist.drop_duplicates("hidden_review_item_id", keep="first")
+    audit = {
+        "schema_version": "classification_v2.hidden_gui_worklist.v1",
+        "manifest_items": int(len(work)),
+        "input_decision_rows": int(len(stored)),
+        "stored_decision_rows": int(valid_rows.sum()),
+        "covered_items": int(len(valid_keys)),
+        "resolved_items": int(len(resolved_keys)),
+        "unresolved_items": int(unresolved_mask.sum()),
+        "resume_back_requested": int(resume_back),
+        "revisit_items": int(len(revisit)),
+        "worklist_items": int(len(worklist)),
+        "duplicate_manifest_keys": duplicate_manifest_keys,
+        "duplicate_decision_keys": duplicate_decision_keys,
+        "unknown_decision_keys": int(len(unknown_keys)),
+        "blank_manifest_keys": int(blank_manifest.sum()),
+        "blank_decision_keys": int(blank_decisions.sum()),
+        "unsupported_decision_status_rows": int(unsupported.sum()),
+        "malformed_decision_rows": int(malformed.sum()),
+        "hidden_before_review_mismatches": int(before_mismatches.sum()),
+        "worklist_item_ids": worklist["hidden_review_item_id"].map(_text).tolist(),
+        "errors": errors,
+    }
+    return worklist, audit
+
+
+def _stored_decision_semantic_error(row: pd.Series) -> str | None:
+    status = _text(row.get("hidden_review_status", "")).lower()
+    if status not in SUPPORTED_DECISION_STATUSES:
+        return None
+    normalized_status = {
+        "complete": "reviewed",
+        "resolved": "reviewed",
+        "ambiguous": "unclear",
+    }.get(status, status)
+    hidden_after = _text(row.get("hidden_after_review", ""))
+    if normalized_status == "reviewed" and hidden_after.lower() not in {"yes", "no"}:
+        return "terminal_decision_missing_hidden_value"
+    error = hidden_decision_semantic_error(
+        hidden_after=hidden_after,
+        review_status=normalized_status,
+        reason=row.get("hidden_review_reason", ""),
+    )
+    return error or hidden_confidence_semantic_error(
+        confidence=row.get("hidden_review_confidence", ""),
+        review_status=normalized_status,
+    )
+
+
 def select_review_items(
     manifest: pd.DataFrame,
     decisions: dict[str, dict[str, str]],
@@ -564,28 +773,20 @@ def select_review_items(
     include_reviewed: bool,
     resume_back: int,
 ) -> pd.DataFrame:
-    """Select pending review items with an optional bounded look-back window."""
-
-    if resume_back < 0:
-        raise ValueError("--resume-back must be >= 0")
-    if include_reviewed and resume_back:
-        raise ValueError("--resume-back cannot be combined with --include-reviewed")
-    if include_reviewed:
-        return manifest.copy()
-
-    completed_ids = completed_decision_ids(decisions)
-    item_ids = manifest["hidden_review_item_id"].astype(str)
-    completed = item_ids.isin(completed_ids)
-    pending_positions = completed[~completed].index
-    resume_position = (
-        int(manifest.index.get_loc(pending_positions[0]))
-        if len(pending_positions)
-        else len(manifest)
+    """Compatibility wrapper around the audited canonical-key worklist."""
+    decision_rows = pd.DataFrame(list(decisions.values()))
+    for column in DECISION_COLUMNS:
+        if column not in decision_rows.columns:
+            decision_rows[column] = ""
+    items, audit = build_review_worklist(
+        manifest,
+        decision_rows[DECISION_COLUMNS],
+        include_reviewed=include_reviewed,
+        resume_back=resume_back,
     )
-    if resume_back > len(manifest):
-        raise ValueError("--resume-back cannot exceed the manifest item count")
-    start_position = max(0, resume_position - resume_back)
-    return manifest.iloc[start_position:].copy()
+    if audit["errors"]:
+        raise ValueError(f"Invalid Hidden review worklist: {audit['errors']}")
+    return items
 
 
 def decision_error_message(error_code: str) -> str:
@@ -942,6 +1143,23 @@ def main() -> None:
         args.manifest_csv,
         args.frame_features_csv,
     )
+    decision_path = args.output_dir / DECISION_FILENAME
+    decision_rows = load_decision_rows(decision_path)
+    items, worklist_audit = build_review_worklist(
+        manifest,
+        decision_rows,
+        include_reviewed=args.include_reviewed,
+        resume_back=args.resume_back,
+    )
+    print(json.dumps(worklist_audit, ensure_ascii=False, indent=2))
+    if args.worklist_audit_json is not None:
+        _write_json_atomic(args.worklist_audit_json, worklist_audit)
+    if worklist_audit["errors"]:
+        raise SystemExit(f"FAIL: {worklist_audit['errors']}")
+    if args.validate_worklist_only:
+        print("PASS: Hidden GUI worklist is valid and deterministic.")
+        return
+
     video_index = build_video_index(args.video_root)
     resolution = validate_media_resolution(manifest, video_index, args.crop_root)
     print(resolution)
@@ -960,20 +1178,13 @@ def main() -> None:
         print("PASS: all Hidden review media can be resolved.")
         return
 
-    decision_path = args.output_dir / DECISION_FILENAME
     decisions = load_decisions(decision_path)
-    items = select_review_items(
-        manifest,
-        decisions,
-        include_reviewed=args.include_reviewed,
-        resume_back=args.resume_back,
-    )
     if args.max_items is not None:
         if args.max_items <= 0:
             raise ValueError("--max-items must be > 0")
         items = items.head(args.max_items).copy()
     if items.empty:
-        print("No pending Hidden review items.")
+        print("Hidden review complete: no unresolved worklist items.")
         return
 
     root = tk.Tk()
