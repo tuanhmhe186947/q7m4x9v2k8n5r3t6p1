@@ -522,7 +522,7 @@ def test_hidden_review_identifier_migration_cli_hashes_outputs(
         assert audit[field] == hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def test_hidden_review_redesign_rejects_lost_human_decision() -> None:
+def test_hidden_review_redesign_records_old_only_decision_without_carry() -> None:
     _, previous = _build_review()
     decisions = _resolved_decisions(previous).head(2).copy()
     lost_id = decisions.iloc[0]["hidden_review_item_id"]
@@ -536,12 +536,12 @@ def test_hidden_review_redesign_rejects_lost_human_decision() -> None:
         decisions,
     )
 
-    assert audit["valid"] is False
+    assert audit["valid"] is True
     assert audit["missing_current_decision_items"] == 1
-    assert any(
-        "human_decision_items_missing_from_current_manifest" in error
-        for error in audit["errors"]
-    )
+    assert audit["old_only_items"] == 1
+    assert audit["old_only_decision_items"] == 1
+    assert audit["carried_decision_items"] == 1
+    assert audit["errors"] == []
 
 
 def test_hidden_review_identifier_migration_rejects_unknown_decision() -> None:

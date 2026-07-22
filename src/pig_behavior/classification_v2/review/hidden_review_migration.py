@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Any
 
 import pandas as pd
@@ -23,7 +25,7 @@ HIDDEN_REVIEW_MIGRATION_VERSION = (
     "classification_v2.hidden_review_identifier_migration.v1"
 )
 HIDDEN_REVIEW_REDESIGN_CARRY_VERSION = (
-    "classification_v2.hidden_review_redesign_carry.v1"
+    "classification_v2.hidden_review_redesign_carry.v2"
 )
 HUMAN_PAYLOAD_COLUMNS = (
     "hidden_before_review",
@@ -59,6 +61,35 @@ REDESIGN_OPTIONAL_INVARIANT_COLUMNS = (
     "object_track_key",
     "track_id",
     "object_id_in_image",
+)
+REDESIGN_IDENTITY_COLUMNS = (
+    "source_type",
+    "dataset_id",
+    "video_key",
+    "source_video_key",
+    "clip_id",
+    "task_id",
+    "scene_frame_uid",
+    "frame_uid",
+    "object_id_in_image",
+    "pig_id",
+    "track_id",
+    "object_track_key",
+)
+REDESIGN_SPAN_COLUMNS = (
+    "frame_index",
+    "source_frame_index",
+    "relative_frame_index",
+)
+REDESIGN_MEDIA_COLUMNS = (
+    "image_key",
+    "image_name",
+    "source_video_path",
+    "crop_path",
+    "x1",
+    "y1",
+    "x2",
+    "y2",
 )
 
 
@@ -250,22 +281,23 @@ def carry_forward_hidden_review_decisions(
     previous_ids = set(previous["_clean_item_id"])
     current_ids = set(current["_clean_item_id"])
     decision_ids = set(decision_rows["_clean_item_id"])
-    unknown_previous = decision_ids.difference(previous_ids)
-    missing_current = decision_ids.difference(current_ids)
+    exact_common = previous_ids & current_ids
+    old_only = previous_ids - current_ids
+    new_only = current_ids - previous_ids
+    unknown_previous = decision_ids - previous_ids
+    old_only_decisions = decision_ids & old_only
     if unknown_previous:
         errors.append(
             "decision_items_missing_from_previous_manifest="
             f"{len(unknown_previous)}"
         )
-    if missing_current:
-        errors.append(
-            "human_decision_items_missing_from_current_manifest="
-            f"{len(missing_current)}"
-        )
 
     previous_lookup = previous.set_index("_clean_item_id")
     current_lookup = current.set_index("_clean_item_id")
-    carried = decision_rows.copy()
+    common_decision_rows = decision_rows.loc[
+        decision_rows["_clean_item_id"].isin(exact_common)
+    ].copy()
+    carried = common_decision_rows.copy()
     carried.insert(
         0,
         "previous_hidden_review_item_id",
@@ -304,37 +336,58 @@ def carry_forward_hidden_review_decisions(
             "optional_redesign_invariants_present_on_one_side="
             + ",".join(one_sided_optional)
         )
-    compared_invariant_columns = [
-        *REDESIGN_REQUIRED_INVARIANT_COLUMNS,
-        *[
-            column
-            for column in REDESIGN_OPTIONAL_INVARIANT_COLUMNS
-            if optional_invariant_presence[column]["compared"]
-        ],
-    ]
+    compared_invariant_columns = _common_columns(
+        previous,
+        current,
+        (
+            *REDESIGN_REQUIRED_INVARIANT_COLUMNS,
+            *REDESIGN_OPTIONAL_INVARIANT_COLUMNS,
+        ),
+    )
     context_changes: dict[str, int] = {}
-    common_decisions = decision_rows.loc[
-        decision_rows["_clean_item_id"].isin(previous_ids & current_ids)
-    ]
+    common_ids = pd.Series(sorted(exact_common), dtype=object)
     for column in compared_invariant_columns:
-        ids = common_decisions["_clean_item_id"]
-        left = ids.map(previous_lookup[column])
-        right = ids.map(current_lookup[column])
-        if column == "frame_index":
-            left = pd.to_numeric(left, errors="coerce")
-            right = pd.to_numeric(right, errors="coerce")
-        else:
-            left = _clean(left)
-            right = _clean(right)
+        left, right = _comparable_values(
+            common_ids,
+            previous_lookup,
+            current_lookup,
+            column,
+        )
         changed = int(left.ne(right).sum())
         if changed:
             context_changes[column] = changed
             errors.append(f"redesign_context_changed:{column}={changed}")
 
-    current_before = decision_rows["_clean_item_id"].map(
+    identity_mismatches = _partition_mismatch_count(
+        common_ids,
+        previous_lookup,
+        current_lookup,
+        REDESIGN_IDENTITY_COLUMNS,
+    )
+    span_mismatches = _partition_mismatch_count(
+        common_ids,
+        previous_lookup,
+        current_lookup,
+        REDESIGN_SPAN_COLUMNS,
+    )
+    media_mismatches = _partition_mismatch_count(
+        common_ids,
+        previous_lookup,
+        current_lookup,
+        REDESIGN_MEDIA_COLUMNS,
+    )
+    for name, count in (
+        ("identity_mismatches", identity_mismatches),
+        ("span_mismatches", span_mismatches),
+        ("media_mismatches", media_mismatches),
+    ):
+        if count:
+            errors.append(f"{name}={count}")
+
+    current_before = common_decision_rows["_clean_item_id"].map(
         current_lookup["hidden_before_review"]
     )
-    decision_before = _clean(decision_rows["hidden_before_review"])
+    decision_before = _clean(common_decision_rows["hidden_before_review"])
     before_mismatch = decision_before.ne(_clean(current_before))
     before_mismatch &= current_before.notna()
     if before_mismatch.any():
@@ -343,27 +396,49 @@ def carry_forward_hidden_review_decisions(
             f"{int(before_mismatch.sum())}"
         )
 
-    payload_changes = _human_payload_change_count(decision_rows, carried)
+    payload_changes = _human_payload_change_count(
+        common_decision_rows,
+        carried,
+    )
     if payload_changes:
         errors.append(f"human_payload_changed_rows={payload_changes}")
     carried = carried.drop(columns=["_clean_item_id"])
     audit = {
         "schema_version": HIDDEN_REVIEW_REDESIGN_CARRY_VERSION,
+        "previous_manifest_items": int(len(previous_ids)),
+        "current_manifest_items": int(len(current_ids)),
+        "exact_common_items": int(len(exact_common)),
+        "carried_decision_items": int(len(carried)),
+        "old_only_items": int(len(old_only)),
+        "old_only_decision_items": int(len(old_only_decisions)),
+        "new_only_items": int(len(new_only)),
+        "unknown_decision_items": int(len(unknown_previous)),
+        "identity_mismatches": identity_mismatches,
+        "span_mismatches": span_mismatches,
+        "media_mismatches": media_mismatches,
+        "positional_matches": 0,
         "previous_manifest_rows": int(len(previous)),
         "current_manifest_rows": int(len(current)),
-        "shared_manifest_items": int(len(previous_ids & current_ids)),
+        "shared_manifest_items": int(len(exact_common)),
         "decision_rows_before": int(len(decision_rows)),
         "decision_rows_after": int(len(carried)),
-        "carried_decision_rows": int(
-            decision_rows["_clean_item_id"].isin(current_ids).sum()
-        ),
+        "carried_decision_rows": int(len(carried)),
         "resolved_decision_rows": int(
             _clean(decision_rows["hidden_review_status"])
             .eq("reviewed")
             .sum()
         ),
-        "missing_current_decision_items": int(len(missing_current)),
+        "missing_current_decision_items": int(len(old_only_decisions)),
         "unknown_previous_decision_items": int(len(unknown_previous)),
+        "exact_common_item_ids": sorted(exact_common),
+        "old_only_item_ids": sorted(old_only),
+        "old_only_decision_item_ids": sorted(old_only_decisions),
+        "old_only_decision_payload_sha256": _decision_payload_sha256(
+            decision_rows.loc[
+                decision_rows["_clean_item_id"].isin(old_only_decisions)
+            ]
+        ),
+        "new_only_item_ids": sorted(new_only),
         "compared_invariant_columns": compared_invariant_columns,
         "optional_invariant_presence": optional_invariant_presence,
         "context_changed_counts": context_changes,
@@ -381,6 +456,90 @@ def carry_forward_hidden_review_decisions(
         "valid": not errors,
     }
     return carried, audit
+
+
+def _common_columns(
+    previous: pd.DataFrame,
+    current: pd.DataFrame,
+    candidates: tuple[str, ...],
+) -> list[str]:
+    return [
+        column
+        for column in candidates
+        if column in previous.columns and column in current.columns
+    ]
+
+
+def _comparable_values(
+    item_ids: pd.Series,
+    previous_lookup: pd.DataFrame,
+    current_lookup: pd.DataFrame,
+    column: str,
+) -> tuple[pd.Series, pd.Series]:
+    left = item_ids.map(previous_lookup[column])
+    right = item_ids.map(current_lookup[column])
+    if column in {
+        "frame_index",
+        "source_frame_index",
+        "relative_frame_index",
+        "x1",
+        "y1",
+        "x2",
+        "y2",
+    }:
+        return (
+            pd.to_numeric(left, errors="coerce"),
+            pd.to_numeric(right, errors="coerce"),
+        )
+    return _clean(left), _clean(right)
+
+
+def _partition_mismatch_count(
+    item_ids: pd.Series,
+    previous_lookup: pd.DataFrame,
+    current_lookup: pd.DataFrame,
+    candidates: tuple[str, ...],
+) -> int:
+    mismatched = pd.Series(False, index=item_ids.index)
+    for column in _common_columns(
+        previous_lookup,
+        current_lookup,
+        candidates,
+    ):
+        left, right = _comparable_values(
+            item_ids,
+            previous_lookup,
+            current_lookup,
+            column,
+        )
+        both_missing = left.isna() & right.isna()
+        mismatched |= left.ne(right) & ~both_missing
+    return int(mismatched.sum())
+
+
+def _decision_payload_sha256(decisions: pd.DataFrame) -> str:
+    columns = [
+        "_clean_item_id",
+        *[
+            column
+            for column in HUMAN_PAYLOAD_COLUMNS
+            if column in decisions.columns
+        ],
+    ]
+    records = (
+        decisions.loc[:, columns]
+        .fillna("")
+        .astype(str)
+        .sort_values("_clean_item_id", kind="mergesort")
+        .to_dict("records")
+    )
+    encoded = json.dumps(
+        records,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def _build_mapping(

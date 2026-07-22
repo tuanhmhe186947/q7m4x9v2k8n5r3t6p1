@@ -3,10 +3,10 @@
 ## Current authority and stop state (2026-07-22)
 
 This section is the current operational authority. If an older section below
-conflicts with it, this section wins. Full production integration invalidated
-code authority `61defadb61e41512d98b111031ea5459e44d3b8f` because its
-`FRAME_LOCAL_PRIMITIVES` omitted structural `temporal_unit_key`. Never copy a
-stale SHA from this prose; v5 must bind the new clean patched HEAD.
+conflicts with it, this section wins. Code authority
+`198767700833b8e00f79a5c69382e186bc06d799` is stopped because the production
+Hidden carry-forward dry-run treated 13 expected old-only decisions as fatal.
+Never copy a stale SHA from this prose; v6 must bind the new clean patched HEAD.
 
 Lineage `c2v2_human_review_20260721_reviewer01_v3` is frozen with all of these
 statuses:
@@ -28,17 +28,16 @@ classified as `FAILED_DIAGNOSTIC_PRE_MOTION_FIX`, `NOT_REUSABLE`, and
 `NOT_REVIEW_EVIDENCE`. Inventory it by path, size, modification time, and hash,
 but never resume or promote it.
 
-Lineage `c2v2_human_review_20260722_reviewer01_v4` is stopped before Hidden with
-reason `FRAME_LOCAL_PRIMITIVES_MISSING_TEMPORAL_UNIT_KEY`. It is not resumable
-after the schema/semantic patch. Do not overwrite, repair in place, or reuse
-its frame-local artifact. The next candidate lineage is
-`c2v2_human_review_20260722_reviewer01_v5`, created only after a new code SHA
-passes the production frame-local to Hidden integration gate.
+Lineage `c2v2_human_review_20260722_reviewer01_v5` is stopped at the Hidden
+carry-forward dry-run. It is not resumable after this carry-contract patch.
+Do not overwrite, repair, resume, or promote it. The next candidate lineage is
+`c2v2_human_review_20260722_reviewer01_v6`, created only after the new clean
+code SHA passes the production 5,240-to-5,233 carry-forward integration gate.
 
 Current decision flags are:
 
-- `READY_TO_CREATE_V5_LINEAGE=YES`
-- `READY_FOR_HIDDEN_V5=YES`
+- `READY_TO_CREATE_V6_LINEAGE=YES`
+- `READY_FOR_HIDDEN_V6=YES`
 - `READY_FOR_BEHAVIOR_GUI=NO`
 - `READY_FOR_FULL_T6_T8_T12_T16_BUILD=NO`
 - `READY_FOR_TRAINING=NO`
@@ -47,18 +46,19 @@ Current decision flags are:
 
 The bounded gate is implemented by
 `classification_v2_run_pre_behavior_review_smoke.py`. The old smoke hash did
-not exercise the raw frame-local to Hidden boundary and is not v5 authority.
+not exercise the corrected production carry-forward boundary and is not v6
+authority.
 The patched representative smoke must remove any inherited key before the
 builder, derive it again, pass `hidden_structure_audit.json`, and repeat
 deterministically. Its scope remains `representative_smoke_only` and never
 authorizes behavior GUI.
 
-Every subsection explicitly marked `Historical` or `cấm chạy cho v5` is
+Every subsection explicitly marked `Historical` or `cấm chạy cho v6` is
 non-executable evidence even when it still contains a fenced command block.
 
-## Required v5 execution order
+## Required v6 execution order
 
-After a new code authority exists, execute v5 in this exact order:
+After a new code authority exists, execute v6 in this exact order:
 
 1. Rebuild source/frame-local geometry, ROI, social/partner, pen primitives,
    and structural `temporal_unit_key` from immutable source authority. The key
@@ -92,13 +92,23 @@ automatically. Behavior review cannot begin until Hidden is complete on the
 fixed manifest, and training cannot begin until behavior review and final-view
 recompute are complete.
 
-The 2026-07-22 fixed-code read-only comparison currently records 5,240 old v1
-items and 5,233 rebuilt items. There are 5,227 exact common review keys, 13
-old-only keys, and 6 new-only keys. All 5,227 common keys have identical
-identity, span, and visual-media authority, so their visual decisions are
-carry-forward candidates. The 6 new-only items require human Hidden review in
-v5. Risk/stratum/priority rationale changes remain audit evidence and scientific
-support must be recomputed on the new manifest.
+The 2026-07-22 fixed-code read-only comparison records 5,240 old v1 items and
+5,233 rebuilt items. There are 5,227 exact-common review keys, 13 old-only
+keys, and 6 new-only keys. All 5,227 common keys have identical identity, span,
+and visual-media authority, so exactly 5,227 decisions are carried. The 13
+old-only decisions are nonfatal audit evidence and must never be written to the
+current decision CSV. The 6 new-only items remain undecided for human Hidden
+review in v6. Risk/stratum/priority rationale changes remain audit evidence and
+scientific support must be recomputed on the new manifest.
+
+Every dry-run and apply audit must contain these explicit fields:
+`previous_manifest_items`, `current_manifest_items`, `exact_common_items`,
+`carried_decision_items`, `old_only_items`, `old_only_decision_items`,
+`new_only_items`, `unknown_decision_items`, `identity_mismatches`,
+`span_mismatches`, `media_mismatches`, `positional_matches`, and `errors`.
+Dry-run exits zero only when the fixed partition is 5,227/13/6 with zero
+unknown decisions, mismatches, positional matches, and errors. Apply publishes
+the 5,227-row current decision CSV last; any failure must leave it unpromoted.
 
 Hidden selection no longer consumes external pair/motion columns. It derives
 adjacent visibility geometry directly from frame-local bbox primitives and
@@ -566,7 +576,7 @@ lineage mới; không tái dùng thư mục của một cấu hình khác.
 cd /d C:\Users\ironh\Downloads\PIG_Behavior_Project
 set PYTHONPATH=%CD%\src
 set PY=C:\Users\ironh\anaconda3\envs\pig_project\python.exe
-set RUN_ID=c2v2_human_review_20260722_reviewer01_v5
+set RUN_ID=c2v2_human_review_20260722_reviewer01_v6
 set REVIEWER_NAME=reviewer01
 set CODE_AUTHORITY_SHA=replace_with_clean_git_head
 set UROOT=human_review_workspace\classification_v2\%RUN_ID%
@@ -595,7 +605,7 @@ set L16P10=%L16RUN%\08_audits\legacy_16f_rebuild_completion_audit.json
 `%UROOT%` intentionally stops at `%RFRAME%`. Do not declare reviewed sequence,
 fold, train-ready, cache, snapshot, or model output below the human root.
 
-Không bắt đầu rebuild chỉ vì đã có tài liệu này. Chỉ tạo v5 và chạy Hidden v5
+Không bắt đầu rebuild chỉ vì đã có tài liệu này. Chỉ tạo v6 và chạy Hidden v6
 sau khi patch có SHA mới và integration gate PASS; chưa cho phép behavior GUI.
 Trước lệnh đầu tiên, operator
 chạy `git rev-parse HEAD`, điền kết quả vào `CODE_AUTHORITY_SHA` và xác nhận
@@ -1134,9 +1144,9 @@ Gate full mixed merge:
 - invalid bbox, unknown label và row count đều được ghi, không bị xóa;
 - không dùng `--require-full-8-for-eval`.
 
-## 8. Tạo `FRAME_LOCAL_PRIMITIVES` cho v5
+## 8. Tạo `FRAME_LOCAL_PRIMITIVES` cho v6
 
-V5 phải tách frame-local khỏi native pair evidence. Frame-local chứa context,
+V6 phải tách frame-local khỏi native pair evidence. Frame-local chứa context,
 geometry, all-ROI, same-frame partner/social geometry, pen distance, media,
 Hidden provenance, source-frame index, canonical timestamp và structural
 `temporal_unit_key`. Key này phải được suy deterministic từ source/video/actor,
@@ -1181,7 +1191,7 @@ Không dùng `--overwrite` trong lần build authority đầu tiên. Nếu outpu
 tại, dừng và audit lineage thay vì resume âm thầm. Enhanced artifact cũ chứa
 pair-derived columns, không được đổi tên thành frame-local hoặc đưa vào Hidden.
 
-### 8.1. Historical combined feature smoke — không chạy cho v5
+### 8.1. Historical combined feature smoke — không chạy cho v6
 
 ```bat
 set FSM=%SM%\frame_features
@@ -1213,7 +1223,7 @@ cắt giữa CVAT interval hoặc legacy burst. PASS khi row count giữ nguyên
 bước, audit không có error, bbox/all-ROI columns tồn tại và source vẫn đủ.
 Warning về thiếu context phải được đếm, không được thay bằng drop.
 
-### 8.2. Historical combined full chain — không chạy cho v5
+### 8.2. Historical combined full chain — không chạy cho v6
 
 ```bat
 %PY% %S0%\classification_v2_apply_context_policy.py ^
@@ -1239,7 +1249,7 @@ Warning về thiếu context phải được đếm, không được thay bằng
 ```
 
 Khối lệnh này chỉ giữ làm historical diagnostic. Enhanced output chứa cả pair
-features, không phải frame-local authority và không được đưa vào Hidden v5.
+features, không phải frame-local authority và không được đưa vào Hidden v6.
 
 Enhanced mặc định thêm `pen_context` từ mask calibration cố định. Audit phải
 khớp SHA-256 và kích thước frame; mask được threshold ở 127 rồi chỉ resize bằng
@@ -1259,9 +1269,9 @@ resolution, loss, sampler hay temporal encoder. Cặp
 `actor_geometry -> actor_geometry_pen` chỉ là diagnostic, không đủ làm bằng
 chứng promotion vì candidate có thêm tín hiệu chuyển động theo biên.
 
-### 8.3. Historical complete-unit smoke — không chạy cho v5
+### 8.3. Historical complete-unit smoke — không chạy cho v6
 
-Khối này phụ thuộc combined enhanced artifact cũ và không phải v5 authority:
+Khối này phụ thuộc combined enhanced artifact cũ và không phải v6 authority:
 
 ```bat
 set SSCOPE=%SM%\complete_unit_scope
@@ -1322,7 +1332,7 @@ absolute frame-index delta phải bằng 1. Sorted sparse CVAT rows không tự 
 được coi là adjacent. Persistent pair contact/overlap và bbox instability cũng
 chỉ được cộng khi cặp frame này hợp lệ; toàn bộ logic vẫn độc lập behavior.
 
-### 8A.1. Historical combined-input smoke — không chạy cho v5
+### 8A.1. Historical combined-input smoke — không chạy cho v6
 
 ```bat
 set HSM=%SM%\hidden_review
@@ -1414,7 +1424,7 @@ fake decision để ép smoke hoặc full review PASS.
   --audit-json %HSM%\check_apply_hidden_review_output.json
 ```
 
-### 8A.2. V5 full manifest và human review
+### 8A.2. V6 full manifest và human review
 
 Chỉ chạy khi `%FRAMELOCAL%` đã qua frame-local schema gate. Cap high-risk kiểm
 soát workload nhưng audit vẫn ghi toàn bộ population và số chưa được chọn.
@@ -1434,7 +1444,7 @@ soát workload nhưng audit vẫn ghi toàn bộ population và số chưa đư�
   --audit-json %HREV%\hidden_review_coverage_audit.json
 ```
 
-V5 phải rebuild manifest bằng code authority mới và lấy support từ audit.
+V6 phải rebuild manifest bằng code authority mới và lấy support từ audit.
 Fixed comparison hiện có: old `5,240`, rebuilt `5,233`, exact intersection
 `5,227`, old-only `13`, new-only `6`. Chỉ 5.227 exact identities có cùng span
 và media authority được carry-forward; 13 old-only giữ audit-only, còn 6
@@ -1469,7 +1479,7 @@ root mới phải chưa có decision CSV.
 if not defined OLD_HIDDEN_MANIFEST exit /b 2
 if not defined OLD_HIDDEN_DECISIONS exit /b 2
 if exist "%HDEC%\hidden_review_decisions.csv" ^
-  (echo ERROR: v5 Hidden decision file already exists & exit /b 2)
+  (echo ERROR: v6 Hidden decision file already exists & exit /b 2)
 %PY% %S1%\classification_v2_carry_forward_hidden_review_decisions.py ^
   --previous-manifest-csv "%OLD_HIDDEN_MANIFEST%" ^
   --current-manifest-csv %HREV%\hidden_review_unit_manifest.csv ^
@@ -1598,7 +1608,7 @@ Temporal harmonization chỉ bắt đầu từ Hidden-reviewed frame-local autho
 Trước behavior review, tuyệt đối không build full T6/T8/T12/T16/S6@16 corpus.
 Sau harmonization, recompute pair evidence trong từng `temporal_unit_key`.
 
-### 9.0. Active v5 native-evidence chain
+### 9.0. Active v6 native-evidence chain
 
 ```bat
 %PY% %S0%\classification_v2_build_temporal_harmonization.py ^
@@ -1618,7 +1628,7 @@ Frame đầu mỗi native unit phải có pair validity false và zero inherited
 motion/ROI/social/pen transition. Grain phải là
 `NATIVE_UNIT_REVIEW_EVIDENCE`; pair scope phải là `temporal_unit_key`.
 
-### 9.1. Historical pre-review window smoke — cấm chạy cho v5
+### 9.1. Historical pre-review window smoke — cấm chạy cho v6
 
 ```bat
 set TSM=%SM%\sequence_unreviewed
@@ -1644,7 +1654,7 @@ tái dùng window canonical cũ. Không dùng `--exclude-mixed-windows`. Mixed v
 transition phải còn trong manifest nhưng `window_valid_for_main_train` phản ánh
 eligibility.
 
-### 9.2. Historical pre-review full windows — cấm chạy cho v5
+### 9.2. Historical pre-review full windows — cấm chạy cho v6
 
 ```bat
 %PY% %S0%\classification_v2_build_temporal_harmonization.py ^
@@ -1738,11 +1748,11 @@ Behavior not-selected và clean control không phải human-verified clean.
 ### 10.0. Pig-STRENet review evidence
 
 Build causal evidence after native-unit recomputation and before review-unit
-selection. V5 input is `%SEQ0%\native_review_evidence.csv`. Every temporal unit
+selection. V6 input is `%SEQ0%\native_review_evidence.csv`. Every temporal unit
 must match exactly; missing or extra evidence keys fail closed. Transition
 evidence is zero unless history and target are both complete. The `%PIGSM%`
-smoke commands immediately below are historical and must not be run for v5;
-the active v5 command starts at `%PIGREV%`.
+smoke commands immediately below are historical and must not be run for v6;
+the active v6 command starts at `%PIGREV%`.
 
 ~~~bat
 set PIGSM=%TSM%\pig_strenet_review_evidence
@@ -1774,7 +1784,7 @@ evidence uses source-video scene frames. Static background.png or Image #1 is
 never accepted as temporal scene evidence. Pair labels are ignored by the
 review bridge, and all emitted review_pig fields remain forbidden from model-X.
 
-### 10.1. Historical window-based builder smoke — không chạy cho v5
+### 10.1. Historical window-based builder smoke — không chạy cho v6
 
 ```bat
 %PY% %S1%\classification_v2_build_review_units.py ^
@@ -1856,7 +1866,7 @@ Smoke design chỉ kiểm tra contract; nó luôn non-authorizing.
 
 Ba file `%SEQ0%\timestamp_fps_contract.json`, `%REV%\evidence_semantics.json`
 và `%REV%\behavior_review_media_authority.json` phải được build và independently
-check trong chính v5. Không copy artifact từ representative smoke.
+check trong chính v6. Không copy artifact từ representative smoke.
 
 ```bat
 %PY% %S0%\classification_v2_write_timestamp_fps_contract.py ^
@@ -1907,7 +1917,7 @@ if not defined CODE_AUTHORITY_SHA exit /b 2
 %PY% %S1%\classification_v2_build_review_authority_manifest.py ^
   --code-authority-sha %CODE_AUTHORITY_SHA% ^
   --lineage-id %RUN_ID% ^
-  --authority-scope official_v5_pre_behavior_review ^
+  --authority-scope official_v6_pre_behavior_review ^
   --source-artifact merged_source=%SRC%\merged_frame_objects_lineage.json ^
   --frame-local-csv %FRAMELOCAL% ^
   --hidden-reviewed-frame-csv %HREV%\hidden_reviewed_frame_features.csv ^
@@ -2469,7 +2479,7 @@ sau này, phải có confidence/mask và một ablation riêng.
 ### 15.6. Provisional primary và source-shortcut controls — post-review only
 
 Section 13 là authority tạo exact-view features. Legacy packet builder dưới đây
-chỉ giữ làm Group-B compatibility reference; không chạy cho v5 cho tới khi nó
+chỉ giữ làm Group-B compatibility reference; không chạy cho v6 cho tới khi nó
 đọc per-view outputs mà không resample, reuse aggregate hoặc đổi view identity:
 
 ```bat

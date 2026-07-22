@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import uuid
 from pathlib import Path
 
 import pandas as pd
@@ -27,7 +28,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Validate identity/hash/decision coverage without writing outputs.",
+        help=(
+            "Validate identity/hash/decision coverage, write only the audit "
+            "JSON, and never write the decision CSV."
+        ),
     )
     parser.add_argument(
         "--apply",
@@ -90,27 +94,67 @@ def main() -> None:
     if args.dry_run:
         audit["dry_run"] = True
         audit["output_written"] = False
+        _write_json_atomic(args.audit_json, audit)
         print(
-            "[PASS] Hidden carry-forward dry-run; no outputs written: "
+            "[PASS] Hidden carry-forward dry-run; no decision CSV written: "
             f"rows={len(carried)}"
         )
         return
     audit["apply_confirmed"] = True
-    _write_csv_atomic(args.output_decisions_csv, carried)
-    audit["output_decisions_sha256"] = _sha256(args.output_decisions_csv)
+    csv_payload = carried.to_csv(index=False).encode("utf-8")
+    audit["output_decisions_sha256"] = hashlib.sha256(
+        csv_payload
+    ).hexdigest()
     audit["output_written"] = True
-    _write_json_atomic(args.audit_json, audit)
+    _write_apply_transaction(
+        args.output_decisions_csv,
+        args.audit_json,
+        csv_payload,
+        audit,
+    )
     print(
         "[PASS] Hidden decisions carried without payload loss: "
         f"rows={len(carried)} audit={args.audit_json}"
     )
 
 
-def _write_csv_atomic(path: Path, frame: pd.DataFrame) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(path.suffix + ".tmp")
-    frame.to_csv(temporary, index=False)
-    temporary.replace(path)
+def _write_apply_transaction(
+    output_path: Path,
+    audit_path: Path,
+    csv_payload: bytes,
+    audit: dict[str, object],
+) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    audit_path.parent.mkdir(parents=True, exist_ok=True)
+    token = uuid.uuid4().hex
+    csv_temporary = output_path.with_name(
+        f".{output_path.name}.{token}.tmp"
+    )
+    audit_temporary = audit_path.with_name(
+        f".{audit_path.name}.{token}.tmp"
+    )
+    try:
+        csv_temporary.write_bytes(csv_payload)
+        audit_temporary.write_text(
+            json.dumps(audit, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        audit_temporary.replace(audit_path)
+        try:
+            csv_temporary.replace(output_path)
+        except Exception as error:
+            failed = dict(audit)
+            failed["output_written"] = False
+            failed["output_decisions_sha256"] = None
+            failed["errors"] = [
+                *list(audit.get("errors", [])),
+                f"decision_csv_promotion_failed={type(error).__name__}",
+            ]
+            _write_json_atomic(audit_path, failed)
+            raise
+    finally:
+        csv_temporary.unlink(missing_ok=True)
+        audit_temporary.unlink(missing_ok=True)
 
 
 def _write_json_atomic(path: Path, payload: dict[str, object]) -> None:

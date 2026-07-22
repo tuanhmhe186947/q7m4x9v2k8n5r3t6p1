@@ -43,7 +43,7 @@ from pig_behavior.classification_v2.review.review_authority import (
 )
 
 CODE_SHA = "a" * 40
-LINEAGE = "c2v2_human_review_20260722_reviewer01_v5"
+LINEAGE = "c2v2_human_review_20260722_reviewer01_v6"
 
 
 def test_frame_local_preserves_rows_keys_clock_and_forbids_pairs(
@@ -397,6 +397,15 @@ def test_official_authority_requires_all_clean_same_lineage_gates(
     assert manifest["authorizes_behavior_gui"] is True
     assert manifest["authorizes_final_view_build"] is False
     assert manifest["authorizes_training"] is False
+
+    stopped_v5 = build_review_authority_manifest(
+        **{
+            **kwargs,
+            "lineage_id": "c2v2_human_review_20260722_reviewer01_v5",
+        }
+    )
+    assert stopped_v5["authorizes_behavior_gui"] is False
+    assert "official_authority_requires_v6_lineage_id" in stopped_v5["errors"]
 
     first_gate = next(iter(gates.values()))
     first_gate.write_text(
