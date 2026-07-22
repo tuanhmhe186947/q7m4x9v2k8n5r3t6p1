@@ -284,7 +284,7 @@ def test_review_authority_manifest_is_deterministic_and_media_bound(
     kwargs = {
         "code_authority_sha": CODE_SHA,
         "code_dirty": False,
-        "lineage_id": "c2v2_human_review_20260722_reviewer01_v4",
+        "lineage_id": "c2v2_human_review_20260722_reviewer01_v5",
         "authority_scope": OFFICIAL_SCOPE,
         "source_artifacts": source_artifacts,
         "artifacts": artifacts,
@@ -332,7 +332,7 @@ def test_review_authority_rejects_pair_columns_and_stopped_v3(
     manifest = build_review_authority_manifest(
         code_authority_sha=CODE_SHA,
         code_dirty=False,
-        lineage_id="c2v2_human_review_20260722_reviewer01_v4",
+        lineage_id="c2v2_human_review_20260722_reviewer01_v5",
         authority_scope=OFFICIAL_SCOPE,
         source_artifacts=source_artifacts,
         artifacts=artifacts,

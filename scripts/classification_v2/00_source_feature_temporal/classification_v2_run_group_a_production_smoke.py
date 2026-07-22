@@ -29,6 +29,9 @@ from pig_behavior.classification_v2.features.spatiotemporal import (
 from pig_behavior.classification_v2.review.evidence_semantics import (
     build_evidence_semantics,
 )
+from pig_behavior.classification_v2.review.hidden_review_builder import (
+    audit_hidden_input_structure,
+)
 from pig_behavior.classification_v2.review.media_authority import (
     build_behavior_review_media_authority,
     finalize_media_authority_summary,
@@ -84,6 +87,10 @@ def main() -> None:
         selected_index,
         chunksize=args.chunksize,
     )
+    source_rows = source_rows.drop(
+        columns=["temporal_unit_key"],
+        errors="ignore",
+    )
     frame_local = build_frame_local_primitives(
         source_rows,
         roi_coco_path=args.roi_coco,
@@ -91,13 +98,17 @@ def main() -> None:
         expected_pen_mask_sha256=args.expected_pen_mask_sha256,
     )
     frame_audit = audit_frame_local_primitives(source_rows, frame_local)
+    selected_keys = set(selection["selected_unit_keys"])
+    hidden_scope = frame_local.loc[
+        frame_local["temporal_unit_key"].astype(str).isin(selected_keys)
+    ].copy()
+    hidden_structural_audit = audit_hidden_input_structure(hidden_scope)
     native_all = build_enhanced_spatiotemporal_features(frame_local)
     native_all = build_pen_context_features(
         native_all,
         mask_path=args.pen_mask,
         expected_mask_sha256=args.expected_pen_mask_sha256,
     )
-    selected_keys = set(selection["selected_unit_keys"])
     native = native_all.loc[
         native_all["temporal_unit_key"].astype(str).isin(selected_keys)
     ].copy()
@@ -142,6 +153,7 @@ def main() -> None:
         "frame_local": args.output_dir / "frame_local_primitives.csv",
         "frame_schema": args.output_dir / "frame_local_schema.json",
         "frame_audit": args.output_dir / "frame_local_audit.json",
+        "hidden_structure": args.output_dir / "hidden_structure_audit.json",
         "native": args.output_dir / "native_review_evidence.csv",
         "timestamp": args.output_dir / "timestamp_fps_contract.json",
         "semantics": args.output_dir / "evidence_semantics.json",
@@ -166,6 +178,7 @@ def main() -> None:
     for key, payload in (
         ("frame_schema", frame_schema),
         ("frame_audit", frame_audit),
+        ("hidden_structure", hidden_structural_audit),
         ("timestamp", timestamp),
         ("semantics", semantics),
         ("media", media),
@@ -174,23 +187,28 @@ def main() -> None:
 
     errors = [
         *frame_audit["errors"],
+        *hidden_structural_audit["errors"],
         *native_audit["errors"],
         *timestamp["errors"],
         *semantics["errors"],
         *media["errors"],
     ]
     report = {
-        "schema_version": "classification_v2.group_a_production_smoke.v1",
+        "schema_version": "classification_v2.group_a_production_smoke.v2",
         "lineage_id": SMOKE_LINEAGE,
         "code_authority_sha": args.code_authority_sha.lower(),
         "selection": selection,
         "source_artifacts_read_only": True,
         "v3_reused": False,
-        "official_v4_created": False,
+        "official_v5_created": False,
         "decisions_written": False,
         "gui_opened": False,
         "authorizes_behavior_gui": False,
         "frame_local_rows": len(frame_local),
+        "hidden_structural_units": hidden_structural_audit.get(
+            "temporal_unit_count",
+            0,
+        ),
         "native_evidence_rows": len(native),
         "review_units": len(units),
         "artifact_hashes": {

@@ -26,7 +26,7 @@ from pig_behavior.classification_v2.training.lineage_hashing import (
 REVIEW_AUTHORITY_SCHEMA_VERSION = (
     "classification_v2.behavior_review_authority.v1"
 )
-OFFICIAL_SCOPE = "official_v4_pre_behavior_review"
+OFFICIAL_SCOPE = "official_v5_pre_behavior_review"
 SMOKE_SCOPE = "representative_smoke_only"
 VALID_SCOPES = frozenset({OFFICIAL_SCOPE, SMOKE_SCOPE})
 GIT_COMMIT_SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
@@ -144,8 +144,8 @@ def build_review_authority_manifest(
                 "actual_head_mismatch="
                 f"supplied:{code_sha},actual:{observed_head}"
             )
-        if not str(lineage_id).strip().endswith("_v4"):
-            errors.append("official_authority_requires_v4_lineage_id")
+        if not str(lineage_id).strip().endswith("_v5"):
+            errors.append("official_authority_requires_v5_lineage_id")
         stopped_v3_paths = [
             str(path)
             for path in all_paths

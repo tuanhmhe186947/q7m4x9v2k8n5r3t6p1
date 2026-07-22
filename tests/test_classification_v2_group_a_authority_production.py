@@ -26,6 +26,9 @@ from pig_behavior.classification_v2.features.social import (
 from pig_behavior.classification_v2.features.spatiotemporal import (
     build_enhanced_spatiotemporal_features,
 )
+from pig_behavior.classification_v2.features.temporal_harmonization import (
+    attach_structural_temporal_unit_identity,
+)
 from pig_behavior.classification_v2.review.evidence_semantics import (
     build_evidence_semantics,
 )
@@ -40,7 +43,7 @@ from pig_behavior.classification_v2.review.review_authority import (
 )
 
 CODE_SHA = "a" * 40
-LINEAGE = "c2v2_human_review_20260722_reviewer01_v4"
+LINEAGE = "c2v2_human_review_20260722_reviewer01_v5"
 
 
 def test_frame_local_preserves_rows_keys_clock_and_forbids_pairs(
@@ -60,6 +63,9 @@ def test_frame_local_preserves_rows_keys_clock_and_forbids_pairs(
         "timestamp_sec"
     ].tolist()
     assert forbidden_frame_local_columns(output.columns) == []
+    assert "temporal_unit_key" in output
+    assert output["temporal_unit_key"].str.endswith("|anchor=0").all()
+    assert output.groupby("temporal_unit_key", sort=False).size().eq(6).all()
     assert "pen_distance_delta_n_per_second" not in output
     assert "speed_n_per_second" not in output
 
@@ -97,6 +103,46 @@ def test_forbidden_pair_semantics_registry_is_fail_closed() -> None:
     assert forbidden_frame_local_columns(
         ["cx_n", "speed_n_per_second", "prev_timestamp_sec"]
     ) == ["prev_timestamp_sec", "speed_n_per_second"]
+    assert forbidden_frame_local_columns(["temporal_unit_key"]) == []
+
+
+def test_structural_temporal_identity_covers_cvat_and_legacy_units() -> None:
+    cvat = pd.DataFrame(
+        {
+            "source_type": ["cvat_tracking_xml"] * 12,
+            "dataset_id": ["cvat"] * 12,
+            "video_key": ["video-cvat"] * 12,
+            "frame_index": list(range(12)),
+            "pig_id": ["ID_1"] * 12,
+            "track_id": ["1"] * 12,
+        }
+    )
+    cvat_identity = attach_structural_temporal_unit_identity(cvat)
+    assert cvat_identity["temporal_unit_key"].nunique() == 2
+    assert cvat_identity.loc[:5, "temporal_unit_key"].nunique() == 1
+    assert cvat_identity.loc[6:, "temporal_unit_key"].nunique() == 1
+
+    legacy = pd.DataFrame(
+        {
+            "source_type": ["legacy_recovered"] * 16,
+            "dataset_id": ["legacy"] * 16,
+            "video_key": ["burst-color"] * 16,
+            "frame_index": list(range(16)),
+            "relative_frame_index": list(range(16)),
+            "pig_id": ["ID_2"] * 16,
+            "track_id": ["2"] * 16,
+        }
+    )
+    legacy_identity = attach_structural_temporal_unit_identity(legacy)
+    assert legacy_identity["temporal_unit_key"].nunique() == 1
+    assert legacy_identity["temporal_unit_key"].str.endswith(
+        "|legacy_sequence"
+    ).all()
+
+    drift = cvat.copy()
+    drift["temporal_unit_key"] = "wrong-unit"
+    with pytest.raises(ValueError, match="disagrees with structural identity"):
+        attach_structural_temporal_unit_identity(drift)
 
 
 def test_frame_local_independent_checker_detects_content_drift(
@@ -152,6 +198,40 @@ def test_frame_local_independent_checker_detects_content_drift(
     command[-1] = str(tmp_path / "checker_drift.json")
     failed = subprocess.run(command, capture_output=True, text=True, check=False)
     assert failed.returncode == 2
+
+
+def test_frame_local_output_passes_hidden_production_structural_gate(
+    tmp_path: Path,
+) -> None:
+    frame_local = _build_frame_local(_source_rows(), tmp_path)
+    input_path = tmp_path / "frame_local_for_hidden.csv"
+    output_dir = tmp_path / "hidden_smoke"
+    frame_local.to_csv(input_path, index=False)
+    command = [
+        sys.executable,
+        "scripts/classification_v2/01_review_units_gui/"
+        "classification_v2_build_hidden_review_units.py",
+        "--input-csv",
+        str(input_path),
+        "--output-dir",
+        str(output_dir),
+        "--design-scope",
+        "smoke",
+    ]
+    result = subprocess.run(
+        command,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    audit = json.loads(
+        (output_dir / "hidden_review_template_audit.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert audit["structural_audit"]["errors"] == []
+    assert audit["structural_audit"]["temporal_unit_count"] == 2
 
 
 def test_timestamp_contract_accepts_30fps_and_rejects_wrong_clock(

@@ -65,6 +65,15 @@ REQUIRED_COLUMNS: tuple[str, ...] = (
     "bbox_valid",
 )
 
+STRUCTURAL_TEMPORAL_IDENTITY_COLUMNS: tuple[str, ...] = (
+    "source_type",
+    "dataset_id",
+    "video_key",
+    "frame_index",
+    "pig_id",
+    "track_id",
+)
+
 
 @dataclass(slots=True)
 class TemporalHarmonizationConfig:
@@ -113,8 +122,6 @@ def harmonize_temporal_labels(
 
     out = frame_features.copy().reset_index(drop=True)
     out = _normalize_columns(out)
-    out = _ensure_object_track_key(out)
-    _validate_temporal_identity_contract(out)
     out = _assign_temporal_units(out, config)
     intervals = build_temporal_label_intervals(out, config=config)
     out = _map_interval_columns_to_frames(out, intervals)
@@ -126,6 +133,67 @@ def harmonize_temporal_labels(
         source_name="temporal harmonization input",
         derived_name="temporal harmonization output",
     )
+    return out
+
+
+def attach_structural_temporal_unit_identity(
+    frame_features: pd.DataFrame,
+    *,
+    cvat_label_stride: int = 6,
+    legacy_expected_sequence_length: int = 16,
+    validate_existing_key: bool = True,
+) -> pd.DataFrame:
+    """Attach native-unit identity without behavior or pair computation.
+
+    ``temporal_unit_key`` is structural provenance required by Hidden review.
+    This operation does not harmonize labels, inspect neighboring frames, or
+    create pair-derived evidence.
+    """
+
+    config = TemporalHarmonizationConfig(
+        cvat_label_stride=cvat_label_stride,
+        legacy_expected_sequence_length=legacy_expected_sequence_length,
+    )
+    config.validate()
+    missing = sorted(
+        set(STRUCTURAL_TEMPORAL_IDENTITY_COLUMNS).difference(
+            frame_features.columns
+        )
+    )
+    if missing:
+        raise ValueError(
+            "Missing structural temporal identity columns: "
+            f"{missing}"
+        )
+
+    out = frame_features.copy()
+    for column in (
+        "source_type",
+        "dataset_id",
+        "video_key",
+        "pig_id",
+        "track_id",
+    ):
+        out[column] = out[column].fillna("").astype(str)
+    out["frame_index"] = pd.to_numeric(
+        out["frame_index"],
+        errors="coerce",
+    )
+    out = _ensure_object_track_key(out)
+    _validate_temporal_identity_contract(out)
+
+    existing = out.get(
+        "temporal_unit_key",
+        pd.Series("", index=out.index, dtype=object),
+    ).fillna("").astype(str).str.strip()
+    derived = _derive_structural_temporal_unit_key(out, config)
+    mismatch = existing.ne("") & existing.ne(derived)
+    if validate_existing_key and mismatch.any():
+        raise ValueError(
+            "Existing temporal_unit_key disagrees with structural identity: "
+            f"rows={int(mismatch.sum())}"
+        )
+    out["temporal_unit_key"] = derived
     return out
 
 
@@ -544,8 +612,51 @@ def _validate_temporal_identity_contract(df: pd.DataFrame) -> None:
         )
 
 
+def _derive_structural_temporal_unit_key(
+    df: pd.DataFrame,
+    config: TemporalHarmonizationConfig,
+) -> pd.Series:
+    frame_idx = pd.to_numeric(df["frame_index"], errors="coerce")
+    source = df["source_type"].astype(str)
+    cvat_mask = source.isin(CVAT_SOURCE_TYPES)
+    legacy_mask = source.eq(LEGACY_SOURCE_TYPE)
+    keys = pd.Series("", index=df.index, dtype=object)
+
+    cvat_anchor = (
+        np.floor(frame_idx / config.cvat_label_stride)
+        * config.cvat_label_stride
+    )
+    keys.loc[cvat_mask] = (
+        df.loc[cvat_mask, "object_track_key"].astype(str)
+        + "|anchor="
+        + cvat_anchor.loc[cvat_mask]
+        .round()
+        .astype("Int64")
+        .astype(str)
+    )
+    keys.loc[legacy_mask] = (
+        df.loc[legacy_mask, "object_track_key"].astype(str)
+        + "|legacy_sequence"
+    )
+    other_mask = ~(cvat_mask | legacy_mask)
+    keys.loc[other_mask] = (
+        df.loc[other_mask, "object_track_key"].astype(str)
+        + "|frame="
+        + frame_idx.loc[other_mask]
+        .round()
+        .astype("Int64")
+        .astype(str)
+    )
+    return keys
+
+
 def _assign_temporal_units(df: pd.DataFrame, config: TemporalHarmonizationConfig) -> pd.DataFrame:
-    out = df.copy()
+    out = attach_structural_temporal_unit_identity(
+        df,
+        cvat_label_stride=config.cvat_label_stride,
+        legacy_expected_sequence_length=config.legacy_expected_sequence_length,
+        validate_existing_key=False,
+    )
     frame_idx = pd.to_numeric(out["frame_index"], errors="coerce")
     source = out["source_type"].astype(str)
     cvat_mask = source.isin(CVAT_SOURCE_TYPES)
@@ -582,28 +693,6 @@ def _assign_temporal_units(df: pd.DataFrame, config: TemporalHarmonizationConfig
         else:
             legacy_anchor = frame_idx.groupby(out["object_track_key"]).transform("min")
         out.loc[legacy_mask, "label_anchor_frame_index"] = legacy_anchor.loc[legacy_mask]
-
-    if "temporal_unit_key" not in out.columns:
-        out["temporal_unit_key"] = ""
-    out["temporal_unit_key"] = out["temporal_unit_key"].fillna("").astype(str)
-
-    out.loc[cvat_mask, "temporal_unit_key"] = (
-        out.loc[cvat_mask, "object_track_key"].astype(str)
-        + "|anchor="
-        + out.loc[cvat_mask, "label_anchor_frame_index"].round().astype("Int64").astype(str)
-    )
-    out.loc[legacy_mask, "temporal_unit_key"] = (
-        out.loc[legacy_mask, "object_track_key"].astype(str) + "|legacy_sequence"
-    )
-    other_mask = ~(cvat_mask | legacy_mask)
-    out.loc[other_mask & out["temporal_unit_key"].eq(""), "temporal_unit_key"] = (
-        out.loc[other_mask & out["temporal_unit_key"].eq(""), "object_track_key"].astype(str)
-        + "|frame="
-        + frame_idx.loc[other_mask & out["temporal_unit_key"].eq("")]
-        .round()
-        .astype("Int64")
-        .astype(str)
-    )
 
     # Legacy window start/end from actual sequence span.
     unit_min = out.groupby("temporal_unit_key", dropna=False)["frame_index"].transform("min")

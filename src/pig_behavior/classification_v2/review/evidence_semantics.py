@@ -17,9 +17,9 @@ from pig_behavior.classification_v2.features.frame_local import (
 )
 
 EVIDENCE_SEMANTICS_SCHEMA_VERSION = (
-    "classification_v2.behavior_review_evidence_semantics.v1"
+    "classification_v2.behavior_review_evidence_semantics.v2"
 )
-EVIDENCE_COLUMN_SEMANTIC_VERSION = "classification_v2.review_evidence.v1"
+EVIDENCE_COLUMN_SEMANTIC_VERSION = "classification_v2.review_evidence.v2"
 NATIVE_GRAIN = "NATIVE_UNIT_REVIEW_EVIDENCE"
 
 GUI_FRAME_COLUMNS: frozenset[str] = frozenset(

@@ -120,6 +120,112 @@ REQUIRED_FRAME_COLUMNS: tuple[str, ...] = (
 )
 
 
+def audit_hidden_input_structure(frames: pd.DataFrame) -> dict[str, Any]:
+    """Validate complete native-unit identity before Hidden sampling."""
+
+    errors: list[str] = []
+    required = [
+        "source_type",
+        "dataset_id",
+        "video_key",
+        "frame_uid",
+        "frame_index",
+        "object_track_key",
+        "temporal_unit_key",
+        "hidden",
+    ]
+    missing = sorted(set(required).difference(frames.columns))
+    if missing:
+        return {
+            "rows": int(len(frames)),
+            "errors": [f"missing_structural_columns={missing}"],
+        }
+
+    for column in required:
+        blank = (
+            frames[column].isna()
+            | frames[column].astype(str).str.strip().eq("")
+        )
+        if blank.any():
+            errors.append(f"blank_{column}={int(blank.sum())}")
+    duplicate_frames = frames["frame_uid"].astype(str).duplicated(keep=False)
+    if duplicate_frames.any():
+        errors.append(f"duplicate_frame_uid={int(duplicate_frames.sum())}")
+
+    hidden_values = (
+        frames["hidden"].fillna("").astype(str).str.strip().str.lower()
+    )
+    valid_hidden = {"yes", "no", "true", "false", "1", "0", "y", "n"}
+    invalid_hidden = ~hidden_values.isin(valid_hidden)
+    if invalid_hidden.any():
+        errors.append(f"invalid_hidden_values={int(invalid_hidden.sum())}")
+
+    expected_lengths = {
+        "legacy_recovered": 16,
+        "cvat_tracking_xml": 6,
+    }
+    unsupported = sorted(
+        set(frames["source_type"].dropna().astype(str)).difference(
+            expected_lengths
+        )
+    )
+    if unsupported:
+        errors.append(f"unsupported_source_types={unsupported}")
+
+    unit_count = 0
+    source_unit_counts: dict[str, int] = {}
+    for _, unit in frames.groupby(
+        "temporal_unit_key",
+        sort=False,
+        dropna=False,
+    ):
+        unit_count += 1
+        source_values = unit["source_type"].dropna().astype(str).unique()
+        if len(source_values) != 1:
+            errors.append("cross_source_temporal_unit")
+            continue
+        source = source_values[0]
+        source_unit_counts[source] = source_unit_counts.get(source, 0) + 1
+        for column, code in (
+            ("dataset_id", "cross_dataset_temporal_unit"),
+            ("video_key", "cross_video_temporal_unit"),
+            ("object_track_key", "cross_actor_temporal_unit"),
+        ):
+            if unit[column].fillna("").astype(str).nunique() != 1:
+                errors.append(code)
+        expected = expected_lengths.get(source)
+        if expected is not None and len(unit) != expected:
+            errors.append(
+                f"invalid_native_span:{source}:{len(unit)}!={expected}"
+            )
+        indices = pd.to_numeric(unit["frame_index"], errors="coerce")
+        if indices.isna().any() or indices.duplicated().any():
+            errors.append("invalid_temporal_unit_frame_indices")
+        elif len(indices) > 1:
+            ordered = sorted(indices.astype(int).tolist())
+            if any(
+                right - left != 1
+                for left, right in zip(
+                    ordered[:-1],
+                    ordered[1:],
+                    strict=True,
+                )
+            ):
+                errors.append("noncontiguous_temporal_unit_frame_indices")
+
+    return {
+        "rows": int(len(frames)),
+        "unique_frame_uids": int(frames["frame_uid"].nunique(dropna=True)),
+        "temporal_unit_count": unit_count,
+        "source_row_counts": {
+            str(key): int(value)
+            for key, value in frames["source_type"].value_counts().items()
+        },
+        "source_unit_counts": source_unit_counts,
+        "errors": sorted(set(errors)),
+    }
+
+
 @dataclass(slots=True)
 class HiddenReviewConfig:
     """Deterministic sampling and risk thresholds for Hidden review."""

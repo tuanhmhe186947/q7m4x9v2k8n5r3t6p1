@@ -32,6 +32,9 @@ from pig_behavior.classification_v2.sources.temporal_provenance import (
     apply_source_frame_clock,
 )
 
+CVAT_STRUCTURAL_SOURCES = {"cvat_tracking_xml", "cvat_selected_native"}
+LEGACY_STRUCTURAL_SOURCE = "legacy_recovered"
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -124,6 +127,14 @@ def _independent_rebuild(
     )
     out = build_geometry_features(out)
     out = build_roi_features(out, roi_coco_path=roi_coco)
+    track_for_key = (
+        out["track_id"].fillna("").astype(str).replace("", pd.NA)
+        .fillna(out["pig_id"].fillna("").astype(str))
+    )
+    pig_for_key = (
+        out["pig_id"].fillna("").astype(str).replace("", pd.NA)
+        .fillna(out["track_id"].fillna("").astype(str))
+    )
     out["object_track_key"] = (
         out["source_type"].astype(str)
         + "|"
@@ -131,9 +142,30 @@ def _independent_rebuild(
         + "|"
         + out["video_key"].astype(str)
         + "|track="
-        + out["track_id"].fillna("").astype(str)
+        + track_for_key.astype(str)
         + "|pig="
-        + out["pig_id"].fillna("").astype(str)
+        + pig_for_key.astype(str)
+    )
+    frame_index = pd.to_numeric(out["frame_index"], errors="coerce")
+    source_type = out["source_type"].fillna("").astype(str)
+    cvat = source_type.isin(CVAT_STRUCTURAL_SOURCES)
+    legacy = source_type.eq(LEGACY_STRUCTURAL_SOURCE)
+    other = ~(cvat | legacy)
+    out["temporal_unit_key"] = ""
+    cvat_anchor = np.floor(frame_index / 6).astype("Int64") * 6
+    out.loc[cvat, "temporal_unit_key"] = (
+        out.loc[cvat, "object_track_key"].astype(str)
+        + "|anchor="
+        + cvat_anchor.loc[cvat].astype(str)
+    )
+    out.loc[legacy, "temporal_unit_key"] = (
+        out.loc[legacy, "object_track_key"].astype(str)
+        + "|legacy_sequence"
+    )
+    out.loc[other, "temporal_unit_key"] = (
+        out.loc[other, "object_track_key"].astype(str)
+        + "|frame="
+        + frame_index.loc[other].round().astype("Int64").astype(str)
     )
     out = build_static_social_context_features(out)
     out = build_static_pen_context_features(

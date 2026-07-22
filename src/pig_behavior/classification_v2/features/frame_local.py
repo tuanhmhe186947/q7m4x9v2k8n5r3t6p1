@@ -33,6 +33,9 @@ from pig_behavior.classification_v2.features.social import (
     STATIC_SOCIAL_COLUMNS,
     build_static_social_context_features,
 )
+from pig_behavior.classification_v2.features.temporal_harmonization import (
+    attach_structural_temporal_unit_identity,
+)
 from pig_behavior.classification_v2.sources.temporal_provenance import (
     CANONICAL_TIMESTAMP_SOURCE,
     apply_source_frame_clock,
@@ -40,8 +43,15 @@ from pig_behavior.classification_v2.sources.temporal_provenance import (
 )
 
 FRAME_LOCAL_GRAIN = "FRAME_LOCAL_PRIMITIVES"
-FRAME_LOCAL_SCHEMA_VERSION = "classification_v2.frame_local_primitives.v1"
+FRAME_LOCAL_SCHEMA_VERSION = "classification_v2.frame_local_primitives.v2"
 ACTIVE_SOURCE_FPS = 30.0
+
+FRAME_LOCAL_STRUCTURAL_IDENTITY_COLUMNS: frozenset[str] = frozenset(
+    {
+        "object_track_key",
+        "temporal_unit_key",
+    }
+)
 
 # This registry is deliberately explicit. Prefix checks supplement it only for
 # unknown future columns and are not the scientific authority by themselves.
@@ -152,7 +162,7 @@ def build_frame_local_primitives(
     )
     out = build_geometry_features(out)
     out = build_roi_features(out, roi_coco_path=roi_coco_path)
-    out["object_track_key"] = _object_track_key(out)
+    out = attach_structural_temporal_unit_identity(out)
     out = build_static_social_context_features(out)
     out = build_static_pen_context_features(
         out,
@@ -205,6 +215,7 @@ def audit_frame_local_primitives(
         output,
         tolerance_seconds=tolerance_seconds,
     )["errors"])
+    errors.extend(_temporal_identity_errors(source, output))
     if "source_fps" in output:
         fps = pd.to_numeric(output["source_fps"], errors="coerce")
         wrong_fps = int(
@@ -252,6 +263,8 @@ def forbidden_frame_local_columns(columns: Iterable[str]) -> list[str]:
     forbidden: list[str] = []
     for raw in columns:
         column = str(raw).strip()
+        if column in FRAME_LOCAL_STRUCTURAL_IDENTITY_COLUMNS:
+            continue
         if column in FORBIDDEN_FRAME_LOCAL_COLUMNS:
             forbidden.append(column)
             continue
@@ -280,6 +293,9 @@ def frame_local_schema_payload(frame: pd.DataFrame) -> dict[str, Any]:
             *PEN_CONTEXT_DERIVATION_COLUMNS,
         ],
         "frame_local_social_columns": list(STATIC_SOCIAL_COLUMNS),
+        "structural_identity_columns": sorted(
+            FRAME_LOCAL_STRUCTURAL_IDENTITY_COLUMNS
+        ),
     }
 
 
@@ -297,20 +313,27 @@ def dataframe_identity_sha256(
     return hashlib.sha256(encoded).hexdigest()
 
 
-def _object_track_key(frame: pd.DataFrame) -> pd.Series:
-    track = frame["track_id"].fillna("").astype(str)
-    pig = frame["pig_id"].fillna("").astype(str)
-    return (
-        frame["source_type"].astype(str)
-        + "|"
-        + frame["dataset_id"].astype(str)
-        + "|"
-        + frame["video_key"].astype(str)
-        + "|track="
-        + track
-        + "|pig="
-        + pig
+def _temporal_identity_errors(
+    source: pd.DataFrame,
+    output: pd.DataFrame,
+) -> list[str]:
+    if "temporal_unit_key" not in output.columns:
+        return ["missing_temporal_unit_key"]
+    actual = output["temporal_unit_key"].fillna("").astype(str)
+    blank = actual.str.strip().eq("")
+    errors = [f"blank_temporal_unit_key={int(blank.sum())}"] if blank.any() else []
+    try:
+        expected = attach_structural_temporal_unit_identity(source)
+    except ValueError as exc:
+        return [*errors, f"structural_temporal_identity_invalid={exc}"]
+    if len(expected) != len(output):
+        return errors
+    mismatch = actual.ne(
+        expected["temporal_unit_key"].fillna("").astype(str)
     )
+    if mismatch.any():
+        errors.append(f"temporal_unit_key_mismatch={int(mismatch.sum())}")
+    return errors
 
 
 def _static_range_errors(frame: pd.DataFrame) -> list[str]:
@@ -335,6 +358,7 @@ __all__ = [
     "FORBIDDEN_FRAME_LOCAL_COLUMNS",
     "FRAME_LOCAL_GRAIN",
     "FRAME_LOCAL_SCHEMA_VERSION",
+    "FRAME_LOCAL_STRUCTURAL_IDENTITY_COLUMNS",
     "audit_frame_local_primitives",
     "build_frame_local_primitives",
     "dataframe_identity_sha256",
