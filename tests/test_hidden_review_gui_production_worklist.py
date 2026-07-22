@@ -20,6 +20,16 @@ V6_MANIFEST = V6_ROOT / "data/03_hidden_review/hidden_review_unit_manifest.csv"
 V6_DECISIONS = (
     V6_ROOT / "human_decisions/hidden/hidden_review_decisions.csv"
 )
+V6_NEW_ITEM_KEYS = frozenset(
+    {
+        "hidden_item_v2_e697bb6dd8ada8044745ae96",
+        "hidden_item_v2_9d7eb6d50d2212786c572d6b",
+        "hidden_item_v2_ca00126225ba3127b762bc03",
+        "hidden_item_v2_c0f8291f3ecc9eeccba6bdcb",
+        "hidden_item_v2_89bb8d44d7192ad1d36270e6",
+        "hidden_item_v2_eb0df38cff70ee8717ca9a56",
+    }
+)
 
 
 def _module() -> dict[str, object]:
@@ -31,6 +41,13 @@ def _production_tables() -> tuple[pd.DataFrame, pd.DataFrame]:
         pd.read_csv(V6_MANIFEST, low_memory=False),
         pd.read_csv(V6_DECISIONS, low_memory=False),
     )
+
+
+def _historical_carried_decisions(decisions: pd.DataFrame) -> pd.DataFrame:
+    """Recreate the immutable 5,227-row pre-GUI authority in memory only."""
+    return decisions.loc[
+        ~decisions["hidden_review_item_id"].astype(str).isin(V6_NEW_ITEM_KEYS)
+    ].reset_index(drop=True)
 
 
 def _reviewed_row(
@@ -60,6 +77,7 @@ def test_v6_exact_worklist_replaces_the_old_368_row_suffix() -> None:
     module = _module()
     builder = module["build_review_worklist"]
     manifest, decisions = _production_tables()
+    decisions = _historical_carried_decisions(decisions)
     resolved_keys = set(decisions["hidden_review_item_id"].astype(str))
     manifest_keys = manifest["hidden_review_item_id"].astype(str)
     first_unresolved_position = next(
@@ -124,6 +142,7 @@ def test_v6_one_and_all_new_decisions_reduce_only_the_unresolved_set() -> None:
     builder = module["build_review_worklist"]
     decision_columns = module["DECISION_COLUMNS"]
     manifest, decisions = _production_tables()
+    decisions = _historical_carried_decisions(decisions)
     original = decisions.copy(deep=True)
     decision_keys = set(decisions["hidden_review_item_id"].astype(str))
     missing = manifest.loc[

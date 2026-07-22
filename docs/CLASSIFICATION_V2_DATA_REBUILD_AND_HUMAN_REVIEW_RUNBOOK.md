@@ -1531,6 +1531,36 @@ Reviewer chỉ cần chọn `Hidden=Yes`, `Hidden=No (visible)` hoặc `Unclear`
 tự ghi confidence và reason mặc định để không tạo thêm thao tác. GUI chỉ ghi
 decision CSV, không sửa XML/CSV nguồn.
 
+#### 8A.2b. Final Hidden coverage metadata-drift policy
+
+Coverage và scientific gate dùng policy
+`hidden_review_metadata_drift_v1`. Chỉ hai GUI-copied sampling fields
+`hidden_false_negative_risk_score` và
+`hidden_false_negative_risk_reasons` là mutable audit metadata. Mismatch của
+chúng phải được giữ trong `decision_metadata_drift_counts`, affected unique
+items, warnings và policy fields, nhưng không làm gate fail và không được dùng
+để rewrite decision CSV.
+
+Mọi shared field khác vẫn fail-closed, gồm canonical key, source/video/media,
+actor/track/pig, frame/span/native-unit, `hidden_before_review`, cohort và mọi
+unapproved metadata. Missing, unknown, duplicate/conflicting, blank,
+unsupported, malformed, pending hoặc unclear decisions vẫn chặn gate. Audit
+checker phải ghi checker HEAD riêng với immutable input hashes và
+`data_lineage_authority_preserved=true`; checker patch không được tuyên bố đã
+regenerate manifest hoặc decisions.
+
+```bat
+%PY% %S1%\check_hidden_review_decision_coverage.py ^
+  --manifest-csv %HREV%\hidden_review_unit_manifest.csv ^
+  --decisions-csv %HDEC%\hidden_review_decisions.csv ^
+  --audit-json %HREV%\hidden_review_decision_coverage_audit.json
+%PY% %S1%\check_hidden_review_scientific_gate.py ^
+  --manifest-csv %HREV%\hidden_review_unit_manifest.csv ^
+  --decisions-csv %HDEC%\hidden_review_decisions.csv ^
+  --design-json %HREV%\hidden_review_scientific_design.json ^
+  --audit-json %HREV%\hidden_scientific_gate.json
+```
+
 #### Hidden review tối thiểu và nhanh
 
 `hidden_review_confidence` là cột tương thích provenance, không phải một nhãn

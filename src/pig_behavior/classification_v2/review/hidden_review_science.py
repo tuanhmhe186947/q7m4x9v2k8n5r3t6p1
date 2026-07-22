@@ -17,9 +17,13 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from pig_behavior.classification_v2.review.hidden_review_builder import (
+    audit_hidden_decision_coverage,
+)
+
 POLICY_SCHEMA_VERSION = "classification_v2.hidden_scientific_policy.v1"
 DESIGN_SCHEMA_VERSION = "classification_v2.hidden_scientific_design.v1"
-GATE_SCHEMA_VERSION = "classification_v2.hidden_scientific_gate.v1"
+GATE_SCHEMA_VERSION = "classification_v2.hidden_scientific_gate.v2"
 
 RANDOM_COHORT = "hidden_no_random_audit"
 HIGH_RISK_COHORT = "hidden_no_high_risk"
@@ -206,6 +210,12 @@ def evaluate_hidden_scientific_gate(
         design.get("selection_contract", {}),
     )
     errors.extend(selection_errors)
+    decision_contract = audit_hidden_decision_coverage(
+        manifest,
+        decisions,
+        require_resolved=True,
+    )
+    errors.extend(_scientific_decision_contract_errors(decision_contract))
     joined, coverage = _join_review_decisions(manifest, decisions)
     errors.extend(coverage["errors"])
     blockers = list(coverage["blockers"])
@@ -279,12 +289,35 @@ def evaluate_hidden_scientific_gate(
         "valid": status == "PASS",
         "training_snapshot_allowed": status == "PASS",
         "target_independent_selection": not selection_errors,
-        "complete_review_coverage": coverage["complete"],
+        "complete_review_coverage": (
+            coverage["complete"] and not decision_contract["errors"]
+        ),
         "manifest_sha256": manifest_sha256,
         "design_sha256": design_sha256,
         "policy_sha256": design.get("policy_sha256"),
         "policy": policy.to_payload(),
-        "coverage": coverage,
+        "coverage": {
+            **coverage,
+            "decision_contract": decision_contract,
+            "decision_metadata_drift_counts": decision_contract[
+                "decision_metadata_drift_counts"
+            ],
+            "decision_metadata_drift_unique_items": decision_contract[
+                "decision_metadata_drift_unique_items"
+            ],
+            "metadata_drift_policy": decision_contract[
+                "metadata_drift_policy"
+            ],
+            "metadata_drift_policy_version": decision_contract[
+                "metadata_drift_policy_version"
+            ],
+        },
+        "decision_metadata_drift_counts": decision_contract[
+            "decision_metadata_drift_counts"
+        ],
+        "decision_metadata_drift_unique_items": decision_contract[
+            "decision_metadata_drift_unique_items"
+        ],
         "random_hidden_no_prevalence": {
             **random_stats,
             "final_estimate": final_estimate,
@@ -301,9 +334,26 @@ def evaluate_hidden_scientific_gate(
         "blockers": blockers,
         "threshold_failures": threshold_failures,
         "warnings": [
-            "High-risk correction yield is enrichment evidence, not prevalence."
+            "High-risk correction yield is enrichment evidence, not prevalence.",
+            *decision_contract["warnings"],
         ],
     }
+
+
+def _scientific_decision_contract_errors(
+    decision_contract: dict[str, Any],
+) -> list[str]:
+    """Preserve incomplete-review blockers while failing contract drift."""
+    blocker_prefixes = (
+        "missing_decision_items=",
+        "unclear_decision_items=",
+        "pending_decision_items=",
+    )
+    return [
+        error
+        for error in decision_contract["errors"]
+        if not str(error).startswith(blocker_prefixes)
+    ]
 
 
 def sha256_file(path: Path) -> str:

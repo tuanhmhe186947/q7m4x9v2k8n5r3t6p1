@@ -35,6 +35,15 @@ HIDDEN_REVIEW_CONFIDENCE_LEVELS: tuple[str, ...] = (
     "low",
 )
 
+NONFATAL_DECISION_METADATA_FIELDS: frozenset[str] = frozenset(
+    {
+        "hidden_false_negative_risk_reasons",
+        "hidden_false_negative_risk_score",
+    }
+)
+METADATA_DRIFT_POLICY = "risk_sampling_metadata_is_nonfatal"
+METADATA_DRIFT_POLICY_VERSION = "hidden_review_metadata_drift_v1"
+
 HIDDEN_RISK_INPUT_COLUMNS: tuple[str, ...] = (
     "bbox_was_clipped",
     "nearest_pair_iou",
@@ -861,15 +870,27 @@ def audit_hidden_decision_coverage(
     errors: list[str] = []
     warnings: list[str] = []
 
-    duplicate_manifest = int(manifest["hidden_review_item_id"].duplicated().sum())
-    duplicate_decisions = int(decisions["hidden_review_item_id"].astype(str).duplicated().sum())
+    manifest_key = (
+        manifest["hidden_review_item_id"].fillna("").astype(str).str.strip()
+    )
+    decision_key = (
+        decisions["hidden_review_item_id"].fillna("").astype(str).str.strip()
+    )
+    blank_manifest = int(manifest_key.eq("").sum())
+    blank_decisions = int(decision_key.eq("").sum())
+    duplicate_manifest = int(manifest_key.duplicated().sum())
+    duplicate_decisions = int(decision_key.duplicated().sum())
+    if blank_manifest:
+        errors.append(f"blank_manifest_items={blank_manifest}")
+    if blank_decisions:
+        errors.append(f"blank_decision_items={blank_decisions}")
     if duplicate_manifest:
         errors.append(f"duplicate_manifest_items={duplicate_manifest}")
     if duplicate_decisions:
         errors.append(f"duplicate_decision_items={duplicate_decisions}")
 
-    manifest_ids = set(manifest["hidden_review_item_id"].astype(str))
-    decision_ids = set(decisions["hidden_review_item_id"].astype(str))
+    manifest_ids = set(manifest_key.loc[manifest_key.ne("")])
+    decision_ids = set(decision_key.loc[decision_key.ne("")])
     missing_ids = manifest_ids.difference(decision_ids)
     extra_ids = decision_ids.difference(manifest_ids)
     if missing_ids:
@@ -878,12 +899,42 @@ def audit_hidden_decision_coverage(
         errors.append(f"unknown_decision_items={len(extra_ids)}")
 
     normalized = _normalize_decisions(decisions)
+    raw_status = (
+        decisions["hidden_review_status"].fillna("").astype(str).str.strip().str.lower()
+    )
+    supported_status = {
+        "reviewed",
+        "resolved",
+        "complete",
+        "unclear",
+        "ambiguous",
+        "pending",
+        "skip",
+    }
+    unsupported_status = ~raw_status.isin(supported_status)
+    if unsupported_status.any():
+        errors.append(
+            "unsupported_decision_status="
+            f"{int(unsupported_status.sum())}"
+        )
     resolved = normalized["hidden_review_status"].eq("reviewed")
     unclear = normalized["hidden_review_status"].eq("unclear")
     pending = ~resolved & ~unclear
     invalid_after = resolved & ~normalized["hidden_after_review"].isin(["Yes", "No"])
     if invalid_after.any():
         errors.append(f"resolved_without_hidden_value={int(invalid_after.sum())}")
+    blank_reviewer = resolved & normalized["hidden_reviewer"].fillna("").astype(
+        str
+    ).str.strip().eq("")
+    if blank_reviewer.any():
+        errors.append(f"resolved_without_reviewer={int(blank_reviewer.sum())}")
+    blank_reviewed_at = resolved & normalized["hidden_reviewed_at"].fillna(
+        ""
+    ).astype(str).str.strip().eq("")
+    if blank_reviewed_at.any():
+        errors.append(
+            f"resolved_without_reviewed_at={int(blank_reviewed_at.sum())}"
+        )
     if require_resolved and unclear.any():
         errors.append(f"unclear_decision_items={int(unclear.sum())}")
     if require_resolved and pending.any():
@@ -920,8 +971,23 @@ def audit_hidden_decision_coverage(
         errors.append(f"{error_code}={count}")
 
     metadata_mismatch_counts: dict[str, int] = {}
-    if not duplicate_manifest and not duplicate_decisions:
-        _, metadata_mismatch_counts = _merge_hidden_review_authorities(
+    metadata_drift_counts: dict[str, int] = {}
+    fatal_metadata_mismatch_counts: dict[str, int] = {}
+    metadata_drift_unique_items = 0
+    immutable_metadata_fields = sorted(
+        set(manifest.columns)
+        .intersection(decisions.columns)
+        .difference({"hidden_review_item_id"})
+        .difference(HUMAN_DECISION_AUTHORITY_COLUMNS)
+        .difference(NONFATAL_DECISION_METADATA_FIELDS)
+    )
+    if (
+        not duplicate_manifest
+        and not duplicate_decisions
+        and not blank_manifest
+        and not blank_decisions
+    ):
+        joined, metadata_mismatch_counts = _merge_hidden_review_authorities(
             manifest,
             normalized,
         )
@@ -931,7 +997,20 @@ def audit_hidden_decision_coverage(
         for column, count in metadata_mismatch_counts.items():
             if column == "hidden_before_review":
                 continue
+            if column in NONFATAL_DECISION_METADATA_FIELDS:
+                metadata_drift_counts[column] = count
+                continue
+            fatal_metadata_mismatch_counts[column] = count
             errors.append(f"decision_metadata_mismatch:{column}={count}")
+        metadata_drift_unique_items = _metadata_drift_unique_items(
+            joined,
+            metadata_drift_counts,
+        )
+    if metadata_drift_counts:
+        warnings.append(
+            "approved_risk_sampling_metadata_drift="
+            f"{metadata_drift_counts}"
+        )
 
     return {
         "manifest_items": int(len(manifest)),
@@ -949,6 +1028,18 @@ def audit_hidden_decision_coverage(
             "hidden_review_confidence",
         ),
         "decision_metadata_mismatch_counts": metadata_mismatch_counts,
+        "decision_metadata_drift_counts": metadata_drift_counts,
+        "decision_metadata_fatal_mismatch_counts": (
+            fatal_metadata_mismatch_counts
+        ),
+        "decision_metadata_drift_unique_items": metadata_drift_unique_items,
+        "nonfatal_metadata_fields": sorted(NONFATAL_DECISION_METADATA_FIELDS),
+        "immutable_metadata_fields_compared": immutable_metadata_fields,
+        "human_decision_authority_fields": sorted(
+            HUMAN_DECISION_AUTHORITY_COLUMNS
+        ),
+        "metadata_drift_policy": METADATA_DRIFT_POLICY,
+        "metadata_drift_policy_version": METADATA_DRIFT_POLICY_VERSION,
         "decision_status_counts": _counts(normalized, "hidden_review_status"),
         "errors": errors,
         "warnings": warnings,
@@ -1511,6 +1602,26 @@ def _merge_hidden_review_authorities(
         if mismatch_count:
             mismatch_counts[column] = mismatch_count
     return joined, mismatch_counts
+
+
+def _metadata_drift_unique_items(
+    joined: pd.DataFrame,
+    drift_counts: dict[str, int],
+) -> int:
+    """Count unique review items affected by approved metadata drift."""
+    if not drift_counts:
+        return 0
+    affected = pd.Series(False, index=joined.index)
+    for column in sorted(drift_counts):
+        manifest_values = joined[column]
+        decision_values = joined[f"{column}_decision"]
+        equal = manifest_values.eq(decision_values) | (
+            manifest_values.isna() & decision_values.isna()
+        )
+        affected |= ~equal
+    return int(
+        joined.loc[affected, "hidden_review_item_id"].astype(str).nunique()
+    )
 
 
 def _hidden_confusion_audit(

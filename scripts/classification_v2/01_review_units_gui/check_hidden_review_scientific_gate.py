@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 from pathlib import Path
 
 import pandas as pd
@@ -46,6 +47,14 @@ def main() -> None:
         manifest_sha256=sha256_file(args.manifest_csv),
         design_sha256=sha256_file(args.design_json),
     )
+    audit.update(
+        {
+            "checker_code_sha": _git_head(),
+            "decisions_sha256": sha256_file(args.decisions_csv),
+            "data_lineage_authority_preserved": True,
+            "input_artifacts_regenerated": False,
+        }
+    )
     args.audit_json.parent.mkdir(parents=True, exist_ok=True)
     args.audit_json.write_text(
         json.dumps(audit, ensure_ascii=False, indent=2),
@@ -58,6 +67,18 @@ def main() -> None:
         print("REPORT ONLY: this output cannot authorize a training snapshot.")
     else:
         print("PASS: Hidden uncertainty and predeclared quality thresholds pass.")
+
+
+def _git_head() -> str:
+    root = Path(__file__).resolve().parents[3]
+    result = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout.strip()
 
 
 if __name__ == "__main__":

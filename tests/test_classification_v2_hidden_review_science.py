@@ -3,6 +3,9 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
+from pig_behavior.classification_v2.review.hidden_review_builder import (
+    DECISION_COLUMNS,
+)
 from pig_behavior.classification_v2.review.hidden_review_science import (
     HiddenScientificPolicy,
     build_hidden_scientific_design,
@@ -89,14 +92,21 @@ def _design(
 
 
 def _decisions(manifest: pd.DataFrame) -> pd.DataFrame:
-    return pd.DataFrame(
-        {
-            "hidden_review_item_id": manifest["hidden_review_item_id"],
-            "hidden_before_review": manifest["hidden_before_review"],
-            "hidden_after_review": "No",
-            "hidden_review_status": "reviewed",
-        }
-    )
+    rows = []
+    for _, item in manifest.iterrows():
+        rows.append(
+            {
+                "hidden_review_item_id": item["hidden_review_item_id"],
+                "hidden_before_review": item["hidden_before_review"],
+                "hidden_after_review": "No",
+                "hidden_review_status": "reviewed",
+                "hidden_review_confidence": "high",
+                "hidden_review_reason": "clearly_visible",
+                "hidden_reviewer": "pytest",
+                "hidden_reviewed_at": "2026-07-22T00:00:00",
+            }
+        )
+    return pd.DataFrame(rows, columns=DECISION_COLUMNS)
 
 
 def test_hidden_scientific_gate_passes_complete_clustered_review() -> None:
@@ -120,6 +130,52 @@ def test_hidden_scientific_gate_passes_complete_clustered_review() -> None:
     assert audit["high_risk_correction_yield"][
         "is_population_prevalence"
     ] is False
+
+
+def test_hidden_scientific_gate_audits_nonfatal_risk_drift() -> None:
+    manifest = _manifest()
+    manifest["hidden_false_negative_risk_score"] = 0.5
+    decisions = _decisions(manifest)
+    decisions["hidden_false_negative_risk_reasons"] = manifest[
+        "hidden_false_negative_risk_reasons"
+    ]
+    decisions["hidden_false_negative_risk_score"] = 0.5
+    decisions.loc[0, "hidden_false_negative_risk_reasons"] = "changed"
+    decisions.loc[[0, 1], "hidden_false_negative_risk_score"] = 0.9
+
+    audit = evaluate_hidden_scientific_gate(
+        manifest,
+        decisions,
+        _design(manifest, _policy()),
+        manifest_sha256="manifest-hash",
+        design_sha256="design-hash",
+    )
+
+    assert audit["status"] == "PASS"
+    assert audit["decision_metadata_drift_counts"] == {
+        "hidden_false_negative_risk_reasons": 1,
+        "hidden_false_negative_risk_score": 2,
+    }
+    assert audit["warnings"]
+
+
+def test_hidden_scientific_gate_rejects_unapproved_shared_drift() -> None:
+    manifest = _manifest()
+    manifest["video_key"] = "video-authority"
+    decisions = _decisions(manifest)
+    decisions["video_key"] = "video-authority"
+    decisions.loc[0, "video_key"] = "wrong-video"
+
+    audit = evaluate_hidden_scientific_gate(
+        manifest,
+        decisions,
+        _design(manifest, _policy()),
+        manifest_sha256="manifest-hash",
+        design_sha256="design-hash",
+    )
+
+    assert audit["status"] == "FAIL_CONTRACT"
+    assert "decision_metadata_mismatch:video_key=1" in audit["errors"]
 
 
 def test_hidden_scientific_gate_blocks_partial_decisions() -> None:

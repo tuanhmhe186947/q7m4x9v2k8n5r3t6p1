@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import subprocess
 from pathlib import Path
 
 import pandas as pd
@@ -35,6 +37,15 @@ def main() -> None:
         decisions,
         require_resolved=not args.allow_unresolved,
     )
+    audit.update(
+        {
+            "checker_code_sha": _git_head(),
+            "manifest_sha256": _sha256(args.manifest_csv),
+            "decisions_sha256": _sha256(args.decisions_csv),
+            "data_lineage_authority_preserved": True,
+            "input_artifacts_regenerated": False,
+        }
+    )
     args.audit_json.parent.mkdir(parents=True, exist_ok=True)
     args.audit_json.write_text(
         json.dumps(audit, ensure_ascii=False, indent=2),
@@ -44,6 +55,26 @@ def main() -> None:
     if audit["errors"]:
         raise SystemExit(f"FAIL: {audit['errors']}")
     print("PASS: every selected Hidden review item has one resolved decision.")
+
+
+def _git_head() -> str:
+    root = Path(__file__).resolve().parents[3]
+    result = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout.strip()
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 if __name__ == "__main__":
