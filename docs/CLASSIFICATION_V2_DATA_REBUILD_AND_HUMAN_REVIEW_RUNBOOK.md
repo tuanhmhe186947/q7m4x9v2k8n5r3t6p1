@@ -1632,6 +1632,15 @@ Apply PASS khi output rows bằng frame-local rows, non-Hidden source columns kh
 đổi, decision match đúng frame/object key và audit ghi `Yes->No`, `No->Yes`,
 trust status, random false-negative estimate cùng high-risk correction yield.
 
+Coverage, scientific gate, apply validation và confusion audit dùng chung
+metadata policy `hidden_review_metadata_drift_v1`. Chỉ
+`hidden_false_negative_risk_reasons` và
+`hidden_false_negative_risk_score` là sampling/audit metadata có thể drift mà
+không làm apply FAIL. Apply vẫn phải so sánh, ghi exact drift counts, unique
+affected items và warning; tuyệt đối không rewrite manifest hoặc decision CSV.
+Mọi mismatch khác vẫn fail-closed. Ba output apply được stage và validate cùng
+một transaction; failure không được publish output CSV hay hai audit JSON.
+
 ## 9. Temporal harmonization và native evidence trước behavior review
 
 Temporal harmonization chỉ bắt đầu từ Hidden-reviewed frame-local authority.

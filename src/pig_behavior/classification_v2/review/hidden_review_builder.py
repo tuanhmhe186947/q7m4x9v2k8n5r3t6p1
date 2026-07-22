@@ -991,21 +991,27 @@ def audit_hidden_decision_coverage(
             manifest,
             normalized,
         )
-        stale_count = metadata_mismatch_counts.get("hidden_before_review", 0)
+        mismatch_policy = _classify_hidden_metadata_mismatches(
+            joined,
+            metadata_mismatch_counts,
+        )
+        metadata_drift_counts = mismatch_policy["approved_nonfatal_drift"]
+        fatal_metadata_mismatch_counts = mismatch_policy[
+            "fatal_metadata_mismatches"
+        ]
+        metadata_drift_unique_items = mismatch_policy[
+            "approved_nonfatal_drift_unique_items"
+        ]
+        stale_count = fatal_metadata_mismatch_counts.get(
+            "hidden_before_review",
+            0,
+        )
         if stale_count:
             errors.append(f"stale_hidden_before_review={stale_count}")
-        for column, count in metadata_mismatch_counts.items():
+        for column, count in fatal_metadata_mismatch_counts.items():
             if column == "hidden_before_review":
                 continue
-            if column in NONFATAL_DECISION_METADATA_FIELDS:
-                metadata_drift_counts[column] = count
-                continue
-            fatal_metadata_mismatch_counts[column] = count
             errors.append(f"decision_metadata_mismatch:{column}={count}")
-        metadata_drift_unique_items = _metadata_drift_unique_items(
-            joined,
-            metadata_drift_counts,
-        )
     if metadata_drift_counts:
         warnings.append(
             "approved_risk_sampling_metadata_drift="
@@ -1021,6 +1027,10 @@ def audit_hidden_decision_coverage(
         "resolved_items": int(resolved.sum()),
         "unclear_items": int(unclear.sum()),
         "pending_items": int(pending.sum()),
+        "blank_manifest_items": blank_manifest,
+        "blank_decision_items": blank_decisions,
+        "duplicate_manifest_items": duplicate_manifest,
+        "duplicate_decision_items": duplicate_decisions,
         "semantic_error_items": semantic_error_items,
         "semantic_error_counts": semantic_error_counts,
         "decision_confidence_counts": _counts(
@@ -1159,15 +1169,16 @@ def apply_hidden_review_decisions(
 
     if len(out) != len(frame_features):
         raise AssertionError("Hidden apply changed row count")
+    confusion = _hidden_confusion_audit(manifest, normalized)
     audit = _audit_applied_hidden(
         frame_features,
         out,
         manifest,
         normalized,
         coverage,
+        confusion,
         matched_count,
     )
-    confusion = _hidden_confusion_audit(manifest, normalized)
     if audit["errors"]:
         raise ValueError(f"Hidden apply audit failed: {audit['errors']}")
     return out, audit, confusion
@@ -1519,6 +1530,7 @@ def _audit_applied_hidden(
     manifest: pd.DataFrame,
     decisions: pd.DataFrame,
     coverage: dict[str, Any],
+    confusion: dict[str, Any],
     matched_count: int,
 ) -> dict[str, Any]:
     """Prove row preservation and summarize visibility corrections."""
@@ -1533,11 +1545,27 @@ def _audit_applied_hidden(
         .ne(after["hidden"].map(_normalize_hidden))
     )
     return {
+        "schema_version": "classification_v2.hidden_review_apply.v2",
         "input_rows": int(len(before)),
         "output_rows": int(len(after)),
+        "manifest_items": int(len(manifest)),
         "manifest_rows": int(len(manifest)),
         "decision_rows": int(len(decisions)),
+        "resolved_items": int(coverage["resolved_items"]),
+        "applied_decision_items": int(matched_count),
         "matched_decisions": int(matched_count),
+        "approved_metadata_drift_counts": confusion[
+            "approved_metadata_drift_counts"
+        ],
+        "approved_metadata_drift_unique_items": confusion[
+            "approved_metadata_drift_unique_items"
+        ],
+        "fatal_metadata_mismatch_counts": confusion[
+            "fatal_metadata_mismatch_counts"
+        ],
+        "unknown_items": int(coverage["unknown_items"]),
+        "duplicate_items": int(coverage["duplicate_decision_items"]),
+        "positional_matches": 0,
         "corrected_hidden_rows": int(changed.sum()),
         "yes_to_no_rows": int(
             (after["hidden_before_review"].eq("Yes") & after["hidden"].eq("No")).sum()
@@ -1553,7 +1581,7 @@ def _audit_applied_hidden(
         "source_counts": _counts(after, "source_type"),
         "coverage": coverage,
         "errors": errors,
-        "warnings": [],
+        "warnings": list(coverage["warnings"]),
     }
 
 
@@ -1624,6 +1652,32 @@ def _metadata_drift_unique_items(
     )
 
 
+def _classify_hidden_metadata_mismatches(
+    joined: pd.DataFrame,
+    mismatch_counts: dict[str, int],
+) -> dict[str, Any]:
+    """Apply the single authoritative Hidden metadata drift policy."""
+    approved = {
+        column: count
+        for column, count in sorted(mismatch_counts.items())
+        if column in NONFATAL_DECISION_METADATA_FIELDS
+    }
+    fatal = {
+        column: count
+        for column, count in sorted(mismatch_counts.items())
+        if column not in NONFATAL_DECISION_METADATA_FIELDS
+    }
+    return {
+        "approved_nonfatal_drift": approved,
+        "approved_nonfatal_drift_unique_items": (
+            _metadata_drift_unique_items(joined, approved)
+        ),
+        "fatal_metadata_mismatches": fatal,
+        "metadata_drift_policy": METADATA_DRIFT_POLICY,
+        "metadata_drift_policy_version": METADATA_DRIFT_POLICY_VERSION,
+    }
+
+
 def _hidden_confusion_audit(
     manifest: pd.DataFrame,
     decisions: pd.DataFrame,
@@ -1633,10 +1687,16 @@ def _hidden_confusion_audit(
         manifest,
         decisions,
     )
-    if metadata_mismatch_counts:
+    mismatch_policy = _classify_hidden_metadata_mismatches(
+        joined,
+        metadata_mismatch_counts,
+    )
+    approved_drift = mismatch_policy["approved_nonfatal_drift"]
+    fatal_mismatches = mismatch_policy["fatal_metadata_mismatches"]
+    if fatal_mismatches:
         raise ValueError(
             "Hidden decision metadata mismatch: "
-            f"{metadata_mismatch_counts}"
+            f"{fatal_mismatches}"
         )
     before_col = "hidden_before_review"
     after_col = "hidden_after_review_decision"
@@ -1680,6 +1740,14 @@ def _hidden_confusion_audit(
     )
     transitions = transition_values.value_counts(dropna=False).sort_index()
     return {
+        "schema_version": "classification_v2.hidden_confusion_audit.v2",
+        "manifest_items": int(len(manifest)),
+        "decision_rows": int(len(decisions)),
+        "resolved_items": int(resolved.sum()),
+        "applied_decision_items": int(resolved.sum()),
+        "unknown_items": 0,
+        "duplicate_items": 0,
+        "positional_matches": 0,
         "cohort_counts": _counts(joined, "hidden_review_cohort"),
         "reviewed_cohort_counts": _counts(
             joined.loc[resolved],
@@ -1702,8 +1770,22 @@ def _hidden_confusion_audit(
             "yield is enrichment evidence, not population prevalence."
         ),
         "decision_metadata_mismatch_counts": metadata_mismatch_counts,
+        "approved_metadata_drift_counts": approved_drift,
+        "approved_metadata_drift_unique_items": mismatch_policy[
+            "approved_nonfatal_drift_unique_items"
+        ],
+        "fatal_metadata_mismatch_counts": fatal_mismatches,
+        "nonfatal_metadata_fields": sorted(NONFATAL_DECISION_METADATA_FIELDS),
+        "metadata_drift_policy": mismatch_policy["metadata_drift_policy"],
+        "metadata_drift_policy_version": mismatch_policy[
+            "metadata_drift_policy_version"
+        ],
         "errors": [],
-        "warnings": [],
+        "warnings": (
+            [f"approved_risk_sampling_metadata_drift={approved_drift}"]
+            if approved_drift
+            else []
+        ),
     }
 
 

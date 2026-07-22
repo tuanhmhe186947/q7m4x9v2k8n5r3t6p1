@@ -773,8 +773,59 @@ def test_gui_metadata_keeps_manifest_cohort_authority_during_apply() -> None:
     assert confusion["errors"] == []
 
 
+@pytest.mark.parametrize(
+    ("drift_counts", "expected_unique"),
+    [
+        ({"hidden_false_negative_risk_reasons": 1}, 1),
+        ({"hidden_false_negative_risk_score": 1}, 1),
+        (
+            {
+                "hidden_false_negative_risk_reasons": 2,
+                "hidden_false_negative_risk_score": 1,
+            },
+            2,
+        ),
+    ],
+)
+def test_apply_accepts_only_approved_risk_metadata_drift(
+    drift_counts: dict[str, int],
+    expected_unique: int,
+) -> None:
+    frames, manifest = _build_review()
+    decisions = _resolved_decisions(manifest)
+    manifest_by_item = manifest.set_index("hidden_review_item_id")
+    for column in drift_counts:
+        decisions[column] = decisions["hidden_review_item_id"].map(
+            manifest_by_item[column]
+        )
+    if "hidden_false_negative_risk_reasons" in drift_counts:
+        count = drift_counts["hidden_false_negative_risk_reasons"]
+        decisions.loc[: count - 1, "hidden_false_negative_risk_reasons"] = (
+            "changed-risk-reason"
+        )
+    if "hidden_false_negative_risk_score" in drift_counts:
+        count = drift_counts["hidden_false_negative_risk_score"]
+        decisions.loc[: count - 1, "hidden_false_negative_risk_score"] = 9.0
+
+    reviewed, audit, confusion = apply_hidden_review_decisions(
+        frames,
+        manifest,
+        decisions,
+    )
+
+    assert len(reviewed) == len(frames)
+    assert audit["approved_metadata_drift_counts"] == drift_counts
+    assert audit["approved_metadata_drift_unique_items"] == expected_unique
+    assert audit["fatal_metadata_mismatch_counts"] == {}
+    assert audit["positional_matches"] == 0
+    assert confusion["approved_metadata_drift_counts"] == drift_counts
+    assert confusion["approved_metadata_drift_unique_items"] == expected_unique
+    assert confusion["fatal_metadata_mismatch_counts"] == {}
+    assert confusion["warnings"]
+
+
 def test_gui_metadata_mismatch_fails_closed() -> None:
-    _, manifest = _build_review()
+    frames, manifest = _build_review()
     decisions = _resolved_decisions(manifest)
     manifest_by_item = manifest.set_index("hidden_review_item_id")
     decisions["hidden_review_cohort"] = decisions["hidden_review_item_id"].map(
@@ -790,6 +841,57 @@ def test_gui_metadata_mismatch_fails_closed() -> None:
     assert "decision_metadata_mismatch:hidden_review_cohort=1" in audit["errors"]
     with pytest.raises(ValueError, match="Hidden decision metadata mismatch"):
         _hidden_confusion_audit(manifest, decisions)
+    with pytest.raises(ValueError, match="coverage failed"):
+        apply_hidden_review_decisions(frames, manifest, decisions)
+
+
+@pytest.mark.parametrize(
+    ("column", "drifted_value"),
+    [
+        ("video_key", "wrong-media"),
+        ("frame_index", 999999),
+        ("temporal_unit_key", "wrong-span"),
+        ("pig_id", "wrong-actor"),
+        ("track_id", "wrong-track"),
+    ],
+)
+def test_apply_identity_media_and_span_mismatch_fail_closed(
+    column: str,
+    drifted_value: object,
+) -> None:
+    frames, manifest = _build_review()
+    decisions = _resolved_decisions(manifest)
+    manifest_by_item = manifest.set_index("hidden_review_item_id")
+    decisions[column] = decisions["hidden_review_item_id"].map(
+        manifest_by_item[column]
+    )
+    decisions.loc[0, column] = drifted_value
+
+    with pytest.raises(ValueError, match="coverage failed"):
+        apply_hidden_review_decisions(frames, manifest, decisions)
+
+
+def test_apply_unknown_duplicate_and_payload_mismatch_fail_closed() -> None:
+    frames, manifest = _build_review()
+    decisions = _resolved_decisions(manifest)
+
+    unknown = decisions.copy()
+    unknown.loc[0, "hidden_review_item_id"] = "unknown-item"
+    with pytest.raises(ValueError, match="coverage failed"):
+        apply_hidden_review_decisions(frames, manifest, unknown)
+
+    duplicate = pd.concat([decisions, decisions.iloc[[0]]], ignore_index=True)
+    with pytest.raises(ValueError, match="coverage failed"):
+        apply_hidden_review_decisions(frames, manifest, duplicate)
+
+    stale_payload = decisions.copy()
+    stale_payload.loc[0, "hidden_before_review"] = (
+        "Yes"
+        if decisions.loc[0, "hidden_before_review"] == "No"
+        else "No"
+    )
+    with pytest.raises(ValueError, match="coverage failed"):
+        apply_hidden_review_decisions(frames, manifest, stale_payload)
 
 
 def test_low_confidence_resolved_hidden_decision_fails_closed() -> None:
