@@ -1,4 +1,5 @@
 import argparse
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -9,6 +10,9 @@ parser.add_argument(
     type=Path,
     default=Path(r"outputs\classification_v2\review_units"),
 )
+parser.add_argument("--audit-json", type=Path, default=None)
+parser.add_argument("--lineage-id", default="")
+parser.add_argument("--code-authority-sha", default="")
 parser.add_argument(
     "--allow-incomplete-label-coverage",
     action="store_true",
@@ -175,6 +179,20 @@ if args.require_complete_legacy and all_units is not None and full_review is not
         errors.append(
             f"unexpected_complete_legacy_review_units={len(unexpected_legacy)}"
         )
+
+audit = {
+    "lineage_id": args.lineage_id,
+    "code_authority_sha": args.code_authority_sha.lower(),
+    "review_unit_dir": str(root),
+    "errors": errors,
+    "valid": not errors,
+}
+if args.audit_json is not None:
+    args.audit_json.parent.mkdir(parents=True, exist_ok=True)
+    args.audit_json.write_text(
+        json.dumps(audit, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
 
 if errors:
     print("\n[FAIL] review template coverage errors:")

@@ -3,8 +3,11 @@
 ## Current authority and stop state (2026-07-22)
 
 This section is the current operational authority. If an older section below
-conflicts with it, this section wins. The code parent under repair is
-`9af70d649f61261939465a281801b189b4c05acd`.
+conflicts with it, this section wins. The pre-gate authority was
+`4111a8c315b0d38831ffd05a0ebe61a3a86ea6c1`; the scientific implementation gate
+passed at `d397b11785d981d4f0a863f189137c8207093059`. A later docs-only commit
+changes Git HEAD but not that scientific result. V4 must bind the actual clean
+HEAD as `CODE_AUTHORITY_SHA`; never copy a stale SHA from this prose.
 
 Lineage `c2v2_human_review_20260721_reviewer01_v3` is frozen with all of these
 statuses:
@@ -26,10 +29,31 @@ classified as `FAILED_DIAGNOSTIC_PRE_MOTION_FIX`, `NOT_REUSABLE`, and
 `NOT_REVIEW_EVIDENCE`. Inventory it by path, size, modification time, and hash,
 but never resume or promote it.
 
-The next lineage may be named
-`c2v2_human_review_20260722_reviewer01_v4`, but it must not be created until the
-patch, full validation, active-data audit, Hidden-impact audit, and clean commit
-all pass.
+The final pre-behavior-review code gate passed at the current authority. The
+next lineage may be named `c2v2_human_review_20260722_reviewer01_v4` and may now
+be created for the Hidden-v4 workflow. This does not authorize behavior GUI:
+the GUI remains blocked until Hidden v4 is complete, native evidence passes,
+and an official clean-code review-authority manifest reports
+`authorizes_behavior_gui=true`.
+
+Current decision flags are:
+
+- `READY_TO_CREATE_V4_LINEAGE=YES`
+- `READY_FOR_HIDDEN_V4=YES`
+- `READY_FOR_BEHAVIOR_GUI=NO`
+- `READY_FOR_FULL_T6_T8_T12_T16_BUILD=NO`
+- `READY_FOR_TRAINING=NO`
+- `PROVISIONAL_PRIMARY_VIEW=T6_CONTIGUOUS`
+- `FINAL_PRIMARY_VIEW_LOCKED=NO`
+
+The bounded gate is implemented by
+`classification_v2_run_pre_behavior_review_smoke.py`; the clean deterministic
+smoke authority hash at the validated code SHA is
+`0a64bb0f7d05ff00830bbea7ef26e6e765f5a5ccd6bc4af96e4ca6ae9462f14b`.
+It has scope `representative_smoke_only` and never authorizes behavior GUI.
+
+Every subsection explicitly marked `Historical` or `cấm chạy cho v4` is
+non-executable evidence even when it still contains a fenced command block.
 
 ## Required v4 execution order
 
@@ -42,16 +66,21 @@ After a new code authority exists, execute v4 in this exact order:
    frame/object identity, span, and visual-media authority.
 4. Human-review every new-only Hidden item, then dry-run, apply, and independently
    check the complete fixed manifest.
-5. Run temporal harmonization from fixed, Hidden-reviewed frames.
-6. Build Pig-STRENet native-unit review evidence from the fixed harmonized
-   frames; do not reuse any v3 diagnostic output.
-7. Build native behavior-review units: complete legacy 16-frame bursts and
-   complete CVAT 6-frame intervals.
-8. Complete behavior review, audit decisions, apply them, and independently
-   check reviewed-frame authority.
-9. Recompute final T6/T8/T12/T16 and declared ablation views from reviewed
-   frame-local primitives.
-10. Run the independent sequence checker, leakage gates, determinism checks,
+5. Run temporal harmonization from fixed, Hidden-reviewed frame-local rows.
+6. Recompute `NATIVE_UNIT_REVIEW_EVIDENCE` inside each exact legacy 16-frame
+   burst or CVAT 6-frame interval. Reset every pair at `temporal_unit_key`.
+7. Build Pig-STRENet evidence from the same-lineage harmonized/native evidence;
+   do not reuse any v3 diagnostic output.
+8. Build native-only behavior-review units directly from temporal intervals.
+   Do not build or pass a pre-review sequence-window manifest.
+9. Validate media and GUI contracts, then create the official clean-code
+   review-authority manifest. Open behavior GUI only when it reports
+   `authorizes_behavior_gui=true`.
+10. Complete behavior review, audit decisions, apply them, and independently
+    check reviewed-frame authority.
+11. Recompute final T6/T8/T12/T16 and declared ablation views from reviewed
+    frame-local primitives.
+12. Run the independent sequence checker, leakage gates, determinism checks,
     snapshot/hash gates, and only then create train-ready exports.
 
 No positional Hidden matching is permitted. Old-only decisions remain audit
@@ -470,18 +499,19 @@ CVAT task_0..task_2 XML + task_3 JSON + manifest.jsonl
   -> two-sided Hidden review: Yes + risk/random/control No
   -> hidden_reviewed_frame_features.csv
   -> temporal harmonization: legacy 16f, CVAT 6f
-  -> unreviewed sequence windows
+  -> native-unit review evidence, reset at temporal_unit_key
   -> causal Pig-STRENet review evidence with validity masks
-  -> review_unit_manifest + 4 policy templates
+  -> native-only review_unit_manifest + 4 policy templates
+  -> official review-authority hash
   -> GUI decision CSVs
   -> complete-decision audit
   -> apply decisions, không drop frame
   -> reviewed_frame_features.csv
-  -> reviewed sequence windows
+  -> exact reviewed T6/T8/T12/T16 + legacy-only S6@16
   -> native temporal units
   -> Q2 outer/inner folds + optional native leave-one-group sensitivity
   -> whitelisted X/y/masks/event weights/spatial sequences
-  -> fixed-6 primary temporal view + native-length ablation
+  -> provisional T6 primary + T8/T12/T16 and S6@16 ablations
   -> grouped source/length/missingness shortcut controls
   -> image context index
   -> reusable actor and interaction letterbox caches
@@ -533,14 +563,15 @@ lineage mới; không tái dùng thư mục của một cấu hình khác.
 cd /d C:\Users\ironh\Downloads\PIG_Behavior_Project
 set PYTHONPATH=%CD%\src
 set PY=C:\Users\ironh\anaconda3\envs\pig_project\python.exe
-REM Replace the placeholders and use a new directory for every semantic rebuild.
-set RUN_ID=c2v2_human_review_YYYYMMDD_reviewer_vN
-set REVIEWER_NAME=replace_with_reviewer_id
+set RUN_ID=c2v2_human_review_20260722_reviewer01_v4
+set REVIEWER_NAME=reviewer01
+set CODE_AUTHORITY_SHA=replace_with_clean_git_head
 set UROOT=human_review_workspace\classification_v2\%RUN_ID%
 set R=%UROOT%\data
 set SM=%R%\00_smoke
 set SRC=%R%\01_source_full
 set FEAT=%R%\02_frame_features
+set FRAMELOCAL=%FEAT%\frame_local_primitives.csv
 set HREV=%R%\03_hidden_review
 set SEQ0=%R%\04_sequence_unreviewed
 set PIGREV=%R%\04a_pig_strenet_review_evidence
@@ -561,11 +592,11 @@ set L16P10=%L16RUN%\08_audits\legacy_16f_rebuild_completion_audit.json
 `%UROOT%` intentionally stops at `%RFRAME%`. Do not declare reviewed sequence,
 fold, train-ready, cache, snapshot, or model output below the human root.
 
-Không bắt đầu rebuild chỉ vì đã có tài liệu này. Agent phải bàn giao trạng thái
-`READY_FOR_HUMAN_REVIEW`, exact Git SHA và semantic config đã qua short gate.
-Trước lệnh đầu tiên, operator chạy `git rev-parse HEAD` và xác nhận SHA khớp
-handoff. Nếu code classification đang có thay đổi chưa commit hoặc SHA khác,
-dừng để tránh tạo một lineage từ code thay đổi giữa chừng.
+Không bắt đầu rebuild chỉ vì đã có tài liệu này. Handoff hiện chỉ cho phép tạo
+v4 và chạy Hidden v4; chưa cho phép behavior GUI. Trước lệnh đầu tiên, operator
+chạy `git rev-parse HEAD`, điền kết quả vào `CODE_AUTHORITY_SHA` và xác nhận
+worktree sạch. Nếu code classification đang có thay đổi chưa commit hoặc SHA
+khác handoff, dừng để tránh đổi code giữa lineage.
 
 Không chạy nguyên văn khi `RUN_ID` còn chứa placeholder `YYYYMMDD` hoặc
 `reviewer`, và không dùng lại
@@ -1099,15 +1130,46 @@ Gate full mixed merge:
 - invalid bbox, unknown label và row count đều được ghi, không bị xóa;
 - không dùng `--require-full-8-for-eval`.
 
-## 8. Tạo feature frame-level
+## 8. Tạo `FRAME_LOCAL_PRIMITIVES` cho v4
 
-Thứ tự là contract, không đổi: context policy -> geometry -> all-ROI -> enhanced
-motion/social/posture. Context policy chuẩn hóa eligibility nhưng không xóa row.
-Geometry tạo bbox/location chuẩn hóa. ROI tạo quan hệ tới feeder, drinker và
-toy cho mọi row, không chọn ROI theo label. Enhanced tạo motion, temporal,
-partner/social và posture proxy.
+V4 phải tách frame-local khỏi native pair evidence. Frame-local chứa context,
+geometry, all-ROI, same-frame partner/social geometry, pen distance, media,
+Hidden provenance, source-frame index và canonical timestamp. Nó không được
+chứa diff, shift, rolling, speed, acceleration, transition hoặc aggregate.
 
-### 8.1. Parser/schema feature smoke
+`%FRAMELOCAL%` được khai báo ở section 4.1 và là đường dẫn authority duy nhất.
+
+Production builder và independent checker là hai lệnh sau. Builder đọc trực
+tiếp merged source, khóa clock decoded-frame 30 FPS, giữ `times.txt` ở trường
+acquisition audit-only, tính geometry/ROI/same-frame social/static pen và ghi
+atomically. Checker đọc lại source độc lập, kiểm row order/key, timestamp, range,
+schema registry và yêu cầu `errors=[]`.
+
+```bat
+%PY% %S0%\classification_v2_build_frame_local_primitives.py ^
+  --input-csv %SRC%\merged_frame_objects.csv ^
+  --roi-coco data\annotations\roi\ROI_annotations.coco.json ^
+  --pen-mask data\annotations\scene\mask.png ^
+  --output-csv %FRAMELOCAL% ^
+  --schema-json %FEAT%\frame_local_schema.json ^
+  --audit-json %FEAT%\frame_local_audit.json ^
+  --lineage-id %RUN_ID% --code-authority-sha %CODE_AUTHORITY_SHA%
+%PY% %S0%\check_classification_v2_frame_local_primitives.py ^
+  --source-csv %SRC%\merged_frame_objects.csv ^
+  --frame-local-csv %FRAMELOCAL% ^
+  --roi-coco data\annotations\roi\ROI_annotations.coco.json ^
+  --pen-mask data\annotations\scene\mask.png ^
+  --schema-json %FEAT%\frame_local_schema.json ^
+  --builder-audit-json %FEAT%\frame_local_audit.json ^
+  --lineage-id %RUN_ID% --code-authority-sha %CODE_AUTHORITY_SHA% ^
+  --output-json %FEAT%\frame_local_checker.json
+```
+
+Không dùng `--overwrite` trong lần build authority đầu tiên. Nếu output đã tồn
+tại, dừng và audit lineage thay vì resume âm thầm. Enhanced artifact cũ chứa
+pair-derived columns, không được đổi tên thành frame-local hoặc đưa vào Hidden.
+
+### 8.1. Historical combined feature smoke — không chạy cho v4
 
 ```bat
 set FSM=%SM%\frame_features
@@ -1139,7 +1201,7 @@ cắt giữa CVAT interval hoặc legacy burst. PASS khi row count giữ nguyên
 bước, audit không có error, bbox/all-ROI columns tồn tại và source vẫn đủ.
 Warning về thiếu context phải được đếm, không được thay bằng drop.
 
-### 8.2. Full feature chain
+### 8.2. Historical combined full chain — không chạy cho v4
 
 ```bat
 %PY% %S0%\classification_v2_apply_context_policy.py ^
@@ -1164,9 +1226,8 @@ Warning về thiếu context phải được đếm, không được thay bằng
   --audit-json %FEAT%\spatiotemporal_frame_features_enhanced_audit.json
 ```
 
-Không truyền `--max-rows` ở full. So sánh số row của enhanced với merge; mọi
-chênh lệch phải có error hoặc audit reason cụ thể. Enhanced là input immutable
-của nhánh review trong lineage này; apply review phải ghi file khác.
+Khối lệnh này chỉ giữ làm historical diagnostic. Enhanced output chứa cả pair
+features, không phải frame-local authority và không được đưa vào Hidden v4.
 
 Enhanced mặc định thêm `pen_context` từ mask calibration cố định. Audit phải
 khớp SHA-256 và kích thước frame; mask được threshold ở 127 rồi chỉ resize bằng
@@ -1186,10 +1247,9 @@ resolution, loss, sampler hay temporal encoder. Cặp
 `actor_geometry -> actor_geometry_pen` chỉ là diagnostic, không đủ làm bằng
 chứng promotion vì candidate có thêm tín hiệu chuyển động theo biên.
 
-### 8.3. Complete-unit scientific smoke scope
+### 8.3. Historical complete-unit smoke — không chạy cho v4
 
-Sau full feature extraction, tạo short scope từ complete scene/native blocks.
-Đây mới là input cho Hidden, temporal và review smoke:
+Khối này phụ thuộc combined enhanced artifact cũ và không phải v4 authority:
 
 ```bat
 set SSCOPE=%SM%\complete_unit_scope
@@ -1250,7 +1310,7 @@ absolute frame-index delta phải bằng 1. Sorted sparse CVAT rows không tự 
 được coi là adjacent. Persistent pair contact/overlap và bbox instability cũng
 chỉ được cộng khi cặp frame này hợp lệ; toàn bộ logic vẫn độc lập behavior.
 
-### 8A.1. Short builder và media gate
+### 8A.1. Historical combined-input smoke — không chạy cho v4
 
 ```bat
 set HSM=%SM%\hidden_review
@@ -1279,7 +1339,7 @@ Không thêm `--max-rows-per-source` ở đây vì nó có thể cắt complete-
 lần thứ hai. Short PASS khi hai source đều có mặt, input có cả Yes/No, không thiếu
 untrusted Yes, trusted Yes đạt quota phân tầng, negative cohorts tồn tại, key
 unique và media missing bằng 0. Builder xuất frame-context subset để GUI không
-đọc lại full enhanced CSV.
+đọc lại full frame-local CSV.
 
 `--design-scope` là semantic contract bắt buộc, độc lập với input bounding.
 `smoke` vẫn chạy tất cả structural checks nhưng không yêu cầu full-support
@@ -1342,15 +1402,14 @@ fake decision để ép smoke hoặc full review PASS.
   --audit-json %HSM%\check_apply_hidden_review_output.json
 ```
 
-### 8A.2. Full manifest và human review
+### 8A.2. V4 full manifest và human review
 
-Chỉ chạy sau short PASS. Cap high-risk kiểm soát workload nhưng audit vẫn ghi
-toàn bộ high-risk population và số chưa được chọn. Thay cap tạo review design
-mới và phải lưu trong lineage.
+Chỉ chạy khi `%FRAMELOCAL%` đã qua frame-local schema gate. Cap high-risk kiểm
+soát workload nhưng audit vẫn ghi toàn bộ population và số chưa được chọn.
 
 ```bat
 %PY% %S1%\classification_v2_build_hidden_review_units.py ^
-  --input-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
+  --input-csv %FRAMELOCAL% ^
   --output-dir %HREV% ^
   --design-scope full ^
   --trusted-yes-per-stratum 1 ^
@@ -1358,18 +1417,17 @@ mới và phải lưu trong lineage.
   --clean-control-per-stratum 1 ^
   --max-high-risk-per-stratum 16
 %PY% %S1%\check_hidden_review_template_coverage.py ^
-  --input-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
+  --input-csv %FRAMELOCAL% ^
   --manifest-csv %HREV%\hidden_review_unit_manifest.csv ^
   --audit-json %HREV%\hidden_review_coverage_audit.json
 ```
 
-Với reference input hiện có, config v6 khóa trước
-`random_no_per_stratum=10` và `max_high_risk_per_stratum=16`, tạo 601 random
-items và 384 high-risk items. Rebuild mới phải lấy count từ audit, không ép số.
-Đổi cap hoặc quota tạo review design mới. Current clean run không migrate
-decision nào. Chỉ một future redesign có verified human provenance mới được
-carry bằng stable item ID, mapping và hash riêng. Không điều chỉnh quota sau
-khi xem outcome mà vẫn gọi đó là cùng predeclared design.
+V4 phải rebuild manifest bằng code authority mới và lấy support từ audit.
+Fixed comparison hiện có: old `5,240`, rebuilt `5,233`, exact intersection
+`5,227`, old-only `13`, new-only `6`. Chỉ 5.227 exact identities có cùng span
+và media authority được carry-forward; 13 old-only giữ audit-only, còn 6
+new-only phải được human review. Không điều chỉnh quota sau khi xem outcome mà
+vẫn gọi đó là cùng predeclared design.
 
 Trước khi xem kết quả wave đầu, ghi vào review-design manifest: ngưỡng chấp
 nhận false-negative, phương pháp confidence interval và strata sẽ báo cáo.
@@ -1386,20 +1444,39 @@ khóa upper bound random `0.05`, high-risk `0.10`, cùng minimum item/native/
 recording support. Đây không còn là implementation blocker; human evidence còn
 thiếu mới là blocker. Gate chỉ PASS khi coverage, support và threshold cùng đạt.
 
-#### 8A.2a. Khởi tạo decision authority sạch
+#### 8A.2a. Carry-forward exact identity và review 6 new-only
 
-Không chạy migration/carry từ v5/v6 hoặc từ bất kỳ pilot CSV nào. Người dùng
-xác nhận chưa review, nên metadata cũ gắn reviewer không đủ provenance để được
-chấp nhận. Giữ file cũ nguyên trạng cho forensic audit, nhưng decision authority
-mới phải bắt đầu tại `%HDEC%` và chưa có `hidden_review_decisions.csv`.
+Không positional matching và không carry từ pilot/unverified CSV. Bind rõ old
+v1 manifest cùng verified human decisions, giữ nguyên old-only evidence và tạo
+decision authority mới tại `%HDEC%`.
 
-Trước lần mở GUI đầu tiên, lệnh sau phải PASS. Sau khi GUI đã ghi quyết định,
-không chạy lại guard này vì cùng `%HDEC%` được dùng để resume có chủ ý.
+Trước lần mở GUI đầu tiên, bind hai authority cũ rồi dry-run và apply. Output
+root mới phải chưa có decision CSV.
 
 ```bat
+if not defined OLD_HIDDEN_MANIFEST exit /b 2
+if not defined OLD_HIDDEN_DECISIONS exit /b 2
 if exist "%HDEC%\hidden_review_decisions.csv" ^
-  (echo ERROR: clean Hidden decision root is not empty & exit /b 2)
+  (echo ERROR: v4 Hidden decision file already exists & exit /b 2)
+%PY% %S1%\classification_v2_carry_forward_hidden_review_decisions.py ^
+  --previous-manifest-csv "%OLD_HIDDEN_MANIFEST%" ^
+  --current-manifest-csv %HREV%\hidden_review_unit_manifest.csv ^
+  --decisions-csv "%OLD_HIDDEN_DECISIONS%" ^
+  --output-decisions-csv %HDEC%\hidden_review_decisions.csv ^
+  --audit-json %HREV%\hidden_carry_forward_dry_run_audit.json ^
+  --dry-run
+%PY% %S1%\classification_v2_carry_forward_hidden_review_decisions.py ^
+  --previous-manifest-csv "%OLD_HIDDEN_MANIFEST%" ^
+  --current-manifest-csv %HREV%\hidden_review_unit_manifest.csv ^
+  --decisions-csv "%OLD_HIDDEN_DECISIONS%" ^
+  --output-decisions-csv %HDEC%\hidden_review_decisions.csv ^
+  --audit-json %HREV%\hidden_carry_forward_apply_audit.json ^
+  --apply
 ```
+
+Hai audit phải xác nhận đúng 5.227 carried rows, không payload drift, không
+unknown key và không output positional. Sau đó GUI chỉ còn 6 new-only items
+chưa có decision; không tự accept các item này.
 
 ```bat
 %PY% %S1%\review_hidden_quality_gui.py ^
@@ -1487,32 +1564,49 @@ scientific gate đều PASS.
 
 ```bat
 %PY% %S1%\classification_v2_apply_hidden_review_decisions.py ^
-  --input-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
+  --input-csv %FRAMELOCAL% ^
   --manifest-csv %HREV%\hidden_review_unit_manifest.csv ^
   --decisions-csv %HDEC%\hidden_review_decisions.csv ^
   --output-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --audit-json %HREV%\apply_hidden_review_audit.json ^
   --confusion-audit-json %HREV%\hidden_confusion_audit.json
 %PY% %S1%\check_apply_hidden_review_decisions_output.py ^
-  --input-csv %FEAT%\spatiotemporal_frame_features_enhanced.csv ^
+  --input-csv %FRAMELOCAL% ^
   --output-csv %HREV%\hidden_reviewed_frame_features.csv ^
   --audit-json %HREV%\check_apply_hidden_review_output.json
 ```
 
-Apply PASS khi output rows bằng enhanced rows, non-Hidden source columns không
+Apply PASS khi output rows bằng frame-local rows, non-Hidden source columns không
 đổi, decision match đúng frame/object key và audit ghi `Yes->No`, `No->Yes`,
 trust status, random false-negative estimate cùng high-risk correction yield.
 
-## 9. Temporal harmonization và window chưa review
+## 9. Temporal harmonization và native evidence trước behavior review
 
-Temporal harmonization chỉ bắt đầu từ hidden-reviewed artifact. CVAT anchor `k`
-đại diện `k..k+5`; legacy burst có 16 frame. Hidden vẫn là frame/object quality,
-không được broadcast theo behavior interval. Sequence window được tạo sau bước
-này. Window 6, 8, 12 và 16 frame là candidate pool để audit/ablation, không phải
-cam kết rằng final model được dùng đồng thời mọi length. Primary model view phải
-được khóa riêng ở mục 15.6 để sequence length/padding không tiết lộ source.
+Temporal harmonization chỉ bắt đầu từ Hidden-reviewed frame-local authority.
+Trước behavior review, tuyệt đối không build full T6/T8/T12/T16/S6@16 corpus.
+Sau harmonization, recompute pair evidence trong từng `temporal_unit_key`.
 
-### 9.1. Short temporal/window chain
+### 9.0. Active v4 native-evidence chain
+
+```bat
+%PY% %S0%\classification_v2_build_temporal_harmonization.py ^
+  --input-csv %HREV%\hidden_reviewed_frame_features.csv ^
+  --output-csv %SEQ0%\harmonized_frames.csv ^
+  --intervals-csv %SEQ0%\temporal_intervals_standalone.csv ^
+  --audit-json %SEQ0%\temporal_harmonization_audit.json ^
+  --cvat-label-stride 6 ^
+  --legacy-expected-sequence-length 16
+%PY% %S0%\classification_v2_build_enhanced_spatiotemporal_features.py ^
+  --input-csv %SEQ0%\harmonized_frames.csv ^
+  --output-csv %SEQ0%\native_review_evidence.csv ^
+  --audit-json %SEQ0%\native_review_evidence_audit.json
+```
+
+Frame đầu mỗi native unit phải có pair validity false và zero inherited
+motion/ROI/social/pen transition. Grain phải là
+`NATIVE_UNIT_REVIEW_EVIDENCE`; pair scope phải là `temporal_unit_key`.
+
+### 9.1. Historical pre-review window smoke — cấm chạy cho v4
 
 ```bat
 set TSM=%SM%\sequence_unreviewed
@@ -1538,7 +1632,7 @@ tái dùng window canonical cũ. Không dùng `--exclude-mixed-windows`. Mixed v
 transition phải còn trong manifest nhưng `window_valid_for_main_train` phản ánh
 eligibility.
 
-### 9.2. Full temporal/window chain
+### 9.2. Historical pre-review full windows — cấm chạy cho v4
 
 ```bat
 %PY% %S0%\classification_v2_build_temporal_harmonization.py ^
@@ -1631,10 +1725,12 @@ Behavior not-selected và clean control không phải human-verified clean.
 
 ### 10.0. Pig-STRENet review evidence
 
-Build causal review evidence after temporal harmonization and before review
-unit selection. Input must be the same-lineage harmonized frame table. Every
-temporal unit must match exactly; missing or extra evidence keys fail closed.
-Transition evidence is zero unless history and target are both complete.
+Build causal evidence after native-unit recomputation and before review-unit
+selection. V4 input is `%SEQ0%\native_review_evidence.csv`. Every temporal unit
+must match exactly; missing or extra evidence keys fail closed. Transition
+evidence is zero unless history and target are both complete. The `%PIGSM%`
+smoke commands immediately below are historical and must not be run for v4;
+the active v4 command starts at `%PIGREV%`.
 
 ~~~bat
 set PIGSM=%TSM%\pig_strenet_review_evidence
@@ -1649,13 +1745,13 @@ set PIGSM=%TSM%\pig_strenet_review_evidence
   --expected-run-scope smoke ^
   --output-json %PIGSM%\pig_strenet_artifact_gate.json
 %PY% %S3%\classification_v2_build_pig_strenet_artifacts.py ^
-  --input-csv %SEQ0%\harmonized_frames.csv --output-dir %PIGREV% ^
+  --input-csv %SEQ0%\native_review_evidence.csv --output-dir %PIGREV% ^
   --history-length 6 --target-length 6 --legacy-target-starts 6 ^
   --top-k-neighbors 3 --roi-coco data\annotations\roi\ROI_annotations.coco.json ^
   --video-root data\videos --legacy-crop-root "%L16CROPS%" ^
   --run-scope full
 %PY% %S3%\check_classification_v2_pig_strenet_artifacts.py ^
-  --artifact-dir %PIGREV% --input-csv %SEQ0%\harmonized_frames.csv ^
+  --artifact-dir %PIGREV% --input-csv %SEQ0%\native_review_evidence.csv ^
   --expected-run-scope full ^
   --output-json %PIGREV%\pig_strenet_artifact_gate.json
 ~~~
@@ -1666,7 +1762,7 @@ evidence uses source-video scene frames. Static background.png or Image #1 is
 never accepted as temporal scene evidence. Pair labels are ignored by the
 review bridge, and all emitted review_pig fields remain forbidden from model-X.
 
-### 10.1. Builder smoke
+### 10.1. Historical window-based builder smoke — không chạy cho v4
 
 ```bat
 %PY% %S1%\classification_v2_build_review_units.py ^
@@ -1690,32 +1786,31 @@ review bridge, and all emitted review_pig fields remain forbidden from model-X.
 
 ```bat
 %PY% %S1%\classification_v2_build_review_units.py ^
-  --intervals-csv %SEQ0%\temporal_label_intervals.csv ^
-  --sequence-window-manifest-csv %SEQ0%\sequence_window_manifest.csv ^
+  --intervals-csv %SEQ0%\temporal_intervals_standalone.csv ^
+  --native-only ^
+  --full-native-unit-behavior-review ^
   --output-dir %REV% ^
   --max-units-per-template 100000 ^
   --pig-strenet-artifact-dir %PIGREV% ^
-  --include-all-retained-legacy-units ^
-  --disable-window-review-overlay
+  --include-all-retained-legacy-units
 %PY% %S1%\check_review_unit_template_coverage.py ^
   --review-unit-dir %REV% ^
-  --require-complete-legacy
+  --require-complete-legacy ^
+  --lineage-id %RUN_ID% --code-authority-sha %CODE_AUTHORITY_SHA% ^
+  --audit-json %REV%\review_unit_coverage_gate.json
 %PY% %S1%\classification_v2_write_behavior_scientific_design.py ^
   --manifest-csv %REV%\full_review_unit_manifest.csv ^
   --review-audit-json %REV%\review_unit_audit.json ^
   --output-json %REV%\behavior_review_scientific_design.json
 %PY% %S0%\check_classification_v2_cvat_anchor_case.py ^
-  --enhanced-csv %HREV%\hidden_reviewed_frame_features.csv ^
-  --intervals-csv %SEQ0%\temporal_label_intervals.csv ^
+  --enhanced-csv %SEQ0%\native_review_evidence.csv ^
+  --intervals-csv %SEQ0%\temporal_intervals_standalone.csv ^
   --review-units-csv %REV%\review_unit_manifest.csv ^
   --output-json %REV%\cvat_anchor_1020_audit.json
-%PY% %S0%\check_classification_v2_temporal_evidence.py ^
-  --enhanced-csv %HREV%\hidden_reviewed_frame_features.csv ^
-  --intervals-csv %SEQ0%\temporal_label_intervals.csv ^
-  --windows-csv %SEQ0%\sequence_window_manifest.csv ^
-  --review-units-csv %REV%\review_unit_manifest.csv ^
-  --trainer-contract-json configs\classification_v2\trainer_contract_v1.json ^
-  --output-json %REV%\temporal_evidence_audit.json
+%PY% %S1%\check_review_unit_gui_contract.py ^
+  --review-units-csv %REV%\full_review_unit_manifest.csv ^
+  --frame-features-csv %SEQ0%\native_review_evidence.csv ^
+  --audit-json %REV%\gui_contract_audit.json
 ```
 
 Flag `--include-all-retained-legacy-units` đưa mọi native unit legacy 16-frame
@@ -1726,14 +1821,13 @@ bất kỳ legacy unit nào. Đây là cặp gate bắt buộc khi gọi legacy 
 behavior-reviewed.
 
 Hai flag này chỉ kiểm tra các `legacy_recovered` unit đã hiện diện trong
-`%SEQ0%\temporal_label_intervals.csv`; chúng không tự nhập legacy ngoài source
+`%SEQ0%\temporal_intervals_standalone.csv`; chúng không tự nhập legacy ngoài source
 manifest. Với active mixed lineage, sự hiện diện của legacy là bắt buộc và
 `--require-complete-legacy` phải PASS. Nếu sau này chạy CVAT-only sensitivity,
 phải bỏ cả hai flag và không gọi kết quả đó là complete legacy review.
 
-Flag `--disable-window-review-overlay` ngăn builder đọc window-review artifact
-canonical cũ. Chỉ bật overlay khi có file review window thuộc đúng `RUN_ID` và
-hash đã khóa.
+Native-only mode không đọc window-review overlay và không cần pre-review window
+manifest. Nếu code yêu cầu một window artifact ở đây, dừng vì contract đã drift.
 
 Gate: duplicate `review_unit_id=0`, không có `window_uid`, template labels đúng
 policy, mọi retained legacy unit đều có trong full review, và
@@ -1745,6 +1839,116 @@ không được phát hiện label/review leakage vào trainer whitelist.
 Behavior scientific design phải được ghi trước decision đầu tiên. Full design
 bind exact manifest hash, policy hash, cohort support và residual estimand.
 Smoke design chỉ kiểm tra contract; nó luôn non-authorizing.
+
+### 10.3. Official review-authority gate trước behavior GUI
+
+Ba file `%SEQ0%\timestamp_fps_contract.json`, `%REV%\evidence_semantics.json`
+và `%REV%\behavior_review_media_authority.json` phải được build và independently
+check trong chính v4. Không copy artifact từ representative smoke.
+
+```bat
+%PY% %S0%\classification_v2_write_timestamp_fps_contract.py ^
+  --frame-local-csv %FRAMELOCAL% --video-root data\videos ^
+  --lineage-id %RUN_ID% --code-authority-sha %CODE_AUTHORITY_SHA% ^
+  --source-lineage-artifact merged=%SRC%\merged_frame_objects_lineage.json ^
+  --output-json %SEQ0%\timestamp_fps_contract.json
+%PY% %S0%\check_classification_v2_timestamp_fps_contract.py ^
+  --frame-local-csv %FRAMELOCAL% --video-root data\videos ^
+  --lineage-id %RUN_ID% --code-authority-sha %CODE_AUTHORITY_SHA% ^
+  --source-lineage-artifact merged=%SRC%\merged_frame_objects_lineage.json ^
+  --contract-json %SEQ0%\timestamp_fps_contract.json ^
+  --output-json %SEQ0%\timestamp_fps_contract_checker.json
+%PY% %S1%\classification_v2_write_evidence_semantics.py ^
+  --frame-local-csv %FRAMELOCAL% ^
+  --native-evidence-csv %SEQ0%\native_review_evidence.csv ^
+  --lineage-id %RUN_ID% --code-authority-sha %CODE_AUTHORITY_SHA% ^
+  --output-json %REV%\evidence_semantics.json
+%PY% %S1%\check_classification_v2_evidence_semantics.py ^
+  --frame-local-csv %FRAMELOCAL% ^
+  --native-evidence-csv %SEQ0%\native_review_evidence.csv ^
+  --lineage-id %RUN_ID% --code-authority-sha %CODE_AUTHORITY_SHA% ^
+  --semantics-json %REV%\evidence_semantics.json ^
+  --output-json %REV%\evidence_semantics_checker.json
+```
+
+```bat
+%PY% %S1%\classification_v2_build_behavior_review_media_authority.py ^
+  --review-units-csv %REV%\full_review_unit_manifest.csv ^
+  --native-evidence-csv %SEQ0%\native_review_evidence.csv ^
+  --video-root data\videos --legacy-crop-root "%L16CROPS%" ^
+  --lineage-id %RUN_ID% --code-authority-sha %CODE_AUTHORITY_SHA% ^
+  --output-index-csv %REV%\behavior_review_media_authority_index.csv ^
+  --output-json %REV%\behavior_review_media_authority.json
+%PY% %S1%\check_classification_v2_behavior_review_media_authority.py ^
+  --review-units-csv %REV%\full_review_unit_manifest.csv ^
+  --native-evidence-csv %SEQ0%\native_review_evidence.csv ^
+  --video-root data\videos --legacy-crop-root "%L16CROPS%" ^
+  --lineage-id %RUN_ID% --code-authority-sha %CODE_AUTHORITY_SHA% ^
+  --index-csv %REV%\behavior_review_media_authority_index.csv ^
+  --authority-json %REV%\behavior_review_media_authority.json ^
+  --output-json %REV%\behavior_review_media_authority_checker.json
+
+if not exist "%SEQ0%\timestamp_fps_contract.json" exit /b 2
+if not exist "%REV%\evidence_semantics.json" exit /b 2
+if not exist "%REV%\behavior_review_media_authority.json" exit /b 2
+if not defined CODE_AUTHORITY_SHA exit /b 2
+%PY% %S1%\classification_v2_build_review_authority_manifest.py ^
+  --code-authority-sha %CODE_AUTHORITY_SHA% ^
+  --lineage-id %RUN_ID% ^
+  --authority-scope official_v4_pre_behavior_review ^
+  --source-artifact merged_source=%SRC%\merged_frame_objects_lineage.json ^
+  --frame-local-csv %FRAMELOCAL% ^
+  --hidden-reviewed-frame-csv %HREV%\hidden_reviewed_frame_features.csv ^
+  --harmonized-frame-csv %SEQ0%\harmonized_frames.csv ^
+  --temporal-native-unit-manifest-csv ^
+  %SEQ0%\temporal_intervals_standalone.csv ^
+  --pig-strenet-evidence-manifest %PIGREV%\pig_strenet_artifact_gate.json ^
+  --behavior-review-unit-manifest-csv %REV%\full_review_unit_manifest.csv ^
+  --media-authority-manifest %REV%\behavior_review_media_authority.json ^
+  --timestamp-fps-contract-json %SEQ0%\timestamp_fps_contract.json ^
+  --evidence-semantics-json %REV%\evidence_semantics.json ^
+  --component-gate frame_local=%FEAT%\frame_local_checker.json ^
+  --component-gate hidden_coverage=%HREV%\hidden_review_coverage_audit.json ^
+  --component-gate hidden_scientific=%HREV%\hidden_scientific_gate.json ^
+  --component-gate hidden_apply=%HREV%\check_apply_hidden_review_output.json ^
+  --component-gate temporal_harmonization=%SEQ0%\temporal_harmonization_audit.json ^
+  --component-gate native_evidence=%SEQ0%\native_review_evidence_audit.json ^
+  --component-gate pig_strenet=%PIGREV%\pig_strenet_artifact_gate.json ^
+  --component-gate native_review_unit_coverage=%REV%\review_unit_coverage_gate.json ^
+  --component-gate timestamp_fps=%SEQ0%\timestamp_fps_contract_checker.json ^
+  --component-gate evidence_semantics=%REV%\evidence_semantics_checker.json ^
+  --component-gate media_authority=%REV%\behavior_review_media_authority_checker.json ^
+  --output-json %REV%\behavior_review_authority.json
+%PY% %S1%\check_classification_v2_review_authority_manifest.py ^
+  --manifest-json %REV%\behavior_review_authority.json ^
+  --code-authority-sha %CODE_AUTHORITY_SHA% --lineage-id %RUN_ID% ^
+  --source-artifact merged_source=%SRC%\merged_frame_objects_lineage.json ^
+  --frame-local-csv %FRAMELOCAL% ^
+  --hidden-reviewed-frame-csv %HREV%\hidden_reviewed_frame_features.csv ^
+  --harmonized-frame-csv %SEQ0%\harmonized_frames.csv ^
+  --temporal-native-unit-manifest-csv %SEQ0%\temporal_intervals_standalone.csv ^
+  --pig-strenet-evidence-manifest %PIGREV%\pig_strenet_artifact_gate.json ^
+  --behavior-review-unit-manifest-csv %REV%\full_review_unit_manifest.csv ^
+  --media-authority-manifest %REV%\behavior_review_media_authority.json ^
+  --timestamp-fps-contract-json %SEQ0%\timestamp_fps_contract.json ^
+  --evidence-semantics-json %REV%\evidence_semantics.json ^
+  --component-gate frame_local=%FEAT%\frame_local_checker.json ^
+  --component-gate hidden_coverage=%HREV%\hidden_review_coverage_audit.json ^
+  --component-gate hidden_scientific=%HREV%\hidden_scientific_gate.json ^
+  --component-gate hidden_apply=%HREV%\check_apply_hidden_review_output.json ^
+  --component-gate temporal_harmonization=%SEQ0%\temporal_harmonization_audit.json ^
+  --component-gate native_evidence=%SEQ0%\native_review_evidence_audit.json ^
+  --component-gate pig_strenet=%PIGREV%\pig_strenet_artifact_gate.json ^
+  --component-gate native_review_unit_coverage=%REV%\review_unit_coverage_gate.json ^
+  --component-gate timestamp_fps=%SEQ0%\timestamp_fps_contract_checker.json ^
+  --component-gate evidence_semantics=%REV%\evidence_semantics_checker.json ^
+  --component-gate media_authority=%REV%\behavior_review_media_authority_checker.json ^
+  --output-json %REV%\behavior_review_authority_checker.json
+```
+
+Không truyền `--code-dirty`. Dừng nếu manifest invalid, tham chiếu v3, chứa
+pair columns trong frame-local schema hoặc không báo
+`authorizes_behavior_gui=true`. Đây là gate cuối trước section 11.
 
 ## 11. GUI smoke và human review đầy đủ
 
@@ -1779,20 +1983,20 @@ if exist "%DEC%\interaction\behavior_unit_review_decisions.csv" exit /b 2
 ```bat
 %PY% %S1%\review_temporal_unit_gui.py ^
   --review-units-csv %REV%\roi_review_unit_template.csv ^
-  --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
+  --frame-features-csv %SEQ0%\native_review_evidence.csv ^
   --output-dir %DEC%\roi --video-root data\videos ^
   --raw-root "%L16CROPS%" ^
   --roi-coco-json data\annotations\roi\ROI_annotations.coco.json ^
   --max-items 5 --copy-contact-sheets
 %PY% %S1%\review_temporal_unit_gui.py ^
   --review-units-csv %REV%\motion_review_unit_template.csv ^
-  --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
+  --frame-features-csv %SEQ0%\native_review_evidence.csv ^
   --output-dir %DEC%\motion --video-root data\videos ^
   --raw-root "%L16CROPS%" ^
   --max-items 5 --copy-contact-sheets
 %PY% %S1%\review_temporal_unit_gui.py ^
   --review-units-csv %REV%\posture_review_unit_template.csv ^
-  --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
+  --frame-features-csv %SEQ0%\native_review_evidence.csv ^
   --output-dir %DEC%\posture --video-root data\videos ^
   --raw-root "%L16CROPS%" ^
   --max-items 5 --copy-contact-sheets
@@ -1808,7 +2012,7 @@ coi là đủ bằng chứng. Nếu actor/partner/role vẫn không đủ rõ, c
 ```bat
 %PY% %S1%\review_temporal_unit_gui.py ^
   --review-units-csv %REV%\interaction_review_unit_template.csv ^
-  --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
+  --frame-features-csv %SEQ0%\native_review_evidence.csv ^
   --output-dir %DEC%\interaction --video-root data\videos ^
   --raw-root "%L16CROPS%" ^
   --max-items 5 --copy-contact-sheets
@@ -1841,20 +2045,20 @@ GUI nạp CSV cũ, chặn blank/duplicate ID và ghi deterministic order.
 ```bat
 %PY% %S1%\review_temporal_unit_gui.py ^
   --review-units-csv %REV%\roi_review_unit_template.csv ^
-  --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
+  --frame-features-csv %SEQ0%\native_review_evidence.csv ^
   --output-dir %DEC%\roi --video-root data\videos ^
   --raw-root "%L16CROPS%" ^
   --roi-coco-json data\annotations\roi\ROI_annotations.coco.json ^
   --copy-contact-sheets
 %PY% %S1%\review_temporal_unit_gui.py ^
   --review-units-csv %REV%\motion_review_unit_template.csv ^
-  --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
+  --frame-features-csv %SEQ0%\native_review_evidence.csv ^
   --output-dir %DEC%\motion --video-root data\videos ^
   --raw-root "%L16CROPS%" ^
   --copy-contact-sheets
 %PY% %S1%\review_temporal_unit_gui.py ^
   --review-units-csv %REV%\posture_review_unit_template.csv ^
-  --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
+  --frame-features-csv %SEQ0%\native_review_evidence.csv ^
   --output-dir %DEC%\posture --video-root data\videos ^
   --raw-root "%L16CROPS%" ^
   --copy-contact-sheets
@@ -1863,7 +2067,7 @@ GUI nạp CSV cũ, chặn blank/duplicate ID và ghi deterministic order.
 ```bat
 %PY% %S1%\review_temporal_unit_gui.py ^
   --review-units-csv %REV%\interaction_review_unit_template.csv ^
-  --frame-features-csv %HREV%\hidden_reviewed_frame_features.csv ^
+  --frame-features-csv %SEQ0%\native_review_evidence.csv ^
   --output-dir %DEC%\interaction --video-root data\videos ^
   --raw-root "%L16CROPS%" ^
   --copy-contact-sheets
@@ -1950,14 +2154,15 @@ behavior hợp lệ và không `window_uid`.
   %HREV%\hidden_reviewed_frame_features.csv
 ```
 
-Apply không overwrite enhanced CSV. Nó giữ nguyên số frame row, lưu
+Apply không overwrite frame-local hoặc native-evidence CSV. Nó giữ nguyên số
+frame row, lưu
 `behavior_before_review` và `behavior_after_review`, đồng thời thêm action,
 include flag và weight. Corrected decision áp toàn bộ 16 frame legacy hoặc 6
 frame CVAT qua `temporal_unit_key`. Exclude đặt mask/weight, không xóa row.
 
 Gate:
 
-- reviewed rows bằng enhanced rows;
+- reviewed rows bằng Hidden-reviewed frame-local rows;
 - audit `errors=[]` và unmatched decision bằng 0;
 - duplicate `review_unit_id=0` trong combined decisions;
 - applied/accepted/corrected/excluded counts được ghi;
@@ -1998,6 +2203,8 @@ output dùng `%DROOT%`; không dùng fast overlay canonical.
   --harmonized-frame-csv %SEQ1%\harmonized_frames.csv ^
   --temporal-intervals-csv %SEQ1%\temporal_label_intervals.csv ^
   --window-lengths 6,8,12,16 ^
+  --include-legacy-sparse-s6-at16 ^
+  --behavior-review-requirement full_native_unit_review_required ^
   --cvat-label-stride 6 ^
   --legacy-expected-sequence-length 16 ^
   --disable-fast-reuse
@@ -2006,6 +2213,11 @@ output dùng `%DROOT%`; không dùng fast overlay canonical.
 Không dùng `--exclude-mixed-windows`. `window_sample_weight=0` và
 `window_valid_for_main_train=false` phải phản ánh review-excluded frame mà
 không làm mất window row.
+
+Builder phải recompute exact pairs và aggregates riêng cho từng view. Gate yêu
+cầu `pair_recomputed_for_view=true`, `aggregate_recomputed_for_view=true`,
+`pair_scope_key=window_id`; S6@16 phải là legacy-only sparse ablation và không
+được trộn vào T6 primary corpus.
 
 ### 13.2. Native temporal units
 
@@ -2242,9 +2454,11 @@ lập. Chỉ dùng làm auxiliary target/mask; không đưa vào X và không d�
 argmax cascade vào final 10-class head. Attribute reviewed độc lập, nếu bổ sung
 sau này, phải có confidence/mask và một ablation riêng.
 
-### 15.6. Primary temporal view và source-shortcut controls
+### 15.6. Provisional primary và source-shortcut controls — post-review only
 
-Đầu tiên tạo packet temporal view từ đúng reviewed lineage:
+Section 13 là authority tạo exact-view features. Legacy packet builder dưới đây
+chỉ giữ làm Group-B compatibility reference; không chạy cho v4 cho tới khi nó
+đọc per-view outputs mà không resample, reuse aggregate hoặc đổi view identity:
 
 ```bat
 set TVIEW=%TRAIN%\temporal_views
@@ -2258,12 +2472,10 @@ set TVIEW=%TRAIN%\temporal_views
   --output-json %TVIEW%\temporal_shortcut_audit.json
 ```
 
-Builder tạo sáu artifact chính: selection ledger, hai fixed-six slot manifest,
-native 6/16 slot manifest, contract JSON và build audit. Mọi input window vẫn
-có một row trong ledger; missing frame vẫn có expected slot và mask. Contract
-bind row count cùng ordered-key hash, nên cắt hoặc reorder CSV sẽ làm checker
-FAIL. Output đã tồn tại cần `--overwrite`; semantic config mới phải dùng `%R%`
-mới. Trước packet full, chạy cùng lệnh trên reviewed complete-unit short lineage.
+Khi được nâng cấp, packaging phải giữ nguyên `view_type`, sampling pattern,
+selected frames/timestamps, pair deltas, masks và ordered-key hash từ section
+13. Không được biến S6@16 thành fixed-six/T6 hoặc tạo aggregate mới từ một view
+khác.
 
 Sau đó tạo source-matched masks và grouped spatial probe bổ sung:
 
@@ -2284,12 +2496,16 @@ Tabular source probe và availability-only behavior probe phải đợi image v�
 interaction manifests ở mục 16.5. Không dùng artifact cũ 39 feature hoặc số row
 hard-code làm authority cho lineage mới.
 
-Primary protocol là `fixed6_observed_time`: CVAT và legacy đều dùng window dài
-6 đã được tạo sau harmonization. Không lấy sáu quantile rải trên burst legacy
-16 frame vì cách đó làm span/cadence trở thành source proxy. Một native legacy
-có thể cho nhiều subwindow, nhưng tất cả ở cùng fold/native event và event
-weight kiểm soát repeated mass. `fixed6_normalized_phase` giữ nguyên membership
-nhưng bỏ absolute duration; `native6_16` chỉ là ablation.
+Thiết kế trước review là `PROVISIONAL_PRIMARY_VIEW=T6_CONTIGUOUS`; final primary
+chưa khóa. T6 của cả hai source phải chọn sáu source frames liên tiếp. Ở 30 FPS,
+mọi pair có delta frame 1, delta time `1/30 s` và physical span `5/30 s`.
+Không lấy sáu quantile rải trên legacy burst rồi gọi là T6. T8, T12 và T16 là
+cross-length ablations. `S6@16` dùng offsets `[0,3,6,9,12,15]`, là legacy-only
+diagnostic và không được trộn vào primary corpus.
+
+Sau behavior review, chỉ khóa primary nếu source × behavior coverage, class
+balance, session-safe folds, Hidden/review eligibility và source-shortcut probes
+đều PASS. Không chọn primary bằng view có test accuracy cao nhất.
 
 Trong primary X, `window_length_frames` phải là hằng số. Chỉ giữ duration,
 effective FPS hoặc frame-delta khi provenance thời gian của hai source đã được
@@ -2546,11 +2762,12 @@ certutil -hashfile %SRC%\merged_frame_objects.csv SHA256
 certutil -hashfile %SRC%\merged_frame_objects_audit.json SHA256
 certutil -hashfile %SRC%\merged_frame_objects_lineage.json SHA256
 certutil -hashfile %SRC%\mixed_source_lineage_gate.json SHA256
-certutil -hashfile ^
-  %FEAT%\spatiotemporal_frame_features_enhanced.csv SHA256
+certutil -hashfile %FRAMELOCAL% SHA256
 certutil -hashfile %HREV%\hidden_review_unit_manifest.csv SHA256
 certutil -hashfile %HDEC%\hidden_review_decisions.csv SHA256
 certutil -hashfile %HREV%\hidden_reviewed_frame_features.csv SHA256
+certutil -hashfile %SEQ0%\native_review_evidence.csv SHA256
+certutil -hashfile %REV%\behavior_review_authority.json SHA256
 certutil -hashfile %RFRAME%\reviewed_frame_features.csv SHA256
 certutil -hashfile %SEQ1%\sequence_window_manifest.csv SHA256
 certutil -hashfile %NATIVE%\native_temporal_unit_manifest.csv SHA256
@@ -2581,7 +2798,7 @@ root thuộc human-review lineage. Không copy đè canonical để né path con
 Phải phân biệt component PASS với integration PASS và luôn giữ hash lineage:
 
 1. Identifier-v2, target-independent Hidden design, exact video resolver,
-   fixed-six loader, fold-local preprocessing, native-event weighting và inner
+   per-view loader, fold-local preprocessing, native-event weighting và inner
    native-unit selection đã PASS ở code/fixture hoặc bounded audit.
 2. Generated reviewed-Q2 contract v2 được build từ artifact map explicit và
    không dùng `configs/classification_v2/data_contract_v2.json` làm fallback.
@@ -2820,7 +3037,7 @@ PASS:
 - [ ] `Yes->No`, `No->Yes`, weighted false-negative rate có audit.
 - [ ] Hidden weighted/high-risk CI và predeclared threshold gate PASS.
 - [ ] Final Hidden manifest xác nhận target-independent và target-derived audit rỗng.
-- [ ] Enhanced, hidden-reviewed và behavior-reviewed rows bằng nhau.
+- [ ] Frame-local, Hidden-reviewed và behavior-reviewed rows bằng nhau.
 - [ ] Duplicate `temporal_unit_key=0` và duplicate `review_unit_id=0`.
 - [ ] Không output mới dùng `window_uid`.
 - [ ] ROI/motion/posture/interaction templates đúng policy.
@@ -2846,7 +3063,8 @@ PASS:
 - [ ] Actor cache dùng letterbox, preview không méo, checksum PASS.
 - [ ] Packed cache index/tensor equivalence PASS.
 - [ ] Interaction context giữ missing mask và không label-select partner.
-- [ ] Fixed-6 primary view và native-length ablation được định nghĩa tách biệt.
+- [ ] T6 provisional primary, T8/T12/T16 ablations và legacy-only S6@16 có
+      identity, pair scope và aggregate riêng.
 - [ ] Grouped source/length/padding/missingness controls đã được audit.
 - [ ] Final artifact hashes, config, code SHA và environment đã ghi.
 
@@ -2870,8 +3088,8 @@ Full OOF chỉ được phép khi thêm các mục sau PASS:
 - [ ] Full predictions đủ count và collapse về native unit không mất unit.
 - [ ] Calibration, confusion, grouped/source metrics, registry và completion PASS.
 
-Theo code hiện tại, fixed-six manifest và structural shortcut contract đã PASS
-trên fixture ở `bb225ff`; active reviewed packet và model-loader integration
-chưa thể chạy. Primary fold protocol, ResNet finalist và reviewed snapshot cũng
-chưa đạt. Vì vậy toàn luồng tới scientific full OOF vẫn là `FAIL/BLOCKED`, dù
-technical data smoke đã PASS.
+Theo authority hiện tại, synthetic và representative exact-view contract đã
+PASS, nhưng full views chưa được phép build trước behavior apply. Active
+reviewed packet, final primary lock và model-loader integration chưa tồn tại.
+Vì vậy full final-view build, training và scientific full OOF vẫn
+`FAIL/BLOCKED` cho tới khi Hidden và behavior review hoàn tất.

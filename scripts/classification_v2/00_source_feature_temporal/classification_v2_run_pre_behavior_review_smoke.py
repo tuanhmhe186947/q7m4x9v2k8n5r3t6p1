@@ -270,12 +270,16 @@ def main() -> None:
     hidden = _hidden_authority(frame_local)
     timestamp_contract = {
         "schema_version": "classification_v2.timestamp_fps_contract.v1",
+        "lineage_id": "pre_behavior_review_representative_smoke",
         "source_fps": float(args.source_fps),
         "source_frame_index_authority": "decoded_video_frame_index",
         "formula": "timestamp_sec=source_frame_index/source_fps",
         "times_txt_role": "acquisition_audit_only_not_motion_clock",
+        "errors": [],
+        "valid": True,
     }
     evidence_semantics = {
+        "lineage_id": "pre_behavior_review_representative_smoke",
         "evidence_column_semantic_version": (
             "classification_v2.native_review_evidence.v2"
         ),
@@ -283,6 +287,8 @@ def main() -> None:
         "pair_scope": "exact_temporal_unit_key",
         "final_view_aggregate_reuse_allowed": False,
         "smoke_review_overlay_is_human_authority": False,
+        "errors": [],
+        "valid": True,
     }
 
     args.output_dir.mkdir(parents=True, exist_ok=True)

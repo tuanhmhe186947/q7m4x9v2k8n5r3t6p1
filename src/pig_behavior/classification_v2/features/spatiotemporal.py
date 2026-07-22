@@ -39,6 +39,9 @@ from pig_behavior.classification_v2.contracts.lineage_claims import (
 from pig_behavior.classification_v2.features.context_policy import (
     normalize_hidden_provenance,
 )
+from pig_behavior.classification_v2.features.social import (
+    build_static_social_context_features,
+)
 from pig_behavior.classification_v2.features.temporal_evidence import (
     TemporalEvidenceConfig,
     add_unit_temporal_evidence,
@@ -936,116 +939,13 @@ def _add_roi_temporal_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _add_social_context_columns(df: pd.DataFrame, config: EnhancedFeatureConfig) -> pd.DataFrame:
-    out = df.copy().reset_index(drop=True)
-    n = len(out)
-
-    nearest_pig_id_arr = np.full(n, "", dtype=object)
-    nearest_track_id_arr = np.full(n, "", dtype=object)
-    nearest_dist_arr = np.full(n, np.nan, dtype="float64")
-    nearest_iou_arr = np.zeros(n, dtype="float64")
-    nearest_overlap_arr = np.zeros(n, dtype="float64")
-    near_count_arr = np.zeros(n, dtype="int64")
-    contact_count_arr = np.zeros(n, dtype="int64")
-    frame_size_arr = np.zeros(n, dtype="int64")
-
-    required = ["cx_n", "cy_n", "x1", "y1", "x2", "y2", "bbox_area"]
-    for col in required:
-        if col not in out.columns:
-            out[col] = np.nan
-        out[col] = pd.to_numeric(out[col], errors="coerce")
-
-    out["_social_frame_group_key"] = _social_frame_group_key(out)
-    frame_key_cols = ["_social_frame_group_key"]
-
-    valid_bbox = _to_bool_series(
-        out.get("bbox_valid", pd.Series(True, index=out.index))
-    ).to_numpy(dtype=bool)
-    pig_ids_all = out["pig_id"].fillna("").astype(str).to_numpy(dtype=object)
-    track_ids_all = out["track_id"].fillna("").astype(str).to_numpy(dtype=object)
-    centers_all = out[["cx_n", "cy_n"]].to_numpy(dtype="float64")
-    boxes_all = out[["x1", "y1", "x2", "y2"]].to_numpy(dtype="float64")
-    areas_all = out["bbox_area"].to_numpy(dtype="float64")
-
-    # groupby.indices returns integer positions because index has been reset.
-    for idx_arr in out.groupby(frame_key_cols, dropna=False, sort=False).indices.values():
-        idx_arr = np.asarray(idx_arr, dtype="int64")
-        m = idx_arr.size
-        if m == 0:
-            continue
-        frame_size_arr[idx_arr] = int(m)
-        if m == 1 or m > config.max_frame_group_size_for_social:
-            continue
-
-        centers = centers_all[idx_arr]
-        finite_geometry = (
-            np.isfinite(centers).all(axis=1)
-            & np.isfinite(boxes_all[idx_arr]).all(axis=1)
-            & np.isfinite(areas_all[idx_arr])
-            & (areas_all[idx_arr] > 0)
-            & valid_bbox[idx_arr]
-        )
-        if not finite_geometry.any():
-            continue
-
-        dx = centers[:, [0]] - centers[:, 0][None, :]
-        dy = centers[:, [1]] - centers[:, 1][None, :]
-        dist = np.sqrt(dx**2 + dy**2)
-        np.fill_diagonal(dist, np.inf)
-        dist[~finite_geometry, :] = np.inf
-        dist[:, ~finite_geometry] = np.inf
-
-        nearest_pos = np.argmin(dist, axis=1)
-        nearest_dist = dist[np.arange(m), nearest_pos]
-        has_neighbor = np.isfinite(nearest_dist)
-        near_count = (dist <= config.social_near_distance_n).sum(axis=1)
-
-        pair_iou_mat, pair_overlap_mat = _pairwise_box_overlap(
-            boxes_all[idx_arr],
-            areas_all[idx_arr],
-        )
-        pair_iou_mat[~finite_geometry, :] = 0.0
-        pair_iou_mat[:, ~finite_geometry] = 0.0
-        pair_overlap_mat[~finite_geometry, :] = 0.0
-        pair_overlap_mat[:, ~finite_geometry] = 0.0
-        contact_mat = (pair_iou_mat >= config.social_contact_iou_threshold) | (
-            pair_overlap_mat >= config.social_contact_overlap_threshold
-        )
-        np.fill_diagonal(contact_mat, False)
-        contact_count = contact_mat.sum(axis=1)
-
-        valid_rows = has_neighbor & finite_geometry
-        source_pos = np.where(valid_rows)[0]
-        target_positions = idx_arr[source_pos]
-        neighbor_positions = nearest_pos[source_pos]
-
-        nearest_pig_id_arr[target_positions] = pig_ids_all[idx_arr[neighbor_positions]]
-        nearest_track_id_arr[target_positions] = track_ids_all[idx_arr[neighbor_positions]]
-        nearest_dist_arr[target_positions] = nearest_dist[source_pos]
-
-        valid_global = idx_arr[finite_geometry]
-        near_count_arr[valid_global] = near_count[finite_geometry].astype("int64")
-        contact_count_arr[valid_global] = contact_count[finite_geometry].astype(
-            "int64"
-        )
-
-        # Nearest pair overlap values.
-        for local_pos in source_pos:
-            global_pos = idx_arr[local_pos]
-            neighbor_pos = nearest_pos[local_pos]
-            nearest_iou_arr[global_pos] = pair_iou_mat[local_pos, neighbor_pos]
-            nearest_overlap_arr[global_pos] = pair_overlap_mat[
-                local_pos,
-                neighbor_pos,
-            ]
-
-    out["nearest_pig_id"] = nearest_pig_id_arr
-    out["nearest_track_id"] = nearest_track_id_arr
-    out["nearest_dist_n"] = nearest_dist_arr
-    out["nearest_pair_iou"] = nearest_iou_arr
-    out["nearest_pair_overlap_ratio"] = nearest_overlap_arr
-    out["social_density_near_count"] = near_count_arr
-    out["social_contact_count"] = contact_count_arr
-    out["social_context_frame_size"] = frame_size_arr
+    out = build_static_social_context_features(
+        df.reset_index(drop=True),
+        near_distance_n=config.social_near_distance_n,
+        contact_iou_threshold=config.social_contact_iou_threshold,
+        contact_overlap_threshold=config.social_contact_overlap_threshold,
+        max_frame_group_size=config.max_frame_group_size_for_social,
+    )
 
     grain = [column for column in MOTION_GRAIN_COLUMNS if column in out.columns]
     if "temporal_unit_key" not in out.columns:
@@ -1167,41 +1067,7 @@ def _add_social_context_columns(df: pd.DataFrame, config: EnhancedFeatureConfig)
         * (1.0 + out["social_density_near_count"].fillna(0.0))
     )
 
-    out = out.drop(columns=["_social_frame_group_key"])
     return out.sort_index(kind="mergesort")
-
-
-def _social_frame_group_key(rows: pd.DataFrame) -> pd.Series:
-    """Build a row-wise frame key without merging partially missing UIDs."""
-    frame_uid = scene_frame_key(rows).fillna("").astype(str).str.strip()
-    frame_index = pd.to_numeric(rows["frame_index"], errors="coerce")
-    invalid_fallback = (
-        frame_uid.eq("")
-        & (
-            frame_index.isna()
-            | frame_index.mod(1).ne(0)
-            | frame_index.lt(0)
-        )
-    )
-    if invalid_fallback.any():
-        sample = [str(value) for value in rows.index[invalid_fallback].tolist()[:10]]
-        raise ValueError(
-            "Social frame grouping contract failed: "
-            f"invalid_fallback_rows={int(invalid_fallback.sum())}, "
-            f"sample_source_indices={sample}"
-        )
-
-    fallback = "frame=" + frame_index.round().astype("Int64").astype(str)
-    local_frame = ("uid=" + frame_uid).where(frame_uid.ne(""), fallback)
-    return (
-        rows["source_type"].astype(str)
-        + "|"
-        + rows["dataset_id"].astype(str)
-        + "|"
-        + rows["video_key"].astype(str)
-        + "|"
-        + local_frame
-    )
 
 
 def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
@@ -1463,43 +1329,6 @@ def _add_review_helper_columns(df: pd.DataFrame) -> pd.DataFrame:
     # Remove temporary helper columns that should not become data contract.
     out = out.drop(columns=[c for c in ["_track_for_key", "_pig_for_key"] if c in out.columns])
     return out
-
-
-def _pairwise_box_overlap(boxes: np.ndarray, areas: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    n = len(boxes)
-    iou = np.zeros((n, n), dtype="float64")
-    overlap_min = np.zeros((n, n), dtype="float64")
-    if n == 0:
-        return iou, overlap_min
-
-    x1 = boxes[:, 0]
-    y1 = boxes[:, 1]
-    x2 = boxes[:, 2]
-    y2 = boxes[:, 3]
-
-    xx1 = np.maximum(x1[:, None], x1[None, :])
-    yy1 = np.maximum(y1[:, None], y1[None, :])
-    xx2 = np.minimum(x2[:, None], x2[None, :])
-    yy2 = np.minimum(y2[:, None], y2[None, :])
-
-    inter_w = np.maximum(0.0, xx2 - xx1)
-    inter_h = np.maximum(0.0, yy2 - yy1)
-    inter = inter_w * inter_h
-
-    area_i = areas[:, None]
-    area_j = areas[None, :]
-    union = area_i + area_j - inter
-    with np.errstate(divide="ignore", invalid="ignore"):
-        iou = np.where(union > 0, inter / union, 0.0)
-        minimum_area = np.minimum(area_i, area_j)
-        overlap_min = np.where(
-            minimum_area > 0,
-            inter / minimum_area,
-            0.0,
-        )
-    iou[~np.isfinite(iou)] = 0.0
-    overlap_min[~np.isfinite(overlap_min)] = 0.0
-    return iou, overlap_min
 
 
 def _angle_diff(a: pd.Series, b: pd.Series) -> pd.Series:

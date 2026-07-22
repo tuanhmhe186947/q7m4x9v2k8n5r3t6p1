@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
+import uuid
 from pathlib import Path
 
 from pig_behavior.classification_v2.contracts.output_safety import (
@@ -30,6 +32,12 @@ def parse_args() -> argparse.Namespace:
         "--authority-scope",
         choices=[OFFICIAL_SCOPE, SMOKE_SCOPE],
         required=True,
+    )
+    parser.add_argument(
+        "--component-gate",
+        action="append",
+        default=[],
+        metavar="NAME=PATH",
     )
     parser.add_argument(
         "--source-artifact",
@@ -87,6 +95,7 @@ def main() -> None:
         overwrite=args.overwrite,
     )
     source_artifacts = _named_paths(args.source_artifact)
+    component_gates = _named_paths(args.component_gate)
     timestamp_contract = _read_json(args.timestamp_fps_contract_json)
     evidence_semantics = _read_json(args.evidence_semantics_json)
     artifacts = {
@@ -99,6 +108,8 @@ def main() -> None:
         "pig_strenet_evidence": args.pig_strenet_evidence_manifest,
         "behavior_review_units": args.behavior_review_unit_manifest_csv,
         "media_authority": args.media_authority_manifest,
+        "timestamp_fps_contract": args.timestamp_fps_contract_json,
+        "evidence_semantics": args.evidence_semantics_json,
     }
     manifest = build_review_authority_manifest(
         code_authority_sha=args.code_authority_sha,
@@ -109,12 +120,33 @@ def main() -> None:
         artifacts=artifacts,
         timestamp_fps_contract=timestamp_contract,
         evidence_semantics=evidence_semantics,
+        component_gates=component_gates,
+        actual_head_sha=_git_output("rev-parse", "HEAD"),
+        tracked_code_clean=not bool(
+            _git_output("status", "--porcelain", "--untracked-files=no")
+        ),
+        require_full_component_gates=(
+            args.authority_scope == OFFICIAL_SCOPE
+        ),
     )
     args.output_json.parent.mkdir(parents=True, exist_ok=True)
-    args.output_json.write_text(
-        json.dumps(manifest, indent=2, ensure_ascii=False),
-        encoding="utf-8",
+    temporary = args.output_json.with_name(
+        f".{args.output_json.name}.{uuid.uuid4().hex}.tmp"
     )
+    try:
+        temporary.write_text(
+            json.dumps(
+                manifest,
+                indent=2,
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        temporary.replace(args.output_json)
+    finally:
+        temporary.unlink(missing_ok=True)
     print(
         json.dumps(
             {
@@ -157,6 +189,16 @@ def _read_json(path: Path) -> dict[str, object]:
     if not isinstance(payload, dict):
         raise ValueError(f"expected JSON object: {path}")
     return payload
+
+
+def _git_output(*arguments: str) -> str:
+    completed = subprocess.run(
+        ["git", *arguments],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return completed.stdout.strip()
 
 
 if __name__ == "__main__":

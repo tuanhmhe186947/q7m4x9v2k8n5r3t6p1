@@ -382,6 +382,8 @@ def _authority_files(
     pig = root / "pig.json"
     review = root / "review.csv"
     media = root / "media.csv"
+    timestamp = root / "timestamp.json"
+    semantics = root / "semantics.json"
     pd.DataFrame({"frame_uid": ["f0", "f1"], "hidden": ["No", "No"]}).to_csv(
         hidden,
         index=False,
@@ -421,6 +423,8 @@ def _authority_files(
             "source_video_path": ["v.mp4", "v.mp4"],
         }
     ).to_csv(media, index=False)
+    timestamp.write_text(json.dumps(_timestamp_contract()), encoding="utf-8")
+    semantics.write_text(json.dumps(_evidence_semantics()), encoding="utf-8")
     return {"source_frames": source}, {
         "frame_local": frame_local,
         "hidden_reviewed_frames": hidden,
@@ -429,6 +433,8 @@ def _authority_files(
         "pig_strenet_evidence": pig,
         "behavior_review_units": review,
         "media_authority": media,
+        "timestamp_fps_contract": timestamp,
+        "evidence_semantics": semantics,
     }
 
 
@@ -451,6 +457,8 @@ def _timestamp_contract() -> dict[str, object]:
     return {
         "source_fps": 30.0,
         "formula": "timestamp_sec=source_frame_index/source_fps",
+        "valid": True,
+        "errors": [],
     }
 
 
@@ -458,4 +466,6 @@ def _evidence_semantics() -> dict[str, object]:
     return {
         "evidence_column_semantic_version": "classification_v2.review.v1",
         "feature_grain": "NATIVE_UNIT_REVIEW_EVIDENCE",
+        "valid": True,
+        "errors": [],
     }

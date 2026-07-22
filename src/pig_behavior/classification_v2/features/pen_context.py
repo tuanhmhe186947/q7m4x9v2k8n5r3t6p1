@@ -93,6 +93,21 @@ REQUIRED_PEN_CONTEXT_INPUT_COLUMNS: tuple[str, ...] = (
     "image_height",
 )
 
+REQUIRED_STATIC_PEN_CONTEXT_INPUT_COLUMNS: tuple[str, ...] = (
+    "source_type",
+    "dataset_id",
+    "video_key",
+    "frame_uid",
+    "frame_index",
+    "bbox_valid",
+    "x1",
+    "y1",
+    "x2",
+    "y2",
+    "image_width",
+    "image_height",
+)
+
 
 @dataclass(frozen=True, slots=True)
 class PenContextConfig:
@@ -127,6 +142,42 @@ def build_pen_context_features(
 ) -> pd.DataFrame:
     """Append row-preserving pen-boundary features and temporal derivatives."""
 
+    missing = [
+        column
+        for column in REQUIRED_PEN_CONTEXT_INPUT_COLUMNS
+        if column not in frame_features.columns
+    ]
+    if missing:
+        raise ValueError(f"Missing pen context input columns: {missing}")
+
+    out = build_static_pen_context_features(
+        frame_features,
+        mask_path=mask_path,
+        mask_threshold=mask_threshold,
+        near_boundary_clearance_ratio=near_boundary_clearance_ratio,
+        expected_mask_sha256=expected_mask_sha256,
+    )
+    _initialize_pen_motion_columns(out)
+    out = _add_pen_temporal_derivatives(out)
+    require_lineage_claims_preserved(
+        frame_features,
+        out,
+        source_name="pen context input",
+        derived_name="pen context output",
+    )
+    return out
+
+
+def build_static_pen_context_features(
+    frame_features: pd.DataFrame,
+    *,
+    mask_path: str | Path,
+    mask_threshold: int = 127,
+    near_boundary_clearance_ratio: float = 1.0,
+    expected_mask_sha256: str | None = None,
+) -> pd.DataFrame:
+    """Append only same-frame pen geometry; never compute temporal deltas."""
+
     resolve_optional_lineage_claims(
         frame_features,
         artifact_name="pen context input",
@@ -138,7 +189,7 @@ def build_pen_context_features(
     config.validate()
     missing = [
         column
-        for column in REQUIRED_PEN_CONTEXT_INPUT_COLUMNS
+        for column in REQUIRED_STATIC_PEN_CONTEXT_INPUT_COLUMNS
         if column not in frame_features.columns
     ]
     if missing:
@@ -160,7 +211,7 @@ def build_pen_context_features(
         raise ValueError(f"Failed to read pen mask as grayscale: {path}")
 
     out = frame_features.copy().reset_index(drop=True)
-    _initialize_pen_columns(out)
+    _initialize_static_pen_columns(out)
     numeric = _numeric_input_columns(out)
     bbox_valid = _to_bool_series(out["bbox_valid"])
     mask_cache: dict[tuple[int, int], _PenMaskGeometry] = {}
@@ -207,12 +258,11 @@ def build_pen_context_features(
                 config=config,
             )
 
-    out = _add_pen_temporal_derivatives(out)
     require_lineage_claims_preserved(
         frame_features,
         out,
         source_name="pen context input",
-        derived_name="pen context output",
+        derived_name="static pen context output",
     )
     return out
 
@@ -489,7 +539,7 @@ def empty_pen_context_summary() -> dict[str, Any]:
     }
 
 
-def _initialize_pen_columns(out: pd.DataFrame) -> None:
+def _initialize_static_pen_columns(out: pd.DataFrame) -> None:
     float_columns = [
         "pen_center_signed_distance_n",
         "pen_center_clearance_box_ratio",
@@ -499,6 +549,16 @@ def _initialize_pen_columns(out: pd.DataFrame) -> None:
     ]
     for column in float_columns:
         out[column] = np.nan
+    for column in [
+        "pen_center_inside",
+        "pen_near_boundary",
+        "pen_context_available",
+        "pen_context_quality_valid",
+    ]:
+        out[column] = False
+
+
+def _initialize_pen_motion_columns(out: pd.DataFrame) -> None:
     for column in [
         "pen_distance_delta_n_per_frame",
         "pen_approach_speed_n_per_frame",
@@ -513,11 +573,7 @@ def _initialize_pen_columns(out: pd.DataFrame) -> None:
         "pen_motion_delta_seconds",
     ]:
         out[column] = 0.0
-    for column in [
-        "pen_center_inside",
-        "pen_near_boundary",
-        *PEN_CONTEXT_QUALITY_COLUMNS,
-    ]:
+    for column in PEN_CONTEXT_QUALITY_COLUMNS[2:]:
         out[column] = False
 
 
