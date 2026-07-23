@@ -1,0 +1,11 @@
+case_id,observed_frame_count,roi_available_frame_count,roi_contact_frame_count,roi_availability_ratio,roi_contact_ratio,target_roi_unit_available,model_export_allowed
+roi_three_available_two_contact,5.0,3.0,2.0,0.6,0.6666666666666666,True,False
+roi_all_unavailable,5.0,0.0,0.0,0.0,0.0,False,False
+roi_all_available_none_contact,5.0,5.0,0.0,1.0,0.0,True,False
+roi_all_available_all_contact,5.0,5.0,5.0,1.0,1.0,True,False
+roi_mixed_invalid_geometry,5.0,2.0,1.0,0.4,0.5,True,False
+roi_availability_ratio_denominator,5.0,3.0,0.0,0.6,0.0,True,False
+roi_contact_ratio_denominator,5.0,3.0,2.0,0.6,0.6666666666666666,True,False
+roi_zero_placeholder_unavailable,3.0,0.0,0.0,0.0,0.0,False,False
+roi_review_only_requested_by_model,,,,,,,False
+roi_label_independent_allowed,,,,,,,True

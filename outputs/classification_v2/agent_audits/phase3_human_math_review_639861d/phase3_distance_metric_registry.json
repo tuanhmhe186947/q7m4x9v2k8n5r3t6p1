@@ -1,0 +1,51 @@
+{
+  "schema_version": "classification_v2.phase3_distance_registry.v1",
+  "physical_distance_claimed": false,
+  "homography_world_plane_available": false,
+  "metrics": [
+    {
+      "metric_id": "image_axis_normalized_distance",
+      "metric_version": "classification_v2.image_axis_normalized_distance.v1",
+      "formula": "sqrt((dx_px/image_width_px)^2+(dy_px/image_height_px)^2)",
+      "coordinate_system": "image_pixel_axes_normalized_separately",
+      "units": "axis_normalized_image_distance",
+      "isotropic_in_pixel_space": false,
+      "is_physical_measurement": false
+    },
+    {
+      "metric_id": "image_diagonal_normalized_distance",
+      "metric_version": "classification_v2.image_diagonal_normalized_distance.v1",
+      "formula": "sqrt(dx_px^2+dy_px^2)/sqrt(image_width_px^2+image_height_px^2)",
+      "coordinate_system": "image_pixel_euclidean_normalized_by_diagonal",
+      "units": "diagonal_normalized_image_distance",
+      "isotropic_in_pixel_space": true,
+      "is_physical_measurement": false
+    }
+  ],
+  "threshold_bindings": [
+    {
+      "threshold_id": "social_near_distance_n_v1",
+      "threshold_value": 0.08,
+      "threshold_units": "axis_normalized_image_distance",
+      "metric_id": "image_axis_normalized_distance",
+      "metric_version": "classification_v2.image_axis_normalized_distance.v1",
+      "recalibrated_in_phase3": false
+    },
+    {
+      "threshold_id": "roi_near_distance_diagonal_n_v1",
+      "threshold_value": 0.08,
+      "threshold_units": "diagonal_normalized_image_distance",
+      "metric_id": "image_diagonal_normalized_distance",
+      "metric_version": "classification_v2.image_diagonal_normalized_distance.v1",
+      "recalibrated_in_phase3": false
+    },
+    {
+      "threshold_id": "roi_contact_distance_diagonal_n_v1",
+      "threshold_value": 0.02,
+      "threshold_units": "diagonal_normalized_image_distance",
+      "metric_id": "image_diagonal_normalized_distance",
+      "metric_version": "classification_v2.image_diagonal_normalized_distance.v1",
+      "recalibrated_in_phase3": false
+    }
+  ]
+}

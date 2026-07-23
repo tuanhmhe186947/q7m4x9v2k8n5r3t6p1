@@ -1,0 +1,91 @@
+{
+  "schema_version": "classification_v2.phase3_bounded_audit.v1",
+  "input_csv": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\c2v2_behavior_contract_hardening_20260721_v2\\temporal\\harmonized_frames.csv",
+  "input_sha256": "9723c47946e101374cf14e53cb1b7de7bcbf3efdcf244599be93e555e4a305ad",
+  "contract_manifest_sha256": "19bb7315f1dfac429479a88bdd671eafea59697ae72cadc778313211f49426a2",
+  "code_authority_sha": "639861d9d41112a5bfdddbb96c1ce15471e07acb",
+  "input_rows": 245680,
+  "selected_rows": 220,
+  "selected_units": 20,
+  "source_unit_counts": {
+    "cvat_tracking_xml": 10,
+    "legacy_recovered": 10
+  },
+  "social_identity_version": "classification_v2.social_identity.v1",
+  "social_tie_break_version": "classification_v2.social_tie_break.v1",
+  "roi_aggregation_version": "classification_v2.roi_aggregation.available_frames.v1",
+  "consistency_checks": {
+    "self_neighbor_count_zero": true,
+    "first_social_row_has_no_continuity": true,
+    "no_neighbor_not_partner_switch": true,
+    "distance_mask_matches_neighbor": true,
+    "roi_contact_not_above_available": true,
+    "roi_availability_ratio_bounded": true,
+    "available_roi_contact_ratio_bounded": true,
+    "zero_roi_availability_marked_unavailable": true
+  },
+  "producer_audit_errors": [],
+  "independent_checker": {
+    "schema_version": "classification_v2.native_review_evidence_checker.v1",
+    "feature_computation_grain": "NATIVE_UNIT_REVIEW_EVIDENCE",
+    "pair_scope_key": "temporal_unit_key",
+    "evidence_semantics_version": "classification_v2.native_review_evidence.v2",
+    "motion_schema_version": "classification_v2.motion_tensor.v2",
+    "motion_schema_id": "schema.pig_strenet_motion_v2",
+    "motion_schema_dimension": 12,
+    "motion_schema_feature_names": [
+      "vx_n_per_second",
+      "vy_n_per_second",
+      "bw_rate_n_per_second",
+      "bh_rate_n_per_second",
+      "area_rate_n_per_second",
+      "aspect_ratio_rate_per_second",
+      "speed_n_per_second",
+      "direction_change_rad",
+      "tangential_acceleration_n_per_second2",
+      "ax_n_per_second2",
+      "ay_n_per_second2",
+      "acceleration_vector_magnitude_n_per_second2"
+    ],
+    "motion_schema_hash": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b",
+    "distance_metric_ids": [
+      "image_axis_normalized_distance",
+      "image_diagonal_normalized_distance"
+    ],
+    "distance_metric_versions": [
+      "classification_v2.image_axis_normalized_distance.v1",
+      "classification_v2.image_diagonal_normalized_distance.v1"
+    ],
+    "social_identity_version": "classification_v2.social_identity.v1",
+    "social_tie_break_version": "classification_v2.social_tie_break.v1",
+    "roi_aggregation_version": "classification_v2.roi_aggregation.available_frames.v1",
+    "code_sha": "639861d9d41112a5bfdddbb96c1ce15471e07acb",
+    "input_sha256": "9723c47946e101374cf14e53cb1b7de7bcbf3efdcf244599be93e555e4a305ad",
+    "contract_manifest_sha256": "19bb7315f1dfac429479a88bdd671eafea59697ae72cadc778313211f49426a2",
+    "input_rows": 220,
+    "output_rows": 220,
+    "input_temporal_units": 20,
+    "output_temporal_units": 20,
+    "population_preserved": true,
+    "cross_unit_pair_count": 0,
+    "native_pair_reset_errors": 0,
+    "invalid_pair_numeric_values": 0,
+    "pair_count_mismatches": 0,
+    "phase3_spatial_checks": {
+      "self_neighbor_count": 0,
+      "tie_break_rule_errors": 0,
+      "threshold_binding_errors": 0,
+      "distance_formula_errors": 0,
+      "neighbor_availability_errors": 0,
+      "tie_count_errors": 0,
+      "partner_continuity_errors": 0,
+      "roi_denominator_errors": 0,
+      "target_roi_policy_errors": 0,
+      "row_order_invariant_by_canonical_sort": true
+    },
+    "errors": [],
+    "warnings": [],
+    "valid": true
+  },
+  "errors": []
+}

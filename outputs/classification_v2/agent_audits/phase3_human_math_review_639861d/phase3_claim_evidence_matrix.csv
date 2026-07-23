@@ -1,0 +1,16 @@
+claim_id,claim,evidence_file,evidence_field_or_case,status,limitation
+phase3.distance.axis_explicit,Axis-normalized formula and version are explicit,phase3_distance_metric_registry.json,image_axis_normalized_distance,PASS,Image-coordinate only
+phase3.distance.diagonal_explicit,Diagonal-normalized formula and version are explicit,phase3_distance_metric_registry.json,image_diagonal_normalized_distance,PASS,Image-coordinate only
+phase3.distance.non_square,Non-square anisotropy and isotropy are independently verified,phase3_reference_verification.json,non_square_axis_anisotropy|non_square_diagonal_isotropy,PASS,No world-plane calibration
+phase3.distance.threshold_bound,Social threshold 0.08 remains bound to axis metric,phase3_distance_metric_registry.json,social_near_distance_n_v1,PASS,No recalibration performed
+phase3.social.deterministic,Equal-distance neighbor is canonical-key deterministic,phase3_row_permutation_results.json,pass,PASS,Exact mathematical ties only
+phase3.social.identity,Stable hierarchy does not depend on pig_id,phase3_social_golden_cases.csv,social_blank_pig_id|social_duplicate_pig_id,PASS,pig_id remains metadata
+phase3.social.no_self,No production row selects its actor identity,phase3_reference_verification.json,production_self_neighbors,PASS,Canonical identities must remain unique per frame
+phase3.social.continuity,Continuity uses stable key and resets at actor/unit,phase3_social_golden_cases.csv,social_partner_b_remains_b|social_temporal_unit_reset|social_actor_identity_reset,PASS,Image-observed partner is not biological relationship
+phase3.social.missingness,Missing neighbor is not a partner switch,phase3_reference_verification.json,production_no_neighbor_not_switch,PASS,Missing modality remains unavailable
+phase3.roi.denominator,Contact ratio divides by ROI-available frames,phase3_roi_golden_cases.csv,roi_three_available_two_contact,PASS,Target ROI is label-selected review evidence
+phase3.roi.zero_availability,Zero ROI availability has false unit mask,phase3_reference_verification.json,production_zero_roi_unavailable,PASS,Numeric placeholder remains zero
+phase3.leakage.forbidden,Target ROI requests fail closed for model export,phase3_model_leakage_preflight.json,pass,PASS,All-class label-independent ROI policy unchanged
+phase3.production.bounded,Bounded 10 CVAT and 10 legacy trace passes checker,phase3_bounded_regression_audit.json,errors|source_unit_counts,PASS,Not official regeneration
+phase3.phase2.frozen,Phase 2 motion schema hash remains unchanged,phase3_math_contract.md,Frozen boundaries,PASS,Official downstream artifacts remain stale
+phase3.phase4.open,Semantic invalidation and release authority remain open,phase3_math_contract.md,Frozen boundaries,OPEN,Must be remediated in Phase 4

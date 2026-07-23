@@ -1,0 +1,8 @@
+{
+  "schema_version": "classification_v2.phase3_permutation.v1",
+  "seed": 20260724,
+  "rows": 220,
+  "first_digest": "042d9b6253d25b8a6e1d24251186e594345db7b9af82aefaa18efc216525c2e5",
+  "permuted_digest": "042d9b6253d25b8a6e1d24251186e594345db7b9af82aefaa18efc216525c2e5",
+  "pass": true
+}

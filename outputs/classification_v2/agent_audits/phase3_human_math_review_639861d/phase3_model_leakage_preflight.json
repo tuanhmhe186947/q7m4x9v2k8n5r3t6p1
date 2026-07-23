@@ -1,0 +1,17 @@
+{
+  "schema_version": "classification_v2.phase3_leakage_preflight.v1",
+  "forbidden_requested": [
+    "target_roi_contact",
+    "target_roi_distance",
+    "target_roi_contact_ratio_unit",
+    "label_selected_roi_class_indicator"
+  ],
+  "forbidden_failures": {
+    "target_roi_contact": "Forbidden spatial feature columns requested: ['target_roi_contact']",
+    "target_roi_distance": "Forbidden spatial feature columns requested: ['target_roi_distance']",
+    "target_roi_contact_ratio_unit": "Forbidden spatial feature columns requested: ['target_roi_contact_ratio_unit']",
+    "label_selected_roi_class_indicator": "Forbidden spatial feature columns requested: ['label_selected_roi_class_indicator']"
+  },
+  "label_independent_allowed": true,
+  "pass": true
+}

@@ -1,0 +1,1738 @@
+{
+  "schema_version": "classification_v2.phase3_independent_reference.v1",
+  "implementation_commit": "639861d9d41112a5bfdddbb96c1ce15471e07acb",
+  "imports_production_distance_functions": false,
+  "imports_production_social_functions": false,
+  "imports_production_roi_functions": false,
+  "expected_values_are_hard_coded": true,
+  "tolerance": 1e-12,
+  "checks": [
+    {
+      "check_id": "distance_square_horizontal_availability",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_square_horizontal_axis",
+      "passed": true,
+      "evidence": {
+        "actual": 0.1,
+        "expected": 0.1,
+        "numerator": "sqrt((dx_px/W)^2+(dy_px/H)^2)",
+        "denominator": "W and H separately"
+      }
+    },
+    {
+      "check_id": "distance_square_horizontal_diagonal",
+      "passed": true,
+      "evidence": {
+        "actual": 0.07071067811865475,
+        "expected": 0.07071067811865475,
+        "numerator": "sqrt(dx_px^2+dy_px^2)",
+        "denominator": "sqrt(W^2+H^2)"
+      }
+    },
+    {
+      "check_id": "distance_square_horizontal_not_physical",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_square_vertical_availability",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_square_vertical_axis",
+      "passed": true,
+      "evidence": {
+        "actual": 0.1,
+        "expected": 0.1,
+        "numerator": "sqrt((dx_px/W)^2+(dy_px/H)^2)",
+        "denominator": "W and H separately"
+      }
+    },
+    {
+      "check_id": "distance_square_vertical_diagonal",
+      "passed": true,
+      "evidence": {
+        "actual": 0.07071067811865475,
+        "expected": 0.07071067811865475,
+        "numerator": "sqrt(dx_px^2+dy_px^2)",
+        "denominator": "sqrt(W^2+H^2)"
+      }
+    },
+    {
+      "check_id": "distance_square_vertical_not_physical",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_non_square_horizontal_availability",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_non_square_horizontal_axis",
+      "passed": true,
+      "evidence": {
+        "actual": 0.1,
+        "expected": 0.1,
+        "numerator": "sqrt((dx_px/W)^2+(dy_px/H)^2)",
+        "denominator": "W and H separately"
+      }
+    },
+    {
+      "check_id": "distance_non_square_horizontal_diagonal",
+      "passed": true,
+      "evidence": {
+        "actual": 0.08944271909999159,
+        "expected": 0.08944271909999159,
+        "numerator": "sqrt(dx_px^2+dy_px^2)",
+        "denominator": "sqrt(W^2+H^2)"
+      }
+    },
+    {
+      "check_id": "distance_non_square_horizontal_not_physical",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_non_square_vertical_availability",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_non_square_vertical_axis",
+      "passed": true,
+      "evidence": {
+        "actual": 0.2,
+        "expected": 0.2,
+        "numerator": "sqrt((dx_px/W)^2+(dy_px/H)^2)",
+        "denominator": "W and H separately"
+      }
+    },
+    {
+      "check_id": "distance_non_square_vertical_diagonal",
+      "passed": true,
+      "evidence": {
+        "actual": 0.08944271909999159,
+        "expected": 0.08944271909999159,
+        "numerator": "sqrt(dx_px^2+dy_px^2)",
+        "denominator": "sqrt(W^2+H^2)"
+      }
+    },
+    {
+      "check_id": "distance_non_square_vertical_not_physical",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_diagonal_equal_horizontal_availability",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_diagonal_equal_horizontal_axis",
+      "passed": true,
+      "evidence": {
+        "actual": 0.1,
+        "expected": 0.1,
+        "numerator": "sqrt((dx_px/W)^2+(dy_px/H)^2)",
+        "denominator": "W and H separately"
+      }
+    },
+    {
+      "check_id": "distance_diagonal_equal_horizontal_diagonal",
+      "passed": true,
+      "evidence": {
+        "actual": 0.08944271909999159,
+        "expected": 0.08944271909999159,
+        "numerator": "sqrt(dx_px^2+dy_px^2)",
+        "denominator": "sqrt(W^2+H^2)"
+      }
+    },
+    {
+      "check_id": "distance_diagonal_equal_horizontal_not_physical",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_diagonal_equal_vertical_availability",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_diagonal_equal_vertical_axis",
+      "passed": true,
+      "evidence": {
+        "actual": 0.2,
+        "expected": 0.2,
+        "numerator": "sqrt((dx_px/W)^2+(dy_px/H)^2)",
+        "denominator": "W and H separately"
+      }
+    },
+    {
+      "check_id": "distance_diagonal_equal_vertical_diagonal",
+      "passed": true,
+      "evidence": {
+        "actual": 0.08944271909999159,
+        "expected": 0.08944271909999159,
+        "numerator": "sqrt(dx_px^2+dy_px^2)",
+        "denominator": "sqrt(W^2+H^2)"
+      }
+    },
+    {
+      "check_id": "distance_diagonal_equal_vertical_not_physical",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_coincident_centers_availability",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_coincident_centers_axis",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": "sqrt((dx_px/W)^2+(dy_px/H)^2)",
+        "denominator": "W and H separately"
+      }
+    },
+    {
+      "check_id": "distance_coincident_centers_diagonal",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": "sqrt(dx_px^2+dy_px^2)",
+        "denominator": "sqrt(W^2+H^2)"
+      }
+    },
+    {
+      "check_id": "distance_coincident_centers_not_physical",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_invalid_width_availability",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_invalid_width_axis_unavailable",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_invalid_width_diagonal_unavailable",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_invalid_width_not_physical",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_invalid_height_availability",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_invalid_height_axis_unavailable",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_invalid_height_diagonal_unavailable",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_invalid_height_not_physical",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_invalid_actor_geometry_availability",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_invalid_actor_geometry_axis_unavailable",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_invalid_actor_geometry_diagonal_unavailable",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_invalid_actor_geometry_not_physical",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_invalid_partner_geometry_availability",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_invalid_partner_geometry_axis_unavailable",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_invalid_partner_geometry_diagonal_unavailable",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "distance_invalid_partner_geometry_not_physical",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "non_square_axis_anisotropy",
+      "passed": true,
+      "evidence": {
+        "actual": 0.2,
+        "expected": 0.2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "non_square_diagonal_isotropy",
+      "passed": true,
+      "evidence": {
+        "actual": 0.08944271909999159,
+        "expected": 0.08944271909999159,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_one_valid_neighbor_partner",
+      "passed": true,
+      "evidence": {
+        "actual": "video-a|track=B",
+        "expected": "video-a|track=B",
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_one_valid_neighbor_tie_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_one_valid_neighbor_available",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_one_valid_neighbor_not_self",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_equal_distance_neighbors_partner",
+      "passed": true,
+      "evidence": {
+        "actual": "video-a|track=B",
+        "expected": "video-a|track=B",
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_equal_distance_neighbors_tie_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_equal_distance_neighbors_available",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_equal_distance_neighbors_not_self",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_equal_distance_permutation_partner",
+      "passed": true,
+      "evidence": {
+        "actual": "video-a|track=B",
+        "expected": "video-a|track=B",
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_equal_distance_permutation_tie_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_equal_distance_permutation_available",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_equal_distance_permutation_not_self",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_actor_self_row_present_partner",
+      "passed": true,
+      "evidence": {
+        "actual": "video-a|track=B",
+        "expected": "video-a|track=B",
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_actor_self_row_present_tie_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_actor_self_row_present_available",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_actor_self_row_present_not_self",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_blank_pig_id_partner",
+      "passed": true,
+      "evidence": {
+        "actual": "video-a|track=B",
+        "expected": "video-a|track=B",
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_blank_pig_id_tie_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_blank_pig_id_available",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_blank_pig_id_not_self",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_duplicate_pig_id_partner",
+      "passed": true,
+      "evidence": {
+        "actual": "video-a|track=B",
+        "expected": "video-a|track=B",
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_duplicate_pig_id_tie_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_duplicate_pig_id_available",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_duplicate_pig_id_not_self",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_no_valid_neighbor_partner",
+      "passed": true,
+      "evidence": {
+        "actual": "",
+        "expected": "",
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_no_valid_neighbor_tie_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_no_valid_neighbor_available",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_no_valid_neighbor_not_self",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_same_pig_id_cross_video_partner",
+      "passed": true,
+      "evidence": {
+        "actual": "",
+        "expected": "",
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_same_pig_id_cross_video_tie_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_same_pig_id_cross_video_available",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_same_pig_id_cross_video_not_self",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "equal_distance_permutation_same_partner",
+      "passed": true,
+      "evidence": {
+        "actual": "video-a|track=B",
+        "expected": "video-a|track=B",
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "equal_distance_permutation_same_axis_distance",
+      "passed": true,
+      "evidence": {
+        "actual": 0.1,
+        "expected": 0.1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_partner_b_remains_b_continuity_valid",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_partner_b_remains_b_same_partner",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_partner_b_remains_b_switch",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_partner_b_remains_b_no_neighbor",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_partner_b_changes_c_continuity_valid",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_partner_b_changes_c_same_partner",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_partner_b_changes_c_switch",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_partner_b_changes_c_no_neighbor",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_partner_b_unavailable_continuity_valid",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_partner_b_unavailable_same_partner",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_partner_b_unavailable_switch",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_partner_b_unavailable_no_neighbor",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_temporal_unit_reset_continuity_valid",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_temporal_unit_reset_same_partner",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_temporal_unit_reset_switch",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_temporal_unit_reset_no_neighbor",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_actor_identity_reset_continuity_valid",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_actor_identity_reset_same_partner",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_actor_identity_reset_switch",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_actor_identity_reset_no_neighbor",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_three_available_two_contact_observed",
+      "passed": true,
+      "evidence": {
+        "actual": 5,
+        "expected": 5,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_three_available_two_contact_available_count",
+      "passed": true,
+      "evidence": {
+        "actual": 3,
+        "expected": 3,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_three_available_two_contact_contact_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_three_available_two_contact_availability_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 0.6,
+        "expected": 0.6,
+        "numerator": "3",
+        "denominator": "5"
+      }
+    },
+    {
+      "check_id": "roi_three_available_two_contact_contact_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 0.6666666666666666,
+        "expected": 0.6666666666666666,
+        "numerator": "2",
+        "denominator": "3"
+      }
+    },
+    {
+      "check_id": "roi_three_available_two_contact_unit_available",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_all_unavailable_observed",
+      "passed": true,
+      "evidence": {
+        "actual": 5,
+        "expected": 5,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_all_unavailable_available_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_all_unavailable_contact_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_all_unavailable_availability_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": "0",
+        "denominator": "5"
+      }
+    },
+    {
+      "check_id": "roi_all_unavailable_contact_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": "0",
+        "denominator": "0"
+      }
+    },
+    {
+      "check_id": "roi_all_unavailable_unit_available",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_all_available_none_contact_observed",
+      "passed": true,
+      "evidence": {
+        "actual": 5,
+        "expected": 5,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_all_available_none_contact_available_count",
+      "passed": true,
+      "evidence": {
+        "actual": 5,
+        "expected": 5,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_all_available_none_contact_contact_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_all_available_none_contact_availability_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": "5",
+        "denominator": "5"
+      }
+    },
+    {
+      "check_id": "roi_all_available_none_contact_contact_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": "0",
+        "denominator": "5"
+      }
+    },
+    {
+      "check_id": "roi_all_available_none_contact_unit_available",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_all_available_all_contact_observed",
+      "passed": true,
+      "evidence": {
+        "actual": 5,
+        "expected": 5,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_all_available_all_contact_available_count",
+      "passed": true,
+      "evidence": {
+        "actual": 5,
+        "expected": 5,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_all_available_all_contact_contact_count",
+      "passed": true,
+      "evidence": {
+        "actual": 5,
+        "expected": 5,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_all_available_all_contact_availability_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": "5",
+        "denominator": "5"
+      }
+    },
+    {
+      "check_id": "roi_all_available_all_contact_contact_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": "5",
+        "denominator": "5"
+      }
+    },
+    {
+      "check_id": "roi_all_available_all_contact_unit_available",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_mixed_invalid_geometry_observed",
+      "passed": true,
+      "evidence": {
+        "actual": 5,
+        "expected": 5,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_mixed_invalid_geometry_available_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_mixed_invalid_geometry_contact_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_mixed_invalid_geometry_availability_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 0.4,
+        "expected": 0.4,
+        "numerator": "2",
+        "denominator": "5"
+      }
+    },
+    {
+      "check_id": "roi_mixed_invalid_geometry_contact_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 0.5,
+        "expected": 0.5,
+        "numerator": "1",
+        "denominator": "2"
+      }
+    },
+    {
+      "check_id": "roi_mixed_invalid_geometry_unit_available",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_availability_ratio_denominator_observed",
+      "passed": true,
+      "evidence": {
+        "actual": 5,
+        "expected": 5,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_availability_ratio_denominator_available_count",
+      "passed": true,
+      "evidence": {
+        "actual": 3,
+        "expected": 3,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_availability_ratio_denominator_contact_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_availability_ratio_denominator_availability_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 0.6,
+        "expected": 0.6,
+        "numerator": "3",
+        "denominator": "5"
+      }
+    },
+    {
+      "check_id": "roi_availability_ratio_denominator_contact_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": "0",
+        "denominator": "3"
+      }
+    },
+    {
+      "check_id": "roi_availability_ratio_denominator_unit_available",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_contact_ratio_denominator_observed",
+      "passed": true,
+      "evidence": {
+        "actual": 5,
+        "expected": 5,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_contact_ratio_denominator_available_count",
+      "passed": true,
+      "evidence": {
+        "actual": 3,
+        "expected": 3,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_contact_ratio_denominator_contact_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_contact_ratio_denominator_availability_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 0.6,
+        "expected": 0.6,
+        "numerator": "3",
+        "denominator": "5"
+      }
+    },
+    {
+      "check_id": "roi_contact_ratio_denominator_contact_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 0.6666666666666666,
+        "expected": 0.6666666666666666,
+        "numerator": "2",
+        "denominator": "3"
+      }
+    },
+    {
+      "check_id": "roi_contact_ratio_denominator_unit_available",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_zero_placeholder_unavailable_observed",
+      "passed": true,
+      "evidence": {
+        "actual": 3,
+        "expected": 3,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_zero_placeholder_unavailable_available_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_zero_placeholder_unavailable_contact_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "roi_zero_placeholder_unavailable_availability_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": "0",
+        "denominator": "3"
+      }
+    },
+    {
+      "check_id": "roi_zero_placeholder_unavailable_contact_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": "0",
+        "denominator": "0"
+      }
+    },
+    {
+      "check_id": "roi_zero_placeholder_unavailable_unit_available",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "reject_incorrect_two_over_five",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": "2",
+        "denominator": "3 ROI-available frames, not 5 observed frames"
+      }
+    },
+    {
+      "check_id": "target_roi_model_forbidden",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "label_independent_roi_allowed",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "registry_physical_distance_claimed",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "registry_homography_unavailable",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_threshold_value_unchanged",
+      "passed": true,
+      "evidence": {
+        "actual": 0.08,
+        "expected": 0.08,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_threshold_axis_bound",
+      "passed": true,
+      "evidence": {
+        "actual": "image_axis_normalized_distance",
+        "expected": "image_axis_normalized_distance",
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "social_threshold_not_recalibrated",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "production_permutation_pass",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "production_permutation_digest_equal",
+      "passed": true,
+      "evidence": {
+        "actual": "042d9b6253d25b8a6e1d24251186e594345db7b9af82aefaa18efc216525c2e5",
+        "expected": "042d9b6253d25b8a6e1d24251186e594345db7b9af82aefaa18efc216525c2e5",
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "leakage_preflight_pass",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "four_forbidden_features_failed",
+      "passed": true,
+      "evidence": {
+        "actual": 4,
+        "expected": 4,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "label_independent_preflight_allowed",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "production_code_authority_sha",
+      "passed": true,
+      "evidence": {
+        "actual": "639861d9d41112a5bfdddbb96c1ce15471e07acb",
+        "expected": "639861d9d41112a5bfdddbb96c1ce15471e07acb",
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "production_errors_empty",
+      "passed": true,
+      "evidence": {
+        "actual": [],
+        "expected": [],
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "production_independent_checker_valid",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "production_cvat_units",
+      "passed": true,
+      "evidence": {
+        "actual": 10,
+        "expected": 10,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "production_legacy_units",
+      "passed": true,
+      "evidence": {
+        "actual": 10,
+        "expected": 10,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "production_self_neighbors",
+      "passed": true,
+      "evidence": {
+        "actual": 0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "production_first_social_rows_invalid_continuity",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "production_no_neighbor_not_switch",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "production_distance_availability_consistent",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "production_roi_denominators",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "production_zero_roi_unavailable",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true,
+        "numerator": null,
+        "denominator": null
+      }
+    }
+  ],
+  "errors": [],
+  "golden_arithmetic_pass": true,
+  "row_permutation_invariance_pass": true,
+  "roi_denominator_audit_pass": true,
+  "model_leakage_preflight_pass": true,
+  "production_trace_audited": true,
+  "status": "PASS"
+}

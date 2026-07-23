@@ -1,0 +1,14 @@
+case_id,actor_key,nearest_partner_key,nearest_pig_id,nearest_distance_axis,nearest_distance_diagonal,nearest_neighbor_available,nearest_tie_count,same_partner_as_previous,partner_switch,partner_continuity_valid,no_neighbor
+social_one_valid_neighbor,video-a|track=A,video-a|track=B,B,0.1,0.08944271909999159,True,1,False,False,False,False
+social_equal_distance_neighbors,video-a|track=A,video-a|track=B,B,0.1,0.08944271909999159,True,2,False,False,False,False
+social_equal_distance_permutation,video-a|track=A,video-a|track=B,B,0.1,0.08944271909999159,True,2,False,False,False,False
+social_actor_self_row_present,video-a|track=A,video-a|track=B,B,0.1,0.08944271909999159,True,1,False,False,False,False
+social_blank_pig_id,video-a|track=A,video-a|track=B,,0.1,0.08944271909999159,True,1,False,False,False,False
+social_duplicate_pig_id,video-a|track=A,video-a|track=B,duplicate,0.1,0.08944271909999159,True,2,False,False,False,False
+social_no_valid_neighbor,video-a|track=A,,,,,False,0,False,False,False,True
+social_same_pig_id_cross_video,video-a|track=A,,,,,False,0,False,False,False,True
+social_partner_b_remains_b,video-a|track=A,video-a|track=B,B,0.1,0.08944271909999159,True,1,True,False,True,False
+social_partner_b_changes_c,video-a|track=A,video-a|track=C,C,0.1,0.08944271909999159,True,1,False,True,True,False
+social_partner_b_unavailable,video-a|track=A,,,,,False,0,False,False,False,True
+social_temporal_unit_reset,video-a|track=A,video-a|track=B,B,0.1,0.08944271909999159,True,1,False,False,False,False
+social_actor_identity_reset,video-a|track=A1,video-a|track=B,B,0.1,0.08944271909999159,True,1,False,False,False,False

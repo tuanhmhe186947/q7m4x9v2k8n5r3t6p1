@@ -1,0 +1,12 @@
+case_id,dx_px,dy_px,image_width_px,image_height_px,actor_geometry_valid,partner_geometry_valid,distance_available,axis_normalized_distance,diagonal_normalized_distance,is_physical_measurement
+distance_square_horizontal,100,0,1000,1000,True,True,True,0.1,0.07071067811865475,False
+distance_square_vertical,0,100,1000,1000,True,True,True,0.1,0.07071067811865475,False
+distance_non_square_horizontal,100,0,1000,500,True,True,True,0.1,0.08944271909999159,False
+distance_non_square_vertical,0,100,1000,500,True,True,True,0.2,0.08944271909999159,False
+distance_diagonal_equal_horizontal,100,0,1000,500,True,True,True,0.1,0.08944271909999159,False
+distance_diagonal_equal_vertical,0,100,1000,500,True,True,True,0.2,0.08944271909999159,False
+distance_coincident_centers,0,0,1000,500,True,True,True,0.0,0.0,False
+distance_invalid_width,100,0,0,500,True,True,False,,,False
+distance_invalid_height,0,100,1000,0,True,True,False,,,False
+distance_invalid_actor_geometry,100,0,1000,500,False,False,False,,,False
+distance_invalid_partner_geometry,100,0,1000,500,False,False,False,,,False
