@@ -22,6 +22,7 @@ Design rules:
 
 from __future__ import annotations
 
+import json
 import math
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -38,6 +39,12 @@ from pig_behavior.classification_v2.contracts.lineage_claims import (
 )
 from pig_behavior.classification_v2.features.context_policy import (
     normalize_hidden_provenance,
+)
+from pig_behavior.classification_v2.features.motion_schema import (
+    MOTION_FEATURE_NAMES,
+    MOTION_SCHEMA_DIMENSION,
+    MOTION_SCHEMA_HASH,
+    MOTION_SCHEMA_ID,
 )
 from pig_behavior.classification_v2.features.native_evidence_contract import (
     NATIVE_EVIDENCE_SEMANTICS_VERSION,
@@ -270,6 +277,13 @@ def build_enhanced_spatiotemporal_features(
         NATIVE_EVIDENCE_SEMANTICS_VERSION
     )
     out["motion_schema_version"] = NATIVE_MOTION_SCHEMA_VERSION
+    out["motion_schema_id"] = MOTION_SCHEMA_ID
+    out["motion_schema_dimension"] = MOTION_SCHEMA_DIMENSION
+    out["motion_schema_feature_names"] = json.dumps(
+        list(MOTION_FEATURE_NAMES),
+        separators=(",", ":"),
+    )
+    out["motion_schema_hash"] = MOTION_SCHEMA_HASH
     out["pair_recomputed_for_view"] = False
     out["aggregate_recomputed_for_view"] = False
 
@@ -333,6 +347,10 @@ def audit_enhanced_spatiotemporal_features(
         "pair_scope_key",
         "evidence_semantics_version",
         "motion_schema_version",
+        "motion_schema_id",
+        "motion_schema_dimension",
+        "motion_schema_feature_names",
+        "motion_schema_hash",
         "previous_observation_available",
         "valid_delta_time",
         "current_geometry_valid",
@@ -374,6 +392,14 @@ def audit_enhanced_spatiotemporal_features(
     provenance_expected = {
         "evidence_semantics_version": NATIVE_EVIDENCE_SEMANTICS_VERSION,
         "motion_schema_version": NATIVE_MOTION_SCHEMA_VERSION,
+        "motion_schema_id": MOTION_SCHEMA_ID,
+        "motion_schema_dimension": str(MOTION_SCHEMA_DIMENSION),
+        "motion_schema_feature_names": json.dumps(
+            list(MOTION_FEATURE_NAMES),
+            separators=(",", ":"),
+        ),
+        "motion_schema_hash": MOTION_SCHEMA_HASH,
+        "code_authority_sha": str(code_sha).lower(),
     }
     for column, expected in provenance_expected.items():
         if column not in df:
@@ -496,6 +522,11 @@ def audit_enhanced_spatiotemporal_features(
         "pair_scope_key": NATIVE_PAIR_SCOPE_KEY,
         "evidence_semantics_version": NATIVE_EVIDENCE_SEMANTICS_VERSION,
         "motion_schema_version": NATIVE_MOTION_SCHEMA_VERSION,
+        "motion_schema_id": MOTION_SCHEMA_ID,
+        "motion_schema_dimension": MOTION_SCHEMA_DIMENSION,
+        "motion_schema_feature_names": list(MOTION_FEATURE_NAMES),
+        "motion_schema_hash": MOTION_SCHEMA_HASH,
+        "code_authority_sha": str(code_sha).lower(),
         "code_sha": str(code_sha).lower(),
         "input_sha256": str(input_sha256).lower(),
         "contract_manifest_sha256": str(
@@ -929,9 +960,10 @@ def _add_temporal_deltas(df: pd.DataFrame) -> pd.DataFrame:
     denom_frame = out["delta_frame_prev"].where(
         out["adjacent_motion_pair_valid"]
     )
-    denom_time = out["delta_time_prev_sec"].where(
+    out["velocity_valid"] = _to_bool_series(
         out["motion_velocity_pair_valid"]
     )
+    denom_time = out["delta_time_prev_sec"].where(out["velocity_valid"])
     out["vx_n_per_frame"] = out["delta_cx_n"] / denom_frame
     out["vy_n_per_frame"] = out["delta_cy_n"] / denom_frame
     out["speed_n_per_frame"] = out["displacement_n"] / denom_frame
@@ -939,12 +971,32 @@ def _add_temporal_deltas(df: pd.DataFrame) -> pd.DataFrame:
     out["speed_n_per_sec"] = out["speed_n_per_second"]
     out["vx_n_per_second"] = raw_delta["cx_n"] / denom_time
     out["vy_n_per_second"] = raw_delta["cy_n"] / denom_time
-    out["bw_rate_n_per_second"] = raw_delta["bw_n"] / denom_time
-    out["bh_rate_n_per_second"] = raw_delta["bh_n"] / denom_time
-    out["area_rate_n_per_second"] = raw_delta["area_n"] / denom_time
-    out["aspect_ratio_rate_per_second"] = (
-        raw_delta["aspect_ratio"] / denom_time
+    raw_bbox_rates = pd.DataFrame(
+        {
+            "bw_rate_n_per_second": raw_delta["bw_n"] / denom_time,
+            "bh_rate_n_per_second": raw_delta["bh_n"] / denom_time,
+            "area_rate_n_per_second": raw_delta["area_n"] / denom_time,
+            "aspect_ratio_rate_per_second": (
+                raw_delta["aspect_ratio"] / denom_time
+            ),
+        },
+        index=out.index,
     )
+    out["bbox_rate_valid"] = (
+        out["velocity_valid"]
+        & raw_bbox_rates.replace([np.inf, -np.inf], np.nan).notna().all(axis=1)
+    )
+    for column in raw_bbox_rates:
+        out[column] = raw_bbox_rates[column].where(out["bbox_rate_valid"])
+
+    current_timestamp = pd.to_numeric(out["timestamp_sec"], errors="coerce")
+    previous_timestamp = pd.to_numeric(
+        out["prev_timestamp_sec"],
+        errors="coerce",
+    )
+    out["velocity_sample_time_sec"] = (
+        (previous_timestamp + current_timestamp) / 2.0
+    ).where(out["velocity_valid"])
 
     out["prev_speed_n_per_frame"] = g["speed_n_per_frame"].shift(1)
     out["accel_n_per_frame2"] = (
@@ -953,42 +1005,76 @@ def _add_temporal_deltas(df: pd.DataFrame) -> pd.DataFrame:
     out["abs_accel_n_per_frame2"] = out["accel_n_per_frame2"].abs()
 
     previous_speed_per_second = g["speed_n_per_second"].shift(1)
-    previous_velocity_valid = g["motion_velocity_pair_valid"].shift(1)
-    previous_delta_seconds = g["motion_delta_seconds"].shift(1)
+    previous_vx = g["vx_n_per_second"].shift(1)
+    previous_vy = g["vy_n_per_second"].shift(1)
+    previous_velocity_valid = g["velocity_valid"].shift(1)
+    previous_velocity_sample_time = g["velocity_sample_time_sec"].shift(1)
     acceleration_delta_seconds = (
-        out["motion_delta_seconds"] + previous_delta_seconds
-    ) / 2.0
+        out["velocity_sample_time_sec"] - previous_velocity_sample_time
+    )
     acceleration_valid = (
-        out["motion_velocity_pair_valid"]
+        out["velocity_valid"]
         & _to_bool_series(previous_velocity_valid)
+        & np.isfinite(acceleration_delta_seconds)
         & acceleration_delta_seconds.gt(0)
     )
-    out["acceleration_pair_valid"] = acceleration_valid
-    out["acceleration_delta_seconds"] = acceleration_delta_seconds.where(
+    out["acceleration_delta_t_sec"] = acceleration_delta_seconds.where(
         acceleration_valid
     )
-    out["acceleration_n_per_second2"] = (
+    out["tangential_acceleration_valid"] = acceleration_valid
+    out["vector_acceleration_valid"] = acceleration_valid
+    out["tangential_acceleration_n_per_second2"] = (
         out["speed_n_per_second"] - previous_speed_per_second
-    ).div(acceleration_delta_seconds).where(acceleration_valid)
+    ).div(acceleration_delta_seconds).where(
+        out["tangential_acceleration_valid"]
+    )
+    out["ax_n_per_second2"] = (
+        out["vx_n_per_second"] - previous_vx
+    ).div(acceleration_delta_seconds).where(out["vector_acceleration_valid"])
+    out["ay_n_per_second2"] = (
+        out["vy_n_per_second"] - previous_vy
+    ).div(acceleration_delta_seconds).where(out["vector_acceleration_valid"])
+    out["acceleration_vector_magnitude_n_per_second2"] = np.hypot(
+        out["ax_n_per_second2"],
+        out["ay_n_per_second2"],
+    ).where(out["vector_acceleration_valid"])
+
+    # Compatibility aliases are retained behind the v2 schema boundary.
+    # The old scalar was d(speed)/dt, never vector acceleration magnitude.
+    out["acceleration_pair_valid"] = out[
+        "tangential_acceleration_valid"
+    ]
+    out["acceleration_delta_seconds"] = out["acceleration_delta_t_sec"]
+    out["acceleration_n_per_second2"] = out[
+        "tangential_acceleration_n_per_second2"
+    ]
     out["abs_acceleration_n_per_second2"] = out[
         "acceleration_n_per_second2"
     ].abs()
 
     out["direction_rad"] = np.arctan2(
-        out["delta_cy_n"],
-        out["delta_cx_n"],
-    ).where(out["adjacent_motion_pair_valid"])
+        out["vy_n_per_second"],
+        out["vx_n_per_second"],
+    )
+    out["direction_valid"] = (
+        out["velocity_valid"]
+        & np.isfinite(out["speed_n_per_second"])
+        & out["speed_n_per_second"].gt(0)
+    )
+    out["direction_rad"] = out["direction_rad"].where(
+        out["direction_valid"]
+    )
     out["prev_direction_rad"] = g["direction_rad"].shift(1)
-    previous_adjacent = g["adjacent_motion_pair_valid"].shift(1)
-    heading_pair_valid = (
-        out["adjacent_motion_pair_valid"]
-        & _to_bool_series(previous_adjacent)
+    previous_direction_valid = g["direction_valid"].shift(1)
+    out["direction_change_valid"] = (
+        out["direction_valid"]
+        & _to_bool_series(previous_direction_valid)
     )
     out["direction_change_rad"] = _angle_diff(
         out["direction_rad"],
         out["prev_direction_rad"],
-    ).where(heading_pair_valid)
-    out["direction_change_pair_valid"] = heading_pair_valid
+    ).where(out["direction_change_valid"])
+    out["direction_change_pair_valid"] = out["direction_change_valid"]
     out["abs_direction_change_rad"] = out["direction_change_rad"].abs()
 
     out["shape_change_score"] = np.sqrt(
@@ -1019,11 +1105,18 @@ def _add_temporal_deltas(df: pd.DataFrame) -> pd.DataFrame:
         "bh_rate_n_per_second",
         "area_rate_n_per_second",
         "aspect_ratio_rate_per_second",
+        "velocity_sample_time_sec",
         "accel_n_per_frame2",
         "abs_accel_n_per_frame2",
+        "direction_rad",
         "direction_change_rad",
         "abs_direction_change_rad",
         "shape_change_score",
+        "acceleration_delta_t_sec",
+        "tangential_acceleration_n_per_second2",
+        "ax_n_per_second2",
+        "ay_n_per_second2",
+        "acceleration_vector_magnitude_n_per_second2",
         "acceleration_n_per_second2",
         "abs_acceleration_n_per_second2",
     ]
@@ -1269,7 +1362,8 @@ def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
     internal_columns = [
         "_speed_n_per_frame_valid_pair",
         "_speed_n_per_second_valid_pair",
-        "_acceleration_n_per_second2_valid_pair",
+        "_tangential_acceleration_valid_sample",
+        "_vector_acceleration_valid_sample",
         "_accel_n_per_frame2_valid_pair",
         "_direction_change_valid_pair",
     ]
@@ -1282,27 +1376,31 @@ def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
         errors="coerce",
     ).where(_to_bool_series(out["motion_velocity_pair_valid"]))
     out[internal_columns[2]] = pd.to_numeric(
-        out["abs_acceleration_n_per_second2"],
+        out["tangential_acceleration_n_per_second2"],
         errors="coerce",
-    ).where(_to_bool_series(out["acceleration_pair_valid"]))
+    ).where(_to_bool_series(out["tangential_acceleration_valid"]))
     out[internal_columns[3]] = pd.to_numeric(
+        out["acceleration_vector_magnitude_n_per_second2"],
+        errors="coerce",
+    ).where(_to_bool_series(out["vector_acceleration_valid"]))
+    out[internal_columns[4]] = pd.to_numeric(
         out["abs_accel_n_per_frame2"],
         errors="coerce",
     ).where(_to_bool_series(out["acceleration_pair_valid"]))
-    out[internal_columns[4]] = pd.to_numeric(
+    out[internal_columns[5]] = pd.to_numeric(
         out["abs_direction_change_rad"],
         errors="coerce",
-    ).where(_to_bool_series(out["direction_change_pair_valid"]))
+    ).where(_to_bool_series(out["direction_change_valid"]))
     g = out.groupby("temporal_unit_key", dropna=False, sort=False)
 
     agg_spec: dict[str, tuple[str, str | Any]] = {
         "speed_mean_unit": (internal_columns[0], "mean"),
         "speed_max_unit": (internal_columns[0], "max"),
         "speed_std_unit": (internal_columns[0], "std"),
-        "accel_abs_mean_unit": (internal_columns[3], "mean"),
-        "accel_abs_max_unit": (internal_columns[3], "max"),
-        "direction_change_abs_mean_unit": (internal_columns[4], "mean"),
-        "direction_change_abs_max_unit": (internal_columns[4], "max"),
+        "accel_abs_mean_unit": (internal_columns[4], "mean"),
+        "accel_abs_max_unit": (internal_columns[4], "max"),
+        "direction_change_abs_mean_unit": (internal_columns[5], "mean"),
+        "direction_change_abs_max_unit": (internal_columns[5], "max"),
         "path_length_n_unit": ("displacement_n", "sum"),
         "motion_energy_unit": (
             internal_columns[0],
@@ -1342,10 +1440,26 @@ def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
         ),
         "acceleration_n_per_second2_abs_mean_unit": (
             internal_columns[2],
-            "mean",
+            lambda s: float(np.nanmean(np.abs(s)))
+            if s.notna().any()
+            else np.nan,
         ),
         "acceleration_n_per_second2_abs_max_unit": (
             internal_columns[2],
+            lambda s: float(np.nanmax(np.abs(s)))
+            if s.notna().any()
+            else np.nan,
+        ),
+        "tangential_acceleration_mean_unit": (
+            internal_columns[2],
+            "mean",
+        ),
+        "vector_acceleration_magnitude_mean_unit": (
+            internal_columns[3],
+            "mean",
+        ),
+        "vector_acceleration_magnitude_max_unit": (
+            internal_columns[3],
             "max",
         ),
         "approach_speed_n_per_second_max_unit": (
@@ -1383,6 +1497,15 @@ def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
             "valid_pair_count": _to_bool_series(
                 out["valid_motion_pair"]
             ).astype("int64"),
+            "velocity_valid_count": _to_bool_series(
+                out["velocity_valid"]
+            ).astype("int64"),
+            "direction_change_valid_count": _to_bool_series(
+                out["direction_change_valid"]
+            ).astype("int64"),
+            "acceleration_valid_count": _to_bool_series(
+                out["vector_acceleration_valid"]
+            ).astype("int64"),
         }
     ).groupby("temporal_unit_key", sort=False).sum()
     coverage["possible_pair_count"] = np.maximum(
@@ -1404,6 +1527,41 @@ def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
     ].gt(0)
     coverage["motion_feature_coverage_available"] = coverage[
         "possible_pair_count"
+    ].gt(0)
+    coverage["velocity_possible_count"] = coverage["possible_pair_count"]
+    coverage["velocity_coverage"] = (
+        coverage["velocity_valid_count"]
+        .div(possible_denominator)
+        .fillna(0.0)
+    )
+    higher_order_possible = np.maximum(
+        coverage["observed_frame_count"] - 2,
+        0,
+    )
+    coverage["direction_change_possible_count"] = higher_order_possible
+    coverage["acceleration_possible_count"] = higher_order_possible
+    higher_order_denominator = pd.Series(
+        higher_order_possible,
+        index=coverage.index,
+    ).replace(0, np.nan)
+    coverage["direction_change_coverage"] = (
+        coverage["direction_change_valid_count"]
+        .div(higher_order_denominator)
+        .fillna(0.0)
+    )
+    coverage["acceleration_coverage"] = (
+        coverage["acceleration_valid_count"]
+        .div(higher_order_denominator)
+        .fillna(0.0)
+    )
+    coverage["velocity_feature_available"] = coverage[
+        "velocity_valid_count"
+    ].gt(0)
+    coverage["direction_change_feature_available"] = coverage[
+        "direction_change_valid_count"
+    ].gt(0)
+    coverage["acceleration_feature_available"] = coverage[
+        "acceleration_valid_count"
     ].gt(0)
     unit_agg = unit_agg.join(coverage)
 
@@ -1471,6 +1629,9 @@ def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
         "speed_n_per_second_std_unit",
         "acceleration_n_per_second2_abs_mean_unit",
         "acceleration_n_per_second2_abs_max_unit",
+        "tangential_acceleration_mean_unit",
+        "vector_acceleration_magnitude_mean_unit",
+        "vector_acceleration_magnitude_max_unit",
     ]
     for col in numeric_fill:
         if col in out.columns:

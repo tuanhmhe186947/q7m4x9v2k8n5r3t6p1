@@ -1,8 +1,21 @@
 from __future__ import annotations
 
+import json
+
+import numpy as np
 import pandas as pd
 import pytest
 
+from pig_behavior.classification_v2.features.motion_schema import (
+    MOTION_FEATURE_NAMES,
+    MOTION_SCHEMA_DIMENSION,
+    MOTION_SCHEMA_HASH,
+    MOTION_SCHEMA_ID,
+    MOTION_SCHEMA_VERSION,
+)
+from pig_behavior.classification_v2.features.spatiotemporal import (
+    _add_temporal_deltas,
+)
 from pig_behavior.classification_v2.spatial_sequence_export import (
     export_spatial_sequences,
 )
@@ -44,7 +57,7 @@ def _windows(*, start: int = 0, end: int = 1) -> pd.DataFrame:
 
 
 def _frames() -> pd.DataFrame:
-    return pd.DataFrame(
+    return _with_motion_contract(pd.DataFrame(
         {
             "object_track_key": ["track-a", "track-a"],
             "frame_index": [0, 1],
@@ -53,7 +66,45 @@ def _frames() -> pd.DataFrame:
             "cy_n": [0.40, 0.42],
             "bbox_valid": [True, True],
         }
+    ))
+
+
+def _with_motion_contract(frames: pd.DataFrame) -> pd.DataFrame:
+    out = frames.copy()
+    count = len(out)
+    out["source_type"] = out.get("source_type", "cvat_tracking_xml")
+    out["dataset_id"] = out.get("dataset_id", "fixture")
+    out["video_key"] = out.get("video_key", "video-a")
+    out["temporal_unit_key"] = out.get(
+        "temporal_unit_key",
+        out["object_track_key"].astype(str) + "|unit",
     )
+    out["bw_n"] = out.get("bw_n", pd.Series([0.2] * count))
+    out["bh_n"] = out.get("bh_n", pd.Series([0.1] * count))
+    out["area_n"] = out.get("area_n", out["bw_n"] * out["bh_n"])
+    out["aspect_ratio"] = out.get(
+        "aspect_ratio",
+        out["bw_n"] / out["bh_n"],
+    )
+    out["box_diag_n"] = out.get(
+        "box_diag_n",
+        np.hypot(out["bw_n"], out["bh_n"]),
+    )
+    out["bbox_valid"] = out.get("bbox_valid", True)
+    out = _add_temporal_deltas(out)
+    available = out.groupby("temporal_unit_key")[
+        "velocity_valid"
+    ].transform("any")
+    out["motion_feature_available"] = available
+    out["motion_schema_id"] = MOTION_SCHEMA_ID
+    out["motion_schema_version"] = MOTION_SCHEMA_VERSION
+    out["motion_schema_dimension"] = MOTION_SCHEMA_DIMENSION
+    out["motion_schema_feature_names"] = json.dumps(
+        list(MOTION_FEATURE_NAMES),
+        separators=(",", ":"),
+    )
+    out["motion_schema_hash"] = MOTION_SCHEMA_HASH
+    return out
 
 
 def test_spatial_export_audits_complete_alignment_without_row_loss() -> None:
@@ -117,7 +168,7 @@ def test_spatial_export_rejects_inconsistent_window_span() -> None:
 
 
 def test_spatial_motion_is_rebased_inside_each_window() -> None:
-    frames = pd.DataFrame(
+    frames = _with_motion_contract(pd.DataFrame(
         {
             "object_track_key": ["track-a"] * 3,
             "frame_index": [0, 1, 2],
@@ -135,7 +186,7 @@ def test_spatial_motion_is_rebased_inside_each_window() -> None:
             "abs_direction_change_rad": [0.0, 1.0, 1.0],
             "bbox_valid": [True, True, True],
         }
-    )
+    ))
     windows = _windows(start=1, end=2)
 
     result = export_spatial_sequences(windows, frames)
@@ -146,13 +197,20 @@ def test_spatial_motion_is_rebased_inside_each_window() -> None:
     assert motion[0, names.index("speed_n_per_second")] == 0.0
     assert motion[1, names.index("vx_n_per_second")] == pytest.approx(3.0)
     assert motion[1, names.index("speed_n_per_second")] == pytest.approx(3.0)
-    assert motion[1, names.index("abs_acceleration_n_per_second2")] == 0.0
-    assert motion[1, names.index("abs_direction_change_rad")] == 0.0
+    assert (
+        motion[
+            1,
+            names.index("tangential_acceleration_n_per_second2"),
+        ]
+        == 0.0
+    )
+    assert motion[1, names.index("direction_change_rad")] == 0.0
+    assert result.arrays["vector_acceleration_valid_mask"][0, 1] == 0.0
     assert result.audit["motion_rebased_windows"] == 1
 
 
 def test_spatial_social_motion_is_rebased_inside_each_window() -> None:
-    frames = pd.DataFrame(
+    frames = _with_motion_contract(pd.DataFrame(
         {
             "object_track_key": ["track-a"] * 3,
             "frame_index": [0, 1, 2],
@@ -175,7 +233,7 @@ def test_spatial_social_motion_is_rebased_inside_each_window() -> None:
             "speed_n_per_second": [0.0, 15.0, 99.0],
             "bbox_valid": [True, True, True],
         }
-    )
+    ))
     windows = _windows(start=1, end=2)
 
     result = export_spatial_sequences(windows, frames)
@@ -206,7 +264,7 @@ def test_spatial_social_motion_is_rebased_inside_each_window() -> None:
 
 def test_sparse_s6_at16_uses_exact_selected_frames_and_sparse_pairs() -> None:
     indices = [0, 3, 6, 9, 12, 15]
-    frames = pd.DataFrame(
+    frames = _with_motion_contract(pd.DataFrame(
         {
             "object_track_key": ["track-a"] * 16,
             "frame_index": list(range(16)),
@@ -220,7 +278,7 @@ def test_sparse_s6_at16_uses_exact_selected_frames_and_sparse_pairs() -> None:
             "speed_n_per_second": [999.0] * 16,
             "bbox_valid": [True] * 16,
         }
-    )
+    ))
     window_id = "track-a|view=S6@16|0-15"
     windows = pd.DataFrame(
         {

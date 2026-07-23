@@ -10,12 +10,22 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from pig_behavior.classification_v2.features.motion_schema import (
+    MOTION_AGGREGATION_OUTPUTS,
+    MOTION_FEATURE_NAMES,
+    MOTION_REQUIRED_MASKS,
+    MOTION_SCHEMA_DIMENSION,
+    MOTION_SCHEMA_HASH,
+    MOTION_SCHEMA_ID,
+    MOTION_SCHEMA_VERSION,
+)
+
 NATIVE_FEATURE_COMPUTATION_GRAIN = "NATIVE_UNIT_REVIEW_EVIDENCE"
 NATIVE_PAIR_SCOPE_KEY = "temporal_unit_key"
 NATIVE_EVIDENCE_SEMANTICS_VERSION = (
     "classification_v2.native_review_evidence.v2"
 )
-NATIVE_MOTION_SCHEMA_VERSION = "classification_v2.motion_features.pre_v2.v1"
+NATIVE_MOTION_SCHEMA_VERSION = MOTION_SCHEMA_VERSION
 
 NATIVE_PROVENANCE_COLUMNS: tuple[str, ...] = (
     "feature_computation_grain",
@@ -31,22 +41,12 @@ PAIR_GRAIN_COLUMNS: tuple[str, ...] = (
     "temporal_unit_key",
 )
 PAIR_COVERAGE_COLUMNS: tuple[str, ...] = (
-    "observed_frame_count",
-    "possible_pair_count",
-    "valid_pair_count",
-    "valid_pair_ratio",
-    "motion_feature_coverage",
+    *MOTION_AGGREGATION_OUTPUTS,
     "motion_feature_available",
     "motion_feature_coverage_available",
 )
 INVALID_PAIR_MISSING_COLUMNS: tuple[str, ...] = (
-    "speed_n_per_second",
-    "vx_n_per_second",
-    "vy_n_per_second",
-    "bw_rate_n_per_second",
-    "bh_rate_n_per_second",
-    "area_rate_n_per_second",
-    "aspect_ratio_rate_per_second",
+    *MOTION_FEATURE_NAMES[:7],
 )
 MEMBERSHIP_COLUMNS: tuple[str, ...] = (
     "source_type",
@@ -85,6 +85,8 @@ def check_native_review_evidence(
         *PAIR_GRAIN_COLUMNS,
         *NATIVE_PROVENANCE_COLUMNS,
         *PAIR_COVERAGE_COLUMNS,
+        *MOTION_FEATURE_NAMES,
+        *MOTION_REQUIRED_MASKS,
         "frame_index",
         "timestamp_sec",
         "bbox_valid",
@@ -125,6 +127,10 @@ def check_native_review_evidence(
         "pair_scope_key": NATIVE_PAIR_SCOPE_KEY,
         "evidence_semantics_version": NATIVE_EVIDENCE_SEMANTICS_VERSION,
         "motion_schema_version": NATIVE_MOTION_SCHEMA_VERSION,
+        "motion_schema_id": MOTION_SCHEMA_ID,
+        "motion_schema_dimension": MOTION_SCHEMA_DIMENSION,
+        "motion_schema_feature_names": list(MOTION_FEATURE_NAMES),
+        "motion_schema_hash": MOTION_SCHEMA_HASH,
         "code_sha": str(code_sha).lower(),
         "input_sha256": str(input_sha256).lower(),
         "contract_manifest_sha256": str(
@@ -205,14 +211,19 @@ def _check_provenance(
         "feature_computation_grain": NATIVE_FEATURE_COMPUTATION_GRAIN,
         "evidence_semantics_version": NATIVE_EVIDENCE_SEMANTICS_VERSION,
         "motion_schema_version": NATIVE_MOTION_SCHEMA_VERSION,
+        "motion_schema_id": MOTION_SCHEMA_ID,
+        "motion_schema_dimension": str(MOTION_SCHEMA_DIMENSION),
+        "motion_schema_feature_names": json.dumps(
+            list(MOTION_FEATURE_NAMES),
+            separators=(",", ":"),
+        ),
+        "motion_schema_hash": MOTION_SCHEMA_HASH,
     }
     for column, value in expected.items():
         if column not in output:
             continue
-        observed = set(
-            output[column].fillna("").astype(str).str.strip().unique()
-        )
-        if observed != {value}:
+        observed = set(output[column].fillna("").astype(str).str.strip().unique())
+        if observed != {str(value)}:
             errors.append(
                 f"native_provenance_mismatch={column}:{sorted(observed)}"
             )
@@ -229,12 +240,24 @@ def _check_provenance(
         errors.append("producer_audit_missing")
         return
     audit_expected = {
-        **expected,
+        "feature_computation_grain": NATIVE_FEATURE_COMPUTATION_GRAIN,
+        "evidence_semantics_version": NATIVE_EVIDENCE_SEMANTICS_VERSION,
+        "motion_schema_version": NATIVE_MOTION_SCHEMA_VERSION,
+        "motion_schema_id": MOTION_SCHEMA_ID,
+        "motion_schema_dimension": MOTION_SCHEMA_DIMENSION,
+        "motion_schema_hash": MOTION_SCHEMA_HASH,
         "pair_scope_key": NATIVE_PAIR_SCOPE_KEY,
     }
     for field, value in audit_expected.items():
         if str(producer_audit.get(field, "")).strip() != value:
-            errors.append(f"producer_audit_provenance_mismatch={field}")
+            if str(producer_audit.get(field, "")).strip() != str(value):
+                errors.append(f"producer_audit_provenance_mismatch={field}")
+    if producer_audit.get("motion_schema_feature_names") != list(
+        MOTION_FEATURE_NAMES
+    ):
+        errors.append(
+            "producer_audit_provenance_mismatch=motion_schema_feature_names"
+        )
     for field in ("code_sha", "input_sha256", "contract_manifest_sha256"):
         if not str(producer_audit.get(field, "")).strip():
             errors.append(f"producer_audit_missing={field}")
@@ -324,6 +347,26 @@ def _check_pairs_and_coverage(
                 errors="coerce",
             ).notna().sum()
         )
+    derivative_masks = {
+        "direction_change_valid": ("direction_change_rad",),
+        "tangential_acceleration_valid": (
+            "tangential_acceleration_n_per_second2",
+        ),
+        "vector_acceleration_valid": (
+            "ax_n_per_second2",
+            "ay_n_per_second2",
+            "acceleration_vector_magnitude_n_per_second2",
+        ),
+    }
+    for mask_column, feature_columns in derivative_masks.items():
+        valid = _bool_series(work[mask_column])
+        for column in feature_columns:
+            invalid_pair_numeric_values += int(
+                pd.to_numeric(
+                    work.loc[~valid, column],
+                    errors="coerce",
+                ).notna().sum()
+            )
     if invalid_pair_numeric_values:
         errors.append(
             "invalid_pairs_have_numeric_motion_values="
@@ -349,6 +392,15 @@ def _check_coverage(
             "temporal_unit_key": work["temporal_unit_key"].astype(str),
             "observed": observed.astype("int64"),
             "valid": _bool_series(work["valid_motion_pair"]).astype("int64"),
+            "velocity_valid": _bool_series(
+                work["velocity_valid"]
+            ).astype("int64"),
+            "direction_change_valid": _bool_series(
+                work["direction_change_valid"]
+            ).astype("int64"),
+            "acceleration_valid": _bool_series(
+                work["vector_acceleration_valid"]
+            ).astype("int64"),
         }
     ).groupby("temporal_unit_key", sort=False).sum()
     coverage["possible"] = np.maximum(coverage["observed"] - 1, 0)
@@ -358,6 +410,24 @@ def _check_coverage(
     )
     coverage["available"] = coverage["valid"].gt(0)
     coverage["coverage_available"] = coverage["possible"].gt(0)
+    coverage["higher_order_possible"] = np.maximum(
+        coverage["observed"] - 2,
+        0,
+    )
+    higher_denominator = coverage["higher_order_possible"].replace(0, np.nan)
+    coverage["velocity_coverage"] = (
+        coverage["velocity_valid"].div(denominator).fillna(0.0)
+    )
+    coverage["direction_change_coverage"] = (
+        coverage["direction_change_valid"]
+        .div(higher_denominator)
+        .fillna(0.0)
+    )
+    coverage["acceleration_coverage"] = (
+        coverage["acceleration_valid"]
+        .div(higher_denominator)
+        .fillna(0.0)
+    )
 
     expected_columns = {
         "observed_frame_count": "observed",
@@ -367,6 +437,15 @@ def _check_coverage(
         "motion_feature_coverage": "ratio",
         "motion_feature_available": "available",
         "motion_feature_coverage_available": "coverage_available",
+        "velocity_possible_count": "possible",
+        "velocity_valid_count": "velocity_valid",
+        "velocity_coverage": "velocity_coverage",
+        "direction_change_possible_count": "higher_order_possible",
+        "direction_change_valid_count": "direction_change_valid",
+        "direction_change_coverage": "direction_change_coverage",
+        "acceleration_possible_count": "higher_order_possible",
+        "acceleration_valid_count": "acceleration_valid",
+        "acceleration_coverage": "acceleration_coverage",
     }
     mismatches = 0
     keys = work["temporal_unit_key"].astype(str)

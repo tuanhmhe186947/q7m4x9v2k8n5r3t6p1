@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import runpy
 from pathlib import Path
 
@@ -10,6 +11,13 @@ import pytest
 from pig_behavior.classification_v2.evaluation.final_view_contract_audit import (
     audit_final_view_contract,
     audit_pre_review_structural_view_availability,
+)
+from pig_behavior.classification_v2.features.motion_schema import (
+    MOTION_FEATURE_NAMES,
+    MOTION_SCHEMA_DIMENSION,
+    MOTION_SCHEMA_HASH,
+    MOTION_SCHEMA_ID,
+    MOTION_SCHEMA_VERSION,
 )
 from pig_behavior.classification_v2.features.pen_context import (
     _add_pen_temporal_derivatives,
@@ -74,6 +82,22 @@ def _motion_rows(
             "bbox_valid": [True] * row_count,
         }
     )
+
+
+def _attach_motion_v2_contract(frames: pd.DataFrame) -> pd.DataFrame:
+    out = _add_temporal_deltas(frames)
+    out["motion_feature_available"] = out.groupby(
+        "temporal_unit_key"
+    )["velocity_valid"].transform("any")
+    out["motion_schema_id"] = MOTION_SCHEMA_ID
+    out["motion_schema_version"] = MOTION_SCHEMA_VERSION
+    out["motion_schema_dimension"] = MOTION_SCHEMA_DIMENSION
+    out["motion_schema_feature_names"] = json.dumps(
+        list(MOTION_FEATURE_NAMES),
+        separators=(",", ":"),
+    )
+    out["motion_schema_hash"] = MOTION_SCHEMA_HASH
+    return out
 
 
 def test_same_fps_legacy_and_cvat_t6_have_same_physical_clock() -> None:
@@ -625,6 +649,7 @@ def test_invalid_geometry_is_zeroed_and_quality_masked() -> None:
     )
     frames.loc[1, "bbox_valid"] = False
     frames["vx_n_per_second"] = [0.0, 1.0e9]
+    frames = _attach_motion_v2_contract(frames)
     windows = pd.DataFrame(
         {
             "window_id": ["track-a|win=2|0-1"],

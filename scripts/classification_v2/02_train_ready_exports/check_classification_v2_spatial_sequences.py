@@ -10,6 +10,14 @@ import pandas as pd
 from pig_behavior.classification_v2.contracts.output_safety import (
     require_output_paths_available,
 )
+from pig_behavior.classification_v2.features.motion_schema import (
+    MOTION_FEATURE_NAMES,
+    MOTION_REQUIRED_MASKS,
+    MOTION_SCHEMA_DIMENSION,
+    MOTION_SCHEMA_HASH,
+    MOTION_SCHEMA_ID,
+    MOTION_SCHEMA_VERSION,
+)
 
 DEFAULT_NPZ = Path("outputs/classification_v2/train_ready_windows/X_spatial_sequences.npz")
 DEFAULT_AUDIT = Path("outputs/classification_v2/train_ready_windows/spatial_sequence_audit.json")
@@ -74,10 +82,35 @@ def main() -> None:
         "adjacent_motion_pair_mask",
         "sparse_velocity_pair_mask",
         "frame_index_sequence",
+        *{
+            f"{mask_name}_mask"
+            for mask_name in MOTION_REQUIRED_MASKS
+        },
     }
     missing = sorted(required_arrays.difference(data.files))
     if missing:
         errors.append(f"missing_arrays={missing}")
+    expected_schema = {
+        "motion_schema_id": MOTION_SCHEMA_ID,
+        "motion_schema_version": MOTION_SCHEMA_VERSION,
+        "motion_schema_dimension": MOTION_SCHEMA_DIMENSION,
+        "motion_schema_feature_names": list(MOTION_FEATURE_NAMES),
+        "motion_schema_hash": MOTION_SCHEMA_HASH,
+    }
+    for field, expected in expected_schema.items():
+        if audit.get(field) != expected:
+            errors.append(
+                f"{field}_mismatch={audit.get(field)!r}:{expected!r}"
+            )
+    declared_motion = audit.get("feature_names", {}).get(
+        "motion_delta",
+        [],
+    )
+    if declared_motion != list(MOTION_FEATURE_NAMES):
+        errors.append(
+            "motion_feature_order_mismatch="
+            f"{declared_motion!r}:{list(MOTION_FEATURE_NAMES)!r}"
+        )
 
     shapes = {}
     for name in data.files:
@@ -87,6 +120,17 @@ def main() -> None:
             errors.append(f"{name}_row_mismatch={arr.shape[0]} expected={window_rows}")
         if not np.isfinite(arr).all():
             errors.append(f"{name}_has_nan_or_inf")
+    if "motion_delta" in data.files:
+        actual_dimension = (
+            data["motion_delta"].shape[-1]
+            if data["motion_delta"].ndim == 3
+            else None
+        )
+        if actual_dimension != MOTION_SCHEMA_DIMENSION:
+            errors.append(
+                "motion_tensor_dimension_mismatch="
+                f"{actual_dimension}:{MOTION_SCHEMA_DIMENSION}"
+            )
 
     observed = (
         data["observed_mask"]
@@ -150,6 +194,7 @@ def main() -> None:
         "train_mask_completeness": train_mask_audit,
         "forbidden_selected": audit.get("forbidden_selected"),
         "warnings": audit.get("warnings", []),
+        **expected_schema,
         "errors": errors,
     }
     if args.output_json is not None:

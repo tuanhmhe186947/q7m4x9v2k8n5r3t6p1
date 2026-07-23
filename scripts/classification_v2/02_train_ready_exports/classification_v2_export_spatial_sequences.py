@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -9,6 +11,9 @@ import pandas as pd
 
 from pig_behavior.classification_v2.contracts.output_safety import (
     require_output_paths_available,
+)
+from pig_behavior.classification_v2.features.motion_schema import (
+    MOTION_SCHEMA_DIMENSION,
 )
 from pig_behavior.classification_v2.spatial_sequence_export import (
     DERIVATION_COLUMNS,
@@ -78,6 +83,11 @@ def main() -> None:
         "frame_index",
         "nearest_pig_id",
         "nearest_track_id",
+        "motion_schema_id",
+        "motion_schema_version",
+        "motion_schema_dimension",
+        "motion_schema_feature_names",
+        "motion_schema_hash",
     }
     needed.update(DERIVATION_COLUMNS)
     needed.update(
@@ -88,22 +98,60 @@ def main() -> None:
     usecols = [c for c in header if c in needed]
     frames = pd.read_csv(args.frame_features_csv, usecols=usecols, low_memory=False)
 
-    export = export_spatial_sequences(windows, frames)
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    staged_npz: Path | None = None
+    staged_audit: Path | None = None
+    try:
+        export = export_spatial_sequences(windows, frames)
+        with tempfile.NamedTemporaryFile(
+            dir=args.output_dir,
+            prefix=".phase2_spatial_",
+            suffix=".npz",
+            delete=False,
+        ) as handle:
+            staged_npz = Path(handle.name)
+        with tempfile.NamedTemporaryFile(
+            dir=args.output_dir,
+            prefix=".phase2_spatial_",
+            suffix=".json",
+            delete=False,
+        ) as handle:
+            staged_audit = Path(handle.name)
 
-    save_fn = np.savez_compressed if args.compress else np.savez
-    save_fn(npz_path, **export.arrays)
-
-    audit = {
-        "window_manifest_csv": str(args.window_manifest_csv),
-        "frame_features_csv": str(args.frame_features_csv),
-        "outputs": {
-            "X_spatial_sequences_npz": str(npz_path),
-            "audit_json": str(audit_path),
-        },
-        **export.audit,
-    }
-    audit_path.write_text(json.dumps(audit, indent=2, ensure_ascii=False), encoding="utf-8")
+        save_fn = np.savez_compressed if args.compress else np.savez
+        save_fn(staged_npz, **export.arrays)
+        audit = {
+            "window_manifest_csv": str(args.window_manifest_csv),
+            "frame_features_csv": str(args.frame_features_csv),
+            "outputs": {
+                "X_spatial_sequences_npz": str(npz_path),
+                "audit_json": str(audit_path),
+            },
+            **export.audit,
+        }
+        staged_audit.write_text(
+            json.dumps(audit, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        with np.load(staged_npz) as staged:
+            actual_shape = staged["motion_delta"].shape
+            if actual_shape[-1] != MOTION_SCHEMA_DIMENSION:
+                raise ValueError(
+                    "Staged motion tensor dimension mismatch: "
+                    f"{actual_shape[-1]} != {MOTION_SCHEMA_DIMENSION}"
+                )
+        if audit["errors"]:
+            raise ValueError(
+                f"Staged spatial audit has errors: {audit['errors']}"
+            )
+        os.replace(staged_npz, npz_path)
+        staged_npz = None
+        os.replace(staged_audit, audit_path)
+        staged_audit = None
+    finally:
+        for staged_path in (staged_npz, staged_audit):
+            if staged_path is not None and staged_path.exists():
+                staged_path.unlink()
 
     print(f"[OK] wrote {npz_path}")
     print(f"[OK] wrote {audit_path}")

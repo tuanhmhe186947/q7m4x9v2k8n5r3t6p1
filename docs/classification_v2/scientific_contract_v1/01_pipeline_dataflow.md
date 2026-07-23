@@ -141,7 +141,7 @@ flowchart LR
   P --> C{"exact ordered equality?"}
   C -- yes --> T["fixed float32 tensor + masks"]
   C -- no --> F["FAIL_CLOSED"]
-  T --> H["schema SHA-256: 30e8fe9ed2207914..."]
+  T --> H["schema SHA-256: ec0c511b5f519824..."]
 ```
 
 ## Leakage boundaries

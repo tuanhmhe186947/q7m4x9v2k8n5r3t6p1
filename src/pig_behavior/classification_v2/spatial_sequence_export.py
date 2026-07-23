@@ -12,6 +12,16 @@ import pandas as pd
 from pig_behavior.classification_v2.contracts.window_alignment import (
     require_ordered_window_ids,
 )
+from pig_behavior.classification_v2.features.motion_schema import (
+    MOTION_FEATURE_NAMES,
+    MOTION_REQUIRED_MASKS,
+    MOTION_SCHEMA_DIMENSION,
+    MOTION_SCHEMA_DTYPE,
+    MOTION_SCHEMA_HASH,
+    MOTION_SCHEMA_ID,
+    MOTION_SCHEMA_VERSION,
+    require_motion_schema,
+)
 from pig_behavior.classification_v2.features.pen_context import (
     PEN_CONTEXT_LEGACY_MODEL_FEATURE_COLUMNS,
     PEN_CONTEXT_MODEL_FEATURE_COLUMNS,
@@ -37,17 +47,7 @@ FORBIDDEN_SUBSTRINGS = (
 SPATIAL_FRAME_FEATURES: dict[str, list[str]] = {
     "bbox_xywh_n": ["cx_n", "cy_n", "bw_n", "bh_n"],
     "bbox_shape_n": ["area_n", "aspect_ratio"],
-    "motion_delta": [
-        "vx_n_per_second",
-        "vy_n_per_second",
-        "bw_rate_n_per_second",
-        "bh_rate_n_per_second",
-        "area_rate_n_per_second",
-        "aspect_ratio_rate_per_second",
-        "speed_n_per_second",
-        "abs_acceleration_n_per_second2",
-        "abs_direction_change_rad",
-    ],
+    "motion_delta": list(MOTION_FEATURE_NAMES),
     "roi_class_relation": [
         "roi_feeder_min_dist_n",
         "roi_feeder_max_overlap_ratio",
@@ -144,6 +144,9 @@ DERIVATION_COLUMNS: tuple[str, ...] = (
     "roi_drinker_available",
     "roi_toy_available",
     "social_neighbor_available",
+    *MOTION_REQUIRED_MASKS,
+    "velocity_sample_time_sec",
+    "acceleration_delta_t_sec",
 )
 
 
@@ -160,6 +163,7 @@ def export_spatial_sequences(
     *,
     max_window_length: int | None = None,
     feature_schema: dict[str, list[str]] | None = None,
+    motion_schema_manifest: dict[str, Any] | None = None,
 ) -> SpatialSequenceExport:
     """Build fixed-length spatial arrays aligned to sequence-window rows.
 
@@ -214,8 +218,52 @@ def export_spatial_sequences(
         "_social_partner_key"
     ].ne("")
 
+    alignment_windows = windows.reset_index(drop=True).copy()
+    for column in (
+        "window_start_frame",
+        "window_end_frame",
+        "window_length_frames",
+    ):
+        alignment_windows[column] = pd.to_numeric(
+            alignment_windows[column],
+            errors="coerce",
+        )
+    _validate_window_alignment_contract(
+        alignment_windows,
+        require_final_view_contract=require_final_view_contract,
+    )
+    alignment_frames = feature_frames[
+        ["object_track_key", "frame_index"]
+    ].copy()
+    alignment_frames["frame_index"] = pd.to_numeric(
+        alignment_frames["frame_index"],
+        errors="coerce",
+    )
+    _validate_frame_alignment_contract(alignment_frames)
+
     selected_schema = feature_schema or SPATIAL_FRAME_FEATURES
-    feature_names = _available_feature_names(feature_frames, selected_schema)
+    legacy_schema = selected_schema is LEGACY_SPATIAL_FRAME_FEATURES
+    motion_preflight: dict[str, Any] | None = None
+    if "motion_delta" in selected_schema and not legacy_schema:
+        producer_metadata = (
+            motion_schema_manifest
+            if motion_schema_manifest is not None
+            else _motion_metadata_from_frames(feature_frames)
+        )
+        motion_preflight = require_motion_schema(
+            source_columns=list(feature_frames.columns),
+            actual_feature_names=selected_schema["motion_delta"],
+            actual_masks=[
+                name for name in MOTION_REQUIRED_MASKS
+                if name in feature_frames.columns
+            ],
+            metadata=producer_metadata,
+        )
+    feature_names = _available_feature_names(
+        feature_frames,
+        selected_schema,
+        fail_closed_groups={"motion_delta"} if not legacy_schema else set(),
+    )
     selected_cols = [c for cols in feature_names.values() for c in cols]
     derivation_cols = [
         column
@@ -316,6 +364,13 @@ def export_spatial_sequences(
         (len(work_windows), max_window_length),
         dtype=np.float32,
     )
+    derivative_masks = {
+        name: np.zeros(
+            (len(work_windows), max_window_length),
+            dtype=np.float32,
+        )
+        for name in MOTION_REQUIRED_MASKS
+    }
     frame_index_sequence = np.full((len(work_windows), max_window_length), -1, dtype=np.int32)
 
     missing_frame_slots = 0
@@ -464,6 +519,15 @@ def export_spatial_sequences(
             )
             adjacent_motion_pair_mask[i, slot_positions] = adjacent_pairs
             sparse_velocity_pair_mask[i, slot_positions] = sparse_pairs
+            for mask_name, mask_array in derivative_masks.items():
+                mask_array[i, slot_positions] = _column_or_zero(
+                    values,
+                    {
+                        column: index
+                        for index, column in enumerate(computational_names)
+                    },
+                    mask_name,
+                )
             masked_values = _zero_invalid_feature_groups(
                 values,
                 group_slices,
@@ -482,6 +546,8 @@ def export_spatial_sequences(
     arrays["pen_validity_mask"] = pen_validity_mask
     arrays["adjacent_motion_pair_mask"] = adjacent_motion_pair_mask
     arrays["sparse_velocity_pair_mask"] = sparse_velocity_pair_mask
+    for mask_name, mask_array in derivative_masks.items():
+        arrays[f"{mask_name}_mask"] = mask_array
     arrays["frame_index_sequence"] = frame_index_sequence
     valid_length_slots = int(length_mask.sum())
     observed_frame_slots = int(observed_mask.sum())
@@ -501,6 +567,18 @@ def export_spatial_sequences(
         "max_window_length": int(max_window_length),
         "array_shapes": {name: list(value.shape) for name, value in arrays.items()},
         "feature_names": feature_names,
+        "motion_schema_preflight": motion_preflight,
+        "motion_schema_id": MOTION_SCHEMA_ID if motion_preflight else None,
+        "motion_schema_version": (
+            MOTION_SCHEMA_VERSION if motion_preflight else None
+        ),
+        "motion_schema_dimension": (
+            MOTION_SCHEMA_DIMENSION if motion_preflight else None
+        ),
+        "motion_schema_feature_names": (
+            list(MOTION_FEATURE_NAMES) if motion_preflight else None
+        ),
+        "motion_schema_hash": MOTION_SCHEMA_HASH if motion_preflight else None,
         "forbidden_selected": forbidden_selected,
         "missing_frame_slots": int(missing_frame_slots),
         "valid_length_slots": valid_length_slots,
@@ -558,9 +636,30 @@ def _rebase_window_motion(
     indices = {column: feature_names.index(column) for column in feature_names}
     for column in present_motion:
         out[:, indices[column]] = 0.0
+    for column in (
+        *MOTION_REQUIRED_MASKS,
+        "velocity_sample_time_sec",
+        "acceleration_delta_t_sec",
+    ):
+        if column in indices:
+            out[:, indices[column]] = 0.0
 
+    v2_motion_present = all(
+        column in indices for column in MOTION_FEATURE_NAMES
+    )
     required_position = ["cx_n", "cy_n", "bw_n", "bh_n"]
+    if v2_motion_present:
+        required_position.extend(["area_n", "aspect_ratio"])
     if not all(column in indices for column in required_position):
+        if v2_motion_present:
+            missing_base = [
+                column for column in required_position
+                if column not in indices
+            ]
+            raise ValueError(
+                "Cannot recompute v2 motion without base geometry: "
+                f"{missing_base}"
+            )
         return out, {
             "rebased": True,
             "valid_pairs": 0,
@@ -623,6 +722,32 @@ def _rebase_window_motion(
         out[pair_rows[finite_speed], indices["speed_n_per_second"]] = speed[
             finite_speed
         ]
+    for mask_name in ("valid_motion_pair", "velocity_valid"):
+        if mask_name in indices:
+            out[pair_rows, indices[mask_name]] = 1.0
+    if "motion_feature_available" in indices and pair_rows.size:
+        out[:, indices["motion_feature_available"]] = 1.0
+    if "velocity_sample_time_sec" in indices:
+        midpoint = (
+            timestamps[pair_rows].astype("float64")
+            + timestamps[previous_rows].astype("float64")
+        ) / 2.0
+        out[pair_rows, indices["velocity_sample_time_sec"]] = midpoint
+
+    bbox_rate_valid = velocity_pair_valid.copy()
+    for rate_column in (
+        "bw_rate_n_per_second",
+        "bh_rate_n_per_second",
+        "area_rate_n_per_second",
+        "aspect_ratio_rate_per_second",
+    ):
+        if rate_column in indices:
+            bbox_rate_valid[pair_rows - 1] &= np.isfinite(
+                out[pair_rows, indices[rate_column]]
+            )
+    if "bbox_rate_valid" in indices:
+        bbox_rows = np.flatnonzero(bbox_rate_valid) + 1
+        out[bbox_rows, indices["bbox_rate_valid"]] = 1.0
 
     adjacent_rows = np.flatnonzero(adjacent_pair_valid) + 1
     adjacent_previous = adjacent_rows - 1
@@ -1106,9 +1231,21 @@ def _recompute_higher_order_motion(
     velocity_pair_valid: np.ndarray,
     adjacent_pair_valid: np.ndarray,
 ) -> None:
-    """Recompute acceleration and turning after window-local speeds exist."""
+    """Recompute derivative-order-specific v2 motion inside one window."""
     if len(values) < 3:
+        if len(values) >= 2 and {
+            "velocity_valid",
+            "speed_n_per_second",
+        }.issubset(indices):
+            speed = values[:, indices["speed_n_per_second"]]
+            valid = np.zeros(len(values), dtype=bool)
+            valid[1:] = velocity_pair_valid & np.isfinite(
+                speed[1:]
+            ) & (speed[1:] > 0)
+            if "direction_valid" in indices:
+                values[valid, indices["direction_valid"]] = 1.0
         return
+
     speed_column = indices.get("speed_n_per_second")
     time_delta = np.diff(timestamps.astype("float64"))
     acceleration_time = (time_delta[:-1] + time_delta[1:]) / 2.0
@@ -1118,16 +1255,62 @@ def _recompute_higher_order_motion(
         & np.isfinite(acceleration_time)
         & (acceleration_time > 0)
     )
-    if (
-        speed_column is not None
-        and "abs_acceleration_n_per_second2" in indices
+    acceleration_rows = np.flatnonzero(acceleration_valid) + 2
+    if "acceleration_delta_t_sec" in indices:
+        values[
+            acceleration_rows,
+            indices["acceleration_delta_t_sec"],
+        ] = acceleration_time[acceleration_valid]
+    for mask_name in (
+        "tangential_acceleration_valid",
+        "vector_acceleration_valid",
     ):
-        acceleration = np.zeros(len(values) - 2, dtype="float64")
-        acceleration[acceleration_valid] = np.abs(
+        if mask_name in indices:
+            values[acceleration_rows, indices[mask_name]] = 1.0
+
+    tangential = np.zeros(len(values) - 2, dtype="float64")
+    if speed_column is not None:
+        tangential[acceleration_valid] = (
             np.diff(values[1:, speed_column])[acceleration_valid]
             / acceleration_time[acceleration_valid]
         )
-        values[2:, indices["abs_acceleration_n_per_second2"]] = acceleration
+    if "tangential_acceleration_n_per_second2" in indices:
+        values[
+            2:,
+            indices["tangential_acceleration_n_per_second2"],
+        ] = tangential
+    if "acceleration_n_per_second2" in indices:
+        values[2:, indices["acceleration_n_per_second2"]] = tangential
+    if "abs_acceleration_n_per_second2" in indices:
+        values[
+            2:,
+            indices["abs_acceleration_n_per_second2"],
+        ] = np.abs(tangential)
+
+    ax = np.zeros(len(values) - 2, dtype="float64")
+    ay = np.zeros(len(values) - 2, dtype="float64")
+    if {"vx_n_per_second", "vy_n_per_second"}.issubset(indices):
+        ax[acceleration_valid] = (
+            np.diff(values[1:, indices["vx_n_per_second"]])[
+                acceleration_valid
+            ]
+            / acceleration_time[acceleration_valid]
+        )
+        ay[acceleration_valid] = (
+            np.diff(values[1:, indices["vy_n_per_second"]])[
+                acceleration_valid
+            ]
+            / acceleration_time[acceleration_valid]
+        )
+    if "ax_n_per_second2" in indices:
+        values[2:, indices["ax_n_per_second2"]] = ax
+    if "ay_n_per_second2" in indices:
+        values[2:, indices["ay_n_per_second2"]] = ay
+    if "acceleration_vector_magnitude_n_per_second2" in indices:
+        values[
+            2:,
+            indices["acceleration_vector_magnitude_n_per_second2"],
+        ] = np.hypot(ax, ay)
 
     legacy_speed_column = indices.get("speed_n_per_frame")
     legacy_acceleration_valid = (
@@ -1146,20 +1329,38 @@ def _recompute_higher_order_motion(
         values[2:, indices["abs_accel_n_per_frame2"]] = legacy_acceleration
 
     if {
-        "abs_direction_change_rad",
-        "cx_n",
-        "cy_n",
+        "vx_n_per_second",
+        "vy_n_per_second",
+        "speed_n_per_second",
     }.issubset(indices):
-        dx = np.diff(values[:, indices["cx_n"]])
-        dy = np.diff(values[:, indices["cy_n"]])
-        direction = np.arctan2(dy, dx)
-        heading_valid = adjacent_pair_valid[:-1] & adjacent_pair_valid[1:]
-        change = np.zeros(len(values) - 2, dtype="float64")
-        raw_change = np.abs(
-            (np.diff(direction) + np.pi) % (2.0 * np.pi) - np.pi
+        interval_direction = np.arctan2(
+            values[1:, indices["vy_n_per_second"]],
+            values[1:, indices["vx_n_per_second"]],
         )
+        direction_valid = (
+            velocity_pair_valid
+            & np.isfinite(values[1:, speed_column])
+            & (values[1:, speed_column] > 0)
+        )
+        if "direction_valid" in indices:
+            direction_rows = np.flatnonzero(direction_valid) + 1
+            values[direction_rows, indices["direction_valid"]] = 1.0
+        heading_valid = direction_valid[:-1] & direction_valid[1:]
+        raw_change = (
+            np.diff(interval_direction) + np.pi
+        ) % (2.0 * np.pi) - np.pi
+        change = np.zeros(len(values) - 2, dtype="float64")
         change[heading_valid] = raw_change[heading_valid]
-        values[2:, indices["abs_direction_change_rad"]] = change
+        if "direction_change_rad" in indices:
+            values[2:, indices["direction_change_rad"]] = change
+        if "abs_direction_change_rad" in indices:
+            values[2:, indices["abs_direction_change_rad"]] = np.abs(change)
+        if "direction_change_valid" in indices:
+            direction_change_rows = np.flatnonzero(heading_valid) + 2
+            values[
+                direction_change_rows,
+                indices["direction_change_valid"],
+            ] = 1.0
 
 
 def _selected_window_frame_indices(
@@ -1448,13 +1649,67 @@ def _raise_alignment_error(
 def _available_feature_names(
     frames: pd.DataFrame,
     feature_schema: dict[str, list[str]],
+    *,
+    fail_closed_groups: set[str] | None = None,
 ) -> dict[str, list[str]]:
+    fail_closed = fail_closed_groups or set()
     available: dict[str, list[str]] = {}
     for group_name, cols in feature_schema.items():
+        if group_name in fail_closed:
+            missing = [column for column in cols if column not in frames]
+            if missing:
+                raise ValueError(
+                    f"Missing required {group_name} features: {missing}"
+                )
+            available[group_name] = list(cols)
+            continue
         present = [c for c in cols if c in frames.columns]
         if present:
             available[group_name] = present
     return available
+
+
+def _motion_metadata_from_frames(frames: pd.DataFrame) -> dict[str, Any]:
+    required = {
+        "motion_schema_id": "schema_id",
+        "motion_schema_version": "schema_version",
+        "motion_schema_dimension": "dimension",
+        "motion_schema_feature_names": "ordered_feature_names",
+        "motion_schema_hash": "schema_hash",
+    }
+    metadata: dict[str, Any] = {}
+    missing = [column for column in required if column not in frames]
+    if missing:
+        raise ValueError(
+            "Missing producer motion schema metadata columns: "
+            f"{missing}"
+        )
+    for column, field in required.items():
+        values = frames[column].dropna().unique().tolist()
+        if len(values) != 1:
+            raise ValueError(
+                "Producer motion schema metadata must be constant: "
+                f"{column}={values[:5]}"
+            )
+        metadata[field] = values[0]
+    metadata["dimension"] = int(metadata["dimension"])
+    feature_names_value = metadata["ordered_feature_names"]
+    if isinstance(feature_names_value, str):
+        try:
+            feature_names_value = json.loads(feature_names_value)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                "Producer motion_schema_feature_names is not valid JSON"
+            ) from exc
+    metadata["ordered_feature_names"] = list(feature_names_value)
+    if metadata["ordered_feature_names"] != list(MOTION_FEATURE_NAMES):
+        raise ValueError(
+            "Producer motion_schema_feature_names does not match authority: "
+            f"{metadata['ordered_feature_names']}"
+        )
+    metadata["dtype"] = MOTION_SCHEMA_DTYPE
+    metadata["validity_masks"] = list(MOTION_REQUIRED_MASKS)
+    return metadata
 
 
 def _numeric_feature(series: pd.Series) -> pd.Series:

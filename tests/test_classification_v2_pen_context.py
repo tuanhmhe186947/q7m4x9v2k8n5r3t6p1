@@ -218,7 +218,16 @@ def test_spatial_export_keeps_pen_context_in_an_isolated_feature_group(
         }
     )
 
-    exported = export_spatial_sequences(windows, frames)
+    exported = export_spatial_sequences(
+        windows,
+        frames,
+        feature_schema={
+            "bbox_xywh_n": list(SPATIAL_FRAME_FEATURES["bbox_xywh_n"]),
+            "pen_boundary_context": list(
+                PEN_CONTEXT_MODEL_FEATURE_COLUMNS
+            ),
+        },
+    )
 
     names = exported.feature_names["pen_boundary_context"]
     values = exported.arrays["pen_boundary_context"][0]

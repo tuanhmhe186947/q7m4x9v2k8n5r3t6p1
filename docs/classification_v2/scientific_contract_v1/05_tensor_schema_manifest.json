@@ -3,19 +3,28 @@
   "schemas": [
     {
       "aggregation_outputs": [
-        "valid_pair_count",
-        "possible_pair_count",
-        "valid_pair_ratio",
         "observed_frame_count",
-        "motion_feature_coverage"
+        "possible_pair_count",
+        "valid_pair_count",
+        "valid_pair_ratio",
+        "motion_feature_coverage",
+        "velocity_possible_count",
+        "velocity_valid_count",
+        "velocity_coverage",
+        "direction_change_possible_count",
+        "direction_change_valid_count",
+        "direction_change_coverage",
+        "acceleration_possible_count",
+        "acceleration_valid_count",
+        "acceleration_coverage"
       ],
-      "current_actual_dimension": "VARIABLE_BY_COLUMN_AVAILABILITY",
-      "current_exporter_declared_dimension": 9,
-      "current_producer_dimension": 9,
+      "current_actual_dimension": 12,
+      "current_exporter_declared_dimension": 12,
+      "current_producer_dimension": 12,
       "dimension": 12,
       "dtype": "float32",
       "exporter_stage": "stage.tensor_export",
-      "implementation_status": "IMPLEMENTATION_DIFFERS_FROM_CONTRACT",
+      "implementation_status": "IMPLEMENTED_AND_TESTED",
       "missing_feature_policy": "FAIL_CLOSED",
       "ordered_feature_names": [
         "vx_n_per_second",
@@ -32,7 +41,7 @@
         "acceleration_vector_magnitude_n_per_second2"
       ],
       "producer_stage": "stage.native_review_evidence",
-      "schema_hash": "30e8fe9ed2207914ac0bd8e2aca99118dd8a04163843ac8dab895dbed615ea45",
+      "schema_hash": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b",
       "schema_id": "schema.pig_strenet_motion_v2",
       "schema_version": "classification_v2.motion_tensor.v2",
       "schema_violations": [
@@ -43,7 +52,12 @@
       ],
       "validity_masks": [
         "valid_motion_pair",
-        "valid_acceleration_pair",
+        "velocity_valid",
+        "bbox_rate_valid",
+        "direction_valid",
+        "direction_change_valid",
+        "tangential_acceleration_valid",
+        "vector_acceleration_valid",
         "motion_feature_available"
       ]
     }

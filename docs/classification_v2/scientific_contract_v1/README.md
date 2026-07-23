@@ -8,7 +8,7 @@ library. Derived Markdown, CSV and JSON files are deterministic.
 ## Scope
 
 - Pipeline stages: 17
-- Feature semantics: 58
+- Feature semantics: 73
 - Invariants: 24
 - Golden numerical cases: 25
 - Model schemas: 1
