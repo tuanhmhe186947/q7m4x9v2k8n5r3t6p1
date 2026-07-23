@@ -25,6 +25,16 @@ REALTIME_FAST_CONFIG: dict[str, object] = {
     "realtime_visible_close_competitor_margin": 0.08,
     "realtime_visible_close_competitor_max_cost": 0.40,
     "realtime_visible_close_competitor_min_center_x_ratio": 0.67,
+    "realtime_core_unassigned_tiebreak": True,
+    "realtime_core_unassigned_require_score_nondecrease": True,
+    "realtime_core_unassigned_max_cost_delta": 0.01,
+    "realtime_core_unassigned_min_appearance_gain": 0.01,
+    "realtime_core_unassigned_min_detection_iou": 0.30,
+    "realtime_core_unassigned_max_selected_cost": 0.40,
+    "realtime_core_pairwise_tiebreak": True,
+    "realtime_core_pairwise_max_total_cost_increase": 0.05,
+    "realtime_core_pairwise_min_total_appearance_gain": 0.10,
+    "realtime_core_pairwise_min_detection_iou": 0.30,
 }
 
 REALTIME_BALANCED_CONFIG: dict[str, object] = {
@@ -82,9 +92,9 @@ EVAL_CONFIGS: dict[str, dict[str, object]] = {
 PRESENTATION_PROFILES: dict[str, dict[str, object]] = {
     "realtime": {
         "mode": "realtime",
-        "eval_config": "realtime_quality_delayed",
+        "eval_config": "realtime_fast",
         "description": (
-            "Best current post-video quality profile; not fixed-delay causal."
+            "Current best causal realtime profile; quality-delayed remains explicit."
         ),
     },
     "realtime_fast": {

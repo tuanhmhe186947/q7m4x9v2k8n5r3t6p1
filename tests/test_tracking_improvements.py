@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 import numpy as np
 
+import pig_behavior.tracking.association as association_module
 from pig_behavior.evaluation.tracking.api import (
     TrackingObject,
     TrackingPair,

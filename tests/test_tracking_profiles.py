@@ -15,7 +15,7 @@ def test_presentation_profiles_map_to_clear_modes() -> None:
     assert PRESENTATION_PROFILES["hybrid_bytetrack"]["mode"] == "hybrid_bytetrack"
 
     assert PRESENTATION_PROFILES["bytetrack_raw"]["eval_config"] == "bytetrack_raw"
-    assert PRESENTATION_PROFILES["realtime"]["eval_config"] == "realtime_quality_delayed"
+    assert PRESENTATION_PROFILES["realtime"]["eval_config"] == "realtime_fast"
     assert PRESENTATION_PROFILES["realtime_balanced"]["eval_config"] == "realtime_balanced"
     assert PRESENTATION_PROFILES["hybrid_bytetrack"]["eval_config"] == "hybrid_bytetrack_best"
 
@@ -31,7 +31,7 @@ def test_profile_configs_keep_expected_behavior_separation() -> None:
     assert raw["hidden_suffix_id_swap_repair"] is False
     assert raw["realtime_motion_pair_stabilizer"] is False
 
-    for non_hybrid in (raw, realtime_fast, realtime_balanced, realtime):
+    for non_hybrid in (raw, realtime_balanced, realtime):
         assert "near_wall_hidden_geometry_refine" not in non_hybrid
         assert "far_camera_hidden_geometry_refine" not in non_hybrid
         assert "hidden_suffix_id_swap_use_overlap_persistence" not in non_hybrid
@@ -42,6 +42,26 @@ def test_profile_configs_keep_expected_behavior_separation() -> None:
         )
     assert "realtime_core_unassigned_tiebreak" not in hybrid
     assert "realtime_core_unassigned_require_score_nondecrease" not in hybrid
+
+    assert realtime_fast["realtime_core_unassigned_tiebreak"] is True
+    assert (
+        realtime_fast["realtime_core_unassigned_require_score_nondecrease"]
+        is True
+    )
+    assert realtime_fast["realtime_core_unassigned_max_cost_delta"] == 0.01
+    assert realtime_fast["realtime_core_unassigned_min_appearance_gain"] == 0.01
+    assert realtime_fast["realtime_core_unassigned_min_detection_iou"] == 0.30
+    assert realtime_fast["realtime_core_unassigned_max_selected_cost"] == 0.40
+    assert realtime_fast["realtime_core_pairwise_tiebreak"] is True
+    assert (
+        realtime_fast["realtime_core_pairwise_max_total_cost_increase"]
+        == 0.05
+    )
+    assert (
+        realtime_fast["realtime_core_pairwise_min_total_appearance_gain"]
+        == 0.10
+    )
+    assert realtime_fast["realtime_core_pairwise_min_detection_iou"] == 0.30
 
     assert realtime_fast["realtime_visible_better_competitor_prefer"] is True
     assert realtime_fast["realtime_visible_close_competitor_guard"] is True
