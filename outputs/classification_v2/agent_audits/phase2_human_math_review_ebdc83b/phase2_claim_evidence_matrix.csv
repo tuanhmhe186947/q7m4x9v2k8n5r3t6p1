@@ -1,0 +1,10 @@
+claim_id,claim,evidence_files,automated_result,human_signoff_required
+claim.schema_fixed_12,Motion tensor has exact fixed dimension 12,phase2_motion_schema.json|phase2_tensor_schema_preflight.json,PASS,YES
+claim.schema_fail_closed,Missing reordered duplicate wrong-hash wrong-version and wrong-dimension schemas fail,phase2_reference_verification.json|tests/test_classification_v2_phase2_motion_schema.py,PASS,YES
+claim.midpoint_time,Acceleration uses consecutive interval midpoint sample times,phase2_math_contract.md|phase2_golden_cases_worked.md|phase2_golden_rows.csv,PASS,YES
+claim.acceleration_separated,Tangential and vector acceleration semantics are distinct,phase2_golden_cases_worked.md|phase2_reference_verification.json,PASS,YES
+claim.direction_validity,Zero speed has undefined direction and no epsilon,phase2_golden_rows.csv|phase2_reference_verification.json,PASS,YES
+claim.validity_masks,Missing derivatives remain distinct from measured zero,phase2_golden_rows.csv|phase2_tensor_schema_preflight.json,PASS,YES
+claim.phase1_preserved,Unit reset identity continuity and invalid pair exclusion remain enforced,tests/test_classification_v2_phase1_pair_contract.py|phase2_production_motion_trace.csv,PASS,YES
+claim.production_bounded,Trace contains 10 CVAT and 10 legacy units without artifact promotion,phase2_production_motion_trace.csv|phase2_production_unit_summary.csv,PASS,YES
+claim.scientific_scope,All values are image-coordinate and not physical measurements,phase2_math_contract.md,REVIEW,YES

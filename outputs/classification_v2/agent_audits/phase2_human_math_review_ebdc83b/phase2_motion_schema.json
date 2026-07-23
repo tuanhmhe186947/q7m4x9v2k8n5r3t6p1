@@ -1,0 +1,49 @@
+{
+  "schema_id": "schema.pig_strenet_motion_v2",
+  "schema_version": "classification_v2.motion_tensor.v2",
+  "dtype": "float32",
+  "ordered_feature_names": [
+    "vx_n_per_second",
+    "vy_n_per_second",
+    "bw_rate_n_per_second",
+    "bh_rate_n_per_second",
+    "area_rate_n_per_second",
+    "aspect_ratio_rate_per_second",
+    "speed_n_per_second",
+    "direction_change_rad",
+    "tangential_acceleration_n_per_second2",
+    "ax_n_per_second2",
+    "ay_n_per_second2",
+    "acceleration_vector_magnitude_n_per_second2"
+  ],
+  "validity_masks": [
+    "valid_motion_pair",
+    "velocity_valid",
+    "bbox_rate_valid",
+    "direction_valid",
+    "direction_change_valid",
+    "tangential_acceleration_valid",
+    "vector_acceleration_valid",
+    "motion_feature_available"
+  ],
+  "aggregation_outputs": [
+    "observed_frame_count",
+    "possible_pair_count",
+    "valid_pair_count",
+    "valid_pair_ratio",
+    "motion_feature_coverage",
+    "velocity_possible_count",
+    "velocity_valid_count",
+    "velocity_coverage",
+    "direction_change_possible_count",
+    "direction_change_valid_count",
+    "direction_change_coverage",
+    "acceleration_possible_count",
+    "acceleration_valid_count",
+    "acceleration_coverage"
+  ],
+  "dimension": 12,
+  "schema_hash": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b",
+  "acceleration_time_convention": "centered interval-average discrete acceleration using consecutive velocity interval midpoints",
+  "direction_policy": "velocity_valid and finite(speed) and speed > 0; no epsilon"
+}

@@ -1,0 +1,2751 @@
+{
+  "schema_version": "classification_v2.phase2_independent_reference.v1",
+  "implementation_commit": "ebdc83bc942ba34dd4f820a6aba46f37233a04d6",
+  "reference_method": "Python standard-library booleans, subtraction, division, square root, atan2 and modular angle wrapping only",
+  "imports_production_motion_functions": false,
+  "imports_production_aggregate_functions": false,
+  "calls_exporter_for_expected_values": false,
+  "tolerance": 1e-12,
+  "schema_hash": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b",
+  "formulas": {
+    "velocity_sample_time": "(t_previous+t_current)/2",
+    "velocity": "(position_current-position_previous)/delta_t",
+    "speed": "sqrt(vx^2+vy^2)",
+    "acceleration_delta_t": "current_velocity_midpoint-previous_velocity_midpoint",
+    "tangential_acceleration": "(speed_current-speed_previous)/acceleration_delta_t",
+    "ax": "(vx_current-vx_previous)/acceleration_delta_t",
+    "ay": "(vy_current-vy_previous)/acceleration_delta_t",
+    "vector_magnitude": "sqrt(ax^2+ay^2)",
+    "direction_change": "(direction_current-direction_previous+pi)%(2*pi)-pi"
+  },
+  "worked_numerators_and_denominators": {
+    "constant_velocity": {
+      "vx": "(1-0)/(1-0)=1",
+      "speed": "sqrt(1^2+0^2)=1"
+    },
+    "speed_increase": {
+      "midpoints": "[0.5,1.5]",
+      "acceleration_delta_t": "1.5-0.5=1",
+      "tangential": "(2-1)/1=1",
+      "ax": "(2-1)/1=1",
+      "vector_magnitude": "sqrt(1^2+0^2)=1"
+    },
+    "direction_change": {
+      "midpoints": "[0.5,1.5]",
+      "acceleration_delta_t": "1.5-0.5=1",
+      "tangential": "(1-1)/1=0",
+      "ax": "(0-1)/1=-1",
+      "ay": "(1-0)/1=1",
+      "vector_magnitude": "sqrt((-1)^2+1^2)=sqrt(2)"
+    },
+    "irregular_timing": {
+      "midpoints": "[(0+1)/2,(1+3)/2]=[0.5,2.0]",
+      "acceleration_delta_t": "2.0-0.5=1.5"
+    }
+  },
+  "checks": [
+    {
+      "check_id": "golden_stationary_1_velocity_valid",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "check_id": "golden_stationary_1_vx_n_per_second",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0
+      }
+    },
+    {
+      "check_id": "golden_stationary_1_vy_n_per_second",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0
+      }
+    },
+    {
+      "check_id": "golden_stationary_1_speed_n_per_second",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0
+      }
+    },
+    {
+      "check_id": "golden_stationary_1_direction_valid",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "check_id": "golden_stationary_2_tangential_acceleration_valid",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "check_id": "golden_stationary_2_tangential_acceleration_n_per_second2",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0
+      }
+    },
+    {
+      "check_id": "golden_stationary_2_vector_acceleration_valid",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "check_id": "golden_stationary_2_ax_n_per_second2",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0
+      }
+    },
+    {
+      "check_id": "golden_stationary_2_ay_n_per_second2",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0
+      }
+    },
+    {
+      "check_id": "golden_stationary_2_acceleration_vector_magnitude_n_per_second2",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0
+      }
+    },
+    {
+      "check_id": "golden_horizontal_1_vx_n_per_second",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0
+      }
+    },
+    {
+      "check_id": "golden_horizontal_1_vy_n_per_second",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0
+      }
+    },
+    {
+      "check_id": "golden_horizontal_1_speed_n_per_second",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0
+      }
+    },
+    {
+      "check_id": "golden_horizontal_2_direction_change_valid",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "check_id": "golden_horizontal_2_direction_change_rad",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0
+      }
+    },
+    {
+      "check_id": "golden_horizontal_2_tangential_acceleration_n_per_second2",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0
+      }
+    },
+    {
+      "check_id": "golden_horizontal_2_acceleration_vector_magnitude_n_per_second2",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0
+      }
+    },
+    {
+      "check_id": "golden_diagonal_1_vx_n_per_second",
+      "passed": true,
+      "evidence": {
+        "actual": 3.0,
+        "expected": 3.0
+      }
+    },
+    {
+      "check_id": "golden_diagonal_1_vy_n_per_second",
+      "passed": true,
+      "evidence": {
+        "actual": 4.0,
+        "expected": 4.0
+      }
+    },
+    {
+      "check_id": "golden_diagonal_1_speed_n_per_second",
+      "passed": true,
+      "evidence": {
+        "actual": 5.0,
+        "expected": 5.0
+      }
+    },
+    {
+      "check_id": "golden_irregular_1_velocity_sample_time_sec",
+      "passed": true,
+      "evidence": {
+        "actual": 0.5,
+        "expected": 0.5
+      }
+    },
+    {
+      "check_id": "golden_irregular_1_vx_n_per_second",
+      "passed": true,
+      "evidence": {
+        "actual": 2.0,
+        "expected": 2.0
+      }
+    },
+    {
+      "check_id": "golden_irregular_2_velocity_sample_time_sec",
+      "passed": true,
+      "evidence": {
+        "actual": 2.0,
+        "expected": 2.0
+      }
+    },
+    {
+      "check_id": "golden_irregular_2_acceleration_delta_t_sec",
+      "passed": true,
+      "evidence": {
+        "actual": 1.5,
+        "expected": 1.5
+      }
+    },
+    {
+      "check_id": "golden_irregular_2_tangential_acceleration_n_per_second2",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0
+      }
+    },
+    {
+      "check_id": "golden_irregular_2_ax_n_per_second2",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0
+      }
+    },
+    {
+      "check_id": "golden_width_only_1_bw_rate_n_per_second",
+      "passed": true,
+      "evidence": {
+        "actual": 0.1,
+        "expected": 0.1
+      }
+    },
+    {
+      "check_id": "golden_width_only_1_bh_rate_n_per_second",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0
+      }
+    },
+    {
+      "check_id": "golden_width_only_1_area_rate_n_per_second",
+      "passed": true,
+      "evidence": {
+        "actual": 0.010000000000000002,
+        "expected": 0.01
+      }
+    },
+    {
+      "check_id": "golden_height_only_1_bw_rate_n_per_second",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0
+      }
+    },
+    {
+      "check_id": "golden_height_only_1_bh_rate_n_per_second",
+      "passed": true,
+      "evidence": {
+        "actual": 0.05,
+        "expected": 0.05
+      }
+    },
+    {
+      "check_id": "golden_height_only_1_area_rate_n_per_second",
+      "passed": true,
+      "evidence": {
+        "actual": 0.010000000000000002,
+        "expected": 0.01
+      }
+    },
+    {
+      "check_id": "golden_area_change_1_area_rate_n_per_second",
+      "passed": true,
+      "evidence": {
+        "actual": 0.010000000000000002,
+        "expected": 0.01
+      }
+    },
+    {
+      "check_id": "golden_aspect_change_1_aspect_ratio_rate_per_second",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0
+      }
+    },
+    {
+      "check_id": "golden_invalid_pair_1_valid_motion_pair",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "check_id": "golden_invalid_pair_1_velocity_valid",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "check_id": "golden_invalid_pair_1_bbox_rate_valid",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "check_id": "golden_invalid_pair_1_vector_acceleration_valid",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "check_id": "golden_first_valid_velocity_1_velocity_valid",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "check_id": "golden_first_valid_velocity_1_vector_acceleration_valid",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "check_id": "golden_constant_velocity_2_tangential_acceleration_valid",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "check_id": "golden_constant_velocity_2_tangential_acceleration_n_per_second2",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0
+      }
+    },
+    {
+      "check_id": "golden_constant_velocity_2_vector_acceleration_valid",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "check_id": "golden_constant_velocity_2_acceleration_vector_magnitude_n_per_second2",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0
+      }
+    },
+    {
+      "check_id": "golden_speed_increase_2_tangential_acceleration_n_per_second2",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0
+      }
+    },
+    {
+      "check_id": "golden_speed_increase_2_ax_n_per_second2",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0
+      }
+    },
+    {
+      "check_id": "golden_speed_increase_2_ay_n_per_second2",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0
+      }
+    },
+    {
+      "check_id": "golden_speed_increase_2_acceleration_vector_magnitude_n_per_second2",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0
+      }
+    },
+    {
+      "check_id": "golden_speed_increase_2_direction_change_rad",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0
+      }
+    },
+    {
+      "check_id": "golden_speed_decrease_2_tangential_acceleration_n_per_second2",
+      "passed": true,
+      "evidence": {
+        "actual": -1.0,
+        "expected": -1.0
+      }
+    },
+    {
+      "check_id": "golden_speed_decrease_2_ax_n_per_second2",
+      "passed": true,
+      "evidence": {
+        "actual": -1.0,
+        "expected": -1.0
+      }
+    },
+    {
+      "check_id": "golden_speed_decrease_2_acceleration_vector_magnitude_n_per_second2",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0
+      }
+    },
+    {
+      "check_id": "golden_direction_change_2_tangential_acceleration_n_per_second2",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0
+      }
+    },
+    {
+      "check_id": "golden_direction_change_2_ax_n_per_second2",
+      "passed": true,
+      "evidence": {
+        "actual": -1.0,
+        "expected": -1.0
+      }
+    },
+    {
+      "check_id": "golden_direction_change_2_ay_n_per_second2",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0
+      }
+    },
+    {
+      "check_id": "golden_direction_change_2_acceleration_vector_magnitude_n_per_second2",
+      "passed": true,
+      "evidence": {
+        "actual": 1.4142135623730951,
+        "expected": 1.4142135623730951
+      }
+    },
+    {
+      "check_id": "golden_direction_change_2_direction_change_rad",
+      "passed": true,
+      "evidence": {
+        "actual": 1.5707963267948966,
+        "expected": 1.5707963267948966
+      }
+    },
+    {
+      "check_id": "golden_angle_wrap_2_direction_change_rad",
+      "passed": true,
+      "evidence": {
+        "actual": 0.034906585039886195,
+        "expected": 0.03490658503988659
+      }
+    },
+    {
+      "check_id": "golden_zero_speed_direction_1_velocity_valid",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "check_id": "golden_zero_speed_direction_1_speed_n_per_second",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0
+      }
+    },
+    {
+      "check_id": "golden_zero_speed_direction_1_direction_valid",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "check_id": "golden_zero_speed_direction_1_direction_change_valid",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "check_id": "golden_invalid_middle_velocity_2_velocity_valid",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "check_id": "golden_invalid_middle_velocity_2_vector_acceleration_valid",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "check_id": "golden_invalid_middle_velocity_3_velocity_valid",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "check_id": "golden_invalid_middle_velocity_3_vector_acceleration_valid",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "check_id": "golden_cross_unit_2_valid_motion_pair",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "check_id": "golden_cross_unit_2_velocity_valid",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "check_id": "golden_cross_unit_2_vector_acceleration_valid",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "check_id": "golden_actor_discontinuity_1_valid_motion_pair",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "check_id": "golden_actor_discontinuity_1_velocity_valid",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "check_id": "golden_all_velocity_invalid_2_velocity_valid",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "check_id": "golden_all_velocity_invalid_2_vector_acceleration_valid",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "check_id": "golden_one_velocity_no_acceleration_1_velocity_valid",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "check_id": "golden_one_velocity_no_acceleration_1_vector_acceleration_valid",
+      "passed": true,
+      "evidence": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "check_id": "golden_one_acceleration_2_vector_acceleration_valid",
+      "passed": true,
+      "evidence": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "check_id": "unit_denominator_stationary_possible_pair_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2.0,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_stationary_velocity_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2.0,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_stationary_direction_change_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_stationary_acceleration_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_stationary_valid_pair_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 2,
+        "denominator": 2
+      }
+    },
+    {
+      "check_id": "unit_denominator_stationary_velocity_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 2,
+        "denominator": 2
+      }
+    },
+    {
+      "check_id": "unit_denominator_stationary_direction_change_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_stationary_acceleration_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_horizontal_possible_pair_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2.0,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_horizontal_velocity_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2.0,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_horizontal_direction_change_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_horizontal_acceleration_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_horizontal_valid_pair_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 2,
+        "denominator": 2
+      }
+    },
+    {
+      "check_id": "unit_denominator_horizontal_velocity_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 2,
+        "denominator": 2
+      }
+    },
+    {
+      "check_id": "unit_denominator_horizontal_direction_change_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_horizontal_acceleration_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_diagonal_possible_pair_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_diagonal_velocity_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_diagonal_direction_change_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_diagonal_acceleration_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_diagonal_valid_pair_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_diagonal_velocity_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_diagonal_direction_change_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_diagonal_acceleration_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_irregular_possible_pair_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2.0,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_irregular_velocity_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2.0,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_irregular_direction_change_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_irregular_acceleration_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_irregular_valid_pair_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 2,
+        "denominator": 2
+      }
+    },
+    {
+      "check_id": "unit_denominator_irregular_velocity_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 2,
+        "denominator": 2
+      }
+    },
+    {
+      "check_id": "unit_denominator_irregular_direction_change_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_irregular_acceleration_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_width_only_possible_pair_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_width_only_velocity_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_width_only_direction_change_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_width_only_acceleration_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_width_only_valid_pair_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_width_only_velocity_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_width_only_direction_change_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_width_only_acceleration_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_height_only_possible_pair_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_height_only_velocity_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_height_only_direction_change_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_height_only_acceleration_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_height_only_valid_pair_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_height_only_velocity_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_height_only_direction_change_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_height_only_acceleration_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_area_change_possible_pair_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_area_change_velocity_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_area_change_direction_change_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_area_change_acceleration_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_area_change_valid_pair_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_area_change_velocity_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_area_change_direction_change_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_area_change_acceleration_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_aspect_change_possible_pair_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_aspect_change_velocity_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_aspect_change_direction_change_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_aspect_change_acceleration_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_aspect_change_valid_pair_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_aspect_change_velocity_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_aspect_change_direction_change_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_aspect_change_acceleration_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_invalid_pair_possible_pair_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_invalid_pair_velocity_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_invalid_pair_direction_change_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_invalid_pair_acceleration_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_invalid_pair_valid_pair_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_invalid_pair_velocity_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_invalid_pair_direction_change_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_invalid_pair_acceleration_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_first_valid_velocity_possible_pair_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_first_valid_velocity_velocity_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_first_valid_velocity_direction_change_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_first_valid_velocity_acceleration_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_first_valid_velocity_valid_pair_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_first_valid_velocity_velocity_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_first_valid_velocity_direction_change_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_first_valid_velocity_acceleration_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_constant_velocity_possible_pair_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2.0,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_constant_velocity_velocity_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2.0,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_constant_velocity_direction_change_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_constant_velocity_acceleration_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_constant_velocity_valid_pair_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 2,
+        "denominator": 2
+      }
+    },
+    {
+      "check_id": "unit_denominator_constant_velocity_velocity_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 2,
+        "denominator": 2
+      }
+    },
+    {
+      "check_id": "unit_denominator_constant_velocity_direction_change_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_constant_velocity_acceleration_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_speed_increase_possible_pair_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2.0,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_speed_increase_velocity_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2.0,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_speed_increase_direction_change_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_speed_increase_acceleration_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_speed_increase_valid_pair_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 2,
+        "denominator": 2
+      }
+    },
+    {
+      "check_id": "unit_denominator_speed_increase_velocity_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 2,
+        "denominator": 2
+      }
+    },
+    {
+      "check_id": "unit_denominator_speed_increase_direction_change_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_speed_increase_acceleration_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_speed_decrease_possible_pair_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2.0,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_speed_decrease_velocity_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2.0,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_speed_decrease_direction_change_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_speed_decrease_acceleration_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_speed_decrease_valid_pair_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 2,
+        "denominator": 2
+      }
+    },
+    {
+      "check_id": "unit_denominator_speed_decrease_velocity_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 2,
+        "denominator": 2
+      }
+    },
+    {
+      "check_id": "unit_denominator_speed_decrease_direction_change_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_speed_decrease_acceleration_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_direction_change_possible_pair_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2.0,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_direction_change_velocity_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2.0,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_direction_change_direction_change_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_direction_change_acceleration_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_direction_change_valid_pair_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 2,
+        "denominator": 2
+      }
+    },
+    {
+      "check_id": "unit_denominator_direction_change_velocity_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 2,
+        "denominator": 2
+      }
+    },
+    {
+      "check_id": "unit_denominator_direction_change_direction_change_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_direction_change_acceleration_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_angle_wrap_possible_pair_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2.0,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_angle_wrap_velocity_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2.0,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_angle_wrap_direction_change_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_angle_wrap_acceleration_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_angle_wrap_valid_pair_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 2,
+        "denominator": 2
+      }
+    },
+    {
+      "check_id": "unit_denominator_angle_wrap_velocity_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 2,
+        "denominator": 2
+      }
+    },
+    {
+      "check_id": "unit_denominator_angle_wrap_direction_change_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_angle_wrap_acceleration_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_zero_speed_direction_possible_pair_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_zero_speed_direction_velocity_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_zero_speed_direction_direction_change_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_zero_speed_direction_acceleration_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_zero_speed_direction_valid_pair_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_zero_speed_direction_velocity_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_zero_speed_direction_direction_change_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_zero_speed_direction_acceleration_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_invalid_middle_velocity_possible_pair_count",
+      "passed": true,
+      "evidence": {
+        "actual": 3.0,
+        "expected": 3,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_invalid_middle_velocity_velocity_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 3.0,
+        "expected": 3,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_invalid_middle_velocity_direction_change_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2.0,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_invalid_middle_velocity_acceleration_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2.0,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_invalid_middle_velocity_valid_pair_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 0.3333333333333333,
+        "expected": 0.3333333333333333,
+        "numerator": 1,
+        "denominator": 3
+      }
+    },
+    {
+      "check_id": "unit_denominator_invalid_middle_velocity_velocity_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.3333333333333333,
+        "expected": 0.3333333333333333,
+        "numerator": 1,
+        "denominator": 3
+      }
+    },
+    {
+      "check_id": "unit_denominator_invalid_middle_velocity_direction_change_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 2
+      }
+    },
+    {
+      "check_id": "unit_denominator_invalid_middle_velocity_acceleration_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 2
+      }
+    },
+    {
+      "check_id": "unit_denominator_cross_unit_possible_pair_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_cross_unit_velocity_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_cross_unit_direction_change_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_cross_unit_acceleration_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_cross_unit_valid_pair_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_cross_unit_velocity_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_cross_unit_direction_change_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_cross_unit_acceleration_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_cross_unit_possible_pair_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_cross_unit_velocity_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_cross_unit_direction_change_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_cross_unit_acceleration_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_cross_unit_valid_pair_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_cross_unit_velocity_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_cross_unit_direction_change_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_cross_unit_acceleration_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_actor_discontinuity_possible_pair_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_actor_discontinuity_velocity_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_actor_discontinuity_direction_change_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_actor_discontinuity_acceleration_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_actor_discontinuity_valid_pair_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_actor_discontinuity_velocity_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_actor_discontinuity_direction_change_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_actor_discontinuity_acceleration_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_all_velocity_invalid_possible_pair_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2.0,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_all_velocity_invalid_velocity_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2.0,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_all_velocity_invalid_direction_change_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_all_velocity_invalid_acceleration_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_all_velocity_invalid_valid_pair_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 2
+      }
+    },
+    {
+      "check_id": "unit_denominator_all_velocity_invalid_velocity_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 2
+      }
+    },
+    {
+      "check_id": "unit_denominator_all_velocity_invalid_direction_change_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_all_velocity_invalid_acceleration_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_one_velocity_no_acceleration_possible_pair_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_one_velocity_no_acceleration_velocity_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_one_velocity_no_acceleration_direction_change_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_one_velocity_no_acceleration_acceleration_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_one_velocity_no_acceleration_valid_pair_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_one_velocity_no_acceleration_velocity_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_one_velocity_no_acceleration_direction_change_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_one_velocity_no_acceleration_acceleration_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 0.0,
+        "expected": 0.0,
+        "numerator": 0,
+        "denominator": 0
+      }
+    },
+    {
+      "check_id": "unit_denominator_one_acceleration_possible_pair_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2.0,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_one_acceleration_velocity_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 2.0,
+        "expected": 2,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_one_acceleration_direction_change_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_one_acceleration_acceleration_possible_count",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1,
+        "numerator": null,
+        "denominator": null
+      }
+    },
+    {
+      "check_id": "unit_denominator_one_acceleration_valid_pair_ratio",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 2,
+        "denominator": 2
+      }
+    },
+    {
+      "check_id": "unit_denominator_one_acceleration_velocity_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 2,
+        "denominator": 2
+      }
+    },
+    {
+      "check_id": "unit_denominator_one_acceleration_direction_change_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "unit_denominator_one_acceleration_acceleration_coverage",
+      "passed": true,
+      "evidence": {
+        "actual": 1.0,
+        "expected": 1.0,
+        "numerator": 1,
+        "denominator": 1
+      }
+    },
+    {
+      "check_id": "schema_dimension_12",
+      "passed": true,
+      "evidence": {
+        "actual": 12,
+        "expected": 12
+      }
+    },
+    {
+      "check_id": "schema_hash_reproducible",
+      "passed": true,
+      "evidence": {
+        "actual": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b",
+        "expected": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b"
+      }
+    },
+    {
+      "check_id": "negative_schema_missing_feature",
+      "passed": true,
+      "evidence": {
+        "actual_names": [
+          "vx_n_per_second",
+          "vy_n_per_second",
+          "bw_rate_n_per_second",
+          "bh_rate_n_per_second",
+          "area_rate_n_per_second",
+          "aspect_ratio_rate_per_second",
+          "speed_n_per_second",
+          "direction_change_rad",
+          "tangential_acceleration_n_per_second2",
+          "ax_n_per_second2",
+          "ay_n_per_second2"
+        ],
+        "violation_reasons": [
+          "dimension",
+          "order_or_membership"
+        ]
+      }
+    },
+    {
+      "check_id": "negative_schema_reordered_feature",
+      "passed": true,
+      "evidence": {
+        "actual_names": [
+          "vy_n_per_second",
+          "vx_n_per_second",
+          "bw_rate_n_per_second",
+          "bh_rate_n_per_second",
+          "area_rate_n_per_second",
+          "aspect_ratio_rate_per_second",
+          "speed_n_per_second",
+          "direction_change_rad",
+          "tangential_acceleration_n_per_second2",
+          "ax_n_per_second2",
+          "ay_n_per_second2",
+          "acceleration_vector_magnitude_n_per_second2"
+        ],
+        "violation_reasons": [
+          "order_or_membership"
+        ]
+      }
+    },
+    {
+      "check_id": "negative_schema_duplicate_feature",
+      "passed": true,
+      "evidence": {
+        "actual_names": [
+          "vx_n_per_second",
+          "vy_n_per_second",
+          "bw_rate_n_per_second",
+          "bh_rate_n_per_second",
+          "area_rate_n_per_second",
+          "aspect_ratio_rate_per_second",
+          "speed_n_per_second",
+          "direction_change_rad",
+          "tangential_acceleration_n_per_second2",
+          "ax_n_per_second2",
+          "ay_n_per_second2",
+          "vx_n_per_second"
+        ],
+        "violation_reasons": [
+          "duplicate",
+          "order_or_membership"
+        ]
+      }
+    },
+    {
+      "check_id": "negative_schema_wrong_dimension",
+      "passed": true,
+      "evidence": {
+        "actual_names": [
+          "vx_n_per_second",
+          "vy_n_per_second",
+          "bw_rate_n_per_second",
+          "bh_rate_n_per_second",
+          "area_rate_n_per_second",
+          "aspect_ratio_rate_per_second",
+          "speed_n_per_second",
+          "direction_change_rad",
+          "tangential_acceleration_n_per_second2",
+          "ax_n_per_second2",
+          "ay_n_per_second2"
+        ],
+        "violation_reasons": [
+          "dimension",
+          "order_or_membership"
+        ]
+      }
+    },
+    {
+      "check_id": "negative_schema_unexpected_feature",
+      "passed": true,
+      "evidence": {
+        "actual_names": [
+          "vx_n_per_second",
+          "vy_n_per_second",
+          "bw_rate_n_per_second",
+          "bh_rate_n_per_second",
+          "area_rate_n_per_second",
+          "aspect_ratio_rate_per_second",
+          "speed_n_per_second",
+          "direction_change_rad",
+          "tangential_acceleration_n_per_second2",
+          "ax_n_per_second2",
+          "ay_n_per_second2",
+          "acceleration_vector_magnitude_n_per_second2",
+          "unexpected"
+        ],
+        "violation_reasons": [
+          "dimension",
+          "order_or_membership"
+        ]
+      }
+    },
+    {
+      "check_id": "negative_schema_wrong_hash",
+      "passed": true,
+      "evidence": {
+        "actual": "0000000000000000000000000000000000000000000000000000000000000000",
+        "expected": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b"
+      }
+    },
+    {
+      "check_id": "negative_schema_wrong_version",
+      "passed": true,
+      "evidence": {
+        "actual": "pre_v2",
+        "expected": "classification_v2.motion_tensor.v2"
+      }
+    },
+    {
+      "check_id": "production_cvat_tracking_xml_unit_count",
+      "passed": true,
+      "evidence": {
+        "actual": 10,
+        "expected": 10
+      }
+    },
+    {
+      "check_id": "production_legacy_recovered_unit_count",
+      "passed": true,
+      "evidence": {
+        "actual": 10,
+        "expected": 10
+      }
+    },
+    {
+      "check_id": "production_first_row_each_unit_invalid",
+      "passed": true,
+      "evidence": {
+        "units_checked": 20
+      }
+    },
+    {
+      "check_id": "production_stationary_valid_present",
+      "passed": true,
+      "evidence": {
+        "stationary_valid_count": 1
+      }
+    },
+    {
+      "check_id": "production_nonzero_velocity_present",
+      "passed": true,
+      "evidence": {
+        "nonzero_velocity_count": 199
+      }
+    },
+    {
+      "check_id": "production_valid_acceleration_present",
+      "passed": true,
+      "evidence": {
+        "valid_acceleration_count": 180
+      }
+    },
+    {
+      "check_id": "producer_exporter_dimension_12",
+      "passed": true,
+      "evidence": {
+        "expected": 12,
+        "actual": 12
+      }
+    },
+    {
+      "check_id": "producer_exporter_missing_features_empty",
+      "passed": true,
+      "evidence": {
+        "actual": [],
+        "expected": []
+      }
+    },
+    {
+      "check_id": "producer_exporter_duplicate_features_empty",
+      "passed": true,
+      "evidence": {
+        "actual": [],
+        "expected": []
+      }
+    },
+    {
+      "check_id": "producer_exporter_order_mismatches_empty",
+      "passed": true,
+      "evidence": {
+        "actual": [],
+        "expected": []
+      }
+    },
+    {
+      "check_id": "producer_exporter_required_masks_missing_empty",
+      "passed": true,
+      "evidence": {
+        "actual": [],
+        "expected": []
+      }
+    },
+    {
+      "check_id": "producer_exporter_errors_empty",
+      "passed": true,
+      "evidence": {
+        "actual": [],
+        "expected": []
+      }
+    }
+  ],
+  "errors": [],
+  "golden_arithmetic_pass": true,
+  "negative_schema_tests_pass": true,
+  "production_trace_audited": true,
+  "status": "PASS"
+}

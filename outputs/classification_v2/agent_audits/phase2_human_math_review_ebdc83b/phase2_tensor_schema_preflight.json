@@ -1,0 +1,355 @@
+{
+  "schema_id": "schema.pig_strenet_motion_v2",
+  "schema_version": "classification_v2.motion_tensor.v2",
+  "expected_dimension": 12,
+  "actual_dimension": 12,
+  "expected_feature_names": [
+    "vx_n_per_second",
+    "vy_n_per_second",
+    "bw_rate_n_per_second",
+    "bh_rate_n_per_second",
+    "area_rate_n_per_second",
+    "aspect_ratio_rate_per_second",
+    "speed_n_per_second",
+    "direction_change_rad",
+    "tangential_acceleration_n_per_second2",
+    "ax_n_per_second2",
+    "ay_n_per_second2",
+    "acceleration_vector_magnitude_n_per_second2"
+  ],
+  "actual_feature_names": [
+    "vx_n_per_second",
+    "vy_n_per_second",
+    "bw_rate_n_per_second",
+    "bh_rate_n_per_second",
+    "area_rate_n_per_second",
+    "aspect_ratio_rate_per_second",
+    "speed_n_per_second",
+    "direction_change_rad",
+    "tangential_acceleration_n_per_second2",
+    "ax_n_per_second2",
+    "ay_n_per_second2",
+    "acceleration_vector_magnitude_n_per_second2"
+  ],
+  "expected_schema_hash": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b",
+  "actual_schema_hash": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b",
+  "missing_features": [],
+  "duplicate_features": [],
+  "unexpected_features": [],
+  "blank_feature_indices": [],
+  "order_mismatches": [],
+  "required_masks_missing": [],
+  "errors": [],
+  "array_shape": [
+    1,
+    6,
+    12
+  ],
+  "negative_preflights": {
+    "missing_required_feature": {
+      "schema_id": "schema.pig_strenet_motion_v2",
+      "schema_version": "classification_v2.motion_tensor.v2",
+      "expected_dimension": 12,
+      "actual_dimension": 12,
+      "expected_feature_names": [
+        "vx_n_per_second",
+        "vy_n_per_second",
+        "bw_rate_n_per_second",
+        "bh_rate_n_per_second",
+        "area_rate_n_per_second",
+        "aspect_ratio_rate_per_second",
+        "speed_n_per_second",
+        "direction_change_rad",
+        "tangential_acceleration_n_per_second2",
+        "ax_n_per_second2",
+        "ay_n_per_second2",
+        "acceleration_vector_magnitude_n_per_second2"
+      ],
+      "actual_feature_names": [
+        "vx_n_per_second",
+        "vy_n_per_second",
+        "bw_rate_n_per_second",
+        "bh_rate_n_per_second",
+        "area_rate_n_per_second",
+        "aspect_ratio_rate_per_second",
+        "speed_n_per_second",
+        "direction_change_rad",
+        "tangential_acceleration_n_per_second2",
+        "ax_n_per_second2",
+        "ay_n_per_second2",
+        "acceleration_vector_magnitude_n_per_second2"
+      ],
+      "expected_schema_hash": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b",
+      "actual_schema_hash": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b",
+      "missing_features": [
+        "acceleration_vector_magnitude_n_per_second2"
+      ],
+      "duplicate_features": [],
+      "unexpected_features": [],
+      "blank_feature_indices": [],
+      "order_mismatches": [],
+      "required_masks_missing": [],
+      "errors": [
+        "missing_required_motion_features=['acceleration_vector_magnitude_n_per_second2']"
+      ],
+      "nonzero_exit_expected": true,
+      "failed_closed": true
+    },
+    "reordered_schema": {
+      "schema_id": "schema.pig_strenet_motion_v2",
+      "schema_version": "classification_v2.motion_tensor.v2",
+      "expected_dimension": 12,
+      "actual_dimension": 12,
+      "expected_feature_names": [
+        "vx_n_per_second",
+        "vy_n_per_second",
+        "bw_rate_n_per_second",
+        "bh_rate_n_per_second",
+        "area_rate_n_per_second",
+        "aspect_ratio_rate_per_second",
+        "speed_n_per_second",
+        "direction_change_rad",
+        "tangential_acceleration_n_per_second2",
+        "ax_n_per_second2",
+        "ay_n_per_second2",
+        "acceleration_vector_magnitude_n_per_second2"
+      ],
+      "actual_feature_names": [
+        "vy_n_per_second",
+        "vx_n_per_second",
+        "bw_rate_n_per_second",
+        "bh_rate_n_per_second",
+        "area_rate_n_per_second",
+        "aspect_ratio_rate_per_second",
+        "speed_n_per_second",
+        "direction_change_rad",
+        "tangential_acceleration_n_per_second2",
+        "ax_n_per_second2",
+        "ay_n_per_second2",
+        "acceleration_vector_magnitude_n_per_second2"
+      ],
+      "expected_schema_hash": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b",
+      "actual_schema_hash": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b",
+      "missing_features": [],
+      "duplicate_features": [],
+      "unexpected_features": [],
+      "blank_feature_indices": [],
+      "order_mismatches": [
+        {
+          "index": 0,
+          "expected": "vx_n_per_second",
+          "actual": "vy_n_per_second"
+        },
+        {
+          "index": 1,
+          "expected": "vy_n_per_second",
+          "actual": "vx_n_per_second"
+        }
+      ],
+      "required_masks_missing": [],
+      "errors": [
+        "motion_feature_order_mismatch=[{'index': 0, 'expected': 'vx_n_per_second', 'actual': 'vy_n_per_second'}, {'index': 1, 'expected': 'vy_n_per_second', 'actual': 'vx_n_per_second'}]"
+      ],
+      "nonzero_exit_expected": true,
+      "failed_closed": true
+    },
+    "duplicate_name": {
+      "schema_id": "schema.pig_strenet_motion_v2",
+      "schema_version": "classification_v2.motion_tensor.v2",
+      "expected_dimension": 12,
+      "actual_dimension": 12,
+      "expected_feature_names": [
+        "vx_n_per_second",
+        "vy_n_per_second",
+        "bw_rate_n_per_second",
+        "bh_rate_n_per_second",
+        "area_rate_n_per_second",
+        "aspect_ratio_rate_per_second",
+        "speed_n_per_second",
+        "direction_change_rad",
+        "tangential_acceleration_n_per_second2",
+        "ax_n_per_second2",
+        "ay_n_per_second2",
+        "acceleration_vector_magnitude_n_per_second2"
+      ],
+      "actual_feature_names": [
+        "vx_n_per_second",
+        "vy_n_per_second",
+        "bw_rate_n_per_second",
+        "bh_rate_n_per_second",
+        "area_rate_n_per_second",
+        "aspect_ratio_rate_per_second",
+        "speed_n_per_second",
+        "direction_change_rad",
+        "tangential_acceleration_n_per_second2",
+        "ax_n_per_second2",
+        "ay_n_per_second2",
+        "vx_n_per_second"
+      ],
+      "expected_schema_hash": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b",
+      "actual_schema_hash": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b",
+      "missing_features": [],
+      "duplicate_features": [
+        "vx_n_per_second"
+      ],
+      "unexpected_features": [],
+      "blank_feature_indices": [],
+      "order_mismatches": [
+        {
+          "index": 11,
+          "expected": "acceleration_vector_magnitude_n_per_second2",
+          "actual": "vx_n_per_second"
+        }
+      ],
+      "required_masks_missing": [],
+      "errors": [
+        "duplicate_motion_features=['vx_n_per_second']",
+        "motion_feature_order_mismatch=[{'index': 11, 'expected': 'acceleration_vector_magnitude_n_per_second2', 'actual': 'vx_n_per_second'}]"
+      ],
+      "nonzero_exit_expected": true,
+      "failed_closed": true
+    },
+    "wrong_hash": {
+      "schema_id": "schema.pig_strenet_motion_v2",
+      "schema_version": "classification_v2.motion_tensor.v2",
+      "expected_dimension": 12,
+      "actual_dimension": 12,
+      "expected_feature_names": [
+        "vx_n_per_second",
+        "vy_n_per_second",
+        "bw_rate_n_per_second",
+        "bh_rate_n_per_second",
+        "area_rate_n_per_second",
+        "aspect_ratio_rate_per_second",
+        "speed_n_per_second",
+        "direction_change_rad",
+        "tangential_acceleration_n_per_second2",
+        "ax_n_per_second2",
+        "ay_n_per_second2",
+        "acceleration_vector_magnitude_n_per_second2"
+      ],
+      "actual_feature_names": [
+        "vx_n_per_second",
+        "vy_n_per_second",
+        "bw_rate_n_per_second",
+        "bh_rate_n_per_second",
+        "area_rate_n_per_second",
+        "aspect_ratio_rate_per_second",
+        "speed_n_per_second",
+        "direction_change_rad",
+        "tangential_acceleration_n_per_second2",
+        "ax_n_per_second2",
+        "ay_n_per_second2",
+        "acceleration_vector_magnitude_n_per_second2"
+      ],
+      "expected_schema_hash": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b",
+      "actual_schema_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "missing_features": [],
+      "duplicate_features": [],
+      "unexpected_features": [],
+      "blank_feature_indices": [],
+      "order_mismatches": [],
+      "required_masks_missing": [],
+      "errors": [
+        "motion_schema_schema_hash_mismatch='0000000000000000000000000000000000000000000000000000000000000000':'ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b'"
+      ],
+      "nonzero_exit_expected": true,
+      "failed_closed": true
+    },
+    "wrong_version": {
+      "schema_id": "schema.pig_strenet_motion_v2",
+      "schema_version": "classification_v2.motion_tensor.v2",
+      "expected_dimension": 12,
+      "actual_dimension": 12,
+      "expected_feature_names": [
+        "vx_n_per_second",
+        "vy_n_per_second",
+        "bw_rate_n_per_second",
+        "bh_rate_n_per_second",
+        "area_rate_n_per_second",
+        "aspect_ratio_rate_per_second",
+        "speed_n_per_second",
+        "direction_change_rad",
+        "tangential_acceleration_n_per_second2",
+        "ax_n_per_second2",
+        "ay_n_per_second2",
+        "acceleration_vector_magnitude_n_per_second2"
+      ],
+      "actual_feature_names": [
+        "vx_n_per_second",
+        "vy_n_per_second",
+        "bw_rate_n_per_second",
+        "bh_rate_n_per_second",
+        "area_rate_n_per_second",
+        "aspect_ratio_rate_per_second",
+        "speed_n_per_second",
+        "direction_change_rad",
+        "tangential_acceleration_n_per_second2",
+        "ax_n_per_second2",
+        "ay_n_per_second2",
+        "acceleration_vector_magnitude_n_per_second2"
+      ],
+      "expected_schema_hash": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b",
+      "actual_schema_hash": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b",
+      "missing_features": [],
+      "duplicate_features": [],
+      "unexpected_features": [],
+      "blank_feature_indices": [],
+      "order_mismatches": [],
+      "required_masks_missing": [],
+      "errors": [
+        "motion_schema_schema_version_mismatch='wrong':'classification_v2.motion_tensor.v2'"
+      ],
+      "nonzero_exit_expected": true,
+      "failed_closed": true
+    },
+    "wrong_dimension": {
+      "schema_id": "schema.pig_strenet_motion_v2",
+      "schema_version": "classification_v2.motion_tensor.v2",
+      "expected_dimension": 12,
+      "actual_dimension": 12,
+      "expected_feature_names": [
+        "vx_n_per_second",
+        "vy_n_per_second",
+        "bw_rate_n_per_second",
+        "bh_rate_n_per_second",
+        "area_rate_n_per_second",
+        "aspect_ratio_rate_per_second",
+        "speed_n_per_second",
+        "direction_change_rad",
+        "tangential_acceleration_n_per_second2",
+        "ax_n_per_second2",
+        "ay_n_per_second2",
+        "acceleration_vector_magnitude_n_per_second2"
+      ],
+      "actual_feature_names": [
+        "vx_n_per_second",
+        "vy_n_per_second",
+        "bw_rate_n_per_second",
+        "bh_rate_n_per_second",
+        "area_rate_n_per_second",
+        "aspect_ratio_rate_per_second",
+        "speed_n_per_second",
+        "direction_change_rad",
+        "tangential_acceleration_n_per_second2",
+        "ax_n_per_second2",
+        "ay_n_per_second2",
+        "acceleration_vector_magnitude_n_per_second2"
+      ],
+      "expected_schema_hash": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b",
+      "actual_schema_hash": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b",
+      "missing_features": [],
+      "duplicate_features": [],
+      "unexpected_features": [],
+      "blank_feature_indices": [],
+      "order_mismatches": [],
+      "required_masks_missing": [],
+      "errors": [
+        "motion_schema_dimension_mismatch=11:12"
+      ],
+      "nonzero_exit_expected": true,
+      "failed_closed": true
+    }
+  },
+  "negative_preflights_all_fail_closed": true
+}
