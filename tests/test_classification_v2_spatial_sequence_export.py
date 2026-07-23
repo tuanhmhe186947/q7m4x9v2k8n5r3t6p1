@@ -263,6 +263,18 @@ def test_spatial_social_motion_is_rebased_inside_each_window() -> None:
     assert result.audit["social_rebased_windows"] == 1
 
 
+def test_current_social_export_does_not_fallback_to_legacy_pig_id() -> None:
+    frames = _frames()
+    frames["nearest_pig_id"] = "ID_2"
+    frames["nearest_dist_n"] = 0.25
+
+    with pytest.raises(
+        ValueError,
+        match="Missing canonical social identity column",
+    ):
+        export_spatial_sequences(_windows(), frames)
+
+
 def test_sparse_s6_at16_uses_exact_selected_frames_and_sparse_pairs() -> None:
     indices = [0, 3, 6, 9, 12, 15]
     frames = _with_motion_contract(pd.DataFrame(

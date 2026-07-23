@@ -177,6 +177,8 @@ def export_spatial_sequences(
     surface outside the arrays.
     """
     require_final_view_contract = feature_schema is None
+    selected_schema = feature_schema or SPATIAL_FRAME_FEATURES
+    legacy_schema = selected_schema is LEGACY_SPATIAL_FRAME_FEATURES
     required_windows = [
         "window_id",
         "object_track_key",
@@ -207,10 +209,28 @@ def export_spatial_sequences(
         raise ValueError(f"Missing columns: windows={missing_windows} frames={missing_frames}")
 
     feature_frames = frames.copy()
-    nearest_partner_key = feature_frames.get(
-        "nearest_partner_key",
-        pd.Series("", index=feature_frames.index),
-    ).fillna("").astype(str).str.strip()
+    if "nearest_partner_key" in feature_frames.columns:
+        nearest_partner_key = (
+            feature_frames["nearest_partner_key"]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+        )
+    elif legacy_schema:
+        nearest_pig = feature_frames.get(
+            "nearest_pig_id",
+            pd.Series("", index=feature_frames.index),
+        ).fillna("").astype(str).str.strip()
+        nearest_track = feature_frames.get(
+            "nearest_track_id",
+            pd.Series("", index=feature_frames.index),
+        ).fillna("").astype(str).str.strip()
+        nearest_partner_key = nearest_pig.where(
+            nearest_pig.ne(""),
+            nearest_track,
+        )
+    else:
+        nearest_partner_key = pd.Series("", index=feature_frames.index)
     feature_frames["_social_partner_key"] = nearest_partner_key
     feature_frames["social_neighbor_available"] = feature_frames[
         "_social_partner_key"
@@ -239,8 +259,6 @@ def export_spatial_sequences(
     )
     _validate_frame_alignment_contract(alignment_frames)
 
-    selected_schema = feature_schema or SPATIAL_FRAME_FEATURES
-    legacy_schema = selected_schema is LEGACY_SPATIAL_FRAME_FEATURES
     social_source_present = any(
         column in frames.columns
         for column in selected_schema.get("social_relation", [])
