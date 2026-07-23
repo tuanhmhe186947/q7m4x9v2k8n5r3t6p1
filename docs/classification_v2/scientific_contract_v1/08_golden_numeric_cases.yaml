@@ -1,0 +1,1578 @@
+{
+  "cases": [
+    {
+      "calculation": {
+        "kind": "motion"
+      },
+      "case_id": "case.stationary_actor",
+      "expected_aggregate_values": {
+        "speed_mean_valid_pairs": 0.0
+      },
+      "expected_audit_coverage": {
+        "motion_available": true,
+        "possible_pair_count": 1,
+        "valid_pair_count": 1,
+        "valid_pair_ratio": 1.0
+      },
+      "expected_formulas": [
+        "speed=hypot(delta cx_n,delta cy_n)/delta_t"
+      ],
+      "expected_numerical_values": {
+        "speed_n_per_second": [
+          null,
+          0.0
+        ]
+      },
+      "expected_pair_masks": {
+        "valid_motion_pair": [
+          false,
+          true
+        ]
+      },
+      "expected_selected_neighbor": "",
+      "geometry_validity": [
+        true,
+        true
+      ],
+      "identities": [
+        "a",
+        "a"
+      ],
+      "image_dimensions": {
+        "height_px": 100,
+        "width_px": 100
+      },
+      "input_rows": [
+        {
+          "cx_n": 0.2,
+          "cy_n": 0.3,
+          "geometry_valid": true,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 0.0
+        },
+        {
+          "cx_n": 0.2,
+          "cy_n": 0.3,
+          "geometry_valid": true,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 1.0
+        }
+      ],
+      "related_invariants": [
+        "invariant.invalid_pairs_excluded_from_aggregates"
+      ],
+      "roi_availability": [],
+      "scientific_purpose": "A valid stationary pair is measured zero, distinct from missing motion.",
+      "temporal_unit_key": "u1",
+      "timestamps": [
+        0.0,
+        1.0
+      ],
+      "tolerance": 1e-09
+    },
+    {
+      "calculation": {
+        "kind": "motion"
+      },
+      "case_id": "case.constant_horizontal_velocity",
+      "expected_aggregate_values": {
+        "speed_mean_valid_pairs": 0.1
+      },
+      "expected_audit_coverage": {
+        "possible_pair_count": 2,
+        "valid_pair_count": 2,
+        "valid_pair_ratio": 1.0
+      },
+      "expected_formulas": [
+        "vx=delta cx_n/delta_t",
+        "ax=delta vx/delta_t"
+      ],
+      "expected_numerical_values": {
+        "acceleration_vector_magnitude_n_per_second2": [
+          null,
+          null,
+          0.0
+        ],
+        "tangential_acceleration_n_per_second2": [
+          null,
+          null,
+          0.0
+        ],
+        "vx_n_per_second": [
+          null,
+          0.1,
+          0.1
+        ],
+        "vy_n_per_second": [
+          null,
+          0.0,
+          0.0
+        ]
+      },
+      "expected_pair_masks": {
+        "valid_motion_pair": [
+          false,
+          true,
+          true
+        ]
+      },
+      "expected_selected_neighbor": "",
+      "geometry_validity": [
+        true,
+        true,
+        true
+      ],
+      "identities": [
+        "a",
+        "a",
+        "a"
+      ],
+      "image_dimensions": {
+        "height_px": 100,
+        "width_px": 100
+      },
+      "input_rows": [
+        {
+          "cx_n": 0.0,
+          "cy_n": 0.0,
+          "geometry_valid": true,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 0.0
+        },
+        {
+          "cx_n": 0.1,
+          "cy_n": 0.0,
+          "geometry_valid": true,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 1.0
+        },
+        {
+          "cx_n": 0.2,
+          "cy_n": 0.0,
+          "geometry_valid": true,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 2.0
+        }
+      ],
+      "related_invariants": [
+        "invariant.invalid_pairs_excluded_from_aggregates"
+      ],
+      "roi_availability": [],
+      "scientific_purpose": "Constant x velocity has zero vector and tangential acceleration.",
+      "temporal_unit_key": "u1",
+      "timestamps": [
+        0.0,
+        1.0,
+        2.0
+      ],
+      "tolerance": 1e-09
+    },
+    {
+      "calculation": {
+        "kind": "motion"
+      },
+      "case_id": "case.constant_diagonal_velocity",
+      "expected_aggregate_values": {
+        "speed_mean_valid_pairs": 0.5
+      },
+      "expected_audit_coverage": {
+        "valid_pair_count": 1
+      },
+      "expected_formulas": [
+        "speed=sqrt(0.3^2+0.4^2)"
+      ],
+      "expected_numerical_values": {
+        "speed_n_per_second": [
+          null,
+          0.5
+        ],
+        "vx_n_per_second": [
+          null,
+          0.3
+        ],
+        "vy_n_per_second": [
+          null,
+          0.4
+        ]
+      },
+      "expected_pair_masks": {
+        "valid_motion_pair": [
+          false,
+          true
+        ]
+      },
+      "expected_selected_neighbor": "",
+      "geometry_validity": [
+        true,
+        true
+      ],
+      "identities": [
+        "a",
+        "a"
+      ],
+      "image_dimensions": {
+        "height_px": 100,
+        "width_px": 100
+      },
+      "input_rows": [
+        {
+          "cx_n": 0.0,
+          "cy_n": 0.0,
+          "geometry_valid": true,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 0.0
+        },
+        {
+          "cx_n": 0.3,
+          "cy_n": 0.4,
+          "geometry_valid": true,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 1.0
+        }
+      ],
+      "related_invariants": [
+        "invariant.invalid_pairs_excluded_from_aggregates"
+      ],
+      "roi_availability": [],
+      "scientific_purpose": "Diagonal image velocity uses the exact axis-normalized Euclidean norm.",
+      "temporal_unit_key": "u1",
+      "timestamps": [
+        0.0,
+        1.0
+      ],
+      "tolerance": 1e-09
+    },
+    {
+      "calculation": {
+        "kind": "motion"
+      },
+      "case_id": "case.speed_change_same_direction",
+      "expected_aggregate_values": {},
+      "expected_audit_coverage": {
+        "valid_pair_count": 2
+      },
+      "expected_formulas": [
+        "a_t=(0.2-0.1)/1"
+      ],
+      "expected_numerical_values": {
+        "ax_n_per_second2": [
+          null,
+          null,
+          0.1
+        ],
+        "ay_n_per_second2": [
+          null,
+          null,
+          0.0
+        ],
+        "direction_change_rad": [
+          null,
+          null,
+          0.0
+        ],
+        "tangential_acceleration_n_per_second2": [
+          null,
+          null,
+          0.1
+        ]
+      },
+      "expected_pair_masks": {
+        "valid_motion_pair": [
+          false,
+          true,
+          true
+        ]
+      },
+      "expected_selected_neighbor": "",
+      "geometry_validity": [
+        true,
+        true,
+        true
+      ],
+      "identities": [
+        "a",
+        "a",
+        "a"
+      ],
+      "image_dimensions": {
+        "height_px": 100,
+        "width_px": 100
+      },
+      "input_rows": [
+        {
+          "cx_n": 0.0,
+          "cy_n": 0.0,
+          "geometry_valid": true,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 0.0
+        },
+        {
+          "cx_n": 0.1,
+          "cy_n": 0.0,
+          "geometry_valid": true,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 1.0
+        },
+        {
+          "cx_n": 0.3,
+          "cy_n": 0.0,
+          "geometry_valid": true,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 2.0
+        }
+      ],
+      "related_invariants": [
+        "invariant.invalid_pairs_excluded_from_aggregates"
+      ],
+      "roi_availability": [],
+      "scientific_purpose": "Tangential acceleration is nonzero while direction change is zero.",
+      "temporal_unit_key": "u1",
+      "timestamps": [
+        0.0,
+        1.0,
+        2.0
+      ],
+      "tolerance": 1e-09
+    },
+    {
+      "calculation": {
+        "kind": "motion"
+      },
+      "case_id": "case.direction_change_constant_speed",
+      "expected_aggregate_values": {},
+      "expected_audit_coverage": {
+        "valid_pair_count": 2
+      },
+      "expected_formulas": [
+        "direction_change=pi/2",
+        "vector_acceleration=hypot(-0.1,0.1)"
+      ],
+      "expected_numerical_values": {
+        "acceleration_vector_magnitude_n_per_second2": [
+          null,
+          null,
+          0.14142135623730953
+        ],
+        "direction_change_rad": [
+          null,
+          null,
+          1.5707963267948966
+        ],
+        "tangential_acceleration_n_per_second2": [
+          null,
+          null,
+          0.0
+        ]
+      },
+      "expected_pair_masks": {
+        "valid_motion_pair": [
+          false,
+          true,
+          true
+        ]
+      },
+      "expected_selected_neighbor": "",
+      "geometry_validity": [
+        true,
+        true,
+        true
+      ],
+      "identities": [
+        "a",
+        "a",
+        "a"
+      ],
+      "image_dimensions": {
+        "height_px": 100,
+        "width_px": 100
+      },
+      "input_rows": [
+        {
+          "cx_n": 0.0,
+          "cy_n": 0.0,
+          "geometry_valid": true,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 0.0
+        },
+        {
+          "cx_n": 0.1,
+          "cy_n": 0.0,
+          "geometry_valid": true,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 1.0
+        },
+        {
+          "cx_n": 0.1,
+          "cy_n": 0.1,
+          "geometry_valid": true,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 2.0
+        }
+      ],
+      "related_invariants": [
+        "invariant.invalid_pairs_excluded_from_aggregates"
+      ],
+      "roi_availability": [],
+      "scientific_purpose": "Constant scalar speed with a turn has zero tangential but nonzero vector acceleration.",
+      "temporal_unit_key": "u1",
+      "timestamps": [
+        0.0,
+        1.0,
+        2.0
+      ],
+      "tolerance": 1e-09
+    },
+    {
+      "calculation": {
+        "kind": "motion"
+      },
+      "case_id": "case.first_frame_unit",
+      "expected_aggregate_values": {
+        "speed_mean_valid_pairs": 0.0
+      },
+      "expected_audit_coverage": {
+        "motion_available": false,
+        "possible_pair_count": 0,
+        "valid_pair_count": 0
+      },
+      "expected_formulas": [
+        "possible_pair_count=max(1-1,0)"
+      ],
+      "expected_numerical_values": {},
+      "expected_pair_masks": {
+        "valid_motion_pair": [
+          false
+        ]
+      },
+      "expected_selected_neighbor": "",
+      "geometry_validity": [
+        true
+      ],
+      "identities": [
+        "a"
+      ],
+      "image_dimensions": {
+        "height_px": 100,
+        "width_px": 100
+      },
+      "input_rows": [
+        {
+          "cx_n": 0.5,
+          "cy_n": 0.5,
+          "geometry_valid": true,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 0.0
+        }
+      ],
+      "related_invariants": [
+        "invariant.pair_reset_at_temporal_unit_key",
+        "invariant.invalid_pairs_excluded_from_aggregates"
+      ],
+      "roi_availability": [],
+      "scientific_purpose": "First frame has no temporal pair and is excluded from pair aggregates.",
+      "temporal_unit_key": "u1",
+      "timestamps": [
+        0.0
+      ],
+      "tolerance": 1e-09
+    },
+    {
+      "calculation": {
+        "kind": "motion"
+      },
+      "case_id": "case.cross_temporal_unit_boundary",
+      "expected_aggregate_values": {
+        "speed_mean_valid_pairs": 0.0
+      },
+      "expected_audit_coverage": {
+        "possible_pair_count": 1,
+        "valid_pair_count": 0,
+        "valid_pair_ratio": 0.0
+      },
+      "expected_formulas": [
+        "same temporal_unit_key is required"
+      ],
+      "expected_numerical_values": {
+        "speed_n_per_second": [
+          null,
+          null
+        ]
+      },
+      "expected_pair_masks": {
+        "valid_motion_pair": [
+          false,
+          false
+        ]
+      },
+      "expected_selected_neighbor": "",
+      "geometry_validity": [
+        true,
+        true
+      ],
+      "identities": [
+        "a",
+        "a"
+      ],
+      "image_dimensions": {
+        "height_px": 100,
+        "width_px": 100
+      },
+      "input_rows": [
+        {
+          "cx_n": 0.0,
+          "cy_n": 0.0,
+          "geometry_valid": true,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 0.0
+        },
+        {
+          "cx_n": 0.5,
+          "cy_n": 0.0,
+          "geometry_valid": true,
+          "object_track_key": "a",
+          "temporal_unit_key": "u2",
+          "timestamp_sec": 1.0
+        }
+      ],
+      "related_invariants": [
+        "invariant.no_cross_temporal_unit_pair",
+        "invariant.pair_reset_at_temporal_unit_key"
+      ],
+      "roi_availability": [],
+      "scientific_purpose": "A sorted adjacent row in another temporal unit cannot form a pair.",
+      "temporal_unit_key": "u1|u2",
+      "timestamps": [
+        0.0,
+        1.0
+      ],
+      "tolerance": 1e-09
+    },
+    {
+      "calculation": {
+        "kind": "motion"
+      },
+      "case_id": "case.missing_middle_frame",
+      "expected_aggregate_values": {},
+      "expected_audit_coverage": {
+        "valid_pair_count": 1
+      },
+      "expected_formulas": [
+        "vx=0.2/2"
+      ],
+      "expected_numerical_values": {
+        "vx_n_per_second": [
+          null,
+          0.1
+        ]
+      },
+      "expected_pair_masks": {
+        "adjacent_motion_pair_valid": [
+          false,
+          false
+        ],
+        "sparse_velocity_pair_valid": [
+          false,
+          true
+        ],
+        "valid_motion_pair": [
+          false,
+          true
+        ]
+      },
+      "expected_selected_neighbor": "",
+      "geometry_validity": [
+        true,
+        true
+      ],
+      "identities": [
+        "a",
+        "a"
+      ],
+      "image_dimensions": {
+        "height_px": 100,
+        "width_px": 100
+      },
+      "input_rows": [
+        {
+          "cx_n": 0.0,
+          "cy_n": 0.0,
+          "frame_index": 0,
+          "geometry_valid": true,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 0.0
+        },
+        {
+          "cx_n": 0.2,
+          "cy_n": 0.0,
+          "frame_index": 2,
+          "geometry_valid": true,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 2.0
+        }
+      ],
+      "related_invariants": [
+        "invariant.invalid_pairs_excluded_from_aggregates"
+      ],
+      "roi_availability": [],
+      "scientific_purpose": "A frame gap is sparse velocity support, not a contiguous path pair.",
+      "temporal_unit_key": "u1",
+      "timestamps": [
+        0.0,
+        2.0
+      ],
+      "tolerance": 1e-09
+    },
+    {
+      "calculation": {
+        "kind": "motion"
+      },
+      "case_id": "case.nonpositive_delta_t",
+      "expected_aggregate_values": {
+        "speed_mean_valid_pairs": 0.0
+      },
+      "expected_audit_coverage": {
+        "valid_pair_count": 0
+      },
+      "expected_formulas": [
+        "delta_t must be positive"
+      ],
+      "expected_numerical_values": {
+        "vx_n_per_second": [
+          null,
+          null
+        ]
+      },
+      "expected_pair_masks": {
+        "valid_motion_pair": [
+          false,
+          false
+        ]
+      },
+      "expected_selected_neighbor": "",
+      "geometry_validity": [
+        true,
+        true
+      ],
+      "identities": [
+        "a",
+        "a"
+      ],
+      "image_dimensions": {
+        "height_px": 100,
+        "width_px": 100
+      },
+      "input_rows": [
+        {
+          "cx_n": 0.0,
+          "cy_n": 0.0,
+          "geometry_valid": true,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 1.0
+        },
+        {
+          "cx_n": 0.1,
+          "cy_n": 0.0,
+          "geometry_valid": true,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 1.0
+        }
+      ],
+      "related_invariants": [
+        "invariant.monotonic_timestamp_within_actor_unit"
+      ],
+      "roi_availability": [],
+      "scientific_purpose": "Zero elapsed time invalidates every rate.",
+      "temporal_unit_key": "u1",
+      "timestamps": [
+        1.0,
+        1.0
+      ],
+      "tolerance": 1e-09
+    },
+    {
+      "calculation": {
+        "kind": "motion"
+      },
+      "case_id": "case.invalid_previous_bbox",
+      "expected_aggregate_values": {
+        "speed_mean_valid_pairs": 0.0
+      },
+      "expected_audit_coverage": {
+        "valid_pair_count": 0
+      },
+      "expected_formulas": [
+        "both endpoint geometries must be valid"
+      ],
+      "expected_numerical_values": {},
+      "expected_pair_masks": {
+        "valid_motion_pair": [
+          false,
+          false
+        ]
+      },
+      "expected_selected_neighbor": "",
+      "geometry_validity": [
+        false,
+        true
+      ],
+      "identities": [
+        "a",
+        "a"
+      ],
+      "image_dimensions": {
+        "height_px": 100,
+        "width_px": 100
+      },
+      "input_rows": [
+        {
+          "cx_n": 0.0,
+          "cy_n": 0.0,
+          "geometry_valid": false,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 0.0
+        },
+        {
+          "cx_n": 0.1,
+          "cy_n": 0.0,
+          "geometry_valid": true,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 1.0
+        }
+      ],
+      "related_invariants": [
+        "invariant.invalid_pairs_excluded_from_aggregates"
+      ],
+      "roi_availability": [],
+      "scientific_purpose": "Invalid previous geometry invalidates the pair.",
+      "temporal_unit_key": "u1",
+      "timestamps": [
+        0.0,
+        1.0
+      ],
+      "tolerance": 1e-09
+    },
+    {
+      "calculation": {
+        "kind": "motion"
+      },
+      "case_id": "case.invalid_current_bbox",
+      "expected_aggregate_values": {
+        "speed_mean_valid_pairs": 0.0
+      },
+      "expected_audit_coverage": {
+        "valid_pair_count": 0
+      },
+      "expected_formulas": [
+        "both endpoint geometries must be valid"
+      ],
+      "expected_numerical_values": {},
+      "expected_pair_masks": {
+        "valid_motion_pair": [
+          false,
+          false
+        ]
+      },
+      "expected_selected_neighbor": "",
+      "geometry_validity": [
+        true,
+        false
+      ],
+      "identities": [
+        "a",
+        "a"
+      ],
+      "image_dimensions": {
+        "height_px": 100,
+        "width_px": 100
+      },
+      "input_rows": [
+        {
+          "cx_n": 0.0,
+          "cy_n": 0.0,
+          "geometry_valid": true,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 0.0
+        },
+        {
+          "cx_n": 0.1,
+          "cy_n": 0.0,
+          "geometry_valid": false,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 1.0
+        }
+      ],
+      "related_invariants": [
+        "invariant.invalid_pairs_excluded_from_aggregates"
+      ],
+      "roi_availability": [],
+      "scientific_purpose": "Invalid current geometry invalidates the pair.",
+      "temporal_unit_key": "u1",
+      "timestamps": [
+        0.0,
+        1.0
+      ],
+      "tolerance": 1e-09
+    },
+    {
+      "calculation": {
+        "kind": "motion"
+      },
+      "case_id": "case.all_pairs_invalid",
+      "expected_aggregate_values": {
+        "speed_mean_valid_pairs": 0.0
+      },
+      "expected_audit_coverage": {
+        "motion_available": false,
+        "possible_pair_count": 2,
+        "valid_pair_count": 0,
+        "valid_pair_ratio": 0.0
+      },
+      "expected_formulas": [
+        "no-valid-pair output requires availability false"
+      ],
+      "expected_numerical_values": {},
+      "expected_pair_masks": {
+        "valid_motion_pair": [
+          false,
+          false,
+          false
+        ]
+      },
+      "expected_selected_neighbor": "",
+      "geometry_validity": [
+        false,
+        false,
+        false
+      ],
+      "identities": [
+        "a",
+        "a",
+        "a"
+      ],
+      "image_dimensions": {
+        "height_px": 100,
+        "width_px": 100
+      },
+      "input_rows": [
+        {
+          "cx_n": 0.0,
+          "cy_n": 0.0,
+          "geometry_valid": false,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 0.0
+        },
+        {
+          "cx_n": 0.1,
+          "cy_n": 0.0,
+          "geometry_valid": false,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 1.0
+        },
+        {
+          "cx_n": 0.2,
+          "cy_n": 0.0,
+          "geometry_valid": false,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 2.0
+        }
+      ],
+      "related_invariants": [
+        "invariant.invalid_pairs_excluded_from_aggregates",
+        "invariant.valid_pair_coverage_exported"
+      ],
+      "roi_availability": [],
+      "scientific_purpose": "All-invalid motion emits zero placeholders only with availability false.",
+      "temporal_unit_key": "u1",
+      "timestamps": [
+        0.0,
+        1.0,
+        2.0
+      ],
+      "tolerance": 1e-09
+    },
+    {
+      "calculation": {
+        "kind": "motion"
+      },
+      "case_id": "case.exactly_one_valid_pair",
+      "expected_aggregate_values": {
+        "speed_mean_valid_pairs": 0.19999999999999998
+      },
+      "expected_audit_coverage": {
+        "possible_pair_count": 2,
+        "valid_pair_count": 1,
+        "valid_pair_ratio": 0.5
+      },
+      "expected_formulas": [
+        "mean equals the one valid speed"
+      ],
+      "expected_numerical_values": {
+        "speed_n_per_second": [
+          null,
+          null,
+          0.19999999999999998
+        ]
+      },
+      "expected_pair_masks": {
+        "valid_motion_pair": [
+          false,
+          false,
+          true
+        ]
+      },
+      "expected_selected_neighbor": "",
+      "geometry_validity": [
+        false,
+        true,
+        true
+      ],
+      "identities": [
+        "a",
+        "a",
+        "a"
+      ],
+      "image_dimensions": {
+        "height_px": 100,
+        "width_px": 100
+      },
+      "input_rows": [
+        {
+          "cx_n": 0.0,
+          "cy_n": 0.0,
+          "geometry_valid": false,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 0.0
+        },
+        {
+          "cx_n": 0.1,
+          "cy_n": 0.0,
+          "geometry_valid": true,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 1.0
+        },
+        {
+          "cx_n": 0.3,
+          "cy_n": 0.0,
+          "geometry_valid": true,
+          "object_track_key": "a",
+          "temporal_unit_key": "u1",
+          "timestamp_sec": 2.0
+        }
+      ],
+      "related_invariants": [
+        "invariant.invalid_pairs_excluded_from_aggregates",
+        "invariant.valid_pair_coverage_exported"
+      ],
+      "roi_availability": [],
+      "scientific_purpose": "One valid pair is the complete aggregate denominator.",
+      "temporal_unit_key": "u1",
+      "timestamps": [
+        0.0,
+        1.0,
+        2.0
+      ],
+      "tolerance": 1e-09
+    },
+    {
+      "calculation": {
+        "candidates": [
+          {
+            "distance": 0.1,
+            "object_id": "2",
+            "object_track_key": "track|b",
+            "track_id": "2"
+          },
+          {
+            "distance": 0.1,
+            "object_id": "9",
+            "object_track_key": "track|a",
+            "track_id": "9"
+          }
+        ],
+        "kind": "neighbor_tie"
+      },
+      "case_id": "case.equal_distance_neighbor_tie",
+      "expected_aggregate_values": {},
+      "expected_audit_coverage": {
+        "candidate_count": 2
+      },
+      "expected_formulas": [
+        "lexicographic(distance, object_track_key, track_id, object_id)"
+      ],
+      "expected_numerical_values": {
+        "distance": 0.1
+      },
+      "expected_pair_masks": {},
+      "expected_selected_neighbor": "track|a",
+      "geometry_validity": [],
+      "identities": [
+        "origin",
+        "track|b",
+        "track|a"
+      ],
+      "image_dimensions": {
+        "height_px": 100,
+        "width_px": 100
+      },
+      "input_rows": [
+        {
+          "actor": "origin"
+        },
+        {
+          "actor": "track|b"
+        },
+        {
+          "actor": "track|a"
+        }
+      ],
+      "related_invariants": [
+        "invariant.deterministic_social_tie_break"
+      ],
+      "roi_availability": [],
+      "scientific_purpose": "Equal distances resolve by canonical stable identity.",
+      "temporal_unit_key": "",
+      "timestamps": [],
+      "tolerance": 1e-09
+    },
+    {
+      "calculation": {
+        "candidates": [
+          {
+            "distance": 0.1,
+            "object_id": "9",
+            "object_track_key": "track|a",
+            "track_id": "9"
+          },
+          {
+            "distance": 0.1,
+            "object_id": "2",
+            "object_track_key": "track|b",
+            "track_id": "2"
+          }
+        ],
+        "kind": "neighbor_tie"
+      },
+      "case_id": "case.row_permutation_neighbor_tie",
+      "expected_aggregate_values": {},
+      "expected_audit_coverage": {
+        "candidate_count": 2
+      },
+      "expected_formulas": [
+        "same deterministic tie-break under permutation"
+      ],
+      "expected_numerical_values": {
+        "distance": 0.1
+      },
+      "expected_pair_masks": {},
+      "expected_selected_neighbor": "track|a",
+      "geometry_validity": [],
+      "identities": [
+        "origin",
+        "track|a",
+        "track|b"
+      ],
+      "image_dimensions": {
+        "height_px": 100,
+        "width_px": 100
+      },
+      "input_rows": [
+        {
+          "actor": "origin"
+        },
+        {
+          "actor": "track|a"
+        },
+        {
+          "actor": "track|b"
+        }
+      ],
+      "related_invariants": [
+        "invariant.deterministic_social_tie_break",
+        "invariant.row_order_invariance"
+      ],
+      "roi_availability": [],
+      "scientific_purpose": "Permuting tied candidate rows does not change the selected neighbor.",
+      "temporal_unit_key": "",
+      "timestamps": [],
+      "tolerance": 1e-09
+    },
+    {
+      "case_id": "case.blank_pig_id_stable_track",
+      "expected_aggregate_values": {
+        "valid_social_pair_count": 1
+      },
+      "expected_audit_coverage": {
+        "blank_pig_id_count": 2
+      },
+      "expected_formulas": [
+        "continuity compares stable partner key"
+      ],
+      "expected_numerical_values": {
+        "partner_continuity": 1.0
+      },
+      "expected_pair_masks": {
+        "social_pair_available": [
+          false,
+          true
+        ]
+      },
+      "expected_selected_neighbor": "track|a",
+      "geometry_validity": [],
+      "identities": [
+        "track|a",
+        "track|a"
+      ],
+      "image_dimensions": {
+        "height_px": 100,
+        "width_px": 100
+      },
+      "input_rows": [
+        {
+          "object_track_key": "track|a",
+          "pig_id": ""
+        },
+        {
+          "object_track_key": "track|a",
+          "pig_id": ""
+        }
+      ],
+      "related_invariants": [
+        "invariant.stable_partner_identity"
+      ],
+      "roi_availability": [],
+      "scientific_purpose": "Blank pig_id does not break partner continuity when stable track identity exists.",
+      "temporal_unit_key": "",
+      "timestamps": [],
+      "tolerance": 1e-09
+    },
+    {
+      "case_id": "case.duplicate_pig_id_tracks",
+      "expected_aggregate_values": {},
+      "expected_audit_coverage": {
+        "duplicate_pig_id_count": 2
+      },
+      "expected_formulas": [
+        "stable keys differ despite equal metadata"
+      ],
+      "expected_numerical_values": {
+        "partner_continuity": 0.0
+      },
+      "expected_pair_masks": {
+        "same_partner": false
+      },
+      "expected_selected_neighbor": "",
+      "geometry_validity": [],
+      "identities": [
+        "track|a",
+        "track|b"
+      ],
+      "image_dimensions": {
+        "height_px": 100,
+        "width_px": 100
+      },
+      "input_rows": [
+        {
+          "object_track_key": "track|a",
+          "pig_id": "ID_1"
+        },
+        {
+          "object_track_key": "track|b",
+          "pig_id": "ID_1"
+        }
+      ],
+      "related_invariants": [
+        "invariant.stable_partner_identity"
+      ],
+      "roi_availability": [],
+      "scientific_purpose": "Duplicate pig_id values do not merge distinct stable tracks.",
+      "temporal_unit_key": "",
+      "timestamps": [],
+      "tolerance": 1e-09
+    },
+    {
+      "calculation": {
+        "kind": "roi"
+      },
+      "case_id": "case.roi_three_of_five_available",
+      "expected_aggregate_values": {
+        "target_roi_contact_ratio_unit": 0.6666666666666666
+      },
+      "expected_audit_coverage": {
+        "target_roi_available_frame_count": 3,
+        "target_roi_contact_available": true
+      },
+      "expected_formulas": [
+        "2 contact-and-available divided by 3 available"
+      ],
+      "expected_numerical_values": {
+        "target_roi_availability_ratio_unit": 0.6
+      },
+      "expected_pair_masks": {},
+      "expected_selected_neighbor": "",
+      "geometry_validity": [],
+      "identities": [],
+      "image_dimensions": {
+        "height_px": 100,
+        "width_px": 100
+      },
+      "input_rows": [
+        {
+          "roi_available": true,
+          "roi_contact": true
+        },
+        {
+          "roi_available": false,
+          "roi_contact": false
+        },
+        {
+          "roi_available": true,
+          "roi_contact": false
+        },
+        {
+          "roi_available": false,
+          "roi_contact": false
+        },
+        {
+          "roi_available": true,
+          "roi_contact": true
+        }
+      ],
+      "related_invariants": [
+        "invariant.roi_availability_denominator"
+      ],
+      "roi_availability": [
+        true,
+        false,
+        true,
+        false,
+        true
+      ],
+      "scientific_purpose": "ROI contact denominator contains only three available frames.",
+      "temporal_unit_key": "",
+      "timestamps": [],
+      "tolerance": 1e-09
+    },
+    {
+      "calculation": {
+        "kind": "roi"
+      },
+      "case_id": "case.roi_none_available",
+      "expected_aggregate_values": {
+        "target_roi_contact_ratio_unit": 0.0
+      },
+      "expected_audit_coverage": {
+        "target_roi_available_frame_count": 0,
+        "target_roi_contact_available": false
+      },
+      "expected_formulas": [
+        "zero available count makes ratio unavailable"
+      ],
+      "expected_numerical_values": {
+        "target_roi_availability_ratio_unit": 0.0
+      },
+      "expected_pair_masks": {},
+      "expected_selected_neighbor": "",
+      "geometry_validity": [],
+      "identities": [],
+      "image_dimensions": {
+        "height_px": 100,
+        "width_px": 100
+      },
+      "input_rows": [
+        {
+          "roi_available": false,
+          "roi_contact": false
+        },
+        {
+          "roi_available": false,
+          "roi_contact": false
+        }
+      ],
+      "related_invariants": [
+        "invariant.roi_availability_denominator"
+      ],
+      "roi_availability": [
+        false,
+        false
+      ],
+      "scientific_purpose": "Zero ROI availability yields placeholder zero and availability false.",
+      "temporal_unit_key": "",
+      "timestamps": [],
+      "tolerance": 1e-09
+    },
+    {
+      "calculation": {
+        "dx_px": 100.0,
+        "dy_px": 100.0,
+        "kind": "distance"
+      },
+      "case_id": "case.non_square_image_distance",
+      "expected_aggregate_values": {},
+      "expected_audit_coverage": {
+        "metric_count": 2
+      },
+      "expected_formulas": [
+        "axis=hypot(100/200,100/100)",
+        "diagonal=hypot(100,100)/hypot(200,100)"
+      ],
+      "expected_numerical_values": {
+        "axis_normalized": 1.118033988749895,
+        "diagonal_normalized": 0.6324555320336759
+      },
+      "expected_pair_masks": {
+        "distance_available": true
+      },
+      "expected_selected_neighbor": "",
+      "geometry_validity": [],
+      "identities": [],
+      "image_dimensions": {
+        "height_px": 100,
+        "width_px": 200
+      },
+      "input_rows": [
+        {
+          "x_px": 0,
+          "y_px": 0
+        },
+        {
+          "x_px": 100,
+          "y_px": 100
+        }
+      ],
+      "related_invariants": [
+        "invariant.distance_metric_version_binding"
+      ],
+      "roi_availability": [],
+      "scientific_purpose": "Axis-normalized and diagonal-normalized metrics differ on a non-square image.",
+      "temporal_unit_key": "",
+      "timestamps": [],
+      "tolerance": 1e-09
+    },
+    {
+      "case_id": "case.padding_vs_observed_zero",
+      "expected_aggregate_values": {
+        "observed_count": 1
+      },
+      "expected_audit_coverage": {
+        "padding_slots": 1
+      },
+      "expected_formulas": [
+        "numeric equality does not imply semantic equality"
+      ],
+      "expected_numerical_values": {
+        "values": [
+          0.0,
+          0.0
+        ]
+      },
+      "expected_pair_masks": {
+        "length_mask": [
+          1,
+          0
+        ],
+        "observed_mask": [
+          1,
+          0
+        ]
+      },
+      "expected_selected_neighbor": "",
+      "geometry_validity": [],
+      "identities": [],
+      "image_dimensions": {
+        "height_px": 100,
+        "width_px": 100
+      },
+      "input_rows": [
+        {
+          "length_mask": 1,
+          "observed_mask": 1,
+          "value": 0.0
+        },
+        {
+          "length_mask": 0,
+          "observed_mask": 0,
+          "value": 0.0
+        }
+      ],
+      "related_invariants": [
+        "invariant.invalid_pairs_excluded_from_aggregates"
+      ],
+      "roi_availability": [],
+      "scientific_purpose": "A padded zero and a measured stationary zero remain distinguishable by masks.",
+      "temporal_unit_key": "",
+      "timestamps": [],
+      "tolerance": 1e-09
+    },
+    {
+      "case_id": "case.review_only_roi_excluded",
+      "expected_aggregate_values": {},
+      "expected_audit_coverage": {
+        "forbidden_selected": 0
+      },
+      "expected_formulas": [
+        "target_roi_* is model forbidden"
+      ],
+      "expected_numerical_values": {
+        "selected_count": 0
+      },
+      "expected_pair_masks": {},
+      "expected_selected_neighbor": "",
+      "geometry_validity": [],
+      "identities": [],
+      "image_dimensions": {
+        "height_px": 100,
+        "width_px": 100
+      },
+      "input_rows": [
+        {
+          "candidate_feature": "target_roi_contact_ratio_unit"
+        }
+      ],
+      "related_invariants": [
+        "invariant.review_only_not_in_model_tensor",
+        "invariant.target_roi_leakage_guard"
+      ],
+      "roi_availability": [],
+      "scientific_purpose": "Label-selected target ROI fields cannot enter model schema.",
+      "temporal_unit_key": "",
+      "timestamps": [],
+      "tolerance": 1e-09
+    },
+    {
+      "case_id": "case.missing_required_exporter_feature",
+      "expected_aggregate_values": {},
+      "expected_audit_coverage": {
+        "schema_violation": "MISSING"
+      },
+      "expected_formulas": [
+        "actual ordered names must equal expected"
+      ],
+      "expected_numerical_values": {
+        "actual_dimension": 11,
+        "expected_dimension": 12
+      },
+      "expected_pair_masks": {},
+      "expected_selected_neighbor": "",
+      "geometry_validity": [],
+      "identities": [],
+      "image_dimensions": {
+        "height_px": 100,
+        "width_px": 100
+      },
+      "input_rows": [
+        {
+          "schema_mutation": "remove ay_n_per_second2"
+        }
+      ],
+      "related_invariants": [
+        "invariant.producer_exporter_ordered_schema_equal",
+        "invariant.fixed_tensor_dimension",
+        "invariant.no_silent_column_shrinkage"
+      ],
+      "roi_availability": [],
+      "scientific_purpose": "Removing one required motion feature fails before tensor export.",
+      "temporal_unit_key": "",
+      "timestamps": [],
+      "tolerance": 1e-09
+    },
+    {
+      "case_id": "case.reordered_exporter_feature",
+      "expected_aggregate_values": {},
+      "expected_audit_coverage": {
+        "schema_violation": "REORDERED"
+      },
+      "expected_formulas": [
+        "ordered equality, not set equality"
+      ],
+      "expected_numerical_values": {
+        "actual_dimension": 12,
+        "expected_dimension": 12
+      },
+      "expected_pair_masks": {},
+      "expected_selected_neighbor": "",
+      "geometry_validity": [],
+      "identities": [],
+      "image_dimensions": {
+        "height_px": 100,
+        "width_px": 100
+      },
+      "input_rows": [
+        {
+          "schema_mutation": "swap vx and vy"
+        }
+      ],
+      "related_invariants": [
+        "invariant.producer_exporter_ordered_schema_equal"
+      ],
+      "roi_availability": [],
+      "scientific_purpose": "A reordered feature list fails even when dimension is unchanged.",
+      "temporal_unit_key": "",
+      "timestamps": [],
+      "tolerance": 1e-09
+    },
+    {
+      "case_id": "case.unexpected_extra_model_feature",
+      "expected_aggregate_values": {},
+      "expected_audit_coverage": {
+        "schema_violation": "UNEXPECTED"
+      },
+      "expected_formulas": [
+        "exact ordered equality prohibits extras"
+      ],
+      "expected_numerical_values": {
+        "actual_dimension": 13,
+        "expected_dimension": 12
+      },
+      "expected_pair_masks": {},
+      "expected_selected_neighbor": "",
+      "geometry_validity": [],
+      "identities": [],
+      "image_dimensions": {
+        "height_px": 100,
+        "width_px": 100
+      },
+      "input_rows": [
+        {
+          "schema_mutation": "append undeclared_feature"
+        }
+      ],
+      "related_invariants": [
+        "invariant.producer_exporter_ordered_schema_equal"
+      ],
+      "roi_availability": [],
+      "scientific_purpose": "An undeclared extra feature is a fail-closed schema violation.",
+      "temporal_unit_key": "",
+      "timestamps": [],
+      "tolerance": 1e-09
+    }
+  ],
+  "golden_case_schema_version": "classification_v2.golden_numeric_cases.v1"
+}

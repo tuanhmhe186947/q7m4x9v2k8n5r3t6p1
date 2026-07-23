@@ -1,0 +1,88 @@
+{
+  "audited_code_sha": "d925c9004e7aff5a3c8469b158d2428432c6031a",
+  "contract_version": "classification_v2.scientific_contract.v1.0.0",
+  "generated_files": [
+    {
+      "bytes": 167559,
+      "path": "00_pipeline_contract.yaml",
+      "sha256": "264b8f9d787b48cfc56ebad6ed898f7b98fbb597217e31ecd2f76b4c15c0e36f"
+    },
+    {
+      "bytes": 8924,
+      "path": "01_pipeline_dataflow.md",
+      "sha256": "4e8f08f32141fae9a75ed7a8a6388749a257325cad75499d661865184647ee45"
+    },
+    {
+      "bytes": 9124,
+      "path": "01_pipeline_dataflow.mmd",
+      "sha256": "4d5653086372bea92f2ca99e227146f494fd363a171cd3457464eef606e55aa3"
+    },
+    {
+      "bytes": 12472,
+      "path": "02_stage_contract_registry.csv",
+      "sha256": "cba8f9b0713df2a06c728195cc1a538238c4ebff5843d52c4e5456f0d39dd6e2"
+    },
+    {
+      "bytes": 42639,
+      "path": "03_feature_semantics_registry.csv",
+      "sha256": "0479fbd19935265026113f832c529bedaa72035efd4f1cf518841ca588bb3781"
+    },
+    {
+      "bytes": 13223,
+      "path": "04_invariant_gate_matrix.csv",
+      "sha256": "c3c5a1fb8c816889abb5736443834db5553a18757e44b9e09ff400db1856a2bc"
+    },
+    {
+      "bytes": 1641,
+      "path": "05_tensor_schema_manifest.json",
+      "sha256": "5942c20facfd56e2800e6a2a7f45f3142bb9b83bf878d2e111cd700ea491b6e9"
+    },
+    {
+      "bytes": 4659,
+      "path": "06_missingness_and_masks.md",
+      "sha256": "f16e7eef439bd4a7cc59ef14bcb91b3f4234e7475664f301dcdb1f6e6cdecf65"
+    },
+    {
+      "bytes": 3124,
+      "path": "07_scientific_assumptions_and_limits.md",
+      "sha256": "176b3ce2933d801841853ff96c575dc72f12b1c55f5a3a7590b97a449af89d74"
+    },
+    {
+      "bytes": 38687,
+      "path": "08_golden_numeric_cases.yaml",
+      "sha256": "2b4bad13bc28f1f7b6d7af31dc01654bd04e2560b288a0030f235b94095787d1"
+    },
+    {
+      "bytes": 9891,
+      "path": "09_golden_numeric_cases.md",
+      "sha256": "7350cc60671fcfd08a2b8772f9b85787e5324630e0e6674e7d4f098fab4cc8c4"
+    },
+    {
+      "bytes": 19978,
+      "path": "10_code_contract_mapping.csv",
+      "sha256": "9ad6fb2a49db68a940a277d5e6068c948f6cb152c5fe1e94f71c5c5f022db065"
+    },
+    {
+      "bytes": 7412,
+      "path": "11_known_gaps_and_risks.csv",
+      "sha256": "66a1742c578d7e58fad08fb0da8cbde6cea30ac63164474922bf2b3df05be405"
+    },
+    {
+      "bytes": 1220,
+      "path": "12_change_impact_checklist.md",
+      "sha256": "d4871c00d6a7c17fd1719c12357e296e7188cc3ad8a892dc89dc978b5099ca7a"
+    },
+    {
+      "bytes": 5548,
+      "path": "13_independent_review_report.md",
+      "sha256": "60e64c1654a78d9808b723d4d04f29f882b5f7e2f25af01cef98aa361b17eb33"
+    },
+    {
+      "bytes": 1291,
+      "path": "README.md",
+      "sha256": "accdbb3df82975fbfad98e26408c852f3d9e76fd9603d249259de08f089d0745"
+    }
+  ],
+  "manifest_schema_version": "classification_v2.scientific_contract_manifest.v1",
+  "primary_authority": "00_pipeline_contract.yaml"
+}

@@ -1,0 +1,149 @@
+%% stage_ids:stage.legacy_cvat_source_merge,stage.frame_local_primitives,stage.hidden_review_design,stage.hidden_decision_migration,stage.hidden_gui,stage.hidden_coverage_scientific_gate,stage.hidden_apply,stage.temporal_harmonization,stage.native_review_evidence,stage.pig_strenet_evidence,stage.behavior_review_unit_construction,stage.behavior_gui,stage.behavior_decision_apply,stage.train_ready_export,stage.tensor_export,stage.model_input,stage.model_execution
+
+%% Complete artifact pipeline
+flowchart LR
+  S0["Legacy/CVAT source merge<br/>grain: FRAME_OBJECT<br/>group: source_type,dataset_id,video_key<br/>identity: frame_uid,object_id_in_image<br/>reset: none<br/>schema: classification_v2.merged_frame_objects.v2<br/>check: audit_merged_frame_objects<br/>model/review: PROVENANCE_ONLY/UPSTREAM_REVIEW_INPUT"]
+  S1["Frame-local primitives<br/>grain: FRAME_LOCAL_PRIMITIVES<br/>group: scene_frame_uid<br/>identity: frame_uid,object_track_key<br/>reset: none<br/>schema: classification_v2.frame_local_primitives.v2<br/>check: audit_frame_local_primitives<br/>model/review: ELIGIBLE_BY_EXPLICIT_WHITELIST/ELIGIBLE"]
+  S0 --> S1
+  S2["Hidden review design<br/>grain: HIDDEN_REVIEW_ITEM<br/>group: hidden_review_stratum,review_track_key<br/>identity: hidden_review_item_id<br/>reset: temporal_unit_key<br/>schema: classification_v2.hidden_review_manifest.v2<br/>check: audit_hidden_review_manifest<br/>model/review: NOT_MODEL_INPUT/HIDDEN_GUI_INPUT"]
+  S1 --> S2
+  S3["Hidden decision migration<br/>grain: HIDDEN_DECISION<br/>group: hidden_review_item_id<br/>identity: hidden_review_item_id<br/>reset: none<br/>schema: classification_v2.hidden_decision_migration.v2<br/>check: carry_forward_hidden_review_decisions<br/>model/review: NOT_MODEL_INPUT/AUDIT_ONLY"]
+  S2 --> S3
+  S4["Hidden GUI<br/>grain: HIDDEN_DECISION<br/>group: hidden_review_item_id<br/>identity: hidden_review_item_id<br/>reset: none<br/>schema: classification_v2.hidden_gui_decision.v2<br/>check: audit_hidden_decision_coverage<br/>model/review: NOT_MODEL_INPUT/HUMAN_REVIEW_ONLY"]
+  S3 --> S4
+  S5["Hidden coverage/scientific gate<br/>grain: HIDDEN_REVIEW_AUDIT<br/>group: review_cohort,sampling_stratum<br/>identity: hidden_review_item_id<br/>reset: none<br/>schema: classification_v2.hidden_scientific_gate.v2<br/>check: audit_hidden_decision_coverage<br/>model/review: NOT_MODEL_INPUT/GATE_ONLY"]
+  S4 --> S5
+  S6["Hidden apply<br/>grain: FRAME_LOCAL_PRIMITIVES<br/>group: frame_uid,object_id_in_image<br/>identity: hidden_review_item_id,frame_uid<br/>reset: none<br/>schema: classification_v2.hidden_apply.v2<br/>check: apply_hidden_review_decisions<br/>model/review: HIDDEN_FIELDS_FORBIDDEN/DOWNSTREAM_INPUT"]
+  S5 --> S6
+  S7["Temporal harmonization<br/>grain: HARMONIZED_FRAME_AND_NATIVE_INTERVAL<br/>group: object_track_key,temporal_unit_key<br/>identity: object_track_key,temporal_unit_key<br/>reset: temporal_unit_key<br/>schema: classification_v2.temporal_harmonization.v2<br/>check: audit_temporal_harmonization<br/>model/review: PROVENANCE_NOT_MODEL_X/NATIVE_REVIEW_INPUT"]
+  S6 --> S7
+  S8["Native-unit review evidence<br/>grain: NATIVE_UNIT_REVIEW_EVIDENCE<br/>group: source_type,dataset_id,video_key,object_track_key,temporal_unit_key<br/>identity: object_track_key,temporal_unit_key<br/>reset: temporal_unit_key<br/>schema: classification_v2.native_evidence.unversioned_current<br/>check: audit_enhanced_spatiotemporal_features<br/>model/review: REVIEW_EVIDENCE_NOT_DIRECT_MODEL_X/ELIGIBLE_AFTER_GATE"]
+  S7 --> S8
+  S9["Pig-STRENet evidence<br/>grain: HISTORY_TARGET_PAIR<br/>group: object_track_key,temporal_unit_key<br/>identity: pair_id,temporal_unit_key<br/>reset: history_target_boundary<br/>schema: classification_v2.pig_strenet_artifacts.v1<br/>check: check_classification_v2_pig_strenet_artifacts<br/>model/review: REVIEW_EVIDENCE_ONLY/ELIGIBLE_AFTER_SCHEMA_PREFLIGHT"]
+  S8 --> S9
+  S10["Behavior review-unit construction<br/>grain: BEHAVIOR_REVIEW_UNIT<br/>group: temporal_unit_key<br/>identity: review_unit_id,temporal_unit_key<br/>reset: none<br/>schema: classification_v2.behavior_review_unit.v2<br/>check: build_review_units<br/>model/review: REVIEW_FIELDS_FORBIDDEN/BEHAVIOR_GUI_INPUT"]
+  S9 --> S10
+  S11["Behavior GUI<br/>grain: BEHAVIOR_DECISION<br/>group: review_unit_id<br/>identity: review_unit_id<br/>reset: none<br/>schema: classification_v2.behavior_gui_decision.v2<br/>check: check_review_unit_gui_decisions<br/>model/review: NOT_MODEL_INPUT/HUMAN_REVIEW_ONLY"]
+  S10 --> S11
+  S12["Behavior decision apply<br/>grain: REVIEWED_FRAME_LOCAL<br/>group: review_unit_id,temporal_unit_key<br/>identity: review_unit_id,frame_uid<br/>reset: none<br/>schema: classification_v2.behavior_apply.v2<br/>check: check_apply_review_unit_decisions_output<br/>model/review: REVIEW_FIELDS_FORBIDDEN/FINAL_REVIEW_AUTHORITY"]
+  S11 --> S12
+  S13["Train-ready export<br/>grain: FINAL_VIEW_WINDOW<br/>group: window_id<br/>identity: window_id,object_track_key<br/>reset: window_id<br/>schema: classification_v2.train_ready.v2<br/>check: audit_train_ready_feature_selection<br/>model/review: EXPLICIT_WHITELIST_ONLY/AUDIT_ONLY"]
+  S12 --> S13
+  S14["Tensor export<br/>grain: WINDOW_SLOT_FEATURE_TENSOR<br/>group: window_id<br/>identity: window_id,frame_index<br/>reset: window_id<br/>schema: classification_v2.spatial_sequence.current_unhashed<br/>check: export_spatial_sequences<br/>model/review: MODEL_INPUT/AUDIT_ONLY"]
+  S13 --> S14
+  S15["Model input<br/>grain: MODEL_BATCH<br/>group: fold,window_id<br/>identity: window_id<br/>reset: none<br/>schema: classification_v2.model_input_manifest.v2<br/>check: validate_model_input_manifest<br/>model/review: MODEL_INPUT_AUTHORITY/NOT_REVIEW_INPUT"]
+  S14 --> S15
+  S16["Model execution<br/>grain: WINDOW_PREDICTION<br/>group: fold,window_id<br/>identity: window_id<br/>reset: none<br/>schema: classification_v2.model_io.v2<br/>check: model factory shape checks<br/>model/review: MODEL_RUNTIME/NOT_REVIEW_INPUT"]
+  S15 --> S16
+
+%% Grain transitions
+flowchart LR
+  G0["FRAME_OBJECT"]
+  G1["FRAME_LOCAL_PRIMITIVES"]
+  G0 --> G1
+  G2["HIDDEN_REVIEW_ITEM"]
+  G1 --> G2
+  G3["HIDDEN_DECISION"]
+  G2 --> G3
+  G4["HIDDEN_REVIEW_AUDIT"]
+  G3 --> G4
+  G5["FRAME_LOCAL_PRIMITIVES"]
+  G4 --> G5
+  G6["HARMONIZED_FRAME_AND_NATIVE_INTERVAL"]
+  G5 --> G6
+  G7["NATIVE_UNIT_REVIEW_EVIDENCE"]
+  G6 --> G7
+  G8["HISTORY_TARGET_PAIR"]
+  G7 --> G8
+  G9["BEHAVIOR_REVIEW_UNIT"]
+  G8 --> G9
+  G10["BEHAVIOR_DECISION"]
+  G9 --> G10
+  G11["REVIEWED_FRAME_LOCAL"]
+  G10 --> G11
+  G12["FINAL_VIEW_WINDOW"]
+  G11 --> G12
+  G13["WINDOW_SLOT_FEATURE_TENSOR"]
+  G12 --> G13
+  G14["MODEL_BATCH"]
+  G13 --> G14
+  G15["WINDOW_PREDICTION"]
+  G14 --> G15
+
+%% Identity and provenance propagation
+flowchart LR
+  A["source/dataset/video"] --> B["scene_frame_uid"]
+  B --> C["frame_uid + object_id_in_image"]
+  C --> D["object_track_key"]
+  D --> E["temporal_unit_key"]
+  E --> F["review_unit_id"]
+  F --> G["window_id"]
+  G --> H["tensor row/order hash"]
+  P["pig_id: annotation-local metadata"] -. not authority .-> D
+
+%% Temporal pair formation and reset boundaries
+flowchart TD
+  A["row t"] --> B{"same temporal_unit_key?"}
+  P["row t-1"] --> B
+  B --> C{"same object_track_key?"}
+  C --> D{"both geometry valid?"}
+  D --> E{"delta_t > 0?"}
+  E --> F["valid_motion_pair=1"]
+  B -- no --> R["reset; unavailable, not measured zero"]
+  C -- no --> R
+  D -- no --> R
+  E -- no --> R
+
+%% Missingness and mask propagation
+flowchart LR
+  C["cause"] --> D["detection rule"]
+  D --> M["availability/validity mask"]
+  M --> V["numeric feature: NaN or documented placeholder"]
+  M --> A["validity-aware aggregate denominator"]
+  M --> T["model-visible mask"]
+  M --> R["review/audit coverage"]
+
+%% Review decision propagation
+flowchart LR
+  H["Hidden manifest"] --> HD["stable-key decisions"]
+  HD --> HA["Hidden apply: row-preserving"]
+  HA --> N["native review units"]
+  N --> BD["behavior decisions by review_unit_id"]
+  BD --> BA["behavior apply"]
+  BA --> F["final-view recompute"]
+  F --> X["train-ready candidate"]
+
+%% Model tensor construction
+flowchart LR
+  P["producer: 12 ordered motion features"]
+  P --> C{"exact ordered equality?"}
+  C -- yes --> T["fixed float32 tensor + masks"]
+  C -- no --> F["FAIL_CLOSED"]
+  T --> H["schema SHA-256: 30e8fe9ed2207914..."]
+
+%% Leakage boundaries
+flowchart TD
+  L["labels / review / target_roi / IDs / paths / folds"]
+  L -->|forbidden| X["model X"]
+  S["source/session/video groups"] -->|grouped split| TR["train"]
+  S -->|disjoint| VA["validation/test"]
+  TR --> FT["fit transforms only here"]
+  FT --> VA
+
+%% Review-only versus model-eligible
+flowchart LR
+  F["all computed features"] --> M["model-eligible whitelist"]
+  F --> R["review-only evidence"]
+  F --> A["audit/provenance only"]
+  R -->|forbidden| X["model tensor"]
+  A -->|forbidden| X
+  M --> X
+
+%% Artifact invalidation
+flowchart LR
+  C["formula/unit/mask/order/schema change"] --> H["new schema hash"]
+  H --> N["invalidate native evidence"]
+  N --> P["invalidate Pig-STRENet"]
+  P --> B["invalidate behavior evidence"]
+  B --> T["invalidate train-ready/tensors"]
+  T --> M["invalidate checkpoints/predictions"]

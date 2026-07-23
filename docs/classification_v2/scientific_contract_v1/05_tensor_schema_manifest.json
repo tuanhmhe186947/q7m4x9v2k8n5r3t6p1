@@ -1,0 +1,51 @@
+{
+  "manifest_schema_version": "classification_v2.tensor_schema_manifest.v1",
+  "schemas": [
+    {
+      "aggregation_outputs": [
+        "valid_pair_count",
+        "possible_pair_count",
+        "valid_pair_ratio",
+        "observed_frame_count",
+        "motion_feature_coverage"
+      ],
+      "current_actual_dimension": "VARIABLE_BY_COLUMN_AVAILABILITY",
+      "current_exporter_declared_dimension": 9,
+      "current_producer_dimension": 9,
+      "dimension": 12,
+      "dtype": "float32",
+      "exporter_stage": "stage.tensor_export",
+      "implementation_status": "IMPLEMENTATION_DIFFERS_FROM_CONTRACT",
+      "missing_feature_policy": "FAIL_CLOSED",
+      "ordered_feature_names": [
+        "vx_n_per_second",
+        "vy_n_per_second",
+        "bw_rate_n_per_second",
+        "bh_rate_n_per_second",
+        "area_rate_n_per_second",
+        "aspect_ratio_rate_per_second",
+        "speed_n_per_second",
+        "direction_change_rad",
+        "tangential_acceleration_n_per_second2",
+        "ax_n_per_second2",
+        "ay_n_per_second2",
+        "acceleration_vector_magnitude_n_per_second2"
+      ],
+      "producer_stage": "stage.native_review_evidence",
+      "schema_hash": "30e8fe9ed2207914ac0bd8e2aca99118dd8a04163843ac8dab895dbed615ea45",
+      "schema_id": "schema.pig_strenet_motion_v2",
+      "schema_version": "classification_v2.motion_tensor.v2",
+      "schema_violations": [
+        "MISSING",
+        "REORDERED",
+        "DUPLICATED",
+        "UNEXPECTED"
+      ],
+      "validity_masks": [
+        "valid_motion_pair",
+        "valid_acceleration_pair",
+        "motion_feature_available"
+      ]
+    }
+  ]
+}

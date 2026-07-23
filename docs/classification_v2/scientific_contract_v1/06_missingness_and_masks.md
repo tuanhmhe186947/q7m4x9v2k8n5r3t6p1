@@ -1,0 +1,23 @@
+# Missingness and validity masks
+
+Generated from `00_pipeline_contract.yaml`.
+
+A missing or invalid temporal pair is unavailable evidence. It must
+never be interpreted as an observed zero-motion measurement.
+
+| Category | Cause | Detection | Mask | Numeric value | Zero meaning | Denominator | Model | Review | Audit coverage |
+|---|---|---|---|---|---|---|---|---|---|
+| missing.first_frame_in_unit | no previous observation inside reset boundary | row is first for object_track_key and temporal_unit_key | previous_observation_available | NaN internally; zero only after packing with mask zero | placeholder, never measured rest | excluded from valid_pair_count | numeric placeholder plus pair mask | explicit unavailable pair | first_observation_count |
+| missing.temporal_gap | source frame gap greater than one | motion_delta_frames greater than one | sparse_velocity_pair_valid | velocity may be available; adjacent path features unavailable | zero only with corresponding availability mask | velocity aggregate only if sparse policy allows; path aggregate excluded | separate sparse and adjacent masks | gap size and elapsed seconds | sparse_pair_count |
+| missing.nonpositive_delta_time | duplicate/reversed/nonfinite timestamp | delta_t nonfinite or less than or equal to zero | valid_delta_time | all rates unavailable | placeholder only | excluded | pair mask zero | invalid-time reason | invalid_nonpositive_time_count |
+| missing.invalid_previous_geometry | previous bbox absent, invalid or nonfinite | previous geometry_feature_valid is false | valid_motion_pair | pair features unavailable | placeholder only | excluded | pair and spatial masks zero | invalid endpoint reason | invalid_previous_geometry_pair_count |
+| missing.invalid_current_geometry | current bbox absent, invalid or nonfinite | current geometry_feature_valid is false | valid_motion_pair | pair features unavailable | placeholder only | excluded | pair and spatial masks zero | invalid endpoint reason | invalid_current_geometry_pair_count |
+| missing.cross_unit_boundary | previous sorted row belongs to another temporal unit | temporal_unit_key differs | same_temporal_unit | hard reset | placeholder only | excluded | pair mask zero | reset boundary | cross_unit_pair_count |
+| missing.actor_identity_discontinuity | previous row is not the same actor trajectory | object_track_key differs or canonical key missing | same_actor_trajectory | hard reset | placeholder only | excluded | pair mask zero | identity discontinuity reason | actor_discontinuity_count |
+| missing.roi | ROI annotation/modality unavailable | ROI-class availability is false | roi_validity_mask | ROI numeric values unavailable | placeholder unless availability is true | ROI-available frames only | all-class ROI values plus mask | availability and coverage | target_roi_available_frame_count |
+| missing.neighbor | no valid other actor in scene frame | no finite valid neighbor candidate | social_neighbor_available | social values unavailable | placeholder only | social-available frames/pairs only | social validity mask | neighbor availability | neighbor_available_frame_count |
+| missing.invalid_partner_identity | neighbor exists but stable canonical partner key is blank/ambiguous | stable key missing or duplicated within frame authority | social_pair_available | continuity and relative motion unavailable | placeholder only | excluded | social pair mask zero | partner identity error | invalid_partner_identity_count |
+| missing.padding | fixed tensor exceeds declared view length | length_mask equals zero | length_mask | packed zero | padding, never observed zero | excluded | length mask | not shown as observation | padding_slots |
+| missing.hidden_occlusion | actor visibility unavailable or human decision unresolved | Hidden status or review coverage | hidden_visibility_available | do not infer motion availability from Hidden alone | not behavior evidence | separate from geometry/motion masks | review/trust fields forbidden | explicit | hidden_review_coverage |
+| missing.tracking_quality_failure | declared tracking-quality predicate fails | tracking_quality_flag false when assessed | tracking_quality_available | policy unresolved for current full pipeline | not measured rest | exclude only under versioned declared policy | not currently model eligible | audit | tracking_quality_failure_count |
+| missing.media | video/frame/crop cannot be resolved under media authority | media hash/path resolution fails | media_available | review item cannot be promoted | not applicable | review coverage incomplete | artifact gate failure | unavailable media | missing_media_count |
