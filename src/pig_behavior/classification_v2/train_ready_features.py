@@ -7,6 +7,10 @@ from typing import Any
 
 import pandas as pd
 
+from pig_behavior.classification_v2.features.spatial_semantics import (
+    TARGET_ROI_MODEL_FORBIDDEN_PREFIXES,
+    is_target_roi_model_forbidden,
+)
 from pig_behavior.classification_v2.features.temporal_evidence import (
     WINDOW_TEMPORAL_EVIDENCE_COLUMNS,
 )
@@ -138,10 +142,7 @@ SAFE_FEATURE_PREFIXES = (
 # Excluded because these columns are currently computed against a label-derived
 # target ROI class. Add class-specific feeder/drinker/toy aggregates before using
 # ROI relation features as model inputs.
-LEAKY_OR_POLICY_PREFIXES = (
-    "target_roi_",
-    "roi_target_",
-)
+LEAKY_OR_POLICY_PREFIXES = TARGET_ROI_MODEL_FORBIDDEN_PREFIXES
 
 
 @dataclass(slots=True)
@@ -351,7 +352,7 @@ def _is_forbidden_feature_column(col: str) -> bool:
         or col in MASK_COLUMNS
         or col in SAMPLE_WEIGHT_COLUMNS
         or col.startswith(AUDIT_PREFIXES)
-        or col.startswith(LEAKY_OR_POLICY_PREFIXES)
+        or is_target_roi_model_forbidden(col)
         or col.endswith("_id")
         or col.endswith("_path")
         or "behavior" in col

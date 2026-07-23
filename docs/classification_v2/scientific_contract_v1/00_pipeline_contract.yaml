@@ -1179,7 +1179,8 @@
       "model_group": "social_relation",
       "threshold_dependencies": ["social_near_distance_n_v1"],
       "code_locations": ["src/pig_behavior/classification_v2/features/social.py#build_static_social_context_features"],
-      "implementation_status": "IMPLEMENTED_PARTIALLY_TESTED"
+      "test_locations": ["tests/test_classification_v2_phase3_spatial_semantics.py#test_axis_normalized_metric_formula_non_square"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
     },
     {
       "feature_id": "feature.pair_distance_diagonal_n",
@@ -1197,7 +1198,9 @@
       "physical_interpretation": "isotropic pixel-space image distance; not physical distance",
       "model_eligible": false,
       "threshold_dependencies": [],
-      "implementation_status": "DECLARED_NOT_IMPLEMENTED",
+      "code_locations": ["src/pig_behavior/classification_v2/features/social.py#build_static_social_context_features"],
+      "test_locations": ["tests/test_classification_v2_phase3_spatial_semantics.py#test_diagonal_metric_is_isotropic_in_pixel_space"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED",
       "known_limitations": "Must not inherit thresholds calibrated on axis-normalized metric."
     },
     {
@@ -1215,8 +1218,9 @@
       "zero_value_semantics": "blank means no valid neighbor",
       "model_eligible": false,
       "leakage_risk": "IDENTIFIER_FORBIDDEN",
-      "implementation_status": "DECLARED_NOT_IMPLEMENTED",
-      "known_limitations": "Current producer emits pig_id and track_id metadata but no canonical partner key."
+      "code_locations": ["src/pig_behavior/classification_v2/features/social.py#build_static_social_context_features", "src/pig_behavior/classification_v2/features/spatial_semantics.py#canonical_social_identity"],
+      "test_locations": ["tests/test_classification_v2_phase3_spatial_semantics.py#test_blank_pig_id_does_not_remove_stable_identity", "tests/test_classification_v2_phase3_spatial_semantics.py#test_duplicate_pig_id_does_not_collapse_tracks"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
     },
     {
       "feature_id": "feature.nearest_pig_metadata",
@@ -1250,9 +1254,9 @@
       "availability_mask": "social_context_valid",
       "zero_value_semantics": "not_applicable",
       "model_eligible": false,
-      "code_locations": ["src/pig_behavior/classification_v2/features/social.py#build_static_social_context_features"],
-      "implementation_status": "IMPLEMENTED_NOT_TESTED",
-      "known_limitations": "Current code uses pig_id as fourth tie-break and lacks explicit permutation test."
+      "code_locations": ["src/pig_behavior/classification_v2/features/social.py#build_static_social_context_features", "src/pig_behavior/classification_v2/features/spatial_semantics.py#SOCIAL_TIE_BREAK_RULE"],
+      "test_locations": ["tests/test_classification_v2_phase3_spatial_semantics.py#test_equal_distance_selection_is_row_order_invariant"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
     },
     {
       "feature_id": "feature.partner_continuity",
@@ -1271,8 +1275,8 @@
       "aggregation_rule": "mean same-partner indicator over valid social pairs",
       "physical_interpretation": "image-observed partner continuity; not social relationship identity",
       "code_locations": ["src/pig_behavior/classification_v2/features/spatiotemporal.py#_add_social_context_columns"],
-      "implementation_status": "IMPLEMENTATION_DIFFERS_FROM_CONTRACT",
-      "known_limitations": "Current temporal continuity compares nearest_pig_id, which may be blank or duplicated."
+      "test_locations": ["tests/test_classification_v2_phase3_spatial_semantics.py#test_partner_continuity_uses_stable_key", "tests/test_classification_v2_phase3_spatial_semantics.py#test_missing_neighbor_is_distinct_from_partner_switch"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
     },
     {
       "feature_id": "feature.relative_partner_motion",
@@ -1292,7 +1296,8 @@
       "model_eligible": true,
       "model_group": "social_relation",
       "code_locations": ["src/pig_behavior/classification_v2/features/spatiotemporal.py#_add_social_context_columns"],
-      "implementation_status": "IMPLEMENTATION_DIFFERS_FROM_CONTRACT"
+      "test_locations": ["tests/test_classification_v2_phase3_spatial_semantics.py#test_partner_switch_is_measured_only_when_both_neighbors_exist"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
     },
     {
       "feature_id": "feature.neighbor_availability",
@@ -1308,8 +1313,9 @@
       "zero_value_semantics": "false means no valid neighbor modality",
       "model_eligible": true,
       "model_group": "social_validity_mask",
-      "implementation_status": "IMPLEMENTATION_DIFFERS_FROM_CONTRACT",
-      "known_limitations": "Exporter derives availability from pig_id fallback to track_id rather than canonical stable key."
+      "code_locations": ["src/pig_behavior/classification_v2/features/social.py#build_static_social_context_features", "src/pig_behavior/classification_v2/spatial_sequence_export.py#export_spatial_sequences"],
+      "test_locations": ["tests/test_classification_v2_phase3_spatial_semantics.py#test_no_valid_neighbor_is_not_zero_distance"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
     },
     {
       "feature_id": "feature.roi_availability",
@@ -1407,8 +1413,8 @@
       "model_group": "TARGET_SELECTED_MODEL_FORBIDDEN",
       "leakage_risk": "CRITICAL_LABEL_SELECTED",
       "code_locations": ["src/pig_behavior/classification_v2/features/spatiotemporal.py#_add_temporal_unit_aggregates"],
-      "implementation_status": "IMPLEMENTATION_DIFFERS_FROM_CONTRACT",
-      "known_limitations": "Current implementation divides by all unit frames."
+      "test_locations": ["tests/test_classification_v2_phase3_spatial_semantics.py#test_roi_partial_availability_uses_available_denominator"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
     },
     {
       "feature_id": "feature.target_roi_available_frame_count",
@@ -1429,7 +1435,9 @@
       "aggregation_rule": "sum ROI availability",
       "model_eligible": false,
       "leakage_risk": "HIGH_LABEL_SELECTED",
-      "implementation_status": "DECLARED_NOT_IMPLEMENTED"
+      "code_locations": ["src/pig_behavior/classification_v2/features/spatiotemporal.py#_add_temporal_unit_aggregates"],
+      "test_locations": ["tests/test_classification_v2_phase3_spatial_semantics.py#test_roi_partial_availability_uses_available_denominator"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
     },
     {
       "feature_id": "feature.target_roi_availability_ratio_unit",
@@ -1448,7 +1456,9 @@
       "aggregation_rule": "ratio",
       "model_eligible": false,
       "leakage_risk": "HIGH_LABEL_SELECTED",
-      "implementation_status": "DECLARED_NOT_IMPLEMENTED"
+      "code_locations": ["src/pig_behavior/classification_v2/features/spatiotemporal.py#_add_temporal_unit_aggregates"],
+      "test_locations": ["tests/test_classification_v2_phase3_spatial_semantics.py#test_roi_partial_availability_uses_available_denominator"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
     },
     {
       "feature_id": "feature.target_roi_contact_available",
@@ -1466,7 +1476,9 @@
       "zero_value_semantics": "false means contact ratio is unavailable",
       "model_eligible": false,
       "leakage_risk": "HIGH_LABEL_SELECTED",
-      "implementation_status": "DECLARED_NOT_IMPLEMENTED"
+      "code_locations": ["src/pig_behavior/classification_v2/features/spatiotemporal.py#_add_temporal_unit_aggregates"],
+      "test_locations": ["tests/test_classification_v2_phase3_spatial_semantics.py#test_zero_roi_availability_is_unavailable_not_measured_no_contact"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
     },
     {
       "feature_id": "feature.observed_mask",
@@ -2120,9 +2132,11 @@
       "expected_condition": "distance, object_track_key, track_id, object_id order",
       "failure_condition": "tie resolved by input position or pig_id alone",
       "audit_field": "tie_break_policy",
+      "unit_test": "tests/test_classification_v2_phase3_spatial_semantics.py#test_equal_distance_neighbor_uses_canonical_key",
+      "integration_test": "tests/test_classification_v2_phase3_spatial_semantics.py#test_equal_distance_selection_is_row_order_invariant",
       "golden_case_ids": ["case.equal_distance_neighbor_tie", "case.row_permutation_neighbor_tie"],
       "code_locations": ["src/pig_behavior/classification_v2/features/social.py#build_static_social_context_features"],
-      "implementation_status": "IMPLEMENTED_NOT_TESTED"
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
     },
     {
       "invariant_id": "invariant.row_order_invariance",
@@ -2132,9 +2146,10 @@
       "expected_condition": "semantic output digest identical after permutation",
       "failure_condition": "neighbor, pair or aggregate differs after row permutation",
       "audit_field": "permutation_digest_match",
+      "unit_test": "tests/test_classification_v2_phase3_spatial_semantics.py#test_equal_distance_selection_is_row_order_invariant",
+      "integration_test": "tests/test_classification_v2_phase3_spatial_semantics.py#test_phase3_producer_is_deterministic_after_canonical_sort",
       "golden_case_ids": ["case.row_permutation_neighbor_tie"],
-      "implementation_status": "IMPLEMENTED_PARTIALLY_TESTED",
-      "known_gap": "No direct equal-distance permutation test exists."
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
     },
     {
       "invariant_id": "invariant.stable_partner_identity",
@@ -2144,9 +2159,9 @@
       "expected_condition": "partner comparison uses object_track_key then track/object identity",
       "failure_condition": "pig_id is sole continuity identity",
       "audit_field": "stable_partner_key_used",
+      "unit_test": "tests/test_classification_v2_phase3_spatial_semantics.py#test_partner_continuity_uses_stable_key",
       "golden_case_ids": ["case.blank_pig_id_stable_track", "case.duplicate_pig_id_tracks"],
-      "implementation_status": "IMPLEMENTATION_DIFFERS_FROM_CONTRACT",
-      "known_gap": "gap.unstable_partner_continuity"
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
     },
     {
       "invariant_id": "invariant.roi_availability_denominator",
@@ -2156,9 +2171,9 @@
       "expected_condition": "contact_and_available_count divided by available_count with separate mask",
       "failure_condition": "all frames used as denominator or zero availability treated as measured zero",
       "audit_field": "target_roi_available_frame_count,target_roi_availability_ratio_unit",
+      "unit_test": "tests/test_classification_v2_phase3_spatial_semantics.py#test_roi_partial_availability_uses_available_denominator",
       "golden_case_ids": ["case.roi_three_of_five_available", "case.roi_none_available"],
-      "implementation_status": "IMPLEMENTATION_DIFFERS_FROM_CONTRACT",
-      "known_gap": "gap.roi_denominator_all_frames"
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
     },
     {
       "invariant_id": "invariant.review_only_not_in_model_tensor",
@@ -3139,8 +3154,8 @@
       "severity": "HIGH",
       "affected_stage": "stage.frame_local_primitives",
       "affected_features": ["feature.pair_distance_axis_n", "feature.roi_distance_diagonal_n", "feature.speed_n_per_second"],
-      "evidence": "Current column names do not encode axis-normalized versus diagonal-normalized metric version.",
-      "scientific_consequence": "Thresholds or prose may imply isotropic/physical distance incorrectly.",
+      "evidence": "Phase 3 emits separate axis and diagonal metric IDs, versions, formulas, masks and threshold bindings.",
+      "scientific_consequence": "Resolved for implemented image-coordinate features; physical-distance claims remain forbidden.",
       "downstream_artifacts_affected": ["artifact.frame_local_primitives", "artifact.native_evidence", "artifact.spatial_tensor"],
       "requires_rebuild_from_stage": "stage.frame_local_primitives",
       "recommended_resolution": "Version metric names and bind thresholds without changing calibrated values silently.",
@@ -3148,7 +3163,7 @@
       "blocking_before_pig_strenet": true,
       "blocking_before_behavior_review": true,
       "blocking_before_training": true,
-      "status": "OPEN"
+      "status": "RESOLVED"
     },
     {
       "gap_id": "gap.unstable_partner_continuity",
@@ -3156,8 +3171,8 @@
       "severity": "HIGH",
       "affected_stage": "stage.native_review_evidence",
       "affected_features": ["feature.nearest_stable_partner_key", "feature.partner_continuity", "feature.relative_partner_motion"],
-      "evidence": "_add_social_context_columns compares nearest_pig_id across time.",
-      "scientific_consequence": "Blank or duplicate pig_id can merge or split partner trajectories.",
+      "evidence": "Phase 3 continuity compares canonical nearest_partner_key and resets by actor/temporal unit.",
+      "scientific_consequence": "Resolved for implemented social continuity; pig_id remains metadata only.",
       "downstream_artifacts_affected": ["artifact.native_evidence", "artifact.pig_strenet", "artifact.spatial_tensor"],
       "requires_rebuild_from_stage": "stage.frame_local_primitives",
       "recommended_resolution": "Emit canonical partner key and use it for all temporal continuity.",
@@ -3165,7 +3180,7 @@
       "blocking_before_pig_strenet": true,
       "blocking_before_behavior_review": true,
       "blocking_before_training": true,
-      "status": "OPEN"
+      "status": "RESOLVED"
     },
     {
       "gap_id": "gap.equal_tie_permutation_test_missing",
@@ -3173,8 +3188,8 @@
       "severity": "MEDIUM",
       "affected_stage": "stage.frame_local_primitives",
       "affected_features": ["feature.social_tie_break_policy"],
-      "evidence": "Stable tie-break code exists but no direct equal-distance permutation regression test was found.",
-      "scientific_consequence": "Future refactors can restore row-order dependence undetected.",
+      "evidence": "Phase 3 includes direct equal-distance and arbitrary row-permutation regression tests.",
+      "scientific_consequence": "Resolved by canonical distance/key ordering and permutation tests.",
       "downstream_artifacts_affected": ["artifact.frame_local_primitives", "artifact.native_evidence"],
       "requires_rebuild_from_stage": "stage.frame_local_primitives",
       "recommended_resolution": "Add equal-distance and row-permutation tests using canonical partner key.",
@@ -3182,7 +3197,7 @@
       "blocking_before_pig_strenet": true,
       "blocking_before_behavior_review": false,
       "blocking_before_training": true,
-      "status": "OPEN"
+      "status": "RESOLVED"
     },
     {
       "gap_id": "gap.roi_denominator_all_frames",
@@ -3190,8 +3205,8 @@
       "severity": "HIGH",
       "affected_stage": "stage.native_review_evidence",
       "affected_features": ["feature.target_roi_contact_ratio_unit", "feature.target_roi_available_frame_count", "feature.target_roi_availability_ratio_unit"],
-      "evidence": "Current aggregate divides target contact count by frame_count_unit.",
-      "scientific_consequence": "ROI absence is counted as observed non-contact.",
+      "evidence": "Phase 3 recomputes contact/availability counts and divides contact by ROI-available frames.",
+      "scientific_consequence": "Resolved with explicit zero-availability mask and observed-frame availability ratio.",
       "downstream_artifacts_affected": ["artifact.native_evidence", "artifact.behavior_review_units"],
       "requires_rebuild_from_stage": "stage.native_review_evidence",
       "recommended_resolution": "Use ROI-available denominator and explicit zero-availability mask.",
@@ -3199,7 +3214,7 @@
       "blocking_before_pig_strenet": true,
       "blocking_before_behavior_review": true,
       "blocking_before_training": true,
-      "status": "OPEN"
+      "status": "RESOLVED"
     },
     {
       "gap_id": "gap.invalidation_not_machine_enforced",

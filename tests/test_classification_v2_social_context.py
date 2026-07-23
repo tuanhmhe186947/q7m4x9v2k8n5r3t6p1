@@ -36,6 +36,8 @@ def _row(
         "x2": x1 + 20.0,
         "y2": 30.0,
         "bbox_area": 400.0,
+        "image_width": 100.0,
+        "image_height": 100.0,
         "delta_frame_prev": 1.0,
         "speed_n_per_frame": 0.01,
     }

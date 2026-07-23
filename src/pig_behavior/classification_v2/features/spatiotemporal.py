@@ -56,6 +56,19 @@ from pig_behavior.classification_v2.features.native_evidence_contract import (
 from pig_behavior.classification_v2.features.social import (
     build_static_social_context_features,
 )
+from pig_behavior.classification_v2.features.spatial_semantics import (
+    AXIS_DISTANCE_METRIC_ID,
+    AXIS_DISTANCE_METRIC_VERSION,
+    DIAGONAL_DISTANCE_METRIC_ID,
+    DIAGONAL_DISTANCE_METRIC_VERSION,
+    ROI_AGGREGATION_VERSION,
+    ROI_TARGET_MODEL_POLICY_VERSION,
+    SOCIAL_IDENTITY_VERSION,
+    SOCIAL_TIE_BREAK_RULE,
+    SOCIAL_TIE_BREAK_VERSION,
+    TARGET_ROI_MODEL_FORBIDDEN_REASON,
+    canonical_social_identity_columns,
+)
 from pig_behavior.classification_v2.features.temporal_evidence import (
     TemporalEvidenceConfig,
     add_unit_temporal_evidence,
@@ -284,6 +297,13 @@ def build_enhanced_spatiotemporal_features(
         separators=(",", ":"),
     )
     out["motion_schema_hash"] = MOTION_SCHEMA_HASH
+    out["target_roi_review_eligible"] = True
+    out["target_roi_model_eligible"] = False
+    out["target_roi_model_forbidden_reason"] = (
+        TARGET_ROI_MODEL_FORBIDDEN_REASON
+    )
+    out["target_roi_leakage_risk"] = "CRITICAL_LABEL_SELECTED"
+    out["target_roi_semantics_version"] = ROI_TARGET_MODEL_POLICY_VERSION
     out["pair_recomputed_for_view"] = False
     out["aggregate_recomputed_for_view"] = False
 
@@ -337,11 +357,31 @@ def audit_enhanced_spatiotemporal_features(
         "motion_energy_n_per_second2_unit",
         "target_roi_contact_ratio_unit",
         "nearest_pig_id",
+        "nearest_partner_key",
+        "nearest_object_id",
         "nearest_dist_n",
+        "nearest_distance_diagonal",
+        "distance_available",
+        "nearest_neighbor_available",
+        "nearest_tie_count",
+        "nearest_tie_break_rule",
+        "distance_metric_ids",
+        "distance_metric_versions",
+        "social_identity_version",
+        "social_tie_break_version",
+        "partner_continuity_valid",
+        "partner_continuity_coverage",
+        "relative_motion_available",
         "social_density_near_count",
         "motion_active_ratio_per_second_unit",
         "roi_feeder_contact_ratio_unit",
         "social_partner_persistence_ratio_unit",
+        "target_roi_available_frame_count",
+        "target_roi_contact_frame_count",
+        "target_roi_availability_ratio_unit",
+        "target_roi_unit_available",
+        "target_roi_contact_available",
+        "roi_aggregation_version",
         "spatiotemporal_feature_valid",
         "feature_computation_grain",
         "pair_scope_key",
@@ -399,6 +439,23 @@ def audit_enhanced_spatiotemporal_features(
             separators=(",", ":"),
         ),
         "motion_schema_hash": MOTION_SCHEMA_HASH,
+        "distance_metric_ids": json.dumps(
+            [
+                AXIS_DISTANCE_METRIC_ID,
+                DIAGONAL_DISTANCE_METRIC_ID,
+            ],
+            separators=(",", ":"),
+        ),
+        "distance_metric_versions": json.dumps(
+            [
+                AXIS_DISTANCE_METRIC_VERSION,
+                DIAGONAL_DISTANCE_METRIC_VERSION,
+            ],
+            separators=(",", ":"),
+        ),
+        "social_identity_version": SOCIAL_IDENTITY_VERSION,
+        "social_tie_break_version": SOCIAL_TIE_BREAK_VERSION,
+        "roi_aggregation_version": ROI_AGGREGATION_VERSION,
         "code_authority_sha": str(code_sha).lower(),
     }
     for column, expected in provenance_expected.items():
@@ -490,6 +547,117 @@ def audit_enhanced_spatiotemporal_features(
     if not pair_coverage_complete:
         errors.append("pair_coverage_incomplete")
 
+    self_neighbor_count = 0
+    invalid_tie_break_rule_count = 0
+    partner_continuity_reset_errors = 0
+    roi_denominator_errors = 0
+    if "nearest_partner_key" in df.columns:
+        actor_keys, _ = canonical_social_identity_columns(df)
+        nearest_keys = (
+            df["nearest_partner_key"].fillna("").astype(str).str.strip()
+        )
+        self_neighbor_count = int(
+            (nearest_keys.ne("") & nearest_keys.eq(actor_keys.astype(str))).sum()
+        )
+        if self_neighbor_count:
+            errors.append(f"self_neighbor_count={self_neighbor_count}")
+    if "nearest_tie_break_rule" in df.columns:
+        invalid_tie_break_rule_count = int(
+            df["nearest_tie_break_rule"]
+            .fillna("")
+            .astype(str)
+            .ne(SOCIAL_TIE_BREAK_RULE)
+            .sum()
+        )
+        if invalid_tie_break_rule_count:
+            errors.append(
+                "invalid_social_tie_break_rule_count="
+                f"{invalid_tie_break_rule_count}"
+            )
+    if {
+        *MOTION_GRAIN_COLUMNS,
+        "frame_index",
+        "partner_continuity_valid",
+    }.issubset(df.columns):
+        social_starts = (
+            df.sort_values(
+                [*MOTION_GRAIN_COLUMNS, "frame_index"],
+                kind="mergesort",
+            )
+            .groupby(list(MOTION_GRAIN_COLUMNS), sort=False)
+            .head(1)
+        )
+        partner_continuity_reset_errors = int(
+            _to_bool_series(
+                social_starts["partner_continuity_valid"]
+            ).sum()
+        )
+        if partner_continuity_reset_errors:
+            errors.append(
+                "partner_continuity_reset_errors="
+                f"{partner_continuity_reset_errors}"
+            )
+    roi_columns = {
+        "temporal_unit_key",
+        "observed_frame_count",
+        "target_roi_available_frame_count",
+        "target_roi_contact_frame_count",
+        "target_roi_availability_ratio_unit",
+        "target_roi_contact_ratio_unit",
+        "target_roi_unit_available",
+    }
+    if roi_columns.issubset(df.columns):
+        units = df[list(roi_columns)].drop_duplicates("temporal_unit_key")
+        observed_count = pd.to_numeric(
+            units["observed_frame_count"],
+            errors="coerce",
+        )
+        available_count = pd.to_numeric(
+            units["target_roi_available_frame_count"],
+            errors="coerce",
+        )
+        contact_count = pd.to_numeric(
+            units["target_roi_contact_frame_count"],
+            errors="coerce",
+        )
+        expected_availability = available_count.div(
+            observed_count.replace(0, np.nan)
+        ).fillna(0.0)
+        expected_contact = contact_count.div(
+            available_count.replace(0, np.nan)
+        ).fillna(0.0)
+        roi_denominator_errors = int(
+            contact_count.gt(available_count).sum()
+            + (
+                ~np.isclose(
+                    pd.to_numeric(
+                        units["target_roi_availability_ratio_unit"],
+                        errors="coerce",
+                    ),
+                    expected_availability,
+                    equal_nan=False,
+                )
+            ).sum()
+            + (
+                ~np.isclose(
+                    pd.to_numeric(
+                        units["target_roi_contact_ratio_unit"],
+                        errors="coerce",
+                    ),
+                    expected_contact,
+                    equal_nan=False,
+                )
+            ).sum()
+            + (
+                _to_bool_series(units["target_roi_unit_available"])
+                .ne(available_count.gt(0))
+            ).sum()
+        )
+        if roi_denominator_errors:
+            errors.append(
+                f"roi_availability_denominator_errors={roi_denominator_errors}"
+            )
+
     if "behavior" in df.columns:
         invalid_behaviors = sorted(
             set(df["behavior"].dropna().astype(str)).difference(
@@ -526,6 +694,17 @@ def audit_enhanced_spatiotemporal_features(
         "motion_schema_dimension": MOTION_SCHEMA_DIMENSION,
         "motion_schema_feature_names": list(MOTION_FEATURE_NAMES),
         "motion_schema_hash": MOTION_SCHEMA_HASH,
+        "distance_metric_ids": [
+            AXIS_DISTANCE_METRIC_ID,
+            DIAGONAL_DISTANCE_METRIC_ID,
+        ],
+        "distance_metric_versions": [
+            AXIS_DISTANCE_METRIC_VERSION,
+            DIAGONAL_DISTANCE_METRIC_VERSION,
+        ],
+        "social_identity_version": SOCIAL_IDENTITY_VERSION,
+        "social_tie_break_version": SOCIAL_TIE_BREAK_VERSION,
+        "roi_aggregation_version": ROI_AGGREGATION_VERSION,
         "code_authority_sha": str(code_sha).lower(),
         "code_sha": str(code_sha).lower(),
         "input_sha256": str(input_sha256).lower(),
@@ -577,6 +756,14 @@ def audit_enhanced_spatiotemporal_features(
         "invalid_pair_aggregate_contributions": (
             invalid_pair_aggregate_contributions
         ),
+        "self_neighbor_count": self_neighbor_count,
+        "invalid_social_tie_break_rule_count": (
+            invalid_tie_break_rule_count
+        ),
+        "partner_continuity_reset_errors": (
+            partner_continuity_reset_errors
+        ),
+        "roi_availability_denominator_errors": roi_denominator_errors,
         "pair_coverage_complete": pair_coverage_complete,
         "invalid_view_recompute_claim": invalid_view_recompute_claim,
         "new_feature_columns": [
@@ -1245,14 +1432,51 @@ def _add_social_context_columns(df: pd.DataFrame, config: EnhancedFeatureConfig)
         if "delta_frame_prev" in out.columns
         else np.nan
     )
+    out["current_partner_key"] = out["nearest_partner_key"].fillna("")
+    out["previous_partner_key"] = (
+        g["nearest_partner_key"].shift(1).fillna("")
+    )
     out["prev_nearest_pig_id"] = g["nearest_pig_id"].shift(1).fillna("")
     out["prev_nearest_dist_n"] = g["nearest_dist_n"].shift(1)
-    same_neighbor = (
-        out["nearest_pig_id"]
-        .astype(str)
-        .eq(out["prev_nearest_pig_id"].astype(str))
-        & out["nearest_pig_id"].astype(str).ne("")
+    previous_neighbor_available = _to_bool_series(
+        g["nearest_neighbor_available"].shift(1)
     )
+    current_neighbor_available = _to_bool_series(
+        out["nearest_neighbor_available"]
+    )
+    has_previous_social_observation = g.cumcount().gt(0)
+    same_unit = _to_bool_series(
+        out.get(
+            "same_temporal_unit_pair",
+            pd.Series(has_previous_social_observation, index=out.index),
+        )
+    )
+    same_actor = _to_bool_series(
+        out.get(
+            "same_actor_trajectory_pair",
+            pd.Series(has_previous_social_observation, index=out.index),
+        )
+    )
+    out["partner_continuity_valid"] = (
+        has_previous_social_observation
+        & same_unit
+        & same_actor
+        & current_neighbor_available
+        & previous_neighbor_available
+    )
+    out["same_partner_as_previous"] = (
+        out["partner_continuity_valid"]
+        & out["current_partner_key"]
+        .astype(str)
+        .eq(out["previous_partner_key"].astype(str))
+    )
+    out["partner_switch"] = (
+        out["partner_continuity_valid"]
+        & ~out["same_partner_as_previous"]
+    )
+    out["no_neighbor"] = ~current_neighbor_available
+    out["partner_unavailable"] = out["no_neighbor"]
+    same_neighbor = _to_bool_series(out["same_partner_as_previous"])
     finite_partner_distance = (
         out["nearest_dist_n"].notna() & out["prev_nearest_dist_n"].notna()
     )
@@ -1268,6 +1492,7 @@ def _add_social_context_columns(df: pd.DataFrame, config: EnhancedFeatureConfig)
     out["social_velocity_pair_valid"] = (
         same_neighbor & finite_partner_distance & velocity_pair_valid
     )
+    out["relative_motion_available"] = out["social_velocity_pair_valid"]
     raw_partner_delta = out["nearest_dist_n"] - out["prev_nearest_dist_n"]
     out["nearest_dist_delta"] = np.where(
         out["social_adjacent_pair_valid"],
@@ -1359,6 +1584,22 @@ def _add_social_context_columns(df: pd.DataFrame, config: EnhancedFeatureConfig)
 def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
     _require_pair_scope_columns(out, operation="temporal aggregation")
+    optional_defaults: dict[str, object] = {
+        "roi_target_available": False,
+        "roi_target_contact": False,
+        "roi_target_near": False,
+        "nearest_dist_n": np.nan,
+        "nearest_neighbor_available": False,
+        "social_density_near_count": 0,
+        "social_density_available": False,
+        "pair_contact_with_nearest": False,
+        "same_partner_as_previous": False,
+        "partner_continuity_valid": False,
+        "relative_motion_available": False,
+    }
+    for column, default in optional_defaults.items():
+        if column not in out.columns:
+            out[column] = default
     internal_columns = [
         "_speed_n_per_frame_valid_pair",
         "_speed_n_per_second_valid_pair",
@@ -1366,6 +1607,12 @@ def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
         "_vector_acceleration_valid_sample",
         "_accel_n_per_frame2_valid_pair",
         "_direction_change_valid_pair",
+        "_roi_target_contact_available_frame",
+        "_roi_target_near_available_frame",
+        "_nearest_distance_available_frame",
+        "_social_density_available_frame",
+        "_pair_contact_available_frame",
+        "_same_partner_valid_pair",
     ]
     out[internal_columns[0]] = pd.to_numeric(
         out["speed_n_per_frame"],
@@ -1391,6 +1638,52 @@ def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
         out["abs_direction_change_rad"],
         errors="coerce",
     ).where(_to_bool_series(out["direction_change_valid"]))
+    roi_available = _to_bool_series(
+        out.get("roi_target_available", pd.Series(False, index=out.index))
+    ) & _to_bool_series(
+        out.get(
+            "current_geometry_valid",
+            pd.Series(False, index=out.index),
+        )
+    )
+    neighbor_available = _to_bool_series(
+        out.get(
+            "nearest_neighbor_available",
+            pd.Series(False, index=out.index),
+        )
+    )
+    social_density_available = _to_bool_series(
+        out.get(
+            "social_density_available",
+            pd.Series(False, index=out.index),
+        )
+    )
+    continuity_valid = _to_bool_series(
+        out.get(
+            "partner_continuity_valid",
+            pd.Series(False, index=out.index),
+        )
+    )
+    out[internal_columns[6]] = (
+        _to_bool_series(out["roi_target_contact"]).astype(float)
+    ).where(roi_available)
+    out[internal_columns[7]] = (
+        _to_bool_series(out["roi_target_near"]).astype(float)
+    ).where(roi_available)
+    out[internal_columns[8]] = pd.to_numeric(
+        out["nearest_dist_n"],
+        errors="coerce",
+    ).where(neighbor_available)
+    out[internal_columns[9]] = pd.to_numeric(
+        out["social_density_near_count"],
+        errors="coerce",
+    ).where(social_density_available)
+    out[internal_columns[10]] = (
+        _to_bool_series(out["pair_contact_with_nearest"]).astype(float)
+    ).where(neighbor_available)
+    out[internal_columns[11]] = (
+        _to_bool_series(out["same_partner_as_previous"]).astype(float)
+    ).where(continuity_valid)
     g = out.groupby("temporal_unit_key", dropna=False, sort=False)
 
     agg_spec: dict[str, tuple[str, str | Any]] = {
@@ -1411,19 +1704,23 @@ def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
         "shape_transition_score_unit": ("shape_change_score", "max"),
         "area_n_std_unit": ("area_n", "std"),
         "aspect_ratio_std_unit": ("aspect_ratio", "std"),
-        "target_roi_contact_frame_count_unit": ("roi_target_contact", "sum"),
-        "target_roi_near_frame_count_unit": ("roi_target_near", "sum"),
+        "target_roi_contact_frame_count_unit": (internal_columns[6], "sum"),
+        "target_roi_near_frame_count_unit": (internal_columns[7], "sum"),
         "target_roi_entry_count_unit": ("roi_target_entry_event", "sum"),
         "target_roi_exit_count_unit": ("roi_target_exit_event", "sum"),
         "target_roi_min_dist_n_mean_unit": ("roi_target_min_dist_n", "mean"),
         "target_roi_min_dist_n_min_unit": ("roi_target_min_dist_n", "min"),
         "target_roi_overlap_mean_unit": ("roi_target_max_overlap_ratio", "mean"),
         "target_roi_overlap_max_unit": ("roi_target_max_overlap_ratio", "max"),
-        "nearest_dist_mean_unit": ("nearest_dist_n", "mean"),
-        "nearest_dist_min_unit": ("nearest_dist_n", "min"),
-        "social_density_mean_unit": ("social_density_near_count", "mean"),
-        "social_density_max_unit": ("social_density_near_count", "max"),
-        "pair_contact_frame_count_unit": ("pair_contact_with_nearest", "sum"),
+        "nearest_dist_mean_unit": (internal_columns[8], "mean"),
+        "nearest_dist_min_unit": (internal_columns[8], "min"),
+        "social_density_mean_unit": (internal_columns[9], "mean"),
+        "social_density_max_unit": (internal_columns[9], "max"),
+        "pair_contact_frame_count_unit": (internal_columns[10], "sum"),
+        "social_partner_persistence_ratio_unit": (
+            internal_columns[11],
+            "mean",
+        ),
         "approach_speed_max_unit": ("approach_speed_n_per_frame", "max"),
         "aggression_score_proxy_max_unit": ("aggression_score_proxy", "max"),
         "aggression_score_proxy_mean_unit": ("aggression_score_proxy", "mean"),
@@ -1506,6 +1803,32 @@ def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
             "acceleration_valid_count": _to_bool_series(
                 out["vector_acceleration_valid"]
             ).astype("int64"),
+            "target_roi_available_frame_count": (
+                observed & roi_available
+            ).astype("int64"),
+            "target_roi_contact_frame_count": (
+                observed
+                & roi_available
+                & _to_bool_series(out["roi_target_contact"])
+            ).astype("int64"),
+            "social_observation_valid_count": (
+                observed & neighbor_available
+            ).astype("int64"),
+            "social_density_valid_count": (
+                observed & social_density_available
+            ).astype("int64"),
+            "partner_continuity_valid_count": (
+                observed & continuity_valid
+            ).astype("int64"),
+            "relative_motion_valid_count": (
+                observed
+                & _to_bool_series(
+                    out.get(
+                        "relative_motion_available",
+                        pd.Series(False, index=out.index),
+                    )
+                )
+            ).astype("int64"),
         }
     ).groupby("temporal_unit_key", sort=False).sum()
     coverage["possible_pair_count"] = np.maximum(
@@ -1563,6 +1886,68 @@ def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
     coverage["acceleration_feature_available"] = coverage[
         "acceleration_valid_count"
     ].gt(0)
+    coverage["social_observation_possible_count"] = coverage[
+        "observed_frame_count"
+    ]
+    observed_denominator = coverage["observed_frame_count"].replace(
+        0,
+        np.nan,
+    )
+    coverage["social_observation_coverage"] = (
+        coverage["social_observation_valid_count"]
+        .div(observed_denominator)
+        .fillna(0.0)
+    )
+    coverage["social_density_coverage"] = (
+        coverage["social_density_valid_count"]
+        .div(observed_denominator)
+        .fillna(0.0)
+    )
+    coverage["partner_continuity_possible_count"] = coverage[
+        "possible_pair_count"
+    ]
+    coverage["relative_motion_possible_count"] = coverage[
+        "possible_pair_count"
+    ]
+    continuity_denominator = coverage[
+        "partner_continuity_possible_count"
+    ].replace(0, np.nan)
+    coverage["partner_continuity_coverage"] = (
+        coverage["partner_continuity_valid_count"]
+        .div(continuity_denominator)
+        .fillna(0.0)
+    )
+    coverage["relative_motion_coverage"] = (
+        coverage["relative_motion_valid_count"]
+        .div(possible_denominator)
+        .fillna(0.0)
+    )
+    coverage["nearest_neighbor_feature_available"] = coverage[
+        "social_observation_valid_count"
+    ].gt(0)
+    coverage["partner_continuity_feature_available"] = coverage[
+        "partner_continuity_valid_count"
+    ].gt(0)
+    coverage["target_roi_availability_ratio_unit"] = (
+        coverage["target_roi_available_frame_count"]
+        .div(observed_denominator)
+        .fillna(0.0)
+    )
+    roi_denominator = coverage["target_roi_available_frame_count"].replace(
+        0,
+        np.nan,
+    )
+    coverage["target_roi_contact_ratio_unit"] = (
+        coverage["target_roi_contact_frame_count"]
+        .div(roi_denominator)
+        .fillna(0.0)
+    )
+    coverage["target_roi_unit_available"] = coverage[
+        "target_roi_available_frame_count"
+    ].gt(0)
+    coverage["target_roi_contact_available"] = coverage[
+        "target_roi_unit_available"
+    ]
     unit_agg = unit_agg.join(coverage)
 
     # Displacement from first to last position in the temporal unit.
@@ -1589,22 +1974,51 @@ def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
 
     frame_count = g.size().rename("frame_count_unit")
     unit_agg = unit_agg.join(frame_count)
-    unit_agg["target_roi_contact_ratio_unit"] = unit_agg.get(
-        "target_roi_contact_frame_count_unit",
-        0,
-    ) / unit_agg["frame_count_unit"].replace(0, np.nan)
     unit_agg["target_roi_near_ratio_unit"] = unit_agg.get(
         "target_roi_near_frame_count_unit",
         0,
-    ) / unit_agg["frame_count_unit"].replace(0, np.nan)
+    ) / unit_agg["target_roi_available_frame_count"].replace(0, np.nan)
+    unit_agg["target_roi_near_ratio_unit"] = unit_agg[
+        "target_roi_near_ratio_unit"
+    ].fillna(0.0)
     unit_agg["pair_contact_ratio_unit"] = unit_agg.get(
         "pair_contact_frame_count_unit",
         0,
-    ) / unit_agg["frame_count_unit"].replace(0, np.nan)
+    ) / unit_agg["social_observation_valid_count"].replace(0, np.nan)
+    unit_agg["pair_contact_ratio_unit"] = unit_agg[
+        "pair_contact_ratio_unit"
+    ].fillna(0.0)
 
     # Prefix columns are already descriptive; map back to each row.
-    for col in unit_agg.columns:
-        out[col] = out["temporal_unit_key"].map(unit_agg[col])
+    mapped_unit_aggregates = unit_agg.reindex(
+        out["temporal_unit_key"].astype(str).to_numpy()
+    ).reset_index(drop=True)
+    mapped_unit_aggregates.index = out.index
+    overlapping_aggregates = [
+        column
+        for column in mapped_unit_aggregates.columns
+        if column in out.columns
+    ]
+    out = out.drop(columns=overlapping_aggregates).join(
+        mapped_unit_aggregates
+    )
+    out["roi_aggregation_version"] = ROI_AGGREGATION_VERSION
+    out["social_identity_version"] = SOCIAL_IDENTITY_VERSION
+    out["social_tie_break_version"] = SOCIAL_TIE_BREAK_VERSION
+    out["distance_metric_ids"] = json.dumps(
+        [
+            AXIS_DISTANCE_METRIC_ID,
+            DIAGONAL_DISTANCE_METRIC_ID,
+        ],
+        separators=(",", ":"),
+    )
+    out["distance_metric_versions"] = json.dumps(
+        [
+            AXIS_DISTANCE_METRIC_VERSION,
+            DIAGONAL_DISTANCE_METRIC_VERSION,
+        ],
+        separators=(",", ":"),
+    )
 
     numeric_fill = [
         "speed_mean_unit",
@@ -1619,8 +2033,14 @@ def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
         "motion_energy_n_per_second2_unit",
         "shape_transition_score_unit",
         "target_roi_contact_ratio_unit",
+        "target_roi_availability_ratio_unit",
         "target_roi_near_ratio_unit",
         "pair_contact_ratio_unit",
+        "social_partner_persistence_ratio_unit",
+        "social_observation_coverage",
+        "social_density_coverage",
+        "partner_continuity_coverage",
+        "relative_motion_coverage",
         "motion_burstiness_unit",
         "motion_burstiness_n_per_second_unit",
         "bbox_stability_unit",

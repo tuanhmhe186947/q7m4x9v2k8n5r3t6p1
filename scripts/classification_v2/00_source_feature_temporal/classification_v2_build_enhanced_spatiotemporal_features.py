@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -188,6 +189,9 @@ def main() -> None:
         )
     input_sha256 = file_sha256(args.input_csv)
     contract_manifest_sha256 = file_sha256(args.contract_manifest)
+    out["code_authority_sha"] = args.code_sha.lower()
+    out["input_sha256"] = input_sha256
+    out["contract_manifest_sha256"] = contract_manifest_sha256
     audit = audit_enhanced_spatiotemporal_features(
         out,
         input_rows=len(df),
@@ -249,8 +253,21 @@ def main() -> None:
     _fail_if_audit_has_errors(audit, args.audit_json)
 
     args.output_csv.parent.mkdir(parents=True, exist_ok=True)
-    out.to_csv(args.output_csv, index=False)
-    _write_audit(args.audit_json, audit)
+    args.audit_json.parent.mkdir(parents=True, exist_ok=True)
+    staged_csv = args.output_csv.with_name(
+        f".{args.output_csv.name}.stage-{os.getpid()}"
+    )
+    staged_audit = args.audit_json.with_name(
+        f".{args.audit_json.name}.stage-{os.getpid()}"
+    )
+    if staged_csv.exists() or staged_audit.exists():
+        raise FileExistsError(
+            f"Staged output already exists: {staged_csv}, {staged_audit}"
+        )
+    out.to_csv(staged_csv, index=False)
+    _write_audit(staged_audit, audit)
+    staged_csv.replace(args.output_csv)
+    staged_audit.replace(args.audit_json)
 
     print(f"[OK] wrote {args.output_csv} rows={len(out)} cols={len(out.columns)}")
     print(f"[OK] wrote {args.audit_json}")

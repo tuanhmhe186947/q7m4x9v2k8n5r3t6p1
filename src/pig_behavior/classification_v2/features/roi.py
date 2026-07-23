@@ -23,6 +23,17 @@ from pig_behavior.classification_v2.contracts.lineage_claims import (
     require_lineage_claims_preserved,
     resolve_optional_lineage_claims,
 )
+from pig_behavior.classification_v2.features.spatial_semantics import (
+    DIAGONAL_DISTANCE_METRIC_ID,
+    DIAGONAL_DISTANCE_METRIC_VERSION,
+    ROI_CONTACT_THRESHOLD_ID,
+    ROI_CONTACT_THRESHOLD_VALUE,
+    ROI_DISTANCE_THRESHOLD_UNITS,
+    ROI_NEAR_THRESHOLD_ID,
+    ROI_NEAR_THRESHOLD_VALUE,
+    ROI_TARGET_MODEL_POLICY_VERSION,
+    TARGET_ROI_MODEL_FORBIDDEN_REASON,
+)
 from pig_behavior.classification_v2.schema import ROI_DOMINANT_BEHAVIORS
 
 ROI_CLASSES: tuple[str, ...] = ("feeder", "drinker", "toy")
@@ -137,8 +148,8 @@ def build_roi_features(
     frame_features: pd.DataFrame,
     *,
     roi_coco_path: Path,
-    near_distance_n: float = 0.08,
-    contact_distance_n: float = 0.02,
+    near_distance_n: float = ROI_NEAR_THRESHOLD_VALUE,
+    contact_distance_n: float = ROI_CONTACT_THRESHOLD_VALUE,
 ) -> pd.DataFrame:
     """Add static scene ROI features to frame-object rows.
 
@@ -335,6 +346,43 @@ def build_roi_features(
             target,
             f"roi_{roi_class}_contact",
         ]
+
+    valid_image_dimensions = (
+        np.isfinite(out["image_width"])
+        & np.isfinite(out["image_height"])
+        & out["image_width"].gt(0)
+        & out["image_height"].gt(0)
+    )
+    out["roi_target_available"] = (
+        _to_bool_series(out["roi_target_available"])
+        & bbox_valid
+        & valid_image_dimensions
+        & out["roi_target_min_dist_n"].notna()
+    )
+    out["roi_target_near"] = (
+        _to_bool_series(out["roi_target_near"])
+        & out["roi_target_available"]
+    )
+    out["roi_target_contact"] = (
+        _to_bool_series(out["roi_target_contact"])
+        & out["roi_target_available"]
+    )
+    out["roi_distance_metric_id"] = DIAGONAL_DISTANCE_METRIC_ID
+    out["roi_distance_metric_version"] = DIAGONAL_DISTANCE_METRIC_VERSION
+    out["roi_near_threshold_id"] = ROI_NEAR_THRESHOLD_ID
+    out["roi_near_threshold_value"] = float(near_distance_n)
+    out["roi_contact_threshold_id"] = ROI_CONTACT_THRESHOLD_ID
+    out["roi_contact_threshold_value"] = float(contact_distance_n)
+    out["roi_threshold_units"] = ROI_DISTANCE_THRESHOLD_UNITS
+    out["roi_threshold_metric_id"] = DIAGONAL_DISTANCE_METRIC_ID
+    out["roi_threshold_metric_version"] = DIAGONAL_DISTANCE_METRIC_VERSION
+    out["target_roi_review_eligible"] = True
+    out["target_roi_model_eligible"] = False
+    out["target_roi_model_forbidden_reason"] = (
+        TARGET_ROI_MODEL_FORBIDDEN_REASON
+    )
+    out["target_roi_leakage_risk"] = "CRITICAL_LABEL_SELECTED"
+    out["target_roi_semantics_version"] = ROI_TARGET_MODEL_POLICY_VERSION
 
     out["roi_context_quality"] = "not_required"
     out.loc[

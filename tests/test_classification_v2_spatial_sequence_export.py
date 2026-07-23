@@ -220,6 +220,7 @@ def test_spatial_social_motion_is_rebased_inside_each_window() -> None:
             "bw_n": [0.2, 0.2, 0.2],
             "bh_n": [0.1, 0.1, 0.1],
             "nearest_pig_id": ["ID_2"] * 3,
+            "nearest_partner_key": ["track-b"] * 3,
             "roi_feeder_available": [True, True, True],
             "roi_drinker_available": [False, False, False],
             "roi_toy_available": [True, True, True],

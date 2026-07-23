@@ -26,6 +26,11 @@ from pig_behavior.classification_v2.features.pen_context import (
     PEN_CONTEXT_LEGACY_MODEL_FEATURE_COLUMNS,
     PEN_CONTEXT_MODEL_FEATURE_COLUMNS,
 )
+from pig_behavior.classification_v2.features.spatial_semantics import (
+    SOCIAL_IDENTITY_VERSION,
+    SOCIAL_TIE_BREAK_VERSION,
+    is_target_roi_model_forbidden,
+)
 
 FORBIDDEN_SUBSTRINGS = (
     "behavior",
@@ -202,18 +207,11 @@ def export_spatial_sequences(
         raise ValueError(f"Missing columns: windows={missing_windows} frames={missing_frames}")
 
     feature_frames = frames.copy()
-    nearest_pig = feature_frames.get(
-        "nearest_pig_id",
+    nearest_partner_key = feature_frames.get(
+        "nearest_partner_key",
         pd.Series("", index=feature_frames.index),
     ).fillna("").astype(str).str.strip()
-    nearest_track = feature_frames.get(
-        "nearest_track_id",
-        pd.Series("", index=feature_frames.index),
-    ).fillna("").astype(str).str.strip()
-    feature_frames["_social_partner_key"] = nearest_pig.where(
-        nearest_pig.ne(""),
-        nearest_track,
-    )
+    feature_frames["_social_partner_key"] = nearest_partner_key
     feature_frames["social_neighbor_available"] = feature_frames[
         "_social_partner_key"
     ].ne("")
@@ -243,6 +241,20 @@ def export_spatial_sequences(
 
     selected_schema = feature_schema or SPATIAL_FRAME_FEATURES
     legacy_schema = selected_schema is LEGACY_SPATIAL_FRAME_FEATURES
+    social_source_present = any(
+        column in frames.columns
+        for column in selected_schema.get("social_relation", [])
+    ) or "nearest_neighbor_available" in frames.columns
+    if (
+        "social_relation" in selected_schema
+        and not legacy_schema
+        and social_source_present
+        and "nearest_partner_key" not in frames.columns
+    ):
+        raise ValueError(
+            "Missing canonical social identity column: "
+            "nearest_partner_key"
+        )
     motion_preflight: dict[str, Any] | None = None
     if "motion_delta" in selected_schema and not legacy_schema:
         producer_metadata = (
@@ -258,6 +270,17 @@ def export_spatial_sequences(
                 if name in feature_frames.columns
             ],
             metadata=producer_metadata,
+        )
+    declared_forbidden = [
+        column
+        for columns in selected_schema.values()
+        for column in columns
+        if _is_forbidden(column)
+    ]
+    if declared_forbidden:
+        raise ValueError(
+            "Forbidden spatial feature columns requested: "
+            f"{declared_forbidden}"
         )
     feature_names = _available_feature_names(
         feature_frames,
@@ -603,6 +626,8 @@ def export_spatial_sequences(
         "social_partner_available_frame_rows": int(
             work_frames["_social_partner_key"].ne("").sum()
         ),
+        "social_identity_version": SOCIAL_IDENTITY_VERSION,
+        "social_tie_break_version": SOCIAL_TIE_BREAK_VERSION,
         "window_alignment": window_alignment,
         "errors": [],
         "warnings": [],
@@ -1737,4 +1762,4 @@ def _is_forbidden(column: str) -> bool:
     lower = column.lower()
     return any(
         token in lower for token in FORBIDDEN_SUBSTRINGS
-    ) or lower.startswith(("target_roi_", "roi_target_"))
+    ) or is_target_roi_model_forbidden(lower)
