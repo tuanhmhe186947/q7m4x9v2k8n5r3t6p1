@@ -15,6 +15,11 @@ from pig_behavior.classification_v2.features.frame_local import (
     FORBIDDEN_FRAME_LOCAL_COLUMNS,
     FRAME_LOCAL_GRAIN,
 )
+from pig_behavior.classification_v2.features.native_evidence_contract import (
+    NATIVE_EVIDENCE_SEMANTICS_VERSION,
+    NATIVE_FEATURE_COMPUTATION_GRAIN,
+    NATIVE_MOTION_SCHEMA_VERSION,
+)
 
 EVIDENCE_SEMANTICS_SCHEMA_VERSION = (
     "classification_v2.behavior_review_evidence_semantics.v2"
@@ -97,9 +102,17 @@ EXTRA_MODEL_X_FORBIDDEN_COLUMNS: frozenset[str] = frozenset(
 )
 
 PAIR_VALIDITY_COLUMNS: frozenset[str] = frozenset(
-    column
-    for column in FORBIDDEN_FRAME_LOCAL_COLUMNS
-    if column.endswith("pair_valid") or column.endswith("context_valid")
+    {
+        "previous_observation_available",
+        "valid_delta_time",
+        "valid_motion_pair",
+        *(
+            column
+            for column in FORBIDDEN_FRAME_LOCAL_COLUMNS
+            if column.endswith("pair_valid")
+            or column.endswith("context_valid")
+        ),
+    }
 )
 
 
@@ -206,7 +219,15 @@ def _entry(column: str, grain: str, pair_derived: bool) -> dict[str, Any]:
 
 def _native_scope_errors(frame: pd.DataFrame) -> list[str]:
     errors: list[str] = []
-    required = {"temporal_unit_key", "frame_index", "pair_scope_key"}
+    required = {
+        "temporal_unit_key",
+        "frame_index",
+        "pair_scope_key",
+        "feature_computation_grain",
+        "evidence_semantics_version",
+        "motion_schema_version",
+        "valid_motion_pair",
+    }
     missing = sorted(required.difference(frame.columns))
     if missing:
         return [f"native_evidence_missing_scope_columns={missing}"]
@@ -217,6 +238,22 @@ def _native_scope_errors(frame: pd.DataFrame) -> list[str]:
     )
     if scope_mismatch:
         errors.append(f"native_pair_scope_mismatch={scope_mismatch}")
+    expected = {
+        "feature_computation_grain": NATIVE_FEATURE_COMPUTATION_GRAIN,
+        "evidence_semantics_version": NATIVE_EVIDENCE_SEMANTICS_VERSION,
+        "motion_schema_version": NATIVE_MOTION_SCHEMA_VERSION,
+    }
+    for column, value in expected.items():
+        mismatch = int(
+            frame[column]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .ne(value)
+            .sum()
+        )
+        if mismatch:
+            errors.append(f"native_provenance_mismatch={column}:{mismatch}")
     starts = (
         frame.sort_values(
             ["temporal_unit_key", "frame_index"],

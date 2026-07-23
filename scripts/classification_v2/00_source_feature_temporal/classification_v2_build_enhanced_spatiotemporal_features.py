@@ -12,6 +12,9 @@ import pandas as pd
 from pig_behavior.classification_v2.contracts.output_safety import (
     require_output_paths_available,
 )
+from pig_behavior.classification_v2.features.native_evidence_contract import (
+    check_native_review_evidence,
+)
 from pig_behavior.classification_v2.features.pen_context import (
     DEFAULT_PEN_MASK_SHA256,
     audit_pen_context_features,
@@ -20,6 +23,9 @@ from pig_behavior.classification_v2.features.pen_context import (
 from pig_behavior.classification_v2.features.spatiotemporal import (
     audit_enhanced_spatiotemporal_features,
     build_enhanced_spatiotemporal_features,
+)
+from pig_behavior.classification_v2.training.lineage_hashing import (
+    file_sha256,
 )
 
 
@@ -33,6 +39,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input-csv", required=True, type=Path)
     parser.add_argument("--output-csv", required=True, type=Path)
     parser.add_argument("--audit-json", required=True, type=Path)
+    parser.add_argument("--code-sha", required=True)
+    parser.add_argument(
+        "--contract-manifest",
+        type=Path,
+        default=Path(
+            "docs/classification_v2/scientific_contract_v1/"
+            "contract_manifest.json"
+        ),
+    )
     parser.add_argument("--cvat-label-stride", type=int, default=6)
     parser.add_argument("--legacy-expected-sequence-length", type=int, default=16)
     parser.add_argument("--social-near-distance-n", type=float, default=0.08)
@@ -116,6 +131,8 @@ def main() -> None:
     args = parse_args()
     if not args.input_csv.exists():
         raise FileNotFoundError(args.input_csv)
+    if not args.contract_manifest.exists():
+        raise FileNotFoundError(args.contract_manifest)
     require_output_paths_available(
         [args.output_csv, args.audit_json],
         overwrite=args.overwrite,
@@ -169,7 +186,15 @@ def main() -> None:
             input_rows=len(df),
             expected_mask_sha256=args.expected_pen_mask_sha256,
         )
-    audit = audit_enhanced_spatiotemporal_features(out)
+    input_sha256 = file_sha256(args.input_csv)
+    contract_manifest_sha256 = file_sha256(args.contract_manifest)
+    audit = audit_enhanced_spatiotemporal_features(
+        out,
+        input_rows=len(df),
+        code_sha=args.code_sha,
+        input_sha256=input_sha256,
+        contract_manifest_sha256=contract_manifest_sha256,
+    )
     if pen_audit is not None:
         audit["pen_context"] = pen_audit
         audit["errors"] = [
@@ -178,6 +203,7 @@ def main() -> None:
         ]
     audit["input_csv"] = str(args.input_csv)
     audit["output_csv"] = str(args.output_csv)
+    audit["contract_manifest"] = str(args.contract_manifest)
     audit["parameters"] = {
         "cvat_label_stride": args.cvat_label_stride,
         "legacy_expected_sequence_length": args.legacy_expected_sequence_length,
@@ -203,6 +229,22 @@ def main() -> None:
         "max_rows": args.max_rows,
         "overwrite": args.overwrite,
     }
+    independent_check = check_native_review_evidence(
+        df,
+        out,
+        producer_audit=audit,
+        code_sha=args.code_sha,
+        input_sha256=input_sha256,
+        contract_manifest_sha256=contract_manifest_sha256,
+    )
+    audit["independent_contract_check"] = independent_check
+    audit["errors"] = [
+        *audit.get("errors", []),
+        *[
+            f"independent_checker={error}"
+            for error in independent_check["errors"]
+        ],
+    ]
 
     _fail_if_audit_has_errors(audit, args.audit_json)
 

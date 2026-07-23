@@ -3,34 +3,34 @@
   "contract_version": "classification_v2.scientific_contract.v1.0.0",
   "generated_files": [
     {
-      "bytes": 167559,
+      "bytes": 170792,
       "path": "00_pipeline_contract.yaml",
-      "sha256": "264b8f9d787b48cfc56ebad6ed898f7b98fbb597217e31ecd2f76b4c15c0e36f"
+      "sha256": "28c484ed98ac57ba54a480b1adb73429f54d141eefa0382d24d2f6cf5920e64f"
     },
     {
-      "bytes": 8924,
+      "bytes": 8925,
       "path": "01_pipeline_dataflow.md",
-      "sha256": "4e8f08f32141fae9a75ed7a8a6388749a257325cad75499d661865184647ee45"
+      "sha256": "ebba78cb5826ec37ef3ba6085e49706a12c10f851204de55184eeba1aa00d476"
     },
     {
-      "bytes": 9124,
+      "bytes": 9125,
       "path": "01_pipeline_dataflow.mmd",
-      "sha256": "4d5653086372bea92f2ca99e227146f494fd363a171cd3457464eef606e55aa3"
+      "sha256": "7a797b23d5c0d418257e1e813476cdac2d877e8789bef5ee2477796c7d179147"
     },
     {
-      "bytes": 12472,
+      "bytes": 12645,
       "path": "02_stage_contract_registry.csv",
-      "sha256": "cba8f9b0713df2a06c728195cc1a538238c4ebff5843d52c4e5456f0d39dd6e2"
+      "sha256": "c6d3202d69f6a0c5a71f60bffec26b84b3e99544866151f8fa4a06bc8c7312b4"
     },
     {
-      "bytes": 42639,
+      "bytes": 44243,
       "path": "03_feature_semantics_registry.csv",
-      "sha256": "0479fbd19935265026113f832c529bedaa72035efd4f1cf518841ca588bb3781"
+      "sha256": "0c30442e2a167d78e7376a7f9b6849d3fe207da5ee1f208ed0a441d35b076e50"
     },
     {
-      "bytes": 13223,
+      "bytes": 13862,
       "path": "04_invariant_gate_matrix.csv",
-      "sha256": "c3c5a1fb8c816889abb5736443834db5553a18757e44b9e09ff400db1856a2bc"
+      "sha256": "fb6761d3379708acc51d1436886430b6c2a90039d0d6469b5ca2f138ce2cabdf"
     },
     {
       "bytes": 1641,
@@ -58,14 +58,14 @@
       "sha256": "7350cc60671fcfd08a2b8772f9b85787e5324630e0e6674e7d4f098fab4cc8c4"
     },
     {
-      "bytes": 19978,
+      "bytes": 23460,
       "path": "10_code_contract_mapping.csv",
-      "sha256": "9ad6fb2a49db68a940a277d5e6068c948f6cb152c5fe1e94f71c5c5f022db065"
+      "sha256": "08b23ca9ee26074ec70f8892ffac00a8b6e5a75dbf7791acf330915bac5a32da"
     },
     {
-      "bytes": 7412,
+      "bytes": 7428,
       "path": "11_known_gaps_and_risks.csv",
-      "sha256": "66a1742c578d7e58fad08fb0da8cbde6cea30ac63164474922bf2b3df05be405"
+      "sha256": "951713ed35d195c957a418717740fccd2bb8d00e3e053c3c4650828fbde920fc"
     },
     {
       "bytes": 1220,

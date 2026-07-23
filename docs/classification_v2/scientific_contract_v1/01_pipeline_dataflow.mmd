@@ -17,7 +17,7 @@ flowchart LR
   S5 --> S6
   S7["Temporal harmonization<br/>grain: HARMONIZED_FRAME_AND_NATIVE_INTERVAL<br/>group: object_track_key,temporal_unit_key<br/>identity: object_track_key,temporal_unit_key<br/>reset: temporal_unit_key<br/>schema: classification_v2.temporal_harmonization.v2<br/>check: audit_temporal_harmonization<br/>model/review: PROVENANCE_NOT_MODEL_X/NATIVE_REVIEW_INPUT"]
   S6 --> S7
-  S8["Native-unit review evidence<br/>grain: NATIVE_UNIT_REVIEW_EVIDENCE<br/>group: source_type,dataset_id,video_key,object_track_key,temporal_unit_key<br/>identity: object_track_key,temporal_unit_key<br/>reset: temporal_unit_key<br/>schema: classification_v2.native_evidence.unversioned_current<br/>check: audit_enhanced_spatiotemporal_features<br/>model/review: REVIEW_EVIDENCE_NOT_DIRECT_MODEL_X/ELIGIBLE_AFTER_GATE"]
+  S8["Native-unit review evidence<br/>grain: NATIVE_UNIT_REVIEW_EVIDENCE<br/>group: source_type,dataset_id,video_key,object_track_key,temporal_unit_key<br/>identity: object_track_key,temporal_unit_key<br/>reset: temporal_unit_key<br/>schema: classification_v2.native_review_evidence.v2<br/>check: check_classification_v2_native_review_evidence.py<br/>model/review: REVIEW_EVIDENCE_NOT_DIRECT_MODEL_X/ELIGIBLE_AFTER_GATE"]
   S7 --> S8
   S9["Pig-STRENet evidence<br/>grain: HISTORY_TARGET_PAIR<br/>group: object_track_key,temporal_unit_key<br/>identity: pair_id,temporal_unit_key<br/>reset: history_target_boundary<br/>schema: classification_v2.pig_strenet_artifacts.v1<br/>check: check_classification_v2_pig_strenet_artifacts<br/>model/review: REVIEW_EVIDENCE_ONLY/ELIGIBLE_AFTER_SCHEMA_PREFLIGHT"]
   S8 --> S9

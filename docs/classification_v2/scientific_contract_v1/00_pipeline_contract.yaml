@@ -264,14 +264,15 @@
       "temporal_support": "within exact native unit only",
       "required_columns": ["timestamp_sec", "bbox_valid", "temporal_unit_key"],
       "produced_columns": ["motion pairs", "unit aggregates", "review helpers"],
-      "schema_version": "classification_v2.native_evidence.unversioned_current",
-      "evidence_semantics_version": "MISSING_IN_CURRENT_OUTPUT",
+      "schema_version": "classification_v2.native_review_evidence.v2",
+      "evidence_semantics_version": "classification_v2.native_review_evidence.v2",
+      "motion_schema_version": "classification_v2.motion_features.pre_v2.v1",
       "model_eligibility": "REVIEW_EVIDENCE_NOT_DIRECT_MODEL_X",
       "review_eligibility": "ELIGIBLE_AFTER_GATE",
-      "checker": "audit_enhanced_spatiotemporal_features",
-      "tests": ["tests/test_classification_v2_motion_time_contracts.py"],
+      "checker": "check_classification_v2_native_review_evidence.py",
+      "tests": ["tests/test_classification_v2_phase1_pair_contract.py", "tests/test_classification_v2_motion_time_contracts.py"],
       "audit_artifact": "native_review_evidence_audit.json",
-      "code_locations": ["src/pig_behavior/classification_v2/features/spatiotemporal.py#build_enhanced_spatiotemporal_features"],
+      "code_locations": ["src/pig_behavior/classification_v2/features/spatiotemporal.py#build_enhanced_spatiotemporal_features", "src/pig_behavior/classification_v2/features/native_evidence_contract.py#check_native_review_evidence"],
       "current_status": "IMPLEMENTATION_DIFFERS_FROM_CONTRACT"
     },
     {
@@ -709,8 +710,10 @@
       "zero_value_semantics": "false means no pair exists",
       "model_eligible": true,
       "model_group": "motion_validity_masks",
-      "implementation_status": "DECLARED_NOT_IMPLEMENTED",
-      "known_limitations": "Current code implies this through shifted fields but does not export the explicit mask."
+      "code_locations": ["src/pig_behavior/classification_v2/features/spatiotemporal.py#_add_temporal_deltas"],
+      "test_locations": ["tests/test_classification_v2_phase1_pair_contract.py#test_first_frame_of_unit_has_no_previous_pair"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED",
+      "known_limitations": ""
     },
     {
       "feature_id": "feature.valid_motion_pair",
@@ -731,9 +734,9 @@
       "model_eligible": true,
       "model_group": "motion_validity_masks",
       "code_locations": ["src/pig_behavior/classification_v2/features/spatiotemporal.py#_add_temporal_deltas"],
-      "test_locations": ["tests/test_classification_v2_motion_time_contracts.py#test_motion_resets_at_native_unit_and_roi_boundary"],
-      "implementation_status": "IMPLEMENTATION_DIFFERS_FROM_CONTRACT",
-      "known_limitations": "Current masks exist under adjacent/sparse names, but numeric invalid pairs are filled with zero."
+      "test_locations": ["tests/test_classification_v2_phase1_pair_contract.py#test_missing_pair_is_distinct_from_stationary_zero", "tests/test_classification_v2_motion_time_contracts.py#test_motion_resets_at_native_unit_and_roi_boundary"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED",
+      "known_limitations": ""
     },
     {
       "feature_id": "feature.vx_n_per_second",
@@ -1017,8 +1020,10 @@
       "aggregation_rule": "mean indicator over valid pairs only",
       "threshold_dependencies": ["active_speed_threshold_per_second_v1"],
       "physical_interpretation": "image-coordinate activity fraction; not physical activity duration",
-      "implementation_status": "IMPLEMENTATION_DIFFERS_FROM_CONTRACT",
-      "known_limitations": "Current support code must be audited for denominator and zero placeholder effects."
+      "code_locations": ["src/pig_behavior/classification_v2/features/temporal_evidence.py#_motion_summary"],
+      "test_locations": ["tests/test_classification_v2_phase1_pair_contract.py#test_motion_active_ratio_uses_valid_pair_denominator"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED",
+      "known_limitations": ""
     },
     {
       "feature_id": "feature.motion_burstiness_unit",
@@ -1039,7 +1044,9 @@
       "aggregation_rule": "valid-pair coefficient of variation",
       "minimum_valid_observations": 2,
       "physical_interpretation": "image-coordinate speed variability; not physical burst energy",
-      "implementation_status": "IMPLEMENTED_PARTIALLY_TESTED"
+      "code_locations": ["src/pig_behavior/classification_v2/features/spatiotemporal.py#_add_temporal_unit_aggregates"],
+      "test_locations": ["tests/test_classification_v2_phase1_pair_contract.py#test_motion_burstiness_uses_valid_pair_denominator"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
     },
     {
       "feature_id": "feature.valid_pair_count",
@@ -1058,7 +1065,9 @@
       "zero_value_semantics": "measured zero valid pairs",
       "denominator": "not_applicable",
       "aggregation_rule": "sum valid_motion_pair",
-      "implementation_status": "DECLARED_NOT_IMPLEMENTED"
+      "code_locations": ["src/pig_behavior/classification_v2/features/spatiotemporal.py#_add_temporal_unit_aggregates"],
+      "test_locations": ["tests/test_classification_v2_phase1_pair_contract.py#test_pair_coverage_counts_are_consistent"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
     },
     {
       "feature_id": "feature.possible_pair_count",
@@ -1077,7 +1086,9 @@
       "zero_value_semantics": "unit has fewer than two observed frames",
       "denominator": "not_applicable",
       "aggregation_rule": "max(observed_frame_count minus one, zero)",
-      "implementation_status": "DECLARED_NOT_IMPLEMENTED"
+      "code_locations": ["src/pig_behavior/classification_v2/features/spatiotemporal.py#_add_temporal_unit_aggregates"],
+      "test_locations": ["tests/test_classification_v2_phase1_pair_contract.py#test_pair_coverage_counts_are_consistent"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
     },
     {
       "feature_id": "feature.valid_pair_ratio",
@@ -1095,7 +1106,9 @@
       "zero_value_semantics": "zero means no valid pair only when possible-pair mask is true",
       "denominator": "possible_pair_count",
       "aggregation_rule": "ratio",
-      "implementation_status": "DECLARED_NOT_IMPLEMENTED"
+      "code_locations": ["src/pig_behavior/classification_v2/features/spatiotemporal.py#_add_temporal_unit_aggregates"],
+      "test_locations": ["tests/test_classification_v2_phase1_pair_contract.py#test_exactly_one_valid_pair_uses_complete_support"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
     },
     {
       "feature_id": "feature.observed_frame_count",
@@ -1113,7 +1126,9 @@
       "zero_value_semantics": "no observed frames",
       "denominator": "not_applicable",
       "aggregation_rule": "sum observed mask",
-      "implementation_status": "DECLARED_NOT_IMPLEMENTED"
+      "code_locations": ["src/pig_behavior/classification_v2/features/spatiotemporal.py#_add_temporal_unit_aggregates"],
+      "test_locations": ["tests/test_classification_v2_phase1_pair_contract.py#test_pair_coverage_counts_are_consistent"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
     },
     {
       "feature_id": "feature.motion_feature_coverage",
@@ -1131,7 +1146,9 @@
       "zero_value_semantics": "zero coverage only when possible pairs exist; otherwise placeholder with mask zero",
       "denominator": "possible_pair_count",
       "aggregation_rule": "ratio with separate availability",
-      "implementation_status": "DECLARED_NOT_IMPLEMENTED"
+      "code_locations": ["src/pig_behavior/classification_v2/features/spatiotemporal.py#_add_temporal_unit_aggregates"],
+      "test_locations": ["tests/test_classification_v2_phase1_pair_contract.py#test_all_pairs_invalid_have_placeholder_and_unavailable_mask", "tests/test_classification_v2_phase1_pair_contract.py#test_exactly_one_valid_pair_uses_complete_support"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
     },
     {
       "feature_id": "feature.pair_distance_axis_n",
@@ -1571,7 +1588,9 @@
       "zero_value_semantics": "false means zero-valued aggregates are placeholders",
       "model_eligible": true,
       "model_group": "motion_validity_masks",
-      "implementation_status": "DECLARED_NOT_IMPLEMENTED"
+      "code_locations": ["src/pig_behavior/classification_v2/features/spatiotemporal.py#_add_temporal_unit_aggregates"],
+      "test_locations": ["tests/test_classification_v2_phase1_pair_contract.py#test_all_pairs_invalid_have_placeholder_and_unavailable_mask"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
     },
     {
       "feature_id": "feature.ay_n_per_second2",
@@ -1699,10 +1718,11 @@
       "expected_condition": "aggregates index only valid pair mask",
       "failure_condition": "invalid pair enters value set or denominator",
       "audit_field": "invalid_pair_aggregate_contributions",
-      "unit_test": "",
+      "unit_test": "tests/test_classification_v2_phase1_pair_contract.py#test_valid_pair_mean_uses_valid_denominator",
       "golden_case_ids": ["case.first_frame_unit", "case.missing_middle_frame", "case.invalid_previous_bbox", "case.invalid_current_bbox", "case.all_pairs_invalid", "case.exactly_one_valid_pair"],
-      "implementation_status": "IMPLEMENTATION_DIFFERS_FROM_CONTRACT",
-      "known_gap": "gap.invalid_pair_zero_semantics"
+      "code_locations": ["src/pig_behavior/classification_v2/features/spatiotemporal.py#_add_temporal_unit_aggregates", "src/pig_behavior/classification_v2/features/native_evidence_contract.py#check_native_review_evidence"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED",
+      "known_gap": ""
     },
     {
       "invariant_id": "invariant.valid_pair_coverage_exported",
@@ -1712,9 +1732,11 @@
       "expected_condition": "valid_pair_count, possible_pair_count, valid_pair_ratio, observed_frame_count and motion_feature_coverage exist",
       "failure_condition": "any coverage field or availability mask missing",
       "audit_field": "pair_coverage_complete",
+      "unit_test": "tests/test_classification_v2_phase1_pair_contract.py#test_pair_coverage_counts_are_consistent",
       "golden_case_ids": ["case.all_pairs_invalid", "case.exactly_one_valid_pair"],
-      "implementation_status": "DECLARED_NOT_IMPLEMENTED",
-      "known_gap": "gap.pair_coverage_missing"
+      "code_locations": ["src/pig_behavior/classification_v2/features/spatiotemporal.py#_add_temporal_unit_aggregates"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED",
+      "known_gap": ""
     },
     {
       "invariant_id": "invariant.producer_exporter_ordered_schema_equal",
@@ -1889,8 +1911,11 @@
       "expected_condition": "all four provenance fields are present, constant and consistent",
       "failure_condition": "field missing, blank or inconsistent between output and audit",
       "audit_field": "feature_computation_grain,pair_scope_key,evidence_semantics_version,motion_schema_version",
-      "implementation_status": "IMPLEMENTATION_DIFFERS_FROM_CONTRACT",
-      "known_gap": "gap.native_evidence_semantic_versions_missing"
+      "unit_test": "tests/test_classification_v2_phase1_pair_contract.py#test_provenance_checker_fails_closed_on_drift",
+      "integration_test": "tests/test_classification_v2_phase1_pair_contract.py#test_native_builder_and_independent_checker_cli",
+      "code_locations": ["src/pig_behavior/classification_v2/features/native_evidence_contract.py#check_native_review_evidence"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED",
+      "known_gap": ""
     },
     {
       "invariant_id": "invariant.acceleration_semantics_distinct",
@@ -2685,7 +2710,7 @@
       "blocking_before_pig_strenet": true,
       "blocking_before_behavior_review": true,
       "blocking_before_training": true,
-      "status": "OPEN"
+      "status": "RESOLVED"
     },
     {
       "gap_id": "gap.silent_motion_schema_shrink",
@@ -2719,7 +2744,7 @@
       "blocking_before_pig_strenet": true,
       "blocking_before_behavior_review": true,
       "blocking_before_training": true,
-      "status": "OPEN"
+      "status": "RESOLVED"
     },
     {
       "gap_id": "gap.pair_coverage_missing",
@@ -2736,7 +2761,7 @@
       "blocking_before_pig_strenet": true,
       "blocking_before_behavior_review": true,
       "blocking_before_training": true,
-      "status": "OPEN"
+      "status": "RESOLVED"
     },
     {
       "gap_id": "gap.acceleration_name_semantics",
@@ -2906,7 +2931,7 @@
       "blocking_before_pig_strenet": true,
       "blocking_before_behavior_review": true,
       "blocking_before_training": true,
-      "status": "OPEN"
+      "status": "RESOLVED"
     }
   ],
   "change_impact_questions": [

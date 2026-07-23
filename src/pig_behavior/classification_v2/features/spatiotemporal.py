@@ -39,6 +39,13 @@ from pig_behavior.classification_v2.contracts.lineage_claims import (
 from pig_behavior.classification_v2.features.context_policy import (
     normalize_hidden_provenance,
 )
+from pig_behavior.classification_v2.features.native_evidence_contract import (
+    NATIVE_EVIDENCE_SEMANTICS_VERSION,
+    NATIVE_FEATURE_COMPUTATION_GRAIN,
+    NATIVE_MOTION_SCHEMA_VERSION,
+    NATIVE_PAIR_SCOPE_KEY,
+    PAIR_COVERAGE_COLUMNS,
+)
 from pig_behavior.classification_v2.features.social import (
     build_static_social_context_features,
 )
@@ -83,8 +90,11 @@ REQUIRED_INPUT_COLUMNS: tuple[str, ...] = (
     "source_type",
     "dataset_id",
     "video_key",
+    "object_track_key",
+    "temporal_unit_key",
     "frame_uid",
     "frame_index",
+    "timestamp_sec",
     "pig_id",
     "track_id",
     "behavior",
@@ -254,8 +264,12 @@ def build_enhanced_spatiotemporal_features(
         config=config.temporal_evidence_config(),
     )
     out = _add_review_helper_columns(out)
-    out["feature_computation_grain"] = "NATIVE_UNIT_REVIEW_EVIDENCE"
+    out["feature_computation_grain"] = NATIVE_FEATURE_COMPUTATION_GRAIN
     out["pair_scope_key"] = out["temporal_unit_key"].astype(str)
+    out["evidence_semantics_version"] = (
+        NATIVE_EVIDENCE_SEMANTICS_VERSION
+    )
+    out["motion_schema_version"] = NATIVE_MOTION_SCHEMA_VERSION
     out["pair_recomputed_for_view"] = False
     out["aggregate_recomputed_for_view"] = False
 
@@ -268,10 +282,30 @@ def build_enhanced_spatiotemporal_features(
     return out
 
 
-def audit_enhanced_spatiotemporal_features(df: pd.DataFrame) -> dict[str, Any]:
+def audit_enhanced_spatiotemporal_features(
+    df: pd.DataFrame,
+    *,
+    input_rows: int | None = None,
+    code_sha: str = "",
+    input_sha256: str = "",
+    contract_manifest_sha256: str = "",
+) -> dict[str, Any]:
     """Return audit summary for enhanced spatio-temporal features."""
     errors: list[str] = []
     warnings: list[str] = []
+    if input_rows is not None and int(input_rows) != len(df):
+        errors.append(
+            f"population_row_count_mismatch={int(input_rows)}:{len(df)}"
+        )
+    lineage_fields = {
+        "code_sha": code_sha,
+        "input_sha256": input_sha256,
+        "contract_manifest_sha256": contract_manifest_sha256,
+    }
+    if any(str(value).strip() for value in lineage_fields.values()):
+        for field, value in lineage_fields.items():
+            if not str(value).strip():
+                errors.append(f"missing_{field}")
 
     missing_required = [c for c in REQUIRED_INPUT_COLUMNS if c not in df.columns]
     if missing_required:
@@ -297,6 +331,16 @@ def audit_enhanced_spatiotemporal_features(df: pd.DataFrame) -> dict[str, Any]:
         "spatiotemporal_feature_valid",
         "feature_computation_grain",
         "pair_scope_key",
+        "evidence_semantics_version",
+        "motion_schema_version",
+        "previous_observation_available",
+        "valid_delta_time",
+        "current_geometry_valid",
+        "previous_geometry_valid",
+        "same_temporal_unit_pair",
+        "same_actor_trajectory_pair",
+        "valid_motion_pair",
+        *PAIR_COVERAGE_COLUMNS,
         "pair_recomputed_for_view",
         "aggregate_recomputed_for_view",
     ]
@@ -312,7 +356,7 @@ def audit_enhanced_spatiotemporal_features(df: pd.DataFrame) -> dict[str, Any]:
             df["feature_computation_grain"]
             .fillna("")
             .astype(str)
-            .ne("NATIVE_UNIT_REVIEW_EVIDENCE")
+            .ne(NATIVE_FEATURE_COMPUTATION_GRAIN)
             .sum()
         )
         if grain_mismatch:
@@ -327,6 +371,23 @@ def audit_enhanced_spatiotemporal_features(df: pd.DataFrame) -> dict[str, Any]:
         )
         if pair_scope_mismatch:
             errors.append(f"native_pair_scope_mismatch={pair_scope_mismatch}")
+    provenance_expected = {
+        "evidence_semantics_version": NATIVE_EVIDENCE_SEMANTICS_VERSION,
+        "motion_schema_version": NATIVE_MOTION_SCHEMA_VERSION,
+    }
+    for column, expected in provenance_expected.items():
+        if column not in df:
+            continue
+        mismatch = int(
+            df[column]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .ne(expected)
+            .sum()
+        )
+        if mismatch:
+            errors.append(f"native_provenance_mismatch={column}:{mismatch}")
     for column in (
         "pair_recomputed_for_view",
         "aggregate_recomputed_for_view",
@@ -338,6 +399,70 @@ def audit_enhanced_spatiotemporal_features(df: pd.DataFrame) -> dict[str, Any]:
             "native_evidence_claims_final_view_recompute="
             f"{invalid_view_recompute_claim}"
         )
+
+    cross_unit_pair_count = 0
+    native_pair_reset_errors = 0
+    invalid_pair_aggregate_contributions = 0
+    pair_coverage_complete = not set(PAIR_COVERAGE_COLUMNS).difference(
+        df.columns
+    )
+    if {
+        *MOTION_GRAIN_COLUMNS,
+        "frame_index",
+        "speed_n_per_second",
+        "valid_motion_pair",
+        "previous_observation_available",
+        "previous_temporal_unit_key",
+        "temporal_unit_key",
+    }.issubset(df.columns):
+        valid_pair = _to_bool_series(df["valid_motion_pair"])
+        cross_unit_pair_count = int(
+            (
+                valid_pair
+                & df["previous_temporal_unit_key"]
+                .fillna("")
+                .astype(str)
+                .ne("")
+                & df["previous_temporal_unit_key"]
+                .fillna("")
+                .astype(str)
+                .ne(df["temporal_unit_key"].astype(str))
+            ).sum()
+        )
+        if cross_unit_pair_count:
+            errors.append(
+                f"cross_unit_pair_count={cross_unit_pair_count}"
+            )
+        starts = (
+            df.sort_values(
+                [*MOTION_GRAIN_COLUMNS, "frame_index"],
+                kind="mergesort",
+            )
+            .groupby(list(MOTION_GRAIN_COLUMNS), sort=False)
+            .head(1)
+        )
+        native_pair_reset_errors = int(
+            _to_bool_series(
+                starts["previous_observation_available"]
+            ).sum()
+            + _to_bool_series(starts["valid_motion_pair"]).sum()
+        )
+        if native_pair_reset_errors:
+            errors.append(
+                f"native_pair_reset_errors={native_pair_reset_errors}"
+            )
+        invalid_speed = pd.to_numeric(
+            df.loc[~valid_pair, "speed_n_per_second"],
+            errors="coerce",
+        ).notna()
+        invalid_pair_aggregate_contributions = int(invalid_speed.sum())
+        if invalid_pair_aggregate_contributions:
+            errors.append(
+                "invalid_pair_aggregate_contributions="
+                f"{invalid_pair_aggregate_contributions}"
+            )
+    if not pair_coverage_complete:
+        errors.append("pair_coverage_incomplete")
 
     if "behavior" in df.columns:
         invalid_behaviors = sorted(
@@ -367,6 +492,16 @@ def audit_enhanced_spatiotemporal_features(df: pd.DataFrame) -> dict[str, Any]:
         )
 
     audit = {
+        "feature_computation_grain": NATIVE_FEATURE_COMPUTATION_GRAIN,
+        "pair_scope_key": NATIVE_PAIR_SCOPE_KEY,
+        "evidence_semantics_version": NATIVE_EVIDENCE_SEMANTICS_VERSION,
+        "motion_schema_version": NATIVE_MOTION_SCHEMA_VERSION,
+        "code_sha": str(code_sha).lower(),
+        "input_sha256": str(input_sha256).lower(),
+        "contract_manifest_sha256": str(
+            contract_manifest_sha256
+        ).lower(),
+        "input_rows": int(input_rows) if input_rows is not None else None,
         "rows": int(len(df)),
         "frames": int(scene_frame_key(df).nunique(dropna=True)),
         "frame_objects": int(df["frame_uid"].nunique(dropna=True))
@@ -401,11 +536,17 @@ def audit_enhanced_spatiotemporal_features(df: pd.DataFrame) -> dict[str, Any]:
             df,
             "social_partner_persistence_ratio_unit",
         ),
-        "feature_computation_grain": _value_counts_dict(
+        "feature_computation_grain_values": _value_counts_dict(
             df,
             "feature_computation_grain",
         ),
         "pair_scope_mismatch": pair_scope_mismatch,
+        "cross_unit_pair_count": cross_unit_pair_count,
+        "native_pair_reset_errors": native_pair_reset_errors,
+        "invalid_pair_aggregate_contributions": (
+            invalid_pair_aggregate_contributions
+        ),
+        "pair_coverage_complete": pair_coverage_complete,
         "invalid_view_recompute_claim": invalid_view_recompute_claim,
         "new_feature_columns": [
             c
@@ -477,22 +618,14 @@ def _normalize_basic_columns(df: pd.DataFrame) -> pd.DataFrame:
         if col in out.columns:
             out[col] = out[col].fillna("").astype(str)
 
-    # Avoid empty track/pig identifiers breaking grouping. These are not used to
-    # overwrite the original identity columns, only to build stable review keys.
-    out["_track_for_key"] = out["track_id"].replace("", pd.NA).fillna(out["pig_id"])
-    out["_pig_for_key"] = out["pig_id"].replace("", pd.NA).fillna(out["track_id"])
-
-    out["object_track_key"] = (
-        out["source_type"].astype(str)
-        + "|"
-        + out["dataset_id"].astype(str)
-        + "|"
-        + out["video_key"].astype(str)
-        + "|track="
-        + out["_track_for_key"].astype(str)
-        + "|pig="
-        + out["_pig_for_key"].astype(str)
-    )
+    for identity_column in ("object_track_key", "temporal_unit_key"):
+        identity = out[identity_column].fillna("").astype(str).str.strip()
+        blank = int(identity.eq("").sum())
+        if blank:
+            raise ValueError(
+                f"{identity_column} is required and nonblank: rows={blank}"
+            )
+        out[identity_column] = identity
     return out
 
 
@@ -523,6 +656,9 @@ def _add_behavior_group_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 def _add_temporal_unit_columns(df: pd.DataFrame, config: EnhancedFeatureConfig) -> pd.DataFrame:
     out = df.copy()
+    input_temporal_unit_key = (
+        out["temporal_unit_key"].fillna("").astype(str).copy()
+    )
 
     frame_idx = pd.to_numeric(out["frame_index"], errors="coerce")
     source_type = out["source_type"].astype(str)
@@ -560,22 +696,6 @@ def _add_temporal_unit_columns(df: pd.DataFrame, config: EnhancedFeatureConfig) 
     out["label_anchor_frame_index"] = anchor.round().astype("Int64")
     out["label_window_start"] = window_start.round().astype("Int64")
     out["label_window_end"] = window_end.round().astype("Int64")
-
-    out["temporal_unit_key"] = ""
-    out.loc[cvat_mask, "temporal_unit_key"] = (
-        out.loc[cvat_mask, "object_track_key"].astype(str)
-        + "|anchor="
-        + out.loc[cvat_mask, "label_anchor_frame_index"].astype(str)
-    )
-    out.loc[legacy_mask, "temporal_unit_key"] = (
-        out.loc[legacy_mask, "object_track_key"].astype(str) + "|legacy_sequence"
-    )
-    other_mask = ~(cvat_mask | legacy_mask)
-    out.loc[other_mask, "temporal_unit_key"] = (
-        out.loc[other_mask, "object_track_key"].astype(str)
-        + "|frame="
-        + frame_idx.loc[other_mask].round().astype("Int64").astype(str)
-    )
 
     # Legacy window start/end come from the actual frame span in each unit.
     unit_frame_stats = out.groupby(
@@ -640,17 +760,28 @@ def _add_temporal_unit_columns(df: pd.DataFrame, config: EnhancedFeatureConfig) 
     )
     out["behavior_consistency_in_unit"] = out["num_behaviors_in_unit"].fillna(0).le(1)
 
+    if not out["temporal_unit_key"].astype(str).equals(
+        input_temporal_unit_key
+    ):
+        raise RuntimeError("temporal_unit_key changed during native evidence")
     return out
 
 
 def _add_temporal_deltas(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
-    grain = [column for column in MOTION_GRAIN_COLUMNS if column in out.columns]
-    if "temporal_unit_key" not in out.columns:
-        # Direct helper callers without native-unit authority may still use
-        # frame-local partner geometry, but pair features must fail closed.
-        grain.append("frame_index")
-    out = out.sort_values([*grain, "frame_index"], kind="mergesort")
+    _require_pair_scope_columns(out, operation="temporal motion")
+    grain = list(MOTION_GRAIN_COLUMNS)
+    duplicate = out.duplicated([*grain, "frame_index"], keep=False)
+    if duplicate.any():
+        raise ValueError(
+            "temporal motion requires unique actor/unit/frame rows: "
+            f"duplicates={int(duplicate.sum())}"
+        )
+    out["_native_pair_input_order"] = np.arange(len(out), dtype="int64")
+    sort_columns = [*grain, "frame_index"]
+    if "frame_uid" in out.columns:
+        sort_columns.append("frame_uid")
+    out = out.sort_values(sort_columns, kind="mergesort")
     g = out.groupby(grain, dropna=False, sort=False)
 
     out["prev_frame_index"] = g["frame_index"].shift(1)
@@ -665,45 +796,109 @@ def _add_temporal_deltas(df: pd.DataFrame) -> pd.DataFrame:
         out["prev_timestamp_sec"] = np.nan
         out["delta_time_prev_sec"] = np.nan
 
-    for col in ["cx_n", "cy_n", "bw_n", "bh_n", "area_n", "aspect_ratio", "box_diag_n"]:
+    geometry_columns = [
+        "cx_n",
+        "cy_n",
+        "bw_n",
+        "bh_n",
+        "area_n",
+        "aspect_ratio",
+    ]
+    for col in [*geometry_columns, "box_diag_n"]:
         if col not in out.columns:
             out[col] = np.nan
+        out[col] = pd.to_numeric(out[col], errors="coerce")
 
-    row_valid = _to_bool_series(
+    observed = _to_bool_series(
+        out.get("observed_mask", pd.Series(True, index=out.index))
+    )
+    previous_observed = observed.groupby(
+        [out[column] for column in grain],
+        dropna=False,
+        sort=False,
+    ).shift(1).fillna(False)
+    out["previous_observation_available"] = (
+        out["prev_frame_index"].notna()
+        & observed
+        & previous_observed
+    )
+    out["previous_temporal_unit_key"] = (
+        g["temporal_unit_key"].shift(1).fillna("").astype(str)
+    )
+    out["previous_object_track_key"] = (
+        g["object_track_key"].shift(1).fillna("").astype(str)
+    )
+    out["same_temporal_unit_pair"] = (
+        out["previous_observation_available"]
+        & out["previous_temporal_unit_key"].eq(
+            out["temporal_unit_key"].astype(str)
+        )
+    )
+    out["same_actor_trajectory_pair"] = (
+        out["previous_observation_available"]
+        & out["previous_object_track_key"].eq(
+            out["object_track_key"].astype(str)
+        )
+    )
+
+    bbox_valid = _to_bool_series(
         out.get("bbox_valid", pd.Series(True, index=out.index))
     )
-    previous_row_valid = row_valid.groupby(
+    finite_geometry = (
+        out[geometry_columns]
+        .replace([np.inf, -np.inf], np.nan)
+        .notna()
+        .all(axis=1)
+    )
+    out["current_geometry_valid"] = bbox_valid & finite_geometry
+    out["previous_geometry_valid"] = out[
+        "current_geometry_valid"
+    ].groupby(
         [out[column] for column in grain],
         dropna=False,
         sort=False,
     ).shift(1).fillna(False)
-    finite_geometry = out[["cx_n", "cy_n"]].notna().all(axis=1)
-    previous_finite_geometry = finite_geometry.groupby(
-        [out[column] for column in grain],
-        dropna=False,
-        sort=False,
-    ).shift(1).fillna(False)
-    pair_scope_valid = row_valid & previous_row_valid
-    pair_scope_valid &= finite_geometry & previous_finite_geometry
-    frame_positive = out["delta_frame_prev"].gt(0)
-    time_positive = out["delta_time_prev_sec"].gt(0)
+    finite_delta_time = np.isfinite(out["delta_time_prev_sec"])
+    out["valid_delta_time"] = (
+        out["previous_observation_available"]
+        & finite_delta_time
+        & out["delta_time_prev_sec"].gt(0)
+    )
+    out["timestamp_monotonic_pair"] = out["valid_delta_time"]
+    valid_delta_frame = (
+        np.isfinite(out["delta_frame_prev"])
+        & out["delta_frame_prev"].gt(0)
+    )
+    out["valid_motion_pair"] = (
+        out["previous_observation_available"]
+        & out["same_temporal_unit_pair"]
+        & out["same_actor_trajectory_pair"]
+        & out["current_geometry_valid"]
+        & out["previous_geometry_valid"]
+        & out["valid_delta_time"]
+        & valid_delta_frame
+    )
     out["motion_delta_frames"] = out["delta_frame_prev"]
     out["motion_delta_seconds"] = out["delta_time_prev_sec"]
     out["adjacent_motion_pair_valid"] = (
-        pair_scope_valid & out["delta_frame_prev"].eq(1) & time_positive
+        out["valid_motion_pair"] & out["delta_frame_prev"].eq(1)
     )
     out["sparse_velocity_pair_valid"] = (
-        pair_scope_valid & out["delta_frame_prev"].gt(1) & time_positive
+        out["valid_motion_pair"] & out["delta_frame_prev"].gt(1)
     )
-    out["motion_velocity_pair_valid"] = (
-        out["adjacent_motion_pair_valid"]
-        | out["sparse_velocity_pair_valid"]
-    )
+    out["motion_velocity_pair_valid"] = out["valid_motion_pair"]
     out["motion_pair_invalid_nonpositive_frame"] = (
-        out["prev_frame_index"].notna() & ~frame_positive
+        out["previous_observation_available"] & ~valid_delta_frame
     )
     out["motion_pair_invalid_nonpositive_time"] = (
-        out["prev_timestamp_sec"].notna() & ~time_positive
+        out["previous_observation_available"] & ~out["valid_delta_time"]
+    )
+    out["motion_pair_invalid_geometry"] = (
+        out["previous_observation_available"]
+        & ~(
+            out["current_geometry_valid"]
+            & out["previous_geometry_valid"]
+        )
     )
 
     raw_delta: dict[str, pd.Series] = {}
@@ -718,8 +913,7 @@ def _add_temporal_deltas(df: pd.DataFrame) -> pd.DataFrame:
     ]:
         raw_delta[source_column] = g[source_column].diff()
         out[delta_column] = raw_delta[source_column].where(
-            out["adjacent_motion_pair_valid"],
-            0.0,
+            out["adjacent_motion_pair_valid"]
         )
 
     raw_displacement = np.hypot(
@@ -727,12 +921,10 @@ def _add_temporal_deltas(df: pd.DataFrame) -> pd.DataFrame:
         raw_delta["cy_n"],
     )
     out["displacement_n"] = raw_displacement.where(
-        out["adjacent_motion_pair_valid"],
-        0.0,
+        out["adjacent_motion_pair_valid"]
     )
     out["sparse_displacement_n"] = raw_displacement.where(
-        out["sparse_velocity_pair_valid"],
-        0.0,
+        out["sparse_velocity_pair_valid"]
     )
     denom_frame = out["delta_frame_prev"].where(
         out["adjacent_motion_pair_valid"]
@@ -777,7 +969,7 @@ def _add_temporal_deltas(df: pd.DataFrame) -> pd.DataFrame:
     )
     out["acceleration_n_per_second2"] = (
         out["speed_n_per_second"] - previous_speed_per_second
-    ).div(acceleration_delta_seconds).where(acceleration_valid, 0.0)
+    ).div(acceleration_delta_seconds).where(acceleration_valid)
     out["abs_acceleration_n_per_second2"] = out[
         "acceleration_n_per_second2"
     ].abs()
@@ -795,18 +987,18 @@ def _add_temporal_deltas(df: pd.DataFrame) -> pd.DataFrame:
     out["direction_change_rad"] = _angle_diff(
         out["direction_rad"],
         out["prev_direction_rad"],
-    ).where(heading_pair_valid, 0.0)
+    ).where(heading_pair_valid)
+    out["direction_change_pair_valid"] = heading_pair_valid
     out["abs_direction_change_rad"] = out["direction_change_rad"].abs()
 
     out["shape_change_score"] = np.sqrt(
-        out["delta_bw_n"].fillna(0) ** 2
-        + out["delta_bh_n"].fillna(0) ** 2
-        + out["delta_area_n"].fillna(0) ** 2
-        + (out["delta_aspect_ratio"].fillna(0) / 10.0) ** 2
-    )
+        out["delta_bw_n"] ** 2
+        + out["delta_bh_n"] ** 2
+        + out["delta_area_n"] ** 2
+        + (out["delta_aspect_ratio"] / 10.0) ** 2
+    ).where(out["adjacent_motion_pair_valid"])
 
-    # The first track row has no previous movement, so use zero magnitudes.
-    fill_zero_cols = [
+    pair_numeric_columns = [
         "delta_cx_n",
         "delta_cy_n",
         "delta_bw_n",
@@ -835,14 +1027,18 @@ def _add_temporal_deltas(df: pd.DataFrame) -> pd.DataFrame:
         "acceleration_n_per_second2",
         "abs_acceleration_n_per_second2",
     ]
-    for col in fill_zero_cols:
-        out[col] = out[col].replace([np.inf, -np.inf], np.nan).fillna(0.0)
+    for col in pair_numeric_columns:
+        out[col] = out[col].replace([np.inf, -np.inf], np.nan)
 
-    return out.sort_index(kind="mergesort")
+    return (
+        out.sort_values("_native_pair_input_order", kind="mergesort")
+        .drop(columns=["_native_pair_input_order"])
+    )
 
 
 def _add_roi_temporal_columns(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
+    _require_pair_scope_columns(out, operation="ROI temporal transitions")
 
     target_class = (
         out.get("roi_target_class", pd.Series("", index=out.index))
@@ -939,6 +1135,7 @@ def _add_roi_temporal_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _add_social_context_columns(df: pd.DataFrame, config: EnhancedFeatureConfig) -> pd.DataFrame:
+    _require_pair_scope_columns(df, operation="social temporal context")
     out = build_static_social_context_features(
         df.reset_index(drop=True),
         near_distance_n=config.social_near_distance_n,
@@ -947,11 +1144,7 @@ def _add_social_context_columns(df: pd.DataFrame, config: EnhancedFeatureConfig)
         max_frame_group_size=config.max_frame_group_size_for_social,
     )
 
-    grain = [column for column in MOTION_GRAIN_COLUMNS if column in out.columns]
-    if "temporal_unit_key" not in out.columns:
-        # Frame-local partner geometry remains valid without unit authority,
-        # while every pair-derived social field is forced to reset.
-        grain.append("frame_index")
+    grain = list(MOTION_GRAIN_COLUMNS)
     out = out.sort_values([*grain, "frame_index"], kind="mergesort")
     g = out.groupby(grain, dropna=False, sort=False)
     denom_frame = (
@@ -1072,10 +1265,13 @@ def _add_social_context_columns(df: pd.DataFrame, config: EnhancedFeatureConfig)
 
 def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
+    _require_pair_scope_columns(out, operation="temporal aggregation")
     internal_columns = [
         "_speed_n_per_frame_valid_pair",
         "_speed_n_per_second_valid_pair",
         "_acceleration_n_per_second2_valid_pair",
+        "_accel_n_per_frame2_valid_pair",
+        "_direction_change_valid_pair",
     ]
     out[internal_columns[0]] = pd.to_numeric(
         out["speed_n_per_frame"],
@@ -1089,16 +1285,24 @@ def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
         out["abs_acceleration_n_per_second2"],
         errors="coerce",
     ).where(_to_bool_series(out["acceleration_pair_valid"]))
+    out[internal_columns[3]] = pd.to_numeric(
+        out["abs_accel_n_per_frame2"],
+        errors="coerce",
+    ).where(_to_bool_series(out["acceleration_pair_valid"]))
+    out[internal_columns[4]] = pd.to_numeric(
+        out["abs_direction_change_rad"],
+        errors="coerce",
+    ).where(_to_bool_series(out["direction_change_pair_valid"]))
     g = out.groupby("temporal_unit_key", dropna=False, sort=False)
 
     agg_spec: dict[str, tuple[str, str | Any]] = {
         "speed_mean_unit": (internal_columns[0], "mean"),
         "speed_max_unit": (internal_columns[0], "max"),
         "speed_std_unit": (internal_columns[0], "std"),
-        "accel_abs_mean_unit": ("abs_accel_n_per_frame2", "mean"),
-        "accel_abs_max_unit": ("abs_accel_n_per_frame2", "max"),
-        "direction_change_abs_mean_unit": ("abs_direction_change_rad", "mean"),
-        "direction_change_abs_max_unit": ("abs_direction_change_rad", "max"),
+        "accel_abs_mean_unit": (internal_columns[3], "mean"),
+        "accel_abs_max_unit": (internal_columns[3], "max"),
+        "direction_change_abs_mean_unit": (internal_columns[4], "mean"),
+        "direction_change_abs_max_unit": (internal_columns[4], "max"),
         "path_length_n_unit": ("displacement_n", "sum"),
         "motion_energy_unit": (
             internal_columns[0],
@@ -1169,6 +1373,39 @@ def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
         if in_col in out.columns
     }
     unit_agg = g.agg(**available_agg)
+    observed = _to_bool_series(
+        out.get("observed_mask", pd.Series(True, index=out.index))
+    )
+    coverage = pd.DataFrame(
+        {
+            "temporal_unit_key": out["temporal_unit_key"].astype(str),
+            "observed_frame_count": observed.astype("int64"),
+            "valid_pair_count": _to_bool_series(
+                out["valid_motion_pair"]
+            ).astype("int64"),
+        }
+    ).groupby("temporal_unit_key", sort=False).sum()
+    coverage["possible_pair_count"] = np.maximum(
+        coverage["observed_frame_count"] - 1,
+        0,
+    )
+    possible_denominator = coverage["possible_pair_count"].replace(
+        0,
+        np.nan,
+    )
+    coverage["valid_pair_ratio"] = (
+        coverage["valid_pair_count"]
+        .div(possible_denominator)
+        .fillna(0.0)
+    )
+    coverage["motion_feature_coverage"] = coverage["valid_pair_ratio"]
+    coverage["motion_feature_available"] = coverage[
+        "valid_pair_count"
+    ].gt(0)
+    coverage["motion_feature_coverage_available"] = coverage[
+        "possible_pair_count"
+    ].gt(0)
+    unit_agg = unit_agg.join(coverage)
 
     # Displacement from first to last position in the temporal unit.
     first_last = g[["cx_n", "cy_n"]].agg(["first", "last"])
@@ -1334,6 +1571,32 @@ def _add_review_helper_columns(df: pd.DataFrame) -> pd.DataFrame:
 def _angle_diff(a: pd.Series, b: pd.Series) -> pd.Series:
     diff = a - b
     return (diff + math.pi) % (2 * math.pi) - math.pi
+
+
+def _require_pair_scope_columns(
+    frame: pd.DataFrame,
+    *,
+    operation: str,
+) -> None:
+    missing = sorted(set(MOTION_GRAIN_COLUMNS).difference(frame.columns))
+    if missing:
+        raise ValueError(
+            f"{operation} requires authoritative pair-scope columns: "
+            f"{missing}"
+        )
+    for column in ("object_track_key", "temporal_unit_key"):
+        blank = int(
+            frame[column]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .eq("")
+            .sum()
+        )
+        if blank:
+            raise ValueError(
+                f"{operation} requires nonblank {column}: rows={blank}"
+            )
 
 
 def _to_bool_series(s: pd.Series | Iterable[Any]) -> pd.Series:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pandas as pd
+import pytest
 
 from pig_behavior.classification_v2.features.spatiotemporal import (
     EnhancedFeatureConfig,
@@ -24,6 +25,7 @@ def _row(
         "frame_uid": frame_uid,
         "frame_index": frame_index,
         "object_track_key": f"video-a|pig={pig_id}",
+        "temporal_unit_key": f"video-a|pig={pig_id}|anchor=0",
         "pig_id": pig_id,
         "track_id": pig_id.replace("ID_", ""),
         "bbox_valid": bbox_valid,
@@ -136,3 +138,23 @@ def test_partial_missing_frame_uid_does_not_merge_different_frames() -> None:
     assert enriched["nearest_pig_id"].eq("").all()
     assert enriched["social_density_near_count"].eq(0).all()
     assert "_social_frame_group_key" not in enriched.columns
+
+
+def test_social_temporal_context_requires_temporal_unit_key() -> None:
+    rows = pd.DataFrame(
+        [
+            _row(
+                frame_index=0,
+                frame_uid="f0",
+                pig_id="ID_1",
+                cx_n=0.10,
+                x1=10.0,
+            )
+        ]
+    ).drop(columns=["temporal_unit_key"])
+
+    with pytest.raises(
+        ValueError,
+        match="temporal_unit_key",
+    ):
+        _add_social_context_columns(rows, EnhancedFeatureConfig())
