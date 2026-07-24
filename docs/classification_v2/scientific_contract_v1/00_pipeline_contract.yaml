@@ -2240,8 +2240,10 @@
       "expected_condition": "all authority hashes nonblank and verified",
       "failure_condition": "missing or mismatched authority hash",
       "audit_field": "artifact_hash_errors",
-      "unit_test": "tests/test_classification_v2_training_lineage.py",
-      "implementation_status": "IMPLEMENTED_PARTIALLY_TESTED"
+      "unit_test": "tests/test_classification_v2_phase4_semantic_lineage.py#test_artifact_manifest_validates_hash_and_schema",
+      "integration_test": "tests/test_classification_v2_phase4_semantic_lineage.py#test_transactional_promotion_success",
+      "code_locations": ["src/pig_behavior/classification_v2/contracts/semantic_lineage.py#validate_artifact_manifest"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
     },
     {
       "invariant_id": "invariant.semantic_change_invalidates_downstream",
@@ -2251,8 +2253,63 @@
       "expected_condition": "new semantic/schema hash forces rebuild from earliest changed stage",
       "failure_condition": "downstream artifact reused across semantic hash change",
       "audit_field": "stale_downstream_artifact_count",
-      "implementation_status": "DECLARED_NOT_IMPLEMENTED",
-      "known_gap": "gap.invalidation_not_machine_enforced"
+      "unit_test": "tests/test_classification_v2_phase4_semantic_lineage.py#test_change_registry_derives_expected_earliest_stage",
+      "integration_test": "tests/test_classification_v2_phase4_semantic_lineage.py#test_current_authority_computes_frame_local_rebuild",
+      "code_locations": ["src/pig_behavior/classification_v2/contracts/semantic_lineage.py#compute_earliest_rebuild_stage"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED",
+      "known_gap": ""
+    },
+    {
+      "invariant_id": "invariant.stage_dependency_graph_complete",
+      "stage_id": ["stage.legacy_cvat_source_merge", "stage.model_execution"],
+      "invariant_description": "Every declared stage has unique dependencies and one deterministic acyclic topological position.",
+      "scientific_reason": "Invalid or incomplete dependency closure can preserve stale downstream authority.",
+      "expected_condition": "17 exact contract stages form a complete DAG",
+      "failure_condition": "unknown dependency, cycle, duplicate stage or missing producer",
+      "audit_field": "dependency_graph_errors",
+      "unit_test": "tests/test_classification_v2_phase4_semantic_lineage.py#test_contract_graph_has_exact_unique_acyclic_stages",
+      "integration_test": "tests/test_classification_v2_phase4_semantic_lineage.py#test_dependency_closure_is_transitive",
+      "code_locations": ["src/pig_behavior/classification_v2/contracts/semantic_lineage.py#validate_stage_dependency_graph"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
+    },
+    {
+      "invariant_id": "invariant.human_decision_carry_forward_exact_authority",
+      "stage_id": ["stage.hidden_decision_migration", "stage.behavior_decision_apply"],
+      "invariant_description": "Human decisions carry forward only by exact stable key and identical visual, identity and schema authority.",
+      "scientific_reason": "Changed review evidence requires human revalidation and must never be joined positionally.",
+      "expected_condition": "exact key and all required authorities identical",
+      "failure_condition": "position, row, time or pig_id-only match, or changed visual authority",
+      "audit_field": "carry_forward_classification",
+      "unit_test": "tests/test_classification_v2_phase4_semantic_lineage.py#test_hidden_exact_carry_forward_and_visual_revalidation",
+      "integration_test": "tests/test_classification_v2_phase4_semantic_lineage.py#test_behavior_stable_key_not_position_or_pig_id",
+      "code_locations": ["src/pig_behavior/classification_v2/contracts/semantic_lineage.py#evaluate_decision_carry_forward"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
+    },
+    {
+      "invariant_id": "invariant.release_authority_fail_closed",
+      "stage_id": ["stage.model_input", "stage.model_execution"],
+      "invariant_description": "Missing, stale, diagnostic, audit-only or unsigned prerequisites authorize no official execution.",
+      "scientific_reason": "Implementation evidence alone cannot authorize rebuild, GUI, export or training.",
+      "expected_condition": "all authorization fields false until explicit signed authority",
+      "failure_condition": "authorization true with invalid prerequisite or absent Phase 4 signoff",
+      "audit_field": "release_authority_errors",
+      "unit_test": "tests/test_classification_v2_phase4_semantic_lineage.py#test_release_authority_unsigned_and_missing_prerequisite_fail_closed",
+      "integration_test": "tests/test_classification_v2_phase4_semantic_lineage.py#test_release_authority_negative_lineage_gates",
+      "code_locations": ["src/pig_behavior/classification_v2/contracts/semantic_lineage.py#build_release_authority_preflight"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
+    },
+    {
+      "invariant_id": "invariant.transactional_artifact_promotion",
+      "stage_id": ["stage.frame_local_primitives", "stage.native_review_evidence", "stage.tensor_export"],
+      "invariant_description": "Validated artifact bytes move atomically and the matching manifest is promoted last.",
+      "scientific_reason": "Partial outputs or manifests cannot become scientific authority.",
+      "expected_condition": "validated output and manifest both exist with matching hashes",
+      "failure_condition": "partial promotion, output without manifest, or hash mismatch",
+      "audit_field": "transactional_promotion_errors",
+      "unit_test": "tests/test_classification_v2_phase4_semantic_lineage.py#test_transactional_promotion_failure_rolls_back",
+      "integration_test": "tests/test_classification_v2_phase4_semantic_lineage.py#test_transactional_promotion_success",
+      "code_locations": ["src/pig_behavior/classification_v2/contracts/semantic_lineage.py#promote_artifact_transactionally"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
     },
     {
       "invariant_id": "invariant.native_provenance_versions_complete",
@@ -3222,16 +3279,16 @@
       "severity": "MEDIUM",
       "affected_stage": "stage.model_input",
       "affected_features": ["feature.motion_feature_coverage"],
-      "evidence": "No single gate currently traverses semantic/schema changes to every downstream artifact.",
-      "scientific_consequence": "Stale artifacts can survive a formula or mask change.",
+      "evidence": "Phase 4 implements canonical semantic domains, stage code hashes, a 17-stage dependency graph, stale-artifact classification and earliest rebuild computation.",
+      "scientific_consequence": "Resolved for machine detection and release preflight; no official artifact was regenerated or authorized.",
       "downstream_artifacts_affected": ["artifact.native_evidence", "artifact.pig_strenet", "artifact.behavior_review_units", "artifact.train_ready", "artifact.spatial_tensor", "artifact.model_output"],
-      "requires_rebuild_from_stage": "stage.native_review_evidence",
+      "requires_rebuild_from_stage": "stage.frame_local_primitives",
       "recommended_resolution": "Add dependency-aware semantic hash invalidation gate.",
       "blocking_before_native_evidence": false,
       "blocking_before_pig_strenet": true,
       "blocking_before_behavior_review": true,
       "blocking_before_training": true,
-      "status": "OPEN"
+      "status": "RESOLVED"
     },
     {
       "gap_id": "gap.tracking_quality_policy_unknown",
@@ -3439,6 +3496,27 @@
       }
     ],
     "conclusion": "The contract package is suitable to drive a remediation patch, but current code is not scientifically approved. Passing contract-tool tests proves consistency of the declared audit package, not correctness of the feature implementation."
+  },
+  "phase4_semantic_lineage": {
+    "implementation_status": "IMPLEMENTED_AND_TESTED",
+    "canonicalization_version": "classification_v2.canonical_json.v1",
+    "semantic_registry_version": "classification_v2.semantic_domains.v4",
+    "semantic_bundle_id": "bundle.classification_v2.phase1_4",
+    "semantic_bundle_version": "classification_v2.semantic_bundle.v4",
+    "stage_graph_version": "classification_v2.stage_dependency_graph.v4",
+    "artifact_manifest_version": "classification_v2.artifact_manifest.v4",
+    "release_authority_schema_version": "classification_v2.release_authority_preflight.v4",
+    "hash_algorithm": "SHA-256",
+    "stage_count": 17,
+    "semantic_domain_count": 17,
+    "current_rebuild_start_stage": "stage.frame_local_primitives",
+    "current_rebuild_start_is_computed": true,
+    "official_artifacts_regenerated": false,
+    "official_manifests_promoted": false,
+    "phase4_human_signoff": false,
+    "official_execution_authorized": false,
+    "code_authority": "src/pig_behavior/classification_v2/contracts/semantic_lineage.py",
+    "focused_tests": "tests/test_classification_v2_phase4_semantic_lineage.py"
   },
   "remediation_phases": [
     {
