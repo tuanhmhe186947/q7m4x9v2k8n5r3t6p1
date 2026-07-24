@@ -1,0 +1,17 @@
+stage.legacy_cvat_source_merge
+stage.frame_local_primitives
+stage.hidden_review_design
+stage.hidden_decision_migration
+stage.hidden_gui
+stage.hidden_coverage_scientific_gate
+stage.hidden_apply
+stage.temporal_harmonization
+stage.native_review_evidence
+stage.pig_strenet_evidence
+stage.behavior_review_unit_construction
+stage.behavior_gui
+stage.behavior_decision_apply
+stage.train_ready_export
+stage.tensor_export
+stage.model_input
+stage.model_execution

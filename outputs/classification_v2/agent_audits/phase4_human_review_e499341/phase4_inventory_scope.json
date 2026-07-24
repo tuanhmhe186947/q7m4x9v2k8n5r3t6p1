@@ -1,0 +1,39 @@
+{
+  "exclude_patterns": [
+    "**/.staging/**",
+    "**/*.staging",
+    "**/*.manifest.json",
+    "**/pytest_tmp/**",
+    "**/pytest_upstream_tmp/**"
+  ],
+  "excluded_roots": [
+    "outputs/classification_v2/agent_audits/**/pytest_tmp",
+    "outputs/classification_v2/agent_audits/**/pytest_upstream_tmp",
+    "staging roots inside the included roots"
+  ],
+  "include_patterns": [
+    "**/*"
+  ],
+  "included_roots": [
+    "outputs/classification_v2",
+    "human_review_workspace/classification_v2"
+  ],
+  "inventory_scope_id": "scope.classification_v2.scientific_artifacts",
+  "inventory_scope_version": "classification_v2.inventory_scope.v1",
+  "partition_audit": {
+    "classification_counts": {
+      "FAILED_DIAGNOSTIC": 429,
+      "HUMAN_DECISION_EVIDENCE": 11,
+      "MISSING_MANIFEST": 3123,
+      "NON_OFFICIAL_AUDIT": 432
+    },
+    "duplicate_paths": 0,
+    "inventory_scope_id": "scope.classification_v2.scientific_artifacts",
+    "inventory_scope_version": "classification_v2.inventory_scope.v1",
+    "overlap": 0,
+    "total": 3995,
+    "unclassified": 0,
+    "valid": true
+  },
+  "path_normalization_rule": "repository-relative POSIX '/'"
+}

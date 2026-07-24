@@ -1,0 +1,22 @@
+{
+  "behavior_incompatible_schema": {
+    "automatic_acceptance": false,
+    "classification": "INVALID_DECISION_SCHEMA",
+    "positional_matching_used": false,
+    "reason_codes": [
+      "INCOMPATIBLE_DECISION_SCHEMA:decision.v0->decision.v1"
+    ],
+    "review_unit_key": "behavior:decision-schema-gate"
+  },
+  "expected_classification": "INVALID_DECISION_SCHEMA",
+  "hidden_incompatible_schema": {
+    "automatic_acceptance": false,
+    "classification": "INVALID_DECISION_SCHEMA",
+    "positional_matching_used": false,
+    "reason_codes": [
+      "INCOMPATIBLE_DECISION_SCHEMA:decision.v0->decision.v1"
+    ],
+    "review_key": "hidden:decision-schema-gate"
+  },
+  "status": "PASS"
+}

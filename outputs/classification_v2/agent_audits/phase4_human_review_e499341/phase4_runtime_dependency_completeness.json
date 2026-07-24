@@ -1,0 +1,613 @@
+{
+  "runtime_dependency_closure_version": "classification_v2.runtime_dependency_closure.v1",
+  "stage_count": 17,
+  "stages": [
+    {
+      "entry_points": [
+        "src/pig_behavior/classification_v2/merge_sources.py"
+      ],
+      "hashed_code_files": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/merge_sources.py",
+        "src/pig_behavior/classification_v2/schema.py",
+        "src/pig_behavior/classification_v2/sources/__init__.py",
+        "src/pig_behavior/classification_v2/sources/cvat_tracking_xml.py",
+        "src/pig_behavior/classification_v2/sources/legacy_recovered_csv.py",
+        "src/pig_behavior/classification_v2/sources/temporal_provenance.py"
+      ],
+      "missing_dependencies": [],
+      "missing_production_files": [],
+      "runtime_dependency_closure": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/merge_sources.py",
+        "src/pig_behavior/classification_v2/schema.py",
+        "src/pig_behavior/classification_v2/sources/__init__.py",
+        "src/pig_behavior/classification_v2/sources/cvat_tracking_xml.py",
+        "src/pig_behavior/classification_v2/sources/legacy_recovered_csv.py",
+        "src/pig_behavior/classification_v2/sources/temporal_provenance.py"
+      ],
+      "stage_id": "stage.legacy_cvat_source_merge",
+      "status": "PASS",
+      "unresolved_dynamic_imports": [],
+      "unresolved_local_imports": []
+    },
+    {
+      "entry_points": [
+        "src/pig_behavior/classification_v2/features/frame_local.py"
+      ],
+      "hashed_code_files": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/contracts/lineage_claims.py",
+        "src/pig_behavior/classification_v2/features/__init__.py",
+        "src/pig_behavior/classification_v2/features/context_policy.py",
+        "src/pig_behavior/classification_v2/features/frame_local.py",
+        "src/pig_behavior/classification_v2/features/geometry.py",
+        "src/pig_behavior/classification_v2/features/pen_context.py",
+        "src/pig_behavior/classification_v2/features/review_policy.py",
+        "src/pig_behavior/classification_v2/features/roi.py",
+        "src/pig_behavior/classification_v2/features/social.py",
+        "src/pig_behavior/classification_v2/features/spatial_semantics.py",
+        "src/pig_behavior/classification_v2/features/temporal_evidence.py",
+        "src/pig_behavior/classification_v2/features/temporal_harmonization.py",
+        "src/pig_behavior/classification_v2/schema.py",
+        "src/pig_behavior/classification_v2/sources/__init__.py",
+        "src/pig_behavior/classification_v2/sources/cvat_tracking_xml.py",
+        "src/pig_behavior/classification_v2/sources/legacy_recovered_csv.py",
+        "src/pig_behavior/classification_v2/sources/temporal_provenance.py"
+      ],
+      "missing_dependencies": [],
+      "missing_production_files": [],
+      "runtime_dependency_closure": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/contracts/lineage_claims.py",
+        "src/pig_behavior/classification_v2/features/__init__.py",
+        "src/pig_behavior/classification_v2/features/context_policy.py",
+        "src/pig_behavior/classification_v2/features/frame_local.py",
+        "src/pig_behavior/classification_v2/features/geometry.py",
+        "src/pig_behavior/classification_v2/features/pen_context.py",
+        "src/pig_behavior/classification_v2/features/review_policy.py",
+        "src/pig_behavior/classification_v2/features/roi.py",
+        "src/pig_behavior/classification_v2/features/social.py",
+        "src/pig_behavior/classification_v2/features/spatial_semantics.py",
+        "src/pig_behavior/classification_v2/features/temporal_evidence.py",
+        "src/pig_behavior/classification_v2/features/temporal_harmonization.py",
+        "src/pig_behavior/classification_v2/schema.py",
+        "src/pig_behavior/classification_v2/sources/__init__.py",
+        "src/pig_behavior/classification_v2/sources/cvat_tracking_xml.py",
+        "src/pig_behavior/classification_v2/sources/legacy_recovered_csv.py",
+        "src/pig_behavior/classification_v2/sources/temporal_provenance.py"
+      ],
+      "stage_id": "stage.frame_local_primitives",
+      "status": "PASS",
+      "unresolved_dynamic_imports": [],
+      "unresolved_local_imports": []
+    },
+    {
+      "entry_points": [
+        "src/pig_behavior/classification_v2/review/hidden_review_builder.py"
+      ],
+      "hashed_code_files": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_builder.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_identifiers.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "missing_dependencies": [],
+      "missing_production_files": [],
+      "runtime_dependency_closure": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_builder.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_identifiers.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "stage_id": "stage.hidden_review_design",
+      "status": "PASS",
+      "unresolved_dynamic_imports": [],
+      "unresolved_local_imports": []
+    },
+    {
+      "entry_points": [
+        "src/pig_behavior/classification_v2/review/hidden_review_migration.py"
+      ],
+      "hashed_code_files": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_builder.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_identifiers.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_migration.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "missing_dependencies": [],
+      "missing_production_files": [],
+      "runtime_dependency_closure": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_builder.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_identifiers.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_migration.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "stage_id": "stage.hidden_decision_migration",
+      "status": "PASS",
+      "unresolved_dynamic_imports": [],
+      "unresolved_local_imports": []
+    },
+    {
+      "entry_points": [
+        "scripts/classification_v2/01_review_units_gui/review_hidden_quality_gui.py"
+      ],
+      "hashed_code_files": [
+        "scripts/classification_v2/01_review_units_gui/review_hidden_quality_gui.py",
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/contracts/window_alignment.py",
+        "src/pig_behavior/classification_v2/datasets/__init__.py",
+        "src/pig_behavior/classification_v2/datasets/image_context_index.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_builder.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_identifiers.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "missing_dependencies": [],
+      "missing_production_files": [],
+      "runtime_dependency_closure": [
+        "scripts/classification_v2/01_review_units_gui/review_hidden_quality_gui.py",
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/contracts/window_alignment.py",
+        "src/pig_behavior/classification_v2/datasets/__init__.py",
+        "src/pig_behavior/classification_v2/datasets/image_context_index.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_builder.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_identifiers.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "stage_id": "stage.hidden_gui",
+      "status": "PASS",
+      "unresolved_dynamic_imports": [],
+      "unresolved_local_imports": []
+    },
+    {
+      "entry_points": [
+        "src/pig_behavior/classification_v2/review/hidden_review_science.py"
+      ],
+      "hashed_code_files": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_builder.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_identifiers.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_science.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "missing_dependencies": [],
+      "missing_production_files": [],
+      "runtime_dependency_closure": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_builder.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_identifiers.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_science.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "stage_id": "stage.hidden_coverage_scientific_gate",
+      "status": "PASS",
+      "unresolved_dynamic_imports": [],
+      "unresolved_local_imports": []
+    },
+    {
+      "entry_points": [
+        "src/pig_behavior/classification_v2/review/hidden_review_builder.py"
+      ],
+      "hashed_code_files": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_builder.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_identifiers.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "missing_dependencies": [],
+      "missing_production_files": [],
+      "runtime_dependency_closure": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_builder.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_identifiers.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "stage_id": "stage.hidden_apply",
+      "status": "PASS",
+      "unresolved_dynamic_imports": [],
+      "unresolved_local_imports": []
+    },
+    {
+      "entry_points": [
+        "src/pig_behavior/classification_v2/features/temporal_harmonization.py"
+      ],
+      "hashed_code_files": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/contracts/lineage_claims.py",
+        "src/pig_behavior/classification_v2/features/__init__.py",
+        "src/pig_behavior/classification_v2/features/context_policy.py",
+        "src/pig_behavior/classification_v2/features/geometry.py",
+        "src/pig_behavior/classification_v2/features/pen_context.py",
+        "src/pig_behavior/classification_v2/features/review_policy.py",
+        "src/pig_behavior/classification_v2/features/roi.py",
+        "src/pig_behavior/classification_v2/features/spatial_semantics.py",
+        "src/pig_behavior/classification_v2/features/temporal_evidence.py",
+        "src/pig_behavior/classification_v2/features/temporal_harmonization.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "missing_dependencies": [],
+      "missing_production_files": [],
+      "runtime_dependency_closure": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/contracts/lineage_claims.py",
+        "src/pig_behavior/classification_v2/features/__init__.py",
+        "src/pig_behavior/classification_v2/features/context_policy.py",
+        "src/pig_behavior/classification_v2/features/geometry.py",
+        "src/pig_behavior/classification_v2/features/pen_context.py",
+        "src/pig_behavior/classification_v2/features/review_policy.py",
+        "src/pig_behavior/classification_v2/features/roi.py",
+        "src/pig_behavior/classification_v2/features/spatial_semantics.py",
+        "src/pig_behavior/classification_v2/features/temporal_evidence.py",
+        "src/pig_behavior/classification_v2/features/temporal_harmonization.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "stage_id": "stage.temporal_harmonization",
+      "status": "PASS",
+      "unresolved_dynamic_imports": [],
+      "unresolved_local_imports": []
+    },
+    {
+      "entry_points": [
+        "src/pig_behavior/classification_v2/features/native_evidence_contract.py",
+        "src/pig_behavior/classification_v2/features/spatiotemporal.py"
+      ],
+      "hashed_code_files": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/contracts/lineage_claims.py",
+        "src/pig_behavior/classification_v2/features/__init__.py",
+        "src/pig_behavior/classification_v2/features/context_policy.py",
+        "src/pig_behavior/classification_v2/features/geometry.py",
+        "src/pig_behavior/classification_v2/features/motion_schema.py",
+        "src/pig_behavior/classification_v2/features/native_evidence_contract.py",
+        "src/pig_behavior/classification_v2/features/pen_context.py",
+        "src/pig_behavior/classification_v2/features/review_policy.py",
+        "src/pig_behavior/classification_v2/features/roi.py",
+        "src/pig_behavior/classification_v2/features/social.py",
+        "src/pig_behavior/classification_v2/features/spatial_semantics.py",
+        "src/pig_behavior/classification_v2/features/spatiotemporal.py",
+        "src/pig_behavior/classification_v2/features/temporal_evidence.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "missing_dependencies": [],
+      "missing_production_files": [],
+      "runtime_dependency_closure": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/contracts/lineage_claims.py",
+        "src/pig_behavior/classification_v2/features/__init__.py",
+        "src/pig_behavior/classification_v2/features/context_policy.py",
+        "src/pig_behavior/classification_v2/features/geometry.py",
+        "src/pig_behavior/classification_v2/features/motion_schema.py",
+        "src/pig_behavior/classification_v2/features/native_evidence_contract.py",
+        "src/pig_behavior/classification_v2/features/pen_context.py",
+        "src/pig_behavior/classification_v2/features/review_policy.py",
+        "src/pig_behavior/classification_v2/features/roi.py",
+        "src/pig_behavior/classification_v2/features/social.py",
+        "src/pig_behavior/classification_v2/features/spatial_semantics.py",
+        "src/pig_behavior/classification_v2/features/spatiotemporal.py",
+        "src/pig_behavior/classification_v2/features/temporal_evidence.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "stage_id": "stage.native_review_evidence",
+      "status": "PASS",
+      "unresolved_dynamic_imports": [],
+      "unresolved_local_imports": []
+    },
+    {
+      "entry_points": [
+        "src/pig_behavior/classification_v2/features/pig_strenet_artifacts.py"
+      ],
+      "hashed_code_files": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/contracts/lineage_claims.py",
+        "src/pig_behavior/classification_v2/features/__init__.py",
+        "src/pig_behavior/classification_v2/features/context_policy.py",
+        "src/pig_behavior/classification_v2/features/geometry.py",
+        "src/pig_behavior/classification_v2/features/pen_context.py",
+        "src/pig_behavior/classification_v2/features/pig_strenet_artifacts.py",
+        "src/pig_behavior/classification_v2/features/review_policy.py",
+        "src/pig_behavior/classification_v2/features/roi.py",
+        "src/pig_behavior/classification_v2/features/spatial_semantics.py",
+        "src/pig_behavior/classification_v2/features/temporal_evidence.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "missing_dependencies": [],
+      "missing_production_files": [],
+      "runtime_dependency_closure": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/contracts/lineage_claims.py",
+        "src/pig_behavior/classification_v2/features/__init__.py",
+        "src/pig_behavior/classification_v2/features/context_policy.py",
+        "src/pig_behavior/classification_v2/features/geometry.py",
+        "src/pig_behavior/classification_v2/features/pen_context.py",
+        "src/pig_behavior/classification_v2/features/pig_strenet_artifacts.py",
+        "src/pig_behavior/classification_v2/features/review_policy.py",
+        "src/pig_behavior/classification_v2/features/roi.py",
+        "src/pig_behavior/classification_v2/features/spatial_semantics.py",
+        "src/pig_behavior/classification_v2/features/temporal_evidence.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "stage_id": "stage.pig_strenet_evidence",
+      "status": "PASS",
+      "unresolved_dynamic_imports": [],
+      "unresolved_local_imports": []
+    },
+    {
+      "entry_points": [
+        "src/pig_behavior/classification_v2/review/review_unit_builder.py"
+      ],
+      "hashed_code_files": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/review/behavior_evidence.py",
+        "src/pig_behavior/classification_v2/review/behavior_review_contract.py",
+        "src/pig_behavior/classification_v2/review/behavior_review_selection.py",
+        "src/pig_behavior/classification_v2/review/pig_strenet_review_evidence.py",
+        "src/pig_behavior/classification_v2/review/review_unit_builder.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "missing_dependencies": [],
+      "missing_production_files": [],
+      "runtime_dependency_closure": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/review/behavior_evidence.py",
+        "src/pig_behavior/classification_v2/review/behavior_review_contract.py",
+        "src/pig_behavior/classification_v2/review/behavior_review_selection.py",
+        "src/pig_behavior/classification_v2/review/pig_strenet_review_evidence.py",
+        "src/pig_behavior/classification_v2/review/review_unit_builder.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "stage_id": "stage.behavior_review_unit_construction",
+      "status": "PASS",
+      "unresolved_dynamic_imports": [],
+      "unresolved_local_imports": []
+    },
+    {
+      "entry_points": [
+        "scripts/classification_v2/01_review_units_gui/review_temporal_unit_gui.py"
+      ],
+      "hashed_code_files": [
+        "scripts/classification_v2/01_review_units_gui/review_temporal_unit_gui.py",
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/contracts/lineage_claims.py",
+        "src/pig_behavior/classification_v2/features/__init__.py",
+        "src/pig_behavior/classification_v2/features/context_policy.py",
+        "src/pig_behavior/classification_v2/features/geometry.py",
+        "src/pig_behavior/classification_v2/features/pen_context.py",
+        "src/pig_behavior/classification_v2/features/review_policy.py",
+        "src/pig_behavior/classification_v2/features/roi.py",
+        "src/pig_behavior/classification_v2/features/spatial_semantics.py",
+        "src/pig_behavior/classification_v2/review/behavior_review_contract.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "missing_dependencies": [],
+      "missing_production_files": [],
+      "runtime_dependency_closure": [
+        "scripts/classification_v2/01_review_units_gui/review_temporal_unit_gui.py",
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/contracts/lineage_claims.py",
+        "src/pig_behavior/classification_v2/features/__init__.py",
+        "src/pig_behavior/classification_v2/features/context_policy.py",
+        "src/pig_behavior/classification_v2/features/geometry.py",
+        "src/pig_behavior/classification_v2/features/pen_context.py",
+        "src/pig_behavior/classification_v2/features/review_policy.py",
+        "src/pig_behavior/classification_v2/features/roi.py",
+        "src/pig_behavior/classification_v2/features/spatial_semantics.py",
+        "src/pig_behavior/classification_v2/review/behavior_review_contract.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "stage_id": "stage.behavior_gui",
+      "status": "PASS",
+      "unresolved_dynamic_imports": [],
+      "unresolved_local_imports": []
+    },
+    {
+      "entry_points": [
+        "scripts/classification_v2/01_review_units_gui/classification_v2_apply_review_unit_decisions.py"
+      ],
+      "hashed_code_files": [
+        "scripts/classification_v2/01_review_units_gui/classification_v2_apply_review_unit_decisions.py",
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/review/behavior_review_contract.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "missing_dependencies": [],
+      "missing_production_files": [],
+      "runtime_dependency_closure": [
+        "scripts/classification_v2/01_review_units_gui/classification_v2_apply_review_unit_decisions.py",
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/review/behavior_review_contract.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "stage_id": "stage.behavior_decision_apply",
+      "status": "PASS",
+      "unresolved_dynamic_imports": [],
+      "unresolved_local_imports": []
+    },
+    {
+      "entry_points": [
+        "src/pig_behavior/classification_v2/train_ready_features.py"
+      ],
+      "hashed_code_files": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/contracts/lineage_claims.py",
+        "src/pig_behavior/classification_v2/features/__init__.py",
+        "src/pig_behavior/classification_v2/features/context_policy.py",
+        "src/pig_behavior/classification_v2/features/geometry.py",
+        "src/pig_behavior/classification_v2/features/pen_context.py",
+        "src/pig_behavior/classification_v2/features/review_policy.py",
+        "src/pig_behavior/classification_v2/features/roi.py",
+        "src/pig_behavior/classification_v2/features/spatial_semantics.py",
+        "src/pig_behavior/classification_v2/features/temporal_evidence.py",
+        "src/pig_behavior/classification_v2/schema.py",
+        "src/pig_behavior/classification_v2/train_ready_features.py"
+      ],
+      "missing_dependencies": [],
+      "missing_production_files": [],
+      "runtime_dependency_closure": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/contracts/lineage_claims.py",
+        "src/pig_behavior/classification_v2/features/__init__.py",
+        "src/pig_behavior/classification_v2/features/context_policy.py",
+        "src/pig_behavior/classification_v2/features/geometry.py",
+        "src/pig_behavior/classification_v2/features/pen_context.py",
+        "src/pig_behavior/classification_v2/features/review_policy.py",
+        "src/pig_behavior/classification_v2/features/roi.py",
+        "src/pig_behavior/classification_v2/features/spatial_semantics.py",
+        "src/pig_behavior/classification_v2/features/temporal_evidence.py",
+        "src/pig_behavior/classification_v2/schema.py",
+        "src/pig_behavior/classification_v2/train_ready_features.py"
+      ],
+      "stage_id": "stage.train_ready_export",
+      "status": "PASS",
+      "unresolved_dynamic_imports": [],
+      "unresolved_local_imports": []
+    },
+    {
+      "entry_points": [
+        "src/pig_behavior/classification_v2/spatial_sequence_export.py"
+      ],
+      "hashed_code_files": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/contracts/lineage_claims.py",
+        "src/pig_behavior/classification_v2/contracts/window_alignment.py",
+        "src/pig_behavior/classification_v2/features/__init__.py",
+        "src/pig_behavior/classification_v2/features/context_policy.py",
+        "src/pig_behavior/classification_v2/features/geometry.py",
+        "src/pig_behavior/classification_v2/features/motion_schema.py",
+        "src/pig_behavior/classification_v2/features/pen_context.py",
+        "src/pig_behavior/classification_v2/features/review_policy.py",
+        "src/pig_behavior/classification_v2/features/roi.py",
+        "src/pig_behavior/classification_v2/features/spatial_semantics.py",
+        "src/pig_behavior/classification_v2/schema.py",
+        "src/pig_behavior/classification_v2/spatial_sequence_export.py"
+      ],
+      "missing_dependencies": [],
+      "missing_production_files": [],
+      "runtime_dependency_closure": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py",
+        "src/pig_behavior/classification_v2/contracts/lineage_claims.py",
+        "src/pig_behavior/classification_v2/contracts/window_alignment.py",
+        "src/pig_behavior/classification_v2/features/__init__.py",
+        "src/pig_behavior/classification_v2/features/context_policy.py",
+        "src/pig_behavior/classification_v2/features/geometry.py",
+        "src/pig_behavior/classification_v2/features/motion_schema.py",
+        "src/pig_behavior/classification_v2/features/pen_context.py",
+        "src/pig_behavior/classification_v2/features/review_policy.py",
+        "src/pig_behavior/classification_v2/features/roi.py",
+        "src/pig_behavior/classification_v2/features/spatial_semantics.py",
+        "src/pig_behavior/classification_v2/schema.py",
+        "src/pig_behavior/classification_v2/spatial_sequence_export.py"
+      ],
+      "stage_id": "stage.tensor_export",
+      "status": "PASS",
+      "unresolved_dynamic_imports": [],
+      "unresolved_local_imports": []
+    },
+    {
+      "entry_points": [
+        "src/pig_behavior/classification_v2/contracts/model_input_manifest.py"
+      ],
+      "hashed_code_files": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/model_input_manifest.py",
+        "src/pig_behavior/classification_v2/contracts/output_safety.py",
+        "src/pig_behavior/classification_v2/contracts/versioned_data_contract.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "missing_dependencies": [],
+      "missing_production_files": [],
+      "runtime_dependency_closure": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/model_input_manifest.py",
+        "src/pig_behavior/classification_v2/contracts/output_safety.py",
+        "src/pig_behavior/classification_v2/contracts/versioned_data_contract.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "stage_id": "stage.model_input",
+      "status": "PASS",
+      "unresolved_dynamic_imports": [],
+      "unresolved_local_imports": []
+    },
+    {
+      "entry_points": [
+        "src/pig_behavior/classification_v2/contracts/model_io.py"
+      ],
+      "hashed_code_files": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/model_io.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "missing_dependencies": [],
+      "missing_production_files": [],
+      "runtime_dependency_closure": [
+        "src/pig_behavior/classification_v2/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/__init__.py",
+        "src/pig_behavior/classification_v2/contracts/model_io.py",
+        "src/pig_behavior/classification_v2/schema.py"
+      ],
+      "stage_id": "stage.model_execution",
+      "status": "PASS",
+      "unresolved_dynamic_imports": [],
+      "unresolved_local_imports": []
+    }
+  ],
+  "status": "PASS",
+  "unmapped_production_dependencies": 0,
+  "unresolved_dynamic_import_count": 0
+}

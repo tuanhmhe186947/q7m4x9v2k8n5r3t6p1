@@ -1,0 +1,281 @@
+{
+  "artifact_producers": {
+    "artifact.behavior_decisions": "stage.behavior_gui",
+    "artifact.behavior_review_units": "stage.behavior_review_unit_construction",
+    "artifact.frame_local_primitives": "stage.frame_local_primitives",
+    "artifact.harmonized_frames": "stage.temporal_harmonization",
+    "artifact.hidden_decisions": "stage.hidden_coverage_scientific_gate",
+    "artifact.hidden_manifest": "stage.hidden_review_design",
+    "artifact.hidden_reviewed_frames": "stage.hidden_apply",
+    "artifact.merged_frame_objects": "stage.legacy_cvat_source_merge",
+    "artifact.model_input": "stage.model_input",
+    "artifact.model_output": "stage.model_execution",
+    "artifact.native_evidence": "stage.native_review_evidence",
+    "artifact.pig_strenet": "stage.pig_strenet_evidence",
+    "artifact.reviewed_frames": "stage.behavior_decision_apply",
+    "artifact.source_annotations": null,
+    "artifact.spatial_tensor": "stage.tensor_export",
+    "artifact.temporal_intervals": "stage.temporal_harmonization",
+    "artifact.train_ready": "stage.train_ready_export"
+  },
+  "declared_stage_count": 17,
+  "errors": [],
+  "graph_version": "classification_v2.stage_dependency_graph.v4",
+  "implemented_stage_count": 17,
+  "nodes": [
+    {
+      "depends_on": [],
+      "input_artifacts": [
+        "artifact.source_annotations"
+      ],
+      "output_artifacts": [
+        "artifact.merged_frame_objects"
+      ],
+      "stage_id": "stage.legacy_cvat_source_merge",
+      "stage_version": "classification_v2.merged_frame_objects.v2"
+    },
+    {
+      "depends_on": [
+        "stage.legacy_cvat_source_merge"
+      ],
+      "input_artifacts": [
+        "artifact.merged_frame_objects"
+      ],
+      "output_artifacts": [
+        "artifact.frame_local_primitives"
+      ],
+      "stage_id": "stage.frame_local_primitives",
+      "stage_version": "classification_v2.frame_local_primitives.v2"
+    },
+    {
+      "depends_on": [
+        "stage.frame_local_primitives"
+      ],
+      "input_artifacts": [
+        "artifact.frame_local_primitives"
+      ],
+      "output_artifacts": [
+        "artifact.hidden_manifest"
+      ],
+      "stage_id": "stage.hidden_review_design",
+      "stage_version": "classification_v2.hidden_review_manifest.v2"
+    },
+    {
+      "depends_on": [
+        "stage.hidden_review_design"
+      ],
+      "input_artifacts": [
+        "artifact.hidden_manifest",
+        "artifact.hidden_decisions"
+      ],
+      "output_artifacts": [
+        "artifact.hidden_decisions"
+      ],
+      "stage_id": "stage.hidden_decision_migration",
+      "stage_version": "classification_v2.hidden_decision_migration.v2"
+    },
+    {
+      "depends_on": [
+        "stage.hidden_review_design",
+        "stage.hidden_decision_migration"
+      ],
+      "input_artifacts": [
+        "artifact.hidden_manifest"
+      ],
+      "output_artifacts": [
+        "artifact.hidden_decisions"
+      ],
+      "stage_id": "stage.hidden_gui",
+      "stage_version": "classification_v2.hidden_gui_decision.v2"
+    },
+    {
+      "depends_on": [
+        "stage.hidden_review_design",
+        "stage.hidden_gui"
+      ],
+      "input_artifacts": [
+        "artifact.hidden_manifest",
+        "artifact.hidden_decisions"
+      ],
+      "output_artifacts": [
+        "artifact.hidden_decisions"
+      ],
+      "stage_id": "stage.hidden_coverage_scientific_gate",
+      "stage_version": "classification_v2.hidden_scientific_gate.v2"
+    },
+    {
+      "depends_on": [
+        "stage.frame_local_primitives",
+        "stage.hidden_coverage_scientific_gate"
+      ],
+      "input_artifacts": [
+        "artifact.frame_local_primitives",
+        "artifact.hidden_decisions"
+      ],
+      "output_artifacts": [
+        "artifact.hidden_reviewed_frames"
+      ],
+      "stage_id": "stage.hidden_apply",
+      "stage_version": "classification_v2.hidden_apply.v2"
+    },
+    {
+      "depends_on": [
+        "stage.hidden_apply"
+      ],
+      "input_artifacts": [
+        "artifact.hidden_reviewed_frames"
+      ],
+      "output_artifacts": [
+        "artifact.harmonized_frames",
+        "artifact.temporal_intervals"
+      ],
+      "stage_id": "stage.temporal_harmonization",
+      "stage_version": "classification_v2.temporal_harmonization.v2"
+    },
+    {
+      "depends_on": [
+        "stage.temporal_harmonization"
+      ],
+      "input_artifacts": [
+        "artifact.harmonized_frames"
+      ],
+      "output_artifacts": [
+        "artifact.native_evidence"
+      ],
+      "stage_id": "stage.native_review_evidence",
+      "stage_version": "classification_v2.native_review_evidence.v2"
+    },
+    {
+      "depends_on": [
+        "stage.temporal_harmonization",
+        "stage.native_review_evidence"
+      ],
+      "input_artifacts": [
+        "artifact.harmonized_frames",
+        "artifact.native_evidence"
+      ],
+      "output_artifacts": [
+        "artifact.pig_strenet"
+      ],
+      "stage_id": "stage.pig_strenet_evidence",
+      "stage_version": "classification_v2.pig_strenet_artifacts.v1"
+    },
+    {
+      "depends_on": [
+        "stage.temporal_harmonization",
+        "stage.pig_strenet_evidence"
+      ],
+      "input_artifacts": [
+        "artifact.temporal_intervals",
+        "artifact.pig_strenet"
+      ],
+      "output_artifacts": [
+        "artifact.behavior_review_units"
+      ],
+      "stage_id": "stage.behavior_review_unit_construction",
+      "stage_version": "classification_v2.behavior_review_unit.v2"
+    },
+    {
+      "depends_on": [
+        "stage.behavior_review_unit_construction"
+      ],
+      "input_artifacts": [
+        "artifact.behavior_review_units"
+      ],
+      "output_artifacts": [
+        "artifact.behavior_decisions"
+      ],
+      "stage_id": "stage.behavior_gui",
+      "stage_version": "classification_v2.behavior_gui_decision.v2"
+    },
+    {
+      "depends_on": [
+        "stage.temporal_harmonization",
+        "stage.behavior_gui"
+      ],
+      "input_artifacts": [
+        "artifact.harmonized_frames",
+        "artifact.behavior_decisions"
+      ],
+      "output_artifacts": [
+        "artifact.reviewed_frames"
+      ],
+      "stage_id": "stage.behavior_decision_apply",
+      "stage_version": "classification_v2.behavior_apply.v2"
+    },
+    {
+      "depends_on": [
+        "stage.behavior_decision_apply"
+      ],
+      "input_artifacts": [
+        "artifact.reviewed_frames"
+      ],
+      "output_artifacts": [
+        "artifact.train_ready"
+      ],
+      "stage_id": "stage.train_ready_export",
+      "stage_version": "classification_v2.train_ready.v2"
+    },
+    {
+      "depends_on": [
+        "stage.train_ready_export"
+      ],
+      "input_artifacts": [
+        "artifact.train_ready"
+      ],
+      "output_artifacts": [
+        "artifact.spatial_tensor"
+      ],
+      "stage_id": "stage.tensor_export",
+      "stage_version": "classification_v2.spatial_sequence.current_unhashed"
+    },
+    {
+      "depends_on": [
+        "stage.train_ready_export",
+        "stage.tensor_export"
+      ],
+      "input_artifacts": [
+        "artifact.spatial_tensor",
+        "artifact.train_ready"
+      ],
+      "output_artifacts": [
+        "artifact.model_input"
+      ],
+      "stage_id": "stage.model_input",
+      "stage_version": "classification_v2.model_input_manifest.v2"
+    },
+    {
+      "depends_on": [
+        "stage.model_input"
+      ],
+      "input_artifacts": [
+        "artifact.model_input"
+      ],
+      "output_artifacts": [
+        "artifact.model_output"
+      ],
+      "stage_id": "stage.model_execution",
+      "stage_version": "classification_v2.model_io.v2"
+    }
+  ],
+  "topological_order": [
+    "stage.legacy_cvat_source_merge",
+    "stage.frame_local_primitives",
+    "stage.hidden_review_design",
+    "stage.hidden_decision_migration",
+    "stage.hidden_gui",
+    "stage.hidden_coverage_scientific_gate",
+    "stage.hidden_apply",
+    "stage.temporal_harmonization",
+    "stage.native_review_evidence",
+    "stage.pig_strenet_evidence",
+    "stage.behavior_review_unit_construction",
+    "stage.behavior_gui",
+    "stage.behavior_decision_apply",
+    "stage.train_ready_export",
+    "stage.tensor_export",
+    "stage.model_input",
+    "stage.model_execution"
+  ],
+  "valid": true
+}
