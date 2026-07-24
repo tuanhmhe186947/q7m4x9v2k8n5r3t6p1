@@ -1,0 +1,31 @@
+{
+  "authorizes_behavior_gui": false,
+  "authorizes_final_windows": false,
+  "authorizes_frame_local_rebuild": false,
+  "authorizes_hidden_review": false,
+  "authorizes_native_evidence": false,
+  "authorizes_pig_strenet": false,
+  "authorizes_source_rebuild": false,
+  "authorizes_temporal_harmonization": false,
+  "authorizes_train_ready_export": false,
+  "authorizes_training": false,
+  "blocked_reasons": [
+    "authorizes_source_rebuild",
+    "authorizes_frame_local_rebuild",
+    "authorizes_hidden_review",
+    "authorizes_temporal_harmonization",
+    "authorizes_native_evidence",
+    "authorizes_pig_strenet",
+    "authorizes_behavior_gui",
+    "authorizes_final_windows",
+    "authorizes_train_ready_export",
+    "authorizes_training"
+  ],
+  "phase4_human_signoff": false,
+  "prerequisite_errors": [
+    "PREREQUISITE_INVALID:official_current_manifests",
+    "PREREQUISITE_INVALID:phase4_human_review",
+    "PHASE4_HUMAN_SIGNOFF_MISSING"
+  ],
+  "release_authority_schema_version": "classification_v2.release_authority_preflight.v4"
+}

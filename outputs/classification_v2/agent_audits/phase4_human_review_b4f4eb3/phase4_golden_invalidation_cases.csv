@@ -1,0 +1,26 @@
+case_id,change_or_condition,expected,result
+invalidation.10,source input hash,stage.legacy_cvat_source_merge,PASS
+invalidation.11,frame-local distance,stage.frame_local_primitives,PASS
+invalidation.12,social tie-break,stage.frame_local_primitives,PASS
+invalidation.13,ROI denominator,stage.frame_local_primitives,PASS
+invalidation.14,Hidden policy,stage.hidden_review_design,PASS
+invalidation.15,Hidden decision hash,stage.hidden_coverage_scientific_gate,PASS
+invalidation.16,temporal mapping,stage.temporal_harmonization,PASS
+invalidation.17,pair/motion semantics,stage.native_review_evidence,PASS
+invalidation.18,final-view offsets,stage.train_ready_export,PASS
+invalidation.19,model-export schema,stage.tensor_export,PASS
+invalidation.20,split policy,stage.model_input,PASS
+invalidation.21,documentation only,NONE,PASS
+invalidation.22,multiple changes,EARLIEST_WINS,PASS
+invalidation.23,accepted Phase 1-3 authority,stage.frame_local_primitives,PASS
+invalidation.24,exact human authority,EXACT_CARRY_FORWARD_CANDIDATE,PASS
+invalidation.25,same row changed key,NOT_ELIGIBLE,PASS
+invalidation.26,changed visual hash,REQUIRES_HUMAN_REVALIDATION,PASS
+invalidation.27,old-only decision,OLD_ONLY_AUDIT_EVIDENCE,PASS
+invalidation.28,new-only unit,NEW_ONLY_REQUIRES_REVIEW,PASS
+invalidation.29,conflicting decision key,CONFLICT,PASS
+invalidation.30,missing artifact manifest,AUTHORIZATION_FALSE,PASS
+invalidation.31,artifact hash mismatch,AUTHORIZATION_FALSE,PASS
+invalidation.32,stale semantic fingerprint,AUTHORIZATION_FALSE,PASS
+invalidation.33,unsigned human gate,AUTHORIZATION_FALSE,PASS
+invalidation.34,Phase 4 sign-off absent,AUTHORIZATION_FALSE,PASS
