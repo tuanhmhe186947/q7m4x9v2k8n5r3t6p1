@@ -2077,7 +2077,11 @@ def classify_existing_artifact(
             "reason_codes": [*reasons, "SEPARATE_CARRY_FORWARD_CONTRACT"],
             "promotable": False,
         }
-    if reasons and "SPATIOTEMPORAL_SCIENTIFIC_AUDIT_FAILED" in reasons:
+    failed_diagnostic_reasons = {
+        "SPATIOTEMPORAL_SCIENTIFIC_AUDIT_FAILED",
+        "FAILED_DIAGNOSTIC_PRE_MOTION_FIX",
+    }
+    if failed_diagnostic_reasons.intersection(reasons):
         return {
             "classification": "FAILED_DIAGNOSTIC",
             "reason_codes": reasons,

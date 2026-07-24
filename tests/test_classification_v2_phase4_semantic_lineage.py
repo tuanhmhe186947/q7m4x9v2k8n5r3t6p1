@@ -560,6 +560,18 @@ def test_inventory_classifies_audits_and_missing_manifests(
         current_stage_semantics={},
         current_stage_code={},
     )["classification"] == "MISSING_MANIFEST"
+    pre_motion = tmp_path / "old_pig_strenet" / "evidence.csv"
+    pre_motion.parent.mkdir()
+    pre_motion.write_text("x\n", encoding="utf-8")
+    diagnostic = classify_existing_artifact(
+        pre_motion,
+        current_stage_semantics={},
+        current_stage_code={},
+    )
+    assert diagnostic["classification"] == "FAILED_DIAGNOSTIC"
+    assert "FAILED_DIAGNOSTIC_PRE_MOTION_FIX" in diagnostic["reason_codes"]
+    assert "NOT_REUSABLE" in diagnostic["reason_codes"]
+    assert "NOT_REVIEW_EVIDENCE" in diagnostic["reason_codes"]
 
 
 def test_hidden_exact_carry_forward_and_visual_revalidation() -> None:
