@@ -1,0 +1,10 @@
+case_id,change,expected,result
+hash.dictionary_order,dictionary insertion order,SAME_HASH,PASS
+hash.json_whitespace,JSON whitespace,SAME_HASH,PASS
+hash.checkout_root,absolute checkout root,SAME_HASH,PASS
+hash.threshold,0.08 to 0.081,DIFFERENT_HASH,PASS
+hash.feature_order,swap ordered features,DIFFERENT_HASH,PASS
+hash.unordered_set,reorder declared unordered set,SAME_HASH,PASS
+hash.generated_time,generated_at metadata,SAME_HASH,PASS
+hash.production_blob,mapped production blob,DIFFERENT_STAGE_CODE_HASH,PASS
+hash.test_only_blob,unmapped test blob,SAME_STAGE_CODE_HASH,PASS

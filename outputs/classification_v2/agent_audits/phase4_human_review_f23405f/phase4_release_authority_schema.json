@@ -1,0 +1,73 @@
+{
+  "$id": "schema.classification_v2.release_authority.v4",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "authorizes_behavior_gui": {
+      "type": "boolean"
+    },
+    "authorizes_final_windows": {
+      "type": "boolean"
+    },
+    "authorizes_frame_local_rebuild": {
+      "type": "boolean"
+    },
+    "authorizes_hidden_review": {
+      "type": "boolean"
+    },
+    "authorizes_native_evidence": {
+      "type": "boolean"
+    },
+    "authorizes_pig_strenet": {
+      "type": "boolean"
+    },
+    "authorizes_source_rebuild": {
+      "type": "boolean"
+    },
+    "authorizes_temporal_harmonization": {
+      "type": "boolean"
+    },
+    "authorizes_train_ready_export": {
+      "type": "boolean"
+    },
+    "authorizes_training": {
+      "type": "boolean"
+    },
+    "blocked_reasons": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "phase4_human_signoff": {
+      "type": "boolean"
+    },
+    "prerequisite_errors": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "release_authority_schema_version": {
+      "const": "classification_v2.release_authority_preflight.v4"
+    }
+  },
+  "required": [
+    "release_authority_schema_version",
+    "phase4_human_signoff",
+    "prerequisite_errors",
+    "blocked_reasons",
+    "authorizes_source_rebuild",
+    "authorizes_frame_local_rebuild",
+    "authorizes_hidden_review",
+    "authorizes_temporal_harmonization",
+    "authorizes_native_evidence",
+    "authorizes_pig_strenet",
+    "authorizes_behavior_gui",
+    "authorizes_final_windows",
+    "authorizes_train_ready_export",
+    "authorizes_training"
+  ],
+  "title": "Classification V2 release-authority preflight",
+  "type": "object"
+}

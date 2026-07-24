@@ -1,0 +1,108 @@
+{
+  "check_count": 14,
+  "checks": [
+    {
+      "actual": "43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777",
+      "check_id": "dictionary_order",
+      "expected": "43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777",
+      "pass": true
+    },
+    {
+      "actual": "43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777",
+      "check_id": "json_whitespace",
+      "expected": "43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777",
+      "pass": true
+    },
+    {
+      "actual": "015abd7f5cc57a2dd94b7590f04ad8084273905ee33ec5cebeae62276a97f862",
+      "check_id": "generated_timestamp_excluded",
+      "expected": "015abd7f5cc57a2dd94b7590f04ad8084273905ee33ec5cebeae62276a97f862",
+      "pass": true
+    },
+    {
+      "actual": true,
+      "check_id": "threshold_sensitivity",
+      "expected": true,
+      "pass": true
+    },
+    {
+      "actual": true,
+      "check_id": "ordered_schema_sensitivity",
+      "expected": true,
+      "pass": true
+    },
+    {
+      "actual": "afaf2cabf00a04dd174cd5faa826419ec1af063596de08767e4af14e068faccb",
+      "check_id": "unordered_set_stability",
+      "expected": "afaf2cabf00a04dd174cd5faa826419ec1af063596de08767e4af14e068faccb",
+      "pass": true
+    },
+    {
+      "actual": [
+        "frame_local",
+        "hidden",
+        "temporal",
+        "native",
+        "tensor",
+        "split",
+        "release"
+      ],
+      "check_id": "dependency_closure",
+      "expected": [
+        "frame_local",
+        "hidden",
+        "temporal",
+        "native",
+        "tensor",
+        "split",
+        "release"
+      ],
+      "pass": true
+    },
+    {
+      "actual": "frame_local",
+      "check_id": "earliest_multiple_changes",
+      "expected": "frame_local",
+      "pass": true
+    },
+    {
+      "actual": true,
+      "check_id": "model_only_preserves_upstream",
+      "expected": true,
+      "pass": true
+    },
+    {
+      "actual": "EXACT_CARRY_FORWARD_CANDIDATE",
+      "check_id": "exact_carry_forward",
+      "expected": "EXACT_CARRY_FORWARD_CANDIDATE",
+      "pass": true
+    },
+    {
+      "actual": "REQUIRES_HUMAN_REVALIDATION",
+      "check_id": "changed_visual_revalidation",
+      "expected": "REQUIRES_HUMAN_REVALIDATION",
+      "pass": true
+    },
+    {
+      "actual": "OLD_ONLY_AUDIT_EVIDENCE",
+      "check_id": "old_only_audit",
+      "expected": "OLD_ONLY_AUDIT_EVIDENCE",
+      "pass": true
+    },
+    {
+      "actual": "NEW_ONLY_REQUIRES_REVIEW",
+      "check_id": "new_only_review",
+      "expected": "NEW_ONLY_REQUIRES_REVIEW",
+      "pass": true
+    },
+    {
+      "actual": false,
+      "check_id": "unsigned_release_fail_closed",
+      "expected": false,
+      "pass": true
+    }
+  ],
+  "imports_production_lineage_code": false,
+  "pass": true,
+  "verifier": "phase4_independent_reference_verifier"
+}

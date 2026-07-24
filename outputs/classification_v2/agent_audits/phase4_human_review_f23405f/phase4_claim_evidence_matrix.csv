@@ -1,0 +1,11 @@
+claim,status,evidence
+SEMANTIC_HASH_TESTS_PASS,PASS,focused tests and independent verifier
+STAGE_CODE_HASH_TESTS_PASS,PASS,mapped production-blob tests
+DEPENDENCY_GRAPH_PASS,PASS,17-stage graph validator
+INVALIDATION_GOLDEN_CASES_PASS,PASS,golden invalidation CSV
+CURRENT_REBUILD_START_PASS,PASS,current rebuild plan JSON
+ARTIFACT_MANIFEST_GATES_PASS,PASS,manifest and promotion tests
+HUMAN_DECISION_CARRY_FORWARD_GATES_PASS,PASS,exact-authority carry-forward tests
+RELEASE_AUTHORITY_NEGATIVE_GATES_PASS,PASS,unsigned and invalid-prerequisite tests
+INDEPENDENT_REFERENCE_PASS,PASS,reference verification JSON
+HUMAN_REVIEW_PACK_COMPLETE,PASS,18 required files

@@ -1,0 +1,1048 @@
+{
+  "canonicalization_version": "classification_v2.canonical_json.v1",
+  "semantic_bundle": {
+    "semantic_bundle_hash": "4e2f03edd7b685d0fc7811027fa787ef0a2903d7c865f4bdafd22565cebb0a4b",
+    "semantic_bundle_id": "bundle.classification_v2.phase1_4",
+    "semantic_bundle_version": "classification_v2.semantic_bundle.v4",
+    "semantic_domain_hashes": {
+      "semantic.behavior_decision_application": "84f92d9ba15cc55c00c7d7f921f86abfa396a0cae19ee2ad5118e2d51eb292ff",
+      "semantic.behavior_review_units": "b4207ed7082a19021ed6984cc26432528dd2de9756145b153e34a4d1c28a64bb",
+      "semantic.final_view_windows": "1dbfb07d9d6aca5245defc9616efff043c5f17a2cde20ba2f6d63d2fa8718e7b",
+      "semantic.frame_local_geometry": "392c502696f687af0150d26238acbf66487aaca23d0ea65a647d6355d5a80573",
+      "semantic.hidden_decision_application": "d296b5b81499ac6af66c4a7c1aa754dd9c3085b1510e193b29fb82dc6875210d",
+      "semantic.hidden_selection": "af4e42136ffccd47163f94555fff64ac9681a284e22ceeda119cf3250cdb18d0",
+      "semantic.image_distance_metrics": "58d003f007c55d7b35bfaac409cc961b135cc7db0ac3f33419ce8f9deeb5e4aa",
+      "semantic.model_input_export": "4f97f01ce6f1ee8a415d4dd8e8dc43c5ecc21a7e7b3f98f0b22e8da1c9a8cbd4",
+      "semantic.motion_tensor_schema": "1dec3c97191e4c239430ae44814a1917d669878d21b569cc1e86a6e6829a21c7",
+      "semantic.native_temporal_pairs": "96d40f5343e8c69c2011a7733ead67d29ccc2bb05a3a612622f6f5d2b8ed00df",
+      "semantic.pig_strenet_evidence": "8c821f2615ce917ff906a9c5f2c8bf9b71715a42042f0a049fae9bd6c2380000",
+      "semantic.roi_computation_aggregation": "a7b866357b767a9539a7e143d36b3da268cd8061c964ddba8529982f4cddf14c",
+      "semantic.social_identity_tie_break": "acd459b4d2c6822569f712260a869538fd18a403c0f0158e68b04ac1b384632f",
+      "semantic.source_parsing_selection": "dd4759b70eafad04c4101efb6795b46483a5cf6772b7edc1172ad34d1c9ab6cb",
+      "semantic.split_leakage": "7a6e92983d931b5ec2d472cecc4adf586e4c878950c406cb24802b3ce9ce23a7",
+      "semantic.temporal_harmonization": "739642fe6e12491aca0323731044ccbc05fa04dd4e083e8b76fa0fd701645ac5",
+      "semantic.train_ready_release": "3698f8c09ddb9e829fc70f2e3ee8750e6116303120578678cae194160fa18544"
+    }
+  },
+  "semantic_domain_count": 17,
+  "semantic_domains": [
+    {
+      "authority_files": [
+        "docs/CLASSIFICATION_V2_DATA_REBUILD_AND_HUMAN_REVIEW_RUNBOOK.md",
+        "src/pig_behavior/classification_v2/merge_sources.py"
+      ],
+      "authority_symbols": [
+        "merge_frame_object_sources"
+      ],
+      "canonical_hash": "dd4759b70eafad04c4101efb6795b46483a5cf6772b7edc1172ad34d1c9ab6cb",
+      "canonical_payload": {
+        "authority_selection": "declared_source_allowlist_and_one_native_authority",
+        "positional_matching": false,
+        "stage_schema": "classification_v2.merged_frame_objects.v2"
+      },
+      "directly_affected_stages": [
+        "stage.legacy_cvat_source_merge"
+      ],
+      "human_decision_implications": [
+        "source identity change requires review-key revalidation"
+      ],
+      "notes": "Immutable source bytes are separate input authority.",
+      "semantic_domain_id": "semantic.source_parsing_selection",
+      "semantic_domain_version": "classification_v2.source_semantics.v4",
+      "transitively_affected_stages": [
+        "stage.legacy_cvat_source_merge",
+        "stage.frame_local_primitives",
+        "stage.hidden_review_design",
+        "stage.hidden_decision_migration",
+        "stage.hidden_gui",
+        "stage.hidden_coverage_scientific_gate",
+        "stage.hidden_apply",
+        "stage.temporal_harmonization",
+        "stage.native_review_evidence",
+        "stage.pig_strenet_evidence",
+        "stage.behavior_review_unit_construction",
+        "stage.behavior_gui",
+        "stage.behavior_decision_apply",
+        "stage.train_ready_export",
+        "stage.tensor_export",
+        "stage.model_input",
+        "stage.model_execution"
+      ]
+    },
+    {
+      "authority_files": [
+        "src/pig_behavior/classification_v2/features/frame_local.py",
+        "src/pig_behavior/classification_v2/features/geometry.py"
+      ],
+      "authority_symbols": [
+        "build_frame_local_primitives",
+        "build_geometry_features"
+      ],
+      "canonical_hash": "392c502696f687af0150d26238acbf66487aaca23d0ea65a647d6355d5a80573",
+      "canonical_payload": {
+        "coordinate_system": "image_pixel_and_axis_normalized",
+        "grain": "FRAME_LOCAL_PRIMITIVES",
+        "stage_schema": "classification_v2.frame_local_primitives.v2",
+        "temporal_features_forbidden": true
+      },
+      "directly_affected_stages": [
+        "stage.frame_local_primitives"
+      ],
+      "human_decision_implications": [
+        "visual crop authority must be revalidated"
+      ],
+      "notes": "Frame-local geometry contains no temporal pairing.",
+      "semantic_domain_id": "semantic.frame_local_geometry",
+      "semantic_domain_version": "classification_v2.geometry.v4",
+      "transitively_affected_stages": [
+        "stage.frame_local_primitives",
+        "stage.hidden_review_design",
+        "stage.hidden_decision_migration",
+        "stage.hidden_gui",
+        "stage.hidden_coverage_scientific_gate",
+        "stage.hidden_apply",
+        "stage.temporal_harmonization",
+        "stage.native_review_evidence",
+        "stage.pig_strenet_evidence",
+        "stage.behavior_review_unit_construction",
+        "stage.behavior_gui",
+        "stage.behavior_decision_apply",
+        "stage.train_ready_export",
+        "stage.tensor_export",
+        "stage.model_input",
+        "stage.model_execution"
+      ]
+    },
+    {
+      "authority_files": [
+        "src/pig_behavior/classification_v2/features/social.py",
+        "src/pig_behavior/classification_v2/features/spatial_semantics.py"
+      ],
+      "authority_symbols": [
+        "AXIS_DISTANCE_CONTRACT",
+        "DIAGONAL_DISTANCE_CONTRACT"
+      ],
+      "canonical_hash": "58d003f007c55d7b35bfaac409cc961b135cc7db0ac3f33419ce8f9deeb5e4aa",
+      "canonical_payload": {
+        "axis_formula": "sqrt((dx_px/W_px)^2+(dy_px/H_px)^2)",
+        "axis_metric_id": "image_axis_normalized_distance",
+        "axis_metric_version": "classification_v2.image_axis_normalized_distance.v1",
+        "diagonal_formula": "sqrt(dx_px^2+dy_px^2)/sqrt(W_px^2+H_px^2)",
+        "diagonal_metric_id": "image_diagonal_normalized_distance",
+        "diagonal_metric_version": "classification_v2.image_diagonal_normalized_distance.v1",
+        "physical_distance": false,
+        "social_threshold": {
+          "metric_id": "image_axis_normalized_distance",
+          "threshold_id": "social_near_distance_n_v1",
+          "units": "axis_normalized_image_distance",
+          "value": "0.08"
+        }
+      },
+      "directly_affected_stages": [
+        "stage.frame_local_primitives"
+      ],
+      "human_decision_implications": [
+        "distance-derived review sampling requires revalidation"
+      ],
+      "notes": "Neither image metric is a physical world distance.",
+      "semantic_domain_id": "semantic.image_distance_metrics",
+      "semantic_domain_version": "classification_v2.distance_metrics.v1",
+      "transitively_affected_stages": [
+        "stage.frame_local_primitives",
+        "stage.hidden_review_design",
+        "stage.hidden_decision_migration",
+        "stage.hidden_gui",
+        "stage.hidden_coverage_scientific_gate",
+        "stage.hidden_apply",
+        "stage.temporal_harmonization",
+        "stage.native_review_evidence",
+        "stage.pig_strenet_evidence",
+        "stage.behavior_review_unit_construction",
+        "stage.behavior_gui",
+        "stage.behavior_decision_apply",
+        "stage.train_ready_export",
+        "stage.tensor_export",
+        "stage.model_input",
+        "stage.model_execution"
+      ]
+    },
+    {
+      "authority_files": [
+        "src/pig_behavior/classification_v2/features/social.py",
+        "src/pig_behavior/classification_v2/features/spatial_semantics.py"
+      ],
+      "authority_symbols": [
+        "SOCIAL_TIE_BREAK_RULE",
+        "canonical_social_identity"
+      ],
+      "canonical_hash": "acd459b4d2c6822569f712260a869538fd18a403c0f0158e68b04ac1b384632f",
+      "canonical_payload": {
+        "identity_hierarchy": [
+          "object_track_key",
+          "scoped_track_id",
+          "scoped_object_id"
+        ],
+        "identity_version": "classification_v2.social_identity.v1",
+        "pig_id_role": "descriptive_metadata_only",
+        "self_neighbor_forbidden": true,
+        "tie_break_rule": "axis_distance_ascending_then_canonical_partner_key_ascending",
+        "tie_break_version": "classification_v2.social_tie_break.v1"
+      },
+      "directly_affected_stages": [
+        "stage.frame_local_primitives",
+        "stage.native_review_evidence"
+      ],
+      "human_decision_implications": [
+        "partner-derived review evidence requires revalidation"
+      ],
+      "notes": "Raw row order never resolves equal-distance ties.",
+      "semantic_domain_id": "semantic.social_identity_tie_break",
+      "semantic_domain_version": "classification_v2.social_semantics.v1",
+      "transitively_affected_stages": [
+        "stage.frame_local_primitives",
+        "stage.hidden_review_design",
+        "stage.hidden_decision_migration",
+        "stage.hidden_gui",
+        "stage.hidden_coverage_scientific_gate",
+        "stage.hidden_apply",
+        "stage.temporal_harmonization",
+        "stage.native_review_evidence",
+        "stage.pig_strenet_evidence",
+        "stage.behavior_review_unit_construction",
+        "stage.behavior_gui",
+        "stage.behavior_decision_apply",
+        "stage.train_ready_export",
+        "stage.tensor_export",
+        "stage.model_input",
+        "stage.model_execution"
+      ]
+    },
+    {
+      "authority_files": [
+        "src/pig_behavior/classification_v2/features/roi.py",
+        "src/pig_behavior/classification_v2/features/spatial_semantics.py",
+        "src/pig_behavior/classification_v2/features/spatiotemporal.py"
+      ],
+      "authority_symbols": [
+        "ROI_AGGREGATION_VERSION",
+        "build_roi_features"
+      ],
+      "canonical_hash": "a7b866357b767a9539a7e143d36b3da268cd8061c964ddba8529982f4cddf14c",
+      "canonical_payload": {
+        "aggregation_version": "classification_v2.roi_aggregation.available_frames.v1",
+        "contact_denominator": "roi_available_frames",
+        "target_roi_model_eligible": false,
+        "target_roi_policy_version": "classification_v2.target_roi_model_forbidden.v1",
+        "zero_available_behavior": "unavailable_with_mask_false"
+      },
+      "directly_affected_stages": [
+        "stage.frame_local_primitives",
+        "stage.native_review_evidence"
+      ],
+      "human_decision_implications": [
+        "ROI-dependent review evidence requires revalidation"
+      ],
+      "notes": "Label-selected target ROI remains model-forbidden.",
+      "semantic_domain_id": "semantic.roi_computation_aggregation",
+      "semantic_domain_version": "classification_v2.roi_semantics.v4",
+      "transitively_affected_stages": [
+        "stage.frame_local_primitives",
+        "stage.hidden_review_design",
+        "stage.hidden_decision_migration",
+        "stage.hidden_gui",
+        "stage.hidden_coverage_scientific_gate",
+        "stage.hidden_apply",
+        "stage.temporal_harmonization",
+        "stage.native_review_evidence",
+        "stage.pig_strenet_evidence",
+        "stage.behavior_review_unit_construction",
+        "stage.behavior_gui",
+        "stage.behavior_decision_apply",
+        "stage.train_ready_export",
+        "stage.tensor_export",
+        "stage.model_input",
+        "stage.model_execution"
+      ]
+    },
+    {
+      "authority_files": [
+        "src/pig_behavior/classification_v2/review/hidden_review_builder.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_science.py"
+      ],
+      "authority_symbols": [
+        "build_hidden_review_manifest",
+        "evaluate_hidden_scientific_gate"
+      ],
+      "canonical_hash": "af4e42136ffccd47163f94555fff64ac9681a284e22ceeda119cf3250cdb18d0",
+      "canonical_payload": {
+        "adjacent_frame_delta": 1,
+        "behavior_target_in_risk": false,
+        "cohorts": [
+          "census",
+          "target_independent_high_risk",
+          "stratified_random",
+          "clean_control"
+        ],
+        "manifest_schema": "classification_v2.hidden_review_manifest.v2"
+      },
+      "directly_affected_stages": [
+        "stage.hidden_review_design",
+        "stage.hidden_gui",
+        "stage.hidden_coverage_scientific_gate"
+      ],
+      "human_decision_implications": [
+        "exact media-bound carry-forward only"
+      ],
+      "notes": "Selection changes do not auto-delete human decisions.",
+      "semantic_domain_id": "semantic.hidden_selection",
+      "semantic_domain_version": "classification_v2.hidden_selection.v4",
+      "transitively_affected_stages": [
+        "stage.hidden_review_design",
+        "stage.hidden_decision_migration",
+        "stage.hidden_gui",
+        "stage.hidden_coverage_scientific_gate",
+        "stage.hidden_apply",
+        "stage.temporal_harmonization",
+        "stage.native_review_evidence",
+        "stage.pig_strenet_evidence",
+        "stage.behavior_review_unit_construction",
+        "stage.behavior_gui",
+        "stage.behavior_decision_apply",
+        "stage.train_ready_export",
+        "stage.tensor_export",
+        "stage.model_input",
+        "stage.model_execution"
+      ]
+    },
+    {
+      "authority_files": [
+        "src/pig_behavior/classification_v2/review/hidden_review_builder.py",
+        "src/pig_behavior/classification_v2/review/hidden_review_migration.py"
+      ],
+      "authority_symbols": [
+        "apply_hidden_review_decisions",
+        "carry_forward_hidden_review_decisions"
+      ],
+      "canonical_hash": "d296b5b81499ac6af66c4a7c1aa754dd9c3085b1510e193b29fb82dc6875210d",
+      "canonical_payload": {
+        "apply_schema": "classification_v2.hidden_apply.v2",
+        "carry_forward_version": "classification_v2.hidden_decision_carry_forward.v4",
+        "matching": "stable_key_and_invariant_media_identity",
+        "positional_matching": false,
+        "row_preserving": true
+      },
+      "directly_affected_stages": [
+        "stage.hidden_decision_migration",
+        "stage.hidden_apply"
+      ],
+      "human_decision_implications": [
+        "changed media or span requires human revalidation"
+      ],
+      "notes": "Human payload is not regenerated automatically.",
+      "semantic_domain_id": "semantic.hidden_decision_application",
+      "semantic_domain_version": "classification_v2.hidden_apply.v4",
+      "transitively_affected_stages": [
+        "stage.hidden_decision_migration",
+        "stage.hidden_gui",
+        "stage.hidden_coverage_scientific_gate",
+        "stage.hidden_apply",
+        "stage.temporal_harmonization",
+        "stage.native_review_evidence",
+        "stage.pig_strenet_evidence",
+        "stage.behavior_review_unit_construction",
+        "stage.behavior_gui",
+        "stage.behavior_decision_apply",
+        "stage.train_ready_export",
+        "stage.tensor_export",
+        "stage.model_input",
+        "stage.model_execution"
+      ]
+    },
+    {
+      "authority_files": [
+        "src/pig_behavior/classification_v2/features/temporal_harmonization.py",
+        "src/pig_behavior/classification_v2/sources/temporal_provenance.py"
+      ],
+      "authority_symbols": [
+        "apply_source_frame_clock",
+        "harmonize_temporal_labels"
+      ],
+      "canonical_hash": "739642fe6e12491aca0323731044ccbc05fa04dd4e083e8b76fa0fd701645ac5",
+      "canonical_payload": {
+        "cvat_frames_per_unit": 6,
+        "legacy_frames_per_unit": 16,
+        "pair_reset_key": "temporal_unit_key",
+        "source_safe_timing": true,
+        "stage_schema": "classification_v2.temporal_harmonization.v2"
+      },
+      "directly_affected_stages": [
+        "stage.temporal_harmonization"
+      ],
+      "human_decision_implications": [
+        "behavior span identity must be revalidated"
+      ],
+      "notes": "No pair crosses a temporal unit.",
+      "semantic_domain_id": "semantic.temporal_harmonization",
+      "semantic_domain_version": "classification_v2.temporal_harmonization.v4",
+      "transitively_affected_stages": [
+        "stage.temporal_harmonization",
+        "stage.native_review_evidence",
+        "stage.pig_strenet_evidence",
+        "stage.behavior_review_unit_construction",
+        "stage.behavior_gui",
+        "stage.behavior_decision_apply",
+        "stage.train_ready_export",
+        "stage.tensor_export",
+        "stage.model_input",
+        "stage.model_execution"
+      ]
+    },
+    {
+      "authority_files": [
+        "src/pig_behavior/classification_v2/features/native_evidence_contract.py",
+        "src/pig_behavior/classification_v2/features/spatiotemporal.py"
+      ],
+      "authority_symbols": [
+        "_add_temporal_deltas",
+        "check_native_review_evidence"
+      ],
+      "canonical_hash": "96d40f5343e8c69c2011a7733ead67d29ccc2bb05a3a612622f6f5d2b8ed00df",
+      "canonical_payload": {
+        "aggregate_denominator": "valid_pairs_only",
+        "feature_computation_grain": "NATIVE_UNIT_REVIEW_EVIDENCE",
+        "invalid_pair_is_measured_zero": false,
+        "pair_scope_key": "temporal_unit_key",
+        "valid_pair_requires": [
+          "previous_observation",
+          "same_temporal_unit_key",
+          "same_canonical_actor",
+          "valid_previous_geometry",
+          "valid_current_geometry",
+          "finite_positive_delta_t",
+          "monotonic_timestamp"
+        ]
+      },
+      "directly_affected_stages": [
+        "stage.native_review_evidence"
+      ],
+      "human_decision_implications": [
+        "native evidence and behavior review units become stale"
+      ],
+      "notes": "Phase 1 temporal-pair contract is frozen.",
+      "semantic_domain_id": "semantic.native_temporal_pairs",
+      "semantic_domain_version": "classification_v2.native_review_evidence.v2",
+      "transitively_affected_stages": [
+        "stage.native_review_evidence",
+        "stage.pig_strenet_evidence",
+        "stage.behavior_review_unit_construction",
+        "stage.behavior_gui",
+        "stage.behavior_decision_apply",
+        "stage.train_ready_export",
+        "stage.tensor_export",
+        "stage.model_input",
+        "stage.model_execution"
+      ]
+    },
+    {
+      "authority_files": [
+        "docs/classification_v2/scientific_contract_v1/05_tensor_schema_manifest.json",
+        "src/pig_behavior/classification_v2/features/motion_schema.py"
+      ],
+      "authority_symbols": [
+        "MOTION_FEATURE_NAMES",
+        "MOTION_SCHEMA_HASH"
+      ],
+      "canonical_hash": "1dec3c97191e4c239430ae44814a1917d669878d21b569cc1e86a6e6829a21c7",
+      "canonical_payload": {
+        "acceleration_time": "centered_interval_average_velocity_midpoints",
+        "dimension": 12,
+        "ordered_feature_names": [
+          "vx_n_per_second",
+          "vy_n_per_second",
+          "bw_rate_n_per_second",
+          "bh_rate_n_per_second",
+          "area_rate_n_per_second",
+          "aspect_ratio_rate_per_second",
+          "speed_n_per_second",
+          "direction_change_rad",
+          "tangential_acceleration_n_per_second2",
+          "ax_n_per_second2",
+          "ay_n_per_second2",
+          "acceleration_vector_magnitude_n_per_second2"
+        ],
+        "schema_hash": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b",
+        "schema_id": "schema.pig_strenet_motion_v2",
+        "schema_version": "classification_v2.motion_tensor.v2",
+        "zero_speed_direction_available": false
+      },
+      "directly_affected_stages": [
+        "stage.native_review_evidence",
+        "stage.tensor_export"
+      ],
+      "human_decision_implications": [
+        "motion-derived review evidence requires revalidation"
+      ],
+      "notes": "Feature order is semantic and order-sensitive.",
+      "semantic_domain_id": "semantic.motion_tensor_schema",
+      "semantic_domain_version": "classification_v2.motion_tensor.v2",
+      "transitively_affected_stages": [
+        "stage.native_review_evidence",
+        "stage.pig_strenet_evidence",
+        "stage.behavior_review_unit_construction",
+        "stage.behavior_gui",
+        "stage.behavior_decision_apply",
+        "stage.train_ready_export",
+        "stage.tensor_export",
+        "stage.model_input",
+        "stage.model_execution"
+      ]
+    },
+    {
+      "authority_files": [
+        "src/pig_behavior/classification_v2/features/pig_strenet_artifacts.py"
+      ],
+      "authority_symbols": [
+        "build_pig_strenet_artifacts"
+      ],
+      "canonical_hash": "8c821f2615ce917ff906a9c5f2c8bf9b71715a42042f0a049fae9bd6c2380000",
+      "canonical_payload": {
+        "history_target_complete_required": true,
+        "join_key": "temporal_unit_key",
+        "pair_labels_ignored": true,
+        "stage_schema": "classification_v2.pig_strenet_artifacts.v1"
+      },
+      "directly_affected_stages": [
+        "stage.pig_strenet_evidence"
+      ],
+      "human_decision_implications": [
+        "downstream behavior review evidence becomes stale"
+      ],
+      "notes": "Pre-motion-fix evidence is not reusable.",
+      "semantic_domain_id": "semantic.pig_strenet_evidence",
+      "semantic_domain_version": "classification_v2.pig_strenet.v4",
+      "transitively_affected_stages": [
+        "stage.pig_strenet_evidence",
+        "stage.behavior_review_unit_construction",
+        "stage.behavior_gui",
+        "stage.behavior_decision_apply",
+        "stage.train_ready_export",
+        "stage.tensor_export",
+        "stage.model_input",
+        "stage.model_execution"
+      ]
+    },
+    {
+      "authority_files": [
+        "src/pig_behavior/classification_v2/review/review_unit_builder.py"
+      ],
+      "authority_symbols": [
+        "build_review_units"
+      ],
+      "canonical_hash": "b4207ed7082a19021ed6984cc26432528dd2de9756145b153e34a4d1c28a64bb",
+      "canonical_payload": {
+        "native_unit_key": "temporal_unit_key",
+        "review_fields_model_forbidden": true,
+        "stage_schema": "classification_v2.behavior_review_unit.v2",
+        "unit_key": "review_unit_id"
+      },
+      "directly_affected_stages": [
+        "stage.behavior_review_unit_construction",
+        "stage.behavior_gui"
+      ],
+      "human_decision_implications": [
+        "exact review-unit/media carry-forward only"
+      ],
+      "notes": "Review selection is not model input.",
+      "semantic_domain_id": "semantic.behavior_review_units",
+      "semantic_domain_version": "classification_v2.behavior_review_units.v4",
+      "transitively_affected_stages": [
+        "stage.behavior_review_unit_construction",
+        "stage.behavior_gui",
+        "stage.behavior_decision_apply",
+        "stage.train_ready_export",
+        "stage.tensor_export",
+        "stage.model_input",
+        "stage.model_execution"
+      ]
+    },
+    {
+      "authority_files": [
+        "scripts/classification_v2/01_review_units_gui/classification_v2_apply_review_unit_decisions.py"
+      ],
+      "authority_symbols": [
+        "main"
+      ],
+      "canonical_hash": "84f92d9ba15cc55c00c7d7f921f86abfa396a0cae19ee2ad5118e2d51eb292ff",
+      "canonical_payload": {
+        "carry_forward_version": "classification_v2.behavior_decision_carry_forward.v4",
+        "matching": "stable_review_unit_and_media_authority",
+        "positional_matching": false,
+        "row_preserving": true,
+        "stage_schema": "classification_v2.behavior_apply.v2"
+      },
+      "directly_affected_stages": [
+        "stage.behavior_decision_apply"
+      ],
+      "human_decision_implications": [
+        "changed unit or media requires human revalidation"
+      ],
+      "notes": "New-only units are never auto-accepted.",
+      "semantic_domain_id": "semantic.behavior_decision_application",
+      "semantic_domain_version": "classification_v2.behavior_apply.v4",
+      "transitively_affected_stages": [
+        "stage.behavior_decision_apply",
+        "stage.train_ready_export",
+        "stage.tensor_export",
+        "stage.model_input",
+        "stage.model_execution"
+      ]
+    },
+    {
+      "authority_files": [
+        "scripts/classification_v2/00_source_feature_temporal/classification_v2_build_sequence_windows.py",
+        "src/pig_behavior/classification_v2/train_ready_features.py"
+      ],
+      "authority_symbols": [
+        "build_train_ready_window_tables",
+        "main"
+      ],
+      "canonical_hash": "1dbfb07d9d6aca5245defc9616efff043c5f17a2cde20ba2f6d63d2fa8718e7b",
+      "canonical_payload": {
+        "pair_features_recomputed_per_view": true,
+        "pair_reset_key": "window_id",
+        "stage_schema": "classification_v2.train_ready.v2",
+        "views": [
+          "T6",
+          "T8",
+          "T12",
+          "T16",
+          "S6@16"
+        ]
+      },
+      "directly_affected_stages": [
+        "stage.train_ready_export"
+      ],
+      "human_decision_implications": [
+        "reviewed frames remain evidence; windows must rebuild"
+      ],
+      "notes": "Window order and offsets are semantic.",
+      "semantic_domain_id": "semantic.final_view_windows",
+      "semantic_domain_version": "classification_v2.final_views.v4",
+      "transitively_affected_stages": [
+        "stage.train_ready_export",
+        "stage.tensor_export",
+        "stage.model_input",
+        "stage.model_execution"
+      ]
+    },
+    {
+      "authority_files": [
+        "src/pig_behavior/classification_v2/contracts/model_input_manifest.py",
+        "src/pig_behavior/classification_v2/spatial_sequence_export.py"
+      ],
+      "authority_symbols": [
+        "build_model_input_manifest",
+        "export_spatial_sequences"
+      ],
+      "canonical_hash": "4f97f01ce6f1ee8a415d4dd8e8dc43c5ecc21a7e7b3f98f0b22e8da1c9a8cbd4",
+      "canonical_payload": {
+        "explicit_whitelist_only": true,
+        "forbidden_columns_fail_closed": true,
+        "model_input_stage_schema": "classification_v2.model_input_manifest.v2",
+        "motion_schema_hash": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b",
+        "motion_schema_id": "schema.pig_strenet_motion_v2",
+        "tensor_stage_schema": "classification_v2.spatial_sequence.current_unhashed"
+      },
+      "directly_affected_stages": [
+        "stage.tensor_export",
+        "stage.model_input"
+      ],
+      "human_decision_implications": [
+        "no direct invalidation of reviewed frame authority"
+      ],
+      "notes": "Exporter-only changes do not invalidate frame data.",
+      "semantic_domain_id": "semantic.model_input_export",
+      "semantic_domain_version": "classification_v2.model_export.v4",
+      "transitively_affected_stages": [
+        "stage.tensor_export",
+        "stage.model_input",
+        "stage.model_execution"
+      ]
+    },
+    {
+      "authority_files": [
+        "src/pig_behavior/classification_v2/contracts/model_input_manifest.py",
+        "src/pig_behavior/classification_v2/train_ready_features.py"
+      ],
+      "authority_symbols": [
+        "build_model_input_manifest",
+        "select_window_feature_columns"
+      ],
+      "canonical_hash": "7a6e92983d931b5ec2d472cecc4adf586e4c878950c406cb24802b3ce9ce23a7",
+      "canonical_payload": {
+        "fold_local_fit": true,
+        "frame_random_split": false,
+        "grouping": [
+          "recording_date",
+          "session",
+          "video",
+          "temporal_unit_key"
+        ],
+        "review_fields_model_forbidden": true,
+        "target_roi_model_forbidden": true
+      },
+      "directly_affected_stages": [
+        "stage.model_input"
+      ],
+      "human_decision_implications": [
+        "no review decision invalidation"
+      ],
+      "notes": "Split changes invalidate model input and execution.",
+      "semantic_domain_id": "semantic.split_leakage",
+      "semantic_domain_version": "classification_v2.split_leakage.v4",
+      "transitively_affected_stages": [
+        "stage.model_input",
+        "stage.model_execution"
+      ]
+    },
+    {
+      "authority_files": [
+        "docs/CLASSIFICATION_V2_DATA_REBUILD_AND_HUMAN_REVIEW_RUNBOOK.md",
+        "src/pig_behavior/classification_v2/contracts/semantic_lineage.py"
+      ],
+      "authority_symbols": [
+        "build_release_authority_preflight",
+        "validate_artifact_manifest"
+      ],
+      "canonical_hash": "3698f8c09ddb9e829fc70f2e3ee8750e6116303120578678cae194160fa18544",
+      "canonical_payload": {
+        "artifact_manifest_version": "classification_v2.artifact_manifest.v4",
+        "manifest_promoted_last": true,
+        "output_without_manifest_authoritative": false,
+        "release_schema_version": "classification_v2.release_authority_preflight.v4",
+        "unsigned_phase4_authorizes_rebuild": false
+      },
+      "directly_affected_stages": [
+        "stage.model_input",
+        "stage.model_execution"
+      ],
+      "human_decision_implications": [
+        "human sign-off is prerequisite, never inferred"
+      ],
+      "notes": "Phase 4 audit evidence is non-official.",
+      "semantic_domain_id": "semantic.train_ready_release",
+      "semantic_domain_version": "classification_v2.train_ready_release.v4",
+      "transitively_affected_stages": [
+        "stage.model_input",
+        "stage.model_execution"
+      ]
+    }
+  ],
+  "semantic_registry_version": "classification_v2.semantic_domains.v4",
+  "stage_authorities": {
+    "stage_authority_registry_version": "classification_v2.stage_authorities.v4",
+    "stages": [
+      {
+        "input_artifact_fingerprints": {
+          "artifact.source_annotations": "b47d87f5f0b8f061aa9151f58c8a1c27a6fe755f17aeb7d6b5d02ebb9a107cd1"
+        },
+        "production_code_files": [
+          "src/pig_behavior/classification_v2/merge_sources.py"
+        ],
+        "schema_hashes": {
+          "contract_stage_schema_hash": "a52b9e2ac2c25fed1e7b046afa7897705df9371ec9aaf4449cb968e09d1cd9fe"
+        },
+        "stage_code_hash": "408385ecc57e7033339ae26df9d1b3011d8125cc7554fcd4c31a20d5339bedc1",
+        "stage_execution_fingerprint": "0c445fc3f3df4c9bf8154501cae0659623d221df34eacc886d5dba80225b6599",
+        "stage_id": "stage.legacy_cvat_source_merge",
+        "stage_input_fingerprint": "c4e5b0cca29e875b2b5e49ac6287a3e6f085d89ef1b170a39e16e8493fb38b61",
+        "stage_semantics_hash": "38d889f6634f5be9ebd7c8c184cb5ae5268bf64369ae7eb5fdd97b9269a97ff1",
+        "stage_version": "classification_v2.merged_frame_objects.v2"
+      },
+      {
+        "input_artifact_fingerprints": {
+          "artifact.merged_frame_objects": "e2d1026d9d64b94fd62b7249fd4f339d402763ff10da25e879143404babb23b7"
+        },
+        "production_code_files": [
+          "src/pig_behavior/classification_v2/features/frame_local.py"
+        ],
+        "schema_hashes": {
+          "contract_stage_schema_hash": "11ace09941b3f3506f2a34e3cf4ed746ba37c1c24265805122ca24cd4730c086"
+        },
+        "stage_code_hash": "e913e5c437353bb291aa73b6b363e0259017ce2498f4c4b245bc81debeca49fc",
+        "stage_execution_fingerprint": "d740f078427a2e6dd8db79600a781c570b240e212f5a7601d32c14b9c5d4795a",
+        "stage_id": "stage.frame_local_primitives",
+        "stage_input_fingerprint": "6ae8ee80c50a77783db7f8c010b72140674a520baf42ac3926c383796df7d42e",
+        "stage_semantics_hash": "f4e931fed16b9d76a45605fda9a4d718e300adebbd9773134100092c598f837c",
+        "stage_version": "classification_v2.frame_local_primitives.v2"
+      },
+      {
+        "input_artifact_fingerprints": {
+          "artifact.frame_local_primitives": "99dc4add6bdcd9634163d3cf974fbc605fdbce3e4ac3f7c109d03f4469b9674c"
+        },
+        "production_code_files": [
+          "src/pig_behavior/classification_v2/review/hidden_review_builder.py"
+        ],
+        "schema_hashes": {
+          "contract_stage_schema_hash": "0504fc1de41b01a50bb7581433b2a46dc18b39bc2c9cf5904fbb352884d47985"
+        },
+        "stage_code_hash": "94f3024e2838d615bd55920e86a7f129f2d658f4a81a487912dd6b16e0f7c25a",
+        "stage_execution_fingerprint": "f17463031b13a50c5f503e3c918cf808a7331bdefe1ae093a3b4a802a51e6a5a",
+        "stage_id": "stage.hidden_review_design",
+        "stage_input_fingerprint": "cba7da0cec01d0dfc43b3b6bb0ef3a7b88404e2a7ffe9c82fccc8c5a721bf7f6",
+        "stage_semantics_hash": "22f5ef2c2b84a58686dd5537c041eb9983e0ed1351d17bcf28a5dc558069f1b9",
+        "stage_version": "classification_v2.hidden_review_manifest.v2"
+      },
+      {
+        "input_artifact_fingerprints": {
+          "artifact.hidden_decisions": "8e49a39a8ecbf690795aa1c61cf12d32e6a7c98eb8edbba70f32b5523d1cc75d",
+          "artifact.hidden_manifest": "44b5d882630eda7a5514ad4d600f351f509838e2deeffdeaa71ae969e7eb475f"
+        },
+        "production_code_files": [
+          "src/pig_behavior/classification_v2/review/hidden_review_migration.py"
+        ],
+        "schema_hashes": {
+          "contract_stage_schema_hash": "a28713d63f8c7bfd62a82fd5686c9addd010dbf6165a4cfa8ec02147661d961b"
+        },
+        "stage_code_hash": "5a336db5b2de0f72aca282eb9617a680b70279a830be62b7495bab70dc153ed4",
+        "stage_execution_fingerprint": "3abaacbc774c9d392116869f6de6a310d9c63e7920eb054ca8083db473b5b164",
+        "stage_id": "stage.hidden_decision_migration",
+        "stage_input_fingerprint": "35f5b88cf17db4e34090782889075daa9196339a0352254d80e0f65a9d9568f9",
+        "stage_semantics_hash": "70684fe6d24e0f502e0b17e76f9137f074e4d0c088d2056a61d8afe2c9546e50",
+        "stage_version": "classification_v2.hidden_decision_migration.v2"
+      },
+      {
+        "input_artifact_fingerprints": {
+          "artifact.hidden_manifest": "44b5d882630eda7a5514ad4d600f351f509838e2deeffdeaa71ae969e7eb475f"
+        },
+        "production_code_files": [
+          "scripts/classification_v2/01_review_units_gui/review_hidden_quality_gui.py"
+        ],
+        "schema_hashes": {
+          "contract_stage_schema_hash": "2de6910fb9563f7598f2a484431280e0f1197a01331c4f6699d49baa22f766f8"
+        },
+        "stage_code_hash": "542c2754d48f426263f008007cfd5bcbfddc3c08c455f51c095fdeadcbf30123",
+        "stage_execution_fingerprint": "c64c26ec89d15fb0fc4a715169fb29bc2808f8fd1ac4b96e3120d889e7977266",
+        "stage_id": "stage.hidden_gui",
+        "stage_input_fingerprint": "89330153cbf343c3a1f9fe63d39e3a26e8ed820b789b85057952d27915da3d04",
+        "stage_semantics_hash": "db2e34d9952f790a5099dca2195bfd49a771a94245361c320d4fb9d79e76de14",
+        "stage_version": "classification_v2.hidden_gui_decision.v2"
+      },
+      {
+        "input_artifact_fingerprints": {
+          "artifact.hidden_decisions": "8e49a39a8ecbf690795aa1c61cf12d32e6a7c98eb8edbba70f32b5523d1cc75d",
+          "artifact.hidden_manifest": "44b5d882630eda7a5514ad4d600f351f509838e2deeffdeaa71ae969e7eb475f"
+        },
+        "production_code_files": [
+          "src/pig_behavior/classification_v2/review/hidden_review_science.py"
+        ],
+        "schema_hashes": {
+          "contract_stage_schema_hash": "eaa45ae6d1d2b781ad3371f4455ce9165c9164b0ec9832f0cacd59b70b30c62a"
+        },
+        "stage_code_hash": "46ac2ae829303ba61f6179b7ff38bbf4810e3549f4a7924034eddfe2148edd4c",
+        "stage_execution_fingerprint": "8e0d271ec20bbb4d75c055848c443026f1e19aee6db8aba3ebbcf098b8aec019",
+        "stage_id": "stage.hidden_coverage_scientific_gate",
+        "stage_input_fingerprint": "35f5b88cf17db4e34090782889075daa9196339a0352254d80e0f65a9d9568f9",
+        "stage_semantics_hash": "4ef328148b9b1410915742239717f47bbb0f52085dd42bb4e728399095abdd54",
+        "stage_version": "classification_v2.hidden_scientific_gate.v2"
+      },
+      {
+        "input_artifact_fingerprints": {
+          "artifact.frame_local_primitives": "99dc4add6bdcd9634163d3cf974fbc605fdbce3e4ac3f7c109d03f4469b9674c",
+          "artifact.hidden_decisions": "5f62c42d891c2e1bcf85e2105fdc33101d41619881a84c746fbbc2b47cc3f49f"
+        },
+        "production_code_files": [
+          "src/pig_behavior/classification_v2/review/hidden_review_builder.py"
+        ],
+        "schema_hashes": {
+          "contract_stage_schema_hash": "cc720b1489b13f4956db558e067a1986e9e8961aaa563997095c3dd61dbab978"
+        },
+        "stage_code_hash": "579453db6dd29b4d94140c1dc5fc2171bf6e6b4967a3eac30e654470dd75e889",
+        "stage_execution_fingerprint": "5a660187b0de639b59ccf759686e93d7ede33263c3eed13f56c8aca44d70ad16",
+        "stage_id": "stage.hidden_apply",
+        "stage_input_fingerprint": "5dc041bf51cdb2908562fd0b825facc94d89481c8cbf155623f74acf8937cf10",
+        "stage_semantics_hash": "7a9e7f6e0d180b4aabf1bf68b1517e243817173ea127d8441debd9e0c8f6db25",
+        "stage_version": "classification_v2.hidden_apply.v2"
+      },
+      {
+        "input_artifact_fingerprints": {
+          "artifact.hidden_reviewed_frames": "1f1158f5caad0ee65de88c0eb464675c00bfcb6d12e60332273f3ac3e6f307ee"
+        },
+        "production_code_files": [
+          "src/pig_behavior/classification_v2/features/temporal_harmonization.py"
+        ],
+        "schema_hashes": {
+          "contract_stage_schema_hash": "364173977d9707909e3e84299ff394c5963277cbdf48cf770b3265800566836f"
+        },
+        "stage_code_hash": "fcb9a64f21e566af20a82e6427a018af97c8c4ff10fb1a1941722c01ccf0e927",
+        "stage_execution_fingerprint": "b208bfcf8079d11b5084322e700bb85717130795fbe5b6ad5bdb18f00070b9a2",
+        "stage_id": "stage.temporal_harmonization",
+        "stage_input_fingerprint": "53f7271870c1a556035f1c53432fd95bb628a8def2b95324c9677de99cee8950",
+        "stage_semantics_hash": "a4b157090e7aef011926c02004034932d6808c8b4c93bd563fe59d5f2cfba7bd",
+        "stage_version": "classification_v2.temporal_harmonization.v2"
+      },
+      {
+        "input_artifact_fingerprints": {
+          "artifact.harmonized_frames": "67ee95dae958ee7557b01eead6d0aef966ddd877be902376fa66f7eebfa4fe1d"
+        },
+        "production_code_files": [
+          "src/pig_behavior/classification_v2/features/native_evidence_contract.py",
+          "src/pig_behavior/classification_v2/features/spatiotemporal.py"
+        ],
+        "schema_hashes": {
+          "contract_stage_schema_hash": "7aa8a4bcb35be58f3399527f18cbb7d69677a2793e8c6577976c79947fb6d1ba",
+          "motion_schema_hash": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b"
+        },
+        "stage_code_hash": "2ce77208c38f06b64e49c735eb057b54abefd22f7232b7e3f83ced3758f20d01",
+        "stage_execution_fingerprint": "31fc777f8c499ae1968e5316b3f7513e07a85e4591edec0d685d4c20fa54883b",
+        "stage_id": "stage.native_review_evidence",
+        "stage_input_fingerprint": "fcf57af04a72d5ab15c58102fd0542d3252fbcaeab9afe85302ebd302c441bdf",
+        "stage_semantics_hash": "331106007eb93ec2e4cb28b5544526702b66f32b050d25c48690b29a25e3ee8b",
+        "stage_version": "classification_v2.native_review_evidence.v2"
+      },
+      {
+        "input_artifact_fingerprints": {
+          "artifact.harmonized_frames": "67ee95dae958ee7557b01eead6d0aef966ddd877be902376fa66f7eebfa4fe1d",
+          "artifact.native_evidence": "4c0d41a48e6c79e1527120e7789c7143a0871185046be0761c9dedf976375c38"
+        },
+        "production_code_files": [
+          "src/pig_behavior/classification_v2/features/pig_strenet_artifacts.py"
+        ],
+        "schema_hashes": {
+          "contract_stage_schema_hash": "a4dd7a320cf1db845c5049161df3c4d99d1cfa0f354a46a875d4d152d6374fdb"
+        },
+        "stage_code_hash": "5fb3cbf8fcad71aa308679c85c030c82f4b52b430fa4f30af5c474dd2bd8e2ac",
+        "stage_execution_fingerprint": "d78c54e1a99cccb885374083fb90feccbb97f5f6de0375786abfe6dfb7b737c7",
+        "stage_id": "stage.pig_strenet_evidence",
+        "stage_input_fingerprint": "50b2fdd4b49dd831eac992135986787c104a3b12588b5f498d67df7c058126b9",
+        "stage_semantics_hash": "c8ee65287f3d10047600d8f24ef3e11cdd241bbcb6cb61a76f6e7b1640246f7c",
+        "stage_version": "classification_v2.pig_strenet_artifacts.v1"
+      },
+      {
+        "input_artifact_fingerprints": {
+          "artifact.pig_strenet": "a792b2a08d052e157a50504109518f2361d76e9796c1175d38302eb889c45d28",
+          "artifact.temporal_intervals": "0b22370110469f051b58d19bddb0c75899500831598d81ff544feb0afac212e5"
+        },
+        "production_code_files": [
+          "src/pig_behavior/classification_v2/review/review_unit_builder.py"
+        ],
+        "schema_hashes": {
+          "contract_stage_schema_hash": "300828816b830440c2e5e462f56e587a5d1615b79d602a5b3cec2aafeba32f5f"
+        },
+        "stage_code_hash": "50e244c0960efb1bbb6d0e1aca93997cdc6b06eb07556cbd0c312b2a3a1af414",
+        "stage_execution_fingerprint": "bafad5fcaa354c7cfbbdd78167bd54261168ad0c159869aef1f9ed62a2d135fe",
+        "stage_id": "stage.behavior_review_unit_construction",
+        "stage_input_fingerprint": "aa9e955bf23e91517a716eef7389818b342c860817b787f0f68cef86c6c23cee",
+        "stage_semantics_hash": "9734d2d456c122b15772ee82582fac49de22ba89ab30567b8a1a2a6b64e112e1",
+        "stage_version": "classification_v2.behavior_review_unit.v2"
+      },
+      {
+        "input_artifact_fingerprints": {
+          "artifact.behavior_review_units": "d63c7d9b6ba7e4bbca3d8c3e9a6b078d7d34570e65b72bf5eaceea4bbafebb8f"
+        },
+        "production_code_files": [
+          "scripts/classification_v2/01_review_units_gui/review_temporal_unit_gui.py"
+        ],
+        "schema_hashes": {
+          "contract_stage_schema_hash": "f05a7fba9a9df76b2eaf8746f327d74a46e6b98771a4b079b3d88a401684b558"
+        },
+        "stage_code_hash": "45633b9dd5cf6b841ef84208e9944123692878e0e4d9e4ed459c0d66c3659bc9",
+        "stage_execution_fingerprint": "c729643f1e496965ac12e5f1351c98bc22c37c9eca8004a0eaeef947371d1980",
+        "stage_id": "stage.behavior_gui",
+        "stage_input_fingerprint": "dab2cbdc1f9c5b699b3397c1dcf8fc03fcf04e3efd540d2d8471136476872516",
+        "stage_semantics_hash": "b52746a8192cefe06869780f58e93b4d5e1609eb163b332b3cbefd0a0577b1e8",
+        "stage_version": "classification_v2.behavior_gui_decision.v2"
+      },
+      {
+        "input_artifact_fingerprints": {
+          "artifact.behavior_decisions": "fb5d7aae8c46a4f26a9c968d3ad031ca8528748b8e1ad195fb02dfd33bb1d3f1",
+          "artifact.harmonized_frames": "67ee95dae958ee7557b01eead6d0aef966ddd877be902376fa66f7eebfa4fe1d"
+        },
+        "production_code_files": [
+          "scripts/classification_v2/01_review_units_gui/classification_v2_apply_review_unit_decisions.py"
+        ],
+        "schema_hashes": {
+          "contract_stage_schema_hash": "27835ad28ff0a365b0acaa48c927759c8c051a6f73809af394e294df42aad0e9"
+        },
+        "stage_code_hash": "544cf59948e1ba9c22d880c6afa7abac8eaf9c5e70eeba99feb7f30ac066b2a0",
+        "stage_execution_fingerprint": "3c36f5e2b0217e5ff1f0a49b331662de918ef508b46cf30f6f39d21b5f90fe4a",
+        "stage_id": "stage.behavior_decision_apply",
+        "stage_input_fingerprint": "c09d12c8387a82fe0202fa339adc21e0f486afd2bc53afc05b94f1c14817d803",
+        "stage_semantics_hash": "5e2015d735541fd2a25ba96c234a42cc1d77ec88feb1d6e4476a2a77bce87d8d",
+        "stage_version": "classification_v2.behavior_apply.v2"
+      },
+      {
+        "input_artifact_fingerprints": {
+          "artifact.reviewed_frames": "eecd81a79f72966757dc4667adf06ddc2f93bf5dd8bbaab5169d85e1ed6db5e9"
+        },
+        "production_code_files": [
+          "src/pig_behavior/classification_v2/train_ready_features.py"
+        ],
+        "schema_hashes": {
+          "contract_stage_schema_hash": "2fafec74a1684bfaad632dfd44de35d93364a4e5149036c3882a6ce38f767d55"
+        },
+        "stage_code_hash": "f6cd73281990a1ec0c5d7ae85aab0444189b0c362e320fc389aadcc2296f2e52",
+        "stage_execution_fingerprint": "24136f5e2e06950f87fb693a71060a3aa19389bb447313f4a1487ba5554b3872",
+        "stage_id": "stage.train_ready_export",
+        "stage_input_fingerprint": "d99169bb3774d5e9066ab0e84c650f69c2f6f6f449efbe514b36a50709a0a6bf",
+        "stage_semantics_hash": "535b196d68ab0c0b6b45b29df7f1227b0afc29aa87b7cc9119933f8ca6ae804b",
+        "stage_version": "classification_v2.train_ready.v2"
+      },
+      {
+        "input_artifact_fingerprints": {
+          "artifact.train_ready": "18f4c499f9649ce0b170756c0c6136e862e3c6657ed63096d979e87be98fec9a"
+        },
+        "production_code_files": [
+          "src/pig_behavior/classification_v2/spatial_sequence_export.py"
+        ],
+        "schema_hashes": {
+          "contract_stage_schema_hash": "6521b54d4eb62e7d01248196b1586dfb2e61cecb02a7d2b3c47872a81bb6b1de",
+          "motion_schema_hash": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b"
+        },
+        "stage_code_hash": "3b52cc2951814032ddecedb91103e2642d57c3a1eafdddc7c5a9dc98ba732c66",
+        "stage_execution_fingerprint": "8403e984fdaa36e304434633ef2eb5e0b5643d217966c0f663e539ab19e29077",
+        "stage_id": "stage.tensor_export",
+        "stage_input_fingerprint": "09676ad95eacc9031872354f71450e87d3b2baa3edc8243bbbe0cf4ae60eda30",
+        "stage_semantics_hash": "375e17a4c5ffd923bc801ee10d25605e408fc83e791502c961ee7c228d18f566",
+        "stage_version": "classification_v2.spatial_sequence.current_unhashed"
+      },
+      {
+        "input_artifact_fingerprints": {
+          "artifact.spatial_tensor": "af16bc79b4d35c018a88482d9dbd0106ef26fddc707cddb12e95a6b2c8769579",
+          "artifact.train_ready": "18f4c499f9649ce0b170756c0c6136e862e3c6657ed63096d979e87be98fec9a"
+        },
+        "production_code_files": [
+          "src/pig_behavior/classification_v2/contracts/model_input_manifest.py"
+        ],
+        "schema_hashes": {
+          "contract_stage_schema_hash": "30de5da7e1de3c1cfc61a17230aad90cfee58e2639b5e32d0058c2f2f6d9e19b",
+          "motion_schema_hash": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b"
+        },
+        "stage_code_hash": "a46022d47f7991b019b1eafbf1ce73098c8ad6e44e26854ba9b3e02d62a6b304",
+        "stage_execution_fingerprint": "0d9cb75fa2654a5e74bc56cc75f7e41859152f374d2a58687b82899705d9d2f5",
+        "stage_id": "stage.model_input",
+        "stage_input_fingerprint": "10de30c8e71c0c0c70db7baf0c916b5cea81bbfe251bbec6e64d37f64ab83a74",
+        "stage_semantics_hash": "7459bad3981431a91a733556fcfe8317cdce0d5305dc06c0c95a7f238d969578",
+        "stage_version": "classification_v2.model_input_manifest.v2"
+      },
+      {
+        "input_artifact_fingerprints": {
+          "artifact.model_input": "4199fc89a4a5f2ae3fcc4f8f527ff88405c73cf9f3237a40c09b8752270fb407"
+        },
+        "production_code_files": [
+          "src/pig_behavior/classification_v2/contracts/model_io.py"
+        ],
+        "schema_hashes": {
+          "contract_stage_schema_hash": "b78e4d3714f27a96d361100de2592b042bf5f9ff554cd7c573021c923ecbf34b",
+          "motion_schema_hash": "ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b"
+        },
+        "stage_code_hash": "7ff1081a940fd1af44517aa13c8454b0bdbdd72ce7678abdcde3a02f43fcfbcf",
+        "stage_execution_fingerprint": "a7f8c01929d56a6e5215f429b80d86773ae43d912c8effc40e59b62f5d5ceae1",
+        "stage_id": "stage.model_execution",
+        "stage_input_fingerprint": "bffe3923b5f269dd87ba486eab457347d498e5b271e828692c67ad94a4acbea7",
+        "stage_semantics_hash": "a245b944bfe6df85ffd973a1e1c45bb0c3f568446cb348cf85b5d8ca7bc51545",
+        "stage_version": "classification_v2.model_io.v2"
+      }
+    ]
+  }
+}

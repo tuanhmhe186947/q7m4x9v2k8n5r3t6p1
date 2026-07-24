@@ -1,0 +1,220 @@
+{
+  "$id": "schema.classification_v2.artifact_manifest.v4",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "artifact_class": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "artifact_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "artifact_manifest_version": {
+      "const": "classification_v2.artifact_manifest.v4"
+    },
+    "column_count": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "contract_manifest_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "created_by_code_authority_sha": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "distance_metric_ids": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "distance_metric_versions": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "feature_computation_grain": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "human_decision_authority": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "input_artifact_fingerprints": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "type": "object"
+    },
+    "input_artifact_ids": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "type": "array",
+      "uniqueItems": true
+    },
+    "input_file_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "motion_schema_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "motion_schema_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "motion_schema_version": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "output_file_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "output_schema_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "output_schema_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "output_schema_version": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "pair_scope_key": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "review_key_schema_version": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "roi_aggregation_version": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "row_count": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "semantic_bundle_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "social_identity_version": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "social_tie_break_version": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "stage_code_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "stage_execution_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "stage_id": {
+      "enum": [
+        "stage.legacy_cvat_source_merge",
+        "stage.frame_local_primitives",
+        "stage.hidden_review_design",
+        "stage.hidden_decision_migration",
+        "stage.hidden_gui",
+        "stage.hidden_coverage_scientific_gate",
+        "stage.hidden_apply",
+        "stage.temporal_harmonization",
+        "stage.native_review_evidence",
+        "stage.pig_strenet_evidence",
+        "stage.behavior_review_unit_construction",
+        "stage.behavior_gui",
+        "stage.behavior_decision_apply",
+        "stage.train_ready_export",
+        "stage.tensor_export",
+        "stage.model_input",
+        "stage.model_execution"
+      ]
+    },
+    "stage_semantics_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "stage_version": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "status": {
+      "const": "VALIDATED"
+    },
+    "validation_errors": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "validation_warnings": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "artifact_manifest_version",
+    "artifact_id",
+    "artifact_class",
+    "stage_id",
+    "stage_version",
+    "created_by_code_authority_sha",
+    "stage_code_hash",
+    "stage_semantics_hash",
+    "stage_execution_fingerprint",
+    "semantic_bundle_hash",
+    "contract_manifest_hash",
+    "input_artifact_ids",
+    "input_artifact_fingerprints",
+    "input_file_sha256",
+    "output_file_sha256",
+    "output_schema_id",
+    "output_schema_version",
+    "output_schema_hash",
+    "row_count",
+    "column_count",
+    "feature_computation_grain",
+    "pair_scope_key",
+    "distance_metric_ids",
+    "distance_metric_versions",
+    "social_identity_version",
+    "social_tie_break_version",
+    "roi_aggregation_version",
+    "motion_schema_id",
+    "motion_schema_version",
+    "motion_schema_hash",
+    "human_decision_authority",
+    "review_key_schema_version",
+    "status",
+    "validation_errors",
+    "validation_warnings"
+  ],
+  "title": "Classification V2 scientific artifact manifest",
+  "type": "object"
+}
