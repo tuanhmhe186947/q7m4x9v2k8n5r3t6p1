@@ -1,0 +1,196 @@
+{
+  "authority_version": "classification_v2.stage_runtime_code_authority.v1",
+  "dependency_mapping_role": "blank_symbol_stage_mapping_row",
+  "stage_runtime_dependency_files": {
+    "stage.behavior_decision_apply": [
+      "src/pig_behavior/classification_v2/__init__.py",
+      "src/pig_behavior/classification_v2/review/behavior_review_contract.py",
+      "src/pig_behavior/classification_v2/schema.py"
+    ],
+    "stage.behavior_gui": [
+      "src/pig_behavior/classification_v2/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/identifiers.py",
+      "src/pig_behavior/classification_v2/contracts/lineage_claims.py",
+      "src/pig_behavior/classification_v2/features/__init__.py",
+      "src/pig_behavior/classification_v2/features/context_policy.py",
+      "src/pig_behavior/classification_v2/features/geometry.py",
+      "src/pig_behavior/classification_v2/features/pen_context.py",
+      "src/pig_behavior/classification_v2/features/review_policy.py",
+      "src/pig_behavior/classification_v2/features/roi.py",
+      "src/pig_behavior/classification_v2/features/spatial_semantics.py",
+      "src/pig_behavior/classification_v2/review/behavior_review_contract.py",
+      "src/pig_behavior/classification_v2/schema.py"
+    ],
+    "stage.behavior_review_unit_construction": [
+      "src/pig_behavior/classification_v2/__init__.py",
+      "src/pig_behavior/classification_v2/review/behavior_evidence.py",
+      "src/pig_behavior/classification_v2/review/behavior_review_contract.py",
+      "src/pig_behavior/classification_v2/review/behavior_review_selection.py",
+      "src/pig_behavior/classification_v2/review/pig_strenet_review_evidence.py",
+      "src/pig_behavior/classification_v2/schema.py"
+    ],
+    "stage.frame_local_primitives": [
+      "src/pig_behavior/classification_v2/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/identifiers.py",
+      "src/pig_behavior/classification_v2/contracts/lineage_claims.py",
+      "src/pig_behavior/classification_v2/features/__init__.py",
+      "src/pig_behavior/classification_v2/features/context_policy.py",
+      "src/pig_behavior/classification_v2/features/geometry.py",
+      "src/pig_behavior/classification_v2/features/pen_context.py",
+      "src/pig_behavior/classification_v2/features/review_policy.py",
+      "src/pig_behavior/classification_v2/features/roi.py",
+      "src/pig_behavior/classification_v2/features/social.py",
+      "src/pig_behavior/classification_v2/features/spatial_semantics.py",
+      "src/pig_behavior/classification_v2/features/temporal_evidence.py",
+      "src/pig_behavior/classification_v2/features/temporal_harmonization.py",
+      "src/pig_behavior/classification_v2/schema.py",
+      "src/pig_behavior/classification_v2/sources/__init__.py",
+      "src/pig_behavior/classification_v2/sources/cvat_tracking_xml.py",
+      "src/pig_behavior/classification_v2/sources/legacy_recovered_csv.py",
+      "src/pig_behavior/classification_v2/sources/temporal_provenance.py"
+    ],
+    "stage.hidden_apply": [
+      "src/pig_behavior/classification_v2/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/identifiers.py",
+      "src/pig_behavior/classification_v2/review/hidden_review_identifiers.py",
+      "src/pig_behavior/classification_v2/schema.py"
+    ],
+    "stage.hidden_coverage_scientific_gate": [
+      "src/pig_behavior/classification_v2/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/identifiers.py",
+      "src/pig_behavior/classification_v2/review/hidden_review_builder.py",
+      "src/pig_behavior/classification_v2/review/hidden_review_identifiers.py",
+      "src/pig_behavior/classification_v2/schema.py"
+    ],
+    "stage.hidden_decision_migration": [
+      "src/pig_behavior/classification_v2/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/identifiers.py",
+      "src/pig_behavior/classification_v2/review/hidden_review_builder.py",
+      "src/pig_behavior/classification_v2/review/hidden_review_identifiers.py",
+      "src/pig_behavior/classification_v2/schema.py"
+    ],
+    "stage.hidden_gui": [
+      "src/pig_behavior/classification_v2/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/identifiers.py",
+      "src/pig_behavior/classification_v2/contracts/window_alignment.py",
+      "src/pig_behavior/classification_v2/datasets/__init__.py",
+      "src/pig_behavior/classification_v2/datasets/image_context_index.py",
+      "src/pig_behavior/classification_v2/review/hidden_review_builder.py",
+      "src/pig_behavior/classification_v2/review/hidden_review_identifiers.py",
+      "src/pig_behavior/classification_v2/schema.py"
+    ],
+    "stage.hidden_review_design": [
+      "src/pig_behavior/classification_v2/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/identifiers.py",
+      "src/pig_behavior/classification_v2/review/hidden_review_identifiers.py",
+      "src/pig_behavior/classification_v2/schema.py"
+    ],
+    "stage.legacy_cvat_source_merge": [
+      "src/pig_behavior/classification_v2/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/identifiers.py",
+      "src/pig_behavior/classification_v2/schema.py",
+      "src/pig_behavior/classification_v2/sources/__init__.py",
+      "src/pig_behavior/classification_v2/sources/cvat_tracking_xml.py",
+      "src/pig_behavior/classification_v2/sources/legacy_recovered_csv.py",
+      "src/pig_behavior/classification_v2/sources/temporal_provenance.py"
+    ],
+    "stage.model_execution": [
+      "src/pig_behavior/classification_v2/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/__init__.py",
+      "src/pig_behavior/classification_v2/schema.py"
+    ],
+    "stage.model_input": [
+      "src/pig_behavior/classification_v2/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/output_safety.py",
+      "src/pig_behavior/classification_v2/contracts/versioned_data_contract.py",
+      "src/pig_behavior/classification_v2/schema.py"
+    ],
+    "stage.native_review_evidence": [
+      "src/pig_behavior/classification_v2/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/identifiers.py",
+      "src/pig_behavior/classification_v2/contracts/lineage_claims.py",
+      "src/pig_behavior/classification_v2/features/__init__.py",
+      "src/pig_behavior/classification_v2/features/context_policy.py",
+      "src/pig_behavior/classification_v2/features/geometry.py",
+      "src/pig_behavior/classification_v2/features/motion_schema.py",
+      "src/pig_behavior/classification_v2/features/pen_context.py",
+      "src/pig_behavior/classification_v2/features/review_policy.py",
+      "src/pig_behavior/classification_v2/features/roi.py",
+      "src/pig_behavior/classification_v2/features/social.py",
+      "src/pig_behavior/classification_v2/features/spatial_semantics.py",
+      "src/pig_behavior/classification_v2/features/temporal_evidence.py",
+      "src/pig_behavior/classification_v2/schema.py"
+    ],
+    "stage.pig_strenet_evidence": [
+      "src/pig_behavior/classification_v2/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/identifiers.py",
+      "src/pig_behavior/classification_v2/contracts/lineage_claims.py",
+      "src/pig_behavior/classification_v2/features/__init__.py",
+      "src/pig_behavior/classification_v2/features/context_policy.py",
+      "src/pig_behavior/classification_v2/features/geometry.py",
+      "src/pig_behavior/classification_v2/features/pen_context.py",
+      "src/pig_behavior/classification_v2/features/review_policy.py",
+      "src/pig_behavior/classification_v2/features/roi.py",
+      "src/pig_behavior/classification_v2/features/spatial_semantics.py",
+      "src/pig_behavior/classification_v2/features/temporal_evidence.py",
+      "src/pig_behavior/classification_v2/schema.py"
+    ],
+    "stage.temporal_harmonization": [
+      "src/pig_behavior/classification_v2/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/identifiers.py",
+      "src/pig_behavior/classification_v2/contracts/lineage_claims.py",
+      "src/pig_behavior/classification_v2/features/__init__.py",
+      "src/pig_behavior/classification_v2/features/context_policy.py",
+      "src/pig_behavior/classification_v2/features/geometry.py",
+      "src/pig_behavior/classification_v2/features/pen_context.py",
+      "src/pig_behavior/classification_v2/features/review_policy.py",
+      "src/pig_behavior/classification_v2/features/roi.py",
+      "src/pig_behavior/classification_v2/features/spatial_semantics.py",
+      "src/pig_behavior/classification_v2/features/temporal_evidence.py",
+      "src/pig_behavior/classification_v2/schema.py"
+    ],
+    "stage.tensor_export": [
+      "src/pig_behavior/classification_v2/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/identifiers.py",
+      "src/pig_behavior/classification_v2/contracts/lineage_claims.py",
+      "src/pig_behavior/classification_v2/contracts/window_alignment.py",
+      "src/pig_behavior/classification_v2/features/__init__.py",
+      "src/pig_behavior/classification_v2/features/context_policy.py",
+      "src/pig_behavior/classification_v2/features/geometry.py",
+      "src/pig_behavior/classification_v2/features/motion_schema.py",
+      "src/pig_behavior/classification_v2/features/pen_context.py",
+      "src/pig_behavior/classification_v2/features/review_policy.py",
+      "src/pig_behavior/classification_v2/features/roi.py",
+      "src/pig_behavior/classification_v2/features/spatial_semantics.py",
+      "src/pig_behavior/classification_v2/schema.py"
+    ],
+    "stage.train_ready_export": [
+      "src/pig_behavior/classification_v2/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/__init__.py",
+      "src/pig_behavior/classification_v2/contracts/identifiers.py",
+      "src/pig_behavior/classification_v2/contracts/lineage_claims.py",
+      "src/pig_behavior/classification_v2/features/__init__.py",
+      "src/pig_behavior/classification_v2/features/context_policy.py",
+      "src/pig_behavior/classification_v2/features/geometry.py",
+      "src/pig_behavior/classification_v2/features/pen_context.py",
+      "src/pig_behavior/classification_v2/features/review_policy.py",
+      "src/pig_behavior/classification_v2/features/roi.py",
+      "src/pig_behavior/classification_v2/features/spatial_semantics.py",
+      "src/pig_behavior/classification_v2/features/temporal_evidence.py",
+      "src/pig_behavior/classification_v2/schema.py"
+    ]
+  }
+}

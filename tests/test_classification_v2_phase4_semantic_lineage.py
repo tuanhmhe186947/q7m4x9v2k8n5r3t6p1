@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import csv
 import json
 from decimal import Decimal
 from pathlib import Path
@@ -13,6 +14,7 @@ from pig_behavior.classification_v2.contracts.semantic_lineage import (
     RELEASE_AUTHORIZATION_FIELDS,
     STAGE_DEPENDENCIES,
     artifact_manifest_json_schema,
+    audit_inventory_partition,
     build_authority_snapshot,
     build_release_authority_preflight,
     build_semantic_bundle,
@@ -21,6 +23,7 @@ from pig_behavior.classification_v2.contracts.semantic_lineage import (
     build_stage_dependency_graph,
     canonical_sha256,
     change_impact_registry,
+    classification_v2_inventory_scope,
     classify_existing_artifact,
     compute_earliest_rebuild_stage,
     compute_stage_code_hash,
@@ -30,6 +33,7 @@ from pig_behavior.classification_v2.contracts.semantic_lineage import (
     evaluate_hidden_decision_carry_forward,
     file_sha256,
     historical_pre_remediation_snapshot,
+    inventory_existing_artifacts,
     load_code_contract_mapping,
     load_scientific_contract,
     promote_artifact_transactionally,
@@ -281,6 +285,7 @@ def test_stage_code_hash_detects_only_mapped_production_blob(
             "contract_item_type": "stage",
             "contract_item_id": "stage.frame_local_primitives",
             "source_file": "src/producer.py",
+            "symbol": "VALUE",
         }
     ]
     original = compute_stage_code_hash(
@@ -574,6 +579,78 @@ def test_inventory_classifies_audits_and_missing_manifests(
     assert "NOT_REVIEW_EVIDENCE" in diagnostic["reason_codes"]
 
 
+def test_inventory_scope_is_fixed_and_excludes_only_declared_temp_artifacts(
+    tmp_path: Path,
+) -> None:
+    output_root = tmp_path / "outputs" / "classification_v2"
+    review_root = tmp_path / "human_review_workspace" / "classification_v2"
+    kept_output = output_root / "official.csv"
+    kept_review = review_root / "decision.csv"
+    pytest_temp = (
+        output_root
+        / "agent_audits"
+        / "audit"
+        / "pytest_tmp"
+        / "temporary.csv"
+    )
+    manifest = output_root / "official.csv.manifest.json"
+    outside = tmp_path / "other" / "not_scientific.csv"
+    for path in (kept_output, kept_review, pytest_temp, manifest, outside):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("x\n", encoding="utf-8")
+
+    records = inventory_existing_artifacts(
+        tmp_path,
+        current_stage_semantics={},
+        current_stage_code={},
+    )
+
+    assert {record["normalized_path"] for record in records} == {
+        "outputs/classification_v2/official.csv",
+        "human_review_workspace/classification_v2/decision.csv",
+    }
+    scope = classification_v2_inventory_scope()
+    assert scope["inventory_scope_id"] == (
+        "scope.classification_v2.scientific_artifacts"
+    )
+    assert scope["inventory_scope_version"] == (
+        "classification_v2.inventory_scope.v1"
+    )
+    partition = audit_inventory_partition(records)
+    assert partition["unclassified"] == 0
+    assert partition["overlap"] == 0
+    assert partition["duplicate_paths"] == 0
+    assert partition["valid"] is True
+
+
+def test_original_inventory_reconciles_to_exact_32_temp_paths() -> None:
+    original_path = (
+        REPO_ROOT
+        / "outputs"
+        / "classification_v2"
+        / "agent_audits"
+        / "phase4_human_review_b4f4eb3"
+        / "phase4_existing_artifact_inventory.csv"
+    )
+    with original_path.open(encoding="utf-8", newline="") as handle:
+        original = list(csv.DictReader(handle))
+    excluded = [
+        row
+        for row in original
+        if "/pytest_tmp/" in row["path"].replace("\\", "/")
+        or "/pytest_upstream_tmp/" in row["path"].replace("\\", "/")
+    ]
+    repaired = [row for row in original if row not in excluded]
+    assert len(original) == 4027
+    assert len(excluded) == 32
+    assert len(repaired) == 3995
+    assert all(
+        "/runbook_review_20260716_v1/"
+        in row["path"].replace("\\", "/")
+        for row in excluded
+    )
+
+
 def test_hidden_exact_carry_forward_and_visual_revalidation() -> None:
     exact = evaluate_hidden_decision_carry_forward(
         [_hidden_record()],
@@ -609,6 +686,14 @@ def test_hidden_old_new_conflict_and_invalid_schema() -> None:
         [_hidden_record()],
     )
     assert invalid[0]["classification"] == "INVALID_DECISION_SCHEMA"
+    incompatible = evaluate_hidden_decision_carry_forward(
+        [_hidden_record(decision_schema_version="decision.v0")],
+        [_hidden_record(decision_schema_version="decision.v1")],
+    )
+    assert incompatible[0]["classification"] == "INVALID_DECISION_SCHEMA"
+    assert incompatible[0]["reason_codes"] == [
+        "INCOMPATIBLE_DECISION_SCHEMA:decision.v0->decision.v1"
+    ]
 
 
 def test_behavior_stable_key_not_position_or_pig_id() -> None:
@@ -628,6 +713,22 @@ def test_behavior_stable_key_not_position_or_pig_id() -> None:
     contract = decision_carry_forward_contracts()
     assert "position" in contract["forbidden_matching"]
     assert contract["new_only_auto_accepted"] is False
+
+
+def test_behavior_incompatible_schema_is_invalid() -> None:
+    incompatible = evaluate_behavior_decision_carry_forward(
+        [_behavior_record(decision_schema_version="decision.v0")],
+        [_behavior_record(decision_schema_version="decision.v1")],
+    )
+    assert incompatible[0]["classification"] == "INVALID_DECISION_SCHEMA"
+    changed_semantics = evaluate_behavior_decision_carry_forward(
+        [_behavior_record()],
+        [_behavior_record(review_task_semantics_hash=HEX_B)],
+    )
+    assert (
+        changed_semantics[0]["classification"]
+        == "REQUIRES_HUMAN_REVALIDATION"
+    )
 
 
 @pytest.mark.parametrize(

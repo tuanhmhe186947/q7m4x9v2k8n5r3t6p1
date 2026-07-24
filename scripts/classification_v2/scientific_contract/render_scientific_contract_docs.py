@@ -576,6 +576,7 @@ def _mapping_rows(
     stages: list[dict[str, Any]],
     features: list[dict[str, Any]],
     invariants: list[dict[str, Any]],
+    runtime_code_authority: dict[str, Any],
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     stage_by_id = {stage["stage_id"]: stage for stage in stages}
@@ -652,6 +653,39 @@ def _mapping_rows(
                     "current_implementation_status": item[status_field],
                 }
             )
+    stage_ids = {str(stage["stage_id"]) for stage in stages}
+    runtime_files = runtime_code_authority.get(
+        "stage_runtime_dependency_files",
+        {},
+    )
+    if set(runtime_files) != stage_ids:
+        raise ValueError(
+            "runtime code authority stage IDs must exactly match contract "
+            f"stages: missing={sorted(stage_ids - set(runtime_files))}, "
+            f"unknown={sorted(set(runtime_files) - stage_ids)}"
+        )
+    for stage_id in sorted(runtime_files):
+        for source in sorted(set(runtime_files[stage_id])):
+            rows.append(
+                {
+                    "contract_item_id": stage_id,
+                    "contract_item_type": "stage",
+                    "source_file": source,
+                    "symbol": "",
+                    "line_range": "",
+                    "test_file": (
+                        "tests/test_classification_v2_phase4_"
+                        "runtime_dependencies.py"
+                    ),
+                    "test_name": "",
+                    "audit_output": (
+                        "phase4_runtime_dependency_completeness.json"
+                    ),
+                    "current_implementation_status": (
+                        "IMPLEMENTED_AND_TESTED"
+                    ),
+                }
+            )
     return rows
 
 
@@ -722,6 +756,12 @@ def render_payloads(
         "audit_output",
         "current_implementation_status",
     ]
+    runtime_authority_path = (
+        contract_path.parent / "stage_runtime_code_authority.json"
+    )
+    runtime_code_authority = json.loads(
+        runtime_authority_path.read_text(encoding="utf-8")
+    )
     payloads = {
         "README.md": _readme(contract, stages, features, invariants),
         "01_pipeline_dataflow.md": _dataflow_md(stages, primary_schema),
@@ -769,7 +809,13 @@ def render_payloads(
         ),
         "09_golden_numeric_cases.md": _golden_md(cases),
         "10_code_contract_mapping.csv": _csv_text(
-            _mapping_rows(project_root, stages, features, invariants),
+            _mapping_rows(
+                project_root,
+                stages,
+                features,
+                invariants,
+                runtime_code_authority,
+            ),
             mapping_fields,
         ),
         "11_known_gaps_and_risks.csv": _csv_text(
@@ -801,6 +847,7 @@ def write_payloads(
             path.write_text(text, encoding="utf-8", newline="\n")
     manifest_names = [
         "00_pipeline_contract.yaml",
+        "stage_runtime_code_authority.json",
         *sorted(payloads),
     ]
     manifest = (

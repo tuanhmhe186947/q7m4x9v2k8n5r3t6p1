@@ -3,9 +3,9 @@
   "contract_version": "classification_v2.scientific_contract.v1.0.0",
   "generated_files": [
     {
-      "bytes": 200670,
+      "bytes": 203394,
       "path": "00_pipeline_contract.yaml",
-      "sha256": "e1d03dd104048b2905628d537ad6c6d0ed4315a88385a0ba060a0637175a04a0"
+      "sha256": "b9403e10405b0f1828b5ea923d97c01b52458f6d4e9a84c540d1b38e43c8ba36"
     },
     {
       "bytes": 8925,
@@ -28,9 +28,9 @@
       "sha256": "028f49c7ec27134f76a5998a583a3266f3c0ab87d89422fd844dacbac617df89"
     },
     {
-      "bytes": 18130,
+      "bytes": 19633,
       "path": "04_invariant_gate_matrix.csv",
-      "sha256": "5ee5af225965926c5debcfa637e68d8e715aff6a6d81fa4fcf81c70010f1ba95"
+      "sha256": "5b95bf2b0f3fc45fc8f04439481436da28999df7709a562a841fc660d6890acf"
     },
     {
       "bytes": 2079,
@@ -58,9 +58,9 @@
       "sha256": "7350cc60671fcfd08a2b8772f9b85787e5324630e0e6674e7d4f098fab4cc8c4"
     },
     {
-      "bytes": 29998,
+      "bytes": 64777,
       "path": "10_code_contract_mapping.csv",
-      "sha256": "580d17f7f1ead3f14818389ab4f815f49f04e6d32b4deba836bda40bd1c65b8a"
+      "sha256": "8acf7a6ac5fc9175a9bc7c8dd7e27ccad1714238c2a0ccd68c879489e198987b"
     },
     {
       "bytes": 7873,
@@ -80,7 +80,12 @@
     {
       "bytes": 1291,
       "path": "README.md",
-      "sha256": "61c875bd363ae3b5c82c1547920abff4a65cc04af5c76b69ae65fd54c1bbd99b"
+      "sha256": "c2f49230c727cceb8291410e91b4822e3571725f14e706f38173d9cccc024084"
+    },
+    {
+      "bytes": 11294,
+      "path": "stage_runtime_code_authority.json",
+      "sha256": "eb58281905e6605750d929851c243d048821910daf02d8a5b16ba43a563d995e"
     }
   ],
   "manifest_schema_version": "classification_v2.scientific_contract_manifest.v1",

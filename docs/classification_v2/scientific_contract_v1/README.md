@@ -9,7 +9,7 @@ library. Derived Markdown, CSV and JSON files are deterministic.
 
 - Pipeline stages: 17
 - Feature semantics: 73
-- Invariants: 28
+- Invariants: 29
 - Golden numerical cases: 25
 - Model schemas: 1
 - Contract version: `classification_v2.scientific_contract.v1.0.0`

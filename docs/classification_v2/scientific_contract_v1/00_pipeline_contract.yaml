@@ -22,6 +22,7 @@
       "11_known_gaps_and_risks.csv",
       "12_change_impact_checklist.md",
       "13_independent_review_report.md",
+      "stage_runtime_code_authority.json",
       "contract_manifest.json"
     ]
   },
@@ -2273,6 +2274,40 @@
       "implementation_status": "IMPLEMENTED_AND_TESTED"
     },
     {
+      "invariant_id": "invariant.stage_runtime_code_authority_complete",
+      "stage_id": [
+        "stage.legacy_cvat_source_merge",
+        "stage.frame_local_primitives",
+        "stage.hidden_review_design",
+        "stage.hidden_decision_migration",
+        "stage.hidden_gui",
+        "stage.hidden_coverage_scientific_gate",
+        "stage.hidden_apply",
+        "stage.temporal_harmonization",
+        "stage.native_review_evidence",
+        "stage.pig_strenet_evidence",
+        "stage.behavior_review_unit_construction",
+        "stage.behavior_gui",
+        "stage.behavior_decision_apply",
+        "stage.train_ready_export",
+        "stage.tensor_export",
+        "stage.model_input",
+        "stage.model_execution"
+      ],
+      "invariant_description": "Every stage code hash covers the complete transitive local runtime dependency closure of its mapped production entry points.",
+      "scientific_reason": "Unhashed runtime production code can change artifact semantics without changing the stage execution fingerprint.",
+      "expected_condition": "all resolved local runtime dependencies are explicit stage code authority and unresolved local dynamic imports are absent",
+      "failure_condition": "missing entry point, production file, mapped dependency, or unresolved local dynamic import",
+      "audit_field": "phase4_runtime_dependency_completeness.json",
+      "unit_test": "tests/test_classification_v2_phase4_runtime_dependencies.py#test_dependency_mapping_mutation_gate_and_stage_hash",
+      "integration_test": "tests/test_classification_v2_phase4_runtime_dependencies.py#test_all_exact_contract_stages_have_complete_runtime_authority",
+      "code_locations": [
+        "src/pig_behavior/classification_v2/contracts/runtime_dependencies.py#audit_all_stage_runtime_dependencies",
+        "scripts/classification_v2/scientific_contract/check_stage_runtime_dependencies.py#main"
+      ],
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
+    },
+    {
       "invariant_id": "invariant.human_decision_carry_forward_exact_authority",
       "stage_id": ["stage.hidden_decision_migration", "stage.behavior_decision_apply"],
       "invariant_description": "Human decisions carry forward only by exact stable key and identical visual, identity and schema authority.",
@@ -3516,6 +3551,22 @@
     "phase4_human_signoff": false,
     "official_execution_authorized": false,
     "code_authority": "src/pig_behavior/classification_v2/contracts/semantic_lineage.py",
+    "runtime_dependency_authority": "stage_runtime_code_authority.json",
+    "runtime_dependency_closure_version": "classification_v2.runtime_dependency_closure.v1",
+    "inventory_scope_id": "scope.classification_v2.scientific_artifacts",
+    "inventory_scope_version": "classification_v2.inventory_scope.v1",
+    "inventory_included_roots": [
+      "outputs/classification_v2",
+      "human_review_workspace/classification_v2"
+    ],
+    "inventory_exclude_patterns": [
+      "**/.staging/**",
+      "**/*.staging",
+      "**/*.manifest.json",
+      "**/pytest_tmp/**",
+      "**/pytest_upstream_tmp/**"
+    ],
+    "incompatible_decision_schema_classification": "INVALID_DECISION_SCHEMA",
     "focused_tests": "tests/test_classification_v2_phase4_semantic_lineage.py"
   },
   "remediation_phases": [

@@ -14,9 +14,13 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
+from pig_behavior.classification_v2.contracts.runtime_dependencies import (
+    audit_all_stage_runtime_dependencies,
+)
 from pig_behavior.classification_v2.contracts.semantic_lineage import (
     RELEASE_AUTHORIZATION_FIELDS,
     artifact_manifest_json_schema,
+    audit_inventory_partition,
     build_authority_snapshot,
     build_release_authority_preflight,
     build_semantic_bundle,
@@ -24,8 +28,11 @@ from pig_behavior.classification_v2.contracts.semantic_lineage import (
     build_stage_authority_registry,
     build_stage_dependency_graph,
     change_impact_registry,
+    classification_v2_inventory_scope,
     compute_earliest_rebuild_stage,
     decision_carry_forward_contracts,
+    evaluate_behavior_decision_carry_forward,
+    evaluate_hidden_decision_carry_forward,
     file_sha256,
     historical_pre_remediation_snapshot,
     inventory_existing_artifacts,
@@ -53,6 +60,10 @@ REQUIRED_FILES = (
     "phase4_release_authority_preflight.json",
     "phase4_claim_evidence_matrix.csv",
     "phase4_human_review_checklist.md",
+    "phase4_runtime_dependency_completeness.json",
+    "phase4_inventory_scope.json",
+    "phase4_inventory_delta.csv",
+    "phase4_decision_schema_gate.json",
 )
 
 
@@ -87,6 +98,61 @@ def write_csv(
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
+
+
+def decision_schema_gate_cases() -> dict[str, Any]:
+    digest = "a" * 64
+    hidden = {
+        "review_key": "hidden:decision-schema-gate",
+        "source_key": "source",
+        "dataset_key": "dataset",
+        "video_key": "video",
+        "object_track_key": "track",
+        "frame_span_key": "1:5",
+        "visual_media_sha256": digest,
+        "crop_authority_sha256": digest,
+        "full_frame_authority_sha256": digest,
+        "review_schema_version": "review.v1",
+        "decision_schema_version": "decision.v1",
+        "decision": "ACCEPT",
+    }
+    behavior = {
+        "review_unit_key": "behavior:decision-schema-gate",
+        "canonical_actor_key": "actor",
+        "temporal_unit_key": "unit",
+        "frame_span_key": "1:5",
+        "original_label_authority_sha256": digest,
+        "visual_media_sha256": digest,
+        "review_task_semantics_hash": digest,
+        "review_schema_version": "review.v1",
+        "decision_schema_version": "decision.v1",
+        "decision": "ACCEPT",
+    }
+    hidden_old = {**hidden, "decision_schema_version": "decision.v0"}
+    behavior_old = {
+        **behavior,
+        "decision_schema_version": "decision.v0",
+    }
+    hidden_result = evaluate_hidden_decision_carry_forward(
+        [hidden_old],
+        [hidden],
+    )[0]
+    behavior_result = evaluate_behavior_decision_carry_forward(
+        [behavior_old],
+        [behavior],
+    )[0]
+    expected = "INVALID_DECISION_SCHEMA"
+    return {
+        "hidden_incompatible_schema": hidden_result,
+        "behavior_incompatible_schema": behavior_result,
+        "expected_classification": expected,
+        "status": (
+            "PASS"
+            if hidden_result["classification"] == expected
+            and behavior_result["classification"] == expected
+            else "FAIL"
+        ),
+    }
 
 
 def hash_cases() -> list[dict[str, Any]]:
@@ -336,6 +402,13 @@ def build(args: argparse.Namespace, staging: Path) -> None:
     mapping = load_code_contract_mapping(
         contract_dir / "10_code_contract_mapping.csv"
     )
+    runtime_dependency_audit = audit_all_stage_runtime_dependencies(
+        repo_root,
+        [str(stage["stage_id"]) for stage in contract["stages"]],
+        mapping,
+    )
+    if runtime_dependency_audit["status"] != "PASS":
+        raise RuntimeError("runtime dependency code authority is incomplete")
     stage_authority = build_stage_authority_registry(
         repo_root=repo_root,
         contract=contract,
@@ -356,7 +429,7 @@ def build(args: argparse.Namespace, staging: Path) -> None:
         for stage in stage_authority["stages"]
     }
     inventory = inventory_existing_artifacts(
-        args.inventory_root,
+        args.inventory_root or repo_root,
         current_stage_semantics=stage_semantics,
         current_stage_code=stage_code,
         max_files=args.max_inventory_files,
@@ -437,6 +510,28 @@ def build(args: argparse.Namespace, staging: Path) -> None:
         staging / "phase4_release_authority_preflight.json",
         release,
     )
+    write_json(
+        staging / "phase4_runtime_dependency_completeness.json",
+        runtime_dependency_audit,
+    )
+    inventory_scope = classification_v2_inventory_scope()
+    inventory_partition = audit_inventory_partition(inventory)
+    if not inventory_partition["valid"]:
+        raise RuntimeError("authoritative inventory partition is invalid")
+    write_json(
+        staging / "phase4_inventory_scope.json",
+        {
+            **inventory_scope,
+            "partition_audit": inventory_partition,
+        },
+    )
+    decision_schema_gate = decision_schema_gate_cases()
+    if decision_schema_gate["status"] != "PASS":
+        raise RuntimeError("decision-schema compatibility gate failed")
+    write_json(
+        staging / "phase4_decision_schema_gate.json",
+        decision_schema_gate,
+    )
     inventory_rows = [
         {
             **record,
@@ -447,6 +542,9 @@ def build(args: argparse.Namespace, staging: Path) -> None:
     inventory_fields = [
         "artifact_id",
         "path",
+        "normalized_path",
+        "inventory_scope_id",
+        "inventory_scope_version",
         "stage_id",
         "classification",
         "promotable",
@@ -466,6 +564,56 @@ def build(args: argparse.Namespace, staging: Path) -> None:
         staging / "phase4_stale_artifact_report.csv",
         stale,
         inventory_fields,
+    )
+    original_inventory_path = (
+        repo_root
+        / "outputs"
+        / "classification_v2"
+        / "agent_audits"
+        / "phase4_human_review_b4f4eb3"
+        / "phase4_existing_artifact_inventory.csv"
+    )
+    with original_inventory_path.open(encoding="utf-8", newline="") as handle:
+        original_rows = list(csv.DictReader(handle))
+    original_by_path = {row["path"]: row for row in original_rows}
+    current_by_path = {row["path"]: row for row in inventory_rows}
+    delta_rows = [
+        {
+            "path": path,
+            "delta_direction": "ORIGINAL_ONLY_EXCLUDED",
+            "original_classification": original_by_path[path][
+                "classification"
+            ],
+            "current_classification": "",
+            "explanation": (
+                "nested pytest temporary output excluded by fixed "
+                "Classification V2 inventory scope"
+            ),
+        }
+        for path in sorted(set(original_by_path) - set(current_by_path))
+    ]
+    delta_rows.extend(
+        {
+            "path": path,
+            "delta_direction": "CURRENT_ONLY_INCLUDED",
+            "original_classification": "",
+            "current_classification": current_by_path[path][
+                "classification"
+            ],
+            "explanation": "new item inside fixed authoritative scope",
+        }
+        for path in sorted(set(current_by_path) - set(original_by_path))
+    )
+    write_csv(
+        staging / "phase4_inventory_delta.csv",
+        delta_rows,
+        [
+            "path",
+            "delta_direction",
+            "original_classification",
+            "current_classification",
+            "explanation",
+        ],
     )
     verifier_source = (
         repo_root

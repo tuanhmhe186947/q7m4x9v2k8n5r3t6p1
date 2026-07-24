@@ -9,13 +9,16 @@ import math
 import os
 import re
 import tempfile
-from collections import defaultdict
+from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from pig_behavior.classification_v2.contracts.runtime_dependencies import (
+    assert_stage_runtime_dependencies_complete,
+)
 from pig_behavior.classification_v2.features.motion_schema import (
     MOTION_FEATURE_NAMES,
     MOTION_SCHEMA_HASH,
@@ -221,6 +224,20 @@ INVENTORY_STATUSES = frozenset(
         "HUMAN_DECISION_EVIDENCE",
         "UNKNOWN_NOT_PROMOTABLE",
     }
+)
+
+INVENTORY_SCOPE_ID = "scope.classification_v2.scientific_artifacts"
+INVENTORY_SCOPE_VERSION = "classification_v2.inventory_scope.v1"
+INVENTORY_INCLUDED_ROOTS = (
+    "outputs/classification_v2",
+    "human_review_workspace/classification_v2",
+)
+INVENTORY_EXCLUDE_PATTERNS = (
+    "**/.staging/**",
+    "**/*.staging",
+    "**/*.manifest.json",
+    "**/pytest_tmp/**",
+    "**/pytest_upstream_tmp/**",
 )
 
 DECISION_CLASSIFICATIONS = frozenset(
@@ -1241,6 +1258,11 @@ def compute_stage_code_hash(
 ) -> str:
     """Hash only production blobs mapped to one exact contract stage."""
 
+    assert_stage_runtime_dependencies_complete(
+        repo_root,
+        stage_id,
+        mapping_rows,
+    )
     overrides = file_overrides or {}
     blobs = []
     for relative in stage_code_files(stage_id, mapping_rows):
@@ -2134,28 +2156,100 @@ def classify_existing_artifact(
     }
 
 
+def classification_v2_inventory_scope() -> dict[str, Any]:
+    """Return the fixed Classification V2 scientific inventory boundary."""
+
+    return {
+        "inventory_scope_id": INVENTORY_SCOPE_ID,
+        "inventory_scope_version": INVENTORY_SCOPE_VERSION,
+        "included_roots": list(INVENTORY_INCLUDED_ROOTS),
+        "excluded_roots": [
+            "outputs/classification_v2/agent_audits/**/pytest_tmp",
+            "outputs/classification_v2/agent_audits/**/pytest_upstream_tmp",
+            "staging roots inside the included roots",
+        ],
+        "include_patterns": ["**/*"],
+        "exclude_patterns": list(INVENTORY_EXCLUDE_PATTERNS),
+        "path_normalization_rule": "repository-relative POSIX '/'",
+    }
+
+
+def _inventory_repository_root(
+    root_or_roots: Path | Sequence[Path],
+) -> Path:
+    if isinstance(root_or_roots, Path):
+        return root_or_roots.resolve()
+    roots = [path.resolve() for path in root_or_roots]
+    if not roots:
+        raise ValueError("authoritative inventory roots are required")
+    candidates: set[Path] = set()
+    for root in roots:
+        normalized = root.as_posix().casefold()
+        for included in INVENTORY_INCLUDED_ROOTS:
+            suffix = "/" + included.casefold()
+            if normalized.endswith(suffix):
+                candidates.add(root.parents[1])
+                break
+        else:
+            raise ValueError(f"inventory root outside authority scope: {root}")
+    if len(candidates) != 1:
+        raise ValueError("inventory roots do not share one repository root")
+    repository_root = next(iter(candidates))
+    expected = {
+        (repository_root / PurePosixPath(relative)).resolve()
+        for relative in INVENTORY_INCLUDED_ROOTS
+    }
+    if set(roots) != expected:
+        raise ValueError(
+            "inventory roots must exactly match authoritative included roots"
+        )
+    return repository_root
+
+
+def _inventory_path_excluded(relative: str) -> bool:
+    parts = PurePosixPath(relative).parts
+    lowered = tuple(part.casefold() for part in parts)
+    if any(
+        part in {
+            ".staging",
+            "pytest_tmp",
+            "pytest_upstream_tmp",
+        }
+        for part in lowered
+    ):
+        return True
+    name = lowered[-1] if lowered else ""
+    return name.endswith((".staging", ".manifest.json"))
+
+
 def inventory_existing_artifacts(
-    roots: Sequence[Path],
+    root_or_roots: Path | Sequence[Path],
     *,
     current_stage_semantics: Mapping[str, str],
     current_stage_code: Mapping[str, str],
     max_files: int = 10_000,
 ) -> list[dict[str, Any]]:
-    """Build a deterministic bounded, read-only artifact inventory."""
+    """Build the fixed-scope deterministic read-only artifact inventory."""
 
+    repository_root = _inventory_repository_root(root_or_roots)
     paths: list[Path] = []
-    for root in roots:
-        if root.is_file():
-            paths.append(root)
-        elif root.is_dir():
+    for relative_root in INVENTORY_INCLUDED_ROOTS:
+        root = repository_root / PurePosixPath(relative_root)
+        if root.is_dir():
             paths.extend(
                 path
                 for path in root.rglob("*")
                 if path.is_file()
-                and not path.name.endswith(".manifest.json")
-                and ".staging" not in path.name
+                and not _inventory_path_excluded(
+                    path.relative_to(repository_root).as_posix()
+                )
             )
-    paths = sorted(set(paths), key=lambda value: value.as_posix().casefold())
+    normalized_paths = [
+        path.relative_to(repository_root).as_posix() for path in paths
+    ]
+    if len(normalized_paths) != len(set(normalized_paths)):
+        raise ValueError("duplicate paths in authoritative inventory")
+    paths = sorted(paths, key=lambda value: value.as_posix().casefold())
     if len(paths) > max_files:
         raise ValueError(
             f"bounded inventory exceeded max_files={max_files}: {len(paths)}"
@@ -2174,11 +2268,49 @@ def inventory_existing_artifacts(
                     f"unmanifested:{path.as_posix()}",
                 ),
                 "path": path.as_posix(),
+                "normalized_path": path.relative_to(
+                    repository_root
+                ).as_posix(),
+                "inventory_scope_id": INVENTORY_SCOPE_ID,
+                "inventory_scope_version": INVENTORY_SCOPE_VERSION,
                 "stage_id": classification.get("stage_id"),
                 **classification,
             }
         )
     return records
+
+
+def audit_inventory_partition(
+    records: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """Verify one and only one top-level class per inventory path."""
+
+    normalized_paths = [
+        str(record.get("normalized_path", "")) for record in records
+    ]
+    duplicate_count = len(normalized_paths) - len(set(normalized_paths))
+    unclassified = sum(
+        str(record.get("classification", "")) not in INVENTORY_STATUSES
+        for record in records
+    )
+    overlap = sum(
+        isinstance(record.get("classification"), (list, tuple, set))
+        and len(record["classification"]) != 1
+        for record in records
+    )
+    counts = Counter(
+        str(record.get("classification", "")) for record in records
+    )
+    return {
+        "inventory_scope_id": INVENTORY_SCOPE_ID,
+        "inventory_scope_version": INVENTORY_SCOPE_VERSION,
+        "total": len(records),
+        "classification_counts": dict(sorted(counts.items())),
+        "unclassified": unclassified,
+        "overlap": overlap,
+        "duplicate_paths": duplicate_count,
+        "valid": not (unclassified or overlap or duplicate_count),
+    }
 
 
 def _group_by_stable_key(
@@ -2211,7 +2343,8 @@ def evaluate_decision_carry_forward(
     key_field: str,
     identity_fields: Sequence[str],
     authority_fields: Sequence[str],
-    schema_fields: Sequence[str],
+    review_schema_fields: Sequence[str],
+    decision_schema_field: str,
     decision_field: str,
 ) -> list[dict[str, Any]]:
     """Classify exact-key human-decision carry-forward eligibility."""
@@ -2240,6 +2373,10 @@ def evaluate_decision_carry_forward(
         else:
             old_record = old[0]
             new_record = new[0]
+            schema_fields = (
+                *review_schema_fields,
+                decision_schema_field,
+            )
             missing_schema = [
                 field
                 for field in schema_fields
@@ -2252,6 +2389,15 @@ def evaluate_decision_carry_forward(
                     f"MISSING_SCHEMA_AUTHORITY:{field}"
                     for field in missing_schema
                 ]
+            elif old_record.get(decision_schema_field) != new_record.get(
+                decision_schema_field
+            ):
+                classification = "INVALID_DECISION_SCHEMA"
+                reasons = [
+                    "INCOMPATIBLE_DECISION_SCHEMA:"
+                    f"{old_record.get(decision_schema_field)}->"
+                    f"{new_record.get(decision_schema_field)}"
+                ]
             else:
                 changed_identity = [
                     field
@@ -2260,7 +2406,7 @@ def evaluate_decision_carry_forward(
                 ]
                 changed_authority = [
                     field
-                    for field in (*authority_fields, *schema_fields)
+                    for field in (*authority_fields, *review_schema_fields)
                     if old_record.get(field) != new_record.get(field)
                 ]
                 if changed_identity or changed_authority:
@@ -2309,10 +2455,8 @@ def evaluate_hidden_decision_carry_forward(
             "crop_authority_sha256",
             "full_frame_authority_sha256",
         ),
-        schema_fields=(
-            "review_schema_version",
-            "decision_schema_version",
-        ),
+        review_schema_fields=("review_schema_version",),
+        decision_schema_field="decision_schema_version",
         decision_field="decision",
     )
 
@@ -2337,10 +2481,8 @@ def evaluate_behavior_decision_carry_forward(
             "visual_media_sha256",
             "review_task_semantics_hash",
         ),
-        schema_fields=(
-            "review_schema_version",
-            "decision_schema_version",
-        ),
+        review_schema_fields=("review_schema_version",),
+        decision_schema_field="decision_schema_version",
         decision_field="decision",
     )
 
