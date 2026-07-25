@@ -775,12 +775,16 @@ def _domain_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
     return [
         {
             "semantic_domain_id": "semantic.source_parsing_selection",
-            "semantic_domain_version": "classification_v2.source_semantics.v5",
+            "semantic_domain_version": "classification_v2.source_semantics.v6",
             "authority_files": [
                 "src/pig_behavior/classification_v2/merge_sources.py",
                 (
                     "src/pig_behavior/classification_v2/contracts/"
                     "identifiers.py"
+                ),
+                (
+                    "docs/classification_v2/scientific_contract_v1/"
+                    "00_pipeline_contract.yaml"
                 ),
                 "docs/CLASSIFICATION_V2_DATA_REBUILD_AND_HUMAN_REVIEW_RUNBOOK.md",
             ],
@@ -795,16 +799,9 @@ def _domain_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
                 "authority_selection": (
                     "declared_source_allowlist_and_one_native_authority"
                 ),
-                "object_track_key_authority": {
-                    "stage": "stage.legacy_cvat_source_merge",
-                    "hierarchy": [
-                        "existing_object_track_key",
-                        "source_dataset_video_scoped_track_id",
-                        "source_dataset_video_scoped_object_id",
-                    ],
-                    "pig_id_role": "descriptive_metadata_only",
-                    "row_position_allowed": False,
-                },
+                "object_track_key_authority": dict(
+                    contract["object_track_key_contract"]
+                ),
                 "positional_matching": False,
             },
             "directly_affected_stages": [

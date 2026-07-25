@@ -34,6 +34,7 @@ STAGE_FIELDS = [
     "output_grain",
     "grouping_keys",
     "canonical_identity_keys",
+    "identity_contract_ids",
     "pair_reset_key",
     "temporal_support",
     "required_columns",
@@ -817,6 +818,20 @@ def render_payloads(
                         "classification_v2.tensor_schema_manifest.v1"
                     ),
                     "schemas": schemas,
+                },
+                indent=2,
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+            + "\n"
+        ),
+        "14_object_track_key_contract.json": (
+            json.dumps(
+                {
+                    "manifest_schema_version": (
+                        "classification_v2.object_track_key_contract_manifest.v1"
+                    ),
+                    "contract": contract["object_track_key_contract"],
                 },
                 indent=2,
                 ensure_ascii=False,

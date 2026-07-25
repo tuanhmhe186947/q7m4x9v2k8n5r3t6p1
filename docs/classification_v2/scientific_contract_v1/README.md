@@ -12,7 +12,7 @@ library. Derived Markdown, CSV and JSON files are deterministic.
 - Invariants: 29
 - Golden numerical cases: 25
 - Model schemas: 1
-- Contract version: `classification_v2.scientific_contract.v1.0.0`
+- Contract version: `classification_v2.scientific_contract.v1.1.0`
 - Audited code SHA: `d925c9004e7aff5a3c8469b158d2428432c6031a`
 
 Dataset counts in the contract are instance evidence only; they

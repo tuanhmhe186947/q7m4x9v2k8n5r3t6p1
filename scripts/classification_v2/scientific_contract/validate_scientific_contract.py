@@ -29,6 +29,7 @@ REQUIRED_SECTIONS = {
     "contract_metadata",
     "status_vocabulary",
     "dataset_instance_evidence",
+    "object_track_key_contract",
     "artifacts",
     "stage_defaults",
     "stages",
@@ -96,6 +97,7 @@ STAGE_FIELDS = {
     "output_grain",
     "grouping_keys",
     "canonical_identity_keys",
+    "identity_contract_ids",
     "pair_reset_key",
     "temporal_support",
     "required_columns",
@@ -234,6 +236,132 @@ def _validate_status(
             errors.append(
                 f"{item.get(next(iter(item)), '<unknown>')}:invalid_status={value}"
             )
+
+
+def _object_track_key_contract_errors(
+    contract: dict[str, Any],
+    stages: list[dict[str, Any]],
+) -> list[str]:
+    errors: list[str] = []
+    identity = contract["object_track_key_contract"]
+    required_fields = {
+        "schema_id",
+        "schema_version",
+        "identity_scope_components",
+        "existing_key_field",
+        "identity_fallback_order",
+        "identity_discriminators",
+        "component_order",
+        "component_names",
+        "component_delimiter",
+        "name_value_delimiter",
+        "serialization_templates",
+        "escaping_policy",
+        "blank_policy",
+        "integer_string_policy",
+        "unicode_policy",
+        "pig_id_authoritative",
+        "row_order_authoritative",
+        "absolute_path_authoritative",
+        "random_value_authoritative",
+    }
+    if not isinstance(identity, dict):
+        return ["object_track_key_contract:not_mapping"]
+    missing = sorted(required_fields.difference(identity))
+    if missing:
+        errors.append(f"object_track_key_contract:missing_fields={missing}")
+        return errors
+    expected_values = {
+        "schema_id": "schema.classification_v2.object_track_key",
+        "schema_version": "classification_v2.object_track_key.v1",
+        "identity_scope_components": [
+            "source_type",
+            "dataset_id",
+            "video_key",
+        ],
+        "existing_key_field": "object_track_key",
+        "identity_fallback_order": [
+            "track_id",
+            "object_id_in_image",
+            "object_id",
+        ],
+        "identity_discriminators": {
+            "track_id": "track_id",
+            "object_id_in_image": "object_id",
+            "object_id": "object_id",
+        },
+        "component_order": ["source", "dataset", "video", "identity"],
+        "component_names": {
+            "source_type": "source",
+            "dataset_id": "dataset",
+            "video_key": "video",
+        },
+        "component_delimiter": "|",
+        "name_value_delimiter": "=",
+        "serialization_templates": {
+            "track_id": (
+                "source={source}|dataset={dataset}|video={video}|"
+                "track_id={value}"
+            ),
+            "object_id": (
+                "source={source}|dataset={dataset}|video={video}|"
+                "object_id={value}"
+            ),
+        },
+    }
+    for field, expected in expected_values.items():
+        if identity[field] != expected:
+            errors.append(
+                f"object_track_key_contract:{field}_mismatch"
+            )
+    escaping = identity["escaping_policy"]
+    if escaping != {
+        "algorithm": "RFC3986_PERCENT_ENCODING",
+        "encoding": "UTF-8",
+        "safe_characters": "-_.~",
+        "hex_case": "UPPER",
+    }:
+        errors.append("object_track_key_contract:escaping_policy_mismatch")
+    blank = identity["blank_policy"]
+    if blank != {
+        "normalization": "STRINGIFY_TRIM_UNICODE_WHITESPACE",
+        "null_tokens": ["", "nan", "None", "<NA>"],
+        "scope_components": "FAIL_CLOSED",
+        "identity_components": "FALL_THROUGH_THEN_FAIL_CLOSED",
+        "existing_key": "PRESERVE_AND_VALIDATE_WHEN_DERIVABLE",
+    }:
+        errors.append("object_track_key_contract:blank_policy_mismatch")
+    for field in (
+        "pig_id_authoritative",
+        "row_order_authoritative",
+        "absolute_path_authoritative",
+        "random_value_authoritative",
+    ):
+        if identity[field] is not False:
+            errors.append(f"object_track_key_contract:{field}_must_be_false")
+    schema_id = str(identity["schema_id"])
+    for stage in stages:
+        unknown = set(stage["identity_contract_ids"]) - {schema_id}
+        if unknown:
+            errors.append(
+                f"{stage['stage_id']}:unknown_identity_contracts="
+                f"{sorted(unknown)}"
+            )
+    required_stages = {
+        "stage.legacy_cvat_source_merge",
+        "stage.frame_local_primitives",
+    }
+    declared_stages = {
+        stage["stage_id"]
+        for stage in stages
+        if schema_id in stage["identity_contract_ids"]
+    }
+    if not required_stages.issubset(declared_stages):
+        errors.append(
+            "object_track_key_contract:missing_stage_bindings="
+            f"{sorted(required_stages - declared_stages)}"
+        )
+    return errors
 
 
 def _reference_errors(
@@ -761,6 +889,7 @@ def validate_contract(
     _validate_status(features, "implementation_status", errors)
     _validate_status(invariants, "implementation_status", errors)
     errors.extend(_reference_errors(contract, stages, features, invariants))
+    errors.extend(_object_track_key_contract_errors(contract, stages))
     errors.extend(_semantic_errors(features))
     errors.extend(_schema_errors(contract, features))
     errors.extend(_implemented_test_errors(stages, features, invariants))

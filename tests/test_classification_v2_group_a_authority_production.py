@@ -191,6 +191,14 @@ def test_frame_local_independent_checker_detects_content_drift(
     ]
     passed = subprocess.run(command, capture_output=True, text=True, check=False)
     assert passed.returncode == 0, passed.stderr
+    checker_payload = json.loads(
+        (tmp_path / "checker.json").read_text(encoding="utf-8")
+    )
+    key_check = checker_payload["object_track_key_check"]
+    assert key_check["rows_checked"] == 12
+    assert key_check["matches"] == 12
+    assert key_check["mismatches"] == 0
+    assert key_check["details"] == []
 
     drift = pd.read_csv(output_path, low_memory=False)
     drift.loc[0, "nearest_dist_n"] = 999.0

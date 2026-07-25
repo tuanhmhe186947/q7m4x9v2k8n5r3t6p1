@@ -1,0 +1,64 @@
+{
+  "contract": {
+    "absolute_path_authoritative": false,
+    "blank_policy": {
+      "existing_key": "PRESERVE_AND_VALIDATE_WHEN_DERIVABLE",
+      "identity_components": "FALL_THROUGH_THEN_FAIL_CLOSED",
+      "normalization": "STRINGIFY_TRIM_UNICODE_WHITESPACE",
+      "null_tokens": [
+        "",
+        "nan",
+        "None",
+        "<NA>"
+      ],
+      "scope_components": "FAIL_CLOSED"
+    },
+    "component_delimiter": "|",
+    "component_names": {
+      "dataset_id": "dataset",
+      "source_type": "source",
+      "video_key": "video"
+    },
+    "component_order": [
+      "source",
+      "dataset",
+      "video",
+      "identity"
+    ],
+    "escaping_policy": {
+      "algorithm": "RFC3986_PERCENT_ENCODING",
+      "encoding": "UTF-8",
+      "hex_case": "UPPER",
+      "safe_characters": "-_.~"
+    },
+    "existing_key_field": "object_track_key",
+    "identity_discriminators": {
+      "object_id": "object_id",
+      "object_id_in_image": "object_id",
+      "track_id": "track_id"
+    },
+    "identity_fallback_order": [
+      "track_id",
+      "object_id_in_image",
+      "object_id"
+    ],
+    "identity_scope_components": [
+      "source_type",
+      "dataset_id",
+      "video_key"
+    ],
+    "integer_string_policy": "EQUIVALENT_AFTER_STRINGIFY_AND_TRIM",
+    "name_value_delimiter": "=",
+    "pig_id_authoritative": false,
+    "random_value_authoritative": false,
+    "row_order_authoritative": false,
+    "schema_id": "schema.classification_v2.object_track_key",
+    "schema_version": "classification_v2.object_track_key.v1",
+    "serialization_templates": {
+      "object_id": "source={source}|dataset={dataset}|video={video}|object_id={value}",
+      "track_id": "source={source}|dataset={dataset}|video={video}|track_id={value}"
+    },
+    "unicode_policy": "UTF8_THEN_RFC3986_PERCENT_ENCODING"
+  },
+  "manifest_schema_version": "classification_v2.object_track_key_contract_manifest.v1"
+}

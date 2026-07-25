@@ -6,6 +6,8 @@ import argparse
 import io
 import json
 from pathlib import Path
+from typing import Any
+from urllib.parse import quote
 
 import numpy as np
 import pandas as pd
@@ -34,12 +36,21 @@ from pig_behavior.classification_v2.sources.temporal_provenance import (
 
 CVAT_STRUCTURAL_SOURCES = {"cvat_tracking_xml", "cvat_selected_native"}
 LEGACY_STRUCTURAL_SOURCE = "legacy_recovered"
+DEFAULT_CONTRACT_PATH = Path(
+    "docs/classification_v2/scientific_contract_v1/"
+    "00_pipeline_contract.yaml"
+)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-csv", required=True, type=Path)
     parser.add_argument("--frame-local-csv", required=True, type=Path)
+    parser.add_argument(
+        "--contract",
+        type=Path,
+        default=DEFAULT_CONTRACT_PATH,
+    )
     parser.add_argument("--roi-coco", required=True, type=Path)
     parser.add_argument("--pen-mask", required=True, type=Path)
     parser.add_argument(
@@ -55,11 +66,26 @@ def main() -> None:
     source = pd.read_csv(args.source_csv, low_memory=False)
     output = pd.read_csv(args.frame_local_csv, low_memory=False)
     audit = audit_frame_local_primitives(source, output)
+    object_track_key_contract = _load_object_track_key_contract(
+        args.contract
+    )
+    reference_keys = _reference_object_track_keys(
+        source.reset_index(drop=True),
+        object_track_key_contract,
+    )
+    key_check = _audit_object_track_keys(output, reference_keys)
+    audit["object_track_key_check"] = key_check
+    if key_check["mismatches"]:
+        audit["errors"].append(
+            "object_track_key_mismatch_rows="
+            f"{key_check['mismatches']}"
+        )
     expected = _independent_rebuild(
         source,
         roi_coco=args.roi_coco,
         pen_mask=args.pen_mask,
         expected_pen_mask_sha256=args.expected_pen_mask_sha256,
+        object_track_key_contract=object_track_key_contract,
     )
     expected = pd.read_csv(
         io.StringIO(expected.to_csv(index=False)),
@@ -109,12 +135,49 @@ def _read_json(path: Path) -> dict[str, object]:
     return payload
 
 
+def _load_object_track_key_contract(path: Path) -> dict[str, Any]:
+    payload = _read_json(path)
+    contract = payload.get("object_track_key_contract")
+    if not isinstance(contract, dict):
+        raise ValueError(
+            "missing object_track_key_contract in primary contract"
+        )
+    required = {
+        "schema_id",
+        "schema_version",
+        "identity_scope_components",
+        "existing_key_field",
+        "identity_fallback_order",
+        "identity_discriminators",
+        "component_order",
+        "component_names",
+        "component_delimiter",
+        "name_value_delimiter",
+        "serialization_templates",
+        "escaping_policy",
+        "blank_policy",
+        "pig_id_authoritative",
+        "row_order_authoritative",
+    }
+    missing = sorted(required.difference(contract))
+    if missing:
+        raise ValueError(
+            f"object_track_key_contract missing fields: {missing}"
+        )
+    if contract["pig_id_authoritative"] is not False:
+        raise ValueError("object_track_key_contract authorizes pig_id")
+    if contract["row_order_authoritative"] is not False:
+        raise ValueError("object_track_key_contract authorizes row order")
+    return contract
+
+
 def _independent_rebuild(
     source: pd.DataFrame,
     *,
     roi_coco: Path,
     pen_mask: Path,
     expected_pen_mask_sha256: str | None,
+    object_track_key_contract: dict[str, Any],
 ) -> pd.DataFrame:
     out = source.copy().reset_index(drop=True)
     out["source_row_ordinal"] = np.arange(len(out), dtype="int64")
@@ -127,25 +190,28 @@ def _independent_rebuild(
     )
     out = build_geometry_features(out)
     out = build_roi_features(out, roi_coco_path=roi_coco)
-    track_for_key = (
-        out["track_id"].fillna("").astype(str).replace("", pd.NA)
-        .fillna(out["pig_id"].fillna("").astype(str))
+    reference_keys = _reference_object_track_keys(
+        out,
+        object_track_key_contract,
     )
-    pig_for_key = (
-        out["pig_id"].fillna("").astype(str).replace("", pd.NA)
-        .fillna(out["track_id"].fillna("").astype(str))
-    )
-    out["object_track_key"] = (
-        out["source_type"].astype(str)
-        + "|"
-        + out["dataset_id"].astype(str)
-        + "|"
-        + out["video_key"].astype(str)
-        + "|track="
-        + track_for_key.astype(str)
-        + "|pig="
-        + pig_for_key.astype(str)
-    )
+    invalid = reference_keys["reason_code"].ne("OK")
+    if invalid.any():
+        details = reference_keys.loc[
+            invalid,
+            [
+                "row_authority_key",
+                "selected_identity_type",
+                "selected_identity_value",
+                "reason_code",
+            ],
+        ].to_dict(orient="records")
+        raise ValueError(
+            "object_track_key independent reconstruction failed: "
+            f"{details[:10]}"
+        )
+    out["object_track_key"] = reference_keys[
+        "expected_canonical_key"
+    ].to_numpy()
     frame_index = pd.to_numeric(out["frame_index"], errors="coerce")
     source_type = out["source_type"].fillna("").astype(str)
     cvat = source_type.isin(CVAT_STRUCTURAL_SOURCES)
@@ -176,6 +242,162 @@ def _independent_rebuild(
     out["feature_computation_grain"] = FRAME_LOCAL_GRAIN
     out["pair_scope_key"] = ""
     return out
+
+
+def _reference_object_track_keys(
+    rows: pd.DataFrame,
+    contract: dict[str, Any],
+) -> pd.DataFrame:
+    scope_fields = list(contract["identity_scope_components"])
+    component_names = dict(contract["component_names"])
+    fallback_order = list(contract["identity_fallback_order"])
+    discriminators = dict(contract["identity_discriminators"])
+    templates = dict(contract["serialization_templates"])
+    safe = str(contract["escaping_policy"]["safe_characters"])
+    existing_field = str(contract["existing_key_field"])
+
+    cleaned = {
+        field: _clean_reference_series(rows, field)
+        for field in {
+            *scope_fields,
+            *fallback_order,
+            existing_field,
+            "frame_uid",
+        }
+    }
+    records: list[dict[str, str]] = []
+    for position, index in enumerate(rows.index):
+        scope = {field: cleaned[field].loc[index] for field in scope_fields}
+        existing = cleaned[existing_field].loc[index]
+        selected_field = ""
+        selected_value = ""
+        for field in fallback_order:
+            value = cleaned[field].loc[index]
+            if value:
+                selected_field = field
+                selected_value = value
+                break
+        reason_code = "OK"
+        expected = ""
+        missing_scope = [
+            field for field in scope_fields if not scope[field]
+        ]
+        if missing_scope:
+            reason_code = "MISSING_SCOPE_AUTHORITY"
+        elif selected_field:
+            discriminator = str(discriminators[selected_field])
+            template = str(templates[discriminator])
+            escaped_scope = {
+                component_names[field]: quote(
+                    scope[field],
+                    safe=safe,
+                )
+                for field in scope_fields
+            }
+            expected = template.format(
+                **escaped_scope,
+                value=quote(selected_value, safe=safe),
+            )
+            if existing and existing != expected:
+                reason_code = "EXISTING_KEY_MISMATCH"
+        elif existing:
+            selected_field = existing_field
+            selected_value = existing
+            expected = existing
+        else:
+            reason_code = "MISSING_IDENTITY_AUTHORITY"
+        frame_uid = cleaned["frame_uid"].loc[index]
+        row_authority_key = frame_uid or f"source_row_ordinal={position}"
+        records.append(
+            {
+                "row_authority_key": row_authority_key,
+                "expected_canonical_key": expected,
+                "selected_identity_type": selected_field,
+                "selected_identity_value": selected_value,
+                "source": scope.get("source_type", ""),
+                "dataset": scope.get("dataset_id", ""),
+                "video": scope.get("video_key", ""),
+                "reason_code": reason_code,
+            }
+        )
+    return pd.DataFrame.from_records(records, index=rows.index)
+
+
+def _audit_object_track_keys(
+    output: pd.DataFrame,
+    reference: pd.DataFrame,
+) -> dict[str, Any]:
+    actual = _clean_reference_series(
+        output.reset_index(drop=True),
+        "object_track_key",
+    )
+    expected = reference.reset_index(drop=True)
+    details: list[dict[str, str]] = []
+    row_count = max(len(actual), len(expected))
+    for position in range(row_count):
+        if position >= len(expected):
+            details.append(
+                {
+                    "row_authority_key": f"output_row={position}",
+                    "expected_canonical_key": "",
+                    "actual_object_track_key": actual.iloc[position],
+                    "selected_identity_type": "",
+                    "selected_identity_value": "",
+                    "source": "",
+                    "dataset": "",
+                    "video": "",
+                    "reason_code": "UNEXPECTED_OUTPUT_ROW",
+                }
+            )
+            continue
+        row = expected.iloc[position]
+        actual_key = actual.iloc[position] if position < len(actual) else ""
+        reason_code = str(row["reason_code"])
+        if reason_code == "OK" and actual_key == row["expected_canonical_key"]:
+            continue
+        if reason_code == "OK":
+            reason_code = (
+                "ACTUAL_KEY_BLANK"
+                if not actual_key
+                else "CANONICAL_SERIALIZATION_MISMATCH"
+            )
+        details.append(
+            {
+                "row_authority_key": str(row["row_authority_key"]),
+                "expected_canonical_key": str(
+                    row["expected_canonical_key"]
+                ),
+                "actual_object_track_key": actual_key,
+                "selected_identity_type": str(
+                    row["selected_identity_type"]
+                ),
+                "selected_identity_value": str(
+                    row["selected_identity_value"]
+                ),
+                "source": str(row["source"]),
+                "dataset": str(row["dataset"]),
+                "video": str(row["video"]),
+                "reason_code": reason_code,
+            }
+        )
+    return {
+        "schema_id": "schema.classification_v2.object_track_key",
+        "schema_version": "classification_v2.object_track_key.v1",
+        "rows_checked": row_count,
+        "matches": row_count - len(details),
+        "mismatches": len(details),
+        "details": details,
+    }
+
+
+def _clean_reference_series(
+    rows: pd.DataFrame,
+    column: str,
+) -> pd.Series:
+    if column not in rows.columns:
+        return pd.Series("", index=rows.index, dtype=object)
+    values = rows[column].fillna("").astype(str).str.strip()
+    return values.mask(values.isin({"nan", "None", "<NA>"}), "")
 
 
 if __name__ == "__main__":

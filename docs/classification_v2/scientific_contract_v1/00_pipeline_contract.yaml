@@ -1,7 +1,7 @@
 {
   "contract_metadata": {
     "contract_id": "contract.classification_v2.scientific_verification_v1",
-    "contract_version": "classification_v2.scientific_contract.v1.0.0",
+    "contract_version": "classification_v2.scientific_contract.v1.1.0",
     "audited_code_sha": "d925c9004e7aff5a3c8469b158d2428432c6031a",
     "authority": "PRIMARY_MACHINE_READABLE_AUTHORITY",
     "current_code_scientifically_approved": false,
@@ -52,6 +52,7 @@
       "11_known_gaps_and_risks.csv",
       "12_change_impact_checklist.md",
       "13_independent_review_report.md",
+      "14_object_track_key_contract.json",
       "stage_runtime_code_authority.json",
       "contract_manifest.json"
     ]
@@ -77,6 +78,67 @@
     "cvat_frames_per_unit": 6,
     "legacy_units": 4555,
     "legacy_frames_per_unit": 16
+  },
+  "object_track_key_contract": {
+    "schema_id": "schema.classification_v2.object_track_key",
+    "schema_version": "classification_v2.object_track_key.v1",
+    "identity_scope_components": [
+      "source_type",
+      "dataset_id",
+      "video_key"
+    ],
+    "existing_key_field": "object_track_key",
+    "identity_fallback_order": [
+      "track_id",
+      "object_id_in_image",
+      "object_id"
+    ],
+    "identity_discriminators": {
+      "track_id": "track_id",
+      "object_id_in_image": "object_id",
+      "object_id": "object_id"
+    },
+    "component_order": [
+      "source",
+      "dataset",
+      "video",
+      "identity"
+    ],
+    "component_names": {
+      "source_type": "source",
+      "dataset_id": "dataset",
+      "video_key": "video"
+    },
+    "component_delimiter": "|",
+    "name_value_delimiter": "=",
+    "serialization_templates": {
+      "track_id": "source={source}|dataset={dataset}|video={video}|track_id={value}",
+      "object_id": "source={source}|dataset={dataset}|video={video}|object_id={value}"
+    },
+    "escaping_policy": {
+      "algorithm": "RFC3986_PERCENT_ENCODING",
+      "encoding": "UTF-8",
+      "safe_characters": "-_.~",
+      "hex_case": "UPPER"
+    },
+    "blank_policy": {
+      "normalization": "STRINGIFY_TRIM_UNICODE_WHITESPACE",
+      "null_tokens": [
+        "",
+        "nan",
+        "None",
+        "<NA>"
+      ],
+      "scope_components": "FAIL_CLOSED",
+      "identity_components": "FALL_THROUGH_THEN_FAIL_CLOSED",
+      "existing_key": "PRESERVE_AND_VALIDATE_WHEN_DERIVABLE"
+    },
+    "integer_string_policy": "EQUIVALENT_AFTER_STRINGIFY_AND_TRIM",
+    "unicode_policy": "UTF8_THEN_RFC3986_PERCENT_ENCODING",
+    "pig_id_authoritative": false,
+    "row_order_authoritative": false,
+    "absolute_path_authoritative": false,
+    "random_value_authoritative": false
   },
   "artifacts": [
     {"artifact_id": "artifact.source_annotations", "name": "legacy/CVAT sources"},
@@ -104,6 +166,7 @@
     "output_grain": "NONE",
     "grouping_keys": [],
     "canonical_identity_keys": [],
+    "identity_contract_ids": [],
     "pair_reset_key": "",
     "temporal_support": "none",
     "required_columns": [],
@@ -132,15 +195,24 @@
       "output_grain": "FRAME_OBJECT",
       "grouping_keys": ["source_type", "dataset_id", "video_key"],
       "canonical_identity_keys": ["frame_uid", "object_id_in_image"],
+      "identity_contract_ids": ["schema.classification_v2.object_track_key"],
       "required_columns": ["source_type", "dataset_id", "video_key", "frame_uid"],
       "produced_columns": ["object_track_key", "source_frame_index"],
       "schema_version": "classification_v2.merged_frame_objects.v2",
+      "evidence_semantics_version": "classification_v2.source_semantics.v6",
       "model_eligibility": "PROVENANCE_ONLY",
       "review_eligibility": "UPSTREAM_REVIEW_INPUT",
       "checker": "audit_merged_frame_objects",
-      "tests": ["tests/test_classification_v2_merge_contract.py"],
+      "tests": [
+        "tests/test_classification_v2_identifier_contract.py",
+        "tests/test_classification_v2_object_track_key_authority.py"
+      ],
       "audit_artifact": "merged_frame_objects_audit.json",
-      "code_locations": ["src/pig_behavior/classification_v2/merge_sources.py#merge_frame_object_sources", "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"],
+      "code_locations": [
+        "src/pig_behavior/classification_v2/merge_sources.py#merge_frame_object_sources",
+        "src/pig_behavior/classification_v2/contracts/identifiers.py#ensure_object_track_keys",
+        "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"
+      ],
       "current_status": "IMPLEMENTED_PARTIALLY_TESTED"
     },
     {
@@ -153,6 +225,7 @@
       "output_grain": "FRAME_LOCAL_PRIMITIVES",
       "grouping_keys": ["scene_frame_uid"],
       "canonical_identity_keys": ["frame_uid", "object_track_key"],
+      "identity_contract_ids": ["schema.classification_v2.object_track_key"],
       "required_columns": ["bbox", "image_width", "image_height", "source_frame_index"],
       "produced_columns": ["cx_n", "cy_n", "bbox_valid", "temporal_unit_key"],
       "forbidden_columns": ["*_pair_valid", "*_unit", "prev_*", "delta_*"],
