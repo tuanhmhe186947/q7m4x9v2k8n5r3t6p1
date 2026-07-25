@@ -136,6 +136,46 @@ def test_model_input_manifest_rejects_missing_required_artifact(
     assert output_path.exists() is False
 
 
+@pytest.mark.parametrize(
+    "forbidden_column",
+    [
+        "target_roi_contact",
+        "target_roi_distance",
+        "target_roi_contact_ratio_unit",
+        "label_selected_target_roi_class",
+        "roi_target_identity",
+    ],
+)
+def test_model_input_manifest_rejects_target_roi_feature(
+    tmp_path: Path,
+    forbidden_column: str,
+) -> None:
+    contract_path, output_path, contract = _fixture(tmp_path)
+    whitelist_path = (
+        tmp_path / contract["artifacts"]["feature_whitelist"]["path"]
+    )
+    whitelist_path.write_text(
+        json.dumps({"features": ["speed_mean_window", forbidden_column]}),
+        encoding="utf-8",
+    )
+    tabular_path = tmp_path / contract["artifacts"]["tabular_X"]["path"]
+    tabular_path.write_text(
+        f"speed_mean_window,{forbidden_column}\n1.0,0.0\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ModelInputManifestError,
+        match="forbidden_columns",
+    ):
+        build_model_input_manifest(
+            contract_path,
+            output_path=output_path,
+            project_root=tmp_path,
+        )
+    assert output_path.exists() is False
+
+
 def test_model_input_manifest_rejects_artifact_map_drift(
     tmp_path: Path,
 ) -> None:
@@ -261,6 +301,23 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path, dict[str, object]]:
         path = tmp_path / contract["artifacts"][name]["path"]
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(f"fixture:{name}\n".encode("ascii"))
+    whitelist_path = (
+        tmp_path / contract["artifacts"]["feature_whitelist"]["path"]
+    )
+    whitelist_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "classification_v2.feature_whitelist.v1",
+                "features": ["speed_mean_window"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    tabular_path = tmp_path / contract["artifacts"]["tabular_X"]["path"]
+    tabular_path.write_text(
+        "speed_mean_window\n1.0\n",
+        encoding="utf-8",
+    )
     output_path = (
         tmp_path
         / contract["artifacts"]["model_input_contract"]["path"]

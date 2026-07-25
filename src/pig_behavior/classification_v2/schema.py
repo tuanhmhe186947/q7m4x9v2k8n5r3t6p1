@@ -207,6 +207,7 @@ IDENTITY_COLUMNS: Final[list[str]] = [
     "identifier_schema_version",
     "scene_frame_uid",
     "frame_uid",
+    "object_track_key",
     "image_key",
     "image_name",
     "object_id_in_image",

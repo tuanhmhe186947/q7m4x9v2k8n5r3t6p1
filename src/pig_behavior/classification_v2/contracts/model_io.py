@@ -13,6 +13,10 @@ from typing import Any
 
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.target_roi_policy import (
+    is_target_roi_model_forbidden,
+)
+
 DEFAULT_FORBIDDEN_X_PATTERNS = (
     "manual_*",
     "review_*",
@@ -48,7 +52,10 @@ def forbidden_x_columns(
     return sorted(
         col
         for col in columns
-        if any(fnmatch(col, pattern) for pattern in active_patterns)
+        if (
+            any(fnmatch(col, pattern) for pattern in active_patterns)
+            or is_target_roi_model_forbidden(col)
+        )
     )
 
 

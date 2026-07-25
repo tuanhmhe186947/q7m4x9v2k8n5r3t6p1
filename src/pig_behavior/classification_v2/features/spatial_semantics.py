@@ -10,6 +10,18 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from pig_behavior.classification_v2.contracts.target_roi_policy import (
+    ROI_TARGET_MODEL_POLICY_VERSION,
+    TARGET_ROI_MODEL_FORBIDDEN_EXACT,
+    TARGET_ROI_MODEL_FORBIDDEN_PREFIXES,
+    TARGET_ROI_MODEL_FORBIDDEN_REASON,
+    TARGET_ROI_MODEL_SEMANTIC_ALIASES,
+    TARGET_ROI_SHARED_POLICY_ID,
+    is_target_roi_model_forbidden,
+    target_roi_model_policy_registry,
+    target_roi_policy_metadata,
+)
+
 AXIS_DISTANCE_METRIC_ID = "image_axis_normalized_distance"
 AXIS_DISTANCE_METRIC_VERSION = (
     "classification_v2.image_axis_normalized_distance.v1"
@@ -42,26 +54,6 @@ ROI_NEAR_THRESHOLD_VALUE = 0.08
 ROI_CONTACT_THRESHOLD_ID = "roi_contact_distance_diagonal_n_v1"
 ROI_CONTACT_THRESHOLD_VALUE = 0.02
 ROI_DISTANCE_THRESHOLD_UNITS = "diagonal_normalized_image_distance"
-ROI_TARGET_MODEL_POLICY_VERSION = (
-    "classification_v2.target_roi_model_forbidden.v1"
-)
-TARGET_ROI_MODEL_FORBIDDEN_PREFIXES: tuple[str, ...] = (
-    "target_roi_",
-    "roi_target_",
-)
-TARGET_ROI_MODEL_FORBIDDEN_EXACT: frozenset[str] = frozenset(
-    {
-        "label_selected_roi_class_indicator",
-        "target_roi_contact",
-        "target_roi_distance",
-        "target_roi_contact_ratio_unit",
-    }
-)
-TARGET_ROI_MODEL_FORBIDDEN_REASON = (
-    "behavior-selected target ROI is label-derived review evidence"
-)
-
-
 @dataclass(frozen=True, slots=True)
 class DistanceMetricContract:
     """Machine-readable contract for one image-coordinate distance metric."""
@@ -263,31 +255,6 @@ def canonical_social_identity_columns(
     )
 
 
-def is_target_roi_model_forbidden(column: str) -> bool:
-    """Return whether a label-selected ROI feature is forbidden from model X."""
-
-    normalized = str(column).strip().lower()
-    return normalized in TARGET_ROI_MODEL_FORBIDDEN_EXACT or normalized.startswith(
-        TARGET_ROI_MODEL_FORBIDDEN_PREFIXES
-    )
-
-
-def target_roi_policy_metadata(column: str) -> dict[str, Any]:
-    """Return explicit review/model/leakage policy for a target ROI feature."""
-
-    forbidden = is_target_roi_model_forbidden(column)
-    return {
-        "feature_name": column,
-        "review_eligible": True,
-        "model_eligible": not forbidden,
-        "model_forbidden_reason": (
-            TARGET_ROI_MODEL_FORBIDDEN_REASON if forbidden else ""
-        ),
-        "leakage_risk": "CRITICAL_LABEL_SELECTED" if forbidden else "LOW",
-        "semantics_version": ROI_TARGET_MODEL_POLICY_VERSION,
-    }
-
-
 def _stable_text(value: Any) -> str:
     if value is None or value is pd.NA:
         return ""
@@ -321,6 +288,8 @@ __all__ = [
     "TARGET_ROI_MODEL_FORBIDDEN_EXACT",
     "TARGET_ROI_MODEL_FORBIDDEN_PREFIXES",
     "TARGET_ROI_MODEL_FORBIDDEN_REASON",
+    "TARGET_ROI_MODEL_SEMANTIC_ALIASES",
+    "TARGET_ROI_SHARED_POLICY_ID",
     "axis_normalized_image_distance",
     "canonical_social_identity",
     "canonical_social_identity_columns",
@@ -328,5 +297,6 @@ __all__ = [
     "distance_metric_registry",
     "is_target_roi_model_forbidden",
     "pairwise_image_distance_matrices",
+    "target_roi_model_policy_registry",
     "target_roi_policy_metadata",
 ]

@@ -11,6 +11,7 @@ import pandas as pd
 from pig_behavior.classification_v2.contracts.identifiers import (
     audit_frame_object_identifiers,
     ensure_frame_object_identifiers,
+    ensure_object_track_keys,
     scene_frame_key,
 )
 from pig_behavior.classification_v2.schema import (
@@ -86,6 +87,10 @@ def normalize_canonical_frame_objects(
     """Ensure a dataframe follows the canonical frame-object schema."""
     out = ensure_frame_object_identifiers(
         df,
+        source_name=source_name,
+    )
+    out = ensure_object_track_keys(
+        out,
         source_name=source_name,
     )
 

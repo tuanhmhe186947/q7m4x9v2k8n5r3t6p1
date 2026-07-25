@@ -251,7 +251,7 @@ def test_temporal_harmonization_fills_partial_missing_object_track_keys() -> Non
 
     assert harmonized.loc[0, "object_track_key"] == "preserved-key"
     assert harmonized.loc[1, "object_track_key"] != ""
-    assert "track=2" in harmonized.loc[1, "object_track_key"]
+    assert "track_id=2" in harmonized.loc[1, "object_track_key"]
 
 
 def test_temporal_harmonization_rejects_duplicate_track_frame_rows() -> None:

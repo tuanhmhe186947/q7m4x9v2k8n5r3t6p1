@@ -23,7 +23,10 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from pig_behavior.classification_v2.contracts.identifiers import scene_frame_key
+from pig_behavior.classification_v2.contracts.identifiers import (
+    ensure_object_track_keys,
+    scene_frame_key,
+)
 from pig_behavior.classification_v2.contracts.lineage_claims import (
     add_optional_lineage_claims_to_audit,
     attach_optional_lineage_claims,
@@ -553,43 +556,19 @@ def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _ensure_object_track_key(df: pd.DataFrame) -> pd.DataFrame:
-    out = df.copy()
-    track_for_key = (
-        out["track_id"].replace("", pd.NA).fillna(out["pig_id"]).astype(str)
+    return ensure_object_track_keys(
+        df,
+        source_name="temporal_harmonization",
+        validate_existing=False,
     )
-    pig_for_key = (
-        out["pig_id"].replace("", pd.NA).fillna(out["track_id"]).astype(str)
-    )
-    derived_key = (
-        out["source_type"].astype(str)
-        + "|"
-        + out["dataset_id"].astype(str)
-        + "|"
-        + out["video_key"].astype(str)
-        + "|track="
-        + track_for_key
-        + "|pig="
-        + pig_for_key
-    )
-    if "object_track_key" not in out.columns:
-        out["object_track_key"] = derived_key
-        return out
-
-    current_key = out["object_track_key"].fillna("").astype(str).str.strip()
-    missing_key = current_key.eq("")
-    out["object_track_key"] = current_key.where(~missing_key, derived_key)
-    return out
 
 
 def _validate_temporal_identity_contract(df: pd.DataFrame) -> None:
     """Reject rows that cannot form unique source-local temporal trajectories."""
     key = df["object_track_key"].fillna("").astype(str).str.strip()
     frame_index = pd.to_numeric(df["frame_index"], errors="coerce")
-    track = df["track_id"].fillna("").astype(str).str.strip()
-    pig = df["pig_id"].fillna("").astype(str).str.strip()
     invalid = (
         key.eq("")
-        | (track.eq("") & pig.eq(""))
         | frame_index.isna()
         | frame_index.mod(1).ne(0)
         | frame_index.lt(0)

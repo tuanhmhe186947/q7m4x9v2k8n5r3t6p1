@@ -13,8 +13,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from pig_behavior.classification_v2.contracts.model_io import (
+    read_csv_schema,
+    validate_model_input_columns,
+)
 from pig_behavior.classification_v2.contracts.output_safety import (
     require_output_paths_available,
+)
+from pig_behavior.classification_v2.contracts.target_roi_policy import (
+    target_roi_model_policy_registry,
 )
 from pig_behavior.classification_v2.contracts.versioned_data_contract import (
     GENERATED_CONTRACT_SCHEMA_VERSION,
@@ -22,7 +29,7 @@ from pig_behavior.classification_v2.contracts.versioned_data_contract import (
 )
 
 MODEL_INPUT_MANIFEST_SCHEMA_VERSION = (
-    "classification_v2.model_input_manifest.v3"
+    "classification_v2.model_input_manifest.v4"
 )
 FILE_CHUNK_BYTES = 1024 * 1024
 
@@ -226,6 +233,13 @@ def build_model_input_manifest(
                 f"model_input_artifact_scope_mismatch:{name}:{scope}"
             )
 
+    errors.extend(
+        _validate_model_feature_authority(
+            bindings,
+            root=root,
+            forbidden_patterns=contract.get("forbidden_x_patterns"),
+        )
+    )
     errors = sorted(set(errors))
     if errors:
         raise ModelInputManifestError(errors)
@@ -386,6 +400,7 @@ def _manifest_payload(
             "all_numeric_selection_allowed": False,
         },
         "forbidden_model_inputs": contract["forbidden_x_patterns"],
+        "target_roi_model_policy": target_roi_model_policy_registry(),
         "missing_artifacts": [],
         "inference_contract": {
             "ground_truth_only_fields_allowed": False,
@@ -427,6 +442,68 @@ def _artifact_binding(
         "size_bytes": int(path.stat().st_size),
         "sha256": _sha256_file(path),
     }, []
+
+
+def _validate_model_feature_authority(
+    bindings: dict[str, dict[str, Any]],
+    *,
+    root: Path,
+    forbidden_patterns: Any,
+) -> list[str]:
+    """Validate whitelist and tabular schema before manifest construction."""
+
+    errors: list[str] = []
+    whitelist = bindings.get("feature_whitelist")
+    tabular = bindings.get("tabular_X")
+    if whitelist is None or tabular is None:
+        return errors
+    try:
+        payload = _load_json_object(
+            root / whitelist["path"],
+            "feature_whitelist",
+        )
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        return [
+            "feature_whitelist_unreadable:"
+            f"{type(exc).__name__}"
+        ]
+    features = payload.get("features")
+    if not isinstance(features, list) or not all(
+        isinstance(value, str) and value.strip()
+        for value in features
+    ):
+        return ["feature_whitelist_features_missing_or_invalid"]
+    patterns = (
+        forbidden_patterns
+        if isinstance(forbidden_patterns, list)
+        else None
+    )
+    whitelist_audit = validate_model_input_columns(
+        features,
+        forbidden_patterns=patterns,
+    )
+    if not whitelist_audit["valid"]:
+        errors.append(
+            "feature_whitelist_forbidden_columns:"
+            f"{whitelist_audit['forbidden_columns']}"
+        )
+    try:
+        tabular_columns = read_csv_schema(root / tabular["path"])
+    except (OSError, ValueError) as exc:
+        errors.append(f"tabular_X_schema_unreadable:{type(exc).__name__}")
+        return errors
+    tabular_audit = validate_model_input_columns(
+        tabular_columns,
+        forbidden_patterns=patterns,
+    )
+    if not tabular_audit["valid"]:
+        errors.append(
+            "tabular_X_forbidden_columns:"
+            f"{tabular_audit['forbidden_columns']}"
+        )
+    if tabular_columns != features:
+        errors.append("tabular_X_columns_do_not_match_feature_whitelist")
+    return errors
 
 
 def _validate_output_binding(

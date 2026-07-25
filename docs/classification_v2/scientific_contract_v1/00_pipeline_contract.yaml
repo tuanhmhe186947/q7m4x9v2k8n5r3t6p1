@@ -3535,13 +3535,57 @@
   "phase4_semantic_lineage": {
     "implementation_status": "IMPLEMENTED_AND_TESTED",
     "canonicalization_version": "classification_v2.canonical_json.v1",
-    "semantic_registry_version": "classification_v2.semantic_domains.v4",
+    "semantic_registry_version": "classification_v2.semantic_domains.v5",
     "semantic_bundle_id": "bundle.classification_v2.phase1_4",
-    "semantic_bundle_version": "classification_v2.semantic_bundle.v4",
+    "semantic_bundle_version": "classification_v2.semantic_bundle.v5",
     "stage_graph_version": "classification_v2.stage_dependency_graph.v4",
-    "artifact_manifest_version": "classification_v2.artifact_manifest.v4",
+    "artifact_manifest_version": "classification_v2.artifact_manifest.v5",
     "release_authority_schema_version": "classification_v2.release_authority_preflight.v4",
     "hash_algorithm": "SHA-256",
+    "code_authority_contract": {
+      "vcs": "git",
+      "supported_object_formats": {
+        "sha1": {
+          "hex_length": 40
+        },
+        "sha256": {
+          "hex_length": 64
+        }
+      },
+      "object_format_detection": "git rev-parse --show-object-format",
+      "object_id_field": "created_by_code_authority_sha",
+      "git_object_id_is_content_sha256": false,
+      "sha1_object_id_rehashed_to_sha256": false
+    },
+    "sha256_fingerprint_fields": [
+      "stage_code_hash",
+      "stage_semantics_hash",
+      "stage_execution_fingerprint",
+      "semantic_bundle_hash",
+      "contract_manifest_hash",
+      "input_file_sha256",
+      "output_file_sha256",
+      "output_schema_hash",
+      "motion_schema_hash",
+      "input_artifact_fingerprints"
+    ],
+    "source_merge_object_track_key_contract": {
+      "producing_stage": "stage.legacy_cvat_source_merge",
+      "hierarchy": [
+        "existing_object_track_key",
+        "source_dataset_video_scoped_track_id",
+        "source_dataset_video_scoped_object_id"
+      ],
+      "pig_id_role": "descriptive_metadata_only",
+      "row_position_matching_allowed": false
+    },
+    "target_roi_shared_policy": {
+      "policy_id": "policy.classification_v2.target_selected_roi_model_forbidden",
+      "policy_version": "classification_v2.target_roi_model_forbidden.v2",
+      "authority": "src/pig_behavior/classification_v2/contracts/target_roi_policy.py",
+      "review_only_evidence_allowed": true,
+      "model_input_allowed": false
+    },
     "stage_count": 17,
     "semantic_domain_count": 17,
     "current_rebuild_start_stage": "stage.frame_local_primitives",

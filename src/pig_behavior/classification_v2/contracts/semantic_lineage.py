@@ -8,6 +8,7 @@ import json
 import math
 import os
 import re
+import subprocess
 import tempfile
 from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable, Mapping, Sequence
@@ -43,14 +44,16 @@ from pig_behavior.classification_v2.features.spatial_semantics import (
     SOCIAL_NEAR_THRESHOLD_VALUE,
     SOCIAL_TIE_BREAK_RULE,
     SOCIAL_TIE_BREAK_VERSION,
+    TARGET_ROI_SHARED_POLICY_ID,
+    target_roi_model_policy_registry,
 )
 
 CANONICALIZATION_VERSION = "classification_v2.canonical_json.v1"
-SEMANTIC_REGISTRY_VERSION = "classification_v2.semantic_domains.v4"
+SEMANTIC_REGISTRY_VERSION = "classification_v2.semantic_domains.v5"
 SEMANTIC_BUNDLE_ID = "bundle.classification_v2.phase1_4"
-SEMANTIC_BUNDLE_VERSION = "classification_v2.semantic_bundle.v4"
+SEMANTIC_BUNDLE_VERSION = "classification_v2.semantic_bundle.v5"
 STAGE_GRAPH_VERSION = "classification_v2.stage_dependency_graph.v4"
-ARTIFACT_MANIFEST_VERSION = "classification_v2.artifact_manifest.v4"
+ARTIFACT_MANIFEST_VERSION = "classification_v2.artifact_manifest.v5"
 RELEASE_AUTHORITY_SCHEMA_VERSION = (
     "classification_v2.release_authority_preflight.v4"
 )
@@ -65,6 +68,10 @@ BEHAVIOR_CARRY_FORWARD_VERSION = (
 )
 
 HASH_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+GIT_SHA1_PATTERN = re.compile(r"^[0-9a-f]{40}$")
+GIT_SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
+CODE_AUTHORITY_VCS_GIT = "git"
+SUPPORTED_GIT_OBJECT_FORMATS = frozenset({"sha1", "sha256"})
 EPHEMERAL_SEMANTIC_FIELDS = frozenset(
     {
         "canonical_hash",
@@ -166,6 +173,8 @@ ARTIFACT_MANIFEST_REQUIRED_FIELDS = (
     "artifact_class",
     "stage_id",
     "stage_version",
+    "code_authority_vcs",
+    "code_authority_object_format",
     "created_by_code_authority_sha",
     "stage_code_hash",
     "stage_semantics_hash",
@@ -459,6 +468,84 @@ def file_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def git_code_authority(
+    repo_root: Path,
+    *,
+    object_id: str | None = None,
+) -> dict[str, str]:
+    """Resolve the repository Git object authority without fabricating a hash."""
+
+    root = repo_root.resolve()
+    object_format = _git_rev_parse(root, "--show-object-format")
+    resolved_object_id = object_id or _git_rev_parse(root, "HEAD")
+    authority = {
+        "code_authority_vcs": CODE_AUTHORITY_VCS_GIT,
+        "code_authority_object_format": object_format,
+        "created_by_code_authority_sha": resolved_object_id,
+    }
+    errors = validate_git_code_authority(authority)
+    if errors:
+        raise ValueError(f"invalid Git code authority: {errors}")
+    return authority
+
+
+def validate_git_code_authority(
+    authority: Mapping[str, Any],
+) -> list[str]:
+    """Validate Git object metadata separately from SHA-256 fingerprints."""
+
+    errors: list[str] = []
+    vcs = str(authority.get("code_authority_vcs", "")).strip().lower()
+    object_format = str(
+        authority.get("code_authority_object_format", "")
+    ).strip().lower()
+    object_id = str(
+        authority.get("created_by_code_authority_sha", "")
+    ).strip()
+    if not vcs:
+        errors.append("BLANK_CODE_AUTHORITY_VCS")
+    elif vcs != CODE_AUTHORITY_VCS_GIT:
+        errors.append(f"UNSUPPORTED_CODE_AUTHORITY_VCS:{vcs}")
+    if not object_format:
+        errors.append("BLANK_CODE_AUTHORITY_OBJECT_FORMAT")
+    elif object_format not in SUPPORTED_GIT_OBJECT_FORMATS:
+        errors.append(f"UNSUPPORTED_GIT_OBJECT_FORMAT:{object_format}")
+    if not object_id:
+        errors.append("BLANK_GIT_OBJECT_ID")
+        return errors
+    if not re.fullmatch(r"[0-9a-f]+", object_id):
+        errors.append("INVALID_GIT_OBJECT_ID")
+        return errors
+    pattern = {
+        "sha1": GIT_SHA1_PATTERN,
+        "sha256": GIT_SHA256_PATTERN,
+    }.get(object_format)
+    if pattern is not None and not pattern.fullmatch(object_id):
+        errors.append(
+            "GIT_OBJECT_FORMAT_MISMATCH:"
+            f"{object_format}:length={len(object_id)}"
+        )
+    return errors
+
+
+def _git_rev_parse(repo_root: Path, argument: str) -> str:
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(repo_root), "rev-parse", argument],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise ValueError(
+            f"unable to resolve Git authority {argument}"
+        ) from exc
+    value = completed.stdout.strip().lower()
+    if not value:
+        raise ValueError(f"Git authority {argument} is blank")
+    return value
+
+
 def load_scientific_contract(path: Path) -> dict[str, Any]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(payload, dict):
@@ -648,12 +735,19 @@ def _domain_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
     return [
         {
             "semantic_domain_id": "semantic.source_parsing_selection",
-            "semantic_domain_version": "classification_v2.source_semantics.v4",
+            "semantic_domain_version": "classification_v2.source_semantics.v5",
             "authority_files": [
                 "src/pig_behavior/classification_v2/merge_sources.py",
+                (
+                    "src/pig_behavior/classification_v2/contracts/"
+                    "identifiers.py"
+                ),
                 "docs/CLASSIFICATION_V2_DATA_REBUILD_AND_HUMAN_REVIEW_RUNBOOK.md",
             ],
-            "authority_symbols": ["merge_frame_object_sources"],
+            "authority_symbols": [
+                "merge_frame_object_sources",
+                "ensure_object_track_keys",
+            ],
             "canonical_payload": {
                 "stage_schema": stage_version(
                     "stage.legacy_cvat_source_merge"
@@ -661,6 +755,16 @@ def _domain_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
                 "authority_selection": (
                     "declared_source_allowlist_and_one_native_authority"
                 ),
+                "object_track_key_authority": {
+                    "stage": "stage.legacy_cvat_source_merge",
+                    "hierarchy": [
+                        "existing_object_track_key",
+                        "source_dataset_video_scoped_track_id",
+                        "source_dataset_video_scoped_object_id",
+                    ],
+                    "pig_id_role": "descriptive_metadata_only",
+                    "row_position_allowed": False,
+                },
                 "positional_matching": False,
             },
             "directly_affected_stages": [
@@ -768,8 +872,12 @@ def _domain_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
         },
         {
             "semantic_domain_id": "semantic.roi_computation_aggregation",
-            "semantic_domain_version": "classification_v2.roi_semantics.v4",
+            "semantic_domain_version": "classification_v2.roi_semantics.v5",
             "authority_files": [
+                (
+                    "src/pig_behavior/classification_v2/contracts/"
+                    "target_roi_policy.py"
+                ),
                 "src/pig_behavior/classification_v2/features/roi.py",
                 "src/pig_behavior/classification_v2/features/spatial_semantics.py",
                 "src/pig_behavior/classification_v2/features/spatiotemporal.py",
@@ -777,12 +885,15 @@ def _domain_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
             "authority_symbols": [
                 "build_roi_features",
                 "ROI_AGGREGATION_VERSION",
+                "target_roi_model_policy_registry",
             ],
             "canonical_payload": {
                 "aggregation_version": ROI_AGGREGATION_VERSION,
                 "contact_denominator": "roi_available_frames",
                 "zero_available_behavior": "unavailable_with_mask_false",
                 "target_roi_policy_version": ROI_TARGET_MODEL_POLICY_VERSION,
+                "target_roi_policy_id": TARGET_ROI_SHARED_POLICY_ID,
+                "target_roi_policy": target_roi_model_policy_registry(),
                 "target_roi_model_eligible": False,
             },
             "directly_affected_stages": [
@@ -1060,14 +1171,19 @@ def _domain_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
         },
         {
             "semantic_domain_id": "semantic.model_input_export",
-            "semantic_domain_version": "classification_v2.model_export.v4",
+            "semantic_domain_version": "classification_v2.model_export.v5",
             "authority_files": [
                 "src/pig_behavior/classification_v2/spatial_sequence_export.py",
                 "src/pig_behavior/classification_v2/contracts/model_input_manifest.py",
+                (
+                    "src/pig_behavior/classification_v2/contracts/"
+                    "target_roi_policy.py"
+                ),
             ],
             "authority_symbols": [
                 "export_spatial_sequences",
                 "build_model_input_manifest",
+                "target_roi_model_policy_registry",
             ],
             "canonical_payload": {
                 "tensor_stage_schema": stage_version(
@@ -1080,6 +1196,7 @@ def _domain_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
                 "motion_schema_hash": MOTION_SCHEMA_HASH,
                 "explicit_whitelist_only": True,
                 "forbidden_columns_fail_closed": True,
+                "target_roi_policy": target_roi_model_policy_registry(),
             },
             "directly_affected_stages": [
                 "stage.tensor_export",
@@ -1095,11 +1212,16 @@ def _domain_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
             "semantic_domain_version": "classification_v2.split_leakage.v4",
             "authority_files": [
                 "src/pig_behavior/classification_v2/contracts/model_input_manifest.py",
+                (
+                    "src/pig_behavior/classification_v2/contracts/"
+                    "target_roi_policy.py"
+                ),
                 "src/pig_behavior/classification_v2/train_ready_features.py",
             ],
             "authority_symbols": [
                 "build_model_input_manifest",
                 "select_window_feature_columns",
+                "target_roi_model_policy_registry",
             ],
             "canonical_payload": {
                 "grouping": [
@@ -1124,7 +1246,7 @@ def _domain_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
         {
             "semantic_domain_id": "semantic.train_ready_release",
             "semantic_domain_version": (
-                "classification_v2.train_ready_release.v4"
+                "classification_v2.train_ready_release.v5"
             ),
             "authority_files": [
                 "src/pig_behavior/classification_v2/contracts/semantic_lineage.py",
@@ -1136,6 +1258,13 @@ def _domain_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
             ],
             "canonical_payload": {
                 "artifact_manifest_version": ARTIFACT_MANIFEST_VERSION,
+                "code_authority": {
+                    "vcs": CODE_AUTHORITY_VCS_GIT,
+                    "object_formats": sorted(
+                        SUPPORTED_GIT_OBJECT_FORMATS
+                    ),
+                    "git_object_id_is_content_sha256": False,
+                },
                 "release_schema_version": (
                     RELEASE_AUTHORITY_SCHEMA_VERSION
                 ),
@@ -1723,7 +1852,6 @@ def artifact_manifest_json_schema() -> dict[str, Any]:
     hash_fields = {
         name: {"type": "string", "pattern": HASH_PATTERN.pattern}
         for name in (
-            "created_by_code_authority_sha",
             "stage_code_hash",
             "stage_semantics_hash",
             "stage_execution_fingerprint",
@@ -1744,6 +1872,16 @@ def artifact_manifest_json_schema() -> dict[str, Any]:
         {
             "artifact_manifest_version": {
                 "const": ARTIFACT_MANIFEST_VERSION,
+            },
+            "code_authority_vcs": {
+                "const": CODE_AUTHORITY_VCS_GIT,
+            },
+            "code_authority_object_format": {
+                "enum": sorted(SUPPORTED_GIT_OBJECT_FORMATS),
+            },
+            "created_by_code_authority_sha": {
+                "type": "string",
+                "pattern": "^[0-9a-f]+$",
             },
             "stage_id": {"enum": list(STAGE_DEPENDENCIES)},
             "input_artifact_ids": {
@@ -1783,11 +1921,41 @@ def artifact_manifest_json_schema() -> dict[str, Any]:
     )
     return {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "$id": "schema.classification_v2.artifact_manifest.v4",
+        "$id": "schema.classification_v2.artifact_manifest.v5",
         "title": "Classification V2 scientific artifact manifest",
         "type": "object",
         "required": list(ARTIFACT_MANIFEST_REQUIRED_FIELDS),
         "properties": properties,
+        "allOf": [
+            {
+                "if": {
+                    "properties": {
+                        "code_authority_object_format": {"const": "sha1"},
+                    }
+                },
+                "then": {
+                    "properties": {
+                        "created_by_code_authority_sha": {
+                            "pattern": GIT_SHA1_PATTERN.pattern,
+                        }
+                    }
+                },
+            },
+            {
+                "if": {
+                    "properties": {
+                        "code_authority_object_format": {"const": "sha256"},
+                    }
+                },
+                "then": {
+                    "properties": {
+                        "created_by_code_authority_sha": {
+                            "pattern": GIT_SHA256_PATTERN.pattern,
+                        }
+                    }
+                },
+            },
+        ],
         "additionalProperties": False,
     }
 
@@ -1835,7 +2003,6 @@ def _blank(value: Any) -> bool:
 
 def _required_manifest_hash_fields() -> tuple[str, ...]:
     return (
-        "created_by_code_authority_sha",
         "stage_code_hash",
         "stage_semantics_hash",
         "stage_execution_fingerprint",
@@ -1877,6 +2044,7 @@ def validate_artifact_manifest(
             errors.append(f"BLANK_REQUIRED_HASH:{name}")
         elif not HASH_PATTERN.fullmatch(str(value)):
             errors.append(f"INVALID_HASH:{name}")
+    errors.extend(validate_git_code_authority(manifest))
     artifact_id = str(manifest.get("artifact_id", ""))
     input_ids = manifest.get("input_artifact_ids")
     fingerprints = manifest.get("input_artifact_fingerprints")

@@ -13,6 +13,7 @@ from urllib.parse import quote
 import pandas as pd
 
 FRAME_OBJECT_IDENTIFIER_VERSION = "classification_v2.frame_object.v2"
+OBJECT_TRACK_KEY_VERSION = "classification_v2.object_track_key.v1"
 
 
 def ensure_frame_object_identifiers(
@@ -119,6 +120,79 @@ def audit_frame_object_identifiers(rows: pd.DataFrame) -> dict[str, Any]:
         "errors": errors,
         "valid": not errors,
     }
+
+
+def ensure_object_track_keys(
+    rows: pd.DataFrame,
+    *,
+    source_name: str,
+    validate_existing: bool = True,
+) -> pd.DataFrame:
+    """Create the canonical source/video-scoped actor trajectory key.
+
+    ``pig_id`` is descriptive metadata and is never an identity fallback.
+    Existing keys must agree byte-for-byte with the deterministic key.
+    """
+
+    out = rows.copy()
+    input_index = out.index.copy()
+    source_type = _required_key_series(out, "source_type", source_name)
+    dataset_id = _required_key_series(out, "dataset_id", source_name)
+    video_key = _required_key_series(out, "video_key", source_name)
+
+    authority_kind = pd.Series("", index=out.index, dtype=object)
+    authority_value = pd.Series("", index=out.index, dtype=object)
+    for column, token in (
+        ("track_id", "track_id"),
+        ("object_id_in_image", "object_id"),
+        ("object_id", "object_id"),
+    ):
+        candidate = _clean_series(out, column)
+        use = authority_value.eq("") & candidate.ne("")
+        authority_value.loc[use] = candidate.loc[use]
+        authority_kind.loc[use] = token
+
+    existing = _clean_series(out, "object_track_key")
+    missing = authority_value.eq("") & existing.eq("")
+    if missing.any():
+        raise ValueError(
+            _identifier_error(
+                source_name,
+                "missing_object_track_authority",
+                out,
+                missing,
+            )
+        )
+
+    derived = (
+        "source="
+        + source_type.map(_escape_key)
+        + "|dataset="
+        + dataset_id.map(_escape_key)
+        + "|video="
+        + video_key.map(_escape_key)
+        + "|"
+        + authority_kind
+        + "="
+        + authority_value.map(_escape_key)
+    )
+    can_derive = authority_value.ne("")
+    mismatch = existing.ne("") & can_derive & existing.ne(derived)
+    if validate_existing and mismatch.any():
+        raise ValueError(
+            _identifier_error(
+                source_name,
+                "object_track_key_mismatch",
+                out,
+                mismatch,
+            )
+        )
+    out["object_track_key"] = existing.where(existing.ne(""), derived)
+    if not out.index.equals(input_index) or len(out) != len(rows):
+        raise RuntimeError(
+            f"{source_name} object-track key creation changed row order"
+        )
+    return out
 
 
 def scene_frame_key(rows: pd.DataFrame) -> pd.Series:

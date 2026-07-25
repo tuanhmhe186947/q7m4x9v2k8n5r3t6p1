@@ -32,6 +32,7 @@ from pig_behavior.classification_v2.contracts.semantic_lineage import (
     evaluate_behavior_decision_carry_forward,
     evaluate_hidden_decision_carry_forward,
     file_sha256,
+    git_code_authority,
     historical_pre_remediation_snapshot,
     inventory_existing_artifacts,
     load_code_contract_mapping,
@@ -44,6 +45,7 @@ from pig_behavior.classification_v2.contracts.semantic_lineage import (
     validate_artifact_manifest,
     validate_artifact_manifest_pair,
     validate_artifact_manifest_set,
+    validate_git_code_authority,
     validate_release_authority_preflight,
     validate_stage_dependency_graph,
 )
@@ -68,6 +70,7 @@ MAPPING_PATH = (
 )
 HEX_A = "a" * 64
 HEX_B = "b" * 64
+GIT_SHA1_A = "a" * 40
 
 
 @pytest.fixture(scope="module")
@@ -87,7 +90,9 @@ def _manifest(output_path: Path) -> dict:
         "artifact_class": "TEST",
         "stage_id": "stage.frame_local_primitives",
         "stage_version": "v1",
-        "created_by_code_authority_sha": HEX_A,
+        "code_authority_vcs": "git",
+        "code_authority_object_format": "sha1",
+        "created_by_code_authority_sha": GIT_SHA1_A,
         "stage_code_hash": HEX_A,
         "stage_semantics_hash": HEX_A,
         "stage_execution_fingerprint": HEX_A,
@@ -120,6 +125,46 @@ def _manifest(output_path: Path) -> dict:
     }
     assert set(ARTIFACT_MANIFEST_REQUIRED_FIELDS) == set(manifest)
     return manifest
+
+
+@pytest.mark.parametrize(
+    ("object_format", "object_id", "valid"),
+    [
+        ("sha1", "a" * 40, True),
+        ("sha1", "a" * 64, False),
+        ("sha256", "b" * 64, True),
+        ("sha256", "b" * 40, False),
+        ("sha1", "g" * 40, False),
+    ],
+)
+def test_git_object_authority_formats(
+    object_format: str,
+    object_id: str,
+    valid: bool,
+) -> None:
+    errors = validate_git_code_authority(
+        {
+            "code_authority_vcs": "git",
+            "code_authority_object_format": object_format,
+            "created_by_code_authority_sha": object_id,
+        }
+    )
+    assert (not errors) is valid
+
+
+def test_git_object_authority_metadata_is_required() -> None:
+    errors = validate_git_code_authority(
+        {"created_by_code_authority_sha": GIT_SHA1_A}
+    )
+    assert "BLANK_CODE_AUTHORITY_VCS" in errors
+    assert "BLANK_CODE_AUTHORITY_OBJECT_FORMAT" in errors
+
+
+def test_current_repository_git_authority_is_detected() -> None:
+    authority = git_code_authority(REPO_ROOT)
+    assert authority["code_authority_vcs"] == "git"
+    assert authority["code_authority_object_format"] == "sha1"
+    assert len(authority["created_by_code_authority_sha"]) == 40
 
 
 def _hidden_record(**updates: object) -> dict:
@@ -451,6 +496,33 @@ def test_artifact_manifest_validates_hash_and_schema(tmp_path: Path) -> None:
         manifest,
         output_path=output,
     )["errors"]
+
+
+def test_artifact_content_hashes_still_reject_40_hex(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "artifact.csv"
+    output.write_text("value\n1\n", encoding="utf-8")
+    manifest = _manifest(output)
+    manifest["stage_code_hash"] = GIT_SHA1_A
+    result = validate_artifact_manifest(manifest, output_path=output)
+    assert "INVALID_HASH:stage_code_hash" in result["errors"]
+
+
+def test_artifact_manifest_rejects_missing_git_metadata(
+    tmp_path: Path,
+) -> None:
+    output = tmp_path / "artifact.csv"
+    output.write_text("value\n1\n", encoding="utf-8")
+    manifest = _manifest(output)
+    manifest.pop("code_authority_vcs")
+    manifest.pop("code_authority_object_format")
+    result = validate_artifact_manifest(manifest, output_path=output)
+    assert result["valid"] is False
+    assert any(
+        error.startswith("MISSING_REQUIRED_FIELDS")
+        for error in result["errors"]
+    )
 
 
 @pytest.mark.parametrize(
