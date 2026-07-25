@@ -110,7 +110,7 @@
       "checker": "audit_merged_frame_objects",
       "tests": ["tests/test_classification_v2_merge_contract.py"],
       "audit_artifact": "merged_frame_objects_audit.json",
-      "code_locations": ["src/pig_behavior/classification_v2/merge_sources.py#merge_frame_object_sources"],
+      "code_locations": ["src/pig_behavior/classification_v2/merge_sources.py#merge_frame_object_sources", "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"],
       "current_status": "IMPLEMENTED_PARTIALLY_TESTED"
     },
     {
@@ -132,7 +132,7 @@
       "checker": "audit_frame_local_primitives",
       "tests": ["tests/test_classification_v2_pre_review_science.py"],
       "audit_artifact": "frame_local_audit.json",
-      "code_locations": ["src/pig_behavior/classification_v2/features/frame_local.py#build_frame_local_primitives"],
+      "code_locations": ["src/pig_behavior/classification_v2/features/frame_local.py#build_frame_local_primitives", "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"],
       "current_status": "IMPLEMENTED_AND_TESTED"
     },
     {
@@ -153,7 +153,7 @@
       "checker": "audit_hidden_review_manifest",
       "tests": ["tests/test_classification_v2_hidden_review.py"],
       "audit_artifact": "hidden_review_manifest_audit.json",
-      "code_locations": ["src/pig_behavior/classification_v2/review/hidden_review_builder.py#build_hidden_review_manifest"],
+      "code_locations": ["src/pig_behavior/classification_v2/review/hidden_review_builder.py#build_hidden_review_manifest", "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"],
       "current_status": "IMPLEMENTED_AND_TESTED"
     },
     {
@@ -172,7 +172,7 @@
       "checker": "carry_forward_hidden_review_decisions",
       "tests": ["tests/test_classification_v2_hidden_carry_forward_production.py"],
       "audit_artifact": "hidden_carry_forward_audit.json",
-      "code_locations": ["src/pig_behavior/classification_v2/review/hidden_review_migration.py#carry_forward_hidden_review_decisions"],
+      "code_locations": ["src/pig_behavior/classification_v2/review/hidden_review_migration.py#carry_forward_hidden_review_decisions", "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"],
       "current_status": "IMPLEMENTED_AND_TESTED"
     },
     {
@@ -208,7 +208,7 @@
       "checker": "audit_hidden_decision_coverage",
       "tests": ["tests/test_classification_v2_hidden_review_science.py"],
       "audit_artifact": "hidden_scientific_gate.json",
-      "code_locations": ["src/pig_behavior/classification_v2/review/hidden_review_science.py#evaluate_hidden_scientific_gate"],
+      "code_locations": ["src/pig_behavior/classification_v2/review/hidden_review_science.py#evaluate_hidden_scientific_gate", "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"],
       "current_status": "IMPLEMENTED_AND_TESTED"
     },
     {
@@ -227,7 +227,7 @@
       "checker": "apply_hidden_review_decisions",
       "tests": ["tests/test_classification_v2_hidden_apply_contract.py"],
       "audit_artifact": "hidden_apply_audit.json",
-      "code_locations": ["src/pig_behavior/classification_v2/review/hidden_review_builder.py#apply_hidden_review_decisions"],
+      "code_locations": ["src/pig_behavior/classification_v2/review/hidden_review_builder.py#apply_hidden_review_decisions", "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"],
       "current_status": "IMPLEMENTED_AND_TESTED"
     },
     {
@@ -248,7 +248,7 @@
       "checker": "audit_temporal_harmonization",
       "tests": ["tests/test_classification_v2_pre_review_science.py"],
       "audit_artifact": "temporal_harmonization_audit.json",
-      "code_locations": ["src/pig_behavior/classification_v2/features/temporal_harmonization.py#harmonize_temporal_labels"],
+      "code_locations": ["src/pig_behavior/classification_v2/features/temporal_harmonization.py#harmonize_temporal_labels", "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"],
       "current_status": "IMPLEMENTED_AND_TESTED"
     },
     {
@@ -273,7 +273,7 @@
       "checker": "check_classification_v2_native_review_evidence.py",
       "tests": ["tests/test_classification_v2_phase1_pair_contract.py", "tests/test_classification_v2_motion_time_contracts.py"],
       "audit_artifact": "native_review_evidence_audit.json",
-      "code_locations": ["src/pig_behavior/classification_v2/features/spatiotemporal.py#build_enhanced_spatiotemporal_features", "src/pig_behavior/classification_v2/features/native_evidence_contract.py#check_native_review_evidence"],
+      "code_locations": ["src/pig_behavior/classification_v2/features/spatiotemporal.py#build_enhanced_spatiotemporal_features", "src/pig_behavior/classification_v2/features/native_evidence_contract.py#check_native_review_evidence", "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"],
       "current_status": "IMPLEMENTATION_DIFFERS_FROM_CONTRACT"
     },
     {
@@ -294,7 +294,7 @@
       "checker": "check_classification_v2_pig_strenet_artifacts",
       "tests": ["tests/test_classification_v2_pig_strenet_artifacts.py"],
       "audit_artifact": "pig_strenet_artifact_audit.json",
-      "code_locations": ["src/pig_behavior/classification_v2/features/pig_strenet_artifacts.py#build_pig_strenet_artifacts"],
+      "code_locations": ["src/pig_behavior/classification_v2/features/pig_strenet_artifacts.py#build_pig_strenet_artifacts", "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"],
       "current_status": "IMPLEMENTED_AND_TESTED"
     },
     {
@@ -313,7 +313,7 @@
       "checker": "build_review_units",
       "tests": ["tests/test_classification_v2_behavior_review_semantics.py"],
       "audit_artifact": "review_unit_audit.json",
-      "code_locations": ["src/pig_behavior/classification_v2/review/review_unit_builder.py#build_review_units"],
+      "code_locations": ["src/pig_behavior/classification_v2/review/review_unit_builder.py#build_review_units", "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"],
       "current_status": "IMPLEMENTED_AND_TESTED"
     },
     {
@@ -350,7 +350,7 @@
       "checker": "check_apply_review_unit_decisions_output",
       "tests": ["tests/test_classification_v2_behavior_review_semantics.py"],
       "audit_artifact": "behavior_apply_audit.json",
-      "code_locations": ["scripts/classification_v2/01_review_units_gui/classification_v2_apply_review_unit_decisions.py#main"],
+      "code_locations": ["scripts/classification_v2/01_review_units_gui/classification_v2_apply_review_unit_decisions.py#main", "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"],
       "current_status": "IMPLEMENTED_AND_TESTED"
     },
     {
@@ -371,7 +371,7 @@
       "checker": "audit_train_ready_feature_selection",
       "tests": ["tests/test_classification_v2_pre_review_science.py"],
       "audit_artifact": "train_ready_feature_audit.json",
-      "code_locations": ["src/pig_behavior/classification_v2/train_ready_features.py#build_train_ready_window_tables"],
+      "code_locations": ["src/pig_behavior/classification_v2/train_ready_features.py#build_train_ready_window_tables", "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"],
       "current_status": "IMPLEMENTED_AND_TESTED"
     },
     {
@@ -391,7 +391,7 @@
       "checker": "export_spatial_sequences",
       "tests": ["tests/test_classification_v2_spatial_sequence_export.py"],
       "audit_artifact": "spatial_sequence_audit.json",
-      "code_locations": ["src/pig_behavior/classification_v2/spatial_sequence_export.py#export_spatial_sequences"],
+      "code_locations": ["src/pig_behavior/classification_v2/spatial_sequence_export.py#export_spatial_sequences", "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"],
       "current_status": "IMPLEMENTATION_DIFFERS_FROM_CONTRACT"
     },
     {
@@ -410,7 +410,7 @@
       "checker": "validate_model_input_manifest",
       "tests": ["tests/test_classification_v2_model_input_manifest.py"],
       "audit_artifact": "model_input_contract.json",
-      "code_locations": ["src/pig_behavior/classification_v2/contracts/model_input_manifest.py#build_model_input_manifest"],
+      "code_locations": ["src/pig_behavior/classification_v2/contracts/model_input_manifest.py#build_model_input_manifest", "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"],
       "current_status": "IMPLEMENTED_PARTIALLY_TESTED"
     },
     {
@@ -3535,11 +3535,11 @@
   "phase4_semantic_lineage": {
     "implementation_status": "IMPLEMENTED_AND_TESTED",
     "canonicalization_version": "classification_v2.canonical_json.v1",
-    "semantic_registry_version": "classification_v2.semantic_domains.v5",
+    "semantic_registry_version": "classification_v2.semantic_domains.v6",
     "semantic_bundle_id": "bundle.classification_v2.phase1_4",
-    "semantic_bundle_version": "classification_v2.semantic_bundle.v5",
+    "semantic_bundle_version": "classification_v2.semantic_bundle.v6",
     "stage_graph_version": "classification_v2.stage_dependency_graph.v4",
-    "artifact_manifest_version": "classification_v2.artifact_manifest.v5",
+    "artifact_manifest_version": "classification_v2.artifact_manifest.v6",
     "release_authority_schema_version": "classification_v2.release_authority_preflight.v4",
     "hash_algorithm": "SHA-256",
     "code_authority_contract": {
@@ -3585,6 +3585,17 @@
       "authority": "src/pig_behavior/classification_v2/contracts/target_roi_policy.py",
       "review_only_evidence_allowed": true,
       "model_input_allowed": false
+    },
+    "candidate_manifest_builder": {
+      "manifest_builder_id": "builder.classification_v2.candidate_manifest",
+      "manifest_builder_version": "classification_v2.candidate_manifest_builder.v1",
+      "production_authority": "src/pig_behavior/classification_v2/contracts/candidate_manifest.py",
+      "load_bearing_caller_hashes_trusted": false,
+      "candidate_authority_state": "CANDIDATE_VALIDATED",
+      "official_authority_state": "OFFICIAL_PROMOTED",
+      "unsupported_output_policy": "UNSUPPORTED_OUTPUT_INSPECTOR",
+      "atomic_write_required": true,
+      "promotion_separate": true
     },
     "stage_count": 17,
     "semantic_domain_count": 17,

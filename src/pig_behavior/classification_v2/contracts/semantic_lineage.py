@@ -49,11 +49,17 @@ from pig_behavior.classification_v2.features.spatial_semantics import (
 )
 
 CANONICALIZATION_VERSION = "classification_v2.canonical_json.v1"
-SEMANTIC_REGISTRY_VERSION = "classification_v2.semantic_domains.v5"
+SEMANTIC_REGISTRY_VERSION = "classification_v2.semantic_domains.v6"
 SEMANTIC_BUNDLE_ID = "bundle.classification_v2.phase1_4"
-SEMANTIC_BUNDLE_VERSION = "classification_v2.semantic_bundle.v5"
+SEMANTIC_BUNDLE_VERSION = "classification_v2.semantic_bundle.v6"
 STAGE_GRAPH_VERSION = "classification_v2.stage_dependency_graph.v4"
-ARTIFACT_MANIFEST_VERSION = "classification_v2.artifact_manifest.v5"
+ARTIFACT_MANIFEST_VERSION = "classification_v2.artifact_manifest.v6"
+MANIFEST_BUILDER_ID = "builder.classification_v2.candidate_manifest"
+MANIFEST_BUILDER_VERSION = (
+    "classification_v2.candidate_manifest_builder.v1"
+)
+CANDIDATE_AUTHORITY_STATE = "CANDIDATE_VALIDATED"
+OFFICIAL_AUTHORITY_STATE = "OFFICIAL_PROMOTED"
 RELEASE_AUTHORITY_SCHEMA_VERSION = (
     "classification_v2.release_authority_preflight.v4"
 )
@@ -169,6 +175,10 @@ ARTIFACT_PRODUCERS: dict[str, str | None] = {
 
 ARTIFACT_MANIFEST_REQUIRED_FIELDS = (
     "artifact_manifest_version",
+    "manifest_builder_id",
+    "manifest_builder_version",
+    "manifest_builder_code_hash",
+    "authority_state",
     "artifact_id",
     "artifact_class",
     "stage_id",
@@ -178,18 +188,26 @@ ARTIFACT_MANIFEST_REQUIRED_FIELDS = (
     "created_by_code_authority_sha",
     "stage_code_hash",
     "stage_semantics_hash",
+    "stage_input_fingerprint",
     "stage_execution_fingerprint",
+    "execution_parameters_hash",
     "semantic_bundle_hash",
     "contract_manifest_hash",
     "input_artifact_ids",
     "input_artifact_fingerprints",
     "input_file_sha256",
+    "output_path",
     "output_file_sha256",
+    "output_byte_size",
+    "output_inspector_id",
+    "output_inspector_version",
     "output_schema_id",
     "output_schema_version",
     "output_schema_hash",
     "row_count",
     "column_count",
+    "ordered_columns",
+    "stage_specific_metadata",
     "feature_computation_grain",
     "pair_scope_key",
     "distance_metric_ids",
@@ -1258,6 +1276,13 @@ def _domain_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
             ],
             "canonical_payload": {
                 "artifact_manifest_version": ARTIFACT_MANIFEST_VERSION,
+                "manifest_builder": {
+                    "id": MANIFEST_BUILDER_ID,
+                    "version": MANIFEST_BUILDER_VERSION,
+                    "candidate_state": CANDIDATE_AUTHORITY_STATE,
+                    "official_state": OFFICIAL_AUTHORITY_STATE,
+                    "load_bearing_caller_hashes_trusted": False,
+                },
                 "code_authority": {
                     "vcs": CODE_AUTHORITY_VCS_GIT,
                     "object_formats": sorted(
@@ -1852,9 +1877,12 @@ def artifact_manifest_json_schema() -> dict[str, Any]:
     hash_fields = {
         name: {"type": "string", "pattern": HASH_PATTERN.pattern}
         for name in (
+            "manifest_builder_code_hash",
             "stage_code_hash",
             "stage_semantics_hash",
+            "stage_input_fingerprint",
             "stage_execution_fingerprint",
+            "execution_parameters_hash",
             "semantic_bundle_hash",
             "contract_manifest_hash",
             "input_file_sha256",
@@ -1872,6 +1900,16 @@ def artifact_manifest_json_schema() -> dict[str, Any]:
         {
             "artifact_manifest_version": {
                 "const": ARTIFACT_MANIFEST_VERSION,
+            },
+            "manifest_builder_id": {"const": MANIFEST_BUILDER_ID},
+            "manifest_builder_version": {
+                "const": MANIFEST_BUILDER_VERSION,
+            },
+            "authority_state": {
+                "enum": [
+                    CANDIDATE_AUTHORITY_STATE,
+                    OFFICIAL_AUTHORITY_STATE,
+                ]
             },
             "code_authority_vcs": {
                 "const": CODE_AUTHORITY_VCS_GIT,
@@ -1908,6 +1946,12 @@ def artifact_manifest_json_schema() -> dict[str, Any]:
             },
             "row_count": {"type": "integer", "minimum": 0},
             "column_count": {"type": "integer", "minimum": 0},
+            "output_byte_size": {"type": "integer", "minimum": 0},
+            "ordered_columns": {
+                "type": "array",
+                "items": {"type": "string"},
+            },
+            "stage_specific_metadata": {"type": "object"},
             "validation_errors": {
                 "type": "array",
                 "items": {"type": "string"},
@@ -1921,7 +1965,7 @@ def artifact_manifest_json_schema() -> dict[str, Any]:
     )
     return {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "$id": "schema.classification_v2.artifact_manifest.v5",
+        "$id": "schema.classification_v2.artifact_manifest.v6",
         "title": "Classification V2 scientific artifact manifest",
         "type": "object",
         "required": list(ARTIFACT_MANIFEST_REQUIRED_FIELDS),
@@ -2003,9 +2047,12 @@ def _blank(value: Any) -> bool:
 
 def _required_manifest_hash_fields() -> tuple[str, ...]:
     return (
+        "manifest_builder_code_hash",
         "stage_code_hash",
         "stage_semantics_hash",
+        "stage_input_fingerprint",
         "stage_execution_fingerprint",
+        "execution_parameters_hash",
         "semantic_bundle_hash",
         "contract_manifest_hash",
         "input_file_sha256",
@@ -2035,6 +2082,15 @@ def validate_artifact_manifest(
         errors.append(f"MISSING_REQUIRED_FIELDS:{','.join(missing)}")
     if manifest.get("artifact_manifest_version") != ARTIFACT_MANIFEST_VERSION:
         errors.append("WRONG_ARTIFACT_MANIFEST_VERSION")
+    if manifest.get("manifest_builder_id") != MANIFEST_BUILDER_ID:
+        errors.append("WRONG_MANIFEST_BUILDER_ID")
+    if manifest.get("manifest_builder_version") != MANIFEST_BUILDER_VERSION:
+        errors.append("WRONG_MANIFEST_BUILDER_VERSION")
+    if manifest.get("authority_state") not in {
+        CANDIDATE_AUTHORITY_STATE,
+        OFFICIAL_AUTHORITY_STATE,
+    }:
+        errors.append("INVALID_AUTHORITY_STATE")
     stage_id = manifest.get("stage_id")
     if stage_id not in STAGE_DEPENDENCIES:
         errors.append("UNKNOWN_STAGE_ID")
@@ -2072,11 +2128,28 @@ def validate_artifact_manifest(
         value = manifest.get(count_field)
         if not isinstance(value, int) or isinstance(value, bool) or value < 0:
             errors.append(f"INVALID_COUNT:{count_field}")
+    output_byte_size = manifest.get("output_byte_size")
+    if (
+        not isinstance(output_byte_size, int)
+        or isinstance(output_byte_size, bool)
+        or output_byte_size < 0
+    ):
+        errors.append("INVALID_OUTPUT_BYTE_SIZE")
+    ordered_columns = manifest.get("ordered_columns")
+    if not isinstance(ordered_columns, list):
+        errors.append("ORDERED_COLUMNS_NOT_LIST")
+    elif manifest.get("column_count") != len(ordered_columns):
+        errors.append("COLUMN_COUNT_ORDERED_COLUMNS_MISMATCH")
+    if not isinstance(manifest.get("stage_specific_metadata"), Mapping):
+        errors.append("STAGE_SPECIFIC_METADATA_NOT_MAPPING")
     if output_path is not None:
         if not output_path.is_file():
             errors.append("OUTPUT_MISSING")
-        elif manifest.get("output_file_sha256") != file_sha256(output_path):
-            errors.append("OUTPUT_HASH_MISMATCH")
+        else:
+            if manifest.get("output_file_sha256") != file_sha256(output_path):
+                errors.append("OUTPUT_HASH_MISMATCH")
+            if manifest.get("output_byte_size") != output_path.stat().st_size:
+                errors.append("OUTPUT_BYTE_SIZE_MISMATCH")
     if (
         expected_stage_execution_fingerprint is not None
         and manifest.get("stage_execution_fingerprint")
@@ -2173,6 +2246,8 @@ def promote_artifact_transactionally(
     if output_errors:
         raise ValueError(f"output validation failed: {output_errors}")
     manifest = dict(candidate_manifest)
+    if manifest.get("authority_state") != CANDIDATE_AUTHORITY_STATE:
+        raise ValueError("promotion requires CANDIDATE_VALIDATED authority")
     manifest_result = validate_artifact_manifest(
         manifest,
         output_path=staging_output,
@@ -2181,6 +2256,19 @@ def promote_artifact_transactionally(
     if not manifest_result["valid"]:
         raise ValueError(
             f"candidate manifest invalid: {manifest_result['errors']}"
+        )
+    official_manifest = {
+        **manifest,
+        "authority_state": OFFICIAL_AUTHORITY_STATE,
+    }
+    official_result = validate_artifact_manifest(
+        official_manifest,
+        output_path=staging_output,
+        upstream_manifests=upstream_manifests,
+    )
+    if not official_result["valid"]:
+        raise ValueError(
+            f"official manifest invalid: {official_result['errors']}"
         )
     final_output.parent.mkdir(parents=True, exist_ok=True)
     final_manifest.parent.mkdir(parents=True, exist_ok=True)
@@ -2194,7 +2282,7 @@ def promote_artifact_transactionally(
     artifact_promoted = False
     try:
         temporary_manifest.write_bytes(
-            canonical_json_bytes(manifest) + b"\n"
+            canonical_json_bytes(official_manifest) + b"\n"
         )
         os.replace(staging_output, final_output)
         artifact_promoted = True

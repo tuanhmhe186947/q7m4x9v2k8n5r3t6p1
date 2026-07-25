@@ -86,6 +86,14 @@ def semantic_registry(contract: dict) -> dict:
 def _manifest(output_path: Path) -> dict:
     manifest = {
         "artifact_manifest_version": ARTIFACT_MANIFEST_VERSION,
+        "manifest_builder_id": (
+            "builder.classification_v2.candidate_manifest"
+        ),
+        "manifest_builder_version": (
+            "classification_v2.candidate_manifest_builder.v1"
+        ),
+        "manifest_builder_code_hash": HEX_A,
+        "authority_state": "CANDIDATE_VALIDATED",
         "artifact_id": "artifact.test",
         "artifact_class": "TEST",
         "stage_id": "stage.frame_local_primitives",
@@ -95,18 +103,28 @@ def _manifest(output_path: Path) -> dict:
         "created_by_code_authority_sha": GIT_SHA1_A,
         "stage_code_hash": HEX_A,
         "stage_semantics_hash": HEX_A,
+        "stage_input_fingerprint": HEX_A,
         "stage_execution_fingerprint": HEX_A,
+        "execution_parameters_hash": HEX_A,
         "semantic_bundle_hash": HEX_A,
         "contract_manifest_hash": HEX_A,
         "input_artifact_ids": [],
         "input_artifact_fingerprints": {},
         "input_file_sha256": HEX_A,
+        "output_path": output_path.name,
         "output_file_sha256": file_sha256(output_path),
+        "output_byte_size": output_path.stat().st_size,
+        "output_inspector_id": "inspector.csv.v1",
+        "output_inspector_version": (
+            "classification_v2.candidate_output_inspectors.v1"
+        ),
         "output_schema_id": "schema.test",
         "output_schema_version": "v1",
         "output_schema_hash": HEX_A,
         "row_count": 1,
         "column_count": 1,
+        "ordered_columns": ["value"],
+        "stage_specific_metadata": {},
         "feature_computation_grain": "FRAME_LOCAL_PRIMITIVES",
         "pair_scope_key": "temporal_unit_key",
         "distance_metric_ids": ["image_axis_normalized_distance_v1"],

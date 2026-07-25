@@ -664,8 +664,37 @@ def _mapping_rows(
             f"stages: missing={sorted(stage_ids - set(runtime_files))}, "
             f"unknown={sorted(set(runtime_files) - stage_ids)}"
         )
+    shared_runtime_files: dict[str, set[str]] = {
+        stage_id: set() for stage_id in stage_ids
+    }
+    for shared in runtime_code_authority.get(
+        "shared_stage_runtime_dependencies",
+        [],
+    ):
+        applicable = set(shared.get("applicable_stage_ids", []))
+        if not applicable or not applicable.issubset(stage_ids):
+            raise ValueError(
+                "shared runtime code authority has invalid stage IDs: "
+                f"{sorted(applicable - stage_ids)}"
+            )
+        files = {
+            str(value)
+            for value in shared.get("runtime_dependency_files", [])
+            if str(value).strip()
+        }
+        if not files:
+            raise ValueError(
+                "shared runtime code authority must declare files: "
+                f"{shared.get('authority_id', '')}"
+            )
+        for stage_id in applicable:
+            shared_runtime_files[stage_id].update(files)
     for stage_id in sorted(runtime_files):
-        for source in sorted(set(runtime_files[stage_id])):
+        stage_files = (
+            set(runtime_files[stage_id])
+            | shared_runtime_files[stage_id]
+        )
+        for source in sorted(stage_files):
             rows.append(
                 {
                     "contract_item_id": stage_id,
