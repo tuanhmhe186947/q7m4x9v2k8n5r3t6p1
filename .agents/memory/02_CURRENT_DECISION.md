@@ -1,5 +1,85 @@
 # Current Decision
 
+## Classification V2 final integrated acceptance (2026-07-25)
+
+- `PHASE4_IMPLEMENTATION_SHA=76a0458e39769d3e7fac865dd16439a0ed3c3a04`
+- `ACCEPTED_IMPLEMENTATION_SHA=76a0458e39769d3e7fac865dd16439a0ed3c3a04`
+- `PHASE4_EXACT_SHA_AUDIT=PASS`
+- `PHASE1_4_INTEGRATED_ACCEPTANCE=PASS`
+- `PHASE4_HUMAN_SIGNOFF=APPROVED`
+- `REVIEWER=TuanHM`
+- `REVIEW_DATE=2026-07-24`
+- `REVIEWED_SHA=76a0458e39769d3e7fac865dd16439a0ed3c3a04`
+
+Decision:
+`ACCEPT_PHASE_4_AND_PHASE_1_4_INTEGRATED_IMPLEMENTATION`
+`AND_AUTHORIZE_LINEAGE_REBUILD_PLANNING`.
+
+The accepted implementation SHA remains the scientific implementation
+authority. `MAIN_HEAD_AFTER_DOCUMENTATION_SYNC=THIS_DOCUMENTATION_COMMIT`
+identifies the one later documentation-only commit; its exact SHA is recorded
+by Git commit metadata and does not replace or alter accepted authority.
+
+Original audit evidence:
+`.codex_tmp/worktrees/phase1_4_final_acceptance_76a0458/outputs/`
+`classification_v2/agent_audits/phase1_4_final_acceptance_76a0458/`.
+Stable archive:
+`C:\Users\ironh\Downloads\PIG_Behavior_Project_AUDIT_ARCHIVE\`
+`phase1_4_final_acceptance_76a0458\`.
+The package contains 87 files; source and archive SHA-256 inventories match.
+The exact report is `final_phase1_4_acceptance_report.md`; the checklist is
+`final_phase1_4_acceptance_checklist.md`. Audit target is the accepted SHA and
+the verdict is `PASS_PHASE1_4_INTEGRATED_ACCEPTANCE`.
+
+### Accepted integrated proof
+
+- Production built 28 candidate manifests; all 28 validated.
+- Audit harness assembled zero candidate manifests.
+- All 26 upstream links were `CURRENT_AUTHORITATIVE`; zero noncurrent
+  upstreams were accepted.
+- Original negative controls passed 14/14 integrated and 15/15 builder.
+- Extended negative controls passed 7/7.
+- Transaction injections passed 9/9 without a prior candidate and 9/9 with a
+  prior candidate.
+- Zero new valid candidates and zero partial authoritative outputs survived
+  failed transactions.
+- LF/CRLF canonical equality and cross-root determinism passed.
+- Runtime dependency closure passed 17/17.
+- Phase 1, Phase 2, Phase 3, and Phase 4 invariants passed.
+- Phase 2 schema hash remains
+  `ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b`.
+- Every release authorization flag remained false.
+
+### Current readiness
+
+- `READY_FOR_LINEAGE_REBUILD_PLANNING=YES`
+- `READY_TO_REBUILD_FRAME_LOCAL=NO`
+- `READY_FOR_SOURCE_REBUILD=NO`
+- `READY_FOR_HIDDEN_REVIEW=NO`
+- `READY_FOR_TEMPORAL_HARMONIZATION=NO`
+- `READY_FOR_NATIVE_EVIDENCE=NO`
+- `READY_FOR_PIG_STRENET=NO`
+- `READY_FOR_BEHAVIOR_GUI=NO`
+- `READY_FOR_TRAIN_READY_EXPORT=NO`
+- `READY_FOR_TENSOR_EXPORT=NO`
+- `READY_FOR_MODEL_EXECUTION=NO`
+- `READY_FOR_TRAINING=NO`
+
+The next task is planning only: determine the authoritative rebuild start;
+validate whether source merge remains `CURRENT_AUTHORITATIVE`; design an
+isolated lineage run ID; lock input artifacts and manifests; define stage
+output roots, dry-run and preflight gates, population reconciliation,
+human-decision carry-forward, and rollback; then prepare a separate
+frame-local execution authorization.
+
+Pre-sync dirty work is preserved in a backup branch, external recovery
+package, and unapplied stash. It was not applied to `main`.
+
+Earlier Phase 4 candidates `c1df0cc4bc72f9f4a889a9fe8f5fe6b31cffb45a`,
+`f42f0d3328700d1f3c2f6bcca01f147b145c8a07`, and
+`99d63723bc1af8cc862551c045c9b2675076acce` remain historical records,
+superseded by the final integrated accepted SHA.
+
 ## Active realtime runtime decision 2026-07-20
 
 The common GPU harness is complete at instrumentation commit `7c9179e`.

@@ -1,5 +1,24 @@
 # Project Memory Short
 
+## 2026-07-25 Classification V2 final Phase 1–4 acceptance
+
+- Final accepted implementation:
+  `76a0458e39769d3e7fac865dd16439a0ed3c3a04`.
+- Exact-SHA Phase 4 and integrated Phase 1–4 acceptance: `PASS`.
+- Human sign-off: `TuanHM`, reviewed 2026-07-24, `APPROVED`.
+- Production chain: 28 production-built and 28 valid manifests, zero
+  audit-assembled manifests, and 26 current-authoritative upstream links.
+- Cross-root determinism and runtime dependency closure 17/17 passed.
+- Negative controls passed 14/14 integrated, 15/15 builder, and 7/7 extended.
+- Transaction injections passed 9/9 without a prior candidate and 9/9 with a
+  prior candidate; no valid new or partial authoritative output survived.
+- Phase 1–4 invariants passed. Phase 2 schema hash remains
+  `ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b`.
+- Lineage rebuild planning is authorized; all execution authorization remains
+  false.
+- Intermediate SHAs `c1df0cc4`, `f42f0d33`, and `99d63723` remain preserved
+  as superseded implementation/correction candidates.
+
 ## 2026-07-20 active mixed reviewed lineage decision
 
 - The active training target is a mixed lineage: the locked legacy 16f

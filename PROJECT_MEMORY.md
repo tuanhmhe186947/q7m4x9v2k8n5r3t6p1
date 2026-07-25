@@ -2,6 +2,27 @@
 
 This document serves as the long-term, medium-term, and short-term memory registry for the Pig Behavior Project, outlining the system architecture, code contracts, and active targets.
 
+## Classification V2 accepted authority (2026-07-25)
+
+- `ACCEPTED_IMPLEMENTATION_SHA=76a0458e39769d3e7fac865dd16439a0ed3c3a04`
+- `PHASE4_EXACT_SHA_AUDIT=PASS`
+- `PHASE1_4_INTEGRATED_ACCEPTANCE=PASS`
+- `PHASE4_HUMAN_SIGNOFF=APPROVED`
+- `REVIEWER=TuanHM`
+- `REVIEW_DATE=2026-07-24`
+- `READY_FOR_LINEAGE_REBUILD_PLANNING=YES`
+
+This acceptance authorizes planning only. It does not authorize any rebuild,
+review GUI, scientific evidence generation, export, model execution, or
+training. The dirty work present before main synchronization was preserved
+separately and was not applied to `main`.
+
+The implementation authority remains the accepted SHA above. The later
+documentation-only synchronization commit records status without changing
+production, tests, configuration, schema, or scientific contract authority.
+Detailed evidence and readiness gates are maintained in
+`.agents/memory/02_CURRENT_DECISION.md` and `.agents/memory/08_WORKFLOW.md`.
+
 ## Long-Term Memory (Core Architecture & Tech Stack)
 
 ### Project Overview

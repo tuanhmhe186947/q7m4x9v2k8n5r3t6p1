@@ -1,5 +1,77 @@
 # Workflow
 
+## Classification V2 accepted planning workflow (2026-07-25)
+
+- `PHASE4_IMPLEMENTATION_SHA=76a0458e39769d3e7fac865dd16439a0ed3c3a04`
+- `ACCEPTED_IMPLEMENTATION_SHA=76a0458e39769d3e7fac865dd16439a0ed3c3a04`
+- `PHASE4_EXACT_SHA_AUDIT=PASS`
+- `PHASE1_4_INTEGRATED_ACCEPTANCE=PASS`
+- `PHASE4_HUMAN_SIGNOFF=APPROVED`
+- `REVIEWER=TuanHM`
+- `REVIEW_DATE=2026-07-24`
+- `REVIEWED_SHA=76a0458e39769d3e7fac865dd16439a0ed3c3a04`
+
+Decision:
+`ACCEPT_PHASE_4_AND_PHASE_1_4_INTEGRATED_IMPLEMENTATION`
+`AND_AUTHORIZE_LINEAGE_REBUILD_PLANNING`.
+
+`MAIN_HEAD_AFTER_DOCUMENTATION_SYNC=THIS_DOCUMENTATION_COMMIT` denotes the
+single status-only commit whose exact SHA is in Git history. It does not alter
+or replace the accepted implementation SHA.
+
+Audit source:
+`.codex_tmp/worktrees/phase1_4_final_acceptance_76a0458/outputs/`
+`classification_v2/agent_audits/phase1_4_final_acceptance_76a0458/`.
+Stable archive:
+`C:\Users\ironh\Downloads\PIG_Behavior_Project_AUDIT_ARCHIVE\`
+`phase1_4_final_acceptance_76a0458\`.
+The archive has 87 files and matches the source SHA-256 inventory. The exact
+report and checklist are `final_phase1_4_acceptance_report.md` and
+`final_phase1_4_acceptance_checklist.md`; verdict:
+`PASS_PHASE1_4_INTEGRATED_ACCEPTANCE`.
+
+### Integrated gate results
+
+- Candidate manifests: 28 production-built, 28 valid, zero audit-assembled.
+- Upstreams: 26 `CURRENT_AUTHORITATIVE`, zero noncurrent accepted.
+- Negative controls: 14/14 integrated, 15/15 builder, 7/7 extended.
+- Transactions: 9/9 no-prior and 9/9 prior-candidate injections passed.
+- Failed transactions left zero new valid candidates and zero partial
+  authoritative outputs.
+- LF/CRLF canonical equality and cross-root determinism passed.
+- Runtime dependency closure passed 17/17.
+- Phase 1–4 invariants passed; Phase 2 schema hash remains
+  `ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b`.
+- Release authority remains entirely false.
+
+### Planning-only authority
+
+- `READY_FOR_LINEAGE_REBUILD_PLANNING=YES`
+- `READY_TO_REBUILD_FRAME_LOCAL=NO`
+- `READY_FOR_SOURCE_REBUILD=NO`
+- `READY_FOR_HIDDEN_REVIEW=NO`
+- `READY_FOR_TEMPORAL_HARMONIZATION=NO`
+- `READY_FOR_NATIVE_EVIDENCE=NO`
+- `READY_FOR_PIG_STRENET=NO`
+- `READY_FOR_BEHAVIOR_GUI=NO`
+- `READY_FOR_TRAIN_READY_EXPORT=NO`
+- `READY_FOR_TENSOR_EXPORT=NO`
+- `READY_FOR_MODEL_EXECUTION=NO`
+- `READY_FOR_TRAINING=NO`
+
+The next workflow may only determine the authoritative rebuild start, check
+whether source merge remains `CURRENT_AUTHORITATIVE`, design an isolated run
+ID, lock inputs and manifests, define output roots, dry-run/preflight,
+population reconciliation, decision carry-forward, rollback, and prepare a
+separate frame-local execution authorization. Frame-local execution is not
+authorized.
+
+Pre-sync dirty work remains recoverable in a backup branch, external package,
+and unapplied stash; it was not restored to `main`.
+
+Historical candidates `c1df0cc4`, `f42f0d33`, and `99d63723` remain preserved
+as superseded Phase 4 implementation/correction records.
+
 ## Active mixed source workflow (2026-07-20)
 
 Build the mixed source from the locked legacy P0-P10 export and the 12 XML

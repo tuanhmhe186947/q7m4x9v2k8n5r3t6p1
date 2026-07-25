@@ -4,6 +4,18 @@ AI research code for pig detection, tracking, and behavior recognition from
 video. The maintained runtime code lives under `src/pig_behavior`; notebooks are
 kept as archived experiment history.
 
+## Classification V2 status
+
+Classification V2 Phases 1–4 are accepted at implementation SHA
+`76a0458e39769d3e7fac865dd16439a0ed3c3a04`. The exact-SHA Phase 1–4
+integrated acceptance audit passed, and TuanHM approved the human sign-off on
+2026-07-24.
+
+Lineage rebuild planning is authorized. No rebuild, review GUI, evidence
+generation, export, model execution, or training is authorized by that
+acceptance. Canonical operational details remain in
+`.agents/memory/02_CURRENT_DECISION.md` and `.agents/memory/08_WORKFLOW.md`.
+
 ## Repository Layout
 
 ```text
