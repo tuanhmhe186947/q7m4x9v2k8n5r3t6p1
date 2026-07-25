@@ -30,7 +30,7 @@
   "implementation": {
     "path":
       "src/pig_behavior/classification_v2/training/legacy_development_c6_temporal_controls.py",
-    "sha256": "3022efe6ea3c4a80f8b26262e75a9ea7f34ef98300b3b0e4fc05eb9e3be8eba9"
+    "sha256": "ecbd409344284463d44f2100887bf39a2f8a611dd6dafe2677eeef38198cedd4"
   },
   "control_implementation": {
     "path": "src/pig_behavior/classification_v2/training/temporal_perturbation_controls.py",

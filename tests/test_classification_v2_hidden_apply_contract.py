@@ -25,6 +25,20 @@ V6_MANIFEST = V6_ROOT / "data/03_hidden_review/hidden_review_unit_manifest.csv"
 V6_DECISIONS = (
     V6_ROOT / "human_decisions/hidden/hidden_review_decisions.csv"
 )
+HIDDEN_EXTERNAL_REASON = (
+    "OPTIONAL_EXTERNAL_HIDDEN_V6_FIXTURE_UNAVAILABLE:"
+    "supply the versioned v6 human-review bundle"
+)
+
+
+def _all_files_readable(paths: tuple[Path, ...]) -> bool:
+    try:
+        for path in paths:
+            with path.open("rb") as handle:
+                handle.read(1)
+    except OSError:
+        return False
+    return True
 
 
 def _load_apply_script() -> ModuleType:
@@ -124,6 +138,10 @@ def test_apply_bundle_is_deterministic(tmp_path: Path) -> None:
     ]
 
 
+@pytest.mark.skipif(
+    not _all_files_readable((V6_FRAME_LOCAL, V6_MANIFEST, V6_DECISIONS)),
+    reason=HIDDEN_EXTERNAL_REASON,
+)
 def test_actual_v6_apply_and_independent_checker_pass(
     tmp_path: Path,
 ) -> None:

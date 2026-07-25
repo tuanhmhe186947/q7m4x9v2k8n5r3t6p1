@@ -20,6 +20,29 @@ behavior XMLs, 172,800 CVAT boxes, projected 245,680 rows, and
 `release_authority_all_false=true`. Any hash, path, schema or authority error
 stops the run.
 
+## Operational-final validation profile
+
+Run the complete relevant profile from a clean checkout with:
+
+```bat
+python -m pytest -p no:cacheprovider tests -k classification_v2
+```
+
+The command must exit zero. Tests that bind optional, non-versioned integration
+artifacts may skip only with one of these stable reason-code prefixes:
+
+```text
+OPTIONAL_EXTERNAL_HIDDEN_V6_FIXTURE_UNAVAILABLE
+OPTIONAL_EXTERNAL_LEGACY_GOAL_BUNDLE_UNAVAILABLE
+```
+
+The Hidden tests run normally when the versioned local human-review bundle is
+present and readable. The legacy goal-completion integration test runs normally
+when every hash-bound L0-L8 development artifact is supplied. Their synthetic,
+configuration, transaction, and fail-closed tests always run. Missing local
+cache outputs are not a skip condition; bounded synthetic cache manifests test
+repeat-comparison logic in a clean checkout.
+
 ## Stage-by-stage operation
 
 Each stage is invoked separately:

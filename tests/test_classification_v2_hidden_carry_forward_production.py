@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from pig_behavior.classification_v2.review.hidden_review_migration import (
     HUMAN_PAYLOAD_COLUMNS,
@@ -36,6 +37,20 @@ CARRY_SCRIPT = (
     / "scripts/classification_v2/01_review_units_gui/"
     "classification_v2_carry_forward_hidden_review_decisions.py"
 )
+HIDDEN_EXTERNAL_REASON = (
+    "OPTIONAL_EXTERNAL_HIDDEN_V6_FIXTURE_UNAVAILABLE:"
+    "supply the versioned hidden carry-forward bundle"
+)
+
+
+def _all_files_readable(paths: tuple[Path, ...]) -> bool:
+    try:
+        for path in paths:
+            with path.open("rb") as handle:
+                handle.read(1)
+    except OSError:
+        return False
+    return True
 
 
 def _production_tables() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -46,6 +61,16 @@ def _production_tables() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     )
 
 
+@pytest.mark.skipif(
+    not _all_files_readable(
+        (
+            PREVIOUS_MANIFEST,
+            CURRENT_MANIFEST,
+            PREVIOUS_DECISIONS,
+        )
+    ),
+    reason=HIDDEN_EXTERNAL_REASON,
+)
 def test_actual_hidden_carry_partition_and_determinism() -> None:
     previous, current, decisions = _production_tables()
     carried, audit = carry_forward_hidden_review_decisions(
@@ -92,6 +117,16 @@ def test_actual_hidden_carry_partition_and_determinism() -> None:
     assert audit == repeated_audit
 
 
+@pytest.mark.skipif(
+    not _all_files_readable(
+        (
+            PREVIOUS_MANIFEST,
+            CURRENT_MANIFEST,
+            PREVIOUS_DECISIONS,
+        )
+    ),
+    reason=HIDDEN_EXTERNAL_REASON,
+)
 def test_actual_hidden_carry_cli_dry_run_and_apply(tmp_path: Path) -> None:
     dry_output = tmp_path / "dry_run_must_not_exist.csv"
     dry_audit = tmp_path / "dry_run_audit.json"
@@ -123,6 +158,16 @@ def test_actual_hidden_carry_cli_dry_run_and_apply(tmp_path: Path) -> None:
     assert apply_payload["carried_decision_items"] == 5227
 
 
+@pytest.mark.skipif(
+    not _all_files_readable(
+        (
+            PREVIOUS_MANIFEST,
+            CURRENT_MANIFEST,
+            PREVIOUS_DECISIONS,
+        )
+    ),
+    reason=HIDDEN_EXTERNAL_REASON,
+)
 def test_actual_hidden_carry_failure_does_not_promote_csv(
     tmp_path: Path,
 ) -> None:
@@ -146,6 +191,16 @@ def test_actual_hidden_carry_failure_does_not_promote_csv(
     assert audit["output_written"] is False
 
 
+@pytest.mark.skipif(
+    not _all_files_readable(
+        (
+            PREVIOUS_MANIFEST,
+            CURRENT_MANIFEST,
+            PREVIOUS_DECISIONS,
+        )
+    ),
+    reason=HIDDEN_EXTERNAL_REASON,
+)
 def test_actual_hidden_carry_rejects_duplicate_and_conflicting_decisions(
 ) -> None:
     previous, current, decisions = _production_tables()
@@ -169,6 +224,16 @@ def test_actual_hidden_carry_rejects_duplicate_and_conflicting_decisions(
         )
 
 
+@pytest.mark.skipif(
+    not _all_files_readable(
+        (
+            PREVIOUS_MANIFEST,
+            CURRENT_MANIFEST,
+            PREVIOUS_DECISIONS,
+        )
+    ),
+    reason=HIDDEN_EXTERNAL_REASON,
+)
 def test_actual_hidden_carry_csv_promotion_failure_is_transactional(
     tmp_path: Path,
 ) -> None:
@@ -194,6 +259,16 @@ def test_actual_hidden_carry_csv_promotion_failure_is_transactional(
     )
 
 
+@pytest.mark.skipif(
+    not _all_files_readable(
+        (
+            PREVIOUS_MANIFEST,
+            CURRENT_MANIFEST,
+            PREVIOUS_DECISIONS,
+        )
+    ),
+    reason=HIDDEN_EXTERNAL_REASON,
+)
 def test_actual_common_mismatch_categories_fail_closed() -> None:
     previous, current, decisions = _production_tables()
     item_id = decisions.iloc[0]["hidden_review_item_id"]

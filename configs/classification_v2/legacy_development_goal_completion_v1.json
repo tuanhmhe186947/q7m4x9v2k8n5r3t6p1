@@ -13,7 +13,7 @@
   },
   "goal_authority": {
     "path": "plans/classification_v2-legacy-16f-development-goal-prompt.md",
-    "sha256": "f469ff8d72289c150298df00c4320f70f2eec99a1598bb3addd375ee8c9ae145"
+    "sha256": "1d7d5531a47cfc0f41536e8f24e5ef2356cd78c323d239fdf3a31bc7832ee9c0"
   },
   "frozen_inputs": {
     "raw_authority": {

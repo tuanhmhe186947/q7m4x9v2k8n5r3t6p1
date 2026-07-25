@@ -15,6 +15,37 @@ CONFIG_PATH = Path(
     "configs/classification_v2/"
     "legacy_development_l6_motion_cache_repeat_gate_v1.json"
 )
+def _synthetic_manifest() -> dict[str, object]:
+    return {
+        "artifacts": {
+            name: {"sha256": str(index) * 64, "size_bytes": index}
+            for index, name in enumerate(ARTIFACT_NAMES, start=1)
+        },
+        "content_audit": {
+            "model_window_rows": 2,
+            "model_slot_rows": 12,
+            "role_window_counts": {"train": 2},
+            "available_pair_slots": 10,
+            "unavailable_slots": 2,
+            "unavailable_first_slots": 2,
+            "unavailable_nonfirst_slots": 0,
+            "motion_shape": [2, 6, 12],
+            "availability_shape": [2, 6],
+            "motion_dtype": "float32",
+            "availability_dtype": "bool",
+            "motion_statistics": {"mean": 0.0},
+            "availability_pattern_count": 1,
+            "availability_pattern": [False, True, True, True, True, True],
+            "ordered_window_id_sha256": "a" * 64,
+            "window_index_content_sha256": "b" * 64,
+            "slot_index_content_sha256": "c" * 64,
+            "spatial_export_audit": {"valid": True},
+            "window_start_reset_audit": {"valid": True},
+            "source_probe": {"status": "PASS"},
+            "unit_aggregate_features_selected": False,
+            "geometry_values_consumed": False,
+        },
+    }
 
 
 def test_motion_cache_repeat_config_is_strict() -> None:
@@ -27,12 +58,7 @@ def test_motion_cache_repeat_config_is_strict() -> None:
 
 
 def test_motion_cache_repeat_comparison_detects_drift() -> None:
-    manifest_path = Path(
-        "outputs/classification_v2/legacy_only_unreviewed_development/"
-        "full_legacy_lineage_v2_20260714/16_l6_input_context/"
-        "motion_cache_v2/motion_cache_manifest.json"
-    )
-    primary = json.loads(manifest_path.read_text(encoding="utf-8"))
+    primary = _synthetic_manifest()
     repeat = copy.deepcopy(primary)
 
     artifacts = _artifact_comparison(primary, repeat)

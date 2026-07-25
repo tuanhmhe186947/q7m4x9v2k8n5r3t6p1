@@ -29,6 +29,33 @@ GATE_CONFIG = Path(
     "configs/classification_v2/"
     "legacy_development_l6_roi_relation_cache_repeat_gate_v1.json"
 )
+def _synthetic_manifest() -> dict[str, object]:
+    return {
+        "artifacts": {
+            name: {"sha256": str(index) * 64, "size_bytes": index}
+            for index, name in enumerate(repeat_gate.ARTIFACT_NAMES, start=1)
+        },
+        "content_audit": {
+            "model_window_rows": 2,
+            "model_slot_rows": 12,
+            "roi_relation_shape": [2, 6, 4],
+            "availability_shape": [2, 6],
+            "available_slots": 10,
+            "unavailable_slots": 2,
+            "availability_pattern": [False, True, True, True, True, True],
+            "feature_summaries": {"mean": 0.0},
+            "source_probe": {"status": "PASS"},
+            "target_selected_roi_fields_used": False,
+            "unit_aggregate_features_used": False,
+            "geometry_values_used": False,
+            "motion_values_used": False,
+            "source_media_reads": 0,
+            "outer_holdout_slots_materialized": 0,
+            "valid": True,
+        },
+        "feature_contract": {"features": ["roi_relation"]},
+        "parent_view": {"view_id": "synthetic"},
+    }
 
 
 def _load(path: Path) -> dict[str, object]:
@@ -49,8 +76,8 @@ def test_roi_relation_cache_repeat_semantics_include_order_authority() -> None:
 
 
 def test_roi_relation_cache_repeat_is_byte_and_content_identical() -> None:
-    primary = _load(PRIMARY_MANIFEST)
-    repeat = _load(REPEAT_MANIFEST)
+    primary = _synthetic_manifest()
+    repeat = copy.deepcopy(primary)
 
     artifacts = repeat_gate._artifact_comparison(primary, repeat)
     content = repeat_gate._content_comparison(primary, repeat)

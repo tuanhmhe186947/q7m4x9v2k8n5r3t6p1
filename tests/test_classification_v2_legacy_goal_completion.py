@@ -13,6 +13,41 @@ from pig_behavior.classification_v2.evaluation import (
 CONFIG_PATH = Path(
     "configs/classification_v2/legacy_development_goal_completion_v1.json"
 )
+OPTIONAL_GOAL_REASON = (
+    "OPTIONAL_EXTERNAL_LEGACY_GOAL_BUNDLE_UNAVAILABLE:"
+    "supply every hash-bound L0-L8 legacy-development artifact"
+)
+
+
+def _bound_paths(value: object) -> list[Path]:
+    if isinstance(value, dict):
+        paths = []
+        if "path" in value and "sha256" in value:
+            paths.append(Path(str(value["path"])))
+        for child in value.values():
+            paths.extend(_bound_paths(child))
+        return paths
+    if isinstance(value, list):
+        paths = []
+        for child in value:
+            paths.extend(_bound_paths(child))
+        return paths
+    return []
+
+
+def _goal_bundle_available() -> bool:
+    payload = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    required = [
+        *_bound_paths(payload["frozen_inputs"]),
+        *_bound_paths(payload["milestones"]),
+    ]
+    try:
+        for path in required:
+            with path.open("rb") as handle:
+                handle.read(1)
+    except OSError:
+        return False
+    return True
 
 
 def test_checked_in_completion_config_is_fail_closed() -> None:
@@ -55,6 +90,10 @@ def test_common_milestone_boundary_rejects_claim_drift() -> None:
         completion._validate_common(payload, "PASS_TEST", "test")
 
 
+@pytest.mark.skipif(
+    not _goal_bundle_available(),
+    reason=OPTIONAL_GOAL_REASON,
+)
 def test_completion_dry_run_proves_current_l0_l8_evidence() -> None:
     result = completion.write_legacy_goal_completion_audit(
         CONFIG_PATH,

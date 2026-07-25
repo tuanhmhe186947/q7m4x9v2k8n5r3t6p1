@@ -206,6 +206,26 @@ def test_blank_key_unsupported_status_and_malformed_payload_fail_closed() -> Non
     assert "low_confidence_requires_unclear=1" in malformed["errors"]
 
 
+HIDDEN_EXTERNAL_REASON = (
+    "OPTIONAL_EXTERNAL_HIDDEN_V6_FIXTURE_UNAVAILABLE:"
+    "supply the versioned v6 human-review bundle"
+)
+
+
+def _all_files_readable(paths: tuple[Path, ...]) -> bool:
+    try:
+        for path in paths:
+            with path.open("rb") as handle:
+                handle.read(1)
+    except OSError:
+        return False
+    return True
+
+
+@pytest.mark.skipif(
+    not _all_files_readable((V6_MANIFEST, V6_DECISIONS, V6_DESIGN)),
+    reason=HIDDEN_EXTERNAL_REASON,
+)
 def test_actual_v6_coverage_and_scientific_cli_pass_with_drift(
     tmp_path: Path,
 ) -> None:
