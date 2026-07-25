@@ -6,23 +6,31 @@ kept as archived experiment history.
 
 ## Classification V2 status
 
-Classification V2 implementation SHA
-`76a0458e39769d3e7fac865dd16439a0ed3c3a04` remains integrated on `main`.
-The original exact-SHA audit passed and TuanHM approved it on 2026-07-24,
-but the 2026-07-25 post-sync differential gate found one accepted-SHA
-independent-checker defect. Therefore:
+Classification V2 exact-SHA correction
+`a35e0b9aae8b55167b4562cfc7e26a45e2b4e312` is fast-forwarded on `main`.
+The detached exact-SHA re-audit and post-merge acceptance gate passed, and
+TuanHM approved the final Phase 1–4 state on 2026-07-26:
 
-- `PHASE1_4_INTEGRATED_ACCEPTANCE=REOPENED`
-- `MAIN_SYNC_STATUS=CODE_INTEGRATED_BUT_ACCEPTANCE_REOPENED`
-- `READY_FOR_LINEAGE_REBUILD_PLANNING=NO`
+- `ACCEPTED_IMPLEMENTATION_SHA=a35e0b9aae8b55167b4562cfc7e26a45e2b4e312`
+- `OBJECT_TRACK_KEY_EXACT_SHA_REAUDIT=PASS`
+- `PHASE1_4_INTEGRATED_ACCEPTANCE=PASS`
+- `MAIN_SYNC_STATUS=COMPLETE`
+- `PHASE4_HUMAN_SIGNOFF=APPROVED`
+- `REVIEWER=TuanHM`
+- `REVIEW_DATE=2026-07-26`
+- `REVIEWED_SHA=a35e0b9aae8b55167b4562cfc7e26a45e2b4e312`
+- `READY_FOR_LINEAGE_REBUILD_PLANNING=YES`
 - `READY_TO_REBUILD_FRAME_LOCAL=NO`
 
-Of the other nine initially unresolved failures, one requires Git-ignored V6
-human-review inputs and eight were caused by sandbox denial of `G:\My Drive`.
-All eight legacy tests passed for both SHAs outside that isolation. No rebuild,
-review GUI, evidence generation, export, model execution, or training is
-authorized. Canonical operational details remain in
-`.agents/memory/02_CURRENT_DECISION.md` and `.agents/memory/08_WORKFLOW.md`.
+The canonical object identity contract is
+`schema.classification_v2.object_track_key`,
+`classification_v2.object_track_key.v1`: source, dataset, and video scope
+followed by `track_id`, with `object_id` fallback, using RFC3986 UTF-8
+escaping. `PIG_ID_AUTHORITATIVE=NO` and
+`PRODUCTION_OBJECT_TRACK_KEY_VALUES_CHANGED=NO`. The V6 ignored-input and
+legacy `G:\My Drive` limitations remain pre-existing and do not block this
+correction. No rebuild, review GUI, evidence generation, export, model
+execution, or training has been run.
 
 ## Repository Layout
 

@@ -1,5 +1,24 @@
 # Project Memory Short
 
+## 2026-07-26 Classification V2 correction accepted
+
+- `ACCEPTED_IMPLEMENTATION_SHA=a35e0b9aae8b55167b4562cfc7e26a45e2b4e312`
+- `OBJECT_TRACK_KEY_EXACT_SHA_REAUDIT=PASS`
+- `MAIN_SYNC_STATUS=COMPLETE`
+- `PHASE1_4_INTEGRATED_ACCEPTANCE=PASS`
+- `PHASE4_HUMAN_SIGNOFF=APPROVED`
+- `REVIEWER=TuanHM`
+- `REVIEW_DATE=2026-07-26`
+- `REVIEWED_SHA=a35e0b9aae8b55167b4562cfc7e26a45e2b4e312`
+- `READY_FOR_LINEAGE_REBUILD_PLANNING=YES`
+- `READY_TO_REBUILD_FRAME_LOCAL=NO`
+- Object key contract: `schema.classification_v2.object_track_key`,
+  `classification_v2.object_track_key.v1`, RFC3986 UTF-8 escaping,
+  track-first/object-fallback, `PIG_ID_AUTHORITATIVE=NO`.
+- Production object-track-key values did not change.
+- The V6 ignored-input and eight legacy path failures remain pre-existing
+  limitations; no official rebuild or model execution is authorized.
+
 ## 2026-07-25 Classification V2 acceptance reopened
 
 - `MAIN_SYNC_STATUS=CODE_INTEGRATED_BUT_ACCEPTANCE_REOPENED`

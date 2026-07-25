@@ -1,5 +1,31 @@
 # Current Decision
 
+## Classification V2 correction accepted (2026-07-26)
+
+- `PHASE4_IMPLEMENTATION_SHA=a35e0b9aae8b55167b4562cfc7e26a45e2b4e312`
+- `ACCEPTED_IMPLEMENTATION_SHA=a35e0b9aae8b55167b4562cfc7e26a45e2b4e312`
+- `OBJECT_TRACK_KEY_EXACT_SHA_REAUDIT=PASS`
+- `PHASE1_4_INTEGRATED_ACCEPTANCE=PASS`
+- `PHASE4_HUMAN_SIGNOFF=APPROVED`
+- `REVIEWER=TuanHM`
+- `REVIEW_DATE=2026-07-26`
+- `REVIEWED_SHA=a35e0b9aae8b55167b4562cfc7e26a45e2b4e312`
+- `MAIN_SYNC_STATUS=COMPLETE`
+- `READY_FOR_LINEAGE_REBUILD_PLANNING=YES`
+- `READY_TO_REBUILD_FRAME_LOCAL=NO`
+
+The explicit object identity contract is
+`schema.classification_v2.object_track_key`,
+`classification_v2.object_track_key.v1`: escaped source, dataset, video,
+then `track_id`, with `object_id` fallback, serialized using RFC3986 UTF-8
+escaping. `PIG_ID_AUTHORITATIVE=NO`; production key bytes did not change.
+The post-merge Group A, conformance, negative-control, two-root integrated,
+semantic invalidation, and release-authority gates all passed.
+
+The V6 ignored-input and legacy `G:\My Drive` failures remain pre-existing
+environmental limitations. This status authorizes planning readiness only;
+no lineage rebuild, GUI review, model execution, or training was started.
+
 ## Classification V2 acceptance reopened (2026-07-25)
 
 - `PHASE4_IMPLEMENTATION_SHA=76a0458e39769d3e7fac865dd16439a0ed3c3a04`

@@ -2,6 +2,32 @@
 
 This document serves as the long-term, medium-term, and short-term memory registry for the Pig Behavior Project, outlining the system architecture, code contracts, and active targets.
 
+## Classification V2 correction accepted (2026-07-26)
+
+- `ACCEPTED_IMPLEMENTATION_SHA=a35e0b9aae8b55167b4562cfc7e26a45e2b4e312`
+- `OBJECT_TRACK_KEY_EXACT_SHA_REAUDIT=PASS`
+- `PHASE1_4_INTEGRATED_ACCEPTANCE=PASS`
+- `MAIN_SYNC_STATUS=COMPLETE`
+- `PHASE4_HUMAN_SIGNOFF=APPROVED`
+- `REVIEWER=TuanHM`
+- `REVIEW_DATE=2026-07-26`
+- `REVIEWED_SHA=a35e0b9aae8b55167b4562cfc7e26a45e2b4e312`
+- `READY_FOR_LINEAGE_REBUILD_PLANNING=YES`
+- `READY_TO_REBUILD_FRAME_LOCAL=NO`
+
+The canonical object identity contract is
+`schema.classification_v2.object_track_key`,
+`classification_v2.object_track_key.v1`. It serializes escaped source,
+dataset, video, and authoritative `track_id`, with `object_id` fallback,
+using RFC3986 UTF-8 escaping. `PIG_ID_AUTHORITATIVE=NO` and
+`PRODUCTION_OBJECT_TRACK_KEY_VALUES_CHANGED=NO`.
+
+Post-merge acceptance passed the Group A checker, 14/14 identity
+conformance cases, 8/8 object-key negative controls, the two-root
+Phase 1–4 chain, and all release-authority gates. The V6 ignored-input and
+legacy `G:\My Drive` failures remain pre-existing environmental limitations.
+No official rebuild, GUI review, model execution, or training was run.
+
 ## Classification V2 acceptance reopened (2026-07-25)
 
 - `ACCEPTED_IMPLEMENTATION_SHA=76a0458e39769d3e7fac865dd16439a0ed3c3a04`
