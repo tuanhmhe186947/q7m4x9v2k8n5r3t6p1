@@ -1,6 +1,20 @@
 # Project Memory Short
 
-## 2026-07-25 Classification V2 final Phase 1–4 acceptance
+## 2026-07-25 Classification V2 acceptance reopened
+
+- `MAIN_SYNC_STATUS=CODE_INTEGRATED_BUT_ACCEPTANCE_REOPENED`
+- `PHASE1_4_INTEGRATED_ACCEPTANCE=REOPENED`
+- `READY_FOR_LINEAGE_REBUILD_PLANNING=NO`
+- `READY_TO_REBUILD_FRAME_LOCAL=NO`
+- One Group A independent-checker defect reproduces at accepted SHA
+  `76a0458e39769d3e7fac865dd16439a0ed3c3a04`.
+- One V6 node requires Git-ignored inputs absent from fresh worktrees.
+- Eight legacy-source nodes are environment/path limitations; both SHAs pass
+  the full 17-node legacy file when Python may read `G:\My Drive`.
+- No documentation-introduced failure was found. All execution authority
+  remains false.
+
+## 2026-07-25 historical exact-SHA Phase 1–4 acceptance
 
 - Final accepted implementation:
   `76a0458e39769d3e7fac865dd16439a0ed3c3a04`.
@@ -14,8 +28,8 @@
   prior candidate; no valid new or partial authoritative output survived.
 - Phase 1–4 invariants passed. Phase 2 schema hash remains
   `ec0c511b5f5198240492be49c0492e543c9e38eb4a4ff446259b958c2a59963b`.
-- Lineage rebuild planning is authorized; all execution authorization remains
-  false.
+- That sign-off authorized planning at the time; the reopened gate above
+  supersedes it. All execution authorization remains false.
 - Intermediate SHAs `c1df0cc4`, `f42f0d33`, and `99d63723` remain preserved
   as superseded implementation/correction candidates.
 

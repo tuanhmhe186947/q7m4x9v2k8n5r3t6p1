@@ -1,19 +1,34 @@
 # Workflow
 
-## Classification V2 accepted planning workflow (2026-07-25)
+## Classification V2 acceptance-reopened workflow (2026-07-25)
 
 - `PHASE4_IMPLEMENTATION_SHA=76a0458e39769d3e7fac865dd16439a0ed3c3a04`
 - `ACCEPTED_IMPLEMENTATION_SHA=76a0458e39769d3e7fac865dd16439a0ed3c3a04`
 - `PHASE4_EXACT_SHA_AUDIT=PASS`
-- `PHASE1_4_INTEGRATED_ACCEPTANCE=PASS`
+- `PHASE1_4_INTEGRATED_ACCEPTANCE=REOPENED`
 - `PHASE4_HUMAN_SIGNOFF=APPROVED`
 - `REVIEWER=TuanHM`
 - `REVIEW_DATE=2026-07-24`
 - `REVIEWED_SHA=76a0458e39769d3e7fac865dd16439a0ed3c3a04`
+- `MAIN_SYNC_STATUS=CODE_INTEGRATED_BUT_ACCEPTANCE_REOPENED`
+
+The differential gate classified the ten prior failures as follows:
+
+- one `ACCEPTED_IMPLEMENTATION_DEFECT`: Group A production output and its
+  independent checker disagree on `object_track_key`;
+- one `PREEXISTING_MISSING_IGNORED_ARTIFACT`: the V6 contract node requires
+  three Git-ignored human-review CSVs absent from fresh worktrees;
+- eight `PREEXISTING_ENVIRONMENT_OR_PATH` failures: sandboxed Python cannot
+  stat `G:\My Drive`; both SHAs pass the complete 17-node legacy file outside
+  that isolation.
+
+No documentation change caused a test failure. The preserved stash remains
+unapplied and is not authority.
 
 Decision:
 `ACCEPT_PHASE_4_AND_PHASE_1_4_INTEGRATED_IMPLEMENTATION`
-`AND_AUTHORIZE_LINEAGE_REBUILD_PLANNING`.
+was the historical human sign-off. The controlling decision is now
+`REOPEN_PHASE1_4_INTEGRATED_ACCEPTANCE_FOR_IMPLEMENTATION_CORRECTION`.
 
 `MAIN_HEAD_AFTER_DOCUMENTATION_SYNC=THIS_DOCUMENTATION_COMMIT` denotes the
 single status-only commit whose exact SHA is in Git history. It does not alter
@@ -46,7 +61,7 @@ report and checklist are `final_phase1_4_acceptance_report.md` and
 
 ### Planning-only authority
 
-- `READY_FOR_LINEAGE_REBUILD_PLANNING=YES`
+- `READY_FOR_LINEAGE_REBUILD_PLANNING=NO`
 - `READY_TO_REBUILD_FRAME_LOCAL=NO`
 - `READY_FOR_SOURCE_REBUILD=NO`
 - `READY_FOR_HIDDEN_REVIEW=NO`
@@ -58,6 +73,11 @@ report and checklist are `final_phase1_4_acceptance_report.md` and
 - `READY_FOR_TENSOR_EXPORT=NO`
 - `READY_FOR_MODEL_EXECUTION=NO`
 - `READY_FOR_TRAINING=NO`
+
+Lineage rebuild planning is blocked. A separately authorized correction must
+align the independent checker with the current `object_track_key` contract and
+repeat the affected exact-SHA acceptance gate. The former planning workflow
+below is historical and superseded.
 
 The next workflow may only determine the authoritative rebuild start, check
 whether source merge remains `CURRENT_AUTHORITATIVE`, design an isolated run

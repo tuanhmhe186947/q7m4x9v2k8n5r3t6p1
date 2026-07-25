@@ -1,19 +1,41 @@
 # Current Decision
 
-## Classification V2 final integrated acceptance (2026-07-25)
+## Classification V2 acceptance reopened (2026-07-25)
 
 - `PHASE4_IMPLEMENTATION_SHA=76a0458e39769d3e7fac865dd16439a0ed3c3a04`
 - `ACCEPTED_IMPLEMENTATION_SHA=76a0458e39769d3e7fac865dd16439a0ed3c3a04`
 - `PHASE4_EXACT_SHA_AUDIT=PASS`
-- `PHASE1_4_INTEGRATED_ACCEPTANCE=PASS`
+- `PHASE1_4_INTEGRATED_ACCEPTANCE=REOPENED`
 - `PHASE4_HUMAN_SIGNOFF=APPROVED`
 - `REVIEWER=TuanHM`
 - `REVIEW_DATE=2026-07-24`
 - `REVIEWED_SHA=76a0458e39769d3e7fac865dd16439a0ed3c3a04`
+- `MAIN_SYNC_STATUS=CODE_INTEGRATED_BUT_ACCEPTANCE_REOPENED`
+
+The post-main differential gate collected the same 32 nodes on the accepted
+SHA and the documentation SHA. Each baseline produced 22 passes and the same
+10 failures:
+
+- `test_frame_local_independent_checker_detects_content_drift`:
+  `ACCEPTED_IMPLEMENTATION_DEFECT`. The production builder emits the
+  contract `object_track_key`, while the independent checker derives an
+  incompatible legacy-format key. It fails both in and outside the sandbox.
+- `test_actual_v6_apply_and_independent_checker_pass`:
+  `PREEXISTING_MISSING_IGNORED_ARTIFACT`. Its three mandatory V6 CSVs are
+  Git-ignored and absent from both fresh worktrees. With the existing inputs
+  available outside sandbox restrictions, the node passes.
+- The eight initially failing `test_truy_nguon_multi_bbox.py` nodes:
+  `PREEXISTING_ENVIRONMENT_OR_PATH`. Sandboxed Python cannot stat
+  `G:\My Drive`; outside that isolation, both SHAs pass all 17 nodes in the
+  file.
+
+No failure was introduced by the five documentation files. The preserved
+stash was not applied during this classification and remains non-authority.
 
 Decision:
 `ACCEPT_PHASE_4_AND_PHASE_1_4_INTEGRATED_IMPLEMENTATION`
-`AND_AUTHORIZE_LINEAGE_REBUILD_PLANNING`.
+was the historical human sign-off. The current controlling decision is
+`REOPEN_PHASE1_4_INTEGRATED_ACCEPTANCE_FOR_IMPLEMENTATION_CORRECTION`.
 
 The accepted implementation SHA remains the scientific implementation
 authority. `MAIN_HEAD_AFTER_DOCUMENTATION_SYNC=THIS_DOCUMENTATION_COMMIT`
@@ -52,7 +74,7 @@ the verdict is `PASS_PHASE1_4_INTEGRATED_ACCEPTANCE`.
 
 ### Current readiness
 
-- `READY_FOR_LINEAGE_REBUILD_PLANNING=YES`
+- `READY_FOR_LINEAGE_REBUILD_PLANNING=NO`
 - `READY_TO_REBUILD_FRAME_LOCAL=NO`
 - `READY_FOR_SOURCE_REBUILD=NO`
 - `READY_FOR_HIDDEN_REVIEW=NO`
@@ -64,6 +86,12 @@ the verdict is `PASS_PHASE1_4_INTEGRATED_ACCEPTANCE`.
 - `READY_FOR_TENSOR_EXPORT=NO`
 - `READY_FOR_MODEL_EXECUTION=NO`
 - `READY_FOR_TRAINING=NO`
+
+Lineage rebuild planning is blocked. A separate correction task must reconcile
+the production and independent-checker `object_track_key` authority, then
+repeat the affected exact-SHA acceptance gate. The planning paragraph below is
+historical and superseded; this record authorizes neither that correction nor
+any execution.
 
 The next task is planning only: determine the authoritative rebuild start;
 validate whether source merge remains `CURRENT_AUTHORITATIVE`; design an

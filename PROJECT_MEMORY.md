@@ -2,17 +2,27 @@
 
 This document serves as the long-term, medium-term, and short-term memory registry for the Pig Behavior Project, outlining the system architecture, code contracts, and active targets.
 
-## Classification V2 accepted authority (2026-07-25)
+## Classification V2 acceptance reopened (2026-07-25)
 
 - `ACCEPTED_IMPLEMENTATION_SHA=76a0458e39769d3e7fac865dd16439a0ed3c3a04`
 - `PHASE4_EXACT_SHA_AUDIT=PASS`
-- `PHASE1_4_INTEGRATED_ACCEPTANCE=PASS`
+- `PHASE1_4_INTEGRATED_ACCEPTANCE=REOPENED`
 - `PHASE4_HUMAN_SIGNOFF=APPROVED`
 - `REVIEWER=TuanHM`
 - `REVIEW_DATE=2026-07-24`
-- `READY_FOR_LINEAGE_REBUILD_PLANNING=YES`
+- `MAIN_SYNC_STATUS=CODE_INTEGRATED_BUT_ACCEPTANCE_REOPENED`
+- `READY_FOR_LINEAGE_REBUILD_PLANNING=NO`
+- `READY_TO_REBUILD_FRAME_LOCAL=NO`
 
-This acceptance authorizes planning only. It does not authorize any rebuild,
+The post-sync differential gate classified all ten initially unresolved
+failures. One Group A independent-checker failure is an
+`ACCEPTED_IMPLEMENTATION_DEFECT`: production and the independent checker
+derive incompatible `object_track_key` values. One V6 failure is
+`PREEXISTING_MISSING_IGNORED_ARTIFACT`; eight legacy-source failures are
+`PREEXISTING_ENVIRONMENT_OR_PATH` and pass for both SHAs when Python may read
+`G:\My Drive`.
+
+The reopened gate authorizes neither planning nor any rebuild,
 review GUI, scientific evidence generation, export, model execution, or
 training. The dirty work present before main synchronization was preserved
 separately and was not applied to `main`.
