@@ -1,12 +1,28 @@
+import os
 from pathlib import Path
 
 import pandas as pd
 
-enh_path = Path(r"outputs\classification_v2\frame_features\spatiotemporal_frame_features_enhanced.csv")
+enh_path = Path(
+    "outputs/classification_v2/frame_features/"
+    "spatiotemporal_frame_features_enhanced.csv"
+)
 
 candidate_roots = [
-    Path(r"data\raw\legacy_full_multigt_masked_nodup_16f"),
-    Path(r"data\raw\legacy_full_multigt_masked_nodup_16f\crops"),
+    Path(
+        os.environ.get(
+            "CLASSIFICATION_V2_LEGACY_CROP_ROOT",
+            "outputs/legacy_16f_rebuild/"
+            "legacy_16f_rebuild_20260718_v2/06_full_recovery/crops",
+        )
+    ).parent,
+    Path(
+        os.environ.get(
+            "CLASSIFICATION_V2_LEGACY_CROP_ROOT",
+            "outputs/legacy_16f_rebuild/"
+            "legacy_16f_rebuild_20260718_v2/06_full_recovery/crops",
+        )
+    ),
 ]
 
 df = pd.read_csv(enh_path, low_memory=False)

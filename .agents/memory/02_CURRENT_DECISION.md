@@ -2,6 +2,11 @@
 
 ## Classification V2 correction accepted (2026-07-26)
 
+- `SCIENTIFIC_ACCEPTED_SHA=a35e0b9aae8b55167b4562cfc7e26a45e2b4e312`
+- `OPERATIONAL_FINAL_EXECUTION_SHA=PENDING_EXACT_SHA_AUDIT`
+- Operational finalization is a separate execution/configuration authority;
+  it does not alter the accepted scientific implementation.
+
 - `PHASE4_IMPLEMENTATION_SHA=a35e0b9aae8b55167b4562cfc7e26a45e2b4e312`
 - `ACCEPTED_IMPLEMENTATION_SHA=a35e0b9aae8b55167b4562cfc7e26a45e2b4e312`
 - `OBJECT_TRACK_KEY_EXACT_SHA_REAUDIT=PASS`

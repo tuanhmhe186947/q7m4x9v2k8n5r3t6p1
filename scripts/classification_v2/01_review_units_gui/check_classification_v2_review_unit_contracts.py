@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -39,7 +40,13 @@ INTERACTION_SHORTLIST = Path(
     r"\interaction_review_unit_shortlist.csv"
 )
 OUT_AUDIT = Path(r"outputs\classification_v2\audits\review_unit_contract_check.json")
-LEGACY_CROP_ROOT = Path(r"data\raw\legacy_full_multigt_masked_nodup_16f\crops")
+LEGACY_CROP_ROOT = Path(
+    os.environ.get(
+        "CLASSIFICATION_V2_LEGACY_CROP_ROOT",
+        "outputs/legacy_16f_rebuild/"
+        "legacy_16f_rebuild_20260718_v2/06_full_recovery/crops",
+    )
+)
 
 
 def raw_header(path: Path) -> list[str]:

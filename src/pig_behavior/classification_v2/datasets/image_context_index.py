@@ -735,6 +735,7 @@ def _candidate_video_keys(row: pd.Series) -> list[str]:
 def _legacy_relative_path(path_text: str) -> Path:
     normalized = path_text.replace("/", "\\")
     markers = [
+        "\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\06_full_recovery\\crops\\",
         "\\legacy_full_multigt_masked_nodup_16f\\crops\\",
         "\\legacy_full_multigt_masked_nodup_16f\\",
         "\\crops\\",

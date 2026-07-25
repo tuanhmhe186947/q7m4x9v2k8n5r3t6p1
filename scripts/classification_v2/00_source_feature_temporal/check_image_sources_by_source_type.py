@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -7,7 +8,13 @@ df = pd.read_csv(
     low_memory=False,
 )
 
-legacy_root = Path(r"data\raw\legacy_full_multigt_masked_nodup_16f\crops")
+legacy_root = Path(
+    os.environ.get(
+        "CLASSIFICATION_V2_LEGACY_CROP_ROOT",
+        "outputs/legacy_16f_rebuild/"
+        "legacy_16f_rebuild_20260718_v2/06_full_recovery/crops",
+    )
+)
 video_root = Path(r"data\videos")
 
 print("rows =", len(df))
@@ -33,7 +40,13 @@ print("legacy rows =", len(legacy))
 if "crop_path" in legacy.columns:
     sample = legacy.head(200)
     direct = sample["crop_path"].map(lambda x: Path(str(x)).exists() if pd.notna(x) else False)
-    resolved = sample["crop_path"].map(lambda x: (legacy_root / rel_after_crops(x)).exists() if pd.notna(x) else False)
+    resolved = sample["crop_path"].map(
+        lambda x: (
+            (legacy_root / rel_after_crops(x)).exists()
+            if pd.notna(x)
+            else False
+        )
+    )
 
     print("direct crop_path exists on first 200:")
     print(direct.value_counts(dropna=False).to_string())
@@ -73,4 +86,7 @@ else:
 
 print("\nConclusion:")
 print("- legacy_recovered should use crop_file mode")
-print("- cvat_tracking_xml should use video_frame_bbox mode unless we materialize crop cache later")
+print(
+    "- cvat_tracking_xml should use video_frame_bbox mode unless we "
+    "materialize crop cache later"
+)

@@ -1,0 +1,210 @@
+schema_id: schema.classification_v2.lineage_rebuild
+schema_version: classification_v2.lineage_rebuild.v1
+lineage_id: classification_v2_lineage_rebuild_20260726_v1
+scientific_accepted_sha: a35e0b9aae8b55167b4562cfc7e26a45e2b4e312
+run_root_env: CLASSIFICATION_V2_RUN_ROOT
+run_root_default: C:/pig_runs/classification_v2_lineage_rebuild_20260726_v1
+
+source:
+  legacy_run: outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2
+  legacy_export: outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2/07_export/legacy_frame_object_annotations.csv
+  legacy_crop_root: outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2/06_full_recovery/crops
+  legacy_completion_audit: outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2/08_audits/legacy_16f_rebuild_completion_audit.json
+  cvat_behavior_root: data/annotations/classification
+  cvat_behavior_xml:
+    - data/annotations/classification/Pigs281119_000085.xml
+    - data/annotations/classification/Pigs281119_000114.xml
+    - data/annotations/classification/Pigs291119_000216.xml
+    - data/annotations/classification/Pigs291119_000225.xml
+    - data/annotations/classification/Pigs291119_000226.xml
+    - data/annotations/classification/Pigs291119_000231.xml
+    - data/annotations/classification/Pigs291119_000233.xml
+    - data/annotations/classification/Pigs291119_000302.xml
+    - data/annotations/classification/Pigs301119_000327.xml
+    - data/annotations/classification/Pigs301119_000328.xml
+    - data/annotations/classification/Pigs301119_000329.xml
+    - data/annotations/classification/Pigs301119_000330.xml
+  roi: data/annotations/roi/ROI_annotations.coco.json
+  video_root: data/videos
+  pen_mask: data/annotations/scene/mask.png
+  bundle_id: classification_v2_source_bundle_20260726_v2
+  expected_bundle_fingerprint: 6db75be881a1909f4810b53407bd4191277e307b16b9347fd89b071248e5a98e
+  expected_legacy_sha256: fbd6300fca8fdab0b2c644626397ec6c6aa79f80b48a383f54e745cbcbcbcad3
+  expected_legacy_rows: 72880
+  expected_legacy_crop_files: 72880
+  expected_cvat_xml_count: 12
+  expected_cvat_box_rows: 172800
+  expected_mixed_rows: 245680
+  expected_roi_sha256: 3fbcc2d44987df089845d73a99636d1a9ff9edb0428f7ec069525de582acbfd7
+  expected_pen_mask_sha256: b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658
+  expected_completion_audit_sha256: e1646c7ee1f5a2f8fe6a3d95985aa503152dc5861b2ffd774dc46b6a91790ca3
+  expected_cvat_xml_fingerprint: 93ed754fa3d6d99bd306845d0933078ef1c5ec5d3f1ef2640d99882567e627c0
+  expected_crop_fingerprint: 37a443db69c6dd69006bbdadbea5595fd6fc5341168e81c70d0f1cbdd943a638
+  expected_video_fingerprint: bd6638f6d94890d9d73446bc1ab8ffad989f3bb70366c721d8bd2323e209b61d
+
+stage_order:
+  - source_merge
+  - frame_local
+  - hidden_design
+  - hidden_decision_migration
+  - hidden_coverage_gate
+  - hidden_apply
+  - temporal_harmonization
+  - native_evidence
+  - pig_strenet_evidence
+  - behavior_review_units
+  - behavior_decision_apply
+  - train_ready
+  - tensor_export
+  - model_input
+
+stages:
+  source_merge:
+    stage_id: stage.legacy_cvat_source_merge
+    entry_point: scripts/classification_v2/00_source_feature_temporal/classification_v2_merge_sources.py
+    output_relative: candidates/source_merge/merged_frame_objects.csv
+    audit_relative: candidates/source_merge/merged_frame_objects_audit.json
+    lineage_relative: candidates/source_merge/merged_frame_objects_lineage.json
+    manifest_relative: manifests/source_merge.candidate.json
+    authorization_flag: authorizes_source_rebuild
+    upstream: []
+  frame_local:
+    stage_id: stage.frame_local_primitives
+    entry_point: scripts/classification_v2/00_source_feature_temporal/classification_v2_build_frame_local_primitives.py
+    output_relative: candidates/frame_local/frame_local_primitives.csv
+    audit_relative: candidates/frame_local/frame_local_primitives_audit.json
+    manifest_relative: manifests/frame_local.candidate.json
+    authorization_flag: authorizes_frame_local_rebuild
+    upstream: [source_merge]
+  hidden_design:
+    stage_id: stage.hidden_review_design
+    entry_point: scripts/classification_v2/01_review_units_gui/classification_v2_build_hidden_review_units.py
+    output_relative: candidates/hidden_design
+    artifact_relative: candidates/hidden_design/hidden_review_unit_manifest.csv
+    audit_relative: candidates/hidden_design/hidden_review_template_audit.json
+    manifest_relative: manifests/hidden_design.candidate.json
+    authorization_flag: authorizes_hidden_review
+    upstream: [frame_local]
+  hidden_decision_migration:
+    stage_id: stage.hidden_decision_migration
+    entry_point: scripts/classification_v2/01_review_units_gui/classification_v2_carry_forward_hidden_review_decisions.py
+    output_relative: candidates/hidden_decision_migration
+    artifact_relative: candidates/hidden_decision_migration/hidden_review_decisions.csv
+    audit_relative: candidates/hidden_decision_migration/hidden_decision_migration_audit.json
+    previous_manifest_relative: decision_inputs/hidden/previous_hidden_review_unit_manifest.csv
+    previous_decisions_relative: decision_inputs/hidden/previous_hidden_review_decisions.csv
+    manifest_relative: manifests/hidden_decision_migration.candidate.json
+    authorization_flag: authorizes_hidden_review
+    upstream: [hidden_design]
+  hidden_coverage_gate:
+    stage_id: stage.hidden_coverage_scientific_gate
+    entry_point: scripts/classification_v2/01_review_units_gui/check_hidden_review_scientific_gate.py
+    output_relative: candidates/hidden_coverage_gate/hidden_review_scientific_gate_audit.json
+    manifest_relative: manifests/hidden_coverage_gate.candidate.json
+    authorization_flag: authorizes_hidden_review
+    upstream: [hidden_decision_migration]
+  hidden_apply:
+    stage_id: stage.hidden_apply
+    entry_point: scripts/classification_v2/01_review_units_gui/classification_v2_apply_hidden_review_decisions.py
+    output_relative: candidates/hidden_apply/hidden_reviewed_frame_features.csv
+    audit_relative: candidates/hidden_apply/apply_hidden_review_audit.json
+    confusion_audit_relative: candidates/hidden_apply/hidden_confusion_audit.json
+    manifest_relative: manifests/hidden_apply.candidate.json
+    authorization_flag: authorizes_hidden_review
+    upstream: [hidden_coverage_gate]
+  temporal_harmonization:
+    stage_id: stage.temporal_harmonization
+    entry_point: scripts/classification_v2/00_source_feature_temporal/classification_v2_build_temporal_harmonization.py
+    output_relative: candidates/temporal_harmonization/harmonized_frames.csv
+    intervals_relative: candidates/temporal_harmonization/temporal_intervals_standalone.csv
+    audit_relative: candidates/temporal_harmonization/temporal_harmonization_audit.json
+    manifest_relative: manifests/temporal_harmonization.candidate.json
+    authorization_flag: authorizes_temporal_harmonization
+    upstream: [hidden_apply]
+  native_evidence:
+    stage_id: stage.native_review_evidence
+    entry_point: scripts/classification_v2/00_source_feature_temporal/classification_v2_build_enhanced_spatiotemporal_features.py
+    output_relative: candidates/native_evidence/native_review_evidence.csv
+    audit_relative: candidates/native_evidence/native_review_evidence_audit.json
+    manifest_relative: manifests/native_evidence.candidate.json
+    authorization_flag: authorizes_native_evidence
+    upstream: [temporal_harmonization]
+  pig_strenet_evidence:
+    stage_id: stage.pig_strenet_evidence
+    entry_point: scripts/classification_v2/03_image_cache_context/classification_v2_build_pig_strenet_artifacts.py
+    output_relative: candidates/pig_strenet_evidence
+    artifact_relative: candidates/pig_strenet_evidence/pair_manifest.csv
+    audit_relative: candidates/pig_strenet_evidence/pig_strenet_artifact_audit.json
+    manifest_relative: manifests/pig_strenet_evidence.candidate.json
+    authorization_flag: authorizes_pig_strenet
+    upstream: [native_evidence]
+  behavior_review_units:
+    stage_id: stage.behavior_review_unit_construction
+    entry_point: scripts/classification_v2/01_review_units_gui/classification_v2_build_review_units.py
+    output_relative: candidates/behavior_review_units
+    artifact_relative: candidates/behavior_review_units/full_review_unit_manifest.csv
+    audit_relative: candidates/behavior_review_units/review_unit_audit.json
+    manifest_relative: manifests/behavior_review_units.candidate.json
+    authorization_flag: authorizes_behavior_gui
+    upstream: [pig_strenet_evidence]
+  behavior_decision_apply:
+    stage_id: stage.behavior_decision_apply
+    entry_point: scripts/classification_v2/01_review_units_gui/classification_v2_apply_review_unit_decisions.py
+    output_relative: candidates/behavior_decision_apply/reviewed_frame_features.csv
+    audit_relative: candidates/behavior_decision_apply/apply_review_unit_decisions_audit.json
+    combined_decisions_relative: candidates/behavior_decision_apply/review_unit_decisions_combined.csv
+    decisions_relative: decision_inputs/behavior/behavior_unit_review_decisions.csv
+    manifest_relative: manifests/behavior_decision_apply.candidate.json
+    authorization_flag: authorizes_behavior_gui
+    upstream: [behavior_review_units]
+  train_ready:
+    stage_id: stage.train_ready_export
+    entry_point: scripts/classification_v2/00_source_feature_temporal/classification_v2_build_sequence_windows.py
+    post_entry_point: scripts/classification_v2/02_train_ready_exports/classification_v2_export_train_ready_candidate.py
+    output_relative: candidates/train_ready
+    artifact_relative: candidates/train_ready/X_window_features.csv
+    audit_relative: candidates/train_ready/train_ready_audit.json
+    sequence_audit_relative: candidates/train_ready/sequence_window_audit.json
+    manifest_relative: manifests/train_ready.candidate.json
+    authorization_flag: authorizes_final_windows
+    upstream: [behavior_decision_apply]
+  tensor_export:
+    stage_id: stage.tensor_export
+    entry_point: scripts/classification_v2/02_train_ready_exports/classification_v2_export_spatial_sequences.py
+    output_relative: candidates/tensor_export
+    artifact_relative: candidates/tensor_export/X_spatial_sequences.npz
+    audit_relative: candidates/tensor_export/spatial_sequence_audit.json
+    manifest_relative: manifests/tensor_export.candidate.json
+    authorization_flag: authorizes_tensor_export
+    upstream: [train_ready]
+  model_input:
+    stage_id: stage.model_input
+    entry_point: scripts/classification_v2/02_train_ready_exports/classification_v2_write_model_input_manifest.py
+    output_relative: candidates/model_input/model_input_contract.json
+    data_contract_relative: decision_inputs/final/data_contract.json
+    manifest_relative: manifests/model_input.candidate.json
+    authorization_flag: authorizes_model_execution
+    upstream: [tensor_export]
+
+policy:
+  no_overwrite: true
+  candidate_class: SCIENTIFIC_CANDIDATE
+  manifest_transaction: committed_candidate_only
+  resume_requires_matching_manifest: true
+  rollback: quarantine_failed_candidate
+  automatic_promotion: false
+  automatic_downstream_execution: false
+
+authorization:
+  authorizes_source_rebuild: false
+  authorizes_frame_local_rebuild: false
+  authorizes_hidden_review: false
+  authorizes_temporal_harmonization: false
+  authorizes_native_evidence: false
+  authorizes_pig_strenet: false
+  authorizes_behavior_gui: false
+  authorizes_final_windows: false
+  authorizes_train_ready_export: false
+  authorizes_tensor_export: false
+  authorizes_model_execution: false
+  authorizes_training: false

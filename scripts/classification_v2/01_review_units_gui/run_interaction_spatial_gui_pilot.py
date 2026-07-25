@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
@@ -8,10 +9,22 @@ from pathlib import Path
 
 ROOT = Path.cwd()
 
-DEFAULT_TEMPLATE = Path(r"outputs\classification_v2\review_templates\interaction_review_template_shortlist.csv")
+DEFAULT_TEMPLATE = Path(
+    "outputs/classification_v2/review_templates/"
+    "interaction_review_template_shortlist.csv"
+)
 DEFAULT_OUTPUT_DIR = Path(r"outputs\classification_v2\review_policy\interaction_spatial_gui_pilot")
-FRAME_FEATURES = Path(r"outputs\classification_v2\frame_features\spatiotemporal_frame_features_enhanced.csv")
-RAW_ROOT = Path(r"data\raw\legacy_full_multigt_masked_nodup_16f\crops")
+FRAME_FEATURES = Path(
+    "outputs/classification_v2/frame_features/"
+    "spatiotemporal_frame_features_enhanced.csv"
+)
+RAW_ROOT = Path(
+    os.environ.get(
+        "CLASSIFICATION_V2_LEGACY_CROP_ROOT",
+        "outputs/legacy_16f_rebuild/"
+        "legacy_16f_rebuild_20260718_v2/06_full_recovery/crops",
+    )
+)
 VIDEO_ROOT = Path(r"data\videos")
 GUI_SCRIPT = Path(r"scripts\classification_v2\01_review_units_gui\review_spatial_behavior_gui.py")
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -17,11 +18,23 @@ except Exception:  # pragma: no cover
     cv2 = None
 
 
-DEFAULT_WINDOWS = Path("outputs/classification_v2/sequence_features_reviewed/sequence_window_manifest.csv")
+DEFAULT_WINDOWS = Path(
+    "outputs/classification_v2/sequence_features_reviewed/"
+    "sequence_window_manifest.csv"
+)
 DEFAULT_FRAMES = Path("outputs/classification_v2/review_policy/reviewed_frame_features.csv")
-DEFAULT_AUDIT = Path("outputs/classification_v2/train_ready_windows/image_sequence_loader_smoke_audit.json")
+DEFAULT_AUDIT = Path(
+    "outputs/classification_v2/train_ready_windows/"
+    "image_sequence_loader_smoke_audit.json"
+)
 DEFAULT_VIDEO_ROOT = Path("data/videos")
-DEFAULT_LEGACY_CROP_ROOT = Path("data/raw/legacy_full_multigt_masked_nodup_16f/crops")
+DEFAULT_LEGACY_CROP_ROOT = Path(
+    os.environ.get(
+        "CLASSIFICATION_V2_LEGACY_CROP_ROOT",
+        "outputs/legacy_16f_rebuild/"
+        "legacy_16f_rebuild_20260718_v2/06_full_recovery/crops",
+    )
+)
 
 FRAME_COLS = [
     "source_type",
@@ -185,17 +198,34 @@ def _as_bool(series: pd.Series) -> pd.Series:
     return series.astype(str).str.strip().str.lower().isin({"true", "1", "yes", "y", "t"})
 
 
-def _sample_windows(windows: pd.DataFrame, sample_per_source: int, *, include_invalid: bool) -> pd.DataFrame:
+def _sample_windows(
+    windows: pd.DataFrame,
+    sample_per_source: int,
+    *,
+    include_invalid: bool,
+) -> pd.DataFrame:
     if not include_invalid and "window_valid_for_main_train" in windows.columns:
         windows = windows[_as_bool(windows["window_valid_for_main_train"])].copy()
     samples = []
     for _source_type, source in windows.groupby("source_type", sort=True):
-        source = source.sort_values(["window_length_frames", "video_key", "object_track_key", "window_start_frame"])
+        source = source.sort_values(
+            [
+                "window_length_frames",
+                "video_key",
+                "object_track_key",
+                "window_start_frame",
+            ]
+        )
         if len(source) <= sample_per_source:
             samples.append(source)
             continue
         positions = sorted(
-            {round(i * (len(source) - 1) / max(1, sample_per_source - 1)) for i in range(sample_per_source)}
+            {
+                round(
+                    i * (len(source) - 1) / max(1, sample_per_source - 1)
+                )
+                for i in range(sample_per_source)
+            }
         )
         samples.append(source.iloc[positions])
     return pd.concat(samples, ignore_index=True) if samples else windows.head(0)
@@ -259,7 +289,9 @@ def _check_window(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Smoke test sequence image loading for classification_v2 windows.")
+    parser = argparse.ArgumentParser(
+        description="Smoke test sequence image loading for classification_v2 windows."
+    )
     parser.add_argument("--window-manifest-csv", type=Path, default=DEFAULT_WINDOWS)
     parser.add_argument("--frame-features-csv", type=Path, default=DEFAULT_FRAMES)
     parser.add_argument("--video-root", type=Path, default=DEFAULT_VIDEO_ROOT)
@@ -281,7 +313,10 @@ def main() -> None:
     frames["frame_index"] = pd.to_numeric(frames["frame_index"], errors="coerce")
     frames = frames.dropna(subset=["frame_index"])
     frames["frame_index"] = frames["frame_index"].astype(int)
-    frame_lookup = {str(k): g.sort_values("frame_index") for k, g in frames.groupby("object_track_key", sort=False)}
+    frame_lookup = {
+        str(k): g.sort_values("frame_index")
+        for k, g in frames.groupby("object_track_key", sort=False)
+    }
 
     video_index = _build_video_index(args.video_root)
     cache: dict[str, Any] = {}
@@ -318,7 +353,11 @@ def main() -> None:
         "video_index_size": len(video_index),
         "loaded_frames": int(sum(r["loaded_frames"] for r in results)),
         "missing_frames": int(sum(r["missing_frames"] for r in results)),
-        "checked_by_source": pd.Series([r["source_type"] for r in results]).value_counts(dropna=False).to_dict(),
+        "checked_by_source": (
+            pd.Series([r["source_type"] for r in results])
+            .value_counts(dropna=False)
+            .to_dict()
+        ),
         "errors": errors[:50],
         "results": results,
     }

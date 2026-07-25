@@ -2,6 +2,12 @@
 
 ## 2026-07-26 Classification V2 correction accepted
 
+- `SCIENTIFIC_ACCEPTED_SHA=a35e0b9aae8b55167b4562cfc7e26a45e2b4e312`
+- `OPERATIONAL_FINAL_EXECUTION_SHA=PENDING_EXACT_SHA_AUDIT`
+- The operational stage interface is centralized in
+  `configs/classification_v2/lineage_rebuild_v1.yaml` and the three lineage
+  scripts under `scripts/classification_v2/`.
+
 - `ACCEPTED_IMPLEMENTATION_SHA=a35e0b9aae8b55167b4562cfc7e26a45e2b4e312`
 - `OBJECT_TRACK_KEY_EXACT_SHA_REAUDIT=PASS`
 - `MAIN_SYNC_STATUS=COMPLETE`

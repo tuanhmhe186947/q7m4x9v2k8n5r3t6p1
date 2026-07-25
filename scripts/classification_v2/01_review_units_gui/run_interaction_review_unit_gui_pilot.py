@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
@@ -14,12 +15,18 @@ def main() -> None:
     parser.add_argument(
         "--review-units-csv",
         type=Path,
-        default=Path(r"outputs/classification_v2/review_units/interaction_review_unit_shortlist.csv"),
+        default=Path(
+            "outputs/classification_v2/review_units/"
+            "interaction_review_unit_shortlist.csv"
+        ),
     )
     parser.add_argument(
         "--frame-features-csv",
         type=Path,
-        default=Path(r"outputs/classification_v2/frame_features/spatiotemporal_frame_features_enhanced.csv"),
+        default=Path(
+            "outputs/classification_v2/frame_features/"
+            "spatiotemporal_frame_features_enhanced.csv"
+        ),
     )
     parser.add_argument(
         "--output-dir",
@@ -27,7 +34,17 @@ def main() -> None:
         default=Path(r"outputs/classification_v2/review_policy/interaction_review_unit_gui_pilot"),
     )
     parser.add_argument("--video-root", type=Path, default=Path(r"data/videos"))
-    parser.add_argument("--raw-root", type=Path, default=Path(r"data/raw/legacy_full_multigt_masked_nodup_16f/crops"))
+    parser.add_argument(
+        "--raw-root",
+        type=Path,
+        default=Path(
+            os.environ.get(
+                "CLASSIFICATION_V2_LEGACY_CROP_ROOT",
+                "outputs/legacy_16f_rebuild/"
+                "legacy_16f_rebuild_20260718_v2/06_full_recovery/crops",
+            )
+        ),
+    )
     parser.add_argument("--source-type", default="")
     parser.add_argument("--max-items", type=int, default=5)
     parser.add_argument("--padding", type=float, default=0.8)

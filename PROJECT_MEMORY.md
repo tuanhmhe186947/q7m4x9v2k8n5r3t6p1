@@ -4,6 +4,12 @@ This document serves as the long-term, medium-term, and short-term memory regist
 
 ## Classification V2 correction accepted (2026-07-26)
 
+- `SCIENTIFIC_ACCEPTED_SHA=a35e0b9aae8b55167b4562cfc7e26a45e2b4e312`
+- `OPERATIONAL_FINAL_EXECUTION_SHA=PENDING_EXACT_SHA_AUDIT`
+- Operational configuration is
+  `configs/classification_v2/lineage_rebuild_v1.yaml`; execution remains
+  fail-closed until its exact SHA is audited.
+
 - `ACCEPTED_IMPLEMENTATION_SHA=a35e0b9aae8b55167b4562cfc7e26a45e2b4e312`
 - `OBJECT_TRACK_KEY_EXACT_SHA_REAUDIT=PASS`
 - `PHASE1_4_INTEGRATED_ACCEPTANCE=PASS`

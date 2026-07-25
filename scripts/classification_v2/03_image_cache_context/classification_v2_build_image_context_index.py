@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -39,7 +40,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--legacy-crop-root",
         type=Path,
-        default=Path("data/raw/legacy_full_multigt_masked_nodup_16f/crops"),
+        default=Path(
+            os.environ.get(
+                "CLASSIFICATION_V2_LEGACY_CROP_ROOT",
+                "outputs/legacy_16f_rebuild/"
+                "legacy_16f_rebuild_20260718_v2/06_full_recovery/crops",
+            )
+        ),
     )
     parser.add_argument("--max-frame-rows", type=int, default=None)
     parser.add_argument(

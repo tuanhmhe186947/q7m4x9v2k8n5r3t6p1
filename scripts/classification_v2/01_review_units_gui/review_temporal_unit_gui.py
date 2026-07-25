@@ -1038,7 +1038,13 @@ def main() -> None:
     parser.add_argument(
         "--raw-root",
         type=Path,
-        default=Path("data/raw/legacy_full_multigt_masked_nodup_16f/crops"),
+        default=Path(
+            os.environ.get(
+                "CLASSIFICATION_V2_LEGACY_CROP_ROOT",
+                "outputs/legacy_16f_rebuild/"
+                "legacy_16f_rebuild_20260718_v2/06_full_recovery/crops",
+            )
+        ),
     )
     parser.add_argument(
         "--roi-coco-json",

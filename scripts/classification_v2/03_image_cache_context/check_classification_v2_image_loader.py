@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -25,7 +26,13 @@ except Exception:  # pragma: no cover
 DEFAULT_INPUT = Path("outputs/classification_v2/review_policy/reviewed_frame_features.csv")
 DEFAULT_AUDIT = Path("outputs/classification_v2/train_ready_windows/image_loader_smoke_audit.json")
 DEFAULT_VIDEO_ROOT = Path("data/videos")
-DEFAULT_LEGACY_CROP_ROOT = Path("data/raw/legacy_full_multigt_masked_nodup_16f/crops")
+DEFAULT_LEGACY_CROP_ROOT = Path(
+    os.environ.get(
+        "CLASSIFICATION_V2_LEGACY_CROP_ROOT",
+        "outputs/legacy_16f_rebuild/"
+        "legacy_16f_rebuild_20260718_v2/06_full_recovery/crops",
+    )
+)
 
 IMAGE_COLS = [
     "source_type",
