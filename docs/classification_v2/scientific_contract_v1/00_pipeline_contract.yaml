@@ -5,6 +5,36 @@
     "audited_code_sha": "d925c9004e7aff5a3c8469b158d2428432c6031a",
     "authority": "PRIMARY_MACHINE_READABLE_AUTHORITY",
     "current_code_scientifically_approved": false,
+    "text_canonicalization": {
+      "text_canonicalization_id": "policy.classification_v2.scientific_contract_text",
+      "text_canonicalization_version": "classification_v2.scientific_contract_text.v1",
+      "encoding": "UTF-8",
+      "newline_convention": "LF",
+      "terminal_newline_policy": "EXACTLY_ONE",
+      "bom_policy": "FORBID_UTF8_BOM",
+      "trailing_whitespace_policy": "REJECT_SPACE_OR_TAB"
+    },
+    "upstream_current_authority": {
+      "contract_version": "classification_v2.upstream_current_authority.v1",
+      "required_classification": "CURRENT_AUTHORITATIVE",
+      "classifications": [
+        "VALID_HISTORICAL",
+        "CURRENT_AUTHORITATIVE",
+        "STALE_CODE_AUTHORITY",
+        "STALE_SEMANTIC_AUTHORITY",
+        "STALE_SCHEMA_AUTHORITY",
+        "INVALID_UPSTREAM_INTEGRITY",
+        "INELIGIBLE_ARTIFACT_CLASS"
+      ],
+      "compatibility_exceptions": []
+    },
+    "candidate_transaction": {
+      "contract_version": "classification_v2.candidate_transaction.v1",
+      "pending_state": "RENAMED_PENDING_REVALIDATION",
+      "committed_state": "COMMITTED_VALIDATED",
+      "rollback_failure_state": "ROLLBACK_FAILED",
+      "official_promotion_occurred": false
+    },
     "required_files": [
       "README.md",
       "00_pipeline_contract.yaml",
@@ -3588,7 +3618,7 @@
     },
     "candidate_manifest_builder": {
       "manifest_builder_id": "builder.classification_v2.candidate_manifest",
-      "manifest_builder_version": "classification_v2.candidate_manifest_builder.v1",
+      "manifest_builder_version": "classification_v2.candidate_manifest_builder.v2",
       "production_authority": "src/pig_behavior/classification_v2/contracts/candidate_manifest.py",
       "load_bearing_caller_hashes_trusted": false,
       "candidate_authority_state": "CANDIDATE_VALIDATED",

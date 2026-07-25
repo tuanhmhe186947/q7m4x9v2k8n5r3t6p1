@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 
 import pandas as pd
@@ -9,9 +10,17 @@ import pytest
 import pig_behavior.classification_v2.contracts.candidate_manifest as candidate_manifest_module
 from pig_behavior.classification_v2.contracts.candidate_manifest import (
     CANDIDATE_MANIFEST_DEVELOPMENT_CONTRACT_VERSION,
+    CURRENT_AUTHORITATIVE,
+    INELIGIBLE_ARTIFACT_CLASS,
+    INVALID_UPSTREAM_INTEGRITY,
+    STALE_CODE_AUTHORITY,
+    STALE_SCHEMA_AUTHORITY,
+    STALE_SEMANTIC_AUTHORITY,
+    CandidateManifestTransactionError,
     build_candidate_artifact_manifest,
     inspect_candidate_output,
     output_inspector_registry,
+    validate_upstream_manifest_for_current_authority,
 )
 from pig_behavior.classification_v2.contracts.semantic_lineage import (
     MANIFEST_BUILDER_ID,
@@ -104,6 +113,7 @@ def _build(
     expected: dict[str, object] | None = None,
     suffix: str = ".csv",
     before_replace=None,
+    failure_injector=None,
 ):
     stage = _stage(stage_id)
     tmp_path.mkdir(parents=True, exist_ok=True)
@@ -128,8 +138,58 @@ def _build(
         expected_authority=expected,
         development_contract_version=DEVELOPMENT,
         before_atomic_replace=before_replace,
+        failure_injector=failure_injector,
     )
     return output, result
+
+
+def _copy_upstream(
+    result,
+    target: Path,
+    *,
+    updates: dict[str, object] | None = None,
+) -> Path:
+    target.mkdir(parents=True, exist_ok=True)
+    manifest = dict(result.manifest)
+    original_output = (
+        result.manifest_path.parent / str(manifest["output_path"])
+    ).resolve()
+    copied_output = target / original_output.name
+    shutil.copy2(original_output, copied_output)
+    manifest["output_path"] = copied_output.name
+    manifest.update(updates or {})
+    manifest_path = target / "upstream.manifest.json"
+    manifest_path.write_text(
+        json.dumps(manifest, sort_keys=True),
+        encoding="utf-8",
+    )
+    return manifest_path
+
+
+def _rebuild_existing(
+    output: Path,
+    result,
+    *,
+    failure_injector=None,
+):
+    manifest = result.manifest
+    return build_candidate_artifact_manifest(
+        repo_root=REPO_ROOT,
+        contract_root=CONTRACT_ROOT,
+        stage_id=str(manifest["stage_id"]),
+        artifact_id=str(manifest["artifact_id"]),
+        artifact_class=str(manifest["artifact_class"]),
+        output_path=output,
+        candidate_manifest_path=result.manifest_path,
+        upstream_manifest_paths=(),
+        output_schema_id=str(manifest["output_schema_id"]),
+        output_schema_version=str(manifest["output_schema_version"]),
+        stage_specific_metadata=dict(
+            manifest["stage_specific_metadata"]
+        ),
+        development_contract_version=DEVELOPMENT,
+        failure_injector=failure_injector,
+    )
 
 
 def test_source_merge_candidate_is_production_built_and_reread_valid(
@@ -239,7 +299,10 @@ def test_missing_and_stale_upstream_fail_before_manifest_write(
     tmp_path: Path,
 ) -> None:
     missing = tmp_path / "missing.manifest.json"
-    with pytest.raises(FileNotFoundError, match="UPSTREAM_MANIFEST_MISSING"):
+    with pytest.raises(
+        ValueError,
+        match="INVALID_UPSTREAM_INTEGRITY",
+    ):
         _build(
             tmp_path / "missing_case",
             "stage.frame_local_primitives",
@@ -250,7 +313,10 @@ def test_missing_and_stale_upstream_fail_before_manifest_write(
         "stage.legacy_cvat_source_merge",
     )
     source_output.write_text("changed", encoding="utf-8")
-    with pytest.raises(ValueError, match="UPSTREAM_MANIFEST_INVALID"):
+    with pytest.raises(
+        ValueError,
+        match="INVALID_UPSTREAM_INTEGRITY",
+    ):
         _build(
             tmp_path / "stale_case",
             "stage.frame_local_primitives",
@@ -400,7 +466,10 @@ def test_upstream_class_self_dependency_and_stage_cycle_fail_closed(
     altered["artifact_class"] = "FAILED_DIAGNOSTIC"
     failed_path = source.manifest_path.parent / "failed.manifest.json"
     failed_path.write_text(json.dumps(altered), encoding="utf-8")
-    with pytest.raises(ValueError, match="INVALID_UPSTREAM_ARTIFACT_CLASS"):
+    with pytest.raises(
+        ValueError,
+        match="INELIGIBLE_ARTIFACT_CLASS",
+    ):
         _build(
             tmp_path / "failed_case",
             "stage.frame_local_primitives",
@@ -460,3 +529,288 @@ def test_official_candidate_rejects_nonofficial_upstream(
             output_schema_id=str(stage["output_artifacts"][0]),
             development_contract_version=DEVELOPMENT,
         )
+
+
+def test_upstream_current_authority_classifications_fail_closed(
+    tmp_path: Path,
+) -> None:
+    _, source = _build(
+        tmp_path / "source",
+        "stage.legacy_cvat_source_merge",
+    )
+    current = validate_upstream_manifest_for_current_authority(
+        manifest_path=source.manifest_path,
+        repo_root=REPO_ROOT,
+        contract_root=CONTRACT_ROOT,
+        intended_downstream_stage_id="stage.frame_local_primitives",
+    )
+    assert current.classification == CURRENT_AUTHORITATIVE
+    assert current.historical_integrity_valid
+    assert current.current_authoritative
+
+    cases = (
+        (
+            STALE_CODE_AUTHORITY,
+            {"stage_code_hash": "0" * 64},
+        ),
+        (
+            STALE_SEMANTIC_AUTHORITY,
+            {"stage_semantics_hash": "0" * 64},
+        ),
+        (
+            STALE_SCHEMA_AUTHORITY,
+            {"output_schema_hash": "0" * 64},
+        ),
+    )
+    for index, (expected, updates) in enumerate(cases):
+        path = _copy_upstream(
+            source,
+            tmp_path / f"stale_{index}",
+            updates=updates,
+        )
+        classified = validate_upstream_manifest_for_current_authority(
+            manifest_path=path,
+            repo_root=REPO_ROOT,
+            contract_root=CONTRACT_ROOT,
+            intended_downstream_stage_id="stage.frame_local_primitives",
+        )
+        assert classified.historical_integrity_valid
+        assert classified.classification == expected
+        with pytest.raises(
+            ValueError,
+            match=f"UPSTREAM_NOT_CURRENT_AUTHORITATIVE:{expected}",
+        ):
+            _build(
+                tmp_path / f"downstream_{index}",
+                "stage.frame_local_primitives",
+                upstream=(path,),
+            )
+        assert not list(
+            (tmp_path / f"downstream_{index}").glob("*.manifest.json")
+        )
+
+
+def test_earlier_commit_id_does_not_replace_relevant_authority(
+    tmp_path: Path,
+) -> None:
+    _, source = _build(
+        tmp_path / "source",
+        "stage.legacy_cvat_source_merge",
+    )
+    earlier_commit = "0" * 40
+    equal_path = _copy_upstream(
+        source,
+        tmp_path / "equal",
+        updates={"created_by_code_authority_sha": earlier_commit},
+    )
+    equal = validate_upstream_manifest_for_current_authority(
+        manifest_path=equal_path,
+        repo_root=REPO_ROOT,
+        contract_root=CONTRACT_ROOT,
+        intended_downstream_stage_id="stage.frame_local_primitives",
+    )
+    assert equal.classification == CURRENT_AUTHORITATIVE
+    _, downstream = _build(
+        tmp_path / "downstream_equal",
+        "stage.frame_local_primitives",
+        upstream=(equal_path,),
+    )
+    assert downstream.manifest["input_artifact_ids"]
+
+    stale_code_path = _copy_upstream(
+        source,
+        tmp_path / "earlier_stale_code",
+        updates={
+            "created_by_code_authority_sha": earlier_commit,
+            "stage_code_hash": "0" * 64,
+        },
+    )
+    stale_code = validate_upstream_manifest_for_current_authority(
+        manifest_path=stale_code_path,
+        repo_root=REPO_ROOT,
+        contract_root=CONTRACT_ROOT,
+        intended_downstream_stage_id="stage.frame_local_primitives",
+    )
+    assert stale_code.classification == STALE_CODE_AUTHORITY
+
+    stale_semantics_path = _copy_upstream(
+        source,
+        tmp_path / "earlier_stale_semantics",
+        updates={
+            "created_by_code_authority_sha": earlier_commit,
+            "stage_semantics_hash": "0" * 64,
+        },
+    )
+    stale_semantics = validate_upstream_manifest_for_current_authority(
+        manifest_path=stale_semantics_path,
+        repo_root=REPO_ROOT,
+        contract_root=CONTRACT_ROOT,
+        intended_downstream_stage_id="stage.frame_local_primitives",
+    )
+    assert stale_semantics.classification == STALE_SEMANTIC_AUTHORITY
+
+
+def test_ineligible_and_modified_upstream_classifications(
+    tmp_path: Path,
+) -> None:
+    _, source = _build(
+        tmp_path / "source",
+        "stage.legacy_cvat_source_merge",
+    )
+    for index, artifact_class in enumerate(
+        ("NON_OFFICIAL_AUDIT", "FAILED_DIAGNOSTIC")
+    ):
+        path = _copy_upstream(
+            source,
+            tmp_path / f"ineligible_{index}",
+            updates={"artifact_class": artifact_class},
+        )
+        classified = validate_upstream_manifest_for_current_authority(
+            manifest_path=path,
+            repo_root=REPO_ROOT,
+            contract_root=CONTRACT_ROOT,
+            intended_downstream_stage_id="stage.frame_local_primitives",
+        )
+        assert classified.classification == INELIGIBLE_ARTIFACT_CLASS
+
+    modified_path = _copy_upstream(
+        source,
+        tmp_path / "modified_output",
+    )
+    modified_manifest = json.loads(
+        modified_path.read_text(encoding="utf-8")
+    )
+    modified_output = modified_path.parent / modified_manifest["output_path"]
+    modified_output.write_text("changed\n", encoding="utf-8")
+    modified = validate_upstream_manifest_for_current_authority(
+        manifest_path=modified_path,
+        repo_root=REPO_ROOT,
+        contract_root=CONTRACT_ROOT,
+        intended_downstream_stage_id="stage.frame_local_primitives",
+    )
+    assert modified.classification == INVALID_UPSTREAM_INTEGRITY
+
+
+def test_one_stale_upstream_rejects_entire_downstream(
+    tmp_path: Path,
+) -> None:
+    _, source = _build(
+        tmp_path / "source",
+        "stage.legacy_cvat_source_merge",
+    )
+    current_path = _copy_upstream(
+        source,
+        tmp_path / "current",
+        updates={"artifact_id": "artifact.current.copy"},
+    )
+    stale_path = _copy_upstream(
+        source,
+        tmp_path / "stale",
+        updates={
+            "artifact_id": "artifact.stale.copy",
+            "stage_code_hash": "0" * 64,
+        },
+    )
+    target = tmp_path / "downstream"
+    with pytest.raises(
+        ValueError,
+        match="STALE_CODE_AUTHORITY",
+    ):
+        _build(
+            target,
+            "stage.frame_local_primitives",
+            upstream=(current_path, stale_path),
+        )
+    assert not list(target.glob("*.manifest.json"))
+
+
+TRANSACTION_FAILURE_POINTS = (
+    "before_output_inspection",
+    "after_output_inspection",
+    "after_upstream_validation",
+    "after_authority_derivation",
+    "after_in_memory_manifest_validation",
+    "during_temporary_write",
+    "before_atomic_rename",
+    "after_atomic_rename_before_final_reread",
+    "during_final_reread_validation",
+)
+
+
+@pytest.mark.parametrize("failure_point", TRANSACTION_FAILURE_POINTS)
+@pytest.mark.parametrize("prior_exists", (False, True))
+def test_candidate_transaction_failures_restore_initial_state(
+    tmp_path: Path,
+    failure_point: str,
+    prior_exists: bool,
+) -> None:
+    target = tmp_path / failure_point / (
+        "prior" if prior_exists else "absent"
+    )
+    output, prior = _build(
+        target,
+        "stage.legacy_cvat_source_merge",
+    )
+    prior_bytes = prior.manifest_path.read_bytes()
+    if not prior_exists:
+        prior.manifest_path.unlink()
+
+    def inject(point: str) -> None:
+        if point == failure_point:
+            raise RuntimeError(f"INJECT:{point}")
+
+    with pytest.raises(RuntimeError, match="INJECT"):
+        _rebuild_existing(
+            output,
+            prior,
+            failure_injector=inject,
+        )
+    if prior_exists:
+        assert prior.manifest_path.read_bytes() == prior_bytes
+        reread = json.loads(prior.manifest_path.read_text(encoding="utf-8"))
+        assert validate_artifact_manifest(
+            reread,
+            output_path=output,
+        )["valid"]
+    else:
+        assert not prior.manifest_path.exists()
+    assert not list(target.glob("*.candidate-staging"))
+    assert not list(target.glob("*.candidate-backup"))
+    assert not list(target.glob("*.candidate-commit"))
+
+
+def test_rollback_failure_is_explicit_and_not_committed(
+    tmp_path: Path,
+) -> None:
+    target = tmp_path / "rollback_failure"
+    output, prior = _build(
+        target,
+        "stage.legacy_cvat_source_merge",
+    )
+    prior.manifest_path.unlink()
+
+    def inject(point: str) -> None:
+        if point in {
+            "after_atomic_rename_before_final_reread",
+            "during_rollback",
+        }:
+            raise RuntimeError(f"INJECT:{point}")
+
+    with pytest.raises(CandidateManifestTransactionError) as caught:
+        _rebuild_existing(
+            output,
+            prior,
+            failure_injector=inject,
+        )
+    transaction = caught.value.transaction
+    assert transaction.classification == "ROLLBACK_FAILED"
+    assert transaction.rollback_attempted
+    assert not transaction.rollback_succeeded
+    assert not transaction.new_candidate_survived
+    leftover = json.loads(prior.manifest_path.read_text(encoding="utf-8"))
+    validation = validate_artifact_manifest(
+        leftover,
+        output_path=output,
+    )
+    assert not validation["valid"]
+    assert "CANDIDATE_TRANSACTION_NOT_COMMITTED" in validation["errors"]

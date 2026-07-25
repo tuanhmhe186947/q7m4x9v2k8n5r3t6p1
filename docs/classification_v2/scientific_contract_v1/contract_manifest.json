@@ -3,9 +3,9 @@
   "contract_version": "classification_v2.scientific_contract.v1.0.0",
   "generated_files": [
     {
-      "bytes": 206981,
+      "bytes": 208195,
       "path": "00_pipeline_contract.yaml",
-      "sha256": "82a55ff5634d7be0c82ccd4432f215b87e9b52552b2eda01992831088997c846"
+      "sha256": "b07be470db802863c182fc7da36fe2093e282be389b6f5c5ec4c42766aba0689"
     },
     {
       "bytes": 8925,
@@ -58,9 +58,9 @@
       "sha256": "7350cc60671fcfd08a2b8772f9b85787e5324630e0e6674e7d4f098fab4cc8c4"
     },
     {
-      "bytes": 109982,
+      "bytes": 110044,
       "path": "10_code_contract_mapping.csv",
-      "sha256": "8a4f5f0e16c0da963147b5dfe5b7d9f88dfd768ba49e6adc9912011fcc4f9479"
+      "sha256": "a623abfbc943efc9d744bf1f71c92b310acdd7c035f7ad2b775ce006288f670b"
     },
     {
       "bytes": 7873,
@@ -89,5 +89,14 @@
     }
   ],
   "manifest_schema_version": "classification_v2.scientific_contract_manifest.v1",
-  "primary_authority": "00_pipeline_contract.yaml"
+  "primary_authority": "00_pipeline_contract.yaml",
+  "text_canonicalization": {
+    "bom_policy": "FORBID_UTF8_BOM",
+    "encoding": "UTF-8",
+    "newline_convention": "LF",
+    "terminal_newline_policy": "EXACTLY_ONE",
+    "text_canonicalization_id": "policy.classification_v2.scientific_contract_text",
+    "text_canonicalization_version": "classification_v2.scientific_contract_text.v1",
+    "trailing_whitespace_policy": "REJECT_SPACE_OR_TAB"
+  }
 }

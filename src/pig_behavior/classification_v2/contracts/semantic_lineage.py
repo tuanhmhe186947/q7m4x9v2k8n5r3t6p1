@@ -53,13 +53,15 @@ SEMANTIC_REGISTRY_VERSION = "classification_v2.semantic_domains.v6"
 SEMANTIC_BUNDLE_ID = "bundle.classification_v2.phase1_4"
 SEMANTIC_BUNDLE_VERSION = "classification_v2.semantic_bundle.v6"
 STAGE_GRAPH_VERSION = "classification_v2.stage_dependency_graph.v4"
-ARTIFACT_MANIFEST_VERSION = "classification_v2.artifact_manifest.v6"
+ARTIFACT_MANIFEST_VERSION = "classification_v2.artifact_manifest.v7"
 MANIFEST_BUILDER_ID = "builder.classification_v2.candidate_manifest"
 MANIFEST_BUILDER_VERSION = (
-    "classification_v2.candidate_manifest_builder.v1"
+    "classification_v2.candidate_manifest_builder.v2"
 )
 CANDIDATE_AUTHORITY_STATE = "CANDIDATE_VALIDATED"
 OFFICIAL_AUTHORITY_STATE = "OFFICIAL_PROMOTED"
+CANDIDATE_TRANSACTION_STATE_PENDING = "RENAMED_PENDING_REVALIDATION"
+CANDIDATE_TRANSACTION_STATE_COMMITTED = "COMMITTED_VALIDATED"
 RELEASE_AUTHORITY_SCHEMA_VERSION = (
     "classification_v2.release_authority_preflight.v4"
 )
@@ -179,6 +181,9 @@ ARTIFACT_MANIFEST_REQUIRED_FIELDS = (
     "manifest_builder_version",
     "manifest_builder_code_hash",
     "authority_state",
+    "candidate_transaction_id",
+    "candidate_transaction_state",
+    "candidate_transaction_provenance_hash",
     "artifact_id",
     "artifact_class",
     "stage_id",
@@ -450,6 +455,23 @@ def canonical_sha256(
             exclude_fields=exclude_fields,
         )
     ).hexdigest()
+
+
+def candidate_transaction_provenance_hash(
+    transaction_id: str,
+    transaction_state: str,
+) -> str:
+    """Bind candidate transaction state to versioned manifest authority."""
+
+    return canonical_sha256(
+        {
+            "artifact_manifest_version": ARTIFACT_MANIFEST_VERSION,
+            "manifest_builder_id": MANIFEST_BUILDER_ID,
+            "manifest_builder_version": MANIFEST_BUILDER_VERSION,
+            "candidate_transaction_id": transaction_id,
+            "candidate_transaction_state": transaction_state,
+        }
+    )
 
 
 def semantic_sha256(
@@ -1878,6 +1900,8 @@ def artifact_manifest_json_schema() -> dict[str, Any]:
         name: {"type": "string", "pattern": HASH_PATTERN.pattern}
         for name in (
             "manifest_builder_code_hash",
+            "candidate_transaction_id",
+            "candidate_transaction_provenance_hash",
             "stage_code_hash",
             "stage_semantics_hash",
             "stage_input_fingerprint",
@@ -1910,6 +1934,9 @@ def artifact_manifest_json_schema() -> dict[str, Any]:
                     CANDIDATE_AUTHORITY_STATE,
                     OFFICIAL_AUTHORITY_STATE,
                 ]
+            },
+            "candidate_transaction_state": {
+                "const": CANDIDATE_TRANSACTION_STATE_COMMITTED,
             },
             "code_authority_vcs": {
                 "const": CODE_AUTHORITY_VCS_GIT,
@@ -1965,7 +1992,7 @@ def artifact_manifest_json_schema() -> dict[str, Any]:
     )
     return {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "$id": "schema.classification_v2.artifact_manifest.v6",
+        "$id": "schema.classification_v2.artifact_manifest.v7",
         "title": "Classification V2 scientific artifact manifest",
         "type": "object",
         "required": list(ARTIFACT_MANIFEST_REQUIRED_FIELDS),
@@ -2048,6 +2075,8 @@ def _blank(value: Any) -> bool:
 def _required_manifest_hash_fields() -> tuple[str, ...]:
     return (
         "manifest_builder_code_hash",
+        "candidate_transaction_id",
+        "candidate_transaction_provenance_hash",
         "stage_code_hash",
         "stage_semantics_hash",
         "stage_input_fingerprint",
@@ -2069,6 +2098,7 @@ def validate_artifact_manifest(
     upstream_manifests: Mapping[str, Mapping[str, Any]] | None = None,
     expected_stage_execution_fingerprint: str | None = None,
     expected_schema: tuple[str, str, str] | None = None,
+    require_committed_transaction: bool = True,
 ) -> dict[str, Any]:
     """Validate one artifact manifest without trusting producer assertions."""
 
@@ -2091,6 +2121,30 @@ def validate_artifact_manifest(
         OFFICIAL_AUTHORITY_STATE,
     }:
         errors.append("INVALID_AUTHORITY_STATE")
+    transaction_state = str(
+        manifest.get("candidate_transaction_state", "")
+    )
+    if require_committed_transaction:
+        if transaction_state != CANDIDATE_TRANSACTION_STATE_COMMITTED:
+            errors.append("CANDIDATE_TRANSACTION_NOT_COMMITTED")
+    elif transaction_state not in {
+        CANDIDATE_TRANSACTION_STATE_PENDING,
+        CANDIDATE_TRANSACTION_STATE_COMMITTED,
+    }:
+        errors.append("INVALID_CANDIDATE_TRANSACTION_STATE")
+    transaction_id = str(manifest.get("candidate_transaction_id", ""))
+    transaction_provenance = str(
+        manifest.get("candidate_transaction_provenance_hash", "")
+    )
+    if (
+        HASH_PATTERN.fullmatch(transaction_id)
+        and transaction_provenance
+        != candidate_transaction_provenance_hash(
+            transaction_id,
+            transaction_state,
+        )
+    ):
+        errors.append("CANDIDATE_TRANSACTION_PROVENANCE_MISMATCH")
     stage_id = manifest.get("stage_id")
     if stage_id not in STAGE_DEPENDENCIES:
         errors.append("UNKNOWN_STAGE_ID")

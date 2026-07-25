@@ -19,6 +19,11 @@ from validate_scientific_contract import (
     validate_contract,
 )
 
+from pig_behavior.classification_v2.contracts.text_canonicalization import (
+    canonicalize_contract_text_bytes,
+    text_canonicalization_contract,
+)
+
 STAGE_FIELDS = [
     "stage_id",
     "stage_name",
@@ -726,7 +731,7 @@ def _manifest_payload(
     files: list[dict[str, Any]] = []
     for name in sorted(names):
         path = root / name
-        data = path.read_bytes()
+        data = canonicalize_contract_text_bytes(path.read_bytes())
         files.append(
             {
                 "path": name,
@@ -739,6 +744,7 @@ def _manifest_payload(
         "contract_version": metadata["contract_version"],
         "audited_code_sha": metadata["audited_code_sha"],
         "primary_authority": "00_pipeline_contract.yaml",
+        "text_canonicalization": text_canonicalization_contract(),
         "generated_files": files,
     }
 
@@ -868,12 +874,21 @@ def write_payloads(
     mismatches: list[str] = []
     for name, text in payloads.items():
         path = root / name
+        expected_bytes = canonicalize_contract_text_bytes(
+            text.encode("utf-8")
+        )
         if check:
-            if not path.exists() or path.read_text(encoding="utf-8") != text:
+            try:
+                actual_bytes = canonicalize_contract_text_bytes(
+                    path.read_bytes()
+                )
+            except (OSError, ValueError):
+                actual_bytes = b""
+            if actual_bytes != expected_bytes:
                 mismatches.append(name)
         else:
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(text, encoding="utf-8", newline="\n")
+            path.write_bytes(expected_bytes)
     manifest_names = [
         "00_pipeline_contract.yaml",
         "stage_runtime_code_authority.json",
@@ -893,14 +908,20 @@ def write_payloads(
         + "\n"
     )
     manifest_path = root / "contract_manifest.json"
+    manifest_bytes = canonicalize_contract_text_bytes(
+        manifest.encode("utf-8")
+    )
     if check:
-        if (
-            not manifest_path.exists()
-            or manifest_path.read_text(encoding="utf-8") != manifest
-        ):
+        try:
+            actual_manifest_bytes = canonicalize_contract_text_bytes(
+                manifest_path.read_bytes()
+            )
+        except (OSError, ValueError):
+            actual_manifest_bytes = b""
+        if actual_manifest_bytes != manifest_bytes:
             mismatches.append("contract_manifest.json")
     else:
-        manifest_path.write_text(manifest, encoding="utf-8", newline="\n")
+        manifest_path.write_bytes(manifest_bytes)
     return mismatches
 
 

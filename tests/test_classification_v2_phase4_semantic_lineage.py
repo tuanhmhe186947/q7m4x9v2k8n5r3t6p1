@@ -11,6 +11,8 @@ import pytest
 from pig_behavior.classification_v2.contracts.semantic_lineage import (
     ARTIFACT_MANIFEST_REQUIRED_FIELDS,
     ARTIFACT_MANIFEST_VERSION,
+    CANDIDATE_TRANSACTION_STATE_COMMITTED,
+    MANIFEST_BUILDER_VERSION,
     RELEASE_AUTHORIZATION_FIELDS,
     STAGE_DEPENDENCIES,
     artifact_manifest_json_schema,
@@ -21,6 +23,7 @@ from pig_behavior.classification_v2.contracts.semantic_lineage import (
     build_semantic_domain_registry,
     build_stage_authority_registry,
     build_stage_dependency_graph,
+    candidate_transaction_provenance_hash,
     canonical_sha256,
     change_impact_registry,
     classification_v2_inventory_scope,
@@ -90,10 +93,20 @@ def _manifest(output_path: Path) -> dict:
             "builder.classification_v2.candidate_manifest"
         ),
         "manifest_builder_version": (
-            "classification_v2.candidate_manifest_builder.v1"
+            MANIFEST_BUILDER_VERSION
         ),
         "manifest_builder_code_hash": HEX_A,
         "authority_state": "CANDIDATE_VALIDATED",
+        "candidate_transaction_id": HEX_B,
+        "candidate_transaction_state": (
+            CANDIDATE_TRANSACTION_STATE_COMMITTED
+        ),
+        "candidate_transaction_provenance_hash": (
+            candidate_transaction_provenance_hash(
+                HEX_B,
+                CANDIDATE_TRANSACTION_STATE_COMMITTED,
+            )
+        ),
         "artifact_id": "artifact.test",
         "artifact_class": "TEST",
         "stage_id": "stage.frame_local_primitives",

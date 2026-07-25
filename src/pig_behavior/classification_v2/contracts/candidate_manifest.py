@@ -26,6 +26,8 @@ from pig_behavior.classification_v2.contracts.semantic_lineage import (
     AXIS_DISTANCE_METRIC_ID,
     AXIS_DISTANCE_METRIC_VERSION,
     CANDIDATE_AUTHORITY_STATE,
+    CANDIDATE_TRANSACTION_STATE_COMMITTED,
+    CANDIDATE_TRANSACTION_STATE_PENDING,
     DIAGONAL_DISTANCE_METRIC_ID,
     DIAGONAL_DISTANCE_METRIC_VERSION,
     MANIFEST_BUILDER_ID,
@@ -38,6 +40,7 @@ from pig_behavior.classification_v2.contracts.semantic_lineage import (
     SOCIAL_TIE_BREAK_VERSION,
     build_semantic_bundle,
     build_semantic_domain_registry,
+    candidate_transaction_provenance_hash,
     canonical_json_bytes,
     canonical_sha256,
     compute_stage_code_hash,
@@ -63,6 +66,19 @@ OUTPUT_INSPECTOR_REGISTRY_ID = (
 OUTPUT_INSPECTOR_REGISTRY_VERSION = (
     "classification_v2.candidate_output_inspectors.v1"
 )
+UPSTREAM_CURRENT_AUTHORITY_CONTRACT_VERSION = (
+    "classification_v2.upstream_current_authority.v1"
+)
+CANDIDATE_TRANSACTION_CONTRACT_VERSION = (
+    "classification_v2.candidate_transaction.v1"
+)
+VALID_HISTORICAL = "VALID_HISTORICAL"
+CURRENT_AUTHORITATIVE = "CURRENT_AUTHORITATIVE"
+STALE_CODE_AUTHORITY = "STALE_CODE_AUTHORITY"
+STALE_SEMANTIC_AUTHORITY = "STALE_SEMANTIC_AUTHORITY"
+STALE_SCHEMA_AUTHORITY = "STALE_SCHEMA_AUTHORITY"
+INVALID_UPSTREAM_INTEGRITY = "INVALID_UPSTREAM_INTEGRITY"
+INELIGIBLE_ARTIFACT_CLASS = "INELIGIBLE_ARTIFACT_CLASS"
 
 _SCIENTIFIC_AUTHORITY_PATH_PREFIXES = (
     "src/",
@@ -167,6 +183,52 @@ class LoadedUpstreamManifest:
     output_path: Path
     manifest: Mapping[str, Any]
     manifest_file_sha256: str
+    authority_classification: str = VALID_HISTORICAL
+    authority_reason_codes: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class UpstreamAuthorityValidation:
+    """Historical-integrity and current-authority result for one upstream."""
+
+    classification: str
+    reason_codes: tuple[str, ...]
+    historical_integrity_valid: bool
+    current_authoritative: bool
+    loaded_manifest: LoadedUpstreamManifest | None
+    expected_authority: Mapping[str, Any]
+
+
+@dataclass(frozen=True, slots=True)
+class CandidateTransactionRecord:
+    """Auditable state of one candidate-manifest filesystem transaction."""
+
+    transaction_id: str
+    initial_final_path_state: str
+    prior_manifest_sha256: str | None
+    temporary_path: str | None
+    backup_path: str | None
+    last_completed_state: str
+    rollback_attempted: bool
+    rollback_succeeded: bool
+    final_path_exists: bool
+    final_path_sha256: str | None
+    new_candidate_survived: bool
+    official_promotion_occurred: bool
+    classification: str
+
+
+class CandidateManifestTransactionError(RuntimeError):
+    """Raised when candidate writing or rollback does not commit cleanly."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        transaction: CandidateTransactionRecord,
+    ) -> None:
+        super().__init__(message)
+        self.transaction = transaction
 
 
 @dataclass(frozen=True, slots=True)
@@ -178,6 +240,7 @@ class CandidateManifestBuild:
     output_inspection: OutputInspection
     validation: Mapping[str, Any]
     production_builder_owned: bool
+    transaction: CandidateTransactionRecord
 
 
 OutputInspector = Callable[[Path], OutputInspection]
@@ -507,17 +570,276 @@ def load_validated_upstream_manifest(
     )
 
 
+def _current_semantic_identifiers() -> dict[str, Any]:
+    return {
+        "distance_metric_ids": [
+            AXIS_DISTANCE_METRIC_ID,
+            DIAGONAL_DISTANCE_METRIC_ID,
+        ],
+        "distance_metric_versions": [
+            AXIS_DISTANCE_METRIC_VERSION,
+            DIAGONAL_DISTANCE_METRIC_VERSION,
+        ],
+        "social_identity_version": SOCIAL_IDENTITY_VERSION,
+        "social_tie_break_version": SOCIAL_TIE_BREAK_VERSION,
+        "roi_aggregation_version": ROI_AGGREGATION_VERSION,
+        "motion_schema_id": MOTION_SCHEMA_ID,
+        "motion_schema_version": MOTION_SCHEMA_VERSION,
+        "motion_schema_hash": MOTION_SCHEMA_HASH,
+        "review_key_schema_version": "classification_v2.review_key.v1",
+    }
+
+
+def validate_upstream_manifest_for_current_authority(
+    *,
+    manifest_path: Path,
+    repo_root: Path,
+    contract_root: Path,
+    intended_downstream_stage_id: str,
+) -> UpstreamAuthorityValidation:
+    """Classify historical integrity separately from current eligibility."""
+
+    try:
+        loaded = load_validated_upstream_manifest(manifest_path)
+        inspection = inspect_candidate_output(loaded.output_path)
+    except Exception as exc:
+        return UpstreamAuthorityValidation(
+            classification=INVALID_UPSTREAM_INTEGRITY,
+            reason_codes=(
+                f"INVALID_UPSTREAM_INTEGRITY:{type(exc).__name__}:{exc}",
+            ),
+            historical_integrity_valid=False,
+            current_authoritative=False,
+            loaded_manifest=None,
+            expected_authority={},
+        )
+
+    manifest = loaded.manifest
+    integrity_mismatches = [
+        name
+        for name, actual, expected in (
+            (
+                "output_file_sha256",
+                manifest.get("output_file_sha256"),
+                inspection.output_file_sha256,
+            ),
+            (
+                "output_byte_size",
+                manifest.get("output_byte_size"),
+                inspection.output_byte_size,
+            ),
+            ("row_count", manifest.get("row_count"), inspection.row_count),
+            (
+                "column_count",
+                manifest.get("column_count"),
+                inspection.column_count,
+            ),
+            (
+                "ordered_columns",
+                manifest.get("ordered_columns"),
+                list(inspection.ordered_columns),
+            ),
+        )
+        if actual != expected
+    ]
+    if integrity_mismatches:
+        return UpstreamAuthorityValidation(
+            classification=INVALID_UPSTREAM_INTEGRITY,
+            reason_codes=tuple(
+                f"HISTORICAL_METADATA_MISMATCH:{name}"
+                for name in integrity_mismatches
+            ),
+            historical_integrity_valid=False,
+            current_authoritative=False,
+            loaded_manifest=loaded,
+            expected_authority={},
+        )
+
+    artifact_class = str(manifest.get("artifact_class", ""))
+    artifact_status = str(manifest.get("status", ""))
+    authority_state = str(manifest.get("authority_state", ""))
+    eligible_classes = {
+        "SYNTHETIC_INTEGRATION_TEST_ONLY",
+        "SCIENTIFIC_CANDIDATE",
+        *_OFFICIAL_ARTIFACT_CLASSES,
+    }
+    ineligible = (
+        artifact_class not in eligible_classes
+        or any(
+            token in artifact_class.upper()
+            for token in _INVALID_UPSTREAM_CLASS_TOKENS
+        )
+        or artifact_status != "VALIDATED"
+        or authority_state
+        not in {CANDIDATE_AUTHORITY_STATE, "OFFICIAL_PROMOTED"}
+    )
+    if ineligible:
+        return UpstreamAuthorityValidation(
+            classification=INELIGIBLE_ARTIFACT_CLASS,
+            reason_codes=(
+                "INELIGIBLE_ARTIFACT_CLASS:"
+                f"{artifact_class}:{authority_state}:{artifact_status}",
+            ),
+            historical_integrity_valid=True,
+            current_authoritative=False,
+            loaded_manifest=loaded,
+            expected_authority={},
+        )
+
+    contract_path = contract_root.resolve() / "00_pipeline_contract.yaml"
+    mapping_path = contract_root.resolve() / "10_code_contract_mapping.csv"
+    try:
+        contract = load_scientific_contract(contract_path)
+        _validate_manifest_authority_contract(contract)
+        _stage_contract(contract, intended_downstream_stage_id)
+        stage_id = str(manifest.get("stage_id", ""))
+        stage = _stage_contract(contract, stage_id)
+        mapping_rows = load_code_contract_mapping(mapping_path)
+        runtime_audit = assert_stage_runtime_dependencies_complete(
+            repo_root.resolve(),
+            stage_id,
+            mapping_rows,
+        )
+        if (
+            runtime_audit["runtime_dependency_closure"]
+            != runtime_audit["hashed_code_files"]
+        ):
+            raise ValueError("STAGE_RUNTIME_AUTHORITY_NOT_EXACT")
+        semantic_registry = build_semantic_domain_registry(contract)
+        current_code_hash = compute_stage_code_hash(
+            repo_root.resolve(),
+            stage_id,
+            mapping_rows,
+        )
+        current_semantics_hash = compute_stage_semantics_hash(
+            stage_id,
+            semantic_registry,
+        )
+        schema_id, schema_version, schema_hash = _validate_schema_authority(
+            stage=stage,
+            intended_schema_id=str(manifest.get("output_schema_id", "")),
+            intended_schema_version=str(
+                manifest.get("output_schema_version", "")
+            ),
+            inspection=inspection,
+            stage_specific_metadata=dict(
+                manifest.get("stage_specific_metadata", {})
+            ),
+        )
+    except Exception as exc:
+        return UpstreamAuthorityValidation(
+            classification=STALE_SCHEMA_AUTHORITY,
+            reason_codes=(
+                f"CURRENT_STAGE_OR_SCHEMA_UNRECOGNIZED:{type(exc).__name__}:"
+                f"{exc}",
+            ),
+            historical_integrity_valid=True,
+            current_authoritative=False,
+            loaded_manifest=loaded,
+            expected_authority={},
+        )
+
+    expected_authority = {
+        "stage_id": stage_id,
+        "stage_version": str(stage["schema_version"]),
+        "stage_code_hash": current_code_hash,
+        "stage_semantics_hash": current_semantics_hash,
+        "output_schema_id": schema_id,
+        "output_schema_version": schema_version,
+        "output_schema_hash": schema_hash,
+        **_current_semantic_identifiers(),
+    }
+    code_reasons = (
+        ("STAGE_CODE_HASH_NOT_CURRENT",)
+        if manifest.get("stage_code_hash") != current_code_hash
+        else ()
+    )
+    semantic_reasons = tuple(
+        reason
+        for name, expected in {
+            "stage_semantics_hash": current_semantics_hash,
+            **_current_semantic_identifiers(),
+        }.items()
+        if manifest.get(name) != expected
+        for reason in (f"SEMANTIC_AUTHORITY_NOT_CURRENT:{name}",)
+    )
+    schema_reasons = tuple(
+        reason
+        for name, expected in {
+            "stage_id": stage_id,
+            "stage_version": str(stage["schema_version"]),
+            "output_schema_id": schema_id,
+            "output_schema_version": schema_version,
+            "output_schema_hash": schema_hash,
+        }.items()
+        if manifest.get(name) != expected
+        for reason in (f"SCHEMA_AUTHORITY_NOT_CURRENT:{name}",)
+    )
+    if code_reasons:
+        classification = STALE_CODE_AUTHORITY
+        reasons = code_reasons
+    elif semantic_reasons:
+        classification = STALE_SEMANTIC_AUTHORITY
+        reasons = semantic_reasons
+    elif schema_reasons:
+        classification = STALE_SCHEMA_AUTHORITY
+        reasons = schema_reasons
+    else:
+        classification = CURRENT_AUTHORITATIVE
+        reasons = ("CURRENT_AUTHORITY_MATCH",)
+    current = classification == CURRENT_AUTHORITATIVE
+    classified_loaded = LoadedUpstreamManifest(
+        manifest_path=loaded.manifest_path,
+        output_path=loaded.output_path,
+        manifest=loaded.manifest,
+        manifest_file_sha256=loaded.manifest_file_sha256,
+        authority_classification=classification,
+        authority_reason_codes=reasons,
+    )
+    return UpstreamAuthorityValidation(
+        classification=classification,
+        reason_codes=reasons,
+        historical_integrity_valid=True,
+        current_authoritative=current,
+        loaded_manifest=classified_loaded,
+        expected_authority=expected_authority,
+    )
+
+
 def _validate_upstreams(
     *,
+    repo_root: Path,
+    contract_root: Path,
     stage_id: str,
     artifact_id: str,
     artifact_class: str,
     upstream_manifest_paths: Sequence[Path],
     stage_order: Sequence[str],
 ) -> list[LoadedUpstreamManifest]:
-    loaded = [
-        load_validated_upstream_manifest(path)
+    authority_results = [
+        validate_upstream_manifest_for_current_authority(
+            manifest_path=path,
+            repo_root=repo_root,
+            contract_root=contract_root,
+            intended_downstream_stage_id=stage_id,
+        )
         for path in upstream_manifest_paths
+    ]
+    noncurrent = [
+        result
+        for result in authority_results
+        if not result.current_authoritative
+    ]
+    if noncurrent:
+        detail = "|".join(
+            f"{result.classification}:{','.join(result.reason_codes)}"
+            for result in noncurrent
+        )
+        raise ValueError(f"UPSTREAM_NOT_CURRENT_AUTHORITATIVE:{detail}")
+    loaded = [
+        result.loaded_manifest
+        for result in authority_results
+        if result.loaded_manifest is not None
     ]
     ids = [str(item.manifest["artifact_id"]) for item in loaded]
     if len(ids) != len(set(ids)):
@@ -567,6 +889,30 @@ def _stage_contract(
     if len(matches) != 1:
         raise ValueError(f"UNKNOWN_OR_DUPLICATE_STAGE:{stage_id}")
     return matches[0]
+
+
+def _validate_manifest_authority_contract(
+    contract: Mapping[str, Any],
+) -> None:
+    metadata = contract.get("contract_metadata", {})
+    upstream = metadata.get("upstream_current_authority", {})
+    transaction = metadata.get("candidate_transaction", {})
+    if upstream.get("contract_version") != (
+        UPSTREAM_CURRENT_AUTHORITY_CONTRACT_VERSION
+    ):
+        raise ValueError("UPSTREAM_CURRENT_AUTHORITY_CONTRACT_MISMATCH")
+    if upstream.get("required_classification") != CURRENT_AUTHORITATIVE:
+        raise ValueError("UPSTREAM_REQUIRED_CLASSIFICATION_MISMATCH")
+    if upstream.get("compatibility_exceptions") != []:
+        raise ValueError("UNSUPPORTED_UPSTREAM_COMPATIBILITY_EXCEPTION")
+    if transaction.get("contract_version") != (
+        CANDIDATE_TRANSACTION_CONTRACT_VERSION
+    ):
+        raise ValueError("CANDIDATE_TRANSACTION_CONTRACT_MISMATCH")
+    if transaction.get("committed_state") != (
+        CANDIDATE_TRANSACTION_STATE_COMMITTED
+    ):
+        raise ValueError("CANDIDATE_COMMITTED_STATE_MISMATCH")
 
 
 def _validate_schema_authority(
@@ -685,15 +1031,22 @@ def candidate_manifest_builder_contract() -> dict[str, Any]:
         ),
         "load_bearing_caller_hashes_trusted": False,
         "candidate_authority_state": CANDIDATE_AUTHORITY_STATE,
+        "upstream_current_authority_contract_version": (
+            UPSTREAM_CURRENT_AUTHORITY_CONTRACT_VERSION
+        ),
+        "candidate_transaction_contract_version": (
+            CANDIDATE_TRANSACTION_CONTRACT_VERSION
+        ),
         "output_inspector_registry": output_inspector_registry(),
         "atomic_write_sequence": [
             "inspect_output",
             "validate_upstreams",
             "derive_code_semantic_schema_authority",
             "validate_in_memory",
-            "write_fsync_temporary",
-            "atomic_replace",
-            "reread_revalidate",
+            "write_fsync_pending_temporary",
+            "atomic_replace_pending",
+            "reread_revalidate_pending",
+            "atomic_replace_committed",
         ],
     }
 
@@ -712,36 +1065,222 @@ def _assert_expected_authority(
             )
 
 
-def _write_candidate_atomically(
+def _write_bytes_fsync(path: Path, payload: bytes) -> None:
+    with path.open("wb") as handle:
+        handle.write(payload)
+        handle.flush()
+        os.fsync(handle.fileno())
+
+
+def _candidate_transaction_record(
+    *,
+    transaction_id: str,
+    initial_state: str,
+    prior_sha256: str | None,
+    temporary: Path | None,
+    backup: Path | None,
+    last_state: str,
+    rollback_attempted: bool,
+    rollback_succeeded: bool,
+    destination: Path,
+    committed_sha256: str,
+    classification: str,
+) -> CandidateTransactionRecord:
+    final_exists = destination.is_file()
+    final_sha256 = file_sha256(destination) if final_exists else None
+    return CandidateTransactionRecord(
+        transaction_id=transaction_id,
+        initial_final_path_state=initial_state,
+        prior_manifest_sha256=prior_sha256,
+        temporary_path=str(temporary) if temporary is not None else None,
+        backup_path=str(backup) if backup is not None else None,
+        last_completed_state=last_state,
+        rollback_attempted=rollback_attempted,
+        rollback_succeeded=rollback_succeeded,
+        final_path_exists=final_exists,
+        final_path_sha256=final_sha256,
+        new_candidate_survived=final_sha256 == committed_sha256,
+        official_promotion_occurred=False,
+        classification=classification,
+    )
+
+
+def _write_candidate_transactionally(
     *,
     manifest_path: Path,
     manifest: Mapping[str, Any],
+    output_path: Path,
+    upstream_manifests: Mapping[str, Mapping[str, Any]],
     before_atomic_replace: Callable[[], None] | None,
-) -> None:
+    failure_injector: Callable[[str], None] | None,
+) -> CandidateTransactionRecord:
     destination = manifest_path.resolve()
-    if destination.exists():
-        raise FileExistsError(
-            f"candidate manifest already exists: {destination}"
-        )
     destination.parent.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary_name = tempfile.mkstemp(
-        prefix=f".{destination.name}.",
-        suffix=".candidate-staging",
-        dir=destination.parent,
+    transaction_id = str(manifest["candidate_transaction_id"])
+    pending_manifest = dict(manifest)
+    pending_manifest["candidate_transaction_state"] = (
+        CANDIDATE_TRANSACTION_STATE_PENDING
     )
-    temporary = Path(temporary_name)
+    pending_manifest["candidate_transaction_provenance_hash"] = (
+        candidate_transaction_provenance_hash(
+            transaction_id,
+            CANDIDATE_TRANSACTION_STATE_PENDING,
+        )
+    )
+    pending_bytes = canonical_json_bytes(pending_manifest) + b"\n"
+    committed_bytes = canonical_json_bytes(manifest) + b"\n"
+    committed_sha256 = hashlib.sha256(committed_bytes).hexdigest()
+    prior_bytes = destination.read_bytes() if destination.is_file() else None
+    prior_sha256 = (
+        hashlib.sha256(prior_bytes).hexdigest()
+        if prior_bytes is not None
+        else None
+    )
+    prior_stat = destination.stat() if prior_bytes is not None else None
+    initial_state = "PRESENT" if prior_bytes is not None else "ABSENT"
+    temporary: Path | None = None
+    backup: Path | None = None
+    last_state = "NOT_STARTED"
+    final_path_changed = False
     try:
-        with os.fdopen(descriptor, "wb") as handle:
-            handle.write(canonical_json_bytes(manifest) + b"\n")
-            handle.flush()
-            os.fsync(handle.fileno())
+        if prior_bytes is not None:
+            descriptor, backup_name = tempfile.mkstemp(
+                prefix=f".{destination.name}.",
+                suffix=".candidate-backup",
+                dir=destination.parent,
+            )
+            os.close(descriptor)
+            backup = Path(backup_name)
+            _write_bytes_fsync(backup, prior_bytes)
+        descriptor, temporary_name = tempfile.mkstemp(
+            prefix=f".{destination.name}.",
+            suffix=".candidate-staging",
+            dir=destination.parent,
+        )
+        os.close(descriptor)
+        temporary = Path(temporary_name)
+        if failure_injector is not None:
+            failure_injector("during_temporary_write")
+        _write_bytes_fsync(temporary, pending_bytes)
+        last_state = "TEMP_WRITTEN"
         if before_atomic_replace is not None:
             before_atomic_replace()
+        if failure_injector is not None:
+            failure_injector("before_atomic_rename")
         os.replace(temporary, destination)
-    except BaseException:
-        if temporary.exists():
-            temporary.unlink()
-        raise
+        final_path_changed = True
+        last_state = CANDIDATE_TRANSACTION_STATE_PENDING
+        if failure_injector is not None:
+            failure_injector("after_atomic_rename_before_final_reread")
+        reread_bytes = destination.read_bytes()
+        if reread_bytes != pending_bytes:
+            raise ValueError("CANDIDATE_PENDING_REREAD_MISMATCH")
+        if failure_injector is not None:
+            failure_injector("during_final_reread_validation")
+        reread_manifest = json.loads(reread_bytes.decode("utf-8"))
+        validation = validate_artifact_manifest(
+            reread_manifest,
+            output_path=output_path,
+            upstream_manifests=upstream_manifests,
+            require_committed_transaction=False,
+        )
+        if not validation["valid"]:
+            raise ValueError(
+                "CANDIDATE_PENDING_REREAD_INVALID:"
+                f"{validation['errors']}"
+            )
+        descriptor, commit_name = tempfile.mkstemp(
+            prefix=f".{destination.name}.",
+            suffix=".candidate-commit",
+            dir=destination.parent,
+        )
+        os.close(descriptor)
+        temporary = Path(commit_name)
+        _write_bytes_fsync(temporary, committed_bytes)
+        os.replace(temporary, destination)
+        final_path_changed = True
+        last_state = CANDIDATE_TRANSACTION_STATE_COMMITTED
+        if backup is not None and backup.exists():
+            backup.unlink()
+        return _candidate_transaction_record(
+            transaction_id=transaction_id,
+            initial_state=initial_state,
+            prior_sha256=prior_sha256,
+            temporary=temporary,
+            backup=backup,
+            last_state=last_state,
+            rollback_attempted=False,
+            rollback_succeeded=True,
+            destination=destination,
+            committed_sha256=committed_sha256,
+            classification=CANDIDATE_TRANSACTION_STATE_COMMITTED,
+        )
+    except BaseException as exc:
+        rollback_attempted = final_path_changed
+        rollback_succeeded = True
+        rollback_error: BaseException | None = None
+        if final_path_changed:
+            try:
+                if failure_injector is not None:
+                    failure_injector("during_rollback")
+                if prior_bytes is None:
+                    destination.unlink(missing_ok=True)
+                else:
+                    if backup is None or not backup.is_file():
+                        raise RuntimeError("CANDIDATE_ROLLBACK_BACKUP_MISSING")
+                    os.replace(backup, destination)
+                    if prior_stat is not None:
+                        os.chmod(destination, prior_stat.st_mode)
+                        os.utime(
+                            destination,
+                            ns=(
+                                prior_stat.st_atime_ns,
+                                prior_stat.st_mtime_ns,
+                            ),
+                        )
+                    if file_sha256(destination) != prior_sha256:
+                        raise RuntimeError(
+                            "CANDIDATE_ROLLBACK_HASH_MISMATCH"
+                        )
+                last_state = "ROLLED_BACK"
+            except BaseException as rollback_exc:
+                rollback_succeeded = False
+                rollback_error = rollback_exc
+                last_state = "ROLLBACK_FAILED"
+        for cleanup_path in (temporary, backup):
+            if cleanup_path is not None and cleanup_path.exists():
+                try:
+                    cleanup_path.unlink()
+                except OSError:
+                    if rollback_error is None:
+                        rollback_succeeded = False
+                        last_state = "ROLLBACK_FAILED"
+        classification = (
+            "ROLLED_BACK" if rollback_succeeded else "ROLLBACK_FAILED"
+        )
+        record = _candidate_transaction_record(
+            transaction_id=transaction_id,
+            initial_state=initial_state,
+            prior_sha256=prior_sha256,
+            temporary=temporary,
+            backup=backup,
+            last_state=last_state,
+            rollback_attempted=rollback_attempted,
+            rollback_succeeded=rollback_succeeded,
+            destination=destination,
+            committed_sha256=committed_sha256,
+            classification=classification,
+        )
+        detail = f"{type(exc).__name__}:{exc}"
+        if rollback_error is not None:
+            detail += (
+                ":ROLLBACK_FAILED:"
+                f"{type(rollback_error).__name__}:{rollback_error}"
+            )
+        raise CandidateManifestTransactionError(
+            detail,
+            transaction=record,
+        ) from exc
 
 
 def build_candidate_artifact_manifest(
@@ -760,6 +1299,7 @@ def build_candidate_artifact_manifest(
     expected_authority: Mapping[str, Any] | None = None,
     development_contract_version: str | None = None,
     before_atomic_replace: Callable[[], None] | None = None,
+    failure_injector: Callable[[str], None] | None = None,
 ) -> CandidateManifestBuild:
     """Derive, write, reread, and validate one candidate manifest."""
 
@@ -792,18 +1332,27 @@ def build_candidate_artifact_manifest(
         if not authority_path.is_file():
             raise FileNotFoundError(authority_path)
     contract = load_scientific_contract(contract_path)
+    _validate_manifest_authority_contract(contract)
     stage = _stage_contract(contract, stage_id)
     stage_order = [
         str(value["stage_id"]) for value in contract["stages"]
     ]
+    if failure_injector is not None:
+        failure_injector("before_output_inspection")
+    inspection = inspect_candidate_output(output_path)
+    if failure_injector is not None:
+        failure_injector("after_output_inspection")
     upstreams = _validate_upstreams(
+        repo_root=repo_root,
+        contract_root=contract_root,
         stage_id=stage_id,
         artifact_id=artifact_id,
         artifact_class=artifact_class,
         upstream_manifest_paths=upstream_manifest_paths,
         stage_order=stage_order,
     )
-    inspection = inspect_candidate_output(output_path)
+    if failure_injector is not None:
+        failure_injector("after_upstream_validation")
     schema_id, schema_version, schema_hash = _validate_schema_authority(
         stage=stage,
         intended_schema_id=output_schema_id,
@@ -864,6 +1413,17 @@ def build_candidate_artifact_manifest(
         },
     )
     authority = git_code_authority(repo_root)
+    builder_code_hash = _builder_code_hash()
+    transaction_id = canonical_sha256(
+        {
+            "artifact_id": artifact_id,
+            "stage_execution_fingerprint": execution_fingerprint,
+            "manifest_builder_code_hash": builder_code_hash,
+            "candidate_transaction_contract_version": (
+                CANDIDATE_TRANSACTION_CONTRACT_VERSION
+            ),
+        }
+    )
     warnings = (
         [f"DEVELOPMENT_CONTRACT_DIRTY_FILES:{dirty_files}"]
         if dirty_files
@@ -873,8 +1433,18 @@ def build_candidate_artifact_manifest(
         "artifact_manifest_version": ARTIFACT_MANIFEST_VERSION,
         "manifest_builder_id": MANIFEST_BUILDER_ID,
         "manifest_builder_version": MANIFEST_BUILDER_VERSION,
-        "manifest_builder_code_hash": _builder_code_hash(),
+        "manifest_builder_code_hash": builder_code_hash,
         "authority_state": CANDIDATE_AUTHORITY_STATE,
+        "candidate_transaction_id": transaction_id,
+        "candidate_transaction_state": (
+            CANDIDATE_TRANSACTION_STATE_COMMITTED
+        ),
+        "candidate_transaction_provenance_hash": (
+            candidate_transaction_provenance_hash(
+                transaction_id,
+                CANDIDATE_TRANSACTION_STATE_COMMITTED,
+            )
+        ),
         "artifact_id": artifact_id,
         "artifact_class": artifact_class,
         "stage_id": stage_id,
@@ -937,6 +1507,8 @@ def build_candidate_artifact_manifest(
         "validation_errors": [],
         "validation_warnings": warnings,
     }
+    if failure_injector is not None:
+        failure_injector("after_authority_derivation")
     _assert_expected_authority(manifest, expected_authority)
     upstream_map = {
         str(item.manifest["artifact_id"]): item.manifest
@@ -953,34 +1525,49 @@ def build_candidate_artifact_manifest(
         raise ValueError(
             f"CANDIDATE_MANIFEST_INVALID:{validation['errors']}"
         )
-    _write_candidate_atomically(
+    if failure_injector is not None:
+        failure_injector("after_in_memory_manifest_validation")
+    transaction = _write_candidate_transactionally(
         manifest_path=candidate_manifest_path,
         manifest=manifest,
+        output_path=output_path,
+        upstream_manifests=upstream_map,
         before_atomic_replace=before_atomic_replace,
+        failure_injector=failure_injector,
     )
-    reread = load_validated_upstream_manifest(candidate_manifest_path)
-    if dict(reread.manifest) != manifest:
-        candidate_manifest_path.unlink(missing_ok=True)
-        raise ValueError("CANDIDATE_MANIFEST_REREAD_MISMATCH")
     return CandidateManifestBuild(
         manifest=manifest,
         manifest_path=candidate_manifest_path,
         output_inspection=inspection,
         validation=validation,
         production_builder_owned=True,
+        transaction=transaction,
     )
 
 
 __all__ = [
     "CANDIDATE_MANIFEST_DEVELOPMENT_CONTRACT_VERSION",
+    "CANDIDATE_TRANSACTION_CONTRACT_VERSION",
+    "CURRENT_AUTHORITATIVE",
+    "CandidateManifestTransactionError",
     "CandidateManifestBuild",
+    "CandidateTransactionRecord",
+    "INELIGIBLE_ARTIFACT_CLASS",
+    "INVALID_UPSTREAM_INTEGRITY",
     "LoadedUpstreamManifest",
     "OUTPUT_INSPECTOR_REGISTRY_ID",
     "OUTPUT_INSPECTOR_REGISTRY_VERSION",
     "OutputInspection",
+    "STALE_CODE_AUTHORITY",
+    "STALE_SCHEMA_AUTHORITY",
+    "STALE_SEMANTIC_AUTHORITY",
+    "UPSTREAM_CURRENT_AUTHORITY_CONTRACT_VERSION",
+    "UpstreamAuthorityValidation",
+    "VALID_HISTORICAL",
     "build_candidate_artifact_manifest",
     "candidate_manifest_builder_contract",
     "inspect_candidate_output",
     "load_validated_upstream_manifest",
     "output_inspector_registry",
+    "validate_upstream_manifest_for_current_authority",
 ]
