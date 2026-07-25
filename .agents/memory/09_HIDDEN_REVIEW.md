@@ -36,9 +36,10 @@ canonical 16f P0-P10 PASS does not establish current human trust. The standalone
 legacy 16f lineage still requires two-sided frame/object Hidden review before
 reviewed or train-ready use.
 
-Legacy 16f is currently outside the main classification source manifest. Its
-Hidden decisions therefore neither satisfy nor block main-branch coverage; the
-main branch must bind and review its own selected source population.
+Legacy 16f is part of the active mixed rebuild target through the canonical
+P0-P10 export identified in README. Existing legacy Hidden metadata does not
+satisfy current review coverage; the new mixed lineage must bind and review
+its own selected source population.
 
 Hidden smoke and full authority use disjoint roots. Smoke review and apply use
 `%HSM%` plus `%HSMDEC%`; full review uses `%HREV%` plus `%HDEC%`. Never direct a

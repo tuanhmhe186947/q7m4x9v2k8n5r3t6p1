@@ -28,6 +28,12 @@ Phase 1–4 chain, and all release-authority gates. The V6 ignored-input and
 legacy `G:\My Drive` failures remain pre-existing environmental limitations.
 No official rebuild, GUI review, model execution, or training was run.
 
+The canonical current source paths are maintained in README under
+“Classification V2 current source authority.” The accepted legacy input is
+the completed P0-P10 run
+`outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2`; obsolete
+`legacy_full_multigt_masked_nodup_16f` paths are historical only.
+
 ## Classification V2 acceptance reopened (2026-07-25)
 
 - `ACCEPTED_IMPLEMENTATION_SHA=76a0458e39769d3e7fac865dd16439a0ed3c3a04`

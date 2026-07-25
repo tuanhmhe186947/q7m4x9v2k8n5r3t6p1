@@ -18,6 +18,10 @@
 - Production object-track-key values did not change.
 - The V6 ignored-input and eight legacy path failures remain pre-existing
   limitations; no official rebuild or model execution is authorized.
+- Current source-path authority is the completed P0-P10 run
+  `outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2`, the 12 behavior
+  XMLs, ROI JSON, and video root recorded in README. The former
+  `legacy_full_multigt_masked_nodup_16f` paths are superseded.
 
 ## 2026-07-25 Classification V2 acceptance reopened
 

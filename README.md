@@ -32,6 +32,30 @@ legacy `G:\My Drive` limitations remain pre-existing and do not block this
 correction. No rebuild, review GUI, evidence generation, export, model
 execution, or training has been run.
 
+## Classification V2 current source authority
+
+The current mixed-lineage source bundle uses these repository-relative paths:
+
+- `CURRENT_LEGACY_16F_RUN`:
+  `outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2`
+- `CURRENT_LEGACY_EXPORT`:
+  `outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2/07_export/`
+  `legacy_frame_object_annotations.csv`
+- `CURRENT_LEGACY_CROP_ROOT`:
+  `outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2/`
+  `06_full_recovery/crops`
+- `CURRENT_LEGACY_COMPLETION_AUDIT`:
+  `outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2/08_audits/`
+  `legacy_16f_rebuild_completion_audit.json`
+- `CURRENT_CVAT_BEHAVIOR_ROOT=data/annotations/classification`
+- `CURRENT_ROI_AUTHORITY=data/annotations/roi/ROI_annotations.coco.json`
+- `CURRENT_VIDEO_ROOT=data/videos`
+
+The former `outputs/legacy_full_multigt_masked_nodup_16f` and
+`data/raw/legacy_full_multigt_masked_nodup_16f/crops` locations are
+superseded source-path authorities. Historical references may remain for
+provenance, but they must not drive a new Classification V2 source merge.
+
 ## Repository Layout
 
 ```text

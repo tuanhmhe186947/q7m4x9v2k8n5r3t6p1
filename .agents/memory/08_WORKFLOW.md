@@ -26,6 +26,12 @@ passed after the exact-SHA fast-forward.
 Readiness is limited to planning. Do not start lineage rebuilding, GUI
 review, model execution, or training in this status update.
 
+Source planning must use the canonical current-source section in README:
+the completed `outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2`
+P0-P10 export and crops, exactly 12 behavior XMLs, ROI JSON, and `data/videos`.
+Do not substitute the superseded `legacy_full_multigt_masked_nodup_16f`
+paths.
+
 ## Classification V2 acceptance-reopened workflow (2026-07-25)
 
 - `PHASE4_IMPLEMENTATION_SHA=76a0458e39769d3e7fac865dd16439a0ed3c3a04`

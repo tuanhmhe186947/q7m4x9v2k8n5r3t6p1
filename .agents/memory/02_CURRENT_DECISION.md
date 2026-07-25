@@ -26,6 +26,12 @@ The V6 ignored-input and legacy `G:\My Drive` failures remain pre-existing
 environmental limitations. This status authorizes planning readiness only;
 no lineage rebuild, GUI review, model execution, or training was started.
 
+Current source-path authority is the completed P0-P10 run
+`outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2` plus the exact
+12 behavior XMLs, ROI JSON and video root listed in README. The prior
+`legacy_full_multigt_masked_nodup_16f` paths are superseded and are not active
+source authority.
+
 ## Classification V2 acceptance reopened (2026-07-25)
 
 - `PHASE4_IMPLEMENTATION_SHA=76a0458e39769d3e7fac865dd16439a0ed3c3a04`
