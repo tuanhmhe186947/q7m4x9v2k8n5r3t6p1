@@ -117,6 +117,32 @@ def test_legacy_history_artifacts_preserve_event_mass_and_controls() -> None:
     assert artifacts.social_edges["edge_available"].sum() == 24
 
 
+def test_artifact_builder_reports_bounded_phase_progress() -> None:
+    events: list[tuple[str, int | None, int | None]] = []
+
+    build_pig_strenet_artifacts(
+        _frames(),
+        progress_callback=lambda phase, completed, total: events.append(
+            (phase, completed, total)
+        ),
+    )
+
+    phases = {phase for phase, _, _ in events}
+    assert {
+        "normalize_frames",
+        "build_pairs_and_slots",
+        "build_history_features",
+        "build_roi_dynamics",
+        "build_roi_visual_selection",
+        "build_social_graph",
+        "build_artifact_audit",
+    }.issubset(phases)
+    assert any(
+        phase == "build_pairs_and_slots" and completed == total
+        for phase, completed, total in events
+    )
+
+
 def test_legacy_actual_frame_coordinates_are_not_relative_coordinates() -> None:
     artifacts = build_pig_strenet_artifacts(_frames(actual_offset=100))
 

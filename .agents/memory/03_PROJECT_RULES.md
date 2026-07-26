@@ -129,6 +129,22 @@ failed gate; never use a full run as the first correctness test. Repeat the
 short gate whenever data, cache, split, temporal view, model, loss, or resize
 semantics change. Full OOF still requires its technical launch gate.
 
+### Mandatory long-stage observability and recovery
+
+No full data, cache, evidence, export, evaluation, or model stage expected to
+run longer than five minutes may be all-or-nothing or silent. Before it starts,
+it must atomically publish a planned/run-state record with immutable input and
+code authority. During execution it must refresh a machine-readable heartbeat
+at least once per bounded work batch, stating phase, completed and total units,
+last-update time, and a non-semantic ETA when estimable. It must write a
+failure state on a handled error and distinguish incomplete temporary output
+from a committed candidate manifest. Resume is permitted only from a
+hash-matching, transaction-valid checkpoint; otherwise quarantine incomplete
+output and restart in a fresh candidate root. A full run is blocked when its
+short representative gate does not prove progress, interruption, and safe
+recovery behavior. Progress metadata is audit-only and must not change source
+rows, human decisions, scientific semantics, or model-X features.
+
 Current reviewed data is not human-review complete. No pending,
 `review_later`, missing, duplicate, or unexpected mandatory `review_unit_id`
 may enter final main training. Use a versioned rebuild root and never mix

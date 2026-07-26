@@ -9,7 +9,7 @@ training views with event mass conserved within each native event.
 from __future__ import annotations
 
 import math
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -173,6 +173,20 @@ PAIR_REQUIRED_COLUMNS = {
     "frame_uid",
 }
 
+ProgressCallback = Callable[[str, int | None, int | None], None]
+
+
+def _report_progress(
+    callback: ProgressCallback | None,
+    phase: str,
+    completed: int | None = None,
+    total: int | None = None,
+) -> None:
+    """Emit non-semantic progress without changing derived artifacts."""
+
+    if callback is not None:
+        callback(phase, completed, total)
+
 
 @dataclass(frozen=True, slots=True)
 class PigSTRENetArtifacts:
@@ -198,6 +212,7 @@ def build_pig_strenet_artifacts(
     top_k_neighbors: int = 3,
     target_unit_keys: set[str] | None = None,
     roi_coco_path: Path | None = None,
+    progress_callback: ProgressCallback | None = None,
 ) -> PigSTRENetArtifacts:
     """Build history, ROI, social and control artifacts from frame features.
 
@@ -213,27 +228,44 @@ def build_pig_strenet_artifacts(
     if top_k_neighbors <= 0:
         raise ValueError("top_k_neighbors must be positive")
 
+    _report_progress(progress_callback, "normalize_frames", 0, 1)
     work = _normalize_frames(frames)
+    _report_progress(progress_callback, "normalize_frames", 1, 1)
     pairs, slots = _build_pair_and_slot_manifests(
         work,
         history_length=history_length,
         target_length=target_length,
         legacy_target_starts=legacy_target_starts,
         target_unit_keys=target_unit_keys,
+        progress_callback=progress_callback,
     )
-    history_features = _build_history_features(work, pairs, slots)
-    roi_dynamics = _build_roi_dynamics(work, slots)
+    history_features = _build_history_features(
+        work,
+        pairs,
+        slots,
+        progress_callback=progress_callback,
+    )
+    roi_dynamics = _build_roi_dynamics(
+        work,
+        slots,
+        progress_callback=progress_callback,
+    )
     roi_visual_selection = _build_roi_visual_selection(
         work,
         slots,
         roi_coco_path=roi_coco_path,
+        progress_callback=progress_callback,
     )
     social_nodes, social_edges = _build_social_graph(
         work,
         slots,
         top_k_neighbors=top_k_neighbors,
+        progress_callback=progress_callback,
     )
+    _report_progress(progress_callback, "build_control_matrix", 0, 1)
     controls = build_history_control_matrix(pairs)
+    _report_progress(progress_callback, "build_control_matrix", 1, 1)
+    _report_progress(progress_callback, "build_artifact_audit", 0, 1)
     audit = _build_artifact_audit(
         frames=work,
         pairs=pairs,
@@ -245,6 +277,7 @@ def build_pig_strenet_artifacts(
         social_edges=social_edges,
         controls=controls,
     )
+    _report_progress(progress_callback, "build_artifact_audit", 1, 1)
     return PigSTRENetArtifacts(
         pair_manifest=pairs,
         slot_manifest=slots,
@@ -401,6 +434,7 @@ def _build_pair_and_slot_manifests(
     target_length: int,
     legacy_target_starts: tuple[int, ...],
     target_unit_keys: set[str] | None,
+    progress_callback: ProgressCallback | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     by_track = {
         str(key): group.sort_values("frame_index", kind="mergesort")
@@ -408,7 +442,12 @@ def _build_pair_and_slot_manifests(
     }
     pair_records: list[dict[str, Any]] = []
     slot_records: list[dict[str, Any]] = []
-    for unit_key, unit in frames.groupby("temporal_unit_key", sort=False):
+    unit_total = int(frames["temporal_unit_key"].nunique())
+    _report_progress(progress_callback, "build_pairs_and_slots", 0, unit_total)
+    for unit_index, (unit_key, unit) in enumerate(
+        frames.groupby("temporal_unit_key", sort=False),
+        start=1,
+    ):
         if target_unit_keys is not None and str(unit_key) not in target_unit_keys:
             continue
         unit = unit.sort_values("frame_index", kind="mergesort")
@@ -645,6 +684,13 @@ def _build_pair_and_slot_manifests(
                             "target_mask": role == "target" and row is not None,
                         }
                     )
+        if unit_index % 100 == 0 or unit_index == unit_total:
+            _report_progress(
+                progress_callback,
+                "build_pairs_and_slots",
+                unit_index,
+                unit_total,
+            )
     pairs = pd.DataFrame.from_records(pair_records)
     slots = pd.DataFrame.from_records(slot_records)
     if pairs.empty:
@@ -660,6 +706,8 @@ def _build_history_features(
     frames: pd.DataFrame,
     pairs: pd.DataFrame,
     slots: pd.DataFrame,
+    *,
+    progress_callback: ProgressCallback | None = None,
 ) -> pd.DataFrame:
     rows: list[dict[str, Any]] = []
     frame_lookup = {
@@ -667,7 +715,9 @@ def _build_history_features(
         for value, row in frames.set_index("frame_uid").iterrows()
         if str(value).strip()
     }
-    for pair in pairs.itertuples(index=False):
+    pair_total = int(len(pairs))
+    _report_progress(progress_callback, "build_history_features", 0, pair_total)
+    for pair_index, pair in enumerate(pairs.itertuples(index=False), start=1):
         history = _slot_rows(frames, slots, pair.pair_id, "history", frame_lookup)
         target = _slot_rows(frames, slots, pair.pair_id, "target", frame_lookup)
         history_summary = _segment_summary(
@@ -689,15 +739,32 @@ def _build_history_features(
         }
         result.update(_transition_features(history_summary, target_summary))
         rows.append(result)
+        if pair_index % 100 == 0 or pair_index == pair_total:
+            _report_progress(
+                progress_callback,
+                "build_history_features",
+                pair_index,
+                pair_total,
+            )
     output = pd.DataFrame.from_records(rows)
     _validate_model_x_names(output)
     return output
 
 
-def _build_roi_dynamics(frames: pd.DataFrame, slots: pd.DataFrame) -> pd.DataFrame:
+def _build_roi_dynamics(
+    frames: pd.DataFrame,
+    slots: pd.DataFrame,
+    *,
+    progress_callback: ProgressCallback | None = None,
+) -> pd.DataFrame:
     lookup = {str(value): row for value, row in frames.set_index("frame_uid").iterrows()}
     records: list[dict[str, Any]] = []
-    for pair_id, group in slots.groupby("pair_id", sort=False):
+    pair_total = int(slots["pair_id"].nunique())
+    _report_progress(progress_callback, "build_roi_dynamics", 0, pair_total)
+    for pair_index, (pair_id, group) in enumerate(
+        slots.groupby("pair_id", sort=False),
+        start=1,
+    ):
         ordered = group.sort_values("global_slot_index")
         speed_per_frame: dict[str, float] = {}
         speed_per_second: dict[str, float] = {}
@@ -775,6 +842,13 @@ def _build_roi_dynamics(frames: pd.DataFrame, slots: pd.DataFrame) -> pd.DataFra
                     }
                 )
                 previous_contact = contact
+        if pair_index % 100 == 0 or pair_index == pair_total:
+            _report_progress(
+                progress_callback,
+                "build_roi_dynamics",
+                pair_index,
+                pair_total,
+            )
     return pd.DataFrame.from_records(records)
 
 
@@ -783,6 +857,7 @@ def _build_roi_visual_selection(
     slots: pd.DataFrame,
     *,
     roi_coco_path: Path | None,
+    progress_callback: ProgressCallback | None = None,
 ) -> pd.DataFrame:
     """Export all-class actor/ROI geometry without target-ROI routing."""
 
@@ -791,7 +866,9 @@ def _build_roi_visual_selection(
         str(value): row for value, row in frames.set_index("frame_uid").iterrows()
     }
     records: list[dict[str, Any]] = []
-    for slot in slots.itertuples(index=False):
+    slot_total = int(len(slots))
+    _report_progress(progress_callback, "build_roi_visual_selection", 0, slot_total)
+    for slot_index, slot in enumerate(slots.itertuples(index=False), start=1):
         actor = lookup.get(str(slot.frame_uid))
         for roi_class in ROI_CLASSES:
             selected = _nearest_scene_roi(actor, rois, roi_class)
@@ -831,6 +908,13 @@ def _build_roi_visual_selection(
                     ),
                     "target_roi_selected": False,
                 }
+            )
+        if slot_index % 500 == 0 or slot_index == slot_total:
+            _report_progress(
+                progress_callback,
+                "build_roi_visual_selection",
+                slot_index,
+                slot_total,
             )
     return pd.DataFrame.from_records(records)
 
@@ -920,6 +1004,7 @@ def _build_social_graph(
     slots: pd.DataFrame,
     *,
     top_k_neighbors: int,
+    progress_callback: ProgressCallback | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     scene_column = "scene_frame_uid" if "scene_frame_uid" in frames else "frame_index"
     frame_groups = {
@@ -931,7 +1016,12 @@ def _build_social_graph(
     }
     node_records: list[dict[str, Any]] = []
     edge_records: list[dict[str, Any]] = []
-    for pair_id, pair_slots in slots.groupby("pair_id", sort=False):
+    pair_total = int(slots["pair_id"].nunique())
+    _report_progress(progress_callback, "build_social_graph", 0, pair_total)
+    for pair_index, (pair_id, pair_slots) in enumerate(
+        slots.groupby("pair_id", sort=False),
+        start=1,
+    ):
         ordered = pair_slots.sort_values("global_slot_index")
         for slot in ordered.itertuples(index=False):
             actor = frame_lookup.get(str(slot.frame_uid))
@@ -972,6 +1062,13 @@ def _build_social_graph(
                     edge_records.append(
                         _missing_edge_record(pair_id, slot, rank)
                     )
+        if pair_index % 100 == 0 or pair_index == pair_total:
+            _report_progress(
+                progress_callback,
+                "build_social_graph",
+                pair_index,
+                pair_total,
+            )
     nodes = pd.DataFrame.from_records(node_records)
     edges = pd.DataFrame.from_records(edge_records)
     edges["neighbor_rank"] = edges["neighbor_rank"].astype(int)

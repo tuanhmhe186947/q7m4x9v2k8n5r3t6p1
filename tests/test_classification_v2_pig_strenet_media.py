@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 
 import cv2
@@ -249,3 +250,26 @@ def test_bounded_target_selection_keeps_source_rows_available() -> None:
 
     assert selected == {"unit-a"}
     assert len(frames) == 3
+
+
+def test_progress_reporter_is_atomic_and_marks_computed(tmp_path: Path) -> None:
+    builder = _load_builder_script()
+    progress_path = tmp_path / "pig_strenet_progress.json"
+    reporter = builder._ProgressReporter(
+        progress_path,
+        input_csv=tmp_path / "input.csv",
+        run_scope="full",
+    )
+    reporter("build_social_graph", 10, 20)
+
+    payload = json.loads(progress_path.read_text(encoding="utf-8"))
+    assert payload["status"] == "RUNNING"
+    assert payload["phase"] == "build_social_graph"
+    assert payload["completed"] == 10
+    assert payload["total"] == 20
+
+    reporter.complete()
+    completed = json.loads(progress_path.read_text(encoding="utf-8"))
+    assert completed["status"] == "COMPUTED"
+    assert completed["phase"] == "publication"
+    assert not progress_path.with_suffix(".tmp").exists()

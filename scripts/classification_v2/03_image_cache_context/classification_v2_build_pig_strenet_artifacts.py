@@ -16,7 +16,9 @@ import json
 import platform
 import subprocess
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
+from time import monotonic
 from typing import Any
 
 import cv2
@@ -35,6 +37,78 @@ from pig_behavior.classification_v2.features.pig_strenet_artifacts import (
 )
 
 SCHEMA_VERSION = "classification_v2.pig_strenet_artifact_run.v3"
+
+
+class _ProgressReporter:
+    """Atomically publish durable, non-semantic full-stage progress."""
+
+    def __init__(self, path: Path, *, input_csv: Path, run_scope: str) -> None:
+        self._path = path
+        self._started = monotonic()
+        self._payload: dict[str, Any] = {
+            "schema_version": "classification_v2.stage_progress.v1",
+            "status": "RUNNING",
+            "run_scope": run_scope,
+            "input_csv": str(input_csv),
+            "phase": "initializing",
+            "completed": 0,
+            "total": None,
+            "elapsed_seconds": 0.0,
+            "estimated_remaining_seconds": None,
+            "updated_at_utc": _utc_now(),
+        }
+        self._write()
+
+    def __call__(
+        self,
+        phase: str,
+        completed: int | None,
+        total: int | None,
+    ) -> None:
+        elapsed = monotonic() - self._started
+        remaining: float | None = None
+        if total is not None and completed is not None and completed > 0:
+            remaining = max(0.0, (elapsed / completed) * (total - completed))
+        self._payload.update(
+            phase=phase,
+            completed=completed,
+            total=total,
+            elapsed_seconds=round(elapsed, 3),
+            estimated_remaining_seconds=(
+                None if remaining is None else round(remaining, 3)
+            ),
+            updated_at_utc=_utc_now(),
+        )
+        self._write()
+
+    def fail(self, error: BaseException) -> None:
+        self._payload.update(
+            status="FAILED",
+            error_type=type(error).__name__,
+            error_message=str(error),
+            updated_at_utc=_utc_now(),
+        )
+        self._write()
+
+    def complete(self) -> None:
+        self._payload.update(
+            status="COMPUTED",
+            phase="publication",
+            updated_at_utc=_utc_now(),
+        )
+        self._write()
+
+    def _write(self) -> None:
+        temporary = self._path.with_suffix(".tmp")
+        temporary.write_text(
+            json.dumps(self._payload, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        temporary.replace(self._path)
+
+
+def _utc_now() -> str:
+    return datetime.now(UTC).isoformat()
 
 
 def parse_args() -> argparse.Namespace:
@@ -60,6 +134,12 @@ def parse_args() -> argparse.Namespace:
         help="Declare whether this artifact run is a bounded smoke or full run.",
     )
     parser.add_argument("--skip-difference", action="store_true")
+    parser.add_argument(
+        "--progress-json",
+        type=Path,
+        default=None,
+        help="Atomic heartbeat JSON; defaults inside --output-dir.",
+    )
     parser.add_argument("--overwrite", action="store_true")
     return parser.parse_args()
 
@@ -80,7 +160,14 @@ def main() -> None:
     if args.visual_size <= 0:
         raise ValueError("--visual-size must be positive")
 
+    progress = _ProgressReporter(
+        args.progress_json or args.output_dir / "pig_strenet_progress.json",
+        input_csv=args.input_csv,
+        run_scope=args.run_scope,
+    )
+    progress("read_input", 0, 1)
     frames = pd.read_csv(args.input_csv, low_memory=False)
+    progress("read_input", 1, 1)
     target_unit_keys = _select_target_unit_keys(frames, args.max_native_events)
 
     starts = tuple(
@@ -91,26 +178,41 @@ def main() -> None:
     if not starts:
         raise ValueError("--legacy-target-starts must not be empty")
 
-    artifacts = build_pig_strenet_artifacts(
-        frames,
-        history_length=args.history_length,
-        target_length=args.target_length,
-        legacy_target_starts=starts,
-        top_k_neighbors=args.top_k_neighbors,
-        target_unit_keys=target_unit_keys,
-        roi_coco_path=args.roi_coco,
-    )
+    try:
+        artifacts = build_pig_strenet_artifacts(
+            frames,
+            history_length=args.history_length,
+            target_length=args.target_length,
+            legacy_target_starts=starts,
+            top_k_neighbors=args.top_k_neighbors,
+            target_unit_keys=target_unit_keys,
+            roi_coco_path=args.roi_coco,
+            progress_callback=progress,
+        )
+    except Exception as error:
+        progress.fail(error)
+        raise
+    progress("write_core_artifacts", 0, 8)
     _write_csv(artifacts.pair_manifest, args.output_dir / "pair_manifest.csv")
+    progress("write_core_artifacts", 1, 8)
     _write_csv(artifacts.slot_manifest, args.output_dir / "slot_manifest.csv")
+    progress("write_core_artifacts", 2, 8)
     _write_csv(artifacts.history_features, args.output_dir / "history_features.csv")
+    progress("write_core_artifacts", 3, 8)
     _write_csv(artifacts.roi_dynamics, args.output_dir / "roi_dynamics.csv")
+    progress("write_core_artifacts", 4, 8)
     _write_csv(
         artifacts.roi_visual_selection,
         args.output_dir / "roi_visual_selection.csv",
     )
+    progress("write_core_artifacts", 5, 8)
     _write_csv(artifacts.social_nodes, args.output_dir / "social_nodes.csv")
+    progress("write_core_artifacts", 6, 8)
     _write_csv(artifacts.social_edges, args.output_dir / "social_edges.csv")
+    progress("write_core_artifacts", 7, 8)
     _write_csv(artifacts.control_matrix, args.output_dir / "history_control_matrix.csv")
+    progress("write_core_artifacts", 8, 8)
+    progress("write_packed_tensors", 0, 1)
     with FrameMediaResolver(
         video_root=args.video_root,
         legacy_crop_root=args.legacy_crop_root,
@@ -124,6 +226,7 @@ def main() -> None:
             media=media,
             visual_size=args.visual_size,
         )
+    progress("write_packed_tensors", 1, 1)
     (args.output_dir / "feature_whitelist.json").write_text(
         json.dumps(
             {
@@ -166,6 +269,7 @@ def main() -> None:
             "summary_path": None,
         }
     else:
+        progress("write_difference_artifacts", 0, 1)
         difference_audit = _write_difference_artifacts(
             artifacts.slot_manifest,
             args.output_dir,
@@ -173,6 +277,7 @@ def main() -> None:
             media=media,
             image_size=args.difference_size,
         )
+        progress("write_difference_artifacts", 1, 1)
     media_audit = media.write_manifest(args.output_dir / "media_manifest.json")
 
     audit = dict(artifacts.audit)
@@ -227,6 +332,7 @@ def main() -> None:
         json.dumps(audit, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+    progress.complete()
     artifact_manifest = _write_artifact_manifest(args.output_dir)
     run_manifest = {
         "schema_version": SCHEMA_VERSION,
