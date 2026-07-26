@@ -1,5 +1,97 @@
 # Benchmark Notes
 
+## 2026-07-27 RF_ACC23 authority correction and artifact recovery
+
+Evidence classes are marked explicitly. Nothing below is promoted beyond the
+class stated.
+
+`CODE_VERIFIED` (this repository, HEAD `5fa23de`):
+
+- RF_ACC23 promotion SHA is `d925c9004e7aff5a3c8469b158d2428432c6031a`, which
+  is also the last commit to touch `src/pig_behavior/tracking/`.
+- The tracking source tree has been byte-identical since that commit:
+  `d925c90:src/pig_behavior/tracking` and `HEAD:src/pig_behavior/tracking` both
+  resolve to `8ba3d50d8322ab1c72b8f50b6ce4c9b1013f799a`. Semantic equivalence is
+  exact at the source-tree level.
+- Effective semantic config export SHA-256 (this repository's export payload):
+  `9bf4ce6d07423ab517b4705c716e3eb012349b756b7c0591cc3458eac207808d`.
+- `detect_every_n_frames=2`, `det_conf=0.25`, `occlusion_aware_matching=False`,
+  `enable_offline_smoothing=False`; no post-video repair in `realtime_fast`.
+- Timing contract resolves through `resolve_output_timing_contract` to
+  `causal_framewise` with output delay `0`.
+- `causal_hidden_detection_reservation` is **not** enabled in RF_ACC23. It
+  exists only in `REALTIME_BALANCED_CONFIG` under a different confidence regime
+  (`det_conf=0.20`, `min_iom=0.96`, `min_gain=0.17`).
+- Correctness gates: `python -m pytest tests/test_tracking_profiles.py
+  tests/test_tracking_prefix_invariance.py tests/test_tracking_repeatability.py
+  tests/test_tracking_telemetry.py tests/test_tracking_no_mp4.py
+  tests/test_tracking_baseline_lock.py tests/test_tracking_improvements.py -q`
+  gives `180 passed`.
+
+`ARTIFACT_VERIFIED` (recovered read-only from the `PIG_task_tracking` worktree,
+branch `task/update-tracking`; hashes in
+`docs/TRACKING_RF_ACC23_ARTIFACT_RECOVERY_20260727.md`):
+
+- Full-13 quality, `run_id=20260723_rf_acc23_full13_instrumented_v1`, commit
+  `b0d9009`: IDSW `53`, HOTA `0.9704398315450558`, IDF1 `0.9707702337312571`,
+  FP/FN `486/610`, fragments `107`, quality gate `PASS`.
+- Evaluation contract: `include_hidden=true`,
+  `iou0_area0_condarea0_merge0`, `delay_frames=0`, `causal_framewise`,
+  `detect_every_n_frames=2`, FP32, `uses_future_frames=false`.
+- Hard6 identity: IDSW `55 -> 49`, HOTA `91.317 -> 94.487%`, IDF1
+  `90.593 -> 94.289%`, wrong-ID matched-animal frames `7722 -> 4531`, with FP,
+  FN and fragments unchanged.
+- Full-13 runtime **FAIL** against frozen gates: loop `32.38` vs `>=36.84`,
+  p95 `58.25 ms` vs `<=44.13`, end-to-end `23.37` vs `>=26.80`. The artifact
+  attributes this to host power/clock drift, not to the algorithm. Native
+  30 FPS was not achieved on full-13.
+- No RF_ACC23 artifact authorized promotion: `promote_profile=false`,
+  `full13_authorized=false`, `promotion_authorized=false` in all three decision
+  documents.
+
+`CONTRADICTED`:
+
+- Hard6 membership is **not** `000114, 000231, 000233, 000263, 000327, 000302`.
+  The run artifact records `000216, 000226, 000231, 000233, 000263, 000302`.
+- The RF_ACC23 metrics did **not** come from `d925c90`. They come from
+  `b0d9009` (full-13) and `0b40423` / `2bcdbfc` (Hard6). `d925c90` is the
+  promotion commit only and produced no metric.
+
+`UNRESOLVED`:
+
+- Wrong-ID `8579 -> 5219` for RF_ACC23. The Hard6 artifact records
+  `7722 -> 4531`; those digits appear elsewhere only in the 2026-07-19 hybrid
+  lane decision, a different lineage.
+- The `000302` RF_ACC23 guardrail. `000302` appears in the Hard6
+  `unchanged_videos` list; no standalone RF_ACC23 IDSW for it was recorded.
+- GT authority for `000216`.
+- Whether the recovered lineage's tracking tree (`752d55d3…`) is semantically
+  equivalent to the promoted tree on `main` (`8ba3d50d…`). Until that is shown,
+  these numbers describe the recovered lineage, not `main`.
+
+`MEMORY_VERIFIED_HISTORICAL`, not to be relabeled:
+
+- The 2026-07-20 entry (`realtime_fast` far-right guard, IDSW `59`, HOTA
+  `95.63%`, IDF1 `95.37%`, FP/FN `486/610`, fragments `107`) belongs to the
+  **pre-RF_ACC23** `realtime_fast` lineage and is RF_ACC23's parent. It is not
+  superseded and must not be relabeled as RF_ACC23.
+
+`USER_SUPPLIED_UNVERIFIED`:
+
+- `docs/external_audits/BAO_CAO_AUDIT_RF_ACC23_20260726.md`, SHA-256
+  `bed2245df8cc85755a59b28223f2f9bd6797a8d8a897397f51c8d631c5942b0f`. Never
+  present in repository history; imported as an external document, not as
+  metric authority. Its lead to the `PIG_task_tracking` lineage was correct and
+  enabled the artifact recovery above.
+
+Locked input lineage (13 videos, GT, detector weight, config, environment):
+`outputs/tracking/rf_acc23_lineage/rf_acc23_lineage_manifest_20260727_v1.json`,
+SHA-256
+`0cfb26acc7766e05c497d9efdfafa40dc92f2d5c527e0338b89602eef0838dfc`. The
+`000263` ground truth uses the verified `Tracking_annotation_*` filename
+variant. The 13-video set remains a development/evaluation set, not an unbiased
+final test set.
+
 ## 2026-07-19 seed-matched base and all-seven fusion result
 
 - Scope correction: this all-seven result is a naive-concatenation endpoint,
