@@ -1,0 +1,15 @@
+{
+  "schema_version": "tracking.external_audit_provenance.v1",
+  "document": "BAO_CAO_AUDIT_RF_ACC23_20260726.md",
+  "source_class": "USER_SUPPLIED_EXTERNAL_DOCUMENT",
+  "original_external_path": "C:\\Users\\ironh\\Downloads\\BAO_CAO_AUDIT_RF_ACC23_20260726.md",
+  "repository_historical_authority": "NO",
+  "historical_commit_presence": "NONE",
+  "used_as_metric_authority": "NO",
+  "content_sha256": "bed2245df8cc85755a59b28223f2f9bd6797a8d8a897397f51c8d631c5942b0f",
+  "content_bytes": 30573,
+  "import_date": "2026-07-27",
+  "import_commit_sha": "cabe18031929e64e8c02546decdf0d1211e245a5",
+  "verification_note": "Scanned every commit on every ref before import; this filename has never existed in repository history. It is imported as an external document, not as retroactive repository authority.",
+  "metric_status": "Claims in this document are hypotheses and lineage-reported values. They become authority only through the independently recovered run artifacts recorded in TRACKING_RF_ACC23_ARTIFACT_RECOVERY_20260727.md."
+}
