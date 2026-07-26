@@ -117,10 +117,24 @@ def _flatten_strings(value: Any) -> list[str]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=Path, required=True)
+    parser.add_argument(
+        "--full-source-verify",
+        action="store_true",
+        help=(
+            "Hash every source byte and atomically refresh the verification "
+            "cache. Ordinary preflight uses the metadata-bound cache."
+        ),
+    )
     args = parser.parse_args()
     root, config = load_config(args.config)
     errors = validate_config(root, config)
-    source_report = source_bundle_report(root, config)
+    source_report = source_bundle_report(
+        root,
+        config,
+        verification_mode="full" if args.full_source_verify else "fast",
+        write_cache=args.full_source_verify,
+        config_path=args.config,
+    )
     valid = not errors and bool(source_report["valid"])
     report = {
         "status": "PASS" if valid else "FAIL",

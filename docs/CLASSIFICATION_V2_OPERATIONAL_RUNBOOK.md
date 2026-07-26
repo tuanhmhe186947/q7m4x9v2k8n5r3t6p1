@@ -6,7 +6,24 @@ default config keeps every authorization flag false.
 
 ## Preflight
 
-From the repository root:
+After source installation, source restoration, or an intentional source
+authority change, establish the exact byte authority once:
+
+```bat
+set PYTHONPATH=%CD%\src
+set PYTHONDONTWRITEBYTECODE=1
+set PYTHONHASHSEED=0
+python scripts/classification_v2/lineage_preflight.py ^
+  --config configs/classification_v2/lineage_rebuild_v1.yaml ^
+  --full-source-verify
+```
+
+This explicit full verification hashes every legacy crop and video byte. It
+atomically writes a verification record below the external lineage root only
+after every configured fingerprint passes. It is deliberately expensive and
+is not an ordinary per-stage command.
+
+For normal operation, run the fast fail-closed preflight:
 
 ```bat
 set PYTHONPATH=%CD%\src
@@ -20,6 +37,13 @@ Expected output is `status=PASS`, 72,880 legacy rows, 72,880 crop files, 12
 behavior XMLs, 172,800 CVAT boxes, projected 245,680 rows, and
 `release_authority_all_false=true`. Any hash, path, schema or authority error
 stops the run.
+
+The fast command hashes the small authority files and validates path, size, and
+nanosecond modification-time inventories for the crop and video trees against
+the last full verification. The runner and stage-local validator use this same
+fast mode. A missing, malformed, config-mismatched, path-mismatched, or
+metadata-mismatched cache fails immediately with an instruction to rerun the
+explicit full verification; no changed input is accepted automatically.
 
 ## Operational-final validation profile
 

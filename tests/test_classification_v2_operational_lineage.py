@@ -31,6 +31,7 @@ if str(SCRIPTS) not in sys.path:
 
 import lineage_preflight  # noqa: E402
 import run_lineage_stage  # noqa: E402
+import validate_lineage_stage  # noqa: E402
 
 
 def _config() -> dict:
@@ -122,7 +123,11 @@ def test_fingerprint_mismatch_is_rejected(tmp_path: Path) -> None:
             "expected_mixed_rows": 2,
         }
     )
-    report = lineage_preflight.source_bundle_report(source_root, config)
+    report = lineage_preflight.source_bundle_report(
+        source_root,
+        config,
+        verification_mode="full",
+    )
     assert report["valid"] is False
 
 
@@ -195,10 +200,13 @@ def test_runner_consumes_run_local_authorization_once(
     )
     expected_sha = current_git_sha(root)
     monkeypatch.setattr(run_lineage_stage, "load_config", lambda _: (root, config))
+    verification_calls: list[dict[str, object]] = []
     monkeypatch.setattr(
         run_lineage_stage,
         "source_bundle_report",
-        lambda *_: {"valid": True},
+        lambda *_, **kwargs: (
+            verification_calls.append(kwargs) or {"valid": True}
+        ),
     )
     monkeypatch.setattr(run_lineage_stage, "_upstream_errors", lambda *_: [])
 
@@ -235,6 +243,12 @@ def test_runner_consumes_run_local_authorization_once(
     assert run_lineage_stage.main() == 0
     assert not authorization.exists()
     assert len(list(authorization.parent.glob("*.consumed.*.json"))) == 1
+    assert verification_calls == [
+        {
+            "verification_mode": "fast",
+            "config_path": config_path,
+        }
+    ]
 
 
 def test_collision_rejection(
@@ -280,7 +294,7 @@ def test_publish_existing_skips_computation_and_publishes(
     monkeypatch.setattr(
         run_lineage_stage,
         "source_bundle_report",
-        lambda *_: {"valid": True},
+        lambda *_, **__: {"valid": True},
     )
     monkeypatch.setattr(
         run_lineage_stage,
@@ -397,7 +411,7 @@ def test_dry_run_does_not_invoke_downstream(
     monkeypatch.setattr(
         run_lineage_stage,
         "source_bundle_report",
-        lambda *_: {"valid": True},
+        lambda *_, **__: {"valid": True},
     )
     monkeypatch.setattr(
         sys,
@@ -414,6 +428,46 @@ def test_dry_run_does_not_invoke_downstream(
     assert run_lineage_stage.main() == 0
     assert called == []
     assert "automatic_downstream_execution" in capsys.readouterr().out
+
+
+def test_stage_validator_uses_fast_source_verification(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    root, config = load_config()
+    monkeypatch.setenv("CLASSIFICATION_V2_RUN_ROOT", str(tmp_path))
+    monkeypatch.setattr(
+        validate_lineage_stage,
+        "load_config",
+        lambda _: (root, config),
+    )
+    verification_calls: list[dict[str, object]] = []
+    monkeypatch.setattr(
+        validate_lineage_stage,
+        "source_bundle_report",
+        lambda *_, **kwargs: (
+            verification_calls.append(kwargs) or {"valid": True}
+        ),
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "validate_lineage_stage.py",
+            "--config",
+            "ignored",
+            "--stage",
+            "source_merge",
+        ],
+    )
+
+    assert validate_lineage_stage.main() == 1
+    assert verification_calls == [
+        {
+            "verification_mode": "fast",
+            "config_path": Path("ignored"),
+        }
+    ]
 
 
 def test_windows_run_root_resolution(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -466,7 +520,7 @@ def test_bounded_synthetic_lineage_uses_runner_interface(
     monkeypatch.setattr(
         run_lineage_stage,
         "source_bundle_report",
-        lambda *_: {"valid": True},
+        lambda *_, **__: {"valid": True},
     )
     monkeypatch.setattr(run_lineage_stage, "_upstream_errors", lambda *_: [])
     invoked: list[list[str]] = []

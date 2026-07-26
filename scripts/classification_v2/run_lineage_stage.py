@@ -543,11 +543,26 @@ def main() -> int:
             )
         )
         return 4
-    source_report = source_bundle_report(root, config)
+    source_report = source_bundle_report(
+        root,
+        config,
+        verification_mode="fast",
+        config_path=args.config,
+    )
     if not source_report["valid"]:
         print(
             json.dumps(
-                {"status": "FAIL", "reason": "SOURCE_FINGERPRINT_MISMATCH"}
+                {
+                    "status": "FAIL",
+                    "reason": "SOURCE_FINGERPRINT_MISMATCH",
+                    "verification_mode": source_report.get(
+                        "verification_mode"
+                    ),
+                    "verification_errors": source_report.get(
+                        "verification_errors",
+                        [],
+                    ),
+                }
             )
         )
         return 1

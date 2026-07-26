@@ -120,7 +120,13 @@ def main() -> int:
         audit_errors = _audit_errors(
             resolve_stage_path(root, config, args.stage, "audit_relative")
         )
-    source_valid = bool(source_bundle_report(root, config)["valid"])
+    source_report = source_bundle_report(
+        root,
+        config,
+        verification_mode="fast",
+        config_path=args.config,
+    )
+    source_valid = bool(source_report["valid"])
     report = {
         "stage": args.stage,
         "stage_id": stage["stage_id"],
@@ -130,6 +136,11 @@ def main() -> int:
         "manifest_errors": manifest_errors,
         "audit_errors": audit_errors,
         "source_fingerprints_valid": source_valid,
+        "source_verification_mode": source_report.get("verification_mode"),
+        "source_verification_errors": source_report.get(
+            "verification_errors",
+            [],
+        ),
         "config_errors": errors,
         "valid": (
             not errors
