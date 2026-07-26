@@ -143,6 +143,27 @@ def test_one_stage_command_has_exactly_twelve_xmls(
     assert command[-1].endswith("merged_frame_objects_lineage.json")
 
 
+def test_frame_local_schema_is_a_candidate_output(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    root, config = load_config()
+    monkeypatch.setenv("CLASSIFICATION_V2_RUN_ROOT", str(tmp_path))
+
+    command = run_lineage_stage._command(root, config, "frame_local")
+    schema_path = Path(command[command.index("--schema-json") + 1])
+
+    assert schema_path == (
+        tmp_path
+        / "candidates"
+        / "frame_local"
+        / "frame_local_primitives_schema.json"
+    )
+    assert "docs/classification_v2/scientific_contract_v1" not in (
+        schema_path.as_posix()
+    )
+
+
 def test_dry_run_does_not_invoke_downstream(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

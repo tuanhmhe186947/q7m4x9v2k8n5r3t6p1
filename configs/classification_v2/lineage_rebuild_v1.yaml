@@ -72,6 +72,7 @@ stages:
     stage_id: stage.frame_local_primitives
     entry_point: scripts/classification_v2/00_source_feature_temporal/classification_v2_build_frame_local_primitives.py
     output_relative: candidates/frame_local/frame_local_primitives.csv
+    schema_relative: candidates/frame_local/frame_local_primitives_schema.json
     audit_relative: candidates/frame_local/frame_local_primitives_audit.json
     manifest_relative: manifests/frame_local.candidate.json
     authorization_flag: authorizes_frame_local_rebuild

@@ -79,11 +79,7 @@ def _command(root: Path, config: dict[str, Any], stage_id: str) -> list[str]:
             "--output-csv",
             str(resolve_stage_path(root, config, stage_id, "output_relative")),
             "--schema-json",
-            str(
-                root
-                / "docs/classification_v2/scientific_contract_v1"
-                / "14_object_track_key_contract.json"
-            ),
+            str(resolve_stage_path(root, config, stage_id, "schema_relative")),
             "--audit-json",
             str(resolve_stage_path(root, config, stage_id, "audit_relative")),
             "--lineage-id",
@@ -358,6 +354,7 @@ def _output_collision(root: Path, config: dict[str, Any], stage_id: str) -> bool
         "confusion_audit_relative",
         "combined_decisions_relative",
         "sequence_audit_relative",
+        "schema_relative",
     }
     paths = []
     for key, value in stage.items():
