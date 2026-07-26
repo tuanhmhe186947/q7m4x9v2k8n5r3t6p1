@@ -45,7 +45,7 @@ REQUIRED_MANIFEST_COLUMNS = {
     "x2",
     "y2",
 }
-DECISION_COLUMNS = [
+REQUIRED_DECISION_COLUMNS = [
     "hidden_review_item_id",
     "hidden_before_review",
     "hidden_after_review",
@@ -54,6 +54,8 @@ DECISION_COLUMNS = [
     "hidden_review_reason",
     "hidden_reviewer",
     "hidden_reviewed_at",
+]
+OPTIONAL_DECISION_PROVENANCE_COLUMNS = [
     "hidden_review_cohort",
     "source_type",
     "dataset_id",
@@ -66,6 +68,9 @@ DECISION_COLUMNS = [
     "hidden_false_negative_risk_score",
     "hidden_false_negative_risk_reasons",
 ]
+DECISION_COLUMNS = (
+    REQUIRED_DECISION_COLUMNS + OPTIONAL_DECISION_PROVENANCE_COLUMNS
+)
 REASON_OPTIONS = [
     "occluded_or_not_visible",
     "clearly_visible",
@@ -535,7 +540,9 @@ def load_decision_rows(path: Path) -> pd.DataFrame:
         return pd.DataFrame(columns=DECISION_COLUMNS)
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
-        missing = sorted(set(DECISION_COLUMNS).difference(reader.fieldnames or []))
+        missing = sorted(
+            set(REQUIRED_DECISION_COLUMNS).difference(reader.fieldnames or [])
+        )
         if missing:
             raise ValueError(f"Decision CSV missing columns: {missing}")
         records = [

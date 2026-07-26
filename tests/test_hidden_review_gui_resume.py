@@ -51,6 +51,29 @@ def _decision_frame(
     return frame[columns]
 
 
+def test_loader_accepts_minimal_ledger_without_cohort(
+    gui_module: dict[str, object],
+    tmp_path: Path,
+) -> None:
+    required = gui_module["REQUIRED_DECISION_COLUMNS"]
+    ledger = tmp_path / "minimal_hidden_decisions.csv"
+    row = _decision("item-1")
+    row.update(
+        {
+            "hidden_before_review": "No",
+            "hidden_reviewer": "pytest",
+            "hidden_reviewed_at": "2026-07-26T00:00:00",
+        }
+    )
+    pd.DataFrame([row], columns=required).to_csv(ledger, index=False)
+
+    loaded = gui_module["load_decision_rows"](ledger)
+
+    assert len(loaded) == 1
+    assert loaded.loc[0, "hidden_review_cohort"] == ""
+    assert loaded.loc[0, "hidden_after_review"] == "No"
+
+
 def test_resume_back_reopens_only_the_requested_prior_items(
     gui_module: dict[str, object],
 ) -> None:

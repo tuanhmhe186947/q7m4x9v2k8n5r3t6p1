@@ -47,6 +47,8 @@ def _manifest() -> pd.DataFrame:
             "temporal_unit_key": ["unit-1", "unit-1", "unit-1"],
             "pig_id": ["ID_1"] * 3,
             "track_id": ["track-1"] * 3,
+            "crop_sha256": ["crop-1", "crop-2", "crop-3"],
+            "hidden_review_cohort": ["cohort-a"] * 3,
             "hidden_false_negative_risk_score": [0.1, 0.2, 0.3],
             "hidden_false_negative_risk_reasons": ["a", "b", "c"],
             "unapproved_metadata": ["locked"] * 3,
@@ -65,6 +67,8 @@ def _decisions(manifest: pd.DataFrame) -> pd.DataFrame:
         "temporal_unit_key",
         "pig_id",
         "track_id",
+        "crop_sha256",
+        "hidden_review_cohort",
         "hidden_false_negative_risk_score",
         "hidden_false_negative_risk_reasons",
         "unapproved_metadata",
@@ -88,6 +92,7 @@ def _decisions(manifest: pd.DataFrame) -> pd.DataFrame:
 @pytest.mark.parametrize(
     ("column", "value"),
     [
+        ("hidden_review_cohort", "changed"),
         ("hidden_false_negative_risk_reasons", "changed"),
         ("hidden_false_negative_risk_score", 99.0),
     ],
@@ -105,7 +110,9 @@ def test_approved_risk_metadata_drift_is_nonfatal_and_audited(
     assert audit["errors"] == []
     assert audit["decision_metadata_drift_counts"] == {column: 1}
     assert audit["decision_metadata_drift_unique_items"] == 1
-    assert audit["metadata_drift_policy"] == "risk_sampling_metadata_is_nonfatal"
+    assert audit["metadata_drift_policy"] == (
+        "derived_review_and_audit_metadata_is_nonfatal"
+    )
     assert audit["warnings"]
 
 
@@ -134,6 +141,7 @@ def test_both_approved_risk_fields_keep_exact_counts() -> None:
         ("temporal_unit_key", "mismatch"),
         ("pig_id", "mismatch"),
         ("track_id", "mismatch"),
+        ("crop_sha256", "mismatch"),
         ("unapproved_metadata", "mismatch"),
     ],
 )

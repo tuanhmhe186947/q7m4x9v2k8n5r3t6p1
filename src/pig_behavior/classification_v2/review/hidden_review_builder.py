@@ -35,14 +35,64 @@ HIDDEN_REVIEW_CONFIDENCE_LEVELS: tuple[str, ...] = (
     "low",
 )
 
-NONFATAL_DECISION_METADATA_FIELDS: frozenset[str] = frozenset(
+HUMAN_DECISION_SEMANTICS: frozenset[str] = frozenset(
     {
-        "hidden_false_negative_risk_reasons",
-        "hidden_false_negative_risk_score",
+        "hidden_after_review",
+        "hidden_review_status",
+        "hidden_review_confidence",
+        "hidden_review_reason",
+        "hidden_review_note",
+        "hidden_review_notes",
+        "hidden_reviewer",
+        "hidden_reviewed_at",
     }
 )
-METADATA_DRIFT_POLICY = "risk_sampling_metadata_is_nonfatal"
-METADATA_DRIFT_POLICY_VERSION = "hidden_review_metadata_drift_v1"
+STABLE_MATCH_AUTHORITY: frozenset[str] = frozenset(
+    {
+        "hidden_before_review",
+        "source_type",
+        "dataset_id",
+        "video_key",
+        "source_video_path",
+        "frame_uid",
+        "frame_index",
+        "temporal_unit_key",
+        "object_track_key",
+        "track_id",
+        "pig_id",
+        "actor_id",
+        "frame_start",
+        "frame_end",
+        "visual_authority_hash",
+        "crop_sha256",
+        "scene_image_sha256",
+    }
+)
+DERIVED_REVIEW_METADATA: frozenset[str] = frozenset(
+    {
+        "hidden_review_cohort",
+        "hidden_review_priority",
+        "hidden_sampling_design",
+        "hidden_sampling_stratum",
+        "hidden_sampling_probability",
+        "hidden_sampling_weight",
+        "review_batch",
+        "review_cohort",
+    }
+)
+OPTIONAL_AUDIT_METADATA: frozenset[str] = frozenset(
+    {
+        "hidden_false_negative_risk_bucket",
+        "hidden_false_negative_risk_reasons",
+        "hidden_false_negative_risk_score",
+        "sampling_reason",
+    }
+)
+NONFATAL_DECISION_METADATA_FIELDS: frozenset[str] = (
+    DERIVED_REVIEW_METADATA | OPTIONAL_AUDIT_METADATA
+)
+METADATA_DRIFT_POLICY = "derived_review_and_audit_metadata_is_nonfatal"
+METADATA_DRIFT_POLICY_VERSION = "hidden_review_metadata_drift_v2"
 
 HIDDEN_RISK_INPUT_COLUMNS: tuple[str, ...] = (
     "bbox_was_clipped",
@@ -95,18 +145,7 @@ DECISION_COLUMNS: tuple[str, ...] = (
     "hidden_reviewed_at",
 )
 
-HUMAN_DECISION_AUTHORITY_COLUMNS: frozenset[str] = frozenset(
-    {
-        "hidden_after_review",
-        "hidden_review_status",
-        "hidden_review_confidence",
-        "hidden_review_reason",
-        "hidden_review_note",
-        "hidden_review_notes",
-        "hidden_reviewer",
-        "hidden_reviewed_at",
-    }
-)
+HUMAN_DECISION_AUTHORITY_COLUMNS = HUMAN_DECISION_SEMANTICS
 
 HIDDEN_ONLY_REASON_CODES: frozenset[str] = frozenset(
     {
@@ -1014,7 +1053,7 @@ def audit_hidden_decision_coverage(
             errors.append(f"decision_metadata_mismatch:{column}={count}")
     if metadata_drift_counts:
         warnings.append(
-            "approved_risk_sampling_metadata_drift="
+            "approved_nonfatal_metadata_drift="
             f"{metadata_drift_counts}"
         )
 
@@ -1048,6 +1087,10 @@ def audit_hidden_decision_coverage(
         "human_decision_authority_fields": sorted(
             HUMAN_DECISION_AUTHORITY_COLUMNS
         ),
+        "human_decision_semantics": sorted(HUMAN_DECISION_SEMANTICS),
+        "stable_match_authority": sorted(STABLE_MATCH_AUTHORITY),
+        "derived_review_metadata": sorted(DERIVED_REVIEW_METADATA),
+        "optional_audit_metadata": sorted(OPTIONAL_AUDIT_METADATA),
         "metadata_drift_policy": METADATA_DRIFT_POLICY,
         "metadata_drift_policy_version": METADATA_DRIFT_POLICY_VERSION,
         "decision_status_counts": _counts(normalized, "hidden_review_status"),
@@ -1141,6 +1184,8 @@ def apply_hidden_review_decisions(
     normalized = _normalize_decisions(decisions)
     decision_map = normalized.set_index("hidden_review_item_id")
     manifest_map = manifest.set_index("hidden_review_item_id")
+    for column in sorted(DERIVED_REVIEW_METADATA.intersection(manifest.columns)):
+        out[column] = out["hidden_review_item_id"].map(manifest_map[column])
     matched_count = 0
     for row_index, item_id in out["hidden_review_item_id"].items():
         item_id = str(item_id)
@@ -1782,7 +1827,7 @@ def _hidden_confusion_audit(
         ],
         "errors": [],
         "warnings": (
-            [f"approved_risk_sampling_metadata_drift={approved_drift}"]
+            [f"approved_nonfatal_metadata_drift={approved_drift}"]
             if approved_drift
             else []
         ),

@@ -298,6 +298,7 @@ def test_hidden_metadata_is_audit_only_and_never_selected_for_model_x() -> None:
             "bbox_valid_ratio_window": [1.0],
             "hidden_ratio_window": [0.5],
             "visible_ratio_window": [0.5],
+            "hidden_review_cohort": [7],
             "behavior_window_label": ["stand"],
             "window_valid_for_main_train": [True],
         }
@@ -309,6 +310,7 @@ def test_hidden_metadata_is_audit_only_and_never_selected_for_model_x() -> None:
     assert "bbox_valid_ratio_window" in selected
     assert "hidden_ratio_window" not in selected
     assert "visible_ratio_window" not in selected
+    assert "hidden_review_cohort" not in selected
     assert "quality_mask" not in SPATIAL_FRAME_FEATURES
 
 

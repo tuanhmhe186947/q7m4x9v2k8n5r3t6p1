@@ -824,7 +824,7 @@ def test_apply_accepts_only_approved_risk_metadata_drift(
     assert confusion["warnings"]
 
 
-def test_gui_metadata_mismatch_fails_closed() -> None:
+def test_cohort_mismatch_is_nonfatal_and_apply_uses_current_design() -> None:
     frames, manifest = _build_review()
     decisions = _resolved_decisions(manifest)
     manifest_by_item = manifest.set_index("hidden_review_item_id")
@@ -838,11 +838,40 @@ def test_gui_metadata_mismatch_fails_closed() -> None:
     assert audit["decision_metadata_mismatch_counts"] == {
         "hidden_review_cohort": 1
     }
-    assert "decision_metadata_mismatch:hidden_review_cohort=1" in audit["errors"]
-    with pytest.raises(ValueError, match="Hidden decision metadata mismatch"):
-        _hidden_confusion_audit(manifest, decisions)
-    with pytest.raises(ValueError, match="coverage failed"):
-        apply_hidden_review_decisions(frames, manifest, decisions)
+    assert audit["decision_metadata_drift_counts"] == {
+        "hidden_review_cohort": 1
+    }
+    assert audit["decision_metadata_fatal_mismatch_counts"] == {}
+    assert audit["errors"] == []
+
+    decisions_before = decisions["hidden_after_review"].copy()
+    reviewed, apply_audit, confusion = apply_hidden_review_decisions(
+        frames,
+        manifest,
+        decisions,
+    )
+
+    current_cohort = manifest.set_index("hidden_review_item_id")[
+        "hidden_review_cohort"
+    ]
+    applied_cohort = reviewed.set_index("hidden_review_item_id")[
+        "hidden_review_cohort"
+    ]
+    current_cohort = current_cohort.reindex(applied_cohort.index).dropna()
+    applied_cohort = applied_cohort.loc[current_cohort.index]
+    pd.testing.assert_series_equal(
+        applied_cohort.sort_index(),
+        current_cohort.sort_index(),
+        check_names=False,
+    )
+    pd.testing.assert_series_equal(
+        decisions["hidden_after_review"],
+        decisions_before,
+    )
+    assert apply_audit["fatal_metadata_mismatch_counts"] == {}
+    assert confusion["approved_metadata_drift_counts"] == {
+        "hidden_review_cohort": 1
+    }
 
 
 @pytest.mark.parametrize(
