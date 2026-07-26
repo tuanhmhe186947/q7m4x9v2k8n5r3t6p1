@@ -49,6 +49,31 @@ def validate_config(root: Path, config: dict[str, Any]) -> list[str]:
         for key in ("output_relative", "manifest_relative"):
             if key not in stage:
                 errors.append(f"MISSING_STAGE_PATH:{stage_id}:{key}")
+        output_schemas = stage.get("output_schemas")
+        if not isinstance(output_schemas, list) or not output_schemas:
+            errors.append(f"MISSING_OUTPUT_SCHEMA_REGISTRY:{stage_id}")
+        else:
+            seen_paths: set[str] = set()
+            seen_artifacts: set[str] = set()
+            for spec in output_schemas:
+                if not isinstance(spec, dict):
+                    errors.append(f"INVALID_OUTPUT_SCHEMA_SPEC:{stage_id}")
+                    continue
+                path_key = str(spec.get("path_key", ""))
+                artifact_id = str(spec.get("artifact_id", ""))
+                schema_id = str(spec.get("schema_id", ""))
+                if path_key not in stage:
+                    errors.append(
+                        f"OUTPUT_SCHEMA_PATH_MISSING:{stage_id}:{path_key}"
+                    )
+                if not artifact_id or not schema_id:
+                    errors.append(f"OUTPUT_SCHEMA_AUTHORITY_MISSING:{stage_id}")
+                if artifact_id in seen_artifacts:
+                    errors.append(f"DUPLICATE_OUTPUT_ARTIFACT:{stage_id}:{artifact_id}")
+                if path_key in seen_paths:
+                    errors.append(f"DUPLICATE_OUTPUT_PATH:{stage_id}:{path_key}")
+                seen_artifacts.add(artifact_id)
+                seen_paths.add(path_key)
     source = config.get("source", {})
     xmls = source.get("cvat_behavior_xml", [])
     if len(xmls) != 12:

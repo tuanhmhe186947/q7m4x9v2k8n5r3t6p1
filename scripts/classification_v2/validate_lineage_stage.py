@@ -9,6 +9,7 @@ from pathlib import Path
 from lineage_preflight import EXPECTED_STAGE_IDS, validate_config
 
 from pig_behavior.classification_v2.contracts.candidate_manifest import (
+    validate_candidate_output_bundle,
     validate_upstream_manifest_for_current_authority,
 )
 from pig_behavior.classification_v2.contracts.semantic_lineage import (
@@ -57,7 +58,15 @@ def main() -> int:
     root, config = load_config(args.config)
     errors = validate_config(root, config)
     stage = config["stages"][args.stage]
-    output = _artifact_path(root, config, args.stage)
+    output_specs = config["stages"][args.stage].get("output_schemas", [])
+    if not isinstance(output_specs, list) or not output_specs:
+        raise ValueError(f"OUTPUT_SCHEMA_REGISTRY_MISSING:{args.stage}")
+    output = resolve_stage_path(
+        root,
+        config,
+        args.stage,
+        str(output_specs[0]["path_key"]),
+    )
     manifest = resolve_stage_path(root, config, args.stage, "manifest_relative")
     manifest_errors = []
     upstream_manifests = {}
@@ -94,6 +103,12 @@ def main() -> int:
                 upstream_manifests=upstream_manifests,
             )
             manifest_errors.extend(validation["errors"])
+            bundle = validate_candidate_output_bundle(
+                payload,
+                manifest_path=manifest,
+                stage=stage,
+            )
+            manifest_errors.extend(bundle["errors"])
             if payload.get("stage_id") != stage["stage_id"]:
                 manifest_errors.append("MANIFEST_STAGE_ID_MISMATCH")
         except (OSError, ValueError) as exc:

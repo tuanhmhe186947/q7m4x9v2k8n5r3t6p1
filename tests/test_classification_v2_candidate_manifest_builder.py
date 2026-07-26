@@ -20,6 +20,7 @@ from pig_behavior.classification_v2.contracts.candidate_manifest import (
     build_candidate_artifact_manifest,
     inspect_candidate_output,
     output_inspector_registry,
+    validate_candidate_output_bundle,
     validate_upstream_manifest_for_current_authority,
 )
 from pig_behavior.classification_v2.contracts.semantic_lineage import (
@@ -77,6 +78,16 @@ def _columns(stage_id: str) -> list[str]:
         and " " not in value
         and "*" not in value
     ]
+    output_ids = stage.get("output_artifacts", [])
+    registry = stage.get("output_schema_registry", {})
+    if output_ids and isinstance(registry, dict):
+        columns.extend(
+            str(value)
+            for value in registry.get(str(output_ids[0]), {}).get(
+                "required_columns",
+                [],
+            )
+        )
     if stage_id in {
         "stage.legacy_cvat_source_merge",
         "stage.frame_local_primitives",
@@ -112,6 +123,7 @@ def _build(
     metadata: dict[str, object] | None = None,
     expected: dict[str, object] | None = None,
     suffix: str = ".csv",
+    schema_version_override: str | None = None,
     before_replace=None,
     failure_injector=None,
 ):
@@ -122,7 +134,40 @@ def _build(
         _write_csv(output, stage_id)
     else:
         output.write_text("unsupported", encoding="utf-8")
+    additional_outputs = ()
+    if stage_id == "stage.temporal_harmonization":
+        interval_output = tmp_path / "temporal_intervals.csv"
+        pd.DataFrame(
+            [
+                {
+                    "temporal_unit_key": "unit:source:video:1",
+                    "object_track_key": "track:source:dataset:video:1",
+                    "label_window_start": 0,
+                    "label_window_end": 5,
+                    "temporal_interval_complete": True,
+                }
+            ]
+        ).to_csv(interval_output, index=False)
+        additional_outputs = (
+            {
+                "artifact_id": str(stage["output_artifacts"][1]),
+                "schema_id": str(stage["output_artifacts"][1]),
+                "schema_version": (
+                    "classification_v2.temporal_harmonization."
+                    "temporal_intervals.v1"
+                ),
+                "path": interval_output,
+            },
+        )
     manifest_path = output.with_suffix(output.suffix + ".manifest.json")
+    primary_schema_id = str(stage["output_artifacts"][0])
+    registry = stage.get("output_schema_registry", {})
+    primary_schema_version = str(
+        registry.get(primary_schema_id, {}).get(
+            "schema_version",
+            stage["schema_version"],
+        )
+    )
     result = build_candidate_artifact_manifest(
         repo_root=REPO_ROOT,
         contract_root=CONTRACT_ROOT,
@@ -132,8 +177,11 @@ def _build(
         output_path=output,
         candidate_manifest_path=manifest_path,
         upstream_manifest_paths=upstream,
-        output_schema_id=str(stage["output_artifacts"][0]),
-        output_schema_version=str(stage["schema_version"]),
+        output_schema_id=primary_schema_id,
+        output_schema_version=(
+            schema_version_override or primary_schema_version
+        ),
+        additional_outputs=additional_outputs,
         stage_specific_metadata=metadata,
         expected_authority=expected,
         development_contract_version=DEVELOPMENT,
@@ -141,6 +189,96 @@ def _build(
         failure_injector=failure_injector,
     )
     return output, result
+
+
+def test_temporal_primary_schema_version_uses_output_registry(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(ValueError, match="OUTPUT_SCHEMA_VERSION_MISMATCH"):
+        _build(
+            tmp_path,
+            "stage.temporal_harmonization",
+            schema_version_override=(
+                "classification_v2.temporal_harmonization.v2"
+            ),
+        )
+
+
+def test_csv_inspection_is_bounded_memory_and_preserves_rows(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    output = tmp_path / "chunked.csv"
+    pd.DataFrame(
+        {
+            "object_track_key": [f"track:{index}" for index in range(2_501)],
+            "late_string": [
+                *([None] * 1_000),
+                *[f"value:{index}" for index in range(1_501)],
+            ],
+            "value": pd.Series(
+                [
+                    *range(2_000),
+                    *[float(index) + 0.5 for index in range(501)],
+                ],
+                dtype=object,
+            ),
+        }
+    ).to_csv(output, index=False)
+    expected_dtypes = [
+        str(value)
+        for value in candidate_manifest_module.pd.read_csv(
+            output,
+            low_memory=False,
+        ).dtypes
+    ]
+    original_read_csv = candidate_manifest_module.pd.read_csv
+    calls: list[dict[str, object]] = []
+
+    def recording_read_csv(*args: object, **kwargs: object):
+        calls.append(dict(kwargs))
+        return original_read_csv(*args, **kwargs)
+
+    monkeypatch.setattr(
+        candidate_manifest_module.pd,
+        "read_csv",
+        recording_read_csv,
+    )
+
+    inspection = inspect_candidate_output(output)
+
+    assert inspection.inspector_id == "inspector.csv.v1"
+    assert inspection.row_count == 2_501
+    assert inspection.ordered_columns == (
+        "object_track_key",
+        "late_string",
+        "value",
+    )
+    assert inspection.schema_payload["dtypes"] == expected_dtypes
+    assert calls[0]["chunksize"] == 1_000
+
+
+def test_temporal_bundle_validates_through_operational_stage_mapping(
+    tmp_path: Path,
+) -> None:
+    _, result = _build(
+        tmp_path,
+        "stage.temporal_harmonization",
+    )
+    operational_stage = {
+        "output_schemas": [
+            {"artifact_id": "artifact.harmonized_frames"},
+            {"artifact_id": "artifact.temporal_intervals"},
+        ]
+    }
+
+    validation = validate_candidate_output_bundle(
+        result.manifest,
+        manifest_path=result.manifest_path,
+        stage=operational_stage,
+    )
+
+    assert validation["valid"] is True
 
 
 def _copy_upstream(
@@ -158,6 +296,14 @@ def _copy_upstream(
     shutil.copy2(original_output, copied_output)
     manifest["output_path"] = copied_output.name
     manifest.update(updates or {})
+    if isinstance(manifest.get("output_artifacts"), list):
+        primary = dict(manifest["output_artifacts"][0])
+        primary["artifact_id"] = str(manifest["artifact_id"])
+        primary["output_path"] = copied_output.name
+        manifest["output_artifacts"] = [
+            primary,
+            *manifest["output_artifacts"][1:],
+        ]
     manifest_path = target / "upstream.manifest.json"
     manifest_path.write_text(
         json.dumps(manifest, sort_keys=True),
@@ -633,6 +779,39 @@ def test_earlier_commit_id_does_not_replace_relevant_authority(
     )
     assert stale_code.classification == STALE_CODE_AUTHORITY
 
+
+def test_verified_publication_only_drift_keeps_upstream_current(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _, source = _build(
+        tmp_path / "source",
+        "stage.legacy_cvat_source_merge",
+    )
+    copied = _copy_upstream(
+        source,
+        tmp_path / "publication_only",
+        updates={"stage_code_hash": "0" * 64},
+    )
+    monkeypatch.setattr(
+        candidate_manifest_module,
+        "_publication_only_stage_code_drift",
+        lambda **_: True,
+    )
+
+    authority = validate_upstream_manifest_for_current_authority(
+        manifest_path=copied,
+        repo_root=REPO_ROOT,
+        contract_root=CONTRACT_ROOT,
+        intended_downstream_stage_id="stage.frame_local_primitives",
+    )
+
+    assert authority.classification == CURRENT_AUTHORITATIVE
+    assert authority.reason_codes == (
+        "CURRENT_AUTHORITY_MATCH_PUBLICATION_ONLY_DRIFT",
+    )
+
+    earlier_commit = "0" * 40
     stale_semantics_path = _copy_upstream(
         source,
         tmp_path / "earlier_stale_semantics",

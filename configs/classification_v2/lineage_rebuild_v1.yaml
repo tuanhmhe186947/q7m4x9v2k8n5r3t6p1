@@ -66,6 +66,11 @@ stages:
     audit_relative: candidates/source_merge/merged_frame_objects_audit.json
     lineage_relative: candidates/source_merge/merged_frame_objects_lineage.json
     manifest_relative: manifests/source_merge.candidate.json
+    output_schemas:
+      - path_key: output_relative
+        artifact_id: artifact.merged_frame_objects
+        schema_id: artifact.merged_frame_objects
+        schema_version: classification_v2.merged_frame_objects.v2
     authorization_flag: authorizes_source_rebuild
     upstream: []
   frame_local:
@@ -75,6 +80,11 @@ stages:
     schema_relative: candidates/frame_local/frame_local_primitives_schema.json
     audit_relative: candidates/frame_local/frame_local_primitives_audit.json
     manifest_relative: manifests/frame_local.candidate.json
+    output_schemas:
+      - path_key: output_relative
+        artifact_id: artifact.frame_local_primitives
+        schema_id: artifact.frame_local_primitives
+        schema_version: classification_v2.frame_local_primitives.v2
     authorization_flag: authorizes_frame_local_rebuild
     upstream: [source_merge]
   hidden_design:
@@ -84,6 +94,11 @@ stages:
     artifact_relative: candidates/hidden_design/hidden_review_unit_manifest.csv
     audit_relative: candidates/hidden_design/hidden_review_template_audit.json
     manifest_relative: manifests/hidden_design.candidate.json
+    output_schemas:
+      - path_key: artifact_relative
+        artifact_id: artifact.hidden_manifest
+        schema_id: artifact.hidden_manifest
+        schema_version: classification_v2.hidden_review_manifest.v2
     authorization_flag: authorizes_hidden_review
     upstream: [frame_local]
   hidden_decision_migration:
@@ -95,6 +110,11 @@ stages:
     previous_manifest_relative: decision_inputs/hidden/previous_hidden_review_unit_manifest.csv
     previous_decisions_relative: decision_inputs/hidden/previous_hidden_review_decisions.csv
     manifest_relative: manifests/hidden_decision_migration.candidate.json
+    output_schemas:
+      - path_key: artifact_relative
+        artifact_id: artifact.hidden_decisions
+        schema_id: artifact.hidden_decisions
+        schema_version: classification_v2.hidden_decision_migration.v2
     authorization_flag: authorizes_hidden_review
     upstream: [hidden_design]
   hidden_coverage_gate:
@@ -102,6 +122,11 @@ stages:
     entry_point: scripts/classification_v2/01_review_units_gui/check_hidden_review_scientific_gate.py
     output_relative: candidates/hidden_coverage_gate/hidden_review_scientific_gate_audit.json
     manifest_relative: manifests/hidden_coverage_gate.candidate.json
+    output_schemas:
+      - path_key: output_relative
+        artifact_id: artifact.hidden_decisions
+        schema_id: artifact.hidden_decisions
+        schema_version: classification_v2.hidden_scientific_gate.v2
     authorization_flag: authorizes_hidden_review
     upstream: [hidden_decision_migration]
   hidden_apply:
@@ -111,6 +136,11 @@ stages:
     audit_relative: candidates/hidden_apply/apply_hidden_review_audit.json
     confusion_audit_relative: candidates/hidden_apply/hidden_confusion_audit.json
     manifest_relative: manifests/hidden_apply.candidate.json
+    output_schemas:
+      - path_key: output_relative
+        artifact_id: artifact.hidden_reviewed_frames
+        schema_id: artifact.hidden_reviewed_frames
+        schema_version: classification_v2.hidden_apply.v2
     authorization_flag: authorizes_hidden_review
     upstream: [hidden_coverage_gate]
   temporal_harmonization:
@@ -120,6 +150,15 @@ stages:
     intervals_relative: candidates/temporal_harmonization/temporal_intervals_standalone.csv
     audit_relative: candidates/temporal_harmonization/temporal_harmonization_audit.json
     manifest_relative: manifests/temporal_harmonization.candidate.json
+    output_schemas:
+      - path_key: output_relative
+        artifact_id: artifact.harmonized_frames
+        schema_id: artifact.harmonized_frames
+        schema_version: classification_v2.temporal_harmonization.harmonized_frames.v1
+      - path_key: intervals_relative
+        artifact_id: artifact.temporal_intervals
+        schema_id: artifact.temporal_intervals
+        schema_version: classification_v2.temporal_harmonization.temporal_intervals.v1
     authorization_flag: authorizes_temporal_harmonization
     upstream: [hidden_apply]
   native_evidence:
@@ -128,6 +167,11 @@ stages:
     output_relative: candidates/native_evidence/native_review_evidence.csv
     audit_relative: candidates/native_evidence/native_review_evidence_audit.json
     manifest_relative: manifests/native_evidence.candidate.json
+    output_schemas:
+      - path_key: output_relative
+        artifact_id: artifact.native_evidence
+        schema_id: artifact.native_evidence
+        schema_version: classification_v2.native_review_evidence.v2
     authorization_flag: authorizes_native_evidence
     upstream: [temporal_harmonization]
   pig_strenet_evidence:
@@ -137,6 +181,11 @@ stages:
     artifact_relative: candidates/pig_strenet_evidence/pair_manifest.csv
     audit_relative: candidates/pig_strenet_evidence/pig_strenet_artifact_audit.json
     manifest_relative: manifests/pig_strenet_evidence.candidate.json
+    output_schemas:
+      - path_key: artifact_relative
+        artifact_id: artifact.pig_strenet
+        schema_id: artifact.pig_strenet
+        schema_version: classification_v2.pig_strenet_artifacts.v1
     authorization_flag: authorizes_pig_strenet
     upstream: [native_evidence]
   behavior_review_units:
@@ -146,6 +195,11 @@ stages:
     artifact_relative: candidates/behavior_review_units/full_review_unit_manifest.csv
     audit_relative: candidates/behavior_review_units/review_unit_audit.json
     manifest_relative: manifests/behavior_review_units.candidate.json
+    output_schemas:
+      - path_key: artifact_relative
+        artifact_id: artifact.behavior_review_units
+        schema_id: artifact.behavior_review_units
+        schema_version: classification_v2.behavior_review_unit.v2
     authorization_flag: authorizes_behavior_gui
     upstream: [pig_strenet_evidence]
   behavior_decision_apply:
@@ -156,6 +210,11 @@ stages:
     combined_decisions_relative: candidates/behavior_decision_apply/review_unit_decisions_combined.csv
     decisions_relative: decision_inputs/behavior/behavior_unit_review_decisions.csv
     manifest_relative: manifests/behavior_decision_apply.candidate.json
+    output_schemas:
+      - path_key: output_relative
+        artifact_id: artifact.reviewed_frames
+        schema_id: artifact.reviewed_frames
+        schema_version: classification_v2.behavior_apply.v2
     authorization_flag: authorizes_behavior_gui
     upstream: [behavior_review_units]
   train_ready:
@@ -167,6 +226,11 @@ stages:
     audit_relative: candidates/train_ready/train_ready_audit.json
     sequence_audit_relative: candidates/train_ready/sequence_window_audit.json
     manifest_relative: manifests/train_ready.candidate.json
+    output_schemas:
+      - path_key: artifact_relative
+        artifact_id: artifact.train_ready
+        schema_id: artifact.train_ready
+        schema_version: classification_v2.train_ready.v2
     authorization_flag: authorizes_final_windows
     upstream: [behavior_decision_apply]
   tensor_export:
@@ -176,6 +240,11 @@ stages:
     artifact_relative: candidates/tensor_export/X_spatial_sequences.npz
     audit_relative: candidates/tensor_export/spatial_sequence_audit.json
     manifest_relative: manifests/tensor_export.candidate.json
+    output_schemas:
+      - path_key: artifact_relative
+        artifact_id: artifact.spatial_tensor
+        schema_id: artifact.spatial_tensor
+        schema_version: classification_v2.spatial_sequence.current_unhashed
     authorization_flag: authorizes_tensor_export
     upstream: [train_ready]
   model_input:
@@ -184,6 +253,11 @@ stages:
     output_relative: candidates/model_input/model_input_contract.json
     data_contract_relative: decision_inputs/final/data_contract.json
     manifest_relative: manifests/model_input.candidate.json
+    output_schemas:
+      - path_key: output_relative
+        artifact_id: artifact.model_input
+        schema_id: artifact.model_input
+        schema_version: classification_v2.model_input_manifest.v2
     authorization_flag: authorizes_model_execution
     upstream: [tensor_export]
 

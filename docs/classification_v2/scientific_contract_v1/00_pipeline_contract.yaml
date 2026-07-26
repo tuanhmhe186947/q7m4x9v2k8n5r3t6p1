@@ -346,6 +346,70 @@
       "pair_reset_key": "temporal_unit_key",
       "temporal_support": "legacy 16 frames; CVAT 6 frames",
       "schema_version": "classification_v2.temporal_harmonization.v2",
+      "output_schema_registry": {
+        "artifact.harmonized_frames": {
+          "schema_id": "artifact.harmonized_frames",
+          "schema_version": "classification_v2.temporal_harmonization.harmonized_frames.v1",
+          "required_columns": [
+            "object_track_key",
+            "temporal_unit_key",
+            "frame_uid",
+            "frame_index",
+            "temporal_harmonization_valid"
+          ],
+          "key_columns": ["object_track_key", "temporal_unit_key", "frame_uid"],
+          "row_identity": "one_frame_object_row",
+          "data_types": {
+            "object_track_key": "string",
+            "temporal_unit_key": "string",
+            "frame_uid": "string",
+            "frame_index": "integer",
+            "temporal_harmonization_valid": "boolean"
+          },
+          "nullable_policy": "identity_columns_nonnull",
+          "temporal_authority": [
+            "legacy_16_frame_sequence",
+            "cvat_6_frame_anchor_intervals",
+            "causal_history_only",
+            "no_future_frame_dependence"
+          ],
+          "semantic_hash_dependency_closure": [
+            "stage.temporal_harmonization",
+            "artifact.hidden_reviewed_frames"
+          ]
+        },
+        "artifact.temporal_intervals": {
+          "schema_id": "artifact.temporal_intervals",
+          "schema_version": "classification_v2.temporal_harmonization.temporal_intervals.v1",
+          "required_columns": [
+            "temporal_unit_key",
+            "object_track_key",
+            "label_window_start",
+            "label_window_end",
+            "temporal_interval_complete"
+          ],
+          "key_columns": ["temporal_unit_key", "object_track_key"],
+          "row_identity": "one_temporal_unit_interval",
+          "data_types": {
+            "temporal_unit_key": "string",
+            "object_track_key": "string",
+            "label_window_start": "integer",
+            "label_window_end": "integer",
+            "temporal_interval_complete": "boolean"
+          },
+          "nullable_policy": "identity_columns_nonnull",
+          "temporal_authority": [
+            "legacy_16_frame_sequence",
+            "cvat_6_frame_anchor_intervals",
+            "causal_history_only",
+            "no_future_frame_dependence"
+          ],
+          "semantic_hash_dependency_closure": [
+            "stage.temporal_harmonization",
+            "artifact.hidden_reviewed_frames"
+          ]
+        }
+      },
       "model_eligibility": "PROVENANCE_NOT_MODEL_X",
       "review_eligibility": "NATIVE_REVIEW_INPUT",
       "checker": "audit_temporal_harmonization",

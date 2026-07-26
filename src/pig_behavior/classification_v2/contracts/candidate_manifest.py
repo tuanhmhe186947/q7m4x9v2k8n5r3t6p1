@@ -8,7 +8,9 @@ import os
 import subprocess
 import tempfile
 from collections.abc import Callable, Mapping, Sequence
+from csv import DictReader
 from dataclasses import dataclass
+from io import StringIO
 from pathlib import Path
 from typing import Any
 
@@ -51,6 +53,7 @@ from pig_behavior.classification_v2.contracts.semantic_lineage import (
     git_code_authority,
     load_code_contract_mapping,
     load_scientific_contract,
+    stage_code_files,
     validate_artifact_manifest,
 )
 from pig_behavior.classification_v2.features.motion_schema import (
@@ -84,6 +87,11 @@ _SCIENTIFIC_AUTHORITY_PATH_PREFIXES = (
     "src/",
     "scripts/classification_v2/",
     "docs/classification_v2/scientific_contract_v1/",
+)
+_PUBLICATION_ONLY_STAGE_CODE_PATHS = frozenset(
+    {
+        "src/pig_behavior/classification_v2/contracts/candidate_manifest.py",
+    }
 )
 _OFFICIAL_ARTIFACT_CLASSES = frozenset(
     {"OFFICIAL", "OFFICIAL_SCIENTIFIC"}
@@ -273,19 +281,89 @@ def _inspection(
 
 
 def _inspect_csv(path: Path) -> OutputInspection:
-    frame = pd.read_csv(path, low_memory=False)
-    columns = [str(value) for value in frame.columns]
+    chunks = pd.read_csv(path, chunksize=1_000, low_memory=False)
+    rows = 0
+    columns: list[str] | None = None
+    dtype_names: list[str | None] | None = None
+    fallback_dtype_names: list[str] | None = None
+    for frame in chunks:
+        observed_columns = [str(value) for value in frame.columns]
+        observed_dtypes = [str(value) for value in frame.dtypes]
+        observed_non_null = [
+            bool(frame[column].notna().any()) for column in frame.columns
+        ]
+        if columns is None:
+            columns = observed_columns
+            dtype_names = [
+                dtype_name if has_value else None
+                for dtype_name, has_value in zip(
+                    observed_dtypes,
+                    observed_non_null,
+                    strict=True,
+                )
+            ]
+            fallback_dtype_names = observed_dtypes
+        elif observed_columns != columns:
+            raise ValueError("CSV_COLUMN_ORDER_CHANGED_BETWEEN_CHUNKS")
+        else:
+            assert dtype_names is not None
+            dtype_names = [
+                (
+                    current
+                    if not has_value
+                    else (
+                        observed
+                        if current is None
+                        else _merge_csv_dtype_names(current, observed)
+                    )
+                )
+                for current, observed, has_value in zip(
+                    dtype_names,
+                    observed_dtypes,
+                    observed_non_null,
+                    strict=True,
+                )
+            ]
+        rows += len(frame)
+    if columns is None:
+        empty = pd.read_csv(path, nrows=0)
+        columns = [str(value) for value in empty.columns]
+        dtype_names = [str(value) for value in empty.dtypes]
+        fallback_dtype_names = list(dtype_names)
+    assert dtype_names is not None
+    assert fallback_dtype_names is not None
+    resolved_dtype_names = [
+        current if current is not None else fallback
+        for current, fallback in zip(
+            dtype_names,
+            fallback_dtype_names,
+            strict=True,
+        )
+    ]
     return _inspection(
         path,
         inspector_id="inspector.csv.v1",
-        rows=len(frame),
+        rows=rows,
         columns=columns,
         schema_payload={
             "format": "csv",
             "ordered_columns": columns,
-            "dtypes": [str(value) for value in frame.dtypes],
+            "dtypes": resolved_dtype_names,
         },
     )
+
+
+def _merge_csv_dtype_names(current: str, observed: str) -> str:
+    """Match whole-file CSV inference without retaining every parsed row."""
+
+    if current == observed:
+        return current
+    if "str" in {current, observed}:
+        return "str"
+    numeric = {"int64", "float64"}
+    if {current, observed}.issubset(numeric):
+        return "float64"
+    return "object"
 
 
 def _model_feature_names_from_json(value: Any) -> list[str]:
@@ -465,6 +543,122 @@ def _run_git(repo_root: Path, *args: str) -> str:
         capture_output=True,
         text=True,
     ).stdout.strip()
+
+
+def _publication_only_stage_code_drift(
+    *,
+    repo_root: Path,
+    stage_id: str,
+    mapping_rows: Sequence[Mapping[str, str]],
+    manifest: Mapping[str, Any],
+) -> bool:
+    """Recognize verified publisher-only drift without accepting code tampering."""
+
+    code_authority_sha = str(
+        manifest.get("created_by_code_authority_sha", "")
+    ).strip()
+    recorded_hash = str(manifest.get("stage_code_hash", "")).strip()
+    if not code_authority_sha or not recorded_hash:
+        return False
+    overrides: dict[str, bytes] = {}
+    changed_paths: set[str] = set()
+    try:
+        mapping_relative = (
+            "docs/classification_v2/scientific_contract_v1/"
+            "10_code_contract_mapping.csv"
+        )
+        historical_mapping_bytes = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(repo_root.resolve()),
+                "cat-file",
+                "--filters",
+                f"--path={mapping_relative}",
+                f"{code_authority_sha}:{mapping_relative}",
+            ],
+            check=True,
+            capture_output=True,
+        ).stdout
+        historical_mapping_rows = [
+            dict(row)
+            for row in DictReader(
+                StringIO(historical_mapping_bytes.decode("utf-8-sig"))
+            )
+        ]
+        historical_files = set(
+            stage_code_files(stage_id, historical_mapping_rows)
+        )
+        current_files = set(stage_code_files(stage_id, mapping_rows))
+        committed_changes = set(
+            _run_git(
+                repo_root,
+                "diff",
+                "--name-only",
+                f"{code_authority_sha}..HEAD",
+                "--",
+                *sorted(historical_files | current_files),
+            ).splitlines()
+        )
+        worktree_changes = set(
+            _run_git(
+                repo_root,
+                "diff",
+                "--name-only",
+                "--",
+                *sorted(historical_files | current_files),
+            ).splitlines()
+        )
+        staged_changes = set(
+            _run_git(
+                repo_root,
+                "diff",
+                "--cached",
+                "--name-only",
+                "--",
+                *sorted(historical_files | current_files),
+            ).splitlines()
+        )
+        changed_paths.update(
+            committed_changes | worktree_changes | staged_changes
+        )
+        for relative in sorted(historical_files | current_files):
+            if relative not in historical_files:
+                changed_paths.add(relative)
+                continue
+            historical = subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(repo_root.resolve()),
+                    "cat-file",
+                    "--filters",
+                    f"--path={relative}",
+                    f"{code_authority_sha}:{relative}",
+                ],
+                check=True,
+                capture_output=True,
+            ).stdout
+            current_path = repo_root / relative
+            if relative in committed_changes or not current_path.is_file():
+                overrides[relative] = historical
+            else:
+                overrides[relative] = current_path.read_bytes()
+            if relative not in current_files or not current_path.is_file():
+                changed_paths.add(relative)
+        historical_hash = compute_stage_code_hash(
+            repo_root,
+            stage_id,
+            historical_mapping_rows,
+            file_overrides=overrides,
+        )
+    except (OSError, subprocess.CalledProcessError, ValueError):
+        return False
+    return (
+        historical_hash == recorded_hash
+        and bool(changed_paths)
+        and changed_paths <= _PUBLICATION_ONLY_STAGE_CODE_PATHS
+    )
 
 
 def _tracked_scientific_changes(repo_root: Path) -> list[str]:
@@ -726,6 +920,13 @@ def validate_upstream_manifest_for_current_authority(
                 manifest.get("stage_specific_metadata", {})
             ),
         )
+        bundle = validate_candidate_output_bundle(
+            manifest,
+            manifest_path=loaded.manifest_path,
+            stage=stage,
+        )
+        if not bundle["valid"]:
+            raise ValueError(f"OUTPUT_ARTIFACT_BUNDLE_INVALID:{bundle['errors']}")
     except Exception as exc:
         return UpstreamAuthorityValidation(
             classification=STALE_SCHEMA_AUTHORITY,
@@ -749,9 +950,18 @@ def validate_upstream_manifest_for_current_authority(
         "output_schema_hash": schema_hash,
         **_current_semantic_identifiers(),
     }
+    code_hash_drift = manifest.get("stage_code_hash") != current_code_hash
+    publication_only_drift = code_hash_drift and (
+        _publication_only_stage_code_drift(
+            repo_root=repo_root.resolve(),
+            stage_id=stage_id,
+            mapping_rows=mapping_rows,
+            manifest=manifest,
+        )
+    )
     code_reasons = (
         ("STAGE_CODE_HASH_NOT_CURRENT",)
-        if manifest.get("stage_code_hash") != current_code_hash
+        if code_hash_drift and not publication_only_drift
         else ()
     )
     semantic_reasons = tuple(
@@ -786,7 +996,11 @@ def validate_upstream_manifest_for_current_authority(
         reasons = schema_reasons
     else:
         classification = CURRENT_AUTHORITATIVE
-        reasons = ("CURRENT_AUTHORITY_MATCH",)
+        reasons = (
+            ("CURRENT_AUTHORITY_MATCH_PUBLICATION_ONLY_DRIFT",)
+            if publication_only_drift
+            else ("CURRENT_AUTHORITY_MATCH",)
+        )
     current = classification == CURRENT_AUTHORITATIVE
     classified_loaded = LoadedUpstreamManifest(
         manifest_path=loaded.manifest_path,
@@ -937,7 +1151,15 @@ def _validate_schema_authority(
         raise ValueError(
             f"OUTPUT_SCHEMA_NOT_PERMITTED:{stage_id}:{schema_id}"
         )
-    schema_version = str(stage["schema_version"])
+    registry = stage.get("output_schema_registry", {})
+    registry_entry = (
+        registry.get(schema_id, {})
+        if isinstance(registry, Mapping)
+        else {}
+    )
+    schema_version = str(
+        registry_entry.get("schema_version", stage["schema_version"])
+    )
     if (
         intended_schema_version is not None
         and intended_schema_version != schema_version
@@ -959,6 +1181,14 @@ def _validate_schema_authority(
     if missing_produced:
         raise ValueError(
             f"MISSING_CONTRACT_OUTPUT_COLUMNS:{missing_produced}"
+        )
+    missing_registry_columns = sorted(
+        set(registry_entry.get("required_columns", [])) - set(columns)
+    )
+    if missing_registry_columns:
+        raise ValueError(
+            "MISSING_OUTPUT_SCHEMA_REGISTRY_COLUMNS:"
+            f"{schema_id}:{missing_registry_columns}"
         )
     if (
         stage_id in _OBJECT_TRACK_KEY_STAGES
@@ -1012,7 +1242,139 @@ def _validate_schema_authority(
             else []
         ),
     }
+    if registry_entry:
+        schema_payload["schema_registry_entry"] = dict(registry_entry)
     return schema_id, schema_version, canonical_sha256(schema_payload)
+
+
+def _output_schema_hash(
+    *,
+    stage: Mapping[str, Any],
+    schema_id: str,
+    schema_version: str,
+    inspection: OutputInspection,
+    schema_registry_entry: Mapping[str, Any] | None = None,
+) -> str:
+    """Hash one declared output schema against its observed bytes."""
+
+    registry = stage.get("output_schema_registry", {})
+    resolved_registry_entry = dict(schema_registry_entry or {})
+    if not resolved_registry_entry and isinstance(registry, Mapping):
+        resolved_registry_entry = dict(registry.get(schema_id, {}))
+    expected_version = str(
+        resolved_registry_entry.get("schema_version", schema_version)
+    )
+    if schema_version != expected_version:
+        raise ValueError(
+            "OUTPUT_SCHEMA_VERSION_MISMATCH:"
+            f"{schema_version}!={expected_version}"
+        )
+    missing_columns = sorted(
+        set(resolved_registry_entry.get("required_columns", []))
+        - set(inspection.ordered_columns)
+    )
+    if missing_columns:
+        raise ValueError(
+            "MISSING_OUTPUT_SCHEMA_REGISTRY_COLUMNS:"
+            f"{schema_id}:{missing_columns}"
+        )
+    return canonical_sha256(
+        {
+            "stage_id": str(stage["stage_id"]),
+            "schema_id": schema_id,
+            "schema_version": schema_version,
+            "output_grain": stage["output_grain"],
+            "canonical_identity_keys": stage.get(
+                "canonical_identity_keys",
+                [],
+            ),
+            "schema_registry_entry": resolved_registry_entry,
+            "inspection": inspection.schema_payload,
+        }
+    )
+
+
+def validate_candidate_output_bundle(
+    manifest: Mapping[str, Any],
+    *,
+    manifest_path: Path,
+    stage: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Validate every committed output declared by a candidate manifest."""
+
+    declared = manifest.get("output_artifacts")
+    declared_stage_outputs = [
+        str(value) for value in stage.get("output_artifacts", [])
+    ]
+    if not declared_stage_outputs:
+        output_schemas = stage.get("output_schemas", [])
+        if isinstance(output_schemas, list):
+            declared_stage_outputs = [
+                str(value.get("artifact_id", ""))
+                for value in output_schemas
+                if isinstance(value, Mapping)
+            ]
+    primary_artifact_id = str(manifest.get("artifact_id", "")).strip()
+    expected_ids = (
+        [primary_artifact_id, *declared_stage_outputs[1:]]
+        if primary_artifact_id
+        else declared_stage_outputs
+    )
+    if len(expected_ids) > 1 and not isinstance(declared, list):
+        return {"valid": False, "errors": ["OUTPUT_ARTIFACT_BUNDLE_REQUIRED"]}
+    if not isinstance(declared, list):
+        return {"valid": True, "errors": [], "output_artifacts": []}
+    actual_ids: list[str] = []
+    for output in declared:
+        if not isinstance(output, Mapping):
+            return {"valid": False, "errors": ["OUTPUT_ARTIFACT_ENTRY_INVALID"]}
+        required = (
+            "artifact_id",
+            "schema_id",
+            "schema_version",
+            "output_path",
+            "output_file_sha256",
+            "output_schema_hash",
+        )
+        missing = [key for key in required if not str(output.get(key, "")).strip()]
+        if missing:
+            return {
+                "valid": False,
+                "errors": [f"OUTPUT_ARTIFACT_FIELDS_MISSING:{missing}"],
+            }
+        relative = Path(str(output["output_path"]))
+        if relative.is_absolute():
+            return {"valid": False, "errors": ["OUTPUT_ARTIFACT_PATH_ABSOLUTE"]}
+        path = (manifest_path.resolve().parent / relative).resolve()
+        if not path.is_file():
+            return {
+                "valid": False,
+                "errors": [f"OUTPUT_ARTIFACT_MISSING:{path}"],
+            }
+        inspection = inspect_candidate_output(path)
+        artifact_id = str(output["artifact_id"])
+        actual_ids.append(artifact_id)
+        checks = {
+            "output_file_sha256": inspection.output_file_sha256,
+            "output_byte_size": inspection.output_byte_size,
+            "row_count": inspection.row_count,
+            "column_count": inspection.column_count,
+            "ordered_columns": list(inspection.ordered_columns),
+        }
+        for key, actual in checks.items():
+            if output.get(key) != actual:
+                return {
+                    "valid": False,
+                    "errors": [
+                        f"OUTPUT_ARTIFACT_{key.upper()}_MISMATCH:{artifact_id}"
+                    ],
+                }
+    if actual_ids != expected_ids:
+        return {
+            "valid": False,
+            "errors": [f"OUTPUT_ARTIFACT_IDS_MISMATCH:{actual_ids}!={expected_ids}"],
+        }
+    return {"valid": True, "errors": [], "output_artifacts": list(declared)}
 
 
 def _builder_code_hash() -> str:
@@ -1295,6 +1657,7 @@ def build_candidate_artifact_manifest(
     upstream_manifest_paths: Sequence[Path] = (),
     output_schema_id: str | None = None,
     output_schema_version: str | None = None,
+    additional_outputs: Sequence[Mapping[str, Any]] = (),
     stage_specific_metadata: Mapping[str, Any] | None = None,
     expected_authority: Mapping[str, Any] | None = None,
     development_contract_version: str | None = None,
@@ -1360,6 +1723,60 @@ def build_candidate_artifact_manifest(
         inspection=inspection,
         stage_specific_metadata=metadata,
     )
+    additional_bundle: list[dict[str, Any]] = []
+    permitted_outputs = {
+        str(value) for value in stage.get("output_artifacts", [])
+    }
+    for spec in additional_outputs:
+        spec_artifact_id = str(spec.get("artifact_id", "")).strip()
+        spec_schema_id = str(spec.get("schema_id", "")).strip()
+        spec_schema_version = str(spec.get("schema_version", "")).strip()
+        spec_path = Path(str(spec.get("path", ""))).resolve()
+        if not spec_artifact_id or not spec_schema_id or not spec_schema_version:
+            raise ValueError("OUTPUT_SPEC_SCHEMA_AUTHORITY_MISSING")
+        if spec_artifact_id not in permitted_outputs:
+            raise ValueError(
+                f"OUTPUT_ARTIFACT_NOT_PERMITTED:{stage_id}:{spec_artifact_id}"
+            )
+        if spec_schema_id != spec_artifact_id:
+            raise ValueError(
+                f"OUTPUT_SCHEMA_ARTIFACT_ID_MISMATCH:{spec_artifact_id}"
+            )
+        spec_inspection = inspect_candidate_output(spec_path)
+        additional_bundle.append(
+            {
+                "artifact_id": spec_artifact_id,
+                "schema_id": spec_schema_id,
+                "schema_version": spec_schema_version,
+                "output_path": _canonical_artifact_relative_path(
+                    spec_path,
+                    candidate_manifest_path,
+                ),
+                "output_file_sha256": spec_inspection.output_file_sha256,
+                "output_byte_size": spec_inspection.output_byte_size,
+                "output_inspector_id": spec_inspection.inspector_id,
+                "output_inspector_version": spec_inspection.inspector_version,
+                "row_count": spec_inspection.row_count,
+                "column_count": spec_inspection.column_count,
+                "ordered_columns": list(spec_inspection.ordered_columns),
+                "output_schema_hash": _output_schema_hash(
+                    stage=stage,
+                    schema_id=spec_schema_id,
+                    schema_version=spec_schema_version,
+                    inspection=spec_inspection,
+                    schema_registry_entry=spec.get(
+                        "schema_registry_entry",
+                    ),
+                ),
+            }
+        )
+    if len(permitted_outputs) > 1 and len(additional_bundle) != (
+        len(permitted_outputs) - 1
+    ):
+        raise ValueError(
+            "OUTPUT_ARTIFACT_BUNDLE_INCOMPLETE:"
+            f"{len(additional_bundle)}!={len(permitted_outputs) - 1}"
+        )
     mapping_rows = load_code_contract_mapping(mapping_path)
     runtime_audit = assert_stage_runtime_dependencies_complete(
         repo_root,
@@ -1416,7 +1833,7 @@ def build_candidate_artifact_manifest(
     builder_code_hash = _builder_code_hash()
     transaction_id = canonical_sha256(
         {
-            "artifact_id": artifact_id,
+            "artifact_id": schema_id,
             "stage_execution_fingerprint": execution_fingerprint,
             "manifest_builder_code_hash": builder_code_hash,
             "candidate_transaction_contract_version": (
@@ -1507,6 +1924,23 @@ def build_candidate_artifact_manifest(
         "validation_errors": [],
         "validation_warnings": warnings,
     }
+    manifest["output_artifacts"] = [
+        {
+            "artifact_id": artifact_id,
+            "schema_id": schema_id,
+            "schema_version": schema_version,
+            "output_path": manifest["output_path"],
+            "output_file_sha256": inspection.output_file_sha256,
+            "output_byte_size": inspection.output_byte_size,
+            "output_inspector_id": inspection.inspector_id,
+            "output_inspector_version": inspection.inspector_version,
+            "row_count": inspection.row_count,
+            "column_count": inspection.column_count,
+            "ordered_columns": list(inspection.ordered_columns),
+            "output_schema_hash": schema_hash,
+        },
+        *additional_bundle,
+    ]
     if failure_injector is not None:
         failure_injector("after_authority_derivation")
     _assert_expected_authority(manifest, expected_authority)
@@ -1524,6 +1958,15 @@ def build_candidate_artifact_manifest(
     if not validation["valid"]:
         raise ValueError(
             f"CANDIDATE_MANIFEST_INVALID:{validation['errors']}"
+        )
+    bundle_validation = validate_candidate_output_bundle(
+        manifest,
+        manifest_path=candidate_manifest_path,
+        stage=stage,
+    )
+    if not bundle_validation["valid"]:
+        raise ValueError(
+            f"CANDIDATE_OUTPUT_BUNDLE_INVALID:{bundle_validation['errors']}"
         )
     if failure_injector is not None:
         failure_injector("after_in_memory_manifest_validation")
@@ -1567,6 +2010,7 @@ __all__ = [
     "build_candidate_artifact_manifest",
     "candidate_manifest_builder_contract",
     "inspect_candidate_output",
+    "validate_candidate_output_bundle",
     "load_validated_upstream_manifest",
     "output_inspector_registry",
     "validate_upstream_manifest_for_current_authority",

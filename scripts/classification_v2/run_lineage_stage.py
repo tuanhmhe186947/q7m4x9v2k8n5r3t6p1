@@ -15,6 +15,9 @@ from pig_behavior.classification_v2.contracts.candidate_manifest import (
     build_candidate_artifact_manifest,
     validate_upstream_manifest_for_current_authority,
 )
+from pig_behavior.classification_v2.features.motion_schema import (
+    MOTION_FEATURE_NAMES,
+)
 from pig_behavior.classification_v2.lineage_config import (
     load_config,
     resolve_source_path,
@@ -30,6 +33,32 @@ def _stage_path(
     key: str = "output_relative",
 ) -> str:
     return str(resolve_stage_path(root, config, stage_id, key))
+
+
+def _output_specs(
+    root: Path,
+    config: dict[str, Any],
+    stage_id: str,
+) -> list[dict[str, Any]]:
+    """Resolve the explicit committed-output schema registry for a stage."""
+
+    stage = config["stages"][stage_id]
+    specs = stage.get("output_schemas", [])
+    if not isinstance(specs, list) or not specs:
+        raise ValueError(f"OUTPUT_SCHEMA_REGISTRY_MISSING:{stage_id}")
+    resolved: list[dict[str, Any]] = []
+    for spec in specs:
+        if not isinstance(spec, dict):
+            raise ValueError(f"OUTPUT_SCHEMA_SPEC_INVALID:{stage_id}")
+        item = dict(spec)
+        item["path"] = resolve_stage_path(
+            root,
+            config,
+            stage_id,
+            str(item["path_key"]),
+        )
+        resolved.append(item)
+    return resolved
 
 
 def _command(root: Path, config: dict[str, Any], stage_id: str) -> list[str]:
@@ -208,6 +237,8 @@ def _command(root: Path, config: dict[str, Any], stage_id: str) -> list[str]:
             str(resolve_source_path(root, config, "video_root")),
             "--legacy-crop-root",
             str(resolve_source_path(root, config, "legacy_crop_root")),
+            "--run-scope",
+            "full",
         ]
     if stage_id == "behavior_review_units":
         return [
@@ -344,23 +375,43 @@ def _commands(
 
 def _output_collision(root: Path, config: dict[str, Any], stage_id: str) -> bool:
     stage = config["stages"][stage_id]
-    output_keys = {
-        "output_relative",
-        "artifact_relative",
+    paths = [spec["path"] for spec in _output_specs(root, config, stage_id)]
+    for key in (
         "audit_relative",
         "manifest_relative",
         "lineage_relative",
-        "intervals_relative",
         "confusion_audit_relative",
         "combined_decisions_relative",
         "sequence_audit_relative",
         "schema_relative",
-    }
-    paths = []
-    for key, value in stage.items():
-        if key in output_keys and value:
+    ):
+        if stage.get(key):
             paths.append(resolve_stage_path(root, config, stage_id, key))
     return any(path.exists() for path in paths)
+
+
+def _existing_output_errors(
+    root: Path,
+    config: dict[str, Any],
+    stage_id: str,
+) -> list[str]:
+    """Validate outputs eligible for publication-only recovery."""
+
+    errors = []
+    for spec in _output_specs(root, config, stage_id):
+        path = Path(spec["path"])
+        if not path.is_file():
+            errors.append(f"COMMITTED_OUTPUT_MISSING:{path}")
+    stage = config["stages"][stage_id]
+    for key in ("audit_relative", "lineage_relative"):
+        if stage.get(key):
+            path = resolve_stage_path(root, config, stage_id, key)
+            if not path.is_file():
+                errors.append(f"PUBLICATION_EVIDENCE_MISSING:{path}")
+    manifest = resolve_stage_path(root, config, stage_id, "manifest_relative")
+    if manifest.exists():
+        errors.append(f"CANDIDATE_MANIFEST_COLLISION:{manifest}")
+    return errors
 
 
 def _artifact_path(
@@ -368,9 +419,22 @@ def _artifact_path(
     config: dict[str, Any],
     stage_id: str,
 ) -> Path:
-    stage = config["stages"][stage_id]
-    key = "artifact_relative" if "artifact_relative" in stage else "output_relative"
-    return resolve_stage_path(root, config, stage_id, key)
+    return Path(_output_specs(root, config, stage_id)[0]["path"])
+
+
+def _stage_specific_metadata(
+    config: dict[str, Any],
+    stage_id: str,
+) -> dict[str, Any]:
+    """Return canonical publication metadata required by the stage contract."""
+
+    metadata: dict[str, Any] = {
+        "operational_lineage_id": str(config["lineage_id"]),
+        "operational_stage_key": stage_id,
+    }
+    if stage_id in {"native_evidence", "tensor_export"}:
+        metadata["motion_feature_names"] = list(MOTION_FEATURE_NAMES)
+    return metadata
 
 
 def _upstream_manifest_paths(
@@ -409,6 +473,14 @@ def main() -> int:
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--stage", required=True, choices=EXPECTED_STAGE_IDS)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--publish-existing",
+        action="store_true",
+        help=(
+            "Publish already-computed declared outputs after a publication-only "
+            "failure; never invokes stage computation."
+        ),
+    )
     args = parser.parse_args()
     root, config = load_config(args.config)
     errors = validate_config(root, config)
@@ -420,7 +492,24 @@ def main() -> int:
     if config["authorization"].get(flag) is not True:
         print(json.dumps({"status": "BLOCKED", "reason": f"UNAUTHORIZED:{flag}"}))
         return 2
-    if _output_collision(root, config, stage_id):
+    if args.publish_existing:
+        existing_output_errors = _existing_output_errors(
+            root,
+            config,
+            stage_id,
+        )
+        if existing_output_errors:
+            print(
+                json.dumps(
+                    {
+                        "status": "BLOCKED",
+                        "reason": "EXISTING_OUTPUT_NOT_PUBLISHABLE",
+                        "errors": existing_output_errors,
+                    }
+                )
+            )
+            return 3
+    elif _output_collision(root, config, stage_id):
         print(json.dumps({"status": "BLOCKED", "reason": "OUTPUT_COLLISION"}))
         return 3
     upstream_errors = _upstream_errors(root, config, stage_id)
@@ -450,22 +539,26 @@ def main() -> int:
         "commands": commands,
         "automatic_downstream_execution": False,
         "automatic_promotion": False,
+        "publication_only": bool(args.publish_existing),
     }
     if args.dry_run:
         print(json.dumps(result, indent=2))
         return 0
-    for command in commands:
-        completed = subprocess.run(command, cwd=root, check=False)
-        if completed.returncode != 0:
-            result.update(status="FAIL", returncode=completed.returncode)
-            print(json.dumps(result))
-            return completed.returncode
+    if not args.publish_existing:
+        for command in commands:
+            completed = subprocess.run(command, cwd=root, check=False)
+            if completed.returncode != 0:
+                result.update(status="FAIL", returncode=completed.returncode)
+                print(json.dumps(result))
+                return completed.returncode
     output = _artifact_path(root, config, stage_id)
     manifest = resolve_stage_path(root, config, stage_id, "manifest_relative")
     if not output.is_file():
         result.update(status="FAIL", reason="PRIMARY_OUTPUT_MISSING")
         print(json.dumps(result))
         return 5
+    specs = _output_specs(root, config, stage_id)
+    primary = specs[0]
     build_candidate_artifact_manifest(
         repo_root=root,
         contract_root=root / "docs/classification_v2/scientific_contract_v1",
@@ -479,10 +572,16 @@ def main() -> int:
             config,
             stage_id,
         ),
-        stage_specific_metadata={
-            "operational_lineage_id": str(config["lineage_id"]),
-            "operational_stage_key": stage_id,
-        },
+        output_schema_id=str(primary["schema_id"]),
+        output_schema_version=str(primary["schema_version"]),
+        additional_outputs=[
+            {
+                **spec,
+                "path": spec["path"],
+            }
+            for spec in specs[1:]
+        ],
+        stage_specific_metadata=_stage_specific_metadata(config, stage_id),
     )
     result.update(status="PASS", returncode=0, manifest=str(manifest))
     print(json.dumps(result))

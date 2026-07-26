@@ -10,6 +10,9 @@ from types import SimpleNamespace
 
 import pytest
 
+from pig_behavior.classification_v2.features.motion_schema import (
+    MOTION_FEATURE_NAMES,
+)
 from pig_behavior.classification_v2.lineage_config import (
     load_config,
     reject_stale_path,
@@ -127,6 +130,97 @@ def test_collision_rejection(
         "argv",
         ["run_lineage_stage.py", "--config", "ignored", "--stage", "source_merge"],
     )
+    assert run_lineage_stage.main() == 3
+
+
+def test_publish_existing_skips_computation_and_publishes(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    root, config = load_config()
+    config = copy.deepcopy(config)
+    config["authorization"]["authorizes_native_evidence"] = True
+    monkeypatch.setenv("CLASSIFICATION_V2_RUN_ROOT", str(tmp_path))
+    output = (
+        tmp_path
+        / "candidates"
+        / "native_evidence"
+        / "native_review_evidence.csv"
+    )
+    output.parent.mkdir(parents=True)
+    output.write_text("object_track_key\ntrack:1\n", encoding="utf-8")
+    audit = output.with_name("native_review_evidence_audit.json")
+    audit.write_text('{"errors":[]}', encoding="utf-8")
+    published: list[dict[str, object]] = []
+    monkeypatch.setattr(run_lineage_stage, "load_config", lambda _: (root, config))
+    monkeypatch.setattr(run_lineage_stage, "_upstream_errors", lambda *_: [])
+    monkeypatch.setattr(
+        run_lineage_stage,
+        "source_bundle_report",
+        lambda *_: {"valid": True},
+    )
+    monkeypatch.setattr(
+        run_lineage_stage,
+        "build_candidate_artifact_manifest",
+        lambda **kwargs: published.append(kwargs),
+    )
+    monkeypatch.setattr(
+        run_lineage_stage.subprocess,
+        "run",
+        lambda *_args, **_kwargs: pytest.fail("computation was invoked"),
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "run_lineage_stage.py",
+            "--config",
+            "ignored",
+            "--stage",
+            "native_evidence",
+            "--publish-existing",
+        ],
+    )
+
+    assert run_lineage_stage.main() == 0
+    assert len(published) == 1
+    assert published[0]["output_path"] == output
+    assert published[0]["stage_specific_metadata"][
+        "motion_feature_names"
+    ] == list(MOTION_FEATURE_NAMES)
+
+
+@pytest.mark.parametrize("stage_id", ("native_evidence", "tensor_export"))
+def test_motion_publication_metadata_uses_canonical_feature_order(
+    stage_id: str,
+) -> None:
+    metadata = run_lineage_stage._stage_specific_metadata(_config(), stage_id)
+
+    assert metadata["motion_feature_names"] == list(MOTION_FEATURE_NAMES)
+
+
+def test_publish_existing_rejects_missing_declared_output(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    root, config = load_config()
+    config = copy.deepcopy(config)
+    config["authorization"]["authorizes_native_evidence"] = True
+    monkeypatch.setenv("CLASSIFICATION_V2_RUN_ROOT", str(tmp_path))
+    monkeypatch.setattr(run_lineage_stage, "load_config", lambda _: (root, config))
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "run_lineage_stage.py",
+            "--config",
+            "ignored",
+            "--stage",
+            "native_evidence",
+            "--publish-existing",
+        ],
+    )
+
     assert run_lineage_stage.main() == 3
 
 
