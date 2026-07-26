@@ -145,6 +145,12 @@ short representative gate does not prove progress, interruption, and safe
 recovery behavior. Progress metadata is audit-only and must not change source
 rows, human decisions, scientific semantics, or model-X features.
 
+Canonical lineage configuration must keep every authorization flag `false`.
+Stage execution authority exists only as a single-use transaction below the
+external lineage root. It must bind the exact stage, config hash, Git SHA,
+source bundle and lineage ID, expire automatically, and be consumed atomically
+before computation. Editing canonical YAML to enable a stage is forbidden.
+
 Current reviewed data is not human-review complete. No pending,
 `review_later`, missing, duplicate, or unexpected mandatory `review_unit_id`
 may enter final main training. Use a versioned rebuild root and never mix

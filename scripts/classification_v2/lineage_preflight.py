@@ -91,6 +91,11 @@ def validate_config(root: Path, config: dict[str, Any]) -> list[str]:
         errors.append("AUTOMATIC_PROMOTION_MUST_BE_FALSE")
     if config.get("policy", {}).get("automatic_downstream_execution") is not False:
         errors.append("AUTOMATIC_DOWNSTREAM_EXECUTION_MUST_BE_FALSE")
+    authorization = config.get("authorization", {})
+    if not authorization or any(
+        value is not False for value in authorization.values()
+    ):
+        errors.append("CANONICAL_AUTHORIZATION_FLAGS_MUST_REMAIN_FALSE")
     return errors
 
 

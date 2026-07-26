@@ -13,7 +13,13 @@ import pytest
 from pig_behavior.classification_v2.features.motion_schema import (
     MOTION_FEATURE_NAMES,
 )
+from pig_behavior.classification_v2.lineage_authorization import (
+    consume_stage_authorization,
+    create_stage_authorization,
+    validate_stage_authorization,
+)
 from pig_behavior.classification_v2.lineage_config import (
+    current_git_sha,
     load_config,
     reject_stale_path,
     resolve_run_root,
@@ -43,6 +49,23 @@ def _load_train_ready_candidate_module() -> object:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def _allow_run_local(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    authorization = tmp_path / "stage.authorization.json"
+    monkeypatch.setattr(
+        run_lineage_stage,
+        "validate_stage_authorization",
+        lambda **_: (True, "RUN_LOCAL_AUTHORIZATION_VALID", authorization),
+    )
+    monkeypatch.setattr(
+        run_lineage_stage,
+        "consume_stage_authorization",
+        lambda _: authorization.with_name("stage.authorization.consumed.json"),
+    )
 
 
 def test_canonical_source_paths_and_xml_selection() -> None:
@@ -114,12 +137,112 @@ def test_unauthorized_stage_rejection(monkeypatch: pytest.MonkeyPatch) -> None:
     assert run_lineage_stage.main() == 2
 
 
+def test_canonical_config_cannot_enable_a_stage() -> None:
+    root, loaded = load_config()
+    config = copy.deepcopy(loaded)
+    config["authorization"]["authorizes_pig_strenet"] = True
+
+    errors = lineage_preflight.validate_config(root, config)
+
+    assert "CANONICAL_AUTHORIZATION_FLAGS_MUST_REMAIN_FALSE" in errors
+
+
+def test_run_local_authorization_is_hash_bound_and_single_use(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    root, loaded = load_config()
+    config = copy.deepcopy(loaded)
+    monkeypatch.setenv("CLASSIFICATION_V2_RUN_ROOT", str(tmp_path))
+    config_path = root / "configs/classification_v2/lineage_rebuild_v1.yaml"
+    path, _ = create_stage_authorization(
+        root=root,
+        config_path=config_path,
+        config=config,
+        stage_id="pig_strenet_evidence",
+    )
+
+    valid, reason, validated_path = validate_stage_authorization(
+        root=root,
+        config_path=config_path,
+        config=config,
+        stage_id="pig_strenet_evidence",
+    )
+    assert valid is True
+    assert reason == "RUN_LOCAL_AUTHORIZATION_VALID"
+    assert validated_path == path
+
+    consumed = consume_stage_authorization(path)
+    assert not path.exists()
+    assert consumed.is_file()
+    payload = json.loads(consumed.read_text(encoding="utf-8"))
+    assert payload["status"] == "CONSUMED"
+
+
+def test_runner_consumes_run_local_authorization_once(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    root, loaded = load_config()
+    config = copy.deepcopy(loaded)
+    monkeypatch.setenv("CLASSIFICATION_V2_RUN_ROOT", str(tmp_path))
+    config_path = root / "configs/classification_v2/lineage_rebuild_v1.yaml"
+    authorization, _ = create_stage_authorization(
+        root=root,
+        config_path=config_path,
+        config=config,
+        stage_id="source_merge",
+    )
+    expected_sha = current_git_sha(root)
+    monkeypatch.setattr(run_lineage_stage, "load_config", lambda _: (root, config))
+    monkeypatch.setattr(
+        run_lineage_stage,
+        "source_bundle_report",
+        lambda *_: {"valid": True},
+    )
+    monkeypatch.setattr(run_lineage_stage, "_upstream_errors", lambda *_: [])
+
+    def fake_run(command: list[str], **_: object) -> SimpleNamespace:
+        if command[0] == "git":
+            return SimpleNamespace(returncode=0, stdout=f"{expected_sha}\n")
+        artifact = run_lineage_stage._artifact_path(
+            root,
+            config,
+            "source_merge",
+        )
+        artifact.parent.mkdir(parents=True, exist_ok=True)
+        artifact.write_text("synthetic\n", encoding="utf-8")
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(run_lineage_stage.subprocess, "run", fake_run)
+    monkeypatch.setattr(
+        run_lineage_stage,
+        "build_candidate_artifact_manifest",
+        lambda **_: None,
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "run_lineage_stage.py",
+            "--config",
+            str(config_path),
+            "--stage",
+            "source_merge",
+        ],
+    )
+
+    assert run_lineage_stage.main() == 0
+    assert not authorization.exists()
+    assert len(list(authorization.parent.glob("*.consumed.*.json"))) == 1
+
+
 def test_collision_rejection(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     root, config = load_config()
     config = copy.deepcopy(config)
-    config["authorization"]["authorizes_source_rebuild"] = True
+    _allow_run_local(monkeypatch, tmp_path)
     monkeypatch.setenv("CLASSIFICATION_V2_RUN_ROOT", str(tmp_path))
     output = tmp_path / "candidates" / "source_merge"
     output.mkdir(parents=True)
@@ -139,7 +262,7 @@ def test_publish_existing_skips_computation_and_publishes(
 ) -> None:
     root, config = load_config()
     config = copy.deepcopy(config)
-    config["authorization"]["authorizes_native_evidence"] = True
+    _allow_run_local(monkeypatch, tmp_path)
     monkeypatch.setenv("CLASSIFICATION_V2_RUN_ROOT", str(tmp_path))
     output = (
         tmp_path
@@ -205,7 +328,7 @@ def test_publish_existing_rejects_missing_declared_output(
 ) -> None:
     root, config = load_config()
     config = copy.deepcopy(config)
-    config["authorization"]["authorizes_native_evidence"] = True
+    _allow_run_local(monkeypatch, tmp_path)
     monkeypatch.setenv("CLASSIFICATION_V2_RUN_ROOT", str(tmp_path))
     monkeypatch.setattr(run_lineage_stage, "load_config", lambda _: (root, config))
     monkeypatch.setattr(
@@ -229,7 +352,6 @@ def test_one_stage_command_has_exactly_twelve_xmls(
 ) -> None:
     root, config = load_config()
     config = copy.deepcopy(config)
-    config["authorization"]["authorizes_source_rebuild"] = True
     monkeypatch.setenv("CLASSIFICATION_V2_RUN_ROOT", str(tmp_path))
     command = run_lineage_stage._command(root, config, "source_merge")
     assert command.count("--cvat-tracking-xml") == 12
@@ -263,7 +385,7 @@ def test_dry_run_does_not_invoke_downstream(
 ) -> None:
     root, config = load_config()
     config = copy.deepcopy(config)
-    config["authorization"]["authorizes_source_rebuild"] = True
+    _allow_run_local(monkeypatch, tmp_path)
     monkeypatch.setenv("CLASSIFICATION_V2_RUN_ROOT", str(tmp_path))
     called = []
     monkeypatch.setattr(
@@ -308,7 +430,6 @@ def test_windows_run_root_resolution(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_synthetic_lineage_interface(tmp_path: Path) -> None:
     root, config = load_config()
     config = copy.deepcopy(config)
-    config["authorization"]["authorizes_source_rebuild"] = True
     config["run_root_default"] = str(tmp_path)
     errors = lineage_preflight.validate_config(root, config)
     assert errors == []
@@ -339,8 +460,7 @@ def test_bounded_synthetic_lineage_uses_runner_interface(
 ) -> None:
     root, loaded = load_config()
     config = copy.deepcopy(loaded)
-    for flag in config["authorization"]:
-        config["authorization"][flag] = True
+    _allow_run_local(monkeypatch, tmp_path)
     monkeypatch.setenv("CLASSIFICATION_V2_RUN_ROOT", str(tmp_path))
     monkeypatch.setattr(run_lineage_stage, "load_config", lambda _: (root, config))
     monkeypatch.setattr(

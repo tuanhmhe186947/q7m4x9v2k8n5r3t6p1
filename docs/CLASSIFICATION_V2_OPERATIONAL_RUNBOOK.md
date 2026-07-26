@@ -12,7 +12,8 @@ From the repository root:
 set PYTHONPATH=%CD%\src
 set PYTHONDONTWRITEBYTECODE=1
 set PYTHONHASHSEED=0
-python scripts/classification_v2/lineage_preflight.py --config configs/classification_v2/lineage_rebuild_v1.yaml
+python scripts/classification_v2/lineage_preflight.py ^
+  --config configs/classification_v2/lineage_rebuild_v1.yaml
 ```
 
 Expected output is `status=PASS`, 72,880 legacy rows, 72,880 crop files, 12
@@ -48,16 +49,31 @@ repeat-comparison logic in a clean checkout.
 Each stage is invoked separately:
 
 ```bat
-python scripts/classification_v2/run_lineage_stage.py --config configs/classification_v2/lineage_rebuild_v1.yaml --stage source_merge
-python scripts/classification_v2/validate_lineage_stage.py --config configs/classification_v2/lineage_rebuild_v1.yaml --stage source_merge
+python scripts/classification_v2/authorize_lineage_stage.py ^
+  --config configs/classification_v2/lineage_rebuild_v1.yaml ^
+  --stage source_merge
+python scripts/classification_v2/run_lineage_stage.py ^
+  --config configs/classification_v2/lineage_rebuild_v1.yaml ^
+  --stage source_merge
+python scripts/classification_v2/validate_lineage_stage.py ^
+  --config configs/classification_v2/lineage_rebuild_v1.yaml ^
+  --stage source_merge
 ```
 
-After source acceptance, a human changes only the corresponding authorization
-flag from `false` to `true`, reviews the diff, and then runs:
+The canonical config keeps every authorization flag `false`. After source
+acceptance, authorize exactly one next stage through a single-use transaction
+under the external lineage root, then run and validate it:
 
 ```bat
-python scripts/classification_v2/run_lineage_stage.py --config configs/classification_v2/lineage_rebuild_v1.yaml --stage frame_local
-python scripts/classification_v2/validate_lineage_stage.py --config configs/classification_v2/lineage_rebuild_v1.yaml --stage frame_local
+python scripts/classification_v2/authorize_lineage_stage.py ^
+  --config configs/classification_v2/lineage_rebuild_v1.yaml ^
+  --stage frame_local
+python scripts/classification_v2/run_lineage_stage.py ^
+  --config configs/classification_v2/lineage_rebuild_v1.yaml ^
+  --stage frame_local
+python scripts/classification_v2/validate_lineage_stage.py ^
+  --config configs/classification_v2/lineage_rebuild_v1.yaml ^
+  --stage frame_local
 ```
 
 Repeat the same pair for:
@@ -80,6 +96,9 @@ model_input
 For every name above, use these exact templates:
 
 ```bat
+python scripts/classification_v2/authorize_lineage_stage.py ^
+  --config configs/classification_v2/lineage_rebuild_v1.yaml ^
+  --stage STAGE_NAME
 python scripts/classification_v2/run_lineage_stage.py ^
   --config configs/classification_v2/lineage_rebuild_v1.yaml ^
   --stage STAGE_NAME
@@ -91,8 +110,11 @@ python scripts/classification_v2/validate_lineage_stage.py ^
 Replace `STAGE_NAME` with exactly one listed stage ID. The runner validates the
 complete source bundle and each upstream manifest as current-authoritative,
 rejects unknown or unauthorized stages, refuses existing candidate paths,
-invokes only the selected stage, writes one production candidate manifest, and
-stops. The `train_ready` stage has two bounded operations within that stage:
+atomically consumes the run-local authorization before computation, invokes
+only the selected stage, writes one production candidate manifest, and stops.
+The transaction is bound to the lineage ID, exact config hash, Git SHA, source
+bundle and stage; it expires after 24 hours and cannot authorize a second run.
+The `train_ready` stage has two bounded operations within that stage:
 reviewed-window construction and explicit-whitelist tabular export. It never
 runs the next stage and never promotes a candidate to official.
 

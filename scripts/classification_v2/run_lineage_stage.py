@@ -18,6 +18,10 @@ from pig_behavior.classification_v2.contracts.candidate_manifest import (
 from pig_behavior.classification_v2.features.motion_schema import (
     MOTION_FEATURE_NAMES,
 )
+from pig_behavior.classification_v2.lineage_authorization import (
+    consume_stage_authorization,
+    validate_stage_authorization,
+)
 from pig_behavior.classification_v2.lineage_config import (
     load_config,
     resolve_source_path,
@@ -489,9 +493,24 @@ def main() -> int:
         return 1
     stage_id = args.stage
     flag = str(config["stages"][stage_id]["authorization_flag"])
-    if config["authorization"].get(flag) is not True:
-        print(json.dumps({"status": "BLOCKED", "reason": f"UNAUTHORIZED:{flag}"}))
+    valid, reason, authorization_path = validate_stage_authorization(
+        root=root,
+        config_path=args.config.resolve(),
+        config=config,
+        stage_id=stage_id,
+    )
+    if not valid:
+        print(
+            json.dumps(
+                {
+                    "status": "BLOCKED",
+                    "reason": f"UNAUTHORIZED:{flag}",
+                    "authorization_detail": reason,
+                }
+            )
+        )
         return 2
+    authorization_source = "run_local_single_use"
     if args.publish_existing:
         existing_output_errors = _existing_output_errors(
             root,
@@ -533,10 +552,32 @@ def main() -> int:
         )
         return 1
     commands = _commands(root, config, stage_id)
+    consumed_authorization: Path | None = None
+    if not args.dry_run and authorization_path is not None:
+        try:
+            consumed_authorization = consume_stage_authorization(
+                authorization_path
+            )
+        except (FileNotFoundError, KeyError, OSError, json.JSONDecodeError):
+            print(
+                json.dumps(
+                    {
+                        "status": "BLOCKED",
+                        "reason": "RUN_LOCAL_AUTHORIZATION_CONSUME_FAILED",
+                    }
+                )
+            )
+            return 2
     result = {
         "status": "PLANNED" if args.dry_run else "RUNNING",
         "stage": stage_id,
         "commands": commands,
+        "authorization_source": authorization_source,
+        "consumed_authorization": (
+            None
+            if consumed_authorization is None
+            else str(consumed_authorization)
+        ),
         "automatic_downstream_execution": False,
         "automatic_promotion": False,
         "publication_only": bool(args.publish_existing),
