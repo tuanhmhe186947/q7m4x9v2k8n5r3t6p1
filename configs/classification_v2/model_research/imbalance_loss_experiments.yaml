@@ -1,0 +1,90 @@
+# Classification V2 — imbalance-loss experiment specification (staged, controlled)
+# Companion to CLASSIFICATION_V2_BALANCED_MODEL_SCIENTIFIC_PROTOCOL.md
+# LABEL_AUTHORITY_STATUS: PROVISIONAL_TRUSTED_PRE_BEHAVIOR_REVIEW   PAPER_GRADE_USE: NO
+
+meta:
+  schema_version: classification_v2.model_research.imbalance_loss_experiments.v1
+  code_head_sha: 4fc94c2d3c9ebba5d6dc2ba6ad0aa5e7149e9c98
+  fixed_architecture: B3 (visual + geometry + motion)   # loss is isolated on ONE stable architecture
+  hold_constant: [split, seed_set, backbone, augmentation, optimizer, schedule, batch_construction, early_stopping_rule, temporal_view(T6_CONTIGUOUS)]
+  class_prior_source: TRAIN_FOLD_NATIVE_TEMPORAL_UNITS_ONLY   # NEVER validation/test
+  imbalance_unit_rule: >
+    Assess at the model unit (temporal-interval ~82:1 provisional; train-ready native-unit once available), NOT the 353:1
+    source-box ratio. Recompute all class statistics from the training fold only, per outer fold, after train-ready data exists.
+  prediction_collapse: overlapping windows -> ONE prediction per native temporal unit BEFORE scoring
+  seeds: {pilot: 1, screening: 3, claim_grade: 5}
+  selection_data: inner validation only
+
+# ---- the winning-loss rule (multi-criteria; NOT overall accuracy) ----
+primary_loss_selection_rule:
+  must_satisfy_all:
+    - improved macro_F1_supported (native temporal unit)
+    - improved or preserved balanced_accuracy
+    - meaningful rare-class recall (report support)
+    - no unacceptable collapse of common classes
+    - stable across recording-DATE folds (worst-date not catastrophic)
+    - acceptable calibration (NLL/Brier/ECE not materially worse than L0)
+    - no extreme gradient instability; no failed seeds attributable to the loss
+    - reproducible across >=3 (screening) / >=5 (claim-grade) seeds
+  disqualifier: a loss whose high macro-F1 comes from ONE unstable rare-class fold must NOT be declared the winner
+  output: select ONE primary loss and ONE fallback loss
+
+# ---- mandatory per-loss ablation table columns ----
+mandatory_ablation_table_columns:
+  [loss_name, exact_formula, class_prior_source, weight_or_margin_values, sampling_policy,
+   mean_macro_f1, ci95_macro_f1, balanced_accuracy, macro_recall, per_class_f1, per_class_recall,
+   per_class_precision, per_class_pr_auc_where_support, nll, brier, ece, worst_date_macro_f1,
+   source_stratified_macro_f1, rare_class_gradient_stats, convergence_stability, failed_seeds, runtime_delta]
+
+# ---- staged loss candidates ----
+losses:
+  L0_cross_entropy:
+    formula: "CE = -log p_y"
+    purpose: [unweighted reference, reveal majority-class bias, calibration reference]
+    weights: none
+  L1_weighted_ce:
+    formula: "CE weighted by w_c"
+    weight_strategies: [inverse_frequency, inverse_sqrt_frequency, capped_inverse_frequency]
+    guards: [bounded effective weight range, no extreme weights destabilizing training]
+    report_extra: [effective_weight_range, gradient_norms_by_class, majority_class_degradation, rare_class_recall]
+  L2_effective_number_cb:
+    formula: "w_c = (1-beta)/(1-beta^{n_c}); n_c = train-fold native-unit count"
+    beta_grid_preregistered: [0.99, 0.999, 0.9999]   # do NOT assume 0.9999 optimal
+    select_by: inner validation only
+  L3_balanced_softmax_logit_adjustment:
+    status: PRIMARY_CANDIDATE
+    variants: [BALANCED_SOFTMAX, LOGIT_ADJUSTMENT_TAU_0_5, LOGIT_ADJUSTMENT_TAU_1_0, LOGIT_ADJUSTMENT_TAU_TUNED_INNER_ONLY]
+    prior: log(train-fold native-unit class frequency), train fold only
+    report: [discrimination, calibration]   # both required
+    already_in_repo: training/imbalance_losses.py::balanced_softmax
+  L4_focal:
+    formula: "FL = (1-p_t)^gamma * CE"
+    gamma_grid: [0.5, 1.0, 2.0]
+    treat_as: controlled comparison (NOT automatically best long-tail)
+    analyze: ["improves hard examples?", "over-focuses noisy labels?", "harms calibration?", "degrades common-class recall?"]
+  L5_ldam_drw:
+    formula: "LDAM margin proportional to n_c^{-1/4}; deferred reweighting schedule"
+    precondition: stable baseline exists first
+    report: [margin_values, drw_schedule, sensitivity_to_rare_support, interaction_with_aux_heads]
+  L6_decoupled_crt_taunorm:
+    stages: [instance_balanced_representation_learning, classifier_only_retraining_balanced_sampling]
+    variants: [cRT, tau_normalization]
+    rationale: representation vs classifier imbalance may need different treatment
+  L7_sampling:
+    strategies: [natural, class_aware, event_balanced, rare_class_oversample_within_training_dates_only]
+    guards:
+      - no duplicate/near-duplicate leakage across folds
+      - do NOT oversample validation/test
+      - do NOT combine aggressive reweighting + aggressive oversampling without a separate ablation
+
+# ---- (correction 3) overlapping-window training-mass correction ----
+training_mass_correction:
+  problem: "overlapping windows inflate the effective training mass of native units that yield more windows"
+  options:
+    - "sample a FIXED number of windows per native unit per epoch (fixed windows/unit)"
+    - "sample_weight = native_unit_class_weight / windows_from_same_native_unit"
+  audit_required: "audit native-unit training mass BEFORE and AFTER correction (per class, per source); require native-unit mass parity"
+  reuses_repo: "event_weight_manifest.csv::event_balanced_sample_weight; fold_event_weight_manifest"
+  interacts_with: "apply the mass correction BEFORE fitting class priors/weights so priors reflect native-unit mass, not window mass"
+
+recompute_on_train_ready: "After train-ready data exists, recompute all class priors/weights per outer fold from the TRAIN fold only (after training-mass correction), then re-run L0-L7 selection."
