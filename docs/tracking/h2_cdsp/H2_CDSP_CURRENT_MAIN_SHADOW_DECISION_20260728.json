@@ -2,13 +2,18 @@
   "aggregate": {
     "control_overpreservation_events": 4,
     "control_preservation_events": 2206,
+    "current_main_exact_events_reproduced": 0,
+    "current_main_mechanism_reproduced": 0,
     "h2_shadow_baseline_state_loss_points": 0,
     "h2_shadow_extra_usable_state_at_reentry": 0,
     "h2_shadow_preservable_states": 8163,
     "h2_shadow_states_surviving_to_reentry": 7852,
+    "h2_shadow_terminal_revival_attempts": 0,
     "positive_windows_with_extra_usable_state": 0,
     "positive_windows_with_reentry_survival": 6,
-    "positive_windows_with_state_loss": 0
+    "positive_windows_with_state_loss": 0,
+    "stale_state_risk_events": 4,
+    "stale_state_risk_unit": "control_windows_with_overpreservation"
   },
   "artifact_authority": {
     "artifact_inventory_sha256": "8c0367cc515ff7a538723e4124821548a313cb0813d26768e2d27e7db07a1ea9",
