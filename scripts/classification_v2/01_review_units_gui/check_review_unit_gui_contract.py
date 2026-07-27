@@ -13,6 +13,26 @@ from pig_behavior.classification_v2.review.behavior_review_contract import (
     audit_review_unit_contract,
 )
 
+GUI_CONTRACT_FRAME_COLUMNS = (
+    "temporal_unit_key",
+    "source_type",
+    "frame_index",
+)
+
+
+def load_contract_frames(path: Path) -> pd.DataFrame:
+    """Read the minimal frame projection required by the GUI contract."""
+
+    available = set(pd.read_csv(path, nrows=0).columns)
+    missing = sorted(set(GUI_CONTRACT_FRAME_COLUMNS).difference(available))
+    if missing:
+        raise SystemExit(f"Frame feature CSV missing contract columns: {missing}")
+    return pd.read_csv(
+        path,
+        usecols=list(GUI_CONTRACT_FRAME_COLUMNS),
+        low_memory=False,
+    )
+
 
 def validate_gui_contract(units: pd.DataFrame, frames: pd.DataFrame) -> dict[str, Any]:
     contract = audit_review_unit_contract(units)
@@ -56,7 +76,7 @@ def main() -> None:
     parser.add_argument("--audit-json", type=Path, required=True)
     args = parser.parse_args()
     units = pd.read_csv(args.review_units_csv, low_memory=False)
-    frames = pd.read_csv(args.frame_features_csv, low_memory=False)
+    frames = load_contract_frames(args.frame_features_csv)
     audit = validate_gui_contract(units, frames)
     args.audit_json.parent.mkdir(parents=True, exist_ok=True)
     args.audit_json.write_text(

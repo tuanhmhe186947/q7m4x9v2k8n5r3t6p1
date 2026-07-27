@@ -32,6 +32,50 @@ except Exception:  # pragma: no cover
 
 VALID_BEHAVIORS = sorted(CANONICAL_BEHAVIORS)
 
+GUI_FRAME_COLUMNS = (
+    "source_type",
+    "dataset_id",
+    "video_key",
+    "source_video_key",
+    "source_video_path",
+    "frame_index",
+    "relative_frame_index",
+    "pig_id",
+    "track_id",
+    "object_track_key",
+    "x1",
+    "y1",
+    "x2",
+    "y2",
+    "crop_path",
+    "image_path",
+    "frame_path",
+)
+GUI_REQUIRED_FRAME_COLUMNS = frozenset(
+    {
+        "source_type",
+        "dataset_id",
+        "video_key",
+        "frame_index",
+        "pig_id",
+        "x1",
+        "y1",
+        "x2",
+        "y2",
+    }
+)
+
+
+def load_gui_frame_features(path: Path) -> pd.DataFrame:
+    """Load only columns needed to render review media and actor context."""
+
+    available = set(pd.read_csv(path, nrows=0).columns)
+    missing = sorted(GUI_REQUIRED_FRAME_COLUMNS.difference(available))
+    if missing:
+        raise SystemExit(f"Frame feature CSV missing GUI columns: {missing}")
+    usecols = [column for column in GUI_FRAME_COLUMNS if column in available]
+    return pd.read_csv(path, usecols=usecols, low_memory=False)
+
 
 @dataclass(slots=True)
 class GuiConfig:
@@ -92,7 +136,7 @@ class ReviewUnitGui:
             (self.config.output_dir / "contact_sheets").mkdir(parents=True, exist_ok=True)
 
         self.units = self._load_units(config.review_units_csv)
-        self.frames = pd.read_csv(config.frame_features_csv, low_memory=False)
+        self.frames = load_gui_frame_features(config.frame_features_csv)
         self.frames["frame_index"] = pd.to_numeric(self.frames.get("frame_index"), errors="coerce")
         if "relative_frame_index" in self.frames.columns:
             self.frames["relative_frame_index"] = pd.to_numeric(

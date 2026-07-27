@@ -156,6 +156,30 @@ migrating, or accepting decisions is never automatic. Place each file only
 after its human gate and validate it before enabling the corresponding stage.
 A stage authorization does not change release or training authorization.
 
+## Behavior GUI readiness
+
+After `behavior_review_units` validates, audit the published Pig-STRENet pixels,
+all native actor rows, legacy crops, Hidden provenance, and media file identity
+without reopening or rehashing large video containers:
+Set `RUN_ROOT` to the config run root and `L16CROPS` to the canonical
+`sources.legacy_crop_root` before running:
+
+```bat
+python scripts/classification_v2/01_review_units_gui/check_behavior_review_gui_readiness.py ^
+  --review-units-csv RUN_ROOT\candidates\behavior_review_units\full_review_unit_manifest.csv ^
+  --native-evidence-csv RUN_ROOT\candidates\native_evidence\native_review_evidence.csv ^
+  --pig-strenet-artifact-dir RUN_ROOT\candidates\pig_strenet_evidence ^
+  --hidden-apply-manifest RUN_ROOT\manifests\hidden_apply.candidate.json ^
+  --legacy-crop-root "%L16CROPS%" ^
+  --output-json RUN_ROOT\candidates\behavior_review_units\behavior_gui_readiness_audit.json
+```
+
+The audit must report `valid=true`, unique review keys, complete actor-frame
+coverage, zero missing or broken crop/scene media, zero wrong-actor media, and
+Hidden metadata from `VALIDATED_CURRENT_CANONICAL_LEDGER`. The separate GUI
+contract checker must also pass before opening Tk. Both the GUI and checker
+load a bounded frame-column projection rather than the full evidence table.
+
 ## Stop boundaries
 
 Stop on any source fingerprint mismatch, stale path, missing upstream manifest,
