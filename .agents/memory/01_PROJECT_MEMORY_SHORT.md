@@ -1,5 +1,20 @@
 # Project Memory Short
 
+## 2026-07-27 H1-r3 shadow prerequisite failed: no activation
+
+- The reservation-disabled observer was side-effect-free and baseline outputs
+  remained semantically identical on all six frozen development episodes.
+- `1,518` shadow pairs were observed; `958` were core eligible and scored, but
+  `0` crossed the frozen `0.625` score and `0.25` support-margin gate.
+- The maximum uncalibrated `owner_preference_lower_bound` was
+  `0.59954303046`; no positive or control episode had a would-activation.
+- Shared-cache replay used zero detector/GPU inference, produced zero MP4s,
+  and preserved causal delay zero, prefix invariance, and no-future access.
+- Decision: `FAIL_NO_SHADOW_ACTIVATION`. Association implementation is not
+  ready; evaluation, validation, runtime, and promotion remain unauthorized.
+- The disabled diagnostic observer may remain as reusable telemetry, but it
+  provides no authority to change assignments or tune the frozen gate.
+
 ## 2026-07-27 H1-r3 scientific design frozen
 
 - Independent review: `PASS_DESIGN`; deterministic checker: `PASS`.
