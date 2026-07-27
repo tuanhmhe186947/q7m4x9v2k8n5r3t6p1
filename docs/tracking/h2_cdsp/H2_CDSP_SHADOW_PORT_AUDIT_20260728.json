@@ -1,0 +1,38 @@
+{
+  "schema_version": "tracking.h2_cdsp_shadow_port_audit.v1",
+  "audit_date": "2026-07-28",
+  "live_main_parent": "1d039373313a694f1cccbbba0b19dd6d7692f073",
+  "historical_shadow_branch": "agent/tracking-h2-cdsp-shadow",
+  "historical_shadow_tip": "e77df625082e95c778a7179eabd1361a25f24afd",
+  "historical_observer_commit": "6c03a65",
+  "historical_test_commit": "4ed8ca9",
+  "continuation_observer_commit": "14a6442",
+  "continuation_test_commit": "c23f105",
+  "port_method": "HUNK_REVIEW_THEN_CLEAN_CHERRY_PICK",
+  "mechanical_api_adaptations": [],
+  "semantic_differences": [],
+  "file_comparison": {
+    "src/pig_behavior/tracking/constants.py": "BYTE_EQUIVALENT_TO_HISTORICAL_SHADOW",
+    "src/pig_behavior/tracking/h2_cdsp_shadow.py": "BYTE_EQUIVALENT_TO_HISTORICAL_SHADOW",
+    "src/pig_behavior/tracking/runner.py": "BYTE_EQUIVALENT_TO_HISTORICAL_SHADOW",
+    "src/pig_behavior/tracking/schemas.py": "BYTE_EQUIVALENT_TO_HISTORICAL_SHADOW",
+    "src/pig_behavior/tracking/telemetry.py": "BYTE_EQUIVALENT_TO_HISTORICAL_SHADOW",
+    "tests/test_tracking_h2_cdsp_shadow.py": "BYTE_EQUIVALENT_TO_HISTORICAL_SHADOW"
+  },
+  "frozen_semantics_preserved": {
+    "confidence_decay": true,
+    "uncertainty_growth": true,
+    "appearance_reliability_decay": true,
+    "motion_reliability_decay": true,
+    "maximum_preservation_duration": true,
+    "state_machine_transitions": true,
+    "eligibility_and_invalidation": true,
+    "development_boundaries_and_roles": true,
+    "validation_artifacts": true
+  },
+  "observer_disabled_by_default": true,
+  "observer_returns_diagnostics_only": true,
+  "production_assignment_or_cost_consumer_added": false,
+  "historical_fail_contract_decision_ported": false,
+  "port_conclusion": "PASS_SEMANTICALLY_IDENTICAL"
+}
