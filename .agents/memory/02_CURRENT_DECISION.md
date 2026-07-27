@@ -1,5 +1,23 @@
 # Current Decision
 
+## H2-CDSP design passed; shadow remains unauthorized (2026-07-27)
+
+- `H2_HYPOTHESIS_NAME=CAUSAL_DROPOUT_STATE_PRESERVATION`
+- `H2_DESIGN_CHECKER=PASS`
+- `INDEPENDENT_REVIEW=PASS_DESIGN`
+- `READY_FOR_CURRENT_MAIN_SHADOW_AUTHORIZATION=YES`
+- `H2_IMPLEMENTATION_AUTHORIZED=NO`
+- `H2_SHADOW_EXECUTION_AUTHORIZED=NO`
+- Association evaluation, validation, runtime, and promotion are unauthorized.
+
+H2 is a bounded state-preservation hypothesis, materially distinct from H1.
+It exposes only a `PreservedStateEvidence` record; it does not reserve or
+directly assign detections. The future current-main shadow must reproduce real
+baseline state loss on at least two video keys and two recording sessions,
+remain side-effect-free, and bind exact code, configuration, cache, source,
+GT, and canonical-output lineage. Historical `b0d9009` evidence remains
+mechanism-discovery only.
+
 ## Hidden-owner line closed; next design candidate only (2026-07-27)
 
 - `HIDDEN_OWNER_PREFERENCE_FAMILY_STATUS=CLOSED_FOR_CURRENT_STUDY`

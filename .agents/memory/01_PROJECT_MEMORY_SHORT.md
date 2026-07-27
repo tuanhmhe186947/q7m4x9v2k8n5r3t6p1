@@ -1,5 +1,24 @@
 # Project Memory Short
 
+## 2026-07-27 H2-CDSP scientific design frozen
+
+- `H2_CAUSAL_DROPOUT_STATE_PRESERVATION` passed its deterministic design
+  checker and independent scientific review.
+- Historical RF_ACC23 evidence at `b0d9009` remains
+  `MECHANISM_DISCOVERY_ONLY`; current-main failure prevalence is
+  `NOT_MEASURED`, and unresolved event `000216` is excluded.
+- H2 preserves a bounded same-track snapshot across short dropout. It never
+  reserves, directly assigns, creates, or emits a detection or track.
+- Frozen state confidence has a six-frame half-life; uncertainty grows
+  monotonically; preservation is finite at ten frames; 18/18 golden cases
+  pass.
+- The only permitted future association consumer is one-for-one substitution
+  for absent/degraded track-local evidence through unchanged ordinary
+  association.
+- A separate current-main side-effect-free shadow authorization is the next
+  possible step. It must pass on at least two video keys and two recording
+  sessions. Implementation and all tracking execution remain unauthorized.
+
 ## 2026-07-27 H1 family closed; RF_ACC23 error taxonomy
 
 - H1-r1/r2/r3 are closed for the current study. H1-r3 ended
