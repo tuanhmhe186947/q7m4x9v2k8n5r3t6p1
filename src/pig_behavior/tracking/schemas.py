@@ -81,6 +81,11 @@ class TrackingRuntimeState:
     h1_r3_shadow_candidate_rows: list[dict[str, object]] = field(
         default_factory=list
     )
+    h2_shadow_enabled: bool = False
+    h2_shadow_track_states: dict[int, object] = field(default_factory=dict)
+    h2_shadow_transition_rows: list[dict[str, object]] = field(
+        default_factory=list
+    )
 
 
 @dataclass(slots=True)
@@ -459,6 +464,9 @@ class TrackingSummary:
     output_fps: float
     telemetry: dict[str, int | float | str]
     h1_r3_shadow_candidate_rows: list[dict[str, object]] = field(
+        default_factory=list
+    )
+    h2_shadow_transition_rows: list[dict[str, object]] = field(
         default_factory=list
     )
 
