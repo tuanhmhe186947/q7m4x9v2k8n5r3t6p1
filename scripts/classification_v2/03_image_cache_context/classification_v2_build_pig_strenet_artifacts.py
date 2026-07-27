@@ -167,6 +167,17 @@ def parse_args() -> argparse.Namespace:
         required=True,
         help="Declare whether this artifact run is a bounded smoke or full run.",
     )
+    parser.add_argument(
+        "--lineage-scope",
+        default=None,
+        help="Explicit lineage claim when the input artifact omits that column.",
+    )
+    parser.add_argument(
+        "--human-review-complete",
+        choices=("false", "true"),
+        default=None,
+        help="Explicit review claim when the input artifact omits that column.",
+    )
     parser.add_argument("--skip-difference", action="store_true")
     parser.add_argument(
         "--progress-json",
@@ -450,8 +461,14 @@ def main() -> None:
         "schema_version": SCHEMA_VERSION,
         "run_type": f"pig_strenet_review_artifacts_{args.run_scope}",
         "run_scope": args.run_scope,
-        "lineage_scope": _lineage_scope(frames),
-        "human_review_complete": _review_claim(frames),
+        "lineage_scope": _lineage_scope(
+            frames,
+            override=args.lineage_scope,
+        ),
+        "human_review_complete": _review_claim(
+            frames,
+            override=args.human_review_complete,
+        ),
         "input": {"path": str(args.input_csv), "sha256": _sha256(args.input_csv)},
         "output_dir": str(args.output_dir),
         "audit_path": str(audit_path),
@@ -563,17 +580,21 @@ def _recover_publication(
         progress_callback=progress,
         checkpoint_path=checkpoint_dir / "media_publication.sqlite3",
     )
-    claims = pd.read_csv(
+    claims = _read_publication_claims(
         args.input_csv,
-        usecols=["lineage_scope", "human_review_complete"],
-        low_memory=False,
     )
     run_manifest = {
         "schema_version": SCHEMA_VERSION,
         "run_type": f"pig_strenet_review_artifacts_{args.run_scope}",
         "run_scope": args.run_scope,
-        "lineage_scope": _lineage_scope(claims),
-        "human_review_complete": _review_claim(claims),
+        "lineage_scope": _lineage_scope(
+            claims,
+            override=args.lineage_scope,
+        ),
+        "human_review_complete": _review_claim(
+            claims,
+            override=args.human_review_complete,
+        ),
         "input": {
             "path": str(args.input_csv),
             "sha256": _sha256(args.input_csv),
@@ -1686,16 +1707,64 @@ def _jsonable(value: Any) -> Any:
     return str(value)
 
 
-def _lineage_scope(frames: pd.DataFrame) -> str:
-    values = set(frames.get("lineage_scope", pd.Series(dtype=str)).fillna("").astype(str))
+def _read_publication_claims(path: Path) -> pd.DataFrame:
+    columns = set(pd.read_csv(path, nrows=0).columns)
+    usecols = sorted(
+        columns.intersection({"lineage_scope", "human_review_complete"})
+    )
+    if not usecols:
+        return pd.DataFrame(index=[0])
+    return pd.read_csv(path, usecols=usecols, low_memory=False)
+
+
+def _lineage_scope(
+    frames: pd.DataFrame,
+    *,
+    override: str | None = None,
+) -> str:
+    values = set(
+        frames.get("lineage_scope", pd.Series(dtype=str))
+        .fillna("")
+        .astype(str)
+    )
+    values.discard("")
+    if override is not None:
+        if values and values != {override}:
+            raise ValueError(
+                "input lineage scope conflicts with explicit claim="
+                f"{sorted(values)}!={override}"
+            )
+        return override
     if len(values) != 1:
         raise ValueError(f"input lineage scope is ambiguous={sorted(values)}")
     return next(iter(values))
 
 
-def _review_claim(frames: pd.DataFrame) -> bool:
-    values = frames.get("human_review_complete", pd.Series([False] * len(frames)))
-    normalized = values.fillna(False).astype(str).str.lower().isin({"true", "1", "yes"})
+def _review_claim(
+    frames: pd.DataFrame,
+    *,
+    override: str | None = None,
+) -> bool:
+    column_present = "human_review_complete" in frames.columns
+    values = frames.get(
+        "human_review_complete",
+        pd.Series([False] * len(frames)),
+    )
+    normalized = (
+        values.fillna(False)
+        .astype(str)
+        .str.lower()
+        .isin({"true", "1", "yes"})
+    )
+    if override is not None:
+        expected = override == "true"
+        if column_present and normalized.nunique() != 1:
+            raise ValueError("human_review_complete claim is mixed")
+        if column_present and bool(normalized.iloc[0]) != expected:
+            raise ValueError(
+                "input human_review_complete conflicts with explicit claim"
+            )
+        return expected
     if normalized.nunique() != 1:
         raise ValueError("human_review_complete claim is mixed")
     return bool(normalized.iloc[0])

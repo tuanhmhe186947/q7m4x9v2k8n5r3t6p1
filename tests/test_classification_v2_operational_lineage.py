@@ -543,6 +543,21 @@ def test_frame_local_schema_is_a_candidate_output(
     )
 
 
+def test_pig_strenet_command_supplies_explicit_publication_claims() -> None:
+    root, config = load_config()
+
+    command = run_lineage_stage._command(
+        root,
+        config,
+        "pig_strenet_evidence",
+    )
+
+    assert command[command.index("--lineage-scope") + 1] == (
+        config["lineage_id"]
+    )
+    assert command[command.index("--human-review-complete") + 1] == "false"
+
+
 def test_dry_run_does_not_invoke_downstream(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:

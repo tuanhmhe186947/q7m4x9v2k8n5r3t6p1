@@ -243,6 +243,10 @@ def _command(root: Path, config: dict[str, Any], stage_id: str) -> list[str]:
             str(resolve_source_path(root, config, "legacy_crop_root")),
             "--run-scope",
             "full",
+            "--lineage-scope",
+            str(config["lineage_id"]),
+            "--human-review-complete",
+            "false",
         ]
     if stage_id == "behavior_review_units":
         return [
