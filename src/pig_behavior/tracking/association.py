@@ -18,6 +18,12 @@ from pig_behavior.tracking.geometry import (
     center_distance_norm,
     clip_box,
 )
+from pig_behavior.tracking.h1_r3_shadow import (
+    build_h1_r3_evidence,
+    decide_h1_r3_shadow,
+    record_h1_r3_shadow_counter,
+    shadow_decision_row,
+)
 from pig_behavior.tracking.masks import track_detection_overlap_score
 from pig_behavior.tracking.occlusion import (
     apply_iou_fallback,
@@ -780,6 +786,142 @@ def _record_h1_r2_decision(
         )
     elif decision.reason == "score_invalid":
         _record_h1_r2_counter(runtime, "h1_r2_score_invalid")
+
+
+def observe_h1_r3_shadow_pairs(
+    costs: np.ndarray,
+    candidate_tracks: list[FixedTrack],
+    detection_indices: list[int],
+    detections: list[Detection],
+    hidden_tracks: list[FixedTrack],
+    matched_tracks: set[int],
+    width: int,
+    height: int,
+    cfg: TrackingConfig,
+    runtime: TrackingRuntimeState | None,
+    frame_index: int | None,
+    rows: np.ndarray,
+    cols: np.ndarray,
+) -> None:
+    """Observe frozen H1-r3 support without changing association state."""
+    if runtime is None or not runtime.h1_r3_shadow_enabled:
+        return
+    offered = [
+        track
+        for track in hidden_tracks
+        if track.ever_detected and track.fixed_id not in matched_tracks
+    ]
+    if not candidate_tracks or not offered:
+        return
+    record_h1_r3_shadow_counter(runtime, "h1_r3_shadow_stage_calls")
+    record_h1_r3_shadow_counter(
+        runtime,
+        "h1_r3_shadow_hidden_tracks_offered",
+        len(offered),
+    )
+    for row, col in zip(rows, cols, strict=True):
+        visible_track = candidate_tracks[int(row)]
+        det_idx = detection_indices[int(col)]
+        if visible_track.fixed_id in matched_tracks:
+            continue
+        selected_cost = float(costs[int(row), int(col)])
+        if (
+            not np.isfinite(selected_cost)
+            or selected_cost >= 1_000_000.0
+            or selected_cost
+            > association_cost_threshold(visible_track, cfg)
+        ):
+            continue
+        detection = detections[det_idx]
+        for hidden_track in offered:
+            record_h1_r3_shadow_counter(
+                runtime,
+                "h1_r3_shadow_pair_candidates",
+            )
+            try:
+                hidden_evidence = build_h1_r3_evidence(
+                    hidden_track,
+                    detection,
+                    width,
+                    height,
+                )
+                visible_evidence = build_h1_r3_evidence(
+                    visible_track,
+                    detection,
+                    width,
+                    height,
+                )
+                decision = decide_h1_r3_shadow(
+                    hidden_evidence,
+                    visible_evidence,
+                    detection_confidence=detection.score,
+                )
+            except (TypeError, ValueError, FloatingPointError):
+                record_h1_r3_shadow_counter(
+                    runtime,
+                    "h1_r3_shadow_invalid_numeric",
+                )
+                continue
+            if decision.core_eligible:
+                record_h1_r3_shadow_counter(
+                    runtime,
+                    "h1_r3_shadow_core_eligible_pairs",
+                )
+                record_h1_r3_shadow_counter(
+                    runtime,
+                    "h1_r3_shadow_score_pairs",
+                )
+            if (
+                decision.hidden.appearance_available
+                and decision.visible.appearance_available
+            ):
+                record_h1_r3_shadow_counter(
+                    runtime,
+                    "h1_r3_shadow_optional_appearance_available",
+                )
+            if (
+                decision.hidden.motion_available
+                and decision.visible.motion_available
+            ):
+                record_h1_r3_shadow_counter(
+                    runtime,
+                    "h1_r3_shadow_optional_motion_available",
+                )
+            if decision.abstention_reason == "missing_core_overlap":
+                record_h1_r3_shadow_counter(
+                    runtime,
+                    "h1_r3_shadow_missing_core_overlap",
+                )
+            elif decision.abstention_reason == "missing_core_freshness":
+                record_h1_r3_shadow_counter(
+                    runtime,
+                    "h1_r3_shadow_missing_core_freshness",
+                )
+            elif decision.abstention_reason == "relative_overlap_margin":
+                record_h1_r3_shadow_counter(
+                    runtime,
+                    "h1_r3_shadow_margin_failed",
+                )
+            elif decision.abstention_reason == "below_threshold":
+                record_h1_r3_shadow_counter(
+                    runtime,
+                    "h1_r3_shadow_below_threshold",
+                )
+            if decision.would_activate:
+                record_h1_r3_shadow_counter(
+                    runtime,
+                    "h1_r3_shadow_would_activate",
+                )
+            runtime.h1_r3_shadow_candidate_rows.append(
+                shadow_decision_row(
+                    decision,
+                    frame_index=frame_index,
+                    hidden_track_id=hidden_track.fixed_id,
+                    visible_track_id=visible_track.fixed_id,
+                    detection_index=det_idx,
+                    selected_cost=selected_cost,
+                )
+            )
 
 
 def apply_h1_r2_hidden_owner_preference(
@@ -2290,6 +2432,21 @@ def match_and_update_tracks(
                 runtime,
                 frame_index,
                 mean_core_cache,
+            )
+            observe_h1_r3_shadow_pairs(
+                costs,
+                candidate_tracks,
+                detection_indices,
+                detections,
+                hidden_tracks_for_reservation,
+                matched_tracks,
+                width,
+                height,
+                cfg,
+                runtime,
+                frame_index,
+                rows,
+                cols,
             )
         selected_track_by_det = {
             detection_indices[col]: candidate_tracks[row].fixed_id
