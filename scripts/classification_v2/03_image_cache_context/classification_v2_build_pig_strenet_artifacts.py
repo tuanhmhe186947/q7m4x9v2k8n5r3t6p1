@@ -13,6 +13,7 @@ import argparse
 import hashlib
 import inspect
 import json
+import os
 import platform
 import subprocess
 import sys
@@ -35,6 +36,9 @@ from pig_behavior.classification_v2.features.pig_strenet_artifacts import (
     compute_stabilized_difference_maps,
     model_x_columns,
 )
+from pig_behavior.classification_v2.features.pig_strenet_checkpoint import (
+    PigSTRENetCheckpointStore,
+)
 
 SCHEMA_VERSION = "classification_v2.pig_strenet_artifact_run.v3"
 
@@ -42,14 +46,26 @@ SCHEMA_VERSION = "classification_v2.pig_strenet_artifact_run.v3"
 class _ProgressReporter:
     """Atomically publish durable, non-semantic full-stage progress."""
 
-    def __init__(self, path: Path, *, input_csv: Path, run_scope: str) -> None:
+    def __init__(
+        self,
+        path: Path,
+        *,
+        input_csv: Path,
+        run_scope: str,
+        resumed: bool = False,
+    ) -> None:
         self._path = path
         self._started = monotonic()
+        self._phase = "initializing"
+        self._phase_started = self._started
+        self._phase_initial_completed = 0
         self._payload: dict[str, Any] = {
             "schema_version": "classification_v2.stage_progress.v1",
             "status": "RUNNING",
             "run_scope": run_scope,
             "input_csv": str(input_csv),
+            "process_id": os.getpid(),
+            "resumed": resumed,
             "phase": "initializing",
             "completed": 0,
             "total": None,
@@ -65,10 +81,20 @@ class _ProgressReporter:
         completed: int | None,
         total: int | None,
     ) -> None:
-        elapsed = monotonic() - self._started
+        now = monotonic()
+        elapsed = now - self._started
+        if phase != self._phase:
+            self._phase = phase
+            self._phase_started = now
+            self._phase_initial_completed = int(completed or 0)
+        phase_elapsed = now - self._phase_started
+        phase_units = int(completed or 0) - self._phase_initial_completed
         remaining: float | None = None
-        if total is not None and completed is not None and completed > 0:
-            remaining = max(0.0, (elapsed / completed) * (total - completed))
+        if total is not None and completed is not None and phase_units > 0:
+            remaining = max(
+                0.0,
+                (phase_elapsed / phase_units) * (total - completed),
+            )
         self._payload.update(
             phase=phase,
             completed=completed,
@@ -140,6 +166,22 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Atomic heartbeat JSON; defaults inside --output-dir.",
     )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume only from an exact hash-matching checkpoint.",
+    )
+    parser.add_argument(
+        "--checkpoint-dir",
+        type=Path,
+        default=None,
+        help="Defaults to <output-dir>/.checkpoints.",
+    )
+    parser.add_argument(
+        "--social-checkpoint-pairs",
+        type=int,
+        default=250,
+    )
     parser.add_argument("--overwrite", action="store_true")
     return parser.parse_args()
 
@@ -149,7 +191,7 @@ def main() -> None:
     if not args.input_csv.is_file():
         raise FileNotFoundError(args.input_csv)
     if args.output_dir.exists():
-        if not args.overwrite:
+        if not args.overwrite and not args.resume:
             raise FileExistsError(
                 f"output exists; use a fresh root or --overwrite: {args.output_dir}"
             )
@@ -159,12 +201,26 @@ def main() -> None:
         raise ValueError("--difference-size must be positive")
     if args.visual_size <= 0:
         raise ValueError("--visual-size must be positive")
+    if args.social_checkpoint_pairs <= 0:
+        raise ValueError("--social-checkpoint-pairs must be positive")
 
     progress = _ProgressReporter(
         args.progress_json or args.output_dir / "pig_strenet_progress.json",
         input_csv=args.input_csv,
         run_scope=args.run_scope,
+        resumed=args.resume,
     )
+    previous_excepthook = sys.excepthook
+
+    def report_unhandled(
+        error_type: type[BaseException],
+        error: BaseException,
+        traceback: Any,
+    ) -> None:
+        progress.fail(error)
+        previous_excepthook(error_type, error, traceback)
+
+    sys.excepthook = report_unhandled
     progress("read_input", 0, 1)
     frames = pd.read_csv(args.input_csv, low_memory=False)
     progress("read_input", 1, 1)
@@ -177,6 +233,17 @@ def main() -> None:
     )
     if not starts:
         raise ValueError("--legacy-target-starts must not be empty")
+    implementation = _implementation_lineage()
+    checkpoint_store = PigSTRENetCheckpointStore(
+        args.checkpoint_dir or args.output_dir / ".checkpoints",
+        identity=_checkpoint_identity(
+            args,
+            starts=starts,
+            implementation=implementation,
+        ),
+        resume=args.resume,
+        social_chunk_pairs=args.social_checkpoint_pairs,
+    )
 
     try:
         artifacts = build_pig_strenet_artifacts(
@@ -188,6 +255,7 @@ def main() -> None:
             target_unit_keys=target_unit_keys,
             roi_coco_path=args.roi_coco,
             progress_callback=progress,
+            checkpoint_store=checkpoint_store,
         )
     except Exception as error:
         progress.fail(error)
@@ -347,7 +415,7 @@ def main() -> None:
             key: _jsonable(value) for key, value in vars(args).items()
             if key != "overwrite"
         },
-        "implementation": _implementation_lineage(),
+        "implementation": implementation,
         "environment": _environment_lineage(),
         "artifact_manifest": artifact_manifest,
         "training_started": False,
@@ -367,7 +435,11 @@ def main() -> None:
     )
     print(json.dumps(audit, indent=2, ensure_ascii=False, sort_keys=True))
     if not audit.get("valid", False):
+        progress.fail(
+            RuntimeError("Pig-STRENet artifact/media contract failed")
+        )
         raise SystemExit("FAIL: Pig-STRENet artifact/media contract")
+    checkpoint_store.cleanup()
 
 
 def _select_target_unit_keys(
@@ -394,20 +466,34 @@ def _write_difference_artifacts(
     media: FrameMediaResolver,
     image_size: int,
 ) -> dict[str, Any]:
-    maps: list[np.ndarray] = []
-    summaries: list[pd.DataFrame] = []
+    maps_path = output_dir / "stabilized_difference_maps_f32.npy"
+    maps_temporary = maps_path.with_name(f"{maps_path.name}.partial.npy")
+    summary_path = output_dir / "stabilized_difference_summary.csv"
+    summary_temporary = summary_path.with_name(f"{summary_path.name}.partial")
+    provenance_path = output_dir / "difference_pixel_index.csv"
+    provenance_temporary = provenance_path.with_name(
+        f"{provenance_path.name}.partial"
+    )
+    for path in (maps_temporary, summary_temporary, provenance_temporary):
+        path.unlink(missing_ok=True)
+    maps_memmap: np.memmap | None = None
+    maps_shape: tuple[int, ...] | None = None
+    maps_written = 0
+    summary_header = True
+    provenance_header = True
     pair_ids: list[str] = []
     skipped = 0
     available_frame_slots = 0
     missing_available_frame_slots = 0
-    provenance_rows: list[dict[str, Any]] = []
     frame_lookup = {
         str(value): row for value, row in frames.set_index("frame_uid").iterrows()
     }
+    pair_total = int(slots["pair_id"].nunique())
     for pair_id, group in slots.groupby("pair_id", sort=False):
         ordered = group.sort_values("global_slot_index")
         crops: list[np.ndarray] = []
         valid: list[bool] = []
+        provenance_rows: list[dict[str, Any]] = []
         for row in ordered.itertuples(index=False):
             source = frame_lookup.get(str(row.frame_uid))
             result = media.read_actor(source, image_size=image_size)
@@ -434,6 +520,11 @@ def _write_difference_artifacts(
                     **result.provenance(),
                 }
             )
+        provenance_header = _append_csv_records(
+            provenance_temporary,
+            provenance_rows,
+            header=provenance_header,
+        )
         if sum(valid) < 2:
             skipped += 1
             continue
@@ -443,26 +534,45 @@ def _write_difference_artifacts(
         )
         summary.insert(0, "pair_id", str(pair_id))
         summary["pair_valid"] = pair_valid
-        maps.append(diff_maps)
-        summaries.append(summary)
+        if maps_memmap is None:
+            maps_shape = tuple(int(value) for value in diff_maps.shape)
+            maps_memmap = np.lib.format.open_memmap(
+                maps_temporary,
+                mode="w+",
+                dtype=np.float32,
+                shape=(pair_total, *maps_shape),
+            )
+        maps_memmap[maps_written] = diff_maps.astype(np.float32, copy=False)
+        maps_written += 1
+        summary_header = _append_csv_frame(
+            summary_temporary,
+            summary,
+            header=summary_header,
+        )
         pair_ids.append(str(pair_id))
-    maps_path = output_dir / "stabilized_difference_maps_f32.npy"
-    summary_path = output_dir / "stabilized_difference_summary.csv"
-    if maps:
-        np.save(maps_path, np.stack(maps).astype(np.float32))
-        summary = pd.concat(summaries, ignore_index=True)
-        summary.to_csv(summary_path, index=False, lineterminator="\n")
+    if maps_memmap is not None and maps_shape is not None:
+        maps_memmap.flush()
+        del maps_memmap
+        _publish_compact_memmap(
+            maps_temporary,
+            maps_path,
+            rows=maps_written,
+            row_shape=maps_shape,
+            dtype=np.float32,
+        )
+        summary_temporary.replace(summary_path)
     else:
-        np.save(maps_path, np.zeros((0, 0, image_size, image_size), dtype=np.float32))
-        pd.DataFrame(
+        _atomic_save_array(
+            maps_path,
+            np.zeros((0, 0, image_size, image_size), dtype=np.float32),
+        )
+        _atomic_write_csv(
+            pd.DataFrame(
             columns=["pair_id", "pair_slot_index", "pair_valid"]
-        ).to_csv(summary_path, index=False, lineterminator="\n")
-    provenance_path = output_dir / "difference_pixel_index.csv"
-    pd.DataFrame.from_records(provenance_rows).to_csv(
-        provenance_path,
-        index=False,
-        lineterminator="\n",
-    )
+            ),
+            summary_path,
+        )
+    provenance_temporary.replace(provenance_path)
     if not pair_ids:
         status = "BLOCKED_NO_ACTOR_PIXELS"
     elif missing_available_frame_slots:
@@ -473,7 +583,7 @@ def _write_difference_artifacts(
         status = "PASS"
     return {
         "status": status,
-        "pairs_written": len(pair_ids),
+        "pairs_written": maps_written,
         "pairs_skipped_missing_crops": skipped,
         "available_frame_slots": available_frame_slots,
         "missing_available_frame_slots": missing_available_frame_slots,
@@ -642,13 +752,23 @@ def _write_roi_visual_pixel_artifacts(
             else f"missing::{row_index}"
         )
         scene_groups.setdefault(scene_key, []).append(int(row_index))
-    patches: list[np.ndarray] = []
+    patches_path = output_dir / "roi_visual_union_patches_uint8.npy"
+    patches_temporary = patches_path.with_name(
+        f"{patches_path.name}.partial.npy"
+    )
+    index_path = output_dir / "roi_visual_union_patch_index.csv"
+    index_temporary = index_path.with_name(f"{index_path.name}.partial")
+    patches_temporary.unlink(missing_ok=True)
+    index_temporary.unlink(missing_ok=True)
+    packed: np.memmap | None = None
+    packed_rows = 0
     mask = np.zeros(len(visual), dtype=bool)
-    index_rows: list[dict[str, Any]] = []
+    index_header = True
     for row_indices in scene_groups.values():
         first_row = visual.iloc[row_indices[0]]
         source = frame_lookup.get(str(first_row.get("frame_uid", "")))
         scene_result = media.read_scene(source)
+        index_rows: list[dict[str, Any]] = []
         for row_index in row_indices:
             row = visual.iloc[row_index]
             box = _visual_box(row, "union")
@@ -664,8 +784,16 @@ def _write_roi_visual_pixel_artifacts(
             )
             tensor_row = -1
             if patch is not None:
-                tensor_row = len(patches)
-                patches.append(np.transpose(patch, (2, 0, 1)))
+                if packed is None:
+                    packed = np.lib.format.open_memmap(
+                        patches_temporary,
+                        mode="w+",
+                        dtype=np.uint8,
+                        shape=(len(visual), 3, image_size, image_size),
+                    )
+                tensor_row = packed_rows
+                packed[packed_rows] = np.transpose(patch, (2, 0, 1))
+                packed_rows += 1
                 mask[row_index] = True
             index_rows.append(
                 {
@@ -683,21 +811,29 @@ def _write_roi_visual_pixel_artifacts(
                     **scene_result.provenance(),
                 }
             )
-    patches_path = output_dir / "roi_visual_union_patches_uint8.npy"
+        index_header = _append_csv_records(
+            index_temporary,
+            index_rows,
+            header=index_header,
+        )
     mask_path = output_dir / "roi_visual_union_patch_mask_bool.npy"
-    index_path = output_dir / "roi_visual_union_patch_index.csv"
-    packed = (
-        np.stack(patches).astype(np.uint8)
-        if patches
-        else np.zeros((0, 3, image_size, image_size), dtype=np.uint8)
-    )
-    np.save(patches_path, packed)
-    np.save(mask_path, mask)
-    pd.DataFrame.from_records(index_rows).to_csv(
-        index_path,
-        index=False,
-        lineterminator="\n",
-    )
+    if packed is not None:
+        packed.flush()
+        del packed
+        _publish_compact_memmap(
+            patches_temporary,
+            patches_path,
+            rows=packed_rows,
+            row_shape=(3, image_size, image_size),
+            dtype=np.uint8,
+        )
+    else:
+        _atomic_save_array(
+            patches_path,
+            np.zeros((0, 3, image_size, image_size), dtype=np.uint8),
+        )
+    _atomic_save_array(mask_path, mask)
+    index_temporary.replace(index_path)
     available = int(mask.sum())
     expected = int(visual.get("actor_roi_visual_available", False).sum())
     if expected == 0:
@@ -715,7 +851,7 @@ def _write_roi_visual_pixel_artifacts(
         "available_rows": available,
         "missing_expected_rows": max(0, expected - available),
         "scene_groups": len(scene_groups),
-        "patch_shape": list(packed.shape),
+        "patch_shape": list(np.load(patches_path, mmap_mode="r").shape),
         "patches_path": str(patches_path),
         "mask_path": str(mask_path),
         "index_path": str(index_path),
@@ -748,6 +884,49 @@ def _implementation_lineage() -> dict[str, Any]:
         "media_module": str(media_module_path),
         "media_module_sha256": _sha256(media_module_path),
         "git": _git_lineage(),
+    }
+
+
+def _checkpoint_identity(
+    args: argparse.Namespace,
+    *,
+    starts: tuple[int, ...],
+    implementation: dict[str, Any],
+) -> dict[str, Any]:
+    roi_sha256 = (
+        _sha256(args.roi_coco)
+        if args.roi_coco is not None and args.roi_coco.is_file()
+        else None
+    )
+    return {
+        "input_csv": str(args.input_csv.resolve()),
+        "input_sha256": _sha256(args.input_csv),
+        "implementation": {
+            "script_sha256": implementation["script_sha256"],
+            "module_sha256": implementation["module_sha256"],
+            "media_module_sha256": implementation["media_module_sha256"],
+        },
+        "parameters": {
+            "history_length": args.history_length,
+            "target_length": args.target_length,
+            "legacy_target_starts": list(starts),
+            "top_k_neighbors": args.top_k_neighbors,
+            "roi_coco": (
+                None if args.roi_coco is None else str(args.roi_coco.resolve())
+            ),
+            "roi_coco_sha256": roi_sha256,
+            "video_root": str(args.video_root.resolve()),
+            "legacy_crop_root": str(args.legacy_crop_root.resolve()),
+            "max_native_events": args.max_native_events,
+            "difference_size": args.difference_size,
+            "visual_size": args.visual_size,
+            "run_scope": args.run_scope,
+        },
+        "environment": {
+            "python": platform.python_version(),
+            "numpy": np.__version__,
+            "pandas": pd.__version__,
+        },
     }
 
 
@@ -835,7 +1014,81 @@ def _review_claim(frames: pd.DataFrame) -> bool:
 
 
 def _write_csv(frame: pd.DataFrame, path: Path) -> None:
-    frame.to_csv(path, index=False, lineterminator="\n")
+    _atomic_write_csv(frame, path)
+
+
+def _atomic_write_csv(frame: pd.DataFrame, path: Path) -> None:
+    temporary = path.with_name(f"{path.name}.partial")
+    frame.to_csv(temporary, index=False, lineterminator="\n")
+    temporary.replace(path)
+
+
+def _append_csv_records(
+    path: Path,
+    records: list[dict[str, Any]],
+    *,
+    header: bool,
+) -> bool:
+    if not records:
+        return header
+    return _append_csv_frame(
+        path,
+        pd.DataFrame.from_records(records),
+        header=header,
+    )
+
+
+def _append_csv_frame(
+    path: Path,
+    frame: pd.DataFrame,
+    *,
+    header: bool,
+) -> bool:
+    frame.to_csv(
+        path,
+        mode="a",
+        header=header,
+        index=False,
+        lineterminator="\n",
+    )
+    return False
+
+
+def _atomic_save_array(path: Path, values: np.ndarray) -> None:
+    temporary = path.with_name(f"{path.name}.partial.npy")
+    np.save(temporary, values)
+    temporary.replace(path)
+
+
+def _publish_compact_memmap(
+    source_path: Path,
+    output_path: Path,
+    *,
+    rows: int,
+    row_shape: tuple[int, ...],
+    dtype: Any,
+) -> None:
+    source = np.load(source_path, mmap_mode="r")
+    if rows == int(source.shape[0]):
+        del source
+        source_path.replace(output_path)
+        return
+    compact_path = output_path.with_name(f"{output_path.name}.compact.partial.npy")
+    compact_path.unlink(missing_ok=True)
+    compact = np.lib.format.open_memmap(
+        compact_path,
+        mode="w+",
+        dtype=dtype,
+        shape=(rows, *row_shape),
+    )
+    for start in range(0, rows, 64):
+        stop = min(rows, start + 64)
+        compact[start:stop] = source[start:stop]
+    compact.flush()
+    del compact
+    del source
+    compact_path.replace(output_path)
+    source_path.unlink()
 
 
 def _sha256(path: Path) -> str:

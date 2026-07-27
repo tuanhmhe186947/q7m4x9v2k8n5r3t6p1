@@ -418,6 +418,41 @@ def _existing_output_errors(
     return errors
 
 
+def _resume_errors(
+    root: Path,
+    config: dict[str, Any],
+    stage_id: str,
+) -> list[str]:
+    """Validate the narrow checkpoint-resume exception to collision refusal."""
+
+    if stage_id != "pig_strenet_evidence":
+        return [f"STAGE_RESUME_UNSUPPORTED:{stage_id}"]
+    output_dir = resolve_stage_path(
+        root,
+        config,
+        stage_id,
+        "output_relative",
+    )
+    identity = output_dir / ".checkpoints" / "checkpoint_identity.json"
+    manifest = resolve_stage_path(
+        root,
+        config,
+        stage_id,
+        "manifest_relative",
+    )
+    run_manifest = output_dir / "run_manifest.json"
+    errors = []
+    if not identity.is_file():
+        errors.append(f"RESUME_CHECKPOINT_IDENTITY_MISSING:{identity}")
+    if manifest.exists():
+        errors.append(f"CANDIDATE_MANIFEST_COLLISION:{manifest}")
+    if run_manifest.exists():
+        errors.append(
+            f"COMPUTATION_ALREADY_COMPLETE_USE_PUBLISH_EXISTING:{run_manifest}"
+        )
+    return errors
+
+
 def _artifact_path(
     root: Path,
     config: dict[str, Any],
@@ -478,6 +513,11 @@ def main() -> int:
     parser.add_argument("--stage", required=True, choices=EXPECTED_STAGE_IDS)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume a supported stage from an exact checkpoint.",
+    )
+    parser.add_argument(
         "--publish-existing",
         action="store_true",
         help=(
@@ -511,6 +551,16 @@ def main() -> int:
         )
         return 2
     authorization_source = "run_local_single_use"
+    if args.publish_existing and args.resume:
+        print(
+            json.dumps(
+                {
+                    "status": "BLOCKED",
+                    "reason": "RESUME_AND_PUBLISH_EXISTING_ARE_MUTUALLY_EXCLUSIVE",
+                }
+            )
+        )
+        return 3
     if args.publish_existing:
         existing_output_errors = _existing_output_errors(
             root,
@@ -524,6 +574,19 @@ def main() -> int:
                         "status": "BLOCKED",
                         "reason": "EXISTING_OUTPUT_NOT_PUBLISHABLE",
                         "errors": existing_output_errors,
+                    }
+                )
+            )
+            return 3
+    elif args.resume:
+        resume_errors = _resume_errors(root, config, stage_id)
+        if resume_errors:
+            print(
+                json.dumps(
+                    {
+                        "status": "BLOCKED",
+                        "reason": "CHECKPOINT_RESUME_NOT_VALID",
+                        "errors": resume_errors,
                     }
                 )
             )
@@ -567,6 +630,8 @@ def main() -> int:
         )
         return 1
     commands = _commands(root, config, stage_id)
+    if args.resume:
+        commands[0].append("--resume")
     consumed_authorization: Path | None = None
     if not args.dry_run and authorization_path is not None:
         try:
@@ -596,6 +661,7 @@ def main() -> int:
         "automatic_downstream_execution": False,
         "automatic_promotion": False,
         "publication_only": bool(args.publish_existing),
+        "checkpoint_resume": bool(args.resume),
     }
     if args.dry_run:
         print(json.dumps(result, indent=2))

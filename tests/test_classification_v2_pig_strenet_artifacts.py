@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -10,6 +12,10 @@ from pig_behavior.classification_v2.features.pig_strenet_artifacts import (
     build_pig_strenet_artifacts,
     compute_stabilized_difference_maps,
     model_x_columns,
+)
+from pig_behavior.classification_v2.features.pig_strenet_checkpoint import (
+    PigSTRENetCheckpointError,
+    PigSTRENetCheckpointStore,
 )
 from pig_behavior.classification_v2.review.pig_strenet_review_evidence import (
     PIG_REVIEW_EVIDENCE_COLUMNS,
@@ -141,6 +147,76 @@ def test_artifact_builder_reports_bounded_phase_progress() -> None:
         phase == "build_pairs_and_slots" and completed == total
         for phase, completed, total in events
     )
+
+
+def test_checkpoint_resume_matches_uninterrupted_artifacts(tmp_path: Path) -> None:
+    frames = _frames()
+    expected = build_pig_strenet_artifacts(frames)
+    identity = {"input_sha256": "fixture", "top_k_neighbors": 3}
+
+    class InterruptAfterFirstSocialChunk(PigSTRENetCheckpointStore):
+        def save_social_chunk(self, **kwargs: object) -> None:
+            super().save_social_chunk(**kwargs)
+            if kwargs["end_pair"] == 1:
+                raise RuntimeError("synthetic interruption")
+
+    interrupted = InterruptAfterFirstSocialChunk(
+        tmp_path / "checkpoints",
+        identity=identity,
+        resume=False,
+        social_chunk_pairs=1,
+    )
+    with pytest.raises(RuntimeError, match="synthetic interruption"):
+        build_pig_strenet_artifacts(
+            frames,
+            checkpoint_store=interrupted,
+        )
+
+    resumed_store = PigSTRENetCheckpointStore(
+        tmp_path / "checkpoints",
+        identity=identity,
+        resume=True,
+        social_chunk_pairs=1,
+    )
+    actual = build_pig_strenet_artifacts(
+        frames,
+        checkpoint_store=resumed_store,
+    )
+
+    for name in (
+        "pair_manifest",
+        "slot_manifest",
+        "history_features",
+        "roi_dynamics",
+        "roi_visual_selection",
+        "social_nodes",
+        "social_edges",
+        "control_matrix",
+    ):
+        pd.testing.assert_frame_equal(
+            getattr(actual, name),
+            getattr(expected, name),
+        )
+    assert actual.audit == expected.audit
+
+
+def test_checkpoint_resume_rejects_authority_drift(tmp_path: Path) -> None:
+    root = tmp_path / "checkpoints"
+    PigSTRENetCheckpointStore(
+        root,
+        identity={"input_sha256": "left"},
+        resume=False,
+    )
+
+    with pytest.raises(
+        PigSTRENetCheckpointError,
+        match="checkpoint identity mismatch",
+    ):
+        PigSTRENetCheckpointStore(
+            root,
+            identity={"input_sha256": "right"},
+            resume=True,
+        )
 
 
 def test_legacy_actual_frame_coordinates_are_not_relative_coordinates() -> None:

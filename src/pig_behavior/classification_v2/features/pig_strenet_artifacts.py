@@ -18,6 +18,9 @@ import cv2
 import numpy as np
 import pandas as pd
 
+from pig_behavior.classification_v2.features.pig_strenet_checkpoint import (
+    PigSTRENetCheckpointStore,
+)
 from pig_behavior.classification_v2.features.roi import (
     load_scene_rois_from_coco,
 )
@@ -213,6 +216,7 @@ def build_pig_strenet_artifacts(
     target_unit_keys: set[str] | None = None,
     roi_coco_path: Path | None = None,
     progress_callback: ProgressCallback | None = None,
+    checkpoint_store: PigSTRENetCheckpointStore | None = None,
 ) -> PigSTRENetArtifacts:
     """Build history, ROI, social and control artifacts from frame features.
 
@@ -231,36 +235,102 @@ def build_pig_strenet_artifacts(
     _report_progress(progress_callback, "normalize_frames", 0, 1)
     work = _normalize_frames(frames)
     _report_progress(progress_callback, "normalize_frames", 1, 1)
-    pairs, slots = _build_pair_and_slot_manifests(
-        work,
-        history_length=history_length,
-        target_length=target_length,
-        legacy_target_starts=legacy_target_starts,
-        target_unit_keys=target_unit_keys,
-        progress_callback=progress_callback,
+    pair_checkpoint = _load_checkpoint(
+        checkpoint_store,
+        "pairs_and_slots",
+        ("pairs", "slots"),
     )
-    history_features = _build_history_features(
-        work,
-        pairs,
-        slots,
-        progress_callback=progress_callback,
+    if pair_checkpoint is None:
+        pairs, slots = _build_pair_and_slot_manifests(
+            work,
+            history_length=history_length,
+            target_length=target_length,
+            legacy_target_starts=legacy_target_starts,
+            target_unit_keys=target_unit_keys,
+            progress_callback=progress_callback,
+        )
+        _save_checkpoint(
+            checkpoint_store,
+            "pairs_and_slots",
+            {"pairs": pairs, "slots": slots},
+        )
+    else:
+        pairs = pair_checkpoint["pairs"]
+        slots = pair_checkpoint["slots"]
+        _report_progress(progress_callback, "resume_pairs_and_slots", 1, 1)
+
+    history_checkpoint = _load_checkpoint(
+        checkpoint_store,
+        "history_features",
+        ("history_features",),
     )
-    roi_dynamics = _build_roi_dynamics(
-        work,
-        slots,
-        progress_callback=progress_callback,
+    if history_checkpoint is None:
+        history_features = _build_history_features(
+            work,
+            pairs,
+            slots,
+            progress_callback=progress_callback,
+        )
+        _save_checkpoint(
+            checkpoint_store,
+            "history_features",
+            {"history_features": history_features},
+        )
+    else:
+        history_features = history_checkpoint["history_features"]
+        _report_progress(progress_callback, "resume_history_features", 1, 1)
+
+    roi_checkpoint = _load_checkpoint(
+        checkpoint_store,
+        "roi_dynamics",
+        ("roi_dynamics",),
     )
-    roi_visual_selection = _build_roi_visual_selection(
-        work,
-        slots,
-        roi_coco_path=roi_coco_path,
-        progress_callback=progress_callback,
+    if roi_checkpoint is None:
+        roi_dynamics = _build_roi_dynamics(
+            work,
+            slots,
+            progress_callback=progress_callback,
+        )
+        _save_checkpoint(
+            checkpoint_store,
+            "roi_dynamics",
+            {"roi_dynamics": roi_dynamics},
+        )
+    else:
+        roi_dynamics = roi_checkpoint["roi_dynamics"]
+        _report_progress(progress_callback, "resume_roi_dynamics", 1, 1)
+
+    visual_checkpoint = _load_checkpoint(
+        checkpoint_store,
+        "roi_visual_selection",
+        ("roi_visual_selection",),
     )
+    if visual_checkpoint is None:
+        roi_visual_selection = _build_roi_visual_selection(
+            work,
+            slots,
+            roi_coco_path=roi_coco_path,
+            progress_callback=progress_callback,
+        )
+        _save_checkpoint(
+            checkpoint_store,
+            "roi_visual_selection",
+            {"roi_visual_selection": roi_visual_selection},
+        )
+    else:
+        roi_visual_selection = visual_checkpoint["roi_visual_selection"]
+        _report_progress(
+            progress_callback,
+            "resume_roi_visual_selection",
+            1,
+            1,
+        )
     social_nodes, social_edges = _build_social_graph(
         work,
         slots,
         top_k_neighbors=top_k_neighbors,
         progress_callback=progress_callback,
+        checkpoint_store=checkpoint_store,
     )
     _report_progress(progress_callback, "build_control_matrix", 0, 1)
     controls = build_history_control_matrix(pairs)
@@ -289,6 +359,25 @@ def build_pig_strenet_artifacts(
         control_matrix=controls,
         audit=audit,
     )
+
+
+def _load_checkpoint(
+    store: PigSTRENetCheckpointStore | None,
+    phase: str,
+    table_names: tuple[str, ...],
+) -> dict[str, pd.DataFrame] | None:
+    if store is None:
+        return None
+    return store.load_phase(phase, table_names)
+
+
+def _save_checkpoint(
+    store: PigSTRENetCheckpointStore | None,
+    phase: str,
+    tables: dict[str, pd.DataFrame],
+) -> None:
+    if store is not None:
+        store.save_phase(phase, tables)
 
 
 def build_history_control_matrix(pairs: pd.DataFrame) -> pd.DataFrame:
@@ -1005,7 +1094,23 @@ def _build_social_graph(
     *,
     top_k_neighbors: int,
     progress_callback: ProgressCallback | None = None,
+    checkpoint_store: PigSTRENetCheckpointStore | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
+    final_checkpoint = _load_checkpoint(
+        checkpoint_store,
+        "social_graph",
+        ("nodes", "edges"),
+    )
+    pair_total = int(slots["pair_id"].nunique())
+    if final_checkpoint is not None:
+        _report_progress(
+            progress_callback,
+            "resume_social_graph",
+            pair_total,
+            pair_total,
+        )
+        return final_checkpoint["nodes"], final_checkpoint["edges"]
+
     scene_column = "scene_frame_uid" if "scene_frame_uid" in frames else "frame_index"
     frame_groups = {
         str(key): group
@@ -1014,14 +1119,33 @@ def _build_social_graph(
     frame_lookup = {
         str(value): row for value, row in frames.set_index("frame_uid").iterrows()
     }
+    resume_index = (
+        checkpoint_store.social_resume_index(pair_total)
+        if checkpoint_store is not None
+        else 0
+    )
+    chunk_pairs = (
+        checkpoint_store.social_chunk_pairs
+        if checkpoint_store is not None
+        else 250
+    )
+    chunk_start = resume_index
     node_records: list[dict[str, Any]] = []
     edge_records: list[dict[str, Any]] = []
-    pair_total = int(slots["pair_id"].nunique())
-    _report_progress(progress_callback, "build_social_graph", 0, pair_total)
+    node_chunks: list[pd.DataFrame] = []
+    edge_chunks: list[pd.DataFrame] = []
+    _report_progress(
+        progress_callback,
+        "build_social_graph",
+        resume_index,
+        pair_total,
+    )
     for pair_index, (pair_id, pair_slots) in enumerate(
         slots.groupby("pair_id", sort=False),
         start=1,
     ):
+        if pair_index <= resume_index:
+            continue
         ordered = pair_slots.sort_values("global_slot_index")
         for slot in ordered.itertuples(index=False):
             actor = frame_lookup.get(str(slot.frame_uid))
@@ -1062,6 +1186,27 @@ def _build_social_graph(
                     edge_records.append(
                         _missing_edge_record(pair_id, slot, rank)
                     )
+        chunk_complete = (
+            pair_index - chunk_start >= chunk_pairs
+            or pair_index == pair_total
+        )
+        if chunk_complete:
+            chunk_nodes = pd.DataFrame.from_records(node_records)
+            chunk_edges = pd.DataFrame.from_records(edge_records)
+            if checkpoint_store is None:
+                node_chunks.append(chunk_nodes)
+                edge_chunks.append(chunk_edges)
+            else:
+                checkpoint_store.save_social_chunk(
+                    start_pair=chunk_start,
+                    end_pair=pair_index,
+                    total_pairs=pair_total,
+                    nodes=chunk_nodes,
+                    edges=chunk_edges,
+                )
+            node_records.clear()
+            edge_records.clear()
+            chunk_start = pair_index
         if pair_index % 100 == 0 or pair_index == pair_total:
             _report_progress(
                 progress_callback,
@@ -1069,8 +1214,11 @@ def _build_social_graph(
                 pair_index,
                 pair_total,
             )
-    nodes = pd.DataFrame.from_records(node_records)
-    edges = pd.DataFrame.from_records(edge_records)
+    if checkpoint_store is None:
+        nodes = pd.concat(node_chunks, ignore_index=True)
+        edges = pd.concat(edge_chunks, ignore_index=True)
+    else:
+        nodes, edges = checkpoint_store.load_social_chunks(pair_total)
     edges["neighbor_rank"] = edges["neighbor_rank"].astype(int)
     edges["pair_motion_energy"] = edges["pair_motion_energy"].astype(float)
     edges["pair_motion_energy_n_per_second2"] = edges[
@@ -1079,6 +1227,11 @@ def _build_social_graph(
     _add_partner_persistence_columns(edges)
     _add_edge_temporal_features(edges, frames)
     _copy_partner_audit_to_nodes(nodes, edges)
+    _save_checkpoint(
+        checkpoint_store,
+        "social_graph",
+        {"nodes": nodes, "edges": edges},
+    )
     return nodes, edges
 
 

@@ -461,7 +461,11 @@
       "checker": "check_classification_v2_pig_strenet_artifacts",
       "tests": ["tests/test_classification_v2_pig_strenet_artifacts.py"],
       "audit_artifact": "pig_strenet_artifact_audit.json",
-      "code_locations": ["src/pig_behavior/classification_v2/features/pig_strenet_artifacts.py#build_pig_strenet_artifacts", "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"],
+      "code_locations": [
+        "src/pig_behavior/classification_v2/features/pig_strenet_artifacts.py#build_pig_strenet_artifacts",
+        "src/pig_behavior/classification_v2/features/pig_strenet_checkpoint.py#PigSTRENetCheckpointStore",
+        "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"
+      ],
       "current_status": "IMPLEMENTED_AND_TESTED"
     },
     {

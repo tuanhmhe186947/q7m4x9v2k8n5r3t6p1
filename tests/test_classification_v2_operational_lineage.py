@@ -270,6 +270,72 @@ def test_collision_rejection(
     assert run_lineage_stage.main() == 3
 
 
+def test_pig_strenet_resume_requires_checkpoint_identity(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    root, config = load_config()
+    monkeypatch.setenv("CLASSIFICATION_V2_RUN_ROOT", str(tmp_path))
+
+    errors = run_lineage_stage._resume_errors(
+        root,
+        config,
+        "pig_strenet_evidence",
+    )
+
+    assert len(errors) == 1
+    assert errors[0].startswith("RESUME_CHECKPOINT_IDENTITY_MISSING:")
+
+
+def test_pig_strenet_resume_accepts_only_incomplete_checkpoint(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    root, config = load_config()
+    monkeypatch.setenv("CLASSIFICATION_V2_RUN_ROOT", str(tmp_path))
+    output_dir = tmp_path / "candidates" / "pig_strenet_evidence"
+    checkpoint_dir = output_dir / ".checkpoints"
+    checkpoint_dir.mkdir(parents=True)
+    (checkpoint_dir / "checkpoint_identity.json").write_text(
+        "{}\n",
+        encoding="utf-8",
+    )
+
+    assert (
+        run_lineage_stage._resume_errors(
+            root,
+            config,
+            "pig_strenet_evidence",
+        )
+        == []
+    )
+
+    (output_dir / "run_manifest.json").write_text("{}\n", encoding="utf-8")
+    errors = run_lineage_stage._resume_errors(
+        root,
+        config,
+        "pig_strenet_evidence",
+    )
+    assert any(
+        error.startswith("COMPUTATION_ALREADY_COMPLETE_USE_PUBLISH_EXISTING:")
+        for error in errors
+    )
+
+
+def test_resume_is_not_a_general_collision_bypass(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    root, config = load_config()
+    monkeypatch.setenv("CLASSIFICATION_V2_RUN_ROOT", str(tmp_path))
+
+    assert run_lineage_stage._resume_errors(
+        root,
+        config,
+        "native_evidence",
+    ) == ["STAGE_RESUME_UNSUPPORTED:native_evidence"]
+
+
 def test_publish_existing_skips_computation_and_publishes(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
