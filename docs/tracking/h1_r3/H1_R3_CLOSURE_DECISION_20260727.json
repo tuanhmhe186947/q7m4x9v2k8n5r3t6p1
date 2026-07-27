@@ -1,0 +1,59 @@
+{
+  "schema_version": "tracking.h1_r3_closure_decision.v1",
+  "date": "2026-07-27",
+  "current_main_sha": "e67d47c9f34baaaf0923fbe76fc131ac3fcbd28e",
+  "decision": "FAIL_NO_SHADOW_ACTIVATION",
+  "hidden_owner_preference_family_status": "CLOSED_FOR_CURRENT_STUDY",
+  "locked_conclusions": {
+    "h1_r1_status": "REJECTED_CONFIGURATION",
+    "h1_r2_status": "FAIL_NO_ACTIVATION",
+    "h1_r3_status": "FAIL_NO_SHADOW_ACTIVATION",
+    "h1_r3_pair_candidates": 1518,
+    "h1_r3_core_eligible_score_pairs": 958,
+    "h1_r3_frozen_gate_activations": 0,
+    "h1_r3_maximum_owner_preference_lower_bound": 0.59954303046,
+    "h1_r3_frozen_threshold": 0.625,
+    "h1_r3_shadow_output_equivalence": "PASS",
+    "validation_executed": false
+  },
+  "scientific_interpretation": [
+    "H1-r3 repaired support density: 958 real pairs were core eligible and score computable.",
+    "No pair activated at the predeclared score-plus-margin gate.",
+    "The near-threshold maximum does not authorize post-hoc threshold adjustment.",
+    "Intervention quality and safety remain unmeasured because the shadow observer changed no assignment.",
+    "The disabled shadow observer may remain as generic diagnostic infrastructure."
+  ],
+  "preserved_evidence": {
+    "h1_r1_rejection_decision": {
+      "source": "agent/rf_h1_reservation_r1:docs/TRACKING_H1_R1_REJECTION_DECISION_20260727.json",
+      "sha256": "b10bf629b0d27eb08c4bea02a72e124583b851518c18601ea74cc3d1e027d7af"
+    },
+    "h1_r1_locked_archive_inventory_payload_sha256": "833db0d7ceac7304aeae20a0ca74e847f37eb036c0ebb945ae0af1561717789d",
+    "h1_r1_locked_evidence_sha256": {
+      "reservation_candidates.csv": "16e149e04277889d766e86a8f5ca4e4dbfc2c63516503a86637d15c3f1e8bff8",
+      "rejection_reason_counts.csv": "5038b2e2b6f8ba6e4e69926d366724695638c1a8f7bea762d77043bc4dd92860",
+      "distribution_summary.csv": "109ed7f6929df505f7e8c9ac0379324fe30ea63f2f19ac3df949c1c4d21b3061",
+      "counterfactual_threshold_screening.csv": "768dcdca04bc81b849e02372cabfcf41f6be379af956fa02bf59f6e39b2bb726",
+      "threshold_study_proposal.json": "c3ea100307a78a5d62abb13abe199ba3b8c7a1d3793345e019dcbf7465c0dce8",
+      "artifact_manifest.json": "0d1df4350245914657dccf3ff86bd26d0df85e11ded2e30b2c7364abd24741c5",
+      "h1_episode_funnel_report.json": "9b39d7c4db062ed0046699a1b0d95db60a7298a5c00c349eddc6fcaca6e3f619"
+    },
+    "h1_r2_development_decision_sha256": "c7e013f8d1878e44c4d3f0aa6bd5dea428a611ce1a553e58c969480382360231",
+    "h1_r2_development_inventory_sha256": "d47a29518bacc107907b868dae55478f9b9d405b0be7836515355dcfb1b591cd",
+    "h1_r2_missingness_audit_sha256": "ddbf8fa9b7e24dc65df789352400fcf9d7cc411ba2591ad3fbc3c7505ff7c396",
+    "h1_r2_missingness_inventory_sha256": "e46fe841ae7c0f05486945ce0eb4d7b8303618647d74da5b22044ea20af0b480",
+    "h1_r3_design_decision_sha256": "8ee8282b808d66609a86c7cefe4f83d1696d980a9db32ad9574052cee6e39306",
+    "h1_r3_independent_review_sha256": "18503f0871df67efaf5b076828a9727055435e0158c33120a2f17b1c61d1b67c",
+    "h1_r3_shadow_decision_sha256": "e4af8d3f46a6834ceb2649e694b2f5ab24e3dc87dd20d0a48a8913ae27a4f357",
+    "h1_r3_shadow_inventory_sha256": "b384e47ddef3de987a8f0293f2267cf58cdb01142cd122b0673d01c0ac1e9d7f",
+    "h1_r3_validation_manifest_sha256": "531f20a692d593c9ea4be0534e334af4262e8c013e43d828f0f0f894ad4761b6",
+    "validation_role_authority_sha256": "ae867355ff5ee04693451a52121e31606364d96def69dc7c0a03a585dfac3f0f"
+  },
+  "authorizations": {
+    "threshold_relaxation_authorized": false,
+    "h1_r4_authorized": false,
+    "validation_authorized": false,
+    "runtime_authorized": false,
+    "promotion_authorized": false
+  }
+}

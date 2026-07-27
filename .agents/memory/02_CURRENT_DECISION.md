@@ -1,5 +1,24 @@
 # Current Decision
 
+## Hidden-owner line closed; next design candidate only (2026-07-27)
+
+- `HIDDEN_OWNER_PREFERENCE_FAMILY_STATUS=CLOSED_FOR_CURRENT_STUDY`
+- `H1_R4_AUTHORIZED=NO`
+- RF_ACC23 audit population: 10 events, 4,922 wrong-ID matched frames, and
+  53 conserved ID-switch rows.
+- Dominant mechanism: `OCCLUSION_OWNER_LOSS`, six events and 2,092 wrong-ID
+  frames (42.503%).
+- `NEXT_HYPOTHESIS_DECISION=PROPOSE_ONE_NEW_HYPOTHESIS`
+- `NEXT_HYPOTHESIS_NAME=CAUSAL_DROPOUT_STATE_PRESERVATION`
+- New implementation, tracking runs, validation, runtime, and promotion are
+  unauthorized.
+
+The next hypothesis is design-only. It must target bounded causal track-state
+preservation through measured detector dropout or merge conditions and must
+not become H1-r4 or another hidden-owner preference threshold. The recovered
+RF_ACC23 lineage was measured at `b0d9009`; exact tracking-tree equivalence to
+the later promoted main remains unproven.
+
 ## H1-r3 shadow prerequisite failed: no activation (2026-07-27)
 
 - `H1_R3_SHADOW_PREREQUISITE_DECISION=FAIL_NO_SHADOW_ACTIVATION`

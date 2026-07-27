@@ -1,5 +1,22 @@
 # Project Memory Short
 
+## 2026-07-27 H1 family closed; RF_ACC23 error taxonomy
+
+- H1-r1/r2/r3 are closed for the current study. H1-r3 ended
+  `FAIL_NO_SHADOW_ACTIVATION`; its near-threshold maximum authorizes no tuning.
+- The recovered RF_ACC23 full-13 evidence contains ten connected identity-error
+  events, conserving 4,922 wrong-ID rows and all 53 ID-switch rows.
+- `OCCLUSION_OWNER_LOSS` is dominant: six events and 2,092 wrong-ID frames
+  (42.503%). Track-birth errors account for 1,619, long-hidden re-entry for
+  868, and unresolved `000216` GT authority for 343.
+- H1-r3 had score coverage for two of six hidden-contention events but zero
+  frozen-gate activations, so assignment effect, quality, and safety remain
+  unmeasured.
+- Design-stage decision: propose only
+  `CAUSAL_DROPOUT_STATE_PRESERVATION`, a bounded state-lifecycle hypothesis,
+  not another hidden-owner score. No implementation or run is authorized.
+- Validation was not executed. Runtime and promotion remain unauthorized.
+
 ## 2026-07-27 H1-r3 shadow prerequisite failed: no activation
 
 - The reservation-disabled observer was side-effect-free and baseline outputs
