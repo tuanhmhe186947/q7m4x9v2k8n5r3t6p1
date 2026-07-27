@@ -1,5 +1,22 @@
 # Current Decision
 
+## Fresh current-main R0 baseline established (2026-07-28)
+
+- `R0_BASELINE_AUTHORITY=ESTABLISHED`
+- `R0_PROFILE=realtime_fast`
+- `R0_CODE_SHA=64d835cbf1b25ecdef3a777a50f0b46db6c93f61`
+- `R0_VIDEOS_COMPLETED=13/13`
+- Aggregate: HOTA `0.9704398315450558`, IDF1 `0.9707702337312571`,
+  IDSW `53`, FP `486`, FN `610`, fragments `107`.
+- Exact detector-cache replay used `11,700` records; detector inference during
+  tracking and run-root MP4 count were both zero.
+- Per-video metrics and complete hash inventories are archived under
+  `outputs/tracking/current_main_baseline_20260728`.
+
+H2-CDSP is formally closed as `FAIL_NO_CURRENT_MAIN_STATE_LOSS`. The current
+main error taxonomy, historical reconciliation, and next-hypothesis selection
+are deferred. Do not implement `rf_hybrid_offline` in this worktree.
+
 ## H2-CDSP current-main shadow failed: no baseline state loss (2026-07-28)
 
 - `H2_CURRENT_MAIN_SHADOW_DECISION=FAIL_NO_CURRENT_MAIN_STATE_LOSS`
