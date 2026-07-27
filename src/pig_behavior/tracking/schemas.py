@@ -77,6 +77,10 @@ class TrackingRuntimeState:
     occlusion_reid_bad_match_hold_keys: set[tuple[int, int | None]] = field(
         default_factory=set
     )
+    h1_r3_shadow_enabled: bool = False
+    h1_r3_shadow_candidate_rows: list[dict[str, object]] = field(
+        default_factory=list
+    )
 
 
 @dataclass(slots=True)
@@ -454,6 +458,9 @@ class TrackingSummary:
     source_fps: float
     output_fps: float
     telemetry: dict[str, int | float | str]
+    h1_r3_shadow_candidate_rows: list[dict[str, object]] = field(
+        default_factory=list
+    )
 
 
 def _clip_box(box: np.ndarray, width: int, height: int) -> np.ndarray:

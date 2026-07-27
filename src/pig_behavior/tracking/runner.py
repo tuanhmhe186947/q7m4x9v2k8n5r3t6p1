@@ -123,6 +123,8 @@ def _render_output_video(
 def run_tracking(
     cfg: TrackingConfig,
     model: object | None = None,
+    *,
+    h1_r3_shadow_observer: bool = False,
 ) -> TrackingSummary:
     """Run YOLOv8 + mask + stabilized eight-ID tracking.
 
@@ -216,7 +218,9 @@ def run_tracking(
         else:
             raise
     tracks: dict[int, FixedTrack] | None = None
-    runtime = TrackingRuntimeState()
+    runtime = TrackingRuntimeState(
+        h1_r3_shadow_enabled=bool(h1_r3_shadow_observer)
+    )
     output_timing_contract, declared_delay_frames = (
         resolve_output_timing_contract(cfg)
     )
@@ -580,6 +584,9 @@ def run_tracking(
         source_fps=source_fps,
         output_fps=cfg.output_fps,
         telemetry=telemetry_summary,
+        h1_r3_shadow_candidate_rows=list(
+            runtime.h1_r3_shadow_candidate_rows
+        ),
     )
 
 

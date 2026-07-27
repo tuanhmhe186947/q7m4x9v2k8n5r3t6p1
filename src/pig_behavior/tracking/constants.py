@@ -120,6 +120,22 @@ H1_R2_TELEMETRY_KEYS = (
     "h1_r2_score_invalid",
     "h1_r2_reacquisition_observed",
 )
+
+H1_R3_SHADOW_TELEMETRY_KEYS = (
+    "h1_r3_shadow_stage_calls",
+    "h1_r3_shadow_hidden_tracks_offered",
+    "h1_r3_shadow_pair_candidates",
+    "h1_r3_shadow_core_eligible_pairs",
+    "h1_r3_shadow_optional_appearance_available",
+    "h1_r3_shadow_optional_motion_available",
+    "h1_r3_shadow_score_pairs",
+    "h1_r3_shadow_below_threshold",
+    "h1_r3_shadow_margin_failed",
+    "h1_r3_shadow_would_activate",
+    "h1_r3_shadow_invalid_numeric",
+    "h1_r3_shadow_missing_core_overlap",
+    "h1_r3_shadow_missing_core_freshness",
+)
 TRACKING_ASSOCIATION_PHASES = (
     "visible",
     "visible_high_conf",
@@ -134,6 +150,7 @@ TRACKING_TIMING_STAGES = (
 TRACKING_INTEGER_TELEMETRY_KEYS = (
     *TRACKING_RULE_TELEMETRY_KEYS,
     *H1_R2_TELEMETRY_KEYS,
+    *H1_R3_SHADOW_TELEMETRY_KEYS,
     "frames_processed",
     "detection_frames",
     "skipped_detection_frames",
@@ -247,6 +264,7 @@ __all__ = [
     "DEFAULT_VIDEO_PATH",
     "DEFAULT_VISUAL_OPACITY",
     "H1_R2_TELEMETRY_KEYS",
+    "H1_R3_SHADOW_TELEMETRY_KEYS",
     "DEFAULT_WEIGHTS_PATH",
     "ID_VALUES",
     "PIG_LABEL_SCHEMA",

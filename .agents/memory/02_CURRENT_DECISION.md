@@ -1,5 +1,23 @@
 # Current Decision
 
+## H1-r3 shadow prerequisite failed: no activation (2026-07-27)
+
+- `H1_R3_SHADOW_PREREQUISITE_DECISION=FAIL_NO_SHADOW_ACTIVATION`
+- `H1_R3_SHADOW_PAIR_CANDIDATES=1518`
+- `H1_R3_SHADOW_CORE_ELIGIBLE_PAIRS=958`
+- `H1_R3_SHADOW_SCORE_PAIRS=958`
+- `H1_R3_SHADOW_WOULD_ACTIVATE=0`
+- `H1_R3_IMPLEMENTATION_AUTHORIZATION_READY=NO`
+- Association implementation, evaluation, validation, runtime evaluation, and
+  promotion remain unauthorized.
+
+The disabled observer did not change any development output. Its score maximum
+was `0.59954303046`, below the frozen threshold `0.625`; no positive episode
+activated. This closes the authorized prerequisite as a scientific failure,
+not as evidence of tracking quality or safety under intervention. Do not tune
+the frozen threshold or margin, and do not execute more association-changing
+runs without new authority.
+
 ## H1-r3 design passed independent review (2026-07-27)
 
 - Primary eligibility:
