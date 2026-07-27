@@ -1,0 +1,93 @@
+{
+  "schema_version": "tracking.h2_cdsp_shadow_lineage_compatibility.v1",
+  "audit_date": "2026-07-28",
+  "cache_authority_sha": "55cb37cb95868fe94fc3dfdba17b5d524b3213dc",
+  "live_main_sha": "1d039373313a694f1cccbbba0b19dd6d7692f073",
+  "historical_shadow_tip": "e77df625082e95c778a7179eabd1361a25f24afd",
+  "compatibility_conclusion": "PASS_BYTE_EQUIVALENT_RELEVANT_TREE",
+  "tracking_relevant_tree_byte_equivalent": true,
+  "tracking_tree_git_object": {
+    "cache_authority": "232b82d4cd3e294fd49ed5bd34f28e1c211c67d2",
+    "live_main": "232b82d4cd3e294fd49ed5bd34f28e1c211c67d2"
+  },
+  "relevant_blob_objects": {
+    "src/pig_behavior/tracking/profiles/realtime.py": {
+      "cache_authority": "155b69c96c0967c59e426b396746ee735a758d67",
+      "live_main": "155b69c96c0967c59e426b396746ee735a758d67"
+    },
+    "src/pig_behavior/tracking/detector_cache.py": {
+      "cache_authority": "a01fd095d1f5d1e463a650137cf7b1d81d6f81ec",
+      "live_main": "a01fd095d1f5d1e463a650137cf7b1d81d6f81ec"
+    },
+    "src/pig_behavior/tracking/config.py": {
+      "cache_authority": "5eab9dec4eb384dcded9244c1f7ba96e084b96cf",
+      "live_main": "5eab9dec4eb384dcded9244c1f7ba96e084b96cf"
+    }
+  },
+  "detector_authority": {
+    "weights_sha256": "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+    "semantic_config_sha256": "2b50d8afa950626e2bed6b41807cb602a01a90e66baf7529fa08945d3d676ef8",
+    "mask_sha256": "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658",
+    "semantics_unchanged": true
+  },
+  "cache_contract": {
+    "schema": "tracking.detector_evidence_cache.v2",
+    "schema_and_implementation_byte_equivalent": true,
+    "frame_index_contract_unchanged": true,
+    "cached_detection_representation_unchanged": true,
+    "source_video_authority_unchanged": true,
+    "compatible": true
+  },
+  "realtime_fast": {
+    "profile_blob_byte_equivalent": true,
+    "effective_semantics_unchanged": true,
+    "detector_cadence": 2,
+    "output_delay_frames": 0
+  },
+  "audited_surfaces": {
+    "tracking_configuration_and_profiles": "BYTE_EQUIVALENT",
+    "detector_invocation_and_preprocessing": "BYTE_EQUIVALENT",
+    "appearance_extraction_inputs": "BYTE_EQUIVALENT",
+    "mask_and_class_handling": "BYTE_EQUIVALENT",
+    "frame_index_semantics": "BYTE_EQUIVALENT",
+    "telemetry_summarization": "BYTE_EQUIVALENT",
+    "track_and_hidden_state_lifecycle": "BYTE_EQUIVALENT",
+    "association_call_sites": "BYTE_EQUIVALENT",
+    "cache_record_load_replay": "BYTE_EQUIVALENT"
+  },
+  "changed_hunk_classification": [
+    {
+      "classification": "DOCUMENTATION_ONLY",
+      "files": [
+        "docs/CLASSIFICATION_V2_OPERATIONAL_RUNBOOK.md",
+        "docs/classification_v2/scientific_contract_v1/10_code_contract_mapping.csv",
+        "docs/classification_v2/scientific_contract_v1/contract_manifest.json"
+      ]
+    },
+    {
+      "classification": "UNRELATED_TO_TRACKING",
+      "files": [
+        "scripts/classification_v2/01_review_units_gui/check_behavior_review_gui_readiness.py",
+        "scripts/classification_v2/01_review_units_gui/check_review_unit_gui_contract.py",
+        "scripts/classification_v2/01_review_units_gui/review_temporal_unit_gui.py",
+        "scripts/classification_v2/03_image_cache_context/classification_v2_build_pig_strenet_artifacts.py",
+        "scripts/classification_v2/run_lineage_stage.py",
+        "src/pig_behavior/classification_v2/datasets/pig_strenet_media.py",
+        "src/pig_behavior/classification_v2/datasets/pig_strenet_publication.py",
+        "src/pig_behavior/classification_v2/review/gui_readiness.py"
+      ]
+    },
+    {
+      "classification": "TEST_ONLY",
+      "files": [
+        "tests/test_classification_v2_behavior_gui_readiness.py",
+        "tests/test_classification_v2_operational_lineage.py",
+        "tests/test_classification_v2_pig_strenet_media.py"
+      ]
+    }
+  ],
+  "tracking_relevant_changed_file_allowlist": [],
+  "producer_code_sha_difference_is_nonsemantic": true,
+  "shadow_port_authorized_by_audit": true,
+  "shadow_execution_may_proceed_after_port_and_cache_revalidation": true
+}
