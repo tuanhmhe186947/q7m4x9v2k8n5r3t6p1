@@ -1,0 +1,82 @@
+{
+  "schema_version": "tracking.h1_r2_validation_role_assignments.v1",
+  "experiment": "H1-r2",
+  "assignment_timestamp": "2026-07-27T10:35:16+07:00",
+  "assigner_identity": "codex_subagent:/root/blinded_role_assignment",
+  "assignment_method": "independent_blinded_content_review",
+  "pre_assignment_validation_manifest_sha256": "979197b95eeeb407cd998ac256c5484c78de57ac876e09ffd6152230205c28b2",
+  "assignment_artifact_sha256_location": "H1_R2_VALIDATION_MANIFEST.csv:assignment_artifact_sha256",
+  "blindness_contract": {
+    "allowed_evidence": [
+      "immutable_source_video",
+      "locked_gt",
+      "RF_ACC23_parent_tracking_evidence",
+      "episode_selection_rationale",
+      "pre_H1_r2_metadata"
+    ],
+    "prohibited_evidence_not_inspected": [
+      "H1_r2_implementation",
+      "H1_r2_owner_scores",
+      "H1_r2_assignments",
+      "H1_r2_quality_metrics",
+      "threshold_screening_results",
+      "candidate_vs_baseline_comparison"
+    ],
+    "tracking_run_performed": false,
+    "gpu_inference_performed": false,
+    "h1_r2_outputs_viewed": false
+  },
+  "parent_evidence": {
+    "authority": "RF_ACC23",
+    "lineage_artifact": "outputs/tracking/rf_acc23_lineage/rf_acc23_lineage_manifest_20260727_v1.json",
+    "lineage_artifact_sha256": "91289c9acb40958e59c17e98872714904f8df7e4c49682a4649e7fcc84bab9be",
+    "retained_parent_root": "C:/Users/ironh/Downloads/PIG_task_tracking/outputs/pred/tracking_realtime_fast_accuracy/20260723_rf_acc23_full13_primary_v1/iou0_area0_condarea0_merge0/realtime"
+  },
+  "boundaries_unchanged": true,
+  "assignments": [
+    {
+      "episode_id": "V01_000085_blinded",
+      "video_key": "Pigs281119_000085_30fps",
+      "start_frame": 360,
+      "end_frame": 540,
+      "source_video_sha256": "8dc95b9263c481d0ec3eb6e2ac96d821410e6331caadc950bd859a42f846b5fb",
+      "gt_sha256": "3a6bc2b28dd2e4f831ef59d7543e1a523bb9cfd2415741bb91506f74709bd697",
+      "parent_evidence_sha256": "04a3654fae2a6db97987385181831821e95aeded64bc98845911b85cfb940528",
+      "assigned_role": "control_no_hidden_owner_contention",
+      "rationale": "Source review showed proximity and contact but no sustained disappearance or owner-contention sequence; locked GT has zero Hidden boxes and zero Hidden frames in the frozen window."
+    },
+    {
+      "episode_id": "V02_000114_blinded",
+      "video_key": "Pigs281119_000114_30fps",
+      "start_frame": 960,
+      "end_frame": 1140,
+      "source_video_sha256": "6c7668b8e651c8a418aa198f788777ced61c4d2eb85e6b6171e1d0e1bfe1c398",
+      "gt_sha256": "1d6ad0b635de1388016b28201ada90010f41ff8a491936050a86cd9430b6ceeb",
+      "parent_evidence_sha256": "f99de7990d9e4ff5f6689a73df0e0a7a3a83f2a8ad92459931e77a92d3b2a18c",
+      "assigned_role": "control_no_hidden_owner_contention",
+      "rationale": "Source review showed ordinary movement and contact without a decisive hidden-owner transition; locked GT has zero Hidden boxes and zero Hidden frames in the frozen window."
+    },
+    {
+      "episode_id": "V03_000327_blinded",
+      "video_key": "Pigs301119_000327_30fps",
+      "start_frame": 660,
+      "end_frame": 840,
+      "source_video_sha256": "3b415b115c786f261a37d4f47fecdf8c50306d897e4f6b5b13e7acc13114fb42",
+      "gt_sha256": "00eaf567154f1854c9c7ef866353e8db2af3d1329a5e54c70a36a8ccb97dc1b6",
+      "parent_evidence_sha256": "f7fd419af4f26efc79e7a47e1f7bfee3eecdedaac3e5e32316e8d34558a622e5",
+      "assigned_role": "positive_hidden_owner_contention",
+      "rationale": "Source review showed dense multi-pig crossings and partial occlusions; locked GT marks Pig_6 or Pig_8 hidden across 34 distinct frames, concentrated from frame 731 onward."
+    },
+    {
+      "episode_id": "V04_000328_blinded",
+      "video_key": "Pigs301119_000328_30fps",
+      "start_frame": 1260,
+      "end_frame": 1440,
+      "source_video_sha256": "7e8ca6981d8c05be0967475f71ad5360dcb0e58e05213828f497f4bc2c61772b",
+      "gt_sha256": "2e00b57423688ee74e1228e75f7ba13d0a4ecc05ed5a5f0295d92e68fe2f5f76",
+      "parent_evidence_sha256": "293dcf1c0ce791390106234cf7dadf86d005169c6dfc01d6fc27c335486d8f05",
+      "assigned_role": "positive_hidden_owner_contention",
+      "rationale": "Source review showed close interaction and partial occlusion in the central group; locked GT marks Pig_7 hidden on 28 frames between frames 1287 and 1359."
+    }
+  ]
+}
