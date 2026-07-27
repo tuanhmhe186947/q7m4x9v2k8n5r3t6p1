@@ -407,6 +407,8 @@ def run_tracking(
                     cfg=cfg,
                     runtime=runtime,
                     sequence_token=h2_sequence_token,
+                    detector_frame=is_detect_frame,
+                    frame_dimensions=(frame_h, frame_w),
                 )
             current_shapes = frame_shapes(tracks, frame_index, cfg)
             shapes.extend(current_shapes)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import pickle
 from dataclasses import fields
 from pathlib import Path
 from types import SimpleNamespace
@@ -109,6 +110,7 @@ def test_observer_is_disabled_by_default_and_does_not_mutate_track() -> None:
     track = _trusted_track()
     runtime = TrackingRuntimeState()
     before = _track_signature(track)
+    before_all_fields = pickle.dumps(track)
     result = observe_h2_cdsp_shadow(
         {1: track},
         frame_index=10,
@@ -123,6 +125,7 @@ def test_observer_is_disabled_by_default_and_does_not_mutate_track() -> None:
     assert before["arrays"].keys() == after["arrays"].keys()
     for key, value in before["arrays"].items():
         np.testing.assert_array_equal(value, after["arrays"][key])
+    assert pickle.dumps(track) == before_all_fields
 
 
 def test_observer_returns_diagnostics_only_and_preserves_track_fields() -> None:
@@ -130,6 +133,7 @@ def test_observer_returns_diagnostics_only_and_preserves_track_fields() -> None:
     runtime = TrackingRuntimeState(h2_shadow_enabled=True)
     token = object()
     before_box = track.last_box.copy()
+    before_all_fields = pickle.dumps(track)
     observe_h2_cdsp_shadow(
         {1: track},
         frame_index=10,
@@ -137,6 +141,7 @@ def test_observer_returns_diagnostics_only_and_preserves_track_fields() -> None:
         runtime=runtime,
         sequence_token=token,
     )
+    assert pickle.dumps(track) == before_all_fields
     track.state = "MISSING"
     track.last_source = "predicted"
     track.missed = 1
@@ -155,6 +160,71 @@ def test_observer_returns_diagnostics_only_and_preserves_track_fields() -> None:
     assert row["direct_assignment"] is False
     assert row["reserves_detection"] is False
     assert runtime.telemetry["h2_shadow_dropout_entries"] == 1
+
+
+def test_scheduled_skip_does_not_refresh_trusted_snapshot() -> None:
+    track = _trusted_track()
+    runtime = TrackingRuntimeState(h2_shadow_enabled=True)
+    token = object()
+    observe_h2_cdsp_shadow(
+        {1: track},
+        frame_index=10,
+        cfg=SimpleNamespace(track_high_conf=0.5),
+        runtime=runtime,
+        sequence_token=token,
+        detector_frame=True,
+    )
+    observe_h2_cdsp_shadow(
+        {1: track},
+        frame_index=11,
+        cfg=SimpleNamespace(track_high_conf=0.5),
+        runtime=runtime,
+        sequence_token=token,
+        detector_frame=False,
+    )
+    state = runtime.h2_shadow_track_states[1]
+    assert state.snapshot.last_trusted_frame_index == 10
+    assert state.state == "DROPOUT_GRACE"
+    assert runtime.telemetry["h2_shadow_visible_confirmed_tracks"] == 1
+
+
+def test_causal_reentry_records_survival_without_assignment_command() -> None:
+    track = _trusted_track()
+    runtime = TrackingRuntimeState(h2_shadow_enabled=True)
+    token = object()
+    observe_h2_cdsp_shadow(
+        {1: track},
+        frame_index=10,
+        cfg=SimpleNamespace(track_high_conf=0.5),
+        runtime=runtime,
+        sequence_token=token,
+        detector_frame=True,
+    )
+    observe_h2_cdsp_shadow(
+        {1: track},
+        frame_index=11,
+        cfg=SimpleNamespace(track_high_conf=0.5),
+        runtime=runtime,
+        sequence_token=token,
+        detector_frame=False,
+    )
+    observe_h2_cdsp_shadow(
+        {1: track},
+        frame_index=12,
+        cfg=SimpleNamespace(track_high_conf=0.5),
+        runtime=runtime,
+        sequence_token=token,
+        detector_frame=True,
+    )
+    row = runtime.h2_shadow_transition_rows[-1]
+    assert row["reentry_frame"] == 12
+    assert row["preserved_state_available_at_reentry"] is True
+    assert row["extra_usable_evidence_relative_to_baseline"] is False
+    assert row["direct_assignment"] is False
+    assert row["reserves_detection"] is False
+    assert runtime.telemetry["h2_shadow_reentry_opportunities"] == 1
+    assert runtime.telemetry["h2_shadow_states_surviving_to_reentry"] == 1
+    assert runtime.telemetry["h2_shadow_extra_usable_state_at_reentry"] == 0
 
 
 def test_h2_telemetry_is_canonical_and_fails_if_missing() -> None:

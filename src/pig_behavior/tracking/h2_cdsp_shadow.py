@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import numpy as np
 
@@ -82,6 +82,8 @@ class H2TrackShadowState:
     confidence: float
     uncertainty: float
     usable: bool
+    baseline_track_state: str
+    baseline_state_loss_seen: bool = False
     terminal: bool = False
 
 
@@ -226,10 +228,16 @@ def _snapshot(
         and len(track.reliable_center_history) >= 2
         and diagonal > 0.0
     )
-    normalized_velocity = (
-        tuple(float(value) for value in velocity / diagonal)
+    normalized_velocity_array = (
+        velocity / diagonal
         if motion_available
-        else (0.0, 0.0)
+        else np.zeros(2, dtype=np.float64)
+    )
+    velocity_norm = float(np.linalg.norm(normalized_velocity_array))
+    if velocity_norm > 0.25:
+        normalized_velocity_array *= 0.25 / velocity_norm
+    normalized_velocity = tuple(
+        float(value) for value in normalized_velocity_array
     )
     appearance = track.mean_hist()
     appearance_available = (
@@ -251,6 +259,30 @@ def _snapshot(
     )
 
 
+def _propagated_geometry(
+    snapshot: H2TrustedSnapshot,
+    age: int,
+    frame_dimensions: tuple[int, int] | None,
+) -> tuple[tuple[float, float, float, float], bool]:
+    x1, y1, x2, y2 = snapshot.bbox
+    width = x2 - x1
+    height = y2 - y1
+    diagonal = math.hypot(width, height)
+    dx = age * snapshot.normalized_velocity[0] * diagonal
+    dy = age * snapshot.normalized_velocity[1] * diagonal
+    propagated = (x1 + dx, y1 + dy, x2 + dx, y2 + dy)
+    if frame_dimensions is None:
+        return propagated, snapshot.boundary_seen
+    frame_height, frame_width = frame_dimensions
+    boundary_seen = snapshot.boundary_seen or (
+        propagated[0] < 0.0
+        or propagated[1] < 0.0
+        or propagated[2] > float(frame_width)
+        or propagated[3] > float(frame_height)
+    )
+    return propagated, boundary_seen
+
+
 def _counter(
     runtime: TrackingRuntimeState,
     key: str,
@@ -268,6 +300,8 @@ def observe_h2_cdsp_shadow(
     cfg: TrackingConfig,
     runtime: TrackingRuntimeState | None,
     sequence_token: object,
+    detector_frame: bool = True,
+    frame_dimensions: tuple[int, int] | None = None,
 ) -> None:
     """Observe immutable track copies and append diagnostic records only."""
     if runtime is None or not runtime.h2_shadow_enabled:
@@ -285,6 +319,8 @@ def observe_h2_cdsp_shadow(
             0.0,
             1.0,
             False,
+            prior.baseline_track_state,
+            prior.baseline_state_loss_seen,
             True,
         )
     for track_id in sorted(active_ids):
@@ -293,7 +329,25 @@ def observe_h2_cdsp_shadow(
         if prior is not None and prior.terminal:
             _counter(runtime, "h2_shadow_terminal_revival_blocked")
             continue
-        trusted = _trusted_match(track, cfg)
+        trusted = detector_frame and _trusted_match(track, cfg)
+        reentry = bool(
+            trusted
+            and prior is not None
+            and prior.snapshot is not None
+            and prior.state != "VISIBLE_CONFIRMED"
+        )
+        reentry_survival = bool(reentry and prior and prior.usable)
+        extra_at_reentry = bool(
+            reentry_survival
+            and prior
+            and prior.baseline_state_loss_seen
+        )
+        if reentry:
+            _counter(runtime, "h2_shadow_reentry_opportunities")
+        if reentry_survival:
+            _counter(runtime, "h2_shadow_states_surviving_to_reentry")
+        if extra_at_reentry:
+            _counter(runtime, "h2_shadow_extra_usable_state_at_reentry")
         if trusted:
             snapshot = _snapshot(track, frame_index, sequence_token)
             if snapshot is None:
@@ -324,6 +378,13 @@ def observe_h2_cdsp_shadow(
                 _counter(runtime, "h2_shadow_unpreservable_missing_core")
             else:
                 age = frame_index - snapshot.last_trusted_frame_index
+                propagated_geometry, boundary_seen = _propagated_geometry(
+                    snapshot,
+                    age,
+                    frame_dimensions,
+                )
+                if boundary_seen and not snapshot.boundary_seen:
+                    snapshot = replace(snapshot, boundary_seen=True)
                 continuous = (
                     prior is not None
                     and frame_index == prior.last_observed_frame_index + 1
@@ -354,7 +415,7 @@ def observe_h2_cdsp_shadow(
                         motion_available=snapshot.motion_available,
                         motion_quality=snapshot.motion_quality,
                         occlusion_support=occlusion_support,
-                        boundary_seen=snapshot.boundary_seen,
+                        boundary_seen=boundary_seen,
                     )
                     _counter(runtime, "h2_shadow_preservation_candidates")
                     if prior.state == "VISIBLE_CONFIRMED":
@@ -371,6 +432,11 @@ def observe_h2_cdsp_shadow(
             else -1
         )
         bbox = snapshot.bbox if snapshot is not None else None
+        propagated_geometry = (
+            _propagated_geometry(snapshot, max(age, 0), frame_dimensions)[0]
+            if snapshot is not None
+            else None
+        )
         baseline_bbox_available = _finite_bbox(track) is not None
         baseline_appearance_available = track.mean_hist() is not None
         baseline_motion_available = bool(track.reliable_center_history)
@@ -381,9 +447,16 @@ def observe_h2_cdsp_shadow(
             and not baseline_motion_available
         )
         if baseline_state_loss and not bool(
-            prior and prior.state != "VISIBLE_CONFIRMED"
+            prior and prior.baseline_state_loss_seen
         ):
             _counter(runtime, "h2_shadow_baseline_state_loss_points")
+        baseline_state_loss_seen = bool(
+            not trusted
+            and (
+                baseline_state_loss
+                or (prior and prior.baseline_state_loss_seen)
+            )
+        )
         runtime.h2_shadow_track_states[track_id] = H2TrackShadowState(
             result.state,
             snapshot,
@@ -391,13 +464,18 @@ def observe_h2_cdsp_shadow(
             result.confidence,
             result.uncertainty,
             result.usable,
+            track.state,
+            baseline_state_loss_seen,
         )
         runtime.h2_shadow_transition_rows.append(
             {
                 "frame_index": frame_index,
                 "track_id": track_id,
-                "baseline_state_before": prior.state if prior else "UNOBSERVED",
+                "baseline_state_before": (
+                    prior.baseline_track_state if prior else "UNOBSERVED"
+                ),
                 "baseline_state_after": track.state,
+                "shadow_state_before": prior.state if prior else "UNOBSERVED",
                 "state_loss_reason": (
                     track.state_reason if baseline_state_loss else ""
                 ),
@@ -406,7 +484,7 @@ def observe_h2_cdsp_shadow(
                 ),
                 "dropout_age": age,
                 "last_trusted_bbox": bbox,
-                "normalized_geometry": bbox,
+                "normalized_geometry": propagated_geometry,
                 "causal_velocity_estimate": (
                     snapshot.normalized_velocity if snapshot else None
                 ),
@@ -422,9 +500,11 @@ def observe_h2_cdsp_shadow(
                 "appearance_quality": (
                     snapshot.appearance_quality if snapshot else 0.0
                 ),
+                "appearance_reliability": result.appearance_reliability,
                 "initial_state_confidence": 1.0 if snapshot else 0.0,
                 "shadow_preserved_confidence": result.confidence,
                 "shadow_uncertainty": result.uncertainty,
+                "motion_reliability": result.motion_reliability,
                 "preservation_state": result.state,
                 "expiry_frame": (
                     snapshot.last_trusted_frame_index
@@ -435,8 +515,10 @@ def observe_h2_cdsp_shadow(
                 "invalidation_reason": result.invalidation_reason,
                 "preserved_state_available": result.usable,
                 "baseline_state_loss": baseline_state_loss,
+                "reentry_frame": frame_index if reentry else None,
+                "preserved_state_available_at_reentry": reentry_survival,
                 "extra_usable_evidence_relative_to_baseline": (
-                    result.usable and baseline_state_loss
+                    extra_at_reentry
                 ),
                 "direct_assignment": False,
                 "reserves_detection": False,
