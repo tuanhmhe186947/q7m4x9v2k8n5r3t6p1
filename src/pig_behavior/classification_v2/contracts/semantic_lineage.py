@@ -1132,7 +1132,7 @@ def _domain_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
         {
             "semantic_domain_id": "semantic.behavior_review_units",
             "semantic_domain_version": (
-                "classification_v2.behavior_review_units.v5"
+                "classification_v2.behavior_review_units.v6"
             ),
             "authority_files": [
                 "src/pig_behavior/classification_v2/review/review_unit_builder.py",
@@ -1140,10 +1140,15 @@ def _domain_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
                     "src/pig_behavior/classification_v2/review/"
                     "behavior_review_selection.py"
                 ),
+                (
+                    "src/pig_behavior/classification_v2/review/"
+                    "behavior_evidence.py"
+                ),
             ],
             "authority_symbols": [
                 "build_review_units",
                 "assign_behavior_review_cohorts",
+                "add_behavior_review_evidence",
             ],
             "canonical_payload": {
                 "stage_schema": stage_version(
@@ -1157,6 +1162,7 @@ def _domain_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
                     "behavior_review_auto_carry_manifest",
                 ],
                 "gui_input": "behavior_review_candidate_manifest",
+                "native_evidence_required": True,
                 "evidence_availability_selects_review": False,
                 "global_mandatory_selection_allowed": False,
                 "auto_carry_synthesizes_human_decision": False,

@@ -96,8 +96,11 @@ _PUBLICATION_ONLY_STAGE_CODE_PATHS = frozenset(
         "src/pig_behavior/classification_v2/contracts/semantic_lineage.py",
     }
 )
-_REGISTRY_ONLY_STAGE_CODE_PATHS = frozenset(
+# These authorities publish or validate manifests; they do not compute stage
+# rows. This validation path has already re-executed their current contracts.
+_CURRENT_REVALIDATED_STAGE_CODE_PATHS = frozenset(
     {
+        "src/pig_behavior/classification_v2/contracts/candidate_manifest.py",
         "src/pig_behavior/classification_v2/contracts/semantic_lineage.py",
     }
 )
@@ -615,14 +618,14 @@ def _mapped_stage_symbols_unchanged(
     )
     current_symbols = _mapping_symbols_by_path(stage_id, current_mapping_rows)
     for relative in sorted(changed_paths):
+        if relative in _CURRENT_REVALIDATED_STAGE_CODE_PATHS:
+            continue
         symbols = sorted(
             historical_symbols.get(relative, set())
             | current_symbols.get(relative, set())
         )
         if not symbols:
-            if relative not in _REGISTRY_ONLY_STAGE_CODE_PATHS:
-                return False
-            continue
+            return False
         historical = historical_sources.get(relative)
         current_path = repo_root / relative
         if historical is None or not current_path.is_file():

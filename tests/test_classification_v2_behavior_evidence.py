@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 import pandas.testing as pdt
+import pytest
 
 from pig_behavior.classification_v2.review.behavior_evidence import (
     REVIEW_EVIDENCE_COLUMNS,
@@ -14,6 +15,7 @@ from pig_behavior.classification_v2.review.behavior_review_selection import (
 )
 from pig_behavior.classification_v2.review.review_unit_builder import (
     ReviewUnitConfig,
+    _attach_native_review_evidence,
     _base_units_from_intervals,
     _finalize_unit_review_fields,
     build_review_units,
@@ -91,6 +93,81 @@ def test_target_roi_persistence_supports_eat_but_not_drink() -> None:
     assert "different_roi_has_stronger_support" in scored.iloc[1][
         "review_evidence_reason_auto"
     ]
+
+
+def test_native_evidence_input_restores_roi_support(
+    tmp_path: Path,
+) -> None:
+    intervals = pd.DataFrame(
+        [
+            {
+                "temporal_unit_key": "unit-1",
+                "behavior_temporal_final": "eat",
+                "bbox_valid_ratio_interval": 1.0,
+            }
+        ]
+    )
+    native_row = _unit(
+        "eat",
+        roi_feeder_near_ratio_unit=1.0,
+        roi_feeder_contact_ratio_unit=1.0,
+        roi_feeder_contact_longest_run_ratio_unit=1.0,
+    )
+    native = pd.DataFrame(
+        [
+            {**native_row, "frame_index": 0},
+            {**native_row, "frame_index": 1},
+        ]
+    )
+    native_path = tmp_path / "native.csv"
+    native.to_csv(native_path, index=False)
+
+    attached, audit = _attach_native_review_evidence(
+        intervals,
+        native_path,
+    )
+    scored = add_behavior_review_evidence(attached)
+
+    assert audit["matched_temporal_units"] == 1
+    assert scored.iloc[0]["review_roi_support_score"] == 1.0
+    assert scored.iloc[0]["review_evidence_conflict_score"] == 0.0
+
+
+def test_native_evidence_rejects_temporal_unit_key_mismatch(
+    tmp_path: Path,
+) -> None:
+    intervals = pd.DataFrame(
+        [{"temporal_unit_key": "unit-2"}]
+    )
+    native_path = tmp_path / "native.csv"
+    pd.DataFrame([_unit("eat")]).to_csv(native_path, index=False)
+
+    with pytest.raises(
+        ValueError,
+        match=r"Native review evidence key mismatch: missing=1 unused=1",
+    ):
+        _attach_native_review_evidence(intervals, native_path)
+
+
+def test_native_evidence_rejects_within_unit_variation(
+    tmp_path: Path,
+) -> None:
+    native_path = tmp_path / "native.csv"
+    pd.DataFrame(
+        [
+            _unit("eat", roi_feeder_near_ratio_unit=0.0),
+            _unit("eat", roi_feeder_near_ratio_unit=1.0),
+        ]
+    ).to_csv(native_path, index=False)
+    intervals = pd.DataFrame(
+        [{"temporal_unit_key": "unit-1"}]
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Native unit evidence varies within temporal unit",
+    ):
+        _attach_native_review_evidence(intervals, native_path)
 
 
 def test_fight_without_partner_evidence_is_high_priority() -> None:

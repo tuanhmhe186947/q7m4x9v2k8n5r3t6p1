@@ -122,7 +122,6 @@ def test_review_builder_attaches_pig_evidence_without_model_x_leakage(
             intervals_csv=intervals_csv,
             sequence_window_manifest_csv=windows_csv,
             output_dir=output_dir,
-            include_all_retained_legacy_units=True,
             pig_strenet_artifact_dir=artifact_dir,
         )
     )

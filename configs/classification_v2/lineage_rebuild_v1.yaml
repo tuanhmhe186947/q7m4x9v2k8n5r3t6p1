@@ -211,7 +211,7 @@ stages:
         schema_id: artifact.behavior_review_auto_carry
         schema_version: classification_v2.behavior_review_auto_carry.v1
     authorization_flag: authorizes_behavior_gui
-    upstream: [pig_strenet_evidence]
+    upstream: [temporal_harmonization, native_evidence, pig_strenet_evidence]
   behavior_decision_apply:
     stage_id: stage.behavior_decision_apply
     entry_point: scripts/classification_v2/01_review_units_gui/classification_v2_apply_review_unit_decisions.py

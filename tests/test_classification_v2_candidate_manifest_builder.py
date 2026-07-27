@@ -915,6 +915,44 @@ def test_publication_drift_requires_unchanged_stage_mapped_symbols(
     assert not changed
 
 
+def test_current_revalidated_publication_authority_can_change(
+    tmp_path: Path,
+) -> None:
+    relative = (
+        "src/pig_behavior/classification_v2/contracts/candidate_manifest.py"
+    )
+    source_path = tmp_path / relative
+    source_path.parent.mkdir(parents=True)
+    source_path.write_text(
+        "def build_candidate_artifact_manifest():\n"
+        "    return 'current-validator'\n",
+        encoding="utf-8",
+    )
+    mapping_rows = [
+        {
+            "contract_item_id": "stage.test",
+            "source_file": relative,
+            "symbol": "build_candidate_artifact_manifest",
+        }
+    ]
+
+    unchanged = candidate_manifest_module._mapped_stage_symbols_unchanged(
+        stage_id="stage.test",
+        changed_paths={relative},
+        historical_mapping_rows=mapping_rows,
+        current_mapping_rows=mapping_rows,
+        historical_sources={
+            relative: (
+                b"def build_candidate_artifact_manifest():\n"
+                b"    return 'historical-builder'\n"
+            )
+        },
+        repo_root=tmp_path,
+    )
+
+    assert unchanged
+
+
 def test_unmapped_runtime_file_is_not_publication_only_drift(
     tmp_path: Path,
 ) -> None:

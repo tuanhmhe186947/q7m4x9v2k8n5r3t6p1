@@ -23,6 +23,15 @@ def main() -> None:
         default=Path(r"outputs/classification_v2/sequence_features/temporal_label_intervals.csv"),
     )
     parser.add_argument(
+        "--native-evidence-csv",
+        type=Path,
+        required=True,
+        help=(
+            "Validated frame-level native evidence containing deterministic "
+            "temporal-unit aggregate evidence."
+        ),
+    )
+    parser.add_argument(
         "--sequence-window-manifest-csv",
         type=Path,
         default=None,
@@ -117,6 +126,7 @@ def main() -> None:
         ReviewUnitConfig(
             intervals_csv=args.intervals_csv,
             output_dir=args.output_dir,
+            native_evidence_csv=args.native_evidence_csv,
             sequence_window_manifest_csv=window_manifest,
             window_review_manifest_csv=window_review,
             max_units_per_template=args.max_units_per_template,

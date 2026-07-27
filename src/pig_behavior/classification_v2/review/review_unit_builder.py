@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 
 from pig_behavior.classification_v2.review.behavior_evidence import (
+    NATIVE_BEHAVIOR_EVIDENCE_COLUMNS,
     REVIEW_EVIDENCE_COLUMNS,
     add_behavior_review_evidence,
     audit_behavior_review_evidence,
@@ -48,6 +49,7 @@ POSTURE_BEHAVIORS = {"lying", "sitting"}
 class ReviewUnitConfig:
     intervals_csv: Path
     output_dir: Path
+    native_evidence_csv: Path | None = None
     sequence_window_manifest_csv: Path | None = None
     window_review_manifest_csv: Path | None = None
     max_units_per_template: int = 0
@@ -64,6 +66,17 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
     windows = None
     if config.sequence_window_manifest_csv is not None:
         windows = pd.read_csv(config.sequence_window_manifest_csv, low_memory=False)
+    native_evidence_audit: dict[str, Any] = {
+        "configured": False,
+        "valid": True,
+        "errors": [],
+        "warnings": ["native_review_evidence_not_configured"],
+    }
+    if config.native_evidence_csv is not None:
+        intervals, native_evidence_audit = _attach_native_review_evidence(
+            intervals,
+            config.native_evidence_csv,
+        )
     pig_strenet_audit: dict[str, Any] = {
         "configured": False,
         "valid": True,
@@ -200,10 +213,12 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
     errors.extend(input_errors + list(contract_audit["errors"]) + capacity_errors)
     errors.extend(behavior_evidence_audit["errors"])
     errors.extend(behavior_selection_audit["errors"])
+    errors.extend(native_evidence_audit.get("errors", []))
     errors.extend(pig_strenet_audit.get("errors", []))
     warnings = list(contract_audit["warnings"])
     warnings.extend(behavior_evidence_audit["warnings"])
     warnings.extend(behavior_selection_audit["warnings"])
+    warnings.extend(native_evidence_audit.get("warnings", []))
     warnings.extend(pig_strenet_audit.get("warnings", []))
     candidate_units = units.loc[units["include_in_review"].astype(bool)].copy()
     auto_carry_units = units.loc[
@@ -230,6 +245,7 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
             "review_unit_contract": contract_audit,
             "behavior_evidence": behavior_evidence_audit,
             "behavior_selection": behavior_selection_audit,
+            "native_review_evidence": native_evidence_audit,
             "pig_strenet_review_evidence": pig_strenet_audit,
             "review_scope": review_scope,
             "candidate_partition": partition_audit,
@@ -328,6 +344,7 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
         "review_unit_contract": contract_audit,
         "behavior_evidence": behavior_evidence_audit,
         "behavior_selection": behavior_selection_audit,
+        "native_review_evidence": native_evidence_audit,
         "pig_strenet_review_evidence": pig_strenet_audit,
         "review_scope": review_scope,
         "candidate_partition": partition_audit,
@@ -373,6 +390,79 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
     if errors:
         raise ValueError("review template partition failed: " + "; ".join(errors))
     return audit
+
+
+def _attach_native_review_evidence(
+    intervals: pd.DataFrame,
+    native_evidence_csv: Path,
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    key = "temporal_unit_key"
+    required = (key, *NATIVE_BEHAVIOR_EVIDENCE_COLUMNS)
+    available = set(pd.read_csv(native_evidence_csv, nrows=0).columns)
+    missing_columns = sorted(set(required).difference(available))
+    if missing_columns:
+        raise ValueError(
+            "Native review evidence missing Behavior columns: "
+            f"{missing_columns}"
+        )
+    evidence = pd.read_csv(
+        native_evidence_csv,
+        usecols=list(required),
+        low_memory=False,
+    )
+    if evidence[key].isna().any():
+        raise ValueError("Native review evidence has null temporal_unit_key")
+    evidence[key] = evidence[key].astype(str)
+    variation = evidence.groupby(key, sort=False)[
+        list(NATIVE_BEHAVIOR_EVIDENCE_COLUMNS)
+    ].nunique(dropna=False)
+    varying = variation.gt(1)
+    if varying.any().any():
+        examples = [
+            f"{variation.index[row_index]}:{variation.columns[column_index]}"
+            for row_index, column_index in zip(
+                *np.where(varying.to_numpy()),
+                strict=True,
+            )
+        ]
+        raise ValueError(
+            "Native unit evidence varies within temporal unit: "
+            f"{examples[:20]}"
+        )
+    unit_evidence = evidence.drop_duplicates(key, keep="first")
+    interval_keys = set(intervals[key].astype(str))
+    evidence_keys = set(unit_evidence[key])
+    missing_evidence = sorted(interval_keys.difference(evidence_keys))
+    unused_evidence = sorted(evidence_keys.difference(interval_keys))
+    if missing_evidence or unused_evidence:
+        raise ValueError(
+            "Native review evidence key mismatch: "
+            f"missing={len(missing_evidence)} unused={len(unused_evidence)}"
+        )
+    collisions = sorted(
+        set(NATIVE_BEHAVIOR_EVIDENCE_COLUMNS).intersection(intervals.columns)
+    )
+    if collisions:
+        raise ValueError(
+            f"Native review evidence column collision: {collisions}"
+        )
+    out = intervals.copy()
+    out[key] = out[key].astype(str)
+    out = out.merge(
+        unit_evidence,
+        on=key,
+        how="left",
+        validate="one_to_one",
+    )
+    return out, {
+        "configured": True,
+        "valid": True,
+        "errors": [],
+        "warnings": [],
+        "native_frame_rows": int(len(evidence)),
+        "matched_temporal_units": int(len(unit_evidence)),
+        "evidence_columns": list(NATIVE_BEHAVIOR_EVIDENCE_COLUMNS),
+    }
 
 
 def _base_units_from_intervals(intervals: pd.DataFrame) -> pd.DataFrame:

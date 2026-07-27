@@ -153,6 +153,31 @@ def test_canonical_config_cannot_enable_a_stage() -> None:
     assert "CANONICAL_AUTHORIZATION_FLAGS_MUST_REMAIN_FALSE" in errors
 
 
+def test_behavior_review_runner_requires_all_direct_evidence_inputs(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    root, config = load_config()
+    monkeypatch.setenv("CLASSIFICATION_V2_RUN_ROOT", str(tmp_path))
+
+    command = run_lineage_stage._command(
+        root,
+        config,
+        "behavior_review_units",
+    )
+    native_evidence = str(
+        run_lineage_stage._stage_path(root, config, "native_evidence")
+    )
+
+    assert config["stages"]["behavior_review_units"]["upstream"] == [
+        "temporal_harmonization",
+        "native_evidence",
+        "pig_strenet_evidence",
+    ]
+    native_option = command.index("--native-evidence-csv")
+    assert command[native_option + 1] == native_evidence
+
+
 def test_run_local_authorization_is_hash_bound_and_single_use(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

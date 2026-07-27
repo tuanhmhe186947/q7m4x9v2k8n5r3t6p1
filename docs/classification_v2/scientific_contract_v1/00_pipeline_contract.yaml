@@ -482,7 +482,11 @@
       "stage_id": "stage.behavior_review_unit_construction",
       "stage_name": "Behavior review-unit construction",
       "purpose": "Partition native intervals into review candidates and unchanged auto-carry units.",
-      "input_artifacts": ["artifact.temporal_intervals", "artifact.pig_strenet"],
+      "input_artifacts": [
+        "artifact.temporal_intervals",
+        "artifact.native_evidence",
+        "artifact.pig_strenet"
+      ],
       "output_artifacts": [
         "artifact.behavior_review_units",
         "artifact.behavior_review_universe",

@@ -259,6 +259,8 @@ def _command(root: Path, config: dict[str, Any], stage_id: str) -> list[str]:
                 "temporal_harmonization",
                 "intervals_relative",
             ),
+            "--native-evidence-csv",
+            _stage_path(root, config, "native_evidence"),
             "--native-only",
             "--output-dir",
             _stage_path(root, config, stage_id),

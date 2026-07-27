@@ -59,6 +59,21 @@ REQUIRED_EVIDENCE_COLUMNS: tuple[str, ...] = (
     "social_partner_persistence_ratio_unit",
     "social_aggression_proxy_n_per_second_p90_unit",
 )
+NATIVE_BEHAVIOR_EVIDENCE_COLUMNS: tuple[str, ...] = (
+    *REQUIRED_EVIDENCE_COLUMNS,
+    "social_neighbor_availability_ratio_unit",
+    "social_nearest_dist_p50_unit",
+    *(
+        f"roi_{roi_class}_{metric}_unit"
+        for roi_class in ("feeder", "drinker", "toy")
+        for metric in (
+            "availability_ratio",
+            "near_ratio",
+            "contact_ratio",
+            "contact_longest_run_ratio",
+        )
+    ),
+)
 
 
 @dataclass(frozen=True, slots=True)
