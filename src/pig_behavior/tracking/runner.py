@@ -84,6 +84,20 @@ def _cuda_telemetry_device(torch: Any, device_str: str) -> str | None:
     return None
 
 
+def _resolve_detector(model: object | None, weights_path: Path) -> object:
+    """Return an injected detector or construct the unchanged default model."""
+
+    if model is not None:
+        return model
+    try:
+        from ultralytics import YOLO
+    except ImportError as exc:
+        raise ImportError(
+            "Install tracking dependencies first: pip install -e .[tracking]"
+        ) from exc
+    return YOLO(str(weights_path))
+
+
 def _render_output_video(
     cfg: TrackingConfig,
     output_video: Path,
@@ -106,8 +120,15 @@ def _render_output_video(
         )
 
 
-def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
-    """Run YOLOv8 + mask + stabilized eight-ID tracking."""
+def run_tracking(
+    cfg: TrackingConfig,
+    model: object | None = None,
+) -> TrackingSummary:
+    """Run YOLOv8 + mask + stabilized eight-ID tracking.
+
+    Supplying ``model`` is an opt-in test/replay seam.  The default ``None``
+    path constructs and invokes Ultralytics exactly as before.
+    """
     validate_config(cfg)
     logger.info(
         "tracking mode=%s tracker_type=%s cvat_video_xml=%s",
@@ -139,7 +160,6 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
     try:
         import cv2
         import torch
-        from ultralytics import YOLO
     except ImportError as exc:
         raise ImportError(
             "Install tracking dependencies first: pip install -e .[tracking]"
@@ -184,7 +204,7 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
     else:
         device_str = str(device_str)
 
-    model = YOLO(str(cfg.weights_path))
+    model = _resolve_detector(model, cfg.weights_path)
     try:
         model.to(_model_to_device(device_str))
     except Exception as e:
@@ -267,6 +287,9 @@ def run_tracking(cfg: TrackingConfig) -> TrackingSummary:
             num_dets = 0
 
             if is_detect_frame:
+                set_frame_context = getattr(model, "set_frame_context", None)
+                if callable(set_frame_context):
+                    set_frame_context(frame_index, (frame_h, frame_w))
                 runtime.telemetry["detection_frames"] = (
                     int(runtime.telemetry["detection_frames"]) + 1
                 )
