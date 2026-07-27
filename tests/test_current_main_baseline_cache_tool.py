@@ -99,3 +99,20 @@ def test_locked_unresolved_gt_video_is_named_explicitly() -> None:
     assert module.SOURCE_LINEAGE_SHA256 == (
         "0cfb26acc7766e05c497d9efdfafa40dc92f2d5c527e0338b89602eef0838dfc"
     )
+
+
+def test_lineage_authority_is_payload_hash_not_self_referential_file_hash() -> None:
+    module = _load_module()
+    payload = {
+        "schema_version": "example",
+    }
+    payload["manifest_sha256"] = module.canonical_hash(payload)
+
+    original = module.SOURCE_LINEAGE_SHA256
+    module.SOURCE_LINEAGE_SHA256 = payload["manifest_sha256"]
+    try:
+        assert module.locked_lineage_payload_hash(payload) == payload[
+            "manifest_sha256"
+        ]
+    finally:
+        module.SOURCE_LINEAGE_SHA256 = original

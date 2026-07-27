@@ -67,6 +67,19 @@ def canonical_hash(payload: Any) -> str:
     return hashlib.sha256(encoded).hexdigest()
 
 
+def locked_lineage_payload_hash(payload: dict[str, Any]) -> str:
+    authority = payload.get("manifest_sha256")
+    if not isinstance(authority, str):
+        raise BaselineCacheError("locked lineage manifest lacks payload authority")
+    without_self_hash = {
+        key: value for key, value in payload.items() if key != "manifest_sha256"
+    }
+    calculated = canonical_hash(without_self_hash)
+    if calculated != authority or calculated != SOURCE_LINEAGE_SHA256:
+        raise BaselineCacheError("locked source-lineage payload hash mismatch")
+    return calculated
+
+
 def write_json(path: Path, payload: Any) -> None:
     path.write_text(
         json.dumps(
@@ -182,9 +195,8 @@ def load_population(
 ) -> tuple[list[VideoAuthority], str]:
     import cv2
 
-    if sha256_file(lineage_manifest) != SOURCE_LINEAGE_SHA256:
-        raise BaselineCacheError("locked source-lineage artifact hash mismatch")
     payload = json.loads(lineage_manifest.read_text(encoding="utf-8"))
+    locked_lineage_payload_hash(payload)
     if len(payload.get("videos", [])) != 13:
         raise BaselineCacheError("locked baseline population is not 13 videos")
     videos: list[VideoAuthority] = []
