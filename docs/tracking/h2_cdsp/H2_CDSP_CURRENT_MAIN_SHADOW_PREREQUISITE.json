@@ -1,0 +1,109 @@
+{
+  "schema_version": "tracking.h2_cdsp_current_main_shadow_prerequisite.v1",
+  "status": "FROZEN_NOT_AUTHORIZED",
+  "hypothesis": "H2_CAUSAL_DROPOUT_STATE_PRESERVATION",
+  "baseline_profile": "realtime_fast",
+  "authorized_current_main_sha": "d38ea5c804949bec40b739d9319f2e0cdff45c6c",
+  "historical_evidence": {
+    "source_sha": "b0d9009",
+    "role": "MECHANISM_DISCOVERY_ONLY",
+    "current_main_failure_prevalence": "NOT_MEASURED",
+    "dominant_historical_mechanism": "OCCLUSION_OWNER_LOSS",
+    "historical_wrong_id_frames": 2092,
+    "historical_wrong_id_percent": 42.503048,
+    "gt_authority_sufficient_for_included_events": true,
+    "gt_authority_unresolved_excluded_events": ["000216"]
+  },
+  "manifest": {
+    "path": "docs/tracking/h2_cdsp/H2_CDSP_SHADOW_DEVELOPMENT_MANIFEST.csv",
+    "sha256": "ef022419fcef6fe100baf5702520b9703035c9a0c1fb8324c18a4b3ae36de636",
+    "historical_positive_events": 6,
+    "control_windows": 4,
+    "validation_windows": 0,
+    "boundaries_frozen": true
+  },
+  "execution_contract": {
+    "separate_authorization_required": true,
+    "current_main_exact_sha_required": true,
+    "required_execution_lineage_bindings": {
+      "code_sha": "d38ea5c804949bec40b739d9319f2e0cdff45c6c",
+      "tracking_subtree_sha256": "MUST_BE_BOUND_BEFORE_EXECUTION",
+      "realtime_fast_effective_config_sha256": "MUST_BE_BOUND_BEFORE_EXECUTION",
+      "detector_cache_sha256_by_episode": "MUST_BE_BOUND_BEFORE_EXECUTION",
+      "baseline_canonical_output_sha256_by_episode": "MUST_BE_BOUND_BEFORE_SHADOW_COMPARISON",
+      "source_video_sha256_by_episode": "MUST_MATCH_FROZEN_MANIFEST",
+      "gt_sha256_by_episode": "MUST_MATCH_FROZEN_MANIFEST"
+    },
+    "current_main_baseline_reproduction_required": true,
+    "profile": "realtime_fast",
+    "h2_shadow_only": true,
+    "side_effect_free": true,
+    "assignments_must_remain_identical": true,
+    "cost_matrices_must_remain_identical": true,
+    "track_states_must_remain_identical": true,
+    "output_xml_semantically_identical": true,
+    "detector_cache_replay_only": true,
+    "detector_inference_calls": 0,
+    "gpu_inference_calls": 0,
+    "output_timing_contract": "causal_framewise",
+    "output_delay_frames": 0,
+    "future_frames_allowed": false,
+    "offline_repair_allowed": false,
+    "smoothing_allowed": false,
+    "recursive_run_root_mp4_count": 0,
+    "telemetry_required_for_baseline_algorithm": false
+  },
+  "operational_definitions": {
+    "baseline_state_loss_point": "first causal frame after a trusted snapshot when current-main baseline makes every corresponding track-local bbox, motion, and appearance reference unavailable or ineligible for ordinary association while the same fixed_id remains live",
+    "preservable_state_past_loss": "at the baseline state-loss point, H2 formula gates are usable and at least one PreservedStateEvidence channel remains available that baseline ordinary association cannot use",
+    "relevant_reentry_opportunity": "a later frame within the frozen episode where at least one detector observation enters the unchanged ordinary baseline candidate set for the same GT identity under authoritative development GT; H2 does not assign it",
+    "independent_positive_event": "a positive event from a distinct video key and distinct recording session; multiple events from one video or session count once",
+    "current_main_prevalence_claim": "FORBIDDEN_FROM_HISTORICAL_ROWS"
+  },
+  "required_measurements": [
+    "trusted snapshots created",
+    "baseline state-loss points",
+    "preservable state at each loss point",
+    "preserved usable duration",
+    "preserved state present at relevant re-entry",
+    "state confidence and uncertainty over age",
+    "optional appearance and motion availability",
+    "invalidations by reason",
+    "control preservation density and duration",
+    "shadow versus disabled output equivalence"
+  ],
+  "pass_gates": {
+    "independent_positive_events_with_baseline_state_loss_minimum": 2,
+    "independent_positive_events_with_usable_state_past_loss_minimum": 2,
+    "independent_positive_events_reaching_reentry_minimum": 2,
+    "distinct_positive_video_keys_minimum": 2,
+    "distinct_positive_recording_sessions_minimum": 2,
+    "independence_shortfall_outcome": "INCONCLUSIVE",
+    "controls_may_not_show_broad_or_long_lived_preservation": true,
+    "control_overpreservation_definition": "more than 10% of eligible control dropout frames or any control state older than 10 frames",
+    "shadow_output_semantic_differences_maximum": 0,
+    "must_not_rely_on_one_event": true,
+    "must_not_rely_on_perfect_synthetic_evidence": true,
+    "prefix_invariance_required": true,
+    "no_future_frames_required": true,
+    "run_root_mp4_count_required": 0
+  },
+  "outcomes": [
+    "PASS_SHADOW_PREREQUISITE",
+    "FAIL_NO_BASELINE_STATE_LOSS",
+    "FAIL_NO_PRESERVABLE_STATE",
+    "FAIL_STATE_EXPIRES_BEFORE_REENTRY",
+    "FAIL_CONTROL_OVERPRESERVATION",
+    "FAIL_SHADOW_SIDE_EFFECT",
+    "FAIL_CONTRACT",
+    "INCONCLUSIVE"
+  ],
+  "authorizations": {
+    "implementation_authorized": false,
+    "shadow_execution_authorized": false,
+    "association_evaluation_authorized": false,
+    "validation_authorized": false,
+    "runtime_authorized": false,
+    "promotion_authorized": false
+  }
+}

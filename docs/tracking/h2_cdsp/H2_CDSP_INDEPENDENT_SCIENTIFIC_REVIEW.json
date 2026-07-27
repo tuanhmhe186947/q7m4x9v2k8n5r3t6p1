@@ -1,0 +1,187 @@
+{
+  "schema_version": "tracking.h2_cdsp_independent_scientific_review.v1",
+  "review_date": "2026-07-27",
+  "review_round": "FINAL_FOLLOW_UP_AFTER_LIFECYCLE_CORRECTION",
+  "reviewer_identity": "Codex /root/h2_cdsp_independent_review",
+  "reviewer_role": "independent scientific design reviewer",
+  "independent_from_authoring": true,
+  "independence": true,
+  "review_decision": "PASS_DESIGN",
+  "decision": "PASS_DESIGN",
+  "review_scope": {
+    "design_only": true,
+    "tracking_or_inference_run": false,
+    "validation_outputs_inspected": false,
+    "authored_design_artifacts_modified": false
+  },
+  "challenges": [
+    {
+      "challenge_id": "C01_HISTORICAL_TAXONOMY_SUPPORT",
+      "result": "PASS",
+      "rationale": "The taxonomy supports a bounded hypothesis, not a prevalence claim.",
+      "evidence": [
+        "Six events share missing detection, occlusion or hold, and association rows.",
+        "LK success, motion history, and retained-state quality were NOT_EXPORTED.",
+        "Current-main shadow must independently falsify the state-availability premise."
+      ]
+    },
+    {
+      "challenge_id": "C02_SIX_EVENT_ADEQUACY_AND_INDEPENDENCE",
+      "result": "PASS",
+      "rationale": "The small development set now has explicit anti-pseudoreplication gates.",
+      "evidence": [
+        "Three of six positives are from Pigs291119_000263_30fps.",
+        "Five of six positives are from the same 2019-11-29 session.",
+        "Pass requires two video keys and two recording sessions; shortfall is INCONCLUSIVE."
+      ]
+    },
+    {
+      "challenge_id": "C03_STALE_IDENTITY_RISK",
+      "result": "PASS",
+      "rationale": "Stale evidence is finite, uncertainty-gated, and cannot claim ownership.",
+      "evidence": [
+        "Trusted state requires current FixedTrack visibility and unambiguous assignment.",
+        "Confidence decays, uncertainty grows, and unusable state fails closed.",
+        "The sole consumer is bounded same-track evidence substitution."
+      ]
+    },
+    {
+      "challenge_id": "C04_MATERIAL_DIFFERENCE_FROM_H1",
+      "result": "PASS",
+      "rationale": "H2 acts on pre-reentry state and contains no owner-score reservation.",
+      "evidence": [
+        "H2 preserves a bounded snapshot before reentry.",
+        "It forbids detection reservation, visible-assignment veto, and direct assignment.",
+        "H1-r1 through H1-r3 operated on owner or pair preference at reentry."
+      ]
+    },
+    {
+      "challenge_id": "C05_CAUSAL_DECAY_FORMULAS",
+      "result": "PASS",
+      "rationale": "The numeric decay and uncertainty formulas are causal and monotonic.",
+      "evidence": [
+        "Confidence and optional reliability decay with age.",
+        "Uncertainty grows and missing motion cannot reduce it.",
+        "The state is unusable after bounded age, confidence, or uncertainty gates."
+      ]
+    },
+    {
+      "challenge_id": "C06_INVALIDATION_STATE_MACHINE",
+      "result": "PASS",
+      "rationale": "The lifecycle graph, guards, and precedence are now executable.",
+      "evidence": [
+        "T09 permits an ordinary trusted reacquire from INVALIDATED.",
+        "T09 is evaluated before residual T10 invalidation.",
+        "The checker rejects precedence that makes reacquisition unreachable."
+      ]
+    },
+    {
+      "challenge_id": "C07_SHADOW_CAN_FALSIFY_NARROW_H2",
+      "result": "PASS",
+      "rationale": "The frozen shadow can falsify the narrow state-availability premise.",
+      "evidence": [
+        "It can fail on no baseline state loss, no preservable state, or expiry.",
+        "It requires side-effect-free output, assignment, cost, and state equivalence.",
+        "It cannot establish general prevalence, benefit, or intervention safety."
+      ]
+    },
+    {
+      "challenge_id": "C08_CURRENT_MAIN_BASELINE_REQUIREMENT",
+      "result": "PASS",
+      "rationale": "Fresh current-main baseline reproduction is explicitly mandatory.",
+      "evidence": [
+        "The prerequisite requires an exact current-main SHA.",
+        "It requires current-main baseline reproduction before implementation.",
+        "Historical b0d9009 outcomes cannot substitute for current-main evidence."
+      ]
+    },
+    {
+      "challenge_id": "C09_BASELINE_REPRODUCTION_SPECIFICATION",
+      "result": "PASS",
+      "rationale": "The future shadow now requires exact current-main lineage bindings.",
+      "evidence": [
+        "Current-main SHA d38ea5c804949bec40b739d9319f2e0cdff45c6c is frozen.",
+        "Config, subtree, cache, inputs, GT, and canonical outputs must be bound.",
+        "State loss, preservable state, and relevant reentry are operationally defined."
+      ]
+    },
+    {
+      "challenge_id": "C10_TRACK_STATE_INFRASTRUCTURE_FIRST",
+      "result": "PASS",
+      "rationale": "A broad infrastructure refactor is not required before revising the design.",
+      "evidence": [
+        "FixedTrack already exposes hits, missed age, boxes, ambiguity, and histories.",
+        "TrackingRuntimeState supports side-effect-free observer telemetry.",
+        "The H1-r3 observer proves costs and track state can remain unchanged."
+      ]
+    },
+    {
+      "challenge_id": "C11_BASELINE_LIFECYCLE_BINDING",
+      "result": "PASS",
+      "rationale": "FixedTrack live, lost, invalidated, and terminated states are coherent.",
+      "evidence": [
+        "The state machine maps removal from the active dictionary to TERMINATED.",
+        "The formulas now route removal to TERMINATED rather than INVALIDATED.",
+        "Baseline LOST remains distinct and routes only H2 evidence to INVALIDATED."
+      ]
+    },
+    {
+      "challenge_id": "C12_CAUSAL_ATTRIBUTION_OF_BENEFIT",
+      "result": "PASS",
+      "rationale": "The changed association family is now frozen to evidence substitution.",
+      "evidence": [
+        "Candidate set, cost formula, weights, gates, and solver remain unchanged.",
+        "No owner score, pair penalty, reservation, veto, or direct assignment is allowed.",
+        "No divergence has the frozen outcome FAIL_NO_ASSOCIATION_EFFECT."
+      ]
+    },
+    {
+      "challenge_id": "C13_VALIDATION_BLINDNESS",
+      "result": "PASS",
+      "rationale": "The packet preserves an untouched, separately authorized validation role.",
+      "evidence": [
+        "All historical and shadow windows are development-only.",
+        "A new population must be disjoint by video, date, session, and source hash.",
+        "No H2 validation output exists or was inspected."
+      ]
+    },
+    {
+      "challenge_id": "C14_AUTHORIZATION_BOUNDARY",
+      "result": "PASS",
+      "rationale": "The packet consistently grants no execution or promotion authority.",
+      "evidence": [
+        "Implementation, shadow, association evaluation, and validation are false.",
+        "Runtime and promotion authorizations are false.",
+        "The design requires separate later authorizations."
+      ]
+    }
+  ],
+  "required_revisions": [],
+  "unresolved_risks": [
+    "Historical taxonomy does not directly show that trustworthy state was discarded.",
+    "State preservation may have no operating region on current main.",
+    "Stale evidence safety under real association divergence remains unmeasured.",
+    "Current-main prevalence and effect remain NOT_MEASURED.",
+    "The future untouched validation population is not yet frozen."
+  ],
+  "artifact_sha256": {
+    "H2_CDSP_SCIENTIFIC_DESIGN_CONTRACT.md": "0e23873f60df2bc80fe0b41b78c5f574740cf74085d6d0320a827008123fb857",
+    "H2_CDSP_STATE_SEMANTICS_REGISTRY.csv": "bfa0ce6ebb6b90d971d9e39a212c17b9e221118f7745e546eff172c3b9e62bdb",
+    "H2_CDSP_STATE_MACHINE.json": "72730ee462f4ae08727ea955528c0871a7a0357180a56c47d8034c4775e87ebd",
+    "H2_CDSP_PRESERVATION_FORMULAS.md": "a9a2e23e79e87c30c752b1d7f257784be63fcabe18e5f790adfd1f4f82fd2ae1",
+    "H2_CDSP_GOLDEN_CASES.yaml": "2aacc03ac3006ae70e3488b056d58ff1303059f0f449c3cd02fd052e108cf52d",
+    "H2_CDSP_CURRENT_MAIN_SHADOW_PREREQUISITE.json": "ac549bb4b52d82b6ea0b344918648555b4efb1d2461c6bae7758935da4487550",
+    "H2_CDSP_SHADOW_DEVELOPMENT_MANIFEST.csv": "ef022419fcef6fe100baf5702520b9703035c9a0c1fb8324c18a4b3ae36de636",
+    "H2_CDSP_VALIDATION_POLICY.md": "dfab6b4d911b023267fb2f23e820d286d757248ba977ebbd12662341e933cf9f",
+    "H2_CDSP_EVALUATION_GATE.json": "057288e1b4cf3ad8d76c331404140c352fd60824091e024790a3c7ea3940c174"
+  },
+  "authorizations": {
+    "implementation_authorized": false,
+    "shadow_execution_authorized": false,
+    "association_evaluation_authorized": false,
+    "evaluation_authorized": false,
+    "validation_authorized": false,
+    "runtime_authorized": false,
+    "promotion_authorized": false
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "schema_version": "tracking.h2_cdsp_evaluation_gate.v1",
+  "status": "FROZEN_NOT_AUTHORIZED",
+  "hypothesis": "H2_CAUSAL_DROPOUT_STATE_PRESERVATION",
+  "prerequisites": {
+    "current_main_shadow_prerequisite_must_pass": true,
+    "current_main_baseline_reproduction_required": true,
+    "new_h2_validation_population_must_be_frozen_before_implementation": true,
+    "implementation_authorization_separate": true,
+    "association_evaluation_authorization_separate": true
+  },
+  "development_outcomes": [
+    "FAIL_NO_BASELINE_STATE_LOSS",
+    "FAIL_NO_PRESERVABLE_STATE",
+    "FAIL_STATE_EXPIRES_BEFORE_REENTRY",
+    "FAIL_CONTROL_OVERPRESERVATION",
+    "FAIL_NO_ASSOCIATION_EFFECT",
+    "FAIL_NO_BENEFICIAL_EFFECT",
+    "FAIL_SWAP_REGRESSION",
+    "PASS_DEVELOPMENT",
+    "INCONCLUSIVE"
+  ],
+  "required_gates": {
+    "independent_positive_events_with_real_state_preservation_minimum": 2,
+    "distinct_positive_video_keys_minimum": 2,
+    "distinct_positive_recording_sessions_minimum": 2,
+    "real_association_output_divergence_required": true,
+    "independent_beneficial_identity_outcomes_minimum": 2,
+    "new_permanent_swaps_maximum": 0,
+    "new_terminal_swaps_maximum": 0,
+    "broad_control_activation_allowed": false,
+    "activation_from_missing_evidence_only_allowed": false,
+    "aggregate_fp_absolute_change_percent_maximum": 1.0,
+    "aggregate_fn_absolute_change_percent_maximum": 1.0,
+    "per_video_fp_or_fn_absolute_change_percent_maximum": 5.0,
+    "output_timing_contract": "causal_framewise",
+    "output_delay_frames": 0,
+    "prefix_invariance_required": true,
+    "future_frame_access_allowed": false,
+    "shared_detector_evidence_required": true,
+    "detector_inference_during_replay_maximum": 0,
+    "recursive_run_root_mp4_count": 0,
+    "exact_repeat_required_after_first_pass": true
+  },
+  "interpretation_rules": {
+    "state_preserved_without_reentry": "FAIL_STATE_EXPIRES_BEFORE_REENTRY",
+    "state_reaches_reentry_without_assignment_change": "FAIL_NO_ASSOCIATION_EFFECT",
+    "assignment_changes_without_beneficial_identity_outcome": "FAIL_NO_BENEFICIAL_EFFECT",
+    "any_new_permanent_or_terminal_swap": "FAIL_SWAP_REGRESSION",
+    "gt_authority_insufficient": "INCONCLUSIVE",
+    "aggregate_gain_on_one_event_only": "not sufficient for PASS_DEVELOPMENT"
+  },
+  "association_change_boundary": {
+    "sole_permitted_consumer": "one-for-one track-local evidence substitution",
+    "baseline_candidate_set_costs_weights_gates_solver_unchanged": true,
+    "owner_score_or_pair_penalty_allowed": false,
+    "reservation_or_visible_veto_allowed": false,
+    "direct_assignment_allowed": false
+  },
+  "runtime_inputs_forbidden": [
+    "ground truth",
+    "video key",
+    "episode ID",
+    "recording date",
+    "frame-range shortcut",
+    "development or validation role"
+  ],
+  "authorizations": {
+    "implementation_authorized": false,
+    "shadow_execution_authorized": false,
+    "association_evaluation_authorized": false,
+    "validation_authorized": false,
+    "runtime_authorized": false,
+    "promotion_authorized": false
+  }
+}

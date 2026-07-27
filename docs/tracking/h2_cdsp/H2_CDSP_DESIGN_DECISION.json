@@ -1,0 +1,79 @@
+{
+  "schema_version": "tracking.h2_cdsp_design_decision.v1",
+  "date": "2026-07-27",
+  "starting_main_sha": "d38ea5c804949bec40b739d9319f2e0cdff45c6c",
+  "hypothesis": "H2_CAUSAL_DROPOUT_STATE_PRESERVATION",
+  "short_name": "H2-CDSP",
+  "decision_status": "FROZEN_DESIGN_PASS",
+  "historical_evidence_source_sha": "b0d9009",
+  "historical_evidence_role": "MECHANISM_DISCOVERY_ONLY",
+  "current_main_failure_prevalence": "NOT_MEASURED",
+  "gt_authority_sufficient_for_included_events": true,
+  "gt_authority_unresolved_excluded_events": ["000216"],
+  "dominant_historical_mechanism": "OCCLUSION_OWNER_LOSS",
+  "dominant_historical_wrong_id_frames": 2092,
+  "dominant_historical_percent": 42.503048,
+  "intervention": {
+    "type": "STATE_PRESERVATION",
+    "acts_before_reentry": true,
+    "preserved_state_is_evidence_not_command": true,
+    "h2_reserves_detections": false,
+    "h2_directly_assigns_detections": false,
+    "h2_blocks_visible_assignments": false,
+    "h2_creates_tracks": false,
+    "h2_adds_emissions": false,
+    "h2_uses_future_frames": false,
+    "output_delay_frames": 0
+  },
+  "h2_reserves_detections": false,
+  "h2_directly_assigns_detections": false,
+  "h2_uses_future_frames": false,
+  "state_contract": {
+    "states": 6,
+    "transitions": 13,
+    "confidence_monotonic_decay": true,
+    "uncertainty_monotonic_growth": true,
+    "finite_preservation_duration_frames": 10,
+    "golden_cases": 18,
+    "realistic_short_dropout_usable_minimum": 4,
+    "unsafe_invalidation_cases_minimum": 4,
+    "nonassignment_cases_minimum": 2
+  },
+  "shadow_prerequisite": {
+    "mandatory_before_implementation_authorization": true,
+    "frozen": true,
+    "historical_positive_events": 6,
+    "control_windows": 4,
+    "event_000216_excluded": true,
+    "execution_authorized": false
+  },
+  "validation": {
+    "policy": "FREEZE_NEW_UNTOUCHED_H2_POPULATION_BEFORE_IMPLEMENTATION",
+    "population_currently_frozen": false,
+    "development_validation_disjoint": true,
+    "validation_outputs_exist": false,
+    "validation_executed": false
+  },
+  "artifact_sha256": {
+    "H2_CDSP_SCIENTIFIC_DESIGN_CONTRACT.md": "0e23873f60df2bc80fe0b41b78c5f574740cf74085d6d0320a827008123fb857",
+    "H2_CDSP_STATE_SEMANTICS_REGISTRY.csv": "bfa0ce6ebb6b90d971d9e39a212c17b9e221118f7745e546eff172c3b9e62bdb",
+    "H2_CDSP_STATE_MACHINE.json": "72730ee462f4ae08727ea955528c0871a7a0357180a56c47d8034c4775e87ebd",
+    "H2_CDSP_PRESERVATION_FORMULAS.md": "a9a2e23e79e87c30c752b1d7f257784be63fcabe18e5f790adfd1f4f82fd2ae1",
+    "H2_CDSP_GOLDEN_CASES.yaml": "2aacc03ac3006ae70e3488b056d58ff1303059f0f449c3cd02fd052e108cf52d",
+    "H2_CDSP_CURRENT_MAIN_SHADOW_PREREQUISITE.json": "ac549bb4b52d82b6ea0b344918648555b4efb1d2461c6bae7758935da4487550",
+    "H2_CDSP_SHADOW_DEVELOPMENT_MANIFEST.csv": "ef022419fcef6fe100baf5702520b9703035c9a0c1fb8324c18a4b3ae36de636",
+    "H2_CDSP_VALIDATION_POLICY.md": "dfab6b4d911b023267fb2f23e820d286d757248ba977ebbd12662341e933cf9f",
+    "H2_CDSP_EVALUATION_GATE.json": "057288e1b4cf3ad8d76c331404140c352fd60824091e024790a3c7ea3940c174"
+  },
+  "independent_review": "PASS_DESIGN",
+  "ready_for_current_main_shadow_authorization": true,
+  "ready_for_production_implementation": false,
+  "authorizations": {
+    "implementation_authorized": false,
+    "shadow_execution_authorized": false,
+    "association_evaluation_authorized": false,
+    "validation_authorized": false,
+    "runtime_authorized": false,
+    "promotion_authorized": false
+  }
+}
