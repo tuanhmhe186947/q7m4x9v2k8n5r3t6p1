@@ -1,0 +1,25 @@
+{
+  "schema_version": "tracking.h2_cdsp_validation_freeze_decision.v1",
+  "hypothesis": "H2_CAUSAL_DROPOUT_STATE_PRESERVATION",
+  "decision_date": "2026-07-27",
+  "decision": "PASS_VALIDATION_POPULATION_FREEZE",
+  "validation_population_freeze": "PASS",
+  "validation_windows_total": 4,
+  "positive_windows": 2,
+  "control_windows": 2,
+  "ambiguous_excluded": 0,
+  "event_000216_excluded": true,
+  "development_validation_disjoint": true,
+  "roles_and_boundaries_frozen": true,
+  "validation_executed": false,
+  "validation_execution_authorized": false,
+  "production_implementation_authorized": false,
+  "association_evaluation_authorized": false,
+  "runtime_authorized": false,
+  "promotion_authorized": false,
+  "next_authorized_step": "CURRENT_MAIN_SHADOW_PREREQUISITE_ONLY",
+  "artifacts": {
+    "docs/tracking/h2_cdsp/H2_CDSP_VALIDATION_MANIFEST.csv": "e48bc102c19734a3f4b60b7b51e7d13b0390727fe1a09644ab653af2292ccad7",
+    "docs/tracking/h2_cdsp/H2_CDSP_VALIDATION_ROLE_ASSIGNMENTS.json": "69019532a6ef5fa3c529470244481ab100f5f86ecf7e98f26003c934e778d61c"
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "schema_version": "tracking.h2_cdsp_validation_role_assignments.v1",
+  "hypothesis": "H2_CAUSAL_DROPOUT_STATE_PRESERVATION",
+  "short_name": "H2-CDSP",
+  "assignment_timestamp": "2026-07-27T23:02:16+07:00",
+  "authority_sha": "f34ccc5784e46cf51480691654d1e024237c4bbd",
+  "assigner_identity": "codex_subagent:/root/blinded_role_assignment",
+  "assignment_method": "independent_pre_h2_evidence_review",
+  "population_status": "FROZEN_UNEXECUTED",
+  "row_hash_contract": {
+    "algorithm": "SHA-256",
+    "canonicalization": "UTF-8 JSON array of CSV fields in header order, excluding frozen_artifact_sha256, with compact separators",
+    "location": "H2_CDSP_VALIDATION_MANIFEST.csv:frozen_artifact_sha256"
+  },
+  "blindness_contract": {
+    "allowed_evidence": [
+      "immutable_source_video",
+      "authoritative_locked_gt",
+      "RF_ACC23_parent_evidence_predating_H2_output",
+      "pre_H2_metadata"
+    ],
+    "prohibited_evidence_not_inspected": [
+      "H2_score",
+      "H2_preserved_state",
+      "H2_shadow_output",
+      "H2_candidate_comparison",
+      "H2_validation_output"
+    ],
+    "tracking_run_performed": false,
+    "detector_or_gpu_inference_performed": false,
+    "h2_output_viewed": false
+  },
+  "separation": {
+    "development_video_keys": [
+      "Pigs291119_000226_30fps",
+      "Pigs291119_000233_30fps",
+      "Pigs291119_000263_30fps",
+      "Pigs301119_000327_30fps"
+    ],
+    "validation_video_keys": [
+      "Pigs281119_000085_30fps",
+      "Pigs281119_000114_30fps"
+    ],
+    "development_sessions": [
+      "2019-11-29/session-291119",
+      "2019-11-30/session-301119"
+    ],
+    "validation_sessions": [
+      "2019-11-28/session-281119"
+    ],
+    "source_video_disjoint": true,
+    "video_key_disjoint": true,
+    "recording_date_session_disjoint": true,
+    "event_000216_excluded": true
+  },
+  "parent_evidence": {
+    "authority": "RF_ACC23",
+    "lineage_artifact": "outputs/tracking/rf_acc23_lineage/rf_acc23_lineage_manifest_20260727_v1.json",
+    "lineage_artifact_sha256": "91289c9acb40958e59c17e98872714904f8df7e4c49682a4649e7fcc84bab9be",
+    "historical_evidence_role": "MECHANISM_DISCOVERY_AND_PRE_H2_SELECTION_ONLY",
+    "h2_output_role": "NONE",
+    "continuity_gap_ledger_sha256": "64846456868fc87b3f6b786404a541cb1089c12f9dd7a79ff53e6888f647cc2b",
+    "Pigs281119_000085_30fps": {
+      "per_frame_evidence_sha256": "e1623a964e55ac962b02fbfaf68b2c4e407a2b81b50c298d707db5cc65fa0a37",
+      "parent_prediction_sha256": "04a3654fae2a6db97987385181831821e95aeded64bc98845911b85cfb940528"
+    },
+    "Pigs281119_000114_30fps": {
+      "per_frame_evidence_sha256": "13e1893dc1352055dd476bd91cacc0ee3c0945b4d5ad18b713acec06a14ad133",
+      "parent_prediction_sha256": "f99de7990d9e4ff5f6689a73df0e0a7a3a83f2a8ad92459931e77a92d3b2a18c"
+    }
+  },
+  "assignments": [
+    {
+      "validation_episode_id": "H2V_P01_000085",
+      "role": "positive_dropout_state_loss",
+      "window": [1155, 1200],
+      "parent_signals": ["1169-1172", "1183-1186", "1187-1190"]
+    },
+    {
+      "validation_episode_id": "H2V_P02_000114",
+      "role": "positive_dropout_state_loss",
+      "window": [280, 305],
+      "parent_signals": ["291-294"]
+    },
+    {
+      "validation_episode_id": "H2V_C01_000085",
+      "role": "control_no_relevant_state_loss",
+      "window": [800, 840],
+      "parent_minimum_iou": 0.7349
+    },
+    {
+      "validation_episode_id": "H2V_C02_000114",
+      "role": "control_no_relevant_state_loss",
+      "window": [600, 640],
+      "parent_minimum_iou": 0.6331
+    }
+  ],
+  "novelty_scope": "UNTOUCHED_WINDOW_LEVEL_H2_VALIDATION",
+  "external_video_novelty_claimed": false,
+  "roles_and_boundaries_immutable": true,
+  "validation_executed": false
+}
