@@ -108,6 +108,18 @@ TRACKING_RULE_TELEMETRY_KEYS = (
     "detections_intentionally_ignored",
     "recovery_frames_applied",
 )
+H1_R2_TELEMETRY_KEYS = (
+    "h1_r2_stage_calls",
+    "h1_r2_hidden_tracks_offered",
+    "h1_r2_competitors_scored",
+    "h1_r2_valid_score_pairs",
+    "h1_r2_abstained_missing_evidence",
+    "h1_r2_abstained_below_threshold",
+    "h1_r2_abstained_tie_or_margin",
+    "h1_r2_owner_preference_applied",
+    "h1_r2_score_invalid",
+    "h1_r2_reacquisition_observed",
+)
 TRACKING_ASSOCIATION_PHASES = (
     "visible",
     "visible_high_conf",
@@ -121,6 +133,7 @@ TRACKING_TIMING_STAGES = (
 )
 TRACKING_INTEGER_TELEMETRY_KEYS = (
     *TRACKING_RULE_TELEMETRY_KEYS,
+    *H1_R2_TELEMETRY_KEYS,
     "frames_processed",
     "detection_frames",
     "skipped_detection_frames",
@@ -233,6 +246,7 @@ __all__ = [
     "DEFAULT_TRACK_HIGH_CONF_THRESHOLD",
     "DEFAULT_VIDEO_PATH",
     "DEFAULT_VISUAL_OPACITY",
+    "H1_R2_TELEMETRY_KEYS",
     "DEFAULT_WEIGHTS_PATH",
     "ID_VALUES",
     "PIG_LABEL_SCHEMA",

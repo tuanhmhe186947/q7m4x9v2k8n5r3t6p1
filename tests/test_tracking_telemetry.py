@@ -21,6 +21,7 @@ from pig_behavior.tracking import (
     match_and_update_tracks,
     validate_config,
 )
+from pig_behavior.tracking.constants import H1_R2_TELEMETRY_KEYS
 from pig_behavior.tracking.exporters.quality import build_quality_report
 from pig_behavior.tracking.profiles.realtime import (
     REALTIME_BALANCED_CONFIG,
@@ -240,6 +241,21 @@ def test_runtime_telemetry_summary_has_stable_timing_and_delay() -> None:
     assert telemetry["output_age_deadline_miss_rate"] == 0.0
     assert telemetry["declared_delay_ms"] == pytest.approx(80.0)
     assert telemetry["peak_process_rss_bytes"] == 123
+
+
+def test_h1_r2_integer_telemetry_survives_canonical_summary() -> None:
+    runtime = TrackingRuntimeState()
+    runtime.telemetry.update(
+        {
+            key: index + 1
+            for index, key in enumerate(H1_R2_TELEMETRY_KEYS)
+        }
+    )
+
+    telemetry = get_telemetry_summary(runtime)
+
+    for index, key in enumerate(H1_R2_TELEMETRY_KEYS):
+        assert telemetry[key] == index + 1
 
 
 def test_runtime_telemetry_reports_stream_backlog_and_deadline_misses() -> None:
