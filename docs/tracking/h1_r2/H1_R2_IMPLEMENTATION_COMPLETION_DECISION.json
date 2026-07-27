@@ -1,0 +1,129 @@
+{
+  "schema_version": "tracking.h1_r2_implementation_completion.v1",
+  "experiment": "H1-r2",
+  "decision_date": "2026-07-27",
+  "authorization_main_sha": "8b55038c66a0fbb7c9b3388ed61ba6f60699be4b",
+  "implementation_commit_sha": "1f307516e1f76a03787422e53bd7cb7246c657db",
+  "profile_authorization_amendment": {
+    "path": "docs/tracking/h1_r2/H1_R2_PROFILE_ADDITION_AUTHORIZATION_DECISION.json",
+    "sha256": "4893e67ad5dba400cec296b2711fc7b60ba7efa8f482923f064bb9ca2481a82f",
+    "authorized_profile_name": "realtime_fast_h1_r2"
+  },
+  "sha256_bindings": {
+    "design_contract": "1f994e47594487fdffb2406ccb21f9dd179f30cc8912d6c5db012c3a6d037df9",
+    "feature_registry": "169d9c3ada9239f3e5f7031f80c1d9107d4c255295b0a6f26251a1f6b6af3a0f",
+    "golden_cases": "54a062bc8fbca80a3e670c5699b6efd0bdfa1cd7594d76b1f7c46dbbf44847e7",
+    "activation_gate": "642999bf3977b5f9b8a7f84d20b0eb3d9248e4f26d8a94a1cba4cccf3ea8c6c0",
+    "implementation_checker": "d61ec05289e6cfd6722a27a76e04823ae06215fd47b65bcccc766c071639a199"
+  },
+  "config_hashes": {
+    "realtime_fast_before_sha256":
+      "9bf4ce6d07423ab517b4705c716e3eb012349b756b7c0591cc3458eac207808d",
+    "realtime_fast_after_sha256":
+      "9bf4ce6d07423ab517b4705c716e3eb012349b756b7c0591cc3458eac207808d",
+    "realtime_fast_h1_r2_sha256": "4916fcc24d464372c0c2151be41c65bb32472a0972d9f845659ec20970094500"
+  },
+  "tracking_subtree": {
+    "authorized_main_tree": "63a2cacc73b269776b7d1e36b19480160307f980",
+    "implementation_tree": "df3975b0c61c17420692ce197c8c8de4628c850b",
+    "difference_classification": "FROZEN_H1_R2_IMPLEMENTATION_AND_OPT_IN_PROFILE_ONLY"
+  },
+  "implementation_commits": [
+    "ff575f7 feat(tracking): implement frozen H1-r2 owner preference",
+    "4866418 feat(tracking): add opt-in H1-r2 profile",
+    "d81c432 feat(tracking): summarize H1-r2 telemetry",
+    "6cf8ecf test(tracking): lock H1-r2 golden invariants",
+    "1f30751 test(tracking): add fail-closed H1-r2 implementation checker"
+  ],
+  "changed_file_allowlist": [
+    "docs/tracking/h1_r2/H1_R2_PROFILE_ADDITION_AUTHORIZATION_DECISION.json",
+    "scripts/tracking/check_h1_r2_design_contract.py",
+    "scripts/tracking/check_h1_r2_implementation.py",
+    "src/pig_behavior/tracking/association.py",
+    "src/pig_behavior/tracking/config.py",
+    "src/pig_behavior/tracking/constants.py",
+    "src/pig_behavior/tracking/owner_preference.py",
+    "src/pig_behavior/tracking/profiles/realtime.py",
+    "tests/test_tracking_h1_r2.py",
+    "tests/test_tracking_h1_r2_design_contract.py",
+    "tests/test_tracking_h1_r2_implementation.py",
+    "tests/test_tracking_profiles.py",
+    "tests/test_tracking_telemetry.py"
+  ],
+  "verification": {
+    "design_checker": {
+      "command": "python scripts/tracking/check_h1_r2_design_contract.py",
+      "result": "PASS"
+    },
+    "implementation_checker": {
+      "command": "python scripts/tracking/check_h1_r2_implementation.py",
+      "result": "PASS"
+    },
+    "focused_tests": {
+      "command": [
+        "pytest",
+        "-q",
+        "tests/test_tracking_h1_r2.py",
+        "tests/test_tracking_h1_r2_design_contract.py",
+        "tests/test_tracking_h1_r2_implementation.py",
+        "tests/test_tracking_profiles.py",
+        "tests/test_tracking_telemetry.py"
+      ],
+      "result": "78 passed"
+    },
+    "broader_tracking_tests": {
+      "command": [
+        "pytest",
+        "-q",
+        "tests/test_tracking_baseline_lock.py",
+        "tests/test_tracking_detector_cache.py",
+        "tests/test_tracking_eval_config_overrides.py",
+        "tests/test_tracking_h1_r2.py",
+        "tests/test_tracking_h1_r2_design_contract.py",
+        "tests/test_tracking_h1_r2_implementation.py",
+        "tests/test_tracking_identity_replay.py",
+        "tests/test_tracking_improvements.py",
+        "tests/test_tracking_lineage.py",
+        "tests/test_tracking_no_mp4.py",
+        "tests/test_tracking_pipeline.py",
+        "tests/test_tracking_prefix_invariance.py",
+        "tests/test_tracking_profiles.py",
+        "tests/test_tracking_repeatability.py",
+        "tests/test_tracking_repeatability_cli.py",
+        "tests/test_tracking_spatial_strata.py",
+        "tests/test_tracking_telemetry.py",
+        "tests/test_tracking_window_evaluation.py"
+      ],
+      "result": "282 passed"
+    },
+    "ruff_changed_file_allowlist": {
+      "command": "ruff check <changed Python file allowlist>",
+      "result": "PASS"
+    },
+    "repository_wide_ruff_observation": {
+      "result": "PREEXISTING_NOT_GREEN",
+      "issue_count": 1020,
+      "implementation_files_implicated": false
+    },
+    "diff_check": "PASS",
+    "overlong_line_scan": "PASS",
+    "bounded_root_mp4_count": 0
+  },
+  "scientific_limits": {
+    "real_tracking_runs": 0,
+    "gpu_inference_runs": 0,
+    "candidate_outputs_inspected": false,
+    "development_evaluation_run": false,
+    "validation_evaluation_run": false,
+    "runtime_benchmark_run": false,
+    "experiment_outputs_created": 0,
+    "score_calibrated": false,
+    "score_is_probability": false,
+    "threshold": 0.6,
+    "threshold_changed": false
+  },
+  "implementation_complete": true,
+  "evaluation_authorized": false,
+  "runtime_evaluation_authorized": false,
+  "promotion_authorized": false
+}

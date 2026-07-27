@@ -1,11 +1,25 @@
 # Project Memory Short
 
-## 2026-07-27 H1-r2 implementation authorization
+## 2026-07-27 H1-r2 implementation complete; evaluation unauthorized
 
 - `H1_R2_IMPLEMENTATION_AUTHORIZED=YES`
+- `H1_R2_IMPLEMENTATION_COMPLETE=YES`
 - `H1_R2_EVALUATION_AUTHORIZED=NO`
 - `H1_R2_RUNTIME_EVALUATION_AUTHORIZED=NO`
 - `H1_R2_PROMOTION_AUTHORIZED=NO`
+- The narrow profile amendment authorizes only the opt-in
+  `realtime_fast_h1_r2` profile. It inherits `realtime_fast`, leaves the
+  `realtime` presentation mapping unchanged, and does not restore H1-r1.
+- The frozen symmetric, uncalibrated `owner_preference_score` and its eight
+  features are implemented at threshold `0.60`. The score is not a
+  probability.
+- Golden, symmetry, missingness, monotonicity, telemetry-independence,
+  causality, cache/replay, no-MP4, and profile-isolation checks pass:
+  78 focused and 282 broader tracking tests.
+- The deterministic implementation checker passes. No real tracking, video
+  opening, detector/GPU inference, development/validation evaluation, runtime
+  benchmark, threshold tuning, or candidate-output inspection occurred.
+- Separate evaluation authorization is still required.
 - A distinct blinded assigner classified the four frozen validation windows:
   two positive hidden-owner contention windows and two controls. Boundaries
   did not change, and no H1-r2 output was inspected.
@@ -15,10 +29,9 @@
 - This threshold is a pre-implementation prior, not real activation or
   tracking-quality evidence. The six H1-r1 episodes remain development/audit
   evidence and are excluded from independent validation.
-- Independent scientific review and the deterministic design checker pass.
-  Implementation may proceed only under the frozen contract; evaluation,
-  runtime evaluation, profile changes, production threshold changes, and
-  promotion require separate authorization.
+- Independent scientific review and both deterministic checkers pass.
+  Evaluation, runtime evaluation, production threshold changes, and promotion
+  require separate authorization.
 
 ## 2026-07-26 Classification V2 correction accepted
 
