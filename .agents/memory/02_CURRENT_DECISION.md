@@ -1,5 +1,30 @@
 # Current Decision
 
+## H1-r2 missingness audit: multiple design failures (2026-07-27)
+
+- `H1_R2_FROZEN_DEVELOPMENT_DECISION=FAIL_NO_ACTIVATION`
+- `FEATURE_PLUMBING_DEFECT_FOUND=NO`
+- `MISSINGNESS_CONTRACT_TOO_RESTRICTIVE=YES`
+- `SCORE_OPERATING_RANGE_FEASIBLE=NO`
+- `ROOT_DIAGNOSIS=MULTIPLE_DESIGN_FAILURES`
+- `NEXT_ACTION=DESIGN_H1_R3`
+- H1-r3 implementation, tracking evaluation, validation, runtime evaluation,
+  and promotion remain unauthorized.
+
+The immutable `770`-row export passed its hash and population checks. All eight
+feature values and optional-evidence masks were valid on both sides in every
+row. The `737` `missing_evidence` abstentions instead exactly equal the rows
+whose present hidden overlap was below the hidden-only `0.50` eligibility
+floor. This is a restrictive and misleadingly labeled contract gate, not
+missing feature plumbing.
+
+Of the `33` scored pairs, none passed the frozen score-plus-margin gate.
+Diagnostic score-only cutoffs did not separate likely beneficial evidence from
+harmful and ambiguous evidence, so the audit authorizes no threshold change.
+Equal arm metrics remain no-effect evidence; safety under real activation is
+`NOT_MEASURED`. Validation artifacts stayed hash-identical and validation was
+not executed.
+
 ## H1-r2 development evaluation failed: no activation (2026-07-27)
 
 - `H1_R1_STATUS=SCIENTIFICALLY_CLOSED`

@@ -1,5 +1,24 @@
 # Project Memory Short
 
+## 2026-07-27 H1-r2 missingness audit
+
+- The frozen development decision remains
+  `H1_R2_DEVELOPMENT_DECISION=FAIL_NO_ACTIVATION`; it is not reopened.
+- Row integrity passed for all `770` candidate pairs: `737` were labeled
+  `missing_evidence`, `33` were scored, and `0` owner preferences applied.
+- All eight feature values and the appearance/motion masks were valid on both
+  sides in every row. The `737` abstentions instead exactly match a present
+  hidden overlap value below the hidden-only `0.50` eligibility floor.
+- No feature-plumbing defect was found. The evidence contract is too
+  restrictive, and the remaining score-plus-margin operating range is
+  infeasible on the frozen development evidence.
+- Diagnostic lower-cutoff screening does not separate beneficial evidence from
+  harmful or ambiguous evidence and authorizes no threshold change.
+- `ROOT_DIAGNOSIS=MULTIPLE_DESIGN_FAILURES`.
+- A principled H1-r3 design may be prepared around symmetric relative geometry
+  and explicit missingness, but implementation and evaluation are unauthorized.
+- Validation artifacts remained hash-identical and validation was not executed.
+
 ## 2026-07-27 H1-r2 development evaluation failed: no activation
 
 - `H1_R2_IMPLEMENTATION_COMPLETE=YES`
