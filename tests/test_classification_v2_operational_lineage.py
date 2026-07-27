@@ -4,6 +4,7 @@ import copy
 import hashlib
 import importlib.util
 import json
+import subprocess
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -425,6 +426,88 @@ def test_publish_existing_rejects_missing_declared_output(
     )
 
     assert run_lineage_stage.main() == 3
+
+
+def test_publication_recovery_invokes_only_pig_strenet_builder(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    root, config = load_config()
+    config = copy.deepcopy(config)
+    _allow_run_local(monkeypatch, tmp_path)
+    monkeypatch.setenv("CLASSIFICATION_V2_RUN_ROOT", str(tmp_path))
+    output_dir = tmp_path / "candidates" / "pig_strenet_evidence"
+    output_dir.mkdir(parents=True)
+    for name in (
+        "pair_manifest.csv",
+        "slot_manifest.csv",
+        "history_features.csv",
+        "roi_dynamics.csv",
+        "roi_visual_selection.csv",
+        "social_nodes.csv",
+        "social_edges.csv",
+        "history_control_matrix.csv",
+        "difference_pixel_index.csv",
+        "stabilized_difference_summary.csv",
+        "stabilized_difference_maps_f32.npy",
+        "roi_visual_union_patch_index.csv",
+        "roi_visual_union_patches_uint8.npy",
+        "roi_visual_union_patch_mask_bool.npy",
+    ):
+        (output_dir / name).write_bytes(b"fixture")
+    checkpoint_dir = output_dir / ".checkpoints"
+    checkpoint_dir.mkdir()
+    (checkpoint_dir / "checkpoint_identity.json").write_text(
+        "{}",
+        encoding="utf-8",
+    )
+    commands: list[list[str]] = []
+    published: list[dict[str, object]] = []
+    monkeypatch.setattr(run_lineage_stage, "load_config", lambda _: (root, config))
+    monkeypatch.setattr(run_lineage_stage, "_upstream_errors", lambda *_: [])
+    monkeypatch.setattr(
+        run_lineage_stage,
+        "source_bundle_report",
+        lambda *_, **__: {"valid": True},
+    )
+    monkeypatch.setattr(
+        run_lineage_stage,
+        "build_candidate_artifact_manifest",
+        lambda **kwargs: published.append(kwargs),
+    )
+
+    def run(command: list[str], **_: object) -> subprocess.CompletedProcess:
+        commands.append(command)
+        return subprocess.CompletedProcess(command, 0)
+
+    monkeypatch.setattr(run_lineage_stage.subprocess, "run", run)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "run_lineage_stage.py",
+            "--config",
+            "ignored",
+            "--stage",
+            "pig_strenet_evidence",
+            "--recover-publication",
+        ],
+    )
+
+    assert run_lineage_stage.main() == 0
+    assert len(commands) == 1
+    assert commands[0][-1] == "--recover-publication"
+    assert len(published) == 1
+
+
+def test_publication_recovery_rejects_non_pig_stage(tmp_path: Path) -> None:
+    root, config = load_config()
+
+    assert run_lineage_stage._publication_recovery_errors(
+        root,
+        config,
+        "native_evidence",
+    ) == ["PUBLICATION_RECOVERY_UNSUPPORTED:native_evidence"]
 
 
 def test_one_stage_command_has_exactly_twelve_xmls(

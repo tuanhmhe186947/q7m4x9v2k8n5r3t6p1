@@ -464,6 +464,11 @@
       "code_locations": [
         "src/pig_behavior/classification_v2/features/pig_strenet_artifacts.py#build_pig_strenet_artifacts",
         "src/pig_behavior/classification_v2/features/pig_strenet_checkpoint.py#PigSTRENetCheckpointStore",
+        "scripts/classification_v2/03_image_cache_context/classification_v2_build_pig_strenet_artifacts.py#_recover_publication",
+        "scripts/classification_v2/run_lineage_stage.py#_publication_recovery_errors",
+        "src/pig_behavior/classification_v2/datasets/pig_strenet_media.py#FrameMediaResolver",
+        "src/pig_behavior/classification_v2/datasets/pig_strenet_publication.py#recover_media_manifest",
+        "src/pig_behavior/classification_v2/contracts/pig_strenet_artifact_run.py#audit_pig_strenet_artifact_run",
         "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"
       ],
       "current_status": "IMPLEMENTED_AND_TESTED"

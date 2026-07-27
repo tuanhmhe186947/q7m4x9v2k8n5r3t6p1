@@ -185,6 +185,9 @@
       "src/pig_behavior/classification_v2/contracts/identifiers.py",
       "src/pig_behavior/classification_v2/contracts/lineage_claims.py",
       "src/pig_behavior/classification_v2/contracts/target_roi_policy.py",
+      "src/pig_behavior/classification_v2/contracts/window_alignment.py",
+      "src/pig_behavior/classification_v2/datasets/__init__.py",
+      "src/pig_behavior/classification_v2/datasets/image_context_index.py",
       "src/pig_behavior/classification_v2/features/__init__.py",
       "src/pig_behavior/classification_v2/features/context_policy.py",
       "src/pig_behavior/classification_v2/features/geometry.py",
@@ -193,6 +196,8 @@
       "src/pig_behavior/classification_v2/features/roi.py",
       "src/pig_behavior/classification_v2/features/spatial_semantics.py",
       "src/pig_behavior/classification_v2/features/temporal_evidence.py",
+      "src/pig_behavior/classification_v2/lineage_authorization.py",
+      "src/pig_behavior/classification_v2/lineage_config.py",
       "src/pig_behavior/classification_v2/schema.py"
     ],
     "stage.temporal_harmonization": [

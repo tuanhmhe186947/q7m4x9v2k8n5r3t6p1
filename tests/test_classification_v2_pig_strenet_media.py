@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import sys
 from pathlib import Path
 
 import cv2
@@ -9,8 +10,15 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from pig_behavior.classification_v2.contracts.pig_strenet_artifact_run import (
+    audit_pig_strenet_artifact_run,
+)
 from pig_behavior.classification_v2.datasets.pig_strenet_media import (
     FrameMediaResolver,
+)
+from pig_behavior.classification_v2.datasets.pig_strenet_publication import (
+    checkpointed_sha256,
+    recover_media_manifest,
 )
 
 
@@ -273,3 +281,207 @@ def test_progress_reporter_is_atomic_and_marks_computed(tmp_path: Path) -> None:
     assert completed["status"] == "COMPUTED"
     assert completed["phase"] == "publication"
     assert not progress_path.with_suffix(".tmp").exists()
+
+
+def test_media_hash_checkpoint_reuses_exact_file_identity(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    media = tmp_path / "media.bin"
+    media.write_bytes(b"first")
+    checkpoint = tmp_path / "publication.sqlite3"
+    first = checkpointed_sha256(media, checkpoint_path=checkpoint)
+
+    def unexpected_hash(*_: object, **__: object) -> str:
+        raise AssertionError("cached exact file identity must not be rehashed")
+
+    module = importlib.import_module(
+        "pig_behavior.classification_v2.datasets."
+        "pig_strenet_publication"
+    )
+    monkeypatch.setattr(module, "_sha256_file_with_retry", unexpected_hash)
+    second = checkpointed_sha256(media, checkpoint_path=checkpoint)
+
+    assert second == first
+
+
+def test_recovered_media_manifest_is_complete_and_resumable(
+    tmp_path: Path,
+) -> None:
+    media = tmp_path / "frame.jpg"
+    media.write_bytes(b"deterministic-media")
+    difference = tmp_path / "difference_pixel_index.csv"
+    roi = tmp_path / "roi_visual_union_patch_index.csv"
+    common = {
+        "pixel_available": True,
+        "pixel_source_kind": "actor_crop_file",
+        "pixel_media_path": str(media),
+        "pixel_frame_index": 3,
+    }
+    pd.DataFrame(
+        [{**common, "frame_available": True}]
+    ).to_csv(difference, index=False)
+    pd.DataFrame(
+        [{**common, "pixel_geometry_expected": True}]
+    ).to_csv(roi, index=False)
+    output = tmp_path / "media_manifest.json"
+    checkpoint = tmp_path / "publication.sqlite3"
+
+    payload = recover_media_manifest(
+        output,
+        video_root=tmp_path,
+        legacy_crop_root=tmp_path,
+        video_index_aliases=0,
+        provenance_paths=[difference, roi],
+        checkpoint_path=checkpoint,
+    )
+    repeated = recover_media_manifest(
+        output,
+        video_root=tmp_path,
+        legacy_crop_root=tmp_path,
+        video_index_aliases=0,
+        provenance_paths=[difference, roi],
+        checkpoint_path=checkpoint,
+    )
+
+    assert payload["valid"]
+    assert payload["source_file_count"] == 1
+    assert payload["sources"][0]["sha256"] == repeated["sources"][0]["sha256"]
+    assert all(
+        item["missing_required_rows"] == 0
+        for item in payload["provenance_audit"]
+    )
+
+
+def test_production_builder_recovers_publication_without_recomputation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    builder = _load_builder_script()
+    video_root = tmp_path / "videos"
+    video_root.mkdir()
+    _write_video(video_root / "sample_30fps.avi", frame_count=12)
+    input_csv = tmp_path / "frames.csv"
+    _publication_frames().to_csv(input_csv, index=False)
+    output_dir = tmp_path / "artifacts"
+    argv = [
+        "pig-strenet-builder",
+        "--input-csv",
+        str(input_csv),
+        "--output-dir",
+        str(output_dir),
+        "--video-root",
+        str(video_root),
+        "--legacy-crop-root",
+        str(tmp_path),
+        "--run-scope",
+        "full",
+        "--social-checkpoint-pairs",
+        "1",
+    ]
+    media_module = importlib.import_module(
+        "pig_behavior.classification_v2.datasets.pig_strenet_media"
+    )
+
+    def fail_publication(*_: object, **__: object) -> dict[str, object]:
+        raise OSError(22, "synthetic publication interruption")
+
+    with monkeypatch.context() as context:
+        context.setattr(
+            media_module,
+            "publish_media_manifest",
+            fail_publication,
+        )
+        context.setattr(sys, "argv", argv)
+        with pytest.raises(OSError, match="synthetic publication"):
+            builder.main()
+
+    pair_hash = _sha256(output_dir / "pair_manifest.csv")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [*argv, "--recover-publication"],
+    )
+    builder.main()
+
+    assert _sha256(output_dir / "pair_manifest.csv") == pair_hash
+    assert (output_dir / "media_manifest.json").is_file()
+    assert (output_dir / "artifact_manifest.json").is_file()
+    assert (output_dir / "run_manifest.json").is_file()
+    assert json.loads(
+        (output_dir / "run_manifest.json").read_text(encoding="utf-8")
+    )["publication_recovery"]["computation_reexecuted"] is False
+    gate = audit_pig_strenet_artifact_run(
+        output_dir,
+        input_csv=input_csv,
+        expected_run_scope="full",
+        require_roi_visual=False,
+    )
+    assert gate["status"] == "PASS"
+
+
+def _publication_frames() -> pd.DataFrame:
+    rows: list[dict[str, object]] = []
+    for frame_index in range(12):
+        for actor_index in range(2):
+            track = f"track-{actor_index}"
+            row: dict[str, object] = {
+                "object_track_key": track,
+                "temporal_unit_key": f"cvat_tracking_xml|unit-{actor_index}",
+                "source_type": "cvat_tracking_xml",
+                "dataset_id": "synthetic",
+                "video_key": "sample",
+                "source_video_key": "sample",
+                "source_video_path": "",
+                "frame_index": frame_index,
+                "frame_uid": f"{track}|frame-{frame_index}",
+                "scene_frame_uid": f"scene-{frame_index}",
+                "relative_frame_index": frame_index,
+                "label_window_start": 6,
+                "label_window_end": 11,
+                "human_review_complete": False,
+                "behavior_label": "fight",
+                "lineage_scope": "synthetic",
+                "crop_path": "",
+                "image_width": 64,
+                "image_height": 48,
+                "x1": 4.0 + actor_index * 20.0,
+                "y1": 5.0,
+                "x2": 22.0 + actor_index * 20.0,
+                "y2": 32.0,
+                "cx_n": 0.25 + actor_index * 0.30,
+                "cy_n": 0.4,
+                "speed_n_per_frame": 0.01,
+                "displacement_n": 0.01,
+                "abs_accel_n_per_frame2": 0.001,
+                "abs_direction_change_rad": 0.1,
+                "nearest_dist_n": 0.3,
+                "nearest_dist_delta": -0.001,
+                "approach_speed_n_per_frame": 0.001,
+                "separation_speed_n_per_frame": 0.0,
+                "nearest_pair_iou": 0.0,
+                "nearest_pair_overlap_ratio": 0.0,
+                "pair_contact_with_nearest": False,
+                "nearest_track_id": f"track-{1 - actor_index}",
+                "timestamp_sec": frame_index / 6.0,
+            }
+            for roi_name in ("feeder", "drinker", "toy"):
+                row.update(
+                    {
+                        f"roi_{roi_name}_available": False,
+                        f"roi_{roi_name}_min_dist_n": 0.0,
+                        f"roi_{roi_name}_max_overlap_ratio": 0.0,
+                        f"roi_{roi_name}_max_iou": 0.0,
+                        f"roi_{roi_name}_center_inside": False,
+                        f"roi_{roi_name}_near": False,
+                        f"roi_{roi_name}_contact": False,
+                    }
+                )
+            rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def _sha256(path: Path) -> str:
+    import hashlib
+
+    return hashlib.sha256(path.read_bytes()).hexdigest()

@@ -26,11 +26,19 @@ import cv2
 import numpy as np
 import pandas as pd
 
+from pig_behavior.classification_v2.datasets.image_context_index import (
+    build_video_index,
+)
 from pig_behavior.classification_v2.datasets.pig_strenet_media import (
     FrameMediaResolver,
     crop_rgb_box,
 )
+from pig_behavior.classification_v2.datasets.pig_strenet_publication import (
+    checkpointed_sha256,
+    recover_media_manifest,
+)
 from pig_behavior.classification_v2.features.pig_strenet_artifacts import (
+    PER_FRAME_AUDIT_ONLY_HISTORY_COLUMNS,
     availability_columns,
     build_pig_strenet_artifacts,
     compute_stabilized_difference_maps,
@@ -172,6 +180,14 @@ def parse_args() -> argparse.Namespace:
         help="Resume only from an exact hash-matching checkpoint.",
     )
     parser.add_argument(
+        "--recover-publication",
+        action="store_true",
+        help=(
+            "Validate completed outputs and resume manifest publication only; "
+            "never recompute artifacts."
+        ),
+    )
+    parser.add_argument(
         "--checkpoint-dir",
         type=Path,
         default=None,
@@ -191,7 +207,7 @@ def main() -> None:
     if not args.input_csv.is_file():
         raise FileNotFoundError(args.input_csv)
     if args.output_dir.exists():
-        if not args.overwrite and not args.resume:
+        if not args.overwrite and not args.resume and not args.recover_publication:
             raise FileExistsError(
                 f"output exists; use a fresh root or --overwrite: {args.output_dir}"
             )
@@ -203,6 +219,10 @@ def main() -> None:
         raise ValueError("--visual-size must be positive")
     if args.social_checkpoint_pairs <= 0:
         raise ValueError("--social-checkpoint-pairs must be positive")
+    if args.recover_publication and (args.resume or args.overwrite):
+        raise ValueError(
+            "--recover-publication is incompatible with --resume/--overwrite"
+        )
 
     progress = _ProgressReporter(
         args.progress_json or args.output_dir / "pig_strenet_progress.json",
@@ -221,6 +241,9 @@ def main() -> None:
         previous_excepthook(error_type, error, traceback)
 
     sys.excepthook = report_unhandled
+    if args.recover_publication:
+        _recover_publication(args, progress)
+        return
     progress("read_input", 0, 1)
     frames = pd.read_csv(args.input_csv, low_memory=False)
     progress("read_input", 1, 1)
@@ -346,7 +369,15 @@ def main() -> None:
             image_size=args.difference_size,
         )
         progress("write_difference_artifacts", 1, 1)
-    media_audit = media.write_manifest(args.output_dir / "media_manifest.json")
+    media_audit = media.write_manifest(
+        args.output_dir / "media_manifest.json",
+        checkpoint_path=(
+            args.checkpoint_dir
+            or args.output_dir / ".checkpoints"
+        )
+        / "media_publication.sqlite3",
+        progress_callback=progress,
+    )
 
     audit = dict(artifacts.audit)
     audit["difference"] = difference_audit
@@ -400,8 +431,15 @@ def main() -> None:
         json.dumps(audit, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    progress.complete()
-    artifact_manifest = _write_artifact_manifest(args.output_dir)
+    artifact_manifest = _write_artifact_manifest(
+        args.output_dir,
+        progress_callback=progress,
+        checkpoint_path=(
+            args.checkpoint_dir
+            or args.output_dir / ".checkpoints"
+        )
+        / "media_publication.sqlite3",
+    )
     run_manifest = {
         "schema_version": SCHEMA_VERSION,
         "run_type": f"pig_strenet_review_artifacts_{args.run_scope}",
@@ -433,6 +471,7 @@ def main() -> None:
         json.dumps(run_manifest, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
         encoding="utf-8",
     )
+    progress.complete()
     print(json.dumps(audit, indent=2, ensure_ascii=False, sort_keys=True))
     if not audit.get("valid", False):
         progress.fail(
@@ -440,6 +479,604 @@ def main() -> None:
         )
         raise SystemExit("FAIL: Pig-STRENet artifact/media contract")
     checkpoint_store.cleanup()
+
+
+def _recover_publication(
+    args: argparse.Namespace,
+    progress: _ProgressReporter,
+) -> None:
+    """Recover only publication from completed, checkpoint-bound outputs."""
+
+    progress("validate_publication_recovery_authority", 0, 1)
+    starts = tuple(
+        int(value.strip())
+        for value in args.legacy_target_starts.split(",")
+        if value.strip()
+    )
+    implementation = _implementation_lineage()
+    recovery_authority = _validate_publication_recovery_authority(
+        args,
+        starts=starts,
+        implementation=implementation,
+    )
+    progress("validate_publication_recovery_authority", 1, 1)
+    checkpoint_dir = (
+        args.checkpoint_dir or args.output_dir / ".checkpoints"
+    )
+    media_audit = recover_media_manifest(
+        args.output_dir / "media_manifest.json",
+        video_root=args.video_root,
+        legacy_crop_root=args.legacy_crop_root,
+        video_index_aliases=len(build_video_index(args.video_root)),
+        provenance_paths=[
+            args.output_dir / "difference_pixel_index.csv",
+            args.output_dir / "roi_visual_union_patch_index.csv",
+        ],
+        checkpoint_path=checkpoint_dir / "media_publication.sqlite3",
+        progress_callback=progress,
+    )
+    progress("validate_completed_outputs", 0, 1)
+    audit = _audit_completed_outputs(
+        args.output_dir,
+        input_csv=args.input_csv,
+        checkpoint_dir=checkpoint_dir,
+        media_audit=media_audit,
+    )
+    audit["input_csv"] = str(args.input_csv)
+    audit["input_sha256"] = _sha256(args.input_csv)
+    audit["input_frame_rows"] = _csv_row_count(args.input_csv)
+    audit["target_unit_count"] = None
+    audit["parameters"] = {
+        "history_length": args.history_length,
+        "target_length": args.target_length,
+        "legacy_target_starts": list(starts),
+        "top_k_neighbors": args.top_k_neighbors,
+        "roi_coco": None if args.roi_coco is None else str(args.roi_coco),
+        "video_root": str(args.video_root),
+        "legacy_crop_root": str(args.legacy_crop_root),
+        "max_open_videos": args.max_open_videos,
+        "max_cached_frames": args.max_cached_frames,
+        "max_native_events": args.max_native_events,
+        "difference_size": args.difference_size,
+        "visual_size": args.visual_size,
+        "run_scope": args.run_scope,
+    }
+    audit["publication_recovery"] = recovery_authority
+    audit_path = args.output_dir / "pig_strenet_artifact_audit.json"
+    audit_path.write_text(
+        json.dumps(audit, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    progress("validate_completed_outputs", 1, 1)
+    if not audit["valid"]:
+        progress.fail(RuntimeError("completed Pig-STRENet outputs are invalid"))
+        raise SystemExit("FAIL: completed Pig-STRENet outputs are invalid")
+
+    artifact_manifest = _write_artifact_manifest(
+        args.output_dir,
+        progress_callback=progress,
+        checkpoint_path=checkpoint_dir / "media_publication.sqlite3",
+    )
+    claims = pd.read_csv(
+        args.input_csv,
+        usecols=["lineage_scope", "human_review_complete"],
+        low_memory=False,
+    )
+    run_manifest = {
+        "schema_version": SCHEMA_VERSION,
+        "run_type": f"pig_strenet_review_artifacts_{args.run_scope}",
+        "run_scope": args.run_scope,
+        "lineage_scope": _lineage_scope(claims),
+        "human_review_complete": _review_claim(claims),
+        "input": {
+            "path": str(args.input_csv),
+            "sha256": _sha256(args.input_csv),
+        },
+        "output_dir": str(args.output_dir),
+        "audit_path": str(audit_path),
+        "resolved_config": {
+            key: _jsonable(value)
+            for key, value in vars(args).items()
+            if key != "overwrite"
+        },
+        "implementation": implementation,
+        "environment": _environment_lineage(),
+        "artifact_manifest": artifact_manifest,
+        "publication_recovery": recovery_authority,
+        "training_started": False,
+        "oof_started": False,
+        "data_modified": False,
+        "skills": [
+            "experiment-lineage-reproducibility",
+            "safe-refactor-test-guardian",
+        ],
+        "valid": True,
+    }
+    (args.output_dir / "run_manifest.json").write_text(
+        json.dumps(run_manifest, indent=2, ensure_ascii=False, sort_keys=True)
+        + "\n",
+        encoding="utf-8",
+    )
+    progress.complete()
+    print(json.dumps(audit, indent=2, ensure_ascii=False, sort_keys=True))
+
+
+def _validate_publication_recovery_authority(
+    args: argparse.Namespace,
+    *,
+    starts: tuple[int, ...],
+    implementation: dict[str, Any],
+) -> dict[str, Any]:
+    checkpoint_dir = (
+        args.checkpoint_dir or args.output_dir / ".checkpoints"
+    )
+    identity_path = checkpoint_dir / "checkpoint_identity.json"
+    if not identity_path.is_file():
+        raise RuntimeError(
+            f"PUBLICATION_RECOVERY_IDENTITY_MISSING:{identity_path}"
+        )
+    payload = json.loads(identity_path.read_text(encoding="utf-8"))
+    recorded = payload.get("identity")
+    if not isinstance(recorded, dict):
+        raise RuntimeError("PUBLICATION_RECOVERY_IDENTITY_INVALID")
+    current = _checkpoint_identity(
+        args,
+        starts=starts,
+        implementation=implementation,
+    )
+    for key in ("input_csv", "input_sha256", "parameters", "environment"):
+        if recorded.get(key) != current.get(key):
+            raise RuntimeError(
+                f"PUBLICATION_RECOVERY_AUTHORITY_MISMATCH:{key}"
+            )
+    recorded_code = recorded.get("implementation", {})
+    current_code = current.get("implementation", {})
+    if recorded_code.get("module_sha256") != current_code.get(
+        "module_sha256"
+    ):
+        raise RuntimeError(
+            "PUBLICATION_RECOVERY_SCIENTIFIC_MODULE_DRIFT"
+        )
+    return {
+        "status": "PASS_PUBLICATION_ONLY_RECOVERY_AUTHORITY",
+        "checkpoint_identity_hash": payload.get("identity_hash"),
+        "recorded_script_sha256": recorded_code.get("script_sha256"),
+        "current_script_sha256": current_code.get("script_sha256"),
+        "recorded_media_module_sha256": recorded_code.get(
+            "media_module_sha256"
+        ),
+        "current_media_module_sha256": current_code.get(
+            "media_module_sha256"
+        ),
+        "scientific_module_sha256": current_code.get("module_sha256"),
+        "computation_reexecuted": False,
+    }
+
+
+def _audit_completed_outputs(
+    output_dir: Path,
+    *,
+    input_csv: Path,
+    checkpoint_dir: Path,
+    media_audit: dict[str, Any],
+) -> dict[str, Any]:
+    errors: list[str] = []
+    partials = sorted(
+        path.name
+        for path in output_dir.iterdir()
+        if path.is_file() and ".partial" in path.name
+    )
+    if partials:
+        errors.append(f"PARTIAL_OUTPUTS_PRESENT:{partials}")
+    records = _checkpoint_output_records(checkpoint_dir, errors)
+    for table_name, filename in _checkpoint_csv_outputs().items():
+        record = records.get(table_name)
+        path = output_dir / filename
+        if record is None:
+            errors.append(f"CHECKPOINT_RECORD_MISSING:{table_name}")
+            continue
+        _validate_csv_output(path, record, errors)
+
+    pair_path = output_dir / "pair_manifest.csv"
+    history_path = output_dir / "history_features.csv"
+    if errors or not pair_path.is_file() or not history_path.is_file():
+        return _failed_recovery_audit(errors)
+    pairs = pd.read_csv(pair_path, low_memory=False)
+    history = pd.read_csv(history_path, low_memory=False)
+    _validate_pair_authority(pairs, history, errors)
+
+    pair_count = int(len(pairs))
+    slot_count = int(records["slots"]["rows"])
+    roi_count = int(records["roi_dynamics"]["rows"])
+    roi_visual_count = int(records["roi_visual_selection"]["rows"])
+    social_node_count = int(records["social_nodes"]["rows"])
+    social_edge_count = int(records["social_edges"]["rows"])
+    tensor_audit = _audit_completed_tensors(
+        output_dir,
+        pair_count=pair_count,
+        slot_count=slot_count,
+        roi_count=roi_count,
+        roi_visual_count=roi_visual_count,
+        social_edge_count=social_edge_count,
+        media_audit=media_audit,
+        errors=errors,
+    )
+    control_count = _csv_row_count(
+        output_dir / "history_control_matrix.csv"
+    )
+    whitelist_path = output_dir / "feature_whitelist.json"
+    if not whitelist_path.is_file():
+        errors.append("FEATURE_WHITELIST_MISSING")
+    else:
+        whitelist = json.loads(whitelist_path.read_text(encoding="utf-8"))
+        forbidden = set(whitelist.get("forbidden_inputs", []))
+        if not {"labels", "review_metadata", "future_frames"}.issubset(
+            forbidden
+        ):
+            errors.append("FEATURE_WHITELIST_FORBIDDEN_INPUTS_INCOMPLETE")
+    event_mass = pairs.groupby("native_event_id")["event_weight"].sum()
+    audit = {
+        "schema_version": "classification_v2.pig_strenet_artifacts.v3",
+        "primary_motion_time_basis": "source_frame_timestamp_seconds",
+        "per_frame_motion_columns_audit_only": sorted(
+            PER_FRAME_AUDIT_ONLY_HISTORY_COLUMNS
+        ),
+        "status": (
+            "PASS_PIG_STRENET_ARTIFACT_SCHEMA"
+            if not errors
+            else "FAIL_PIG_STRENET_ARTIFACT_SCHEMA"
+        ),
+        "native_event_count": int(pairs["native_event_id"].nunique()),
+        "pair_count": pair_count,
+        "source_counts": _value_counts(pairs, "source_type"),
+        "derived_view_counts": _value_counts(pairs, "derived_view"),
+        "event_mass_min": float(event_mass.min()),
+        "event_mass_max": float(event_mass.max()),
+        "slot_count": slot_count,
+        "roi_row_count": roi_count,
+        "roi_visual_selection_count": roi_visual_count,
+        "roi_visual_available_count": int(
+            tensor_audit["roi_visual_pixels"]["expected_pixel_rows"]
+        ),
+        "social_node_count": social_node_count,
+        "social_edge_count": social_edge_count,
+        "control_count": control_count,
+        "model_x_columns": model_x_columns(history),
+        "target_selected_roi_used": False,
+        "behavior_selected_partner_used": False,
+        "future_frame_used": False,
+        "difference": tensor_audit["difference"],
+        "packed_tensors": {
+            "roi_dynamics": tensor_audit["roi_dynamics"],
+            "social_edges": tensor_audit["social_edges"],
+            "roi_visual_pixels": tensor_audit["roi_visual_pixels"],
+        },
+        "media": {
+            "manifest_path": str(output_dir / "media_manifest.json"),
+            "manifest_sha256": _sha256(
+                output_dir / "media_manifest.json"
+            ),
+            "source_file_count": media_audit["source_file_count"],
+            "runtime_counts": media_audit["runtime_counts"],
+            "status_counts": media_audit["status_counts"],
+            "valid": media_audit["valid"],
+        },
+        "media_contract_valid": bool(
+            media_audit["valid"]
+            and tensor_audit["difference"]["missing_available_frame_slots"]
+            == 0
+            and tensor_audit["roi_visual_pixels"]["missing_expected_rows"]
+            == 0
+        ),
+        "recovery_validation": {
+            "checkpoint_bound": True,
+            "input_csv": str(input_csv),
+            "no_partial_outputs": not partials,
+            "errors": errors,
+        },
+        "errors": errors,
+        "warnings": [],
+        "valid": not errors and bool(media_audit["valid"]),
+    }
+    return audit
+
+
+def _checkpoint_output_records(
+    checkpoint_dir: Path,
+    errors: list[str],
+) -> dict[str, dict[str, Any]]:
+    phases = {
+        "pairs_and_slots": {"pairs": "pairs", "slots": "slots"},
+        "history_features": {"history_features": "history_features"},
+        "roi_dynamics": {"roi_dynamics": "roi_dynamics"},
+        "roi_visual_selection": {
+            "roi_visual_selection": "roi_visual_selection"
+        },
+        "social_graph": {
+            "nodes": "social_nodes",
+            "edges": "social_edges",
+        },
+    }
+    identity = json.loads(
+        (checkpoint_dir / "checkpoint_identity.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    identity_hash = identity.get("identity_hash")
+    records: dict[str, dict[str, Any]] = {}
+    for phase, table_map in phases.items():
+        path = checkpoint_dir / f"{phase}.checkpoint.json"
+        if not path.is_file():
+            errors.append(f"CHECKPOINT_MANIFEST_MISSING:{path}")
+            continue
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if payload.get("identity_hash") != identity_hash:
+            errors.append(f"CHECKPOINT_IDENTITY_MISMATCH:{path}")
+            continue
+        for source_name, output_name in table_map.items():
+            record = dict(payload.get("tables", {}).get(source_name, {}))
+            checkpoint_file = checkpoint_dir / str(record.get("file", ""))
+            if not checkpoint_file.is_file():
+                errors.append(
+                    f"CHECKPOINT_TABLE_MISSING:{checkpoint_file}"
+                )
+            elif _sha256(checkpoint_file) != record.get("sha256"):
+                errors.append(
+                    f"CHECKPOINT_TABLE_HASH_MISMATCH:{checkpoint_file}"
+                )
+            records[output_name] = record
+    return records
+
+
+def _checkpoint_csv_outputs() -> dict[str, str]:
+    return {
+        "pairs": "pair_manifest.csv",
+        "slots": "slot_manifest.csv",
+        "history_features": "history_features.csv",
+        "roi_dynamics": "roi_dynamics.csv",
+        "roi_visual_selection": "roi_visual_selection.csv",
+        "social_nodes": "social_nodes.csv",
+        "social_edges": "social_edges.csv",
+    }
+
+
+def _validate_csv_output(
+    path: Path,
+    record: dict[str, Any],
+    errors: list[str],
+) -> None:
+    if not path.is_file():
+        errors.append(f"COMPLETED_OUTPUT_MISSING:{path}")
+        return
+    actual_columns = list(pd.read_csv(path, nrows=0).columns)
+    expected_columns = list(record.get("columns", []))
+    if actual_columns != expected_columns:
+        errors.append(f"COMPLETED_OUTPUT_COLUMNS_MISMATCH:{path}")
+    if _csv_row_count(path) != int(record.get("rows", -1)):
+        errors.append(f"COMPLETED_OUTPUT_ROWS_MISMATCH:{path}")
+
+
+def _validate_pair_authority(
+    pairs: pd.DataFrame,
+    history: pd.DataFrame,
+    errors: list[str],
+) -> None:
+    if pairs["pair_id"].astype(str).duplicated().any():
+        errors.append("PAIR_ID_DUPLICATE")
+    if history["pair_id"].astype(str).duplicated().any():
+        errors.append("HISTORY_PAIR_ID_DUPLICATE")
+    if set(pairs["pair_id"].astype(str)) != set(
+        history["pair_id"].astype(str)
+    ):
+        errors.append("HISTORY_PAIR_ID_SET_MISMATCH")
+    if pairs["temporal_unit_key"].astype(str).eq("").any():
+        errors.append("TEMPORAL_UNIT_KEY_MISSING")
+    if not pairs["target_complete"].fillna(False).astype(bool).all():
+        errors.append("TARGET_INCOMPLETE_PAIR_PRESENT")
+
+
+def _audit_completed_tensors(
+    output_dir: Path,
+    *,
+    pair_count: int,
+    slot_count: int,
+    roi_count: int,
+    roi_visual_count: int,
+    social_edge_count: int,
+    media_audit: dict[str, Any],
+    errors: list[str],
+) -> dict[str, Any]:
+    shapes = {
+        "roi_values": _npy_shape(
+            output_dir / "roi_dynamics_values_f32.npy",
+            errors,
+        ),
+        "social_values": _npy_shape(
+            output_dir / "social_edges_values_f32.npy",
+            errors,
+        ),
+        "social_mask": _npy_shape(
+            output_dir / "social_edges_mask_bool.npy",
+            errors,
+        ),
+        "roi_patches": _npy_shape(
+            output_dir / "roi_visual_union_patches_uint8.npy",
+            errors,
+        ),
+        "roi_mask": _npy_shape(
+            output_dir / "roi_visual_union_patch_mask_bool.npy",
+            errors,
+        ),
+        "difference_maps": _npy_shape(
+            output_dir / "stabilized_difference_maps_f32.npy",
+            errors,
+        ),
+    }
+    _require_first_dimension(shapes["roi_values"], roi_count, "ROI", errors)
+    _require_first_dimension(
+        shapes["social_values"],
+        social_edge_count,
+        "SOCIAL_VALUES",
+        errors,
+    )
+    _require_first_dimension(
+        shapes["social_mask"],
+        social_edge_count,
+        "SOCIAL_MASK",
+        errors,
+    )
+    _require_first_dimension(
+        shapes["roi_mask"],
+        roi_visual_count,
+        "ROI_VISUAL_MASK",
+        errors,
+    )
+    _require_first_dimension(
+        shapes["difference_maps"],
+        pair_count,
+        "DIFFERENCE_MAPS",
+        errors,
+    )
+    expected_difference_rows = (
+        pair_count * int(shapes["difference_maps"][1])
+        if len(shapes["difference_maps"]) >= 2
+        else -1
+    )
+    summary_rows = _csv_row_count(
+        output_dir / "stabilized_difference_summary.csv"
+    )
+    if summary_rows != expected_difference_rows:
+        errors.append("DIFFERENCE_SUMMARY_ROW_MISMATCH")
+    difference_index_rows = _csv_row_count(
+        output_dir / "difference_pixel_index.csv"
+    )
+    if difference_index_rows != slot_count:
+        errors.append("DIFFERENCE_PROVENANCE_ROW_MISMATCH")
+    roi_index_rows = _csv_row_count(
+        output_dir / "roi_visual_union_patch_index.csv"
+    )
+    if roi_index_rows != roi_visual_count:
+        errors.append("ROI_VISUAL_INDEX_ROW_MISMATCH")
+    social_index_rows = _csv_row_count(
+        output_dir / "social_edges_index.csv"
+    )
+    if social_index_rows != social_edge_count:
+        errors.append("SOCIAL_INDEX_ROW_MISMATCH")
+    provenance = {
+        Path(item["path"]).name: item
+        for item in media_audit.get("provenance_audit", [])
+    }
+    difference_provenance = provenance.get("difference_pixel_index.csv", {})
+    roi_provenance = provenance.get(
+        "roi_visual_union_patch_index.csv",
+        {},
+    )
+    missing_difference = int(
+        difference_provenance.get("missing_required_rows", -1)
+    )
+    missing_roi = int(roi_provenance.get("missing_required_rows", -1))
+    if missing_difference != 0:
+        errors.append("DIFFERENCE_REQUIRED_MEDIA_MISSING")
+    if missing_roi != 0:
+        errors.append("ROI_REQUIRED_MEDIA_MISSING")
+    expected_roi = int(roi_provenance.get("required_rows", 0))
+    available_roi = int(roi_provenance.get("available_rows", 0))
+    _require_first_dimension(
+        shapes["roi_patches"],
+        available_roi,
+        "ROI_VISUAL_PATCHES",
+        errors,
+    )
+    return {
+        "difference": {
+            "status": "PASS" if missing_difference == 0 else "FAIL",
+            "pairs_written": pair_count,
+            "pairs_skipped_missing_crops": 0,
+            "available_frame_slots": int(
+                difference_provenance.get("required_rows", 0)
+            ),
+            "missing_available_frame_slots": missing_difference,
+            "maps_shape": list(shapes["difference_maps"]),
+            "maps_path": str(
+                output_dir / "stabilized_difference_maps_f32.npy"
+            ),
+            "summary_path": str(
+                output_dir / "stabilized_difference_summary.csv"
+            ),
+            "provenance_path": str(
+                output_dir / "difference_pixel_index.csv"
+            ),
+        },
+        "roi_dynamics": {
+            "shape": list(shapes["roi_values"]),
+            "index_rows": _csv_row_count(
+                output_dir / "roi_dynamics_index.csv"
+            ),
+        },
+        "social_edges": {
+            "shape": list(shapes["social_values"]),
+            "mask_shape": list(shapes["social_mask"]),
+            "index_rows": social_index_rows,
+        },
+        "roi_visual_pixels": {
+            "status": "PASS" if missing_roi == 0 else "FAIL",
+            "rows": roi_visual_count,
+            "expected_pixel_rows": expected_roi,
+            "available_rows": available_roi,
+            "missing_expected_rows": missing_roi,
+            "patch_shape": list(shapes["roi_patches"]),
+        },
+    }
+
+
+def _npy_shape(path: Path, errors: list[str]) -> tuple[int, ...]:
+    if not path.is_file():
+        errors.append(f"NPY_OUTPUT_MISSING:{path}")
+        return ()
+    try:
+        return tuple(int(value) for value in np.load(path, mmap_mode="r").shape)
+    except (OSError, ValueError) as error:
+        errors.append(f"NPY_OUTPUT_INVALID:{path}:{error}")
+        return ()
+
+
+def _require_first_dimension(
+    shape: tuple[int, ...],
+    expected: int,
+    label: str,
+    errors: list[str],
+) -> None:
+    if not shape or int(shape[0]) != int(expected):
+        errors.append(f"{label}_FIRST_DIMENSION_MISMATCH")
+
+
+def _csv_row_count(path: Path) -> int:
+    if not path.is_file():
+        return -1
+    rows = 0
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(8 * 1024 * 1024), b""):
+            rows += chunk.count(b"\n")
+    return max(0, rows - 1)
+
+
+def _value_counts(frame: pd.DataFrame, column: str) -> dict[str, int]:
+    counts = frame[column].fillna("").astype(str).value_counts()
+    return {
+        str(key): int(value)
+        for key, value in sorted(counts.items(), key=lambda item: item[0])
+    }
+
+
+def _failed_recovery_audit(errors: list[str]) -> dict[str, Any]:
+    return {
+        "schema_version": "classification_v2.pig_strenet_artifacts.v3",
+        "status": "FAIL_PIG_STRENET_ARTIFACT_SCHEMA",
+        "media_contract_valid": False,
+        "errors": errors,
+        "warnings": [],
+        "valid": False,
+    }
 
 
 def _select_target_unit_keys(
@@ -960,16 +1597,41 @@ def _environment_lineage() -> dict[str, str]:
     }
 
 
-def _write_artifact_manifest(output_dir: Path) -> dict[str, Any]:
+def _write_artifact_manifest(
+    output_dir: Path,
+    *,
+    progress_callback: _ProgressReporter | None = None,
+    checkpoint_path: Path | None = None,
+) -> dict[str, Any]:
     files: list[dict[str, Any]] = []
-    for path in sorted(output_dir.iterdir(), key=lambda item: item.name):
-        if not path.is_file() or path.name in {"artifact_manifest.json", "run_manifest.json"}:
+    paths = [
+        path
+        for path in sorted(output_dir.iterdir(), key=lambda item: item.name)
+        if path.is_file()
+        and path.name
+        not in {
+            "artifact_manifest.json",
+            "pig_strenet_progress.json",
+            "run_manifest.json",
+        }
+    ]
+    for index, path in enumerate(paths, start=1):
+        if checkpoint_path is None:
+            digest = _sha256(path)
+        else:
+            digest = checkpointed_sha256(
+                path,
+                checkpoint_path=checkpoint_path,
+            )
+        if progress_callback is not None:
+            progress_callback("hash_output_artifacts", index, len(paths))
+        if not path.is_file():
             continue
         files.append(
             {
                 "name": path.name,
                 "size": int(path.stat().st_size),
-                "sha256": _sha256(path),
+                "sha256": digest,
             }
         )
     manifest = {

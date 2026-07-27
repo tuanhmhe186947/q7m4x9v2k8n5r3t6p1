@@ -453,6 +453,58 @@ def _resume_errors(
     return errors
 
 
+def _publication_recovery_errors(
+    root: Path,
+    config: dict[str, Any],
+    stage_id: str,
+) -> list[str]:
+    """Validate the computation-free Pig-STRENet publication recovery."""
+
+    if stage_id != "pig_strenet_evidence":
+        return [f"PUBLICATION_RECOVERY_UNSUPPORTED:{stage_id}"]
+    output_dir = resolve_stage_path(
+        root,
+        config,
+        stage_id,
+        "output_relative",
+    )
+    required = (
+        "pair_manifest.csv",
+        "slot_manifest.csv",
+        "history_features.csv",
+        "roi_dynamics.csv",
+        "roi_visual_selection.csv",
+        "social_nodes.csv",
+        "social_edges.csv",
+        "history_control_matrix.csv",
+        "difference_pixel_index.csv",
+        "stabilized_difference_summary.csv",
+        "stabilized_difference_maps_f32.npy",
+        "roi_visual_union_patch_index.csv",
+        "roi_visual_union_patches_uint8.npy",
+        "roi_visual_union_patch_mask_bool.npy",
+    )
+    errors = [
+        f"PUBLICATION_RECOVERY_OUTPUT_MISSING:{output_dir / name}"
+        for name in required
+        if not (output_dir / name).is_file()
+    ]
+    identity = output_dir / ".checkpoints" / "checkpoint_identity.json"
+    if not identity.is_file():
+        errors.append(
+            f"PUBLICATION_RECOVERY_IDENTITY_MISSING:{identity}"
+        )
+    manifest = resolve_stage_path(
+        root,
+        config,
+        stage_id,
+        "manifest_relative",
+    )
+    if manifest.exists():
+        errors.append(f"CANDIDATE_MANIFEST_COLLISION:{manifest}")
+    return errors
+
+
 def _artifact_path(
     root: Path,
     config: dict[str, Any],
@@ -525,6 +577,14 @@ def main() -> int:
             "failure; never invokes stage computation."
         ),
     )
+    parser.add_argument(
+        "--recover-publication",
+        action="store_true",
+        help=(
+            "Recover Pig-STRENet self-publication from completed checkpoint-"
+            "bound outputs, then publish the candidate manifest."
+        ),
+    )
     args = parser.parse_args()
     root, config = load_config(args.config)
     errors = validate_config(root, config)
@@ -551,12 +611,20 @@ def main() -> int:
         )
         return 2
     authorization_source = "run_local_single_use"
-    if args.publish_existing and args.resume:
+    selected_modes = sum(
+        bool(value)
+        for value in (
+            args.publish_existing,
+            args.resume,
+            args.recover_publication,
+        )
+    )
+    if selected_modes > 1:
         print(
             json.dumps(
                 {
                     "status": "BLOCKED",
-                    "reason": "RESUME_AND_PUBLISH_EXISTING_ARE_MUTUALLY_EXCLUSIVE",
+                    "reason": "RECOVERY_MODES_ARE_MUTUALLY_EXCLUSIVE",
                 }
             )
         )
@@ -587,6 +655,23 @@ def main() -> int:
                         "status": "BLOCKED",
                         "reason": "CHECKPOINT_RESUME_NOT_VALID",
                         "errors": resume_errors,
+                    }
+                )
+            )
+            return 3
+    elif args.recover_publication:
+        recovery_errors = _publication_recovery_errors(
+            root,
+            config,
+            stage_id,
+        )
+        if recovery_errors:
+            print(
+                json.dumps(
+                    {
+                        "status": "BLOCKED",
+                        "reason": "PUBLICATION_RECOVERY_NOT_VALID",
+                        "errors": recovery_errors,
                     }
                 )
             )
@@ -632,6 +717,8 @@ def main() -> int:
     commands = _commands(root, config, stage_id)
     if args.resume:
         commands[0].append("--resume")
+    if args.recover_publication:
+        commands[0].append("--recover-publication")
     consumed_authorization: Path | None = None
     if not args.dry_run and authorization_path is not None:
         try:
@@ -661,6 +748,7 @@ def main() -> int:
         "automatic_downstream_execution": False,
         "automatic_promotion": False,
         "publication_only": bool(args.publish_existing),
+        "publication_recovery": bool(args.recover_publication),
         "checkpoint_resume": bool(args.resume),
     }
     if args.dry_run:

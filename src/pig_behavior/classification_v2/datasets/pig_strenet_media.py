@@ -10,9 +10,8 @@ images are never accepted as temporal scene observations.
 from __future__ import annotations
 
 import hashlib
-import json
 from collections import Counter, OrderedDict
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -25,6 +24,9 @@ from pig_behavior.classification_v2.datasets.image_context_index import (
     build_video_index,
     resolve_legacy_crop,
     resolve_video,
+)
+from pig_behavior.classification_v2.datasets.pig_strenet_publication import (
+    publish_media_manifest,
 )
 
 MEDIA_MANIFEST_SCHEMA = "classification_v2.pig_strenet_media_manifest.v1"
@@ -301,14 +303,35 @@ class FrameMediaResolver:
             "valid": bool(valid),
         }
 
-    def write_manifest(self, path: Path) -> dict[str, Any]:
-        payload = self.manifest()
-        path.write_text(
-            json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True)
-            + "\n",
-            encoding="utf-8",
+    def write_manifest(
+        self,
+        path: Path,
+        *,
+        checkpoint_path: Path | None = None,
+        progress_callback: (
+            Callable[[str, int | None, int | None], None] | None
+        ) = None,
+    ) -> dict[str, Any]:
+        """Publish media authority with durable per-file hash checkpoints."""
+
+        self.close()
+        return publish_media_manifest(
+            path,
+            video_root=self.video_root,
+            legacy_crop_root=self.legacy_crop_root,
+            video_index_aliases=len(self.video_index),
+            usage=self._used_media,
+            status_counts=self._status_counts,
+            runtime_counts=self._runtime_counts,
+            rejected_scene_candidates=sorted(
+                self._rejected_scene_candidates
+            ),
+            checkpoint_path=(
+                checkpoint_path
+                or path.parent / ".checkpoints" / "media_publication.sqlite3"
+            ),
+            progress_callback=progress_callback,
         )
-        return payload
 
     def _resolve_actor_image_path(
         self,
