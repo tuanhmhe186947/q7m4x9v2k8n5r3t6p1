@@ -1,5 +1,26 @@
 # Current Decision
 
+## H2-CDSP current-main shadow failed: no baseline state loss (2026-07-28)
+
+- `H2_CURRENT_MAIN_SHADOW_DECISION=FAIL_NO_CURRENT_MAIN_STATE_LOSS`
+- `CURRENT_MAIN_BOUNDED_REPRODUCTION=10/10_WINDOWS_COMPLETED`
+- `H2_BASELINE_STATE_LOSS_POINTS=0`
+- `H2_POSITIVE_WINDOWS_WITH_STATE_LOSS=0`
+- `H2_EXTRA_USABLE_STATE_AT_REENTRY=0`
+- `SHADOW_BASELINE_OUTPUT_EQUIVALENCE=PASS`
+- `CACHE_FRAMES_LOADED=1049`
+- Detector inference, GPU inference, validation execution, and MP4 output were
+  all zero.
+- Production implementation, association evaluation, validation, runtime, and
+  promotion remain unauthorized.
+
+The cache-authority and live-main tracking trees were byte-equivalent. Two
+positive windows reproduced identity errors, but none reproduced the frozen
+H2 baseline state-loss mechanism. All four controls also triggered the frozen
+broad-preservation audit flag. This is bounded current-main evidence, not a
+global prevalence claim. Historical `b0d9009` evidence remains
+mechanism-discovery only.
+
 ## H2-CDSP design passed; shadow remains unauthorized (2026-07-27)
 
 - `H2_HYPOTHESIS_NAME=CAUSAL_DROPOUT_STATE_PRESERVATION`

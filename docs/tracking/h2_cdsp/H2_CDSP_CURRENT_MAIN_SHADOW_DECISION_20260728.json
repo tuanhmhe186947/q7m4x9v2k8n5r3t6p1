@@ -1,0 +1,65 @@
+{
+  "aggregate": {
+    "control_overpreservation_events": 4,
+    "control_preservation_events": 2206,
+    "h2_shadow_baseline_state_loss_points": 0,
+    "h2_shadow_extra_usable_state_at_reentry": 0,
+    "h2_shadow_preservable_states": 8163,
+    "h2_shadow_states_surviving_to_reentry": 7852,
+    "positive_windows_with_extra_usable_state": 0,
+    "positive_windows_with_reentry_survival": 6,
+    "positive_windows_with_state_loss": 0
+  },
+  "artifact_authority": {
+    "artifact_inventory_sha256": "8c0367cc515ff7a538723e4124821548a313cb0813d26768e2d27e7db07a1ea9",
+    "canonical_run_root": "outputs/tracking/h2_cdsp_current_main_shadow_20260728",
+    "run_decision_sha256": "9c3229dd0f52668dd7a16878184cd46e898879c4aaa68cce1cef5461a1e3f836"
+  },
+  "association_evaluation_authorized": false,
+  "cache_authority_sha": "55cb37cb95868fe94fc3dfdba17b5d524b3213dc",
+  "cache_frames_loaded": 1049,
+  "claim_scope": "CURRENT_MAIN_BOUNDED_REPRODUCTION",
+  "continuing_diagnostic_value": [
+    "The disabled observer measures whether future authorized populations",
+    "expose the frozen state-loss operating condition while remaining",
+    "side-effect-free."
+  ],
+  "control_gate_note": [
+    "All four controls also met the frozen broad-preservation audit flag.",
+    "This independently fails the control-specificity gate and does not",
+    "alter the primary no-state-loss outcome."
+  ],
+  "current_main_global_prevalence": "NOT_MEASURED",
+  "decision": "FAIL_NO_CURRENT_MAIN_STATE_LOSS",
+  "decision_date": "2026-07-28",
+  "detector_inference_calls": 0,
+  "development_windows_completed": 10,
+  "development_windows_total": 10,
+  "execution_sha": "00ea41ae67a055da12837424465f8e82b8d0e63a",
+  "gates": {
+    "causal_delay_zero": true,
+    "controls_not_broad_or_long_lived": false,
+    "detector_inference_zero": true,
+    "frozen_semantics_preserve_states": true,
+    "no_future_frames": true,
+    "prefix_invariance": true,
+    "run_root_mp4_count_zero": true,
+    "shadow_output_equivalence": true,
+    "shared_cache_parity": true,
+    "terminal_revival_attempts_zero": true,
+    "two_independent_positive_state_loss_events": false,
+    "two_positive_windows_reach_reentry": true,
+    "two_positive_windows_receive_extra_state": false
+  },
+  "gpu_inference_runs": 0,
+  "historical_fail_contract_record_preserved": true,
+  "live_main_parent_sha": "1d039373313a694f1cccbbba0b19dd6d7692f073",
+  "production_implementation_authorization_ready": false,
+  "production_implementation_authorized": false,
+  "promotion_authorized": false,
+  "run_root_mp4_count": 0,
+  "runtime_authorized": false,
+  "schema_version": "tracking.h2_cdsp_current_main_shadow_decision.v2",
+  "validation_authorized": false,
+  "validation_executed": false
+}
