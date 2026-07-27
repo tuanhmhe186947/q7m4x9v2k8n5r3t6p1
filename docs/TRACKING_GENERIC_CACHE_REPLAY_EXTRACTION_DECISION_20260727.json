@@ -1,0 +1,135 @@
+{
+  "schema_version": "tracking.generic_cache_replay_extraction_decision.v1",
+  "date": "2026-07-27",
+  "source_main_sha": "15e846c56a1924347b723736a33398488d655d6e",
+  "extraction_commit_sha": "2a4d83bc03fe97b5c239f18daddff2bec4450e08",
+  "source_rejected_branch": "agent/rf_h1_reservation_r1",
+  "source_hunks_reviewed": [
+    {
+      "commit": "692a75f00b8c4919801f5e48e1255f714cea312a",
+      "classification": [
+        "GENERIC_CACHE_SCHEMA",
+        "GENERIC_CACHE_RECORD",
+        "GENERIC_CACHE_REPLAY",
+        "H1_SPECIFIC",
+        "EXPERIMENT_ONLY"
+      ],
+      "extraction_method": "REIMPLEMENTED_GENERIC_HUNKS_ONLY"
+    },
+    {
+      "commit": "2522c3115a7eaa7696f9c5867598055aea23e364",
+      "classification": [
+        "GENERIC_CACHE_LOAD",
+        "GENERIC_HASH_VALIDATION",
+        "GENERIC_CACHE_REPLAY"
+      ],
+      "extraction_method": "REIMPLEMENTED_WITH_FAIL_CLOSED_V2_SCHEMA"
+    },
+    {
+      "classification": [
+        "GENERIC_AUDIT_TELEMETRY",
+        "H1_SPECIFIC",
+        "NOT_REQUIRED"
+      ],
+      "extraction_method": "EXCLUDED"
+    }
+  ],
+  "changed_file_allowlist": [
+    "src/pig_behavior/tracking/detector_cache.py",
+    "src/pig_behavior/tracking/runner.py",
+    "tests/test_tracking_detector_cache.py"
+  ],
+  "contract": {
+    "schema_version_bound": true,
+    "video_identity_bound": true,
+    "source_video_sha256_bound": true,
+    "detector_weight_sha256_bound": true,
+    "detector_semantic_config_sha256_bound": true,
+    "producer_code_sha_bound": true,
+    "creation_authority_bound": true,
+    "frame_indices_and_dimensions_bound": true,
+    "boxes_confidences_classes_and_ids_bound": true,
+    "masks_bound_when_required": true,
+    "appearance_descriptors_bound_when_required": true,
+    "timestamps_bound_when_used": true,
+    "serialized_artifact_sha256_verified_before_load": true,
+    "invalid_explicit_cache_falls_back_to_inference": false
+  },
+  "normal_path_proof": {
+    "default_run_tracking_model_argument": null,
+    "default_detector_constructor": "ultralytics.YOLO",
+    "injected_detector_is_opt_in": true,
+    "default_profile_changes": false,
+    "realtime_fast_config_changes": false,
+    "realtime_presentation_profile_changes": false,
+    "h1_profile_added": false,
+    "h1_threshold_added": false,
+    "association_changes": false,
+    "telemetry_schema_changes": false,
+    "tracking_output_change_when_cache_not_selected": false
+  },
+  "hashes": {
+    "config_before": "df580c145482dafefa682c21c65ba7d0cd0e94c891574c191bcc896ea57d3f63",
+    "config_after": "df580c145482dafefa682c21c65ba7d0cd0e94c891574c191bcc896ea57d3f63",
+    "tracking_subtree_git_object_before": "8ba3d50d8322ab1c72b8f50b6ce4c9b1013f799a",
+    "tracking_subtree_git_object_after": "63a2cacc73b269776b7d1e36b19480160307f980"
+  },
+  "tests": [
+    {
+      "command": [
+        "python",
+        "-m",
+        "compileall",
+        "-q",
+        "src/pig_behavior/tracking/detector_cache.py",
+        "src/pig_behavior/tracking/runner.py",
+        "tests/test_tracking_detector_cache.py"
+      ],
+      "result": "PASS"
+    },
+    {
+      "command": [
+        "ruff",
+        "check",
+        "src/pig_behavior/tracking/detector_cache.py",
+        "src/pig_behavior/tracking/runner.py",
+        "tests/test_tracking_detector_cache.py"
+      ],
+      "result": "PASS"
+    },
+    {
+      "command": "pytest tests/test_tracking_detector_cache.py -q",
+      "result": "16 passed"
+    },
+    {
+      "command": [
+        "pytest",
+        "tests/test_tracking_detector_cache.py",
+        "tests/test_tracking_profiles.py",
+        "tests/test_tracking_no_mp4.py",
+        "tests/test_tracking_telemetry.py",
+        "-q"
+      ],
+      "result": "65 passed"
+    }
+  ],
+  "validation": {
+    "deterministic_serialization": "PASS",
+    "cache_hash_stability": "PASS",
+    "record_load_replay_population_parity": "PASS",
+    "exact_frame_index_preservation": "PASS",
+    "malformed_and_mismatched_cache_rejection": "PASS",
+    "no_detector_inference_during_replay": "PASS",
+    "normal_no_cache_path_unchanged": "PASS",
+    "lazy_import_runtime_semantics": "PASS",
+    "bounded_validation_root_mp4_count": 0
+  },
+  "scope_decision": {
+    "differences_are_generic_infrastructure_only": true,
+    "GENERIC_CACHE_INFRASTRUCTURE_SEMANTIC_EFFECT": "NONE",
+    "merge_authorized": true,
+    "h1_profile_merge_authorized": false,
+    "tracking_experiment_run": false,
+    "gpu_inference_run": false
+  }
+}
