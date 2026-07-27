@@ -1,0 +1,166 @@
+{
+  "schema_version": "tracking.h1_r2_activation_gate_decision.v1",
+  "experiment": "H1-r2",
+  "date_frozen": "2026-07-27",
+  "source_main_sha": "e807865d2c12cdf15ed82d57788b805063cd46f6",
+  "development_data_only": true,
+  "validation_data_used": false,
+  "threshold_frozen": true,
+  "score_name": "owner_preference_score",
+  "score_calibrated": false,
+  "score_is_probability": false,
+  "score": {
+    "hidden_quality_formula": "Q(h,d)=0.250*overlap_similarity+0.200*normalized_center_similarity+0.100*scale_similarity+0.200*appearance_similarity+0.100*motion_consistency+0.100*track_freshness+0.025*appearance_available+0.025*motion_available",
+    "visible_quality_formula": "Q(v,d)=0.250*overlap_similarity+0.200*normalized_center_similarity+0.100*scale_similarity+0.200*appearance_similarity+0.100*motion_consistency+0.100*track_freshness+0.025*appearance_available+0.025*motion_available",
+    "formula": "clip(0.5+0.5*(Q(h,d)-Q(v,d)),0,1)",
+    "range": [0.0, 1.0],
+    "weights": {
+      "overlap_similarity": 0.25,
+      "normalized_center_similarity": 0.2,
+      "scale_similarity": 0.1,
+      "appearance_similarity": 0.2,
+      "motion_consistency": 0.1,
+      "track_freshness": 0.1,
+      "appearance_available": 0.025,
+      "motion_available": 0.025
+    },
+    "missingness_behavior": {
+      "appearance": "quality=0.5 and availability=0 for either candidate under the same rule",
+      "motion": "quality=0.5 and availability=0 for either candidate under the same rule",
+      "mandatory_geometry": "abstain when invalid or unavailable",
+      "detection_confidence": "abstain when missing or non-finite"
+    }
+  },
+  "frozen_activation_gate": {
+    "activation_threshold": 0.6,
+    "score_comparison": "owner_preference_score >= activation_threshold",
+    "minimum_hidden_quality_margin_over_visible": 0.2,
+    "margin_equivalence": "score>=0.60 is equivalent to Q(h,d)-Q(v,d)>=0.20 before clipping",
+    "minimum_detection_confidence": 0.25,
+    "detection_confidence_rationale": "Preserves the frozen realtime_fast detector eligibility floor and applies to the single contested detection shared by both candidates.",
+    "minimum_hidden_overlap_similarity": 0.5,
+    "minimum_overlap_rationale": "Requires direct geometric owner evidence and prevents appearance-only reservation.",
+    "minimum_optional_evidence_count_per_candidate": 1,
+    "optional_evidence_set": [
+      "appearance_available",
+      "motion_available"
+    ],
+    "optional_evidence_rationale": "Both hidden and visible candidates must have at least one non-geometry evidence channel; absence on either side causes abstention and cannot become positive evidence.",
+    "track_freshness_max_detection_opportunities": 5,
+    "maximum_hidden_stale_detection_opportunities": 5,
+    "hidden_age_rationale": "Freshness decays linearly to zero across five detector opportunities, skipped non-detector frames do not increment it, and older hidden tracks abstain.",
+    "requires_selected_visible_competitor": true,
+    "tie_behavior": "A hidden-visible quality tie yields score 0.5 and abstains.",
+    "threshold_equality_behavior": "An otherwise eligible finite score exactly equal to 0.60 activates.",
+    "numeric_comparison_tolerance": 1e-12,
+    "abstention_behavior": [
+      "score_below_threshold",
+      "missing_or_invalid_mandatory_geometry",
+      "missing_or_nonfinite_detection_confidence",
+      "detection_confidence_below_0.25",
+      "hidden_overlap_similarity_below_0.50",
+      "either_candidate_has_no_optional_evidence",
+      "hidden_staleness_above_five_detection_opportunities",
+      "no_selected_visible_competitor",
+      "any_nonfinite_feature_or_quality"
+    ]
+  },
+  "selection_objective": {
+    "primary": "Activate strong verified hidden-owner archetypes while preferring abstention for neutral, weak, stale, or missing-evidence cases.",
+    "development_controls_must_remain_inactive": true,
+    "broad_activation_from_missing_appearance_allowed": false,
+    "monotonic_golden_case_behavior_must_be_preserved": true,
+    "tracking_metric_optimized": false,
+    "validation_result_optimized": false
+  },
+  "development_episode_screening": [
+    {
+      "episode_id": "E01_000233_contention_a",
+      "role": "positive",
+      "h1_r2_features_available": false,
+      "activation": "NOT_COMPUTABLE_PREIMPLEMENTATION"
+    },
+    {
+      "episode_id": "E02_000233_contention_b",
+      "role": "positive",
+      "h1_r2_features_available": false,
+      "activation": "NOT_COMPUTABLE_PREIMPLEMENTATION"
+    },
+    {
+      "episode_id": "E03_000233_crossing",
+      "role": "positive",
+      "h1_r2_features_available": false,
+      "activation": "NOT_COMPUTABLE_PREIMPLEMENTATION"
+    },
+    {
+      "episode_id": "E04_000263_contention",
+      "role": "positive",
+      "h1_r2_features_available": false,
+      "activation": "NOT_COMPUTABLE_PREIMPLEMENTATION"
+    },
+    {
+      "episode_id": "E05_000263_control_clean",
+      "role": "control",
+      "h1_r2_features_available": false,
+      "activation": "NOT_COMPUTABLE_PREIMPLEMENTATION"
+    },
+    {
+      "episode_id": "E06_000233_control_clean",
+      "role": "control",
+      "h1_r2_features_available": false,
+      "activation": "NOT_COMPUTABLE_PREIMPLEMENTATION"
+    }
+  ],
+  "development_screening_limit": "The six reused development episodes contain no symmetric H1-r2 feature rows. Producing them would require the forbidden implementation or tracking execution. They provide role taxonomy only at this authorization stage.",
+  "golden_case_threshold_screening": [
+    {
+      "threshold": 0.55,
+      "quality_margin_required": 0.1,
+      "full_gate_case_ids": [
+        "hidden_owner_clearly_stronger",
+        "recent_hidden_strong_geometry",
+        "skipped_detector_frame_valid_lk"
+      ],
+      "full_gate_case_count": 3
+    },
+    {
+      "threshold": 0.575,
+      "quality_margin_required": 0.15,
+      "full_gate_case_ids": [
+        "hidden_owner_clearly_stronger",
+        "recent_hidden_strong_geometry"
+      ],
+      "full_gate_case_count": 2
+    },
+    {
+      "threshold": 0.6,
+      "quality_margin_required": 0.2,
+      "full_gate_case_ids": [
+        "hidden_owner_clearly_stronger",
+        "recent_hidden_strong_geometry"
+      ],
+      "full_gate_case_count": 2
+    },
+    {
+      "threshold": 0.625,
+      "quality_margin_required": 0.25,
+      "full_gate_case_ids": [
+        "hidden_owner_clearly_stronger"
+      ],
+      "full_gate_case_count": 1
+    },
+    {
+      "threshold": 0.65,
+      "quality_margin_required": 0.3,
+      "full_gate_case_ids": [
+        "hidden_owner_clearly_stronger"
+      ],
+      "full_gate_case_count": 1
+    }
+  ],
+  "selected_threshold_rationale": "0.60 is the largest screened threshold that retains both predeclared strong-owner golden cases and gives the margin the simple interpretation Q(h,d)-Q(v,d)>=0.20. It abstains on the modest 0.565 skipped-frame case and every neutral, stale, visible-stronger, invalid-motion, or missing-evidence case. It was not selected from a tracking metric.",
+  "validation_execution_may_change_gate": false,
+  "implementation_authorized": false,
+  "evaluation_authorized": false,
+  "promotion_authorized": false
+}
