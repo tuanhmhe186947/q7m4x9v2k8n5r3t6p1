@@ -1,10 +1,15 @@
 import importlib.util
 from pathlib import Path
 
+from pig_behavior.tracking import TrackingConfig, validate_config
 from pig_behavior.tracking.profiles import (
     EVAL_CONFIG_OVERRIDES,
     PRESENTATION_PROFILES,
     get_presentation_profile,
+)
+from pig_behavior.tracking.profiles.realtime import (
+    REALTIME_FAST_CONFIG,
+    REALTIME_FAST_H1_R2_CONFIG,
 )
 
 
@@ -16,8 +21,44 @@ def test_presentation_profiles_map_to_clear_modes() -> None:
 
     assert PRESENTATION_PROFILES["bytetrack_raw"]["eval_config"] == "bytetrack_raw"
     assert PRESENTATION_PROFILES["realtime"]["eval_config"] == "realtime_fast"
+    assert (
+        PRESENTATION_PROFILES["realtime_fast_h1_r2"]["eval_config"]
+        == "realtime_fast_h1_r2"
+    )
     assert PRESENTATION_PROFILES["realtime_balanced"]["eval_config"] == "realtime_balanced"
     assert PRESENTATION_PROFILES["hybrid_bytetrack"]["eval_config"] == "hybrid_bytetrack_best"
+
+
+def test_h1_r2_profile_is_an_opt_in_realtime_fast_extension(
+    tmp_path: Path,
+) -> None:
+    assert set(REALTIME_FAST_H1_R2_CONFIG) == {
+        *REALTIME_FAST_CONFIG,
+        "h1_r2_owner_preference",
+    }
+    for key, value in REALTIME_FAST_CONFIG.items():
+        assert REALTIME_FAST_H1_R2_CONFIG[key] == value
+    assert REALTIME_FAST_H1_R2_CONFIG["h1_r2_owner_preference"] is True
+    assert "h1_r2_owner_preference" not in REALTIME_FAST_CONFIG
+
+    candidate = EVAL_CONFIG_OVERRIDES["realtime_fast_h1_r2"]
+    synthetic_video = tmp_path / "unused.mp4"
+    synthetic_weights = tmp_path / "unused.pt"
+    synthetic_video.write_bytes(b"")
+    synthetic_weights.write_bytes(b"")
+    cfg = TrackingConfig(
+        mode="realtime",
+        video_path=synthetic_video,
+        weights_path=synthetic_weights,
+        **candidate,
+    )
+    validate_config(cfg)
+
+    assert cfg.detect_every_n_frames == 2
+    assert cfg.causal_hidden_detection_reservation is False
+    assert cfg.enable_offline_smoothing is False
+    assert cfg.realtime_motion_pair_stabilizer is False
+    assert PRESENTATION_PROFILES["realtime"]["eval_config"] == "realtime_fast"
 
 
 def test_profile_configs_keep_expected_behavior_separation() -> None:

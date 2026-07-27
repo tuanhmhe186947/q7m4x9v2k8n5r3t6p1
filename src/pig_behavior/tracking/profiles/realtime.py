@@ -37,6 +37,11 @@ REALTIME_FAST_CONFIG: dict[str, object] = {
     "realtime_core_pairwise_min_detection_iou": 0.30,
 }
 
+REALTIME_FAST_H1_R2_CONFIG: dict[str, object] = {
+    **REALTIME_FAST_CONFIG,
+    "h1_r2_owner_preference": True,
+}
+
 REALTIME_BALANCED_CONFIG: dict[str, object] = {
     **REALTIME_BASE_CONFIG,
     "causal_hidden_detection_reservation": True,
@@ -85,6 +90,7 @@ REALTIME_QUALITY_DELAYED_CONFIG: dict[str, object] = {
 
 EVAL_CONFIGS: dict[str, dict[str, object]] = {
     "realtime_fast": REALTIME_FAST_CONFIG,
+    "realtime_fast_h1_r2": REALTIME_FAST_H1_R2_CONFIG,
     "realtime_balanced": REALTIME_BALANCED_CONFIG,
     "realtime_quality_delayed": REALTIME_QUALITY_DELAYED_CONFIG,
 }
@@ -101,6 +107,14 @@ PRESENTATION_PROFILES: dict[str, dict[str, object]] = {
         "mode": "realtime",
         "eval_config": "realtime_fast",
         "description": "Lower-latency realtime profile with frame skipping and no delayed repair.",
+    },
+    "realtime_fast_h1_r2": {
+        "mode": "realtime",
+        "eval_config": "realtime_fast_h1_r2",
+        "description": (
+            "Opt-in uncalibrated H1-r2 owner-preference experiment; "
+            "evaluation remains unauthorized."
+        ),
     },
     "realtime_balanced": {
         "mode": "realtime",
