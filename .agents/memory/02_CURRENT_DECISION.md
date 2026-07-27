@@ -1,45 +1,33 @@
 # Current Decision
 
-## H1-r2 implementation complete; evaluation closed (2026-07-27)
+## H1-r2 development evaluation failed: no activation (2026-07-27)
 
 - `H1_R1_STATUS=SCIENTIFICALLY_CLOSED`
 - `GENERIC_CACHE_MERGE_STATUS=COMPLETED`
-- `H1_R2_IMPLEMENTATION_AUTHORIZED=YES`
 - `H1_R2_IMPLEMENTATION_COMPLETE=YES`
-- `H1_R2_EVALUATION_AUTHORIZED=NO`
+- `H1_R2_DEVELOPMENT_DECISION=FAIL_NO_ACTIVATION`
+- `H1_R2_VALIDATION_EVALUATION_AUTHORIZED=NO`
 - `H1_R2_RUNTIME_EVALUATION_AUTHORIZED=NO`
 - `H1_R2_PROMOTION_AUTHORIZED=NO`
 
-The frozen eight-feature symmetric `owner_preference_score` implementation is
-complete. Its threshold remains `0.60`; it is uncalibrated and is not a
-probability. The opt-in `realtime_fast_h1_r2` profile was added under the
-narrow profile amendment and inherits `realtime_fast` without changing
-RF_ACC23, the `realtime` presentation mapping, defaults, output delay, or
-causality.
+The frozen six-episode development population was evaluated with paired
+`realtime_fast` and `realtime_fast_h1_r2` cache-only replay. All 770 candidate
+pairs were exported: 737 abstained for missing evidence, 33 were valid but
+below threshold, and none applied. All four positives and both controls had
+zero real activation and zero association-output divergence.
 
-All 78 focused and 282 broader static/synthetic tracking tests pass, including
-the design and implementation checkers, cache/replay, telemetry, causality,
-prefix invariance, repeatability, profile isolation, and no-MP4 checks. No real
-tracking, detector/GPU inference, candidate-output inspection, development or
-validation evaluation, runtime benchmark, or threshold search occurred.
+Baseline and candidate quality metrics are therefore equal, but this is
+no-effect evidence rather than H1-r2 benefit. Aggregate remapped IDSW is
+`21` in both arms and wrong-ID matched frames are `135` in both arms.
+Shared-cache parity, causal delay zero, prefix invariance, no-future-frame,
+validation-hash blindness, and zero-MP4 checks pass. The exact repeat was not
+run because the first run hit the frozen no-activation hard stop.
 
-The four immutable validation windows now have independently assigned blinded
-roles: two positive hidden-owner contention windows and two controls. Source
-video, locked GT, and RF_ACC23 parent evidence were used; no H1-r2 output was
-viewed and no boundary changed.
-
-The symmetric, uncalibrated `owner_preference_score` gate is frozen at `0.60`
-with a hidden-minus-visible quality margin of at least `0.20` and the companion
-eligibility and abstention constants in
-`docs/tracking/h1_r2/H1_R2_ACTIVATION_GATE_DECISION.json`. Its selection used
-predeclared development/golden mathematical cases, not validation data or a
-tracking metric. It makes no empirical activation or quality claim.
-
-Independent scientific review passed, and the deterministic checkers bind the
-roles, boundaries, gate, implementation, profile isolation, review, and
-authorization hashes. The next step requires separate H1-r2 evaluation
-authorization. Running tracking, viewing candidate output, changing production
-thresholds, runtime evaluation, and promotion remain unauthorized.
+The score remains uncalibrated and is not a probability. Threshold `0.60`,
+coefficients, missingness rules, production profiles, and source code were not
+changed. Validation, runtime evaluation, threshold tuning, and promotion
+remain unauthorized. The locked decision is
+`docs/tracking/h1_r2/H1_R2_DEVELOPMENT_EVALUATION_DECISION_20260727.json`.
 
 ## Classification V2 correction accepted (2026-07-26)
 

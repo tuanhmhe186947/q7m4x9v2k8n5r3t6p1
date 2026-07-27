@@ -1,37 +1,28 @@
 # Project Memory Short
 
-## 2026-07-27 H1-r2 implementation complete; evaluation unauthorized
+## 2026-07-27 H1-r2 development evaluation failed: no activation
 
-- `H1_R2_IMPLEMENTATION_AUTHORIZED=YES`
 - `H1_R2_IMPLEMENTATION_COMPLETE=YES`
-- `H1_R2_EVALUATION_AUTHORIZED=NO`
+- `H1_R2_DEVELOPMENT_DECISION=FAIL_NO_ACTIVATION`
+- `H1_R2_VALIDATION_EVALUATION_AUTHORIZED=NO`
 - `H1_R2_RUNTIME_EVALUATION_AUTHORIZED=NO`
 - `H1_R2_PROMOTION_AUTHORIZED=NO`
-- The narrow profile amendment authorizes only the opt-in
-  `realtime_fast_h1_r2` profile. It inherits `realtime_fast`, leaves the
-  `realtime` presentation mapping unchanged, and does not restore H1-r1.
-- The frozen symmetric, uncalibrated `owner_preference_score` and its eight
-  features are implemented at threshold `0.60`. The score is not a
-  probability.
-- Golden, symmetry, missingness, monotonicity, telemetry-independence,
-  causality, cache/replay, no-MP4, and profile-isolation checks pass:
-  78 focused and 282 broader tracking tests.
-- The deterministic implementation checker passes. No real tracking, video
-  opening, detector/GPU inference, development/validation evaluation, runtime
-  benchmark, threshold tuning, or candidate-output inspection occurred.
-- Separate evaluation authorization is still required.
-- A distinct blinded assigner classified the four frozen validation windows:
-  two positive hidden-owner contention windows and two controls. Boundaries
-  did not change, and no H1-r2 output was inspected.
-- The uncalibrated `owner_preference_score` activation threshold is frozen at
-  `0.60`, equivalent to `Q(hidden)-Q(visible) >= 0.20`, using development-only
-  golden mathematical cases and domain rationale.
-- This threshold is a pre-implementation prior, not real activation or
-  tracking-quality evidence. The six H1-r1 episodes remain development/audit
-  evidence and are excluded from independent validation.
-- Independent scientific review and both deterministic checkers pass.
-  Evaluation, runtime evaluation, production threshold changes, and promotion
-  require separate authorization.
+- Frozen development population: six episodes, four positives and two
+  controls, all completed through paired shared-cache replay.
+- Complete H1-r2 export: `770` candidate pairs; `737` missing-evidence
+  abstentions; `33` valid below-threshold pairs; `0` applications.
+- No episode had real activation or association-output divergence. Equal
+  metrics do not demonstrate benefit: remapped IDSW is `21` in both arms and
+  wrong-ID matched frames are `135` in both arms.
+- Shared cache, validation hashes, causal delay zero, prefix invariance,
+  no-future-frame, and recursive zero-MP4 checks pass.
+- The exact repeat was correctly not run after the frozen no-activation hard
+  stop.
+- Threshold `0.60`, coefficients, missingness semantics, source code,
+  `realtime_fast`, and `realtime` were unchanged. The uncalibrated score is not
+  a probability.
+- Validation, runtime evaluation, threshold tuning, and promotion remain
+  unauthorized.
 
 ## 2026-07-26 Classification V2 correction accepted
 

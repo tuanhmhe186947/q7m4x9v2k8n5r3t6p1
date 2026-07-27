@@ -1,0 +1,178 @@
+{
+  "schema_version": "tracking.h1_r2_development_evaluation_decision.v1",
+  "experiment": "H1-r2",
+  "date": "2026-07-27",
+  "decision": "FAIL_NO_ACTIVATION",
+  "reason": "NO_REAL_H1_R2_ACTIVATION_ON_FROZEN_DEVELOPMENT_POSITIVES",
+  "code_sha": "e54b550779be060b2e322d56304c54b854c9e0c3",
+  "profiles": {
+    "baseline": "realtime_fast",
+    "candidate": "realtime_fast_h1_r2",
+    "baseline_effective_config_sha256": "9bf4ce6d07423ab517b4705c716e3eb012349b756b7c0591cc3458eac207808d",
+    "candidate_effective_config_sha256": "4916fcc24d464372c0c2151be41c65bb32472a0972d9f845659ec20970094500",
+    "run_config_snapshot_sha256": {
+      "baseline": "e0a4de3875941906cd3b78dd6f3fe970a1797e48f0447b0b2fdd9243a28facdf",
+      "candidate": "fa37d1b4aed6df3a47114cc27b4c9bf8658bdc2ddf07b0a4088f3f659dcdde81",
+      "normalization": "TrackingConfig defaults plus profile overrides with path, output, and device fields removed"
+    },
+    "only_difference": {
+      "h1_r2_owner_preference": {
+        "baseline": null,
+        "candidate": true
+      }
+    },
+    "realtime_fast_unchanged": true,
+    "realtime_presentation_profile_unchanged": true
+  },
+  "frozen_score": {
+    "name": "owner_preference_score",
+    "threshold": 0.6,
+    "threshold_changed": false,
+    "coefficients_changed": false,
+    "calibrated": false,
+    "is_probability": false
+  },
+  "authority_hashes": {
+    "tracking_subtree_sha256": "38825960bed0c3a339715e7d1d275581121a857f723de4cc1af7ff6c16ffaf98",
+    "design_contract_sha256": "1f994e47594487fdffb2406ccb21f9dd179f30cc8912d6c5db012c3a6d037df9",
+    "activation_gate_sha256": "642999bf3977b5f9b8a7f84d20b0eb3d9248e4f26d8a94a1cba4cccf3ea8c6c0",
+    "evaluation_gate_sha256": "06ddd2540b313c46e54eccf77d34a8ebe54de121de9a56f287bc2a51c50a6696",
+    "development_manifest_sha256": "57d4aa2b72f8c55021796f6b8d6142a0bf13e3fd3f28ff8fc80dc285e9520c04",
+    "validation_manifest_sha256_before": "531f20a692d593c9ea4be0534e334af4262e8c013e43d828f0f0f894ad4761b6",
+    "validation_manifest_sha256_after": "531f20a692d593c9ea4be0534e334af4262e8c013e43d828f0f0f894ad4761b6",
+    "validation_role_assignment_sha256_before": "ae867355ff5ee04693451a52121e31606364d96def69dc7c0a03a585dfac3f0f",
+    "validation_role_assignment_sha256_after": "ae867355ff5ee04693451a52121e31606364d96def69dc7c0a03a585dfac3f0f",
+    "detector_weight_sha256": "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+    "evaluation_contract_sha256": "0662b5e4dc393e60b75489379ccde754a22b8b79ff2a595bc3eafa885577c24b",
+    "telemetry_schema_sha256": "23877976b23cc2ce9a0dc7f737bf20b880dfcaf85cf1ee7fc8293b14e1ef215e"
+  },
+  "source_and_gt_hashes": {
+    "Pigs291119_000233_30fps": {
+      "source_video_sha256": "24de02b8ecf5bd892e14c763872e3d86c7270f4c778f822844209c83a69888a1",
+      "gt_sha256": "348f4ffa83ab7f7ac3c603a60a4f00528cf222d3f13129e2f04c399d7cb4158c"
+    },
+    "Pigs291119_000263_30fps": {
+      "source_video_sha256": "24274a8c7e8638f223e11ddc7dce4632e1099a0c6ee200d1febda492315842ad",
+      "gt_sha256": "4636c3beb1d6e43a2c58dd45c050c62ee9d37d05010c26e578db1b9200ac21b8"
+    }
+  },
+  "detector_cache_hashes": {
+    "E01_000233_contention_a": "a00378197e0b1b0b6f778a29d49c64067f603d4999fba82d5004f9054e83ca1e",
+    "E02_000233_contention_b": "b12e3aa4d0d687ca40d35d469f8c7db201a7835dd0ca1456ee18fa7f5f0db4dc",
+    "E03_000233_crossing": "e8bea9e28f5645d1a87083409f8f3070c386a79e64ea2764bd43f81356342715",
+    "E04_000263_contention": "d8871f07bc87875414c98360ccbadf921af4743db943ac315f4be0e97338c701",
+    "E05_000263_control_clean": "9321431a4a2ff1db86ed5d66423a2375135641c1e33eb4f5be90d1ece66f8cbe",
+    "E06_000233_control_clean": "a3bccd427eb05963798846116794f2d9e0566ad8641d0f756f68ee427a665322"
+  },
+  "run": {
+    "run_root": "outputs/tracking/h1_r2_development_quality_20260727_121643",
+    "development_episodes_total": 6,
+    "positive_episodes": 4,
+    "control_episodes": 2,
+    "episodes_completed": 6,
+    "cache_recording_passes": 6,
+    "paired_cache_replay_arms": 12,
+    "detector_inference_calls_during_paired_replay": 0,
+    "gpu_inference_calls": 0,
+    "run_root_mp4_count": 0,
+    "validation_windows_executed": 0,
+    "complete_videos_executed": 0,
+    "runtime_benchmarks_executed": 0
+  },
+  "telemetry": {
+    "h1_r2_stage_calls": 210,
+    "h1_r2_hidden_tracks_offered": 221,
+    "h1_r2_competitors_scored": 770,
+    "h1_r2_valid_score_pairs": 33,
+    "h1_r2_abstained_missing_evidence": 737,
+    "h1_r2_abstained_below_threshold": 33,
+    "h1_r2_abstained_tie_or_margin": 0,
+    "h1_r2_owner_preference_applied": 0,
+    "h1_r2_score_invalid": 0,
+    "h1_r2_reacquisition_observed": 0,
+    "candidate_rows_exported": 770
+  },
+  "paired_quality": {
+    "episodes_with_real_activation": 0,
+    "episodes_with_output_divergence": 0,
+    "beneficial_divergences": 0,
+    "harmful_divergences": 0,
+    "neutral_divergences": 0,
+    "ambiguous_divergences": 0,
+    "baseline_idsw": 21,
+    "candidate_idsw": 21,
+    "baseline_wrong_id_matched_frames": 135,
+    "candidate_wrong_id_matched_frames": 135,
+    "fp_change_percent": 0.0,
+    "fn_change_percent": 0.0,
+    "new_permanent_swaps": 0,
+    "new_terminal_swaps": 0,
+    "quality_improvement_proven": false
+  },
+  "gate_outcomes": {
+    "real_activation_on_two_independent_positive_episodes": "FAIL",
+    "independent_positive_video_keys_at_least_two": "FAIL",
+    "actual_association_output_difference": "FAIL",
+    "beneficial_identity_outcomes_at_least_two": "FAIL",
+    "no_new_permanent_swap": "PASS",
+    "no_new_terminal_swap": "PASS",
+    "controls_no_broad_activation": "PASS",
+    "fp_fn_within_frozen_tolerance": "PASS",
+    "causal_framewise_delay_zero": "PASS",
+    "prefix_invariance": "PASS",
+    "no_future_frame_access": "PASS",
+    "run_root_mp4_count_zero": "PASS",
+    "shared_cache_parity": "PASS",
+    "repeatability": "NOT_RUN_HARD_STOP",
+    "hard_stop": "no_real_activation_on_development_positives"
+  },
+  "repeatability": {
+    "exact_repeat_run": false,
+    "result": "NOT_RUN",
+    "reason": "The first development run hit a frozen hard stop. Repeating to seek a favorable result is forbidden."
+  },
+  "result_artifact_hashes": {
+    "H1_R2_DEVELOPMENT_RUN_MANIFEST.json": "377759794367e37bfec1d9d2a47a3a7dea47b1a20de22f753e4b1e738e90258e",
+    "H1_R2_DEVELOPMENT_PAIRED_EPISODE_METRICS.csv": "e4a33a73a26ae985f20ab3d55c6a5f582a19d99a586c7588cdb3bca1bbff91d0",
+    "H1_R2_DEVELOPMENT_ACTIVATION_TRACE.csv": "2538fe509e01e3bb50727cee2d61c2eaf239d18e2d221b66678e45d074cde49e",
+    "H1_R2_DEVELOPMENT_ASSIGNMENT_DIVERGENCES.csv": "74dc3aa3fe89cd9ba735e487c132cc568902262dc9db9d77a51057556935ed51",
+    "H1_R2_DEVELOPMENT_SWAP_AUDIT.csv": "74dc3aa3fe89cd9ba735e487c132cc568902262dc9db9d77a51057556935ed51",
+    "H1_R2_DEVELOPMENT_TELEMETRY.json": "133fdff9a5880a55e99e5a1b6edeccb6a1521b3e3bc7a7f742d601dc538ea7e6",
+    "H1_R2_DEVELOPMENT_REPEATABILITY_REPORT.json": "3bc0424164ceecc3dc3c3498392a49262b27ed52faf0674ed90c4216f1bc63c8",
+    "H1_R2_DEVELOPMENT_COMMANDS_ENVIRONMENT.json": "b2e28525176d6513c12711f8b08917a59f97688785b260adb8f73e0ff191ab81",
+    "H1_R2_DEVELOPMENT_COMPLETE_ARTIFACT_SHA256.json": "d47a29518bacc107907b868dae55478f9b9d405b0be7836515355dcfb1b591cd"
+  },
+  "complete_artifact_inventory": {
+    "artifact_count_excluding_inventory_itself": 165,
+    "sha256": "d47a29518bacc107907b868dae55478f9b9d405b0be7836515355dcfb1b591cd"
+  },
+  "exact_commands": [
+    "python scripts/tracking/check_h1_r2_design_contract.py",
+    "python scripts/tracking/check_h1_r2_implementation.py",
+    "python .codex_tmp/evaluate_h1_r2_development.py --run-root C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\h1_r2_development_quality_20260727_121643 --device 0",
+    "python -m pytest -q tests\\test_tracking_h1_r2.py tests\\test_tracking_profiles.py tests\\test_tracking_telemetry.py tests\\test_tracking_prefix_invariance.py tests\\test_tracking_detector_cache.py",
+    "ruff check .codex_tmp\\evaluate_h1_r2_development.py"
+  ],
+  "test_results": {
+    "design_checker": "PASS",
+    "implementation_checker": "PASS",
+    "focused_causality_telemetry_cache_profile_tests": "84 passed",
+    "evaluation_harness_ruff": "PASS"
+  },
+  "excluded_incomplete_launch_roots": [
+    {
+      "path": "outputs/tracking/h1_r2_development_quality_20260727_120735",
+      "reason": "command timeout interrupted the first cache-recording pass before paired evidence existed"
+    },
+    {
+      "path": "outputs/tracking/h1_r2_development_quality_20260727_121611",
+      "reason": "launch was refused before evaluation because redirected logs made the root nonempty"
+    }
+  ],
+  "validation_evaluation_authorized": false,
+  "runtime_evaluation_authorized": false,
+  "promotion_authorized": false,
+  "threshold_tuning_authorized": false,
+  "implementation_changes_authorized": false,
+  "interpretation": "The frozen H1-r2 implementation executed and produced complete real-data candidate telemetry, but the frozen gate never applied. Equal quality metrics are therefore no-effect evidence, not evidence of benefit. This task does not test another threshold or coefficient set."
+}
