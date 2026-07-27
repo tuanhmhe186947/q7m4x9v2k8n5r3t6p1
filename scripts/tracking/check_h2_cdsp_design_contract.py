@@ -880,6 +880,14 @@ def _check_prerequisite_and_manifest() -> tuple[int, int]:
     return len(positives), len(controls)
 
 
+def _is_h2_validation_output_path(path: Path) -> bool:
+    normalized = path.as_posix().lower()
+    return (
+        "h2_cdsp_validation" in normalized
+        or "h2_validation" in normalized
+    )
+
+
 def _check_validation_policy_and_outputs() -> None:
     text = VALIDATION_POLICY.read_text(encoding="utf-8")
     for phrase in (
@@ -897,8 +905,7 @@ def _check_validation_policy_and_outputs() -> None:
         forbidden = [
             str(path)
             for path in root.rglob("*")
-            if "h2_cdsp" in str(path).lower()
-            and "validation" in str(path).lower()
+            if _is_h2_validation_output_path(path)
         ]
         if forbidden:
             raise ContractError(f"H2 validation output exists: {forbidden[:3]}")

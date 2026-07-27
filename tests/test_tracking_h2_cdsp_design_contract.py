@@ -43,6 +43,17 @@ def test_frozen_contract_passes_pre_review() -> None:
     assert counts["control_windows"] == 4
 
 
+def test_validation_output_guard_distinguishes_cache_validation() -> None:
+    module = _checker_module()
+
+    assert not module._is_h2_validation_output_path(
+        Path("h2_cdsp_current_main/H2_CDSP_LIVE_MAIN_CACHE_VALIDATION.json")
+    )
+    assert module._is_h2_validation_output_path(
+        Path("h2_cdsp_validation/H2_CDSP_VALIDATION_OUTPUT.json")
+    )
+
+
 def test_checker_rejects_detection_reservation(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
