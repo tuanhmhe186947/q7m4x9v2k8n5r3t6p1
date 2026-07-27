@@ -26,10 +26,10 @@ from pig_behavior.classification_v2.datasets.image_context_index import (
     resolve_video,
 )
 from pig_behavior.classification_v2.datasets.pig_strenet_publication import (
+    MEDIA_MANIFEST_SCHEMA,
     publish_media_manifest,
 )
 
-MEDIA_MANIFEST_SCHEMA = "classification_v2.pig_strenet_media_manifest.v1"
 ACTOR_IMAGE_COLUMNS = (
     "crop_path",
     "actor_crop_path",
@@ -278,6 +278,12 @@ class FrameMediaResolver:
                     "exists": exists,
                     "size": int(path.stat().st_size) if exists else None,
                     "sha256": digest,
+                    "authority_mode": (
+                        "full_file_sha256" if exists else "unavailable"
+                    ),
+                    "authority_sha256": digest,
+                    "authority_valid": bool(exists and digest),
+                    "derived_pixel_artifact_binding_required": False,
                     "source_kind_counts": dict(
                         sorted(usage["source_kind_counts"].items())
                     ),
@@ -296,11 +302,13 @@ class FrameMediaResolver:
             "sources": sources,
             "status_counts": dict(sorted(self._status_counts.items())),
             "runtime_counts": dict(sorted(self._runtime_counts.items())),
+            "full_file_sha256_count": len(sources),
+            "derived_pixel_video_authority_count": 0,
             "rejected_static_scene_candidates": sorted(
                 self._rejected_scene_candidates
             ),
             "background_as_temporal_scene_used": False,
-            "valid": bool(valid),
+            "valid": bool(sources) and bool(valid),
         }
 
     def write_manifest(

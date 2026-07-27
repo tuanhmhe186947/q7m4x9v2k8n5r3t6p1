@@ -386,6 +386,12 @@ def main() -> None:
         "manifest_path": str(args.output_dir / "media_manifest.json"),
         "manifest_sha256": _sha256(args.output_dir / "media_manifest.json"),
         "source_file_count": media_audit["source_file_count"],
+        "full_file_sha256_count": media_audit[
+            "full_file_sha256_count"
+        ],
+        "derived_pixel_video_authority_count": media_audit[
+            "derived_pixel_video_authority_count"
+        ],
         "runtime_counts": media_audit["runtime_counts"],
         "status_counts": media_audit["status_counts"],
         "valid": media_audit["valid"],
@@ -648,6 +654,12 @@ def _validate_publication_recovery_authority(
         "current_media_module_sha256": current_code.get(
             "media_module_sha256"
         ),
+        "recorded_publication_module_sha256": recorded_code.get(
+            "publication_module_sha256"
+        ),
+        "current_publication_module_sha256": current_code.get(
+            "publication_module_sha256"
+        ),
         "scientific_module_sha256": current_code.get("module_sha256"),
         "computation_reexecuted": False,
     }
@@ -757,6 +769,12 @@ def _audit_completed_outputs(
                 output_dir / "media_manifest.json"
             ),
             "source_file_count": media_audit["source_file_count"],
+            "full_file_sha256_count": media_audit[
+                "full_file_sha256_count"
+            ],
+            "derived_pixel_video_authority_count": media_audit[
+                "derived_pixel_video_authority_count"
+            ],
             "runtime_counts": media_audit["runtime_counts"],
             "status_counts": media_audit["status_counts"],
             "valid": media_audit["valid"],
@@ -1513,6 +1531,9 @@ def _implementation_lineage() -> dict[str, Any]:
     script_path = Path(__file__).resolve()
     module_path = Path(inspect.getfile(build_pig_strenet_artifacts)).resolve()
     media_module_path = Path(inspect.getfile(FrameMediaResolver)).resolve()
+    publication_module_path = Path(
+        inspect.getfile(recover_media_manifest)
+    ).resolve()
     return {
         "script": str(script_path),
         "script_sha256": _sha256(script_path),
@@ -1520,6 +1541,8 @@ def _implementation_lineage() -> dict[str, Any]:
         "module_sha256": _sha256(module_path),
         "media_module": str(media_module_path),
         "media_module_sha256": _sha256(media_module_path),
+        "publication_module": str(publication_module_path),
+        "publication_module_sha256": _sha256(publication_module_path),
         "git": _git_lineage(),
     }
 
@@ -1542,6 +1565,9 @@ def _checkpoint_identity(
             "script_sha256": implementation["script_sha256"],
             "module_sha256": implementation["module_sha256"],
             "media_module_sha256": implementation["media_module_sha256"],
+            "publication_module_sha256": implementation[
+                "publication_module_sha256"
+            ],
         },
         "parameters": {
             "history_length": args.history_length,

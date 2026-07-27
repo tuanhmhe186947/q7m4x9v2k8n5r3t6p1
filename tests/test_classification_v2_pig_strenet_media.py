@@ -18,6 +18,7 @@ from pig_behavior.classification_v2.datasets.pig_strenet_media import (
 )
 from pig_behavior.classification_v2.datasets.pig_strenet_publication import (
     checkpointed_sha256,
+    publish_media_manifest,
     recover_media_manifest,
 )
 
@@ -303,6 +304,51 @@ def test_media_hash_checkpoint_reuses_exact_file_identity(
     second = checkpointed_sha256(media, checkpoint_path=checkpoint)
 
     assert second == first
+
+
+def test_video_publication_binds_used_frames_without_hashing_container(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    video = tmp_path / "large-source.mp4"
+    video.write_bytes(b"container-identity")
+    module = importlib.import_module(
+        "pig_behavior.classification_v2.datasets."
+        "pig_strenet_publication"
+    )
+
+    def unexpected_hash(*_: object, **__: object) -> str:
+        raise AssertionError("video containers must not be fully rehashed")
+
+    monkeypatch.setattr(module, "_sha256_file_with_retry", unexpected_hash)
+    payload = publish_media_manifest(
+        tmp_path / "media_manifest.json",
+        video_root=tmp_path,
+        legacy_crop_root=tmp_path,
+        video_index_aliases=1,
+        usage={
+            str(video): {
+                "source_kind_counts": {"video_frame": 2},
+                "frame_indices": {3, 7},
+            }
+        },
+        status_counts={"ok": 2},
+        runtime_counts={"video_decode_count": 2},
+        rejected_scene_candidates=[],
+        checkpoint_path=tmp_path / "publication.sqlite3",
+    )
+
+    source = payload["sources"][0]
+    assert payload["valid"]
+    assert payload["derived_pixel_video_authority_count"] == 1
+    assert payload["full_file_sha256_count"] == 0
+    assert source["sha256"] is None
+    assert source["authority_valid"]
+    assert source["authority_mode"] == (
+        "stat_and_used_frames_plus_derived_pixels"
+    )
+    assert source["derived_pixel_artifact_binding_required"] is True
+    assert source["frame_index_count"] == 2
 
 
 def test_recovered_media_manifest_is_complete_and_resumable(

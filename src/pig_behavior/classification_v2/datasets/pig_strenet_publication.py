@@ -12,10 +12,11 @@ from typing import Any
 
 import pandas as pd
 
-MEDIA_MANIFEST_SCHEMA = "classification_v2.pig_strenet_media_manifest.v1"
+MEDIA_MANIFEST_SCHEMA = "classification_v2.pig_strenet_media_manifest.v2"
 PUBLICATION_CHECKPOINT_SCHEMA = (
     "classification_v2.pig_strenet_media_publication_checkpoint.v1"
 )
+VIDEO_SOURCE_KINDS = frozenset({"video_bbox_crop", "video_frame"})
 ProgressCallback = Callable[[str, int | None, int | None], None]
 
 
@@ -337,13 +338,21 @@ class _MediaPublicationStore:
             "status_counts": dict(sorted(status_counts.items())),
             "runtime_counts": dict(sorted(runtime_counts.items())),
             "usage_count_semantics": usage_count_semantics,
+            "full_file_sha256_count": sum(
+                source["authority_mode"] == "full_file_sha256"
+                for source in sources
+            ),
+            "derived_pixel_video_authority_count": sum(
+                source["authority_mode"]
+                == "stat_and_used_frames_plus_derived_pixels"
+                for source in sources
+            ),
             "rejected_static_scene_candidates": sorted(
                 str(value) for value in rejected_scene_candidates
             ),
             "background_as_temporal_scene_used": False,
-            "valid": all(
-                source["exists"] and source["sha256"] for source in sources
-            ),
+            "valid": bool(sources)
+            and all(source["authority_valid"] for source in sources),
         }
         _atomic_write_json(path, payload)
         return payload
@@ -351,20 +360,7 @@ class _MediaPublicationStore:
     def _source_record(self, path_text: str) -> dict[str, Any]:
         path = Path(path_text)
         exists = path.is_file()
-        if not exists:
-            return {
-                "path": path_text,
-                "exists": False,
-                "size": None,
-                "sha256": None,
-                "source_kind_counts": self._source_kind_counts(path_text),
-                "frame_index_count": 0,
-                "frame_index_min": None,
-                "frame_index_max": None,
-                "frame_indices_sha256": _ordered_values_sha256([]),
-            }
-        stat = path.stat()
-        digest = self._cached_hash(path, stat.st_size, stat.st_mtime_ns)
+        source_kind_counts = self._source_kind_counts(path_text)
         frames = [
             int(row[0])
             for row in self.connection.execute(
@@ -373,16 +369,55 @@ class _MediaPublicationStore:
                 (path_text,),
             )
         ]
+        frame_indices_sha256 = _ordered_values_sha256(frames)
+        if not exists:
+            return {
+                "path": path_text,
+                "exists": False,
+                "size": None,
+                "sha256": None,
+                "authority_mode": "unavailable",
+                "authority_sha256": None,
+                "authority_valid": False,
+                "derived_pixel_artifact_binding_required": False,
+                "source_kind_counts": source_kind_counts,
+                "frame_index_count": len(frames),
+                "frame_index_min": frames[0] if frames else None,
+                "frame_index_max": frames[-1] if frames else None,
+                "frame_indices_sha256": frame_indices_sha256,
+            }
+        stat = path.stat()
+        is_video_source = bool(
+            VIDEO_SOURCE_KINDS.intersection(source_kind_counts)
+        )
+        if is_video_source:
+            digest = None
+            authority_mode = "stat_and_used_frames_plus_derived_pixels"
+            authority_sha256 = _stat_frame_authority_sha256(
+                path_text,
+                size=stat.st_size,
+                mtime_ns=stat.st_mtime_ns,
+                frame_indices_sha256=frame_indices_sha256,
+            )
+        else:
+            digest = self._cached_hash(path, stat.st_size, stat.st_mtime_ns)
+            authority_mode = "full_file_sha256"
+            authority_sha256 = digest
         return {
             "path": path_text,
             "exists": True,
             "size": int(stat.st_size),
             "sha256": digest,
-            "source_kind_counts": self._source_kind_counts(path_text),
+            "mtime_ns": int(stat.st_mtime_ns),
+            "authority_mode": authority_mode,
+            "authority_sha256": authority_sha256,
+            "authority_valid": bool(authority_sha256),
+            "derived_pixel_artifact_binding_required": is_video_source,
+            "source_kind_counts": source_kind_counts,
             "frame_index_count": len(frames),
             "frame_index_min": frames[0] if frames else None,
             "frame_index_max": frames[-1] if frames else None,
-            "frame_indices_sha256": _ordered_values_sha256(frames),
+            "frame_indices_sha256": frame_indices_sha256,
         }
 
     def _cached_hash(self, path: Path, size: int, mtime_ns: int) -> str:
@@ -480,6 +515,29 @@ def _ordered_values_sha256(values: Sequence[int]) -> str:
         digest.update(str(int(value)).encode("utf-8"))
         digest.update(b"\n")
     return digest.hexdigest()
+
+
+def _stat_frame_authority_sha256(
+    path: str,
+    *,
+    size: int,
+    mtime_ns: int,
+    frame_indices_sha256: str,
+) -> str:
+    payload = {
+        "path": path,
+        "size": int(size),
+        "mtime_ns": int(mtime_ns),
+        "frame_indices_sha256": frame_indices_sha256,
+        "derived_pixel_artifact_binding_required": True,
+    }
+    rendered = json.dumps(
+        payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(rendered.encode("utf-8")).hexdigest()
 
 
 def _file_signature(path: Path) -> dict[str, Any]:
