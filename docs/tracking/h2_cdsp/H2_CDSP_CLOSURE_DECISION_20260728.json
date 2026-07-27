@@ -1,0 +1,37 @@
+{
+  "schema_version": "tracking.h2_cdsp_closure_decision.v1",
+  "decision_date": "2026-07-28",
+  "decision": "FAIL_NO_CURRENT_MAIN_STATE_LOSS",
+  "applicability_to_current_main": "NOT_JUSTIFIED",
+  "historical_b0d9009_taxonomy_role": "HISTORICAL_MECHANISM_DISCOVERY_ONLY",
+  "current_main_historical_event_reproduction": "0/6",
+  "current_main_global_failure_prevalence": "NOT_MEASURED",
+  "findings": {
+    "development_windows_completed": 10,
+    "historical_positive_windows_examined": 6,
+    "exact_historical_events_reproduced": 0,
+    "state_loss_mechanisms_reproduced": 0,
+    "contract_defined_current_main_state_loss_points": 0,
+    "diagnostically_preservable_states": 8163,
+    "states_surviving_to_reentry": 7852,
+    "additional_usable_state_at_reentry": 0,
+    "control_windows_with_preservation_activity": 4,
+    "control_overpreservation_or_stale_state_risks": 4,
+    "shadow_output_equivalence": "PASS",
+    "validation_executed": false
+  },
+  "interpretation": [
+    "H2 was not rejected because of a telemetry or execution defect.",
+    "Current main did not reproduce the baseline state-loss mechanism that H2 targeted.",
+    "Preserved state supplied no additional evidence at a causal re-entry opportunity.",
+    "Broad control preservation and stale-state risk further weaken the design.",
+    "The general concept may remain relevant to other trackers but is not justified for the current baseline.",
+    "The disabled observer may remain as generic diagnostic infrastructure."
+  ],
+  "h2_family_status": "CLOSED_FOR_CURRENT_STUDY",
+  "production_implementation_authorized": false,
+  "association_evaluation_authorized": false,
+  "validation_authorized": false,
+  "runtime_authorized": false,
+  "promotion_authorized": false
+}
