@@ -1,0 +1,67 @@
+{
+  "schema_version": "tracking.h1_r2_implementation_authorization_decision.v1",
+  "experiment": "H1-r2",
+  "decision": "IMPLEMENTATION_AUTHORIZED_EVALUATION_SEPARATELY_UNAUTHORIZED",
+  "decision_date": "2026-07-27",
+  "current_main_sha": "e807865d2c12cdf15ed82d57788b805063cd46f6",
+  "authorization_basis": {
+    "validation_role_assignment_complete": true,
+    "validation_role_assignment_blinded": true,
+    "ambiguous_windows_excluded_rather_than_forced": true,
+    "activation_gate_frozen_from_development_only": true,
+    "feature_contract_unchanged": true,
+    "development_validation_disjoint": true,
+    "independent_design_review_passed": true,
+    "deterministic_checker_passed_before_authorization": true,
+    "h1_r2_tracking_results_viewed": false,
+    "evaluation_separately_unauthorized": true
+  },
+  "h1_r2_tracking_results_viewed": false,
+  "score": {
+    "name": "owner_preference_score",
+    "activation_threshold": 0.6,
+    "calibrated": false,
+    "is_probability": false
+  },
+  "validation_role_summary": {
+    "total": 4,
+    "positive_hidden_owner_contention": 2,
+    "control_no_hidden_owner_contention": 2,
+    "ambiguous_exclude": 0,
+    "boundaries_unchanged": true
+  },
+  "checker": {
+    "version": "tracking.h1_r2_design_checker.v2",
+    "command": "python scripts/tracking/check_h1_r2_design_contract.py",
+    "pre_authorization_result": "PASS",
+    "focused_tests": "6 passed"
+  },
+  "sha256_bindings": {
+    "design_contract": "1f994e47594487fdffb2406ccb21f9dd179f30cc8912d6c5db012c3a6d037df9",
+    "feature_registry": "169d9c3ada9239f3e5f7031f80c1d9107d4c255295b0a6f26251a1f6b6af3a0f",
+    "golden_cases": "54a062bc8fbca80a3e670c5699b6efd0bdfa1cd7594d76b1f7c46dbbf44847e7",
+    "development_manifest": "57d4aa2b72f8c55021796f6b8d6142a0bf13e3fd3f28ff8fc80dc285e9520c04",
+    "validation_manifest": "531f20a692d593c9ea4be0534e334af4262e8c013e43d828f0f0f894ad4761b6",
+    "validation_role_assignment": "ae867355ff5ee04693451a52121e31606364d96def69dc7c0a03a585dfac3f0f",
+    "activation_gate": "642999bf3977b5f9b8a7f84d20b0eb3d9248e4f26d8a94a1cba4cccf3ea8c6c0",
+    "evaluation_gate": "06ddd2540b313c46e54eccf77d34a8ebe54de121de9a56f287bc2a51c50a6696",
+    "independent_review": "345a21faced2eb22bd18e3b6381595e3a5ced6fc0277bea942df722eac23eddb",
+    "checker": "ab70d2ece60b15c6f9842159a0bf84cf320a53502e91ee29f3178477e489e187"
+  },
+  "authorizations": {
+    "implementation_authorized": true,
+    "evaluation_authorized": false,
+    "runtime_evaluation_authorized": false,
+    "promotion_authorized": false,
+    "profile_addition_authorized": false,
+    "production_threshold_change_authorized": false
+  },
+  "scientific_limits": [
+    "Implementation authorization does not establish real activation, control specificity, tracking quality, or runtime acceptability.",
+    "No H1-r2 candidate output has been viewed.",
+    "The activation threshold and companion constants are frozen before validation and may not be tuned after validation is viewed.",
+    "Any implementation must preserve the frozen feature contract and create no profile or production default change in the implementation task.",
+    "Evaluation, runtime evaluation, and promotion require separate future authorization."
+  ],
+  "next_action": "IMPLEMENT_H1_R2_UNDER_FROZEN_CONTRACT_WITHOUT_EVALUATION"
+}

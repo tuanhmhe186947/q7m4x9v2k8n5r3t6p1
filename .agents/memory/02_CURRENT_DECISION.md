@@ -1,5 +1,32 @@
 # Current Decision
 
+## H1-r2 implementation authorized; evaluation closed (2026-07-27)
+
+- `H1_R1_STATUS=SCIENTIFICALLY_CLOSED`
+- `GENERIC_CACHE_MERGE_STATUS=COMPLETED`
+- `H1_R2_IMPLEMENTATION_AUTHORIZED=YES`
+- `H1_R2_EVALUATION_AUTHORIZED=NO`
+- `H1_R2_RUNTIME_EVALUATION_AUTHORIZED=NO`
+- `H1_R2_PROMOTION_AUTHORIZED=NO`
+
+The four immutable validation windows now have independently assigned blinded
+roles: two positive hidden-owner contention windows and two controls. Source
+video, locked GT, and RF_ACC23 parent evidence were used; no H1-r2 output was
+viewed and no boundary changed.
+
+The symmetric, uncalibrated `owner_preference_score` gate is frozen at `0.60`
+with a hidden-minus-visible quality margin of at least `0.20` and the companion
+eligibility and abstention constants in
+`docs/tracking/h1_r2/H1_R2_ACTIVATION_GATE_DECISION.json`. Its selection used
+predeclared development/golden mathematical cases, not validation data or a
+tracking metric. It makes no empirical activation or quality claim.
+
+Independent scientific review passed, and the deterministic checker binds the
+roles, boundaries, gate, review, and authorization hashes. The next permitted
+step is implementation under the frozen contract only. Running tracking,
+viewing candidate output, adding a profile, changing production thresholds,
+runtime evaluation, and promotion remain unauthorized.
+
 ## Classification V2 correction accepted (2026-07-26)
 
 - `SCIENTIFIC_ACCEPTED_SHA=a35e0b9aae8b55167b4562cfc7e26a45e2b4e312`

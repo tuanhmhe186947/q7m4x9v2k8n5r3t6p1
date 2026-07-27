@@ -1,5 +1,25 @@
 # Project Memory Short
 
+## 2026-07-27 H1-r2 implementation authorization
+
+- `H1_R2_IMPLEMENTATION_AUTHORIZED=YES`
+- `H1_R2_EVALUATION_AUTHORIZED=NO`
+- `H1_R2_RUNTIME_EVALUATION_AUTHORIZED=NO`
+- `H1_R2_PROMOTION_AUTHORIZED=NO`
+- A distinct blinded assigner classified the four frozen validation windows:
+  two positive hidden-owner contention windows and two controls. Boundaries
+  did not change, and no H1-r2 output was inspected.
+- The uncalibrated `owner_preference_score` activation threshold is frozen at
+  `0.60`, equivalent to `Q(hidden)-Q(visible) >= 0.20`, using development-only
+  golden mathematical cases and domain rationale.
+- This threshold is a pre-implementation prior, not real activation or
+  tracking-quality evidence. The six H1-r1 episodes remain development/audit
+  evidence and are excluded from independent validation.
+- Independent scientific review and the deterministic design checker pass.
+  Implementation may proceed only under the frozen contract; evaluation,
+  runtime evaluation, profile changes, production threshold changes, and
+  promotion require separate authorization.
+
 ## 2026-07-26 Classification V2 correction accepted
 
 - `SCIENTIFIC_ACCEPTED_SHA=a35e0b9aae8b55167b4562cfc7e26a45e2b4e312`
