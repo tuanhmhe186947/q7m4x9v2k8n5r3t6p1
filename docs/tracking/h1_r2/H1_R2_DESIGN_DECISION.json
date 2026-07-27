@@ -1,0 +1,56 @@
+{
+  "schema_version": "tracking.h1_r2_design_decision.v1",
+  "date": "2026-07-27",
+  "experiment": "H1-r2",
+  "decision": "PRINCIPLED_DESIGN_FROZEN_WITH_PREIMPLEMENTATION_BLOCKERS",
+  "h1_r1_authority": {
+    "decision": "REJECTED_CONFIGURATION",
+    "execution_verified": true,
+    "telemetry_verified": true,
+    "current_policy_activation": 0,
+    "quality_effect": "NOT_MEASURED",
+    "current_gate_combination_feasible": false,
+    "general_concept_rejected": false
+  },
+  "primary_design": {
+    "design_class": "rule_based_common_scale_pairwise_difference",
+    "score_name": "owner_preference_score",
+    "bounded_range": [0.0, 1.0],
+    "calibrated": false,
+    "can_be_called_probability": false,
+    "coefficients_fixed_from_domain_reasoning": true,
+    "coefficients_learned_from_h1_r1_episodes": false
+  },
+  "alternatives_compared": [
+    "rule_based_common_scale_score",
+    "learned_monotonic_relative_score",
+    "pairwise_preference_model"
+  ],
+  "deliverables": {
+    "feature_contract_complete": true,
+    "golden_cases_complete": true,
+    "development_manifest_window_selection_frozen": true,
+    "validation_manifest_window_selection_frozen": true,
+    "validation_roles_complete": false,
+    "evaluation_gate_frozen": true,
+    "independent_checker_required": true
+  },
+  "validation_exclusion": {
+    "h1_r1_episode_count": 6,
+    "all_h1_r1_episodes_validation_eligible": false,
+    "reason": "used_for_h1_r1_design_and_cost_audit"
+  },
+  "authorizations": {
+    "implementation_authorized": false,
+    "evaluation_authorized": false,
+    "promotion_authorized": false,
+    "new_profile_authorized": false,
+    "threshold_search_authorized": false
+  },
+  "blockers": [
+    "blinded validation roles must be assigned from GT and parent evidence",
+    "one development-only activation threshold must be frozen",
+    "independent reviewer sign-off is absent"
+  ],
+  "next_action": "COMPLETE_BLINDED_MANIFEST_LABELING_AND_REVIEW_DESIGN"
+}

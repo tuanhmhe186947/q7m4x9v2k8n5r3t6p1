@@ -1,0 +1,101 @@
+{
+  "schema_version": "tracking.h1_r2_golden_cases.v1",
+  "score_name": "owner_preference_score",
+  "weights": {
+    "overlap_similarity": 0.25,
+    "normalized_center_similarity": 0.20,
+    "scale_similarity": 0.10,
+    "appearance_similarity": 0.20,
+    "motion_consistency": 0.10,
+    "track_freshness": 0.10,
+    "appearance_available": 0.025,
+    "motion_available": 0.025
+  },
+  "formula": "clip(0.5 + 0.5 * (hidden_Q - visible_Q), 0, 1)",
+  "calculated_independently_from_production": true,
+  "tolerance": 1e-9,
+  "cases": [
+    {
+      "id": "hidden_owner_clearly_stronger",
+      "hidden": [0.9, 0.9, 0.9, 0.9, 0.8, 0.9, 1.0, 1.0],
+      "visible": [0.2, 0.3, 0.7, 0.4, 0.4, 1.0, 1.0, 1.0],
+      "expected_hidden_Q": 0.895,
+      "expected_visible_Q": 0.45,
+      "expected_score": 0.7225
+    },
+    {
+      "id": "visible_competitor_clearly_stronger",
+      "hidden": [0.2, 0.3, 0.7, 0.4, 0.4, 1.0, 1.0, 1.0],
+      "visible": [0.9, 0.9, 0.9, 0.9, 0.8, 0.9, 1.0, 1.0],
+      "expected_hidden_Q": 0.45,
+      "expected_visible_Q": 0.895,
+      "expected_score": 0.2775
+    },
+    {
+      "id": "identical_evidence",
+      "hidden": [0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 1.0, 1.0],
+      "visible": [0.75, 0.75, 0.75, 0.75, 0.75, 0.75, 1.0, 1.0],
+      "expected_hidden_Q": 0.7625,
+      "expected_visible_Q": 0.7625,
+      "expected_score": 0.5
+    },
+    {
+      "id": "missing_appearance_hidden_only",
+      "hidden": [0.8, 0.8, 0.8, 0.5, 0.8, 0.8, 0.0, 1.0],
+      "visible": [0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 1.0, 1.0],
+      "expected_hidden_Q": 0.725,
+      "expected_visible_Q": 0.81,
+      "expected_score": 0.4575
+    },
+    {
+      "id": "missing_appearance_both",
+      "hidden": [0.8, 0.8, 0.8, 0.5, 0.8, 0.8, 0.0, 1.0],
+      "visible": [0.8, 0.8, 0.8, 0.5, 0.8, 0.8, 0.0, 1.0],
+      "expected_hidden_Q": 0.725,
+      "expected_visible_Q": 0.725,
+      "expected_score": 0.5
+    },
+    {
+      "id": "long_hidden_weak_owner",
+      "hidden": [0.3, 0.4, 0.8, 0.6, 0.3, 0.1, 1.0, 1.0],
+      "visible": [0.7, 0.7, 0.9, 0.7, 0.7, 1.0, 1.0, 1.0],
+      "expected_hidden_Q": 0.445,
+      "expected_visible_Q": 0.765,
+      "expected_score": 0.34
+    },
+    {
+      "id": "recent_hidden_strong_geometry",
+      "hidden": [0.95, 0.9, 0.95, 0.7, 0.8, 0.9, 1.0, 1.0],
+      "visible": [0.4, 0.5, 0.9, 0.7, 0.6, 1.0, 1.0, 1.0],
+      "expected_hidden_Q": 0.8725,
+      "expected_visible_Q": 0.64,
+      "expected_score": 0.61625
+    },
+    {
+      "id": "bbox_scale_invariance_large_and_small",
+      "hidden": [0.9, 0.8, 0.95, 0.5, 0.5, 0.8, 0.0, 0.0],
+      "visible": [0.6, 0.7, 0.95, 0.5, 0.5, 1.0, 0.0, 0.0],
+      "expected_hidden_Q": 0.71,
+      "expected_visible_Q": 0.635,
+      "expected_score": 0.5375,
+      "property": "same vector and score after uniform bbox scaling"
+    },
+    {
+      "id": "skipped_detector_frame_valid_lk",
+      "hidden": [0.85, 0.85, 0.9, 0.7, 0.9, 0.8, 1.0, 1.0],
+      "visible": [0.55, 0.6, 0.9, 0.7, 0.65, 1.0, 1.0, 1.0],
+      "expected_hidden_Q": 0.8325,
+      "expected_visible_Q": 0.7025,
+      "expected_score": 0.565,
+      "property": "LK uses only current and past frames"
+    },
+    {
+      "id": "invalid_motion_hidden_only",
+      "hidden": [0.7, 0.7, 0.7, 0.7, 0.5, 0.7, 1.0, 0.0],
+      "visible": [0.7, 0.7, 0.7, 0.7, 0.7, 0.7, 1.0, 1.0],
+      "expected_hidden_Q": 0.67,
+      "expected_visible_Q": 0.715,
+      "expected_score": 0.4775
+    }
+  ]
+}

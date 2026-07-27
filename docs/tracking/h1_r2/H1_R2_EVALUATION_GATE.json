@@ -1,0 +1,73 @@
+{
+  "schema_version": "tracking.h1_r2_evaluation_gate.v1",
+  "date_frozen": "2026-07-27",
+  "implementation_authorized": false,
+  "evaluation_authorized": false,
+  "baseline": {
+    "profile": "realtime_fast",
+    "authority": "RF_ACC23",
+    "effective_config_sha256": "9bf4ce6d07423ab517b4705c716e3eb012349b756b7c0591cc3458eac207808d"
+  },
+  "candidate": {
+    "profile_must_be_created_in_separate_future_task": true,
+    "only_changed_family": "symmetric_hidden_owner_preference",
+    "score_name": "owner_preference_score"
+  },
+  "paired_evidence": {
+    "identical_detector_cache_required": true,
+    "video_hash_match_required": true,
+    "detector_weight_hash_match_required": true,
+    "detector_config_hash_match_required": true,
+    "cache_artifact_hash_match_required": true
+  },
+  "causality": {
+    "output_timing_contract": "causal_framewise",
+    "output_delay_frames": 0,
+    "uses_future_frames": false,
+    "prefix_invariance_required": true,
+    "flushed_output_immutable": true
+  },
+  "development_activation": {
+    "minimum_positive_episodes_activated": 2,
+    "minimum_independent_positive_video_keys": 2,
+    "maximum_control_episodes_activated": 1,
+    "maximum_control_candidate_frame_fraction": 0.05,
+    "threshold_selected_on_development_only": true
+  },
+  "quality_guardrails": {
+    "new_permanent_swap_allowed": 0,
+    "new_terminal_swap_allowed": 0,
+    "per_video_idsw_delta_maximum": 0,
+    "guardrail_000302_must_not_worsen": true,
+    "include_hidden": true,
+    "held_track_reacquired_equality_is_h1_benefit": false
+  },
+  "runtime_guardrails": {
+    "maximum_tracking_loop_overhead_fraction": 0.10,
+    "minimum_repeat_effective_fps_ratio": 0.90,
+    "maximum_repeat_peak_memory_ratio": 1.10,
+    "runtime_claim_requires_common_harness": true
+  },
+  "artifact_guardrails": {
+    "fresh_immutable_run_roots": true,
+    "recursive_run_root_mp4_count": 0,
+    "raw_and_semantic_prediction_hashes_required": true,
+    "repeat_required": true
+  },
+  "validation_policy": {
+    "validation_selected_before_h1_r2_output": true,
+    "no_video_key_overlap_with_development": true,
+    "no_recording_session_overlap_with_development": true,
+    "no_threshold_or_weight_change_after_validation_viewed": true,
+    "single_validation_view": true
+  },
+  "forbidden_in_current_task": [
+    "tracking_experiment",
+    "gpu_inference",
+    "complete_video",
+    "Hard6",
+    "full-13",
+    "runtime_benchmark",
+    "threshold_search"
+  ]
+}
