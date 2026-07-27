@@ -1,0 +1,88 @@
+{
+  "schema_version": "tracking.h1_r3_independent_design_review.v1",
+  "experiment": "H1-r3",
+  "review_timestamp": "2026-07-27T13:41:03.4599646+07:00",
+  "reviewer_identity": "codex_subagent:/root/independent_design_review",
+  "independent_from_authoring_process": true,
+  "review_result": "PASS_DESIGN",
+  "review_history": [
+    {
+      "result": "REVISE_DESIGN",
+      "material_findings": [
+        "zero-on-missing could erase adverse competitor evidence",
+        "golden feature vectors were not jointly realizable",
+        "correlated geometry was multiply weighted",
+        "reference-box and LK operational symmetry needed freezing"
+      ]
+    },
+    {
+      "result": "PASS_DESIGN",
+      "basis": "All material findings were corrected and the revised pre-review checker passed."
+    }
+  ],
+  "checks": [
+    {
+      "id": 1,
+      "challenge": "eligibility is genuinely symmetric",
+      "result": "PASS",
+      "finding": "Both candidates share reference-box provenance, LK validity, age, box, and optional-evidence rules."
+    },
+    {
+      "id": 2,
+      "challenge": "core evidence is sufficient but not excessive",
+      "result": "PASS",
+      "finding": "IoU and freshness are scored; correlated center and scale quantities are diagnostic only."
+    },
+    {
+      "id": 3,
+      "challenge": "missingness cannot create false confidence",
+      "result": "PASS",
+      "finding": "Missing channels use full uncertainty and activation uses the lower bound."
+    },
+    {
+      "id": 4,
+      "challenge": "feasibility does not rely on impossible perfect matches",
+      "result": "PASS",
+      "finding": "Features are recomputed from realizable raw boxes, descriptors, predictions, ages, and LK states."
+    },
+    {
+      "id": 5,
+      "challenge": "threshold and margin have a non-degenerate range",
+      "result": "PASS",
+      "finding": "Support margin 0.25 and lower-bound threshold 0.625 are one gate with three non-empty regions."
+    },
+    {
+      "id": 6,
+      "challenge": "design is not post-hoc activation forcing",
+      "result": "PASS",
+      "finding": "The gate is frozen before score-blind telemetry and cannot be tuned from validation or tracking quality."
+    },
+    {
+      "id": 7,
+      "challenge": "another hidden-owner iteration is scientifically worthwhile",
+      "result": "PASS",
+      "finding": "One reservation-disabled telemetry probe is falsifiable and has a hard hypothesis-close rule."
+    }
+  ],
+  "residual_limitations": [
+    "actual selected-competitor support density is unknown",
+    "threshold and weights are domain-chosen and uncalibrated",
+    "motion and selected reference geometry may remain correlated",
+    "score-blind development owner labels may contain GT ambiguity"
+  ],
+  "artifact_sha256": {
+    "H1_R3_SCIENTIFIC_DESIGN_CONTRACT.md": "45ea575a2f7c2fbc9fa9bfa65da62e38b2c410888e5c6e080bcbb8665c00d180",
+    "H1_R3_FEATURE_SEMANTICS_REGISTRY.csv": "3031eba3f799b3359981396a7f5b95b7e401f34326e993124ade014519ab71d6",
+    "H1_R3_ELIGIBILITY_CONTRACT.json": "2f81c555c0ab9d2ad2aab7c624e12c003c754d2b8fb1f9b6be2a0d305276e19c",
+    "H1_R3_SCORE_FEASIBILITY_ANALYSIS.md": "441e89e1bd26f71a163f42e8045c08a87e613f0fffdf226948fb3183539a512a",
+    "H1_R3_GOLDEN_CASES.yaml": "e6afcdebd676f0bc943876ac101a72b8c03db37a4207825442339b278445946e",
+    "H1_R3_ACTIVATION_GATE_DECISION.json": "8d492657daf7e14ec1dea3bffc697dec006dbc98753f16d5ac522038a7b2eca2",
+    "H1_R3_DEVELOPMENT_MANIFEST.csv": "57d4aa2b72f8c55021796f6b8d6142a0bf13e3fd3f28ff8fc80dc285e9520c04",
+    "H1_R3_VALIDATION_MANIFEST.csv": "531f20a692d593c9ea4be0534e334af4262e8c013e43d828f0f0f894ad4761b6",
+    "H1_R3_EVALUATION_GATE.json": "545024c8a7b7c92fc5b4ce9b70424b20ff019a5e0a837f03180df7fd32a4abf2"
+  },
+  "implementation_authorized": false,
+  "evaluation_authorized": false,
+  "runtime_evaluation_authorized": false,
+  "promotion_authorized": false
+}

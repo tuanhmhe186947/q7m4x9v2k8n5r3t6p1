@@ -1,5 +1,23 @@
 # Project Memory Short
 
+## 2026-07-27 H1-r3 scientific design frozen
+
+- Independent review: `PASS_DESIGN`; deterministic checker: `PASS`.
+- Primary eligibility is symmetric IoU/recency core evidence with conservative
+  lower/upper bounds for optional appearance and motion.
+- There is no hidden-only overlap floor. Center and scale remain diagnostics
+  with zero score weight to avoid correlated geometry double counting.
+- Primary score is uncalibrated `owner_preference_lower_bound`; threshold is
+  `0.625`, equivalent to relative-support margin `0.25`.
+- Sixteen raw-state golden cases pass: seven realistic non-perfect hidden
+  activations, two visible-support cases, and seven ambiguous/ineligible cases.
+- The existing six development and four validation windows remain unchanged
+  and disjoint. Validation was not executed and no validation output exists.
+- Before intervention, a separately authorized reservation-disabled telemetry
+  phase must test the frozen operating region using score-blind owner labels.
+- H1-r3 implementation, evaluation, runtime evaluation, and promotion remain
+  unauthorized.
+
 ## 2026-07-27 H1-r2 missingness audit
 
 - The frozen development decision remains

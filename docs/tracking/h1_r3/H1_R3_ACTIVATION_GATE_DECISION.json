@@ -1,0 +1,79 @@
+{
+  "schema_version": "tracking.h1_r3_activation_gate_decision.v2",
+  "experiment": "H1-r3",
+  "date_frozen": "2026-07-27",
+  "selection_basis": "normalized evidence budget and conservative false-reservation policy",
+  "validation_data_used": false,
+  "tracking_quality_metric_optimized": false,
+  "score_name": "owner_preference_lower_bound",
+  "score_calibrated": false,
+  "score_is_probability": false,
+  "weights": {
+    "overlap_similarity": 0.6,
+    "normalized_center_similarity": 0.0,
+    "scale_similarity": 0.0,
+    "appearance_similarity": 0.15,
+    "motion_consistency": 0.1,
+    "track_freshness": 0.15,
+    "appearance_available": 0.0,
+    "motion_available": 0.0
+  },
+  "relative_owner_support_interval": {
+    "core_formula": "0.60*delta_overlap+0.15*delta_freshness",
+    "observed_appearance_formula": "0.15*min(q_app_h,q_app_v)*delta_appearance",
+    "missing_appearance_interval": [-0.15, 0.15],
+    "observed_motion_formula": "0.10*min(q_motion_h,q_motion_v)*delta_motion",
+    "missing_motion_interval": [-0.1, 0.1],
+    "lower_bound_formula": "core+appearance_lower+motion_lower",
+    "upper_bound_formula": "core+appearance_upper+motion_upper",
+    "range": [-1.0, 1.0],
+    "swap_rule": "[lower,upper] becomes [-upper,-lower]"
+  },
+  "owner_preference_interval": {
+    "formula": "[0.5+0.5*lower_support,0.5+0.5*upper_support]",
+    "range": [0.0, 1.0],
+    "calibrated": false,
+    "is_probability": false
+  },
+  "activation_rule": {
+    "minimum_relative_overlap_advantage": 0.1,
+    "relative_owner_support_margin": 0.25,
+    "owner_preference_lower_bound_threshold": 0.625,
+    "threshold_equivalence": "0.5+0.5*0.25; score threshold and support margin are one gate",
+    "threshold_equality_activates": true,
+    "numeric_tolerance": 1e-12,
+    "activation_uses_worst_case_lower_bound": true,
+    "tie_rule": "an interval containing zero is ambiguous unless its lower bound independently clears activation",
+    "abstention_rule": "abstain when ineligible, overlap advantage is below 0.10, or lower support is below 0.25",
+    "visible_support_rule": "retain visible when overlap advantage is at most -0.10 and upper support is at most -0.25",
+    "hidden_age_rule": "both candidates use age [0,8]; increasing hidden age alone cannot raise the lower bound",
+    "second_independent_margin_gate": false
+  },
+  "complete_feasible_range": {
+    "relative_support": [-1.0, 1.0],
+    "owner_preference": [0.0, 1.0],
+    "support_margin_with_some_mathematical_activation": [0.0, 0.75],
+    "support_margin_with_both_optional_channels_missing": [0.0, 0.5],
+    "selected_support_margin": 0.25,
+    "score_threshold_with_some_mathematical_activation": [0.5, 0.875],
+    "score_threshold_with_both_optional_channels_missing": [0.5, 0.75],
+    "selected_score_threshold": 0.625,
+    "relative_overlap_minimum_range": [0.0, 1.0],
+    "selected_relative_overlap_minimum": 0.1
+  },
+  "instrumentation_before_intervention": {
+    "required": true,
+    "reservation_enabled": false,
+    "score_blind_owner_labels_required": true,
+    "purpose": "confirm realizable development support distributions without changing assignments",
+    "may_change_frozen_weights_or_gate": false,
+    "failure_action": "close hidden-owner preference if no conservative operating region exists",
+    "separate_authorization_required": true
+  },
+  "threshold_frozen": true,
+  "weights_frozen": true,
+  "implementation_authorized": false,
+  "evaluation_authorized": false,
+  "runtime_evaluation_authorized": false,
+  "promotion_authorized": false
+}

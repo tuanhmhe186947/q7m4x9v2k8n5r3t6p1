@@ -1,5 +1,30 @@
 # Current Decision
 
+## H1-r3 design passed independent review (2026-07-27)
+
+- Primary eligibility:
+  `symmetric_iou_recency_core_with_conservative_optional_bounds`.
+- `H1_R3_SCORE_NAME=owner_preference_lower_bound`
+- `H1_R3_THRESHOLD=0.625`
+- `H1_R3_MARGIN=0.25`
+- `H1_R3_DESIGN_CHECKER=PASS`
+- `INDEPENDENT_DESIGN_REVIEW=PASS_DESIGN`
+- `H1_R3_IMPLEMENTATION_AUTHORIZED=NO`
+- `H1_R3_EVALUATION_AUTHORIZED=NO`
+- `H1_R3_RUNTIME_AUTHORIZED=NO`
+- `H1_R3_PROMOTION_AUTHORIZED=NO`
+
+The final design uses relative IoU and freshness as its nonredundant scored
+core. Optional appearance and motion use conservative uncertainty intervals;
+activation uses the worst-case lower bound, so masking cannot increase hidden
+confidence. Golden features are recomputed from explicit realizable boxes,
+descriptors, predictions, ages, and LK states.
+
+A separately authorized telemetry-only phase must keep reservation disabled,
+preserve assignments, and use score-blind development owner labels. If the
+frozen conservative gate has no development operating region, close the
+hidden-owner preference hypothesis rather than tune another iteration.
+
 ## H1-r2 missingness audit: multiple design failures (2026-07-27)
 
 - `H1_R2_FROZEN_DEVELOPMENT_DECISION=FAIL_NO_ACTIVATION`

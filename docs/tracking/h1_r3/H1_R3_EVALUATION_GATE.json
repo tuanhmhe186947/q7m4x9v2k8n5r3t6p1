@@ -1,0 +1,76 @@
+{
+  "schema_version": "tracking.h1_r3_evaluation_gate.v1",
+  "experiment": "H1-r3",
+  "date_frozen": "2026-07-27",
+  "baseline_profile": "realtime_fast",
+  "candidate_profile": "NOT_AUTHORIZED",
+  "telemetry_only_prerequisite": {
+    "separate_authorization_required": true,
+    "reservation_enabled": false,
+    "assignments_must_remain_identical_to_baseline": true,
+    "candidate_owner_labels_assigned_without_h1_r3_scores": true,
+    "label_sources": [
+      "development GT",
+      "immutable source",
+      "RF_ACC23 parent evidence"
+    ],
+    "false_reservation_cost_relative_to_missed_reservation": 4.0,
+    "abstention_preferred_when_lower_bound_below_gate": true,
+    "weights_or_threshold_may_change": false,
+    "no_operating_region_action": "ABANDON_HIDDEN_OWNER_PREFERENCE"
+  },
+  "development_gates": {
+    "minimum_positive_episodes_with_real_activation": 2,
+    "minimum_independent_positive_video_keys": 2,
+    "association_output_divergence_required": true,
+    "minimum_beneficial_identity_outcomes": 2,
+    "maximum_new_permanent_swaps": 0,
+    "maximum_new_terminal_swaps": 0,
+    "maximum_control_episodes_with_unjustified_activation": 0,
+    "maximum_control_candidate_frame_fraction": 0.05,
+    "activation_driven_solely_by_missing_evidence_allowed": false,
+    "fp_fn_tolerance_must_be_predeclared_before_evaluation": true
+  },
+  "causality_gates": {
+    "execution_contract": "causal_framewise",
+    "output_delay_frames": 0,
+    "prefix_invariance_required": true,
+    "future_frame_access_allowed": false
+  },
+  "paired_evidence_gates": {
+    "identical_detector_cache_required": true,
+    "identical_frame_population_required": true,
+    "identical_detection_population_required": true,
+    "identical_appearance_inputs_required": true,
+    "detector_inference_during_replay_allowed": false,
+    "include_hidden_equal_between_arms": true
+  },
+  "artifact_gates": {
+    "fresh_immutable_run_roots": true,
+    "recursive_run_root_mp4_count": 0,
+    "deterministic_candidate_export_required": true,
+    "artifact_sha256_inventory_required": true,
+    "exact_repeat_required_after_first_pass": true
+  },
+  "outcome_taxonomy": [
+    "FAIL_NO_ELIGIBLE_PAIRS",
+    "FAIL_ELIGIBLE_NO_ACTIVATION",
+    "FAIL_ACTIVATION_NO_OUTPUT_DIVERGENCE",
+    "FAIL_DIVERGENCE_NO_BENEFICIAL_EFFECT",
+    "PASS_BENEFICIAL_EFFECT",
+    "FAIL_HARMFUL_EFFECT",
+    "INCONCLUSIVE_GT_AUTHORITY"
+  ],
+  "validation_policy": {
+    "separate_authorization_required": true,
+    "single_view_after_development_pass": true,
+    "window_boundaries_may_change": false,
+    "threshold_or_feature_change_after_view_allowed": false,
+    "known_roles_do_not_authorize_output_inspection": true
+  },
+  "runtime_evaluation_is_later_independent_gate": true,
+  "implementation_authorized": false,
+  "evaluation_authorized": false,
+  "runtime_evaluation_authorized": false,
+  "promotion_authorized": false
+}

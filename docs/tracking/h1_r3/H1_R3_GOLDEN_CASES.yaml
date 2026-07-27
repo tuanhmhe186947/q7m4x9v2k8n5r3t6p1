@@ -1,0 +1,140 @@
+{
+  "schema_version": "tracking.h1_r3_golden_cases.v2",
+  "arithmetic_authority": "explicit raw states with independent feature recomputation",
+  "support_margin": 0.25,
+  "score_lower_bound_threshold": 0.625,
+  "relative_overlap_minimum": 0.1,
+  "cases": [
+    {
+      "case_id": "strong_hidden_geometry_weak_visible",
+      "detection": {"box": [0, 0, 100, 100], "hist": [1, 0]},
+      "hidden": {"reference_box": [10, 0, 110, 100], "age": 1, "hist": [0.9, 0.1], "descriptor_age": 0, "predicted_box": [10, 0, 110, 100], "prediction_base_quality": 1.0, "prediction_age": 0},
+      "visible": {"reference_box": [50, 0, 150, 100], "age": 0, "hist": [0.5, 0.5], "descriptor_age": 0, "predicted_box": [50, 0, 150, 100], "prediction_base_quality": 1.0, "prediction_age": 0},
+      "expected_decision": "ACTIVATE_HIDDEN_OWNER",
+      "realistic_nonperfect": true
+    },
+    {
+      "case_id": "weak_hidden_geometry_strong_visible",
+      "detection": {"box": [0, 0, 100, 100], "hist": [1, 0]},
+      "hidden": {"reference_box": [50, 0, 150, 100], "age": 0, "hist": [0.5, 0.5], "descriptor_age": 0, "predicted_box": [50, 0, 150, 100], "prediction_base_quality": 1.0, "prediction_age": 0},
+      "visible": {"reference_box": [10, 0, 110, 100], "age": 1, "hist": [0.9, 0.1], "descriptor_age": 0, "predicted_box": [10, 0, 110, 100], "prediction_base_quality": 1.0, "prediction_age": 0},
+      "expected_decision": "RETAIN_VISIBLE_COMPETITOR",
+      "realistic_nonperfect": true
+    },
+    {
+      "case_id": "identical_evidence",
+      "detection": {"box": [0, 0, 100, 100], "hist": [1, 0]},
+      "hidden": {"reference_box": [20, 0, 120, 100], "age": 1, "hist": [0.8, 0.2], "descriptor_age": 1, "predicted_box": [20, 0, 120, 100], "prediction_base_quality": 0.8, "prediction_age": 1},
+      "visible": {"reference_box": [20, 0, 120, 100], "age": 1, "hist": [0.8, 0.2], "descriptor_age": 1, "predicted_box": [20, 0, 120, 100], "prediction_base_quality": 0.8, "prediction_age": 1},
+      "expected_decision": "ABSTAIN_AMBIGUOUS",
+      "realistic_nonperfect": true
+    },
+    {
+      "case_id": "overlap_available_appearance_missing_both",
+      "detection": {"box": [0, 0, 100, 100], "hist": [1, 0]},
+      "hidden": {"reference_box": [5, 0, 105, 100], "age": 0, "hist": null, "descriptor_age": null, "predicted_box": null, "prediction_base_quality": null, "prediction_age": null},
+      "visible": {"reference_box": [120, 0, 220, 100], "age": 0, "hist": null, "descriptor_age": null, "predicted_box": null, "prediction_base_quality": null, "prediction_age": null},
+      "expected_decision": "ACTIVATE_HIDDEN_OWNER",
+      "realistic_nonperfect": true
+    },
+    {
+      "case_id": "appearance_missing_hidden_only",
+      "detection": {"box": [0, 0, 100, 100], "hist": [1, 0]},
+      "hidden": {"reference_box": [25, 0, 125, 100], "age": 0, "hist": null, "descriptor_age": null, "predicted_box": [25, 0, 125, 100], "prediction_base_quality": 0.8, "prediction_age": 0},
+      "visible": {"reference_box": [55, 0, 155, 100], "age": 0, "hist": [1, 0], "descriptor_age": 0, "predicted_box": [55, 0, 155, 100], "prediction_base_quality": 0.8, "prediction_age": 0},
+      "expected_decision": "ABSTAIN_AMBIGUOUS",
+      "realistic_nonperfect": true
+    },
+    {
+      "case_id": "appearance_missing_visible_only",
+      "detection": {"box": [0, 0, 100, 100], "hist": [1, 0]},
+      "hidden": {"reference_box": [25, 0, 125, 100], "age": 0, "hist": [1, 0], "descriptor_age": 0, "predicted_box": [25, 0, 125, 100], "prediction_base_quality": 0.8, "prediction_age": 0},
+      "visible": {"reference_box": [55, 0, 155, 100], "age": 0, "hist": null, "descriptor_age": null, "predicted_box": [55, 0, 155, 100], "prediction_base_quality": 0.8, "prediction_age": 0},
+      "expected_decision": "ABSTAIN_AMBIGUOUS",
+      "realistic_nonperfect": true
+    },
+    {
+      "case_id": "recent_hidden_with_causal_motion",
+      "detection": {"box": [0, 0, 100, 100], "hist": [1, 0]},
+      "hidden": {"reference_box": [25, 0, 125, 100], "age": 0, "hist": [0.8, 0.2], "descriptor_age": 0, "predicted_box": [5, 0, 105, 100], "prediction_base_quality": 1.0, "prediction_age": 0},
+      "visible": {"reference_box": [55, 0, 155, 100], "age": 2, "hist": [0.8, 0.2], "descriptor_age": 0, "predicted_box": [80, 0, 180, 100], "prediction_base_quality": 1.0, "prediction_age": 0},
+      "expected_decision": "ACTIVATE_HIDDEN_OWNER",
+      "realistic_nonperfect": true
+    },
+    {
+      "case_id": "long_hidden_stale_evidence",
+      "detection": {"box": [0, 0, 100, 100], "hist": [1, 0]},
+      "hidden": {"reference_box": [15, 0, 115, 100], "age": 8, "hist": [0.8, 0.2], "descriptor_age": 8, "predicted_box": [15, 0, 115, 100], "prediction_base_quality": 0.5, "prediction_age": 4},
+      "visible": {"reference_box": [45, 0, 145, 100], "age": 0, "hist": [0.7, 0.3], "descriptor_age": 0, "predicted_box": [45, 0, 145, 100], "prediction_base_quality": 1.0, "prediction_age": 0},
+      "expected_decision": "ABSTAIN_AMBIGUOUS",
+      "realistic_nonperfect": true
+    },
+    {
+      "case_id": "bbox_scale_invariance_small_and_large",
+      "detection": {"box": [0, 0, 100, 100], "hist": [1, 0]},
+      "hidden": {"reference_box": [9, 0, 109, 100], "age": 0, "hist": null, "descriptor_age": null, "predicted_box": null, "prediction_base_quality": null, "prediction_age": null},
+      "visible": {"reference_box": [120, 0, 220, 100], "age": 0, "hist": null, "descriptor_age": null, "predicted_box": null, "prediction_base_quality": null, "prediction_age": null},
+      "uniform_scale_variants": [0.5, 4.0],
+      "expected_decision": "ACTIVATE_HIDDEN_OWNER",
+      "realistic_nonperfect": true
+    },
+    {
+      "case_id": "skipped_frame_valid_lk",
+      "detection": {"box": [0, 0, 100, 100], "hist": [1, 0]},
+      "hidden": {"reference_box": [20, 0, 120, 100], "reference_source": "causal_lk", "lk_attempted": 8, "lk_valid": 7, "lk_fb_error": 0.8, "age": 0, "hist": [0.8, 0.2], "descriptor_age": 0, "predicted_box": [5, 0, 105, 100], "prediction_base_quality": 0.875, "prediction_age": 1},
+      "visible": {"reference_box": [65, 0, 165, 100], "reference_source": "causal_lk", "lk_attempted": 8, "lk_valid": 6, "lk_fb_error": 1.0, "age": 2, "hist": [0.8, 0.2], "descriptor_age": 0, "predicted_box": [80, 0, 180, 100], "prediction_base_quality": 0.75, "prediction_age": 1},
+      "skipped_detector_frame": true,
+      "expected_decision": "ACTIVATE_HIDDEN_OWNER",
+      "realistic_nonperfect": true
+    },
+    {
+      "case_id": "skipped_frame_invalid_lk",
+      "detection": {"box": [0, 0, 100, 100], "hist": [1, 0]},
+      "hidden": {"reference_box": [15, 0, 115, 100], "reference_source": "last_confirmed", "lk_attempted": 8, "lk_valid": 2, "lk_fb_error": 2.0, "age": 1, "hist": [0.8, 0.2], "descriptor_age": 0, "predicted_box": null, "prediction_base_quality": null, "prediction_age": null},
+      "visible": {"reference_box": [50, 0, 150, 100], "reference_source": "last_confirmed", "lk_attempted": 8, "lk_valid": 2, "lk_fb_error": 2.0, "age": 1, "hist": [0.8, 0.2], "descriptor_age": 0, "predicted_box": null, "prediction_base_quality": null, "prediction_age": null},
+      "skipped_detector_frame": true,
+      "expected_decision": "ABSTAIN_AMBIGUOUS",
+      "realistic_nonperfect": true
+    },
+    {
+      "case_id": "partial_overlap_below_former_floor",
+      "detection": {"box": [0, 0, 100, 100], "hist": [1, 0]},
+      "hidden": {"reference_box": [40, 0, 140, 100], "age": 0, "hist": [0.95, 0.05], "descriptor_age": 0, "predicted_box": [20, 0, 120, 100], "prediction_base_quality": 1.0, "prediction_age": 0},
+      "visible": {"reference_box": [80, 0, 180, 100], "age": 4, "hist": [0.5, 0.5], "descriptor_age": 0, "predicted_box": [70, 0, 170, 100], "prediction_base_quality": 1.0, "prediction_age": 0},
+      "expected_decision": "ACTIVATE_HIDDEN_OWNER",
+      "realistic_nonperfect": true
+    },
+    {
+      "case_id": "high_overlap_conflicting_visible_appearance",
+      "detection": {"box": [0, 0, 100, 100], "hist": [1, 0]},
+      "hidden": {"reference_box": [12, 0, 112, 100], "age": 1, "hist": [0, 1], "descriptor_age": 0, "predicted_box": [150, 0, 250, 100], "prediction_base_quality": 1.0, "prediction_age": 0},
+      "visible": {"reference_box": [5, 0, 105, 100], "age": 0, "hist": [1, 0], "descriptor_age": 0, "predicted_box": [0, 0, 100, 100], "prediction_base_quality": 1.0, "prediction_age": 0},
+      "expected_decision": "RETAIN_VISIBLE_COMPETITOR",
+      "realistic_nonperfect": true
+    },
+    {
+      "case_id": "insufficient_core_evidence",
+      "detection": {"box": [0, 0, 100, 100], "hist": [1, 0]},
+      "hidden": {"reference_box": [5, 0, 105, 100], "age": 0, "hist": [1, 0], "descriptor_age": 0, "predicted_box": [5, 0, 105, 100], "prediction_base_quality": 1.0, "prediction_age": 0},
+      "visible": {"reference_box": null, "age": 0, "hist": null, "descriptor_age": null, "predicted_box": null, "prediction_base_quality": null, "prediction_age": null},
+      "expected_decision": "ABSTAIN_INELIGIBLE",
+      "realistic_nonperfect": true
+    },
+    {
+      "case_id": "threshold_just_below_boundary",
+      "detection": {"box": [0, 0, 100, 100], "hist": [1, 0]},
+      "hidden": {"reference_box": [9.2, 0, 109.2, 100], "age": 0, "hist": null, "descriptor_age": null, "predicted_box": null, "prediction_base_quality": null, "prediction_age": null},
+      "visible": {"reference_box": [120, 0, 220, 100], "age": 0, "hist": null, "descriptor_age": null, "predicted_box": null, "prediction_base_quality": null, "prediction_age": null},
+      "expected_decision": "ABSTAIN_AMBIGUOUS",
+      "realistic_nonperfect": true
+    },
+    {
+      "case_id": "margin_and_threshold_boundary",
+      "detection": {"box": [0, 0, 100, 100], "hist": [1, 0]},
+      "hidden": {"reference_box": [9.090909090909092, 0, 109.0909090909091, 100], "age": 0, "hist": null, "descriptor_age": null, "predicted_box": null, "prediction_base_quality": null, "prediction_age": null},
+      "visible": {"reference_box": [120, 0, 220, 100], "age": 0, "hist": null, "descriptor_age": null, "predicted_box": null, "prediction_base_quality": null, "prediction_age": null},
+      "expected_decision": "ACTIVATE_HIDDEN_OWNER",
+      "realistic_nonperfect": true
+    }
+  ]
+}

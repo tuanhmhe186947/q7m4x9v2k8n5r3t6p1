@@ -1,0 +1,110 @@
+{
+  "schema_version": "tracking.h1_r3_eligibility_contract.v2",
+  "experiment": "H1-r3",
+  "primary_design": "symmetric_iou_recency_core_with_conservative_optional_bounds",
+  "eligibility_scope": "hidden-visible-detection pair",
+  "alternatives": [
+    {
+      "name": "no_hard_overlap_floor",
+      "decision": "INCORPORATED",
+      "rationale": "IoU remains soft relative evidence and cannot independently exclude the hidden candidate."
+    },
+    {
+      "name": "symmetric_evidence_group_eligibility",
+      "decision": "SELECTED_PRIMARY",
+      "rationale": "Both candidates require identical box validity and recency; optional evidence is not mandatory."
+    },
+    {
+      "name": "relative_overlap_evidence",
+      "decision": "INCORPORATED",
+      "rationale": "The scored geometry term is hidden IoU minus visible IoU."
+    },
+    {
+      "name": "quality_weighted_availability",
+      "decision": "INCORPORATED_WITH_CONSERVATIVE_BOUNDS",
+      "rationale": "Observed optional evidence is quality weighted; missing evidence uses a worst-case interval."
+    }
+  ],
+  "pair_eligibility": {
+    "requires_selected_visible_competitor": true,
+    "shared_detection_confidence_minimum": 0.25,
+    "candidate_rules_identical": true,
+    "candidate_rules": [
+      "same reference-box provenance cascade",
+      "same finite positive-area box validity",
+      "same track freshness formula",
+      "same detection-opportunity age range [0,8]",
+      "same optional descriptor validity",
+      "same optional motion validity"
+    ],
+    "reference_box_provenance_order": [
+      "causal LK-propagated box when common LK validity passes",
+      "finite causal predicted box",
+      "last confirmed finite box"
+    ],
+    "lk_validity_rule": {
+      "same_for_hidden_and_visible": true,
+      "current_and_past_frames_only": true,
+      "minimum_attempted_points": 4,
+      "minimum_valid_points": 3,
+      "maximum_forward_backward_error_pixels": 1.5,
+      "quality": "valid_points/attempted_points clipped to [0,1]"
+    },
+    "core_required": [
+      "overlap_similarity",
+      "track_freshness"
+    ],
+    "optional_with_missingness_mask": [
+      "appearance_similarity",
+      "motion_consistency",
+      "appearance_available",
+      "motion_available"
+    ],
+    "diagnostic_only": [
+      "normalized_center_similarity",
+      "scale_similarity"
+    ],
+    "rejected": [
+      "hidden-only absolute overlap floor",
+      "all-eight-features-required policy",
+      "center and scale as additional correlated score terms",
+      "zero-on-missing optional contribution"
+    ],
+    "hidden_only_overlap_floor": null,
+    "all_features_required": false,
+    "optional_evidence_required_for_eligibility": false,
+    "one_side_stricter_than_other": false
+  },
+  "optional_evidence": {
+    "appearance": {
+      "observed_contribution": "0.15*min(q_h,q_v)*(similarity_h-similarity_v)",
+      "missing_contribution_interval": [-0.15, 0.15],
+      "missing_hidden_only": "use full uncertainty interval",
+      "missing_visible_only": "use full uncertainty interval",
+      "missing_both": "use full uncertainty interval",
+      "activation_uses": "lower_bound",
+      "masking_cannot_increase_lower_bound": true
+    },
+    "motion": {
+      "observed_contribution": "0.10*min(q_h,q_v)*(consistency_h-consistency_v)",
+      "missing_contribution_interval": [-0.1, 0.1],
+      "missing_hidden_only": "use full uncertainty interval",
+      "missing_visible_only": "use full uncertainty interval",
+      "missing_both": "use full uncertainty interval",
+      "activation_uses": "lower_bound",
+      "masking_cannot_increase_lower_bound": true
+    }
+  },
+  "causality": {
+    "current_or_past_frames_only": true,
+    "future_frames_allowed": false,
+    "reference_box_selection_same_for_both_sides": true,
+    "skipped_frame_lk_must_pass_common_validity": true
+  },
+  "frozen_authority": {
+    "implementation_authorized": false,
+    "evaluation_authorized": false,
+    "runtime_evaluation_authorized": false,
+    "promotion_authorized": false
+  }
+}

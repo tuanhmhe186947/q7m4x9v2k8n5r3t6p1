@@ -1,0 +1,71 @@
+{
+  "schema_version": "tracking.h1_r3_design_decision.v1",
+  "experiment": "H1-r3",
+  "date": "2026-07-27",
+  "source_main_sha": "10c10cd01782cba54af1996b16b7ac5916f40bbf",
+  "decision": "FREEZE_DESIGN_REVIEW_PASSED",
+  "prior_authority": {
+    "H1_R1_STATUS": "REJECTED_CONFIGURATION",
+    "H1_R2_STATUS": "FAIL_NO_ACTIVATION",
+    "H1_R2_FEATURE_PLUMBING_DEFECT": "NO",
+    "H1_R2_MISSINGNESS_CONTRACT_TOO_RESTRICTIVE": "YES",
+    "H1_R2_SCORE_OPERATING_RANGE_FEASIBLE": "NO",
+    "H1_R2_QUALITY_EFFECT": "NO_EFFECT_AT_FROZEN_GATE",
+    "H1_R2_SAFETY_UNDER_REAL_ACTIVATION": "NOT_MEASURED"
+  },
+  "primary_design": {
+    "eligibility": "symmetric_iou_recency_core_with_conservative_optional_bounds",
+    "score_name": "owner_preference_lower_bound",
+    "relative_quantity": "relative_owner_support_interval",
+    "calibrated": false,
+    "is_probability": false,
+    "hidden_only_overlap_gate_present": false,
+    "threshold": 0.625,
+    "relative_support_margin": 0.25,
+    "minimum_relative_overlap_advantage": 0.1
+  },
+  "scientific_findings": {
+    "eligibility_symmetric": true,
+    "feature_semantics_symmetric": true,
+    "masking_can_increase_hidden_lower_bound": false,
+    "correlated_geometry_double_counted": false,
+    "golden_features_recomputed_from_raw_state": true,
+    "activation_region_nonempty": true,
+    "visible_support_region_nonempty": true,
+    "ambiguous_abstention_region_nonempty": true,
+    "only_perfect_inputs_can_activate": false,
+    "validation_results_used": false,
+    "h1_r3_outputs_observed": false
+  },
+  "validation_blindness": {
+    "roles_known": true,
+    "role_knowledge_source": "pre-H1-r2 blinded assignment package",
+    "h1_r3_outcome_leakage": false,
+    "validation_executed": false,
+    "validation_outputs_exist": false,
+    "boundaries_unchanged": true,
+    "h1_r2_validation_manifest_sha256": "531f20a692d593c9ea4be0534e334af4262e8c013e43d828f0f0f894ad4761b6",
+    "h1_r2_role_assignment_sha256": "ae867355ff5ee04693451a52121e31606364d96def69dc7c0a03a585dfac3f0f",
+    "h1_r3_validation_manifest_sha256": "531f20a692d593c9ea4be0534e334af4262e8c013e43d828f0f0f894ad4761b6"
+  },
+  "artifact_bindings": {
+    "H1_R3_SCIENTIFIC_DESIGN_CONTRACT.md": "45ea575a2f7c2fbc9fa9bfa65da62e38b2c410888e5c6e080bcbb8665c00d180",
+    "H1_R3_FEATURE_SEMANTICS_REGISTRY.csv": "3031eba3f799b3359981396a7f5b95b7e401f34326e993124ade014519ab71d6",
+    "H1_R3_ELIGIBILITY_CONTRACT.json": "2f81c555c0ab9d2ad2aab7c624e12c003c754d2b8fb1f9b6be2a0d305276e19c",
+    "H1_R3_SCORE_FEASIBILITY_ANALYSIS.md": "441e89e1bd26f71a163f42e8045c08a87e613f0fffdf226948fb3183539a512a",
+    "H1_R3_GOLDEN_CASES.yaml": "e6afcdebd676f0bc943876ac101a72b8c03db37a4207825442339b278445946e",
+    "H1_R3_ACTIVATION_GATE_DECISION.json": "8d492657daf7e14ec1dea3bffc697dec006dbc98753f16d5ac522038a7b2eca2",
+    "H1_R3_DEVELOPMENT_MANIFEST.csv": "57d4aa2b72f8c55021796f6b8d6142a0bf13e3fd3f28ff8fc80dc285e9520c04",
+    "H1_R3_VALIDATION_MANIFEST.csv": "531f20a692d593c9ea4be0534e334af4262e8c013e43d828f0f0f894ad4761b6",
+    "H1_R3_EVALUATION_GATE.json": "545024c8a7b7c92fc5b4ce9b70424b20ff019a5e0a837f03180df7fd32a4abf2"
+  },
+  "independent_review_required": true,
+  "independent_review_result": "PASS_DESIGN",
+  "authorizations": {
+    "implementation_authorized": false,
+    "evaluation_authorized": false,
+    "runtime_evaluation_authorized": false,
+    "merge_authorized": false,
+    "promotion_authorized": false
+  }
+}
