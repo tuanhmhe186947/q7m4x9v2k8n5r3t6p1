@@ -231,6 +231,7 @@ def apply_decisions_to_frames(
     frames: pd.DataFrame,
     review_units: pd.DataFrame,
     decisions: pd.DataFrame,
+    auto_carry_units: pd.DataFrame | None = None,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
     _validate_columns(
         frames,
@@ -242,6 +243,21 @@ def apply_decisions_to_frames(
         raise ValueError(
             "invalid review_unit_manifest_csv: "
             + "; ".join(unit_contract["errors"])
+        )
+    auto_carry = (
+        auto_carry_units.copy()
+        if auto_carry_units is not None
+        else pd.DataFrame(columns=["review_unit_id", "temporal_unit_key"])
+    )
+    partition_audit = _audit_selective_review_partition(
+        frames,
+        review_units,
+        auto_carry,
+    )
+    if partition_audit["errors"]:
+        raise ValueError(
+            "invalid selective review partition: "
+            + "; ".join(partition_audit["errors"])
         )
 
     if not decisions.empty:
@@ -280,6 +296,39 @@ def apply_decisions_to_frames(
     out["behavior_review_label_resolved"] = False
     out["behavior_review_include_in_training"] = False
     out["behavior_review_sample_weight"] = 0.0
+    out["behavior_review_auto_carried"] = False
+    out["behavior_review_resolution_source"] = "PENDING_HUMAN_CANDIDATE"
+
+    if not auto_carry.empty:
+        auto_keys = set(auto_carry["temporal_unit_key"].astype(str))
+        auto_mask = out["temporal_unit_key"].astype(str).isin(auto_keys)
+        inherited_include = (
+            out["include_in_training"].astype(bool)
+            if "include_in_training" in out.columns
+            else pd.Series(True, index=out.index)
+        )
+        inherited_weight = (
+            pd.to_numeric(out["sample_weight"], errors="coerce").fillna(1.0)
+            if "sample_weight" in out.columns
+            else pd.Series(1.0, index=out.index)
+        )
+        out.loc[auto_mask, "review_include_in_training"] = (
+            inherited_include.loc[auto_mask]
+        )
+        out.loc[auto_mask, "review_sample_weight"] = (
+            inherited_weight.loc[auto_mask]
+        )
+        out.loc[auto_mask, "behavior_review_label_resolved"] = True
+        out.loc[auto_mask, "behavior_review_include_in_training"] = (
+            inherited_include.loc[auto_mask]
+        )
+        out.loc[auto_mask, "behavior_review_sample_weight"] = (
+            inherited_weight.loc[auto_mask]
+        )
+        out.loc[auto_mask, "behavior_review_auto_carried"] = True
+        out.loc[auto_mask, "behavior_review_resolution_source"] = (
+            "AUTO_CARRY_PROVISIONAL"
+        )
 
     if decisions.empty:
         return out, {
@@ -299,6 +348,7 @@ def apply_decisions_to_frames(
             "unmatched_decisions": [],
             "decision_counts": {},
             "training_action_counts": {},
+            "selective_review_partition": partition_audit,
         }
 
     active = decisions[~decisions["manual_review_decision"].eq("pending")].copy()
@@ -326,6 +376,7 @@ def apply_decisions_to_frames(
             "unmatched_decisions": [],
             "decision_counts": {},
             "training_action_counts": {},
+            "selective_review_partition": partition_audit,
         }
 
     unit_map = review_units[
@@ -419,6 +470,8 @@ def apply_decisions_to_frames(
         out.loc[mask, "behavior_review_sample_weight"] = (
             float(weight) if include and resolved and pd.notna(weight) else 0.0
         )
+        out.loc[mask, "behavior_review_auto_carried"] = False
+        out.loc[mask, "behavior_review_resolution_source"] = "HUMAN_DECISION"
 
         if decision == "corrected":
             out.loc[mask, "behavior_after_review"] = corrected
@@ -460,8 +513,75 @@ def apply_decisions_to_frames(
         "review_decision_applied_counts": out["review_decision_applied"]
         .value_counts(dropna=False)
         .to_dict(),
+        "selective_review_partition": partition_audit,
+        "auto_carry_frame_rows": int(
+            out["behavior_review_auto_carried"].astype(bool).sum()
+        ),
     }
     return out, audit
+
+
+def _audit_selective_review_partition(
+    frames: pd.DataFrame,
+    candidates: pd.DataFrame,
+    auto_carry: pd.DataFrame,
+) -> dict[str, Any]:
+    required = {"review_unit_id", "temporal_unit_key"}
+    missing_candidate = sorted(required.difference(candidates.columns))
+    missing_auto = sorted(required.difference(auto_carry.columns))
+    errors = []
+    if missing_candidate:
+        errors.append(f"candidate_missing_columns={missing_candidate}")
+    if missing_auto:
+        errors.append(f"auto_carry_missing_columns={missing_auto}")
+    if errors:
+        return {"errors": errors, "valid": False}
+    candidate_keys = set(candidates["temporal_unit_key"].astype(str))
+    auto_keys = set(auto_carry["temporal_unit_key"].astype(str))
+    universe_keys = set(frames["temporal_unit_key"].astype(str))
+    overlap = candidate_keys.intersection(auto_keys)
+    missing = universe_keys.difference(candidate_keys | auto_keys)
+    extra = (candidate_keys | auto_keys).difference(universe_keys)
+    candidate_duplicates = int(
+        candidates["review_unit_id"].astype(str).duplicated().sum()
+    )
+    auto_duplicates = int(
+        auto_carry["review_unit_id"].astype(str).duplicated().sum()
+    )
+    if overlap:
+        errors.append(f"candidate_auto_carry_overlap={len(overlap)}")
+    if missing:
+        errors.append(f"missing_universe_keys={len(missing)}")
+    if extra:
+        errors.append(f"extra_partition_keys={len(extra)}")
+    if candidate_duplicates:
+        errors.append(
+            f"duplicate_candidate_review_keys={candidate_duplicates}"
+        )
+    if auto_duplicates:
+        errors.append(f"duplicate_auto_carry_review_keys={auto_duplicates}")
+    if "human_decision_synthesized" in auto_carry.columns:
+        fabricated = (
+            auto_carry["human_decision_synthesized"]
+            .fillna(False)
+            .astype(str)
+            .str.lower()
+            .isin({"true", "1", "yes", "y"})
+        )
+        if fabricated.any():
+            errors.append(
+                f"auto_carry_synthetic_human_decisions={int(fabricated.sum())}"
+            )
+    return {
+        "candidate_units": int(len(candidates)),
+        "auto_carry_units": int(len(auto_carry)),
+        "universe_units": int(len(universe_keys)),
+        "candidate_auto_carry_overlap": int(len(overlap)),
+        "missing_universe_keys": int(len(missing)),
+        "extra_partition_keys": int(len(extra)),
+        "errors": errors,
+        "valid": not errors,
+    }
 
 
 def main() -> None:
@@ -477,7 +597,14 @@ def main() -> None:
         "--review-unit-manifest-csv",
         default=(
             r"outputs\classification_v2\review_units"
-            r"\full_review_unit_manifest.csv"
+            r"\behavior_review_candidate_manifest.csv"
+        ),
+    )
+    parser.add_argument(
+        "--auto-carry-manifest-csv",
+        default=(
+            r"outputs\classification_v2\review_units"
+            r"\behavior_review_auto_carry_manifest.csv"
         ),
     )
     parser.add_argument(
@@ -505,6 +632,7 @@ def main() -> None:
 
     frame_path = Path(args.frame_features_csv)
     unit_path = Path(args.review_unit_manifest_csv)
+    auto_carry_path = Path(args.auto_carry_manifest_csv)
     output_path = Path(args.output_csv)
     audit_path = Path(args.audit_json)
     combined_path = Path(args.combined_decisions_csv)
@@ -512,6 +640,7 @@ def main() -> None:
 
     frames = pd.read_csv(frame_path, low_memory=False)
     review_units = pd.read_csv(unit_path, low_memory=False)
+    auto_carry_units = pd.read_csv(auto_carry_path, low_memory=False)
 
     decisions, load_audit = load_decisions(decision_paths, review_units)
     decisions, norm_errors, norm_warnings = normalize_decisions(decisions)
@@ -540,6 +669,7 @@ def main() -> None:
                 frames,
                 review_units,
                 decisions,
+                auto_carry_units,
             )
         except ValueError as exc:
             apply_errors.append(str(exc))
@@ -566,6 +696,7 @@ def main() -> None:
         "inputs": {
             "frame_features_csv": str(frame_path),
             "review_unit_manifest_csv": str(unit_path),
+            "auto_carry_manifest_csv": str(auto_carry_path),
             "decisions_csv": [str(p) for p in decision_paths],
         },
         "outputs": {

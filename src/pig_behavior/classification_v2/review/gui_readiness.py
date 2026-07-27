@@ -188,12 +188,12 @@ def _audit_pair_alignment(
     joined = units.merge(
         pairs,
         on="temporal_unit_key",
-        how="outer",
+        how="left",
         suffixes=("_review", "_pig"),
         indicator=True,
         validate="one_to_one",
     )
-    missing = int(joined["_merge"].ne("both").sum())
+    missing = int(joined["_merge"].eq("left_only").sum())
     if missing:
         errors.append(f"pig_review_unit_alignment_mismatch={missing}")
         return errors

@@ -151,7 +151,9 @@
     {"artifact_id": "artifact.harmonized_frames", "name": "harmonized_frames.csv"},
     {"artifact_id": "artifact.native_evidence", "name": "native review evidence"},
     {"artifact_id": "artifact.pig_strenet", "name": "Pig-STRENet evidence"},
-    {"artifact_id": "artifact.behavior_review_units", "name": "behavior review-unit manifest"},
+    {"artifact_id": "artifact.behavior_review_units", "name": "behavior review candidate manifest"},
+    {"artifact_id": "artifact.behavior_review_universe", "name": "behavior review universe"},
+    {"artifact_id": "artifact.behavior_review_auto_carry", "name": "behavior review auto-carry manifest"},
     {"artifact_id": "artifact.behavior_decisions", "name": "behavior decisions"},
     {"artifact_id": "artifact.reviewed_frames", "name": "reviewed_frame_features.csv"},
     {"artifact_id": "artifact.train_ready", "name": "train-ready windows"},
@@ -330,7 +332,10 @@
       "checker": "apply_hidden_review_decisions",
       "tests": ["tests/test_classification_v2_hidden_apply_contract.py"],
       "audit_artifact": "hidden_apply_audit.json",
-      "code_locations": ["src/pig_behavior/classification_v2/review/hidden_review_builder.py#apply_hidden_review_decisions", "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"],
+      "code_locations": [
+        "src/pig_behavior/classification_v2/review/hidden_review_builder.py#apply_hidden_review_decisions",
+        "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"
+      ],
       "current_status": "IMPLEMENTED_AND_TESTED"
     },
     {
@@ -476,20 +481,70 @@
     {
       "stage_id": "stage.behavior_review_unit_construction",
       "stage_name": "Behavior review-unit construction",
-      "purpose": "Build native-only review units from temporal intervals.",
+      "purpose": "Partition native intervals into review candidates and unchanged auto-carry units.",
       "input_artifacts": ["artifact.temporal_intervals", "artifact.pig_strenet"],
-      "output_artifacts": ["artifact.behavior_review_units"],
+      "output_artifacts": [
+        "artifact.behavior_review_units",
+        "artifact.behavior_review_universe",
+        "artifact.behavior_review_auto_carry"
+      ],
       "input_grain": "NATIVE_INTERVAL",
       "output_grain": "BEHAVIOR_REVIEW_UNIT",
       "grouping_keys": ["temporal_unit_key"],
       "canonical_identity_keys": ["review_unit_id", "temporal_unit_key"],
-      "schema_version": "classification_v2.behavior_review_unit.v2",
+      "schema_version": "classification_v2.behavior_review_candidate.v1",
+      "output_schema_registry": {
+        "artifact.behavior_review_units": {
+          "schema_id": "artifact.behavior_review_units",
+          "schema_version": "classification_v2.behavior_review_candidate.v1",
+          "required_columns": [
+            "review_unit_id",
+            "temporal_unit_key",
+            "candidate_tier",
+            "review_reason_codes",
+            "risk_score",
+            "selection_predicate_version",
+            "selection_config_hash"
+          ],
+          "key_columns": ["review_unit_id", "temporal_unit_key"],
+          "row_identity": "one_selected_native_interval"
+        },
+        "artifact.behavior_review_universe": {
+          "schema_id": "artifact.behavior_review_universe",
+          "schema_version": "classification_v2.behavior_review_universe.v1",
+          "required_columns": [
+            "review_unit_id",
+            "temporal_unit_key",
+            "include_in_review",
+            "candidate_tier"
+          ],
+          "key_columns": ["review_unit_id", "temporal_unit_key"],
+          "row_identity": "one_native_interval"
+        },
+        "artifact.behavior_review_auto_carry": {
+          "schema_id": "artifact.behavior_review_auto_carry",
+          "schema_version": "classification_v2.behavior_review_auto_carry.v1",
+          "required_columns": [
+            "review_unit_id",
+            "temporal_unit_key",
+            "auto_carry_behavior",
+            "auto_carry_provenance",
+            "human_decision_synthesized"
+          ],
+          "key_columns": ["review_unit_id", "temporal_unit_key"],
+          "row_identity": "one_unselected_low_risk_native_interval"
+        }
+      },
       "model_eligibility": "REVIEW_FIELDS_FORBIDDEN",
       "review_eligibility": "BEHAVIOR_GUI_INPUT",
       "checker": "build_review_units",
       "tests": ["tests/test_classification_v2_behavior_review_semantics.py"],
       "audit_artifact": "review_unit_audit.json",
-      "code_locations": ["src/pig_behavior/classification_v2/review/review_unit_builder.py#build_review_units", "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"],
+      "code_locations": [
+        "src/pig_behavior/classification_v2/review/review_unit_builder.py#build_review_units",
+        "src/pig_behavior/classification_v2/review/behavior_review_selection.py#assign_behavior_review_cohorts",
+        "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"
+      ],
       "current_status": "IMPLEMENTED_AND_TESTED"
     },
     {
@@ -514,7 +569,11 @@
       "stage_id": "stage.behavior_decision_apply",
       "stage_name": "Behavior decision apply",
       "purpose": "Apply complete native-unit decisions and preserve all rows.",
-      "input_artifacts": ["artifact.harmonized_frames", "artifact.behavior_decisions"],
+      "input_artifacts": [
+        "artifact.harmonized_frames",
+        "artifact.behavior_decisions",
+        "artifact.behavior_review_auto_carry"
+      ],
       "output_artifacts": ["artifact.reviewed_frames"],
       "input_grain": "FRAME_OBJECT",
       "output_grain": "REVIEWED_FRAME_LOCAL",
@@ -524,9 +583,15 @@
       "model_eligibility": "REVIEW_FIELDS_FORBIDDEN",
       "review_eligibility": "FINAL_REVIEW_AUTHORITY",
       "checker": "check_apply_review_unit_decisions_output",
-      "tests": ["tests/test_classification_v2_behavior_review_semantics.py"],
+      "tests": [
+        "tests/test_classification_v2_behavior_review_semantics.py",
+        "tests/test_classification_v2_review_rebuild_safety.py"
+      ],
       "audit_artifact": "behavior_apply_audit.json",
-      "code_locations": ["scripts/classification_v2/01_review_units_gui/classification_v2_apply_review_unit_decisions.py#main", "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"],
+      "code_locations": [
+        "scripts/classification_v2/01_review_units_gui/classification_v2_apply_review_unit_decisions.py#apply_decisions_to_frames",
+        "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"
+      ],
       "current_status": "IMPLEMENTED_AND_TESTED"
     },
     {

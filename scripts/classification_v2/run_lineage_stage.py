@@ -262,8 +262,6 @@ def _command(root: Path, config: dict[str, Any], stage_id: str) -> list[str]:
             "--native-only",
             "--output-dir",
             _stage_path(root, config, stage_id),
-            "--include-all-retained-legacy-units",
-            "--full-native-unit-behavior-review",
             "--pig-strenet-artifact-dir",
             _stage_path(root, config, "pig_strenet_evidence"),
         ]
@@ -279,6 +277,13 @@ def _command(root: Path, config: dict[str, Any], stage_id: str) -> list[str]:
                 config,
                 "behavior_review_units",
                 "artifact_relative",
+            ),
+            "--auto-carry-manifest-csv",
+            _stage_path(
+                root,
+                config,
+                stage_id,
+                "auto_carry_input_relative",
             ),
             "--decisions-csv",
             _stage_path(root, config, stage_id, "decisions_relative"),

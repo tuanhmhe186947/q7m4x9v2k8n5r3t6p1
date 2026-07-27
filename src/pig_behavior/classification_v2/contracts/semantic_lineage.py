@@ -167,6 +167,12 @@ ARTIFACT_PRODUCERS: dict[str, str | None] = {
     "artifact.behavior_review_units": (
         "stage.behavior_review_unit_construction"
     ),
+    "artifact.behavior_review_universe": (
+        "stage.behavior_review_unit_construction"
+    ),
+    "artifact.behavior_review_auto_carry": (
+        "stage.behavior_review_unit_construction"
+    ),
     "artifact.behavior_decisions": "stage.behavior_gui",
     "artifact.reviewed_frames": "stage.behavior_decision_apply",
     "artifact.train_ready": "stage.train_ready_export",
@@ -1126,18 +1132,34 @@ def _domain_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
         {
             "semantic_domain_id": "semantic.behavior_review_units",
             "semantic_domain_version": (
-                "classification_v2.behavior_review_units.v4"
+                "classification_v2.behavior_review_units.v5"
             ),
             "authority_files": [
                 "src/pig_behavior/classification_v2/review/review_unit_builder.py",
+                (
+                    "src/pig_behavior/classification_v2/review/"
+                    "behavior_review_selection.py"
+                ),
             ],
-            "authority_symbols": ["build_review_units"],
+            "authority_symbols": [
+                "build_review_units",
+                "assign_behavior_review_cohorts",
+            ],
             "canonical_payload": {
                 "stage_schema": stage_version(
                     "stage.behavior_review_unit_construction"
                 ),
                 "unit_key": "review_unit_id",
                 "native_unit_key": "temporal_unit_key",
+                "publication_partition": [
+                    "behavior_review_universe",
+                    "behavior_review_candidate_manifest",
+                    "behavior_review_auto_carry_manifest",
+                ],
+                "gui_input": "behavior_review_candidate_manifest",
+                "evidence_availability_selects_review": False,
+                "global_mandatory_selection_allowed": False,
+                "auto_carry_synthesizes_human_decision": False,
                 "review_fields_model_forbidden": True,
             },
             "directly_affected_stages": [
@@ -1151,7 +1173,7 @@ def _domain_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
         },
         {
             "semantic_domain_id": "semantic.behavior_decision_application",
-            "semantic_domain_version": "classification_v2.behavior_apply.v4",
+            "semantic_domain_version": "classification_v2.behavior_apply.v5",
             "authority_files": [
                 (
                     "scripts/classification_v2/01_review_units_gui/"
@@ -1166,6 +1188,10 @@ def _domain_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
                 "row_preserving": True,
                 "matching": "stable_review_unit_and_media_authority",
                 "positional_matching": False,
+                "candidate_units": "human_decision_overlay",
+                "auto_carry_units": (
+                    "provisional_behavior_unchanged_without_human_decision"
+                ),
                 "carry_forward_version": BEHAVIOR_CARRY_FORWARD_VERSION,
             },
             "directly_affected_stages": [

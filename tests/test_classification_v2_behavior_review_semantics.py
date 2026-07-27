@@ -147,12 +147,13 @@ def test_temporal_harmonization_feeds_native_only_builder_without_windows(
         ReviewUnitConfig(
             intervals_csv=intervals_csv,
             output_dir=tmp_path / "review_units",
-            include_all_retained_native_units=True,
         )
     )
     assert audit["rows"]["windows"] is None
     assert audit["rows"]["review_units"] == 2
-    manifest = pd.read_csv(audit["templates"]["full_review_unit_manifest"]["path"])
+    manifest = pd.read_csv(
+        audit["templates"]["behavior_review_candidate_manifest"]["path"]
+    )
     assert set(manifest["review_unit_type"]) == {"cvat_interval_6", "legacy_burst_16"}
     assert manifest["review_unit_id"].is_unique
     assert not manifest["behavior_review_cohort"].eq("behavior_not_selected").any()

@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import subprocess
-import sys
 from pathlib import Path
 
 import pandas as pd
@@ -10,6 +8,9 @@ import pandas.testing as pdt
 from pig_behavior.classification_v2.review.behavior_evidence import (
     REVIEW_EVIDENCE_COLUMNS,
     add_behavior_review_evidence,
+)
+from pig_behavior.classification_v2.review.behavior_review_selection import (
+    BehaviorReviewSelectionConfig,
 )
 from pig_behavior.classification_v2.review.review_unit_builder import (
     ReviewUnitConfig,
@@ -247,7 +248,7 @@ def test_review_unit_builder_routes_evidence_conflict_without_relabeling() -> No
     assert finalized.iloc[0]["apply_scope"] == "cvat_interval_6f"
 
 
-def test_complete_legacy_review_includes_stable_native_unit() -> None:
+def test_stable_supported_legacy_label_is_not_selected_by_label_alone() -> None:
     interval = _unit(
         "eat",
         roi_feeder_near_ratio_unit=1.0,
@@ -278,26 +279,23 @@ def test_complete_legacy_review_includes_stable_native_unit() -> None:
     units["review_reasons_window"] = ""
     units["review_priority_window_max"] = 0.0
 
-    selected = _finalize_unit_review_fields(units)
-    complete = _finalize_unit_review_fields(
+    selected = _finalize_unit_review_fields(
         units,
-        include_all_retained_legacy_units=True,
+        behavior_selection=BehaviorReviewSelectionConfig(
+            random_per_stratum=0
+        ),
     )
 
     assert not bool(selected.iloc[0]["include_in_review"])
-    assert bool(complete.iloc[0]["include_in_review"])
-    assert "full_legacy_native_unit_review" in complete.iloc[0]["review_reason"]
-    assert complete.iloc[0]["behavior_review_cohort"] == (
-        "behavior_mandatory_census"
-    )
-    assert complete.iloc[0]["review_template"] == "roi"
+    assert selected.iloc[0]["review_template"] == "roi"
+    assert selected.iloc[0]["candidate_tier"] == "AUTO_CARRY_LOW_RISK"
 
 
-def test_complete_legacy_review_audit_matches_full_manifest(
+def test_builder_publishes_candidate_universe_and_auto_carry_partition(
     tmp_path: Path,
 ) -> None:
     interval = _unit(
-        "eat",
+        "playwithtoy",
         roi_feeder_near_ratio_unit=1.0,
         roi_feeder_contact_ratio_unit=1.0,
         roi_feeder_contact_longest_run_ratio_unit=1.0,
@@ -330,7 +328,7 @@ def test_complete_legacy_review_audit_matches_full_manifest(
         "window_length_frames": 6,
         "window_start_frame": 0,
         "window_end_frame": 5,
-        "behavior_window_label": "eat",
+        "behavior_window_label": "playwithtoy",
         "sequence_label_status": "stable",
         "window_valid_for_main_train": True,
     }
@@ -345,48 +343,18 @@ def test_complete_legacy_review_audit_matches_full_manifest(
             intervals_csv=intervals_csv,
             sequence_window_manifest_csv=windows_csv,
             output_dir=output_dir,
-            include_all_retained_legacy_units=True,
         )
     )
 
-    assert audit["review_scope"]["expected_legacy_native_units"] == 1
-    assert audit["review_scope"]["reviewed_legacy_native_units"] == 1
-    assert audit["review_scope"]["missing_legacy_native_units"] == 0
-    full_review = pd.read_csv(output_dir / "full_review_unit_manifest.csv")
-    assert full_review["review_unit_id"].tolist() == ["unit-1"]
-
-    checker = (
-        Path(__file__).resolve().parents[1]
-        / "scripts"
-        / "classification_v2"
-        / "01_review_units_gui"
-        / "check_review_unit_template_coverage.py"
+    universe = pd.read_csv(output_dir / "behavior_review_universe.csv")
+    candidates = pd.read_csv(
+        output_dir / "behavior_review_candidate_manifest.csv"
     )
-    command = [
-        sys.executable,
-        str(checker),
-        "--review-unit-dir",
-        str(output_dir),
-        "--allow-incomplete-label-coverage",
-        "--require-complete-legacy",
-    ]
-    passed = subprocess.run(
-        command,
-        check=False,
-        capture_output=True,
-        text=True,
+    auto_carry = pd.read_csv(
+        output_dir / "behavior_review_auto_carry_manifest.csv"
     )
-    assert passed.returncode == 0, passed.stdout + passed.stderr
-
-    full_review.iloc[0:0].to_csv(
-        output_dir / "full_review_unit_manifest.csv",
-        index=False,
-    )
-    failed = subprocess.run(
-        command,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    assert failed.returncode != 0
-    assert "missing_complete_legacy_review_units=1" in failed.stdout
+    assert len(universe) == 1
+    assert candidates["review_unit_id"].tolist() == ["unit-1"]
+    assert auto_carry.empty
+    assert audit["candidate_partition"]["valid"]
+    assert audit["candidate_partition"]["candidate_auto_carry_overlap"] == 0

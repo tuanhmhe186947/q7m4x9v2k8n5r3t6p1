@@ -192,14 +192,24 @@ stages:
     stage_id: stage.behavior_review_unit_construction
     entry_point: scripts/classification_v2/01_review_units_gui/classification_v2_build_review_units.py
     output_relative: candidates/behavior_review_units
-    artifact_relative: candidates/behavior_review_units/full_review_unit_manifest.csv
+    artifact_relative: candidates/behavior_review_units/behavior_review_candidate_manifest.csv
+    universe_relative: candidates/behavior_review_units/behavior_review_universe.csv
+    auto_carry_relative: candidates/behavior_review_units/behavior_review_auto_carry_manifest.csv
     audit_relative: candidates/behavior_review_units/review_unit_audit.json
     manifest_relative: manifests/behavior_review_units.candidate.json
     output_schemas:
       - path_key: artifact_relative
         artifact_id: artifact.behavior_review_units
         schema_id: artifact.behavior_review_units
-        schema_version: classification_v2.behavior_review_unit.v2
+        schema_version: classification_v2.behavior_review_candidate.v1
+      - path_key: universe_relative
+        artifact_id: artifact.behavior_review_universe
+        schema_id: artifact.behavior_review_universe
+        schema_version: classification_v2.behavior_review_universe.v1
+      - path_key: auto_carry_relative
+        artifact_id: artifact.behavior_review_auto_carry
+        schema_id: artifact.behavior_review_auto_carry
+        schema_version: classification_v2.behavior_review_auto_carry.v1
     authorization_flag: authorizes_behavior_gui
     upstream: [pig_strenet_evidence]
   behavior_decision_apply:
@@ -209,6 +219,7 @@ stages:
     audit_relative: candidates/behavior_decision_apply/apply_review_unit_decisions_audit.json
     combined_decisions_relative: candidates/behavior_decision_apply/review_unit_decisions_combined.csv
     decisions_relative: decision_inputs/behavior/behavior_unit_review_decisions.csv
+    auto_carry_input_relative: candidates/behavior_review_units/behavior_review_auto_carry_manifest.csv
     manifest_relative: manifests/behavior_decision_apply.candidate.json
     output_schemas:
       - path_key: output_relative

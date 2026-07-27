@@ -159,6 +159,39 @@ def _build(
                 "path": interval_output,
             },
         )
+    elif stage_id == "stage.behavior_review_unit_construction":
+        registry = stage["output_schema_registry"]
+        specifications = []
+        for artifact_id in stage["output_artifacts"][1:]:
+            schema = registry[artifact_id]
+            additional_output = (
+                tmp_path / f"{artifact_id.removeprefix('artifact.')}.csv"
+            )
+            columns = [
+                *schema["required_columns"],
+                "object_track_key",
+            ]
+            pd.DataFrame(
+                [
+                    {
+                        column: (
+                            "track:source:dataset:video:1"
+                            if column == "object_track_key"
+                            else 1
+                        )
+                        for column in dict.fromkeys(columns)
+                    }
+                ]
+            ).to_csv(additional_output, index=False)
+            specifications.append(
+                {
+                    "artifact_id": str(artifact_id),
+                    "schema_id": str(artifact_id),
+                    "schema_version": str(schema["schema_version"]),
+                    "path": additional_output,
+                }
+            )
+        additional_outputs = tuple(specifications)
     manifest_path = output.with_suffix(output.suffix + ".manifest.json")
     primary_schema_id = str(stage["output_artifacts"][0])
     registry = stage.get("output_schema_registry", {})
@@ -827,6 +860,79 @@ def test_verified_publication_only_drift_keeps_upstream_current(
         intended_downstream_stage_id="stage.frame_local_primitives",
     )
     assert stale_semantics.classification == STALE_SEMANTIC_AUTHORITY
+
+
+def test_publication_drift_requires_unchanged_stage_mapped_symbols(
+    tmp_path: Path,
+) -> None:
+    relative = "scripts/classification_v2/run_lineage_stage.py"
+    source_path = tmp_path / relative
+    source_path.parent.mkdir(parents=True)
+    historical = (
+        b"def stage_runtime():\n"
+        b"    return 'unchanged'\n\n"
+        b"def downstream_publication():\n"
+        b"    return 'old'\n"
+    )
+    source_path.write_bytes(
+        b"def stage_runtime():\n"
+        b"    return 'unchanged'\n\n"
+        b"def downstream_publication():\n"
+        b"    return 'new'\n"
+    )
+    mapping_rows = [
+        {
+            "contract_item_id": "stage.test",
+            "source_file": relative,
+            "symbol": "stage_runtime",
+        }
+    ]
+
+    unchanged = candidate_manifest_module._mapped_stage_symbols_unchanged(
+        stage_id="stage.test",
+        changed_paths={relative},
+        historical_mapping_rows=mapping_rows,
+        current_mapping_rows=mapping_rows,
+        historical_sources={relative: historical},
+        repo_root=tmp_path,
+    )
+    assert unchanged
+
+    source_path.write_bytes(
+        b"def stage_runtime():\n"
+        b"    return 'changed'\n\n"
+        b"def downstream_publication():\n"
+        b"    return 'new'\n"
+    )
+    changed = candidate_manifest_module._mapped_stage_symbols_unchanged(
+        stage_id="stage.test",
+        changed_paths={relative},
+        historical_mapping_rows=mapping_rows,
+        current_mapping_rows=mapping_rows,
+        historical_sources={relative: historical},
+        repo_root=tmp_path,
+    )
+    assert not changed
+
+
+def test_unmapped_runtime_file_is_not_publication_only_drift(
+    tmp_path: Path,
+) -> None:
+    relative = "scripts/classification_v2/run_lineage_stage.py"
+    source_path = tmp_path / relative
+    source_path.parent.mkdir(parents=True)
+    source_path.write_text("VALUE = 'new'\n", encoding="utf-8")
+
+    unchanged = candidate_manifest_module._mapped_stage_symbols_unchanged(
+        stage_id="stage.test",
+        changed_paths={relative},
+        historical_mapping_rows=[],
+        current_mapping_rows=[],
+        historical_sources={relative: b"VALUE = 'old'\n"},
+        repo_root=tmp_path,
+    )
+
+    assert not unchanged
 
 
 def test_ineligible_and_modified_upstream_classifications(

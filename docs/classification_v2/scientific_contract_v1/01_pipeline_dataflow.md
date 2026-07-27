@@ -25,7 +25,7 @@ flowchart LR
   S7 --> S8
   S9["Pig-STRENet evidence<br/>grain: HISTORY_TARGET_PAIR<br/>group: object_track_key,temporal_unit_key<br/>identity: pair_id,temporal_unit_key<br/>reset: history_target_boundary<br/>schema: classification_v2.pig_strenet_artifacts.v1<br/>check: check_classification_v2_pig_strenet_artifacts<br/>model/review: REVIEW_EVIDENCE_ONLY/ELIGIBLE_AFTER_SCHEMA_PREFLIGHT"]
   S8 --> S9
-  S10["Behavior review-unit construction<br/>grain: BEHAVIOR_REVIEW_UNIT<br/>group: temporal_unit_key<br/>identity: review_unit_id,temporal_unit_key<br/>reset: none<br/>schema: classification_v2.behavior_review_unit.v2<br/>check: build_review_units<br/>model/review: REVIEW_FIELDS_FORBIDDEN/BEHAVIOR_GUI_INPUT"]
+  S10["Behavior review-unit construction<br/>grain: BEHAVIOR_REVIEW_UNIT<br/>group: temporal_unit_key<br/>identity: review_unit_id,temporal_unit_key<br/>reset: none<br/>schema: classification_v2.behavior_review_candidate.v1<br/>check: build_review_units<br/>model/review: REVIEW_FIELDS_FORBIDDEN/BEHAVIOR_GUI_INPUT"]
   S9 --> S10
   S11["Behavior GUI<br/>grain: BEHAVIOR_DECISION<br/>group: review_unit_id<br/>identity: review_unit_id<br/>reset: none<br/>schema: classification_v2.behavior_gui_decision.v2<br/>check: check_review_unit_gui_decisions<br/>model/review: NOT_MODEL_INPUT/HUMAN_REVIEW_ONLY"]
   S10 --> S11

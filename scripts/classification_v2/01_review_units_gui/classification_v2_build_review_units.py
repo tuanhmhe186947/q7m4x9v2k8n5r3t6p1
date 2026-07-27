@@ -67,16 +67,16 @@ def main() -> None:
         "--include-all-retained-legacy-units",
         action="store_true",
         help=(
-            "Include every retained legacy_burst_16 native unit in the full "
-            "behavior-review manifest. Required for complete legacy 16f review."
+            "Deprecated diagnostic flag. Production selective review rejects "
+            "global legacy selection."
         ),
     )
     parser.add_argument(
         "--full-native-unit-behavior-review",
         action="store_true",
         help=(
-            "Put every retained legacy 16f burst and CVAT 6f interval into "
-            "the behavior-review manifest."
+            "Deprecated diagnostic flag. Production selective review rejects "
+            "global native-unit selection."
         ),
     )
     parser.add_argument(
@@ -90,11 +90,11 @@ def main() -> None:
     )
     parser.add_argument("--behavior-selection-seed", type=int, default=20260720)
     parser.add_argument("--behavior-random-per-stratum", type=int, default=5)
-    parser.add_argument("--behavior-clean-control-per-stratum", type=int, default=1)
-    parser.add_argument("--behavior-high-risk-fraction", type=float, default=0.10)
-    parser.add_argument("--behavior-high-risk-cap", type=int, default=32)
+    parser.add_argument("--behavior-clean-control-per-stratum", type=int, default=0)
+    parser.add_argument("--behavior-high-risk-fraction", type=float, default=0.0)
+    parser.add_argument("--behavior-high-risk-cap", type=int, default=0)
     parser.add_argument("--behavior-high-risk-min-pool", type=int, default=20)
-    parser.add_argument("--behavior-rare-census-max", type=int, default=64)
+    parser.add_argument("--behavior-rare-census-max", type=int, default=0)
     args = parser.parse_args()
 
     if args.native_only and args.sequence_window_manifest_csv is not None:

@@ -178,6 +178,7 @@ def build_closure(root: Path, config: dict[str, Any]) -> dict[str, Any]:
                 "INPUT"
                 if key in {
                     "decisions_relative",
+                    "auto_carry_input_relative",
                     "data_contract_relative",
                     "previous_manifest_relative",
                     "previous_decisions_relative",

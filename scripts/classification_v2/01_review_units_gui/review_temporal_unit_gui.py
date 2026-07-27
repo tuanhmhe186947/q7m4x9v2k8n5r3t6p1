@@ -77,6 +77,74 @@ def load_gui_frame_features(path: Path) -> pd.DataFrame:
     return pd.read_csv(path, usecols=usecols, low_memory=False)
 
 
+def decision_scope_frames(unit: pd.Series) -> list[int]:
+    """Return target frames only; history is display context, not target scope."""
+
+    frames = ReviewUnitGui._parse_frame_indices(
+        unit.get("display_frame_indices", "")
+    )
+    if frames:
+        return frames
+    return list(
+        range(
+            int(unit["unit_start_frame"]),
+            int(unit["unit_end_frame"]) + 1,
+        )
+    )
+
+
+def decision_scope_complete(
+    unit: pd.Series,
+    observed_frames: list[int],
+) -> bool:
+    """Require exactly one actor row for every target frame."""
+
+    return sorted(observed_frames) == decision_scope_frames(unit)
+
+
+def validate_candidate_gui_manifest(units: pd.DataFrame) -> list[str]:
+    """Reject universe and global-mandatory inputs at the GUI boundary."""
+
+    required = {
+        "candidate_tier",
+        "include_in_review",
+        "review_reason_codes",
+        "selection_predicate_version",
+        "selection_config_hash",
+    }
+    missing = sorted(required.difference(units.columns))
+    if missing:
+        return [f"candidate_manifest_missing_columns={missing}"]
+    errors: list[str] = []
+    included = units["include_in_review"].fillna(False).astype(str).str.lower()
+    not_selected = ~included.isin({"true", "1", "yes", "y"})
+    if not_selected.any():
+        errors.append(f"noncandidate_gui_rows={int(not_selected.sum())}")
+    auto = units["candidate_tier"].fillna("").astype(str).eq(
+        "AUTO_CARRY_LOW_RISK"
+    )
+    if auto.any():
+        errors.append(f"auto_carry_rows_in_gui={int(auto.sum())}")
+    blank_reason = (
+        units["review_reason_codes"].fillna("").astype(str).str.strip().eq("")
+    )
+    if blank_reason.any():
+        errors.append(f"candidate_rows_without_reason={int(blank_reason.sum())}")
+    if "review_predicate_global_mandatory" in units.columns:
+        global_mandatory = (
+            units["review_predicate_global_mandatory"]
+            .fillna(False)
+            .astype(str)
+            .str.lower()
+            .isin({"true", "1", "yes", "y"})
+        )
+        if global_mandatory.any():
+            errors.append(
+                f"global_mandatory_gui_rows={int(global_mandatory.sum())}"
+            )
+    return errors
+
+
 @dataclass(slots=True)
 class GuiConfig:
     review_units_csv: Path
@@ -181,6 +249,12 @@ class ReviewUnitGui:
         if contract["errors"]:
             raise SystemExit(
                 "Review unit contract failed: " + "; ".join(contract["errors"])
+            )
+        candidate_errors = validate_candidate_gui_manifest(df)
+        if candidate_errors:
+            raise SystemExit(
+                "Behavior GUI requires the selective candidate manifest: "
+                + "; ".join(candidate_errors)
             )
         if self.config.source_type:
             df = df[df["source_type"].astype(str).eq(self.config.source_type)].copy()
@@ -453,6 +527,8 @@ class ReviewUnitGui:
         self.header.set(
             f"{self.current + 1}/{len(self.units)} | {unit.get('review_unit_type')} | "
             f"{unit.get('source_type')} | {unit.get('behavior_label')} | "
+            f"{unit.get('candidate_tier', '')} | "
+            f"{unit.get('review_reason_codes', unit.get('review_reason', ''))} | "
             f"frames {unit.get('unit_start_frame')}-{unit.get('unit_end_frame')} | "
             f"shown [{display_indices}]"
         )
@@ -476,6 +552,12 @@ class ReviewUnitGui:
             "review_unit_id",
             "review_unit_type",
             "review_template",
+            "candidate_tier",
+            "review_reason_codes",
+            "risk_score",
+            "risk_components",
+            "evidence_values_used",
+            "evidence_availability",
             "review_reason",
             "review_priority",
             "review_evidence_available",
@@ -574,7 +656,12 @@ class ReviewUnitGui:
         )
 
     def _all_display_frames(self, unit: pd.Series) -> list[int]:
-        return self._history_display_frames(unit) + self._display_frames(unit)
+        return list(
+            dict.fromkeys(
+                self._history_display_frames(unit)
+                + self._display_frames(unit)
+            )
+        )
 
     @staticmethod
     def _parse_frame_indices(value: object) -> list[int]:
@@ -951,11 +1038,10 @@ class ReviewUnitGui:
         )
 
         decision = str(normalized.iloc[0]["manual_review_decision"])
-        wanted = self._all_display_frames(unit)
         frame_rows = self._frame_rows_for_unit(unit)
         observed = pd.to_numeric(frame_rows["frame_index"], errors="coerce")
         observed_frames = sorted(observed.dropna().astype(int).tolist())
-        complete_scope = observed_frames == wanted
+        complete_scope = decision_scope_complete(unit, observed_frames)
         diagnostics = getattr(self, "current_diagnostics", [])
         blocking_diagnostics = [
             message

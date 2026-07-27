@@ -10,6 +10,7 @@ import pandas as pd
 from PIL import Image
 
 from pig_behavior.classification_v2.review.gui_readiness import (
+    _audit_pair_alignment,
     audit_behavior_gui_readiness,
 )
 
@@ -198,6 +199,25 @@ def test_behavior_gui_readiness_rejects_missing_actor_pixels(
     assert audit["missing_required_actor_pixels"] == 1
 
 
+def test_behavior_gui_readiness_accepts_candidate_subset_of_pig_universe(
+    tmp_path: Path,
+) -> None:
+    inputs = _write_fixture(tmp_path)
+    units = pd.read_csv(inputs["review_units_csv"])
+    pairs = pd.read_csv(inputs["pig_strenet_artifact_dir"] / "pair_manifest.csv")
+    additional = pairs.iloc[[0]].copy()
+    additional["pair_id"] = "pair-auto-carry"
+    additional["temporal_unit_key"] = "unit-auto-carry"
+    pairs = pd.concat([pairs, additional], ignore_index=True)
+
+    assert _audit_pair_alignment(units, pairs) == []
+
+    missing = units.assign(temporal_unit_key="unit-not-in-pig")
+    assert _audit_pair_alignment(missing, pairs) == [
+        "pig_review_unit_alignment_mismatch=1"
+    ]
+
+
 def test_behavior_gui_loader_uses_bounded_column_projection(
     tmp_path: Path,
 ) -> None:
@@ -227,3 +247,89 @@ def test_behavior_gui_loader_uses_bounded_column_projection(
 
     assert "unused_large_feature" not in frames.columns
     assert set(module.GUI_REQUIRED_FRAME_COLUMNS).issubset(frames.columns)
+
+
+def test_legacy_nonzero_target_scope_ignores_overlapping_history() -> None:
+    module = _load_gui_module()
+    unit = pd.Series(
+        {
+            "unit_start_frame": 2,
+            "unit_end_frame": 17,
+            "display_frame_indices": ",".join(
+                str(value) for value in range(2, 18)
+            ),
+            "review_pig_history_display_frame_indices": "2,3,4,5,6,7",
+        }
+    )
+    observed = list(range(2, 18))
+
+    assert module.decision_scope_frames(unit) == observed
+    assert module.decision_scope_complete(unit, observed)
+
+
+def test_decision_scope_still_blocks_an_actually_missing_actor_frame() -> None:
+    module = _load_gui_module()
+    unit = pd.Series(
+        {
+            "unit_start_frame": 2,
+            "unit_end_frame": 17,
+            "display_frame_indices": ",".join(
+                str(value) for value in range(2, 18)
+            ),
+        }
+    )
+    observed = [value for value in range(2, 18) if value != 9]
+
+    assert not module.decision_scope_complete(unit, observed)
+
+
+def test_gui_rejects_universe_and_accepts_selective_candidate() -> None:
+    module = _load_gui_module()
+    candidate = pd.DataFrame(
+        [
+            {
+                "candidate_tier": "TIER_2_HIGH_RISK",
+                "include_in_review": True,
+                "review_reason_codes": "behavior_evidence_conflict",
+                "selection_predicate_version": "selection.v1",
+                "selection_config_hash": "a" * 64,
+                "review_predicate_global_mandatory": False,
+            }
+        ]
+    )
+
+    assert module.validate_candidate_gui_manifest(candidate) == []
+    universe = pd.concat(
+        [
+            candidate,
+            candidate.assign(
+                candidate_tier="AUTO_CARRY_LOW_RISK",
+                include_in_review=False,
+                review_reason_codes="",
+            ),
+        ],
+        ignore_index=True,
+    )
+    errors = module.validate_candidate_gui_manifest(universe)
+    assert "noncandidate_gui_rows=1" in errors
+    assert "auto_carry_rows_in_gui=1" in errors
+
+
+def test_gui_rejects_global_mandatory_manifest() -> None:
+    module = _load_gui_module()
+    manifest = pd.DataFrame(
+        [
+            {
+                "candidate_tier": "TIER_1_HARD_MANDATORY",
+                "include_in_review": True,
+                "review_reason_codes": "GLOBAL_MANDATORY_FORBIDDEN",
+                "selection_predicate_version": "selection.v1",
+                "selection_config_hash": "a" * 64,
+                "review_predicate_global_mandatory": True,
+            }
+        ]
+    )
+
+    assert "global_mandatory_gui_rows=1" in (
+        module.validate_candidate_gui_manifest(manifest)
+    )

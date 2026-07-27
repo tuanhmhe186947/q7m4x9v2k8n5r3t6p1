@@ -591,6 +591,62 @@ def test_apply_corrected_cvat_decision_has_exact_six_frame_scope() -> None:
     assert f"applied_frame_scope_mismatch={unit['review_unit_id']}" in scope_errors
 
 
+def test_apply_preserves_auto_carry_without_fabricating_human_decision() -> None:
+    apply_module = _load_script(
+        "review_apply_auto_carry",
+        "classification_v2_apply_review_unit_decisions.py",
+    )
+    candidate = _native_unit("cvat_tracking_xml", 0)
+    auto = _native_unit("cvat_tracking_xml", 6)
+    auto["review_unit_id"] = "auto-unit"
+    auto["temporal_unit_key"] = "auto-unit"
+    frames = pd.DataFrame(
+        {
+            "temporal_unit_key": (
+                [candidate["temporal_unit_key"]] * 6
+                + [auto["temporal_unit_key"]] * 6
+            ),
+            "source_type": ["cvat_tracking_xml"] * 12,
+            "frame_index": list(range(12)),
+            "behavior": ["stand"] * 6 + ["lying"] * 6,
+            "include_in_training": [True] * 12,
+            "sample_weight": [1.0] * 12,
+        }
+    )
+    decision = _decision_for_unit(candidate, "accept")
+    normalized, errors, _ = apply_module.normalize_decisions(
+        pd.DataFrame([decision])
+    )
+    assert errors == []
+    auto_manifest = pd.DataFrame(
+        [
+            {
+                **auto,
+                "auto_carry_behavior": "lying",
+                "human_decision_synthesized": False,
+            }
+        ]
+    )
+
+    reviewed, audit = apply_module.apply_decisions_to_frames(
+        frames,
+        pd.DataFrame([candidate]),
+        normalized,
+        auto_manifest,
+    )
+
+    carried = reviewed["temporal_unit_key"].eq("auto-unit")
+    assert reviewed.loc[carried, "behavior"].eq("lying").all()
+    assert reviewed.loc[carried, "behavior_review_auto_carried"].all()
+    assert (
+        reviewed.loc[carried, "behavior_review_resolution_source"]
+        .eq("AUTO_CARRY_PROVISIONAL")
+        .all()
+    )
+    assert not reviewed.loc[carried, "review_decision_applied"].any()
+    assert audit["selective_review_partition"]["valid"]
+
+
 def test_apply_exclusion_has_exact_legacy_sixteen_frame_scope() -> None:
     apply_module = _load_script(
         "review_apply_legacy_scope",

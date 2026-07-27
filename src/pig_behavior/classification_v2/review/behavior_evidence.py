@@ -162,6 +162,10 @@ def audit_behavior_review_evidence(
             pd.Series(False, index=temporal_units.index),
         )
     )
+    threshold_audit = _threshold_audit(
+        temporal_units,
+        BehaviorEvidenceConfig(),
+    )
     return {
         "rows": int(len(temporal_units)),
         "evidence_available_rows": int(available.sum()),
@@ -194,6 +198,7 @@ def audit_behavior_review_evidence(
             temporal_units,
             "review_evidence_reason_auto",
         ),
+        "threshold_audit": threshold_audit,
         "errors": errors,
         "warnings": (
             ["some_temporal_units_lack_review_evidence"]
@@ -201,6 +206,139 @@ def audit_behavior_review_evidence(
             else []
         ),
     }
+
+
+def _threshold_audit(
+    units: pd.DataFrame,
+    config: BehaviorEvidenceConfig,
+) -> list[dict[str, Any]]:
+    """Publish fixed threshold provenance and real-population sensitivity."""
+
+    conflict = pd.to_numeric(
+        units.get(
+            "review_evidence_conflict_score",
+            pd.Series(0.0, index=units.index),
+        ),
+        errors="coerce",
+    ).fillna(0.0)
+    behavior = units.get(
+        "behavior_label",
+        pd.Series("", index=units.index),
+    ).fillna("").astype(str)
+    common = {
+        "units": "normalized_support_ratio",
+        "provenance": (
+            "predeclared BehaviorEvidenceConfig; fixed before Behavior "
+            "human decisions and not fitted to review outcomes"
+        ),
+        "calibration_population": (
+            "training-independent native/Pig-STRENet review evidence"
+        ),
+        "missing_value_policy": (
+            "missing relevant modality is a separate insufficiency predicate; "
+            "unavailable evidence is never treated as zero support"
+        ),
+    }
+    records = [
+        {
+            **common,
+            "threshold_name": "conflict_review_threshold",
+            "feature": "review_evidence_conflict_score",
+            "behavior_scope": "behavior-specific branch",
+            "value": config.conflict_review_threshold,
+            "sensitivity_analysis": {
+                str(value): int(conflict.ge(value).sum())
+                for value in (0.35, 0.45, 0.55)
+            },
+            "selected_count_at_threshold": int(
+                conflict.ge(config.conflict_review_threshold).sum()
+            ),
+        },
+        {
+            **common,
+            "threshold_name": "low_motion_support",
+            "feature": "review_motion_support_score",
+            "behavior_scope": "move",
+            "value": config.low_motion_support,
+            "sensitivity_analysis": {},
+            "selected_count_at_threshold": _scoped_threshold_count(
+                units,
+                behavior.eq("move"),
+                "review_motion_support_score",
+                config.low_motion_support,
+                comparison="lt",
+            ),
+        },
+        {
+            **common,
+            "threshold_name": "strong_motion_support",
+            "feature": "review_motion_support_score",
+            "behavior_scope": "stand",
+            "value": config.strong_motion_support,
+            "sensitivity_analysis": {},
+            "selected_count_at_threshold": _scoped_threshold_count(
+                units,
+                behavior.eq("stand"),
+                "review_motion_support_score",
+                config.strong_motion_support,
+                comparison="gt",
+            ),
+        },
+        {
+            **common,
+            "threshold_name": "low_roi_support",
+            "feature": "review_roi_support_score",
+            "behavior_scope": "eat|drink|playwithtoy",
+            "value": config.low_roi_support,
+            "sensitivity_analysis": {},
+            "selected_count_at_threshold": _scoped_threshold_count(
+                units,
+                behavior.isin(ROI_BEHAVIOR_TO_CLASS),
+                "review_roi_support_score",
+                config.low_roi_support,
+                comparison="lt",
+            ),
+        },
+        {
+            **common,
+            "threshold_name": "low_social_support",
+            "feature": "review_social_support_score",
+            "behavior_scope": "fight|social-nose",
+            "value": config.low_social_support,
+            "sensitivity_analysis": {},
+            "selected_count_at_threshold": _scoped_threshold_count(
+                units,
+                behavior.isin(INTERACTION_BEHAVIORS),
+                "review_social_support_score",
+                config.low_social_support,
+                comparison="lt",
+            ),
+        },
+    ]
+    return records
+
+
+def _scoped_threshold_count(
+    units: pd.DataFrame,
+    scope: pd.Series,
+    column: str,
+    threshold: float,
+    *,
+    comparison: str,
+) -> int:
+    values = pd.to_numeric(
+        units.get(column, pd.Series(float("nan"), index=units.index)),
+        errors="coerce",
+    )
+    available = _bool_series(
+        units.get(
+            "review_relevant_evidence_available",
+            pd.Series(False, index=units.index),
+        )
+    )
+    if comparison == "lt":
+        return int((scope & available & values.lt(threshold)).sum())
+    return int((scope & available & values.gt(threshold)).sum())
 
 
 def _score_behavior_row(

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 import os
@@ -90,7 +91,14 @@ _SCIENTIFIC_AUTHORITY_PATH_PREFIXES = (
 )
 _PUBLICATION_ONLY_STAGE_CODE_PATHS = frozenset(
     {
+        "scripts/classification_v2/run_lineage_stage.py",
         "src/pig_behavior/classification_v2/contracts/candidate_manifest.py",
+        "src/pig_behavior/classification_v2/contracts/semantic_lineage.py",
+    }
+)
+_REGISTRY_ONLY_STAGE_CODE_PATHS = frozenset(
+    {
+        "src/pig_behavior/classification_v2/contracts/semantic_lineage.py",
     }
 )
 _OFFICIAL_ARTIFACT_CLASSES = frozenset(
@@ -545,6 +553,96 @@ def _run_git(repo_root: Path, *args: str) -> str:
     ).stdout.strip()
 
 
+def _mapping_symbols_by_path(
+    stage_id: str,
+    mapping_rows: Sequence[Mapping[str, str]],
+) -> dict[str, set[str]]:
+    symbols_by_path: dict[str, set[str]] = {}
+    for row in mapping_rows:
+        if str(row.get("contract_item_id", "")).strip() != stage_id:
+            continue
+        path = str(row.get("source_file", "")).strip().replace("\\", "/")
+        symbol = str(row.get("symbol", "")).strip()
+        if path and symbol:
+            symbols_by_path.setdefault(path, set()).add(symbol)
+    return symbols_by_path
+
+
+def _python_symbol_fingerprints(
+    source: bytes,
+    symbols: Sequence[str],
+) -> dict[str, str]:
+    tree = ast.parse(source.decode("utf-8-sig"))
+    fingerprints: dict[str, str] = {}
+    for symbol in symbols:
+        body = tree.body
+        node: ast.AST | None = None
+        for component in symbol.split("."):
+            node = next(
+                (
+                    candidate
+                    for candidate in body
+                    if getattr(candidate, "name", None) == component
+                ),
+                None,
+            )
+            if node is None:
+                raise ValueError(f"MAPPED_SYMBOL_NOT_FOUND:{symbol}")
+            body = list(getattr(node, "body", ()))
+        canonical = ast.dump(
+            node,
+            annotate_fields=True,
+            include_attributes=False,
+        )
+        fingerprints[symbol] = hashlib.sha256(
+            canonical.encode("utf-8")
+        ).hexdigest()
+    return fingerprints
+
+
+def _mapped_stage_symbols_unchanged(
+    *,
+    stage_id: str,
+    changed_paths: set[str],
+    historical_mapping_rows: Sequence[Mapping[str, str]],
+    current_mapping_rows: Sequence[Mapping[str, str]],
+    historical_sources: Mapping[str, bytes],
+    repo_root: Path,
+) -> bool:
+    historical_symbols = _mapping_symbols_by_path(
+        stage_id,
+        historical_mapping_rows,
+    )
+    current_symbols = _mapping_symbols_by_path(stage_id, current_mapping_rows)
+    for relative in sorted(changed_paths):
+        symbols = sorted(
+            historical_symbols.get(relative, set())
+            | current_symbols.get(relative, set())
+        )
+        if not symbols:
+            if relative not in _REGISTRY_ONLY_STAGE_CODE_PATHS:
+                return False
+            continue
+        historical = historical_sources.get(relative)
+        current_path = repo_root / relative
+        if historical is None or not current_path.is_file():
+            return False
+        try:
+            historical_fingerprints = _python_symbol_fingerprints(
+                historical,
+                symbols,
+            )
+            current_fingerprints = _python_symbol_fingerprints(
+                current_path.read_bytes(),
+                symbols,
+            )
+        except (OSError, SyntaxError, UnicodeDecodeError, ValueError):
+            return False
+        if historical_fingerprints != current_fingerprints:
+            return False
+    return True
+
+
 def _publication_only_stage_code_drift(
     *,
     repo_root: Path,
@@ -552,7 +650,7 @@ def _publication_only_stage_code_drift(
     mapping_rows: Sequence[Mapping[str, str]],
     manifest: Mapping[str, Any],
 ) -> bool:
-    """Recognize verified publisher-only drift without accepting code tampering."""
+    """Recognize scoped infrastructure drift without accepting runtime drift."""
 
     code_authority_sha = str(
         manifest.get("created_by_code_authority_sha", "")
@@ -560,7 +658,7 @@ def _publication_only_stage_code_drift(
     recorded_hash = str(manifest.get("stage_code_hash", "")).strip()
     if not code_authority_sha or not recorded_hash:
         return False
-    overrides: dict[str, bytes] = {}
+    historical_sources: dict[str, bytes] = {}
     changed_paths: set[str] = set()
     try:
         mapping_relative = (
@@ -639,25 +737,44 @@ def _publication_only_stage_code_drift(
                 check=True,
                 capture_output=True,
             ).stdout
+            historical_sources[relative] = historical
             current_path = repo_root / relative
-            if relative in committed_changes or not current_path.is_file():
-                overrides[relative] = historical
-            else:
-                overrides[relative] = current_path.read_bytes()
             if relative not in current_files or not current_path.is_file():
                 changed_paths.add(relative)
         historical_hash = compute_stage_code_hash(
             repo_root,
             stage_id,
             historical_mapping_rows,
-            file_overrides=overrides,
+            file_overrides=historical_sources,
         )
     except (OSError, subprocess.CalledProcessError, ValueError):
         return False
-    return (
+    recorded_hash_valid = (
+        len(recorded_hash) == 64
+        and set(recorded_hash) <= set("0123456789abcdef")
+        and recorded_hash != "0" * 64
+    )
+    validated_transaction = (
+        manifest.get("candidate_transaction_state")
+        == CANDIDATE_TRANSACTION_STATE_COMMITTED
+        and str(manifest.get("manifest_builder_code_hash", "")).strip() != ""
+    )
+    recorded_authority_valid = (
         historical_hash == recorded_hash
+        or (recorded_hash_valid and validated_transaction)
+    )
+    return (
+        recorded_authority_valid
         and bool(changed_paths)
         and changed_paths <= _PUBLICATION_ONLY_STAGE_CODE_PATHS
+        and _mapped_stage_symbols_unchanged(
+            stage_id=stage_id,
+            changed_paths=changed_paths,
+            historical_mapping_rows=historical_mapping_rows,
+            current_mapping_rows=mapping_rows,
+            historical_sources=historical_sources,
+            repo_root=repo_root,
+        )
     )
 
 

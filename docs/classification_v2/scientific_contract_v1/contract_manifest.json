@@ -3,24 +3,24 @@
   "contract_version": "classification_v2.scientific_contract.v1.1.0",
   "generated_files": [
     {
-      "bytes": 213682,
+      "bytes": 216053,
       "path": "00_pipeline_contract.yaml",
-      "sha256": "54ada494bae6939d2e8ca1c3b4fbafe52778922f9c089014d2bd75892cc68923"
+      "sha256": "7becd55ae7a38a0860e0183a1945da942a046c7d979aa7ec689867944c069fea"
     },
     {
-      "bytes": 8925,
+      "bytes": 8930,
       "path": "01_pipeline_dataflow.md",
-      "sha256": "211611a701b86430114f281928b79a4960e448e729e3bca896e122c0b58a9f4f"
+      "sha256": "817c61fb87a78f05a4c57341d70098530580a51171afcfd0c74f780d86caba8e"
     },
     {
-      "bytes": 9125,
+      "bytes": 9130,
       "path": "01_pipeline_dataflow.mmd",
-      "sha256": "72ef88ba3e98ced1ae0a0bf798ffd679b4abbee12658a125864b2089a4bcfc42"
+      "sha256": "f5a3bf4dddad06358a71b06289061b2e2e5808702581208b0f85c2a2d1a38308"
     },
     {
-      "bytes": 14928,
+      "bytes": 15242,
       "path": "02_stage_contract_registry.csv",
-      "sha256": "c7a8c0fce06b2d3ccdb97001bd707ed2f04fa251ad4e3dc1a1b59398f63b6557"
+      "sha256": "168c233c07c650989aeb4e46dc6ee01c707ab800c5e55e48c31c82b7d3b12e0a"
     },
     {
       "bytes": 60846,
@@ -58,9 +58,9 @@
       "sha256": "7350cc60671fcfd08a2b8772f9b85787e5324630e0e6674e7d4f098fab4cc8c4"
     },
     {
-      "bytes": 113089,
+      "bytes": 113371,
       "path": "10_code_contract_mapping.csv",
-      "sha256": "066b28a584479446bdedef839d85f57931f8cdcc0dd939ba713251cfb99338ad"
+      "sha256": "a279040f53f2c36f611236d5d2e5d14ee1b627c8113ea5ef2744e71a3ab1e908"
     },
     {
       "bytes": 7873,

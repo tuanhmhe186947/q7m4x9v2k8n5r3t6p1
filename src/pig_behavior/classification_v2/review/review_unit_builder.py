@@ -44,18 +44,6 @@ MOTION_BEHAVIORS = {"move", "explore", "stand"}
 # stand is intentionally not in posture review. In this dataset, stand is
 # a context/motion candidate more often than a lying/sitting posture ambiguity.
 POSTURE_BEHAVIORS = {"lying", "sitting"}
-# Always surface rare/high-risk labels even when no window-level review template
-# has flagged them. eat/drink stay gated by ROI/window review signals because
-# reviewing all feeding units would be too large; playwithtoy is rare enough
-# and ROI-dominant enough to review all units.
-ALWAYS_REVIEW_BEHAVIORS = INTERACTION_BEHAVIORS | {"playwithtoy"}
-ALWAYS_REVIEW_REASON_BY_BEHAVIOR = {
-    "fight": "interaction_unit_candidate",
-    "social-nose": "interaction_unit_candidate",
-    "playwithtoy": "rare_roi_behavior_candidate",
-}
-
-
 @dataclass(slots=True)
 class ReviewUnitConfig:
     intervals_csv: Path
@@ -217,6 +205,17 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
     warnings.extend(behavior_evidence_audit["warnings"])
     warnings.extend(behavior_selection_audit["warnings"])
     warnings.extend(pig_strenet_audit.get("warnings", []))
+    candidate_units = units.loc[units["include_in_review"].astype(bool)].copy()
+    auto_carry_units = units.loc[
+        ~units["include_in_review"].astype(bool)
+    ].copy()
+    partition_audit = _audit_candidate_partition(
+        units,
+        candidate_units,
+        auto_carry_units,
+    )
+    errors.extend(partition_audit["errors"])
+    warnings.extend(partition_audit["warnings"])
 
     config.output_dir.mkdir(parents=True, exist_ok=True)
     if errors:
@@ -233,6 +232,7 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
             "behavior_selection": behavior_selection_audit,
             "pig_strenet_review_evidence": pig_strenet_audit,
             "review_scope": review_scope,
+            "candidate_partition": partition_audit,
         }
         audit_path = config.output_dir / "review_unit_audit.json"
         audit_path.write_text(
@@ -241,11 +241,48 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
         )
         raise ValueError("review unit contract failed: " + "; ".join(errors))
 
-    unit_path = config.output_dir / "review_unit_manifest.csv"
-    units.to_csv(unit_path, index=False)
+    universe_path = config.output_dir / "behavior_review_universe.csv"
+    candidate_path = (
+        config.output_dir / "behavior_review_candidate_manifest.csv"
+    )
+    auto_carry_path = (
+        config.output_dir / "behavior_review_auto_carry_manifest.csv"
+    )
+    compatibility_universe_path = config.output_dir / "review_unit_manifest.csv"
+    compatibility_candidate_path = (
+        config.output_dir / "full_review_unit_manifest.csv"
+    )
+    units.to_csv(universe_path, index=False)
+    units.to_csv(compatibility_universe_path, index=False)
+    candidate_units.sort_values(
+        ["review_priority", "review_unit_id"],
+        ascending=[False, True],
+        kind="mergesort",
+    ).to_csv(candidate_path, index=False)
+    candidate_units.sort_values(
+        ["review_priority", "review_unit_id"],
+        ascending=[False, True],
+        kind="mergesort",
+    ).to_csv(compatibility_candidate_path, index=False)
+    auto_carry_units.sort_values(
+        "review_unit_id",
+        kind="mergesort",
+    ).to_csv(auto_carry_path, index=False)
 
-    outputs: dict[str, Path] = {"review_unit_manifest": unit_path}
-    templates = _write_template_unit_files(units, config.output_dir, config.max_units_per_template)
+    outputs: dict[str, Path] = {
+        "behavior_review_universe": universe_path,
+        "behavior_review_candidate_manifest": candidate_path,
+        "behavior_review_auto_carry_manifest": auto_carry_path,
+        "review_unit_manifest_compatibility": compatibility_universe_path,
+        "full_review_unit_manifest_compatibility": (
+            compatibility_candidate_path
+        ),
+    }
+    templates = _write_template_unit_files(
+        units,
+        config.output_dir,
+        config.max_units_per_template,
+    )
     outputs.update(templates)
 
     template_audit = _audit_template_partition(units, templates)
@@ -293,6 +330,7 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
         "behavior_selection": behavior_selection_audit,
         "pig_strenet_review_evidence": pig_strenet_audit,
         "review_scope": review_scope,
+        "candidate_partition": partition_audit,
         "template_partition": template_audit,
         "review_reason_counts": _counts(
             units[units["include_in_review"].astype(bool)],
@@ -300,6 +338,36 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
         ),
     }
 
+    overlap_path = (
+        config.output_dir / "behavior_review_predicate_overlap.csv"
+    )
+    pd.DataFrame(
+        behavior_selection_audit["predicate_overlap"]
+    ).to_csv(overlap_path, index=False)
+    pilot_path = config.output_dir / "behavior_review_pilot_sample.csv"
+    _build_pilot_sample(units).to_csv(pilot_path, index=False)
+    population_audit_path = (
+        config.output_dir / "behavior_review_population_audit.json"
+    )
+    population_audit_path.write_text(
+        json.dumps(
+            {
+                "schema_version": (
+                    "classification_v2.behavior_review_population_audit.v1"
+                ),
+                "full_universe_count": int(len(units)),
+                "final_candidate_count": int(len(candidate_units)),
+                "auto_carry_count": int(len(auto_carry_units)),
+                "selection": behavior_selection_audit,
+                "partition": partition_audit,
+                "predicate_overlap_csv": str(overlap_path),
+                "pilot_sample_csv": str(pilot_path),
+            },
+            indent=2,
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
     audit_path = config.output_dir / "review_unit_audit.json"
     audit_path.write_text(json.dumps(audit, indent=2, ensure_ascii=False), encoding="utf-8")
     if errors:
@@ -645,13 +713,6 @@ def _finalize_unit_review_fields(
     temporal_bad = ~status.eq("stable")
     reason = reason.mask(reason.eq("") & temporal_bad, "temporal_unit_not_stable")
 
-    # Force-review high-risk/rare behaviors even when there is no inherited
-    # window-level review signal. This keeps interaction units and all
-    # playwithtoy units visible to human review without expanding eat/drink
-    # to every stable ROI interval.
-    for label, label_reason in ALWAYS_REVIEW_REASON_BY_BEHAVIOR.items():
-        reason = reason.mask(reason.eq("") & behavior.eq(label), label_reason)
-
     out["review_reason"] = reason.fillna("")
     out["include_in_review"] = out["review_reason"].astype(str).ne("")
 
@@ -742,9 +803,6 @@ def _write_template_unit_files(units: pd.DataFrame, output_dir: Path, cap: int) 
         path = output_dir / f"{name}_review_unit_template.csv"
         part.to_csv(path, index=False)
         paths[f"{name}_review_unit_template"] = path
-    full_path = output_dir / "full_review_unit_manifest.csv"
-    review_units.sort_values("review_priority", ascending=False).to_csv(full_path, index=False)
-    paths["full_review_unit_manifest"] = full_path
     return paths
 
 
@@ -815,8 +873,6 @@ def _audit_template_partition(
     )
     union_ids: set[str] = set()
     for name, path in templates.items():
-        if name == "full_review_unit_manifest":
-            continue
         part = pd.read_csv(path, low_memory=False)
         ids = part["review_unit_id"].fillna("").astype(str)
         if ids.duplicated(keep=False).any():
@@ -837,6 +893,128 @@ def _audit_template_partition(
         "errors": errors,
         "warnings": warnings,
     }
+
+
+def _audit_candidate_partition(
+    universe: pd.DataFrame,
+    candidates: pd.DataFrame,
+    auto_carry: pd.DataFrame,
+) -> dict[str, Any]:
+    errors: list[str] = []
+    warnings: list[str] = []
+    key = "review_unit_id"
+    universe_keys = set(universe[key].fillna("").astype(str))
+    candidate_keys = set(candidates[key].fillna("").astype(str))
+    auto_keys = set(auto_carry[key].fillna("").astype(str))
+    duplicate_keys = int(universe[key].fillna("").astype(str).duplicated().sum())
+    overlap = candidate_keys.intersection(auto_keys)
+    missing = universe_keys.difference(candidate_keys | auto_keys)
+    unexpected = (candidate_keys | auto_keys).difference(universe_keys)
+    unexplained = int(
+        candidates["review_reason_codes"].fillna("").astype(str).str.strip().eq(
+            ""
+        ).sum()
+    )
+    availability_only = int(
+        candidates["review_selection_predicates"]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .eq("")
+        .sum()
+    )
+    if duplicate_keys:
+        errors.append(f"duplicate_review_keys={duplicate_keys}")
+    if overlap:
+        errors.append(f"candidate_auto_carry_overlap={len(overlap)}")
+    if missing:
+        errors.append(f"missing_universe_keys={len(missing)}")
+    if unexpected:
+        errors.append(f"unexpected_partition_keys={len(unexpected)}")
+    if unexplained:
+        errors.append(f"unexplained_candidates={unexplained}")
+    if availability_only:
+        errors.append(
+            f"evidence_availability_only_candidates={availability_only}"
+        )
+    if len(candidates) + len(auto_carry) != len(universe):
+        errors.append(
+            "candidate_auto_carry_count_mismatch="
+            f"{len(candidates)}+{len(auto_carry)}!={len(universe)}"
+        )
+    return {
+        "full_universe_count": int(len(universe)),
+        "final_candidate_count": int(len(candidates)),
+        "auto_carry_count": int(len(auto_carry)),
+        "candidate_plus_auto_carry": int(
+            len(candidates) + len(auto_carry)
+        ),
+        "candidate_auto_carry_overlap": int(len(overlap)),
+        "missing_universe_keys": int(len(missing)),
+        "unexpected_partition_keys": int(len(unexpected)),
+        "duplicate_review_keys": duplicate_keys,
+        "unexplained_candidates": unexplained,
+        "evidence_availability_only_candidates": availability_only,
+        "candidate_behavior_counts": _counts(
+            candidates,
+            "behavior_label",
+        ),
+        "candidate_source_counts": _counts(candidates, "source_type"),
+        "candidate_date_counts": _counts(candidates, "recording_date"),
+        "candidate_reason_counts": _counts(
+            candidates,
+            "review_reason_codes",
+        ),
+        "candidate_risk_bucket_counts": _counts(
+            candidates,
+            "review_risk_bucket",
+        ),
+        "candidate_template_counts": _counts(
+            candidates,
+            "review_template",
+        ),
+        "errors": errors,
+        "warnings": warnings,
+        "valid": not errors,
+    }
+
+
+def _build_pilot_sample(units: pd.DataFrame) -> pd.DataFrame:
+    """Return a bounded deterministic inspection sample, never decisions."""
+
+    parts: list[pd.DataFrame] = []
+    predicate_columns = [
+        column
+        for column in units.columns
+        if column.startswith("review_predicate_")
+        and column not in {
+            "review_predicate_global_mandatory",
+        }
+    ]
+    for column in sorted(predicate_columns):
+        selected = units.loc[units[column].astype(bool)].copy()
+        if selected.empty:
+            continue
+        selected["pilot_reason"] = column
+        parts.append(
+            selected.sort_values(
+                "review_unit_id",
+                kind="mergesort",
+            ).head(5)
+        )
+    low_risk = units.loc[~units["include_in_review"].astype(bool)].copy()
+    if not low_risk.empty:
+        low_risk["pilot_reason"] = "AUTO_CARRY_LOW_RISK"
+        parts.append(
+            low_risk.sort_values(
+                "review_unit_id",
+                kind="mergesort",
+            ).head(20)
+        )
+    if not parts:
+        return units.iloc[0:0].copy()
+    pilot = pd.concat(parts, ignore_index=True)
+    return pilot.drop_duplicates("review_unit_id", keep="first")
 
 
 def _validate_columns(df: pd.DataFrame, required: list[str], name: str) -> None:
