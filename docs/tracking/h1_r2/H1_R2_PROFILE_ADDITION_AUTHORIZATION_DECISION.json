@@ -1,0 +1,36 @@
+{
+  "schema_version": "tracking.h1_r2_profile_addition_authorization.v1",
+  "experiment": "H1-r2",
+  "decision": "NARROW_PROFILE_ADDITION_AUTHORIZED",
+  "decision_date": "2026-07-27",
+  "current_main_sha": "8b55038c66a0fbb7c9b3388ed61ba6f60699be4b",
+  "original_implementation_authorization": {
+    "path": "docs/tracking/h1_r2/H1_R2_IMPLEMENTATION_AUTHORIZATION_DECISION.json",
+    "sha256": "fb0bad6c70faf2ebe1292a4e06f91cc79a729dba88de3cf06b1bdb02e554f830"
+  },
+  "authorized_profile_name": "realtime_fast_h1_r2",
+  "exact_override_scope": [
+    "profile_addition_authorized=false",
+    "create no profile in the implementation task"
+  ],
+  "profile_addition_authorized": true,
+  "profile_opt_in_only": true,
+  "profile_contract": {
+    "inherits_profile": "realtime_fast",
+    "only_changed_family": "symmetric_hidden_owner_preference",
+    "detect_every_n_frames": 2,
+    "output_timing_contract": "causal_framewise",
+    "output_delay_frames": 0,
+    "uses_future_frames": false,
+    "offline_repair_enabled": false,
+    "post_video_smoothing_enabled": false,
+    "h1_r1_raw_claim_cost_reservation_enabled": false,
+    "realtime_fast_may_change": false,
+    "realtime_presentation_profile_may_change": false,
+    "default_profile_may_change": false
+  },
+  "evaluation_authorized": false,
+  "runtime_evaluation_authorized": false,
+  "promotion_authorized": false,
+  "all_other_authorization_restrictions_unchanged": true
+}

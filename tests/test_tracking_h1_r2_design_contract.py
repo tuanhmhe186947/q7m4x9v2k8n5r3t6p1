@@ -110,3 +110,21 @@ def test_checker_keeps_evaluation_and_promotion_unauthorized() -> None:
 
     assert review["evaluation_authorized"] is False
     assert review["promotion_authorized"] is False
+
+
+def test_checker_rejects_profile_amendment_evaluation_authority(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    module = _checker_module()
+    amendment = module._read_json(module.PROFILE_AMENDMENT)
+    amendment["evaluation_authorized"] = True
+    invalid_amendment = tmp_path / "profile_amendment.json"
+    invalid_amendment.write_text(
+        json.dumps(amendment, sort_keys=True),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(module, "PROFILE_AMENDMENT", invalid_amendment)
+
+    with pytest.raises(module.ContractError, match="authorizes"):
+        module._check_profile_amendment()

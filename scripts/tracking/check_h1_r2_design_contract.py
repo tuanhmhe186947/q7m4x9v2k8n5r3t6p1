@@ -25,6 +25,9 @@ INDEPENDENT_REVIEW = DESIGN_DIR / "H1_R2_INDEPENDENT_DESIGN_REVIEW.json"
 AUTHORIZATION = (
     DESIGN_DIR / "H1_R2_IMPLEMENTATION_AUTHORIZATION_DECISION.json"
 )
+PROFILE_AMENDMENT = (
+    DESIGN_DIR / "H1_R2_PROFILE_ADDITION_AUTHORIZATION_DECISION.json"
+)
 
 BASE_MANIFEST_COLUMNS = {
     "episode_id",
@@ -98,6 +101,9 @@ VALIDATION_ROLES = {
 PRE_ASSIGNMENT_VALIDATION_SHA256 = (
     "979197b95eeeb407cd998ac256c5484c78de57ac876e09ffd6152230205c28b2"
 )
+AUTHORIZED_IMPLEMENTATION_MAIN_SHA = (
+    "8b55038c66a0fbb7c9b3388ed61ba6f60699be4b"
+)
 
 
 class ContractError(RuntimeError):
@@ -145,6 +151,17 @@ def _file_sha256(path: Path) -> str:
         return hashlib.sha256(path.read_bytes()).hexdigest()
     except OSError as exc:
         raise ContractError(f"cannot hash {path}: {exc}") from exc
+
+
+def _git_blob_sha256(ref: str, path: Path) -> str:
+    result = subprocess.run(
+        ["git", "show", f"{ref}:{path.as_posix()}"],
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode:
+        raise ContractError(f"cannot read historical blob: {ref}:{path}")
+    return hashlib.sha256(result.stdout).hexdigest()
 
 
 def _authority_path(value: str) -> Path:
@@ -555,14 +572,70 @@ def _check_authorization() -> bool:
         "activation_gate": ACTIVATION_GATE,
         "evaluation_gate": GATE,
         "independent_review": INDEPENDENT_REVIEW,
-        "checker": Path(__file__),
     }
-    if set(bindings) != set(expected_bindings):
+    if set(bindings) != set(expected_bindings) | {"checker"}:
         raise ContractError("authorization hash-binding set is incomplete")
     for key, path in expected_bindings.items():
         if bindings[key] != _file_sha256(path):
             raise ContractError(f"authorization hash mismatch: {key}")
+    historical_checker_sha256 = _git_blob_sha256(
+        AUTHORIZED_IMPLEMENTATION_MAIN_SHA,
+        Path(__file__).resolve().relative_to(Path.cwd().resolve()),
+    )
+    if bindings["checker"] != historical_checker_sha256:
+        raise ContractError("authorization historical checker hash mismatch")
     return True
+
+
+def _check_profile_amendment() -> None:
+    amendment = _read_json(PROFILE_AMENDMENT)
+    if amendment.get("current_main_sha") != (
+        "8b55038c66a0fbb7c9b3388ed61ba6f60699be4b"
+    ):
+        raise ContractError("profile amendment main SHA changed")
+    original = amendment.get("original_implementation_authorization", {})
+    if original.get("path") != str(AUTHORIZATION).replace("\\", "/"):
+        raise ContractError("profile amendment authorization path changed")
+    if original.get("sha256") != _file_sha256(AUTHORIZATION):
+        raise ContractError("profile amendment authorization hash mismatch")
+    if amendment.get("authorized_profile_name") != "realtime_fast_h1_r2":
+        raise ContractError("profile amendment name changed")
+    if amendment.get("exact_override_scope") != [
+        "profile_addition_authorized=false",
+        "create no profile in the implementation task",
+    ]:
+        raise ContractError("profile amendment scope changed")
+    for key in (
+        "profile_addition_authorized",
+        "profile_opt_in_only",
+        "all_other_authorization_restrictions_unchanged",
+    ):
+        if amendment.get(key) is not True:
+            raise ContractError(f"profile amendment does not assert {key}")
+    for key in (
+        "evaluation_authorized",
+        "runtime_evaluation_authorized",
+        "promotion_authorized",
+    ):
+        if amendment.get(key) is not False:
+            raise ContractError(f"profile amendment authorizes {key}")
+    profile = amendment.get("profile_contract", {})
+    expected = {
+        "inherits_profile": "realtime_fast",
+        "only_changed_family": "symmetric_hidden_owner_preference",
+        "detect_every_n_frames": 2,
+        "output_timing_contract": "causal_framewise",
+        "output_delay_frames": 0,
+        "uses_future_frames": False,
+        "offline_repair_enabled": False,
+        "post_video_smoothing_enabled": False,
+        "h1_r1_raw_claim_cost_reservation_enabled": False,
+        "realtime_fast_may_change": False,
+        "realtime_presentation_profile_may_change": False,
+        "default_profile_may_change": False,
+    }
+    if profile != expected:
+        raise ContractError("profile amendment contract changed")
 
 
 def _check_paths_and_terminology() -> None:
@@ -577,6 +650,7 @@ def _check_paths_and_terminology() -> None:
         ROLE_ASSIGNMENTS,
         ACTIVATION_GATE,
         INDEPENDENT_REVIEW,
+        PROFILE_AMENDMENT,
     )
     missing = [str(path) for path in required if not path.is_file()]
     if missing:
@@ -605,6 +679,7 @@ def main() -> int:
         _check_activation_gate(weights)
         _check_independent_review()
         implementation_authorized = _check_authorization()
+        _check_profile_amendment()
     except (ContractError, ValueError) as exc:
         print(f"H1_R2_DESIGN_CHECKER=FAIL: {exc}", file=sys.stderr)
         return 1
@@ -621,6 +696,8 @@ def main() -> int:
     print(f"VALIDATION_AMBIGUOUS_EXCLUDED_COUNT={ambiguous_roles}")
     authorized = "YES" if implementation_authorized else "NO"
     print(f"IMPLEMENTATION_AUTHORIZED={authorized}")
+    print("PROFILE_ADDITION_AUTHORIZED=YES")
+    print("AUTHORIZED_PROFILE_NAME=realtime_fast_h1_r2")
     print("EVALUATION_AUTHORIZED=NO")
     print("PROMOTION_AUTHORIZED=NO")
     return 0
