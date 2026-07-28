@@ -340,13 +340,14 @@ def source_equivalence_audit(worktree_repo: Path) -> dict[str, Any]:
 
 
 def executable_config(
+    source_repo: Path,
     worktree_repo: Path,
     cache_root: Path,
     population: list[Any],
 ) -> dict[str, Any]:
     profile = profile_payload()
     sample_cfg = build_tracking_config(
-        worktree_repo,
+        source_repo,
         population[0],
         Path("PREEXECUTION_PLACEHOLDER"),
     )
@@ -562,7 +563,12 @@ def prepare(
         "authority",
     ):
         (output_root / relative).mkdir(parents=True)
-    config = executable_config(worktree_repo, cache_root, population)
+    config = executable_config(
+        source_repo,
+        worktree_repo,
+        cache_root,
+        population,
+    )
     topology = source_equivalence_audit(worktree_repo)
     contract = prediction_parity_contract()
     manifest = execution_manifest(population, cache_root)
