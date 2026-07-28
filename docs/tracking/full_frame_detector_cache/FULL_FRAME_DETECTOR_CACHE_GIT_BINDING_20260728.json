@@ -1,0 +1,10 @@
+{
+  "artifact_inventory_sha256": "623c74a0e97285be21acaf96238e96b8bf9db5603eee0fb39c98f1ea28d9d46e",
+  "date": "20260728",
+  "deletion_allowed": "NO_WITHOUT_EXPLICIT_AUTHORITY_RETIREMENT",
+  "full_frame_cache_authority_sha256": "494d17ddb9d592dcf2105fd89a7204181f99a49353614315216d30ea43716e00",
+  "full_frame_cache_decision_sha256": "5fefb6c584b031a7130e9b6eecabd57f262245ec125f1c61c745748e63af1dd7",
+  "full_frame_cache_root": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\detector_cache_full_frame_standard_v2_20260728_retry1",
+  "retention_class": "NON_DISPOSABLE_FROZEN_DETECTOR_AUTHORITY",
+  "schema_version": "tracking.full_frame_cache_git_binding.v1"
+}

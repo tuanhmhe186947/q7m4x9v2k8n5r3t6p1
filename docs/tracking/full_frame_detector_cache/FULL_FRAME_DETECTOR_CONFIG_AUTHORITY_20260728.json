@@ -1,0 +1,89 @@
+{
+  "bbox_coordinate_convention": "xyxy_absolute_float32_in_original_decoded_frame_coordinates",
+  "cache_serialization": "tracking.detector_evidence_cache.v2",
+  "class_policy": {
+    "allowed_class_name": null,
+    "class_id": null
+  },
+  "confidence_threshold": 0.25,
+  "date": "20260728",
+  "detector_authority_match": "PASS",
+  "detector_semantic_config": {
+    "allowed_class_name": null,
+    "class_id": null,
+    "det_conf": 0.25,
+    "detect_every_n_frames": 2,
+    "detector_call": "ultralytics.YOLO.predict",
+    "half": false,
+    "imgsz": 640,
+    "mask_input_frame": true,
+    "mask_sha256": "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658",
+    "max_raw_detections": 32,
+    "mode": "realtime",
+    "nms_iou": 0.5,
+    "preprocessing": {
+      "mask_application": "cv2.bitwise_and",
+      "mask_dilation": "MORPH_ELLIPSE",
+      "mask_read_mode": "IMREAD_GRAYSCALE",
+      "mask_threshold": 127,
+      "source_color_order": "OpenCV_BGR_as_read",
+      "ultralytics_letterbox": "library_default_for_imgsz"
+    },
+    "roi_dilate_px": 8,
+    "use_mask": true
+  },
+  "detector_semantic_config_sha256": "2b50d8afa950626e2bed6b41807cb602a01a90e66baf7529fa08945d3d676ef8",
+  "detector_weights_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\models\\detector\\pig_detector_yolov8.pt",
+  "detector_weights_sha256": "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+  "device": "cuda:0",
+  "effective_realtime_fast_config_sha256": "9bf4ce6d07423ab517b4705c716e3eb012349b756b7c0591cc3458eac207808d",
+  "environment": {
+    "cuda_available": true,
+    "cudnn_benchmark": false,
+    "cudnn_enabled": true,
+    "cudnn_version": 90100,
+    "deterministic_algorithms": false,
+    "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
+    "numpy": "2.3.5",
+    "opencv": "5.0.0",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python": "3.11.15 | packaged by Anaconda, Inc. | (main, Jun 11 2026, 15:12:53) [MSC v.1942 64 bit (AMD64)]",
+    "python_executable": "C:\\Users\\ironh\\anaconda3\\envs\\pig_project\\python.exe",
+    "torch": "2.5.1+cu121",
+    "torch_cuda": "12.1",
+    "ultralytics": "8.4.76"
+  },
+  "image_size": 640,
+  "maximum_detections": 32,
+  "model_architecture": {
+    "architecture_yaml_sha256": "c7a57eb73f5ef770bce796a0d7b4514d2854f7c620c1ebd4748e4eb08495128d",
+    "model_class": "ultralytics.nn.tasks.DetectionModel",
+    "names": {
+      "0": "Pig"
+    },
+    "parameter_count": 25856899,
+    "task": "detect",
+    "wrapper_class": "ultralytics.models.yolo.model.YOLO"
+  },
+  "model_architecture_sha256": "421432e2e6cecd44075f52009d9f2070c713b05dcaddc6bb3da41570d436e283",
+  "nms_iou": 0.5,
+  "output_sorting": "ultralytics_native_result_order",
+  "precision_mode": "FP32",
+  "preprocessing_authority": {
+    "baseline_generator_sha256": "d7bc07ed29dcb6ac6f5b7ff930b7c0aaf2bdd82d44e9c14ab0471ff45ad2b72c",
+    "imgsz": 640,
+    "mask_input_frame": true,
+    "mask_sha256": "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658",
+    "masks_py_sha256": "78a592c617d406fd3d356192e816d460318896269a5e6cc522ec1460786c76da",
+    "preprocessing": {
+      "mask_application": "cv2.bitwise_and",
+      "mask_dilation": "MORPH_ELLIPSE",
+      "mask_read_mode": "IMREAD_GRAYSCALE",
+      "mask_threshold": 127,
+      "source_color_order": "OpenCV_BGR_as_read",
+      "ultralytics_letterbox": "library_default_for_imgsz"
+    }
+  },
+  "preprocessing_sha256": "aa755613ce34d7a894e869695a62145c2898c3b5342568bd4bf853bf1d6b395d",
+  "schema_version": "tracking.full_frame_detector_config_authority.v1"
+}

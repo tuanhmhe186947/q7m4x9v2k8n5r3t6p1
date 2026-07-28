@@ -1,5 +1,22 @@
 • Kế Hoạch Tương Lai
 
+## Full-frame detector cache gate — 2026-07-28
+
+- Detector cache full-frame cho đúng 13 video development đã khóa đã PASS:
+  23.400 frame records, gồm 11.700 R0 even records giữ nguyên và 11.700 odd
+  records mới.
+- `EVEN_SUBSET_PARITY=PASS`; không inference lại frame chẵn, không chạy tracker,
+  evaluator, unseen data hoặc sinh MP4.
+- Có 12.100 physical odd-frame calls vì 400 retry cùng frame/cùng detector
+  authority sau lỗi khóa heartbeat tạm thời trên Windows; số odd records duy
+  nhất vẫn là 11.700.
+- Bước tiếp theo được phép lập task riêng để regenerate và freeze prediction
+  B0/B1 từ full-frame cache. R0 tiếp tục dùng frozen even subset và không rerun.
+- So sánh cross-core chỉ được diễn giải là whole-pipeline effect gồm detector
+  cadence; không được claim pure association-core effect.
+- Chưa được chạy Standard-V2 re-evaluation, development 2×2, unseen evaluation,
+  runtime funnel hoặc promotion.
+
 ## B0/B1 frozen prediction gate — 2026-07-28
 
 - Không chạy B0/B1 với cache R0 hiện tại: cache chỉ có frame chẵn

@@ -1,5 +1,24 @@
 # Current Decision
 
+## Full-frame development detector cache frozen (2026-07-28)
+
+- `CACHE_DECISION=PASS_FULL_FRAME_DETECTOR_CACHE_FROZEN`
+- The non-disposable cache authority contains 23,400 records: 1,800 frames
+  for each of the locked 13 development videos.
+- All 11,700 frozen R0 even-frame records remain byte-identical and
+  `EVEN_SUBSET_PARITY=PASS`.
+- The cache contains 11,700 unique newly inferred odd-frame records. Physical
+  odd-frame calls were 12,100 because 400 identical odd-frame retries were
+  required after a transient Windows heartbeat-file lock.
+- Even-frame inference calls, tracker executions, metric runs, unseen-video
+  accesses, and MP4 outputs were all zero.
+- B0 and B1 may use the full-frame cache in a separately authorized prediction
+  regeneration task. R0 remains bound to its frozen even-frame subset.
+- Cross-core comparisons measure the whole pipeline, including detector
+  cadence; a pure association-core effect claim is not authorized.
+- Authority records are under
+  `docs/tracking/full_frame_detector_cache/`.
+
 ## B0/B1 prediction regeneration blocked by detector cadence (2026-07-28)
 
 - `PREDICTION_REGENERATION_DECISION=FAIL_COMMON_DETECTOR_REPLAY_CONTRACT`
