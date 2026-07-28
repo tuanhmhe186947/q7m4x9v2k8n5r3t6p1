@@ -1,0 +1,89 @@
+{
+  "schema_version": "tracking.unseen_method_freeze.decision.v1",
+  "decision_id": "UNSEEN_METHOD_FREEZE_V1",
+  "date": "20260728",
+  "current_main_sha": "1a59871d77fb0336ee307ba4f0e2ca93917782cc",
+  "development_authority": {
+    "authority_path": "docs/tracking/development_2x2_standard_v2/DEVELOPMENT_2X2_STANDARD_V2_AUTHORITY_20260728.json",
+    "authority_sha256": "00bae01fb0a419df1ad02f868b28a3014ec0539359a9c42f7a365513866668be",
+    "decision": "PASS_COMPLETE_DEVELOPMENT_2X2_AUTHORITY_ESTABLISHED",
+    "decision_path": "docs/tracking/development_2x2_standard_v2/DEVELOPMENT_2X2_STANDARD_V2_DECISION_20260728.json",
+    "decision_sha256": "6bdfacc7cebf32df4bf422638a45e2d0f4dd261afd8beacc772cc6a411e8e838",
+    "status": "ESTABLISHED"
+  },
+  "development_result_hashes": {
+    "aggregate_effect_table_sha256": "dcbfe6225b22eb6ce3aacaa18495a92a8acc642e754676e5ee3ffd843bcabac6",
+    "per_alpha_effect_table_sha256": "5a2f33ef2d1b275d04f0cab042375f85acdc3ae7d864a0ff73de745c8a2812ad",
+    "per_video_effect_table_sha256": "df6c0307b6f5d079e93e18ee5d83dda8c6d5527be81d6ff4d2ccf74111eff460",
+    "repair_effect_classification_sha256": "cf554fbd4afaf28ab13c91a76fbc02f2c1423b6339e6f389d2bc6a7d29366ed5",
+    "scientific_conclusion_sha256": "175ef65195e986acc171d1656a29ad7fc0d3dfa78f04e8df29a57669a6bac38b"
+  },
+  "development_2x2_authority_valid": true,
+  "development_2x2_result_hashes_valid": true,
+  "method_selection_input_complete": true,
+  "primary_unseen_method": "realtime_fast",
+  "confirmatory_baseline": "bytetrack_raw",
+  "authorized_unseen_profiles": [
+    "realtime_fast",
+    "bytetrack_raw"
+  ],
+  "unauthorized_unseen_profiles": [
+    "hybrid_bytetrack",
+    "rf_hybrid_offline"
+  ],
+  "development_only_ablations": [
+    "hybrid_bytetrack",
+    "rf_hybrid_offline"
+  ],
+  "method_roles": {
+    "realtime_fast": "FINAL_FROZEN_CAUSAL_TRACKING_CANDIDATE_FOR_UNSEEN_SAME_BARN_EVALUATION",
+    "bytetrack_raw": "TECHNICAL_REFERENCE_BASELINE_FOR_CONFIRMATORY_WHOLE_PIPELINE_COMPARISON",
+    "hybrid_bytetrack": "DEVELOPMENT_ONLY_OFFLINE_REPAIR_ABLATION_WITH_MIXED_TRADEOFF",
+    "rf_hybrid_offline": "DEVELOPMENT_ONLY_NEGATIVE_OFFLINE_REPAIR_ABLATION"
+  },
+  "primary_selection_basis": [
+    "best HOTA",
+    "best IDF1",
+    "lowest wrong-ID exposure",
+    "fewest terminal identity-error episodes"
+  ],
+  "baseline_selection_basis": [
+    "raw technical reference",
+    "whole-pipeline transfer comparator"
+  ],
+  "profile_config_sha256": {
+    "realtime_fast": "9bf4ce6d07423ab517b4705c716e3eb012349b756b7c0591cc3458eac207808d",
+    "bytetrack_raw": "547ae86e3be26671a9a148cb0e613ea1c602a0ff842a977ce9b7f1d217c10e41"
+  },
+  "detector_authority": {
+    "weights_sha256": "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+    "semantic_config_sha256": "2b50d8afa950626e2bed6b41807cb602a01a90e66baf7529fa08945d3d676ef8"
+  },
+  "detector_cadence": {
+    "realtime_fast": "EVERY_2_FRAMES",
+    "bytetrack_raw": "EVERY_FRAME"
+  },
+  "evaluator_contract_id": "TRACKING_EVALUATOR_STANDARD_V2",
+  "identity_episode_contract_id": "IDENTITY_ERROR_EPISODES_V2",
+  "primary_include_hidden": true,
+  "unseen_role": "CONFIRMATORY",
+  "unseen_method_selection_complete": true,
+  "unseen_method_reselection_authorized": false,
+  "unseen_tuning_authorized": false,
+  "b1_unseen_execution_authorized": false,
+  "r1_unseen_execution_authorized": false,
+  "cross_core_comparison_scope": "WHOLE_PIPELINE_EFFECT_INCLUDING_DETECTOR_CADENCE",
+  "pure_association_core_effect_claim_authorized": false,
+  "audit_counts": {
+    "unseen_files_accessed": 0,
+    "unseen_videos_decoded": 0,
+    "tracker_executions": 0,
+    "detector_inference_calls": 0,
+    "evaluator_runs": 0,
+    "profile_registry_changes": 0
+  },
+  "decision": "PASS_UNSEEN_METHOD_SET_FROZEN",
+  "ready_for_unseen_data_authority_freeze": true,
+  "ready_for_unseen_evaluation": false,
+  "ready_to_promote": false
+}

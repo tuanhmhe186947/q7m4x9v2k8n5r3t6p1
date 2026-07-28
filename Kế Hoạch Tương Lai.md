@@ -1,5 +1,20 @@
 • Kế Hoạch Tương Lai
 
+## Confirmatory unseen method set frozen - 2026-07-28
+
+- `realtime_fast` is the frozen primary same-barn unseen candidate.
+- `bytetrack_raw` is the frozen confirmatory technical baseline.
+- `hybrid_bytetrack` and `rf_hybrid_offline` are development-only ablations;
+  neither is authorized for unseen execution.
+- The future R0-minus-B0 contrast is whole-pipeline and includes detector
+  cadence. It is not a pure association-core comparison.
+- Unseen work must preserve the frozen HOTA/IDF1 co-primary hierarchy and the
+  predeclared identity-severity diagnostics, using video as the statistical
+  unit and session/day as a secondary cluster.
+- Next gate: freeze the unseen-data authority in a separate task. Unseen file
+  access, execution, tuning, method reselection, evaluation, and promotion
+  remain unauthorized until their later explicit gates.
+
 ## Development tracking 2x2 Standard-V2 complete - 2026-07-28
 
 - Frozen B0/B1/R0 metric authorities were reused and frozen R1 was evaluated

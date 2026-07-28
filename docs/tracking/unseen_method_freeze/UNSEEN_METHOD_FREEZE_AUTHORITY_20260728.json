@@ -1,0 +1,99 @@
+{
+  "schema_version": "tracking.unseen_method_freeze.authority.v1",
+  "decision_id": "UNSEEN_METHOD_FREEZE_V1",
+  "date": "20260728",
+  "starting_main_sha": "1a59871d77fb0336ee307ba4f0e2ca93917782cc",
+  "execution_context": {
+    "branch_name": "agent/unseen-method-freeze-decision",
+    "worktree_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_tmp\\worktrees\\unseen_method_freeze_decision",
+    "worktree_clean_at_start": true,
+    "primary_worktree_dirty_paths": [
+      "scripts/classification_v2/01_review_units_gui/review_temporal_unit_gui.py",
+      "tests/test_classification_v2_behavior_gui_readiness.py",
+      ".claude/settings.local.json"
+    ],
+    "dirty_primary_method_freeze_path_intersection": 0
+  },
+  "development_2x2_authority": {
+    "path": "docs/tracking/development_2x2_standard_v2/DEVELOPMENT_2X2_STANDARD_V2_AUTHORITY_20260728.json",
+    "sha256": "00bae01fb0a419df1ad02f868b28a3014ec0539359a9c42f7a365513866668be",
+    "status": "ESTABLISHED",
+    "decision": "PASS_COMPLETE_DEVELOPMENT_2X2_AUTHORITY_ESTABLISHED"
+  },
+  "development_2x2_authority_valid": true,
+  "development_2x2_result_hashes_valid": true,
+  "method_selection_input_complete": true,
+  "bound_documents": {
+    "method_freeze_decision": {
+      "path": "docs/tracking/unseen_method_freeze/UNSEEN_METHOD_FREEZE_DECISION_20260728.json",
+      "sha256": "6aa5f718cf104f4f3af567f59b9aee4ace4b5d6d45a2beef5b445da5b02cb875"
+    },
+    "confirmatory_claim_contract": {
+      "path": "docs/tracking/unseen_method_freeze/UNSEEN_CONFIRMATORY_CLAIM_CONTRACT_20260728.md",
+      "sha256": "908773569c61c7f63139dac084c0d63e20ee6046e41a10e6ee8e858653d97735"
+    },
+    "profile_lifecycle_recommendation": {
+      "path": "docs/tracking/unseen_method_freeze/TRACKING_PROFILE_LIFECYCLE_RECOMMENDATION_20260728.json",
+      "sha256": "6dff6c1eb3910a95999f1277b39478bff32972715b36e5b4f7bc5da71ae66b84"
+    },
+    "metric_hierarchy": {
+      "path": "docs/tracking/unseen_method_freeze/UNSEEN_METRIC_HIERARCHY_FREEZE_20260728.json",
+      "sha256": "b4545ad1ab916d6df7bebbe2cd71a327a2a6ad67e3483e8bd2c73604cac256c3"
+    }
+  },
+  "prediction_artifact_sha256": {
+    "bytetrack_raw": "13d9226c36141264cc33e4b498d38e5f3eaa9891cf32bc4c8fb87b01fd27d576",
+    "hybrid_bytetrack": "569c49e00905add068fac70c919fe21c10127e3ab773528a4ac44199fcb4835b",
+    "realtime_fast": "fd2d4f3dec0710d1c9eecba9308247a7b226dd34a4a02a9cb89f17acb22bbbfe",
+    "rf_hybrid_offline": "40052f992871d50984fc4c0c839c4933b772bca2bfcaaaacafcde40d0e8a1800"
+  },
+  "primary_unseen_method": "realtime_fast",
+  "confirmatory_unseen_baseline": "bytetrack_raw",
+  "authorized_unseen_profiles": [
+    "realtime_fast",
+    "bytetrack_raw"
+  ],
+  "b1_unseen_execution_authorized": false,
+  "r1_unseen_execution_authorized": false,
+  "unseen_role": "CONFIRMATORY",
+  "unseen_method_selection_complete": true,
+  "unseen_method_reselection_authorized": false,
+  "unseen_tuning_authorized": false,
+  "co_primary_metrics": [
+    "HOTA",
+    "IDF1"
+  ],
+  "primary_identity_severity_metrics": [
+    "wrong-ID matched frames",
+    "wrong-ID matched seconds",
+    "terminal identity-error episodes",
+    "persistent pairwise identity swaps"
+  ],
+  "primary_statistical_unit": "VIDEO",
+  "secondary_cluster_unit": "SESSION_OR_DAY",
+  "cross_core_comparison_scope": "WHOLE_PIPELINE_EFFECT_INCLUDING_DETECTOR_CADENCE",
+  "pure_association_core_effect_claim_authorized": false,
+  "lifecycle_recommendations": {
+    "realtime_fast": "KEEP_PRIMARY_ACTIVE",
+    "bytetrack_raw": "KEEP_TECHNICAL_BASELINE",
+    "hybrid_bytetrack": "REVOKE_LEGACY_PROMOTION",
+    "rf_hybrid_offline": "DO_NOT_PROMOTE"
+  },
+  "audit_counts": {
+    "unseen_files_accessed": 0,
+    "unseen_videos_decoded": 0,
+    "tracker_executions": 0,
+    "detector_inference_calls": 0,
+    "evaluator_runs": 0,
+    "profile_registry_changes": 0
+  },
+  "decision": "PASS_UNSEEN_METHOD_SET_FROZEN",
+  "ready_for_unseen_data_authority_freeze": true,
+  "ready_for_unseen_evaluation": false,
+  "ready_to_promote": false,
+  "limitations": [
+    "No unseen data authority has been frozen in this task.",
+    "No unseen access or execution is authorized by this document.",
+    "Runtime cleanup for development-only B1 and R1 profiles is a separate future task."
+  ]
+}

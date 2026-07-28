@@ -1,5 +1,23 @@
 # Current Decision
 
+## Confirmatory unseen method set frozen (2026-07-28)
+
+- `PASS_UNSEEN_METHOD_SET_FROZEN`.
+- Primary unseen method: frozen causal `realtime_fast`.
+- Confirmatory technical baseline: frozen `bytetrack_raw`.
+- `hybrid_bytetrack` and `rf_hybrid_offline` remain development-only
+  ablations and are not authorized for unseen execution.
+- Recommend revoking B1's legacy promotion in a separate lifecycle task;
+  recommend not promoting R1. Runtime profiles are unchanged here.
+- Future unseen comparison is confirmatory and whole-pipeline, including
+  profile-specific detector cadence. It cannot support a pure
+  association-core claim.
+- Co-primary metrics are HOTA and IDF1. Primary identity-severity metrics are
+  wrong-ID frames/seconds, terminal identity-error episodes, and persistent
+  pairwise swaps.
+- The next gate is a separate unseen-data authority freeze. No unseen access,
+  execution, tuning, reselection, evaluation, or promotion is yet authorized.
+
 ## Development tracking 2x2 Standard-V2 complete (2026-07-28)
 
 - `PASS_COMPLETE_DEVELOPMENT_2X2_AUTHORITY_ESTABLISHED`.

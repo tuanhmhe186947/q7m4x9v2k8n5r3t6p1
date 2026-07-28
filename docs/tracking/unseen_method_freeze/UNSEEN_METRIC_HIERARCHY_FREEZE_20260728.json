@@ -1,0 +1,46 @@
+{
+  "schema_version": "tracking.unseen_metric_hierarchy.v1",
+  "date": "20260728",
+  "evaluator_contract_id": "TRACKING_EVALUATOR_STANDARD_V2",
+  "identity_episode_contract_id": "IDENTITY_ERROR_EPISODES_V2",
+  "primary_include_hidden": true,
+  "co_primary_metrics": [
+    "HOTA",
+    "IDF1"
+  ],
+  "primary_identity_severity_metrics": [
+    "wrong-ID matched frames",
+    "wrong-ID matched seconds",
+    "terminal identity-error episodes",
+    "persistent pairwise identity swaps"
+  ],
+  "supporting_metrics": [
+    "DetA",
+    "AssA",
+    "LocA",
+    "IDP",
+    "IDR",
+    "IDSW_STANDARD",
+    "FP",
+    "FN",
+    "fragmentation",
+    "identity-error episode count",
+    "recovery latency",
+    "normalized IDSW",
+    "normalized wrong-ID exposure"
+  ],
+  "weighted_composite_metric_authorized": false,
+  "idsw_only_winner_selection_authorized": false,
+  "primary_statistical_unit": "VIDEO",
+  "secondary_cluster_unit": "SESSION_OR_DAY",
+  "frames_are_independent_statistical_units": false,
+  "required_future_summaries": [
+    "per-video results",
+    "aggregate results",
+    "median and IQR",
+    "worst-video performance",
+    "number of videos improving and worsening",
+    "fixed-seed paired bootstrap when valid aggregate reconstruction is supported"
+  ],
+  "result_based_unseen_video_selection_authorized": false
+}

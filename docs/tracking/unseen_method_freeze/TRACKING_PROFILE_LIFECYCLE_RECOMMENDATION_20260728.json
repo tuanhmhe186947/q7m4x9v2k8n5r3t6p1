@@ -1,0 +1,39 @@
+{
+  "schema_version": "tracking.profile_lifecycle.recommendation.v1",
+  "date": "20260728",
+  "authority_type": "RECOMMENDATION_ONLY",
+  "runtime_profile_registry_modified": false,
+  "profiles": {
+    "realtime_fast": {
+      "recommendation": "KEEP_PRIMARY_ACTIVE",
+      "future_role": "PRIMARY_CONFIRMATORY_UNSEEN_METHOD"
+    },
+    "bytetrack_raw": {
+      "recommendation": "KEEP_TECHNICAL_BASELINE",
+      "future_role": "CONFIRMATORY_WHOLE_PIPELINE_REFERENCE"
+    },
+    "hybrid_bytetrack": {
+      "recommendation": "REVOKE_LEGACY_PROMOTION",
+      "future_role": "DEVELOPMENT_ONLY_HISTORICAL_ABLATION",
+      "runtime_cleanup": "SEPARATE_FUTURE_TASK",
+      "unseen_execution_authorized": false
+    },
+    "rf_hybrid_offline": {
+      "recommendation": "DO_NOT_PROMOTE",
+      "future_role": "DEVELOPMENT_ONLY_NEGATIVE_ABLATION",
+      "runtime_cleanup": "SEPARATE_FUTURE_TASK",
+      "unseen_execution_authorized": false
+    }
+  },
+  "scientific_basis": {
+    "realtime_fast": [
+      "best development HOTA",
+      "best development IDF1",
+      "lowest development wrong-ID exposure",
+      "fewest development terminal identity-error episodes"
+    ],
+    "hybrid_bytetrack": "MIXED_TRADEOFF",
+    "rf_hybrid_offline": "BROADLY_HARMFUL"
+  },
+  "profile_registry_changes": 0
+}
