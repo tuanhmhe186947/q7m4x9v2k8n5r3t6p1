@@ -1,0 +1,56 @@
+{
+  "schema_version": "tracking.frozen_b0_b1_r0.metric_contract.v1",
+  "date": "20260728",
+  "status": "FROZEN_NOT_EXECUTED_ARTIFACT_GATE_FAILED",
+  "evaluator_contract_id": "TRACKING_EVALUATOR_STANDARD_V2",
+  "identity_episode_contract_id": "IDENTITY_ERROR_EPISODES_V2",
+  "matching_contract_id": "TRACKING_MATCHING_STANDARD_V2",
+  "evaluator_code_sha": "f441705e85dfe1e1514765f3723415df702c9f97",
+  "metric_config_sha256": "913ac4bc29fdc6862078c9a391d4340329337006c434a4fb5524b0808f22c446",
+  "metric_config": {
+    "hota_alpha_set": [
+      0.05,
+      0.10,
+      0.15,
+      0.20,
+      0.25,
+      0.30,
+      0.35,
+      0.40,
+      0.45,
+      0.50,
+      0.55,
+      0.60,
+      0.65,
+      0.70,
+      0.75,
+      0.80,
+      0.85,
+      0.90,
+      0.95
+    ],
+    "matching_eligibility": "pre_assignment",
+    "sequence_boundary": "video",
+    "idsw_policy": "IDSW_STANDARD",
+    "include_hidden": true,
+    "identity_authority_policy": "IDENTITY_AUTHORITY_FIRST_OBSERVATION_V2",
+    "episode_max_frame_delta": 15,
+    "pairwise_persistence_observations": 60
+  },
+  "primary_include_hidden": true,
+  "secondary_visible_only_allowed": true,
+  "aggregation_policy": {
+    "hota": "TrackEval dataset combination of per-alpha sufficient statistics",
+    "identity": "sum per-sequence IDTP/IDFP/IDFN then recompute ratios",
+    "counts": "sum across videos",
+    "rates": "recompute from pooled sufficient statistics",
+    "per_video_mean_is_canonical": false
+  },
+  "normalization_exposure": "authoritative matched GT animal-frames",
+  "reference_parity_status": "PASS",
+  "reference_commit_sha": "12c8791b303e0a0b50f753af204249e622d0281a",
+  "execution_blocker": [
+    "B0 frozen prediction bytes are absent.",
+    "Promoted B1 frozen prediction bytes are absent."
+  ]
+}

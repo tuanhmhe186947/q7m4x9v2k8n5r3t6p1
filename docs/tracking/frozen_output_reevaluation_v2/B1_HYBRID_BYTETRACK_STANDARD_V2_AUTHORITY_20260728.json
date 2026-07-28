@@ -1,0 +1,40 @@
+{
+  "schema_version": "tracking.standard_v2.arm_authority.v1",
+  "date": "20260728",
+  "arm": "B1",
+  "profile": "hybrid_bytetrack",
+  "status": "ARTIFACT_AUTHORITY_MISSING",
+  "promoted_run_id": "20260719_h5b_h4_full13_combined_v2",
+  "expected_prediction_root": "outputs/pred/tracking_hybrid_residual/20260719_h5b_h4_full13_combined_v2",
+  "available_promoted_prediction_xml": 0,
+  "expected_prediction_xml": 13,
+  "promotion_authority": {
+    "path": "docs/TRACKING_PROMOTION_DECISION_20260719_HYBRID_H5B_H4.json",
+    "sha256": "76b480461ab004bd52bf68e0f61de8caea8998eb9667c75f21bd88b0facbe6ed",
+    "primary_run_manifest_sha256": "529993303fabaa64ac7ccf1e8aff55731e57b1afe1892a18c0ffd7ac4f9a3483",
+    "repeat_run_manifest_sha256": "9ac39d8a115b99a7f6b2c4131b308e9258f405fcb629a2f4cddc71c57d0137e9",
+    "repeatability_authority_sha256": "c88fe8241c85c609b67753ad229e3bcf23ac9f8ca8ac8d3485a8fcbafd8327bb"
+  },
+  "excluded_pre_promotion_candidates": [
+    {
+      "run_id": "20260717_ec67d27_full13_primary_hybrid_best",
+      "prediction_set_sha256": "4de215a28179401b591efbed80a56e2dc79b1999095284a4f58c5d2c0d2cca17"
+    },
+    {
+      "run_id": "20260717_ec67d27_full13_repeat_hybrid_best",
+      "prediction_set_sha256": "bd5201ce319f07d0b0b5b9afd2db7f54def039a6334481e50a6dac6d968f1a52"
+    }
+  ],
+  "prediction_artifact_sha256": "NOT_AVAILABLE",
+  "evaluator_contract_id": "TRACKING_EVALUATOR_STANDARD_V2",
+  "identity_episode_contract_id": "IDENTITY_ERROR_EPISODES_V2",
+  "include_hidden": true,
+  "aggregate_metrics": "NOT_MEASURED",
+  "per_video_metrics": "NOT_MEASURED",
+  "identity_episode_table": "NOT_MEASURED",
+  "determinism_status": "NOT_RUN",
+  "authority_limitations": [
+    "Pre-promotion hybrid_best bytes cannot represent promoted H5b/H4 B1.",
+    "This task did not regenerate B1."
+  ]
+}

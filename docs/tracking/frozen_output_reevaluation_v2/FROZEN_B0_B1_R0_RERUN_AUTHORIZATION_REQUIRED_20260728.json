@@ -1,0 +1,23 @@
+{
+  "schema_version": "tracking.frozen_b0_b1_r0.rerun_authorization_required.v1",
+  "date": "20260728",
+  "rerun_authorized_by_this_task": false,
+  "affected_arms": [
+    "B0_bytetrack_raw",
+    "B1_hybrid_bytetrack"
+  ],
+  "required_future_decision": "SEPARATE_TRACKER_RERUN_AUTHORIZATION",
+  "required_contract": [
+    "Freeze the same 13 source-video and GT hashes before execution.",
+    "Use the active B0 and B1 profile config hashes without tuning.",
+    "Use one common detector-evidence authority across B0, B1 and R0.",
+    "Generate immutable per-video predictions with raw and canonical hashes.",
+    "Keep include_hidden=true as the later Standard-V2 primary policy.",
+    "Run no R1 evaluation until B0, B1 and R0 frozen authorities are complete."
+  ],
+  "prohibited_shortcuts": [
+    "Do not substitute the pre-promotion 20260717 hybrid_best run for B1.",
+    "Do not reconstruct predictions from legacy aggregate metric rows.",
+    "Do not choose a replacement run after inspecting corrected metrics."
+  ]
+}

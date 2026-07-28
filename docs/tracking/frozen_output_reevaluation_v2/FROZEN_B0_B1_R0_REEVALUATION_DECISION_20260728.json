@@ -1,0 +1,82 @@
+{
+  "schema_version": "tracking.frozen_b0_b1_r0.reevaluation_decision.v1",
+  "date": "20260728",
+  "starting_main_sha": "f441705e85dfe1e1514765f3723415df702c9f97",
+  "branch_name": "agent/tracking-frozen-output-reevaluation-v2",
+  "worktree_path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/tracking_frozen_output_reevaluation_v2",
+  "primary_worktree_dirty_paths": [],
+  "reevaluation_worktree_clean_before_edits": true,
+  "decision": "FAIL_B0_ARTIFACT_AUTHORITY",
+  "arm_authorities": {
+    "B0_bytetrack_raw": "ARTIFACT_AUTHORITY_MISSING",
+    "B1_hybrid_bytetrack": "ARTIFACT_AUTHORITY_MISSING",
+    "R0_realtime_fast": "INCONCLUSIVE"
+  },
+  "artifact_findings": {
+    "B0_expected_xml": 13,
+    "B0_available_xml": 0,
+    "B1_promoted_expected_xml": 13,
+    "B1_promoted_available_xml": 0,
+    "B1_pre_promotion_xml_excluded": 26,
+    "R0_expected_xml": 13,
+    "R0_available_xml": 13,
+    "R0_prediction_set_sha256": "fd2d4f3dec0710d1c9eecba9308247a7b226dd34a4a02a9cb89f17acb22bbbfe"
+  },
+  "fairness_gates": {
+    "common_video_authority": "FAIL",
+    "common_frame_authority": "FAIL",
+    "common_gt_authority": "FAIL",
+    "common_detector_authority": "FAIL",
+    "common_hidden_policy": "FAIL",
+    "common_evaluator_authority": "FAIL"
+  },
+  "evaluation_outputs": {
+    "aggregate_metrics_created": false,
+    "per_video_metrics_created": false,
+    "identity_episodes_created": false,
+    "pairwise_swaps_created": false,
+    "exposure_metrics_created": false,
+    "legacy_v2_reconciliation_created": false,
+    "determinism_run_created": false
+  },
+  "conservation": {
+    "adapter_conservation": "NOT_RUN",
+    "wrong_id_row_conservation": "NOT_RUN",
+    "identity_episode_double_count": "NOT_MEASURED",
+    "pairwise_swap_double_count": "NOT_MEASURED",
+    "tp_fp_fn_conservation": "NOT_RUN"
+  },
+  "execution_counts": {
+    "tracker_executions": 0,
+    "detector_inference_calls": 0,
+    "gpu_inference_runs": 0,
+    "prediction_artifacts_regenerated": 0,
+    "run_root_mp4_count": 0,
+    "unseen_videos_accessed": false
+  },
+  "historical_outputs_rewritten": 0,
+  "rf_hybrid_offline_evaluated": false,
+  "verification": {
+    "artifact_discovery_gate": "PASS_FAIL_CLOSED",
+    "authority_json_parse": "8/8",
+    "artifact_inventory_csv_parse": "PASS",
+    "standard_v2_synthetic_tests": "91/91",
+    "trackeval_reference_parity_tests": "10/10",
+    "profile_cache_lineage_tests": "67/67",
+    "ruff": "PASS",
+    "compileall": "PASS",
+    "git_diff_check": "PASS",
+    "new_run_root_mp4_audit": "PASS"
+  },
+  "ready_for_development_2x2_evaluation": false,
+  "ready_for_unseen_evaluation": false,
+  "ready_for_runtime_funnel": false,
+  "ready_to_promote": false,
+  "blockers": [
+    "B0 prediction root is absent; 0/13 frozen XML files remain.",
+    "Promoted B1 H5b/H4 prediction root is absent; 0/13 frozen XML files remain.",
+    "The surviving 20260717 hybrid_best XMLs predate B1 promotion and are not substitutable.",
+    "Three-arm population, GT, detector and evaluator fairness cannot be proven."
+  ],
+  "closure_policy": "DOCS_ONLY_NO_PARTIAL_STANDARD_V2_AUTHORITY"
+}

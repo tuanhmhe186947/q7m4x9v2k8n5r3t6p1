@@ -1,0 +1,35 @@
+{
+  "schema_version": "tracking.standard_v2.arm_authority.v1",
+  "date": "20260728",
+  "arm": "R0",
+  "profile": "realtime_fast",
+  "status": "INCONCLUSIVE",
+  "frozen_artifact_authority": "ESTABLISHED",
+  "run_id": "current_main_baseline_20260728",
+  "prediction_root": "outputs/tracking/current_main_baseline_20260728/predictions",
+  "prediction_xml_count": 13,
+  "prediction_set_sha256": "fd2d4f3dec0710d1c9eecba9308247a7b226dd34a4a02a9cb89f17acb22bbbfe",
+  "prediction_manifest": {
+    "path": "outputs/tracking/current_main_baseline_20260728/ARTIFACT_SHA256.json",
+    "sha256": "461f2300318ab26134bb36beb78957a6642cbd361de9d74492f9cd09db688223"
+  },
+  "run_manifest": {
+    "path": "outputs/tracking/current_main_baseline_20260728/CURRENT_MAIN_BASELINE_RUN_MANIFEST.json",
+    "sha256": "9885138ab701b53fe7d4d1a85ba5a10bf9940ba39266409ef15d4dfba459d966"
+  },
+  "source_video_manifest_sha256": "91289c9acb40958e59c17e98872714904f8df7e4c49682a4649e7fcc84bab9be",
+  "gt_authority_sha256": "675cf37c4f924e391ffa457ba6c6e9453b967af318f37ecd2bc1ab1190a1d9dd",
+  "detector_weight_sha256": "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+  "detector_semantic_config_sha256": "2b50d8afa950626e2bed6b41807cb602a01a90e66baf7529fa08945d3d676ef8",
+  "evaluator_contract_id": "TRACKING_EVALUATOR_STANDARD_V2",
+  "identity_episode_contract_id": "IDENTITY_ERROR_EPISODES_V2",
+  "include_hidden": true,
+  "aggregate_metrics": "NOT_MEASURED",
+  "per_video_metrics": "NOT_MEASURED",
+  "identity_episode_table": "NOT_MEASURED",
+  "determinism_status": "NOT_RUN",
+  "authority_limitations": [
+    "R0 prediction authority is intact.",
+    "V2 evaluation was not run after the mandatory three-arm population gate failed."
+  ]
+}
