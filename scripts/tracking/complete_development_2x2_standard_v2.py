@@ -551,6 +551,20 @@ def classify_repair(
     return "MIXED_TRADEOFF"
 
 
+def _json_safe_record(row: pd.Series) -> dict[str, Any]:
+    """Convert a pandas row to strict JSON scalars with null missing values."""
+
+    result: dict[str, Any] = {}
+    for key, value in row.items():
+        if isinstance(value, (float, np.floating)) and np.isnan(value):
+            result[str(key)] = None
+        elif isinstance(value, np.generic):
+            result[str(key)] = value.item()
+        else:
+            result[str(key)] = value
+    return result
+
+
 def _raw_shapes(path: Path) -> dict[int, list[TrackingObject]]:
     payload = baseline.load_json(path)
     frames: dict[int, list[TrackingObject]] = defaultdict(list)
@@ -967,7 +981,9 @@ def freeze(
         / f"DEVELOPMENT_2X2_REPAIR_EVENT_CONSERVATION_{DATE}.json",
         attribution_conservation,
     )
-    r1_row = aggregate.loc[aggregate["arm"] == "R1"].iloc[0].to_dict()
+    r1_row = _json_safe_record(
+        aggregate.loc[aggregate["arm"] == "R1"].iloc[0]
+    )
     authority = {
         "schema_version": "tracking.development_2x2.authority.v1",
         "date": DATE,

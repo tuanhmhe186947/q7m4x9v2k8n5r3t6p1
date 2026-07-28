@@ -121,3 +121,13 @@ def test_r1_repeat_requires_all_authority_tables() -> None:
         {"output_hashes": changed},
     )
     assert failed["R1_reevaluation_repeatability"] == "FAIL"
+
+
+def test_json_safe_record_converts_optional_nan_to_null() -> None:
+    module = _load_module()
+
+    record = module._json_safe_record(
+        pd.Series({"metric": 1.0, "optional": float("nan")})
+    )
+
+    assert record == {"metric": 1.0, "optional": None}
