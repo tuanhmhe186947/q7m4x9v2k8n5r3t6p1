@@ -560,6 +560,8 @@ def r0_public_shapes(source_repo: Path, video_key: str) -> list[dict[str, Any]]:
         / R0_ROOT_RELATIVE
         / "predictions"
         / video_key
+        / "realtime"
+        / video_key
         / "annotations_cvat_shapes.json"
     )
     payload = load_json(path)
@@ -640,6 +642,30 @@ def run_r1(source_repo: Path, output_root: Path) -> None:
     from pig_behavior.tracking.runner import run_tracking
 
     state = load_json(output_root / STATE_FILE)
+    if state.get("phase") == "FAILED_RUN_R1":
+        retained_roots = (
+            output_root / "predictions",
+            output_root / "machine_readable",
+            output_root / "raw_core_snapshots",
+            output_root / "repair_ledgers",
+        )
+        if any(
+            path.is_file()
+            for retained_root in retained_roots
+            for path in retained_root.rglob("*")
+        ):
+            raise R1AuthorityError(
+                "cannot resume R1 after partial artifact generation"
+            )
+        update_state(
+            output_root,
+            status="READY",
+            phase="AWAITING_R1",
+            videos_completed=0,
+            current_video_key=None,
+            recovered_pre_execution_failure=True,
+        )
+        state = load_json(output_root / STATE_FILE)
     if state.get("phase") != "AWAITING_R1":
         raise R1AuthorityError("R1 output root is not awaiting execution")
     preflight_payload = load_json(output_root / PREFLIGHT_FILE)
