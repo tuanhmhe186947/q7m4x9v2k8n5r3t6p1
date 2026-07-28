@@ -1,5 +1,25 @@
 # Project Memory Short
 
+## 2026-07-29 three-mode historical prediction reconstruction
+
+- Surviving historical prediction bytes were found and frozen for all three
+  lineages. No historical tracker or detector execution was needed.
+- B0/raw changed at the detector-producer boundary: historical persistent
+  `model.track` at effective confidence `0.20` differs from current cached
+  `model.predict` evidence at `0.25/32`. Current B0 is broadly better under the
+  common Standard-V2 contract, with the explicit limitation that IDSW worsened
+  from `76` to `84`.
+- Historical RF_ACC23 and current R0 have identical scientific rows and
+  identical Standard-V2 metrics. The apparent historical/current change is
+  evaluator-only; a current-R0 improvement claim is contradicted.
+- Historical H5b/H4 remains stronger than current B1 and current R0. The failed
+  cache replay collapsed all `262` extra low-confidence rows before the tracker
+  boundary and used `model.predict` rows instead of historical persistent
+  `model.track`/ByteTrack state.
+- Decision: `PASS_WITH_EXPLICIT_NOT_RECOVERABLE_LINEAGES`. A docs-only
+  superseding method-freeze decision is the next bounded tracking task. Unseen
+  data access, unseen evaluation, and promotion remain unauthorized.
+
 ## 2026-07-29 tracking scientific-grounding authority
 
 - One ledger now separates historical and current method identities, effective

@@ -1,5 +1,20 @@
 # Workflow
 
+## Tracking workflow after three-mode reconstruction (2026-07-29)
+
+- Use the three independent authorities under
+  `docs/tracking/three_mode_historical_reconstruction/` for historical/current
+  B0, R0, and B1 claims. Do not infer one lineage from another.
+- Treat RF_ACC23 and current R0 as the same scientific prediction artifact for
+  the scoped full-13 comparison; do not claim a current-R0 improvement.
+- State the B0 result as a whole-pipeline development-set improvement with the
+  IDSW limitation, not as a pure ByteTrack algorithm improvement.
+- Treat surviving H5b/H4 XMLs as the historical hybrid authority. Do not use
+  current B1 or the failed `0.20/64` replay as its executable substitute.
+- The only next tracking task is a docs-only superseding method-freeze
+  decision. Do not access unseen data, run tracking, alter profiles, or promote
+  a method during that decision.
+
 ## Tracking authority use after scientific grounding (2026-07-29)
 
 - Resolve tracking names through

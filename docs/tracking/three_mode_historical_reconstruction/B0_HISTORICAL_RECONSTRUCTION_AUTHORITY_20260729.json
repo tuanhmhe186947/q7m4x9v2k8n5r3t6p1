@@ -1,0 +1,160 @@
+{
+  "artifact_search": "SURVIVING_PREDICTIONS_FOUND",
+  "comparison_status": "PREDICTION_CHANGED_MULTIPLE_CAUSES",
+  "confirmed_causes": [
+    {
+      "cause": "DETECTOR_CONFIGURATION_CHANGED",
+      "current": "frozen YOLO.predict cache was produced at det_conf=0.25 and max_raw_detections=32",
+      "historical": "det_conf=0.20 inherited at e7fc039; max_raw_detections=20 was configured but not forwarded by the model.track call"
+    },
+    {
+      "cause": "DETECTOR_TRACKER_BOUNDARY_TOPOLOGY_CHANGED",
+      "current": "ReplayDetector.track returned cached YOLO.predict rows; the replay cache contains no Ultralytics ByteTrack state",
+      "historical": "live persistent model.track returned Ultralytics ByteTrack boxes and raw IDs"
+    }
+  ],
+  "current_improvement_claim": {
+    "authorized": true,
+    "basis": "Current B0 has higher HOTA and IDF1, fewer FP/FN, fewer wrong-ID frames, fewer terminal episodes, and fewer persistent swaps under the same Standard V2 evaluator",
+    "limitation": "IDSW_STANDARD worsened from 76 to 84; this is a whole-pipeline result, not a pure ByteTrack-algorithm improvement",
+    "scope": "locked 13-video development population only",
+    "status": "AUTHORIZED_WITH_LIMITATION"
+  },
+  "current_prediction_artifact_sha256": "13d9226c36141264cc33e4b498d38e5f3eaa9891cf32bc4c8fb87b01fd27d576",
+  "date": "20260729",
+  "detector_inference_calls": 0,
+  "exact_historical_execution": "NOT_ESTABLISHED_AND_NOT_RUN",
+  "execution_limit": "Surviving predictions are primary evidence. Exact live model.track detector/ByteTrack rows and the full package lock do not survive.",
+  "first_divergent_stage": "detector producer",
+  "historical_prediction_artifact_sha256": "f8eeca29391fd6d02019da1c76ee9045f9bdf3143a6fb856548b81e40b832e4d",
+  "historical_reproduction_status": "HISTORICAL_PREDICTIONS_SURVIVE",
+  "historical_run_id": "20260719_7e38234_primary_v1",
+  "historical_source_sha": "e7fc039a674437b4c25f7a75c5adbc341fc15fa1",
+  "method_id": "bytetrack_raw",
+  "prediction_parity": {
+    "bbox_exact_differences": 187096,
+    "bbox_numeric_serialization_differences": 0,
+    "bbox_tolerance_violations": 187096,
+    "byte_equal": false,
+    "canonical_content_equal": false,
+    "confidence_differences": 0,
+    "first_divergence": {
+      "first": [
+        "1",
+        "Pig_1",
+        1,
+        "ID_1",
+        "No",
+        "0",
+        "0",
+        [
+          835.32,
+          272.89,
+          979.7,
+          470.18
+        ],
+        null
+      ],
+      "frame": 1,
+      "second": [
+        "1",
+        "Pig_1",
+        1,
+        "ID_1",
+        "No",
+        "0",
+        "0",
+        [
+          824.54,
+          268.77,
+          982.36,
+          469.34
+        ],
+        null
+      ],
+      "track_id": "1",
+      "video_key": "Pigs281119_000085_30fps"
+    },
+    "first_row_count": 187200,
+    "frame_index_differences": 0,
+    "hidden_state_differences": 1978,
+    "identity_differences": 0,
+    "maximum_absolute_bbox_coordinate_difference": 1017.24,
+    "metadata_or_non_scientific_only_difference": false,
+    "minimum_paired_bbox_iou": 0.0,
+    "ordering_differences": 0,
+    "path": "docs/tracking/three_mode_historical_reconstruction/B0_HISTORICAL_VS_CURRENT_PREDICTION_PARITY_20260729.json",
+    "row_additions": 0,
+    "row_removals": 0,
+    "second_row_count": 187200,
+    "sha256": "b9a2f551a57760d3de5c34d11ab67d810669afbcaff539ec0cee509e252fd648",
+    "videos_compared": 13
+  },
+  "root_cause": "B0_MULTIPLE_CONFIRMED_CAUSES",
+  "schema_version": "tracking.three_mode.b0_historical_authority.v1",
+  "scientific_comparison": {
+    "detector_effect": "CONFIRMED_BUT_NOT_ISOLATED",
+    "evaluator_effect": "CONFIRMED_LEGACY_TO_STANDARD_V2",
+    "method_version_effect": "CONFIRMED_TOPOLOGY_CHANGE_NOT_ISOLATED",
+    "prediction_effect": "CONFIRMED",
+    "unknown_effect": "Original historical detector/ByteTrack boundary rows and complete package lock are unavailable"
+  },
+  "source_copy_byte_parity": {
+    "path": "docs/tracking/three_mode_historical_reconstruction/B0_HISTORICAL_SOURCE_VS_FROZEN_COPY_PARITY_20260729.json",
+    "sha256": "b0fe8e4d31f258634460a0d7cab7e27f82e38fd755861a5ee51713b60326f524"
+  },
+  "standard_v2": {
+    "authority": {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\three_mode_historical_reconstruction_20260729\\standard_v2\\pass_1\\THREE_MODE_STANDARD_V2_AUTHORITY.json",
+      "sha256": "53955d51e730f6af8cbc5974721d4d4806b8cb965e0dedd60fd31dee20d46f14"
+    },
+    "current": {
+      "assa": 0.8027308861489667,
+      "deta": 0.899665397523998,
+      "fn": 480,
+      "fp": 480,
+      "fragments": 141,
+      "hota": 0.8495114026998035,
+      "id_precision": 0.9206463675213675,
+      "id_recall": 0.9206463675213675,
+      "identity_error_episode_count": 72,
+      "idf1": 0.9206463675213675,
+      "idsw_standard": 84,
+      "loca": 0.9205883882177472,
+      "persistent_pairwise_identity_swap_count": 10,
+      "recovered_identity_error_episode_count": 45,
+      "terminal_identity_error_episode_count": 27,
+      "wrong_id_matched_frames": 31846
+    },
+    "historical": {
+      "assa": 0.7561194145454864,
+      "deta": 0.8763498952010919,
+      "fn": 1577,
+      "fp": 1577,
+      "fragments": 481,
+      "hota": 0.8135755795627498,
+      "id_precision": 0.8863621794871794,
+      "id_recall": 0.8863621794871794,
+      "identity_error_episode_count": 65,
+      "idf1": 0.8863621794871794,
+      "idsw_standard": 76,
+      "loca": 0.9252211917755587,
+      "persistent_pairwise_identity_swap_count": 11,
+      "recovered_identity_error_episode_count": 29,
+      "terminal_identity_error_episode_count": 34,
+      "wrong_id_matched_frames": 38916
+    }
+  },
+  "status": "ESTABLISHED_WITH_LIMITATIONS",
+  "supersedes": [
+    {
+      "path": "docs/tracking/scientific_grounding/TRACKING_SCIENTIFIC_GROUNDING_AUTHORITY_20260729.json",
+      "sha256": "067d52d12b54d08033a2f782260214cc8470f52ead817861159b8adf71ec7384"
+    },
+    {
+      "path": "docs/tracking/historical_h5b_h4_executable_reproduction/HISTORICAL_H5B_H4_EXECUTABLE_REPRODUCTION_AUTHORITY_20260729.json",
+      "sha256": "77fb1d4f2f0399584594cae0221c9c6ce77169a7341c0c175d22b3eff5f4df02"
+    }
+  ],
+  "tracker_executions": 0
+}

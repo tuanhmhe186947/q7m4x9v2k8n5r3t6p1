@@ -1,0 +1,100 @@
+{
+  "artifact_search": {
+    "B0": "SURVIVING_PREDICTIONS_FOUND",
+    "B1": "SURVIVING_PREDICTIONS_FOUND",
+    "R0": "SURVIVING_PREDICTIONS_FOUND",
+    "inventory": {
+      "path": "docs/tracking/three_mode_historical_reconstruction/THREE_MODE_HISTORICAL_ARTIFACT_SEARCH_20260729.csv",
+      "sha256": "308e2af3c4ba6fb639b8fb0f1a405be4bec9456d967d88849f112801165be4df"
+    }
+  },
+  "blockers": [
+    "B1 original persistent model.track/ByteTrack boundary rows do not survive",
+    "B1 exact historical Ultralytics/package environment is unrecovered",
+    "B0 original detector/ByteTrack boundary rows and full package lock do not survive"
+  ],
+  "causal_matrix": {
+    "path": "docs/tracking/three_mode_historical_reconstruction/THREE_MODE_HISTORICAL_DIFFERENCE_CAUSAL_MATRIX_20260729.csv",
+    "sha256": "d67cfd29317c0ffc124dff0c80cbe4a587a11c8613c301635805e8e18d46b05a"
+  },
+  "claim_matrix": {
+    "path": "docs/tracking/three_mode_historical_reconstruction/THREE_MODE_CLAIM_CORRECTION_20260729.csv",
+    "sha256": "55c75f4f335fe9a7f9e9d2eaa6598a7f4445d61dbd2eaad16e5df12ef7337fb5"
+  },
+  "current_2x2_internal_authority": "VALID_WITH_LIMITATIONS",
+  "current_2x2_represents_true_historical_best": false,
+  "current_prediction_authority": {
+    "path": "docs/tracking/three_mode_historical_reconstruction/CURRENT_THREE_MODE_PREDICTION_AUTHORITY_20260729.json",
+    "sha256": "796dd7af6f92409bfd541032aa2679d677209a22d40d6cfdc3eddd1149a2676e"
+  },
+  "current_r0_better_than_current_b1": true,
+  "date": "20260729",
+  "decision": "PASS_WITH_EXPLICIT_NOT_RECOVERABLE_LINEAGES",
+  "execution_counts": {
+    "B0_tracker_executions": 0,
+    "B1_tracker_executions": 0,
+    "R0_tracker_executions": 0,
+    "config_variants_per_mode": 1,
+    "detector_inference_calls": 0,
+    "evaluator_runs": 6,
+    "post_result_parameter_changes": 0,
+    "unseen_files_accessed": 0
+  },
+  "historical_h5b_h4_better_than_current_r0": true,
+  "independent_authorities": {
+    "B0": {
+      "path": "docs/tracking/three_mode_historical_reconstruction/B0_HISTORICAL_RECONSTRUCTION_AUTHORITY_20260729.json",
+      "sha256": "0f812423ec133e3d81f3dcbd2516e7a4242a03e03c58c23d6586d9c2ebbffbdc"
+    },
+    "B1": {
+      "path": "docs/tracking/three_mode_historical_reconstruction/B1_HISTORICAL_RECONSTRUCTION_AUTHORITY_20260729.json",
+      "sha256": "deaeb713234f936c0ef4378b98f74e71609da3d21a9ab59270e68a2819501faf"
+    },
+    "R0": {
+      "path": "docs/tracking/three_mode_historical_reconstruction/R0_HISTORICAL_RECONSTRUCTION_AUTHORITY_20260729.json",
+      "sha256": "fbe26b7d5654f8e0682e809c72821740196cc236b348f2a96455cf7a03b8fdfe"
+    }
+  },
+  "ready_for_superseding_method_freeze_decision": true,
+  "ready_for_unseen_data_authority_freeze": false,
+  "ready_for_unseen_evaluation": false,
+  "ready_to_promote": false,
+  "recommended_next_step": "One docs-only superseding method-freeze decision using these six frozen prediction/Standard-V2 authorities; do not access unseen data.",
+  "same_evaluator_authority": {
+    "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\three_mode_historical_reconstruction_20260729\\standard_v2\\pass_1\\THREE_MODE_STANDARD_V2_AUTHORITY.json",
+    "sha256": "53955d51e730f6af8cbc5974721d4d4806b8cb965e0dedd60fd31dee20d46f14"
+  },
+  "schema_version": "tracking.three_mode.historical_reconstruction.v1",
+  "starting_main_sha": "94fac247e8fce120f08334890f57e73eda71eb04",
+  "statuses": {
+    "B0": {
+      "comparison": "PREDICTION_CHANGED_MULTIPLE_CAUSES",
+      "improvement_claim_authorized": true,
+      "reproduction": "HISTORICAL_PREDICTIONS_SURVIVE",
+      "root_cause": "B0_MULTIPLE_CONFIRMED_CAUSES"
+    },
+    "B1": {
+      "comparison": "PREDICTION_CHANGED_MULTIPLE_CAUSES",
+      "current_equals_historical": false,
+      "historical_execution": "HISTORICAL_EXECUTION_NOT_RECOVERABLE",
+      "reproduction": "HISTORICAL_PREDICTIONS_SURVIVE",
+      "root_cause": "B1_MULTIPLE_CONFIRMED_CAUSES"
+    },
+    "R0": {
+      "comparison": "SAME_PREDICTIONS_EVALUATOR_CHANGED",
+      "improvement_claim_authorized": false,
+      "reproduction": "HISTORICAL_PREDICTIONS_SURVIVE",
+      "root_cause": "R0_SAME_PREDICTIONS_EVALUATOR_ONLY_CHANGED"
+    }
+  },
+  "supersedes": [
+    {
+      "path": "docs/tracking/scientific_grounding/TRACKING_SCIENTIFIC_GROUNDING_AUTHORITY_20260729.json",
+      "sha256": "067d52d12b54d08033a2f782260214cc8470f52ead817861159b8adf71ec7384"
+    },
+    {
+      "path": "docs/tracking/historical_h5b_h4_executable_reproduction/HISTORICAL_H5B_H4_EXECUTABLE_REPRODUCTION_AUTHORITY_20260729.json",
+      "sha256": "77fb1d4f2f0399584594cae0221c9c6ce77169a7341c0c175d22b3eff5f4df02"
+    }
+  ]
+}

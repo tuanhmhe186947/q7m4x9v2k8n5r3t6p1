@@ -1,0 +1,110 @@
+{
+  "artifact_search": "SURVIVING_PREDICTIONS_FOUND",
+  "comparison_status": "SAME_PREDICTIONS_EVALUATOR_CHANGED",
+  "current_improvement_claim": {
+    "authorized": false,
+    "basis": "All 187200 scientific rows, IDs, Hidden/state values, bboxes, ordering, and Standard V2 metrics are identical",
+    "status": "CONTRADICTED"
+  },
+  "current_prediction_artifact_sha256": "fd2d4f3dec0710d1c9eecba9308247a7b226dd34a4a02a9cb89f17acb22bbbfe",
+  "date": "20260729",
+  "detector_inference_calls": 0,
+  "exact_historical_execution": "NOT_NEEDED_NOT_RUN",
+  "first_divergent_stage": "evaluator",
+  "historical_method_version": "RF_ACC23_FULL13_PRIMARY_V1",
+  "historical_prediction_artifact_sha256": "f20207225537fcb3d0e03c7f9830a3e59f329537dc3dc4c36261dd24168a59e2",
+  "historical_reproduction_status": "HISTORICAL_PREDICTIONS_SURVIVE",
+  "historical_run_id": "20260723_rf_acc23_full13_primary_v1",
+  "historical_source_sha": "f1b5dc7d9f5c098420e9b33361994ab5018b6bcd",
+  "method_id": "realtime_fast",
+  "prediction_parity": {
+    "bbox_exact_differences": 0,
+    "bbox_numeric_serialization_differences": 0,
+    "bbox_tolerance_violations": 0,
+    "byte_equal": false,
+    "canonical_content_equal": true,
+    "confidence_differences": 0,
+    "first_divergence": null,
+    "first_row_count": 187200,
+    "frame_index_differences": 0,
+    "hidden_state_differences": 0,
+    "identity_differences": 0,
+    "maximum_absolute_bbox_coordinate_difference": 0.0,
+    "metadata_or_non_scientific_only_difference": true,
+    "minimum_paired_bbox_iou": 1.0,
+    "ordering_differences": 0,
+    "path": "docs/tracking/three_mode_historical_reconstruction/R0_HISTORICAL_VS_CURRENT_PREDICTION_PARITY_20260729.json",
+    "row_additions": 0,
+    "row_removals": 0,
+    "second_row_count": 187200,
+    "sha256": "b041e41abc5b09e3900041b32c1d682c9ff1da4289109ba1699f07dc7357ee33",
+    "videos_compared": 13
+  },
+  "root_cause": "R0_SAME_PREDICTIONS_EVALUATOR_ONLY_CHANGED",
+  "schema_version": "tracking.three_mode.r0_historical_authority.v1",
+  "scientific_comparison": {
+    "detector_effect": "NONE_OBSERVED_IN_PREDICTIONS",
+    "evaluator_effect": "SOLE_CONFIRMED_CAUSE_OF_REPORTED_METRIC_DRIFT",
+    "method_version_effect": "Source commits and promotion lineage differ, but the specific RF_ACC23 primary and current R0 scientific prediction contents are exactly equal",
+    "prediction_effect": "NONE",
+    "unknown_effect": "NONE_FOR_THE_SCOPED_PREDICTION_COMPARISON"
+  },
+  "source_copy_byte_parity": {
+    "path": "docs/tracking/three_mode_historical_reconstruction/R0_HISTORICAL_SOURCE_VS_FROZEN_COPY_PARITY_20260729.json",
+    "sha256": "8ed45d4ae240c820638e29ad3bc8ebace37632d33f2539cc23676eb3c73c7d2f"
+  },
+  "standard_v2": {
+    "authority": {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\three_mode_historical_reconstruction_20260729\\standard_v2\\pass_1\\THREE_MODE_STANDARD_V2_AUTHORITY.json",
+      "sha256": "53955d51e730f6af8cbc5974721d4d4806b8cb965e0dedd60fd31dee20d46f14"
+    },
+    "current": {
+      "assa": 0.8780601072257502,
+      "deta": 0.8991594590973847,
+      "fn": 597,
+      "fp": 473,
+      "fragments": 107,
+      "hota": 0.8881872315857098,
+      "id_precision": 0.9722145010583934,
+      "id_recall": 0.9715705128205128,
+      "identity_error_episode_count": 31,
+      "idf1": 0.9718924002607702,
+      "idsw_standard": 29,
+      "loca": 0.9197421390234835,
+      "persistent_pairwise_identity_swap_count": 7,
+      "recovered_identity_error_episode_count": 16,
+      "terminal_identity_error_episode_count": 12,
+      "wrong_id_matched_frames": 11893
+    },
+    "historical": {
+      "assa": 0.8780601072257502,
+      "deta": 0.8991594590973847,
+      "fn": 597,
+      "fp": 473,
+      "fragments": 107,
+      "hota": 0.8881872315857098,
+      "id_precision": 0.9722145010583934,
+      "id_recall": 0.9715705128205128,
+      "identity_error_episode_count": 31,
+      "idf1": 0.9718924002607702,
+      "idsw_standard": 29,
+      "loca": 0.9197421390234835,
+      "persistent_pairwise_identity_swap_count": 7,
+      "recovered_identity_error_episode_count": 16,
+      "terminal_identity_error_episode_count": 12,
+      "wrong_id_matched_frames": 11893
+    }
+  },
+  "status": "ESTABLISHED",
+  "supersedes": [
+    {
+      "path": "docs/tracking/scientific_grounding/TRACKING_SCIENTIFIC_GROUNDING_AUTHORITY_20260729.json",
+      "sha256": "067d52d12b54d08033a2f782260214cc8470f52ead817861159b8adf71ec7384"
+    },
+    {
+      "path": "docs/tracking/historical_h5b_h4_executable_reproduction/HISTORICAL_H5B_H4_EXECUTABLE_REPRODUCTION_AUTHORITY_20260729.json",
+      "sha256": "77fb1d4f2f0399584594cae0221c9c6ce77169a7341c0c175d22b3eff5f4df02"
+    }
+  ],
+  "tracker_executions": 0
+}

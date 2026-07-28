@@ -1,0 +1,189 @@
+{
+  "artifact_search": "SURVIVING_PREDICTIONS_FOUND",
+  "cache_path_audit": {
+    "cache_authority_mismatch_count": 0,
+    "cache_fallback_triggered": false,
+    "cache_path_alias_detected": false,
+    "declared_historical_cache_used": true,
+    "evidence": {
+      "path": "docs/tracking/three_mode_historical_reconstruction/B1_CACHE_BOUNDARY_FORENSIC_AUDIT_20260729.json",
+      "sha256": "92691acc3b34eb37b6f8ce282d9bdfb7ec67ca63c5139bdc0a8d3d59af241edc"
+    },
+    "resolved_historical_cache_used": true
+  },
+  "comparison_status": "PREDICTION_CHANGED_MULTIPLE_CAUSES",
+  "confirmed_causes": [
+    {
+      "cause": "B1_CACHE_ROWS_COLLAPSED_BY_POST_LOAD_FILTERS",
+      "evidence": {
+        "path": "docs/tracking/three_mode_historical_reconstruction/B1_CACHE_BOUNDARY_FORENSIC_AUDIT_20260729.json",
+        "sha256": "92691acc3b34eb37b6f8ce282d9bdfb7ec67ca63c5139bdc0a8d3d59af241edc"
+      },
+      "facts": {
+        "additional_020_025_detections": 262,
+        "boundary_different_frames": 0,
+        "extra_low_conf_reaches_boundary": 0,
+        "rank_33_64_detections": 0,
+        "rank_33_64_reaches_boundary": 0,
+        "raw_different_frames": 260,
+        "raw_frames_compared": 23400
+      }
+    },
+    {
+      "cause": "B1_RECONSTRUCTED_CACHE_NOT_HISTORICAL",
+      "historical": "source SHA 31d360 invoked persistent model.track; its result carried Ultralytics ByteTrack state",
+      "reconstruction": "the 0.20/64 cache producer invoked model.predict; ReplayDetector.track ignored tracker kwargs and returned raw predict rows without historical ByteTrack state"
+    }
+  ],
+  "current_prediction_artifact_sha256": "569c49e00905add068fac70c919fe21c10127e3ab773528a4ac44199fcb4835b",
+  "date": "20260729",
+  "detector_inference_calls": 0,
+  "exact_historical_execution": "HISTORICAL_EXECUTION_NOT_RECOVERABLE",
+  "execution_limit": "Original historical model.track/ByteTrack boundary rows and the exact Ultralytics/package environment do not survive. A run with current packages would assume the missing evidence and is not scientifically authorized.",
+  "failed_reproduction_vs_current": {
+    "bbox_exact_differences": 0,
+    "bbox_numeric_serialization_differences": 0,
+    "bbox_tolerance_violations": 0,
+    "byte_equal": false,
+    "canonical_content_equal": true,
+    "confidence_differences": 0,
+    "first_divergence": null,
+    "first_row_count": 187200,
+    "frame_index_differences": 0,
+    "hidden_state_differences": 0,
+    "identity_differences": 0,
+    "maximum_absolute_bbox_coordinate_difference": 0.0,
+    "metadata_or_non_scientific_only_difference": true,
+    "minimum_paired_bbox_iou": 1.0,
+    "ordering_differences": 0,
+    "path": "docs/tracking/three_mode_historical_reconstruction/B1_FAILED_REPRODUCTION_VS_CURRENT_PREDICTION_PARITY_20260729.json",
+    "row_additions": 0,
+    "row_removals": 0,
+    "second_row_count": 187200,
+    "sha256": "1ed6072cba73a355f03b8f7286a3783dda2a1dc0099f599f6087f58413e1f863",
+    "videos_compared": 13
+  },
+  "first_divergent_stage": "detector producer",
+  "historical_prediction_artifact_sha256": "36c3bdd3f6d92c0c5336590dbf4c8822402d718ec47df2b137cef862339d5b8a",
+  "historical_reproduction_status": "HISTORICAL_PREDICTIONS_SURVIVE",
+  "historical_run_id": "20260719_h5b_h4_full13_combined_v2",
+  "historical_source_sha": "31d360ba96b4065ce5125c0d88765531cc5898ae",
+  "invalidated_assumption": "Treating cached YOLO.predict evidence replayed through ReplayDetector.track as semantically equivalent to historical persistent YOLO.track/ByteTrack boundary evidence",
+  "method_id": "historical_h5b_h4",
+  "prediction_parity": {
+    "bbox_exact_differences": 187162,
+    "bbox_numeric_serialization_differences": 0,
+    "bbox_tolerance_violations": 187129,
+    "byte_equal": false,
+    "canonical_content_equal": false,
+    "confidence_differences": 0,
+    "first_divergence": {
+      "first": [
+        "1",
+        "Pig_1",
+        0,
+        "ID_1",
+        "No",
+        "0",
+        "0",
+        [
+          835.38,
+          272.89,
+          979.7,
+          470.17
+        ],
+        null
+      ],
+      "frame": 0,
+      "second": [
+        "1",
+        "Pig_1",
+        0,
+        "ID_1",
+        "No",
+        "0",
+        "0",
+        [
+          835.32,
+          272.89,
+          979.7,
+          470.18
+        ],
+        null
+      ],
+      "track_id": "1",
+      "video_key": "Pigs281119_000085_30fps"
+    },
+    "first_row_count": 187200,
+    "frame_index_differences": 0,
+    "hidden_state_differences": 1959,
+    "identity_differences": 5920,
+    "maximum_absolute_bbox_coordinate_difference": 944.37,
+    "metadata_or_non_scientific_only_difference": false,
+    "minimum_paired_bbox_iou": 0.0,
+    "ordering_differences": 0,
+    "path": "docs/tracking/three_mode_historical_reconstruction/B1_HISTORICAL_VS_CURRENT_PREDICTION_PARITY_20260729.json",
+    "row_additions": 0,
+    "row_removals": 0,
+    "second_row_count": 187200,
+    "sha256": "cb24d4e825c6165c0bf27085d3f7fa02165dbd81e507b18a84174babf51a7f45",
+    "videos_compared": 13
+  },
+  "previous_semantic_equivalence_authority_invalidated": true,
+  "root_cause": "B1_MULTIPLE_CONFIRMED_CAUSES",
+  "schema_version": "tracking.three_mode.b1_historical_authority.v1",
+  "standard_v2": {
+    "authority": {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\three_mode_historical_reconstruction_20260729\\standard_v2\\pass_1\\THREE_MODE_STANDARD_V2_AUTHORITY.json",
+      "sha256": "53955d51e730f6af8cbc5974721d4d4806b8cb965e0dedd60fd31dee20d46f14"
+    },
+    "current": {
+      "assa": 0.7995528004092259,
+      "deta": 0.9044987387056114,
+      "fn": 733,
+      "fp": 733,
+      "fragments": 127,
+      "hota": 0.8498733886710031,
+      "id_precision": 0.9140811965811966,
+      "id_recall": 0.9140811965811966,
+      "identity_error_episode_count": 68,
+      "idf1": 0.9140811965811966,
+      "idsw_standard": 64,
+      "loca": 0.9239078255704691,
+      "persistent_pairwise_identity_swap_count": 11,
+      "recovered_identity_error_episode_count": 41,
+      "terminal_identity_error_episode_count": 26,
+      "wrong_id_matched_frames": 32125
+    },
+    "historical": {
+      "assa": 0.9119035496598343,
+      "deta": 0.8897945412373369,
+      "fn": 1579,
+      "fp": 1579,
+      "fragments": 425,
+      "hota": 0.9002906560906596,
+      "id_precision": 0.9915010683760683,
+      "id_recall": 0.9915010683760683,
+      "identity_error_episode_count": 8,
+      "idf1": 0.9915010683760683,
+      "idsw_standard": 0,
+      "loca": 0.9296724339629265,
+      "persistent_pairwise_identity_swap_count": 0,
+      "recovered_identity_error_episode_count": 8,
+      "terminal_identity_error_episode_count": 0,
+      "wrong_id_matched_frames": 24
+    }
+  },
+  "status": "ESTABLISHED_WITH_EXECUTION_LIMITATION",
+  "supersedes": [
+    {
+      "path": "docs/tracking/scientific_grounding/TRACKING_SCIENTIFIC_GROUNDING_AUTHORITY_20260729.json",
+      "sha256": "067d52d12b54d08033a2f782260214cc8470f52ead817861159b8adf71ec7384"
+    },
+    {
+      "path": "docs/tracking/historical_h5b_h4_executable_reproduction/HISTORICAL_H5B_H4_EXECUTABLE_REPRODUCTION_AUTHORITY_20260729.json",
+      "sha256": "77fb1d4f2f0399584594cae0221c9c6ce77169a7341c0c175d22b3eff5f4df02"
+    }
+  ],
+  "tracker_executions": 0
+}

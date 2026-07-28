@@ -1,5 +1,27 @@
 # Current Decision
 
+## Three-mode historical reconstruction (2026-07-29)
+
+- `PASS_WITH_EXPLICIT_NOT_RECOVERABLE_LINEAGES`.
+- Historical bytes survive for B0 raw, RF_ACC23, and H5b/H4; all were frozen
+  before a single six-arm Standard-V2 evaluation pass.
+- Current B0 differs from historical raw because detector evidence,
+  detector/tracker topology, and predictions changed. Broad development-set
+  improvement is authorized only with the IDSW `76 -> 84` limitation.
+- Historical RF_ACC23 and current R0 are scientifically identical, including
+  all Standard-V2 metrics. Current R0 did not improve over that scoped
+  historical fast authority.
+- Current B1 is not historical H5b/H4. The `0.20/64` replay read the declared
+  cache, but post-load normalization removed all extra low-confidence evidence,
+  while its `model.predict` cache lacked historical persistent
+  `model.track`/ByteTrack state.
+- Exact historical B0 and H5b/H4 execution packages are not recoverable from
+  surviving boundary rows/environment records. Their prediction authorities
+  remain valid.
+- The next authorized tracking action is one docs-only superseding
+  method-freeze decision using the frozen six-arm authority. Unseen access,
+  unseen evaluation, and promotion remain prohibited.
+
 ## Tracking scientific-grounding authority (2026-07-29)
 
 - `PASS_GROUNDED_AUTHORITY_WITH_EXPLICIT_EVIDENCE_GAPS`.
