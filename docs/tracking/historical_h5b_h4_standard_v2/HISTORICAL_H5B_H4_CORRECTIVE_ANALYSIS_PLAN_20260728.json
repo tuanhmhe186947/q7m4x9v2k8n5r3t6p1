@@ -1,0 +1,38 @@
+{
+  "comparison_roles": {
+    "historical_h5b_h4_vs_current_b1": "EFFECTIVE_DETECTOR_CONFIGURATION_PLUS_RESULTING_PREDICTION_DIFFERENCE",
+    "historical_h5b_h4_vs_current_b0": "WHOLE_PIPELINE_DEVELOPMENT_COMPARISON",
+    "historical_h5b_h4_vs_r0": "WHOLE_PIPELINE_DEVELOPMENT_COMPARISON"
+  },
+  "co_primary_metrics": [
+    "HOTA",
+    "IDF1"
+  ],
+  "date": "20260728",
+  "evaluator_contract_id": "TRACKING_EVALUATOR_STANDARD_V2",
+  "historical_best_run_id": "20260719_h5b_h4_full13_combined_v2",
+  "identity_episode_contract_id": "IDENTITY_ERROR_EPISODES_V2",
+  "primary_identity_severity_metrics": [
+    "wrong-ID matched frames",
+    "wrong-ID matched seconds",
+    "terminal identity-error episodes",
+    "persistent pairwise identity swaps"
+  ],
+  "primary_include_hidden": true,
+  "pure_association_core_effect_claim_authorized": false,
+  "schema_version": "tracking.historical_h5b_h4.corrective_analysis_plan.v1",
+  "supporting_metrics": [
+    "DetA",
+    "AssA",
+    "LocA",
+    "IDP",
+    "IDR",
+    "IDSW_STANDARD",
+    "FP",
+    "FN",
+    "fragmentation",
+    "identity-error episode count",
+    "recovered episode count"
+  ],
+  "weighted_composite_score_authorized": false
+}
