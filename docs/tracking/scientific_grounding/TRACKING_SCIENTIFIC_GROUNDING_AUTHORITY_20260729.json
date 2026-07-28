@@ -1,0 +1,104 @@
+{
+  "authority_input_hashes": {
+    "docs/tracking/b0_b1_r0_standard_v2/B0_BYTETRACK_RAW_STANDARD_V2_AUTHORITY_20260728.json": "8f000677a7e2dfecc35e2918a18d4fe528470199bc684962d6d9e707db02bfaa",
+    "docs/tracking/b0_b1_r0_standard_v2/B1_HYBRID_BYTETRACK_STANDARD_V2_AUTHORITY_20260728.json": "491c10a37160a11313abfb06b1ad04a6791ceb0ac096030dfd1b02dd4b1a3dc7",
+    "docs/tracking/b0_b1_r0_standard_v2/R0_REALTIME_FAST_STANDARD_V2_AUTHORITY_20260728.json": "6e5473eefb653428d1d4ff075110f70a45fa32ec5535fa42d6f84ee4c4ada4b4",
+    "docs/tracking/development_2x2_standard_v2/DEVELOPMENT_2X2_STANDARD_V2_AUTHORITY_20260728.json": "00bae01fb0a419df1ad02f868b28a3014ec0539359a9c42f7a365513866668be",
+    "docs/tracking/historical_h5b_h4_executable_reproduction/HISTORICAL_H5B_H4_EXECUTABLE_REPRODUCTION_AUTHORITY_20260729.json": "77fb1d4f2f0399584594cae0221c9c6ce77169a7341c0c175d22b3eff5f4df02",
+    "docs/tracking/historical_h5b_h4_reproduction/HISTORICAL_H5B_H4_DETECTOR_CACHE_AUTHORITY_20260728.json": "6c2de623ee85b4d3f07bc9fae756a4f05da54e965759277ce4c002d1435676b0",
+    "docs/tracking/historical_h5b_h4_standard_v2/HISTORICAL_H5B_H4_STANDARD_V2_AUTHORITY_20260728.json": "d547af73e80643b5490c42eaefc34682bd0bc9e214409b5b4d889e73bfdec681",
+    "docs/tracking/profile_retirement/TRACKING_ACTIVE_PROFILE_INVENTORY_AFTER_20260728.json": "cf339e53870de49d6737a2f2d5c5ca8cf5e42c2aa370e12803d01025685144f7",
+    "docs/tracking/unseen_method_freeze/UNSEEN_METHOD_FREEZE_AUTHORITY_20260728.json": "20cc53bc40a89f364b8ac4e4b3c9d29bfc3899c55cab4f1a8cc400dc0609e531"
+  },
+  "claim_summary": {
+    "authorized_claims": 3,
+    "authorized_with_limitation_claims": 3,
+    "contradicted_claims": 3,
+    "not_authorized_claims": 4,
+    "unresolved_claims": 2
+  },
+  "contradiction_summary": {
+    "found": 9,
+    "resolved": 8,
+    "unresolved": 1
+  },
+  "date": "20260729",
+  "decision": "PASS_GROUNDED_AUTHORITY_WITH_EXPLICIT_EVIDENCE_GAPS",
+  "execution_counts": {
+    "detector_inference_calls": 0,
+    "evaluator_runs": 0,
+    "prediction_files_modified": 0,
+    "profile_registry_changes": 0,
+    "repair_invocations": 0,
+    "tracker_executions": 0,
+    "unseen_files_accessed": 0
+  },
+  "explicit_evidence_gaps": [
+    "Historical raw ByteTrack prediction bytes and complete manifest.",
+    "Version- and prediction-parity binding for historical versus current fast.",
+    "Original historical H5b/H4 raw detector rows.",
+    "Complete tracker-boundary consumption audit for reconstructed 0.20/64 cache.",
+    "Historical runtime/package/override precedence sufficient for execution.",
+    "Complete inherited-default runtime dumps at frozen prediction producer SHAs."
+  ],
+  "lineage_conclusions": {
+    "b0_historical_current_status": "HISTORICAL_BYTES_UNAVAILABLE",
+    "b0_historical_improvement_claim_authorized": false,
+    "b1_historical_current_status": "PREDICTION_CHANGED_CONFIRMED",
+    "b1_root_cause_status": "UNRESOLVED",
+    "current_2x2_internal_authority": "VALID_WITH_LIMITATIONS",
+    "current_2x2_represents_true_historical_best": false,
+    "current_r0_better_than_current_b1": true,
+    "historical_h5b_h4_better_than_current_r0": true,
+    "historical_h5b_h4_executable_authority": "NOT_ESTABLISHED",
+    "historical_h5b_h4_irrecoverable": "NOT_YET_PROVEN",
+    "r0_historical_current_status": "METHOD_VERSION_CHANGED",
+    "r0_historical_improvement_claim_authorized": false,
+    "unseen_method_freeze_status": "SUSPENDED"
+  },
+  "method_identity_summary": {
+    "ambiguous_method_identities": 4,
+    "method_aliases_discovered": 39,
+    "method_identities_discovered": 15
+  },
+  "metric_summary": {
+    "contradicted_metric_values": 0,
+    "measured_metric_values": 273,
+    "summary_only_metric_values": 9,
+    "total_metric_values_audited": 282,
+    "unresolved_metric_values": 0
+  },
+  "next_bounded_task": "Complete the strictly read-only B1 detector-cache path, raw-row, post-load-filter and tracker-boundary audit; do not run tracking.",
+  "output_hashes": {
+    "TRACKING_2X2_CLAIM_RECONCILIATION_20260729.json": "8ab40c025e47837236d6d5acafc0246db5a4d88d65c9cbff8d0a572c55338c73",
+    "TRACKING_AUTHORITY_CONTRADICTIONS_20260729.csv": "14b29a8c9985b866cc90dbb4a19f99a69acb9d6534b0babeaf6225232104738e",
+    "TRACKING_EFFECTIVE_CONFIGURATION_LEDGER_20260729.csv": "93539a7b03ee1f4edafceb43766222c732ca866dae0220a64195548e6987d93f",
+    "TRACKING_METHOD_IDENTITY_REGISTRY_20260729.csv": "12abe50919c876c2053ed996a3b6aaf69cf98d49064d1539a12894d8431880d8",
+    "TRACKING_METRIC_PROVENANCE_LEDGER_20260729.csv": "3f52a3b28c46d0b705bd808eea6a8a9012aec911ab6b7e0c15993eb5ae02ef39",
+    "TRACKING_PARAMETER_SCIENTIFIC_SUPPORT_20260729.csv": "c05a7f388f44c9eb3c9f3394bb14c0d6d5250011a957639257eccc7c1c25e1f0",
+    "TRACKING_SCIENTIFIC_CLAIM_AUTHORIZATION_20260729.csv": "028ce472c589af47843c52c309e34b7d75505710faf1eba82730e831b1da3d77",
+    "TRACKING_SCIENTIFIC_STOP_STATE_20260729.json": "0e317df78293e2d60f379ab26cbd2950720e5544767d6fc7c889627762103f9c"
+  },
+  "parameter_summary": {
+    "fully_grounded_parameters": 178,
+    "partially_grounded_parameters": 1121,
+    "per_video_parameters": 0,
+    "post_hoc_parameters": 0,
+    "total_parameters": 1304,
+    "unknown_selection_basis_parameters": 5,
+    "unsupported_parameters": 5
+  },
+  "reference_worktree": {
+    "files_changed": 0,
+    "head_changed": false,
+    "head_sha": "411e596b21261d80be679dedce6b2ce150aa3b6b",
+    "initial_status": "CLEAN",
+    "path": "C:\\Users\\ironh\\Downloads\\PIG_task_tracking"
+  },
+  "schema_version": "tracking.scientific_grounding.authority.v1",
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "experiment-lineage-reproducibility"
+  ],
+  "starting_main_sha": "95dd37982251a6b59779e0eed020e266b54fc88c"
+}

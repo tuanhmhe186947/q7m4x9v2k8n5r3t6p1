@@ -1,5 +1,16 @@
 # Workflow
 
+## Tracking authority use after scientific grounding (2026-07-29)
+
+- Resolve tracking names through
+  `docs/tracking/scientific_grounding/TRACKING_METHOD_IDENTITY_REGISTRY_20260729.csv`.
+- Before citing a parameter or metric, require its effective-config or metric
+  provenance ledger row and evidence class.
+- Scope current 2x2 conclusions to current frozen artifacts. Never relabel
+  current B1 as historical H5b/H4 or R0 as strongest historical method.
+- Keep the unseen freeze suspended. The next permitted tracking action is only
+  the read-only B1 detector-cache path and tracker-boundary audit.
+
 ## Tracking profile selection after retirement (2026-07-28)
 
 - Active presentation profiles are exactly `bytetrack_raw`, `realtime_fast`,

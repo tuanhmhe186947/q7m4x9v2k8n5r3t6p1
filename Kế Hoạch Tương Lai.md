@@ -1,5 +1,17 @@
 • Kế Hoạch Tương Lai
 
+## Tracking scientific-grounding stop state - 2026-07-29
+
+- The current B0/B1/R0/R1 2x2 remains valid only as a current-artifact
+  development ablation; it does not represent the true historical-best hybrid.
+- Historical H5b/H4 remains the stronger frozen Standard-V2 development
+  prediction authority, but its executable method is not established.
+- Do not claim historical improvement for B0/raw or R0/fast without missing
+  prediction/version/evaluator bindings.
+- Unseen preparation remains suspended.
+- One next bounded task: complete the strictly read-only B1 cache path,
+  post-load filtering, and tracker-boundary audit without running tracking.
+
 ## Historical H5b/H4 executable reproduction - 2026-07-29
 
 - The single frozen H5b/H4 configuration ran twice on all 13 development

@@ -1,0 +1,48 @@
+{
+  "common_population": {
+    "frames_per_video": 1800,
+    "include_hidden": true,
+    "sequence_boundary": "VIDEO_SESSION_ISOLATED_V2",
+    "status": "PASS",
+    "total_frames": 23400,
+    "video_count": 13
+  },
+  "current_2x2_represents_true_historical_best": false,
+  "current_r0_better_than_current_b1": true,
+  "date": "20260729",
+  "evaluator_contract": "TRACKING_EVALUATOR_STANDARD_V2",
+  "historical_h5b_h4_better_than_current_r0": true,
+  "invalid_historical_equivalence_claims": [
+    "Current B1 represents historical H5b/H4.",
+    "Current 2x2 contains the true historical-best hybrid prediction authority.",
+    "R0 is better than historical H5b/H4.",
+    "Cross-core differences are pure association effects."
+  ],
+  "limitations": [
+    "Development population only.",
+    "B1 raw repair ledger is unavailable.",
+    "Detector cadence differs between ByteTrack and RF cores.",
+    "Historical H5b/H4 is a separate frozen prediction authority."
+  ],
+  "prediction_artifacts": {
+    "B0": "13d9226c36141264cc33e4b498d38e5f3eaa9891cf32bc4c8fb87b01fd27d576",
+    "B1": "569c49e00905add068fac70c919fe21c10127e3ab773528a4ac44199fcb4835b",
+    "R0": "fd2d4f3dec0710d1c9eecba9308247a7b226dd34a4a02a9cb89f17acb22bbbfe",
+    "R1": "40052f992871d50984fc4c0c839c4933b772bca2bfcaaaacafcde40d0e8a1800"
+  },
+  "schema_version": "tracking.scientific_grounding.2x2_reconciliation.v1",
+  "sources": [
+    "docs/tracking/b0_b1_r0_standard_v2/B0_BYTETRACK_RAW_STANDARD_V2_AUTHORITY_20260728.json",
+    "docs/tracking/b0_b1_r0_standard_v2/B1_HYBRID_BYTETRACK_STANDARD_V2_AUTHORITY_20260728.json",
+    "docs/tracking/b0_b1_r0_standard_v2/R0_REALTIME_FAST_STANDARD_V2_AUTHORITY_20260728.json",
+    "docs/tracking/development_2x2_standard_v2/DEVELOPMENT_2X2_STANDARD_V2_AUTHORITY_20260728.json",
+    "docs/tracking/historical_h5b_h4_standard_v2/HISTORICAL_H5B_H4_STANDARD_V2_AUTHORITY_20260728.json"
+  ],
+  "status": "VALID_WITH_LIMITATIONS",
+  "valid_current_artifact_claims": [
+    "R0 is strongest among current B0/B1/R0/R1 under the frozen hierarchy.",
+    "B0-to-B1 repair is a mixed current-artifact trade-off.",
+    "R0-to-R1 repair is broadly harmful under the predeclared hierarchy.",
+    "All four current Standard-V2 authorities pass determinism and conservation."
+  ]
+}

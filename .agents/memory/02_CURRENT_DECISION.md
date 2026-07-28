@@ -1,5 +1,21 @@
 # Current Decision
 
+## Tracking scientific-grounding authority (2026-07-29)
+
+- `PASS_GROUNDED_AUTHORITY_WITH_EXPLICIT_EVIDENCE_GAPS`.
+- Current B0/B1/R0/R1 Standard-V2 artifacts remain internally valid for the
+  locked development population. R0 is strongest only within that current 2x2.
+- Current B1 is not historical H5b/H4. Historical H5b/H4 remains a separate,
+  non-executable frozen prediction authority and is better than current R0 on
+  the common Standard-V2 development contract.
+- B0 historical-improvement and R0 historical-improvement claims are not
+  authorized. Historical raw bytes are unavailable; fast lineage is
+  method-version and evaluator confounded.
+- Historical H5b/H4 executability is not established; irrecoverability is not
+  yet proven. Its cache-consumption root cause remains unresolved.
+- The unseen-method freeze stays suspended; no unseen access or promotion is
+  authorized.
+
 ## Historical H5b/H4 executable reproduction (2026-07-29)
 
 - `FAIL_METRIC_PARITY`.

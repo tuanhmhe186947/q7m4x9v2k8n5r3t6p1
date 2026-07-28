@@ -1,5 +1,20 @@
 # Project Memory Short
 
+## 2026-07-29 tracking scientific-grounding authority
+
+- One ledger now separates historical and current method identities, effective
+  configurations, metric provenance, parameter support, claims, and
+  contradictions.
+- Current B0/B1/R0/R1 remain a valid current-artifact development 2x2 with
+  limitations. It does not contain the true historical-best hybrid artifact.
+- Historical H5b/H4 is a stronger frozen Standard-V2 prediction authority than
+  current R0, but executable parity is not established and irrecoverability is
+  not yet proven.
+- Historical improvement claims for B0/raw and R0/fast are unauthorized
+  without version-specific prediction and evaluator parity.
+- The unseen-method freeze remains suspended. The only next tracking task is a
+  read-only B1 cache-path/post-load/tracker-boundary audit.
+
 ## 2026-07-29 historical H5b/H4 executable reproduction
 
 - The frozen `0.20/64` cache and promoted H5b/H4 configuration reproduce

@@ -1,0 +1,43 @@
+{
+  "b0_historical_current_status": "HISTORICAL_BYTES_UNAVAILABLE",
+  "b0_historical_improvement_claim": "NOT_AUTHORIZED_UNLESS_HISTORICAL_BYTES_PROVE_IT",
+  "b0_hypothesis": "NONCOMPARABLE_HISTORICAL_LINEAGE",
+  "b1_historical_current_status": "PREDICTION_CHANGED_CONFIRMED",
+  "b1_hypothesis": "INCONCLUSIVE",
+  "b1_root_cause_status": "UNRESOLVED",
+  "current_2x2_internal_authority": "VALID_FOR_CURRENT_FROZEN_ARTIFACTS",
+  "current_b1_equals_historical_h5b_h4": false,
+  "date": "20260729",
+  "execution_counts": {
+    "detector_inference_calls": 0,
+    "evaluator_runs": 0,
+    "prediction_files_modified": 0,
+    "profile_registry_changes": 0,
+    "repair_invocations": 0,
+    "tracker_executions": 0,
+    "unseen_files_accessed": 0
+  },
+  "historical_h5b_h4_executable_authority": "NOT_ESTABLISHED",
+  "historical_h5b_h4_irrecoverable": "NOT_YET_PROVEN",
+  "one_next_bounded_task": "Complete the strictly read-only B1 detector-cache path, raw-row, post-load-filter and tracker-boundary audit; do not run tracking.",
+  "r0_historical_current_status": "METHOD_VERSION_CHANGED",
+  "r0_historical_improvement_claim": "NOT_AUTHORIZED_UNLESS_VERSION_AND_PREDICTION_PARITY_PROVE_IT",
+  "r0_hypothesis": "METHOD_VERSION_AND_EVALUATOR_CONFOUNDED",
+  "schema_version": "tracking.scientific_grounding.stop_state.v1",
+  "starting_main_sha": "95dd37982251a6b59779e0eed020e266b54fc88c",
+  "unauthorized_improvement_claims": [
+    "Current B0 improved over historical raw.",
+    "Current R0 improved over historical fast.",
+    "Current B1 reproduces historical H5b/H4."
+  ],
+  "unseen_access_authorized": false,
+  "unseen_method_freeze_status": "SUSPENDED",
+  "valid_current_comparisons": [
+    "B0 versus B1 current-artifact repair comparison.",
+    "R0 versus R1 current-artifact repair comparison.",
+    "Current four-arm 2x2 descriptive development authority."
+  ],
+  "valid_historical_comparisons": [
+    "Historical H5b/H4 versus current B0/B1/R0 under Standard V2."
+  ]
+}
