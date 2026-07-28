@@ -7,6 +7,10 @@ from typing import Any, Protocol
 
 from torch import nn
 
+from pig_behavior.classification_v2.features.spatial_schema import (
+    SPATIAL_PREDICTIVE_FEATURES,
+    SPATIAL_PREDICTIVE_GROUP_NAMES,
+)
 from pig_behavior.classification_v2.models.multimodal_fusion import (
     MultimodalFusionConfig,
 )
@@ -47,13 +51,7 @@ ROI_GROUPS = (
     "motion_delta",
     "roi_class_relation",
 )
-ALL_SPATIAL_GROUPS = (
-    "bbox_xywh_n",
-    "bbox_shape_n",
-    "motion_delta",
-    "roi_class_relation",
-    "social_relation",
-)
+ALL_SPATIAL_GROUPS = SPATIAL_PREDICTIVE_GROUP_NAMES
 IMPLEMENTED_BACKBONES = SUPPORTED_VISUAL_BACKBONES
 
 
@@ -278,6 +276,23 @@ def build_multimodal_model(
             "model input dimensions do not match mode order: "
             f"expected={list(spec.spatial_feature_groups)}, "
             f"observed={list(observed_groups)}"
+        )
+    dimension_errors = [
+        (
+            group,
+            int(dimension),
+            len(SPATIAL_PREDICTIVE_FEATURES[group]),
+        )
+        for group, dimension in spatial_input_dims.items()
+        if (
+            group in SPATIAL_PREDICTIVE_FEATURES
+            and int(dimension) != len(SPATIAL_PREDICTIVE_FEATURES[group])
+        )
+    ]
+    if dimension_errors:
+        raise ValueError(
+            "model input dimensions do not match canonical spatial schema: "
+            f"{dimension_errors}"
         )
     if spec.enable_interaction_context and interaction_context_dim is None:
         raise ValueError("model mode requires interaction_context_dim")

@@ -19,6 +19,9 @@ from pig_behavior.classification_v2.features.motion_schema import (
     motion_schema_metadata,
     require_motion_schema,
 )
+from pig_behavior.classification_v2.features.spatial_schema import (
+    SPATIAL_PREDICTIVE_FEATURES,
+)
 from pig_behavior.classification_v2.features.spatiotemporal import (
     _add_temporal_deltas,
     _add_temporal_unit_aggregates,
@@ -91,6 +94,26 @@ def _native_rows(**kwargs: object) -> pd.DataFrame:
     frame["feature_computation_grain"] = "FRAME_LOCAL_PRIMITIVES"
     frame["pair_scope_key"] = ""
     return frame
+
+
+def _attach_unavailable_relation_contract(
+    frames: pd.DataFrame,
+) -> pd.DataFrame:
+    additions: dict[str, object] = {}
+    for group in ("roi_class_relation", "social_relation"):
+        for feature_name in SPATIAL_PREDICTIVE_FEATURES[group]:
+            if feature_name not in frames:
+                additions[feature_name] = 0.0
+    for roi_class in ("feeder", "drinker", "toy"):
+        column = f"roi_{roi_class}_available"
+        if column not in frames:
+            additions[column] = False
+    if "nearest_partner_key" not in frames:
+        additions["nearest_partner_key"] = ""
+    return pd.concat(
+        [frames, pd.DataFrame(additions, index=frames.index)],
+        axis=1,
+    ).copy()
 
 
 def _motion(**kwargs: object) -> pd.DataFrame:
@@ -324,8 +347,10 @@ def test_derivative_coverage_uses_family_specific_denominators() -> None:
 
 def test_real_producer_to_real_exporter_is_exactly_12d() -> None:
     timestamps = [0.0, 1.0, 3.0]
-    produced = build_enhanced_spatiotemporal_features(
-        _native_rows(timestamps=timestamps, x=[0.0, 2.0, 6.0])
+    produced = _attach_unavailable_relation_contract(
+        build_enhanced_spatiotemporal_features(
+            _native_rows(timestamps=timestamps, x=[0.0, 2.0, 6.0])
+        )
     )
     exported = export_spatial_sequences(_windows(timestamps), produced)
     assert exported.feature_names["motion_delta"] == list(MOTION_FEATURE_NAMES)
@@ -346,8 +371,10 @@ def test_real_producer_to_real_exporter_is_exactly_12d() -> None:
 
 def test_real_exporter_rejects_missing_producer_motion_feature() -> None:
     timestamps = [0.0, 1.0, 2.0]
-    produced = build_enhanced_spatiotemporal_features(
-        _native_rows(timestamps=timestamps, x=[0.0, 1.0, 2.0])
+    produced = _attach_unavailable_relation_contract(
+        build_enhanced_spatiotemporal_features(
+            _native_rows(timestamps=timestamps, x=[0.0, 1.0, 2.0])
+        )
     ).drop(columns=[MOTION_FEATURE_NAMES[-1]])
     with pytest.raises(
         MotionSchemaError,

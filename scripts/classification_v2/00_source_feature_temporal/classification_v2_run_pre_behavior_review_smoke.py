@@ -594,7 +594,7 @@ def _native_boundary_audit(frame: pd.DataFrame) -> dict[str, Any]:
         ),
         "unit_start_nonzero_acceleration": int(
             pd.to_numeric(
-                starts["acceleration_n_per_second2"],
+                starts["tangential_acceleration_n_per_second2"],
                 errors="coerce",
             )
             .fillna(0.0)

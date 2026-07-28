@@ -14,7 +14,7 @@ import torch
 from pig_behavior.classification_v2.spatial_sequence_export import (
     LEGACY_SPATIAL_FRAME_FEATURES,
     SpatialSequenceExport,
-    export_spatial_sequences,
+    export_legacy_development_spatial_sequences,
 )
 from pig_behavior.classification_v2.training.legacy_development_l6_geometry_cache import (
     CANONICAL_SOURCE_NAME,
@@ -439,11 +439,19 @@ def materialize_social_relation_cache(
             *SOCIAL_QUALITY_FIELDS,
         ]
     ].copy()
-    exported = export_spatial_sequences(
+    exported = export_legacy_development_spatial_sequences(
         windows,
         export_frames,
         max_window_length=SEQUENCE_LENGTH,
-        feature_schema=LEGACY_SPATIAL_FRAME_FEATURES,
+        feature_schema={
+            "social_relation": list(
+                LEGACY_SPATIAL_FRAME_FEATURES["social_relation"]
+                ),
+                "quality_mask": list(
+                    LEGACY_SPATIAL_FRAME_FEATURES["quality_mask"][:4]
+                )
+                + ["social_neighbor_available"],
+            },
     )
     _validate_spatial_export(exported)
     social = np.asarray(

@@ -84,8 +84,8 @@ MOTION_EVIDENCE_COLUMNS: tuple[str, ...] = (
     "motion_speed_trend_valid",
     "motion_jerk_abs_mean",
     "motion_jerk_abs_p90",
-    "motion_acceleration_n_per_second2_abs_mean",
-    "motion_acceleration_n_per_second2_abs_p90",
+    "motion_tangential_acceleration_n_per_second2_abs_mean",
+    "motion_tangential_acceleration_n_per_second2_abs_p90",
     "turning_abs_mean",
     "turning_rate",
     "turning_direction_concentration",
@@ -561,10 +561,10 @@ def _motion_summary(
         "motion_speed_trend_valid": speed_trend_valid,
         "motion_jerk_abs_mean": _mean_abs(jerk),
         "motion_jerk_abs_p90": _quantile(np.abs(jerk), 0.90),
-        "motion_acceleration_n_per_second2_abs_mean": _mean_abs(
+        "motion_tangential_acceleration_n_per_second2_abs_mean": _mean_abs(
             acceleration_per_second2
         ),
-        "motion_acceleration_n_per_second2_abs_p90": _quantile(
+        "motion_tangential_acceleration_n_per_second2_abs_p90": _quantile(
             np.abs(acceleration_per_second2),
             0.90,
         ),

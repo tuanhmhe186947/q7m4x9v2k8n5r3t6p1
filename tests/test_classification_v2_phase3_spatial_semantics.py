@@ -15,6 +15,9 @@ from pig_behavior.classification_v2.features.native_evidence_contract import (
 from pig_behavior.classification_v2.features.social import (
     build_static_social_context_features,
 )
+from pig_behavior.classification_v2.features.spatial_schema import (
+    SpatialSchemaError,
+)
 from pig_behavior.classification_v2.features.spatial_semantics import (
     AXIS_DISTANCE_METRIC_ID,
     AXIS_DISTANCE_METRIC_VERSION,
@@ -493,16 +496,14 @@ def test_forbidden_target_roi_export_fails(column: str) -> None:
         )
 
 
-def test_label_independent_roi_feature_is_allowed() -> None:
+def test_partial_label_independent_roi_schema_is_rejected_as_noncurrent() -> None:
     windows, frames = _window_and_frame("roi_feeder_contact")
-    exported = export_spatial_sequences(
-        windows,
-        frames,
-        feature_schema={"roi_class_relation": ["roi_feeder_contact"]},
-    )
-    assert exported.feature_names["roi_class_relation"] == [
-        "roi_feeder_contact"
-    ]
+    with pytest.raises(SpatialSchemaError, match="missing_spatial_groups"):
+        export_spatial_sequences(
+            windows,
+            frames,
+            feature_schema={"roi_class_relation": ["roi_feeder_contact"]},
+        )
 
 
 def test_target_roi_explicit_train_ready_whitelist_fails() -> None:

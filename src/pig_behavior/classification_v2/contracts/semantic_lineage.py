@@ -21,10 +21,12 @@ from pig_behavior.classification_v2.contracts.runtime_dependencies import (
     assert_stage_runtime_dependencies_complete,
 )
 from pig_behavior.classification_v2.features.motion_schema import (
+    ACCELERATION_SEMANTICS_VERSION,
     MOTION_FEATURE_NAMES,
     MOTION_SCHEMA_HASH,
     MOTION_SCHEMA_ID,
     MOTION_SCHEMA_VERSION,
+    acceleration_compatibility_registry,
 )
 from pig_behavior.classification_v2.features.native_evidence_contract import (
     NATIVE_EVIDENCE_SEMANTICS_VERSION,
@@ -1276,19 +1278,35 @@ def _domain_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
         },
         {
             "semantic_domain_id": "semantic.model_input_export",
-            "semantic_domain_version": "classification_v2.model_export.v5",
+            "semantic_domain_version": "classification_v2.model_export.v7",
             "authority_files": [
                 "src/pig_behavior/classification_v2/spatial_sequence_export.py",
+                (
+                    "src/pig_behavior/classification_v2/features/"
+                    "spatial_schema.py"
+                ),
                 "src/pig_behavior/classification_v2/contracts/model_input_manifest.py",
                 (
                     "src/pig_behavior/classification_v2/contracts/"
                     "target_roi_policy.py"
                 ),
+                "src/pig_behavior/classification_v2/contracts/model_io.py",
+                (
+                    "configs/classification_v2/"
+                    "trainer_contract_v1.json"
+                ),
+                (
+                    "configs/classification_v2/"
+                    "reviewed_q2_tabular_feature_spec_v1.json"
+                ),
             ],
             "authority_symbols": [
                 "export_spatial_sequences",
+                "require_spatial_tensor_bundle",
                 "build_model_input_manifest",
                 "target_roi_model_policy_registry",
+                "forbidden_x_columns",
+                "acceleration_compatibility_registry",
             ],
             "canonical_payload": {
                 "tensor_stage_schema": stage_version(
@@ -1299,6 +1317,12 @@ def _domain_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
                 ),
                 "motion_schema_id": MOTION_SCHEMA_ID,
                 "motion_schema_hash": MOTION_SCHEMA_HASH,
+                "acceleration_semantics_version": (
+                    ACCELERATION_SEMANTICS_VERSION
+                ),
+                "acceleration_compatibility_policy": (
+                    acceleration_compatibility_registry()
+                ),
                 "explicit_whitelist_only": True,
                 "forbidden_columns_fail_closed": True,
                 "target_roi_policy": target_roi_model_policy_registry(),

@@ -13,6 +13,9 @@ from sklearn.metrics import balanced_accuracy_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
+from pig_behavior.classification_v2.features.spatial_schema import (
+    load_current_spatial_tensor_bundle,
+)
 from pig_behavior.classification_v2.training.spatial_tcn_smoke import MODEL_GROUPS
 
 
@@ -33,7 +36,10 @@ def main() -> None:
     parser.add_argument("--max-iter", type=int, default=300)
     parser.add_argument("--seed", type=int, default=123)
     args = parser.parse_args()
-    arrays = {name: value for name, value in np.load(args.root / "X_spatial_sequences.npz").items()}
+    arrays, _ = load_current_spatial_tensor_bundle(
+        args.root / "X_spatial_sequences.npz",
+        args.root / "spatial_sequence_audit.json",
+    )
     metadata = pd.read_csv(args.root / "split_manifest.csv", low_memory=False)
     events = pd.read_csv(args.root / "event_weight_manifest.csv", low_memory=False)
     roles = pd.read_csv(args.grouped_roles, low_memory=False)

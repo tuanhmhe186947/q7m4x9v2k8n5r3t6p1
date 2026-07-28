@@ -14,6 +14,10 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from pig_behavior.classification_v2.features.spatial_schema import (
+    load_current_spatial_tensor_bundle,
+)
+
 DEFAULT_TRAIN_READY_DIR = Path("outputs/classification_v2/train_ready_windows")
 
 
@@ -70,6 +74,7 @@ def load_train_ready_dataset(
         "weight": root / "sample_weight.csv",
         "split": root / "split_manifest.csv",
         "spatial": root / "X_spatial_sequences.npz",
+        "spatial_audit": root / "spatial_sequence_audit.json",
         "event_weight": root / "event_weight_manifest.csv",
     }
     required = ["x", "y", "mask", "weight", "split"]
@@ -125,8 +130,10 @@ def load_train_ready_dataset(
     spatial_shapes: dict[str, list[int]] = {}
     spatial_audit: dict[str, Any] = {"loaded": False}
     if load_spatial and paths["spatial"].exists():
-        loaded = np.load(paths["spatial"])
-        spatial_sequences = {name: loaded[name] for name in loaded.files}
+        spatial_sequences, _ = load_current_spatial_tensor_bundle(
+            paths["spatial"],
+            paths["spatial_audit"],
+        )
         spatial_audit = _validate_spatial_sequences(spatial_sequences, expected_rows=len(x))
         spatial_shapes = spatial_audit["shapes"]
         errors.extend(spatial_audit["errors"])

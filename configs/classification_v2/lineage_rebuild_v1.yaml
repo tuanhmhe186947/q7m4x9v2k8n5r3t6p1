@@ -285,7 +285,7 @@ stages:
       - path_key: artifact_relative
         artifact_id: artifact.spatial_tensor
         schema_id: artifact.spatial_tensor
-        schema_version: classification_v2.spatial_sequence.current_unhashed
+        schema_version: classification_v2.spatial_predictive_tensor.v1
     authorization_flag: authorizes_tensor_export
     upstream: [train_ready]
   model_input:

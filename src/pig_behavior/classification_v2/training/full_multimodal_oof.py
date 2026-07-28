@@ -51,6 +51,9 @@ from pig_behavior.classification_v2.evaluation.prediction_schema_contract import
 from pig_behavior.classification_v2.evaluation.source_balanced_reporting import (
     build_source_balanced_native_report,
 )
+from pig_behavior.classification_v2.features.spatial_schema import (
+    load_current_spatial_tensor_bundle,
+)
 from pig_behavior.classification_v2.models.multimodal_fusion import (
     MODEL_ARCHITECTURE_VERSION,
     MultimodalFusionClassifier,
@@ -808,9 +811,10 @@ def _resolve_window_fold_authority(
 def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
     """Load train-ready rows and keep identity/source columns as metadata only."""
 
-    arrays = {
-        name: value for name, value in np.load(config.root / "X_spatial_sequences.npz").items()
-    }
+    arrays, _ = load_current_spatial_tensor_bundle(
+        config.root / "X_spatial_sequences.npz",
+        config.root / "spatial_sequence_audit.json",
+    )
     missing_arrays = [
         name
         for name in [
