@@ -271,3 +271,24 @@ def test_decision_contract_has_no_quality_fields(tmp_path: Path) -> None:
 
     loaded = json.loads(path.read_text(encoding="utf-8"))
     assert set(loaded.values()) == {0}
+
+
+def test_frozen_cross_arm_fairness_authority_passes() -> None:
+    path = (
+        Path(__file__).resolve().parents[1]
+        / "docs"
+        / "tracking"
+        / "b0_b1_prediction_authority"
+        / "B0_B1_R0_PREDICTION_AUTHORITY_FAIRNESS_20260728.json"
+    )
+    payload = json.loads(path.read_text(encoding="utf-8"))
+
+    assert payload["status"] == "PASS"
+    assert payload["common_video_authority"] == "PASS"
+    assert payload["common_frame_authority"] == "PASS"
+    assert payload["common_gt_authority"] == "PASS"
+    assert payload["common_detector_model_authority"] == "PASS"
+    assert payload["common_detector_config_authority"] == "PASS"
+    assert payload["b0_b1_full_cache_authority_match"] == "PASS"
+    assert payload["r0_even_subset_authority_preserved"] == "PASS"
+    assert payload["quality_metrics_calculated"] == 0

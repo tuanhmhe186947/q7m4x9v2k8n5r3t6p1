@@ -1,0 +1,102 @@
+{
+  "arm": "B0",
+  "authority_limitations": [
+    "Prediction authority only; no tracking metric was calculated.",
+    "GT Hidden policy is deferred to the later Standard-V2 evaluation.",
+    "B0 is the active raw ByteTrack presentation profile."
+  ],
+  "canonical_prediction_content_sha256": "13d9226c36141264cc33e4b498d38e5f3eaa9891cf32bc4c8fb87b01fd27d576",
+  "date": "20260728",
+  "deletion_allowed": "NO_WITHOUT_EXPLICIT_AUTHORITY_RETIREMENT",
+  "detector_inference_calls": 0,
+  "detector_semantic_config_sha256": "2b50d8afa950626e2bed6b41807cb602a01a90e66baf7529fa08945d3d676ef8",
+  "detector_weights_sha256": "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+  "execution_repeatability": "NOT_RUN_NOT_REQUIRED_BY_FROZEN_POLICY",
+  "execution_topology": "SEPARATE_EXACT_PROFILE_EXECUTIONS",
+  "full_frame_cache_authority_sha256": "494d17ddb9d592dcf2105fd89a7204181f99a49353614315216d30ea43716e00",
+  "gt_authority_sha256": "675cf37c4f924e391ffa457ba6c6e9453b967af318f37ecd2bc1ab1190a1d9dd",
+  "immutable": true,
+  "mp4_count": 0,
+  "offline_repair_semantic_sha256": "NOT_APPLICABLE",
+  "output_root": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\frozen_predictions_standard_v2_20260728_retry1\\B0_bytetrack_raw",
+  "per_video_prediction_hashes": {
+    "Pigs281119_000085_30fps": {
+      "canonical_row_sha256": "9bb1d2af67aa3048ea7c8167e54aa3036cf033b28d2341a1547698df2fa9d0f8",
+      "file_sha256": "2dd250f947de3c4016c11382e72e8e24ab1c1748d65e4435e41bb3049c168812",
+      "semantic_sha256": "bfd773cfcaf3149dbc2fcc88b32f52f074ed49b884611e064ba607d34376170b"
+    },
+    "Pigs281119_000114_30fps": {
+      "canonical_row_sha256": "509eafe33e59edf36826ade2a81f578b29eae2e6b37464fe260156c9548c3f60",
+      "file_sha256": "9bd78a67926c49b0242b6e5d6eeb37313a7addc2edcb4869fede1f44932f40ec",
+      "semantic_sha256": "5b74a86f133342f8b6b21c25f20f97316f4da1ac3da38870fb7652754a54e316"
+    },
+    "Pigs291119_000216_30fps": {
+      "canonical_row_sha256": "7205e82c80f1055e8c4ad2ff8162426369033af939852f9a770a36a92be70518",
+      "file_sha256": "4b87f4a08430f5133dc8d039321df836b1f9ced4c161d6be782244858b35fbdd",
+      "semantic_sha256": "8bfbcc42eac38ec0f048d067ae46cce430f5dd095b68ecad3ce1dadc4f2b9698"
+    },
+    "Pigs291119_000225_30fps": {
+      "canonical_row_sha256": "7487ebb884b0d88486be3fbbc9446896f1e26019d9a7f46e2226cb43fe27724a",
+      "file_sha256": "e1a7fcf744ee802f82059f3e1a3e790c8d7f963bfa3091cc77a63f2800258782",
+      "semantic_sha256": "b0eeab5bcf3fc8221b7eb357df5aaf19990c50b1c74b077e2a76455d86236fed"
+    },
+    "Pigs291119_000226_30fps": {
+      "canonical_row_sha256": "0b3fa6c0d0ed150d9202fe2693d35e88d40ba847e0e55f5bc2e05c937a879b18",
+      "file_sha256": "916814dbac6347e82f95ec489e82bd8df77788423fe652d884ebef16f6f6f19a",
+      "semantic_sha256": "8a32c4436d46ec7343f7b7a4d4a4981621c2ea9d1ace2c0345514397cd82becc"
+    },
+    "Pigs291119_000231_30fps": {
+      "canonical_row_sha256": "cd4cbf4b570665149e5b0510df7f8770b58a78c5caf8e2993b305c6cb7ad61a8",
+      "file_sha256": "62f3f6454b08c6180b60362a830f51cf0d3a68b56c020830f6fcd34e895c0fc3",
+      "semantic_sha256": "3c1a6a762296402c0470c5dae1c5506f848f6d1f84512060448a83f32f6136c7"
+    },
+    "Pigs291119_000233_30fps": {
+      "canonical_row_sha256": "ac96c6cb3c81b83a82ae25a60a6075f3cbc8a050d5960077eef408e6a5d64c1e",
+      "file_sha256": "6a9f70612980b7d159afe1215c2f2346b334c587d0b7e33ad418752e9858b4cb",
+      "semantic_sha256": "f3af6aaeee81cc9c365aa74a6c9209b6972e5117e0d5b18d3c1b3b34336c8369"
+    },
+    "Pigs291119_000263_30fps": {
+      "canonical_row_sha256": "a353d98956e136571320dad6fdcb3b07843181b376953ceefbff6a3e15d86a7c",
+      "file_sha256": "94fadef73ac8679729aa349daaccddfb94fc9c6bf557a4a7d2622da4b8f52f95",
+      "semantic_sha256": "79d21678f38654ac853457fea5c9371933a229479be1f341bf271d7d70df23e9"
+    },
+    "Pigs291119_000302_30fps": {
+      "canonical_row_sha256": "e6dd019e3ee4078b269a5a9d13bca3786906ebfff5e185b00ece7bd930383e37",
+      "file_sha256": "e5c0f87e00060284e0ef2fc8520275ea45318b2d2925f8e9e5217118f43ed389",
+      "semantic_sha256": "01cbb022050f507ae171fe65ee11c43d7cbda190d888814d2089c028bbb15edb"
+    },
+    "Pigs301119_000327_30fps": {
+      "canonical_row_sha256": "a39d6a876e972b3090b4cd4e7f3745b45244193d45a6e0079d1fb51c9224b26c",
+      "file_sha256": "9b143ccad47808879b3c7820ea7f26cc988702e38e83942a8aa5c67d3e28ca9c",
+      "semantic_sha256": "b55e221d064a1d6b8055769055d032db4f305878a173a009d086d3c302e8791f"
+    },
+    "Pigs301119_000328_30fps": {
+      "canonical_row_sha256": "7210aa1167d81308f51195cfc9c792dacaae4ecd532bc0940c0b3a58a004613e",
+      "file_sha256": "e1bbcd32794c2bdb37dd7984bb85a22207ab00d11a962300bbd64ed470e95e42",
+      "semantic_sha256": "5883658ac92776fe0caaeee7cc54e975b4b24e76c5df7733fd7adaf912cc5a87"
+    },
+    "Pigs301119_000329_30fps": {
+      "canonical_row_sha256": "0c581ea914d369d1313c0d2476feee31a94a97f4f5829b383d9ab14847cc08a7",
+      "file_sha256": "23d308eba324ef84991871ae755877dabcef4d2e4352fab54405da8ef83195a4",
+      "semantic_sha256": "82a85848e8c295fa537cbefa0ab56af4e5a183ebbfa4aa5df8739e11e66c3793"
+    },
+    "Pigs301119_000330_30fps": {
+      "canonical_row_sha256": "08c98455b43afd8a8afaaac983f8b1b515313d75f58658bcd9fe697288c4fe63",
+      "file_sha256": "9e3ede98e58c848b42d7d9711e3d88e531a77fdefc503a9682e47a6556415ec5",
+      "semantic_sha256": "3d1b8aba2fd52901d1e7c51968339834211b0113a1e1e94b9b571d3102144f01"
+    }
+  },
+  "prediction_hash_contract": "tracking_prediction_xml_set_sha256_v1",
+  "prediction_object_count": 187200,
+  "prediction_root": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\frozen_predictions_standard_v2_20260728_retry1\\B0_bytetrack_raw\\predictions",
+  "processed_frame_count": 23400,
+  "producer_code_sha": "ac9bda0f7432d56229ede36bbb8fa06167846313",
+  "profile": "bytetrack_raw",
+  "profile_config_sha256": "547ae86e3be26671a9a148cb0e613ea1c602a0ff842a977ce9b7f1d217c10e41",
+  "recursive_artifact_inventory_sha256": "a108e139e96426904e6b7bca91cce9a3cd99845aaff2d85dac85b1c69d94d95e",
+  "retention_class": "NON_DISPOSABLE_FROZEN_PREDICTION_AUTHORITY",
+  "schema_version": "tracking.b0.prediction_authority.v1",
+  "source_video_manifest_sha256": "91289c9acb40958e59c17e98872714904f8df7e4c49682a4649e7fcc84bab9be",
+  "status": "ESTABLISHED",
+  "video_count": 13
+}

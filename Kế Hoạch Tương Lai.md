@@ -1,5 +1,19 @@
 • Kế Hoạch Tương Lai
 
+## B0/B1 frozen prediction authority — 2026-07-28
+
+- B0 `bytetrack_raw` và B1 `hybrid_bytetrack` đã chạy độc lập trên đúng 13
+  video development, dùng full-frame cache và không gọi detector inference.
+- Mỗi arm đã đóng băng 13 XML, 23.400 processed frames và 187.200 prediction
+  objects trong `frozen_predictions_standard_v2_20260728_retry1`.
+- B0/B1/R0 đã PASS fairness ở mức authority. Cross-core comparison chỉ được
+  diễn giải là whole-pipeline effect gồm detector cadence; không được claim
+  pure association-core effect.
+- Bước tiếp theo là task riêng để re-evaluate frozen B0/B1/R0 bằng
+  `TRACKING_EVALUATOR_STANDARD_V2` và `IDENTITY_ERROR_EPISODES_V2`.
+- Chưa được chạy development 2x2, unseen evaluation, runtime funnel hoặc
+  promotion.
+
 ## Full-frame detector cache gate — 2026-07-28
 
 - Detector cache full-frame cho đúng 13 video development đã khóa đã PASS:

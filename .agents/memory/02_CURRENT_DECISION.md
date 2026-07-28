@@ -1,5 +1,24 @@
 # Current Decision
 
+## B0/B1 frozen prediction authorities established (2026-07-28)
+
+- `PREDICTION_GENERATION_DECISION=PASS_B0_B1_PREDICTIONS_FROZEN`
+- Exact `bytetrack_raw` and `hybrid_bytetrack` each completed all 13 locked
+  development videos from the full-frame cache: 23,400 cache records per arm.
+- B0 and B1 each retain 13 prediction XML files and 187,200 prediction objects
+  under the non-disposable root
+  `outputs/tracking/frozen_predictions_standard_v2_20260728_retry1/`.
+- Detector inference, R0/R1 executions, evaluator/metric runs, unseen access,
+  and MP4 output were all zero.
+- B0 artifact authority is `13d9226c36141264cc33e4b498d38e5f3eaa9891cf32bc4c8fb87b01fd27d576`;
+  B1 is `569c49e00905add068fac70c919fe21c10127e3ab773528a4ac44199fcb4835b`.
+- B0/B1/R0 population, GT, source, detector model/config, and sequence
+  boundaries pass the authority-level fairness gate. Detector row cadence is
+  intentionally full-frame for B0/B1 and even-frame for R0.
+- The next authorized tracking task is a separate Standard-V2 re-evaluation
+  of frozen B0/B1/R0 outputs. Development 2x2, unseen evaluation, runtime,
+  and promotion remain unauthorized.
+
 ## Full-frame development detector cache frozen (2026-07-28)
 
 - `CACHE_DECISION=PASS_FULL_FRAME_DETECTOR_CACHE_FROZEN`
