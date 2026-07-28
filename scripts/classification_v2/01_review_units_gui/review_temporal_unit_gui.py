@@ -31,6 +31,42 @@ except Exception:  # pragma: no cover
 
 
 VALID_BEHAVIORS = sorted(CANONICAL_BEHAVIORS)
+BEHAVIOR_SHORTCUTS = {
+    str((index + 1) % 10): behavior
+    for index, behavior in enumerate(VALID_BEHAVIORS)
+}
+TEXT_INPUT_WIDGET_CLASSES = frozenset(
+    {"Entry", "TEntry", "Text", "TCombobox", "Spinbox", "TSpinbox"}
+)
+
+
+def derive_training_fields(
+    decision: str,
+    strength: str,
+) -> tuple[str, str]:
+    """Map the reviewer-facing choice to deterministic training fields."""
+
+    normalized_decision = str(decision).strip()
+    normalized_strength = str(strength).strip()
+    if normalized_decision == "exclude":
+        return "exclude", "0.0"
+    if normalized_decision == "pending":
+        return "review_later", "0.0"
+    if normalized_decision not in {"accept", "corrected"}:
+        return "", ""
+    if normalized_strength in {"weak", "boundary"}:
+        return "low_weight_train", "0.5"
+    if normalized_decision == "corrected":
+        return "correct_and_keep", "1.0"
+    return "main_train", "1.0"
+
+
+def shortcut_allowed_for_widget(widget: Any) -> bool:
+    """Prevent labeling hotkeys while the reviewer is typing."""
+
+    if widget is None or not hasattr(widget, "winfo_class"):
+        return True
+    return str(widget.winfo_class()) not in TEXT_INPUT_WIDGET_CLASSES
 
 GUI_FRAME_COLUMNS = (
     "source_type",
@@ -100,6 +136,72 @@ def decision_scope_complete(
     """Require exactly one actor row for every target frame."""
 
     return sorted(observed_frames) == decision_scope_frames(unit)
+
+
+def _display_text(value: object) -> str:
+    if pd.isna(value):
+        return ""
+    return str(value).strip()
+
+
+def _availability_marker(value: object) -> str:
+    normalized = _display_text(value).casefold()
+    return "✓" if normalized in {"1", "true", "yes", "y"} else "—"
+
+
+def format_reviewer_summary(
+    unit: pd.Series,
+    diagnostics: list[str],
+    matched_frame_count: int,
+) -> str:
+    """Return only information needed to make a behavior decision."""
+
+    reasons = _display_text(
+        unit.get("review_reason_codes", unit.get("review_reason", ""))
+    )
+    reasons = reasons.replace("_", " ").replace("|", " · ")
+    availability = "  ".join(
+        [
+            "motion "
+            + _availability_marker(
+                unit.get("review_motion_evidence_available", False)
+            ),
+            "ROI "
+            + _availability_marker(
+                unit.get("review_roi_evidence_available", False)
+            ),
+            "social "
+            + _availability_marker(
+                unit.get("review_social_evidence_available", False)
+            ),
+            "posture "
+            + _availability_marker(
+                unit.get("review_posture_evidence_available", False)
+            ),
+        ]
+    )
+    lines = [
+        f"Nhãn gốc: {_display_text(unit.get('behavior_label', ''))}",
+        f"Lý do review: {reasons or 'không có mô tả'}",
+        f"Bằng chứng sẵn có: {availability}",
+        (
+            "Nguồn: "
+            f"{_display_text(unit.get('source_type', ''))} · "
+            f"{_display_text(unit.get('video_key', ''))}"
+        ),
+        (
+            "Actor: "
+            f"{_display_text(unit.get('pig_id', '')) or '—'} · "
+            f"frames {_display_text(unit.get('unit_start_frame', ''))}"
+            f"–{_display_text(unit.get('unit_end_frame', ''))} · "
+            f"matched {matched_frame_count}"
+        ),
+    ]
+    if diagnostics:
+        lines.append("Cảnh báo ảnh: " + " · ".join(diagnostics[:4]))
+    else:
+        lines.append("Cảnh báo ảnh: không")
+    return "\n".join(lines)
 
 
 def validate_candidate_gui_manifest(units: pd.DataFrame) -> list[str]:
@@ -214,16 +316,19 @@ class ReviewUnitGui:
 
         self.current = 0
         self.decisions = self._load_existing_decisions()
+        self.details_visible = False
+        self.decision_dirty = False
         self.video_cache: dict[str, Any] = {}
         self.video_index = self._build_video_index(config.video_root)
         self.roi_overlays = self._load_roi_overlays(config.roi_coco_path)
 
         self.root = tk.Tk()
-        self.root.title("classification_v2 temporal review unit GUI")
-        self.root.geometry("1220x880")
-        self.root.minsize(1000, 720)
+        self.root.title("Behavior Review · classification_v2")
+        self.root.geometry("1380x900")
+        self.root.minsize(1100, 740)
 
         self._build_layout()
+        self._bind_shortcuts()
         self.show_current()
         self.root.protocol("WM_DELETE_WINDOW", self.on_quit)
         self.root.mainloop()
@@ -393,14 +498,14 @@ class ReviewUnitGui:
         header_lbl = ttk.Label(
             self.root,
             textvariable=self.header,
-            font=("Segoe UI", 11, "bold"),
-            wraplength=1160,
+            font=("Segoe UI", 12, "bold"),
+            wraplength=1340,
         )
-        header_lbl.grid(row=0, column=0, sticky="ew", padx=8, pady=(6, 2))
+        header_lbl.grid(row=0, column=0, sticky="ew", padx=10, pady=(8, 4))
 
         self.main_frame = ttk.Frame(self.root)
-        self.main_frame.grid(row=1, column=0, sticky="nsew", padx=8, pady=2)
-        self.main_frame.columnconfigure(0, weight=3)
+        self.main_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=2)
+        self.main_frame.columnconfigure(0, weight=5)
         self.main_frame.columnconfigure(1, weight=2)
         self.main_frame.rowconfigure(0, weight=1)
 
@@ -410,98 +515,230 @@ class ReviewUnitGui:
         right = ttk.Frame(self.main_frame)
         right.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
         right.columnconfigure(0, weight=1)
-        right.rowconfigure(1, weight=1)
+        right.rowconfigure(5, weight=1)
 
-        self.info_text = tk.Text(right, height=22, wrap="word")
-        self.info_text.grid(row=0, column=0, sticky="nsew")
-
-        form = ttk.Frame(right)
-        form.grid(row=1, column=0, sticky="ew", pady=(8, 0))
-        form.columnconfigure(1, weight=1)
+        summary = ttk.LabelFrame(right, text="Thông tin cần để quyết định")
+        summary.grid(row=0, column=0, sticky="ew")
+        summary.columnconfigure(0, weight=1)
+        self.summary_text = tk.Text(
+            summary,
+            height=7,
+            wrap="word",
+            background="#f7f7f7",
+            relief="flat",
+        )
+        self.summary_text.grid(row=0, column=0, sticky="ew", padx=6, pady=4)
+        self.summary_text.configure(state="disabled")
 
         self.decision_var = tk.StringVar(value="pending")
-        self.strength_var = tk.StringVar(value="")
+        self.strength_var = tk.StringVar(value="strong")
         self.corrected_var = tk.StringVar(value="")
         self.action_var = tk.StringVar(value="")
         self.weight_var = tk.StringVar(value="")
         self.note_var = tk.StringVar(value="")
+        self.note_var.trace_add("write", self._on_note_change)
+        self.status_var = tk.StringVar(value="Chưa có quyết định")
 
-        row = 0
-        ttk.Label(form, text="Decision").grid(row=row, column=0, sticky="w")
-        ttk.Combobox(
-            form,
-            textvariable=self.decision_var,
-            values=["pending", "accept", "corrected", "exclude"],
-            state="readonly",
-        ).grid(row=row, column=1, sticky="ew")
-        row += 1
-        ttk.Label(form, text="Corrected behavior").grid(row=row, column=0, sticky="w")
-        ttk.Combobox(
-            form,
-            textvariable=self.corrected_var,
-            values=["", *VALID_BEHAVIORS],
-            state="readonly",
-        ).grid(row=row, column=1, sticky="ew")
-        row += 1
-        ttk.Label(form, text="Strength").grid(row=row, column=0, sticky="w")
-        ttk.Combobox(
-            form,
-            textvariable=self.strength_var,
-            values=["", "strong", "medium", "weak", "boundary"],
-            state="readonly",
-        ).grid(row=row, column=1, sticky="ew")
-        row += 1
-        ttk.Label(form, text="Training action").grid(row=row, column=0, sticky="w")
-        ttk.Combobox(
-            form,
-            textvariable=self.action_var,
-            values=[
-                "",
-                "main_train",
-                "low_weight_train",
-                "exclude",
-                "review_later",
-            ],
-            state="readonly",
-        ).grid(row=row, column=1, sticky="ew")
-        row += 1
-        ttk.Label(form, text="Weight").grid(row=row, column=0, sticky="w")
-        ttk.Entry(form, textvariable=self.weight_var).grid(row=row, column=1, sticky="ew")
-        row += 1
-        ttk.Label(form, text="Note").grid(row=row, column=0, sticky="w")
-        ttk.Entry(form, textvariable=self.note_var).grid(row=row, column=1, sticky="ew")
+        status = ttk.Label(
+            right,
+            textvariable=self.status_var,
+            font=("Segoe UI", 10, "bold"),
+        )
+        status.grid(row=1, column=0, sticky="ew", pady=(6, 2))
+
+        confidence = ttk.LabelFrame(
+            right,
+            text="Độ chắc chắn · strong/medium: 1.0 · weak/boundary: 0.5",
+        )
+        confidence.grid(row=2, column=0, sticky="ew", pady=(4, 0))
+        for column, value in enumerate(
+            ("strong", "medium", "weak", "boundary")
+        ):
+            confidence.columnconfigure(column, weight=1)
+            ttk.Radiobutton(
+                confidence,
+                text=value,
+                value=value,
+                variable=self.strength_var,
+                command=self._on_confidence_change,
+            ).grid(row=0, column=column, sticky="w", padx=4, pady=3)
+
+        labels = ttk.LabelFrame(right, text="Sửa nhãn · phím 1–9, 0")
+        labels.grid(row=3, column=0, sticky="ew", pady=(6, 0))
+        for column in range(2):
+            labels.columnconfigure(column, weight=1)
+        self.behavior_buttons: dict[str, ttk.Button] = {}
+        for index, behavior in enumerate(VALID_BEHAVIORS):
+            key = str((index + 1) % 10)
+            button = ttk.Button(
+                labels,
+                text=f"{key}  {behavior}",
+                command=lambda value=behavior: self.correct_behavior_next(
+                    value
+                ),
+            )
+            button.grid(
+                row=index // 2,
+                column=index % 2,
+                sticky="ew",
+                padx=3,
+                pady=2,
+            )
+            self.behavior_buttons[behavior] = button
+
+        note = ttk.Frame(right)
+        note.grid(row=4, column=0, sticky="ew", pady=(6, 0))
+        note.columnconfigure(1, weight=1)
+        ttk.Label(note, text="Ghi chú (chỉ khi cần)").grid(
+            row=0,
+            column=0,
+            sticky="w",
+        )
+        self.note_entry = ttk.Entry(note, textvariable=self.note_var)
+        self.note_entry.grid(row=0, column=1, sticky="ew", padx=(6, 0))
+
+        details = ttk.Frame(right)
+        details.grid(row=5, column=0, sticky="nsew", pady=(6, 0))
+        details.columnconfigure(0, weight=1)
+        details.rowconfigure(1, weight=1)
+        self.details_button = ttk.Button(
+            details,
+            text="Hiện chi tiết kỹ thuật",
+            command=self.toggle_details,
+        )
+        self.details_button.grid(row=0, column=0, sticky="ew")
+        self.info_text = tk.Text(details, height=10, wrap="word")
+        self.info_text.grid(row=1, column=0, sticky="nsew", pady=(4, 0))
+        self.info_text.grid_remove()
 
         bottom = ttk.Frame(self.root)
-        bottom.grid(row=2, column=0, sticky="ew", padx=8, pady=8)
+        bottom.grid(row=2, column=0, sticky="ew", padx=10, pady=(8, 3))
         for i in range(8):
             bottom.columnconfigure(i, weight=1)
-        ttk.Button(bottom, text="< Prev", command=self.prev_item).grid(
+        ttk.Button(bottom, text="← Trước", command=self.prev_item).grid(
             row=0, column=0, sticky="ew", padx=3
         )
-        ttk.Button(bottom, text="Save", command=self.save_current).grid(
+        ttk.Button(
+            bottom,
+            text="A  Giữ nhãn + tiếp",
+            command=self.accept_current_next,
+        ).grid(
             row=0, column=1, sticky="ew", padx=3
         )
-        ttk.Button(bottom, text="Save + Next", command=self.save_next).grid(
+        ttk.Button(bottom, text="R  Để xem sau", command=self.defer_next).grid(
             row=0, column=2, sticky="ew", padx=3
         )
-        ttk.Button(bottom, text="Accept strong + Next", command=self.accept_strong_next).grid(
+        ttk.Button(bottom, text="X  Loại + tiếp", command=self.exclude_next).grid(
             row=0, column=3, sticky="ew", padx=3
         )
-        ttk.Button(bottom, text="Exclude + Next", command=self.exclude_next).grid(
+        ttk.Button(bottom, text="Enter  Lưu + tiếp", command=self.save_next).grid(
             row=0, column=4, sticky="ew", padx=3
         )
-        ttk.Button(bottom, text="Next >", command=self.next_item).grid(
+        ttk.Button(bottom, text="Tiếp →", command=self.next_item).grid(
             row=0, column=5, sticky="ew", padx=3
         )
-        ttk.Button(bottom, text="Write CSV", command=self.write_decisions).grid(
+        ttk.Button(bottom, text="Ghi CSV", command=self.write_decisions).grid(
             row=0, column=6, sticky="ew", padx=3
         )
-        ttk.Button(bottom, text="Quit", command=self.on_quit).grid(
-            row=0, column=7, sticky="ew", padx=3
+        ttk.Button(bottom, text="Đóng", command=self.on_quit).grid(
+            row=0,
+            column=7,
+            sticky="ew",
+            padx=3,
         )
+        ttk.Label(
+            self.root,
+            text=(
+                "Phím tắt: A giữ nhãn · 1–0 sửa nhãn · X loại · "
+                "R xem sau · ←/→ điều hướng · Ctrl+S ghi CSV"
+            ),
+            anchor="center",
+        ).grid(row=3, column=0, sticky="ew", padx=10, pady=(0, 6))
 
     def current_unit(self) -> pd.Series:
         return self.units.iloc[self.current]
+
+    def _bind_shortcuts(self) -> None:
+        self.root.bind("<KeyPress>", self._on_keypress)
+
+    def _on_keypress(self, event: Any) -> str | None:
+        key = str(getattr(event, "keysym", "")).casefold()
+        control_pressed = bool(int(getattr(event, "state", 0)) & 0x4)
+        if control_pressed and key == "s":
+            self.write_decisions(show_message=False)
+            return "break"
+        if not shortcut_allowed_for_widget(getattr(event, "widget", None)):
+            return None
+        actions = {
+            "a": self.accept_current_next,
+            "x": self.exclude_next,
+            "r": self.defer_next,
+            "return": self.save_next,
+            "left": self.prev_item,
+            "right": self.next_item,
+        }
+        if key in BEHAVIOR_SHORTCUTS:
+            self.correct_behavior_next(BEHAVIOR_SHORTCUTS[key])
+            return "break"
+        action = actions.get(key)
+        if action is None:
+            return None
+        action()
+        return "break"
+
+    def toggle_details(self) -> None:
+        self.details_visible = not self.details_visible
+        if self.details_visible:
+            self.info_text.grid()
+            self.details_button.configure(text="Ẩn chi tiết kỹ thuật")
+        else:
+            self.info_text.grid_remove()
+            self.details_button.configure(text="Hiện chi tiết kỹ thuật")
+
+    def _completed_count(self) -> int:
+        return sum(
+            str(row.get("manual_review_decision", "pending")) != "pending"
+            for row in self.decisions.values()
+        )
+
+    def _sync_derived_fields(self) -> None:
+        action, weight = derive_training_fields(
+            self.decision_var.get(),
+            self.strength_var.get(),
+        )
+        self.action_var.set(action)
+        self.weight_var.set(weight)
+
+    def _on_confidence_change(self) -> None:
+        if self.decision_var.get() in {"accept", "corrected"}:
+            self.decision_dirty = True
+            self._sync_derived_fields()
+        self._update_decision_preview()
+
+    def _on_note_change(self, *_: object) -> None:
+        self.decision_dirty = True
+
+    def _update_decision_preview(self) -> None:
+        decision = self.decision_var.get()
+        corrected = self.corrected_var.get()
+        if decision == "accept":
+            summary = "Giữ nhãn gốc"
+        elif decision == "corrected":
+            summary = f"Sửa thành: {corrected or 'chưa chọn'}"
+        elif decision == "exclude":
+            summary = "Loại khỏi training"
+        else:
+            summary = "Chưa quyết định / để xem sau"
+        action = self.action_var.get() or "—"
+        weight = self.weight_var.get() or "—"
+        strength = (
+            self.strength_var.get()
+            if decision != "pending"
+            else "—"
+        )
+        self.status_var.set(
+            f"{summary} · chắc chắn {strength} · action {action} · weight {weight}"
+        )
 
     def show_current(self) -> None:
         unit = self.current_unit()
@@ -523,28 +760,38 @@ class ReviewUnitGui:
             )
             image.save(output_path, quality=92)
 
-        display_indices = str(unit.get("display_frame_indices", ""))
         self.header.set(
-            f"{self.current + 1}/{len(self.units)} | {unit.get('review_unit_type')} | "
-            f"{unit.get('source_type')} | {unit.get('behavior_label')} | "
-            f"{unit.get('candidate_tier', '')} | "
-            f"{unit.get('review_reason_codes', unit.get('review_reason', ''))} | "
-            f"frames {unit.get('unit_start_frame')}-{unit.get('unit_end_frame')} | "
-            f"shown [{display_indices}]"
+            f"{self.current + 1}/{len(self.units)} · "
+            f"đã quyết định {self._completed_count()} · "
+            f"nhãn gốc {unit.get('behavior_label')} · "
+            f"{unit.get('candidate_tier', '')} · "
+            f"{unit.get('source_type')} · "
+            f"frames {unit.get('unit_start_frame')}–"
+            f"{unit.get('unit_end_frame')}"
         )
 
+        self.summary_text.configure(state="normal")
+        self.summary_text.delete("1.0", "end")
+        self.summary_text.insert(
+            "1.0",
+            format_reviewer_summary(unit, diagnostics, len(frames)),
+        )
+        self.summary_text.configure(state="disabled")
         self.info_text.delete("1.0", "end")
         info = self._format_info(unit, diagnostics, frames)
         self.info_text.insert("1.0", info)
+        self._update_decision_preview()
 
     def _load_existing_decision(self, unit_id: str) -> None:
         d = self.decisions.get(unit_id, {})
         self.decision_var.set(str(d.get("manual_review_decision", "pending")))
         self.corrected_var.set(str(d.get("manual_corrected_behavior", "")))
-        self.strength_var.set(str(d.get("manual_label_strength", "")))
+        strength = str(d.get("manual_label_strength", "")).strip()
+        self.strength_var.set(strength or "strong")
         self.action_var.set(str(d.get("manual_training_action", "")))
         self.weight_var.set(str(d.get("manual_sample_weight", "")))
         self.note_var.set(str(d.get("manual_note", "")))
+        self.decision_dirty = False
 
     def _format_info(self, unit: pd.Series, diagnostics: list[str], frames: pd.DataFrame) -> str:
         keys = [
@@ -999,6 +1246,10 @@ class ReviewUnitGui:
     def save_current(self) -> bool:
         unit = self.current_unit()
         unit_id = str(unit["review_unit_id"])
+        decision_value = self.decision_var.get()
+        strength_value = (
+            "" if decision_value == "pending" else self.strength_var.get()
+        )
         record = {
             "review_item_id": unit.get("review_item_id", ""),
             "review_unit_id": unit_id,
@@ -1018,9 +1269,9 @@ class ReviewUnitGui:
             "original_behavior": unit.get("behavior_label", ""),
             "review_reason": unit.get("review_reason", ""),
             "apply_scope": unit.get("apply_scope", ""),
-            "manual_review_decision": self.decision_var.get(),
+            "manual_review_decision": decision_value,
             "manual_corrected_behavior": self.corrected_var.get(),
-            "manual_label_strength": self.strength_var.get(),
+            "manual_label_strength": strength_value,
             "manual_training_action": self.action_var.get(),
             "manual_sample_weight": self.weight_var.get(),
             "manual_note": self.note_var.get(),
@@ -1068,6 +1319,8 @@ class ReviewUnitGui:
             for key, value in normalized_record.items()
         }
         self.write_decisions(show_message=False)
+        self.decision_dirty = False
+        self._update_decision_preview()
         return True
 
     def write_decisions(self, show_message: bool = True) -> None:
@@ -1123,31 +1376,67 @@ class ReviewUnitGui:
         if self.save_current():
             self.next_item()
 
-    def accept_strong_next(self) -> None:
+    def accept_current_next(self) -> None:
         self.decision_var.set("accept")
+        self.corrected_var.set("")
+        if not self.strength_var.get():
+            self.strength_var.set("strong")
+        self._sync_derived_fields()
+        self.decision_dirty = True
+        self.save_next()
+
+    def accept_strong_next(self) -> None:
         self.strength_var.set("strong")
-        self.action_var.set("main_train")
-        self.weight_var.set("1.0")
+        self.accept_current_next()
+
+    def correct_behavior_next(self, behavior: str) -> None:
+        if behavior not in CANONICAL_BEHAVIORS:
+            raise ValueError(f"unknown corrected behavior={behavior}")
+        original = str(self.current_unit().get("behavior_label", "")).strip()
+        if behavior == original:
+            self.accept_current_next()
+            return
+        self.decision_var.set("corrected")
+        self.corrected_var.set(behavior)
+        if not self.strength_var.get():
+            self.strength_var.set("strong")
+        self._sync_derived_fields()
+        self.decision_dirty = True
         self.save_next()
 
     def exclude_next(self) -> None:
         self.decision_var.set("exclude")
+        self.corrected_var.set("")
         self.strength_var.set("boundary")
-        self.action_var.set("exclude")
+        self._sync_derived_fields()
+        self.decision_dirty = True
+        self.save_next()
+
+    def defer_next(self) -> None:
+        self.decision_var.set("pending")
+        self.corrected_var.set("")
+        self.action_var.set("review_later")
         self.weight_var.set("0.0")
+        self.decision_dirty = True
         self.save_next()
 
     def next_item(self) -> None:
+        if self.decision_dirty and not self.save_current():
+            return
         if self.current < len(self.units) - 1:
             self.current += 1
             self.show_current()
 
     def prev_item(self) -> None:
+        if self.decision_dirty and not self.save_current():
+            return
         if self.current > 0:
             self.current -= 1
             self.show_current()
 
     def on_quit(self) -> None:
+        if self.decision_dirty and not self.save_current():
+            return
         self.write_decisions(show_message=False)
         for cap in self.video_cache.values():
             try:

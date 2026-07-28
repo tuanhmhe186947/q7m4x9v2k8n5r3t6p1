@@ -249,6 +249,122 @@ def test_behavior_gui_loader_uses_bounded_column_projection(
     assert set(module.GUI_REQUIRED_FRAME_COLUMNS).issubset(frames.columns)
 
 
+def test_reviewer_actions_derive_training_fields_without_manual_weight() -> None:
+    module = _load_gui_module()
+
+    assert module.derive_training_fields("accept", "strong") == (
+        "main_train",
+        "1.0",
+    )
+    assert module.derive_training_fields("corrected", "medium") == (
+        "correct_and_keep",
+        "1.0",
+    )
+    assert module.derive_training_fields("corrected", "weak") == (
+        "low_weight_train",
+        "0.5",
+    )
+    assert module.derive_training_fields("accept", "boundary") == (
+        "low_weight_train",
+        "0.5",
+    )
+    assert module.derive_training_fields("exclude", "strong") == (
+        "exclude",
+        "0.0",
+    )
+    assert module.derive_training_fields("pending", "") == (
+        "review_later",
+        "0.0",
+    )
+    decisions = []
+    for index, (decision, strength, correction) in enumerate(
+        [
+            ("accept", "strong", ""),
+            ("corrected", "weak", "eat"),
+            ("exclude", "boundary", ""),
+            ("pending", "", ""),
+        ]
+    ):
+        action, weight = module.derive_training_fields(decision, strength)
+        decisions.append(
+            {
+                "review_unit_id": f"unit-{index}",
+                "manual_review_decision": decision,
+                "manual_corrected_behavior": correction,
+                "manual_label_strength": strength,
+                "manual_training_action": action,
+                "manual_sample_weight": weight,
+            }
+        )
+    canonical, _ = module.canonicalize_decisions(
+        pd.DataFrame.from_records(decisions)
+    )
+    errors, _ = module.validate_decision_semantics(
+        canonical,
+        require_complete=False,
+    )
+
+    assert errors == []
+
+
+def test_reviewer_summary_hides_audit_only_clutter() -> None:
+    module = _load_gui_module()
+    unit = pd.Series(
+        {
+            "behavior_label": "eat",
+            "review_reason_codes": "roi_contradiction|motion_contradiction",
+            "review_motion_evidence_available": True,
+            "review_roi_evidence_available": True,
+            "review_social_evidence_available": False,
+            "review_posture_evidence_available": True,
+            "source_type": "cvat",
+            "video_key": "video-1",
+            "pig_id": "Pig_1",
+            "unit_start_frame": 12,
+            "unit_end_frame": 17,
+            "risk_components": "large technical payload",
+            "behavior_sampling_probability": 0.123,
+        }
+    )
+
+    summary = module.format_reviewer_summary(unit, [], 6)
+
+    assert "Nhãn gốc: eat" in summary
+    assert "roi contradiction" in summary
+    assert "motion ✓" in summary
+    assert "social —" in summary
+    assert "risk_components" not in summary
+    assert "large technical payload" not in summary
+    assert "behavior_sampling_probability" not in summary
+
+
+def test_label_shortcuts_are_disabled_while_typing() -> None:
+    module = _load_gui_module()
+
+    class FakeWidget:
+        def __init__(self, widget_class: str) -> None:
+            self.widget_class = widget_class
+
+        def winfo_class(self) -> str:
+            return self.widget_class
+
+    for widget_class in ("Entry", "TEntry", "Text", "TCombobox"):
+        assert not module.shortcut_allowed_for_widget(
+            FakeWidget(widget_class)
+        )
+    assert module.shortcut_allowed_for_widget(FakeWidget("TButton"))
+    assert module.shortcut_allowed_for_widget(None)
+
+
+def test_behavior_shortcuts_cover_every_canonical_label_once() -> None:
+    module = _load_gui_module()
+
+    assert set(module.BEHAVIOR_SHORTCUTS) == set("1234567890")
+    assert set(module.BEHAVIOR_SHORTCUTS.values()) == set(
+        module.VALID_BEHAVIORS
+    )
+
+
 def test_legacy_nonzero_target_scope_ignores_overlapping_history() -> None:
     module = _load_gui_module()
     unit = pd.Series(
