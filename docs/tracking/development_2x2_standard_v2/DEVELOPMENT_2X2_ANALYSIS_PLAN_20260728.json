@@ -1,0 +1,166 @@
+{
+  "schema_version": "tracking.development_2x2.analysis_plan.v1",
+  "date": "20260728",
+  "status": "FROZEN_BEFORE_R1_METRIC_EVALUATION",
+  "starting_main_sha": "4049aac2bdedbc6365eb5261aba8fbbabc006256",
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "experiment-lineage-reproducibility",
+    "scientific-ablation-controller"
+  ],
+  "design": {
+    "rows": {
+      "bytetrack_core": {
+        "no_offline_repair": "B0",
+        "frozen_offline_repair": "B1",
+        "detector_cadence": "EVERY_FRAME"
+      },
+      "rf_causal_core": {
+        "no_offline_repair": "R0",
+        "frozen_offline_repair": "R1",
+        "detector_cadence": "EVERY_2_FRAMES"
+      }
+    },
+    "bytetrack_repair_effect": "B1-B0",
+    "rf_repair_effect": "R1-R0",
+    "online_pipeline_effect": "R0-B0",
+    "offline_pipeline_effect": "R1-B1",
+    "interaction": "(R1-R0)-(B1-B0)"
+  },
+  "metric_contract": {
+    "evaluator_contract_id": "TRACKING_EVALUATOR_STANDARD_V2",
+    "identity_episode_contract_id": "IDENTITY_ERROR_EPISODES_V2",
+    "primary_include_hidden": true,
+    "hota_alpha_set": [
+      0.05,
+      0.1,
+      0.15,
+      0.2,
+      0.25,
+      0.3,
+      0.35,
+      0.4,
+      0.45,
+      0.5,
+      0.55,
+      0.6,
+      0.65,
+      0.7,
+      0.75,
+      0.8,
+      0.85,
+      0.9,
+      0.95
+    ],
+    "matching_policy": "PRE_ASSIGNMENT_ELIGIBILITY",
+    "sequence_boundary": "VIDEO",
+    "idsw_policy": "IDSW_STANDARD",
+    "statistical_unit": "VIDEO",
+    "weighted_composite_score": "PROHIBITED"
+  },
+  "metric_hierarchy": {
+    "co_primary_standard_metrics": [
+      "hota",
+      "idf1"
+    ],
+    "primary_identity_severity_diagnostics": [
+      "wrong_id_matched_frames",
+      "wrong_id_matched_seconds",
+      "terminal_identity_error_episode_count",
+      "persistent_pairwise_identity_swap_count"
+    ],
+    "supporting_metrics": [
+      "deta",
+      "assa",
+      "loca",
+      "id_precision",
+      "id_recall",
+      "idsw_standard",
+      "fp",
+      "fn",
+      "fragments",
+      "identity_error_episode_count",
+      "recovered_identity_error_episode_count",
+      "recovery_latency",
+      "normalized_idsw",
+      "normalized_wrong_id_exposure"
+    ]
+  },
+  "repair_effect_classification": {
+    "allowed_values": [
+      "BROADLY_BENEFICIAL",
+      "MIXED_TRADEOFF",
+      "NO_OBSERVED_CHANGE",
+      "BROADLY_HARMFUL",
+      "INCONCLUSIVE"
+    ],
+    "broadly_beneficial": [
+      "HOTA improves",
+      "IDF1 improves",
+      "wrong-ID frames do not increase",
+      "terminal episodes do not increase",
+      "persistent pairwise swaps do not increase"
+    ],
+    "broadly_harmful": [
+      "HOTA decreases",
+      "IDF1 decreases",
+      "at least one primary identity-severity diagnostic worsens"
+    ],
+    "no_observed_change": [
+      "co-primary metrics equal within frozen serialization tolerance",
+      "all count-based primary severity diagnostics unchanged"
+    ],
+    "conflicting_cases": "MIXED_TRADEOFF",
+    "serialization_tolerance": 1e-15
+  },
+  "paired_uncertainty": {
+    "paired_unit": "VIDEO",
+    "repair_contrasts": [
+      "B1-B0",
+      "R1-R0"
+    ],
+    "bootstrap_resamples": 10000,
+    "bootstrap_seed": 20260728,
+    "bootstrap_rule": "Only reconstruct canonical aggregate metrics from valid video-level sufficient statistics.",
+    "invalid_substitute_prohibited": true,
+    "unavailable_status": "NOT_COMPUTED_CONTRACT_UNAVAILABLE"
+  },
+  "repair_event_attribution": {
+    "repair_event_attribution_required_for_2x2_metric_authority": false,
+    "B1_repair_event_attribution": "NOT_EVALUABLE_FROZEN_LEDGER_UNAVAILABLE",
+    "B1_repair_events_total": "NOT_AVAILABLE",
+    "B1_raw_pre_repair_output_available": false,
+    "B1_repair_ledger_available": false,
+    "B1_attribution_limitation_blocks_2x2_authority": false,
+    "R1_repair_event_attribution": "AVAILABLE_DIAGNOSTIC_ONLY",
+    "cross_core_event_attribution_comparison_authorized": false,
+    "R1_event_attribution_used_for_repair_effect_classification": false,
+    "R1_event_attribution_used_for_2x2_interaction": false,
+    "attribution_categories": [
+      "BENEFICIAL",
+      "HARMFUL",
+      "NEUTRAL",
+      "AMBIGUOUS_OVERLAP",
+      "NOT_EVALUABLE"
+    ],
+    "double_claiming_authorized": false
+  },
+  "scientific_scope": {
+    "cross_core_comparison_scope": "WHOLE_PIPELINE_EFFECT_INCLUDING_DETECTOR_CADENCE",
+    "interaction_scope": "REPAIR_BY_COMPLETE_CORE_PIPELINE_INCLUDING_PROFILE_SPECIFIC_DETECTOR_CADENCE",
+    "pure_association_core_effect_claim_authorized": false,
+    "pure_association_interaction_claim_authorized": false,
+    "R1_timing_class": "POST_VIDEO_OFFLINE",
+    "R1_uses_future_frames": true,
+    "R1_realtime_claim_authorized": false
+  },
+  "execution_prohibitions": {
+    "tracker_executions": 0,
+    "detector_inference_calls": 0,
+    "prediction_regeneration": 0,
+    "prediction_modification": 0,
+    "method_tuning": 0,
+    "unseen_video_access": false,
+    "mp4_generation": 0
+  }
+}
