@@ -1,0 +1,89 @@
+{
+  "schema_version": "tracking.h5b_h4.executable_reproduction_authority.v1",
+  "date": "20260729",
+  "status": "FAILED_REPRODUCTION",
+  "classification": "FAIL_METRIC_PARITY",
+  "historical_best_run_id": "20260719_h5b_h4_full13_combined_v2",
+  "historical_best_source_sha": "31d360ba96b4065ce5125c0d88765531cc5898ae",
+  "execution_topology": "CURRENT_MAIN_EXECUTABLE_SEMANTICALLY_EQUIVALENT",
+  "executable_config_sha256": "a9cb3b622c22591e1f377cf7805d2ea8488c374a20ef35e59963ae237caa0b49",
+  "detector_cache_authority_sha256": "52566e9318e8a6c60ea49b01af8715c3b074460c4a803332e6a77b40ac004975",
+  "historical_prediction_artifact_sha256": "36c3bdd3f6d92c0c5336590dbf4c8822402d718ec47df2b137cef862339d5b8a",
+  "run1_prediction_artifact_sha256": "d48ae4281dae4969ad76fb7ca778ff61123b0f1bf8c1bad69917fa0ea508ba5e",
+  "run2_prediction_artifact_sha256": "206afebc59ed681e9fffb75a31ecc03540498db0cdce22ecec164f16151670e8",
+  "full_execution_repeatability": "PASS",
+  "raw_prediction_repeatability": "PASS",
+  "repair_ledger_repeatability": "PASS",
+  "run1_run2_semantic_prediction_equality": "PASS",
+  "prediction_parity": "FAILED",
+  "prediction_differences": {
+    "identity_value_differences": 5920,
+    "hidden_state_differences": 1959,
+    "row_additions": 0,
+    "row_removals": 0,
+    "frame_index_differences": 0,
+    "bbox_exact_value_differences": 187162,
+    "bbox_tolerance_violations": 187129,
+    "minimum_paired_bbox_iou": 0.0
+  },
+  "standard_v2_metric_parity": "FAIL",
+  "reproduced_metrics": {
+    "hota": 0.8498733886710031,
+    "deta": 0.9044987387056114,
+    "assa": 0.7995528004092259,
+    "loca": 0.9239078255704691,
+    "idf1": 0.9140811965811966,
+    "id_precision": 0.9140811965811966,
+    "id_recall": 0.9140811965811966,
+    "idsw_standard": 64,
+    "fp": 733,
+    "fn": 733,
+    "fragments": 127,
+    "wrong_id_matched_frames": 32125,
+    "identity_error_episode_count": 68,
+    "recovered_identity_error_episode_count": 41,
+    "terminal_identity_error_episode_count": 26,
+    "persistent_pairwise_identity_swap_count": 11
+  },
+  "determinism": {
+    "prediction_repeatability": "PASS",
+    "reevaluation_repeatability": "PASS",
+    "input_order_invariance": "PASS",
+    "pass1_pass2_all_output_hashes_equal": true
+  },
+  "conservation": {
+    "tp_fp_fn_conservation": "PASS",
+    "wrong_id_row_conservation": "PASS",
+    "identity_episode_double_count": 0,
+    "pairwise_swap_double_count": 0,
+    "multi_video_boundary_status": "PASS"
+  },
+  "execution_counts": {
+    "detector_inference_calls": 0,
+    "tracker_executions": 26,
+    "repair_invocations": 26,
+    "evaluator_runs": 2,
+    "config_variants_executed": 1,
+    "post_result_parameter_changes": 0,
+    "unseen_files_accessed": 0,
+    "run_root_mp4_count": 0
+  },
+  "post_evaluation_packaging_incident": {
+    "exception": "KeyError: idp",
+    "cause": "aggregate schema uses id_precision and id_recall aliases",
+    "scientific_output_affected": false,
+    "evaluator_rerun_performed": false,
+    "post_evaluation_code_change_performed": false,
+    "resolution": "authority assembled from the two frozen evaluator outputs"
+  },
+  "historical_worktree_integrity": {
+    "head_changed": false,
+    "files_changed": 0
+  },
+  "scientific_interpretation": [
+    "The executable configuration is deterministic on the frozen cache.",
+    "The reconstructed detector cache does not reproduce historical predictions.",
+    "The reproduced Standard-V2 metrics equal the current B1 authority, not the historical authority.",
+    "No tuning, alternate configuration, or post-result tracking rerun was performed."
+  ]
+}

@@ -1,5 +1,21 @@
 # Project Memory Short
 
+## 2026-07-29 historical H5b/H4 executable reproduction
+
+- The frozen `0.20/64` cache and promoted H5b/H4 configuration reproduce
+  deterministically across two complete 13-video runs: raw shapes, final
+  prediction semantics, repair ledgers, rows, identities, Hidden state, and
+  bboxes are identical between runs.
+- Reproduction against the surviving historical XML authority fails:
+  `5920` identity differences, `1959` Hidden-state differences, and `187129`
+  bbox tolerance violations, with no row or frame additions/removals.
+- Reproduced Standard-V2 metrics equal current B1, not historical H5b/H4:
+  HOTA `0.849873389`, IDF1 `0.914081197`, IDSW `64`, wrong-ID frames `32125`,
+  terminal episodes `26`, persistent swaps `11`.
+- Decision: `FAIL_METRIC_PARITY`. The frozen reconstructed detector cache does
+  not recover the missing historical detector-row evidence. Do not tune,
+  promote, supersede the unseen freeze, or access unseen data.
+
 ## 2026-07-28 historical H5b/H4 detector-cache authority
 
 - Frozen a non-disposable full-frame detector cache for the locked 13-video,

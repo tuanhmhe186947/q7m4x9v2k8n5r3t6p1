@@ -1,5 +1,18 @@
 • Kế Hoạch Tương Lai
 
+## Historical H5b/H4 executable reproduction - 2026-07-29
+
+- The single frozen H5b/H4 configuration ran twice on all 13 development
+  videos with no detector inference, unseen access, or MP4 output.
+- Full execution repeatability passes, but historical prediction and
+  Standard-V2 metric parity fail.
+- Preserve the failure without tuning. The reconstructed cache cannot be used
+  to claim executable historical-method reproduction.
+- Do not supersede the unseen-method freeze, prepare unseen authority, run
+  unseen evaluation, or promote from this result.
+- Any attempt to explain the missing historical detector rows requires a new,
+  separately authorized forensic provenance task.
+
 ## Historical H5b/H4 detector-cache authority - 2026-07-28
 
 - The exact locked 13-video, 23,400-frame population now has an immutable

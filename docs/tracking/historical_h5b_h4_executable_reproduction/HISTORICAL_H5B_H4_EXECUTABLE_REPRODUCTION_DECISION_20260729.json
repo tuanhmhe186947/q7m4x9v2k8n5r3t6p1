@@ -1,0 +1,18 @@
+{
+  "schema_version": "tracking.h5b_h4.executable_reproduction_decision.v1",
+  "date": "20260729",
+  "decision": "FAIL_METRIC_PARITY",
+  "root_cause_classification": "DETECTOR_CACHE_ROW_NON_PARITY_OR_UNRESOLVED_HISTORICAL_RUNTIME_EVIDENCE",
+  "current_main_tracker_repair_logic_match": true,
+  "deterministic_config_reproduction": true,
+  "exact_historical_detector_row_parity_proven": false,
+  "exact_prediction_parity": false,
+  "semantic_prediction_parity": false,
+  "metric_parity": false,
+  "ready_for_superseding_unseen_method_freeze_decision": false,
+  "ready_for_reproduction_limitation_decision": false,
+  "ready_for_unseen_data_authority_freeze": false,
+  "ready_for_unseen_evaluation": false,
+  "ready_to_promote": false,
+  "next_step": "Preserve this failed reproduction; do not tune. A separately authorized forensic detector-row provenance task would be required to explain the missing historical evidence."
+}

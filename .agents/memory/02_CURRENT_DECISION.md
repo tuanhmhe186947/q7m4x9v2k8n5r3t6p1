@@ -1,5 +1,19 @@
 # Current Decision
 
+## Historical H5b/H4 executable reproduction (2026-07-29)
+
+- `FAIL_METRIC_PARITY`.
+- Two full cache-replay H5b/H4 runs are semantically identical, proving
+  deterministic execution for the frozen reconstructed cache.
+- The reproduced predictions do not match the surviving historical XMLs.
+  Standard V2 yields current-B1 metrics (`HOTA 0.849873389`,
+  `IDF1 0.914081197`, `IDSW 64`) rather than historical H5b/H4 metrics.
+- The executable historical method is therefore not reproduced. Preserve the
+  failed run and do not tune or run variants.
+- The current unseen-method freeze remains suspended; this result does not
+  authorize supersession, unseen data preparation, unseen evaluation, or
+  promotion.
+
 ## Historical H5b/H4 detector-cache authority (2026-07-28)
 
 - `PASS_HISTORICAL_DETECTOR_CACHE_REPRODUCTION_FROZEN`.

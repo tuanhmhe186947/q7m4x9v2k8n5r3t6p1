@@ -1,5 +1,18 @@
 # Benchmark Notes
 
+## 2026-07-29 historical H5b/H4 reproduction failure
+
+- Frozen config/cache full-run repeatability: PASS across 13 videos twice.
+- Historical prediction parity: FAIL (`5920` identity differences, `1959`
+  Hidden-state differences, `187129` bbox tolerance violations).
+- Reproduced Standard-V2 authority: HOTA `0.8498733886710031`, DetA
+  `0.9044987387056114`, AssA `0.7995528004092259`, LocA
+  `0.9239078255704691`, IDF1 `0.9140811965811966`, IDSW `64`.
+- Identity severity: wrong-ID frames `32125`, episodes `68`, recovered `41`,
+  terminal `26`, persistent pairwise swaps `11`.
+- Classification: `FAIL_METRIC_PARITY`. The missing historical raw detector
+  rows remain the principal unresolved evidence boundary.
+
 ## 2026-07-27 RF_ACC23 authority correction and artifact recovery
 
 Evidence classes are marked explicitly. Nothing below is promoted beyond the
