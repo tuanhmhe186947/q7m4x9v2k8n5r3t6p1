@@ -1,5 +1,27 @@
 # Current Decision
 
+## R1 frozen prediction authority established (2026-07-28)
+
+- `R1_PREDICTION_GENERATION_DECISION=PASS_R1_PREDICTIONS_FROZEN`.
+- Exact `rf_hybrid_offline` completed all 13 locked development videos from
+  the frozen R0 even-frame cache, with no detector inference or evaluator.
+- Frozen R0 public exports were not repair-contract complete, so generation
+  used `EXACT_R1_PROFILE_EXECUTION`. A read-only guard proved raw RF-core
+  parity with R0 before adapter and repair for every video.
+- R1 retains 13 XML files and 187,200 prediction objects under
+  `outputs/tracking/frozen_predictions_standard_v2_20260728_retry1/`
+  `R1_rf_hybrid_offline/`.
+- R1 prediction artifact authority is
+  `40052f992871d50984fc4c0c839c4933b772bca2bfcaaaacafcde40d0e8a1800`.
+- The frozen repair stack emitted 409 GT-free ledger events affecting 10,998
+  frame records; 379 events used future frames. These are structural counts,
+  not quality labels.
+- R0 artifact modification count, detector inference, Standard-V2 and legacy
+  metric runs, unseen access, and MP4 output were all zero.
+- Structural parser, file-order, canonical prediction, ledger/event-ID, and
+  inventory repeatability passed. Complete development 2x2 evaluation is now
+  ready as a separate task; unseen evaluation and promotion remain forbidden.
+
 ## B0/B1/R0 Standard-V2 authorities established (2026-07-28)
 
 - `REEVALUATION_DECISION=PASS_B0_B1_R0_STANDARD_V2_AUTHORITY_ESTABLISHED`

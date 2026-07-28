@@ -1,0 +1,23 @@
+{
+  "adapter_association_decisions": 0,
+  "adapter_identity_changes": 0,
+  "adapter_synthesized_required_evidence": 0,
+  "blockers": [],
+  "date": "20260728",
+  "decision": "PASS_R1_PREDICTIONS_FROZEN",
+  "detector_inference_calls": 0,
+  "new_repair_heuristics_added": 0,
+  "prediction_xml_count": 13,
+  "r0_artifact_files_modified": 0,
+  "r0_r1_raw_core_parity": "PASS",
+  "r1_prediction_authority": "ESTABLISHED",
+  "ready_for_complete_development_2x2_evaluation": true,
+  "ready_for_unseen_evaluation": false,
+  "ready_to_promote": false,
+  "repair_parameters_changed": false,
+  "rf_specific_repair_branches_added": 0,
+  "schema_version": "tracking.r1.prediction_generation_decision.v1",
+  "standard_v2_metric_runs": 0,
+  "unseen_videos_accessed": false,
+  "video_count": 13
+}

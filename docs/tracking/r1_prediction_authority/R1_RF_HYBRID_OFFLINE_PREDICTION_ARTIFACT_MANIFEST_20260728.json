@@ -1,0 +1,1350 @@
+{
+  "artifacts": [
+    {
+      "artifact_role": "commands",
+      "relative_path": "commands/R1_EXECUTION_COMMAND.txt",
+      "sha256": "5d5d5eb4df94498c7b72de4e4e1d82bb5b843f2f21ac3319ea4b7f0de649cf6f",
+      "size_bytes": 385
+    },
+    {
+      "artifact_role": "FROZEN_SCIENTIFIC_AUTHORITY_DO_NOT_DELETE.txt",
+      "relative_path": "FROZEN_SCIENTIFIC_AUTHORITY_DO_NOT_DELETE.txt",
+      "sha256": "8dfae820be9804da451a62da42409db591aa5d88addcd74a9c9440cc04a18ad6",
+      "size_bytes": 309
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs281119_000085_30fps/rf_hybrid_offline/Pigs281119_000085_30fps/annotations_coco.json",
+      "sha256": "fa703592e0f91a20ca965c022798577f6bc76967828b821832e687d461a02bad",
+      "size_bytes": 9110376
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs281119_000085_30fps/rf_hybrid_offline/Pigs281119_000085_30fps/annotations_coco_clean_train.json",
+      "sha256": "f8630bbd4f41d097a9f24c786778a07ef21073ea8c145232ec0ef6da7e1a77ff",
+      "size_bytes": 9072671
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs281119_000085_30fps/rf_hybrid_offline/Pigs281119_000085_30fps/annotations_cvat_shapes.json",
+      "sha256": "4ce95f43560841315b65d73c1bec09963d4593453b559188c7b726a4297abdb4",
+      "size_bytes": 9653634
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs281119_000085_30fps/rf_hybrid_offline/Pigs281119_000085_30fps/annotations_cvat_video_1_1.xml",
+      "sha256": "efcb5a6afe15bad836738845893b37a2d995ef4e22999598989307f51ffc1b2d",
+      "size_bytes": 3823641
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs281119_000085_30fps/rf_hybrid_offline/Pigs281119_000085_30fps/bytetrack_pig_8.yaml",
+      "sha256": "17460c3e811bb27b38dedfb63eb5dac961d674b380f1e22b09b86ed325d5b65f",
+      "size_bytes": 293
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs281119_000085_30fps/rf_hybrid_offline/Pigs281119_000085_30fps/labels.json",
+      "sha256": "44cc107e3c64176cccf17b5f2e687a469615f32d9308151da28849375b9ce4ef",
+      "size_bytes": 7394
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs281119_000085_30fps/rf_hybrid_offline/Pigs281119_000085_30fps/rf_offline_repair_ledger.json",
+      "sha256": "b2546dc4e6702143fd9d2519cf2748b24dc113b0fe898599cbb9f514cbd76365",
+      "size_bytes": 12609
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs281119_000085_30fps/rf_hybrid_offline/Pigs281119_000085_30fps/rf_raw_track_output.json",
+      "sha256": "87c9f1827fc0b864589e49ad2a6e295306b1985813b2bf1b2e48db1a6e522847",
+      "size_bytes": 13495146
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs281119_000085_30fps/rf_hybrid_offline/Pigs281119_000085_30fps/tracking_quality_report.csv",
+      "sha256": "db4c0e909a7d196bdf6fd6cd69b4998c65315591da9d1347e9f30d45c2f54cb4",
+      "size_bytes": 261342
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs281119_000085_30fps/rf_hybrid_offline/Pigs281119_000085_30fps/tracking_quality_report.json",
+      "sha256": "0f95edc8d63fa8638bbb56add764fc1df48367c4590093ea5cbbd32c81594edf",
+      "size_bytes": 2207233
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs281119_000114_30fps/rf_hybrid_offline/Pigs281119_000114_30fps/annotations_coco.json",
+      "sha256": "c8685f7a18ec3fab42a195df246c57426581fa04b221baf22bf89936c4b68be7",
+      "size_bytes": 9104197
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs281119_000114_30fps/rf_hybrid_offline/Pigs281119_000114_30fps/annotations_coco_clean_train.json",
+      "sha256": "a08ccabd2a974649b1b6600affd42cd1e419aed82d2e3edb342384c79f9d53a5",
+      "size_bytes": 9049306
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs281119_000114_30fps/rf_hybrid_offline/Pigs281119_000114_30fps/annotations_cvat_shapes.json",
+      "sha256": "4614112be8f65bac9ecbd83d5456ad82153e65f3f95dc72c649a34eebd9d9d03",
+      "size_bytes": 9651045
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs281119_000114_30fps/rf_hybrid_offline/Pigs281119_000114_30fps/annotations_cvat_video_1_1.xml",
+      "sha256": "6819b3611c699060df48b33fd97f071d8fe38dd35f0fb1e70fa1cb669b9abfa9",
+      "size_bytes": 3821103
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs281119_000114_30fps/rf_hybrid_offline/Pigs281119_000114_30fps/bytetrack_pig_8.yaml",
+      "sha256": "17460c3e811bb27b38dedfb63eb5dac961d674b380f1e22b09b86ed325d5b65f",
+      "size_bytes": 293
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs281119_000114_30fps/rf_hybrid_offline/Pigs281119_000114_30fps/labels.json",
+      "sha256": "44cc107e3c64176cccf17b5f2e687a469615f32d9308151da28849375b9ce4ef",
+      "size_bytes": 7394
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs281119_000114_30fps/rf_hybrid_offline/Pigs281119_000114_30fps/rf_offline_repair_ledger.json",
+      "sha256": "71d2a098c237f5c16717ed770450e43b4c9647d3538047762e2fdfec91ad6037",
+      "size_bytes": 14233
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs281119_000114_30fps/rf_hybrid_offline/Pigs281119_000114_30fps/rf_raw_track_output.json",
+      "sha256": "ac1b3a09e1744c1eb3ff573f1a81d804797c4e1a4d1379216f6c76cbe1a908bb",
+      "size_bytes": 13486786
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs281119_000114_30fps/rf_hybrid_offline/Pigs281119_000114_30fps/tracking_quality_report.csv",
+      "sha256": "6559d36c665ccdbecaf986cfe33c4b3b10f2a889499b1df16e421695966c7b31",
+      "size_bytes": 261383
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs281119_000114_30fps/rf_hybrid_offline/Pigs281119_000114_30fps/tracking_quality_report.json",
+      "sha256": "a2af04c51a8faf7975fcd27dd37e08085564b8299046ea22b921f29d8e762271",
+      "size_bytes": 2210231
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000216_30fps/rf_hybrid_offline/Pigs291119_000216_30fps/annotations_coco.json",
+      "sha256": "13444f9ee00253c71e494464ccb03c91237a4736bddb33db82fe0da22826d8ec",
+      "size_bytes": 9102035
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000216_30fps/rf_hybrid_offline/Pigs291119_000216_30fps/annotations_coco_clean_train.json",
+      "sha256": "7c003808be354dba2f9e6201878684e18f3d18d89bcaa3b972d6b422845a6264",
+      "size_bytes": 9015394
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000216_30fps/rf_hybrid_offline/Pigs291119_000216_30fps/annotations_cvat_shapes.json",
+      "sha256": "3d4517a752ddbe7fc5ae86af4fca602bbf380e8686f8c07b243c3ed3d8018363",
+      "size_bytes": 9649349
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000216_30fps/rf_hybrid_offline/Pigs291119_000216_30fps/annotations_cvat_video_1_1.xml",
+      "sha256": "f1c9cf8bda9e4aca23aafb853b6e685cf3f012ef981b43d0f87b8b172175eee9",
+      "size_bytes": 3819217
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000216_30fps/rf_hybrid_offline/Pigs291119_000216_30fps/bytetrack_pig_8.yaml",
+      "sha256": "17460c3e811bb27b38dedfb63eb5dac961d674b380f1e22b09b86ed325d5b65f",
+      "size_bytes": 293
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000216_30fps/rf_hybrid_offline/Pigs291119_000216_30fps/labels.json",
+      "sha256": "44cc107e3c64176cccf17b5f2e687a469615f32d9308151da28849375b9ce4ef",
+      "size_bytes": 7394
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000216_30fps/rf_hybrid_offline/Pigs291119_000216_30fps/rf_offline_repair_ledger.json",
+      "sha256": "71f84091669ee5381081cc1e656ad920e9169f261059d64342ce6e44c608fa43",
+      "size_bytes": 28766
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000216_30fps/rf_hybrid_offline/Pigs291119_000216_30fps/rf_raw_track_output.json",
+      "sha256": "73dd118f2f6fe2a5cdde30b30d669795e80197d96b91273376ba861d142a3ead",
+      "size_bytes": 13483239
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000216_30fps/rf_hybrid_offline/Pigs291119_000216_30fps/tracking_quality_report.csv",
+      "sha256": "c60f5b2e7e1ed8af0e62d4e5dcb6c025e3d8fc033b7777896490fdc617cba2b4",
+      "size_bytes": 261283
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000216_30fps/rf_hybrid_offline/Pigs291119_000216_30fps/tracking_quality_report.json",
+      "sha256": "525e2ffb61d941d409e41bed05eee51220b6f6ff36bf3b7a13a3d1a6a91429bb",
+      "size_bytes": 2215617
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000225_30fps/rf_hybrid_offline/Pigs291119_000225_30fps/annotations_coco.json",
+      "sha256": "0a97117aea04e0a366e91a44b582624ad16b621f58a7353f0c21a2c829caa492",
+      "size_bytes": 9109461
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000225_30fps/rf_hybrid_offline/Pigs291119_000225_30fps/annotations_coco_clean_train.json",
+      "sha256": "b58bae9c1a1d4ad9edb166bace5f56e17ebea8921f5aeef5a8cf49f5f4f3fab9",
+      "size_bytes": 8978204
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000225_30fps/rf_hybrid_offline/Pigs291119_000225_30fps/annotations_cvat_shapes.json",
+      "sha256": "1fdb6a6a00ccf4099616b6d48f05209d60e87390e32b6357a220e69a64b0669f",
+      "size_bytes": 9649291
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000225_30fps/rf_hybrid_offline/Pigs291119_000225_30fps/annotations_cvat_video_1_1.xml",
+      "sha256": "84372653ecd22828e723f8625d7d0ddec4f0e820d02473099054e800faa86b45",
+      "size_bytes": 3819382
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000225_30fps/rf_hybrid_offline/Pigs291119_000225_30fps/bytetrack_pig_8.yaml",
+      "sha256": "17460c3e811bb27b38dedfb63eb5dac961d674b380f1e22b09b86ed325d5b65f",
+      "size_bytes": 293
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000225_30fps/rf_hybrid_offline/Pigs291119_000225_30fps/labels.json",
+      "sha256": "44cc107e3c64176cccf17b5f2e687a469615f32d9308151da28849375b9ce4ef",
+      "size_bytes": 7394
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000225_30fps/rf_hybrid_offline/Pigs291119_000225_30fps/rf_offline_repair_ledger.json",
+      "sha256": "e9340ff5faee26c71d8ab3e6210843c518c74d9156a6707c65b85ae2d4eb0052",
+      "size_bytes": 20656
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000225_30fps/rf_hybrid_offline/Pigs291119_000225_30fps/rf_raw_track_output.json",
+      "sha256": "085bb23b8590667cc0b727a9dd1bfc5bf03e5184a399ef7354d97d5ed8dd865d",
+      "size_bytes": 13489079
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000225_30fps/rf_hybrid_offline/Pigs291119_000225_30fps/tracking_quality_report.csv",
+      "sha256": "e485455a462cbc692c7271d5ada35731f08ed3de364a05c81aee7cbea123087a",
+      "size_bytes": 261871
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000225_30fps/rf_hybrid_offline/Pigs291119_000225_30fps/tracking_quality_report.json",
+      "sha256": "6e6f19f59ac8681232865616a6e5362c25483868b8c305c0e6d7ea2a3fb2d6d1",
+      "size_bytes": 2219632
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000226_30fps/rf_hybrid_offline/Pigs291119_000226_30fps/annotations_coco.json",
+      "sha256": "15dddcb03d52ee88149c9496fd5ceda89cc71755eefd6b259e5829b3d7f98d10",
+      "size_bytes": 9109436
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000226_30fps/rf_hybrid_offline/Pigs291119_000226_30fps/annotations_coco_clean_train.json",
+      "sha256": "3110cdd612c3fa97fc60e3e50b758d57a42fea42df2517642164194122a70ab5",
+      "size_bytes": 9046577
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000226_30fps/rf_hybrid_offline/Pigs291119_000226_30fps/annotations_cvat_shapes.json",
+      "sha256": "8616ed8d70e877a1929a93e9bb795912f21be715e752c2d5deaef7a48fcd446a",
+      "size_bytes": 9646192
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000226_30fps/rf_hybrid_offline/Pigs291119_000226_30fps/annotations_cvat_video_1_1.xml",
+      "sha256": "b3ee260d581d482a98d14bc536414b1f575287cf1e8acb8723bdf9c0e3882fe8",
+      "size_bytes": 3816210
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000226_30fps/rf_hybrid_offline/Pigs291119_000226_30fps/bytetrack_pig_8.yaml",
+      "sha256": "17460c3e811bb27b38dedfb63eb5dac961d674b380f1e22b09b86ed325d5b65f",
+      "size_bytes": 293
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000226_30fps/rf_hybrid_offline/Pigs291119_000226_30fps/labels.json",
+      "sha256": "44cc107e3c64176cccf17b5f2e687a469615f32d9308151da28849375b9ce4ef",
+      "size_bytes": 7394
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000226_30fps/rf_hybrid_offline/Pigs291119_000226_30fps/rf_offline_repair_ledger.json",
+      "sha256": "749d2b302ed35a079ddd46d7faecdbe29ef92a4b775268879c445fc6fbc58c99",
+      "size_bytes": 16643
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000226_30fps/rf_hybrid_offline/Pigs291119_000226_30fps/rf_raw_track_output.json",
+      "sha256": "6a0460d1a6305619d4969082019a43a9a3e9e81e21111bf251eab23ce8754111",
+      "size_bytes": 13488553
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000226_30fps/rf_hybrid_offline/Pigs291119_000226_30fps/tracking_quality_report.csv",
+      "sha256": "dd01dbb8b52caddd55d42582fc3f2ba77671a3f228d1984989f9be3503ea89ad",
+      "size_bytes": 261729
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000226_30fps/rf_hybrid_offline/Pigs291119_000226_30fps/tracking_quality_report.json",
+      "sha256": "963f6deb8ce2013912112bc8dc821b8171c2605990a29f742dfd2f94fffc6dbb",
+      "size_bytes": 2208399
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000231_30fps/rf_hybrid_offline/Pigs291119_000231_30fps/annotations_coco.json",
+      "sha256": "452d820c325572232a56e139682ec2f215b6d5833c6aa0638adcf9c54769f6c9",
+      "size_bytes": 9117636
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000231_30fps/rf_hybrid_offline/Pigs291119_000231_30fps/annotations_coco_clean_train.json",
+      "sha256": "ce18830dc6556a6d2eb79eefd42602597b629aabe12a34317ecd3efa63ac0044",
+      "size_bytes": 8569247
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000231_30fps/rf_hybrid_offline/Pigs291119_000231_30fps/annotations_cvat_shapes.json",
+      "sha256": "ce559f406887ceab48a66d44bdb294ea6465bd8c3eecf54c4f71641078bd1cb5",
+      "size_bytes": 9647837
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000231_30fps/rf_hybrid_offline/Pigs291119_000231_30fps/annotations_cvat_video_1_1.xml",
+      "sha256": "13a0c4868021473822ed14efe194557ae94ffe5e1aeec4ba3769db8e5491c830",
+      "size_bytes": 3818242
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000231_30fps/rf_hybrid_offline/Pigs291119_000231_30fps/bytetrack_pig_8.yaml",
+      "sha256": "17460c3e811bb27b38dedfb63eb5dac961d674b380f1e22b09b86ed325d5b65f",
+      "size_bytes": 293
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000231_30fps/rf_hybrid_offline/Pigs291119_000231_30fps/labels.json",
+      "sha256": "44cc107e3c64176cccf17b5f2e687a469615f32d9308151da28849375b9ce4ef",
+      "size_bytes": 7394
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000231_30fps/rf_hybrid_offline/Pigs291119_000231_30fps/rf_offline_repair_ledger.json",
+      "sha256": "dd06574fdc916e261ca7d6656115fafce7e92a240a61eb619a946fadc5208d93",
+      "size_bytes": 87812
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000231_30fps/rf_hybrid_offline/Pigs291119_000231_30fps/rf_raw_track_output.json",
+      "sha256": "ac0bf0ede4eb060ee4cadd8c871ce2997ac30a59e440ac05d72c0f022a84edf4",
+      "size_bytes": 13481704
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000231_30fps/rf_hybrid_offline/Pigs291119_000231_30fps/tracking_quality_report.csv",
+      "sha256": "23cad97d39d5342a08ba0aa6aa62980888da614fafa06c4e4abaf6d33ab2ed22",
+      "size_bytes": 271034
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000231_30fps/rf_hybrid_offline/Pigs291119_000231_30fps/tracking_quality_report.json",
+      "sha256": "ca1cf9d739cf26da772d3ac9b21f83e5e999368756c3900892ad7285104699da",
+      "size_bytes": 2346445
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000233_30fps/rf_hybrid_offline/Pigs291119_000233_30fps/annotations_coco.json",
+      "sha256": "7852277f67589c298b30a64d25d73d0a65a2b7855a97263b1d8e3ec1fcac54e8",
+      "size_bytes": 9118422
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000233_30fps/rf_hybrid_offline/Pigs291119_000233_30fps/annotations_coco_clean_train.json",
+      "sha256": "2a43b33b6ddf17aa8b882f9bba9b526a9d0650a7a3958e67d610f9872a8460d6",
+      "size_bytes": 8662721
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000233_30fps/rf_hybrid_offline/Pigs291119_000233_30fps/annotations_cvat_shapes.json",
+      "sha256": "2d99df4e9d40d0975187af9a16bc3aa49045a943f8fad68ab550e6a99969c760",
+      "size_bytes": 9643860
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000233_30fps/rf_hybrid_offline/Pigs291119_000233_30fps/annotations_cvat_video_1_1.xml",
+      "sha256": "61a9e0fea6f767a6b4ed6136b3af17b28cb725d23f98f98cbdd37dd53b061c8e",
+      "size_bytes": 3814597
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000233_30fps/rf_hybrid_offline/Pigs291119_000233_30fps/bytetrack_pig_8.yaml",
+      "sha256": "17460c3e811bb27b38dedfb63eb5dac961d674b380f1e22b09b86ed325d5b65f",
+      "size_bytes": 293
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000233_30fps/rf_hybrid_offline/Pigs291119_000233_30fps/labels.json",
+      "sha256": "44cc107e3c64176cccf17b5f2e687a469615f32d9308151da28849375b9ce4ef",
+      "size_bytes": 7394
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000233_30fps/rf_hybrid_offline/Pigs291119_000233_30fps/rf_offline_repair_ledger.json",
+      "sha256": "630000c658f61e8100088df4e4f20a6c8fcbf05848127afab10af3766632541a",
+      "size_bytes": 65184
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000233_30fps/rf_hybrid_offline/Pigs291119_000233_30fps/rf_raw_track_output.json",
+      "sha256": "4dbbde261457b749b8310bff0d81925dd5d79759c9e8d2e7ec518f328e934c6f",
+      "size_bytes": 13483960
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000233_30fps/rf_hybrid_offline/Pigs291119_000233_30fps/tracking_quality_report.csv",
+      "sha256": "af7a6a1c839ed368ae8393022dff678d9425d729e498da1b41c1582eeb03088a",
+      "size_bytes": 268318
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000233_30fps/rf_hybrid_offline/Pigs291119_000233_30fps/tracking_quality_report.json",
+      "sha256": "0ac5aca571d8eef66fffbb54506a60bf258d5f5baec37cc66092eb5cc5e33fa4",
+      "size_bytes": 2316166
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000263_30fps/rf_hybrid_offline/Pigs291119_000263_30fps/annotations_coco.json",
+      "sha256": "227fcadba50ce8f11b1f6adb74a9ba6458dbb6d7e41c1ef02a109fff728e36e5",
+      "size_bytes": 9107273
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000263_30fps/rf_hybrid_offline/Pigs291119_000263_30fps/annotations_coco_clean_train.json",
+      "sha256": "829b5e59dc739878e49b33bf1cc525ccd1dfa3ccd2836035e463c2742698f8e2",
+      "size_bytes": 9002476
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000263_30fps/rf_hybrid_offline/Pigs291119_000263_30fps/annotations_cvat_shapes.json",
+      "sha256": "ae8c1625b3b2444136ce40e126b11fa73885c3408ed7fda0c115410c5bbe11f8",
+      "size_bytes": 9648176
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000263_30fps/rf_hybrid_offline/Pigs291119_000263_30fps/annotations_cvat_video_1_1.xml",
+      "sha256": "a9f308de4e6db335960def015da45df03561dc9151d8306d6ee0277e5853c00a",
+      "size_bytes": 3818284
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000263_30fps/rf_hybrid_offline/Pigs291119_000263_30fps/bytetrack_pig_8.yaml",
+      "sha256": "17460c3e811bb27b38dedfb63eb5dac961d674b380f1e22b09b86ed325d5b65f",
+      "size_bytes": 293
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000263_30fps/rf_hybrid_offline/Pigs291119_000263_30fps/labels.json",
+      "sha256": "44cc107e3c64176cccf17b5f2e687a469615f32d9308151da28849375b9ce4ef",
+      "size_bytes": 7394
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000263_30fps/rf_hybrid_offline/Pigs291119_000263_30fps/rf_offline_repair_ledger.json",
+      "sha256": "7b3ed860ed12a48510f5b0be5ae91dabb455b9e6ec75ce48b5c37739f66fa793",
+      "size_bytes": 35275
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000263_30fps/rf_hybrid_offline/Pigs291119_000263_30fps/rf_raw_track_output.json",
+      "sha256": "d82c1c60c80f896d414c3199d3ac1536f718e1410f81d2f7e5422237092cc525",
+      "size_bytes": 13485573
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000263_30fps/rf_hybrid_offline/Pigs291119_000263_30fps/tracking_quality_report.csv",
+      "sha256": "7c3e9d384d95a530e863e697b563fde55abed095dc0567f6fe5533c0205a8b61",
+      "size_bytes": 265155
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000263_30fps/rf_hybrid_offline/Pigs291119_000263_30fps/tracking_quality_report.json",
+      "sha256": "3a566d332f037332802219b0f6194f1e4eebcf3802ce54f983049fcca47cb058",
+      "size_bytes": 2259950
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000302_30fps/rf_hybrid_offline/Pigs291119_000302_30fps/annotations_coco.json",
+      "sha256": "d0d3ed4b4cf3ceca10853c5b0621796e71fb7253f56d6a94c63f27fdba4a07d5",
+      "size_bytes": 9115967
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000302_30fps/rf_hybrid_offline/Pigs291119_000302_30fps/annotations_coco_clean_train.json",
+      "sha256": "9d36ef5932f32f672a7406b023461d58fc04716ce3b0dc4cd850bb2172ce6575",
+      "size_bytes": 9041661
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000302_30fps/rf_hybrid_offline/Pigs291119_000302_30fps/annotations_cvat_shapes.json",
+      "sha256": "7eb9d30e54dd75cfc68ed9380104c4caa9c331ea278f58970e3af9299cc7757e",
+      "size_bytes": 9650002
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000302_30fps/rf_hybrid_offline/Pigs291119_000302_30fps/annotations_cvat_video_1_1.xml",
+      "sha256": "b8ae751387f69dfffbb06946ddde2c95d28b95831beaf732c592ea45a2fc91b0",
+      "size_bytes": 3819959
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000302_30fps/rf_hybrid_offline/Pigs291119_000302_30fps/bytetrack_pig_8.yaml",
+      "sha256": "17460c3e811bb27b38dedfb63eb5dac961d674b380f1e22b09b86ed325d5b65f",
+      "size_bytes": 293
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000302_30fps/rf_hybrid_offline/Pigs291119_000302_30fps/labels.json",
+      "sha256": "44cc107e3c64176cccf17b5f2e687a469615f32d9308151da28849375b9ce4ef",
+      "size_bytes": 7394
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000302_30fps/rf_hybrid_offline/Pigs291119_000302_30fps/rf_offline_repair_ledger.json",
+      "sha256": "31d2c2df68e4dbd7cf3b144d05c3c0a3f030bc345e44719baa762507926bc9ac",
+      "size_bytes": 10175
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000302_30fps/rf_hybrid_offline/Pigs291119_000302_30fps/rf_raw_track_output.json",
+      "sha256": "94f25297c7ee74bf72be4a9a2e4b5aa6679a9deea9db9ae985bc7f2510c23d8b",
+      "size_bytes": 13497833
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000302_30fps/rf_hybrid_offline/Pigs291119_000302_30fps/tracking_quality_report.csv",
+      "sha256": "c22eb07fb606fd8e76120c361392948417ed22f0e76c993a656f7a52541d800b",
+      "size_bytes": 262469
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs291119_000302_30fps/rf_hybrid_offline/Pigs291119_000302_30fps/tracking_quality_report.json",
+      "sha256": "849c6d4133d26585961de68ab057f61d7580b457502163f117fedd209667f9c7",
+      "size_bytes": 2206318
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000327_30fps/rf_hybrid_offline/Pigs301119_000327_30fps/annotations_coco.json",
+      "sha256": "81d6def72cdebf6fe54396c0b35623aef8e4d32a49d6f94701fe9800c22bc92a",
+      "size_bytes": 9099997
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000327_30fps/rf_hybrid_offline/Pigs301119_000327_30fps/annotations_coco_clean_train.json",
+      "sha256": "82719c9baa322c3a985f9bd098243b0e88f86707835e65fc2f2031a46181bb43",
+      "size_bytes": 9063396
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000327_30fps/rf_hybrid_offline/Pigs301119_000327_30fps/annotations_cvat_shapes.json",
+      "sha256": "45e3ef58fb48b78ef0e3f7d1fc3d483cb5680ab0b16219e3997d5ff5b8c95990",
+      "size_bytes": 9649931
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000327_30fps/rf_hybrid_offline/Pigs301119_000327_30fps/annotations_cvat_video_1_1.xml",
+      "sha256": "07b4e6c3107eaede8eeae468d35614ac120ee8b923fbcad768dd4a0a07ce3897",
+      "size_bytes": 3820177
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000327_30fps/rf_hybrid_offline/Pigs301119_000327_30fps/bytetrack_pig_8.yaml",
+      "sha256": "17460c3e811bb27b38dedfb63eb5dac961d674b380f1e22b09b86ed325d5b65f",
+      "size_bytes": 293
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000327_30fps/rf_hybrid_offline/Pigs301119_000327_30fps/labels.json",
+      "sha256": "44cc107e3c64176cccf17b5f2e687a469615f32d9308151da28849375b9ce4ef",
+      "size_bytes": 7394
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000327_30fps/rf_hybrid_offline/Pigs301119_000327_30fps/rf_offline_repair_ledger.json",
+      "sha256": "7f319ebe893b28cccb8f81854bfe311cd46e78078be17ab6955b8bd48873c988",
+      "size_bytes": 15859
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000327_30fps/rf_hybrid_offline/Pigs301119_000327_30fps/rf_raw_track_output.json",
+      "sha256": "c73948e965d816e5b31ef5783e8fa202f7edecb7120397bd457ef75fc78a6bdf",
+      "size_bytes": 13481815
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000327_30fps/rf_hybrid_offline/Pigs301119_000327_30fps/tracking_quality_report.csv",
+      "sha256": "740e2fe8820bca03ef41025da56779f57466ff6f6be90847fb394ec671ece620",
+      "size_bytes": 261003
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000327_30fps/rf_hybrid_offline/Pigs301119_000327_30fps/tracking_quality_report.json",
+      "sha256": "71bf5e3b0ccb4ac852c07b0ec6ec84f48368a4ec630d73556f8861d7e2d1085d",
+      "size_bytes": 2210987
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000328_30fps/rf_hybrid_offline/Pigs301119_000328_30fps/annotations_coco.json",
+      "sha256": "9aff87332b80a918b7bf4e541d18591e5296ff630297900c32ea560fcf204766",
+      "size_bytes": 9116287
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000328_30fps/rf_hybrid_offline/Pigs301119_000328_30fps/annotations_coco_clean_train.json",
+      "sha256": "9fc50140df75a4c128d6f9280d90faea3770431a715c76662441a83073f113f3",
+      "size_bytes": 9031880
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000328_30fps/rf_hybrid_offline/Pigs301119_000328_30fps/annotations_cvat_shapes.json",
+      "sha256": "0d15dc175d69b2d7cc9c09f7a2478a6254dcee81bf689e564eb61030cabcc352",
+      "size_bytes": 9647913
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000328_30fps/rf_hybrid_offline/Pigs301119_000328_30fps/annotations_cvat_video_1_1.xml",
+      "sha256": "23e234d28c9d0ce983a3a3d566492640549504b3396866a6a6919f6c7ad55ccc",
+      "size_bytes": 3817838
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000328_30fps/rf_hybrid_offline/Pigs301119_000328_30fps/bytetrack_pig_8.yaml",
+      "sha256": "17460c3e811bb27b38dedfb63eb5dac961d674b380f1e22b09b86ed325d5b65f",
+      "size_bytes": 293
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000328_30fps/rf_hybrid_offline/Pigs301119_000328_30fps/labels.json",
+      "sha256": "44cc107e3c64176cccf17b5f2e687a469615f32d9308151da28849375b9ce4ef",
+      "size_bytes": 7394
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000328_30fps/rf_hybrid_offline/Pigs301119_000328_30fps/rf_offline_repair_ledger.json",
+      "sha256": "47e48e0d2a85e6f656bdb3a728728f17740aec253044fb27b8ecd66a075bae9f",
+      "size_bytes": 10993
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000328_30fps/rf_hybrid_offline/Pigs301119_000328_30fps/rf_raw_track_output.json",
+      "sha256": "5234f1b5e67299d106f26685bd441adfdcda161e195d7397d52abf87ad20e5a3",
+      "size_bytes": 13494931
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000328_30fps/rf_hybrid_offline/Pigs301119_000328_30fps/tracking_quality_report.csv",
+      "sha256": "939e0ff454b5ac9206f1d8a464fd83d4242f5f69a5dd9e23bdbba4c76d8aa9d3",
+      "size_bytes": 262433
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000328_30fps/rf_hybrid_offline/Pigs301119_000328_30fps/tracking_quality_report.json",
+      "sha256": "3f2cfafb1f215771a03d5e7308fc222bd859e23b690b250aa3a147e5f9f132cd",
+      "size_bytes": 2208378
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000329_30fps/rf_hybrid_offline/Pigs301119_000329_30fps/annotations_coco.json",
+      "sha256": "1ef6d7dfa92ee3c877a38922cdc3016ed28c103e1f2bc44a5a239ab8a9e8fc8a",
+      "size_bytes": 9110300
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000329_30fps/rf_hybrid_offline/Pigs301119_000329_30fps/annotations_coco_clean_train.json",
+      "sha256": "4868d643ffc2e70671dedb17c346098885e47b7c82a7853afbefb843f76edea7",
+      "size_bytes": 9062288
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000329_30fps/rf_hybrid_offline/Pigs301119_000329_30fps/annotations_cvat_shapes.json",
+      "sha256": "d5dd59977321e70464f4d3356613fa6b5e1b221d7344fe9281f039eb0f501e96",
+      "size_bytes": 9647785
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000329_30fps/rf_hybrid_offline/Pigs301119_000329_30fps/annotations_cvat_video_1_1.xml",
+      "sha256": "89141c7dfba9b11b7bb41df102b8bbe3e8837e15fa093a92e73f9cb9a083a7b9",
+      "size_bytes": 3817772
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000329_30fps/rf_hybrid_offline/Pigs301119_000329_30fps/bytetrack_pig_8.yaml",
+      "sha256": "17460c3e811bb27b38dedfb63eb5dac961d674b380f1e22b09b86ed325d5b65f",
+      "size_bytes": 293
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000329_30fps/rf_hybrid_offline/Pigs301119_000329_30fps/labels.json",
+      "sha256": "44cc107e3c64176cccf17b5f2e687a469615f32d9308151da28849375b9ce4ef",
+      "size_bytes": 7394
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000329_30fps/rf_hybrid_offline/Pigs301119_000329_30fps/rf_offline_repair_ledger.json",
+      "sha256": "e914cd7f236c38c70f4663cedab0f170843b6c991a4f44df8fb6aa0f2a3cd235",
+      "size_bytes": 12611
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000329_30fps/rf_hybrid_offline/Pigs301119_000329_30fps/rf_raw_track_output.json",
+      "sha256": "a6e4ed0e0a01d244f9db3b4a7f6d024aa5270aa4900604e18b1d0cbaff092c4b",
+      "size_bytes": 13490414
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000329_30fps/rf_hybrid_offline/Pigs301119_000329_30fps/tracking_quality_report.csv",
+      "sha256": "cd60413f0e3f1259d61cb746ecb52c366bf4fd41d93b272b64e476cd912cb6ef",
+      "size_bytes": 261620
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000329_30fps/rf_hybrid_offline/Pigs301119_000329_30fps/tracking_quality_report.json",
+      "sha256": "e375cfa55303ce25c36be909c1217ae3787c5016e2a67f1c7f63da40e0e53cc8",
+      "size_bytes": 2206316
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000330_30fps/rf_hybrid_offline/Pigs301119_000330_30fps/annotations_coco.json",
+      "sha256": "9a24b7da8bf9ead6acffc35dfe8943ba2229a5694688d646d6ae22646cd35215",
+      "size_bytes": 9104584
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000330_30fps/rf_hybrid_offline/Pigs301119_000330_30fps/annotations_coco_clean_train.json",
+      "sha256": "bcb36221e78d78e7dd336f683678b9f28f664b3053eb540bf21f9d76e5c21a5c",
+      "size_bytes": 9094528
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000330_30fps/rf_hybrid_offline/Pigs301119_000330_30fps/annotations_cvat_shapes.json",
+      "sha256": "b383993a00524b62d3ccd220f54d6cf76a63252646caade2f50c9ba7fdff2931",
+      "size_bytes": 9650893
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000330_30fps/rf_hybrid_offline/Pigs301119_000330_30fps/annotations_cvat_video_1_1.xml",
+      "sha256": "c53ead1182133a9746acb6d27aef66f75d499f1b9afb590b09e289702aca5cde",
+      "size_bytes": 3820746
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000330_30fps/rf_hybrid_offline/Pigs301119_000330_30fps/bytetrack_pig_8.yaml",
+      "sha256": "17460c3e811bb27b38dedfb63eb5dac961d674b380f1e22b09b86ed325d5b65f",
+      "size_bytes": 293
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000330_30fps/rf_hybrid_offline/Pigs301119_000330_30fps/labels.json",
+      "sha256": "44cc107e3c64176cccf17b5f2e687a469615f32d9308151da28849375b9ce4ef",
+      "size_bytes": 7394
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000330_30fps/rf_hybrid_offline/Pigs301119_000330_30fps/rf_offline_repair_ledger.json",
+      "sha256": "f762ea30889b93e8f0c30591fafb40fe85db97e29435d11fb6c77dedba8b78fe",
+      "size_bytes": 6125
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000330_30fps/rf_hybrid_offline/Pigs301119_000330_30fps/rf_raw_track_output.json",
+      "sha256": "774d68c42930108b44fc8b05417edcb4fb99854dff65ce06e6bbb14e30a4e3cc",
+      "size_bytes": 13488267
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000330_30fps/rf_hybrid_offline/Pigs301119_000330_30fps/tracking_quality_report.csv",
+      "sha256": "0dc047334f7acff2a21b09976a1c238084cf94ce946bfadc489297be00bd0f2b",
+      "size_bytes": 261084
+    },
+    {
+      "artifact_role": "machine_readable",
+      "relative_path": "machine_readable/Pigs301119_000330_30fps/rf_hybrid_offline/Pigs301119_000330_30fps/tracking_quality_report.json",
+      "sha256": "a86b7739e2028a214217f19144630666f58bc6bfd4ca5baf017f941f471b44c0",
+      "size_bytes": 2203894
+    },
+    {
+      "artifact_role": "predictions",
+      "relative_path": "predictions/Pigs281119_000085_30fps.xml",
+      "sha256": "efcb5a6afe15bad836738845893b37a2d995ef4e22999598989307f51ffc1b2d",
+      "size_bytes": 3823641
+    },
+    {
+      "artifact_role": "predictions",
+      "relative_path": "predictions/Pigs281119_000114_30fps.xml",
+      "sha256": "6819b3611c699060df48b33fd97f071d8fe38dd35f0fb1e70fa1cb669b9abfa9",
+      "size_bytes": 3821103
+    },
+    {
+      "artifact_role": "predictions",
+      "relative_path": "predictions/Pigs291119_000216_30fps.xml",
+      "sha256": "f1c9cf8bda9e4aca23aafb853b6e685cf3f012ef981b43d0f87b8b172175eee9",
+      "size_bytes": 3819217
+    },
+    {
+      "artifact_role": "predictions",
+      "relative_path": "predictions/Pigs291119_000225_30fps.xml",
+      "sha256": "84372653ecd22828e723f8625d7d0ddec4f0e820d02473099054e800faa86b45",
+      "size_bytes": 3819382
+    },
+    {
+      "artifact_role": "predictions",
+      "relative_path": "predictions/Pigs291119_000226_30fps.xml",
+      "sha256": "b3ee260d581d482a98d14bc536414b1f575287cf1e8acb8723bdf9c0e3882fe8",
+      "size_bytes": 3816210
+    },
+    {
+      "artifact_role": "predictions",
+      "relative_path": "predictions/Pigs291119_000231_30fps.xml",
+      "sha256": "13a0c4868021473822ed14efe194557ae94ffe5e1aeec4ba3769db8e5491c830",
+      "size_bytes": 3818242
+    },
+    {
+      "artifact_role": "predictions",
+      "relative_path": "predictions/Pigs291119_000233_30fps.xml",
+      "sha256": "61a9e0fea6f767a6b4ed6136b3af17b28cb725d23f98f98cbdd37dd53b061c8e",
+      "size_bytes": 3814597
+    },
+    {
+      "artifact_role": "predictions",
+      "relative_path": "predictions/Pigs291119_000263_30fps.xml",
+      "sha256": "a9f308de4e6db335960def015da45df03561dc9151d8306d6ee0277e5853c00a",
+      "size_bytes": 3818284
+    },
+    {
+      "artifact_role": "predictions",
+      "relative_path": "predictions/Pigs291119_000302_30fps.xml",
+      "sha256": "b8ae751387f69dfffbb06946ddde2c95d28b95831beaf732c592ea45a2fc91b0",
+      "size_bytes": 3819959
+    },
+    {
+      "artifact_role": "predictions",
+      "relative_path": "predictions/Pigs301119_000327_30fps.xml",
+      "sha256": "07b4e6c3107eaede8eeae468d35614ac120ee8b923fbcad768dd4a0a07ce3897",
+      "size_bytes": 3820177
+    },
+    {
+      "artifact_role": "predictions",
+      "relative_path": "predictions/Pigs301119_000328_30fps.xml",
+      "sha256": "23e234d28c9d0ce983a3a3d566492640549504b3396866a6a6919f6c7ad55ccc",
+      "size_bytes": 3817838
+    },
+    {
+      "artifact_role": "predictions",
+      "relative_path": "predictions/Pigs301119_000329_30fps.xml",
+      "sha256": "89141c7dfba9b11b7bb41df102b8bbe3e8837e15fa093a92e73f9cb9a083a7b9",
+      "size_bytes": 3817772
+    },
+    {
+      "artifact_role": "predictions",
+      "relative_path": "predictions/Pigs301119_000330_30fps.xml",
+      "sha256": "c53ead1182133a9746acb6d27aef66f75d499f1b9afb590b09e289702aca5cde",
+      "size_bytes": 3820746
+    },
+    {
+      "artifact_role": "raw_core_snapshots",
+      "relative_path": "raw_core_snapshots/Pigs281119_000085_30fps.rf_raw_track_output.json",
+      "sha256": "87c9f1827fc0b864589e49ad2a6e295306b1985813b2bf1b2e48db1a6e522847",
+      "size_bytes": 13495146
+    },
+    {
+      "artifact_role": "raw_core_snapshots",
+      "relative_path": "raw_core_snapshots/Pigs281119_000114_30fps.rf_raw_track_output.json",
+      "sha256": "ac1b3a09e1744c1eb3ff573f1a81d804797c4e1a4d1379216f6c76cbe1a908bb",
+      "size_bytes": 13486786
+    },
+    {
+      "artifact_role": "raw_core_snapshots",
+      "relative_path": "raw_core_snapshots/Pigs291119_000216_30fps.rf_raw_track_output.json",
+      "sha256": "73dd118f2f6fe2a5cdde30b30d669795e80197d96b91273376ba861d142a3ead",
+      "size_bytes": 13483239
+    },
+    {
+      "artifact_role": "raw_core_snapshots",
+      "relative_path": "raw_core_snapshots/Pigs291119_000225_30fps.rf_raw_track_output.json",
+      "sha256": "085bb23b8590667cc0b727a9dd1bfc5bf03e5184a399ef7354d97d5ed8dd865d",
+      "size_bytes": 13489079
+    },
+    {
+      "artifact_role": "raw_core_snapshots",
+      "relative_path": "raw_core_snapshots/Pigs291119_000226_30fps.rf_raw_track_output.json",
+      "sha256": "6a0460d1a6305619d4969082019a43a9a3e9e81e21111bf251eab23ce8754111",
+      "size_bytes": 13488553
+    },
+    {
+      "artifact_role": "raw_core_snapshots",
+      "relative_path": "raw_core_snapshots/Pigs291119_000231_30fps.rf_raw_track_output.json",
+      "sha256": "ac0bf0ede4eb060ee4cadd8c871ce2997ac30a59e440ac05d72c0f022a84edf4",
+      "size_bytes": 13481704
+    },
+    {
+      "artifact_role": "raw_core_snapshots",
+      "relative_path": "raw_core_snapshots/Pigs291119_000233_30fps.rf_raw_track_output.json",
+      "sha256": "4dbbde261457b749b8310bff0d81925dd5d79759c9e8d2e7ec518f328e934c6f",
+      "size_bytes": 13483960
+    },
+    {
+      "artifact_role": "raw_core_snapshots",
+      "relative_path": "raw_core_snapshots/Pigs291119_000263_30fps.rf_raw_track_output.json",
+      "sha256": "d82c1c60c80f896d414c3199d3ac1536f718e1410f81d2f7e5422237092cc525",
+      "size_bytes": 13485573
+    },
+    {
+      "artifact_role": "raw_core_snapshots",
+      "relative_path": "raw_core_snapshots/Pigs291119_000302_30fps.rf_raw_track_output.json",
+      "sha256": "94f25297c7ee74bf72be4a9a2e4b5aa6679a9deea9db9ae985bc7f2510c23d8b",
+      "size_bytes": 13497833
+    },
+    {
+      "artifact_role": "raw_core_snapshots",
+      "relative_path": "raw_core_snapshots/Pigs301119_000327_30fps.rf_raw_track_output.json",
+      "sha256": "c73948e965d816e5b31ef5783e8fa202f7edecb7120397bd457ef75fc78a6bdf",
+      "size_bytes": 13481815
+    },
+    {
+      "artifact_role": "raw_core_snapshots",
+      "relative_path": "raw_core_snapshots/Pigs301119_000328_30fps.rf_raw_track_output.json",
+      "sha256": "5234f1b5e67299d106f26685bd441adfdcda161e195d7397d52abf87ad20e5a3",
+      "size_bytes": 13494931
+    },
+    {
+      "artifact_role": "raw_core_snapshots",
+      "relative_path": "raw_core_snapshots/Pigs301119_000329_30fps.rf_raw_track_output.json",
+      "sha256": "a6e4ed0e0a01d244f9db3b4a7f6d024aa5270aa4900604e18b1d0cbaff092c4b",
+      "size_bytes": 13490414
+    },
+    {
+      "artifact_role": "raw_core_snapshots",
+      "relative_path": "raw_core_snapshots/Pigs301119_000330_30fps.rf_raw_track_output.json",
+      "sha256": "774d68c42930108b44fc8b05417edcb4fb99854dff65ce06e6bbb14e30a4e3cc",
+      "size_bytes": 13488267
+    },
+    {
+      "artifact_role": "repair_ledgers",
+      "relative_path": "repair_ledgers/Pigs281119_000085_30fps.rf_offline_repair_ledger.json",
+      "sha256": "b2546dc4e6702143fd9d2519cf2748b24dc113b0fe898599cbb9f514cbd76365",
+      "size_bytes": 12609
+    },
+    {
+      "artifact_role": "repair_ledgers",
+      "relative_path": "repair_ledgers/Pigs281119_000114_30fps.rf_offline_repair_ledger.json",
+      "sha256": "71d2a098c237f5c16717ed770450e43b4c9647d3538047762e2fdfec91ad6037",
+      "size_bytes": 14233
+    },
+    {
+      "artifact_role": "repair_ledgers",
+      "relative_path": "repair_ledgers/Pigs291119_000216_30fps.rf_offline_repair_ledger.json",
+      "sha256": "71f84091669ee5381081cc1e656ad920e9169f261059d64342ce6e44c608fa43",
+      "size_bytes": 28766
+    },
+    {
+      "artifact_role": "repair_ledgers",
+      "relative_path": "repair_ledgers/Pigs291119_000225_30fps.rf_offline_repair_ledger.json",
+      "sha256": "e9340ff5faee26c71d8ab3e6210843c518c74d9156a6707c65b85ae2d4eb0052",
+      "size_bytes": 20656
+    },
+    {
+      "artifact_role": "repair_ledgers",
+      "relative_path": "repair_ledgers/Pigs291119_000226_30fps.rf_offline_repair_ledger.json",
+      "sha256": "749d2b302ed35a079ddd46d7faecdbe29ef92a4b775268879c445fc6fbc58c99",
+      "size_bytes": 16643
+    },
+    {
+      "artifact_role": "repair_ledgers",
+      "relative_path": "repair_ledgers/Pigs291119_000231_30fps.rf_offline_repair_ledger.json",
+      "sha256": "dd06574fdc916e261ca7d6656115fafce7e92a240a61eb619a946fadc5208d93",
+      "size_bytes": 87812
+    },
+    {
+      "artifact_role": "repair_ledgers",
+      "relative_path": "repair_ledgers/Pigs291119_000233_30fps.rf_offline_repair_ledger.json",
+      "sha256": "630000c658f61e8100088df4e4f20a6c8fcbf05848127afab10af3766632541a",
+      "size_bytes": 65184
+    },
+    {
+      "artifact_role": "repair_ledgers",
+      "relative_path": "repair_ledgers/Pigs291119_000263_30fps.rf_offline_repair_ledger.json",
+      "sha256": "7b3ed860ed12a48510f5b0be5ae91dabb455b9e6ec75ce48b5c37739f66fa793",
+      "size_bytes": 35275
+    },
+    {
+      "artifact_role": "repair_ledgers",
+      "relative_path": "repair_ledgers/Pigs291119_000302_30fps.rf_offline_repair_ledger.json",
+      "sha256": "31d2c2df68e4dbd7cf3b144d05c3c0a3f030bc345e44719baa762507926bc9ac",
+      "size_bytes": 10175
+    },
+    {
+      "artifact_role": "repair_ledgers",
+      "relative_path": "repair_ledgers/Pigs301119_000327_30fps.rf_offline_repair_ledger.json",
+      "sha256": "7f319ebe893b28cccb8f81854bfe311cd46e78078be17ab6955b8bd48873c988",
+      "size_bytes": 15859
+    },
+    {
+      "artifact_role": "repair_ledgers",
+      "relative_path": "repair_ledgers/Pigs301119_000328_30fps.rf_offline_repair_ledger.json",
+      "sha256": "47e48e0d2a85e6f656bdb3a728728f17740aec253044fb27b8ecd66a075bae9f",
+      "size_bytes": 10993
+    },
+    {
+      "artifact_role": "repair_ledgers",
+      "relative_path": "repair_ledgers/Pigs301119_000329_30fps.rf_offline_repair_ledger.json",
+      "sha256": "e914cd7f236c38c70f4663cedab0f170843b6c991a4f44df8fb6aa0f2a3cd235",
+      "size_bytes": 12611
+    },
+    {
+      "artifact_role": "repair_ledgers",
+      "relative_path": "repair_ledgers/Pigs301119_000330_30fps.rf_offline_repair_ledger.json",
+      "sha256": "f762ea30889b93e8f0c30591fafb40fe85db97e29435d11fb6c77dedba8b78fe",
+      "size_bytes": 6125
+    }
+  ],
+  "authority_code_sha": "cd7846d29074bbef5704334f359a3cf39bbb54b5",
+  "canonical_prediction_content_sha256": "40052f992871d50984fc4c0c839c4933b772bca2bfcaaaacafcde40d0e8a1800",
+  "date": "20260728",
+  "deletion_allowed": "NO_WITHOUT_EXPLICIT_AUTHORITY_RETIREMENT",
+  "generation_code_sha": "bec7d3d8454a8182e4bcf9096747ccfa6b39b458",
+  "output_root": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\frozen_predictions_standard_v2_20260728_retry1\\R1_rf_hybrid_offline",
+  "prediction_object_count": 187200,
+  "predictions": [
+    {
+      "bbox_validity": "PASS",
+      "canonical_row_sha256": "9a6cabfc07c9001c6eb8bc4822450eff0e234a948a8a0a023329c12021298702",
+      "deterministic_object_ordering": "PASS_CANONICALIZED",
+      "hidden_values_present": [
+        "No",
+        "Yes"
+      ],
+      "identity_serialization": "PASS",
+      "maximum_prediction_frame": 1799,
+      "minimum_prediction_frame": 0,
+      "prediction_object_count": 14400,
+      "processed_frame_count": 1800,
+      "processed_frame_end": 1799,
+      "processed_frame_start": 0,
+      "semantic_hash_contract": "cvat_xml_c14n_without_created_updated_dumped_v1",
+      "semantic_sha256": "f98341c438284b343fbf34de7524514f9ca2301822c3c477f20b7d13a3205f45",
+      "sha256": "efcb5a6afe15bad836738845893b37a2d995ef4e22999598989307f51ffc1b2d",
+      "size_bytes": 3823641,
+      "track_count": 8,
+      "video_key": "Pigs281119_000085_30fps",
+      "xml_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\frozen_predictions_standard_v2_20260728_retry1\\R1_rf_hybrid_offline\\predictions\\Pigs281119_000085_30fps.xml"
+    },
+    {
+      "bbox_validity": "PASS",
+      "canonical_row_sha256": "1961bb0444d0286f9fc4cf50a7d94077c6464b86fdec2718e40f3fbe77003d16",
+      "deterministic_object_ordering": "PASS_CANONICALIZED",
+      "hidden_values_present": [
+        "No",
+        "Yes"
+      ],
+      "identity_serialization": "PASS",
+      "maximum_prediction_frame": 1799,
+      "minimum_prediction_frame": 0,
+      "prediction_object_count": 14400,
+      "processed_frame_count": 1800,
+      "processed_frame_end": 1799,
+      "processed_frame_start": 0,
+      "semantic_hash_contract": "cvat_xml_c14n_without_created_updated_dumped_v1",
+      "semantic_sha256": "86b21e6440d4148d1b7269b68475db8ed78375f253530b06f16a344955a0dfd0",
+      "sha256": "6819b3611c699060df48b33fd97f071d8fe38dd35f0fb1e70fa1cb669b9abfa9",
+      "size_bytes": 3821103,
+      "track_count": 8,
+      "video_key": "Pigs281119_000114_30fps",
+      "xml_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\frozen_predictions_standard_v2_20260728_retry1\\R1_rf_hybrid_offline\\predictions\\Pigs281119_000114_30fps.xml"
+    },
+    {
+      "bbox_validity": "PASS",
+      "canonical_row_sha256": "a345b59b937096cf7e5b2bf3be9253661bd0487638f02447474c90aed9b845ae",
+      "deterministic_object_ordering": "PASS_CANONICALIZED",
+      "hidden_values_present": [
+        "No",
+        "Yes"
+      ],
+      "identity_serialization": "PASS",
+      "maximum_prediction_frame": 1799,
+      "minimum_prediction_frame": 0,
+      "prediction_object_count": 14400,
+      "processed_frame_count": 1800,
+      "processed_frame_end": 1799,
+      "processed_frame_start": 0,
+      "semantic_hash_contract": "cvat_xml_c14n_without_created_updated_dumped_v1",
+      "semantic_sha256": "2a04c7c3bd039a26ef73dbc58e936307355a077a6751a16cfc62117e3ccf6e94",
+      "sha256": "f1c9cf8bda9e4aca23aafb853b6e685cf3f012ef981b43d0f87b8b172175eee9",
+      "size_bytes": 3819217,
+      "track_count": 8,
+      "video_key": "Pigs291119_000216_30fps",
+      "xml_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\frozen_predictions_standard_v2_20260728_retry1\\R1_rf_hybrid_offline\\predictions\\Pigs291119_000216_30fps.xml"
+    },
+    {
+      "bbox_validity": "PASS",
+      "canonical_row_sha256": "4e54c701fabb2dac9ebff87d3f7965d4059a0e681837ea0f9d1de6d1a0698889",
+      "deterministic_object_ordering": "PASS_CANONICALIZED",
+      "hidden_values_present": [
+        "No",
+        "Yes"
+      ],
+      "identity_serialization": "PASS",
+      "maximum_prediction_frame": 1799,
+      "minimum_prediction_frame": 0,
+      "prediction_object_count": 14400,
+      "processed_frame_count": 1800,
+      "processed_frame_end": 1799,
+      "processed_frame_start": 0,
+      "semantic_hash_contract": "cvat_xml_c14n_without_created_updated_dumped_v1",
+      "semantic_sha256": "446723b53101f99fa514b8aff0e27fb775aac46982629cf6a9a8f79a136b8af4",
+      "sha256": "84372653ecd22828e723f8625d7d0ddec4f0e820d02473099054e800faa86b45",
+      "size_bytes": 3819382,
+      "track_count": 8,
+      "video_key": "Pigs291119_000225_30fps",
+      "xml_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\frozen_predictions_standard_v2_20260728_retry1\\R1_rf_hybrid_offline\\predictions\\Pigs291119_000225_30fps.xml"
+    },
+    {
+      "bbox_validity": "PASS",
+      "canonical_row_sha256": "ca6f08cc28192f97da8cb7312180b33f11d9bd8bd507e7b7e823bfa3d3081626",
+      "deterministic_object_ordering": "PASS_CANONICALIZED",
+      "hidden_values_present": [
+        "No",
+        "Yes"
+      ],
+      "identity_serialization": "PASS",
+      "maximum_prediction_frame": 1799,
+      "minimum_prediction_frame": 0,
+      "prediction_object_count": 14400,
+      "processed_frame_count": 1800,
+      "processed_frame_end": 1799,
+      "processed_frame_start": 0,
+      "semantic_hash_contract": "cvat_xml_c14n_without_created_updated_dumped_v1",
+      "semantic_sha256": "356db405fcb745f8675f3b38a16098ef178b5294f187bd02a60b6f38aca5f81c",
+      "sha256": "b3ee260d581d482a98d14bc536414b1f575287cf1e8acb8723bdf9c0e3882fe8",
+      "size_bytes": 3816210,
+      "track_count": 8,
+      "video_key": "Pigs291119_000226_30fps",
+      "xml_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\frozen_predictions_standard_v2_20260728_retry1\\R1_rf_hybrid_offline\\predictions\\Pigs291119_000226_30fps.xml"
+    },
+    {
+      "bbox_validity": "PASS",
+      "canonical_row_sha256": "0ae5f6a6d6dd1daee8c1625d5be9629846d81f8ccfbe5bd9b4b171a92164044d",
+      "deterministic_object_ordering": "PASS_CANONICALIZED",
+      "hidden_values_present": [
+        "No",
+        "Yes"
+      ],
+      "identity_serialization": "PASS",
+      "maximum_prediction_frame": 1799,
+      "minimum_prediction_frame": 0,
+      "prediction_object_count": 14400,
+      "processed_frame_count": 1800,
+      "processed_frame_end": 1799,
+      "processed_frame_start": 0,
+      "semantic_hash_contract": "cvat_xml_c14n_without_created_updated_dumped_v1",
+      "semantic_sha256": "dc63cbfc78488ae5c540806ca77caeffe23feab6eda5ef95fdeefa0ab396a7e0",
+      "sha256": "13a0c4868021473822ed14efe194557ae94ffe5e1aeec4ba3769db8e5491c830",
+      "size_bytes": 3818242,
+      "track_count": 8,
+      "video_key": "Pigs291119_000231_30fps",
+      "xml_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\frozen_predictions_standard_v2_20260728_retry1\\R1_rf_hybrid_offline\\predictions\\Pigs291119_000231_30fps.xml"
+    },
+    {
+      "bbox_validity": "PASS",
+      "canonical_row_sha256": "0f44eed3d1787cfa8bf918bed6497f03d1d3e8baddf8a941d156e2d1b5d75f66",
+      "deterministic_object_ordering": "PASS_CANONICALIZED",
+      "hidden_values_present": [
+        "No",
+        "Yes"
+      ],
+      "identity_serialization": "PASS",
+      "maximum_prediction_frame": 1799,
+      "minimum_prediction_frame": 0,
+      "prediction_object_count": 14400,
+      "processed_frame_count": 1800,
+      "processed_frame_end": 1799,
+      "processed_frame_start": 0,
+      "semantic_hash_contract": "cvat_xml_c14n_without_created_updated_dumped_v1",
+      "semantic_sha256": "370d32358230c1d1fe1f076661f59ea9cff731d5f529f397b48e4454be421ee1",
+      "sha256": "61a9e0fea6f767a6b4ed6136b3af17b28cb725d23f98f98cbdd37dd53b061c8e",
+      "size_bytes": 3814597,
+      "track_count": 8,
+      "video_key": "Pigs291119_000233_30fps",
+      "xml_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\frozen_predictions_standard_v2_20260728_retry1\\R1_rf_hybrid_offline\\predictions\\Pigs291119_000233_30fps.xml"
+    },
+    {
+      "bbox_validity": "PASS",
+      "canonical_row_sha256": "4544bf44d4d545428251bcba329c6bd6c7172a9838ff998f930e7f410536ca50",
+      "deterministic_object_ordering": "PASS_CANONICALIZED",
+      "hidden_values_present": [
+        "No",
+        "Yes"
+      ],
+      "identity_serialization": "PASS",
+      "maximum_prediction_frame": 1799,
+      "minimum_prediction_frame": 0,
+      "prediction_object_count": 14400,
+      "processed_frame_count": 1800,
+      "processed_frame_end": 1799,
+      "processed_frame_start": 0,
+      "semantic_hash_contract": "cvat_xml_c14n_without_created_updated_dumped_v1",
+      "semantic_sha256": "96a0ab05e2431a209a405a0062d41685ea82937ae8431029cd2607f4c702951a",
+      "sha256": "a9f308de4e6db335960def015da45df03561dc9151d8306d6ee0277e5853c00a",
+      "size_bytes": 3818284,
+      "track_count": 8,
+      "video_key": "Pigs291119_000263_30fps",
+      "xml_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\frozen_predictions_standard_v2_20260728_retry1\\R1_rf_hybrid_offline\\predictions\\Pigs291119_000263_30fps.xml"
+    },
+    {
+      "bbox_validity": "PASS",
+      "canonical_row_sha256": "554f921e8861b75c2040876283d55f11e0cee6a9a487b03d741af02bb8229f17",
+      "deterministic_object_ordering": "PASS_CANONICALIZED",
+      "hidden_values_present": [
+        "No",
+        "Yes"
+      ],
+      "identity_serialization": "PASS",
+      "maximum_prediction_frame": 1799,
+      "minimum_prediction_frame": 0,
+      "prediction_object_count": 14400,
+      "processed_frame_count": 1800,
+      "processed_frame_end": 1799,
+      "processed_frame_start": 0,
+      "semantic_hash_contract": "cvat_xml_c14n_without_created_updated_dumped_v1",
+      "semantic_sha256": "58df4aec404459e1ad4df4a48371f921a89b10fc25eb1060c9f8fc41baf67c39",
+      "sha256": "b8ae751387f69dfffbb06946ddde2c95d28b95831beaf732c592ea45a2fc91b0",
+      "size_bytes": 3819959,
+      "track_count": 8,
+      "video_key": "Pigs291119_000302_30fps",
+      "xml_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\frozen_predictions_standard_v2_20260728_retry1\\R1_rf_hybrid_offline\\predictions\\Pigs291119_000302_30fps.xml"
+    },
+    {
+      "bbox_validity": "PASS",
+      "canonical_row_sha256": "a5f83e67e414f18e2dc635ea529ad6e845582902f9e0b8ba6b454d273fa544f4",
+      "deterministic_object_ordering": "PASS_CANONICALIZED",
+      "hidden_values_present": [
+        "No",
+        "Yes"
+      ],
+      "identity_serialization": "PASS",
+      "maximum_prediction_frame": 1799,
+      "minimum_prediction_frame": 0,
+      "prediction_object_count": 14400,
+      "processed_frame_count": 1800,
+      "processed_frame_end": 1799,
+      "processed_frame_start": 0,
+      "semantic_hash_contract": "cvat_xml_c14n_without_created_updated_dumped_v1",
+      "semantic_sha256": "262b1366d9213f94cfbe8643e979b2dc5b3de4929ec798bda7fce2afa127b507",
+      "sha256": "07b4e6c3107eaede8eeae468d35614ac120ee8b923fbcad768dd4a0a07ce3897",
+      "size_bytes": 3820177,
+      "track_count": 8,
+      "video_key": "Pigs301119_000327_30fps",
+      "xml_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\frozen_predictions_standard_v2_20260728_retry1\\R1_rf_hybrid_offline\\predictions\\Pigs301119_000327_30fps.xml"
+    },
+    {
+      "bbox_validity": "PASS",
+      "canonical_row_sha256": "0420719e879cc745bbf131028a917ec70aa7ca82e7e97b5c950cab01f2d659c5",
+      "deterministic_object_ordering": "PASS_CANONICALIZED",
+      "hidden_values_present": [
+        "No",
+        "Yes"
+      ],
+      "identity_serialization": "PASS",
+      "maximum_prediction_frame": 1799,
+      "minimum_prediction_frame": 0,
+      "prediction_object_count": 14400,
+      "processed_frame_count": 1800,
+      "processed_frame_end": 1799,
+      "processed_frame_start": 0,
+      "semantic_hash_contract": "cvat_xml_c14n_without_created_updated_dumped_v1",
+      "semantic_sha256": "a5779eb40d33fa4daeb08402fdcbbc8aa072133dc7ba2ef9bf11fbc516a7d999",
+      "sha256": "23e234d28c9d0ce983a3a3d566492640549504b3396866a6a6919f6c7ad55ccc",
+      "size_bytes": 3817838,
+      "track_count": 8,
+      "video_key": "Pigs301119_000328_30fps",
+      "xml_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\frozen_predictions_standard_v2_20260728_retry1\\R1_rf_hybrid_offline\\predictions\\Pigs301119_000328_30fps.xml"
+    },
+    {
+      "bbox_validity": "PASS",
+      "canonical_row_sha256": "0e41b77b9eaa019ce61fe8be350e82685caddce3b5f1ee20fde0d1efb5ba9906",
+      "deterministic_object_ordering": "PASS_CANONICALIZED",
+      "hidden_values_present": [
+        "No",
+        "Yes"
+      ],
+      "identity_serialization": "PASS",
+      "maximum_prediction_frame": 1799,
+      "minimum_prediction_frame": 0,
+      "prediction_object_count": 14400,
+      "processed_frame_count": 1800,
+      "processed_frame_end": 1799,
+      "processed_frame_start": 0,
+      "semantic_hash_contract": "cvat_xml_c14n_without_created_updated_dumped_v1",
+      "semantic_sha256": "7d0bd4ed231f800e0255ba1402f676bf638990f1eff73344d0447652dbcaa0ee",
+      "sha256": "89141c7dfba9b11b7bb41df102b8bbe3e8837e15fa093a92e73f9cb9a083a7b9",
+      "size_bytes": 3817772,
+      "track_count": 8,
+      "video_key": "Pigs301119_000329_30fps",
+      "xml_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\frozen_predictions_standard_v2_20260728_retry1\\R1_rf_hybrid_offline\\predictions\\Pigs301119_000329_30fps.xml"
+    },
+    {
+      "bbox_validity": "PASS",
+      "canonical_row_sha256": "94ffea5875a26913e56b86db652b4da56ab976f48229e3da91c8e80905ea8a6e",
+      "deterministic_object_ordering": "PASS_CANONICALIZED",
+      "hidden_values_present": [
+        "No",
+        "Yes"
+      ],
+      "identity_serialization": "PASS",
+      "maximum_prediction_frame": 1799,
+      "minimum_prediction_frame": 0,
+      "prediction_object_count": 14400,
+      "processed_frame_count": 1800,
+      "processed_frame_end": 1799,
+      "processed_frame_start": 0,
+      "semantic_hash_contract": "cvat_xml_c14n_without_created_updated_dumped_v1",
+      "semantic_sha256": "53a1f64fdab0f78d33db5f61ed4159bda53d8e1ff12370ed391171d3079bb210",
+      "sha256": "c53ead1182133a9746acb6d27aef66f75d499f1b9afb590b09e289702aca5cde",
+      "size_bytes": 3820746,
+      "track_count": 8,
+      "video_key": "Pigs301119_000330_30fps",
+      "xml_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\frozen_predictions_standard_v2_20260728_retry1\\R1_rf_hybrid_offline\\predictions\\Pigs301119_000330_30fps.xml"
+    }
+  ],
+  "profile": "rf_hybrid_offline",
+  "r0_config_sha256": "9bf4ce6d07423ab517b4705c716e3eb012349b756b7c0591cc3458eac207808d",
+  "r0_even_cache_authority_sha256": "795df7732393e4e258a82db58e29101b068cf8ac3583acf7702e0afdaeec6e7a",
+  "r0_prediction_artifact_sha256": "fd2d4f3dec0710d1c9eecba9308247a7b226dd34a4a02a9cb89f17acb22bbbfe",
+  "raw_core_snapshot_sha256": "b930717c25bf882213960a5190f84e4736352982f0102c98aab227c723591bf2",
+  "recursive_artifact_inventory_sha256": "8273abe3ec811edc1eb482742a733f463e552898c698e32941d2b34090b54be9",
+  "repair_ledger_table_sha256": "62d6ba3c135423b6426005e73440017acd3e84c0d14fd9a903c40e4a60374152",
+  "repair_semantic_sha256": "e078b5b165dda82dee5b61e9465dc9844446e4cb576a02858c4ed7369828d758",
+  "retention_class": "NON_DISPOSABLE_FROZEN_PREDICTION_AUTHORITY",
+  "schema_version": "tracking.r1.prediction_artifact_manifest.v1",
+  "status": "FROZEN",
+  "video_count": 13
+}

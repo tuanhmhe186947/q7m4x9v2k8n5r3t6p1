@@ -1,0 +1,130 @@
+{
+  "common_frame_authority": "PASS",
+  "common_gt_authority": "PASS",
+  "common_sequence_boundary_authority": "PASS",
+  "common_source_video_authority": "PASS",
+  "common_video_authority": "PASS",
+  "date": "20260728",
+  "schema_version": "tracking.r0_r1.locked_execution_manifest.v1",
+  "status": "PASS",
+  "video_count": 13,
+  "videos": [
+    {
+      "cache_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\detector_caches\\current_main_baseline_20260728\\partitions\\Pigs281119_000085_30fps\\detector_evidence.npz",
+      "cache_records": 900,
+      "cache_sha256": "6b48038e80acb2a20f7dbfb3f4ae8bab0b5279029999a169305859ad5420e8f6",
+      "detector_cadence": "EVERY_2_FRAMES",
+      "frame_end": 1799,
+      "frame_start": 0,
+      "video_key": "Pigs281119_000085_30fps"
+    },
+    {
+      "cache_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\detector_caches\\current_main_baseline_20260728\\partitions\\Pigs281119_000114_30fps\\detector_evidence.npz",
+      "cache_records": 900,
+      "cache_sha256": "7a6c1b7312abe805c2b4aafbf2575d807c96f46c8999c03a71dc6347da07a0d8",
+      "detector_cadence": "EVERY_2_FRAMES",
+      "frame_end": 1799,
+      "frame_start": 0,
+      "video_key": "Pigs281119_000114_30fps"
+    },
+    {
+      "cache_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\detector_caches\\current_main_baseline_20260728\\partitions\\Pigs291119_000216_30fps\\detector_evidence.npz",
+      "cache_records": 900,
+      "cache_sha256": "ebe860c7fb8f817124743bbc1fca8c546fabc7fe7b6551d7eb323188e61868dd",
+      "detector_cadence": "EVERY_2_FRAMES",
+      "frame_end": 1799,
+      "frame_start": 0,
+      "video_key": "Pigs291119_000216_30fps"
+    },
+    {
+      "cache_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\detector_caches\\current_main_baseline_20260728\\partitions\\Pigs291119_000225_30fps\\detector_evidence.npz",
+      "cache_records": 900,
+      "cache_sha256": "c74c109ac30facc8f98c4d64965601eb721ff3a967f9e6b841f35e04fba5a942",
+      "detector_cadence": "EVERY_2_FRAMES",
+      "frame_end": 1799,
+      "frame_start": 0,
+      "video_key": "Pigs291119_000225_30fps"
+    },
+    {
+      "cache_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\detector_caches\\current_main_baseline_20260728\\partitions\\Pigs291119_000226_30fps\\detector_evidence.npz",
+      "cache_records": 900,
+      "cache_sha256": "ce2f40eacb92b529ac00f71c41d9d674abadfbce881e86ca5ba45b57ec0348ee",
+      "detector_cadence": "EVERY_2_FRAMES",
+      "frame_end": 1799,
+      "frame_start": 0,
+      "video_key": "Pigs291119_000226_30fps"
+    },
+    {
+      "cache_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\detector_caches\\current_main_baseline_20260728\\partitions\\Pigs291119_000231_30fps\\detector_evidence.npz",
+      "cache_records": 900,
+      "cache_sha256": "ec35b2ea84b63b99fb9d60b0b2e9044ea46e7b8f61319bf72fc6edf98004ca96",
+      "detector_cadence": "EVERY_2_FRAMES",
+      "frame_end": 1799,
+      "frame_start": 0,
+      "video_key": "Pigs291119_000231_30fps"
+    },
+    {
+      "cache_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\detector_caches\\current_main_baseline_20260728\\partitions\\Pigs291119_000233_30fps\\detector_evidence.npz",
+      "cache_records": 900,
+      "cache_sha256": "cf5495190ba9d97d4c02e5807c6549c8fc36d03d3a0b9f91bae34baf00061cae",
+      "detector_cadence": "EVERY_2_FRAMES",
+      "frame_end": 1799,
+      "frame_start": 0,
+      "video_key": "Pigs291119_000233_30fps"
+    },
+    {
+      "cache_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\detector_caches\\current_main_baseline_20260728\\partitions\\Pigs291119_000263_30fps\\detector_evidence.npz",
+      "cache_records": 900,
+      "cache_sha256": "5cbf7c5ef1f34960d9ddeb8119e4612e1bc65ccbdbdce57690bfe5bb81dd6a38",
+      "detector_cadence": "EVERY_2_FRAMES",
+      "frame_end": 1799,
+      "frame_start": 0,
+      "video_key": "Pigs291119_000263_30fps"
+    },
+    {
+      "cache_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\detector_caches\\current_main_baseline_20260728\\partitions\\Pigs291119_000302_30fps\\detector_evidence.npz",
+      "cache_records": 900,
+      "cache_sha256": "16e0b376cd3acd292f5664b8951cacef9957ed9133bfab36dda8f5c7f8dbb8d5",
+      "detector_cadence": "EVERY_2_FRAMES",
+      "frame_end": 1799,
+      "frame_start": 0,
+      "video_key": "Pigs291119_000302_30fps"
+    },
+    {
+      "cache_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\detector_caches\\current_main_baseline_20260728\\partitions\\Pigs301119_000327_30fps\\detector_evidence.npz",
+      "cache_records": 900,
+      "cache_sha256": "2f98fac210df9f8180a6e077e725ddabc7b7b361f230e1c7f5dedee7c292dce9",
+      "detector_cadence": "EVERY_2_FRAMES",
+      "frame_end": 1799,
+      "frame_start": 0,
+      "video_key": "Pigs301119_000327_30fps"
+    },
+    {
+      "cache_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\detector_caches\\current_main_baseline_20260728\\partitions\\Pigs301119_000328_30fps\\detector_evidence.npz",
+      "cache_records": 900,
+      "cache_sha256": "13c526b4e9ff9e41ccbfef46f51bcba651b74756e5e15cc7811f4e280c0fb3c6",
+      "detector_cadence": "EVERY_2_FRAMES",
+      "frame_end": 1799,
+      "frame_start": 0,
+      "video_key": "Pigs301119_000328_30fps"
+    },
+    {
+      "cache_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\detector_caches\\current_main_baseline_20260728\\partitions\\Pigs301119_000329_30fps\\detector_evidence.npz",
+      "cache_records": 900,
+      "cache_sha256": "c8f05eecc8522403cc2f50abfb0f1c5d8ea508a684f42664e40ac44c3aa87ee8",
+      "detector_cadence": "EVERY_2_FRAMES",
+      "frame_end": 1799,
+      "frame_start": 0,
+      "video_key": "Pigs301119_000329_30fps"
+    },
+    {
+      "cache_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\detector_caches\\current_main_baseline_20260728\\partitions\\Pigs301119_000330_30fps\\detector_evidence.npz",
+      "cache_records": 900,
+      "cache_sha256": "434433b0d51c8d47ff024de0198dae8b253576fbbf51ef591261cd96b0c30147",
+      "detector_cadence": "EVERY_2_FRAMES",
+      "frame_end": 1799,
+      "frame_start": 0,
+      "video_key": "Pigs301119_000330_30fps"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "date": "20260728",
+  "decision": "EXACT_R1_PROFILE_EXECUTION",
+  "frozen_r0_public_fields": "PRESENT_EXACT",
+  "preferred_replay_topology": "NOT_CONTRACT_COMPLETE",
+  "quality_or_runtime_used_to_choose_topology": false,
+  "required_internal_lifecycle_fields": "REQUIRED_ABSENT",
+  "required_internal_motion_fields": "REQUIRED_ABSENT",
+  "required_internal_provenance_fields": "REQUIRED_ABSENT",
+  "schema_version": "tracking.r1.generation_topology_audit.v1",
+  "synthesized_required_evidence": 0,
+  "timestamp": "OPTIONAL_ABSENT"
+}

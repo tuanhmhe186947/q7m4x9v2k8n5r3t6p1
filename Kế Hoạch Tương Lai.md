@@ -1,5 +1,23 @@
 • Kế Hoạch Tương Lai
 
+## R1 frozen prediction authority — 2026-07-28
+
+- R1 `rf_hybrid_offline` đã hoàn tất độc lập trên đúng 13 video development,
+  dùng frozen R0 even-frame cache và không gọi live detector.
+- Vì R0 public export thiếu lifecycle/provenance nội bộ bắt buộc, topology là
+  `EXACT_R1_PROFILE_EXECUTION`. Raw RF core đã PASS parity với frozen R0 trước
+  adapter và offline repair cho cả 13 video.
+- Đã đóng băng 13 XML, 187.200 prediction objects, raw-core snapshots và
+  deterministic repair ledgers tại
+  `frozen_predictions_standard_v2_20260728_retry1/R1_rf_hybrid_offline`.
+- R1 artifact authority:
+  `40052f992871d50984fc4c0c839c4933b772bca2bfcaaaacafcde40d0e8a1800`.
+- Không chạy detector inference, evaluator, quality comparison, unseen data
+  hoặc MP4; frozen R0 không bị sửa.
+- Task tiếp theo có thể evaluate development 2x2 B0/B1/R0/R1 bằng
+  Standard-V2 trong worktree riêng. Unseen evaluation, runtime và promotion
+  vẫn chưa được phép.
+
 ## B0/B1/R0 Standard-V2 authority - 2026-07-28
 
 - Frozen B0, B1, and R0 predictions passed two complete
