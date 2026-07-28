@@ -25,6 +25,9 @@ from pig_behavior.classification_v2.datasets.interaction_context_loader import (
 )
 from pig_behavior.classification_v2.evaluation.metrics import DEFAULT_LABEL_ORDER, evaluate_predictions
 from pig_behavior.classification_v2.evaluation.prediction_schema_contract import check_prediction_schema
+from pig_behavior.classification_v2.features.spatial_schema import (
+    load_current_spatial_tensor_bundle,
+)
 from pig_behavior.classification_v2.models.multimodal_fusion import (
     MultimodalFusionClassifier,
     MultimodalFusionConfig,
@@ -256,7 +259,10 @@ def _load_bundle(
 ) -> _MultimodalBundle:
     """Load aligned train-ready tensors and window-to-native-unit metadata."""
 
-    arrays = {name: value for name, value in np.load(root / "X_spatial_sequences.npz").items()}
+    arrays, _ = load_current_spatial_tensor_bundle(
+        root / "X_spatial_sequences.npz",
+        root / "spatial_sequence_audit.json",
+    )
     missing = [name for name in [*MODEL_GROUPS, "length_mask", "observed_mask"] if name not in arrays]
     if missing:
         raise ValueError(f"missing spatial arrays: {missing}")

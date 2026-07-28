@@ -230,6 +230,7 @@
       "src/pig_behavior/classification_v2/features/pen_context.py",
       "src/pig_behavior/classification_v2/features/review_policy.py",
       "src/pig_behavior/classification_v2/features/roi.py",
+      "src/pig_behavior/classification_v2/features/spatial_schema.py",
       "src/pig_behavior/classification_v2/features/spatial_semantics.py",
       "src/pig_behavior/classification_v2/schema.py"
     ],

@@ -18,6 +18,14 @@ from pig_behavior.classification_v2.features.motion_schema import (
     MOTION_SCHEMA_ID,
     MOTION_SCHEMA_VERSION,
 )
+from pig_behavior.classification_v2.features.spatial_schema import (
+    SPATIAL_SCHEMA_DTYPE,
+    SPATIAL_SCHEMA_HASH,
+    SPATIAL_SCHEMA_TOTAL_DIMENSION,
+    SPATIAL_SCHEMA_VERSION,
+    SpatialSchemaError,
+    require_spatial_tensor_bundle,
+)
 
 DEFAULT_NPZ = Path("outputs/classification_v2/train_ready_windows/X_spatial_sequences.npz")
 DEFAULT_AUDIT = Path("outputs/classification_v2/train_ready_windows/spatial_sequence_audit.json")
@@ -111,6 +119,18 @@ def main() -> None:
             "motion_feature_order_mismatch="
             f"{declared_motion!r}:{list(MOTION_FEATURE_NAMES)!r}"
         )
+    spatial_metadata = audit.get("spatial_schema")
+    if not isinstance(spatial_metadata, dict):
+        errors.append("missing_current_spatial_schema_metadata")
+    else:
+        try:
+            require_spatial_tensor_bundle(
+                arrays=data,
+                feature_names=audit.get("feature_names", {}),
+                metadata=spatial_metadata,
+            )
+        except SpatialSchemaError as exc:
+            errors.append(f"spatial_schema_chain_error={exc}")
 
     shapes = {}
     for name in data.files:
@@ -195,6 +215,10 @@ def main() -> None:
         "forbidden_selected": audit.get("forbidden_selected"),
         "warnings": audit.get("warnings", []),
         **expected_schema,
+        "spatial_schema_version": SPATIAL_SCHEMA_VERSION,
+        "spatial_schema_hash": SPATIAL_SCHEMA_HASH,
+        "spatial_schema_dtype": SPATIAL_SCHEMA_DTYPE,
+        "spatial_schema_total_dimension": SPATIAL_SCHEMA_TOTAL_DIMENSION,
         "errors": errors,
     }
     if args.output_json is not None:

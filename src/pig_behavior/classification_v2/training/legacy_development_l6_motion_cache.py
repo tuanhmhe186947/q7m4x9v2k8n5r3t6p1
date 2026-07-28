@@ -17,7 +17,7 @@ import torch
 from pig_behavior.classification_v2.spatial_sequence_export import (
     LEGACY_SPATIAL_FRAME_FEATURES,
     SpatialSequenceExport,
-    export_spatial_sequences,
+    export_legacy_development_spatial_sequences,
 )
 from pig_behavior.classification_v2.training.legacy_development_l6_geometry_cache import (
     CANONICAL_SOURCE_NAME,
@@ -409,11 +409,18 @@ def materialize_motion_cache(
             *MOTION_QUALITY_FIELDS,
         ]
     ].copy()
-    exported = export_spatial_sequences(
+    exported = export_legacy_development_spatial_sequences(
         windows,
         export_frames,
         max_window_length=SEQUENCE_LENGTH,
-        feature_schema=LEGACY_SPATIAL_FRAME_FEATURES,
+        feature_schema={
+            "motion_delta": list(
+                LEGACY_SPATIAL_FRAME_FEATURES["motion_delta"]
+            ),
+            "quality_mask": list(
+                LEGACY_SPATIAL_FRAME_FEATURES["quality_mask"][:4]
+            ),
+        },
     )
     _validate_spatial_export(exported)
     motion = np.asarray(

@@ -105,7 +105,7 @@ MODEL_X_HISTORY_COLUMNS: tuple[str, ...] = (
     "history_sparse_path_length_n",
     "history_displacement_n",
     "history_stationary_ratio_per_second",
-    "history_acceleration_n_per_second2_abs_mean",
+    "history_tangential_acceleration_n_per_second2_abs_mean",
     "history_direction_change_sum",
     "history_turn_count",
     "history_motion_burstiness_per_second",
@@ -1390,7 +1390,9 @@ def _segment_motion_arrays(
         "adjacent_displacement_n": adjacent_displacement,
         "sparse_displacement_n": sparse_displacement,
         "abs_acceleration_n_per_frame2": acceleration_per_frame,
-        "abs_acceleration_n_per_second2": acceleration_per_second,
+        "abs_tangential_acceleration_n_per_second2": (
+            acceleration_per_second
+        ),
         "abs_direction_change_rad": direction_change,
         "approach_speed_n_per_frame": approach_per_frame,
         "retreat_speed_n_per_frame": retreat_per_frame,
@@ -1535,7 +1537,9 @@ def _segment_summary(
     ]
     displacement = motion["adjacent_displacement_n"]
     accel_per_frame = motion["abs_acceleration_n_per_frame2"]
-    accel_per_second = motion["abs_acceleration_n_per_second2"]
+    accel_per_second = motion[
+        "abs_tangential_acceleration_n_per_second2"
+    ]
     direction = motion["abs_direction_change_rad"]
     valid_accel_per_frame = accel_per_frame[
         motion["adjacent_acceleration_pair_mask"]
@@ -1591,7 +1595,7 @@ def _segment_summary(
             <= physical_config.stationary_speed_threshold_per_second
         ),
         f"{prefix}_acceleration_mean": _mean(valid_accel_per_frame),
-        f"{prefix}_acceleration_n_per_second2_abs_mean": _mean(
+        f"{prefix}_tangential_acceleration_n_per_second2_abs_mean": _mean(
             valid_accel_per_second
         ),
         f"{prefix}_direction_change_sum": (
@@ -1711,7 +1715,7 @@ def _empty_segment_summary(prefix: str, *, expected_count: int) -> dict[str, Any
         f"{prefix}_stationary_ratio": 0.0,
         f"{prefix}_stationary_ratio_per_second": 0.0,
         f"{prefix}_acceleration_mean": 0.0,
-        f"{prefix}_acceleration_n_per_second2_abs_mean": 0.0,
+        f"{prefix}_tangential_acceleration_n_per_second2_abs_mean": 0.0,
         f"{prefix}_direction_change_sum": 0.0,
         f"{prefix}_turn_count": 0,
         f"{prefix}_motion_burstiness": 0.0,

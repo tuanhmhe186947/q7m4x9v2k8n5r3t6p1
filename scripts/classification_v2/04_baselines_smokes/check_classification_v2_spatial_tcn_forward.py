@@ -8,6 +8,9 @@ import numpy as np
 import pandas as pd
 import torch
 
+from pig_behavior.classification_v2.features.spatial_schema import (
+    load_current_spatial_tensor_bundle,
+)
 from pig_behavior.classification_v2.models.spatial_tcn import SpatialTCNClassifier, SpatialTCNConfig
 from pig_behavior.classification_v2.training.spatial_tcn_smoke import MODEL_GROUPS
 
@@ -18,6 +21,7 @@ DEFAULT_Y = Path("outputs/classification_v2/train_ready_windows/y_behavior.csv")
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Smoke-check classification_v2 SpatialTCN forward pass.")
     parser.add_argument("--npz", type=Path, default=DEFAULT_NPZ)
+    parser.add_argument("--audit-json", type=Path)
     parser.add_argument("--y-csv", type=Path, default=DEFAULT_Y)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--hidden-dim", type=int, default=64)
@@ -29,11 +33,18 @@ def main() -> None:
     args = parse_args()
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
-    data = np.load(args.npz)
+    audit_path = args.audit_json or args.npz.with_name(
+        "spatial_sequence_audit.json"
+    )
+    data, _ = load_current_spatial_tensor_bundle(args.npz, audit_path)
     labels = pd.read_csv(args.y_csv).iloc[:, 0].fillna("").astype(str)
     label_order = sorted(labels.unique().tolist())
 
-    missing = [name for name in [*MODEL_GROUPS, "length_mask", "observed_mask"] if name not in data.files]
+    missing = [
+        name
+        for name in [*MODEL_GROUPS, "length_mask", "observed_mask"]
+        if name not in data
+    ]
     if missing:
         raise SystemExit(f"missing arrays: {missing}")
     batch_size = min(args.batch_size, data["length_mask"].shape[0])

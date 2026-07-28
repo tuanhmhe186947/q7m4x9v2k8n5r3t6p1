@@ -89,7 +89,7 @@ MOTION_PERTURBATION_COLUMNS = (
     "displacement_n",
     "speed_n_per_frame",
     "speed_n_per_second",
-    "acceleration_n_per_second2",
+    "tangential_acceleration_n_per_second2",
     "path_length_n_unit",
     "approach_speed_n_per_frame",
     "approach_speed_n_per_second",

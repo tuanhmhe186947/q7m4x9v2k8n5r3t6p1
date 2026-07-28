@@ -26,7 +26,7 @@ from pig_behavior.classification_v2.features.pen_context import (
 )
 from pig_behavior.classification_v2.spatial_sequence_export import (
     LEGACY_SPATIAL_FRAME_FEATURES,
-    export_spatial_sequences,
+    export_legacy_development_spatial_sequences,
 )
 from pig_behavior.classification_v2.training.legacy_development_l6_geometry_cache import (
     CANONICAL_SOURCE_NAME,
@@ -443,11 +443,18 @@ def materialize_pen_context_cache(
     )
     if feature_audit["errors"]:
         raise ValueError(f"pen frame feature audit={feature_audit['errors']}")
-    exported = export_spatial_sequences(
+    exported = export_legacy_development_spatial_sequences(
         export_windows,
         derived,
         max_window_length=SEQUENCE_LENGTH,
-        feature_schema=LEGACY_SPATIAL_FRAME_FEATURES,
+        feature_schema={
+            "pen_boundary_context": list(
+                LEGACY_SPATIAL_FRAME_FEATURES["pen_boundary_context"]
+            ),
+            "quality_mask": list(
+                LEGACY_SPATIAL_FRAME_FEATURES["quality_mask"][:4]
+            ),
+        },
     )
     names = tuple(exported.feature_names.get("pen_boundary_context", []))
     if names != PEN_FEATURE_NAMES:

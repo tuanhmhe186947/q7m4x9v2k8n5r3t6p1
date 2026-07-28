@@ -15,8 +15,10 @@ from pig_behavior.classification_v2.features.pen_context import (
     build_pen_context_features,
     summarize_pen_context,
 )
+from pig_behavior.classification_v2.features.spatial_schema import (
+    SpatialSchemaError,
+)
 from pig_behavior.classification_v2.spatial_sequence_export import (
-    SPATIAL_FRAME_FEATURES,
     export_spatial_sequences,
 )
 
@@ -187,7 +189,7 @@ def test_pen_context_window_summary_separates_transient_and_persistent_contact(
     assert summary["pen_parallel_speed_max_window"] > 0.0
 
 
-def test_spatial_export_keeps_pen_context_in_an_isolated_feature_group(
+def test_current_spatial_export_rejects_experimental_pen_group(
     tmp_path: Path,
 ) -> None:
     mask_path = _write_mask(tmp_path / "pen-mask.png")
@@ -218,32 +220,19 @@ def test_spatial_export_keeps_pen_context_in_an_isolated_feature_group(
         }
     )
 
-    exported = export_spatial_sequences(
-        windows,
-        frames,
-        feature_schema={
-            "bbox_xywh_n": list(SPATIAL_FRAME_FEATURES["bbox_xywh_n"]),
-            "pen_boundary_context": list(
-                PEN_CONTEXT_MODEL_FEATURE_COLUMNS
-            ),
-        },
-    )
-
-    names = exported.feature_names["pen_boundary_context"]
-    values = exported.arrays["pen_boundary_context"][0]
-    assert names == list(PEN_CONTEXT_MODEL_FEATURE_COLUMNS)
-    assert values.shape == (4, len(PEN_CONTEXT_MODEL_FEATURE_COLUMNS))
-    assert values[0, names.index("pen_approach_speed_n_per_second")] == 0.0
-    assert values[1, names.index("pen_approach_speed_n_per_second")] > 0.0
-    assert exported.audit["pen_rebased_windows"] == 1
-    assert exported.audit["pen_valid_pair_count"] == 3
-    assert "pen_context_available" not in names
-    assert SPATIAL_FRAME_FEATURES["bbox_xywh_n"] == [
-        "cx_n",
-        "cy_n",
-        "bw_n",
-        "bh_n",
-    ]
+    with pytest.raises(
+        SpatialSchemaError,
+        match="unexpected_spatial_groups",
+    ):
+        export_spatial_sequences(
+            windows,
+            frames,
+            feature_schema={
+                "pen_boundary_context": list(
+                    PEN_CONTEXT_MODEL_FEATURE_COLUMNS
+                ),
+            },
+        )
 
 
 def test_pen_context_is_not_in_the_default_trainer_whitelist() -> None:
