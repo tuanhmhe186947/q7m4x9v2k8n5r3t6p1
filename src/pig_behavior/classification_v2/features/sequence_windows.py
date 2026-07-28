@@ -1439,7 +1439,7 @@ def _recompute_view_motion(window_rows: pd.DataFrame) -> dict[str, Any]:
             np.abs(acceleration_per_frame),
             index=index,
         ),
-        "abs_acceleration_n_per_second2": pd.Series(
+        "abs_tangential_acceleration_n_per_second2": pd.Series(
             np.abs(acceleration_per_second),
             index=index,
         ),
@@ -1644,7 +1644,7 @@ def _aggregate_window_features(
     disp = motion["displacement_n"]
     accel = motion["abs_acceleration_n_per_frame2"]
     acceleration_per_second2 = motion[
-        "abs_acceleration_n_per_second2"
+        "abs_tangential_acceleration_n_per_second2"
     ]
     direction = motion["abs_direction_change_rad"]
     shape = motion["shape_change_score"]
@@ -1683,10 +1683,10 @@ def _aggregate_window_features(
     )
     out["accel_abs_mean_window"] = _safe_mean(accel)
     out["accel_abs_max_window"] = _safe_max(accel)
-    out["acceleration_n_per_second2_abs_mean_window"] = _safe_mean(
+    out["tangential_acceleration_n_per_second2_abs_mean_window"] = _safe_mean(
         acceleration_per_second2
     )
-    out["acceleration_n_per_second2_abs_max_window"] = _safe_max(
+    out["tangential_acceleration_n_per_second2_abs_max_window"] = _safe_max(
         acceleration_per_second2
     )
     out["direction_change_abs_mean_window"] = _safe_mean(direction)
@@ -1999,8 +1999,8 @@ def _empty_aggregate_features() -> dict[str, Any]:
         "motion_burstiness_window",
         "accel_abs_mean_window",
         "accel_abs_max_window",
-        "acceleration_n_per_second2_abs_mean_window",
-        "acceleration_n_per_second2_abs_max_window",
+        "tangential_acceleration_n_per_second2_abs_mean_window",
+        "tangential_acceleration_n_per_second2_abs_max_window",
         "direction_change_abs_mean_window",
         "direction_change_abs_max_window",
         "shape_transition_score_window",

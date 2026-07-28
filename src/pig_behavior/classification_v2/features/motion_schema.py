@@ -4,12 +4,23 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
 MOTION_SCHEMA_ID = "schema.pig_strenet_motion_v2"
 MOTION_SCHEMA_VERSION = "classification_v2.motion_tensor.v2"
 MOTION_SCHEMA_DTYPE = "float32"
+ACCELERATION_SEMANTICS_VERSION = (
+    "classification_v2.acceleration_semantics.v3"
+)
+GENERIC_ACCELERATION_ALIAS = "acceleration_n_per_second2"
+LEGACY_ACCELERATION_AUDIT_ALIAS = (
+    "legacy_acceleration_alias_tangential_only"
+)
+_AMBIGUOUS_ACCELERATION_PATTERN = re.compile(
+    r"(?<!tangential_)acceleration_n_per_second2"
+)
 MOTION_FEATURE_NAMES: tuple[str, ...] = (
     "vx_n_per_second",
     "vy_n_per_second",
@@ -57,6 +68,49 @@ class MotionSchemaError(ValueError):
     """Raised when a producer/exporter motion contract fails closed."""
 
 
+def acceleration_compatibility_registry() -> dict[str, dict[str, Any]]:
+    """Return the explicit non-predictive boundary for historical aliases."""
+
+    return {
+        LEGACY_ACCELERATION_AUDIT_ALIAS: {
+            "predictive": False,
+            "deprecated": True,
+            "semantic_target": (
+                "tangential_acceleration_n_per_second2"
+            ),
+            "allowed_in_current_export": False,
+            "allowed_in_model_x": False,
+            "replaces_ambiguous_name": GENERIC_ACCELERATION_ALIAS,
+        }
+    }
+
+
+def ambiguous_acceleration_names(
+    names: Sequence[str],
+) -> list[str]:
+    """Return names that imply generic acceleration for d(speed)/dt."""
+
+    return [
+        str(name)
+        for name in names
+        if _AMBIGUOUS_ACCELERATION_PATTERN.search(str(name))
+    ]
+
+
+def require_unambiguous_acceleration_names(
+    names: Sequence[str],
+    *,
+    context: str,
+) -> None:
+    """Reject generic acceleration semantics at predictive boundaries."""
+
+    ambiguous = ambiguous_acceleration_names(names)
+    if ambiguous:
+        raise MotionSchemaError(
+            f"{context} contains ambiguous acceleration names: {ambiguous}"
+        )
+
+
 def canonical_motion_schema_payload() -> dict[str, Any]:
     """Return the exact payload used by the scientific-contract hash."""
 
@@ -92,6 +146,12 @@ def motion_schema_metadata() -> dict[str, Any]:
         **canonical_motion_schema_payload(),
         "dimension": MOTION_SCHEMA_DIMENSION,
         "schema_hash": MOTION_SCHEMA_HASH,
+        "acceleration_semantics_version": (
+            ACCELERATION_SEMANTICS_VERSION
+        ),
+        "acceleration_compatibility_registry": (
+            acceleration_compatibility_registry()
+        ),
     }
 
 
@@ -216,6 +276,9 @@ def require_motion_schema(
 
 __all__ = [
     "MOTION_AGGREGATION_OUTPUTS",
+    "ACCELERATION_SEMANTICS_VERSION",
+    "GENERIC_ACCELERATION_ALIAS",
+    "LEGACY_ACCELERATION_AUDIT_ALIAS",
     "MOTION_FEATURE_NAMES",
     "MOTION_REQUIRED_MASKS",
     "MOTION_SCHEMA_DIMENSION",
@@ -224,9 +287,12 @@ __all__ = [
     "MOTION_SCHEMA_ID",
     "MOTION_SCHEMA_VERSION",
     "MotionSchemaError",
+    "acceleration_compatibility_registry",
+    "ambiguous_acceleration_names",
     "canonical_motion_schema_payload",
     "motion_schema_hash",
     "motion_schema_metadata",
     "motion_schema_preflight",
+    "require_unambiguous_acceleration_names",
     "require_motion_schema",
 ]

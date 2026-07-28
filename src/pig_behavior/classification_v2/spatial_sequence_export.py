@@ -14,6 +14,7 @@ from pig_behavior.classification_v2.contracts.window_alignment import (
     require_ordered_window_ids,
 )
 from pig_behavior.classification_v2.features.motion_schema import (
+    LEGACY_ACCELERATION_AUDIT_ALIAS,
     MOTION_FEATURE_NAMES,
     MOTION_REQUIRED_MASKS,
     MOTION_SCHEMA_DIMENSION,
@@ -22,6 +23,7 @@ from pig_behavior.classification_v2.features.motion_schema import (
     MOTION_SCHEMA_ID,
     MOTION_SCHEMA_VERSION,
     require_motion_schema,
+    require_unambiguous_acceleration_names,
 )
 from pig_behavior.classification_v2.features.pen_context import (
     PEN_CONTEXT_LEGACY_MODEL_FEATURE_COLUMNS,
@@ -213,6 +215,18 @@ def _export_spatial_sequences_impl(
             group: list(names)
             for group, names in feature_schema.items()
         }
+    )
+    require_unambiguous_acceleration_names(
+        [
+            feature_name
+            for group_names in selected_schema.values()
+            for feature_name in group_names
+        ],
+        context=(
+            "legacy spatial development export"
+            if legacy_development
+            else "current spatial export"
+        ),
     )
     if legacy_development:
         _require_legacy_development_schema(frames, selected_schema)
@@ -1455,12 +1469,12 @@ def _recompute_higher_order_motion(
             2:,
             indices["tangential_acceleration_n_per_second2"],
         ] = tangential
-    if "acceleration_n_per_second2" in indices:
-        values[2:, indices["acceleration_n_per_second2"]] = tangential
-    if "abs_acceleration_n_per_second2" in indices:
+    if LEGACY_ACCELERATION_AUDIT_ALIAS in indices:
+        values[2:, indices[LEGACY_ACCELERATION_AUDIT_ALIAS]] = tangential
+    if "abs_tangential_acceleration_n_per_second2" in indices:
         values[
             2:,
-            indices["abs_acceleration_n_per_second2"],
+            indices["abs_tangential_acceleration_n_per_second2"],
         ] = np.abs(tangential)
 
     ax = np.zeros(len(values) - 2, dtype="float64")

@@ -41,6 +41,7 @@ from pig_behavior.classification_v2.features.context_policy import (
     normalize_hidden_provenance,
 )
 from pig_behavior.classification_v2.features.motion_schema import (
+    LEGACY_ACCELERATION_AUDIT_ALIAS,
     MOTION_FEATURE_NAMES,
     MOTION_SCHEMA_DIMENSION,
     MOTION_SCHEMA_HASH,
@@ -1226,17 +1227,17 @@ def _add_temporal_deltas(df: pd.DataFrame) -> pd.DataFrame:
         out["ay_n_per_second2"],
     ).where(out["vector_acceleration_valid"])
 
-    # Compatibility aliases are retained behind the v2 schema boundary.
+    # Historical compatibility is audit-only and semantically explicit.
     # The old scalar was d(speed)/dt, never vector acceleration magnitude.
     out["acceleration_pair_valid"] = out[
         "tangential_acceleration_valid"
     ]
     out["acceleration_delta_seconds"] = out["acceleration_delta_t_sec"]
-    out["acceleration_n_per_second2"] = out[
+    out[LEGACY_ACCELERATION_AUDIT_ALIAS] = out[
         "tangential_acceleration_n_per_second2"
     ]
-    out["abs_acceleration_n_per_second2"] = out[
-        "acceleration_n_per_second2"
+    out["abs_tangential_acceleration_n_per_second2"] = out[
+        "tangential_acceleration_n_per_second2"
     ].abs()
 
     out["direction_rad"] = np.arctan2(
@@ -1304,8 +1305,8 @@ def _add_temporal_deltas(df: pd.DataFrame) -> pd.DataFrame:
         "ax_n_per_second2",
         "ay_n_per_second2",
         "acceleration_vector_magnitude_n_per_second2",
-        "acceleration_n_per_second2",
-        "abs_acceleration_n_per_second2",
+        LEGACY_ACCELERATION_AUDIT_ALIAS,
+        "abs_tangential_acceleration_n_per_second2",
     ]
     for col in pair_numeric_columns:
         out[col] = out[col].replace([np.inf, -np.inf], np.nan)
@@ -1735,13 +1736,13 @@ def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
                 np.nansum(np.asarray(s, dtype="float64") ** 2)
             ),
         ),
-        "acceleration_n_per_second2_abs_mean_unit": (
+        "tangential_acceleration_n_per_second2_abs_mean_unit": (
             internal_columns[2],
             lambda s: float(np.nanmean(np.abs(s)))
             if s.notna().any()
             else np.nan,
         ),
-        "acceleration_n_per_second2_abs_max_unit": (
+        "tangential_acceleration_n_per_second2_abs_max_unit": (
             internal_columns[2],
             lambda s: float(np.nanmax(np.abs(s)))
             if s.notna().any()
@@ -2047,8 +2048,8 @@ def _add_temporal_unit_aggregates(df: pd.DataFrame) -> pd.DataFrame:
         "speed_n_per_second_mean_unit",
         "speed_n_per_second_max_unit",
         "speed_n_per_second_std_unit",
-        "acceleration_n_per_second2_abs_mean_unit",
-        "acceleration_n_per_second2_abs_max_unit",
+        "tangential_acceleration_n_per_second2_abs_mean_unit",
+        "tangential_acceleration_n_per_second2_abs_max_unit",
         "tangential_acceleration_mean_unit",
         "vector_acceleration_magnitude_mean_unit",
         "vector_acceleration_magnitude_max_unit",

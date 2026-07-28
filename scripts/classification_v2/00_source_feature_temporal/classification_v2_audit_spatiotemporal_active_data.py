@@ -218,7 +218,7 @@ def _boundary_metrics(
     accel_column = (
         "accel_n_per_frame2"
         if legacy
-        else "acceleration_n_per_second2"
+        else "tangential_acceleration_n_per_second2"
     )
     roi_columns = (
         "roi_target_entry_event",

@@ -367,7 +367,9 @@ def test_segment_pair_aggregates_exclude_nonexistent_or_invalid_pairs() -> None:
 
     summary = _segment_summary(segment, "history", expected_count=6)
 
-    assert summary["history_acceleration_n_per_second2_abs_mean"] == (
+    assert summary[
+        "history_tangential_acceleration_n_per_second2_abs_mean"
+    ] == (
         pytest.approx(1.0)
     )
     assert summary["history_approach_ratio_per_second"] == pytest.approx(1.0)

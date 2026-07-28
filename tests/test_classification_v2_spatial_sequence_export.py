@@ -236,7 +236,11 @@ def test_spatial_motion_is_rebased_inside_each_window() -> None:
             "vx_n_per_second": [0.0, 15.0, 99.0],
             "vy_n_per_second": [0.0, 0.0, 99.0],
             "speed_n_per_second": [0.0, 15.0, 99.0],
-            "abs_acceleration_n_per_second2": [0.0, 450.0, 99.0],
+            "abs_tangential_acceleration_n_per_second2": [
+                0.0,
+                450.0,
+                99.0,
+            ],
             "abs_direction_change_rad": [0.0, 1.0, 1.0],
             "bbox_valid": [True, True, True],
         }

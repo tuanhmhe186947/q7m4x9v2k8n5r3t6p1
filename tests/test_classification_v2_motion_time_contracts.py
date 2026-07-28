@@ -388,7 +388,7 @@ def test_motion_resets_at_native_unit_and_roi_boundary() -> None:
     assert result.loc[unit_start, "speed_n_per_second"].isna().all()
     assert result.loc[
         unit_start,
-        "acceleration_n_per_second2",
+        "tangential_acceleration_n_per_second2",
     ].isna().all()
     assert not result.loc[unit_start, "adjacent_motion_pair_valid"].any()
     assert not bool(result.loc[2, "roi_target_entry_event"])

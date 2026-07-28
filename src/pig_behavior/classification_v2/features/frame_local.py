@@ -70,6 +70,7 @@ FORBIDDEN_FRAME_LOCAL_COLUMNS: frozenset[str] = frozenset(
         "speed_n_per_second",
         "accel_n_per_frame2",
         "acceleration_n_per_second2",
+        "legacy_acceleration_alias_tangential_only",
         "direction_rad",
         "heading_rad",
         "heading_change_rad",

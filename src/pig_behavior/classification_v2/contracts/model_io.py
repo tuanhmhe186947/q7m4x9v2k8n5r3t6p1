@@ -41,6 +41,17 @@ DEFAULT_FORBIDDEN_X_PATTERNS = (
     "split_*",
     "*_path",
 )
+_LEGACY_ACCELERATION_AUDIT_ALIAS = (
+    "legacy_acceleration_alias_tangential_only"
+)
+_GENERIC_ACCELERATION_NAME = "acceleration_n_per_second2"
+
+
+def _ambiguous_acceleration_name(name: str) -> bool:
+    return (
+        _GENERIC_ACCELERATION_NAME in name
+        and "tangential_acceleration_n_per_second2" not in name
+    )
 
 
 def forbidden_x_columns(
@@ -55,6 +66,8 @@ def forbidden_x_columns(
         if (
             any(fnmatch(col, pattern) for pattern in active_patterns)
             or is_target_roi_model_forbidden(col)
+            or col == _LEGACY_ACCELERATION_AUDIT_ALIAS
+            or _ambiguous_acceleration_name(col)
         )
     )
 

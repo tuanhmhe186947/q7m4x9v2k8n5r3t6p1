@@ -1268,7 +1268,7 @@
       "code_locations": ["src/pig_behavior/classification_v2/features/spatiotemporal.py#_add_temporal_deltas"],
       "test_locations": ["tests/test_classification_v2_phase2_motion_schema.py#test_speed_change_fixed_direction_separates_accelerations"],
       "implementation_status": "IMPLEMENTED_AND_TESTED",
-      "known_limitations": "The pre-v2 acceleration_n_per_second2 alias is retained only for compatibility and is not a model-v2 feature."
+      "known_limitations": "The generic pre-v2 name is rejected at predictive boundaries; audit compatibility uses legacy_acceleration_alias_tangential_only with predictive=false and explicit tangential semantics."
     },
     {
       "feature_id": "feature.ax_n_per_second2",
@@ -2675,7 +2675,9 @@
       "failure_condition": "d(speed)/dt called general magnitude or vector components absent",
       "audit_field": "acceleration_semantics_version",
       "golden_case_ids": ["case.speed_change_same_direction", "case.direction_change_constant_speed"],
-      "implementation_status": "IMPLEMENTATION_DIFFERS_FROM_CONTRACT",
+      "unit_test": "tests/test_classification_v2_acceleration_semantics.py",
+      "code_locations": ["src/pig_behavior/classification_v2/features/motion_schema.py#acceleration_compatibility_registry", "src/pig_behavior/classification_v2/features/spatiotemporal.py#_add_temporal_deltas", "src/pig_behavior/classification_v2/contracts/model_io.py#forbidden_x_columns", "src/pig_behavior/classification_v2/spatial_sequence_export.py#export_spatial_sequences"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED",
       "known_gap": "gap.acceleration_name_semantics"
     },
     {
@@ -3518,15 +3520,15 @@
       "severity": "HIGH",
       "affected_stage": "stage.native_review_evidence",
       "affected_features": ["feature.tangential_acceleration_n_per_second2", "feature.acceleration_vector_magnitude_n_per_second2"],
-      "evidence": "Phase 2 emits explicit tangential acceleration and retains the old scalar name only as a pre-v2 compatibility alias.",
+      "evidence": "The producer, current tensor, legacy exporter boundary, tabular whitelist and model-X checks reject the generic name. Historical compatibility is exposed only as legacy_acceleration_alias_tangential_only with predictive=false.",
       "scientific_consequence": "Tangential acceleration is mislabeled as general acceleration.",
       "downstream_artifacts_affected": ["artifact.native_evidence", "artifact.spatial_tensor"],
-      "requires_rebuild_from_stage": "stage.native_review_evidence",
-      "recommended_resolution": "Rename tangential feature and add vector components/magnitude.",
-      "blocking_before_native_evidence": true,
-      "blocking_before_pig_strenet": true,
-      "blocking_before_behavior_review": true,
-      "blocking_before_training": true,
+      "requires_rebuild_from_stage": "stage.tensor_export",
+      "recommended_resolution": "Completed by explicit tangential/vector names and fail-closed predictive-name validation.",
+      "blocking_before_native_evidence": false,
+      "blocking_before_pig_strenet": false,
+      "blocking_before_behavior_review": false,
+      "blocking_before_training": false,
       "status": "RESOLVED"
     },
     {
@@ -3540,10 +3542,10 @@
       "downstream_artifacts_affected": ["artifact.native_evidence", "artifact.spatial_tensor"],
       "requires_rebuild_from_stage": "stage.native_review_evidence",
       "recommended_resolution": "Implement ax, ay and Euclidean vector magnitude with explicit validity.",
-      "blocking_before_native_evidence": true,
-      "blocking_before_pig_strenet": true,
-      "blocking_before_behavior_review": true,
-      "blocking_before_training": true,
+      "blocking_before_native_evidence": false,
+      "blocking_before_pig_strenet": false,
+      "blocking_before_behavior_review": false,
+      "blocking_before_training": false,
       "status": "RESOLVED"
     },
     {
