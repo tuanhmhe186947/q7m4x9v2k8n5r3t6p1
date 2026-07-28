@@ -80,6 +80,7 @@ def _frames() -> pd.DataFrame:
             "cx_n": [0.25, 0.30],
             "cy_n": [0.40, 0.42],
             "bbox_valid": [True, True],
+            "nearest_partner_key": ["", ""],
         }
     ))
 
@@ -128,6 +129,8 @@ def _with_motion_contract(frames: pd.DataFrame) -> pd.DataFrame:
         availability = f"roi_{roi_class}_available"
         if availability not in out:
             additions[availability] = False
+    if "nearest_partner_key" not in out:
+        additions["nearest_partner_key"] = ""
     if "social_neighbor_available" not in out:
         partner = out.get(
             "nearest_partner_key",
@@ -322,7 +325,7 @@ def test_spatial_social_motion_is_rebased_inside_each_window() -> None:
 
 
 def test_current_social_export_does_not_fallback_to_legacy_pig_id() -> None:
-    frames = _frames()
+    frames = _frames().drop(columns=["nearest_partner_key"])
     frames["nearest_pig_id"] = "ID_2"
     frames["nearest_dist_n"] = 0.25
 

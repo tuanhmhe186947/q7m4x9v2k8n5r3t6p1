@@ -63,6 +63,7 @@ FORBIDDEN_SUBSTRINGS = (
 SPATIAL_FRAME_FEATURES: dict[str, list[str]] = (
     canonical_spatial_feature_groups()
 )
+CANONICAL_SOCIAL_IDENTITY_COLUMN = "nearest_partner_key"
 
 EXPERIMENTAL_SPATIAL_FRAME_FEATURES: dict[str, list[str]] = {
     "pen_boundary_context": list(PEN_CONTEXT_MODEL_FEATURE_COLUMNS),
@@ -303,9 +304,9 @@ def _export_spatial_sequences_impl(
         raise ValueError(f"Missing columns: windows={missing_windows} frames={missing_frames}")
 
     feature_frames = frames.copy()
-    if "nearest_partner_key" in feature_frames.columns:
+    if CANONICAL_SOCIAL_IDENTITY_COLUMN in feature_frames.columns:
         nearest_partner_key = (
-            feature_frames["nearest_partner_key"]
+            feature_frames[CANONICAL_SOCIAL_IDENTITY_COLUMN]
             .fillna("")
             .astype(str)
             .str.strip()
@@ -324,34 +325,30 @@ def _export_spatial_sequences_impl(
             nearest_track,
         )
     else:
-        nearest_partner_key = pd.Series("", index=feature_frames.index)
-        legacy_partner_present = any(
-            column in feature_frames.columns
-            and feature_frames[column]
-            .fillna("")
-            .astype(str)
-            .str.strip()
-            .ne("")
-            .any()
-            for column in ("nearest_pig_id", "nearest_track_id")
+        raise ValueError(
+            "Missing canonical social identity column: "
+            f"{CANONICAL_SOCIAL_IDENTITY_COLUMN}"
         )
-        declared_social_available = pd.Series(
-            False,
-            index=feature_frames.index,
+    declared_social_available = (
+        _numeric_feature(feature_frames["social_neighbor_available"])
+        .fillna(0.0)
+        .gt(0.5)
+        if "social_neighbor_available" in feature_frames.columns
+        else nearest_partner_key.ne("")
+    )
+    invalid_available_identity = (
+        declared_social_available
+        & nearest_partner_key.str.casefold().isin(
+            {"", "0", "0.0", "nan", "none", "null", "<na>"}
         )
-        if "social_neighbor_available" in feature_frames.columns:
-            declared_social_available = _numeric_feature(
-                feature_frames["social_neighbor_available"]
-            ).fillna(0.0)
-        if legacy_partner_present or declared_social_available.gt(0.5).any():
-            raise ValueError(
-                "Missing canonical social identity column: "
-                "nearest_partner_key"
-            )
+    )
+    if invalid_available_identity.any():
+        raise ValueError(
+            "Social evidence available with blank or invalid canonical partner "
+            f"identity: rows={int(invalid_available_identity.sum())}"
+        )
     feature_frames["_social_partner_key"] = nearest_partner_key
-    feature_frames["social_neighbor_available"] = feature_frames[
-        "_social_partner_key"
-    ].ne("")
+    feature_frames["social_neighbor_available"] = declared_social_available
     _require_predictive_source_dtypes(feature_frames, selected_schema)
 
     alignment_windows = windows.reset_index(drop=True).copy()
@@ -779,6 +776,15 @@ def _export_spatial_sequences_impl(
         "social_partner_available_frame_rows": int(
             work_frames["_social_partner_key"].ne("").sum()
         ),
+        "social_declared_available_frame_rows": int(
+            work_frames["social_neighbor_available"].gt(0.5).sum()
+        ),
+        "social_available_blank_partner_rows": 0,
+        "canonical_social_identity_column": (
+            CANONICAL_SOCIAL_IDENTITY_COLUMN
+        ),
+        "canonical_social_identity_column_present": True,
+        "unstable_partner_identity_fallback_used": False,
         "social_identity_version": SOCIAL_IDENTITY_VERSION,
         "social_tie_break_version": SOCIAL_TIE_BREAK_VERSION,
         "window_alignment": window_alignment,
