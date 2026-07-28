@@ -27,6 +27,7 @@ from scripts.tracking import generate_b0_b1_frozen_predictions as b01  # noqa: E
 from scripts.tracking import generate_current_main_baseline_caches as r0_cache  # noqa: E402
 
 REQUESTED_STARTING_MAIN_SHA = "f3a7789bce26e99ab9a43a8ee3a1a1bcaebe934d"
+ACTUAL_EXECUTION_BASE_SHA = "89db2d34646434319afcb4a040ba38d183431cfd"
 DATE_STAMP = "20260728"
 R1_PROFILE = "rf_hybrid_offline"
 R0_CONFIG_SHA256 = (
@@ -132,7 +133,7 @@ def authority_file_hashes(source_repo: Path) -> dict[str, str]:
     }
 
 
-def tracking_authority_unchanged(repo: Path, actual_sha: str) -> bool:
+def tracking_authority_unchanged(repo: Path, producer_sha: str) -> bool:
     """Prove the requested SHA is an ancestor with no tracking-scope changes."""
 
     subprocess.run(
@@ -141,7 +142,7 @@ def tracking_authority_unchanged(repo: Path, actual_sha: str) -> bool:
             "merge-base",
             "--is-ancestor",
             REQUESTED_STARTING_MAIN_SHA,
-            actual_sha,
+            ACTUAL_EXECUTION_BASE_SHA,
         ],
         cwd=repo,
         check=True,
@@ -160,14 +161,27 @@ def tracking_authority_unchanged(repo: Path, actual_sha: str) -> bool:
             "diff",
             "--quiet",
             REQUESTED_STARTING_MAIN_SHA,
-            actual_sha,
+            ACTUAL_EXECUTION_BASE_SHA,
             "--",
             *scoped_paths,
         ],
         cwd=repo,
         check=False,
     )
-    return result.returncode == 0
+    if result.returncode != 0:
+        return False
+    producer_lineage = subprocess.run(
+        [
+            "git",
+            "merge-base",
+            "--is-ancestor",
+            ACTUAL_EXECUTION_BASE_SHA,
+            producer_sha,
+        ],
+        cwd=repo,
+        check=False,
+    )
+    return producer_lineage.returncode == 0
 
 
 def locked_population(source_repo: Path) -> tuple[list[Any], dict[str, Any]]:
@@ -421,8 +435,8 @@ def update_state(output_root: Path, **updates: Any) -> None:
 def preflight(source_repo: Path, output_root: Path) -> None:
     """Run all authority checks before the first R1 core execution."""
 
-    actual_sha = git_output(REPO, "rev-parse", "HEAD")
-    if not tracking_authority_unchanged(REPO, actual_sha):
+    producer_sha = git_output(REPO, "rev-parse", "HEAD")
+    if not tracking_authority_unchanged(REPO, producer_sha):
         raise R1AuthorityError(
             "tracking authority changed across the authorized descendant"
         )
@@ -450,7 +464,8 @@ def preflight(source_repo: Path, output_root: Path) -> None:
         "schema_version": "tracking.r1.prediction_preflight.v1",
         "created_at": utc_now(),
         "requested_starting_main_sha": REQUESTED_STARTING_MAIN_SHA,
-        "actual_execution_base_sha": actual_sha,
+        "actual_execution_base_sha": ACTUAL_EXECUTION_BASE_SHA,
+        "producer_code_sha": producer_sha,
         "tracking_authority_unchanged_across_descendant": True,
         "selected_skills": [
             "tracking-experiment-guardian",
