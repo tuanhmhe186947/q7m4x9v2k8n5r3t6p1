@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 
@@ -50,6 +51,36 @@ def test_pairwise_iou_contract() -> None:
     )
     values = MODULE._pairwise_iou(boxes)  # noqa: SLF001
     assert np.isclose(values.max(), 1.0 / 3.0)
+
+
+def test_invoke_detector_binds_exact_nms_and_detector_contract() -> None:
+    recorded: dict[str, object] = {}
+
+    class Model:
+        def predict(self, **kwargs: object) -> list[object]:
+            recorded.update(kwargs)
+            return [object()]
+
+    config = SimpleNamespace(
+        det_conf=0.20,
+        nms_iou=0.50,
+        max_raw_detections=64,
+        imgsz=640,
+        device="cuda:0",
+        half=False,
+    )
+    result = MODULE.invoke_detector(  # noqa: SLF001
+        Model(),
+        np.zeros((10, 10, 3), dtype=np.uint8),
+        config,
+    )
+    assert result is not None
+    assert recorded["conf"] == 0.20
+    assert recorded["iou"] == 0.50
+    assert recorded["max_det"] == 64
+    assert recorded["imgsz"] == 640
+    assert recorded["device"] == "cuda:0"
+    assert recorded["half"] is False
 
 
 def test_no_tracker_repair_evaluator_prediction_or_mp4_path() -> None:
