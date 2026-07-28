@@ -688,14 +688,14 @@
       "grouping_keys": ["window_id"],
       "canonical_identity_keys": ["window_id", "frame_index"],
       "pair_reset_key": "window_id",
-      "schema_version": "classification_v2.spatial_sequence.current_unhashed",
+      "schema_version": "classification_v2.spatial_predictive_tensor.v1",
       "model_eligibility": "MODEL_INPUT",
       "review_eligibility": "AUDIT_ONLY",
       "checker": "export_spatial_sequences",
       "tests": ["tests/test_classification_v2_spatial_sequence_export.py"],
       "audit_artifact": "spatial_sequence_audit.json",
-      "code_locations": ["src/pig_behavior/classification_v2/spatial_sequence_export.py#export_spatial_sequences", "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"],
-      "current_status": "IMPLEMENTATION_DIFFERS_FROM_CONTRACT"
+      "code_locations": ["src/pig_behavior/classification_v2/features/spatial_schema.py#canonical_spatial_schema_payload", "src/pig_behavior/classification_v2/spatial_sequence_export.py#export_spatial_sequences", "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"],
+      "current_status": "IMPLEMENTED_AND_TESTED"
     },
     {
       "stage_id": "stage.model_input",
@@ -2393,14 +2393,15 @@
     {
       "invariant_id": "invariant.producer_exporter_ordered_schema_equal",
       "stage_id": ["stage.native_review_evidence", "stage.tensor_export"],
-      "invariant_description": "Producer and exporter motion names and order equal the authoritative schema.",
+      "invariant_description": "Producer, exporter, sidecar, loader and model names and order equal the five-group authoritative schema.",
       "scientific_reason": "Feature-order drift changes tensor meaning without changing shape.",
       "expected_condition": "actual ordered names equal expected ordered names",
       "failure_condition": "missing, reordered, duplicated or unexpected feature",
       "audit_field": "ordered_schema_match",
-      "unit_test": "",
+      "unit_test": "tests/test_classification_v2_spatial_sequence_export.py#test_all_groups_reject_noncanonical_declarations",
       "golden_case_ids": ["case.missing_required_exporter_feature", "case.reordered_exporter_feature", "case.unexpected_extra_model_feature"],
-      "implementation_status": "IMPLEMENTATION_DIFFERS_FROM_CONTRACT",
+      "code_locations": ["src/pig_behavior/classification_v2/features/spatial_schema.py#require_spatial_schema", "src/pig_behavior/classification_v2/spatial_sequence_export.py#export_spatial_sequences"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED",
       "known_gap": "gap.silent_motion_schema_shrink"
     },
     {
@@ -2412,7 +2413,9 @@
       "failure_condition": "dimension differs or schema hash absent",
       "audit_field": "expected_dimension,actual_dimension,schema_hash",
       "golden_case_ids": ["case.missing_required_exporter_feature"],
-      "implementation_status": "IMPLEMENTATION_DIFFERS_FROM_CONTRACT"
+      "unit_test": "tests/test_classification_v2_spatial_sequence_export.py#test_current_export_is_exact_fixed_width_and_masked",
+      "code_locations": ["src/pig_behavior/classification_v2/features/spatial_schema.py#require_spatial_tensor_bundle", "src/pig_behavior/classification_v2/spatial_sequence_export.py#export_spatial_sequences"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED"
     },
     {
       "invariant_id": "invariant.no_silent_column_shrinkage",
@@ -2422,10 +2425,10 @@
       "expected_condition": "all required columns present before export",
       "failure_condition": "availability-filtered feature list or missing column accepted",
       "audit_field": "missing_required_features",
-      "unit_test": "",
+      "unit_test": "tests/test_classification_v2_spatial_sequence_export.py#test_all_groups_reject_missing_required_source_columns",
       "golden_case_ids": ["case.missing_required_exporter_feature"],
-      "code_locations": ["src/pig_behavior/classification_v2/spatial_sequence_export.py#_available_feature_names"],
-      "implementation_status": "IMPLEMENTATION_DIFFERS_FROM_CONTRACT",
+      "code_locations": ["src/pig_behavior/classification_v2/features/spatial_schema.py#require_spatial_schema", "src/pig_behavior/classification_v2/spatial_sequence_export.py#_available_feature_names"],
+      "implementation_status": "IMPLEMENTED_AND_TESTED",
       "known_gap": "gap.silent_motion_schema_shrink"
     },
     {
@@ -3464,15 +3467,15 @@
       "severity": "CRITICAL",
       "affected_stage": "stage.tensor_export",
       "affected_features": ["feature.vx_n_per_second", "feature.vy_n_per_second", "feature.ax_n_per_second2"],
-      "evidence": "Phase 2 authority validates exact ordered names, dimension, masks, version and SHA-256 before tensor construction.",
+      "evidence": "The current five-group authority validates exact ordered names, dimensions, dtype, masks, versions and SHA-256 across producer declaration, exporter, sidecar, loader and model preflight.",
       "scientific_consequence": "Tensor dimension and feature meaning can change silently.",
       "downstream_artifacts_affected": ["artifact.spatial_tensor", "artifact.model_input", "artifact.model_output"],
       "requires_rebuild_from_stage": "stage.tensor_export",
       "recommended_resolution": "Create one ordered schema and fail on missing, order, duplicate or extra columns.",
       "blocking_before_native_evidence": false,
-      "blocking_before_pig_strenet": true,
+      "blocking_before_pig_strenet": false,
       "blocking_before_behavior_review": false,
-      "blocking_before_training": true,
+      "blocking_before_training": false,
       "status": "RESOLVED"
     },
     {

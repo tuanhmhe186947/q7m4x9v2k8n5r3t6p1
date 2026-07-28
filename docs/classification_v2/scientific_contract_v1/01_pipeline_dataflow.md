@@ -33,7 +33,7 @@ flowchart LR
   S11 --> S12
   S13["Train-ready export<br/>grain: FINAL_VIEW_WINDOW<br/>group: window_id<br/>identity: window_id,object_track_key<br/>reset: window_id<br/>schema: classification_v2.train_ready.v2<br/>check: audit_train_ready_feature_selection<br/>model/review: EXPLICIT_WHITELIST_ONLY/AUDIT_ONLY"]
   S12 --> S13
-  S14["Tensor export<br/>grain: WINDOW_SLOT_FEATURE_TENSOR<br/>group: window_id<br/>identity: window_id,frame_index<br/>reset: window_id<br/>schema: classification_v2.spatial_sequence.current_unhashed<br/>check: export_spatial_sequences<br/>model/review: MODEL_INPUT/AUDIT_ONLY"]
+  S14["Tensor export<br/>grain: WINDOW_SLOT_FEATURE_TENSOR<br/>group: window_id<br/>identity: window_id,frame_index<br/>reset: window_id<br/>schema: classification_v2.spatial_predictive_tensor.v1<br/>check: export_spatial_sequences<br/>model/review: MODEL_INPUT/AUDIT_ONLY"]
   S13 --> S14
   S15["Model input<br/>grain: MODEL_BATCH<br/>group: fold,window_id<br/>identity: window_id<br/>reset: none<br/>schema: classification_v2.model_input_manifest.v2<br/>check: validate_model_input_manifest<br/>model/review: MODEL_INPUT_AUTHORITY/NOT_REVIEW_INPUT"]
   S14 --> S15

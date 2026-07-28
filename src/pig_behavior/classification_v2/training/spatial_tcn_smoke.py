@@ -17,18 +17,16 @@ from pig_behavior.classification_v2.evaluation.metrics import (
     DEFAULT_LABEL_ORDER,
     evaluate_predictions,
 )
+from pig_behavior.classification_v2.features.spatial_schema import (
+    SPATIAL_PREDICTIVE_GROUP_NAMES,
+    load_current_spatial_tensor_bundle,
+)
 from pig_behavior.classification_v2.models.spatial_tcn import (
     SpatialTCNClassifier,
     SpatialTCNConfig,
 )
 
-MODEL_GROUPS = (
-    "bbox_xywh_n",
-    "bbox_shape_n",
-    "motion_delta",
-    "roi_class_relation",
-    "social_relation",
-)
+MODEL_GROUPS = SPATIAL_PREDICTIVE_GROUP_NAMES
 
 
 @dataclass(frozen=True, slots=True)
@@ -262,7 +260,10 @@ class _SpatialBundle:
 
 
 def _load_bundle(root: Path) -> _SpatialBundle:
-    arrays = {name: value for name, value in np.load(root / "X_spatial_sequences.npz").items()}
+    arrays, _ = load_current_spatial_tensor_bundle(
+        root / "X_spatial_sequences.npz",
+        root / "spatial_sequence_audit.json",
+    )
     missing = [
         name
         for name in [*MODEL_GROUPS, "length_mask", "observed_mask"]

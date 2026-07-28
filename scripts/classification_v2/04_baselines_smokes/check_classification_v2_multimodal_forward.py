@@ -16,6 +16,9 @@ from pig_behavior.classification_v2.datasets.image_sequence_dataset import (
     image_sequence_collate,
 )
 from pig_behavior.classification_v2.evaluation.metrics import DEFAULT_LABEL_ORDER
+from pig_behavior.classification_v2.features.spatial_schema import (
+    load_current_spatial_tensor_bundle,
+)
 from pig_behavior.classification_v2.models.multimodal_fusion import (
     MultimodalFusionClassifier,
     MultimodalFusionConfig,
@@ -44,7 +47,10 @@ def main() -> None:
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
 
-    arrays = {name: value for name, value in np.load(args.root / "X_spatial_sequences.npz").items()}
+    arrays, _ = load_current_spatial_tensor_bundle(
+        args.root / "X_spatial_sequences.npz",
+        args.root / "spatial_sequence_audit.json",
+    )
     labels = pd.read_csv(args.root / "y_behavior.csv").iloc[:, 0].fillna("").astype(str)
     windows = pd.read_csv(args.root / "image_window_context_manifest.csv", low_memory=False)
     _validate_arrays(arrays, labels, windows)

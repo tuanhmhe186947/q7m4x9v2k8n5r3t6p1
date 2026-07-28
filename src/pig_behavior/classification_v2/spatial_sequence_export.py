@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import dataclass
 from typing import Any
@@ -26,6 +27,14 @@ from pig_behavior.classification_v2.features.pen_context import (
     PEN_CONTEXT_LEGACY_MODEL_FEATURE_COLUMNS,
     PEN_CONTEXT_MODEL_FEATURE_COLUMNS,
 )
+from pig_behavior.classification_v2.features.spatial_schema import (
+    SpatialSchemaError,
+    canonical_spatial_feature_groups,
+    require_spatial_schema,
+    require_spatial_tensor_bundle,
+    spatial_schema_metadata,
+    spatial_tensor_content_hash,
+)
 from pig_behavior.classification_v2.features.spatial_semantics import (
     SOCIAL_IDENTITY_VERSION,
     SOCIAL_TIE_BREAK_VERSION,
@@ -49,42 +58,11 @@ FORBIDDEN_SUBSTRINGS = (
     "path",
 )
 
-SPATIAL_FRAME_FEATURES: dict[str, list[str]] = {
-    "bbox_xywh_n": ["cx_n", "cy_n", "bw_n", "bh_n"],
-    "bbox_shape_n": ["area_n", "aspect_ratio"],
-    "motion_delta": list(MOTION_FEATURE_NAMES),
-    "roi_class_relation": [
-        "roi_feeder_min_dist_n",
-        "roi_feeder_max_overlap_ratio",
-        "roi_feeder_max_iou",
-        "roi_feeder_center_inside",
-        "roi_feeder_near",
-        "roi_feeder_contact",
-        "roi_drinker_min_dist_n",
-        "roi_drinker_max_overlap_ratio",
-        "roi_drinker_max_iou",
-        "roi_drinker_center_inside",
-        "roi_drinker_near",
-        "roi_drinker_contact",
-        "roi_toy_min_dist_n",
-        "roi_toy_max_overlap_ratio",
-        "roi_toy_max_iou",
-        "roi_toy_center_inside",
-        "roi_toy_near",
-        "roi_toy_contact",
-    ],
-    "social_relation": [
-        "nearest_dist_n",
-        "nearest_pair_iou",
-        "nearest_pair_overlap_ratio",
-        "social_density_near_count",
-        "social_contact_count",
-        "partner_distance_delta_n",
-        "approach_speed_n_per_second",
-        "retreat_speed_n_per_second",
-        "pair_contact_with_nearest",
-        "aggression_score_proxy_per_second",
-    ],
+SPATIAL_FRAME_FEATURES: dict[str, list[str]] = (
+    canonical_spatial_feature_groups()
+)
+
+EXPERIMENTAL_SPATIAL_FRAME_FEATURES: dict[str, list[str]] = {
     "pen_boundary_context": list(PEN_CONTEXT_MODEL_FEATURE_COLUMNS),
 }
 
@@ -154,6 +132,15 @@ DERIVATION_COLUMNS: tuple[str, ...] = (
     "acceleration_delta_t_sec",
 )
 
+LEGACY_WINDOW_DERIVATION_COLUMNS: tuple[str, ...] = (
+    "cx_n",
+    "cy_n",
+    "bw_n",
+    "bh_n",
+    "area_n",
+    "aspect_ratio",
+)
+
 
 @dataclass(slots=True)
 class SpatialSequenceExport:
@@ -169,6 +156,48 @@ def export_spatial_sequences(
     max_window_length: int | None = None,
     feature_schema: dict[str, list[str]] | None = None,
     motion_schema_manifest: dict[str, Any] | None = None,
+    spatial_schema_manifest: dict[str, Any] | None = None,
+) -> SpatialSequenceExport:
+    """Export only the canonical current spatial predictive tensor."""
+
+    return _export_spatial_sequences_impl(
+        windows,
+        frames,
+        max_window_length=max_window_length,
+        feature_schema=feature_schema,
+        motion_schema_manifest=motion_schema_manifest,
+        spatial_schema_manifest=spatial_schema_manifest,
+        legacy_development=False,
+    )
+
+
+def export_legacy_development_spatial_sequences(
+    windows: pd.DataFrame,
+    frames: pd.DataFrame,
+    *,
+    feature_schema: dict[str, list[str]],
+    max_window_length: int | None = None,
+) -> SpatialSequenceExport:
+    """Export an explicitly legacy, non-current development tensor."""
+
+    return _export_spatial_sequences_impl(
+        windows,
+        frames,
+        max_window_length=max_window_length,
+        feature_schema=feature_schema,
+        legacy_development=True,
+    )
+
+
+def _export_spatial_sequences_impl(
+    windows: pd.DataFrame,
+    frames: pd.DataFrame,
+    *,
+    max_window_length: int | None = None,
+    feature_schema: dict[str, list[str]] | None = None,
+    motion_schema_manifest: dict[str, Any] | None = None,
+    spatial_schema_manifest: dict[str, Any] | None = None,
+    legacy_development: bool = False,
 ) -> SpatialSequenceExport:
     """Build fixed-length spatial arrays aligned to sequence-window rows.
 
@@ -176,9 +205,60 @@ def export_spatial_sequences(
     policy columns are excluded; identifiers are retained only in the audit
     surface outside the arrays.
     """
-    require_final_view_contract = feature_schema is None
-    selected_schema = feature_schema or SPATIAL_FRAME_FEATURES
-    legacy_schema = selected_schema is LEGACY_SPATIAL_FRAME_FEATURES
+    require_final_view_contract = not legacy_development
+    selected_schema = (
+        canonical_spatial_feature_groups()
+        if feature_schema is None
+        else {
+            group: list(names)
+            for group, names in feature_schema.items()
+        }
+    )
+    if legacy_development:
+        _require_legacy_development_schema(frames, selected_schema)
+    elif feature_schema is not None and selected_schema == (
+        LEGACY_SPATIAL_FRAME_FEATURES
+    ):
+        raise SpatialSchemaError(
+            "POLICY_CURRENT_ONLY_FAIL_CLOSED rejects legacy predictive "
+            "tensor export; use the isolated legacy-development exporter"
+        )
+    declared_forbidden = [
+        column
+        for columns in selected_schema.values()
+        for column in columns
+        if isinstance(column, str) and _is_forbidden(column)
+    ]
+    if declared_forbidden:
+        raise ValueError(
+            "Forbidden spatial feature columns requested: "
+            f"{declared_forbidden}"
+        )
+    motion_preflight: dict[str, Any] | None = None
+    if "motion_delta" in selected_schema and not legacy_development:
+        producer_metadata = (
+            motion_schema_manifest
+            if motion_schema_manifest is not None
+            else _motion_metadata_from_frames(frames)
+        )
+        motion_preflight = require_motion_schema(
+            source_columns=list(frames.columns),
+            actual_feature_names=selected_schema["motion_delta"],
+            actual_masks=[
+                name for name in MOTION_REQUIRED_MASKS
+                if name in frames.columns
+            ],
+            metadata=producer_metadata,
+        )
+    spatial_preflight = (
+        _legacy_development_schema_metadata(selected_schema)
+        if legacy_development
+        else require_spatial_schema(
+            source_columns=list(frames.columns),
+            actual_feature_groups=selected_schema,
+            metadata=spatial_schema_manifest,
+        )
+    )
     required_windows = [
         "window_id",
         "object_track_key",
@@ -216,7 +296,7 @@ def export_spatial_sequences(
             .astype(str)
             .str.strip()
         )
-    elif legacy_schema:
+    elif legacy_development:
         nearest_pig = feature_frames.get(
             "nearest_pig_id",
             pd.Series("", index=feature_frames.index),
@@ -231,10 +311,34 @@ def export_spatial_sequences(
         )
     else:
         nearest_partner_key = pd.Series("", index=feature_frames.index)
+        legacy_partner_present = any(
+            column in feature_frames.columns
+            and feature_frames[column]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .ne("")
+            .any()
+            for column in ("nearest_pig_id", "nearest_track_id")
+        )
+        declared_social_available = pd.Series(
+            False,
+            index=feature_frames.index,
+        )
+        if "social_neighbor_available" in feature_frames.columns:
+            declared_social_available = _numeric_feature(
+                feature_frames["social_neighbor_available"]
+            ).fillna(0.0)
+        if legacy_partner_present or declared_social_available.gt(0.5).any():
+            raise ValueError(
+                "Missing canonical social identity column: "
+                "nearest_partner_key"
+            )
     feature_frames["_social_partner_key"] = nearest_partner_key
     feature_frames["social_neighbor_available"] = feature_frames[
         "_social_partner_key"
     ].ne("")
+    _require_predictive_source_dtypes(feature_frames, selected_schema)
 
     alignment_windows = windows.reset_index(drop=True).copy()
     for column in (
@@ -259,56 +363,21 @@ def export_spatial_sequences(
     )
     _validate_frame_alignment_contract(alignment_frames)
 
-    social_source_present = any(
-        column in frames.columns
-        for column in selected_schema.get("social_relation", [])
-    ) or "nearest_neighbor_available" in frames.columns
-    if (
-        "social_relation" in selected_schema
-        and not legacy_schema
-        and social_source_present
-        and "nearest_partner_key" not in frames.columns
-    ):
-        raise ValueError(
-            "Missing canonical social identity column: "
-            "nearest_partner_key"
-        )
-    motion_preflight: dict[str, Any] | None = None
-    if "motion_delta" in selected_schema and not legacy_schema:
-        producer_metadata = (
-            motion_schema_manifest
-            if motion_schema_manifest is not None
-            else _motion_metadata_from_frames(feature_frames)
-        )
-        motion_preflight = require_motion_schema(
-            source_columns=list(feature_frames.columns),
-            actual_feature_names=selected_schema["motion_delta"],
-            actual_masks=[
-                name for name in MOTION_REQUIRED_MASKS
-                if name in feature_frames.columns
-            ],
-            metadata=producer_metadata,
-        )
-    declared_forbidden = [
-        column
-        for columns in selected_schema.values()
-        for column in columns
-        if _is_forbidden(column)
-    ]
-    if declared_forbidden:
-        raise ValueError(
-            "Forbidden spatial feature columns requested: "
-            f"{declared_forbidden}"
-        )
     feature_names = _available_feature_names(
         feature_frames,
         selected_schema,
-        fail_closed_groups={"motion_delta"} if not legacy_schema else set(),
     )
     selected_cols = [c for cols in feature_names.values() for c in cols]
     derivation_cols = [
         column
-        for column in DERIVATION_COLUMNS
+        for column in (
+            *DERIVATION_COLUMNS,
+            *(
+                LEGACY_WINDOW_DERIVATION_COLUMNS
+                if legacy_development
+                else ()
+            ),
+        )
         if column in feature_frames.columns and column not in selected_cols
     ]
     forbidden_selected = [c for c in selected_cols if _is_forbidden(c)]
@@ -544,7 +613,11 @@ def export_spatial_sequences(
             pen_rebased_windows += int(pen_audit["rebased"])
             pen_valid_pair_count += int(pen_audit["valid_pairs"])
             pen_reset_row_count += int(pen_audit["reset_rows"])
-            masks = _view_quality_masks(values, computational_names)
+            masks = _view_quality_masks(
+                values,
+                computational_names,
+                legacy_development=legacy_development,
+            )
             spatial_quality_mask[i, slot_positions] = masks["spatial"]
             roi_validity_mask[i, slot_positions, :] = masks["roi"]
             social_validity_mask[i, slot_positions] = masks["social"]
@@ -561,14 +634,19 @@ def export_spatial_sequences(
             adjacent_motion_pair_mask[i, slot_positions] = adjacent_pairs
             sparse_velocity_pair_mask[i, slot_positions] = sparse_pairs
             for mask_name, mask_array in derivative_masks.items():
-                mask_array[i, slot_positions] = _column_or_zero(
-                    values,
-                    {
-                        column: index
-                        for index, column in enumerate(computational_names)
-                    },
-                    mask_name,
-                )
+                if mask_name == "motion_feature_available":
+                    mask_array[i, slot_positions] = masks["motion"]
+                else:
+                    mask_array[i, slot_positions] = _column_or_zero(
+                        values,
+                        {
+                            column: index
+                            for index, column in enumerate(
+                                computational_names
+                            )
+                        },
+                        mask_name,
+                    )
             masked_values = _zero_invalid_feature_groups(
                 values,
                 group_slices,
@@ -594,6 +672,23 @@ def export_spatial_sequences(
     observed_frame_slots = int(observed_mask.sum())
     padding_slots = int(length_mask.size - valid_length_slots)
     missing_observed_slots = int(valid_length_slots - observed_frame_slots)
+    if legacy_development:
+        spatial_metadata = _legacy_development_schema_metadata(
+            selected_schema
+        )
+        spatial_tensor_preflight = (
+            _require_legacy_development_tensor_bundle(
+                arrays,
+                feature_names,
+            )
+        )
+    else:
+        spatial_metadata = spatial_schema_metadata()
+        spatial_tensor_preflight = require_spatial_tensor_bundle(
+            arrays=arrays,
+            feature_names=feature_names,
+            metadata=spatial_metadata,
+        )
 
     audit = {
         "rows": int(len(work_windows)),
@@ -607,7 +702,33 @@ def export_spatial_sequences(
         "duplicate_frame_alignment_rows": 0,
         "max_window_length": int(max_window_length),
         "array_shapes": {name: list(value.shape) for name, value in arrays.items()},
+        "array_dtypes": {
+            name: str(value.dtype) for name, value in arrays.items()
+        },
         "feature_names": feature_names,
+        "spatial_schema": spatial_metadata,
+        "spatial_schema_preflight": spatial_preflight,
+        "spatial_tensor_preflight": spatial_tensor_preflight,
+        "spatial_schema_id": spatial_metadata["schema_id"],
+        "spatial_schema_version": spatial_metadata["schema_version"],
+        "spatial_schema_hash": spatial_metadata["schema_hash"],
+        "spatial_schema_dtype": spatial_metadata["dtype"],
+        "spatial_schema_policy": spatial_metadata["policy"],
+        "spatial_schema_total_dimension": spatial_metadata[
+            "total_dimension"
+        ],
+        "spatial_tensor_content_hash": spatial_tensor_content_hash(arrays),
+        "spatial_schema_ordered_groups": list(
+            spatial_metadata["ordered_group_names"]
+        ),
+        "spatial_schema_group_dimensions": spatial_metadata[
+            "group_dimensions"
+        ],
+        "spatial_schema_group_feature_names": spatial_metadata[
+            "group_feature_names"
+        ],
+        "legacy_schema_accepted": bool(legacy_development),
+        "automatic_stale_padding": False,
         "motion_schema_preflight": motion_preflight,
         "motion_schema_id": MOTION_SCHEMA_ID if motion_preflight else None,
         "motion_schema_version": (
@@ -1170,6 +1291,8 @@ def _column_or_nan(
 def _view_quality_masks(
     values: np.ndarray,
     feature_names: list[str],
+    *,
+    legacy_development: bool = False,
 ) -> dict[str, np.ndarray]:
     indices = {column: index for index, column in enumerate(feature_names)}
     spatial = np.ones(len(values), dtype=bool)
@@ -1188,6 +1311,13 @@ def _view_quality_masks(
         social &= values[:, indices["social_neighbor_available"]] > 0.5
     else:
         social[:] = False
+    motion = spatial.copy()
+    if "motion_feature_available" in indices:
+        motion &= values[:, indices["motion_feature_available"]] > 0.5
+    elif legacy_development:
+        motion = spatial.copy()
+    else:
+        motion[:] = False
     pen = spatial.copy()
     if "pen_context_available" in indices:
         pen &= values[:, indices["pen_context_available"]] > 0.5
@@ -1197,6 +1327,7 @@ def _view_quality_masks(
         "spatial": spatial.astype("float32"),
         "roi": roi,
         "social": social.astype("float32"),
+        "motion": motion.astype("float32"),
         "pen": pen.astype("float32"),
     }
 
@@ -1209,9 +1340,11 @@ def _zero_invalid_feature_groups(
 ) -> np.ndarray:
     out = np.where(np.isfinite(values), values, 0.0).copy()
     spatial = masks["spatial"][:, None]
-    for group_name in ["bbox_xywh_n", "bbox_shape_n", "motion_delta"]:
+    for group_name in ["bbox_xywh_n", "bbox_shape_n"]:
         if group_name in group_slices:
             out[:, group_slices[group_name]] *= spatial
+    if "motion_delta" in group_slices:
+        out[:, group_slices["motion_delta"]] *= masks["motion"][:, None]
     if "social_relation" in group_slices:
         out[:, group_slices["social_relation"]] *= masks["social"][:, None]
     if "pen_boundary_context" in group_slices:
@@ -1692,24 +1825,141 @@ def _raise_alignment_error(
 def _available_feature_names(
     frames: pd.DataFrame,
     feature_schema: dict[str, list[str]],
-    *,
-    fail_closed_groups: set[str] | None = None,
 ) -> dict[str, list[str]]:
-    fail_closed = fail_closed_groups or set()
+    """Require every declared feature without availability-based pruning."""
+
     available: dict[str, list[str]] = {}
     for group_name, cols in feature_schema.items():
-        if group_name in fail_closed:
-            missing = [column for column in cols if column not in frames]
-            if missing:
-                raise ValueError(
-                    f"Missing required {group_name} features: {missing}"
-                )
-            available[group_name] = list(cols)
-            continue
-        present = [c for c in cols if c in frames.columns]
-        if present:
-            available[group_name] = present
+        missing = [column for column in cols if column not in frames]
+        if missing:
+            raise ValueError(
+                f"Missing required {group_name} features: {missing}"
+            )
+        available[group_name] = list(cols)
     return available
+
+
+def _legacy_development_schema_metadata(
+    feature_schema: dict[str, list[str]],
+) -> dict[str, Any]:
+    payload = {
+        "schema_id": "schema.classification_v2_legacy_development_spatial_v1",
+        "schema_version": (
+            "classification_v2.legacy_development_spatial_tensor.v1"
+        ),
+        "dtype": "float32",
+        "policy": "DEDICATED_LEGACY_DEVELOPMENT_NOT_CURRENT_MODEL_X",
+        "ordered_group_names": list(feature_schema),
+        "group_dimensions": {
+            group: len(names) for group, names in feature_schema.items()
+        },
+        "group_feature_names": {
+            group: list(names) for group, names in feature_schema.items()
+        },
+        "total_dimension": sum(
+            len(names) for names in feature_schema.values()
+        ),
+        "current_model_tensor": False,
+    }
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return {
+        **payload,
+        "schema_hash": hashlib.sha256(encoded).hexdigest(),
+    }
+
+
+def _require_legacy_development_schema(
+    frames: pd.DataFrame,
+    feature_schema: dict[str, list[str]],
+) -> None:
+    if not feature_schema:
+        raise SpatialSchemaError("legacy development schema is empty")
+    errors: list[str] = []
+    for group, names in feature_schema.items():
+        if group == "quality_mask":
+            declared_quality = LEGACY_SPATIAL_FRAME_FEATURES["quality_mask"]
+            expected = [
+                name for name in declared_quality if name in set(names)
+            ]
+        else:
+            expected = LEGACY_SPATIAL_FRAME_FEATURES.get(group)
+        if expected is None:
+            errors.append(f"unknown_legacy_group={group!r}")
+            continue
+        if list(names) != list(expected):
+            errors.append(
+                f"legacy_order_mismatch={group}:{names!r}:{expected!r}"
+            )
+        missing = [
+            name
+            for name in names
+            if name not in frames.columns
+            and not (
+                group == "quality_mask"
+                and name == "social_neighbor_available"
+                and any(
+                    identity in frames.columns
+                    for identity in (
+                        "nearest_partner_key",
+                        "nearest_pig_id",
+                        "nearest_track_id",
+                    )
+                )
+            )
+        ]
+        if missing:
+            errors.append(f"missing_legacy_features={group}:{missing!r}")
+        if any(
+            not isinstance(name, str) or not name or name != name.strip()
+            for name in names
+        ):
+            errors.append(f"invalid_legacy_feature_name={group}")
+        if len(names) != len(set(names)):
+            errors.append(f"duplicate_legacy_feature_name={group}")
+    if errors:
+        raise SpatialSchemaError(
+            "Legacy development schema preflight failed: "
+            + "; ".join(errors)
+        )
+
+
+def _require_legacy_development_tensor_bundle(
+    arrays: dict[str, np.ndarray],
+    feature_names: dict[str, list[str]],
+) -> dict[str, Any]:
+    errors: list[str] = []
+    shapes: dict[str, list[int]] = {}
+    for group, names in feature_names.items():
+        array = arrays.get(group)
+        if array is None:
+            errors.append(f"missing_legacy_tensor_group={group}")
+            continue
+        shape = [int(value) for value in array.shape]
+        shapes[group] = shape
+        if len(shape) != 3 or shape[-1] != len(names):
+            errors.append(
+                f"legacy_tensor_dimension_mismatch={group}:{shape}:"
+                f"{len(names)}"
+            )
+        if str(array.dtype) != "float32":
+            errors.append(
+                f"legacy_tensor_dtype_mismatch={group}:{array.dtype}"
+            )
+    if errors:
+        raise SpatialSchemaError(
+            "Legacy development tensor preflight failed: "
+            + "; ".join(errors)
+        )
+    return {
+        "current_model_tensor": False,
+        "legacy_development_only": True,
+        "tensor_shapes": shapes,
+        "errors": [],
+    }
 
 
 def _motion_metadata_from_frames(frames: pd.DataFrame) -> dict[str, Any]:
@@ -1753,6 +2003,46 @@ def _motion_metadata_from_frames(frames: pd.DataFrame) -> dict[str, Any]:
     metadata["dtype"] = MOTION_SCHEMA_DTYPE
     metadata["validity_masks"] = list(MOTION_REQUIRED_MASKS)
     return metadata
+
+
+def _require_predictive_source_dtypes(
+    frames: pd.DataFrame,
+    feature_schema: dict[str, list[str]],
+) -> None:
+    """Reject values that cannot be represented by the float32 contract."""
+
+    bool_tokens = {
+        "true",
+        "false",
+        "yes",
+        "no",
+        "1",
+        "0",
+    }
+    errors: list[str] = []
+    for group, columns in feature_schema.items():
+        for column in columns:
+            series = frames[column]
+            if (
+                pd.api.types.is_numeric_dtype(series)
+                or pd.api.types.is_bool_dtype(series)
+            ):
+                continue
+            present = series.dropna()
+            if present.empty:
+                continue
+            normalized = present.astype(str).str.strip().str.lower()
+            numeric = pd.to_numeric(present, errors="coerce")
+            invalid = numeric.isna() & ~normalized.isin(bool_tokens)
+            if invalid.any():
+                samples = present.loc[invalid].astype(str).head(5).tolist()
+                errors.append(
+                    f"{group}.{column}:invalid_values={samples!r}"
+                )
+    if errors:
+        raise ValueError(
+            "Incompatible predictive source dtype: " + "; ".join(errors)
+        )
 
 
 def _numeric_feature(series: pd.Series) -> pd.Series:

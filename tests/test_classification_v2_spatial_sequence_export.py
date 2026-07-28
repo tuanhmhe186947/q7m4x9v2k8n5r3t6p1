@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
+from copy import deepcopy
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
+import torch
 
 from pig_behavior.classification_v2.features.motion_schema import (
     MOTION_FEATURE_NAMES,
@@ -12,11 +15,23 @@ from pig_behavior.classification_v2.features.motion_schema import (
     MOTION_SCHEMA_HASH,
     MOTION_SCHEMA_ID,
     MOTION_SCHEMA_VERSION,
+    MotionSchemaError,
+)
+from pig_behavior.classification_v2.features.spatial_schema import (
+    SPATIAL_PREDICTIVE_FEATURES,
+    SPATIAL_PREDICTIVE_GROUP_NAMES,
+    SPATIAL_SCHEMA_HASH,
+    SPATIAL_SCHEMA_TOTAL_DIMENSION,
+    SpatialSchemaError,
+    canonical_spatial_feature_groups,
+    load_current_spatial_tensor_bundle,
+    spatial_schema_metadata,
 )
 from pig_behavior.classification_v2.features.spatiotemporal import (
     _add_temporal_deltas,
 )
 from pig_behavior.classification_v2.spatial_sequence_export import (
+    LEGACY_SPATIAL_FRAME_FEATURES,
     export_spatial_sequences,
 )
 
@@ -104,7 +119,46 @@ def _with_motion_contract(frames: pd.DataFrame) -> pd.DataFrame:
         separators=(",", ":"),
     )
     out["motion_schema_hash"] = MOTION_SCHEMA_HASH
-    return out
+    additions: dict[str, object] = {}
+    for group in ("roi_class_relation", "social_relation"):
+        for feature_name in SPATIAL_PREDICTIVE_FEATURES[group]:
+            if feature_name not in out:
+                additions[feature_name] = 0.0
+    for roi_class in ("feeder", "drinker", "toy"):
+        availability = f"roi_{roi_class}_available"
+        if availability not in out:
+            additions[availability] = False
+    if "social_neighbor_available" not in out:
+        partner = out.get(
+            "nearest_partner_key",
+            pd.Series([""] * count, index=out.index),
+        )
+        additions["social_neighbor_available"] = (
+            partner.fillna("").astype(str).str.strip().ne("")
+        )
+    return pd.concat(
+        [out, pd.DataFrame(additions, index=out.index)],
+        axis=1,
+    ).copy()
+
+
+def _write_current_bundle(
+    root: Path,
+    *,
+    audit_override: dict[str, object] | None = None,
+) -> tuple[Path, Path]:
+    result = export_spatial_sequences(_windows(), _frames())
+    npz_path = root / "X_spatial_sequences.npz"
+    audit_path = root / "spatial_sequence_audit.json"
+    np.savez_compressed(npz_path, **result.arrays)
+    audit = dict(result.audit)
+    if audit_override is not None:
+        audit.update(audit_override)
+    audit_path.write_text(
+        json.dumps(audit, indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    return npz_path, audit_path
 
 
 def test_spatial_export_audits_complete_alignment_without_row_loss() -> None:
@@ -337,3 +391,253 @@ def test_sparse_s6_at16_uses_exact_selected_frames_and_sparse_pairs() -> None:
         1.0,
     ]
     assert speed.tolist() == pytest.approx([0.0, 1.0, 1.0, 1.0, 1.0, 1.0])
+
+
+@pytest.mark.parametrize("group", SPATIAL_PREDICTIVE_GROUP_NAMES)
+@pytest.mark.parametrize("position", ("first", "middle", "last"))
+def test_all_groups_reject_missing_required_source_columns(
+    group: str,
+    position: str,
+) -> None:
+    frames = _frames()
+    names = SPATIAL_PREDICTIVE_FEATURES[group]
+    index = {
+        "first": 0,
+        "middle": len(names) // 2,
+        "last": len(names) - 1,
+    }[position]
+
+    error_type = (
+        MotionSchemaError if group == "motion_delta" else SpatialSchemaError
+    )
+    error_pattern = (
+        "missing_required_motion_features"
+        if group == "motion_delta"
+        else "missing_required_source_columns"
+    )
+    with pytest.raises(error_type, match=error_pattern):
+        export_spatial_sequences(
+            _windows(),
+            frames.drop(columns=[names[index]]),
+        )
+
+
+@pytest.mark.parametrize("group", SPATIAL_PREDICTIVE_GROUP_NAMES)
+@pytest.mark.parametrize(
+    ("mutation", "error"),
+    (
+        ("swap", "ordered_names_mismatch"),
+        ("duplicate", "duplicate_names"),
+        ("unknown", "unexpected_names"),
+        ("blank", "blank_names"),
+        ("null", "null_or_non_string_names"),
+        ("case", "unexpected_names"),
+        ("whitespace", "whitespace_normalized_names"),
+    ),
+)
+def test_all_groups_reject_noncanonical_declarations(
+    group: str,
+    mutation: str,
+    error: str,
+) -> None:
+    frames = _frames()
+    schema = canonical_spatial_feature_groups()
+    names: list[object] = list(schema[group])
+    if mutation == "swap":
+        names[0], names[1] = names[1], names[0]
+    elif mutation == "duplicate":
+        names[1] = names[0]
+    elif mutation == "unknown":
+        names.insert(1, "unknown_predictive_feature")
+        frames["unknown_predictive_feature"] = 0.0
+    elif mutation == "blank":
+        names[0] = ""
+    elif mutation == "null":
+        names[0] = None
+    elif mutation == "case":
+        names[0] = str(names[0]).upper()
+    elif mutation == "whitespace":
+        names[0] = f" {names[0]}"
+    schema[group] = names  # type: ignore[assignment]
+
+    error_type = (
+        MotionSchemaError if group == "motion_delta" else SpatialSchemaError
+    )
+    motion_error = {
+        "swap": "motion_feature_order_mismatch",
+        "duplicate": "duplicate_motion_features",
+        "unknown": "unexpected_motion_features",
+        "blank": "unexpected_motion_features",
+        "null": "unexpected_motion_features",
+        "case": "unexpected_motion_features",
+        "whitespace": "unexpected_motion_features",
+    }[mutation]
+    with pytest.raises(
+        error_type,
+        match=motion_error if group == "motion_delta" else error,
+    ):
+        export_spatial_sequences(
+            _windows(),
+            frames,
+            feature_schema=schema,
+        )
+
+
+@pytest.mark.parametrize("group", SPATIAL_PREDICTIVE_GROUP_NAMES)
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("group_schema_version", "stale.v0"),
+        ("group_schema_hash", "0" * 64),
+    ),
+)
+def test_all_groups_reject_stale_group_schema_authority(
+    group: str,
+    field: str,
+    value: str,
+) -> None:
+    metadata = spatial_schema_metadata()
+    group_index = list(SPATIAL_PREDICTIVE_GROUP_NAMES).index(group)
+    metadata["groups"][group_index][field] = value
+
+    with pytest.raises(SpatialSchemaError, match="spatial_schema_groups"):
+        export_spatial_sequences(
+            _windows(),
+            _frames(),
+            spatial_schema_manifest=metadata,
+        )
+
+
+def test_export_rejects_incompatible_predictive_dtype() -> None:
+    frames = _frames()
+    frames["cx_n"] = "not-a-number"
+
+    with pytest.raises(ValueError, match="Incompatible predictive source dtype"):
+        export_spatial_sequences(_windows(), frames)
+
+
+def test_export_rejects_declared_dimension_disagreement() -> None:
+    metadata = spatial_schema_metadata()
+    metadata["group_dimensions"]["social_relation"] = 9
+
+    with pytest.raises(
+        SpatialSchemaError,
+        match="spatial_schema_group_dimensions_mismatch",
+    ):
+        export_spatial_sequences(
+            _windows(),
+            _frames(),
+            spatial_schema_manifest=metadata,
+        )
+
+
+def test_legacy_schema_cannot_bypass_current_export() -> None:
+    with pytest.raises(
+        SpatialSchemaError,
+        match="POLICY_CURRENT_ONLY_FAIL_CLOSED",
+    ):
+        export_spatial_sequences(
+            _windows(),
+            _frames(),
+            feature_schema=LEGACY_SPATIAL_FRAME_FEATURES,
+        )
+
+
+def test_current_export_is_exact_fixed_width_and_masked() -> None:
+    result = export_spatial_sequences(_windows(), _frames())
+
+    assert result.feature_names == canonical_spatial_feature_groups()
+    assert sum(
+        array.shape[-1]
+        for name, array in result.arrays.items()
+        if name in SPATIAL_PREDICTIVE_GROUP_NAMES
+    ) == SPATIAL_SCHEMA_TOTAL_DIMENSION == 46
+    assert result.arrays["roi_class_relation"].shape[-1] == 18
+    assert result.arrays["social_relation"].shape[-1] == 10
+    assert not result.arrays["roi_validity_mask"].any()
+    assert not result.arrays["social_validity_mask"].any()
+    assert not result.arrays["roi_class_relation"].any()
+    assert not result.arrays["social_relation"].any()
+
+
+def test_loader_rejects_sidecar_order_and_hash_disagreement(
+    tmp_path: Path,
+) -> None:
+    result = export_spatial_sequences(_windows(), _frames())
+    feature_names = deepcopy(result.audit["feature_names"])
+    feature_names["bbox_xywh_n"][0:2] = reversed(
+        feature_names["bbox_xywh_n"][0:2]
+    )
+    npz_path, audit_path = _write_current_bundle(
+        tmp_path,
+        audit_override={"feature_names": feature_names},
+    )
+
+    with pytest.raises(SpatialSchemaError, match="ordered_names_mismatch"):
+        load_current_spatial_tensor_bundle(npz_path, audit_path)
+
+
+def test_loader_accepts_exact_current_order_and_rejects_stale_hash(
+    tmp_path: Path,
+) -> None:
+    npz_path, audit_path = _write_current_bundle(tmp_path)
+    arrays, audit = load_current_spatial_tensor_bundle(
+        npz_path,
+        audit_path,
+    )
+    assert audit["spatial_schema"]["schema_hash"] == SPATIAL_SCHEMA_HASH
+    assert {
+        group: arrays[group].shape[-1]
+        for group in SPATIAL_PREDICTIVE_GROUP_NAMES
+    } == {
+        group: len(SPATIAL_PREDICTIVE_FEATURES[group])
+        for group in SPATIAL_PREDICTIVE_GROUP_NAMES
+    }
+
+    arrays["bbox_xywh_n"][0, 0, 0] = 0.123
+    np.savez_compressed(npz_path, **arrays)
+    with pytest.raises(SpatialSchemaError, match="content hash mismatch"):
+        load_current_spatial_tensor_bundle(npz_path, audit_path)
+
+
+def test_bounded_spatial_model_forward_uses_canonical_dimensions() -> None:
+    pytest.importorskip("torchvision")
+    from pig_behavior.classification_v2.models.spatial_tcn import (
+        SpatialTCNClassifier,
+        SpatialTCNConfig,
+    )
+
+    result = export_spatial_sequences(_windows(), _frames())
+    model = SpatialTCNClassifier(
+        SpatialTCNConfig(
+            input_dims={
+                group: len(SPATIAL_PREDICTIVE_FEATURES[group])
+                for group in SPATIAL_PREDICTIVE_GROUP_NAMES
+            },
+            num_classes=10,
+            hidden_dim=8,
+            dropout=0.0,
+        )
+    )
+    features = {
+        group: torch.from_numpy(result.arrays[group])
+        for group in SPATIAL_PREDICTIVE_GROUP_NAMES
+    }
+    logits = model(
+        features,
+        length_mask=torch.from_numpy(result.arrays["length_mask"]),
+        observed_mask=torch.from_numpy(result.arrays["observed_mask"]),
+    )
+    assert logits.shape == (1, 10)
+
+
+def test_repeated_current_export_has_identical_declared_content_hash() -> None:
+    first = export_spatial_sequences(_windows(), _frames())
+    second = export_spatial_sequences(_windows(), _frames())
+
+    assert (
+        first.audit["spatial_tensor_content_hash"]
+        == second.audit["spatial_tensor_content_hash"]
+    )
+    for name in first.arrays:
+        np.testing.assert_array_equal(first.arrays[name], second.arrays[name])

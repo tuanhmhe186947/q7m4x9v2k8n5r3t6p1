@@ -20,6 +20,10 @@ from pig_behavior.classification_v2.datasets.visual_interaction_loader import (
     VisualInteractionDatasetConfig,
     VisualInteractionWindowDataset,
 )
+from pig_behavior.classification_v2.features.spatial_schema import (
+    SPATIAL_PREDICTIVE_FEATURES,
+    require_spatial_tensor_bundle,
+)
 from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
 from pig_behavior.classification_v2.training.config import (
     ClassificationV2TrainingConfig,
@@ -704,16 +708,32 @@ def _load_spatial_feature_names(
     declared = payload.get("feature_names")
     if not isinstance(declared, dict):
         raise ValueError("spatial sequence audit has no feature_names mapping")
+    schema_metadata = payload.get("spatial_schema")
+    if not isinstance(schema_metadata, dict):
+        raise ValueError(
+            "spatial sequence audit has no current spatial_schema metadata"
+        )
+    require_spatial_tensor_bundle(
+        arrays=arrays,
+        feature_names=declared,
+        metadata=schema_metadata,
+    )
     result: dict[str, tuple[str, ...]] = {}
     for group in feature_groups:
         if group not in arrays:
             raise ValueError(f"spatial array missing configured group={group}")
-        names = tuple(str(value).strip() for value in declared.get(group, ()))
+        if group not in SPATIAL_PREDICTIVE_FEATURES:
+            raise ValueError(
+                f"spatial feature group is not canonical current model X={group}"
+            )
+        names = tuple(declared.get(group, ()))
         dimension = int(np.asarray(arrays[group]).shape[-1])
-        if len(names) != dimension or len(set(names)) != len(names):
+        expected_names = SPATIAL_PREDICTIVE_FEATURES[group]
+        if names != expected_names or dimension != len(expected_names):
             raise ValueError(
                 f"spatial feature-order mismatch for {group}: "
-                f"names={list(names)}, dimension={dimension}"
+                f"names={list(names)}, dimension={dimension}, "
+                f"expected={list(expected_names)}"
             )
         result[group] = names
     return result

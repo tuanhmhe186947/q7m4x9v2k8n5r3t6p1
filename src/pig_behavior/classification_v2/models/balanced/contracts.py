@@ -33,9 +33,15 @@ from pig_behavior.classification_v2.features.motion_schema import (
     MOTION_SCHEMA_HASH,
     MOTION_SCHEMA_VERSION,
 )
+from pig_behavior.classification_v2.features.spatial_schema import (
+    SPATIAL_PREDICTIVE_FEATURES,
+    SPATIAL_PREDICTIVE_GROUP_NAMES,
+    SPATIAL_SCHEMA_HASH,
+    SPATIAL_SCHEMA_TOTAL_DIMENSION,
+    SPATIAL_SCHEMA_VERSION,
+)
 from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
 from pig_behavior.classification_v2.spatial_sequence_export import (
-    SPATIAL_FRAME_FEATURES,
     SPATIAL_QUALITY_COLUMNS,
 )
 
@@ -43,13 +49,7 @@ BATCH_CONTRACT_VERSION = "classification_v2.balanced_batch_contract.v1"
 
 #: Ordered predictive numeric groups. The order here is the concatenation order
 #: used by audits; the model itself encodes each group separately.
-NUMERIC_GROUP_NAMES: tuple[str, ...] = (
-    "bbox_xywh_n",
-    "bbox_shape_n",
-    "motion_delta",
-    "roi_class_relation",
-    "social_relation",
-)
+NUMERIC_GROUP_NAMES = SPATIAL_PREDICTIVE_GROUP_NAMES
 
 #: Availability/quality controls. These are never counted as predictive width.
 QUALITY_CONTROL_NAMES: tuple[str, ...] = tuple(SPATIAL_QUALITY_COLUMNS)
@@ -120,7 +120,7 @@ def numeric_group_feature_names() -> dict[str, tuple[str, ...]]:
         if group == "motion_delta":
             names[group] = tuple(MOTION_FEATURE_NAMES)
             continue
-        names[group] = tuple(str(name) for name in SPATIAL_FRAME_FEATURES[group])
+        names[group] = SPATIAL_PREDICTIVE_FEATURES[group]
     return names
 
 
@@ -139,11 +139,16 @@ def spatial_predictive_contract() -> dict[str, Any]:
     dimensions = numeric_group_dimensions()
     return {
         "schema_version": BATCH_CONTRACT_VERSION,
+        "spatial_schema_version": SPATIAL_SCHEMA_VERSION,
+        "spatial_schema_hash": SPATIAL_SCHEMA_HASH,
         "motion_schema_version": MOTION_SCHEMA_VERSION,
         "motion_schema_hash": MOTION_SCHEMA_HASH,
         "motion_dimension": len(MOTION_FEATURE_NAMES),
         "group_dimensions": dict(dimensions),
         "spatial_predictive_dimension": int(sum(dimensions.values())),
+        "canonical_spatial_predictive_dimension": (
+            SPATIAL_SCHEMA_TOTAL_DIMENSION
+        ),
         "quality_control_names": list(QUALITY_CONTROL_NAMES),
         "availability_control_names": list(AVAILABILITY_CONTROL_NAMES),
         "controls_counted_as_predictive_features": False,

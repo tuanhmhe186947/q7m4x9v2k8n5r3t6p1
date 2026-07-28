@@ -3,24 +3,24 @@
   "contract_version": "classification_v2.scientific_contract.v1.1.0",
   "generated_files": [
     {
-      "bytes": 219773,
+      "bytes": 220759,
       "path": "00_pipeline_contract.yaml",
-      "sha256": "5b8f2d1c46002e97fa377b1a189dc11054bf9dc03711fbf9f23e215e5667bb64"
+      "sha256": "f88bf92459313edc88c3d5032acdb401802ebd6f18ffb7d9403e9b866e68f7f0"
     },
     {
-      "bytes": 8930,
+      "bytes": 8925,
       "path": "01_pipeline_dataflow.md",
-      "sha256": "817c61fb87a78f05a4c57341d70098530580a51171afcfd0c74f780d86caba8e"
+      "sha256": "694e2d0de69ef658859d264c4743fcfc0cbda9c9475a8967af07088fcef42819"
     },
     {
-      "bytes": 9130,
+      "bytes": 9125,
       "path": "01_pipeline_dataflow.mmd",
-      "sha256": "f5a3bf4dddad06358a71b06289061b2e2e5808702581208b0f85c2a2d1a38308"
+      "sha256": "90368e2578a09033c93079a1e0ac7b6ad886d5ebd73bf5687aa079b3c04f81b2"
     },
     {
-      "bytes": 15719,
+      "bytes": 15795,
       "path": "02_stage_contract_registry.csv",
-      "sha256": "db9f138f023f009c98c14036e7e5bb128cabbfb528082d7f494283fe9c018bc6"
+      "sha256": "0b19bef825748614066454c3e5ab9188269f590cbdea08bdcab8e158efed18b8"
     },
     {
       "bytes": 60846,
@@ -28,9 +28,9 @@
       "sha256": "028f49c7ec27134f76a5998a583a3266f3c0ab87d89422fd844dacbac617df89"
     },
     {
-      "bytes": 19633,
+      "bytes": 20376,
       "path": "04_invariant_gate_matrix.csv",
-      "sha256": "5b95bf2b0f3fc45fc8f04439481436da28999df7709a562a841fc660d6890acf"
+      "sha256": "01f045efa8a7c3d0557fe4afb6bd9d633791ec09815988ec9a3fd402cf577e59"
     },
     {
       "bytes": 2079,
@@ -58,14 +58,14 @@
       "sha256": "7350cc60671fcfd08a2b8772f9b85787e5324630e0e6674e7d4f098fab4cc8c4"
     },
     {
-      "bytes": 113898,
+      "bytes": 114175,
       "path": "10_code_contract_mapping.csv",
-      "sha256": "9fd79437e247bf81d6ca0ba765236955680093ea6803d25cf5dd1af4cc13039e"
+      "sha256": "9e0b864fab8afa6866301340cc16507a41e0b2d2285eb51bc9ce5afe5bcdab64"
     },
     {
-      "bytes": 7873,
+      "bytes": 7947,
       "path": "11_known_gaps_and_risks.csv",
-      "sha256": "52d769f29cd7c424376ad0e673b1de9c633976f0c089d79ab44734f2d9b11141"
+      "sha256": "4b9bea5ea589cad571a992d6690bf05b4cac3abe1500b78db67a3297bfea17ed"
     },
     {
       "bytes": 1220,
@@ -88,9 +88,9 @@
       "sha256": "635b5c27c9f0e1f68f5f0088b6ae64e57d49b0eaadea79167b0bee796c23a419"
     },
     {
-      "bytes": 14499,
+      "bytes": 14570,
       "path": "stage_runtime_code_authority.json",
-      "sha256": "63df5c74c672acd1604ee44e739a75e4fb010be2d46a8c58b46e99644db61319"
+      "sha256": "c9a431238367705e29715666ec86d7a6080bd1e2ca23684913e617c22388b661"
     }
   ],
   "manifest_schema_version": "classification_v2.scientific_contract_manifest.v1",

@@ -1276,9 +1276,13 @@ def _domain_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
         },
         {
             "semantic_domain_id": "semantic.model_input_export",
-            "semantic_domain_version": "classification_v2.model_export.v5",
+            "semantic_domain_version": "classification_v2.model_export.v6",
             "authority_files": [
                 "src/pig_behavior/classification_v2/spatial_sequence_export.py",
+                (
+                    "src/pig_behavior/classification_v2/features/"
+                    "spatial_schema.py"
+                ),
                 "src/pig_behavior/classification_v2/contracts/model_input_manifest.py",
                 (
                     "src/pig_behavior/classification_v2/contracts/"
@@ -1287,6 +1291,7 @@ def _domain_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
             ],
             "authority_symbols": [
                 "export_spatial_sequences",
+                "require_spatial_tensor_bundle",
                 "build_model_input_manifest",
                 "target_roi_model_policy_registry",
             ],

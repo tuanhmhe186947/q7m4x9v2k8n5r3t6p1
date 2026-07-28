@@ -15,6 +15,9 @@ from pig_behavior.classification_v2.contracts.output_safety import (
 from pig_behavior.classification_v2.features.motion_schema import (
     MOTION_SCHEMA_DIMENSION,
 )
+from pig_behavior.classification_v2.features.spatial_schema import (
+    require_spatial_tensor_bundle,
+)
 from pig_behavior.classification_v2.spatial_sequence_export import (
     DERIVATION_COLUMNS,
     SPATIAL_FRAME_FEATURES,
@@ -134,6 +137,11 @@ def main() -> None:
             encoding="utf-8",
         )
         with np.load(staged_npz) as staged:
+            require_spatial_tensor_bundle(
+                arrays=staged,
+                feature_names=audit["feature_names"],
+                metadata=audit["spatial_schema"],
+            )
             actual_shape = staged["motion_delta"].shape
             if actual_shape[-1] != MOTION_SCHEMA_DIMENSION:
                 raise ValueError(

@@ -9,6 +9,9 @@ import pandas as pd
 import torch
 from torch import nn
 
+from pig_behavior.classification_v2.features.spatial_schema import (
+    load_current_spatial_tensor_bundle,
+)
 from pig_behavior.classification_v2.models.spatial_tcn import SpatialTCNClassifier, SpatialTCNConfig
 from pig_behavior.classification_v2.training.spatial_tcn_smoke import MODEL_GROUPS
 
@@ -39,7 +42,10 @@ def main() -> None:
     y = pd.read_csv(args.root / "y_behavior.csv").iloc[:, 0].fillna("").astype(str)
     train_mask = _read_bool(args.root / "train_mask.csv")
     split = pd.read_csv(args.root / "split_manifest.csv", low_memory=False)
-    data = np.load(args.root / "X_spatial_sequences.npz")
+    data, _ = load_current_spatial_tensor_bundle(
+        args.root / "X_spatial_sequences.npz",
+        args.root / "spatial_sequence_audit.json",
+    )
     label_order = sorted(y.unique().tolist())
     label_to_idx = {label: i for i, label in enumerate(label_order)}
     selected = _select_balanced_indices(

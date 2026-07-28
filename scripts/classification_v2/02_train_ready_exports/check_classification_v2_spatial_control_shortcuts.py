@@ -11,6 +11,9 @@ from sklearn.metrics import accuracy_score, balanced_accuracy_score, confusion_m
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
+from pig_behavior.classification_v2.features.spatial_schema import (
+    load_current_spatial_tensor_bundle,
+)
 from pig_behavior.classification_v2.training.spatial_tcn_smoke import MODEL_GROUPS
 
 
@@ -34,7 +37,10 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    arrays = {name: value for name, value in np.load(args.root / "X_spatial_sequences.npz").items()}
+    arrays, _ = load_current_spatial_tensor_bundle(
+        args.root / "X_spatial_sequences.npz",
+        args.root / "spatial_sequence_audit.json",
+    )
     split = pd.read_csv(args.root / "split_manifest.csv", low_memory=False)
     mask = _read_bool(args.root / "train_mask.csv")
     missing = [name for name in [*MODEL_GROUPS, "length_mask", "observed_mask"] if name not in arrays]

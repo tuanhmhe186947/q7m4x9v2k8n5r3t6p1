@@ -28,6 +28,9 @@ from pig_behavior.classification_v2.features.sequence_windows import (
     _window_timing_summary,
     build_sequence_windows,
 )
+from pig_behavior.classification_v2.features.spatial_schema import (
+    SPATIAL_PREDICTIVE_FEATURES,
+)
 from pig_behavior.classification_v2.features.spatiotemporal import (
     _add_roi_temporal_columns,
     _add_temporal_deltas,
@@ -97,7 +100,21 @@ def _attach_motion_v2_contract(frames: pd.DataFrame) -> pd.DataFrame:
         separators=(",", ":"),
     )
     out["motion_schema_hash"] = MOTION_SCHEMA_HASH
-    return out
+    additions: dict[str, object] = {}
+    for group in ("roi_class_relation", "social_relation"):
+        for feature_name in SPATIAL_PREDICTIVE_FEATURES[group]:
+            if feature_name not in out:
+                additions[feature_name] = 0.0
+    for roi_class in ("feeder", "drinker", "toy"):
+        availability = f"roi_{roi_class}_available"
+        if availability not in out:
+            additions[availability] = False
+    if "nearest_partner_key" not in out:
+        additions["nearest_partner_key"] = ""
+    return pd.concat(
+        [out, pd.DataFrame(additions, index=out.index)],
+        axis=1,
+    ).copy()
 
 
 def test_same_fps_legacy_and_cvat_t6_have_same_physical_clock() -> None:

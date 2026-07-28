@@ -50,10 +50,10 @@ REQUIRED_MODEL_MODES = {
 }
 GROUP_DIMS = {
     "bbox_xywh_n": 4,
-    "bbox_shape_n": 3,
-    "motion_delta": 5,
-    "roi_class_relation": 6,
-    "social_relation": 7,
+    "bbox_shape_n": 2,
+    "motion_delta": 12,
+    "roi_class_relation": 18,
+    "social_relation": 10,
     "pen_boundary_context": 7,
 }
 
