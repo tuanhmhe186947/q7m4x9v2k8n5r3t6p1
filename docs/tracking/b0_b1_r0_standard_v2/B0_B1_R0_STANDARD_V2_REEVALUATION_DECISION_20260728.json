@@ -1,0 +1,32 @@
+{
+  "B0_standard_v2_authority": "ESTABLISHED",
+  "B1_standard_v2_authority": "ESTABLISHED",
+  "R0_standard_v2_authority": "ESTABLISHED",
+  "blockers": [
+    "R1 predictions and metrics do not yet exist.",
+    "Unseen evaluation and promotion remain unauthorized."
+  ],
+  "common_evaluator_authority": "PASS",
+  "common_frame_authority": "PASS",
+  "common_gt_authority": "PASS",
+  "common_hidden_policy": "PASS",
+  "common_video_authority": "PASS",
+  "date": "20260728",
+  "decision": "PASS_B0_B1_R0_STANDARD_V2_AUTHORITY_ESTABLISHED",
+  "detector_inference_calls": 0,
+  "headline_results_require_update": true,
+  "identity_episode_double_count": 0,
+  "input_order_invariance": "PASS",
+  "legacy_ranking_preserved": false,
+  "pairwise_swap_double_count": 0,
+  "prediction_artifacts_modified": 0,
+  "ready_for_R1_prediction_generation": true,
+  "ready_for_complete_2x2_evaluation": false,
+  "ready_for_unseen_evaluation": false,
+  "ready_to_promote": false,
+  "reevaluation_repeatability": "PASS",
+  "schema_version": "tracking.standard_v2.reevaluation_decision.v1",
+  "tp_fp_fn_conservation": "PASS",
+  "tracker_executions": 0,
+  "wrong_id_row_conservation": "PASS"
+}

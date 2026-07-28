@@ -1,0 +1,12 @@
+{
+  "date": "20260728",
+  "identity_episode_double_count": 0,
+  "multi_video_boundary_status": "PASS",
+  "pairwise_swap_double_count": 0,
+  "schema_version": "tracking.standard_v2.identity_conservation.v1",
+  "tp_fp_fn_conservation": "PASS",
+  "wrong_id_row_conservation": "PASS",
+  "wrong_id_rows_classified": 75864,
+  "wrong_id_rows_input": 75864,
+  "wrong_id_rows_unclassified": 0
+}

@@ -1,5 +1,24 @@
 • Kế Hoạch Tương Lai
 
+## B0/B1/R0 Standard-V2 authority - 2026-07-28
+
+- Frozen B0, B1, and R0 predictions passed two complete
+  `TRACKING_EVALUATOR_STANDARD_V2` runs with `include_hidden=true`.
+- Corrected HOTA: B0 `0.849511403`, B1 `0.849873389`,
+  R0 `0.888187232`.
+- Corrected IDF1: B0 `0.920646368`, B1 `0.914081197`,
+  R0 `0.971892400`.
+- Corrected `IDSW_STANDARD`: B0 `84`, B1 `64`, R0 `29`.
+- The old B1 > R0 > B0 headline ranking is retired. Standard-V2 values now
+  govern development baseline reporting.
+- B1 minus B0 is still the matched-cadence offline-repair contrast.
+  R0 contrasts include detector cadence and cannot support a pure
+  association-core claim.
+- R1 prediction generation is the next authorized tracking task under its
+  frozen profile and even-frame detector contract.
+- Complete development 2x2 evaluation, unseen evaluation, runtime testing,
+  and promotion remain unauthorized.
+
 ## B0/B1 frozen prediction authority — 2026-07-28
 
 - B0 `bytetrack_raw` và B1 `hybrid_bytetrack` đã chạy độc lập trên đúng 13

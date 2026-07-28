@@ -1,5 +1,28 @@
 # Current Decision
 
+## B0/B1/R0 Standard-V2 authorities established (2026-07-28)
+
+- `REEVALUATION_DECISION=PASS_B0_B1_R0_STANDARD_V2_AUTHORITY_ESTABLISHED`
+- Immutable B0, B1, and R0 predictions were evaluated twice with
+  `TRACKING_EVALUATOR_STANDARD_V2` and `include_hidden=true`.
+- Corrected aggregate HOTA is B0 `0.849511403`, B1 `0.849873389`, and
+  R0 `0.888187232`; corrected IDF1 is B0 `0.920646368`,
+  B1 `0.914081197`, and R0 `0.971892400`.
+- Corrected `IDSW_STANDARD` is B0 `84`, B1 `64`, and R0 `29`.
+- The old B1 > R0 > B0 headline ranking is not preserved. Current headline
+  results must use Standard-V2; legacy HOTA/DetA/AssA remain historical
+  non-standard diagnostics.
+- B1 minus B0 remains the matched every-frame repair comparison. Comparisons
+  with R0 are whole-pipeline effects including detector cadence, not pure
+  association-core effects.
+- Prediction immutability, TP/FP/FN conservation, wrong-ID conservation,
+  pairwise-event conservation, two-pass repeatability, and input-order
+  invariance all passed. Tracker/detector execution and unseen access were zero.
+- Frozen metric artifacts are under
+  `outputs/tracking/standard_v2_b0_b1_r0_reevaluation_20260728_retry1/`.
+- R1 prediction generation may begin under its frozen method/cadence contract.
+  Complete 2x2, unseen evaluation, runtime, promotion remain unauthorized.
+
 ## B0/B1 frozen prediction authorities established (2026-07-28)
 
 - `PREDICTION_GENERATION_DECISION=PASS_B0_B1_PREDICTIONS_FROZEN`
