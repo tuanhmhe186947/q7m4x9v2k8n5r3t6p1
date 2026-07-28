@@ -16,6 +16,9 @@ def _load_json(name: str) -> dict[str, object]:
 
 
 def _sha256(path: Path) -> str:
+    if path.suffix == ".csv":
+        normalized = path.read_text(encoding="utf-8").encode("utf-8")
+        return hashlib.sha256(normalized).hexdigest()
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
@@ -49,6 +52,14 @@ def test_consolidated_authority_binds_independent_records() -> None:
         path = REPO_ROOT / reference["path"]
         assert path.is_file()
         assert _sha256(path) == reference["sha256"]
+
+    r0_authority = _load_json(
+        "R0_HISTORICAL_RECONSTRUCTION_AUTHORITY_20260729.json"
+    )
+    chronology = r0_authority["fast_method_chronology"]
+    chronology_path = REPO_ROOT / chronology["path"]
+    assert chronology_path.is_file()
+    assert _sha256(chronology_path) == chronology["sha256"]
 
 
 def test_prediction_parity_fingerprints_are_frozen() -> None:

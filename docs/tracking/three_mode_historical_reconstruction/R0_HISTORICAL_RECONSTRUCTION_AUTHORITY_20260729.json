@@ -10,6 +10,10 @@
   "date": "20260729",
   "detector_inference_calls": 0,
   "exact_historical_execution": "NOT_NEEDED_NOT_RUN",
+  "fast_method_chronology": {
+    "path": "docs/tracking/three_mode_historical_reconstruction/R0_FAST_METHOD_CHRONOLOGY_20260729.csv",
+    "sha256": "676a5360df7232a7e9aadc2fac55b30457eeb343bfbd4230869298e4389720fd"
+  },
   "first_divergent_stage": "evaluator",
   "historical_method_version": "RF_ACC23_FULL13_PRIMARY_V1",
   "historical_prediction_artifact_sha256": "f20207225537fcb3d0e03c7f9830a3e59f329537dc3dc4c36261dd24168a59e2",

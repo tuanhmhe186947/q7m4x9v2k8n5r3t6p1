@@ -5,7 +5,7 @@
     "R0": "SURVIVING_PREDICTIONS_FOUND",
     "inventory": {
       "path": "docs/tracking/three_mode_historical_reconstruction/THREE_MODE_HISTORICAL_ARTIFACT_SEARCH_20260729.csv",
-      "sha256": "308e2af3c4ba6fb639b8fb0f1a405be4bec9456d967d88849f112801165be4df"
+      "sha256": "66098855a450fdd72e4e3eb23d7dc4f2060ce329f4cb05f161b1ce2d7106f0e6"
     }
   },
   "blockers": [
@@ -15,11 +15,11 @@
   ],
   "causal_matrix": {
     "path": "docs/tracking/three_mode_historical_reconstruction/THREE_MODE_HISTORICAL_DIFFERENCE_CAUSAL_MATRIX_20260729.csv",
-    "sha256": "d67cfd29317c0ffc124dff0c80cbe4a587a11c8613c301635805e8e18d46b05a"
+    "sha256": "5c07dd330d047676583bf753203390a62d692357c8d9d9e6cfa15aae03268a28"
   },
   "claim_matrix": {
     "path": "docs/tracking/three_mode_historical_reconstruction/THREE_MODE_CLAIM_CORRECTION_20260729.csv",
-    "sha256": "55c75f4f335fe9a7f9e9d2eaa6598a7f4445d61dbd2eaad16e5df12ef7337fb5"
+    "sha256": "141a307f36c34f55b7deb886e17e7106a0debd85660c711be81def115daf1aa3"
   },
   "current_2x2_internal_authority": "VALID_WITH_LIMITATIONS",
   "current_2x2_represents_true_historical_best": false,
@@ -52,7 +52,7 @@
     },
     "R0": {
       "path": "docs/tracking/three_mode_historical_reconstruction/R0_HISTORICAL_RECONSTRUCTION_AUTHORITY_20260729.json",
-      "sha256": "fbe26b7d5654f8e0682e809c72821740196cc236b348f2a96455cf7a03b8fdfe"
+      "sha256": "7090b36ed7e78380ccaf2967b481ac44d21dc26a7fe663c6a69caf5c850c0804"
     }
   },
   "ready_for_superseding_method_freeze_decision": true,
