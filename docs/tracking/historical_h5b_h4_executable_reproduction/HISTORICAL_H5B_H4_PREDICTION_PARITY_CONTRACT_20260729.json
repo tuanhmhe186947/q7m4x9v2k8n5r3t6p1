@@ -1,0 +1,37 @@
+{
+  "schema_version": "tracking.h5b_h4.prediction_parity_contract.v1",
+  "date": "20260729",
+  "frozen_before_execution": true,
+  "levels": {
+    "level_1": "EXACT_CANONICAL_PREDICTION_PARITY",
+    "level_2": "SEMANTIC_PREDICTION_PARITY",
+    "level_3": "METRIC_ONLY_PARITY",
+    "level_4": "REPRODUCTION_FAILED"
+  },
+  "canonical_contract": {
+    "same_video_count": true,
+    "same_rows": true,
+    "same_frame_indices": true,
+    "same_identity_values": true,
+    "same_hidden_state": true,
+    "same_bbox_values_after_historical_serialization": true,
+    "same_deterministic_row_order": true
+  },
+  "semantic_contract": {
+    "identity_differences": 0,
+    "hidden_state_differences": 0,
+    "row_additions": 0,
+    "row_removals": 0,
+    "frame_index_differences": 0,
+    "bbox_absolute_tolerance": 0.01,
+    "minimum_paired_bbox_iou": 0.9999,
+    "tolerance_basis": "CVAT writer serializes bbox coordinates to 2 decimals"
+  },
+  "metric_contract": {
+    "count_metrics": "EXACT_EQUALITY",
+    "identity_diagnostics": "EXACT_EQUALITY",
+    "floating_absolute_tolerance": 1e-15
+  },
+  "post_result_parameter_changes_authorized": false,
+  "post_evaluation_rerun_authorized": false
+}

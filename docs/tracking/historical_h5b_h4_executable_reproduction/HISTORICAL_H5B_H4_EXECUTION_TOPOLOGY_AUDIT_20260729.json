@@ -1,0 +1,54 @@
+{
+  "schema_version": "tracking.h5b_h4.executable_topology_audit.v1",
+  "date": "20260729",
+  "topology": "CURRENT_MAIN_EXECUTABLE_SEMANTICALLY_EQUIVALENT",
+  "historical_source_sha": "31d360ba96b4065ce5125c0d88765531cc5898ae",
+  "current_source_sha": "e7a95d269c25f3859f3e77d5981f1fde34fb2685",
+  "current_code_blobs": {
+    "src/pig_behavior/tracking/association.py": "9c498f83fc189b82fb3c542b7b3e8a45b5be4c23",
+    "src/pig_behavior/tracking/refinement.py": "1e4647faab5ff995c01933f5b943be8b6fe17c60",
+    "src/pig_behavior/tracking/offline_repair.py": "0855342e9d04edaf532864daf93a3bf3fcb05b20",
+    "src/pig_behavior/tracking/runner.py": "250b88234177ea79a414c1b5ed2b42717a1718a9",
+    "src/pig_behavior/tracking/profiles/hybrid_bytetrack.py": "99d83aed2a7644d53477896babfe51360e2eb627",
+    "src/pig_behavior/tracking/exporters/cvat_xml.py": "92c15002530c24a7ba6b732e968f5a63c82f5309"
+  },
+  "operations": [
+    {
+      "operation": "promoted profile overrides",
+      "historical": "runtime overrides frozen in promotion record",
+      "current": "hybrid_bytetrack_best promoted profile",
+      "status": "SEMANTIC_MATCH"
+    },
+    {
+      "operation": "H5b hidden-suffix persistence repair",
+      "historical": "c11a2f4037cc20db996ce370adf4558c93d85474",
+      "current": "same function, enabled with persistence=2",
+      "status": "SEMANTIC_MATCH"
+    },
+    {
+      "operation": "H4 far-camera geometry replay",
+      "historical": "befaa58c4bc4228e714a187999aa12abb72f00b8",
+      "current": "same function and frozen thresholds",
+      "status": "SEMANTIC_MATCH"
+    },
+    {
+      "operation": "offline stage order",
+      "historical": "runner post-video sequence",
+      "current": "apply_offline_repair_stack refactor",
+      "status": "SEMANTIC_MATCH"
+    },
+    {
+      "operation": "post-historical association changes",
+      "historical": "not present",
+      "current": "realtime-only or disabled opt-in flags",
+      "status": "NOT_ACTIVE_FOR_HYBRID_PROFILE"
+    },
+    {
+      "operation": "detector invocation",
+      "historical": "live model.track",
+      "current": "fail-closed ReplayDetector cache seam",
+      "status": "AUTHORIZED_EVIDENCE_SUBSTITUTION"
+    }
+  ],
+  "claim_limit": "Equivalence applies only to the frozen hybrid profile and cache replay path; exact missing historical detector rows remain unproven."
+}
