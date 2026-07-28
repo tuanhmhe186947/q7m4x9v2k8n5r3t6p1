@@ -34,6 +34,7 @@ from pig_behavior.tracking.exporters.quality import (
 )
 from pig_behavior.tracking.masks import apply_mask_to_frame, load_mask
 from pig_behavior.tracking.offline_repair import (
+    OfflineRepairResult,
     RepairLedgerContext,
     adapt_rf_shapes_for_offline_repair,
     apply_offline_repair_stack,
@@ -124,6 +125,10 @@ def run_tracking(
     cfg: TrackingConfig,
     model: object | None = None,
     rf_raw_core_guard: Callable[[list[dict[str, Any]]], None] | None = None,
+    hybrid_repair_capture: Callable[
+        [list[dict[str, Any]], OfflineRepairResult], None
+    ]
+    | None = None,
 ) -> TrackingSummary:
     """Run YOLOv8 + mask + stabilized eight-ID tracking.
 
@@ -510,13 +515,27 @@ def run_tracking(
             video_key=cfg.video_path.stem,
         )
     else:
-        shapes = apply_offline_repair_stack(
+        raw_snapshot = (
+            deepcopy(shapes) if hybrid_repair_capture is not None else None
+        )
+        repair_result = apply_offline_repair_stack(
             shapes,
             width,
             height,
             mask,
             cfg,
-        ).shapes
+            ledger_context=(
+                RepairLedgerContext(
+                    source_core=cfg.mode,
+                    video_key=cfg.video_path.stem,
+                )
+                if hybrid_repair_capture is not None
+                else None
+            ),
+        )
+        if raw_snapshot is not None and hybrid_repair_capture is not None:
+            hybrid_repair_capture(raw_snapshot, repair_result)
+        shapes = repair_result.shapes
     runtime.telemetry["postprocess_time_ms_total"] = (
         time.perf_counter() - postprocess_start
     ) * 1000.0
