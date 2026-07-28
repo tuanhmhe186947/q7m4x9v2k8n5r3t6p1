@@ -1,0 +1,52 @@
+{
+  "date": "20260728",
+  "historical_source_sha": "31d360ba96b4065ce5125c0d88765531cc5898ae",
+  "operations": [
+    {
+      "current": "cv2.VideoCapture/read zero-based loop",
+      "historical": "cv2.VideoCapture/read zero-based loop",
+      "operation": "sequential OpenCV video decode",
+      "status": "SEMANTIC_MATCH"
+    },
+    {
+      "current": "Git blob 5083aafae073b8f6ad113ce2f51d5ec044bb4297",
+      "historical": "Git blob 5083aafae073b8f6ad113ce2f51d5ec044bb4297",
+      "operation": "mask load, threshold, dilation, resize, apply",
+      "status": "EXACT_SOURCE_BLOB_MATCH"
+    },
+    {
+      "current": "Ultralytics library detector stage",
+      "historical": "Ultralytics library detector stage",
+      "operation": "YOLO preprocessing and coordinate restoration",
+      "status": "SEMANTIC_MATCH_VERSION_BOUND_CURRENT_RUN"
+    },
+    {
+      "current": "explicit 0.20 / 0.50 / 64 / 640 arguments",
+      "historical": "0.20 / 0.50 / 64 / 640 authority",
+      "operation": "confidence, NMS, max detections, image size",
+      "status": "EXACT_EFFECTIVE_CONFIG_MATCH"
+    },
+    {
+      "current": "FP32 cuda:0 with fully recorded packages",
+      "historical": "FP32 automatic CUDA; exact packages unresolved",
+      "operation": "precision and device",
+      "status": "SEMANTIC_MATCH_ENVIRONMENT_PARITY_UNPROVEN"
+    },
+    {
+      "current": "tracking.detector_evidence_cache.v2",
+      "historical": "raw cache unavailable",
+      "operation": "cache serialization",
+      "status": "NEW_REPRODUCTION_AUTHORITY_REPRESENTATION"
+    }
+  ],
+  "schema_version": "tracking.historical_h5b_h4.producer_audit.v1",
+  "scientific_limitations": [
+    "The original historical raw detector cache is unavailable.",
+    "Historical package versions beyond Python are unresolved.",
+    "The original hybrid runner called model.track; this cache freezes the raw detector stage only and invokes no tracker.",
+    "Exact historical detector-row parity is not proven.",
+    "Final historical XML parity is deferred to a separate task."
+  ],
+  "scope": "RAW_YOLO_DETECTOR_STAGE_BEFORE_TRACKER_ASSOCIATION",
+  "topology": "CURRENT_PRODUCER_SEMANTICALLY_EQUIVALENT"
+}

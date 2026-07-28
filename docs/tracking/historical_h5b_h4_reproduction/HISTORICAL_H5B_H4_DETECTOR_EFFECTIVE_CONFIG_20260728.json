@@ -1,0 +1,87 @@
+{
+  "cache": {
+    "frame_indexing": "ZERO_BASED_INCLUSIVE_0_TO_1799",
+    "frame_timestamps": "NOT_USED",
+    "schema": "tracking.detector_evidence_cache.v2",
+    "serialization": "numpy savez_compressed deterministic schema",
+    "zero_detection_representation": "empty float32 xyxy/conf arrays and int64 cls array"
+  },
+  "date": "20260728",
+  "detector": {
+    "allowed_class_name": null,
+    "bbox_coordinates": "xyxy_absolute_float32_original_decoded_frame_coordinates",
+    "call": "ultralytics.YOLO.predict",
+    "class_id_filter": null,
+    "class_policy": "ALL_MODEL_CLASSES_SINGLE_PIG_MODEL",
+    "confidence_threshold": 0.2,
+    "device": "cuda:0",
+    "frame_cadence": "EVERY_FRAME",
+    "half": false,
+    "image_size": 640,
+    "maximum_raw_detections": 64,
+    "nms_iou": 0.5,
+    "precision": "FP32",
+    "preprocessing": {
+      "autocast": "library_default_with_half_false",
+      "decode": "OpenCV_VideoCapture_sequential",
+      "letterbox": "ultralytics_library_default_for_imgsz_640",
+      "normalization": "ultralytics_library_default",
+      "source_color_order": "OpenCV_BGR_as_read"
+    },
+    "sorting": "ULTRALYTICS_NATIVE_RESULT_ORDER"
+  },
+  "detector_code_authority": {
+    "current_masks_git_blob": "5083aafae073b8f6ad113ce2f51d5ec044bb4297",
+    "current_runner_git_blob": "2b7f451a7333125accb3f9f081a29011d675b362",
+    "detector_cache_schema_sha256": "d6d8efabeac114c12325e95a5e1832c43821d1c1b542d4c7973bddaeb3357482",
+    "historical_hybrid_profile_git_blob": "97470ab98db2bcb77564c2a666b9fe2cafd822e7",
+    "historical_masks_git_blob": "5083aafae073b8f6ad113ce2f51d5ec044bb4297",
+    "historical_runner_git_blob": "186c3924539bc10c3192600441fd5e334398de11",
+    "mask_code_sha256": "78a592c617d406fd3d356192e816d460318896269a5e6cc522ec1460786c76da"
+  },
+  "detector_producer_topology": "CURRENT_PRODUCER_SEMANTICALLY_EQUIVALENT",
+  "effective_config_sha256": "0205f09d48fa78c0a2cb8348f96478eca661c185323f2690bf441050b2fbc0f9",
+  "environment": {
+    "cuda_available": true,
+    "cudnn_benchmark": false,
+    "cudnn_enabled": true,
+    "cudnn_version": 90100,
+    "deterministic_algorithms": false,
+    "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
+    "historical_run_python": "3.11.9 (tags/v3.11.9:de54cf5, Apr 2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]",
+    "historical_torch_cuda_cudnn_versions": "UNRESOLVED",
+    "historical_ultralytics_version": "UNRESOLVED",
+    "numpy": "2.3.5",
+    "opencv": "5.0.0",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "python": "3.11.15 | packaged by Anaconda, Inc. | (main, Jun 11 2026, 15:12:53) [MSC v.1942 64 bit (AMD64)]",
+    "python_executable": "C:\\Users\\ironh\\anaconda3\\envs\\pig_project\\python.exe",
+    "torch": "2.5.1+cu121",
+    "torch_cuda": "12.1",
+    "ultralytics": "8.4.76"
+  },
+  "historical_best_run_id": "20260719_h5b_h4_full13_combined_v2",
+  "historical_best_source_sha": "31d360ba96b4065ce5125c0d88765531cc5898ae",
+  "mask": {
+    "application": "cv2.bitwise_and",
+    "dilation": {
+      "iterations": 1,
+      "kernel": "MORPH_ELLIPSE",
+      "roi_dilate_px": 8
+    },
+    "mask_input_frame": true,
+    "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\scene\\mask.png",
+    "read_mode": "cv2.IMREAD_GRAYSCALE",
+    "resize": "INTER_NEAREST_WHEN_REQUIRED",
+    "sha256": "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658",
+    "threshold": 127
+  },
+  "producer_git_sha": "28b488f21e0b637957bd58bcf40f897d61d42a69",
+  "producer_script_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_tmp\\worktrees\\reproduce_historical_h5b_h4_detector_cache\\scripts\\tracking\\reproduce_historical_h5b_h4_detector_cache.py",
+  "producer_script_sha256": "ea45fb4dec5451b311abedf250f0a6be21126aca13096dda7cdee03bc455c201",
+  "schema_version": "tracking.historical_h5b_h4.detector_config.v1",
+  "weights": {
+    "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\models\\detector\\pig_detector_yolov8.pt",
+    "sha256": "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed"
+  }
+}
