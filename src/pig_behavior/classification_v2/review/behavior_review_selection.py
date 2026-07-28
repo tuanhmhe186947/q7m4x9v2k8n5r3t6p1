@@ -10,6 +10,12 @@ from typing import Any
 
 import pandas as pd
 
+from pig_behavior.classification_v2.review.behavior_threshold_registry import (
+    resolve_threshold,
+    threshold_by_name,
+    threshold_registry_hash,
+)
+
 BEHAVIOR_REVIEW_COHORTS: tuple[str, ...] = (
     "behavior_mandatory_census",
     "behavior_high_risk",
@@ -261,12 +267,14 @@ def assign_behavior_review_cohorts(
     ] = "TIER_3_STRATIFIED_AUDIT"
     out["selection_predicate_version"] = SELECTION_PREDICATE_VERSION
     out["selection_config_hash"] = _selection_config_hash(cfg)
+    out["threshold_registry_hash"] = threshold_registry_hash()
     out["review_selection_predicates"] = out.apply(
         _active_predicate_names,
         axis=1,
     )
     out["review_reason_codes"] = out.apply(_selection_reason_codes, axis=1)
     out["review_reason"] = out["review_reason_codes"]
+    _finalize_threshold_authority_columns(out)
     out["risk_score"] = _risk_score(out)
     out["risk_components"] = out.apply(_risk_components, axis=1)
     out["evidence_values_used"] = out.apply(_evidence_values_used, axis=1)
@@ -358,6 +366,109 @@ def audit_behavior_review_selection(
         errors.append(
             f"global_mandatory_selection_forbidden={int(global_mandatory.sum())}"
         )
+    expected_registry_hash = threshold_registry_hash()
+    if "threshold_registry_hash" not in units:
+        errors.append("threshold_registry_hash_missing")
+    else:
+        observed_hashes = set(
+            units["threshold_registry_hash"]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+        )
+        if observed_hashes != {expected_registry_hash}:
+            errors.append(
+                "threshold_registry_hash_mismatch="
+                f"{sorted(observed_hashes)}:{expected_registry_hash}"
+            )
+    threshold_predicates = [
+        "review_predicate_roi_contradiction",
+        "review_predicate_roi_possible_false_negative",
+        "review_predicate_interaction_contradiction",
+        "review_predicate_partner_context_insufficient",
+        "review_predicate_motion_contradiction",
+        "review_predicate_posture_contradiction",
+        "review_predicate_temporal_contradiction",
+        "review_predicate_media_or_actor_authority_risk",
+        "review_predicate_evidence_insufficiency",
+    ]
+    threshold_selected = actual_include & units[threshold_predicates].any(
+        axis=1
+    )
+    missing_threshold_authority = 0
+    invalid_threshold_comparisons = 0
+    invalid_threshold_examples: list[dict[str, Any]] = []
+    for index in units.index[threshold_selected]:
+        records = _parse_threshold_records(
+            units.at[index, "review_threshold_decisions"]
+        )
+        if not records:
+            missing_threshold_authority += 1
+            continue
+        for record in records:
+            try:
+                entry = resolve_threshold(
+                    str(record.get("threshold_id", "")),
+                    metric_id=str(record.get("metric_id", "")),
+                    metric_version=str(record.get("metric_version", "")),
+                    metric_units=str(record.get("metric_units", "")),
+                    manifest_registry_hash=expected_registry_hash,
+                )
+            except ValueError as exc:
+                invalid_threshold_comparisons += 1
+                if len(invalid_threshold_examples) < 5:
+                    invalid_threshold_examples.append(
+                        {
+                            "review_unit_id": str(
+                                units.at[index, "review_unit_id"]
+                            ),
+                            "threshold_id": str(
+                                record.get("threshold_id", "")
+                            ),
+                            "failure": f"binding_error:{exc}",
+                        }
+                    )
+                continue
+            observed = float(record.get("observed_feature_value"))
+            if not _comparison_true(
+                observed,
+                entry.comparison_operator,
+                entry.threshold_value,
+            ):
+                invalid_threshold_comparisons += 1
+                if len(invalid_threshold_examples) < 5:
+                    invalid_threshold_examples.append(
+                        {
+                            "review_unit_id": str(
+                                units.at[index, "review_unit_id"]
+                            ),
+                            "threshold_id": entry.threshold_id,
+                            "observed_feature_value": observed,
+                            "comparison_operator": (
+                                entry.comparison_operator
+                            ),
+                            "threshold_value": entry.threshold_value,
+                            "failure": "comparison_false",
+                        }
+                    )
+    if missing_threshold_authority:
+        errors.append(
+            "threshold_selected_candidates_without_authority="
+            f"{missing_threshold_authority}"
+        )
+    if invalid_threshold_comparisons:
+        errors.append(
+            "invalid_threshold_candidate_comparisons="
+            f"{invalid_threshold_comparisons}"
+        )
+        errors.append(
+            "invalid_threshold_candidate_examples="
+            + json.dumps(
+                invalid_threshold_examples,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+        )
     random_rows = units[
         units["behavior_review_cohort"].eq("behavior_random_audit")
     ]
@@ -409,6 +520,14 @@ def audit_behavior_review_selection(
         "evidence_availability_only_candidates": int(
             availability_only.sum()
         ),
+        "threshold_registry_hash": expected_registry_hash,
+        "threshold_selected_candidates_without_authority": (
+            missing_threshold_authority
+        ),
+        "invalid_threshold_candidate_comparisons": (
+            invalid_threshold_comparisons
+        ),
+        "invalid_threshold_candidate_examples": invalid_threshold_examples,
         "cohort_counts": _counts(units, "behavior_review_cohort"),
         "candidate_tier_counts": _counts(units, "candidate_tier"),
         "behavior_counts": _counts(units, "behavior_label"),
@@ -631,6 +750,7 @@ def _attach_candidate_predicates(out: pd.DataFrame) -> None:
         explicit_high_risk | inherited_concrete
     )
     out["review_predicate_stratified_low_risk_audit"] = False
+    _append_structural_threshold_decisions(out)
 
 
 def _recording_date(value: Any) -> str:
@@ -797,9 +917,197 @@ def _bool_column(
     )
 
 
+def _threshold_record(
+    threshold_name: str,
+    *,
+    predicate_id: str,
+    observed_feature_value: float,
+    reason_code: str,
+) -> dict[str, Any]:
+    entry = threshold_by_name(threshold_name)
+    return {
+        "predicate_id": predicate_id,
+        "threshold_id": entry.threshold_id,
+        "metric_id": entry.metric_id,
+        "metric_version": entry.metric_version,
+        "metric_units": entry.metric_units,
+        "feature_name": entry.feature_name,
+        "observed_feature_value": float(observed_feature_value),
+        "comparison_operator": entry.comparison_operator,
+        "threshold_value": entry.threshold_value,
+        "authority_hash": entry.authority_hash,
+        "threshold_semantic_hash": entry.semantic_hash,
+        "reason_code": reason_code,
+    }
+
+
+def _comparison_true(observed: float, operator: str, threshold: float) -> bool:
+    if operator == "<":
+        return observed < threshold
+    if operator == "<=":
+        return observed <= threshold
+    if operator == ">":
+        return observed > threshold
+    if operator == ">=":
+        return observed >= threshold
+    if operator == "==":
+        return observed == threshold
+    if operator == "!=":
+        return observed != threshold
+    if operator == "SCALE_BY_REFERENCE":
+        return threshold > 0
+    raise ValueError(f"unsupported threshold comparison operator: {operator}")
+
+
+def _parse_threshold_records(value: Any) -> list[dict[str, Any]]:
+    if value is None or pd.isna(value) or not str(value).strip():
+        return []
+    try:
+        records = json.loads(str(value))
+    except json.JSONDecodeError as exc:
+        raise ValueError("review_threshold_decisions is not valid JSON") from exc
+    if not isinstance(records, list) or not all(
+        isinstance(record, dict) for record in records
+    ):
+        raise ValueError("review_threshold_decisions must be a JSON list")
+    return records
+
+
+def _append_structural_threshold_decisions(out: pd.DataFrame) -> None:
+    """Bind structural candidate predicates to explicit numeric indicators."""
+
+    traces: list[str] = []
+    for _, row in out.iterrows():
+        records = _parse_threshold_records(
+            row.get("review_threshold_decisions", "[]")
+        )
+        behavior = str(row.get("behavior_label", ""))
+        if behavior in {"fight", "social-nose"} and bool(
+            row.get("review_predicate_partner_context_insufficient", False)
+        ):
+            records.append(
+                _threshold_record(
+                    "partner_context_availability_floor",
+                    predicate_id="PARTNER_CONTEXT_INSUFFICIENT",
+                    observed_feature_value=0.0,
+                    reason_code="social_evidence_unavailable",
+                )
+            )
+        if bool(row.get("review_predicate_temporal_contradiction", False)):
+            records.append(
+                _threshold_record(
+                    "temporal_stability_indicator_floor",
+                    predicate_id="TEMPORAL_CONTRADICTION",
+                    observed_feature_value=0.0,
+                    reason_code="TEMPORAL_CONTRADICTION",
+                )
+            )
+        if bool(
+            row.get("review_predicate_media_or_actor_authority_risk", False)
+        ):
+            interval_reasons = _reason_tokens(
+                row.get("interval_review_reason", "")
+            )
+            hidden_ratio = pd.to_numeric(
+                pd.Series([row.get("hidden_ratio_interval")]),
+                errors="coerce",
+            ).iloc[0]
+            if (
+                "high_hidden_ratio_interval" in interval_reasons
+                and pd.notna(hidden_ratio)
+            ):
+                records.append(
+                    _threshold_record(
+                        "high_hidden_ratio_interval",
+                        predicate_id="MEDIA_OR_ACTOR_AUTHORITY_RISK",
+                        observed_feature_value=float(hidden_ratio),
+                        reason_code="high_hidden_ratio_interval",
+                    )
+                )
+            bbox_ratio = pd.to_numeric(
+                pd.Series([row.get("bbox_valid_ratio_interval", 1.0)]),
+                errors="coerce",
+            ).iloc[0]
+            if pd.notna(bbox_ratio) and float(bbox_ratio) <= 0.0:
+                records.append(
+                    _threshold_record(
+                        "bbox_valid_ratio_authority_floor",
+                        predicate_id="MEDIA_OR_ACTOR_AUTHORITY_RISK",
+                        observed_feature_value=float(bbox_ratio),
+                        reason_code="bbox_authority_unavailable",
+                    )
+                )
+            if not _truth_value(
+                row.get("temporal_interval_complete", True)
+            ):
+                records.append(
+                    _threshold_record(
+                        "temporal_interval_complete_floor",
+                        predicate_id="MEDIA_OR_ACTOR_AUTHORITY_RISK",
+                        observed_feature_value=0.0,
+                        reason_code="temporal_interval_incomplete",
+                    )
+                )
+        if bool(
+            row.get("review_predicate_evidence_insufficiency", False)
+        ):
+            records.append(
+                _threshold_record(
+                    "relevant_evidence_availability_floor",
+                    predicate_id="EVIDENCE_INSUFFICIENCY",
+                    observed_feature_value=0.0,
+                    reason_code="missing_relevant_modality",
+                )
+            )
+        traces.append(
+            json.dumps(records, sort_keys=True, separators=(",", ":"))
+        )
+    out["review_threshold_decisions"] = traces
+
+
+def _finalize_threshold_authority_columns(out: pd.DataFrame) -> None:
+    """Expose threshold authority in machine-readable candidate columns."""
+
+    parsed = out["review_threshold_decisions"].map(
+        _parse_threshold_records
+    )
+    fields = (
+        "predicate_id",
+        "threshold_id",
+        "metric_id",
+        "metric_version",
+        "observed_feature_value",
+        "comparison_operator",
+        "threshold_value",
+        "reason_code",
+    )
+    out["threshold_binding_details"] = out[
+        "review_threshold_decisions"
+    ]
+    for field in fields:
+        out[field] = parsed.map(
+            lambda records, key=field: json.dumps(
+                [record.get(key) for record in records],
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
+        )
+
+
 def _selection_config_hash(config: BehaviorReviewSelectionConfig) -> str:
     payload = json.dumps(
-        asdict(config),
+        {
+            "selection_config": asdict(config),
+            "selection_predicate_version": SELECTION_PREDICATE_VERSION,
+            "threshold_registry_hash": threshold_registry_hash(),
+            "rare_class_census_behaviors": sorted(RARE_CENSUS_BEHAVIORS),
+            "stratified_sampling": {
+                "seed": config.random_seed,
+                "per_stratum": config.random_per_stratum,
+                "stratum_columns": list(config.stratum_columns),
+                "sampling_sources": list(config.sampling_sources),
+            },
+        },
         sort_keys=True,
         separators=(",", ":"),
     )

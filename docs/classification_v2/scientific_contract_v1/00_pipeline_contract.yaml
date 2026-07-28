@@ -154,6 +154,12 @@
     {"artifact_id": "artifact.behavior_review_units", "name": "behavior review candidate manifest"},
     {"artifact_id": "artifact.behavior_review_universe", "name": "behavior review universe"},
     {"artifact_id": "artifact.behavior_review_auto_carry", "name": "behavior review auto-carry manifest"},
+    {"artifact_id": "artifact.behavior_review_population_audit", "name": "behavior review population audit"},
+    {"artifact_id": "artifact.behavior_review_predicate_overlap", "name": "behavior review predicate overlap"},
+    {"artifact_id": "artifact.behavior_review_pilot_sample", "name": "behavior review pilot sample"},
+    {"artifact_id": "artifact.behavior_threshold_registry", "name": "Behavior threshold registry snapshot"},
+    {"artifact_id": "artifact.behavior_threshold_binding_audit", "name": "Behavior threshold binding audit"},
+    {"artifact_id": "artifact.behavior_threshold_sensitivity", "name": "Behavior threshold sensitivity analysis"},
     {"artifact_id": "artifact.behavior_decisions", "name": "behavior decisions"},
     {"artifact_id": "artifact.reviewed_frames", "name": "reviewed_frame_features.csv"},
     {"artifact_id": "artifact.train_ready", "name": "train-ready windows"},
@@ -490,7 +496,13 @@
       "output_artifacts": [
         "artifact.behavior_review_units",
         "artifact.behavior_review_universe",
-        "artifact.behavior_review_auto_carry"
+        "artifact.behavior_review_auto_carry",
+        "artifact.behavior_review_population_audit",
+        "artifact.behavior_review_predicate_overlap",
+        "artifact.behavior_review_pilot_sample",
+        "artifact.behavior_threshold_registry",
+        "artifact.behavior_threshold_binding_audit",
+        "artifact.behavior_threshold_sensitivity"
       ],
       "input_grain": "NATIVE_INTERVAL",
       "output_grain": "BEHAVIOR_REVIEW_UNIT",
@@ -508,7 +520,9 @@
             "review_reason_codes",
             "risk_score",
             "selection_predicate_version",
-            "selection_config_hash"
+            "selection_config_hash",
+            "threshold_registry_hash",
+            "threshold_binding_details"
           ],
           "key_columns": ["review_unit_id", "temporal_unit_key"],
           "row_identity": "one_selected_native_interval"
@@ -537,6 +551,48 @@
           ],
           "key_columns": ["review_unit_id", "temporal_unit_key"],
           "row_identity": "one_unselected_low_risk_native_interval"
+        },
+        "artifact.behavior_review_population_audit": {
+          "schema_id": "artifact.behavior_review_population_audit",
+          "schema_version": "classification_v2.behavior_review_population_audit.v2",
+          "required_columns": ["schema_version", "full_universe_count", "threshold_registry_hash"],
+          "key_columns": [],
+          "row_identity": "one_population_audit"
+        },
+        "artifact.behavior_review_predicate_overlap": {
+          "schema_id": "artifact.behavior_review_predicate_overlap",
+          "schema_version": "classification_v2.behavior_review_predicate_overlap.v1",
+          "required_columns": ["predicate_a", "predicate_b", "overlap_count"],
+          "key_columns": ["predicate_a", "predicate_b"],
+          "row_identity": "one_predicate_pair"
+        },
+        "artifact.behavior_review_pilot_sample": {
+          "schema_id": "artifact.behavior_review_pilot_sample",
+          "schema_version": "classification_v2.behavior_review_pilot_sample.v1",
+          "required_columns": ["review_unit_id", "pilot_reason"],
+          "key_columns": ["review_unit_id", "pilot_reason"],
+          "row_identity": "one_disposable_pilot_item"
+        },
+        "artifact.behavior_threshold_registry": {
+          "schema_id": "artifact.behavior_threshold_registry",
+          "schema_version": "classification_v2.behavior_threshold_registry.v1",
+          "required_columns": ["schema_version", "registry_id", "registry_hash", "thresholds"],
+          "key_columns": [],
+          "row_identity": "one_registry_snapshot"
+        },
+        "artifact.behavior_threshold_binding_audit": {
+          "schema_id": "artifact.behavior_threshold_binding_audit",
+          "schema_version": "classification_v2.behavior_threshold_binding_audit.v1",
+          "required_columns": ["schema_version", "registry_hash", "valid"],
+          "key_columns": [],
+          "row_identity": "one_independent_binding_audit"
+        },
+        "artifact.behavior_threshold_sensitivity": {
+          "schema_id": "artifact.behavior_threshold_sensitivity",
+          "schema_version": "classification_v2.behavior_threshold_sensitivity.v1",
+          "required_columns": ["threshold_id", "tested_value", "candidate_count", "registry_modified"],
+          "key_columns": ["threshold_id", "tested_value"],
+          "row_identity": "one_threshold_tested_value"
         }
       },
       "model_eligibility": "REVIEW_FIELDS_FORBIDDEN",
@@ -547,6 +603,8 @@
       "code_locations": [
         "src/pig_behavior/classification_v2/review/review_unit_builder.py#build_review_units",
         "src/pig_behavior/classification_v2/review/behavior_review_selection.py#assign_behavior_review_cohorts",
+        "src/pig_behavior/classification_v2/review/behavior_threshold_registry.py#canonical_threshold_registry",
+        "src/pig_behavior/classification_v2/review/behavior_threshold_audit.py#independent_threshold_candidate_audit",
         "src/pig_behavior/classification_v2/contracts/candidate_manifest.py#build_candidate_artifact_manifest"
       ],
       "current_status": "IMPLEMENTED_AND_TESTED"

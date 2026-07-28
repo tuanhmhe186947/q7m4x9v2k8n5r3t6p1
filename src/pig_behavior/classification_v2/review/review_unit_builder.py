@@ -31,6 +31,13 @@ from pig_behavior.classification_v2.review.behavior_review_selection import (
     assign_behavior_review_cohorts,
     audit_behavior_review_selection,
 )
+from pig_behavior.classification_v2.review.behavior_threshold_audit import (
+    independent_threshold_candidate_audit,
+    threshold_sensitivity_analysis,
+)
+from pig_behavior.classification_v2.review.behavior_threshold_registry import (
+    threshold_registry_snapshot,
+)
 from pig_behavior.classification_v2.review.pig_strenet_review_evidence import (
     PIG_REVIEW_EVIDENCE_COLUMNS,
     attach_pig_strenet_review_evidence,
@@ -62,6 +69,7 @@ class ReviewUnitConfig:
 
 
 def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
+    registry_snapshot = threshold_registry_snapshot()
     intervals = pd.read_csv(config.intervals_csv, low_memory=False)
     windows = None
     if config.sequence_window_manifest_csv is not None:
@@ -231,6 +239,17 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
     )
     errors.extend(partition_audit["errors"])
     warnings.extend(partition_audit["warnings"])
+    threshold_binding_audit = independent_threshold_candidate_audit(
+        units,
+        candidate_units,
+        auto_carry_units,
+        registry_snapshot,
+    )
+    errors.extend(threshold_binding_audit["errors"])
+    threshold_sensitivity = threshold_sensitivity_analysis(
+        units,
+        registry_snapshot,
+    )
 
     config.output_dir.mkdir(parents=True, exist_ok=True)
     if errors:
@@ -249,6 +268,7 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
             "pig_strenet_review_evidence": pig_strenet_audit,
             "review_scope": review_scope,
             "candidate_partition": partition_audit,
+            "threshold_binding": threshold_binding_audit,
         }
         audit_path = config.output_dir / "review_unit_audit.json"
         audit_path.write_text(
@@ -284,6 +304,35 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
         "review_unit_id",
         kind="mergesort",
     ).to_csv(auto_carry_path, index=False)
+    threshold_registry_path = (
+        config.output_dir / "threshold_registry_snapshot.json"
+    )
+    threshold_registry_path.write_text(
+        json.dumps(
+            registry_snapshot,
+            indent=2,
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    threshold_binding_path = (
+        config.output_dir / "threshold_binding_audit.json"
+    )
+    threshold_binding_path.write_text(
+        json.dumps(
+            threshold_binding_audit,
+            indent=2,
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    threshold_sensitivity_path = (
+        config.output_dir / "threshold_sensitivity_analysis.csv"
+    )
+    threshold_sensitivity.to_csv(
+        threshold_sensitivity_path,
+        index=False,
+    )
 
     outputs: dict[str, Path] = {
         "behavior_review_universe": universe_path,
@@ -348,6 +397,18 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
         "pig_strenet_review_evidence": pig_strenet_audit,
         "review_scope": review_scope,
         "candidate_partition": partition_audit,
+        "threshold_registry": {
+            "registry_id": registry_snapshot["registry_id"],
+            "registry_version": registry_snapshot["registry_version"],
+            "registry_hash": registry_snapshot["registry_hash"],
+            "active_threshold_count": registry_snapshot[
+                "active_threshold_count"
+            ],
+        },
+        "threshold_binding": threshold_binding_audit,
+        "threshold_sensitivity_analysis_csv": str(
+            threshold_sensitivity_path
+        ),
         "template_partition": template_audit,
         "review_reason_counts": _counts(
             units[units["include_in_review"].astype(bool)],
@@ -377,6 +438,18 @@ def build_review_units(config: ReviewUnitConfig) -> dict[str, Any]:
                 "auto_carry_count": int(len(auto_carry_units)),
                 "selection": behavior_selection_audit,
                 "partition": partition_audit,
+                "threshold_registry_hash": registry_snapshot[
+                    "registry_hash"
+                ],
+                "threshold_registry_snapshot_json": str(
+                    threshold_registry_path
+                ),
+                "threshold_binding_audit_json": str(
+                    threshold_binding_path
+                ),
+                "threshold_sensitivity_analysis_csv": str(
+                    threshold_sensitivity_path
+                ),
                 "predicate_overlap_csv": str(overlap_path),
                 "pilot_sample_csv": str(pilot_path),
             },

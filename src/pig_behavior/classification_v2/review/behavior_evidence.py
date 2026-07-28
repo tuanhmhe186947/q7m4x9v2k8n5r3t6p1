@@ -8,11 +8,18 @@ exclude it by construction.
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
 import pandas as pd
+
+from pig_behavior.classification_v2.review.behavior_threshold_registry import (
+    ThresholdAuthority,
+    threshold_by_name,
+    threshold_registry_hash,
+)
 
 INTERACTION_BEHAVIORS = {"fight", "social-nose"}
 ROI_BEHAVIOR_TO_CLASS = {
@@ -45,6 +52,8 @@ REVIEW_EVIDENCE_COLUMNS: tuple[str, ...] = (
     "review_confusion_pairs_auto",
     "review_evidence_reason_auto",
     "review_evidence_status_auto",
+    "review_threshold_decisions",
+    "review_threshold_evaluations",
 )
 
 REQUIRED_EVIDENCE_COLUMNS: tuple[str, ...] = (
@@ -80,16 +89,51 @@ NATIVE_BEHAVIOR_EVIDENCE_COLUMNS: tuple[str, ...] = (
 class BehaviorEvidenceConfig:
     """Fixed review-queue thresholds; values are not learned from labels."""
 
-    low_motion_support: float = 0.25
-    strong_motion_support: float = 0.60
-    low_roi_support: float = 0.25
-    strong_roi_support: float = 0.65
-    low_social_support: float = 0.25
-    strong_social_support: float = 0.60
-    conflict_review_threshold: float = 0.45
-    aggression_reference_n_per_second: float = 0.60
-    shape_transition_reference: float = 0.20
-    motion_speed_reference_n_per_second: float = 0.36
+    low_motion_support: float
+    strong_motion_support: float
+    low_roi_support: float
+    strong_roi_support: float
+    low_social_support: float
+    strong_social_support: float
+    conflict_review_threshold: float
+    aggression_reference_n_per_second: float
+    shape_transition_reference: float
+    motion_speed_reference_n_per_second: float
+    social_proximity_reference_n: float
+    pig_diff_inner_reference: float
+    threshold_registry_hash: str
+
+    @classmethod
+    def from_registry(cls) -> BehaviorEvidenceConfig:
+        """Resolve every numeric setting from the canonical registry."""
+
+        return cls(
+            low_motion_support=_threshold_value("low_motion_support"),
+            strong_motion_support=_threshold_value("strong_motion_support"),
+            low_roi_support=_threshold_value("low_roi_support"),
+            strong_roi_support=_threshold_value("strong_roi_support"),
+            low_social_support=_threshold_value("low_social_support"),
+            strong_social_support=_threshold_value("strong_social_support"),
+            conflict_review_threshold=_threshold_value(
+                "conflict_review_threshold"
+            ),
+            aggression_reference_n_per_second=_threshold_value(
+                "aggression_reference_n_per_second"
+            ),
+            shape_transition_reference=_threshold_value(
+                "shape_transition_reference"
+            ),
+            motion_speed_reference_n_per_second=_threshold_value(
+                "motion_speed_reference_n_per_second"
+            ),
+            social_proximity_reference_n=_threshold_value(
+                "social_proximity_reference_n"
+            ),
+            pig_diff_inner_reference=_threshold_value(
+                "pig_diff_inner_reference"
+            ),
+            threshold_registry_hash=threshold_registry_hash(),
+        )
 
     def validate(self) -> None:
         """Reject invalid review-score ranges before building a queue."""
@@ -119,6 +163,71 @@ class BehaviorEvidenceConfig:
             raise ValueError("shape_transition_reference must be > 0")
         if self.motion_speed_reference_n_per_second <= 0:
             raise ValueError("motion_speed_reference_n_per_second must be > 0")
+        if self.social_proximity_reference_n <= 0:
+            raise ValueError("social_proximity_reference_n must be > 0")
+        if self.pig_diff_inner_reference <= 0:
+            raise ValueError("pig_diff_inner_reference must be > 0")
+        if self.threshold_registry_hash != threshold_registry_hash():
+            raise ValueError("behavior threshold registry hash mismatch")
+        for field in self.__dataclass_fields__:
+            if field == "threshold_registry_hash":
+                continue
+            expected = threshold_by_name(field).threshold_value
+            if float(getattr(self, field)) != float(expected):
+                raise ValueError(
+                    f"behavior threshold config disagrees with registry: "
+                    f"{field}={getattr(self, field)} expected={expected}"
+                )
+
+
+def _threshold_value(threshold_name: str) -> float:
+    """Resolve one code-facing threshold name without a local fallback."""
+
+    return float(threshold_by_name(threshold_name).threshold_value)
+
+
+def _threshold_decision(
+    threshold_name: str,
+    *,
+    predicate_id: str,
+    observed_feature_value: float,
+    reason_code: str,
+) -> dict[str, Any]:
+    """Materialize one independently checkable threshold comparison."""
+
+    entry: ThresholdAuthority = threshold_by_name(threshold_name)
+    return {
+        "predicate_id": predicate_id,
+        "threshold_id": entry.threshold_id,
+        "metric_id": entry.metric_id,
+        "metric_version": entry.metric_version,
+        "metric_units": entry.metric_units,
+        "feature_name": entry.feature_name,
+        "observed_feature_value": float(observed_feature_value),
+        "comparison_operator": entry.comparison_operator,
+        "threshold_value": entry.threshold_value,
+        "authority_hash": entry.authority_hash,
+        "threshold_semantic_hash": entry.semantic_hash,
+        "reason_code": reason_code,
+    }
+
+
+def _threshold_evaluation(
+    threshold_name: str,
+    *,
+    predicate_id: str,
+    observed_feature_value: float,
+    reason_code: str,
+    predicate_result: bool,
+) -> dict[str, Any]:
+    record = _threshold_decision(
+        threshold_name,
+        predicate_id=predicate_id,
+        observed_feature_value=observed_feature_value,
+        reason_code=reason_code,
+    )
+    record["predicate_result"] = bool(predicate_result)
+    return record
 
 
 def add_behavior_review_evidence(
@@ -136,7 +245,7 @@ def add_behavior_review_evidence(
 
     if behavior_col not in temporal_units.columns:
         raise ValueError(f"missing behavior column for review evidence: {behavior_col}")
-    config = config or BehaviorEvidenceConfig()
+    config = config or BehaviorEvidenceConfig.from_registry()
     config.validate()
     out = temporal_units.copy()
     original_labels = out[behavior_col].copy(deep=True)
@@ -179,7 +288,7 @@ def audit_behavior_review_evidence(
     )
     threshold_audit = _threshold_audit(
         temporal_units,
-        BehaviorEvidenceConfig(),
+        BehaviorEvidenceConfig.from_registry(),
     )
     return {
         "rows": int(len(temporal_units)),
@@ -366,7 +475,7 @@ def _score_behavior_row(
     """Score one unit using behavior-specific, transparent rules."""
 
     behavior = str(row.get(behavior_col, "")).strip().lower()
-    pig = _pig_strenet_support(row, behavior)
+    pig = _pig_strenet_support(row, behavior, config)
     if not evidence_available and not pig["evidence_available"]:
         return _empty_score()
     quality = _quality_score(row)
@@ -388,7 +497,13 @@ def _score_behavior_row(
     )
     posture_transition = max(posture_transition, pig["shape_transition"])
     if relevant_available:
-        conflict, reasons, pairs = _behavior_conflict(
+        (
+            conflict,
+            reasons,
+            pairs,
+            threshold_decisions,
+            threshold_evaluations,
+        ) = _behavior_conflict(
             row,
             behavior=behavior,
             motion=motion,
@@ -403,6 +518,8 @@ def _score_behavior_row(
         conflict = 0.0
         reasons = [_missing_evidence_reason(behavior)]
         pairs = [_confusion_pair(behavior)]
+        threshold_decisions = []
+        threshold_evaluations = []
         evidence_status = "missing_relevant_modality"
     quality_penalty = 1.0 - quality
     priority = (
@@ -410,11 +527,41 @@ def _score_behavior_row(
         + 60.0 * insufficiency
         + 20.0 * quality_penalty
     )
+    if relevant_available:
+        threshold_evaluations.append(
+            _threshold_evaluation(
+                "conflict_review_threshold",
+                predicate_id="BEHAVIOR_SPECIFIC_CONTRADICTION_GATE",
+                observed_feature_value=conflict,
+                reason_code="behavior_specific_conflict_gate",
+                predicate_result=(
+                    conflict >= config.conflict_review_threshold
+                ),
+            )
+        )
     if conflict < config.conflict_review_threshold and insufficiency == 0.0:
         reasons = []
         pairs = []
+        threshold_decisions = []
     elif conflict >= config.conflict_review_threshold and not reasons:
         reasons = ["behavior_evidence_conflict"]
+        threshold_decisions.append(
+            _threshold_decision(
+                "conflict_review_threshold",
+                predicate_id="RISK_TRIGGERED_REVIEW",
+                observed_feature_value=conflict,
+                reason_code="behavior_evidence_conflict",
+            )
+        )
+    elif reasons and conflict >= config.conflict_review_threshold:
+        threshold_decisions.append(
+            _threshold_decision(
+                "conflict_review_threshold",
+                predicate_id="BEHAVIOR_SPECIFIC_CONTRADICTION_GATE",
+                observed_feature_value=conflict,
+                reason_code="behavior_specific_conflict_gate",
+            )
+        )
     return {
         "review_evidence_available": bool(
             evidence_available or pig["evidence_available"]
@@ -439,6 +586,16 @@ def _score_behavior_row(
         "review_confusion_pairs_auto": "|".join(_unique(pairs)),
         "review_evidence_reason_auto": ";".join(_unique(reasons)),
         "review_evidence_status_auto": evidence_status,
+        "review_threshold_decisions": json.dumps(
+            threshold_decisions,
+            sort_keys=True,
+            separators=(",", ":"),
+        ),
+        "review_threshold_evaluations": json.dumps(
+            threshold_evaluations,
+            sort_keys=True,
+            separators=(",", ":"),
+        ),
     }
 
 
@@ -452,11 +609,19 @@ def _behavior_conflict(
     posture_transition: float,
     pig: dict[str, float | bool],
     config: BehaviorEvidenceConfig,
-) -> tuple[float, list[str], list[str]]:
+) -> tuple[
+    float,
+    list[str],
+    list[str],
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+]:
     """Return conflict strength plus explicit reason/confusion tokens."""
 
     reasons: list[str] = []
     pairs: list[str] = []
+    threshold_decisions: list[dict[str, Any]] = []
+    threshold_evaluations: list[dict[str, Any]] = []
     conflict = 0.0
     if behavior == "move":
         move_support = max(
@@ -465,8 +630,26 @@ def _behavior_conflict(
             float(pig["target_motion"]),
         )
         conflict = 1.0 - move_support
+        threshold_evaluations.append(
+            _threshold_evaluation(
+                "low_motion_support",
+                predicate_id="MOTION_CONTRADICTION",
+                observed_feature_value=move_support,
+                reason_code="move_with_weak_motion_evidence",
+                predicate_result=move_support < config.low_motion_support,
+            )
+        )
         if move_support < config.low_motion_support:
-            reasons.append("move_with_weak_motion_evidence")
+            reason = "move_with_weak_motion_evidence"
+            reasons.append(reason)
+            threshold_decisions.append(
+                _threshold_decision(
+                    "low_motion_support",
+                    predicate_id="MOTION_CONTRADICTION",
+                    observed_feature_value=move_support,
+                    reason_code=reason,
+                )
+            )
         pairs.append("move_vs_explore_vs_stand")
     elif behavior == "stand":
         stand_conflict = max(
@@ -475,8 +658,28 @@ def _behavior_conflict(
             float(pig["target_motion"]),
         )
         conflict = stand_conflict
+        threshold_evaluations.append(
+            _threshold_evaluation(
+                "strong_motion_support",
+                predicate_id="MOTION_CONTRADICTION",
+                observed_feature_value=stand_conflict,
+                reason_code="stand_with_strong_motion_evidence",
+                predicate_result=(
+                    stand_conflict > config.strong_motion_support
+                ),
+            )
+        )
         if stand_conflict > config.strong_motion_support:
-            reasons.append("stand_with_strong_motion_evidence")
+            reason = "stand_with_strong_motion_evidence"
+            reasons.append(reason)
+            threshold_decisions.append(
+                _threshold_decision(
+                    "strong_motion_support",
+                    predicate_id="MOTION_CONTRADICTION",
+                    observed_feature_value=stand_conflict,
+                    reason_code=reason,
+                )
+            )
         pairs.append("move_vs_explore_vs_stand")
     elif behavior == "explore":
         roi_max = _maximum_roi_support(row)
@@ -484,11 +687,53 @@ def _behavior_conflict(
         feeding_like = roi_persistence * (1.0 - motion)
         move_like = max(0.0, motion - config.strong_motion_support)
         conflict = max(feeding_like, move_like)
+        threshold_evaluations.extend(
+            [
+                _threshold_evaluation(
+                    "conflict_review_threshold",
+                    predicate_id="ROI_POSSIBLE_FALSE_NEGATIVE",
+                    observed_feature_value=feeding_like,
+                    reason_code=(
+                        "explore_with_stationary_persistent_roi_contact"
+                    ),
+                    predicate_result=(
+                        feeding_like >= config.conflict_review_threshold
+                    ),
+                ),
+                _threshold_evaluation(
+                    "conflict_review_threshold",
+                    predicate_id="MOTION_CONTRADICTION",
+                    observed_feature_value=move_like,
+                    reason_code="explore_with_move_like_motion",
+                    predicate_result=(
+                        move_like >= config.conflict_review_threshold
+                    ),
+                ),
+            ]
+        )
         if feeding_like >= config.conflict_review_threshold:
-            reasons.append("explore_with_stationary_persistent_roi_contact")
+            reason = "explore_with_stationary_persistent_roi_contact"
+            reasons.append(reason)
+            threshold_decisions.append(
+                _threshold_decision(
+                    "conflict_review_threshold",
+                    predicate_id="ROI_POSSIBLE_FALSE_NEGATIVE",
+                    observed_feature_value=feeding_like,
+                    reason_code=reason,
+                )
+            )
             pairs.append("explore_vs_eat_drink_playwithtoy")
         if move_like >= config.conflict_review_threshold:
-            reasons.append("explore_with_move_like_motion")
+            reason = "explore_with_move_like_motion"
+            reasons.append(reason)
+            threshold_decisions.append(
+                _threshold_decision(
+                    "conflict_review_threshold",
+                    predicate_id="MOTION_CONTRADICTION",
+                    observed_feature_value=move_like,
+                    reason_code=reason,
+                )
+            )
             pairs.append("move_vs_explore_vs_stand")
     elif behavior in ROI_BEHAVIOR_TO_CLASS:
         best_other = _maximum_roi_support(
@@ -497,10 +742,48 @@ def _behavior_conflict(
         )
         best_other = max(best_other, float(pig["maximum_other_roi"]))
         conflict = max(1.0 - roi_support, best_other)
+        threshold_evaluations.extend(
+            [
+                _threshold_evaluation(
+                    "low_roi_support",
+                    predicate_id="ROI_CONTRADICTION",
+                    observed_feature_value=roi_support,
+                    reason_code=(
+                        "roi_label_without_persistent_target_support"
+                    ),
+                    predicate_result=roi_support < config.low_roi_support,
+                ),
+                _threshold_evaluation(
+                    "strong_roi_support",
+                    predicate_id="ROI_CONTRADICTION",
+                    observed_feature_value=best_other,
+                    reason_code="different_roi_has_stronger_support",
+                    predicate_result=best_other > config.strong_roi_support,
+                ),
+            ]
+        )
         if roi_support < config.low_roi_support:
-            reasons.append("roi_label_without_persistent_target_support")
+            reason = "roi_label_without_persistent_target_support"
+            reasons.append(reason)
+            threshold_decisions.append(
+                _threshold_decision(
+                    "low_roi_support",
+                    predicate_id="ROI_CONTRADICTION",
+                    observed_feature_value=roi_support,
+                    reason_code=reason,
+                )
+            )
         if best_other > config.strong_roi_support:
-            reasons.append("different_roi_has_stronger_support")
+            reason = "different_roi_has_stronger_support"
+            reasons.append(reason)
+            threshold_decisions.append(
+                _threshold_decision(
+                    "strong_roi_support",
+                    predicate_id="ROI_CONTRADICTION",
+                    observed_feature_value=best_other,
+                    reason_code=reason,
+                )
+            )
         pairs.append(f"{behavior}_vs_stand_explore")
     elif behavior == "fight":
         aggression = _scaled(
@@ -518,8 +801,28 @@ def _behavior_conflict(
             )
         )
         conflict = 1.0 - fight_support
+        threshold_evaluations.append(
+            _threshold_evaluation(
+                "low_social_support",
+                predicate_id="INTERACTION_CONTRADICTION",
+                observed_feature_value=fight_support,
+                reason_code=(
+                    "fight_without_persistent_contact_or_aggression"
+                ),
+                predicate_result=fight_support < config.low_social_support,
+            )
+        )
         if fight_support < config.low_social_support:
-            reasons.append("fight_without_persistent_contact_or_aggression")
+            reason = "fight_without_persistent_contact_or_aggression"
+            reasons.append(reason)
+            threshold_decisions.append(
+                _threshold_decision(
+                    "low_social_support",
+                    predicate_id="INTERACTION_CONTRADICTION",
+                    observed_feature_value=fight_support,
+                    reason_code=reason,
+                )
+            )
         pairs.append("fight_vs_social-nose_stand_move")
     elif behavior == "social-nose":
         aggression = _scaled(
@@ -536,22 +839,99 @@ def _behavior_conflict(
             float(pig["pair_motion"]) * float(pig["social_phase"]),
         )
         conflict = max(1.0 - social_support, fight_like)
+        threshold_evaluations.extend(
+            [
+                _threshold_evaluation(
+                    "low_social_support",
+                    predicate_id="INTERACTION_CONTRADICTION",
+                    observed_feature_value=social_support,
+                    reason_code=(
+                        "social_nose_without_persistent_partner_contact"
+                    ),
+                    predicate_result=(
+                        social_support < config.low_social_support
+                    ),
+                ),
+                _threshold_evaluation(
+                    "strong_social_support",
+                    predicate_id="INTERACTION_CONTRADICTION",
+                    observed_feature_value=fight_like,
+                    reason_code="social_nose_with_fight_like_motion",
+                    predicate_result=(
+                        fight_like > config.strong_social_support
+                    ),
+                ),
+            ]
+        )
         if social_support < config.low_social_support:
-            reasons.append("social_nose_without_persistent_partner_contact")
+            reason = "social_nose_without_persistent_partner_contact"
+            reasons.append(reason)
+            threshold_decisions.append(
+                _threshold_decision(
+                    "low_social_support",
+                    predicate_id="INTERACTION_CONTRADICTION",
+                    observed_feature_value=social_support,
+                    reason_code=reason,
+                )
+            )
         if fight_like > config.strong_social_support:
-            reasons.append("social_nose_with_fight_like_motion")
+            reason = "social_nose_with_fight_like_motion"
+            reasons.append(reason)
+            threshold_decisions.append(
+                _threshold_decision(
+                    "strong_social_support",
+                    predicate_id="INTERACTION_CONTRADICTION",
+                    observed_feature_value=fight_like,
+                    reason_code=reason,
+                )
+            )
         pairs.append("social-nose_vs_fight_stand")
     elif behavior in POSTURE_BEHAVIORS:
         conflict = max(
             posture_transition,
             0.50 * float(pig["target_motion"]),
         )
+        threshold_evaluations.append(
+            _threshold_evaluation(
+                "conflict_review_threshold",
+                predicate_id="POSTURE_CONTRADICTION",
+                observed_feature_value=conflict,
+                reason_code="posture_conflict_gate",
+                predicate_result=(
+                    conflict >= config.conflict_review_threshold
+                ),
+            )
+        )
         if posture_transition >= config.conflict_review_threshold:
-            reasons.append("posture_label_during_strong_shape_transition")
+            reason = "posture_label_during_strong_shape_transition"
+            reasons.append(reason)
+            threshold_decisions.append(
+                _threshold_decision(
+                    "conflict_review_threshold",
+                    predicate_id="POSTURE_CONTRADICTION",
+                    observed_feature_value=posture_transition,
+                    reason_code=reason,
+                )
+            )
         elif conflict >= config.conflict_review_threshold:
-            reasons.append("posture_label_with_strong_pixel_motion")
+            reason = "posture_label_with_strong_pixel_motion"
+            reasons.append(reason)
+            threshold_decisions.append(
+                _threshold_decision(
+                    "conflict_review_threshold",
+                    predicate_id="POSTURE_CONTRADICTION",
+                    observed_feature_value=conflict,
+                    reason_code=reason,
+                )
+            )
         pairs.append("lying_vs_sitting")
-    return float(np.clip(conflict, 0.0, 1.0)), reasons, pairs
+    return (
+        float(np.clip(conflict, 0.0, 1.0)),
+        reasons,
+        pairs,
+        threshold_decisions,
+        threshold_evaluations,
+    )
 
 
 def _quality_score(row: pd.Series) -> float:
@@ -691,7 +1071,13 @@ def _social_support(row: pd.Series, config: BehaviorEvidenceConfig) -> float:
     contact = _number(row, "social_pair_contact_ratio_unit")
     persistence = _number(row, "social_partner_persistence_ratio_unit")
     distance = _number(row, "social_nearest_dist_p50_unit", default=1.0)
-    proximity = float(np.clip(1.0 - distance / 0.12, 0.0, 1.0))
+    proximity = float(
+        np.clip(
+            1.0 - distance / config.social_proximity_reference_n,
+            0.0,
+            1.0,
+        )
+    )
     support = 0.50 * contact + 0.30 * persistence + 0.20 * proximity
     return float(np.clip(support, 0.0, 1.0))
 
@@ -699,6 +1085,7 @@ def _social_support(row: pd.Series, config: BehaviorEvidenceConfig) -> float:
 def _pig_strenet_support(
     row: pd.Series,
     behavior: str,
+    config: BehaviorEvidenceConfig,
 ) -> dict[str, float | bool]:
     evidence_available = _truth(row.get("review_pig_evidence_available", False))
     transition_available = _truth(
@@ -708,7 +1095,10 @@ def _pig_strenet_support(
     social_valid = _number(row, "review_pig_social_valid_ratio") > 0
     target_motion = max(
         _number(row, "review_pig_diff_active_pixel_ratio"),
-        _scaled(_number(row, "review_pig_diff_inner_mean"), 0.20),
+        _scaled(
+            _number(row, "review_pig_diff_inner_mean"),
+            config.pig_diff_inner_reference,
+        ),
     ) if diff_valid else 0.0
     stationary_to_motion = (
         _number(row, "review_pig_stationary_to_motion_score")
@@ -829,6 +1219,8 @@ def _empty_score() -> dict[str, float | bool | str]:
         "review_confusion_pairs_auto": "",
         "review_evidence_reason_auto": "",
         "review_evidence_status_auto": "base_evidence_unavailable",
+        "review_threshold_decisions": "[]",
+        "review_threshold_evaluations": "[]",
     }
 
 

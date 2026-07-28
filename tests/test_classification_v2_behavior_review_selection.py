@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import pandas as pd
 import pytest
 
@@ -7,6 +9,9 @@ from pig_behavior.classification_v2.review.behavior_review_selection import (
     PREDICATE_COLUMNS,
     BehaviorReviewSelectionConfig,
     assign_behavior_review_cohorts,
+)
+from pig_behavior.classification_v2.review.behavior_threshold_registry import (
+    threshold_by_name,
 )
 from pig_behavior.classification_v2.review.review_unit_builder import (
     _build_pilot_sample,
@@ -38,6 +43,51 @@ def _units(
                 else "cvat_interval_6"
             ),
         }
+    )
+
+
+def _threshold_trace(reason: str) -> str:
+    settings = {
+        "roi_label_without_persistent_target_support": (
+            "low_roi_support",
+            "ROI_CONTRADICTION",
+            0.0,
+        ),
+        "fight_without_persistent_contact_or_aggression": (
+            "low_social_support",
+            "INTERACTION_CONTRADICTION",
+            0.0,
+        ),
+        "move_with_weak_motion_evidence": (
+            "low_motion_support",
+            "MOTION_CONTRADICTION",
+            0.0,
+        ),
+        "posture_label_with_strong_pixel_motion": (
+            "conflict_review_threshold",
+            "POSTURE_CONTRADICTION",
+            1.0,
+        ),
+    }
+    name, predicate, observed = settings[reason]
+    entry = threshold_by_name(name)
+    return json.dumps(
+        [
+            {
+                "predicate_id": predicate,
+                "threshold_id": entry.threshold_id,
+                "metric_id": entry.metric_id,
+                "metric_version": entry.metric_version,
+                "metric_units": entry.metric_units,
+                "feature_name": entry.feature_name,
+                "observed_feature_value": observed,
+                "comparison_operator": entry.comparison_operator,
+                "threshold_value": entry.threshold_value,
+                "authority_hash": entry.authority_hash,
+                "threshold_semantic_hash": entry.semantic_hash,
+                "reason_code": reason,
+            }
+        ]
     )
 
 
@@ -191,6 +241,7 @@ def test_domain_contradiction_selects_specific_candidate(
 ) -> None:
     rows = _units(1, behavior=behavior).assign(
         review_evidence_reason_auto=reason,
+        review_threshold_decisions=_threshold_trace(reason),
     )
     selected, audit = assign_behavior_review_cohorts(
         rows,
@@ -201,6 +252,7 @@ def test_domain_contradiction_selects_specific_candidate(
     assert bool(selected.iloc[0]["include_in_review"])
     assert bool(selected.iloc[0][predicate])
     assert reason in str(selected.iloc[0]["review_reason_codes"])
+    assert str(selected.iloc[0]["threshold_id"]) != "[]"
     assert set(PREDICATE_COLUMNS).issubset(selected.columns)
 
 

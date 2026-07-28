@@ -49,9 +49,9 @@ from pig_behavior.classification_v2.features.spatial_semantics import (
 )
 
 CANONICALIZATION_VERSION = "classification_v2.canonical_json.v1"
-SEMANTIC_REGISTRY_VERSION = "classification_v2.semantic_domains.v6"
+SEMANTIC_REGISTRY_VERSION = "classification_v2.semantic_domains.v7"
 SEMANTIC_BUNDLE_ID = "bundle.classification_v2.phase1_4"
-SEMANTIC_BUNDLE_VERSION = "classification_v2.semantic_bundle.v6"
+SEMANTIC_BUNDLE_VERSION = "classification_v2.semantic_bundle.v7"
 STAGE_GRAPH_VERSION = "classification_v2.stage_dependency_graph.v4"
 ARTIFACT_MANIFEST_VERSION = "classification_v2.artifact_manifest.v7"
 MANIFEST_BUILDER_ID = "builder.classification_v2.candidate_manifest"
@@ -171,6 +171,24 @@ ARTIFACT_PRODUCERS: dict[str, str | None] = {
         "stage.behavior_review_unit_construction"
     ),
     "artifact.behavior_review_auto_carry": (
+        "stage.behavior_review_unit_construction"
+    ),
+    "artifact.behavior_review_population_audit": (
+        "stage.behavior_review_unit_construction"
+    ),
+    "artifact.behavior_review_predicate_overlap": (
+        "stage.behavior_review_unit_construction"
+    ),
+    "artifact.behavior_review_pilot_sample": (
+        "stage.behavior_review_unit_construction"
+    ),
+    "artifact.behavior_threshold_registry": (
+        "stage.behavior_review_unit_construction"
+    ),
+    "artifact.behavior_threshold_binding_audit": (
+        "stage.behavior_review_unit_construction"
+    ),
+    "artifact.behavior_threshold_sensitivity": (
         "stage.behavior_review_unit_construction"
     ),
     "artifact.behavior_decisions": "stage.behavior_gui",
@@ -1132,7 +1150,7 @@ def _domain_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
         {
             "semantic_domain_id": "semantic.behavior_review_units",
             "semantic_domain_version": (
-                "classification_v2.behavior_review_units.v6"
+                "classification_v2.behavior_review_units.v7"
             ),
             "authority_files": [
                 "src/pig_behavior/classification_v2/review/review_unit_builder.py",
@@ -1144,11 +1162,21 @@ def _domain_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
                     "src/pig_behavior/classification_v2/review/"
                     "behavior_evidence.py"
                 ),
+                (
+                    "src/pig_behavior/classification_v2/review/"
+                    "behavior_threshold_registry.py"
+                ),
+                (
+                    "src/pig_behavior/classification_v2/review/"
+                    "behavior_threshold_audit.py"
+                ),
             ],
             "authority_symbols": [
                 "build_review_units",
                 "assign_behavior_review_cohorts",
                 "add_behavior_review_evidence",
+                "canonical_threshold_registry",
+                "independent_threshold_candidate_audit",
             ],
             "canonical_payload": {
                 "stage_schema": stage_version(
@@ -1167,6 +1195,14 @@ def _domain_specs(contract: Mapping[str, Any]) -> list[dict[str, Any]]:
                 "global_mandatory_selection_allowed": False,
                 "auto_carry_synthesizes_human_decision": False,
                 "review_fields_model_forbidden": True,
+                "threshold_registry_version": (
+                    "classification_v2.behavior_threshold_registry.v1"
+                ),
+                "threshold_registry_authority": (
+                    "behavior_threshold_registry.py canonical payload"
+                ),
+                "threshold_binding_fail_closed": True,
+                "threshold_sensitivity_diagnostic_only": True,
             },
             "directly_affected_stages": [
                 "stage.behavior_review_unit_construction",

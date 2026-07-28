@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -272,6 +273,7 @@ def test_missing_target_roi_is_insufficient_not_contradictory() -> None:
     assert "target_roi_evidence_unavailable" in scored.iloc[0][
         "review_evidence_reason_auto"
     ]
+    assert json.loads(scored.iloc[0]["review_threshold_decisions"]) == []
 
 
 def test_review_scores_are_never_selected_for_model_x() -> None:
@@ -435,3 +437,11 @@ def test_builder_publishes_candidate_universe_and_auto_carry_partition(
     assert auto_carry.empty
     assert audit["candidate_partition"]["valid"]
     assert audit["candidate_partition"]["candidate_auto_carry_overlap"] == 0
+    assert audit["threshold_binding"]["valid"]
+    assert audit["threshold_binding"]["checked_threshold_comparisons"] >= 1
+    for filename in (
+        "threshold_registry_snapshot.json",
+        "threshold_binding_audit.json",
+        "threshold_sensitivity_analysis.csv",
+    ):
+        assert (output_dir / filename).is_file()

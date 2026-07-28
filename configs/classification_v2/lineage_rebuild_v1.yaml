@@ -195,6 +195,12 @@ stages:
     artifact_relative: candidates/behavior_review_units/behavior_review_candidate_manifest.csv
     universe_relative: candidates/behavior_review_units/behavior_review_universe.csv
     auto_carry_relative: candidates/behavior_review_units/behavior_review_auto_carry_manifest.csv
+    population_audit_relative: candidates/behavior_review_units/behavior_review_population_audit.json
+    predicate_overlap_relative: candidates/behavior_review_units/behavior_review_predicate_overlap.csv
+    pilot_sample_relative: candidates/behavior_review_units/behavior_review_pilot_sample.csv
+    threshold_registry_relative: candidates/behavior_review_units/threshold_registry_snapshot.json
+    threshold_binding_audit_relative: candidates/behavior_review_units/threshold_binding_audit.json
+    threshold_sensitivity_relative: candidates/behavior_review_units/threshold_sensitivity_analysis.csv
     audit_relative: candidates/behavior_review_units/review_unit_audit.json
     manifest_relative: manifests/behavior_review_units.candidate.json
     output_schemas:
@@ -210,6 +216,30 @@ stages:
         artifact_id: artifact.behavior_review_auto_carry
         schema_id: artifact.behavior_review_auto_carry
         schema_version: classification_v2.behavior_review_auto_carry.v1
+      - path_key: population_audit_relative
+        artifact_id: artifact.behavior_review_population_audit
+        schema_id: artifact.behavior_review_population_audit
+        schema_version: classification_v2.behavior_review_population_audit.v2
+      - path_key: predicate_overlap_relative
+        artifact_id: artifact.behavior_review_predicate_overlap
+        schema_id: artifact.behavior_review_predicate_overlap
+        schema_version: classification_v2.behavior_review_predicate_overlap.v1
+      - path_key: pilot_sample_relative
+        artifact_id: artifact.behavior_review_pilot_sample
+        schema_id: artifact.behavior_review_pilot_sample
+        schema_version: classification_v2.behavior_review_pilot_sample.v1
+      - path_key: threshold_registry_relative
+        artifact_id: artifact.behavior_threshold_registry
+        schema_id: artifact.behavior_threshold_registry
+        schema_version: classification_v2.behavior_threshold_registry.v1
+      - path_key: threshold_binding_audit_relative
+        artifact_id: artifact.behavior_threshold_binding_audit
+        schema_id: artifact.behavior_threshold_binding_audit
+        schema_version: classification_v2.behavior_threshold_binding_audit.v1
+      - path_key: threshold_sensitivity_relative
+        artifact_id: artifact.behavior_threshold_sensitivity
+        schema_id: artifact.behavior_threshold_sensitivity
+        schema_version: classification_v2.behavior_threshold_sensitivity.v1
     authorization_flag: authorizes_behavior_gui
     upstream: [temporal_harmonization, native_evidence, pig_strenet_evidence]
   behavior_decision_apply:
