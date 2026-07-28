@@ -11,6 +11,7 @@ from pathlib import Path
 import pandas as pd
 
 from .config import TrackingEvaluationPipelineConfig
+from .contracts import validate_report_contract
 from .pipeline import run_pipeline
 from .reporting import _markdown_table
 
@@ -84,10 +85,12 @@ def rank_aggregate_benchmark_rows(summary_df: pd.DataFrame) -> pd.DataFrame:
     sort_columns = [
         column
         for column in (
-            "remapped_hota_pct",
-            "remapped_idf1_pct",
-            "remapped_mota_pct",
-            "remapped_idsw",
+            "hota_pct",
+            "idf1_pct",
+            "assa_pct",
+            "idsw_standard",
+            "terminal_identity_error_episode_count",
+            "persistent_pairwise_identity_swap_count",
             "fp",
             "fn",
         )
@@ -96,7 +99,15 @@ def rank_aggregate_benchmark_rows(summary_df: pd.DataFrame) -> pd.DataFrame:
     if not sort_columns:
         return ranked.reset_index(drop=True)
     ascending = [
-        column in {"remapped_idsw", "fp", "fn"} for column in sort_columns
+        column
+        in {
+            "idsw_standard",
+            "terminal_identity_error_episode_count",
+            "persistent_pairwise_identity_swap_count",
+            "fp",
+            "fn",
+        }
+        for column in sort_columns
     ]
     return ranked.sort_values(
         sort_columns,
@@ -122,12 +133,19 @@ def build_rule_benchmark_report(
         "USE_MERGED_BOX_SPLIT",
         "elapsed_sec",
         "fps_evaluated_frames",
-        "remapped_mota_pct",
-        "remapped_idf1_pct",
-        "remapped_hota_pct",
-        "remapped_idsw",
-        "remapped_fragments",
-        "remapped_gap_tolerant_fragments",
+        "evaluator_contract_id",
+        "hota_pct",
+        "deta_pct",
+        "assa_pct",
+        "loca_pct",
+        "idf1_pct",
+        "id_precision_pct",
+        "id_recall_pct",
+        "idsw_standard",
+        "fragments",
+        "wrong_id_matched_frames",
+        "terminal_identity_error_episode_count",
+        "persistent_pairwise_identity_swap_count",
         "fp",
         "fn",
         "run_dir",
@@ -156,11 +174,10 @@ def build_rule_benchmark_report(
         "- `*_summary.csv`: enriched summary, containing both `ALL` and `PER_VIDEO` rows.",
         "- `*_summary_all_only.csv`: aggregate-only summary used for quick ranking.",
         "- `*_detailed_metrics.csv`: all per-video and ALL rows.",
-        "- Each combo folder contains the normal `tracking_report.md` and diagnostics "
-        "(like ID mapping, event counts, and continuity gaps).",
-        "- Note: The diagnostic summary columns in the summary CSV files are only "
-        "high-level counts/worst-case statistics. To view detailed information, open "
-        "the respective files in `run_dir`.",
+        "- Each combo folder contains a versioned Standard V2 report, HOTA alpha "
+        "table, identity authority, GT-level episodes, and pairwise audit table.",
+        "- Ranking uses standard threshold-averaged HOTA and separately reported "
+        "identity diagnostics; no legacy remapped metric is accepted.",
         "",
     ]
     return "\n".join(lines)
@@ -332,6 +349,7 @@ def run_tracking_rule_benchmark(
 
         started = time.perf_counter()
         asset_df, metrics_df, run_dir = run_pipeline(combo_config)
+        validate_report_contract(metrics_df.to_dict(orient="records"))
         elapsed_sec = time.perf_counter() - started
         aggregate_metrics = aggregate_metrics_dict(metrics_df)
         evaluated_frames = float(aggregate_metrics.get("evaluated_frames", 0) or 0)

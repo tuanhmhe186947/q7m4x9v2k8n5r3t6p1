@@ -49,6 +49,13 @@ from .evaluator import (
     pairs_to_dataframe,
     run_tracker_for_pair,
 )
+from .evaluator_standard_v2 import (
+    StandardV2Evaluation,
+    TrackingMetricsStandardV2,
+    aggregate_tracking_standard_v2,
+    evaluate_tracking_standard_v2,
+    metrics_to_dataframe_standard_v2,
+)
 from .matching import iou_xyxy, match_frame
 from .metrics import (
     TrackingMetrics,
@@ -57,6 +64,7 @@ from .metrics import (
     compute_id_metrics,
     remap_prediction_ids,
 )
+from .pipeline_standard_v2 import evaluate_pair_standard_v2
 
 __all__ = [
     "DATA_DIR",
@@ -71,12 +79,17 @@ __all__ = [
     "TrackingMetrics",
     "TrackingObject",
     "TrackingPair",
+    "StandardV2Evaluation",
+    "TrackingMetricsStandardV2",
     "aggregate_metrics",
+    "aggregate_tracking_standard_v2",
     "compute_association_accuracy",
     "compute_id_metrics",
     "evaluate_dataset",
     "evaluate_pair",
+    "evaluate_pair_standard_v2",
     "evaluate_tracking",
+    "evaluate_tracking_standard_v2",
     "find_prediction_xml",
     "identity_events_for_pair",
     "identity_events_to_dataframe",
@@ -89,6 +102,7 @@ __all__ = [
     "list_tracking_pairs",
     "match_frame",
     "metrics_to_dataframe",
+    "metrics_to_dataframe_standard_v2",
     "normalize_key",
     "pairs_to_dataframe",
     "parse_cvat_video_xml",
@@ -108,9 +122,7 @@ __all__ = [
 
 
 if __name__ == "__main__":
-    assets, metrics, output_dir = evaluate_dataset()
-    print("[assets]")
-    print(assets.to_string(index=False))
-    print("[metrics]")
-    print(metrics.to_string(index=False))
-    print("[output]", output_dir)
+    raise SystemExit(
+        "Use `python -m pig_behavior.evaluation.tracking.cli`; "
+        "new reports require TRACKING_EVALUATOR_STANDARD_V2."
+    )

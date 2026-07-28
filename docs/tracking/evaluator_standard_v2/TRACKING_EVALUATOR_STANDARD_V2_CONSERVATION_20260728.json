@@ -1,0 +1,36 @@
+{
+  "schema_version": "tracking.evaluator_standard_v2.conservation.v1",
+  "date": "20260728",
+  "evaluator_contract_id": "TRACKING_EVALUATOR_STANDARD_V2",
+  "identity_episode_contract_id": "IDENTITY_ERROR_EPISODES_V2",
+  "hota_alpha_count": 19,
+  "hota_detection_conservation": {
+    "required_gt_relation": "TP(alpha) + FN(alpha) = authoritative GT detections",
+    "required_prediction_relation": "TP(alpha) + FP(alpha) = authoritative predictions",
+    "alphas_checked_per_case": 19,
+    "status": "PASS"
+  },
+  "identity_episode_fixture": "reciprocal_swap_frames_1_2_then_recovery",
+  "wrong_id_rows_input": 4,
+  "wrong_id_rows_classified": 4,
+  "wrong_id_rows_unclassified": 0,
+  "wrong_id_rows_double_counted": 0,
+  "identity_episodes_total": 2,
+  "recovered_identity_error_episodes": 2,
+  "terminal_identity_error_episodes": 0,
+  "persistent_pairwise_identity_swap_events": 0,
+  "pairwise_swap_events_total": 1,
+  "pairwise_swap_double_counted": 0,
+  "gt_ambiguous_events": 0,
+  "terminal_is_subset_of_all_episodes": true,
+  "recovered_and_terminal_mutually_exclusive": true,
+  "pairwise_events_reference_two_distinct_gt": true,
+  "events_crossing_sequence_boundaries": 0,
+  "ambiguous_rows_preserved_outside_authoritative_ranking": true,
+  "conservation_status": "PASS",
+  "test_authorities": [
+    "tests/test_tracking_hota_standard_v2.py",
+    "tests/test_tracking_identity_episodes_v2.py",
+    "tests/test_tracking_evaluator_standard_v2.py"
+  ]
+}

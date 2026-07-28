@@ -1,0 +1,114 @@
+{
+  "schema_version": "tracking.legacy_evaluator_contract_freeze.v1",
+  "date": "2026-07-28",
+  "starting_main_sha": "e41c010c33651f2f7d1bbcd13fc299a65faf4a2d",
+  "legacy_evaluator_contract_id": "TRACKING_EVALUATOR_LEGACY_V1",
+  "legacy_standard_hota_claim_allowed": false,
+  "legacy_hota_role": "HISTORICAL_NONSTANDARD_DIAGNOSTIC",
+  "legacy_permanent_swap_role": "INVALID_HISTORICAL_DIAGNOSTIC",
+  "legacy_terminal_swap_role": "INVALID_HISTORICAL_DIAGNOSTIC",
+  "historical_outputs_rewritten": 0,
+  "cross_version_comparison_valid": false,
+  "metric_name_mapping": {
+    "legacy_hota": {
+      "stored_field": "hota",
+      "formula": "sqrt(single_threshold_deta * single_threshold_assa)",
+      "corrected_field": "hota",
+      "corrected_contract": "TRACKING_EVALUATOR_STANDARD_V2",
+      "comparison_valid": false
+    },
+    "legacy_deta": {
+      "stored_field": "deta",
+      "formula": "single_threshold_tp / (tp + fp + fn)",
+      "corrected_field": "deta",
+      "corrected_contract": "TRACKING_EVALUATOR_STANDARD_V2",
+      "comparison_valid": false
+    },
+    "legacy_assa": {
+      "stored_field": "assa",
+      "formula": "single_threshold_match_weighted_pair_jaccard",
+      "corrected_field": "assa",
+      "corrected_contract": "TRACKING_EVALUATOR_STANDARD_V2",
+      "comparison_valid": false
+    },
+    "legacy_permanent_swap": {
+      "stored_field": "permanent_swap",
+      "formula": "historical connected-event span diagnostic",
+      "corrected_field": "persistent_pairwise_identity_swap_count",
+      "corrected_contract": "IDENTITY_ERROR_EPISODES_V2",
+      "comparison_valid": false
+    },
+    "legacy_terminal_swap": {
+      "stored_field": "terminal_swap",
+      "formula": "historical video-end diagnostic",
+      "corrected_field": "terminal_identity_error_episode_count",
+      "corrected_contract": "IDENTITY_ERROR_EPISODES_V2",
+      "comparison_valid": false
+    }
+  },
+  "sha256": {
+    "evaluator_source": {
+      "path": "src/pig_behavior/evaluation/tracking/evaluator.py",
+      "value": "52faf1afcf4213322bbfb6d565b8ba75b3d0ea090d5465bd8202689956ac073c"
+    },
+    "matching_source": {
+      "path": "src/pig_behavior/evaluation/tracking/matching.py",
+      "value": "e2f883931662e2f08799b7be4449b804251b7fb090409ff7914696734055257b"
+    },
+    "metric_source": {
+      "path": "src/pig_behavior/evaluation/tracking/metrics.py",
+      "value": "2e0e132cba961bd0dd3b791e3f90bfa515af3606b42a6b8c15ac990b3e8932e8"
+    },
+    "reporting_source": {
+      "path": "src/pig_behavior/evaluation/tracking/reporting.py",
+      "value": "0d9dfcac89825a9683b87d4e7ce02fabb1836a09f94b9c7b2f4fbec6d3406814"
+    },
+    "pipeline_source": {
+      "path": "src/pig_behavior/evaluation/tracking/pipeline.py",
+      "value": "37c9c73ef7724e55e915e13c8083c9b277125015d4852a080d4ca4aa7caa691d"
+    },
+    "diagnostics_source": {
+      "path": "src/pig_behavior/evaluation/tracking/diagnostics.py",
+      "value": "66af9077df825b18a9c7b9bfaeec8c76745c7ca5b9df153836c5930ac9443a5d"
+    },
+    "cvat_input_source": {
+      "path": "src/pig_behavior/evaluation/tracking/cvat_io.py",
+      "value": "ad0c14a1823abfe7705f2940da98755f665d72ff4ab8572a9e2ba2700f5f9748"
+    },
+    "cli_source": {
+      "path": "src/pig_behavior/evaluation/tracking/cli.py",
+      "value": "eff6b52a09c7ce6e6e4ac90fe558ef189d57c7c16ef4ffccd5352cb2e2288f36"
+    },
+    "config_source": {
+      "path": "src/pig_behavior/evaluation/tracking/config.py",
+      "value": "386564aad6433437cecd5f24cf6efeb08a48d073aabfdc3cb414fb96cbca72ee"
+    },
+    "api_source": {
+      "path": "src/pig_behavior/evaluation/tracking/api.py",
+      "value": "b04696c4b03ef5ed485655f308fe31d9d5844439659e17e4b26a3edd7bff4ae1"
+    },
+    "historical_metric_contract": {
+      "directory": "docs/tracking/benchmark_metric_audit",
+      "filename": "TRACKING_METRIC_MATHEMATICAL_CONTRACT_20260728.md",
+      "value": "b8dfbeba5b5cd18de67a91edeba95016ef267922f530284b228a033285f70852"
+    },
+    "mathematical_audit_tests": {
+      "path": "tests/test_tracking_metric_mathematical_audit.py",
+      "value": "f58fd2d48f9db07dfd73cc7dd9dbaac9d20a54cda3ea0acdb2d92a2aa29639ac"
+    },
+    "pipeline_tests": {
+      "path": "tests/test_tracking_pipeline.py",
+      "value": "da927d4f60124370629edafa26f73c586b9b66b2835f954aec47b3744966ef81"
+    },
+    "tracking_regression_tests": {
+      "path": "tests/test_tracking_improvements.py",
+      "value": "78a201c98bd3e10865bcbf6575c4c3a39a8248826b12fdac16dc7cc42e281f1f"
+    }
+  },
+  "legacy_read_policy": {
+    "historical_json_csv_markdown_remain_readable": true,
+    "stored_historical_fields_renamed": false,
+    "new_standard_claims_from_legacy_rows_allowed": false,
+    "new_legacy_report_generation_allowed": false
+  }
+}

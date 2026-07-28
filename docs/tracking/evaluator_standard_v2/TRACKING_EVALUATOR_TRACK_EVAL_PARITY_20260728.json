@@ -1,0 +1,52 @@
+{
+  "schema_version": "tracking.evaluator_standard_v2.trackeval_parity.v1",
+  "date": "20260728",
+  "evaluator_contract_id": "TRACKING_EVALUATOR_STANDARD_V2",
+  "track_eval_source": "https://github.com/JonathonLuiten/TrackEval.git",
+  "track_eval_commit_sha": "12c8791b303e0a0b50f753af204249e622d0281a",
+  "track_eval_license": "MIT, Copyright 2020 Jonathon Luiten",
+  "reference_location_role": "external_reference_only_non_production",
+  "reference_cases_total": 10,
+  "reference_cases_passed": 10,
+  "reference_cases": [
+    "perfect_tracking",
+    "detection_miss",
+    "false_positive",
+    "identity_switch",
+    "fragmented_track",
+    "crossing_identities",
+    "gap_reappearance",
+    "empty_sequence",
+    "all_hidden_sequence_excluded",
+    "multiple_independent_videos"
+  ],
+  "metrics_compared": [
+    "HOTA",
+    "DetA",
+    "AssA",
+    "LocA",
+    "IDF1",
+    "IDP",
+    "IDR",
+    "HOTA_TP",
+    "HOTA_FP",
+    "HOTA_FN",
+    "CLEAR_TP",
+    "CLEAR_FP",
+    "CLEAR_FN"
+  ],
+  "numerical_tolerance": {
+    "absolute": 1e-12,
+    "relative": 0.0
+  },
+  "numpy_2_reference_compatibility": [
+    "np.float is temporarily aliased to float in the test process",
+    "np.int is temporarily aliased to int in the test process",
+    "official reference source is not modified"
+  ],
+  "production_runtime_dependency_created": false,
+  "official_source_modified": false,
+  "parity_status": "PASS",
+  "test_file": "tests/test_tracking_evaluator_trackeval_parity.py",
+  "test_result": "10/10"
+}

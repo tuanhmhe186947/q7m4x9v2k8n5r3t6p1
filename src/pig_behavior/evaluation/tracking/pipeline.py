@@ -8,7 +8,6 @@ from pathlib import Path
 
 import pandas as pd
 
-from .artifact_guard import assert_no_mp4_artifacts
 from .assets import (
     TrackingPair,
     find_prediction_xml,
@@ -17,26 +16,9 @@ from .assets import (
 )
 from .config import TrackingEvaluationPipelineConfig
 from .cvat_io import read_task_name
-from .diagnostics import (
-    continuity_gaps_for_pair,
-    continuity_gaps_to_dataframe,
-    identity_events_for_pair,
-    identity_events_to_dataframe,
-    identity_mapping_for_pair,
-    identity_mapping_to_dataframe,
-)
 from .evaluator import (
-    aggregate_metrics,
-    evaluate_pair,
-    metrics_to_dataframe,
     pairs_to_dataframe,
     run_tracker_for_pair,
-)
-from .lineage import (
-    finalize_run_manifest,
-    prepare_run_manifest,
-    validate_metric_universe,
-    write_artifact_manifest,
 )
 from .reporting import build_markdown_report
 
@@ -258,94 +240,7 @@ def save_pipeline_report(
 def run_pipeline(
     config: TrackingEvaluationPipelineConfig,
 ) -> tuple[pd.DataFrame, pd.DataFrame, Path]:
-    """Run prediction generation when needed, then evaluate available predictions."""
-    pairs = build_pairs(config)
-    prepare_run_manifest(pairs, config)
-    pairs = ensure_predictions(pairs, config)
-    asset_df = pairs_to_dataframe(pairs)
+    """Run the only active report generator, Tracking Evaluator Standard V2."""
+    from .pipeline_standard_v2 import run_pipeline_standard_v2
 
-    metrics = []
-    identity_events = []
-    remapped_identity_events = []
-    identity_mapping_rows = []
-    continuity_gap_rows = []
-    for pair in pairs:
-        if pair.pred_xml is None:
-            continue
-        result = evaluate_pair(
-            pair,
-            iou_threshold=config.iou_threshold,
-            include_hidden=config.include_hidden,
-            gap_tolerance_frames=config.gap_tolerance_frames,
-            evaluation_start_frame=config.evaluation_start_frame,
-            evaluation_end_frame=config.evaluation_end_frame,
-        )
-        if result is not None:
-            metrics.append(result)
-            identity_events.extend(
-                identity_events_for_pair(
-                    pair,
-                    iou_threshold=config.iou_threshold,
-                    include_hidden=config.include_hidden,
-                    evaluation_start_frame=config.evaluation_start_frame,
-                    evaluation_end_frame=config.evaluation_end_frame,
-                )
-            )
-            remapped_identity_events.extend(
-                identity_events_for_pair(
-                    pair,
-                    iou_threshold=config.iou_threshold,
-                    include_hidden=config.include_hidden,
-                    remap_ids=True,
-                    evaluation_start_frame=config.evaluation_start_frame,
-                    evaluation_end_frame=config.evaluation_end_frame,
-                )
-            )
-            identity_mapping_rows.extend(
-                identity_mapping_for_pair(
-                    pair,
-                    iou_threshold=config.iou_threshold,
-                    include_hidden=config.include_hidden,
-                    evaluation_start_frame=config.evaluation_start_frame,
-                    evaluation_end_frame=config.evaluation_end_frame,
-                )
-            )
-            continuity_gap_rows.extend(
-                continuity_gaps_for_pair(
-                    pair,
-                    iou_threshold=config.iou_threshold,
-                    include_hidden=config.include_hidden,
-                    gap_tolerance_frames=config.gap_tolerance_frames,
-                    remap_ids=True,
-                    evaluation_start_frame=config.evaluation_start_frame,
-                    evaluation_end_frame=config.evaluation_end_frame,
-                )
-            )
-
-    metric_rows = metrics + ([aggregate_metrics(metrics)] if metrics else [])
-    metrics_df = metrics_to_dataframe(metric_rows)
-    validate_metric_universe(metrics_df, pairs)
-    identity_events_df = identity_events_to_dataframe(identity_events)
-    remapped_identity_events_df = identity_events_to_dataframe(
-        remapped_identity_events
-    )
-    identity_mapping_df = identity_mapping_to_dataframe(identity_mapping_rows)
-    continuity_gaps_df = continuity_gaps_to_dataframe(continuity_gap_rows)
-    runtime_telemetry_df = runtime_telemetry_to_dataframe(pairs)
-    run_dir = save_pipeline_report(
-        pairs,
-        metrics_df,
-        config,
-        identity_events_df=identity_events_df,
-        remapped_identity_events_df=remapped_identity_events_df,
-        identity_mapping_df=identity_mapping_df,
-        continuity_gaps_df=continuity_gaps_df,
-        runtime_telemetry_df=runtime_telemetry_df,
-    )
-    assert_no_mp4_artifacts(
-        run_dir,
-        context="tracking evaluation report",
-    )
-    finalize_run_manifest(run_dir)
-    write_artifact_manifest(run_dir, pairs)
-    return asset_df, metrics_df, run_dir
+    return run_pipeline_standard_v2(config)

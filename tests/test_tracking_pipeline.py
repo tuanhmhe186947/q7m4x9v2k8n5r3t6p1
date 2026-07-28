@@ -164,27 +164,27 @@ def test_rank_aggregate_benchmark_rows_prioritizes_hota_then_identity() -> None:
             {
                 "row_type": "PER_VIDEO",
                 "combo": "ignored",
-                "remapped_hota_pct": 100.0,
+                "hota_pct": 100.0,
             },
             {
                 "row_type": "ALL",
-                "combo": "higher_mota",
-                "remapped_hota_pct": 94.0,
-                "remapped_idf1_pct": 99.0,
-                "remapped_mota_pct": 99.0,
-                "remapped_idsw": 0,
+                "combo": "higher_idf1",
+                "hota_pct": 94.0,
+                "idf1_pct": 99.0,
+                "assa_pct": 99.0,
+                "idsw_standard": 0,
             },
             {
                 "row_type": "ALL",
                 "combo": "best_hota",
-                "remapped_hota_pct": 95.0,
-                "remapped_idf1_pct": 96.0,
-                "remapped_mota_pct": 97.0,
-                "remapped_idsw": 1,
+                "hota_pct": 95.0,
+                "idf1_pct": 96.0,
+                "assa_pct": 97.0,
+                "idsw_standard": 1,
             },
         ]
     )
 
     ranked = rank_aggregate_benchmark_rows(summary_df)
 
-    assert ranked["combo"].tolist() == ["best_hota", "higher_mota"]
+    assert ranked["combo"].tolist() == ["best_hota", "higher_idf1"]

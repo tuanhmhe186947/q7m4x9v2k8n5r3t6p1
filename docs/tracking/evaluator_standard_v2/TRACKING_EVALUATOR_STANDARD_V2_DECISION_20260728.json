@@ -1,0 +1,118 @@
+{
+  "schema_version": "tracking.evaluator_standard_v2.decision.v1",
+  "date": "20260728",
+  "decision": "PASS_READY_FOR_FROZEN_OUTPUT_REEVALUATION",
+  "starting_main_sha": "e41c010c33651f2f7d1bbcd13fc299a65faf4a2d",
+  "legacy_evaluator_contract_id": "TRACKING_EVALUATOR_LEGACY_V1",
+  "corrected_evaluator_contract_id": "TRACKING_EVALUATOR_STANDARD_V2",
+  "matching_contract_id": "TRACKING_MATCHING_STANDARD_V2",
+  "identity_episode_contract_id": "IDENTITY_ERROR_EPISODES_V2",
+  "standard_hota": {
+    "implemented": true,
+    "threshold_set_correct": true,
+    "alpha_count": 19,
+    "alpha_min": 0.05,
+    "alpha_max": 0.95,
+    "threshold_averaging": "PASS",
+    "trackeval_reference_parity": "PASS"
+  },
+  "matching": {
+    "eligibility_applied_before_detection_assignment": true,
+    "post_assignment_gating_defect_removed": true,
+    "hota_uses_official_global_alignment_semantics": true,
+    "deterministic_tie_ordering": true,
+    "tied_first_identity_authority_preserved_as_ambiguous": true,
+    "contract_status": "PASS"
+  },
+  "reference_parity": {
+    "source": "https://github.com/JonathonLuiten/TrackEval.git",
+    "commit_sha": "12c8791b303e0a0b50f753af204249e622d0281a",
+    "license": "MIT, Copyright 2020 Jonathon Luiten",
+    "hota": "PASS",
+    "deta": "PASS",
+    "assa": "PASS",
+    "loca": "PASS",
+    "idf1": "PASS",
+    "id_precision": "PASS",
+    "id_recall": "PASS",
+    "tp_fp_fn": "PASS",
+    "cases": "10/10",
+    "absolute_tolerance": 1e-12
+  },
+  "identity_metrics": {
+    "idsw_standard": "PASS",
+    "idsw_policy": "TRACKEVAL_CLEAR_LAST_MATCH_WITHIN_SEQUENCE",
+    "duplicate_gap_persistent_idsw_retained": false,
+    "id_sw_is_severity_score": false,
+    "fragmentation_status": "PASS"
+  },
+  "identity_episode_contract": {
+    "status": "PASS",
+    "permanent_terminal_legacy_retired": true,
+    "old_permanent_swap_active": false,
+    "old_terminal_swap_active": false,
+    "identity_error_episode": "PASS",
+    "recovered_identity_error_episode": "PASS",
+    "terminal_identity_error_episode": "PASS",
+    "persistent_pairwise_identity_swap": "PASS",
+    "wrong_id_row_conservation": "PASS",
+    "wrong_id_row_double_count": 0,
+    "pairwise_swap_double_count": 0,
+    "gt_ambiguity_separated": true
+  },
+  "population_and_boundaries": {
+    "include_hidden_false": "PASS",
+    "include_hidden_true": "PASS",
+    "multi_video_boundary": "PASS",
+    "events_crossing_sequence_boundaries": 0
+  },
+  "versioned_reporting": {
+    "mixed_version_checker": "PASS",
+    "legacy_outputs_preserved": true,
+    "historical_outputs_rewritten": 0,
+    "legacy_fields_in_v2": 0,
+    "empty_audit_table_schema_stable": true
+  },
+  "invariant_hashes": {
+    "realtime_fast": "9bf4ce6d07423ab517b4705c716e3eb012349b756b7c0591cc3458eac207808d",
+    "bytetrack_raw": "547ae86e3be26671a9a148cb0e613ea1c602a0ff842a977ce9b7f1d217c10e41",
+    "hybrid_bytetrack": "4eb3d4e2262485d48d425be06fd8a6b3adfd8a01a27b28e76b5a8d55958d1d55",
+    "offline_repair": "e078b5b165dda82dee5b61e9465dc9844446e4cb576a02858c4ed7369828d758"
+  },
+  "isolation": {
+    "realtime_fast_unchanged": true,
+    "bytetrack_raw_unchanged": true,
+    "hybrid_bytetrack_unchanged": true,
+    "rf_hybrid_offline_unchanged": true,
+    "offline_repair_unchanged": true,
+    "detector_authority_unchanged": true,
+    "cache_replay_unchanged": true,
+    "tracking_exports_unchanged": true
+  },
+  "verification": {
+    "golden_cases": "22/22",
+    "reference_parity_cases": "10/10",
+    "determinism_cases": "4/4",
+    "required_static_synthetic_tests": "400/400",
+    "ruff": "PASS",
+    "py_compile": "PASS",
+    "compileall": "PASS",
+    "git_diff_check": "PASS",
+    "all_required_tests_pass": true
+  },
+  "execution_counts": {
+    "real_tracking_runs": 0,
+    "detector_inference_calls": 0,
+    "gpu_inference_runs": 0,
+    "unseen_videos_accessed": false,
+    "historical_outputs_rewritten": 0
+  },
+  "ready_for_frozen_output_reevaluation": true,
+  "ready_for_development_2x2_evaluation": false,
+  "ready_for_unseen_evaluation": false,
+  "ready_to_promote": false,
+  "blockers": [
+    "Frozen-output re-evaluation has not yet been executed.",
+    "Development 2x2 comparison requires a separate future worktree and authority."
+  ]
+}

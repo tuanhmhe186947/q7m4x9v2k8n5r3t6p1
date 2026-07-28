@@ -14,6 +14,9 @@ SRC_ROOT = PROJECT_ROOT / "src"
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
+from pig_behavior.evaluation.tracking.contracts import (  # noqa: E402
+    EVALUATOR_CONTRACT_ID,
+)
 from pig_behavior.evaluation.tracking.pipeline import find_gt_xml_for_video  # noqa: E402
 from pig_behavior.tracking import profiles as tracking_profiles  # noqa: E402
 from pig_behavior.tracking_path_config import (  # noqa: E402
@@ -53,6 +56,12 @@ Examples:
         help="Run evaluation on all configured videos.",
     )
     parser.add_argument("-p", "--profile", type=str, default=None, help="Path profile name.")
+    parser.add_argument(
+        "--evaluator-contract",
+        choices=[EVALUATOR_CONTRACT_ID],
+        default=EVALUATOR_CONTRACT_ID,
+        help="Evaluator contract written into every newly generated report.",
+    )
     parser.add_argument(
         "--path-config",
         type=str,
@@ -298,6 +307,8 @@ def main() -> int:
         ",".join(str(video_path) for video_path in valid_video_paths),
         "--tracking-mode",
         args.mode,
+        "--evaluator-contract",
+        args.evaluator_contract,
     ]
     if args.profile:
         cmd.extend(["--profile", args.profile])

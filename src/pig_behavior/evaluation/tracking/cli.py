@@ -25,6 +25,9 @@ from pig_behavior.evaluation.tracking.benchmarking import (  # noqa: E402
 from pig_behavior.evaluation.tracking.config import (  # noqa: E402
     TrackingEvaluationPipelineConfig,
 )
+from pig_behavior.evaluation.tracking.contracts import (  # noqa: E402
+    EVALUATOR_CONTRACT_ID,
+)
 from pig_behavior.evaluation.tracking.pipeline import (  # noqa: E402
     run_pipeline,
 )
@@ -70,6 +73,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument("--mask", type=Path, default=None)
     parser.add_argument("--iou-threshold", type=float, default=0.5)
+    parser.add_argument(
+        "--evaluator-contract",
+        choices=[EVALUATOR_CONTRACT_ID],
+        default=EVALUATOR_CONTRACT_ID,
+        help="Versioned evaluator contract for every newly generated report.",
+    )
     parser.add_argument(
         "--exclude-hidden",
         dest="include_hidden",
@@ -351,6 +360,7 @@ def config_from_args(args: argparse.Namespace) -> TrackingEvaluationPipelineConf
         USE_MERGED_BOX_SPLIT=args.use_merged_box_split,
         tracking_mode=tracking_mode,
         profile_overrides=profile_overrides,
+        evaluator_contract_id=args.evaluator_contract,
     )
 
 

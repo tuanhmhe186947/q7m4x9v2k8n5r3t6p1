@@ -643,7 +643,13 @@ def read_existing_metrics(run_dir: Path) -> Any | None:
         return None
     import pandas as pd
 
-    return pd.read_csv(metrics_path)
+    metrics = pd.read_csv(metrics_path)
+    if "evaluator_contract_id" in metrics.columns:
+        raise RuntimeError(
+            "Optimizer objectives are Legacy V1 historical fields and cannot "
+            "consume Standard V2 without a separately authorized migration."
+        )
+    return metrics
 
 
 def metric_value(row: Any, name: str, default: float = 0.0) -> float:

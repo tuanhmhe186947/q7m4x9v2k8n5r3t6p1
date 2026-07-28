@@ -14,6 +14,10 @@ from .assets import (
     TRACKING_GT_DIR,
     VIDEO_DIR,
 )
+from .contracts import (
+    EVALUATOR_CONTRACT_ID,
+    LEGACY_EVALUATOR_CONTRACT_ID,
+)
 from .frame_window import validate_frame_bounds
 
 
@@ -50,6 +54,7 @@ class TrackingEvaluationPipelineConfig:
     USE_MERGED_BOX_SPLIT: bool = False
     tracking_mode: str = "hybrid_bytetrack"
     profile_overrides: dict[str, Any] | None = None
+    evaluator_contract_id: str = EVALUATOR_CONTRACT_ID
 
     def __post_init__(self) -> None:
         """Fail closed on invalid inclusive score bounds."""
@@ -58,3 +63,11 @@ class TrackingEvaluationPipelineConfig:
             self.evaluation_start_frame,
             self.evaluation_end_frame,
         )
+        if self.evaluator_contract_id == LEGACY_EVALUATOR_CONTRACT_ID:
+            raise ValueError(
+                "TRACKING_EVALUATOR_LEGACY_V1 is historical read-only behavior"
+            )
+        if self.evaluator_contract_id != EVALUATOR_CONTRACT_ID:
+            raise ValueError(
+                f"Unsupported evaluator contract: {self.evaluator_contract_id}"
+            )

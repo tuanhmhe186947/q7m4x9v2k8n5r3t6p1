@@ -345,7 +345,13 @@ def _compare_roots(args: argparse.Namespace) -> tuple[Path, Path]:
 
 def _read_metrics_rows(metrics_csv: Path) -> list[dict[str, str]]:
     with metrics_csv.open(newline="", encoding="utf-8") as handle:
-        return list(csv.DictReader(handle))
+        rows = list(csv.DictReader(handle))
+    if rows and rows[0].get("evaluator_contract_id"):
+        raise RuntimeError(
+            "run_tracking_mode scientific summaries still use Legacy V1 fields; "
+            "a dedicated V2 comparison migration is required before the 2x2."
+        )
+    return rows
 
 
 def _safe_float(value: object) -> float | None:

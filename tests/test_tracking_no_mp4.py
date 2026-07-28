@@ -95,6 +95,9 @@ def test_evaluation_emits_xml_and_metrics_without_mp4(
     assert (prediction_root / "prediction.xml").exists()
     assert not metrics_df.empty
     assert (run_dir / "tracking_metrics.csv").exists()
+    assert (run_dir / "tracking_hota_by_alpha.csv").exists()
+    assert (run_dir / "tracking_identity_error_episodes_v2.csv").exists()
+    assert (run_dir / "tracking_evaluator_contract.json").exists()
     assert (run_dir / "tracking_runtime_telemetry.csv").exists()
     assert (run_dir / "run_manifest.json").exists()
     assert (run_dir / "artifact_manifest.json").exists()
@@ -112,6 +115,11 @@ def test_evaluation_emits_xml_and_metrics_without_mp4(
         prediction_artifact["prediction_semantic_hash_contract"]
         == "cvat_xml_c14n_without_created_updated_dumped_v1"
     )
+    assert set(metrics_df["evaluator_contract_id"]) == {
+        "TRACKING_EVALUATOR_STANDARD_V2"
+    }
+    assert "remapped_hota" not in metrics_df.columns
+    assert "permanent_swap" not in metrics_df.columns
     assert not list(prediction_root.rglob("*.mp4"))
     assert not list(report_root.rglob("*.mp4"))
 

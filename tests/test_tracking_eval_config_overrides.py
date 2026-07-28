@@ -11,6 +11,13 @@ from pig_behavior.evaluation.tracking.cli import (
     parse_profile_overrides,
     selected_rule_combos,
 )
+from pig_behavior.evaluation.tracking.config import (
+    TrackingEvaluationPipelineConfig,
+)
+from pig_behavior.evaluation.tracking.contracts import (
+    EVALUATOR_CONTRACT_ID,
+    LEGACY_EVALUATOR_CONTRACT_ID,
+)
 from pig_behavior.evaluation.tracking.cvat_io import parse_cvat_video_xml
 from pig_behavior.evaluation.tracking.diagnostics import (
     continuity_gaps_for_pair,
@@ -80,6 +87,21 @@ def test_direct_pipeline_cli_uses_corrected_hidden_contract_by_default() -> None
 
     assert primary.include_hidden is True
     assert compatibility.include_hidden is False
+
+
+def test_new_tracking_reports_default_to_standard_v2() -> None:
+    args = parse_pipeline_args(["--video", "input.mp4"])
+    config = TrackingEvaluationPipelineConfig()
+
+    assert args.evaluator_contract == EVALUATOR_CONTRACT_ID
+    assert config.evaluator_contract_id == EVALUATOR_CONTRACT_ID
+
+
+def test_legacy_evaluator_is_historical_read_only() -> None:
+    with pytest.raises(ValueError, match="historical read-only"):
+        TrackingEvaluationPipelineConfig(
+            evaluator_contract_id=LEGACY_EVALUATOR_CONTRACT_ID
+        )
 
 
 def test_tracking_evaluation_apis_default_to_corrected_hidden_contract() -> None:
