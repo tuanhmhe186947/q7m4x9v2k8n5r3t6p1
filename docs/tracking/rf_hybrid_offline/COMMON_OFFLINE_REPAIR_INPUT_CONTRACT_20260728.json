@@ -1,0 +1,345 @@
+{
+  "schema_version": "tracking.common_offline_repair_input.v1",
+  "date": "20260728",
+  "compatibility_result": "PASS_REPRESENTATION_ONLY",
+  "container": {
+    "type": "list[shape]",
+    "canonical_order": [
+      "frame ascending",
+      "fixed actor slot ascending"
+    ],
+    "duplicate_key": [
+      "frame",
+      "fixed actor slot"
+    ],
+    "mutation_policy": "adapter returns a deep structural copy",
+    "raw_authority_policy": "caller retains a deep immutable snapshot"
+  },
+  "fields": [
+    {
+      "name": "frame",
+      "type": "int",
+      "nullable": false,
+      "semantic_meaning": "source-video frame index",
+      "bytetrack_source": "frame_shapes(frame_index)",
+      "rf_source": "frame_shapes(frame_index)",
+      "required_repair_stages": "all",
+      "default_policy": "none",
+      "missingness_policy": "fail_closed",
+      "provenance": "tracking runner frame counter"
+    },
+    {
+      "name": "type",
+      "type": "str",
+      "nullable": false,
+      "semantic_meaning": "CVAT shape kind; must be rectangle",
+      "bytetrack_source": "shape_for_track",
+      "rf_source": "shape_for_track",
+      "required_repair_stages": "export contract",
+      "default_policy": "none",
+      "missingness_policy": "fail_closed",
+      "provenance": "shared shape emitter"
+    },
+    {
+      "name": "label",
+      "type": "str",
+      "nullable": false,
+      "semantic_meaning": "fixed actor slot in Pig_<positive integer> form",
+      "bytetrack_source": "FixedTrack.fixed_id",
+      "rf_source": "FixedTrack.fixed_id",
+      "required_repair_stages": [
+        "identity_swap_guard",
+        "temporal_box_refinement",
+        "pair and suffix repair stages",
+        "near/far hidden geometry"
+      ],
+      "default_policy": "none",
+      "missingness_policy": "fail_closed",
+      "provenance": "shared fixed-track state"
+    },
+    {
+      "name": "points",
+      "type": "list[float, float, float, float]",
+      "nullable": false,
+      "semantic_meaning": "finite source-frame pixel bbox [x1,y1,x2,y2]",
+      "bytetrack_source": "FixedTrack.last_box",
+      "rf_source": "FixedTrack.last_box",
+      "required_repair_stages": "all active repair stages",
+      "default_policy": "none",
+      "missingness_policy": "fail_closed",
+      "provenance": "shared shape emitter"
+    },
+    {
+      "name": "attributes.ID",
+      "type": "str",
+      "nullable": false,
+      "semantic_meaning": "exported identity in ID_<positive integer> form",
+      "bytetrack_source": "FixedTrack.fixed_id",
+      "rf_source": "FixedTrack.fixed_id",
+      "required_repair_stages": [
+        "hidden_suffix_id_swap_repair",
+        "near/far hidden geometry",
+        "motion pair stabilizer"
+      ],
+      "default_policy": "none",
+      "missingness_policy": "fail_closed",
+      "provenance": "shared shape emitter"
+    },
+    {
+      "name": "attributes.Hidden",
+      "type": "enum[Yes,No]",
+      "nullable": false,
+      "semantic_meaning": "core-authored visibility state",
+      "bytetrack_source": "track_is_hidden plus ByteTrack mode contract",
+      "rf_source": "track_is_hidden plus realtime lifecycle contract",
+      "required_repair_stages": [
+        "overlap hidden stabilization",
+        "pair and suffix repair stages",
+        "near/far hidden geometry"
+      ],
+      "default_policy": "none",
+      "missingness_policy": "fail_closed",
+      "provenance": "shared shape emitter; adapter never reinterprets"
+    },
+    {
+      "name": "attributes.Behavior",
+      "type": "str",
+      "nullable": false,
+      "semantic_meaning": "behavior annotation payload preserved by identity repair",
+      "bytetrack_source": "TrackingConfig.default_behavior",
+      "rf_source": "TrackingConfig.default_behavior",
+      "required_repair_stages": "identity-payload preservation",
+      "default_policy": "none",
+      "missingness_policy": "fail_closed",
+      "provenance": "shared shape emitter"
+    },
+    {
+      "name": "outside",
+      "type": "bool",
+      "nullable": false,
+      "semantic_meaning": "core-authored observation presence",
+      "bytetrack_source": "ByteTrack lifecycle emitter",
+      "rf_source": "realtime lifecycle emitter",
+      "required_repair_stages": "all active repair stages",
+      "default_policy": "none",
+      "missingness_policy": "fail_closed",
+      "provenance": "shared shape emitter; core semantics are authoritative"
+    },
+    {
+      "name": "occluded",
+      "type": "bool",
+      "nullable": false,
+      "semantic_meaning": "core-authored occlusion state",
+      "bytetrack_source": "ByteTrack lifecycle emitter",
+      "rf_source": "realtime lifecycle emitter",
+      "required_repair_stages": [
+        "overlap hidden stabilization",
+        "small-box suppression"
+      ],
+      "default_policy": "none",
+      "missingness_policy": "fail_closed",
+      "provenance": "shared shape emitter"
+    },
+    {
+      "name": "score",
+      "type": "float",
+      "nullable": false,
+      "semantic_meaning": "last core confidence in [0,1]",
+      "bytetrack_source": "FixedTrack.last_score",
+      "rf_source": "FixedTrack.last_score",
+      "required_repair_stages": [
+        "temporal box refinement",
+        "small-box suppression",
+        "hidden suffix repair",
+        "near/far hidden geometry"
+      ],
+      "default_policy": "none",
+      "missingness_policy": "fail_closed",
+      "provenance": "shared shape emitter"
+    },
+    {
+      "name": "_track_source",
+      "type": "str",
+      "nullable": false,
+      "semantic_meaning": "detected, predicted, or occlusion_hold provenance",
+      "bytetrack_source": "FixedTrack.last_source",
+      "rf_source": "FixedTrack.last_source",
+      "required_repair_stages": [
+        "identity swap guard",
+        "temporal box refinement",
+        "suffix repair"
+      ],
+      "default_policy": "none",
+      "missingness_policy": "fail_closed",
+      "provenance": "shared fixed-track state"
+    },
+    {
+      "name": "_track_state",
+      "type": "enum[VISIBLE,OCCLUDED,MISSING,LOST]",
+      "nullable": false,
+      "semantic_meaning": "core-authored lifecycle state",
+      "bytetrack_source": "FixedTrack.state",
+      "rf_source": "FixedTrack.state",
+      "required_repair_stages": [
+        "suffix repair"
+      ],
+      "default_policy": "none",
+      "missingness_policy": "fail_closed",
+      "provenance": "shared fixed-track state; adapter never maps states"
+    },
+    {
+      "name": "_missed_frames",
+      "type": "int",
+      "nullable": false,
+      "semantic_meaning": "consecutive core frames without accepted detection",
+      "bytetrack_source": "FixedTrack.missed",
+      "rf_source": "FixedTrack.missed",
+      "required_repair_stages": [
+        "suffix repair"
+      ],
+      "default_policy": "none",
+      "missingness_policy": "fail_closed",
+      "provenance": "shared fixed-track state"
+    },
+    {
+      "name": "_occlusion_hold",
+      "type": "bool",
+      "nullable": false,
+      "semantic_meaning": "shape came from an ordinary core occlusion hold",
+      "bytetrack_source": "FixedTrack.last_source",
+      "rf_source": "FixedTrack.last_source",
+      "required_repair_stages": [
+        "identity swap guard",
+        "suffix repair"
+      ],
+      "default_policy": "none",
+      "missingness_policy": "fail_closed",
+      "provenance": "shared shape emitter"
+    },
+    {
+      "name": "_needs_review",
+      "type": "bool",
+      "nullable": false,
+      "semantic_meaning": "core review marker used as uncertainty evidence",
+      "bytetrack_source": "shape_for_track",
+      "rf_source": "shape_for_track",
+      "required_repair_stages": [
+        "identity swap guard"
+      ],
+      "default_policy": "none",
+      "missingness_policy": "fail_closed",
+      "provenance": "shared shape emitter"
+    },
+    {
+      "name": "_ambiguous_occlusion",
+      "type": "bool",
+      "nullable": false,
+      "semantic_meaning": "ordinary association ambiguity provenance",
+      "bytetrack_source": "FixedTrack.last_ambiguous",
+      "rf_source": "FixedTrack.last_ambiguous",
+      "required_repair_stages": [
+        "identity swap guard"
+      ],
+      "default_policy": "none",
+      "missingness_policy": "fail_closed",
+      "provenance": "shared fixed-track state"
+    },
+    {
+      "name": "_raw_track_id",
+      "type": "int|null",
+      "nullable": true,
+      "semantic_meaning": "most frequent detector-provided raw ID",
+      "bytetrack_source": "FixedTrack.top_raw_id",
+      "rf_source": "FixedTrack.top_raw_id",
+      "required_repair_stages": [],
+      "default_policy": "preserve null",
+      "missingness_policy": "optional_field_absent",
+      "provenance": "shared fixed-track state; not used for repair"
+    },
+    {
+      "name": "_ever_detected",
+      "type": "bool",
+      "nullable": false,
+      "semantic_meaning": "whether core accepted any detection for the actor slot",
+      "bytetrack_source": "FixedTrack.ever_detected",
+      "rf_source": "FixedTrack.ever_detected",
+      "required_repair_stages": [],
+      "default_policy": "none",
+      "missingness_policy": "fail_closed",
+      "provenance": "shared fixed-track state"
+    },
+    {
+      "name": "_motion_state",
+      "type": "str",
+      "nullable": false,
+      "semantic_meaning": "core motion-state provenance",
+      "bytetrack_source": "FixedTrack.motion_state",
+      "rf_source": "FixedTrack.motion_state",
+      "required_repair_stages": [],
+      "default_policy": "none",
+      "missingness_policy": "fail_closed",
+      "provenance": "shared fixed-track state; not used by active repair"
+    },
+    {
+      "name": "_timestamp_seconds",
+      "type": "float|null",
+      "nullable": true,
+      "semantic_meaning": "optional producer-supplied frame timestamp",
+      "bytetrack_source": "not serialized",
+      "rf_source": "not serialized",
+      "required_repair_stages": [],
+      "default_policy": "never synthesize",
+      "missingness_policy": "optional_field_absent",
+      "provenance": "producer only; adapter validates when present"
+    }
+  ],
+  "out_of_band_inputs": [
+    {
+      "name": "frame_width",
+      "source": "shared video capture",
+      "missingness_policy": "fail_closed"
+    },
+    {
+      "name": "frame_height",
+      "source": "shared video capture",
+      "missingness_policy": "fail_closed"
+    },
+    {
+      "name": "pen_mask",
+      "source": "shared mask authority loaded by runner",
+      "missingness_policy": "required only when frozen near-wall stage is enabled"
+    }
+  ],
+  "adapter_permissions": [
+    "rename fields",
+    "convert container types",
+    "normalize deterministic ordering",
+    "attach existing provenance",
+    "convert equivalent enum representations",
+    "validate required fields",
+    "fail closed"
+  ],
+  "adapter_forbidden_actions": [
+    "choose a match",
+    "merge tracks",
+    "split tracks",
+    "change IDs",
+    "interpolate observations",
+    "revive tracks",
+    "terminate tracks",
+    "fill appearance evidence",
+    "generate confidence",
+    "change bbox coordinates",
+    "change timestamps",
+    "apply smoothing",
+    "perform repair"
+  ],
+  "required_invariants": {
+    "adapter_association_decisions": 0,
+    "adapter_identity_changes": 0,
+    "adapter_synthesized_required_evidence": 0,
+    "adapter_frame_reordering": "deterministic canonical ordering only",
+    "adapter_bbox_value_changes": 0,
+    "adapter_timestamp_value_changes": 0
+  }
+}

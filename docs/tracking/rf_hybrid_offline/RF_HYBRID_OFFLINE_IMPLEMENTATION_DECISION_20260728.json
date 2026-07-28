@@ -1,0 +1,93 @@
+{
+  "schema_version": "tracking.rf_hybrid.implementation_decision.v1",
+  "date": "20260728",
+  "decision": "PASS_READY_FOR_DEVELOPMENT_2X2_EVALUATION",
+  "starting_main_sha": "5e2b19ce5ff3a07e8ef2653389871c70c8d03d2e",
+  "rf_hybrid_compatibility": "PASS_REPRESENTATION_ONLY",
+  "profile": {
+    "name": "rf_hybrid_offline",
+    "added": true,
+    "opt_in_only": true,
+    "default": false,
+    "promoted": false,
+    "timing_class": "post_video_offline",
+    "causal_zero_delay": false,
+    "future_frames_may_be_used": true,
+    "unseen_execution_authorized": false
+  },
+  "repair_stage_audit": {
+    "total": 12,
+    "tracker_agnostic_repair": 11,
+    "generic_shared_infrastructure": 1,
+    "bytetrack_specific": 0,
+    "unresolved": 0
+  },
+  "adapter_invariants": {
+    "representation_only": true,
+    "association_decisions": 0,
+    "identity_changes": 0,
+    "synthesized_required_evidence": 0,
+    "bbox_value_changes": 0,
+    "timestamp_value_changes": 0,
+    "frame_reordering": "deterministic canonical ordering only"
+  },
+  "semantic_change_counts": {
+    "repair_parameters_changed": false,
+    "new_repair_heuristics_added": 0,
+    "rf_specific_repair_branches_added": 0,
+    "realtime_fast_changed": false,
+    "bytetrack_raw_changed": false,
+    "hybrid_bytetrack_changed": false,
+    "offline_repair_changed": false,
+    "detector_authority_changed": false,
+    "cache_replay_changed": false,
+    "evaluator_semantics_changed": false
+  },
+  "invariant_hashes": {
+    "realtime_fast": "9bf4ce6d07423ab517b4705c716e3eb012349b756b7c0591cc3458eac207808d",
+    "bytetrack_raw": "547ae86e3be26671a9a148cb0e613ea1c602a0ff842a977ce9b7f1d217c10e41",
+    "hybrid_bytetrack": "4eb3d4e2262485d48d425be06fd8a6b3adfd8a01a27b28e76b5a8d55958d1d55",
+    "offline_repair": "e078b5b165dda82dee5b61e9465dc9844446e4cb576a02858c4ed7369828d758"
+  },
+  "verification": {
+    "rf_adapter_tests": "8/8",
+    "synthetic_golden_cases": "12/12",
+    "raw_immutability_tests": "2/2",
+    "repair_ledger_tests": "3/3",
+    "hybrid_repair_regression_tests": "120/120",
+    "profile_tests": "22/22",
+    "cache_replay_tests": "16/16",
+    "broader_static_synthetic_tests": "352/352",
+    "ruff": "PASS",
+    "py_compile": "PASS",
+    "compileall": "PASS",
+    "git_diff_check": "PASS",
+    "all_required_tests_pass": true
+  },
+  "execution_counts": {
+    "real_tracking_runs": 0,
+    "detector_inference_calls": 0,
+    "gpu_inference_runs": 0,
+    "run_root_mp4_count": 0,
+    "unseen_videos_declared_by_user": 12,
+    "unseen_videos_accessed": false,
+    "unseen_tracking_runs": 0,
+    "unseen_tuning_occurred": false
+  },
+  "benchmark_audit_separation": {
+    "rf_hybrid_implementation_scope_changed": false,
+    "rf_hybrid_tracking_code_changed_by_audit": false,
+    "evaluator_production_behavior_changed": false,
+    "evaluator_correction_required_separately": true,
+    "headline_metric_results_at_risk": true,
+    "implementation_merge_blocked": false,
+    "future_2x2_metric_interpretation_requires_correction_decision": true
+  },
+  "ready_for_development_2x2_evaluation": true,
+  "ready_for_unseen_evaluation": false,
+  "ready_for_runtime_funnel": false,
+  "ready_to_promote": false,
+  "blockers": [
+    "A separate evaluator-correction decision is required before standard HOTA claims or permanent/terminal severity rankings are reused."
+  ]
+}

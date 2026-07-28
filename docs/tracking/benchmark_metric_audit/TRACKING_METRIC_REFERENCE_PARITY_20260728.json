@@ -1,0 +1,83 @@
+{
+  "schema_version": "tracking.metric_reference_parity.v1",
+  "date": "2026-07-28",
+  "scope": "STATIC_AND_SYNTHETIC_ONLY",
+  "reference_standard": "TrackEval HOTA semantics",
+  "reference_execution": "NOT_AVAILABLE",
+  "trackeval_installed": false,
+  "motmetrics_installed": false,
+  "dependencies_installed_for_audit": false,
+  "metrics": {
+    "frame_matching": {
+      "status": "FAIL_FORMULA",
+      "finding": "Hungarian assignment is unconstrained, then thresholded; a valid higher-cardinality gated assignment can be lost.",
+      "synthetic_case": "IoU matrix [[1.0,0.6666667],[0.6,0.4]] at threshold 0.5 returns one match although two gated matches exist."
+    },
+    "HOTA": {
+      "status": "FAIL_FORMULA",
+      "finding": "One sqrt(DetA*AssA) value is computed at the configured IoU threshold instead of averaging HOTA over alpha 0.05 through 0.95.",
+      "synthetic_case": "IoU 0.6 produces current HOTA 1.0 at alpha 0.5; manual standard threshold average is 12/19."
+    },
+    "HOTA_sequence_aggregation": {
+      "status": "FAIL_AGGREGATION",
+      "finding": "Fixed-threshold micro aggregation is count/match weighted, but the standard alpha dimension and threshold averaging are absent."
+    },
+    "DetA": {
+      "status": "FAIL_FORMULA",
+      "finding": "Formula is valid at one alpha but the standard reported component is not averaged over HOTA thresholds."
+    },
+    "AssA": {
+      "status": "FAIL_FORMULA",
+      "finding": "Association Jaccard weighting is valid at one alpha but the standard reported component is not averaged over HOTA thresholds."
+    },
+    "LocA": {
+      "status": "INCONCLUSIVE",
+      "finding": "LocA is not reported. MOTP IoU is available but is not labeled or aggregated as standard HOTA LocA."
+    },
+    "IDF1": {
+      "status": "PASS_FORMULA_REVIEW_ONLY",
+      "finding": "Per-video global one-to-one identity assignment is used; aggregate counts preserve sequence boundaries."
+    },
+    "IDSW": {
+      "status": "PASS_FORMULA_REVIEW_ONLY",
+      "finding": "Transitions are counted per GT against its previous retained match, with previous identity persisted across gaps."
+    },
+    "FP_FN_TP_conservation": {
+      "status": "PASS_FORMULA_REVIEW_ONLY",
+      "finding": "For the retained assignment, TP+FN=GT and TP+FP=Pred. Matching defect can still select the wrong retained cardinality."
+    },
+    "precision_recall": {
+      "status": "PASS_FORMULA_REVIEW_ONLY",
+      "finding": "Ratios use summed counts and remain in [0,1]; percentage columns are explicitly multiplied by 100."
+    },
+    "include_hidden": {
+      "status": "PASS_FORMULA_REVIEW_ONLY",
+      "finding": "Hidden boxes are filtered symmetrically from both XML inputs and synthetic visible/hidden populations differ as declared."
+    },
+    "empty_sequences": {
+      "status": "PASS_FORMULA_REVIEW_ONLY",
+      "finding": "Zero denominators return zero rather than perfect scores."
+    },
+    "input_ordering": {
+      "status": "PASS_FORMULA_REVIEW_ONLY",
+      "finding": "Synthetic object-order permutations produce identical evaluated metrics."
+    },
+    "per_video_aggregation": {
+      "status": "PASS_FORMULA_REVIEW_ONLY",
+      "finding": "Counts are summed and ratios recomputed; percentages are not unweighted per-video means."
+    },
+    "permanent_swap": {
+      "status": "FAIL_FORMULA",
+      "finding": "Event span is treated as duration and recovery is inferred from video end rather than a later authoritative correct match."
+    },
+    "terminal_swap": {
+      "status": "FAIL_SEQUENCE_BOUNDARY",
+      "finding": "Terminal status uses the last evaluated video frame instead of the affected GT's final authoritative matched frame."
+    }
+  },
+  "reference_parity_cases_passed": 0,
+  "reference_parity_cases_total": "NOT_AVAILABLE",
+  "formula_review_synthetic_tests_passed": 21,
+  "formula_review_synthetic_tests_total": 21,
+  "evaluator_behavior_changed": false
+}

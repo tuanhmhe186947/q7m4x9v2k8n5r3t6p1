@@ -1,0 +1,17 @@
+contract_item,rf_raw_representation,frozen_repair_requirement,mismatch_classification,adapter_action,required_evidence_available,semantic_reinterpretation,decision
+container_mutability,"mutable list of mutable shape dicts","repair stages may return shallow copies or mutate nested payload","REPRESENTATION_ONLY","deep-copy once before repair and retain immutable authority snapshot",true,false,PASS
+observation_order,"frame-major then fixed slot","deterministic chronological processing","REPRESENTATION_ONLY","validate unique keys and canonicalize by frame then fixed slot",true,false,PASS
+frame_index,"integer source frame","integer source frame","REPRESENTATION_ONLY","validate type/range and preserve value",true,false,PASS
+timestamp,"not serialized; source FPS is out-of-band","not consumed by any frozen repair stage","OPTIONAL_FIELD_ABSENT","leave absent; validate monotonicity only when supplied by a synthetic or future producer",true,false,PASS
+bbox,"points=[x1,y1,x2,y2] pixel coordinates","points=[x1,y1,x2,y2] pixel coordinates","REPRESENTATION_ONLY","validate finite ordered coordinates and preserve values",true,false,PASS
+actor_slot_identity,"label=Pig_<fixed_id>","label=Pig_<fixed_id> groups fixed-slot geometry","REPRESENTATION_ONLY","validate format and uniqueness; preserve label",true,false,PASS
+export_identity,"attributes ID_<fixed_id>","ID attribute is the repairable exported identity","REPRESENTATION_ONLY","validate presence and preserve initial value",true,false,PASS
+visibility,"Hidden attribute plus occluded boolean","Hidden/occluded/outside are authoritative repair inputs","REPRESENTATION_ONLY","validate consistency and pass core-authored values unchanged",true,false,PASS
+lifecycle,"_track_state/_state_reason/_missed_frames/outside","repair accepts authoritative lifecycle fields and never revives or terminates","REPRESENTATION_ONLY","validate supported values; do not map RF states to ByteTrack states",true,false,PASS
+detection_provenance,"_track_source and nullable _raw_track_id","_track_source is consumed; raw owner is not consumed","REPRESENTATION_ONLY","validate source and preserve raw-owner provenance",true,false,PASS
+confidence,"score rounded to four decimals","score is consumed by anchor and suppression stages","REPRESENTATION_ONLY","validate finite [0,1] value and preserve it",true,false,PASS
+appearance_state,"not serialized in raw shapes","not consumed by frozen post-video repair stages","OPTIONAL_FIELD_ABSENT","leave absent; never fabricate appearance evidence",true,false,PASS
+motion_state,"_motion_state string","not required by active frozen repair stages","REPRESENTATION_ONLY","preserve provenance without using it for adapter decisions",true,false,PASS
+mask_authority,"same shared pen mask used by realtime_fast runner","near-wall geometry stage requires the existing mask","REPRESENTATION_ONLY","pass the already-loaded shared mask to the unchanged stage",true,false,PASS
+future_access,"raw snapshot is causal and complete after video","frozen repair contains declared future/global stages","REPRESENTATION_ONLY","invoke repair only after raw snapshot is frozen",true,false,PASS
+repair_parameters,"realtime_fast core config has repair disabled","frozen hybrid repair parameter authority is required","REPRESENTATION_ONLY","construct a separate hash-verified repair config; never modify core config",true,false,PASS

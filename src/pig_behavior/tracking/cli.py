@@ -707,6 +707,10 @@ def print_tracking_summary(cfg: TrackingConfig, summary: TrackingSummary) -> Non
     print(f"[OK] labels: {summary.labels_json}")
     print(f"[OK] quality report json: {summary.quality_report_json}")
     print(f"[OK] quality report csv: {summary.quality_report_csv}")
+    if summary.raw_annotations_json is not None:
+        print(f"[OK] raw RF track authority: {summary.raw_annotations_json}")
+    if summary.repair_ledger_json is not None:
+        print(f"[OK] offline repair ledger: {summary.repair_ledger_json}")
     print(
         "[OK] frames="
         f"{summary.frames_written}, shapes={summary.shape_count}, "

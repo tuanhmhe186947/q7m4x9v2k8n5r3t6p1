@@ -1,0 +1,13 @@
+case_id,title,video_count,frame_interval_seconds,sequence_description,include_hidden_policy,expected_idsw_gap_persistent,expected_idsw_strict_reset_on_gap,wrong_id_rows,wrong_id_matched_frames,wrong_id_matched_seconds,primary_pair_events,gt_identity_episodes,permanent_pair_events,terminal_pair_events,recovered_pair_events,recovery_latency_frames,strict_fragments,authoritative_for_severity,notes
+A,Perfect identity continuity,1,1.0,A A A A A,all visible,0,0,0,0,0.0,0,0,0,0,0,0,0,YES,No identity error
+B,One-frame wrong assignment and recovery,1,1.0,A B A,all visible,2,2,1,1,1.0,1,1,0,0,1,1,0,YES,Two switch events but one short recovered episode
+C,Multi-frame wrong assignment and recovery,1,1.0,A B B B A,all visible,2,2,3,3,3.0,1,1,0,0,1,1,0,YES,Wrong-ID duration exceeds case B while IDSW is equal
+D,Wrong transition persists to end,1,1.0,A then B for nine frames,all visible,1,1,9,9,9.0,1,1,1,1,0,NA,0,YES,One IDSW but terminal persistent corruption
+E,Two animals exchange and remain exchanged,1,1.0,AB correct then BA for five frames,all visible,2,2,10,10,5.0,1,2,1,1,0,NA,0,YES,One connected pair-swap event contains two GT-level episodes
+F,Two animals exchange and switch back,1,1.0,AB correct then BA for three frames then AB correct,all visible,4,4,6,6,3.0,1,2,0,0,1,1,0,YES,Recovered pair-swap event is not terminal
+G,Lost and reappears under different ID then recovers,1,1.0,A miss miss B A,all visible,2,1,1,1,1.0,1,1,0,0,1,1,1,YES,Current gap-persistent policy counts A-to-B and B-to-A; strict reset counts only B-to-A
+H,Fragmentation without wrong identity,1,1.0,A miss A,all visible,0,0,0,0,0.0,0,0,0,0,0,0,1,YES,Fragmentation does not imply identity error
+I,Unmatched gap followed by same correct ID,1,1.0,A miss miss miss A,all visible,0,0,0,0,0.0,0,0,0,0,0,0,1,YES,A miss is not automatically an identity swap
+J,Video boundary,2,1.0,video one A; video two B,all visible,0,0,0,0,0.0,0,0,0,0,0,0,0,YES,No event or identity assignment crosses sequence boundary
+K,Hidden interval population,1,1.0,A visible; B hidden; A visible,visible-only versus include-hidden,2,2,1,1,1.0,1,1,0,0,1,1,0,YES,Visible-only IDSW and wrong rows are zero; include-hidden values are listed
+L,Unresolved GT event,1,1.0,one unresolved wrong-ID matched row,all visible,NA,NA,1,1,1.0,1,1,0,0,0,NA,0,NO,Preserved in audit and excluded from authoritative permanent or terminal ranking

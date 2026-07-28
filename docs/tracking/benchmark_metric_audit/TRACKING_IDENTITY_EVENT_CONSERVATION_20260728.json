@@ -1,0 +1,32 @@
+{
+  "schema_version": "tracking.identity_event_conservation.v1",
+  "date": "2026-07-28",
+  "population": "hand_authored_cases_A_through_L",
+  "primary_episode_unit": "identity_connected_pair_event",
+  "wrong_id_rows_input": 32,
+  "wrong_id_rows_classified": 32,
+  "wrong_id_rows_unclassified": 0,
+  "wrong_id_rows_double_counted": 0,
+  "authoritative_wrong_id_rows": 31,
+  "unresolved_gt_wrong_id_rows": 1,
+  "identity_episodes_total": 8,
+  "gt_level_identity_episodes_total": 10,
+  "permanent_swap_events": 2,
+  "terminal_swap_events": 2,
+  "gt_ambiguous_events": 1,
+  "events_crossing_video_boundary": 0,
+  "duration_policy": {
+    "frame_interval_seconds": 1.0,
+    "wrong_id_duration_frames": "sum of contributing authoritative wrong-ID matched frame intervals",
+    "wrong_id_duration_seconds": "sum of contributing authoritative frame intervals times 1.0 seconds",
+    "span_is_not_duration": true
+  },
+  "subset_traceability": {
+    "permanent_events_are_subset_of_full_episode_table": true,
+    "terminal_events_are_subset_of_full_episode_table": true,
+    "unresolved_gt_events_preserved_separately": true
+  },
+  "conservation_status": "PASS",
+  "production_taxonomy_conservation_note": "Input mismatch rows are conserved once, but current duration and recovery labels are not scientifically valid.",
+  "evaluator_behavior_changed": false
+}

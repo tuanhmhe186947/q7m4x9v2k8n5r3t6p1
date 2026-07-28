@@ -454,6 +454,8 @@ class TrackingSummary:
     source_fps: float
     output_fps: float
     telemetry: dict[str, int | float | str]
+    raw_annotations_json: Path | None = None
+    repair_ledger_json: Path | None = None
 
 
 def _clip_box(box: np.ndarray, width: int, height: int) -> np.ndarray:

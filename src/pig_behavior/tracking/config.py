@@ -93,6 +93,7 @@ class TrackingConfig:
     max_raw_detections: int = DEFAULT_MAX_RAW_DETECTIONS
     target_fps: float = DEFAULT_TARGET_FPS
     enable_offline_smoothing: bool = DEFAULT_ENABLE_OFFLINE_SMOOTHING
+    rf_hybrid_offline: bool = False
 
     use_mask: bool = True
     mask_input_frame: bool = True
@@ -403,6 +404,8 @@ def validate_config(cfg: TrackingConfig) -> None:
         raise ValueError(
             "mode must be one of: realtime, bytetrack_raw, hybrid_bytetrack."
         )
+    if cfg.rf_hybrid_offline and cfg.mode != "realtime":
+        raise ValueError("rf_hybrid_offline requires mode='realtime'.")
     if cfg.occlusion_reid_bad_match_action not in {"hold", "reject"}:
         raise ValueError("occlusion_reid_bad_match_action must be 'hold' or 'reject'.")
 
@@ -805,7 +808,12 @@ def resolve_output_paths(
     cfg: TrackingConfig,
 ) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path]:
     video_stem = cfg.video_path.stem
-    run_output_dir = mode_scoped_video_dir(cfg.output_dir, cfg.mode, video_stem)
+    output_mode = "rf_hybrid_offline" if cfg.rf_hybrid_offline else cfg.mode
+    run_output_dir = mode_scoped_video_dir(
+        cfg.output_dir,
+        output_mode,
+        video_stem,
+    )
     run_output_dir.mkdir(parents=True, exist_ok=True)
     output_video = cfg.output_video or (
         run_output_dir / "tracked_pigs_with_ids.mp4"

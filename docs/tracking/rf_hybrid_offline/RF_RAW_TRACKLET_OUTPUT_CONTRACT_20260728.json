@@ -1,0 +1,111 @@
+{
+  "schema_version": "tracking.rf_raw_tracklet_output_contract.v1",
+  "date": "20260728",
+  "authority": {
+    "profile": "realtime_fast",
+    "effective_config_sha256": "9bf4ce6d07423ab517b4705c716e3eb012349b756b7c0591cc3458eac207808d",
+    "producer": "src/pig_behavior/tracking/tracks.py::frame_shapes",
+    "tracking_entry": "src/pig_behavior/tracking/runner.py::run_tracking",
+    "core_mode": "realtime"
+  },
+  "per_frame_output": {
+    "container": "list[dict[str, object]]",
+    "emission_order": "frame ascending, then fixed actor slot 1..expected_pigs",
+    "shape_count_per_frame": "exactly expected_pigs",
+    "shape_type": "rectangle"
+  },
+  "identity_semantics": {
+    "source_track_id_field": "_raw_track_id",
+    "source_track_id_nullable": true,
+    "canonical_actor_slot_field": "label",
+    "canonical_actor_slot_format": "Pig_<fixed_id>",
+    "export_identity_field": "attributes[name=ID].value",
+    "initial_export_identity_format": "ID_<fixed_id>",
+    "identity_owner": "realtime_fast FixedTrack.fixed_id",
+    "adapter_may_change_identity": false
+  },
+  "bbox_semantics": {
+    "field": "points",
+    "representation": "[x1,y1,x2,y2]",
+    "coordinate_space": "source-frame pixels",
+    "numeric_rounding": "two decimals at raw shape emission",
+    "adapter_may_change_values": false
+  },
+  "confidence_and_provenance": {
+    "confidence_field": "score",
+    "confidence_rounding": "four decimals at raw shape emission",
+    "detection_provenance_field": "_track_source",
+    "raw_detector_track_field": "_raw_track_id",
+    "association_state_fields": [
+      "_track_state",
+      "_state_reason",
+      "_missed_frames",
+      "_ambiguous_occlusion",
+      "_occlusion_hold",
+      "_motion_state"
+    ],
+    "appearance_state_serialized": false,
+    "motion_state_serialized": true
+  },
+  "visibility_and_lifecycle": {
+    "hidden_field": "attributes[name=Hidden].value",
+    "hidden_values": [
+      "Yes",
+      "No"
+    ],
+    "occluded_field": "occluded",
+    "presence_field": "outside",
+    "ever_detected_field": "_ever_detected",
+    "lifecycle_state_field": "_track_state",
+    "lifecycle_states": [
+      "VISIBLE",
+      "OCCLUDED",
+      "MISSING",
+      "LOST"
+    ],
+    "realtime_missing_is_evaluable_until_lost": true,
+    "realtime_lost_is_outside": true,
+    "repair_must_accept_core_authored_values_without_reinterpretation": true
+  },
+  "frame_and_time": {
+    "frame_index_field": "frame",
+    "frame_index_type": "integer",
+    "frame_index_origin": "source video frame index",
+    "timestamp_field": null,
+    "timestamp_serialized": false,
+    "source_fps_available_out_of_band": true,
+    "adapter_may_synthesize_timestamp": false
+  },
+  "serialization": {
+    "raw_in_memory_authority": "deep immutable snapshot before adapter invocation",
+    "raw_disk_artifact": "rf_raw_track_output.json",
+    "repaired_disk_artifact": "annotations_cvat_shapes.json",
+    "internal_provenance_retained_in_memory": true,
+    "public_annotation_json_strips_internal_underscore_fields": true
+  },
+  "required_raw_fields": [
+    "type",
+    "occluded",
+    "outside",
+    "points",
+    "frame",
+    "attributes",
+    "score",
+    "label",
+    "_track_source",
+    "_track_state",
+    "_state_reason",
+    "_missed_frames",
+    "_raw_track_id",
+    "_ever_detected",
+    "_ambiguous_occlusion",
+    "_occlusion_hold",
+    "_motion_state"
+  ],
+  "optional_raw_fields": [
+    "_area_occluded",
+    "_area_occlusion_frames",
+    "_merged_box_split",
+    "_timestamp_seconds"
+  ]
+}

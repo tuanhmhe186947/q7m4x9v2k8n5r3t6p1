@@ -1,0 +1,103 @@
+{
+  "schema_version": "tracking.evaluator_correction_decision_required.v1",
+  "date": "2026-07-28",
+  "decision": "DEDICATED_EVALUATOR_CORRECTION_REQUIRED",
+  "evaluator_change_authorized": false,
+  "headline_results_at_risk": true,
+  "historical_metrics_require_re_evaluation": true,
+  "defects": [
+    {
+      "affected_metric": "HOTA, DetA, AssA",
+      "exact_defect": "The evaluator reports one configured-IoU HOTA-style value instead of standard TrackEval threshold-averaged metrics.",
+      "affected_code_path": [
+        "src/pig_behavior/evaluation/tracking/evaluator.py:evaluate_tracking",
+        "src/pig_behavior/evaluation/tracking/metrics.py:aggregate_metrics"
+      ],
+      "affected_historical_runs": "All project tracking reports and benchmark rankings that use hota, deta, assa, remapped_hota, or their percentage columns.",
+      "headline_results_could_change": true,
+      "proposed_corrected_contract": "Compute alpha-specific HOTA components for 0.05 through 0.95, aggregate alpha-specific sufficient statistics across sequences, then report the TrackEval-compatible threshold means.",
+      "required_regression_fixtures": [
+        "IoU 0.6 one-pair threshold-average case",
+        "perfect, partial-overlap, empty-GT, empty-prediction, and multi-video cases",
+        "TrackEval reference parity on deterministic synthetic sequences"
+      ],
+      "required_re_evaluation_scope": "Every retained scientific comparison whose decision or ranking used HOTA, DetA, or AssA."
+    },
+    {
+      "affected_metric": "All match-dependent metrics",
+      "exact_defect": "Hungarian assignment maximizes the ungated IoU matrix and drops sub-threshold pairs afterward, which can lose valid match cardinality.",
+      "affected_code_path": [
+        "src/pig_behavior/evaluation/tracking/matching.py:match_frame"
+      ],
+      "affected_historical_runs": "All evaluator outputs with frames containing competing assignments near the IoU threshold.",
+      "headline_results_could_change": true,
+      "proposed_corrected_contract": "Exclude ineligible IoU pairs before assignment and deterministically maximize eligible match cardinality, then eligible IoU, under the declared threshold.",
+      "required_regression_fixtures": [
+        "IoU matrix [[1.0,0.6666667],[0.6,0.4]] at threshold 0.5",
+        "tie ordering permutations",
+        "empty and rectangular matrices",
+        "TP+FN=GT and TP+FP=Pred conservation"
+      ],
+      "required_re_evaluation_scope": "All headline tracking metrics and diagnostics derived from frame matches."
+    },
+    {
+      "affected_metric": "Permanent swap and identity-error duration",
+      "exact_defect": "Connected-component span is labeled duration, pair-events can combine two GT episodes, and terminal events are automatically permanent.",
+      "affected_code_path": [
+        "scripts/tracking/build_rf_acc23_error_taxonomy.py:_frame_components",
+        "scripts/tracking/build_rf_acc23_error_taxonomy.py:group_error_events",
+        "scripts/tracking/build_rf_acc23_error_taxonomy.py:enrich_events"
+      ],
+      "affected_historical_runs": [
+        "docs/tracking/error_taxonomy/RF_ACC23_REMAINING_IDENTITY_ERROR_TAXONOMY_20260727.md",
+        "RF_ACC23 identity_error_events.csv and permanent_terminal_swap_summary.csv",
+        "Downstream H1/H2 decisions that cite RF_ACC23 permanent or terminal counts"
+      ],
+      "headline_results_could_change": true,
+      "proposed_corrected_contract": "Preserve separate pair-event and GT-primary episode tables; derive duration from contributing authoritative wrong-ID intervals; define permanent persistence explicitly; keep terminal as a traceable subset or separate axis.",
+      "required_regression_fixtures": [
+        "one-frame recovered error",
+        "sparse wrong rows within a long span",
+        "two-animal exchange and recovery",
+        "terminal affected-GT match before video end",
+        "unresolved-GT event"
+      ],
+      "required_re_evaluation_scope": "RF_ACC23 permanent, terminal, duration, mechanism-duration, and affected-video summaries."
+    },
+    {
+      "affected_metric": "Terminal swap and recovery",
+      "exact_defect": "Recovery is inferred from event end before the final video frame, not from a later correct authoritative match for every affected GT.",
+      "affected_code_path": [
+        "scripts/tracking/build_rf_acc23_error_taxonomy.py:enrich_events"
+      ],
+      "affected_historical_runs": "All RF_ACC23 terminal and self-recovery classifications.",
+      "headline_results_could_change": true,
+      "proposed_corrected_contract": "For each GT-primary episode, require a later authoritative correct match for recovery; terminal means wrong at that GT's final authoritative matched frame.",
+      "required_regression_fixtures": [
+        "wrong episode ends before video end without later GT match",
+        "later correct recovery",
+        "GT ends before other video trajectories",
+        "video boundary reset"
+      ],
+      "required_re_evaluation_scope": "RF_ACC23 recovery, permanent, terminal, and affected-video counts."
+    },
+    {
+      "affected_metric": "Authoritative permanent/terminal ranking",
+      "exact_defect": "Unresolved-GT events are retained but are not automatically excluded from summary counts.",
+      "affected_code_path": [
+        "scripts/tracking/build_rf_acc23_error_taxonomy.py:mechanism_summary"
+      ],
+      "affected_historical_runs": "RF_ACC23 mechanism and permanent/terminal summary tables.",
+      "headline_results_could_change": true,
+      "proposed_corrected_contract": "Preserve unresolved rows and events in an audit table while excluding them from authoritative severity ranks and percentages.",
+      "required_regression_fixtures": [
+        "one resolved event plus one unresolved-GT event"
+      ],
+      "required_re_evaluation_scope": "RF_ACC23 authoritative rankings and percentages."
+    }
+  ],
+  "historical_outputs_rewritten": 0,
+  "production_evaluator_changed": false,
+  "rf_hybrid_tracking_code_changed_by_audit": false,
+  "next_action": "Open a separate isolated evaluator-correction task and require reference parity before rewriting any historical authority."
+}

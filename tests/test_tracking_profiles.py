@@ -30,14 +30,20 @@ def test_presentation_profiles_map_to_clear_modes() -> None:
         "bytetrack_raw",
         "realtime_fast",
         "hybrid_bytetrack",
+        "rf_hybrid_offline",
     }
     assert PRESENTATION_PROFILES["bytetrack_raw"]["mode"] == "bytetrack_raw"
     assert PRESENTATION_PROFILES["realtime_fast"]["mode"] == "realtime"
     assert PRESENTATION_PROFILES["hybrid_bytetrack"]["mode"] == "hybrid_bytetrack"
+    assert PRESENTATION_PROFILES["rf_hybrid_offline"]["mode"] == "realtime"
 
     assert PRESENTATION_PROFILES["bytetrack_raw"]["eval_config"] == "bytetrack_raw"
     assert PRESENTATION_PROFILES["realtime_fast"]["eval_config"] == "realtime_fast"
     assert PRESENTATION_PROFILES["hybrid_bytetrack"]["eval_config"] == "hybrid_bytetrack_best"
+    assert (
+        PRESENTATION_PROFILES["rf_hybrid_offline"]["eval_config"]
+        == "rf_hybrid_offline"
+    )
 
 
 def test_realtime_fast_profile_resolves_deterministically(tmp_path: Path) -> None:
@@ -85,13 +91,14 @@ def test_retained_profile_hashes_match_frozen_authority() -> None:
 def test_profile_configs_keep_expected_behavior_separation() -> None:
     raw = EVAL_CONFIG_OVERRIDES["bytetrack_raw"]
     realtime_fast = EVAL_CONFIG_OVERRIDES["realtime_fast"]
+    rf_hybrid = EVAL_CONFIG_OVERRIDES["rf_hybrid_offline"]
     hybrid = EVAL_CONFIG_OVERRIDES["hybrid_bytetrack_best"]
 
     assert raw["enable_offline_smoothing"] is False
     assert raw["hidden_suffix_id_swap_repair"] is False
     assert raw["realtime_motion_pair_stabilizer"] is False
 
-    for non_hybrid in (raw, realtime_fast):
+    for non_hybrid in (raw, realtime_fast, rf_hybrid):
         assert "near_wall_hidden_geometry_refine" not in non_hybrid
         assert "far_camera_hidden_geometry_refine" not in non_hybrid
         assert "hidden_suffix_id_swap_use_overlap_persistence" not in non_hybrid
@@ -354,6 +361,37 @@ def test_run_tracking_mode_science_metadata_marks_raw_baseline() -> None:
     assert metadata["uses_offline_smoothing"] == "false"
     assert metadata["uses_identity_repair"] == "false"
     assert metadata["uses_delayed_repair"] == "false"
+
+
+def test_run_tracking_mode_science_metadata_marks_rf_hybrid_offline() -> None:
+    script_path = (
+        Path(__file__).resolve().parents[1]
+        / "scripts"
+        / "run_tracking_mode.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        "run_tracking_mode_rf_hybrid_script",
+        script_path,
+    )
+    assert spec is not None
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+
+    metadata = module._mode_science_metadata(
+        "rf_hybrid_offline",
+        "realtime",
+        "rf_hybrid_offline",
+        module.get_eval_config("rf_hybrid_offline"),
+    )
+
+    assert metadata["baseline_role"] == "development_only_offline_repair"
+    assert metadata["causality_level"] == "offline_postprocessed"
+    assert metadata["output_timing_contract"] == "post_video_offline"
+    assert metadata["declared_delay_frames"] == "-1"
+    assert metadata["uses_offline_smoothing"] == "true"
+    assert metadata["uses_identity_repair"] == "true"
+    assert metadata["uses_delayed_repair"] == "true"
 
 
 def test_run_tracking_mode_science_metadata_marks_global_graph_truthfully() -> None:

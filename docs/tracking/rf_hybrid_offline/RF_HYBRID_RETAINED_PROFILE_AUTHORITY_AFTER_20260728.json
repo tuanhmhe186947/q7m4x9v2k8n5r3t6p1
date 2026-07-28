@@ -1,0 +1,98 @@
+{
+  "schema_version": "tracking.rf_hybrid.retained_authority.v1",
+  "state": "AFTER_IMPLEMENTATION",
+  "date": "20260728",
+  "starting_main_sha": "5e2b19ce5ff3a07e8ef2653389871c70c8d03d2e",
+  "worktree_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_tmp\\worktrees\\rf_hybrid_offline_implementation",
+  "branch_name": "agent/rf-hybrid-offline-implementation",
+  "active_profiles": [
+    "bytetrack_raw",
+    "realtime_fast",
+    "hybrid_bytetrack",
+    "rf_hybrid_offline"
+  ],
+  "rf_hybrid_profile_metadata": {
+    "role": "development_only_offline_repair",
+    "realtime_core": "realtime_fast",
+    "timing_class": "post_video_offline",
+    "causal_zero_delay": false,
+    "output_delay_frames": -1,
+    "future_frames_may_be_used": true,
+    "production_default": false,
+    "promotion_status": "NOT_PROMOTED",
+    "unseen_execution_authorized": false,
+    "explicit_opt_in": true,
+    "aliases": []
+  },
+  "retained_profile_invariance": {
+    "realtime_fast": {
+      "before_sha256": "9bf4ce6d07423ab517b4705c716e3eb012349b756b7c0591cc3458eac207808d",
+      "after_sha256": "9bf4ce6d07423ab517b4705c716e3eb012349b756b7c0591cc3458eac207808d",
+      "unchanged": true
+    },
+    "bytetrack_raw": {
+      "before_sha256": "547ae86e3be26671a9a148cb0e613ea1c602a0ff842a977ce9b7f1d217c10e41",
+      "after_sha256": "547ae86e3be26671a9a148cb0e613ea1c602a0ff842a977ce9b7f1d217c10e41",
+      "unchanged": true
+    },
+    "hybrid_bytetrack": {
+      "before_sha256": "4eb3d4e2262485d48d425be06fd8a6b3adfd8a01a27b28e76b5a8d55958d1d55",
+      "after_sha256": "4eb3d4e2262485d48d425be06fd8a6b3adfd8a01a27b28e76b5a8d55958d1d55",
+      "unchanged": true
+    },
+    "offline_repair_semantics": {
+      "before_sha256": "e078b5b165dda82dee5b61e9465dc9844446e4cb576a02858c4ed7369828d758",
+      "after_sha256": "e078b5b165dda82dee5b61e9465dc9844446e4cb576a02858c4ed7369828d758",
+      "unchanged": true
+    }
+  },
+  "detector_semantic_authority": {
+    "source_file_sha256": {
+      "src/pig_behavior/tracking/detections.py": "bed95f626d8ae5ce7b12d431e8c3108c8239823613a57ee852c05a46fa760971",
+      "src/pig_behavior/tracking/detector_cache.py": "d6d8efabeac114c12325e95a5e1832c43821d1c1b542d4c7973bddaeb3357482"
+    },
+    "before_semantic_sha256": "81d35a6187e6cfd7382017e24fe1512020e7c09f556e1128940ecf10e3a335b8",
+    "after_semantic_sha256": "81d35a6187e6cfd7382017e24fe1512020e7c09f556e1128940ecf10e3a335b8",
+    "unchanged": true,
+    "weight_accessed": false
+  },
+  "cache_replay_schema_authority": {
+    "schema_version": "tracking.detector_evidence_cache.v2",
+    "before_sha256": "1612522afb1b71685ac153178b3adf86c4056ddd4f0629716b855c61e2a29c9e",
+    "after_sha256": "1612522afb1b71685ac153178b3adf86c4056ddd4f0629716b855c61e2a29c9e",
+    "unchanged": true
+  },
+  "profile_registry_authority": {
+    "source_file_sha256": {
+      "configs/tracking_paths.json": "46e877ff18e47035ab2fe527ea49596328e1805f663e1078ce3a479c76f6b240",
+      "scripts/run_tracking_mode.py": "b640dda3482865142ec4674e9e4d457a36b3d0ec38c41a5fcc881c8ca95005f5",
+      "src/pig_behavior/tracking/profiles/__init__.py": "ce91f37c5b00350bb18fcdabfad1ab5224ba1f2b8d38b5bd7b3fc5b7dd35d391",
+      "src/pig_behavior/tracking/profiles/bytetrack_raw.py": "fe62045b5e260e45cd735f8be70726d3cf8c3f7fc2ea1159f22b968728f522e0",
+      "src/pig_behavior/tracking/profiles/hybrid_bytetrack.py": "b3c63faffa705915e2e9e9b7823068af229ceedd9b263a68579e7d7b384500e6",
+      "src/pig_behavior/tracking/profiles/realtime.py": "c7f63149f4577a8b5285f9387b46c75cd0fbbcabcc4c585ec89f319a06b8a496",
+      "src/pig_behavior/tracking/profiles/rf_hybrid_offline.py": "bc7c20c21bf6ce283fb8f0ba34b36705805a52591b705a16c81f9014bb755ce9"
+    },
+    "semantic_sha256": "7c0efecf56c17035537fab29fd440a470a602ad3a401104d46ff2319e86bd700"
+  },
+  "tracking_subtree_authority": {
+    "before_sha256": "b4eec41dd3388deeea8f554be9ee461f4c607039daa3767028d726dcf2b43eba",
+    "after_sha256": "39b8a07fdbd12a6e6dbe524d08e40a550ef55a4e1143f03a2ff724fb5e997475",
+    "change_authorized": true,
+    "hash_algorithm": "sorted relative POSIX path, NUL, raw file bytes"
+  },
+  "evaluator_semantic_authority": {
+    "git_tree_before": "e56f66ac3a09a14c6faae9dce64884fd01a6a249",
+    "git_tree_after": "e56f66ac3a09a14c6faae9dce64884fd01a6a249",
+    "modified_source_paths": [],
+    "unchanged": true
+  },
+  "retired_profiles_reintroduced": [],
+  "aliases_added": [],
+  "execution_counts": {
+    "real_data_tracking_runs": 0,
+    "detector_inference_calls": 0,
+    "gpu_inference_runs": 0,
+    "unseen_videos_accessed": false,
+    "run_root_mp4_count": 0
+  }
+}
