@@ -40,7 +40,7 @@
     "mask_code_sha256": "78a592c617d406fd3d356192e816d460318896269a5e6cc522ec1460786c76da"
   },
   "detector_producer_topology": "CURRENT_PRODUCER_SEMANTICALLY_EQUIVALENT",
-  "effective_config_sha256": "0205f09d48fa78c0a2cb8348f96478eca661c185323f2690bf441050b2fbc0f9",
+  "effective_config_sha256": "c51b7549ae8624502389b685f7ae47668404339d74bd38c73f527a2e4e78bad8",
   "environment": {
     "cuda_available": true,
     "cudnn_benchmark": false,
@@ -76,9 +76,9 @@
     "sha256": "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658",
     "threshold": 127
   },
-  "producer_git_sha": "28b488f21e0b637957bd58bcf40f897d61d42a69",
+  "producer_git_sha": "f4410d25f59227144b7cb063464b5f14d293f6e4",
   "producer_script_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_tmp\\worktrees\\reproduce_historical_h5b_h4_detector_cache\\scripts\\tracking\\reproduce_historical_h5b_h4_detector_cache.py",
-  "producer_script_sha256": "ea45fb4dec5451b311abedf250f0a6be21126aca13096dda7cdee03bc455c201",
+  "producer_script_sha256": "b248b5eb136cd1e5ccd7a4fc2e18b6af6a144a87a92bc1bae4fd1c9bc9fbe438",
   "schema_version": "tracking.historical_h5b_h4.detector_config.v1",
   "weights": {
     "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\models\\detector\\pig_detector_yolov8.pt",
