@@ -36,14 +36,29 @@ def parse_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, list[
 Examples:
   python scripts/evaluate_tracking.py -a
   python scripts/evaluate_tracking.py -v data/videos/Pigs291119_000263_30fps.mp4
-  python scripts/evaluate_tracking.py -v data/videos/Pigs291119_000263_30fps.mp4 --mode realtime
+  python scripts/evaluate_tracking.py -v 000263 --mode realtime --eval-config realtime_fast
 """,
     )
     group = parser.add_mutually_exclusive_group(required=False)
-    group.add_argument("-v", "--video", type=str, help="Comma-separated names, paths, keys, or aliases.")
-    group.add_argument("-a", "--all-videos", action="store_true", help="Run evaluation on all configured videos.")
+    group.add_argument(
+        "-v",
+        "--video",
+        type=str,
+        help="Comma-separated names, paths, keys, or aliases.",
+    )
+    group.add_argument(
+        "-a",
+        "--all-videos",
+        action="store_true",
+        help="Run evaluation on all configured videos.",
+    )
     parser.add_argument("-p", "--profile", type=str, default=None, help="Path profile name.")
-    parser.add_argument("--path-config", type=str, default=None, help="Custom tracking_paths.json path.")
+    parser.add_argument(
+        "--path-config",
+        type=str,
+        default=None,
+        help="Custom tracking_paths.json path.",
+    )
     parser.add_argument(
         "--mode",
         choices=["realtime", "bytetrack_raw", "hybrid_bytetrack"],
@@ -247,7 +262,10 @@ def main() -> int:
     has_output_root = "--output-root" in pipeline_extra_args
     has_force_track_arg = "--force-track" in pipeline_extra_args
     has_no_run_missing_tracker_arg = "--no-run-missing-tracker" in pipeline_extra_args
-    has_benchmark_arg = any(arg in {"--benchmark-rules", "--no-benchmark-rules"} for arg in pipeline_extra_args)
+    has_benchmark_arg = any(
+        arg in {"--benchmark-rules", "--no-benchmark-rules"}
+        for arg in pipeline_extra_args
+    )
     has_benchmark_detectors_arg = "--benchmark-detectors" in pipeline_extra_args
     has_smoothing_arg = any(
         arg
@@ -264,8 +282,14 @@ def main() -> int:
         for arg in pipeline_extra_args
     )
 
-    prediction_root = Path(_extra_arg_value(pipeline_extra_args, "--prediction-root") or default_prediction_root)
-    output_root = Path(_extra_arg_value(pipeline_extra_args, "--output-root") or default_output_root)
+    prediction_root = Path(
+        _extra_arg_value(pipeline_extra_args, "--prediction-root")
+        or default_prediction_root
+    )
+    output_root = Path(
+        _extra_arg_value(pipeline_extra_args, "--output-root")
+        or default_output_root
+    )
 
     cmd = [
         sys.executable,

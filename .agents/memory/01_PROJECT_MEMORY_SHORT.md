@@ -1,5 +1,20 @@
 # Project Memory Short
 
+## 2026-07-28 tracking profile registry retirement
+
+- The active presentation-profile registry is exactly `bytetrack_raw`,
+  `realtime_fast`, and `hybrid_bytetrack`.
+- `realtime` is retired, not redirected; old commands must migrate explicitly
+  to `realtime_fast`. `realtime_balanced`, `realtime_quality_delayed`, and
+  rejected `realtime_fast_h1_r2` are historical-only.
+- Closed H1-r2 owner-preference, H1-r3 shadow, and H2-CDSP shadow runtime paths
+  were removed. Their locked documents and evidence remain unchanged.
+- Shared causal association, offline repair, cache/replay, generic telemetry,
+  evaluator, and artifact-hashing code remain available.
+- Retained semantic hashes are locked in
+  `docs/tracking/profile_retirement/`; no real tracking, detector inference,
+  GPU inference, or evidence regeneration was performed.
+
 ## 2026-07-27 H2-CDSP scientific design frozen
 
 - `H2_CAUSAL_DROPOUT_STATE_PRESERVATION` passed its deterministic design

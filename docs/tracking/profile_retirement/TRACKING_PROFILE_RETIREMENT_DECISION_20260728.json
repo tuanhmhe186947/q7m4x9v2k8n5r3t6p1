@@ -1,0 +1,101 @@
+{
+  "schema_version": "tracking.profile_retirement_decision.v1",
+  "decision_date": "20260728",
+  "starting_main_sha": "d563fc9d5dc41836bd43c23a414560874981d2f6",
+  "active_profiles_after": [
+    "bytetrack_raw",
+    "realtime_fast",
+    "hybrid_bytetrack"
+  ],
+  "retired_profiles": [
+    "realtime",
+    "realtime_balanced",
+    "realtime_quality_delayed",
+    "realtime_fast_h1_r2"
+  ],
+  "primary_realtime_profile": "realtime_fast",
+  "primary_offline_profile": "hybrid_bytetrack",
+  "raw_baseline_profile": "bytetrack_raw",
+  "retirement_records": {
+    "realtime": {
+      "retirement_reason": "Redundant alias of realtime_fast caused manifest, command, and reporting ambiguity.",
+      "last_known_scientific_role": "Presentation alias for the causal realtime_fast profile.",
+      "evaluation_semantics_caveat": "It had no distinct effective configuration.",
+      "historical_evidence_location": [
+        "docs/tracking/CURRENT_MAIN_R0_BASELINE_AUTHORITY_20260728.json",
+        "docs/TRACKING_RF_ACC23_AUTHORITY_CORRECTION_20260727.md"
+      ],
+      "replacement_active_profile": "realtime_fast",
+      "active_execution_allowed": false
+    },
+    "realtime_balanced": {
+      "retirement_reason": "Its limited detection-side trade-off does not justify its substantially higher identity-switch burden.",
+      "last_known_scientific_role": "Causal quality/coverage realtime candidate.",
+      "evaluation_semantics_caveat": "Historical results remain bound to their declared include-hidden contract.",
+      "historical_evidence_location": [
+        "docs/TRACKING_PROMOTION_DECISION_20260718_REALTIME_BALANCED_HIDDEN_RESERVATION.json",
+        "docs/TRACKING_REALTIME_PARETO_SELECTION_DECISION_20260720.json"
+      ],
+      "replacement_active_profile": "realtime_fast",
+      "active_execution_allowed": false
+    },
+    "realtime_quality_delayed": {
+      "retirement_reason": "It is post-video/global, not true realtime, its earlier favorable IDSW used incompatible include-hidden semantics, and hybrid_bytetrack supersedes its role.",
+      "last_known_scientific_role": "Delayed post-video quality upper bound.",
+      "evaluation_semantics_caveat": "Delay was -1 and favorable earlier evidence excluded tracker-derived Hidden rows.",
+      "historical_evidence_location": [
+        "docs/TRACKING_PROMOTION_DECISION_20260717_P2_QUALITY_DELAYED_INCLUDE_HIDDEN.json",
+        "docs/TRACKING_REALTIME_PARETO_PAIRED_EVIDENCE_20260719.md"
+      ],
+      "replacement_active_profile": "hybrid_bytetrack",
+      "active_execution_allowed": false
+    },
+    "realtime_fast_h1_r2": {
+      "retirement_reason": "Scientifically closed as FAIL_NO_ACTIVATION.",
+      "last_known_scientific_role": "Opt-in H1-r2 owner-preference experiment.",
+      "evaluation_semantics_caveat": "Development replay had zero activations; validation, runtime evaluation, and promotion were unauthorized.",
+      "historical_evidence_location": [
+        "docs/tracking/h1_r2/"
+      ],
+      "replacement_active_profile": "realtime_fast",
+      "active_execution_allowed": false
+    }
+  },
+  "realtime_alias_retired": true,
+  "realtime_balanced_retired": true,
+  "realtime_quality_delayed_retired": true,
+  "realtime_fast_h1_r2_retired": true,
+  "historical_evidence_preserved": true,
+  "production_behavior_changed": false,
+  "tracking_algorithm_changed": false,
+  "repair_semantics_changed": false,
+  "detector_authority_changed": false,
+  "historical_manifests_rewritten": false,
+  "scientific_archive_diff_paths": [],
+  "artifact_hash_authorities_preserved": true,
+  "active_reference_counts_after": {
+    "realtime": 0,
+    "realtime_balanced": 0,
+    "realtime_quality_delayed": 0,
+    "realtime_fast_h1_r2": 0
+  },
+  "exclusive_runtime_removal": {
+    "h1_r2_owner_preference_runtime_removed": true,
+    "h1_r3_shadow_runtime_removed": true,
+    "h2_cdsp_shadow_runtime_removed": true,
+    "exclusive_config_fields_remaining": 0,
+    "exclusive_cli_flags_remaining": 0,
+    "exclusive_runtime_hooks_remaining": 0,
+    "exclusive_telemetry_keys_remaining": 0
+  },
+  "real_tracking_runs": 0,
+  "detector_inference_calls": 0,
+  "gpu_inference_runs": 0,
+  "evidence_regenerated": 0,
+  "invariant_hashes_after": {
+    "realtime_fast": "9bf4ce6d07423ab517b4705c716e3eb012349b756b7c0591cc3458eac207808d",
+    "bytetrack_raw": "547ae86e3be26671a9a148cb0e613ea1c602a0ff842a977ce9b7f1d217c10e41",
+    "hybrid_bytetrack": "4eb3d4e2262485d48d425be06fd8a6b3adfd8a01a27b28e76b5a8d55958d1d55",
+    "offline_repair_semantics": "e078b5b165dda82dee5b61e9465dc9844446e4cb576a02858c4ed7369828d758"
+  }
+}

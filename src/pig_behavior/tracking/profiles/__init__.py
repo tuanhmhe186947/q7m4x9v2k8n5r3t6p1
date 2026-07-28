@@ -55,16 +55,48 @@ PRESENTATION_PROFILES: Mapping[str, dict[str, object]] = MappingProxyType(
 BASE_EVAL_CONFIG = HYBRID_BASE_CONFIG
 REALTIME_EVAL_CONFIG = REALTIME_BASE_CONFIG
 
+RETIRED_PROFILE_MESSAGES: Mapping[str, str] = MappingProxyType(
+    {
+        "realtime": (
+            "Profile 'realtime' has been retired. Use 'realtime_fast'."
+        ),
+        "realtime_balanced": (
+            "Profile 'realtime_balanced' is historical and unavailable "
+            "for active execution."
+        ),
+        "realtime_quality_delayed": (
+            "Profile 'realtime_quality_delayed' is historical and "
+            "unavailable for active execution."
+        ),
+        "realtime_fast_h1_r2": (
+            "Profile 'realtime_fast_h1_r2' is a rejected experimental "
+            "profile and unavailable for active execution."
+        ),
+    }
+)
+
+
+class RetiredTrackingProfileError(ValueError):
+    """Raised when historical profile data is requested for execution."""
+
+
+def _raise_if_retired(name: str) -> None:
+    message = RETIRED_PROFILE_MESSAGES.get(name)
+    if message is not None:
+        raise RetiredTrackingProfileError(message)
+
 
 def get_eval_config(name: str) -> dict[str, object]:
     """Return a mutable copy of a named TrackingConfig override set."""
 
+    _raise_if_retired(name)
     return deepcopy(EVAL_CONFIG_OVERRIDES[name])
 
 
 def get_presentation_profile(name: str) -> dict[str, object]:
     """Return a mutable copy of a presentation-oriented tracking profile."""
 
+    _raise_if_retired(name)
     return deepcopy(PRESENTATION_PROFILES[name])
 
 

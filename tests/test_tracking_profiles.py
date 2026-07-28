@@ -1,47 +1,47 @@
+import argparse
+import hashlib
 import importlib.util
+import json
 from pathlib import Path
 
+from pig_behavior.evaluation.tracking.lineage import finalize_run_manifest
 from pig_behavior.tracking import TrackingConfig, validate_config
 from pig_behavior.tracking.profiles import (
     EVAL_CONFIG_OVERRIDES,
     PRESENTATION_PROFILES,
+    RetiredTrackingProfileError,
+    get_eval_config,
     get_presentation_profile,
 )
-from pig_behavior.tracking.profiles.realtime import (
-    REALTIME_FAST_CONFIG,
-    REALTIME_FAST_H1_R2_CONFIG,
-)
+from pig_behavior.tracking.profiles.realtime import REALTIME_FAST_CONFIG
+
+
+def _canonical_hash(payload: object) -> str:
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
 
 
 def test_presentation_profiles_map_to_clear_modes() -> None:
+    assert set(PRESENTATION_PROFILES) == {
+        "bytetrack_raw",
+        "realtime_fast",
+        "hybrid_bytetrack",
+    }
     assert PRESENTATION_PROFILES["bytetrack_raw"]["mode"] == "bytetrack_raw"
-    assert PRESENTATION_PROFILES["realtime"]["mode"] == "realtime"
-    assert PRESENTATION_PROFILES["realtime_balanced"]["mode"] == "realtime"
+    assert PRESENTATION_PROFILES["realtime_fast"]["mode"] == "realtime"
     assert PRESENTATION_PROFILES["hybrid_bytetrack"]["mode"] == "hybrid_bytetrack"
 
     assert PRESENTATION_PROFILES["bytetrack_raw"]["eval_config"] == "bytetrack_raw"
-    assert PRESENTATION_PROFILES["realtime"]["eval_config"] == "realtime_fast"
-    assert (
-        PRESENTATION_PROFILES["realtime_fast_h1_r2"]["eval_config"]
-        == "realtime_fast_h1_r2"
-    )
-    assert PRESENTATION_PROFILES["realtime_balanced"]["eval_config"] == "realtime_balanced"
+    assert PRESENTATION_PROFILES["realtime_fast"]["eval_config"] == "realtime_fast"
     assert PRESENTATION_PROFILES["hybrid_bytetrack"]["eval_config"] == "hybrid_bytetrack_best"
 
 
-def test_h1_r2_profile_is_an_opt_in_realtime_fast_extension(
-    tmp_path: Path,
-) -> None:
-    assert set(REALTIME_FAST_H1_R2_CONFIG) == {
-        *REALTIME_FAST_CONFIG,
-        "h1_r2_owner_preference",
-    }
-    for key, value in REALTIME_FAST_CONFIG.items():
-        assert REALTIME_FAST_H1_R2_CONFIG[key] == value
-    assert REALTIME_FAST_H1_R2_CONFIG["h1_r2_owner_preference"] is True
-    assert "h1_r2_owner_preference" not in REALTIME_FAST_CONFIG
-
-    candidate = EVAL_CONFIG_OVERRIDES["realtime_fast_h1_r2"]
+def test_realtime_fast_profile_resolves_deterministically(tmp_path: Path) -> None:
+    candidate = get_eval_config("realtime_fast")
     synthetic_video = tmp_path / "unused.mp4"
     synthetic_weights = tmp_path / "unused.pt"
     synthetic_video.write_bytes(b"")
@@ -58,29 +58,43 @@ def test_h1_r2_profile_is_an_opt_in_realtime_fast_extension(
     assert cfg.causal_hidden_detection_reservation is False
     assert cfg.enable_offline_smoothing is False
     assert cfg.realtime_motion_pair_stabilizer is False
-    assert PRESENTATION_PROFILES["realtime"]["eval_config"] == "realtime_fast"
+    assert candidate == REALTIME_FAST_CONFIG
+    assert candidate is not REALTIME_FAST_CONFIG
+
+
+def test_retained_profile_hashes_match_frozen_authority() -> None:
+    expected = {
+        "bytetrack_raw": (
+            "547ae86e3be26671a9a148cb0e613ea1c602a0ff842a977ce9b7f1d217c10e41"
+        ),
+        "realtime_fast": (
+            "9bf4ce6d07423ab517b4705c716e3eb012349b756b7c0591cc3458eac207808d"
+        ),
+        "hybrid_bytetrack_best": (
+            "4eb3d4e2262485d48d425be06fd8a6b3adfd8a01a27b28e76b5a8d55958d1d55"
+        ),
+    }
+    for name, expected_hash in expected.items():
+        config = {
+            key: EVAL_CONFIG_OVERRIDES[name][key]
+            for key in sorted(EVAL_CONFIG_OVERRIDES[name])
+        }
+        assert _canonical_hash(config) == expected_hash
 
 
 def test_profile_configs_keep_expected_behavior_separation() -> None:
     raw = EVAL_CONFIG_OVERRIDES["bytetrack_raw"]
     realtime_fast = EVAL_CONFIG_OVERRIDES["realtime_fast"]
-    realtime_balanced = EVAL_CONFIG_OVERRIDES["realtime_balanced"]
-    realtime = EVAL_CONFIG_OVERRIDES["realtime_quality_delayed"]
     hybrid = EVAL_CONFIG_OVERRIDES["hybrid_bytetrack_best"]
 
     assert raw["enable_offline_smoothing"] is False
     assert raw["hidden_suffix_id_swap_repair"] is False
     assert raw["realtime_motion_pair_stabilizer"] is False
 
-    for non_hybrid in (raw, realtime_balanced, realtime):
+    for non_hybrid in (raw, realtime_fast):
         assert "near_wall_hidden_geometry_refine" not in non_hybrid
         assert "far_camera_hidden_geometry_refine" not in non_hybrid
         assert "hidden_suffix_id_swap_use_overlap_persistence" not in non_hybrid
-        assert "realtime_core_unassigned_tiebreak" not in non_hybrid
-        assert (
-            "realtime_core_unassigned_require_score_nondecrease"
-            not in non_hybrid
-        )
     assert "realtime_core_unassigned_tiebreak" not in hybrid
     assert "realtime_core_unassigned_require_score_nondecrease" not in hybrid
 
@@ -113,38 +127,6 @@ def test_profile_configs_keep_expected_behavior_separation() -> None:
         realtime_fast["realtime_visible_close_competitor_min_center_x_ratio"]
         == 0.67
     )
-    assert "realtime_lk_point_batching" not in realtime_balanced
-    assert "realtime_lk_point_batching" not in realtime
-
-    assert realtime_balanced["causal_hidden_detection_reservation"] is True
-    assert realtime_balanced["causal_hidden_detection_reservation_min_iom"] == 0.96
-    assert realtime_balanced["causal_hidden_detection_reservation_min_gain"] == 0.17
-    assert (
-        realtime_balanced[
-            "causal_hidden_detection_reservation_max_alternative_cost"
-        ]
-        == 0.25
-    )
-    assert (
-        realtime_balanced[
-            "causal_hidden_detection_reservation_allow_visible_hold"
-        ]
-        is True
-    )
-    assert (
-        realtime_balanced["causal_hidden_detection_reservation_hold_min_gain"]
-        == 0.17
-    )
-
-    assert realtime["enable_offline_smoothing"] is False
-    assert realtime["causal_hidden_detection_reservation"] is False
-    assert realtime["causal_hidden_detection_reservation_min_iom"] == 0.55
-    assert realtime["causal_hidden_detection_reservation_min_gain"] == 0.08
-    assert realtime["causal_hidden_detection_reservation_max_alternative_cost"] == 0.78
-    assert realtime["causal_hidden_detection_reservation_allow_visible_hold"] is False
-    assert realtime["causal_hidden_detection_reservation_hold_min_gain"] == 0.10
-    assert realtime["realtime_motion_pair_stabilizer"] is True
-    assert realtime["realtime_motion_pair_simple_min_gain"] == 0.003
 
     assert hybrid["enable_offline_smoothing"] is True
     assert hybrid["overlap_small_box_suppression"] is True
@@ -172,10 +154,83 @@ def test_profile_configs_keep_expected_behavior_separation() -> None:
 
 
 def test_get_presentation_profile_returns_mutable_copy() -> None:
-    profile = get_presentation_profile("realtime")
+    profile = get_presentation_profile("realtime_fast")
     profile["mode"] = "changed"
 
-    assert PRESENTATION_PROFILES["realtime"]["mode"] == "realtime"
+    assert PRESENTATION_PROFILES["realtime_fast"]["mode"] == "realtime"
+
+
+def test_retired_profiles_fail_with_migration_messages() -> None:
+    expected_messages = {
+        "realtime": "Use 'realtime_fast'.",
+        "realtime_balanced": "historical and unavailable",
+        "realtime_quality_delayed": "historical and unavailable",
+        "realtime_fast_h1_r2": "rejected experimental profile",
+    }
+    for name, expected in expected_messages.items():
+        try:
+            get_presentation_profile(name)
+        except RetiredTrackingProfileError as exc:
+            assert expected in str(exc)
+        else:
+            raise AssertionError(f"retired profile remained active: {name}")
+
+
+def test_retired_names_are_absent_from_active_eval_configs() -> None:
+    retired = {
+        "realtime",
+        "realtime_balanced",
+        "realtime_quality_delayed",
+        "realtime_fast_h1_r2",
+    }
+    assert retired.isdisjoint(PRESENTATION_PROFILES)
+    assert retired.isdisjoint(EVAL_CONFIG_OVERRIDES)
+
+
+def test_unknown_profile_still_fails_normally() -> None:
+    try:
+        get_presentation_profile("arbitrary_unknown_profile")
+    except KeyError as exc:
+        assert exc.args == ("arbitrary_unknown_profile",)
+    else:
+        raise AssertionError("unknown profile unexpectedly resolved")
+
+
+def test_historical_manifest_retains_retired_profile_name(
+    tmp_path: Path,
+) -> None:
+    manifest_path = tmp_path / "run_manifest.json"
+    manifest_path.write_text(
+        json.dumps({"status": "planned", "profile": "realtime"}),
+        encoding="utf-8",
+    )
+
+    finalize_run_manifest(tmp_path)
+
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert payload["status"] == "completed"
+    assert payload["profile"] == "realtime"
+
+
+def test_current_command_templates_select_realtime_fast() -> None:
+    root = Path(__file__).resolve().parents[1]
+    for relative_path in (
+        "scripts/_shortcuts/run_realtime_default.bat",
+        "scripts/_shortcuts/run_realtime_skip_frames.bat",
+    ):
+        command = (root / relative_path).read_text(encoding="utf-8")
+        assert "--mode realtime" in command
+        assert "--eval-config realtime_fast" in command
+
+    readme = (root / "scripts" / "README.md").read_text(encoding="utf-8")
+    assert (
+        "--compare-modes bytetrack_raw,realtime_fast,hybrid_bytetrack"
+        in readme
+    )
+    evaluator = (root / "scripts" / "evaluate_tracking.py").read_text(
+        encoding="utf-8"
+    )
+    assert "--mode realtime --eval-config realtime_fast" in evaluator
 
 
 def test_run_tracking_mode_lists_profiles_without_video_selection() -> None:
@@ -216,6 +271,24 @@ def test_run_tracking_mode_accepts_mode_name() -> None:
     assert extra_args == []
 
 
+def test_run_tracking_mode_retired_alias_recommends_realtime_fast() -> None:
+    script_path = Path(__file__).resolve().parents[1] / "scripts" / "run_tracking_mode.py"
+    spec = importlib.util.spec_from_file_location("run_tracking_mode_script", script_path)
+    assert spec is not None
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+
+    try:
+        module._active_profile_arg("realtime")
+    except argparse.ArgumentTypeError as exc:
+        assert str(exc) == (
+            "Profile 'realtime' has been retired. Use 'realtime_fast'."
+        )
+    else:
+        raise AssertionError("retired realtime alias remained selectable")
+
+
 def test_run_tracking_mode_compare_modes_default_set() -> None:
     script_path = Path(__file__).resolve().parents[1] / "scripts" / "run_tracking_mode.py"
     spec = importlib.util.spec_from_file_location("run_tracking_mode_script", script_path)
@@ -228,12 +301,12 @@ def test_run_tracking_mode_compare_modes_default_set() -> None:
 
     assert module._selected_modes(args) == [
         "bytetrack_raw",
-        "realtime",
+        "realtime_fast",
         "hybrid_bytetrack",
     ]
 
 
-def test_run_tracking_mode_compare_accepts_all_realtime_variants() -> None:
+def test_run_tracking_mode_compare_rejects_retired_profile() -> None:
     script_path = Path(__file__).resolve().parents[1] / "scripts" / "run_tracking_mode.py"
     spec = importlib.util.spec_from_file_location("run_tracking_mode_script", script_path)
     assert spec is not None
@@ -252,11 +325,13 @@ def test_run_tracking_mode_compare_accepts_all_realtime_variants() -> None:
         ]
     )
 
-    assert module._selected_modes(args) == [
-        "realtime_fast",
-        "realtime_balanced",
-        "realtime_quality_delayed",
-    ]
+    try:
+        module._selected_modes(args)
+    except ValueError as exc:
+        assert "realtime_balanced" in str(exc)
+        assert "historical and unavailable" in str(exc)
+    else:
+        raise AssertionError("retired compare profile remained selectable")
 
 
 def test_run_tracking_mode_science_metadata_marks_raw_baseline() -> None:
@@ -290,13 +365,16 @@ def test_run_tracking_mode_science_metadata_marks_global_graph_truthfully() -> N
     spec.loader.exec_module(module)
 
     metadata = module._mode_science_metadata(
-        "realtime_quality_delayed",
+        "diagnostic_global_graph",
         "realtime",
-        "realtime_quality_delayed",
-        module.get_eval_config("realtime_quality_delayed"),
+        "diagnostic_global_graph",
+        {
+            **module.get_eval_config("realtime_fast"),
+            "realtime_motion_pair_stabilizer": True,
+        },
     )
 
-    assert metadata["baseline_role"] == "realtime_quality_delayed_candidate"
+    assert metadata["baseline_role"] == "post_video_global_graph_candidate"
     assert metadata["causality_level"] == "post_video_global_graph"
     assert metadata["output_timing_contract"] == "post_video_global_graph"
     assert metadata["declared_delay_frames"] == "-1"
@@ -310,13 +388,14 @@ def test_run_tracking_mode_science_metadata_marks_fixed_lag_truthfully() -> None
     module = importlib.util.module_from_spec(spec)
     assert spec.loader is not None
     spec.loader.exec_module(module)
-    overrides = module.get_eval_config("realtime_quality_delayed")
+    overrides = module.get_eval_config("realtime_fast")
+    overrides["realtime_motion_pair_stabilizer"] = True
     overrides["realtime_motion_pair_fixed_lag_frames"] = 15
 
     metadata = module._mode_science_metadata(
-        "realtime_quality_delayed",
+        "diagnostic_fixed_lag",
         "realtime",
-        "realtime_quality_delayed",
+        "diagnostic_fixed_lag",
         overrides,
     )
 
@@ -374,7 +453,12 @@ def test_run_tracking_mode_compare_summary_writes_csv_and_markdown(tmp_path) -> 
     assert spec.loader is not None
     spec.loader.exec_module(module)
 
-    metrics_dir = tmp_path / "realtime" / "realtime_quality_delayed" / "iou0_area0_condarea0_merge0"
+    metrics_dir = (
+        tmp_path
+        / "diagnostic"
+        / "post_video_global_graph"
+        / "iou0_area0_condarea0_merge0"
+    )
     metrics_dir.mkdir(parents=True)
     metrics_csv = metrics_dir / "tracking_metrics.csv"
     metrics_csv.write_text(
@@ -403,11 +487,11 @@ def test_run_tracking_mode_compare_summary_writes_csv_and_markdown(tmp_path) -> 
     csv_path, md_path = module._write_compare_summary(
         tmp_path,
         {
-            "realtime": {
+            "diagnostic": {
                 "tracking_mode": "realtime",
-                "eval_config": "realtime_quality_delayed",
-                "baseline_role": "realtime_quality_delayed_candidate",
-                "causality_level": "short_delay_realtime",
+                "eval_config": "diagnostic_global_graph",
+                "baseline_role": "delayed_repair_diagnostic",
+                "causality_level": "post_video_global_graph",
                 "uses_offline_smoothing": "false",
                 "uses_identity_repair": "true",
                 "uses_delayed_repair": "true",
@@ -416,7 +500,7 @@ def test_run_tracking_mode_compare_summary_writes_csv_and_markdown(tmp_path) -> 
             }
         },
         {
-            "realtime": {
+            "diagnostic": {
                 "status": "ok",
                 "return_code": "0",
                 "compare_elapsed_sec": "30.0000",
@@ -426,15 +510,15 @@ def test_run_tracking_mode_compare_summary_writes_csv_and_markdown(tmp_path) -> 
     runtime_csv_path, runtime_md_path = module._write_runtime_summary(
         tmp_path,
         {
-            "realtime": {
+            "diagnostic": {
                 "tracking_mode": "realtime",
-                "eval_config": "realtime_quality_delayed",
-                "baseline_role": "realtime_quality_delayed_candidate",
-                "causality_level": "short_delay_realtime",
+                "eval_config": "diagnostic_global_graph",
+                "baseline_role": "delayed_repair_diagnostic",
+                "causality_level": "post_video_global_graph",
             }
         },
         {
-            "realtime": {
+            "diagnostic": {
                 "status": "ok",
                 "return_code": "0",
                 "compare_elapsed_sec": "30.0000",
@@ -452,14 +536,21 @@ def test_run_tracking_mode_compare_summary_writes_csv_and_markdown(tmp_path) -> 
     summary = csv_path.read_text(encoding="utf-8")
     assert "presentation_mode,baseline_role,causality_level" in summary
     assert "compare_elapsed_sec,compare_evaluated_fps,compare_realtime_factor" in summary
-    assert "realtime,realtime_quality_delayed_candidate,short_delay_realtime" in summary
+    assert (
+        "diagnostic,delayed_repair_diagnostic,post_video_global_graph"
+        in summary
+    )
     assert "ALL,100,98,95,96.94,95.0,92.0,81.0,93.0,94.0,2,4,94.0,98.5" in summary
     runtime_summary = runtime_csv_path.read_text(encoding="utf-8")
     assert (
-        "realtime,realtime_quality_delayed_candidate,short_delay_realtime,"
-        "realtime,realtime_quality_delayed,ok,0,30.0000" in runtime_summary
+        "diagnostic,delayed_repair_diagnostic,post_video_global_graph,"
+        "realtime,diagnostic_global_graph,ok,0,30.0000"
+        in runtime_summary
     )
     assert ",1800,60.0000,1800,60.0000,2.0000" in runtime_summary
     scientific_summary = scientific_csv_path.read_text(encoding="utf-8")
     assert "evaluated_video_count,evaluated_frames" in scientific_summary
-    assert "realtime,realtime_quality_delayed_candidate,short_delay_realtime" in scientific_summary
+    assert (
+        "diagnostic,delayed_repair_diagnostic,post_video_global_graph"
+        in scientific_summary
+    )

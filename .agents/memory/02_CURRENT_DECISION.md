@@ -1,5 +1,21 @@
 # Current Decision
 
+## Canonical tracking profile registry retired to three methods (2026-07-28)
+
+- `ACTIVE_TRACKING_PROFILES=bytetrack_raw,realtime_fast,hybrid_bytetrack`
+- `PRIMARY_REALTIME_PROFILE=realtime_fast`
+- `PRIMARY_OFFLINE_PROFILE=hybrid_bytetrack`
+- `RAW_BASELINE_PROFILE=bytetrack_raw`
+- `realtime`, `realtime_balanced`, `realtime_quality_delayed`, and
+  `realtime_fast_h1_r2` are unavailable for active execution.
+- Historical manifests keep their stored profile names and all H1/H2
+  scientific archives remain authoritative historical data.
+- Retained algorithms, detector authority, and hybrid repair semantics did not
+  change. The retirement evidence is under
+  `docs/tracking/profile_retirement/`.
+- The next tracking task must start from updated `main` in a new isolated
+  worktree. Do not implement `rf_hybrid_offline` in the retirement worktree.
+
 ## Fresh current-main R0 baseline established (2026-07-28)
 
 - `R0_BASELINE_AUTHORITY=ESTABLISHED`

@@ -18,12 +18,6 @@ from pig_behavior.tracking.geometry import (
     center_distance_norm,
     clip_box,
 )
-from pig_behavior.tracking.h1_r3_shadow import (
-    build_h1_r3_evidence,
-    decide_h1_r3_shadow,
-    record_h1_r3_shadow_counter,
-    shadow_decision_row,
-)
 from pig_behavior.tracking.masks import track_detection_overlap_score
 from pig_behavior.tracking.occlusion import (
     apply_iou_fallback,
@@ -36,13 +30,6 @@ from pig_behavior.tracking.occlusion import (
     freeze_area_occluded_track,
     occlusion_assignment_penalty,
     should_hold_occluded_track_box,
-)
-from pig_behavior.tracking.owner_preference import (
-    OWNER_PREFERENCE_MAX_DETECTION_OPPORTUNITIES,
-    OwnerPreferenceDecision,
-    OwnerPreferenceFeatures,
-    build_owner_preference_features,
-    decide_owner_preference,
 )
 from pig_behavior.tracking.schemas import (
     Detection,
@@ -698,411 +685,6 @@ def append_hidden_detection_claim_probe_events(
                     **detection_debug_state(det, det_idx),
                 },
             )
-
-
-def _record_h1_r2_counter(
-    runtime: TrackingRuntimeState | None,
-    key: str,
-    amount: int = 1,
-) -> None:
-    if runtime is None:
-        return
-    runtime.telemetry[key] = int(runtime.telemetry.get(key, 0)) + amount
-
-
-def _assignment_excluding_reserved_detections(
-    costs: np.ndarray,
-    detection_indices: list[int],
-    reserved_detection_indices: set[int],
-) -> tuple[np.ndarray, np.ndarray]:
-    """Solve the visible LAP without H1-r2-reserved detection columns."""
-    from scipy.optimize import linear_sum_assignment
-
-    available_cols = [
-        col
-        for col, det_idx in enumerate(detection_indices)
-        if det_idx not in reserved_detection_indices
-    ]
-    if not available_cols:
-        empty = np.asarray([], dtype=np.intp)
-        return empty, empty.copy()
-    rows, local_cols = linear_sum_assignment(costs[:, available_cols])
-    cols = np.asarray(
-        [available_cols[int(local_col)] for local_col in local_cols],
-        dtype=np.intp,
-    )
-    return rows, cols
-
-
-def _h1_r2_features_for_track(
-    track: FixedTrack,
-    det: Detection,
-    width: int,
-    height: int,
-    cfg: TrackingConfig,
-) -> OwnerPreferenceFeatures:
-    reference_box = association_reference_box(
-        track,
-        det,
-        width,
-        height,
-        cfg,
-    )
-    motion_is_available = bool(track.ever_detected and track.hits >= 2)
-    predicted_box = (
-        track.predicted_box(width, height) if motion_is_available else None
-    )
-    return build_owner_preference_features(
-        reference_box=reference_box,
-        detection_box=det.box,
-        track_descriptor=track.mean_hist(),
-        detection_descriptor=det.hist,
-        predicted_box=predicted_box,
-        motion_is_available=motion_is_available,
-        detection_opportunities_since_confirmed=track.missed,
-    )
-
-
-def _record_h1_r2_decision(
-    runtime: TrackingRuntimeState | None,
-    decision: OwnerPreferenceDecision,
-) -> None:
-    if decision.owner_preference_score is not None:
-        _record_h1_r2_counter(runtime, "h1_r2_valid_score_pairs")
-    if decision.reason == "missing_evidence":
-        _record_h1_r2_counter(
-            runtime,
-            "h1_r2_abstained_missing_evidence",
-        )
-    elif decision.reason == "below_threshold":
-        _record_h1_r2_counter(
-            runtime,
-            "h1_r2_abstained_below_threshold",
-        )
-    elif decision.reason == "tie_or_margin":
-        _record_h1_r2_counter(
-            runtime,
-            "h1_r2_abstained_tie_or_margin",
-        )
-    elif decision.reason == "score_invalid":
-        _record_h1_r2_counter(runtime, "h1_r2_score_invalid")
-
-
-def observe_h1_r3_shadow_pairs(
-    costs: np.ndarray,
-    candidate_tracks: list[FixedTrack],
-    detection_indices: list[int],
-    detections: list[Detection],
-    hidden_tracks: list[FixedTrack],
-    matched_tracks: set[int],
-    width: int,
-    height: int,
-    cfg: TrackingConfig,
-    runtime: TrackingRuntimeState | None,
-    frame_index: int | None,
-    rows: np.ndarray,
-    cols: np.ndarray,
-) -> None:
-    """Observe frozen H1-r3 support without changing association state."""
-    if runtime is None or not runtime.h1_r3_shadow_enabled:
-        return
-    offered = [
-        track
-        for track in hidden_tracks
-        if track.ever_detected and track.fixed_id not in matched_tracks
-    ]
-    if not candidate_tracks or not offered:
-        return
-    record_h1_r3_shadow_counter(runtime, "h1_r3_shadow_stage_calls")
-    record_h1_r3_shadow_counter(
-        runtime,
-        "h1_r3_shadow_hidden_tracks_offered",
-        len(offered),
-    )
-    for row, col in zip(rows, cols, strict=True):
-        visible_track = candidate_tracks[int(row)]
-        det_idx = detection_indices[int(col)]
-        if visible_track.fixed_id in matched_tracks:
-            continue
-        selected_cost = float(costs[int(row), int(col)])
-        if (
-            not np.isfinite(selected_cost)
-            or selected_cost >= 1_000_000.0
-            or selected_cost
-            > association_cost_threshold(visible_track, cfg)
-        ):
-            continue
-        detection = detections[det_idx]
-        for hidden_track in offered:
-            record_h1_r3_shadow_counter(
-                runtime,
-                "h1_r3_shadow_pair_candidates",
-            )
-            try:
-                hidden_evidence = build_h1_r3_evidence(
-                    hidden_track,
-                    detection,
-                    width,
-                    height,
-                )
-                visible_evidence = build_h1_r3_evidence(
-                    visible_track,
-                    detection,
-                    width,
-                    height,
-                )
-                decision = decide_h1_r3_shadow(
-                    hidden_evidence,
-                    visible_evidence,
-                    detection_confidence=detection.score,
-                )
-            except (TypeError, ValueError, FloatingPointError):
-                record_h1_r3_shadow_counter(
-                    runtime,
-                    "h1_r3_shadow_invalid_numeric",
-                )
-                continue
-            if decision.core_eligible:
-                record_h1_r3_shadow_counter(
-                    runtime,
-                    "h1_r3_shadow_core_eligible_pairs",
-                )
-                record_h1_r3_shadow_counter(
-                    runtime,
-                    "h1_r3_shadow_score_pairs",
-                )
-            if (
-                decision.hidden.appearance_available
-                and decision.visible.appearance_available
-            ):
-                record_h1_r3_shadow_counter(
-                    runtime,
-                    "h1_r3_shadow_optional_appearance_available",
-                )
-            if (
-                decision.hidden.motion_available
-                and decision.visible.motion_available
-            ):
-                record_h1_r3_shadow_counter(
-                    runtime,
-                    "h1_r3_shadow_optional_motion_available",
-                )
-            if decision.abstention_reason == "missing_core_overlap":
-                record_h1_r3_shadow_counter(
-                    runtime,
-                    "h1_r3_shadow_missing_core_overlap",
-                )
-            elif decision.abstention_reason == "missing_core_freshness":
-                record_h1_r3_shadow_counter(
-                    runtime,
-                    "h1_r3_shadow_missing_core_freshness",
-                )
-            elif decision.abstention_reason == "relative_overlap_margin":
-                record_h1_r3_shadow_counter(
-                    runtime,
-                    "h1_r3_shadow_margin_failed",
-                )
-            elif decision.abstention_reason == "below_threshold":
-                record_h1_r3_shadow_counter(
-                    runtime,
-                    "h1_r3_shadow_below_threshold",
-                )
-            if decision.would_activate:
-                record_h1_r3_shadow_counter(
-                    runtime,
-                    "h1_r3_shadow_would_activate",
-                )
-            runtime.h1_r3_shadow_candidate_rows.append(
-                shadow_decision_row(
-                    decision,
-                    frame_index=frame_index,
-                    hidden_track_id=hidden_track.fixed_id,
-                    visible_track_id=visible_track.fixed_id,
-                    detection_index=det_idx,
-                    selected_cost=selected_cost,
-                )
-            )
-
-
-def apply_h1_r2_hidden_owner_preference(
-    costs: np.ndarray,
-    candidate_tracks: list[FixedTrack],
-    detection_indices: list[int],
-    detections: list[Detection],
-    hidden_tracks: list[FixedTrack],
-    matched_tracks: set[int],
-    width: int,
-    height: int,
-    cfg: TrackingConfig,
-    runtime: TrackingRuntimeState | None,
-    frame_index: int | None,
-    phase_name: str,
-    reserved_hidden_detection_owners: dict[int, int],
-) -> tuple[np.ndarray, np.ndarray]:
-    """Reserve detections using only the frozen symmetric H1-r2 score."""
-    from scipy.optimize import linear_sum_assignment
-
-    rows, cols = linear_sum_assignment(costs)
-    if (
-        not cfg.h1_r2_owner_preference
-        or cfg.mode != "realtime"
-        or phase_name != "visible_high_conf"
-        or not candidate_tracks
-        or not hidden_tracks
-    ):
-        return rows, cols
-
-    _record_h1_r2_counter(runtime, "h1_r2_stage_calls")
-    _record_h1_r2_counter(
-        runtime,
-        "h1_r2_hidden_tracks_offered",
-        len(hidden_tracks),
-    )
-    attempted_pairs: set[tuple[int, int]] = set()
-    reserved_hidden_ids: set[int] = set()
-    reserved_detection_indices: set[int] = set()
-
-    while True:
-        candidates: list[
-            tuple[
-                float,
-                int,
-                int,
-                int,
-                FixedTrack,
-                OwnerPreferenceDecision,
-            ]
-        ] = []
-        for row, col in zip(rows, cols, strict=True):
-            visible_track = candidate_tracks[row]
-            det_idx = detection_indices[col]
-            if (visible_track.fixed_id, det_idx) in attempted_pairs:
-                continue
-            if det_idx in reserved_detection_indices:
-                continue
-            if visible_track.fixed_id in matched_tracks:
-                continue
-            selected_cost = float(costs[row, col])
-            if (
-                not np.isfinite(selected_cost)
-                or selected_cost >= 1_000_000.0
-                or selected_cost > association_cost_threshold(visible_track, cfg)
-            ):
-                continue
-            det = detections[det_idx]
-            for hidden_track in hidden_tracks:
-                if hidden_track.fixed_id in matched_tracks:
-                    continue
-                if hidden_track.fixed_id in reserved_hidden_ids:
-                    continue
-                if not hidden_track.ever_detected:
-                    continue
-                if not 1 <= hidden_track.missed <= (
-                    OWNER_PREFERENCE_MAX_DETECTION_OPPORTUNITIES
-                ):
-                    continue
-                _record_h1_r2_counter(
-                    runtime,
-                    "h1_r2_competitors_scored",
-                )
-                try:
-                    hidden_features = _h1_r2_features_for_track(
-                        hidden_track,
-                        det,
-                        width,
-                        height,
-                        cfg,
-                    )
-                    visible_features = _h1_r2_features_for_track(
-                        visible_track,
-                        det,
-                        width,
-                        height,
-                        cfg,
-                    )
-                    decision = decide_owner_preference(
-                        hidden_features,
-                        visible_features,
-                        detection_confidence=det.score,
-                        hidden_detection_opportunities=hidden_track.missed,
-                        visible_detection_opportunities=visible_track.missed,
-                    )
-                except (TypeError, ValueError):
-                    decision = OwnerPreferenceDecision(
-                        None,
-                        None,
-                        None,
-                        False,
-                        "score_invalid",
-                    )
-                _record_h1_r2_decision(runtime, decision)
-                if not decision.apply:
-                    continue
-                assert decision.owner_preference_score is not None
-                candidates.append(
-                    (
-                        -decision.owner_preference_score,
-                        det_idx,
-                        hidden_track.fixed_id,
-                        row,
-                        hidden_track,
-                        decision,
-                    )
-                )
-
-        if not candidates:
-            return rows, cols
-
-        (
-            _,
-            det_idx,
-            _,
-            row,
-            hidden_track,
-            decision,
-        ) = min(candidates)
-        visible_track = candidate_tracks[row]
-        attempted_pairs.add((visible_track.fixed_id, det_idx))
-        col = detection_indices.index(det_idx)
-        costs[:, col] = 1_000_000.0
-        reserved_hidden_ids.add(hidden_track.fixed_id)
-        reserved_detection_indices.add(det_idx)
-        reserved_hidden_detection_owners[det_idx] = hidden_track.fixed_id
-        rows, cols = _assignment_excluding_reserved_detections(
-            costs,
-            detection_indices,
-            reserved_detection_indices,
-        )
-        _record_h1_r2_counter(
-            runtime,
-            "h1_r2_owner_preference_applied",
-        )
-        append_association_debug_event(
-            runtime,
-            cfg,
-            {
-                "event": "assignment_h1_r2_owner_preference",
-                "frame": frame_index,
-                "phase": phase_name,
-                "track_id": visible_track.fixed_id,
-                "det_idx": det_idx,
-                "reserved_for_track_id": hidden_track.fixed_id,
-                "owner_preference_score": round(
-                    float(decision.owner_preference_score),
-                    6,
-                ),
-                "hidden_quality": round(
-                    float(decision.hidden_quality),
-                    6,
-                ),
-                "visible_quality": round(
-                    float(decision.visible_quality),
-                    6,
-                ),
-                "hidden_detection_opportunities": hidden_track.missed,
-                "learn_identity": False,
-            },
-        )
 
 
 def apply_causal_hidden_detection_reservation(
@@ -2346,15 +1928,6 @@ def match_and_update_tracks(
                     raw_owner,
                     raw_owner_tracks,
                 )
-        if cfg.h1_r2_owner_preference and phase_name == "reid":
-            for col, det_idx in enumerate(detection_indices):
-                reserved_owner = reserved_hidden_detection_owners.get(det_idx)
-                if reserved_owner is None:
-                    continue
-                for row, track in enumerate(candidate_tracks):
-                    if track.fixed_id != reserved_owner:
-                        costs[row, col] = 1_000_000.0
-
         apply_directional_y_prior_to_costs(
             costs,
             candidate_tracks,
@@ -2368,21 +1941,6 @@ def match_and_update_tracks(
         rows, cols = linear_sum_assignment(costs)
         if phase_name == "visible_high_conf":
             mean_core_cache: dict[int, np.ndarray | None] = {}
-            rows, cols = apply_h1_r2_hidden_owner_preference(
-                costs,
-                candidate_tracks,
-                detection_indices,
-                detections,
-                hidden_tracks_for_reservation,
-                matched_tracks,
-                width,
-                height,
-                cfg,
-                runtime,
-                frame_index,
-                phase_name,
-                reserved_hidden_detection_owners,
-            )
             rows, cols = apply_causal_hidden_detection_reservation(
                 costs,
                 candidate_tracks,
@@ -2401,12 +1959,6 @@ def match_and_update_tracks(
                 phase_name,
                 reserved_hidden_detection_owners,
             )
-            if cfg.h1_r2_owner_preference and reserved_hidden_detection_owners:
-                rows, cols = _assignment_excluding_reserved_detections(
-                    costs,
-                    detection_indices,
-                    set(reserved_hidden_detection_owners),
-                )
             rows, cols = apply_realtime_core_unassigned_tiebreak(
                 costs,
                 candidate_tracks,
@@ -2432,21 +1984,6 @@ def match_and_update_tracks(
                 runtime,
                 frame_index,
                 mean_core_cache,
-            )
-            observe_h1_r3_shadow_pairs(
-                costs,
-                candidate_tracks,
-                detection_indices,
-                detections,
-                hidden_tracks_for_reservation,
-                matched_tracks,
-                width,
-                height,
-                cfg,
-                runtime,
-                frame_index,
-                rows,
-                cols,
             )
         selected_track_by_det = {
             detection_indices[col]: candidate_tracks[row].fixed_id
@@ -2962,15 +2499,6 @@ def match_and_update_tracks(
                     "learn_identity": learn_identity,
                 },
             )
-            if (
-                cfg.h1_r2_owner_preference
-                and phase_name == "reid"
-                and reserved_owner_id == track.fixed_id
-            ):
-                _record_h1_r2_counter(
-                    runtime,
-                    "h1_r2_reacquisition_observed",
-                )
             track.update_detected(
                 det,
                 width,

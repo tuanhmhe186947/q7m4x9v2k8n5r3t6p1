@@ -203,9 +203,6 @@ class TrackingConfig:
     causal_hidden_detection_reservation_hold_max_claim_cost: float = 0.10
     causal_hidden_detection_reservation_hold_min_gain: float = 0.10
     causal_hidden_detection_reservation_hold_min_visible_cost: float = 0.20
-    # Opt-in H1-r2 symmetric common-scale owner preference. Its coefficients,
-    # threshold, and gates are immutable constants in owner_preference.py.
-    h1_r2_owner_preference: bool = False
     realtime_motion_pair_stabilizer: bool = False
     realtime_motion_pair_fixed_lag_frames: int = 0
     realtime_motion_pair_max_jump: float = 0.10
@@ -634,27 +631,6 @@ def validate_config(cfg: TrackingConfig) -> None:
     for name, value in causal_reservation_values.items():
         if not 0.0 <= value <= 1.0:
             raise ValueError(f"{name} must be between 0 and 1.")
-    if cfg.h1_r2_owner_preference:
-        if cfg.mode != "realtime":
-            raise ValueError("h1_r2_owner_preference requires realtime mode.")
-        if cfg.causal_hidden_detection_reservation:
-            raise ValueError(
-                "h1_r2_owner_preference cannot enable the H1-r1 reservation."
-            )
-        if cfg.detect_every_n_frames != 2:
-            raise ValueError(
-                "h1_r2_owner_preference requires detect_every_n_frames=2."
-            )
-        if cfg.det_conf != 0.25:
-            raise ValueError("h1_r2_owner_preference requires det_conf=0.25.")
-        if cfg.enable_offline_smoothing:
-            raise ValueError(
-                "h1_r2_owner_preference forbids offline smoothing."
-            )
-        if cfg.realtime_motion_pair_stabilizer:
-            raise ValueError(
-                "h1_r2_owner_preference forbids delayed motion repair."
-            )
     if cfg.realtime_motion_pair_fixed_lag_frames < 0:
         raise ValueError("realtime_motion_pair_fixed_lag_frames must be >= 0.")
     if cfg.USE_IOU_FALLBACK and not 0.0 <= cfg.iou_fallback_threshold <= 1.0:

@@ -18,12 +18,13 @@ if str(SRC_ROOT) not in sys.path:
 
 from pig_behavior.tracking.profiles import (  # noqa: E402
     PRESENTATION_PROFILES,
+    RetiredTrackingProfileError,
     get_eval_config,
     get_presentation_profile,
 )
 
 DEFAULT_RULE_COMBO = "iou0_area0_condarea0_merge0"
-DEFAULT_COMPARE_MODES = "bytetrack_raw,realtime,hybrid_bytetrack"
+DEFAULT_COMPARE_MODES = "bytetrack_raw,realtime_fast,hybrid_bytetrack"
 SUMMARY_COLUMNS = [
     "presentation_mode",
     "baseline_role",
@@ -122,6 +123,19 @@ SCIENTIFIC_COLUMNS = [
 ]
 
 
+def _active_profile_arg(value: str) -> str:
+    try:
+        get_presentation_profile(value)
+    except RetiredTrackingProfileError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
+    except KeyError as exc:
+        choices = ", ".join(sorted(PRESENTATION_PROFILES))
+        raise argparse.ArgumentTypeError(
+            f"Unknown profile '{value}'. Active profiles: {choices}."
+        ) from exc
+    return value
+
+
 def parse_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, list[str]]:
     parser = argparse.ArgumentParser(
         description="Run tracking/evaluation using a named presentation mode.",
@@ -129,7 +143,7 @@ def parse_args(argv: list[str] | None = None) -> tuple[argparse.Namespace, list[
         epilog=f"""
 Examples:
   python scripts/run_tracking_mode.py --mode hybrid_bytetrack --task eval -a
-  python scripts/run_tracking_mode.py --mode realtime --task eval -v Pigs291119_000263_30fps
+  python scripts/run_tracking_mode.py --mode realtime_fast --task eval -v Pigs291119_000263_30fps
   python scripts/run_tracking_mode.py --mode bytetrack_raw --task eval -a
   python scripts/run_tracking_mode.py --task compare -v Pigs291119_000263_30fps
 
@@ -139,12 +153,12 @@ Use --all-rule-combos to run the full rule benchmark matrix instead.
     )
     parser.add_argument(
         "--mode",
-        choices=sorted(PRESENTATION_PROFILES),
+        type=_active_profile_arg,
         default="hybrid_bytetrack",
+        metavar="PROFILE",
         help=(
-            "Presentation mode to run. 'realtime' is the best current realtime "
-            "default; use realtime_fast, realtime_balanced, or "
-            "realtime_quality_delayed to choose a realtime variant explicitly."
+            "Active presentation profile to run: "
+            f"{', '.join(sorted(PRESENTATION_PROFILES))}."
         ),
     )
     parser.add_argument(
@@ -156,7 +170,7 @@ Use --all-rule-combos to run the full rule benchmark matrix instead.
         help=(
             "Mode list for --task compare. Omit MODES to compare "
             f"{DEFAULT_COMPARE_MODES}, or pass a comma-separated "
-            "list such as realtime_fast,realtime_balanced,realtime_quality_delayed."
+            "list of active profiles."
         ),
     )
     parser.add_argument(
@@ -298,10 +312,19 @@ def _selected_modes(args: argparse.Namespace) -> list[str]:
         return [args.mode]
     raw_modes = args.compare_modes or DEFAULT_COMPARE_MODES
     modes = [part.strip() for part in raw_modes.split(",") if part.strip()]
-    unknown = sorted(set(modes) - set(PRESENTATION_PROFILES))
-    if unknown:
+    for name in modes:
+        try:
+            get_presentation_profile(name)
+        except RetiredTrackingProfileError as exc:
+            raise ValueError(str(exc)) from exc
+        except KeyError as exc:
+            choices = ", ".join(sorted(PRESENTATION_PROFILES))
+            raise ValueError(
+                f"Unknown profile '{name}'. Active profiles: {choices}."
+            ) from exc
+    if not modes:
         choices = ", ".join(sorted(PRESENTATION_PROFILES))
-        raise ValueError(f"Unknown mode(s): {', '.join(unknown)}. Choices: {choices}")
+        raise ValueError(f"No profiles selected. Active profiles: {choices}.")
     return modes
 
 
@@ -413,7 +436,7 @@ def _mode_science_metadata(
         output_timing_contract = "fixed_lag_framewise"
         declared_delay_frames = fixed_lag_frames
     elif uses_global_graph:
-        baseline_role = "realtime_quality_delayed_candidate"
+        baseline_role = "post_video_global_graph_candidate"
         causality_level = "post_video_global_graph"
         output_timing_contract = "post_video_global_graph"
         declared_delay_frames = -1

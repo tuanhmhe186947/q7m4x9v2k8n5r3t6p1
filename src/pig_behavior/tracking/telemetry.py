@@ -238,17 +238,6 @@ def _windows_peak_process_rss_bytes() -> int:
 def summarize_tracking_telemetry(source: Any) -> dict[str, int | float | str]:
     """Build the stable counter, timing, delay, and memory schema."""
     raw: Mapping[str, object] = getattr(source, "telemetry", {})
-    if getattr(source, "h2_shadow_enabled", False):
-        missing_h2 = [
-            key
-            for key in TRACKING_INTEGER_TELEMETRY_KEYS
-            if key.startswith("h2_shadow_") and key not in raw
-        ]
-        if missing_h2:
-            raise KeyError(
-                "missing canonical H2 shadow telemetry: "
-                + ", ".join(missing_h2)
-            )
     summary: dict[str, int | float | str] = {
         key: int(raw.get(key, 0)) for key in TRACKING_INTEGER_TELEMETRY_KEYS
     }

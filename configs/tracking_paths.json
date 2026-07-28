@@ -30,25 +30,6 @@
       "detect_every_n_frames": 1,
       "imgsz": 640
     },
-    "realtime_balanced": {
-      "active_video": "Pigs281119_000085_30fps",
-      "videos": {},
-      "weights": "models/detector/pig_detector_yolov8.pt",
-      "mask": "data/annotations/scene/mask.png",
-      "output_dir": "outputs/id_tracking/realtime_balanced",
-      "gt_dir": "data/annotations/tracking",
-      "video_dir": "data/videos",
-      "prediction_root": "outputs/id_tracking/realtime_balanced",
-      "evaluation_output_root": "outputs/evaluation/tracking_metrics/realtime_balanced",
-      "mode": "realtime",
-      "det_conf": 0.20,
-      "track_high_conf": 0.45,
-      "nms_iou": 0.50,
-      "max_raw_detections": 20,
-      "imgsz": 640,
-      "detect_every_n_frames": 1,
-      "enable_offline_smoothing": false
-    },
     "realtime_fast": {
       "active_video": "Pigs281119_000085_30fps",
       "videos": {},

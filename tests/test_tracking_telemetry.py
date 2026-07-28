@@ -21,13 +21,8 @@ from pig_behavior.tracking import (
     match_and_update_tracks,
     validate_config,
 )
-from pig_behavior.tracking.constants import H1_R2_TELEMETRY_KEYS
 from pig_behavior.tracking.exporters.quality import build_quality_report
-from pig_behavior.tracking.profiles.realtime import (
-    REALTIME_BALANCED_CONFIG,
-    REALTIME_FAST_CONFIG,
-    REALTIME_QUALITY_DELAYED_CONFIG,
-)
+from pig_behavior.tracking.profiles.realtime import REALTIME_FAST_CONFIG
 from pig_behavior.tracking.refinement import stabilize_realtime_motion_pairs
 from pig_behavior.tracking.runner import _model_to_device
 from pig_behavior.tracking.telemetry import (
@@ -241,21 +236,6 @@ def test_runtime_telemetry_summary_has_stable_timing_and_delay() -> None:
     assert telemetry["output_age_deadline_miss_rate"] == 0.0
     assert telemetry["declared_delay_ms"] == pytest.approx(80.0)
     assert telemetry["peak_process_rss_bytes"] == 123
-
-
-def test_h1_r2_integer_telemetry_survives_canonical_summary() -> None:
-    runtime = TrackingRuntimeState()
-    runtime.telemetry.update(
-        {
-            key: index + 1
-            for index, key in enumerate(H1_R2_TELEMETRY_KEYS)
-        }
-    )
-
-    telemetry = get_telemetry_summary(runtime)
-
-    for index, key in enumerate(H1_R2_TELEMETRY_KEYS):
-        assert telemetry[key] == index + 1
 
 
 def test_runtime_telemetry_reports_stream_backlog_and_deadline_misses() -> None:
@@ -487,14 +467,15 @@ def test_hidden_claim_probe_is_prediction_invariant() -> None:
     assert telemetry["association_assignments_accepted"] == 8
 
 
-def test_realtime_profiles_declare_truthful_causality_contracts() -> None:
+def test_realtime_fast_declares_truthful_causality_contract() -> None:
     fast = TrackingConfig(mode="realtime", **REALTIME_FAST_CONFIG)
-    balanced = TrackingConfig(mode="realtime", **REALTIME_BALANCED_CONFIG)
-    quality = TrackingConfig(mode="realtime", **REALTIME_QUALITY_DELAYED_CONFIG)
+    global_graph = TrackingConfig(
+        mode="realtime",
+        realtime_motion_pair_stabilizer=True,
+    )
 
     assert resolve_output_timing_contract(fast) == ("causal_framewise", 0)
-    assert resolve_output_timing_contract(balanced) == ("causal_framewise", 0)
-    assert resolve_output_timing_contract(quality) == (
+    assert resolve_output_timing_contract(global_graph) == (
         "post_video_global_graph",
         -1,
     )
@@ -520,14 +501,8 @@ def test_negative_motion_pair_fixed_lag_is_rejected() -> None:
         validate_config(cfg)
 
 
-@pytest.mark.parametrize(
-    "profile",
-    [REALTIME_FAST_CONFIG, REALTIME_BALANCED_CONFIG],
-)
-def test_causal_realtime_profiles_keep_prefix_immutable_with_future_frames(
-    profile: dict[str, object],
-) -> None:
-    cfg = TrackingConfig(mode="realtime", **profile)
+def test_realtime_fast_keeps_prefix_immutable_with_future_frames() -> None:
+    cfg = TrackingConfig(mode="realtime", **REALTIME_FAST_CONFIG)
     prefix = [
         _shape(0, 1, 10.0),
         _shape(0, 2, 110.0),

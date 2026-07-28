@@ -30,7 +30,6 @@ from pig_behavior.tracking.exporters.quality import (
     write_quality_report_csv,
     write_quality_report_json,
 )
-from pig_behavior.tracking.h2_cdsp_shadow import observe_h2_cdsp_shadow
 from pig_behavior.tracking.masks import apply_mask_to_frame, load_mask
 from pig_behavior.tracking.refinement import (
     apply_identity_swap_guard,
@@ -124,9 +123,6 @@ def _render_output_video(
 def run_tracking(
     cfg: TrackingConfig,
     model: object | None = None,
-    *,
-    h1_r3_shadow_observer: bool = False,
-    h2_cdsp_shadow_observer: bool = False,
 ) -> TrackingSummary:
     """Run YOLOv8 + mask + stabilized eight-ID tracking.
 
@@ -220,11 +216,7 @@ def run_tracking(
         else:
             raise
     tracks: dict[int, FixedTrack] | None = None
-    runtime = TrackingRuntimeState(
-        h1_r3_shadow_enabled=bool(h1_r3_shadow_observer),
-        h2_shadow_enabled=bool(h2_cdsp_shadow_observer),
-    )
-    h2_sequence_token = object()
+    runtime = TrackingRuntimeState()
     output_timing_contract, declared_delay_frames = (
         resolve_output_timing_contract(cfg)
     )
@@ -400,16 +392,6 @@ def run_tracking(
                             is_skip_frame=True,
                         )
 
-            if tracks is not None:
-                observe_h2_cdsp_shadow(
-                    tracks,
-                    frame_index=frame_index,
-                    cfg=cfg,
-                    runtime=runtime,
-                    sequence_token=h2_sequence_token,
-                    detector_frame=is_detect_frame,
-                    frame_dimensions=(frame_h, frame_w),
-                )
             current_shapes = frame_shapes(tracks, frame_index, cfg)
             shapes.extend(current_shapes)
             frames_written += 1
@@ -598,10 +580,6 @@ def run_tracking(
         source_fps=source_fps,
         output_fps=cfg.output_fps,
         telemetry=telemetry_summary,
-        h1_r3_shadow_candidate_rows=list(
-            runtime.h1_r3_shadow_candidate_rows
-        ),
-        h2_shadow_transition_rows=list(runtime.h2_shadow_transition_rows),
     )
 
 

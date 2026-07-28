@@ -1,5 +1,19 @@
 # Workflow
 
+## Tracking profile selection after retirement (2026-07-28)
+
+- Active presentation profiles are exactly `bytetrack_raw`, `realtime_fast`,
+  and `hybrid_bytetrack`.
+- Use `run_tracking_mode.py --mode realtime_fast` for the causal zero-delay
+  realtime method. Do not use or recreate the retired `realtime` alias.
+- Requests for `realtime_balanced` or `realtime_quality_delayed` are
+  historical-only; `realtime_fast_h1_r2` remains a rejected experiment.
+- Historical manifests may contain retired names and must remain readable
+  without rewriting those values.
+- Preserve shared cache/replay, telemetry, evaluation, and offline-repair
+  infrastructure. A future `rf_hybrid_offline` task requires a new isolated
+  worktree from the updated main branch.
+
 ## Classification V2 correction accepted workflow (2026-07-26)
 
 - `SCIENTIFIC_ACCEPTED_SHA=a35e0b9aae8b55167b4562cfc7e26a45e2b4e312`

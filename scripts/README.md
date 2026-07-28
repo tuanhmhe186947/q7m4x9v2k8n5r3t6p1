@@ -55,10 +55,12 @@ Nghia la chay engine `hybrid_bytetrack`, roi nap bo override `hybrid_bytetrack_b
 bay thanh cap runtime mode + eval-config:
 
 - `bytetrack_raw` -> `--mode bytetrack_raw --eval-config bytetrack_raw`
-- `realtime` -> `--mode realtime --eval-config realtime_fast`
 - `realtime_fast` -> `--mode realtime --eval-config realtime_fast`
-- `realtime_quality_delayed` -> `--mode realtime --eval-config realtime_quality_delayed`
 - `hybrid_bytetrack` -> `--mode hybrid_bytetrack --eval-config hybrid_bytetrack_best`
+
+`realtime`, `realtime_balanced`, `realtime_quality_delayed` va
+`realtime_fast_h1_r2` la ten lich su, khong con chay duoc. Lenh cu dung
+`realtime` phai chuyen ro sang `realtime_fast`.
 
 ## Eval Configs
 
@@ -77,23 +79,20 @@ Hybrid configs tu `src\pig_behavior\tracking\profiles\hybrid_bytetrack.py`:
 Realtime configs tu `src\pig_behavior\tracking\profiles\realtime.py`:
 
 - `realtime_fast`: cau hinh causal tot nhat hien tai, co frame skipping va RF_ACC23.
-- `realtime_balanced`: realtime day du detection hon, co cac guard runtime can bang.
-- `realtime_quality_delayed`: delayed profile rieng, co motion-pair
-  stabilizer va khong phai causal realtime.
 
 Raw ByteTrack config tu `src\pig_behavior\tracking\profiles\bytetrack_raw.py`:
 
 - `bytetrack_raw`: baseline ByteTrack thuan, tat cac guard/repair rieng cua du an.
 
-Voi `track_videos.py` hoac `evaluate_tracking.py`, neu muon dung realtime
-quality-delayed thi ghi ro:
+Voi `track_videos.py` hoac `evaluate_tracking.py`, chon realtime canonical
+bang eval config ro rang:
 
 ```cmd
---mode realtime --eval-config realtime_quality_delayed
+--mode realtime --eval-config realtime_fast
 ```
 
-Neu chay `run_tracking_mode.py --mode realtime`, wrapper map sang
-`realtime_fast`. No khong tu dong chay ca 3 realtime variants.
+`run_tracking_mode.py --mode realtime` se fail va huong dan chuyen sang
+`realtime_fast`; wrapper khong redirect ngam ten da retire.
 
 ## `run_tracking_mode.py`
 
@@ -101,9 +100,10 @@ Dung khi can lenh gon de trinh bay hoac so sanh mode.
 
 Option chinh:
 
-- `--mode`: chon mode trinh bay cua wrapper, vi du `hybrid_bytetrack`, `realtime`, `bytetrack_raw`.
+- `--mode`: chon profile trinh bay active: `hybrid_bytetrack`,
+  `realtime_fast` hoac `bytetrack_raw`.
 - `--compare-modes`: danh sach mode cho `--task compare`; mac dinh
-  `bytetrack_raw,realtime,hybrid_bytetrack`.
+  `bytetrack_raw,realtime_fast,hybrid_bytetrack`.
 - `--task track`: chi tao prediction/XML.
 - `--task eval`: danh gia mot mode voi GT; mac dinh de
   `evaluate_tracking.py` track neu prediction thieu.
@@ -163,12 +163,12 @@ C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\run_tracking_mode.p
   -v "Pigs291119_000263_30fps"
 ```
 
-So sanh 3 realtime variants:
+So sanh ro ba profile canonical:
 
 ```cmd
 C:\Users\ironh\anaconda3\envs\pig_project\python.exe scripts\run_tracking_mode.py ^
   --task compare ^
-  --compare-modes realtime_fast,realtime_balanced,realtime_quality_delayed ^
+  --compare-modes bytetrack_raw,realtime_fast,hybrid_bytetrack ^
   -v "Pigs291119_000263_30fps"
 ```
 
@@ -212,9 +212,8 @@ Ghi chu khi viet paper:
   tat offline smoothing, identity guard, hidden motion, local/suffix repair,
   overlap suppression, hidden suffix repair va realtime stabilizer. Khong nen
   goi la benchmark chinh thuc cua moi bien the ByteTrack ben ngoai repo.
-- `realtime_fast` va `realtime_balanced` la realtime/online candidates vi tat
-  offline smoothing. `realtime_quality_delayed` la short-delay realtime candidate
-  vi co window repair/stabilizer; can bao cao `latency_window_frames`.
+- `realtime_fast` la profile realtime/online canonical duy nhat va tat
+  offline smoothing.
 - `hybrid_bytetrack` voi `hybrid_bytetrack_best` la offline quality profile vi
   bat `enable_offline_smoothing`, `smooth_boxes`, `refine_boxes` va cac repair.
   Neu profile nay cho ket qua tot nhat, viet nhu mot offline/post-processed upper
@@ -232,7 +231,7 @@ Option chinh:
 - `--mode`: runtime tracking engine, vi du `hybrid_bytetrack`, `realtime`, `bytetrack_raw`.
 - `--eval-config`: bo override `TrackingConfig` da dat ten, vi du
   `hybrid_bytetrack_best`, `smooth_det020_loose`,
-  `realtime_quality_delayed`, `bytetrack_raw`.
+  `realtime_fast`, `bytetrack_raw`.
 - `-p`, `--profile`: path profile name, khong phai tracking mode.
 - `--path-config`: file config duong dan video/weight/mask/output.
 - `--list-eval-configs`: liet ke cac eval config.

@@ -1,0 +1,119 @@
+{
+  "schema_version": "tracking.profile_retirement_plan.v1",
+  "plan_date": "20260728",
+  "starting_main_sha": "d563fc9d5dc41836bd43c23a414560874981d2f6",
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "safe-refactor-test-guardian"
+  ],
+  "profile_entries_to_remove": [
+    "realtime",
+    "realtime_balanced",
+    "realtime_fast_h1_r2",
+    "realtime_quality_delayed"
+  ],
+  "files_to_delete": [
+    "scripts/tracking/check_h1_r2_implementation.py",
+    "scripts/tracking/run_h1_r3_shadow_support_density.py",
+    "scripts/tracking/run_h2_cdsp_current_main_shadow.py",
+    "src/pig_behavior/tracking/h1_r3_shadow.py",
+    "src/pig_behavior/tracking/h2_cdsp_shadow.py",
+    "src/pig_behavior/tracking/owner_preference.py",
+    "tests/test_tracking_h1_r2.py",
+    "tests/test_tracking_h1_r2_implementation.py",
+    "tests/test_tracking_h1_r3_shadow.py",
+    "tests/test_tracking_h1_r3_shadow_audit.py",
+    "tests/test_tracking_h2_cdsp_shadow.py"
+  ],
+  "files_to_modify": [
+    ".agents/memory/01_PROJECT_MEMORY_SHORT.md",
+    ".agents/memory/02_CURRENT_DECISION.md",
+    ".agents/memory/08_WORKFLOW.md",
+    "Kế Hoạch Tương Lai.md",
+    "configs/tracking_paths.json",
+    "scripts/README.md",
+    "scripts/_shortcuts/run_realtime_default.bat",
+    "scripts/_shortcuts/run_realtime_skip_frames.bat",
+    "scripts/evaluate_tracking.py",
+    "scripts/run_tracking_mode.py",
+    "src/pig_behavior/tracking/association.py",
+    "src/pig_behavior/tracking/config.py",
+    "src/pig_behavior/tracking/constants.py",
+    "src/pig_behavior/tracking/profiles/__init__.py",
+    "src/pig_behavior/tracking/profiles/realtime.py",
+    "src/pig_behavior/tracking/runner.py",
+    "src/pig_behavior/tracking/schemas.py",
+    "src/pig_behavior/tracking/telemetry.py",
+    "tests/test_tracking_profiles.py",
+    "tests/test_tracking_telemetry.py"
+  ],
+  "current_invocations_to_migrate": [
+    {
+      "path": "scripts/run_tracking_mode.py",
+      "migration": "presentation alias/default comparison realtime to realtime_fast"
+    },
+    {
+      "path": "scripts/README.md",
+      "migration": "active presentation examples and compare commands to realtime_fast"
+    },
+    {
+      "path": "scripts/evaluate_tracking.py",
+      "migration": "make the realtime algorithm example explicitly select eval-config realtime_fast"
+    },
+    {
+      "path": "scripts/_shortcuts/run_realtime_default.bat",
+      "migration": "explicitly select eval-config realtime_fast"
+    },
+    {
+      "path": "scripts/_shortcuts/run_realtime_skip_frames.bat",
+      "migration": "explicitly select eval-config realtime_fast"
+    }
+  ],
+  "historical_files_to_preserve": [
+    "docs/tracking/h1_r2/**",
+    "docs/tracking/h1_r3/**",
+    "docs/tracking/h2_cdsp/**",
+    "docs/TRACKING_*DECISION*.json",
+    "docs/TRACKING_*PLAN*.json",
+    ".codex_runs/**",
+    "outputs/**",
+    "scripts/_legacy/**"
+  ],
+  "shared_code_to_preserve": [
+    "src/pig_behavior/tracking/detector_cache.py",
+    "src/pig_behavior/tracking/telemetry.py",
+    "src/pig_behavior/tracking/refinement.py",
+    "src/pig_behavior/evaluation/tracking/**",
+    "scripts/tracking/build_rf_acc23_error_taxonomy.py",
+    "scripts/tracking/generate_current_main_baseline_caches.py",
+    "scripts/tracking/run_current_main_r0_baseline.py"
+  ],
+  "config_hashes_that_must_not_change": {
+    "realtime_fast": "9bf4ce6d07423ab517b4705c716e3eb012349b756b7c0591cc3458eac207808d",
+    "bytetrack_raw": "547ae86e3be26671a9a148cb0e613ea1c602a0ff842a977ce9b7f1d217c10e41",
+    "hybrid_bytetrack": "4eb3d4e2262485d48d425be06fd8a6b3adfd8a01a27b28e76b5a8d55958d1d55",
+    "offline_repair_semantics": "e078b5b165dda82dee5b61e9465dc9844446e4cb576a02858c4ed7369828d758"
+  },
+  "forbidden_paths": [
+    "data/**",
+    "outputs/**",
+    "artifacts/**",
+    "src/pig_behavior/classification_v2/**",
+    "scripts/classification_v2/**",
+    "tests/test_classification_v2_*.py",
+    "docs/tracking/h1_r2/**",
+    "docs/tracking/h1_r3/**",
+    "docs/tracking/h2_cdsp/**"
+  ],
+  "unresolved_active_references": 0,
+  "retained_profile_dependency_conflicts": 0,
+  "dependency_audit_row_count": 1333,
+  "semantic_reference_supplement": {
+    "source_state": "HEAD=d563fc9d5dc41836bd43c23a414560874981d2f6",
+    "patterns": [
+      "h1_r2_*",
+      "h2_shadow_*"
+    ],
+    "rows_added": 260
+  }
+}

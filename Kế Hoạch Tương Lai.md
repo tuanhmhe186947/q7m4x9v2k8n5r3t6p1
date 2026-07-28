@@ -1,5 +1,18 @@
 • Kế Hoạch Tương Lai
 
+## Override registry tracking ngay 2026-07-28
+
+- Registry active chi con `bytetrack_raw`, `realtime_fast`, va
+  `hybrid_bytetrack`.
+- `realtime` da retire va khong redirect ngam; lenh hien tai phai dung ro
+  `realtime_fast`.
+- `realtime_balanced`, `realtime_quality_delayed`, va
+  `realtime_fast_h1_r2` chi con la ten lich su, khong duoc active execution.
+- Cac bang chung, manifest, va decision H1/H2 cu duoc giu nguyen. Cache/replay,
+  telemetry chung, evaluator, va repair chung van duoc bao toan.
+- Override nay thay the cac chi dan cu ve viec giu nhieu realtime profile trong
+  registry active. No khong cho phep implement `rf_hybrid_offline`.
+
 ## Goal mới: realtime online challenger — 2026-07-20
 
 - Mục tiêu vận hành realtime chuyển sang một challenger online-only; chỉ dùng

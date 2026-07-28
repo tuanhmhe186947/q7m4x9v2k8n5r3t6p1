@@ -108,53 +108,6 @@ TRACKING_RULE_TELEMETRY_KEYS = (
     "detections_intentionally_ignored",
     "recovery_frames_applied",
 )
-H1_R2_TELEMETRY_KEYS = (
-    "h1_r2_stage_calls",
-    "h1_r2_hidden_tracks_offered",
-    "h1_r2_competitors_scored",
-    "h1_r2_valid_score_pairs",
-    "h1_r2_abstained_missing_evidence",
-    "h1_r2_abstained_below_threshold",
-    "h1_r2_abstained_tie_or_margin",
-    "h1_r2_owner_preference_applied",
-    "h1_r2_score_invalid",
-    "h1_r2_reacquisition_observed",
-)
-
-H1_R3_SHADOW_TELEMETRY_KEYS = (
-    "h1_r3_shadow_stage_calls",
-    "h1_r3_shadow_hidden_tracks_offered",
-    "h1_r3_shadow_pair_candidates",
-    "h1_r3_shadow_core_eligible_pairs",
-    "h1_r3_shadow_optional_appearance_available",
-    "h1_r3_shadow_optional_motion_available",
-    "h1_r3_shadow_score_pairs",
-    "h1_r3_shadow_below_threshold",
-    "h1_r3_shadow_margin_failed",
-    "h1_r3_shadow_would_activate",
-    "h1_r3_shadow_invalid_numeric",
-    "h1_r3_shadow_missing_core_overlap",
-    "h1_r3_shadow_missing_core_freshness",
-)
-H2_CDSP_SHADOW_TELEMETRY_KEYS = (
-    "h2_shadow_stage_calls",
-    "h2_shadow_visible_confirmed_tracks",
-    "h2_shadow_dropout_entries",
-    "h2_shadow_baseline_state_loss_points",
-    "h2_shadow_preservation_candidates",
-    "h2_shadow_preservable_states",
-    "h2_shadow_unpreservable_missing_core",
-    "h2_shadow_unpreservable_low_initial_quality",
-    "h2_shadow_states_expired",
-    "h2_shadow_states_invalidated",
-    "h2_shadow_states_surviving_to_reentry",
-    "h2_shadow_reentry_opportunities",
-    "h2_shadow_extra_usable_state_at_reentry",
-    "h2_shadow_control_preservation_events",
-    "h2_shadow_control_overpreservation",
-    "h2_shadow_invalid_numeric",
-    "h2_shadow_terminal_revival_blocked",
-)
 TRACKING_ASSOCIATION_PHASES = (
     "visible",
     "visible_high_conf",
@@ -168,9 +121,6 @@ TRACKING_TIMING_STAGES = (
 )
 TRACKING_INTEGER_TELEMETRY_KEYS = (
     *TRACKING_RULE_TELEMETRY_KEYS,
-    *H1_R2_TELEMETRY_KEYS,
-    *H1_R3_SHADOW_TELEMETRY_KEYS,
-    *H2_CDSP_SHADOW_TELEMETRY_KEYS,
     "frames_processed",
     "detection_frames",
     "skipped_detection_frames",
@@ -283,8 +233,6 @@ __all__ = [
     "DEFAULT_TRACK_HIGH_CONF_THRESHOLD",
     "DEFAULT_VIDEO_PATH",
     "DEFAULT_VISUAL_OPACITY",
-    "H1_R2_TELEMETRY_KEYS",
-    "H1_R3_SHADOW_TELEMETRY_KEYS",
     "DEFAULT_WEIGHTS_PATH",
     "ID_VALUES",
     "PIG_LABEL_SCHEMA",
