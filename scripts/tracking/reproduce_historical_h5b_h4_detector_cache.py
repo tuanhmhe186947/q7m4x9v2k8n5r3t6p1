@@ -1511,13 +1511,92 @@ def generate(
     }
 
 
+def finalize_metadata(
+    output_root: Path,
+    docs_root: Path,
+    failed_predecessor_attempts: int,
+) -> dict[str, Any]:
+    """Finalize hashes only after redirected producer logs are closed."""
+
+    inventory_path = (
+        output_root
+        / "manifests"
+        / f"HISTORICAL_H5B_H4_DETECTOR_CACHE_INVENTORY_{DATE}.csv"
+    )
+    authority_path = (
+        output_root
+        / "manifests"
+        / f"HISTORICAL_H5B_H4_DETECTOR_CACHE_AUTHORITY_{DATE}.json"
+    )
+    decision_path = (
+        output_root
+        / "manifests"
+        / f"HISTORICAL_H5B_H4_DETECTOR_CACHE_DECISION_{DATE}.json"
+    )
+    for path in (inventory_path, authority_path, decision_path):
+        path.chmod(path.stat().st_mode | stat.S_IWRITE)
+    excluded = {
+        inventory_path.name,
+        authority_path.name,
+        decision_path.name,
+    }
+    inventory = artifact_inventory(output_root, excluded)
+    write_csv(
+        inventory_path,
+        inventory,
+        ["relative_path", "size_bytes", "sha256"],
+    )
+    authority = load_json(authority_path)
+    authoritative_run_attempts = int(
+        authority["detector_inference_attempts"]
+    )
+    authority["inventory_sha256"] = sha256_file(inventory_path)
+    authority["metadata_finalization"] = (
+        "POST_PROCESS_EXIT_COMPLETE_RECURSIVE_INVENTORY"
+    )
+    authority["failed_predecessor_primary_inference_attempts"] = (
+        failed_predecessor_attempts
+    )
+    authority["task_scope_detector_inference_attempts"] = (
+        authoritative_run_attempts + failed_predecessor_attempts
+    )
+    authority["task_scope_detector_retry_attempts"] = (
+        failed_predecessor_attempts
+    )
+    write_json(authority_path, authority)
+    decision = load_json(decision_path)
+    decision["authority_file_sha256"] = sha256_file(authority_path)
+    write_json(decision_path, decision)
+    docs_root.mkdir(parents=True, exist_ok=True)
+    for path in (authority_path, decision_path):
+        write_json(docs_root / path.name, load_json(path))
+    for path in output_root.rglob("*"):
+        if path.is_file():
+            path.chmod(path.stat().st_mode & ~stat.S_IWRITE)
+    return {
+        "status": "PASS",
+        "inventory_entries": len(inventory),
+        "inventory_sha256": sha256_file(inventory_path),
+        "authority_file_sha256": sha256_file(authority_path),
+        "task_scope_detector_inference_attempts": (
+            authoritative_run_attempts + failed_predecessor_attempts
+        ),
+        "task_scope_detector_retry_attempts": failed_predecessor_attempts,
+    }
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--phase", choices=("preflight", "generate"), required=True)
+    parser.add_argument(
+        "--phase",
+        choices=("preflight", "generate", "finalize"),
+        required=True,
+    )
     parser.add_argument("--source-repo", type=Path, required=True)
     parser.add_argument("--worktree-repo", type=Path, default=REPO)
     parser.add_argument("--historical-repo", type=Path, required=True)
     parser.add_argument("--output-root", type=Path, required=True)
+    parser.add_argument("--failed-predecessor-attempts", type=int, default=0)
     parser.add_argument(
         "--docs-root",
         type=Path,
@@ -1543,13 +1622,19 @@ def main() -> int:
             args.output_root.resolve(),
             args.docs_root.resolve(),
         )
-    else:
+    elif args.phase == "generate":
         result = generate(
             args.source_repo.resolve(),
             args.worktree_repo.resolve(),
             args.historical_repo.resolve(),
             args.output_root.resolve(),
             args.docs_root.resolve(),
+        )
+    else:
+        result = finalize_metadata(
+            args.output_root.resolve(),
+            args.docs_root.resolve(),
+            args.failed_predecessor_attempts,
         )
     print(json.dumps(result, indent=2, sort_keys=True, default=str))
     return 0
