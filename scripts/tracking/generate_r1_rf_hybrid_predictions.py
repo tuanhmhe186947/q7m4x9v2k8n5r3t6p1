@@ -364,8 +364,14 @@ def even_cache_records(
 
     cache_root = source_repo / R0_CACHE_RELATIVE
     preflight = load_json(source_repo / R0_CACHE_PREFLIGHT_RELATIVE)
+    r0_authority = load_json(
+        source_repo
+        / "docs"
+        / "tracking"
+        / "CURRENT_MAIN_R0_BASELINE_AUTHORITY_20260728.json"
+    )
     if (
-        preflight["detector_cache_authority_sha256"]
+        r0_authority["r0_detector_cache_authority_sha256"]
         != R0_EVEN_CACHE_AUTHORITY_SHA256
     ):
         raise R1AuthorityError("R0 even-cache authority hash mismatch")
