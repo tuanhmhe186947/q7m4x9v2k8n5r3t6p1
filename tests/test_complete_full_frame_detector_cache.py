@@ -308,6 +308,97 @@ def test_artifact_inventory_is_path_ordered_and_hash_bound(
     assert all(len(row["sha256"]) == 64 for row in inventory)
 
 
+def test_atomic_json_retries_transient_windows_reader_lock(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _load_module()
+    destination = tmp_path / "state.json"
+    original_replace = module.os.replace
+    attempts = 0
+
+    def flaky_replace(source: Path, target: Path) -> None:
+        nonlocal attempts
+        attempts += 1
+        if attempts < 3:
+            raise PermissionError("transient reader lock")
+        original_replace(source, target)
+
+    monkeypatch.setattr(module.os, "replace", flaky_replace)
+
+    module.atomic_write_json(destination, {"status": "PASS"})
+
+    assert module.load_json(destination) == {"status": "PASS"}
+    assert attempts == 3
+
+
+def test_prior_attempt_audit_counts_one_failed_heartbeat_batch(
+    tmp_path: Path,
+) -> None:
+    module = _load_module()
+    producer = "e" * 40
+    video = SimpleNamespace(
+        video_key="video-a",
+        video_sha256="a" * 64,
+    )
+    prior_root = tmp_path / "prior"
+    cache = DetectorEvidenceCache(
+        identity=module.generated_identity(
+            video,
+            producer,
+            module.ODD_CREATION_AUTHORITY,
+        )
+    )
+    for frame_index in module.expected_odd_indices():
+        cache.record(
+            frame_index,
+            _result(),
+            original_frame_dimensions=(720, 1280),
+        )
+    cache_path = module.odd_cache_path(prior_root, video.video_key)
+    cache_sha = cache.save(cache_path)
+    module.atomic_write_json(
+        prior_root / "FULL_FRAME_CACHE_PREFLIGHT.json",
+        {"producer_code_sha": producer},
+    )
+    module.atomic_write_json(
+        prior_root / "FULL_FRAME_CACHE_RUN_STATE.json",
+        {
+            "status": "RUNNING",
+            "completed_odd_frames": 1250,
+        },
+    )
+    (prior_root / "generation.stderr.log").write_text(
+        "PermissionError in record_odd_video\n",
+        encoding="utf-8",
+    )
+    module.atomic_write_json(
+        module.checkpoint_path(
+            prior_root,
+            "odd_inference",
+            video.video_key,
+        ),
+        {
+            "status": "COMMITTED",
+            "video_key": video.video_key,
+            "detector_inference_calls": 900,
+            "cache_artifact_sha256": cache_sha,
+            "canonical_content_hash": module.cache_content_hash(cache),
+        },
+    )
+
+    authority, imported = module.inspect_prior_attempt(
+        prior_root,
+        [video],
+    )
+
+    assert authority is not None
+    assert authority["prior_attempt_physical_odd_calls"] == 1300
+    assert authority["prior_committed_unique_odd_records"] == 900
+    assert authority["prior_uncommitted_retry_calls"] == 400
+    assert len(imported) == 1
+
+
 def test_completion_tool_has_no_tracker_evaluator_or_mp4_path() -> None:
     source = SCRIPT.read_text(encoding="utf-8")
 

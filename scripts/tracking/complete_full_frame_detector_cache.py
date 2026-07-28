@@ -11,6 +11,7 @@ import platform
 import shutil
 import subprocess
 import sys
+import time
 from collections.abc import Iterable
 from datetime import UTC, datetime
 from pathlib import Path
@@ -99,7 +100,7 @@ def atomic_write_json(path: Path, payload: Any) -> None:
     """Atomically replace a machine-readable run-state or authority file."""
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f".{path.name}.tmp")
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
     temporary.write_text(
         json.dumps(
             payload,
@@ -111,7 +112,14 @@ def atomic_write_json(path: Path, payload: Any) -> None:
         + "\n",
         encoding="utf-8",
     )
-    os.replace(temporary, path)
+    for attempt in range(100):
+        try:
+            os.replace(temporary, path)
+            return
+        except PermissionError:
+            if attempt == 99:
+                raise
+            time.sleep(0.05)
 
 
 def write_csv(
@@ -642,11 +650,131 @@ def load_model(cfg: Any) -> Any:
     return model
 
 
+def inspect_prior_attempt(
+    prior_root: Path | None,
+    videos: list[Any],
+) -> tuple[dict[str, Any] | None, list[tuple[Any, DetectorEvidenceCache]]]:
+    """Validate reusable committed odd caches and count failed retry calls."""
+
+    if prior_root is None:
+        return None, []
+    preflight = load_json(prior_root / "FULL_FRAME_CACHE_PREFLIGHT.json")
+    state = load_json(prior_root / "FULL_FRAME_CACHE_RUN_STATE.json")
+    stderr_path = prior_root / "generation.stderr.log"
+    stderr_text = stderr_path.read_text(encoding="utf-8")
+    if "PermissionError" not in stderr_text or "record_odd_video" not in stderr_text:
+        raise FullFrameCacheError("prior attempt failure is not the known heartbeat lock")
+    if state.get("status") != "RUNNING":
+        raise FullFrameCacheError("prior attempt state is not the frozen failed state")
+    prior_producer = str(preflight["producer_code_sha"])
+    videos_by_key = {video.video_key: video for video in videos}
+    imported: list[tuple[Any, DetectorEvidenceCache]] = []
+    committed_calls = 0
+    for checkpoint in sorted(
+        (prior_root / "checkpoints" / "odd_inference").glob("*.json")
+    ):
+        payload = load_json(checkpoint)
+        if payload.get("status") != "COMMITTED":
+            raise FullFrameCacheError("prior odd checkpoint is not committed")
+        video_key = str(payload["video_key"])
+        video = videos_by_key.get(video_key)
+        if video is None:
+            raise FullFrameCacheError("prior checkpoint video is outside population")
+        path = odd_cache_path(prior_root, video_key)
+        cache = DetectorEvidenceCache.load(
+            path,
+            expected_identity=generated_identity(
+                video,
+                prior_producer,
+                ODD_CREATION_AUTHORITY,
+            ),
+        )
+        if tuple(cache.frames) != expected_odd_indices():
+            raise FullFrameCacheError("prior odd checkpoint coverage changed")
+        if sha256_file(path) != payload["cache_artifact_sha256"]:
+            raise FullFrameCacheError("prior odd checkpoint artifact changed")
+        if cache_content_hash(cache) != payload["canonical_content_hash"]:
+            raise FullFrameCacheError("prior odd checkpoint content changed")
+        committed_calls += int(payload["detector_inference_calls"])
+        imported.append((video, cache))
+    if committed_calls != len(imported) * EXPECTED_SUBSET_FRAMES:
+        raise FullFrameCacheError("prior committed inference count is inconsistent")
+    last_heartbeat_calls = int(state["completed_odd_frames"])
+    physical_calls = last_heartbeat_calls + HEARTBEAT_BATCH
+    if physical_calls < committed_calls:
+        raise FullFrameCacheError("prior physical inference count is inconsistent")
+    authority = {
+        "prior_attempt_root": str(prior_root),
+        "prior_attempt_producer_code_sha": prior_producer,
+        "prior_attempt_run_state_sha256": sha256_file(
+            prior_root / "FULL_FRAME_CACHE_RUN_STATE.json"
+        ),
+        "prior_attempt_stderr_sha256": sha256_file(stderr_path),
+        "prior_attempt_last_successful_heartbeat_calls": last_heartbeat_calls,
+        "prior_attempt_physical_odd_calls": physical_calls,
+        "prior_committed_unique_odd_records": committed_calls,
+        "prior_uncommitted_retry_calls": physical_calls - committed_calls,
+        "imported_video_keys": [
+            video.video_key for video, _ in imported
+        ],
+        "retry_policy": "SAME_ODD_FRAMES_SAME_DETECTOR_AUTHORITY",
+    }
+    return authority, imported
+
+
+def import_prior_odd_caches(
+    output_root: Path,
+    producer_sha: str,
+    imported: list[tuple[Any, DetectorEvidenceCache]],
+) -> None:
+    """Rebind committed prior odd evidence without detector inference."""
+
+    for video, source in imported:
+        destination = odd_cache_path(output_root, video.video_key)
+        if destination.exists() or destination.with_suffix(".sha256.json").exists():
+            raise FullFrameCacheError("refusing imported odd-cache overwrite")
+        rebound = DetectorEvidenceCache(
+            identity=generated_identity(
+                video,
+                producer_sha,
+                ODD_CREATION_AUTHORITY,
+            ),
+            names=dict(source.names),
+        )
+        for frame_index, entry in source.frames.items():
+            rebound.frames[frame_index] = _copy_entry(entry)
+            rebound._validate_frame(frame_index, rebound.frames[frame_index])
+        if cache_content_hash(rebound) != cache_content_hash(source):
+            raise FullFrameCacheError("imported odd cache content changed")
+        artifact_sha = rebound.save(destination)
+        atomic_write_json(
+            checkpoint_path(
+                output_root,
+                "odd_inference",
+                video.video_key,
+            ),
+            {
+                "schema_version": "tracking.full_frame_odd_checkpoint.v1",
+                "status": "COMMITTED",
+                "video_key": video.video_key,
+                "source_video_sha256": video.video_sha256,
+                "frame_indices": list(expected_odd_indices()),
+                "detector_inference_calls": EXPECTED_SUBSET_FRAMES,
+                "even_frame_detector_inference_calls": 0,
+                "cache_artifact_sha256": artifact_sha,
+                "canonical_content_hash": cache_content_hash(rebound),
+                "provenance": "IMPORTED_COMMITTED_PRIOR_ODD_INFERENCE",
+                "committed_at": utc_now(),
+            },
+        )
+
+
 def preflight(
     source_repo: Path,
     lineage_manifest: Path,
     r0_root: Path,
     output_root: Path,
+    prior_attempt_root: Path | None = None,
 ) -> None:
     """Freeze inputs, authority, and the odd-only execution plan."""
 
@@ -677,6 +805,10 @@ def preflight(
         raise FullFrameCacheError("frozen R0 detector cadence changed")
     if shutil.disk_usage(output_root.parent).free < MINIMUM_FREE_BYTES:
         raise FullFrameCacheError("insufficient disk space")
+    prior_authority, imported = inspect_prior_attempt(
+        prior_attempt_root,
+        videos,
+    )
 
     missing_videos = []
     for video, freeze in zip(videos, freeze_rows, strict=True):
@@ -705,6 +837,7 @@ def preflight(
         raise FullFrameCacheError("missing-frame manifest is not 11,700 frames")
 
     output_root.mkdir(parents=True)
+    import_prior_odd_caches(output_root, producer_sha, imported)
     freeze_payload = {
         "schema_version": "tracking.r0_even_frame_cache_freeze.v1",
         "date": DATE_STAMP,
@@ -782,6 +915,11 @@ def preflight(
         ],
         "expected_odd_detector_calls": EXPECTED_SUBSET_TOTAL,
         "expected_even_detector_calls": 0,
+        "prior_attempt": prior_authority,
+        "new_odd_detector_calls_expected": (
+            EXPECTED_SUBSET_TOTAL
+            - len(imported) * EXPECTED_SUBSET_FRAMES
+        ),
         "tracker_executions": 0,
         "metric_runs": 0,
         "mp4_count": 0,
@@ -1145,6 +1283,16 @@ def generate(
         r0_decision = load_json(
             r0_root / "CURRENT_MAIN_DETECTOR_CACHE_GENERATION_DECISION.json"
         )
+        run_preflight = load_json(
+            output_root / "FULL_FRAME_CACHE_PREFLIGHT.json"
+        )
+        prior_attempt = run_preflight.get("prior_attempt") or {}
+        prior_physical_calls = int(
+            prior_attempt.get("prior_attempt_physical_odd_calls", 0)
+        )
+        expected_new_calls = int(
+            run_preflight["new_odd_detector_calls_expected"]
+        )
         model = load_model(cfg)
         configured_model = model_authority(model)
         frozen_config = load_json(output_root / AUTHORITY_FILENAMES[1])
@@ -1253,6 +1401,8 @@ def generate(
         del model
         if completed != EXPECTED_SUBSET_TOTAL:
             raise FullFrameCacheError("odd completion count is not 11,700")
+        if actual_calls != expected_new_calls:
+            raise FullFrameCacheError("new odd detector-call count is incorrect")
         if sum(row["frame_count"] for row in per_video) != EXPECTED_FULL_TOTAL:
             raise FullFrameCacheError("full cache count is not 23,400")
         verify_r0_root(videos, r0_root)
@@ -1260,6 +1410,10 @@ def generate(
         source_hashes = {
             video.video_key: video.video_sha256 for video in videos
         }
+        physical_odd_calls = prior_physical_calls + actual_calls
+        retry_odd_calls = physical_odd_calls - EXPECTED_SUBSET_TOTAL
+        if retry_odd_calls < 0:
+            raise FullFrameCacheError("physical odd detector-call count is invalid")
         full_authority = {
             "schema_version": "tracking.full_frame_detector_cache_authority.v1",
             "date": DATE_STAMP,
@@ -1284,7 +1438,10 @@ def generate(
             "existing_even_records_preserved": EXPECTED_SUBSET_TOTAL,
             "new_odd_records": EXPECTED_SUBSET_TOTAL,
             "even_frame_detector_inference_calls": 0,
-            "odd_frame_detector_inference_calls": EXPECTED_SUBSET_TOTAL,
+            "unique_odd_frame_inference_records": EXPECTED_SUBSET_TOTAL,
+            "odd_frame_detector_inference_calls": physical_odd_calls,
+            "odd_frame_retry_inference_calls": retry_odd_calls,
+            "prior_attempt": prior_attempt or None,
             "detector_calls_in_this_invocation": actual_calls,
             "even_subset_parity": "PASS",
             "full_frame_coverage": "PASS",
@@ -1319,7 +1476,8 @@ def generate(
                 "ODD_ONLY_GENERATION_AND_VALIDATION\n"
                 + subprocess.list2cmdline(sys.argv)
                 + "\nEVEN_FRAME_DETECTOR_INFERENCE_CALLS=0\n"
-                + f"ODD_FRAME_DETECTOR_INFERENCE_CALLS={EXPECTED_SUBSET_TOTAL}\n"
+                + f"ODD_FRAME_DETECTOR_INFERENCE_CALLS={physical_odd_calls}\n"
+                + f"ODD_FRAME_RETRY_INFERENCE_CALLS={retry_odd_calls}\n"
                 + "TRACKER_EXECUTIONS=0\nMETRIC_RUNS=0\n"
             )
         update_run_state(
@@ -1356,7 +1514,12 @@ def generate(
             "existing_even_records_preserved": EXPECTED_SUBSET_TOTAL,
             "new_odd_records": EXPECTED_SUBSET_TOTAL,
             "even_frame_detector_inference_calls": 0,
-            "odd_frame_detector_inference_calls": EXPECTED_SUBSET_TOTAL,
+            "unique_odd_frame_inference_records": EXPECTED_SUBSET_TOTAL,
+            "odd_frame_detector_inference_calls": physical_odd_calls,
+            "odd_frame_retry_inference_calls": retry_odd_calls,
+            "retry_policy_compliance": (
+                "PASS_SAME_ODD_FRAMES_SAME_DETECTOR_AUTHORITY"
+            ),
             "even_subset_parity": "PASS",
             "detector_authority_match": "PASS",
             "cache_replay": "PASS",
@@ -1386,13 +1549,16 @@ def generate(
         )
     except Exception as exc:
         if output_root.exists():
-            update_run_state(
-                output_root,
-                status="FAILED",
-                phase="ODD_ONLY_CACHE_COMPLETION",
-                completed=completed,
-                failure=f"{type(exc).__name__}: {exc}",
-            )
+            try:
+                update_run_state(
+                    output_root,
+                    status="FAILED",
+                    phase="ODD_ONLY_CACHE_COMPLETION",
+                    completed=completed,
+                    failure=f"{type(exc).__name__}: {exc}",
+                )
+            except Exception:
+                pass
         raise
 
 
@@ -1443,6 +1609,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--r0-cache-root", type=Path)
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--docs-root", type=Path)
+    parser.add_argument("--prior-attempt-root", type=Path)
     return parser.parse_args()
 
 
@@ -1466,7 +1633,17 @@ def main() -> int:
     lineage_manifest = require_argument(args, "lineage_manifest")
     r0_root = require_argument(args, "r0_cache_root")
     if args.phase == "preflight":
-        preflight(source_repo, lineage_manifest, r0_root, output_root)
+        preflight(
+            source_repo,
+            lineage_manifest,
+            r0_root,
+            output_root,
+            (
+                None
+                if args.prior_attempt_root is None
+                else args.prior_attempt_root.resolve()
+            ),
+        )
     else:
         generate(source_repo, lineage_manifest, r0_root, output_root)
     return 0
