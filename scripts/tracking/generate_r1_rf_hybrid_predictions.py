@@ -889,6 +889,98 @@ def marker_text(producer_sha: str) -> str:
     )
 
 
+def structural_determinism(
+    source_repo: Path,
+    output_root: Path,
+) -> dict[str, Any]:
+    """Repeat structural parsing and canonicalization without rerunning R1."""
+
+    videos, _ = locked_population(source_repo)
+    by_key = {video.video_key: video for video in videos}
+    xml_paths = sorted((output_root / "predictions").glob("*.xml"))
+
+    def parse(paths: list[Path]) -> list[dict[str, Any]]:
+        records = []
+        for path in paths:
+            video_key = path.stem
+            video = by_key[video_key]
+            records.append(
+                b01.xml_structural_record(
+                    path,
+                    video_key=video_key,
+                    width=video.width,
+                    height=video.height,
+                )
+            )
+        return sorted(records, key=lambda row: row["video_key"])
+
+    inventory_before = r1_artifact_inventory(output_root)
+    first = parse(xml_paths)
+    second = parse(list(reversed(xml_paths)))
+    first_hash = b01.prediction_set_hash(first)
+    second_hash = b01.prediction_set_hash(second)
+    if first != second or first_hash != second_hash:
+        raise R1AuthorityError("prediction parser or file-order determinism failed")
+
+    def ledger_table(paths: list[Path]) -> list[dict[str, Any]]:
+        rows = []
+        for path in paths:
+            payload = load_json(path)
+            events = sorted(
+                payload.get("events", []),
+                key=lambda event: event["repair_event_id"],
+            )
+            event_ids = [event["repair_event_id"] for event in events]
+            if len(event_ids) != len(set(event_ids)):
+                raise R1AuthorityError(f"duplicate repair event ID: {path}")
+            rows.append(
+                {
+                    "video_key": payload["video_key"],
+                    "events": events,
+                    "repair_config_hash": payload["repair_config_hash"],
+                    "input_authority_hash": payload["input_authority_hash"],
+                    "output_authority_hash": payload["output_authority_hash"],
+                }
+            )
+        return sorted(rows, key=lambda row: row["video_key"])
+
+    ledger_paths = sorted((output_root / "repair_ledgers").glob("*.json"))
+    first_ledgers = ledger_table(ledger_paths)
+    second_ledgers = ledger_table(list(reversed(ledger_paths)))
+    first_ledger_hash = canonical_hash(first_ledgers)
+    second_ledger_hash = canonical_hash(second_ledgers)
+    if first_ledger_hash != second_ledger_hash:
+        raise R1AuthorityError("repair-ledger canonicalization failed")
+    inventory_after = r1_artifact_inventory(output_root)
+    if inventory_before != inventory_after:
+        raise R1AuthorityError("artifact mutation during deterministic reread")
+    result = {
+        "schema_version": "tracking.r1.structural_determinism.v1",
+        "date": DATE_STAMP,
+        "status": "PASS",
+        "prediction_parser_repeat": "PASS",
+        "canonical_prediction_hash_repeat": "PASS",
+        "recursive_inventory_repeat": "PASS",
+        "file_order_permutation": "PASS",
+        "prediction_row_canonicalization": "PASS",
+        "repair_ledger_canonicalization": "PASS",
+        "repair_event_id_determinism": "PASS",
+        "no_mutation_reread": "PASS",
+        "prediction_sha256": first_hash,
+        "repair_ledger_table_sha256": first_ledger_hash,
+        "execution_repeatability": (
+            "NOT_RUN_NOT_REQUIRED_BY_FROZEN_POLICY"
+        ),
+    }
+    write_json(
+        output_root
+        / "audits"
+        / f"R1_STRUCTURAL_DETERMINISM_{DATE_STAMP}.json",
+        result,
+    )
+    return result
+
+
 def freeze_files(root: Path) -> None:
     """Mark retained files read-only where Windows permits."""
 
@@ -934,6 +1026,10 @@ def finalize(source_repo: Path, output_root: Path) -> None:
         / "audits"
         / f"R1_REPAIR_LEDGER_SUMMARY_{DATE_STAMP}.json"
     )
+    execution = load_json(
+        output_root / "audits" / f"R1_EXECUTION_AUDIT_{DATE_STAMP}.json"
+    )
+    determinism = structural_determinism(source_repo, output_root)
     r0_after = verify_r0_after(
         source_repo,
         preflight_payload["r0_authority_before"],
@@ -990,7 +1086,8 @@ def finalize(source_repo: Path, output_root: Path) -> None:
         ],
         "raw_core_snapshot_sha256": raw_snapshot_hash,
         "repair_ledger_table_sha256": ledger_table_hash,
-        "producer_code_sha": producer_sha,
+        "generation_code_sha": execution["producer_code_sha"],
+        "authority_code_sha": producer_sha,
         "r0_prediction_artifact_sha256": R0_PREDICTION_ARTIFACT_SHA256,
         "r0_even_cache_authority_sha256": R0_EVEN_CACHE_AUTHORITY_SHA256,
         "r0_config_sha256": R0_CONFIG_SHA256,
@@ -1011,7 +1108,9 @@ def finalize(source_repo: Path, output_root: Path) -> None:
         "status": "ESTABLISHED",
         "selected_generation_topology": "EXACT_R1_PROFILE_EXECUTION",
         "requested_starting_main_sha": REQUESTED_STARTING_MAIN_SHA,
-        "actual_execution_base_sha": producer_sha,
+        "actual_execution_base_sha": ACTUAL_EXECUTION_BASE_SHA,
+        "generation_code_sha": execution["producer_code_sha"],
+        "authority_code_sha": producer_sha,
         "tracking_authority_unchanged_across_descendant": True,
         "r0_prediction_authority_sha256": R0_PREDICTION_ARTIFACT_SHA256,
         "r1_output_root": str(output_root),
@@ -1029,6 +1128,10 @@ def finalize(source_repo: Path, output_root: Path) -> None:
             "rf_contract_file_sha256"
         ],
         "r0_even_cache_authority_sha256": R0_EVEN_CACHE_AUTHORITY_SHA256,
+        "source_video_manifest_sha256": preflight_payload[
+            "source_lineage_sha256"
+        ],
+        "gt_authority_sha256": b01.GT_AUTHORITY_SHA256,
         "detector_cadence": "EVERY_2_FRAMES",
         "video_count": EXPECTED_VIDEOS,
         "prediction_xml_count": EXPECTED_VIDEOS,
@@ -1059,7 +1162,7 @@ def finalize(source_repo: Path, output_root: Path) -> None:
         "execution_repeatability": (
             "NOT_RUN_NOT_REQUIRED_BY_FROZEN_POLICY"
         ),
-        "structural_determinism": "PASS",
+        "structural_determinism": determinism["status"],
         "retention_class": RETENTION_CLASS,
         "deletion_allowed": "NO_WITHOUT_EXPLICIT_AUTHORITY_RETIREMENT",
         "limitations": [
