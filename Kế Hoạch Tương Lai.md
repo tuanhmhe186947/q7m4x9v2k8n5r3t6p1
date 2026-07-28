@@ -1,5 +1,20 @@
 • Kế Hoạch Tương Lai
 
+## Historical H5b/H4 detector-cache authority - 2026-07-28
+
+- The exact locked 13-video, 23,400-frame population now has an immutable
+  full-frame detector cache at historical settings `0.20/64`, NMS IoU `0.50`,
+  image size `640`, and every-frame cadence.
+- All cache partitions pass coverage, schema, confidence, bbox, hash, and
+  replay validation. The 273-call all-video stratified repeat passes.
+- This establishes deterministic configured detector reproduction only; the
+  original historical raw cache is unavailable, so exact historical row
+  parity is not claimed.
+- Next gate: execute the frozen H5b/H4 tracker and repair path from this cache
+  and compare predictions with the 13 surviving historical XMLs.
+- Do not access unseen data, evaluate quality, tune, promote, or change runtime
+  profiles before that separate parity decision.
+
 ## Historical H5b/H4 corrective gate - 2026-07-28
 
 - The surviving historical H5b/H4 predictions passed Standard-V2

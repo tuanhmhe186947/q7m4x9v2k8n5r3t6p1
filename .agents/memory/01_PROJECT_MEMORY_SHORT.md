@@ -1,5 +1,21 @@
 # Project Memory Short
 
+## 2026-07-28 historical H5b/H4 detector-cache authority
+
+- Frozen a non-disposable full-frame detector cache for the locked 13-video,
+  23,400-frame development population at confidence `0.20`, max detections
+  `64`, NMS IoU `0.50`, image size `640`, and every-frame cadence.
+- The current raw detector producer is semantically equivalent for this
+  detector-only scope. Historical package parity and exact missing historical
+  detector-row parity remain unproven.
+- All 13 cache partitions pass schema, coverage, confidence, bbox, hash, and
+  replay checks. A 273-call all-video stratified repeat is exactly equal.
+- Decision:
+  `PASS_HISTORICAL_DETECTOR_CACHE_REPRODUCTION_FROZEN`.
+- Next gate is H5b/H4 executable prediction reproduction and byte/semantic
+  parity against the 13 surviving historical XMLs. Unseen access, tracker
+  execution in this task, evaluation, and promotion remain unauthorized.
+
 ## 2026-07-28 historical H5b/H4 corrective evaluation
 
 - All 23 manifest-bound artifacts from

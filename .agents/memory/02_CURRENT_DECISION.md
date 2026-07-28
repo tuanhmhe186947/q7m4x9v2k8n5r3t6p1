@@ -1,5 +1,21 @@
 # Current Decision
 
+## Historical H5b/H4 detector-cache authority (2026-07-28)
+
+- `PASS_HISTORICAL_DETECTOR_CACHE_REPRODUCTION_FROZEN`.
+- The immutable reproduction input contains exactly 23,400 detector records
+  over 13 locked development videos using historical settings `0.20/64`,
+  NMS IoU `0.50`, image size `640`, and every-frame inference.
+- Cache validation and replay pass with zero missing or duplicate records.
+  A predeclared 273-call stratified repeat passes exact count, class, order,
+  bbox, and confidence equality within the frozen `1e-5` numeric tolerance.
+- The authority proves deterministic configured reproduction, not equality
+  with the unavailable historical raw detector cache.
+- The next authorized tracking gate is executable H5b/H4 prediction
+  reproduction and parity comparison against surviving historical XMLs.
+  Unseen access, evaluation, promotion, and runtime-profile changes remain
+  unauthorized.
+
 ## Historical H5b/H4 corrective Standard-V2 authority (2026-07-28)
 
 - Surviving `20260719_h5b_h4_full13_combined_v2` prediction bytes were copied

@@ -1,0 +1,15 @@
+{
+  "authority_file_sha256": "9accc77d19bf758773148de2c65ccd9cf2fa9b99ea5ec0ec3499489d0c3c632b",
+  "blockers": [
+    "Historical H5b/H4 tracker and repair prediction parity is not yet tested.",
+    "Unseen data remains unauthorized."
+  ],
+  "date": "20260728",
+  "decision": "PASS_HISTORICAL_DETECTOR_CACHE_REPRODUCTION_FROZEN",
+  "deterministic_config_reproduction_authority_established": true,
+  "ready_for_historical_h5b_h4_executable_reproduction": true,
+  "ready_for_unseen_data_authority_freeze": false,
+  "ready_for_unseen_evaluation": false,
+  "ready_to_promote": false,
+  "schema_version": "tracking.historical_h5b_h4.cache_decision.v1"
+}
