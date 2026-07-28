@@ -820,7 +820,7 @@ def _conservation(
     pairwise_double = 0
     tp_fp_fn_pass = True
     boundary_pass = True
-    for arm_evaluations in evaluations.values():
+    for arm, arm_evaluations in evaluations.items():
         for evaluation in arm_evaluations:
             result = evaluation.episode_result
             wrong_input += result.wrong_id_rows_input
@@ -844,9 +844,10 @@ def _conservation(
                     episode.sequence_key == evaluation.metrics.video_stem
                 )
             for event in result.pairwise_events:
-                if event.event_id in pairwise_ids:
+                namespaced_event_id = f"{arm}:{event.event_id}"
+                if namespaced_event_id in pairwise_ids:
                     pairwise_double += 1
-                pairwise_ids.add(event.event_id)
+                pairwise_ids.add(namespaced_event_id)
                 pairwise_double += int(
                     len(set(event.gt_ids)) != 2
                     or tuple(sorted(event.gt_ids)) != event.gt_ids

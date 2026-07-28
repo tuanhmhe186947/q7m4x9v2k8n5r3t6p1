@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pandas as pd
 
@@ -150,3 +151,40 @@ def test_metric_config_is_primary_standard_v2() -> None:
     assert document["include_hidden"] is True
     assert len(document["hota_alpha_set"]) == 19
     assert document["profile_specific_evaluator_branches"] == 0
+
+
+def test_pairwise_event_ids_are_namespaced_by_arm() -> None:
+    module = _load_module()
+    event = SimpleNamespace(
+        event_id="shared",
+        gt_ids=("ID_1", "ID_2"),
+        sequence_key="video",
+    )
+    episode_result = SimpleNamespace(
+        wrong_id_rows_input=0,
+        wrong_id_rows_classified=0,
+        wrong_id_rows_double_counted=0,
+        episodes=(),
+        pairwise_events=(event,),
+    )
+    metrics = SimpleNamespace(
+        video_stem="video",
+        gt_detections=1,
+        pred_detections=1,
+    )
+    hota_result = SimpleNamespace(
+        tp=(1,) * 19,
+        fp=(0,) * 19,
+        fn=(0,) * 19,
+    )
+    evaluation = SimpleNamespace(
+        episode_result=episode_result,
+        metrics=metrics,
+        hota_result=hota_result,
+    )
+
+    result = module._conservation(
+        {"B0": [evaluation], "B1": [evaluation]}
+    )
+
+    assert result["pairwise_swap_double_count"] == 0
