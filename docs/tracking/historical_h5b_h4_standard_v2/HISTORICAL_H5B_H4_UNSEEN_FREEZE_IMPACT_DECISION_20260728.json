@@ -1,0 +1,16 @@
+{
+  "current_unseen_method_freeze_status": "SUSPENDED_PENDING_REPRODUCTION",
+  "date": "20260728",
+  "decision": "SUSPEND_CURRENT_UNSEEN_FREEZE_PENDING_HISTORICAL_METHOD_REPRODUCTION",
+  "historical_unseen_execution_authorized": false,
+  "historical_vs_r0_classification": "HISTORICAL_HYBRID_BROADLY_BETTER_THAN_R0",
+  "required_future_work_if_historical_wins": [
+    "Formalize an executable historical-best profile.",
+    "Reproduce detector settings confidence=0.20 and max_raw_detections=64.",
+    "Freeze the complete effective configuration.",
+    "Prove deterministic development reproduction.",
+    "Issue a separate superseding unseen-method freeze decision."
+  ],
+  "schema_version": "tracking.historical_h5b_h4.unseen_impact.v1",
+  "unseen_data_accessed": false
+}

@@ -1,5 +1,20 @@
 # Project Memory Short
 
+## 2026-07-28 historical H5b/H4 corrective evaluation
+
+- All 23 manifest-bound artifacts from
+  `20260719_h5b_h4_full13_combined_v2`, including 13 final XMLs, survive and
+  were frozen byte-for-byte outside the historical worktree.
+- Standard-V2 historical results: HOTA `0.900290656`, IDF1 `0.991501068`,
+  IDSW `0`, wrong-ID frames `24`, terminal episodes `0`, persistent swaps `0`.
+- Historical H5b/H4 is broadly better than R0 by the frozen rule.
+- Repair logic matches current B1, but detector evidence differs:
+  historical `confidence=0.20/max_raw_detections=64` versus current B1 cache
+  `0.25/32`.
+- Suspend the current unseen-method freeze pending a separate deterministic
+  executable reproduction. Do not access unseen data or promote from
+  prediction bytes alone.
+
 ## 2026-07-28 tracking profile registry retirement
 
 - The active presentation-profile registry is exactly `bytetrack_raw`,

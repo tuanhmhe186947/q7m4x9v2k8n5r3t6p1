@@ -1,5 +1,22 @@
 # Current Decision
 
+## Historical H5b/H4 corrective Standard-V2 authority (2026-07-28)
+
+- Surviving `20260719_h5b_h4_full13_combined_v2` prediction bytes were copied
+  into a non-disposable historical authority and evaluated twice under
+  Standard V2 without tracker, detector, regeneration, or unseen access.
+- Corrected historical metrics are HOTA `0.900290656`, IDF1 `0.991501068`,
+  IDSW `0`, wrong-ID frames `24`, terminal episodes `0`, and persistent
+  pairwise swaps `0`.
+- Historical H5b/H4 is
+  `HISTORICAL_HYBRID_BROADLY_BETTER_THAN_R0` under the predeclared
+  co-primary and identity-severity rule.
+- The current unseen-method freeze is suspended pending a separate executable
+  historical-method reproduction at detector confidence `0.20` and
+  `max_raw_detections=64`.
+- Frozen prediction bytes alone do not authorize historical unseen execution,
+  promotion, or method changes. Unseen data remains untouched.
+
 ## Confirmatory unseen method set frozen (2026-07-28)
 
 - `PASS_UNSEEN_METHOD_SET_FROZEN`.

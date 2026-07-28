@@ -1,0 +1,24 @@
+{
+  "date": "20260728",
+  "decision": "PASS_HISTORICAL_H5B_H4_STANDARD_V2_AUTHORITY_ESTABLISHED",
+  "effective_detector_pipeline_match": false,
+  "execution_counts": {
+    "detector_inference_calls": 0,
+    "prediction_reconstructions": 0,
+    "prediction_regenerations": 0,
+    "run_root_mp4_count": 0,
+    "tracker_executions": 0,
+    "unseen_files_accessed": 0
+  },
+  "historical_standard_v2_authority": "ESTABLISHED",
+  "historical_vs_r0_classification": "HISTORICAL_HYBRID_BROADLY_BETTER_THAN_R0",
+  "legacy_idsw_zero_survives_standard_v2": true,
+  "legacy_ranking_survives_standard_v2": true,
+  "ready_for_historical_method_reproduction": true,
+  "ready_for_unseen_data_authority_freeze": false,
+  "ready_for_unseen_evaluation": false,
+  "ready_to_promote": false,
+  "schema_version": "tracking.historical_h5b_h4.corrective_decision.v1",
+  "tracker_repair_logic_match": true,
+  "unseen_freeze_impact": "SUSPEND_CURRENT_UNSEEN_FREEZE_PENDING_HISTORICAL_METHOD_REPRODUCTION"
+}

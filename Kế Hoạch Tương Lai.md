@@ -1,5 +1,19 @@
 • Kế Hoạch Tương Lai
 
+## Historical H5b/H4 corrective gate - 2026-07-28
+
+- The surviving historical H5b/H4 predictions passed Standard-V2
+  conservation, two-pass repeatability, and input-order invariance.
+- Corrected HOTA is `0.900290656`; IDF1 is `0.991501068`; IDSW is `0`;
+  wrong-ID exposure is `24` frames; terminal episodes and persistent swaps
+  are both `0`.
+- This is broadly better than R0 under the frozen decision rule.
+- Suspend unseen-data authority preparation until a separate task formalizes
+  and deterministically reproduces the executable historical method with
+  detector confidence `0.20` and `max_raw_detections=64`.
+- Historical prediction bytes alone do not authorize unseen execution.
+  Unseen evaluation, promotion, tuning, and runtime work remain forbidden.
+
 ## Confirmatory unseen method set frozen - 2026-07-28
 
 - `realtime_fast` is the frozen primary same-barn unseen candidate.
