@@ -1,0 +1,29 @@
+{
+  "schema_version": "tracking.b0_b1_r0.prediction_authority_fairness.v1",
+  "date": "20260728",
+  "status": "FAIL_COMMON_DETECTOR_REPLAY_CONTRACT",
+  "r0_reuse_authority": "PASS",
+  "r0_prediction_artifact_sha256": "fd2d4f3dec0710d1c9eecba9308247a7b226dd34a4a02a9cb89f17acb22bbbfe",
+  "r0_prediction_xml_count": 13,
+  "r0_xml_hash_mismatches": 0,
+  "r0_artifact_manifest_sha256": "461f2300318ab26134bb36beb78957a6642cbd361de9d74492f9cd09db688223",
+  "r0_run_manifest_sha256": "9885138ab701b53fe7d4d1a85ba5a10bf9940ba39266409ef15d4dfba459d966",
+  "r0_cache_inventory_sha256": "8790e8b9bb05fd94733951998ce190490dece89dae6a4c04edee1a058c81e16f",
+  "r0_cache_replay_validation": "PASS",
+  "r0_mp4_count": 0,
+  "common_video_authority": "PASS_FROZEN_INPUT_CONTRACT",
+  "common_frame_authority": "PASS_FROZEN_INPUT_CONTRACT",
+  "common_gt_authority": "PASS_FROZEN_INPUT_CONTRACT",
+  "common_detector_authority": "FAIL_CADENCE_INCOMPATIBLE",
+  "common_hidden_export_authority": "FAIL_NOT_ESTABLISHED_NO_B0_B1_OUTPUT",
+  "common_sequence_boundary_authority": "PASS_VIDEO_LOCAL_CONTRACT",
+  "detector_comparison": {
+    "r0_cache_records_per_video": 900,
+    "r0_cache_frame_indices": "0,2,4,...,1798",
+    "b0_b1_detector_requests_per_video": 1800,
+    "b0_b1_detector_frame_indices": "0,1,2,...,1799",
+    "missing_required_records_per_video": 900
+  },
+  "profile_specific_missing_data_handling": 0,
+  "quality_metrics_calculated": 0
+}

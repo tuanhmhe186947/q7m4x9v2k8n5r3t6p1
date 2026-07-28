@@ -1,5 +1,21 @@
 # Current Decision
 
+## B0/B1 prediction regeneration blocked by detector cadence (2026-07-28)
+
+- `PREDICTION_REGENERATION_DECISION=FAIL_COMMON_DETECTOR_REPLAY_CONTRACT`
+- The surviving R0 cache authority remains valid and byte-verified.
+- R0 cache evidence covers `0,2,...,1798` (900 records per video).
+- Current `bytetrack_raw` and `hybrid_bytetrack` request detector evidence on
+  every frame `0..1799` (1,800 records per video).
+- No empty odd-frame evidence, cadence override, live inference fallback, or
+  tracker change is scientifically authorized.
+- B0/B1 tracker executions, detector inference calls, metric runs, unseen
+  accesses, and MP4 outputs all remained zero.
+- A future isolated task must first authorize full-frame detector evidence for
+  the same locked 13-video development population.
+- Evidence is under
+  `docs/tracking/b0_b1_prediction_regeneration/`.
+
 ## Canonical tracking profile registry retired to three methods (2026-07-28)
 
 - `ACTIVE_TRACKING_PROFILES=bytetrack_raw,realtime_fast,hybrid_bytetrack`

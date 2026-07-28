@@ -1,0 +1,18 @@
+{
+  "schema_version": "tracking.b0_b1.prediction_conservation.v1",
+  "date": "20260728",
+  "status": "NOT_RUN_BLOCKED_BEFORE_EXECUTION",
+  "b0_prediction_xml_count": 0,
+  "b1_prediction_xml_count": 0,
+  "b0_video_count": 0,
+  "b1_video_count": 0,
+  "duplicate_video_keys": 0,
+  "out_of_range_frame_indices": 0,
+  "invalid_bboxes": 0,
+  "cross_video_identity_events": 0,
+  "prediction_artifacts_created": 0,
+  "prediction_artifacts_modified_after_freeze": 0,
+  "mp4_count": 0,
+  "structural_checks_run": 0,
+  "reason": "The common detector replay contract failed before tracker execution."
+}

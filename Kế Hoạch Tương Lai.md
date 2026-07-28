@@ -1,5 +1,16 @@
 • Kế Hoạch Tương Lai
 
+## B0/B1 frozen prediction gate — 2026-07-28
+
+- Không chạy B0/B1 với cache R0 hiện tại: cache chỉ có frame chẵn
+  `0,2,...,1798`, còn hai profile yêu cầu detector evidence ở mọi frame.
+- Quyết định hiện tại:
+  `FAIL_COMMON_DETECTOR_REPLAY_CONTRACT`.
+- Bước tiếp theo phải là một task riêng cho phép tạo detector evidence
+  full-frame trên đúng 13 video development đã khóa.
+- Chưa được chạy Standard-V2 re-evaluation, development 2×2, unseen
+  evaluation, runtime funnel, hoặc promotion.
+
 ## Override registry tracking ngay 2026-07-28
 
 - Registry active chi con `bytetrack_raw`, `realtime_fast`, va

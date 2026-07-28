@@ -1,0 +1,25 @@
+{
+  "schema_version": "tracking.b0_b1.execution_topology.v1",
+  "date": "20260728",
+  "starting_main_sha": "37535cc4ac36958dee75870e9164c279fb946576",
+  "selected_topology": "SEPARATE_EXACT_PROFILE_EXECUTIONS",
+  "execution_status": "NOT_EXECUTED_DETECTOR_REPLAY_GATE_FAILED",
+  "scientific_reason": [
+    "bytetrack_raw and hybrid_bytetrack use materially different active profile configurations",
+    "association.py selects a hybrid-specific all-detection pre-repair association path",
+    "hybrid_bytetrack then invokes the frozen offline repair stack",
+    "applying repair only to B0 output would not reproduce promoted B1"
+  ],
+  "common_detector_authority": "FAIL_INCOMPLETE_FOR_B0_B1",
+  "r0_cached_frame_policy": "EVEN_INDICES_0_TO_1798",
+  "r0_cached_records_per_video": 900,
+  "b0_b1_required_frame_policy": "EVERY_INDEX_0_TO_1799",
+  "b0_b1_required_records_per_video": 1800,
+  "tracker_core_execution_count": 0,
+  "repair_invocation_count": 0,
+  "profile_config_hashes": {
+    "bytetrack_raw": "547ae86e3be26671a9a148cb0e613ea1c602a0ff842a977ce9b7f1d217c10e41",
+    "hybrid_bytetrack": "4eb3d4e2262485d48d425be06fd8a6b3adfd8a01a27b28e76b5a8d55958d1d55"
+  },
+  "offline_repair_semantic_sha256": "e078b5b165dda82dee5b61e9465dc9844446e4cb576a02858c4ed7369828d758"
+}
