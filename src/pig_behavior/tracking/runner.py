@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import logging
+from collections.abc import Callable
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -122,6 +123,7 @@ def _render_output_video(
 def run_tracking(
     cfg: TrackingConfig,
     model: object | None = None,
+    rf_raw_core_guard: Callable[[list[dict[str, Any]]], None] | None = None,
 ) -> TrackingSummary:
     """Run YOLOv8 + mask + stabilized eight-ID tracking.
 
@@ -466,6 +468,8 @@ def run_tracking(
     repair_ledger_json: Path | None = None
     if cfg.rf_hybrid_offline:
         raw_snapshot = deepcopy(shapes)
+        if rf_raw_core_guard is not None:
+            rf_raw_core_guard(raw_snapshot)
         raw_authority_hash = canonical_authority_hash(raw_snapshot)
         adapted_shapes = adapt_rf_shapes_for_offline_repair(
             raw_snapshot,
