@@ -1,5 +1,20 @@
 • Kế Hoạch Tương Lai
 
+## Development tracking 2x2 Standard-V2 complete - 2026-07-28
+
+- Frozen B0/B1/R0 metric authorities were reused and frozen R1 was evaluated
+  twice under the same Standard-V2 include-Hidden contract.
+- R0 remains strongest overall. R1 lowers IDSW to `18`, but loses HOTA and
+  IDF1 and increases wrong-ID exposure and terminal episodes relative to R0.
+- ByteTrack repair is `MIXED_TRADEOFF`; RF repair is `BROADLY_HARMFUL`.
+- The interaction is metric-level and includes profile-specific detector
+  cadence. It is not a pure association-core interaction.
+- B1 event attribution is unavailable from its frozen authority. R1 event
+  attribution remains diagnostic only; cross-core event-count comparison is
+  forbidden.
+- Next gate: a separate unseen-method freeze decision. Unseen execution,
+  promotion, runtime benchmarking, and method changes remain unauthorized.
+
 ## R1 frozen prediction authority — 2026-07-28
 
 - R1 `rf_hybrid_offline` đã hoàn tất độc lập trên đúng 13 video development,

@@ -191,7 +191,9 @@ def validate_baseline_metric_authority(
                 )
             checks[filename] = actual
         records[arm] = {
-            "authority_path": str(authority_path),
+            "authority_path": authority_path.relative_to(
+                worktree_repo
+            ).as_posix(),
             "authority_sha256": baseline.sha256_file(authority_path),
             "table_hashes": checks,
         }
@@ -636,7 +638,7 @@ def r1_event_attribution(
     authority_table = authority_table.loc[authority_table["arm"] == "R0"]
     rows = []
     claimed: set[tuple[str, int, str]] = set()
-    double_count = 0
+    overlapping_event_frame_keys = 0
     frames_improved = 0
     frames_harmed = 0
     for video in videos:
@@ -687,7 +689,7 @@ def r1_event_attribution(
             }
             overlap = event_keys & claimed
             if overlap:
-                double_count += len(overlap)
+                overlapping_event_frame_keys += len(overlap)
                 outcome = "AMBIGUOUS_OVERLAP"
                 improved = 0
                 harmed = 0
@@ -743,13 +745,26 @@ def r1_event_attribution(
             "NOT_EVALUABLE_FROZEN_LEDGER_UNAVAILABLE"
         ),
         "B1_repair_events_total": "NOT_AVAILABLE",
+        "B1_repair_events_beneficial": "NOT_AVAILABLE",
+        "B1_repair_events_harmful": "NOT_AVAILABLE",
+        "B1_repair_events_neutral": "NOT_AVAILABLE",
+        "B1_repair_events_ambiguous": "NOT_AVAILABLE",
+        "B1_raw_pre_repair_output_available": False,
+        "B1_repair_ledger_available": False,
         "R1_repair_event_attribution": "AVAILABLE_DIAGNOSTIC_ONLY",
         "R1_repair_events_total": len(table),
+        "R1_repair_events_beneficial": counts["BENEFICIAL"],
+        "R1_repair_events_harmful": counts["HARMFUL"],
+        "R1_repair_events_neutral": counts["NEUTRAL"],
+        "R1_repair_events_ambiguous": counts["AMBIGUOUS_OVERLAP"],
         "R1_outcome_counts": dict(sorted(counts.items())),
         "R1_frames_improved": frames_improved,
         "R1_frames_harmed": frames_harmed,
-        "repair_attribution_double_count": double_count,
+        "repair_attribution_double_count": 0,
+        "overlapping_event_frame_keys": overlapping_event_frame_keys,
         "cross_core_event_attribution_comparison_authorized": False,
+        "R1_event_attribution_used_for_repair_effect_classification": False,
+        "R1_event_attribution_used_for_2x2_interaction": False,
         "repair_event_attribution_required_for_2x2_metric_authority": False,
         "B1_attribution_limitation_blocks_2x2_authority": False,
     }
@@ -798,6 +813,21 @@ def _population_document(videos: list[dict[str, Any]]) -> dict[str, Any]:
         "common_sequence_boundary_authority": "PASS",
         "videos": rows,
     }
+
+
+def result_inventory(root: Path) -> list[dict[str, Any]]:
+    """Inventory final results without the self-referential inventory file."""
+
+    excluded = {"DEVELOPMENT_2X2_STANDARD_V2_ARTIFACT_INVENTORY.json"}
+    return [
+        {
+            "relative_path": path.relative_to(root).as_posix(),
+            "size_bytes": path.stat().st_size,
+            "sha256": baseline.sha256_file(path),
+        }
+        for path in sorted(item for item in root.rglob("*") if item.is_file())
+        if path.name not in excluded
+    ]
 
 
 def freeze(
@@ -1103,12 +1133,13 @@ def freeze(
         result_root / "R1_STANDARD_V2_DETERMINISM.json",
         determinism,
     )
-    inventory = baseline.artifact_inventory(result_root)
+    inventory = result_inventory(result_root)
     baseline.write_json(
         result_root / "DEVELOPMENT_2X2_STANDARD_V2_ARTIFACT_INVENTORY.json",
         {
             "schema_version": "tracking.development_2x2.inventory.v1",
             "date": DATE,
+            "inventory_excludes_itself": True,
             "artifact_count": len(inventory),
             "artifacts": inventory,
             "canonical_inventory_sha256": baseline.canonical_hash(inventory),

@@ -131,3 +131,15 @@ def test_json_safe_record_converts_optional_nan_to_null() -> None:
     )
 
     assert record == {"metric": 1.0, "optional": None}
+
+
+def test_result_inventory_excludes_itself(tmp_path: Path) -> None:
+    module = _load_module()
+    (tmp_path / "metric.csv").write_text("metric,value\nhota,1\n")
+    (tmp_path / "DEVELOPMENT_2X2_STANDARD_V2_ARTIFACT_INVENTORY.json").write_text(
+        "{}\n"
+    )
+
+    inventory = module.result_inventory(tmp_path)
+
+    assert [row["relative_path"] for row in inventory] == ["metric.csv"]

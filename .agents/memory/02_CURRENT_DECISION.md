@@ -1,5 +1,24 @@
 # Current Decision
 
+## Development tracking 2x2 Standard-V2 complete (2026-07-28)
+
+- `PASS_COMPLETE_DEVELOPMENT_2X2_AUTHORITY_ESTABLISHED`.
+- B0/B1/R0 metric authorities were reused; only frozen R1 predictions were
+  evaluated, twice, with `include_hidden=true`.
+- R1: HOTA `0.878280776`, IDF1 `0.957881350`, IDSW `18`, wrong-ID frames
+  `14,515`, and terminal identity-error episodes `14`.
+- R0 remains strongest overall: it retains the best HOTA and IDF1, the lowest
+  wrong-ID exposure, and the fewest terminal episodes.
+- ByteTrack repair is `MIXED_TRADEOFF`; RF repair is `BROADLY_HARMFUL` under
+  the predeclared metric hierarchy.
+- B1 repair-event attribution is unavailable because its frozen promoted
+  authority has no raw pre-repair output or ledger. R1 attribution is
+  diagnostic only and is not used for the metric-level interaction.
+- Cross-core results include profile-specific detector cadence and cannot
+  support pure association-core or realtime claims.
+- The next tracking gate is an unseen-method freeze decision. Unseen
+  evaluation and promotion remain unauthorized.
+
 ## R1 frozen prediction authority established (2026-07-28)
 
 - `R1_PREDICTION_GENERATION_DECISION=PASS_R1_PREDICTIONS_FROZEN`.

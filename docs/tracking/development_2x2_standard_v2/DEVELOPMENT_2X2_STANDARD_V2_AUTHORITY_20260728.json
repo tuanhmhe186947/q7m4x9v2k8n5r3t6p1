@@ -1,0 +1,203 @@
+{
+  "R1_aggregate_metrics": {
+    "ambiguous_identity_rows": 0,
+    "arm": "R1",
+    "assa": 0.8569413402709896,
+    "authoritative_gt_trajectories": 104,
+    "authoritative_matched_gt_frames": 186664,
+    "censored_identity_error_episode_count": 2,
+    "deta": 0.9008684921344624,
+    "detection_precision": 0.9977976865017426,
+    "detection_recall": 0.997136752136752,
+    "detector_cadence": "EVERY_2_FRAMES",
+    "evaluated_frames": 23400,
+    "evaluated_hidden_rows": 4511,
+    "evaluated_visible_rows": 182689,
+    "evaluator_code_sha": "c6ba3f8bb749b238872437fda2aeba6100a8fe6f",
+    "evaluator_contract_id": "TRACKING_EVALUATOR_STANDARD_V2",
+    "fn": 536,
+    "fp": 412,
+    "fragments": 87,
+    "frames_per_second": null,
+    "gt_detections": 187200,
+    "gt_ids": 104,
+    "gt_trajectories_with_identity_error_count": 19,
+    "gt_trajectories_with_identity_error_pct": 18.26923076923077,
+    "hidden_gt_rows": 4511,
+    "hidden_prediction_rows": 1416,
+    "hota": 0.878280776077832,
+    "hota_at_alpha_050_diagnostic": 0.96016429547875,
+    "hota_threshold_set": "[0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5,0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9,0.95]",
+    "id_precision": 0.9581988069020076,
+    "id_recall": 0.9575641025641024,
+    "identity_authority_policy": "IDENTITY_AUTHORITY_FIRST_OBSERVATION_V2",
+    "identity_episode_contract_id": "IDENTITY_ERROR_EPISODES_V2",
+    "identity_error_episode_count": 33,
+    "idf1": 0.9578813495922794,
+    "idfn": 7944,
+    "idfp": 7820,
+    "idsw_policy": "TRACKEVAL_CLEAR_LAST_MATCH_WITHIN_SEQUENCE",
+    "idsw_standard": 18,
+    "idsw_standard_per_1000_authoritative_matched_gt_frames": 0.0964299489992714,
+    "idtp": 179256,
+    "include_hidden": true,
+    "loca": 0.9200239500285434,
+    "matching_contract_id": "TRACKING_MATCHING_STANDARD_V2",
+    "max_identity_error_episode_seconds": 57.93333333333333,
+    "maximum_recovery_latency_seconds": 0.1333333333333333,
+    "mechanism_ranking_eligibility": null,
+    "median_identity_error_episode_seconds": 1.7666666666666666,
+    "median_recovery_latency_seconds": 0.0333333333333333,
+    "metric_config_sha256": "96630ebd6d610928f11e5422633e0247c76f8fb082568bf515e20ee30d5cda9f",
+    "p95_identity_error_episode_seconds": 57.93333333333333,
+    "p95_recovery_latency_seconds": 0.1333333333333333,
+    "persistent_pairwise_identity_swap_count": 6,
+    "pred_detections": 187076,
+    "pred_ids": 104,
+    "profile": "rf_hybrid_offline",
+    "recovered_identity_error_episode_count": 17,
+    "reference_parity_status": "PASS",
+    "sequence_boundary_policy": "VIDEO_SESSION_ISOLATED_V2",
+    "sequence_count": 13,
+    "terminal_identity_error_episode_count": 14,
+    "tp": 186664,
+    "video_stem": "ALL",
+    "videos_with_any_identity_error_episode": 6,
+    "videos_with_persistent_pairwise_swap_count": 5,
+    "videos_with_persistent_pairwise_swap_pct": 38.46153846153846,
+    "videos_with_terminal_episode_count": 5,
+    "videos_with_terminal_episode_pct": 38.46153846153846,
+    "visible_gt_rows": 182689,
+    "wrong_id_matched_frames": 14515,
+    "wrong_id_matched_frames_per_1000_authoritative_matched_gt_frames": 77.76003942913471,
+    "wrong_id_matched_seconds": 483.83333333350265
+  },
+  "R1_conservation": {
+    "date": "20260728",
+    "identity_episode_double_count": 0,
+    "multi_video_boundary_status": "PASS",
+    "pairwise_swap_double_count": 0,
+    "schema_version": "tracking.standard_v2.identity_conservation.v1",
+    "tp_fp_fn_conservation": "PASS",
+    "wrong_id_row_conservation": "PASS",
+    "wrong_id_rows_classified": 14515,
+    "wrong_id_rows_input": 14515,
+    "wrong_id_rows_unclassified": 0
+  },
+  "R1_determinism": {
+    "R1_input_order_invariance": "PASS",
+    "R1_reevaluation_repeatability": "PASS",
+    "complete_evaluation_passes": 2,
+    "date": "20260728",
+    "pass2_prediction_file_order": "REVERSED",
+    "pass2_prediction_row_order": "REVERSED_WITHIN_FRAME",
+    "required_output_files": {
+      "R1_EXPOSURE_NORMALIZED_METRICS.csv": {
+        "equal": true,
+        "pass1_sha256": "68af158bfb88b0ecfada0bfc56a134ca2f073bd16caba7dd072cf4a677649bbf",
+        "pass2_sha256": "68af158bfb88b0ecfada0bfc56a134ca2f073bd16caba7dd072cf4a677649bbf"
+      },
+      "R1_IDENTITY_ERROR_EPISODES.csv": {
+        "equal": true,
+        "pass1_sha256": "4028efce11e2e3267db92035be79c7d0836ce4e24004e0fdcf3e15303bebfc1f",
+        "pass2_sha256": "4028efce11e2e3267db92035be79c7d0836ce4e24004e0fdcf3e15303bebfc1f"
+      },
+      "R1_PERSISTENT_PAIRWISE_SWAPS.csv": {
+        "equal": true,
+        "pass1_sha256": "9010d35f3cb87b2147827d31f98633bf58ba01821caa7fe6acdae0a745bd7d2a",
+        "pass2_sha256": "9010d35f3cb87b2147827d31f98633bf58ba01821caa7fe6acdae0a745bd7d2a"
+      },
+      "R1_STANDARD_V2_AGGREGATE_METRICS.csv": {
+        "equal": true,
+        "pass1_sha256": "d77348fd969a9064a2f19069602c57791a799a1212384b275a2b6effdedecf7f",
+        "pass2_sha256": "d77348fd969a9064a2f19069602c57791a799a1212384b275a2b6effdedecf7f"
+      },
+      "R1_STANDARD_V2_PER_ALPHA_METRICS.csv": {
+        "equal": true,
+        "pass1_sha256": "e8fbb374a1213d2854e7fe3d4e4d516087339398e1b695c573443c63754f5606",
+        "pass2_sha256": "e8fbb374a1213d2854e7fe3d4e4d516087339398e1b695c573443c63754f5606"
+      },
+      "R1_STANDARD_V2_PER_VIDEO_METRICS.csv": {
+        "equal": true,
+        "pass1_sha256": "f56eaef4c246d0693527969977b5e46a8d5208d4a018f9a57c51460351e1ffcf",
+        "pass2_sha256": "f56eaef4c246d0693527969977b5e46a8d5208d4a018f9a57c51460351e1ffcf"
+      }
+    },
+    "schema_version": "tracking.development_2x2.r1_determinism.v1"
+  },
+  "R1_evaluation_hashes": {
+    "R1_EXPOSURE_NORMALIZED_METRICS.csv": "68af158bfb88b0ecfada0bfc56a134ca2f073bd16caba7dd072cf4a677649bbf",
+    "R1_IDENTITY_ERROR_EPISODES.csv": "4028efce11e2e3267db92035be79c7d0836ce4e24004e0fdcf3e15303bebfc1f",
+    "R1_PERSISTENT_PAIRWISE_SWAPS.csv": "9010d35f3cb87b2147827d31f98633bf58ba01821caa7fe6acdae0a745bd7d2a",
+    "R1_STANDARD_V2_AGGREGATE_METRICS.csv": "d77348fd969a9064a2f19069602c57791a799a1212384b275a2b6effdedecf7f",
+    "R1_STANDARD_V2_PER_ALPHA_METRICS.csv": "e8fbb374a1213d2854e7fe3d4e4d516087339398e1b695c573443c63754f5606",
+    "R1_STANDARD_V2_PER_VIDEO_METRICS.csv": "f56eaef4c246d0693527969977b5e46a8d5208d4a018f9a57c51460351e1ffcf"
+  },
+  "R1_standard_v2_authority": "ESTABLISHED",
+  "aggregate_effect_table_sha256": "dcbfe6225b22eb6ce3aacaa18495a92a8acc642e754676e5ee3ffd843bcabac6",
+  "baseline_metric_authority": {
+    "aggregate_sha256": "78fabac0df362f241594c5c55ec73d6a9028bb87c3e92026a96393b349db3c33",
+    "arms": {
+      "B0": {
+        "authority_path": "docs/tracking/b0_b1_r0_standard_v2/B0_BYTETRACK_RAW_STANDARD_V2_AUTHORITY_20260728.json",
+        "authority_sha256": "8f000677a7e2dfecc35e2918a18d4fe528470199bc684962d6d9e707db02bfaa",
+        "table_hashes": {
+          "B0_B1_R0_EXPOSURE_NORMALIZED_METRICS.csv": "ba9b9ede3bbd14dab49232bf0b7e7631a5e8e2373bfc32efffc8d00380244901",
+          "B0_B1_R0_IDENTITY_ERROR_EPISODES.csv": "920ae034901daa2ebc15328c73763122d6dc478552108291f665dbfc61424c7b",
+          "B0_B1_R0_PERSISTENT_PAIRWISE_SWAPS.csv": "3d10488c4e8afea6c7fa7219d0685d3a761f07892a5fe5fac2095e132931dc86",
+          "B0_B1_R0_STANDARD_V2_PER_ALPHA_METRICS.csv": "ade72915998fa82c22f2c41e524ebbe0e5fd551dfbd01eca7073247550a6bfda",
+          "B0_B1_R0_STANDARD_V2_PER_VIDEO_METRICS.csv": "bc7ebe3c7f757edcd6f692ee7024626cbc3668c7256844ffc8243abba98cb9a9"
+        }
+      },
+      "B1": {
+        "authority_path": "docs/tracking/b0_b1_r0_standard_v2/B1_HYBRID_BYTETRACK_STANDARD_V2_AUTHORITY_20260728.json",
+        "authority_sha256": "491c10a37160a11313abfb06b1ad04a6791ceb0ac096030dfd1b02dd4b1a3dc7",
+        "table_hashes": {
+          "B0_B1_R0_EXPOSURE_NORMALIZED_METRICS.csv": "ba9b9ede3bbd14dab49232bf0b7e7631a5e8e2373bfc32efffc8d00380244901",
+          "B0_B1_R0_IDENTITY_ERROR_EPISODES.csv": "920ae034901daa2ebc15328c73763122d6dc478552108291f665dbfc61424c7b",
+          "B0_B1_R0_PERSISTENT_PAIRWISE_SWAPS.csv": "3d10488c4e8afea6c7fa7219d0685d3a761f07892a5fe5fac2095e132931dc86",
+          "B0_B1_R0_STANDARD_V2_PER_ALPHA_METRICS.csv": "ade72915998fa82c22f2c41e524ebbe0e5fd551dfbd01eca7073247550a6bfda",
+          "B0_B1_R0_STANDARD_V2_PER_VIDEO_METRICS.csv": "bc7ebe3c7f757edcd6f692ee7024626cbc3668c7256844ffc8243abba98cb9a9"
+        }
+      },
+      "R0": {
+        "authority_path": "docs/tracking/b0_b1_r0_standard_v2/R0_REALTIME_FAST_STANDARD_V2_AUTHORITY_20260728.json",
+        "authority_sha256": "6e5473eefb653428d1d4ff075110f70a45fa32ec5535fa42d6f84ee4c4ada4b4",
+        "table_hashes": {
+          "B0_B1_R0_EXPOSURE_NORMALIZED_METRICS.csv": "ba9b9ede3bbd14dab49232bf0b7e7631a5e8e2373bfc32efffc8d00380244901",
+          "B0_B1_R0_IDENTITY_ERROR_EPISODES.csv": "920ae034901daa2ebc15328c73763122d6dc478552108291f665dbfc61424c7b",
+          "B0_B1_R0_PERSISTENT_PAIRWISE_SWAPS.csv": "3d10488c4e8afea6c7fa7219d0685d3a761f07892a5fe5fac2095e132931dc86",
+          "B0_B1_R0_STANDARD_V2_PER_ALPHA_METRICS.csv": "ade72915998fa82c22f2c41e524ebbe0e5fd551dfbd01eca7073247550a6bfda",
+          "B0_B1_R0_STANDARD_V2_PER_VIDEO_METRICS.csv": "bc7ebe3c7f757edcd6f692ee7024626cbc3668c7256844ffc8243abba98cb9a9"
+        }
+      }
+    },
+    "result_root": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\standard_v2_b0_b1_r0_reevaluation_20260728_retry1",
+    "status": "PASS"
+  },
+  "date": "20260728",
+  "evaluator_code_sha": "c6ba3f8bb749b238872437fda2aeba6100a8fe6f",
+  "evaluator_contract_id": "TRACKING_EVALUATOR_STANDARD_V2",
+  "identity_episode_contract_id": "IDENTITY_ERROR_EPISODES_V2",
+  "metric_config_sha256": "96630ebd6d610928f11e5422633e0247c76f8fb082568bf515e20ee30d5cda9f",
+  "per_alpha_effect_table_sha256": "5a2f33ef2d1b275d04f0cab042375f85acdc3ae7d864a0ff73de745c8a2812ad",
+  "per_video_effect_table_sha256": "df6c0307b6f5d079e93e18ee5d83dda8c6d5527be81d6ff4d2ccf74111eff460",
+  "prediction_artifact_sha256": {
+    "B0": "13d9226c36141264cc33e4b498d38e5f3eaa9891cf32bc4c8fb87b01fd27d576",
+    "B1": "569c49e00905add068fac70c919fe21c10127e3ab773528a4ac44199fcb4835b",
+    "R0": "fd2d4f3dec0710d1c9eecba9308247a7b226dd34a4a02a9cb89f17acb22bbbfe",
+    "R1": "40052f992871d50984fc4c0c839c4933b772bca2bfcaaaacafcde40d0e8a1800"
+  },
+  "primary_include_hidden": true,
+  "repair_attribution_status": "PARTIAL_R1_ONLY_B1_FROZEN_LEDGER_UNAVAILABLE",
+  "repair_attribution_table_sha256": "d85e2f31b18e684c097c382ca75e856b5242191dcd26cd6078c2284c6ce5909b",
+  "schema_version": "tracking.development_2x2.authority.v1",
+  "scientific_limitations": [
+    "Development population only.",
+    "B1 has no frozen raw pre-repair output or repair ledger.",
+    "Cross-core effects include profile-specific detector cadence.",
+    "R1 is post-video offline and cannot support a realtime claim.",
+    "No unseen evaluation or promotion is authorized."
+  ],
+  "status": "ESTABLISHED"
+}

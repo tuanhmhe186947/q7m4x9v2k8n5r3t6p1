@@ -1,0 +1,8 @@
+{
+  "R1_event_attribution_used_for_repair_effect_classification": false,
+  "bytetrack_repair_effect_classification": "MIXED_TRADEOFF",
+  "classification_source": "PREDECLARED_METRIC_HIERARCHY",
+  "date": "20260728",
+  "rf_repair_effect_classification": "BROADLY_HARMFUL",
+  "schema_version": "tracking.development_2x2.classification.v1"
+}
