@@ -1,6 +1,7 @@
 {
   "date": "20260728",
-  "decision": "PASS_HISTORICAL_H5B_H4_STANDARD_V2_AUTHORITY_ESTABLISHED",
+  "decision": "SUSPEND_CURRENT_UNSEEN_FREEZE_PENDING_HISTORICAL_METHOD_REPRODUCTION",
+  "historical_corrective_authority_status": "ESTABLISHED",
   "effective_detector_pipeline_match": false,
   "execution_counts": {
     "detector_inference_calls": 0,
