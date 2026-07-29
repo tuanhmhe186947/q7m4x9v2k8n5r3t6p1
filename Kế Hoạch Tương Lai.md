@@ -1,5 +1,21 @@
 • Kế Hoạch Tương Lai
 
+## H5b/H4 standardization-regression recovery - 2026-07-29
+
+- The current B1 construction is confirmed to be a new standardized pipeline:
+  a `0.25/32` `YOLO.predict` cache is served through stateless
+  `ReplayDetector`, not historical persistent `YOLO.track`.
+- Historical source `31d360ba` executed over all 13 development videos, then
+  all 13 source-bound H4 geometry commands replayed successfully.
+- Row population and identity parity are exact, but one Hidden value and
+  97,353 bbox values still differ from the frozen development champion.
+- Keep H5b/H4 as the best confirmed development method without executable
+  transfer authority. Do not create the recovered production mode yet.
+- One next bounded task is a dependency-boundary comparison that freezes the
+  first-frame detector/model.track rows before any further full execution.
+- Unseen access, unseen evaluation, method freeze, and promotion remain
+  unauthorized.
+
 ## Tracking scientific-grounding stop state - 2026-07-29
 
 - The current B0/B1/R0/R1 2x2 remains valid only as a current-artifact

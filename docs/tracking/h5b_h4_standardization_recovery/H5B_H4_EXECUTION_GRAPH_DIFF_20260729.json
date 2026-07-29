@@ -1,0 +1,182 @@
+{
+  "schema_version": "tracking.h5b_h4.execution_graph_diff.v1",
+  "date": "20260729",
+  "historical_source_sha": "31d360ba96b4065ce5125c0d88765531cc5898ae",
+  "current_main_sha": "05b02e0a7ba960870985cacd36217cdb00edfb32",
+  "historical_graph": [
+    {
+      "stage": "ENTRY_POINT",
+      "value": "src/pig_behavior/evaluation/tracking/cli.py",
+      "evidence": "historical H5b run_manifest command"
+    },
+    {
+      "stage": "VIDEO_LIFECYCLE",
+      "value": "run_pipeline calls run_tracking separately for each of 13 pairs",
+      "evidence": "historical pipeline.py:120 and runner.py:109"
+    },
+    {
+      "stage": "MODEL_CONSTRUCTION",
+      "value": "YOLO(weights) once inside run_tracking for each video",
+      "evidence": "historical runner.py:187"
+    },
+    {
+      "stage": "DETECTOR_AND_TRACKER_INPUT",
+      "value": "YOLO.track(frame,persist=True,conf=0.20,iou=0.50,tracker=yaml)",
+      "evidence": "historical runner.py:285-291 and H5b run_manifest"
+    },
+    {
+      "stage": "MAX_DETECTION_BEHAVIOR",
+      "value": "max_raw_detections=64 is configured but is not passed to model.track",
+      "evidence": "historical run_manifest and runner.py model.track call"
+    },
+    {
+      "stage": "TRACKER_STATE",
+      "value": "Ultralytics ByteTrack state and raw IDs persist across frames only",
+      "evidence": "persist=True and one new YOLO object per video"
+    },
+    {
+      "stage": "PROJECT_ASSOCIATION",
+      "value": "parse model.track results, adaptive filter, then fixed-ID association",
+      "evidence": "historical runner.py"
+    },
+    {
+      "stage": "H5B_REPAIR",
+      "value": "ordered historical owner, overlap, swap, Hidden, motion and near-wall repairs",
+      "evidence": "historical runner.py and H5b run_manifest"
+    },
+    {
+      "stage": "H5B_EXPORT",
+      "value": "annotations_cvat_shapes.json plus annotations_cvat_video_1_1.xml",
+      "evidence": "13 surviving H5b directories"
+    },
+    {
+      "stage": "H4_REPLAY",
+      "value": "far_camera_hidden_geometry_v1 consumes frozen H5b shapes/XML per video",
+      "evidence": "13 surviving geometry_replay_manifest.json files"
+    },
+    {
+      "stage": "FINAL_EXPORT",
+      "value": "13 H4 replay XMLs",
+      "evidence": "primary historical prediction authority"
+    }
+  ],
+  "current_b1_standardized_graph": [
+    {
+      "stage": "CACHE_PRODUCTION",
+      "value": "Ultralytics YOLO.predict on all 23,400 frames",
+      "evidence": "FULL_FRAME_DETECTOR_CONFIG_AUTHORITY_20260728.json"
+    },
+    {
+      "stage": "DETECTOR_CONFIGURATION",
+      "value": "det_conf=0.25,max_det=32,iou=0.50,imgsz=640",
+      "evidence": "FULL_FRAME_DETECTOR_CONFIG_AUTHORITY_20260728.json"
+    },
+    {
+      "stage": "CACHE_BINDING",
+      "value": "B1 consumes detector_cache_full_frame_standard_v2_20260728_retry1",
+      "evidence": "B0_B1_LOCKED_EXECUTION_MANIFEST_20260728.json"
+    },
+    {
+      "stage": "TRACKER_ENTRY",
+      "value": "current run_tracking(cfg,model=ReplayDetector(cache))",
+      "evidence": "generate_b0_b1_frozen_predictions.py:1119-1128"
+    },
+    {
+      "stage": "MODEL_TRACK_SEAM",
+      "value": "ReplayDetector.track discards args and tracker kwargs",
+      "evidence": "detector_cache.py:602-604"
+    },
+    {
+      "stage": "TRACKER_STATE",
+      "value": "no Ultralytics predictor/tracker state and no raw ByteTrack IDs",
+      "evidence": "ReplayDetector returns cached predict results directly"
+    },
+    {
+      "stage": "POST_LOAD_FILTER",
+      "value": "current adaptive confidence filtering removed all 262 reconstructed 0.20-0.25 rows",
+      "evidence": "B1_CACHE_BOUNDARY_FORENSIC_AUDIT_20260729.json"
+    },
+    {
+      "stage": "PROJECT_ASSOCIATION",
+      "value": "current fixed-ID association receives cache rows without historical raw IDs",
+      "evidence": "current runner and failed executable reproduction"
+    },
+    {
+      "stage": "REPAIR",
+      "value": "current unified hybrid offline repair stack",
+      "evidence": "B1 prediction generator and current runner"
+    },
+    {
+      "stage": "H4_REPLAY",
+      "value": "absent; no external replay over the historical H5b intermediate",
+      "evidence": "B1 generation manifest"
+    },
+    {
+      "stage": "FINAL_EXPORT",
+      "value": "current B1 artifact 569c49e00905add068fac70c919fe21c10127e3ab773528a4ac44199fcb4835b",
+      "evidence": "B1 prediction authority"
+    }
+  ],
+  "semantic_diff": [
+    {
+      "difference": "historical artifact search scope",
+      "classification": "PREDICTION_AFFECTING",
+      "historical": "surviving H5b/H4 bytes existed in PIG_task_tracking",
+      "current_standardization": "bytes recorded as unavailable after current-repository-only inventory",
+      "scientific_effect": "caused regeneration instead of exact-byte evaluation"
+    },
+    {
+      "difference": "detector producer",
+      "classification": "PREDICTION_AFFECTING",
+      "historical": "YOLO.track",
+      "current_standardization": "YOLO.predict cache",
+      "scientific_effect": "changes detector/tracker boundary schema and removes tracker IDs/state"
+    },
+    {
+      "difference": "detector confidence",
+      "classification": "PREDICTION_AFFECTING",
+      "historical": "0.20 inside YOLO.track",
+      "current_standardization": "0.25 during cache production",
+      "scientific_effect": "excludes low-confidence evidence before ByteTrack"
+    },
+    {
+      "difference": "maximum detections",
+      "classification": "PREDICTION_AFFECTING",
+      "historical": "64 configured but no max_det argument reaches YOLO.track",
+      "current_standardization": "max_det=32 reaches YOLO.predict",
+      "scientific_effect": "introduces an upstream top-K contract absent from the historical call"
+    },
+    {
+      "difference": "low-confidence replay rows",
+      "classification": "PREDICTION_AFFECTING",
+      "historical": "0.20 evidence enters model.track",
+      "current_standardization": "262 additional rows removed by post-load filtering",
+      "scientific_effect": "the reconstructed 0.20 cache collapses to the current B1 boundary"
+    },
+    {
+      "difference": "tracker state lifecycle",
+      "classification": "PREDICTION_AFFECTING",
+      "historical": "persistent Ultralytics ByteTrack state within each video",
+      "current_standardization": "ReplayDetector has no tracker state",
+      "scientific_effect": "raw IDs, lost/removed state, motion and allocation history are absent"
+    },
+    {
+      "difference": "H5b/H4 stage topology",
+      "classification": "PREDICTION_AFFECTING",
+      "historical": "H5b export is frozen input to external H4 replay",
+      "current_standardization": "current unified repair output is exported directly",
+      "scientific_effect": "historical intermediate and far-camera replay contract are bypassed"
+    },
+    {
+      "difference": "method identity",
+      "classification": "PREDICTION_AFFECTING",
+      "historical": "identity bound to source, command, state and stage topology",
+      "current_standardization": "identity bound primarily to hybrid_bytetrack profile name",
+      "scientific_effect": "different predictions were labeled as the historical method"
+    }
+  ],
+  "standardization_changed_effective_pipeline": true,
+  "first_prediction_affecting_commit": "cf044d04b08c2c4f6b34b644b1253678d5aff595",
+  "first_prediction_affecting_change": "YOLO.track 0.20 stateful evidence was replaced by YOLO.predict 0.25/32 cache evidence",
+  "first_standardized_divergent_stage": "DETECTOR_INPUT"
+}

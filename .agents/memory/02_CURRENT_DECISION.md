@@ -1,5 +1,24 @@
 # Current Decision
 
+## H5b/H4 standardization-regression recovery (2026-07-29)
+
+- `STANDARDIZATION_REGRESSION_CONFIRMED_PARTIALLY_REVERSED`.
+- The regression originated with commit `37535cc4`, whose current-repository
+  inventory recorded the surviving H5b/H4 output as unavailable. Commit
+  `cf044d04` first changed detector evidence to a `0.25/32` `YOLO.predict`
+  cache, and `ac9bda0f` bound it to B1 through stateless `ReplayDetector`.
+- Historical source `31d360ba` was executed directly with
+  `YOLO.track(persist=True)`, one model/tracker per video, the exact H5b
+  overrides, and all 13 frozen H4 replay commands. Current B1 was not used.
+- Recovered final output has the same 187,200 rows and zero identity
+  differences from the historical champion. Exact/semantic parity still fails
+  on one Hidden value and 97,353 bboxes; minimum paired IoU is
+  `0.1595100078`.
+- The first surviving recovered divergence is `H5B_OUTPUT`. No historical raw
+  detector or ByteTrack artifact survives to prove an earlier boundary.
+- Do not integrate `hybrid_bytetrack_h5b_h4_recovered`, access unseen data, or
+  make a superseding freeze until exact or semantic prediction parity passes.
+
 ## Three-mode historical reconstruction (2026-07-29)
 
 - `PASS_WITH_EXPLICIT_NOT_RECOVERABLE_LINEAGES`.

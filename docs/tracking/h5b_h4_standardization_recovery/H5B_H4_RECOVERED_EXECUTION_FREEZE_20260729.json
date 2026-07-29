@@ -1,0 +1,82 @@
+{
+  "schema_version": "tracking.h5b_h4.recovered_execution_freeze.v1",
+  "date": "20260729",
+  "status": "FROZEN_BEFORE_EXECUTION",
+  "current_main_sha": "05b02e0a7ba960870985cacd36217cdb00edfb32",
+  "historical_source_sha": "31d360ba96b4065ce5125c0d88765531cc5898ae",
+  "historical_run_id": "20260719_h5b_h4_full13_combined_v2",
+  "historical_h5b_run_id": "20260719_h5b_full13_candidate_v2",
+  "configuration_variant_count": 1,
+  "post_result_parameter_tuning_authorized": false,
+  "historical_source_worktree": "C:\\Users\\ironh\\AppData\\Local\\Temp\\h5b31d",
+  "historical_entry_point": "src\\pig_behavior\\evaluation\\tracking\\cli.py",
+  "compatibility_patch": "NONE_ORIGINAL_ENTRY_POINT_UNCHANGED",
+  "source_command_authority": {
+    "path": "C:\\Users\\ironh\\Downloads\\PIG_task_tracking\\outputs\\eval\\tracking_hybrid_residual\\20260719_h5b_full13_candidate_v2\\run_manifest.json",
+    "sha256": "922edba6c87481482494833cfc7e4140ad02f4fec91ea0eccb02f99cd717cf5c"
+  },
+  "command_contract": {
+    "base": "EXACT_SOURCE_COMMAND_ARRAY_FROM_SOURCE_COMMAND_AUTHORITY",
+    "allowed_pre_execution_rebindings": {
+      "interpreter": "C:\\Users\\ironh\\AppData\\Local\\Temp\\h5b31d\\.compat_venv\\Scripts\\python.exe",
+      "path_config": "C:\\Users\\ironh\\Downloads\\PIG_task_tracking\\configs\\tracking_paths_experiment_local.json",
+      "prediction_root": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\historical_h5b_h4_recovered_20260729_run1\\h5b_predictions",
+      "output_root": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\historical_h5b_h4_recovered_20260729_run1\\h5b_evaluation"
+    },
+    "semantic_argument_changes": "NONE"
+  },
+  "effective_semantics": {
+    "tracking_mode": "hybrid_bytetrack",
+    "det_conf": 0.2,
+    "max_raw_detections": 64,
+    "nms_iou": 0.5,
+    "detector_cadence": "EVERY_FRAME",
+    "detector_call": "ultralytics.YOLO.track",
+    "persist": true,
+    "model_lifetime": "ONE_YOLO_INSTANCE_PER_VIDEO",
+    "tracker_state_lifetime": "PERSISTS_ACROSS_FRAMES_WITHIN_VIDEO_ONLY",
+    "reset_topology": "NEW_YOLO_INSTANCE_AT_EACH_VIDEO_NO_EXPLICIT_RESET",
+    "far_camera_hidden_geometry_refine_during_h5b": false,
+    "h4_contract": "POST_VIDEO_GEOMETRY_REPLAY_OVER_FROZEN_H5B_SHAPES_AND_XML"
+  },
+  "runtime": {
+    "python": "3.11.15",
+    "torch": "2.5.1+cu121",
+    "torch_cuda": "12.1",
+    "cuda_available": true,
+    "torchvision": "0.20.1+cu121",
+    "ultralytics": "8.4.72",
+    "opencv": "5.0.0",
+    "numpy": "2.3.5",
+    "scipy": "1.17.1",
+    "runtime_selection_basis": [
+      "Historical run telemetry proves CUDA execution.",
+      "Historical source uv.lock binds ultralytics 8.4.72.",
+      "No result was observed before this runtime was frozen."
+    ]
+  },
+  "inputs": {
+    "source_population_and_hash_authority": {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_task_tracking\\outputs\\eval\\tracking_hybrid_residual\\20260719_h5b_full13_candidate_v2\\run_manifest.json",
+      "sha256": "922edba6c87481482494833cfc7e4140ad02f4fec91ea0eccb02f99cd717cf5c",
+      "video_count": 13,
+      "frame_count": 23400
+    },
+    "detector_weights_sha256": "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+    "scene_mask_sha256": "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658",
+    "path_config_sha256": "cb79f2b104ad4a66c372f8fa94567a544bb126e21ad0da456a1f24053bdef29e",
+    "h4_plan_sha256": "a5ce2d682637c343838aab1880d6a4d344cca1b6c2a2bb7720cd05d764687743"
+  },
+  "h4_replay_contract": {
+    "command_authority": "PER_VIDEO_GEOMETRY_REPLAY_MANIFESTS_UNDER_PRIMARY_HISTORICAL_PREDICTION_AUTHORITY",
+    "candidate": "far_camera_hidden_geometry_v1",
+    "stage_input": "RECOVERED_H5B_SHAPES_JSON_AND_XML",
+    "stage_order": "H5B_THEN_H4_THEN_FINAL_EXPORT",
+    "semantic_argument_changes": "NONE",
+    "output_root": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\historical_h5b_h4_recovered_20260729_run1\\final_predictions"
+  },
+  "refuse_overwrite_root": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\historical_h5b_h4_recovered_20260729_run1",
+  "refuse_overwrite_preflight": "PASS_ROOT_ABSENT",
+  "unseen_access_authorized": false,
+  "current_b1_runner_authorized": false
+}

@@ -1,0 +1,136 @@
+{
+  "schema_version": "tracking.h5b_h4.standardization_recovery_authority.v1",
+  "date": "20260729",
+  "starting_main_sha": "05b02e0a7ba960870985cacd36217cdb00edfb32",
+  "historical_source_sha": "31d360ba96b4065ce5125c0d88765531cc5898ae",
+  "historical_run_id": "20260719_h5b_h4_full13_combined_v2",
+  "historical_scientific_role": "DEVELOPMENT_CHAMPION",
+  "historical_standard_v2_status": "BEST_CONFIRMED_DEVELOPMENT_METHOD",
+  "primary_expected_output_authority": {
+    "description": "surviving 13 historical H5b/H4 final XML files",
+    "canonical_prediction_content_sha256": "36c3bdd3f6d92c0c5336590dbf4c8822402d718ec47df2b137cef862339d5b8a"
+  },
+  "regression_origin": {
+    "standardization_regression_origin_commit": "37535cc4ac36958dee75870e9164c279fb946576",
+    "standardization_regression_origin_task": "frozen-output Standard-V2 artifact inventory and B0/B1 regeneration authorization",
+    "origin_reason": "The inventory recorded H5b/H4 as unavailable after searching the current repository while 13 final XMLs already survived in PIG_task_tracking.",
+    "common_evidence_requirement_commit": "f9c698075358ceca4215d8a98b8fe5ed8887c67c",
+    "first_prediction_affecting_commit": "cf044d04b08c2c4f6b34b644b1253678d5aff595",
+    "first_b1_replay_binding_commit": "ac9bda0f7432d56229ede36bbb8fa06167846313",
+    "first_incorrect_b1_prediction_authority_commit": "d28631ec5384db8888432f9c8d0e5af035e270e6",
+    "first_prediction_affecting_change": "Historical YOLO.track confidence 0.20 stateful evidence was replaced by YOLO.predict confidence 0.25 max_det 32 cache evidence.",
+    "first_standardized_divergent_stage": "DETECTOR_INPUT"
+  },
+  "required_decisions": {
+    "standardization_changed_effective_pipeline": true,
+    "historical_artifact_search_failure_confirmed": true,
+    "common_detector_evidence_assumption_invalid_for_historical_reproduction": true,
+    "full_frame_cache_created_a_new_b1_pipeline": true,
+    "current_b1_was_incorrectly_identified_as_historical_h5b_h4": true
+  },
+  "confirmed_standardization_regressions": [
+    "Surviving historical XMLs were classified as unavailable because the reference worktree outputs were not searched.",
+    "Direct stateful YOLO.track was replaced by a YOLO.predict detector cache served through ReplayDetector.track.",
+    "Historical confidence 0.20 inside model.track was replaced by cache production at confidence 0.25.",
+    "Historical max_raw_detections=64 was not passed to model.track, while standardization imposed max_det=32 upstream in YOLO.predict.",
+    "All 262 reconstructed confidence 0.20-0.25 rows were removed by current post-load filtering before the project tracker boundary.",
+    "Persistent Ultralytics ByteTrack state and raw IDs were replaced by cached detection results with track kwargs discarded.",
+    "The historical H5b intermediate and external H4 replay were replaced by current unified repair inputs and direct export.",
+    "The hybrid_bytetrack name was retained despite prediction non-equivalence."
+  ],
+  "historical_execution_reconstruction": {
+    "freeze_authority": {
+      "path": "docs/tracking/h5b_h4_standardization_recovery/H5B_H4_RECOVERED_EXECUTION_FREEZE_20260729.json"
+    },
+    "source_executed": true,
+    "historical_entry_point_recovered": true,
+    "historical_model_track_path_recovered": true,
+    "historical_persist_semantics_recovered": true,
+    "historical_reset_topology_recovered": true,
+    "historical_low_confidence_path_recovered": true,
+    "historical_h5b_h4_stage_order_recovered": true,
+    "current_b1_runner_used": false,
+    "configuration_variants_executed": 1,
+    "post_result_parameter_tuning": 0,
+    "unseen_files_accessed": 0,
+    "tracker_video_executions": 13,
+    "detector_inference_calls": 23400,
+    "h4_replay_executions": 13,
+    "standard_v2_evaluator_runs": 0,
+    "legacy_evaluation_note": "The unchanged historical CLI executed its original evaluation stage after prediction generation."
+  },
+  "runtime_and_output_authority": {
+    "stable_output_root": "C:/Users/ironh/Downloads/PIG_Behavior_Project/outputs/tracking/historical_h5b_h4_recovered_20260729_run1",
+    "h5b_run_manifest_sha256": "bf6cac4c719e5312dd15f64d3c05a1409644dd219516dc9d7c057f4b5b637e46",
+    "h5b_stage_parity_sha256": "5d3080653acb2c377fda602f96258ded6508db7b9d9f277c4af45cbdf800a65c",
+    "h4_execution_summary_sha256": "05102b9adfaff381079d7404e00735d740e2107002d5fb639f869e7adac728a6",
+    "final_prediction_parity_sha256": "695c5d30e9336dab5a620c1cf6a00faf4c9fa6698d5b9a52d79d3075f3c6c9b6",
+    "historical_source_tracked_content_changed": false,
+    "historical_source_untracked_runtime_environment": ".compat_venv/"
+  },
+  "h5b_stage_parity": {
+    "videos_compared": 13,
+    "historical_rows": 187200,
+    "recovered_rows": 187200,
+    "identity_differences": 0,
+    "hidden_state_differences": 1,
+    "bbox_exact_differences": 97352,
+    "bbox_tolerance_violations": 97352,
+    "minimum_paired_bbox_iou": 0.15951000780917424,
+    "row_additions": 0,
+    "row_removals": 0,
+    "canonical_content_equal": false
+  },
+  "final_prediction_parity": {
+    "videos_compared": 13,
+    "historical_rows": 187200,
+    "recovered_rows": 187200,
+    "identity_differences": 0,
+    "hidden_state_differences": 1,
+    "bbox_exact_differences": 97353,
+    "bbox_tolerance_violations": 97353,
+    "minimum_paired_bbox_iou": 0.15951000780917424,
+    "maximum_absolute_bbox_coordinate_difference": 71.88999999999999,
+    "row_additions": 0,
+    "row_removals": 0,
+    "first_divergent_video": "Pigs281119_000085_30fps",
+    "first_divergent_frame": 0,
+    "first_divergent_track": "1",
+    "canonical_content_equal": false
+  },
+  "first_recovered_divergent_stage": "H5B_OUTPUT",
+  "first_recovered_divergent_stage_basis": [
+    "The recovered source-native H5b output already differs in bbox geometry and one Hidden value.",
+    "No surviving historical raw detector or raw ByteTrack artifact permits an earlier recovered boundary to be measured.",
+    "The historical H4 commands completed and changed only the expected 10 boxes in Pigs301119_000328_30fps."
+  ],
+  "standardization_verdict": "STANDARDIZATION_REGRESSION_CONFIRMED_PARTIALLY_REVERSED",
+  "executable_recovery_decision": "FAIL_WITH_FIRST_DIVERGENCE_PROVEN",
+  "recovered_mode": {
+    "requested_name": "hybrid_bytetrack_h5b_h4_recovered",
+    "integrated": false,
+    "reason": "Production-mode integration is prohibited until exact or semantic prediction parity passes."
+  },
+  "readiness": {
+    "ready_to_integrate_recovered_h5b_h4_mode": false,
+    "ready_to_run_h5b_h4_on_unseen": false,
+    "ready_for_superseding_method_freeze_decision": false,
+    "ready_for_unseen_data_authority_freeze": false,
+    "ready_for_unseen_evaluation": false
+  },
+  "proven_remaining_blockers": [
+    "One Hidden/state value differs after H5b and remains different after H4.",
+    "97,353 final bbox values differ beyond the predeclared tolerance; minimum paired IoU is 0.15951000780917424.",
+    "The first surviving recovered divergence is H5B_OUTPUT; historical detector rows and raw ByteTrack outputs do not survive to localize it earlier.",
+    "The exact historical Python, Torch, TorchVision, OpenCV and numerical runtime was not frozen; dependency divergence is not claimed without a raw-boundary comparison."
+  ],
+  "supersedes": [
+    "Any authority equating current B1 with historical H5b/H4.",
+    "Any authority claiming historical H5b/H4 prediction bytes were unavailable."
+  ],
+  "does_not_supersede": [
+    "The primary surviving historical H5b/H4 final XML prediction authority.",
+    "The historical H5b/H4 Standard-V2 development-champion authority.",
+    "The current 2x2 internal current-artifact comparison authority."
+  ]
+}
