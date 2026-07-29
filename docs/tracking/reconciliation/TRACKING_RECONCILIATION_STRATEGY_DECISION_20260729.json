@@ -1,0 +1,113 @@
+{
+  "schema_version": "tracking.reconciliation.strategy_decision.v1",
+  "date": "20260729",
+  "state": "STATE_2_CHOOSE_RECONCILIATION_STRATEGY",
+  "decision": "CURRENT_REPAIR",
+  "current_main_sha": "26536f79d8b6ccc65d673d1f1c809812948fbc62",
+  "last_clean_three_method_sha": "5e2b19ce5ff3a07e8ef2653389871c70c8d03d2e",
+  "decision_rule": "Prefer ROLLBACK_REBUILD unless CURRENT_REPAIR is demonstrably smaller, cleaner, and less ambiguous.",
+  "observed_delta_from_clean_base": {
+    "scientific_tracking_and_evaluator_files_changed": 46,
+    "insertions": 18073,
+    "deletions": 174,
+    "production_tracking_core_and_profile_files_changed": 12,
+    "production_tracking_core_insertions": 1041,
+    "production_tracking_core_deletions": 44,
+    "tracking_surface_files_recorded_by_state_0": 185,
+    "active_obsolete_method_ids": [
+      "rf_hybrid_offline"
+    ],
+    "obsolete_standardized_runners": [
+      "scripts/tracking/complete_development_2x2_standard_v2.py",
+      "scripts/tracking/complete_full_frame_detector_cache.py",
+      "scripts/tracking/evaluate_b0_b1_r0_standard_v2.py",
+      "scripts/tracking/generate_b0_b1_frozen_predictions.py",
+      "scripts/tracking/generate_r1_rf_hybrid_predictions.py",
+      "scripts/tracking/reproduce_historical_h5b_h4_detector_cache.py",
+      "scripts/tracking/reproduce_historical_h5b_h4_executable.py"
+    ]
+  },
+  "rollback_rebuild_assessment": {
+    "status": "VALID_BUT_LARGER",
+    "benefits": [
+      "Starts from the proven clean three-method presentation surface.",
+      "Leaves the live model.track hybrid orchestration untouched.",
+      "Excludes standardized replay and rf_hybrid_offline by construction."
+    ],
+    "required_forward_ports": [
+      "Standard V2 evaluator implementation and its contract tests",
+      "identity-error episode evaluator",
+      "generic prediction comparison and artifact hashing",
+      "historical method and recovery authorities",
+      "all unrelated classification_v2 changes currently on main"
+    ],
+    "minimum_known_forward_port_surface": {
+      "evaluation_source_files": 14,
+      "evaluation_contract_test_files": 8,
+      "additional_authority_and_generic_utility_files": "MULTIPLE",
+      "classification_v2_preservation": "REQUIRED_WHOLE_CURRENT_TREE"
+    },
+    "integration_risk": [
+      "The clean base is an ancestor of current main, so preserving current classification_v2 while replacing only tracking requires a nontrivial history integration.",
+      "Forward-porting the evaluator and authorities is larger than removing the isolated active-method pollution.",
+      "A broad subtree replacement would risk touching unrelated classification_v2."
+    ]
+  },
+  "current_repair_assessment": {
+    "status": "MEETS_ALL_SELECTION_CONDITIONS",
+    "prediction_affecting_standardization_changes_identified": true,
+    "identification_authorities": [
+      "docs/tracking/h5b_h4_standardization_recovery/H5B_H4_STANDARDIZATION_REGRESSION_CHAIN_20260729.csv",
+      "docs/tracking/h5b_h4_standardization_recovery/H5B_H4_STANDARDIZATION_RECOVERY_AUTHORITY_20260729.json",
+      "docs/tracking/historical_hybrid_best_recovery/HISTORICAL_HYBRID_BEST_LINEAGE_RECOVERY_AUTHORITY_20260729.json",
+      "docs/tracking/reconciliation/CURRENT_TRACKING_STATE_INVENTORY_20260729.json"
+    ],
+    "bounded_production_allowlist": [
+      "scripts/run_tracking_mode.py",
+      "src/pig_behavior/tracking/cli.py",
+      "src/pig_behavior/tracking/config.py",
+      "src/pig_behavior/tracking/exporters/quality.py",
+      "src/pig_behavior/tracking/offline_repair.py",
+      "src/pig_behavior/tracking/profiles/__init__.py",
+      "src/pig_behavior/tracking/profiles/rf_hybrid_offline.py",
+      "src/pig_behavior/tracking/runner.py",
+      "src/pig_behavior/tracking/schemas.py",
+      "src/pig_behavior/tracking/telemetry.py",
+      "tests/test_tracking_pipeline.py",
+      "tests/test_tracking_profiles.py"
+    ],
+    "required_actions": [
+      "Remove rf_hybrid_offline from the active presentation registry.",
+      "Remove the obsolete generic RF offline adapter from production.",
+      "Restore an explicit three-method registry and explicit hybrid_bytetrack lineage contract.",
+      "Separate detector-cache, B0/B1, 2x2, and historical-recovery runners from production entry points.",
+      "Retain Standard V2 and identity-episode evaluators as method-neutral infrastructure.",
+      "Rewrite only tests that encode an invalid active-method or standardized-2x2 assumption."
+    ],
+    "scientific_ambiguity": "BOUNDED",
+    "reason": "The active pollution is concentrated in one profile, one adapter module, one runner branch, and their metadata bindings. The accepted hybrid lineage and clean three-profile authority are already frozen, so behavior can be restored against named contracts without reconstructing history again.",
+    "classification_v2_impact": "NONE"
+  },
+  "comparative_decision": {
+    "smaller": "CURRENT_REPAIR",
+    "cleaner": "CURRENT_REPAIR",
+    "less_ambiguous": "CURRENT_REPAIR",
+    "evidence": [
+      "Current repair has a 12-file initial production/test allowlist.",
+      "Rollback rebuild must forward-port at least 22 evaluator source/test files plus authorities and the entire current classification_v2 tree.",
+      "The invalid active method is explicitly named and isolated.",
+      "The full accepted hybrid lineage is already recovered and must be bound, not reimplemented from speculative runtime behavior."
+    ]
+  },
+  "guards": {
+    "production_code_modified": false,
+    "historical_repository_modified": false,
+    "classification_v2_modified": false,
+    "detector_executions": 0,
+    "tracker_executions": 0,
+    "package_variants_executed": 0,
+    "unseen_files_accessed": 0
+  },
+  "implementation_base": "26536f79d8b6ccc65d673d1f1c809812948fbc62",
+  "next_state": "STATE_3_BUILD_CLEAN_THREE_METHOD_CORE"
+}
