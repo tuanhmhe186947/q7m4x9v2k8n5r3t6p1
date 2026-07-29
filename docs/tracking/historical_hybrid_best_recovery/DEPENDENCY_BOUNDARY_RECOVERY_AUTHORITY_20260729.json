@@ -1,0 +1,132 @@
+{
+  "schema_version": "tracking.historical_hybrid_best.dependency_boundary.v1",
+  "date": "20260729",
+  "status": "RUNTIME_PROVENANCE_INCOMPLETE",
+  "starting_main_sha": "46e67e9e15c6f20757b334beadef7336cd8ba810",
+  "historical_source_sha": "31d360ba96b4065ce5125c0d88765531cc5898ae",
+  "historical_run": "20260719_h5b_h4_full13_combined_v2",
+  "historical_command_interpreter": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.venv/Scripts/python.exe",
+  "tree_hashes": {
+    "current_main_tree": "a92e524a2a35b4df665b9a719c2549084b29382b",
+    "historical_source_tree": "e81e22ce3c1cdb4c25954925274c3817f4c5d668"
+  },
+  "input_authorities": {
+    "video_population": 13,
+    "video_hash_authority": "C:/Users/ironh/Downloads/PIG_task_tracking/outputs/eval/tracking_hybrid_residual/20260719_h5b_h4_full13_combined_v2/run_manifest.json#$.inputs.pairs",
+    "detector_weights_sha256": "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+    "scene_mask_sha256": "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658",
+    "historical_xml_authority": "C:/Users/ironh/Downloads/PIG_task_tracking/outputs/pred/tracking_hybrid_residual/20260719_h5b_h4_full13_combined_v2/hybrid_bytetrack",
+    "recovered_xml_authority": "outputs/tracking/historical_hybrid_best_recovered_20260729_run2/final_predictions/hybrid_bytetrack"
+  },
+  "runtime_provenance": {
+    "python": {
+      "value": "3.11.9",
+      "status": "EXACTLY_RECOVERED"
+    },
+    "ultralytics": {
+      "value": "8.4.72",
+      "status": "CONSTRAINED_BY_EVIDENCE",
+      "limitation": "No historical freeze or source hash binds it to the invocation."
+    },
+    "torch": {
+      "value": "2.12.1+cpu in surviving .venv; 2.5.1+cu121 in separate pig_project",
+      "status": "UNKNOWN",
+      "limitation": "The surviving .venv package was installed after the historical run; pig_project used another interpreter."
+    },
+    "torchvision": {
+      "value": "0.27.1+cpu in surviving .venv; 0.20.1+cu121 in separate pig_project",
+      "status": "UNKNOWN"
+    },
+    "cuda_cudnn": {
+      "value": "Unavailable in surviving .venv; CUDA 12.1 available in pig_project",
+      "status": "UNKNOWN"
+    },
+    "opencv": {
+      "value": "4.13 headless and 4.10 regular in surviving .venv; 5.0 headless in pig_project",
+      "status": "UNKNOWN"
+    },
+    "numpy": {
+      "value": "2.2.6 in surviving .venv; 2.3.5 in pig_project",
+      "status": "UNKNOWN"
+    },
+    "video_backend_ffmpeg": {
+      "value": null,
+      "status": "UNKNOWN"
+    },
+    "device_dtype_amp": {
+      "value": {
+        "device_argument": null,
+        "half": false,
+        "experiment_seed": null
+      },
+      "status": "CONSTRAINED_BY_EVIDENCE"
+    }
+  },
+  "provenance_search": {
+    "searched": [
+      "historical run manifests",
+      "pyvenv.cfg and surviving site-packages dist-info",
+      "project and historical pyproject.toml and uv.lock",
+      "conda-meta/history for available environments",
+      "uv archive cache",
+      "historical output geometry manifests",
+      "codex runtime and CUDA readiness authorities"
+    ],
+    "not_found": [
+      "historical pip freeze for .venv at 2026-07-18 21:46",
+      "historical Torch/CUDA wheel hash bound to the command interpreter",
+      "historical OpenCV/FFmpeg backend inventory",
+      "historical deterministic backend flags"
+    ],
+    "candidate_package_variants_executed": 0
+  },
+  "existing_prediction_parity": {
+    "row_additions": 0,
+    "row_removals": 0,
+    "identity_differences": 0,
+    "hidden_state_differences": 1,
+    "bbox_exact_differences": 97353,
+    "bbox_tolerance_violations": 36542,
+    "minimum_paired_bbox_iou": 0.15951000780917424,
+    "first_divergent_boundary": "TRACK_OUTPUT",
+    "first_divergent_video": "Pigs281119_000085_30fps",
+    "first_divergent_frame": 0,
+    "first_divergent_identity": "ID_1",
+    "recovered_bbox": [835.32, 272.89, 979.70, 470.18],
+    "historical_bbox": [835.38, 272.89, 979.70, 470.17]
+  },
+  "boundary_trace": {
+    "video_decode": "NOT_RUN",
+    "raw_frame_pixels": "NOT_FROZEN",
+    "model_input_tensor": "NOT_FROZEN",
+    "model_forward_output": "NOT_FROZEN",
+    "postprocess_nms": "NOT_FROZEN",
+    "bytetrack_input": "NOT_FROZEN",
+    "bytetrack_initial_update": "NOT_FROZEN",
+    "track_output": "FROZEN_FROM_EXISTING_RUN2_ARTIFACTS",
+    "first_dependency_divergent_boundary": "UNKNOWN_BEFORE_TRACK_OUTPUT",
+    "small_initial_difference_propagation_confirmed": false
+  },
+  "execution_gates": {
+    "current_b1_used": false,
+    "unseen_files_accessed": false,
+    "hand_edited_predictions": false,
+    "post_result_parameter_tuning": false,
+    "configuration_variants_executed": 0,
+    "package_variants_executed": 0,
+    "short_probe_executed": false,
+    "complete_run_executed": false,
+    "reason_not_executed": "Exact dependency provenance is incomplete; executing a runtime variant would violate the evidence-bound gate."
+  },
+  "decision": {
+    "root_cause": "BOUNDARY_REMAINS_UNRESOLVED_AFTER_COMPLETE_PROVENANCE",
+    "final_decision": "RUNTIME_PROVENANCE_INCOMPLETE",
+    "recovered_mode_integrated": false,
+    "recovered_mode_id": "hybrid_bytetrack_best_recovered",
+    "ready_for_superseding_method_freeze_decision": false,
+    "ready_for_unseen_data_authority_freeze": false,
+    "ready_for_unseen_evaluation": false,
+    "ready_to_promote": false
+  },
+  "recommended_next_step": "Keep runtime provenance closed unless new exact archival evidence appears."
+}

@@ -1,0 +1,2882 @@
+{
+  "schema_version": "tracking.reconciliation.current_state_inventory.v1",
+  "date": "20260729",
+  "state": "STATE_0_FREEZE_AND_ARCHIVE_CURRENT_CONDITION",
+  "decision": "ACCEPT_STATE_0_INVENTORY",
+  "current_main_sha": "46e67e9e15c6f20757b334beadef7336cd8ba810",
+  "current_main_dirty_at_observation": true,
+  "dirty_entries_at_observation": [
+    "?? docs/tracking/historical_hybrid_best_recovery/DEPENDENCY_BOUNDARY_RECOVERY_AUTHORITY_20260729.json"
+  ],
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "experiment-lineage-reproducibility",
+    "safe-refactor-test-guardian"
+  ],
+  "active_tracking_profiles": [
+    {
+      "profile_id": "bytetrack_raw",
+      "engine_mode": "bytetrack_raw",
+      "classification": "PRODUCTION"
+    },
+    {
+      "profile_id": "realtime_fast",
+      "engine_mode": "realtime",
+      "classification": "PRODUCTION"
+    },
+    {
+      "profile_id": "hybrid_bytetrack",
+      "engine_mode": "hybrid_bytetrack",
+      "classification": "PRODUCTION"
+    },
+    {
+      "profile_id": "rf_hybrid_offline",
+      "engine_mode": "realtime",
+      "classification": "OBSOLETE",
+      "finding": "Active standardized R1 profile conflicts with the requested canonical registry."
+    }
+  ],
+  "profile_aliases_and_internal_names": [
+    {
+      "name": "hybrid_bytetrack_best",
+      "kind": "eval_config",
+      "status": "ACTIVE_INTERNAL_CONFIG"
+    },
+    {
+      "name": "realtime",
+      "kind": "engine_mode_and_retired_presentation_alias",
+      "status": "AMBIGUOUS_COMPATIBILITY_SURFACE"
+    },
+    {
+      "name": "gt_export",
+      "kind": "deprecated_tracking_mode_alias",
+      "status": "ACTIVE_COMPATIBILITY_SURFACE"
+    },
+    {
+      "name": "realtime_balanced",
+      "kind": "retired_profile",
+      "status": "PROVENANCE_ONLY"
+    },
+    {
+      "name": "realtime_quality_delayed",
+      "kind": "retired_profile",
+      "status": "PROVENANCE_ONLY"
+    },
+    {
+      "name": "realtime_fast_h1_r2",
+      "kind": "rejected_profile",
+      "status": "PROVENANCE_ONLY"
+    }
+  ],
+  "entry_points": {
+    "production": [
+      "scripts/run_tracking_mode.py",
+      "src/pig_behavior/tracking/cli.py",
+      "src/pig_behavior/api/routes/tracking.py",
+      "src/pig_behavior/services/video_tracking.py"
+    ],
+    "compatibility": [
+      "scripts/_legacy/run_tracking.py",
+      "scripts/_legacy/run_weight_tracking_gt_benchmark.py",
+      "scripts/integrations/run_roboflow_tracking.py"
+    ],
+    "experimental": [
+      "scripts/benchmarks/benchmark_tracking_modes.py",
+      "scripts/benchmarks/benchmark_tracking_weights.py",
+      "scripts/optimize_tracking_metrics.py"
+    ],
+    "detector_cache": [
+      "scripts/tracking/complete_full_frame_detector_cache.py",
+      "scripts/tracking/generate_current_main_baseline_caches.py",
+      "src/pig_behavior/tracking/detector_cache.py"
+    ],
+    "historical_recovery": [
+      "scripts/tracking/reproduce_historical_h5b_h4_detector_cache.py",
+      "scripts/tracking/reproduce_historical_h5b_h4_executable.py",
+      "scripts/tracking/evaluate_historical_h5b_h4_standard_v2.py"
+    ],
+    "obsolete_standardized_2x2": [
+      "scripts/tracking/generate_b0_b1_frozen_predictions.py",
+      "scripts/tracking/generate_r1_rf_hybrid_predictions.py",
+      "scripts/tracking/complete_development_2x2_standard_v2.py"
+    ],
+    "evaluators": [
+      "scripts/evaluate_tracking.py",
+      "src/pig_behavior/evaluation/tracking/cli.py",
+      "src/pig_behavior/evaluation/tracking/pipeline_standard_v2.py",
+      "src/pig_behavior/evaluation/tracking/evaluator_standard_v2.py"
+    ]
+  },
+  "tracking_tests": [
+    "tests/test_complete_full_frame_detector_cache.py",
+    "tests/test_evaluate_historical_h5b_h4_standard_v2.py",
+    "tests/test_generate_r1_rf_hybrid_predictions.py",
+    "tests/test_reproduce_historical_h5b_h4_detector_cache.py",
+    "tests/test_reproduce_historical_h5b_h4_executable.py",
+    "tests/test_rf_hybrid_offline.py",
+    "tests/test_tracking_baseline_lock.py",
+    "tests/test_tracking_detector_cache.py",
+    "tests/test_tracking_error_taxonomy.py",
+    "tests/test_tracking_eval_config_overrides.py",
+    "tests/test_tracking_evaluator_standard_v2.py",
+    "tests/test_tracking_evaluator_standard_v2_contract.py",
+    "tests/test_tracking_evaluator_trackeval_parity.py",
+    "tests/test_tracking_h1_r2_design_contract.py",
+    "tests/test_tracking_h1_r3_design_contract.py",
+    "tests/test_tracking_h2_cdsp_design_contract.py",
+    "tests/test_tracking_hota_standard_v2.py",
+    "tests/test_tracking_identity_episodes_v2.py",
+    "tests/test_tracking_identity_replay.py",
+    "tests/test_tracking_identity_standard_v2.py",
+    "tests/test_tracking_improvements.py",
+    "tests/test_tracking_lineage.py",
+    "tests/test_tracking_metric_mathematical_audit.py",
+    "tests/test_tracking_no_mp4.py",
+    "tests/test_tracking_pipeline.py",
+    "tests/test_tracking_prefix_invariance.py",
+    "tests/test_tracking_profiles.py",
+    "tests/test_tracking_repeatability.py",
+    "tests/test_tracking_repeatability_cli.py",
+    "tests/test_tracking_scientific_grounding_authority.py",
+    "tests/test_tracking_spatial_strata.py",
+    "tests/test_tracking_telemetry.py",
+    "tests/test_tracking_window_evaluation.py"
+  ],
+  "tracking_test_count": 33,
+  "documentation_authority_roots": [
+    "docs/tracking/profile_retirement",
+    "docs/tracking/three_mode_historical_reconstruction",
+    "docs/tracking/scientific_grounding",
+    "docs/tracking/historical_hybrid_best_recovery",
+    "docs/tracking/unseen_method_freeze",
+    "docs/tracking/rf_hybrid_offline",
+    "docs/tracking/r1_prediction_authority"
+  ],
+  "generated_evidence_roots": [
+    {
+      "path": "outputs/tracking/current_main_baseline_20260728",
+      "classification": "FORENSIC_ONLY"
+    },
+    {
+      "path": "outputs/tracking/detector_cache_full_frame_standard_v2_20260728",
+      "classification": "OBSOLETE"
+    },
+    {
+      "path": "outputs/tracking/detector_cache_full_frame_standard_v2_20260728_retry1",
+      "classification": "OBSOLETE"
+    },
+    {
+      "path": "outputs/tracking/detector_caches",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "outputs/tracking/development_2x2_standard_v2_20260728",
+      "classification": "OBSOLETE"
+    },
+    {
+      "path": "outputs/tracking/development_2x2_standard_v2_20260728_failed_nan_serialization",
+      "classification": "FORENSIC_ONLY"
+    },
+    {
+      "path": "outputs/tracking/frozen_predictions_standard_v2_20260728_retry1",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "outputs/tracking/h1_r1_locked_archive_20260727",
+      "classification": "FORENSIC_ONLY"
+    },
+    {
+      "path": "outputs/tracking/h1_r2_development_missingness_audit_20260727",
+      "classification": "FORENSIC_ONLY"
+    },
+    {
+      "path": "outputs/tracking/h1_r2_development_quality_20260727_120735",
+      "classification": "EXPERIMENTAL"
+    },
+    {
+      "path": "outputs/tracking/h1_r2_development_quality_20260727_121611",
+      "classification": "EXPERIMENTAL"
+    },
+    {
+      "path": "outputs/tracking/h1_r2_development_quality_20260727_121643",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "outputs/tracking/h1_r3_shadow_support_density_20260727_141057",
+      "classification": "EXPERIMENTAL"
+    },
+    {
+      "path": "outputs/tracking/h1_r3_shadow_support_density_20260727_141401",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "outputs/tracking/h2_cdsp_current_main_shadow_20260728",
+      "classification": "EXPERIMENTAL"
+    },
+    {
+      "path": "outputs/tracking/h2_cdsp_current_main_shadow_20260728_aborted_shell_timeout",
+      "classification": "FORENSIC_ONLY"
+    },
+    {
+      "path": "outputs/tracking/historical_h5b_h4_detector_cache_020_64_20260728",
+      "classification": "FORENSIC_ONLY"
+    },
+    {
+      "path": "outputs/tracking/historical_h5b_h4_detector_cache_020_64_20260728_retry1",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "outputs/tracking/historical_h5b_h4_executable_reproduction_20260728",
+      "classification": "FORENSIC_ONLY"
+    },
+    {
+      "path": "outputs/tracking/historical_h5b_h4_frozen_predictions_20260728",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "outputs/tracking/historical_h5b_h4_recovered_20260729_run1",
+      "classification": "FORENSIC_ONLY"
+    },
+    {
+      "path": "outputs/tracking/historical_h5b_h4_standard_v2_20260728",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "outputs/tracking/historical_hybrid_best_recovered_20260729_run1",
+      "classification": "FORENSIC_ONLY"
+    },
+    {
+      "path": "outputs/tracking/historical_hybrid_best_recovered_20260729_run2",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "outputs/tracking/rf_acc23_error_taxonomy_20260727",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "outputs/tracking/rf_acc23_lineage",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "outputs/tracking/standard_v2_b0_b1_r0_reevaluation_20260728_retry1",
+      "classification": "OBSOLETE"
+    },
+    {
+      "path": "outputs/tracking/standard_v2_b0_b1_r0_reevaluation_20260728_retry1_non_authoritative_pairwise_audit_bug",
+      "classification": "FORENSIC_ONLY"
+    },
+    {
+      "path": "outputs/tracking/three_mode_historical_reconstruction_20260729",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    }
+  ],
+  "worktrees": [
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project",
+      "sha": "46e67e9e15c6f20757b334beadef7336cd8ba810",
+      "branch": "main"
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.bw",
+      "sha": "bcbaad7e70df7b74c4461a790e14e4f74c5c9638",
+      "detached": true
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/classification_v2_interaction_calibration",
+      "sha": "b33a86406f360e50ea073735164caae8d293e67f",
+      "branch": "codex/classification-v2-interaction-calibration"
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/classification_v2_legacy_noninteraction_scope_fix",
+      "sha": "ca4ee4df290a9775464e09205a6e3744217d97c0",
+      "branch": "codex/classification-v2-legacy-noninteraction-scope-fix"
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/classification_v2_lineage_rebuild_planning",
+      "sha": "228161182cbb7b818851141af16a7de5c351eba8",
+      "branch": "codex/classification-v2-lineage-rebuild-planning"
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/classification_v2_object_track_key_authority_fix",
+      "sha": "a35e0b9aae8b55167b4562cfc7e26a45e2b4e312",
+      "branch": "codex/classification-v2-object-track-key-authority-fix"
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/classification_v2_overnight_suspicion_audit_b33a8640_20260729_031404",
+      "sha": "b33a86406f360e50ea073735164caae8d293e67f",
+      "detached": true
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/classification_v2_parallel_temporal_design",
+      "sha": "00f783e828c388d3710175c48f089ca537682837",
+      "branch": "codex/classification-v2-parallel-temporal-design"
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/classification_v2_remediation_phase1",
+      "sha": "fa568755f953adf774e7491d6aecd41f5ee05225",
+      "branch": "codex/classification-v2-remediation-phase1"
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/classification_v2_remediation_phase2",
+      "sha": "7d001e77b4da74d4a490eaaec9f2d38caa6bab12",
+      "branch": "codex/classification-v2-remediation-phase2"
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/classification_v2_remediation_phase3",
+      "sha": "6fb8c78cd75282b1a51f700e2c08d1717bb79d2d",
+      "branch": "codex/classification-v2-remediation-phase3"
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/classification_v2_remediation_phase4",
+      "sha": "76a0458e39769d3e7fac865dd16439a0ed3c3a04",
+      "branch": "codex/classification-v2-remediation-phase4"
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/classification_v2_review_authority_integration",
+      "sha": "b5489cf20b84941995c76ab4e1f6639a309c24c0",
+      "branch": "integration/classification-v2-review-authority-20260729"
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/classification_v2_review_interaction_standardization",
+      "sha": "a3c782185c198ccf8fc08f8097d6dca25714ceb8",
+      "branch": "codex/classification-v2-review-interaction-standardization"
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/classification_v2_social_partner_adjudication",
+      "sha": "8174b4c4ea942e18c6ab46e14a1e6bae71d4a494",
+      "branch": "codex/classification-v2-social-partner-adjudication"
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/classification_v2_source_specific_presentation_v2",
+      "sha": "ec4847036ddc389b848a263e3341c612ff706da8",
+      "branch": "codex/classification-v2-source-specific-presentation-v2"
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/h1_r2_development_quality_eval",
+      "sha": "a299ef3950c62630d4102c55a4648b844f668209",
+      "branch": "agent/h1-r2-development-evaluation"
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/h1_r3_shadow_audit",
+      "sha": "b023bcb1c5644ea5a1ba31ce0ddba3ca44965ac6",
+      "branch": "agent/tracking-h1-r3-shadow-audit"
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/h2_cdsp_design",
+      "sha": "f34ccc5784e46cf51480691654d1e024237c4bbd",
+      "branch": "agent/tracking-h2-cdsp-design"
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/h2_cdsp_shadow",
+      "sha": "e77df625082e95c778a7179eabd1361a25f24afd",
+      "branch": "agent/tracking-h2-cdsp-shadow"
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/h2_cdsp_validation_freeze",
+      "sha": "3e65f1261cc950f21acee94689cb9cf6a0e533fd",
+      "branch": "agent/tracking-h2-cdsp-validation-freeze"
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/historical_hybrid_best_lineage_recovery",
+      "sha": "63cc4efd0d5a3c6b97a26d4079175d23a0c7db51",
+      "branch": "codex/historical-hybrid-best-lineage-recovery"
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/object_track_key_final_reaudit_a35e0b9",
+      "sha": "a35e0b9aae8b55167b4562cfc7e26a45e2b4e312",
+      "detached": true
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/phase1_4_final_acceptance_76a0458",
+      "sha": "76a0458e39769d3e7fac865dd16439a0ed3c3a04",
+      "detached": true
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/phase1_4_final_integrated_reaudit",
+      "sha": "f42f0d3328700d1f3c2f6bcca01f147b145c8a07",
+      "detached": true
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/phase1_4_integrated_acceptance",
+      "sha": "c1df0cc4bc72f9f4a889a9fe8f5fe6b31cffb45a",
+      "detached": true
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/phase1_4_manifest_builder_final_audit",
+      "sha": "99d63723bc1af8cc862551c045c9b2675076acce",
+      "detached": true
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/phase2_exact_audit",
+      "sha": "7d001e77b4da74d4a490eaaec9f2d38caa6bab12",
+      "detached": true
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/phase3_exact_audit",
+      "sha": "6fb8c78cd75282b1a51f700e2c08d1717bb79d2d",
+      "detached": true
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/phase4_exact_audit",
+      "sha": "ba1c8eda3dcaf6f11f7f0d53d6a38205847e977b",
+      "detached": true
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_tmp/worktrees/phase4_final_exact_audit",
+      "sha": "c1df0cc4bc72f9f4a889a9fe8f5fe6b31cffb45a",
+      "detached": true
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.w/dependency_boundary_20260729",
+      "sha": "31d360ba96b4065ce5125c0d88765531cc5898ae",
+      "detached": true
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.w/h",
+      "sha": "31d360ba96b4065ce5125c0d88765531cc5898ae",
+      "detached": true,
+      "prunable": "gitdir file points to non-existent location"
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.w/reconciliation_state0_20260729",
+      "sha": "46e67e9e15c6f20757b334beadef7336cd8ba810",
+      "branch": "reconcile/state0-inventory-20260729"
+    },
+    {
+      "path": "C:/Users/ironh/Downloads/PIG_task_tracking",
+      "sha": "411e596b21261d80be679dedce6b2ce150aa3b6b",
+      "branch": "task/update-tracking"
+    }
+  ],
+  "branches": [
+    {
+      "name": "agent/balanced_model_scaffold_r1",
+      "sha": "d3b31e02a7ba851bb8abb384f94d444f41be7b98",
+      "subject": "Prepare Balanced causal model research scaffolding"
+    },
+    {
+      "name": "agent/h1-r2-development-evaluation",
+      "sha": "a299ef3950c62630d4102c55a4648b844f668209",
+      "subject": "docs(tracking): close H1-r2 development evaluation"
+    },
+    {
+      "name": "agent/h2-cdsp-development-cache-generation",
+      "sha": "e3715d0209694ed186f9282249da69e14c72ca3b",
+      "subject": "Finalize recorded H2 caches without reinference"
+    },
+    {
+      "name": "agent/rf_h1_reservation_r1",
+      "sha": "ed9612a7e454b3e914dd6ce3c7a94c97e83cee42",
+      "subject": "docs(tracking): reject H1-r1 and audit reservation cost semantics"
+    },
+    {
+      "name": "agent/tracking-h1-r3-shadow-audit",
+      "sha": "b023bcb1c5644ea5a1ba31ce0ddba3ca44965ac6",
+      "subject": "docs: close H1-r3 shadow prerequisite"
+    },
+    {
+      "name": "agent/tracking-h2-cdsp-design",
+      "sha": "f34ccc5784e46cf51480691654d1e024237c4bbd",
+      "subject": "docs(memory): record H2-CDSP design decision"
+    },
+    {
+      "name": "agent/tracking-h2-cdsp-shadow",
+      "sha": "e77df625082e95c778a7179eabd1361a25f24afd",
+      "subject": "docs(tracking): stop H2 shadow on missing cache gate"
+    },
+    {
+      "name": "agent/tracking-h2-cdsp-validation-freeze",
+      "sha": "3e65f1261cc950f21acee94689cb9cf6a0e533fd",
+      "subject": "docs(tracking): freeze untouched H2 validation windows"
+    },
+    {
+      "name": "backup/pre-final-main-sync-d925c900",
+      "sha": "d925c9004e7aff5a3c8469b158d2428432c6031a",
+      "subject": "feat(tracking): promote RF_ACC23 as realtime default"
+    },
+    {
+      "name": "backup/pre-object-track-key-main-sync-7b8a261",
+      "sha": "7b8a26176a6a638e7eff592db638859719ce9f1e",
+      "subject": "docs(classification-v2): record reopened acceptance gate"
+    },
+    {
+      "name": "codex/classification-v2-interaction-calibration",
+      "sha": "b33a86406f360e50ea073735164caae8d293e67f",
+      "subject": "feat(classification-v2): add blinded interaction presentation"
+    },
+    {
+      "name": "codex/classification-v2-legacy-noninteraction-scope-fix",
+      "sha": "ca4ee4df290a9775464e09205a6e3744217d97c0",
+      "subject": "fix(classification-v2): correct legacy review target scope"
+    },
+    {
+      "name": "codex/classification-v2-lineage-rebuild-planning",
+      "sha": "228161182cbb7b818851141af16a7de5c351eba8",
+      "subject": "docs(classification-v2): correct current legacy source authority"
+    },
+    {
+      "name": "codex/classification-v2-motion-contract",
+      "sha": "7250c43b1048bd5e92d900a524a57fa3de7948d7",
+      "subject": "fix(classification-v2): bind harmonized native evidence input"
+    },
+    {
+      "name": "codex/classification-v2-object-track-key-authority-fix",
+      "sha": "a35e0b9aae8b55167b4562cfc7e26a45e2b4e312",
+      "subject": "fix(classification-v2): align independent object track key authority"
+    },
+    {
+      "name": "codex/classification-v2-operational-final",
+      "sha": "ddf1cd7fec992d2c07c5c4a49386571593ddbbb3",
+      "subject": "fix(classification-v2): close operational final validation gates"
+    },
+    {
+      "name": "codex/classification-v2-parallel-temporal-design",
+      "sha": "00f783e828c388d3710175c48f089ca537682837",
+      "subject": "feat(classification-v2): add temporal loader preflight diagnostics"
+    },
+    {
+      "name": "codex/classification-v2-remediation-phase1",
+      "sha": "fa568755f953adf774e7491d6aecd41f5ee05225",
+      "subject": "fix(classification-v2): enforce phase1 pair validity contract"
+    },
+    {
+      "name": "codex/classification-v2-remediation-phase2",
+      "sha": "7d001e77b4da74d4a490eaaec9f2d38caa6bab12",
+      "subject": "Add Phase 2 human mathematical review evidence"
+    },
+    {
+      "name": "codex/classification-v2-remediation-phase3",
+      "sha": "6fb8c78cd75282b1a51f700e2c08d1717bb79d2d",
+      "subject": "Add Phase 3 human review evidence"
+    },
+    {
+      "name": "codex/classification-v2-remediation-phase4",
+      "sha": "76a0458e39769d3e7fac865dd16439a0ed3c3a04",
+      "subject": "Fail closed on stale manifests and candidate rollback"
+    },
+    {
+      "name": "codex/classification-v2-review-interaction-standardization",
+      "sha": "a3c782185c198ccf8fc08f8097d6dca25714ceb8",
+      "subject": "feat(classification-v2): add review neighborhood evidence contract"
+    },
+    {
+      "name": "codex/classification-v2-scientific-contract-v1",
+      "sha": "a39209a10024f8677cbdcbdb43eebd5d73317eaa",
+      "subject": "docs: add Classification V2 scientific contract"
+    },
+    {
+      "name": "codex/classification-v2-social-partner-adjudication",
+      "sha": "8174b4c4ea942e18c6ab46e14a1e6bae71d4a494",
+      "subject": "feat(classification-v2): add proximity set relation contract"
+    },
+    {
+      "name": "codex/classification-v2-source-specific-presentation-v2",
+      "sha": "ec4847036ddc389b848a263e3341c612ff706da8",
+      "subject": "fix(classification-v2): complete development smoke selection"
+    },
+    {
+      "name": "codex/findings-ab-round1-20260728",
+      "sha": "9e44d07c42da55ea3f14815072029f033ec0e43e",
+      "subject": "fix(classification-v2): preserve canonical social identity in tensor CLI"
+    },
+    {
+      "name": "codex/historical-hybrid-best-lineage-recovery",
+      "sha": "63cc4efd0d5a3c6b97a26d4079175d23a0c7db51",
+      "subject": "docs(tracking): establish H5b H4 standardization regression recovery"
+    },
+    {
+      "name": "integration/classification-v2-review-authority-20260729",
+      "sha": "b5489cf20b84941995c76ab4e1f6639a309c24c0",
+      "subject": "Integrate Classification V2 review presentation authority"
+    },
+    {
+      "name": "main",
+      "sha": "46e67e9e15c6f20757b334beadef7336cd8ba810",
+      "subject": "Finalize historical recovery authority"
+    },
+    {
+      "name": "reconcile/state0-inventory-20260729",
+      "sha": "46e67e9e15c6f20757b334beadef7336cd8ba810",
+      "subject": "Finalize historical recovery authority"
+    },
+    {
+      "name": "task/data-pre",
+      "sha": "ec67d27b49b4bb375b805d52aaf87c22f4211e4e",
+      "subject": "chore: register tracking experiment guardian"
+    },
+    {
+      "name": "task/update-tracking",
+      "sha": "411e596b21261d80be679dedce6b2ce150aa3b6b",
+      "subject": "test(tracking): gate RF_ACC23 on Windows power mode"
+    },
+    {
+      "name": "wip/classification-v2-gui-uncommitted-20260729",
+      "sha": "6828f67f958f748925ec7208fc6b9ba8fec97aa6",
+      "subject": "Preserve uncommitted Classification V2 GUI work"
+    },
+    {
+      "name": "wip/tracking-dependency-boundary-authority-20260729",
+      "sha": "0376150876d0aeb7d027e4d91718b15584c88359",
+      "subject": "Preserve tracking dependency-boundary authority"
+    }
+  ],
+  "last_clean_three_mode_authority": {
+    "sha": "5e2b19ce5ff3a07e8ef2653389871c70c8d03d2e",
+    "authority": "docs/tracking/profile_retirement/TRACKING_PROFILE_RETIREMENT_DECISION_20260728.json",
+    "status": "REFERENCE_FOR_STATE_0_DIFF_ONLY"
+  },
+  "files_changed_since_last_clean_three_mode_authority": [
+    {
+      "status": "A",
+      "path": "docs/tracking/b0_b1_prediction_authority/B0_B1_LOCKED_EXECUTION_MANIFEST_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/b0_b1_prediction_authority/B0_B1_PREDICTION_GENERATION_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/b0_b1_prediction_authority/B0_B1_PREDICTION_VALIDATION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/b0_b1_prediction_authority/B0_B1_R0_PREDICTION_AUTHORITY_FAIRNESS_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/b0_b1_prediction_authority/B0_BYTETRACK_RAW_PREDICTION_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/b0_b1_prediction_authority/B1_HYBRID_BYTETRACK_PREDICTION_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/b0_b1_prediction_regeneration/B0_B1_COMMON_EXECUTION_MANIFEST_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/b0_b1_prediction_regeneration/B0_B1_DETECTOR_REPLAY_BLOCKER_20260728.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/b0_b1_prediction_regeneration/B0_B1_EXECUTION_TOPOLOGY_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/b0_b1_prediction_regeneration/B0_B1_PREDICTION_CONSERVATION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/b0_b1_prediction_regeneration/B0_B1_PREDICTION_REGENERATION_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/b0_b1_prediction_regeneration/B0_B1_R0_PREDICTION_AUTHORITY_FAIRNESS_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/b0_b1_prediction_regeneration/B0_BYTETRACK_RAW_PREDICTION_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/b0_b1_prediction_regeneration/B1_HYBRID_BYTETRACK_PREDICTION_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/b0_b1_r0_standard_v2/B0_B1_R0_HEADLINE_UPDATE_DECISION_20260728.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/b0_b1_r0_standard_v2/B0_B1_R0_IDENTITY_EVENT_CONSERVATION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/b0_b1_r0_standard_v2/B0_B1_R0_LEGACY_STANDARD_V2_RECONCILIATION_20260728.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/b0_b1_r0_standard_v2/B0_B1_R0_PREDICTION_ADAPTER_CONSERVATION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/b0_b1_r0_standard_v2/B0_B1_R0_STANDARD_V2_DETERMINISM_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/b0_b1_r0_standard_v2/B0_B1_R0_STANDARD_V2_METRIC_CONFIG_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/b0_b1_r0_standard_v2/B0_B1_R0_STANDARD_V2_POPULATION_MANIFEST_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/b0_b1_r0_standard_v2/B0_B1_R0_STANDARD_V2_REEVALUATION_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/b0_b1_r0_standard_v2/B0_BYTETRACK_RAW_STANDARD_V2_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/b0_b1_r0_standard_v2/B1_HYBRID_BYTETRACK_STANDARD_V2_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/b0_b1_r0_standard_v2/R0_REALTIME_FAST_STANDARD_V2_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/benchmark_metric_audit/TRACKING_BENCHMARK_METRIC_RECOMMENDATION_20260728.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/benchmark_metric_audit/TRACKING_EVALUATOR_CORRECTION_DECISION_REQUIRED_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/benchmark_metric_audit/TRACKING_IDENTITY_EVENT_CONSERVATION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/benchmark_metric_audit/TRACKING_IDENTITY_SEVERITY_GOLDEN_CASES.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/benchmark_metric_audit/TRACKING_IDENTITY_SEVERITY_GOLDEN_CASES_WORKED.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/benchmark_metric_audit/TRACKING_METRIC_MATHEMATICAL_CONTRACT_20260728.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/benchmark_metric_audit/TRACKING_METRIC_REFERENCE_PARITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/development_2x2_standard_v2/DEVELOPMENT_2X2_ANALYSIS_PLAN_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/development_2x2_standard_v2/DEVELOPMENT_2X2_POPULATION_MANIFEST_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/development_2x2_standard_v2/DEVELOPMENT_2X2_REPAIR_EFFECT_CLASSIFICATION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/development_2x2_standard_v2/DEVELOPMENT_2X2_REPAIR_EVENT_CONSERVATION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/development_2x2_standard_v2/DEVELOPMENT_2X2_SCIENTIFIC_CONCLUSION_20260728.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/development_2x2_standard_v2/DEVELOPMENT_2X2_STANDARD_V2_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/development_2x2_standard_v2/DEVELOPMENT_2X2_STANDARD_V2_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/evaluator_standard_v2/LEGACY_EVALUATOR_CONTRACT_FREEZE_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/evaluator_standard_v2/TRACKING_EVALUATOR_STANDARD_V2_CONSERVATION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/evaluator_standard_v2/TRACKING_EVALUATOR_STANDARD_V2_CONTRACT_20260728.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/evaluator_standard_v2/TRACKING_EVALUATOR_STANDARD_V2_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/evaluator_standard_v2/TRACKING_EVALUATOR_STANDARD_V2_GOLDEN_CASES_WORKED.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/evaluator_standard_v2/TRACKING_EVALUATOR_STANDARD_V2_SCHEMA_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/evaluator_standard_v2/TRACKING_EVALUATOR_TRACK_EVAL_PARITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/frozen_output_reevaluation_v2/B0_BYTETRACK_RAW_STANDARD_V2_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/frozen_output_reevaluation_v2/B1_HYBRID_BYTETRACK_STANDARD_V2_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/frozen_output_reevaluation_v2/FROZEN_B0_B1_R0_FAIRNESS_AUDIT_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/frozen_output_reevaluation_v2/FROZEN_B0_B1_R0_METRIC_CONTRACT_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/frozen_output_reevaluation_v2/FROZEN_B0_B1_R0_POPULATION_MANIFEST_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/frozen_output_reevaluation_v2/FROZEN_B0_B1_R0_REEVALUATION_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/frozen_output_reevaluation_v2/FROZEN_B0_B1_R0_RERUN_AUTHORIZATION_REQUIRED_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/frozen_output_reevaluation_v2/FROZEN_PREDICTION_ARTIFACT_INVENTORY_20260728.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/frozen_output_reevaluation_v2/R0_REALTIME_FAST_STANDARD_V2_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/full_frame_detector_cache/FULL_FRAME_CACHE_PROFILE_CONSUMPTION_CONTRACT_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/full_frame_detector_cache/FULL_FRAME_DETECTOR_CACHE_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/full_frame_detector_cache/FULL_FRAME_DETECTOR_CACHE_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/full_frame_detector_cache/FULL_FRAME_DETECTOR_CACHE_GIT_BINDING_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/full_frame_detector_cache/FULL_FRAME_DETECTOR_CACHE_INVENTORY_20260728.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/full_frame_detector_cache/FULL_FRAME_DETECTOR_CONFIG_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/full_frame_detector_cache/FULL_FRAME_DETECTOR_MISSING_FRAME_MANIFEST_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/full_frame_detector_cache/R0_EVEN_FRAME_CACHE_FREEZE_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/h5b_h4_standardization_recovery/H5B_H4_EXECUTION_GRAPH_DIFF_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/h5b_h4_standardization_recovery/H5B_H4_RECOVERED_EXECUTION_FREEZE_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/h5b_h4_standardization_recovery/H5B_H4_STANDARDIZATION_RECOVERY_AUTHORITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/h5b_h4_standardization_recovery/H5B_H4_STANDARDIZATION_REGRESSION_CHAIN_20260729.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/historical_h5b_h4_executable_reproduction/HISTORICAL_H5B_H4_EXECUTABLE_CONFIG_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/historical_h5b_h4_executable_reproduction/HISTORICAL_H5B_H4_EXECUTABLE_REPRODUCTION_AUTHORITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/historical_h5b_h4_executable_reproduction/HISTORICAL_H5B_H4_EXECUTABLE_REPRODUCTION_DECISION_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/historical_h5b_h4_executable_reproduction/HISTORICAL_H5B_H4_EXECUTION_MANIFEST_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/historical_h5b_h4_executable_reproduction/HISTORICAL_H5B_H4_EXECUTION_TOPOLOGY_AUDIT_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/historical_h5b_h4_executable_reproduction/HISTORICAL_H5B_H4_PREDICTION_PARITY_CONTRACT_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/historical_h5b_h4_reproduction/HISTORICAL_DETECTOR_PRODUCER_AUDIT_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/historical_h5b_h4_reproduction/HISTORICAL_H5B_H4_DETECTOR_CACHE_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/historical_h5b_h4_reproduction/HISTORICAL_H5B_H4_DETECTOR_CACHE_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/historical_h5b_h4_reproduction/HISTORICAL_H5B_H4_DETECTOR_CACHE_MANIFEST_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/historical_h5b_h4_reproduction/HISTORICAL_H5B_H4_DETECTOR_EFFECTIVE_CONFIG_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/historical_h5b_h4_reproduction/HISTORICAL_H5B_H4_DETECTOR_EXECUTION_MANIFEST_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/historical_h5b_h4_standard_v2/HISTORICAL_H5B_H4_CORRECTIVE_ANALYSIS_PLAN_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/historical_h5b_h4_standard_v2/HISTORICAL_H5B_H4_CORRECTIVE_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/historical_h5b_h4_standard_v2/HISTORICAL_H5B_H4_LEGACY_STANDARD_V2_RECONCILIATION_20260728.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/historical_h5b_h4_standard_v2/HISTORICAL_H5B_H4_PREDICTION_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/historical_h5b_h4_standard_v2/HISTORICAL_H5B_H4_STANDARD_V2_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/historical_h5b_h4_standard_v2/HISTORICAL_H5B_H4_UNSEEN_FREEZE_IMPACT_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/historical_hybrid_best_recovery/HISTORICAL_HYBRID_ACCEPTED_ALGORITHM_GRAPH_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/historical_hybrid_best_recovery/HISTORICAL_HYBRID_BEST_LINEAGE_RECOVERY_AUTHORITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/historical_hybrid_best_recovery/HISTORICAL_HYBRID_EXECUTION_FREEZE_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/historical_hybrid_best_recovery/HISTORICAL_HYBRID_ORCHESTRATION_GRAPH_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/historical_hybrid_best_recovery/HYBRID_BYTETRACK_ACCEPTED_OPTIMIZATION_LINEAGE_20260729.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/r1_prediction_authority/R0_R1_LOCKED_EXECUTION_MANIFEST_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/r1_prediction_authority/R1_GENERATION_TOPOLOGY_AUDIT_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/r1_prediction_authority/R1_PREDICTION_CONSERVATION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/r1_prediction_authority/R1_PREDICTION_GENERATION_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/r1_prediction_authority/R1_RF_HYBRID_OFFLINE_PREDICTION_ARTIFACT_MANIFEST_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/r1_prediction_authority/R1_RF_HYBRID_OFFLINE_PREDICTION_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/rf_hybrid_offline/COMMON_OFFLINE_REPAIR_INPUT_CONTRACT_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/rf_hybrid_offline/RF_HYBRID_OFFLINE_IMPLEMENTATION_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/rf_hybrid_offline/RF_HYBRID_REPAIR_STAGE_INVENTORY_20260728.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/rf_hybrid_offline/RF_HYBRID_RETAINED_PROFILE_AUTHORITY_AFTER_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/rf_hybrid_offline/RF_HYBRID_RETAINED_PROFILE_AUTHORITY_BEFORE_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/rf_hybrid_offline/RF_RAW_TRACKLET_OUTPUT_CONTRACT_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/rf_hybrid_offline/RF_TO_OFFLINE_REPAIR_COMPATIBILITY_AUDIT_20260728.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/scientific_grounding/TRACKING_2X2_CLAIM_RECONCILIATION_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/scientific_grounding/TRACKING_AUTHORITY_CONTRADICTIONS_20260729.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/scientific_grounding/TRACKING_EFFECTIVE_CONFIGURATION_LEDGER_20260729.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/scientific_grounding/TRACKING_METHOD_IDENTITY_REGISTRY_20260729.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/scientific_grounding/TRACKING_METRIC_PROVENANCE_LEDGER_20260729.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/scientific_grounding/TRACKING_PARAMETER_SCIENTIFIC_SUPPORT_20260729.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/scientific_grounding/TRACKING_SCIENTIFIC_CLAIM_AUTHORIZATION_20260729.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/scientific_grounding/TRACKING_SCIENTIFIC_GROUNDING_AUTHORITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/scientific_grounding/TRACKING_SCIENTIFIC_STOP_STATE_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/three_mode_historical_reconstruction/B0_HISTORICAL_RECONSTRUCTION_AUTHORITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/three_mode_historical_reconstruction/B0_HISTORICAL_SOURCE_VS_FROZEN_COPY_PARITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/three_mode_historical_reconstruction/B0_HISTORICAL_VS_CURRENT_PREDICTION_PARITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/three_mode_historical_reconstruction/B1_CACHE_BOUNDARY_FORENSIC_AUDIT_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/three_mode_historical_reconstruction/B1_FAILED_REPRODUCTION_VS_CURRENT_PREDICTION_PARITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/three_mode_historical_reconstruction/B1_HISTORICAL_RECONSTRUCTION_AUTHORITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/three_mode_historical_reconstruction/B1_HISTORICAL_VS_CURRENT_PREDICTION_PARITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/three_mode_historical_reconstruction/CURRENT_THREE_MODE_PREDICTION_AUTHORITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/three_mode_historical_reconstruction/R0_FAST_METHOD_CHRONOLOGY_20260729.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/three_mode_historical_reconstruction/R0_HISTORICAL_RECONSTRUCTION_AUTHORITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/three_mode_historical_reconstruction/R0_HISTORICAL_SOURCE_VS_FROZEN_COPY_PARITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/three_mode_historical_reconstruction/R0_HISTORICAL_VS_CURRENT_PREDICTION_PARITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/three_mode_historical_reconstruction/THREE_MODE_CLAIM_CORRECTION_20260729.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/three_mode_historical_reconstruction/THREE_MODE_HISTORICAL_ARTIFACT_SEARCH_20260729.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/three_mode_historical_reconstruction/THREE_MODE_HISTORICAL_DIFFERENCE_CAUSAL_MATRIX_20260729.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/three_mode_historical_reconstruction/THREE_MODE_HISTORICAL_RECONSTRUCTION_AUTHORITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/unseen_method_freeze/TRACKING_PROFILE_LIFECYCLE_RECOMMENDATION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/unseen_method_freeze/UNSEEN_CONFIRMATORY_CLAIM_CONTRACT_20260728.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/unseen_method_freeze/UNSEEN_METHOD_FREEZE_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/unseen_method_freeze/UNSEEN_METHOD_FREEZE_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "A",
+      "path": "docs/tracking/unseen_method_freeze/UNSEEN_METRIC_HIERARCHY_FREEZE_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "status": "M",
+      "path": "scripts/evaluate_tracking.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "status": "M",
+      "path": "scripts/run_tracking_mode.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "status": "A",
+      "path": "scripts/tracking/compare_prediction_xml_sets.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "status": "A",
+      "path": "scripts/tracking/complete_development_2x2_standard_v2.py",
+      "classification": "OBSOLETE"
+    },
+    {
+      "status": "A",
+      "path": "scripts/tracking/complete_full_frame_detector_cache.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "status": "A",
+      "path": "scripts/tracking/evaluate_b0_b1_r0_standard_v2.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "status": "A",
+      "path": "scripts/tracking/evaluate_historical_h5b_h4_standard_v2.py",
+      "classification": "FORENSIC_ONLY"
+    },
+    {
+      "status": "A",
+      "path": "scripts/tracking/generate_b0_b1_frozen_predictions.py",
+      "classification": "OBSOLETE"
+    },
+    {
+      "status": "A",
+      "path": "scripts/tracking/generate_r1_rf_hybrid_predictions.py",
+      "classification": "OBSOLETE"
+    },
+    {
+      "status": "A",
+      "path": "scripts/tracking/reproduce_historical_h5b_h4_detector_cache.py",
+      "classification": "FORENSIC_ONLY"
+    },
+    {
+      "status": "A",
+      "path": "scripts/tracking/reproduce_historical_h5b_h4_executable.py",
+      "classification": "FORENSIC_ONLY"
+    },
+    {
+      "status": "M",
+      "path": "src/pig_behavior/evaluation/tracking/__init__.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "status": "M",
+      "path": "src/pig_behavior/evaluation/tracking/api.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "status": "M",
+      "path": "src/pig_behavior/evaluation/tracking/benchmarking.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "status": "M",
+      "path": "src/pig_behavior/evaluation/tracking/cli.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "status": "M",
+      "path": "src/pig_behavior/evaluation/tracking/config.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "status": "A",
+      "path": "src/pig_behavior/evaluation/tracking/contracts.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "status": "A",
+      "path": "src/pig_behavior/evaluation/tracking/evaluator_standard_v2.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "status": "A",
+      "path": "src/pig_behavior/evaluation/tracking/hota_standard_v2.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "status": "A",
+      "path": "src/pig_behavior/evaluation/tracking/identity_episodes_v2.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "status": "A",
+      "path": "src/pig_behavior/evaluation/tracking/identity_standard_v2.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "status": "A",
+      "path": "src/pig_behavior/evaluation/tracking/matching_standard_v2.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "status": "M",
+      "path": "src/pig_behavior/evaluation/tracking/pipeline.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "status": "A",
+      "path": "src/pig_behavior/evaluation/tracking/pipeline_standard_v2.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "status": "A",
+      "path": "src/pig_behavior/evaluation/tracking/reporting_standard_v2.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "status": "M",
+      "path": "src/pig_behavior/tracking/cli.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "status": "M",
+      "path": "src/pig_behavior/tracking/config.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "status": "M",
+      "path": "src/pig_behavior/tracking/exporters/quality.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "status": "A",
+      "path": "src/pig_behavior/tracking/offline_repair.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "status": "M",
+      "path": "src/pig_behavior/tracking/profiles/__init__.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "status": "A",
+      "path": "src/pig_behavior/tracking/profiles/rf_hybrid_offline.py",
+      "classification": "OBSOLETE"
+    },
+    {
+      "status": "M",
+      "path": "src/pig_behavior/tracking/runner.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "status": "M",
+      "path": "src/pig_behavior/tracking/schemas.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "status": "M",
+      "path": "src/pig_behavior/tracking/telemetry.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "status": "A",
+      "path": "tests/test_complete_full_frame_detector_cache.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "status": "A",
+      "path": "tests/test_evaluate_historical_h5b_h4_standard_v2.py",
+      "classification": "FORENSIC_ONLY"
+    },
+    {
+      "status": "A",
+      "path": "tests/test_generate_r1_rf_hybrid_predictions.py",
+      "classification": "OBSOLETE"
+    },
+    {
+      "status": "A",
+      "path": "tests/test_reproduce_historical_h5b_h4_detector_cache.py",
+      "classification": "FORENSIC_ONLY"
+    },
+    {
+      "status": "A",
+      "path": "tests/test_reproduce_historical_h5b_h4_executable.py",
+      "classification": "FORENSIC_ONLY"
+    },
+    {
+      "status": "A",
+      "path": "tests/test_rf_hybrid_offline.py",
+      "classification": "OBSOLETE"
+    },
+    {
+      "status": "M",
+      "path": "tests/test_tracking_eval_config_overrides.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "status": "A",
+      "path": "tests/test_tracking_evaluator_standard_v2.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "status": "A",
+      "path": "tests/test_tracking_evaluator_standard_v2_contract.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "status": "A",
+      "path": "tests/test_tracking_evaluator_trackeval_parity.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "status": "A",
+      "path": "tests/test_tracking_hota_standard_v2.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "status": "A",
+      "path": "tests/test_tracking_identity_episodes_v2.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "status": "A",
+      "path": "tests/test_tracking_identity_standard_v2.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "status": "A",
+      "path": "tests/test_tracking_metric_mathematical_audit.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "status": "M",
+      "path": "tests/test_tracking_no_mp4.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "status": "M",
+      "path": "tests/test_tracking_pipeline.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "status": "M",
+      "path": "tests/test_tracking_profiles.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "status": "A",
+      "path": "tests/test_tracking_scientific_grounding_authority.py",
+      "classification": "PRODUCTION"
+    }
+  ],
+  "file_inventory": [
+    {
+      "path": "configs/tracking_paths.json",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "docs/tracking/CURRENT_MAIN_R0_BASELINE_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/b0_b1_prediction_authority/B0_B1_LOCKED_EXECUTION_MANIFEST_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/b0_b1_prediction_authority/B0_B1_PREDICTION_GENERATION_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/b0_b1_prediction_authority/B0_B1_PREDICTION_VALIDATION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/b0_b1_prediction_authority/B0_B1_R0_PREDICTION_AUTHORITY_FAIRNESS_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/b0_b1_prediction_authority/B0_BYTETRACK_RAW_PREDICTION_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/b0_b1_prediction_authority/B1_HYBRID_BYTETRACK_PREDICTION_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/b0_b1_prediction_regeneration/B0_B1_COMMON_EXECUTION_MANIFEST_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/b0_b1_prediction_regeneration/B0_B1_DETECTOR_REPLAY_BLOCKER_20260728.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/b0_b1_prediction_regeneration/B0_B1_EXECUTION_TOPOLOGY_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/b0_b1_prediction_regeneration/B0_B1_PREDICTION_CONSERVATION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/b0_b1_prediction_regeneration/B0_B1_PREDICTION_REGENERATION_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/b0_b1_prediction_regeneration/B0_B1_R0_PREDICTION_AUTHORITY_FAIRNESS_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/b0_b1_prediction_regeneration/B0_BYTETRACK_RAW_PREDICTION_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/b0_b1_prediction_regeneration/B1_HYBRID_BYTETRACK_PREDICTION_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/b0_b1_r0_standard_v2/B0_B1_R0_HEADLINE_UPDATE_DECISION_20260728.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/b0_b1_r0_standard_v2/B0_B1_R0_IDENTITY_EVENT_CONSERVATION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/b0_b1_r0_standard_v2/B0_B1_R0_LEGACY_STANDARD_V2_RECONCILIATION_20260728.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/b0_b1_r0_standard_v2/B0_B1_R0_PREDICTION_ADAPTER_CONSERVATION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/b0_b1_r0_standard_v2/B0_B1_R0_STANDARD_V2_DETERMINISM_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/b0_b1_r0_standard_v2/B0_B1_R0_STANDARD_V2_METRIC_CONFIG_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/b0_b1_r0_standard_v2/B0_B1_R0_STANDARD_V2_POPULATION_MANIFEST_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/b0_b1_r0_standard_v2/B0_B1_R0_STANDARD_V2_REEVALUATION_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/b0_b1_r0_standard_v2/B0_BYTETRACK_RAW_STANDARD_V2_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/b0_b1_r0_standard_v2/B1_HYBRID_BYTETRACK_STANDARD_V2_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/b0_b1_r0_standard_v2/R0_REALTIME_FAST_STANDARD_V2_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/benchmark_metric_audit/TRACKING_BENCHMARK_METRIC_RECOMMENDATION_20260728.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/benchmark_metric_audit/TRACKING_EVALUATOR_CORRECTION_DECISION_REQUIRED_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/benchmark_metric_audit/TRACKING_IDENTITY_EVENT_CONSERVATION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/benchmark_metric_audit/TRACKING_IDENTITY_SEVERITY_GOLDEN_CASES.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/benchmark_metric_audit/TRACKING_IDENTITY_SEVERITY_GOLDEN_CASES_WORKED.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/benchmark_metric_audit/TRACKING_METRIC_MATHEMATICAL_CONTRACT_20260728.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/benchmark_metric_audit/TRACKING_METRIC_REFERENCE_PARITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/development_2x2_standard_v2/DEVELOPMENT_2X2_ANALYSIS_PLAN_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/development_2x2_standard_v2/DEVELOPMENT_2X2_POPULATION_MANIFEST_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/development_2x2_standard_v2/DEVELOPMENT_2X2_REPAIR_EFFECT_CLASSIFICATION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/development_2x2_standard_v2/DEVELOPMENT_2X2_REPAIR_EVENT_CONSERVATION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/development_2x2_standard_v2/DEVELOPMENT_2X2_SCIENTIFIC_CONCLUSION_20260728.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/development_2x2_standard_v2/DEVELOPMENT_2X2_STANDARD_V2_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/development_2x2_standard_v2/DEVELOPMENT_2X2_STANDARD_V2_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/error_taxonomy/RF_ACC23_REMAINING_IDENTITY_ERROR_TAXONOMY_20260727.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/evaluator_standard_v2/LEGACY_EVALUATOR_CONTRACT_FREEZE_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/evaluator_standard_v2/TRACKING_EVALUATOR_STANDARD_V2_CONSERVATION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/evaluator_standard_v2/TRACKING_EVALUATOR_STANDARD_V2_CONTRACT_20260728.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/evaluator_standard_v2/TRACKING_EVALUATOR_STANDARD_V2_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/evaluator_standard_v2/TRACKING_EVALUATOR_STANDARD_V2_GOLDEN_CASES_WORKED.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/evaluator_standard_v2/TRACKING_EVALUATOR_STANDARD_V2_SCHEMA_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/evaluator_standard_v2/TRACKING_EVALUATOR_TRACK_EVAL_PARITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/frozen_output_reevaluation_v2/B0_BYTETRACK_RAW_STANDARD_V2_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/frozen_output_reevaluation_v2/B1_HYBRID_BYTETRACK_STANDARD_V2_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/frozen_output_reevaluation_v2/FROZEN_B0_B1_R0_FAIRNESS_AUDIT_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/frozen_output_reevaluation_v2/FROZEN_B0_B1_R0_METRIC_CONTRACT_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/frozen_output_reevaluation_v2/FROZEN_B0_B1_R0_POPULATION_MANIFEST_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/frozen_output_reevaluation_v2/FROZEN_B0_B1_R0_REEVALUATION_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/frozen_output_reevaluation_v2/FROZEN_B0_B1_R0_RERUN_AUTHORIZATION_REQUIRED_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/frozen_output_reevaluation_v2/FROZEN_PREDICTION_ARTIFACT_INVENTORY_20260728.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/frozen_output_reevaluation_v2/R0_REALTIME_FAST_STANDARD_V2_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/full_frame_detector_cache/FULL_FRAME_CACHE_PROFILE_CONSUMPTION_CONTRACT_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/full_frame_detector_cache/FULL_FRAME_DETECTOR_CACHE_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/full_frame_detector_cache/FULL_FRAME_DETECTOR_CACHE_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/full_frame_detector_cache/FULL_FRAME_DETECTOR_CACHE_GIT_BINDING_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/full_frame_detector_cache/FULL_FRAME_DETECTOR_CACHE_INVENTORY_20260728.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/full_frame_detector_cache/FULL_FRAME_DETECTOR_CONFIG_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/full_frame_detector_cache/FULL_FRAME_DETECTOR_MISSING_FRAME_MANIFEST_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/full_frame_detector_cache/R0_EVEN_FRAME_CACHE_FREEZE_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r2/H1_R2_ACTIVATION_GATE_DECISION.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r2/H1_R2_DESIGN_DECISION.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r2/H1_R2_DEVELOPMENT_EVALUATION_DECISION_20260727.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r2/H1_R2_DEVELOPMENT_MANIFEST.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r2/H1_R2_DEVELOPMENT_MISSINGNESS_AUDIT_20260727.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r2/H1_R2_EVALUATION_GATE.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r2/H1_R2_FEATURE_SEMANTICS_REGISTRY.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r2/H1_R2_GOLDEN_CASES.yaml",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r2/H1_R2_IMPLEMENTATION_AUTHORIZATION_DECISION.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r2/H1_R2_IMPLEMENTATION_COMPLETION_DECISION.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r2/H1_R2_INDEPENDENT_DESIGN_REVIEW.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r2/H1_R2_PROFILE_ADDITION_AUTHORIZATION_DECISION.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r2/H1_R2_SCIENTIFIC_DESIGN_CONTRACT.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r2/H1_R2_VALIDATION_MANIFEST.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r2/H1_R2_VALIDATION_ROLE_ASSIGNMENTS.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r3/H1_R3_ACTIVATION_GATE_DECISION.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r3/H1_R3_CLOSURE_DECISION_20260727.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r3/H1_R3_DESIGN_DECISION.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r3/H1_R3_DEVELOPMENT_MANIFEST.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r3/H1_R3_ELIGIBILITY_CONTRACT.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r3/H1_R3_EVALUATION_GATE.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r3/H1_R3_FEATURE_SEMANTICS_REGISTRY.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r3/H1_R3_GOLDEN_CASES.yaml",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r3/H1_R3_INDEPENDENT_DESIGN_REVIEW.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r3/H1_R3_SCIENTIFIC_DESIGN_CONTRACT.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r3/H1_R3_SCORE_FEASIBILITY_ANALYSIS.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r3/H1_R3_SHADOW_SUPPORT_DENSITY_DECISION_20260727.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h1_r3/H1_R3_VALIDATION_MANIFEST.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h2_cdsp/H2_CDSP_CLOSURE_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h2_cdsp/H2_CDSP_CURRENT_MAIN_SHADOW_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h2_cdsp/H2_CDSP_CURRENT_MAIN_SHADOW_PREREQUISITE.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h2_cdsp/H2_CDSP_DESIGN_DECISION.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h2_cdsp/H2_CDSP_EVALUATION_GATE.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h2_cdsp/H2_CDSP_GOLDEN_CASES.yaml",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h2_cdsp/H2_CDSP_INDEPENDENT_SCIENTIFIC_REVIEW.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h2_cdsp/H2_CDSP_PRESERVATION_FORMULAS.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h2_cdsp/H2_CDSP_SCIENTIFIC_DESIGN_CONTRACT.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h2_cdsp/H2_CDSP_SHADOW_DEVELOPMENT_MANIFEST.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h2_cdsp/H2_CDSP_SHADOW_LINEAGE_COMPATIBILITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h2_cdsp/H2_CDSP_SHADOW_PORT_AUDIT_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h2_cdsp/H2_CDSP_STATE_MACHINE.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h2_cdsp/H2_CDSP_STATE_SEMANTICS_REGISTRY.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h2_cdsp/H2_CDSP_VALIDATION_FREEZE_DECISION.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h2_cdsp/H2_CDSP_VALIDATION_MANIFEST.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h2_cdsp/H2_CDSP_VALIDATION_POLICY.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h2_cdsp/H2_CDSP_VALIDATION_ROLE_ASSIGNMENTS.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h5b_h4_standardization_recovery/H5B_H4_EXECUTION_GRAPH_DIFF_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h5b_h4_standardization_recovery/H5B_H4_RECOVERED_EXECUTION_FREEZE_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h5b_h4_standardization_recovery/H5B_H4_STANDARDIZATION_RECOVERY_AUTHORITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/h5b_h4_standardization_recovery/H5B_H4_STANDARDIZATION_REGRESSION_CHAIN_20260729.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/historical_h5b_h4_executable_reproduction/HISTORICAL_H5B_H4_EXECUTABLE_CONFIG_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/historical_h5b_h4_executable_reproduction/HISTORICAL_H5B_H4_EXECUTABLE_REPRODUCTION_AUTHORITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/historical_h5b_h4_executable_reproduction/HISTORICAL_H5B_H4_EXECUTABLE_REPRODUCTION_DECISION_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/historical_h5b_h4_executable_reproduction/HISTORICAL_H5B_H4_EXECUTION_MANIFEST_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/historical_h5b_h4_executable_reproduction/HISTORICAL_H5B_H4_EXECUTION_TOPOLOGY_AUDIT_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/historical_h5b_h4_executable_reproduction/HISTORICAL_H5B_H4_PREDICTION_PARITY_CONTRACT_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/historical_h5b_h4_reproduction/HISTORICAL_DETECTOR_PRODUCER_AUDIT_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/historical_h5b_h4_reproduction/HISTORICAL_H5B_H4_DETECTOR_CACHE_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/historical_h5b_h4_reproduction/HISTORICAL_H5B_H4_DETECTOR_CACHE_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/historical_h5b_h4_reproduction/HISTORICAL_H5B_H4_DETECTOR_CACHE_MANIFEST_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/historical_h5b_h4_reproduction/HISTORICAL_H5B_H4_DETECTOR_EFFECTIVE_CONFIG_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/historical_h5b_h4_reproduction/HISTORICAL_H5B_H4_DETECTOR_EXECUTION_MANIFEST_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/historical_h5b_h4_standard_v2/HISTORICAL_H5B_H4_CORRECTIVE_ANALYSIS_PLAN_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/historical_h5b_h4_standard_v2/HISTORICAL_H5B_H4_CORRECTIVE_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/historical_h5b_h4_standard_v2/HISTORICAL_H5B_H4_LEGACY_STANDARD_V2_RECONCILIATION_20260728.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/historical_h5b_h4_standard_v2/HISTORICAL_H5B_H4_PREDICTION_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/historical_h5b_h4_standard_v2/HISTORICAL_H5B_H4_STANDARD_V2_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/historical_h5b_h4_standard_v2/HISTORICAL_H5B_H4_UNSEEN_FREEZE_IMPACT_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/historical_hybrid_best_recovery/HISTORICAL_HYBRID_ACCEPTED_ALGORITHM_GRAPH_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/historical_hybrid_best_recovery/HISTORICAL_HYBRID_BEST_LINEAGE_RECOVERY_AUTHORITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/historical_hybrid_best_recovery/HISTORICAL_HYBRID_EXECUTION_FREEZE_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/historical_hybrid_best_recovery/HISTORICAL_HYBRID_ORCHESTRATION_GRAPH_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/historical_hybrid_best_recovery/HYBRID_BYTETRACK_ACCEPTED_OPTIMIZATION_LINEAGE_20260729.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/profile_retirement/TRACKING_ACTIVE_PROFILE_INVENTORY_AFTER_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/profile_retirement/TRACKING_ACTIVE_PROFILE_INVENTORY_BEFORE_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/profile_retirement/TRACKING_PROFILE_RETIREMENT_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/profile_retirement/TRACKING_PROFILE_RETIREMENT_DEPENDENCY_AUDIT_20260728.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/profile_retirement/TRACKING_PROFILE_RETIREMENT_PLAN_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/r1_prediction_authority/R0_R1_LOCKED_EXECUTION_MANIFEST_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/r1_prediction_authority/R1_GENERATION_TOPOLOGY_AUDIT_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/r1_prediction_authority/R1_PREDICTION_CONSERVATION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/r1_prediction_authority/R1_PREDICTION_GENERATION_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/r1_prediction_authority/R1_RF_HYBRID_OFFLINE_PREDICTION_ARTIFACT_MANIFEST_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/r1_prediction_authority/R1_RF_HYBRID_OFFLINE_PREDICTION_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/rf_hybrid_offline/COMMON_OFFLINE_REPAIR_INPUT_CONTRACT_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/rf_hybrid_offline/RF_HYBRID_OFFLINE_IMPLEMENTATION_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/rf_hybrid_offline/RF_HYBRID_REPAIR_STAGE_INVENTORY_20260728.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/rf_hybrid_offline/RF_HYBRID_RETAINED_PROFILE_AUTHORITY_AFTER_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/rf_hybrid_offline/RF_HYBRID_RETAINED_PROFILE_AUTHORITY_BEFORE_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/rf_hybrid_offline/RF_RAW_TRACKLET_OUTPUT_CONTRACT_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/rf_hybrid_offline/RF_TO_OFFLINE_REPAIR_COMPATIBILITY_AUDIT_20260728.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/scientific_grounding/TRACKING_2X2_CLAIM_RECONCILIATION_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/scientific_grounding/TRACKING_AUTHORITY_CONTRADICTIONS_20260729.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/scientific_grounding/TRACKING_EFFECTIVE_CONFIGURATION_LEDGER_20260729.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/scientific_grounding/TRACKING_METHOD_IDENTITY_REGISTRY_20260729.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/scientific_grounding/TRACKING_METRIC_PROVENANCE_LEDGER_20260729.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/scientific_grounding/TRACKING_PARAMETER_SCIENTIFIC_SUPPORT_20260729.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/scientific_grounding/TRACKING_SCIENTIFIC_CLAIM_AUTHORIZATION_20260729.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/scientific_grounding/TRACKING_SCIENTIFIC_GROUNDING_AUTHORITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/scientific_grounding/TRACKING_SCIENTIFIC_STOP_STATE_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/three_mode_historical_reconstruction/B0_HISTORICAL_RECONSTRUCTION_AUTHORITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/three_mode_historical_reconstruction/B0_HISTORICAL_SOURCE_VS_FROZEN_COPY_PARITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/three_mode_historical_reconstruction/B0_HISTORICAL_VS_CURRENT_PREDICTION_PARITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/three_mode_historical_reconstruction/B1_CACHE_BOUNDARY_FORENSIC_AUDIT_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/three_mode_historical_reconstruction/B1_FAILED_REPRODUCTION_VS_CURRENT_PREDICTION_PARITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/three_mode_historical_reconstruction/B1_HISTORICAL_RECONSTRUCTION_AUTHORITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/three_mode_historical_reconstruction/B1_HISTORICAL_VS_CURRENT_PREDICTION_PARITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/three_mode_historical_reconstruction/CURRENT_THREE_MODE_PREDICTION_AUTHORITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/three_mode_historical_reconstruction/R0_FAST_METHOD_CHRONOLOGY_20260729.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/three_mode_historical_reconstruction/R0_HISTORICAL_RECONSTRUCTION_AUTHORITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/three_mode_historical_reconstruction/R0_HISTORICAL_SOURCE_VS_FROZEN_COPY_PARITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/three_mode_historical_reconstruction/R0_HISTORICAL_VS_CURRENT_PREDICTION_PARITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/three_mode_historical_reconstruction/THREE_MODE_CLAIM_CORRECTION_20260729.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/three_mode_historical_reconstruction/THREE_MODE_HISTORICAL_ARTIFACT_SEARCH_20260729.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/three_mode_historical_reconstruction/THREE_MODE_HISTORICAL_DIFFERENCE_CAUSAL_MATRIX_20260729.csv",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/three_mode_historical_reconstruction/THREE_MODE_HISTORICAL_RECONSTRUCTION_AUTHORITY_20260729.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/unseen_method_freeze/TRACKING_PROFILE_LIFECYCLE_RECOMMENDATION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/unseen_method_freeze/UNSEEN_CONFIRMATORY_CLAIM_CONTRACT_20260728.md",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/unseen_method_freeze/UNSEEN_METHOD_FREEZE_AUTHORITY_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/unseen_method_freeze/UNSEEN_METHOD_FREEZE_DECISION_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "docs/tracking/unseen_method_freeze/UNSEEN_METRIC_HIERARCHY_FREEZE_20260728.json",
+      "classification": "SCIENTIFIC_AUTHORITY"
+    },
+    {
+      "path": "scripts/_legacy/preview_rgbd_tracking.py",
+      "classification": "COMPATIBILITY_ONLY"
+    },
+    {
+      "path": "scripts/_legacy/run_tracking.py",
+      "classification": "COMPATIBILITY_ONLY"
+    },
+    {
+      "path": "scripts/_legacy/run_weight_tracking_gt_benchmark.py",
+      "classification": "COMPATIBILITY_ONLY"
+    },
+    {
+      "path": "scripts/_shortcuts/run_weight_tracking_gt_benchmark.bat",
+      "classification": "COMPATIBILITY_ONLY"
+    },
+    {
+      "path": "scripts/benchmarks/benchmark_tracking_modes.py",
+      "classification": "EXPERIMENTAL"
+    },
+    {
+      "path": "scripts/benchmarks/benchmark_tracking_weights.py",
+      "classification": "EXPERIMENTAL"
+    },
+    {
+      "path": "scripts/evaluate_tracking.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "scripts/integrations/run_roboflow_tracking.py",
+      "classification": "COMPATIBILITY_ONLY"
+    },
+    {
+      "path": "scripts/run_tracking_mode.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "scripts/tracking/build_rf_acc23_error_taxonomy.py",
+      "classification": "EXPERIMENTAL"
+    },
+    {
+      "path": "scripts/tracking/check_h1_r2_design_contract.py",
+      "classification": "EXPERIMENTAL"
+    },
+    {
+      "path": "scripts/tracking/check_h1_r3_design_contract.py",
+      "classification": "EXPERIMENTAL"
+    },
+    {
+      "path": "scripts/tracking/check_h2_cdsp_design_contract.py",
+      "classification": "EXPERIMENTAL"
+    },
+    {
+      "path": "scripts/tracking/compare_prediction_xml_sets.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "scripts/tracking/complete_development_2x2_standard_v2.py",
+      "classification": "OBSOLETE"
+    },
+    {
+      "path": "scripts/tracking/complete_full_frame_detector_cache.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "scripts/tracking/evaluate_b0_b1_r0_standard_v2.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "scripts/tracking/evaluate_historical_h5b_h4_standard_v2.py",
+      "classification": "FORENSIC_ONLY"
+    },
+    {
+      "path": "scripts/tracking/generate_b0_b1_frozen_predictions.py",
+      "classification": "OBSOLETE"
+    },
+    {
+      "path": "scripts/tracking/generate_current_main_baseline_caches.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "scripts/tracking/generate_r1_rf_hybrid_predictions.py",
+      "classification": "OBSOLETE"
+    },
+    {
+      "path": "scripts/tracking/lock_rf_acc23_lineage.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "scripts/tracking/reproduce_historical_h5b_h4_detector_cache.py",
+      "classification": "FORENSIC_ONLY"
+    },
+    {
+      "path": "scripts/tracking/reproduce_historical_h5b_h4_executable.py",
+      "classification": "FORENSIC_ONLY"
+    },
+    {
+      "path": "scripts/tracking/run_current_main_r0_baseline.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/api/routes/tracking.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/__init__.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/api.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/artifact_guard.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/assets.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/baseline_lock.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/benchmarking.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/cli.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/config.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/contracts.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/cvat_io.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/diagnostics.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/evaluator.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/evaluator_standard_v2.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/frame_window.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/hard_scene.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/hota_standard_v2.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/identity_episodes_v2.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/identity_standard_v2.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/lineage.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/matching.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/matching_standard_v2.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/metrics.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/pipeline.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/pipeline_standard_v2.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/repeatability.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/reporting.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/reporting_standard_v2.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/evaluation/tracking/spatial_strata.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "src/pig_behavior/services/video_tracking.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/__init__.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/association.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/cli.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/config.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/constants.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/detections.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/detector_cache.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/exporters/__init__.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/exporters/annotation.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/exporters/coco.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/exporters/cvat_xml.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/exporters/labels.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/exporters/quality.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/geometry.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/masks.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/occlusion.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/offline_repair.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/profiles/__init__.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/profiles/bytetrack_raw.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/profiles/hybrid_bytetrack.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/profiles/realtime.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/profiles/rf_hybrid_offline.py",
+      "classification": "OBSOLETE"
+    },
+    {
+      "path": "src/pig_behavior/tracking/refinement.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/rgbd/__init__.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/rgbd/association_bev.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/rgbd/config.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/rgbd/depth.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/rgbd/kalman.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/rgbd/occlusion.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/rgbd/projector.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/rgbd/reporting.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/rgbd/runner_rgbd.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/rgbd/sanity.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/rgbd/schemas.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/rgbd/sync.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/runner.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/schemas.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/stabilization/__init__.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/stabilization/bbox_smoothing.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/stabilization/config.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/stabilization/cvat_export.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/stabilization/diagnostics.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/stabilization/stable_tracker.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/stabilization/swap_detection.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/stabilization/tracklet_stitching.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/telemetry.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/tracks.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking/visualization.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/tracking_path_config.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "src/pig_behavior/video_tracking.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "tests/test_complete_full_frame_detector_cache.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "tests/test_evaluate_historical_h5b_h4_standard_v2.py",
+      "classification": "FORENSIC_ONLY"
+    },
+    {
+      "path": "tests/test_generate_r1_rf_hybrid_predictions.py",
+      "classification": "OBSOLETE"
+    },
+    {
+      "path": "tests/test_reproduce_historical_h5b_h4_detector_cache.py",
+      "classification": "FORENSIC_ONLY"
+    },
+    {
+      "path": "tests/test_reproduce_historical_h5b_h4_executable.py",
+      "classification": "FORENSIC_ONLY"
+    },
+    {
+      "path": "tests/test_rf_hybrid_offline.py",
+      "classification": "OBSOLETE"
+    },
+    {
+      "path": "tests/test_tracking_baseline_lock.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "tests/test_tracking_detector_cache.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "tests/test_tracking_error_taxonomy.py",
+      "classification": "EXPERIMENTAL"
+    },
+    {
+      "path": "tests/test_tracking_eval_config_overrides.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "tests/test_tracking_evaluator_standard_v2.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "tests/test_tracking_evaluator_standard_v2_contract.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "tests/test_tracking_evaluator_trackeval_parity.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "tests/test_tracking_h1_r2_design_contract.py",
+      "classification": "EXPERIMENTAL"
+    },
+    {
+      "path": "tests/test_tracking_h1_r3_design_contract.py",
+      "classification": "EXPERIMENTAL"
+    },
+    {
+      "path": "tests/test_tracking_h2_cdsp_design_contract.py",
+      "classification": "EXPERIMENTAL"
+    },
+    {
+      "path": "tests/test_tracking_hota_standard_v2.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "tests/test_tracking_identity_episodes_v2.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "tests/test_tracking_identity_replay.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "tests/test_tracking_identity_standard_v2.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "tests/test_tracking_improvements.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "tests/test_tracking_lineage.py",
+      "classification": "GENERIC_INFRASTRUCTURE"
+    },
+    {
+      "path": "tests/test_tracking_metric_mathematical_audit.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "tests/test_tracking_no_mp4.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "tests/test_tracking_pipeline.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "tests/test_tracking_prefix_invariance.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "tests/test_tracking_profiles.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "tests/test_tracking_repeatability.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "tests/test_tracking_repeatability_cli.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "tests/test_tracking_scientific_grounding_authority.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "tests/test_tracking_spatial_strata.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "tests/test_tracking_telemetry.py",
+      "classification": "PRODUCTION"
+    },
+    {
+      "path": "tests/test_tracking_window_evaluation.py",
+      "classification": "PRODUCTION"
+    }
+  ],
+  "classification_counts": {
+    "COMPATIBILITY_ONLY": 5,
+    "EXPERIMENTAL": 10,
+    "FORENSIC_ONLY": 6,
+    "GENERIC_INFRASTRUCTURE": 39,
+    "OBSOLETE": 6,
+    "PRODUCTION": 73,
+    "SCIENTIFIC_AUTHORITY": 186
+  },
+  "dependency_boundary_evidence": {
+    "authority_path": "docs/tracking/historical_hybrid_best_recovery/DEPENDENCY_BOUNDARY_RECOVERY_AUTHORITY_20260729.json",
+    "sha256": "b222fbd09650311ef76c88e2bc2c5b27e17f7c442694db18b8be14dcc6a1aa08",
+    "source_worktree": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.w/dependency_boundary_20260729",
+    "source_worktree_status": "CLEAN",
+    "unique_unarchived_evidence_files": 0,
+    "safe_to_remove_worktree": true
+  },
+  "guards": {
+    "production_code_modified": false,
+    "historical_repository_modified": false,
+    "classification_v2_modified": false,
+    "unseen_files_accessed": 0,
+    "detector_executions": 0,
+    "package_variants_executed": 0
+  }
+}
