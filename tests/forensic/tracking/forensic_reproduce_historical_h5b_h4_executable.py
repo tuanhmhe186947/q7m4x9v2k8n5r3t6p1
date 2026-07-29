@@ -1,3 +1,5 @@
+"""Forensic contract for the historical H5b/H4 executable recovery."""
+
 from __future__ import annotations
 
 import inspect

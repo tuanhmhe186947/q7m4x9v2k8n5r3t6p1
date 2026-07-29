@@ -1,3 +1,5 @@
+"""Forensic contract for the historical detector-cache reconstruction."""
+
 from __future__ import annotations
 
 import importlib.util

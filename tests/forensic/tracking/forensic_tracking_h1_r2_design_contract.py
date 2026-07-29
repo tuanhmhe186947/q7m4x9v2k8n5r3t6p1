@@ -1,4 +1,4 @@
-"""Tests for the deterministic H1-r2 design-only contract checker."""
+"""Forensic tests for the rejected H1-r2 design-only contract."""
 
 from __future__ import annotations
 

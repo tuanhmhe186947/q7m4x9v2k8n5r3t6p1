@@ -42,8 +42,6 @@ assert SPEC is not None
 evaluate_tracking_script = importlib.util.module_from_spec(SPEC)
 assert SPEC.loader is not None
 SPEC.loader.exec_module(evaluate_tracking_script)
-EVAL_CONFIG_OVERRIDES = evaluate_tracking_script.EVAL_CONFIG_OVERRIDES
-_selected_eval_configs = evaluate_tracking_script._selected_eval_configs
 parse_args = evaluate_tracking_script.parse_args
 _selected_rule_combos = evaluate_tracking_script._selected_rule_combos
 
@@ -132,24 +130,6 @@ def test_tracking_evaluation_apis_default_to_corrected_hidden_contract() -> None
 def test_parse_profile_overrides_rejects_unknown_fields() -> None:
     with pytest.raises(ValueError, match="Unknown TrackingConfig override"):
         parse_profile_overrides(["not_a_tracking_field=1"], {"det_conf"})
-
-
-def test_evaluate_tracking_named_configs_include_base_and_candidate() -> None:
-    selected = _selected_eval_configs(
-        ["base,iou0_area0_condarea0_merge0_smooth_det020_loose_motion"]
-    )
-
-    assert selected == [
-        "base",
-        "iou0_area0_condarea0_merge0_smooth_det020_loose_motion",
-    ]
-    candidate = EVAL_CONFIG_OVERRIDES[
-        "iou0_area0_condarea0_merge0_smooth_det020_loose_motion"
-    ]
-    assert candidate["det_conf"] == 0.20
-    assert candidate["max_raw_detections"] == 64
-    assert candidate["low_conf_max_center_jump"] == 0.10
-    assert candidate["low_conf_max_box_jump_scale"] == 2.00
 
 
 def test_evaluate_tracking_defaults_to_exact_single_config() -> None:

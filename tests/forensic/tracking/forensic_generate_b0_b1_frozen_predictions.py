@@ -1,3 +1,5 @@
+"""Forensic contract for the obsolete standardized B0/B1 generator."""
+
 from __future__ import annotations
 
 import importlib.util

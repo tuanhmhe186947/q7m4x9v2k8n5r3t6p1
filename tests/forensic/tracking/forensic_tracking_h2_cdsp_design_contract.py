@@ -1,4 +1,4 @@
-"""Focused tests for the deterministic H2-CDSP design checker."""
+"""Forensic tests for the rejected H2-CDSP design checker."""
 
 from __future__ import annotations
 

@@ -1,0 +1,60 @@
+{
+  "schema_version": "tracking.reconciliation.state4_tests.v1",
+  "date": "20260729",
+  "state": "STATE_4_CLEAN_TEST_AND_TOOLING_SURFACE",
+  "decision": "ACCEPT_TEST_AND_TOOLING_SURFACE",
+  "base_sha": "286c2d4808b10c985051cff482734d1614ef6bfd",
+  "contract_map": {
+    "path": "docs/tracking/reconciliation/TRACKING_TEST_CONTRACT_MAP_20260729.csv",
+    "sha256": "C08F38E3AC65B8E68231C009CC27D28B03E6E46BB2F23B5934C97D919EF3C3E2",
+    "test_function_rows": 458,
+    "actions": {
+      "KEEP": 296,
+      "REWRITE": 34,
+      "MOVE_TO_FORENSIC_SUITE": 92,
+      "DELETE_OBSOLETE": 36
+    }
+  },
+  "forensic_separation": {
+    "destination": "tests/forensic/tracking",
+    "moved_files": [
+      "complete_full_frame_detector_cache",
+      "evaluate_b0_b1_r0_standard_v2",
+      "evaluate_historical_h5b_h4_standard_v2",
+      "generate_b0_b1_frozen_predictions",
+      "reproduce_historical_h5b_h4_detector_cache",
+      "reproduce_historical_h5b_h4_executable",
+      "tracking_h1_r2_design_contract",
+      "tracking_h1_r3_design_contract",
+      "tracking_h2_cdsp_design_contract",
+      "tracking_identity_replay",
+      "tracking_scientific_grounding_authority"
+    ],
+    "default_collection_excluded_by_prefix": "forensic_",
+    "deleted_obsolete_files": [
+      "test_generate_r1_rf_hybrid_predictions.py",
+      "test_rf_hybrid_offline.py"
+    ]
+  },
+  "production_contract_groups": [
+    "METHOD_REGISTRY_CONTRACT",
+    "METHOD_STAGE_ACTIVATION",
+    "NO_CROSS_METHOD_CONFIG_LEAKAGE",
+    "DETECTOR_CONTRACT_BINDING",
+    "TRACKER_STATE_LIFECYCLE",
+    "EXPORT_CONTRACT",
+    "HISTORICAL_ARTIFACT_IMMUTABILITY",
+    "STANDARD_V2_EVALUATOR_SANITY",
+    "DETERMINISTIC_SMOKE",
+    "UNSEEN_ACCESS_GUARD"
+  ],
+  "verification": {
+    "tracking_production_surface": "359 passed, 10 skipped",
+    "detector_executions": 0,
+    "tracker_executions": 0,
+    "unseen_files_accessed": 0,
+    "classification_v2_modified": false,
+    "current_b1_required": false
+  },
+  "next_state": "STATE_5_FREEZE_CLEAN_THREE_METHOD_AUTHORITY"
+}

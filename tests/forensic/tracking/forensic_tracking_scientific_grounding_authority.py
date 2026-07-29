@@ -1,3 +1,5 @@
+"""Forensic tests for the superseded 2x2 grounding authority."""
+
 from __future__ import annotations
 
 import csv

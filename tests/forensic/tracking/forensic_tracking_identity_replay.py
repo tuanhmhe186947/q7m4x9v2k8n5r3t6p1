@@ -1,3 +1,5 @@
+"""Forensic tests for the historical identity-replay experiment."""
+
 from __future__ import annotations
 
 import importlib.util

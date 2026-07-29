@@ -1,4 +1,4 @@
-"""Structural tests for the frozen three-arm Standard-V2 orchestration."""
+"""Forensic tests for the frozen three-arm Standard-V2 orchestration."""
 
 from __future__ import annotations
 

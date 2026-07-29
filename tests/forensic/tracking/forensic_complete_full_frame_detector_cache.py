@@ -1,4 +1,4 @@
-"""Synthetic gates for odd-only full-frame detector cache completion."""
+"""Forensic gates for odd-only full-frame detector cache completion."""
 
 from __future__ import annotations
 

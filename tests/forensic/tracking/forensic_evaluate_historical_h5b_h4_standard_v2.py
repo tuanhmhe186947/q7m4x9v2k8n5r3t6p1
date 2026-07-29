@@ -1,3 +1,5 @@
+"""Forensic Standard-V2 evaluation of the historical H5b/H4 artifact."""
+
 from __future__ import annotations
 
 import importlib.util

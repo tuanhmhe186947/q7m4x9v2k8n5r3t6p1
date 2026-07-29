@@ -1,4 +1,4 @@
-"""Focused tests for the deterministic H1-r3 design checker."""
+"""Forensic tests for the rejected H1-r3 design checker."""
 
 from __future__ import annotations
 
