@@ -128,6 +128,31 @@ TRANSFER_DECISION_RULE = {
     ),
 }
 
+AGGREGATE_METRIC_COLUMNS = {
+    "hota": "hota",
+    "deta": "deta",
+    "assa": "assa",
+    "loca": "loca",
+    "idf1": "idf1",
+    "idp": "id_precision",
+    "idr": "id_recall",
+    "idsw_standard": "idsw_standard",
+    "fp": "fp",
+    "fn": "fn",
+    "fragments": "fragments",
+    "wrong_id_matched_frames": "wrong_id_matched_frames",
+    "wrong_id_matched_seconds": "wrong_id_matched_seconds",
+    "recovered_identity_error_episode_count": (
+        "recovered_identity_error_episode_count"
+    ),
+    "terminal_identity_error_episode_count": (
+        "terminal_identity_error_episode_count"
+    ),
+    "persistent_pairwise_identity_swap_count": (
+        "persistent_pairwise_identity_swap_count"
+    ),
+}
+
 
 class State8Error(RuntimeError):
     """Fail-closed State 8 authority error."""
@@ -449,25 +474,8 @@ def _aggregate_metric_row(
         raise State8Error(f"Missing aggregate metrics for {method_id}")
     row = match.iloc[0]
     return {
-        key: float(row[key])
-        for key in (
-            "hota",
-            "deta",
-            "assa",
-            "loca",
-            "idf1",
-            "idp",
-            "idr",
-            "idsw_standard",
-            "fp",
-            "fn",
-            "fragments",
-            "wrong_id_matched_frames",
-            "wrong_id_matched_seconds",
-            "recovered_identity_error_episode_count",
-            "terminal_identity_error_episode_count",
-            "persistent_pairwise_identity_swap_count",
-        )
+        output_name: float(row[column_name])
+        for output_name, column_name in AGGREGATE_METRIC_COLUMNS.items()
     }
 
 

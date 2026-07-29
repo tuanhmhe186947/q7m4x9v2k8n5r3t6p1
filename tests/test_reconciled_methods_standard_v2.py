@@ -18,6 +18,8 @@ SPEC.loader.exec_module(MODULE)
 
 
 def test_transfer_decision_rule_is_predeclared() -> None:
+    assert MODULE.AGGREGATE_METRIC_COLUMNS["idp"] == "id_precision"
+    assert MODULE.AGGREGATE_METRIC_COLUMNS["idr"] == "id_recall"
     realtime = {
         "hota": 0.8,
         "idf1": 0.8,
