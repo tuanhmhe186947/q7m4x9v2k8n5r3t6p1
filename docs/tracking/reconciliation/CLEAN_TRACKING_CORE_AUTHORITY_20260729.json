@@ -1,0 +1,45 @@
+{
+  "schema_version": "tracking.reconciliation.clean_core.v1",
+  "date": "20260729",
+  "state": "STATE_5_FREEZE_CLEAN_THREE_METHOD_AUTHORITY",
+  "decision": "PASS_CLEAN_THREE_METHOD_RESTORATION",
+  "code_sha": "7abd1de664ecc82d6cc891ff52a8c1c670b7b533",
+  "BYTETRACK_RAW_CONTRACT": "PASS",
+  "HYBRID_BYTETRACK_CONTRACT": "PASS",
+  "REALTIME_FAST_CONTRACT": "PASS",
+  "OBSOLETE_B1_REMOVED_FROM_ACTIVE_REGISTRY": "YES",
+  "OBSOLETE_2X2_BINDING_REMOVED": "YES",
+  "FORENSIC_CODE_SEPARATED": "YES",
+  "FORENSIC_SEPARATION_SCOPE": "Rejected recovery tests are under tests/forensic/tracking and all historical/replay scripts are outside the active method registry.",
+  "PRODUCTION_TEST_SUITE_MINIMAL_AND_MAPPED": "YES",
+  "UNRELATED_CLASSIFICATION_CHANGES_PRESERVED": "YES",
+  "active_methods": [
+    "bytetrack_raw",
+    "hybrid_bytetrack",
+    "realtime_fast"
+  ],
+  "method_registry": "src/pig_behavior/tracking/method_registry.py",
+  "hybrid_authority": [
+    "HISTORICAL_ARTIFACT_AUTHORITY_ESTABLISHED",
+    "ALGORITHMIC_LINEAGE_RECOVERED",
+    "EXACT_NUMERICAL_RUNTIME_NOT_RECOVERED"
+  ],
+  "verification": {
+    "bounded_smoke_command": "pytest tests/test_tracking_method_contracts.py tests/test_tracking_profiles.py tests/test_tracking_pipeline.py tests/test_tracking_no_mp4.py tests/test_tracking_prefix_invariance.py tests/test_tracking_repeatability_cli.py -q",
+    "bounded_smoke_result": "43 passed",
+    "full_tracking_surface_reference": "359 passed, 10 skipped",
+    "detector_executions": 0,
+    "tracker_executions": 0,
+    "parameter_variants": 0,
+    "package_variants": 0,
+    "unseen_files_accessed": 0,
+    "hand_edited_predictions": 0
+  },
+  "freeze_scope": {
+    "input_video_authority": "development 13-video authority only",
+    "ground_truth_authority": "existing development Standard V2 authority",
+    "runtime_measurement": "not opened in State 5",
+    "unseen_authorization": "NO"
+  },
+  "next_state": "STATE_6_PORTABILITY_AUDIT_FOR_RF_HYBRID"
+}
