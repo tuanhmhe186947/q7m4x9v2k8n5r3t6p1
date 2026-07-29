@@ -1,0 +1,158 @@
+{
+  "all_v1_event_candidate_decisions": {
+    "accepted": 405,
+    "rejected_rolled_back": 4
+  },
+  "candidate_config_hash": "3024a4a503d9e30ffda004dae83fbf3c8ef50288f52256759b881baeb8ddee62",
+  "candidate_internal_id": "rf_hybrid_candidate_v2",
+  "gate_contract": {
+    "fallback": "EXACT_STAGE_INPUT",
+    "new_tunable_parameters": 0,
+    "rejected_stage": "H5B_HIDDEN_SUFFIX_OVERLAP_PERSISTENCE",
+    "uses_evaluator_output": false,
+    "uses_frame_number": false,
+    "uses_gt": false,
+    "uses_video_name": false
+  },
+  "schema_version": "tracking.rf_hybrid_v2.event_summary.v1",
+  "selection": {
+    "beneficial_selected": 20,
+    "cohorts": {
+      "010e14378d0572f02dff685b1b07019bf00d93fc6c91b3ef70ecdc6ab2dbd2e8": [
+        "BENEFICIAL_V1"
+      ],
+      "02040d24d3a19b8ca5020c56a81ebcfe2c1852cfe0605dc6e849880d1873eca1": [
+        "BENEFICIAL_V1"
+      ],
+      "0214ed4eaf727c0d71cc4624a6fead90187d954a0afe61c44b02097dc8ee0ae1": [
+        "HARMFUL_V1"
+      ],
+      "0378352952fb72a6504acd53108a3dd72b780dbb6474833642e79450f4b35086": [
+        "BENEFICIAL_V1"
+      ],
+      "04c3e2e0facb59741f66b2aef35d468ce8e05abb4d1abb187b88e9fd36a7b8b4": [
+        "BENEFICIAL_V1"
+      ],
+      "07f1c6dccbb52d864b033e4eff08da6deaa930fa76d69b9bf1111d6ea673707a": [
+        "BENEFICIAL_V1"
+      ],
+      "08217e444ff093d86248db3a4cae08b811a05e5a84d994854d29f460284929b5": [
+        "BENEFICIAL_V1"
+      ],
+      "08296a675c65bdf74aa4a56c97631da934b86ec3330f082c24f61596a48b1690": [
+        "BENEFICIAL_V1"
+      ],
+      "092295a2d139b080159b377bd4371e90a09191d0041b9b7a50b30f81d27c0cbd": [
+        "BENEFICIAL_V1"
+      ],
+      "09d06cf72546e74353580b649d3f6030a87adddde6fa6b54ac90c44fb2fb81e0": [
+        "BENEFICIAL_V1"
+      ],
+      "09f6427e15b6afde1cedc6af96f2daf19657e6cf96adfcc0b410f3ec9325494a": [
+        "BENEFICIAL_V1"
+      ],
+      "0c0e42998d21bc1e8d0563a75a9935cee31047cf4720ef413653f64ec4c10546": [
+        "BENEFICIAL_V1"
+      ],
+      "0cd8b56659ae8782cc57c83aa6ecbdb2434eaf49259e0a174159b9230bc94cbe": [
+        "BENEFICIAL_V1"
+      ],
+      "0db7c5f7949277ab530c6ecaa22d6f7f491312f17f84118be4a962e9732e643f": [
+        "HARMFUL_V1"
+      ],
+      "0fc2c0994521d2bd29157da293799c115559707cd424f61eebcd84e02bdd0516": [
+        "HARMFUL_V1"
+      ],
+      "196b4dd96730e59ca7ab68607a2fc690ec0b973798e6e897156b3b7790e6bdbc": [
+        "HARMFUL_V1"
+      ],
+      "1d2c802ff0c371bc032ef1b590cad0709bdd43920fbf08c310f304b2a8a0816c": [
+        "HARMFUL_V1"
+      ],
+      "1e197aa2f50d83ea12b369ced3204d5b37cb581724da0a8476df9b0d28faa18e": [
+        "HARMFUL_V1"
+      ],
+      "22a7ca31e92bf07b5275ebfcdfb80c6c417411a810d9badfc524ced388ad8c3f": [
+        "HARMFUL_V1"
+      ],
+      "26107c6846ae92a1b8dab117f17dc2826129f83af49557ff6240c9bf2cecca8d": [
+        "HARMFUL_V1"
+      ],
+      "261ca96df224091a84156c1cdc5184071f6ade0dfd0809746e48dcbdd0c4e095": [
+        "HARMFUL_V1"
+      ],
+      "2a6bf48e04c2ce3f58a8c2091dd33f281a89233aaff875b0fa20a58d98c14e3b": [
+        "HARMFUL_V1"
+      ],
+      "2af5916c0c6a0b9415207b0b198a413cee8449d5c07b715d3919671e82db7e4b": [
+        "HARMFUL_V1"
+      ],
+      "2e6fca787bba277085e0a00fbb7bb52a93274921397e53dd59c0cdce8681df8a": [
+        "HARMFUL_V1"
+      ],
+      "2ff769f57fd73e3b00d9995a31bdcf610a0ab9601ea3b1619c515fff8d49e0c0": [
+        "HARMFUL_V1"
+      ],
+      "31d0d36b3838ec03a66a24a96da4c7c8b612b928d30cd72e9871c7727f1b3555": [
+        "BENEFICIAL_V1"
+      ],
+      "332c0833ccad20c471a63b9ef7455f5b5624ebbf4716025b418743e3fdb34be8": [
+        "HARMFUL_V1"
+      ],
+      "33d1d3924cb762ee6de297f93aadda98c30690dbae1b6778222c0216f0d42bf2": [
+        "HARMFUL_V1"
+      ],
+      "3ac358a0c3393ad3bde87756e44f6f426df88b78182938ebf0150725881fc20d": [
+        "HARMFUL_V1"
+      ],
+      "5081113096a1d376133b342dfbebaa64846d1fd5c7db11cde796272e89039ed4": [
+        "BENEFICIAL_V1"
+      ],
+      "53ef1df9635a261fbd7eca40aceba36f183aa00938aca42c6094a149f7a99d97": [
+        "HARMFUL_V1"
+      ],
+      "75fa58aa200998adcb8fbdcfdb20d083fea391ed628ca66887a7c7bdad346ac5": [
+        "LONGEST_HARMFUL_PERSISTENCE"
+      ],
+      "79656a9c2a077f5dccd8c637ef44b4369092216e36a26aab391ec2452bf99a67": [
+        "BENEFICIAL_V1"
+      ],
+      "8884e406edb15d5905e3187ffc2171d29dd7fa086920e1912180b3458dbcf5d6": [
+        "HARMFUL_V1"
+      ],
+      "9660cb4833f3c296989b8028414e38a3e6c5a7d5ff2043a7077a8da620123700": [
+        "BENEFICIAL_V1"
+      ],
+      "a3cd6c85ce2fe06f6e2adb4005fda4e97ee46e00b5fe2764c797452be056a5d7": [
+        "HARMFUL_V1"
+      ],
+      "a56c8f85d9f09d29fb2f20101d33dc9250a4f85cf761aa17eb94910f414a4cee": [
+        "BENEFICIAL_V1"
+      ],
+      "b937fc6297b93c882d80c5a5e6d05d2086d8476734ddc6667cbda1bb7c4c15f4": [
+        "HARMFUL_V1"
+      ],
+      "d2515aa0ba03906dd890f12853ffb399dc0e4f1459eb0c06bb55d38db613bec9": [
+        "BENEFICIAL_V1"
+      ],
+      "e668a0cb8aea1d9bcab4342c459c43e9e6ce9bbd77cdcf16ce822e21f0756a62": [
+        "BENEFICIAL_V1"
+      ],
+      "ec64e5e853d402b05412f0d507ff264ab40591d60b3494e116e32273557b6c0e": [
+        "BENEFICIAL_V1"
+      ]
+    },
+    "harmful_selected": 20,
+    "longest_harmful_persistence_frames": 1034,
+    "longest_harmful_persistence_selected": 1,
+    "unique_review_events": 41
+  },
+  "selection_rule": {
+    "beneficial": "Top 20 by wrong-ID rows removed, then IDSW removed.",
+    "harmful": "Top 20 by wrong-ID rows added, then persistence.",
+    "longest": "All events tied at the maximum harmful persistence.",
+    "selection_frozen_before_candidate_metric_inspection": true
+  },
+  "trace_csv": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_tmp\\worktrees\\rf_hybrid_v2_evidence_gate\\docs\\tracking\\rf_hybrid_v2\\RF_HYBRID_V2_EVENT_TRACE.csv",
+  "trace_csv_sha256": "bf9735c7408b92f08004019a3fb2e57302552e6a956bdc913a45bf57e840c11b"
+}
