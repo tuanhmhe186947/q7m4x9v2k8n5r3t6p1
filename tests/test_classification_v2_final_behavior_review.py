@@ -21,6 +21,13 @@ VIEW_SCRIPT = (
     / "01_review_units_gui"
     / "build_final_behavior_review_view.py"
 )
+SCOPE_SCRIPT = (
+    ROOT
+    / "scripts"
+    / "classification_v2"
+    / "01_review_units_gui"
+    / "build_combined_final_behavior_review_scope.py"
+)
 
 
 def _load(path: Path, name: str):
@@ -202,3 +209,100 @@ def test_current_media_rows_keep_actor_and_neutral_scene_context() -> None:
 
     assert len(gui._current_scene_rows) == 3
     assert gui._current_actor_rows["frame_index"].tolist() == [100, 101]
+
+
+def test_combined_scope_is_corrected_noninteraction_plus_full_interaction() -> None:
+    module = _load(SCOPE_SCRIPT, "combined_final_behavior_scope")
+    candidates = pd.DataFrame(
+        [
+            {
+                "review_unit_id": "non-a",
+                "review_template": "motion",
+                "requires_partner_context": False,
+                "behavior_label": "stand",
+            },
+            {
+                "review_unit_id": "non-b",
+                "review_template": "roi",
+                "requires_partner_context": False,
+                "behavior_label": "drink",
+            },
+            {
+                "review_unit_id": "fight-a",
+                "review_template": "interaction",
+                "requires_partner_context": True,
+                "behavior_label": "fight",
+            },
+            {
+                "review_unit_id": "social-a",
+                "review_template": "interaction",
+                "requires_partner_context": True,
+                "behavior_label": "social-nose",
+            },
+        ]
+    )
+    corrected = pd.DataFrame({"review_unit_id": ["non-b"]})
+
+    combined, audit = module.build_combined_scope(candidates, corrected)
+
+    assert combined["review_unit_id"].tolist() == [
+        "non-b",
+        "fight-a",
+        "social-a",
+    ]
+    assert combined["final_scope_component"].tolist() == [
+        "ROI_DIRECTION_CORRECTED_NONINTERACTION",
+        "POST_CALIBRATION_FULL_INTERACTION_CENSUS",
+        "POST_CALIBRATION_FULL_INTERACTION_CENSUS",
+    ]
+    assert audit["component_overlap_count"] == 0
+    assert audit["full_interaction_census_count"] == 2
+
+
+def test_combined_scope_rejects_inconsistent_interaction_partition() -> None:
+    module = _load(SCOPE_SCRIPT, "combined_scope_inconsistent_partition")
+    candidates = pd.DataFrame(
+        [
+            {
+                "review_unit_id": "fight-a",
+                "review_template": "interaction",
+                "requires_partner_context": False,
+                "behavior_label": "fight",
+            }
+        ]
+    )
+    corrected = pd.DataFrame({"review_unit_id": []})
+
+    try:
+        module.build_combined_scope(candidates, corrected)
+    except ValueError as exc:
+        assert "partitions differ" in str(exc)
+    else:
+        raise AssertionError("inconsistent interaction partition accepted")
+
+
+def test_combined_scope_requires_full_census_calibration_decision() -> None:
+    module = _load(SCOPE_SCRIPT, "combined_scope_calibration_decision")
+    decision = {
+        "post_calibration_decision": module.FULL_CENSUS_DECISION,
+        "selected_rule_id": None,
+        "confirmation_authorized": False,
+        "ledger_sha256": "ledger-hash",
+    }
+
+    module.validate_full_census_decision(
+        decision,
+        calibration_ledger_sha256="ledger-hash",
+    )
+    decision["post_calibration_decision"] = (
+        "DECISION_A_KEEP_CURRENT_991_WITH_REVALIDATION"
+    )
+    try:
+        module.validate_full_census_decision(
+            decision,
+            calibration_ledger_sha256="ledger-hash",
+        )
+    except ValueError as exc:
+        assert "not full census" in str(exc)
+    else:
+        raise AssertionError("selective interaction decision accepted")

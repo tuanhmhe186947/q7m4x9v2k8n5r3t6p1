@@ -1,4 +1,4 @@
-"""Build the full all-candidate source-specific final review view."""
+"""Build a source-specific final review view for a frozen review scope."""
 
 from __future__ import annotations
 
@@ -149,6 +149,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output-view-csv", type=Path, required=True)
     parser.add_argument("--output-audit-json", type=Path, required=True)
     parser.add_argument("--existing-decisions-csv", type=Path)
+    parser.add_argument(
+        "--authority-role",
+        default="FROZEN_FINAL_BEHAVIOR_HUMAN_REVIEW_VIEW",
+    )
+    parser.add_argument("--expected-item-count", type=int, default=0)
     return parser.parse_args()
 
 
@@ -168,6 +173,11 @@ def main() -> int:
         raise FileExistsError("refusing to overwrite final review artifacts")
 
     candidates = pd.read_csv(args.candidate_manifest_csv, low_memory=False)
+    if args.expected_item_count and len(candidates) != args.expected_item_count:
+        raise ValueError(
+            "review scope count mismatch "
+            f"expected={args.expected_item_count} actual={len(candidates)}"
+        )
     available_columns = set(
         pd.read_csv(args.frame_features_csv, nrows=0).columns
     )
@@ -259,7 +269,7 @@ def main() -> int:
     view.to_csv(args.output_view_csv, index=False, lineterminator="\n")
     audit = {
         "schema_version": FINAL_REVIEW_SCHEMA_VERSION,
-        "authority_role": "FULL_ALL_CANDIDATE_HUMAN_REVIEW_VIEW",
+        "authority_role": args.authority_role,
         "candidate_count": int(len(candidates)),
         "view_count": int(len(view)),
         "preserved_existing_review_key_count": int(len(preserved)),
