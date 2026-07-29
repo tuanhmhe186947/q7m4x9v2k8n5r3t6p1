@@ -1,0 +1,94 @@
+{
+  "schema_version": "tracking.historical_hybrid_best.execution_freeze.v1",
+  "date": "20260729",
+  "status": "FROZEN_BEFORE_TRACKER_EXECUTION",
+  "historical_source_sha": "31d360ba96b4065ce5125c0d88765531cc5898ae",
+  "execution_worktree": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.w/h",
+  "compatibility_patch": {
+    "scope": "OBSERVATION_ONLY_INSTRUMENTATION",
+    "sha256": "322052d7acfdd0b899ebf5c32dc694143a21e840f26ddd1e6167cbb9fcf73797"
+  },
+  "configuration_variant_count": 1,
+  "post_result_parameter_tuning_authorized": false,
+  "current_b1_runner_authorized": false,
+  "unseen_access_authorized": false,
+  "output_root": "C:/Users/ironh/Downloads/PIG_Behavior_Project/outputs/tracking/historical_hybrid_best_recovered_20260729_run1",
+  "refuse_overwrite_preflight": "PASS_ROOT_ABSENT",
+  "h5b_command": {
+    "base_argv_authority": "C:/Users/ironh/Downloads/PIG_task_tracking/outputs/eval/tracking_hybrid_residual/20260719_h5b_full13_candidate_v2/run_manifest.json#$.command",
+    "base_argv_authority_sha256": "922edba6c87481482494833cfc7e4140ad02f4fec91ea0eccb02f99cd717cf5c",
+    "semantic_argument_changes": "NONE",
+    "allowed_path_rebindings": [
+      "interpreter",
+      "path_config",
+      "prediction_root",
+      "output_root"
+    ]
+  },
+  "effective_topology": {
+    "entry_point": "src/pig_behavior/evaluation/tracking/cli.py",
+    "tracking_mode": "hybrid_bytetrack",
+    "detector_call": "ultralytics.YOLO.track",
+    "detector_cadence": "EVERY_FRAME",
+    "det_conf": 0.2,
+    "nms_iou": 0.5,
+    "configured_max_raw_detections": 64,
+    "max_det_forwarded_to_model_track": false,
+    "persist": true,
+    "model_lifetime": "ONE_NEW_YOLO_INSTANCE_PER_VIDEO",
+    "tracker_state_lifetime": "WITHIN_VIDEO_ONLY",
+    "explicit_reset_calls": 0,
+    "h5b_h4_order": "FULL_IN_RUN_ACCEPTED_CHAIN_THEN_H5B_EXPORT_THEN_EXTERNAL_H4"
+  },
+  "runtime": {
+    "selection_basis": "PREDECLARED_20260729_HISTORICAL_COMPATIBILITY_RUNTIME",
+    "python": "3.11.15",
+    "torch": "2.5.1+cu121",
+    "torchvision": "0.20.1+cu121",
+    "torch_cuda": "12.1",
+    "ultralytics": "8.4.72",
+    "numpy": "2.3.5",
+    "opencv": "5.0.0",
+    "scipy": "1.17.1",
+    "variant_selection_after_results": false
+  },
+  "inputs": {
+    "video_population": 13,
+    "actual_input_hash_validation": "PASS_ALL_13_VIDEOS_WEIGHTS_AND_MASK",
+    "video_order_and_hash_authority": "C:/Users/ironh/Downloads/PIG_task_tracking/outputs/eval/tracking_hybrid_residual/20260719_h5b_full13_candidate_v2/run_manifest.json#$.inputs.pairs",
+    "detector_weights_sha256": "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed",
+    "scene_mask_sha256": "b59b998ef49335b730c5f117e7161f24ccd277d3b5130c0e640dab7bbb980658",
+    "path_config_sha256": "cb79f2b104ad4a66c372f8fa94567a544bb126e21ad0da456a1f24053bdef29e",
+    "h4_plan_sha256": "a5ce2d682637c343838aab1880d6a4d344cca1b6c2a2bb7720cd05d764687743"
+  },
+  "h4_command": {
+    "entry_point": ".agents/skills/tracking-experiment-guardian/scripts/replay_post_video_geometry.py",
+    "candidate": "far_camera_hidden_geometry_v1",
+    "exact_argv_authorities": "13 surviving geometry_replay_manifest.json files",
+    "semantic_argument_changes": "NONE",
+    "input_rebinding": "RECOVERED_H5B_SHAPES_AND_XML_ONLY"
+  },
+  "instrumentation_contract": {
+    "observation_only": true,
+    "deterministic_prefix_neutrality_required": true,
+    "deterministic_prefix_neutrality_status": "PASS_SCIENTIFIC_CONTENT_EXACT",
+    "prefix_shapes_json_byte_equal": true,
+    "prefix_xml_difference": "CREATED_AND_UPDATED_TIMESTAMPS_ONLY",
+    "may_record": [
+      "stage input and output hashes",
+      "stage row and change counts",
+      "tracker object identities and state sizes",
+      "model.track row and confidence counts",
+      "repair branch and event counts"
+    ],
+    "may_not_change": [
+      "ordering",
+      "floating point values",
+      "thresholds",
+      "tracker state",
+      "detections",
+      "repair decisions",
+      "serialization"
+    ]
+  }
+}

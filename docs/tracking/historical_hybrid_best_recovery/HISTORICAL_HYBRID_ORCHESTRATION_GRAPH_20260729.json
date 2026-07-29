@@ -1,0 +1,170 @@
+{
+  "schema_version": "tracking.historical_hybrid_best.orchestration_graph.v1",
+  "date": "20260729",
+  "historical_source_sha": "31d360ba96b4065ce5125c0d88765531cc5898ae",
+  "historical_run_id": "20260719_h5b_h4_full13_combined_v2",
+  "historical_method_role": "FULL_ACCEPTED_HYBRID_BYTETRACK_OPTIMIZATION_LINEAGE",
+  "h5b_h4_role": "LATE_ACCEPTED_STAGES_WITHIN_THE_FULL_HYBRID_LINEAGE",
+  "entry_point": "src/pig_behavior/evaluation/tracking/cli.py",
+  "h5b_command_authority": {
+    "path": "outputs/eval/tracking_hybrid_residual/20260719_h5b_full13_candidate_v2/run_manifest.json",
+    "sha256": "922edba6c87481482494833cfc7e4140ad02f4fec91ea0eccb02f99cd717cf5c",
+    "argv_location": "$.command",
+    "semantic_argument_changes_authorized": false
+  },
+  "runtime_path_rebindings": {
+    "interpreter": "isolated compatibility environment",
+    "path_config": "read-only historical local path config",
+    "prediction_root": "stable refuse-overwrite recovery root",
+    "output_root": "stable refuse-overwrite recovery root",
+    "semantic_effect": "NONE"
+  },
+  "video_order": [
+    "Pigs281119_000085_30fps",
+    "Pigs281119_000114_30fps",
+    "Pigs291119_000216_30fps",
+    "Pigs291119_000225_30fps",
+    "Pigs291119_000226_30fps",
+    "Pigs291119_000231_30fps",
+    "Pigs291119_000233_30fps",
+    "Pigs291119_000302_30fps",
+    "Pigs301119_000327_30fps",
+    "Pigs301119_000328_30fps",
+    "Pigs301119_000329_30fps",
+    "Pigs301119_000330_30fps",
+    "Pigs291119_000263_30fps"
+  ],
+  "model_and_tracker_lifecycle": {
+    "model_construction": "YOLO(weights) inside run_tracking",
+    "model_instances": "ONE_PER_VIDEO",
+    "model_track_invocation": "ON_EVERY_FRAME",
+    "persist": true,
+    "explicit_tracker_reset_calls": 0,
+    "state_before_first_frame": "EMPTY_NEW_MODEL_PREDICTOR",
+    "state_across_frames": "PERSISTENT",
+    "state_across_videos": "NOT_PERSISTENT",
+    "state_across_h5b_h4": "NOT_APPLICABLE_H4_CONSUMES_FROZEN_ARTIFACTS"
+  },
+  "detector_consumption_contract": {
+    "producer": "ultralytics.YOLO.track",
+    "confidence": 0.2,
+    "nms_iou": 0.5,
+    "configured_max_raw_detections": 64,
+    "max_det_forwarded_to_model_track": false,
+    "low_confidence_path": "ROWS_AT_OR_ABOVE_0.20_ENTER_MODEL_TRACK_AND_BYTETRACK",
+    "post_track_project_filter": "parse_detections_then_adaptive_confidence_filter",
+    "detector_cache": "NONE"
+  },
+  "stage_edges": [
+    {
+      "from": "VIDEO_FRAME",
+      "to": "LIVE_YOLO_TRACK",
+      "contract": "mask-filled frame when mask_input_frame is enabled"
+    },
+    {
+      "from": "LIVE_YOLO_TRACK",
+      "to": "PROJECT_DETECTION_PARSE",
+      "contract": "Ultralytics Results with ByteTrack raw IDs"
+    },
+    {
+      "from": "PROJECT_DETECTION_PARSE",
+      "to": "FIXED_EIGHT_ASSOCIATION",
+      "contract": "detections after project adaptive-confidence handling"
+    },
+    {
+      "from": "FIXED_EIGHT_ASSOCIATION",
+      "to": "RAW_PROJECT_TRACK_OUTPUT",
+      "contract": "eight FixedTrack states serialized once per frame"
+    },
+    {
+      "from": "RAW_PROJECT_TRACK_OUTPUT",
+      "to": "OFFLINE_IDENTITY_SWAP_GUARD",
+      "contract": "complete-video shape population"
+    },
+    {
+      "from": "OFFLINE_IDENTITY_SWAP_GUARD",
+      "to": "TEMPORAL_BBOX_REFINEMENT",
+      "contract": "identity-guarded complete-video shapes"
+    },
+    {
+      "from": "TEMPORAL_BBOX_REFINEMENT",
+      "to": "OVERLAP_HIDDEN_ISLAND_STABILIZATION",
+      "contract": "smoothed and refined complete-video boxes"
+    },
+    {
+      "from": "OVERLAP_HIDDEN_ISLAND_STABILIZATION",
+      "to": "SUFFIX_PAIR_SWAP_REPAIR",
+      "contract": "Hidden-stabilized complete-video shapes"
+    },
+    {
+      "from": "SUFFIX_PAIR_SWAP_REPAIR",
+      "to": "OVERLAP_SMALL_BOX_SUPPRESSION",
+      "contract": "suffix identity-repaired shapes"
+    },
+    {
+      "from": "OVERLAP_SMALL_BOX_SUPPRESSION",
+      "to": "H5B_HIDDEN_SUFFIX_OVERLAP_PERSISTENCE",
+      "contract": "suppressed overlap-small-box shapes"
+    },
+    {
+      "from": "H5B_HIDDEN_SUFFIX_OVERLAP_PERSISTENCE",
+      "to": "NEAR_WALL_HIDDEN_GEOMETRY",
+      "contract": "H5b identity-repaired shapes"
+    },
+    {
+      "from": "NEAR_WALL_HIDDEN_GEOMETRY",
+      "to": "H5B_EXPORT",
+      "contract": "complete accepted in-run H5b shapes"
+    },
+    {
+      "from": "H5B_EXPORT",
+      "to": "H4_FAR_CAMERA_GEOMETRY_REPLAY",
+      "contract": "frozen H5b annotations_cvat_shapes.json and XML"
+    },
+    {
+      "from": "H4_FAR_CAMERA_GEOMETRY_REPLAY",
+      "to": "FINAL_CVAT_XML",
+      "contract": "bbox-only replay with non-geometry payload equality"
+    }
+  ],
+  "disabled_in_final_execution": [
+    "LOCAL_PAIR_SWAP_REPAIR",
+    "EPISODE_PAIR_SWAP_REPAIR",
+    "LONG_PAIR_SWAP_REPAIR",
+    "REALTIME_MOTION_PAIR_STABILIZER",
+    "CAUSAL_HIDDEN_RESERVATION",
+    "FAR_CAMERA_GEOMETRY_DURING_H5B"
+  ],
+  "h4_replay": {
+    "entry_point": ".agents/skills/tracking-experiment-guardian/scripts/replay_post_video_geometry.py",
+    "candidate": "far_camera_hidden_geometry_v1",
+    "experiment_plan": {
+      "path": "docs/TRACKING_H5B_H4_COMBINED_FULL13_PLAN_20260718.json",
+      "sha256": "a5ce2d682637c343838aab1880d6a4d344cca1b6c2a2bb7720cd05d764687743"
+    },
+    "command_contract": "EXACT_PER_VIDEO_ARGV_IN_SURVIVING_GEOMETRY_REPLAY_MANIFEST",
+    "independent_per_video": true,
+    "manifest_sha256_by_video": {
+      "Pigs281119_000085_30fps": "e508449b29c04353f11e6bef6064f4224bff7c3b5d4f14422d650281a96a9492",
+      "Pigs281119_000114_30fps": "2dc0bb04293f056e9c010697a15a985f5229872402a61d8663bace9d989e5bcc",
+      "Pigs291119_000216_30fps": "16a4a7416640b128fd981f9ac884ffd89b33cb30896a44d8d31eec60dba01f0f",
+      "Pigs291119_000225_30fps": "0ca6f18204eace5a37c726a7e3ae0978d4b1f2240a64304fc3eb1484a1dd2a81",
+      "Pigs291119_000226_30fps": "e13ed310dc170b14b9022ee152183814fe03a469ae3000768af8887f0c2c9714",
+      "Pigs291119_000231_30fps": "07cd1dc75abc00976b3933e2bb92f1742411534108a9d738e571e04785ff71a3",
+      "Pigs291119_000233_30fps": "4fe838459a009668c4358bc57ed93d32694b00019ad1139cbf81543a03397e3f",
+      "Pigs291119_000302_30fps": "41a8a6de672998cab11e076bdbd101a2842badc52f2a3becee4460ef8a7b678e",
+      "Pigs301119_000327_30fps": "bcf4e8d3fe39bf3394af7c9c42da4ba941c099095372b6e087054675d973e38c",
+      "Pigs301119_000328_30fps": "2bc0231ddbf6a8ae54893af1ce800e6a7fbb9faee7d90d8301f19f35f2fd3647",
+      "Pigs301119_000329_30fps": "9bcf22ccaa09b6bffa98df0b37950d3ae90e86632e34045b1e111980b908a456",
+      "Pigs301119_000330_30fps": "604d6ffb036a837464d4c03bc7d358ddc68dd3d04a57eacaea855e0aeb90a58e",
+      "Pigs291119_000263_30fps": "84c5143fc3d33586320f16d19643e099b22ed01e9434291a33f92de1a0dac92f"
+    }
+  },
+  "export_semantics": {
+    "h5b_shapes": "annotations_cvat_shapes.json",
+    "h5b_xml": "annotations_cvat_video_1_1.xml",
+    "h4_shapes": "candidate annotations_cvat_shapes.json",
+    "final_xml": "candidate annotations_cvat_video_1_1.xml",
+    "final_authority_video_count": 13
+  }
+}

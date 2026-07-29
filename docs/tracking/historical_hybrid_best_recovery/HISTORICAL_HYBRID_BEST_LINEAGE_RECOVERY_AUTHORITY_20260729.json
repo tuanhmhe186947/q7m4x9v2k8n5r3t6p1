@@ -1,0 +1,121 @@
+{
+  "schema_version": "tracking.historical_hybrid_best.lineage_recovery.v1",
+  "date": "20260729",
+  "starting_main_sha": "63cc4efd0d5a3c6b97a26d4079175d23a0c7db51",
+  "historical_source_sha": "31d360ba96b4065ce5125c0d88765531cc5898ae",
+  "historical_run_id": "20260719_h5b_h4_full13_combined_v2",
+  "historical_method_role": "FULL_ACCEPTED_HYBRID_BYTETRACK_OPTIMIZATION_LINEAGE",
+  "h5b_h4_role": "LATE_ACCEPTED_STAGES_WITHIN_THE_FULL_HYBRID_LINEAGE",
+  "lineage_manifest": "HYBRID_BYTETRACK_ACCEPTED_OPTIMIZATION_LINEAGE_20260729.csv",
+  "algorithm_graph": "HISTORICAL_HYBRID_ACCEPTED_ALGORITHM_GRAPH_20260729.json",
+  "orchestration_graph": "HISTORICAL_HYBRID_ORCHESTRATION_GRAPH_20260729.json",
+  "execution_freeze": "HISTORICAL_HYBRID_EXECUTION_FREEZE_20260729.json",
+  "accepted_lineage_counts": {
+    "total_candidate_stages": 32,
+    "accepted_final_stages": 21,
+    "rejected_stages": 8,
+    "superseded_stages": 1,
+    "diagnostic_only_stages": 2,
+    "unknown_stage_decisions": 0
+  },
+  "accepted_stage_recovery": {
+    "all_accepted_stages_present_in_source": "YES",
+    "all_accepted_stages_active": "YES",
+    "all_accepted_stages_executed": "YES",
+    "first_missing_or_inactive_accepted_stage": "NONE",
+    "h5b_h4_classified_as_late_stages": "YES",
+    "full_lineage_reconstructed": "YES",
+    "original_orchestration_recovered": "YES"
+  },
+  "execution": {
+    "current_b1_used": "NO",
+    "unseen_files_accessed": 0,
+    "hand_edited_predictions": 0,
+    "post_result_parameter_tuning": 0,
+    "config_variants_executed": 1,
+    "execution_attempts": 2,
+    "execution_attempt_note": "run1 established an override-binding mismatch; run2 reran the same frozen topology after a source-proven compatibility correction",
+    "run1_root": "outputs/tracking/historical_hybrid_best_recovered_20260729_run1",
+    "run2_root": "outputs/tracking/historical_hybrid_best_recovered_20260729_run2",
+    "compatibility_patch_sha256": "b35094513d7756e066980a098c6c962863e3783015001e7d5c7209e97d656ccb",
+    "instrumentation_patch_bundle_sha256": "322052d7acfdd0b899ebf5c32dc694143a21e840f26ddd1e6167cbb9fcf73797",
+    "source_worktree": ".w/h",
+    "source_worktree_pinned_sha": "31d360ba96b4065ce5125c0d88765531cc5898ae"
+  },
+  "historical_semantics_observed": {
+    "live_model_track_path": "YES",
+    "persistent_tracker_state": "YES",
+    "model_lifetime": "one model per video",
+    "state_across_frames": "YES",
+    "state_across_videos": "NO",
+    "explicit_tracker_resets": 0,
+    "bytetrack_updates": 23400,
+    "low_confidence_rows_reached_bytetrack": "YES",
+    "low_confidence_input_rows": 2525,
+    "det_conf_after_correction": 0.2,
+    "max_raw_detections_after_correction": 64,
+    "tracker_instances": 13,
+    "model_instances": 13
+  },
+  "standardization_correction": {
+    "confirmed": "YES",
+    "source_location": "src/pig_behavior/evaluation/tracking/evaluator.py run_tracker_for_pair",
+    "regression": "tracking_overrides were passed to TrackingConfig without populating cfg.overrides; validate_config then applied hybrid dynamic defaults",
+    "observed_run1_effective_det_conf": 0.25,
+    "historical_manifest_det_conf": 0.2,
+    "correction": "compatibility layer sets overrides=set(tracker_kwargs) before TrackingConfig validation",
+    "run2_effective_det_conf": 0.2,
+    "prediction_effect": "run1 and corrected run2 are deterministic scientific-content matches; this binding regression did not explain the remaining bbox divergence"
+  },
+  "stage_activation_summary": {
+    "TRACK_OUTPUT": {"enabled_videos": 13, "output_changed_videos": 0},
+    "OWNER_GUARD_OUTPUT": {"enabled_videos": 13, "output_changed_videos": 0},
+    "OCCLUSION_REENTRY_OUTPUT": {"enabled_videos": 13, "output_changed_videos": 0},
+    "OFFLINE_IDENTITY_SWAP_GUARD": {"enabled_videos": 13, "output_changed_videos": 1, "bbox_changes": 1788, "hidden_changes": 4, "repair_events": 7118},
+    "TEMPORAL_BBOX_REFINEMENT": {"enabled_videos": 13, "output_changed_videos": 13, "bbox_changes": 4679, "repair_events": 18744},
+    "OVERLAP_HIDDEN_ISLAND_STABILIZATION": {"enabled_videos": 13, "output_changed_videos": 5, "hidden_changes": 47, "repair_events": 200},
+    "LOCAL_EPISODE_LONG_PAIR_REPAIRS": {"enabled_videos": 0, "output_changed_videos": 0, "reason": "all three opt-in flags are false in the accepted final configuration"},
+    "SUFFIX_PAIR_SWAP_REPAIR": {"enabled_videos": 13, "output_changed_videos": 1, "bbox_changes": 3214, "hidden_changes": 8, "repair_events": 22523},
+    "OVERLAP_SMALL_BOX_SUPPRESSION": {"enabled_videos": 13, "output_changed_videos": 7, "hidden_changes": 66, "repair_events": 66},
+    "H5B_HIDDEN_SUFFIX_OVERLAP_PERSISTENCE": {"enabled_videos": 13, "output_changed_videos": 1, "identity_changes": 1376, "repair_events": 5450},
+    "NEAR_WALL_HIDDEN_GEOMETRY": {"enabled_videos": 13, "output_changed_videos": 4, "bbox_changes": 118, "repair_events": 472},
+    "FAR_CAMERA_GEOMETRY_DURING_H5B": {"enabled_videos": 0, "reason": "accepted far-camera geometry is the external H4 replay"},
+    "H4_FAR_CAMERA_GEOMETRY_REPLAY": {"executed_videos": 13, "changed_bbox_rows": 10, "changed_ids": ["ID_7"], "video": "Pigs301119_000328_30fps"}
+  },
+  "parity": {
+    "h5b_comparison": "outputs/tracking/historical_hybrid_best_recovered_20260729_run2/H5B_PARITY_COMPARISON.json",
+    "final_comparison": "outputs/tracking/historical_hybrid_best_recovered_20260729_run2/FINAL_PARITY_COMPARISON.json",
+    "determinism_comparison": "outputs/tracking/historical_hybrid_best_recovered_20260729_run2/RUN1_VS_RUN2_PARITY.json",
+    "row_additions": 0,
+    "row_removals": 0,
+    "identity_differences": 0,
+    "hidden_state_differences": 1,
+    "bbox_exact_differences": 97353,
+    "bbox_tolerance_violations": 36542,
+    "minimum_paired_bbox_iou": 0.15951000780917424,
+    "canonical_content_equal": false,
+    "determinism_repeat_canonical_content_equal": true,
+    "first_divergent_stage": "TRACK_OUTPUT",
+    "first_divergent_stage_basis": "historical raw-track intermediate does not survive; recovered frame-0 TRACK_OUTPUT already differs from the historical H5b XML and every later in-run stage preserves or transforms the recovered geometry",
+    "first_divergent_row": {
+      "video": "Pigs281119_000085_30fps",
+      "frame": 0,
+      "track_id": "ID_1",
+      "recovered_bbox": [835.32, 272.89, 979.7, 470.18],
+      "historical_bbox": [835.38, 272.89, 979.7, 470.17]
+    }
+  },
+  "decision": {
+    "final_decision": "FULL_LINEAGE_RECOVERED_BUT_FINAL_GEOMETRY_PARITY_FAILED",
+    "recovered_mode_integrated": "NO",
+    "recovered_mode_id": "NONE",
+    "ready_for_superseding_method_freeze_decision": "NO",
+    "ready_for_unseen_data_authority_freeze": "NO",
+    "ready_for_unseen_evaluation": "NO",
+    "blockers": [
+      "Raw TRACK_OUTPUT geometry diverges before any accepted offline repair; no historical raw-track intermediate survives to discriminate detector/Ultralytics numerical behavior from an unrecorded raw artifact.",
+      "Historical final XMLs remain non-equivalent: 97,353 exact bbox differences, 36,542 tolerance violations, minimum paired IoU 0.15951000780917424, and one Hidden-state difference."
+    ],
+    "recommended_next_step": "Bounded dependency-boundary archaeology: recover the historical Ultralytics/Torch runtime or a source-derived compatibility implementation, then compare raw model.track outputs before rerunning any repair stage."
+  }
+}
