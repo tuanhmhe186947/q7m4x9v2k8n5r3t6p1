@@ -1,0 +1,47 @@
+{
+  "schema_version": "tracking.reconciliation.state6_rf_portability.v1",
+  "date": "20260729",
+  "state": "STATE_6_PORTABILITY_AUDIT_FOR_RF_HYBRID",
+  "decision": "ACCEPT_RF_HYBRID_V1_STAGE_SET",
+  "base_sha": "8f2b56fa84eaf0d784f70da715dc64aa33290f25",
+  "lineage_authority": "docs/tracking/historical_hybrid_best_recovery/HISTORICAL_HYBRID_ACCEPTED_ALGORITHM_GRAPH_20260729.json",
+  "portability_manifest": "docs/tracking/reconciliation/RF_HYBRID_STAGE_PORTABILITY_20260729.csv",
+  "portability_manifest_sha256": "FF43ACC7A92E9F1BA80816EF169EE90A95269B440F568018B570C1DF44B47FE2",
+  "accepted_historical_stage_count": 21,
+  "categories": {
+    "DIRECTLY_PORTABLE": 7,
+    "RF_NATIVE_REDESIGN_REQUIRED": 3,
+    "BYTETRACK_SPECIFIC": 8,
+    "NOT_RELEVANT_TO_RF": 3
+  },
+  "rf_hybrid_v1_included_stage_count": 10,
+  "rf_hybrid_v1_included_stage_ids": [
+    "OFFLINE_IDENTITY_SWAP_GUARD",
+    "TEMPORAL_BBOX_REFINEMENT",
+    "OVERLAP_HIDDEN_ISLAND_STABILIZATION",
+    "LOCAL_EPISODE_LONG_PAIR_REPAIRS",
+    "SUFFIX_PAIR_SWAP_REPAIR",
+    "OVERLAP_SMALL_BOX_SUPPRESSION",
+    "H5B_HIDDEN_SUFFIX_OVERLAP_PERSISTENCE",
+    "REALTIME_MOTION_PAIR_STABILIZER",
+    "NEAR_WALL_HIDDEN_GEOMETRY",
+    "FAR_CAMERA_GEOMETRY_DURING_H5B"
+  ],
+  "exclusion_rule": "No ByteTrack internal state, no model.track, no raw ByteTrack IDs, no new tunable parameters, no metrics-driven selection.",
+  "rf_input_contract": "Frozen realtime_fast tracklets plus declared scene-mask and episode fields.",
+  "rf_output_contract": "Deterministic rf_hybrid annotations and change ledger relative to realtime_fast.",
+  "future_frame_policy": "POST_VIDEO_ALLOWED_FOR_DECLARED_OFFLINE_TRANSFER_STAGES",
+  "parameters": {
+    "reused_only": true,
+    "new_parameters_required": 0,
+    "post_result_tuning": 0,
+    "per_video_overrides": 0
+  },
+  "guards": {
+    "current_b1_used": false,
+    "historical_runtime_reopened": false,
+    "development_metrics_used_for_stage_selection": false,
+    "unseen_files_accessed": 0
+  },
+  "next_state": "STATE_7_IMPLEMENT_RF_HYBRID_TRANSFER_TEST"
+}
