@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import logging
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
@@ -46,6 +47,12 @@ from pig_behavior.tracking.refinement import (
     stabilize_overlap_hidden_islands,
     stabilize_realtime_motion_pairs,
     suppress_overlapped_small_low_confidence_boxes,
+)
+from pig_behavior.tracking.rf_hybrid_transfer import (
+    apply_rf_hybrid_transfer,
+    canonical_transfer_hash,
+    validate_rf_hybrid_core_config,
+    write_rf_hybrid_artifacts,
 )
 from pig_behavior.tracking.schemas import (
     FixedTrack,
@@ -130,6 +137,8 @@ def run_tracking(
     path constructs and invokes Ultralytics exactly as before.
     """
     validate_config(cfg)
+    if cfg.rf_hybrid_transfer:
+        validate_rf_hybrid_core_config(cfg)
     logger.info(
         "tracking mode=%s tracker_type=%s cvat_video_xml=%s",
         cfg.mode,
@@ -461,20 +470,70 @@ def run_tracking(
         raise RuntimeError("No frames were processed.")
 
     postprocess_start = time.perf_counter()
-    if cfg.enable_offline_smoothing and cfg.identity_swap_guard:
-        shapes = apply_identity_swap_guard(shapes, width, height, cfg)
-    if cfg.enable_offline_smoothing and (cfg.smooth_boxes or cfg.refine_boxes):
-        shapes = refine_shapes_temporally(shapes, width, height, cfg)
-        shapes = stabilize_overlap_hidden_islands(shapes, cfg)
-        shapes = repair_local_pair_swaps(shapes, width, height, cfg)
-        shapes = repair_episode_pair_swaps(shapes, width, height, cfg)
-        shapes = repair_long_pair_swaps(shapes, width, height, cfg)
-        shapes = repair_suffix_pair_swaps(shapes, width, height, cfg)
-        shapes = suppress_overlapped_small_low_confidence_boxes(shapes, cfg)
-        shapes = repair_hidden_suffix_id_swaps(shapes, cfg)
-    shapes = stabilize_realtime_motion_pairs(shapes, width, height, cfg)
-    shapes = refine_near_wall_hidden_geometry(shapes, width, height, mask, cfg)
-    shapes = refine_far_camera_hidden_geometry(shapes, width, height, cfg)
+    realtime_fast_output_json: Path | None = None
+    rf_hybrid_output_json: Path | None = None
+    rf_hybrid_change_ledger_json: Path | None = None
+    if cfg.rf_hybrid_transfer:
+        raw_snapshot = deepcopy(shapes)
+        raw_hash = canonical_transfer_hash(raw_snapshot)
+        transfer_result = apply_rf_hybrid_transfer(
+            raw_snapshot,
+            width,
+            height,
+            mask,
+            video=cfg.video_path.stem,
+        )
+        if canonical_transfer_hash(raw_snapshot) != raw_hash:
+            raise RuntimeError("frozen realtime_fast output was mutated")
+        shapes = transfer_result.shapes
+        realtime_fast_output_json = annotations_json.with_name(
+            "realtime_fast_output.json"
+        )
+        rf_hybrid_output_json = annotations_json.with_name(
+            "rf_hybrid_output.json"
+        )
+        rf_hybrid_change_ledger_json = annotations_json.with_name(
+            "rf_hybrid_change_ledger.json"
+        )
+        write_rf_hybrid_artifacts(
+            realtime_fast_path=realtime_fast_output_json,
+            rf_hybrid_path=rf_hybrid_output_json,
+            ledger_path=rf_hybrid_change_ledger_json,
+            video=cfg.video_path.stem,
+            raw_shapes=raw_snapshot,
+            result=transfer_result,
+        )
+    else:
+        if cfg.enable_offline_smoothing and cfg.identity_swap_guard:
+            shapes = apply_identity_swap_guard(shapes, width, height, cfg)
+        if cfg.enable_offline_smoothing and (
+            cfg.smooth_boxes or cfg.refine_boxes
+        ):
+            shapes = refine_shapes_temporally(shapes, width, height, cfg)
+            shapes = stabilize_overlap_hidden_islands(shapes, cfg)
+            shapes = repair_local_pair_swaps(shapes, width, height, cfg)
+            shapes = repair_episode_pair_swaps(shapes, width, height, cfg)
+            shapes = repair_long_pair_swaps(shapes, width, height, cfg)
+            shapes = repair_suffix_pair_swaps(shapes, width, height, cfg)
+            shapes = suppress_overlapped_small_low_confidence_boxes(
+                shapes,
+                cfg,
+            )
+            shapes = repair_hidden_suffix_id_swaps(shapes, cfg)
+        shapes = stabilize_realtime_motion_pairs(shapes, width, height, cfg)
+        shapes = refine_near_wall_hidden_geometry(
+            shapes,
+            width,
+            height,
+            mask,
+            cfg,
+        )
+        shapes = refine_far_camera_hidden_geometry(
+            shapes,
+            width,
+            height,
+            cfg,
+        )
     runtime.telemetry["postprocess_time_ms_total"] = (
         time.perf_counter() - postprocess_start
     ) * 1000.0
@@ -580,6 +639,9 @@ def run_tracking(
         source_fps=source_fps,
         output_fps=cfg.output_fps,
         telemetry=telemetry_summary,
+        realtime_fast_output_json=realtime_fast_output_json,
+        rf_hybrid_output_json=rf_hybrid_output_json,
+        rf_hybrid_change_ledger_json=rf_hybrid_change_ledger_json,
     )
 
 

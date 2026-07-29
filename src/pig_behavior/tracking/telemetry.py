@@ -169,6 +169,8 @@ def record_association_event(runtime: Any | None, event_name: object) -> None:
 
 def resolve_output_timing_contract(cfg: Any) -> tuple[str, int]:
     """Return the truthful output-causality contract and fixed delay."""
+    if cfg.rf_hybrid_transfer:
+        return "post_video_transfer", -1
     if cfg.mode == "realtime" and cfg.realtime_motion_pair_stabilizer:
         fixed_lag_frames = int(cfg.realtime_motion_pair_fixed_lag_frames)
         if fixed_lag_frames > 0:

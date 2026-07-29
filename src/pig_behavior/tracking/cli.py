@@ -707,6 +707,18 @@ def print_tracking_summary(cfg: TrackingConfig, summary: TrackingSummary) -> Non
     print(f"[OK] labels: {summary.labels_json}")
     print(f"[OK] quality report json: {summary.quality_report_json}")
     print(f"[OK] quality report csv: {summary.quality_report_csv}")
+    if summary.realtime_fast_output_json is not None:
+        print(
+            "[OK] frozen realtime_fast output: "
+            f"{summary.realtime_fast_output_json}"
+        )
+    if summary.rf_hybrid_output_json is not None:
+        print(f"[OK] rf_hybrid output: {summary.rf_hybrid_output_json}")
+    if summary.rf_hybrid_change_ledger_json is not None:
+        print(
+            "[OK] rf_hybrid change ledger: "
+            f"{summary.rf_hybrid_change_ledger_json}"
+        )
     print(
         "[OK] frames="
         f"{summary.frames_written}, shapes={summary.shape_count}, "

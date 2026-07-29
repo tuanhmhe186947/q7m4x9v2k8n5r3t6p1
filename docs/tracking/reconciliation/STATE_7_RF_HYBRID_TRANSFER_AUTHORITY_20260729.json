@@ -1,0 +1,61 @@
+{
+  "schema_version": "tracking.reconciliation.state7_rf_hybrid_transfer.v1",
+  "date": "20260729",
+  "state": "STATE_7_IMPLEMENT_RF_HYBRID_TRANSFER_TEST",
+  "decision": "PASS_RF_HYBRID_TRANSFER_IMPLEMENTATION",
+  "base_sha": "013094ea9e2a8aa97ed7ed19743187804de7eea5",
+  "lineage_authority": {
+    "path": "docs/tracking/historical_hybrid_best_recovery/",
+    "file": "HISTORICAL_HYBRID_ACCEPTED_ALGORITHM_GRAPH_20260729.json"
+  },
+  "portability_authority": {
+    "path": "docs/tracking/reconciliation/",
+    "file": "STATE_6_RF_HYBRID_PORTABILITY_AUTHORITY_20260729.json"
+  },
+  "transfer_config_hash": "d583450c5b462ffdb65835d4aa2e9352c88afb96d29176ab2866e6f1cdb0ad23",
+  "rf_hybrid_v1_stage_count": 10,
+  "rf_hybrid_v1_stage_ids": [
+    "OFFLINE_IDENTITY_SWAP_GUARD",
+    "TEMPORAL_BBOX_REFINEMENT",
+    "OVERLAP_HIDDEN_ISLAND_STABILIZATION",
+    "LOCAL_EPISODE_LONG_PAIR_REPAIRS",
+    "SUFFIX_PAIR_SWAP_REPAIR",
+    "OVERLAP_SMALL_BOX_SUPPRESSION",
+    "H5B_HIDDEN_SUFFIX_OVERLAP_PERSISTENCE",
+    "REALTIME_MOTION_PAIR_STABILIZER",
+    "NEAR_WALL_HIDDEN_GEOMETRY",
+    "FAR_CAMERA_GEOMETRY_DURING_H5B"
+  ],
+  "canonical_prediction_root": "outputs/pred/rf_hybrid",
+  "artifact_contract": {
+    "realtime_fast_output_json": "realtime_fast_output.json",
+    "rf_hybrid_output_json": "rf_hybrid_output.json",
+    "rf_hybrid_change_ledger_json": "rf_hybrid_change_ledger.json"
+  },
+  "verification": {
+    "bounded_smoke_command": [
+      "pytest",
+      "tests/test_tracking_method_contracts.py",
+      "tests/test_tracking_profiles.py",
+      "tests/test_rf_hybrid_transfer.py",
+      "-q"
+    ],
+    "bounded_smoke_result": "71 passed",
+    "ruff": "PASS",
+    "compileall": "PASS",
+    "detector_executions": 0,
+    "tracker_executions": 0,
+    "parameter_variants": 0,
+    "package_variants": 0,
+    "unseen_files_accessed": 0,
+    "hand_edited_predictions": 0
+  },
+  "guards": {
+    "current_b1_used": false,
+    "historical_runtime_reopened": false,
+    "development_metrics_used_for_stage_selection": false,
+    "per_video_overrides": 0,
+    "post_result_tuning": 0
+  },
+  "next_state": "STATE_8_DEVELOPMENT_EVALUATION"
+}

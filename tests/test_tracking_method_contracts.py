@@ -20,6 +20,7 @@ def test_method_registry_contract_is_exact_and_complete() -> None:
         "bytetrack_raw",
         "hybrid_bytetrack",
         "realtime_fast",
+        "rf_hybrid",
     )
 
     assert ACTIVE_SCIENTIFIC_METHOD_IDS == expected
@@ -63,6 +64,7 @@ def test_hybrid_stage_activation_order_matches_clean_authority() -> None:
 def test_detector_contracts_bind_method_specific_profiles() -> None:
     hybrid = get_eval_config("hybrid_bytetrack_best")
     realtime = get_eval_config("realtime_fast")
+    rf_hybrid = get_eval_config("rf_hybrid")
     raw = get_eval_config("bytetrack_raw")
 
     assert hybrid["det_conf"] == 0.20
@@ -72,12 +74,19 @@ def test_detector_contracts_bind_method_specific_profiles() -> None:
     assert realtime["max_raw_detections"] == 32
     assert realtime["detect_every_n_frames"] == 2
     assert realtime["enable_offline_smoothing"] is False
+    assert {
+        key: value
+        for key, value in rf_hybrid.items()
+        if key != "rf_hybrid_transfer"
+    } == realtime
+    assert rf_hybrid["rf_hybrid_transfer"] is True
     assert raw["enable_offline_smoothing"] is False
 
 
 def test_no_cross_method_config_leakage() -> None:
     hybrid = get_eval_config("hybrid_bytetrack_best")
     realtime = get_eval_config("realtime_fast")
+    rf_hybrid = get_eval_config("rf_hybrid")
     raw = get_eval_config("bytetrack_raw")
 
     hybrid_only = (
@@ -88,6 +97,7 @@ def test_no_cross_method_config_leakage() -> None:
     )
     assert all(key in hybrid for key in hybrid_only)
     assert all(key not in realtime for key in hybrid_only)
+    assert all(key not in rf_hybrid for key in hybrid_only)
     assert all(key not in raw for key in hybrid_only)
 
 
@@ -95,11 +105,14 @@ def test_tracker_lifecycle_export_and_unseen_guards_are_explicit() -> None:
     raw = SCIENTIFIC_METHOD_REGISTRY["bytetrack_raw"]
     hybrid = SCIENTIFIC_METHOD_REGISTRY["hybrid_bytetrack"]
     realtime = SCIENTIFIC_METHOD_REGISTRY["realtime_fast"]
+    rf_hybrid = SCIENTIFIC_METHOD_REGISTRY["rf_hybrid"]
 
     assert "persist=True" in raw.state_lifecycle
     assert "persist=True" in hybrid.state_lifecycle
     assert realtime.future_frame_policy == "CAUSAL_ZERO_DELAY"
     assert "cross-video" in realtime.state_lifecycle
+    assert "immutable raw tracklet" in rf_hybrid.state_lifecycle
+    assert all("BYTETRACK" not in stage for stage in rf_hybrid.stage_graph)
     for contract in SCIENTIFIC_METHOD_REGISTRY.values():
         assert "CVAT" in contract.export_contract
         assert contract.unseen_authorization_status == "NOT_AUTHORIZED"

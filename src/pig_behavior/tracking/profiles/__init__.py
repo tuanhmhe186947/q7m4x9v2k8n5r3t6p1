@@ -28,6 +28,12 @@ from pig_behavior.tracking.profiles.realtime import (
     PRESENTATION_PROFILES as REALTIME_PRESENTATION_PROFILES,
 )
 from pig_behavior.tracking.profiles.realtime import REALTIME_BASE_CONFIG
+from pig_behavior.tracking.profiles.rf_hybrid import (
+    EVAL_CONFIGS as RF_HYBRID_EVAL_CONFIGS,
+)
+from pig_behavior.tracking.profiles.rf_hybrid import (
+    PRESENTATION_PROFILES as RF_HYBRID_PRESENTATION_PROFILES,
+)
 
 RULE_BENCHMARK_OVERRIDE_KEYS = {
     "USE_IOU_FALLBACK",
@@ -41,6 +47,7 @@ EVAL_CONFIG_OVERRIDES: Mapping[str, dict[str, object]] = MappingProxyType(
         **HYBRID_EVAL_CONFIGS,
         **BYTETRACK_EVAL_CONFIGS,
         **REALTIME_EVAL_CONFIGS,
+        **RF_HYBRID_EVAL_CONFIGS,
     }
 )
 
@@ -49,6 +56,7 @@ PRESENTATION_PROFILES: Mapping[str, dict[str, object]] = MappingProxyType(
         **BYTETRACK_PRESENTATION_PROFILES,
         **REALTIME_PRESENTATION_PROFILES,
         **HYBRID_PRESENTATION_PROFILES,
+        **RF_HYBRID_PRESENTATION_PROFILES,
     }
 )
 

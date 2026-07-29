@@ -93,6 +93,7 @@ class TrackingConfig:
     max_raw_detections: int = DEFAULT_MAX_RAW_DETECTIONS
     target_fps: float = DEFAULT_TARGET_FPS
     enable_offline_smoothing: bool = DEFAULT_ENABLE_OFFLINE_SMOOTHING
+    rf_hybrid_transfer: bool = False
 
     use_mask: bool = True
     mask_input_frame: bool = True
@@ -805,7 +806,12 @@ def resolve_output_paths(
     cfg: TrackingConfig,
 ) -> tuple[Path, Path, Path, Path, Path, Path, Path, Path, Path]:
     video_stem = cfg.video_path.stem
-    run_output_dir = mode_scoped_video_dir(cfg.output_dir, cfg.mode, video_stem)
+    output_method = "rf_hybrid" if cfg.rf_hybrid_transfer else cfg.mode
+    run_output_dir = mode_scoped_video_dir(
+        cfg.output_dir,
+        output_method,
+        video_stem,
+    )
     run_output_dir.mkdir(parents=True, exist_ok=True)
     output_video = cfg.output_video or (
         run_output_dir / "tracked_pigs_with_ids.mp4"

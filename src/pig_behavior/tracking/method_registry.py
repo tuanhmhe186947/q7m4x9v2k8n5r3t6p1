@@ -159,6 +159,56 @@ _REALTIME_FAST = TrackingMethodContract(
     unseen_authorization_status="NOT_AUTHORIZED",
 )
 
+_RF_HYBRID = TrackingMethodContract(
+    method_id="rf_hybrid",
+    scientific_role="HYBRID_MECHANISM_TRANSFER_EXPERIMENT",
+    entry_point="scripts/run_tracking_mode.py --mode rf_hybrid",
+    detector_contract=(
+        "identical realtime_fast detector evidence and cadence; no detector "
+        "rerun after the frozen realtime_fast tracklet boundary"
+    ),
+    tracker_contract=(
+        "frozen realtime_fast causal tracklets followed only by the "
+        "predeclared portable and RF-native transfer stage set; no ByteTrack "
+        "internal state or raw ByteTrack IDs"
+    ),
+    state_lifecycle=(
+        "one causal realtime_fast state per video; immutable raw tracklet "
+        "snapshot; post-video transfer state; no cross-video state"
+    ),
+    future_frame_policy=(
+        "POST_VIDEO_ALLOWED_FOR_DECLARED_OFFLINE_TRANSFER_STAGES"
+    ),
+    stage_graph=(
+        "CADENCED_YOLO_PREDICT",
+        "CAUSAL_ASSOCIATION",
+        "FROZEN_REALTIME_FAST_TRACKLETS",
+        "OFFLINE_IDENTITY_SWAP_GUARD",
+        "TEMPORAL_BBOX_REFINEMENT",
+        "OVERLAP_HIDDEN_ISLAND_STABILIZATION",
+        "LOCAL_EPISODE_LONG_PAIR_REPAIRS",
+        "SUFFIX_PAIR_SWAP_REPAIR",
+        "OVERLAP_SMALL_BOX_SUPPRESSION",
+        "H5B_HIDDEN_SUFFIX_OVERLAP_PERSISTENCE",
+        "REALTIME_MOTION_PAIR_STABILIZER",
+        "NEAR_WALL_HIDDEN_GEOMETRY",
+        "FAR_CAMERA_GEOMETRY_DURING_H5B",
+        "RF_HYBRID_CHANGE_LEDGER",
+        "FINAL_CVAT_XML",
+    ),
+    export_contract=(
+        "FROZEN_REALTIME_FAST_OUTPUT_PLUS_RF_HYBRID_OUTPUT_LEDGER_AND_CVAT_XML"
+    ),
+    artifact_authority=(
+        "docs/tracking/reconciliation/"
+        "RF_HYBRID_STAGE_PORTABILITY_20260729.csv",
+        "docs/tracking/reconciliation/"
+        "STATE_6_RF_HYBRID_PORTABILITY_AUTHORITY_20260729.json",
+    ),
+    execution_authority_status=("TRANSFER_IMPLEMENTATION_CONTRACT",),
+    unseen_authorization_status="NOT_AUTHORIZED",
+)
+
 SCIENTIFIC_METHOD_REGISTRY: Mapping[str, TrackingMethodContract] = (
     MappingProxyType(
         {
@@ -167,6 +217,7 @@ SCIENTIFIC_METHOD_REGISTRY: Mapping[str, TrackingMethodContract] = (
                 _BYTETRACK_RAW,
                 _HYBRID_BYTETRACK,
                 _REALTIME_FAST,
+                _RF_HYBRID,
             )
         }
     )

@@ -454,6 +454,9 @@ class TrackingSummary:
     source_fps: float
     output_fps: float
     telemetry: dict[str, int | float | str]
+    realtime_fast_output_json: Path | None = None
+    rf_hybrid_output_json: Path | None = None
+    rf_hybrid_change_ledger_json: Path | None = None
 
 
 def _clip_box(box: np.ndarray, width: int, height: int) -> np.ndarray:

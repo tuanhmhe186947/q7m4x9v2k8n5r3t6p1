@@ -34,21 +34,25 @@ def test_presentation_profiles_map_to_clear_modes() -> None:
         "bytetrack_raw",
         "realtime_fast",
         "hybrid_bytetrack",
+        "rf_hybrid",
     }
     assert PRESENTATION_PROFILES["bytetrack_raw"]["mode"] == "bytetrack_raw"
     assert PRESENTATION_PROFILES["realtime_fast"]["mode"] == "realtime"
     assert PRESENTATION_PROFILES["hybrid_bytetrack"]["mode"] == "hybrid_bytetrack"
+    assert PRESENTATION_PROFILES["rf_hybrid"]["mode"] == "realtime"
 
     assert PRESENTATION_PROFILES["bytetrack_raw"]["eval_config"] == "bytetrack_raw"
     assert PRESENTATION_PROFILES["realtime_fast"]["eval_config"] == "realtime_fast"
     assert PRESENTATION_PROFILES["hybrid_bytetrack"]["eval_config"] == "hybrid_bytetrack_best"
+    assert PRESENTATION_PROFILES["rf_hybrid"]["eval_config"] == "rf_hybrid"
 
 
-def test_scientific_method_registry_exposes_clean_three_method_core() -> None:
+def test_scientific_method_registry_exposes_canonical_methods() -> None:
     expected = {
         "bytetrack_raw",
         "hybrid_bytetrack",
         "realtime_fast",
+        "rf_hybrid",
     }
 
     assert set(ACTIVE_SCIENTIFIC_METHOD_IDS) == expected
@@ -74,6 +78,13 @@ def test_scientific_method_registry_exposes_clean_three_method_core() -> None:
     assert realtime.future_frame_policy == "CAUSAL_ZERO_DELAY"
     assert "CADENCED_YOLO_PREDICT" in realtime.stage_graph
     assert "LIVE_YOLO_TRACK" not in realtime.stage_graph
+
+    rf_hybrid = SCIENTIFIC_METHOD_REGISTRY["rf_hybrid"]
+    assert rf_hybrid.scientific_role == (
+        "HYBRID_MECHANISM_TRANSFER_EXPERIMENT"
+    )
+    assert "FROZEN_REALTIME_FAST_TRACKLETS" in rf_hybrid.stage_graph
+    assert "LIVE_YOLO_TRACK" not in rf_hybrid.stage_graph
 
 
 def test_realtime_fast_profile_resolves_deterministically(tmp_path: Path) -> None:
@@ -121,16 +132,18 @@ def test_retained_profile_hashes_match_frozen_authority() -> None:
 def test_profile_configs_keep_expected_behavior_separation() -> None:
     raw = EVAL_CONFIG_OVERRIDES["bytetrack_raw"]
     realtime_fast = EVAL_CONFIG_OVERRIDES["realtime_fast"]
+    rf_hybrid = EVAL_CONFIG_OVERRIDES["rf_hybrid"]
     hybrid = EVAL_CONFIG_OVERRIDES["hybrid_bytetrack_best"]
 
     assert raw["enable_offline_smoothing"] is False
     assert raw["hidden_suffix_id_swap_repair"] is False
     assert raw["realtime_motion_pair_stabilizer"] is False
 
-    for non_hybrid in (raw, realtime_fast):
+    for non_hybrid in (raw, realtime_fast, rf_hybrid):
         assert "near_wall_hidden_geometry_refine" not in non_hybrid
         assert "far_camera_hidden_geometry_refine" not in non_hybrid
         assert "hidden_suffix_id_swap_use_overlap_persistence" not in non_hybrid
+    assert rf_hybrid["rf_hybrid_transfer"] is True
     assert "realtime_core_unassigned_tiebreak" not in hybrid
     assert "realtime_core_unassigned_require_score_nondecrease" not in hybrid
 
@@ -390,6 +403,38 @@ def test_run_tracking_mode_science_metadata_marks_raw_baseline() -> None:
     assert metadata["uses_offline_smoothing"] == "false"
     assert metadata["uses_identity_repair"] == "false"
     assert metadata["uses_delayed_repair"] == "false"
+
+
+def test_run_tracking_mode_science_metadata_marks_rf_hybrid_transfer() -> None:
+    script_path = (
+        Path(__file__).resolve().parents[1]
+        / "scripts"
+        / "run_tracking_mode.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        "run_tracking_mode_rf_hybrid_script",
+        script_path,
+    )
+    assert spec is not None
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+
+    metadata = module._mode_science_metadata(
+        "rf_hybrid",
+        "realtime",
+        "rf_hybrid",
+        module.get_eval_config("rf_hybrid"),
+    )
+
+    assert metadata["baseline_role"] == (
+        "hybrid_mechanism_transfer_experiment"
+    )
+    assert metadata["causality_level"] == "offline_postprocessed"
+    assert metadata["output_timing_contract"] == "post_video_transfer"
+    assert metadata["declared_delay_frames"] == "-1"
+    assert metadata["uses_identity_repair"] == "true"
+    assert metadata["uses_delayed_repair"] == "true"
 
 
 def test_run_tracking_mode_science_metadata_marks_global_graph_truthfully() -> None:

@@ -300,6 +300,13 @@ def _evaluation_command(
         cmd.extend(["--rule-combo", combo])
     if output_root is not None:
         cmd.extend(["--output-root", str(output_root)])
+    elif eval_config == "rf_hybrid":
+        cmd.extend(
+            [
+                "--prediction-root",
+                str(PROJECT_ROOT / "outputs" / "pred" / "rf_hybrid"),
+            ]
+        )
     if prediction_root is not None:
         cmd.extend(["--prediction-root", str(prediction_root)])
     if args.eval_existing:
@@ -391,7 +398,10 @@ def _mode_science_metadata(
     eval_config: str,
     overrides: dict[str, object],
 ) -> dict[str, str]:
-    offline_smoothing = _truthy(
+    is_rf_hybrid = presentation_mode == "rf_hybrid" or _truthy(
+        overrides.get("rf_hybrid_transfer", False)
+    )
+    offline_smoothing = is_rf_hybrid or _truthy(
         overrides.get("enable_offline_smoothing", False)
     )
     identity_repair_keys = [
@@ -408,7 +418,7 @@ def _mode_science_metadata(
         "realtime_visible_better_competitor_prefer",
         "realtime_low_conf_recovery_guard",
     ]
-    uses_identity_repair = any(
+    uses_identity_repair = is_rf_hybrid or any(
         _truthy(overrides.get(key, False)) for key in identity_repair_keys
     )
     uses_motion_pair_stabilizer = (
@@ -420,7 +430,7 @@ def _mode_science_metadata(
     )
     uses_fixed_lag = uses_motion_pair_stabilizer and fixed_lag_frames > 0
     uses_global_graph = uses_motion_pair_stabilizer and not uses_fixed_lag
-    uses_delayed_repair = uses_motion_pair_stabilizer or (
+    uses_delayed_repair = is_rf_hybrid or uses_motion_pair_stabilizer or (
         offline_smoothing
         and _truthy(overrides.get("local_pair_swap_repair", False))
     )
@@ -438,6 +448,11 @@ def _mode_science_metadata(
         causality_level = "online_raw"
         output_timing_contract = "causal_framewise"
         declared_delay_frames = 0
+    elif is_rf_hybrid:
+        baseline_role = "hybrid_mechanism_transfer_experiment"
+        causality_level = "offline_postprocessed"
+        output_timing_contract = "post_video_transfer"
+        declared_delay_frames = -1
     elif uses_fixed_lag:
         baseline_role = "realtime_quality_fixed_lag_candidate"
         causality_level = "fixed_lag_realtime"
