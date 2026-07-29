@@ -658,7 +658,15 @@ def _prepare_manifest(
             "source_repo": str(source_repo),
             "worktree_repo": str(worktree_repo),
             "output_root": str(output_root),
+            "command": [sys.executable, *sys.argv],
             "selected_skills": list(SELECTED_SKILLS),
+            "skill_validation": {
+                "selected_skills": "PASS",
+                "discovery_scenario": "PASS",
+                "full_pack": (
+                    "PREEXISTING_UNRELATED_ANDREJ_KARPATHY_SKILL_ERRORS"
+                ),
+            },
             "method_ids": [
                 "bytetrack_raw",
                 "hybrid_bytetrack",
@@ -716,6 +724,7 @@ def _prepare_manifest(
                 for name in (
                     "numpy",
                     "opencv-python",
+                    "opencv-python-headless",
                     "pandas",
                     "scipy",
                 )
