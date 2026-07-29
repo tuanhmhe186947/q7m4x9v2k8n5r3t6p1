@@ -1,5 +1,23 @@
 # Project Memory Short
 
+## 2026-07-29 four-method tracking reconciliation freeze
+
+- Clean active registry is exactly `bytetrack_raw`, `hybrid_bytetrack`,
+  `realtime_fast`, and `rf_hybrid`; standardized B1 and the obsolete 2x2 are
+  not active scientific methods.
+- `hybrid_bytetrack` remains bound to the accepted historical lineage and
+  surviving final XML authority. Exact numerical runtime remains
+  `RUNTIME_PROVENANCE_INCOMPLETE` and is not replaced by standardized output.
+- Frozen State 8 development result is `TRANSFER_SIGNAL_MIXED`: `rf_hybrid`
+  lowers IDSW `29 -> 18`, but HOTA `0.888187232 -> 0.878280776`, IDF1
+  `0.971892400 -> 0.957881350`, and wrong-ID frames
+  `11893 -> 14515`.
+- No retuning, per-video rules, B1, unseen data, detector execution, tracker
+  execution, or MP4 was used. The four-method freeze passed 370 production
+  tests with 10 skips.
+- State 9 authorizes only a separately scoped frozen unseen RQ2 comparison of
+  `realtime_fast` versus `rf_hybrid`; unseen access in this task remains zero.
+
 ## 2026-07-29 three-mode historical prediction reconstruction
 
 - Surviving historical prediction bytes were found and frozen for all three

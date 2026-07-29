@@ -1,5 +1,18 @@
 • Kế Hoạch Tương Lai
 
+## Four-method tracking reconciliation freeze - 2026-07-29
+
+- The active scientific registry is exactly `bytetrack_raw`,
+  `hybrid_bytetrack`, `realtime_fast`, and `rf_hybrid`.
+- The standardized B1 and obsolete symmetric 2x2 are inactive.
+- `hybrid_bytetrack` retains historical artifact and algorithmic-lineage
+  authority; exact numerical runtime remains incomplete and is disclosed.
+- Frozen RQ2 development result is `TRANSFER_SIGNAL_MIXED`: IDSW improves,
+  while HOTA, IDF1, and wrong-identity exposure regress.
+- No post-result tuning or stage reselection is authorized.
+- The next possible state is a separate frozen unseen comparison of
+  `realtime_fast` and `rf_hybrid`; this task must not access unseen data.
+
 ## H5b/H4 standardization-regression recovery - 2026-07-29
 
 - The current B1 construction is confirmed to be a new standardized pipeline:

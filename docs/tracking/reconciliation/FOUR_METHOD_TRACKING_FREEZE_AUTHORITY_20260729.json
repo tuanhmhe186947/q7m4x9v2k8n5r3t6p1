@@ -1,0 +1,227 @@
+{
+  "schema_version": "tracking.reconciliation.four_method_freeze.v1",
+  "state": "STATE_9_METHOD_FREEZE",
+  "date": "20260729",
+  "freeze_base_sha": "33adceb88eec482717462e57d558761bb7483b1e",
+  "reconciliation_strategy": "CURRENT_REPAIR",
+  "last_clean_three_method_sha": "5e2b19ce5ff3a07e8ef2653389871c70c8d03d2e",
+  "active_methods": [
+    "bytetrack_raw",
+    "hybrid_bytetrack",
+    "realtime_fast",
+    "rf_hybrid"
+  ],
+  "obsolete_standardized_b1_active": false,
+  "obsolete_2x2_binding_active": false,
+  "scientific_graph": {
+    "historical_optimization": {
+      "source": "bytetrack_raw",
+      "operator": "COMPLETE_ACCEPTED_HISTORICAL_OPTIMIZATION_LINEAGE",
+      "target": "hybrid_bytetrack"
+    },
+    "transfer_experiment": {
+      "source": "realtime_fast",
+      "operator": "PREDECLARED_TRANSFERABLE_MECHANISMS_ONLY",
+      "target": "rf_hybrid"
+    },
+    "symmetric_2x2_assumption": false
+  },
+  "research_questions": {
+    "RQ1": {
+      "methods": [
+        "bytetrack_raw",
+        "hybrid_bytetrack",
+        "realtime_fast"
+      ],
+      "interpretation": "COMPLETE_METHOD_QUALITY_VERSUS_RUNTIME_COMPARISON",
+      "association_core_only_claim_allowed": false,
+      "development_quality_authority": "ESTABLISHED",
+      "complete_runtime_comparison": "LIMITED_BY_HISTORICAL_HYBRID_EXACT_RUNTIME"
+    },
+    "RQ2": {
+      "primary_pair": [
+        "realtime_fast",
+        "rf_hybrid"
+      ],
+      "source_lineage": "hybrid_bytetrack",
+      "development_decision": "TRANSFER_SIGNAL_MIXED",
+      "unseen_decision": "NOT_RUN",
+      "stage_set_frozen_before_development_execution": true,
+      "retuning_after_development": false
+    }
+  },
+  "method_freeze": {
+    "bytetrack_raw": {
+      "scientific_role": "ORIGINAL_BASELINE",
+      "registry_profile_sha256": "45fd204df94d9ca2cd921b5c928190fa864e7c9f5de41146b31166736e1ea598",
+      "profile_source_sha256": "E89F30D794479E77BD4314448A6C6CCCEBB1781AD47BB8DF888BD972AB516820",
+      "detector_contract": "LIVE_YOLO_TRACK_EVERY_FRAME_PROFILE_BOUND",
+      "tracker_contract": "RAW_PERSISTENT_BYTETRACK_WITHOUT_ACCEPTED_HYBRID_REPAIRS",
+      "state_lifecycle": "ONE_MODEL_TRACKER_PER_VIDEO_PERSIST_TRUE_NO_CROSS_VIDEO_STATE",
+      "future_frame_policy": "NONE",
+      "export_contract": "DETERMINISTIC_PROJECT_JSON_COCO_AND_CVAT_VIDEO_XML",
+      "artifact_authority": "B0_HISTORICAL_RECONSTRUCTION_AUTHORITY_20260729",
+      "execution_authority": "EXECUTABLE_DEVELOPMENT_BASELINE",
+      "unseen_role": "DEVELOPMENT_ONLY_NOT_PRIMARY_RQ2_UNSEEN"
+    },
+    "hybrid_bytetrack": {
+      "scientific_role": "COMPLETE_OPTIMIZED_OFFLINE_METHOD",
+      "registry_profile_sha256": "8932a6e69ee82d1e97d7b50c377d91327ea8dc777a6df0a3053df3cc07db310d",
+      "profile_source_sha256": "D273879843A18F2A6E7C1B5ED167B7AED1BEAA9C5AB3B659701E339F178B7D7B",
+      "detector_contract": "HISTORICAL_LIVE_YOLO_TRACK_CONF_020_MAX_DET_64_LOW_CONFIDENCE_FLOW",
+      "tracker_contract": "FULL_ACCEPTED_HYBRID_BYTETRACK_OPTIMIZATION_LINEAGE",
+      "state_lifecycle": "PERSISTENT_BYTETRACK_PER_VIDEO_PLUS_ACCEPTED_POST_VIDEO_STAGES",
+      "future_frame_policy": "POST_VIDEO_ALLOWED_BY_ACCEPTED_LINEAGE_ONLY",
+      "export_contract": "HISTORICAL_ACCEPTED_FINAL_CVAT_XML_SEMANTICS",
+      "artifact_authority": "HISTORICAL_FINAL_XML_SET_20260719_H5B_H4_FULL13_COMBINED_V2",
+      "execution_authority": [
+        "HISTORICAL_ARTIFACT_AUTHORITY_ESTABLISHED",
+        "ALGORITHMIC_LINEAGE_RECOVERED",
+        "EXACT_NUMERICAL_RUNTIME_NOT_RECOVERED"
+      ],
+      "unseen_role": "DEVELOPMENT_ARTIFACT_ONLY_EXACT_RUNTIME_UNAVAILABLE"
+    },
+    "realtime_fast": {
+      "scientific_role": "CAUSAL_REALTIME_METHOD",
+      "registry_profile_sha256": "ed43ed81ed782a6421241c26936b1e85f0ecbfddbc4d2125114181bb6c3ee866",
+      "profile_source_sha256": "6B20268229799D828DBD92DDFB7EF6BDD08CE5B466ACCC9D7FC32FC6CF47E089",
+      "detector_contract": "PROFILE_BOUND_YOLO_PREDICT_EVERY_SECOND_FRAME_MAX_DET_32",
+      "tracker_contract": "CAUSAL_FIXED_IDENTITY_ASSOCIATION_WITHOUT_BYTETRACK_INTERNAL_STATE",
+      "state_lifecycle": "ONE_CAUSAL_RUNTIME_PER_VIDEO_ZERO_DELAY_NO_CROSS_VIDEO_STATE",
+      "future_frame_policy": "CAUSAL_ZERO_DELAY",
+      "export_contract": "DETERMINISTIC_PROJECT_JSON_COCO_AND_CVAT_VIDEO_XML",
+      "artifact_authority": "STATE_8_DEVELOPMENT_EVALUATION_AUTHORITY_20260729",
+      "execution_authority": [
+        "FROZEN_CAUSAL_EXECUTION_CONTRACT",
+        "DEVELOPMENT_STANDARD_V2_AUTHORITY_ESTABLISHED"
+      ],
+      "unseen_role": "FROZEN_PRIMARY_RQ2_UNSEEN_METHOD"
+    },
+    "rf_hybrid": {
+      "scientific_role": "HYBRID_MECHANISM_TRANSFER_EXPERIMENT",
+      "registry_profile_sha256": "c84fe55364c89270c785f593979003e0389d3ccf891f85d96af54ee29795f1f6",
+      "profile_source_sha256": "7D478AFA14FE32DD90CD6567A744D269794CB0677ECB1D44980C898C3173A457",
+      "transfer_config_sha256": "d583450c5b462ffdb65835d4aa2e9352c88afb96d29176ab2866e6f1cdb0ad23",
+      "detector_contract": "IDENTICAL_REALTIME_FAST_EVIDENCE_NO_SECOND_DETECTOR",
+      "tracker_contract": "FROZEN_REALTIME_FAST_TRACKLETS_PLUS_FROZEN_TRANSFER_STAGE_SET",
+      "state_lifecycle": "CAUSAL_RF_CORE_THEN_IMMUTABLE_POST_VIDEO_TRANSFER_NO_CROSS_VIDEO_STATE",
+      "future_frame_policy": "POST_VIDEO_ALLOWED_FOR_DECLARED_TRANSFER_STAGES",
+      "export_contract": "REALTIME_FAST_OUTPUT_RF_HYBRID_OUTPUT_CHANGE_LEDGER_AND_CVAT_XML",
+      "artifact_authority": "STATE_8_DEVELOPMENT_EVALUATION_AUTHORITY_20260729",
+      "execution_authority": [
+        "TRANSFER_IMPLEMENTATION_CONTRACT_PASS",
+        "DEVELOPMENT_EVALUATION_AUTHORITY_ESTABLISHED",
+        "TRANSFER_SIGNAL_MIXED"
+      ],
+      "unseen_role": "FROZEN_PRIMARY_RQ2_UNSEEN_METHOD"
+    }
+  },
+  "code_and_contract_hashes": {
+    "method_registry_sha256": "3127D08F146A0C5AEAD9CB71A9324B5C0D8A6BA99B74B2A452CDD94BDE388E1C",
+    "runner_sha256": "A624064F41A5212EB29A654B27BBF51E5716E2B419B9BCDF24A9CB29166CB5AB",
+    "rf_hybrid_transfer_sha256": "42D2EC2BCA02815356CF3DFB64D7A4B8E27F7958D8F24EC97F3342155756CE4A",
+    "cvat_exporter_sha256": "A319C4449ED1EEF4F3D77B8A185A0CDC3E2F31AEB04FC600D85BC08BA368FAAA",
+    "standard_v2_contracts_sha256": "BCFB4AD42C3A5CA98238B7D4148F35033BBE8726C2818D77A3DD584544DBCF1A",
+    "standard_v2_evaluator_sha256": "43C6828EEEDD037ECBEA8C1ADF0DB982F86ABAD69D3A6E8CDCDB180CADFC28FD",
+    "standard_v2_hota_sha256": "A82CC907BCE5C81265D92388C009592BF33A8C0B91F3787FDDD9C0012CFC8A3F",
+    "identity_episodes_v2_sha256": "F1937650466B29EE1D3293E139151E9227D4A86896CD474241ECE5A749ADD01D",
+    "cvat_io_sha256": "AD0C14A1823ABFE7705F2940DA98755F665D72FF4AB8572A9E2BA2700F5F9748"
+  },
+  "lineage_and_input_hashes": {
+    "accepted_hybrid_algorithm_graph_sha256": "2C30687067C2E4F2BCE2C74BDDD1498050D681CED233C6A4F5357DCD5E95C433",
+    "accepted_hybrid_lineage_authority_sha256": "115AB6CFA09A17EEF9172F8021DA29812E6D865931DCE041889FF66FC2E2D155",
+    "rf_portability_manifest_sha256": "FF43ACC7A92E9F1BA80816EF169EE90A95269B440F568018B570C1DF44B47FE2",
+    "locked_development_population_sha256": "A4317882A2D839343116A4BF106300234D30DBC479F0FCDB335F7DCDF7AE6232",
+    "state8_input_inventory_sha256": "87f7571f7eb940372930558dac3aa1f9a299f83efe9e0357f0d3627a124c9204",
+    "state8_authority_sha256": "0C1578D3BCA20C2EED8C15D4152E0D4D1FFBB56454EA3210B35542BD80EE01E1",
+    "state8_artifact_manifest_sha256": "24c20cc8d0d8ee4e0f4264f3d3ed1db4c412d504b14347bf558df2ea3f517ca8",
+    "state8_prediction_manifest_sha256": "de08c3ee3ae0909c3f5a70417135192e6dccddf60f0319f935822467bfd82f4c"
+  },
+  "stage_freeze": {
+    "historical_accepted_stage_count": 21,
+    "rf_hybrid_directly_portable_stages": 7,
+    "rf_hybrid_rf_native_stages": 3,
+    "rf_hybrid_bytetrack_specific_excluded": 8,
+    "rf_hybrid_not_relevant_excluded": 3,
+    "rf_hybrid_v1_included_stage_count": 10,
+    "new_tunable_parameters": 0,
+    "per_video_overrides": 0
+  },
+  "development_evaluation": {
+    "authority": "docs/tracking/reconciliation/STATE_8_DEVELOPMENT_EVALUATION_AUTHORITY_20260729.json",
+    "decision": "TRANSFER_SIGNAL_MIXED",
+    "two_pass_repeatability": "PASS",
+    "input_order_invariance": "PASS",
+    "identity_conservation": "PASS",
+    "realtime_fast_snapshot_parity": "EXACT_SEMANTIC_ALL_13",
+    "rf_hybrid_frames_modified": 4134,
+    "rf_hybrid_tracks_modified": 64,
+    "rf_hybrid_beneficial_changes": 2330,
+    "rf_hybrid_harmful_changes": 4458,
+    "rf_hybrid_neutral_changes": 2211,
+    "changes_outside_declared_episode_scope": 0,
+    "post_result_parameter_tuning": 0
+  },
+  "test_freeze": {
+    "contract_map_sha256": "C08F38E3AC65B8E68231C009CC27D28B03E6E46BB2F23B5934C97D919EF3C3E2",
+    "tracking_tests_kept": 296,
+    "tracking_tests_rewritten": 34,
+    "tracking_tests_archived": 92,
+    "tracking_tests_deleted_obsolete": 36,
+    "production_test_result": "370 passed, 10 skipped",
+    "method_registry_contract": "PASS",
+    "method_stage_activation": "PASS",
+    "no_cross_method_config_leakage": "PASS",
+    "detector_contract_binding": "PASS",
+    "tracker_state_lifecycle": "PASS",
+    "export_contract": "PASS",
+    "historical_artifact_immutability": "PASS",
+    "standard_v2_evaluator_sanity": "PASS",
+    "deterministic_smoke": "PASS",
+    "unseen_access_guard": "PASS"
+  },
+  "runtime_measurement_protocol": {
+    "status": "FROZEN_NOT_EXECUTED_IN_STATE_9",
+    "common_rules": [
+      "Use one frozen hardware and software inventory for each paired runtime block.",
+      "Measure full video wall time, effective FPS, p50 and p95 frame latency, peak process RSS, and peak CUDA memory.",
+      "Include detector cadence, association, postprocessing, export, and declared output delay in complete-method runtime.",
+      "Do not compare post-tracklet-only timing with complete-method timing."
+    ],
+    "bytetrack_raw": "MEASURE_COMPLETE_LIVE_YOLO_TRACK_AND_RAW_EXPORT",
+    "hybrid_bytetrack": "DO_NOT_REPORT_NEW_COMPLETE_RUNTIME_UNTIL_EXACT_NUMERICAL_EXECUTION_AUTHORITY_EXISTS",
+    "realtime_fast": "MEASURE_COMPLETE_CAUSAL_DETECTOR_ASSOCIATION_AND_ZERO_DELAY_EXPORT",
+    "rf_hybrid": "MEASURE_IDENTICAL_REALTIME_FAST_CORE_PLUS_FROZEN_POST_VIDEO_TRANSFER_AND_EXPORT",
+    "historical_runtime_limitation": "RUNTIME_PROVENANCE_INCOMPLETE"
+  },
+  "historical_hybrid_disclosure": {
+    "artifact_authority": "HISTORICAL_ARTIFACT_AUTHORITY_ESTABLISHED",
+    "algorithmic_lineage": "ALGORITHMIC_LINEAGE_RECOVERED",
+    "exact_runtime": "RUNTIME_PROVENANCE_INCOMPLETE",
+    "development_prediction_authority_retained": true,
+    "standardized_regeneration_substitution_forbidden": true,
+    "blocks_repository_reconciliation": false,
+    "blocks_primary_rq2_pair": false
+  },
+  "guards": {
+    "unseen_files_accessed": 0,
+    "post_result_parameter_tuning": 0,
+    "per_video_overrides": 0,
+    "current_b1_used": false,
+    "obsolete_2x2_used": false,
+    "detector_executions_in_state_9": 0,
+    "tracker_executions_in_state_9": 0,
+    "mp4_generated": 0,
+    "unrelated_classification_v2_changes_preserved": true
+  },
+  "decisions": {
+    "architecture": "PASS_CLEAN_TRACKING_RECONCILIATION",
+    "rf_transfer_implementation": "PASS_RF_HYBRID_TRANSFER_IMPLEMENTATION",
+    "rq2_development": "TRANSFER_SIGNAL_MIXED",
+    "historical_runtime": "RUNTIME_PROVENANCE_INCOMPLETE",
+    "rq2_unseen": "NOT_RUN"
+  },
+  "ready_for_unseen_evaluation": true,
+  "unseen_execution_in_current_task": "FORBIDDEN_BY_TASK_SCOPE",
+  "next_authorized_state": "STATE_10_UNSEEN_EVALUATION_IN_SEPARATE_TASK"
+}

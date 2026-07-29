@@ -1,5 +1,24 @@
 # Current Decision
 
+## Four-method tracking reconciliation freeze (2026-07-29)
+
+- `PASS_CLEAN_TRACKING_RECONCILIATION`.
+- Active methods are exactly `bytetrack_raw`, `hybrid_bytetrack`,
+  `realtime_fast`, and `rf_hybrid`; obsolete standardized B1 and the 2x2
+  binding are inactive.
+- Historical hybrid status is
+  `HISTORICAL_ARTIFACT_AUTHORITY_ESTABLISHED`,
+  `ALGORITHMIC_LINEAGE_RECOVERED`, and
+  `RUNTIME_PROVENANCE_INCOMPLETE`.
+- State 8 passed implementation, two-pass repeatability, input-order,
+  conservation, raw-RF parity, and no-MP4 gates. Development decision is
+  `TRANSFER_SIGNAL_MIXED`; no stage or parameter may be changed from metrics.
+- Freeze authority:
+  `docs/tracking/reconciliation/FOUR_METHOD_TRACKING_FREEZE_AUTHORITY_20260729.json`.
+- The only next tracking state is a separately authorized State 10 unseen
+  comparison of frozen `realtime_fast` versus frozen `rf_hybrid`. This task
+  accessed no unseen file.
+
 ## H5b/H4 standardization-regression recovery (2026-07-29)
 
 - `STANDARDIZATION_REGRESSION_CONFIRMED_PARTIALLY_REVERSED`.

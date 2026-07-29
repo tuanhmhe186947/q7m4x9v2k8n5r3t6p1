@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import inspect
+import json
+from pathlib import Path
 
 from pig_behavior.tracking.method_registry import (
     ACTIVE_SCIENTIFIC_METHOD_IDS,
@@ -13,6 +16,10 @@ from pig_behavior.tracking.profiles import (
     get_eval_config,
 )
 from pig_behavior.tracking.runner import run_tracking
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest().upper()
 
 
 def test_method_registry_contract_is_exact_and_complete() -> None:
@@ -138,4 +145,35 @@ def test_tracker_lifecycle_export_and_unseen_guards_are_explicit() -> None:
         "TRANSFER_IMPLEMENTATION_CONTRACT_PASS",
         "DEVELOPMENT_EVALUATION_AUTHORITY_ESTABLISHED",
         "TRANSFER_SIGNAL_MIXED",
+    )
+
+
+def test_four_method_freeze_authority_matches_registry() -> None:
+    repo = Path(__file__).resolve().parents[1]
+    authority = json.loads(
+        (
+            repo
+            / "docs"
+            / "tracking"
+            / "reconciliation"
+            / "FOUR_METHOD_TRACKING_FREEZE_AUTHORITY_20260729.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert authority["active_methods"] == list(
+        ACTIVE_SCIENTIFIC_METHOD_IDS
+    )
+    assert authority["obsolete_standardized_b1_active"] is False
+    assert authority["obsolete_2x2_binding_active"] is False
+    assert authority["decisions"]["architecture"] == (
+        "PASS_CLEAN_TRACKING_RECONCILIATION"
+    )
+    assert authority["decisions"]["rq2_development"] == (
+        "TRANSFER_SIGNAL_MIXED"
+    )
+    assert authority["ready_for_unseen_evaluation"] is True
+    assert authority["guards"]["unseen_files_accessed"] == 0
+    assert authority["code_and_contract_hashes"][
+        "method_registry_sha256"
+    ] == _sha256(
+        repo / "src" / "pig_behavior" / "tracking" / "method_registry.py"
     )
