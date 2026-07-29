@@ -14,10 +14,17 @@ SAFE_VIEW_SCHEMA_VERSION = (
     "classification_v2.safe_non_interaction_review_view.v1"
 )
 SAFE_VIEW_SEMANTIC_STATUS = "PRE_REVIEW_CALIBRATION_INFRASTRUCTURE"
+ROI_DIRECTION_CORRECTED_VIEW_SCHEMA_VERSION = (
+    "classification_v2.roi_direction_corrected_noninteraction_view.v1"
+)
 
 _TRUE_VALUES = frozenset({"1", "true", "yes", "y"})
 _INTERACTION_BEHAVIORS = frozenset({"fight", "social-nose"})
+_ROI_LABELED_BEHAVIORS = frozenset({"eat", "drink", "playwithtoy"})
 _SAFE_TEMPLATES = frozenset({"motion", "posture", "roi"})
+_EXPLORE_ROI_FALSE_NEGATIVE_PREDICATES = frozenset(
+    {"roi_possible_false_negative", "risk_triggered"}
+)
 _AFFECTED_BOOLEAN_FIELDS = (
     "review_predicate_interaction_contradiction",
     "review_predicate_partner_context_insufficient",
@@ -88,6 +95,14 @@ def _text(value: object) -> str:
     if pd.isna(value):
         return ""
     return str(value).strip().casefold()
+
+
+def _semicolon_tokens(value: object) -> set[str]:
+    return {
+        token.strip().casefold()
+        for token in _text(value).split(";")
+        if token.strip()
+    }
 
 
 def _dependency_reasons(row: pd.Series) -> tuple[list[str], bool]:
@@ -232,6 +247,115 @@ def build_safe_non_interaction_view(
     )
 
 
+def build_roi_direction_corrected_noninteraction_view(
+    safe_view: pd.DataFrame,
+    *,
+    preserve_review_keys: set[str] | None = None,
+) -> SafeNonInteractionViewResult:
+    """Remove only the inverted explore-near-ROI hard-review trigger.
+
+    The input must already be the frozen non-interaction subset. Existing
+    reviewed keys remain in the view so a running workspace can resume without
+    losing decisions. Rows carrying another predicate, ROI-labeled behaviors,
+    and the stratified audit remain reviewable.
+    """
+
+    required = {
+        "review_unit_id",
+        "behavior_label",
+        "review_selection_predicates",
+    }
+    missing = sorted(required.difference(safe_view.columns))
+    if missing:
+        raise SafeNonInteractionViewError(
+            f"safe view missing ROI correction columns: {missing}"
+        )
+    ids = safe_view["review_unit_id"].fillna("").astype(str).str.strip()
+    if ids.eq("").any() or ids.duplicated().any():
+        raise SafeNonInteractionViewError(
+            "safe view requires unique nonblank review keys"
+        )
+
+    preserved = set(preserve_review_keys or set())
+    unknown_preserved = sorted(preserved.difference(ids))
+    if unknown_preserved:
+        raise SafeNonInteractionViewError(
+            f"preserved review keys absent from safe view: {len(unknown_preserved)}"
+        )
+
+    behavior = safe_view["behavior_label"].fillna("").astype(str)
+    predicate_sets = (
+        safe_view["review_selection_predicates"]
+        .fillna("")
+        .astype(str)
+        .map(_semicolon_tokens)
+    )
+    roi_only_explore = behavior.eq("explore") & predicate_sets.map(
+        lambda values: (
+            "roi_possible_false_negative" in values
+            and values.issubset(_EXPLORE_ROI_FALSE_NEGATIVE_PREDICATES)
+        )
+    )
+    preserved_mask = ids.isin(preserved)
+    suppress = roi_only_explore & ~preserved_mask
+    view = safe_view.loc[~suppress].copy().reset_index(drop=True)
+
+    records = pd.DataFrame(
+        {
+            "review_unit_id": ids,
+            "roi_only_explore_trigger": roi_only_explore,
+            "preserved_existing_review": preserved_mask,
+            "included_in_corrected_view": ~suppress,
+            "correction_reason": [
+                (
+                    "PRESERVE_EXISTING_REVIEW"
+                    if preserve
+                    else (
+                        "SUPPRESS_INVERTED_EXPLORE_NEAR_ROI_TRIGGER"
+                        if inverted
+                        else "UNCHANGED_REVIEW_REASON"
+                    )
+                )
+                for inverted, preserve in zip(
+                    roi_only_explore,
+                    preserved_mask,
+                    strict=True,
+                )
+            ],
+        }
+    )
+    audit = {
+        "schema_version": ROI_DIRECTION_CORRECTED_VIEW_SCHEMA_VERSION,
+        "authority_role": "VIEW_ONLY_NOT_CANDIDATE_PUBLICATION",
+        "input_safe_view_count": int(len(safe_view)),
+        "corrected_view_count": int(len(view)),
+        "suppressed_roi_only_explore_count": int(suppress.sum()),
+        "preserved_existing_review_count": int(
+            (roi_only_explore & preserved_mask).sum()
+        ),
+        "roi_labeled_behavior_review_count": int(
+            view["behavior_label"].isin(_ROI_LABELED_BEHAVIORS).sum()
+        ),
+        "stratified_audit_review_count": int(
+            view["candidate_tier"].eq("TIER_3_STRATIFIED_AUDIT").sum()
+            if "candidate_tier" in view
+            else 0
+        ),
+        "new_keys_added": 0,
+        "source_rows_changed": False,
+        "candidate_publication_changed": False,
+        "auto_carry_publication_changed": False,
+        "review_key_set_sha256": hashlib.sha256(
+            "\n".join(view["review_unit_id"].astype(str)).encode()
+        ).hexdigest(),
+    }
+    return SafeNonInteractionViewResult(
+        view=view,
+        dependency=records,
+        audit=audit,
+    )
+
+
 def audit_safe_non_interaction_view(
     candidates: pd.DataFrame,
     view: pd.DataFrame,
@@ -340,11 +464,13 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
 
 
 __all__ = [
+    "ROI_DIRECTION_CORRECTED_VIEW_SCHEMA_VERSION",
     "SAFE_VIEW_SCHEMA_VERSION",
     "SAFE_VIEW_SEMANTIC_STATUS",
     "SafeNonInteractionViewError",
     "SafeNonInteractionViewResult",
     "audit_safe_non_interaction_view",
+    "build_roi_direction_corrected_noninteraction_view",
     "build_safe_non_interaction_view",
     "classify_candidate_dependencies",
     "sha256_file",

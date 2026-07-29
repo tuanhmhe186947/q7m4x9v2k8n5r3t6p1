@@ -429,6 +429,39 @@ def test_decision_scope_still_blocks_an_actually_missing_actor_frame() -> None:
     assert not module.decision_scope_complete(unit, observed)
 
 
+def test_cvat_history_does_not_expand_target_decision_scope() -> None:
+    module = _load_gui_module()
+    unit = pd.Series(
+        {
+            "source_type": "cvat_tracking_xml",
+            "unit_start_frame": 12,
+            "unit_end_frame": 17,
+            "display_frame_indices": "12,13,14,15,16,17",
+            "review_pig_history_display_frame_indices": "6,7,8,9,10,11",
+        }
+    )
+    observed = list(range(6, 18))
+
+    assert module.decision_scope_frames(unit) == list(range(12, 18))
+    assert module.decision_scope_complete(unit, observed)
+
+
+def test_cvat_history_cannot_hide_a_missing_target_frame() -> None:
+    module = _load_gui_module()
+    unit = pd.Series(
+        {
+            "source_type": "cvat_tracking_xml",
+            "unit_start_frame": 12,
+            "unit_end_frame": 17,
+            "display_frame_indices": "12,13,14,15,16,17",
+            "review_pig_history_display_frame_indices": "6,7,8,9,10,11",
+        }
+    )
+    observed = list(range(6, 17))
+
+    assert not module.decision_scope_complete(unit, observed)
+
+
 def test_gui_rejects_universe_and_accepts_selective_candidate() -> None:
     module = _load_gui_module()
     candidate = pd.DataFrame(

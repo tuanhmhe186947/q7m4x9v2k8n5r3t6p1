@@ -6,6 +6,7 @@ import pytest
 from pig_behavior.classification_v2.review.safe_non_interaction_view import (
     SafeNonInteractionViewError,
     audit_safe_non_interaction_view,
+    build_roi_direction_corrected_noninteraction_view,
     build_safe_non_interaction_view,
 )
 
@@ -175,3 +176,83 @@ def test_view_is_deterministic() -> None:
     )
     pd.testing.assert_frame_equal(first.view, second.view)
     assert first.audit == second.audit
+
+
+def test_roi_corrected_view_suppresses_only_inverted_explore_trigger() -> None:
+    rows = pd.DataFrame(
+        [
+            _row(
+                "explore-roi-only",
+                "explore",
+                "roi",
+                reasons="explore_with_stationary_persistent_roi_contact",
+                predicates="roi_possible_false_negative;risk_triggered",
+            ),
+            _row(
+                "explore-other-risk",
+                "explore",
+                "roi",
+                reasons=(
+                    "explore_with_stationary_persistent_roi_contact;"
+                    "high_hidden_ratio_interval"
+                ),
+                predicates=(
+                    "roi_possible_false_negative;"
+                    "media_or_actor_authority_risk;risk_triggered"
+                ),
+            ),
+            _row("eat-label", "eat", "roi"),
+            _row("drink-label", "drink", "roi"),
+            _row("toy-label", "playwithtoy", "roi"),
+        ]
+    )
+
+    result = build_roi_direction_corrected_noninteraction_view(rows)
+
+    assert result.view["review_unit_id"].tolist() == [
+        "explore-other-risk",
+        "eat-label",
+        "drink-label",
+        "toy-label",
+    ]
+    assert result.audit["suppressed_roi_only_explore_count"] == 1
+    assert result.audit["roi_labeled_behavior_review_count"] == 3
+    assert result.audit["candidate_publication_changed"] is False
+
+
+def test_roi_corrected_view_preserves_existing_reviewed_key() -> None:
+    rows = pd.DataFrame(
+        [
+            _row(
+                "already-reviewed",
+                "explore",
+                "roi",
+                reasons="explore_with_stationary_persistent_roi_contact",
+                predicates="roi_possible_false_negative;risk_triggered",
+            ),
+            _row(
+                "not-reviewed",
+                "explore",
+                "roi",
+                reasons="explore_with_stationary_persistent_roi_contact",
+                predicates="roi_possible_false_negative;risk_triggered",
+            ),
+        ]
+    )
+
+    result = build_roi_direction_corrected_noninteraction_view(
+        rows,
+        preserve_review_keys={"already-reviewed"},
+    )
+
+    assert result.view["review_unit_id"].tolist() == ["already-reviewed"]
+    assert result.audit["preserved_existing_review_count"] == 1
+    assert result.audit["suppressed_roi_only_explore_count"] == 1
+
+
+def test_roi_corrected_view_rejects_unknown_preserved_key() -> None:
+    with pytest.raises(SafeNonInteractionViewError, match="absent"):
+        build_roi_direction_corrected_noninteraction_view(
+            _candidates().iloc[:2],
+            preserve_review_keys={"not-in-safe-view"},
+        )

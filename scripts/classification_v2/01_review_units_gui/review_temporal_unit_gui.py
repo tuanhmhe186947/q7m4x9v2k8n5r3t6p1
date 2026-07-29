@@ -137,9 +137,17 @@ def decision_scope_complete(
     unit: pd.Series,
     observed_frames: list[int],
 ) -> bool:
-    """Require exactly one actor row for every target frame."""
+    """Require exactly one actor row for every target frame.
 
-    return sorted(observed_frames) == decision_scope_frames(unit)
+    Displayed CVAT history is context and must not enlarge the decision scope.
+    """
+
+    target_frames = decision_scope_frames(unit)
+    target_frame_set = set(target_frames)
+    observed_targets = sorted(
+        frame for frame in observed_frames if frame in target_frame_set
+    )
+    return observed_targets == target_frames
 
 
 def legacy_noninteraction_scope_errors(unit: pd.Series) -> list[str]:
