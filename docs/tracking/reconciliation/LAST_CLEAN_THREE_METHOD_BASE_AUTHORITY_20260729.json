@@ -1,0 +1,199 @@
+{
+  "schema_version": "tracking.reconciliation.last_clean_three_method_base.v1",
+  "date": "20260729",
+  "state": "STATE_1_IDENTIFY_LAST_CLEAN_THREE_METHOD_BASE",
+  "decision": "ACCEPT_LAST_CLEAN_THREE_METHOD_BASE",
+  "candidate_sha": "5e2b19ce5ff3a07e8ef2653389871c70c8d03d2e",
+  "recommended_base": "5e2b19ce5ff3a07e8ef2653389871c70c8d03d2e",
+  "selection_reason": [
+    "It is the explicit profile-retirement authority commit with exactly three active presentation profiles.",
+    "The active hybrid path still invokes live model.track with persist=True.",
+    "The accepted H5b/H4 profile bindings from c3850ac are present.",
+    "It predates the active rf_hybrid_offline adapter and the B0/B1 standardized replay campaign.",
+    "The newer pre-rf-adapter commit 01487ede has an identical tracking tree but adds unrelated classification_v2 changes."
+  ],
+  "method_entry_points": {
+    "bytetrack_raw": {
+      "presentation_entry_point": "scripts/run_tracking_mode.py",
+      "profile": "src/pig_behavior/tracking/profiles/bytetrack_raw.py",
+      "engine": "src/pig_behavior/tracking/runner.py:run_tracking",
+      "engine_mode": "bytetrack_raw"
+    },
+    "hybrid_bytetrack": {
+      "presentation_entry_point": "scripts/run_tracking_mode.py",
+      "profile": "src/pig_behavior/tracking/profiles/hybrid_bytetrack.py",
+      "engine": "src/pig_behavior/tracking/runner.py:run_tracking",
+      "engine_mode": "hybrid_bytetrack",
+      "live_tracker_call": "model.track(frame, persist=True, tracker=tracker_yaml)"
+    },
+    "realtime_fast": {
+      "presentation_entry_point": "scripts/run_tracking_mode.py",
+      "profile": "src/pig_behavior/tracking/profiles/realtime.py",
+      "engine": "src/pig_behavior/tracking/runner.py:run_tracking",
+      "engine_mode": "realtime"
+    }
+  },
+  "method_configs": {
+    "bytetrack_raw": {
+      "config_id": "bytetrack_raw",
+      "detect_every_n_frames": 1,
+      "offline_smoothing": false,
+      "identity_swap_guard": false,
+      "occlusion_aware_matching": false,
+      "future_frame_policy": "NONE"
+    },
+    "hybrid_bytetrack": {
+      "config_id": "hybrid_bytetrack_best",
+      "det_conf": 0.2,
+      "max_raw_detections": 64,
+      "detect_every_n_frames": 1,
+      "offline_smoothing": true,
+      "identity_swap_guard": true,
+      "hidden_owner_guard": true,
+      "h5b_overlap_persistence": true,
+      "h4_far_camera_geometry": true,
+      "future_frame_policy": "POST_VIDEO_ALLOWED"
+    },
+    "realtime_fast": {
+      "config_id": "realtime_fast",
+      "det_conf": 0.25,
+      "max_raw_detections": 32,
+      "detect_every_n_frames": 2,
+      "offline_smoothing": false,
+      "identity_swap_guard": false,
+      "future_frame_policy": "CAUSAL_ZERO_DELAY"
+    }
+  },
+  "method_stage_graphs": {
+    "bytetrack_raw": [
+      "VIDEO_DECODE",
+      "LIVE_YOLO_TRACK",
+      "PERSISTENT_BYTETRACK_PER_VIDEO",
+      "RAW_TRACK_EXPORT"
+    ],
+    "hybrid_bytetrack": [
+      "VIDEO_DECODE",
+      "LIVE_YOLO_TRACK",
+      "PERSISTENT_BYTETRACK_PER_VIDEO",
+      "RAW_OWNER_AND_OCCLUSION_HANDLING",
+      "REENTRY_AND_IDENTITY_REPAIR",
+      "OFFLINE_SMOOTHING_AND_REFINEMENT",
+      "HIDDEN_AND_SUFFIX_REPAIR",
+      "H5B_OVERLAP_PERSISTENCE",
+      "NEAR_WALL_GEOMETRY",
+      "H4_FAR_CAMERA_GEOMETRY",
+      "FINAL_CVAT_EXPORT"
+    ],
+    "realtime_fast": [
+      "VIDEO_DECODE",
+      "CADENCED_DETECTOR",
+      "CAUSAL_ASSOCIATION",
+      "VISIBLE_COMPETITOR_GUARDS",
+      "ZERO_DELAY_EXPORT"
+    ]
+  },
+  "known_prediction_artifacts": {
+    "bytetrack_raw": [
+      "C:/Users/ironh/Downloads/PIG_task_tracking/outputs/pred/mode_compare/20260709_040751/bytetrack_raw",
+      "outputs/tracking/frozen_predictions_standard_v2_20260728_retry1/B0_bytetrack_raw/predictions"
+    ],
+    "hybrid_bytetrack": [
+      "C:/Users/ironh/Downloads/PIG_task_tracking/outputs/pred/tracking_hybrid_residual/20260719_h5b_h4_full13_combined_v2/hybrid_bytetrack",
+      "outputs/tracking/historical_h5b_h4_frozen_predictions_20260728"
+    ],
+    "realtime_fast": [
+      "outputs/tracking/current_main_baseline_20260728/predictions",
+      "outputs/tracking/three_mode_historical_reconstruction_20260729"
+    ]
+  },
+  "known_metric_artifacts": {
+    "bytetrack_raw": [
+      "docs/tracking/three_mode_historical_reconstruction/B0_HISTORICAL_RECONSTRUCTION_AUTHORITY_20260729.json"
+    ],
+    "hybrid_bytetrack": [
+      "docs/tracking/historical_h5b_h4_standard_v2/HISTORICAL_H5B_H4_STANDARD_V2_AUTHORITY_20260728.json",
+      "docs/tracking/historical_hybrid_best_recovery/HISTORICAL_HYBRID_BEST_LINEAGE_RECOVERY_AUTHORITY_20260729.json"
+    ],
+    "realtime_fast": [
+      "docs/tracking/three_mode_historical_reconstruction/R0_HISTORICAL_RECONSTRUCTION_AUTHORITY_20260729.json",
+      "docs/tracking/CURRENT_MAIN_R0_BASELINE_AUTHORITY_20260728.json"
+    ]
+  },
+  "known_limitations": [
+    "Historical hybrid final XMLs are artifact authority, while exact numerical runtime is not recovered.",
+    "Historical raw ByteTrack dependency-boundary rows and complete package lock do not survive.",
+    "The detector-cache module already exists as generic infrastructure at this commit, but it is not bound as the hybrid_bytetrack scientific producer.",
+    "Engine mode realtime remains an internal implementation name for realtime_fast.",
+    "Legacy eval-config aliases remain internal and must not be exposed as scientific method IDs."
+  ],
+  "standardization_regression_absent": {
+    "status": true,
+    "evidence": [
+      "PRESENTATION_PROFILES contains exactly bytetrack_raw, hybrid_bytetrack, realtime_fast.",
+      "runner.py invokes model.track with persist=True for bytetrack_raw and hybrid_bytetrack.",
+      "rf_hybrid_offline profile and generic offline adapter are absent.",
+      "The full-frame cache completion runner cf044d04 and B0/B1 replay generator ac9bda0 are descendants."
+    ]
+  },
+  "production_code_cleanliness": {
+    "status": "PASS_WITH_DOCUMENTED_INTERNAL_ALIASES",
+    "active_presentation_profiles": [
+      "bytetrack_raw",
+      "hybrid_bytetrack",
+      "realtime_fast"
+    ],
+    "obsolete_standardized_b1_runner_present": false,
+    "obsolete_2x2_binding_present": false,
+    "rf_hybrid_offline_active": false
+  },
+  "test_state": {
+    "status": "HISTORICAL_CONTRACT_EVIDENCE_PASS",
+    "evidence": [
+      "tests/test_tracking_profiles.py at candidate SHA asserts exactly the three active profiles.",
+      "Profile-retirement decision records zero algorithm, repair, detector, or prediction changes.",
+      "No detector or tracker execution was performed during State 1."
+    ],
+    "fresh_candidate_execution": "NOT_RUN_READ_ONLY_STATE"
+  },
+  "candidate_comparison": [
+    {
+      "sha": "31d360ba96b4065ce5125c0d88765531cc5898ae",
+      "result": "NOT_RECOMMENDED",
+      "reason": "Historical final source is the algorithmic lineage authority, but H5b/H4 were still external late commands and the active profile surface was not yet reduced to the clean three-method registry."
+    },
+    {
+      "sha": "c3850ac545ad6deed7567e78ef3dcdbd0139383f",
+      "result": "VALID_LINEAGE_MILESTONE",
+      "reason": "Integrates accepted H5b/H4 profile flags but predates profile-surface cleanup."
+    },
+    {
+      "sha": "5e2b19ce5ff3a07e8ef2653389871c70c8d03d2e",
+      "result": "RECOMMENDED",
+      "reason": "Clean three-profile registry plus complete accepted hybrid profile, before standardized R1 and B0/B1 replay."
+    },
+    {
+      "sha": "01487ede07ef9fcb2cc75ddddaa3b382c650d091",
+      "result": "NOT_RECOMMENDED",
+      "reason": "Tracking tree is identical to 5e2b19c; the only newer content is unrelated classification_v2 work."
+    },
+    {
+      "sha": "e41c010c33651f2f7d1bbcd13fc299a65faf4a2d",
+      "result": "REJECTED_AS_CLEAN_BASE",
+      "reason": "Introduces rf_hybrid_offline as a fourth active standardized profile and a generic offline-repair adapter."
+    },
+    {
+      "sha": "ac9bda0f7432d56229ede36bbb8fa06167846313",
+      "result": "REJECTED_AS_CLEAN_BASE",
+      "reason": "Introduces the B0/B1 standardized replay generator that binds cache evidence to a non-equivalent B1."
+    }
+  ],
+  "guards": {
+    "production_code_modified": false,
+    "historical_repository_modified": false,
+    "classification_v2_modified": false,
+    "detector_executions": 0,
+    "tracker_executions": 0,
+    "unseen_files_accessed": 0
+  },
+  "next_state": "STATE_2_CHOOSE_RECONCILIATION_STRATEGY"
+}
