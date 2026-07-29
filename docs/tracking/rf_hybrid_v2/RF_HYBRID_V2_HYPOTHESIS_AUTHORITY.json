@@ -1,0 +1,76 @@
+{
+  "schema_version": "tracking.rf_hybrid_v2.hypothesis_authority.v1",
+  "date": "20260730",
+  "starting_main_sha": "a062e0e885adabb34e74f4cd7625c9f1c9ebf866",
+  "candidate_internal_id": "rf_hybrid_candidate_v2",
+  "primary_failure_mechanism": "IDENTITY_MERGE_REDUCES_IDSW_BUT_EXTENDS_WRONG_OWNER",
+  "supporting_event_counts": {
+    "all_v1_events": 409,
+    "all_v1_beneficial_events": 165,
+    "all_v1_harmful_events": 47,
+    "all_v1_neutral_events": 143,
+    "all_v1_ambiguous_events": 54,
+    "affected_stage_events": 4,
+    "affected_stage_exposure_worsening_events": 3,
+    "affected_stage_exposure_improving_events": 1,
+    "affected_stage_new_terminal_episode_events": 2
+  },
+  "supporting_wrong_identity_frames": {
+    "affected_stage_removed": 24,
+    "affected_stage_added": 2482,
+    "affected_stage_net_added": 2458,
+    "frozen_v1_aggregate_net_added": 2622
+  },
+  "supporting_switch_evidence": {
+    "affected_stage_scope_IDSW_before_sum": 12,
+    "affected_stage_scope_IDSW_after_sum": 8,
+    "interpretation": "Lower switch count co-occurs with longer wrong-owner exposure."
+  },
+  "affected_stage_or_mechanism": "H5B_HIDDEN_SUFFIX_OVERLAP_PERSISTENCE",
+  "historical_portability_classification": "RF_NATIVE_REDESIGN_REQUIRED",
+  "attribution_limit": {
+    "event_outcome": "AMBIGUOUS",
+    "reason": "The four suffix events overlap earlier v1 writers.",
+    "permitted_claim": "The final net outcome in each declared event scope is observed.",
+    "forbidden_claim": "The overlapping stage is the sole cause of every changed row."
+  },
+  "proposed_single_correction": {
+    "id": "REJECT_RF_H5B_SUFFIX_IDENTITY_CHANGES",
+    "behavior": "Reject the complete H5B identity-changing proposal and retain its stage input byte-for-byte.",
+    "scope": "H5B_HIDDEN_SUFFIX_OVERLAP_PERSISTENCE only",
+    "other_v1_stages": "UNCHANGED",
+    "contradiction_policy": "Not applicable because the unsupported RF-native proposal is never accepted.",
+    "bounded_scope_policy": "No H5B correction may propagate into any suffix.",
+    "one_to_one_policy": "Preserved from the unchanged stage input."
+  },
+  "why_the_correction_does_not_use_GT": [
+    "The production gate is a stage-provenance allowlist decision.",
+    "It checks only the declared stage ID and rejects that proposal.",
+    "No GT identity, evaluator output, video name, frame number, or metric is read.",
+    "GT was used only to select and document this one development hypothesis."
+  ],
+  "new_tunable_parameters": 0,
+  "predeclared_parameter_values": {
+    "rejected_stage_id": "H5B_HIDDEN_SUFFIX_OVERLAP_PERSISTENCE",
+    "gate_policy": "REJECT_COMPLETE_STAGE_OUTPUT",
+    "fallback": "EXACT_STAGE_INPUT",
+    "all_other_stage_decisions": "ACCEPT"
+  },
+  "expected_effect": "Prevent long suffix identity changes from trading fewer IDSW events for longer wrong-owner exposure.",
+  "possible_failure_outcome": "Earlier retained v1 mechanisms may still degrade association or the rejected H5B stage may contain necessary benefits, so the candidate can fail one or more Pareto gates.",
+  "frozen_constraints": {
+    "config_variants_authorized": 1,
+    "post_result_parameter_tuning": 0,
+    "per_video_overrides": 0,
+    "detector_or_tracker_execution": 0,
+    "unseen_files_accessed": 0,
+    "active_registry_change_before_promotion": false
+  },
+  "candidate_execution_authorized": true,
+  "attribution_authority": {
+    "csv": "docs/tracking/rf_hybrid_v2/RF_HYBRID_V1_MECHANISM_ATTRIBUTION.csv",
+    "csv_sha256": "9e3d64b272ff7ba1e8d2f1f1e608ef27b0eeb779ed454f851ca873b14aecbd80",
+    "summary_csv": "docs/tracking/rf_hybrid_v2/RF_HYBRID_V1_MECHANISM_ATTRIBUTION_SUMMARY.csv",
+    "summary_csv_sha256": "ed97d0f4af654cd8de4434675002ef40d7b6218e908d34baedc04741c5b600bb"
+  }
+}

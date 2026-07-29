@@ -1,0 +1,214 @@
+{
+  "analysis_code_sha": "abfd85c63399e6d2389d17e70ffaaefdc73a8e14",
+  "current_b1_used": false,
+  "detector_executions": 0,
+  "development_gt_use": "DIAGNOSIS_AND_EVALUATION_ONLY",
+  "input_artifacts": [
+    {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\reconciliation_state8_development_20260729_run2\\input_artifact_manifest.json",
+      "sha256": "be16728da6a388f654473ce46c3f051f1959bf8de3ed0a6781a4377fcf7c2cf6",
+      "size_bytes": 29240
+    },
+    {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\reconciliation_state8_development_20260729_run2\\prediction_manifest.json",
+      "sha256": "de08c3ee3ae0909c3f5a70417135192e6dccddf60f0319f935822467bfd82f4c",
+      "size_bytes": 28535
+    },
+    {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\reconciliation_state8_development_20260729_run2\\artifact_manifest.json",
+      "sha256": "24c20cc8d0d8ee4e0f4264f3d3ed1db4c412d504b14347bf558df2ea3f517ca8",
+      "size_bytes": 19708
+    },
+    {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\reconciliation_state8_development_20260729_run2\\rf_hybrid_change_ledger.json",
+      "sha256": "6ff6708d63ef98a4372e657967681c392f371251db2d9841e67805d3dafbda1d",
+      "size_bytes": 4542387
+    },
+    {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\reconciliation_state8_development_20260729_run2\\rf_hybrid_final_change_classification.csv",
+      "sha256": "db18c2fabed097ee4bf64885de8aad84cbcbe01a38a48fadbd9e35ef2278c3a1",
+      "size_bytes": 1550176
+    },
+    {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\reconciliation_state8_development_20260729_run2\\RF_HYBRID_CHANGE_SUMMARY.json",
+      "sha256": "3e2d344690c2a3d24956adb1952de10bec5efa3f831fb2312b73117403538dfe",
+      "size_bytes": 557
+    },
+    {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\reconciliation_state8_development_20260729_run2\\standard_v2\\pass_1\\B0_B1_R0_IDENTITY_ERROR_EPISODES.csv",
+      "sha256": "5cf48b1db0741c05840097368a41b5389274411cb7b38297ed93669d50722778",
+      "size_bytes": 4378116
+    },
+    {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\reconciliation_state8_development_20260729_run2\\standard_v2\\pass_1\\B0_B1_R0_STANDARD_V2_AGGREGATE_METRICS.csv",
+      "sha256": "4d4cbd84c485699f556e1b6cdccfb377cb74f00f2969a000bd7918f804151457",
+      "size_bytes": 5662
+    }
+  ],
+  "outputs": {
+    "attribution_csv": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_tmp\\worktrees\\rf_hybrid_v2_evidence_gate\\docs\\tracking\\rf_hybrid_v2\\RF_HYBRID_V1_MECHANISM_ATTRIBUTION.csv",
+    "attribution_csv_sha256": "9e3d64b272ff7ba1e8d2f1f1e608ef27b0eeb779ed454f851ca873b14aecbd80",
+    "summary_csv": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_tmp\\worktrees\\rf_hybrid_v2_evidence_gate\\docs\\tracking\\rf_hybrid_v2\\RF_HYBRID_V1_MECHANISM_ATTRIBUTION_SUMMARY.csv",
+    "summary_csv_sha256": "ed97d0f4af654cd8de4434675002ef40d7b6218e908d34baedc04741c5b600bb"
+  },
+  "per_video_overrides": 0,
+  "phase": "PHASE_1_MECHANISM_LEVEL_ATTRIBUTION",
+  "post_result_parameter_tuning": 0,
+  "production_gate_uses_gt": false,
+  "schema_version": "tracking.rf_hybrid_v2.evidence_freeze.v1",
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "safe-refactor-test-guardian",
+    "experiment-lineage-reproducibility",
+    "scientific-ablation-controller"
+  ],
+  "starting_main_sha": "a062e0e885adabb34e74f4cd7625c9f1c9ebf866",
+  "tracker_executions": 0,
+  "unseen_files_accessed": 0,
+  "v1_event_count": 409,
+  "videos": {
+    "Pigs281119_000085_30fps": {
+      "gt_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Pigs281119_000085_30fps.xml",
+      "gt_sha256": "3a6bc2b28dd2e4f831ef59d7543e1a523bb9cfd2415741bb91506f74709bd697",
+      "ledger_sha256": "87e46ecfaa511d4b49797d11318845f7cf68cc4b40d6c93d61389753792cc502",
+      "realtime_fast_IDSW": 2,
+      "realtime_fast_wrong_identity_frames": 3473,
+      "realtime_fast_xml_sha256": "0f1cb5ba23b754a4c36d83e3f1a175e92d53ef3c1e937a505fc9e470103ca1c8",
+      "rf_hybrid_v1_IDSW": 2,
+      "rf_hybrid_v1_wrong_identity_frames": 3476,
+      "rf_hybrid_v1_xml_sha256": "f3c96d881a344d4b74615c786066056ebe3e1a361eb246a08e57198a90c0aaa1"
+    },
+    "Pigs281119_000114_30fps": {
+      "gt_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Pigs281119_000114_30fps.xml",
+      "gt_sha256": "1d6ad0b635de1388016b28201ada90010f41ff8a491936050a86cd9430b6ceeb",
+      "ledger_sha256": "5faf4bdb3c4e14f4f927299de88b2baeb4d2780726ef2e74e06b7a37b213b55f",
+      "realtime_fast_IDSW": 0,
+      "realtime_fast_wrong_identity_frames": 0,
+      "realtime_fast_xml_sha256": "cef35d043e6ede81bbca6f418904b0fcab7500fcc918fa372d9474b62c49c794",
+      "rf_hybrid_v1_IDSW": 0,
+      "rf_hybrid_v1_wrong_identity_frames": 0,
+      "rf_hybrid_v1_xml_sha256": "cda172e4fc00aacd917ed504cb482099b429c3f42a49a8e6b3c3d00434fedad0"
+    },
+    "Pigs291119_000216_30fps": {
+      "gt_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Pigs291119_000216_30fps.xml",
+      "gt_sha256": "e1b922d422c86307231b80c7f6d9186290086be24be5cd13731d25dcdfeac5c4",
+      "ledger_sha256": "0df94534bf28cd482a883bbd3b92113c68fb447128e1a298bbeb908538d4fe66",
+      "realtime_fast_IDSW": 2,
+      "realtime_fast_wrong_identity_frames": 3257,
+      "realtime_fast_xml_sha256": "cc664ec665dfd67be4da990c085d40c61d6886cf8fa86ba5d4866f4d035c29ae",
+      "rf_hybrid_v1_IDSW": 2,
+      "rf_hybrid_v1_wrong_identity_frames": 3260,
+      "rf_hybrid_v1_xml_sha256": "3a56acfd66d363300600f7b0b22b781471759436d50c1b37b02b4fd89fefde9a"
+    },
+    "Pigs291119_000225_30fps": {
+      "gt_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Pigs291119_000225_30fps.xml",
+      "gt_sha256": "ea60f89302b53bcd94abfb83b7fee826c0594d75ef03ec2085be37517453ddde",
+      "ledger_sha256": "d6e9040dcfec3793b258975a75da63036de7ae58c3640645ad614beab2b5f3d1",
+      "realtime_fast_IDSW": 0,
+      "realtime_fast_wrong_identity_frames": 0,
+      "realtime_fast_xml_sha256": "42358dcf2ae178953b3d17d24aabe4674347f9e0a467298a97deae35133498cc",
+      "rf_hybrid_v1_IDSW": 0,
+      "rf_hybrid_v1_wrong_identity_frames": 0,
+      "rf_hybrid_v1_xml_sha256": "782ca1c5d139fc8e3287c88caf9121f24cb4f128e9faddfc32a3f16b8bbda12d"
+    },
+    "Pigs291119_000226_30fps": {
+      "gt_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Pigs291119_000226_30fps.xml",
+      "gt_sha256": "9651401fb022c9dfc917df4b0b163dd750279f1bca7932a32aad8b0682ee923a",
+      "ledger_sha256": "1e82a665bf700e209229f9e7bbe46a150a39bbdaa92d8155858bca6d649198ee",
+      "realtime_fast_IDSW": 2,
+      "realtime_fast_wrong_identity_frames": 2,
+      "realtime_fast_xml_sha256": "67aeadf73871a53116ab484a1db58d626e648aa988cb982408836fe3b7a00285",
+      "rf_hybrid_v1_IDSW": 0,
+      "rf_hybrid_v1_wrong_identity_frames": 0,
+      "rf_hybrid_v1_xml_sha256": "ad0256935a99951220e0691a4e98da8d2e1e7efbef7e224a02ff03fd2250ec6b"
+    },
+    "Pigs291119_000231_30fps": {
+      "gt_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Pigs291119_000231_30fps.xml",
+      "gt_sha256": "6dfb65e3b4aff7006462b3062c75e3dc5eb895f3b76098e88657527c1ff23fc3",
+      "ledger_sha256": "d3b1546b8a94d50851f1d7530f212241f88f52627f1142e829f26c5f0ffdc0cd",
+      "realtime_fast_IDSW": 8,
+      "realtime_fast_wrong_identity_frames": 3071,
+      "realtime_fast_xml_sha256": "08ae0cecb4eff352431d2fd1ed3a22215b42f111ac6c45577b257de0e673562e",
+      "rf_hybrid_v1_IDSW": 4,
+      "rf_hybrid_v1_wrong_identity_frames": 2965,
+      "rf_hybrid_v1_xml_sha256": "bf0f085c2e45fea8da8996f05d7f458933ebe5f2e868b2d2d598feb4edffea81"
+    },
+    "Pigs291119_000233_30fps": {
+      "gt_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Pigs291119_000233_30fps.xml",
+      "gt_sha256": "348f4ffa83ab7f7ac3c603a60a4f00528cf222d3f13129e2f04c399d7cb4158c",
+      "ledger_sha256": "1ae688e17646e047c3410fd692bb7e610936bad6506ff24c2fa5ce6683a17002",
+      "realtime_fast_IDSW": 9,
+      "realtime_fast_wrong_identity_frames": 1669,
+      "realtime_fast_xml_sha256": "86931197b5909999d65a24ca9d8ae3cd85b7107c93da40551db27c93460323d6",
+      "rf_hybrid_v1_IDSW": 4,
+      "rf_hybrid_v1_wrong_identity_frames": 3235,
+      "rf_hybrid_v1_xml_sha256": "d3e98fe2bbb2372fad04af9c37cea9af1039c54db0d747cfd6552f86c25a2546"
+    },
+    "Pigs291119_000263_30fps": {
+      "gt_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Tracking_annotation_Pigs291119_000263_30fps.xml",
+      "gt_sha256": "4636c3beb1d6e43a2c58dd45c050c62ee9d37d05010c26e578db1b9200ac21b8",
+      "ledger_sha256": "357d537833e560454f81d54866ccf91cb0964d71bafabe89a94b935917721fa2",
+      "realtime_fast_IDSW": 4,
+      "realtime_fast_wrong_identity_frames": 128,
+      "realtime_fast_xml_sha256": "f609e265dc5e33c41afb9501d23d606ec8f12ca1189465c154fd1da534a42ce5",
+      "rf_hybrid_v1_IDSW": 4,
+      "rf_hybrid_v1_wrong_identity_frames": 1283,
+      "rf_hybrid_v1_xml_sha256": "db11f61852b3301dee87e385ba9176d058d3ba6329e5f1b223c1505f4eb945d4"
+    },
+    "Pigs291119_000302_30fps": {
+      "gt_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Pigs291119_000302_30fps.xml",
+      "gt_sha256": "e50e8b03e72c5aa78bba6568ce233522129cae4d263b3864c6ad90bdd3b31582",
+      "ledger_sha256": "14587bce8da9b18d77452390ffbadd115028787831b39acbf1797b9168a1d194",
+      "realtime_fast_IDSW": 0,
+      "realtime_fast_wrong_identity_frames": 0,
+      "realtime_fast_xml_sha256": "260bb46fda262333762b22352532caf68e42c1369ae19d3007f045868cf6a5da",
+      "rf_hybrid_v1_IDSW": 0,
+      "rf_hybrid_v1_wrong_identity_frames": 0,
+      "rf_hybrid_v1_xml_sha256": "b308d430f40f3baf2c04e3a8b0438e9a0fa4bab653577a42068ed61431a2c5e3"
+    },
+    "Pigs301119_000327_30fps": {
+      "gt_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Pigs301119_000327_30fps.xml",
+      "gt_sha256": "00eaf567154f1854c9c7ef866353e8db2af3d1329a5e54c70a36a8ccb97dc1b6",
+      "ledger_sha256": "4c1bb7c8c3b3fedb0d23ea45a50ae02bc389124ed2ee3c0e98e86879c9e99c91",
+      "realtime_fast_IDSW": 2,
+      "realtime_fast_wrong_identity_frames": 293,
+      "realtime_fast_xml_sha256": "1752f63c6cf9b749a89395de667317d487d2f35004bf84ba7887a0a962880b94",
+      "rf_hybrid_v1_IDSW": 2,
+      "rf_hybrid_v1_wrong_identity_frames": 296,
+      "rf_hybrid_v1_xml_sha256": "5653ba0a34448b60fb97e2e377d5f544f6ff9e06f2bf88a10ec22144af492710"
+    },
+    "Pigs301119_000328_30fps": {
+      "gt_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Pigs301119_000328_30fps.xml",
+      "gt_sha256": "2e00b57423688ee74e1228e75f7ba13d0a4ecc05ed5a5f0295d92e68fe2f5f76",
+      "ledger_sha256": "b575f2ea1d673915aabc1f775be79f09fcd8f2c2ace5e1a2781a689f2589d4b6",
+      "realtime_fast_IDSW": 0,
+      "realtime_fast_wrong_identity_frames": 0,
+      "realtime_fast_xml_sha256": "938c7c454bd9e4a26adb4a28c5d75c1c6599852085f0f2d9d5e623d7e30e66a7",
+      "rf_hybrid_v1_IDSW": 0,
+      "rf_hybrid_v1_wrong_identity_frames": 0,
+      "rf_hybrid_v1_xml_sha256": "8609e55644174eb40fbbb2f62253ccd4ee71df016d548c0c9d2bf5ac83cf14e3"
+    },
+    "Pigs301119_000329_30fps": {
+      "gt_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Pigs301119_000329_30fps.xml",
+      "gt_sha256": "7f65df1f636b671e4eb720082d80e5d493a67619bc0f5b331c7da4715e6285a3",
+      "ledger_sha256": "673fa77a362d3179cb08315f8de32c24e2562e4aa524271b877e116af2bce1b3",
+      "realtime_fast_IDSW": 0,
+      "realtime_fast_wrong_identity_frames": 0,
+      "realtime_fast_xml_sha256": "e65d87b3ecb4ef153803348ce0014692e83290b6aa19de88a44b3aa341ae2a18",
+      "rf_hybrid_v1_IDSW": 0,
+      "rf_hybrid_v1_wrong_identity_frames": 0,
+      "rf_hybrid_v1_xml_sha256": "19a703fde9abf8a0285796a02888a12c3af2c33b105d27bbeeffedfc5cb54922"
+    },
+    "Pigs301119_000330_30fps": {
+      "gt_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Pigs301119_000330_30fps.xml",
+      "gt_sha256": "994f8ee08a1d9b57413fd9b791b573d7719cde84ccabe20381da01ec9d8eee92",
+      "ledger_sha256": "0686821d6fb6d6ab1f668f045a3d01a2b0ff1352a9a0caaa0e06b5fdccff96f9",
+      "realtime_fast_IDSW": 0,
+      "realtime_fast_wrong_identity_frames": 0,
+      "realtime_fast_xml_sha256": "5e83f18c7f0ca38a658e6b3ec197f4ad386b3d47c8e99513ef3f36d1f9267aa7",
+      "rf_hybrid_v1_IDSW": 0,
+      "rf_hybrid_v1_wrong_identity_frames": 0,
+      "rf_hybrid_v1_xml_sha256": "6ff8bfab95c72adbabdede38fc829cd8d3b71600b3e179de6dda6855e9b2d426"
+    }
+  }
+}

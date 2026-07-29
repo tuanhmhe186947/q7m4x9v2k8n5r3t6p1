@@ -1,0 +1,5 @@
+mechanism,events,beneficial_events,harmful_events,neutral_events,ambiguous_events,wrong_identity_frames_removed,wrong_identity_frames_added,median_harmful_persistence,maximum_harmful_persistence,changes_outside_declared_scope
+H5B_HIDDEN_SUFFIX_OVERLAP_PERSISTENCE,4,0,0,0,4,24,2482,0,0,0
+OFFLINE_IDENTITY_SWAP_GUARD,18,6,2,0,10,1172,2036,1.0,2,0
+OVERLAP_SMALL_BOX_SUPPRESSION,12,0,1,7,4,0,1,438,438,0
+TEMPORAL_BBOX_REFINEMENT,375,159,44,136,36,72,73,1.0,1,0
