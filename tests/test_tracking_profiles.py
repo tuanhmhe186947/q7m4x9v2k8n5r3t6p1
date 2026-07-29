@@ -60,7 +60,9 @@ def test_scientific_method_registry_exposes_canonical_methods() -> None:
     assert set(PRESENTATION_PROFILES) == expected
 
     hybrid = SCIENTIFIC_METHOD_REGISTRY["hybrid_bytetrack"]
-    assert hybrid.scientific_role == "COMPLETE_OPTIMIZED_OFFLINE_METHOD"
+    assert hybrid.scientific_role == (
+        "HISTORICAL_OFFLINE_DEVELOPMENT_CHAMPION"
+    )
     assert hybrid.future_frame_policy == (
         "POST_VIDEO_ALLOWED_BY_ACCEPTED_LINEAGE_ONLY"
     )
@@ -80,9 +82,7 @@ def test_scientific_method_registry_exposes_canonical_methods() -> None:
     assert "LIVE_YOLO_TRACK" not in realtime.stage_graph
 
     rf_hybrid = SCIENTIFIC_METHOD_REGISTRY["rf_hybrid"]
-    assert rf_hybrid.scientific_role == (
-        "HYBRID_MECHANISM_TRANSFER_EXPERIMENT"
-    )
+    assert rf_hybrid.scientific_role == "FROZEN_MIXED_TRANSFER_ABLATION"
     assert "FROZEN_REALTIME_FAST_TRACKLETS" in rf_hybrid.stage_graph
     assert "LIVE_YOLO_TRACK" not in rf_hybrid.stage_graph
 

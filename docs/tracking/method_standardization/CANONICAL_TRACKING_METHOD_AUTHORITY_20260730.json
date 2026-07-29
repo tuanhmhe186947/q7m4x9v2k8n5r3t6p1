@@ -1,0 +1,160 @@
+{
+  "schema_version": "tracking.method_standardization.canonical_authority.v1",
+  "date": "20260730",
+  "starting_main_sha": "b0e55b18c0cc26cd19006fc56a220cd00ae7cead",
+  "standardization_scope": "AUTHORITY_NAMING_EVALUATION_REPORTING_ONLY",
+  "authority_bindings": {
+    "method_registry_sha256": "623f5de3932276641ed7f07be8817bb8f1ef4e95ef32d251942fb125cb104f02",
+    "canonical_development_results_sha256": "03ce92cf96500dc421b7804ac3a45828370a823eb7c7bdcec52c7065a483a9c4",
+    "runtime_protocol_sha256": "444cbfed0660610a376483f0b7d87c77b683824ea4ed1c4ae9a1b8218fe7954f"
+  },
+  "active_method_count": 4,
+  "active_method_ids": [
+    "bytetrack_raw",
+    "hybrid_bytetrack",
+    "realtime_fast",
+    "rf_hybrid"
+  ],
+  "methods": {
+    "bytetrack_raw": {
+      "canonical_version": "current_b0",
+      "scientific_role": "CURRENT_EXECUTABLE_BYTETRACK_BASELINE",
+      "scientific_status": "ACTIVE_EXECUTABLE_BASELINE",
+      "prediction_authority_type": "FROZEN_EXECUTABLE_PREDICTION_SET",
+      "prediction_authority_path": "outputs/tracking/frozen_predictions_standard_v2_20260728_retry1/B0_bytetrack_raw/predictions",
+      "prediction_authority_hash": "13d9226c36141264cc33e4b498d38e5f3eaa9891cf32bc4c8fb87b01fd27d576",
+      "execution_authority_status": "ESTABLISHED",
+      "causal": true,
+      "future_frame_policy": "NONE",
+      "development_evaluation_eligible": true,
+      "runtime_benchmark_eligible": true,
+      "deployment_eligible": true,
+      "unseen_execution_eligible": "PENDING_SEPARATE_PREFLIGHT",
+      "recommended_runtime_use": true
+    },
+    "hybrid_bytetrack": {
+      "canonical_version": "historical_h5b_h4_final",
+      "scientific_role": "HISTORICAL_OFFLINE_DEVELOPMENT_CHAMPION",
+      "scientific_status": "HISTORICAL_ARTIFACT_AUTHORITY_ESTABLISHED",
+      "prediction_authority_type": "SURVIVING_HISTORICAL_FINAL_XML_SET",
+      "prediction_authority_path": "outputs/tracking/historical_h5b_h4_frozen_predictions_20260728/predictions",
+      "prediction_authority_hash": "36c3bdd3f6d92c0c5336590dbf4c8822402d718ec47df2b137cef862339d5b8a",
+      "execution_authority_status": [
+        "HISTORICAL_ARTIFACT_AUTHORITY_ESTABLISHED",
+        "ALGORITHMIC_LINEAGE_RECOVERED",
+        "EXACT_NUMERICAL_RUNTIME_NOT_RECOVERED"
+      ],
+      "causal": false,
+      "future_frame_policy": "POST_VIDEO_ALLOWED_BY_ACCEPTED_LINEAGE_ONLY",
+      "development_evaluation_eligible": true,
+      "runtime_benchmark_eligible": false,
+      "deployment_eligible": false,
+      "unseen_execution_eligible": "NO",
+      "recommended_runtime_use": false,
+      "known_limitations": [
+        "RUNTIME_PROVENANCE_INCOMPLETE",
+        "Historical XMLs remain the development prediction authority.",
+        "Standardized B1 is not hybrid_bytetrack."
+      ]
+    },
+    "realtime_fast": {
+      "canonical_version": "v1",
+      "scientific_role": "FROZEN_CAUSAL_REALTIME_PRIMARY",
+      "scientific_status": "FROZEN_CAUSAL_REALTIME_PRIMARY",
+      "prediction_authority_type": "FROZEN_EXECUTABLE_PREDICTION_SET",
+      "prediction_authority_path": "outputs/tracking/current_main_baseline_20260728/predictions",
+      "prediction_authority_hash": "fd2d4f3dec0710d1c9eecba9308247a7b226dd34a4a02a9cb89f17acb22bbbfe",
+      "execution_authority_status": "ESTABLISHED",
+      "causal": true,
+      "future_frame_policy": "CAUSAL_ZERO_DELAY",
+      "development_evaluation_eligible": true,
+      "runtime_benchmark_eligible": true,
+      "deployment_eligible": true,
+      "unseen_execution_eligible": "PENDING_SEPARATE_PREFLIGHT",
+      "recommended_runtime_use": true
+    },
+    "rf_hybrid": {
+      "canonical_version": "v1",
+      "scientific_role": "FROZEN_MIXED_TRANSFER_ABLATION",
+      "scientific_status": "FROZEN_MIXED_TRANSFER_ABLATION",
+      "prediction_authority_type": "FROZEN_DEVELOPMENT_ABLATION_PREDICTIONS",
+      "prediction_authority_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/rf_hybrid",
+      "prediction_authority_hash": "8ecf2a42bedced243232dbf8c537d1177c0abed77bb43dfa74c117185d2e528e",
+      "prediction_hash_definition": "SHA256 of canonical JSON list of ordered (video_key, rf_hybrid_xml_sha256) pairs",
+      "prediction_manifest_hash": "de08c3ee3ae0909c3f5a70417135192e6dccddf60f0319f935822467bfd82f4c",
+      "execution_authority_status": "DEVELOPMENT_ARTIFACT_ONLY",
+      "causal": false,
+      "future_frame_policy": "POST_VIDEO_ALLOWED_FOR_DECLARED_OFFLINE_TRANSFER_STAGES",
+      "development_evaluation_eligible": true,
+      "runtime_benchmark_eligible": false,
+      "deployment_eligible": false,
+      "unseen_execution_eligible": "NO",
+      "recommended_runtime_use": false,
+      "known_limitations": [
+        "Reduced IDSW but degraded HOTA and IDF1.",
+        "Increased wrong-identity exposure.",
+        "Not a quality or deployment upgrade."
+      ]
+    }
+  },
+  "provenance_aliases": {
+    "B0": "bytetrack_raw current artifact label",
+    "B1": "FORENSIC_ONLY",
+    "R0": "realtime_fast provenance label",
+    "realtime": "COMPATIBILITY_ONLY alias for realtime_fast",
+    "R1": "rf_hybrid v1 provenance label",
+    "historical_h5b_h4": "hybrid_bytetrack provenance label",
+    "hybrid_bytetrack_best": "COMPATIBILITY_ONLY alias for hybrid_bytetrack",
+    "archived_historical_bytetrack_raw": "DISTINCT_HISTORICAL_ARTIFACT",
+    "standardized_b1": "FORENSIC_ONLY",
+    "hybrid_bytetrack_best_recovered": "REJECTED_RECOVERY",
+    "rf_hybrid_v2": "REJECTED_CANDIDATE",
+    "rf_native_hybrid_candidate": "REJECTED_CANDIDATE"
+  },
+  "rejected_candidates": {
+    "rf_hybrid_v2": {
+      "decision": "FAIL_RF_HYBRID_V2_MIXED_RESULT",
+      "active": false,
+      "deployment_eligible": false,
+      "unseen_execution_eligible": false
+    }
+  },
+  "evaluator_contract": {
+    "tracking_evaluator": "TRACKING_EVALUATOR_STANDARD_V2",
+    "identity_episode_evaluator": "IDENTITY_ERROR_EPISODES_V2",
+    "include_hidden": true,
+    "hota_thresholds": [
+      0.05,
+      0.10,
+      0.15,
+      0.20,
+      0.25,
+      0.30,
+      0.35,
+      0.40,
+      0.45,
+      0.50,
+      0.55,
+      0.60,
+      0.65,
+      0.70,
+      0.75,
+      0.80,
+      0.85,
+      0.90,
+      0.95
+    ],
+    "pre_assignment_eligibility_gating": true,
+    "idsw_definition": "IDSW_STANDARD",
+    "unavailable_metric_encoding": "NOT_AVAILABLE"
+  },
+  "guards": {
+    "standardized_b1_active": false,
+    "symmetric_2x2_active": false,
+    "prediction_files_changed": 0,
+    "detector_output_changed": false,
+    "tracker_output_changed": false,
+    "evaluator_mathematics_changed": false,
+    "unseen_files_accessed": 0
+  }
+}

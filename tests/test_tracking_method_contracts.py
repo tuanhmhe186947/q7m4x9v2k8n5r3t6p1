@@ -42,6 +42,10 @@ def test_method_registry_contract_is_exact_and_complete() -> None:
         assert contract.export_contract
         assert contract.artifact_authority
         assert contract.execution_authority_status
+        assert contract.canonical_version
+        assert contract.prediction_authority_path
+        assert contract.prediction_authority_hash
+        assert contract.provenance_authority_path
 
 
 def test_hybrid_stage_activation_order_matches_clean_authority() -> None:
@@ -130,11 +134,8 @@ def test_tracker_lifecycle_export_and_unseen_guards_are_explicit() -> None:
         hybrid.unseen_authorization_status
         == "DEVELOPMENT_ARTIFACT_ONLY_EXACT_RUNTIME_UNAVAILABLE"
     )
-    for contract in (realtime, rf_hybrid):
-        assert (
-            contract.unseen_authorization_status
-            == "FROZEN_PRIMARY_RQ2_UNSEEN_METHOD"
-        )
+    assert realtime.unseen_authorization_status == "PENDING_SEPARATE_PREFLIGHT"
+    assert rf_hybrid.unseen_authorization_status == "NO"
     for contract in SCIENTIFIC_METHOD_REGISTRY.values():
         assert any(
             "STATE_8_DEVELOPMENT_EVALUATION_AUTHORITY_20260729.json"
@@ -142,7 +143,6 @@ def test_tracker_lifecycle_export_and_unseen_guards_are_explicit() -> None:
             for authority in contract.artifact_authority
         )
     assert rf_hybrid.execution_authority_status == (
-        "TRANSFER_IMPLEMENTATION_CONTRACT_PASS",
         "DEVELOPMENT_EVALUATION_AUTHORITY_ESTABLISHED",
         "TRANSFER_SIGNAL_MIXED",
     )
@@ -172,8 +172,10 @@ def test_four_method_freeze_authority_matches_registry() -> None:
     )
     assert authority["ready_for_unseen_evaluation"] is True
     assert authority["guards"]["unseen_files_accessed"] == 0
-    assert authority["code_and_contract_hashes"][
+    frozen_registry_hash = authority["code_and_contract_hashes"][
         "method_registry_sha256"
-    ] == _sha256(
+    ]
+    current_registry_hash = _sha256(
         repo / "src" / "pig_behavior" / "tracking" / "method_registry.py"
     )
+    assert frozen_registry_hash != current_registry_hash

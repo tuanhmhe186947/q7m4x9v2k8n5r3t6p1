@@ -1,0 +1,71 @@
+{
+  "schema_version": "tracking.method_standardization.bytetrack_raw_resolution.v1",
+  "date": "20260730",
+  "decision": "BYTETRACK_RAW_AUTHORITY_RESOLVED",
+  "canonical_method_id": "bytetrack_raw",
+  "canonical_role": "CURRENT_EXECUTABLE_BYTETRACK_BASELINE",
+  "entry_point": "scripts/run_tracking_mode.py --mode bytetrack_raw",
+  "profile": "bytetrack_raw",
+  "profile_config_hash": "547ae86e3be26671a9a148cb0e613ea1c602a0ff842a977ce9b7f1d217c10e41",
+  "prediction_path": "outputs/tracking/frozen_predictions_standard_v2_20260728_retry1/B0_bytetrack_raw/predictions",
+  "prediction_sha256": "13d9226c36141264cc33e4b498d38e5f3eaa9891cf32bc4c8fb87b01fd27d576",
+  "detector_authority": {
+    "semantic_config_sha256": "2b50d8afa950626e2bed6b41807cb602a01a90e66baf7529fa08945d3d676ef8",
+    "detector_cache_authority_sha256": "494d17ddb9d592dcf2105fd89a7204181f99a49353614315216d30ea43716e00",
+    "weights_sha256": "6b57d95b82f8715ab7525efe7524feab6d55a50bc0376355dc7ea208ada49fed"
+  },
+  "tracker_state_lifecycle": "ONE_YOLO_TRACKER_INSTANCE_PER_VIDEO_PERSIST_TRUE_NO_CROSS_VIDEO_STATE",
+  "metric_result_path": "docs/tracking/b0_b1_r0_standard_v2/B0_BYTETRACK_RAW_STANDARD_V2_AUTHORITY_20260728.json",
+  "evaluator": {
+    "id": "TRACKING_EVALUATOR_STANDARD_V2",
+    "code_authority": "398b6ec58f5d912083d3a55469a3e31acc713367",
+    "config_sha256": "96630ebd6d610928f11e5422633e0247c76f8fb082568bf515e20ee30d5cda9f"
+  },
+  "ground_truth": {
+    "authority_sha256": "675cf37c4f924e391ffa457ba6c6e9453b967af318f37ecd2bc1ab1190a1d9dd",
+    "population_manifest_sha256": "91289c9acb40958e59c17e98872714904f8df7e4c49682a4649e7fcc84bab9be"
+  },
+  "execution_authority_status": "ESTABLISHED",
+  "active_metrics": {
+    "HOTA": 0.8495114026998035,
+    "DetA": 0.899665397523998,
+    "AssA": 0.8027308861489667,
+    "LocA": 0.9205883882177472,
+    "IDF1": 0.9206463675213675,
+    "IDP": 0.9206463675213675,
+    "IDR": 0.9206463675213675,
+    "IDSW_STANDARD": 84,
+    "FP": 480,
+    "FN": 480,
+    "fragments": 141,
+    "wrong_identity_frames": 31846,
+    "wrong_identity_seconds": 1061.5333333330252,
+    "recovered_identity_episodes": 45,
+    "terminal_identity_episodes": 27,
+    "persistent_pairwise_swaps": 10
+  },
+  "older_artifacts": [
+    {
+      "provenance_alias": "archived_historical_bytetrack_raw",
+      "prediction_sha256": "f8eeca29391fd6d02019da1c76ee9045f9bdf3143a6fb856548b81e40b832e4d",
+      "metrics": {
+        "HOTA": 0.8135755795627498,
+        "IDF1": 0.8863621794871794,
+        "IDSW_STANDARD": 76
+      },
+      "relationship": "SAME_METHOD_CONCEPT_DIFFERENT_EXECUTION",
+      "artifact_class": "DISTINCT_HISTORICAL_ARTIFACT",
+      "active_method": false
+    }
+  ],
+  "resolution_evidence": [
+    "Prediction hashes differ.",
+    "Frozen Standard V2 authorities bind the current B0 metrics to the active prediction set.",
+    "The State 8 raw row is the archived historical artifact and is not the current B0 row."
+  ],
+  "policy": {
+    "expose_both_under_same_metric_row": false,
+    "archived_alias_active": false,
+    "standardized_b1_substitution_allowed": false
+  }
+}

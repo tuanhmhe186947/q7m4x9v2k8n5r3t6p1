@@ -1,0 +1,104 @@
+{
+  "schema_version": "tracking.method_standardization.runtime_protocol.v1",
+  "date": "20260730",
+  "status": "FROZEN_PROTOCOL_NOT_EXECUTED",
+  "eligible_methods": [
+    "bytetrack_raw",
+    "realtime_fast"
+  ],
+  "excluded_methods": {
+    "hybrid_bytetrack": "EXACT_NUMERICAL_RUNTIME_NOT_RECOVERED",
+    "rf_hybrid": "NOT_DEPLOYMENT_ELIGIBLE",
+    "rf_hybrid_v2": "REJECTED_CANDIDATE"
+  },
+  "hardware_identity": {
+    "machine_name": "DREAM_ENGINE",
+    "os": "Microsoft Windows NT 10.0.26200.0",
+    "processor_identifier": "Intel64 Family 6 Model 154 Stepping 3, GenuineIntel",
+    "logical_processor_count": 16,
+    "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
+    "gpu_uuid": "GPU-2063356f-df73-3bd0-5102-8c2891621cdb",
+    "gpu_memory_mib": 4096,
+    "driver_version": "610.62",
+    "cuda_umd_version": "13.3",
+    "gpu_compute_capability": "8.6",
+    "inventory_time_policy": "RECORD_AGAIN_IMMEDIATELY_BEFORE_EACH_PAIRED_BLOCK"
+  },
+  "input_contract": {
+    "population": "FROZEN_13_VIDEO_DEVELOPMENT_POPULATION",
+    "video_keys": [
+      "Pigs281119_000085_30fps",
+      "Pigs281119_000114_30fps",
+      "Pigs291119_000216_30fps",
+      "Pigs291119_000225_30fps",
+      "Pigs291119_000226_30fps",
+      "Pigs291119_000231_30fps",
+      "Pigs291119_000233_30fps",
+      "Pigs291119_000263_30fps",
+      "Pigs291119_000302_30fps",
+      "Pigs301119_000327_30fps",
+      "Pigs301119_000328_30fps",
+      "Pigs301119_000329_30fps",
+      "Pigs301119_000330_30fps"
+    ],
+    "resolution": "1280x720",
+    "frames_per_video": 1800,
+    "frames_per_second": 30,
+    "total_frame_count": 23400,
+    "video_order": "LEXICOGRAPHIC_VIDEO_KEY",
+    "input_video_hash_authority": "docs/tracking/reconciliation/STATE_8_DEVELOPMENT_EVALUATION_AUTHORITY_20260729.json"
+  },
+  "measurement_protocol": {
+    "paired_block_order": [
+      "bytetrack_raw",
+      "realtime_fast"
+    ],
+    "warm_up_count": 1,
+    "repeat_count": 3,
+    "concurrent_gpu_workload_policy": "FORBIDDEN",
+    "power_policy": "FIXED_AC_POWER_PROFILE_RECORDED",
+    "io_inclusion_policy": "INCLUDE_VIDEO_DECODE_AND_FINAL_EXPORT_IN_END_TO_END_ONLY",
+    "video_decoding_policy": "METHOD_NATIVE_FROZEN_DECODE_PATH",
+    "cache_policy": "NO_DETECTOR_CACHE_SUBSTITUTION_FOR_LIVE_METHOD_RUNTIME",
+    "synchronization": "CUDA_SYNCHRONIZE_AT_EACH_GPU_TIMING_BOUNDARY",
+    "latency_measurement_points": [
+      "AFTER_FRAME_DECODE",
+      "AFTER_DETECTOR",
+      "AFTER_TRACKING_OR_ASSOCIATION",
+      "AFTER_EXPORT",
+      "END_OF_VIDEO"
+    ],
+    "detector_latency": "PER_DETECTOR_INVOCATION_WALL_TIME",
+    "tracking_association_latency": "PER_FRAME_TRACKER_OR_ASSOCIATION_WALL_TIME",
+    "end_to_end_latency": "VIDEO_OPEN_THROUGH_FINAL_EXPORT",
+    "end_to_end_fps": "TOTAL_FRAMES_DIVIDED_BY_END_TO_END_SECONDS",
+    "memory_measurement_method": [
+      "NVIDIA_SMI_PEAK_PROCESS_GPU_MEMORY",
+      "TORCH_CUDA_MAX_MEMORY_ALLOCATED_WHEN_APPLICABLE",
+      "PROCESS_PEAK_WORKING_SET"
+    ],
+    "aggregation_method": {
+      "primary": "MEDIAN_ACROSS_THREE_COMPLETE_REPEATS",
+      "dispersion": "IQR_AND_MIN_MAX",
+      "per_frame_latency": "MEDIAN_P50_P95",
+      "per_video": true,
+      "aggregate": true
+    }
+  },
+  "required_reporting_fields": [
+    "method_id",
+    "canonical_version",
+    "config_hash",
+    "hardware_inventory_hash",
+    "detector_latency_ms",
+    "tracking_association_latency_ms",
+    "end_to_end_latency_seconds",
+    "end_to_end_fps",
+    "peak_gpu_memory_mib",
+    "median",
+    "dispersion",
+    "causal_policy",
+    "future_frame_policy"
+  ],
+  "execution_in_this_task": false
+}

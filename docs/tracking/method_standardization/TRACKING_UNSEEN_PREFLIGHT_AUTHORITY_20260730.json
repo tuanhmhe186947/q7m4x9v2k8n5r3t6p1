@@ -1,0 +1,58 @@
+{
+  "schema_version": "tracking.method_standardization.unseen_preflight.v1",
+  "date": "20260730",
+  "status": "PREFLIGHT_CONTRACT_COMPLETE_UNSEEN_STILL_CLOSED",
+  "primary_pair": [
+    "bytetrack_raw",
+    "realtime_fast"
+  ],
+  "checks": {
+    "BYTETRACK_RAW_EXECUTION_AUTHORITY_FROZEN": "PASS",
+    "REALTIME_FAST_EXECUTION_AUTHORITY_FROZEN": "PASS",
+    "METHOD_CONFIG_HASHES_FROZEN": "PASS",
+    "PREDICTION_EXPORT_CONTRACT_FROZEN": "PASS",
+    "STANDARD_V2_EVALUATOR_FROZEN": "PASS",
+    "GT_CONTRACT_FROZEN": "PASS",
+    "RUNTIME_PROTOCOL_FROZEN": "PASS",
+    "UNSEEN_FILES_PREVIOUSLY_ACCESSED": 0,
+    "POST_UNSEEN_CHANGE_POLICY_DEFINED": "PASS",
+    "FAILURE_HANDLING_POLICY_DEFINED": "PASS"
+  },
+  "method_config_hashes": {
+    "bytetrack_raw": "547ae86e3be26671a9a148cb0e613ea1c602a0ff842a977ce9b7f1d217c10e41",
+    "realtime_fast": "9bf4ce6d07423ab517b4705c716e3eb012349b756b7c0591cc3458eac207808d"
+  },
+  "prediction_export_contract": "DETERMINISTIC_PROJECT_JSON_COCO_AND_CVAT_VIDEO_XML",
+  "evaluator_contract": {
+    "tracking_evaluator": "TRACKING_EVALUATOR_STANDARD_V2",
+    "identity_episode_evaluator": "IDENTITY_ERROR_EPISODES_V2",
+    "include_hidden": true,
+    "HOTA_threshold_count": 19,
+    "IDSW_definition": "IDSW_STANDARD"
+  },
+  "GT_contract": {
+    "development_GT_hash": "675cf37c4f924e391ffa457ba6c6e9453b967af318f37ecd2bc1ab1190a1d9dd",
+    "unseen_GT_open_policy": "OPEN_ONLY_AFTER_SEPARATE_FREEZE_AUTHORITY",
+    "GT_use_in_tracking": "FORBIDDEN"
+  },
+  "runtime_protocol_path": "docs/tracking/method_standardization/TRACKING_RUNTIME_BENCHMARK_PROTOCOL_20260730.json",
+  "runtime_protocol_sha256": "444cbfed0660610a376483f0b7d87c77b683824ea4ed1c4ae9a1b8218fe7954f",
+  "post_unseen_change_policy": [
+    "No code, config, threshold, stage-set, profile, or evaluator change after unseen access.",
+    "All outcomes are reported without development retuning.",
+    "Any implementation-contract failure is documented and does not authorize scientific retuning."
+  ],
+  "failure_handling_policy": [
+    "Stop on input, hash, export, or evaluator contract mismatch.",
+    "Preserve failure evidence without interpreting metrics.",
+    "Require a new independent freeze task before any corrected unseen execution."
+  ],
+  "excluded_from_unseen_execution": [
+    "hybrid_bytetrack",
+    "rf_hybrid",
+    "rf_hybrid_v2"
+  ],
+  "READY_FOR_SEPARATE_UNSEEN_FREEZE_TASK": "YES",
+  "UNSEEN_EVALUATION_AUTHORIZED_IN_THIS_TASK": "NO",
+  "UNSEEN_FILES_ACCESSED": 0
+}

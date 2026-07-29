@@ -1,0 +1,118 @@
+{
+  "schema_version": "tracking.method_standardization.inventory.v1",
+  "date": "20260730",
+  "starting_main_sha": "b0e55b18c0cc26cd19006fc56a220cd00ae7cead",
+  "scope": "AUTHORITY_NAMING_EVALUATION_REPORTING_ONLY",
+  "active_methods": [
+    "bytetrack_raw",
+    "hybrid_bytetrack",
+    "realtime_fast",
+    "rf_hybrid"
+  ],
+  "items": [
+    {
+      "id": "method_registry",
+      "path": "src/pig_behavior/tracking/method_registry.py",
+      "classification": "ACTIVE_METHOD",
+      "status": "four canonical IDs only"
+    },
+    {
+      "id": "bytetrack_raw_current_b0",
+      "path": "outputs/tracking/frozen_predictions_standard_v2_20260728_retry1/B0_bytetrack_raw/predictions",
+      "classification": "ACTIVE_PREDICTION_AUTHORITY",
+      "prediction_hash": "13d9226c36141264cc33e4b498d38e5f3eaa9891cf32bc4c8fb87b01fd27d576",
+      "metrics": {
+        "HOTA": 0.8495114026998035,
+        "IDF1": 0.9206463675213675,
+        "IDSW_STANDARD": 84,
+        "wrong_identity_frames": 31846
+      }
+    },
+    {
+      "id": "bytetrack_raw_archived",
+      "path": "docs/tracking/three_mode_historical_reconstruction/B0_HISTORICAL_RECONSTRUCTION_AUTHORITY_20260729.json",
+      "classification": "HISTORICAL_ARTIFACT_AUTHORITY",
+      "prediction_hash": "f8eeca29391fd6d02019da1c76ee9045f9bdf3143a6fb856548b81e40b832e4d",
+      "alias": "archived_historical_bytetrack_raw"
+    },
+    {
+      "id": "hybrid_bytetrack_historical",
+      "path": "outputs/tracking/historical_h5b_h4_frozen_predictions_20260728/predictions",
+      "classification": "HISTORICAL_ARTIFACT_AUTHORITY",
+      "prediction_hash": "36c3bdd3f6d92c0c5336590dbf4c8822402d718ec47df2b137cef862339d5b8a",
+      "source_sha": "31d360ba96b4065ce5125c0d88765531cc5898ae",
+      "metrics": {
+        "HOTA": 0.9002906560906596,
+        "IDF1": 0.9915010683760683,
+        "IDSW_STANDARD": 0,
+        "wrong_identity_frames": 24
+      }
+    },
+    {
+      "id": "realtime_fast",
+      "path": "outputs/tracking/current_main_baseline_20260728/predictions",
+      "classification": "ACTIVE_PREDICTION_AUTHORITY",
+      "prediction_hash": "fd2d4f3dec0710d1c9eecba9308247a7b226dd34a4a02a9cb89f17acb22bbbfe",
+      "metrics": {
+        "HOTA": 0.8881872315857098,
+        "IDF1": 0.9718924002607702,
+        "IDSW_STANDARD": 29,
+        "wrong_identity_frames": 11893
+      }
+    },
+    {
+      "id": "rf_hybrid_v1",
+      "path": "outputs/tracking/reconciliation_state8_development_20260729_run2",
+      "classification": "ACTIVE_PREDICTION_AUTHORITY",
+      "version": "v1",
+      "metrics": {
+        "HOTA": 0.878280776077832,
+        "IDF1": 0.9578813495922794,
+        "IDSW_STANDARD": 18,
+        "wrong_identity_frames": 14515
+      }
+    },
+    {
+      "id": "rf_hybrid_v2",
+      "path": "outputs/tracking/rf_hybrid_v2_development_20260730_run2",
+      "classification": "REJECTED_CANDIDATE",
+      "decision": "FAIL_RF_HYBRID_V2_MIXED_RESULT"
+    },
+    {
+      "id": "standardized_b1",
+      "path": "outputs/tracking/frozen_predictions_standard_v2_20260728_retry1/B1_hybrid_bytetrack",
+      "classification": "FORENSIC_ONLY",
+      "active_method": false
+    },
+    {
+      "id": "standard_v2",
+      "path": "src/pig_behavior/evaluation/tracking",
+      "classification": "EVALUATOR_AUTHORITY",
+      "evaluator": "TRACKING_EVALUATOR_STANDARD_V2",
+      "identity_episode_evaluator": "IDENTITY_ERROR_EPISODES_V2",
+      "include_hidden": true,
+      "hota_thresholds": "0.05..0.95 inclusive, 19 thresholds",
+      "idsw_definition": "IDSW_STANDARD"
+    },
+    {
+      "id": "unseen_lock",
+      "path": "docs/tracking/reconciliation/FOUR_METHOD_TRACKING_FREEZE_AUTHORITY_20260729.json",
+      "classification": "UNSEEN_LOCK",
+      "unseen_files_accessed": 0
+    },
+    {
+      "id": "classification_v2_changes",
+      "path": "scripts/classification_v2 and tests/test_classification_v2_*",
+      "classification": "UNRELATED_PROTECTED"
+    }
+  ],
+  "guards": {
+    "prediction_files_changed": 0,
+    "detector_output_changed": false,
+    "tracker_output_changed": false,
+    "unseen_files_accessed": 0,
+    "post_result_parameter_tuning": 0,
+    "per_video_overrides": 0,
+    "current_b1_used": false
+  }
+}

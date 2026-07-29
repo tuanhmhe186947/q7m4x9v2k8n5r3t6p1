@@ -17,22 +17,46 @@ class TrackingMethodContract:
     """Immutable scientific identity and execution contract for one method."""
 
     method_id: str
+    canonical_version: str
     scientific_role: str
+    scientific_status: str
+    prediction_authority_type: str
+    prediction_authority_path: str
+    prediction_authority_hash: str
+    execution_authority_status: tuple[str, ...]
     entry_point: str
     detector_contract: str
     tracker_contract: str
     state_lifecycle: str
     future_frame_policy: str
+    causal: bool
+    development_evaluation_eligible: bool
+    runtime_benchmark_eligible: bool
+    deployment_eligible: bool
+    unseen_execution_eligible: str
+    recommended_runtime_use: str
+    known_limitations: tuple[str, ...]
+    provenance_authority_path: str
     stage_graph: tuple[str, ...]
     export_contract: str
     artifact_authority: tuple[str, ...]
-    execution_authority_status: tuple[str, ...]
     unseen_authorization_status: str
 
 
 _BYTETRACK_RAW = TrackingMethodContract(
     method_id="bytetrack_raw",
-    scientific_role="ORIGINAL_BASELINE",
+    canonical_version="current_b0",
+    scientific_role="CURRENT_EXECUTABLE_BYTETRACK_BASELINE",
+    scientific_status="ACTIVE_EXECUTABLE_BASELINE",
+    prediction_authority_type="FROZEN_EXECUTABLE_PREDICTION_SET",
+    prediction_authority_path=(
+        "outputs/tracking/frozen_predictions_standard_v2_20260728_retry1/"
+        "B0_bytetrack_raw/predictions"
+    ),
+    prediction_authority_hash=(
+        "13d9226c36141264cc33e4b498d38e5f3eaa9891cf32bc4c8fb87b01fd27d576"
+    ),
+    execution_authority_status=("ESTABLISHED",),
     entry_point="scripts/run_tracking_mode.py --mode bytetrack_raw",
     detector_contract=(
         "LIVE_YOLO_TRACK; per-frame detector input; profile-bound confidence "
@@ -47,6 +71,21 @@ _BYTETRACK_RAW = TrackingMethodContract(
         "no cross-video state"
     ),
     future_frame_policy="NONE",
+    causal=True,
+    development_evaluation_eligible=True,
+    runtime_benchmark_eligible=True,
+    deployment_eligible=True,
+    unseen_execution_eligible="PENDING_SEPARATE_PREFLIGHT",
+    recommended_runtime_use="YES",
+    known_limitations=(
+        "Current executable baseline is not identical to the archived "
+        "historical raw artifact.",
+        "Complete-method comparisons include detector and producer semantics.",
+    ),
+    provenance_authority_path=(
+        "docs/tracking/method_standardization/"
+        "BYTETRACK_RAW_AUTHORITY_RESOLUTION_20260730.json"
+    ),
     stage_graph=(
         "VIDEO_DECODE",
         "LIVE_YOLO_TRACK",
@@ -63,13 +102,27 @@ _BYTETRACK_RAW = TrackingMethodContract(
         "docs/tracking/reconciliation/"
         "STATE_8_DEVELOPMENT_EVALUATION_AUTHORITY_20260729.json",
     ),
-    execution_authority_status=("EXECUTABLE_DEVELOPMENT_BASELINE",),
     unseen_authorization_status="DEVELOPMENT_ONLY_NOT_PRIMARY_RQ2_UNSEEN",
 )
 
 _HYBRID_BYTETRACK = TrackingMethodContract(
     method_id="hybrid_bytetrack",
-    scientific_role="COMPLETE_OPTIMIZED_OFFLINE_METHOD",
+    canonical_version="historical_h5b_h4_final",
+    scientific_role="HISTORICAL_OFFLINE_DEVELOPMENT_CHAMPION",
+    scientific_status="HISTORICAL_ARTIFACT_AUTHORITY_ESTABLISHED",
+    prediction_authority_type="SURVIVING_HISTORICAL_FINAL_XML_SET",
+    prediction_authority_path=(
+        "outputs/tracking/historical_h5b_h4_frozen_predictions_20260728/"
+        "predictions"
+    ),
+    prediction_authority_hash=(
+        "36c3bdd3f6d92c0c5336590dbf4c8822402d718ec47df2b137cef862339d5b8a"
+    ),
+    execution_authority_status=(
+        "HISTORICAL_ARTIFACT_AUTHORITY_ESTABLISHED",
+        "ALGORITHMIC_LINEAGE_RECOVERED",
+        "EXACT_NUMERICAL_RUNTIME_NOT_RECOVERED",
+    ),
     entry_point="scripts/run_tracking_mode.py --mode hybrid_bytetrack",
     detector_contract=(
         "HISTORICAL_LIVE_YOLO_TRACK; det_conf=0.20; max_raw_detections=64; "
@@ -85,6 +138,21 @@ _HYBRID_BYTETRACK = TrackingMethodContract(
         "post-video accepted stages may use future frames; no cross-video state"
     ),
     future_frame_policy="POST_VIDEO_ALLOWED_BY_ACCEPTED_LINEAGE_ONLY",
+    causal=False,
+    development_evaluation_eligible=True,
+    runtime_benchmark_eligible=False,
+    deployment_eligible=False,
+    unseen_execution_eligible="NO",
+    recommended_runtime_use="NO",
+    known_limitations=(
+        "Exact numerical historical runtime is not recovered.",
+        "Surviving final XMLs are the development prediction authority.",
+        "Must not be represented by standardized B1 predictions.",
+    ),
+    provenance_authority_path=(
+        "docs/tracking/method_standardization/"
+        "CANONICAL_TRACKING_METHOD_AUTHORITY_20260730.json"
+    ),
     stage_graph=(
         "LIVE_YOLO_TRACK",
         "BYTETRACK_PERSISTENT_STATE",
@@ -120,11 +188,6 @@ _HYBRID_BYTETRACK = TrackingMethodContract(
         "docs/tracking/reconciliation/"
         "STATE_8_DEVELOPMENT_EVALUATION_AUTHORITY_20260729.json",
     ),
-    execution_authority_status=(
-        "HISTORICAL_ARTIFACT_AUTHORITY_ESTABLISHED",
-        "ALGORITHMIC_LINEAGE_RECOVERED",
-        "EXACT_NUMERICAL_RUNTIME_NOT_RECOVERED",
-    ),
     unseen_authorization_status=(
         "DEVELOPMENT_ARTIFACT_ONLY_EXACT_RUNTIME_UNAVAILABLE"
     ),
@@ -132,7 +195,17 @@ _HYBRID_BYTETRACK = TrackingMethodContract(
 
 _REALTIME_FAST = TrackingMethodContract(
     method_id="realtime_fast",
-    scientific_role="CAUSAL_REALTIME_METHOD",
+    canonical_version="v1",
+    scientific_role="FROZEN_CAUSAL_REALTIME_PRIMARY",
+    scientific_status="FROZEN_CAUSAL_REALTIME_PRIMARY",
+    prediction_authority_type="FROZEN_EXECUTABLE_PREDICTION_SET",
+    prediction_authority_path=(
+        "outputs/tracking/current_main_baseline_20260728/predictions"
+    ),
+    prediction_authority_hash=(
+        "fd2d4f3dec0710d1c9eecba9308247a7b226dd34a4a02a9cb89f17acb22bbbfe"
+    ),
+    execution_authority_status=("ESTABLISHED",),
     entry_point="scripts/run_tracking_mode.py --mode realtime_fast",
     detector_contract=(
         "profile-bound YOLO predict cadence; detect_every_n_frames=2; "
@@ -147,6 +220,20 @@ _REALTIME_FAST = TrackingMethodContract(
         "prediction; no future-frame or cross-video state"
     ),
     future_frame_policy="CAUSAL_ZERO_DELAY",
+    causal=True,
+    development_evaluation_eligible=True,
+    runtime_benchmark_eligible=True,
+    deployment_eligible=True,
+    unseen_execution_eligible="PENDING_SEPARATE_PREFLIGHT",
+    recommended_runtime_use="YES",
+    known_limitations=(
+        "Development authority is frozen on the 13-video population.",
+        "Unseen execution requires a separate preflight freeze.",
+    ),
+    provenance_authority_path=(
+        "docs/tracking/method_standardization/"
+        "CANONICAL_TRACKING_METHOD_AUTHORITY_20260730.json"
+    ),
     stage_graph=(
         "VIDEO_DECODE",
         "CADENCED_YOLO_PREDICT",
@@ -163,16 +250,26 @@ _REALTIME_FAST = TrackingMethodContract(
         "docs/tracking/reconciliation/"
         "STATE_8_DEVELOPMENT_EVALUATION_AUTHORITY_20260729.json",
     ),
-    execution_authority_status=(
-        "FROZEN_CAUSAL_EXECUTION_CONTRACT",
-        "DEVELOPMENT_STANDARD_V2_AUTHORITY_ESTABLISHED",
-    ),
-    unseen_authorization_status="FROZEN_PRIMARY_RQ2_UNSEEN_METHOD",
+    unseen_authorization_status="PENDING_SEPARATE_PREFLIGHT",
 )
 
 _RF_HYBRID = TrackingMethodContract(
     method_id="rf_hybrid",
-    scientific_role="HYBRID_MECHANISM_TRANSFER_EXPERIMENT",
+    canonical_version="v1",
+    scientific_role="FROZEN_MIXED_TRANSFER_ABLATION",
+    scientific_status="FROZEN_MIXED_TRANSFER_ABLATION",
+    prediction_authority_type="FROZEN_DEVELOPMENT_ABLATION_PREDICTIONS",
+    prediction_authority_path=(
+        "outputs/tracking/reconciliation_state8_development_20260729_run2/"
+        "predictions/rf_hybrid"
+    ),
+    prediction_authority_hash=(
+        "8ecf2a42bedced243232dbf8c537d1177c0abed77bb43dfa74c117185d2e528e"
+    ),
+    execution_authority_status=(
+        "DEVELOPMENT_EVALUATION_AUTHORITY_ESTABLISHED",
+        "TRANSFER_SIGNAL_MIXED",
+    ),
     entry_point="scripts/run_tracking_mode.py --mode rf_hybrid",
     detector_contract=(
         "identical realtime_fast detector evidence and cadence; no detector "
@@ -189,6 +286,22 @@ _RF_HYBRID = TrackingMethodContract(
     ),
     future_frame_policy=(
         "POST_VIDEO_ALLOWED_FOR_DECLARED_OFFLINE_TRANSFER_STAGES"
+    ),
+    causal=False,
+    development_evaluation_eligible=True,
+    runtime_benchmark_eligible=False,
+    deployment_eligible=False,
+    unseen_execution_eligible="NO",
+    recommended_runtime_use="NO",
+    known_limitations=(
+        "Mixed transfer result: lower IDSW but worse HOTA, IDF1, and "
+        "wrong-identity exposure than realtime_fast.",
+        "Not a quality or deployment upgrade.",
+        "rf_hybrid v2 is a rejected provenance-only candidate.",
+    ),
+    provenance_authority_path=(
+        "docs/tracking/method_standardization/"
+        "CANONICAL_TRACKING_METHOD_AUTHORITY_20260730.json"
     ),
     stage_graph=(
         "CADENCED_YOLO_PREDICT",
@@ -218,12 +331,7 @@ _RF_HYBRID = TrackingMethodContract(
         "docs/tracking/reconciliation/"
         "STATE_8_DEVELOPMENT_EVALUATION_AUTHORITY_20260729.json",
     ),
-    execution_authority_status=(
-        "TRANSFER_IMPLEMENTATION_CONTRACT_PASS",
-        "DEVELOPMENT_EVALUATION_AUTHORITY_ESTABLISHED",
-        "TRANSFER_SIGNAL_MIXED",
-    ),
-    unseen_authorization_status="FROZEN_PRIMARY_RQ2_UNSEEN_METHOD",
+    unseen_authorization_status="NO",
 )
 
 SCIENTIFIC_METHOD_REGISTRY: Mapping[str, TrackingMethodContract] = (
@@ -242,6 +350,81 @@ SCIENTIFIC_METHOD_REGISTRY: Mapping[str, TrackingMethodContract] = (
 
 ACTIVE_SCIENTIFIC_METHOD_IDS = tuple(SCIENTIFIC_METHOD_REGISTRY)
 
+PROVENANCE_ALIASES: Mapping[str, Mapping[str, str]] = MappingProxyType(
+    {
+        "B0": MappingProxyType(
+            {"kind": "PROVENANCE_ALIAS", "canonical_method_id": "bytetrack_raw"}
+        ),
+        "B1": MappingProxyType(
+            {"kind": "FORENSIC_ONLY", "canonical_method_id": ""}
+        ),
+        "R0": MappingProxyType(
+            {"kind": "PROVENANCE_ALIAS", "canonical_method_id": "realtime_fast"}
+        ),
+        "realtime": MappingProxyType(
+            {"kind": "COMPATIBILITY_ONLY", "canonical_method_id": "realtime_fast"}
+        ),
+        "R1": MappingProxyType(
+            {"kind": "PROVENANCE_ALIAS", "canonical_method_id": "rf_hybrid"}
+        ),
+        "historical_h5b_h4": MappingProxyType(
+            {"kind": "PROVENANCE_ALIAS", "canonical_method_id": "hybrid_bytetrack"}
+        ),
+        "hybrid_bytetrack_best": MappingProxyType(
+            {"kind": "COMPATIBILITY_ONLY", "canonical_method_id": "hybrid_bytetrack"}
+        ),
+        "archived_historical_bytetrack_raw": MappingProxyType(
+            {"kind": "HISTORICAL_ARTIFACT", "canonical_method_id": ""}
+        ),
+        "standardized_b1": MappingProxyType(
+            {"kind": "FORENSIC_ONLY", "canonical_method_id": ""}
+        ),
+        "hybrid_bytetrack_best_recovered": MappingProxyType(
+            {"kind": "REJECTED_CANDIDATE", "canonical_method_id": ""}
+        ),
+        "rf_hybrid_v2": MappingProxyType(
+            {"kind": "REJECTED_CANDIDATE", "canonical_method_id": ""}
+        ),
+        "rf_native_hybrid_candidate": MappingProxyType(
+            {"kind": "REJECTED_CANDIDATE", "canonical_method_id": ""}
+        ),
+    }
+)
+
+_FORBIDDEN_ACTIVE_IDS = frozenset(PROVENANCE_ALIASES)
+
+
+def validate_method_registry() -> None:
+    """Raise ``ValueError`` when active method identity is contaminated."""
+
+    expected = (
+        "bytetrack_raw",
+        "hybrid_bytetrack",
+        "realtime_fast",
+        "rf_hybrid",
+    )
+    if ACTIVE_SCIENTIFIC_METHOD_IDS != expected:
+        raise ValueError("active scientific method IDs are not canonical")
+    if _FORBIDDEN_ACTIVE_IDS.intersection(SCIENTIFIC_METHOD_REGISTRY):
+        raise ValueError("provenance alias exposed as active method")
+    for contract in SCIENTIFIC_METHOD_REGISTRY.values():
+        required = (
+            contract.method_id,
+            contract.canonical_version,
+            contract.scientific_role,
+            contract.scientific_status,
+            contract.prediction_authority_type,
+            contract.prediction_authority_path,
+            contract.prediction_authority_hash,
+            contract.execution_authority_status,
+            contract.provenance_authority_path,
+        )
+        if not all(required):
+            raise ValueError(f"incomplete authority metadata: {contract.method_id}")
+
+
+validate_method_registry()
+
 
 def get_scientific_method(method_id: str) -> TrackingMethodContract:
     """Return one canonical scientific method contract."""
@@ -251,7 +434,9 @@ def get_scientific_method(method_id: str) -> TrackingMethodContract:
 
 __all__ = [
     "ACTIVE_SCIENTIFIC_METHOD_IDS",
+    "PROVENANCE_ALIASES",
     "SCIENTIFIC_METHOD_REGISTRY",
     "TrackingMethodContract",
     "get_scientific_method",
+    "validate_method_registry",
 ]
