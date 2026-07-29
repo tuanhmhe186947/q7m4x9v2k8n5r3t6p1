@@ -38,6 +38,9 @@ BEHAVIOR_SHORTCUTS = {
 TEXT_INPUT_WIDGET_CLASSES = frozenset(
     {"Entry", "TEntry", "Text", "TCombobox", "Spinbox", "TSpinbox"}
 )
+LEGACY_SOURCE_TYPE = "legacy_recovered"
+LEGACY_DECISION_TARGET_FRAME_COUNT = 16
+LEGACY_DECISION_TARGET_HEADING = "DECISION TARGET — ALL 16 FRAMES"
 
 
 def derive_training_fields(
@@ -136,6 +139,63 @@ def decision_scope_complete(
     """Require exactly one actor row for every target frame."""
 
     return sorted(observed_frames) == decision_scope_frames(unit)
+
+
+def legacy_noninteraction_scope_errors(unit: pd.Series) -> list[str]:
+    """Validate the immutable 16-frame legacy behavior-decision scope."""
+
+    if str(unit.get("source_type", "")).strip() != LEGACY_SOURCE_TYPE:
+        return []
+
+    raw_tokens = [
+        token.strip()
+        for token in str(unit.get("display_frame_indices", "")).split(",")
+        if token.strip()
+    ]
+    target_frames: list[int] = []
+    invalid_tokens: list[str] = []
+    for token in raw_tokens:
+        try:
+            target_frames.append(int(float(token)))
+        except (TypeError, ValueError):
+            invalid_tokens.append(token)
+
+    errors: list[str] = []
+    if invalid_tokens:
+        errors.append("invalid_target_frame_indices")
+    if len(target_frames) != LEGACY_DECISION_TARGET_FRAME_COUNT:
+        errors.append(
+            "target_frame_count="
+            f"{len(target_frames)} expected={LEGACY_DECISION_TARGET_FRAME_COUNT}"
+        )
+    duplicate_count = len(target_frames) - len(set(target_frames))
+    if duplicate_count:
+        errors.append(f"duplicate_target_frame_indices={duplicate_count}")
+    if target_frames != sorted(target_frames):
+        errors.append("target_frame_order_not_chronological")
+
+    if target_frames:
+        try:
+            expected_frames = list(
+                range(
+                    int(unit["unit_start_frame"]),
+                    int(unit["unit_end_frame"]) + 1,
+                )
+            )
+        except (KeyError, TypeError, ValueError):
+            errors.append("invalid_legacy_unit_bounds")
+        else:
+            if target_frames != expected_frames:
+                errors.append("target_frames_do_not_match_native_unit_bounds")
+    return errors
+
+
+def review_scope_heading(unit: pd.Series) -> str:
+    """Return the visible source-specific behavior-decision scope heading."""
+
+    if str(unit.get("source_type", "")).strip() == LEGACY_SOURCE_TYPE:
+        return LEGACY_DECISION_TARGET_HEADING
+    return ""
 
 
 def _display_text(value: object) -> str:
@@ -363,6 +423,21 @@ class ReviewUnitGui:
             )
         if self.config.source_type:
             df = df[df["source_type"].astype(str).eq(self.config.source_type)].copy()
+        legacy_scope_errors: list[str] = []
+        legacy_units = df[
+            df["source_type"].astype(str).eq(LEGACY_SOURCE_TYPE)
+        ]
+        for _, unit in legacy_units.iterrows():
+            unit_errors = legacy_noninteraction_scope_errors(unit)
+            legacy_scope_errors.extend(
+                f"{unit.get('review_unit_id', '')}: {error}"
+                for error in unit_errors
+            )
+        if legacy_scope_errors:
+            raise SystemExit(
+                "Legacy non-interaction target scope failed: "
+                + "; ".join(legacy_scope_errors[:20])
+            )
         if "review_priority" in df.columns:
             df = df.sort_values(["review_priority"], ascending=False)
         if self.config.max_items is not None and self.config.max_items > 0:
@@ -760,6 +835,8 @@ class ReviewUnitGui:
             )
             image.save(output_path, quality=92)
 
+        scope_heading = review_scope_heading(unit)
+        scope_suffix = f" · {scope_heading}" if scope_heading else ""
         self.header.set(
             f"{self.current + 1}/{len(self.units)} · "
             f"đã quyết định {self._completed_count()} · "
@@ -768,6 +845,7 @@ class ReviewUnitGui:
             f"{unit.get('source_type')} · "
             f"frames {unit.get('unit_start_frame')}–"
             f"{unit.get('unit_end_frame')}"
+            f"{scope_suffix}"
         )
 
         self.summary_text.configure(state="normal")
@@ -892,6 +970,8 @@ class ReviewUnitGui:
         return self._parse_frame_indices(unit.get("display_frame_indices", ""))
 
     def _history_display_frames(self, unit: pd.Series) -> list[int]:
+        if str(unit.get("source_type", "")).strip() == LEGACY_SOURCE_TYPE:
+            return []
         try:
             available = float(unit.get("review_pig_history_available_ratio", 0.0))
         except (TypeError, ValueError):
@@ -903,6 +983,8 @@ class ReviewUnitGui:
         )
 
     def _all_display_frames(self, unit: pd.Series) -> list[int]:
+        if str(unit.get("source_type", "")).strip() == LEGACY_SOURCE_TYPE:
+            return self._display_frames(unit)
         return list(
             dict.fromkeys(
                 self._history_display_frames(unit)
@@ -923,6 +1005,13 @@ class ReviewUnitGui:
             except Exception:
                 pass
         return list(dict.fromkeys(vals))
+
+    def _display_frame_role(self, unit: pd.Series, frame_index: int) -> str:
+        if str(unit.get("source_type", "")).strip() == LEGACY_SOURCE_TYPE:
+            return "T"
+        if frame_index in self._history_display_frames(unit):
+            return "H"
+        return "T"
 
     def _make_contact_sheet(
         self,
@@ -975,7 +1064,7 @@ class ReviewUnitGui:
             sheet.paste(thumb, (x + (tw - thumb.width) // 2, y + 22))
             draw = ImageDraw.Draw(sheet)
             draw.rectangle([x, y, x + tw - 1, y + th - 1], outline="black")
-            role = "H" if frame_idx in self._history_display_frames(unit) else "T"
+            role = self._display_frame_role(unit, frame_idx)
             label = f"{role}f{frame_idx}"
             if msg and msg != "ok":
                 label += f" | {msg[:22]}"
