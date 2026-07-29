@@ -98,7 +98,8 @@ PRESENTATION_PROFILES: dict[str, dict[str, object]] = {
         "mode": "hybrid_bytetrack",
         "eval_config": "hybrid_bytetrack_best",
         "description": (
-            "Best current hybrid profile with offline smoothing and validated ID repairs."
+            "Complete accepted historical ByteTrack-specific optimization "
+            "lineage with offline identity, Hidden, and geometry stages."
         ),
     },
 }

@@ -91,6 +91,12 @@ from pig_behavior.tracking.masks import (
     track_detection_overlap_score,
     track_mask_for_box,
 )
+from pig_behavior.tracking.method_registry import (
+    ACTIVE_SCIENTIFIC_METHOD_IDS,
+    SCIENTIFIC_METHOD_REGISTRY,
+    TrackingMethodContract,
+    get_scientific_method,
+)
 from pig_behavior.tracking.occlusion import (
     advance_split_recovery,
     apply_iou_fallback,
@@ -170,6 +176,7 @@ from pig_behavior.tracking.visualization import (
 
 __all__ = [
     "BEHAVIOR_VALUES",
+    "ACTIVE_SCIENTIFIC_METHOD_IDS",
     "DEFAULT_CONF_THRESHOLD",
     "DEFAULT_DET_CONF_THRESHOLD",
     "DEFAULT_MASK_PATH",
@@ -190,6 +197,7 @@ __all__ = [
     "SCENE_SPLIT_RECOVERY",
     "TRACKING_TELEMETRY_KEYS",
     "TRACK_COLORS_BGR",
+    "SCIENTIFIC_METHOD_REGISTRY",
     "ConflictGroup",
     "Detection",
     "FixedTrack",
@@ -198,6 +206,7 @@ __all__ = [
     "TrackingConfig",
     "TrackingRuntimeState",
     "TrackingSummary",
+    "TrackingMethodContract",
     "advance_split_recovery",
     "adaptive_confidence_filter",
     "area_log_ratio",
@@ -245,6 +254,7 @@ __all__ = [
     "frame_shapes",
     "freeze_area_occluded_track",
     "get_telemetry_summary",
+    "get_scientific_method",
     "hard_scene_decision_for_group",
     "hist_distance",
     "identity_swap_reason",

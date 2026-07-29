@@ -30,6 +30,8 @@ PRESENTATION_PROFILES: dict[str, dict[str, object]] = {
     "bytetrack_raw": {
         "mode": "bytetrack_raw",
         "eval_config": "bytetrack_raw",
-        "description": "Raw ByteTrack baseline with project-specific ID repair disabled.",
+        "description": (
+            "Original ByteTrack baseline with accepted hybrid repairs disabled."
+        ),
     },
 }

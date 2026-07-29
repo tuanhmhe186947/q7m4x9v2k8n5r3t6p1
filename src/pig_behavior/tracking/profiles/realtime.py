@@ -45,6 +45,9 @@ PRESENTATION_PROFILES: dict[str, dict[str, object]] = {
     "realtime_fast": {
         "mode": "realtime",
         "eval_config": "realtime_fast",
-        "description": "Lower-latency realtime profile with frame skipping and no delayed repair.",
+        "description": (
+            "Frozen causal realtime method with frame skipping and no "
+            "future-frame dependency."
+        ),
     },
 }

@@ -193,9 +193,7 @@ def build_quality_report(
             "video_name": video_path.name,
             "frame": frame,
             "frame_id": frame,
-            "mode": (
-                "rf_hybrid_offline" if cfg.rf_hybrid_offline else cfg.mode
-            ),
+            "mode": cfg.mode,
             "time_sec": round(frame / max(source_fps, 1e-6), 3),
             "shape_count": len(frame_shapes),
             "num_tracks": len(frame_shapes),

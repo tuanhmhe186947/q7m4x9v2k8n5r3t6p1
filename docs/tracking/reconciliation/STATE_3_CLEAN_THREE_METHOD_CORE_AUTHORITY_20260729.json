@@ -1,0 +1,65 @@
+{
+  "schema_version": "tracking.reconciliation.state3_core.v1",
+  "date": "20260729",
+  "state": "STATE_3_BUILD_CLEAN_THREE_METHOD_CORE",
+  "decision": "ACCEPT_CLEAN_THREE_METHOD_CORE_IMPLEMENTATION",
+  "base_sha": "14cc9ca4cb8ca6e61983f70a0c58c8213ae3b3e3",
+  "strategy": "CURRENT_REPAIR",
+  "last_clean_three_method_sha": "5e2b19ce5ff3a07e8ef2653389871c70c8d03d2e",
+  "active_scientific_methods": [
+    "bytetrack_raw",
+    "hybrid_bytetrack",
+    "realtime_fast"
+  ],
+  "active_registry": "src/pig_behavior/tracking/method_registry.py",
+  "method_contract_status": {
+    "bytetrack_raw": "ORIGINAL_BASELINE_BOUND",
+    "hybrid_bytetrack": [
+      "HISTORICAL_ARTIFACT_AUTHORITY_ESTABLISHED",
+      "ALGORITHMIC_LINEAGE_RECOVERED",
+      "EXACT_NUMERICAL_RUNTIME_NOT_RECOVERED"
+    ],
+    "realtime_fast": "FROZEN_CAUSAL_EXECUTION_CONTRACT"
+  },
+  "hybrid_semantics_restoration": {
+    "runner_matches_clean_base_exactly": true,
+    "runner_git_blob": "516703d08cd23d99980119253a8001aa91bdb88b",
+    "clean_base_runner_git_blob": "516703d08cd23d99980119253a8001aa91bdb88b",
+    "profile_registry_matches_clean_base_exactly": true,
+    "profile_registry_git_blob": "2d37c4af5f093dee95bc72b817e7d21afacc0fc0",
+    "clean_base_profile_registry_git_blob": "2d37c4af5f093dee95bc72b817e7d21afacc0fc0",
+    "live_yolo_track": true,
+    "persist_true": true,
+    "one_model_tracker_instance_per_video": true,
+    "explicit_post_video_stage_invocations": true,
+    "detector_cache_replay": false,
+    "current_b1_used": false
+  },
+  "removed_active_pollution": {
+    "method_id": "rf_hybrid_offline",
+    "profile_module": "src/pig_behavior/tracking/profiles/rf_hybrid_offline.py",
+    "generic_adapter": "src/pig_behavior/tracking/offline_repair.py",
+    "runner_branch_removed": true,
+    "configuration_flag_removed": true,
+    "output_alias_removed": true
+  },
+  "verification": {
+    "compileall": "PASS",
+    "scoped_tests": {
+      "command": "pytest tests/test_tracking_profiles.py tests/test_tracking_pipeline.py tests/test_tracking_no_mp4.py -q",
+      "result": "34 passed",
+      "detector_executions": 0,
+      "tracker_executions": 0
+    },
+    "default_test_surface_status": "STATE_4_MAPPING_REQUIRED",
+    "reason": "The obsolete rf_hybrid_offline forensic test is classified and handled in State 4."
+  },
+  "guards": {
+    "historical_repository_modified": false,
+    "classification_v2_modified": false,
+    "unseen_files_accessed": 0,
+    "package_variants_executed": 0,
+    "prediction_artifacts_regenerated": false
+  },
+  "next_state": "STATE_4_CLEAN_TEST_AND_TOOLING_SURFACE"
+}
