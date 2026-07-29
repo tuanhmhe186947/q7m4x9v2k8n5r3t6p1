@@ -2,6 +2,7 @@
   "schema_version": "tracking.historical_hybrid_best.lineage_recovery.v1",
   "date": "20260729",
   "starting_main_sha": "63cc4efd0d5a3c6b97a26d4079175d23a0c7db51",
+  "final_main_sha": "65f3131ce8438d4e03213567c8eb80c31bbeb2a1",
   "historical_source_sha": "31d360ba96b4065ce5125c0d88765531cc5898ae",
   "historical_run_id": "20260719_h5b_h4_full13_combined_v2",
   "historical_method_role": "FULL_ACCEPTED_HYBRID_BYTETRACK_OPTIMIZATION_LINEAGE",
