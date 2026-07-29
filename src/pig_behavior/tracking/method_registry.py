@@ -60,9 +60,11 @@ _BYTETRACK_RAW = TrackingMethodContract(
     artifact_authority=(
         "docs/tracking/three_mode_historical_reconstruction/"
         "B0_HISTORICAL_RECONSTRUCTION_AUTHORITY_20260729.json",
+        "docs/tracking/reconciliation/"
+        "STATE_8_DEVELOPMENT_EVALUATION_AUTHORITY_20260729.json",
     ),
     execution_authority_status=("EXECUTABLE_DEVELOPMENT_BASELINE",),
-    unseen_authorization_status="NOT_AUTHORIZED",
+    unseen_authorization_status="DEVELOPMENT_ONLY_NOT_PRIMARY_RQ2_UNSEEN",
 )
 
 _HYBRID_BYTETRACK = TrackingMethodContract(
@@ -115,13 +117,17 @@ _HYBRID_BYTETRACK = TrackingMethodContract(
         "docs/tracking/historical_hybrid_best_recovery/"
         "HISTORICAL_HYBRID_ACCEPTED_ALGORITHM_GRAPH_20260729.json",
         "historical final XML set: 20260719_h5b_h4_full13_combined_v2",
+        "docs/tracking/reconciliation/"
+        "STATE_8_DEVELOPMENT_EVALUATION_AUTHORITY_20260729.json",
     ),
     execution_authority_status=(
         "HISTORICAL_ARTIFACT_AUTHORITY_ESTABLISHED",
         "ALGORITHMIC_LINEAGE_RECOVERED",
         "EXACT_NUMERICAL_RUNTIME_NOT_RECOVERED",
     ),
-    unseen_authorization_status="NOT_AUTHORIZED",
+    unseen_authorization_status=(
+        "DEVELOPMENT_ARTIFACT_ONLY_EXACT_RUNTIME_UNAVAILABLE"
+    ),
 )
 
 _REALTIME_FAST = TrackingMethodContract(
@@ -154,9 +160,14 @@ _REALTIME_FAST = TrackingMethodContract(
         "docs/tracking/three_mode_historical_reconstruction/"
         "R0_HISTORICAL_RECONSTRUCTION_AUTHORITY_20260729.json",
         "docs/tracking/CURRENT_MAIN_R0_BASELINE_AUTHORITY_20260728.json",
+        "docs/tracking/reconciliation/"
+        "STATE_8_DEVELOPMENT_EVALUATION_AUTHORITY_20260729.json",
     ),
-    execution_authority_status=("FROZEN_CAUSAL_EXECUTION_CONTRACT",),
-    unseen_authorization_status="NOT_AUTHORIZED",
+    execution_authority_status=(
+        "FROZEN_CAUSAL_EXECUTION_CONTRACT",
+        "DEVELOPMENT_STANDARD_V2_AUTHORITY_ESTABLISHED",
+    ),
+    unseen_authorization_status="FROZEN_PRIMARY_RQ2_UNSEEN_METHOD",
 )
 
 _RF_HYBRID = TrackingMethodContract(
@@ -204,9 +215,15 @@ _RF_HYBRID = TrackingMethodContract(
         "RF_HYBRID_STAGE_PORTABILITY_20260729.csv",
         "docs/tracking/reconciliation/"
         "STATE_6_RF_HYBRID_PORTABILITY_AUTHORITY_20260729.json",
+        "docs/tracking/reconciliation/"
+        "STATE_8_DEVELOPMENT_EVALUATION_AUTHORITY_20260729.json",
     ),
-    execution_authority_status=("TRANSFER_IMPLEMENTATION_CONTRACT",),
-    unseen_authorization_status="NOT_AUTHORIZED",
+    execution_authority_status=(
+        "TRANSFER_IMPLEMENTATION_CONTRACT_PASS",
+        "DEVELOPMENT_EVALUATION_AUTHORITY_ESTABLISHED",
+        "TRANSFER_SIGNAL_MIXED",
+    ),
+    unseen_authorization_status="FROZEN_PRIMARY_RQ2_UNSEEN_METHOD",
 )
 
 SCIENTIFIC_METHOD_REGISTRY: Mapping[str, TrackingMethodContract] = (

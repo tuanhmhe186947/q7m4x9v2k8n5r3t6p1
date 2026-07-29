@@ -115,4 +115,27 @@ def test_tracker_lifecycle_export_and_unseen_guards_are_explicit() -> None:
     assert all("BYTETRACK" not in stage for stage in rf_hybrid.stage_graph)
     for contract in SCIENTIFIC_METHOD_REGISTRY.values():
         assert "CVAT" in contract.export_contract
-        assert contract.unseen_authorization_status == "NOT_AUTHORIZED"
+    assert (
+        raw.unseen_authorization_status
+        == "DEVELOPMENT_ONLY_NOT_PRIMARY_RQ2_UNSEEN"
+    )
+    assert (
+        hybrid.unseen_authorization_status
+        == "DEVELOPMENT_ARTIFACT_ONLY_EXACT_RUNTIME_UNAVAILABLE"
+    )
+    for contract in (realtime, rf_hybrid):
+        assert (
+            contract.unseen_authorization_status
+            == "FROZEN_PRIMARY_RQ2_UNSEEN_METHOD"
+        )
+    for contract in SCIENTIFIC_METHOD_REGISTRY.values():
+        assert any(
+            "STATE_8_DEVELOPMENT_EVALUATION_AUTHORITY_20260729.json"
+            in authority
+            for authority in contract.artifact_authority
+        )
+    assert rf_hybrid.execution_authority_status == (
+        "TRANSFER_IMPLEMENTATION_CONTRACT_PASS",
+        "DEVELOPMENT_EVALUATION_AUTHORITY_ESTABLISHED",
+        "TRANSFER_SIGNAL_MIXED",
+    )
