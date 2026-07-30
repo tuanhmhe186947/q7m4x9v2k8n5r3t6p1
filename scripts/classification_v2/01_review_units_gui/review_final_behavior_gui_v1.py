@@ -5,8 +5,12 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
+import os
+import sqlite3
 import sys
+from collections import OrderedDict
 from pathlib import Path
 from tkinter import messagebox, simpledialog
 from typing import Any
@@ -59,6 +63,9 @@ MEDIA_DISPLAY_MAX_HEIGHT = 610
 MEDIA_PANEL_RESERVED_WIDTH = 520
 MEDIA_PANEL_RESERVED_HEIGHT = 250
 FINAL_RENDERED_MEDIA_CACHE_ITEMS = 2
+FINAL_VIDEO_CAPTURE_CACHE_ITEMS = 2
+FRAME_STORE_FILENAME = ".final_behavior_frame_features.sqlite3"
+FRAME_STORE_SCHEMA_VERSION = "classification_v2.final_behavior_frame_store.v1"
 ERROR_PATTERN_CHOICES = {
     1: (
         "ROI_PROXIMITY_ONLY_FALSE_POSITIVE",
@@ -330,9 +337,11 @@ def format_review_progress(
 ) -> str:
     """Keep cursor position distinct from the total completed count."""
 
+    remaining_count = max(0, total_count - completed_count)
     return (
-        f"Vị trí danh sách: {list_position}/{total_count} · "
-        f"Hoàn tất: {completed_count}/{total_count}"
+        f"Đã hoàn tất: {completed_count}/{total_count} · "
+        f"Còn lại: {remaining_count} · "
+        f"Mục đang mở (danh sách gốc): {list_position}/{total_count}"
     )
 
 
@@ -454,7 +463,11 @@ def final_review_scene_frame_keys(
         source_type = str(unit.get("source_type", "")).strip()
         dataset_id = str(unit.get("dataset_id", "")).strip()
         video_key = str(unit.get("video_key", "")).strip()
-        for frame_index in final_display_frames(unit):
+        needed_frames = sorted(
+            set(final_display_frames(unit))
+            | set(final_playback_frames(unit))
+        )
+        for frame_index in needed_frames:
             keys.add((source_type, dataset_id, video_key, int(frame_index)))
     return keys
 
@@ -490,6 +503,182 @@ def fit_media_for_display(
     return fitted
 
 
+def _scene_frame_key_hash(
+    scene_frame_keys: set[tuple[str, str, str, int]],
+) -> str:
+    digest = hashlib.sha256()
+    for source_type, dataset_id, video_key, frame_index in sorted(
+        scene_frame_keys
+    ):
+        key = "\x1f".join(
+            (
+                source_type,
+                dataset_id,
+                video_key,
+                str(frame_index),
+            )
+        )
+        digest.update(key.encode("utf-8"))
+        digest.update(b"\n")
+    return digest.hexdigest()
+
+
+class FinalBehaviorFrameStore:
+    """Disk-backed frame rows with bounded-memory CSV indexing."""
+
+    def __init__(
+        self,
+        source_path: Path,
+        cache_path: Path,
+        *,
+        scene_frame_keys: set[tuple[str, str, str, int]],
+        chunk_rows: int = BASE.GUI_FRAME_FEATURE_CHUNK_ROWS,
+    ) -> None:
+        self.source_path = source_path.resolve()
+        self.cache_path = cache_path.resolve()
+        self.cache_path.parent.mkdir(parents=True, exist_ok=True)
+        expected = self._expected_metadata(scene_frame_keys)
+        if not self._cache_is_current(expected):
+            self._rebuild(scene_frame_keys, expected, chunk_rows)
+
+    def _expected_metadata(
+        self,
+        scene_frame_keys: set[tuple[str, str, str, int]],
+    ) -> dict[str, str]:
+        stat = self.source_path.stat()
+        return {
+            "schema_version": FRAME_STORE_SCHEMA_VERSION,
+            "source_path": str(self.source_path),
+            "source_size": str(stat.st_size),
+            "source_mtime_ns": str(stat.st_mtime_ns),
+            "scene_frame_key_count": str(len(scene_frame_keys)),
+            "scene_frame_key_hash": _scene_frame_key_hash(scene_frame_keys),
+        }
+
+    def _cache_is_current(self, expected: dict[str, str]) -> bool:
+        if not self.cache_path.is_file():
+            return False
+        connection = None
+        try:
+            connection = sqlite3.connect(self.cache_path)
+            actual = dict(
+                connection.execute(
+                    "SELECT metadata_key, metadata_value FROM metadata"
+                )
+            )
+            frames_table = connection.execute(
+                "SELECT 1 FROM sqlite_master "
+                "WHERE type = 'table' AND name = 'frames'"
+            ).fetchone()
+        except sqlite3.Error:
+            return False
+        finally:
+            if connection is not None:
+                connection.close()
+        return frames_table is not None and actual == expected
+
+    def _rebuild(
+        self,
+        scene_frame_keys: set[tuple[str, str, str, int]],
+        metadata: dict[str, str],
+        chunk_rows: int,
+    ) -> None:
+        temporary = self.cache_path.with_suffix(
+            f"{self.cache_path.suffix}.building"
+        )
+        temporary.unlink(missing_ok=True)
+        wrote_rows = False
+        connection = None
+        try:
+            connection = sqlite3.connect(temporary)
+            connection.execute("PRAGMA journal_mode = DELETE")
+            connection.execute("PRAGMA synchronous = FULL")
+            for chunk in BASE.iter_gui_frame_feature_chunks(
+                self.source_path,
+                scene_frame_keys=scene_frame_keys,
+                chunk_rows=chunk_rows,
+            ):
+                chunk.to_sql(
+                    "frames",
+                    connection,
+                    if_exists="append",
+                    index=False,
+                )
+                wrote_rows = True
+            if not wrote_rows:
+                pd.DataFrame(
+                    columns=BASE._gui_frame_usecols(self.source_path)
+                ).to_sql("frames", connection, index=False)
+            connection.execute(
+                "CREATE INDEX frame_lookup ON frames "
+                "(source_type, dataset_id, video_key, frame_index)"
+            )
+            connection.execute(
+                "CREATE TABLE metadata "
+                "(metadata_key TEXT PRIMARY KEY, metadata_value TEXT)"
+            )
+            connection.executemany(
+                "INSERT INTO metadata VALUES (?, ?)",
+                sorted(metadata.items()),
+            )
+            connection.commit()
+            connection.close()
+            connection = None
+            os.replace(temporary, self.cache_path)
+        except BaseException:
+            if connection is not None:
+                connection.close()
+            temporary.unlink(missing_ok=True)
+            raise
+
+    def query(
+        self,
+        *,
+        source_type: str,
+        dataset_id: str,
+        video_key: str,
+        frame_indices: list[int],
+    ) -> pd.DataFrame:
+        wanted = sorted(set(int(value) for value in frame_indices))
+        if not wanted:
+            connection = sqlite3.connect(self.cache_path)
+            try:
+                return pd.read_sql_query(
+                    "SELECT * FROM frames WHERE 0",
+                    connection,
+                )
+            finally:
+                connection.close()
+        placeholders = ",".join("?" for _ in wanted)
+        query = (
+            "SELECT * FROM frames "
+            "WHERE source_type = ? AND dataset_id = ? AND video_key = ? "
+            f"AND frame_index IN ({placeholders}) "
+            "ORDER BY frame_index"
+        )
+        parameters: list[str | int] = [
+            source_type,
+            dataset_id,
+            video_key,
+            *wanted,
+        ]
+        connection = sqlite3.connect(self.cache_path)
+        try:
+            rows = pd.read_sql_query(query, connection, params=parameters)
+        finally:
+            connection.close()
+        rows["frame_index"] = pd.to_numeric(
+            rows.get("frame_index"),
+            errors="coerce",
+        )
+        if "relative_frame_index" in rows:
+            rows["relative_frame_index"] = pd.to_numeric(
+                rows["relative_frame_index"],
+                errors="coerce",
+            )
+        return rows
+
+
 class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
     """Final all-candidate review without risk-selection disclosure."""
 
@@ -507,19 +696,12 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
                 exist_ok=True,
             )
         self.units = self._load_units(config.review_units_csv)
-        self.frames = BASE.load_gui_frame_features(
+        self.frame_store = FinalBehaviorFrameStore(
             config.frame_features_csv,
+            self.config.output_dir / FRAME_STORE_FILENAME,
             scene_frame_keys=final_review_scene_frame_keys(self.units),
         )
-        self.frames["frame_index"] = pd.to_numeric(
-            self.frames.get("frame_index"),
-            errors="coerce",
-        )
-        if "relative_frame_index" in self.frames:
-            self.frames["relative_frame_index"] = pd.to_numeric(
-                self.frames["relative_frame_index"],
-                errors="coerce",
-        )
+        empty_frame_rows = pd.DataFrame(columns=BASE.GUI_FRAME_COLUMNS)
         try:
             requested_start = requested_review_index(
                 self.units["review_unit_id"].astype(str).tolist(),
@@ -538,7 +720,7 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
         self.skip_completed_on_next = False
         self.details_visible = False
         self.decision_dirty = False
-        self.video_cache: dict[str, Any] = {}
+        self.video_cache: OrderedDict[str, Any] = OrderedDict()
         self.video_next_frame: dict[str, int] = {}
         self.contact_sheet_cache = BASE.RenderedImageCache(
             max_items=FINAL_RENDERED_MEDIA_CACHE_ITEMS,
@@ -551,8 +733,8 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
         self.playback_position = 0
         self._current_playback_frames: list[int] = []
         self._current_playback_rows: dict[int, pd.Series] = {}
-        self._current_scene_rows = self.frames.iloc[0:0].copy()
-        self._current_actor_rows = self.frames.iloc[0:0].copy()
+        self._current_scene_rows = empty_frame_rows.copy()
+        self._current_actor_rows = empty_frame_rows.copy()
         self._overview_photo: Any = None
 
         self.root = BASE.tk.Tk()
@@ -1024,23 +1206,31 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
         ).copy()
 
     def _prepare_current_media_rows(self, unit: pd.Series) -> None:
-        df = self.frames
-        mask = (
-            df["source_type"].astype(str).eq(str(unit["source_type"]))
-            & df["dataset_id"].astype(str).eq(str(unit["dataset_id"]))
-            & df["video_key"].astype(str).eq(str(unit["video_key"]))
+        self._current_scene_rows = self.frame_store.query(
+            source_type=str(unit["source_type"]),
+            dataset_id=str(unit["dataset_id"]),
+            video_key=str(unit["video_key"]),
+            frame_indices=sorted(
+                set(final_display_frames(unit))
+                | set(final_playback_frames(unit))
+            ),
         )
-        self._current_scene_rows = df.loc[mask].copy()
         actor_mask = self._current_scene_rows["pig_id"].astype(str).eq(
             str(unit["pig_id"])
         )
-        if "object_track_key" in df and pd.notna(unit.get("object_track_key")):
+        if (
+            "object_track_key" in self._current_scene_rows
+            and pd.notna(unit.get("object_track_key"))
+        ):
             actor_mask &= self._current_scene_rows[
                 "object_track_key"
             ].astype(str).eq(
                 str(unit.get("object_track_key"))
             )
-        elif "track_id" in df and pd.notna(unit.get("track_id")):
+        elif (
+            "track_id" in self._current_scene_rows
+            and pd.notna(unit.get("track_id"))
+        ):
             actor_mask &= self._current_scene_rows["track_id"].astype(str).eq(
                 str(unit.get("track_id"))
             )
@@ -1101,12 +1291,19 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
         video_path = self._resolve_video_path(actor)
         if video_path is None:
             return None
-        capture = self.video_cache.get(str(video_path))
+        cache_key = str(video_path)
+        capture = self.video_cache.get(cache_key)
         if capture is None:
             capture = BASE.cv2.VideoCapture(str(video_path))
             if not capture.isOpened():
+                capture.release()
                 return None
-            self.video_cache[str(video_path)] = capture
+            self.video_cache[cache_key] = capture
+            while len(self.video_cache) > FINAL_VIDEO_CAPTURE_CACHE_ITEMS:
+                _, stale_capture = self.video_cache.popitem(last=False)
+                stale_capture.release()
+        else:
+            self.video_cache.move_to_end(cache_key)
         frame_index = int(actor["frame_index"])
         current_position = int(capture.get(BASE.cv2.CAP_PROP_POS_FRAMES))
         if current_position != frame_index:
@@ -1248,8 +1445,13 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
             == "legacy_recovered"
             else " · T=TARGET · C=CONTEXT"
         )
+        progress = format_review_progress(
+            self.current + 1,
+            len(self.units),
+            self._completed_count(),
+        )
         self.header.set(
-            f"{format_review_progress(self.current + 1, len(self.units), self._completed_count())} · "
+            f"{progress} · "
             f"FINAL REVIEW{scope_suffix}{target_suffix} · "
             f"ngày {unit.get('recording_date', '')} · "
             f"video {unit.get('video_key', '')} · "
@@ -1390,6 +1592,9 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
 
     def on_quit(self) -> None:
         self.pause_playback()
+        for capture in self.video_cache.values():
+            capture.release()
+        self.video_cache.clear()
         super().on_quit()
 
 

@@ -107,26 +107,27 @@ GUI_REQUIRED_FRAME_COLUMNS = frozenset(
 GUI_FRAME_FEATURE_CHUNK_ROWS = 100_000
 
 
-def load_gui_frame_features(
-    path: Path,
-    *,
-    scene_frame_keys: set[tuple[str, str, str, int]] | None = None,
-    chunk_rows: int = GUI_FRAME_FEATURE_CHUNK_ROWS,
-) -> pd.DataFrame:
-    """Load only columns needed to render review media and actor context."""
-
+def _gui_frame_usecols(path: Path) -> list[str]:
     available = set(pd.read_csv(path, nrows=0).columns)
     missing = sorted(GUI_REQUIRED_FRAME_COLUMNS.difference(available))
     if missing:
         raise SystemExit(f"Frame feature CSV missing GUI columns: {missing}")
-    usecols = [column for column in GUI_FRAME_COLUMNS if column in available]
-    if scene_frame_keys is None:
-        return pd.read_csv(path, usecols=usecols, low_memory=False)
+    return [column for column in GUI_FRAME_COLUMNS if column in available]
+
+
+def iter_gui_frame_feature_chunks(
+    path: Path,
+    *,
+    scene_frame_keys: set[tuple[str, str, str, int]],
+    chunk_rows: int = GUI_FRAME_FEATURE_CHUNK_ROWS,
+):
+    """Yield matching full-scene rows without retaining the full CSV in RAM."""
+
+    usecols = _gui_frame_usecols(path)
     if chunk_rows < 1:
         raise ValueError("chunk_rows must be positive")
     if not scene_frame_keys:
-        return pd.DataFrame(columns=usecols)
-
+        return
     requested = pd.DataFrame(
         sorted(scene_frame_keys),
         columns=[
@@ -140,7 +141,6 @@ def load_gui_frame_features(
         requested["_gui_frame_key"],
         errors="raise",
     ).astype("Int64")
-    matching_chunks: list[pd.DataFrame] = []
     for chunk in pd.read_csv(path, usecols=usecols, chunksize=chunk_rows):
         for column in ("source_type", "dataset_id", "video_key"):
             chunk[column] = chunk[column].fillna("").astype(str)
@@ -159,9 +159,29 @@ def load_gui_frame_features(
             ],
         )
         if not matching.empty:
-            matching_chunks.append(
-                matching.drop(columns=["_gui_frame_key"])
-            )
+            yield matching.drop(columns=["_gui_frame_key"])
+
+
+def load_gui_frame_features(
+    path: Path,
+    *,
+    scene_frame_keys: set[tuple[str, str, str, int]] | None = None,
+    chunk_rows: int = GUI_FRAME_FEATURE_CHUNK_ROWS,
+) -> pd.DataFrame:
+    """Load only columns needed to render review media and actor context."""
+
+    usecols = _gui_frame_usecols(path)
+    if scene_frame_keys is None:
+        return pd.read_csv(path, usecols=usecols, low_memory=False)
+    if not scene_frame_keys:
+        return pd.DataFrame(columns=usecols)
+    matching_chunks = list(
+        iter_gui_frame_feature_chunks(
+            path,
+            scene_frame_keys=scene_frame_keys,
+            chunk_rows=chunk_rows,
+        )
+    )
     if not matching_chunks:
         return pd.DataFrame(columns=usecols)
     return pd.concat(matching_chunks, ignore_index=True)

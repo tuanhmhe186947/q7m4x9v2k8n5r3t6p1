@@ -74,6 +74,11 @@ def test_cvat_final_display_keeps_target_and_extended_context_separate() -> None
     assert module.playback_frame_role(unit, 100) == "TARGET"
     assert module.playback_frame_role(unit, 99) == "CONTEXT"
     assert module.target_interval(unit) == (100, 105, 6)
+    scene_keys = module.final_review_scene_frame_keys(
+        pd.DataFrame([unit])
+    )
+    assert ("cvat_tracking_xml", "", "", 70) in scene_keys
+    assert ("cvat_tracking_xml", "", "", 135) in scene_keys
 
 
 def test_legacy_final_display_ignores_fabricated_context() -> None:
@@ -162,7 +167,8 @@ def test_review_progress_keeps_cursor_and_completed_counts_distinct() -> None:
     module = _load(GUI_SCRIPT, "final_behavior_gui_progress")
 
     assert module.format_review_progress(172, 2729, 637) == (
-        "Vị trí danh sách: 172/2729 · Hoàn tất: 637/2729"
+        "Đã hoàn tất: 637/2729 · Còn lại: 2092 · "
+        "Mục đang mở (danh sách gốc): 172/2729"
     )
 
 
@@ -227,6 +233,195 @@ def test_scene_frame_loader_retains_all_actors_for_requested_frames(
 
     assert frames["pig_id"].tolist() == ["pig-1", "pig-2"]
     assert frames["frame_index"].tolist() == [5, 5]
+
+
+def test_final_frame_store_queries_only_requested_frames(
+    tmp_path: Path,
+) -> None:
+    module = _load(GUI_SCRIPT, "final_behavior_gui_frame_store")
+    rows = [
+        {
+            "source_type": "cvat",
+            "dataset_id": "set-a",
+            "video_key": "video-a",
+            "frame_index": 5,
+            "pig_id": "pig-1",
+            "x1": 1,
+            "y1": 2,
+            "x2": 11,
+            "y2": 12,
+        },
+        {
+            "source_type": "cvat",
+            "dataset_id": "set-a",
+            "video_key": "video-a",
+            "frame_index": 5,
+            "pig_id": "pig-2",
+            "x1": 21,
+            "y1": 22,
+            "x2": 31,
+            "y2": 32,
+        },
+        {
+            "source_type": "cvat",
+            "dataset_id": "set-a",
+            "video_key": "video-a",
+            "frame_index": 6,
+            "pig_id": "pig-1",
+            "x1": 1,
+            "y1": 2,
+            "x2": 11,
+            "y2": 12,
+        },
+    ]
+    features_path = tmp_path / "frames.csv"
+    cache_path = tmp_path / "frames.sqlite3"
+    pd.DataFrame(rows).to_csv(features_path, index=False)
+
+    store = module.FinalBehaviorFrameStore(
+        features_path,
+        cache_path,
+        scene_frame_keys={("cvat", "set-a", "video-a", 5)},
+        chunk_rows=1,
+    )
+    selected = store.query(
+        source_type="cvat",
+        dataset_id="set-a",
+        video_key="video-a",
+        frame_indices=[5],
+    )
+    excluded = store.query(
+        source_type="cvat",
+        dataset_id="set-a",
+        video_key="video-a",
+        frame_indices=[6],
+    )
+
+    assert cache_path.is_file()
+    assert selected["pig_id"].tolist() == ["pig-1", "pig-2"]
+    assert excluded.empty
+
+
+def test_final_frame_store_reuses_valid_cache(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    module = _load(GUI_SCRIPT, "final_behavior_gui_frame_store_reuse")
+    features_path = tmp_path / "frames.csv"
+    cache_path = tmp_path / "frames.sqlite3"
+    pd.DataFrame(
+        [
+            {
+                "source_type": "cvat",
+                "dataset_id": "set-a",
+                "video_key": "video-a",
+                "frame_index": 5,
+                "pig_id": "pig-1",
+                "x1": 1,
+                "y1": 2,
+                "x2": 11,
+                "y2": 12,
+            }
+        ]
+    ).to_csv(features_path, index=False)
+    keys = {("cvat", "set-a", "video-a", 5)}
+    module.FinalBehaviorFrameStore(
+        features_path,
+        cache_path,
+        scene_frame_keys=keys,
+        chunk_rows=1,
+    )
+
+    def fail_if_rescanned(*args, **kwargs):
+        raise AssertionError("valid SQLite cache rescanned the source CSV")
+
+    monkeypatch.setattr(
+        module.BASE,
+        "iter_gui_frame_feature_chunks",
+        fail_if_rescanned,
+    )
+    reused = module.FinalBehaviorFrameStore(
+        features_path,
+        cache_path,
+        scene_frame_keys=keys,
+        chunk_rows=1,
+    )
+
+    assert reused.query(
+        source_type="cvat",
+        dataset_id="set-a",
+        video_key="video-a",
+        frame_indices=[5],
+    )["pig_id"].tolist() == ["pig-1"]
+
+
+def test_final_frame_store_rebuilds_when_requested_frames_change(
+    tmp_path: Path,
+) -> None:
+    module = _load(GUI_SCRIPT, "final_behavior_gui_frame_store_rebuild")
+    features_path = tmp_path / "frames.csv"
+    cache_path = tmp_path / "frames.sqlite3"
+    pd.DataFrame(
+        [
+            {
+                "source_type": "cvat",
+                "dataset_id": "set-a",
+                "video_key": "video-a",
+                "frame_index": frame_index,
+                "pig_id": f"pig-{frame_index}",
+                "x1": 1,
+                "y1": 2,
+                "x2": 11,
+                "y2": 12,
+            }
+            for frame_index in (5, 6)
+        ]
+    ).to_csv(features_path, index=False)
+    module.FinalBehaviorFrameStore(
+        features_path,
+        cache_path,
+        scene_frame_keys={("cvat", "set-a", "video-a", 5)},
+        chunk_rows=1,
+    )
+
+    rebuilt = module.FinalBehaviorFrameStore(
+        features_path,
+        cache_path,
+        scene_frame_keys={("cvat", "set-a", "video-a", 6)},
+        chunk_rows=1,
+    )
+
+    assert rebuilt.query(
+        source_type="cvat",
+        dataset_id="set-a",
+        video_key="video-a",
+        frame_indices=[5],
+    ).empty
+    assert rebuilt.query(
+        source_type="cvat",
+        dataset_id="set-a",
+        video_key="video-a",
+        frame_indices=[6],
+    )["pig_id"].tolist() == ["pig-6"]
+
+    changed_rows = pd.read_csv(features_path)
+    changed_rows.loc[
+        changed_rows["frame_index"].eq(6),
+        "pig_id",
+    ] = "pig-6-source-changed"
+    changed_rows.to_csv(features_path, index=False)
+    source_rebuilt = module.FinalBehaviorFrameStore(
+        features_path,
+        cache_path,
+        scene_frame_keys={("cvat", "set-a", "video-a", 6)},
+        chunk_rows=1,
+    )
+    assert source_rebuilt.query(
+        source_type="cvat",
+        dataset_id="set-a",
+        video_key="video-a",
+        frame_indices=[6],
+    )["pig_id"].tolist() == ["pig-6-source-changed"]
 
 
 def test_rendered_media_retention_keeps_current_and_prefetched_items() -> None:
@@ -610,7 +805,7 @@ def test_current_media_rows_keep_actor_and_neutral_scene_context() -> None:
     gui = module.FinalBehaviorReviewGui.__new__(
         module.FinalBehaviorReviewGui
     )
-    gui.frames = pd.DataFrame(
+    frame_rows = pd.DataFrame(
         [
             {
                 "source_type": "cvat_tracking_xml",
@@ -641,6 +836,13 @@ def test_current_media_rows_keep_actor_and_neutral_scene_context() -> None:
             },
         ]
     )
+
+    class FrameStoreStub:
+        def query(self, **kwargs):
+            del kwargs
+            return frame_rows.copy()
+
+    gui.frame_store = FrameStoreStub()
     unit = pd.Series(
         {
             "source_type": "cvat_tracking_xml",
