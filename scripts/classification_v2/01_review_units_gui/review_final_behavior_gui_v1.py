@@ -538,8 +538,22 @@ class FinalBehaviorFrameStore:
         self.cache_path = cache_path.resolve()
         self.cache_path.parent.mkdir(parents=True, exist_ok=True)
         expected = self._expected_metadata(scene_frame_keys)
-        if not self._cache_is_current(expected):
-            self._rebuild(scene_frame_keys, expected, chunk_rows)
+        if self._cache_is_current(expected):
+            print(
+                f"[GUI startup] Reusing frame cache: {self.cache_path}",
+                flush=True,
+            )
+            return
+        print(
+            "[GUI startup] Building bounded-memory frame cache. "
+            "The first launch can take several minutes...",
+            flush=True,
+        )
+        self._rebuild(scene_frame_keys, expected, chunk_rows)
+        print(
+            f"[GUI startup] Frame cache ready: {self.cache_path}",
+            flush=True,
+        )
 
     def _expected_metadata(
         self,
@@ -1598,6 +1612,20 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
         super().on_quit()
 
 
+def prepare_frame_cache(config: Any) -> Path:
+    """Prepare the review-independent frame cache without opening Tk."""
+
+    loader = FinalBehaviorReviewGui.__new__(FinalBehaviorReviewGui)
+    loader.config = config
+    units = loader._load_units(config.review_units_csv)
+    store = FinalBehaviorFrameStore(
+        config.frame_features_csv,
+        config.output_dir / FRAME_STORE_FILENAME,
+        scene_frame_keys=final_review_scene_frame_keys(units),
+    )
+    return store.cache_path
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--review-units-csv", type=Path, required=True)
@@ -1609,6 +1637,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-items", type=int, default=0)
     parser.add_argument("--padding", type=float, default=0.8)
     parser.add_argument("--copy-contact-sheets", action="store_true")
+    parser.add_argument(
+        "--prepare-frame-cache-only",
+        action="store_true",
+        help="Build or validate the bounded-memory frame cache without Tk.",
+    )
     parser.add_argument(
         "--start-review-unit-id",
         default="",
@@ -1622,18 +1655,24 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    config = BASE.GuiConfig(
+        review_units_csv=args.review_units_csv,
+        frame_features_csv=args.frame_features_csv,
+        output_dir=args.output_dir,
+        video_root=args.video_root,
+        raw_root=args.raw_root,
+        roi_coco_path=args.roi_coco_json,
+        max_items=args.max_items if args.max_items > 0 else None,
+        padding=args.padding,
+        copy_contact_sheets=args.copy_contact_sheets,
+    )
+    if args.prepare_frame_cache_only:
+        cache_path = prepare_frame_cache(config)
+        print(f"FRAME_CACHE_READY={cache_path}", flush=True)
+        return 0
+    print("[GUI startup] Opening review window...", flush=True)
     FinalBehaviorReviewGui(
-        BASE.GuiConfig(
-            review_units_csv=args.review_units_csv,
-            frame_features_csv=args.frame_features_csv,
-            output_dir=args.output_dir,
-            video_root=args.video_root,
-            raw_root=args.raw_root,
-            roi_coco_path=args.roi_coco_json,
-            max_items=args.max_items if args.max_items > 0 else None,
-            padding=args.padding,
-            copy_contact_sheets=args.copy_contact_sheets,
-        ),
+        config,
         start_review_unit_id=args.start_review_unit_id,
     )
     return 0

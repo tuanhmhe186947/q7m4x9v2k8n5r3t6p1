@@ -141,7 +141,12 @@ def iter_gui_frame_feature_chunks(
         requested["_gui_frame_key"],
         errors="raise",
     ).astype("Int64")
-    for chunk in pd.read_csv(path, usecols=usecols, chunksize=chunk_rows):
+    for chunk in pd.read_csv(
+        path,
+        usecols=usecols,
+        chunksize=chunk_rows,
+        low_memory=False,
+    ):
         for column in ("source_type", "dataset_id", "video_key"):
             chunk[column] = chunk[column].fillna("").astype(str)
         chunk["_gui_frame_key"] = pd.to_numeric(
