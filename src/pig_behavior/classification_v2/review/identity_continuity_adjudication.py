@@ -796,7 +796,7 @@ def write_csv_atomic(
             encoding="utf-8",
             newline="",
             dir=path.parent,
-            prefix=f".{path.name}.",
+            prefix=".tmp-",
             suffix=".tmp",
             delete=False,
         ) as handle:

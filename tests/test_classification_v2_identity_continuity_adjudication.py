@@ -28,6 +28,7 @@ from pig_behavior.classification_v2.review.identity_continuity_adjudication impo
     load_session_sidecars_with_bbox_edits,
     source_frame_index_for_review_frame,
     validate_adjudication,
+    write_csv_atomic,
     write_session_sidecars,
 )
 
@@ -350,6 +351,25 @@ def test_v2_sidecar_round_trips_corrected_and_added_bbox(tmp_path: Path) -> None
         match="contains_bbox_edits_use_v2_loader",
     ):
         load_session_sidecars(tmp_path, _cases(), _candidates())
+
+
+def test_atomic_sidecar_temp_name_stays_below_windows_path_limit(
+    tmp_path: Path,
+) -> None:
+    parent = tmp_path
+    while len(str(parent)) < 205:
+        remaining = 205 - len(str(parent)) - 1
+        if remaining <= 0:
+            break
+        parent /= "x" * min(20, remaining)
+    path = parent / FRAME_SIDECAR_NAME
+
+    assert len(str(path)) < 260
+    old_temp_name = f".{path.name}.12345678.tmp"
+    assert len(str(parent / old_temp_name)) >= 260
+    write_csv_atomic(path, ("value",), ({"value": "saved"},))
+
+    assert path.read_text(encoding="utf-8").splitlines() == ["value", "saved"]
 
 
 @pytest.mark.parametrize(
