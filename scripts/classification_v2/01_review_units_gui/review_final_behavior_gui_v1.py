@@ -17,6 +17,18 @@ from PIL import Image, ImageDraw
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 if str(PROJECT_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT / "src"))
+GUI_SCRIPT_DIR = Path(__file__).resolve().parent
+if str(GUI_SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(GUI_SCRIPT_DIR))
+
+from final_behavior_label_quality import (
+    ERROR_PATTERNS,
+    QUALITY_COLUMNS,
+    QUALITY_SIDECAR_NAME,
+    TECHNICAL_ERROR_PATTERN,
+    build_quality_record,
+    validate_quality_records,
+)
 
 from pig_behavior.classification_v2.review.source_specific_blinded_presentation_v2 import (
     local_context_identity,
@@ -32,6 +44,24 @@ PLAYBACK_INTERVALS_MS = {
     "10 fps": 100,
     "15 fps": 67,
     "30 fps": 33,
+}
+ERROR_PATTERN_CHOICES = {
+    1: (
+        "ROI_PROXIMITY_ONLY_FALSE_POSITIVE",
+        "Gán ROI chỉ vì đứng gần, nhưng hành vi thực tế là hành vi khác.",
+    ),
+    2: (
+        "ROI_CONTACT_ABSENT_FALSE_POSITIVE",
+        "Nhãn ROI sai rõ ràng vì không có tiếp xúc cần thiết.",
+    ),
+    3: (
+        "INTERACTION_PHASE_OR_TEMPORAL_WINDOW_ERROR",
+        "Fight/social bị gán sai pha hoặc sai cửa sổ thời gian.",
+    ),
+    4: (
+        "OTHER_CLEAR_SOURCE_LABEL_ERROR",
+        "Lỗi nhãn nguồn rõ ràng khác.",
+    ),
 }
 
 
@@ -142,6 +172,14 @@ def format_final_summary(
             f"{str(unit.get('behavior_label', '')).strip()}"
         ),
         "Giữ nhãn nếu đúng; nếu sai hãy chọn trực tiếp hành vi quan sát được.",
+        (
+            "A = nhãn nguồn được hỗ trợ. Chọn hành vi khác = xác nhận "
+            "lỗi nhãn nguồn rõ ràng và ghi loại lỗi."
+        ),
+        (
+            "R chỉ tạm hoãn, không kết luận nhập nhằng. "
+            "X chỉ dành cho lỗi media/kỹ thuật."
+        ),
         media_note,
         (
             f"Target frames: {len(targets)} · Context frames: "
@@ -194,9 +232,13 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
             self.frames["relative_frame_index"] = pd.to_numeric(
                 self.frames["relative_frame_index"],
                 errors="coerce",
-            )
+        )
         self.current = 0
         self.decisions = self._load_existing_decisions()
+        self.label_quality_records = self._load_label_quality_records()
+        self._derive_supported_quality_records()
+        self.current_error_pattern = ""
+        self.skip_completed_on_next = False
         self.details_visible = False
         self.decision_dirty = False
         self.video_cache: dict[str, Any] = {}
@@ -234,14 +276,271 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
         self.root.protocol("WM_DELETE_WINDOW", self.on_quit)
         self.root.mainloop()
 
+    def _load_label_quality_records(self) -> dict[str, dict[str, str]]:
+        path = self.config.output_dir / QUALITY_SIDECAR_NAME
+        if not path.exists():
+            return {}
+        quality = pd.read_csv(path, dtype=str, keep_default_na=False)
+        if quality.empty:
+            return {}
+        errors = validate_quality_records(
+            quality,
+            self.units,
+            self.decisions,
+        )
+        if errors:
+            raise SystemExit(
+                "Existing label-quality sidecar violates contract: "
+                + "; ".join(errors)
+            )
+        return {
+            str(row["review_unit_id"]).strip(): {
+                column: str(row.get(column, "")).strip()
+                for column in QUALITY_COLUMNS
+            }
+            for row in quality.to_dict(orient="records")
+        }
+
+    def _derive_supported_quality_records(self) -> None:
+        unit_rows = {
+            str(row["review_unit_id"]): row
+            for _, row in self.units.iterrows()
+        }
+        for review_id, decision in self.decisions.items():
+            if review_id in self.label_quality_records:
+                continue
+            if str(decision.get("manual_review_decision", "")) != "accept":
+                continue
+            record = build_quality_record(unit_rows[review_id], decision)
+            if record is not None:
+                self.label_quality_records[review_id] = record
+
+    def _quality_complete_ids(self) -> set[str]:
+        return set(self.label_quality_records)
+
+    def _current_quality_record(self) -> dict[str, str] | None:
+        review_id = str(self.current_unit()["review_unit_id"])
+        return self.label_quality_records.get(review_id)
+
+    def _load_existing_decision(self, unit_id: str) -> None:
+        super()._load_existing_decision(unit_id)
+        record = self.label_quality_records.get(unit_id, {})
+        pattern = str(record.get("error_pattern", ""))
+        allowed_patterns = {*ERROR_PATTERNS, TECHNICAL_ERROR_PATTERN}
+        self.current_error_pattern = (
+            pattern if pattern in allowed_patterns else ""
+        )
+
+    def _ask_error_pattern(self) -> str | None:
+        lines = [
+            "Chọn nguyên nhân nhãn nguồn cũ sai rõ ràng:",
+            "",
+        ]
+        lines.extend(
+            f"{number}. {description}"
+            for number, (_, description) in ERROR_PATTERN_CHOICES.items()
+        )
+        choice = simpledialog.askinteger(
+            "Loại lỗi nhãn nguồn",
+            "\n".join(lines),
+            minvalue=1,
+            maxvalue=len(ERROR_PATTERN_CHOICES),
+            parent=self.root,
+        )
+        if choice is None:
+            return None
+        pattern = ERROR_PATTERN_CHOICES[choice][0]
+        if pattern not in ERROR_PATTERNS:
+            raise ValueError(f"unsupported error pattern={pattern}")
+        return pattern
+
+    def _confirm_technical_exclusion(self) -> bool:
+        if self.current_error_pattern == TECHNICAL_ERROR_PATTERN:
+            return True
+        if not messagebox.askyesno(
+            "Chỉ loại vì lỗi kỹ thuật",
+            (
+                "X chỉ dùng khi media hoặc lỗi trình bày khiến mục này "
+                "không thể review. Đây có đúng là lỗi kỹ thuật không?"
+            ),
+            parent=self.root,
+        ):
+            return False
+        if not self.note_var.get().strip():
+            note = simpledialog.askstring(
+                "Lý do lỗi kỹ thuật",
+                "Mô tả ngắn lỗi media/kỹ thuật:",
+                parent=self.root,
+            )
+            if note is None or not note.strip():
+                return False
+            self.note_var.set(note.strip())
+        self.current_error_pattern = TECHNICAL_ERROR_PATTERN
+        return True
+
+    def _completed_count(self) -> int:
+        return len(self.label_quality_records)
+
+    def _update_decision_preview(self) -> None:
+        super()._update_decision_preview()
+        decision = self.decision_var.get()
+        if decision == "accept":
+            quality = "nhãn nguồn: SUPPORTED"
+        elif decision == "corrected":
+            pattern = self.current_error_pattern or "chưa chọn loại lỗi"
+            quality = f"lỗi nhãn nguồn rõ ràng: {pattern}"
+        elif decision == "exclude":
+            quality = "chỉ loại vì lỗi media/kỹ thuật"
+        else:
+            quality = "tạm hoãn; chưa có kết luận chất lượng nhãn"
+        self.status_var.set(f"{self.status_var.get()} · {quality}")
+
+    def save_current(self) -> bool:
+        unit = self.current_unit()
+        review_id = str(unit["review_unit_id"])
+        decision = self.decision_var.get()
+        if decision == "corrected" and not self.current_error_pattern:
+            pattern = self._ask_error_pattern()
+            if pattern is None:
+                return False
+            self.current_error_pattern = pattern
+        if decision == "exclude" and not self._confirm_technical_exclusion():
+            return False
+
+        previous = self.label_quality_records.get(review_id)
+        try:
+            quality_record = build_quality_record(
+                unit,
+                {
+                    "manual_review_decision": decision,
+                    "manual_corrected_behavior": self.corrected_var.get(),
+                    "manual_label_strength": self.strength_var.get(),
+                },
+                error_pattern=self.current_error_pattern,
+            )
+        except ValueError as exc:
+            messagebox.showerror(
+                "Invalid label-quality decision",
+                str(exc),
+                parent=self.root,
+            )
+            return False
+
+        if quality_record is None:
+            self.label_quality_records.pop(review_id, None)
+        else:
+            self.label_quality_records[review_id] = quality_record
+        if super().save_current():
+            return True
+        if previous is None:
+            self.label_quality_records.pop(review_id, None)
+        else:
+            self.label_quality_records[review_id] = previous
+        return False
+
+    def write_decisions(self, show_message: bool = True) -> None:
+        super().write_decisions(show_message=False)
+        unit_order = {
+            str(unit_id): index
+            for index, unit_id in enumerate(
+                self.units["review_unit_id"].astype(str)
+            )
+        }
+        rows = sorted(
+            self.label_quality_records.values(),
+            key=lambda row: unit_order[str(row["review_unit_id"])],
+        )
+        path = self.config.output_dir / QUALITY_SIDECAR_NAME
+        BASE._write_csv_atomic(path, QUALITY_COLUMNS, rows)
+        if show_message:
+            messagebox.showinfo(
+                "Saved",
+                (
+                    f"Wrote {len(self.decisions)} decisions and "
+                    f"{len(rows)} label-quality records\n{path}"
+                ),
+                parent=self.root,
+            )
+
+    def accept_current_next(self) -> None:
+        self.current_error_pattern = ""
+        super().accept_current_next()
+
+    def correct_behavior_next(self, behavior: str) -> None:
+        original = str(self.current_unit().get("behavior_label", "")).strip()
+        if behavior == original:
+            self.accept_current_next()
+            return
+        pattern = self._ask_error_pattern()
+        if pattern is None:
+            return
+        self.current_error_pattern = pattern
+        super().correct_behavior_next(behavior)
+
+    def exclude_next(self) -> None:
+        if self._confirm_technical_exclusion():
+            super().exclude_next()
+
+    def defer_next(self) -> None:
+        self.current_error_pattern = ""
+        super().defer_next()
+
+    def next_item(self) -> None:
+        review_id = str(self.current_unit()["review_unit_id"])
+        decision = self.decision_var.get()
+        needs_save = (
+            self.decision_dirty
+            or (
+                decision in {"corrected", "exclude"}
+                and review_id not in self._quality_complete_ids()
+            )
+        )
+        if needs_save and not self.save_current():
+            return
+        if not self.skip_completed_on_next:
+            if self.current < len(self.units) - 1:
+                self.current += 1
+                self.show_current()
+            return
+        for index in range(self.current + 1, len(self.units)):
+            candidate_id = str(self.units.iloc[index]["review_unit_id"])
+            if candidate_id not in self._quality_complete_ids():
+                self.current = index
+                self.show_current()
+                return
+        self.status_var.set(
+            "Không còn mục chưa hoàn tất ở phía sau."
+        )
+
+    def prev_item(self) -> None:
+        if self.decision_dirty and not self.save_current():
+            return
+        if self.current > 0:
+            self.current -= 1
+            self.show_current()
+
     def _offer_resume_position(self) -> None:
         if not self.decisions:
             return
+        missing_quality = sorted(
+            review_id
+            for review_id, decision in self.decisions.items()
+            if str(decision.get("manual_review_decision", ""))
+            in {"corrected", "exclude"}
+            and review_id not in self.label_quality_records
+        )
+        attribution_note = ""
+        if missing_quality:
+            attribution_note = (
+                f"\nCó {len(missing_quality)} mục sửa/loại cũ cần bổ sung "
+                "loại lỗi; các mục giữ nguyên không phải review lại."
+            )
         if not messagebox.askyesno(
             "Resume final review",
             (
                 f"Đã tải {len(self.decisions)} quyết định.\n"
-                "Resume tại mục chưa review tiếp theo?"
+                "Resume tại mục chưa hoàn tất tiếp theo?"
+                f"{attribution_note}"
             ),
             parent=self.root,
         ):
@@ -256,9 +555,10 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
         )
         if backtrack is None:
             backtrack = 0
+        self.skip_completed_on_next = backtrack == 0
         self.current = calculate_resume_index(
             self.units["review_unit_id"].astype(str).tolist(),
-            set(self.decisions),
+            self._quality_complete_ids(),
             backtrack,
         )
 

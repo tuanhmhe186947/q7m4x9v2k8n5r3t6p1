@@ -14,6 +14,7 @@ GUI_SCRIPT = (
     / "01_review_units_gui"
     / "review_final_behavior_gui_v1.py"
 )
+QUALITY_SCRIPT = GUI_SCRIPT.with_name("final_behavior_label_quality.py")
 VIEW_SCRIPT = (
     ROOT
     / "scripts"
@@ -113,6 +114,141 @@ def test_resume_index_can_backtrack_from_next_unreviewed() -> None:
 
     assert module.calculate_resume_index(review_ids, decided, 0) == 50
     assert module.calculate_resume_index(review_ids, decided, 7) == 43
+
+
+def test_supported_label_records_selector_false_positive_without_unresolved() -> None:
+    module = _load(GUI_SCRIPT, "final_behavior_gui_supported_quality")
+    unit = {
+        "review_unit_id": "non-a",
+        "behavior_label": "stand",
+        "final_scope_component": "ROI_DIRECTION_CORRECTED_NONINTERACTION",
+    }
+    decision = {
+        "manual_review_decision": "accept",
+        "manual_corrected_behavior": "",
+        "manual_label_strength": "strong",
+    }
+
+    record = module.build_quality_record(unit, decision)
+
+    assert record["label_status"] == "SUPPORTED"
+    assert record["source_label_error_confirmed"] == "NO"
+    assert record["selection_assessment"] == (
+        "SELECTOR_FLAGGED_BUT_SOURCE_LABEL_SUPPORTED"
+    )
+    assert "UNRESOLVED" not in set(record.values())
+
+
+def test_corrected_label_confirms_source_error_and_requires_pattern() -> None:
+    module = _load(GUI_SCRIPT, "final_behavior_gui_corrected_quality")
+    unit = {
+        "review_unit_id": "non-b",
+        "behavior_label": "drink",
+        "final_scope_component": "ROI_DIRECTION_CORRECTED_NONINTERACTION",
+    }
+    decision = {
+        "manual_review_decision": "corrected",
+        "manual_corrected_behavior": "explore",
+        "manual_label_strength": "medium",
+    }
+
+    try:
+        module.build_quality_record(unit, decision)
+    except ValueError as exc:
+        assert "clear-error pattern" in str(exc)
+    else:
+        raise AssertionError("corrected label accepted without error pattern")
+
+    record = module.build_quality_record(
+        unit,
+        decision,
+        error_pattern="ROI_PROXIMITY_ONLY_FALSE_POSITIVE",
+    )
+    assert record["label_status"] == "SOURCE_LABEL_ERROR_CONFIRMED"
+    assert record["source_label_error_confirmed"] == "YES"
+    assert record["reviewed_behavior"] == "explore"
+    assert record["review_confidence"] == "MEDIUM"
+    assert record["selection_assessment"] == (
+        "SELECTOR_FLAG_CONFIRMED_SOURCE_LABEL_ERROR"
+    )
+
+
+def test_defer_is_workflow_only_and_exclude_is_technical_only() -> None:
+    module = _load(GUI_SCRIPT, "final_behavior_gui_nonlabel_states")
+    quality_module = _load(
+        QUALITY_SCRIPT,
+        "final_behavior_label_quality_contract",
+    )
+    unit = {
+        "review_unit_id": "fight-a",
+        "behavior_label": "fight",
+        "final_scope_component": (
+            "POST_CALIBRATION_FULL_INTERACTION_CENSUS"
+        ),
+    }
+    pending = {
+        "manual_review_decision": "pending",
+        "manual_corrected_behavior": "",
+        "manual_label_strength": "strong",
+    }
+    excluded = {
+        "manual_review_decision": "exclude",
+        "manual_corrected_behavior": "",
+        "manual_label_strength": "boundary",
+    }
+
+    assert module.build_quality_record(unit, pending) is None
+    record = module.build_quality_record(unit, excluded)
+    assert record["label_status"] == "TECHNICAL_DEFECT"
+    assert record["source_label_error_confirmed"] == "NOT_APPLICABLE"
+    assert record["error_pattern"] == (
+        "TECHNICAL_MEDIA_OR_PRESENTATION_DEFECT"
+    )
+    assert set(quality_module.QUALITY_COLUMNS) == set(
+        quality_module.MODEL_X_FORBIDDEN_COLUMNS
+    )
+
+
+def test_existing_accepts_are_derived_but_corrections_require_attribution() -> None:
+    module = _load(GUI_SCRIPT, "final_behavior_gui_quality_migration")
+    gui = module.FinalBehaviorReviewGui.__new__(
+        module.FinalBehaviorReviewGui
+    )
+    gui.units = pd.DataFrame(
+        [
+            {
+                "review_unit_id": "accepted",
+                "behavior_label": "stand",
+                "final_scope_component": (
+                    "ROI_DIRECTION_CORRECTED_NONINTERACTION"
+                ),
+            },
+            {
+                "review_unit_id": "corrected",
+                "behavior_label": "drink",
+                "final_scope_component": (
+                    "ROI_DIRECTION_CORRECTED_NONINTERACTION"
+                ),
+            },
+        ]
+    )
+    gui.decisions = {
+        "accepted": {
+            "manual_review_decision": "accept",
+            "manual_corrected_behavior": "",
+            "manual_label_strength": "strong",
+        },
+        "corrected": {
+            "manual_review_decision": "corrected",
+            "manual_corrected_behavior": "explore",
+            "manual_label_strength": "strong",
+        },
+    }
+    gui.label_quality_records = {}
+
+    gui._derive_supported_quality_records()
+
+    assert set(gui.label_quality_records) == {"accepted"}
 
 
 def test_context_sampler_spans_available_window_deterministically() -> None:
