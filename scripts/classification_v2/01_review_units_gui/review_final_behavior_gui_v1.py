@@ -36,6 +36,9 @@ from pig_behavior.classification_v2.review.source_specific_blinded_presentation_
 )
 
 FINAL_PRESENTATION_VERSION = "classification_v2.final_behavior_review.v1"
+FINAL_PRESENTATION_ORDER_VERSION = (
+    "classification_v2.final_behavior_review_order.date_video_actor.v1"
+)
 CONTEXT_COLUMN = "final_context_frame_indices"
 PLAYBACK_COLUMN = "final_playback_frame_indices"
 PLAYBACK_SCOPE_TARGET = "TARGET only"
@@ -51,6 +54,10 @@ PLAYBACK_INTERVALS_MS = {
     "15 fps": 67,
     "30 fps": 33,
 }
+MEDIA_DISPLAY_MAX_WIDTH = 760
+MEDIA_DISPLAY_MAX_HEIGHT = 610
+MEDIA_PANEL_RESERVED_WIDTH = 520
+MEDIA_PANEL_RESERVED_HEIGHT = 250
 ERROR_PATTERN_CHOICES = {
     1: (
         "ROI_PROXIMITY_ONLY_FALSE_POSITIVE",
@@ -315,10 +322,154 @@ def calculate_resume_index(
     return max(0, next_index - max(0, backtrack))
 
 
+def requested_review_index(
+    review_ids: list[str],
+    requested_review_unit_id: str | None,
+) -> int | None:
+    """Resolve an optional exact review-unit jump without fuzzy matching."""
+
+    requested = str(requested_review_unit_id or "").strip()
+    if not requested:
+        return None
+    matches = [
+        index
+        for index, review_id in enumerate(review_ids)
+        if str(review_id).strip() == requested
+    ]
+    if len(matches) != 1:
+        raise ValueError(
+            "start review_unit_id must match exactly one unit; "
+            f"matches={len(matches)} id={requested}"
+        )
+    return matches[0]
+
+
+def _normalized_sort_column(
+    units: pd.DataFrame,
+    column: str,
+) -> pd.Series:
+    if column not in units.columns:
+        return pd.Series("", index=units.index, dtype="object")
+    return (
+        units[column]
+        .fillna("")
+        .astype(str)
+        .str.strip()
+        .str.casefold()
+    )
+
+
+def order_final_review_units(units: pd.DataFrame) -> pd.DataFrame:
+    """Group presentation by date, video, actor, then temporal position."""
+
+    if units.empty:
+        return units.copy()
+
+    ordered = units.copy()
+    date_key = _normalized_sort_column(ordered, "recording_date")
+    video_key = _normalized_sort_column(ordered, "video_key")
+    source_key = _normalized_sort_column(ordered, "source_type")
+    dataset_key = _normalized_sort_column(ordered, "dataset_id")
+    object_key = _normalized_sort_column(ordered, "object_track_key")
+    track_key = _normalized_sort_column(ordered, "track_id")
+    pig_key = _normalized_sort_column(ordered, "pig_id")
+    review_key = _normalized_sort_column(ordered, "review_unit_id")
+
+    actor_key = object_key.mask(object_key.eq(""), "track=" + track_key)
+    actor_key = actor_key.mask(
+        actor_key.eq("track="),
+        "pig=" + pig_key,
+    )
+
+    ordered["_presentation_date_missing"] = date_key.eq("")
+    ordered["_presentation_date"] = date_key
+    ordered["_presentation_video_missing"] = video_key.eq("")
+    ordered["_presentation_video"] = video_key
+    ordered["_presentation_source"] = source_key
+    ordered["_presentation_dataset"] = dataset_key
+    ordered["_presentation_actor"] = actor_key
+    ordered["_presentation_track_number"] = pd.to_numeric(
+        ordered.get(
+            "track_id",
+            pd.Series("", index=ordered.index, dtype="object"),
+        ),
+        errors="coerce",
+    ).fillna(float("inf"))
+    ordered["_presentation_start"] = pd.to_numeric(
+        ordered.get(
+            "unit_start_frame",
+            pd.Series("", index=ordered.index, dtype="object"),
+        ),
+        errors="coerce",
+    ).fillna(float("inf"))
+    ordered["_presentation_end"] = pd.to_numeric(
+        ordered.get(
+            "unit_end_frame",
+            pd.Series("", index=ordered.index, dtype="object"),
+        ),
+        errors="coerce",
+    ).fillna(float("inf"))
+    ordered["_presentation_review_key"] = review_key
+    ordered["_presentation_original_index"] = range(len(ordered))
+
+    sort_columns = [
+        "_presentation_date_missing",
+        "_presentation_date",
+        "_presentation_video_missing",
+        "_presentation_video",
+        "_presentation_source",
+        "_presentation_dataset",
+        "_presentation_track_number",
+        "_presentation_actor",
+        "_presentation_start",
+        "_presentation_end",
+        "_presentation_review_key",
+        "_presentation_original_index",
+    ]
+    ordered = ordered.sort_values(sort_columns, kind="stable")
+    return ordered.drop(columns=sort_columns).reset_index(drop=True)
+
+
+def review_window_dimensions(
+    screen_width: int,
+    screen_height: int,
+) -> tuple[int, int]:
+    """Fit the review window inside the usable display."""
+
+    width = min(1500, max(960, int(screen_width) - 32))
+    height = min(940, max(700, int(screen_height) - 72))
+    return width, height
+
+
+def fit_media_for_display(
+    image: Image.Image,
+    *,
+    max_width: int,
+    max_height: int,
+) -> Image.Image:
+    """Bound media pixels so Tk layout cannot push controls over the image."""
+
+    if max_width <= 0 or max_height <= 0:
+        raise ValueError("media display bounds must be positive")
+    if image.width <= max_width and image.height <= max_height:
+        return image
+    fitted = image.copy()
+    fitted.thumbnail(
+        (max_width, max_height),
+        Image.Resampling.LANCZOS,
+    )
+    return fitted
+
+
 class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
     """Final all-candidate review without risk-selection disclosure."""
 
-    def __init__(self, config: Any) -> None:
+    def __init__(
+        self,
+        config: Any,
+        *,
+        start_review_unit_id: str | None = None,
+    ) -> None:
         self.config = config
         self.config.output_dir.mkdir(parents=True, exist_ok=True)
         if self.config.copy_contact_sheets:
@@ -337,7 +488,17 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
                 self.frames["relative_frame_index"],
                 errors="coerce",
         )
-        self.current = 0
+        try:
+            requested_start = requested_review_index(
+                self.units["review_unit_id"].astype(str).tolist(),
+                start_review_unit_id,
+            )
+        except ValueError as exc:
+            raise SystemExit(str(exc)) from exc
+        self.current = requested_start or 0
+        self.requested_start_review_unit_id = str(
+            start_review_unit_id or ""
+        ).strip()
         self.decisions = self._load_existing_decisions()
         self.label_quality_records = self._load_label_quality_records()
         self._derive_supported_quality_records()
@@ -375,14 +536,34 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
             value="Playback chưa sẵn sàng",
         )
         self.root.title("Final Behavior Review · classification_v2")
-        self.root.geometry("1500x940")
-        self.root.minsize(1180, 760)
+        window_width, window_height = review_window_dimensions(
+            self.root.winfo_screenwidth(),
+            self.root.winfo_screenheight(),
+        )
+        self.media_display_max_width = min(
+            MEDIA_DISPLAY_MAX_WIDTH,
+            max(480, window_width - MEDIA_PANEL_RESERVED_WIDTH),
+        )
+        self.media_display_max_height = min(
+            MEDIA_DISPLAY_MAX_HEIGHT,
+            max(360, window_height - MEDIA_PANEL_RESERVED_HEIGHT),
+        )
+        self.root.geometry(f"{window_width}x{window_height}")
+        self.root.minsize(
+            min(1100, window_width),
+            min(700, window_height),
+        )
         self._build_layout()
         self._bind_shortcuts()
-        self._offer_resume_position()
+        if requested_start is None:
+            self._offer_resume_position()
         self.show_current()
         self.root.protocol("WM_DELETE_WINDOW", self.on_quit)
         self.root.mainloop()
+
+    def _load_units(self, path: Path) -> pd.DataFrame:
+        units = super()._load_units(path)
+        return order_final_review_units(units)
 
     def _load_label_quality_records(self) -> dict[str, dict[str, str]]:
         path = self.config.output_dir / QUALITY_SIDECAR_NAME
@@ -672,6 +853,13 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
 
     def _build_layout(self) -> None:
         super()._build_layout()
+        self.summary_text.configure(width=44, height=6)
+        self.info_text.configure(width=44)
+        self.image_label.configure(
+            anchor="center",
+            borderwidth=1,
+            relief="solid",
+        )
         self.main_frame.rowconfigure(0, weight=1)
         playback = BASE.ttk.LabelFrame(
             self.main_frame,
@@ -878,6 +1066,10 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
         return "\n".join(
             [
                 f"presentation_version: {FINAL_PRESENTATION_VERSION}",
+                (
+                    "presentation_order_version: "
+                    f"{FINAL_PRESENTATION_ORDER_VERSION}"
+                ),
                 f"source_type: {unit.get('source_type', '')}",
                 f"target_frame_count: {len(targets)}",
                 f"context_frame_count: {len(context)}",
@@ -943,6 +1135,11 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
         frames = self._frame_rows_for_unit(unit)
         image, diagnostics = self._make_contact_sheet(unit, frames)
         self.current_diagnostics = diagnostics
+        image = fit_media_for_display(
+            image,
+            max_width=self.media_display_max_width,
+            max_height=self.media_display_max_height,
+        )
         self._photo = BASE.ImageTk.PhotoImage(image)
         self._overview_photo = self._photo
         self.image_label.configure(image=self._photo)
@@ -963,7 +1160,10 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
         self.header.set(
             f"{self.current + 1}/{len(self.units)} · "
             f"đã review {self._completed_count()} · "
-            f"FINAL REVIEW{scope_suffix}{target_suffix}"
+            f"FINAL REVIEW{scope_suffix}{target_suffix} · "
+            f"ngày {unit.get('recording_date', '')} · "
+            f"video {unit.get('video_key', '')} · "
+            f"ID {unit.get('pig_id', '')}/track {unit.get('track_id', '')}"
         )
         self.summary_text.configure(state="normal")
         self.summary_text.delete("1.0", "end")
@@ -1010,6 +1210,11 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
             target_end=interval[1] if interval is not None else None,
             playback_start=full_frames[0] if full_frames else None,
             playback_end=full_frames[-1] if full_frames else None,
+        )
+        image = fit_media_for_display(
+            image,
+            max_width=self.media_display_max_width,
+            max_height=self.media_display_max_height,
         )
         self._photo = BASE.ImageTk.PhotoImage(image)
         self.image_label.configure(image=self._photo)
@@ -1104,6 +1309,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-items", type=int, default=0)
     parser.add_argument("--padding", type=float, default=0.8)
     parser.add_argument("--copy-contact-sheets", action="store_true")
+    parser.add_argument(
+        "--start-review-unit-id",
+        default="",
+        help=(
+            "Open at one exact review_unit_id and skip the resume dialog. "
+            "The review population and decision files remain unchanged."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -1120,7 +1333,8 @@ def main() -> int:
             max_items=args.max_items if args.max_items > 0 else None,
             padding=args.padding,
             copy_contact_sheets=args.copy_contact_sheets,
-        )
+        ),
+        start_review_unit_id=args.start_review_unit_id,
     )
     return 0
 

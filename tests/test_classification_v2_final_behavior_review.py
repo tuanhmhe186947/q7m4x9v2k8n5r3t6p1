@@ -158,6 +158,129 @@ def test_resume_index_can_backtrack_from_next_unreviewed() -> None:
     assert module.calculate_resume_index(review_ids, decided, 7) == 43
 
 
+def test_requested_review_index_requires_one_exact_match() -> None:
+    module = _load(GUI_SCRIPT, "final_behavior_gui_requested_start")
+    review_ids = ["unit-a", "unit-b", "unit-c"]
+
+    assert module.requested_review_index(review_ids, "") is None
+    assert module.requested_review_index(review_ids, "unit-b") == 1
+
+    try:
+        module.requested_review_index(review_ids, "missing")
+    except ValueError as exc:
+        assert "matches=0" in str(exc)
+    else:
+        raise AssertionError("missing requested review unit was accepted")
+
+
+def test_final_review_order_groups_date_video_actor_then_time() -> None:
+    module = _load(GUI_SCRIPT, "final_behavior_gui_order")
+    units = pd.DataFrame(
+        [
+            {
+                "review_unit_id": "late-video-a-track-2",
+                "recording_date": "2019-11-30",
+                "video_key": "video-a",
+                "source_type": "cvat_tracking_xml",
+                "dataset_id": "set-a",
+                "object_track_key": "track-2",
+                "track_id": "2",
+                "pig_id": "pig-2",
+                "unit_start_frame": 30,
+                "unit_end_frame": 35,
+                "review_priority": 999,
+            },
+            {
+                "review_unit_id": "early-video-b-track-1",
+                "recording_date": "2019-11-29",
+                "video_key": "video-b",
+                "source_type": "cvat_tracking_xml",
+                "dataset_id": "set-a",
+                "object_track_key": "track-1",
+                "track_id": "1",
+                "pig_id": "pig-1",
+                "unit_start_frame": 10,
+                "unit_end_frame": 15,
+                "review_priority": 500,
+            },
+            {
+                "review_unit_id": "early-video-a-track-2-later",
+                "recording_date": "2019-11-29",
+                "video_key": "video-a",
+                "source_type": "cvat_tracking_xml",
+                "dataset_id": "set-a",
+                "object_track_key": "track-2",
+                "track_id": "2",
+                "pig_id": "pig-2",
+                "unit_start_frame": 40,
+                "unit_end_frame": 45,
+                "review_priority": 100,
+            },
+            {
+                "review_unit_id": "early-video-a-track-1",
+                "recording_date": "2019-11-29",
+                "video_key": "video-a",
+                "source_type": "cvat_tracking_xml",
+                "dataset_id": "set-a",
+                "object_track_key": "track-1",
+                "track_id": "1",
+                "pig_id": "pig-1",
+                "unit_start_frame": 20,
+                "unit_end_frame": 25,
+                "review_priority": 1,
+            },
+            {
+                "review_unit_id": "early-video-a-track-2-earlier",
+                "recording_date": "2019-11-29",
+                "video_key": "video-a",
+                "source_type": "cvat_tracking_xml",
+                "dataset_id": "set-a",
+                "object_track_key": "track-2",
+                "track_id": "2",
+                "pig_id": "pig-2",
+                "unit_start_frame": 10,
+                "unit_end_frame": 15,
+                "review_priority": 200,
+            },
+        ]
+    )
+
+    ordered = module.order_final_review_units(units)
+
+    assert ordered["review_unit_id"].tolist() == [
+        "early-video-a-track-1",
+        "early-video-a-track-2-earlier",
+        "early-video-a-track-2-later",
+        "early-video-b-track-1",
+        "late-video-a-track-2",
+    ]
+    assert set(ordered.columns) == set(units.columns)
+    assert len(ordered) == len(units)
+
+
+def test_media_is_bounded_without_changing_source_pixels() -> None:
+    module = _load(GUI_SCRIPT, "final_behavior_gui_media_fit")
+    source = module.Image.new("RGB", (1920, 1114), "red")
+
+    fitted = module.fit_media_for_display(
+        source,
+        max_width=760,
+        max_height=610,
+    )
+
+    assert fitted.width <= 760
+    assert fitted.height <= 610
+    assert source.size == (1920, 1114)
+    assert fitted.getpixel((0, 0)) == (255, 0, 0)
+
+
+def test_review_window_stays_inside_common_laptop_screen() -> None:
+    module = _load(GUI_SCRIPT, "final_behavior_gui_window_size")
+
+    assert module.review_window_dimensions(1366, 768) == (1334, 700)
+    assert module.review_window_dimensions(1920, 1080) == (1500, 940)
+
+
 def test_supported_label_records_selector_false_positive_without_unresolved() -> None:
     module = _load(GUI_SCRIPT, "final_behavior_gui_supported_quality")
     unit = {
