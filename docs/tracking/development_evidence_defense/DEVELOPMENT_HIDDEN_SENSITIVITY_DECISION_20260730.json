@@ -1,0 +1,35 @@
+{
+  "conclusion": "RANKING_ROBUST_TO_HIDDEN_POLICY",
+  "interpretation": "Secondary sensitivity only; not a replacement evaluator.",
+  "largest_absolute_HOTA_sensitivity_by_method": {
+    "bytetrack_raw": {
+      "HOTA_visible_minus_primary": -0.06635551387495076,
+      "video_id": "Pigs291119_000216_30fps"
+    },
+    "hybrid_bytetrack": {
+      "HOTA_visible_minus_primary": -0.06439184212640481,
+      "video_id": "Pigs291119_000216_30fps"
+    },
+    "realtime_fast": {
+      "HOTA_visible_minus_primary": -0.065991280994811,
+      "video_id": "Pigs291119_000216_30fps"
+    },
+    "rf_hybrid": {
+      "HOTA_visible_minus_primary": -0.06667475865837491,
+      "video_id": "Pigs291119_000216_30fps"
+    }
+  },
+  "primary_HOTA_ranking": [
+    "hybrid_bytetrack",
+    "realtime_fast",
+    "rf_hybrid",
+    "bytetrack_raw"
+  ],
+  "primary_authority_unchanged": true,
+  "visible_only_HOTA_ranking": [
+    "hybrid_bytetrack",
+    "realtime_fast",
+    "rf_hybrid",
+    "bytetrack_raw"
+  ]
+}

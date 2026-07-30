@@ -1,0 +1,28 @@
+{
+  "conclusion": "IDSW_ZERO_SUPPORTED_BY_BROAD_IDENTITY_CONTINUITY",
+  "evidence": {
+    "AssA": 0.9119035496598343,
+    "FN": 1579,
+    "FP": 1579,
+    "IDF1": 0.9915010683760683,
+    "IDSW_STANDARD": 0,
+    "fragments": 425,
+    "legacy_same_prediction_gap_tolerant_fragments_15": 6,
+    "legacy_same_prediction_strict_fragments": 426,
+    "per_video_AssA_median": 0.914895462068182,
+    "per_video_AssA_min": 0.8516950952765846,
+    "per_video_IDF1_median": 0.9921527777777776,
+    "per_video_IDF1_min": 0.9774305555555556,
+    "persistent_pairwise_swaps": 0,
+    "standard_v2_fragment_top_three_share": [
+      65,
+      58,
+      54
+    ],
+    "terminal_identity_episodes": 0,
+    "wrong_identity_frames": 24
+  },
+  "interpretation": "Zero IDSW is not interpreted alone. High global and per-video identity scores, 24 transient wrong-ID animal-frames, no terminal episodes, and no persistent swaps support continuity. The large standard fragment count is primarily a detection/localization-gap signal; the supplementary 15-frame gap-tolerant count is small.",
+  "limitation": "The gap-tolerant fragment statistic comes from the same historical prediction artifact under the legacy supplementary continuity report, not from the Standard V2 headline metric.",
+  "schema_version": "tracking.development_evidence.hybrid_idsw_zero.v1"
+}

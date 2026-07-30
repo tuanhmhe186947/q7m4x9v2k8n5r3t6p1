@@ -1,0 +1,239 @@
+{
+  "checks": [
+    {
+      "canonical_global": 84,
+      "method_id": "bytetrack_raw",
+      "metric": "IDSW_STANDARD",
+      "per_video_sum": 84,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 480,
+      "method_id": "bytetrack_raw",
+      "metric": "FP",
+      "per_video_sum": 480,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 480,
+      "method_id": "bytetrack_raw",
+      "metric": "FN",
+      "per_video_sum": 480,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 141,
+      "method_id": "bytetrack_raw",
+      "metric": "fragments",
+      "per_video_sum": 141,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 31846,
+      "method_id": "bytetrack_raw",
+      "metric": "wrong_identity_frames",
+      "per_video_sum": 31846,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 45,
+      "method_id": "bytetrack_raw",
+      "metric": "recovered_identity_episodes",
+      "per_video_sum": 45,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 27,
+      "method_id": "bytetrack_raw",
+      "metric": "terminal_identity_episodes",
+      "per_video_sum": 27,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 10,
+      "method_id": "bytetrack_raw",
+      "metric": "persistent_pairwise_swaps",
+      "per_video_sum": 10,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 0,
+      "method_id": "hybrid_bytetrack",
+      "metric": "IDSW_STANDARD",
+      "per_video_sum": 0,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 1579,
+      "method_id": "hybrid_bytetrack",
+      "metric": "FP",
+      "per_video_sum": 1579,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 1579,
+      "method_id": "hybrid_bytetrack",
+      "metric": "FN",
+      "per_video_sum": 1579,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 425,
+      "method_id": "hybrid_bytetrack",
+      "metric": "fragments",
+      "per_video_sum": 425,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 24,
+      "method_id": "hybrid_bytetrack",
+      "metric": "wrong_identity_frames",
+      "per_video_sum": 24,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 8,
+      "method_id": "hybrid_bytetrack",
+      "metric": "recovered_identity_episodes",
+      "per_video_sum": 8,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 0,
+      "method_id": "hybrid_bytetrack",
+      "metric": "terminal_identity_episodes",
+      "per_video_sum": 0,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 0,
+      "method_id": "hybrid_bytetrack",
+      "metric": "persistent_pairwise_swaps",
+      "per_video_sum": 0,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 29,
+      "method_id": "realtime_fast",
+      "metric": "IDSW_STANDARD",
+      "per_video_sum": 29,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 473,
+      "method_id": "realtime_fast",
+      "metric": "FP",
+      "per_video_sum": 473,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 597,
+      "method_id": "realtime_fast",
+      "metric": "FN",
+      "per_video_sum": 597,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 107,
+      "method_id": "realtime_fast",
+      "metric": "fragments",
+      "per_video_sum": 107,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 11893,
+      "method_id": "realtime_fast",
+      "metric": "wrong_identity_frames",
+      "per_video_sum": 11893,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 16,
+      "method_id": "realtime_fast",
+      "metric": "recovered_identity_episodes",
+      "per_video_sum": 16,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 12,
+      "method_id": "realtime_fast",
+      "metric": "terminal_identity_episodes",
+      "per_video_sum": 12,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 7,
+      "method_id": "realtime_fast",
+      "metric": "persistent_pairwise_swaps",
+      "per_video_sum": 7,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 18,
+      "method_id": "rf_hybrid",
+      "metric": "IDSW_STANDARD",
+      "per_video_sum": 18,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 412,
+      "method_id": "rf_hybrid",
+      "metric": "FP",
+      "per_video_sum": 412,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 536,
+      "method_id": "rf_hybrid",
+      "metric": "FN",
+      "per_video_sum": 536,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 87,
+      "method_id": "rf_hybrid",
+      "metric": "fragments",
+      "per_video_sum": 87,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 14515,
+      "method_id": "rf_hybrid",
+      "metric": "wrong_identity_frames",
+      "per_video_sum": 14515,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 17,
+      "method_id": "rf_hybrid",
+      "metric": "recovered_identity_episodes",
+      "per_video_sum": 17,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 14,
+      "method_id": "rf_hybrid",
+      "metric": "terminal_identity_episodes",
+      "per_video_sum": 14,
+      "status": "PASS"
+    },
+    {
+      "canonical_global": 6,
+      "method_id": "rf_hybrid",
+      "metric": "persistent_pairwise_swaps",
+      "per_video_sum": 6,
+      "status": "PASS"
+    }
+  ],
+  "explanation": "HOTA combines per-alpha sufficient statistics and IDF1 recomputes from summed IDTP/IDFP/IDFN; neither is an arithmetic mean of videos.",
+  "nonadditive_metrics": [
+    "HOTA",
+    "DetA",
+    "AssA",
+    "LocA",
+    "IDF1",
+    "IDP",
+    "IDR"
+  ],
+  "status": "PASS"
+}

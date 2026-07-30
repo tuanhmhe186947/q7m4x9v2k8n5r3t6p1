@@ -1,0 +1,114 @@
+{
+  "contract_ids": [
+    "TRACKING_EVALUATOR_STANDARD_V2",
+    "TRACKING_MATCHING_STANDARD_V2",
+    "IDENTITY_ERROR_EPISODES_V2"
+  ],
+  "examples": [
+    {
+      "id": "correct_continuity",
+      "idsw": 0,
+      "sequence": [
+        "A",
+        "A",
+        "A"
+      ],
+      "wrong_rows": 0
+    },
+    {
+      "id": "one_frame_switch",
+      "idsw": 2,
+      "sequence": [
+        "A",
+        "B",
+        "A"
+      ],
+      "wrong_rows": 1
+    },
+    {
+      "id": "recovered_switch",
+      "idsw": 2,
+      "recovered": 1,
+      "sequence": [
+        "A",
+        "B",
+        "B",
+        "A"
+      ],
+      "wrong_rows": 2
+    },
+    {
+      "id": "terminal_wrong_owner",
+      "idsw": 1,
+      "sequence": [
+        "A",
+        "B",
+        "B"
+      ],
+      "terminal": 1,
+      "wrong_rows": 2
+    },
+    {
+      "fragments": 1,
+      "id": "fragmentation_without_switch",
+      "idsw": 0,
+      "sequence": [
+        "A",
+        null,
+        "A"
+      ],
+      "wrong_rows": 0
+    },
+    {
+      "hidden_indices": [
+        1
+      ],
+      "id": "hidden_interval",
+      "include_hidden_false_idsw": 0,
+      "include_hidden_true_idsw": 2,
+      "sequence": [
+        "A",
+        "B",
+        "A"
+      ]
+    },
+    {
+      "id": "prediction_gap",
+      "idsw": 0,
+      "sequence": [
+        "A",
+        null,
+        null,
+        "A"
+      ],
+      "wrong_rows": 0
+    },
+    {
+      "consistent": true,
+      "gt": [
+        "A",
+        "B"
+      ],
+      "id": "global_identity_permutation",
+      "prediction": [
+        "pB",
+        "pA"
+      ],
+      "wrong_rows": 0
+    },
+    {
+      "gt_A": [
+        "pA",
+        "pB"
+      ],
+      "gt_B": [
+        "pB",
+        "pA"
+      ],
+      "id": "simultaneous_pairwise_swap",
+      "pairwise_event": 1,
+      "wrong_rows": 2
+    }
+  ],
+  "schema_version": "tracking.identity_diagnostic_golden_examples.v1"
+}
