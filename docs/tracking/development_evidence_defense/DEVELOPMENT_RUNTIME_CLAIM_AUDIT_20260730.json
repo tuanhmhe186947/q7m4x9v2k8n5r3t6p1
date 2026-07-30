@@ -1,0 +1,33 @@
+{
+  "forbidden_wording": "real-time system",
+  "methods": {
+    "bytetrack_raw": {
+      "IO_policy_available": true,
+      "causal": true,
+      "detector_cadence": "EVERY_FRAME",
+      "future_frames_used": false,
+      "hardware_authority_available": true,
+      "latency_distribution_available": false,
+      "measured_end_to_end_FPS_available": false,
+      "peak_GPU_memory_available": false,
+      "repeat_count_available": false,
+      "runtime_claim_status": "RUNTIME_EVIDENCE_INCOMPLETE"
+    },
+    "realtime_fast": {
+      "IO_policy_available": true,
+      "causal": true,
+      "detector_cadence": "EVERY_SECOND_FRAME",
+      "future_frames_used": false,
+      "hardware_authority_available": true,
+      "latency_distribution_available": false,
+      "measured_end_to_end_FPS_available": false,
+      "peak_GPU_memory_available": false,
+      "repeat_count_available": false,
+      "runtime_claim_status": "REALTIME_ORIENTED_BUT_NOT_YET_BENCHMARKED"
+    }
+  },
+  "protocol_status": "FROZEN_PROTOCOL_NOT_EXECUTED",
+  "recommended_wording": "causal realtime-oriented method",
+  "runtime_protocol": "docs/tracking/method_standardization/TRACKING_RUNTIME_BENCHMARK_PROTOCOL_20260730.json",
+  "schema_version": "tracking.development_evidence.runtime_claim.v1"
+}

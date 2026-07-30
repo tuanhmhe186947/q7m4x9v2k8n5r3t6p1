@@ -1,0 +1,9 @@
+{
+  "HUMAN_GT_AUDIT_COMPLETED": "NO",
+  "MP4_created": 0,
+  "item_count": 120,
+  "rendered_video_or_frame_artifacts": 0,
+  "review_policy": "Review references in place; do not edit GT or predictions.",
+  "schema_version": "tracking.development_evidence.review_bundle.v1",
+  "source_csv": "DEVELOPMENT_GT_ERROR_AUDIT_ITEMS_20260730.csv"
+}

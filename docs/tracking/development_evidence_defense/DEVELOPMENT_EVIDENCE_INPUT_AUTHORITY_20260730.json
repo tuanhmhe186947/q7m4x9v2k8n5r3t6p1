@@ -1,0 +1,614 @@
+{
+  "active_methods": [
+    "bytetrack_raw",
+    "hybrid_bytetrack",
+    "realtime_fast",
+    "rf_hybrid"
+  ],
+  "date": "20260730",
+  "evaluation_contract": {
+    "GT_hash": "675cf37c4f924e391ffa457ba6c6e9453b967af318f37ecd2bc1ab1190a1d9dd",
+    "HOTA_threshold_count": 19,
+    "HOTA_thresholds": "0.05..0.95 inclusive",
+    "IDSW_definition": "IDSW_STANDARD",
+    "development_or_unseen": "DEVELOPMENT",
+    "evaluation_population": "FROZEN_13_VIDEO_DEVELOPMENT_POPULATION",
+    "evaluator_code_hash": "398b6ec58f5d912083d3a55469a3e31acc713367",
+    "evaluator_config_hash": "96630ebd6d610928f11e5422633e0247c76f8fb082568bf515e20ee30d5cda9f",
+    "identity_episode_evaluator": "IDENTITY_ERROR_EPISODES_V2",
+    "include_hidden": true,
+    "missing_metric_encoding": "NOT_AVAILABLE",
+    "pre_assignment_eligibility_gating": true,
+    "tracking_evaluator": "TRACKING_EVALUATOR_STANDARD_V2"
+  },
+  "ground_truth_authorities": [
+    {
+      "FPS": 30.0,
+      "frame_count": 1800,
+      "manifest_sha256": "3a6bc2b28dd2e4f831ef59d7543e1a523bb9cfd2415741bb91506f74709bd697",
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Pigs281119_000085_30fps.xml",
+      "sha256": "3a6bc2b28dd2e4f831ef59d7543e1a523bb9cfd2415741bb91506f74709bd697",
+      "video_id": "Pigs281119_000085_30fps"
+    },
+    {
+      "FPS": 30.0,
+      "frame_count": 1800,
+      "manifest_sha256": "1d6ad0b635de1388016b28201ada90010f41ff8a491936050a86cd9430b6ceeb",
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Pigs281119_000114_30fps.xml",
+      "sha256": "1d6ad0b635de1388016b28201ada90010f41ff8a491936050a86cd9430b6ceeb",
+      "video_id": "Pigs281119_000114_30fps"
+    },
+    {
+      "FPS": 30.0,
+      "frame_count": 1800,
+      "manifest_sha256": "e1b922d422c86307231b80c7f6d9186290086be24be5cd13731d25dcdfeac5c4",
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Pigs291119_000216_30fps.xml",
+      "sha256": "e1b922d422c86307231b80c7f6d9186290086be24be5cd13731d25dcdfeac5c4",
+      "video_id": "Pigs291119_000216_30fps"
+    },
+    {
+      "FPS": 30.0,
+      "frame_count": 1800,
+      "manifest_sha256": "ea60f89302b53bcd94abfb83b7fee826c0594d75ef03ec2085be37517453ddde",
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Pigs291119_000225_30fps.xml",
+      "sha256": "ea60f89302b53bcd94abfb83b7fee826c0594d75ef03ec2085be37517453ddde",
+      "video_id": "Pigs291119_000225_30fps"
+    },
+    {
+      "FPS": 30.0,
+      "frame_count": 1800,
+      "manifest_sha256": "9651401fb022c9dfc917df4b0b163dd750279f1bca7932a32aad8b0682ee923a",
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Pigs291119_000226_30fps.xml",
+      "sha256": "9651401fb022c9dfc917df4b0b163dd750279f1bca7932a32aad8b0682ee923a",
+      "video_id": "Pigs291119_000226_30fps"
+    },
+    {
+      "FPS": 30.0,
+      "frame_count": 1800,
+      "manifest_sha256": "6dfb65e3b4aff7006462b3062c75e3dc5eb895f3b76098e88657527c1ff23fc3",
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Pigs291119_000231_30fps.xml",
+      "sha256": "6dfb65e3b4aff7006462b3062c75e3dc5eb895f3b76098e88657527c1ff23fc3",
+      "video_id": "Pigs291119_000231_30fps"
+    },
+    {
+      "FPS": 30.0,
+      "frame_count": 1800,
+      "manifest_sha256": "348f4ffa83ab7f7ac3c603a60a4f00528cf222d3f13129e2f04c399d7cb4158c",
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Pigs291119_000233_30fps.xml",
+      "sha256": "348f4ffa83ab7f7ac3c603a60a4f00528cf222d3f13129e2f04c399d7cb4158c",
+      "video_id": "Pigs291119_000233_30fps"
+    },
+    {
+      "FPS": 30.0,
+      "frame_count": 1800,
+      "manifest_sha256": "4636c3beb1d6e43a2c58dd45c050c62ee9d37d05010c26e578db1b9200ac21b8",
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Tracking_annotation_Pigs291119_000263_30fps.xml",
+      "sha256": "4636c3beb1d6e43a2c58dd45c050c62ee9d37d05010c26e578db1b9200ac21b8",
+      "video_id": "Pigs291119_000263_30fps"
+    },
+    {
+      "FPS": 30.0,
+      "frame_count": 1800,
+      "manifest_sha256": "e50e8b03e72c5aa78bba6568ce233522129cae4d263b3864c6ad90bdd3b31582",
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Pigs291119_000302_30fps.xml",
+      "sha256": "e50e8b03e72c5aa78bba6568ce233522129cae4d263b3864c6ad90bdd3b31582",
+      "video_id": "Pigs291119_000302_30fps"
+    },
+    {
+      "FPS": 30.0,
+      "frame_count": 1800,
+      "manifest_sha256": "00eaf567154f1854c9c7ef866353e8db2af3d1329a5e54c70a36a8ccb97dc1b6",
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Pigs301119_000327_30fps.xml",
+      "sha256": "00eaf567154f1854c9c7ef866353e8db2af3d1329a5e54c70a36a8ccb97dc1b6",
+      "video_id": "Pigs301119_000327_30fps"
+    },
+    {
+      "FPS": 30.0,
+      "frame_count": 1800,
+      "manifest_sha256": "2e00b57423688ee74e1228e75f7ba13d0a4ecc05ed5a5f0295d92e68fe2f5f76",
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Pigs301119_000328_30fps.xml",
+      "sha256": "2e00b57423688ee74e1228e75f7ba13d0a4ecc05ed5a5f0295d92e68fe2f5f76",
+      "video_id": "Pigs301119_000328_30fps"
+    },
+    {
+      "FPS": 30.0,
+      "frame_count": 1800,
+      "manifest_sha256": "7f65df1f636b671e4eb720082d80e5d493a67619bc0f5b331c7da4715e6285a3",
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Pigs301119_000329_30fps.xml",
+      "sha256": "7f65df1f636b671e4eb720082d80e5d493a67619bc0f5b331c7da4715e6285a3",
+      "video_id": "Pigs301119_000329_30fps"
+    },
+    {
+      "FPS": 30.0,
+      "frame_count": 1800,
+      "manifest_sha256": "994f8ee08a1d9b57413fd9b791b573d7719cde84ccabe20381da01ec9d8eee92",
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking\\Pigs301119_000330_30fps.xml",
+      "sha256": "994f8ee08a1d9b57413fd9b791b573d7719cde84ccabe20381da01ec9d8eee92",
+      "video_id": "Pigs301119_000330_30fps"
+    }
+  ],
+  "ground_truth_collection_sha256": "cbdd6f36cb33899d10b1840e03d3ae50d63688b1fdf7b48b76e74bd0fd3c759e",
+  "hybrid_rerun": {
+    "best_summary": {
+      "relative_path": "outputs/tracking/hybrid_bytetrack_full_20260730_run1/evaluation/tracking_rule_benchmark_best.json",
+      "role": "REQUIRED_AUTHORITY",
+      "sha256": "cbe86cf5e13af193c8b6d502fae4df6031360c06a30115639dbdc691eb9797f5",
+      "size_bytes": 7134
+    },
+    "exact_prediction_reproducibility": "NOT_ESTABLISHED",
+    "manifest": {
+      "relative_path": "outputs/tracking/hybrid_bytetrack_full_20260730_run1/RUN_MANIFEST.json",
+      "role": "REQUIRED_AUTHORITY",
+      "sha256": "3e7d2cc2e27b04b8bed9f9d933604a34a4c3002fde34255f86c0e16c8eeed3f1",
+      "size_bytes": 3318
+    },
+    "metric_level_near_parity_reproducibility": "ESTABLISHED",
+    "metrics": {
+      "relative_path": "outputs/tracking/hybrid_bytetrack_full_20260730_run1/evaluation/iou0_area0_condarea0_merge0/tracking_metrics.csv",
+      "role": "REQUIRED_AUTHORITY",
+      "sha256": "642db90f9318149b23fed7209c055d66cfac9072c67e8dfdea794417398229f9",
+      "size_bytes": 38177
+    },
+    "role": "SUPPLEMENTARY_METRIC_LEVEL_NEAR_PARITY_EVIDENCE"
+  },
+  "method_comparability": {
+    "same_GT_version": "PASS",
+    "same_HOTA_thresholds": [
+      0.05,
+      0.1,
+      0.15,
+      0.2,
+      0.25,
+      0.3,
+      0.35,
+      0.4,
+      0.45,
+      0.5,
+      0.55,
+      0.6,
+      0.65,
+      0.7,
+      0.75,
+      0.8,
+      0.85,
+      0.9,
+      0.95
+    ],
+    "same_IDSW_definition": "PASS_IDSW_STANDARD",
+    "same_area_filtering": "PASS_NO_METHOD_SPECIFIC_AREA_FILTER",
+    "same_frame_set": "PASS_0_TO_1799_ALL_13",
+    "same_include_hidden": "PASS_TRUE_PRIMARY",
+    "same_matching_eligibility": "PASS_TRACKING_MATCHING_STANDARD_V2",
+    "status": "COMPARABLE"
+  },
+  "method_registry": {
+    "path": "src\\pig_behavior\\tracking\\method_registry.py",
+    "sha256": "623f5de3932276641ed7f07be8817bb8f1ef4e95ef32d251942fb125cb104f02"
+  },
+  "prediction_authorities": {
+    "bytetrack_raw": {
+      "authority_hash": "13d9226c36141264cc33e4b498d38e5f3eaa9891cf32bc4c8fb87b01fd27d576",
+      "authority_path": "outputs\\tracking\\frozen_predictions_standard_v2_20260728_retry1\\B0_bytetrack_raw\\predictions",
+      "files": [
+        {
+          "relative_path": "outputs/tracking/frozen_predictions_standard_v2_20260728_retry1/B0_bytetrack_raw/predictions/Pigs281119_000085_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "2dd250f947de3c4016c11382e72e8e24ab1c1748d65e4435e41bb3049c168812",
+          "size_bytes": 3823626
+        },
+        {
+          "relative_path": "outputs/tracking/frozen_predictions_standard_v2_20260728_retry1/B0_bytetrack_raw/predictions/Pigs281119_000114_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "9bd78a67926c49b0242b6e5d6eeb37313a7addc2edcb4869fede1f44932f40ec",
+          "size_bytes": 3821093
+        },
+        {
+          "relative_path": "outputs/tracking/frozen_predictions_standard_v2_20260728_retry1/B0_bytetrack_raw/predictions/Pigs291119_000216_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "4b87f4a08430f5133dc8d039321df836b1f9ced4c161d6be782244858b35fbdd",
+          "size_bytes": 3819205
+        },
+        {
+          "relative_path": "outputs/tracking/frozen_predictions_standard_v2_20260728_retry1/B0_bytetrack_raw/predictions/Pigs291119_000225_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "e1a7fcf744ee802f82059f3e1a3e790c8d7f963bfa3091cc77a63f2800258782",
+          "size_bytes": 3819364
+        },
+        {
+          "relative_path": "outputs/tracking/frozen_predictions_standard_v2_20260728_retry1/B0_bytetrack_raw/predictions/Pigs291119_000226_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "916814dbac6347e82f95ec489e82bd8df77788423fe652d884ebef16f6f6f19a",
+          "size_bytes": 3816201
+        },
+        {
+          "relative_path": "outputs/tracking/frozen_predictions_standard_v2_20260728_retry1/B0_bytetrack_raw/predictions/Pigs291119_000231_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "62f3f6454b08c6180b60362a830f51cf0d3a68b56c020830f6fcd34e895c0fc3",
+          "size_bytes": 3818154
+        },
+        {
+          "relative_path": "outputs/tracking/frozen_predictions_standard_v2_20260728_retry1/B0_bytetrack_raw/predictions/Pigs291119_000233_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "6a9f70612980b7d159afe1215c2f2346b334c587d0b7e33ad418752e9858b4cb",
+          "size_bytes": 3814458
+        },
+        {
+          "relative_path": "outputs/tracking/frozen_predictions_standard_v2_20260728_retry1/B0_bytetrack_raw/predictions/Pigs291119_000263_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "94fadef73ac8679729aa349daaccddfb94fc9c6bf557a4a7d2622da4b8f52f95",
+          "size_bytes": 3818264
+        },
+        {
+          "relative_path": "outputs/tracking/frozen_predictions_standard_v2_20260728_retry1/B0_bytetrack_raw/predictions/Pigs291119_000302_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "e5c0f87e00060284e0ef2fc8520275ea45318b2d2925f8e9e5217118f43ed389",
+          "size_bytes": 3819915
+        },
+        {
+          "relative_path": "outputs/tracking/frozen_predictions_standard_v2_20260728_retry1/B0_bytetrack_raw/predictions/Pigs301119_000327_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "9b143ccad47808879b3c7820ea7f26cc988702e38e83942a8aa5c67d3e28ca9c",
+          "size_bytes": 3820162
+        },
+        {
+          "relative_path": "outputs/tracking/frozen_predictions_standard_v2_20260728_retry1/B0_bytetrack_raw/predictions/Pigs301119_000328_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "e1bbcd32794c2bdb37dd7984bb85a22207ab00d11a962300bbd64ed470e95e42",
+          "size_bytes": 3817823
+        },
+        {
+          "relative_path": "outputs/tracking/frozen_predictions_standard_v2_20260728_retry1/B0_bytetrack_raw/predictions/Pigs301119_000329_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "23d308eba324ef84991871ae755877dabcef4d2e4352fab54405da8ef83195a4",
+          "size_bytes": 3817766
+        },
+        {
+          "relative_path": "outputs/tracking/frozen_predictions_standard_v2_20260728_retry1/B0_bytetrack_raw/predictions/Pigs301119_000330_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "9e3ede98e58c848b42d7d9711e3d88e531a77fdefc503a9682e47a6556415ec5",
+          "size_bytes": 3820744
+        }
+      ],
+      "raw_file_collection_sha256": "6c05839f46dbcd6b812ebef9dfc790387518a89dd8a891d6a4aa40eaeffca717",
+      "xml_count": 13
+    },
+    "hybrid_bytetrack": {
+      "authority_hash": "36c3bdd3f6d92c0c5336590dbf4c8822402d718ec47df2b137cef862339d5b8a",
+      "authority_path": "outputs\\tracking\\historical_h5b_h4_frozen_predictions_20260728\\predictions",
+      "files": [
+        {
+          "relative_path": "outputs/tracking/historical_h5b_h4_frozen_predictions_20260728/predictions/Pigs281119_000085_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "691c1da76bec0168a303ee0482a6132f4477d57d91e91c97f875a1f56ea25073",
+          "size_bytes": 3823582
+        },
+        {
+          "relative_path": "outputs/tracking/historical_h5b_h4_frozen_predictions_20260728/predictions/Pigs281119_000114_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "724a0c0686e6d42e4034e66837bfec95cd40ff10d42389614d5b2c62a306fc98",
+          "size_bytes": 3821116
+        },
+        {
+          "relative_path": "outputs/tracking/historical_h5b_h4_frozen_predictions_20260728/predictions/Pigs291119_000216_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "14589c03e2c5105564982b830d5be0d0a410ef7d55a0be0313996557a4cab7be",
+          "size_bytes": 3819390
+        },
+        {
+          "relative_path": "outputs/tracking/historical_h5b_h4_frozen_predictions_20260728/predictions/Pigs291119_000225_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "9863238de3c910411201f35412a40f5dc126f7d9b17d1244ca8590b9d2e288f9",
+          "size_bytes": 3819502
+        },
+        {
+          "relative_path": "outputs/tracking/historical_h5b_h4_frozen_predictions_20260728/predictions/Pigs291119_000226_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "a1374591a1977fe823395c8647bdf8b0ebe955144fa749a4729351f46a0566d1",
+          "size_bytes": 3816201
+        },
+        {
+          "relative_path": "outputs/tracking/historical_h5b_h4_frozen_predictions_20260728/predictions/Pigs291119_000231_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "6221c5b4a439ccaab591963cced24cd38acf03de5c2777f9ae9b48fe1bfd2bd8",
+          "size_bytes": 3818484
+        },
+        {
+          "relative_path": "outputs/tracking/historical_h5b_h4_frozen_predictions_20260728/predictions/Pigs291119_000233_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "5679becaa6663aeb740e49fc86e0c9cfcbf86d5d2f33d66dd385ba35f8554139",
+          "size_bytes": 3814799
+        },
+        {
+          "relative_path": "outputs/tracking/historical_h5b_h4_frozen_predictions_20260728/predictions/Pigs291119_000263_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "e3ff13df649d938d98441201dfb9097395433db9f57ff1a8b8e3fb82e13f721d",
+          "size_bytes": 3818297
+        },
+        {
+          "relative_path": "outputs/tracking/historical_h5b_h4_frozen_predictions_20260728/predictions/Pigs291119_000302_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "4bd6fb32d7b2c09abc16f71955866e1703b1641a1b046b88a2e6b87c10b8f116",
+          "size_bytes": 3820000
+        },
+        {
+          "relative_path": "outputs/tracking/historical_h5b_h4_frozen_predictions_20260728/predictions/Pigs301119_000327_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "a799cb5bf51633932bc17b2bc49092476051eec98fd33a6e63305f1302af2fbe",
+          "size_bytes": 3820115
+        },
+        {
+          "relative_path": "outputs/tracking/historical_h5b_h4_frozen_predictions_20260728/predictions/Pigs301119_000328_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "bd206b064844323793160b737dec705258060edc8314927d4badc802e6d806d8",
+          "size_bytes": 3817933
+        },
+        {
+          "relative_path": "outputs/tracking/historical_h5b_h4_frozen_predictions_20260728/predictions/Pigs301119_000329_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "975615233eba02ee5747d2440ebd6d598d7a4909b98f000e1c56c79f2a19fc74",
+          "size_bytes": 3817821
+        },
+        {
+          "relative_path": "outputs/tracking/historical_h5b_h4_frozen_predictions_20260728/predictions/Pigs301119_000330_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "19d94267b415421c93109745a7fb45265e6b231bfa2e3fcc3f386bfcc10a097b",
+          "size_bytes": 3820860
+        }
+      ],
+      "raw_file_collection_sha256": "e36e4cac898a92ac4d9eab44200ee5a2fca94a1f91c096067c644b1d3cf46882",
+      "xml_count": 13
+    },
+    "realtime_fast": {
+      "authority_hash": "fd2d4f3dec0710d1c9eecba9308247a7b226dd34a4a02a9cb89f17acb22bbbfe",
+      "authority_path": "outputs\\tracking\\reconciliation_state8_development_20260729_run2\\predictions\\realtime_fast",
+      "files": [
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/realtime_fast/Pigs281119_000085_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "0f1cb5ba23b754a4c36d83e3f1a175e92d53ef3c1e937a505fc9e470103ca1c8",
+          "size_bytes": 3823637
+        },
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/realtime_fast/Pigs281119_000114_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "cef35d043e6ede81bbca6f418904b0fcab7500fcc918fa372d9474b62c49c794",
+          "size_bytes": 3821099
+        },
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/realtime_fast/Pigs291119_000216_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "cc664ec665dfd67be4da990c085d40c61d6886cf8fa86ba5d4866f4d035c29ae",
+          "size_bytes": 3819215
+        },
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/realtime_fast/Pigs291119_000225_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "42358dcf2ae178953b3d17d24aabe4674347f9e0a467298a97deae35133498cc",
+          "size_bytes": 3819376
+        },
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/realtime_fast/Pigs291119_000226_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "67aeadf73871a53116ab484a1db58d626e648aa988cb982408836fe3b7a00285",
+          "size_bytes": 3816209
+        },
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/realtime_fast/Pigs291119_000231_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "08ae0cecb4eff352431d2fd1ed3a22215b42f111ac6c45577b257de0e673562e",
+          "size_bytes": 3818195
+        },
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/realtime_fast/Pigs291119_000233_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "86931197b5909999d65a24ca9d8ae3cd85b7107c93da40551db27c93460323d6",
+          "size_bytes": 3814569
+        },
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/realtime_fast/Pigs291119_000263_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "f609e265dc5e33c41afb9501d23d606ec8f12ca1189465c154fd1da534a42ce5",
+          "size_bytes": 3818283
+        },
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/realtime_fast/Pigs291119_000302_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "260bb46fda262333762b22352532caf68e42c1369ae19d3007f045868cf6a5da",
+          "size_bytes": 3819957
+        },
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/realtime_fast/Pigs301119_000327_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "1752f63c6cf9b749a89395de667317d487d2f35004bf84ba7887a0a962880b94",
+          "size_bytes": 3820177
+        },
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/realtime_fast/Pigs301119_000328_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "938c7c454bd9e4a26adb4a28c5d75c1c6599852085f0f2d9d5e623d7e30e66a7",
+          "size_bytes": 3817838
+        },
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/realtime_fast/Pigs301119_000329_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "e65d87b3ecb4ef153803348ce0014692e83290b6aa19de88a44b3aa341ae2a18",
+          "size_bytes": 3817769
+        },
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/realtime_fast/Pigs301119_000330_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "5e83f18c7f0ca38a658e6b3ec197f4ad386b3d47c8e99513ef3f36d1f9267aa7",
+          "size_bytes": 3820746
+        }
+      ],
+      "raw_file_collection_sha256": "d68774c05f8dad189d71f649fb23988904002dd99418697a4d6edcfcf28fdb7d",
+      "xml_count": 13
+    },
+    "rf_hybrid": {
+      "authority_hash": "8ecf2a42bedced243232dbf8c537d1177c0abed77bb43dfa74c117185d2e528e",
+      "authority_path": "outputs\\tracking\\reconciliation_state8_development_20260729_run2\\predictions\\rf_hybrid",
+      "files": [
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/rf_hybrid/Pigs281119_000085_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "f3c96d881a344d4b74615c786066056ebe3e1a361eb246a08e57198a90c0aaa1",
+          "size_bytes": 3823641
+        },
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/rf_hybrid/Pigs281119_000114_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "cda172e4fc00aacd917ed504cb482099b429c3f42a49a8e6b3c3d00434fedad0",
+          "size_bytes": 3821103
+        },
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/rf_hybrid/Pigs291119_000216_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "3a56acfd66d363300600f7b0b22b781471759436d50c1b37b02b4fd89fefde9a",
+          "size_bytes": 3819217
+        },
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/rf_hybrid/Pigs291119_000225_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "782ca1c5d139fc8e3287c88caf9121f24cb4f128e9faddfc32a3f16b8bbda12d",
+          "size_bytes": 3819382
+        },
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/rf_hybrid/Pigs291119_000226_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "ad0256935a99951220e0691a4e98da8d2e1e7efbef7e224a02ff03fd2250ec6b",
+          "size_bytes": 3816210
+        },
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/rf_hybrid/Pigs291119_000231_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "bf0f085c2e45fea8da8996f05d7f458933ebe5f2e868b2d2d598feb4edffea81",
+          "size_bytes": 3818242
+        },
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/rf_hybrid/Pigs291119_000233_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "d3e98fe2bbb2372fad04af9c37cea9af1039c54db0d747cfd6552f86c25a2546",
+          "size_bytes": 3814597
+        },
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/rf_hybrid/Pigs291119_000263_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "db11f61852b3301dee87e385ba9176d058d3ba6329e5f1b223c1505f4eb945d4",
+          "size_bytes": 3818284
+        },
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/rf_hybrid/Pigs291119_000302_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "b308d430f40f3baf2c04e3a8b0438e9a0fa4bab653577a42068ed61431a2c5e3",
+          "size_bytes": 3819959
+        },
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/rf_hybrid/Pigs301119_000327_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "5653ba0a34448b60fb97e2e377d5f544f6ff9e06f2bf88a10ec22144af492710",
+          "size_bytes": 3820177
+        },
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/rf_hybrid/Pigs301119_000328_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "8609e55644174eb40fbbb2f62253ccd4ee71df016d548c0c9d2bf5ac83cf14e3",
+          "size_bytes": 3817838
+        },
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/rf_hybrid/Pigs301119_000329_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "19a703fde9abf8a0285796a02888a12c3af2c33b105d27bbeeffedfc5cb54922",
+          "size_bytes": 3817772
+        },
+        {
+          "relative_path": "outputs/tracking/reconciliation_state8_development_20260729_run2/predictions/rf_hybrid/Pigs301119_000330_30fps.xml",
+          "role": "PREDICTION_XML",
+          "sha256": "6ff8bfab95c72adbabdede38fc829cd8d3b71600b3e179de6dda6855e9b2d426",
+          "size_bytes": 3820746
+        }
+      ],
+      "raw_file_collection_sha256": "f35bcc976b184be3f0c9b1c5c0476dc2c06bfe0fbb42f7f80f26d49667fe6f10",
+      "xml_count": 13
+    }
+  },
+  "prediction_authority_created": false,
+  "protected_dirty_files": [
+    {
+      "relative_path": "scripts/classification_v2/01_review_units_gui/review_interaction_blind_calibration_gui_v2.py",
+      "role": "UNRELATED_PROTECTED",
+      "sha256": "0bc3c17ff1a4c90bd9cbd0d3f3668c9c7856ed63f1b3411c4de46a090d6acd00",
+      "size_bytes": 40607
+    },
+    {
+      "relative_path": "scripts/classification_v2/01_review_units_gui/review_temporal_unit_gui.py",
+      "role": "UNRELATED_PROTECTED",
+      "sha256": "98dbd97da98ef5155ca1a69874c565e3f9c45f466ae491d3fa202a66328cded4",
+      "size_bytes": 61708
+    },
+    {
+      "relative_path": "tests/test_classification_v2_behavior_gui_readiness.py",
+      "role": "UNRELATED_PROTECTED",
+      "sha256": "80eed39ddabd3feb901fea0242137096a2b042fc514b4034ad4fbf7cee796ce7",
+      "size_bytes": 15262
+    },
+    {
+      "relative_path": "tests/test_classification_v2_source_specific_presentation_v2.py",
+      "role": "UNRELATED_PROTECTED",
+      "sha256": "87d314b65aed60db04674bcf315ac98763d6303daa05ade84fb0628eff8e8d37",
+      "size_bytes": 22473
+    }
+  ],
+  "required_authority_records": [
+    {
+      "relative_path": "docs/tracking/method_standardization/CANONICAL_TRACKING_DEVELOPMENT_RESULTS_20260730.json",
+      "role": "REQUIRED_AUTHORITY",
+      "sha256": "03ce92cf96500dc421b7804ac3a45828370a823eb7c7bdcec52c7065a483a9c4",
+      "size_bytes": 7143
+    },
+    {
+      "relative_path": "docs/tracking/reconciliation/FOUR_METHOD_TRACKING_FREEZE_AUTHORITY_20260729.json",
+      "role": "REQUIRED_AUTHORITY",
+      "sha256": "7e2c212ba5bc540968b6ba19188e407c41cdff8050f66ad8034e490fa171d3d4",
+      "size_bytes": 11455
+    },
+    {
+      "relative_path": "docs/tracking/rf_hybrid_v2/RF_HYBRID_V2_SCIENTIFIC_DECISION_AUTHORITY_20260730.json",
+      "role": "REQUIRED_AUTHORITY",
+      "sha256": "d9ccbced89946dce50b95b6ec84031cf6c1a42c8a9a6825a573f45c0b68011c2",
+      "size_bytes": 8106
+    },
+    {
+      "relative_path": "src/pig_behavior/tracking/method_registry.py",
+      "role": "REQUIRED_AUTHORITY",
+      "sha256": "623f5de3932276641ed7f07be8817bb8f1ef4e95ef32d251942fb125cb104f02",
+      "size_bytes": 16384
+    },
+    {
+      "relative_path": "outputs/tracking/hybrid_bytetrack_full_20260730_run1/RUN_MANIFEST.json",
+      "role": "REQUIRED_AUTHORITY",
+      "sha256": "3e7d2cc2e27b04b8bed9f9d933604a34a4c3002fde34255f86c0e16c8eeed3f1",
+      "size_bytes": 3318
+    },
+    {
+      "relative_path": "outputs/tracking/hybrid_bytetrack_full_20260730_run1/evaluation/iou0_area0_condarea0_merge0/tracking_metrics.csv",
+      "role": "REQUIRED_AUTHORITY",
+      "sha256": "642db90f9318149b23fed7209c055d66cfac9072c67e8dfdea794417398229f9",
+      "size_bytes": 38177
+    },
+    {
+      "relative_path": "outputs/tracking/hybrid_bytetrack_full_20260730_run1/evaluation/tracking_rule_benchmark_best.json",
+      "role": "REQUIRED_AUTHORITY",
+      "sha256": "cbe86cf5e13af193c8b6d502fae4df6031360c06a30115639dbdc691eb9797f5",
+      "size_bytes": 7134
+    }
+  ],
+  "schema_version": "tracking.development_evidence.input_authority.v1",
+  "selected_skills": [
+    "tracking-experiment-guardian",
+    "experiment-lineage-reproducibility",
+    "dataset-contract-leakage-guard",
+    "safe-refactor-test-guardian"
+  ],
+  "starting_main_sha": "0038a0f1efb57aec794cf26e22a34535d3a2dc10",
+  "unseen_files_accessed": 0
+}

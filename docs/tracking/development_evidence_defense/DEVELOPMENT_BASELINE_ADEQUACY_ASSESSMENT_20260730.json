@@ -1,0 +1,11 @@
+{
+  "ByteTrack_appropriate_conventional_baseline": true,
+  "additional_MOT_baseline_likely_requested_for_tracking_primary_scope": true,
+  "decision": "CURRENT_BASELINE_SUFFICIENT_FOR_UPSTREAM_MODULE_STUDY",
+  "defensible_scope": "Tracking as an evaluated upstream component of the pig-behavior pipeline.",
+  "intended_paper_emphasis": "BEHAVIOR_PIPELINE_PRIMARY",
+  "internal_variants_are_external_baselines": false,
+  "later_work_if_tracking_becomes_primary": "Freeze and execute at least one additional external MOT baseline under the same 13+12-video contract.",
+  "schema_version": "tracking.development_evidence.baseline_adequacy.v1",
+  "standalone_novel_tracking_claim_supported": false
+}
