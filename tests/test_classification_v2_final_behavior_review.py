@@ -274,6 +274,61 @@ def test_media_is_bounded_without_changing_source_pixels() -> None:
     assert fitted.getpixel((0, 0)) == (255, 0, 0)
 
 
+def test_final_gui_contact_sheet_cache_avoids_rerender() -> None:
+    module = _load(GUI_SCRIPT, "final_behavior_gui_contact_sheet_cache")
+    gui = module.FinalBehaviorReviewGui.__new__(module.FinalBehaviorReviewGui)
+    gui.contact_sheet_cache = module.BASE.RenderedImageCache(max_items=2)
+    gui.decisions = {"unit-1": {"manual_review_decision": "accept"}}
+    frames = pd.DataFrame({"frame_index": [1, 2]})
+    calls = {"render": 0}
+
+    def render(unit, matched_frames):
+        calls["render"] += 1
+        return module.Image.new("RGB", (32, 24), "white"), ["diagnostic"]
+
+    gui._frame_rows_for_unit = lambda unit: frames
+    gui._make_contact_sheet = render
+    unit = pd.Series({"review_unit_id": "unit-1"})
+
+    first, first_diagnostics, first_count = gui._contact_sheet_for_unit(unit)
+    first.paste("red", (0, 0, 1, 1))
+    second, second_diagnostics, second_count = gui._contact_sheet_for_unit(unit)
+
+    assert calls["render"] == 1
+    assert first_diagnostics == second_diagnostics == ["diagnostic"]
+    assert first_count == second_count == 2
+    assert second.getpixel((0, 0)) == (255, 255, 255)
+    assert gui.decisions == {"unit-1": {"manual_review_decision": "accept"}}
+
+
+def test_final_gui_prefetch_restores_current_playback_rows() -> None:
+    module = _load(GUI_SCRIPT, "final_behavior_gui_prefetch_restore")
+    gui = module.FinalBehaviorReviewGui.__new__(module.FinalBehaviorReviewGui)
+    gui.units = pd.DataFrame([{"review_unit_id": "unit-2"}])
+    gui._prefetch_after_id = "idle-1"
+    previous_scene = pd.DataFrame({"frame_index": [10]})
+    previous_actor = pd.DataFrame({"frame_index": [10]})
+    gui._current_scene_rows = previous_scene
+    gui._current_actor_rows = previous_actor
+
+    def prepare(unit):
+        gui._current_scene_rows = pd.DataFrame({"frame_index": [20]})
+        gui._current_actor_rows = pd.DataFrame({"frame_index": [20]})
+
+    gui._prepare_current_media_rows = prepare
+    gui._contact_sheet_for_unit = lambda unit: (
+        module.Image.new("RGB", (32, 24), "white"),
+        [],
+        1,
+    )
+
+    gui._prefetch_contact_sheet(0)
+
+    assert gui._prefetch_after_id is None
+    assert gui._current_scene_rows is previous_scene
+    assert gui._current_actor_rows is previous_actor
+
+
 def test_review_window_stays_inside_common_laptop_screen() -> None:
     module = _load(GUI_SCRIPT, "final_behavior_gui_window_size")
 

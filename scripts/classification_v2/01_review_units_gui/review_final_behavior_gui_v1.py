@@ -507,6 +507,9 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
         self.details_visible = False
         self.decision_dirty = False
         self.video_cache: dict[str, Any] = {}
+        self.video_next_frame: dict[str, int] = {}
+        self.contact_sheet_cache = BASE.RenderedImageCache(max_items=8)
+        self._prefetch_after_id: str | None = None
         self.video_index = self._build_video_index(config.video_root)
         self.roi_overlays = self._load_roi_overlays(config.roi_coco_path)
         self.playback_running = False
@@ -997,6 +1000,44 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
     def _frame_rows_for_unit(self, unit: pd.Series) -> pd.DataFrame:
         return self._frame_rows_for_indices(unit, self._all_display_frames(unit))
 
+    def _contact_sheet_for_unit(
+        self,
+        unit: pd.Series,
+    ) -> tuple[Image.Image, list[str], int]:
+        """Return cached derived media without consulting review decisions."""
+
+        review_id = str(unit["review_unit_id"])
+        cached = self.contact_sheet_cache.get(review_id)
+        if cached is not None:
+            image, metadata = cached
+            diagnostics, matched_frame_count = metadata
+            return image, list(diagnostics), int(matched_frame_count)
+
+        frames = self._frame_rows_for_unit(unit)
+        image, diagnostics = self._make_contact_sheet(unit, frames)
+        metadata = (tuple(diagnostics), len(frames))
+        self.contact_sheet_cache.put(review_id, image, metadata)
+        return image, diagnostics, len(frames)
+
+    def _prefetch_contact_sheet(self, index: int) -> None:
+        """Warm next derived media while restoring the active playback rows."""
+
+        self._prefetch_after_id = None
+        if not 0 <= index < len(self.units):
+            return
+
+        current_scene_rows = self._current_scene_rows
+        current_actor_rows = self._current_actor_rows
+        try:
+            self._prepare_current_media_rows(self.units.iloc[index])
+            self._contact_sheet_for_unit(self.units.iloc[index])
+        except OSError:
+            # Preload is optional; the foreground path retains media errors.
+            return
+        finally:
+            self._current_scene_rows = current_scene_rows
+            self._current_actor_rows = current_actor_rows
+
     def _scene_rows(self, actor: pd.Series) -> pd.DataFrame:
         frame_index = pd.to_numeric(actor.get("frame_index"), errors="coerce")
         return self._current_scene_rows[
@@ -1055,7 +1096,7 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
         self,
         unit: pd.Series,
         diagnostics: list[str],
-        frames: pd.DataFrame,
+        matched_frame_count: int,
     ) -> str:
         targets = BASE.decision_scope_frames(unit)
         context = [
@@ -1073,7 +1114,7 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
                 f"source_type: {unit.get('source_type', '')}",
                 f"target_frame_count: {len(targets)}",
                 f"context_frame_count: {len(context)}",
-                f"matched_media_rows: {len(frames)}",
+                f"matched_media_rows: {matched_frame_count}",
                 (
                     "actor_identity: entire crop"
                     if str(unit.get("source_type", "")).strip()
@@ -1132,8 +1173,7 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
         unit_id = str(unit["review_unit_id"])
         self._load_existing_decision(unit_id)
         self._prepare_current_media_rows(unit)
-        frames = self._frame_rows_for_unit(unit)
-        image, diagnostics = self._make_contact_sheet(unit, frames)
+        image, diagnostics, matched_frame_count = self._contact_sheet_for_unit(unit)
         self.current_diagnostics = diagnostics
         image = fit_media_for_display(
             image,
@@ -1169,15 +1209,20 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
         self.summary_text.delete("1.0", "end")
         self.summary_text.insert(
             "1.0",
-            format_final_summary(unit, diagnostics, len(frames)),
+            format_final_summary(unit, diagnostics, matched_frame_count),
         )
         self.summary_text.configure(state="disabled")
         self.info_text.delete("1.0", "end")
         self.info_text.insert(
             "1.0",
-            self._format_info(unit, diagnostics, frames),
+            self._format_info(
+                unit,
+                diagnostics,
+                matched_frame_count,
+            ),
         )
         self._update_decision_preview()
+        self._schedule_next_contact_sheet()
 
     def _update_playback_status(self) -> None:
         self.playback_status.set(
