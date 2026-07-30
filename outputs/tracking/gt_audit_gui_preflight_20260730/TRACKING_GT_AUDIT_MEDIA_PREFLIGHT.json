@@ -1,0 +1,14 @@
+{
+  "FRAME_RANGE_ERRORS": 0,
+  "GT_HASH_MISMATCH": 0,
+  "MEDIA_MISSING": 0,
+  "OVERLAY_RENDER_ERRORS": 0,
+  "PREDICTION_HASH_MISMATCH": 0,
+  "SOURCE_ITEMS_UNMAPPED": 0,
+  "UNSEEN_PATH_REFERENCES": 0,
+  "VIDEO_HASH_MISMATCH": 0,
+  "decode_errors": [],
+  "review_units": 106,
+  "source_items_mapped": 120,
+  "status": "PASS"
+}
