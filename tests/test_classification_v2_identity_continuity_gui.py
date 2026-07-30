@@ -140,6 +140,92 @@ class _Capture:
         return self.decoded_position
 
 
+def test_canvas_drag_normalizes_clamps_and_rejects_tiny_boxes() -> None:
+    module = _load("identity_continuity_gui_bbox_math")
+
+    assert module.canvas_drag_to_source_bbox(
+        (90.0, 70.0),
+        (10.0, 10.0),
+        scale=0.5,
+        offset=(10, 10),
+        source_size=(120, 100),
+    ) == (0.0, 0.0, 120.0, 100.0)
+    assert (
+        module.canvas_drag_to_source_bbox(
+            (10.0, 10.0),
+            (11.0, 11.0),
+            scale=1.0,
+            offset=(0, 0),
+            source_size=(120, 100),
+        )
+        is None
+    )
+
+
+def test_canvas_release_saves_corrected_bbox_in_source_coordinates() -> None:
+    module = _load("identity_continuity_gui_bbox_release")
+    gui = module.IdentityContinuityGui.__new__(module.IdentityContinuityGui)
+    gui.finalized = False
+    gui.cases = (_case(),)
+    gui.active_case_position = 0
+    gui.all_frames = (3,)
+    gui.current_frame_position = 0
+    gui.selections = {("unit-a", 3): "actor-a"}
+    gui.exclusions = {}
+    gui.bbox_edits = {}
+    gui._bbox_draw_mode = module.CORRECTED_BBOX_MODE
+    gui._bbox_drag_start = (10.0, 20.0)
+    gui._bbox_drag_rectangle = 7
+    gui._display_scale = 0.5
+    gui._display_offset = (0, 0)
+    gui._source_image_size = (200, 100)
+    gui.canvas = type(
+        "Canvas",
+        (),
+        {"delete": lambda _self, _item: None},
+    )()
+    gui.status_var = type("Status", (), {"set": lambda _self, _value: None})()
+    gui.save = lambda *, silent=False: True
+    gui.show_current_frame = lambda: None
+
+    gui._on_canvas_release(type("Event", (), {"x": 30, "y": 40})())
+
+    edit = gui.bbox_edits[("unit-a", 3)]
+    assert edit.mode == module.CORRECTED_BBOX_MODE
+    assert edit.source_object_track_key == "actor-a"
+    assert edit.bbox == (20.0, 40.0, 60.0, 80.0)
+    assert gui.selections[("unit-a", 3)] == "actor-a"
+
+
+def test_selecting_source_candidate_clears_stale_bbox_edit() -> None:
+    module = _load("identity_continuity_gui_clear_stale_edit")
+    gui = module.IdentityContinuityGui.__new__(module.IdentityContinuityGui)
+    gui.finalized = False
+    gui.cases = (_case(),)
+    gui.active_case_position = 0
+    gui.all_frames = (3,)
+    gui.current_frame_position = 0
+    gui.selections = {("unit-a", 3): "actor-a"}
+    gui.exclusions = {}
+    gui.bbox_edits = {
+        ("unit-a", 3): module.BoundingBoxEdit(
+            module.CORRECTED_BBOX_MODE,
+            11.0,
+            11.0,
+            31.0,
+            31.0,
+            "actor-a",
+        )
+    }
+    gui.save = lambda *, silent=False: True
+    gui.show_current_frame = lambda: None
+    gui.status_var = type("Status", (), {"set": lambda _self, _value: None})()
+
+    gui.select_candidate(_candidate("actor-a", 10.0))
+
+    assert gui.bbox_edits == {}
+
+
 def test_exact_seek_and_candidate_bounds_fail_closed() -> None:
     module = _load("identity_continuity_gui_exact_seek")
     capture = _Capture(decoded_position=104.0)

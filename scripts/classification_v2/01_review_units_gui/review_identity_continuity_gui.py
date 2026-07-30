@@ -35,8 +35,12 @@ if str(PROJECT_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
 from pig_behavior.classification_v2.review.identity_continuity_adjudication import (
+    ADDED_BBOX_MODE,
     CASE_SIDECAR_NAME,
+    CORRECTED_BBOX_MODE,
     FRAME_SIDECAR_NAME,
+    MANUAL_BBOX_SELECTION_KEY,
+    BoundingBoxEdit,
     FrameCandidate,
     IdentityAdjudicationError,
     IdentityCase,
@@ -45,7 +49,7 @@ from pig_behavior.classification_v2.review.identity_continuity_adjudication impo
     case_status,
     load_frame_candidates,
     load_identity_cases,
-    load_session_sidecars,
+    load_session_sidecars_with_bbox_edits,
     source_frame_index_for_review_frame,
     validate_adjudication,
     write_session_sidecars,
@@ -54,7 +58,7 @@ from pig_behavior.classification_v2.review.identity_continuity_adjudication impo
 WINDOW_TITLE = "Classification V2 — Hiệu chỉnh liên tục actor"
 MAX_RENDERED_FRAME_CACHE = 12
 FINALIZATION_FILE_NAME = "identity_continuity_finalization.json"
-FINALIZATION_SCHEMA = "classification_v2.identity_continuity_finalization.v1"
+FINALIZATION_SCHEMA = "classification_v2.identity_continuity_finalization.v2"
 FINALIZED_STATUS = "FINALIZED"
 REOPENED_STATUS = "REOPENED"
 BEHAVIOR_LEDGER_FILE_NAMES = frozenset(
@@ -422,6 +426,7 @@ def render_identity_frame(
     cases: Sequence[IdentityCase],
     selected_by_case: Mapping[str, str],
     active_case_id: str,
+    bbox_edits_by_case: Mapping[str, BoundingBoxEdit] | None = None,
 ) -> Image.Image:
     """Render neutral candidates plus explicit original/selected box roles."""
 
@@ -464,6 +469,25 @@ def render_identity_frame(
             fill="#111111",
         )
         draw.text((box[0] + 2, max(0, box[1] - 17)), label, fill=color)
+    for case_position, case in enumerate(cases):
+        edit = (bbox_edits_by_case or {}).get(case.review_unit_id)
+        if edit is None:
+            continue
+        color = ACTIVE_CASE_COLORS[case_position % len(ACTIVE_CASE_COLORS)]
+        width = 6 if case.review_unit_id == active_case_id else 4
+        box = tuple(int(round(value)) for value in edit.bbox)
+        draw.rectangle(box, outline=color, width=width)
+        prefix = "A" if edit.mode == ADDED_BBOX_MODE else "E"
+        label_y = max(0, box[1] - 18)
+        draw.rectangle(
+            (box[0], label_y, min(image.width, box[0] + 185), box[1]),
+            fill="#401040",
+        )
+        draw.text(
+            (box[0] + 2, label_y + 1),
+            f"{prefix} bbox sidecar",
+            fill="#ffffff",
+        )
     return image
 
 
@@ -494,8 +518,40 @@ def candidate_at_display_point(
     )
 
 
+def canvas_drag_to_source_bbox(
+    start: tuple[float, float],
+    end: tuple[float, float],
+    *,
+    scale: float,
+    offset: tuple[int, int],
+    source_size: tuple[int, int],
+    minimum_extent: float = 3.0,
+) -> tuple[float, float, float, float] | None:
+    """Normalize and clamp one canvas drag into source-image coordinates."""
+
+    width, height = source_size
+    if scale <= 0.0 or width <= 0 or height <= 0:
+        return None
+
+    def source_point(point: tuple[float, float]) -> tuple[float, float]:
+        source_x = (point[0] - offset[0]) / scale
+        source_y = (point[1] - offset[1]) / scale
+        return (
+            min(max(source_x, 0.0), float(width)),
+            min(max(source_y, 0.0), float(height)),
+        )
+
+    start_x, start_y = source_point(start)
+    end_x, end_y = source_point(end)
+    x1, x2 = sorted((start_x, end_x))
+    y1, y2 = sorted((start_y, end_y))
+    if x2 - x1 < minimum_extent or y2 - y1 < minimum_extent:
+        return None
+    return x1, y1, x2, y2
+
+
 class IdentityContinuityGui:
-    """Click or key-select existing full-frame boxes for each selected case."""
+    """Select source boxes or draw sidecar-only bbox corrections per frame."""
 
     def __init__(self, config: IdentityGuiConfig) -> None:
         if cv2 is None:
@@ -516,7 +572,11 @@ class IdentityContinuityGui:
             self.candidates_by_frame,
             config.video_path,
         )
-        self.selections, self.exclusions = load_session_sidecars(
+        (
+            self.selections,
+            self.exclusions,
+            self.bbox_edits,
+        ) = load_session_sidecars_with_bbox_edits(
             self.output_dir,
             self.cases,
             self.candidates_by_frame,
@@ -545,6 +605,10 @@ class IdentityContinuityGui:
         self._display_scale = 1.0
         self._display_offset = (0, 0)
         self._display_image_size = (0, 0)
+        self._source_image_size = (0, 0)
+        self._bbox_draw_mode: str | None = None
+        self._bbox_drag_start: tuple[float, float] | None = None
+        self._bbox_drag_rectangle: int | None = None
         self._photo: ImageTk.PhotoImage | None = None
         self._prefetch_after_id: str | None = None
 
@@ -609,7 +673,9 @@ class IdentityContinuityGui:
         media.rowconfigure(0, weight=1)
         self.canvas = tk.Canvas(media, background="#202020", highlightthickness=0)
         self.canvas.grid(row=0, column=0, sticky="nsew")
-        self.canvas.bind("<Button-1>", self._on_canvas_click)
+        self.canvas.bind("<ButtonPress-1>", self._on_canvas_press)
+        self.canvas.bind("<B1-Motion>", self._on_canvas_drag)
+        self.canvas.bind("<ButtonRelease-1>", self._on_canvas_release)
 
         side = ttk.Frame(root, padding=8, width=400)
         side.grid(row=0, column=1, sticky="ns")
@@ -663,28 +729,43 @@ class IdentityContinuityGui:
             pady=2,
         )
         ttk.Button(controls, text="Loại unit hiện tại", command=self.exclude_active_case).grid(
-            row=2,
+            row=4,
             column=0,
             sticky="ew",
             padx=2,
             pady=2,
         )
         ttk.Button(controls, text="Khôi phục unit", command=self.restore_active_case).grid(
-            row=2,
+            row=4,
             column=1,
             sticky="ew",
             padx=2,
             pady=2,
         )
+        ttk.Button(
+            controls,
+            text="Vẽ lại bbox đã chọn",
+            command=self.start_corrected_bbox,
+        ).grid(row=2, column=0, sticky="ew", padx=2, pady=2)
+        ttk.Button(
+            controls,
+            text="Thêm bbox bị mất",
+            command=self.start_added_bbox,
+        ).grid(row=2, column=1, sticky="ew", padx=2, pady=2)
+        ttk.Button(
+            controls,
+            text="Hủy chế độ vẽ",
+            command=self.cancel_bbox_drawing,
+        ).grid(row=3, column=0, columnspan=2, sticky="ew", padx=2, pady=2)
         ttk.Button(controls, text="Lưu sidecar", command=self.save).grid(
-            row=3,
+            row=5,
             column=0,
             sticky="ew",
             padx=2,
             pady=2,
         )
         ttk.Button(controls, text="Hoàn tất kiểm tra", command=self.finalize).grid(
-            row=3,
+            row=5,
             column=1,
             sticky="ew",
             padx=2,
@@ -696,7 +777,8 @@ class IdentityContinuityGui:
             side,
             text=(
                 "Phím: ←/→ frame · Tab đổi unit · 1–9 chọn box · "
-                "O bbox gốc · U xóa · X loại · R khôi phục · F hoàn tất · Ctrl+S lưu"
+                "E vẽ lại · A thêm bbox · Esc hủy vẽ · O bbox gốc · "
+                "U xóa · X loại · R khôi phục · F hoàn tất · Ctrl+S lưu"
             ),
             wraplength=370,
             foreground="#404040",
@@ -784,6 +866,16 @@ class IdentityContinuityGui:
             if (case.review_unit_id, frame_index) in self.selections
         }
 
+    def _bbox_edits_by_case(
+        self,
+        frame_index: int,
+    ) -> dict[str, BoundingBoxEdit]:
+        return {
+            case.review_unit_id: self.bbox_edits[(case.review_unit_id, frame_index)]
+            for case in self.cases
+            if (case.review_unit_id, frame_index) in self.bbox_edits
+        }
+
     def _case_progress(self, case: IdentityCase) -> tuple[int, int, str]:
         mapped = sum(
             (case.review_unit_id, frame_index) in self.selections
@@ -846,12 +938,14 @@ class IdentityContinuityGui:
         frame_index = self.current_frame_index
         try:
             source = self._decode_frame(frame_index)
+            self._source_image_size = source.size
             rendered = render_identity_frame(
                 source,
                 self.candidates_by_frame[frame_index],
                 self.cases,
                 self._selected_by_case(frame_index),
                 self.active_case.review_unit_id,
+                self._bbox_edits_by_case(frame_index),
             )
         except RuntimeError as exc:
             messagebox.showerror("Lỗi video", str(exc), parent=self.root)
@@ -867,6 +961,14 @@ class IdentityContinuityGui:
         )
         mapped, total, status = self._case_progress(self.active_case)
         source_frame_index = self._source_frame_index(frame_index)
+        frame_key = (self.active_case.review_unit_id, frame_index)
+        edit = self.bbox_edits.get(frame_key)
+        if edit is None:
+            bbox_status = "BBox: nguồn gốc, chưa sửa"
+        elif edit.mode == ADDED_BBOX_MODE:
+            bbox_status = "BBox: A — thêm mới vì bbox nguồn bị mất"
+        else:
+            bbox_status = "BBox: E — hình học nguồn đã được vẽ lại"
         self.info_var.set(
             "\n".join(
                 [
@@ -881,8 +983,9 @@ class IdentityContinuityGui:
                     f"actor cục bộ gốc {self.active_case.original_pig_id or '?'} / "
                         f"{self.active_case.original_track_id or '?'}"
                     ),
-                f"Tiến độ unit: {mapped}/{total} · {status}",
-                "O vàng = bbox nguồn gốc; S xanh/cam = bbox đã chọn.",
+                    f"Tiến độ unit: {mapped}/{total} · {status}",
+                    bbox_status,
+                    "O vàng = bbox nguồn gốc; S xanh/cam = bbox đã chọn.",
                 ]
             )
         )
@@ -891,11 +994,13 @@ class IdentityContinuityGui:
         self._schedule_adjacent_prefetch()
 
     def set_active_case(self, position: int) -> None:
+        self.cancel_bbox_drawing(silent=True)
         self.active_case_position = position % len(self.cases)
         self._ensure_active_case_frame()
         self.show_current_frame()
 
     def step_frame(self, delta: int) -> None:
+        self.cancel_bbox_drawing(silent=True)
         frame_index = step_case_frame(
             self.active_case.frame_indices,
             self.current_frame_index,
@@ -955,13 +1060,18 @@ class IdentityContinuityGui:
             self.active_case.review_unit_id,
             self.current_frame_index,
         )
+        if not hasattr(self, "bbox_edits"):
+            self.bbox_edits = {}
         prior_selection = self.selections.get(selection_key)
+        prior_edit = self.bbox_edits.pop(selection_key, None)
         self.selections[selection_key] = candidate.object_track_key
         if not self.save(silent=True):
             if prior_selection is None:
                 self.selections.pop(selection_key, None)
             else:
                 self.selections[selection_key] = prior_selection
+            if prior_edit is not None:
+                self.bbox_edits[selection_key] = prior_edit
             self.status_var.set("Không lưu được lựa chọn; đã khôi phục trạng thái trước đó.")
             return
         self.status_var.set(
@@ -995,10 +1105,15 @@ class IdentityContinuityGui:
             self.active_case.review_unit_id,
             self.current_frame_index,
         )
+        if not hasattr(self, "bbox_edits"):
+            self.bbox_edits = {}
         prior_selection = self.selections.pop(selection_key, None)
+        prior_edit = self.bbox_edits.pop(selection_key, None)
         if not self.save(silent=True):
             if prior_selection is not None:
                 self.selections[selection_key] = prior_selection
+            if prior_edit is not None:
+                self.bbox_edits[selection_key] = prior_edit
             self.status_var.set("Không lưu được lựa chọn; đã khôi phục trạng thái trước đó.")
             return
         self.status_var.set(f"Đã xóa lựa chọn frame {self.current_frame_index}; sidecar đã lưu.")
@@ -1026,17 +1141,26 @@ class IdentityContinuityGui:
             )
             return
         case_id = self.active_case.review_unit_id
+        if not hasattr(self, "bbox_edits"):
+            self.bbox_edits = {}
         prior_selections = {
             (case_id, frame_index): self.selections[(case_id, frame_index)]
             for frame_index in self.active_case.frame_indices
             if (case_id, frame_index) in self.selections
         }
+        prior_bbox_edits = {
+            (case_id, frame_index): self.bbox_edits[(case_id, frame_index)]
+            for frame_index in self.active_case.frame_indices
+            if (case_id, frame_index) in self.bbox_edits
+        }
         prior_exclusion = self.exclusions.get(case_id)
         for frame_index in self.active_case.frame_indices:
             self.selections.pop((case_id, frame_index), None)
+            self.bbox_edits.pop((case_id, frame_index), None)
         self.exclusions[case_id] = note
         if not self.save(silent=True):
             self.selections.update(prior_selections)
+            self.bbox_edits.update(prior_bbox_edits)
             if prior_exclusion is None:
                 self.exclusions.pop(case_id, None)
             else:
@@ -1067,6 +1191,7 @@ class IdentityContinuityGui:
             self.candidates_by_frame,
             self.selections,
             self.exclusions,
+            self.bbox_edits,
             allow_pending=False,
         )
 
@@ -1106,7 +1231,7 @@ class IdentityContinuityGui:
         messagebox.showinfo(
             "Identity sidecars complete",
             (
-                "Every non-excluded unit has one existing source box per frame.\n"
+                    "Mỗi unit không bị loại có một bbox actor có audit cho mỗi frame.\n"
                 "No behavior decision, source annotation, or train artifact was changed."
             ),
             parent=self.root,
@@ -1129,6 +1254,7 @@ class IdentityContinuityGui:
                 self.selections,
                 self.exclusions,
                 self.config.reviewer,
+                self.bbox_edits,
             )
         except (IdentityAdjudicationError, OSError) as exc:
             messagebox.showerror("Không thể lưu sidecar định danh", str(exc), parent=self.root)
@@ -1136,6 +1262,139 @@ class IdentityContinuityGui:
         if not silent:
             self.status_var.set(f"Saved: {frame_path.name}; {case_path.name}")
         return True
+
+    def start_corrected_bbox(self) -> None:
+        if not self._ensure_mutable():
+            return
+        frame_key = (self.active_case.review_unit_id, self.current_frame_index)
+        selected_key = self.selections.get(frame_key)
+        if not selected_key or selected_key == MANUAL_BBOX_SELECTION_KEY:
+            messagebox.showwarning(
+                "Cần chọn bbox nguồn",
+                "Chọn bbox nguồn của actor trước, rồi bấm vẽ lại bbox.",
+                parent=self.root,
+            )
+            return
+        self._bbox_draw_mode = CORRECTED_BBOX_MODE
+        self._bbox_drag_start = None
+        self.status_var.set(
+            "Chế độ E: kéo chuột từ một góc sang góc đối diện của bbox đúng."
+        )
+
+    def start_added_bbox(self) -> None:
+        if not self._ensure_mutable():
+            return
+        if self.active_case.review_unit_id in self.exclusions:
+            messagebox.showwarning(
+                "Unit đã loại",
+                "Khôi phục unit trước khi thêm bbox bị mất.",
+                parent=self.root,
+            )
+            return
+        self._bbox_draw_mode = ADDED_BBOX_MODE
+        self._bbox_drag_start = None
+        self.status_var.set(
+            "Chế độ A: kéo chuột để thêm bbox actor bị thiếu trong frame này."
+        )
+
+    def cancel_bbox_drawing(self, *, silent: bool = False) -> None:
+        self._bbox_draw_mode = None
+        self._bbox_drag_start = None
+        if self._bbox_drag_rectangle is not None:
+            self.canvas.delete(self._bbox_drag_rectangle)
+            self._bbox_drag_rectangle = None
+        if not silent:
+            self.status_var.set("Đã hủy chế độ vẽ bbox.")
+
+    def _on_canvas_press(self, event: tk.Event[Any]) -> None:
+        if self._bbox_draw_mode is None:
+            self._on_canvas_click(event)
+            return
+        self._bbox_drag_start = (float(event.x), float(event.y))
+        if self._bbox_drag_rectangle is not None:
+            self.canvas.delete(self._bbox_drag_rectangle)
+        self._bbox_drag_rectangle = self.canvas.create_rectangle(
+            event.x,
+            event.y,
+            event.x,
+            event.y,
+            outline="#ff4dff",
+            width=3,
+        )
+
+    def _on_canvas_drag(self, event: tk.Event[Any]) -> None:
+        if self._bbox_drag_start is None or self._bbox_drag_rectangle is None:
+            return
+        self.canvas.coords(
+            self._bbox_drag_rectangle,
+            self._bbox_drag_start[0],
+            self._bbox_drag_start[1],
+            event.x,
+            event.y,
+        )
+
+    def _on_canvas_release(self, event: tk.Event[Any]) -> None:
+        if self._bbox_draw_mode is None or self._bbox_drag_start is None:
+            return
+        bbox = canvas_drag_to_source_bbox(
+            self._bbox_drag_start,
+            (float(event.x), float(event.y)),
+            scale=self._display_scale,
+            offset=self._display_offset,
+            source_size=self._source_image_size,
+        )
+        if self._bbox_drag_rectangle is not None:
+            self.canvas.delete(self._bbox_drag_rectangle)
+            self._bbox_drag_rectangle = None
+        self._bbox_drag_start = None
+        if bbox is None:
+            self.status_var.set(
+                "BBox quá nhỏ hoặc ngoài ảnh; vẫn ở chế độ vẽ để thử lại."
+            )
+            return
+
+        frame_key = (self.active_case.review_unit_id, self.current_frame_index)
+        prior_selection = self.selections.get(frame_key)
+        prior_edit = self.bbox_edits.get(frame_key)
+        if self._bbox_draw_mode == ADDED_BBOX_MODE:
+            selection_key = MANUAL_BBOX_SELECTION_KEY
+            source_key = ""
+        else:
+            selection_key = prior_selection
+            source_key = prior_selection or ""
+        if not selection_key:
+            self.status_var.set("BBox nguồn không còn được chọn; không lưu thay đổi.")
+            self.cancel_bbox_drawing(silent=True)
+            return
+
+        self.selections[frame_key] = selection_key
+        self.bbox_edits[frame_key] = BoundingBoxEdit(
+            mode=self._bbox_draw_mode,
+            x1=bbox[0],
+            y1=bbox[1],
+            x2=bbox[2],
+            y2=bbox[3],
+            source_object_track_key=source_key,
+        )
+        if not self.save(silent=True):
+            if prior_selection is None:
+                self.selections.pop(frame_key, None)
+            else:
+                self.selections[frame_key] = prior_selection
+            if prior_edit is None:
+                self.bbox_edits.pop(frame_key, None)
+            else:
+                self.bbox_edits[frame_key] = prior_edit
+            self.status_var.set("Không lưu được bbox; đã khôi phục trạng thái trước.")
+            return
+
+        mode = self._bbox_draw_mode
+        self.cancel_bbox_drawing(silent=True)
+        if mode == ADDED_BBOX_MODE:
+            self.status_var.set("Đã lưu bbox A được thêm cho actor bị thiếu.")
+        else:
+            self.status_var.set("Đã lưu bbox E được vẽ lại cho actor đã chọn.")
+        self.show_current_frame()
 
     def _on_canvas_click(self, event: tk.Event[Any]) -> None:
         candidate = candidate_at_display_point(
@@ -1160,6 +1419,12 @@ class IdentityContinuityGui:
             self.set_active_case(self.active_case_position + 1)
         elif key == "o":
             self.use_original_box()
+        elif key == "e":
+            self.start_corrected_bbox()
+        elif key == "a":
+            self.start_added_bbox()
+        elif key == "escape":
+            self.cancel_bbox_drawing()
         elif key == "u":
             self.clear_current_selection()
         elif key == "x":

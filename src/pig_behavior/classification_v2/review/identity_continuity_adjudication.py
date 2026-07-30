@@ -1,14 +1,15 @@
 """Sidecar contract for local actor-trajectory identity adjudication.
 
 This contract deliberately does not alter source annotations, behavior-review
-decisions, or model input features.  It records a reviewer-selected existing
-actor box for each affected frame, or a defensible exclusion when continuity
-cannot be established.
+decisions, or model input features. It records either a reviewer-selected
+source actor box, a sidecar-only corrected/added bbox, or a defensible
+exclusion when continuity cannot be established.
 """
 
 from __future__ import annotations
 
 import csv
+import math
 import os
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -19,10 +20,21 @@ from uuid import uuid4
 
 import pandas as pd
 
-IDENTITY_ADJUDICATION_VERSION = "classification_v2.identity_continuity_adjudication.v1"
+IDENTITY_ADJUDICATION_VERSION = "classification_v2.identity_continuity_adjudication.v2"
 MAPPED_STATUS = "MAPPED"
 EXCLUDED_STATUS = "EXCLUDE_IDENTITY_CONTINUITY_DEFECT"
 PENDING_STATUS = "PENDING"
+SOURCE_BBOX_MODE = "SOURCE_BBOX"
+CORRECTED_BBOX_MODE = "SOURCE_BBOX_CORRECTED"
+ADDED_BBOX_MODE = "MISSING_BBOX_ADDED"
+MANUAL_BBOX_SELECTION_KEY = "__manual_bbox_added__"
+BBOX_MODES = frozenset(
+    {
+        SOURCE_BBOX_MODE,
+        CORRECTED_BBOX_MODE,
+        ADDED_BBOX_MODE,
+    }
+)
 FRAME_FEATURE_CHUNK_ROWS = 100_000
 SIDECAR_SESSION_COLUMN = "identity_adjudication_session_id"
 PROTECTED_BEHAVIOR_DECISION_FILENAMES = frozenset(
@@ -81,6 +93,11 @@ FRAME_SIDECAR_COLUMNS = (
     "selected_object_track_key",
     "selected_track_id",
     "selected_pig_id",
+    "selected_bbox_mode",
+    "selected_x1",
+    "selected_y1",
+    "selected_x2",
+    "selected_y2",
     "selection_status",
     "reviewer",
     "adjudication_note",
@@ -140,6 +157,22 @@ class FrameCandidate:
     x2: float
     y2: float
     source_video_path: str
+
+    @property
+    def bbox(self) -> tuple[float, float, float, float]:
+        return (self.x1, self.y1, self.x2, self.y2)
+
+
+@dataclass(frozen=True)
+class BoundingBoxEdit:
+    """Manual geometry recorded without modifying the source annotation."""
+
+    mode: str
+    x1: float
+    y1: float
+    x2: float
+    y2: float
+    source_object_track_key: str = ""
 
     @property
     def bbox(self) -> tuple[float, float, float, float]:
@@ -503,11 +536,13 @@ def validate_adjudication(
     candidates_by_frame: Mapping[int, Sequence[FrameCandidate]],
     selections: Mapping[tuple[str, int], str],
     exclusions: Mapping[str, str],
+    bbox_edits: Mapping[tuple[str, int], BoundingBoxEdit] | None = None,
     *,
     allow_pending: bool,
 ) -> list[str]:
-    """Validate exact box membership, collision freedom, and completion state."""
+    """Validate source/manual bbox provenance, collision freedom, and completion."""
 
+    bbox_edits = {} if bbox_edits is None else bbox_edits
     errors: list[str] = []
     case_by_id = {case.review_unit_id: case for case in cases}
     candidate_by_key = candidate_lookup(candidates_by_frame)
@@ -525,8 +560,46 @@ def validate_adjudication(
         if key not in allowed_case_frames:
             errors.append(f"selection_outside_case_frame_scope={key[0]}:{key[1]}")
             continue
-        if (key[1], candidate_key) not in candidate_by_key:
+        if candidate_key == MANUAL_BBOX_SELECTION_KEY:
+            edit = bbox_edits.get(key)
+            if edit is None or edit.mode != ADDED_BBOX_MODE:
+                errors.append(
+                    f"manual_bbox_selection_missing_added_bbox={key[0]}:{key[1]}"
+                )
+        elif (key[1], candidate_key) not in candidate_by_key:
             errors.append(f"selection_not_an_available_box={key[0]}:{key[1]}")
+    for key, edit in bbox_edits.items():
+        if key not in allowed_case_frames:
+            errors.append(f"bbox_edit_outside_case_frame_scope={key[0]}:{key[1]}")
+            continue
+        if edit.mode not in {CORRECTED_BBOX_MODE, ADDED_BBOX_MODE}:
+            errors.append(f"bbox_edit_mode_invalid={key[0]}:{key[1]}")
+        if (
+            not all(math.isfinite(value) for value in edit.bbox)
+            or edit.x1 < 0.0
+            or edit.y1 < 0.0
+            or edit.x2 <= edit.x1
+            or edit.y2 <= edit.y1
+        ):
+            errors.append(f"bbox_edit_geometry_invalid={key[0]}:{key[1]}")
+        selected_key = selections.get(key, "")
+        if edit.mode == CORRECTED_BBOX_MODE:
+            if (
+                not selected_key
+                or selected_key == MANUAL_BBOX_SELECTION_KEY
+                or edit.source_object_track_key != selected_key
+            ):
+                errors.append(
+                    f"corrected_bbox_source_selection_mismatch={key[0]}:{key[1]}"
+                )
+        elif edit.mode == ADDED_BBOX_MODE:
+            if (
+                selected_key != MANUAL_BBOX_SELECTION_KEY
+                or edit.source_object_track_key
+            ):
+                errors.append(
+                    f"added_bbox_selection_mismatch={key[0]}:{key[1]}"
+                )
     for review_unit_id, note in exclusions.items():
         if review_unit_id not in case_by_id:
             errors.append(f"exclusion_for_unknown_review_unit={review_unit_id}")
@@ -552,7 +625,7 @@ def validate_adjudication(
             if case.review_unit_id in exclusions:
                 continue
             candidate_key = selections.get((case.review_unit_id, frame_index))
-            if not candidate_key:
+            if not candidate_key or candidate_key == MANUAL_BBOX_SELECTION_KEY:
                 continue
             prior_case = assigned.get(candidate_key)
             if prior_case is not None:
@@ -575,19 +648,32 @@ def frame_adjudication_records(
     selections: Mapping[tuple[str, int], str],
     exclusions: Mapping[str, str],
     reviewer: str,
+    bbox_edits: Mapping[tuple[str, int], BoundingBoxEdit] | None = None,
     *,
     session_id: str,
-) -> list[dict[str, str | int]]:
+) -> list[dict[str, str | int | float]]:
     """Build non-model sidecar rows without changing any source identity field."""
 
+    bbox_edits = {} if bbox_edits is None else bbox_edits
     by_key = candidate_lookup(candidates_by_frame)
-    records: list[dict[str, str | int]] = []
+    records: list[dict[str, str | int | float]] = []
     for case in cases:
         status = case_status(case, selections, exclusions)
         note = _text(exclusions.get(case.review_unit_id, ""))
         for frame_index in case.frame_indices:
-            selected_key = selections.get((case.review_unit_id, frame_index), "")
+            selection_key = (case.review_unit_id, frame_index)
+            selected_key = selections.get(selection_key, "")
             selected = by_key.get((frame_index, selected_key))
+            edit = bbox_edits.get(selection_key)
+            if edit is not None:
+                bbox_mode = edit.mode
+                selected_bbox: tuple[float, float, float, float] | None = edit.bbox
+            elif selected is not None:
+                bbox_mode = SOURCE_BBOX_MODE
+                selected_bbox = selected.bbox
+            else:
+                bbox_mode = ""
+                selected_bbox = None
             records.append(
                 {
                     "identity_adjudication_version": IDENTITY_ADJUDICATION_VERSION,
@@ -609,6 +695,19 @@ def frame_adjudication_records(
                     ),
                     "selected_track_id": "" if selected is None else selected.track_id,
                     "selected_pig_id": "" if selected is None else selected.pig_id,
+                    "selected_bbox_mode": bbox_mode,
+                    "selected_x1": (
+                        "" if selected_bbox is None else selected_bbox[0]
+                    ),
+                    "selected_y1": (
+                        "" if selected_bbox is None else selected_bbox[1]
+                    ),
+                    "selected_x2": (
+                        "" if selected_bbox is None else selected_bbox[2]
+                    ),
+                    "selected_y2": (
+                        "" if selected_bbox is None else selected_bbox[3]
+                    ),
                     "selection_status": status,
                     "reviewer": _text(reviewer),
                     "adjudication_note": note,
@@ -772,12 +871,37 @@ def _read_sidecar_rows(path: Path) -> list[dict[str, str]]:
         raise IdentityAdjudicationError(f"sidecar_unreadable={path.name}") from exc
 
 
+def _sidecar_bbox(row: Mapping[str, Any]) -> tuple[float, float, float, float]:
+    coordinates: list[float] = []
+    for column in ("selected_x1", "selected_y1", "selected_x2", "selected_y2"):
+        value = _text(row.get(column))
+        try:
+            coordinate = float(value)
+        except ValueError as exc:
+            raise IdentityAdjudicationError(
+                f"sidecar_bbox_coordinate_invalid={column}:{value!r}"
+            ) from exc
+        if not math.isfinite(coordinate):
+            raise IdentityAdjudicationError(
+                f"sidecar_bbox_coordinate_nonfinite={column}:{value!r}"
+            )
+        coordinates.append(coordinate)
+    x1, y1, x2, y2 = coordinates
+    if x1 < 0.0 or y1 < 0.0 or x2 <= x1 or y2 <= y1:
+        raise IdentityAdjudicationError("sidecar_bbox_geometry_invalid")
+    return x1, y1, x2, y2
+
+
 def _load_validated_sidecar_pair(
     frame_path: Path,
     case_path: Path,
     cases: Sequence[IdentityCase],
     candidates_by_frame: Mapping[int, Sequence[FrameCandidate]],
-) -> tuple[dict[tuple[str, int], str], dict[str, str]]:
+) -> tuple[
+    dict[tuple[str, int], str],
+    dict[str, str],
+    dict[tuple[str, int], BoundingBoxEdit],
+]:
     _required_columns(frame_path, FRAME_SIDECAR_COLUMNS)
     _required_columns(case_path, CASE_SIDECAR_COLUMNS)
     frame_rows = _read_sidecar_rows(frame_path)
@@ -816,6 +940,7 @@ def _load_validated_sidecar_pair(
     }
     candidates_by_key = candidate_lookup(candidates_by_frame)
     selections: dict[tuple[str, int], str] = {}
+    bbox_edits: dict[tuple[str, int], BoundingBoxEdit] = {}
     seen_frame_keys: set[tuple[str, int]] = set()
     for row in frame_rows:
         review_unit_id = _text(row.get("review_unit_id"))
@@ -857,12 +982,29 @@ def _load_validated_sidecar_pair(
         selected_key = _text(row.get("selected_object_track_key"))
         selected_track_id = _text(row.get("selected_track_id"))
         selected_pig_id = _text(row.get("selected_pig_id"))
+        bbox_mode = _text(row.get("selected_bbox_mode"))
         if not selected_key:
             if selected_track_id or selected_pig_id:
                 raise IdentityAdjudicationError(
                     "sidecar_blank_selection_has_metadata="
                     f"{review_unit_id}:{frame_index}"
                 )
+            if not bbox_mode:
+                continue
+            if bbox_mode != ADDED_BBOX_MODE:
+                raise IdentityAdjudicationError(
+                    "sidecar_blank_selection_bbox_mode_invalid="
+                    f"{review_unit_id}:{frame_index}:{bbox_mode}"
+                )
+            x1, y1, x2, y2 = _sidecar_bbox(row)
+            selections[frame_key] = MANUAL_BBOX_SELECTION_KEY
+            bbox_edits[frame_key] = BoundingBoxEdit(
+                mode=ADDED_BBOX_MODE,
+                x1=x1,
+                y1=y1,
+                x2=x2,
+                y2=y2,
+            )
             continue
         selected = candidates_by_key.get((frame_index, selected_key))
         if selected is None:
@@ -877,6 +1019,30 @@ def _load_validated_sidecar_pair(
             raise IdentityAdjudicationError(
                 "sidecar_selected_metadata_mismatch="
                 f"{review_unit_id}:{frame_index}"
+            )
+        if bbox_mode not in {SOURCE_BBOX_MODE, CORRECTED_BBOX_MODE}:
+            raise IdentityAdjudicationError(
+                "sidecar_source_selection_bbox_mode_invalid="
+                f"{review_unit_id}:{frame_index}:{bbox_mode}"
+            )
+        saved_bbox = _sidecar_bbox(row)
+        if bbox_mode == SOURCE_BBOX_MODE:
+            if any(
+                not math.isclose(saved, source, rel_tol=0.0, abs_tol=1e-9)
+                for saved, source in zip(saved_bbox, selected.bbox, strict=True)
+            ):
+                raise IdentityAdjudicationError(
+                    "sidecar_source_bbox_mismatch="
+                    f"{review_unit_id}:{frame_index}"
+                )
+        else:
+            bbox_edits[frame_key] = BoundingBoxEdit(
+                mode=CORRECTED_BBOX_MODE,
+                x1=saved_bbox[0],
+                y1=saved_bbox[1],
+                x2=saved_bbox[2],
+                y2=saved_bbox[3],
+                source_object_track_key=selected_key,
             )
         selections[frame_key] = selected_key
     if seen_frame_keys != expected_frame_keys:
@@ -919,6 +1085,7 @@ def _load_validated_sidecar_pair(
         candidates_by_frame,
         selections,
         exclusions,
+        bbox_edits,
         allow_pending=True,
     )
     if errors:
@@ -961,7 +1128,7 @@ def _load_validated_sidecar_pair(
             raise IdentityAdjudicationError(
                 f"sidecar_case_note_mismatch={case.review_unit_id}"
             )
-    return selections, exclusions
+    return selections, exclusions, bbox_edits
 
 
 def _generation_paths(output_dir: Path, session_id: str) -> tuple[Path, Path]:
@@ -978,7 +1145,11 @@ def _recover_latest_generation(
     output_dir: Path,
     cases: Sequence[IdentityCase],
     candidates_by_frame: Mapping[int, Sequence[FrameCandidate]],
-) -> tuple[dict[tuple[str, int], str], dict[str, str]] | None:
+) -> tuple[
+    dict[tuple[str, int], str],
+    dict[str, str],
+    dict[tuple[str, int], BoundingBoxEdit],
+] | None:
     generation_root = output_dir / SIDECAR_GENERATIONS_DIR_NAME
     if not generation_root.is_dir():
         return None
@@ -1011,6 +1182,7 @@ def write_session_sidecars(
     selections: Mapping[tuple[str, int], str],
     exclusions: Mapping[str, str],
     reviewer: str,
+    bbox_edits: Mapping[tuple[str, int], BoundingBoxEdit] | None = None,
 ) -> tuple[Path, Path]:
     """Persist only the identity-adjudication sidecars after validation."""
 
@@ -1023,6 +1195,7 @@ def write_session_sidecars(
         candidates_by_frame,
         selections,
         exclusions,
+        bbox_edits,
         allow_pending=True,
     )
     if errors:
@@ -1036,6 +1209,7 @@ def write_session_sidecars(
         selections,
         exclusions,
         reviewer,
+        bbox_edits,
         session_id=session_id,
     )
     case_records = case_adjudication_records(
@@ -1079,12 +1253,16 @@ def write_session_sidecars(
     return frame_path, case_path
 
 
-def load_session_sidecars(
+def load_session_sidecars_with_bbox_edits(
     output_dir: Path,
     cases: Sequence[IdentityCase],
     candidates_by_frame: Mapping[int, Sequence[FrameCandidate]],
-) -> tuple[dict[tuple[str, int], str], dict[str, str]]:
-    """Resume a consistent current or completed-generation sidecar pair."""
+) -> tuple[
+    dict[tuple[str, int], str],
+    dict[str, str],
+    dict[tuple[str, int], BoundingBoxEdit],
+]:
+    """Resume selections, exclusions, and V2 bbox edits fail-closed."""
 
     output_dir = assert_safe_output_dir(output_dir)
     frame_path = output_dir / FRAME_SIDECAR_NAME
@@ -1114,4 +1292,23 @@ def load_session_sidecars(
         return recovered
     if current_error is not None:
         raise current_error
-    return {}, {}
+    return {}, {}, {}
+
+
+def load_session_sidecars(
+    output_dir: Path,
+    cases: Sequence[IdentityCase],
+    candidates_by_frame: Mapping[int, Sequence[FrameCandidate]],
+) -> tuple[dict[tuple[str, int], str], dict[str, str]]:
+    """Compatibility loader that refuses to discard persisted V2 bbox edits."""
+
+    selections, exclusions, bbox_edits = load_session_sidecars_with_bbox_edits(
+        output_dir,
+        cases,
+        candidates_by_frame,
+    )
+    if bbox_edits:
+        raise IdentityAdjudicationError(
+            "identity_sidecar_contains_bbox_edits_use_v2_loader"
+        )
+    return selections, exclusions

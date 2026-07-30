@@ -7,10 +7,14 @@ import pandas as pd
 import pytest
 
 from pig_behavior.classification_v2.review.identity_continuity_adjudication import (
+    ADDED_BBOX_MODE,
     CASE_SIDECAR_NAME,
+    CORRECTED_BBOX_MODE,
     EXCLUDED_STATUS,
     FRAME_SIDECAR_NAME,
+    MANUAL_BBOX_SELECTION_KEY,
     MAPPED_STATUS,
+    BoundingBoxEdit,
     FrameCandidate,
     IdentityAdjudicationError,
     IdentityCase,
@@ -21,6 +25,7 @@ from pig_behavior.classification_v2.review.identity_continuity_adjudication impo
     load_frame_candidates,
     load_identity_cases,
     load_session_sidecars,
+    load_session_sidecars_with_bbox_edits,
     source_frame_index_for_review_frame,
     validate_adjudication,
     write_session_sidecars,
@@ -301,6 +306,93 @@ def test_loads_short_review_item_id_and_exact_source_frame(tmp_path: Path) -> No
 
     assert cases[0].review_unit_id == "stable-unit-a"
     assert source_frame_index_for_review_frame(candidates, 4) == 104
+
+
+def test_v2_sidecar_round_trips_corrected_and_added_bbox(tmp_path: Path) -> None:
+    selections = _complete_selection()
+    selections[("unit-a", 4)] = MANUAL_BBOX_SELECTION_KEY
+    bbox_edits = {
+        ("unit-a", 3): BoundingBoxEdit(
+            mode=CORRECTED_BBOX_MODE,
+            x1=12.0,
+            y1=11.0,
+            x2=31.0,
+            y2=32.0,
+            source_object_track_key="actor-a",
+        ),
+        ("unit-a", 4): BoundingBoxEdit(
+            mode=ADDED_BBOX_MODE,
+            x1=15.0,
+            y1=12.0,
+            x2=36.0,
+            y2=34.0,
+        ),
+    }
+
+    write_session_sidecars(
+        tmp_path,
+        _cases(),
+        _candidates(),
+        selections,
+        {},
+        "reviewer",
+        bbox_edits,
+    )
+    loaded = load_session_sidecars_with_bbox_edits(
+        tmp_path,
+        _cases(),
+        _candidates(),
+    )
+
+    assert loaded == (selections, {}, bbox_edits)
+    with pytest.raises(
+        IdentityAdjudicationError,
+        match="contains_bbox_edits_use_v2_loader",
+    ):
+        load_session_sidecars(tmp_path, _cases(), _candidates())
+
+
+@pytest.mark.parametrize(
+    "edit",
+    [
+        BoundingBoxEdit(CORRECTED_BBOX_MODE, 1.0, 1.0, 1.0, 2.0, "actor-a"),
+        BoundingBoxEdit(CORRECTED_BBOX_MODE, float("nan"), 1.0, 2.0, 2.0, "actor-a"),
+        BoundingBoxEdit(CORRECTED_BBOX_MODE, -1.0, 1.0, 2.0, 2.0, "actor-a"),
+    ],
+)
+def test_invalid_bbox_edit_geometry_fails_closed(edit: BoundingBoxEdit) -> None:
+    errors = validate_adjudication(
+        _cases(),
+        _candidates(),
+        _complete_selection(),
+        {},
+        {("unit-a", 3): edit},
+        allow_pending=False,
+    )
+
+    assert "bbox_edit_geometry_invalid=unit-a:3" in errors
+
+
+def test_corrected_bbox_must_match_selected_source_key() -> None:
+    errors = validate_adjudication(
+        _cases(),
+        _candidates(),
+        _complete_selection(),
+        {},
+        {
+            ("unit-a", 3): BoundingBoxEdit(
+                CORRECTED_BBOX_MODE,
+                12.0,
+                11.0,
+                31.0,
+                32.0,
+                "actor-b",
+            )
+        },
+        allow_pending=False,
+    )
+
+    assert "corrected_bbox_source_selection_mismatch=unit-a:3" in errors
 
 
 def _write_minimal_source_tables(
