@@ -1,11 +1,23 @@
 {
   "GT_authority_count": 13,
-  "audit_items_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_tmp\\worktrees\\tracking_gt_audit_gui_20260730\\docs\\tracking\\development_evidence_defense\\DEVELOPMENT_GT_ERROR_AUDIT_ITEMS_20260730.csv",
+  "audit_items_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_tmp\\worktrees\\tracking_gt_audit_gui_contract\\docs\\tracking\\development_evidence_defense\\DEVELOPMENT_GT_ERROR_AUDIT_ITEMS_20260730.csv",
   "audit_items_sha256": "bf1578d69af61b8cddc198b84b6652c582c75a43384abbc9eb8b7cb71287707d",
+  "authority_starting_main_sha": "0038a0f1efb57aec794cf26e22a34535d3a2dc10",
+  "continuation_authorized_from_non_doc_descendants": true,
+  "current_dirty_file_hashes": [
+    {
+      "relative_path": "data/annotations/roi/ROI_annotations.toy_adjusted.coco.json",
+      "sha256": "d866a20accf9f66faf529e73905fcc9f5c4badcdb4bc559817b8b052ae444e9e"
+    },
+    {
+      "relative_path": "data/annotations/roi/ROI_annotations.toy_adjusted.manifest.json",
+      "sha256": "861776ef85202786a7e1c0f8df99494f7f4ed9b646b2ae7cbf37e23cb60cbeff"
+    }
+  ],
   "existing_GUI_components_reused": [
     "atomic-write pattern only"
   ],
-  "input_authority_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_tmp\\worktrees\\tracking_gt_audit_gui_20260730\\docs\\tracking\\development_evidence_defense\\DEVELOPMENT_EVIDENCE_INPUT_AUTHORITY_20260730.json",
+  "input_authority_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_tmp\\worktrees\\tracking_gt_audit_gui_contract\\docs\\tracking\\development_evidence_defense\\DEVELOPMENT_EVIDENCE_INPUT_AUTHORITY_20260730.json",
   "input_authority_sha256": "2da7c2d898c8a5ca87b8f914c4f0d3a9dc24294686b3c4987d991b1aaf8c3c6f",
   "prediction_authority_count": 4,
   "protected_dirty_file_hashes": [
@@ -41,7 +53,7 @@
     "rf_hybrid"
   ],
   "source_item_count": 120,
-  "starting_main_sha": "0038a0f1efb57aec794cf26e22a34535d3a2dc10",
+  "starting_main_sha": "730e6dd068ba670424b1ec3acf4e9aba280b515d",
   "unresolved_input_fields": [],
   "video_count": 13
 }
