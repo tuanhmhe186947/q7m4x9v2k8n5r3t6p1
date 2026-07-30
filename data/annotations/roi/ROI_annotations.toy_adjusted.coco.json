@@ -1,0 +1,204 @@
+{
+  "info": {
+    "year": "2026",
+    "version": "dataset",
+    "description": "Exported from roboflow.com",
+    "contributor": "",
+    "url": "https://app.roboflow.com/datasets/projectdetectpigbehaviorvideoprocess/dataset",
+    "date_created": "2026-05-11T06:35:05+00:00"
+  },
+  "licenses": [
+    {
+      "id": 1,
+      "url": "",
+      "name": "Unknown"
+    }
+  ],
+  "categories": [
+    {
+      "id": 0,
+      "name": "dd",
+      "supercategory": "none"
+    },
+    {
+      "id": 1,
+      "name": "drinker",
+      "supercategory": "dd"
+    },
+    {
+      "id": 2,
+      "name": "feeder",
+      "supercategory": "dd"
+    },
+    {
+      "id": 3,
+      "name": "toy",
+      "supercategory": "dd"
+    }
+  ],
+  "images": [
+    {
+      "id": 0,
+      "license": 1,
+      "file_name": "background_png.rf.zUGhv2QxlqNUftuJ0caJ.png",
+      "height": 720,
+      "width": 1280,
+      "date_captured": "2026-05-11T06:35:05+00:00",
+      "extra": {
+        "name": "background.png"
+      }
+    }
+  ],
+  "annotations": [
+    {
+      "id": 1,
+      "image_id": 0,
+      "category_id": 1,
+      "bbox": [
+        211,
+        653,
+        "100.9340",
+        "66.3810"
+      ],
+      "area": 6700.1,
+      "segmentation": [
+        [
+          211.074,
+          719,
+          213.375,
+          668.4,
+          220.608,
+          658.537,
+          252.171,
+          655.249,
+          277.158,
+          652.619,
+          300.829,
+          668.4,
+          311.35,
+          678.921,
+          312.008,
+          719
+        ]
+      ],
+      "iscrowd": 0
+    },
+    {
+      "id": 2,
+      "image_id": 0,
+      "category_id": 2,
+      "bbox": [
+        376,
+        541,
+        "363.8290",
+        "177.5320"
+      ],
+      "area": 64591.29,
+      "segmentation": [
+        [
+          377.296,
+          718.893,
+          375.586,
+          570.54,
+          607.735,
+          541.468,
+          739.415,
+          595.764,
+          733.002,
+          691.104,
+          606.025,
+          719
+        ]
+      ],
+      "iscrowd": 0
+    },
+    {
+      "id": 3,
+      "image_id": 0,
+      "category_id": 1,
+      "bbox": [
+        1099,
+        524,
+        "61.6560",
+        "34.0730"
+      ],
+      "area": 2100.805,
+      "segmentation": [
+        [
+          1099.872,
+          548.821,
+          1098.96,
+          527.626,
+          1119.241,
+          523.976,
+          1160.616,
+          533.508,
+          1153.72,
+          555.007,
+          1139.32,
+          558.049
+        ]
+      ],
+      "iscrowd": 0
+    },
+    {
+      "id": 4,
+      "image_id": 0,
+      "category_id": 3,
+      "bbox": [
+        817.828,
+        139.275,
+        127.388,
+        51.963
+      ],
+      "area": 945.021,
+      "segmentation": [
+        [
+          945.216,
+          139.275,
+          845.949,
+          165.125,
+          838.316,
+          157.09,
+          829.076,
+          153.073,
+          821.443,
+          155.483,
+          817.828,
+          156.287,
+          818.631,
+          161.108,
+          824.255,
+          164.322,
+          820.64,
+          168.339,
+          821.041,
+          173.963,
+          823.452,
+          177.177,
+          825.059,
+          183.605,
+          828.674,
+          187.22,
+          836.307,
+          191.238,
+          842.333,
+          190.032,
+          849.163,
+          181.194,
+          848.359,
+          171.954,
+          846.351,
+          167.937
+        ]
+      ],
+      "iscrowd": 0
+    }
+  ],
+  "draft_metadata": {
+    "status": "DRAFT_NOT_APPLIED",
+    "schema_version": "classification_v2.toy_roi_adjustment_draft.v1",
+    "source_roi_sha256": "3fbcc2d44987df089845d73a99636d1a9ff9edb0428f7ec069525de582acbfd7",
+    "canonical_roi_overwritten": false
+  }
+}

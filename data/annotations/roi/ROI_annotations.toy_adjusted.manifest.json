@@ -1,0 +1,41 @@
+{
+  "schema_version": "classification_v2.toy_roi_future_canonical_candidate.v1",
+  "status": "FUTURE_CANONICAL_CANDIDATE_NOT_ACTIVE",
+  "candidate_roi_file": "ROI_annotations.toy_adjusted.coco.json",
+  "candidate_sha256": "d866a20accf9f66faf529e73905fcc9f5c4badcdb4bc559817b8b052ae444e9e",
+  "source_draft_root_components": [
+    "outputs",
+    "classification_v2",
+    "roi_adjustment",
+    "toy_roi_draft_20260730_114349_seed94855587"
+  ],
+  "source_draft_manifest_name": "toy_roi_adjustment_draft.json",
+  "source_draft_coco_name": "ROI_annotations.toy_draft.coco.json",
+  "active_canonical_file": "ROI_annotations.coco.json",
+  "active_canonical_sha256": "3fbcc2d44987df089845d73a99636d1a9ff9edb0428f7ec069525de582acbfd7",
+  "candidate_is_active": false,
+  "intended_future_use": "PROMOTE_TO_CANONICAL_BEFORE_NEXT_ROI_FEATURE_REBUILD",
+  "image_size": [
+    1280,
+    720
+  ],
+  "toy_category_id": 3,
+  "toy_annotation_id": 4,
+  "toy_bbox_before": [
+    795.0,
+    141.0,
+    149.6453,
+    53.6313
+  ],
+  "toy_bbox_candidate": [
+    817.828,
+    139.275,
+    127.388,
+    51.963
+  ],
+  "toy_vertex_count": 18,
+  "polygon_self_intersection_count": 0,
+  "non_toy_annotations_unchanged": true,
+  "operator_edited": true,
+  "recorded_date": "2026-07-30"
+}
