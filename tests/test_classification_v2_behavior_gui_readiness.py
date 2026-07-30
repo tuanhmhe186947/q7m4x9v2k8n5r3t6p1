@@ -249,6 +249,36 @@ def test_behavior_gui_loader_uses_bounded_column_projection(
     assert set(module.GUI_REQUIRED_FRAME_COLUMNS).issubset(frames.columns)
 
 
+def test_temporal_gui_contact_sheet_cache_avoids_rerender() -> None:
+    module = _load_gui_module()
+    gui = module.ReviewUnitGui.__new__(module.ReviewUnitGui)
+    gui.contact_sheet_cache = module.RenderedImageCache(max_items=2)
+    gui.decisions = {"unit-1": {"manual_review_decision": "accept"}}
+    frames = pd.DataFrame({"frame_index": [1, 2]})
+    calls = {"render": 0}
+
+    def render(
+        unit: pd.Series,
+        matched_frames: pd.DataFrame,
+    ) -> tuple[Image.Image, list[str]]:
+        calls["render"] += 1
+        return Image.new("RGB", (32, 24), "white"), ["diagnostic"]
+
+    gui._frame_rows_for_unit = lambda unit: frames
+    gui._make_contact_sheet = render
+    unit = pd.Series({"review_unit_id": "unit-1"})
+
+    first, first_diagnostics, first_count = gui._contact_sheet_for_unit(unit)
+    first.paste("red", (0, 0, 1, 1))
+    second, second_diagnostics, second_count = gui._contact_sheet_for_unit(unit)
+
+    assert calls["render"] == 1
+    assert first_diagnostics == second_diagnostics == ["diagnostic"]
+    assert first_count == second_count == 2
+    assert second.getpixel((0, 0)) == (255, 255, 255)
+    assert gui.decisions == {"unit-1": {"manual_review_decision": "accept"}}
+
+
 def test_reviewer_actions_derive_training_fields_without_manual_weight() -> None:
     module = _load_gui_module()
 

@@ -7,6 +7,7 @@ import math
 import os
 import tempfile
 import tkinter as tk
+from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
 from tkinter import messagebox, ttk
@@ -323,6 +324,47 @@ class GuiConfig:
     thumb_h: int = 160
 
 
+@dataclass(slots=True)
+class CachedRenderedImage:
+    """One derived display image and its non-decision metadata."""
+
+    image: Image.Image
+    metadata: Any
+
+
+class RenderedImageCache:
+    """Small LRU cache for rendered review media, never for decisions."""
+
+    def __init__(self, *, max_items: int = 8) -> None:
+        if max_items < 1:
+            raise ValueError("max_items must be positive")
+        self.max_items = max_items
+        self._entries: OrderedDict[str, CachedRenderedImage] = OrderedDict()
+
+    def __len__(self) -> int:
+        return len(self._entries)
+
+    def get(self, key: str) -> tuple[Image.Image, Any] | None:
+        """Return a copy so Tk display operations cannot mutate the cache."""
+
+        entry = self._entries.pop(key, None)
+        if entry is None:
+            return None
+        self._entries[key] = entry
+        return entry.image.copy(), entry.metadata
+
+    def put(self, key: str, image: Image.Image, metadata: Any = None) -> None:
+        """Store only derived pixels and diagnostic metadata with bounded RAM."""
+
+        self._entries.pop(key, None)
+        self._entries[key] = CachedRenderedImage(
+            image=image.copy(),
+            metadata=metadata,
+        )
+        while len(self._entries) > self.max_items:
+            self._entries.popitem(last=False)
+
+
 def safe_filename(value: object, max_len: int = 150) -> str:
     s = str(value)
     for ch in '<>:"/\\|?*':
@@ -379,6 +421,9 @@ class ReviewUnitGui:
         self.details_visible = False
         self.decision_dirty = False
         self.video_cache: dict[str, Any] = {}
+        self.video_next_frame: dict[str, int] = {}
+        self.contact_sheet_cache = RenderedImageCache(max_items=8)
+        self._prefetch_after_id: str | None = None
         self.video_index = self._build_video_index(config.video_root)
         self.roi_overlays = self._load_roi_overlays(config.roi_coco_path)
 
@@ -820,8 +865,9 @@ class ReviewUnitGui:
         unit_id = str(unit["review_unit_id"])
         self._load_existing_decision(unit_id)
 
-        frames = self._frame_rows_for_unit(unit)
-        image, diagnostics = self._make_contact_sheet(unit, frames)
+        image, diagnostics, matched_frame_count = (
+            self._contact_sheet_for_unit(unit)
+        )
         self.current_diagnostics = diagnostics
         self._photo = ImageTk.PhotoImage(image)
         self.image_label.configure(image=self._photo)
@@ -851,14 +897,68 @@ class ReviewUnitGui:
         self.summary_text.configure(state="normal")
         self.summary_text.delete("1.0", "end")
         self.summary_text.insert(
-            "1.0",
-            format_reviewer_summary(unit, diagnostics, len(frames)),
+            "1.0", format_reviewer_summary(unit, diagnostics, matched_frame_count)
         )
         self.summary_text.configure(state="disabled")
         self.info_text.delete("1.0", "end")
-        info = self._format_info(unit, diagnostics, frames)
+        info = self._format_info(unit, diagnostics, matched_frame_count)
         self.info_text.insert("1.0", info)
         self._update_decision_preview()
+        self._schedule_next_contact_sheet()
+
+    def _contact_sheet_for_unit(
+        self,
+        unit: pd.Series,
+    ) -> tuple[Image.Image, list[str], int]:
+        """Return a cached rendered sheet without consulting review decisions."""
+
+        unit_id = str(unit["review_unit_id"])
+        cached = self.contact_sheet_cache.get(unit_id)
+        if cached is not None:
+            image, metadata = cached
+            diagnostics, matched_frame_count = metadata
+            return image, list(diagnostics), int(matched_frame_count)
+
+        frames = self._frame_rows_for_unit(unit)
+        image, diagnostics = self._make_contact_sheet(unit, frames)
+        metadata = (tuple(diagnostics), len(frames))
+        self.contact_sheet_cache.put(unit_id, image, metadata)
+        return image, diagnostics, len(frames)
+
+    def _cancel_pending_prefetch(self) -> None:
+        """Cancel an idle preload that has not begun yet."""
+
+        if self._prefetch_after_id is None:
+            return
+        try:
+            self.root.after_cancel(self._prefetch_after_id)
+        except tk.TclError:
+            pass
+        self._prefetch_after_id = None
+
+    def _schedule_next_contact_sheet(self) -> None:
+        """Warm one next item while the reviewer reads the current one."""
+
+        self._cancel_pending_prefetch()
+        next_index = self.current + 1
+        if next_index >= len(self.units):
+            return
+        self._prefetch_after_id = self.root.after_idle(
+            self._prefetch_contact_sheet,
+            next_index,
+        )
+
+    def _prefetch_contact_sheet(self, index: int) -> None:
+        """Populate only the derived-media cache on Tk's main thread."""
+
+        self._prefetch_after_id = None
+        if 0 <= index < len(self.units):
+            try:
+                self._contact_sheet_for_unit(self.units.iloc[index])
+            except OSError:
+                # The interactive path remains the source of any user-visible
+                # media error; preload is only an optional latency optimization.
+                return
 
     def _load_existing_decision(self, unit_id: str) -> None:
         d = self.decisions.get(unit_id, {})
@@ -871,7 +971,12 @@ class ReviewUnitGui:
         self.note_var.set(str(d.get("manual_note", "")))
         self.decision_dirty = False
 
-    def _format_info(self, unit: pd.Series, diagnostics: list[str], frames: pd.DataFrame) -> str:
+    def _format_info(
+        self,
+        unit: pd.Series,
+        diagnostics: list[str],
+        matched_frame_count: int,
+    ) -> str:
         keys = [
             "review_item_id",
             "review_unit_id",
@@ -937,7 +1042,7 @@ class ReviewUnitGui:
             if k in unit.index:
                 lines.append(f"{k}: {unit.get(k)}")
         lines.append("")
-        lines.append(f"matched frame rows: {len(frames)}")
+        lines.append(f"matched frame rows: {matched_frame_count}")
         if diagnostics:
             lines.append("diagnostics:")
             lines.extend(f"- {x}" for x in diagnostics[:30])
@@ -1124,16 +1229,20 @@ class ReviewUnitGui:
         if video_path is None:
             return None
         frame_idx = int(row.get("frame_index"))
-        cap = self.video_cache.get(str(video_path))
+        video_key = str(video_path)
+        cap = self.video_cache.get(video_key)
         if cap is None:
             cap = cv2.VideoCapture(str(video_path))
             if not cap.isOpened():
                 return None
-            self.video_cache[str(video_path)] = cap
-        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
+            self.video_cache[video_key] = cap
+        if self.video_next_frame.get(video_key) != frame_idx:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
         ok, frame = cap.read()
         if not ok or frame is None:
+            self.video_next_frame.pop(video_key, None)
             return None
+        self.video_next_frame[video_key] = frame_idx + 1
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         if str(unit.get("review_template", "")) == "interaction":
             return self._interaction_context_image(frame, row)
@@ -1526,12 +1635,14 @@ class ReviewUnitGui:
     def on_quit(self) -> None:
         if self.decision_dirty and not self.save_current():
             return
+        self._cancel_pending_prefetch()
         self.write_decisions(show_message=False)
         for cap in self.video_cache.values():
             try:
                 cap.release()
             except Exception:
                 pass
+        self.video_next_frame.clear()
         self.root.destroy()
 
 

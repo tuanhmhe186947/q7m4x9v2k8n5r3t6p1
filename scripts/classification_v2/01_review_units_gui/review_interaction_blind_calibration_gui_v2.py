@@ -177,6 +177,7 @@ class SourceSpecificMediaDelegate(_MEDIA.ReviewUnitGui):
             errors="coerce",
         )
         self.video_cache: dict[str, Any] = {}
+        self.video_next_frame: dict[str, int] = {}
         self.video_index = self._build_video_index(config.video_root)
         self.roi_overlays: list[Any] = []
 
@@ -189,6 +190,7 @@ class SourceSpecificMediaDelegate(_MEDIA.ReviewUnitGui):
             except Exception:
                 pass
         self.video_cache.clear()
+        self.video_next_frame.clear()
 
     def _display_frames(self, unit: pd.Series) -> list[int]:
         return parse_frame_indices(unit.get("target_frame_indices", ""))
@@ -264,21 +266,25 @@ class SourceSpecificMediaDelegate(_MEDIA.ReviewUnitGui):
         video_path = self._resolve_video_path(actor)
         if video_path is None:
             raise SourceSpecificPresentationError("missing CVAT video")
-        capture = self.video_cache.get(str(video_path))
+        video_key = str(video_path)
+        capture = self.video_cache.get(video_key)
         if capture is None:
             capture = _MEDIA.cv2.VideoCapture(str(video_path))
             if not capture.isOpened():
                 raise SourceSpecificPresentationError(
                     f"cannot open CVAT video={video_path.name}"
                 )
-            self.video_cache[str(video_path)] = capture
+            self.video_cache[video_key] = capture
         frame_index = int(actor["frame_index"])
-        capture.set(_MEDIA.cv2.CAP_PROP_POS_FRAMES, frame_index)
+        if self.video_next_frame.get(video_key) != frame_index:
+            capture.set(_MEDIA.cv2.CAP_PROP_POS_FRAMES, frame_index)
         ok, frame = capture.read()
         if not ok or frame is None:
+            self.video_next_frame.pop(video_key, None)
             raise SourceSpecificPresentationError(
                 f"cannot decode CVAT frame={frame_index}"
             )
+        self.video_next_frame[video_key] = frame_index + 1
         rgb = _MEDIA.cv2.cvtColor(frame, _MEDIA.cv2.COLOR_BGR2RGB)
         return Image.fromarray(rgb).convert("RGB")
 
@@ -502,6 +508,8 @@ class SourceSpecificCalibrationGui:
         )
         self.media = SourceSpecificMediaDelegate(config, frame_features)
         self.decisions = self._load_existing_decisions()
+        self.sheet_cache = _MEDIA.RenderedImageCache(max_items=8)
+        self._prefetch_after_id: str | None = None
 
         import tkinter as tk
 
@@ -598,8 +606,7 @@ class SourceSpecificCalibrationGui:
 
     def show_current(self) -> None:
         unit = self.units.iloc[self.current]
-        sheet, _, _ = self.media.make_source_specific_sheet(unit)
-        sheet.thumbnail((1000, 650), Image.Resampling.LANCZOS)
+        sheet = self._display_sheet_for_unit(unit)
         self.photo = ImageTk.PhotoImage(sheet)
         self.image_label.configure(image=self.photo)
         targets = parse_frame_indices(unit["target_frame_indices"])
@@ -622,6 +629,56 @@ class SourceSpecificCalibrationGui:
         )
         self.confidence.set(str(previous.get("review_confidence", "")))
         self.note.set(str(previous.get("optional_short_note", "")))
+        self._schedule_next_sheet()
+
+    def _display_sheet_for_unit(self, unit: pd.Series) -> Image.Image:
+        """Return a cached V2 display sheet without reading or writing decisions."""
+
+        review_key = str(unit["review_key"])
+        cached = self.sheet_cache.get(review_key)
+        if cached is not None:
+            image, _ = cached
+            return image
+
+        sheet, _, _ = self.media.make_source_specific_sheet(unit)
+        sheet.thumbnail((1000, 650), Image.Resampling.LANCZOS)
+        self.sheet_cache.put(review_key, sheet)
+        return sheet
+
+    def _cancel_pending_prefetch(self) -> None:
+        """Cancel an idle preload that has not started."""
+
+        if self._prefetch_after_id is None:
+            return
+        try:
+            self.root.after_cancel(self._prefetch_after_id)
+        except self.tk.TclError:
+            pass
+        self._prefetch_after_id = None
+
+    def _schedule_next_sheet(self) -> None:
+        """Warm one following media sheet while the current item is visible."""
+
+        self._cancel_pending_prefetch()
+        next_index = self.current + 1
+        if next_index >= len(self.units):
+            return
+        self._prefetch_after_id = self.root.after_idle(
+            self._prefetch_sheet,
+            next_index,
+        )
+
+    def _prefetch_sheet(self, index: int) -> None:
+        """Populate only the bounded derived-image cache on the GUI thread."""
+
+        self._prefetch_after_id = None
+        if 0 <= index < len(self.units):
+            try:
+                self._display_sheet_for_unit(self.units.iloc[index])
+            except (OSError, SourceSpecificPresentationError):
+                # Preserve the normal interactive error path; prefetch must
+                # never change review state or make a bad item disappear.
+                return
 
     def save_current(self) -> None:
         unit = self.units.iloc[self.current]
@@ -678,6 +735,7 @@ class SourceSpecificCalibrationGui:
             self.show_current()
 
     def close(self) -> None:
+        self._cancel_pending_prefetch()
         self.media.close()
         self.root.destroy()
 

@@ -466,6 +466,134 @@ def test_render_is_deterministic_and_never_writes_decisions(
     assert list(tmp_path.iterdir()) == []
 
 
+def test_rendered_image_cache_is_bounded_and_returns_copies() -> None:
+    cache = GUI._MEDIA.RenderedImageCache(max_items=2)
+    white = Image.new("RGB", (8, 8), "white")
+    cache.put("first", white, metadata=("first",))
+    white.paste("red", (0, 0, 1, 1))
+
+    first = cache.get("first")
+    assert first is not None
+    first_image, first_metadata = first
+    assert first_image.getpixel((0, 0)) == (255, 255, 255)
+    assert first_metadata == ("first",)
+
+    cache.put("second", Image.new("RGB", (8, 8), "green"))
+    cache.put("third", Image.new("RGB", (8, 8), "blue"))
+
+    assert len(cache) == 2
+    assert cache.get("first") is None
+    assert cache.get("second") is not None
+    assert cache.get("third") is not None
+
+
+def test_v2_display_sheet_cache_preserves_decisions_and_avoids_rerender() -> None:
+    class FakeMedia:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def make_source_specific_sheet(
+            self,
+            unit: pd.Series,
+        ) -> tuple[Image.Image, list[str], list[dict[str, object]]]:
+            self.calls += 1
+            return Image.new("RGB", (1600, 1000), "white"), [], []
+
+    gui = GUI.SourceSpecificCalibrationGui.__new__(
+        GUI.SourceSpecificCalibrationGui
+    )
+    gui.sheet_cache = GUI._MEDIA.RenderedImageCache(max_items=2)
+    gui.media = FakeMedia()
+    gui.decisions = {"review_1": {"reviewed_behavior": "fight"}}
+    original_decisions = gui.decisions.copy()
+    unit = _unit()
+
+    first = gui._display_sheet_for_unit(unit)
+    first.paste("red", (0, 0, 1, 1))
+    second = gui._display_sheet_for_unit(unit)
+
+    assert gui.media.calls == 1
+    assert second.size == (1000, 625)
+    assert second.getpixel((0, 0)) == (255, 255, 255)
+    assert gui.decisions == original_decisions
+
+
+def test_v2_prefetch_failure_leaves_item_for_interactive_fallback() -> None:
+    class FailingMedia:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def make_source_specific_sheet(
+            self,
+            unit: pd.Series,
+        ) -> tuple[Image.Image, list[str], list[dict[str, object]]]:
+            self.calls += 1
+            raise SourceSpecificPresentationError("missing media")
+
+    gui = GUI.SourceSpecificCalibrationGui.__new__(
+        GUI.SourceSpecificCalibrationGui
+    )
+    gui.sheet_cache = GUI._MEDIA.RenderedImageCache(max_items=2)
+    gui.media = FailingMedia()
+    gui.units = pd.DataFrame([_unit()])
+    gui.decisions = {"review_1": {"reviewed_behavior": "fight"}}
+    gui._prefetch_after_id = "idle-1"
+
+    gui._prefetch_sheet(0)
+
+    assert gui.media.calls == 1
+    assert gui.sheet_cache.get("review_1") is None
+    assert gui.decisions == {"review_1": {"reviewed_behavior": "fight"}}
+
+
+def test_v2_sequential_frames_do_not_repeat_expensive_video_seeks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeCapture:
+        def __init__(self) -> None:
+            self.seek_calls: list[int] = []
+
+        def isOpened(self) -> bool:
+            return True
+
+        def set(self, property_id: int, frame_index: int) -> None:
+            self.seek_calls.append(frame_index)
+
+        def read(self) -> tuple[bool, object]:
+            return True, GUI.np.zeros((4, 4, 3), dtype=GUI.np.uint8)
+
+    capture = FakeCapture()
+
+    class FakeCv2:
+        CAP_PROP_POS_FRAMES = 1
+        COLOR_BGR2RGB = 2
+
+        @staticmethod
+        def VideoCapture(path: str) -> FakeCapture:
+            return capture
+
+        @staticmethod
+        def cvtColor(frame: object, conversion: int) -> object:
+            return frame
+
+    monkeypatch.setattr(GUI._MEDIA, "cv2", FakeCv2)
+    delegate = GUI.SourceSpecificMediaDelegate.__new__(
+        GUI.SourceSpecificMediaDelegate
+    )
+    delegate.video_cache = {}
+    delegate.video_next_frame = {}
+    delegate._resolve_video_path = MethodType(
+        lambda self, actor: Path("synthetic.mp4"),
+        delegate,
+    )
+
+    delegate._decode_cvat_full_frame(pd.Series({"frame_index": 10}))
+    delegate._decode_cvat_full_frame(pd.Series({"frame_index": 11}))
+    delegate._decode_cvat_full_frame(pd.Series({"frame_index": 15}))
+
+    assert capture.seek_calls == [10, 15]
+
+
 def test_four_calibration_outcomes_remain_distinct() -> None:
     assert (
         derive_calibration_outcome(
