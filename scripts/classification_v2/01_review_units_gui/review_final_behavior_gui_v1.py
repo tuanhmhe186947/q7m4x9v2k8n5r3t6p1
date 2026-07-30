@@ -58,6 +58,7 @@ MEDIA_DISPLAY_MAX_WIDTH = 760
 MEDIA_DISPLAY_MAX_HEIGHT = 610
 MEDIA_PANEL_RESERVED_WIDTH = 520
 MEDIA_PANEL_RESERVED_HEIGHT = 250
+FINAL_RENDERED_MEDIA_CACHE_ITEMS = 2
 ERROR_PATTERN_CHOICES = {
     1: (
         "ROI_PROXIMITY_ONLY_FALSE_POSITIVE",
@@ -322,6 +323,19 @@ def calculate_resume_index(
     return max(0, next_index - max(0, backtrack))
 
 
+def format_review_progress(
+    list_position: int,
+    total_count: int,
+    completed_count: int,
+) -> str:
+    """Keep cursor position distinct from the total completed count."""
+
+    return (
+        f"Vị trí danh sách: {list_position}/{total_count} · "
+        f"Hoàn tất: {completed_count}/{total_count}"
+    )
+
+
 def requested_review_index(
     review_ids: list[str],
     requested_review_unit_id: str | None,
@@ -430,6 +444,21 @@ def order_final_review_units(units: pd.DataFrame) -> pd.DataFrame:
     return ordered.drop(columns=sort_columns).reset_index(drop=True)
 
 
+def final_review_scene_frame_keys(
+    units: pd.DataFrame,
+) -> set[tuple[str, str, str, int]]:
+    """Return every full-scene frame needed by final review media."""
+
+    keys: set[tuple[str, str, str, int]] = set()
+    for _, unit in units.iterrows():
+        source_type = str(unit.get("source_type", "")).strip()
+        dataset_id = str(unit.get("dataset_id", "")).strip()
+        video_key = str(unit.get("video_key", "")).strip()
+        for frame_index in final_display_frames(unit):
+            keys.add((source_type, dataset_id, video_key, int(frame_index)))
+    return keys
+
+
 def review_window_dimensions(
     screen_width: int,
     screen_height: int,
@@ -478,7 +507,10 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
                 exist_ok=True,
             )
         self.units = self._load_units(config.review_units_csv)
-        self.frames = BASE.load_gui_frame_features(config.frame_features_csv)
+        self.frames = BASE.load_gui_frame_features(
+            config.frame_features_csv,
+            scene_frame_keys=final_review_scene_frame_keys(self.units),
+        )
         self.frames["frame_index"] = pd.to_numeric(
             self.frames.get("frame_index"),
             errors="coerce",
@@ -508,7 +540,9 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
         self.decision_dirty = False
         self.video_cache: dict[str, Any] = {}
         self.video_next_frame: dict[str, int] = {}
-        self.contact_sheet_cache = BASE.RenderedImageCache(max_items=8)
+        self.contact_sheet_cache = BASE.RenderedImageCache(
+            max_items=FINAL_RENDERED_MEDIA_CACHE_ITEMS,
+        )
         self._prefetch_after_id: str | None = None
         self.video_index = self._build_video_index(config.video_root)
         self.roi_overlays = self._load_roi_overlays(config.roi_coco_path)
@@ -673,6 +707,15 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
     def _completed_count(self) -> int:
         return len(self.label_quality_records)
 
+    def _retain_current_and_next_media(self) -> None:
+        """Release old rendered sheets after a durable decision save."""
+
+        retained = {str(self.current_unit()["review_unit_id"])}
+        next_index = self.current + 1
+        if next_index < len(self.units):
+            retained.add(str(self.units.iloc[next_index]["review_unit_id"]))
+        self.contact_sheet_cache.retain_only(retained)
+
     def _update_decision_preview(self) -> None:
         super()._update_decision_preview()
         decision = self.decision_var.get()
@@ -723,6 +766,7 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
         else:
             self.label_quality_records[review_id] = quality_record
         if super().save_current():
+            self._retain_current_and_next_media()
             return True
         if previous is None:
             self.label_quality_records.pop(review_id, None)
@@ -827,11 +871,18 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
                 f"\nCó {len(missing_quality)} mục sửa/loại cũ cần bổ sung "
                 "loại lỗi; các mục giữ nguyên không phải review lại."
             )
+        completed_count = self._completed_count()
+        resume_index = calculate_resume_index(
+            self.units["review_unit_id"].astype(str).tolist(),
+            self._quality_complete_ids(),
+            0,
+        )
         if not messagebox.askyesno(
             "Resume final review",
             (
-                f"Đã tải {len(self.decisions)} quyết định.\n"
-                "Resume tại mục chưa hoàn tất tiếp theo?"
+                f"Hoàn tất {completed_count}/{len(self.units)} mục.\n"
+                "Mở mục chưa hoàn tất sớm nhất trong thứ tự trình bày: "
+                f"{resume_index + 1}/{len(self.units)}."
                 f"{attribution_note}"
             ),
             parent=self.root,
@@ -1198,8 +1249,7 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
             else " · T=TARGET · C=CONTEXT"
         )
         self.header.set(
-            f"{self.current + 1}/{len(self.units)} · "
-            f"đã review {self._completed_count()} · "
+            f"{format_review_progress(self.current + 1, len(self.units), self._completed_count())} · "
             f"FINAL REVIEW{scope_suffix}{target_suffix} · "
             f"ngày {unit.get('recording_date', '')} · "
             f"video {unit.get('video_key', '')} · "

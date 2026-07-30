@@ -104,9 +104,15 @@ GUI_REQUIRED_FRAME_COLUMNS = frozenset(
         "y2",
     }
 )
+GUI_FRAME_FEATURE_CHUNK_ROWS = 100_000
 
 
-def load_gui_frame_features(path: Path) -> pd.DataFrame:
+def load_gui_frame_features(
+    path: Path,
+    *,
+    scene_frame_keys: set[tuple[str, str, str, int]] | None = None,
+    chunk_rows: int = GUI_FRAME_FEATURE_CHUNK_ROWS,
+) -> pd.DataFrame:
     """Load only columns needed to render review media and actor context."""
 
     available = set(pd.read_csv(path, nrows=0).columns)
@@ -114,7 +120,51 @@ def load_gui_frame_features(path: Path) -> pd.DataFrame:
     if missing:
         raise SystemExit(f"Frame feature CSV missing GUI columns: {missing}")
     usecols = [column for column in GUI_FRAME_COLUMNS if column in available]
-    return pd.read_csv(path, usecols=usecols, low_memory=False)
+    if scene_frame_keys is None:
+        return pd.read_csv(path, usecols=usecols, low_memory=False)
+    if chunk_rows < 1:
+        raise ValueError("chunk_rows must be positive")
+    if not scene_frame_keys:
+        return pd.DataFrame(columns=usecols)
+
+    requested = pd.DataFrame(
+        sorted(scene_frame_keys),
+        columns=[
+            "source_type",
+            "dataset_id",
+            "video_key",
+            "_gui_frame_key",
+        ],
+    )
+    requested["_gui_frame_key"] = pd.to_numeric(
+        requested["_gui_frame_key"],
+        errors="raise",
+    ).astype("Int64")
+    matching_chunks: list[pd.DataFrame] = []
+    for chunk in pd.read_csv(path, usecols=usecols, chunksize=chunk_rows):
+        for column in ("source_type", "dataset_id", "video_key"):
+            chunk[column] = chunk[column].fillna("").astype(str)
+        chunk["_gui_frame_key"] = pd.to_numeric(
+            chunk["frame_index"],
+            errors="coerce",
+        ).astype("Int64")
+        matching = chunk.merge(
+            requested,
+            how="inner",
+            on=[
+                "source_type",
+                "dataset_id",
+                "video_key",
+                "_gui_frame_key",
+            ],
+        )
+        if not matching.empty:
+            matching_chunks.append(
+                matching.drop(columns=["_gui_frame_key"])
+            )
+    if not matching_chunks:
+        return pd.DataFrame(columns=usecols)
+    return pd.concat(matching_chunks, ignore_index=True)
 
 
 def decision_scope_frames(unit: pd.Series) -> list[int]:
@@ -371,6 +421,15 @@ class RenderedImageCache:
         )
         while len(self._entries) > self.max_items:
             self._entries.popitem(last=False)
+
+    def retain_only(self, keys: set[str]) -> None:
+        """Release cached media that is no longer needed by the reviewer."""
+
+        self._entries = OrderedDict(
+            (key, value)
+            for key, value in self._entries.items()
+            if key in keys
+        )
 
 
 def safe_filename(value: object, max_len: int = 150) -> str:

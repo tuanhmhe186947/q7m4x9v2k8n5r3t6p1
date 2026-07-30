@@ -158,6 +158,92 @@ def test_resume_index_can_backtrack_from_next_unreviewed() -> None:
     assert module.calculate_resume_index(review_ids, decided, 7) == 43
 
 
+def test_review_progress_keeps_cursor_and_completed_counts_distinct() -> None:
+    module = _load(GUI_SCRIPT, "final_behavior_gui_progress")
+
+    assert module.format_review_progress(172, 2729, 637) == (
+        "Vị trí danh sách: 172/2729 · Hoàn tất: 637/2729"
+    )
+
+
+def test_scene_frame_loader_retains_all_actors_for_requested_frames(
+    tmp_path: Path,
+) -> None:
+    module = _load(GUI_SCRIPT, "final_behavior_gui_frame_filter")
+    rows = [
+        {
+            "source_type": "cvat",
+            "dataset_id": "set-a",
+            "video_key": "video-a",
+            "frame_index": 5,
+            "pig_id": "pig-1",
+            "x1": 1,
+            "y1": 2,
+            "x2": 11,
+            "y2": 12,
+        },
+        {
+            "source_type": "cvat",
+            "dataset_id": "set-a",
+            "video_key": "video-a",
+            "frame_index": 5,
+            "pig_id": "pig-2",
+            "x1": 21,
+            "y1": 22,
+            "x2": 31,
+            "y2": 32,
+        },
+        {
+            "source_type": "cvat",
+            "dataset_id": "set-a",
+            "video_key": "video-a",
+            "frame_index": 6,
+            "pig_id": "pig-1",
+            "x1": 1,
+            "y1": 2,
+            "x2": 11,
+            "y2": 12,
+        },
+        {
+            "source_type": "cvat",
+            "dataset_id": "set-a",
+            "video_key": "video-b",
+            "frame_index": 5,
+            "pig_id": "pig-3",
+            "x1": 1,
+            "y1": 2,
+            "x2": 11,
+            "y2": 12,
+        },
+    ]
+    features_path = tmp_path / "frames.csv"
+    pd.DataFrame(rows).to_csv(features_path, index=False)
+
+    frames = module.BASE.load_gui_frame_features(
+        features_path,
+        scene_frame_keys={("cvat", "set-a", "video-a", 5)},
+        chunk_rows=1,
+    )
+
+    assert frames["pig_id"].tolist() == ["pig-1", "pig-2"]
+    assert frames["frame_index"].tolist() == [5, 5]
+
+
+def test_rendered_media_retention_keeps_current_and_prefetched_items() -> None:
+    module = _load(GUI_SCRIPT, "final_behavior_gui_media_retention")
+    cache = module.BASE.RenderedImageCache(max_items=3)
+    image = module.Image.new("RGB", (8, 8), "white")
+    cache.put("previous", image)
+    cache.put("current", image)
+    cache.put("next", image)
+
+    cache.retain_only({"current", "next"})
+
+    assert len(cache) == 2
+    assert cache.get("previous") is None
+    assert cache.get("current") is not None
+
+
 def test_requested_review_index_requires_one_exact_match() -> None:
     module = _load(GUI_SCRIPT, "final_behavior_gui_requested_start")
     review_ids = ["unit-a", "unit-b", "unit-c"]
