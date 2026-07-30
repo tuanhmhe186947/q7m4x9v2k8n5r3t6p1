@@ -1,5 +1,31 @@
 # Workflow
 
+## Reviewed-data training handoff (2026-07-30)
+
+This is the single post-review sequence. Do not run steps marked
+`AFTER_REVIEW_CLOSE` while the GUI review session is active.
+
+1. `DONE_NOW`: preserve the toy ROI candidate and its manifest.
+2. `DONE_NOW`: keep `ROI_annotations.coco.json` unchanged until promotion.
+3. `AFTER_REVIEW_CLOSE`: freeze review-session output, manifest, and hashes.
+4. `AFTER_REVIEW_CLOSE`: run decision-coverage and apply-output gates.
+5. `AFTER_REVIEW_CLOSE`: apply behavior decisions exactly once to a new output.
+6. `AFTER_REVIEW_CLOSE`: promote toy ROI and rebuild ROI-dependent features.
+7. `AFTER_REVIEW_CLOSE`: rebuild frame-local, temporal, and T6/T8/T12/T16
+   artifacts from the same source and label authority.
+8. `AFTER_REVIEW_CLOSE`: run duplicate, leakage, mask, schema, and row-count
+   audits; fail closed on any mismatch.
+9. `AFTER_REVIEW_CLOSE`: create a reviewed snapshot and bind the approved
+   grouped train/validation split by exact hash.
+10. `AFTER_REVIEW_CLOSE`: build image/context caches and run loader,
+    forward/backward, checkpoint, and tiny-overfit smoke gates.
+11. `AFTER_REVIEW_CLOSE`: run the bounded baseline; full training requires its
+    separate authorization and launch gate.
+
+The review-independent evidence already passed is recorded in
+`02_CURRENT_DECISION.md`. The reviewed snapshot must be versioned and must not
+overwrite provisional, failed, or prior train-ready artifacts.
+
 ## Tracking workflow after three-mode reconstruction (2026-07-29)
 
 - Use the three independent authorities under

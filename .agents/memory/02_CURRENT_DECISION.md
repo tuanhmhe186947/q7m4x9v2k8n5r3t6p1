@@ -1,5 +1,46 @@
 # Current Decision
 
+## Reviewed-data training handoff checklist (2026-07-30)
+
+Current status is `REVIEW_IN_PROGRESS`; the operator reports the 300-item
+calibration complete, but that result remains unverified until the review
+session is closed and its manifest passes the decision-coverage gate.
+
+- `CURRENT_MAIN_SHA=d64e31c7c4d34b1ea4ea626d1d1f56ba91138546`.
+- `ACTIVE_LEDGER_ACCESS=NO`; no decision was read or applied in this update.
+- `ROI_CANDIDATE_STORED=YES`: `ROI_annotations.toy_adjusted.coco.json`.
+- `ROI_CANDIDATE_SHA256` =
+  `d866a20accf9f66faf529e73905fcc9f5c4badcdb4bc559817b8b052ae444e9e`.
+- `ACTIVE_ROI_CANONICAL_UNCHANGED=YES`; promotion waits for review closure.
+- `ROI_LOADER_SMOKE=PASS`; `FEATURE_SEMANTICS_TESTS=3_PASSED`.
+- `TOY_GUI_TESTS=8_PASSED` on isolated commit `672f0a7a`.
+- `CLASSIFICATION_V2_STATIC_COMPILE=PASS`; `FOCUSED_CONTRACT_TESTS=37_PASSED`.
+
+### Done while review remains active
+
+- [x] Preserve the edited toy ROI and provenance manifest.
+- [x] Keep active canonical ROI and review outputs untouched.
+- [x] Verify ROI geometry, loader compatibility, and focused contract tests.
+- [x] Define the versioned, fail-closed post-review output-root policy.
+- [x] Compile the review-to-training modules without running data rebuilds.
+
+### Pending after review closure
+
+- [ ] Freeze final review-session manifest and decision hashes.
+- [ ] Run decision coverage, apply-output, and scientific review gates.
+- [ ] Promote the toy ROI candidate, then rebuild ROI-dependent features.
+- [ ] Rebuild reviewed frame features, temporal units, and T6/T8/T12/T16.
+- [ ] Freeze reviewed snapshot and reuse the approved grouped split.
+- [ ] Run loader/forward/backward/tiny-overfit gates before training.
+- [ ] Train only from the new reviewed snapshot; do not patch old artifacts.
+
+### Blocked until review closure
+
+- [ ] Reading or applying active behavior decisions.
+- [ ] Creating reviewed/train-ready canonical data.
+- [ ] Promoting the toy ROI into `ROI_annotations.coco.json`.
+- [ ] Starting final training or publishing model metrics.
+
 ## Four-method tracking reconciliation freeze (2026-07-29)
 
 - `PASS_CLEAN_TRACKING_RECONCILIATION`.
