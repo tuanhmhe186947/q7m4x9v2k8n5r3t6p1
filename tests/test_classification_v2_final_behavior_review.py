@@ -63,8 +63,17 @@ def test_cvat_final_display_keeps_target_and_extended_context_separate() -> None
     assert 135 in displayed
     assert module.BASE.decision_scope_complete(unit, displayed)
     assert module.final_playback_frames(unit) == list(range(70, 136))
+    assert module.playback_frames_for_scope(
+        unit,
+        module.PLAYBACK_SCOPE_TARGET,
+    ) == list(range(100, 106))
+    assert module.playback_frames_for_scope(
+        unit,
+        module.PLAYBACK_SCOPE_CONTEXT,
+    ) == list(range(70, 136))
     assert module.playback_frame_role(unit, 100) == "TARGET"
     assert module.playback_frame_role(unit, 99) == "CONTEXT"
+    assert module.target_interval(unit) == (100, 105, 6)
 
 
 def test_legacy_final_display_ignores_fabricated_context() -> None:
@@ -82,6 +91,10 @@ def test_legacy_final_display_ignores_fabricated_context() -> None:
 
     assert module.final_display_frames(unit) == targets
     assert module.final_playback_frames(unit) == targets
+    assert module.playback_frames_for_scope(
+        unit,
+        module.PLAYBACK_SCOPE_TARGET,
+    ) == targets
 
 
 def test_final_summary_hides_selection_and_model_hints() -> None:
@@ -105,6 +118,35 @@ def test_final_summary_hides_selection_and_model_hints() -> None:
     assert "TIER_1_HARD_MANDATORY" not in summary
     assert "risk_score" not in summary
     assert "score" not in summary.casefold()
+    assert "DECISION TARGET: f10-f15 (6 frames)" in summary
+
+
+def test_playback_status_keeps_target_and_context_bounds_visible() -> None:
+    module = _load(GUI_SCRIPT, "final_behavior_gui_playback_status")
+    unit = pd.Series(
+        {
+            "source_type": "cvat_tracking_xml",
+            "display_frame_indices": "100,101,102,103,104,105",
+            "final_playback_frame_indices": ",".join(
+                str(frame) for frame in range(70, 136)
+            ),
+        }
+    )
+    frames = module.playback_frames_for_scope(
+        unit,
+        module.PLAYBACK_SCOPE_TARGET,
+    )
+
+    status = module.format_playback_status(
+        unit,
+        frames,
+        0,
+        module.PLAYBACK_SCOPE_TARGET,
+    )
+
+    assert "current f100" in status
+    assert "DECISION TARGET f100-f105 (6 frames)" in status
+    assert "FULL CONTEXT f70-f135" in status
 
 
 def test_resume_index_can_backtrack_from_next_unreviewed() -> None:
@@ -281,17 +323,22 @@ def test_playback_window_is_continuous_and_context_sampler_is_sparse() -> None:
 
 def test_playback_frame_band_identifies_scope_without_altering_pixels() -> None:
     module = _load(GUI_SCRIPT, "final_behavior_gui_playback_band")
-    source = module.Image.new("RGB", (20, 10), "red")
+    source = module.Image.new("RGB", (100, 10), "red")
 
     rendered = module.compose_playback_frame(
         source,
         frame_index=101,
         role="TARGET",
+        target_start=100,
+        target_end=105,
+        playback_start=70,
+        playback_end=135,
     )
 
-    assert rendered.size == (20, 44)
+    assert rendered.size == (100, 44)
     assert rendered.getpixel((0, 0)) == (255, 242, 204)
     assert rendered.getpixel((0, 34)) == (255, 0, 0)
+    assert rendered.getpixel((48, 27)) == (192, 0, 0)
 
 
 def test_current_media_rows_keep_actor_and_neutral_scene_context() -> None:

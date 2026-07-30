@@ -38,6 +38,12 @@ from pig_behavior.classification_v2.review.source_specific_blinded_presentation_
 FINAL_PRESENTATION_VERSION = "classification_v2.final_behavior_review.v1"
 CONTEXT_COLUMN = "final_context_frame_indices"
 PLAYBACK_COLUMN = "final_playback_frame_indices"
+PLAYBACK_SCOPE_TARGET = "TARGET only"
+PLAYBACK_SCOPE_CONTEXT = "Full context"
+PLAYBACK_SCOPE_VALUES = (
+    PLAYBACK_SCOPE_TARGET,
+    PLAYBACK_SCOPE_CONTEXT,
+)
 PLAYBACK_INTERVALS_MS = {
     "2 fps": 500,
     "5 fps": 200,
@@ -110,6 +116,60 @@ def final_playback_frames(unit: pd.Series) -> list[int]:
     return final_display_frames(unit)
 
 
+def playback_frames_for_scope(
+    unit: pd.Series,
+    scope: str,
+) -> list[int]:
+    """Select target-only or full-context playback without changing scope."""
+
+    if scope == PLAYBACK_SCOPE_CONTEXT:
+        return final_playback_frames(unit)
+    if scope != PLAYBACK_SCOPE_TARGET:
+        raise ValueError(f"Unsupported playback scope: {scope}")
+    targets = BASE.decision_scope_frames(unit)
+    available = set(final_playback_frames(unit))
+    selected = [frame for frame in targets if frame in available]
+    return selected if selected else targets
+
+
+def target_interval(unit: pd.Series) -> tuple[int, int, int] | None:
+    """Return immutable decision-target bounds and frame count."""
+
+    targets = BASE.decision_scope_frames(unit)
+    if not targets:
+        return None
+    return targets[0], targets[-1], len(targets)
+
+
+def format_playback_status(
+    unit: pd.Series,
+    frames: list[int],
+    position: int,
+    scope: str,
+) -> str:
+    """Keep decision and full-context bounds visible during playback."""
+
+    if not frames:
+        return "No playback frames"
+    frame = frames[position]
+    role = playback_frame_role(unit, frame)
+    interval = target_interval(unit)
+    target_text = "TARGET unavailable"
+    if interval is not None:
+        start, end, count = interval
+        target_text = f"DECISION TARGET f{start}-f{end} ({count} frames)"
+    full = final_playback_frames(unit)
+    full_text = (
+        f"FULL CONTEXT f{full[0]}-f{full[-1]}"
+        if full
+        else "FULL CONTEXT unavailable"
+    )
+    return (
+        f"{scope} | {position + 1}/{len(frames)} | current f{frame} | "
+        f"{role} | {target_text} | {full_text}"
+    )
+
+
 def playback_frame_role(unit: pd.Series, frame_index: int) -> str:
     """Keep target scope visible while playback adds source context."""
 
@@ -123,6 +183,10 @@ def compose_playback_frame(
     *,
     frame_index: int,
     role: str,
+    target_start: int | None = None,
+    target_end: int | None = None,
+    playback_start: int | None = None,
+    playback_end: int | None = None,
 ) -> Image.Image:
     """Add a clear target/context band without changing source pixels."""
 
@@ -136,11 +200,42 @@ def compose_playback_frame(
     )
     canvas.paste(fitted, (0, 34))
     draw = ImageDraw.Draw(canvas)
+    interval_text = (
+        f" · DECISION TARGET f{target_start}-f{target_end}"
+        if target_start is not None and target_end is not None
+        else ""
+    )
     draw.text(
-        (10, 9),
-        f"{role} · frame {frame_index}",
+        (10, 4),
+        f"{role} · current f{frame_index}{interval_text}",
         fill="black",
     )
+    if (
+        fitted.width >= 80
+        and playback_start is not None
+        and playback_end is not None
+        and target_start is not None
+        and target_end is not None
+        and playback_end > playback_start
+    ):
+        left = 10
+        right = fitted.width - 10
+
+        def timeline_x(value: int) -> int:
+            ratio = (value - playback_start) / (
+                playback_end - playback_start
+            )
+            bounded = max(0.0, min(1.0, ratio))
+            return round(left + bounded * (right - left))
+
+        draw.line((left, 27, right, 27), fill="#808080", width=4)
+        draw.line(
+            (timeline_x(target_start), 27, timeline_x(target_end), 27),
+            fill="#f4b183",
+            width=8,
+        )
+        current_x = timeline_x(frame_index)
+        draw.line((current_x, 21, current_x, 33), fill="#c00000", width=3)
     return canvas
 
 
@@ -154,6 +249,14 @@ def format_final_summary(
     source = str(unit.get("source_type", "")).strip()
     targets = BASE.decision_scope_frames(unit)
     context_count = len(final_display_frames(unit)) - len(targets)
+    interval = target_interval(unit)
+    target_scope_line = "DECISION TARGET unavailable"
+    if interval is not None:
+        start, end, count = interval
+        target_scope_line = (
+            f"DECISION TARGET: f{start}-f{end} ({count} frames). "
+            "Chỉ phán quyết hành vi trong khoảng này."
+        )
     if source == "legacy_recovered":
         media_note = (
             "Legacy: toàn bộ crop là actor; 16 frame đều là decision target. "
@@ -181,6 +284,7 @@ def format_final_summary(
             "X chỉ dành cho lỗi media/kỹ thuật."
         ),
         media_note,
+        target_scope_line,
         (
             f"Target frames: {len(targets)} · Context frames: "
             f"{context_count} · Matched media rows: {matched_frame_count}"
@@ -261,6 +365,10 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
         self.playback_speed = BASE.tk.StringVar(
             master=self.root,
             value="10 fps",
+        )
+        self.playback_scope = BASE.tk.StringVar(
+            master=self.root,
+            value=PLAYBACK_SCOPE_TARGET,
         )
         self.playback_status = BASE.tk.StringVar(
             master=self.root,
@@ -567,7 +675,7 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
         self.main_frame.rowconfigure(0, weight=1)
         playback = BASE.ttk.LabelFrame(
             self.main_frame,
-            text="Playback ngữ cảnh · Space phát/dừng · V tổng quan",
+            text="Playback · mặc định chỉ DECISION TARGET · V tổng quan",
         )
         playback.grid(
             row=1,
@@ -576,7 +684,7 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
             padx=(0, 4),
             pady=(4, 0),
         )
-        playback.columnconfigure(6, weight=1)
+        playback.columnconfigure(8, weight=1)
         BASE.ttk.Button(
             playback,
             text="V  Tổng quan",
@@ -611,16 +719,30 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
             state="readonly",
         )
         speed.grid(row=0, column=5, padx=3, pady=3)
+        BASE.ttk.Label(playback, text="Phạm vi:").grid(
+            row=0,
+            column=6,
+            padx=(6, 2),
+        )
+        scope = BASE.ttk.Combobox(
+            playback,
+            textvariable=self.playback_scope,
+            values=PLAYBACK_SCOPE_VALUES,
+            width=13,
+            state="readonly",
+        )
+        scope.grid(row=0, column=7, padx=3, pady=3)
+        scope.bind("<<ComboboxSelected>>", self._on_playback_scope_changed)
         BASE.ttk.Label(
             playback,
             textvariable=self.playback_status,
             anchor="center",
-        ).grid(row=0, column=6, sticky="ew", padx=4)
+        ).grid(row=0, column=8, sticky="ew", padx=4)
         BASE.ttk.Checkbutton(
             playback,
             text="Lặp",
             variable=self.playback_repeat,
-        ).grid(row=0, column=7, padx=4)
+        ).grid(row=0, column=9, padx=4)
 
     def _on_keypress(self, event: Any) -> str | None:
         key = str(getattr(event, "keysym", "")).casefold()
@@ -628,6 +750,7 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
             playback_actions = {
                 "space": self.toggle_playback,
                 "v": self.show_overview,
+                "b": self.toggle_playback_scope,
                 "home": self.restart_playback,
                 "comma": lambda: self.step_playback(-1),
                 "period": lambda: self.step_playback(1),
@@ -773,6 +896,44 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
             ]
         )
 
+    def _configure_current_playback(
+        self,
+        unit: pd.Series,
+        *,
+        render: bool = False,
+    ) -> None:
+        self._current_playback_frames = playback_frames_for_scope(
+            unit,
+            self.playback_scope.get(),
+        )
+        playback_rows = self._frame_rows_for_indices(
+            unit,
+            self._current_playback_frames,
+        )
+        self._current_playback_rows = {
+            int(row["frame_index"]): row
+            for _, row in playback_rows.iterrows()
+            if pd.notna(row.get("frame_index"))
+        }
+        self.playback_position = 0
+        if render:
+            self._render_playback_position()
+        else:
+            self._update_playback_status()
+
+    def _on_playback_scope_changed(self, _event: Any = None) -> None:
+        self.pause_playback()
+        self._configure_current_playback(self.current_unit(), render=True)
+
+    def toggle_playback_scope(self) -> None:
+        scope = self.playback_scope.get()
+        self.playback_scope.set(
+            PLAYBACK_SCOPE_CONTEXT
+            if scope == PLAYBACK_SCOPE_TARGET
+            else PLAYBACK_SCOPE_TARGET
+        )
+        self._on_playback_scope_changed()
+
     def show_current(self) -> None:
         self.pause_playback()
         unit = self.current_unit()
@@ -785,19 +946,14 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
         self._photo = BASE.ImageTk.PhotoImage(image)
         self._overview_photo = self._photo
         self.image_label.configure(image=self._photo)
-        self._current_playback_frames = final_playback_frames(unit)
-        playback_rows = self._frame_rows_for_indices(
-            unit,
-            self._current_playback_frames,
-        )
-        self._current_playback_rows = {
-            int(row["frame_index"]): row
-            for _, row in playback_rows.iterrows()
-            if pd.notna(row.get("frame_index"))
-        }
-        self.playback_position = 0
-        self._update_playback_status()
+        self._configure_current_playback(unit)
 
+        interval = target_interval(unit)
+        target_suffix = (
+            f" · DECISION f{interval[0]}-f{interval[1]}"
+            if interval is not None
+            else " · DECISION TARGET unavailable"
+        )
         scope_suffix = (
             " · ALL 16 TARGET FRAMES"
             if str(unit.get("source_type", "")).strip()
@@ -807,7 +963,7 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
         self.header.set(
             f"{self.current + 1}/{len(self.units)} · "
             f"đã review {self._completed_count()} · "
-            f"FINAL REVIEW{scope_suffix}"
+            f"FINAL REVIEW{scope_suffix}{target_suffix}"
         )
         self.summary_text.configure(state="normal")
         self.summary_text.delete("1.0", "end")
@@ -824,14 +980,13 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
         self._update_decision_preview()
 
     def _update_playback_status(self) -> None:
-        count = len(self._current_playback_frames)
-        if not count:
-            self.playback_status.set("Không có frame playback")
-            return
-        frame = self._current_playback_frames[self.playback_position]
-        role = playback_frame_role(self.current_unit(), frame)
         self.playback_status.set(
-            f"{self.playback_position + 1}/{count} · f{frame} · {role}"
+            format_playback_status(
+                self.current_unit(),
+                self._current_playback_frames,
+                self.playback_position,
+                self.playback_scope.get(),
+            )
         )
 
     def _render_playback_position(self) -> None:
@@ -843,11 +998,18 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
             image = self._placeholder(f"NO ACTOR ROW\nf{frame_index}")
         else:
             image, _ = self._image_for_row(self.current_unit(), row)
-        role = playback_frame_role(self.current_unit(), frame_index)
+        unit = self.current_unit()
+        role = playback_frame_role(unit, frame_index)
+        interval = target_interval(unit)
+        full_frames = final_playback_frames(unit)
         image = compose_playback_frame(
             image,
             frame_index=frame_index,
             role=role,
+            target_start=interval[0] if interval is not None else None,
+            target_end=interval[1] if interval is not None else None,
+            playback_start=full_frames[0] if full_frames else None,
+            playback_end=full_frames[-1] if full_frames else None,
         )
         self._photo = BASE.ImageTk.PhotoImage(image)
         self.image_label.configure(image=self._photo)
