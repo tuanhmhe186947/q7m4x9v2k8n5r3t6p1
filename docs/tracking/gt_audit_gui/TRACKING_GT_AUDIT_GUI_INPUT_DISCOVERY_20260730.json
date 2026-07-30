@@ -1,0 +1,47 @@
+{
+  "GT_authority_count": 13,
+  "audit_items_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_tmp\\worktrees\\tracking_gt_audit_gui_20260730\\docs\\tracking\\development_evidence_defense\\DEVELOPMENT_GT_ERROR_AUDIT_ITEMS_20260730.csv",
+  "audit_items_sha256": "bf1578d69af61b8cddc198b84b6652c582c75a43384abbc9eb8b7cb71287707d",
+  "existing_GUI_components_reused": [
+    "atomic-write pattern only"
+  ],
+  "input_authority_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_tmp\\worktrees\\tracking_gt_audit_gui_20260730\\docs\\tracking\\development_evidence_defense\\DEVELOPMENT_EVIDENCE_INPUT_AUTHORITY_20260730.json",
+  "input_authority_sha256": "2da7c2d898c8a5ca87b8f914c4f0d3a9dc24294686b3c4987d991b1aaf8c3c6f",
+  "prediction_authority_count": 4,
+  "protected_dirty_file_hashes": [
+    {
+      "relative_path": "scripts/classification_v2/01_review_units_gui/review_interaction_blind_calibration_gui_v2.py",
+      "role": "UNRELATED_PROTECTED",
+      "sha256": "0bc3c17ff1a4c90bd9cbd0d3f3668c9c7856ed63f1b3411c4de46a090d6acd00",
+      "size_bytes": 40607
+    },
+    {
+      "relative_path": "scripts/classification_v2/01_review_units_gui/review_temporal_unit_gui.py",
+      "role": "UNRELATED_PROTECTED",
+      "sha256": "98dbd97da98ef5155ca1a69874c565e3f9c45f466ae491d3fa202a66328cded4",
+      "size_bytes": 61708
+    },
+    {
+      "relative_path": "tests/test_classification_v2_behavior_gui_readiness.py",
+      "role": "UNRELATED_PROTECTED",
+      "sha256": "80eed39ddabd3feb901fea0242137096a2b042fc514b4034ad4fbf7cee796ce7",
+      "size_bytes": 15262
+    },
+    {
+      "relative_path": "tests/test_classification_v2_source_specific_presentation_v2.py",
+      "role": "UNRELATED_PROTECTED",
+      "sha256": "87d314b65aed60db04674bcf315ac98763d6303daa05ade84fb0628eff8e8d37",
+      "size_bytes": 22473
+    }
+  ],
+  "referenced_method_ids": [
+    "bytetrack_raw",
+    "hybrid_bytetrack",
+    "realtime_fast",
+    "rf_hybrid"
+  ],
+  "source_item_count": 120,
+  "starting_main_sha": "0038a0f1efb57aec794cf26e22a34535d3a2dc10",
+  "unresolved_input_fields": [],
+  "video_count": 13
+}
