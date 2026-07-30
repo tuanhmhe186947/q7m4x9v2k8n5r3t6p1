@@ -140,6 +140,26 @@ class _Capture:
         return self.decoded_position
 
 
+class _Canvas:
+    def __init__(self) -> None:
+        self.cursor = ""
+        self.created: list[tuple[tuple[object, ...], dict[str, object]]] = []
+
+    def delete(self, _item: object) -> None:
+        return None
+
+    def configure(self, *, cursor: str) -> None:
+        self.cursor = cursor
+
+    def create_rectangle(self, *args: object, **kwargs: object) -> int:
+        self.created.append((args, kwargs))
+        return len(self.created)
+
+    def create_text(self, *args: object, **kwargs: object) -> int:
+        self.created.append((args, kwargs))
+        return len(self.created)
+
+
 def test_canvas_drag_normalizes_clamps_and_rejects_tiny_boxes() -> None:
     module = _load("identity_continuity_gui_bbox_math")
 
@@ -162,8 +182,34 @@ def test_canvas_drag_normalizes_clamps_and_rejects_tiny_boxes() -> None:
     )
 
 
-def test_canvas_release_saves_corrected_bbox_in_source_coordinates() -> None:
-    module = _load("identity_continuity_gui_bbox_release")
+def test_minicvat_geometry_supports_handles_move_resize_and_clamping() -> None:
+    module = _load("identity_continuity_gui_minicvat_geometry")
+
+    canvas_bbox = module.source_bbox_to_canvas(
+        (10.0, 20.0, 50.0, 60.0),
+        scale=2.0,
+        offset=(5, 7),
+    )
+    assert canvas_bbox == (25.0, 47.0, 105.0, 127.0)
+    assert module.hit_test_bbox_handle((25.0, 47.0), canvas_bbox) == "nw"
+    assert module.hit_test_bbox_handle((65.0, 127.0), canvas_bbox) == "s"
+    assert module.canvas_point_inside_bbox((65.0, 80.0), canvas_bbox)
+    assert module.transform_source_bbox(
+        (10.0, 10.0, 30.0, 30.0),
+        delta=(-20.0, 50.0),
+        operation="move",
+        source_size=(100, 60),
+    ) == (0.0, 40.0, 20.0, 60.0)
+    assert module.transform_source_bbox(
+        (10.0, 10.0, 30.0, 30.0),
+        delta=(15.0, 20.0),
+        operation="se",
+        source_size=(100, 60),
+    ) == (10.0, 10.0, 45.0, 50.0)
+
+
+def test_canvas_release_moves_source_bbox_and_saves_correction() -> None:
+    module = _load("identity_continuity_gui_bbox_move")
     gui = module.IdentityContinuityGui.__new__(module.IdentityContinuityGui)
     gui.finalized = False
     gui.cases = (_case(),)
@@ -173,28 +219,108 @@ def test_canvas_release_saves_corrected_bbox_in_source_coordinates() -> None:
     gui.selections = {("unit-a", 3): "actor-a"}
     gui.exclusions = {}
     gui.bbox_edits = {}
-    gui._bbox_draw_mode = module.CORRECTED_BBOX_MODE
-    gui._bbox_drag_start = (10.0, 20.0)
-    gui._bbox_drag_rectangle = 7
-    gui._display_scale = 0.5
+    gui.candidates_by_frame = {3: (_candidate("actor-a", 10.0),)}
+    gui._bbox_draw_mode = None
+    gui._bbox_drag_start = (15.0, 15.0)
+    gui._bbox_drag_rectangle = None
+    gui._bbox_interaction = "move"
+    gui._bbox_resize_handle = None
+    gui._bbox_origin = (10.0, 10.0, 30.0, 30.0)
+    gui._bbox_preview = gui._bbox_origin
+    gui._display_scale = 1.0
     gui._display_offset = (0, 0)
-    gui._source_image_size = (200, 100)
-    gui.canvas = type(
-        "Canvas",
-        (),
-        {"delete": lambda _self, _item: None},
-    )()
+    gui._source_image_size = (100, 60)
+    gui.canvas = _Canvas()
     gui.status_var = type("Status", (), {"set": lambda _self, _value: None})()
     gui.save = lambda *, silent=False: True
     gui.show_current_frame = lambda: None
 
-    gui._on_canvas_release(type("Event", (), {"x": 30, "y": 40})())
+    gui._on_canvas_release(type("Event", (), {"x": 25, "y": 20})())
 
     edit = gui.bbox_edits[("unit-a", 3)]
     assert edit.mode == module.CORRECTED_BBOX_MODE
     assert edit.source_object_track_key == "actor-a"
-    assert edit.bbox == (20.0, 40.0, 60.0, 80.0)
+    assert edit.bbox == (20.0, 15.0, 40.0, 35.0)
     assert gui.selections[("unit-a", 3)] == "actor-a"
+
+
+def test_handle_drag_resizes_source_bbox_and_autosaves() -> None:
+    module = _load("identity_continuity_gui_bbox_resize")
+    gui = module.IdentityContinuityGui.__new__(module.IdentityContinuityGui)
+    gui.finalized = False
+    gui.cases = (_case(),)
+    gui.active_case_position = 0
+    gui.all_frames = (3,)
+    gui.current_frame_position = 0
+    gui.selections = {("unit-a", 3): "actor-a"}
+    gui.exclusions = {}
+    gui.bbox_edits = {}
+    gui.candidates_by_frame = {3: (_candidate("actor-a", 10.0),)}
+    gui._bbox_draw_mode = None
+    gui._bbox_drag_start = None
+    gui._bbox_drag_rectangle = None
+    gui._bbox_interaction = None
+    gui._bbox_resize_handle = None
+    gui._bbox_origin = None
+    gui._bbox_preview = None
+    gui._display_scale = 1.0
+    gui._display_offset = (0, 0)
+    gui._source_image_size = (100, 60)
+    gui.canvas = _Canvas()
+    gui.status_var = type("Status", (), {"set": lambda _self, _value: None})()
+    gui.save = lambda *, silent=False: True
+    gui.show_current_frame = lambda: None
+
+    gui._on_canvas_press(type("Event", (), {"x": 30, "y": 30})())
+    assert gui._bbox_interaction == "resize"
+    assert gui._bbox_resize_handle == "se"
+    gui._on_canvas_drag(type("Event", (), {"x": 40, "y": 35})())
+    gui._on_canvas_release(type("Event", (), {"x": 40, "y": 35})())
+
+    edit = gui.bbox_edits[("unit-a", 3)]
+    assert edit.mode == module.CORRECTED_BBOX_MODE
+    assert edit.bbox == (10.0, 10.0, 40.0, 35.0)
+
+
+def test_added_bbox_can_be_moved_after_creation() -> None:
+    module = _load("identity_continuity_gui_added_bbox_edit")
+    gui = module.IdentityContinuityGui.__new__(module.IdentityContinuityGui)
+    gui.finalized = False
+    gui.cases = (_case(),)
+    gui.active_case_position = 0
+    gui.all_frames = (3,)
+    gui.current_frame_position = 0
+    gui.selections = {}
+    gui.exclusions = {}
+    gui.bbox_edits = {}
+    gui.candidates_by_frame = {3: (_candidate("actor-a", 10.0),)}
+    gui._bbox_draw_mode = module.ADDED_BBOX_MODE
+    gui._bbox_drag_start = (40.0, 10.0)
+    gui._bbox_drag_rectangle = None
+    gui._bbox_interaction = "add"
+    gui._bbox_resize_handle = None
+    gui._bbox_origin = None
+    gui._bbox_preview = None
+    gui._display_scale = 1.0
+    gui._display_offset = (0, 0)
+    gui._source_image_size = (100, 60)
+    gui.canvas = _Canvas()
+    gui.status_var = type("Status", (), {"set": lambda _self, _value: None})()
+    gui.save = lambda *, silent=False: True
+    gui.show_current_frame = lambda: None
+
+    gui._on_canvas_release(type("Event", (), {"x": 70, "y": 35})())
+    first_edit = gui.bbox_edits[("unit-a", 3)]
+    assert first_edit.mode == module.ADDED_BBOX_MODE
+    assert first_edit.bbox == (40.0, 10.0, 70.0, 35.0)
+
+    gui._on_canvas_press(type("Event", (), {"x": 50, "y": 20})())
+    gui._on_canvas_drag(type("Event", (), {"x": 55, "y": 25})())
+    gui._on_canvas_release(type("Event", (), {"x": 55, "y": 25})())
+
+    moved_edit = gui.bbox_edits[("unit-a", 3)]
+    assert moved_edit.mode == module.ADDED_BBOX_MODE
+    assert moved_edit.bbox == (45.0, 15.0, 75.0, 40.0)
 
 
 def test_selecting_source_candidate_clears_stale_bbox_edit() -> None:

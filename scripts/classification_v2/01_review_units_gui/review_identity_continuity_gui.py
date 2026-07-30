@@ -550,6 +550,114 @@ def canvas_drag_to_source_bbox(
     return x1, y1, x2, y2
 
 
+BBOX_HANDLE_NAMES = ("nw", "n", "ne", "e", "se", "s", "sw", "w")
+BBOX_HANDLE_HIT_RADIUS = 9.0
+BBOX_MINIMUM_EXTENT = 3.0
+
+
+def source_bbox_to_canvas(
+    bbox: tuple[float, float, float, float],
+    *,
+    scale: float,
+    offset: tuple[int, int],
+) -> tuple[float, float, float, float]:
+    """Map source-image xyxy coordinates to the current canvas view."""
+
+    x1, y1, x2, y2 = bbox
+    return (
+        offset[0] + x1 * scale,
+        offset[1] + y1 * scale,
+        offset[0] + x2 * scale,
+        offset[1] + y2 * scale,
+    )
+
+
+def bbox_handle_points(
+    canvas_bbox: tuple[float, float, float, float],
+) -> dict[str, tuple[float, float]]:
+    """Return CVAT-like corner and edge handle centers."""
+
+    x1, y1, x2, y2 = canvas_bbox
+    mid_x = (x1 + x2) / 2.0
+    mid_y = (y1 + y2) / 2.0
+    return {
+        "nw": (x1, y1),
+        "n": (mid_x, y1),
+        "ne": (x2, y1),
+        "e": (x2, mid_y),
+        "se": (x2, y2),
+        "s": (mid_x, y2),
+        "sw": (x1, y2),
+        "w": (x1, mid_y),
+    }
+
+
+def hit_test_bbox_handle(
+    point: tuple[float, float],
+    canvas_bbox: tuple[float, float, float, float],
+    *,
+    radius: float = BBOX_HANDLE_HIT_RADIUS,
+) -> str | None:
+    """Return the nearest resize handle within a fixed canvas-pixel radius."""
+
+    matches = [
+        (
+            (point[0] - handle_x) ** 2 + (point[1] - handle_y) ** 2,
+            name,
+        )
+        for name, (handle_x, handle_y) in bbox_handle_points(canvas_bbox).items()
+        if abs(point[0] - handle_x) <= radius
+        and abs(point[1] - handle_y) <= radius
+    ]
+    return min(matches)[1] if matches else None
+
+
+def canvas_point_inside_bbox(
+    point: tuple[float, float],
+    canvas_bbox: tuple[float, float, float, float],
+) -> bool:
+    """Return whether a canvas point lies inside an xyxy rectangle."""
+
+    x1, y1, x2, y2 = canvas_bbox
+    return x1 <= point[0] <= x2 and y1 <= point[1] <= y2
+
+
+def transform_source_bbox(
+    bbox: tuple[float, float, float, float],
+    *,
+    delta: tuple[float, float],
+    operation: str,
+    source_size: tuple[int, int],
+    minimum_extent: float = BBOX_MINIMUM_EXTENT,
+) -> tuple[float, float, float, float]:
+    """Move or resize a source bbox while keeping it inside the image."""
+
+    width, height = source_size
+    x1, y1, x2, y2 = bbox
+    delta_x, delta_y = delta
+    if operation == "move":
+        bounded_x = min(max(delta_x, -x1), float(width) - x2)
+        bounded_y = min(max(delta_y, -y1), float(height) - y2)
+        return (
+            x1 + bounded_x,
+            y1 + bounded_y,
+            x2 + bounded_x,
+            y2 + bounded_y,
+        )
+    if operation not in BBOX_HANDLE_NAMES:
+        raise ValueError(f"invalid_bbox_transform_operation={operation}")
+
+    if "w" in operation:
+        x1 = min(max(x1 + delta_x, 0.0), x2 - minimum_extent)
+    if "e" in operation:
+        x2 = max(min(x2 + delta_x, float(width)), x1 + minimum_extent)
+    if "n" in operation:
+        y1 = min(max(y1 + delta_y, 0.0), y2 - minimum_extent)
+    if "s" in operation:
+        y2 = max(min(y2 + delta_y, float(height)), y1 + minimum_extent)
+    return x1, y1, x2, y2
+
+
 class IdentityContinuityGui:
     """Select source boxes or draw sidecar-only bbox corrections per frame."""
 
@@ -609,12 +717,16 @@ class IdentityContinuityGui:
         self._bbox_draw_mode: str | None = None
         self._bbox_drag_start: tuple[float, float] | None = None
         self._bbox_drag_rectangle: int | None = None
+        self._bbox_interaction: str | None = None
+        self._bbox_resize_handle: str | None = None
+        self._bbox_origin: tuple[float, float, float, float] | None = None
+        self._bbox_preview: tuple[float, float, float, float] | None = None
         self._photo: ImageTk.PhotoImage | None = None
         self._prefetch_after_id: str | None = None
 
         self.root = tk.Tk()
         self.root.title(WINDOW_TITLE)
-        self.root.minsize(1180, 760)
+        self.root.minsize(1280, 800)
         self.status_var = tk.StringVar(
             value=(
                 "Phiên đã hoàn tất; dùng --reopen-finalized để sửa."
@@ -627,6 +739,7 @@ class IdentityContinuityGui:
             )
         )
         self.info_var = tk.StringVar(value="")
+        self.bbox_detail_var = tk.StringVar(value="")
         self._build_layout()
         self.root.bind_all("<Key>", self._on_keypress)
         self.root.protocol("WM_DELETE_WINDOW", self.close)
@@ -676,8 +789,9 @@ class IdentityContinuityGui:
         self.canvas.bind("<ButtonPress-1>", self._on_canvas_press)
         self.canvas.bind("<B1-Motion>", self._on_canvas_drag)
         self.canvas.bind("<ButtonRelease-1>", self._on_canvas_release)
+        self.canvas.bind("<Motion>", self._on_canvas_hover)
 
-        side = ttk.Frame(root, padding=8, width=400)
+        side = ttk.Frame(root, padding=8, width=440)
         side.grid(row=0, column=1, sticky="ns")
         ttk.Label(
             side,
@@ -694,8 +808,17 @@ class IdentityContinuityGui:
         self.case_frame.grid(row=2, column=0, sticky="ew", pady=(10, 6))
         self.candidate_frame = ttk.LabelFrame(side, text="BBox trong frame", padding=6)
         self.candidate_frame.grid(row=3, column=0, sticky="ew", pady=6)
+        bbox_detail = ttk.LabelFrame(side, text="BBox đang chỉnh", padding=6)
+        bbox_detail.grid(row=4, column=0, sticky="ew", pady=6)
+        ttk.Label(
+            bbox_detail,
+            textvariable=self.bbox_detail_var,
+            wraplength=410,
+            justify="left",
+        ).grid(row=0, column=0, sticky="ew")
+        bbox_detail.columnconfigure(0, weight=1)
         controls = ttk.LabelFrame(side, text="Điều khiển", padding=6)
-        controls.grid(row=4, column=0, sticky="ew", pady=6)
+        controls.grid(row=5, column=0, sticky="ew", pady=6)
         ttk.Button(controls, text="← Frame trước", command=lambda: self.step_frame(-1)).grid(
             row=0,
             column=0,
@@ -719,7 +842,7 @@ class IdentityContinuityGui:
         )
         ttk.Button(
             controls,
-            text="Xóa chọn frame",
+            text="Xóa bbox frame",
             command=self.clear_current_selection,
         ).grid(
             row=1,
@@ -744,7 +867,7 @@ class IdentityContinuityGui:
         )
         ttk.Button(
             controls,
-            text="Vẽ lại bbox đã chọn",
+            text="Chọn / chỉnh bbox (E)",
             command=self.start_corrected_bbox,
         ).grid(row=2, column=0, sticky="ew", padx=2, pady=2)
         ttk.Button(
@@ -754,7 +877,7 @@ class IdentityContinuityGui:
         ).grid(row=2, column=1, sticky="ew", padx=2, pady=2)
         ttk.Button(
             controls,
-            text="Hủy chế độ vẽ",
+            text="Hủy thao tác (Esc)",
             command=self.cancel_bbox_drawing,
         ).grid(row=3, column=0, columnspan=2, sticky="ew", padx=2, pady=2)
         ttk.Button(controls, text="Lưu sidecar", command=self.save).grid(
@@ -777,14 +900,14 @@ class IdentityContinuityGui:
             side,
             text=(
                 "Phím: ←/→ frame · Tab đổi unit · 1–9 chọn box · "
-                "E vẽ lại · A thêm bbox · Esc hủy vẽ · O bbox gốc · "
+                "E chỉnh bbox · A thêm bbox · Esc hủy thao tác · O bbox gốc · "
                 "U xóa · X loại · R khôi phục · F hoàn tất · Ctrl+S lưu"
             ),
             wraplength=370,
             foreground="#404040",
-        ).grid(row=5, column=0, sticky="ew", pady=(8, 3))
+        ).grid(row=6, column=0, sticky="ew", pady=(8, 3))
         ttk.Label(side, textvariable=self.status_var, wraplength=370).grid(
-            row=6,
+            row=7,
             column=0,
             sticky="ew",
         )
@@ -876,6 +999,75 @@ class IdentityContinuityGui:
             if (case.review_unit_id, frame_index) in self.bbox_edits
         }
 
+    def _active_frame_key(self) -> tuple[str, int]:
+        return self.active_case.review_unit_id, self.current_frame_index
+
+    def _active_selected_candidate(self) -> FrameCandidate | None:
+        selected_key = self.selections.get(self._active_frame_key(), "")
+        if not selected_key or selected_key == MANUAL_BBOX_SELECTION_KEY:
+            return None
+        return next(
+            (
+                candidate
+                for candidate in self.candidates_by_frame[self.current_frame_index]
+                if candidate.object_track_key == selected_key
+            ),
+            None,
+        )
+
+    def _active_effective_bbox(
+        self,
+    ) -> tuple[float, float, float, float] | None:
+        edit = self.bbox_edits.get(self._active_frame_key())
+        if edit is not None:
+            return edit.bbox
+        candidate = self._active_selected_candidate()
+        return None if candidate is None else candidate.bbox
+
+    def _active_bbox_authority(self) -> str:
+        edit = self.bbox_edits.get(self._active_frame_key())
+        if edit is None:
+            return "SOURCE_BBOX" if self._active_selected_candidate() else "CHƯA CHỌN"
+        if edit.mode == ADDED_BBOX_MODE:
+            return "ADDED — bbox được thêm trong sidecar"
+        return "CORRECTED — bbox nguồn đã được chỉnh"
+
+    def _refresh_bbox_detail(self) -> None:
+        if not hasattr(self, "bbox_detail_var"):
+            return
+        selected = self._active_selected_candidate()
+        selected_key = self.selections.get(self._active_frame_key(), "")
+        bbox = self._active_effective_bbox()
+        if selected_key == MANUAL_BBOX_SELECTION_KEY:
+            pig_id = self.active_case.original_pig_id or "?"
+            track_id = self.active_case.original_track_id or "?"
+            object_key = "manual sidecar bbox"
+        elif selected is not None:
+            pig_id = selected.pig_id or "?"
+            track_id = selected.track_id or "?"
+            object_key = selected.object_track_key
+        else:
+            pig_id = "?"
+            track_id = "?"
+            object_key = "chưa chọn"
+        lines = [
+            f"Trạng thái: {self._active_bbox_authority()}",
+            f"Pig ID: {pig_id} | Track ID: {track_id}",
+            f"Object key: {object_key}",
+        ]
+        if bbox is not None:
+            x1, y1, x2, y2 = bbox
+            lines.extend(
+                [
+                    f"xyxy: {x1:.1f}, {y1:.1f}, {x2:.1f}, {y2:.1f}",
+                    f"Kích thước: {x2 - x1:.1f} × {y2 - y1:.1f} px",
+                    "Kéo bên trong bbox để di chuyển; kéo ô vuông để resize.",
+                ]
+            )
+        else:
+            lines.append("Chọn bbox nguồn hoặc bấm “Thêm bbox bị mất”.")
+        self.bbox_detail_var.set("\n".join(lines))
+
     def _case_progress(self, case: IdentityCase) -> tuple[int, int, str]:
         mapped = sum(
             (case.review_unit_id, frame_index) in self.selections
@@ -904,11 +1096,26 @@ class IdentityContinuityGui:
     def _refresh_candidate_controls(self) -> None:
         for child in self.candidate_frame.winfo_children():
             child.destroy()
+        frame_key = self._active_frame_key()
+        selected_key = self.selections.get(frame_key, "")
+        edit = self.bbox_edits.get(frame_key)
+        if selected_key == MANUAL_BBOX_SELECTION_KEY:
+            summary = "✓ Bbox sidecar được thêm — kéo trực tiếp để chỉnh"
+        elif edit is not None:
+            summary = "✓ Bbox nguồn đã chỉnh — kéo trực tiếp để chỉnh tiếp"
+        elif selected_key:
+            summary = "✓ Bbox nguồn — kéo trực tiếp để di chuyển/resize"
+        else:
+            summary = "Chọn một bbox nguồn hoặc thêm bbox bị mất"
+        ttk.Label(
+            self.candidate_frame,
+            text=summary,
+            foreground="#7a1f7a" if edit is not None else "#303030",
+            wraplength=390,
+        ).grid(row=0, column=0, sticky="ew", pady=(0, 4))
         candidates = self.candidates_by_frame[self.current_frame_index]
         for index, candidate in enumerate(candidates, start=1):
-            selected = self.selections.get(
-                (self.active_case.review_unit_id, self.current_frame_index)
-            ) == candidate.object_track_key
+            selected = selected_key == candidate.object_track_key
             text = candidate_label(candidate, index)
             if selected:
                 text = f"✓ {text}"
@@ -916,7 +1123,7 @@ class IdentityContinuityGui:
                 self.candidate_frame,
                 text=text,
                 command=lambda chosen=candidate: self.select_candidate(chosen),
-            ).grid(row=index - 1, column=0, sticky="ew", pady=1)
+            ).grid(row=index, column=0, sticky="ew", pady=1)
         self.candidate_frame.columnconfigure(0, weight=1)
 
     def _fit_to_canvas(self, image: Image.Image) -> Image.Image:
@@ -932,6 +1139,51 @@ class IdentityContinuityGui:
         if (width, height) == image.size:
             return image
         return image.resize((width, height), Image.Resampling.LANCZOS)
+
+    def _draw_bbox_editor_overlay(
+        self,
+        bbox: tuple[float, float, float, float] | None = None,
+    ) -> None:
+        self.canvas.delete("bbox-editor")
+        bbox = self._active_effective_bbox() if bbox is None else bbox
+        if bbox is None:
+            return
+        canvas_bbox = source_bbox_to_canvas(
+            bbox,
+            scale=self._display_scale,
+            offset=self._display_offset,
+        )
+        authority = self._active_bbox_authority()
+        color = "#ff4dff" if authority.startswith("ADDED") else "#00e5ff"
+        if authority.startswith("CORRECTED"):
+            color = "#ff9f1c"
+        self.canvas.create_rectangle(
+            *canvas_bbox,
+            outline=color,
+            width=3,
+            tags=("bbox-editor",),
+        )
+        handle_half = 5
+        for handle_x, handle_y in bbox_handle_points(canvas_bbox).values():
+            self.canvas.create_rectangle(
+                handle_x - handle_half,
+                handle_y - handle_half,
+                handle_x + handle_half,
+                handle_y + handle_half,
+                fill="#ffffff",
+                outline=color,
+                width=2,
+                tags=("bbox-editor",),
+            )
+        label = authority.split(" — ", maxsplit=1)[0]
+        self.canvas.create_text(
+            canvas_bbox[0] + 4,
+            max(12.0, canvas_bbox[1] - 10),
+            text=f"{label} · kéo để chỉnh",
+            fill="#ffffff",
+            anchor="sw",
+            tags=("bbox-editor",),
+        )
 
     def show_current_frame(self) -> None:
         self._ensure_active_case_frame()
@@ -959,11 +1211,14 @@ class IdentityContinuityGui:
             image=self._photo,
             anchor="nw",
         )
+        self._draw_bbox_editor_overlay()
         mapped, total, status = self._case_progress(self.active_case)
         source_frame_index = self._source_frame_index(frame_index)
         frame_key = (self.active_case.review_unit_id, frame_index)
         edit = self.bbox_edits.get(frame_key)
-        if edit is None:
+        if frame_key not in self.selections:
+            bbox_status = "BBox: chưa chọn"
+        elif edit is None:
             bbox_status = "BBox: nguồn gốc, chưa sửa"
         elif edit.mode == ADDED_BBOX_MODE:
             bbox_status = "BBox: A — thêm mới vì bbox nguồn bị mất"
@@ -991,6 +1246,7 @@ class IdentityContinuityGui:
         )
         self._refresh_case_controls()
         self._refresh_candidate_controls()
+        self._refresh_bbox_detail()
         self._schedule_adjacent_prefetch()
 
     def set_active_case(self, position: int) -> None:
@@ -1266,19 +1522,17 @@ class IdentityContinuityGui:
     def start_corrected_bbox(self) -> None:
         if not self._ensure_mutable():
             return
-        frame_key = (self.active_case.review_unit_id, self.current_frame_index)
-        selected_key = self.selections.get(frame_key)
-        if not selected_key or selected_key == MANUAL_BBOX_SELECTION_KEY:
+        if not self.selections.get(self._active_frame_key()):
             messagebox.showwarning(
-                "Cần chọn bbox nguồn",
-                "Chọn bbox nguồn của actor trước, rồi bấm vẽ lại bbox.",
+                "Cần chọn bbox",
+                "Chọn bbox nguồn hoặc thêm bbox mới trước khi chỉnh.",
                 parent=self.root,
             )
             return
-        self._bbox_draw_mode = CORRECTED_BBOX_MODE
-        self._bbox_drag_start = None
+        self.cancel_bbox_drawing(silent=True)
         self.status_var.set(
-            "Chế độ E: kéo chuột từ một góc sang góc đối diện của bbox đúng."
+            "Chế độ chỉnh: kéo bên trong bbox để di chuyển; "
+            "kéo 8 ô vuông để resize."
         )
 
     def start_added_bbox(self) -> None:
@@ -1291,109 +1545,240 @@ class IdentityContinuityGui:
                 parent=self.root,
             )
             return
+        self.cancel_bbox_drawing(silent=True)
         self._bbox_draw_mode = ADDED_BBOX_MODE
-        self._bbox_drag_start = None
         self.status_var.set(
-            "Chế độ A: kéo chuột để thêm bbox actor bị thiếu trong frame này."
+            "Chế độ thêm: kéo tạo bbox mới; sau khi lưu có thể kéo/resize tiếp."
         )
 
     def cancel_bbox_drawing(self, *, silent: bool = False) -> None:
         self._bbox_draw_mode = None
         self._bbox_drag_start = None
+        self._bbox_interaction = None
+        self._bbox_resize_handle = None
+        self._bbox_origin = None
+        self._bbox_preview = None
         if self._bbox_drag_rectangle is not None:
             self.canvas.delete(self._bbox_drag_rectangle)
             self._bbox_drag_rectangle = None
+        self.canvas.delete("bbox-preview")
+        self.canvas.configure(cursor="")
+        self._draw_bbox_editor_overlay()
         if not silent:
-            self.status_var.set("Đã hủy chế độ vẽ bbox.")
+            self.status_var.set("Đã hủy thao tác bbox; dữ liệu đã lưu không đổi.")
 
-    def _on_canvas_press(self, event: tk.Event[Any]) -> None:
-        if self._bbox_draw_mode is None:
-            self._on_canvas_click(event)
-            return
-        self._bbox_drag_start = (float(event.x), float(event.y))
-        if self._bbox_drag_rectangle is not None:
-            self.canvas.delete(self._bbox_drag_rectangle)
-        self._bbox_drag_rectangle = self.canvas.create_rectangle(
-            event.x,
-            event.y,
-            event.x,
-            event.y,
-            outline="#ff4dff",
-            width=3,
-        )
-
-    def _on_canvas_drag(self, event: tk.Event[Any]) -> None:
-        if self._bbox_drag_start is None or self._bbox_drag_rectangle is None:
-            return
-        self.canvas.coords(
-            self._bbox_drag_rectangle,
-            self._bbox_drag_start[0],
-            self._bbox_drag_start[1],
-            event.x,
-            event.y,
-        )
-
-    def _on_canvas_release(self, event: tk.Event[Any]) -> None:
-        if self._bbox_draw_mode is None or self._bbox_drag_start is None:
-            return
-        bbox = canvas_drag_to_source_bbox(
-            self._bbox_drag_start,
-            (float(event.x), float(event.y)),
+    def _begin_existing_bbox_interaction(
+        self,
+        point: tuple[float, float],
+    ) -> bool:
+        bbox = self._active_effective_bbox()
+        if bbox is None:
+            return False
+        canvas_bbox = source_bbox_to_canvas(
+            bbox,
             scale=self._display_scale,
             offset=self._display_offset,
+        )
+        handle = hit_test_bbox_handle(point, canvas_bbox)
+        if handle is not None:
+            self._bbox_interaction = "resize"
+            self._bbox_resize_handle = handle
+        elif canvas_point_inside_bbox(point, canvas_bbox):
+            self._bbox_interaction = "move"
+            self._bbox_resize_handle = None
+        else:
+            return False
+        self._bbox_drag_start = point
+        self._bbox_origin = bbox
+        self._bbox_preview = bbox
+        return True
+
+    def _preview_existing_bbox(self, point: tuple[float, float]) -> None:
+        if self._bbox_drag_start is None or self._bbox_origin is None:
+            return
+        delta = (
+            (point[0] - self._bbox_drag_start[0]) / self._display_scale,
+            (point[1] - self._bbox_drag_start[1]) / self._display_scale,
+        )
+        operation = (
+            "move"
+            if self._bbox_interaction == "move"
+            else self._bbox_resize_handle or ""
+        )
+        self._bbox_preview = transform_source_bbox(
+            self._bbox_origin,
+            delta=delta,
+            operation=operation,
             source_size=self._source_image_size,
         )
-        if self._bbox_drag_rectangle is not None:
-            self.canvas.delete(self._bbox_drag_rectangle)
-            self._bbox_drag_rectangle = None
-        self._bbox_drag_start = None
-        if bbox is None:
-            self.status_var.set(
-                "BBox quá nhỏ hoặc ngoài ảnh; vẫn ở chế độ vẽ để thử lại."
+        self._draw_bbox_editor_overlay(self._bbox_preview)
+        if hasattr(self, "bbox_detail_var"):
+            x1, y1, x2, y2 = self._bbox_preview
+            self.bbox_detail_var.set(
+                f"ĐANG CHỈNH · xyxy {x1:.1f}, {y1:.1f}, {x2:.1f}, {y2:.1f}\n"
+                f"Kích thước {x2 - x1:.1f} × {y2 - y1:.1f} px"
             )
-            return
 
-        frame_key = (self.active_case.review_unit_id, self.current_frame_index)
+    def _persist_effective_bbox(
+        self,
+        bbox: tuple[float, float, float, float],
+        *,
+        added: bool,
+    ) -> bool:
+        frame_key = self._active_frame_key()
         prior_selection = self.selections.get(frame_key)
         prior_edit = self.bbox_edits.get(frame_key)
-        if self._bbox_draw_mode == ADDED_BBOX_MODE:
-            selection_key = MANUAL_BBOX_SELECTION_KEY
-            source_key = ""
+        if added:
+            selected_key = MANUAL_BBOX_SELECTION_KEY
         else:
-            selection_key = prior_selection
-            source_key = prior_selection or ""
-        if not selection_key:
-            self.status_var.set("BBox nguồn không còn được chọn; không lưu thay đổi.")
-            self.cancel_bbox_drawing(silent=True)
-            return
-
-        self.selections[frame_key] = selection_key
+            selected_key = prior_selection
+        if not selected_key:
+            self.status_var.set("Chưa có actor được chọn; bbox không được lưu.")
+            return False
+        mode = (
+            ADDED_BBOX_MODE
+            if selected_key == MANUAL_BBOX_SELECTION_KEY
+            else CORRECTED_BBOX_MODE
+        )
+        self.selections[frame_key] = selected_key
         self.bbox_edits[frame_key] = BoundingBoxEdit(
-            mode=self._bbox_draw_mode,
+            mode=mode,
             x1=bbox[0],
             y1=bbox[1],
             x2=bbox[2],
             y2=bbox[3],
-            source_object_track_key=source_key,
+            source_object_track_key=(
+                "" if mode == ADDED_BBOX_MODE else selected_key
+            ),
         )
-        if not self.save(silent=True):
-            if prior_selection is None:
-                self.selections.pop(frame_key, None)
-            else:
-                self.selections[frame_key] = prior_selection
-            if prior_edit is None:
-                self.bbox_edits.pop(frame_key, None)
-            else:
-                self.bbox_edits[frame_key] = prior_edit
-            self.status_var.set("Không lưu được bbox; đã khôi phục trạng thái trước.")
+        if self.save(silent=True):
+            return True
+        if prior_selection is None:
+            self.selections.pop(frame_key, None)
+        else:
+            self.selections[frame_key] = prior_selection
+        if prior_edit is None:
+            self.bbox_edits.pop(frame_key, None)
+        else:
+            self.bbox_edits[frame_key] = prior_edit
+        self.status_var.set("Không lưu được bbox; đã khôi phục trạng thái trước.")
+        return False
+
+    def _on_canvas_hover(self, event: tk.Event[Any]) -> None:
+        if self._bbox_interaction is not None:
+            return
+        if self._bbox_draw_mode == ADDED_BBOX_MODE:
+            self.canvas.configure(cursor="crosshair")
+            return
+        bbox = self._active_effective_bbox()
+        if bbox is None:
+            self.canvas.configure(cursor="")
+            return
+        canvas_bbox = source_bbox_to_canvas(
+            bbox,
+            scale=self._display_scale,
+            offset=self._display_offset,
+        )
+        point = float(event.x), float(event.y)
+        if hit_test_bbox_handle(point, canvas_bbox) is not None:
+            self.canvas.configure(cursor="crosshair")
+        elif canvas_point_inside_bbox(point, canvas_bbox):
+            self.canvas.configure(cursor="fleur")
+        else:
+            self.canvas.configure(cursor="")
+
+    def _on_canvas_press(self, event: tk.Event[Any]) -> None:
+        point = float(event.x), float(event.y)
+        if self._bbox_draw_mode == ADDED_BBOX_MODE:
+            if not self._ensure_mutable():
+                return
+            self._bbox_interaction = "add"
+            self._bbox_drag_start = point
+            self._bbox_origin = None
+            self._bbox_preview = None
+            self.canvas.configure(cursor="crosshair")
+            return
+        if not self._ensure_mutable():
+            return
+        if self._begin_existing_bbox_interaction(point):
+            cursor = "fleur" if self._bbox_interaction == "move" else "crosshair"
+            self.canvas.configure(cursor=cursor)
+            return
+        self._on_canvas_click(event)
+
+    def _on_canvas_drag(self, event: tk.Event[Any]) -> None:
+        if self._bbox_drag_start is None or self._bbox_interaction is None:
+            return
+        point = float(event.x), float(event.y)
+        if self._bbox_interaction == "add":
+            self.canvas.delete("bbox-preview")
+            self.canvas.create_rectangle(
+                self._bbox_drag_start[0],
+                self._bbox_drag_start[1],
+                point[0],
+                point[1],
+                outline="#ff4dff",
+                width=3,
+                dash=(6, 3),
+                tags=("bbox-preview",),
+            )
+            return
+        self._preview_existing_bbox(point)
+
+    def _on_canvas_release(self, event: tk.Event[Any]) -> None:
+        if self._bbox_drag_start is None or self._bbox_interaction is None:
+            return
+        point = float(event.x), float(event.y)
+        movement = max(
+            abs(point[0] - self._bbox_drag_start[0]),
+            abs(point[1] - self._bbox_drag_start[1]),
+        )
+        interaction = self._bbox_interaction
+        if interaction == "add":
+            bbox = canvas_drag_to_source_bbox(
+                self._bbox_drag_start,
+                point,
+                scale=self._display_scale,
+                offset=self._display_offset,
+                source_size=self._source_image_size,
+            )
+            self.canvas.delete("bbox-preview")
+            self._bbox_interaction = None
+            self._bbox_drag_start = None
+            if bbox is None:
+                self.status_var.set(
+                    "BBox quá nhỏ hoặc ngoài ảnh; vẫn ở chế độ thêm để thử lại."
+                )
+                return
+            saved = self._persist_effective_bbox(bbox, added=True)
+            self.cancel_bbox_drawing(silent=True)
+            if saved:
+                self.status_var.set(
+                    "Đã thêm và lưu bbox; giờ có thể kéo hoặc resize trực tiếp."
+                )
+            self.show_current_frame()
             return
 
-        mode = self._bbox_draw_mode
+        if movement < 2.0:
+            self._bbox_interaction = None
+            self._bbox_drag_start = None
+            self._bbox_resize_handle = None
+            self._bbox_origin = None
+            self._bbox_preview = None
+            self.canvas.configure(cursor="")
+            self._draw_bbox_editor_overlay()
+            self._refresh_bbox_detail()
+            return
+        self._preview_existing_bbox(point)
+        bbox = self._bbox_preview
+        saved = bbox is not None and self._persist_effective_bbox(
+            bbox,
+            added=False,
+        )
         self.cancel_bbox_drawing(silent=True)
-        if mode == ADDED_BBOX_MODE:
-            self.status_var.set("Đã lưu bbox A được thêm cho actor bị thiếu.")
-        else:
-            self.status_var.set("Đã lưu bbox E được vẽ lại cho actor đã chọn.")
+        if saved:
+            action = "di chuyển" if interaction == "move" else "resize"
+            self.status_var.set(f"Đã {action} và autosave bbox.")
         self.show_current_frame()
 
     def _on_canvas_click(self, event: tk.Event[Any]) -> None:
