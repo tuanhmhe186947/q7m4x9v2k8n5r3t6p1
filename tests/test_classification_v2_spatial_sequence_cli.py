@@ -400,6 +400,14 @@ def test_cli_social_13_bounded_model_forward(tmp_path: Path) -> None:
         },
         length_mask=torch.from_numpy(arrays["length_mask"]),
         observed_mask=torch.from_numpy(arrays["observed_mask"]),
+        feature_validity_masks={
+            "motion_delta": torch.from_numpy(
+                arrays["motion_feature_validity_mask"]
+            ),
+            "social_relation": torch.from_numpy(
+                arrays["social_feature_validity_mask"]
+            ),
+        },
     )
     assert logits.shape == (1, 10)
 

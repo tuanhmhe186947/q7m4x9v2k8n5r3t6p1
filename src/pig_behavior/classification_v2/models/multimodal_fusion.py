@@ -5,6 +5,7 @@ No identifier, path, review, source, or label value enters these modules.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 import torch
@@ -20,7 +21,10 @@ from pig_behavior.classification_v2.models.visual_backbones import (
     build_visual_frame_encoder,
 )
 
-MODEL_ARCHITECTURE_VERSION = "multimodal_sequence_factory_v4"
+MODEL_ARCHITECTURE_VERSION = "multimodal_sequence_factory_v5_spatial_masks"
+_FEATURE_MASK_REQUIRED_GROUPS = frozenset(
+    {"motion_delta", "social_relation"}
+)
 
 
 @dataclass(slots=True)
@@ -145,6 +149,13 @@ class SpatialSequenceEncoder(nn.Module):
                 for name, dim in config.input_dims.items()
             }
         )
+        self.mask_branches = nn.ModuleDict(
+            {
+                name: nn.Linear(dim, branch_dim, bias=False)
+                for name, dim in config.input_dims.items()
+                if name in _FEATURE_MASK_REQUIRED_GROUPS
+            }
+        )
         fused_dim = branch_dim * len(self.branch_order)
         self.projection = nn.Sequential(
             nn.Linear(fused_dim, config.embedding_dim),
@@ -169,11 +180,26 @@ class SpatialSequenceEncoder(nn.Module):
         available_mask: torch.Tensor | None = None,
         quality_mask: torch.Tensor | None = None,
         time_delta: torch.Tensor | None = None,
+        feature_validity_masks: Mapping[str, torch.Tensor] | None = None,
     ) -> torch.Tensor:
         """Return sequence embedding shaped ``[B, embedding_dim]``."""
         missing = [name for name in self.branch_order if name not in features]
         if missing:
             raise ValueError(f"Missing spatial feature groups: {missing}")
+        required_masks = _FEATURE_MASK_REQUIRED_GROUPS.intersection(
+            self.branch_order
+        )
+        provided_masks = (
+            set()
+            if feature_validity_masks is None
+            else set(feature_validity_masks)
+        )
+        missing_masks = sorted(required_masks.difference(provided_masks))
+        if missing_masks:
+            raise ValueError(
+                "Missing spatial feature validity masks: "
+                f"{missing_masks}"
+            )
         first = features[self.branch_order[0]]
         if first.ndim != 3:
             raise ValueError(f"{self.branch_order[0]} must have shape [B, T, D]")
@@ -197,8 +223,41 @@ class SpatialSequenceEncoder(nn.Module):
                 raise ValueError(
                     f"{name} feature dim {value.shape[-1]} does not match {expected_dim}"
                 )
-            clean = _masked_values(value, mask, branch_name=f"spatial:{name}")
-            projected.append(self.branches[name](clean))
+            explicit = (
+                None
+                if feature_validity_masks is None
+                else feature_validity_masks.get(name)
+            )
+            base_feature_mask = mask.unsqueeze(-1).to(value.dtype)
+            if explicit is None:
+                feature_mask = base_feature_mask.expand_as(value)
+                mask_delta = None
+            else:
+                if name not in self.mask_branches:
+                    raise ValueError(
+                        f"Unexpected feature validity mask for {name}"
+                    )
+                if explicit.shape != value.shape:
+                    raise ValueError(
+                        f"{name} feature validity shape does not match values: "
+                        f"{tuple(explicit.shape)}:{tuple(value.shape)}"
+                    )
+                feature_mask = base_feature_mask * explicit.to(value.dtype)
+                mask_delta = feature_mask - base_feature_mask
+            clean = torch.where(
+                feature_mask.bool(),
+                value,
+                torch.zeros_like(value),
+            )
+            branch = self.branches[name](clean)
+            branch = branch * feature_mask.any(dim=-1, keepdim=True).to(
+                branch.dtype
+            )
+            projected.append(
+                branch
+                if mask_delta is None
+                else branch + self.mask_branches[name](mask_delta)
+            )
         fused = self.projection(torch.cat(projected, dim=-1))
         return self.temporal_encoder(fused, mask, time_delta=time_delta)
 
@@ -458,6 +517,7 @@ class MultimodalFusionClassifier(nn.Module):
         spatial_available_mask: torch.Tensor | None = None,
         spatial_quality_mask: torch.Tensor | None = None,
         spatial_time_delta: torch.Tensor | None = None,
+        spatial_feature_validity_masks: Mapping[str, torch.Tensor] | None = None,
         interaction_context_features: torch.Tensor | None = None,
         interaction_context_available_mask: torch.Tensor | None = None,
         interaction_context_quality_mask: torch.Tensor | None = None,
@@ -490,6 +550,7 @@ class MultimodalFusionClassifier(nn.Module):
             spatial_available_mask=spatial_available_mask,
             spatial_quality_mask=spatial_quality_mask,
             spatial_time_delta=spatial_time_delta,
+            spatial_feature_validity_masks=spatial_feature_validity_masks,
             interaction_context_features=interaction_context_features,
             interaction_context_available_mask=interaction_context_available_mask,
             interaction_context_quality_mask=interaction_context_quality_mask,
@@ -519,6 +580,7 @@ class MultimodalFusionClassifier(nn.Module):
         spatial_available_mask: torch.Tensor | None = None,
         spatial_quality_mask: torch.Tensor | None = None,
         spatial_time_delta: torch.Tensor | None = None,
+        spatial_feature_validity_masks: Mapping[str, torch.Tensor] | None = None,
         interaction_context_features: torch.Tensor | None = None,
         interaction_context_available_mask: torch.Tensor | None = None,
         interaction_context_quality_mask: torch.Tensor | None = None,
@@ -568,6 +630,7 @@ class MultimodalFusionClassifier(nn.Module):
                 available_mask=spatial_available_mask,
                 quality_mask=spatial_quality_mask,
                 time_delta=spatial_time_delta,
+                feature_validity_masks=spatial_feature_validity_masks,
             )
             embeddings.append(spatial_embedding)
             batch_size = int(spatial_embedding.shape[0])

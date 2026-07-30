@@ -19,6 +19,7 @@ SPATIAL_SCHEMA_VERSION = "classification_v2.spatial_predictive_tensor.v1"
 SPATIAL_SCHEMA_DTYPE = "float32"
 SPATIAL_SCHEMA_POLICY = "POLICY_CURRENT_ONLY_FAIL_CLOSED"
 EXPECTED_CURRENT_SPATIAL_DIMENSION = 46
+SPATIAL_MASK_CONTRACT_VERSION = "classification_v2.spatial_masks.v2"
 
 SPATIAL_PREDICTIVE_GROUP_NAMES: tuple[str, ...] = (
     "bbox_xywh_n",
@@ -64,6 +65,11 @@ SPATIAL_PREDICTIVE_FEATURES: dict[str, tuple[str, ...]] = {
         "pair_contact_with_nearest",
         "aggression_score_proxy_per_second",
     ),
+}
+
+SPATIAL_FEATURE_VALIDITY_MASKS: dict[str, str] = {
+    "motion_delta": "motion_feature_validity_mask",
+    "social_relation": "social_feature_validity_mask",
 }
 
 SPATIAL_GROUP_CONTRACTS: dict[str, dict[str, Any]] = {
@@ -469,6 +475,7 @@ def require_spatial_tensor_bundle(
     tensor_shapes: dict[str, list[int]] = {}
     tensor_dtypes: dict[str, str] = {}
     mask_shapes: dict[str, list[int]] = {}
+    feature_mask_shapes: dict[str, list[int]] = {}
     first_two_dimensions: tuple[int, int] | None = None
     for group in SPATIAL_PREDICTIVE_GROUP_NAMES:
         if group not in arrays:
@@ -551,6 +558,40 @@ def require_spatial_tensor_bundle(
                 errors.append(
                     f"placeholder_nonzero_when_unavailable={group}"
                 )
+        feature_mask_name = SPATIAL_FEATURE_VALIDITY_MASKS.get(group)
+        if feature_mask_name is None:
+            continue
+        if feature_mask_name not in arrays:
+            errors.append(
+                "missing_spatial_feature_validity_mask="
+                f"{group}:{feature_mask_name}"
+            )
+            continue
+        feature_mask = np.asarray(arrays[feature_mask_name])
+        feature_mask_shape = [int(value) for value in feature_mask.shape]
+        feature_mask_shapes[feature_mask_name] = feature_mask_shape
+        if feature_mask.shape != values.shape:
+            errors.append(
+                "spatial_feature_validity_mask_shape_mismatch="
+                f"{group}:{feature_mask_shape}:{list(values.shape)}"
+            )
+        if str(feature_mask.dtype) != SPATIAL_SCHEMA_DTYPE:
+            errors.append(
+                "spatial_feature_validity_mask_dtype_mismatch="
+                f"{group}:{feature_mask.dtype}:{SPATIAL_SCHEMA_DTYPE}"
+            )
+        if feature_mask.size and not np.isin(feature_mask, (0.0, 1.0)).all():
+            errors.append(
+                "spatial_feature_validity_mask_not_binary="
+                f"{group}:{feature_mask_name}"
+            )
+        if feature_mask.shape == values.shape:
+            feature_unavailable = feature_mask == 0.0
+            if np.any(values[feature_unavailable] != 0.0):
+                errors.append(
+                    "feature_placeholder_nonzero_when_unavailable="
+                    f"{group}"
+                )
     if errors:
         raise SpatialSchemaError(
             "Spatial tensor bundle preflight failed: " + "; ".join(errors)
@@ -560,6 +601,8 @@ def require_spatial_tensor_bundle(
         "tensor_shapes": tensor_shapes,
         "tensor_dtypes": tensor_dtypes,
         "availability_mask_shapes": mask_shapes,
+        "feature_validity_mask_shapes": feature_mask_shapes,
+        "mask_contract_version": SPATIAL_MASK_CONTRACT_VERSION,
     }
 
 
@@ -568,6 +611,8 @@ __all__ = [
     "SPATIAL_GROUP_CONTRACTS",
     "SPATIAL_GROUP_SCHEMA_HASHES",
     "SPATIAL_GROUP_SCHEMA_VERSIONS",
+    "SPATIAL_FEATURE_VALIDITY_MASKS",
+    "SPATIAL_MASK_CONTRACT_VERSION",
     "SPATIAL_PREDICTIVE_FEATURES",
     "SPATIAL_PREDICTIVE_GROUP_NAMES",
     "SPATIAL_SCHEMA_DTYPE",

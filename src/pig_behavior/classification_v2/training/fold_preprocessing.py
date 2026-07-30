@@ -86,6 +86,7 @@ class FoldPreprocessingState:
         length_mask: torch.Tensor,
         observed_mask: torch.Tensor,
         quality_mask: torch.Tensor,
+        feature_validity_masks: Mapping[str, torch.Tensor] | None = None,
     ) -> dict[str, torch.Tensor]:
         """Transform one batch while keeping padding and missing slots at zero."""
 
@@ -123,6 +124,15 @@ class FoldPreprocessingState:
                     f"mask={tuple(valid_slots.shape)}"
                 )
             clean = values
+            feature_valid = valid_slots.unsqueeze(-1).expand_as(values)
+            if feature_validity_masks is not None and group in feature_validity_masks:
+                explicit = feature_validity_masks[group].bool()
+                if explicit.shape != values.shape:
+                    raise ValueError(
+                        f"feature validity shape mismatch for {group}: "
+                        f"{tuple(explicit.shape)}:{tuple(values.shape)}"
+                    )
+                feature_valid &= explicit
             if group in self.statistics:
                 statistics = self.statistics[group]
                 mean = torch.as_tensor(
@@ -144,7 +154,7 @@ class FoldPreprocessingState:
                     torch.zeros((), dtype=values.dtype, device=values.device),
                 )
             transformed[group] = torch.where(
-                valid_slots.unsqueeze(-1),
+                feature_valid,
                 clean,
                 torch.zeros((), dtype=values.dtype, device=values.device),
             )
@@ -230,9 +240,25 @@ def fit_fold_preprocessing(
             "dtype": str(values.dtype),
         }
         if group in standardized:
+            selected = values[train_indices][valid_train_slots].copy()
+            feature_mask_name = f"{group.replace('_relation', '')}_feature_validity_mask"
+            if group == "motion_delta":
+                feature_mask_name = "motion_feature_validity_mask"
+            elif group == "social_relation":
+                feature_mask_name = "social_feature_validity_mask"
+            feature_mask = arrays.get(feature_mask_name)
+            if feature_mask is not None:
+                feature_mask = np.asarray(feature_mask)
+                if feature_mask.shape != values.shape:
+                    raise ValueError(
+                        f"feature validity shape mismatch for {group}: "
+                        f"{feature_mask.shape}:{values.shape}"
+                    )
+                selected_mask = feature_mask[train_indices][valid_train_slots]
+                selected[~selected_mask.astype(bool)] = np.nan
             statistics[group] = _fit_group_statistics(
                 group,
-                values[train_indices][valid_train_slots],
+                selected,
                 names,
             )
 

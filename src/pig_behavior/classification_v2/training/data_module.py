@@ -64,6 +64,7 @@ MODEL_INPUT_KEYS = frozenset(
         "spatial_observed_mask",
         "spatial_available_mask",
         "spatial_quality_mask",
+        "spatial_feature_validity_masks",
         "spatial_time_delta",
         "interaction_context_features",
         "interaction_context_available_mask",
@@ -320,6 +321,7 @@ class StrictTrainingDataModule:
             length_mask=raw["spatial_length_mask"],
             observed_mask=raw["spatial_observed_mask"],
             quality_mask=raw["spatial_quality_mask"],
+            feature_validity_masks=raw["spatial_feature_validity_masks"],
         )
 
     def _validate_behavior_target_alignment(self) -> None:
@@ -834,6 +836,9 @@ def _strict_model_inputs(raw: dict[str, Any]) -> dict[str, Any]:
         "image_quality_mask": raw["image_observed_mask"],
         "spatial_available_mask": raw["spatial_observed_mask"],
         "spatial_quality_mask": raw["spatial_quality_mask"],
+        "spatial_feature_validity_masks": raw[
+            "spatial_feature_validity_masks"
+        ],
         "interaction_context_quality_mask": raw[
             "interaction_context_available_mask"
         ],

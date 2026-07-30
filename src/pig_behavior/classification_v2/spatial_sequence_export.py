@@ -30,6 +30,7 @@ from pig_behavior.classification_v2.features.pen_context import (
     PEN_CONTEXT_MODEL_FEATURE_COLUMNS,
 )
 from pig_behavior.classification_v2.features.spatial_schema import (
+    SPATIAL_MASK_CONTRACT_VERSION,
     SpatialSchemaError,
     canonical_spatial_feature_groups,
     require_spatial_schema,
@@ -349,6 +350,8 @@ def _export_spatial_sequences_impl(
         )
     feature_frames["_social_partner_key"] = nearest_partner_key
     feature_frames["social_neighbor_available"] = declared_social_available
+    if "social_context_valid" not in feature_frames.columns:
+        feature_frames["social_context_valid"] = declared_social_available
     _require_predictive_source_dtypes(feature_frames, selected_schema)
 
     alignment_windows = windows.reset_index(drop=True).copy()
@@ -383,6 +386,7 @@ def _export_spatial_sequences_impl(
         column
         for column in (
             *DERIVATION_COLUMNS,
+            "social_context_valid",
             *(
                 LEGACY_WINDOW_DERIVATION_COLUMNS
                 if legacy_development
@@ -427,6 +431,11 @@ def _export_spatial_sequences_impl(
         [
             "object_track_key",
             "frame_index",
+            * (
+                ("temporal_unit_key",)
+                if "temporal_unit_key" in feature_frames.columns
+                else ()
+            ),
             *selected_cols,
             *derivation_cols,
             "_social_partner_key",
@@ -446,13 +455,26 @@ def _export_spatial_sequences_impl(
         start_col += len(cols)
 
     computational_names = [*flat_feature_names, *derivation_cols]
-    grouped: dict[str, tuple[np.ndarray, np.ndarray, np.ndarray]] = {}
+    grouped: dict[
+        str,
+        tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+    ] = {}
     for key, group in work_frames.groupby("object_track_key", sort=False):
         group = group.sort_values("frame_index")
+        temporal_unit_values = (
+            group["temporal_unit_key"].astype(str).to_numpy(copy=True)
+            if "temporal_unit_key" in group
+            else np.full(
+                len(group),
+                "__unknown_temporal_unit__",
+                dtype=object,
+            )
+        )
         grouped[str(key)] = (
             group["frame_index"].to_numpy(dtype=np.int32, copy=True),
-                group[computational_names].to_numpy(dtype=np.float64, copy=True),
+            group[computational_names].to_numpy(dtype=np.float64, copy=True),
             group["_social_partner_key"].to_numpy(dtype=str, copy=True),
+            temporal_unit_values,
         )
 
     arrays = {
@@ -471,6 +493,14 @@ def _export_spatial_sequences_impl(
     )
     social_validity_mask = np.zeros(
         (len(work_windows), max_window_length),
+        dtype=np.float32,
+    )
+    social_feature_validity_mask = np.zeros(
+        (len(work_windows), max_window_length, 10),
+        dtype=np.float32,
+    )
+    motion_feature_validity_mask = np.zeros(
+        (len(work_windows), max_window_length, len(MOTION_FEATURE_NAMES)),
         dtype=np.float32,
     )
     pen_validity_mask = np.zeros(
@@ -528,7 +558,7 @@ def _export_spatial_sequences_impl(
             if frame_data is None:
                 missing_frame_slots += len(wanted_frames)
                 continue
-            frame_indices, feature_matrix, partner_keys = frame_data
+            frame_indices, feature_matrix, partner_keys, temporal_units = frame_data
             positions = np.searchsorted(frame_indices, wanted_frames)
             bounded_positions = np.minimum(positions, len(frame_indices) - 1)
             valid = (positions < len(frame_indices)) & (
@@ -587,6 +617,7 @@ def _export_spatial_sequences_impl(
                 computational_names,
                 wanted_frames[valid],
                 timestamps=selected_timestamps,
+                temporal_unit_keys=temporal_units[valid_positions],
             )
             values, social_audit = _rebase_window_social_motion(
                 values,
@@ -598,6 +629,7 @@ def _export_spatial_sequences_impl(
                     computational_names,
                     "timestamp_sec",
                 ),
+                temporal_unit_keys=temporal_units[valid_positions],
             )
             values, pen_audit = _rebase_window_pen_motion(
                 values,
@@ -632,6 +664,18 @@ def _export_spatial_sequences_impl(
             spatial_quality_mask[i, slot_positions] = masks["spatial"]
             roi_validity_mask[i, slot_positions, :] = masks["roi"]
             social_validity_mask[i, slot_positions] = masks["social"]
+            social_feature_validity = _social_feature_validity(
+                values,
+                computational_names,
+                partner_keys[valid_positions],
+                wanted_frames[valid],
+                _column_or_nan(values, computational_names, "timestamp_sec"),
+                masks["spatial"] > 0.5,
+                temporal_units[valid_positions],
+            )
+            social_feature_validity_mask[i, slot_positions, :] = (
+                social_feature_validity
+            )
             pen_validity_mask[i, slot_positions] = masks["pen"]
             adjacent_pairs, sparse_pairs = _view_motion_pair_masks(
                 wanted_frames[valid],
@@ -641,6 +685,7 @@ def _export_spatial_sequences_impl(
                     "timestamp_sec",
                 ),
                 masks["spatial"] > 0.5,
+                temporal_units[valid_positions],
             )
             adjacent_motion_pair_mask[i, slot_positions] = adjacent_pairs
             sparse_velocity_pair_mask[i, slot_positions] = sparse_pairs
@@ -658,12 +703,25 @@ def _export_spatial_sequences_impl(
                         },
                         mask_name,
                     )
+            motion_feature_validity = _motion_feature_validity_from_values(
+                values,
+                computational_names,
+            )
+            motion_feature_validity_mask[i, slot_positions, :] = (
+                motion_feature_validity
+            )
             masked_values = _zero_invalid_feature_groups(
                 values,
                 group_slices,
                 feature_names,
                 masks,
             )
+            for group, feature_validity in (
+                ("motion_delta", motion_feature_validity),
+                ("social_relation", social_feature_validity),
+            ):
+                if group in group_slices:
+                    masked_values[:, group_slices[group]] *= feature_validity
             for name, col_slice in group_slices.items():
                 arrays[name][i, slot_positions, :] = masked_values[:, col_slice]
             missing_frame_slots += int((~valid).sum())
@@ -673,6 +731,8 @@ def _export_spatial_sequences_impl(
     arrays["spatial_quality_mask"] = spatial_quality_mask
     arrays["roi_validity_mask"] = roi_validity_mask
     arrays["social_validity_mask"] = social_validity_mask
+    arrays["social_feature_validity_mask"] = social_feature_validity_mask
+    arrays["motion_feature_validity_mask"] = motion_feature_validity_mask
     arrays["pen_validity_mask"] = pen_validity_mask
     arrays["adjacent_motion_pair_mask"] = adjacent_motion_pair_mask
     arrays["sparse_velocity_pair_mask"] = sparse_velocity_pair_mask
@@ -728,6 +788,7 @@ def _export_spatial_sequences_impl(
         "spatial_schema_total_dimension": spatial_metadata[
             "total_dimension"
         ],
+        "spatial_mask_contract_version": SPATIAL_MASK_CONTRACT_VERSION,
         "spatial_tensor_content_hash": spatial_tensor_content_hash(arrays),
         "spatial_schema_ordered_groups": list(
             spatial_metadata["ordered_group_names"]
@@ -802,6 +863,7 @@ def _rebase_window_motion(
     frame_indices: np.ndarray,
     *,
     timestamps: np.ndarray,
+    temporal_unit_keys: np.ndarray | None = None,
 ) -> tuple[np.ndarray, dict[str, int | bool]]:
     """Recompute pair-derived motion without reading frames outside a window."""
     motion_columns = list(
@@ -862,11 +924,16 @@ def _rebase_window_motion(
 
     frame_delta = np.diff(frame_indices.astype("float64"))
     time_delta = np.diff(timestamps.astype("float64"))
+    same_temporal_unit = np.ones(len(frame_delta), dtype=bool)
+    if temporal_unit_keys is not None:
+        unit_values = np.asarray(temporal_unit_keys, dtype=str)
+        same_temporal_unit = unit_values[:-1] == unit_values[1:]
     velocity_pair_valid = (
         np.isfinite(frame_delta)
         & (frame_delta > 0)
         & np.isfinite(time_delta)
         & (time_delta > 0)
+        & same_temporal_unit
         & row_valid[:-1]
         & row_valid[1:]
     )
@@ -909,8 +976,15 @@ def _rebase_window_motion(
     for mask_name in ("valid_motion_pair", "velocity_valid"):
         if mask_name in indices:
             out[pair_rows, indices[mask_name]] = 1.0
-    if "motion_feature_available" in indices and pair_rows.size:
-        out[:, indices["motion_feature_available"]] = 1.0
+    if "motion_feature_available" in indices:
+        available = np.zeros(len(out), dtype=np.float64)
+        for mask_name in MOTION_REQUIRED_MASKS:
+            if mask_name != "motion_feature_available" and mask_name in indices:
+                available = np.maximum(
+                    available,
+                    out[:, indices[mask_name]] > 0.5,
+                )
+        out[:, indices["motion_feature_available"]] = available
     if "velocity_sample_time_sec" in indices:
         midpoint = (
             timestamps[pair_rows].astype("float64")
@@ -1149,6 +1223,7 @@ def _rebase_window_social_motion(
     partner_keys: np.ndarray,
     *,
     timestamps: np.ndarray,
+    temporal_unit_keys: np.ndarray | None = None,
 ) -> tuple[np.ndarray, dict[str, int | bool]]:
     """Recompute pair-derived social signals within one requested window."""
 
@@ -1197,6 +1272,10 @@ def _rebase_window_social_motion(
         & (partner_text[1:] != "")
         & (partner_text[:-1] == partner_text[1:])
     )
+    same_temporal_unit = np.ones(len(frame_delta), dtype=bool)
+    if temporal_unit_keys is not None:
+        unit_values = np.asarray(temporal_unit_keys, dtype=str)
+        same_temporal_unit = unit_values[:-1] == unit_values[1:]
     distance = out[:, indices["nearest_dist_n"]]
     distance_delta = np.diff(distance)
     valid_pair = (
@@ -1205,6 +1284,7 @@ def _rebase_window_social_motion(
         & np.isfinite(time_delta)
         & (time_delta > 0)
         & same_partner
+        & same_temporal_unit
         & np.isfinite(distance_delta)
         & row_valid[:-1]
         & row_valid[1:]
@@ -1327,10 +1407,8 @@ def _view_quality_masks(
                 spatial & (values[:, indices[column]] > 0.5)
             ).astype("float32")
     social = spatial.copy()
-    if "social_neighbor_available" in indices:
-        social &= values[:, indices["social_neighbor_available"]] > 0.5
-    else:
-        social[:] = False
+    if "social_context_valid" in indices:
+        social &= values[:, indices["social_context_valid"]] > 0.5
     motion = spatial.copy()
     if "motion_feature_available" in indices:
         motion &= values[:, indices["motion_feature_available"]] > 0.5
@@ -1350,6 +1428,75 @@ def _view_quality_masks(
         "motion": motion.astype("float32"),
         "pen": pen.astype("float32"),
     }
+
+
+def _motion_feature_validity_from_values(
+    values: np.ndarray,
+    feature_names: list[str],
+) -> np.ndarray:
+    """Return explicit per-feature motion support without changing 12D values."""
+
+    indices = {name: index for index, name in enumerate(feature_names)}
+    result = np.zeros((len(values), len(MOTION_FEATURE_NAMES)), dtype=np.float32)
+
+    def mask(name: str) -> np.ndarray:
+        if name not in indices:
+            return np.zeros(len(values), dtype=np.float32)
+        return (values[:, indices[name]] > 0.5).astype(np.float32)
+
+    result[:, [0, 1, 6]] = mask("velocity_valid")[:, None]
+    result[:, [2, 3, 4, 5]] = mask("bbox_rate_valid")[:, None]
+    result[:, 7] = mask("direction_change_valid")
+    result[:, 8] = mask("tangential_acceleration_valid")
+    result[:, [9, 10, 11]] = mask("vector_acceleration_valid")[:, None]
+    return result
+
+
+def _social_feature_validity(
+    values: np.ndarray,
+    feature_names: list[str],
+    partner_keys: np.ndarray,
+    frame_indices: np.ndarray,
+    timestamps: np.ndarray,
+    spatial_valid: np.ndarray,
+    temporal_unit_keys: np.ndarray | None = None,
+) -> np.ndarray:
+    """Return social support per field; zero neighbor counts remain valid."""
+
+    indices = {name: index for index, name in enumerate(feature_names)}
+    result = np.zeros((len(values), 10), dtype=np.float32)
+    context = spatial_valid.astype(bool)
+    if "social_context_valid" in indices:
+        context &= values[:, indices["social_context_valid"]] > 0.5
+    neighbor = context.copy()
+    if "social_neighbor_available" in indices:
+        neighbor &= values[:, indices["social_neighbor_available"]] > 0.5
+    partner = np.asarray(partner_keys, dtype=str)
+    frame_delta = np.diff(frame_indices.astype("float64"))
+    time_delta = np.diff(timestamps.astype("float64"))
+    same_temporal_unit = np.ones(len(frame_delta), dtype=bool)
+    if temporal_unit_keys is not None:
+        unit_values = np.asarray(temporal_unit_keys, dtype=str)
+        same_temporal_unit = unit_values[:-1] == unit_values[1:]
+    pair = np.zeros(len(values), dtype=bool)
+    if len(values) > 1:
+        pair[1:] = (
+            neighbor[:-1]
+            & neighbor[1:]
+            & (partner[:-1] != "")
+            & (partner[:-1] == partner[1:])
+            & np.isfinite(frame_delta)
+            & (frame_delta > 0)
+            & np.isfinite(time_delta)
+            & (time_delta > 0)
+            & same_temporal_unit
+        )
+    result[:, 0:3] = neighbor[:, None]
+    result[:, 3:5] = context[:, None]
+    result[:, 5:8] = pair[:, None]
+    result[:, 8] = neighbor
+    result[:, 9] = pair
+    return result
 
 
 def _zero_invalid_feature_groups(
@@ -1387,6 +1534,7 @@ def _view_motion_pair_masks(
     frame_indices: np.ndarray,
     timestamps: np.ndarray,
     spatial_valid: np.ndarray,
+    temporal_unit_keys: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     adjacent = np.zeros(len(frame_indices), dtype="float32")
     sparse = np.zeros(len(frame_indices), dtype="float32")
@@ -1394,11 +1542,16 @@ def _view_motion_pair_masks(
         return adjacent, sparse
     frame_delta = np.diff(frame_indices.astype("float64"))
     time_delta = np.diff(timestamps.astype("float64"))
+    same_temporal_unit = np.ones(len(frame_delta), dtype=bool)
+    if temporal_unit_keys is not None:
+        unit_values = np.asarray(temporal_unit_keys, dtype=str)
+        same_temporal_unit = unit_values[:-1] == unit_values[1:]
     valid = (
         (frame_delta > 0)
         & np.isfinite(frame_delta)
         & (time_delta > 0)
         & np.isfinite(time_delta)
+        & same_temporal_unit
         & spatial_valid[:-1]
         & spatial_valid[1:]
     )

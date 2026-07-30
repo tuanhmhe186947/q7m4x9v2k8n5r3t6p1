@@ -25,6 +25,7 @@ from pig_behavior.classification_v2.features.spatial_schema import (
     SpatialSchemaError,
     canonical_spatial_feature_groups,
     load_current_spatial_tensor_bundle,
+    require_spatial_tensor_bundle,
     spatial_schema_metadata,
 )
 from pig_behavior.classification_v2.features.spatiotemporal import (
@@ -567,6 +568,22 @@ def test_current_export_is_exact_fixed_width_and_masked() -> None:
     assert not result.arrays["social_relation"].any()
 
 
+def test_spatial_export_rejects_cross_temporal_unit_pairs() -> None:
+    frames = _frames()
+    frames["temporal_unit_key"] = ["unit-a", "unit-b"]
+    frames["nearest_partner_key"] = ["track-b", "track-b"]
+    frames["nearest_dist_n"] = [0.4, 0.2]
+    frames["social_context_valid"] = True
+    frames["social_neighbor_available"] = True
+
+    result = export_spatial_sequences(_windows(), frames)
+
+    assert result.audit["motion_valid_pair_count"] == 0
+    assert result.audit["social_valid_pair_count"] == 0
+    assert not result.arrays["motion_feature_validity_mask"][0, 1].any()
+    assert not result.arrays["social_feature_validity_mask"][0, 1, [5, 6, 7, 9]].any()
+
+
 def test_loader_rejects_sidecar_order_and_hash_disagreement(
     tmp_path: Path,
 ) -> None:
@@ -634,6 +651,14 @@ def test_bounded_spatial_model_forward_uses_canonical_dimensions() -> None:
         features,
         length_mask=torch.from_numpy(result.arrays["length_mask"]),
         observed_mask=torch.from_numpy(result.arrays["observed_mask"]),
+        feature_validity_masks={
+            "motion_delta": torch.from_numpy(
+                result.arrays["motion_feature_validity_mask"]
+            ),
+            "social_relation": torch.from_numpy(
+                result.arrays["social_feature_validity_mask"]
+            ),
+        },
     )
     assert logits.shape == (1, 10)
 
@@ -648,3 +673,19 @@ def test_repeated_current_export_has_identical_declared_content_hash() -> None:
     )
     for name in first.arrays:
         np.testing.assert_array_equal(first.arrays[name], second.arrays[name])
+
+
+def test_current_loader_contract_requires_feature_validity_masks() -> None:
+    result = export_spatial_sequences(_windows(), _frames())
+    arrays = dict(result.arrays)
+    arrays.pop("motion_feature_validity_mask")
+
+    with pytest.raises(
+        SpatialSchemaError,
+        match="missing_spatial_feature_validity_mask",
+    ):
+        require_spatial_tensor_bundle(
+            arrays=arrays,
+            feature_names=result.feature_names,
+            metadata=result.audit["spatial_schema"],
+        )

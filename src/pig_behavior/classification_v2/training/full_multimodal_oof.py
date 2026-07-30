@@ -822,6 +822,8 @@ def _load_bundle(config: FullMultimodalOofConfig) -> _OofBundle:
             "length_mask",
             "observed_mask",
             "spatial_quality_mask",
+            "social_feature_validity_mask",
+            "motion_feature_validity_mask",
         ]
         if name not in arrays
     ]
@@ -1114,6 +1116,18 @@ def _batch_from_indices(
         )
         .float()
         .to(device),
+        "spatial_feature_validity_masks": {
+            "motion_delta": torch.from_numpy(
+                bundle.arrays["motion_feature_validity_mask"][indices]
+            )
+            .float()
+            .to(device),
+            "social_relation": torch.from_numpy(
+                bundle.arrays["social_feature_validity_mask"][indices]
+            )
+            .float()
+            .to(device),
+        },
         "interaction_context_features": torch.from_numpy(
             bundle.interaction_context_features[indices]
         )
@@ -1146,6 +1160,7 @@ def _forward_model(model: MultimodalFusionClassifier, batch: dict[str, Any]) -> 
         spatial_length_mask=batch["spatial_length_mask"],
         spatial_observed_mask=batch["spatial_observed_mask"],
         spatial_quality_mask=batch["spatial_quality_mask"],
+        spatial_feature_validity_masks=batch["spatial_feature_validity_masks"],
         interaction_context_features=batch["interaction_context_features"],
         interaction_context_available_mask=batch["interaction_context_available_mask"],
         visual_context_image=batch["visual_context_image"],

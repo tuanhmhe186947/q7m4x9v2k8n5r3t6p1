@@ -419,6 +419,12 @@ def _inputs(
             name: torch.rand(batch_size, sequence_length, GROUP_DIMS[name])
             for name in config.spatial_feature_groups
         },
+        "spatial_feature_validity_masks": {
+            name: torch.ones(batch_size, sequence_length, GROUP_DIMS[name])
+            for name in config.spatial_feature_groups
+            if name
+            in {"motion_delta", "social_relation"}
+        },
         "length_mask": length,
         "observed_mask": observed,
         "image_length_mask": length.clone(),
