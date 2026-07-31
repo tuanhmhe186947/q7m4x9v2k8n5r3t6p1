@@ -1382,7 +1382,7 @@ class IdentityContinuityGui:
             reviewed_behavior=reviewed_behavior,
         )
 
-    def apply_mini_actor_attributes(self) -> None:
+    def apply_mini_actor_attributes(self, *, refresh: bool = True) -> bool:
         if not self._ensure_mutable():
             return
         reviewed_pig_id = self._normalize_mini_pig_id(
@@ -1463,10 +1463,14 @@ class IdentityContinuityGui:
                 f"Đã lưu reviewed ID {reviewed_pig_id} cho source scope "
                 f"{self.active_pig_id}; behavior áp dụng cho toàn burst."
             )
-        self.show_current_frame()
+        if refresh:
+            self.show_current_frame()
+        return True
 
     def save_mini_current_frame(self) -> None:
         if not self._ensure_mutable():
+            return
+        if not self.apply_mini_actor_attributes(refresh=False):
             return
         existing = self._mini_current_annotation()
         if existing is None:
@@ -1499,7 +1503,11 @@ class IdentityContinuityGui:
             else:
                 self.mini_frame_annotations[key] = prior
             return
-        self.status_var.set("Đã lưu bbox và Hidden của object/frame hiện tại.")
+        self.status_var.set(
+            f"Đã lưu reviewed ID {self._mini_display_id(self.active_pig_id)} "
+            f"← source scope {self.active_pig_id}; bbox và Hidden của "
+            "object/frame hiện tại."
+        )
         self.show_current_frame()
 
     def _active_selected_candidate(self) -> FrameCandidate | None:
