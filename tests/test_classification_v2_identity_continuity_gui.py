@@ -541,6 +541,120 @@ def test_autosave_failure_restores_exclusion_state(monkeypatch: pytest.MonkeyPat
     assert gui.exclusions == {}
 
 
+def test_reset_all_session_changes_clears_mini_cvat_trial_state(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _load("identity_continuity_gui_reset_all")
+    gui = module.IdentityContinuityGui.__new__(module.IdentityContinuityGui)
+    gui.finalized = False
+    gui.cases = (_case(),)
+    gui.active_case_position = 0
+    gui.all_frames = (3, 4)
+    gui.current_frame_position = 1
+    gui.selections = {("unit-a", 3): "actor-a"}
+    gui.exclusions = {"unit-a": "trial exclusion"}
+    gui.bbox_edits = {
+        ("unit-a", 3): module.BoundingBoxEdit(
+            module.CORRECTED_BBOX_MODE,
+            1.0,
+            2.0,
+            11.0,
+            12.0,
+            "actor-a",
+        )
+    }
+    gui.mini_cvat_enabled = True
+    gui.editable_pig_ids = ("ID_4", "ID_5")
+    gui.active_pig_id = "ID_5"
+    mini_attrs = {"ID_5": object()}
+    mini_frames = {("ID_5", 4): object()}
+    mini_selected = {("ID_5", 4): "actor-5"}
+    gui.mini_actor_attributes = mini_attrs
+    gui.mini_frame_annotations = mini_frames
+    gui.mini_selected_keys = mini_selected
+    gui.root = object()
+    statuses: list[str] = []
+    saved_silent: list[bool] = []
+    shown: list[bool] = []
+    cancelled: list[bool] = []
+    gui.status_var = type("Status", (), {"set": lambda _self, value: statuses.append(value)})()
+    gui.save = lambda *, silent=False: saved_silent.append(silent) or True
+    gui.show_current_frame = lambda: shown.append(True)
+    gui.cancel_bbox_drawing = lambda *, silent=False: cancelled.append(silent)
+    monkeypatch.setattr(module.messagebox, "askyesno", lambda *_args, **_kwargs: True)
+
+    gui.reset_all_session_changes()
+
+    assert gui.selections == {}
+    assert gui.exclusions == {}
+    assert gui.bbox_edits == {}
+    assert gui.mini_actor_attributes == {}
+    assert gui.mini_frame_annotations == {}
+    assert gui.mini_selected_keys == {}
+    assert gui.active_pig_id == "ID_4"
+    assert gui.current_frame_position == 0
+    assert gui.active_case_position == 0
+    assert saved_silent == [False]
+    assert cancelled == [True]
+    assert shown == [True]
+    assert statuses[-1].startswith("Đã loại bỏ mọi thay đổi phiên")
+
+
+def test_reset_all_session_changes_rolls_back_when_save_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = _load("identity_continuity_gui_reset_rollback")
+    gui = module.IdentityContinuityGui.__new__(module.IdentityContinuityGui)
+    gui.finalized = False
+    gui.cases = (_case(),)
+    gui.active_case_position = 0
+    gui.all_frames = (3, 4)
+    gui.current_frame_position = 1
+    gui.selections = {("unit-a", 3): "actor-a"}
+    gui.exclusions = {"unit-a": "trial exclusion"}
+    gui.bbox_edits = {
+        ("unit-a", 3): module.BoundingBoxEdit(
+            module.CORRECTED_BBOX_MODE,
+            1.0,
+            2.0,
+            11.0,
+            12.0,
+            "actor-a",
+        )
+    }
+    gui.mini_cvat_enabled = True
+    gui.editable_pig_ids = ("ID_4", "ID_5")
+    gui.active_pig_id = "ID_5"
+    mini_attrs = {"ID_5": object()}
+    mini_frames = {("ID_5", 4): object()}
+    mini_selected = {("ID_5", 4): "actor-5"}
+    gui.mini_actor_attributes = mini_attrs
+    gui.mini_frame_annotations = mini_frames
+    gui.mini_selected_keys = mini_selected
+    gui.root = object()
+    statuses: list[str] = []
+    shown: list[bool] = []
+    gui.status_var = type("Status", (), {"set": lambda _self, value: statuses.append(value)})()
+    gui.save = lambda *, silent=False: False
+    gui.show_current_frame = lambda: shown.append(True)
+    gui.cancel_bbox_drawing = lambda *, silent=False: None
+    monkeypatch.setattr(module.messagebox, "askyesno", lambda *_args, **_kwargs: True)
+
+    gui.reset_all_session_changes()
+
+    assert gui.selections == {("unit-a", 3): "actor-a"}
+    assert gui.exclusions == {"unit-a": "trial exclusion"}
+    assert ("unit-a", 3) in gui.bbox_edits
+    assert gui.mini_actor_attributes == mini_attrs
+    assert gui.mini_frame_annotations == mini_frames
+    assert gui.mini_selected_keys == mini_selected
+    assert gui.active_pig_id == "ID_5"
+    assert gui.current_frame_position == 1
+    assert gui.active_case_position == 0
+    assert shown == [True]
+    assert statuses[-1].startswith("Không thể reset phiên")
+
+
 def test_out_of_scope_selection_is_rejected_before_save(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

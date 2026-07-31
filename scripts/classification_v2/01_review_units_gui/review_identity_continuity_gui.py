@@ -955,6 +955,11 @@ class IdentityContinuityGui:
         ttk.Button(controls, text="Hoàn tất kiểm tra", command=self.finalize).grid(
             row=5, column=1, sticky="ew", padx=2, pady=2
         )
+        ttk.Button(
+            controls,
+            text="Loại bỏ mọi thay đổi phiên",
+            command=self.reset_all_session_changes,
+        ).grid(row=6, column=0, columnspan=2, sticky="ew", padx=2, pady=(8, 2))
         controls.columnconfigure(0, weight=1)
         controls.columnconfigure(1, weight=1)
 
@@ -2276,6 +2281,63 @@ class IdentityContinuityGui:
                 names.append(mini_path.name)
             self.status_var.set("Saved: " + "; ".join(names))
         return True
+
+    def reset_all_session_changes(self) -> None:
+        if not self._ensure_mutable():
+            return
+        confirmed = messagebox.askyesno(
+            "Loại bỏ mọi thay đổi phiên?",
+            (
+                "Xóa toàn bộ lựa chọn, loại unit, bbox sửa và thử nghiệm ID hiện "
+                "tại?\nHành động này chỉ dùng để quay về phiên sạch."
+            ),
+            parent=self.root,
+        )
+        if not confirmed:
+            self.status_var.set("Đã hủy reset; phiên giữ nguyên.")
+            return
+
+        prior_selections = dict(self.selections)
+        prior_exclusions = dict(self.exclusions)
+        prior_bbox_edits = dict(self.bbox_edits)
+        prior_active_pig_id = getattr(self, "active_pig_id", "")
+        prior_current = (self.current_frame_position, self.active_case_position)
+        prior_mini_attrs = dict(getattr(self, "mini_actor_attributes", {}))
+        prior_mini_frames = dict(getattr(self, "mini_frame_annotations", {}))
+        prior_mini_selected = dict(getattr(self, "mini_selected_keys", {}))
+
+        self.cancel_bbox_drawing(silent=True)
+        self.selections = {}
+        self.exclusions = {}
+        self.bbox_edits = {}
+        if getattr(self, "mini_cvat_enabled", False):
+            self.mini_actor_attributes = {}
+            self.mini_frame_annotations = {}
+            self.mini_selected_keys = {}
+
+        self.current_frame_position, self.active_case_position = self._resume_position()
+        if getattr(self, "mini_cvat_enabled", False) and self.editable_pig_ids:
+            self.active_pig_id = self.editable_pig_ids[0]
+
+        if not self.save(silent=False):
+            self.selections = prior_selections
+            self.exclusions = prior_exclusions
+            self.bbox_edits = prior_bbox_edits
+            if getattr(self, "mini_cvat_enabled", False):
+                self.mini_actor_attributes = prior_mini_attrs
+                self.mini_frame_annotations = prior_mini_frames
+                self.mini_selected_keys = prior_mini_selected
+                self.active_pig_id = prior_active_pig_id
+            self.current_frame_position, self.active_case_position = prior_current
+            self.status_var.set(
+                "Không thể reset phiên; đã khôi phục trạng thái trước."
+            )
+            self.show_current_frame()
+            return
+
+        self._ensure_active_case_frame()
+        self.show_current_frame()
+        self.status_var.set("Đã loại bỏ mọi thay đổi phiên; sidecar đã sạch.")
 
     def start_corrected_bbox(self) -> None:
         if not self._ensure_mutable():
