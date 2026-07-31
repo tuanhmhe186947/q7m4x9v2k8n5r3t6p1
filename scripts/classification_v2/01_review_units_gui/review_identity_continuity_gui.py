@@ -1028,15 +1028,20 @@ class IdentityContinuityGui:
             ).grid(row=9, column=0, sticky="ew", pady=(8, 2))
             ttk.Button(
                 self.mini_actor_frame,
+                text="Hủy đổi ID (khôi phục đã lưu)",
+                command=self.reset_mini_actor_identity_fields,
+            ).grid(row=10, column=0, sticky="ew", pady=2)
+            ttk.Button(
+                self.mini_actor_frame,
                 text="Lưu object/frame hiện tại",
                 command=self.save_mini_current_frame,
-            ).grid(row=10, column=0, sticky="ew", pady=2)
+            ).grid(row=11, column=0, sticky="ew", pady=2)
             ttk.Label(
                 self.mini_actor_frame,
                 textvariable=self.mini_progress_var,
                 wraplength=420,
                 foreground="#404040",
-            ).grid(row=11, column=0, sticky="ew", pady=(6, 0))
+            ).grid(row=12, column=0, sticky="ew", pady=(6, 0))
             self.mini_actor_frame.columnconfigure(0, weight=1)
 
         help_row = 7 if getattr(self, "mini_cvat_enabled", False) else 6
@@ -1214,16 +1219,21 @@ class IdentityContinuityGui:
             child.destroy()
         for position, actor_id in enumerate(self.editable_pig_ids):
             attributes = self.mini_actor_attributes.get(actor_id)
+            display_id = (
+                attributes.reviewed_pig_id if attributes is not None else actor_id
+            )
             if attributes is None:
                 text = f"nguồn {actor_id} (chưa đổi ID)"
             else:
-                text = f"{attributes.reviewed_pig_id} ← nguồn {actor_id}"
+                text = f"{display_id} ← nguồn {actor_id}"
             if actor_id == self.active_pig_id:
                 text = f"✓ {text}"
             ttk.Button(
                 self.mini_actor_buttons,
                 text=text,
-                command=lambda value=actor_id: self.select_mini_actor(value),
+                command=lambda value=display_id: self.select_mini_display_actor(
+                    value
+                ),
             ).grid(row=0, column=position, sticky="ew", padx=1, pady=1)
             self.mini_actor_buttons.columnconfigure(position, weight=1)
         attributes = self.mini_actor_attributes.get(self.active_pig_id)
@@ -1281,6 +1291,10 @@ class IdentityContinuityGui:
             return
         self.cancel_bbox_drawing(silent=True)
         self.active_pig_id = actor_id
+        self.status_var.set(
+            f"Đang sửa source scope {actor_id} "
+            f"→ reviewed {self._mini_display_id(actor_id)}"
+        )
         self.show_current_frame()
 
     def select_mini_display_actor(self, display_id: str) -> None:
@@ -1301,6 +1315,26 @@ class IdentityContinuityGui:
         self.status_var.set(
             f"Reviewed ID {display_id} chưa có một actor scope duy nhất."
         )
+
+    def reset_mini_actor_identity_fields(self) -> None:
+        if not self._ensure_mutable():
+            return
+        attributes = self.mini_actor_attributes.get(self.active_pig_id)
+        reviewed_pig_id = (
+            attributes.reviewed_pig_id if attributes is not None else self.active_pig_id
+        )
+        reviewed_behavior = (
+            attributes.reviewed_behavior
+            if attributes is not None
+            else self._mini_original_behavior()
+        )
+        self.mini_reviewed_id_var.set(reviewed_pig_id)
+        if reviewed_behavior in CANONICAL_BEHAVIORS:
+            self.mini_behavior_var.set(reviewed_behavior)
+        self.status_var.set(
+            f"Đã khôi phục reviewed ID đã lưu cho source scope {self.active_pig_id}."
+        )
+        self.show_current_frame()
 
     def _mini_source_annotation(
         self,
@@ -1450,8 +1484,11 @@ class IdentityContinuityGui:
                 parent=self.root,
             )
             return
-        if not self.save(silent=True):
+        if not self.save(silent=False):
             self.mini_actor_attributes = prior_attributes
+            self.status_var.set(
+                "Không lưu được reviewed ID/behavior; đã khôi phục trạng thái trước."
+            )
             return
         if swapped_actor_id:
             self.status_var.set(
@@ -1497,11 +1534,14 @@ class IdentityContinuityGui:
         key = self._mini_frame_key()
         prior = self.mini_frame_annotations.get(key)
         self.mini_frame_annotations[key] = annotation
-        if not self.save(silent=True):
+        if not self.save(silent=False):
             if prior is None:
                 self.mini_frame_annotations.pop(key, None)
             else:
                 self.mini_frame_annotations[key] = prior
+            self.status_var.set(
+                "Không lưu được object/frame; đã khôi phục trạng thái trước."
+            )
             return
         self.status_var.set(
             f"Đã lưu reviewed ID {self._mini_display_id(self.active_pig_id)} "
@@ -1957,7 +1997,7 @@ class IdentityContinuityGui:
         prior_selection = self.selections.get(selection_key)
         prior_edit = self.bbox_edits.pop(selection_key, None)
         self.selections[selection_key] = candidate.object_track_key
-        if not self.save(silent=True):
+        if not self.save(silent=False):
             if prior_selection is None:
                 self.selections.pop(selection_key, None)
             else:
@@ -1990,7 +2030,7 @@ class IdentityContinuityGui:
                 return
             self.mini_selected_keys[self._mini_frame_key()] = candidate.object_track_key
             self.mini_frame_annotations.pop(self._mini_frame_key(), None)
-            if not self.save(silent=True):
+            if not self.save(silent=False):
                 return
             self.status_var.set("Đã quay về bbox nguồn; chọn Hidden rồi lưu frame nếu cần.")
             self.show_current_frame()
@@ -2020,7 +2060,7 @@ class IdentityContinuityGui:
             key = self._mini_frame_key()
             prior_key = self.mini_selected_keys.pop(key, None)
             prior_annotation = self.mini_frame_annotations.pop(key, None)
-            if not self.save(silent=True):
+            if not self.save(silent=False):
                 if prior_key is not None:
                     self.mini_selected_keys[key] = prior_key
                 if prior_annotation is not None:
@@ -2038,7 +2078,7 @@ class IdentityContinuityGui:
             self.bbox_edits = {}
         prior_selection = self.selections.pop(selection_key, None)
         prior_edit = self.bbox_edits.pop(selection_key, None)
-        if not self.save(silent=True):
+        if not self.save(silent=False):
             if prior_selection is not None:
                 self.selections[selection_key] = prior_selection
             if prior_edit is not None:
@@ -2087,7 +2127,7 @@ class IdentityContinuityGui:
             self.selections.pop((case_id, frame_index), None)
             self.bbox_edits.pop((case_id, frame_index), None)
         self.exclusions[case_id] = note
-        if not self.save(silent=True):
+        if not self.save(silent=False):
             self.selections.update(prior_selections)
             self.bbox_edits.update(prior_bbox_edits)
             if prior_exclusion is None:
@@ -2107,7 +2147,7 @@ class IdentityContinuityGui:
             self.status_var.set("Active unit is not excluded.")
             return
         prior_exclusion = self.exclusions.pop(case_id)
-        if not self.save(silent=True):
+        if not self.save(silent=False):
             self.exclusions[case_id] = prior_exclusion
             self.status_var.set("Exclusion was not saved; prior state restored.")
             return
@@ -2142,7 +2182,7 @@ class IdentityContinuityGui:
                     parent=self.root,
                 )
                 return
-            if not self.save(silent=True):
+            if not self.save(silent=False):
                 return
             self.status_var.set(
                 "Mini-CVAT hoàn tất: sidecar đã lưu, chưa áp dụng vào dữ liệu nguồn."
@@ -2169,7 +2209,7 @@ class IdentityContinuityGui:
                 parent=self.root,
             )
             return
-        if not self.save(silent=True):
+        if not self.save(silent=False):
             return
         try:
             marker_path = write_finalization_marker(
@@ -2371,7 +2411,7 @@ class IdentityContinuityGui:
             key = self._mini_frame_key()
             prior = self.mini_frame_annotations.get(key)
             self.mini_frame_annotations[key] = annotation
-            if not self.save(silent=True):
+            if not self.save(silent=False):
                 if prior is None:
                     self.mini_frame_annotations.pop(key, None)
                 else:
@@ -2404,7 +2444,7 @@ class IdentityContinuityGui:
                 "" if mode == ADDED_BBOX_MODE else selected_key
             ),
         )
-        if self.save(silent=True):
+        if self.save(silent=False):
             return True
         if prior_selection is None:
             self.selections.pop(frame_key, None)
@@ -2600,7 +2640,7 @@ class IdentityContinuityGui:
         return "break"
 
     def close(self) -> None:
-        if not self.finalized and not self.save(silent=True):
+        if not self.finalized and not self.save(silent=False):
             return
         if self._prefetch_after_id is not None:
             self.root.after_cancel(self._prefetch_after_id)

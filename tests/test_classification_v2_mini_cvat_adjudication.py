@@ -310,3 +310,105 @@ def test_mini_cvat_save_current_frame_applies_actor_mapping() -> None:
     assert gui.mini_actor_attributes["ID_4"].reviewed_pig_id == "ID_5"
     assert gui.mini_actor_attributes["ID_5"].reviewed_pig_id == "ID_4"
     assert gui.mini_frame_annotations[("ID_4", 3)].reviewed_hidden == "No"
+
+
+def test_mini_cvat_display_button_selects_owner_scope() -> None:
+    module = _load_gui_module()
+    from pig_behavior.classification_v2.review.identity_continuity_adjudication import (
+        FrameCandidate,
+    )
+
+    gui = module.IdentityContinuityGui.__new__(module.IdentityContinuityGui)
+    gui.finalized = False
+    gui.mini_cvat_enabled = True
+    gui.editable_pig_ids = ("ID_4", "ID_5")
+    gui.active_pig_id = "ID_5"
+    gui.all_frames = (3,)
+    gui.current_frame_position = 0
+    gui.candidates_by_frame = {
+        3: (
+            FrameCandidate(
+                3,
+                3,
+                "actor-4",
+                "track-4",
+                "ID_4",
+                1.0,
+                1.0,
+                11.0,
+                11.0,
+                "scene.mp4",
+                "fight",
+                "No",
+            ),
+            FrameCandidate(
+                3,
+                3,
+                "actor-5",
+                "track-5",
+                "ID_5",
+                20.0,
+                20.0,
+                30.0,
+                30.0,
+                "scene.mp4",
+                "move",
+                "No",
+            ),
+        )
+    }
+    gui.mini_actor_attributes = {
+        "ID_4": MiniCvatActorAttributes(
+            "ID_4",
+            "ID_4",
+            "ID_5",
+            "fight",
+            "fight",
+        ),
+        "ID_5": MiniCvatActorAttributes(
+            "ID_5",
+            "ID_5",
+            "ID_4",
+            "move",
+            "move",
+        ),
+    }
+    gui.mini_frame_annotations = {}
+    gui.mini_selected_keys = {}
+    gui.status_var = _Var("")
+    gui.show_current_frame = lambda: None
+    gui.cancel_bbox_drawing = lambda silent=True: None
+
+    gui.select_mini_display_actor("5")
+
+    assert gui.active_pig_id == "ID_4"
+    assert gui.status_var.get().startswith("Đang sửa source scope ID_4")
+
+
+def test_mini_cvat_reset_identity_fields_restores_saved_values() -> None:
+    module = _load_gui_module()
+
+    gui = module.IdentityContinuityGui.__new__(module.IdentityContinuityGui)
+    gui.finalized = False
+    gui.mini_cvat_enabled = True
+    gui.editable_pig_ids = ("ID_4", "ID_5")
+    gui.active_pig_id = "ID_4"
+    gui.mini_actor_attributes = {
+        "ID_4": MiniCvatActorAttributes(
+            "ID_4",
+            "ID_4",
+            "ID_5",
+            "fight",
+            "fight",
+        )
+    }
+    gui.mini_reviewed_id_var = _Var("ID_5")
+    gui.mini_behavior_var = _Var("move")
+    gui.status_var = _Var("")
+    gui.show_current_frame = lambda: None
+
+    gui.reset_mini_actor_identity_fields()
+
+    assert gui.mini_reviewed_id_var.get() == "ID_5"
+    assert gui.mini_behavior_var.get() == "fight"
+    assert gui.status_var.get().startswith("Đã khôi phục reviewed ID đã lưu")
