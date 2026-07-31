@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
+from dataclasses import asdict, replace
 from pathlib import Path
 
 from pig_behavior.classification_v2.review.mini_cvat_adjudication import (
@@ -56,6 +58,7 @@ def _annotation(frame_index: int) -> MiniCvatFrameAnnotation:
         original_object_track_key=f"actor-4-{frame_index}",
         original_track_id="track-4",
         original_pig_id="ID_4",
+        reviewed_pig_id="ID_4",
         bbox_mode="SOURCE_BBOX",
         x1=1.0,
         y1=2.0,
@@ -69,7 +72,10 @@ def _annotation(frame_index: int) -> MiniCvatFrameAnnotation:
 def test_mini_cvat_sidecar_round_trip_preserves_burst_and_frame_scope(
     tmp_path: Path,
 ) -> None:
-    annotations = {("ID_4", 3): _annotation(3), ("ID_4", 4): _annotation(4)}
+    annotations = {
+        ("ID_4", 3): replace(_annotation(3), reviewed_pig_id="ID_5"),
+        ("ID_4", 4): _annotation(4),
+    }
     write_mini_cvat_sidecar(
         tmp_path,
         reviewer="reviewer",
@@ -90,6 +96,40 @@ def test_mini_cvat_sidecar_round_trip_preserves_burst_and_frame_scope(
         frame_indices=(3, 4),
     )
     assert loaded == (_attributes(), annotations)
+
+
+def test_mini_cvat_load_migrates_v1_frame_identity(
+    tmp_path: Path,
+) -> None:
+    annotation = asdict(_annotation(3))
+    annotation.pop("reviewed_pig_id")
+    payload = {
+        "schema": "classification_v2.mini_cvat_adjudication.v1",
+        "reviewer": "reviewer",
+        "source_type": "legacy_recovered",
+        "dataset_id": "legacy",
+        "video_key": "scene/001",
+        "editable_actor_ids": ["ID_4"],
+        "frame_indices": [3],
+        "actor_attributes": [asdict(_attributes()["ID_4"])],
+        "frame_annotations": [annotation],
+        "source_annotations_changed": "NO",
+        "behavior_decisions_touched": "NO",
+        "model_x_forbidden": "YES",
+    }
+    sidecar = tmp_path / "mini_cvat_adjudication.json"
+    sidecar.write_text(json.dumps(payload), encoding="utf-8")
+
+    _, annotations = load_mini_cvat_sidecar(
+        tmp_path,
+        source_type="legacy_recovered",
+        dataset_id="legacy",
+        video_key="scene/001",
+        editable_actor_ids=("ID_4",),
+        frame_indices=(3,),
+    )
+
+    assert annotations[("ID_4", 3)].reviewed_pig_id == "ID_4"
 
 
 def test_mini_cvat_requires_complete_frames_for_finalization() -> None:
@@ -120,7 +160,7 @@ def test_mini_cvat_rejects_duplicate_reviewed_actor_ids() -> None:
         frame_indices=(3,),
         require_complete=True,
     )
-    assert "mini_cvat_duplicate_reviewed_pig_id=ID_4" in errors
+    assert "mini_cvat_duplicate_reviewed_pig_id=3:ID_4" in errors
 
 
 def test_gui_identity_change_swaps_existing_actor_scope() -> None:
@@ -310,6 +350,123 @@ def test_mini_cvat_save_current_frame_keeps_actor_mapping_untouched() -> None:
     assert gui.mini_behavior_var.get() == "fight"
     assert gui.mini_actor_attributes == {}
     assert gui.mini_frame_annotations[("ID_4", 3)].reviewed_hidden == "No"
+    assert gui.mini_frame_annotations[("ID_4", 3)].reviewed_pig_id == "ID_5"
+
+
+def test_mini_cvat_save_current_frame_swaps_ids_only_in_that_frame() -> None:
+    module = _load_gui_module()
+    from pig_behavior.classification_v2.review.identity_continuity_adjudication import (
+        FrameCandidate,
+    )
+
+    gui = module.IdentityContinuityGui.__new__(module.IdentityContinuityGui)
+    gui.finalized = False
+    gui.mini_cvat_enabled = True
+    gui.editable_pig_ids = ("ID_4", "ID_5")
+    gui.active_pig_id = "ID_4"
+    gui.all_frames = (3, 4)
+    gui.current_frame_position = 0
+    gui.candidates_by_frame = {
+        3: (
+            FrameCandidate(
+                3,
+                3,
+                "actor-4",
+                "track-4",
+                "ID_4",
+                1.0,
+                1.0,
+                11.0,
+                11.0,
+                "scene.mp4",
+                "fight",
+                "No",
+            ),
+            FrameCandidate(
+                3,
+                3,
+                "actor-5",
+                "track-5",
+                "ID_5",
+                20.0,
+                20.0,
+                30.0,
+                30.0,
+                "scene.mp4",
+                "move",
+                "No",
+            ),
+        ),
+        4: (),
+    }
+    gui.mini_actor_attributes = {
+        "ID_4": MiniCvatActorAttributes(
+            "ID_4",
+            "ID_4",
+            "ID_4",
+            "fight",
+            "fight",
+        ),
+        "ID_5": MiniCvatActorAttributes(
+            "ID_5",
+            "ID_5",
+            "ID_5",
+            "move",
+            "move",
+        ),
+    }
+    gui.mini_frame_annotations = {}
+    gui.mini_selected_keys = {}
+    gui.mini_reviewed_id_var = _Var("5")
+    gui.mini_hidden_var = _Var("No")
+    gui.status_var = _Var("")
+    gui.save = lambda silent=True: True
+    gui.show_current_frame = lambda: None
+
+    gui.save_mini_current_frame()
+
+    assert gui.mini_frame_annotations[("ID_4", 3)].reviewed_pig_id == "ID_5"
+    assert gui.mini_frame_annotations[("ID_5", 3)].reviewed_pig_id == "ID_4"
+    assert gui.mini_actor_attributes["ID_4"].reviewed_pig_id == "ID_4"
+    assert gui.mini_actor_attributes["ID_5"].reviewed_pig_id == "ID_5"
+
+
+def test_mini_cvat_display_id_prefers_frame_override_after_navigation() -> None:
+    module = _load_gui_module()
+    gui = module.IdentityContinuityGui.__new__(module.IdentityContinuityGui)
+    gui.mini_actor_attributes = {
+        "ID_4": MiniCvatActorAttributes(
+            "ID_4",
+            "ID_4",
+            "ID_4",
+            "fight",
+            "fight",
+        )
+    }
+    gui.mini_frame_annotations = {("ID_4", 4): _annotation(4)}
+    gui.all_frames = (3, 4)
+    gui.current_frame_position = 1
+
+    assert gui._mini_display_id("ID_4") == "ID_4"
+    gui.mini_frame_annotations[("ID_4", 4)] = replace(
+        gui.mini_frame_annotations[("ID_4", 4)],
+        reviewed_pig_id="ID_5",
+    )
+    assert gui._mini_display_id("ID_4") == "ID_5"
+
+
+def test_mini_cvat_corrected_bbox_button_enters_explicit_edit_mode() -> None:
+    module = _load_gui_module()
+    gui = module.IdentityContinuityGui.__new__(module.IdentityContinuityGui)
+    gui.finalized = False
+    gui.mini_cvat_enabled = True
+    gui._active_effective_bbox = lambda: (1.0, 2.0, 11.0, 12.0)
+    gui.cancel_bbox_drawing = lambda silent=False: None
+    gui.status_var = _Var("")
+
+    gui.start_corrected_bbox()
+
+    assert gui._bbox_draw_mode == module.CORRECTED_BBOX_MODE
 
 
 def test_mini_cvat_display_button_selects_owner_scope() -> None:

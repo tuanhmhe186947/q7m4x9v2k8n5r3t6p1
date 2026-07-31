@@ -16,7 +16,7 @@ import sys
 import tkinter as tk
 from collections import OrderedDict
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from tkinter import messagebox, simpledialog, ttk
@@ -966,7 +966,10 @@ class IdentityContinuityGui:
         if getattr(self, "mini_cvat_enabled", False):
             self.mini_actor_frame = ttk.LabelFrame(
                 side,
-                text="Actor source scope — reviewed ID và behavior áp dụng cả burst",
+            text=(
+                "Actor source scope — behavior áp dụng cả burst; "
+                "ID có thể override riêng frame"
+            ),
                 padding=6,
             )
             self.mini_actor_frame.grid(row=6, column=0, sticky="ew", pady=6)
@@ -1181,6 +1184,32 @@ class IdentityContinuityGui:
         ]
         return matches[0] if len(matches) == 1 else None
 
+    def _mini_candidate_for_actor(
+        self,
+        actor_scope_id: str,
+        frame_index: int,
+    ) -> FrameCandidate | None:
+        selected_key = getattr(self, "mini_selected_keys", {}).get(
+            (actor_scope_id, frame_index),
+            "",
+        )
+        candidates = self.candidates_by_frame[frame_index]
+        if selected_key:
+            return next(
+                (
+                    candidate
+                    for candidate in candidates
+                    if candidate.object_track_key == selected_key
+                ),
+                None,
+            )
+        matches = [
+            candidate
+            for candidate in candidates
+            if candidate.pig_id == actor_scope_id
+        ]
+        return matches[0] if len(matches) == 1 else None
+
     def _mini_original_behavior(self) -> str:
         candidate = self._mini_current_candidate()
         if candidate is None:
@@ -1253,7 +1282,7 @@ class IdentityContinuityGui:
             f"← source scope {self.active_pig_id}"
         )
         self.mini_reviewed_id_var.set(
-            attributes.reviewed_pig_id if attributes else self.active_pig_id
+            self._mini_display_id(self.active_pig_id)
         )
         self.mini_behavior_var.set(
             attributes.reviewed_behavior if attributes else original_behavior
@@ -1275,6 +1304,15 @@ class IdentityContinuityGui:
         )
 
     def _mini_display_id(self, actor_scope_id: str) -> str:
+        frame_position = getattr(self, "current_frame_position", None)
+        all_frames = getattr(self, "all_frames", ())
+        if frame_position is not None and all_frames:
+            frame_index = all_frames[frame_position]
+            annotation = self.mini_frame_annotations.get(
+                (actor_scope_id, frame_index)
+            )
+            if annotation is not None and annotation.reviewed_pig_id:
+                return annotation.reviewed_pig_id
         attributes = self.mini_actor_attributes.get(actor_scope_id)
         if attributes is None or not attributes.reviewed_pig_id:
             return actor_scope_id
@@ -1346,6 +1384,7 @@ class IdentityContinuityGui:
         *,
         bbox: tuple[float, float, float, float] | None = None,
         bbox_mode: str = "SOURCE_BBOX",
+        reviewed_pig_id: str | None = None,
     ) -> MiniCvatFrameAnnotation | None:
         candidate = self._mini_current_candidate()
         if candidate is None and bbox is None:
@@ -1363,6 +1402,9 @@ class IdentityContinuityGui:
             original_track_id = candidate.track_id
             original_pig_id = candidate.pig_id
             original_hidden = candidate.hidden
+        effective_reviewed_id = (
+            reviewed_pig_id or self._mini_display_id(self.active_pig_id)
+        )
         reviewed_hidden = self.mini_hidden_var.get().strip()
         return MiniCvatFrameAnnotation(
             actor_scope_id=self.active_pig_id,
@@ -1371,6 +1413,7 @@ class IdentityContinuityGui:
             original_object_track_key=original_key,
             original_track_id=original_track_id,
             original_pig_id=original_pig_id,
+            reviewed_pig_id=effective_reviewed_id,
             bbox_mode=bbox_mode,
             x1=annotation_bbox[0],
             y1=annotation_bbox[1],
@@ -1509,17 +1552,55 @@ class IdentityContinuityGui:
             self.show_current_frame()
         return True
 
+    def _mini_source_annotation_for_actor(
+        self,
+        actor_scope_id: str,
+        frame_index: int,
+        reviewed_pig_id: str,
+    ) -> MiniCvatFrameAnnotation | None:
+        candidate = self._mini_candidate_for_actor(actor_scope_id, frame_index)
+        if candidate is None or candidate.hidden not in HIDDEN_VALUES:
+            return None
+        return MiniCvatFrameAnnotation(
+            actor_scope_id=actor_scope_id,
+            frame_index=frame_index,
+            source_frame_index=candidate.source_frame_index,
+            original_object_track_key=candidate.object_track_key,
+            original_track_id=candidate.track_id,
+            original_pig_id=candidate.pig_id,
+            reviewed_pig_id=reviewed_pig_id,
+            bbox_mode="SOURCE_BBOX",
+            x1=candidate.x1,
+            y1=candidate.y1,
+            x2=candidate.x2,
+            y2=candidate.y2,
+            original_hidden=candidate.hidden,
+            reviewed_hidden=candidate.hidden,
+        )
+
     def save_mini_current_frame(self) -> None:
         if not self._ensure_mutable():
             return
-        # Frame-save only persists bbox/Hidden; burst-scope ID/behavior is separate.
+        reviewed_pig_id = self._normalize_mini_pig_id(
+            self.mini_reviewed_id_var.get()
+        )
+        if not reviewed_pig_id:
+            messagebox.showwarning(
+                "Thiếu Reviewed ID",
+                "Nhập ID hợp lệ cho object/frame hiện tại.",
+                parent=self.root,
+            )
+            return
         existing = self._mini_current_annotation()
         if existing is None:
-            annotation = self._mini_source_annotation()
-        else:
             annotation = self._mini_source_annotation(
-                bbox=existing.bbox,
-                bbox_mode=existing.bbox_mode,
+                reviewed_pig_id=reviewed_pig_id,
+            )
+        else:
+            annotation = replace(
+                existing,
+                reviewed_pig_id=reviewed_pig_id,
+                reviewed_hidden=self.mini_hidden_var.get().strip(),
             )
         if annotation is None:
             messagebox.showwarning(
@@ -1536,20 +1617,45 @@ class IdentityContinuityGui:
             )
             return
         key = self._mini_frame_key()
-        prior = self.mini_frame_annotations.get(key)
+        prior_frames = dict(self.mini_frame_annotations)
+        previous_id = self._mini_display_id(self.active_pig_id)
         self.mini_frame_annotations[key] = annotation
+        owner = next(
+            (
+                actor_id
+                for actor_id in self.editable_pig_ids
+                if actor_id != self.active_pig_id
+                and self._mini_display_id(actor_id) == reviewed_pig_id
+            ),
+            None,
+        )
+        if owner is not None and reviewed_pig_id != previous_id:
+            owner_key = (owner, self.current_frame_index)
+            owner_annotation = self.mini_frame_annotations.get(owner_key)
+            if owner_annotation is None:
+                owner_annotation = self._mini_source_annotation_for_actor(
+                    owner,
+                    self.current_frame_index,
+                    previous_id,
+                )
+            if owner_annotation is None:
+                self.mini_frame_annotations = prior_frames
+                messagebox.showwarning(
+                    "Không thể đổi ID trong frame",
+                    "Không tìm thấy bbox của ID đang bị đổi chỗ ở frame này.",
+                    parent=self.root,
+                )
+                return
+            self.mini_frame_annotations[owner_key] = owner_annotation
         if not self.save(silent=False):
-            if prior is None:
-                self.mini_frame_annotations.pop(key, None)
-            else:
-                self.mini_frame_annotations[key] = prior
+            self.mini_frame_annotations = prior_frames
             self.status_var.set(
                 "Không lưu được object/frame; đã khôi phục trạng thái trước."
             )
             return
         self.status_var.set(
-            f"Đã lưu bbox và Hidden của object/frame hiện tại cho "
-            f"source scope {self.active_pig_id}."
+            f"Đã lưu ID {reviewed_pig_id}, bbox và Hidden của frame "
+            f"{self.current_frame_index}."
         )
         self.show_current_frame()
 
@@ -1648,8 +1754,9 @@ class IdentityContinuityGui:
             ttk.Label(
                 self.case_frame,
                 text=(
-                    "Mini-CVAT đang chỉnh theo actor scope. "
-                    "Behavior là một nhãn cho toàn burst; Hidden là frame/object."
+                "Mini-CVAT đang chỉnh theo actor scope. "
+                "Behavior là một nhãn cho toàn burst; ID và Hidden có thể "
+                "lưu riêng frame/object."
                 ),
                 wraplength=420,
                 justify="left",
@@ -2352,6 +2459,7 @@ class IdentityContinuityGui:
             )
             return
         self.cancel_bbox_drawing(silent=True)
+        self._bbox_draw_mode = CORRECTED_BBOX_MODE
         self.status_var.set(
             "Chế độ chỉnh: kéo bên trong bbox để di chuyển; "
             "kéo 8 ô vuông để resize."
@@ -2542,7 +2650,7 @@ class IdentityContinuityGui:
 
     def _on_canvas_press(self, event: tk.Event[Any]) -> None:
         point = float(event.x), float(event.y)
-        if getattr(self, "mini_cvat_enabled", False) and self._bbox_draw_mode != ADDED_BBOX_MODE:
+        if getattr(self, "mini_cvat_enabled", False) and self._bbox_draw_mode is None:
             candidate = candidate_at_display_point(
                 self.candidates_by_frame[self.current_frame_index],
                 point[0],

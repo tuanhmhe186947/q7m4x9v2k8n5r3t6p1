@@ -20,7 +20,8 @@ from pig_behavior.classification_v2.review.behavior_review_contract import (
     CANONICAL_BEHAVIORS,
 )
 
-MINI_CVAT_SCHEMA = "classification_v2.mini_cvat_adjudication.v1"
+MINI_CVAT_SCHEMA = "classification_v2.mini_cvat_adjudication.v2"
+LEGACY_MINI_CVAT_SCHEMA = "classification_v2.mini_cvat_adjudication.v1"
 MINI_CVAT_SIDECAR_NAME = "mini_cvat_adjudication.json"
 MODEL_X_FORBIDDEN = "YES"
 HIDDEN_VALUES = frozenset({"Yes", "No", "Unclear"})
@@ -58,6 +59,7 @@ class MiniCvatFrameAnnotation:
     original_object_track_key: str
     original_track_id: str
     original_pig_id: str
+    reviewed_pig_id: str
     bbox_mode: str
     x1: float
     y1: float
@@ -141,6 +143,8 @@ def validate_mini_cvat_state(
             errors.append(f"mini_cvat_frame_key_mismatch={actor_id}:{frame_index}")
         if annotation.bbox_mode not in FRAME_BBOX_MODES:
             errors.append(f"mini_cvat_bbox_mode_invalid={actor_id}:{frame_index}")
+        if not annotation.reviewed_pig_id:
+            errors.append(f"mini_cvat_frame_identity_blank={actor_id}:{frame_index}")
         if annotation.reviewed_hidden not in HIDDEN_VALUES:
             errors.append(f"mini_cvat_hidden_invalid={actor_id}:{frame_index}")
         try:
@@ -158,11 +162,17 @@ def validate_mini_cvat_state(
                         f"mini_cvat_frame_pending={actor_id}:{frame_index}"
                     )
 
-        reviewed_ids = [
-            actor_attributes[actor_id].reviewed_pig_id
-            for actor_id in expected_actors
-            if actor_id in actor_attributes
-        ]
+    for frame_index in expected_frames:
+        reviewed_ids = []
+        for actor_id in expected_actors:
+            annotation = frame_annotations.get((actor_id, frame_index))
+            attributes = actor_attributes.get(actor_id)
+            if annotation is not None:
+                reviewed_ids.append(annotation.reviewed_pig_id)
+            elif attributes is not None:
+                reviewed_ids.append(attributes.reviewed_pig_id)
+            else:
+                reviewed_ids.append(actor_id)
         duplicates = sorted(
             {
                 value
@@ -172,7 +182,8 @@ def validate_mini_cvat_state(
         )
         if duplicates:
             errors.append(
-                "mini_cvat_duplicate_reviewed_pig_id=" + ",".join(duplicates)
+                "mini_cvat_duplicate_reviewed_pig_id="
+                f"{frame_index}:{','.join(duplicates)}"
             )
     return errors
 
@@ -272,7 +283,8 @@ def load_mini_cvat_sidecar(
         raise MiniCvatAdjudicationError("mini_cvat_sidecar_unreadable") from exc
     if not isinstance(payload, dict):
         raise MiniCvatAdjudicationError("mini_cvat_sidecar_not_object")
-    if payload.get("schema") != MINI_CVAT_SCHEMA:
+    payload_schema = payload.get("schema")
+    if payload_schema not in {MINI_CVAT_SCHEMA, LEGACY_MINI_CVAT_SCHEMA}:
         raise MiniCvatAdjudicationError("mini_cvat_sidecar_schema_mismatch")
     if payload.get("model_x_forbidden") != MODEL_X_FORBIDDEN:
         raise MiniCvatAdjudicationError("mini_cvat_model_x_boundary_mismatch")
@@ -297,12 +309,20 @@ def load_mini_cvat_sidecar(
             str(row["actor_scope_id"]): MiniCvatActorAttributes(**row)
             for row in actor_rows
         }
-        annotations = {
-            (str(row["actor_scope_id"]), int(row["frame_index"])): (
-                MiniCvatFrameAnnotation(**row)
+        annotations = {}
+        for row in frame_rows:
+            actor_id = str(row["actor_scope_id"])
+            migrated_row = dict(row)
+            if payload_schema == LEGACY_MINI_CVAT_SCHEMA:
+                attributes_for_actor = attributes.get(actor_id)
+                migrated_row["reviewed_pig_id"] = (
+                    attributes_for_actor.reviewed_pig_id
+                    if attributes_for_actor is not None
+                    else actor_id
+                )
+            annotations[(actor_id, int(row["frame_index"]))] = (
+                MiniCvatFrameAnnotation(**migrated_row)
             )
-            for row in frame_rows
-        }
     except (KeyError, TypeError, ValueError) as exc:
         raise MiniCvatAdjudicationError("mini_cvat_sidecar_payload_invalid") from exc
     if len(attributes) != len(actor_rows):
