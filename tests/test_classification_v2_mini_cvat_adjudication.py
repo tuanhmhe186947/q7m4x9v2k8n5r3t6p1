@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import importlib.util
+import sys
 from pathlib import Path
 
 from pig_behavior.classification_v2.review.mini_cvat_adjudication import (
@@ -9,6 +11,29 @@ from pig_behavior.classification_v2.review.mini_cvat_adjudication import (
     validate_mini_cvat_state,
     write_mini_cvat_sidecar,
 )
+
+
+class _Var:
+    def __init__(self, value: str) -> None:
+        self.value = value
+
+    def get(self) -> str:
+        return self.value
+
+    def set(self, value: str) -> None:
+        self.value = value
+
+
+def _load_gui_module():
+    root = Path(__file__).resolve().parents[1]
+    path = root / "scripts" / "classification_v2" / "01_review_units_gui"
+    path /= "review_identity_continuity_gui.py"
+    spec = importlib.util.spec_from_file_location("mini_cvat_gui_test", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 def _attributes() -> dict[str, MiniCvatActorAttributes]:
@@ -96,3 +121,66 @@ def test_mini_cvat_rejects_duplicate_reviewed_actor_ids() -> None:
         require_complete=True,
     )
     assert "mini_cvat_duplicate_reviewed_pig_id=ID_4" in errors
+
+
+def test_gui_identity_change_swaps_existing_actor_scope() -> None:
+    module = _load_gui_module()
+    from pig_behavior.classification_v2.review.identity_continuity_adjudication import (
+        FrameCandidate,
+    )
+
+    gui = module.IdentityContinuityGui.__new__(module.IdentityContinuityGui)
+    gui.finalized = False
+    gui.mini_cvat_enabled = True
+    gui.editable_pig_ids = ("ID_4", "ID_5")
+    gui.active_pig_id = "ID_5"
+    gui.all_frames = (3,)
+    gui.current_frame_position = 0
+    gui.candidates_by_frame = {
+        3: (
+            FrameCandidate(
+                3,
+                3,
+                "actor-4",
+                "track-4",
+                "ID_4",
+                1.0,
+                1.0,
+                11.0,
+                11.0,
+                "scene.mp4",
+                "fight",
+                "No",
+            ),
+            FrameCandidate(
+                3,
+                3,
+                "actor-5",
+                "track-5",
+                "ID_5",
+                20.0,
+                20.0,
+                30.0,
+                30.0,
+                "scene.mp4",
+                "move",
+                "No",
+            ),
+        )
+    }
+    gui.mini_actor_attributes = {
+        "ID_5": MiniCvatActorAttributes(
+            "ID_5", "ID_5", "ID_4", "move", "move"
+        )
+    }
+    gui.mini_frame_annotations = {}
+    gui.mini_selected_keys = {}
+    gui.mini_reviewed_id_var = _Var("ID_4")
+    gui.mini_behavior_var = _Var("move")
+    gui.status_var = _Var("")
+    gui.save = lambda silent=True: True
+    gui.show_current_frame = lambda: None
+    gui.cancel_bbox_drawing = lambda silent=True: None
+    gui.apply_mini_actor_attributes()
+    assert gui.mini_actor_attributes["ID_5"].reviewed_pig_id == "ID_4"
+    assert gui.mini_actor_attributes["ID_4"].reviewed_pig_id == "ID_5"

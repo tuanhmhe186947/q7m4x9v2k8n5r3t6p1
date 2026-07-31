@@ -1188,14 +1188,20 @@ class IdentityContinuityGui:
         return "SOURCE_BBOX — đã lưu"
 
     def _refresh_mini_actor_controls(self) -> None:
-        if not getattr(self, "mini_cvat_enabled", False) or not hasattr(self, "mini_actor_frame"):
+        if not getattr(self, "mini_cvat_enabled", False) or not hasattr(
+            self, "mini_actor_frame"
+        ):
             return
         for child in self.mini_actor_buttons.winfo_children():
             child.destroy()
         for position, actor_id in enumerate(self.editable_pig_ids):
-            text = actor_id
+            attributes = self.mini_actor_attributes.get(actor_id)
+            if attributes is None:
+                text = f"nguồn {actor_id} (chưa đổi ID)"
+            else:
+                text = f"{attributes.reviewed_pig_id} ← nguồn {actor_id}"
             if actor_id == self.active_pig_id:
-                text = f"✓ {actor_id}"
+                text = f"✓ {text}"
             ttk.Button(
                 self.mini_actor_buttons,
                 text=text,
@@ -1209,7 +1215,7 @@ class IdentityContinuityGui:
             if candidate is not None and candidate.behavior in CANONICAL_BEHAVIORS
             else ""
         )
-        self.mini_actor_id_var.set(self.active_pig_id)
+        self.mini_actor_id_var.set(self._mini_display_id(self.active_pig_id))
         self.mini_reviewed_id_var.set(
             attributes.reviewed_pig_id if attributes else self.active_pig_id
         )
@@ -1232,12 +1238,36 @@ class IdentityContinuityGui:
             f"burst {saved_count}/{total_count} frame"
         )
 
+    def _mini_display_id(self, actor_scope_id: str) -> str:
+        attributes = self.mini_actor_attributes.get(actor_scope_id)
+        if attributes is None or not attributes.reviewed_pig_id:
+            return actor_scope_id
+        return attributes.reviewed_pig_id
+
     def select_mini_actor(self, actor_id: str) -> None:
         if actor_id not in self.editable_pig_ids:
             return
         self.cancel_bbox_drawing(silent=True)
         self.active_pig_id = actor_id
         self.show_current_frame()
+
+    def select_mini_display_actor(self, display_id: str) -> None:
+        """Select the source scope currently owning a reviewed ID."""
+
+        matches = [
+            actor_id
+            for actor_id in self.editable_pig_ids
+            if self._mini_display_id(actor_id) == display_id
+        ]
+        if len(matches) == 1:
+            self.select_mini_actor(matches[0])
+            return
+        if display_id in self.editable_pig_ids:
+            self.select_mini_actor(display_id)
+            return
+        self.status_var.set(
+            f"Reviewed ID {display_id} chưa có một actor scope duy nhất."
+        )
 
     def _mini_source_annotation(
         self,
@@ -1278,6 +1308,47 @@ class IdentityContinuityGui:
             reviewed_hidden=reviewed_hidden,
         )
 
+    def _mini_source_behavior_for_actor(self, actor_scope_id: str) -> str:
+        for frame_index in self.all_frames:
+            candidate = next(
+                (
+                    value
+                    for value in self.candidates_by_frame[frame_index]
+                    if value.pig_id == actor_scope_id
+                    and value.behavior in CANONICAL_BEHAVIORS
+                ),
+                None,
+            )
+            if candidate is not None:
+                return candidate.behavior
+        return ""
+
+    def _mini_attributes_for_actor(
+        self,
+        actor_scope_id: str,
+        reviewed_pig_id: str,
+    ) -> MiniCvatActorAttributes | None:
+        existing = self.mini_actor_attributes.get(actor_scope_id)
+        original_behavior = (
+            existing.original_behavior
+            if existing is not None
+            else self._mini_source_behavior_for_actor(actor_scope_id)
+        )
+        reviewed_behavior = (
+            existing.reviewed_behavior
+            if existing is not None
+            else original_behavior
+        )
+        if original_behavior not in CANONICAL_BEHAVIORS:
+            return None
+        return MiniCvatActorAttributes(
+            actor_scope_id=actor_scope_id,
+            original_pig_id=actor_scope_id,
+            reviewed_pig_id=reviewed_pig_id,
+            original_behavior=original_behavior,
+            reviewed_behavior=reviewed_behavior,
+        )
+
     def apply_mini_actor_attributes(self) -> None:
         if not self._ensure_mutable():
             return
@@ -1293,27 +1364,66 @@ class IdentityContinuityGui:
             )
             return
         if original_behavior not in CANONICAL_BEHAVIORS:
+            original_behavior = self._mini_source_behavior_for_actor(
+                self.active_pig_id
+            )
+        if original_behavior not in CANONICAL_BEHAVIORS:
             messagebox.showwarning(
                 "Không xác định được behavior nguồn",
                 "Không thể tạo sidecar burst khi behavior nguồn không chuẩn.",
                 parent=self.root,
             )
             return
-        prior = self.mini_actor_attributes.get(self.active_pig_id)
-        self.mini_actor_attributes[self.active_pig_id] = MiniCvatActorAttributes(
-            actor_scope_id=self.active_pig_id,
-            original_pig_id=self.active_pig_id,
-            reviewed_pig_id=reviewed_pig_id,
-            original_behavior=original_behavior,
-            reviewed_behavior=reviewed_behavior,
+        prior_attributes = dict(self.mini_actor_attributes)
+        self.mini_actor_attributes[self.active_pig_id] = (
+            MiniCvatActorAttributes(
+                actor_scope_id=self.active_pig_id,
+                original_pig_id=self.active_pig_id,
+                reviewed_pig_id=reviewed_pig_id,
+                original_behavior=original_behavior,
+                reviewed_behavior=reviewed_behavior,
+            )
         )
-        if not self.save(silent=True):
-            if prior is None:
-                self.mini_actor_attributes.pop(self.active_pig_id, None)
-            else:
-                self.mini_actor_attributes[self.active_pig_id] = prior
+        prior_owner = [
+            actor_id
+            for actor_id in self.editable_pig_ids
+            if actor_id != self.active_pig_id
+            and self._mini_display_id(actor_id) == reviewed_pig_id
+        ]
+        swapped_actor_id = ""
+        if len(prior_owner) == 1:
+            swapped_actor_id = prior_owner[0]
+            swapped_attributes = self._mini_attributes_for_actor(
+                swapped_actor_id,
+                self.active_pig_id,
+            )
+            if swapped_attributes is None:
+                self.mini_actor_attributes = prior_attributes
+                messagebox.showwarning(
+                    "Không thể hoán đổi ID",
+                    "Actor còn lại không có behavior nguồn hợp lệ để tạo sidecar.",
+                    parent=self.root,
+                )
+                return
+            self.mini_actor_attributes[swapped_actor_id] = swapped_attributes
+        elif len(prior_owner) > 1:
+            self.mini_actor_attributes = prior_attributes
+            messagebox.showwarning(
+                "ID đích đang mơ hồ",
+                "Có nhiều actor scope đang dùng Reviewed ID này; hãy sửa chúng trước.",
+                parent=self.root,
+            )
             return
-        self.status_var.set("Đã lưu ID và behavior áp dụng cho toàn burst.")
+        if not self.save(silent=True):
+            self.mini_actor_attributes = prior_attributes
+            return
+        if swapped_actor_id:
+            self.status_var.set(
+                f"Đã hoán đổi ID giữa {self.active_pig_id} và {swapped_actor_id}; "
+                "mọi bbox trong burst đã dùng mapping mới."
+            )
+        else:
+            self.status_var.set("Đã lưu ID và behavior áp dụng cho toàn burst.")
         self.show_current_frame()
 
     def save_mini_current_frame(self) -> None:
@@ -1487,6 +1597,9 @@ class IdentityContinuityGui:
             candidates = self.candidates_by_frame[self.current_frame_index]
             for index, candidate in enumerate(candidates, start=1):
                 text = candidate_label(candidate, index)
+                if candidate.pig_id in self.editable_pig_ids:
+                    mapped_id = self._mini_display_id(candidate.pig_id)
+                    text = f"{text} · scope {candidate.pig_id} → {mapped_id}"
                 if candidate is selected:
                     text = f"✓ {text}"
                 if candidate.pig_id not in self.editable_pig_ids:
