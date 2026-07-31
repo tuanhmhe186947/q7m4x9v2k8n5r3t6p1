@@ -1,5 +1,16 @@
 # Workflow
 
+## Classification V2 ROI path rule (2026-07-31)
+
+- Use `data/annotations/roi/ROI_annotations.toy_adjusted.coco.json` for
+  Behavior GUI, review exports, and future ROI-dependent feature rebuilds.
+- Do not default new Classification V2 commands to
+  `data/annotations/roi/ROI_annotations.coco.json`; that path is the old ROI
+  file retained for provenance.
+- When exporting or rebuilding any ROI-dependent features, record that the
+  adjusted ROI was used and recompute derived values rather than reusing
+  artifacts built against the old ROI file.
+
 ## Reviewed-data training handoff (2026-07-30)
 
 This is the single post-review sequence. Do not run steps marked

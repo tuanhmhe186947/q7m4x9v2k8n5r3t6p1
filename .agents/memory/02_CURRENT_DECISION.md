@@ -1,5 +1,16 @@
 # Current Decision
 
+## Classification V2 effective ROI authority (2026-07-31)
+
+- Effective ROI for Behavior GUI, future Classification V2 exports, and
+  ROI-dependent feature rebuilds is
+  `data/annotations/roi/ROI_annotations.toy_adjusted.coco.json`.
+- SHA256:
+  `d866a20accf9f66faf529e73905fcc9f5c4badcdb4bc559817b8b052ae444e9e`.
+- Any future ROI-dependent export must recompute from this adjusted ROI file.
+- `data/annotations/roi/ROI_annotations.coco.json` is preserved as the old
+  ROI file and is not the default Classification V2 review/export ROI.
+
 ## Reviewed-data training handoff checklist (2026-07-30)
 
 Current status is `REVIEW_IN_PROGRESS`; the operator reports the 300-item
