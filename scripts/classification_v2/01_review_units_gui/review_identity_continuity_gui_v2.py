@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import sys
 import tkinter as tk
 from collections import OrderedDict
@@ -36,8 +37,13 @@ from pig_behavior.classification_v2.review.identity_continuity_adjudication impo
     load_identity_cases,
     source_frame_index_for_review_frame,
 )
+from pig_behavior.classification_v2.review.identity_continuity_apply import (  # noqa: E402
+    IdentitySourceApplyError,
+    apply_identity_adjudication,
+)
 from pig_behavior.classification_v2.review.mini_cvat_adjudication import (  # noqa: E402
     HIDDEN_VALUES,
+    MINI_CVAT_SIDECAR_NAME,
     load_mini_cvat_sidecar,
     write_mini_cvat_sidecar,
 )
@@ -76,6 +82,9 @@ class GuiConfig:
     review_item_ids: tuple[str, ...]
     editable_pig_ids: tuple[str, ...]
     video_root: Path | None
+    apply_source_csvs: tuple[Path, ...]
+    apply_source_xml: Path | None
+    apply_group_id: str
 
 
 class CleanFrameCache:
@@ -438,11 +447,28 @@ class MiniCvatGuiV2:
             foreground="#154360",
         ).grid(row=8, column=0, sticky="ew", pady=(10, 0))
 
+        self.apply_source_button = ttk.Button(
+            side,
+            text="ÁP DỤNG VÀO CSV + XML NGUỒN",
+            command=self.apply_to_source_authority,
+            state=(
+                "normal"
+                if self.config.apply_source_csvs
+                and self.config.apply_source_xml is not None
+                else "disabled"
+            ),
+        )
+        self.apply_source_button.grid(
+            row=9,
+            column=0,
+            sticky="ew",
+            pady=(12, 0),
+        )
         ttk.Button(
             side,
             text="XÓA MỌI THAY ĐỔI THỬ NGHIỆM",
             command=self.reset_all_session_changes,
-        ).grid(row=9, column=0, sticky="ew", pady=(12, 0))
+        ).grid(row=10, column=0, sticky="ew", pady=(6, 0))
         self.root.bind("<Left>", lambda _event: self.step_frame(-1))
         self.root.bind("<Right>", lambda _event: self.step_frame(1))
         self.root.bind("<Escape>", lambda _event: self.restore_draft())
@@ -802,6 +828,89 @@ class MiniCvatGuiV2:
         self._load_draft_into_controls()
         self._render()
 
+    def apply_to_source_authority(self) -> None:
+        """Apply saved corrections to explicitly configured CSV/XML sources."""
+
+        if self.draft.dirty:
+            messagebox.showwarning(
+                "Draft chưa lưu",
+                (
+                    "Hãy bấm LƯU FRAME hoặc Esc trước khi áp dụng. "
+                    "Nút này không tự ghi draft chưa lưu."
+                ),
+                parent=self.root,
+            )
+            return
+        if (
+            not self.config.apply_source_csvs
+            or self.config.apply_source_xml is None
+        ):
+            messagebox.showwarning(
+                "Chưa cấu hình nguồn",
+                (
+                    "Cần truyền ít nhất một --apply-source-csv và đúng một "
+                    "--apply-source-xml khi mở GUI."
+                ),
+                parent=self.root,
+            )
+            return
+        target_lines = [
+            *(str(path) for path in self.config.apply_source_csvs),
+            str(self.config.apply_source_xml),
+        ]
+        confirmed = messagebox.askyesno(
+            "Áp dụng vào dữ liệu nguồn?",
+            (
+                "Công cụ sẽ preflight, backup và cập nhật nguyên tử các file "
+                "sau:\n\n"
+                + "\n".join(target_lines)
+                + "\n\nTiếp tục?"
+            ),
+            parent=self.root,
+        )
+        if not confirmed:
+            return
+        try:
+            self._persist()
+            self.status_var.set(
+                "Đang preflight và áp dụng CSV/XML; không đóng GUI..."
+            )
+            self.root.update_idletasks()
+            result = apply_identity_adjudication(
+                sidecar_path=self.output_dir / MINI_CVAT_SIDECAR_NAME,
+                csv_paths=self.config.apply_source_csvs,
+                xml_path=self.config.apply_source_xml,
+                audit_root=self.output_dir
+                / "identity_source_apply_generations",
+                group_id=self.config.apply_group_id,
+            )
+        except (
+            IdentitySourceApplyError,
+            OSError,
+            csv.Error,
+        ) as exc:
+            self.status_var.set(f"Áp dụng thất bại: {exc}")
+            messagebox.showerror(
+                "Không thể áp dụng",
+                str(exc),
+                parent=self.root,
+            )
+            return
+        self.status_var.set(
+            "Đã áp dụng identity review vào "
+            f"{result.changed_target_count} file; manifest: "
+            f"{result.manifest_path}"
+        )
+        messagebox.showinfo(
+            "Áp dụng hoàn tất",
+            (
+                f"Group: {result.group_id}\n"
+                f"File thay đổi: {result.changed_target_count}\n"
+                f"Manifest: {result.manifest_path}"
+            ),
+            parent=self.root,
+        )
+
     def reset_all_session_changes(self) -> None:
         """Discard every trial annotation in this isolated mini-CVAT sidecar."""
 
@@ -1064,6 +1173,29 @@ def parse_args(argv: list[str] | None = None) -> GuiConfig:
         required=True,
     )
     parser.add_argument("--video-root", type=Path)
+    parser.add_argument(
+        "--apply-source-csv",
+        action="append",
+        dest="apply_source_csvs",
+        default=[],
+        help=(
+            "Explicit raw/dense CSV to update from the saved sidecar. "
+            "Repeat for multiple source CSVs."
+        ),
+    )
+    parser.add_argument(
+        "--apply-source-xml",
+        type=Path,
+        help="Explicit original CVAT image XML to update.",
+    )
+    parser.add_argument(
+        "--apply-group-id",
+        default="",
+        help=(
+            "Optional exact burst/group id. Otherwise infer it from a "
+            "configured dense CSV and sidecar track IDs."
+        ),
+    )
     args = parser.parse_args(argv)
     review_item_ids = tuple(dict.fromkeys(args.review_item_ids))
     editable_pig_ids = tuple(dict.fromkeys(args.editable_pig_ids))
@@ -1071,6 +1203,15 @@ def parse_args(argv: list[str] | None = None) -> GuiConfig:
         parser.error("duplicate --review-item-id")
     if len(editable_pig_ids) != len(args.editable_pig_ids):
         parser.error("duplicate --editable-pig-id")
+    if len(args.apply_source_csvs) != len(
+        set(args.apply_source_csvs)
+    ):
+        parser.error("duplicate --apply-source-csv")
+    if bool(args.apply_source_csvs) != bool(args.apply_source_xml):
+        parser.error(
+            "--apply-source-csv and --apply-source-xml must be provided "
+            "together"
+        )
     return GuiConfig(
         review_units_csv=args.review_units_csv,
         frame_features_csv=args.frame_features_csv,
@@ -1079,6 +1220,11 @@ def parse_args(argv: list[str] | None = None) -> GuiConfig:
         review_item_ids=review_item_ids,
         editable_pig_ids=editable_pig_ids,
         video_root=args.video_root,
+        apply_source_csvs=tuple(
+            dict.fromkeys(Path(value) for value in args.apply_source_csvs)
+        ),
+        apply_source_xml=args.apply_source_xml,
+        apply_group_id=args.apply_group_id.strip(),
     )
 
 
