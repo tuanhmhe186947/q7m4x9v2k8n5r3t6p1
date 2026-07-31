@@ -34,6 +34,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 if str(PROJECT_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
+from pig_behavior.classification_v2.review.behavior_review_contract import (
+    CANONICAL_BEHAVIORS,
+)
 from pig_behavior.classification_v2.review.identity_continuity_adjudication import (
     ADDED_BBOX_MODE,
     CASE_SIDECAR_NAME,
@@ -53,6 +56,15 @@ from pig_behavior.classification_v2.review.identity_continuity_adjudication impo
     source_frame_index_for_review_frame,
     validate_adjudication,
     write_session_sidecars,
+)
+from pig_behavior.classification_v2.review.mini_cvat_adjudication import (
+    HIDDEN_VALUES,
+    MiniCvatActorAttributes,
+    MiniCvatAdjudicationError,
+    MiniCvatFrameAnnotation,
+    load_mini_cvat_sidecar,
+    validate_mini_cvat_state,
+    write_mini_cvat_sidecar,
 )
 
 WINDOW_TITLE = "Classification V2 — Hiệu chỉnh liên tục actor"
@@ -91,6 +103,7 @@ class IdentityGuiConfig:
     review_item_ids: tuple[str, ...]
     video_path: Path | None = None
     reopen_finalized: bool = False
+    editable_pig_ids: tuple[str, ...] = ()
 
 
 class RenderedFrameCache:
@@ -689,11 +702,58 @@ class IdentityContinuityGui:
             self.cases,
             self.candidates_by_frame,
         )
+        self.editable_pig_ids = tuple(
+            dict.fromkeys(
+                value.strip()
+                for value in config.editable_pig_ids
+                if value.strip()
+            )
+        )
+        self.mini_cvat_enabled = bool(self.editable_pig_ids)
+        if getattr(self, "mini_cvat_enabled", False):
+            known_pig_ids = {
+                candidate.pig_id
+                for candidates in self.candidates_by_frame.values()
+                for candidate in candidates
+                if candidate.pig_id
+            }
+            unknown_ids = sorted(set(self.editable_pig_ids) - known_pig_ids)
+            if unknown_ids:
+                raise IdentityAdjudicationError(
+                    "editable_pig_id_not_found=" + ",".join(unknown_ids)
+                )
         self.all_frames = tuple(
             sorted({frame for case in self.cases for frame in case.frame_indices})
         )
+        if getattr(self, "mini_cvat_enabled", False):
+            self.mini_actor_attributes, self.mini_frame_annotations = (
+                load_mini_cvat_sidecar(
+                    self.output_dir,
+                    source_type=self.cases[0].source_type,
+                    dataset_id=self.cases[0].dataset_id,
+                    video_key=self.cases[0].video_key,
+                    editable_actor_ids=self.editable_pig_ids,
+                    frame_indices=self.all_frames,
+                )
+            )
+            self.active_pig_id = self.editable_pig_ids[0]
+            self.mini_selected_keys = {
+                key: annotation.original_object_track_key
+                for key, annotation in self.mini_frame_annotations.items()
+                if annotation.original_object_track_key
+            }
+        else:
+            self.mini_actor_attributes = {}
+            self.mini_frame_annotations = {}
+            self.active_pig_id = ""
+            self.mini_selected_keys = {}
         self.current_frame_position, self.active_case_position = self._resume_position()
-        self.resumed = bool(self.selections or self.exclusions)
+        self.resumed = bool(
+            self.selections
+            or self.exclusions
+            or self.mini_actor_attributes
+            or self.mini_frame_annotations
+        )
         self.frame_cache = RenderedFrameCache()
         self.capture = cv2.VideoCapture(str(self.video_path))
         if not self.capture.isOpened():
@@ -757,6 +817,8 @@ class IdentityContinuityGui:
         self.current_frame_position = self.all_frames.index(frame_index)
 
     def _ensure_active_case_frame(self) -> None:
+        if getattr(self, "mini_cvat_enabled", False):
+            return
         if self.current_frame_index in self.active_case.frame_indices:
             return
         self._set_current_frame(
@@ -764,6 +826,13 @@ class IdentityContinuityGui:
         )
 
     def _resume_position(self) -> tuple[int, int]:
+        if getattr(self, "mini_cvat_enabled", False):
+            for actor_id in self.editable_pig_ids:
+                for frame_index in self.all_frames:
+                    if (actor_id, frame_index) not in self.mini_frame_annotations:
+                        self.active_pig_id = actor_id
+                        return self.all_frames.index(frame_index), 0
+            return self.all_frames.index(self.all_frames[0]), 0
         for case_position, case in enumerate(self.cases):
             if case.review_unit_id in self.exclusions:
                 continue
@@ -791,126 +860,184 @@ class IdentityContinuityGui:
         self.canvas.bind("<ButtonRelease-1>", self._on_canvas_release)
         self.canvas.bind("<Motion>", self._on_canvas_hover)
 
-        side = ttk.Frame(root, padding=8, width=440)
-        side.grid(row=0, column=1, sticky="ns")
+        side_host = ttk.Frame(root, padding=(0, 8, 8, 8))
+        side_host.grid(row=0, column=1, sticky="nsew")
+        side_host.columnconfigure(0, weight=1)
+        side_host.rowconfigure(0, weight=1)
+        side_canvas = tk.Canvas(
+            side_host,
+            width=460,
+            highlightthickness=0,
+            background="#f5f5f5",
+        )
+        side_scrollbar = ttk.Scrollbar(
+            side_host,
+            orient="vertical",
+            command=side_canvas.yview,
+        )
+        side_canvas.configure(yscrollcommand=side_scrollbar.set)
+        side_canvas.grid(row=0, column=0, sticky="nsew")
+        side_scrollbar.grid(row=0, column=1, sticky="ns")
+        side = ttk.Frame(side_canvas, padding=8)
+        side_window = side_canvas.create_window((0, 0), window=side, anchor="nw")
+
+        def update_side_scrollregion(_event: tk.Event[Any] | None = None) -> None:
+            side_canvas.configure(scrollregion=side_canvas.bbox("all"))
+
+        def resize_side_window(event: tk.Event[Any]) -> None:
+            side_canvas.itemconfigure(side_window, width=max(event.width, 440))
+
+        def scroll_side(event: tk.Event[Any]) -> None:
+            side_canvas.yview_scroll(-int(event.delta / 120), "units")
+
+        side.bind("<Configure>", update_side_scrollregion)
+        side_canvas.bind("<Configure>", resize_side_window)
+        side.bind("<Enter>", lambda _event: side_canvas.bind_all("<MouseWheel>", scroll_side))
+        side.bind("<Leave>", lambda _event: side_canvas.unbind_all("<MouseWheel>"))
+
         ttk.Label(
             side,
-            text="Chỉ hiệu chỉnh actor/bbox — không đổi nhãn hành vi",
-            wraplength=370,
+            text="Mini-CVAT cục bộ — bbox/ID/Hidden; behavior theo burst",
+            wraplength=420,
             foreground="#8b0000",
         ).grid(row=0, column=0, sticky="ew", pady=(0, 8))
-        ttk.Label(side, textvariable=self.info_var, wraplength=370).grid(
+        ttk.Label(side, textvariable=self.info_var, wraplength=420).grid(
             row=1,
             column=0,
             sticky="ew",
         )
         self.case_frame = ttk.LabelFrame(side, text="Các unit cần rà soát", padding=6)
         self.case_frame.grid(row=2, column=0, sticky="ew", pady=(10, 6))
-        self.candidate_frame = ttk.LabelFrame(side, text="BBox trong frame", padding=6)
+        self.candidate_frame = ttk.LabelFrame(side, text="Tất cả bbox trong frame", padding=6)
         self.candidate_frame.grid(row=3, column=0, sticky="ew", pady=6)
         bbox_detail = ttk.LabelFrame(side, text="BBox đang chỉnh", padding=6)
         bbox_detail.grid(row=4, column=0, sticky="ew", pady=6)
         ttk.Label(
             bbox_detail,
             textvariable=self.bbox_detail_var,
-            wraplength=410,
+            wraplength=420,
             justify="left",
         ).grid(row=0, column=0, sticky="ew")
         bbox_detail.columnconfigure(0, weight=1)
-        controls = ttk.LabelFrame(side, text="Điều khiển", padding=6)
+
+        controls = ttk.LabelFrame(side, text="Điều hướng và bbox", padding=6)
         controls.grid(row=5, column=0, sticky="ew", pady=6)
-        ttk.Button(controls, text="← Frame trước", command=lambda: self.step_frame(-1)).grid(
-            row=0,
-            column=0,
-            sticky="ew",
-            padx=2,
-            pady=2,
+        ttk.Button(controls, text="← Frame", command=lambda: self.step_frame(-1)).grid(
+            row=0, column=0, sticky="ew", padx=2, pady=2
         )
-        ttk.Button(controls, text="Frame tiếp →", command=lambda: self.step_frame(1)).grid(
-            row=0,
-            column=1,
-            sticky="ew",
-            padx=2,
-            pady=2,
+        ttk.Button(controls, text="Frame →", command=lambda: self.step_frame(1)).grid(
+            row=0, column=1, sticky="ew", padx=2, pady=2
         )
         ttk.Button(controls, text="Dùng bbox gốc", command=self.use_original_box).grid(
-            row=1,
-            column=0,
-            sticky="ew",
-            padx=2,
-            pady=2,
+            row=1, column=0, sticky="ew", padx=2, pady=2
         )
-        ttk.Button(
-            controls,
-            text="Xóa bbox frame",
-            command=self.clear_current_selection,
-        ).grid(
-            row=1,
-            column=1,
-            sticky="ew",
-            padx=2,
-            pady=2,
+        ttk.Button(controls, text="Bỏ chọn bbox", command=self.clear_current_selection).grid(
+            row=1, column=1, sticky="ew", padx=2, pady=2
         )
-        ttk.Button(controls, text="Loại unit hiện tại", command=self.exclude_active_case).grid(
-            row=4,
-            column=0,
-            sticky="ew",
-            padx=2,
-            pady=2,
+        ttk.Button(controls, text="Chỉnh bbox (E)", command=self.start_corrected_bbox).grid(
+            row=2, column=0, sticky="ew", padx=2, pady=2
         )
-        ttk.Button(controls, text="Khôi phục unit", command=self.restore_active_case).grid(
-            row=4,
-            column=1,
-            sticky="ew",
-            padx=2,
-            pady=2,
+        ttk.Button(controls, text="Thêm bbox", command=self.start_added_bbox).grid(
+            row=2, column=1, sticky="ew", padx=2, pady=2
         )
-        ttk.Button(
-            controls,
-            text="Chọn / chỉnh bbox (E)",
-            command=self.start_corrected_bbox,
-        ).grid(row=2, column=0, sticky="ew", padx=2, pady=2)
-        ttk.Button(
-            controls,
-            text="Thêm bbox bị mất",
-            command=self.start_added_bbox,
-        ).grid(row=2, column=1, sticky="ew", padx=2, pady=2)
-        ttk.Button(
-            controls,
-            text="Hủy thao tác (Esc)",
-            command=self.cancel_bbox_drawing,
-        ).grid(row=3, column=0, columnspan=2, sticky="ew", padx=2, pady=2)
-        ttk.Button(controls, text="Lưu sidecar", command=self.save).grid(
-            row=5,
-            column=0,
-            sticky="ew",
-            padx=2,
-            pady=2,
+        ttk.Button(controls, text="Hủy thao tác (Esc)", command=self.cancel_bbox_drawing).grid(
+            row=3, column=0, columnspan=2, sticky="ew", padx=2, pady=2
+        )
+        ttk.Button(controls, text="Loại unit (X)", command=self.exclude_active_case).grid(
+            row=4, column=0, sticky="ew", padx=2, pady=2
+        )
+        ttk.Button(controls, text="Khôi phục unit (R)", command=self.restore_active_case).grid(
+            row=4, column=1, sticky="ew", padx=2, pady=2
+        )
+        ttk.Button(controls, text="Lưu sidecar (Ctrl+S)", command=self.save).grid(
+            row=5, column=0, sticky="ew", padx=2, pady=2
         )
         ttk.Button(controls, text="Hoàn tất kiểm tra", command=self.finalize).grid(
-            row=5,
-            column=1,
-            sticky="ew",
-            padx=2,
-            pady=2,
+            row=5, column=1, sticky="ew", padx=2, pady=2
         )
-        for column in range(2):
-            controls.columnconfigure(column, weight=1)
+        controls.columnconfigure(0, weight=1)
+        controls.columnconfigure(1, weight=1)
+
+        if getattr(self, "mini_cvat_enabled", False):
+            self.mini_actor_frame = ttk.LabelFrame(
+                side,
+                text="Actor scope — ID và behavior áp dụng cả burst",
+                padding=6,
+            )
+            self.mini_actor_frame.grid(row=6, column=0, sticky="ew", pady=6)
+            self.mini_actor_id_var = tk.StringVar(value=self.active_pig_id)
+            self.mini_reviewed_id_var = tk.StringVar(value="")
+            self.mini_behavior_var = tk.StringVar(value="")
+            self.mini_hidden_var = tk.StringVar(value="")
+            self.mini_progress_var = tk.StringVar(value="")
+            self.mini_actor_buttons = ttk.Frame(self.mini_actor_frame)
+            self.mini_actor_buttons.grid(row=0, column=0, sticky="ew")
+            ttk.Label(self.mini_actor_frame, text="Reviewed ID (cả burst)").grid(
+                row=1, column=0, sticky="w", pady=(6, 0)
+            )
+            self.mini_reviewed_id_entry = ttk.Entry(
+                self.mini_actor_frame,
+                textvariable=self.mini_reviewed_id_var,
+                width=22,
+            )
+            self.mini_reviewed_id_entry.grid(row=2, column=0, sticky="ew")
+            ttk.Label(self.mini_actor_frame, text="Behavior (cả burst)").grid(
+                row=3, column=0, sticky="w", pady=(6, 0)
+            )
+            self.mini_behavior_combo = ttk.Combobox(
+                self.mini_actor_frame,
+                textvariable=self.mini_behavior_var,
+                values=sorted(CANONICAL_BEHAVIORS),
+                state="readonly",
+                width=22,
+            )
+            self.mini_behavior_combo.grid(row=4, column=0, sticky="ew")
+            ttk.Label(self.mini_actor_frame, text="Hidden (object/frame hiện tại)").grid(
+                row=5, column=0, sticky="w", pady=(6, 0)
+            )
+            self.mini_hidden_combo = ttk.Combobox(
+                self.mini_actor_frame,
+                textvariable=self.mini_hidden_var,
+                values=("", *sorted(HIDDEN_VALUES - {""})),
+                state="readonly",
+                width=22,
+            )
+            self.mini_hidden_combo.grid(row=6, column=0, sticky="ew")
+            ttk.Button(
+                self.mini_actor_frame,
+                text="Áp dụng ID + behavior cho cả burst",
+                command=self.apply_mini_actor_attributes,
+            ).grid(row=7, column=0, sticky="ew", pady=(8, 2))
+            ttk.Button(
+                self.mini_actor_frame,
+                text="Lưu object/frame hiện tại",
+                command=self.save_mini_current_frame,
+            ).grid(row=8, column=0, sticky="ew", pady=2)
+            ttk.Label(
+                self.mini_actor_frame,
+                textvariable=self.mini_progress_var,
+                wraplength=420,
+                foreground="#404040",
+            ).grid(row=9, column=0, sticky="ew", pady=(6, 0))
+            self.mini_actor_frame.columnconfigure(0, weight=1)
+
+        help_row = 7 if getattr(self, "mini_cvat_enabled", False) else 6
         ttk.Label(
             side,
             text=(
-                "Phím: ←/→ frame · Tab đổi unit · 1–9 chọn box · "
-                "E chỉnh bbox · A thêm bbox · Esc hủy thao tác · O bbox gốc · "
-                "U xóa · X loại · R khôi phục · F hoàn tất · Ctrl+S lưu"
+                "Phím: ←/→ frame · Tab đổi unit · 1–9 chọn bbox · "
+                "E chỉnh · Esc hủy · O bbox gốc · U bỏ chọn · Ctrl+S lưu"
             ),
-            wraplength=370,
+            wraplength=420,
             foreground="#404040",
-        ).grid(row=6, column=0, sticky="ew", pady=(8, 3))
-        ttk.Label(side, textvariable=self.status_var, wraplength=370).grid(
-            row=7,
+        ).grid(row=help_row, column=0, sticky="ew", pady=(8, 3))
+        status_row = help_row + 1
+        ttk.Label(side, textvariable=self.status_var, wraplength=420).grid(
+            row=status_row,
             column=0,
             sticky="ew",
         )
+        side.columnconfigure(0, weight=1)
 
     def _source_frame_index(self, review_frame_index: int) -> int:
         return source_frame_index_for_review_frame(
@@ -1002,7 +1129,233 @@ class IdentityContinuityGui:
     def _active_frame_key(self) -> tuple[str, int]:
         return self.active_case.review_unit_id, self.current_frame_index
 
+    def _mini_frame_key(self) -> tuple[str, int]:
+        return self.active_pig_id, self.current_frame_index
+
+    def _mini_current_candidate(self) -> FrameCandidate | None:
+        if not getattr(self, "mini_cvat_enabled", False) or not self.active_pig_id:
+            return None
+        key = getattr(self, "mini_selected_keys", {}).get(self._mini_frame_key(), "")
+        candidates = self.candidates_by_frame[self.current_frame_index]
+        if key:
+            return next(
+                (
+                    candidate
+                    for candidate in candidates
+                    if candidate.object_track_key == key
+                ),
+                None,
+            )
+        matches = [
+            candidate
+            for candidate in candidates
+            if candidate.pig_id == self.active_pig_id
+        ]
+        return matches[0] if len(matches) == 1 else None
+
+    def _mini_original_behavior(self) -> str:
+        candidate = self._mini_current_candidate()
+        if candidate is None:
+            return ""
+        return (
+            candidate.behavior
+            if candidate.behavior in CANONICAL_BEHAVIORS
+            else ""
+        )
+
+    def _mini_current_annotation(self) -> MiniCvatFrameAnnotation | None:
+        if not getattr(self, "mini_cvat_enabled", False):
+            return None
+        return self.mini_frame_annotations.get(self._mini_frame_key())
+
+    def _mini_effective_bbox(
+        self,
+    ) -> tuple[float, float, float, float] | None:
+        annotation = self._mini_current_annotation()
+        if annotation is not None:
+            return annotation.bbox
+        candidate = self._mini_current_candidate()
+        return None if candidate is None else candidate.bbox
+
+    def _mini_bbox_authority(self) -> str:
+        annotation = self._mini_current_annotation()
+        if annotation is None:
+            return "CHƯA LƯU"
+        if annotation.bbox_mode == ADDED_BBOX_MODE:
+            return "ADDED — bbox thêm trong sidecar"
+        if annotation.bbox_mode == CORRECTED_BBOX_MODE:
+            return "CORRECTED — bbox nguồn đã chỉnh"
+        return "SOURCE_BBOX — đã lưu"
+
+    def _refresh_mini_actor_controls(self) -> None:
+        if not getattr(self, "mini_cvat_enabled", False) or not hasattr(self, "mini_actor_frame"):
+            return
+        for child in self.mini_actor_buttons.winfo_children():
+            child.destroy()
+        for position, actor_id in enumerate(self.editable_pig_ids):
+            text = actor_id
+            if actor_id == self.active_pig_id:
+                text = f"✓ {actor_id}"
+            ttk.Button(
+                self.mini_actor_buttons,
+                text=text,
+                command=lambda value=actor_id: self.select_mini_actor(value),
+            ).grid(row=0, column=position, sticky="ew", padx=1, pady=1)
+            self.mini_actor_buttons.columnconfigure(position, weight=1)
+        attributes = self.mini_actor_attributes.get(self.active_pig_id)
+        candidate = self._mini_current_candidate()
+        original_behavior = (
+            candidate.behavior
+            if candidate is not None and candidate.behavior in CANONICAL_BEHAVIORS
+            else ""
+        )
+        self.mini_actor_id_var.set(self.active_pig_id)
+        self.mini_reviewed_id_var.set(
+            attributes.reviewed_pig_id if attributes else self.active_pig_id
+        )
+        self.mini_behavior_var.set(
+            attributes.reviewed_behavior if attributes else original_behavior
+        )
+        annotation = self._mini_current_annotation()
+        default_hidden = candidate.hidden if candidate is not None else ""
+        self.mini_hidden_var.set(
+            annotation.reviewed_hidden if annotation else default_hidden
+        )
+        saved_count = sum(
+            actor_id == self.active_pig_id
+            for actor_id, _frame_index in self.mini_frame_annotations
+        )
+        total_count = len(self.all_frames)
+        frame_state = "ĐÃ LƯU" if annotation else "CHƯA LƯU"
+        self.mini_progress_var.set(
+            f"Frame {self.current_frame_index}: {frame_state} · "
+            f"burst {saved_count}/{total_count} frame"
+        )
+
+    def select_mini_actor(self, actor_id: str) -> None:
+        if actor_id not in self.editable_pig_ids:
+            return
+        self.cancel_bbox_drawing(silent=True)
+        self.active_pig_id = actor_id
+        self.show_current_frame()
+
+    def _mini_source_annotation(
+        self,
+        *,
+        bbox: tuple[float, float, float, float] | None = None,
+        bbox_mode: str = "SOURCE_BBOX",
+    ) -> MiniCvatFrameAnnotation | None:
+        candidate = self._mini_current_candidate()
+        if candidate is None and bbox is None:
+            return None
+        annotation_bbox = bbox if bbox is not None else candidate.bbox
+        if candidate is None:
+            source_frame_index = self._source_frame_index(self.current_frame_index)
+            original_key = ""
+            original_track_id = ""
+            original_pig_id = self.active_pig_id
+            original_hidden = ""
+        else:
+            source_frame_index = candidate.source_frame_index
+            original_key = candidate.object_track_key
+            original_track_id = candidate.track_id
+            original_pig_id = candidate.pig_id
+            original_hidden = candidate.hidden
+        reviewed_hidden = self.mini_hidden_var.get().strip()
+        return MiniCvatFrameAnnotation(
+            actor_scope_id=self.active_pig_id,
+            frame_index=self.current_frame_index,
+            source_frame_index=source_frame_index,
+            original_object_track_key=original_key,
+            original_track_id=original_track_id,
+            original_pig_id=original_pig_id,
+            bbox_mode=bbox_mode,
+            x1=annotation_bbox[0],
+            y1=annotation_bbox[1],
+            x2=annotation_bbox[2],
+            y2=annotation_bbox[3],
+            original_hidden=original_hidden,
+            reviewed_hidden=reviewed_hidden,
+        )
+
+    def apply_mini_actor_attributes(self) -> None:
+        if not self._ensure_mutable():
+            return
+        reviewed_pig_id = self.mini_reviewed_id_var.get().strip()
+        reviewed_behavior = self.mini_behavior_var.get().strip()
+        candidate = self._mini_current_candidate()
+        original_behavior = candidate.behavior if candidate is not None else ""
+        if not reviewed_pig_id or reviewed_behavior not in CANONICAL_BEHAVIORS:
+            messagebox.showwarning(
+                "Thiếu thuộc tính burst",
+                "Chọn behavior chuẩn và nhập Reviewed ID trước khi lưu.",
+                parent=self.root,
+            )
+            return
+        if original_behavior not in CANONICAL_BEHAVIORS:
+            messagebox.showwarning(
+                "Không xác định được behavior nguồn",
+                "Không thể tạo sidecar burst khi behavior nguồn không chuẩn.",
+                parent=self.root,
+            )
+            return
+        prior = self.mini_actor_attributes.get(self.active_pig_id)
+        self.mini_actor_attributes[self.active_pig_id] = MiniCvatActorAttributes(
+            actor_scope_id=self.active_pig_id,
+            original_pig_id=self.active_pig_id,
+            reviewed_pig_id=reviewed_pig_id,
+            original_behavior=original_behavior,
+            reviewed_behavior=reviewed_behavior,
+        )
+        if not self.save(silent=True):
+            if prior is None:
+                self.mini_actor_attributes.pop(self.active_pig_id, None)
+            else:
+                self.mini_actor_attributes[self.active_pig_id] = prior
+            return
+        self.status_var.set("Đã lưu ID và behavior áp dụng cho toàn burst.")
+        self.show_current_frame()
+
+    def save_mini_current_frame(self) -> None:
+        if not self._ensure_mutable():
+            return
+        existing = self._mini_current_annotation()
+        if existing is None:
+            annotation = self._mini_source_annotation()
+        else:
+            annotation = self._mini_source_annotation(
+                bbox=existing.bbox,
+                bbox_mode=existing.bbox_mode,
+            )
+        if annotation is None:
+            messagebox.showwarning(
+                "Chưa có bbox",
+                "Chọn hoặc thêm bbox trước khi lưu frame/object.",
+                parent=self.root,
+            )
+            return
+        if annotation.reviewed_hidden not in HIDDEN_VALUES:
+            messagebox.showwarning(
+                "Thiếu Hidden",
+                "Chọn Yes, No hoặc Unclear cho object/frame hiện tại.",
+                parent=self.root,
+            )
+            return
+        key = self._mini_frame_key()
+        prior = self.mini_frame_annotations.get(key)
+        self.mini_frame_annotations[key] = annotation
+        if not self.save(silent=True):
+            if prior is None:
+                self.mini_frame_annotations.pop(key, None)
+            else:
+                self.mini_frame_annotations[key] = prior
+            return
+        self.status_var.set("Đã lưu bbox và Hidden của object/frame hiện tại.")
+        self.show_current_frame()
+
     def _active_selected_candidate(self) -> FrameCandidate | None:
+        if getattr(self, "mini_cvat_enabled", False):
+            return self._mini_current_candidate()
         selected_key = self.selections.get(self._active_frame_key(), "")
         if not selected_key or selected_key == MANUAL_BBOX_SELECTION_KEY:
             return None
@@ -1018,6 +1371,8 @@ class IdentityContinuityGui:
     def _active_effective_bbox(
         self,
     ) -> tuple[float, float, float, float] | None:
+        if getattr(self, "mini_cvat_enabled", False):
+            return self._mini_effective_bbox()
         edit = self.bbox_edits.get(self._active_frame_key())
         if edit is not None:
             return edit.bbox
@@ -1025,33 +1380,39 @@ class IdentityContinuityGui:
         return None if candidate is None else candidate.bbox
 
     def _active_bbox_authority(self) -> str:
+        if getattr(self, "mini_cvat_enabled", False):
+            return self._mini_bbox_authority()
         edit = self.bbox_edits.get(self._active_frame_key())
-        if edit is None:
-            return "SOURCE_BBOX" if self._active_selected_candidate() else "CHƯA CHỌN"
-        if edit.mode == ADDED_BBOX_MODE:
-            return "ADDED — bbox được thêm trong sidecar"
-        return "CORRECTED — bbox nguồn đã được chỉnh"
+        if edit is not None:
+            return edit.mode
+        if self._active_selected_candidate() is not None:
+            return "SOURCE_BBOX"
+        return "CHƯA CHỌN"
 
     def _refresh_bbox_detail(self) -> None:
         if not hasattr(self, "bbox_detail_var"):
             return
         selected = self._active_selected_candidate()
-        selected_key = self.selections.get(self._active_frame_key(), "")
         bbox = self._active_effective_bbox()
-        if selected_key == MANUAL_BBOX_SELECTION_KEY:
-            pig_id = self.active_case.original_pig_id or "?"
-            track_id = self.active_case.original_track_id or "?"
-            object_key = "manual sidecar bbox"
-        elif selected is not None:
+        if selected is not None:
             pig_id = selected.pig_id or "?"
             track_id = selected.track_id or "?"
             object_key = selected.object_track_key
+        elif getattr(self, "mini_cvat_enabled", False):
+            pig_id = self.active_pig_id or "?"
+            track_id = "manual"
+            object_key = "sidecar bbox added"
         else:
-            pig_id = "?"
-            track_id = "?"
+            pig_id = self.active_case.original_pig_id or "?"
+            track_id = self.active_case.original_track_id or "?"
             object_key = "chưa chọn"
         lines = [
             f"Trạng thái: {self._active_bbox_authority()}",
+            (
+                f"Actor scope: {self.active_pig_id}"
+                if getattr(self, "mini_cvat_enabled", False)
+                else ""
+            ),
             f"Pig ID: {pig_id} | Track ID: {track_id}",
             f"Object key: {object_key}",
         ]
@@ -1065,8 +1426,8 @@ class IdentityContinuityGui:
                 ]
             )
         else:
-            lines.append("Chọn bbox nguồn hoặc bấm “Thêm bbox bị mất”.")
-        self.bbox_detail_var.set("\n".join(lines))
+            lines.append("Chọn bbox nguồn hoặc bấm “Thêm bbox”.")
+        self.bbox_detail_var.set("\n".join(line for line in lines if line))
 
     def _case_progress(self, case: IdentityCase) -> tuple[int, int, str]:
         mapped = sum(
@@ -1078,6 +1439,18 @@ class IdentityContinuityGui:
     def _refresh_case_controls(self) -> None:
         for child in self.case_frame.winfo_children():
             child.destroy()
+        if getattr(self, "mini_cvat_enabled", False):
+            ttk.Label(
+                self.case_frame,
+                text=(
+                    "Mini-CVAT đang chỉnh theo actor scope. "
+                    "Behavior là một nhãn cho toàn burst; Hidden là frame/object."
+                ),
+                wraplength=420,
+                justify="left",
+            ).grid(row=0, column=0, sticky="ew")
+            self.case_frame.columnconfigure(0, weight=1)
+            return
         for index, case in enumerate(self.cases):
             mapped, total, status = self._case_progress(case)
             text = (
@@ -1096,6 +1469,35 @@ class IdentityContinuityGui:
     def _refresh_candidate_controls(self) -> None:
         for child in self.candidate_frame.winfo_children():
             child.destroy()
+        if getattr(self, "mini_cvat_enabled", False):
+            selected = self._mini_current_candidate()
+            annotation = self._mini_current_annotation()
+            if annotation is None:
+                summary = "Chọn một bbox rồi lưu object/frame; các ID ngoài scope chỉ xem."
+            else:
+                summary = (
+                    "✓ Object/frame đã lưu — kéo trực tiếp để di chuyển/resize."
+                )
+            ttk.Label(
+                self.candidate_frame,
+                text=summary,
+                foreground="#7a1f7a" if annotation is not None else "#303030",
+                wraplength=420,
+            ).grid(row=0, column=0, sticky="ew", pady=(0, 4))
+            candidates = self.candidates_by_frame[self.current_frame_index]
+            for index, candidate in enumerate(candidates, start=1):
+                text = candidate_label(candidate, index)
+                if candidate is selected:
+                    text = f"✓ {text}"
+                if candidate.pig_id not in self.editable_pig_ids:
+                    text = f"{text} (chỉ xem)"
+                ttk.Button(
+                    self.candidate_frame,
+                    text=text,
+                    command=lambda chosen=candidate: self.select_candidate(chosen),
+                ).grid(row=index, column=0, sticky="ew", pady=1)
+            self.candidate_frame.columnconfigure(0, weight=1)
+            return
         frame_key = self._active_frame_key()
         selected_key = self.selections.get(frame_key, "")
         edit = self.bbox_edits.get(frame_key)
@@ -1247,6 +1649,7 @@ class IdentityContinuityGui:
         self._refresh_case_controls()
         self._refresh_candidate_controls()
         self._refresh_bbox_detail()
+        self._refresh_mini_actor_controls()
         self._schedule_adjacent_prefetch()
 
     def set_active_case(self, position: int) -> None:
@@ -1257,12 +1660,18 @@ class IdentityContinuityGui:
 
     def step_frame(self, delta: int) -> None:
         self.cancel_bbox_drawing(silent=True)
-        frame_index = step_case_frame(
-            self.active_case.frame_indices,
-            self.current_frame_index,
-            delta,
-        )
-        self._set_current_frame(frame_index)
+        if getattr(self, "mini_cvat_enabled", False):
+            next_position = (
+                self.current_frame_position + delta
+            ) % len(self.all_frames)
+            self.current_frame_position = next_position
+        else:
+            frame_index = step_case_frame(
+                self.active_case.frame_indices,
+                self.current_frame_index,
+                delta,
+            )
+            self._set_current_frame(frame_index)
         self.show_current_frame()
 
     def _ensure_mutable(self) -> bool:
@@ -1285,6 +1694,22 @@ class IdentityContinuityGui:
         return None
 
     def select_candidate(self, candidate: FrameCandidate) -> None:
+        if getattr(self, "mini_cvat_enabled", False):
+            if candidate.pig_id not in self.editable_pig_ids:
+                self.status_var.set(
+                    "BBox này chỉ xem: actor không nằm trong --editable-pig-id."
+                )
+                return
+            self.cancel_bbox_drawing(silent=True)
+            self.active_pig_id = candidate.pig_id
+            self.mini_selected_keys[self._mini_frame_key()] = (
+                candidate.object_track_key
+            )
+            self.status_var.set(
+                f"Đã chọn {candidate.pig_id}; bbox/Hidden là của frame hiện tại."
+            )
+            self.show_current_frame()
+            return
         if not self._ensure_mutable():
             return
         if self.current_frame_index not in self.active_case.frame_indices:
@@ -1336,6 +1761,29 @@ class IdentityContinuityGui:
         self.show_current_frame()
 
     def use_original_box(self) -> None:
+        if getattr(self, "mini_cvat_enabled", False):
+            candidate = next(
+                (
+                    item
+                    for item in self.candidates_by_frame[self.current_frame_index]
+                    if item.pig_id == self.active_pig_id
+                ),
+                None,
+            )
+            if candidate is None:
+                messagebox.showerror(
+                    "Không có bbox nguồn",
+                    "Actor này không có bbox nguồn trong frame; dùng Thêm bbox.",
+                    parent=self.root,
+                )
+                return
+            self.mini_selected_keys[self._mini_frame_key()] = candidate.object_track_key
+            self.mini_frame_annotations.pop(self._mini_frame_key(), None)
+            if not self.save(silent=True):
+                return
+            self.status_var.set("Đã quay về bbox nguồn; chọn Hidden rồi lưu frame nếu cần.")
+            self.show_current_frame()
+            return
         original_key = self.active_case.original_object_track_key
         candidate = next(
             (
@@ -1356,6 +1804,20 @@ class IdentityContinuityGui:
 
     def clear_current_selection(self) -> None:
         if not self._ensure_mutable():
+            return
+        if getattr(self, "mini_cvat_enabled", False):
+            key = self._mini_frame_key()
+            prior_key = self.mini_selected_keys.pop(key, None)
+            prior_annotation = self.mini_frame_annotations.pop(key, None)
+            if not self.save(silent=True):
+                if prior_key is not None:
+                    self.mini_selected_keys[key] = prior_key
+                if prior_annotation is not None:
+                    self.mini_frame_annotations[key] = prior_annotation
+                self.status_var.set("Không lưu được thao tác; đã khôi phục trạng thái trước.")
+                return
+            self.status_var.set("Đã bỏ sidecar object/frame; bbox nguồn vẫn chỉ để xem.")
+            self.show_current_frame()
             return
         selection_key = (
             self.active_case.review_unit_id,
@@ -1442,6 +1904,14 @@ class IdentityContinuityGui:
         self.show_current_frame()
 
     def _completion_errors(self) -> list[str]:
+        if getattr(self, "mini_cvat_enabled", False):
+            return validate_mini_cvat_state(
+                self.mini_actor_attributes,
+                self.mini_frame_annotations,
+                editable_actor_ids=self.editable_pig_ids,
+                frame_indices=self.all_frames,
+                require_complete=True,
+            )
         return validate_adjudication(
             self.cases,
             self.candidates_by_frame,
@@ -1452,6 +1922,27 @@ class IdentityContinuityGui:
         )
 
     def finalize(self) -> None:
+        if getattr(self, "mini_cvat_enabled", False):
+            errors = self._completion_errors()
+            if errors:
+                messagebox.showerror(
+                    "Mini-CVAT chưa hoàn tất",
+                    "\n".join(errors),
+                    parent=self.root,
+                )
+                return
+            if not self.save(silent=True):
+                return
+            self.status_var.set(
+                "Mini-CVAT hoàn tất: sidecar đã lưu, chưa áp dụng vào dữ liệu nguồn."
+            )
+            messagebox.showinfo(
+                "Mini-CVAT sidecar complete",
+                "ID/behavior nhất quán theo burst; bbox/Hidden đã lưu từng frame.\n"
+                "Chưa có source annotation hay Behavior decision ledger nào bị thay đổi.",
+                parent=self.root,
+            )
+            return
         if self.finalized:
             messagebox.showinfo(
                 "Identity sidecars finalized",
@@ -1512,17 +2003,37 @@ class IdentityContinuityGui:
                 self.config.reviewer,
                 self.bbox_edits,
             )
-        except (IdentityAdjudicationError, OSError) as exc:
+            mini_path = None
+            if getattr(self, "mini_cvat_enabled", False):
+                mini_path = write_mini_cvat_sidecar(
+                    self.output_dir,
+                    reviewer=self.config.reviewer,
+                    source_type=self.cases[0].source_type,
+                    dataset_id=self.cases[0].dataset_id,
+                    video_key=self.cases[0].video_key,
+                    editable_actor_ids=self.editable_pig_ids,
+                    frame_indices=self.all_frames,
+                    actor_attributes=self.mini_actor_attributes,
+                    frame_annotations=self.mini_frame_annotations,
+                )
+        except (IdentityAdjudicationError, MiniCvatAdjudicationError, OSError) as exc:
             messagebox.showerror("Không thể lưu sidecar định danh", str(exc), parent=self.root)
             return False
         if not silent:
-            self.status_var.set(f"Saved: {frame_path.name}; {case_path.name}")
+            names = [frame_path.name, case_path.name]
+            if mini_path is not None:
+                names.append(mini_path.name)
+            self.status_var.set("Saved: " + "; ".join(names))
         return True
 
     def start_corrected_bbox(self) -> None:
         if not self._ensure_mutable():
             return
-        if not self.selections.get(self._active_frame_key()):
+        if getattr(self, "mini_cvat_enabled", False):
+            has_bbox = self._active_effective_bbox() is not None
+        else:
+            has_bbox = bool(self.selections.get(self._active_frame_key()))
+        if not has_bbox:
             messagebox.showwarning(
                 "Cần chọn bbox",
                 "Chọn bbox nguồn hoặc thêm bbox mới trước khi chỉnh.",
@@ -1538,7 +2049,10 @@ class IdentityContinuityGui:
     def start_added_bbox(self) -> None:
         if not self._ensure_mutable():
             return
-        if self.active_case.review_unit_id in self.exclusions:
+        if (
+            not getattr(self, "mini_cvat_enabled", False)
+            and self.active_case.review_unit_id in self.exclusions
+        ):
             messagebox.showwarning(
                 "Unit đã loại",
                 "Khôi phục unit trước khi thêm bbox bị mất.",
@@ -1625,6 +2139,34 @@ class IdentityContinuityGui:
         *,
         added: bool,
     ) -> bool:
+        if getattr(self, "mini_cvat_enabled", False):
+            candidate = self._mini_current_candidate()
+            if self.mini_hidden_var.get().strip() not in HIDDEN_VALUES:
+                self.status_var.set("Chọn Hidden trước khi lưu bbox.")
+                return False
+            if added or candidate is None:
+                bbox_mode = ADDED_BBOX_MODE
+            elif bbox == candidate.bbox:
+                bbox_mode = "SOURCE_BBOX"
+            else:
+                bbox_mode = CORRECTED_BBOX_MODE
+            annotation = self._mini_source_annotation(
+                bbox=bbox,
+                bbox_mode=bbox_mode,
+            )
+            if annotation is None:
+                self.status_var.set("Không thể xác định actor scope để lưu bbox.")
+                return False
+            key = self._mini_frame_key()
+            prior = self.mini_frame_annotations.get(key)
+            self.mini_frame_annotations[key] = annotation
+            if not self.save(silent=True):
+                if prior is None:
+                    self.mini_frame_annotations.pop(key, None)
+                else:
+                    self.mini_frame_annotations[key] = prior
+                return False
+            return True
         frame_key = self._active_frame_key()
         prior_selection = self.selections.get(frame_key)
         prior_edit = self.bbox_edits.get(frame_key)
@@ -1689,6 +2231,17 @@ class IdentityContinuityGui:
 
     def _on_canvas_press(self, event: tk.Event[Any]) -> None:
         point = float(event.x), float(event.y)
+        if getattr(self, "mini_cvat_enabled", False) and self._bbox_draw_mode != ADDED_BBOX_MODE:
+            candidate = candidate_at_display_point(
+                self.candidates_by_frame[self.current_frame_index],
+                point[0],
+                point[1],
+                self._display_scale,
+                self._display_offset,
+            )
+            if candidate is not None and candidate.pig_id != self.active_pig_id:
+                self.select_candidate(candidate)
+                return
         if self._bbox_draw_mode == ADDED_BBOX_MODE:
             if not self._ensure_mutable():
                 return
@@ -1801,7 +2354,13 @@ class IdentityContinuityGui:
         elif key == "right":
             self.step_frame(1)
         elif key == "tab":
-            self.set_active_case(self.active_case_position + 1)
+            if getattr(self, "mini_cvat_enabled", False):
+                position = self.editable_pig_ids.index(self.active_pig_id)
+                self.select_mini_actor(
+                    self.editable_pig_ids[(position + 1) % len(self.editable_pig_ids)]
+                )
+            else:
+                self.set_active_case(self.active_case_position + 1)
         elif key == "o":
             self.use_original_box()
         elif key == "e":
@@ -1877,6 +2436,15 @@ def parse_args() -> IdentityGuiConfig:
         help="Optional exact declared full-scene source_video_path override.",
     )
     parser.add_argument(
+        "--editable-pig-id",
+        action="append",
+        default=[],
+        help=(
+            "Pig ID editable in mini-CVAT mode; repeat for every actor "
+            "scope (for example ID_4 ID_5 ID_6)."
+        ),
+    )
+    parser.add_argument(
         "--reopen-finalized",
         action="store_true",
         help="Explicitly reopen a finalized identity sidecar session for amendment.",
@@ -1890,6 +2458,7 @@ def parse_args() -> IdentityGuiConfig:
         review_item_ids=tuple(args.review_item_ids),
         video_path=args.video_path,
         reopen_finalized=bool(args.reopen_finalized),
+        editable_pig_ids=tuple(args.editable_pig_id),
     )
 
 

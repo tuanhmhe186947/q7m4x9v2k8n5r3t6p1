@@ -74,6 +74,12 @@ FRAME_FEATURE_COLUMNS = (
     "bbox_valid",
     "source_video_path",
 )
+OPTIONAL_FRAME_FEATURE_COLUMNS = (
+    "behavior",
+    "behavior_label",
+    "hidden",
+    "Hidden",
+)
 FRAME_SIDECAR_NAME = "identity_continuity_frame_adjudications.csv"
 CASE_SIDECAR_NAME = "identity_continuity_case_adjudications.csv"
 SIDECAR_GENERATIONS_DIR_NAME = "identity_continuity_sidecar_generations"
@@ -157,6 +163,8 @@ class FrameCandidate:
     x2: float
     y2: float
     source_video_path: str
+    behavior: str = ""
+    hidden: str = ""
 
     @property
     def bbox(self) -> tuple[float, float, float, float]:
@@ -393,7 +401,8 @@ def load_frame_candidates(
     filtered_chunks: list[pd.DataFrame] = []
     for chunk in pd.read_csv(
         frame_features_csv,
-        usecols=lambda column: column in set(FRAME_FEATURE_COLUMNS),
+            usecols=lambda column: column
+            in set(FRAME_FEATURE_COLUMNS + OPTIONAL_FRAME_FEATURE_COLUMNS),
         dtype=str,
         chunksize=FRAME_FEATURE_CHUNK_ROWS,
     ):
@@ -415,7 +424,13 @@ def load_frame_candidates(
     if filtered_chunks:
         filtered = pd.concat(filtered_chunks, ignore_index=True)
     else:
-        filtered = pd.DataFrame(columns=(*FRAME_FEATURE_COLUMNS, "_frame_index"))
+        filtered = pd.DataFrame(
+            columns=(
+                *FRAME_FEATURE_COLUMNS,
+                *OPTIONAL_FRAME_FEATURE_COLUMNS,
+                "_frame_index",
+            )
+        )
     candidates: dict[int, list[FrameCandidate]] = {frame: [] for frame in wanted_frames}
     seen: set[tuple[int, str]] = set()
     for row in filtered.to_dict(orient="records"):
@@ -447,9 +462,11 @@ def load_frame_candidates(
                 x1=x1,
                 y1=y1,
                 x2=x2,
-                y2=y2,
-                source_video_path=_text(row.get("source_video_path")),
-            )
+            y2=y2,
+            source_video_path=_text(row.get("source_video_path")),
+            behavior=_text(row.get("behavior") or row.get("behavior_label")),
+            hidden=_text(row.get("hidden") or row.get("Hidden")),
+        )
         )
     missing_frames = sorted(frame for frame, values in candidates.items() if not values)
     if missing_frames:
