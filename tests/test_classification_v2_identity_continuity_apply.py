@@ -191,6 +191,126 @@ def _xml_value(box: ET.Element, name: str) -> str:
     raise AssertionError(name)
 
 
+def _write_cvat_sidecar(path: Path) -> None:
+    payload = {
+        "schema": MINI_CVAT_SCHEMA,
+        "reviewer": "reviewer-cvat",
+        "source_type": "cvat_tracking_xml",
+        "dataset_id": "cvat_tracking_scene-a",
+        "video_key": "scene-a",
+        "editable_actor_ids": ["ID_7"],
+        "frame_indices": [10, 11],
+        "actor_attributes": [
+            {
+                "actor_scope_id": "ID_7",
+                "original_pig_id": "ID_7",
+                "reviewed_pig_id": "ID_7",
+                "original_behavior": "sitting",
+                "reviewed_behavior": "lying",
+            }
+        ],
+        "frame_annotations": [
+            _annotation("ID_7", "6", 10, (111.0, 112.0, 131.0, 132.0))
+        ],
+        "behavior_decision_ledger_touched": "NO",
+        "review_manifest_changed": "NO",
+        "model_x_forbidden": "YES",
+        "source_annotations_changed": "NO",
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+
+def _write_cvat_csv(path: Path) -> None:
+    fieldnames = [
+        "source_type",
+        "dataset_id",
+        "video_key",
+        "frame_index",
+        "track_id",
+        "pig_id",
+        "behavior",
+        "behavior_coarse",
+        "x1_raw",
+        "y1_raw",
+        "x2_raw",
+        "y2_raw",
+        "x1",
+        "y1",
+        "x2",
+        "y2",
+        "bbox_valid",
+        "image_width",
+        "image_height",
+    ]
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        for frame_index in (9, 10, 11, 12):
+            writer.writerow(
+                {
+                    "source_type": "cvat_tracking_xml",
+                    "dataset_id": "cvat_tracking_scene-a",
+                    "video_key": "scene-a",
+                    "frame_index": frame_index,
+                    "track_id": "6",
+                    "pig_id": "ID_7",
+                    "behavior": "sitting",
+                    "behavior_coarse": "resting",
+                    "x1_raw": 10.0,
+                    "y1_raw": 10.0,
+                    "x2_raw": 30.0,
+                    "y2_raw": 30.0,
+                    "x1": 10.0,
+                    "y1": 10.0,
+                    "x2": 30.0,
+                    "y2": 30.0,
+                    "bbox_valid": "True",
+                    "image_width": 200,
+                    "image_height": 100,
+                }
+            )
+
+
+def _write_cvat_track_xml(path: Path) -> None:
+    root = ET.Element("annotations")
+    meta = ET.SubElement(root, "meta")
+    task = ET.SubElement(meta, "task")
+    ET.SubElement(task, "name").text = "scene-a"
+    track = ET.SubElement(
+        root,
+        "track",
+        {"id": "6", "label": "Pig_7", "source": "file"},
+    )
+    for frame_index in (9, 10, 11, 12):
+        box = ET.SubElement(
+            track,
+            "box",
+            {
+                "frame": str(frame_index),
+                "outside": "0",
+                "occluded": "0",
+                "keyframe": "1",
+                "xtl": "10",
+                "ytl": "10",
+                "xbr": "30",
+                "ybr": "30",
+                "z_order": "0",
+            },
+        )
+        for name, value in (
+            ("ID", "ID_7"),
+            ("Behavior", "sitting"),
+            ("Hidden", "No"),
+        ):
+            attribute = ET.SubElement(box, "attribute", {"name": name})
+            attribute.text = value
+    ET.ElementTree(root).write(
+        path,
+        encoding="utf-8",
+        xml_declaration=True,
+    )
+
+
 def test_apply_updates_dense_csv_and_original_xml_with_backups(
     tmp_path: Path,
 ) -> None:
@@ -254,6 +374,102 @@ def test_apply_updates_dense_csv_and_original_xml_with_backups(
     assert _xml_value(id4_box, "Behavior") == "move"
     assert id4_box.attrib["xtl"] == "11"
     assert id4_box.attrib["source"] == "manual"
+
+
+def test_cvat_track_apply_is_limited_to_selected_interval(
+    tmp_path: Path,
+) -> None:
+    sidecar = tmp_path / "mini_cvat_adjudication.json"
+    source_csv = tmp_path / "merged_frame_objects.csv"
+    xml_path = tmp_path / "scene-a.xml"
+    _write_cvat_sidecar(sidecar)
+    _write_cvat_csv(source_csv)
+    _write_cvat_track_xml(xml_path)
+
+    result = apply_identity_adjudication(
+        sidecar_path=sidecar,
+        csv_paths=(source_csv,),
+        xml_path=xml_path,
+        audit_root=tmp_path / "audit",
+        group_id="scene-a",
+    )
+
+    assert result.changed_target_count == 2
+    with source_csv.open(encoding="utf-8", newline="") as handle:
+        csv_rows = {
+            int(row["frame_index"]): row for row in csv.DictReader(handle)
+        }
+    assert csv_rows[9]["behavior"] == "sitting"
+    assert csv_rows[10]["behavior"] == "lying"
+    assert csv_rows[11]["behavior"] == "lying"
+    assert csv_rows[12]["behavior"] == "sitting"
+    assert csv_rows[10]["x1"] == "111"
+    assert csv_rows[11]["x1"] == "10.0"
+
+    track = ET.parse(xml_path).getroot().find("track")
+    assert track is not None
+    boxes = {
+        int(box.attrib["frame"]): box for box in track.findall("box")
+    }
+    assert _xml_value(boxes[9], "Behavior") == "sitting"
+    assert _xml_value(boxes[10], "Behavior") == "lying"
+    assert _xml_value(boxes[11], "Behavior") == "lying"
+    assert _xml_value(boxes[12], "Behavior") == "sitting"
+    assert boxes[10].attrib["xtl"] == "111"
+    assert boxes[11].attrib["xtl"] == "10"
+
+
+def test_cvat_unchanged_behavior_preserves_frame_labels(
+    tmp_path: Path,
+) -> None:
+    sidecar = tmp_path / "mini_cvat_adjudication.json"
+    source_csv = tmp_path / "merged_frame_objects.csv"
+    xml_path = tmp_path / "scene-a.xml"
+    _write_cvat_sidecar(sidecar)
+    sidecar_payload = json.loads(sidecar.read_text(encoding="utf-8"))
+    sidecar_payload["actor_attributes"][0]["reviewed_behavior"] = "sitting"
+    sidecar.write_text(json.dumps(sidecar_payload), encoding="utf-8")
+
+    _write_cvat_csv(source_csv)
+    with source_csv.open(encoding="utf-8", newline="") as handle:
+        csv_rows = list(csv.DictReader(handle))
+        fieldnames = list(csv_rows[0])
+    csv_rows[2]["behavior"] = "lying"
+    with source_csv.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(csv_rows)
+
+    _write_cvat_track_xml(xml_path)
+    tree = ET.parse(xml_path)
+    frame_11 = tree.getroot().find("./track/box[@frame='11']")
+    assert frame_11 is not None
+    behavior = next(
+        attribute
+        for attribute in frame_11.findall("attribute")
+        if attribute.attrib["name"] == "Behavior"
+    )
+    behavior.text = "lying"
+    tree.write(xml_path, encoding="utf-8", xml_declaration=True)
+
+    apply_identity_adjudication(
+        sidecar_path=sidecar,
+        csv_paths=(source_csv,),
+        xml_path=xml_path,
+        audit_root=tmp_path / "audit",
+        group_id="scene-a",
+    )
+
+    with source_csv.open(encoding="utf-8", newline="") as handle:
+        applied_rows = {
+            int(row["frame_index"]): row for row in csv.DictReader(handle)
+        }
+    assert applied_rows[11]["behavior"] == "lying"
+    applied_frame_11 = ET.parse(xml_path).getroot().find(
+        "./track/box[@frame='11']"
+    )
+    assert applied_frame_11 is not None
+    assert _xml_value(applied_frame_11, "Behavior") == "lying"
 
 
 def test_derived_feature_csv_is_rejected_without_modification(

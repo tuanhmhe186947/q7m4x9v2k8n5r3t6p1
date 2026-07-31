@@ -200,7 +200,11 @@ def _image_scope(value: str) -> tuple[str, int] | None:
 
 
 def _csv_group_and_frame(row: Mapping[str, str]) -> tuple[str, int] | None:
-    group_id = _text(row.get("group_id")) or _text(row.get("clip_id"))
+    group_id = (
+        _text(row.get("group_id"))
+        or _text(row.get("clip_id"))
+        or _text(row.get("video_key"))
+    )
     frame_value = _text(row.get("frame_index"))
     if group_id and frame_value:
         return group_id, _integer(frame_value, field="frame_index")
@@ -246,9 +250,33 @@ def _csv_kind(fieldnames: Sequence[str]) -> str:
         "img_name" in fields or "image_name" in fields
     ):
         return "anchor_frame_objects"
+    if {
+        "video_key",
+        "track_id",
+        "frame_index",
+        "pig_id",
+        "behavior",
+        "x1",
+        "y1",
+        "x2",
+        "y2",
+    }.issubset(fields):
+        return "cvat_frame_objects"
     raise IdentitySourceApplyError(
         f"unsupported_identity_csv_schema={sorted(fields)[:20]}"
     )
+
+
+def _behavior_change_applies_to_frame(
+    snapshot: IdentitySnapshot,
+    attributes: MiniCvatActorAttributes,
+    frame_index: int,
+) -> bool:
+    if attributes.reviewed_behavior == attributes.original_behavior:
+        return False
+    if snapshot.source_type == "cvat_tracking_xml":
+        return frame_index in snapshot.frame_indices
+    return True
 
 
 def _original_track_ids(snapshot: IdentitySnapshot) -> set[str]:
@@ -452,24 +480,37 @@ def _write_csv_target(
                 matched_actor_rows += 1
                 frame_index = scope[1]
                 attributes = snapshot.actor_attributes[actor_id]
-                if _set_if_changed(
-                    row,
-                    "behavior",
-                    attributes.reviewed_behavior,
+                if _behavior_change_applies_to_frame(
+                    snapshot,
+                    attributes,
+                    frame_index,
                 ):
-                    behavior_updates += 1
-                if "behavior_coarse" in row:
-                    row["behavior_coarse"] = behavior_to_coarse(
-                        attributes.reviewed_behavior
-                    )
-                if "label_source" in row:
-                    row["label_source"] = "human_identity_adjudication"
-                if "behavior_authority_policy" in row:
-                    row["behavior_authority_policy"] = (
-                        "human_identity_adjudication_burst"
-                    )
-                if "behavior_disagrees_with_authority" in row:
-                    row["behavior_disagrees_with_authority"] = "False"
+                    if _set_if_changed(
+                        row,
+                        "behavior",
+                        attributes.reviewed_behavior,
+                    ):
+                        behavior_updates += 1
+                    if "behavior_coarse" in row:
+                        row["behavior_coarse"] = behavior_to_coarse(
+                            attributes.reviewed_behavior
+                        )
+                    if "label_source" in row:
+                        row["label_source"] = (
+                            "human_identity_adjudication"
+                        )
+                    if "behavior_authority_policy" in row:
+                        policy_scope = (
+                            "interval"
+                            if snapshot.source_type == "cvat_tracking_xml"
+                            else "burst"
+                        )
+                        row["behavior_authority_policy"] = (
+                            "human_identity_adjudication_"
+                            f"{policy_scope}"
+                        )
+                    if "behavior_disagrees_with_authority" in row:
+                        row["behavior_disagrees_with_authority"] = "False"
                 annotation = snapshot.frame_annotations.get(
                     (actor_id, frame_index)
                 )
@@ -539,7 +580,7 @@ def _write_csv_target(
         }
     }
     missing = sorted(expected_annotations.difference(matched_annotations))
-    if kind == "dense_frame_objects" and missing:
+    if kind in {"dense_frame_objects", "cvat_frame_objects"} and missing:
         raise IdentitySourceApplyError(
             f"csv_dense_annotations_unmatched={path}:{missing[:10]}"
         )
@@ -595,6 +636,207 @@ def _set_xml_attribute(box: ET.Element, name: str, value: str) -> bool:
     return True
 
 
+def _cvat_track_actor_map(
+    snapshot: IdentitySnapshot,
+    root: ET.Element,
+) -> dict[str, ET.Element]:
+    tracks_by_id: dict[str, ET.Element] = {}
+    for track in root.findall(".//track"):
+        track_id = _text(track.attrib.get("id"))
+        if not track_id or track_id in tracks_by_id:
+            raise IdentitySourceApplyError(
+                f"xml_duplicate_or_blank_track_id={track_id}"
+            )
+        tracks_by_id[track_id] = track
+
+    actor_tracks: dict[str, ET.Element] = {}
+    for actor_id, attributes in snapshot.actor_attributes.items():
+        track_ids = {
+            annotation.original_track_id
+            for annotation in snapshot.frame_annotations.values()
+            if annotation.actor_scope_id == actor_id
+            and annotation.original_track_id
+        }
+        if not track_ids:
+            track_ids = {
+                track_id
+                for track_id, track in tracks_by_id.items()
+                if any(
+                    _xml_attribute_text(box, "ID")
+                    == attributes.original_pig_id
+                    for box in track.findall("box")
+                )
+            }
+        if len(track_ids) != 1:
+            raise IdentitySourceApplyError(
+                "xml_track_actor_mapping_ambiguous="
+                f"{actor_id}:{sorted(track_ids)}"
+            )
+        track_id = next(iter(track_ids))
+        track = tracks_by_id.get(track_id)
+        if track is None:
+            raise IdentitySourceApplyError(
+                f"xml_track_not_found={actor_id}:{track_id}"
+            )
+        actor_tracks[actor_id] = track
+    return actor_tracks
+
+
+def _write_cvat_track_xml_target(
+    snapshot: IdentitySnapshot,
+    tree: ET.ElementTree,
+    path: Path,
+    *,
+    group_id: str,
+    temporary_path: Path,
+) -> dict[str, Any]:
+    root = tree.getroot()
+    if group_id != snapshot.video_key:
+        raise IdentitySourceApplyError(
+            "xml_track_group_sidecar_mismatch="
+            f"{group_id}:{snapshot.video_key}"
+        )
+    task_name = _text(root.findtext("./meta/task/name"))
+    if not task_name.startswith(group_id):
+        raise IdentitySourceApplyError(
+            f"xml_track_task_mismatch={path}:{task_name}:{group_id}"
+        )
+
+    actor_tracks = _cvat_track_actor_map(snapshot, root)
+    behavior_updates = 0
+    bbox_updates = 0
+    identity_updates = 0
+    hidden_updates = 0
+    matched_actor_rows = 0
+    matched_annotations: set[tuple[str, int]] = set()
+    missing_behavior_frames: list[tuple[str, int]] = []
+
+    for actor_id, track in actor_tracks.items():
+        attributes = snapshot.actor_attributes[actor_id]
+        boxes_by_frame: dict[int, ET.Element] = {}
+        for box in track.findall("box"):
+            frame_index = _integer(
+                _text(box.attrib.get("frame")),
+                field="xml_track_frame",
+            )
+            if frame_index in boxes_by_frame:
+                raise IdentitySourceApplyError(
+                    "xml_duplicate_track_frame="
+                    f"{group_id}:{track.attrib.get('id')}:{frame_index}"
+                )
+            boxes_by_frame[frame_index] = box
+
+        for frame_index in snapshot.frame_indices:
+            box = boxes_by_frame.get(frame_index)
+            if box is None:
+                missing_behavior_frames.append((actor_id, frame_index))
+                continue
+            matched_actor_rows += 1
+            if _behavior_change_applies_to_frame(
+                snapshot,
+                attributes,
+                frame_index,
+            ) and _set_xml_attribute(
+                box,
+                "Behavior",
+                attributes.reviewed_behavior,
+            ):
+                behavior_updates += 1
+
+            annotation = snapshot.frame_annotations.get(
+                (actor_id, frame_index)
+            )
+            if annotation is None:
+                continue
+            matched_annotations.add((actor_id, frame_index))
+            bbox_changed = False
+            for column, value in zip(
+                ("xtl", "ytl", "xbr", "ybr"),
+                annotation.bbox,
+                strict=True,
+            ):
+                rendered = _float_text(value)
+                if _text(box.attrib.get(column)) != rendered:
+                    box.set(column, rendered)
+                    bbox_changed = True
+            if bbox_changed:
+                bbox_updates += 1
+            if _set_xml_attribute(
+                box,
+                "ID",
+                annotation.reviewed_pig_id,
+            ):
+                identity_updates += 1
+            if _set_xml_attribute(
+                box,
+                "Hidden",
+                annotation.reviewed_hidden,
+            ):
+                hidden_updates += 1
+
+    if missing_behavior_frames:
+        raise IdentitySourceApplyError(
+            "xml_track_behavior_frames_unmatched="
+            f"{path}:{missing_behavior_frames[:10]}"
+        )
+    missing_annotations = sorted(
+        set(snapshot.frame_annotations).difference(matched_annotations)
+    )
+    if missing_annotations:
+        raise IdentitySourceApplyError(
+            "xml_track_annotations_unmatched="
+            f"{path}:{missing_annotations[:10]}"
+        )
+
+    frame_ids: dict[int, list[str]] = {}
+    selected_frames = set(snapshot.frame_indices)
+    for track in root.findall(".//track"):
+        for box in track.findall("box"):
+            frame_index = _integer(
+                _text(box.attrib.get("frame")),
+                field="xml_track_frame",
+            )
+            if frame_index not in selected_frames:
+                continue
+            pig_id = _xml_attribute_text(box, "ID")
+            if pig_id:
+                frame_ids.setdefault(frame_index, []).append(pig_id)
+    duplicates = {
+        frame_index: sorted(
+            pig_id
+            for pig_id in set(pig_ids)
+            if pig_ids.count(pig_id) > 1
+        )
+        for frame_index, pig_ids in frame_ids.items()
+    }
+    duplicates = {
+        frame_index: pig_ids
+        for frame_index, pig_ids in duplicates.items()
+        if pig_ids
+    }
+    if duplicates:
+        raise IdentitySourceApplyError(
+            f"xml_duplicate_reviewed_ids={path}:{duplicates}"
+        )
+
+    ET.indent(tree, space=" ")
+    tree.write(
+        temporary_path,
+        encoding="utf-8",
+        xml_declaration=True,
+        short_empty_elements=True,
+    )
+    return {
+        "kind": "cvat_track_xml",
+        "row_count": len(root.findall(".//box")),
+        "behavior_updates": behavior_updates,
+        "bbox_updates": bbox_updates,
+        "identity_updates": identity_updates,
+        "hidden_updates": hidden_updates,
+        "matched_actor_rows": matched_actor_rows,
+    }
+
+
 def _write_xml_target(
     snapshot: IdentitySnapshot,
     path: Path,
@@ -607,6 +849,18 @@ def _write_xml_target(
     except (ET.ParseError, OSError) as exc:
         raise IdentitySourceApplyError(f"xml_unreadable={path}") from exc
     root = tree.getroot()
+    tracks = root.findall(".//track")
+    images = root.findall(".//image")
+    if tracks and images:
+        raise IdentitySourceApplyError(f"xml_mixed_modes_unsupported={path}")
+    if tracks:
+        return _write_cvat_track_xml_target(
+            snapshot,
+            tree,
+            path,
+            group_id=group_id,
+            temporary_path=temporary_path,
+        )
     behavior_updates = 0
     bbox_updates = 0
     identity_updates = 0
@@ -635,7 +889,11 @@ def _write_xml_target(
             if box is None:
                 continue
             matched_actor_rows += 1
-            if _set_xml_attribute(
+            if _behavior_change_applies_to_frame(
+                snapshot,
+                attributes,
+                frame_index,
+            ) and _set_xml_attribute(
                 box,
                 "Behavior",
                 attributes.reviewed_behavior,
