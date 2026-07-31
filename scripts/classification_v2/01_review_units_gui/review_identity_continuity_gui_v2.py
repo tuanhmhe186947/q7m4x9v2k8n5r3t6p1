@@ -165,7 +165,9 @@ def resolve_video_path(
             video_root / f"{cases[0].video_key}.mp4",
             video_root / video_key.with_suffix(".mp4"),
         )
-        matched = [path.resolve() for path in guesses if path.is_file()]
+        matched = sorted(
+            {path.resolve() for path in guesses if path.is_file()}
+        )
         if len(matched) == 1:
             return matched[0]
     raise IdentityAdjudicationError(

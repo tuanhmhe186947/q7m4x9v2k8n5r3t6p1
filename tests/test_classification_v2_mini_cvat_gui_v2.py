@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 from pig_behavior.classification_v2.review.identity_continuity_adjudication import (
     FrameCandidate,
@@ -31,6 +32,23 @@ def _load_gui():
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
+
+
+def test_resolve_video_path_deduplicates_flat_video_guess(
+    tmp_path: Path,
+) -> None:
+    module = _load_gui()
+    video_key = "Pigs291119_000216_30fps"
+    video_path = tmp_path / f"{video_key}.mp4"
+    video_path.write_bytes(b"video-placeholder")
+
+    resolved = module.resolve_video_path(
+        (SimpleNamespace(video_key=video_key),),
+        {},
+        tmp_path,
+    )
+
+    assert resolved == video_path.resolve()
 
 
 def _candidate(actor_id: str, x1: float) -> FrameCandidate:
