@@ -80,6 +80,66 @@ def test_render_distinguishes_original_and_selected_box_without_behavior_label()
     assert "behavior" not in module.candidate_label(candidates[0]).casefold()
 
 
+def test_show_current_frame_keeps_source_clean_and_draws_bbox_layers() -> None:
+    module = _load("identity_continuity_gui_clean_source")
+
+    class _Canvas:
+        def __init__(self) -> None:
+            self.image = None
+            self.rectangles = []
+
+        def delete(self, _tag: str) -> None:
+            return None
+
+        def create_image(self, *_args, **kwargs) -> None:
+            self.image = kwargs["image"]
+
+        def create_rectangle(self, *coords, **_kwargs) -> None:
+            self.rectangles.append(coords)
+
+        def create_text(self, *_args, **_kwargs) -> None:
+            return None
+
+    class _Var:
+        def set(self, _value: str) -> None:
+            return None
+
+    gui = module.IdentityContinuityGui.__new__(module.IdentityContinuityGui)
+    gui.cases = (_case(),)
+    gui.active_case_position = 0
+    gui.all_frames = (3,)
+    gui.current_frame_position = 0
+    gui.candidates_by_frame = {3: (_candidate("actor-a", 10.0),)}
+    gui.selections = {}
+    gui.bbox_edits = {}
+    gui.mini_cvat_enabled = False
+    gui.canvas = _Canvas()
+    gui.info_var = _Var()
+    gui._display_scale = 1.0
+    gui._display_offset = (0, 0)
+    gui._source_image_size = (100, 60)
+    gui._ensure_active_case_frame = lambda: None
+    gui._decode_frame = lambda _frame: Image.new("RGB", (100, 60), "white")
+    gui._fit_to_canvas = lambda image: image
+    gui._draw_bbox_editor_overlay = lambda: None
+    gui._refresh_case_controls = lambda: None
+    gui._refresh_candidate_controls = lambda: None
+    gui._refresh_bbox_detail = lambda: None
+    gui._refresh_mini_actor_controls = lambda: None
+    gui._schedule_adjacent_prefetch = lambda: None
+    gui._case_progress = lambda _case: (0, 1, "PENDING")
+    gui._source_frame_index = lambda _frame: 103
+    module.render_identity_frame = lambda *_args: (_ for _ in ()).throw(
+        AssertionError("clean-frame renderer must not be called")
+    )
+    module.ImageTk.PhotoImage = lambda image: image
+
+    gui.show_current_frame()
+
+    assert gui.canvas.image.getpixel((10, 10)) == (255, 255, 255)
+    assert gui.canvas.rectangles
+
+
 def test_click_mapping_uses_display_scale_and_smallest_overlapping_box() -> None:
     module = _load("identity_continuity_gui_click")
     large = FrameCandidate(

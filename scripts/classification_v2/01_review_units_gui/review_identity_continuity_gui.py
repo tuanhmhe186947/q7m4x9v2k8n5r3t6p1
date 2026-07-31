@@ -1907,6 +1907,77 @@ class IdentityContinuityGui:
             tags=("bbox-editor",),
         )
 
+    def _draw_candidate_overlays(
+        self,
+        candidates: Sequence[FrameCandidate],
+        cases: Sequence[IdentityCase],
+        selected_by_case: Mapping[str, str],
+        active_case_id: str,
+    ) -> None:
+        """Draw source candidates as independent canvas layers."""
+        selected_keys = set(selected_by_case.values())
+        selected_case_ids = {
+            case_id for case_id, selected_key in selected_by_case.items() if selected_key
+        }
+        for position, candidate in enumerate(candidates, start=1):
+            if getattr(self, "mini_cvat_enabled", False):
+                saved = self.mini_frame_annotations.get(
+                    (candidate.pig_id, self.current_frame_index)
+                )
+                if (
+                    saved is not None
+                    and saved.original_object_track_key
+                    == candidate.object_track_key
+                ):
+                    continue
+            canvas_bbox = source_bbox_to_canvas(
+                candidate.bbox,
+                scale=self._display_scale,
+                offset=self._display_offset,
+            )
+            color = BOX_COLORS[(position - 1) % len(BOX_COLORS)]
+            width = 2
+            active_original = any(
+                case.review_unit_id == active_case_id
+                and candidate.object_track_key == case.original_object_track_key
+                for case in cases
+            )
+            if active_original:
+                color = "#ffd966"
+                width = 3
+            if candidate.object_track_key in selected_keys:
+                case_position = next(
+                    (
+                        index
+                        for index, case in enumerate(cases)
+                        if case.review_unit_id in selected_case_ids
+                    ),
+                    0,
+                )
+                color = ACTIVE_CASE_COLORS[
+                    case_position % len(ACTIVE_CASE_COLORS)
+                ]
+                width = 5 if active_case_id in selected_case_ids else 4
+            self.canvas.create_rectangle(
+                *canvas_bbox,
+                outline=color,
+                width=width,
+                tags=("candidate-overlay",),
+            )
+            label = candidate_label(candidate, position)
+            if active_original:
+                label = f"O {label}"
+            if candidate.object_track_key in selected_keys:
+                label = f"S {label}"
+            self.canvas.create_text(
+                canvas_bbox[0] + 4,
+                max(12.0, canvas_bbox[1] - 10),
+                text=label,
+                fill=color,
+                anchor="sw",
+                tags=("candidate-overlay",),
+            )
+
     def _draw_mini_saved_overlays(self) -> None:
         if not getattr(self, "mini_cvat_enabled", False):
             return
@@ -1914,8 +1985,6 @@ class IdentityContinuityGui:
             self.mini_frame_annotations.items()
         ):
             if frame_index != self.current_frame_index:
-                continue
-            if actor_scope_id == self.active_pig_id:
                 continue
             canvas_bbox = source_bbox_to_canvas(
                 annotation.bbox,
@@ -1953,14 +2022,9 @@ class IdentityContinuityGui:
         try:
             source = self._decode_frame(frame_index)
             self._source_image_size = source.size
-            rendered = render_identity_frame(
-                source,
-                self.candidates_by_frame[frame_index],
-                self.cases,
-                self._selected_by_case(frame_index),
-                self.active_case.review_unit_id,
-                self._bbox_edits_by_case(frame_index),
-            )
+            rendered = source.copy().convert("RGB")
+            selected_by_case = self._selected_by_case(frame_index)
+            self._source_image_size = rendered.size
         except RuntimeError as exc:
             messagebox.showerror("Lỗi video", str(exc), parent=self.root)
             return
@@ -1972,6 +2036,12 @@ class IdentityContinuityGui:
             self._display_offset[1],
             image=self._photo,
             anchor="nw",
+        )
+        self._draw_candidate_overlays(
+            self.candidates_by_frame[frame_index],
+            self.cases,
+            selected_by_case,
+            self.active_case.review_unit_id,
         )
         self._draw_mini_saved_overlays()
         self._draw_bbox_editor_overlay()
@@ -1990,15 +2060,15 @@ class IdentityContinuityGui:
         self.info_var.set(
             "\n".join(
                 [
-                f"Video: {self.active_case.video_key}",
+                    f"Video: {self.active_case.video_key}",
                     (
-                    f"Frame rà soát {frame_index} → nguồn {source_frame_index} "
+                        f"Frame rà soát {frame_index} → nguồn {source_frame_index} "
                         f"({self.current_frame_position + 1}/{len(self.all_frames)})"
                     ),
                     (
-                    "Unit đang rà soát: "
+                        "Unit đang rà soát: "
                         f"{self.active_case.review_item_id} | "
-                    f"actor cục bộ gốc {self.active_case.original_pig_id or '?'} / "
+                        f"actor cục bộ gốc {self.active_case.original_pig_id or '?'} / "
                         f"{self.active_case.original_track_id or '?'}"
                     ),
                     f"Tiến độ unit: {mapped}/{total} · {status}",
