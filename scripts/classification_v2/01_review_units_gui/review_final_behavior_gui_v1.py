@@ -41,7 +41,7 @@ from pig_behavior.classification_v2.review.source_specific_blinded_presentation_
 
 FINAL_PRESENTATION_VERSION = "classification_v2.final_behavior_review.v1"
 FINAL_PRESENTATION_ORDER_VERSION = (
-    "classification_v2.final_behavior_review_order.date_video_actor.v1"
+    "classification_v2.final_behavior_review_order.date_video_actor_temporal.v2"
 )
 CONTEXT_COLUMN = "final_context_frame_indices"
 PLAYBACK_COLUMN = "final_playback_frame_indices"
@@ -398,11 +398,13 @@ def order_final_review_units(units: pd.DataFrame) -> pd.DataFrame:
     pig_key = _normalized_sort_column(ordered, "pig_id")
     review_key = _normalized_sort_column(ordered, "review_unit_id")
 
-    actor_key = object_key.mask(object_key.eq(""), "track=" + track_key)
-    actor_key = actor_key.mask(
-        actor_key.eq("track="),
+    fallback_actor_key = object_key.mask(object_key.eq(""), "track=" + track_key)
+    fallback_actor_key = fallback_actor_key.mask(
+        fallback_actor_key.eq("track="),
         "pig=" + pig_key,
     )
+    cvat_source = source_key.str.contains("cvat", regex=False)
+    actor_key = fallback_actor_key.mask(cvat_source & pig_key.ne(""), "pig=" + pig_key)
 
     ordered["_presentation_date_missing"] = date_key.eq("")
     ordered["_presentation_date"] = date_key
@@ -442,10 +444,10 @@ def order_final_review_units(units: pd.DataFrame) -> pd.DataFrame:
         "_presentation_video",
         "_presentation_source",
         "_presentation_dataset",
-        "_presentation_track_number",
         "_presentation_actor",
         "_presentation_start",
         "_presentation_end",
+        "_presentation_track_number",
         "_presentation_review_key",
         "_presentation_original_index",
     ]

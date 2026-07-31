@@ -539,6 +539,60 @@ def test_final_review_order_groups_date_video_actor_then_time() -> None:
     assert len(ordered) == len(units)
 
 
+def test_final_review_order_keeps_cvat_pig_id_contiguous_across_tracks() -> None:
+    module = _load(GUI_SCRIPT, "final_behavior_gui_order_cvat_pig")
+    units = pd.DataFrame(
+        [
+            {
+                "review_unit_id": "pig-4-late-track-b",
+                "recording_date": "2019-11-29",
+                "video_key": "video-a",
+                "source_type": "cvat_tracking_xml",
+                "dataset_id": "set-a",
+                "object_track_key": "track-b",
+                "track_id": "8",
+                "pig_id": "ID_4",
+                "unit_start_frame": 80,
+                "unit_end_frame": 90,
+            },
+            {
+                "review_unit_id": "pig-5-middle",
+                "recording_date": "2019-11-29",
+                "video_key": "video-a",
+                "source_type": "cvat_tracking_xml",
+                "dataset_id": "set-a",
+                "object_track_key": "track-c",
+                "track_id": "5",
+                "pig_id": "ID_5",
+                "unit_start_frame": 40,
+                "unit_end_frame": 50,
+            },
+            {
+                "review_unit_id": "pig-4-early-track-a",
+                "recording_date": "2019-11-29",
+                "video_key": "video-a",
+                "source_type": "cvat_tracking_xml",
+                "dataset_id": "set-a",
+                "object_track_key": "track-a",
+                "track_id": "4",
+                "pig_id": "ID_4",
+                "unit_start_frame": 10,
+                "unit_end_frame": 20,
+            },
+        ]
+    )
+
+    ordered = module.order_final_review_units(units)
+
+    assert ordered["review_unit_id"].tolist() == [
+        "pig-4-early-track-a",
+        "pig-4-late-track-b",
+        "pig-5-middle",
+    ]
+    assert set(ordered.columns) == set(units.columns)
+    assert len(ordered) == len(units)
+
+
 def test_media_is_bounded_without_changing_source_pixels() -> None:
     module = _load(GUI_SCRIPT, "final_behavior_gui_media_fit")
     source = module.Image.new("RGB", (1920, 1114), "red")
