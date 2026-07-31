@@ -1700,6 +1700,46 @@ class IdentityContinuityGui:
             tags=("bbox-editor",),
         )
 
+    def _draw_mini_saved_overlays(self) -> None:
+        if not getattr(self, "mini_cvat_enabled", False):
+            return
+        for (actor_scope_id, frame_index), annotation in (
+            self.mini_frame_annotations.items()
+        ):
+            if frame_index != self.current_frame_index:
+                continue
+            if actor_scope_id == self.active_pig_id:
+                continue
+            canvas_bbox = source_bbox_to_canvas(
+                annotation.bbox,
+                scale=self._display_scale,
+                offset=self._display_offset,
+            )
+            if annotation.bbox_mode == ADDED_BBOX_MODE:
+                color = "#ff4dff"
+            elif annotation.bbox_mode == CORRECTED_BBOX_MODE:
+                color = "#ff9f1c"
+            else:
+                color = "#00e5ff"
+            self.canvas.create_rectangle(
+                *canvas_bbox,
+                outline=color,
+                width=3,
+                tags=("mini-cvat-saved",),
+            )
+            label = (
+                f"{self._mini_display_id(actor_scope_id)} ← {actor_scope_id} · "
+                f"{annotation.reviewed_hidden}"
+            )
+            self.canvas.create_text(
+                canvas_bbox[0] + 4,
+                max(12.0, canvas_bbox[1] - 10),
+                text=label,
+                fill=color,
+                anchor="sw",
+                tags=("mini-cvat-saved",),
+            )
+
     def show_current_frame(self) -> None:
         self._ensure_active_case_frame()
         frame_index = self.current_frame_index
@@ -1726,6 +1766,7 @@ class IdentityContinuityGui:
             image=self._photo,
             anchor="nw",
         )
+        self._draw_mini_saved_overlays()
         self._draw_bbox_editor_overlay()
         mapped, total, status = self._case_progress(self.active_case)
         source_frame_index = self._source_frame_index(frame_index)
