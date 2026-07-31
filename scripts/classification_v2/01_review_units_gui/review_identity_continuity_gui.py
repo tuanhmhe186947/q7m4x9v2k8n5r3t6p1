@@ -961,7 +961,7 @@ class IdentityContinuityGui:
         if getattr(self, "mini_cvat_enabled", False):
             self.mini_actor_frame = ttk.LabelFrame(
                 side,
-                text="Actor scope — ID và behavior áp dụng cả burst",
+                text="Actor source scope — reviewed ID và behavior áp dụng cả burst",
                 padding=6,
             )
             self.mini_actor_frame.grid(row=6, column=0, sticky="ew", pady=6)
@@ -972,17 +972,35 @@ class IdentityContinuityGui:
             self.mini_progress_var = tk.StringVar(value="")
             self.mini_actor_buttons = ttk.Frame(self.mini_actor_frame)
             self.mini_actor_buttons.grid(row=0, column=0, sticky="ew")
-            ttk.Label(self.mini_actor_frame, text="Reviewed ID (cả burst)").grid(
-                row=1, column=0, sticky="w", pady=(6, 0)
+            ttk.Label(
+                self.mini_actor_frame,
+                textvariable=self.mini_actor_id_var,
+                foreground="#404040",
+                wraplength=420,
+            ).grid(row=1, column=0, sticky="ew", pady=(6, 0))
+            ttk.Label(
+                self.mini_actor_frame,
+                text="Reviewed ID đích (source scope giữ nguyên)",
+            ).grid(
+                row=2,
+                column=0,
+                sticky="w",
+                pady=(6, 0),
             )
+            ttk.Label(
+                self.mini_actor_frame,
+                text="Có thể nhập 5; GUI sẽ lưu thành ID_5.",
+                foreground="#404040",
+                wraplength=420,
+            ).grid(row=3, column=0, sticky="ew")
             self.mini_reviewed_id_entry = ttk.Entry(
                 self.mini_actor_frame,
                 textvariable=self.mini_reviewed_id_var,
                 width=22,
             )
-            self.mini_reviewed_id_entry.grid(row=2, column=0, sticky="ew")
+            self.mini_reviewed_id_entry.grid(row=4, column=0, sticky="ew")
             ttk.Label(self.mini_actor_frame, text="Behavior (cả burst)").grid(
-                row=3, column=0, sticky="w", pady=(6, 0)
+                row=5, column=0, sticky="w", pady=(6, 0)
             )
             self.mini_behavior_combo = ttk.Combobox(
                 self.mini_actor_frame,
@@ -991,9 +1009,9 @@ class IdentityContinuityGui:
                 state="readonly",
                 width=22,
             )
-            self.mini_behavior_combo.grid(row=4, column=0, sticky="ew")
+            self.mini_behavior_combo.grid(row=6, column=0, sticky="ew")
             ttk.Label(self.mini_actor_frame, text="Hidden (object/frame hiện tại)").grid(
-                row=5, column=0, sticky="w", pady=(6, 0)
+                row=7, column=0, sticky="w", pady=(6, 0)
             )
             self.mini_hidden_combo = ttk.Combobox(
                 self.mini_actor_frame,
@@ -1002,23 +1020,23 @@ class IdentityContinuityGui:
                 state="readonly",
                 width=22,
             )
-            self.mini_hidden_combo.grid(row=6, column=0, sticky="ew")
+            self.mini_hidden_combo.grid(row=8, column=0, sticky="ew")
             ttk.Button(
                 self.mini_actor_frame,
-                text="Áp dụng ID + behavior cho cả burst",
+                text="Áp dụng reviewed ID + behavior cho cả burst",
                 command=self.apply_mini_actor_attributes,
-            ).grid(row=7, column=0, sticky="ew", pady=(8, 2))
+            ).grid(row=9, column=0, sticky="ew", pady=(8, 2))
             ttk.Button(
                 self.mini_actor_frame,
                 text="Lưu object/frame hiện tại",
                 command=self.save_mini_current_frame,
-            ).grid(row=8, column=0, sticky="ew", pady=2)
+            ).grid(row=10, column=0, sticky="ew", pady=2)
             ttk.Label(
                 self.mini_actor_frame,
                 textvariable=self.mini_progress_var,
                 wraplength=420,
                 foreground="#404040",
-            ).grid(row=9, column=0, sticky="ew", pady=(6, 0))
+            ).grid(row=11, column=0, sticky="ew", pady=(6, 0))
             self.mini_actor_frame.columnconfigure(0, weight=1)
 
         help_row = 7 if getattr(self, "mini_cvat_enabled", False) else 6
@@ -1215,7 +1233,10 @@ class IdentityContinuityGui:
             if candidate is not None and candidate.behavior in CANONICAL_BEHAVIORS
             else ""
         )
-        self.mini_actor_id_var.set(self._mini_display_id(self.active_pig_id))
+        self.mini_actor_id_var.set(
+            f"Đang sửa: reviewed {self._mini_display_id(self.active_pig_id)} "
+            f"← source scope {self.active_pig_id}"
+        )
         self.mini_reviewed_id_var.set(
             attributes.reviewed_pig_id if attributes else self.active_pig_id
         )
@@ -1244,6 +1265,17 @@ class IdentityContinuityGui:
             return actor_scope_id
         return attributes.reviewed_pig_id
 
+    def _normalize_mini_pig_id(self, pig_id: str) -> str:
+        value = pig_id.strip()
+        if not value:
+            return ""
+        prefix, separator, suffix = value.partition("_")
+        if separator and prefix.upper() == "ID" and suffix.strip():
+            return f"ID_{suffix.strip()}"
+        if value.isdigit():
+            return f"ID_{value}"
+        return value
+
     def select_mini_actor(self, actor_id: str) -> None:
         if actor_id not in self.editable_pig_ids:
             return
@@ -1254,6 +1286,7 @@ class IdentityContinuityGui:
     def select_mini_display_actor(self, display_id: str) -> None:
         """Select the source scope currently owning a reviewed ID."""
 
+        display_id = self._normalize_mini_pig_id(display_id)
         matches = [
             actor_id
             for actor_id in self.editable_pig_ids
@@ -1352,7 +1385,10 @@ class IdentityContinuityGui:
     def apply_mini_actor_attributes(self) -> None:
         if not self._ensure_mutable():
             return
-        reviewed_pig_id = self.mini_reviewed_id_var.get().strip()
+        reviewed_pig_id = self._normalize_mini_pig_id(
+            self.mini_reviewed_id_var.get()
+        )
+        self.mini_reviewed_id_var.set(reviewed_pig_id)
         reviewed_behavior = self.mini_behavior_var.get().strip()
         candidate = self._mini_current_candidate()
         original_behavior = candidate.behavior if candidate is not None else ""
@@ -1419,11 +1455,14 @@ class IdentityContinuityGui:
             return
         if swapped_actor_id:
             self.status_var.set(
-                f"Đã hoán đổi ID giữa {self.active_pig_id} và {swapped_actor_id}; "
-                "mọi bbox trong burst đã dùng mapping mới."
+                f"Đã hoán đổi reviewed ID giữa source scope {self.active_pig_id} "
+                f"và {swapped_actor_id}; mọi bbox trong burst dùng mapping mới."
             )
         else:
-            self.status_var.set("Đã lưu ID và behavior áp dụng cho toàn burst.")
+            self.status_var.set(
+                f"Đã lưu reviewed ID {reviewed_pig_id} cho source scope "
+                f"{self.active_pig_id}; behavior áp dụng cho toàn burst."
+            )
         self.show_current_frame()
 
     def save_mini_current_frame(self) -> None:
@@ -1520,6 +1559,11 @@ class IdentityContinuityGui:
             f"Trạng thái: {self._active_bbox_authority()}",
             (
                 f"Actor scope: {self.active_pig_id}"
+                if getattr(self, "mini_cvat_enabled", False)
+                else ""
+            ),
+            (
+                f"Reviewed ID: {self._mini_display_id(self.active_pig_id)}"
                 if getattr(self, "mini_cvat_enabled", False)
                 else ""
             ),
@@ -1691,6 +1735,11 @@ class IdentityContinuityGui:
                 tags=("bbox-editor",),
             )
         label = authority.split(" — ", maxsplit=1)[0]
+        if getattr(self, "mini_cvat_enabled", False) and self.active_pig_id:
+            label = (
+                f"{self._mini_display_id(self.active_pig_id)} "
+                f"← nguồn {self.active_pig_id} · {label}"
+            )
         self.canvas.create_text(
             canvas_bbox[0] + 4,
             max(12.0, canvas_bbox[1] - 10),
@@ -1728,7 +1777,7 @@ class IdentityContinuityGui:
                 tags=("mini-cvat-saved",),
             )
             label = (
-                f"{self._mini_display_id(actor_scope_id)} ← {actor_scope_id} · "
+                f"{self._mini_display_id(actor_scope_id)} ← nguồn {actor_scope_id} · "
                 f"{annotation.reviewed_hidden}"
             )
             self.canvas.create_text(

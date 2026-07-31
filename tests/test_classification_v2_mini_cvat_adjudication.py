@@ -184,3 +184,65 @@ def test_gui_identity_change_swaps_existing_actor_scope() -> None:
     gui.apply_mini_actor_attributes()
     assert gui.mini_actor_attributes["ID_5"].reviewed_pig_id == "ID_4"
     assert gui.mini_actor_attributes["ID_4"].reviewed_pig_id == "ID_5"
+
+
+def test_mini_cvat_actor_apply_normalizes_bare_numeric_reviewed_id() -> None:
+    module = _load_gui_module()
+    from pig_behavior.classification_v2.review.identity_continuity_adjudication import (
+        FrameCandidate,
+    )
+
+    gui = module.IdentityContinuityGui.__new__(module.IdentityContinuityGui)
+    gui.finalized = False
+    gui.mini_cvat_enabled = True
+    gui.editable_pig_ids = ("ID_4", "ID_5")
+    gui.active_pig_id = "ID_4"
+    gui.all_frames = (3,)
+    gui.current_frame_position = 0
+    gui.candidates_by_frame = {
+        3: (
+            FrameCandidate(
+                3,
+                3,
+                "actor-4",
+                "track-4",
+                "ID_4",
+                1.0,
+                1.0,
+                11.0,
+                11.0,
+                "scene.mp4",
+                "fight",
+                "No",
+            ),
+            FrameCandidate(
+                3,
+                3,
+                "actor-5",
+                "track-5",
+                "ID_5",
+                20.0,
+                20.0,
+                30.0,
+                30.0,
+                "scene.mp4",
+                "move",
+                "No",
+            ),
+        )
+    }
+    gui.mini_actor_attributes = {}
+    gui.mini_frame_annotations = {}
+    gui.mini_selected_keys = {}
+    gui.mini_reviewed_id_var = _Var("5")
+    gui.mini_behavior_var = _Var("fight")
+    gui.status_var = _Var("")
+    gui.save = lambda silent=True: True
+    gui.show_current_frame = lambda: None
+    gui.cancel_bbox_drawing = lambda silent=True: None
+
+    gui.apply_mini_actor_attributes()
+
+    assert gui.mini_reviewed_id_var.get() == "ID_5"
+    assert gui.mini_actor_attributes["ID_4"].reviewed_pig_id == "ID_5"
+    assert gui.mini_actor_attributes["ID_5"].reviewed_pig_id == "ID_4"
