@@ -1038,7 +1038,7 @@ class IdentityContinuityGui:
             ).grid(row=10, column=0, sticky="ew", pady=2)
             ttk.Button(
                 self.mini_actor_frame,
-                text="Lưu object/frame hiện tại",
+                text="Lưu bbox/Hidden hiện tại",
                 command=self.save_mini_current_frame,
             ).grid(row=11, column=0, sticky="ew", pady=2)
             ttk.Label(
@@ -1512,8 +1512,7 @@ class IdentityContinuityGui:
     def save_mini_current_frame(self) -> None:
         if not self._ensure_mutable():
             return
-        if not self.apply_mini_actor_attributes(refresh=False):
-            return
+        # Frame-save only persists bbox/Hidden; burst-scope ID/behavior is separate.
         existing = self._mini_current_annotation()
         if existing is None:
             annotation = self._mini_source_annotation()
@@ -1549,9 +1548,8 @@ class IdentityContinuityGui:
             )
             return
         self.status_var.set(
-            f"Đã lưu reviewed ID {self._mini_display_id(self.active_pig_id)} "
-            f"← source scope {self.active_pig_id}; bbox và Hidden của "
-            "object/frame hiện tại."
+            f"Đã lưu bbox và Hidden của object/frame hiện tại cho "
+            f"source scope {self.active_pig_id}."
         )
         self.show_current_frame()
 

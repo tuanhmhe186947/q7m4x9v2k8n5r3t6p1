@@ -248,7 +248,7 @@ def test_mini_cvat_actor_apply_normalizes_bare_numeric_reviewed_id() -> None:
     assert gui.mini_actor_attributes["ID_5"].reviewed_pig_id == "ID_4"
 
 
-def test_mini_cvat_save_current_frame_applies_actor_mapping() -> None:
+def test_mini_cvat_save_current_frame_keeps_actor_mapping_untouched() -> None:
     module = _load_gui_module()
     from pig_behavior.classification_v2.review.identity_continuity_adjudication import (
         FrameCandidate,
@@ -306,9 +306,9 @@ def test_mini_cvat_save_current_frame_applies_actor_mapping() -> None:
 
     gui.save_mini_current_frame()
 
-    assert gui.mini_reviewed_id_var.get() == "ID_5"
-    assert gui.mini_actor_attributes["ID_4"].reviewed_pig_id == "ID_5"
-    assert gui.mini_actor_attributes["ID_5"].reviewed_pig_id == "ID_4"
+    assert gui.mini_reviewed_id_var.get() == "5"
+    assert gui.mini_behavior_var.get() == "fight"
+    assert gui.mini_actor_attributes == {}
     assert gui.mini_frame_annotations[("ID_4", 3)].reviewed_hidden == "No"
 
 
