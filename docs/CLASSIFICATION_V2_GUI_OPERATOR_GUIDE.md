@@ -1,11 +1,13 @@
 # Hướng dẫn vận hành GUI Classification V2
 
-Tài liệu này là điểm vào duy nhất cho hai GUI đang được dùng:
+Tài liệu này là điểm vào duy nhất cho các GUI Classification V2. Một file
+`classification_v2_gui.cmd` là launcher chung; từ đứng sau nó chọn GUI:
 
 - `behavior`: review nhãn hành vi trong phạm vi 2.729 unit đã đóng băng;
 - `mini-cvat`: sửa bbox, ID, Hidden và Behavior cho một lỗi định danh cụ thể.
 
-Mini-CVAT V1 đã lỗi thời. Chỉ dùng mini-CVAT V2 qua launcher bên dưới.
+Các GUI Hidden, calibration, legacy và internal vẫn được liệt kê để giải thích
+vai trò, nhưng không phải GUI nào cũng còn được phép mở.
 
 ## 1. Chuẩn bị một lần cho mỗi cửa sổ CMD
 
@@ -20,11 +22,40 @@ classification_v2_gui.cmd status
 `status` chỉ kiểm tra các đầu vào đã cấu hình. Nó không đọc ledger quyết định
 Behavior và không mở GUI. Tất cả dòng `INPUT` phải báo `EXISTS=YES`.
 
+Xem toàn bộ loại GUI và trạng thái authority:
+
+```bat
+classification_v2_gui.cmd list-guis
+```
+
 Muốn xem lệnh đầy đủ mà không mở GUI:
 
 ```bat
 classification_v2_gui.cmd behavior --dry-run
 ```
+
+### Vì sao chỉ có hai subcommand mở GUI?
+
+| Loại GUI | Script authority | Trạng thái | Lệnh launcher |
+| --- | --- | --- | --- |
+| Behavior final | `review_final_behavior_gui_v1.py` | Đang active | `behavior` |
+| Mini-CVAT V2 | `review_identity_continuity_gui_v2.py` | Theo case | `mini-cvat` |
+| Hidden quality | `review_hidden_quality_gui.py` | Chờ lineage mới | Chưa cấp |
+| Calibration V2 | `review_interaction_blind_calibration_gui_v2.py` | Đã đóng | Không mở lại |
+| Legacy/internal | nhiều script cũ hoặc base | Không dùng | Không cấp |
+
+`hidden-quality` là GUI đúng theo Hidden contract, nhưng lần chạy kế tiếp phải
+có manifest, output root, reviewer và code lineage mới. Launcher không được tự
+đoán các authority này. Khi chúng được đóng băng, profile sẽ có thêm section
+Hidden và launcher mới được phép có subcommand tương ứng.
+
+`interaction-calibration-v2` đã hoàn thành đợt 300. Nó tạo
+`interaction_blind_calibration_v2_decisions.csv`, nhưng mở lại từ launcher mặc
+định có thể làm lẫn authority đã đóng nên bị giữ ở trạng thái chỉ tham khảo.
+
+`review_hidden_unified_gui.py` là direct-source GUI cũ; không dùng cho lineage
+mới. `review_behavior_strength_gui.py`, `review_temporal_unit_gui.py`, GUI V1 và
+các pilot wrapper là legacy, base implementation hoặc công cụ thử nghiệm.
 
 ## 2. Mở GUI review Behavior
 

@@ -58,6 +58,18 @@ def test_default_profile_pins_adjusted_toy_roi() -> None:
     )
 
 
+def test_list_guis_distinguishes_active_from_closed_and_blocked(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    module = _load_module()
+    assert module.main(["list-guis"]) == 0
+    output = capsys.readouterr().out
+    assert "GUI=behavior STATUS=ACTIVE" in output
+    assert "GUI=mini-cvat STATUS=ACTIVE_ON_DEMAND" in output
+    assert "GUI=hidden-quality STATUS=NOT_CONFIGURED_NEW_LINEAGE_REQUIRED" in output
+    assert "GUI=interaction-calibration-v2 STATUS=CLOSED_DO_NOT_REOPEN" in output
+
+
 def test_behavior_command_expands_profile_without_opening_gui(tmp_path: Path) -> None:
     module = _load_module()
     profile = _profile(tmp_path)

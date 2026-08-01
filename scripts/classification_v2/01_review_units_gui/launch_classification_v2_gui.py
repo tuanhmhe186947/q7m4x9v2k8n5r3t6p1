@@ -19,6 +19,33 @@ GUI_DIR = PROJECT_ROOT / "scripts" / "classification_v2" / "01_review_units_gui"
 BEHAVIOR_GUI = GUI_DIR / "review_final_behavior_gui_v1.py"
 MINI_CVAT_GUI = GUI_DIR / "review_identity_continuity_gui_v2.py"
 SESSION_NAME_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
+GUI_CATALOG = (
+    (
+        "behavior",
+        "ACTIVE",
+        "Final 2,729-unit Behavior review; resumable decisions.",
+    ),
+    (
+        "mini-cvat",
+        "ACTIVE_ON_DEMAND",
+        "Case-scoped bbox, ID, Hidden, and Behavior correction.",
+    ),
+    (
+        "hidden-quality",
+        "NOT_CONFIGURED_NEW_LINEAGE_REQUIRED",
+        "Current Hidden decision GUI; needs a newly authorized manifest/root.",
+    ),
+    (
+        "interaction-calibration-v2",
+        "CLOSED_DO_NOT_REOPEN",
+        "Completed 300-item calibration authority.",
+    ),
+    (
+        "legacy-internal",
+        "DO_NOT_LAUNCH",
+        "Old direct-source, strength, temporal-base, V1, and pilot GUIs.",
+    ),
+)
 
 
 class LauncherError(ValueError):
@@ -241,11 +268,21 @@ def _status(profile_path: Path, profile: dict[str, Any]) -> int:
     return 2 if missing else 0
 
 
+def _list_guis() -> int:
+    for name, status, purpose in GUI_CATALOG:
+        print(f"GUI={name} STATUS={status} PURPOSE={purpose}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--profile", type=Path, default=DEFAULT_PROFILE)
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    subparsers.add_parser(
+        "list-guis",
+        help="List active, blocked, closed, and internal GUI types.",
+    )
     subparsers.add_parser("status", help="Check configured inputs without reading ledgers.")
 
     behavior = subparsers.add_parser("behavior", help="Open the final Behavior GUI.")
@@ -270,6 +307,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     try:
+        if args.command == "list-guis":
+            return _list_guis()
         profile_path = resolve_profile_path(str(args.profile))
         profile = load_profile(profile_path)
         if args.command == "status":
