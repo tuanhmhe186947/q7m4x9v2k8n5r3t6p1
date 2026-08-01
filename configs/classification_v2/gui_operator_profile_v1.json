@@ -1,0 +1,24 @@
+{
+  "schema_version": "classification_v2.gui_operator_profile.v1",
+  "default_reviewer": "TuanHM",
+  "common": {
+    "review_units_csv": [
+      "outputs/classification_v2/review_authority",
+      "combined_final_behavior_2729_57ed602_20260730_075719_v2",
+      "combined_final_behavior_review_view.csv"
+    ],
+    "frame_features_csv": [
+      "C:/pig_runs/classification_v2_lineage_rebuild_20260726_v1",
+      "candidates/native_evidence/native_review_evidence.csv"
+    ],
+    "video_root": "data/videos",
+    "raw_root": "outputs/legacy_16f_rebuild/legacy_16f_rebuild_20260718_v2/06_full_recovery/crops",
+    "roi_coco_json": "data/annotations/roi/ROI_annotations.toy_adjusted.coco.json"
+  },
+  "behavior": {
+    "output_dir": "outputs/classification_v2/review_sessions/noninteraction_production_46e67e9"
+  },
+  "mini_cvat": {
+    "output_root": "outputs/classification_v2/identity_adjudication_sessions"
+  }
+}
