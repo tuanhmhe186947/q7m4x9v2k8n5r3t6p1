@@ -636,32 +636,88 @@ def test_final_gui_contact_sheet_cache_avoids_rerender() -> None:
     assert gui.decisions == {"unit-1": {"manual_review_decision": "accept"}}
 
 
-def test_final_gui_prefetch_restores_current_playback_rows() -> None:
-    module = _load(GUI_SCRIPT, "final_behavior_gui_prefetch_restore")
+def test_video_decode_scans_short_forward_gaps_and_seeks_large_gaps() -> None:
+    module = _load(GUI_SCRIPT, "final_behavior_gui_bounded_video_seek")
+
+    class FakeCapture:
+        def __init__(self) -> None:
+            self.position = 10
+            self.set_calls = []
+            self.grab_calls = []
+
+        def get(self, _property):
+            return self.position
+
+        def set(self, _property, frame_index):
+            self.position = int(frame_index)
+            self.set_calls.append(self.position)
+            return True
+
+        def grab(self):
+            self.grab_calls.append(self.position)
+            self.position += 1
+            return True
+
+        def read(self):
+            frame = self.position
+            self.position += 1
+            return True, frame
+
+    capture = FakeCapture()
+    assert module.decode_video_frame(capture, 15) == 15
+    assert capture.grab_calls == [10, 11, 12, 13, 14]
+    assert capture.set_calls == []
+
+    assert module.decode_video_frame(capture, 400) == 400
+    assert capture.set_calls == [400]
+
+    assert module.decode_video_frame(capture, 5) == 5
+    assert capture.set_calls == [400, 5]
+
+
+def test_final_gui_prefetch_decodes_off_tk_caller_thread() -> None:
+    module = _load(GUI_SCRIPT, "final_behavior_gui_async_prefetch")
     gui = module.FinalBehaviorReviewGui.__new__(module.FinalBehaviorReviewGui)
-    gui.units = pd.DataFrame([{"review_unit_id": "unit-2"}])
-    gui._prefetch_after_id = "idle-1"
-    previous_scene = pd.DataFrame({"frame_index": [10]})
-    previous_actor = pd.DataFrame({"frame_index": [10]})
-    gui._current_scene_rows = previous_scene
-    gui._current_actor_rows = previous_actor
-
-    def prepare(unit):
-        gui._current_scene_rows = pd.DataFrame({"frame_index": [20]})
-        gui._current_actor_rows = pd.DataFrame({"frame_index": [20]})
-
-    gui._prepare_current_media_rows = prepare
-    gui._contact_sheet_for_unit = lambda unit: (
-        module.Image.new("RGB", (32, 24), "white"),
-        [],
-        1,
+    gui.units = pd.DataFrame(
+        [
+            {"review_unit_id": "unit-1"},
+            {"review_unit_id": "unit-2"},
+            {"review_unit_id": "unit-3"},
+        ]
     )
+    gui._prefetch_after_id = "idle-1"
+    gui.contact_sheet_cache = module.BASE.RenderedImageCache(max_items=2)
+    started = module.threading.Event()
+    allow_finish = module.threading.Event()
+    rendered_ids = []
+
+    def render(unit):
+        rendered_ids.append(str(unit["review_unit_id"]))
+        started.set()
+        if len(rendered_ids) == 1:
+            assert allow_finish.wait(timeout=2)
+        return module.Image.new("RGB", (32, 24), "white"), [], 1
+
+    gui._render_background_contact_sheet = render
 
     gui._prefetch_contact_sheet(0)
+    assert started.wait(timeout=1)
+    worker = gui._prefetch_worker
+    assert worker is not None
+    assert gui.contact_sheet_cache.get("unit-1") is None
 
+    gui._prefetch_contact_sheet(1)
+    gui._prefetch_contact_sheet(2)
+    assert gui._prefetch_worker is worker
+
+    allow_finish.set()
+    worker.join(timeout=2)
+    assert not worker.is_alive()
     assert gui._prefetch_after_id is None
-    assert gui._current_scene_rows is previous_scene
-    assert gui._current_actor_rows is previous_actor
+    assert rendered_ids == ["unit-1", "unit-3"]
+    assert gui.contact_sheet_cache.get("unit-1") is not None
+    assert gui.contact_sheet_cache.get("unit-2") is None
+    assert gui.contact_sheet_cache.get("unit-3") is not None
 
 
 def test_review_window_stays_inside_common_laptop_screen() -> None:

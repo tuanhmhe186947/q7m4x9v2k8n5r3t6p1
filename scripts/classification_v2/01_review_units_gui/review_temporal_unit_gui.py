@@ -6,6 +6,7 @@ import hashlib
 import math
 import os
 import tempfile
+import threading
 import tkinter as tk
 from collections import OrderedDict
 from dataclasses import dataclass
@@ -423,38 +424,43 @@ class RenderedImageCache:
             raise ValueError("max_items must be positive")
         self.max_items = max_items
         self._entries: OrderedDict[str, CachedRenderedImage] = OrderedDict()
+        self._lock = threading.RLock()
 
     def __len__(self) -> int:
-        return len(self._entries)
+        with self._lock:
+            return len(self._entries)
 
     def get(self, key: str) -> tuple[Image.Image, Any] | None:
         """Return a copy so Tk display operations cannot mutate the cache."""
 
-        entry = self._entries.pop(key, None)
-        if entry is None:
-            return None
-        self._entries[key] = entry
-        return entry.image.copy(), entry.metadata
+        with self._lock:
+            entry = self._entries.pop(key, None)
+            if entry is None:
+                return None
+            self._entries[key] = entry
+            return entry.image.copy(), entry.metadata
 
     def put(self, key: str, image: Image.Image, metadata: Any = None) -> None:
         """Store only derived pixels and diagnostic metadata with bounded RAM."""
 
-        self._entries.pop(key, None)
-        self._entries[key] = CachedRenderedImage(
-            image=image.copy(),
-            metadata=metadata,
-        )
-        while len(self._entries) > self.max_items:
-            self._entries.popitem(last=False)
+        with self._lock:
+            self._entries.pop(key, None)
+            self._entries[key] = CachedRenderedImage(
+                image=image.copy(),
+                metadata=metadata,
+            )
+            while len(self._entries) > self.max_items:
+                self._entries.popitem(last=False)
 
     def retain_only(self, keys: set[str]) -> None:
         """Release cached media that is no longer needed by the reviewer."""
 
-        self._entries = OrderedDict(
-            (key, value)
-            for key, value in self._entries.items()
-            if key in keys
-        )
+        with self._lock:
+            self._entries = OrderedDict(
+                (key, value)
+                for key, value in self._entries.items()
+                if key in keys
+            )
 
 
 def safe_filename(value: object, max_len: int = 150) -> str:

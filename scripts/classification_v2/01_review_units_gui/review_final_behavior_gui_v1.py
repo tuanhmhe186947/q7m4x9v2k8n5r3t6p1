@@ -10,6 +10,7 @@ import importlib.util
 import os
 import sqlite3
 import sys
+import threading
 from collections import OrderedDict
 from pathlib import Path
 from tkinter import messagebox, simpledialog
@@ -64,6 +65,7 @@ MEDIA_PANEL_RESERVED_WIDTH = 520
 MEDIA_PANEL_RESERVED_HEIGHT = 250
 FINAL_RENDERED_MEDIA_CACHE_ITEMS = 2
 FINAL_VIDEO_CAPTURE_CACHE_ITEMS = 2
+VIDEO_SEQUENTIAL_DECODE_LIMIT = 240
 FRAME_STORE_FILENAME = ".final_behavior_frame_features.sqlite3"
 FRAME_STORE_SCHEMA_VERSION = "classification_v2.final_behavior_frame_store.v1"
 ERROR_PATTERN_CHOICES = {
@@ -101,6 +103,35 @@ def _load_base_module() -> Any:
 
 
 BASE = _load_base_module()
+
+
+def decode_video_frame(
+    capture: Any,
+    frame_index: int,
+    *,
+    sequential_limit: int = VIDEO_SEQUENTIAL_DECODE_LIMIT,
+) -> Any | None:
+    """Decode one exact frame while avoiding repeated expensive random seeks."""
+
+    current_position = int(
+        round(capture.get(BASE.cv2.CAP_PROP_POS_FRAMES))
+    )
+    forward_gap = frame_index - current_position
+    if 0 <= forward_gap <= sequential_limit:
+        for _ in range(forward_gap):
+            if not capture.grab():
+                return None
+    else:
+        capture.set(BASE.cv2.CAP_PROP_POS_FRAMES, frame_index)
+    ok, frame = capture.read()
+    if not ok or frame is None:
+        return None
+    decoded_index = int(
+        round(capture.get(BASE.cv2.CAP_PROP_POS_FRAMES))
+    ) - 1
+    if decoded_index != frame_index:
+        return None
+    return frame
 
 
 def final_display_frames(unit: pd.Series) -> list[int]:
@@ -742,6 +773,10 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
             max_items=FINAL_RENDERED_MEDIA_CACHE_ITEMS,
         )
         self._prefetch_after_id: str | None = None
+        self._prefetch_state_lock = threading.Lock()
+        self._prefetch_worker: threading.Thread | None = None
+        self._prefetch_requested_index: int | None = None
+        self._prefetch_stop = threading.Event()
         self.video_index = self._build_video_index(config.video_root)
         self.roi_overlays = self._load_roi_overlays(config.roi_coco_path)
         self.playback_running = False
@@ -1022,11 +1057,12 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
     def next_item(self) -> None:
         review_id = str(self.current_unit()["review_unit_id"])
         decision = self.decision_var.get()
+        complete_ids = self._quality_complete_ids()
         needs_save = (
             self.decision_dirty
             or (
                 decision in {"corrected", "exclude"}
-                and review_id not in self._quality_complete_ids()
+                and review_id not in complete_ids
             )
         )
         if needs_save and not self.save_current():
@@ -1038,7 +1074,7 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
             return
         for index in range(self.current + 1, len(self.units)):
             candidate_id = str(self.units.iloc[index]["review_unit_id"])
-            if candidate_id not in self._quality_complete_ids():
+            if candidate_id not in complete_ids:
                 self.current = index
                 self.show_current()
                 return
@@ -1277,23 +1313,90 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
         return image, diagnostics, len(frames)
 
     def _prefetch_contact_sheet(self, index: int) -> None:
-        """Warm next derived media while restoring the active playback rows."""
+        """Queue one bounded prefetch without decoding on the Tk thread."""
 
         self._prefetch_after_id = None
         if not 0 <= index < len(self.units):
             return
+        self._ensure_prefetch_state()
+        with self._prefetch_state_lock:
+            self._prefetch_requested_index = index
+            if (
+                self._prefetch_worker is not None
+                and self._prefetch_worker.is_alive()
+            ):
+                return
+            worker = threading.Thread(
+                target=self._background_prefetch_loop,
+                name="classification-v2-media-prefetch",
+                daemon=True,
+            )
+            self._prefetch_worker = worker
+        worker.start()
 
-        current_scene_rows = self._current_scene_rows
-        current_actor_rows = self._current_actor_rows
+    def _ensure_prefetch_state(self) -> None:
+        """Initialize worker state for tests that construct the GUI via __new__."""
+
+        if not hasattr(self, "_prefetch_state_lock"):
+            self._prefetch_state_lock = threading.Lock()
+            self._prefetch_worker = None
+            self._prefetch_requested_index = None
+            self._prefetch_stop = threading.Event()
+
+    def _background_prefetch_loop(self) -> None:
+        """Render only the latest requested sheet on one daemon worker."""
+
         try:
-            self._prepare_current_media_rows(self.units.iloc[index])
-            self._contact_sheet_for_unit(self.units.iloc[index])
-        except OSError:
-            # Preload is optional; the foreground path retains media errors.
-            return
+            while not self._prefetch_stop.is_set():
+                with self._prefetch_state_lock:
+                    index = self._prefetch_requested_index
+                    self._prefetch_requested_index = None
+                if index is None:
+                    return
+                try:
+                    unit = self.units.iloc[index].copy()
+                    image, diagnostics, matched_count = (
+                        self._render_background_contact_sheet(unit)
+                    )
+                except OSError:
+                    continue
+                review_id = str(unit["review_unit_id"])
+                metadata = (tuple(diagnostics), matched_count)
+                self.contact_sheet_cache.put(review_id, image, metadata)
         finally:
-            self._current_scene_rows = current_scene_rows
-            self._current_actor_rows = current_actor_rows
+            restart_index = None
+            with self._prefetch_state_lock:
+                self._prefetch_worker = None
+                if not self._prefetch_stop.is_set():
+                    restart_index = self._prefetch_requested_index
+            if restart_index is not None:
+                self._prefetch_contact_sheet(restart_index)
+
+    def _render_background_contact_sheet(
+        self,
+        unit: pd.Series,
+    ) -> tuple[Image.Image, list[str], int]:
+        """Render with isolated mutable media state and video captures."""
+
+        renderer = FinalBehaviorReviewGui.__new__(FinalBehaviorReviewGui)
+        renderer.config = self.config
+        renderer.frame_store = self.frame_store
+        renderer.video_index = self.video_index
+        renderer.roi_overlays = self.roi_overlays
+        renderer.video_cache = OrderedDict()
+        renderer.video_next_frame = {}
+        renderer._current_scene_rows = pd.DataFrame(
+            columns=BASE.GUI_FRAME_COLUMNS
+        )
+        renderer._current_actor_rows = renderer._current_scene_rows.copy()
+        try:
+            renderer._prepare_current_media_rows(unit)
+            frames = renderer._frame_rows_for_unit(unit)
+            image, diagnostics = renderer._make_contact_sheet(unit, frames)
+            return image, diagnostics, len(frames)
+        finally:
+            for capture in renderer.video_cache.values():
+                capture.release()
 
     def _scene_rows(self, actor: pd.Series) -> pd.DataFrame:
         frame_index = pd.to_numeric(actor.get("frame_index"), errors="coerce")
@@ -1321,11 +1424,8 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
         else:
             self.video_cache.move_to_end(cache_key)
         frame_index = int(actor["frame_index"])
-        current_position = int(capture.get(BASE.cv2.CAP_PROP_POS_FRAMES))
-        if current_position != frame_index:
-            capture.set(BASE.cv2.CAP_PROP_POS_FRAMES, frame_index)
-        ok, frame = capture.read()
-        if not ok or frame is None:
+        frame = decode_video_frame(capture, frame_index)
+        if frame is None:
             return None
         frame = BASE.cv2.cvtColor(frame, BASE.cv2.COLOR_BGR2RGB)
         return Image.fromarray(frame).convert("RGB")
@@ -1608,6 +1708,8 @@ class FinalBehaviorReviewGui(BASE.ReviewUnitGui):
 
     def on_quit(self) -> None:
         self.pause_playback()
+        self._ensure_prefetch_state()
+        self._prefetch_stop.set()
         for capture in self.video_cache.values():
             capture.release()
         self.video_cache.clear()
