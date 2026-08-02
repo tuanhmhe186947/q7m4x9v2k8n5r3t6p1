@@ -29,6 +29,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--raw-root", type=Path, required=True)
     parser.add_argument("--roi-coco-json", type=Path, required=True)
     parser.add_argument("--maximum-gap-run-units", type=int, default=2)
+    parser.add_argument(
+        "--included-severity",
+        action="append",
+        choices=("HIGH", "MEDIUM"),
+        dest="included_severities",
+        help=(
+            "Repeat to select exact residual severities. "
+            "Defaults to HIGH and MEDIUM."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -59,6 +69,9 @@ def main() -> None:
         universe,
         decisions,
         maximum_gap_run_units=args.maximum_gap_run_units,
+        included_severities=tuple(
+            args.included_severities or ("HIGH", "MEDIUM")
+        ),
     )
     args.output_dir.mkdir(parents=True)
     output_paths = {
@@ -99,6 +112,9 @@ def main() -> None:
             "Short unreviewed temporal gaps bounded by the same effective "
             "label, with at least one reviewed source-label correction in "
             "the three-run neighborhood."
+        ),
+        "included_severities": list(
+            args.included_severities or ("HIGH", "MEDIUM")
         ),
         "inputs": {
             "source_universe": path_record(args.source_universe_csv),

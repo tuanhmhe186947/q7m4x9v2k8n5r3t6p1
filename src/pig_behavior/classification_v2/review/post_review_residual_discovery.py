@@ -42,6 +42,7 @@ def build_review_informed_temporal_residuals(
     composite_decisions: pd.DataFrame,
     *,
     maximum_gap_run_units: int = 2,
+    included_severities: tuple[str, ...] = ("HIGH", "MEDIUM"),
 ) -> dict[str, Any]:
     """Find short unreviewed gaps bounded by one effective reviewed label."""
     _require_columns(universe, UNIVERSE_REQUIRED_COLUMNS, "universe")
@@ -52,6 +53,18 @@ def build_review_informed_temporal_residuals(
     )
     if maximum_gap_run_units < 1:
         raise ResidualDiscoveryContractError("maximum_gap_run_units_invalid")
+    normalized_severities = tuple(
+        str(severity).strip().upper() for severity in included_severities
+    )
+    if not normalized_severities:
+        raise ResidualDiscoveryContractError("included_severities_empty")
+    invalid_severities = sorted(
+        set(normalized_severities).difference({"HIGH", "MEDIUM"})
+    )
+    if invalid_severities:
+        raise ResidualDiscoveryContractError(
+            "included_severities_invalid=" + ",".join(invalid_severities)
+        )
 
     units = universe.copy()
     decisions = composite_decisions.copy()
@@ -183,7 +196,7 @@ def build_review_informed_temporal_residuals(
     else:
         selected_findings = findings.loc[
             findings["review_informed"]
-            & findings["severity"].isin({"HIGH", "MEDIUM"})
+            & findings["severity"].isin(normalized_severities)
         ].copy()
         selected_findings = selected_findings.sort_values(
             [
@@ -266,6 +279,7 @@ def build_review_informed_temporal_residuals(
         .isin(excluded_keys)
     ].copy()
     audit = {
+        "included_severities": list(normalized_severities),
         "universe_rows": int(len(universe)),
         "composite_reviewed_keys": int(len(reviewed_keys)),
         "unreviewed_rows_before_targeting": int(len(universe) - len(reviewed_keys)),

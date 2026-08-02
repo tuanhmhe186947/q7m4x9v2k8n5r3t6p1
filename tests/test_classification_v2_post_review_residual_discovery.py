@@ -75,6 +75,35 @@ def test_review_correction_exposes_two_unreviewed_fight_gap_units() -> None:
     assert result["selected_scope"]["include_in_review"].all()
 
 
+def test_severity_filter_bounds_scope_without_hiding_audit_findings() -> None:
+    universe = pd.DataFrame(
+        [
+            _unit(0, "social-nose"),
+            _unit(1, "move"),
+            _unit(2, "move"),
+            _unit(3, "fight"),
+        ]
+    )
+    decisions = pd.DataFrame(
+        [
+            _decision(0, "social-nose", "corrected", "fight"),
+            _decision(3, "fight", "accept"),
+        ]
+    )
+
+    result = build_review_informed_temporal_residuals(
+        universe,
+        decisions,
+        included_severities=("MEDIUM",),
+    )
+
+    assert len(result["findings"]) == 2
+    assert set(result["findings"]["severity"]) == {"HIGH"}
+    assert result["selected_findings"].empty
+    assert result["selected_scope"].empty
+    assert result["audit"]["included_severities"] == ["MEDIUM"]
+
+
 def test_unreviewed_gap_without_corrected_neighbor_is_audit_only() -> None:
     universe = pd.DataFrame(
         [
