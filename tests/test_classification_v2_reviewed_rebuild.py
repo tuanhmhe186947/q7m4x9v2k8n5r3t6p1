@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
+from pig_behavior.classification_v2.review import reviewed_rebuild as rebuild_module
 from pig_behavior.classification_v2.review.post_review_learning import (
     build_review_close_authority,
 )
@@ -11,6 +14,7 @@ from pig_behavior.classification_v2.review.reviewed_rebuild import (
     audit_reviewed_label_overlay,
     build_final_review_autocarry,
     build_reviewed_application_views,
+    derive_reviewed_lineage_config,
     freeze_reviewed_training_application_authority,
 )
 
@@ -177,6 +181,85 @@ def _small_overlay_fixture() -> tuple[
         }
     )
     return frames, scope, decisions, quality
+
+
+def test_derive_config_refreshes_all_source_hash_authorities(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    repository_root = tmp_path / "repository"
+    roi_path = (
+        repository_root
+        / "data"
+        / "annotations"
+        / "roi"
+        / "ROI_annotations.toy_adjusted.coco.json"
+    )
+    roi_path.parent.mkdir(parents=True)
+    roi_path.write_text("{}", encoding="utf-8")
+    base_config_path = repository_root / "base.yaml"
+    base_config_path.write_text("base: true\n", encoding="utf-8")
+    base_config = {
+        "source": {
+            "legacy_crop_root": "crops",
+            "video_root": "videos",
+            "expected_crop_fingerprint": "crop-fingerprint",
+            "expected_video_fingerprint": "video-fingerprint",
+        },
+        "authorization": {"source_merge": False},
+    }
+    observed = {
+        "legacy_csv_sha256": "legacy-sha",
+        "legacy_csv_rows": 10,
+        "completion_audit_sha256": "completion-sha",
+        "completion_audit_status": "PASS",
+        "crop_file_count": 2,
+        "crop_fingerprint": "crop-fingerprint",
+        "cvat_xml_count": 3,
+        "cvat_xml_fingerprint": "xml-fingerprint",
+        "cvat_box_rows": 12,
+        "roi_sha256": "roi-sha",
+        "pen_mask_sha256": "pen-sha",
+        "video_fingerprint": "video-fingerprint",
+        "projected_mixed_rows": 22,
+        "bundle_fingerprint": "bundle-fingerprint",
+    }
+
+    def _fake_source_report(**kwargs: object) -> dict[str, object]:
+        config = kwargs["config"]
+        assert isinstance(config, dict)
+        source = config["source"]
+        assert isinstance(source, dict)
+        report = dict(observed)
+        report["valid"] = (
+            source.get("expected_legacy_sha256") == observed["legacy_csv_sha256"]
+            and source.get("expected_roi_sha256") == observed["roi_sha256"]
+            and source.get("expected_completion_audit_sha256")
+            == observed["completion_audit_sha256"]
+        )
+        return report
+
+    monkeypatch.setattr(
+        rebuild_module,
+        "_tree_snapshot",
+        lambda _path: ([], "unused"),
+    )
+    monkeypatch.setattr(rebuild_module, "_build_source_report", _fake_source_report)
+    derived, manifest = derive_reviewed_lineage_config(
+        repository_root=repository_root,
+        base_config=base_config,
+        base_config_path=base_config_path,
+        lineage_id="reviewed-v1",
+        run_root=tmp_path / "run",
+        scientific_accepted_sha="a" * 40,
+        adjusted_roi_path=roi_path,
+    )
+
+    source = derived["source"]
+    assert source["expected_legacy_sha256"] == "legacy-sha"
+    assert source["expected_roi_sha256"] == "roi-sha"
+    assert source["expected_completion_audit_sha256"] == "completion-sha"
+    assert manifest["source_report"]["roi_sha256"] == "roi-sha"
 
 
 def test_application_views_adapt_action_but_keep_final_reviewed_label() -> None:

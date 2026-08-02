@@ -560,6 +560,11 @@ def derive_reviewed_lineage_config(
         crop_fingerprint=str(source["expected_crop_fingerprint"]),
         video_fingerprint=str(source["expected_video_fingerprint"]),
     )
+    source["expected_legacy_sha256"] = str(report["legacy_csv_sha256"])
+    source["expected_roi_sha256"] = str(report["roi_sha256"])
+    source["expected_completion_audit_sha256"] = str(
+        report["completion_audit_sha256"]
+    )
     source["expected_legacy_rows"] = int(report["legacy_csv_rows"])
     source["expected_legacy_crop_files"] = int(report["crop_file_count"])
     source["expected_cvat_xml_count"] = int(report["cvat_xml_count"])
