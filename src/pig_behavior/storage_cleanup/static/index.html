@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Agent Storage Guard</title>
+  <link rel="stylesheet" href="/assets/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" focusable="false">
+          <path class="logo-shield"
+                d="M16 3.5 26 7v7.8c0 6.2-3.9 10.4-10 13.2C9.9 25.2 6 21 6 14.8V7z"/>
+          <path class="logo-storage" d="M10 10.5h12v4H10zm0 6.5h8v4h-8z"/>
+          <path class="logo-spark" d="M22 17.5v5m-2.5-2.5h5"/>
+        </svg>
+      </span>
+      <div>
+        <strong>Agent Storage Guard</strong>
+        <span>Dọn cache và session có kiểm soát</span>
+      </div>
+    </div>
+    <div class="local-badge">
+      <span class="status-dot" aria-hidden="true"></span>
+      Local-only · Recycle Bin
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">BỘ NHỚ Ổ C:</p>
+        <h1 id="page-title">Biết rõ trước khi dọn.</h1>
+        <p class="hero-copy">
+          Quét các vị trí đã đăng ký, xem trước từng mục và chỉ chuyển đúng
+          lựa chọn của bạn vào Recycle Bin.
+        </p>
+      </div>
+      <button id="scan-button" class="button primary" type="button">
+        <span class="button-icon" aria-hidden="true">↻</span>
+        Quét ngay
+      </button>
+    </section>
+
+    <section class="summary-grid" aria-label="Tóm tắt dung lượng">
+      <article class="summary-card">
+        <span class="summary-label">Ổ C: đã dùng</span>
+        <strong id="disk-used">—</strong>
+        <div class="meter" aria-hidden="true">
+          <span id="disk-meter"></span>
+        </div>
+        <small id="disk-detail">Chưa quét</small>
+      </article>
+      <article class="summary-card">
+        <span class="summary-label">Dọn trước an toàn</span>
+        <strong id="available-size">—</strong>
+        <small id="available-count">0 mục cache/tạm</small>
+      </article>
+      <article class="summary-card review-card">
+        <span class="summary-label">Quan trọng với dự án</span>
+        <strong id="review-size">—</strong>
+        <small id="review-count">0 mục cần bảo vệ</small>
+      </article>
+      <article class="summary-card accent-card">
+        <span class="summary-label">Đang chọn</span>
+        <strong id="selected-size">0 B</strong>
+        <small id="selected-count">0 mục</small>
+      </article>
+      <article class="summary-card">
+        <span class="summary-label">Được bảo vệ</span>
+        <strong id="protected-size">—</strong>
+        <small id="protected-count">0 mục active/khoa học</small>
+      </article>
+    </section>
+
+    <section class="decision-section" aria-labelledby="decision-title">
+      <div>
+        <p class="eyebrow">NÊN XEM Ở ĐÂU TRƯỚC?</p>
+        <h2 id="decision-title">Các nhóm đang chiếm chỗ</h2>
+      </div>
+      <div id="category-insights" class="insight-grid">
+        <p class="muted">Quét để xem nhóm nào đáng kiểm tra trước.</p>
+      </div>
+    </section>
+
+    <section class="workspace" aria-labelledby="results-title">
+      <div class="workspace-head">
+        <div>
+          <p class="eyebrow">KẾT QUẢ QUÉT</p>
+          <h2 id="results-title">Các mục đã phát hiện</h2>
+        </div>
+        <div class="scan-options">
+          <label class="toggle">
+            <input id="large-review" type="checkbox">
+            <span aria-hidden="true"></span>
+            Hiện dữ liệu lớn để xem xét
+          </label>
+          <span id="scan-time" class="muted">Chưa có lần quét nào</span>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <label class="search-field">
+          <span class="sr-only">Tìm theo tên hoặc đường dẫn</span>
+          <span aria-hidden="true">⌕</span>
+          <input id="search-input" type="search" placeholder="Tìm tên hoặc đường dẫn">
+        </label>
+        <label>
+          <span class="sr-only">Lọc nhóm</span>
+          <select id="category-filter">
+            <option value="">Nhóm: tất cả</option>
+          </select>
+        </label>
+        <label>
+          <span class="sr-only">Lọc mức rủi ro</span>
+          <select id="risk-filter">
+            <option value="">Rủi ro: mọi</option>
+            <option value="safe">Tái tạo được</option>
+            <option value="caution">Cần xem</option>
+            <option value="protected">Đang bảo vệ</option>
+          </select>
+        </label>
+        <label>
+          <span class="sr-only">Lọc theo khuyến nghị</span>
+          <select id="recommendation-filter">
+            <option value="">Gợi ý: tất cả</option>
+            <option value="delete_first">Dọn trước</option>
+            <option value="review">Cần xem</option>
+            <option value="keep">Giữ cho project</option>
+          </select>
+        </label>
+        <label>
+          <span class="sr-only">Sắp xếp kết quả</span>
+          <select id="sort-filter">
+            <option value="age_desc">Lâu không cập nhật nhất</option>
+            <option value="size_desc">Dung lượng lớn nhất</option>
+            <option value="modified_desc">Mới cập nhật nhất</option>
+            <option value="name_asc">Tên A–Z</option>
+          </select>
+        </label>
+        <div class="age-selector" role="group" aria-label="Chọn cache và tệp tạm theo tuổi">
+          <span class="age-selector-label">Chọn an toàn từ:</span>
+            <button
+              class="age-shortcut"
+              type="button"
+              data-age-days="7"
+              aria-pressed="false"
+            >
+              ≥ 7 ngày
+            </button>
+            <button
+              class="age-shortcut"
+              type="button"
+              data-age-days="30"
+              aria-pressed="false"
+            >
+              ≥ 30 ngày
+            </button>
+            <button
+              class="age-shortcut"
+              type="button"
+              data-age-days="90"
+              aria-pressed="false"
+            >
+              ≥ 90 ngày
+            </button>
+          <label class="age-input" for="custom-age-days">
+            <span class="sr-only">Số ngày không cập nhật để chọn</span>
+            <input
+              id="custom-age-days"
+              type="number"
+              min="1"
+              max="36500"
+              step="1"
+              inputmode="numeric"
+              placeholder="Số ngày"
+            >
+            <span>ngày</span>
+          </label>
+          <button id="apply-custom-age" class="button subtle" type="button">Chọn</button>
+        </div>
+        <button id="select-visible" class="button subtle" type="button" disabled>
+          Chọn các mục đang thấy
+        </button>
+      </div>
+
+      <div id="notice" class="notice" role="status" aria-live="polite">
+        Nhấn “Quét ngay” để bắt đầu. Không có mục nào được tự động chọn.
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="check-column">
+                <span class="sr-only">Lựa chọn</span>
+              </th>
+              <th>Mục</th>
+              <th>Nhóm</th>
+              <th>Kích thước</th>
+              <th>Lần cập nhật cuối</th>
+              <th>Trạng thái</th>
+              <th>Khám phá</th>
+            </tr>
+          </thead>
+          <tbody id="result-body"></tbody>
+        </table>
+        <div id="empty-state" class="empty-state">
+          <div aria-hidden="true">◎</div>
+          <strong>Chưa có dữ liệu quét</strong>
+          <span>Công cụ chỉ đọc filesystem cho tới khi bạn xác nhận hai lần.</span>
+        </div>
+        <div class="load-more-wrap">
+          <button id="load-more" class="button subtle" type="button" hidden>
+            Hiện thêm
+          </button>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <div>
+          <strong id="action-summary">Chưa chọn mục nào</strong>
+          <span>Không có thao tác xóa vĩnh viễn trong công cụ này.</span>
+        </div>
+        <button id="preview-button" class="button danger" type="button" disabled>
+          Xem trước chuyển vào Recycle Bin
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="confirm-dialog" aria-labelledby="dialog-title">
+    <form method="dialog" class="dialog-card">
+      <div class="dialog-head">
+        <div>
+          <p class="eyebrow">XÁC NHẬN LẦN HAI</p>
+          <h2 id="dialog-title">Chuyển vào Recycle Bin?</h2>
+        </div>
+        <button id="dialog-close" class="icon-button" value="cancel" aria-label="Đóng">×</button>
+      </div>
+      <p id="preview-summary" class="dialog-summary"></p>
+      <div id="preview-list" class="preview-list"></div>
+      <label class="confirm-field">
+        Nhập chính xác <strong id="confirm-phrase"></strong>
+        <input id="confirm-input" type="text" autocomplete="off">
+      </label>
+      <div id="commit-progress" class="commit-progress" role="status"
+           aria-live="polite" hidden>
+        <div class="commit-progress-head">
+          <strong id="commit-progress-title">Đang chuẩn bị chuyển</strong>
+          <span id="commit-progress-count">0/0</span>
+        </div>
+        <progress id="commit-progress-bar" max="1" value="0"></progress>
+        <span id="commit-progress-detail"></span>
+      </div>
+      <div class="dialog-actions">
+          <button id="dialog-cancel" class="button subtle" value="cancel">Hủy</button>
+        <button id="commit-button" class="button danger" type="button" disabled>
+          Chuyển các mục đã chọn
+        </button>
+      </div>
+      </form>
+    </dialog>
+
+    <dialog id="age-scope-dialog" class="detail-dialog" aria-labelledby="age-scope-title">
+      <div class="dialog-card">
+        <div class="dialog-head">
+          <div>
+            <p class="eyebrow">PHẠM VI CHỌN</p>
+            <h2 id="age-scope-title">Đã áp dụng theo tuổi</h2>
+          </div>
+          <button id="age-scope-close" class="icon-button" aria-label="Đóng">×</button>
+        </div>
+        <p id="age-scope-summary" class="dialog-summary"></p>
+        <div id="age-scope-list" class="preview-list"></div>
+        <p id="age-scope-note" class="muted"></p>
+        <div class="dialog-actions">
+          <button id="age-scope-dismiss" class="button subtle" type="button">Đã hiểu</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="detail-dialog" class="detail-dialog" aria-labelledby="detail-title">
+    <div class="dialog-card">
+      <div class="dialog-head">
+        <div>
+          <p class="eyebrow">KHÁM PHÁ BÊN TRONG</p>
+          <h2 id="detail-title">Chi tiết thư mục</h2>
+        </div>
+        <button id="detail-close" class="icon-button" type="button"
+                aria-label="Đóng">×</button>
+      </div>
+      <p id="detail-path" class="detail-path"></p>
+      <div class="detail-toolbar">
+        <button id="detail-back" class="button subtle" type="button" disabled>
+          ← Quay lại
+        </button>
+        <span id="detail-summary" class="muted"></span>
+      </div>
+      <div id="detail-list" class="detail-list"></div>
+      <p id="detail-note" class="muted"></p>
+    </div>
+  </dialog>
+
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>

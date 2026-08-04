@@ -18,6 +18,22 @@ For `classification_v2` data/review work, also read:
 
 9. `.agents/memory/09_HIDDEN_REVIEW.md`
 
+For skill selection or maintenance work, also read:
+
+10. `.agents/memory/11_SKILL_PORTFOLIO.md`
+
+For project direction, method promotion, scientific claims, agent governance,
+or halt/permission decisions, also read:
+
+11. `.agents/memory/12_PROJECT_CHARTER.md`
+12. `.agents/memory/13_METHOD_STATE.md`
+13. `.agents/memory/14_CLAIM_REGISTRY.md`
+14. `.agents/memory/15_AGENT_REGRESSION.md`
+15. `.agents/memory/16_HALT_CONDITIONS.md`
+16. `.agents/memory/18_AUTHORITY_INDEX.md`
+17. `.agents/memory/19_REASONING_ROUTING.md`
+18. `.agents/memory/21_MEMORY_MATURITY.md`
+
 Critical settled facts:
 
 - Do not blame detector weight for `Pigs291119_000263_30fps` IDSW regression.
@@ -57,6 +73,65 @@ Rules:
 - Use `find-skills` only for a demonstrated catalog gap. Use `skill-creator` to
   create or upgrade a reusable project-local skill, validate it before relying
   on it, and commit skill changes separately from algorithm changes.
+- After any implementation session that changes source, config, tests, data
+  contracts, generated artifacts, or establishes a durable correction, invoke
+  `project-state-steward` before the final response without waiting for the user
+  to request it. Reconcile memory and workflow, audit cleanup candidates, and
+  preserve unknown or user-owned files. Do not force a memory edit when the
+  session produced no durable knowledge.
+- Treat `01_PROJECT_MEMORY_SHORT.md` as daily state plus bounded resume
+  capsules for active managed tasks. On first read after `Expires`, run
+  `manage_short_memory.py rollover`: remove terminal task bodies, retain each
+  nonterminal managed block byte-for-byte, and reset only daily state. Do not
+  carry project history in short memory.
+- When a prompt needs a multi-step plan, file edits, execution, or an external
+  effect, use `manage_short_memory.py create` before the first effect. Retain
+  the returned owner token only in that live session. Use `inspect` plus
+  revision/hash CAS for `checkpoint`, `renew`, audited-drift `reconcile`, or
+  expired-lease `takeover`. If the token was lost after a crash, `recover` may
+  rotate it during an active lease only when the task is already bound to the
+  current `CODEX_THREAD_ID`. Otherwise require user-authorized
+  `admin-takeover` with the exact task ID, revision, hash, worktree,
+  confirmation phrase, reason, and authorization reference.
+  Never edit a managed task block manually. Update only at phase boundaries;
+  checkpoint `DONE` before the next step's first effect and attach evidence.
+- Checklist steps use `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`, `DEFERRED`, or
+  `CANCELLED`. Keep at most one `IN_PROGRESS` step per task. A `DONE` step
+  requires concrete evidence; every unfinished step requires a next action.
+  Simple read-only questions do not create checklist noise.
+- On restart, treat a surviving `IN_PROGRESS` as interrupted `IN_PROGRESS`
+  work. Inspect its declared evidence and side effects before changing state:
+  mark it `DONE` if acceptance is already proven, otherwise resume from the
+  smallest safe checkpoint or halt if repeating the effect is unsafe. Never
+  rerun it blindly or infer completion from chat history alone.
+- In concurrent sessions, create unique task IDs through the atomic manager.
+  The OS lock, owner token, worktree binding, lease, revision, and block hash
+  are mandatory. Halt on collisions, CAS drift, unaudited active-lease
+  takeover, runtime-thread mismatch, or any non-owned block change; never
+  bypass the manager with a Markdown patch. Every credential recovery or
+  ownership transition must append a hash-bound audit event.
+- At rollover, keep active managed tasks in `01` as resume capsules so `DONE`
+  steps and the exact next action survive across days. Route only explicitly
+  paused or dormant work to `04`; never keep two current copies of one task.
+  Retain completed outcomes for one day and purge older closeout history.
+- Admit only stable accepted project facts to `05`; transient blockers,
+  hypotheses, and unfinished work belong in `04`.
+- A learned correction requires root cause, validated correction, evidence,
+  reuse conditions, and non-reuse boundaries. Remembering an error without its
+  validated corrective method does not count as learning.
+- Do not default to code skills alone. For nontrivial architecture, behavior,
+  debugging, evaluation, synthesis, or data-contract work, select at least one
+  reasoning skill; a verification skill alone does not satisfy this gate. Track
+  the choice in
+  `.agents/memory/11_SKILL_PORTFOLIO.md`.
+- Resolve current authority through `18_AUTHORITY_INDEX.json`. If two sources
+  claim current authority for one scope, halt before effects. Use
+  `19_REASONING_ROUTING.md` for mandatory task-to-reasoning-skill mapping.
+- Resolve medium-to-long promotion through `21_MEMORY_MATURITY.json` and
+  `manage_memory_maturity.py`. Elapsed time, inactivity, and task completion
+  are review triggers only, never promotion evidence. Run `scan` at material
+  closeout; use deliberate `review`, `promote`, `reopen`, and `synthesize`
+  transitions instead of manually editing the generated dossier in file `05`.
 - For tracking experiments, use `tracking-experiment-guardian` and obey its
   lineage, guardrail, promotion, and no-MP4 gates.
 - Do not run long tracking/evaluation/benchmark unless the user explicitly requests it.

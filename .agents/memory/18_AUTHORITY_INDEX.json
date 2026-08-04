@@ -1,0 +1,142 @@
+{
+  "schema_version": "pig.authority-index.v1",
+  "valid_from": "2026-07-31",
+  "precedence": [
+    "current_user_direction",
+    "root_agents_contract",
+    "scope_current_authority",
+    "scope_supporting_authority",
+    "historical_evidence"
+  ],
+  "entries": [
+    {
+      "scope": "governance.current_state",
+      "workstream": "governance",
+      "current_authority": ".agents/memory/02_CURRENT_DECISION.md",
+      "supporting_authorities": [".agents/memory/16_HALT_CONDITIONS.md"],
+      "historical_authorities": [
+        ".agents/memory/20_CURRENT_DECISION_ARCHIVE_2026-07-31.md"
+      ],
+      "valid_from": "2026-07-31",
+      "supersedes": "02_CURRENT_DECISION pre-index mixed history",
+      "conflict_resolution": "halt_needs_authority"
+    },
+    {
+      "scope": "project.direction",
+      "workstream": "project",
+      "current_authority": ".agents/memory/12_PROJECT_CHARTER.md",
+      "supporting_authorities": [".agents/memory/05_PROJECT_MEMORY_LONG.md"],
+      "historical_authorities": [],
+      "valid_from": "2026-07-31",
+      "supersedes": "distributed mission statements",
+      "conflict_resolution": "halt_needs_user_direction"
+    },
+    {
+      "scope": "memory.lifecycle",
+      "workstream": "governance",
+      "current_authority": ".agents/memory/03_PROJECT_RULES.md",
+      "supporting_authorities": [
+        ".agents/skills/project-state-steward/SKILL.md",
+        ".agents/skills/project-state-steward/scripts/manage_short_memory.py"
+      ],
+      "historical_authorities": [
+        ".agents/memory/17_PROJECT_MEMORY_SHORT_ARCHIVE_2026-07-31.md"
+      ],
+      "valid_from": "2026-07-31",
+      "supersedes": "unbounded short-memory history",
+      "conflict_resolution": "halt_needs_authority"
+    },
+    {
+      "scope": "memory.maturity",
+      "workstream": "governance",
+      "current_authority": ".agents/memory/21_MEMORY_MATURITY.json",
+      "supporting_authorities": [
+        ".agents/memory/21_MEMORY_MATURITY.md",
+        ".agents/skills/project-state-steward/scripts/manage_memory_maturity.py",
+        ".agents/memory/05_PROJECT_MEMORY_LONG.md"
+      ],
+      "historical_authorities": [],
+      "valid_from": "2026-08-03",
+      "supersedes": "instruction-only medium-to-long promotion",
+      "conflict_resolution": "halt_revalidate_or_reopen"
+    },
+    {
+      "scope": "classification_v2.current_state",
+      "workstream": "classification_v2",
+      "current_authority": "docs/CLASSIFICATION_V2_CURRENT_STATE.md",
+      "supporting_authorities": [".agents/memory/09_HIDDEN_REVIEW.md"],
+      "historical_authorities": [
+        ".agents/memory/20_CURRENT_DECISION_ARCHIVE_2026-07-31.md"
+      ],
+      "valid_from": "2026-07-31",
+      "supersedes": "classification summaries in decision archive",
+      "conflict_resolution": "halt_reconcile_review_lineage"
+    },
+    {
+      "scope": "tracking.current_state",
+      "workstream": "tracking",
+      "current_authority": "docs/tracking/reconciliation/FOUR_METHOD_TRACKING_FREEZE_AUTHORITY_20260729.json",
+      "supporting_authorities": [".agents/memory/07_LEGACY_DIFF_NOTES.md"],
+      "historical_authorities": [
+        ".agents/memory/06_BENCHMARK_NOTES.md",
+        ".agents/memory/20_CURRENT_DECISION_ARCHIVE_2026-07-31.md"
+      ],
+      "valid_from": "2026-07-29",
+      "supersedes": "earlier tracking profile decisions",
+      "conflict_resolution": "halt_preserve_freeze"
+    },
+    {
+      "scope": "method.state",
+      "workstream": "governance",
+      "current_authority": ".agents/memory/13_METHOD_STATE.json",
+      "supporting_authorities": [".agents/memory/13_METHOD_STATE.md"],
+      "historical_authorities": [],
+      "valid_from": "2026-07-31",
+      "supersedes": "free-form method status labels",
+      "conflict_resolution": "halt_invalid_transition"
+    },
+    {
+      "scope": "scientific.claims",
+      "workstream": "project",
+      "current_authority": ".agents/memory/14_CLAIM_REGISTRY.json",
+      "supporting_authorities": [".agents/memory/14_CLAIM_REGISTRY.md"],
+      "historical_authorities": [".agents/memory/06_BENCHMARK_NOTES.md"],
+      "valid_from": "2026-07-31",
+      "supersedes": "unregistered performance statements",
+      "conflict_resolution": "halt_incomplete_lineage"
+    },
+    {
+      "scope": "skill.portfolio",
+      "workstream": "governance",
+      "current_authority": ".agents/memory/11_SKILL_PORTFOLIO.json",
+      "supporting_authorities": [
+        ".agents/memory/11_SKILL_PORTFOLIO.md",
+        ".agents/memory/19_REASONING_ROUTING.md"
+      ],
+      "historical_authorities": [],
+      "valid_from": "2026-07-31",
+      "supersedes": "attention queue without executable routing",
+      "conflict_resolution": "halt_missing_reasoning_gate"
+    },
+    {
+      "scope": "permission.halt",
+      "workstream": "governance",
+      "current_authority": ".agents/memory/16_HALT_CONDITIONS.json",
+      "supporting_authorities": [".agents/memory/16_HALT_CONDITIONS.md"],
+      "historical_authorities": [],
+      "valid_from": "2026-07-31",
+      "supersedes": "implicit stop and retry behavior",
+      "conflict_resolution": "halt_fail_closed"
+    },
+    {
+      "scope": "repository.cleanup",
+      "workstream": "repository",
+      "current_authority": ".agents/memory/10_REPO_HYGIENE.md",
+      "supporting_authorities": ["docs/STORAGE_CLEANUP_TOOL.md"],
+      "historical_authorities": [],
+      "valid_from": "2026-07-31",
+      "supersedes": "ad hoc cleanup decisions",
+      "conflict_resolution": "halt_protect_unknown"
+    }
+  ]
+}

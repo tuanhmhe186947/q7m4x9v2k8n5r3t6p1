@@ -1,0 +1,10 @@
+interface:
+  display_name: "Project State Steward"
+  short_description: "Checkpoint tasks and curate durable project knowledge"
+  default_prompt: >-
+    Use $project-state-steward and its atomic task manager to checkpoint steps,
+    retain active resume capsules across days, recover interrupted work and
+    same-thread lost tokens, route ambiguous ownership through user-authorized
+    administrative takeover, and close out this task without changing another
+    session's state. Curate durable knowledge through evidence-based maturity
+    and revalidation gates.

@@ -1,5 +1,239 @@
 # Classification V2 Current State
 
+## S2 Top-K K=3 social branch at DEV_PASS (2026-08-04)
+
+The isolated S2 branch is implemented at commit `a8f727a5`, its real-data
+compatibility checker is committed at `5bfc7180`, and the immutable evidence
+binding is committed at `6c2f2049`. The bound bundle manifest SHA256 is
+`694948f570dfde2c6771efc2ad46f8a79bd0ba20ccda5768d18af631b9139119`;
+the CPU compatibility report SHA256 is
+`cd2eb003eb40fc2b0dae3eff0c7ce0ba2953b0fab6f9be868f8796d118f2cc37`.
+
+The bundle contains `245,680` frame rows and `165,305` unified windows with
+social tensors `[T,3,10]`. Eight T6/T8/T12/T16 by CVAT/legacy strata, finite
+forward/backward, social-branch gradients, partner permutation invariance,
+invalid-partner and invalid-motion isolation, tiny overfit, checkpoint reload,
+and optimizer resume all pass on CPU. The final focused suite passed `62`
+tests; Ruff, compile, JSON parsing, and diff checks pass.
+
+This is implementation and bounded compatibility evidence only. No paired
+S0/S1/S2 behavior comparison, GPU training, full model training, or paper
+metric exists. Training-mass, reviewed RGB, and A12 gates remain unresolved.
+S3/GAT remains `BLOCKED_PENDING_S2_PAIRED_SCREENING_GATE`.
+
+## Post-review frame-label amendment V1 frozen (2026-08-03)
+
+The operator confirmed the exact boundary for
+`Pigs281119_000114_30fps`, track `2`, ID `ID_3`:
+
+- f180-f186: `playwithtoy`;
+- f187-f191: `stand`;
+- last observed nose contact with the toy: f186.
+
+The six-frame native unit f186-f191 is therefore a resolved label transition.
+It must be excluded from training with sample weight zero; it must not be forced
+to either class. Eight current windows contain this unit. Three were previously
+trainable and are now invalid: T6 f186-f191, T8 f180-f187, and T12 f180-f191.
+
+The non-overwriting amended engineering authority is
+`outputs/classification_v2/agent_audits/`
+`reviewed_engineering_snapshot_amendment_v4_1decfe4_20260803_231000`.
+Its snapshot JSON SHA256 is
+`ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e`.
+The bound candidate manifest SHA256 is
+`c9a277e2ab1088d2a43833a86a0dcc031f32870367ec9e378f4dcb8032632f03`,
+and the effective reviewed-frame authority SHA256 is
+`4400f36c473954784ae3d8d520eb5e1b5e79a23792d21dd0475bfb419d061a4f`.
+
+The amended authority contains `245,680` reviewed frames and `165,305`
+unified windows: `159,410` trainable and `5,895` excluded. All `12/12` target
+frames match the accepted boundary; five labels changed, the six mixed-unit
+frames have weight zero, and all eight affected windows are excluded with
+zero effective weight. The T6/T8/T12/T16 by CVAT/legacy loader-forward checks,
+finite-gradient backward check, tiny overfit, checkpoint reload, and optimizer
+resume checks passed on CPU. The numeric 46D order and the 24 hashed memmap
+shards remain unchanged.
+
+Method state now marks snapshot V3 `SUPERSEDED` for future training and
+`c2v2.reviewed_lineage.amendment_v1` as `FROZEN`. Amendment V1 permits local
+smoke and bounded pilot/debug work only. Screening, claim-grade training,
+paper metrics, and final checkpoint promotion remain blocked.
+
+The accepted social ladder is S0 no-social, S1 current social 10D, S2 masked
+permutation-invariant Top-K with K=3, then S3 small GAT only if S2 passes its
+predeclared gate. S2 is authorized to implement and screen; S3 is not.
+
+## Reviewed engineering snapshot V3 frozen (2026-08-03)
+
+The post-review engineering pipeline is complete at code SHA
+`e666d85342f794752605efdb7ce767564290c321`. The selected immutable authority
+is
+`C:\pig_runs\classification_v2_reviewed_engineering_snapshot_20260803_v1\snapshot_v3`,
+snapshot ID `reviewed_engineering_4c430dfae2d193dc`. Earlier snapshot V1 lacks
+the final bounded-smoke binding, and snapshot V2 used a short audit SHA; neither
+is the selected final authority.
+
+The final package audit is
+`audits\reviewed_post_review_package_e666d85`. It validates `165,305` windows,
+`159,413` trainable rows, all four window lengths and both source provenances,
+zero declared grouped leakage, `24/24` spatial shard hashes, the tensor-content
+hash, and eight individually hashed loader-forward smoke reports. The bounded
+smoke contract also binds finite nonzero gradients, substantial tiny-overfit
+loss reduction, zero checkpoint-reload delta, and zero optimizer-resume delta.
+The final focused suite passed `127` tests; Ruff, explicit compile, both output
+inventory audits, and the V1-to-V3 protected-authority comparison passed.
+
+This state is engineering authority only. It is not final training or paper
+metric authority. The selector remains `DEVELOPMENT_DIAGNOSTIC_ONLY` and needs
+a fresh holdout. Original-versus-reviewed replay awaits an original-label-only
+sidecar on identical corrected-source X and split. The posture ablation awaits
+a frozen posture authority. No GPU, full training, cloud run, or final-test
+access occurred. A later execution must be separately selected and registered.
+
+## Superseded: Reviewed rebuild and low-memory spatial smokes pass (2026-08-03)
+
+This section is retained as the pre-snapshot engineering checkpoint.
+
+Review close now contains `3,243` reviewed units. The two final fixed-point
+`explore` decisions remain unchanged by explicit user decision. The reviewed
+rebuild under
+`C:\pig_runs\classification_v2_reviewed_rebuild_20260802_v1` contains
+`165,305` T6/T8/T12/T16 windows: `159,413` trainable and `5,892` excluded.
+The frozen development split contains `134,412` train and `25,001` validation
+windows, with all declared native-unit, actor, source-video, and group overlap
+counts equal to zero.
+
+Spatial tensors are materialized as 24 immutable NPY memmap shards. Their
+schema hash is
+`18377d825ba84974e49305e46561ada81353f9ffd0f2d2526471af1c199daad4`
+and tensor-content hash is
+`10c978c20fe0b3d344bd6359e574e6201225ed3ca4a4c68d9d6301d85115aa35`.
+All eight T6/T8/T12/T16 by CVAT/legacy forward strata passed. Tiny overfit,
+finite-gradient, checkpoint reload, and exact optimizer-resume checks passed.
+
+Commit `a034440e93726973a3062282ede4d6b8ad0a41cc` replaces full spatial-NPZ
+loading with batch-indexed memmap shards, chunked content hashing, and a
+256 MiB fail-fast fallback gate. The current tensor payload is 920,418,240
+bytes, so it cannot silently fall back to full-memory loading. This is
+engineering validation only: no GPU or full model training ran, model metrics
+are not paper authority, and the final test remains sealed. Next work is the
+reviewed replay/behavior-posture ablation contract and remaining per-T audit.
+
+## Composite review frozen; residual verification pending (2026-08-02)
+
+This section is superseded by the reviewed-close state above and is retained
+only for lineage provenance.
+
+The completed primary, consistency-v3, and four-unit micro-review layers were
+composed sequentially into one frozen authority. The composition contains
+`3,082` unique reviewed units, `447` final corrections relative to the source
+labels, `471` units changed at least once, and `24` units later returned to
+their source label. Input-label and quality-semantic conflict counts are zero.
+
+The current composite authority directory is:
+
+```text
+composite_behavior_review_3082_faee589_20260802_055557_v2
+```
+
+Review-informed reverse inspection of the remaining `30,273` unreviewed units
+selected `39` additional suspicious units without changing their labels. The
+scope has `12` HIGH units in six `fight -> move/explore -> fight` runs and `27`
+MEDIUM units. It has zero overlap with the `3,082` reviewed units. Use only:
+
+```text
+post_review_residual_suspicion_3082_faee589_20260802_055557_v5
+```
+
+An independent `120`-unit control was frozen with seed `20260801`. It was
+sampled without review outcomes from `30,234` residual units after excluding
+all composite-reviewed and targeted units. Do not resample it. Use only:
+
+```text
+post_review_residual_control_120_3082_faee589_20260802_055557_v2
+```
+
+The required closure order is: review the targeted `39`, review the frozen
+control `120`, compose both decision layers after the current composite, then
+run one fixed-point audit only for newly created HIGH fight-bounded gaps.
+Review selection metadata remains audit-only and must never enter model-X.
+No residual finding authorizes automatic relabeling.
+
+Train-ready export and training remain blocked until review closure and the
+corrected-source evidence, bbox-derived features, adjusted-ROI features, and
+T6/T8/T12/T16 windows are rebuilt under immutable hashes.
+
+### Residual-review presentation correction
+
+The raw targeted-39 and control-120 scopes contained only target frame indices,
+so the GUI could not display longer context even in `Full context` mode. Their
+selection authorities remain unchanged, but their old direct-GUI commands are
+superseded by presentation-only context views:
+
+```text
+post_review_residual_suspicion_context_39_faee589_20260802_063045_v1
+post_review_residual_control_context_120_faee589_20260802_063045_v1
+```
+
+For every CVAT item, the new views retain the exact six-frame decision target,
+add six evenly sampled context frames on each side to the contact sheet, and
+provide continuous playback up to 90 frames before and after the target. The
+39-unit scope has extended context for all items. The 120-unit control has it
+for 102 CVAT items; 18 legacy items retain their original 16-frame actor crops
+because no trusted adjacent full-scene actor authority exists.
+
+Both views preserve review-unit order, temporal-unit keys, target frames, input
+labels, and output-session paths. Existing decisions therefore remain mapped
+to the same targets and resume by `review_unit_id`. The presentation builders
+did not read or write existing decisions.
+
+## Superseded: V3 complete; four-unit micro-review remained (2026-08-02)
+
+The targeted 697-unit v3 consistency rereview is structurally complete:
+`578 accept`, `119 corrected`, no missing, duplicate, pending, or excluded
+units. Decision and strength ledgers are byte-identical at SHA256
+`e9294ed939dc6cb60dbc95468d9617bb13a290d219e00a21852654a72f310d77`.
+
+The post-review continuity audit resolved 44 earlier temporal findings but
+created six new HIGH non-fight-between-fight islands. Two were explicitly
+accepted again in v3. Four were not reviewed in v3 and remain a bounded
+micro-review scope: `Pigs291119_000216_30fps`, tracks 6 and 7, anchors 378 and
+390. All four currently carry `social-nose` between neighboring `fight` units.
+
+V3 adds 352 partner units not present in the primary 2,729 ledger. The future
+composite authority therefore contains 3,081 unique reviewed units before the
+four-unit resolution. Integration must translate final decisions relative to
+original source labels and preserve earlier notes as provenance. It must not
+overwrite the primary ledger row-for-row with v3.
+
+Final review closure still requires the four-unit micro-review and an
+independent residual-control review of at least 120 filtered-out units. The
+corrected mini-CVAT source burst also requires evidence, crop, and bbox-derived
+feature rebuilding before train-ready export.
+
+## Primary Behavior review complete; consistency re-review required (2026-08-01)
+
+The primary combined Behavior ledger has complete terminal coverage:
+`2,729/2,729`, with `2,354 accept`, `375 corrected`, `0 exclude`, and no pending,
+blank, or duplicate unit keys. The canonical decision and strength ledgers are
+byte-identical at SHA256
+`3982c7e606f54a5c8d87b795e40c2c775d20fd668213b291ea932c4fecbcc9e3`.
+
+Primary completion is not final review closure. The first 704-unit scope was
+superseded after a real f1794 case proved that nearest-at-target pairing can
+replace a persistent fight partner after separation. The corrected scope uses
+bidirectional partner history over the context window, ranks candidates by
+temporal support, and places synchronized actor/partner units adjacently.
+
+`outputs/classification_v2/review_authority/`
+`behavior_consistency_rereview_3982c7e_20260801_203434_v2/`
+
+The corrected scope contains 1,184 unique units. Candidate partner status is
+review context only and never an automatic behavior correction. The original
+ledger remained byte-identical before and after audit. Final authority still
+requires this consistency review, the independent residual-control review of at
+least 120 units, frozen source-correction authority, and normal post-review gates.
+
 ## Hidden complete-unit smoke contract patch (2026-07-21)
 
 Code authority `150b2b9929b412d3882ebc118bc2432185e0987b` created operator

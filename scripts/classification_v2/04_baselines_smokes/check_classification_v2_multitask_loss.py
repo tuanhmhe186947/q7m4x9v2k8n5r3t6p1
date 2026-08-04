@@ -7,7 +7,11 @@ from pathlib import Path
 import pandas as pd
 import torch
 
-from pig_behavior.classification_v2.models.multitask_heads import AuxiliaryHeadConfig, AuxiliaryPredictionHeads
+from pig_behavior.classification_v2.models.multitask_heads import (
+    AuxiliaryHeadConfig,
+    AuxiliaryPredictionHeads,
+)
+from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
 from pig_behavior.classification_v2.training.multitask_loss import (
     DEFAULT_AUXILIARY_TASKS,
     build_auxiliary_label_maps,
@@ -20,8 +24,14 @@ from pig_behavior.classification_v2.training.multitask_loss import (
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Check classification_v2 masked auxiliary multitask loss contract.")
-    parser.add_argument("--root", type=Path, default=Path("outputs/classification_v2/train_ready_windows"))
+    parser = argparse.ArgumentParser(
+        description="Check classification_v2 masked auxiliary multitask loss contract."
+    )
+    parser.add_argument(
+        "--root",
+        type=Path,
+        default=Path("outputs/classification_v2/train_ready_windows"),
+    )
     parser.add_argument(
         "--output-json",
         type=Path,
@@ -42,7 +52,10 @@ def main() -> None:
 
     heads = AuxiliaryPredictionHeads(
         input_dim=args.embedding_dim,
-        heads=[AuxiliaryHeadConfig(name=name, num_classes=len(labels)) for name, labels in label_maps.items()],
+        heads=[
+            AuxiliaryHeadConfig(name=name, num_classes=len(labels))
+            for name, labels in label_maps.items()
+        ],
     )
     embedding = torch.randn(len(batch), args.embedding_dim)
     logits = heads(embedding)
@@ -55,7 +68,15 @@ def main() -> None:
     all_masked_zero = _check_all_masked_zero(logits, encoded_targets)
     inactive_shuffle_delta = _inactive_target_shuffle_delta(logits, encoded_targets, masks)
     behavior_logits = torch.randn(len(batch), 10)
-    consistency_loss = hierarchy_consistency_loss(behavior_logits, logits)
+    consistency_loss = hierarchy_consistency_loss(
+        behavior_logits,
+        logits,
+        torch.tensor(
+            [VALID_BEHAVIORS.index(value) for value in batch["behavior_target"]],
+            dtype=torch.long,
+        ),
+        masks,
+    )
 
     errors: list[str] = []
     if not torch.isfinite(total_loss):
@@ -78,7 +99,10 @@ def main() -> None:
         "batch_rows": int(len(batch)),
         "label_maps": label_maps,
         "loss": loss_audit,
-        "fold_local_class_weights": {name: value.detach().cpu().tolist() for name, value in class_weights.items()},
+        "fold_local_class_weights": {
+            name: value.detach().cpu().tolist()
+            for name, value in class_weights.items()
+        },
         "class_weights_derived_from_training_rows_only": True,
         "class_weight_training_rows": int(len(training_targets)),
         "all_masked_loss_zero": bool(all_masked_zero),

@@ -160,11 +160,19 @@ def resolve_video_path(
         )
     if video_root is not None:
         video_key = Path(*cases[0].video_key.split("/"))
-        guesses = (
+        flat_video_names = [f"{video_key.name}.mp4"]
+        if not video_key.name.lower().endswith("_30fps"):
+            flat_video_names.append(f"{video_key.name}_30fps.mp4")
+        if video_key.name.lower().startswith("pigs"):
+            flat_video_names.extend(
+                f"Pigs{name[4:]}" for name in tuple(flat_video_names)
+            )
+        guesses = {
             video_root / video_key / "color.mp4",
             video_root / f"{cases[0].video_key}.mp4",
             video_root / video_key.with_suffix(".mp4"),
-        )
+            *(video_root / name for name in flat_video_names),
+        }
         matched = sorted(
             {path.resolve() for path in guesses if path.is_file()}
         )

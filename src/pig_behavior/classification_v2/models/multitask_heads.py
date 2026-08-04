@@ -12,8 +12,12 @@ from dataclasses import dataclass
 import torch
 from torch import nn
 
+from pig_behavior.classification_v2.contracts.behavior_posture import (
+    POSTURE_LABEL_ORDER,
+)
+
 AUXILIARY_LABEL_ORDER: dict[str, tuple[str, ...]] = {
-    "posture": ("lying", "sitting", "standing_or_other"),
+    "posture": POSTURE_LABEL_ORDER,
     "motion_context": ("move", "explore", "stand", "other"),
     "roi_intent": ("eat", "drink", "playwithtoy", "none"),
     "interaction": ("fight", "social-nose", "none"),
@@ -44,12 +48,16 @@ class AuxiliaryPredictionHeads(nn.Module):
             if head.num_classes <= 1:
                 raise ValueError(f"{head.name} num_classes must be greater than 1")
         self.input_dim = int(input_dim)
-        self.heads = nn.ModuleDict({head.name: nn.Linear(input_dim, head.num_classes) for head in heads})
+        self.heads = nn.ModuleDict(
+            {head.name: nn.Linear(input_dim, head.num_classes) for head in heads}
+        )
 
     def forward(self, embedding: torch.Tensor) -> dict[str, torch.Tensor]:
         """Return ``{task_name: logits}`` for a fused embedding batch."""
         if embedding.ndim != 2:
             raise ValueError("embedding must have shape [B, D]")
         if embedding.shape[1] != self.input_dim:
-            raise ValueError(f"embedding dim {embedding.shape[1]} does not match {self.input_dim}")
+            raise ValueError(
+                f"embedding dim {embedding.shape[1]} does not match {self.input_dim}"
+            )
         return {name: head(embedding.float()) for name, head in self.heads.items()}

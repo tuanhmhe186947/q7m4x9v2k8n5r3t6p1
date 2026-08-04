@@ -1,0 +1,26 @@
+{
+  "schema_version": "pig.autoresearch.authorization.v1",
+  "authorization_id": "replace-with-unique-id",
+  "authorized": false,
+  "consumed": false,
+  "candidate_sha256": "PENDING",
+  "policy_sha256": "PENDING",
+  "mode": "tracking",
+  "stage": "target_video",
+  "method_id": "autoresearch.tracking.campaign",
+  "expected_method_state": "DESIGNED",
+  "git_sha": "PENDING",
+  "worktree_fingerprint": "PENDING",
+  "reviewer": "",
+  "authority": "",
+  "issued_at": "REPLACE_WITH_RFC3339",
+  "expires_at": "REPLACE_WITH_RFC3339",
+  "experiment_budget_seconds": 300,
+  "baseline_metrics_path": "PENDING",
+  "baseline_metrics_sha256": "PENDING",
+  "acceptance": {
+    "minimum_aggregate_idsw_gain": 1,
+    "maximum_per_video_idsw_regression": 0,
+    "maximum_aggregate_hota_drop": 0.0
+  }
+}

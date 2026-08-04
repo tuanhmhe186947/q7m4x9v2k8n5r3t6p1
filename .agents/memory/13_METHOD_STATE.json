@@ -1,0 +1,501 @@
+{
+  "schema_version": "pig.method-state.v1",
+  "forward_order": [
+    "PROPOSED",
+    "DESIGNED",
+    "IMPLEMENTED",
+    "DEV_PASS",
+    "VALIDATED",
+    "FROZEN",
+    "PROMOTED"
+  ],
+  "terminal_states": [
+    "REJECTED",
+    "BLOCKED",
+    "SUPERSEDED",
+    "NOT_REPRODUCIBLE"
+  ],
+  "required_transition_fields": [
+    "from_state",
+    "to_state",
+    "timestamp",
+    "git_sha",
+    "dirty_worktree",
+    "config_hash",
+    "input_hashes",
+    "evaluator",
+    "evidence_class",
+    "gate_results",
+    "limitations",
+    "authority"
+  ],
+  "entries": [
+    {"method_id":"c2v2.reviewed_lineage","state":"SUPERSEDED","authority":"C:\\pig_runs\\classification_v2_reviewed_engineering_snapshot_20260803_v1\\snapshot_v3\\reviewed_engineering_snapshot.json","next_action":"use c2v2.reviewed_lineage.amendment_v1 for any future pilot","registry_migration":false,"reopening_record":{"from_state":"BLOCKED","resume_state":"PROPOSED","timestamp":"2026-08-02T08:25:00+07:00","authority":"frozen 3,243-unit review close and explicit user goal","reason":"human review and fixed-point HIGH closure resolved the blocking gate"},"transitions":[{"from_state":"PROPOSED","to_state":"DESIGNED","timestamp":"2026-08-03T01:00:00+07:00","git_sha":"49f2e6144a01c1f109b8875b2daf07357a38c47a","dirty_worktree":false,"config_hash":"29112b0b741c51a85fc91cb4ecd233dbd3da818af0077cb979c1e4aad43a335c","input_hashes":["b3fb3f8997a06841ef9f27a2519226a0be71969f988a972a1f064f9610cdae98","d866a20accf9f66faf529e73905fcc9f5c4badcdb4bc559817b8b052ae444e9e"],"evaluator":"reviewed authority and model-X contract design audit","evidence_class":"ARTIFACT_VERIFIED","gate_results":["review_close_3243_frozen","two_fixed_point_explore_decisions_unchanged","final_test_sealed"],"limitations":["engineering snapshot only","no model performance authority"],"authority":"user goal and frozen review-close authority"},{"from_state":"DESIGNED","to_state":"IMPLEMENTED","timestamp":"2026-08-03T04:00:00+07:00","git_sha":"a034440e93726973a3062282ede4d6b8ad0a41cc","dirty_worktree":false,"config_hash":"29112b0b741c51a85fc91cb4ecd233dbd3da818af0077cb979c1e4aad43a335c","input_hashes":["557156a7eb6cceeb6a91f667f7c51dcb286e3111f35f414970fa7431acc7e63b","10c978c20fe0b3d344bd6359e574e6201225ed3ca4a4c68d9d6301d85115aa35"],"evaluator":"low-memory spatial loader and mask-contract tests","evidence_class":"CODE_VERIFIED","gate_results":["24-shard memmap loader implemented","256 MiB full-NPZ fail-fast gate implemented","feature-validity masks propagated"],"limitations":["CPU engineering validation only","no full training"],"authority":"classification_v2 isolated worktree"},{"from_state":"IMPLEMENTED","to_state":"DEV_PASS","timestamp":"2026-08-03T05:30:00+07:00","git_sha":"1a9b21d243b44fd7ee7e50134a9716b12dd3c580","dirty_worktree":false,"config_hash":"29112b0b741c51a85fc91cb4ecd233dbd3da818af0077cb979c1e4aad43a335c","input_hashes":["10c978c20fe0b3d344bd6359e574e6201225ed3ca4a4c68d9d6301d85115aa35","18377d825ba84974e49305e46561ada81353f9ffd0f2d2526471af1c199daad4"],"evaluator":"bounded CPU loader forward backward overfit and resume smoke","evidence_class":"RUN_VERIFIED","gate_results":["all eight T/source forward strata pass","finite nonzero gradients","tiny overfit and checkpoint resume pass"],"limitations":["behavior metrics not evaluated","GPU not used"],"authority":"reviewed rebuild bounded smoke reports"},{"from_state":"DEV_PASS","to_state":"VALIDATED","timestamp":"2026-08-03T07:00:00+07:00","git_sha":"e666d85342f794752605efdb7ce767564290c321","dirty_worktree":false,"config_hash":"29112b0b741c51a85fc91cb4ecd233dbd3da818af0077cb979c1e4aad43a335c","input_hashes":["96a4cc94ab7b797fcb6edff007c8ce2b3a36e6d971c2edefce753dc40f2e422e","557156a7eb6cceeb6a91f667f7c51dcb286e3111f35f414970fa7431acc7e63b"],"evaluator":"reviewed post-review package audit v2 and 127 focused tests","evidence_class":"RUN_VERIFIED","gate_results":["zero grouped leakage","24 of 24 shard hashes verified","eight forward-smoke hashes verified","independent inventory audit pass"],"limitations":["selector remains development diagnostic only","fresh selector holdout still required"],"authority":"reviewed_post_review_package_e666d85"},{"from_state":"VALIDATED","to_state":"FROZEN","timestamp":"2026-08-03T07:15:00+07:00","git_sha":"e666d85342f794752605efdb7ce767564290c321","dirty_worktree":false,"config_hash":"4c430dfae2d193dcf7fbafe87416e69aba8185514c3d2da39a14054986774520","input_hashes":["96a4cc94ab7b797fcb6edff007c8ce2b3a36e6d971c2edefce753dc40f2e422e","d866a20accf9f66faf529e73905fcc9f5c4badcdb4bc559817b8b052ae444e9e"],"evaluator":"immutable snapshot V3 inventory and protected-authority comparison","evidence_class":"ARTIFACT_VERIFIED","gate_results":["snapshot reviewed_engineering_4c430dfae2d193dc frozen","29 protected bindings unchanged","24 spatial shard hashes unchanged","final test not accessed"],"limitations":["not final training authority","not paper metric authority","original-label replay not executed","posture authority not frozen"],"authority":"reviewed engineering snapshot V3"},{"from_state":"FROZEN","to_state":"SUPERSEDED","timestamp":"2026-08-03T23:15:00+07:00","git_sha":"fa028cb289a20ec2c1224b6c01d3bec28742a19b","dirty_worktree":false,"config_hash":"992f34c0204a85a1f1a2d5adee7b8ae1652f53945bea4ae55db6e44b63e46042","input_hashes":["c9a277e2ab1088d2a43833a86a0dcc031f32870367ec9e378f4dcb8032632f03","97673d3c9e7bf9df78ee409a9bcb8b7575396f18f1b8d3191d7e50ee675a1ede","e11396d7c4cf8c11115ad72999ab6423697f94e45105e27c938417516dafe198","615e71232781efdf09231d475c9c0878c1e3199c2df655f4c81db7dbe37f7ac8","ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e"],"evaluator":"post-review frame-amendment invalidation audit","evidence_class":"HUMAN_VERIFIED","gate_results":["f180-f186 playwithtoy and f187-f191 stand confirmed","mixed anchor-186 native unit excluded","snapshot V3 blocked for future training"],"limitations":["snapshot V3 remains immutable historical evidence"],"authority":"current user decision and amendment manifest"}]},
+
+{"method_id":"c2v2.reviewed_lineage.amendment_v1","state":"FROZEN","authority":"C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\reviewed_engineering_snapshot_amendment_v4_1decfe4_20260803_231000\\reviewed_engineering_snapshot.json","next_action":"bounded S0 S1 S2 social implementation and pilot only; no S3","registry_migration":false,"transitions":[{"from_state":"PROPOSED","to_state":"DESIGNED","timestamp":"2026-08-03T23:16:00+07:00","git_sha":"fa028cb289a20ec2c1224b6c01d3bec28742a19b","dirty_worktree":false,"config_hash":"992f34c0204a85a1f1a2d5adee7b8ae1652f53945bea4ae55db6e44b63e46042","input_hashes":["c9a277e2ab1088d2a43833a86a0dcc031f32870367ec9e378f4dcb8032632f03","97673d3c9e7bf9df78ee409a9bcb8b7575396f18f1b8d3191d7e50ee675a1ede","e11396d7c4cf8c11115ad72999ab6423697f94e45105e27c938417516dafe198","615e71232781efdf09231d475c9c0878c1e3199c2df655f4c81db7dbe37f7ac8","ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e"],"evaluator":"accepted frame and social decisions","evidence_class":"ARTIFACT_VERIFIED","gate_results":["exact 12-frame boundary preserved","eight dependent windows excluded with zero weight","T6 T8 T12 T16 loader contract pass","protected authorities unchanged"],"limitations":["development diagnostic only","not paper metric authority","S3 GAT blocked pending S2 evidence"],"authority":"C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\reviewed_engineering_snapshot_amendment_v4_1decfe4_20260803_231000\\reviewed_engineering_snapshot.json"},{"from_state":"DESIGNED","to_state":"IMPLEMENTED","timestamp":"2026-08-03T23:17:00+07:00","git_sha":"fa028cb289a20ec2c1224b6c01d3bec28742a19b","dirty_worktree":false,"config_hash":"992f34c0204a85a1f1a2d5adee7b8ae1652f53945bea4ae55db6e44b63e46042","input_hashes":["c9a277e2ab1088d2a43833a86a0dcc031f32870367ec9e378f4dcb8032632f03","97673d3c9e7bf9df78ee409a9bcb8b7575396f18f1b8d3191d7e50ee675a1ede","e11396d7c4cf8c11115ad72999ab6423697f94e45105e27c938417516dafe198","615e71232781efdf09231d475c9c0878c1e3199c2df655f4c81db7dbe37f7ac8","ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e"],"evaluator":"streaming amendment materializer","evidence_class":"ARTIFACT_VERIFIED","gate_results":["exact 12-frame boundary preserved","eight dependent windows excluded with zero weight","T6 T8 T12 T16 loader contract pass","protected authorities unchanged"],"limitations":["development diagnostic only","not paper metric authority","S3 GAT blocked pending S2 evidence"],"authority":"C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\reviewed_engineering_snapshot_amendment_v4_1decfe4_20260803_231000\\reviewed_engineering_snapshot.json"},{"from_state":"IMPLEMENTED","to_state":"DEV_PASS","timestamp":"2026-08-03T23:18:00+07:00","git_sha":"fa028cb289a20ec2c1224b6c01d3bec28742a19b","dirty_worktree":false,"config_hash":"992f34c0204a85a1f1a2d5adee7b8ae1652f53945bea4ae55db6e44b63e46042","input_hashes":["c9a277e2ab1088d2a43833a86a0dcc031f32870367ec9e378f4dcb8032632f03","97673d3c9e7bf9df78ee409a9bcb8b7575396f18f1b8d3191d7e50ee675a1ede","e11396d7c4cf8c11115ad72999ab6423697f94e45105e27c938417516dafe198","615e71232781efdf09231d475c9c0878c1e3199c2df655f4c81db7dbe37f7ac8","ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e"],"evaluator":"independent real-data amendment audit","evidence_class":"RUN_VERIFIED","gate_results":["exact 12-frame boundary preserved","eight dependent windows excluded with zero weight","T6 T8 T12 T16 loader contract pass","protected authorities unchanged"],"limitations":["development diagnostic only","not paper metric authority","S3 GAT blocked pending S2 evidence"],"authority":"C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\reviewed_engineering_snapshot_amendment_v4_1decfe4_20260803_231000\\reviewed_engineering_snapshot.json"},{"from_state":"DEV_PASS","to_state":"VALIDATED","timestamp":"2026-08-03T23:19:00+07:00","git_sha":"1decfe4fac38dfa53a5695106ecac6ec8496b094","dirty_worktree":false,"config_hash":"992f34c0204a85a1f1a2d5adee7b8ae1652f53945bea4ae55db6e44b63e46042","input_hashes":["c9a277e2ab1088d2a43833a86a0dcc031f32870367ec9e378f4dcb8032632f03","97673d3c9e7bf9df78ee409a9bcb8b7575396f18f1b8d3191d7e50ee675a1ede","e11396d7c4cf8c11115ad72999ab6423697f94e45105e27c938417516dafe198","615e71232781efdf09231d475c9c0878c1e3199c2df655f4c81db7dbe37f7ac8","ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e"],"evaluator":"eight-stratum CPU and checkpoint smoke","evidence_class":"RUN_VERIFIED","gate_results":["exact 12-frame boundary preserved","eight dependent windows excluded with zero weight","T6 T8 T12 T16 loader contract pass","protected authorities unchanged"],"limitations":["development diagnostic only","not paper metric authority","S3 GAT blocked pending S2 evidence"],"authority":"C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\reviewed_engineering_snapshot_amendment_v4_1decfe4_20260803_231000\\reviewed_engineering_snapshot.json"},{"from_state":"VALIDATED","to_state":"FROZEN","timestamp":"2026-08-03T23:20:00+07:00","git_sha":"1decfe4fac38dfa53a5695106ecac6ec8496b094","dirty_worktree":false,"config_hash":"992f34c0204a85a1f1a2d5adee7b8ae1652f53945bea4ae55db6e44b63e46042","input_hashes":["c9a277e2ab1088d2a43833a86a0dcc031f32870367ec9e378f4dcb8032632f03","97673d3c9e7bf9df78ee409a9bcb8b7575396f18f1b8d3191d7e50ee675a1ede","e11396d7c4cf8c11115ad72999ab6423697f94e45105e27c938417516dafe198","615e71232781efdf09231d475c9c0878c1e3199c2df655f4c81db7dbe37f7ac8","ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e"],"evaluator":"amendment snapshot inventory freeze","evidence_class":"ARTIFACT_VERIFIED","gate_results":["exact 12-frame boundary preserved","eight dependent windows excluded with zero weight","T6 T8 T12 T16 loader contract pass","protected authorities unchanged"],"limitations":["development diagnostic only","not paper metric authority","S3 GAT blocked pending S2 evidence"],"authority":"C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\reviewed_engineering_snapshot_amendment_v4_1decfe4_20260803_231000\\reviewed_engineering_snapshot.json"}]},
+    {
+      "method_id": "tracking.current_baseline",
+      "state": "FROZEN",
+      "authority": "docs/tracking/reconciliation/FOUR_METHOD_TRACKING_FREEZE_AUTHORITY_20260729.json",
+      "next_action": "read-only lineage or bounded authorized audit",
+      "registry_migration": true,
+      "migration_note": "Legacy ACCEPTED baseline mapped to FROZEN"
+    },
+    {
+      "method_id": "agent.memory_lifetime_v1",
+      "state": "VALIDATED",
+      "authority": ".agents/memory/03_PROJECT_RULES.md",
+      "next_action": "maintain expiry and promotion checks",
+      "registry_migration": true,
+      "migration_note": "Existing accepted lifecycle mapped to VALIDATED"
+    },
+    {
+      "method_id": "agent.governance_hardening_v1",
+      "state": "VALIDATED",
+      "authority": ".agents/memory/02_CURRENT_DECISION.md",
+      "next_action": "collect a separate live-agent baseline when available",
+      "registry_migration": false,
+      "transitions": [
+        {
+          "from_state": "DESIGNED",
+          "to_state": "IMPLEMENTED",
+          "timestamp": "2026-07-31T00:00:00+07:00",
+          "git_sha": "DIRTY_WORKTREE",
+          "dirty_worktree": true,
+          "config_hash": "8ae589f905fea2026e42782bdcf672cfa6ed7b1df3d62cc7a1892abd116dcea7",
+          "input_hashes": [
+            "sha256:ee08f93e721d5c01133f97338035abbf31be8e528a5b6cbc35eeea0634b839d9",
+            "sha256:e13dd63b822837fa75d15d918ea67cb30ddd2a13a472193484a667e4f1911aca"
+          ],
+          "evaluator": "project governance focused tests",
+          "evidence_class": "CODE_VERIFIED",
+          "gate_results": ["implementation files created"],
+          "limitations": ["validation and live-agent baseline pending"],
+          "authority": "user goal and root AGENTS.md"
+        },
+        {
+          "from_state": "IMPLEMENTED",
+          "to_state": "DEV_PASS",
+          "timestamp": "2026-07-31T16:55:00+07:00",
+          "git_sha": "6a2389290e102277741be3ae037f38b9e1e7ee4f",
+          "dirty_worktree": true,
+          "config_hash": "8ae589f905fea2026e42782bdcf672cfa6ed7b1df3d62cc7a1892abd116dcea7",
+          "input_hashes": [
+        "sha256:e3035ab1b27108cf35a2cd58b6af371086fb6ee24d37a613e6acb171e4a3938c",
+        "sha256:9909cd0b519516283f8fab12358c62ad20b74954493c56c034050d6bc5db521b",
+        "sha256:59eddf1a7fdb83ef1f90a0dea354a7ed74f86b60bf4a8c4451197906842b7bef"
+          ],
+          "evaluator": "pytest focused governance suite",
+          "evidence_class": "RUN_VERIFIED",
+      "gate_results": ["8 tests passed", "governance validator passed"],
+          "limitations": ["fixture evidence is not live-agent evidence"],
+          "authority": "tests and validator v2"
+        },
+        {
+          "from_state": "DEV_PASS",
+          "to_state": "VALIDATED",
+          "timestamp": "2026-07-31T16:56:00+07:00",
+          "git_sha": "6a2389290e102277741be3ae037f38b9e1e7ee4f",
+          "dirty_worktree": true,
+          "config_hash": "8ae589f905fea2026e42782bdcf672cfa6ed7b1df3d62cc7a1892abd116dcea7",
+      "input_hashes": [
+        "sha256:d47e005f0d1ebc67eab803c702a096f18842191fe439cd81e5f25a3cc2c429d5",
+        "sha256:712a98a6e03fe7d92b11a7951147d86f05483c45cbdc18b367c5568ad83dca5c"
+      ],
+          "evaluator": "pinned three-run governance eval harness",
+          "evidence_class": "RUN_VERIFIED",
+          "gate_results": [
+            "pass fixture pass^3 equals 1.0",
+            "negative control pass^3 equals 0.0"
+          ],
+          "limitations": ["live-agent regression baseline remains separate"],
+          "authority": "agent governance manifest and reports"
+        }
+      ]
+    },
+    {
+      "method_id": "agent.atomic_task_memory_v1",
+      "state": "VALIDATED",
+      "authority": ".agents/skills/project-state-steward/scripts/manage_short_memory.py",
+      "next_action": "forward-test administrative takeover only after an ambiguous crash and exact user authorization",
+      "registry_migration": false,
+      "transitions": [
+        {
+          "from_state": "PROPOSED",
+          "to_state": "DESIGNED",
+          "timestamp": "2026-08-03T07:20:00+07:00",
+          "git_sha": "d4fb797b6a07e5cfea1812d9df9f2c725ffc8533",
+          "dirty_worktree": true,
+          "config_hash": "bba85640a1cbdd287c7095b6158dc58dfa4c432bc2c07a7a355049a6a62e1dcd",
+          "input_hashes": [
+            "f22d8a3897c25f070f931c6689a4369e1959e2f3060d9f528aa56318414b828c",
+            "e5902afd1d9c4a737c9a3a6b9414c6cce4e3ff5ccad1f5659406d9523d2aaf6a"
+          ],
+          "evaluator": "agent architecture and concurrency contract audit",
+          "evidence_class": "CODE_VERIFIED",
+          "gate_results": [
+            "single-writer lock and task ownership contract frozen",
+            "cross-day active resume capsule contract frozen"
+          ],
+          "limitations": ["design evidence only"],
+          "authority": "user direction and project governance rules"
+        },
+        {
+          "from_state": "DESIGNED",
+          "to_state": "IMPLEMENTED",
+          "timestamp": "2026-08-03T07:25:00+07:00",
+          "git_sha": "d4fb797b6a07e5cfea1812d9df9f2c725ffc8533",
+          "dirty_worktree": true,
+          "config_hash": "bba85640a1cbdd287c7095b6158dc58dfa4c432bc2c07a7a355049a6a62e1dcd",
+          "input_hashes": [
+            "65e69bfc7aaa8d8ff19b00336285192589c99996e959d6ae884c68fbdefb5ea8"
+          ],
+          "evaluator": "static manager and authority integration inspection",
+          "evidence_class": "CODE_VERIFIED",
+          "gate_results": [
+            "lock token worktree lease revision and hash checks implemented",
+            "atomic rollover takeover and reconcile commands implemented"
+          ],
+          "limitations": ["runtime regression gate still required"],
+          "authority": "project-state-steward local v3"
+        },
+        {
+          "from_state": "IMPLEMENTED",
+          "to_state": "DEV_PASS",
+          "timestamp": "2026-08-03T07:30:00+07:00",
+          "git_sha": "d4fb797b6a07e5cfea1812d9df9f2c725ffc8533",
+          "dirty_worktree": true,
+          "config_hash": "bba85640a1cbdd287c7095b6158dc58dfa4c432bc2c07a7a355049a6a62e1dcd",
+          "input_hashes": [
+            "65e69bfc7aaa8d8ff19b00336285192589c99996e959d6ae884c68fbdefb5ea8"
+          ],
+          "evaluator": "focused pytest process and crash regression suite",
+          "evidence_class": "RUN_VERIFIED",
+          "gate_results": [
+            "ten atomic task manager tests passed",
+            "same-ID race conflict and distinct-task race passed",
+            "crash lock release and lease takeover gates passed"
+          ],
+          "limitations": ["temporary-directory process tests only"],
+          "authority": "tests/test_short_memory_task_manager.py"
+        },
+        {
+          "from_state": "DEV_PASS",
+          "to_state": "VALIDATED",
+          "timestamp": "2026-08-03T07:35:00+07:00",
+          "git_sha": "d4fb797b6a07e5cfea1812d9df9f2c725ffc8533",
+          "dirty_worktree": true,
+          "config_hash": "ffdb981ef79eddad497a87e5086a29d12195a91f540bdd1a394cb7f584bde7b2",
+          "input_hashes": [
+            "bc147eaf4ef2bcbf24f38a714bc7ef13224b6bf4418e5e1c1079f1e65788a5a5"
+          ],
+          "evaluator": "pinned twenty-task three-run governance fixture suite",
+          "evidence_class": "RUN_VERIFIED",
+          "gate_results": [
+            "pass fixture pass^3 equals 1.0",
+            "negative control pass^3 equals 0.0",
+            "AR-019 and AR-020 checks pass"
+          ],
+          "limitations": [
+            "fixture self-test is not live-agent capability evidence",
+            "first real calendar rollover remains forward validation"
+          ],
+          "authority": "agent governance manifest and reports"
+        }
+      ],
+      "revalidation_events": [
+        {
+          "timestamp": "2026-08-04T08:50:21+07:00",
+          "git_sha": "d4fb797b6a07e5cfea1812d9df9f2c725ffc8533",
+          "dirty_worktree": true,
+          "config_hash": "8d214f6267cd98994386c213c1ca982515b7a56e8c20a63473452aa3103fa1b5",
+          "input_hashes": [
+            "f88fcd2ab21468db3ae00da986de171074d73a0ce019a05ee90db1cc5aa157df",
+            "ef1c2075e5e47818c0eaaabef9ef27602cf188460281753e6a6db1e414994329",
+            "767bd06aba084df36c268d1ca6838078444ec3b719735db29448e4ecbc027eec",
+            "d0aba8848517f83ff72e8cbcbba25c2b4a7a4c4ed4196b834df305f94bc24cba"
+          ],
+          "evaluator": "focused process tests, pinned governance fixtures, and live same-thread recovery",
+          "evidence_class": "RUN_VERIFIED",
+          "gate_results": [
+            "fourteen atomic task manager tests passed",
+            "thirty-nine final governance tests passed",
+            "same-thread active-lease recovery rotated the live token under CAS",
+            "old live token was rejected and one ownership audit event persisted",
+            "AR-024 and AR-025 passed three deterministic fixture runs",
+            "negative control pass^3 equals 0.0"
+          ],
+          "limitations": [
+            "automatic recovery requires a matching CODEX_THREAD_ID",
+            "process IDs and inactivity are not owner-death evidence",
+            "administrative takeover still requires exact user authorization",
+            "fixture self-test is not live-agent capability evidence"
+          ],
+          "authority": "explicit user request, project task ledger, and agent governance reports"
+        }
+      ]
+    },
+    {
+      "method_id": "agent.memory_maturity_v1",
+      "state": "VALIDATED",
+      "authority": ".agents/memory/21_MEMORY_MATURITY.json",
+      "next_action": "forward-test one accepted non-governance project entry",
+      "registry_migration": false,
+      "transitions": [
+        {
+          "from_state": "PROPOSED",
+          "to_state": "DESIGNED",
+          "timestamp": "2026-08-03T08:00:00+07:00",
+          "git_sha": "d4fb797b6a07e5cfea1812d9df9f2c725ffc8533",
+          "dirty_worktree": true,
+          "config_hash": "5776f180c85ca71307b35bb1be6585b24d5f35707cd18b34c2e29cf432e5f8ee",
+          "input_hashes": [
+            "08d66ec7bb4aacf06431b98baebd321fd21a7757c1e5164b36083717710f2a06"
+          ],
+          "evaluator": "memory architecture and authority audit",
+          "evidence_class": "CODE_VERIFIED",
+          "gate_results": [
+            "elapsed inactivity rejected as promotion evidence",
+            "typed admission and event-triggered revalidation frozen"
+          ],
+          "limitations": ["design evidence only"],
+          "authority": "explicit user direction and memory authority audit"
+        },
+        {
+          "from_state": "DESIGNED",
+          "to_state": "IMPLEMENTED",
+          "timestamp": "2026-08-03T08:10:00+07:00",
+          "git_sha": "d4fb797b6a07e5cfea1812d9df9f2c725ffc8533",
+          "dirty_worktree": true,
+          "config_hash": "5776f180c85ca71307b35bb1be6585b24d5f35707cd18b34c2e29cf432e5f8ee",
+          "input_hashes": [
+            "247440fffa533c9bc3722accefcb76ae1a4f8de6f279bb00df3d218298579680"
+          ],
+          "evaluator": "static manager and authority integration inspection",
+          "evidence_class": "CODE_VERIFIED",
+          "gate_results": [
+            "lock CAS and atomic registry writes implemented",
+            "review promotion reopen archive and synthesis implemented",
+            "active medium duplicate check implemented"
+          ],
+          "limitations": ["runtime regression gate still required"],
+          "authority": "project-state-steward local v4"
+        },
+        {
+          "from_state": "IMPLEMENTED",
+          "to_state": "DEV_PASS",
+          "timestamp": "2026-08-03T08:20:00+07:00",
+          "git_sha": "d4fb797b6a07e5cfea1812d9df9f2c725ffc8533",
+          "dirty_worktree": true,
+          "config_hash": "5776f180c85ca71307b35bb1be6585b24d5f35707cd18b34c2e29cf432e5f8ee",
+          "input_hashes": [
+            "b271f76c4881f669dd20d928284a873633a4bab9df708a9abf36a285968de5f3"
+          ],
+          "evaluator": "focused deterministic and two-process pytest suite",
+          "evidence_class": "RUN_VERIFIED",
+          "gate_results": [
+            "nine maturity manager tests passed",
+            "ten-year no-evidence negative control passed",
+            "trigger revalidation and stale CAS controls passed"
+          ],
+          "limitations": ["temporary-workspace process tests only"],
+          "authority": "tests/test_memory_maturity_manager.py"
+        },
+        {
+          "from_state": "DEV_PASS",
+          "to_state": "VALIDATED",
+          "timestamp": "2026-08-03T08:30:00+07:00",
+          "git_sha": "d4fb797b6a07e5cfea1812d9df9f2c725ffc8533",
+          "dirty_worktree": true,
+          "config_hash": "7702e8c7fd72a6cea7b4e24f21a004b8ac28673da423c4d77e8adee3f83ec520",
+          "input_hashes": [
+            "1cd6c4c4abcfd0c0c2ced217172d5d58017483dcfc51e9328b0bf63153d03e1c",
+            "0728f4f3768080176bb9bc037a3aef9c5078a68809e9ddcd0e7f15dc5b2ccdee",
+            "812049f92eea2befb6cde878a66bb2950884efa84d6bad5eac559f3cdaec9f9a",
+            "9d6dacb0f546544fe85f1db10f708ecb479149eb23b618a9a7b23863b603a435"
+          ],
+          "evaluator": "pinned twenty-three-task three-run governance fixture suite",
+          "evidence_class": "RUN_VERIFIED",
+          "gate_results": [
+            "pass fixture pass^3 equals 1.0",
+            "negative control pass^3 equals 0.0",
+            "AR-021 through AR-023 memory maturity checks pass"
+          ],
+          "limitations": [
+            "fixture self-test is not live-agent capability evidence",
+            "first non-governance project-entry promotion remains forward validation"
+          ],
+          "authority": "agent governance manifest and reports"
+        }
+      ]
+    },
+    {
+      "method_id": "c2v2.social_topk_k3_v1",
+      "state": "DEV_PASS",
+      "authority": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_tmp\\worktrees\\classification_v2_social_topk_k3_v1\\configs\\classification_v2\\model_architecture_contract_v2.json",
+      "next_action": "resolve model-readiness blockers before paired S0 S1 S2 screening; keep S3 blocked",
+      "registry_migration": false,
+      "transitions": [
+        {
+          "from_state": "PROPOSED",
+          "to_state": "DESIGNED",
+          "timestamp": "2026-08-04T05:55:00+07:00",
+          "git_sha": "1decfe4fac38dfa53a5695106ecac6ec8496b094",
+          "dirty_worktree": false,
+          "config_hash": "615e71232781efdf09231d475c9c0878c1e3199c2df655f4c81db7dbe37f7ac8",
+          "input_hashes": [
+            "ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e",
+            "615e71232781efdf09231d475c9c0878c1e3199c2df655f4c81db7dbe37f7ac8"
+          ],
+          "evaluator": "accepted social representation ladder and amendment authority",
+          "evidence_class": "ARTIFACT_VERIFIED",
+          "gate_results": [
+            "S2 fixed at Top-K K=3",
+            "per-partner encoding and valid-count pooling required",
+            "S3 blocked pending paired S2 gate"
+          ],
+          "limitations": [
+            "design authority only",
+            "no behavior-performance evidence"
+          ],
+          "authority": "frozen social ladder in amendment snapshot V1"
+        },
+        {
+          "from_state": "DESIGNED",
+          "to_state": "IMPLEMENTED",
+          "timestamp": "2026-08-04T07:05:00+07:00",
+          "git_sha": "a8f727a577282cef48594312b97b55c52bc60135",
+          "dirty_worktree": false,
+          "config_hash": "615e71232781efdf09231d475c9c0878c1e3199c2df655f4c81db7dbe37f7ac8",
+          "input_hashes": [
+            "ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e",
+            "615e71232781efdf09231d475c9c0878c1e3199c2df655f4c81db7dbe37f7ac8"
+          ],
+          "evaluator": "synthetic mask permutation factory and loader tests",
+          "evidence_class": "CODE_VERIFIED",
+          "gate_results": [
+            "geometry-only partner tokens implemented",
+            "social 10D excluded from the S2 spatial branch",
+            "S0 and S1 model modes preserved"
+          ],
+          "limitations": [
+            "no real behavior metric",
+            "no S3 implementation authority"
+          ],
+          "authority": "isolated S2 implementation commit"
+        },
+        {
+          "from_state": "IMPLEMENTED",
+          "to_state": "DEV_PASS",
+          "timestamp": "2026-08-04T08:15:00+07:00",
+          "git_sha": "6c2f20494db3989f9385c7ccd5bee256b3afd9b1",
+          "dirty_worktree": false,
+          "config_hash": "b41c863c848392d8defe34ea35cb6d13ac0490671e26bde8a6282bb792c88d31",
+          "input_hashes": [
+            "ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e",
+            "694948f570dfde2c6771efc2ad46f8a79bd0ba20ccda5768d18af631b9139119",
+            "cd2eb003eb40fc2b0dae3eff0c7ce0ba2953b0fab6f9be868f8796d118f2cc37"
+          ],
+          "evaluator": "eight-stratum CPU compatibility and focused regression suite",
+          "evidence_class": "RUN_VERIFIED",
+          "gate_results": [
+            "eight T and source strata passed",
+            "finite logits loss gradients and social branch gradients",
+            "permutation and invalid-slot perturbation deltas equal zero",
+            "tiny overfit checkpoint reload and optimizer resume passed",
+            "62 final focused tests passed"
+          ],
+          "limitations": [
+            "bounded engineering compatibility only",
+            "no GPU or full model training",
+            "no paired S0 S1 S2 behavior result",
+            "no paper metric authority",
+            "S3 remains blocked"
+          ],
+          "authority": "hash-bound S2 bundle compatibility report and contract commit"
+        }
+      ]
+    },
+    {
+      "method_id": "c2v2.motion_episode_boundary_v1",
+      "state": "DEV_PASS",
+      "authority": "docs/classification_v2/MOTION_EPISODE_BOUNDARY_V1_DEVELOPMENT_REPORT.md",
+      "next_action": "require a fresh source-aware holdout before any promotion",
+      "registry_migration": false,
+      "transitions": [
+        {
+          "from_state": "PROPOSED",
+          "to_state": "DESIGNED",
+          "timestamp": "2026-08-03T09:40:00+07:00",
+          "git_sha": "63e55bb7c83a6cbef4b8de4ab0329b3983b62b73",
+          "dirty_worktree": true,
+          "config_hash": "ec97858901002f33b92a48986b9ed43c30705c9c410d4ed92a2c5775717e886c",
+          "input_hashes": [
+            "2071a7c1ef96f0287d49a8fbec06719d249ed8d41691890a2da72a1dce48db5e",
+            "bf381b151b0fe5ee38c74dbd5619cd71ddf45390778e7b7fc47fac55e0dbc712",
+            "f4aebdb4b841ff4c39dacd4b80a1e298347b81a191f0f056ed8576017d3ef9e5"
+          ],
+          "evaluator": "motion representation and leakage contract audit",
+          "evidence_class": "ARTIFACT_VERIFIED",
+          "gate_results": [
+            "one motion representation family predeclared",
+            "control outcomes excluded",
+            "matched availability controls frozen"
+          ],
+          "limitations": [
+            "development selector diagnostic only",
+            "source-context availability is provenance-confounded"
+          ],
+          "authority": "user direction and frozen reviewed selector"
+        },
+        {
+          "from_state": "DESIGNED",
+          "to_state": "IMPLEMENTED",
+          "timestamp": "2026-08-03T10:30:00+07:00",
+          "git_sha": "074b3559847b3077a427d779e90246e3478997c3",
+          "dirty_worktree": false,
+          "config_hash": "ec97858901002f33b92a48986b9ed43c30705c9c410d4ed92a2c5775717e886c",
+          "input_hashes": [
+            "49a703f2a897226760cf5b5a57daa4733a6601721eb6792d34b8ae770ed376cb",
+            "4800b6ac7f65e38298c225b5c4116fb3ea686859a7727b19cd7bd907570e2353"
+          ],
+          "evaluator": "focused tests Ruff compile and deterministic smoke",
+          "evidence_class": "CODE_VERIFIED",
+          "gate_results": [
+            "15 focused tests passed",
+            "first-timestep and context semantics passed",
+            "CSV replay became byte-identical after precision lock"
+          ],
+          "limitations": ["no model-X promotion authority"],
+          "authority": "isolated motion episode implementation commit"
+        },
+        {
+          "from_state": "IMPLEMENTED",
+          "to_state": "DEV_PASS",
+          "timestamp": "2026-08-03T10:45:00+07:00",
+          "git_sha": "074b3559847b3077a427d779e90246e3478997c3",
+          "dirty_worktree": false,
+          "config_hash": "ec97858901002f33b92a48986b9ed43c30705c9c410d4ed92a2c5775717e886c",
+          "input_hashes": [
+            "2071a7c1ef96f0287d49a8fbec06719d249ed8d41691890a2da72a1dce48db5e",
+            "bf381b151b0fe5ee38c74dbd5619cd71ddf45390778e7b7fc47fac55e0dbc712"
+          ],
+          "evaluator": "seven-variant frozen-fold OOF with grouped bootstrap",
+          "evidence_class": "RUN_VERIFIED",
+          "gate_results": [
+            "exact 46D reference reproduced",
+            "3123 paired units and four folds preserved",
+            "1000 recording-date bootstrap replicates completed",
+            "exact-SHA replay matched byte-for-byte"
+          ],
+          "limitations": [
+            "causal and current signals remain inconclusive",
+            "symmetric future context is unsupported and offline-only",
+            "fresh holdout is required"
+          ],
+          "authority": "motion_episode_boundary_full_074b355_v1"
+        }
+      ]
+    }
+  ]
+}

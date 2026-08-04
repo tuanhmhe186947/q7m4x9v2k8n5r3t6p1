@@ -1,0 +1,117 @@
+{
+  "schema_version": "pig.autoresearch.policy.v1",
+  "upstream": {
+    "repository": "https://github.com/karpathy/autoresearch",
+    "commit": "228791fb499afffb54b46200aca536f79142f117"
+  },
+  "control_plane": [
+    {
+      "path": "tools/pig_autoresearch/harness.py",
+      "sha256": "26ec80821284c0efd46f127b3b0f44959e685a03d5c24a4b283da1921ee516bf"
+    },
+    {
+      "path": "tools/pig_autoresearch/prepare.py",
+      "sha256": "e3fe402f3d3f6ab0b36dd68b99b067a0fe8f71055a24ccbb5791077dcbdee043"
+    },
+    {
+      "path": "tools/pig_autoresearch/train.py",
+      "sha256": "b5400029d581c93453d87e96292ccd1e25b8fd0e0047069bf08b5ccda8f54bf9"
+    }
+  ],
+  "experiment_budget_seconds": 300,
+  "output_root": "outputs/autoresearch",
+  "authorization_root": ".agents/authorizations/autoresearch",
+  "max_parameters_per_trial": 1,
+  "modes": {
+    "tracking": {
+      "adapter": "tracking_standard_v2",
+      "fixed": {
+        "tracking_mode": "hybrid_bytetrack",
+        "eval_config": "iou0_area0_condarea0_merge0",
+        "evaluator_contract": "TRACKING_EVALUATOR_STANDARD_V2",
+        "path_config": "configs/tracking_paths.json",
+        "path_config_sha256": "46e877ff18e47035ab2fe527ea49596328e1805f663e1078ce3a479c76f6b240",
+        "path_profile": "default",
+        "include_hidden": true,
+        "no_output_video": true,
+        "baseline_parameters": {
+          "det_conf": 0.25,
+          "track_high_conf": 0.5,
+          "initial_track_conf": 0.5,
+          "motion_gate_confidence": 0.5,
+          "track_match_iou": 0.8,
+          "lost_track_reid_appearance_threshold": 0.25
+        }
+      },
+      "families": {
+        "confidence": {
+          "det_conf": {
+            "type": "float",
+            "minimum": 0.1,
+            "maximum": 0.4
+          },
+          "track_high_conf": {
+            "type": "float",
+            "minimum": 0.25,
+            "maximum": 0.75
+          },
+          "initial_track_conf": {
+            "type": "float",
+            "minimum": 0.25,
+            "maximum": 0.8
+          },
+          "motion_gate_confidence": {
+            "type": "float",
+            "minimum": 0.25,
+            "maximum": 0.8
+          }
+        },
+        "matching": {
+          "track_match_iou": {"type": "float", "minimum": 0.1, "maximum": 0.95}
+        },
+        "appearance_reid": {
+          "lost_track_reid_appearance_threshold": {
+            "type": "float",
+            "minimum": 0.0,
+            "maximum": 1.0
+          }
+        }
+      },
+      "stages": {
+        "target_video": {
+          "videos": ["Pigs291119_000263_30fps"],
+          "allowed_method_states": ["DESIGNED", "IMPLEMENTED", "DEV_PASS", "VALIDATED"],
+          "metric_eligible": true
+        },
+        "hard_set": {
+          "videos": [
+            "Pigs281119_000085_30fps",
+            "Pigs291119_000263_30fps",
+            "Pigs291119_000302_30fps"
+          ],
+          "allowed_method_states": ["DEV_PASS", "VALIDATED"],
+          "metric_eligible": true
+        }
+      }
+    },
+    "classification": {
+      "adapter": "classification_c6_diagnostic",
+      "base_config":
+        "configs/classification_v2/legacy_development_c6_temporal_controls_code_ready_v1.json",
+      "base_config_sha256": "45b84a4f5581b2f969d7a11464ff01f606f85215bab33a0c6a8edaf0c1bf1631",
+      "families": {
+        "optimization": {
+          "learning_rate": {"type": "float", "minimum": 0.000001, "maximum": 0.1},
+          "batch_size": {"type": "int", "minimum": 1, "maximum": 128},
+          "weight_decay": {"type": "float", "minimum": 0.0, "maximum": 0.1}
+        }
+      },
+      "stages": {
+        "synthetic_preflight": {
+          "allowed_method_states": ["BLOCKED", "DESIGNED", "IMPLEMENTED", "DEV_PASS", "VALIDATED"],
+          "metric_eligible": false
+        }
+      }
+    }
+  }
+}

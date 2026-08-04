@@ -1,5 +1,22 @@
 # Classification V2 Hidden Review Memory
 
+## Current reviewed-rebuild authority (2026-08-03)
+
+The original Hidden GUI review is complete in the current reviewed rebuild.
+The scientific coverage gate records `5,233/5,233` resolved items, zero missing,
+duplicate, or unresolved items, and status `PASS`. Hidden apply consumes the
+same manifest and decision hashes, preserves all `245,680` frame rows, and is
+the declared input to temporal harmonization.
+
+Hidden notes recorded later during Behavior review are a complementary burst
+exclusion layer, not a second competing Hidden ledger. The current unified
+window audit records `252` Hidden-note rows, zero note rows left unexcluded,
+`84` propagated exclusion rows, `336` excluded frame rows, and a valid audit.
+
+Therefore `HIDDEN_REVIEW_COMPLETE=PASS` for the current reviewed engineering
+lineage. This does not authorize paper-grade training by itself and does not
+promote Hidden to model X or behavior-label uncertainty.
+
 ## Active mixed source boundary (2026-07-20)
 
 The active review population is the mixed legacy 16f P0-P10 export plus the
@@ -9,7 +26,7 @@ this rebuild target; it remains a historical boundary for prior experiments.
 Both source types require the same current two-sided Hidden review before
 reviewed/train-ready use.
 
-## Active decision
+## Historical pre-review decision
 
 Operator lineage `c2v2_human_review_20260721_reviewer01_v2` is frozen at the
 failed complete-unit Hidden smoke. Its 704-row/64-unit input was valid, but the
@@ -99,7 +116,7 @@ Hidden ratios, trust, review coverage and policy tier are audit/mask metadata,
 never model-X. `--no-exclude-high-hidden-from-main` is an explicit ablation only
 and cannot authorize a canonical reviewed lineage.
 
-## Evidence and status
+## Historical evidence and status
 
 The existing technical reference is
 `outputs/classification_v2/rebuilds/hidden_review_v6_full_20260714`. Its 5,131

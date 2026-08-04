@@ -18,6 +18,7 @@ implicit use.
 | 7 | `tracking-experiment-guardian` | active | tracking work | classification |
 | 8 | `imbalanced-classification-evaluator` | future | post-pilot loss audit | pre-pilot work |
 | 9 | `gpu-training-profiler` | future | post-pilot GPU profiling | CPU-only data audit |
+| 11 | `thesis-evidence-writing` | active | thesis workflow | code/data/model changes |
 
 ## Dependency Order
 

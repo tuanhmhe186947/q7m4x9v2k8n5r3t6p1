@@ -120,6 +120,8 @@ models/
 # ==========================================
 configs/tracking_paths_experiment_local.json
 outputs/
+.agents/authorizations/
+.agents/runtime/
 human_review_workspace/
 logs/
 checkpoints/

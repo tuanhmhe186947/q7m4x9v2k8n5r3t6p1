@@ -1,6 +1,86 @@
 # Project Memory - Long Term
 
-## Current active track: classification_v2 behavior recognition
+## Lifecycle contract
+
+- Scope: project charter, stable contracts, accepted facts, and a complete
+  project-wide overview.
+- Admit only validated information with source authority, scope, acceptance
+  date, and invalidation condition.
+- Do not store daily progress, unresolved blockers, hypotheses, raw failures,
+  or temporary next actions here.
+- Stable mission authority is `12_PROJECT_CHARTER.md`.
+- Scientific claim status is `14_CLAIM_REGISTRY.md`.
+- Evidence maturity authority is `21_MEMORY_MATURITY.json`; the living dossier
+  below is generated and must not be edited manually.
+- Current task state belongs in `01`, `02`, and `04`, not this file.
+- Superseded long-term facts remain traceable but must be marked historical.
+
+<!-- memory-maturity:dossier:start -->
+## Living Project Dossier
+
+This is a generated, evidence-bound reading surface. Its machine authority is
+`21_MEMORY_MATURITY.json`. Elapsed inactivity never promotes knowledge;
+acceptance and revalidation events do.
+
+### Project Abstract and Scope
+
+No maturity-registry entry is currently promoted here.
+
+### Scientific Questions and Boundaries
+
+No maturity-registry entry is currently promoted here.
+
+### Data and System Architecture
+
+No maturity-registry entry is currently promoted here.
+
+### Validated Methods and Contracts
+
+No maturity-registry entry is currently promoted here.
+
+### Supported Results and Claims
+
+No maturity-registry entry is currently promoted here.
+
+### Reusable Corrective Methods
+
+No maturity-registry entry is currently promoted here.
+
+### Limitations and Non-Generalization Boundaries
+
+No maturity-registry entry is currently promoted here.
+
+### Reproducibility and Governance
+
+#### Evidence-based project memory maturity
+
+Completed reusable knowledge moves to the living dossier only after typed evidence, deliberate
+acceptance, source disposition, and event-based revalidation gates pass.
+
+- Scope: Project-local agent memory lifecycle and long-memory dossier generation.
+- Authority: `.agents/memory/03_PROJECT_RULES.md`, `.agents/memory/18_AUTHORITY_INDEX.json`,
+  `.agents/memory/21_MEMORY_MATURITY.json`
+- Evidence: `.agents/skills/project-state-steward/scripts/manage_memory_maturity.py`
+  (da594c0d52cb), `tests/test_memory_maturity_manager.py` (a98ba864cb15)
+- Accepted: 2026-08-03T08:39:40+07:00 by project-state-steward under explicit user direction
+- Limitations: Agent fixture results do not prove live-agent compliance.; Existing scientific and
+  operational history is not bulk-promoted.
+- Invalidation: The manager, evidence schema, authority scope, or method state changes without
+  revalidation.; A regression permits promotion by age or leaves invalidated knowledge current.
+
+### Knowledge Awaiting Revalidation
+
+None.
+
+### Dossier Reading Contract
+
+Entries are current only while their registered authority, method, claim,
+artifact, and invalidation triggers remain satisfied. Superseded or
+contradicted knowledge remains in registry history, not as current truth.
+
+<!-- memory-maturity:dossier:end -->
+
+## Archived overview snapshot: classification_v2 behavior recognition
 
 As of 2026-07-12, the active workstream is `classification_v2` behavior
 recognition.
@@ -165,7 +245,8 @@ Even with the same detector weight, `Pigs291119_000263_30fps` increased from IDS
 ## H. Patch priority
 
 1. Patch `association.py`: remove raw_id owner/penalty/bypass from `hybrid_bytetrack`.
-2. Patch matching phase: make `hybrid_bytetrack` use safer high-confidence / low-confidence matching.
+2. Patch matching phase: make `hybrid_bytetrack` use safer high-confidence /
+   low-confidence matching.
 3. Patch `runner.py`: do not force post-processing by mode.
 4. Only then test `condarea` through ablation.
 5. Check evaluation/prediction XML path for stale output confusion.
@@ -182,7 +263,11 @@ Even with the same detector weight, `Pigs291119_000263_30fps` increased from IDS
 ## J. Preserved notes from previous `.agents/PROJECT_MEMORY.md`
 
 - The project is an AI-powered system for pig detection, tracking, and behavior classification.
-- The core stack includes Python, PyTorch, OpenCV, ultralytics, FastAPI, numpy, pandas, scikit-learn, pytest, ruff, and MyPy.
-- RGB-D occlusion inference exists as an auxiliary capability, while RGB-only tracking remains a core path.
+- The core stack includes Python, PyTorch, OpenCV, ultralytics, FastAPI,
+  numpy, pandas, scikit-learn, pytest, ruff, and MyPy.
+- RGB-D occlusion inference exists as an auxiliary capability, while RGB-only
+  tracking remains a core path.
 - Behavior modeling uses temporal crops plus tabular sequence features.
-- The prior memory file also recorded processed dataset paths, ROI annotations, and classifier feature conventions; that file remains preserved at `.agents/PROJECT_MEMORY.md`.
+- The prior memory file also recorded processed dataset paths, ROI
+  annotations, and classifier feature conventions; that file remains
+  preserved at `.agents/PROJECT_MEMORY.md`.

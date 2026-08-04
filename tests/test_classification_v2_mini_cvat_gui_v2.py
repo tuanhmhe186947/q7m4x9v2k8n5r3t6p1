@@ -51,6 +51,22 @@ def test_resolve_video_path_deduplicates_flat_video_guess(
     assert resolved == video_path.resolve()
 
 
+def test_resolve_video_path_supports_cvat_30fps_filename(
+    tmp_path: Path,
+) -> None:
+    module = _load_gui()
+    video_path = tmp_path / "Pigs301119_000327_30fps.mp4"
+    video_path.write_bytes(b"video-placeholder")
+
+    resolved = module.resolve_video_path(
+        (SimpleNamespace(video_key="pigs301119_000327"),),
+        {},
+        tmp_path,
+    )
+
+    assert resolved == video_path.resolve()
+
+
 def _candidate(actor_id: str, x1: float) -> FrameCandidate:
     return FrameCandidate(
         frame_index=3,

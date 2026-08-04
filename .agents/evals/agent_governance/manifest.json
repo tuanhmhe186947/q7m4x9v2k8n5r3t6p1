@@ -1,0 +1,25 @@
+{
+  "schema_version": "pig.agent-governance-manifest.v1",
+  "suite_id": "agent_governance",
+  "task_definition": "tasks.json",
+  "judge": "judge.py",
+  "runner": "run_regression.py",
+  "task_sha256": "ef1c2075e5e47818c0eaaabef9ef27602cf188460281753e6a6db1e414994329",
+  "judge_sha256": "c8e5b914a8885d17a322d58e64608c170417314c685bc7d750eb799e304047b6",
+  "runner_sha256": "b8ca02a25bad68d1d3ef787ac9d1f6d497d11de2bf9f5c2eeb956ae83c5b0525",
+  "validator_sha256": "3fa1e4fc5b7e10712da1200e76437372bf767d1bdffe72caee07684cdf9729b8",
+  "minimum_runs": 3,
+  "subject_type": "fixture_self_test_only",
+  "baseline": {
+    "git_sha": "d4fb797b6a07e5cfea1812d9df9f2c725ffc8533",
+    "dirty_worktree_fingerprint": "recorded_at_run"
+  },
+  "interpretation": [
+    "Fixture PASS proves judge and metric determinism.",
+    "Fixture PASS does not prove live Codex capability."
+  ],
+  "live_agent_input_contract": [
+    "Provide one response JSON per task per run.",
+    "Do not change task or judge files between compared runs."
+  ]
+}

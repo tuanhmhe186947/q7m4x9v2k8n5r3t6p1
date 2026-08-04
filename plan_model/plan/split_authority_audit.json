@@ -1,0 +1,211 @@
+{
+  "artifact": "split_authority_audit",
+  "schema_version": "classification_v2.model_research.split_authority.v1",
+  "LABEL_AUTHORITY_STATUS": "PROVISIONAL_TRUSTED_PRE_BEHAVIOR_REVIEW",
+  "git_sha": "4fc94c2d3c9ebba5d6dc2ba6ad0aa5e7149e9c98",
+  "PRIMARY_OUTER_SPLIT_AUTHORITY": "OUTER_DATE_GROUP_ID (calendar recording date; date-safe across sources)",
+  "outer_date_group_definition": {
+    "unit": "calendar recording date (DDMMYY); a/b session suffix merged to the same calendar date",
+    "UNIQUE_OUTER_DATE_GROUPS": 13,
+    "UNIQUE_RECORDING_DATE_TOKENS": 14,
+    "binding_rules": [
+      "cross-source dates 281119 & 291119: all CVAT + legacy units of that date stay in ONE outer fold (never split by source)",
+      "101219a & 101219b: same calendar date (Dec-10) -> bound to ONE outer group unless proven independent sessions"
+    ],
+    "calendar_groups": {
+      "291119": {
+        "units": 14641,
+        "source": {
+          "cvat_tracking_xml": 14400,
+          "legacy_recovered": 241
+        },
+        "session_tokens": [
+          "291119"
+        ],
+        "kind": "cross_source"
+      },
+      "301119": {
+        "units": 9600,
+        "source": {
+          "cvat_tracking_xml": 9600
+        },
+        "session_tokens": [
+          "301119"
+        ],
+        "kind": "cvat_only"
+      },
+      "281119": {
+        "units": 5458,
+        "source": {
+          "cvat_tracking_xml": 4800,
+          "legacy_recovered": 658
+        },
+        "session_tokens": [
+          "281119"
+        ],
+        "kind": "cross_source"
+      },
+      "031219": {
+        "units": 804,
+        "source": {
+          "legacy_recovered": 804
+        },
+        "session_tokens": [
+          "031219"
+        ],
+        "kind": "legacy_only"
+      },
+      "041219": {
+        "units": 748,
+        "source": {
+          "legacy_recovered": 748
+        },
+        "session_tokens": [
+          "041219"
+        ],
+        "kind": "legacy_only"
+      },
+      "081119": {
+        "units": 490,
+        "source": {
+          "legacy_recovered": 490
+        },
+        "session_tokens": [
+          "081119"
+        ],
+        "kind": "legacy_only"
+      },
+      "271119": {
+        "units": 445,
+        "source": {
+          "legacy_recovered": 445
+        },
+        "session_tokens": [
+          "271119"
+        ],
+        "kind": "legacy_only"
+      },
+      "151119": {
+        "units": 362,
+        "source": {
+          "legacy_recovered": 362
+        },
+        "session_tokens": [
+          "151119"
+        ],
+        "kind": "legacy_only"
+      },
+      "051219": {
+        "units": 288,
+        "source": {
+          "legacy_recovered": 288
+        },
+        "session_tokens": [
+          "051219"
+        ],
+        "kind": "legacy_only"
+      },
+      "091119": {
+        "units": 285,
+        "source": {
+          "legacy_recovered": 285
+        },
+        "session_tokens": [
+          "091119"
+        ],
+        "kind": "legacy_only"
+      },
+      "161119": {
+        "units": 68,
+        "source": {
+          "legacy_recovered": 68
+        },
+        "session_tokens": [
+          "161119"
+        ],
+        "kind": "legacy_only"
+      },
+      "101219": {
+        "units": 108,
+        "source": {
+          "legacy_recovered": 108
+        },
+        "session_tokens": [
+          "101219b",
+          "101219a"
+        ],
+        "kind": "legacy_only"
+      },
+      "111219": {
+        "units": 58,
+        "source": {
+          "legacy_recovered": 58
+        },
+        "session_tokens": [
+          "111219"
+        ],
+        "kind": "legacy_only"
+      }
+    }
+  },
+  "id_columns_to_emit": {
+    "outer_date_group_id": "calendar date",
+    "session_group_id": "camera x date x source (CVAT video / legacy day-source session)",
+    "inner_recording_group_id": "video_key / burst-group (678 total) used only for inner validation within outer-train"
+  },
+  "outer_fold_recommendation": {
+    "issue": "3 dates = 89% of units, CVAT-dominant; 11 legacy tokens = 11%; naive leave-one-date-out is unbalanced (hold out 291119 = 44%; tiny legacy dates test <100 units).",
+    "recommended": "claim-grade leave-one-date-out over the 3 LARGE dates {291119,301119,281119} (each a real test fold) + ONE pooled small-legacy-dates fold; report per-date with support and CI.",
+    "effective_outer_generalization_units": "~4 (3 large dates + pooled small-legacy) -> LOW statistical power; state as a limitation",
+    "source_comparison_note": "only 281119 & 291119 enable within-date cross-source comparison (train-one-source/test-other diagnostics)"
+  },
+  "inner_validation": "recording session / video / burst-group within outer-train (678 groups available)",
+  "leakage_rules": [
+    "no random-row split",
+    "no random-window split",
+    "no neighboring temporal intervals across train/test",
+    "collapse overlapping windows to native units before scoring",
+    "object_track_key purity audit per fold",
+    "no future-frame dependence"
+  ],
+  "forbidden_features_in_X": [
+    "source_type",
+    "source_*",
+    "video_key",
+    "dataset_id",
+    "pig_id",
+    "track_id",
+    "object_track_key",
+    "recording_group_id",
+    "*_path",
+    "split",
+    "split_*",
+    "review_*",
+    "manual_*",
+    "*behavior*",
+    "*label*",
+    "target_roi_*",
+    "roi_target_*",
+    "outer_date_group_id",
+    "session_group_id",
+    "inner_recording_group_id"
+  ],
+  "source_shortcut_controls": [
+    "source-stratified results",
+    "source-balanced results",
+    "train-one-source/test-other diagnostic (281119/291119 enable within-date)",
+    "feature-only source-decode probe",
+    "gate-weight source-decode probe",
+    "remove direct source identifiers",
+    "date-safe split"
+  ],
+  "split_purity_checks": [
+    "FORBIDDEN_FEATURES_PRESENT_IN_X == 0",
+    "FUTURE_FRAME_DEPENDENCE == 0",
+    "no temporal_unit_key spans two outer folds",
+    "no object_track_key spans train/test in same fold",
+    "no calendar date spans two outer folds",
+    "cross-source date units co-located"
+  ],
+  "SPLIT_PURITY": "SPEC_READY (to be validated by a build-time audit before training)"
+}

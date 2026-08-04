@@ -1,5 +1,139 @@
 # Workflow
 
+## 2026-07-31 project autoresearch loop
+
+1. Read scope authority, method state, halt conditions, and selected skills.
+2. Edit only `tools/pig_autoresearch/candidate.json`; use a fresh run tag and
+   exactly one parameter from one declared family.
+3. Run `python tools/pig_autoresearch/prepare.py`; it validates policy hashes,
+   control-plane hashes, source config hashes, candidate schema, and adapter
+   imports/options without executing the workload.
+4. Stop when `authorization_eligible=false`; never edit method state to bypass
+   registration or frozen/blocked authority.
+5. Have an independent authorized reviewer create one permit below
+   `.agents/authorizations/autoresearch/` from the printed bindings.
+6. Execute only canonical `train.py --execute --authorization <permit>`.
+7. Read `run_manifest.json`, `run_result.json`, and gate details; record
+   tracking as `keep`/`discard`/`crash`, classification as `diagnostic`/`crash`.
+8. Treat a tracking `keep` as campaign evidence only; normal validation,
+   repeatability, method transition, claim, and promotion gates still apply.
+
+Tracking trials pin the full baseline parameter set, path-config hash, fixed
+rule combo, Standard V2 evaluator, Hidden inclusion, zero-MP4 contract, target
+videos, baseline metrics hash, and per-video/aggregate acceptance gates.
+
+## 2026-07-31 autoresearch adapter correction
+
+- Root cause: the original templates passed unsupported tracking and
+  classification CLI options, mutated the wrong config branch, relied on
+  implicit defaults, and had no atomic permit or authority binding.
+- Validated correction: use immutable launchers, one JSON candidate surface,
+  exact project CLIs, pinned effective baseline, source/control hashes,
+  single-use permit claim, fixed budget, structured ledger, and fail-closed
+  metric/artifact/worktree checks.
+- Evidence: `17` focused regression tests plus Ruff, compile, JSON, adapter
+  parser probe, dry-run, and missing-permit rejection passed.
+- Reuse when: adapting bounded one-variable experiments to this repository.
+- Do not reuse when: authority has not registered a campaign, evaluator/data
+  contracts changed without repinning, or a task needs scientific promotion
+  rather than diagnostic trial evidence.
+- Supersedes: editable `train.py` and tracking/classification template flow.
+
+## 2026-08-03 automatic project-state stewardship
+
+- Run `project-state-steward` before final handoff after material implementation
+  changes; do not wait for a separate user request.
+- Promote a correction only after root cause, corrective method, evidence,
+  reuse conditions, and non-reuse boundaries are established.
+- Route daily state and active managed resume capsules to `01`, paused/dormant
+  work to `04`, stable knowledge to `05` or `12`, and authority to `02`.
+- Never duplicate one task in `01` and `04`; the active capsule is its sole
+  execution-state authority until explicitly paused or completed.
+- Route repeatable process to `08` and cleanup evidence to
+  `10_REPO_HYGIENE.md`.
+- Reconcile or supersede stale entries instead of appending duplicate notes.
+- Remove only current-session, proven-regenerable waste. Protect unknown,
+  pre-existing dirty, scientific, and lineage-bearing paths.
+- For nontrivial work, select at least one reasoning or verification skill and
+  record its purpose and evidence in `11_SKILL_PORTFOLIO.md`.
+- For architecture, debugging, evaluation, synthesis, or data-contract work,
+  require a reasoning skill; verification alone is insufficient.
+- Queue skill maintenance after user correction, repeated failure, dependency or
+  CLI change, validator failure, or the relevant review-age threshold.
+
+### Planned-prompt task ledger
+
+1. Trigger when a prompt uses a multi-step plan or requires edits, execution,
+   deletion, publication, permission, or another external effect.
+2. Before the first effect, run the project-local `manage_short_memory.py
+   create` command with a unique ID, prompt outcome, acceptance criteria,
+   selected skills, and stable step IDs. Retain its private token only in the
+   owning live session. Skip this for simple read-only Q&A.
+3. Use only `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`, `DEFERRED`, and
+   `CANCELLED`. Keep at most one `IN_PROGRESS` step for each task.
+4. At a phase boundary, run `inspect`, then `checkpoint` using the returned
+   revision/hash and the private owner token. Once acceptance is proven,
+   checkpoint `DONE` before the next step's first effect. Do not update after
+   every command or patch a managed block manually.
+5. Concurrent sessions rely on the manager's OS lock, worktree binding, lease,
+   owner token, revision/hash CAS, atomic replace, and non-owned byte check.
+   Halt on ID collision, stale CAS, unaudited active-lease takeover,
+   runtime-thread mismatch, or external drift.
+   After auditing legitimate byte-only drift, only the owner may run
+   `reconcile` with the recorded revision/hash and inspected current raw hash.
+6. Attach concrete evidence to every `DONE` step and a next action to every
+   unfinished step. Derive task status from the step states.
+7. Before final handoff, reconcile the checklist against the working plan and
+   actual artifacts. Never mark work complete solely because a command exited.
+8. On restart, treat surviving `IN_PROGRESS` as interrupted `IN_PROGRESS` work.
+   Inspect evidence and side effects first. Mark it done when acceptance is
+   proven; otherwise resume the smallest safe checkpoint or block an unsafe
+   repeat. Never rerun the whole step from chat history alone.
+9. If a crash lost the private token, inspect the task. Run `recover` without
+   waiting for lease expiry only when its recorded runtime owner matches the
+   current `CODEX_THREAD_ID`, and use the inspected revision/hash/worktree.
+10. If the runtime owner differs or is absent, do not infer death from PID,
+    process lists, or inactivity. Obtain explicit user authorization, then run
+    `admin-takeover` with the exact task ID repeated, fresh revision/hash,
+    expected worktree, confirmation phrase, reason, and authorization reference.
+    Preserve the resulting hash-bound audit event for the ownership transition.
+
+### Current authority retrieval
+
+1. Check `01` expiry before using its content.
+2. Select task scope through `18_AUTHORITY_INDEX.json`.
+3. Read the scope's current and supporting authorities only.
+4. Use `19_REASONING_ROUTING.md` before selecting code or domain skills.
+5. Halt if two same-precedence sources remain current or contradictory.
+
+### Session closeout sequence
+
+1. Read `01` and compare `Expires` with `Asia/Saigon`. If expired, run
+   `manage_short_memory.py rollover` under the project coordination root.
+2. Inventory the session delta and separate user work from agent-owned output.
+3. Close each step with evidence or an explicit next action. Keep active
+   managed tasks in short as resume capsules. Move only explicitly paused or
+   dormant work to medium, after removing its active capsule.
+4. Resolve `21_MEMORY_MATURITY.json`, then run
+   `manage_memory_maturity.py scan`. Register only completed, reusable,
+   evidence-bound candidates; elapsed inactivity never satisfies a gate.
+5. Review and promote an eligible candidate through the maturity manager after
+   closing or demoting its medium source. Reopen any failed trigger, then
+   regenerate the living dossier with `synthesize`.
+6. Record accepted method state and scientific claims in `13` and `14`.
+7. Run the halt contract in `16` before any gated transition or external effect.
+8. Audit generated paths using `10`; delete only proven session-owned waste.
+9. Record skill use and maintenance signals in `11`.
+10. Rollover removes terminal task bodies, retains each nonterminal managed block
+   byte-for-byte, writes one compact previous-day closeout, and drops older
+   closeout/superseded narration. It halts on any open unmanaged task.
+11. Run the v2 governance validator and focused unit tests.
+12. For governance changes, run the pinned agent suite at least three times.
+13. Label fixture results self-test only; never claim live-agent reliability.
+
+If no durable knowledge, workflow change, active carryover, or cleanup evidence
+was produced, do not edit the corresponding authority merely to show activity.
+
 ## Classification V2 ROI path rule (2026-07-31)
 
 - Use `data/annotations/roi/ROI_annotations.toy_adjusted.coco.json` for
@@ -10,6 +144,89 @@
 - When exporting or rebuilding any ROI-dependent features, record that the
   adjusted ROI was used and recompute derived values rather than reusing
   artifacts built against the old ROI file.
+
+## Classification V2 post-review learning gate (2026-08-01)
+
+- Compose completed review layers sequentially against the current effective
+  label. A later `accept` preserves the preceding effective label; never apply
+  raw row overwrite semantics.
+- Keep the targeted-analysis composition separate from the independently
+  sampled control, then create a final-label candidate containing both.
+- Run a HIGH-only fixed-point temporal audit on each final-label candidate.
+  Any newly selected HIGH unit blocks review close and receives a bounded
+  ±90-frame presentation view; MEDIUM findings remain diagnostic unless a
+  separately declared review gate promotes them.
+- Repeat compose and HIGH-only audit until HIGH=0. Never relabel a temporal gap
+  automatically.
+
+- Before opening any targeted or control residual scope, run
+  `build_final_behavior_review_view.py`. Use the resulting presentation view,
+  never the target-only scope CSV, as `--review-units-csv`.
+- Preserve the same output session when replacing a target-only presentation;
+  exact `review_unit_id` keys retain prior decisions and resume position.
+- CVAT uses the standard 90-frame context radius. Legacy remains target-only
+  when trusted adjacent full-scene actor context is unavailable.
+
+- Use `docs/CLASSIFICATION_V2_POST_REVIEW_LEARNING_PIPELINE.md` as the operator
+  sequence for the 2,729 review, residual controls, mini-CVAT source chain,
+  feature diagnostics, and final integration preflight.
+- Before review close, run only deterministic control-scope predeclaration from
+  an explicit parent population and primary scope containing no outcomes.
+- Freeze authority only when primary count is exactly 2,729 and the control
+  review contains at least 120 fully resolved items with complete quality rows.
+- Treat weighted residual error, estimated selector recall, and feature effects
+  as diagnostics, not automatic patches or model inputs.
+- Require explicit resolution for mini-CVAT Behavior or Hidden conflicts. For
+  sequential source edits, each next before-hash must match the prior after-hash.
+- Bind adjusted ROI and rebuilt frame features, then full-recompute T6, T8, T12,
+  and T16; never reuse an old window structure.
+- Review outcomes, reasons, selection metadata, ranks, paths, and IDs remain
+  forbidden model-X inputs.
+
+- After review close, express every selector, spatiotemporal-data, and model
+  optimization as executable code or an explicit formula with input hashes,
+  seed, configuration, frozen split, metric, and single-family ablation. Keep
+  fixed camera/pen/ROI bindings explicit so later transfer evaluation can rerun
+  the same contract; do not claim transfer from the current single-pen data.
+
+## Classification V2 behavior-consistency re-review (2026-08-01)
+
+Validated v3 narrowing supersedes unconditional retention of every ranked
+nearest-history candidate:
+
+- Always retain the actor unit that generated a consistency finding.
+- Retain a non-fight episode-partner candidate only with bidirectional support
+  and either same-track fight within 24 frames or at least 48 supporting frames
+  whose support span overlaps the target interval.
+- Drop proximity-only context and already-fight partner rows unless they are
+  independent actors for another finding.
+- When narrowing an active scope, create a new authority/session. Reuse decisions
+  by exact `review_unit_id`, require every prior correction to remain selected,
+  and write source/destination hashes plus a row-level reuse lineage table.
+
+1. When the primary scope reaches exactly 2,729 unique terminal decisions,
+   record its byte hash before any consistency audit.
+2. Keep the primary ledger immutable. Build findings from its terminal labels
+   plus the review-independent frame authority into a separate output scope.
+3. Flag, but never auto-correct, linked fight-partner disagreement,
+   social/fight conflicts, corrected interaction partners, and isolated label
+   islands within an actor trajectory.
+4. Never infer the episode partner from nearest-at-target alone. Build a
+   bidirectional nearest-history graph over the context window, rank candidates
+   by unique supporting frames, and retain synchronized partner units.
+5. Keep the actor followed by ranked partner candidates in the targeted GUI.
+   Candidate status is review context, never an automatic label correction.
+6. Complete the targeted consistency scope before freezing review-close
+   authority, then review the independently randomized residual control of at
+   least 120 units.
+7. Do not use the targeted scope to estimate selector false-negative rate; its
+   enrichment makes it a correction tool, not a population-representative
+   control.
+
+Temporal and review-unit key collections must be serialized as JSON arrays.
+The keys themselves contain `|`, so pipe-delimited storage corrupts linked-key
+boundaries. The JSON-array correction is covered by a regression test and is
+reusable wherever Classification V2 composite temporal keys are persisted.
 
 ## Reviewed-data training handoff (2026-07-30)
 
@@ -740,6 +957,32 @@ not a source-data absence. The corrected XML run remains
 or used to claim accuracy, promotion or training readiness. `max-native-events`
 must select target keys without truncating the full frame table, so causal
 history and scene/social context remain available.
+
+### Reviewed spatial tensor low-memory gate
+
+For a reviewed spatial NPZ, materialize immutable NPY shards before any
+trainer or smoke loads the full population:
+
+```text
+set "C2V2_EXPORT_DIR=scripts\classification_v2\02_train_ready_exports"
+python "%C2V2_EXPORT_DIR%\classification_v2_materialize_spatial_memmap.py" ^
+  --npz <tensor-export>\X_spatial_sequences.npz ^
+  --audit-json <tensor-export>\spatial_sequence_audit.json ^
+  --output-dir <train-ready>\spatial_memmap_bundle
+```
+
+The output directory is immutable and must not already exist. The materializer
+streams ZIP members to NPY files, validates the canonical schema and tensor
+content hash, then publishes atomically. Training and SpatialTCN smokes prefer
+`spatial_memmap_bundle` and copy only requested rows. A compressed NPZ whose
+uncompressed payload exceeds 256 MiB must fail before full-memory loading when
+the memmap bundle is absent. Never raise that limit to bypass materialization.
+
+Verify every shard hash on the first load. `--skip-memmap-file-hashes` is only
+for subsequent strata in the same bounded smoke after one verified load. Keep
+padding invalidity, motion/social feature invalidity, and numeric zero values
+as distinct model-input states. Commit `a034440e` is the implementation
+authority for this gate.
 
 Training-contract code now uses fold-local preprocessing, native-event mass
 weighting, and immutable lineage. A requested `output_dir` is an output root,

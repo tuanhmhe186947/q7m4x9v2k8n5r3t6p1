@@ -1,9 +1,8 @@
-"""Masked multitask loss helpers for classification_v2.
+"""Masked multitask loss helpers for Classification V2.
 
-Auxiliary targets are deterministic decompositions of the main behavior label,
-so they are supervised outputs only. They must never be fed into X. The masked
-loss below lets posture/motion/ROI/interaction heads learn only from samples
-where that auxiliary label is meaningful.
+Posture may be independent of the main behavior label. Auxiliary targets are
+supervised outputs only and must never be fed into X. Per-task masks decide
+whether a target and a hierarchy relation are authoritative for each sample.
 """
 
 from __future__ import annotations
@@ -15,6 +14,9 @@ import pandas as pd
 import torch
 import torch.nn.functional as F
 
+from pig_behavior.classification_v2.contracts.behavior_posture import (
+    SAFE_POSTURE_BY_BEHAVIOR,
+)
 from pig_behavior.classification_v2.models.multitask_heads import AUXILIARY_LABEL_ORDER
 from pig_behavior.classification_v2.schema import VALID_BEHAVIORS
 
@@ -31,9 +33,24 @@ class AuxiliaryTaskSpec:
 
 DEFAULT_AUXILIARY_TASKS = (
     AuxiliaryTaskSpec("posture", "posture_target", "has_posture_aux_target", 0.25),
-    AuxiliaryTaskSpec("motion_context", "motion_context_target", "has_motion_context_aux_target", 0.25),
-    AuxiliaryTaskSpec("roi_intent", "roi_intent_target", "has_roi_intent_aux_target", 0.25),
-    AuxiliaryTaskSpec("interaction", "interaction_target", "has_interaction_aux_target", 0.25),
+    AuxiliaryTaskSpec(
+        "motion_context",
+        "motion_context_target",
+        "has_motion_context_aux_target",
+        0.25,
+    ),
+    AuxiliaryTaskSpec(
+        "roi_intent",
+        "roi_intent_target",
+        "has_roi_intent_aux_target",
+        0.25,
+    ),
+    AuxiliaryTaskSpec(
+        "interaction",
+        "interaction_target",
+        "has_interaction_aux_target",
+        0.25,
+    ),
 )
 
 
@@ -46,13 +63,18 @@ def build_auxiliary_label_maps(
     for spec in task_specs:
         _require_columns(targets, [spec.target_column, spec.mask_column])
         labels = targets[spec.target_column].fillna("").astype(str)
+        masks = _to_bool(targets[spec.mask_column])
         expected = AUXILIARY_LABEL_ORDER[spec.name]
-        observed = set(labels.tolist())
+        observed = set(labels[labels.ne("")].tolist())
+        observed_active = set(labels[masks].tolist())
         unexpected = sorted(observed.difference(expected))
-        missing = sorted(set(expected).difference(observed))
-        if unexpected or missing:
+        missing = sorted(set(expected).difference(observed_active))
+        masked_empty = int((masks & labels.eq("")).sum())
+        if unexpected or missing or masked_empty:
             raise ValueError(
-                f"auxiliary label contract mismatch for {spec.name}: unexpected={unexpected}, missing={missing}"
+                f"auxiliary label contract mismatch for {spec.name}: "
+                f"unexpected={unexpected}, missing={missing}, "
+                f"masked_empty={masked_empty}"
             )
         label_maps[spec.name] = list(expected)
     return label_maps
@@ -72,13 +94,28 @@ def encode_auxiliary_batch(
         labels = label_maps[spec.name]
         label_to_idx = {label: idx for idx, label in enumerate(labels)}
         raw = targets[spec.target_column].fillna("").astype(str)
-        unknown = sorted(set(raw).difference(label_to_idx))
+        mask_values = _to_bool(targets[spec.mask_column])
+        unknown = sorted(set(raw[raw.ne("")]).difference(label_to_idx))
         if unknown:
             raise ValueError(f"unknown labels for {spec.name}: {unknown}")
-        encoded_values = [label_to_idx[value] for value in raw]
-        encoded_targets[spec.name] = torch.tensor(encoded_values, dtype=torch.long, device=device)
-        mask_values = _to_bool(targets[spec.mask_column]).to_numpy()
-        masks[spec.name] = torch.tensor(mask_values, dtype=torch.bool, device=device)
+        masked_empty = mask_values & raw.eq("")
+        if masked_empty.any():
+            raise ValueError(
+                f"masked auxiliary target is empty for {spec.name}: "
+                f"count={int(masked_empty.sum())}"
+            )
+        placeholder = labels[0]
+        encoded_values = [label_to_idx[value or placeholder] for value in raw]
+        encoded_targets[spec.name] = torch.tensor(
+            encoded_values,
+            dtype=torch.long,
+            device=device,
+        )
+        masks[spec.name] = torch.tensor(
+            mask_values.to_numpy(),
+            dtype=torch.bool,
+            device=device,
+        )
     return encoded_targets, masks
 
 
@@ -148,13 +185,17 @@ def masked_multitask_loss(
 def hierarchy_consistency_loss(
     behavior_logits: torch.Tensor,
     auxiliary_logits: dict[str, torch.Tensor],
+    behavior_targets: torch.Tensor,
+    auxiliary_masks: dict[str, torch.Tensor],
     *,
     behavior_label_order: tuple[str, ...] = tuple(VALID_BEHAVIORS),
 ) -> torch.Tensor:
-    """Align auxiliary probabilities with behavior-derived hierarchy probabilities."""
+    """Align only behavior-to-auxiliary relations that are authoritative."""
 
     if behavior_logits.ndim != 2 or behavior_logits.shape[1] != len(behavior_label_order):
         raise ValueError("behavior logits do not match behavior label order")
+    if behavior_targets.shape != (behavior_logits.shape[0],):
+        raise ValueError("behavior targets must have shape [B]")
     behavior_prob = torch.softmax(behavior_logits.float(), dim=1)
     terms: list[torch.Tensor] = []
     for task_name, labels in AUXILIARY_LABEL_ORDER.items():
@@ -168,7 +209,19 @@ def hierarchy_consistency_loss(
             auxiliary_labels=labels,
         )
         auxiliary_prob = torch.softmax(logits.float(), dim=1)
-        terms.append(F.mse_loss(auxiliary_prob, derived))
+        task_mask = auxiliary_masks.get(task_name)
+        if task_mask is None or task_mask.shape != behavior_targets.shape:
+            raise ValueError(f"auxiliary hierarchy mask mismatch for {task_name}")
+        valid = task_mask.bool()
+        if task_name == "posture":
+            valid = valid & _safe_posture_behavior_mask(
+                behavior_targets,
+                behavior_label_order=behavior_label_order,
+            )
+        if bool(valid.any()):
+            terms.append(F.mse_loss(auxiliary_prob[valid], derived[valid]))
+    if not terms:
+        return behavior_logits.sum() * 0.0
     return torch.stack(terms).mean()
 
 
@@ -208,13 +261,13 @@ def _aggregate_behavior_probabilities(
     auxiliary_labels: tuple[str, ...],
 ) -> torch.Tensor:
     mapping = {
-        "posture": {"lying": "lying", "sitting": "sitting"},
+        "posture": SAFE_POSTURE_BY_BEHAVIOR,
         "motion_context": {"move": "move", "explore": "explore", "stand": "stand"},
         "roi_intent": {"eat": "eat", "drink": "drink", "playwithtoy": "playwithtoy"},
         "interaction": {"fight": "fight", "social-nose": "social-nose"},
     }[task_name]
     default_label = {
-        "posture": "standing_or_other",
+        "posture": None,
         "motion_context": "other",
         "roi_intent": "none",
         "interaction": "none",
@@ -223,8 +276,26 @@ def _aggregate_behavior_probabilities(
     out = behavior_prob.new_zeros((behavior_prob.shape[0], len(auxiliary_labels)))
     for behavior_index, behavior_label in enumerate(behavior_label_order):
         auxiliary_label = mapping.get(behavior_label, default_label)
+        if auxiliary_label is None:
+            continue
         out[:, target_index[auxiliary_label]] += behavior_prob[:, behavior_index]
     return out
+
+
+def _safe_posture_behavior_mask(
+    behavior_targets: torch.Tensor,
+    *,
+    behavior_label_order: tuple[str, ...],
+) -> torch.Tensor:
+    safe_indices = [
+        index
+        for index, label in enumerate(behavior_label_order)
+        if label in SAFE_POSTURE_BY_BEHAVIOR
+    ]
+    mask = torch.zeros_like(behavior_targets, dtype=torch.bool)
+    for index in safe_indices:
+        mask |= behavior_targets.eq(index)
+    return mask
 
 
 def _require_columns(df: pd.DataFrame, columns: list[str]) -> None:

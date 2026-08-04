@@ -1,5 +1,110 @@
 # Project Rules
 
+## Memory lifecycle policy (2026-08-03)
+
+1. Short memory is daily state plus bounded active-task resume capsules, not
+   project history.
+2. Short memory expires at the next calendar day in `Asia/Saigon`.
+3. At expiry, the atomic manager retains nonterminal managed task blocks
+   byte-for-byte and resets only daily state and terminal task narration.
+4. Medium memory contains paused/dormant work, active blockers, hypotheses, and
+   incomplete work removed from the active set. It never duplicates an active
+   short-memory task capsule.
+5. Long memory contains only the project charter, stable contracts, accepted
+   facts, and complete project-wide information.
+6. Route active execution to short, paused work to medium, and accepted facts
+   to long; do not skip evidence gates or create dual current authority.
+7. A mistake becomes learned knowledge only after root cause, validated
+   correction, evidence, reuse conditions, and non-reuse boundaries are known.
+8. Never preserve an error diary while omitting the corrective method.
+9. Resolved transient detail is archived or removed, not promoted by default.
+10. Superseded facts retain provenance but must not remain current authority.
+11. Session closeout reconciles memory automatically after material changes.
+12. Observer hooks may assist collection but never override project authority.
+13. A prompt that needs a plan or material effects creates one short-memory task
+    entry before its first edit, run, deletion, or external effect.
+14. Each task records ID, prompt outcome, status, opened time, acceptance,
+    selected skills, and checklist steps with stable IDs.
+15. Allowed task and step states are `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`,
+    `DEFERRED`, and `CANCELLED`; only one step per task may be `IN_PROGRESS`.
+16. `DONE` requires evidence. Every unfinished step requires a next action.
+    Checkpoint `DONE` before the next step's first effect. Update at step or
+    phase boundaries, not after each command.
+17. Treat surviving `IN_PROGRESS` state after a restart as interrupted
+    `IN_PROGRESS` work. Verify evidence and side effects before marking it done,
+    resuming from a safe checkpoint, or blocking an unsafe repeat.
+18. On rollover, active managed tasks remain in short with their completed
+    steps, evidence, current step, and next action intact. Completed outcomes
+    remain in a compact previous-day closeout for one day and are then purged.
+19. Simple read-only Q&A creates no task entry. Short memory must not contain
+    superseded task history, raw logs, or duplicated project authority.
+20. Every new material task uses `manage_short_memory.py create`. Managed task
+    changes use owner-token, worktree, revision, and block-hash CAS through the
+    CLI only. Concurrent sessions halt on ID collision, stale CAS, active lease,
+    or non-owned block drift instead of resolving conflict by overwrite.
+21. Rollover refuses an open legacy/unmanaged task until its owning session
+    adopts it. An expired lease permits explicit takeover. During an active
+    lease, lost-token recovery is automatic only when the recorded runtime
+    owner equals the current `CODEX_THREAD_ID`; it rotates the token under the
+    lock and fresh revision/hash CAS. A different or unbound runtime requires
+    user-authorized `admin-takeover` bound to the exact task ID,
+    revision, hash, worktree, confirmation phrase, reason, and authorization
+    reference. Every recovery or takeover appends a hash-bound audit event.
+    The OS lock and atomic replace must never be bypassed.
+22. Calendar age, lack of edits, and task completion can trigger maturity
+    review but never count as evidence for long-memory promotion.
+23. Medium-to-long promotion uses `21_MEMORY_MATURITY.json` and its manager.
+    Required gates include reusable value, typed evidence, current authority,
+    explicit acceptance, limitations, invalidation, and revalidation triggers.
+24. Scientific methods and claims require their method/claim registry gate and
+    an independent review event. Promotion must close or demote the medium
+    source so one fact never has two current authorities.
+25. A failed artifact, authority, method, claim, or manual trigger reopens the
+   long-memory entry. Preserve history and return to the earliest failed gate;
+   never leave contradicted knowledge as current dossier truth.
+
+## Thesis reader-facing prose rule (2026-08-03)
+
+1. Thesis sections must explain the scientific method and evidence to a reader;
+   they are not reproductions of internal code contracts or agent instructions.
+2. Omit implementation-only field names, tier labels, paths, thresholds and
+   training controls unless they are essential to a reproducible scientific
+   claim and are introduced in the appropriate methods or experiment section.
+3. Use mathematical notation only when it defines a reader-facing quantity or
+   decision rule; connect every equation to its scientific interpretation.
+4. Keep Vietnamese meaning concise and reader-facing before producing academic
+   English. Do not paraphrase drafting notes as if they were thesis prose.
+
+## Classification V2 residual-review presentation rule (2026-08-02)
+
+1. Never open a derived Behavior residual scope directly when it contains only
+   target frames. Build the standard final Behavior presentation view first.
+2. Keep decision target frames, `review_unit_id`, temporal key, label, order,
+   and output session unchanged when adding presentation context.
+3. CVAT residual review uses sparse contact-sheet context plus continuous
+   playback up to 90 frames on each side; context never expands decision scope.
+4. Do not fabricate adjacent legacy actor context without a trusted identity
+   and full-scene authority. Preserve the original 16-frame crop in that case.
+5. A presentation change must not read, rewrite, invalidate, or relocate an
+   existing decision ledger. Resume remains keyed by exact `review_unit_id`.
+
+## Classification V2 reproducible optimization rule (2026-08-02)
+
+1. Every review-selector, spatiotemporal-data, or model optimization must be
+   executable code or an explicit mathematical formula with versioned inputs,
+   configuration, seed, code SHA, artifact hashes, and acceptance metric.
+2. Keep a frozen parent and change one declared scientific family per ablation;
+   manual intuition may propose a candidate but cannot be the implementation or
+   validation authority.
+3. Optimize the current single-camera, single-pen dataset after review close,
+   while making camera/pen/ROI geometry dependencies explicit and separable.
+4. Do not claim transfer or cross-pen generalization until a distinct authority
+   exists. Design the contract so a later transfer dataset can replace geometry
+   bindings and rerun the same pipeline without hidden manual steps.
+5. Review outcomes may supervise labels and selector diagnostics after freeze,
+   but review reasons, ranks, IDs, paths, or inclusion probabilities never enter
+   behavior model-X.
+
 ## 2026-07-18 tracking-only priority rules
 
 1. Work only in `PIG_task_tracking` on `task/update-tracking`; classification
@@ -60,6 +165,17 @@
 
 ## classification_v2 active rules
 
+### Active-goal routing after review close
+
+The active work after the frozen 3,243-unit review close is the post-review
+data, audit, replay, ablation, and bounded CPU compatibility pipeline. GUI
+freeze/RAM optimization is completed and is not an active fallback task.
+
+A report that the machine, process, or current step crashed or hung does not by
+itself establish a GUI defect. Before changing scope, verify the active goal and
+the current `C2V2` checklist step, then diagnose that step. Reopen or edit GUI
+code only when the user explicitly reports a new GUI-specific defect.
+
 ### Two-pass model and modality research authority
 
 Use this order for classifier model search:
@@ -92,6 +208,30 @@ underpowered result is `RETEST_FULL_DATA` or `RETEST_STRONGER_MODEL`, not `DROP`
 Do not spend legacy 16f compute on exhaustive subset ranking. It may validate
 the engine with synthetic and representative short canaries, but the complete
 ladder and model-selection decisions belong to frozen reviewed main data.
+
+### Move/stand review protocol and normalization gate
+
+1. Classify `move` and `stand` from temporal episode continuity, not from the
+   displacement magnitude of one frame or one motion pair.
+2. A short step belongs to `move` when the burst anchor lies inside a continuous
+   locomotion bout, including initiation and deceleration. A local adjustment
+   remains `stand` when surrounding context stays stationary in a small region.
+3. The completed human review may use the following behavior to resolve a burst
+   split across a real transition. Preserve this reviewer-protocol provenance;
+   never silently reinterpret existing decisions as middle-anchor labels.
+4. Before train-ready publication, audit a frozen boundary stratum and freeze
+   one scientific target contract: terminal-state labeling with matching future
+   model context, or the recommended middle-anchor label plus
+   `behavior_transition_flag=true`. Do not mix both contracts silently.
+5. A transition flag records a valid boundary, not visual uncertainty or a new
+   behavior class. It is target-side audit information and must not enter
+   model-X. Its training weight or exclusion requires a frozen, paired ablation.
+6. Model temporal input must cover the context needed by the annotation rule.
+   If reviewer-only future context determines a target outside model support,
+   align the input window or treat that case separately before scientific use.
+7. Later motion logic should assess normalized displacement, cumulative path,
+   direction persistence, local dwell radius, valid motion pairs and temporal
+   continuity. Freeze thresholds from reviewed evidence, not ad hoc intuition.
 
 ### Mandatory worktree routing
 

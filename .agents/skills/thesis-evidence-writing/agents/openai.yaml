@@ -1,0 +1,4 @@
+interface:
+  display_name: "Thesis Evidence Writing"
+  short_description: "Evidence-bound Vietnamese-first drafting for the project thesis"
+  default_prompt: "Use the thesis evidence writing workflow to plan or draft a thesis subsection from project evidence, visuals, and user-confirmed Vietnamese content."

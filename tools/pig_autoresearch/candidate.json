@@ -1,0 +1,13 @@
+{
+  "schema_version": "pig.autoresearch.candidate.v1",
+  "run_tag": "tracking-confidence-001",
+  "mode": "tracking",
+  "stage": "target_video",
+  "method_id": "autoresearch.tracking.campaign",
+  "hypothesis":
+    "A single confidence-threshold change may reduce remapped ID switches without reducing HOTA.",
+  "changed_family": "confidence",
+  "parameters": {
+    "det_conf": 0.2
+  }
+}

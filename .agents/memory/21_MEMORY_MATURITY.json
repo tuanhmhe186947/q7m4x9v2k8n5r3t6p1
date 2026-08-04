@@ -1,0 +1,222 @@
+{
+  "schema_version": "pig.memory-maturity.v1",
+  "registry_revision": 14,
+  "policy": {
+    "promotion_basis": "evidence_acceptance_and_revalidation",
+    "elapsed_inactivity_is_evidence": false,
+    "forward_states": [
+      "CANDIDATE",
+      "EVIDENCE_BOUND",
+      "REVIEWED",
+      "ACCEPTED",
+      "PROMOTED"
+    ],
+    "branch_states": [
+      "BLOCKED",
+      "REJECTED",
+      "REVALIDATION_REQUIRED",
+      "CONTRADICTED",
+      "SUPERSEDED",
+      "ARCHIVED"
+    ],
+    "knowledge_kinds": [
+      "project_fact",
+      "project_contract",
+      "validated_method",
+      "supported_claim",
+      "validated_correction",
+      "limitation"
+    ]
+  },
+  "dossier": {
+    "path": ".agents/memory/05_PROJECT_MEMORY_LONG.md",
+    "last_synthesized_at": "2026-08-03T08:43:42+07:00",
+    "sha256": "56c9326da4635481c72526de599e2fe81f0312f471798af244e7f1f670171007",
+    "sync_status": "SYNCED"
+  },
+  "entries": [
+    {
+      "entry_id": "governance.memory_maturity_contract.v1",
+      "knowledge_kind": "project_contract",
+      "dossier_section": "governance",
+      "title": "Evidence-based project memory maturity",
+      "summary": "Completed reusable knowledge moves to the living dossier only after typed evidence, deliberate acceptance, source disposition, and event-based revalidation gates pass.",
+      "scope": "Project-local agent memory lifecycle and long-memory dossier generation.",
+      "reuse_value": "New sessions can preserve durable project knowledge without promoting stale progress, unsupported claims, or age-based assumptions.",
+      "source_medium_entry": "not_applicable",
+      "source_refs": [
+        {
+          "path": ".agents/memory/21_MEMORY_MATURITY.md",
+          "sha256": "bd27201930ff3abf0f43fb97f1ff140519093001c0a5f7cc6900c4ffc2af7a0f"
+        }
+      ],
+      "authority_refs": [
+        {
+          "path": ".agents/memory/03_PROJECT_RULES.md"
+        },
+        {
+          "path": ".agents/memory/18_AUTHORITY_INDEX.json"
+        },
+        {
+          "path": ".agents/memory/21_MEMORY_MATURITY.json"
+        }
+      ],
+      "evidence_refs": [
+        {
+          "path": ".agents/skills/project-state-steward/scripts/manage_memory_maturity.py",
+          "sha256": "da594c0d52cbfbf3cac120d8f6f52b5b63d9f2a8cc190bec1e96626e30e780aa",
+          "evidence_class": "CODE_VERIFIED"
+        },
+        {
+          "path": "tests/test_memory_maturity_manager.py",
+          "sha256": "a98ba864cb1508d4cc05dd56fd8ef0e8ffd82c2921e554dcf4410377c18e8712",
+          "evidence_class": "RUN_VERIFIED"
+        }
+      ],
+      "limitations": [
+        "Agent fixture results do not prove live-agent compliance.",
+        "Existing scientific and operational history is not bulk-promoted."
+      ],
+      "invalidation_conditions": [
+        "The manager, evidence schema, authority scope, or method state changes without revalidation.",
+        "A regression permits promotion by age or leaves invalidated knowledge current."
+      ],
+      "revalidation_triggers": [
+        {
+          "type": "file_sha256",
+          "path": ".agents/skills/project-state-steward/scripts/manage_memory_maturity.py",
+          "expected_sha256": "da594c0d52cbfbf3cac120d8f6f52b5b63d9f2a8cc190bec1e96626e30e780aa"
+        },
+        {
+          "type": "authority_scope",
+          "scope": "memory.maturity",
+          "expected_current_authority": ".agents/memory/21_MEMORY_MATURITY.json"
+        },
+        {
+          "type": "method_state",
+          "method_id": "agent.memory_maturity_v1",
+          "allowed_states": [
+            "VALIDATED",
+            "FROZEN",
+            "PROMOTED"
+          ]
+        }
+      ],
+      "supersedes": [
+        "instruction-only medium-to-long promotion"
+      ],
+      "kind_payload": {
+        "contract_id": "pig.memory-maturity.v1",
+        "change_authority": "Explicit user direction or validated evidence that changes the memory lifecycle."
+      },
+      "created_by": "019fb6a5-342c-7db2-8cbc-41110fab0245",
+      "registered_at": "2026-08-03T08:35:09+07:00",
+      "state": "PROMOTED",
+      "revision": 7,
+      "transitions": [
+        {
+          "from_state": "CANDIDATE",
+          "to_state": "EVIDENCE_BOUND",
+          "timestamp": "2026-08-03T08:35:22+07:00",
+          "authority": "current user direction plus 03/18/21 authorities",
+          "reason": "Required evidence and authority fields passed."
+        },
+        {
+          "from_state": "EVIDENCE_BOUND",
+          "to_state": "REVIEWED",
+          "timestamp": "2026-08-03T08:35:22+07:00",
+          "authority": "current user direction plus 03/18/21 authorities",
+          "reason": "A deliberate review event was recorded."
+        },
+        {
+          "from_state": "REVIEWED",
+          "to_state": "ACCEPTED",
+          "timestamp": "2026-08-03T08:35:22+07:00",
+          "authority": "current user direction plus 03/18/21 authorities",
+          "reason": "Reviewer accepted scope, evidence, and limitations."
+        },
+        {
+          "from_state": "ACCEPTED",
+          "to_state": "PROMOTED",
+          "timestamp": "2026-08-03T08:35:31+07:00",
+          "authority": "current user direction plus validated governance gates",
+          "reason": "Canonical long-memory promotion passed all gates."
+        },
+        {
+          "from_state": "PROMOTED",
+          "to_state": "REVALIDATION_REQUIRED",
+          "timestamp": "2026-08-03T08:37:41+07:00",
+          "authority": "maturity trigger scan",
+          "reason": "Manager hash changed after adding wrapped dossier rendering and revision support."
+        },
+        {
+          "from_state": "REVALIDATION_REQUIRED",
+          "to_state": "EVIDENCE_BOUND",
+          "timestamp": "2026-08-03T08:39:40+07:00",
+          "authority": "current user direction plus revalidated 03/18/21 authorities",
+          "reason": "Reopened evidence passed typed gates."
+        },
+        {
+          "from_state": "EVIDENCE_BOUND",
+          "to_state": "REVIEWED",
+          "timestamp": "2026-08-03T08:39:40+07:00",
+          "authority": "current user direction plus revalidated 03/18/21 authorities",
+          "reason": "A deliberate review event was recorded."
+        },
+        {
+          "from_state": "REVIEWED",
+          "to_state": "ACCEPTED",
+          "timestamp": "2026-08-03T08:39:40+07:00",
+          "authority": "current user direction plus revalidated 03/18/21 authorities",
+          "reason": "Reviewer accepted scope, evidence, and limitations."
+        },
+        {
+          "from_state": "ACCEPTED",
+          "to_state": "PROMOTED",
+          "timestamp": "2026-08-03T08:43:42+07:00",
+          "authority": "current user direction plus revalidated governance gates",
+          "reason": "Canonical long-memory promotion passed all gates."
+        }
+      ],
+      "revision_history": [
+        {
+          "revised_at": "2026-08-03T08:39:28+07:00",
+          "authority": "validated renderer and revision workflow",
+          "reason": "Bind wrapped dossier rendering, revision command, updated guide, and focused test evidence.",
+          "previous_entry_sha256": "ece8ef4323821ab598bd6366ec66f1c74aa30e323ae8293446857e1074702d5e"
+        }
+      ],
+      "historical_acceptances": [
+        {
+          "reviewer": "project-state-steward under explicit user direction",
+          "authority": "current user direction plus 03/18/21 authorities",
+          "basis": "Typed evidence, scope, limitations, source disposition, revalidation triggers, tests, and negative controls passed.",
+          "accepted_at": "2026-08-03T08:35:22+07:00",
+          "independent_review": false,
+          "medium_disposition": "not_from_medium"
+        }
+      ],
+      "historical_promotions": [
+        {
+          "promoted_at": "2026-08-03T08:35:31+07:00",
+          "authority": "current user direction plus validated governance gates",
+          "dossier_path": ".agents/memory/05_PROJECT_MEMORY_LONG.md"
+        }
+      ],
+      "entry_sha256": "43354b183c7cde40cf8373cbf92dc2038b13545651418cbb0cf08584ac8c0607",
+      "acceptance": {
+        "reviewer": "project-state-steward under explicit user direction",
+        "authority": "current user direction plus revalidated 03/18/21 authorities",
+        "basis": "Updated manager, guide, tests, wrapped dossier output, and preserved revision history passed.",
+        "accepted_at": "2026-08-03T08:39:40+07:00",
+        "independent_review": false,
+        "medium_disposition": "not_from_medium"
+      },
+      "promotion": {
+        "promoted_at": "2026-08-03T08:43:42+07:00",
+        "authority": "current user direction plus revalidated governance gates",
+        "dossier_path": ".agents/memory/05_PROJECT_MEMORY_LONG.md"
+      }
+    }
+  ]
+}

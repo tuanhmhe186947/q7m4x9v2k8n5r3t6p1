@@ -1,0 +1,168 @@
+{
+  "input": "C:\\Users\\ironh\\Downloads\\\u0110\u1ed3 \u00e1n\\Paper\\M\u1eabu vi\u1ebft paper_thesis\\MiniMedMind_thesis.docx",
+  "fonts_by_char_count": {},
+  "direct_run_formatting_runs": 413,
+  "direct_paragraph_formatting_paragraphs": 393,
+  "heading_like_paragraphs_not_heading_style": [
+    {
+      "para_index": 5,
+      "text": "MiniMedMind: Small-Scale LLM for High-Performance Medical VQA",
+      "style": "Title"
+    },
+    {
+      "para_index": 89,
+      "text": "Figure 1.  Light-weight medical VQA over Time",
+      "style": "Caption"
+    },
+    {
+      "para_index": 96,
+      "text": "Figure 2. LoRA requires training only A and B. [38]",
+      "style": "Caption"
+    },
+    {
+      "para_index": 107,
+      "text": "Figure 3. The pipeline of MiniMedMind",
+      "style": "Caption"
+    },
+    {
+      "para_index": 128,
+      "text": "Figure 5. The architecture of LLaMa 3.2 3B [36]",
+      "style": "Caption"
+    },
+    {
+      "para_index": 137,
+      "text": "Figure 6. Projector Fine-Tuning Conversation Example",
+      "style": "Caption"
+    },
+    {
+      "para_index": 140,
+      "text": "Figure 7. Prompt GPT-3.5 to generate medical visual instruction data",
+      "style": "Caption"
+    },
+    {
+      "para_index": 144,
+      "text": "Table 1. Descriptions of the training and fine-tuning datasets",
+      "style": "Caption"
+    },
+    {
+      "para_index": 147,
+      "text": "Figure 8.  Sample of training dataset. a) MIMIC-CXR b) LLaVA-Med-Chest",
+      "style": "Caption"
+    },
+    {
+      "para_index": 153,
+      "text": "Table 2. Descriptions of the benchmark datasets",
+      "style": "Caption"
+    },
+    {
+      "para_index": 156,
+      "text": "Figure 9. Sample of benchmark dataset. a) OpenI b) SLAKE c) VQA-RAD",
+      "style": "Caption"
+    },
+    {
+      "para_index": 198,
+      "text": "Medical Report Generation",
+      "style": "Normal"
+    },
+    {
+      "para_index": 201,
+      "text": "Figure 11. Example 1",
+      "style": "Caption"
+    },
+    {
+      "para_index": 204,
+      "text": "Visual Question Answering",
+      "style": "Normal"
+    },
+    {
+      "para_index": 206,
+      "text": "Figure 12. Example 2",
+      "style": "Caption"
+    },
+    {
+      "para_index": 207,
+      "text": "Error Analysis (Failure Cases)",
+      "style": "Normal"
+    },
+    {
+      "para_index": 209,
+      "text": "Figure 13. Example 3",
+      "style": "Caption"
+    },
+    {
+      "para_index": 281,
+      "text": "Dataset",
+      "style": "Normal"
+    },
+    {
+      "para_index": 282,
+      "text": "Task",
+      "style": "Normal"
+    },
+    {
+      "para_index": 283,
+      "text": "# Conversations",
+      "style": "Normal"
+    }
+  ],
+  "examples": {
+    "direct_paragraph_formatting": [
+      {
+        "para_index": 1,
+        "text": " ",
+        "style": "Normal"
+      },
+      {
+        "para_index": 2,
+        "text": "",
+        "style": "Normal"
+      },
+      {
+        "para_index": 3,
+        "text": "",
+        "style": "Normal"
+      },
+      {
+        "para_index": 4,
+        "text": "",
+        "style": "Normal"
+      },
+      {
+        "para_index": 5,
+        "text": "MiniMedMind: Small-Scale LLM for High-Performance Medical VQA",
+        "style": "Title"
+      }
+    ],
+    "direct_run_formatting": [
+      {
+        "para_index": 1,
+        "run_text": " ",
+        "style": "Normal"
+      },
+      {
+        "para_index": 5,
+        "run_text": "MiniMedMind: Small-Scale LLM for High-Performance Medical VQA",
+        "style": "Title"
+      },
+      {
+        "para_index": 9,
+        "run_text": "Duong Quoc Khanh",
+        "style": "Normal"
+      },
+      {
+        "para_index": 10,
+        "run_text": "Hoang Trung Kien",
+        "style": "Normal"
+      },
+      {
+        "para_index": 11,
+        "run_text": "Duong Thanh Nam",
+        "style": "Normal"
+      }
+    ]
+  },
+  "notes": [
+    "Direct formatting is not always wrong, but it often causes inconsistent output when templates change.",
+    "Heading-like paragraphs not using Heading styles can break TOC and accessibility."
+  ]
+}

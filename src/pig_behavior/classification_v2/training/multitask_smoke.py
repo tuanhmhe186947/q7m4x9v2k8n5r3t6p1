@@ -195,7 +195,12 @@ def run_multitask_smoke(config: MultitaskSmokeConfig) -> dict[str, Any]:
             auxiliary_masks,
             class_weights_by_task=class_weights,
         )
-        consistency = hierarchy_consistency_loss(output.behavior, output.auxiliary_logits())
+        consistency = hierarchy_consistency_loss(
+            output.behavior,
+            output.auxiliary_logits(),
+            batch["target"],
+            auxiliary_masks,
+        )
         total = behavior_loss + auxiliary_loss + config.consistency_weight * consistency
         total.backward()
         nn.utils.clip_grad_norm_(model.parameters(), 1.0)

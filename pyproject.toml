@@ -26,6 +26,7 @@ build-backend = "setuptools.build_meta"
 [project.scripts]
 pig-behavior = "pig_behavior.cli:main"
 pig-behavior-api = "pig_behavior.api:run"
+pig-storage-cleaner = "pig_behavior.storage_cleanup.web:run"
 pig-build-classification-data = "pig_behavior.data.classification_dataset:main"
 pig-track-for-annotation = "pig_behavior.tracking.cli:main"
 pig-tracking-eval = "pig_behavior.evaluation.tracking.cli:main"
@@ -59,6 +60,9 @@ tracking = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"pig_behavior.storage_cleanup" = ["static/*.html", "static/*.css", "static/*.js"]
 
 [tool.ruff]
 line-length = 120

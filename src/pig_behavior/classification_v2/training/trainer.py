@@ -472,7 +472,12 @@ def _train_epoch(
                     task_specs=task_specs,
                     class_weights_by_task=auxiliary_weights,
                 )
-                consistency = hierarchy_consistency_loss(output.behavior, output.auxiliary_logits())
+                consistency = hierarchy_consistency_loss(
+                    output.behavior,
+                    output.auxiliary_logits(),
+                    batch.behavior_target,
+                    batch.auxiliary_masks,
+                )
             else:
                 auxiliary_loss = behavior_loss.new_zeros(())
                 consistency = behavior_loss.new_zeros(())

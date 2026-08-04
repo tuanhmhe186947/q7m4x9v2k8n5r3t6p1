@@ -103,6 +103,21 @@
         "refactor"
       ],
       "depends_on": []
+    },
+    {
+      "name": "thesis-evidence-writing",
+      "status": "active",
+      "implicit": false,
+      "order": 11,
+      "triggers": [
+        "thesis",
+        "methodology writing",
+        "data chapter",
+        "viết thesis",
+        "viết methodology",
+        "chuyển sang tiếng Anh"
+      ],
+      "depends_on": []
     }
   ]
 }

@@ -1,0 +1,156 @@
+# Pig Behavior Classification V2 — Deep Model Research: candidate specification (v3, CANONICAL)
+# Companion to docs/research/CLASSIFICATION_V2_DEEP_MODEL_RESEARCH.md
+# CANONICAL packaging pass: authority-corrected; four separated model roles; parameter counts are PROJECTED
+# (analytical), NOT MEASURED_EXACT, until built and counted by the measurement script on the implementation commit.
+
+meta:
+  schema_version: classification_v2.model_research.candidates.v3_canonical
+  supersedes: [v1_stale_nonauthoritative, v2]
+  code_head_sha: 4fc94c2d3c9ebba5d6dc2ba6ad0aa5e7149e9c98
+  scientific_accepted_sha: a35e0b9aae8b55167b4562cfc7e26a45e2b4e312
+  claim_boundary: Q2_strong_internal_recording-date_video-safe
+  num_classes: 10
+  behavior_order: [drink, eat, fight, social-nose, explore, lying, stand, move, sitting, playwithtoy]
+
+  data_authority:
+    CURRENT_CANONICAL_MANIFEST_DIRECTLY_VERIFIED: NO   # run root C:/pig_runs/... unreachable this session
+    USER_REPORTED_CURRENT_LINEAGE_STATE: >
+      source_merge PASS (245,680); frame_local PASS (245,680); hidden decisions 5,233; coverage+apply PASS;
+      harmonized 245,680; temporal intervals 33,355; stopped at temporal manifest publication (PROVISIONAL_COMPUTED_BUT_UNMANIFESTED); behavior review pending.
+    HISTORICAL_COMPUTED_OUTPUT_CORROBORATION: >
+      agent_audits/c2v2_behavior_contract_patch_20260721_v1/temporal_harmonization_audit.json (2026-07-20/21) shows
+      rows 245,680, intervals 33,355, trusted 5,240, errors [] — HISTORICAL agent-audit, NOT current canonical; corroborates scale/shape only.
+    PROVISIONAL_TEMPORAL_OUTPUT_SOURCE: outputs/classification_v2/agent_audits/c2v2_behavior_contract_patch_20260721_v1/temporal_intervals_standalone.csv
+
+  hidden_unit_separation:
+    CURRENT_HIDDEN_DECISION_UNITS: 5233
+    CURRENT_HIDDEN_APPLIED_FRAME_ROWS: UNKNOWN         # no current-canonical Hidden-apply manifest accessible
+    HISTORICAL_TRUSTED_FRAME_ROWS: 5240
+
+  recording_structure:
+    UNIQUE_RECORDING_DATES: 14                          # 3 CVAT + 13 legacy - 2 overlap
+    cvat_videos: 12
+    legacy_burst_groups: 666
+    video_or_burst_group_count: 678
+    PRIMARY_OUTER_SPLIT_UNIT: recording_session (camera x date x source), constrained recording-DATE-safe (281119/291119 bound to one outer fold)
+    justification: source ~1.0 decodable + fixed camera => source/camera/date are the dominant leakage axes; only whole-session, date-safe holdout prevents all three. ~14 dates cap independent outer groups => leave-one-date-out / grouped k-fold with cluster-bootstrap CIs; finer video/burst-group grouping only for inner validation.
+
+  parameter_count_status: PROJECTED   # candidate modules not yet instantiated; see measurement command
+  measurement_command: >
+    scripts/classification_v2/04_baselines_smokes/measure_model_params_macs.py --config <this file> --candidate <role>
+    --write-audit outputs/classification_v2/model_research/measured_params_macs_audit.json
+    (builds the model from config, counts params via torch + MACs via fvcore/ptflops, binds code SHA; promotes PROJECTED -> MEASURED_EXACT)
+
+  compute_policy: {LOCAL_DEBUG: RTX 3050 4GB dev-only, RENTED_STANDARD: 16-24GB, RENTED_HIGH_MEMORY: 40-80GB}
+
+  dataset_scale: {temporal_interval_units: 33355, note: "MEDIUM dataset; larger models not ruled out by size; overfitting constraint = ~14 recording dates / 678 video-or-burst-groups"}
+
+  unbuilt_modules: [quality_aware_gated_fusion, two_timescale_causal_fusion, roi_film, social_relation_token_or_gat, mobilenetv3_student_integration, real_causal_temporal_kernels, distillation_pruning_qat]
+
+tensor_contract:
+  actor_image: [B, T, 3, H, W]              # T=6 primary (16 legacy); H=W in {64 cached,128,160,224}
+  visual_context_union_image: [B, T, 3, H, W]
+  spatial_groups: {bbox_xywh_n: 4, bbox_shape_n: 2, motion_delta: 12, roi_class_relation: 18, social_relation: 10}
+  spatial_total_predictive_D: 46            # motion_delta 10->12 (motion_tensor.v2); total 44->46; verified by real bounded export (motion_dimension_contract.json)
+  interaction_context: [B, K, 16]
+  causal_history: [B, T_h, F_h]
+  availability_masks: {length: [B,T], observed: [B,T], available: [B,T], quality: [B,T], partner: [B,K]}
+  time_delta: [B, T]
+  target_behavior: [B]
+  auxiliary_targets: {posture: 3, motion_context: 4, roi_intent: 4, interaction: 3}
+  forbidden_in_X: ["manual_*","review_*","*behavior*","*label*","original_behavior","review_unit_id","window_id",
+    "temporal_unit_key","video_key","dataset_id","pig_id","track_id","object_track_key","recording_group_id",
+    "source_type","source_*","split","split_*","*_path","target_roi_*","roi_target_*"]
+
+# ===========================================================================
+# FOUR SEPARATED ROLES
+# ===========================================================================
+
+# Role 1 — BALANCED_CAUSAL_MAIN_MODEL — FIRST IMPLEMENTATION TARGET
+balanced_causal_main_model:
+  role: BALANCED_CAUSAL_MAIN_MODEL
+  implementation_order: 1_FIRST
+  causal: true
+  visual_backbone: resnet18 (shared actor+union); image 96-160
+  temporal_encoder: masked_tcn (2-layer dilated causal) + dilated causal-history encoder (two-timescale)
+  fusion: quality_aware_gated_fusion
+  branches: [actor_image(shared), spatial_all5, roi_FiLM, partner_topk, causal_history, aux_heads]
+  PROJECTED_PARAMETER_COUNT: 11549789    # analytical; NOT measured; promote via measurement_command
+  PROJECTED_MACS_ESTIMATE: ~1.8 GMAC/window (ResNet18 @128 x6)
+  MINIMUM_SMOKE_TEST_VRAM: 1-2 GB
+  PRACTICAL_FULL_TRAINING_VRAM: 12-16 GB
+  RECOMMENDED_RENTED_GPU_CLASS: standard (16-24GB)
+  LOCAL_FULL_TRAINING_FEASIBLE: NO (reduced-res only)
+  LOCAL_SMOKE_TEST_FEASIBLE: YES
+  CAUSAL_DEPLOYMENT_FEASIBLE: YES
+  EXPECTED_DEPLOYMENT_COMPRESSION_PATH: prune 30-40% + INT8/FP16 -> L1; distill -> lightweight_causal_student
+  primary_hypothesis: quality-aware gated fusion + two-timescale causal history beats naive concat by >=0.02 macro-F1-supported, most on occluded strata and interaction classes, at standard-tier cost.
+
+# Role 2 — FULL_CAUSAL_RESEARCH_MODEL — gated capacity experiment AFTER the baseline ladder
+full_causal_research_model:
+  role: FULL_CAUSAL_RESEARCH_MODEL
+  implementation_order: 2_AFTER_LADDER (gated)
+  causal: true    # STRICTLY causal (distinct from the offline teacher)
+  actor_backbone_options: [dual_resnet34, video_swin_tiny_causalized, videomae_vit_small_causalized, x3d_m_causalized]
+  fusion: cross_attention_quality_gated
+  social_branch: confidence_aware_GAT_1_2_layer (tested vs pairwise at 33k units, A10)
+  temporal: two_timescale, strictly past-only
+  PROJECTED_PARAMETER_COUNT: 44863997    # dual-ResNet34+transformer instantiation; ~22-50M video-transformer variants (analytical)
+  PROJECTED_MACS_ESTIMATE: ~11-13 GMAC/window
+  MINIMUM_SMOKE_TEST_VRAM: 3-4 GB
+  PRACTICAL_FULL_TRAINING_VRAM: 24-40 GB
+  RECOMMENDED_RENTED_GPU_CLASS: high-memory (40-80GB)
+  LOCAL_FULL_TRAINING_FEASIBLE: NO
+  LOCAL_SMOKE_TEST_FEASIBLE: YES
+  CAUSAL_DEPLOYMENT_FEASIBLE: YES (strictly causal)
+  EXPECTED_DEPLOYMENT_COMPRESSION_PATH: distill -> balanced or lightweight
+  primary_hypothesis: a strictly-causal high-capacity model is the causal accuracy ceiling; whether it beats the balanced model at 33k units / few dates is an EMPIRICAL question (A13), not assumed.
+
+# Role 3 — OFFLINE_DISTILLATION_TEACHER — offline; may be non-causal; NEVER deployed; NEVER the headline causal result
+offline_distillation_teacher:
+  role: OFFLINE_DISTILLATION_TEACHER
+  implementation_order: 2b_AFTER_LADDER (gated, optional)
+  causal: false   # MAY use bidirectional WITHIN-WINDOW attention over the 6-16 frame window for max accuracy
+  purpose: generate soft targets (logits + branch embeddings + relation/temporal states) for distillation only
+  constraints:
+    - MUST NOT be reported as the headline causal model
+    - MUST NOT be compared as deployment-equivalent to any causal model
+    - offline batch inference only; not a deployment artifact
+  actor_backbone_options: [dual_resnet34_bidir, videomae_vit_small, video_swin_tiny]
+  PROJECTED_PARAMETER_COUNT: 22-50M (analytical; backbone-dependent)
+  RECOMMENDED_RENTED_GPU_CLASS: high-memory (40-80GB)
+  primary_hypothesis: a non-causal teacher raises the distillation target ceiling; its accuracy is NOT a deployment claim.
+
+# Role 4 — LIGHTWEIGHT_CAUSAL_STUDENT — later distillation/deployment stage
+lightweight_causal_student:
+  role: LIGHTWEIGHT_CAUSAL_STUDENT
+  implementation_order: 3_LATER (distillation/deployment)
+  causal: true
+  visual_backbone: mobilenetv3_small (shared); image 64-96
+  temporal_encoder: depthwise-separable causal TCN + temporal-state caching
+  fusion: low_rank_gated_fusion; conditional branches + early-exit
+  compression: [KD_from_full_or_teacher, structured_channel_pruning, INT8_QAT, FP16, early_exit_dynamic]
+  PROJECTED_PARAMETER_COUNT: 1745645
+  PROJECTED_MACS_ESTIMATE: ~0.03-0.1 GMAC/window
+  MINIMUM_SMOKE_TEST_VRAM: <1 GB
+  PRACTICAL_FULL_TRAINING_VRAM: 2-3 GB (student)
+  RECOMMENDED_RENTED_GPU_CLASS: standard (or local reduced)
+  LOCAL_FULL_TRAINING_FEASIBLE: YES
+  LOCAL_SMOKE_TEST_FEASIBLE: YES
+  CAUSAL_DEPLOYMENT_FEASIBLE: YES
+  deployment_hardware: TBD by project (edge/embedded class; RTX 3050 only if later explicitly selected)
+  EXPECTED_DEPLOYMENT_COMPRESSION_PATH: KD -> structured prune -> INT8 QAT -> (optional) dynamic early-exit
+  primary_hypothesis: retains >=95% of the main model's macro-F1-supported at <2M params and <15 ms/pig-window.
+
+deep_customizations:
+  quality_aware_modality_gating: {related_sources: [GMU2017, QMF2023, TMC2021], ablation: A7/A8}
+  two_timescale_causal_temporal_fusion: {related_sources: [LSTR2021, TSM2019, MoViNet2021], ablation: A6}
+  roi_conditioned_spatial_modulation: {related_sources: [PigProximity2025], mechanism: FiLM, ablation: A4}
+  actor_partner_relation_tokens: {related_sources: [PigletSTGCN2022, ARG2019], ablation: A5/A10}
+
+recommended:
+  FIRST_IMPLEMENTATION_TARGET: balanced_causal_main_model
+  gated_capacity_experiments_after_ladder: [full_causal_research_model, offline_distillation_teacher]
+  later_deployment_stage: lightweight_causal_student
+  do_not_implement_all_simultaneously: true
+  parameter_counts_are: PROJECTED_until_measured

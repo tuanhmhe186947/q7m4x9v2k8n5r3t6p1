@@ -1,0 +1,83 @@
+{
+  "artifact": "motion_dimension_contract",
+  "schema_version": "classification_v2.model_research.motion_dimension_contract.v2_real_export",
+  "audit_method": "REAL bounded production export: executed the real production feature producer (build_enhanced_spatiotemporal_features) and the real production exporter (export_spatial_sequences) at the current Git SHA on a REAL harmonized-frame slice (2 real units, 1 CVAT 6-frame + 1 legacy 16-frame). NO research docs, NO historical NPZ shapes, NO synthetic DataFrame, NO mock columns.",
+  "CURRENT_GIT_SHA": "4fc94c2d3c9ebba5d6dc2ba6ad0aa5e7149e9c98",
+  "CURRENT_CANONICAL_MANIFEST_DIRECTLY_VERIFIED": "NO (run root unreachable; this audit uses production SOURCE + a REAL bounded export, not the canonical manifest)",
+
+  "MOTION_SCHEMA_DECLARED_NAMES": ["vx_n_per_second","vy_n_per_second","bw_rate_n_per_second","bh_rate_n_per_second","area_rate_n_per_second","aspect_ratio_rate_per_second","speed_n_per_second","direction_change_rad","tangential_acceleration_n_per_second2","ax_n_per_second2","ay_n_per_second2","acceleration_vector_magnitude_n_per_second2"],
+  "MOTION_SCHEMA_DECLARED_DIM": 12,
+  "MOTION_SCHEMA_VERSION": "classification_v2.motion_tensor.v2",
+  "MOTION_SCHEMA_HASH": "ec0c511b5f519824",
+  "MOTION_SCHEMA_SOURCE": "src/pig_behavior/classification_v2/features/motion_schema.py::MOTION_FEATURE_NAMES",
+
+  "PRODUCER_MOTION_NAMES": ["vx_n_per_second","vy_n_per_second","bw_rate_n_per_second","bh_rate_n_per_second","area_rate_n_per_second","aspect_ratio_rate_per_second","speed_n_per_second","direction_change_rad","tangential_acceleration_n_per_second2","ax_n_per_second2","ay_n_per_second2","acceleration_vector_magnitude_n_per_second2"],
+  "PRODUCER_MOTION_DIM": 12,
+  "PRODUCER": "src/pig_behavior/classification_v2/features/spatiotemporal.py::build_enhanced_spatiotemporal_features (executed; produced all 12 columns, 0 missing; emitted motion_schema_version=classification_v2.motion_tensor.v2)",
+
+  "EXPORTER_MOTION_NAMES": ["vx_n_per_second","vy_n_per_second","bw_rate_n_per_second","bh_rate_n_per_second","area_rate_n_per_second","aspect_ratio_rate_per_second","speed_n_per_second","direction_change_rad","tangential_acceleration_n_per_second2","ax_n_per_second2","ay_n_per_second2","acceleration_vector_magnitude_n_per_second2"],
+  "EXPORTER_MOTION_DIM": 12,
+  "EXPORTER": "src/pig_behavior/classification_v2/spatial_sequence_export.py::export_spatial_sequences (SPATIAL_FRAME_FEATURES['motion_delta']=list(MOTION_FEATURE_NAMES); require_motion_schema fail-closed on mismatch)",
+
+  "LOADER_EXPECTED_MOTION_DIM": 12,
+  "LOADER_NOTE": "model_factory.build_multimodal_model receives spatial_input_dims dynamically from the exported NPZ feature_names; there is no hard-coded loader motion dim, so loader-expected == NPZ dim == 12.",
+
+  "REAL_NPZ_MOTION_NAMES": ["vx_n_per_second","vy_n_per_second","bw_rate_n_per_second","bh_rate_n_per_second","area_rate_n_per_second","aspect_ratio_rate_per_second","speed_n_per_second","direction_change_rad","tangential_acceleration_n_per_second2","ax_n_per_second2","ay_n_per_second2","acceleration_vector_magnitude_n_per_second2"],
+  "REAL_NPZ_MOTION_DIM": 12,
+  "REAL_NPZ_ARRAY_SHAPE": [1, 6, 12],
+  "REAL_NPZ_PREFLIGHT_ERRORS": [],
+  "REAL_BOUNDED_EXPORT": {
+    "input": "outputs/classification_v2/agent_audits/c2v2_behavior_contract_patch_20260721_v1/harmonized_frames.csv (REAL harmonized frames; raw geometry/timing columns; producer RECOMPUTES motion from raw, does not read pre-populated motion columns)",
+    "units": ["cvat_tracking_xml|...Pigs281119_000114...track=7|pig=ID_8|anchor=66 (6 frames)","legacy_recovered|...pigs291119/000236|track=tracklet_00001926|pig=ID_8 (16 frames)"],
+    "device_env": "device VM python3 + pandas 2.3.3, PYTHONPATH=src, current Git SHA",
+    "note": "producer emitted 12/12 canonical per-second motion columns; exporter stacked motion_delta to [1,6,12]; require_motion_schema passed (errors [])."
+  },
+
+  "EQUALITY": {
+    "DECLARED_PRODUCER_EQUAL": "YES (12==12, identical ordered names)",
+    "DECLARED_EXPORTER_EQUAL": "YES (12==12, identical ordered names)",
+    "DECLARED_LOADER_EQUAL": "YES (loader dim is dynamic from NPZ == 12)",
+    "DECLARED_REAL_NPZ_EQUAL": "YES (real bounded NPZ motion_delta dim == 12, names identical)"
+  },
+
+  "HISTORICAL_DIMENSION_PROVENANCE": {
+    "CURRENT_12D_SOURCE": "motion_schema.py MOTION_FEATURE_NAMES (motion_tensor.v2, hash ec0c511b...); produced by spatiotemporal.build_enhanced_spatiotemporal_features; selected by SPATIAL_FRAME_FEATURES; per-SECOND names.",
+    "HISTORICAL_10D_SOURCE": "spatial_sequence_export.py LEGACY_SPATIAL_FRAME_FEATURES['motion_delta'] = [delta_cx_n, delta_cy_n, delta_bw_n, delta_bh_n, delta_area_n, delta_aspect_ratio, speed_n_per_frame, speed_n_per_sec, abs_accel_n_per_frame2, abs_direction_change_rad] (per-FRAME schema). CONFIRMED as the schema of the Jul-20/21 agent-audit enhanced CSV (header has per-frame names vx_n_per_frame/speed_n_per_frame/abs_accel_n_per_frame2/abs_direction_change_rad) and of the model_upgrade_blueprint P1 build (motion_delta[.,16,10]).",
+    "HISTORICAL_9D_SOURCE": "NOT_FOUND_IN_CURRENT_SOURCE. No 9-feature motion schema exists at the current Git SHA (the only historical in-code motion schema is the 10-feature LEGACY schema). A 9D artifact, if any exists, is a pre-legacy STALE_PRE_MOTION_V2 cache; its dimension must be read from that artifact's own feature-name sidecar and NOT inferred by dimensional subtraction. Not inferred here."
+  },
+
+  "EXACT_ORDERED_COLUMNS_ALL_SCHEMAS": {
+    "current_mixed_SPATIAL_FRAME_FEATURES": {
+      "bbox_xywh_n": ["cx_n","cy_n","bw_n","bh_n"],
+      "bbox_shape_n": ["area_n","aspect_ratio"],
+      "motion_delta_12": ["vx_n_per_second","vy_n_per_second","bw_rate_n_per_second","bh_rate_n_per_second","area_rate_n_per_second","aspect_ratio_rate_per_second","speed_n_per_second","direction_change_rad","tangential_acceleration_n_per_second2","ax_n_per_second2","ay_n_per_second2","acceleration_vector_magnitude_n_per_second2"],
+      "roi_class_relation_18": ["roi_feeder_min_dist_n","roi_feeder_max_overlap_ratio","roi_feeder_max_iou","roi_feeder_center_inside","roi_feeder_near","roi_feeder_contact","roi_drinker_min_dist_n","roi_drinker_max_overlap_ratio","roi_drinker_max_iou","roi_drinker_center_inside","roi_drinker_near","roi_drinker_contact","roi_toy_min_dist_n","roi_toy_max_overlap_ratio","roi_toy_max_iou","roi_toy_center_inside","roi_toy_near","roi_toy_contact"],
+      "social_relation_10": ["nearest_dist_n","nearest_pair_iou","nearest_pair_overlap_ratio","social_density_near_count","social_contact_count","partner_distance_delta_n","approach_speed_n_per_second","retreat_speed_n_per_second","pair_contact_with_nearest","aggression_score_proxy_per_second"]
+    },
+    "legacy_LEGACY_SPATIAL_FRAME_FEATURES": {
+      "motion_delta_10": ["delta_cx_n","delta_cy_n","delta_bw_n","delta_bh_n","delta_area_n","delta_aspect_ratio","speed_n_per_frame","speed_n_per_sec","abs_accel_n_per_frame2","abs_direction_change_rad"],
+      "social_relation_10": ["nearest_dist_n","nearest_pair_iou","nearest_pair_overlap_ratio","social_density_near_count","social_contact_count","nearest_dist_delta","approach_speed_n_per_frame","separation_speed_n_per_frame","pair_contact_with_nearest","aggression_score_proxy"],
+      "quality_mask_8": ["bbox_valid","actor_bbox_valid","geometry_feature_valid","spatiotemporal_feature_valid","roi_feeder_available","roi_drinker_available","roi_toy_available","social_neighbor_available"]
+    }
+  },
+
+  "CURRENT_SPATIAL_PREDICTIVE_TOTAL": 46,
+  "spatial_total_breakdown": "bbox_xywh_n(4) + bbox_shape_n(2) + motion_delta(12) + roi_class_relation(18) + social_relation(10) = 46 (excludes quality_mask gate and pen_boundary_context)",
+  "CORRECTION_OF_PRIOR": "prior protocol/audit reported motion_delta=10 and spatial total=44 (the LEGACY per-frame schema). CORRECTED to motion_delta=12, spatial predictive total=46 for the current mixed lineage, verified by a real bounded production export.",
+
+  "STALE_ARTIFACT_HANDLING": {
+    "classification": "STALE_PRE_MOTION_V2 for all 9D/10D motion artifacts (Jul-20/21 agent-audit enhanced CSV; model_upgrade_blueprint P1 10D NPZ; any 9D cache)",
+    "do_not": "migrate by padding 9D/10D -> 12D",
+    "rebuild_from": "the earliest motion-schema-dependent stage (native_evidence / spatiotemporal enhanced-feature producer), then temporal views, then tensor export, on the reviewed lineage under the current SHA",
+    "model_tensor_contract_update": "motion_delta D=12; spatial predictive total D=46"
+  },
+
+  "VERDICT": {
+    "MOTION_DIMENSION_CONTRACT": "PASS",
+    "CURRENT_CANONICAL_MOTION_DIMENSION": 12,
+    "END_TO_END_12D": "YES (declared==producer==exporter==loader==real bounded NPZ==12; preflight errors [])",
+    "HISTORICAL_ARTIFACTS_REUSABLE": "NO (10D/9D are STALE_PRE_MOTION_V2; rebuild, do not pad)",
+    "MODEL_IMPLEMENTATION_ALLOWED": "YES",
+    "build_time_requirement": "Phase 1 loader-contract audit must re-run this bounded export on the REVIEWED export and assert motion_delta names==MOTION_FEATURE_NAMES and dim==12 before training; add negative tests for missing/extra/duplicate/reordered motion features against the single canonical registry (motion_schema.py)."
+  }
+}

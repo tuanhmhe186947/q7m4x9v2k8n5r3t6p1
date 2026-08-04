@@ -1,0 +1,212 @@
+{
+  "artifact": "provisional_label_snapshot_audit",
+  "schema_version": "classification_v2.model_research.provisional_label_snapshot.v1",
+  "LABEL_AUTHORITY_STATUS": "PROVISIONAL_TRUSTED_PRE_BEHAVIOR_REVIEW",
+  "PAPER_GRADE_USE": "NO",
+  "git_sha": "4fc94c2d3c9ebba5d6dc2ba6ad0aa5e7149e9c98",
+  "CURRENT_CANONICAL_MANIFEST_DIRECTLY_VERIFIED": "NO",
+  "authority_separation": {
+    "user_reported_current_state": {
+      "source_merge_rows": 245680,
+      "source_merge_status": "PASS",
+      "frame_local_rows": 245680,
+      "frame_local_status": "PASS",
+      "current_hidden_decision_units": 5233,
+      "hidden_coverage_gate": "PASS",
+      "hidden_apply_status": "PASS",
+      "temporal_intervals_provisional": 33355,
+      "temporal_status": "PROVISIONAL_COMPUTED_BUT_UNMANIFESTED",
+      "behavior_review_status": "PENDING",
+      "final_train_ready_unit_count": "NOT_READY",
+      "final_model_window_count": "NOT_FINALIZED"
+    },
+    "historical_computed_output_corroboration": {
+      "temporal_harmonization_audit": "outputs/classification_v2/agent_audits/c2v2_behavior_contract_patch_20260721_v1/temporal_harmonization_audit.json",
+      "temporal_harmonization_audit_sha256": "474a01696c6c3252c9f6d052f8e357fbdc33ae7386543d8c44915326c66ae5cc",
+      "rows": 245680,
+      "intervals": 33355,
+      "trusted_frames_HISTORICAL": 5240,
+      "errors": [],
+      "caveat": "HISTORICAL agent-audit; NOT promoted to current canonical authority"
+    },
+    "provisional_artifact_evidence": {
+      "temporal_intervals_standalone": "outputs/classification_v2/agent_audits/c2v2_behavior_contract_patch_20260721_v1/temporal_intervals_standalone.csv",
+      "note": "33,355 rows, 119 cols; behavior_temporal_final per interval; timestamps present (timestamp_start_sec/timestamp_end_sec)"
+    }
+  },
+  "source_authorities_hashed": {
+    "lineage_config": "configs/classification_v2/lineage_rebuild_v1.yaml",
+    "lineage_config_sha256": "3b8ef1b9eb7c9942d4198371b41d90856602dd02bfc33cefaffdc5e5222aa713",
+    "legacy_export_sha256": "fbd6300fca8fdab0b2c644626397ec6c6aa79f80b48a383f54e745cbcbcbcad3",
+    "cvat_xml_count": 12,
+    "expected_mixed_rows": 245680
+  },
+  "class_distribution_by_unit": {
+    "note": "SEPARATE units; do NOT conflate; final train-ready distribution NOT_READY",
+    "SOURCE_BOX_LEVEL_cvat": {
+      "total": 172800,
+      "max_min_ratio": 352.9
+    },
+    "FRAME_OBJECT_LEVEL": {
+      "total": 245680,
+      "max_min_ratio": 141.5,
+      "provenance": "HISTORICAL harmonization audit"
+    },
+    "TEMPORAL_INTERVAL_LEVEL": {
+      "total": 33355,
+      "max_min_ratio": 82.2,
+      "status": "PROVISIONAL_PRE_BEHAVIOR_REVIEW",
+      "counts": {
+        "sitting": 11515,
+        "explore": 8459,
+        "eat": 3072,
+        "lying": 3005,
+        "fight": 2796,
+        "social-nose": 1525,
+        "stand": 1299,
+        "move": 911,
+        "drink": 633,
+        "playwithtoy": 140
+      }
+    },
+    "TRAIN_READY_NATIVE_UNIT_LEVEL": "NOT_READY",
+    "MODEL_WINDOW_LEVEL": "NOT_FINALIZED"
+  },
+  "recording_date_groups": {
+    "date_token_count": 14,
+    "calendar_date_count": 13,
+    "date_tokens": [
+      {
+        "date": "291119",
+        "units": 14641,
+        "source": {
+          "cvat_tracking_xml": 14400,
+          "legacy_recovered": 241
+        },
+        "kind": "cross_source"
+      },
+      {
+        "date": "301119",
+        "units": 9600,
+        "source": {
+          "cvat_tracking_xml": 9600
+        },
+        "kind": "cvat_only"
+      },
+      {
+        "date": "281119",
+        "units": 5458,
+        "source": {
+          "cvat_tracking_xml": 4800,
+          "legacy_recovered": 658
+        },
+        "kind": "cross_source"
+      },
+      {
+        "date": "031219",
+        "units": 804,
+        "source": {
+          "legacy_recovered": 804
+        },
+        "kind": "legacy_only"
+      },
+      {
+        "date": "041219",
+        "units": 748,
+        "source": {
+          "legacy_recovered": 748
+        },
+        "kind": "legacy_only"
+      },
+      {
+        "date": "081119",
+        "units": 490,
+        "source": {
+          "legacy_recovered": 490
+        },
+        "kind": "legacy_only"
+      },
+      {
+        "date": "271119",
+        "units": 445,
+        "source": {
+          "legacy_recovered": 445
+        },
+        "kind": "legacy_only"
+      },
+      {
+        "date": "151119",
+        "units": 362,
+        "source": {
+          "legacy_recovered": 362
+        },
+        "kind": "legacy_only"
+      },
+      {
+        "date": "051219",
+        "units": 288,
+        "source": {
+          "legacy_recovered": 288
+        },
+        "kind": "legacy_only"
+      },
+      {
+        "date": "091119",
+        "units": 285,
+        "source": {
+          "legacy_recovered": 285
+        },
+        "kind": "legacy_only"
+      },
+      {
+        "date": "161119",
+        "units": 68,
+        "source": {
+          "legacy_recovered": 68
+        },
+        "kind": "legacy_only"
+      },
+      {
+        "date": "101219b",
+        "units": 61,
+        "source": {
+          "legacy_recovered": 61
+        },
+        "kind": "legacy_only"
+      },
+      {
+        "date": "111219",
+        "units": 58,
+        "source": {
+          "legacy_recovered": 58
+        },
+        "kind": "legacy_only"
+      },
+      {
+        "date": "101219a",
+        "units": 47,
+        "source": {
+          "legacy_recovered": 47
+        },
+        "kind": "legacy_only"
+      }
+    ],
+    "skew_finding": "3 dates hold 89% of units (291119 44%, 301119 29%, 281119 16%); 11 legacy tokens hold 11%. Caps effective outer generalization units.",
+    "cross_source_dates": [
+      "281119",
+      "291119"
+    ],
+    "a_b_same_calendar_date": [
+      "101219a",
+      "101219b"
+    ]
+  },
+  "known_unresolved_pipeline_state": [
+    "temporal manifest not published (PROVISIONAL_COMPUTED_BUT_UNMANIFESTED)",
+    "behavior review pending",
+    "train-ready/tensor export NOT built for reviewed lineage",
+    "canonical run_root C:/pig_runs unreachable",
+    "spatial NPZ not in connected tree (dims from historical build audit)"
+  ],
+  "label_change_expectation": "pre-behavior-review labels are provisionally trusted, NOT final ground truth; expect label-sensitive areas: stand/move/explore, fight/social-nose, ROI-vs-stand/explore, playwithtoy, low-visibility interactions"
+}

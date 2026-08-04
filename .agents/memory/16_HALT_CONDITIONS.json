@@ -1,0 +1,97 @@
+{
+  "schema_version": "pig.halt-observation.v1",
+  "halt_triggers": [
+    {
+      "id": "authority_conflict",
+      "condition": "two current authorities exist for one scope",
+      "status": "NEEDS_AUTHORITY"
+    },
+    {
+      "id": "claim_incomplete",
+      "condition": "claim promotion lacks complete lineage manifest",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "transition_skips_gate",
+      "condition": "method transition skips a forward state",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "cleanup_unknown",
+      "condition": "cleanup ownership or rebuildability is uncertain",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "long_run_gate_missing",
+      "condition": "long run lacks declared short gate or authority",
+      "status": "NEEDS_AUTHORITY"
+    },
+    {
+      "id": "short_memory_expired",
+      "condition": "rollover finds an open legacy task without atomic ownership",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "task_ownership_conflict",
+      "condition": "task owner token, worktree, or active lease conflicts",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "task_cas_conflict",
+      "condition": "task revision, block hash, or non-owned bytes changed",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "task_runtime_recovery_conflict",
+      "condition": "lost-token recovery runtime does not match the recorded CODEX_THREAD_ID",
+      "status": "NEEDS_AUTHORITY"
+    },
+    {
+      "id": "task_admin_takeover_unconfirmed",
+      "condition": "ambiguous-owner takeover lacks exact user authorization, fresh CAS, worktree binding, or audit event",
+      "status": "NEEDS_AUTHORITY"
+    },
+    {
+      "id": "memory_maturity_gate_missing",
+      "condition": "long-memory promotion lacks evidence maturity or revalidation",
+      "status": "BLOCKED"
+    }
+  ],
+  "action_permissions": {
+    "read": "allowed_within_workspace_authority",
+    "project_markdown": "standing_approval",
+    "managed_task_memory": "atomic_owner_or_same_thread_recovery_or_user_authorized_admin_takeover",
+    "source_or_config_edit": "task_scope_and_edit_safety_required",
+    "long_run": "declared_gate_and_authority_required",
+    "cleanup": "session_owned_and_regenerable_only",
+    "external_effect": "specific_user_authority_required",
+    "promotion": "state_and_claim_gates_required",
+    "memory_maturity": "manager_review_promotion_and_revalidation_required"
+  },
+  "observation_envelope": {
+    "required_fields": [
+      "status",
+      "summary",
+      "next_actions",
+      "artifacts"
+    ],
+    "error_required_fields": [
+      "root_cause_hint",
+      "safe_retry",
+      "stop_condition"
+    ],
+    "allowed_statuses": [
+      "success",
+      "warning",
+      "error",
+      "blocked"
+    ]
+  },
+  "retry_contract": {
+    "default_max_attempts": 1,
+    "requires_root_cause_hint": true,
+    "requires_precondition_revalidation": true,
+    "never_weaken_gate_on_retry": true,
+    "stop_on_declared_condition": true
+  }
+}

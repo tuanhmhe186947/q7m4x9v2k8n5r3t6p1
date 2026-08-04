@@ -113,6 +113,7 @@ def test_final_summary_hides_selection_and_model_hints() -> None:
             "review_reason_codes": "behavior_evidence_conflict",
             "candidate_tier": "TIER_1_HARD_MANDATORY",
             "risk_score": 1.0,
+            "consistency_roles": "EPISODE_PARTNER_CANDIDATE",
         }
     )
 
@@ -124,6 +125,7 @@ def test_final_summary_hides_selection_and_model_hints() -> None:
     assert "risk_score" not in summary
     assert "score" not in summary.casefold()
     assert "DECISION TARGET: f10-f15 (6 frames)" in summary
+    assert "EPISODE_PARTNER_CANDIDATE" in summary
 
 
 def test_playback_status_keeps_target_and_context_bounds_visible() -> None:
@@ -590,6 +592,34 @@ def test_final_review_order_keeps_cvat_pig_id_contiguous_across_tracks() -> None
         "pig-5-middle",
     ]
     assert set(ordered.columns) == set(units.columns)
+
+
+def test_consistency_rereview_order_keeps_linked_actors_adjacent() -> None:
+    module = _load(GUI_SCRIPT, "final_behavior_gui_consistency_order")
+    units = pd.DataFrame(
+        [
+            {
+                "review_unit_id": "partner",
+                "recording_date": "2019-11-29",
+                "video_key": "video-a",
+                "pig_id": "ID_2",
+                "unit_start_frame": 10,
+                "consistency_review_order": 2,
+            },
+            {
+                "review_unit_id": "actor",
+                "recording_date": "2019-11-29",
+                "video_key": "video-a",
+                "pig_id": "ID_1",
+                "unit_start_frame": 10,
+                "consistency_review_order": 1,
+            },
+        ]
+    )
+
+    ordered = module.order_final_review_units(units)
+
+    assert ordered["review_unit_id"].tolist() == ["actor", "partner"]
     assert len(ordered) == len(units)
 
 

@@ -1,0 +1,39 @@
+{
+  "entry_id": "workstream.topic.v1",
+  "knowledge_kind": "project_fact",
+  "dossier_section": "data_and_system",
+  "title": "Concise accepted knowledge title",
+  "summary": "Evidence-bounded project knowledge, not progress narration.",
+  "scope": "Exact population, component, lineage, and use boundary.",
+  "reuse_value": "Why future sessions need this synthesized knowledge.",
+  "source_medium_entry": "medium.entry.id",
+  "source_refs": [
+    {
+      "path": "relative/or/absolute/source",
+      "sha256": "64-character-sha256"
+    }
+  ],
+  "authority_refs": [
+    {
+      "path": ".agents/memory/18_AUTHORITY_INDEX.json"
+    }
+  ],
+  "evidence_refs": [
+    {
+      "path": "relative/or/absolute/evidence",
+      "sha256": "64-character-sha256",
+      "evidence_class": "ARTIFACT_VERIFIED"
+    }
+  ],
+  "limitations": ["Explicit limitation."],
+  "invalidation_conditions": ["Condition that makes this knowledge stale."],
+  "revalidation_triggers": [
+    {
+      "type": "authority_scope",
+      "scope": "scope.from.authority.index",
+      "expected_current_authority": "expected/path"
+    }
+  ],
+  "supersedes": [],
+  "kind_payload": {}
+}

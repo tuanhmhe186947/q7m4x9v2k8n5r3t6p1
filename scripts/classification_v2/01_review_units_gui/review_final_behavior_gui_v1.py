@@ -314,6 +314,13 @@ def format_final_summary(
             "Heo khác có box xám; ROI nguồn được vẽ theo loại. "
             "T=decision target, C=context; context không đổi apply scope."
         )
+    consistency_roles = str(unit.get("consistency_roles", "")).strip()
+    if consistency_roles:
+        media_note += (
+            f" Vai trò consistency: {consistency_roles}. "
+            "EPISODE_PARTNER_CANDIDATE dựa trên lịch sử tương tác hai chiều; "
+            "CURRENT_NEAREST_OR_BOUNDARY chỉ là ngữ cảnh, không phải kết luận."
+        )
     lines = [
         "FINAL BEHAVIOR REVIEW",
         (
@@ -418,6 +425,17 @@ def order_final_review_units(units: pd.DataFrame) -> pd.DataFrame:
 
     if units.empty:
         return units.copy()
+    if "consistency_review_order" in units.columns:
+        consistency_order = pd.to_numeric(
+            units["consistency_review_order"],
+            errors="coerce",
+        )
+        if consistency_order.isna().any() or consistency_order.duplicated().any():
+            raise ValueError(
+                "consistency_review_order must contain unique numeric values"
+            )
+        ordered_index = consistency_order.sort_values(kind="mergesort").index
+        return units.loc[ordered_index].reset_index(drop=True)
 
     ordered = units.copy()
     date_key = _normalized_sort_column(ordered, "recording_date")

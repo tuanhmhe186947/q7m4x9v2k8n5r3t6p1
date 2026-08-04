@@ -1,0 +1,95 @@
+{
+  "schema_version": "pig.claim-registry.v1",
+  "allowed_statuses": [
+    "PROPOSED",
+    "HOLD_INCOMPLETE_LINEAGE",
+    "UNVERIFIED",
+    "SUPPORTED",
+    "CONTRADICTED",
+    "SUPERSEDED",
+    "RETIRED"
+  ],
+  "required_supported_fields": [
+    "claim_id",
+    "claim_text",
+    "scope",
+    "git_sha",
+    "dirty_worktree",
+    "config_hash",
+    "data_hashes",
+    "artifact_hashes",
+    "split",
+    "seeds",
+    "evaluator",
+    "environment",
+    "evidence_class",
+    "quantitative_evidence",
+    "limitations",
+    "invalidation_condition",
+    "authority",
+    "reviewer"
+  ],
+  "claims": [
+    {
+      "claim_id": "C2V2-REVIEW-001",
+      "claim_text": "Classification V2 training was blocked before review close",
+      "scope": "classification_v2 reviewed lineage",
+      "status": "SUPERSEDED",
+      "git_sha": "e666d85342f794752605efdb7ce767564290c321",
+      "dirty_worktree": false,
+      "config_hash": "4c430dfae2d193dcf7fbafe87416e69aba8185514c3d2da39a14054986774520",
+      "data_hashes": [
+        "10c978c20fe0b3d344bd6359e574e6201225ed3ca4a4c68d9d6301d85115aa35"
+      ],
+      "artifact_hashes": [
+        "96a4cc94ab7b797fcb6edff007c8ce2b3a36e6d971c2edefce753dc40f2e422e",
+        "2d5105267fb19dcb69d63d619f46a3a30364a1d6a63398120840403d36075a85"
+      ],
+      "split": "reviewed_development_split_879cecc",
+      "seeds": [],
+      "evaluator": null,
+      "environment": null,
+      "evidence_class": "CODE_VERIFIED",
+      "quantitative_evidence": {
+        "review_complete": true,
+        "reviewed_units": 3243,
+        "group_leakage_count": 0
+      },
+      "limitations": [
+        "A future training run still needs its own execution authorization",
+        "Final test and paper metric authority remain unavailable"
+      ],
+      "invalidation_condition": "Superseded by frozen reviewed snapshot V3",
+      "authority": "reviewed_engineering_4c430dfae2d193dc",
+      "reviewer": "user-directed review close"
+    },
+    {
+      "claim_id": "TRACK-263-WEIGHT-001",
+      "claim_text": "Detector weight alone explains the 000263 regression",
+      "scope": "tracking Pigs291119_000263_30fps",
+      "status": "CONTRADICTED",
+      "git_sha": null,
+      "dirty_worktree": null,
+      "config_hash": null,
+      "data_hashes": [],
+      "artifact_hashes": [],
+      "split": "single-video historical/current comparison",
+      "seeds": [],
+      "evaluator": null,
+      "environment": null,
+      "evidence_class": "HISTORICAL_MEMORY",
+      "quantitative_evidence": {
+        "legacy_idsw_approx": 2,
+        "current_old_weight_idsw_approx": 6,
+        "current_new_weight_idsw_approx": 6
+      },
+      "limitations": [
+        "Historical runtime provenance is incomplete",
+        "This contradiction is not a promoted performance result"
+      ],
+      "invalidation_condition": "Registered evidence isolates a weight effect",
+      "authority": "AGENTS.md",
+      "reviewer": "user-confirmed"
+    }
+  ]
+}

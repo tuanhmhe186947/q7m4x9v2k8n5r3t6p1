@@ -1,0 +1,169 @@
+{
+  "artifact": "classification_v2_data_modality_audit",
+  "schema_version": "classification_v2.model_research.data_modality_audit.v3_canonical",
+  "supersedes": "v1 (stale, non-authoritative), v2",
+  "packaging_note": "CANONICAL. Authority-corrected. Historical agent_audits are NOT promoted to current canonical authority.",
+  "code_head_sha": "4fc94c2d3c9ebba5d6dc2ba6ad0aa5e7149e9c98",
+  "scientific_accepted_sha": "a35e0b9aae8b55167b4562cfc7e26a45e2b4e312",
+  "DATA_AUTHORITY": {
+    "canonical_run_root": "C:/pig_runs/classification_v2_lineage_rebuild_20260726_v1",
+    "CURRENT_CANONICAL_MANIFEST_DIRECTLY_VERIFIED": "NO",
+    "reason": "canonical run root is outside the connected folder and unreachable this session; no .candidate.json manifests present in the connected tree.",
+    "USER_REPORTED_CURRENT_LINEAGE_STATE": {
+      "SOURCE_MERGE_ROWS": 245680,
+      "SOURCE_MERGE_STATUS": "PASS",
+      "FRAME_LOCAL_ROWS": 245680,
+      "FRAME_LOCAL_STATUS": "PASS",
+      "CURRENT_HIDDEN_DECISIONS": 5233,
+      "HIDDEN_COVERAGE_GATE": "PASS",
+      "HIDDEN_APPLY_STATUS": "PASS",
+      "HIDDEN_FRAME_ROWS_PRESERVED": "YES",
+      "HARMONIZED_FRAME_ROWS": 245680,
+      "TEMPORAL_INTERVAL_ROWS": 33355,
+      "STOPPED_AT": "temporal manifest publication",
+      "TEMPORAL_STATUS": "PROVISIONAL_COMPUTED_BUT_UNMANIFESTED",
+      "BEHAVIOR_REVIEW": "pending"
+    },
+    "HISTORICAL_COMPUTED_OUTPUT_CORROBORATION": {
+      "source": "outputs/classification_v2/agent_audits/c2v2_behavior_contract_patch_20260721_v1/temporal_harmonization_audit.json (dated ~2026-07-20/21; HISTORICAL agent-audit, NOT current canonical)",
+      "corroborates": "scale/shape only: rows 245,680; intervals 33,355; trusted frames 5,240; errors []",
+      "caveat": "HISTORICAL agent_audit output; must NOT be treated as current canonical authority."
+    },
+    "PROVISIONAL_TEMPORAL_OUTPUT_SOURCE": "outputs/classification_v2/agent_audits/c2v2_behavior_contract_patch_20260721_v1/temporal_intervals_standalone.csv"
+  },
+  "HIDDEN_UNIT_SEPARATION": {
+    "CURRENT_HIDDEN_DECISION_UNITS": 5233,
+    "CURRENT_HIDDEN_APPLIED_FRAME_ROWS": "UNKNOWN (no current-canonical Hidden-apply manifest accessible this session)",
+    "HISTORICAL_TRUSTED_FRAME_ROWS": 5240,
+    "note": "human decision units (5,233), applied frame rows (UNKNOWN at current canonical), and historical trusted frame rows (5,240) are DIFFERENT units and are not combined."
+  },
+  "RECORDING_STRUCTURE": {
+    "UNIQUE_RECORDING_DATES": 14,
+    "cvat_recording_days": 3,
+    "legacy_recording_days": 13,
+    "overlapping_dates": 2,
+    "overlap_list": [
+      "281119",
+      "291119"
+    ],
+    "cvat_videos": 12,
+    "legacy_burst_groups": 666,
+    "video_or_burst_group_count": 678,
+    "recording_sessions": "distinct capture sessions \u2248 CVAT videos (12) + legacy day/source sessions; exact count = repo recording_group_id cardinality (confirm from native_oof_fold_manifest)",
+    "PRIMARY_OUTER_SPLIT_UNIT": "recording_session (camera x date x source), constrained recording-DATE-safe: the 2 cross-source overlap dates (281119/291119) are bound to a single outer fold",
+    "justification": "source is ~1.0 decodable and the camera is fixed per session; source/camera/date are the dominant leakage axes. Only holding out whole sessions with date-safety prevents all three. With ~14 unique dates as the ceiling on independent outer groups, use leave-one-date-out or grouped k-fold over dates with cluster-bootstrap CIs; finer video/burst-group grouping is used ONLY for inner validation within outer-train.",
+    "do_not_write": "'12-16 independent recording groups' (imprecise; replaced by the explicit counts above)"
+  },
+  "behavior_taxonomy_10class_canonical_order": [
+    "drink",
+    "eat",
+    "fight",
+    "social-nose",
+    "explore",
+    "lying",
+    "stand",
+    "move",
+    "sitting",
+    "playwithtoy"
+  ],
+  "STATISTICS_UNIT_SEPARATION": {
+    "warning": "Six DIFFERENT sample units. Never cross-compare. Final train-ready/window distribution is NOT YET KNOWN.",
+    "1_SOURCE_BOX_LEVEL_cvat": {
+      "total": 172800,
+      "percent": {
+        "lying": 62.9,
+        "sitting": 12.723,
+        "explore": 11.947,
+        "fight": 4.889,
+        "eat": 2.579,
+        "social-nose": 1.399,
+        "move": 1.252,
+        "stand": 1.252,
+        "drink": 0.881,
+        "playwithtoy": 0.178
+      },
+      "max_min_ratio": 352.9
+    },
+    "2_FRAME_OBJECT_LEVEL_combined": {
+      "total": 245680,
+      "percent": {
+        "lying": 53.678,
+        "sitting": 18.867,
+        "explore": 12.486,
+        "eat": 4.282,
+        "fight": 3.862,
+        "stand": 1.851,
+        "move": 1.799,
+        "social-nose": 1.648,
+        "drink": 1.147,
+        "playwithtoy": 0.379
+      },
+      "max_min_ratio": 141.5,
+      "provenance": "HISTORICAL harmonization audit"
+    },
+    "3_HIDDEN_APPLIED_FRAME_COUNTS": {
+      "CURRENT": "UNKNOWN",
+      "HISTORICAL_trusted": 5240,
+      "HISTORICAL_untrusted": 240440
+    },
+    "4_TEMPORAL_INTERVAL_LEVEL": {
+      "total": 33355,
+      "percent": {
+        "sitting": 34.523,
+        "explore": 25.361,
+        "eat": 9.21,
+        "lying": 9.009,
+        "fight": 8.383,
+        "social-nose": 4.572,
+        "stand": 3.894,
+        "move": 2.731,
+        "drink": 1.898,
+        "playwithtoy": 0.42
+      },
+      "max_min_ratio": 82.2,
+      "source_split": {
+        "cvat": 28800,
+        "legacy": 4555
+      },
+      "status": "PROVISIONAL, PRE-BEHAVIOR-REVIEW, from HISTORICAL agent_audit; scale/shape proxy only",
+      "note": "lying 62.9%(box)->9.0%(interval); sitting 12.7%->34.5%. Model-unit imbalance ~82:1, milder than source-box."
+    },
+    "5_TRAIN_READY_UNIT_COUNTS": "NOT_READY",
+    "6_MODEL_WINDOW_COUNTS": "NOT_FINALIZED"
+  },
+  "PARAMETER_COUNT_CLASSIFICATION": {
+    "status": "PROJECTED",
+    "rationale": "Candidate models are NOT yet instantiated: quality-aware gated fusion, two-timescale causal fusion, ROI-FiLM, social relation-token/GAT, MobileNetV3 student integration, real causal temporal kernels, and distillation/pruning/QAT are unbuilt. All candidate parameter/MAC figures are PROJECTED (analytical), NOT MEASURED_EXACT.",
+    "existing_repo_modes": "analytically derived from implemented late-fusion modules (torch not runnable this session) -> PROTOTYPE-level, not machine-measured.",
+    "promotion_rule": "Use MEASURED_EXACT_PARAMETER_COUNT only after building the complete model from its config and counting parameters + MACs on the implementation commit.",
+    "required_measurement_command": "scripts/classification_v2/04_baselines_smokes/measure_model_params_macs.py --config configs/classification_v2/model_research/pig_behavior_model_candidates.yaml --candidate <FULL|BALANCED|LIGHTWEIGHT|TEACHER> --write-audit outputs/classification_v2/model_research/measured_params_macs_audit.json  (builds model, counts params via torch, MACs via fvcore/ptflops, binds code SHA)"
+  },
+  "MODEL_ROLES": [
+    "OFFLINE_DISTILLATION_TEACHER (offline; may be non-causal within-window; NEVER deployed; NEVER the headline causal result)",
+    "FULL_CAUSAL_RESEARCH_MODEL (strictly causal high-capacity ceiling; gated capacity experiment)",
+    "BALANCED_CAUSAL_MAIN_MODEL (first implementation target)",
+    "LIGHTWEIGHT_CAUSAL_STUDENT (later distillation/deployment)"
+  ],
+  "IMPLEMENTATION_SEQUENCE": [
+    "BALANCED_CAUSAL_MAIN_MODEL first (after B0-B6 ladder)",
+    "then FULL_CAUSAL_RESEARCH_MODEL + OFFLINE_DISTILLATION_TEACHER (gated capacity experiments)",
+    "then LIGHTWEIGHT_CAUSAL_STUDENT (distillation/deployment)",
+    "do NOT implement all simultaneously"
+  ],
+  "compute_policy": {
+    "LOCAL_DEBUG": "RTX 3050 4GB dev-only",
+    "RENTED_STANDARD": "16-24GB",
+    "RENTED_HIGH_MEMORY": "40-80GB"
+  },
+  "source_shortcut_evidence_HISTORICAL": {
+    "tabular_source_balanced_accuracy": 1.0,
+    "spatial_mean_only": 0.9959,
+    "note": "HISTORICAL prior build; source-balanced day-safe eval is a HARD GATE (A12)."
+  },
+  "CANONICAL_PACKAGING": {
+    "ACTIVE_STALE_V1_ARTIFACTS": 0,
+    "ACTIVE_RESEARCH_ARTIFACTS_WITH_SUFFIX_1": 0,
+    "CANONICAL_RESEARCH_SCHEMA_VERSION": "v3",
+    "note": "canonical device paths hold corrected content; no _1 or stale files on the filesystem (the _1 names are a chat-download artifact)."
+  }
+}

@@ -2504,7 +2504,8 @@ và báo cáo, không xóa row để làm audit đẹp.
 ### 15.5. Auxiliary y cho hierarchy
 
 ```bat
-%PY% %S2%\classification_v2_build_auxiliary_targets.py --root %TRAIN%
+%PY% %S2%\classification_v2_build_auxiliary_targets.py --root %TRAIN% ^
+  --behavior-label-authority FROZEN_HUMAN_REVIEWED
 %PY% %S2%\check_classification_v2_auxiliary_targets.py ^
   --csv %TRAIN%\y_auxiliary_targets.csv ^
   --audit-json %TRAIN%\auxiliary_targets_audit.json
@@ -2514,6 +2515,11 @@ và báo cáo, không xóa row để làm audit đẹp.
 lập. Chỉ dùng làm auxiliary target/mask; không đưa vào X và không dùng hard
 argmax cascade vào final 10-class head. Attribute reviewed độc lập, nếu bổ sung
 sau này, phải có confidence/mask và một ablation riêng.
+
+> Superseding posture note: posture is now an independent masked burst target.
+> Only `lying`, `sitting`, `stand`, and fixed-feeder `eat` have bounded safe
+> derivations after Behavior authority is frozen. Other behaviors remain
+> unresolved until independent posture authority is available.
 
 ### 15.6. Provisional primary và source-shortcut controls — post-review only
 
