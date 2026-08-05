@@ -1,0 +1,16 @@
+{
+  "active_profile": "fresh_four_mode",
+  "profiles": {
+    "fresh_four_mode": {
+      "active_video": "Pigs281119_000085_30fps",
+      "videos": {},
+      "weights": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\models\\detector\\pig_detector_yolov8.pt",
+      "mask": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\scene\\mask.png",
+      "output_dir": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\tracking\\fresh_full_four_mode_20260804_230700",
+      "gt_dir": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\annotations\\tracking",
+      "video_dir": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\data\\videos",
+      "prediction_root": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\pred\\fresh_full_four_mode_20260804_230700",
+      "evaluation_output_root": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\outputs\\eval\\fresh_full_four_mode_20260804_230700"
+    }
+  }
+}

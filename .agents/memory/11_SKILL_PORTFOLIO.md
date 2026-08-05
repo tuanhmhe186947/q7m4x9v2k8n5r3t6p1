@@ -1,5 +1,49 @@
 # Skill Portfolio Ledger
 
+## 2026-08-05 Section 2.8 evidence-guided human review
+
+- `thesis-evidence-writing`: drafted a Vietnamese-first and original English
+  methodology subsection that separates candidate generation, human
+  adjudication, corrected-source rebuilding and model-window scope.
+- `iterative-retrieval`: progressively narrowed the outline, current review
+  authority, evidence builders, decision contract and consistency audit before
+  writing; no historical result was promoted.
+- `project-state-steward`: recorded task `THESIS-20260805-28` as DONE and
+  preserved the existing dirty worktree and unrelated untracked candidates.
+- Evidence: `docs/thesis_drafts/CHAPTER_2_8_EVIDENCE_GUIDED_HUMAN_REVIEW_VI_DRAFT.md`,
+  review-selection/evidence/contract sources, the reproduction contract, current
+  state authority, and heading/line/semantic scans.
+- Reuse when: drafting a review-method subsection whose candidate rules and
+  corrected-source lineage are implementation-bound but paper metrics remain
+  separate.
+- Do not reuse when: claiming review completion, model performance or a final
+  visual without the matching frozen artifact authority.
+
+## 2026-08-05 Classification V2 strict A12 RG-04 closeout
+
+- `scientific-ablation-controller`: kept the user-selected strict four-fold
+  A12 scope and recorded S0/S1/S2 as one bounded social family; no promotion
+  from engineering-only evidence.
+- `experiment-lineage-reproducibility`: verified the refreshed handoff's
+  ten-artifact hash manifest and bound RG-04 to commit `e212632c` and its
+  fold-run code SHA.
+- `grouped-cv-evaluation`: checked paired native-unit coverage, four-fold
+  identity, missing-class reporting, and the `paper_facing_ready=false`
+  boundary.
+- `safe-refactor-test-guardian`: reran `31` focused tests, compileall, Ruff,
+  diff-check, and the changed-file line scan on the isolated candidate.
+- `project-state-steward`: recovered and checkpointed task
+  `C2V2-20260805-08` at `A12-03 DONE`; preserved main, ledgers, labels,
+  splits, and untracked cleanup candidates.
+- Evidence: refreshed handoff
+  `rg03_readiness_handoff_e212632_20260805_095700`, independent check PASS,
+  ten of ten artifact hashes PASS, and RG-04 report SHA256
+  `3e022bb7bcf9a7eb6ee2981791e8df4d97e7f419f9f7867b65c49e576e41e2a0`.
+- Reuse when: a bounded paired social diagnostic must be reconciled without
+  changing the strict A12 source-support scope.
+- Do not reuse when: claiming paper metrics, authorizing paid GPU, or treating
+  single-source folds as source-balanced evidence.
+
 ## 2026-08-04 crash-aware managed-task recovery
 
 - `agent-architecture-audit`: separated provable same-thread identity from
