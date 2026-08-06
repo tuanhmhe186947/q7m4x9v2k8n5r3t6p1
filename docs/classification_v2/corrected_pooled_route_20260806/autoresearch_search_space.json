@@ -1,0 +1,28 @@
+{
+  "schema_version": "classification_v2.corrected_pooled_route.autoresearch_search_space.v1",
+  "status": "BOUNDED_REGISTERED_NOT_UNLOCKED",
+  "execution_mode": "inner_only",
+  "outer_test_access": {"data_mount": false, "labels": false, "metrics": false, "predictions": false, "errors": false, "confusion_matrices": false, "technical_enforcement_required": true},
+  "prerequisites": ["A12-A PASS", "A12-B PASS", "E0 PASS", "temporal views narrowed", "feature families narrowed", "extension families bounded", "candidate model families registered", "checkpoint/resume remotely verified", "budget frozen"],
+  "objective": "native_unit_ten_class_macro_f1",
+  "secondary_constraints": ["fight recall/F1", "social-nose recall/F1", "weak/rare class guardrails", "complete prediction coverage", "common-class non-collapse", "calibration", "runtime", "vram", "parameter_count"],
+  "one_factor_rule": "one declared principal factor per trial; all other factors are inherited from parent run",
+  "allowed_dimensions": {
+    "temporal_view": "locked Stage 1 retained view or views",
+    "feature_family": "locked Stage 2 retained families",
+    "model_family": ["actor_rgb_sequence", "actor_rgb_geometry_motion", "multimodal_concat", "multimodal_availability_aware"],
+    "fusion": ["none", "concat", "availability_aware"],
+    "imbalance_strategy": ["baseline_event_native_weight", "fold_local_class_balanced", "one_supported_focal_or_logit_adjustment_or_sampler"],
+    "posture_auxiliary": ["none", "masked_posture_only_if_STAGE_5_PASS"],
+    "hidden_dim": [16, 32, 64],
+    "learning_rate": [0.0001, 0.0003, 0.001],
+    "dropout": [0.0, 0.1, 0.2],
+    "temporal_encoder": ["registered_sequence_encoder", "registered_tcn", "registered_transformer_only_if_parent_control_passes"]
+  },
+  "excluded_dimensions": ["outer_fold_membership", "outer_metrics", "outer_predictions", "unregistered_labels", "GAT", "Top-K social", "ROI_FiLM", "two_timescale_history", "quality_gated_fusion", "unbounded_backbone_search", "random_split"],
+  "trial_budget": {"max_trials": 24, "max_gpu_hours": 48.0, "max_monetary_cost_usd": 120.0, "no_improvement_patience": 6, "per_trial_timeout_hours": 4.0, "failed_run_ceiling": 3, "disk_ceiling_gb": 50, "checkpoint_retention": "parent plus top three complete trials; retain failure manifests and hashes"},
+  "trial_manifest_required_fields": ["plan_id", "trial_id", "parent_run_id", "code_sha", "tree_hash", "snapshot_sha256", "split_hash", "event_weight_hash", "schema_hash", "temporal_view", "feature_families", "model_family", "fusion_family", "auxiliary_heads", "loss", "sampler", "hyperparameters", "seed", "inner_fold", "training_budget", "early_stop_reason", "checkpoint_sha256", "prediction_sha256", "coverage", "metrics", "runtime", "vram", "decision"],
+  "allowed_decisions": ["RETAIN", "DROP", "INCONCLUSIVE"],
+  "promotion": {"automatic": false, "selection_rule_frozen_after": "trial budget closes", "required_freezes": ["candidate family", "selection metric", "promotion thresholds", "tie-breaks", "seeds", "stopping rule", "calibration policy", "native-unit collapse", "exclusion policy"]},
+  "failure_handling": {"preserve_failed_run_manifest": true, "reuse_failed_run_id": false, "resume_only_if_hashes_match": true, "outer_access_is_immediate_stop": true, "checkpoint_auto_promotion": false}
+}

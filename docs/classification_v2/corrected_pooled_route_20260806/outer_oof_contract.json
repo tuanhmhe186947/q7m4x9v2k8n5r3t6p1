@@ -1,0 +1,32 @@
+{
+  "schema_version": "classification_v2.corrected_pooled_route.outer_oof_contract.v1",
+  "status": "FROZEN_PROTOCOL_NOT_AUTHORIZED",
+  "estimand": "pooled reviewed population native-unit ten-class behavior performance under grouped outer folds",
+  "class_order": ["drink", "eat", "fight", "social-nose", "explore", "lying", "stand", "move", "sitting", "playwithtoy"],
+  "outer_folds": ["OUTER_FOLD_1", "OUTER_FOLD_2", "OUTER_FOLD_3", "OUTER_FOLD_4"],
+  "fold_membership": {"source": "current split authority", "hash": "557156a7eb6cceeb6a91f667f7c51dcb286e3111f35f414970fa7431acc7e63b", "change_after_freeze": false},
+  "nested_selection": {
+    "selection_scope": "outer-training population only",
+    "inner_roles": "created or bound inside each outer-training population before model fitting",
+    "outer_test_visible_during_selection": false,
+    "outer_test_metrics_visible_during_selection": false,
+    "outer_test_predictions_visible_during_selection": false,
+    "class_weights_and_priors_fit_scope": "outer-training/inner-training only",
+    "preprocessing_fit_scope": "outer-training/inner-training only",
+    "calibration_fit_scope": "inner or cross-fitted predictions from outer-training only"
+  },
+  "freeze_point": ["temporal view", "feature family", "imbalance strategy", "extension retention", "posture decision", "candidate family", "selection rule", "promotion thresholds", "tie-breaks", "seeds", "stopping rules", "evaluator", "calibration policy", "native-unit collapse", "exclusion policy"],
+  "outer_run_procedure": [
+    "expose only outer-training roles to selection",
+    "fit selected configuration on complete outer-training data",
+    "predict outer-test population once",
+    "write immutable fold-specific artifacts",
+    "merge only hash-verified fold outputs",
+    "never feed outer-test metrics, errors, confusion matrices or predictions back into search"
+  ],
+  "native_unit_contract": {"collapse_before_scoring": true, "exactly_one_prediction_per_eligible_native_unit": true, "NATIVE_UNITS_UNPREDICTED": 0, "registered_exclusion_required_for_missing": true, "silent_row_or_unit_drop": false},
+  "metrics": ["native_unit_ten_class_macro_f1", "per_class_precision_recall_f1", "fight_recall_f1", "social_nose_recall_f1", "weak_rare_class_metrics", "confusion_matrix", "balanced_accuracy", "weighted_f1", "calibration_nll", "brier", "ece", "reliability", "fold_and_seed_stability", "provenance_slices", "runtime", "vram", "parameter_count"],
+  "uncertainty": {"primary": "recording/date clustered bootstrap or predeclared grouped interval", "paired_comparison": "same native units and same fold roles", "unsupported_cells": "NOT_ESTIMABLE, never silent zero"},
+  "independent_checker": {"required": true, "checks": ["fold manifest equality", "prediction schema/class order", "native-unit uniqueness", "prediction coverage", "no outer selection inputs", "calibration fit scope", "hash-bound artifacts"]},
+  "claim_boundary": "only a complete passing C2 result package may support headline behavior-performance claims; a final all-data deployment model is not an independent estimate"
+}

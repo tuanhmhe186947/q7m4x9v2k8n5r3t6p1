@@ -1,0 +1,29 @@
+{
+  "schema_version": "classification_v2.corrected_pooled_route.feature_family_registry.v1",
+  "status": "REGISTERED_NOT_EXECUTED",
+  "canonical_schema": {"dimension": 46, "hash": "18377d825ba84974e49305e46561ada81353f9ffd0f2d2526471af1c199daad4"},
+  "families": [
+    {"id": "F0", "name": "actor_centered_RGB", "predictive_dimensions": 0, "inputs": ["actor_centered_RGB"], "producer": "packed_actor_rgb_cache", "isolatable": true, "scientific_role": "appearance-only control"},
+    {"id": "F1", "name": "RGB_plus_geometry", "predictive_dimensions": 6, "inputs": ["actor_centered_RGB", "geometry_6D"], "producer": "exact_view_spatial_sequence_export", "isolatable": true, "scientific_role": "spatial control"},
+    {"id": "F2", "name": "RGB_plus_motion", "predictive_dimensions": 12, "inputs": ["actor_centered_RGB", "motion_12D"], "producer": "exact_view_spatial_sequence_export", "isolatable": true, "scientific_role": "motion control"},
+    {"id": "F3", "name": "RGB_plus_ROI", "predictive_dimensions": 18, "inputs": ["actor_centered_RGB", "ROI_18D"], "producer": "exact_view_spatial_sequence_export", "isolatable": true, "scientific_role": "functional-region relation control"},
+    {"id": "F4", "name": "RGB_plus_social", "predictive_dimensions": 10, "inputs": ["actor_centered_RGB", "social_10D"], "producer": "exact_view_spatial_sequence_export", "isolatable": true, "scientific_role": "partner-context control"},
+    {"id": "F5", "name": "RGB_plus_full_46D", "predictive_dimensions": 46, "inputs": ["actor_centered_RGB", "geometry_6D", "motion_12D", "ROI_18D", "social_10D"], "producer": "exact_view_spatial_sequence_export", "isolatable": true, "scientific_role": "full canonical numerical control"}
+  ],
+  "leave_one_out": [
+    {"id": "F5_minus_geometry", "removed": "geometry_6D"},
+    {"id": "F5_minus_motion", "removed": "motion_12D"},
+    {"id": "F5_minus_ROI", "removed": "ROI_18D"},
+    {"id": "F5_minus_social", "removed": "social_10D"}
+  ],
+  "exact_view_contract": {
+    "recompute_for_each_view": true,
+    "feature_cache_reuse_across_views": false,
+    "frame_selection_is_manifest_bound": true,
+    "availability_and_validity_masks_are_controls": true,
+    "producer_sha_must_be_recorded": true
+  },
+  "forbidden_predictive_fields": ["source_type", "dataset_id", "video_key", "recording_date", "reviewer_id", "review_status", "decision_metadata", "file_path", "object_track_key", "pig_id", "partition", "fold", "behavior_label", "posture_label", "target_derived_fields", "future_frame_values"],
+  "isolation_rule": "stand-alone family arms include RGB plus only the named predictive family; producer-internal availability masks remain controls and are not silently promoted to predictive values",
+  "stage_rule": "F0-F5 enter Stage 2; advanced modulation and quality gating are not implied by this registry"
+}

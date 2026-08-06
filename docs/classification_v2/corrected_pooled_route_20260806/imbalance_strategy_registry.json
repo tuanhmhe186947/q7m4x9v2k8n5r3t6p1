@@ -1,0 +1,22 @@
+{
+  "schema_version": "classification_v2.corrected_pooled_route.imbalance_strategy_registry.v1",
+  "status": "REGISTERED_NOT_EXECUTED",
+  "authority": {"event_weight_hash": "92a901b8bb431102f5e32fd73c899930f5f3f4c83a9eac6945f9609cdd84938d", "code_sha": "884016aff7d7f23608adcc81a6c138a46351c57e", "fit_scope": "applicable inner-training roles only"},
+  "strategies": [
+    {"id": "baseline_event_native_weight", "family": "event_weight", "implementation": "src/pig_behavior/classification_v2/datasets/fold_event_weights.py", "class_quantities": false, "sampler": "registered_default", "status": "CURRENT_CONTROL", "promotion_priority": 1},
+    {"id": "fold_local_class_balanced", "family": "class_balanced", "implementation": "src/pig_behavior/classification_v2/training/imbalance_losses.py", "class_quantities": true, "fit_scope": "inner-training native units only", "sampler": "unchanged", "status": "SUPPORTED_CANDIDATE", "promotion_priority": 2},
+    {"id": "supported_focal_or_logit_adjustment_or_sampler", "family": "one_supported_alternative", "implementation": "src/pig_behavior/classification_v2/training/imbalance_losses.py", "class_quantities": true, "fit_scope": "inner-training native units only", "sampler": "one registered alternative, not simultaneous with loss change", "status": "SELECT_ONE_AFTER_CODE_INSPECTION", "promotion_priority": 3}
+  ],
+  "selection_contract": {
+    "maximum_strategies": 3,
+    "principal_factor": "imbalance_strategy",
+    "fixed_view": "selected Stage 1 view",
+    "fixed_feature_family": "selected Stage 2 family",
+    "fixed_model_family": "selected reference",
+    "primary_metric": "native_unit_ten_class_macro_f1",
+    "guardrails": ["fight", "social-nose", "weak/rare classes", "common-class non-collapse", "calibration", "runtime", "vram"],
+    "stop_rule": "stop if class priors, weights or sampler inspect outer-test or validation roles",
+    "winner_rule": "select the simplest strategy that meets the primary and rare-class guardrails with stable folds and seeds; otherwise retain baseline and record inconclusive"
+  },
+  "not_authorized": ["full L0-L7 Cartesian campaign", "simultaneous loss and sampler sweep", "global class-weight fitting", "source-balanced winner selection"]
+}

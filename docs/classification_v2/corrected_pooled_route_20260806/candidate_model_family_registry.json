@@ -1,0 +1,25 @@
+{
+  "schema_version": "classification_v2.corrected_pooled_route.candidate_model_family_registry.v1",
+  "status": "REGISTERED_NOT_LOCKED",
+  "code_sha": "884016aff7d7f23608adcc81a6c138a46351c57e",
+  "families": [
+    {"id": "actor_image_endpoint", "existing_arm": "B0_ACTOR_SINGLE_FRAME", "temporal_encoder": "none", "numerical_encoder": "none", "fusion": "none", "status": "engineering_control", "eligible_for_E0": false},
+    {"id": "actor_rgb_sequence", "existing_arm": "B1_ACTOR_T6_SEQUENCE", "temporal_encoder": "registered_sequence_encoder", "numerical_encoder": "none", "fusion": "none", "status": "engineering_control_and_stage_reference", "eligible_for_E0": false},
+    {"id": "actor_rgb_geometry_motion", "existing_arm": "B3_ACTOR_T6_PLUS_GEOMETRY_MOTION", "temporal_encoder": "registered_sequence_encoder", "numerical_encoder": "registered_spatial_encoder", "fusion": "concat_or_registered_baseline", "status": "current_E0_reference", "eligible_for_E0": true},
+    {"id": "multimodal_concat", "existing_arm": "MULTIMODAL_FUSION_CLASSIFIER", "temporal_encoder": "registered_sequence_encoder", "numerical_encoder": "registered_spatial_encoder", "fusion": "concat", "status": "extension_candidate_after_stage_2", "eligible_for_E0": false},
+    {"id": "multimodal_availability_aware", "existing_arm": "MULTIMODAL_FUSION_CLASSIFIER", "temporal_encoder": "registered_sequence_encoder", "numerical_encoder": "registered_spatial_encoder", "fusion": "availability_aware", "status": "conditional", "eligible_for_E0": false},
+    {"id": "multimodal_quality_gated", "existing_arm": "MULTIMODAL_FUSION_CLASSIFIER", "temporal_encoder": "registered_sequence_encoder", "numerical_encoder": "registered_spatial_encoder", "fusion": "quality_aware_gated", "status": "closed_extension_point", "eligible_for_E0": false}
+  ],
+  "E0_registration": {
+    "model_id": "B3_ACTOR_T6_PLUS_GEOMETRY_MOTION",
+    "view": "T6",
+    "feature_families": ["geometry", "motion"],
+    "loss": "current_baseline_strategy",
+    "auxiliary_heads": [],
+    "fold": "one registered inner fold",
+    "seed": 20260804,
+    "selection_claim_allowed": false
+  },
+  "lock_requirements": ["temporal view narrowed", "feature family narrowed", "imbalance treatment selected", "extensions retained or dropped", "posture decision closed", "candidate family and selection rule frozen"],
+  "no_auto_completion": ["generic scaffold", "configuration name", "parameter count", "one-fold pilot", "extension-point declaration"]
+}

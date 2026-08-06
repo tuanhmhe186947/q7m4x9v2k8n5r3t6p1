@@ -1,0 +1,28 @@
+{
+  "schema_version": "classification_v2.corrected_pooled_route.temporal_view_screening_manifest.v1",
+  "status": "REGISTERED_NOT_EXECUTED",
+  "population": "pooled_reviewed_population",
+  "class_order": ["drink", "eat", "fight", "social-nose", "explore", "lying", "stand", "move", "sitting", "playwithtoy"],
+  "endpoint_semantics": "the endpoint is prediction time; all target offsets are non-positive and no future frame is permitted",
+  "views": [
+    {"id": "T6", "registered_name": "T6_contiguous", "length": 6, "offsets_from_endpoint": [-5, -4, -3, -2, -1, 0], "sampling_pattern": "contiguous", "scope": "pooled", "primary_candidate": true, "feature_recompute_required": true, "feature_binding_key": "T6_exact_view_features"},
+    {"id": "T8", "registered_name": "T8_contiguous", "length": 8, "offsets_from_endpoint": [-7, -6, -5, -4, -3, -2, -1, 0], "sampling_pattern": "contiguous", "scope": "pooled", "primary_candidate": true, "feature_recompute_required": true, "feature_binding_key": "T8_exact_view_features"},
+    {"id": "T12", "registered_name": "T12_contiguous", "length": 12, "offsets_from_endpoint": [-11, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0], "sampling_pattern": "contiguous", "scope": "pooled", "primary_candidate": true, "feature_recompute_required": true, "feature_binding_key": "T12_exact_view_features"},
+    {"id": "T16", "registered_name": "T16_contiguous", "length": 16, "offsets_from_endpoint": [-15, -14, -13, -12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, 0], "sampling_pattern": "contiguous", "scope": "pooled", "primary_candidate": true, "feature_recompute_required": true, "feature_binding_key": "T16_exact_view_features"},
+    {"id": "S6@16", "registered_name": "S6@16_sparse_0_3_6_9_12_15", "length": 6, "offsets_from_native_start": [0, 3, 6, 9, 12, 15], "sampling_pattern": "sparse_0_3_6_9_12_15", "scope": "legacy-only", "primary_candidate": false, "diagnostic_only": true, "feature_recompute_required": true, "feature_binding_key": "S6_at_16_exact_view_features"}
+  ],
+  "screening_protocol": {
+    "reference_configuration": "B1_ACTOR_T6_SEQUENCE with view substituted and no other semantic change",
+    "initial_seed": 20260804,
+    "confirmation_seeds": [20260805, 20260806],
+    "inner_only": true,
+    "outer_test_access": false,
+    "promote_at_most": 2,
+    "close_rule": "one-view lock requires confirmation; if two views are close, retain both until the next matched factor is screened",
+    "primary_metric": "native_unit_ten_class_macro_f1",
+    "required_guardrails": ["fight", "social-nose", "frozen weak/rare classes", "prediction coverage", "fold stability", "seed stability", "runtime", "vram"],
+    "feature_recompute_rule": "geometry, motion, ROI, social, summaries, validity masks and availability masks are recomputed from the exact selected frames; no cross-view feature cache reuse"
+  },
+  "required_manifest_columns": ["native_unit_key", "window_id", "view_id", "selected_frame_indices", "feature_producer_id", "feature_producer_sha256", "validity_mask_hash", "availability_mask_hash", "split_role", "source_lineage"],
+  "failure_conditions": ["future_frame_dependence != 0", "view-feature binding missing", "duplicate native unit prediction", "group leakage", "coverage loss", "source or review metadata in model-X"]
+}

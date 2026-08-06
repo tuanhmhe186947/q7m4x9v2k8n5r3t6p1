@@ -1,0 +1,48 @@
+{
+  "schema_version": "classification_v2.corrected_pooled_route.dependency_invalidation_graph.v1",
+  "status": "REGISTERED",
+  "nodes": [
+    {"id": "reviewed_snapshot", "hash": "ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e", "role": "pooled reviewed data authority"},
+    {"id": "corrected_source_lineage", "hash": "c9a277e2ab1088d2a43833a86a0dcc031f32870367ec9e378f4dcb8032632f03", "role": "source correction and frame lineage"},
+    {"id": "effective_window_index", "hash": "810071b311ebc008d420c5873fea11f2369f9ec8edfc3b2dc2958635b30ac7f1", "role": "window population"},
+    {"id": "temporal_view_manifest", "hash": "FROZEN_PER_VIEW", "role": "exact frame selection"},
+    {"id": "feature_producer", "hash": "10c978c20fe0b3d344bd6359e574e6201225ed3ca4a4c68d9d6301d85115aa35", "role": "view-local feature content"},
+    {"id": "schema", "hash": "18377d825ba84974e49305e46561ada81353f9ffd0f2d2526471af1c199daad4", "role": "canonical 46D model schema"},
+    {"id": "split", "hash": "557156a7eb6cceeb6a91f667f7c51dcb286e3111f35f414970fa7431acc7e63b", "role": "grouped roles"},
+    {"id": "event_weights", "hash": "92a901b8bb431102f5e32fd73c899930f5f3f4c83a9eac6945f9609cdd84938d", "role": "native-unit/event weighting"},
+    {"id": "code", "hash": "884016aff7d7f23608adcc81a6c138a46351c57e", "role": "classification implementation"},
+    {"id": "environment", "hash": "6b783d5296094e0be94b0e553e3c83376a462eec3278285b076b35761bc103ca", "role": "staged lockfile bytes"},
+    {"id": "engineering_artifacts", "hash": "hash_bound_per_artifact", "role": "pilots, checkpoints, resume, runtime and checkers"},
+    {"id": "inner_selection", "hash": "FROZEN_AFTER_S1", "role": "candidate and selection rule"},
+    {"id": "outer_oof", "hash": "FROZEN_AFTER_C2", "role": "claim-grade predictions and metrics"},
+    {"id": "paper_package", "hash": "FROZEN_AFTER_CHECKERS", "role": "thesis/paper result package"}
+  ],
+  "edges": [
+    ["reviewed_snapshot", "effective_window_index"],
+    ["corrected_source_lineage", "effective_window_index"],
+    ["effective_window_index", "temporal_view_manifest"],
+    ["temporal_view_manifest", "feature_producer"],
+    ["feature_producer", "schema"],
+    ["split", "inner_selection"],
+    ["event_weights", "inner_selection"],
+    ["code", "engineering_artifacts"],
+    ["environment", "engineering_artifacts"],
+    ["reviewed_snapshot", "inner_selection"],
+    ["inner_selection", "outer_oof"],
+    ["outer_oof", "paper_package"]
+  ],
+  "invalidation_rules": [
+    {"changed_dependency": "reviewed_snapshot", "invalidates": ["effective_window_index", "temporal_view_manifest", "feature_producer", "engineering_artifacts", "inner_selection", "outer_oof", "paper_package"], "minimum_rerun": "rebuild affected derived artifacts and rerun all downstream gates", "blocked_stage": "E0"},
+    {"changed_dependency": "corrected_source_lineage", "invalidates": ["effective_window_index", "temporal_view_manifest", "feature_producer", "inner_selection", "outer_oof", "paper_package"], "minimum_rerun": "rebuild affected windows/features; do not reuse old model inputs", "blocked_stage": "E0"},
+    {"changed_dependency": "temporal_view_manifest", "invalidates": ["feature_producer", "inner_selection", "outer_oof", "paper_package"], "minimum_rerun": "exact-view feature recomputation plus short semantic gate", "blocked_stage": "S1"},
+    {"changed_dependency": "feature_producer", "invalidates": ["engineering_artifacts", "inner_selection", "outer_oof", "paper_package"], "minimum_rerun": "view-local feature audit and representative loader/model gate", "blocked_stage": "E0"},
+    {"changed_dependency": "schema", "invalidates": ["engineering_artifacts", "inner_selection", "outer_oof", "paper_package"], "minimum_rerun": "schema, loader, feature isolation and checkpoint contract gates", "blocked_stage": "E0"},
+    {"changed_dependency": "split", "invalidates": ["engineering_artifacts", "inner_selection", "outer_oof", "paper_package"], "minimum_rerun": "rebuild role-bound manifests and rerun affected evaluation", "blocked_stage": "S1"},
+    {"changed_dependency": "event_weights", "invalidates": ["inner_selection", "outer_oof", "paper_package"], "minimum_rerun": "recompute fold-local weights and repeat affected training", "blocked_stage": "S1"},
+    {"changed_dependency": "code", "invalidates": ["engineering_artifacts", "inner_selection", "outer_oof", "paper_package"], "minimum_rerun": "compile, semantic delta, representative run and artifact audit", "blocked_stage": "E0"},
+    {"changed_dependency": "environment", "invalidates": ["engineering_artifacts", "inner_selection", "outer_oof", "paper_package"], "minimum_rerun": "environment capture and E0 revalidation", "blocked_stage": "E0"},
+    {"changed_dependency": "A12_semantics_only", "invalidates": [], "minimum_rerun": "route validator and focused gate tests only", "blocked_stage": "S1"}
+  ],
+  "non_invalidating_amendments": ["documentation-only correction of gate interpretation", "claim-boundary wording that does not change consumed data/code/config", "adding a reuse ledger entry with no dependency change"],
+  "rerun_record_required": ["INVALIDATED_ARTIFACT", "INVALIDATED_INVARIANT", "OLD_DEPENDENCY_HASH", "CURRENT_DEPENDENCY_HASH", "WHY_EXISTING_RESULT_IS_INSUFFICIENT", "MINIMUM_BOUNDED_RERUN", "DEPENDENT_ARTIFACTS_INVALIDATED", "BLOCKED_STAGE"]
+}

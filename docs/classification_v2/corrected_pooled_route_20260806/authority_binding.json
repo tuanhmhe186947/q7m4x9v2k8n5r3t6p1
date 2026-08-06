@@ -1,0 +1,98 @@
+{
+  "schema_version": "classification_v2.corrected_pooled_route.authority_binding.v1",
+  "created_date": "2026-08-06",
+  "repository_root": "C:/Users/ironh/Downloads/PIG_Behavior_Project",
+  "worktree_path": "C:/Users/ironh/Downloads/PIG_Behavior_Project/.codex_worktrees/classification_v2_final_scientific_route_20260806",
+  "branch": "codex/classification-v2-final-scientific-route-20260806-r2",
+  "base_main_sha": "2e71088558f862b90b53d81fc0016a62153bb61a",
+  "worktree_head_sha": "2e71088558f862b90b53d81fc0016a62153bb61a",
+  "worktree_status": "CLEAN_BEFORE_PACKAGE_EDITS",
+  "root_worktree_status": "DIRTY_PREEXISTING_CHANGES_PROTECTED",
+  "classification_v2_code_sha": "884016aff7d7f23608adcc81a6c138a46351c57e",
+  "classification_v2_tree_hash": "5dfaa841ee5c0162a77807ceaf44983f3f174ae6",
+  "reviewed_snapshot_id": "reviewed_engineering_amendment_992f34c0204a85a1",
+  "reviewed_snapshot_sha256": "ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e",
+  "reviewed_snapshot_identity_payload_sha256": "992f34c0204a85a1f1a2d5adee7b8ae1652f53945bea4ae55db6e44b63e46042",
+  "split_hash": "557156a7eb6cceeb6a91f667f7c51dcb286e3111f35f414970fa7431acc7e63b",
+  "event_weight_hash": "92a901b8bb431102f5e32fd73c899930f5f3f4c83a9eac6945f9609cdd84938d",
+  "canonical_schema_hash": "18377d825ba84974e49305e46561ada81353f9ffd0f2d2526471af1c199daad4",
+  "spatial_tensor_content_hash": "10c978c20fe0b3d344bd6359e574e6201225ed3ca4a4c68d9d6301d85115aa35",
+  "plan_path": "docs/classification_v2/PRE_GPU_AUTORESEARCH_EXECUTION_PLAN_20260804.md",
+  "plan_sha256": "cd96fb3d37bc0dc0f366e2a7ef76511f39e0284ed9a0a132675774697620dbce",
+  "environment": {
+    "lockfile": "uv.lock",
+    "worktree_file_sha256": "6B783D5296094E0BE94B0E553E3C83376A462EEC3278285B076B35761BC103CA",
+    "root_file_sha256": "15A86A8DCCE0249C9292A736BB45C9A157E51D5B0E5C833A04C08E1462B155FC",
+    "git_blob_sha1": "1688e05a04da15a72b5fec0316a27d0d8d192159",
+    "difference_note": "Root and worktree byte hashes differ because checkout line endings differ; the Git blob is identical. E0 must hash the staged bytes actually used."
+  },
+  "population": {
+    "reviewed_frame_rows": 245680,
+    "model_windows": 165305,
+    "trainable_windows": 159410,
+    "excluded_windows": 5895,
+    "native_units": 33355,
+    "source_window_counts": {
+      "cvat_tracking_xml": 115200,
+      "legacy_recovered": 50105
+    },
+    "trainable_windows_by_view": {
+      "T6": 51415,
+      "T8": 40922,
+      "T12": 36389,
+      "T16": 30684
+    }
+  },
+  "authoritative_artifacts": {
+    "reviewed_candidate_manifest": {
+      "path": "outputs/classification_v2/agent_audits/post_review_frame_amendment_materialization_fa028cb_20260803_224700/candidate_manifest.json",
+      "sha256": "c9a277e2ab1088d2a43833a86a0dcc031f32870367ec9e378f4dcb8032632f03",
+      "role": "reviewed_frame_and_window_lineage_component"
+    },
+    "reviewed_snapshot_audit": {
+      "path": "outputs/classification_v2/agent_audits/reviewed_engineering_snapshot_amendment_v4_1decfe4_20260803_231000/reviewed_engineering_snapshot.json",
+      "sha256": "ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e",
+      "role": "snapshot_identity_and_non_interference"
+    },
+    "spatial_sequence_audit": {
+      "path": "outputs/classification_v2/agent_audits/post_review_frame_amendment_materialization_fa028cb_20260803_224700/spatial_sequence_audit.json",
+      "sha256": "f7e37dcf1694b7c9a7edc3269527bbf3317581219cc02a234ca805e533d811dd",
+      "role": "46D_exact_view_engineering_contract"
+    },
+    "current_training_readiness": {
+      "path": "outputs/classification_v2/model_readiness_audit/final_readiness_blocked_884016a_20260806_r1/training_readiness_decision.json",
+      "role": "historical_gate_design_input; superseded only for A12 and permit semantics"
+    },
+    "current_a12_reconciliation": {
+      "path": "outputs/classification_v2/model_readiness_audit/a12_authority_reconciliation_884016a_20260806_r1/a12_authority_reconciliation.json",
+      "sha256": "dd5fe9045d6113d3aec354004eb973ad2598a6f87f7d22eaf854e98ffdb70c29",
+      "role": "old_A12_diagnostic_and_dependency_evidence"
+    },
+    "current_compute_profile": {
+      "path": "outputs/classification_v2/model_readiness_audit/p4_compute_profile_884016a_20260806105428/p4_compute_profile.json",
+      "role": "bounded_local_capacity_evidence"
+    },
+    "current_resume_audit": {
+      "path": "outputs/classification_v2/model_readiness_audit/g15_resume_884016a_20260806112000/p3_resume_audit.json",
+      "role": "engineering_resume_evidence"
+    }
+  },
+  "construction_overlap_evidence": {
+    "status": "INCONCLUSIVE",
+    "located_controls": [
+      "grouped_date_split_purity",
+      "duplicate_and_near_duplicate_controls",
+      "native_unit_and_window_overlap_controls",
+      "future_frame_and_forbidden_input_controls"
+    ],
+    "missing_edge": "current machine-readable proof that the additional collection construction excluded intended overlapping dates/videos from the legacy collection",
+    "minimum_correction": "locate and hash-bind the construction manifest or audit; do not rebuild data solely to recreate the proof"
+  },
+  "authority_disposition": {
+    "current_route": "this_package",
+    "old_final_readiness": "SUPERSEDED_GATE_DESIGN",
+    "old_a12_reconciliation": "REUSE_AS_DIAGNOSTIC_ONLY",
+    "plan_model": "ORIGINAL_BLUEPRINT_WITH_CURRENT_AUTHORITY_OVERRIDES",
+    "remote_repository": "OUT_OF_SCOPE"
+  }
+}

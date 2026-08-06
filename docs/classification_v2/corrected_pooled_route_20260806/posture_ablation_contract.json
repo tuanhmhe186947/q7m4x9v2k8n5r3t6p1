@@ -1,0 +1,22 @@
+{
+  "schema_version": "classification_v2.corrected_pooled_route.posture_ablation_contract.v1",
+  "status": "BLOCKED_PENDING_REVIEWED_POSTURE_AUTHORITY",
+  "behavior_head": {"class_order": ["drink", "eat", "fight", "social-nose", "explore", "lying", "stand", "move", "sitting", "playwithtoy"], "primary": true},
+  "posture_head": {"reader_facing_class_order": ["lying", "sitting", "standing"], "machine_label_mapping": {"standing": "upright"}, "primary": false, "auxiliary_only": true},
+  "authority_requirements": [
+    "independently reviewed posture targets",
+    "deterministic class mapping and class order",
+    "explicit unresolved mask",
+    "transition handling and native-unit alignment",
+    "support and provenance audit",
+    "no derivation of new posture labels in this route"
+  ],
+  "comparisons": [
+    {"id": "behavior_only", "posture_loss": 0, "role": "matched control"},
+    {"id": "behavior_plus_masked_posture", "posture_loss": "registered_weight_only", "role": "candidate", "mask": "unresolved posture targets contribute neither loss nor metric"}
+  ],
+  "fixed_factors": ["snapshot", "grouped roles", "temporal view", "feature family", "imbalance strategy", "optimizer", "training budget", "native-unit evaluator", "seed"],
+  "promotion_rule": "retain posture as a behavior auxiliary only if behavior Macro-F1 and rare-class guardrails are not materially harmed and posture evaluation itself is adequate",
+  "stop_rule": "do not run if posture authority, target alignment, support or masking is unresolved; hierarchy-consistency loss is outside the primary campaign",
+  "claim_boundary": "posture implementation or a one-fold diagnostic cannot support a final posture claim"
+}

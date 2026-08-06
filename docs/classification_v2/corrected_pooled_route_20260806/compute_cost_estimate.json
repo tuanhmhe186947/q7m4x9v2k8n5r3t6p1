@@ -1,0 +1,34 @@
+{
+  "schema_version": "classification_v2.corrected_pooled_route.compute_cost_estimate.v1",
+  "status": "MEASURED_BASIS_WITH_EXPLICIT_EXTRAPOLATION",
+  "provider_assumption": {"gpu_rate_usd_per_hour": 2.5, "provider": "generic single-GPU remote provider", "currency": "USD", "not_an_invoice": true},
+  "measured_local_basis": {
+    "compute_profile_path": "outputs/classification_v2/model_readiness_audit/p4_compute_profile_884016a_20260806105428/p4_compute_profile.json",
+    "compute_profile_sha256": "50b1ec3ebd7fdf5ab35e9ca04e1f7fa14c5c7c508e0d4770eabf2f631cff11b3",
+    "device": "NVIDIA GeForce RTX 3050 Laptop GPU",
+    "physical_vram_mb": 4095.5,
+    "p4_profile": {"sample_windows": 8, "B3_batch_1_p50_sec": 0.0164843, "B3_batch_8_p50_sec": 0.0230760, "peak_reserved_mb_max": 110.0, "amp_max_abs_logit_delta": 0.000701815, "amp_loss_delta": 0.0004636049},
+    "real_resume_path": "outputs/classification_v2/model_readiness_audit/p3_real_resume_884016a_20260806103050/p3_resume_audit.json",
+    "real_resume_sha256": "847167f31cf920917d8a26002934c51985c1fe879e3215fe7f10fcfebab6524c",
+    "real_resume_optimizer_steps_per_sec": 22.8421192739,
+    "cache_inventory": {"packed_rgb_cache_bytes": 10090673989, "spatial_and_snapshot_audit_bytes": 471259279, "B0_B3_pilot_artifacts_bytes": 1816517, "source": "local recursive file measurements"},
+    "checkpoint_basis": {"largest_B0_B3_checkpoint_bytes": 458134, "source": "p2_local_baseline_pilot_884016a_20260806103050_retry4"}
+  },
+  "interpretation": "The local timings are bounded correctness measurements, not full-population throughput. Full-route per-run values below are conservative extrapolations and must be replaced by E0 measurements before S1 or C2.",
+  "per_run_estimate_basis": {
+    "inner_screening": {"compatible_measured_gpu_hours_per_run": 0.375, "safety_factor": 2.0, "p50_gpu_hours_per_run": 0.75, "p90_gpu_hours_per_run": 1.5, "basis": "bounded real-resume and p4 B3 timing scaled to full cached inner run; extrapolated"},
+    "autoresearch_trial": {"compatible_measured_gpu_hours_per_run": 0.5, "safety_factor": 2.0, "p50_gpu_hours_per_run": 1.0, "p90_gpu_hours_per_run": 2.0, "basis": "bounded inner trial envelope; extrapolated"},
+    "outer_fold_seed_run": {"compatible_measured_gpu_hours_per_run": 0.625, "safety_factor": 2.0, "p50_gpu_hours_per_run": 1.25, "p90_gpu_hours_per_run": 2.5, "basis": "full outer-training retrain envelope; extrapolated"}
+  },
+  "stages": [
+    {"stage": "route_correction_and_readiness_package", "reusable_completed_runs": "all existing engineering and diagnostic artifacts", "new_runs": 0, "folds": 0, "seeds": 0, "p50_gpu_hours": 0, "p90_gpu_hours": 0, "wall_clock": "1-2 working days", "parallelizable": false, "critical_path": true, "disk_gb": 1, "cache_gb": 0, "checkpoint_gb": 0, "upload_gb": 0, "download_gb": 0, "p50_cost_usd": 0, "p90_cost_usd": 0, "contingency": "local CPU time only"},
+    {"stage": "E0_remote_engineering_pilot", "reusable_completed_runs": 0, "new_runs": 1, "folds": 1, "seeds": 1, "p50_gpu_hours": 0.75, "p90_gpu_hours": 1.5, "wall_clock": "0.5-1 day", "parallelizable": false, "critical_path": true, "disk_gb": 15, "cache_gb": 10.5, "checkpoint_gb": 0.01, "upload_gb": 10.5, "download_gb": 0.2, "p50_cost_usd": 1.875, "p90_cost_usd": 3.75, "contingency": "20 percent after provider selection", "rate_basis": "generic $2.50/GPU-hour"},
+    {"stage": "stage_1_to_5_scientific_screening", "reusable_completed_runs": "B0-B3, S0-S2 and bounded plumbing reused as evidence", "new_runs": 47, "folds": 4, "seeds": 3, "p50_gpu_hours": 35.25, "p90_gpu_hours": 70.5, "wall_clock": "5-10 working days with parallel inner jobs", "parallelizable": true, "critical_path": true, "disk_gb": 40, "cache_gb": 10.5, "checkpoint_gb": 0.2, "upload_gb": 0.5, "download_gb": 2.0, "p50_cost_usd": 88.125, "p90_cost_usd": 176.25, "contingency": "E0 throughput recalibration and 20 percent reserve"},
+    {"stage": "S1_inner_autoresearch", "reusable_completed_runs": 0, "new_runs": 24, "folds": "inner roles", "seeds": "registered", "p50_gpu_hours": 24.0, "p90_gpu_hours": 48.0, "wall_clock": "5-10 working days", "parallelizable": true, "critical_path": true, "disk_gb": 50, "cache_gb": 0, "checkpoint_gb": 5.0, "upload_gb": 0.5, "download_gb": 1.0, "p50_cost_usd": 60.0, "p90_cost_usd": 120.0, "contingency": "hard cap; no trials beyond 24 or 48 GPU-hours"},
+    {"stage": "C2_claim_grade_outer_oof", "reusable_completed_runs": 0, "new_runs": 12, "folds": 4, "seeds": 3, "p50_gpu_hours": 15.0, "p90_gpu_hours": 30.0, "wall_clock": "5-9 working days", "parallelizable": true, "critical_path": true, "disk_gb": 50, "cache_gb": 0, "checkpoint_gb": 5.0, "upload_gb": 0.5, "download_gb": 2.0, "p50_cost_usd": 37.5, "p90_cost_usd": 75.0, "contingency": "outer-fold failures retained; no replacement without new permit"},
+    {"stage": "calibration_and_scientific_result_package", "reusable_completed_runs": "bounded calibration plumbing", "new_runs": 0, "folds": 4, "seeds": 0, "p50_gpu_hours": 0, "p90_gpu_hours": 1.0, "wall_clock": "1-2 working days", "parallelizable": false, "critical_path": true, "disk_gb": 5, "cache_gb": 0, "checkpoint_gb": 0, "upload_gb": 0.1, "download_gb": 0.5, "p50_cost_usd": 0, "p90_cost_usd": 2.5, "contingency": "CPU calibration/statistics; GPU reserve only if implementation requires it"}
+  ],
+  "totals": {"new_runs_including_E0_S1_C2": 84, "p50_gpu_hours": 75.0, "p90_gpu_hours": 151.0, "p50_cost_usd_before_contingency": 187.5, "p90_cost_usd_before_contingency": 377.5, "planning_contingency_fraction": 0.2, "p50_estimated_cost_usd": 225.0, "p90_estimated_cost_usd": 453.0, "remote_staging_disk_gb": 15, "S1_disk_ceiling_gb": 50, "C2_disk_ceiling_gb": 50, "shared_input_upload_gb": 10.5, "expected_output_download_gb_p50": 6.3, "expected_output_download_gb_p90": 8.7},
+  "critical_path": {"range_days": "15-30 calendar days", "route_reset_days": "1-2", "E0_days": "0.5-1", "screening_days": "5-10", "S1_days": "5-10", "C2_and_package_days": "5-9", "parallelization": "inner arms and outer folds can run independently after their freeze gates; selection stages remain serial", "completion_date": "not asserted until E0 measures full-population throughput"},
+  "accounting_rules": ["reuse completed pilots and diagnostics without counting new runs", "apply NEW_GPU_HOURS = genuinely_new_run_count * compatible_measured_gpu_hours_per_run * safety_factor", "replace extrapolated per-run values after E0", "retain failed-run evidence and its disk use", "do not count local CPU validation as GPU hours"]
+}
