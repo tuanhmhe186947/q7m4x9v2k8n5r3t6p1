@@ -1,0 +1,115 @@
+{
+  "checkpoint_path": "$E0_OUT/checkpoints/B3_ACTOR_T6_PLUS_GEOMETRY_MOTION.pt",
+  "descriptor": {
+    "classification_code_sha": "884016aff7d7f23608adcc81a6c138a46351c57e",
+    "environment_lock_hash": "6b783d5296094e0be94b0e553e3c83376a462eec3278285b076b35761bc103ca",
+    "event_weight_hash": "92a901b8bb431102f5e32fd73c899930f5f3f4c83a9eac6945f9609cdd84938d",
+    "inner_fold": "FOLD_3",
+    "modalities": [
+      "actor_RGB",
+      "geometry_6D",
+      "motion_12D"
+    ],
+    "model": "B3_ACTOR_T6_PLUS_GEOMETRY_MOTION",
+    "schema_hash": "18377d825ba84974e49305e46561ada81353f9ffd0f2d2526471af1c199daad4",
+    "seed": 20260804,
+    "snapshot_sha256": "ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e",
+    "split_hash": "557156a7eb6cceeb6a91f667f7c51dcb286e3111f35f414970fa7431acc7e63b",
+    "temporal_view": "T6"
+  },
+  "descriptor_sha256": "db3a1461dde949c7f37118d60b9856e034094674898b9af6cb0829472e9dd10b",
+  "do_not_execute": true,
+  "download_manifest": "$E0_OUT/download_hash_manifest.json",
+  "execution_authorization": "NO",
+  "forced_interruption_procedure": "wait for checkpoint_manifest.json and its SHA-256, then send one real SIGINT/termination to the training process before the registered endpoint",
+  "gpu_stop_command": "provider-cli stop $E0_INSTANCE_ID",
+  "hash_verification": "sha256sum -c download_hash_manifest.json",
+  "inputs": {
+    "effective_window_index": {
+      "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\effective_window_index.csv",
+      "semantic_role": "T6/T8/T12/T16 effective window authority",
+      "sha256": "810071b311ebc008d420c5873fea11f2369f9ec8edfc3b2dc2958635b30ac7f1",
+      "size_bytes": 94995662
+    },
+    "environment_lock": {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\uv.lock",
+      "semantic_role": "staged environment lockfile",
+      "sha256": "6b783d5296094e0be94b0e553e3c83376a462eec3278285b076b35761bc103ca",
+      "size_bytes": 503777
+    },
+    "event_weight_manifest": {
+      "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\model_readiness_audit\\pre_gpu_autoresearch_q2_47103f6_20260804_133801\\fold_event_weights_47103f6_20260804_154500\\fold_event_weight_manifest.csv",
+      "semantic_role": "event-native weight authority",
+      "sha256": "92a901b8bb431102f5e32fd73c899930f5f3f4c83a9eac6945f9609cdd84938d",
+      "size_bytes": 425970210
+    },
+    "reviewed_snapshot": {
+      "frame_artifact": {
+        "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\reviewed_frame_features.csv.gz",
+        "semantic_role": "current pooled reviewed frame snapshot rows",
+        "sha256": "a8c48f9d5546818fac3f091c915dfa577e0a5969f8e05623c83e2d5900b9610c",
+        "size_bytes": 343685346
+      },
+      "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\reviewed_engineering_snapshot_amendment_v4_1decfe4_20260803_231000\\reviewed_engineering_snapshot.json",
+      "semantic_role": "current reviewed snapshot identity manifest",
+      "sha256": "ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e",
+      "size_bytes": 10683,
+      "snapshot_id": "reviewed_engineering_amendment_992f34c0204a85a1"
+    },
+    "rgb_index": {
+      "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\model_readiness_audit\\pre_gpu_autoresearch_q2_6c2f204_20260804_084638\\reviewed_rgb_v1\\actor_rgb_64_full\\packed_image_cache_index.csv",
+      "semantic_role": "actor RGB packed-cache index",
+      "sha256": "9ccef8607973cfb8c8377474665af5d62874b5beea39ad716872b187f8d29d68",
+      "size_bytes": 47781243
+    },
+    "rgb_manifest": {
+      "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\model_readiness_audit\\pre_gpu_autoresearch_q2_6c2f204_20260804_084638\\reviewed_rgb_v1\\actor_rgb_64_full\\manifest.csv",
+      "semantic_role": "actor RGB cache manifest",
+      "sha256": "481c703f8cd3fea907438570e391d3878ea6e1cb825e2f2ea1959ad90fd4e604",
+      "size_bytes": 130308920
+    },
+    "spatial_manifest": {
+      "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\spatial_memmap_bundle\\spatial_memmap_manifest.json",
+      "semantic_role": "46D spatial tensor authority",
+      "sha256": "5aeb25fbf30784d6e5632318c1e2216b9461b5b34c768ed55e651bc7d535b0a0",
+      "size_bytes": 20657
+    },
+    "split_manifest": {
+      "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\split_manifest.csv",
+      "semantic_role": "frozen grouped split manifest",
+      "sha256": "cf00e7e7ef791e1a58dceb0af77898c64eb7a03819f5c570c5567067142088f6",
+      "size_bytes": 29558855
+    },
+    "train_mask": {
+      "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\train_mask.csv",
+      "semantic_role": "zero-weight and eligibility mask",
+      "sha256": "1c92014dddb8e19a721e4755871b9ec6ae55a15872dd8157ada75a97af14e804",
+      "size_bytes": 997754
+    }
+  },
+  "installation_command": "uv sync --frozen --python 3.11 --extra dev",
+  "launch_binding_note": "The package wrapper must enforce FOLD_3 before invoking the existing registered B3/T6 trainer; do not use max_folds=1 on the full OOF runner unless its fold selector has been bound to FOLD_3.",
+  "launch_command": "uv run --frozen python scripts/classification_v2/04_baselines_smokes/classification_v2_run_multimodal_ablation_pilot.py --output-dir $E0_OUT --image-cache-manifest $E0_RGB_MANIFEST --variants full --device cuda --image-size 64 --hidden-dim 16 --steps-per-fold 16 --train-batch-size 16 --eval-batch-size 16 --train-per-class 8 --eval-per-class 8 --seed 20260804",
+  "outer_test_exclusion": {
+    "confusion_matrices": false,
+    "data_mount": false,
+    "errors": false,
+    "labels": false,
+    "metrics": false,
+    "predictions": false,
+    "statement": "No outer-test resource is included, mounted, or addressable during E0."
+  },
+  "prediction_export": "$E0_OUT/predictions.csv",
+  "provider": {
+    "gpu": "1x NVIDIA L4 24 GB",
+    "interruptible": false,
+    "max_cost_usd": 1.5,
+    "max_gpu_hours": 2.0,
+    "max_remote_disk_gb": 15,
+    "max_wall_hours": 4.0,
+    "paid_retries": 0
+  },
+  "resume_command": "uv run --frozen python $E0_RESUME_ENTRY --resume-checkpoint $E0_OUT/checkpoints/B3_ACTOR_T6_PLUS_GEOMETRY_MOTION.pt --manifest $E0_OUT/run_manifest.json",
+  "schema_version": "classification_v2.e0_l4_handoff.v1",
+  "status": "NOT_EXECUTED_HANDOFF_ONLY"
+}

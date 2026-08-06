@@ -1,0 +1,89 @@
+{
+  "campaign_status": "HUMAN_REVIEW_IN_PROGRESS",
+  "candidate_behavior_to_posture": {
+    "eat": "upright",
+    "lying": "lying",
+    "sitting": "sitting",
+    "stand": "upright"
+  },
+  "checks": {
+    "artifact_sha256": "PASS",
+    "duplicate_native_unit_check": "PASS",
+    "group_support_by_date_inner_role_outer_fold": "INCONCLUSIVE",
+    "matched_behavior_cohort": "INCONCLUSIVE",
+    "predictive_input_exclusion": "PASS",
+    "review_close_and_decision_lineage": "INCONCLUSIVE",
+    "snapshot_compatibility": "INCONCLUSIVE",
+    "target_schema_and_class_order": "INCONCLUSIVE",
+    "temporal_view_alignment": "INCONCLUSIVE"
+  },
+  "class_order": [
+    "lying",
+    "sitting",
+    "upright"
+  ],
+  "current_queue": {
+    "decisions": {
+      "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\posture_500_a566c58d252c1642\\posture_pilot_decisions.csv",
+      "semantic_role": "live posture decision ledger",
+      "sha256": "40287d1db2d80c9802854a66adbaf157be3535a397c521f11ea0c10f0b05e94c",
+      "size_bytes": 5685
+    },
+    "human_review_pending": true,
+    "initial_prefilled_decisions": 0,
+    "queue": {
+      "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\posture_500_a566c58d252c1642\\posture_review_scope.csv",
+      "semantic_role": "open posture-review queue",
+      "sha256": "a566c58d252c1642e83667c78afe3039f0c51b970f7d5e43f21a7cecd0ff699c",
+      "size_bytes": 191925
+    },
+    "queue_audit": {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\next_phase\\posture_500_20260806\\posture_500_queue_audit.json",
+      "semantic_role": "500-item posture queue audit",
+      "sha256": "3bd54dd31f1fee27037c94ca4d16619aa9049c78da6316b7bb7135f6729b56e1",
+      "size_bytes": 10184
+    },
+    "queue_sha256": "a566c58d252c1642e83667c78afe3039f0c51b970f7d5e43f21a7cecd0ff699c",
+    "session_manifest": {
+      "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\posture_500_a566c58d252c1642\\session_manifest.json",
+      "semantic_role": "open posture session manifest",
+      "sha256": "7e979f41246abbf33424a03cf947aa16d2fef7a6dc87f3b175c409950cb4d168",
+      "size_bytes": 12426
+    },
+    "target_rows": 500
+  },
+  "included_in_s1": false,
+  "mapping_authority_status": "INCONCLUSIVE",
+  "mapping_origin": "user-confirmed candidate mapping; no complete current mapping sidecar located",
+  "missing_machine_readable_items": [
+    "authoritative mapping and posture class-schema record",
+    "closed reviewed posture authority for the current snapshot",
+    "explicit unresolved/availability mask and transition policy",
+    "snapshot-bound posture target manifest or sidecar",
+    "support by recording date, inner role, and outer fold",
+    "temporal-view/native-unit alignment audit"
+  ],
+  "observed_artifact": {
+    "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv",
+    "sha256": "08f626e1faf7ffdb75c5fa99f40744f4b5b1bfbea60b2b199bfea3b92f7bf786",
+    "size_bytes": 58883
+  },
+  "observed_class_support": {
+    "lying": 12,
+    "sitting": 17,
+    "upright": 91
+  },
+  "observed_duplicate_native_keys": 0,
+  "observed_scope_sha256": "f03a71cadf3e75d20c6157e90d050a73bcbf5e3341915ae8033d8c0678805527",
+  "observed_source_support": {
+    "cvat_tracking_xml": 60,
+    "legacy_recovered": 60
+  },
+  "posture_head_is_auxiliary_only": true,
+  "review_reopened": false,
+  "reviewers": [
+    "TuanHM"
+  ],
+  "schema_version": "classification_v2.next_phase.posture_authority_binding.v2",
+  "status": "INCONCLUSIVE"
+}

@@ -16,7 +16,7 @@
     "feature_families": ["geometry", "motion"],
     "loss": "current_baseline_strategy",
     "auxiliary_heads": [],
-    "fold": "one registered inner fold",
+    "fold": "FOLD_3",
     "seed": 20260804,
     "selection_claim_allowed": false
   },

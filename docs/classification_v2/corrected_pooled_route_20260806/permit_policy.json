@@ -17,7 +17,7 @@
       "feature_families": ["geometry", "motion"],
       "loss": "current_baseline_strategy",
       "auxiliary_heads": [],
-      "fold": "one registered inner-development fold",
+      "fold": "FOLD_3",
       "seed": 20260804,
       "input_package": {
         "snapshot_id": "reviewed_engineering_amendment_992f34c0204a85a1",

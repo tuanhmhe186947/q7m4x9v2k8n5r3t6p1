@@ -1,0 +1,145 @@
+{
+  "canonicalization_rule": "check_duplicate_videos.py normalize_source_video_key: lower-case, slash-normalize, accept canonical key, nested color.mp4 path, or video filename, and zero-pad the clip to six digits as pigsDDMMYY/NNNNNN.",
+  "comparison_key": "canonical source_video_key",
+  "construction_question": "Were legacy bursts originating from CVAT-represented source videos removed before the reviewed collections were pooled?",
+  "counts": {
+    "current_pooled_legacy_source_key_overlap": 0,
+    "cvat_source_video_keys": 12,
+    "cvat_videos_removed": 0,
+    "excluded_legacy_burst_reentry_violations": 0,
+    "legacy_bursts_before_filter": 4610,
+    "legacy_bursts_excluded": 55,
+    "legacy_bursts_retained": 4555,
+    "legacy_source_video_keys_before_filter": 673,
+    "overlapping_source_video_keys": 7,
+    "retained_legacy_bursts_with_cvat_source_video": 0
+  },
+  "cvat_inventory": {
+    "key_count": 12,
+    "keys": [
+      "pigs281119/000085",
+      "pigs281119/000114",
+      "pigs291119/000216",
+      "pigs291119/000225",
+      "pigs291119/000226",
+      "pigs291119/000231",
+      "pigs291119/000233",
+      "pigs291119/000302",
+      "pigs301119/000327",
+      "pigs301119/000328",
+      "pigs301119/000329",
+      "pigs301119/000330"
+    ],
+    "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\02_video_policy\\exclude_source_videos.csv",
+    "semantic_role": "CVAT source-video inventory and exclusion policy",
+    "sha256": "4833bd6d6a786ecbd12295254dc74f308795c32abdecada6b7f7cd6a78a3af05",
+    "size_bytes": 740,
+    "source_role": "additional CVAT behavior videos represented by the exclusion policy"
+  },
+  "decision": "PASS",
+  "downstream": {
+    "current_reviewed_pooled_snapshot": {
+      "cvat_rows": 172800,
+      "cvat_source_video_key_count": 12,
+      "frame_artifact": {
+        "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\reviewed_frame_features.csv.gz",
+        "semantic_role": "current pooled reviewed frame snapshot rows",
+        "sha256": "a8c48f9d5546818fac3f091c915dfa577e0a5969f8e05623c83e2d5900b9610c",
+        "size_bytes": 343685346
+      },
+      "frames_per_retained_legacy_burst": [
+        16
+      ],
+      "legacy_native_unit_count": 4555,
+      "legacy_rows": 72880,
+      "legacy_source_video_key_count": 666,
+      "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\reviewed_engineering_snapshot_amendment_v4_1decfe4_20260803_231000\\reviewed_engineering_snapshot.json",
+      "rows": 245680,
+      "semantic_role": "current reviewed snapshot identity manifest",
+      "sha256": "ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e",
+      "size_bytes": 10683,
+      "snapshot_id": "reviewed_engineering_amendment_992f34c0204a85a1"
+    },
+    "legacy_training_sequence_manifest": {
+      "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\06_full_recovery\\legacy_training_sequence_manifest.csv",
+      "rows": 4547,
+      "semantic_role": "downstream filtered legacy sequence manifest",
+      "sha256": "a56e6f77178fa95521c40a47b53b93022fdf4ec1d127b98d2dff1327b1f08003",
+      "size_bytes": 9431587,
+      "source_video_key_count": 666
+    }
+  },
+  "duplicate_output": {
+    "duplicate_audit": {
+      "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\02_video_policy\\duplicate_video_filter_audit.json",
+      "semantic_role": "check_duplicate_videos.py audit",
+      "sha256": "4fde8c03cc035acbfff7d67f5cd49eab46e153c829113b24018b8c65fffa2dd5",
+      "size_bytes": 1773
+    },
+    "legacy_bursts_excluded": 55,
+    "overlapping_source_video_key_count": 7,
+    "overlapping_source_video_keys": [
+      "pigs281119/000085",
+      "pigs281119/000114",
+      "pigs291119/000216",
+      "pigs291119/000225",
+      "pigs291119/000226",
+      "pigs291119/000231",
+      "pigs291119/000233"
+    ],
+    "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\02_video_policy\\duplicate_video_preview.csv",
+    "semantic_role": "check_duplicate_videos.py output",
+    "sha256": "ca1451900d984206a296546dbe50950c384bcc7bab733767e3a46d072477424d",
+    "size_bytes": 40943
+  },
+  "executed_script": {
+    "git_blob_sha1": "6415411388169f7ca1ca07ce274dbcedb33e9a51",
+    "last_commit": "099257f37be10615355d136a5e35e9b486ce3a17",
+    "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\src\\legacy_burst_recovery\\check_duplicate_videos.py",
+    "semantic_role": "executed construction-overlap audit code",
+    "sha256": "4f52e9c52045399c7c7e93c12c0a39050333c097cd0d70b7cd944030b9fe8540",
+    "size_bytes": 8737
+  },
+  "filtered_outputs": {
+    "all_frames": {
+      "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\02_video_policy\\nodup\\old_burst_all_keyframe_bboxes_nodup_videos.csv",
+      "retained_rows": 27330,
+      "retained_source_video_key_count": 666,
+      "semantic_role": "retained legacy all-frame bounding-box manifest",
+      "sha256": "8deddfab69f4282ceb7d9ded86990e22d0206915121ddae3d8f2ffaf5d41b263",
+      "size_bytes": 26363916
+    },
+    "center": {
+      "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\02_video_policy\\nodup\\old_burst_center_keyframes_nodup_videos.csv",
+      "retained_bursts": 4555,
+      "retained_source_video_key_count": 666,
+      "semantic_role": "retained legacy center burst manifest",
+      "sha256": "391ad8602c5615c5b639ca3655459844253a22e5b6c1e8e93c6fb5157ca79dba",
+      "size_bytes": 2823331
+    }
+  },
+  "legacy_inventory": {
+    "burst_rows_before_filter": 4610,
+    "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\01_provenance\\old_burst_center_keyframes_combined.csv",
+    "semantic_role": "legacy burst source inventory before filtering",
+    "sha256": "4694f31faa63a20e28671425f9b9baa6072d9a6777c54a3087aeeace8afca12f",
+    "size_bytes": 2751284,
+    "source_video_key_count_before_filter": 673
+  },
+  "no_data_rebuild": true,
+  "no_labels_or_splits_changed": true,
+  "reconciled_construction_exclusion_keys": {
+    "keys_with_legacy_rows": 7,
+    "keys_without_legacy_rows": 5,
+    "keys_without_legacy_rows_list": [
+      "pigs291119/000302",
+      "pigs301119/000327",
+      "pigs301119/000328",
+      "pigs301119/000329",
+      "pigs301119/000330"
+    ],
+    "reported_key_count": 12
+  },
+  "rule": "Retain all CVAT videos; canonicalize every legacy source video; exclude each legacy burst whose source key is in the CVAT exclusion inventory; retain all other legacy bursts.",
+  "schema_version": "classification_v2.cvat_legacy_duplicate_removal_authority.v1"
+}

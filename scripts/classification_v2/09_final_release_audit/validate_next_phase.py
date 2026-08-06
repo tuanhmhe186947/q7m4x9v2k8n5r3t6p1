@@ -62,18 +62,38 @@ def validate_a12b_proof(proof: dict[str, Any], errors: list[str]) -> None:
     missing = sorted(required_ids - seen)
     if missing:
         errors.append(f"missing A12-B checks: {missing}")
-    if proof.get("decision") != "INCONCLUSIVE":
-        errors.append("next-phase A12-B decision must remain INCONCLUSIVE")
-    unresolved = {
-        check.get("id")
-        for check in checks
-        if isinstance(check, dict)
-        and check.get("status") == "INCONCLUSIVE"
-    }
-    if not {"near_duplicate_isolation", "exact_temporal_interval_isolation"}.issubset(
-        unresolved
+    decision = proof.get("decision")
+    if decision not in {"PASS", "INCONCLUSIVE"}:
+        errors.append(f"invalid A12-B decision: {decision!r}")
+    statuses = {check.get("id"): check.get("status") for check in checks}
+    if decision == "PASS":
+        required_pass = {
+            "construction_source_overlap",
+            "exact_duplicate_isolation",
+            "exact_temporal_interval_isolation",
+            "native_unit_isolation",
+            "video_group_isolation",
+            "recording_date_group_isolation",
+            "window_role_inheritance",
+            "direct_predictive_source_leakage",
+        }
+        for check_id in sorted(required_pass):
+            if statuses.get(check_id) != "PASS":
+                errors.append(f"A12-B PASS requires {check_id}=PASS")
+        if statuses.get("near_duplicate_isolation") != "NOT_APPLICABLE":
+            errors.append("A12-B PASS requires near_duplicate_isolation=NOT_APPLICABLE")
+    elif not {
+        "near_duplicate_isolation",
+        "exact_temporal_interval_isolation",
+    }.issubset(
+        {
+            check.get("id")
+            for check in checks
+            if isinstance(check, dict)
+            and check.get("status") == "INCONCLUSIVE"
+        }
     ):
-        errors.append("A12-B proof does not preserve the unresolved content/interval edge")
+        errors.append("A12-B INCONCLUSIVE proof must preserve unresolved content edges")
 
 
 def validate_posture_binding(binding: dict[str, Any], errors: list[str]) -> None:
@@ -106,10 +126,14 @@ def validate_e0_preflight(decision: dict[str, Any], errors: list[str]) -> None:
     if decision.get("outer_test_access") != "BLOCKED":
         errors.append("E0 outer-test access is not blocked")
     fold = decision.get("registered_inner_fold")
-    if decision.get("ready_to_launch_e0") is True and not fold:
-        errors.append("E0 cannot be ready without an exact inner fold")
-    if not fold and decision.get("blocker_code") != "E0_CONFIG_INCOMPLETE":
-        errors.append("missing E0 fold lacks E0_CONFIG_INCOMPLETE blocker")
+    if not fold:
+        errors.append("E0 preflight lacks an exact inner fold")
+    if decision.get("preflight_status") != "PASS":
+        errors.append("E0 technical preflight is not PASS")
+    if decision.get("ready_to_launch_e0") is True and decision.get(
+        "paid_execution_authorization"
+    ) != "YES":
+        errors.append("E0 cannot launch without paid authorization")
     negative_test = decision.get("outer_access_negative_test", {})
     if negative_test.get("status") != "PASS":
         errors.append("local E0 outer-access negative test did not pass")
@@ -135,7 +159,7 @@ def validate_outer_access_policy(policy: dict[str, Any], errors: list[str]) -> N
 def validate_s1_readiness(decision: dict[str, Any], errors: list[str]) -> None:
     required = {
         "A12_A_STATUS": "PASS",
-        "A12_B_STATUS": "INCONCLUSIVE",
+        "A12_B_STATUS": "PASS",
         "E0_STATUS": "NOT_EXECUTED",
         "POSTURE_AUTHORITY_STATUS": "INCONCLUSIVE",
         "POSTURE_INCLUDED_IN_S1": False,
@@ -156,7 +180,7 @@ def validate_s1_readiness(decision: dict[str, Any], errors: list[str]) -> None:
 
 def validate_artifact_hashes(payloads: dict[str, dict[str, Any]], errors: list[str]) -> None:
     bindings: dict[str, str] = {}
-    proof = payloads.get("a12b_construction_overlap_proof.json", {})
+    proof = payloads.get("revised_a12b_construction_overlap_proof.json", {})
     for check in proof.get("checks", []):
         for evidence in check.get("evidence", []):
             if isinstance(evidence, dict) and evidence.get("path"):
@@ -182,7 +206,7 @@ def validate_next_phase(next_phase_dir: Path, verify_hashes: bool = False) -> di
     errors: list[str] = []
     required = (
         "authority_recheck.json",
-        "a12b_construction_overlap_proof.json",
+        "revised_a12b_construction_overlap_proof.json",
         "posture_authority_binding.json",
         "e0_preflight_decision.json",
         "s1_readiness_decision.json",
@@ -198,7 +222,10 @@ def validate_next_phase(next_phase_dir: Path, verify_hashes: bool = False) -> di
         except (OSError, ValueError, json.JSONDecodeError) as exc:
             errors.append(f"cannot load {name}: {exc}")
     if payloads:
-        validate_a12b_proof(payloads.get("a12b_construction_overlap_proof.json", {}), errors)
+        validate_a12b_proof(
+            payloads.get("revised_a12b_construction_overlap_proof.json", {}),
+            errors,
+        )
         validate_posture_binding(payloads.get("posture_authority_binding.json", {}), errors)
         validate_e0_preflight(payloads.get("e0_preflight_decision.json", {}), errors)
         validate_s1_readiness(payloads.get("s1_readiness_decision.json", {}), errors)

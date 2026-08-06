@@ -1,0 +1,1 @@
+schema_version,scope_sha256,posture_review_item_id,native_temporal_unit_key,source_type,dataset_id,video_key,object_track_key,pig_id,track_id,unit_start_frame,unit_end_frame,posture_decision,technical_exclusion_reason,reviewer,reviewed_at

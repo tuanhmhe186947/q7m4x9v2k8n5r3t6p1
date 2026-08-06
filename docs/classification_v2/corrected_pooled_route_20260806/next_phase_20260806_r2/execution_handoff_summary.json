@@ -1,0 +1,13 @@
+{
+  "a12b_decision": "PASS",
+  "construction_decision": "PASS",
+  "current_head": "364c36e05018a3a213374c51d11e4e77148a6ca5",
+  "e0_preflight": "PASS",
+  "e0_status": "NOT_EXECUTED",
+  "eligibility_changed_native_units": 1,
+  "no_training_or_paid_execution": true,
+  "posture_campaign_status": "HUMAN_REVIEW_IN_PROGRESS",
+  "posture_status": "INCONCLUSIVE",
+  "s1_status": "BLOCKED",
+  "schema_version": "classification_v2.next_phase.execution_handoff_summary.v2"
+}

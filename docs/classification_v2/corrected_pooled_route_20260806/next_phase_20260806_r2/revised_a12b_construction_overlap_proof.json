@@ -1,0 +1,242 @@
+{
+  "checks": [
+    {
+      "evidence": [
+        {
+          "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\next_phase_20260806_r2\\cvat_legacy_duplicate_removal_authority.json",
+          "semantic_role": "executed CVAT/legacy construction-overlap authority",
+          "sha256": "f723a1c36a84ed21b7384bc55ed0b1cb49bcf5d3d5f9ca84efa7c12c9c0bf4be",
+          "size_bytes": 7233
+        }
+      ],
+      "id": "construction_source_overlap",
+      "result": {
+        "current_pooled_legacy_source_key_overlap": 0,
+        "cvat_source_video_keys": 12,
+        "cvat_videos_removed": 0,
+        "excluded_legacy_burst_reentry_violations": 0,
+        "legacy_bursts_before_filter": 4610,
+        "legacy_bursts_excluded": 55,
+        "legacy_bursts_retained": 4555,
+        "legacy_source_video_keys_before_filter": 673,
+        "overlapping_source_video_keys": 7,
+        "retained_legacy_bursts_with_cvat_source_video": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "evidence": [
+        {
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\02_video_policy\\duplicate_video_filter_audit.json",
+          "semantic_role": "check_duplicate_videos.py audit",
+          "sha256": "4fde8c03cc035acbfff7d67f5cd49eab46e153c829113b24018b8c65fffa2dd5",
+          "size_bytes": 1773
+        },
+        {
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\02_video_policy\\nodup\\old_burst_center_keyframes_nodup_videos.csv",
+          "semantic_role": "retained legacy center burst manifest",
+          "sha256": "391ad8602c5615c5b639ca3655459844253a22e5b6c1e8e93c6fb5157ca79dba",
+          "size_bytes": 2823331
+        },
+        {
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\02_video_policy\\nodup\\old_burst_all_keyframe_bboxes_nodup_videos.csv",
+          "semantic_role": "retained legacy all-frame bounding-box manifest",
+          "sha256": "8deddfab69f4282ceb7d9ded86990e22d0206915121ddae3d8f2ffaf5d41b263",
+          "size_bytes": 26363916
+        }
+      ],
+      "id": "exact_duplicate_isolation",
+      "result": {
+        "excluded_sample_ids_reentered": 0,
+        "source_video_duplicate_rows_excluded": 55
+      },
+      "scope": "construction source-video exclusion, not retrospective content hashing",
+      "status": "PASS"
+    },
+    {
+      "evidence": [
+        {
+          "path": "docs/classification_v2/corrected_pooled_route_20260806/a12_supersession_notice.md",
+          "semantic_scope": "frozen behavior construction contract",
+          "sha256": "6dbc2004c8fa7abc3a08c0b59bbb733e88cd4cd8215e611817cb32f03a4a2180"
+        }
+      ],
+      "id": "near_duplicate_isolation",
+      "limitation": "No retrospective near-duplicate threshold is part of this construction hard gate.",
+      "result": {
+        "frozen_requirement": false,
+        "threshold_used": false
+      },
+      "status": "NOT_APPLICABLE"
+    },
+    {
+      "evidence": [
+        {
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\split_manifest.csv",
+          "semantic_role": "frozen grouped split role authority",
+          "sha256": "cf00e7e7ef791e1a58dceb0af77898c64eb7a03819f5c570c5567067142088f6",
+          "size_bytes": 29558855
+        },
+        {
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\effective_window_index.csv",
+          "semantic_role": "effective window role inheritance authority",
+          "sha256": "810071b311ebc008d420c5873fea11f2369f9ec8edfc3b2dc2958635b30ac7f1",
+          "size_bytes": 94995662
+        }
+      ],
+      "id": "exact_temporal_interval_isolation",
+      "result": {
+        "content_hash_threshold_used": false,
+        "frozen_contract_scope": "window role inheritance and grouping",
+        "role_crossing_count": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "evidence": [
+        {
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\split_manifest.csv",
+          "semantic_role": "frozen grouped split role authority",
+          "sha256": "cf00e7e7ef791e1a58dceb0af77898c64eb7a03819f5c570c5567067142088f6",
+          "size_bytes": 29558855
+        },
+        {
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\effective_window_index.csv",
+          "semantic_role": "effective window role inheritance authority",
+          "sha256": "810071b311ebc008d420c5873fea11f2369f9ec8edfc3b2dc2958635b30ac7f1",
+          "size_bytes": 94995662
+        }
+      ],
+      "id": "native_unit_isolation",
+      "result": {
+        "role_crossing_count": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "evidence": [
+        {
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\split_manifest.csv",
+          "semantic_role": "frozen grouped split role authority",
+          "sha256": "cf00e7e7ef791e1a58dceb0af77898c64eb7a03819f5c570c5567067142088f6",
+          "size_bytes": 29558855
+        },
+        {
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\effective_window_index.csv",
+          "semantic_role": "effective window role inheritance authority",
+          "sha256": "810071b311ebc008d420c5873fea11f2369f9ec8edfc3b2dc2958635b30ac7f1",
+          "size_bytes": 94995662
+        }
+      ],
+      "id": "video_group_isolation",
+      "result": {
+        "role_crossing_count": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "evidence": [
+        {
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\split_manifest.csv",
+          "semantic_role": "frozen grouped split role authority",
+          "sha256": "cf00e7e7ef791e1a58dceb0af77898c64eb7a03819f5c570c5567067142088f6",
+          "size_bytes": 29558855
+        },
+        {
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\effective_window_index.csv",
+          "semantic_role": "effective window role inheritance authority",
+          "sha256": "810071b311ebc008d420c5873fea11f2369f9ec8edfc3b2dc2958635b30ac7f1",
+          "size_bytes": 94995662
+        }
+      ],
+      "id": "recording_date_group_isolation",
+      "result": {
+        "role_crossing_count": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "evidence": [
+        {
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\split_manifest.csv",
+          "semantic_role": "frozen grouped split role authority",
+          "sha256": "cf00e7e7ef791e1a58dceb0af77898c64eb7a03819f5c570c5567067142088f6",
+          "size_bytes": 29558855
+        },
+        {
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\effective_window_index.csv",
+          "semantic_role": "effective window role inheritance authority",
+          "sha256": "810071b311ebc008d420c5873fea11f2369f9ec8edfc3b2dc2958635b30ac7f1",
+          "size_bytes": 94995662
+        }
+      ],
+      "id": "window_role_inheritance",
+      "result": {
+        "date_role_crossings": 0,
+        "effective_window_rows": 165305,
+        "missing_role_bindings": 0,
+        "native_unit_role_crossings": 0,
+        "split_rows": 165305,
+        "split_window_ids": 165305,
+        "video_role_crossings": 0,
+        "window_role_crossings": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "evidence": [
+        {
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\model_readiness_audit\\a12_rebound_884016a_20260806092000\\a12_control_manifest.json",
+          "semantic_role": "A12-A direct predictive-source leakage control",
+          "sha256": "dd5fe9045d6113d3aec354004eb973ad2598a6f87f7d22eaf854e98ffdb70c29",
+          "size_bytes": 3038
+        }
+      ],
+      "id": "direct_predictive_source_leakage",
+      "result": {
+        "hidden_entered_model_x": false,
+        "metadata_fields_in_model_x": 0,
+        "source_type_in_model_x": false
+      },
+      "status": "PASS"
+    }
+  ],
+  "construction_overlap": {
+    "current_pooled_legacy_source_key_overlap": 0,
+    "cvat_source_video_keys": 12,
+    "cvat_videos_removed": 0,
+    "excluded_legacy_burst_reentry_violations": 0,
+    "legacy_bursts_before_filter": 4610,
+    "legacy_bursts_excluded": 55,
+    "legacy_bursts_retained": 4555,
+    "legacy_source_video_keys_before_filter": 673,
+    "overlapping_source_video_keys": 7,
+    "retained_legacy_bursts_with_cvat_source_video": 0
+  },
+  "crossing_counts": {
+    "date_role_crossings": 0,
+    "effective_window_rows": 165305,
+    "missing_role_bindings": 0,
+    "native_unit_role_crossings": 0,
+    "split_rows": 165305,
+    "split_window_ids": 165305,
+    "video_role_crossings": 0,
+    "window_role_crossings": 0
+  },
+  "decision": "PASS",
+  "hard_gate": true,
+  "hard_gate_scope": [
+    "CVAT-versus-legacy source-video exclusion",
+    "recording-date grouping",
+    "video grouping",
+    "native-unit grouping",
+    "deterministic window-role inheritance",
+    "direct predictive-source isolation"
+  ],
+  "limitations": [
+    "Near-duplicate representation and threshold are not a frozen requirement for this construction question.",
+    "No source, label, split, or reviewed-data artifact was rebuilt or changed."
+  ],
+  "no_data_rebuild": true,
+  "schema_version": "classification_v2.revised_a12b_construction_overlap_proof.v1"
+}

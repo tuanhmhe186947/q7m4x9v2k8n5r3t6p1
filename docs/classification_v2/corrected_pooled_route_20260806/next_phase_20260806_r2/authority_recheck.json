@@ -1,0 +1,74 @@
+{
+  "base_main_sha_measured": "2e71088558f862b90b53d81fc0016a62153bb61a",
+  "current_authorities": {
+    "canonical_46d_schema_hash": "18377d825ba84974e49305e46561ada81353f9ffd0f2d2526471af1c199daad4",
+    "classification_code_sha": "884016aff7d7f23608adcc81a6c138a46351c57e",
+    "classification_tree_hash": "5dfaa841ee5c0162a77807ceaf44983f3f174ae6",
+    "environment_lock_hash": "6b783d5296094e0be94b0e553e3c83376a462eec3278285b076b35761bc103ca",
+    "event_weight_hash": "92a901b8bb431102f5e32fd73c899930f5f3f4c83a9eac6945f9609cdd84938d",
+    "reviewed_snapshot_id": "reviewed_engineering_amendment_992f34c0204a85a1",
+    "reviewed_snapshot_sha256": "ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e",
+    "split_hash": "557156a7eb6cceeb6a91f667f7c51dcb286e3111f35f414970fa7431acc7e63b"
+  },
+  "decision_date": "2026-08-06",
+  "execution_branch": "codex/classification-v2-e0-a12b-posture-20260806",
+  "execution_head_sha_measured": "364c36e05018a3a213374c51d11e4e77148a6ca5",
+  "execution_worktree": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806",
+  "no_data_rebuild": true,
+  "protected_state": {
+    "behavior_review_reopened": false,
+    "c2_started": false,
+    "data_rebuild": false,
+    "hidden_review_reopened": false,
+    "outer_split_changed": false,
+    "paid_compute_started": false,
+    "s1_started": false
+  },
+  "replacement_artifacts": {
+    "a12b_proof": {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\next_phase_20260806_r2\\revised_a12b_construction_overlap_proof.json",
+      "semantic_role": "replacement A12-B proof",
+      "sha256": "32a3266c955027a53945e42f293920a0c6ea1691508d37a9b8f4517e62e4d88a",
+      "size_bytes": 10784
+    },
+    "construction_authority": {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\next_phase_20260806_r2\\cvat_legacy_duplicate_removal_authority.json",
+      "semantic_role": "replacement construction authority",
+      "sha256": "f723a1c36a84ed21b7384bc55ed0b1cb49bcf5d3d5f9ca84efa7c12c9c0bf4be",
+      "size_bytes": 7233
+    },
+    "e0_l4_handoff": {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\next_phase_20260806_r2\\e0_l4_handoff.json",
+      "semantic_role": "non-executed L4 handoff",
+      "sha256": "9d8ea858b3d9dab3f065753afba22b122b406e9c61c79ec2038b81939d7d6c92",
+      "size_bytes": 7135
+    },
+    "eligibility_reconciliation": {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\next_phase_20260806_r2\\eligibility_reconciliation.json",
+      "semantic_role": "eligibility reconciliation only",
+      "sha256": "6ab6963155b61dc42615a7143168dc495facdc5bcae9c0a93fdcfb08694590ab",
+      "size_bytes": 2236
+    },
+    "filtered_burst_binding": {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\next_phase_20260806_r2\\cvat_legacy_filtered_burst_binding.json",
+      "semantic_role": "replacement filtered legacy binding",
+      "sha256": "dc6a58be7f6f98aa1dd00d714d3b38903664c30cbd5cc0a7921b0fd831b6d133",
+      "size_bytes": 6838
+    }
+  },
+  "route_validator_pre_change": {
+    "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\next_phase_20260806\\next_phase_validator_report.json",
+    "semantic_role": "committed corrected-route validator report",
+    "sha256": "49426288e958dbcc50ff99e02dede2033a778972ba317dcf2dbde8f2070e53c3",
+    "size_bytes": 271
+  },
+  "schema_version": "classification_v2.next_phase.authority_recheck.v2",
+  "scope_reconciliation": {
+    "a12_b": "PASS",
+    "construction_overlap": "PASS",
+    "old_e0_missing_fold": "SUPERSEDED_BY_FOLD_3_BINDING",
+    "old_inconclusive_a12_b": "SUPERSEDED_BY_DIRECT_CONSTRUCTION_LINEAGE",
+    "posture": "INCONCLUSIVE_HUMAN_REVIEW_IN_PROGRESS"
+  },
+  "worktree_status_at_generation": "EXPECTED_NEXT_PHASE_CHANGES"
+}

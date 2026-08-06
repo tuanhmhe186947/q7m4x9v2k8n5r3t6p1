@@ -1,0 +1,49 @@
+{
+  "amendment_artifact": {
+    "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\affected_native_units.csv",
+    "semantic_role": "current post-review amendment",
+    "sha256": "c5d9999ef66696a8bfad74567a7a172c0b2adb7f8863b4d7c95c2479a6b3bab1",
+    "size_bytes": 477
+  },
+  "changed_native_unit_count": 1,
+  "changed_window_count": 3,
+  "current_artifact": {
+    "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\effective_window_index.csv",
+    "semantic_role": "current effective window authority",
+    "sha256": "810071b311ebc008d420c5873fea11f2369f9ec8edfc3b2dc2958635b30ac7f1",
+    "size_bytes": 94995662
+  },
+  "current_eligible_windows": 159410,
+  "current_excluded_windows": 5895,
+  "current_total_windows": 165305,
+  "data_rebuild": false,
+  "eligibility_changed_unit_count": 1,
+  "native_units": [
+    {
+      "changed_window_count": 3,
+      "current_reasons": [
+        "post_review_frame_label_transition"
+      ],
+      "current_status": "RESOLVED_TRANSITION_EXCLUDE",
+      "governing_rule": "cross_label_native_unit_after_human_frame_boundary_amendment",
+      "native_frame_end": 191,
+      "native_frame_start": 186,
+      "old_reasons": [],
+      "old_status": "ELIGIBLE",
+      "stable_native_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000114_30fps|video=Pigs281119_000114_30fps|track_id=2|anchor=186",
+      "track_id": "2",
+      "video_key": "Pigs281119_000114_30fps"
+    }
+  ],
+  "old_artifact": {
+    "path": "C:\\pig_runs\\classification_v2_reviewed_rebuild_20260802_v1\\candidates\\train_ready\\sequence_window_manifest.csv",
+    "semantic_role": "earlier train-ready window authority",
+    "sha256": "4203a8b70c8be7524b4424c6ab99fc47722f3ce926905c5572ac33fff483a5ed",
+    "size_bytes": 680771593
+  },
+  "old_eligible_windows": 159413,
+  "old_excluded_windows": 5892,
+  "old_total_windows": 165305,
+  "schema_version": "classification_v2.eligibility_reconciliation.v1",
+  "status_changed_only": true
+}

@@ -1,0 +1,132 @@
+{
+  "assertions": {
+    "all_duplicate_source_rows_excluded": true,
+    "cvat_rows_remain_present": true,
+    "cvat_videos_removed": 0,
+    "pooled_legacy_native_units_equal_filtered_center_bursts": true,
+    "pooled_legacy_rows_equal_retained_burst_frame_expansion": true,
+    "retained_legacy_source_keys_are_non_cvat": true
+  },
+  "decision": "PASS",
+  "direct_downstream_consumers": [
+    {
+      "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\06_full_recovery\\legacy_training_sequence_manifest.csv",
+      "role": "filtered legacy native-unit input to pooled feature materialization",
+      "rows": 4547,
+      "sha256": "a56e6f77178fa95521c40a47b53b93022fdf4ec1d127b98d2dff1327b1f08003"
+    },
+    {
+      "legacy_rows": 72880,
+      "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\reviewed_engineering_snapshot_amendment_v4_1decfe4_20260803_231000\\reviewed_engineering_snapshot.json",
+      "role": "current pooled reviewed behavior authority",
+      "sha256": "ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e"
+    }
+  ],
+  "lineage": [
+    {
+      "artifact": {
+        "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\02_video_policy\\exclude_source_videos.csv",
+        "semantic_role": "CVAT source-video inventory and exclusion policy",
+        "sha256": "4833bd6d6a786ecbd12295254dc74f308795c32abdecada6b7f7cd6a78a3af05",
+        "size_bytes": 740
+      },
+      "step": "cvat_video_inventory"
+    },
+    {
+      "artifact": {
+        "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\01_provenance\\old_burst_center_keyframes_combined.csv",
+        "semantic_role": "legacy burst source inventory before filtering",
+        "sha256": "4694f31faa63a20e28671425f9b9baa6072d9a6777c54a3087aeeace8afca12f",
+        "size_bytes": 2751284
+      },
+      "step": "legacy_source_video_inventory"
+    },
+    {
+      "artifact": {
+        "git_blob_sha1": "6415411388169f7ca1ca07ce274dbcedb33e9a51",
+        "last_commit": "099257f37be10615355d136a5e35e9b486ce3a17",
+        "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\src\\legacy_burst_recovery\\check_duplicate_videos.py",
+        "semantic_role": "executed construction-overlap audit code",
+        "sha256": "4f52e9c52045399c7c7e93c12c0a39050333c097cd0d70b7cd944030b9fe8540",
+        "size_bytes": 8737
+      },
+      "step": "executed_check_duplicate_videos.py"
+    },
+    {
+      "artifact": {
+        "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\02_video_policy\\exclude_source_videos.csv",
+        "semantic_role": "CVAT source-video inventory and exclusion policy",
+        "sha256": "4833bd6d6a786ecbd12295254dc74f308795c32abdecada6b7f7cd6a78a3af05",
+        "size_bytes": 740
+      },
+      "step": "duplicate_video_exclusion_list"
+    },
+    {
+      "artifact": {
+        "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\02_video_policy\\duplicate_video_preview.csv",
+        "semantic_role": "check_duplicate_videos.py output",
+        "sha256": "ca1451900d984206a296546dbe50950c384bcc7bab733767e3a46d072477424d",
+        "size_bytes": 40943
+      },
+      "step": "duplicate_preview"
+    },
+    {
+      "artifact": {
+        "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\02_video_policy\\nodup\\old_burst_center_keyframes_nodup_videos.csv",
+        "semantic_role": "retained legacy center burst manifest",
+        "sha256": "391ad8602c5615c5b639ca3655459844253a22e5b6c1e8e93c6fb5157ca79dba",
+        "size_bytes": 2823331
+      },
+      "step": "filtered_legacy_center_manifest"
+    },
+    {
+      "artifact": {
+        "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\02_video_policy\\nodup\\old_burst_all_keyframe_bboxes_nodup_videos.csv",
+        "semantic_role": "retained legacy all-frame bounding-box manifest",
+        "sha256": "8deddfab69f4282ceb7d9ded86990e22d0206915121ddae3d8f2ffaf5d41b263",
+        "size_bytes": 26363916
+      },
+      "step": "filtered_legacy_all_frame_manifest"
+    },
+    {
+      "artifact": {
+        "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\06_full_recovery\\legacy_training_sequence_manifest.csv",
+        "semantic_role": "downstream filtered legacy sequence manifest",
+        "sha256": "a56e6f77178fa95521c40a47b53b93022fdf4ec1d127b98d2dff1327b1f08003",
+        "size_bytes": 9431587
+      },
+      "step": "filtered_legacy_training_manifest"
+    },
+    {
+      "artifact": {
+        "frame_artifact": {
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\reviewed_frame_features.csv.gz",
+          "semantic_role": "current pooled reviewed frame snapshot rows",
+          "sha256": "a8c48f9d5546818fac3f091c915dfa577e0a5969f8e05623c83e2d5900b9610c",
+          "size_bytes": 343685346
+        },
+        "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\reviewed_engineering_snapshot_amendment_v4_1decfe4_20260803_231000\\reviewed_engineering_snapshot.json",
+        "semantic_role": "current reviewed snapshot identity manifest",
+        "sha256": "ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e",
+        "size_bytes": 10683,
+        "snapshot_id": "reviewed_engineering_amendment_992f34c0204a85a1"
+      },
+      "step": "current_reviewed_pooled_snapshot"
+    }
+  ],
+  "no_data_rebuild": true,
+  "reentry_audit": {
+    "current_pooled_legacy_keys_intersect_cvat": 0,
+    "current_pooled_legacy_keys_intersect_exclusion_inventory": 0,
+    "duplicate_preview_status": "AUDIT_ONLY_NOT_A_CURRENT_POOLED_INPUT",
+    "excluded_sample_ids_checked": 55,
+    "excluded_sample_ids_in_downstream_training_manifest": 0,
+    "excluded_sample_ids_in_filtered_all": 0,
+    "excluded_sample_ids_in_filtered_center": 0,
+    "fallback_input_status": "NO_OTHER_LEGACY_INPUT_BOUND_BY_CURRENT_SNAPSHOT",
+    "raw_legacy_input_status": "AUDIT_ONLY_NOT_A_CURRENT_POOLED_INPUT",
+    "reentry_violation_count": 0,
+    "retained_source_keys_intersect_cvat": 0
+  },
+  "schema_version": "classification_v2.cvat_legacy_filtered_burst_binding.v1"
+}

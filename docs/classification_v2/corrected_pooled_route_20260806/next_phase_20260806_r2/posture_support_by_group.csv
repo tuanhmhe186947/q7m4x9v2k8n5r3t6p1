@@ -1,0 +1,10 @@
+group_dimension,group_value,posture_label,support_count,status,evidence_path,notes
+posture_class,lying,lying,12,PASS,E:\PigProjectStorage\PIG_Behavior_Project\outputs\classification_v2\posture_review_sessions\paired_pilot_86edabc\posture_pilot_decisions.csv,Observed pilot support only.
+posture_class,sitting,sitting,17,PASS,E:\PigProjectStorage\PIG_Behavior_Project\outputs\classification_v2\posture_review_sessions\paired_pilot_86edabc\posture_pilot_decisions.csv,Observed pilot support only.
+posture_class,upright,upright,91,PASS,E:\PigProjectStorage\PIG_Behavior_Project\outputs\classification_v2\posture_review_sessions\paired_pilot_86edabc\posture_pilot_decisions.csv,Observed pilot support only.
+source_type,cvat_tracking_xml,,60,INCONCLUSIVE,E:\PigProjectStorage\PIG_Behavior_Project\outputs\classification_v2\posture_review_sessions\paired_pilot_86edabc\posture_pilot_decisions.csv,Source total is known; label cross-tab is not bound.
+source_type,legacy_recovered,,60,INCONCLUSIVE,E:\PigProjectStorage\PIG_Behavior_Project\outputs\classification_v2\posture_review_sessions\paired_pilot_86edabc\posture_pilot_decisions.csv,Source total is known; label cross-tab is not bound.
+native_temporal_unit_key,duplicate_count,,0,PASS,E:\PigProjectStorage\PIG_Behavior_Project\outputs\classification_v2\posture_review_sessions\paired_pilot_86edabc\posture_pilot_decisions.csv,No duplicate pilot native keys.
+recording_date,NOT_BOUND,,,INCONCLUSIVE,,No current posture/date support manifest.
+inner_role,NOT_BOUND,,,INCONCLUSIVE,,No current posture/split binding.
+outer_fold,NOT_BOUND,,,INCONCLUSIVE,,No current posture/outer-fold support audit.

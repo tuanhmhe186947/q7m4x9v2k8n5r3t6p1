@@ -1,0 +1,26 @@
+{
+  "A12_A_STATUS": "PASS",
+  "A12_B_STATUS": "PASS",
+  "BLOCKERS": [
+    "E0_STATUS=NOT_EXECUTED; paid authorization is NO.",
+    "POSTURE_AUTHORITY=INCONCLUSIVE; posture supervision is excluded from S1."
+  ],
+  "BUDGET_HASH": "7c9625b795c38266a296eab1c1094dc3a8a4514fa29f331659d6cdf5e7a4d462",
+  "E0_STATUS": "NOT_EXECUTED",
+  "NEXT_AUTHORIZED_ACTION": "Human review of the opened 500-item posture session.",
+  "OUTER_TEST_ISOLATION_STATUS": "PASS",
+  "PAPER_GRADE_RESULT_AVAILABLE": "NO",
+  "POSTURE_AUTHORITY_STATUS": "INCONCLUSIVE",
+  "POSTURE_CAMPAIGN_STATUS": "HUMAN_REVIEW_IN_PROGRESS",
+  "POSTURE_INCLUDED_IN_S1": false,
+  "POSTURE_MATCHED_ABLATION_EXECUTABLE": false,
+  "READY_FOR_CLAIM_GRADE_OUTER_OOF_C2": "NO",
+  "READY_FOR_PAID_INNER_AUTORESEARCH_S1": "NO",
+  "S1_PERMIT_STATUS": "BLOCKED",
+  "SEARCH_SPACE_HASH": "a878369cd4044d99225c229bc178fa95f2710df846f253477768650d70b4c8fa",
+  "decision_date": "2026-08-06",
+  "no_auto_promotion": true,
+  "outer_test_access": "BLOCKED",
+  "schema_version": "classification_v2.next_phase.s1_readiness_decision.v2",
+  "search_space_status": "BOUNDED_REGISTERED_NOT_UNLOCKED"
+}

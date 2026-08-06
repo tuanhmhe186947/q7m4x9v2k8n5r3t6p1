@@ -1,0 +1,63 @@
+{
+  "behavior_head_class_order": [
+    "drink",
+    "eat",
+    "fight",
+    "social-nose",
+    "explore",
+    "lying",
+    "stand",
+    "move",
+    "sitting",
+    "playwithtoy"
+  ],
+  "candidate_behavior_to_posture": {
+    "eat": "upright",
+    "lying": "lying",
+    "sitting": "sitting",
+    "stand": "upright"
+  },
+  "comparisons": [
+    {
+      "id": "behavior_only",
+      "posture_loss": 0,
+      "role": "matched_control"
+    },
+    {
+      "id": "behavior_plus_masked_posture",
+      "posture_loss": "registered_weight_only",
+      "role": "candidate",
+      "unresolved_targets_contribute": false
+    }
+  ],
+  "current_queue_binding": {
+    "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\posture_500_a566c58d252c1642\\posture_review_scope.csv",
+    "semantic_role": "open posture-review queue",
+    "sha256": "a566c58d252c1642e83667c78afe3039f0c51b970f7d5e43f21a7cecd0ff699c",
+    "size_bytes": 191925
+  },
+  "executable": false,
+  "fixed_factors": [
+    "snapshot",
+    "grouped roles",
+    "temporal view",
+    "feature family",
+    "imbalance strategy",
+    "optimizer",
+    "training budget",
+    "native-unit evaluator",
+    "seed"
+  ],
+  "included_in_s1": false,
+  "posture_head_class_order": [
+    "lying",
+    "sitting",
+    "upright"
+  ],
+  "posture_included_in_s1": false,
+  "promotion_rule": "retain only if behavior Macro-F1 and rare-class guardrails are not materially harmed and posture evaluation is adequate",
+  "review_reopened": false,
+  "schema_version": "classification_v2.next_phase.posture_matched_ablation_contract.v2",
+  "smallest_missing_item": "complete snapshot-compatible posture target authority and alignment/support audit",
+  "status": "BLOCKED_UNTIL_POSTURE_AUTHORITY_PASS"
+}

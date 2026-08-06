@@ -1,0 +1,1340 @@
+{
+  "decision_ledger_count": 2,
+  "key_records": [
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "sitting"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000085_30fps|video=Pigs281119_000085_30fps|track_id=0|anchor=276",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000085_30fps|video=Pigs281119_000085_30fps|track_id=3|anchor=1590",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000085_30fps|video=Pigs281119_000085_30fps|track_id=4|anchor=1254",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000085_30fps|video=Pigs281119_000085_30fps|track_id=4|anchor=354",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000085_30fps|video=Pigs281119_000085_30fps|track_id=5|anchor=1344",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "lying"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000085_30fps|video=Pigs281119_000085_30fps|track_id=7|anchor=1116",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000114_30fps|video=Pigs281119_000114_30fps|track_id=0|anchor=1326",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "sitting"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000114_30fps|video=Pigs281119_000114_30fps|track_id=3|anchor=1002",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000114_30fps|video=Pigs281119_000114_30fps|track_id=3|anchor=168",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000114_30fps|video=Pigs281119_000114_30fps|track_id=3|anchor=366",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000114_30fps|video=Pigs281119_000114_30fps|track_id=3|anchor=72",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000114_30fps|video=Pigs281119_000114_30fps|track_id=5|anchor=228",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000114_30fps|video=Pigs281119_000114_30fps|track_id=5|anchor=36",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000114_30fps|video=Pigs281119_000114_30fps|track_id=7|anchor=276",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000216_30fps|video=Pigs291119_000216_30fps|track_id=1|anchor=1668",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000216_30fps|video=Pigs291119_000216_30fps|track_id=3|anchor=1752",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000216_30fps|video=Pigs291119_000216_30fps|track_id=5|anchor=900",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000216_30fps|video=Pigs291119_000216_30fps|track_id=7|anchor=1152",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000225_30fps.mp4|video=Pigs291119_000225_30fps.mp4|track_id=2|anchor=1248",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000225_30fps.mp4|video=Pigs291119_000225_30fps.mp4|track_id=4|anchor=522",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "sitting"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000225_30fps.mp4|video=Pigs291119_000225_30fps.mp4|track_id=5|anchor=1470",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000225_30fps.mp4|video=Pigs291119_000225_30fps.mp4|track_id=7|anchor=48",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "sitting"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000226_30fps|video=Pigs291119_000226_30fps|track_id=1|anchor=1752",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000226_30fps|video=Pigs291119_000226_30fps|track_id=2|anchor=222",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "lying"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000226_30fps|video=Pigs291119_000226_30fps|track_id=3|anchor=414",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000226_30fps|video=Pigs291119_000226_30fps|track_id=4|anchor=228",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000226_30fps|video=Pigs291119_000226_30fps|track_id=5|anchor=1398",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000226_30fps|video=Pigs291119_000226_30fps|track_id=7|anchor=942",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000231|video=Pigs291119_000231|track_id=1|anchor=744",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000231|video=Pigs291119_000231|track_id=5|anchor=1218",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000231|video=Pigs291119_000231|track_id=5|anchor=1380",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000231|video=Pigs291119_000231|track_id=5|anchor=96",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "lying"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000233|video=Pigs291119_000233|track_id=0|anchor=24",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000233|video=Pigs291119_000233|track_id=1|anchor=1398",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000233|video=Pigs291119_000233|track_id=2|anchor=1056",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000233|video=Pigs291119_000233|track_id=4|anchor=924",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000233|video=Pigs291119_000233|track_id=6|anchor=264",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000233|video=Pigs291119_000233|track_id=6|anchor=936",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "lying"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs301119_000330|video=Pigs301119_000330|track_id=0|anchor=1530",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs301119_000330|video=Pigs301119_000330|track_id=2|anchor=768",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs301119_000330|video=Pigs301119_000330|track_id=4|anchor=330",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000327|video=pigs301119_000327|track_id=0|anchor=408",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000327|video=pigs301119_000327|track_id=1|anchor=936",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000327|video=pigs301119_000327|track_id=3|anchor=1374",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000327|video=pigs301119_000327|track_id=4|anchor=534",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000327|video=pigs301119_000327|track_id=4|anchor=678",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "lying"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000328|video=pigs301119_000328|track_id=0|anchor=1038",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000328|video=pigs301119_000328|track_id=0|anchor=156",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000328|video=pigs301119_000328|track_id=2|anchor=690",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "sitting"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000328|video=pigs301119_000328|track_id=5|anchor=474",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "sitting"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000329|video=pigs301119_000329|track_id=0|anchor=780",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000329|video=pigs301119_000329|track_id=4|anchor=1794",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000329|video=pigs301119_000329|track_id=4|anchor=486",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000329|video=pigs301119_000329|track_id=6|anchor=1212",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000329|video=pigs301119_000329|track_id=6|anchor=1284",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000329|video=pigs301119_000329|track_id=7|anchor=510",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "sitting"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_test%20video%20Pigs291119_000302_30fps|video=test%20video%20Pigs291119_000302_30fps|track_id=0|anchor=42",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_test%20video%20Pigs291119_000302_30fps|video=test%20video%20Pigs291119_000302_30fps|track_id=2|anchor=876",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "sitting"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_test%20video%20Pigs291119_000302_30fps|video=test%20video%20Pigs291119_000302_30fps|track_id=4|anchor=1068",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "lying"
+      ],
+      "native_temporal_unit_key": "source=cvat_tracking_xml|dataset=cvat_tracking_test%20video%20Pigs291119_000302_30fps|video=test%20video%20Pigs291119_000302_30fps|track_id=7|anchor=732",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs031219%2F000068|track_id=tracklet_00004473|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs031219%2F000070|track_id=tracklet_00004442|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs031219%2F000089|track_id=tracklet_00002169|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "sitting"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs031219%2F000095|track_id=tracklet_00004506|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "lying"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs031219%2F000115|track_id=tracklet_00002386|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs031219%2F000116|track_id=tracklet_00001831|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs031219%2F000135|track_id=tracklet_00004488|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "sitting"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs041219%2F000193|track_id=tracklet_00003397|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs041219%2F000206|track_id=tracklet_00001724|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs041219%2F000207|track_id=tracklet_00002404|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs041219%2F000215|track_id=tracklet_00003201|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs041219%2F000222|track_id=tracklet_00001986|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs041219%2F000239|track_id=tracklet_00000325|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "lying"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs041219%2F000242|track_id=tracklet_00000241|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs051219%2F000298|track_id=tracklet_00002968|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs051219%2F000303|track_id=tracklet_00000776|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs051219%2F000321|track_id=tracklet_00001490|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "sitting"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs051219%2F000327|track_id=tracklet_00002799|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "lying"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs051219%2F000336|track_id=tracklet_00004334|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs081119%2F000299|track_id=tracklet_00003876|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs081119%2F000303|track_id=tracklet_00000229|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "sitting"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs081119%2F000326|track_id=tracklet_00001515|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs081119%2F000336|track_id=tracklet_00001086|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs081119%2F000357|track_id=tracklet_00003431|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs081119%2F000364|track_id=tracklet_00004460|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs081119%2F000372|track_id=tracklet_00000924|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs081119%2F000381|track_id=tracklet_00002724|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs091119%2F000417|track_id=tracklet_00002553|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs091119%2F000419|track_id=tracklet_00002310|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "sitting"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs091119%2F000431|track_id=tracklet_00000214|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "sitting"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs091119%2F000452|track_id=tracklet_00001973|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs091119%2F000452|track_id=tracklet_00001974|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs091119%2F000456|track_id=tracklet_00002757|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs101219b%2F000029|track_id=tracklet_00001153|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs101219b%2F000045|track_id=tracklet_00000233|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs111219%2F000082|track_id=tracklet_00004075|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs111219%2F000082|track_id=tracklet_00004077|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "sitting"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs111219%2F000084|track_id=tracklet_00001805|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs111219%2F000095|track_id=tracklet_00002635|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs151119%2F000022|track_id=tracklet_00003418|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs151119%2F000032|track_id=tracklet_00001679|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs151119%2F000032|track_id=tracklet_00001684|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "lying"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs151119%2F000048|track_id=tracklet_00003591|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs271119%2F000001|track_id=tracklet_00000332|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs271119%2F000012|track_id=tracklet_00003600|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs271119%2F000014|track_id=tracklet_00003161|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs271119%2F000019|track_id=tracklet_00002413|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "lying"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs271119%2F000049|track_id=tracklet_00000351|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs271119%2F000060|track_id=tracklet_00004310|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs271119%2F000061|track_id=tracklet_00000315|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs281119%2F000086|track_id=tracklet_00003170|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "sitting"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs281119%2F000087|track_id=tracklet_00000955|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs281119%2F000096|track_id=tracklet_00004421|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "lying"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs281119%2F000119|track_id=tracklet_00004511|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs281119%2F000159|track_id=tracklet_00001251|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "sitting"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs291119%2F000202|track_id=tracklet_00003810|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs291119%2F000207|track_id=tracklet_00004297|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs291119%2F000209|track_id=tracklet_00001337|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs291119%2F000210|track_id=tracklet_00002350|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    },
+    {
+      "current_snapshot_alignment_valid": true,
+      "decisions": [
+        "upright"
+      ],
+      "native_temporal_unit_key": "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs291119%2F000217|track_id=tracklet_00000177|legacy_sequence",
+      "source_ledgers": [
+        "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv"
+      ]
+    }
+  ],
+  "keys": [
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000085_30fps|video=Pigs281119_000085_30fps|track_id=0|anchor=276",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000085_30fps|video=Pigs281119_000085_30fps|track_id=3|anchor=1590",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000085_30fps|video=Pigs281119_000085_30fps|track_id=4|anchor=1254",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000085_30fps|video=Pigs281119_000085_30fps|track_id=4|anchor=354",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000085_30fps|video=Pigs281119_000085_30fps|track_id=5|anchor=1344",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000085_30fps|video=Pigs281119_000085_30fps|track_id=7|anchor=1116",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000114_30fps|video=Pigs281119_000114_30fps|track_id=0|anchor=1326",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000114_30fps|video=Pigs281119_000114_30fps|track_id=3|anchor=1002",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000114_30fps|video=Pigs281119_000114_30fps|track_id=3|anchor=168",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000114_30fps|video=Pigs281119_000114_30fps|track_id=3|anchor=366",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000114_30fps|video=Pigs281119_000114_30fps|track_id=3|anchor=72",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000114_30fps|video=Pigs281119_000114_30fps|track_id=5|anchor=228",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000114_30fps|video=Pigs281119_000114_30fps|track_id=5|anchor=36",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs281119_000114_30fps|video=Pigs281119_000114_30fps|track_id=7|anchor=276",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000216_30fps|video=Pigs291119_000216_30fps|track_id=1|anchor=1668",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000216_30fps|video=Pigs291119_000216_30fps|track_id=3|anchor=1752",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000216_30fps|video=Pigs291119_000216_30fps|track_id=5|anchor=900",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000216_30fps|video=Pigs291119_000216_30fps|track_id=7|anchor=1152",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000225_30fps.mp4|video=Pigs291119_000225_30fps.mp4|track_id=2|anchor=1248",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000225_30fps.mp4|video=Pigs291119_000225_30fps.mp4|track_id=4|anchor=522",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000225_30fps.mp4|video=Pigs291119_000225_30fps.mp4|track_id=5|anchor=1470",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000225_30fps.mp4|video=Pigs291119_000225_30fps.mp4|track_id=7|anchor=48",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000226_30fps|video=Pigs291119_000226_30fps|track_id=1|anchor=1752",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000226_30fps|video=Pigs291119_000226_30fps|track_id=2|anchor=222",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000226_30fps|video=Pigs291119_000226_30fps|track_id=3|anchor=414",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000226_30fps|video=Pigs291119_000226_30fps|track_id=4|anchor=228",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000226_30fps|video=Pigs291119_000226_30fps|track_id=5|anchor=1398",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000226_30fps|video=Pigs291119_000226_30fps|track_id=7|anchor=942",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000231|video=Pigs291119_000231|track_id=1|anchor=744",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000231|video=Pigs291119_000231|track_id=5|anchor=1218",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000231|video=Pigs291119_000231|track_id=5|anchor=1380",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000231|video=Pigs291119_000231|track_id=5|anchor=96",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000233|video=Pigs291119_000233|track_id=0|anchor=24",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000233|video=Pigs291119_000233|track_id=1|anchor=1398",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000233|video=Pigs291119_000233|track_id=2|anchor=1056",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000233|video=Pigs291119_000233|track_id=4|anchor=924",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000233|video=Pigs291119_000233|track_id=6|anchor=264",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs291119_000233|video=Pigs291119_000233|track_id=6|anchor=936",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs301119_000330|video=Pigs301119_000330|track_id=0|anchor=1530",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs301119_000330|video=Pigs301119_000330|track_id=2|anchor=768",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_Pigs301119_000330|video=Pigs301119_000330|track_id=4|anchor=330",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000327|video=pigs301119_000327|track_id=0|anchor=408",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000327|video=pigs301119_000327|track_id=1|anchor=936",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000327|video=pigs301119_000327|track_id=3|anchor=1374",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000327|video=pigs301119_000327|track_id=4|anchor=534",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000327|video=pigs301119_000327|track_id=4|anchor=678",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000328|video=pigs301119_000328|track_id=0|anchor=1038",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000328|video=pigs301119_000328|track_id=0|anchor=156",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000328|video=pigs301119_000328|track_id=2|anchor=690",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000328|video=pigs301119_000328|track_id=5|anchor=474",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000329|video=pigs301119_000329|track_id=0|anchor=780",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000329|video=pigs301119_000329|track_id=4|anchor=1794",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000329|video=pigs301119_000329|track_id=4|anchor=486",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000329|video=pigs301119_000329|track_id=6|anchor=1212",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000329|video=pigs301119_000329|track_id=6|anchor=1284",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_pigs301119_000329|video=pigs301119_000329|track_id=7|anchor=510",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_test%20video%20Pigs291119_000302_30fps|video=test%20video%20Pigs291119_000302_30fps|track_id=0|anchor=42",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_test%20video%20Pigs291119_000302_30fps|video=test%20video%20Pigs291119_000302_30fps|track_id=2|anchor=876",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_test%20video%20Pigs291119_000302_30fps|video=test%20video%20Pigs291119_000302_30fps|track_id=4|anchor=1068",
+    "source=cvat_tracking_xml|dataset=cvat_tracking_test%20video%20Pigs291119_000302_30fps|video=test%20video%20Pigs291119_000302_30fps|track_id=7|anchor=732",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs031219%2F000068|track_id=tracklet_00004473|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs031219%2F000070|track_id=tracklet_00004442|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs031219%2F000089|track_id=tracklet_00002169|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs031219%2F000095|track_id=tracklet_00004506|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs031219%2F000115|track_id=tracklet_00002386|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs031219%2F000116|track_id=tracklet_00001831|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs031219%2F000135|track_id=tracklet_00004488|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs041219%2F000193|track_id=tracklet_00003397|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs041219%2F000206|track_id=tracklet_00001724|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs041219%2F000207|track_id=tracklet_00002404|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs041219%2F000215|track_id=tracklet_00003201|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs041219%2F000222|track_id=tracklet_00001986|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs041219%2F000239|track_id=tracklet_00000325|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs041219%2F000242|track_id=tracklet_00000241|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs051219%2F000298|track_id=tracklet_00002968|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs051219%2F000303|track_id=tracklet_00000776|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs051219%2F000321|track_id=tracklet_00001490|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs051219%2F000327|track_id=tracklet_00002799|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs051219%2F000336|track_id=tracklet_00004334|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs081119%2F000299|track_id=tracklet_00003876|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs081119%2F000303|track_id=tracklet_00000229|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs081119%2F000326|track_id=tracklet_00001515|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs081119%2F000336|track_id=tracklet_00001086|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs081119%2F000357|track_id=tracklet_00003431|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs081119%2F000364|track_id=tracklet_00004460|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs081119%2F000372|track_id=tracklet_00000924|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs081119%2F000381|track_id=tracklet_00002724|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs091119%2F000417|track_id=tracklet_00002553|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs091119%2F000419|track_id=tracklet_00002310|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs091119%2F000431|track_id=tracklet_00000214|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs091119%2F000452|track_id=tracklet_00001973|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs091119%2F000452|track_id=tracklet_00001974|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs091119%2F000456|track_id=tracklet_00002757|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs101219b%2F000029|track_id=tracklet_00001153|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs101219b%2F000045|track_id=tracklet_00000233|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs111219%2F000082|track_id=tracklet_00004075|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs111219%2F000082|track_id=tracklet_00004077|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs111219%2F000084|track_id=tracklet_00001805|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs111219%2F000095|track_id=tracklet_00002635|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs151119%2F000022|track_id=tracklet_00003418|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs151119%2F000032|track_id=tracklet_00001679|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs151119%2F000032|track_id=tracklet_00001684|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs151119%2F000048|track_id=tracklet_00003591|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs271119%2F000001|track_id=tracklet_00000332|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs271119%2F000012|track_id=tracklet_00003600|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs271119%2F000014|track_id=tracklet_00003161|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs271119%2F000019|track_id=tracklet_00002413|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs271119%2F000049|track_id=tracklet_00000351|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs271119%2F000060|track_id=tracklet_00004310|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs271119%2F000061|track_id=tracklet_00000315|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs281119%2F000086|track_id=tracklet_00003170|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs281119%2F000087|track_id=tracklet_00000955|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs281119%2F000096|track_id=tracklet_00004421|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs281119%2F000119|track_id=tracklet_00004511|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs281119%2F000159|track_id=tracklet_00001251|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs291119%2F000202|track_id=tracklet_00003810|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs291119%2F000207|track_id=tracklet_00004297|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs291119%2F000209|track_id=tracklet_00001337|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs291119%2F000210|track_id=tracklet_00002350|legacy_sequence",
+    "source=legacy_recovered|dataset=legacy_recovered_16f|video=pigs291119%2F000217|track_id=tracklet_00000177|legacy_sequence"
+  ],
+  "ledger_hashes": [
+    {
+      "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv",
+      "sha256": "08f626e1faf7ffdb75c5fa99f40744f4b5b1bfbea60b2b199bfea3b92f7bf786"
+    },
+    {
+      "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv",
+      "sha256": "08f626e1faf7ffdb75c5fa99f40744f4b5b1bfbea60b2b199bfea3b92f7bf786"
+    }
+  ],
+  "reviewed_snapshot_sha256": "ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e",
+  "schema_version": "classification_v2.existing_posture_exclusion.v1",
+  "unique_decided_key_count": 120
+}

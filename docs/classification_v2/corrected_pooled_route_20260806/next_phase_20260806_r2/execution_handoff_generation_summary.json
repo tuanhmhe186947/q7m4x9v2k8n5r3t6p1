@@ -1,0 +1,37 @@
+{
+  "authority_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\next_phase_20260806_r2\\cvat_legacy_duplicate_removal_authority.json",
+  "construction_counts": {
+    "current_pooled_legacy_source_key_overlap": 0,
+    "cvat_source_video_keys": 12,
+    "cvat_videos_removed": 0,
+    "excluded_legacy_burst_reentry_violations": 0,
+    "legacy_bursts_before_filter": 4610,
+    "legacy_bursts_excluded": 55,
+    "legacy_bursts_retained": 4555,
+    "legacy_source_video_keys_before_filter": 673,
+    "overlapping_source_video_keys": 7,
+    "retained_legacy_bursts_with_cvat_source_video": 0
+  },
+  "e0_fold": "FOLD_3",
+  "e0_l4_handoff_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\next_phase_20260806_r2\\e0_l4_handoff.json",
+  "e0_preflight": "PASS_TECHNICAL_ONLY",
+  "eligibility": {
+    "changed_native_units": 1,
+    "changed_windows": 3,
+    "current_eligible": 159410,
+    "old_eligible": 159413
+  },
+  "eligibility_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\next_phase_20260806_r2\\eligibility_reconciliation.json",
+  "grouping_counts": {
+    "date_role_crossings": 0,
+    "effective_window_rows": 165305,
+    "missing_role_bindings": 0,
+    "native_unit_role_crossings": 0,
+    "split_rows": 165305,
+    "split_window_ids": 165305,
+    "video_role_crossings": 0,
+    "window_role_crossings": 0
+  },
+  "paid_execution_authorization": "NO",
+  "revised_proof_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\next_phase_20260806_r2\\revised_a12b_construction_overlap_proof.json"
+}

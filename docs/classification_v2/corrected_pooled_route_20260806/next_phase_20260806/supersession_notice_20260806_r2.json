@@ -1,0 +1,57 @@
+{
+  "no_data_rebuild": true,
+  "replacement_directory": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\next_phase_20260806_r2",
+  "replacement_hash": "0a09684328bb6d0673953bb2e247cdccc3ac59f811245b64e3e9498ba045f40c",
+  "schema_version": "classification_v2.next_phase.supersession_notice.v1",
+  "status": "SUPERSEDED_AUTHORITIES_EXPLICITLY_BOUND",
+  "superseded": [
+    {
+      "old_path": "docs\\classification_v2\\corrected_pooled_route_20260806\\next_phase_20260806\\a12b_construction_overlap_proof.json",
+      "reason": "direct check_duplicate_videos.py lineage resolved the construction question",
+      "replacement": {
+        "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\next_phase_20260806_r2\\revised_a12b_construction_overlap_proof.json",
+        "semantic_role": "direct check_duplicate_videos.py lineage resolved the construction question",
+        "sha256": "32a3266c955027a53945e42f293920a0c6ea1691508d37a9b8f4517e62e4d88a",
+        "size_bytes": 10784
+      },
+      "scope_of_invalidation": "old A12-B inconclusive construction decision only",
+      "status": "SUPERSEDED"
+    },
+    {
+      "old_path": "docs\\classification_v2\\corrected_pooled_route_20260806\\next_phase_20260806\\a12b_broken_provenance_edge.json",
+      "reason": "the previously unresolved construction edge is now directly bound",
+      "replacement": {
+        "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\next_phase_20260806_r2\\cvat_legacy_duplicate_removal_authority.json",
+        "semantic_role": "the previously unresolved construction edge is now directly bound",
+        "sha256": "f723a1c36a84ed21b7384bc55ed0b1cb49bcf5d3d5f9ca84efa7c12c9c0bf4be",
+        "size_bytes": 7233
+      },
+      "scope_of_invalidation": "old construction-provenance blocker only",
+      "status": "SUPERSEDED"
+    },
+    {
+      "old_path": "docs\\classification_v2\\corrected_pooled_route_20260806\\next_phase_20260806\\e0_preflight_decision.json",
+      "reason": "the exact registered inner fold is now FOLD_3",
+      "replacement": {
+        "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\next_phase_20260806_r2\\e0_preflight_decision.json",
+        "semantic_role": "the exact registered inner fold is now FOLD_3",
+        "sha256": "507c75e77a0ddcd6227a63254da9079edf99a53de7b5b026410dd725108312e2",
+        "size_bytes": 7974
+      },
+      "scope_of_invalidation": "old missing-fold E0 readiness status only",
+      "status": "SUPERSEDED"
+    },
+    {
+      "old_path": "docs\\classification_v2\\corrected_pooled_route_20260806\\next_phase_20260806\\s1_readiness_decision.json",
+      "reason": "A12-B and the E0 fold status were revised; posture remains inconclusive",
+      "replacement": {
+        "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\next_phase_20260806_r2\\s1_readiness_decision.json",
+        "semantic_role": "A12-B and the E0 fold status were revised; posture remains inconclusive",
+        "sha256": "0a09684328bb6d0673953bb2e247cdccc3ac59f811245b64e3e9498ba045f40c",
+        "size_bytes": 1156
+      },
+      "scope_of_invalidation": "old S1 gate inputs only; no scientific result invalidated",
+      "status": "SUPERSEDED"
+    }
+  ]
+}
