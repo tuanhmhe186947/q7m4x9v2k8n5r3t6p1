@@ -1,0 +1,48 @@
+{
+  "A12_A_STATUS": "PASS",
+  "A12_B_STATUS": "INCONCLUSIVE",
+  "BLOCKERS": [
+    "A12-B remains INCONCLUSIVE because the frozen near-duplicate, exact content, and exact temporal-interval provenance edge is not bound.",
+    "E0 is NOT_EXECUTED because the committed permit lacks an exact inner-development fold and paid authorization is NO.",
+    "Posture authority is INCONCLUSIVE; posture supervision is excluded from S1 until formally bound or closed."
+  ],
+  "BUDGET_HASH": "7c9625b795c38266a296eab1c1094dc3a8a4514fa29f331659d6cdf5e7a4d462",
+  "E0_STATUS": "NOT_EXECUTED",
+  "NEXT_AUTHORIZED_ACTION": "Resolve and hash-bind the missing frozen exact/near-duplicate and temporal-content provenance contract, then rerun only the bounded A12-B and readiness validators.",
+  "OUTER_TEST_ISOLATION_STATUS": "PASS",
+  "PAPER_GRADE_RESULT_AVAILABLE": "NO",
+  "POSTURE_AUTHORITY_STATUS": "INCONCLUSIVE",
+  "POSTURE_INCLUDED_IN_S1": false,
+  "READY_FOR_CLAIM_GRADE_OUTER_OOF_C2": "NO",
+  "READY_FOR_PAID_INNER_AUTORESEARCH_S1": "NO",
+  "S1_PERMIT_STATUS": "BLOCKED",
+  "SEARCH_SPACE_HASH": "a878369cd4044d99225c229bc178fa95f2710df846f253477768650d70b4c8fa",
+  "candidate_families_considered": [
+    "actor_rgb_sequence",
+    "actor_rgb_geometry_motion",
+    "multimodal_concat",
+    "multimodal_availability_aware"
+  ],
+  "decision_date": "2026-08-06",
+  "no_auto_promotion": true,
+  "posture_exclusion_rule": "unresolved posture authority is excluded from executable S1 candidates",
+  "remote_lineage_checker": "NOT_EXECUTED; E0 is not authorized",
+  "schema_version": "classification_v2.next_phase.s1_readiness_decision.v1",
+  "search_space_status": "BOUNDED_REGISTERED_NOT_UNLOCKED",
+  "stop_rules": {
+    "checkpoint_retention": "parent plus top three complete trials; retain failure manifests and hashes",
+    "disk_ceiling_gb": 50,
+    "failed_run_ceiling": 3,
+    "max_gpu_hours": 48.0,
+    "max_monetary_cost_usd": 120.0,
+    "max_trials": 24,
+    "no_improvement_patience": 6,
+    "per_trial_timeout_hours": 4.0
+  },
+  "trial_budget": {
+    "disk_ceiling_gb": 50,
+    "max_cost_usd": 120.0,
+    "max_gpu_hours": 48.0,
+    "max_trials": 24
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "blocker_code": "E0_CONFIG_INCOMPLETE",
+  "blockers": [
+    "The committed E0 manifest does not identify an exact inner-development fold; no fold may be invented.",
+    "PAID_EXECUTION_AUTHORIZATION=NO; no remote package was uploaded."
+  ],
+  "candidate_family": "actor_rgb_geometry_motion",
+  "checks": {
+    "checkpoint_contract": "PASS_REUSED_ENGINEERING_EVIDENCE",
+    "code_and_tree": "PASS",
+    "exact_inner_fold": "FAIL_MISSING_FROM_COMMITTED_PERMIT",
+    "geometry_and_motion_schema": "PASS",
+    "image_crop_package_inventory": "PASS_HASH_BOUND_DESCRIPTOR_ONLY",
+    "masks_and_zero_weight_filtering": "PASS",
+    "native_unit_metric_path": "PASS_REUSED_ENGINEERING_EVIDENCE",
+    "prediction_exporter": "PASS_REUSED_ENGINEERING_EVIDENCE",
+    "remote_package_upload": "NOT_EXECUTED",
+    "reviewed_snapshot": "PASS",
+    "split_event_weight_schema": "PASS",
+    "t6_exact_view_feature_binding": "PASS"
+  },
+  "config_status": "E0_CONFIG_INCOMPLETE",
+  "decision_date": "2026-08-06",
+  "declared_fold_text": "one registered inner-development fold",
+  "e0_status": "NOT_EXECUTED",
+  "input_binding_sha256": "db7e1f86f79e797ee6ff6b11f9df6fe967e59be6888826310a6fb123829a22c9",
+  "limits": {
+    "disk_ceiling_gb": 15,
+    "max_cost_usd": 10.0,
+    "max_gpu_hours": 2.0,
+    "max_wall_clock_hours": 4.0
+  },
+  "modalities": [
+    "actor_rgb",
+    "geometry_6D",
+    "motion_12D"
+  ],
+  "outer_access_negative_test": {
+    "process_started": false,
+    "result": "all search/permit/outer-contract access flags deny outer data, labels, metrics, predictions, errors, and confusion matrices",
+    "scope": "local_package_contract_only",
+    "status": "PASS"
+  },
+  "outer_access_policy": {
+    "confusion_matrices": false,
+    "data_mount": false,
+    "errors": false,
+    "labels": false,
+    "metrics": false,
+    "predictions": false,
+    "registered_outer_resources": []
+  },
+  "outer_test_access": "BLOCKED",
+  "package_descriptor_sha256": "b6ad9dfad3d9f68219f491b3a92ed8e5a686cfd5522419bc2cc2ddfbe7ef2037",
+  "paid_execution_authorization": "NO",
+  "ready_to_launch_e0": false,
+  "registered_inner_fold": null,
+  "registered_model": "B3_ACTOR_T6_PLUS_GEOMETRY_MOTION",
+  "route_hashes": {
+    "classification_code_sha": "884016aff7d7f23608adcc81a6c138a46351c57e",
+    "classification_tree_hash": "5dfaa841ee5c0162a77807ceaf44983f3f174ae6",
+    "environment_lock_hash": "6b783d5296094e0be94b0e553e3c83376a462eec3278285b076b35761bc103ca",
+    "event_weight_hash": "92a901b8bb431102f5e32fd73c899930f5f3f4c83a9eac6945f9609cdd84938d",
+    "schema_hash": "18377d825ba84974e49305e46561ada81353f9ffd0f2d2526471af1c199daad4",
+    "snapshot_sha256": "ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e",
+    "split_hash": "557156a7eb6cceeb6a91f667f7c51dcb286e3111f35f414970fa7431acc7e63b"
+  },
+  "schema_version": "classification_v2.next_phase.e0_preflight_decision.v1",
+  "seed": 20260804,
+  "smallest_correction": "Amend the E0 permit with an exact registered inner fold, re-hash the descriptor, and rerun only local preflight.",
+  "temporal_view": "T6"
+}

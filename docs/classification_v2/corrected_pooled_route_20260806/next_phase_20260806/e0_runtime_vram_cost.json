@@ -1,0 +1,34 @@
+{
+  "checkpoint_size_bytes": null,
+  "declared_fold_text": "one registered inner-development fold",
+  "download_bytes": null,
+  "execution_mode": "remote_pilot",
+  "feature_families": [
+    "geometry",
+    "motion"
+  ],
+  "gpu_hours": null,
+  "hard_caps": {
+    "disk_ceiling_gb": 15,
+    "max_cost_usd": 10.0,
+    "max_gpu_hours": 2.0,
+    "max_wall_clock_hours": 4.0
+  },
+  "input_binding_sha256": "db7e1f86f79e797ee6ff6b11f9df6fe967e59be6888826310a6fb123829a22c9",
+  "measured_cost_usd": null,
+  "no_auto_promotion": true,
+  "no_outer_test_access": true,
+  "package_descriptor_sha256": "b6ad9dfad3d9f68219f491b3a92ed8e5a686cfd5522419bc2cc2ddfbe7ef2037",
+  "paid_execution_authorization": "NO",
+  "peak_vram_gb": null,
+  "prediction_size_bytes": null,
+  "reason": "NOT_EXECUTED: paid authorization is NO and the exact inner fold is missing.",
+  "registered_inner_fold": null,
+  "registered_model": "B3_ACTOR_T6_PLUS_GEOMETRY_MOTION",
+  "schema_version": "classification_v2.next_phase.e0_manifest.v1",
+  "seed": 20260804,
+  "status": "NOT_EXECUTED",
+  "temporal_view": "T6",
+  "upload_bytes": null,
+  "wall_clock_hours": null
+}

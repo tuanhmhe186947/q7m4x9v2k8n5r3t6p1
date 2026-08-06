@@ -1,0 +1,56 @@
+{
+  "behavior_head_class_order": [
+    "drink",
+    "eat",
+    "fight",
+    "social-nose",
+    "explore",
+    "lying",
+    "stand",
+    "move",
+    "sitting",
+    "playwithtoy"
+  ],
+  "candidate_behavior_to_posture": {
+    "eat": "upright",
+    "lying": "lying",
+    "sitting": "sitting",
+    "stand": "upright"
+  },
+  "comparisons": [
+    {
+      "id": "behavior_only",
+      "posture_loss": 0,
+      "role": "matched_control"
+    },
+    {
+      "id": "behavior_plus_masked_posture",
+      "posture_loss": "registered_weight_only",
+      "role": "candidate",
+      "unresolved_targets_contribute": false
+    }
+  ],
+  "executable": false,
+  "fixed_factors": [
+    "snapshot",
+    "grouped roles",
+    "temporal view",
+    "feature family",
+    "imbalance strategy",
+    "optimizer",
+    "training budget",
+    "native-unit evaluator",
+    "seed"
+  ],
+  "included_in_s1": false,
+  "posture_head_class_order": [
+    "lying",
+    "sitting",
+    "upright"
+  ],
+  "promotion_rule": "retain only if behavior Macro-F1 and rare-class guardrails are not materially harmed and posture evaluation is adequate",
+  "review_reopened": false,
+  "schema_version": "classification_v2.next_phase.posture_matched_ablation_contract.v1",
+  "smallest_missing_item": "complete snapshot-compatible posture target authority and alignment/support audit",
+  "status": "BLOCKED_POSTURE_AUTHORITY_INCONCLUSIVE"
+}

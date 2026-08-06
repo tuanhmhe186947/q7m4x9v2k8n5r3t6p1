@@ -1,0 +1,57 @@
+{
+  "candidate_behavior_to_posture": {
+    "eat": "upright",
+    "lying": "lying",
+    "sitting": "sitting",
+    "stand": "upright"
+  },
+  "checks": {
+    "artifact_sha256": "PASS",
+    "duplicate_native_unit_check": "PASS",
+    "group_support_by_date_inner_role_outer_fold": "INCONCLUSIVE",
+    "matched_behavior_cohort": "INCONCLUSIVE",
+    "predictive_input_exclusion": "PASS",
+    "review_close_and_decision_lineage": "INCONCLUSIVE",
+    "snapshot_compatibility": "INCONCLUSIVE",
+    "target_schema_and_class_order": "INCONCLUSIVE",
+    "temporal_view_alignment": "INCONCLUSIVE"
+  },
+  "class_order": [
+    "lying",
+    "sitting",
+    "upright"
+  ],
+  "included_in_s1": false,
+  "mapping_authority_status": "INCONCLUSIVE",
+  "mapping_origin": "user-confirmed candidate mapping; no complete current mapping sidecar located",
+  "missing_machine_readable_items": [
+    "snapshot-bound posture target manifest or sidecar",
+    "authoritative mapping and posture class-schema record",
+    "explicit unresolved/availability mask and transition policy",
+    "temporal-view/native-unit alignment audit",
+    "support by recording date, inner role, and outer fold"
+  ],
+  "observed_artifact": {
+    "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\paired_pilot_86edabc\\posture_pilot_decisions.csv",
+    "sha256": "08f626e1faf7ffdb75c5fa99f40744f4b5b1bfbea60b2b199bfea3b92f7bf786",
+    "size_bytes": 58883
+  },
+  "observed_class_support": {
+    "lying": 12,
+    "sitting": 17,
+    "upright": 91
+  },
+  "observed_duplicate_native_keys": 0,
+  "observed_scope_sha256": "f03a71cadf3e75d20c6157e90d050a73bcbf5e3341915ae8033d8c0678805527",
+  "observed_source_support": {
+    "cvat_tracking_xml": 60,
+    "legacy_recovered": 60
+  },
+  "posture_head_is_auxiliary_only": true,
+  "review_reopened": false,
+  "reviewers": [
+    "TuanHM"
+  ],
+  "schema_version": "classification_v2.next_phase.posture_authority_binding.v1",
+  "status": "INCONCLUSIVE"
+}

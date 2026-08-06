@@ -1,0 +1,28 @@
+{
+  "blocked_permit": "S1",
+  "data_rebuild": false,
+  "evidence_paths": [
+    "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\02_video_policy\\exclude_source_videos.csv",
+    "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\01_provenance\\legacy_source_trace_lineage.json",
+    "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\reviewed_frame_features.csv.gz",
+    "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\02_video_policy\\duplicate_video_filter_audit.json",
+    "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\08_audits\\legacy_16f_rebuild_completion_audit.json",
+    "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\split_manifest.csv",
+    "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\effective_window_index.csv",
+    "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\a12_supersession_notice.md"
+  ],
+  "failed_invariant": "A12-B requires a frozen cross-role exact/near-duplicate and exact temporal-content provenance contract before S1.",
+  "invalidated_dependencies": [
+    "S1 permit",
+    "claim-grade C2 permit"
+  ],
+  "minimum_rerun": "bounded A12-B checker only after the missing evidence is bound",
+  "schema_version": "classification_v2.next_phase.a12b_broken_provenance_edge.v1",
+  "smallest_correction": "Locate and hash-bind the existing frozen representation, threshold, and audit over immutable manifests; do not rebuild the reviewed dataset.",
+  "status": "INCONCLUSIVE",
+  "unresolved_edges": [
+    "near_duplicate_representation_and_threshold",
+    "cross_role_exact_frame_crop_content_hash_audit",
+    "cross_role_exact_temporal_interval_content_audit"
+  ]
+}

@@ -1,0 +1,234 @@
+{
+  "checks": [
+    {
+      "evidence": [
+        {
+          "detected_overlap_count": 0,
+          "examined_count": 12,
+          "note": "The 12 CVAT canonical source keys equal the 12 exclusion keys.",
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\02_video_policy\\exclude_source_videos.csv",
+          "semantic_scope": "construction-time additional-source exclusion inventory",
+          "sha256": "4833bd6d6a786ecbd12295254dc74f308795c32abdecada6b7f7cd6a78a3af05",
+          "size_bytes": 740
+        },
+        {
+          "detected_overlap_count": 0,
+          "examined_count": 673,
+          "note": "Legacy source-key lineage; it does not itself prove cross-role content hashes.",
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\01_provenance\\legacy_source_trace_lineage.json",
+          "semantic_scope": "legacy source and manifest lineage",
+          "sha256": "2b4f278af2f8815f993933e7ad94d09f9791794d09aeebfa8d907820885a26fb",
+          "size_bytes": 6489
+        },
+        {
+          "detected_overlap_count": 0,
+          "examined_count": 245680,
+          "note": "Current source-key comparison with the registered canonicalization rule.",
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\reviewed_frame_features.csv.gz",
+          "semantic_scope": "current pooled reviewed frame source manifest",
+          "sha256": "a8c48f9d5546818fac3f091c915dfa577e0a5969f8e05623c83e2d5900b9610c",
+          "size_bytes": 343685346
+        }
+      ],
+      "id": "construction_source_overlap",
+      "result": {
+        "cvat_minus_exclusion": 0,
+        "exclusion_intersection_legacy": 0,
+        "exclusion_minus_cvat": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "evidence": [
+        {
+          "detected_overlap_count": 55,
+          "examined_count": 4610,
+          "note": "Duplicate rows are reported within the legacy branch; no cross-role content contract is bound.",
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\02_video_policy\\duplicate_video_filter_audit.json",
+          "semantic_scope": "legacy-branch duplicate video audit",
+          "sha256": "4fde8c03cc035acbfff7d67f5cd49eab46e153c829113b24018b8c65fffa2dd5",
+          "size_bytes": 1773
+        }
+      ],
+      "id": "exact_duplicate_isolation",
+      "limitation": "The located audit is legacy-branch scoped, not a cross-role content audit.",
+      "result": {
+        "cross_role_overlap_count": 0,
+        "proof_available": false
+      },
+      "status": "INCONCLUSIVE"
+    },
+    {
+      "evidence": [
+        {
+          "detected_overlap_count": 55,
+          "examined_count": 4610,
+          "note": "Duplicate rows are reported within the legacy branch; no cross-role content contract is bound.",
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\legacy_16f_rebuild\\legacy_16f_rebuild_20260718_v2\\02_video_policy\\duplicate_video_filter_audit.json",
+          "semantic_scope": "legacy-branch duplicate video audit",
+          "sha256": "4fde8c03cc035acbfff7d67f5cd49eab46e153c829113b24018b8c65fffa2dd5",
+          "size_bytes": 1773
+        }
+      ],
+      "id": "near_duplicate_isolation",
+      "limitation": "No frozen near-duplicate representation and threshold was located.",
+      "result": {
+        "detected_overlap_count": null,
+        "proof_available": false
+      },
+      "status": "INCONCLUSIVE"
+    },
+    {
+      "evidence": [
+        {
+          "detected_overlap_count": 0,
+          "examined_count": 165305,
+          "note": "Zero missing split bindings and zero row-index mismatches in the bounded check.",
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\split_manifest.csv",
+          "semantic_scope": "grouped development split manifest",
+          "sha256": "cf00e7e7ef791e1a58dceb0af77898c64eb7a03819f5c570c5567067142088f6",
+          "size_bytes": 29558855
+        },
+        {
+          "detected_overlap_count": 0,
+          "examined_count": 165305,
+          "note": "Zero duplicate window IDs and zero eligible native/video/date role crossings.",
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\effective_window_index.csv",
+          "semantic_scope": "effective temporal window index",
+          "sha256": "810071b311ebc008d420c5873fea11f2369f9ec8edfc3b2dc2958635b30ac7f1",
+          "size_bytes": 94995662
+        }
+      ],
+      "id": "exact_temporal_interval_isolation",
+      "limitation": "Grouped inheritance passes, but no frozen exact frame/crop/content interval audit is bound.",
+      "result": {
+        "group_crossing_count": 0,
+        "interval_content_proof": false
+      },
+      "status": "INCONCLUSIVE"
+    },
+    {
+      "evidence": [
+        {
+          "detected_overlap_count": 0,
+          "examined_count": 165305,
+          "note": "Zero duplicate window IDs and zero eligible native/video/date role crossings.",
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\effective_window_index.csv",
+          "semantic_scope": "effective temporal window index",
+          "sha256": "810071b311ebc008d420c5873fea11f2369f9ec8edfc3b2dc2958635b30ac7f1",
+          "size_bytes": 94995662
+        }
+      ],
+      "id": "native_unit_isolation",
+      "result": {
+        "eligible_native_unit_role_crossings": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "evidence": [
+        {
+          "detected_overlap_count": 0,
+          "examined_count": 165305,
+          "note": "Zero duplicate window IDs and zero eligible native/video/date role crossings.",
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\effective_window_index.csv",
+          "semantic_scope": "effective temporal window index",
+          "sha256": "810071b311ebc008d420c5873fea11f2369f9ec8edfc3b2dc2958635b30ac7f1",
+          "size_bytes": 94995662
+        }
+      ],
+      "id": "video_group_isolation",
+      "result": {
+        "eligible_video_role_crossings": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "evidence": [
+        {
+          "detected_overlap_count": 0,
+          "examined_count": 165305,
+          "note": "Zero missing split bindings and zero row-index mismatches in the bounded check.",
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\split_manifest.csv",
+          "semantic_scope": "grouped development split manifest",
+          "sha256": "cf00e7e7ef791e1a58dceb0af77898c64eb7a03819f5c570c5567067142088f6",
+          "size_bytes": 29558855
+        },
+        {
+          "detected_overlap_count": 0,
+          "examined_count": 165305,
+          "note": "Zero duplicate window IDs and zero eligible native/video/date role crossings.",
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\effective_window_index.csv",
+          "semantic_scope": "effective temporal window index",
+          "sha256": "810071b311ebc008d420c5873fea11f2369f9ec8edfc3b2dc2958635b30ac7f1",
+          "size_bytes": 94995662
+        }
+      ],
+      "id": "recording_date_group_isolation",
+      "result": {
+        "eligible_date_role_crossings": 0
+      },
+      "status": "PASS"
+    },
+    {
+      "evidence": [
+        {
+          "detected_overlap_count": 0,
+          "examined_count": 165305,
+          "note": "Zero missing split bindings and zero row-index mismatches in the bounded check.",
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\split_manifest.csv",
+          "semantic_scope": "grouped development split manifest",
+          "sha256": "cf00e7e7ef791e1a58dceb0af77898c64eb7a03819f5c570c5567067142088f6",
+          "size_bytes": 29558855
+        },
+        {
+          "detected_overlap_count": 0,
+          "examined_count": 165305,
+          "note": "Zero duplicate window IDs and zero eligible native/video/date role crossings.",
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\effective_window_index.csv",
+          "semantic_scope": "effective temporal window index",
+          "sha256": "810071b311ebc008d420c5873fea11f2369f9ec8edfc3b2dc2958635b30ac7f1",
+          "size_bytes": 94995662
+        }
+      ],
+      "id": "window_role_inheritance",
+      "result": {
+        "duplicate_window_ids": 0,
+        "eligible_windows": 159410,
+        "excluded_or_invalid_windows": 5895,
+        "missing_split_bindings": 0,
+        "row_index_mismatches": 0,
+        "window_rows": 165305
+      },
+      "status": "PASS"
+    }
+  ],
+  "construction_rule": "Additional-source dates/videos were intended to exclude legacy-overlapping dates/videos; this rule is checked without changing the pooled authority.",
+  "decision": "INCONCLUSIVE",
+  "hard_gate": true,
+  "limitations": [
+    "No frozen near-duplicate representation and threshold was located.",
+    "No cross-role exact frame, crop, or content-hash contract was located.",
+    "The construction comparison does not authorize S1 while those edges remain unresolved."
+  ],
+  "measured_population": {
+    "canonicalization_rule": "lower-case regex (pigs\\d{6}[a-z]?)[_/](\\d{6}); source_video_key preferred over video_key",
+    "cvat_intersection_legacy": 0,
+    "cvat_minus_exclusion": 0,
+    "exclusion_intersection_legacy": 0,
+    "exclusion_key_count": 12,
+    "exclusion_minus_cvat": 0,
+    "missing_canonical_keys_by_source": {},
+    "row_counts_by_source": {
+      "cvat_tracking_xml": 172800,
+      "legacy_recovered": 72880
+    },
+    "rows": 245680,
+    "unique_canonical_keys_by_source": {
+      "cvat_tracking_xml": 12,
+      "legacy_recovered": 666
+    }
+  },
+  "no_data_rebuild": true,
+  "schema_version": "classification_v2.next_phase.a12b_construction_overlap_proof.v1"
+}

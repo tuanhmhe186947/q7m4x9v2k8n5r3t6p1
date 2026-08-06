@@ -1,0 +1,36 @@
+{
+  "declared_fold_text": "one registered inner-development fold",
+  "execution_mode": "remote_pilot",
+  "expected_outputs": [
+    "run_manifest.json",
+    "environment.json",
+    "artifact_manifest.json",
+    "checkpoint_manifest.json",
+    "checkpoint.pt",
+    "prediction_manifest.json",
+    "predictions.csv",
+    "metrics.json",
+    "resume_audit.json",
+    "runtime_vram.json",
+    "download_hash_manifest.json"
+  ],
+  "feature_families": [
+    "geometry",
+    "motion"
+  ],
+  "input_binding_sha256": "db7e1f86f79e797ee6ff6b11f9df6fe967e59be6888826310a6fb123829a22c9",
+  "no_auto_promotion": true,
+  "no_outer_test_access": true,
+  "package_descriptor_sha256": "b6ad9dfad3d9f68219f491b3a92ed8e5a686cfd5522419bc2cc2ddfbe7ef2037",
+  "paid_execution_authorization": "NO",
+  "reason": "NOT_EXECUTED: paid authorization is NO and the exact inner fold is missing.",
+  "registered_inner_fold": null,
+  "registered_model": "B3_ACTOR_T6_PLUS_GEOMETRY_MOTION",
+  "remote_environment": null,
+  "remote_run_id": null,
+  "schema_version": "classification_v2.next_phase.e0_manifest.v1",
+  "seed": 20260804,
+  "status": "NOT_EXECUTED",
+  "temporal_view": "T6",
+  "uploaded": false
+}

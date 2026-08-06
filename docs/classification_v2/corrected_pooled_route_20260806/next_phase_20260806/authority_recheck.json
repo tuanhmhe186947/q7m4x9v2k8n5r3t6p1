@@ -1,0 +1,76 @@
+{
+  "base_main_sha_measured": "2e71088558f862b90b53d81fc0016a62153bb61a",
+  "current_authorities": {
+    "canonical_46d_schema_hash": "18377d825ba84974e49305e46561ada81353f9ffd0f2d2526471af1c199daad4",
+    "classification_code_sha": "884016aff7d7f23608adcc81a6c138a46351c57e",
+    "classification_tree_hash": "5dfaa841ee5c0162a77807ceaf44983f3f174ae6",
+    "environment_lock_hash": "6b783d5296094e0be94b0e553e3c83376a462eec3278285b076b35761bc103ca",
+    "event_weight_hash": "92a901b8bb431102f5e32fd73c899930f5f3f4c83a9eac6945f9609cdd84938d",
+    "plan_hash": "cd96fb3d37bc0dc0f366e2a7ef76511f39e0284ed9a0a132675774697620dbce",
+    "reviewed_snapshot_id": "reviewed_engineering_amendment_992f34c0204a85a1",
+    "reviewed_snapshot_sha256": "ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e",
+    "split_hash": "557156a7eb6cceeb6a91f667f7c51dcb286e3111f35f414970fa7431acc7e63b"
+  },
+  "decision_date": "2026-08-06",
+  "execution_branch": "codex/classification-v2-e0-a12b-posture-20260806",
+  "execution_head_sha_measured": "34a7b35f8d4f0ee7d9efd9a2882bd89c0de5d1d8",
+  "execution_worktree": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806",
+  "expected_execution_head_sha": "34a7b35f8d4f0ee7d9efd9a2882bd89c0de5d1d8",
+  "measured_source_population": {
+    "canonicalization_rule": "lower-case regex (pigs\\d{6}[a-z]?)[_/](\\d{6}); source_video_key preferred over video_key",
+    "cvat_intersection_legacy": 0,
+    "cvat_minus_exclusion": 0,
+    "exclusion_intersection_legacy": 0,
+    "exclusion_key_count": 12,
+    "exclusion_minus_cvat": 0,
+    "missing_canonical_keys_by_source": {},
+    "row_counts_by_source": {
+      "cvat_tracking_xml": 172800,
+      "legacy_recovered": 72880
+    },
+    "rows": 245680,
+    "unique_canonical_keys_by_source": {
+      "cvat_tracking_xml": 12,
+      "legacy_recovered": 666
+    }
+  },
+  "protected_state": {
+    "behavior_review_reopened": false,
+    "c2_started": false,
+    "data_rebuild": false,
+    "hidden_review_reopened": false,
+    "outer_split_changed": false,
+    "paid_compute_started": false,
+    "s1_started": false
+  },
+  "route_validator_pre_change": {
+    "loaded_json_count": 18,
+    "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\route_validator_report.json",
+    "required_file_count": 21,
+    "sha256": "9b6b84c569c3329125b68b05aa7413226a41a5eb59484988a5ab64de9d994380",
+    "status": "PASS"
+  },
+  "schema_version": "classification_v2.next_phase.authority_recheck.v1",
+  "scope_reconciliation": {
+    "route_semantics_remain_current": true,
+    "superseded_for_current_execution_scope": [
+      {
+        "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\permit_policy.json",
+        "reason": "The committed permit names no exact inner-development fold.",
+        "replacement_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\next_phase_20260806\\e0_preflight_decision.json",
+        "replacement_sha256": "4a32f19f0bd1817e17aaa0a7e4ebe076fd5c7323476497cd086d9c5c92ab1b73",
+        "sha256": "099d877790e86c91f77fd011cfbf39328b9e97619f4b8685c6468752bbd8b10c",
+        "status": "SUPERSEDED_FOR_E0_LAUNCH_READINESS_ONLY"
+      },
+      {
+        "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\readiness_decision.json",
+        "reason": "Current preflight found E0_CONFIG_INCOMPLETE before any launch.",
+        "replacement_path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\next_phase_20260806\\s1_readiness_decision.json",
+        "replacement_sha256": "1415c80f94a4909317c5957881abe6e2a4984cce0fe194431bd47062a38d800d",
+        "sha256": "5fe52225accb764124234966eb709934e40f36fe71809d3c7767c39a13907c87",
+        "status": "SUPERSEDED_FOR_E0_LAUNCH_READINESS_ONLY"
+      }
+    ]
+  },
+  "worktree_status_at_generation": "EXPECTED_NEXT_PHASE_CHANGES"
+}
