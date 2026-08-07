@@ -139,3 +139,10 @@ artifacts/*
 .env.*
 secrets.yaml
 credentials.json
+
+# Local runtime credentials and server configuration
+config/secret_key
+config/hypercorn.toml
+
+# Git-managed temporary worktrees are not project source content
+.codex_worktrees/
