@@ -117,6 +117,9 @@ def test_e0_handoff_uses_the_canonical_inner_only_command() -> None:
     assert "--variants full" not in handoff["launch_command"]
     assert WRAPPER.name in handoff["launch_command"]
     assert "--resume-checkpoint $E0_RESUME_CHECKPOINT" in handoff["resume_command"]
+    assert handoff["installation_command"] == (
+        "uv sync --frozen --python 3.11 --extra pt"
+    )
 
 
 def test_e0_transfer_inventory_binds_the_canonical_authority() -> None:

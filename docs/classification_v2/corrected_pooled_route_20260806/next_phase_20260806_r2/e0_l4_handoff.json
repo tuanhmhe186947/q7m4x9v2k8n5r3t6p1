@@ -102,7 +102,7 @@
       "size_bytes": 997754
     }
   },
-  "installation_command": "uv sync --frozen --python 3.11 --extra dev",
+  "installation_command": "uv sync --frozen --python 3.11 --extra pt",
   "launch_binding_note": "The canonical inner-only wrapper verifies source hashes, binds FOLD_3 train/validation roles, rejects test, and never invokes the full multimodal runner.",
   "launch_command": "uv run --frozen python scripts/classification_v2/04_baselines_smokes/classification_v2_run_e0_inner_only.py --authority docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_execution_authority.json --data-bindings $E0_BINDINGS --output-dir $E0_OUT --device cuda --mode train --execution-authorization REQUIRED",
   "outer_test_exclusion": {
