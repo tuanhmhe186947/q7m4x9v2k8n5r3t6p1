@@ -1,26 +1,41 @@
 # Classification V2 Current State
 
-## Current H5 temporal authority and E0 readiness (2026-08-07)
+## Current pre-GPU authority index (2026-08-08)
 
-The historical `COMMON_H5_T6_R` contract is current-bound, not newly designed.
-For legacy, H5 is offsets `0..4` and the frozen T6 target is `5..10` inside
-the native 16-frame burst. The current matched cohort contains 33,166 T6
-targets: CVAT retains 28,628/28,724 and legacy retains 4,538/4,538. The audit
-finds zero future-frame, split, video, or actor-scope violations. Its current
-authority closure is
-`docs/classification_v2/corrected_pooled_route_20260806/temporal_h5_20260807/`.
+Resolve the immutable release with
+`classification-v2-pre-gpu-authority-20260808^{commit}`. Do not treat a
+temporary worktree SHA as execution authority. Unless stated otherwise, current
+Classification V2 authorities are under
+`docs/classification_v2/corrected_pooled_route_20260806/`.
 
-The registered future comparison is T6 versus T6+H5 on that identical matched
-cohort; H6, H12, and H24 are deferred. H5 context labels are diagnostic only
-and never model inputs. The derived H5 feature bundle is externally managed and
-hash-bound to the reviewed snapshot, frozen split, cohort, and 46D schema.
+- DATA / REVIEW: `post_review_20260807/updated_campaign_readiness_decision.json`
+  and amended reviewed snapshot `ab86e2…9610c` are current.
+- SPLIT / A12: `authority_binding.json` and E0 data references bind grouped
+  split `557156…7e63b`; no fold redesign is permitted.
+- TRACKING: `docs/tracking/reconciliation/CURRENT_TRACKING_STATE_INVENTORY_20260729.json`.
+  RF_ACC23 is separate active tracking work, not E0 input.
+- FEATURES / TEMPORAL: E0 freezes actor RGB, geometry 6D, motion 12D, their
+  masks, central legacy T6 offsets 5..10, and T6/T8/T12/T16 support semantics.
+- H5: `temporal_h5_20260807/temporal_h5_handoff.md` binds `COMMON_H5_T6_R`.
+  H5 is five pre-target frames; H6/H12/H24 are deferred.
+- POSTURE: `post_review_20260807/posture_500_completed_authority.json` binds
+  500-human-gold and P0/P1; posture is OFF in E0.
+- MODEL DEVELOPMENT: B0-B3, inner-only selection, finite S1, imbalance, and
+  evaluation rules remain controlled by the corrected route.
+- E0: `next_phase_20260806_r2/e0_execution_authority.json` and
+  `e0_l4_handoff.json` bind B3/T6/FOLD_3/seed 20260804 and the 16-step pilot.
+- EVALUATION: FOLD_3 outer-test data, metrics, checkpoint selection, and
+  predictions are fail-closed for E0.
+- EXTERNAL ARTIFACTS: `remote_e0_transfer_inventory.json` binds required
+  external inputs while large artifacts remain outside Git.
+- REJECTED / DEFERRED: `pre_gpu_worktree_inventory_20260808.json` preserves
+  provenance; social, motion, H5, and outer-OOF candidates are not current E0.
 
-E0 is unchanged: `B3_ACTOR_T6_PLUS_GEOMETRY_MOTION`, T6, `FOLD_3`, seed
-`20260804`, no H5 and no posture. Its local preflight and outer-test denial
-remain PASS/BLOCKED, but its remote-launch package is now blocked: the current
-handoff launches a full multimodal variant and lacks the required FOLD_3
-wrapper. Resolve that executable-contract mismatch before any Lightning Studio,
-transfer, paid execution, or L4 switch. Paid execution remains unauthorized.
+The E0 staged lock is `next_phase_20260806_r2/e0_environment/uv.lock` with
+SHA-256 `6b783d…103ca`; it is copied verbatim as package-root `uv.lock` and
+used with extra `pt`. Root `uv.lock` is development-only. E0 remains an
+engineering validation, not scientific model selection; no paid execution is
+authorized by this index.
 
 ## S2 Top-K K=3 social branch at DEV_PASS (2026-08-04)
 

@@ -1,24 +1,23 @@
 # Current Decision
 
-## Classification V2 H5 closure and next permitted action (2026-08-07)
+## Classification V2 pre-GPU E0 authority and next permitted action (2026-08-08)
 
-- Status: `CURRENT_H5_CONTRACT_BOUND`; historical `COMMON_H5_T6_R` is rebound
-  to reviewed snapshot `reviewed_engineering_amendment_992f34c0204a85a1` and
-  frozen split SHA256 `557156a7eb6cceeb6a91f667f7c51dcb286e3111f35f414970fa7431acc7e63b`.
-- Contract: legacy H5 offsets `0..4`, fixed central T6 offsets `5..10`;
-  `COMMON_H5_MATCHED_COHORT=33,166` with zero future, split, video, and
-  actor-scope violations. H5 labels remain diagnostic only.
-- Decision: future causal ablation is paired T6 versus T6+H5 on the exact
-  matched cohort; H6, H12, and H24 are deferred and excluded from autoresearch.
-- H5 bundle: externally managed, snapshot/split/cohort/schema-bound; loader
-  plus two-source forward/loss/backward smoke pass. No H5 scientific training
-  occurred.
-- E0: local preflight remains PASS and outer test remains BLOCKED, but remote
-  launch preparation is now BLOCKED. The declared B3/T6/FOLD_3 handoff launches
-  a full multimodal variant with forbidden branches and requires a missing
-  FOLD_3 wrapper. Resolve that executable contract before any Lightning Studio,
-  transfer, paid authorization, or L4 action. See
-  `docs/classification_v2/corrected_pooled_route_20260806/lightning_phase2_20260807/`.
+- Status: `PRE_GPU_MAIN_AUTHORITY_READY`; resolve the immutable release with
+  `classification-v2-pre-gpu-authority-20260808^{commit}` after final tag
+  creation. Main, not a temporary worktree, is the execution authority.
+- E0: `B3_ACTOR_T6_PLUS_GEOMETRY_MOTION`, T6, FOLD_3, seed 20260804, actor
+  RGB + geometry 6D + motion 12D only. The 16-step/AdamW/LR/checkpoint details
+  are engineering freeze settings, not S1/final-model selections.
+- Environment: staged CRLF `e0_environment/uv.lock` SHA256 `6b783d…103ca`
+  is copied verbatim as package-root `uv.lock` and realized with `--extra pt`.
+  Root `uv.lock` is development-only.
+- Gates: local executable preflight and bounded smoke pass; outer test is
+  BLOCKED for training, validation, checkpoint selection, metrics, and exports.
+- Closed authorities: reviewed snapshot, grouped split/A12, H5, posture, and
+  feature contracts remain frozen; H5 and posture are OFF in E0. H6/H12/H24,
+  outer OOF, and S1 remain deferred.
+- Next permitted action: resume the existing Lightning CPU/SSH setup from the
+  pre-GPU tag. Do not create another scientific worktree or allocate a GPU.
 
 ## Contract
 
