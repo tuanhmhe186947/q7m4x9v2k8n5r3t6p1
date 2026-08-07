@@ -929,6 +929,47 @@
 
 
 
+### C2V2-20260807-06 - Canonicalize pre-GPU main authority
+
+- Prompt: Promote accepted Phase-2B authority, validate it on main, consolidate accepted
+  references, retire only proven-safe worktrees, and stop before Lightning or GPU.
+- Status: `BLOCKED`.
+- Opened: `2026-08-07T22:14:58+07:00`.
+- Concurrency: `atomic-v1`.
+- Owner session: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
+- Owner runtime session: `019fd69a-0632-7351-8a0a-c0b6b7251776`.
+- Owner token SHA256: `93394e1dbac2a1bccdb06727060dc7cb4fef3d75f5f5fd745b09a08369d75693`.
+- Worktree: `C:\Users\ironh\Downloads\PIG_Behavior_Project`.
+- Revision: `4`.
+- Lease expires: `2026-08-08T00:52:31+07:00`.
+- Block SHA256: `d9a0b0ce6ee8958fc07b909e1d5791883ccff9399bd7200602b20b6fa2de55ba`.
+- Ownership reason: `same-session-token-recovery`.
+- Ownership audit event: `c50ad7822af8006597eab454b639cf15a4dfba64cddc97f6995bfdb6b4932514`.
+  - Timestamp: 2026-08-07T23:18:01+07:00
+  - Action: same-session-token-recovery
+  - From owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - From runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To owner: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - To runtime session: 019fd69a-0632-7351-8a0a-c0b6b7251776
+  - Prior revision: 2
+  - Prior block SHA256: f524290090c42de44ac0960f8cbbad11647ac2acadb3c26f2c1fe6d33bebf866
+  - Prior worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - New worktree: C:\Users\ironh\Downloads\PIG_Behavior_Project
+  - Reason: host-interruption-token-recovery
+  - Authority: CODEX_THREAD_ID match plus lock and CAS
+- Acceptance: Main is clean; accepted E0 authority is on main and validated; all retained
+  worktrees have active reasons; no accepted content is orphaned; a pre-GPU authority tag and
+  handoff are bound.
+- Skills: `agent-harness-construction`, `project-state-steward`, `experiment-lineage-
+  reproducibility`, `dataset-contract-leakage-guard`, `safe-refactor-test-guardian`.
+- [ ] `PGM-01` `[BLOCKED]` Promote and validate accepted Phase-2B authority
+  - Next: obtain-authority-to-repair-stale-transfer-inventory-hash-then-rerun-focused-validation
+- [ ] `PGM-02` `[TODO]` Inventory and classify reachable worktree knowledge
+  - Next: Write a compact inventory and classify unique commits before deletion.
+- [ ] `PGM-03` `[TODO]` Consolidate authority and retire safe worktrees
+  - Next: Update current authority navigation, remove only classified non-active worktrees, tag
+    final main, and validate.
+
 ## Previous-Day Closeout
 
 - Source date: `2026-08-06`.
