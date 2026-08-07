@@ -40,6 +40,11 @@ TRANSFER_INVENTORY = ROOT / (
     "docs/classification_v2/corrected_pooled_route_20260806/"
     "lightning_phase2_20260807/remote_e0_transfer_inventory.json"
 )
+E0_ENVIRONMENT_LOCK = ROOT / (
+    "docs/classification_v2/corrected_pooled_route_20260806/"
+    "next_phase_20260806_r2/e0_environment/uv.lock"
+)
+ROOT_DEVELOPMENT_LOCK = ROOT / "uv.lock"
 
 
 def test_e0_authority_resolves_exact_b3_modalities() -> None:
@@ -128,6 +133,53 @@ def test_e0_transfer_inventory_binds_the_canonical_authority() -> None:
     assert handoff_entry["sha256"] == sha256(HANDOFF.read_bytes()).hexdigest()
     assert inventory["remote_transfer_total_size_gb"] <= 15
     assert "H5 feature bundle" in inventory["explicitly_excluded"]
+
+
+def test_e0_environment_lock_binds_canonical_staged_bytes() -> None:
+    authority = json.loads(AUTHORITY.read_text(encoding="utf-8"))
+    inventory = json.loads(TRANSFER_INVENTORY.read_text(encoding="utf-8"))
+    environment_lock = authority["environment_lock"]
+    staged_path = str(E0_ENVIRONMENT_LOCK.relative_to(ROOT)).replace("\\", "/")
+
+    assert (
+        environment_lock["lock_authority_type"]
+        == "CASE_A_STAGED_LOCK_IS_INTENDED_AND_EXECUTABLE"
+    )
+    assert environment_lock["canonical_staged_lock_path"] == staged_path
+    assert environment_lock["transfer_package_relative_path"] == "uv.lock"
+    assert environment_lock["required_extra"] == "pt"
+    assert environment_lock["lock_mutation_permitted"] is False
+    assert environment_lock["sha256"] == sha256(E0_ENVIRONMENT_LOCK.read_bytes()).hexdigest()
+    assert environment_lock["size_bytes"] == E0_ENVIRONMENT_LOCK.stat().st_size
+
+    root_lock = environment_lock["root_development_lock"]
+    assert root_lock["path"] == "uv.lock"
+    assert root_lock["sha256"] == sha256(ROOT_DEVELOPMENT_LOCK.read_bytes()).hexdigest()
+    assert root_lock["authority_role"] == "development_only_not_e0_remote_execution"
+    assert root_lock["sha256"] != environment_lock["sha256"]
+
+    inventory_lock = next(
+        entry for entry in inventory["entries"] if entry["local_path"] == staged_path
+    )
+    assert inventory_lock["sha256"] == environment_lock["sha256"]
+    assert inventory_lock["remote_destination"] == "$REMOTE_PROJECT_ROOT/uv.lock"
+
+
+def test_e0_transfer_inventory_hashes_existing_file_entries() -> None:
+    inventory = json.loads(TRANSFER_INVENTORY.read_text(encoding="utf-8"))
+    checked = 0
+    for entry in inventory["entries"]:
+        expected_hash = entry.get("sha256")
+        if entry.get("kind") != "file" or not expected_hash:
+            continue
+        local_path = Path(entry["local_path"])
+        candidate = local_path if local_path.is_absolute() else ROOT / local_path
+        if not candidate.is_file():
+            continue
+        assert candidate.stat().st_size == entry["size_bytes"]
+        assert sha256(candidate.read_bytes()).hexdigest() == expected_hash
+        checked += 1
+    assert checked >= 5
 
 
 def test_canonical_wrapper_inspects_and_blocks_outer_test(tmp_path: Path) -> None:

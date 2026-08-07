@@ -9,3 +9,4 @@
 *.json text eol=lf
 *.csv text eol=lf
 *.ipynb text eol=lf
+docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_environment/uv.lock -text

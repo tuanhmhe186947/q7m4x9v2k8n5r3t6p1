@@ -4,7 +4,7 @@
   "authority_commit": "7bd67b9c49c85b8d07e9e820aa5f9745854adff6",
   "canonical_execution_authority": {
     "path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_execution_authority.json",
-    "sha256": "eb6f685a914a51e13ab358d66be59dc58ea4784ef91f33519284d0048028050c",
+    "sha256": "20914be7b71f9e43dca3293e9d3a50b19da590065a6017e3d1b37b03c58de3c5",
     "entry_point": "scripts/classification_v2/04_baselines_smokes/classification_v2_run_e0_inner_only.py",
     "launch_uses_variant_full": false,
     "outer_test_access": "BLOCKED"
@@ -37,8 +37,8 @@
       "local_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_execution_authority.json",
       "scientific_role": "canonical E0 execution authority",
       "kind": "file",
-      "size_bytes": 7286,
-      "sha256": "eb6f685a914a51e13ab358d66be59dc58ea4784ef91f33519284d0048028050c",
+      "size_bytes": 8567,
+      "sha256": "20914be7b71f9e43dca3293e9d3a50b19da590065a6017e3d1b37b03c58de3c5",
       "transfer_required": true,
       "remote_destination": "$REMOTE_PROJECT_ROOT/docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_execution_authority.json",
       "classification": "COPY_TO_REMOTE",
@@ -48,8 +48,8 @@
       "local_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_l4_handoff.json",
       "scientific_role": "portable Phase-3 E0 handoff",
       "kind": "file",
-      "size_bytes": 8329,
-      "sha256": "55e08c2ec2471ecbfe1b9b53a564867dfb78860eb2405bd8860532ec6677e7c6",
+      "size_bytes": 8262,
+      "sha256": "8813522999680379586d8c890488098ed67867a2e931f9c1f1207588eaf20d0a",
       "transfer_required": true,
       "remote_destination": "$REMOTE_PROJECT_ROOT/docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_l4_handoff.json",
       "classification": "COPY_TO_REMOTE",
@@ -60,13 +60,14 @@
       "scientific_role": "frozen project dependency declaration",
       "kind": "file",
       "size_bytes": 1846,
+      "sha256": "be2fb78e575b70d7e4dc161d71ff9f03b3974e62503cd629a2d11c63c5563138",
       "transfer_required": true,
       "remote_destination": "$REMOTE_PROJECT_ROOT/pyproject.toml",
       "classification": "COPY_TO_REMOTE",
       "reason": "Required together with the existing environment lock for reproducible remote CPU setup."
     },
     {
-      "local_path": "uv.lock",
+      "local_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_environment/uv.lock",
       "scientific_role": "frozen E0 environment lock",
       "kind": "file",
       "size_bytes": 503777,
@@ -74,7 +75,7 @@
       "transfer_required": true,
       "remote_destination": "$REMOTE_PROJECT_ROOT/uv.lock",
       "classification": "COPY_TO_REMOTE",
-      "reason": "Required to reproduce the registered Python environment without upgrades."
+      "reason": "Copy these canonical staged bytes verbatim as the remote package-root uv.lock; do not substitute the root development lock or permit lock mutation."
     },
     {
       "local_path": "E:/PigProjectStorage/PIG_Behavior_Project/outputs/classification_v2/agent_audits/post_review_frame_amendment_materialization_fa028cb_20260803_224700/effective_window_index.csv",
@@ -118,6 +119,7 @@
       "scientific_role": "frozen FOLD_3 inner-role binding",
       "kind": "file",
       "size_bytes": 70874646,
+      "sha256": "5c2b4f295b9fc77f9b5fec6f471f8c57aa849fa980c6331a2dfd2042f342ff09",
       "split_sha256": "557156a7eb6cceeb6a91f667f7c51dcb286e3111f35f414970fa7431acc7e63b",
       "transfer_required": true,
       "remote_destination": "$REMOTE_E0_INPUT_ROOT/native_unit_outer_roles.csv",
@@ -150,5 +152,5 @@
   "transfer_started": false,
   "prior_blocker": "E0_EXECUTABLE_CONTRACT_MISSING_AND_CURRENT_HANDOFF_LAUNCH_MISMATCH",
   "prior_blocker_status": "RESOLVED_LOCAL_AUTHORITY",
-  "blocker": "LIGHTNING_CONNECTION_NOT_CONFIGURED_AND_CLEAN_MAIN_PROMOTION_REQUIRED"
+  "blocker": "PRE_GPU_MAIN_AUTHORITY_REQUIRED_AND_LIGHTNING_CONNECTION_NOT_CONFIGURED"
 }

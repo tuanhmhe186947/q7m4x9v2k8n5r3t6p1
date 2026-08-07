@@ -1,7 +1,7 @@
 {
   "schema_version": "classification_v2.phase2_remote_readiness.v1",
   "phase": "LIGHTNING_REMOTE_CPU_PREFLIGHT",
-  "decision": "WAITING_FOR_CLEAN_MAIN_PROMOTION_THEN_LIGHTNING_SETUP",
+  "decision": "WAITING_FOR_PRE_GPU_MAIN_AUTHORITY_THEN_LIGHTNING_SETUP",
   "authority_commit": "7bd67b9c49c85b8d07e9e820aa5f9745854adff6",
   "paid_execution_authorization": "NO",
   "gpu_allocation_authorized": "NO",
@@ -20,7 +20,7 @@
     "declared_inner_fold": "FOLD_3",
     "declared_seed": 20260804,
     "canonical_authority_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_execution_authority.json",
-    "canonical_authority_sha256": "eb6f685a914a51e13ab358d66be59dc58ea4784ef91f33519284d0048028050c",
+    "canonical_authority_sha256": "20914be7b71f9e43dca3293e9d3a50b19da590065a6017e3d1b37b03c58de3c5",
     "handoff_launch_variant": "explicit_e0_inner_only",
     "launch_uses_variant_full": false,
     "forbidden_components_enabled": 0,
@@ -47,7 +47,7 @@
   "inherited_governance_debt_blocks_phase2": false,
   "prior_blocker": "E0_EXECUTABLE_CONTRACT_MISSING_AND_CURRENT_HANDOFF_LAUNCH_MISMATCH",
   "prior_blocker_status": "RESOLVED_LOCAL_AUTHORITY",
-  "blockers": ["CLEAN_MAIN_PROMOTION_REQUIRED", "LIGHTNING_CONNECTION_NOT_CONFIGURED"],
+  "blockers": ["PRE_GPU_MAIN_AUTHORITY_REQUIRED", "LIGHTNING_CONNECTION_NOT_CONFIGURED"],
   "user_action_required": false,
-  "next_user_action": "NONE_PENDING_PHASE2B_COMMIT_AND_CLEAN_MAIN_PROMOTION"
+  "next_user_action": "NONE_PENDING_PRE_GPU_MAIN_CANONICALIZATION"
 }

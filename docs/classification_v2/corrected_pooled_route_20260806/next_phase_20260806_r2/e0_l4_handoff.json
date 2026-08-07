@@ -21,7 +21,7 @@
   "descriptor_sha256": "db3a1461dde949c7f37118d60b9856e034094674898b9af6cb0829472e9dd10b",
   "canonical_execution_authority": {
     "path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_execution_authority.json",
-    "sha256": "eb6f685a914a51e13ab358d66be59dc58ea4784ef91f33519284d0048028050c",
+    "sha256": "20914be7b71f9e43dca3293e9d3a50b19da590065a6017e3d1b37b03c58de3c5",
     "execution_code_base_commit": "7bd67b9c49c85b8d07e9e820aa5f9745854adff6",
     "entry_point": "scripts/classification_v2/04_baselines_smokes/classification_v2_run_e0_inner_only.py",
     "module_path": "src/pig_behavior/classification_v2/training/e0_inner_only.py",
@@ -46,10 +46,11 @@
       "size_bytes": 94995662
     },
     "environment_lock": {
-      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\uv.lock",
-      "semantic_role": "staged environment lockfile",
+      "path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_environment/uv.lock",
+      "semantic_role": "canonical staged E0 execution lockfile",
       "sha256": "6b783d5296094e0be94b0e553e3c83376a462eec3278285b076b35761bc103ca",
-      "size_bytes": 503777
+      "size_bytes": 503777,
+      "transfer_package_relative_path": "uv.lock"
     },
     "event_weight_manifest": {
       "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\model_readiness_audit\\pre_gpu_autoresearch_q2_47103f6_20260804_133801\\fold_event_weights_47103f6_20260804_154500\\fold_event_weight_manifest.csv",

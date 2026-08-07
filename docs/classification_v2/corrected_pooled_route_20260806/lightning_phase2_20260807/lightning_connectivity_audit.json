@@ -22,7 +22,7 @@
   "e0_executable_repair": {
     "status": "RESOLVED_LOCAL_AUTHORITY",
     "canonical_authority_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_execution_authority.json",
-    "canonical_authority_sha256": "eb6f685a914a51e13ab358d66be59dc58ea4784ef91f33519284d0048028050c",
+    "canonical_authority_sha256": "20914be7b71f9e43dca3293e9d3a50b19da590065a6017e3d1b37b03c58de3c5",
     "launch_uses_variant_full": false,
     "outer_test_access": "BLOCKED"
   },
@@ -35,5 +35,5 @@
   },
   "credentials_inspected_or_recorded": false,
   "user_action_required": false,
-  "next_user_action": "NONE_PENDING_PHASE2B_COMMIT_AND_CLEAN_MAIN_PROMOTION"
+  "next_user_action": "NONE_PENDING_PRE_GPU_MAIN_CANONICALIZATION"
 }
