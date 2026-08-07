@@ -1,8 +1,13 @@
 {
   "schema_version": "classification_v2.phase2_remote_readiness.v1",
   "phase": "LIGHTNING_REMOTE_CPU_PREFLIGHT",
-  "decision": "WAITING_FOR_PRE_GPU_MAIN_AUTHORITY_THEN_LIGHTNING_SETUP",
+  "decision": "PRE_GPU_MAIN_TAGGED_READY_FOR_LIGHTNING_SETUP",
   "authority_commit": "7bd67b9c49c85b8d07e9e820aa5f9745854adff6",
+  "pre_gpu_main_authority": {
+    "git_ref": "classification-v2-pre-gpu-authority-20260808",
+    "resolve_command": "git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808^{commit}",
+    "transfer_package": "pre_gpu_e0_transfer_package.json"
+  },
   "paid_execution_authorization": "NO",
   "gpu_allocation_authorized": "NO",
   "e0_execution_authorized": "NO",
@@ -47,7 +52,7 @@
   "inherited_governance_debt_blocks_phase2": false,
   "prior_blocker": "E0_EXECUTABLE_CONTRACT_MISSING_AND_CURRENT_HANDOFF_LAUNCH_MISMATCH",
   "prior_blocker_status": "RESOLVED_LOCAL_AUTHORITY",
-  "blockers": ["PRE_GPU_MAIN_AUTHORITY_REQUIRED", "LIGHTNING_CONNECTION_NOT_CONFIGURED"],
-  "user_action_required": false,
-  "next_user_action": "NONE_PENDING_PRE_GPU_MAIN_CANONICALIZATION"
+  "blockers": ["LIGHTNING_CONNECTION_NOT_CONFIGURED"],
+  "user_action_required": true,
+  "next_user_action": "RESUME_EXISTING_LIGHTNING_CPU_SSH_SETUP_FROM_PRE_GPU_TAG"
 }

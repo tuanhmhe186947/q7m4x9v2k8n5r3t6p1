@@ -32,6 +32,12 @@
     "launch_uses_variant_full": false,
     "outer_test_access": "BLOCKED"
   },
+  "pre_gpu_main_authority": {
+    "git_ref": "classification-v2-pre-gpu-authority-20260808",
+    "resolve_command": "git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808^{commit}",
+    "required_checkout": "git checkout --detach classification-v2-pre-gpu-authority-20260808",
+    "status": "IMMUTABLE_TAG_REQUIRED_BEFORE_REMOTE_SETUP"
+  },
   "do_not_execute": true,
   "download_manifest": "$E0_OUT/download_hash_manifest.json",
   "execution_authorization": "NO",

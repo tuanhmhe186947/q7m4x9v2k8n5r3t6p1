@@ -1,0 +1,25 @@
+{
+  "schema_version": "classification_v2.pre_gpu_e0_transfer_package_validation.v1",
+  "status": "PASS",
+  "package_descriptor": {
+    "path": "docs/classification_v2/corrected_pooled_route_20260806/lightning_phase2_20260807/pre_gpu_e0_transfer_package.json",
+    "sha256": "7899771dd9cf6ef0194e71db794ddbb22d2893811fd26c16a80f90a2b68d6476"
+  },
+  "staging": {
+    "path_rule": ".tmp/pre_gpu_e0_stage_20260808 (temporary local validation only)",
+    "relative_paths_resolved": true,
+    "staged_lock_sha256": "6b783d5296094e0be94b0e553e3c83376a462eec3278285b076b35761bc103ca",
+    "lock_check": "PASS; 224 packages",
+    "frozen_sync": "PASS; Python 3.11.15; --extra pt",
+    "torch_version": "2.12.1",
+    "torchvision_version": "0.27.1"
+  },
+  "config_only_preflight": {
+    "inspect": "PASS; B3/T6/FOLD_3/seed 20260804 resolved",
+    "outer_test_negative_access": "PASS; BLOCKED",
+    "data_mount": false,
+    "model_training": false,
+    "paid_execution": false
+  },
+  "next_action": "After explicit later authorization, stage the declared inventory from the immutable pre-GPU tag and repeat this CPU preflight before any GPU allocation."
+}

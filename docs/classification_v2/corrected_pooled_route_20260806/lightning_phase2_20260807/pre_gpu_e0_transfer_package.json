@@ -1,0 +1,60 @@
+{
+  "schema_version": "classification_v2.pre_gpu_e0_transfer_package.v1",
+  "status": "READY_FOR_LIGHTNING_SETUP_NO_TRANSFER_STARTED",
+  "pre_gpu_main_authority": {
+    "git_ref": "classification-v2-pre-gpu-authority-20260808",
+    "resolve_command": "git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808^{commit}",
+    "checkout_command": "git checkout --detach classification-v2-pre-gpu-authority-20260808"
+  },
+  "package_root": "$REMOTE_PROJECT_ROOT",
+  "effective_environment": {
+    "staged_lock_source": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_environment/uv.lock",
+    "package_root_destination": "uv.lock",
+    "sha256": "6b783d5296094e0be94b0e553e3c83376a462eec3278285b076b35761bc103ca",
+    "required_extra": "pt",
+    "install_command": "uv sync --frozen --python 3.11 --extra pt",
+    "lock_mutation_permitted": false
+  },
+  "canonical_e0": {
+    "authority_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_execution_authority.json",
+    "authority_sha256": "20914be7b71f9e43dca3293e9d3a50b19da590065a6017e3d1b37b03c58de3c5",
+    "handoff_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_l4_handoff.json",
+    "handoff_sha256": "287803961ffcb5ff8431f24a1c9a28194ce4ed5724a558ff7faffdfa472baf0a",
+    "wrapper_path": "scripts/classification_v2/04_baselines_smokes/classification_v2_run_e0_inner_only.py",
+    "wrapper_sha256": "64a63f2450a978aeaca8a5e42f7b438ef78f3e9291b68cdfb9a0cca4fe3afe61",
+    "model": "B3_ACTOR_T6_PLUS_GEOMETRY_MOTION",
+    "temporal_view": "T6",
+    "inner_fold": "FOLD_3",
+    "seed": 20260804,
+    "outer_test_access": "BLOCKED"
+  },
+  "payload_inventory": {
+    "path": "docs/classification_v2/corrected_pooled_route_20260806/lightning_phase2_20260807/remote_e0_transfer_inventory.json",
+    "sha256": "16b4f85a95f304c509f05b2cfeb53d5d146010fdade507d0df9092552280e9e9",
+    "external_data_binding": "Entries classify source, destination, role, size, and hash; do not copy unlisted data."
+  },
+  "staging_layout": {
+    "versioned_files": [
+      "pyproject.toml",
+      "src/pig_behavior",
+      "scripts/classification_v2/04_baselines_smokes/classification_v2_run_e0_inner_only.py",
+      "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_execution_authority.json",
+      "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_l4_handoff.json",
+      "docs/classification_v2/corrected_pooled_route_20260806/lightning_phase2_20260807/remote_e0_transfer_inventory.json"
+    ],
+    "required_external_payload": "Exactly the transfer-required entries in remote_e0_transfer_inventory.json.",
+    "excluded": [
+      "secrets",
+      "outer-test outputs",
+      "temporary worktrees",
+      "unrelated caches",
+      "H5 and posture artifacts"
+    ]
+  },
+  "bounded_remote_cpu_preflight": [
+    "uv sync --frozen --python 3.11 --extra pt",
+    "uv run --frozen python scripts/classification_v2/04_baselines_smokes/classification_v2_run_e0_inner_only.py --mode inspect",
+    "uv run --frozen python scripts/classification_v2/04_baselines_smokes/classification_v2_run_e0_inner_only.py --mode assert-outer-blocked"
+  ],
+  "execution_boundary": "No paid E0, S1, outer OOF, or GPU allocation is authorized by this package."
+}

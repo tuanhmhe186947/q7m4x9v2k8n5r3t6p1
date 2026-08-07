@@ -2,6 +2,11 @@
   "schema_version": "classification_v2.remote_e0_transfer_inventory.v1",
   "status": "READY_FOR_LIGHTNING_SETUP_NO_TRANSFER_STARTED",
   "authority_commit": "7bd67b9c49c85b8d07e9e820aa5f9745854adff6",
+  "pre_gpu_main_authority": {
+    "git_ref": "classification-v2-pre-gpu-authority-20260808",
+    "resolve_command": "git rev-parse refs/tags/classification-v2-pre-gpu-authority-20260808^{commit}",
+    "package_descriptor": "docs/classification_v2/corrected_pooled_route_20260806/lightning_phase2_20260807/pre_gpu_e0_transfer_package.json"
+  },
   "canonical_execution_authority": {
     "path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_execution_authority.json",
     "sha256": "20914be7b71f9e43dca3293e9d3a50b19da590065a6017e3d1b37b03c58de3c5",
@@ -48,8 +53,8 @@
       "local_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_l4_handoff.json",
       "scientific_role": "portable Phase-3 E0 handoff",
       "kind": "file",
-      "size_bytes": 8261,
-      "sha256": "4e6c32cd1788a2d72b5e6b8a2e584a673d039226d789bcd92128a26ba5021759",
+      "size_bytes": 8617,
+      "sha256": "287803961ffcb5ff8431f24a1c9a28194ce4ed5724a558ff7faffdfa472baf0a",
       "transfer_required": true,
       "remote_destination": "$REMOTE_PROJECT_ROOT/docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_l4_handoff.json",
       "classification": "COPY_TO_REMOTE",
@@ -152,5 +157,5 @@
   "transfer_started": false,
   "prior_blocker": "E0_EXECUTABLE_CONTRACT_MISSING_AND_CURRENT_HANDOFF_LAUNCH_MISMATCH",
   "prior_blocker_status": "RESOLVED_LOCAL_AUTHORITY",
-  "blocker": "PRE_GPU_MAIN_AUTHORITY_REQUIRED_AND_LIGHTNING_CONNECTION_NOT_CONFIGURED"
+  "blocker": "LIGHTNING_CONNECTION_NOT_CONFIGURED"
 }

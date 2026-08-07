@@ -40,6 +40,14 @@ TRANSFER_INVENTORY = ROOT / (
     "docs/classification_v2/corrected_pooled_route_20260806/"
     "lightning_phase2_20260807/remote_e0_transfer_inventory.json"
 )
+TRANSFER_PACKAGE = ROOT / (
+    "docs/classification_v2/corrected_pooled_route_20260806/"
+    "lightning_phase2_20260807/pre_gpu_e0_transfer_package.json"
+)
+TRANSFER_PACKAGE_SHA256 = TRANSFER_PACKAGE.with_suffix(".sha256")
+TRANSFER_PACKAGE_VALIDATION = TRANSFER_PACKAGE.with_name(
+    "pre_gpu_e0_transfer_package_validation.json"
+)
 E0_ENVIRONMENT_LOCK = ROOT / (
     "docs/classification_v2/corrected_pooled_route_20260806/"
     "next_phase_20260806_r2/e0_environment/uv.lock"
@@ -183,6 +191,35 @@ def test_e0_transfer_inventory_hashes_existing_file_entries() -> None:
         assert sha256(candidate.read_bytes()).hexdigest() == expected_hash
         checked += 1
     assert checked >= 5
+
+
+def test_pre_gpu_transfer_package_binds_current_e0_artifacts() -> None:
+    package = json.loads(TRANSFER_PACKAGE.read_text(encoding="utf-8"))
+    inventory = json.loads(TRANSFER_INVENTORY.read_text(encoding="utf-8"))
+    validation = json.loads(TRANSFER_PACKAGE_VALIDATION.read_text(encoding="utf-8"))
+    recorded_hash = TRANSFER_PACKAGE_SHA256.read_text(encoding="utf-8").split()[0]
+
+    assert sha256(TRANSFER_PACKAGE.read_bytes()).hexdigest() == recorded_hash
+    assert package["pre_gpu_main_authority"]["git_ref"] == (
+        "classification-v2-pre-gpu-authority-20260808"
+    )
+    assert inventory["pre_gpu_main_authority"]["git_ref"] == package[
+        "pre_gpu_main_authority"
+    ]["git_ref"]
+    assert package["canonical_e0"]["authority_sha256"] == sha256(
+        AUTHORITY.read_bytes()
+    ).hexdigest()
+    assert package["canonical_e0"]["handoff_sha256"] == sha256(
+        HANDOFF.read_bytes()
+    ).hexdigest()
+    assert package["payload_inventory"]["sha256"] == sha256(
+        TRANSFER_INVENTORY.read_bytes()
+    ).hexdigest()
+    assert package["effective_environment"]["required_extra"] == "pt"
+    assert package["canonical_e0"]["outer_test_access"] == "BLOCKED"
+    assert validation["status"] == "PASS"
+    assert validation["package_descriptor"]["sha256"] == recorded_hash
+    assert validation["config_only_preflight"]["outer_test_negative_access"] == "PASS; BLOCKED"
 
 
 def test_canonical_wrapper_inspects_and_blocks_outer_test(tmp_path: Path) -> None:

@@ -1,6 +1,7 @@
 {
   "schema_version": "classification_v2.lightning_connectivity_audit.v1",
-  "status": "LOCAL_READY_E0_EXECUTION_AUTHORITY_FROZEN_REMOTE_NOT_CONFIGURED",
+  "status": "PRE_GPU_MAIN_READY_E0_AUTHORITY_FROZEN_REMOTE_NOT_CONFIGURED",
+  "pre_gpu_main_authority_ref": "classification-v2-pre-gpu-authority-20260808",
   "local": {
     "vscode_version": "1.132.0",
     "vscode_available": true,
@@ -34,6 +35,6 @@
     "e0_executed": false
   },
   "credentials_inspected_or_recorded": false,
-  "user_action_required": false,
-  "next_user_action": "NONE_PENDING_PRE_GPU_MAIN_CANONICALIZATION"
+  "user_action_required": true,
+  "next_user_action": "RESUME_EXISTING_LIGHTNING_CPU_SSH_SETUP_FROM_PRE_GPU_TAG"
 }
