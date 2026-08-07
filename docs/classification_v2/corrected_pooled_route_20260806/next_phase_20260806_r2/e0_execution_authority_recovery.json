@@ -1,0 +1,156 @@
+{
+  "schema_version": "classification_v2.e0_execution_authority_recovery.v1",
+  "purpose": "Targeted Phase 2B recovery of the frozen E0 inner-only execution authority.",
+  "selected_skills": [
+    {
+      "name": "agent-harness-construction",
+      "role": "reasoning: fail-closed command and observation design"
+    },
+    {
+      "name": "experiment-lineage-reproducibility",
+      "role": "execution-authority provenance and hash binding"
+    },
+    {
+      "name": "dataset-contract-leakage-guard",
+      "role": "FOLD_3 inner-only and predictive-input boundary verification"
+    },
+    {
+      "name": "project-state-steward",
+      "role": "managed checkpoints, promotion gate, and closeout hygiene"
+    }
+  ],
+  "searched_scope": [
+    "current E0 handoff and preflight",
+    "B0-B3 balanced-model registry and real-cache smoke",
+    "current trainer/checkpoint/export implementation",
+    "commit 0d1a3f1219b8963df752b15306c7ceabd9be8812"
+  ],
+  "conflict_detected": false,
+  "fields": [
+    {
+      "field": "optimizer",
+      "classification": "SCIENTIFIC_SELECTION_PARAMETER",
+      "status": "FOUND_HISTORICAL_REUSABLE",
+      "source": "src/pig_behavior/classification_v2/training/config.py",
+      "source_commit": "0d1a3f1219b8963df752b15306c7ceabd9be8812",
+      "value": "adamw",
+      "reason": "The registered classification trainer uses AdamW; E0 freezes that compatible implementation choice without comparison."
+    },
+    {
+      "field": "learning_rate",
+      "classification": "SCIENTIFIC_SELECTION_PARAMETER",
+      "status": "FOUND_HISTORICAL_REUSABLE",
+      "source": "src/pig_behavior/classification_v2/training/config.py",
+      "source_commit": "0d1a3f1219b8963df752b15306c7ceabd9be8812",
+      "value": 0.003,
+      "reason": "The existing registered trainer and compatible B3 engineering paths use 0.003; no candidate comparison was performed."
+    },
+    {
+      "field": "optimizer_specific_parameters",
+      "classification": "SCIENTIFIC_SELECTION_PARAMETER",
+      "status": "ABSENT",
+      "source": "generic AdamW defaults only",
+      "source_commit": null,
+      "value": null,
+      "reason": "No E0-specific beta, epsilon, or AMSGrad authority existed. Phase 2B freezes PyTorch AdamW defaults explicitly as an E0_ENGINEERING_FREEZE."
+    },
+    {
+      "field": "weight_decay",
+      "classification": "SCIENTIFIC_SELECTION_PARAMETER",
+      "status": "FOUND_HISTORICAL_REUSABLE",
+      "source": "src/pig_behavior/classification_v2/training/config.py",
+      "source_commit": "0d1a3f1219b8963df752b15306c7ceabd9be8812",
+      "value": 0.0,
+      "reason": "The current trainer baseline declares zero weight decay; E0 reuses it without tuning."
+    },
+    {
+      "field": "batch_size",
+      "classification": "SCIENTIFIC_SELECTION_PARAMETER",
+      "status": "FOUND_FROZEN",
+      "source": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_l4_handoff.json",
+      "source_commit": "7bd67b9c49c85b8d07e9e820aa5f9745854adff6",
+      "value": 16,
+      "reason": "The existing E0 handoff explicitly registers train and evaluation batch size 16."
+    },
+    {
+      "field": "training_budget",
+      "classification": "SCIENTIFIC_SELECTION_PARAMETER",
+      "status": "FOUND_FROZEN",
+      "source": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_l4_handoff.json",
+      "source_commit": "7bd67b9c49c85b8d07e9e820aa5f9745854adff6",
+      "value": {"type": "steps", "value": 16},
+      "reason": "The current E0 handoff explicitly registers a bounded 16-step engineering pilot."
+    },
+    {
+      "field": "scheduler_and_early_stopping",
+      "classification": "SCIENTIFIC_SELECTION_PARAMETER",
+      "status": "ABSENT",
+      "source": "no E0-specific authority",
+      "source_commit": null,
+      "value": null,
+      "reason": "Phase 2B freezes no scheduler and a final-endpoint rule to avoid introducing inner-metric model selection."
+    },
+    {
+      "field": "precision_and_gradient_clipping",
+      "classification": "SCIENTIFIC_SELECTION_PARAMETER",
+      "status": "FOUND_PARTIAL",
+      "source": "src/pig_behavior/classification_v2/training/full_multimodal_oof.py",
+      "source_commit": "7bd67b9c49c85b8d07e9e820aa5f9745854adff6",
+      "value": {"gradient_clip_norm": 1.0, "precision": "fp32"},
+      "reason": "Compatible code demonstrates clip norm 1.0 and fp32 support, but it is not an E0 authority; Phase 2B freezes these engineering values explicitly."
+    },
+    {
+      "field": "checkpoint_resume_contract",
+      "classification": "ENGINEERING_EXECUTION_PARAMETER",
+      "status": "FOUND_PARTIAL",
+      "source": "src/pig_behavior/classification_v2/training/checkpoint.py and full_multimodal_oof.py",
+      "source_commit": "7bd67b9c49c85b8d07e9e820aa5f9745854adff6",
+      "value": null,
+      "reason": "Existing checkpoints show model/optimizer/scaler lineage but are not B3 inner-only; Phase 2B supplies the minimum B3-compatible model, optimizer, RNG, selection-hash, and authority binding."
+    },
+    {
+      "field": "prediction_export_contract",
+      "classification": "ENGINEERING_EXECUTION_PARAMETER",
+      "status": "ABSENT",
+      "source": "generic outer-OOF exporter is incompatible",
+      "source_commit": "7bd67b9c49c85b8d07e9e820aa5f9745854adff6",
+      "value": null,
+      "reason": "Phase 2B creates an inner-validation-only export with ordered ten-class probabilities and coverage audit."
+    },
+    {
+      "field": "inner_only_roles",
+      "classification": "SCIENTIFIC_SELECTION_PARAMETER",
+      "status": "FOUND_FROZEN",
+      "source": "native_unit_outer_roles.csv plus e0_l4_handoff.json",
+      "source_commit": "7bd67b9c49c85b8d07e9e820aa5f9745854adff6",
+      "value": {"outer_fold": "FOLD_3", "permitted_roles": ["train", "validation"], "blocked_role": "test"},
+      "reason": "The frozen role authority provides train, validation, and held-out test roles; the handoff forbids outer-test use."
+    },
+    {
+      "field": "B3_model_and_preprocessing",
+      "classification": "SCIENTIFIC_SELECTION_PARAMETER",
+      "status": "FOUND_PARTIAL",
+      "source": "models/balanced/baselines.py and historical real-cache B0-B3 smoke",
+      "source_commit": "0d1a3f1219b8963df752b15306c7ceabd9be8812",
+      "value": "B3 T6 RGB + bbox_xywh_n 4D + bbox_shape_n 2D + motion_delta 12D",
+      "reason": "B3 input groups are authoritative; smoke_cnn, random initialization, hidden 16, and dropout 0 are explicitly frozen as E0_ENGINEERING_FREEZE values because no E0-specific execution package existed."
+    }
+  ],
+  "new_e0_engineering_freeze_required": true,
+  "new_e0_engineering_freeze_fields": [
+    "adamw_betas",
+    "adamw_eps",
+    "adamw_amsgrad",
+    "scheduler",
+    "early_stopping",
+    "precision",
+    "checkpoint_cadence",
+    "checkpoint_selection_rule",
+    "checkpoint_resume_contract",
+    "prediction_export_contract",
+    "smoke_cnn_random_initialization",
+    "hidden_dim",
+    "dropout"
+  ],
+  "selection_prohibition": "No optimizer, learning-rate, imbalance, or architecture candidates were compared, and no outer-test label, prediction, metric, or support informed this recovery."
+}

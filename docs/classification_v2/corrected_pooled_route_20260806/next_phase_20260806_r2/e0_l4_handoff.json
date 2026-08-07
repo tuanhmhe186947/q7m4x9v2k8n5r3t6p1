@@ -1,5 +1,6 @@
 {
-  "checkpoint_path": "$E0_OUT/checkpoints/B3_ACTOR_T6_PLUS_GEOMETRY_MOTION.pt",
+  "checkpoint_path_template": "$E0_OUT/checkpoints/step_{global_step:04d}.pt",
+  "final_checkpoint_path": "$E0_OUT/checkpoints/final_registered_endpoint.pt",
   "descriptor": {
     "classification_code_sha": "884016aff7d7f23608adcc81a6c138a46351c57e",
     "environment_lock_hash": "6b783d5296094e0be94b0e553e3c83376a462eec3278285b076b35761bc103ca",
@@ -18,10 +19,23 @@
     "temporal_view": "T6"
   },
   "descriptor_sha256": "db3a1461dde949c7f37118d60b9856e034094674898b9af6cb0829472e9dd10b",
+  "canonical_execution_authority": {
+    "path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_execution_authority.json",
+    "sha256": "eb6f685a914a51e13ab358d66be59dc58ea4784ef91f33519284d0048028050c",
+    "execution_code_base_commit": "7bd67b9c49c85b8d07e9e820aa5f9745854adff6",
+    "entry_point": "scripts/classification_v2/04_baselines_smokes/classification_v2_run_e0_inner_only.py",
+    "module_path": "src/pig_behavior/classification_v2/training/e0_inner_only.py",
+    "execution_source_hashes": {
+      "scripts/classification_v2/04_baselines_smokes/classification_v2_run_e0_inner_only.py": "64a63f2450a978aeaca8a5e42f7b438ef78f3e9291b68cdfb9a0cca4fe3afe61",
+      "src/pig_behavior/classification_v2/training/e0_inner_only.py": "1e95eef43337fbdb91b3b2d4958a6d3459b027466c7d1851df3f37a2489cee82"
+    },
+    "launch_uses_variant_full": false,
+    "outer_test_access": "BLOCKED"
+  },
   "do_not_execute": true,
   "download_manifest": "$E0_OUT/download_hash_manifest.json",
   "execution_authorization": "NO",
-  "forced_interruption_procedure": "wait for checkpoint_manifest.json and its SHA-256, then send one real SIGINT/termination to the training process before the registered endpoint",
+  "forced_interruption_procedure": "After a registered inner-only checkpoint is hash-audited, send one real interruption before the frozen endpoint and resume only with the same authority and selection hashes.",
   "gpu_stop_command": "provider-cli stop $E0_INSTANCE_ID",
   "hash_verification": "sha256sum -c download_hash_manifest.json",
   "inputs": {
@@ -88,8 +102,8 @@
     }
   },
   "installation_command": "uv sync --frozen --python 3.11 --extra dev",
-  "launch_binding_note": "The package wrapper must enforce FOLD_3 before invoking the existing registered B3/T6 trainer; do not use max_folds=1 on the full OOF runner unless its fold selector has been bound to FOLD_3.",
-  "launch_command": "uv run --frozen python scripts/classification_v2/04_baselines_smokes/classification_v2_run_multimodal_ablation_pilot.py --output-dir $E0_OUT --image-cache-manifest $E0_RGB_MANIFEST --variants full --device cuda --image-size 64 --hidden-dim 16 --steps-per-fold 16 --train-batch-size 16 --eval-batch-size 16 --train-per-class 8 --eval-per-class 8 --seed 20260804",
+  "launch_binding_note": "The canonical inner-only wrapper verifies source hashes, binds FOLD_3 train/validation roles, rejects test, and never invokes the full multimodal runner.",
+  "launch_command": "uv run --frozen python scripts/classification_v2/04_baselines_smokes/classification_v2_run_e0_inner_only.py --authority docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_execution_authority.json --data-bindings $E0_BINDINGS --output-dir $E0_OUT --device cuda --mode train --execution-authorization REQUIRED",
   "outer_test_exclusion": {
     "confusion_matrices": false,
     "data_mount": false,
@@ -109,7 +123,7 @@
     "max_wall_hours": 4.0,
     "paid_retries": 0
   },
-  "resume_command": "uv run --frozen python $E0_RESUME_ENTRY --resume-checkpoint $E0_OUT/checkpoints/B3_ACTOR_T6_PLUS_GEOMETRY_MOTION.pt --manifest $E0_OUT/run_manifest.json",
+  "resume_command": "uv run --frozen python scripts/classification_v2/04_baselines_smokes/classification_v2_run_e0_inner_only.py --authority docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_execution_authority.json --data-bindings $E0_BINDINGS --output-dir $E0_OUT --device cuda --mode train --resume-checkpoint $E0_RESUME_CHECKPOINT --execution-authorization REQUIRED",
   "schema_version": "classification_v2.e0_l4_handoff.v1",
   "status": "NOT_EXECUTED_HANDOFF_ONLY"
 }

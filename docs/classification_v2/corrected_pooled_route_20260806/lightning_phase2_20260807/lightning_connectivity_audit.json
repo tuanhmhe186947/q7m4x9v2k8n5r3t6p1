@@ -1,6 +1,6 @@
 {
   "schema_version": "classification_v2.lightning_connectivity_audit.v1",
-  "status": "LOCAL_READY_REMOTE_NOT_CONFIGURED",
+  "status": "LOCAL_READY_E0_EXECUTION_AUTHORITY_FROZEN_REMOTE_NOT_CONFIGURED",
   "local": {
     "vscode_version": "1.132.0",
     "vscode_available": true,
@@ -19,6 +19,13 @@
     "vscode_remote_target_configured": false,
     "connection_state": "NOT_CONFIGURED"
   },
+  "e0_executable_repair": {
+    "status": "RESOLVED_LOCAL_AUTHORITY",
+    "canonical_authority_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_execution_authority.json",
+    "canonical_authority_sha256": "eb6f685a914a51e13ab358d66be59dc58ea4784ef91f33519284d0048028050c",
+    "launch_uses_variant_full": false,
+    "outer_test_access": "BLOCKED"
+  },
   "remote_actions": {
     "lightning_studio_created": false,
     "cpu_resource_cost_confirmed_zero_or_authorized": false,
@@ -27,6 +34,6 @@
     "e0_executed": false
   },
   "credentials_inspected_or_recorded": false,
-  "user_action_required": true,
-  "next_user_action": "Resolve the missing canonical E0 executable contract before creating or connecting a Lightning Studio."
+  "user_action_required": false,
+  "next_user_action": "NONE_PENDING_PHASE2B_COMMIT_AND_CLEAN_MAIN_PROMOTION"
 }

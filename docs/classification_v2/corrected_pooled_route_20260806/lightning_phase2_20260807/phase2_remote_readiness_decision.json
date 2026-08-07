@@ -1,8 +1,8 @@
 {
   "schema_version": "classification_v2.phase2_remote_readiness.v1",
   "phase": "LIGHTNING_REMOTE_CPU_PREFLIGHT",
-  "decision": "FAIL_PRE_REMOTE_PACKAGE_CONTRACT",
-  "authority_commit": "7cd9041759edc750fc60ee38292ade40939157e2",
+  "decision": "WAITING_FOR_CLEAN_MAIN_PROMOTION_THEN_LIGHTNING_SETUP",
+  "authority_commit": "7bd67b9c49c85b8d07e9e820aa5f9745854adff6",
   "paid_execution_authorization": "NO",
   "gpu_allocation_authorized": "NO",
   "e0_execution_authorized": "NO",
@@ -19,16 +19,15 @@
     "declared_modalities": ["actor_RGB", "geometry_6D", "motion_12D"],
     "declared_inner_fold": "FOLD_3",
     "declared_seed": 20260804,
-    "handoff_launch_variant": "full",
-    "full_variant_forbidden_components": [
-      "ROI relation",
-      "social relation",
-      "interaction context",
-      "visual context"
-    ],
+    "canonical_authority_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_execution_authority.json",
+    "canonical_authority_sha256": "eb6f685a914a51e13ab358d66be59dc58ea4784ef91f33519284d0048028050c",
+    "handoff_launch_variant": "explicit_e0_inner_only",
+    "launch_uses_variant_full": false,
+    "forbidden_components_enabled": 0,
     "fold_wrapper_required_by_handoff": true,
-    "fold_wrapper_found": false,
-    "result": "CONTRADICTION"
+    "fold_wrapper_found": true,
+    "outer_test_access": "BLOCKED",
+    "result": "PASS_LOCAL_EXECUTION_AUTHORITY"
   },
   "remote_state": {
     "lightning_connection_state": "NOT_CONFIGURED",
@@ -46,10 +45,9 @@
     "gpu_specific_preflight": "DEFERRED_TO_PHASE_3"
   },
   "inherited_governance_debt_blocks_phase2": false,
-  "blockers": [
-    "E0_EXECUTABLE_CONTRACT_MISSING_AND_CURRENT_HANDOFF_LAUNCH_MISMATCH",
-    "LIGHTNING_CONNECTION_NOT_CONFIGURED"
-  ],
-  "user_action_required": true,
-  "next_user_action": "Provide or authorize a canonical FOLD_3-bound B3 T6 RGB plus geometry 6D plus motion 12D E0 wrapper; do not create a Lightning Studio yet."
+  "prior_blocker": "E0_EXECUTABLE_CONTRACT_MISSING_AND_CURRENT_HANDOFF_LAUNCH_MISMATCH",
+  "prior_blocker_status": "RESOLVED_LOCAL_AUTHORITY",
+  "blockers": ["CLEAN_MAIN_PROMOTION_REQUIRED", "LIGHTNING_CONNECTION_NOT_CONFIGURED"],
+  "user_action_required": false,
+  "next_user_action": "NONE_PENDING_PHASE2B_COMMIT_AND_CLEAN_MAIN_PROMOTION"
 }

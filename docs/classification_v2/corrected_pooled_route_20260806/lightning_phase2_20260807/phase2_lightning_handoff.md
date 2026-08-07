@@ -1,17 +1,26 @@
-# Phase 2 Lightning CPU preflight stop record
+# Phase 2 Lightning CPU preflight checkpoint
 
 Local prerequisites pass: VS Code, OpenSSH, Git, and the official Remote SSH
 extension are available. No non-secret Lightning SSH target or local Lightning
-configuration exists.
+configuration exists. No Studio, CPU resource, transfer, GPU allocation, or E0
+execution has occurred.
 
-Remote provisioning is intentionally blocked before any Studio, CPU resource,
-transfer, GPU allocation, or E0 execution. The current E0 handoff declares the
-minimal B3/T6/RGB+geometry+motion/FOLD_3 contract, but its launch command runs
-the `full` ablation variant. That implementation enables forbidden ROI, social,
-interaction, and visual-context branches. The handoff also requires a FOLD_3
-wrapper, which was not found in the current repository or targeted E0/L4
-artifact lookup.
+The former executable blocker is resolved locally. The canonical authority is
+`next_phase_20260806_r2/e0_execution_authority.json` (SHA-256
+`eb6f685a914a51e13ab358d66be59dc58ea4784ef91f33519284d0048028050c`),
+with the explicit `classification_v2_run_e0_inner_only.py` wrapper. It fixes
+B3/T6/FOLD_3/seed 20260804 with actor RGB, geometry 6D, and motion 12D; it
+disables ROI, social, interaction context, visual context, history, posture,
+availability controls, and quality controls. The resolved command does not use
+`--variants full`, and the wrapper blocks the held-out FOLD_3 test role before
+data use.
 
-The required next action is to provide or authorize the canonical wrapper. Only
-then may Phase 2 resume with the Lightning UI/SSH checkpoint. H5 remains
-excluded from E0 and no scientific artifact was regenerated.
+The remote transfer inventory now contains only E0 code, authority, environment
+lock, reviewed T6 metadata, actor RGB cache, B3 geometry/motion arrays, FOLD_3
+role map, and the train-only event-weight authority. Its estimated transfer is
+below 15 GiB; H5, posture, raw video, old outputs, and unrelated caches remain
+excluded.
+
+Phase 2B must first be committed and promoted from a clean main worktree. After
+that, resume at the existing Lightning UI/SSH checkpoint; do not create a
+Studio in this phase and do not allocate a GPU or run E0.

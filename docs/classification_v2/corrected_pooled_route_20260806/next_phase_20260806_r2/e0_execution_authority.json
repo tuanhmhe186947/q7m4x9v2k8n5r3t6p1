@@ -1,0 +1,118 @@
+{
+  "schema_version": "classification_v2.e0_execution_authority.v1",
+  "authority_version": "E0_ENGINEERING_FREEZE_20260807_R1",
+  "authority_kind": "bounded_engineering_pilot_not_scientific_model_selection",
+  "execution_code_base_commit": "7bd67b9c49c85b8d07e9e820aa5f9745854adff6",
+  "model": "B3_ACTOR_T6_PLUS_GEOMETRY_MOTION",
+  "temporal_view": "T6",
+  "outer_fold": "FOLD_3",
+  "seed": 20260804,
+  "modalities": {
+    "actor_rgb": true,
+    "geometry": true,
+    "geometry_dim": 6,
+    "motion": true,
+    "motion_dim": 12,
+    "roi": false,
+    "social": false,
+    "interaction_context": false,
+    "visual_context": false,
+    "history": "none",
+    "posture_auxiliary": false,
+    "availability_controls": false,
+    "quality_controls": false
+  },
+  "model_config": {
+    "numeric_groups": ["bbox_xywh_n", "bbox_shape_n", "motion_delta"],
+    "include_controls": false,
+    "target_length": 6,
+    "hidden_dim": 16,
+    "temporal_encoder": "causal_tcn",
+    "backbone_name": "smoke_cnn",
+    "pretrained_weight_enum": "NONE_RANDOM_INIT",
+    "image_size": 64,
+    "dropout": 0.0
+  },
+  "optimization": {
+    "optimizer": "adamw",
+    "learning_rate": 0.003,
+    "weight_decay": 0.0,
+    "adamw_betas": [0.9, 0.999],
+    "adamw_eps": 1e-08,
+    "adamw_amsgrad": false,
+    "train_batch_size": 16,
+    "validation_batch_size": 16,
+    "training_budget": {"type": "steps", "value": 16},
+    "scheduler": "none",
+    "early_stopping": "none",
+    "precision": "fp32",
+    "gradient_clip_norm": 1.0,
+    "sample_weight_policy": "event_class",
+    "weight_source": "fold_event_class_sample_weight",
+    "class_weight_power": 0.5,
+    "class_weight_max": 5.0,
+    "checkpoint_every_steps": 4,
+    "train_per_class": 8,
+    "validation_per_class": 8,
+    "smoke_per_class": 1
+  },
+  "e0_engineering_freeze": {
+    "label": "E0_ENGINEERING_FREEZE",
+    "rationale": "A single compatible implementation setting is frozen only to make the registered E0 engineering pilot reproducible. It is not scientifically optimal and later S1 may revisit it under its own authority.",
+    "non_selection_evidence": "No candidate comparison, Macro-F1 optimization, outer-test access, or hyperparameter search was performed."
+  },
+  "checkpoint_selection_rule": "final_registered_endpoint",
+  "checkpoint_contract": {
+    "schema_version": "classification_v2.e0_inner_only_checkpoint.v1",
+    "payload": ["model_state_dict", "optimizer_state_dict", "global_step", "epoch", "rng_state", "authority_sha256", "train_selection_sha256", "validation_selection_sha256", "resolved_contract", "code_sha"],
+    "scheduler_state": "not_applicable_scheduler_none",
+    "amp_scaler_state": "not_applicable_precision_fp32",
+    "path_template": "$E0_OUT/checkpoints/step_{global_step:04d}.pt",
+    "final_path": "$E0_OUT/checkpoints/final_registered_endpoint.pt",
+    "resume_argument": "--resume-checkpoint",
+    "resume_validation": "authority and selected train/validation sample hashes must match exactly"
+  },
+  "prediction_export_contract": {
+    "schema_version": "classification_v2.e0_inner_only_prediction.v1",
+    "path": "$E0_OUT/predictions.csv",
+    "permitted_role": "validation",
+    "required_columns": ["window_id", "temporal_unit_key", "true_behavior", "predicted_behavior", "outer_fold", "permitted_role", "authority_sha256", "checkpoint_sha256"],
+    "probability_order": ["drink", "eat", "fight", "social-nose", "explore", "lying", "stand", "move", "sitting", "playwithtoy"],
+    "coverage_audit": ["expected_count", "exported_count", "duplicate_keys", "missing_keys", "unexpected_keys"]
+  },
+  "inner_role_mapping": {
+    "role_authority": "native_unit_outer_roles.csv",
+    "permitted": ["train", "validation"],
+    "forbidden": ["test"],
+    "fail_closed": true
+  },
+  "outer_test_prohibition": {
+    "training": false,
+    "validation": false,
+    "checkpoint_selection": false,
+    "metrics": false,
+    "export": false
+  },
+  "data_references": {
+    "effective_window_index": {"local_path": "E:/PigProjectStorage/PIG_Behavior_Project/outputs/classification_v2/agent_audits/post_review_frame_amendment_materialization_fa028cb_20260803_224700/effective_window_index.csv", "sha256": "810071b311ebc008d420c5873fea11f2369f9ec8edfc3b2dc2958635b30ac7f1"},
+    "spatial_memmap_dir": {"local_path": "E:/PigProjectStorage/PIG_Behavior_Project/outputs/classification_v2/agent_audits/post_review_frame_amendment_materialization_fa028cb_20260803_224700/spatial_memmap_bundle", "manifest_sha256": "5aeb25fbf30784d6e5632318c1e2216b9461b5b34c768ed55e651bc7d535b0a0", "spatial_schema_sha256": "18377d825ba84974e49305e46561ada81353f9ffd0f2d2526471af1c199daad4"},
+    "rgb_root": {"local_path": "E:/PigProjectStorage/PIG_Behavior_Project/outputs/classification_v2/model_readiness_audit/pre_gpu_autoresearch_q2_6c2f204_20260804_084638/reviewed_rgb_v1", "cache_index_sha256": "9ccef8607973cfb8c8377474665af5d62874b5beea39ad716872b187f8d29d68", "cache_manifest_sha256": "481c703f8cd3fea907438570e391d3878ea6e1cb825e2f2ea1959ad90fd4e604"},
+    "grouped_fold_roles": {"local_path": "E:/PigProjectStorage/PIG_Behavior_Project/outputs/classification_v2/model_readiness_audit/pre_gpu_autoresearch_q2_47103f6_20260804_133801/four_fold_roles_47103f6_20260804_153800/native_unit_outer_roles.csv", "split_sha256": "557156a7eb6cceeb6a91f667f7c51dcb286e3111f35f414970fa7431acc7e63b"},
+    "event_weight_manifest": {"local_path": "E:/PigProjectStorage/PIG_Behavior_Project/outputs/classification_v2/model_readiness_audit/pre_gpu_autoresearch_q2_47103f6_20260804_133801/fold_event_weights_47103f6_20260804_154500/fold_event_weight_manifest.csv", "sha256": "92a901b8bb431102f5e32fd73c899930f5f3f4c83a9eac6945f9609cdd84938d"}
+  },
+  "reviewed_snapshot": {"sha256": "ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e"},
+  "feature_schema": {
+    "spatial_46d_schema_sha256": "18377d825ba84974e49305e46561ada81353f9ffd0f2d2526471af1c199daad4",
+    "geometry_group_hashes": {"bbox_xywh_n": "d3c0be7d42cf7f403c4411b3f8e44930ef1ed014483a3ee1f329894e9bdc1c1e", "bbox_shape_n": "df50c64d0b8557ccb77b95c1d9c2b22b016e078a336ed5f4986a361d412d2031"},
+    "motion_group_hash": "eb8e59da8e035ee3403359c2a70e9cedd47d54568e78116a0b600384e31a27cc"
+  },
+  "environment_lock": {"path": "uv.lock", "sha256": "6b783d5296094e0be94b0e553e3c83376a462eec3278285b076b35761bc103ca"},
+  "entry_point": "scripts/classification_v2/04_baselines_smokes/classification_v2_run_e0_inner_only.py",
+  "module_path": "src/pig_behavior/classification_v2/training/e0_inner_only.py",
+  "execution_source_hashes": {
+    "scripts/classification_v2/04_baselines_smokes/classification_v2_run_e0_inner_only.py": "64a63f2450a978aeaca8a5e42f7b438ef78f3e9291b68cdfb9a0cca4fe3afe61",
+    "src/pig_behavior/classification_v2/training/e0_inner_only.py": "1e95eef43337fbdb91b3b2d4958a6d3459b027466c7d1851df3f37a2489cee82"
+  },
+  "portable_command": "uv run --frozen python scripts/classification_v2/04_baselines_smokes/classification_v2_run_e0_inner_only.py --authority docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_execution_authority.json --data-bindings $E0_BINDINGS --output-dir $E0_OUT --device cuda --mode train --execution-authorization REQUIRED",
+  "execution_authorization": "REQUIRED_EXTERNAL_PAID_AUTHORIZATION"
+}

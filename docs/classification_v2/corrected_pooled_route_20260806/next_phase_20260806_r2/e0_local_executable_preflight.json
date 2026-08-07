@@ -1,0 +1,197 @@
+{
+  "schema_version": "classification_v2.e0_local_smoke.v1",
+  "contract": {
+    "schema_version": "classification_v2.e0_execution_resolution.v1",
+    "authority_sha256": "eb6f685a914a51e13ab358d66be59dc58ea4784ef91f33519284d0048028050c",
+    "model": "B3_ACTOR_T6_PLUS_GEOMETRY_MOTION",
+    "temporal_view": "T6",
+    "outer_fold": "FOLD_3",
+    "seed": 20260804,
+    "modalities": {
+      "actor_rgb": true,
+      "geometry": true,
+      "geometry_dim": 6,
+      "motion": true,
+      "motion_dim": 12,
+      "roi": false,
+      "social": false,
+      "interaction_context": false,
+      "visual_context": false,
+      "history": "none",
+      "posture_auxiliary": false,
+      "availability_controls": false,
+      "quality_controls": false
+    },
+    "optimizer": "adamw",
+    "learning_rate": 0.003,
+    "weight_decay": 0.0,
+    "training_budget": {
+      "type": "steps",
+      "value": 16
+    },
+    "train_batch_size": 16,
+    "validation_batch_size": 16,
+    "scheduler": "none",
+    "precision": "fp32",
+    "gradient_clip_norm": 1.0,
+    "sample_weight_policy": "event_class",
+    "checkpoint_selection_rule": "final_registered_endpoint",
+    "checkpoint_contract": {
+      "schema_version": "classification_v2.e0_inner_only_checkpoint.v1",
+      "payload": [
+        "model_state_dict",
+        "optimizer_state_dict",
+        "global_step",
+        "epoch",
+        "rng_state",
+        "authority_sha256",
+        "train_selection_sha256",
+        "validation_selection_sha256",
+        "resolved_contract",
+        "code_sha"
+      ],
+      "scheduler_state": "not_applicable_scheduler_none",
+      "amp_scaler_state": "not_applicable_precision_fp32",
+      "path_template": "$E0_OUT/checkpoints/step_{global_step:04d}.pt",
+      "final_path": "$E0_OUT/checkpoints/final_registered_endpoint.pt",
+      "resume_argument": "--resume-checkpoint",
+      "resume_validation": "authority and selected train/validation sample hashes must match exactly"
+    },
+    "prediction_export_contract": {
+      "schema_version": "classification_v2.e0_inner_only_prediction.v1",
+      "path": "$E0_OUT/predictions.csv",
+      "permitted_role": "validation",
+      "required_columns": [
+        "window_id",
+        "temporal_unit_key",
+        "true_behavior",
+        "predicted_behavior",
+        "outer_fold",
+        "permitted_role",
+        "authority_sha256",
+        "checkpoint_sha256"
+      ],
+      "probability_order": [
+        "drink",
+        "eat",
+        "fight",
+        "social-nose",
+        "explore",
+        "lying",
+        "stand",
+        "move",
+        "sitting",
+        "playwithtoy"
+      ],
+      "coverage_audit": [
+        "expected_count",
+        "exported_count",
+        "duplicate_keys",
+        "missing_keys",
+        "unexpected_keys"
+      ]
+    },
+    "outer_test_access": "BLOCKED"
+  },
+  "local_e0_dataset_open": "PASS",
+  "local_e0_batch_collation": "PASS",
+  "local_e0_forward_pass": "PASS",
+  "local_e0_loss_finite": true,
+  "local_e0_backward_pass": "PASS",
+  "local_e0_optimizer_step": "PASS",
+  "local_e0_checkpoint_serialization_smoke": "PASS",
+  "local_e0_prediction_export_smoke": "PASS",
+  "outer_test_access": "BLOCKED",
+  "train_shapes": {
+    "rgb": [
+      10,
+      6,
+      3,
+      64,
+      64
+    ],
+    "geometry": [
+      10,
+      6,
+      6
+    ],
+    "motion": [
+      10,
+      6,
+      12
+    ],
+    "target": [
+      10
+    ],
+    "masks": {
+      "actor_observed_mask": [
+        10,
+        6
+      ]
+    }
+  },
+  "validation_shapes": {
+    "rgb": [
+      10,
+      6,
+      3,
+      64,
+      64
+    ],
+    "geometry": [
+      10,
+      6,
+      6
+    ],
+    "motion": [
+      10,
+      6,
+      12
+    ],
+    "target": [
+      10
+    ],
+    "masks": {
+      "actor_observed_mask": [
+        10,
+        6
+      ]
+    }
+  },
+  "train_rows": 10,
+  "validation_rows": 10,
+  "loss_values": [
+    2.437331438064575
+  ],
+  "checkpoint": {
+    "schema_version": "classification_v2.e0_inner_only_checkpoint.v1",
+    "checkpoint_path": "outputs\\classification_v2\\model_readiness_audit\\e0_inner_only_local_smoke_7bd67b9_20260807_r2\\checkpoints\\e0_local_smoke.pt",
+    "checkpoint_sha256": "16b374cf3a4a6287578325e886b8d292b55ee745a681e668a9344b88fd48c0f9",
+    "global_step": 1,
+    "has_model_state": true,
+    "has_optimizer_state": true,
+    "has_scheduler_state": false,
+    "has_amp_scaler_state": false,
+    "has_rng_state": true,
+    "authority_sha256": "eb6f685a914a51e13ab358d66be59dc58ea4784ef91f33519284d0048028050c",
+    "valid": true
+  },
+  "resume": {
+    "global_step": 1,
+    "epoch": 0,
+    "rng_restored": true,
+    "authority_sha256": "eb6f685a914a51e13ab358d66be59dc58ea4784ef91f33519284d0048028050c"
+  },
+  "prediction_export": {
+    "schema_version": "classification_v2.e0_prediction_export_audit.v1",
+    "expected_count": 10,
+    "exported_count": 10,
+    "duplicate_keys": 0,
+    "missing_keys": [],
+    "unexpected_keys": [],
+    "probability_vector_dimension": 10,
+    "outer_test_access": "BLOCKED",
+    "valid": true
+  },
+  "prediction_rows": 10
+}
