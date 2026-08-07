@@ -1,5 +1,21 @@
 # Skill Portfolio Ledger
 
+## 2026-08-08 Classification V2 pre-GPU canonicalization
+
+- `experiment-lineage-reproducibility`: reconciled the intended staged E0 lock,
+  hash-bound the transfer inventory/package, and retained the 16-step pilot as
+  engineering-only evidence.
+- `project-state-steward`: preserved the owned ledger, classified 57 worktrees,
+  retired 55 only after orphan checks, and kept the distinct active tracking
+  task protected.
+- `agent-self-evaluation`: audited the final handoff for authority clarity,
+  validation coverage, transfer actionability, and the no-GPU boundary.
+- Evidence: staged-lock SHA256 `6b783d…103ca`, transfer descriptor SHA256
+  `7899771d…d6476`, focused E0 suite `10 passed`, and
+  `pre_gpu_worktree_inventory_20260808.json`.
+- Reuse when: preparing a hash-bound, inner-only E0 transfer from canonical main.
+- Do not reuse when: scientific selection, outer OOF, or paid execution is in scope.
+
 ## 2026-08-07 Classification V2 historical H5 closure
 
 - `scientific-ablation-controller`: preserved a single future matched family:
