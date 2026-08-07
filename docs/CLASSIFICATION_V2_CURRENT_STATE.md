@@ -9,7 +9,8 @@ Classification V2 authorities are under
 `docs/classification_v2/corrected_pooled_route_20260806/`.
 
 - DATA / REVIEW: `post_review_20260807/updated_campaign_readiness_decision.json`
-  and amended reviewed snapshot `ab86e2…9610c` are current.
+  and amended reviewed snapshot `ab86e2…9610c` are current. Its embedded
+  historical L4 command is superseded for execution by the E0 authority below.
 - SPLIT / A12: `authority_binding.json` and E0 data references bind grouped
   split `557156…7e63b`; no fold redesign is permitted.
 - TRACKING: `docs/tracking/reconciliation/CURRENT_TRACKING_STATE_INVENTORY_20260729.json`.
