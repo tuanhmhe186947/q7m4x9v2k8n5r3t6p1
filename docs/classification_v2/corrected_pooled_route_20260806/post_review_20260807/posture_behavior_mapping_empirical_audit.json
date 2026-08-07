@@ -1,0 +1,250 @@
+{
+  "class_order": [
+    "drink",
+    "eat",
+    "fight",
+    "social-nose",
+    "explore",
+    "lying",
+    "stand",
+    "move",
+    "sitting",
+    "playwithtoy"
+  ],
+  "derived_posture_labels_created": false,
+  "records": [
+    {
+      "behavior_label": "drink",
+      "candidate_mapping": null,
+      "candidate_mapping_observed_count": null,
+      "derived_labels_created": false,
+      "empirical_category": "empirically_near_deterministic",
+      "human_reviewed_examples": 6,
+      "interpretation": "Diagnostic human-review evidence only; no target was created.",
+      "posture_counts": {
+        "exclude": 0,
+        "lying": 0,
+        "sitting": 0,
+        "unresolved": 0,
+        "upright": 6
+      },
+      "posture_proportions": {
+        "exclude": 0.0,
+        "lying": 0.0,
+        "sitting": 0.0,
+        "unresolved": 0.0,
+        "upright": 1.0
+      }
+    },
+    {
+      "behavior_label": "eat",
+      "candidate_mapping": "upright",
+      "candidate_mapping_observed_count": 20,
+      "derived_labels_created": false,
+      "empirical_category": "empirically_near_deterministic",
+      "human_reviewed_examples": 20,
+      "interpretation": "Diagnostic human-review evidence only; no target was created.",
+      "posture_counts": {
+        "exclude": 0,
+        "lying": 0,
+        "sitting": 0,
+        "unresolved": 0,
+        "upright": 20
+      },
+      "posture_proportions": {
+        "exclude": 0.0,
+        "lying": 0.0,
+        "sitting": 0.0,
+        "unresolved": 0.0,
+        "upright": 1.0
+      }
+    },
+    {
+      "behavior_label": "fight",
+      "candidate_mapping": null,
+      "candidate_mapping_observed_count": null,
+      "derived_labels_created": false,
+      "empirical_category": "empirically_near_deterministic",
+      "human_reviewed_examples": 4,
+      "interpretation": "Diagnostic human-review evidence only; no target was created.",
+      "posture_counts": {
+        "exclude": 0,
+        "lying": 0,
+        "sitting": 0,
+        "unresolved": 0,
+        "upright": 4
+      },
+      "posture_proportions": {
+        "exclude": 0.0,
+        "lying": 0.0,
+        "sitting": 0.0,
+        "unresolved": 0.0,
+        "upright": 1.0
+      }
+    },
+    {
+      "behavior_label": "social-nose",
+      "candidate_mapping": null,
+      "candidate_mapping_observed_count": null,
+      "derived_labels_created": false,
+      "empirical_category": "empirically_near_deterministic",
+      "human_reviewed_examples": 6,
+      "interpretation": "Diagnostic human-review evidence only; no target was created.",
+      "posture_counts": {
+        "exclude": 0,
+        "lying": 0,
+        "sitting": 0,
+        "unresolved": 0,
+        "upright": 6
+      },
+      "posture_proportions": {
+        "exclude": 0.0,
+        "lying": 0.0,
+        "sitting": 0.0,
+        "unresolved": 0.0,
+        "upright": 1.0
+      }
+    },
+    {
+      "behavior_label": "explore",
+      "candidate_mapping": null,
+      "candidate_mapping_observed_count": null,
+      "derived_labels_created": false,
+      "empirical_category": "mixed",
+      "human_reviewed_examples": 41,
+      "interpretation": "Diagnostic human-review evidence only; no target was created.",
+      "posture_counts": {
+        "exclude": 0,
+        "lying": 0,
+        "sitting": 1,
+        "unresolved": 0,
+        "upright": 40
+      },
+      "posture_proportions": {
+        "exclude": 0.0,
+        "lying": 0.0,
+        "sitting": 0.024390243902439025,
+        "unresolved": 0.0,
+        "upright": 0.975609756097561
+      }
+    },
+    {
+      "behavior_label": "lying",
+      "candidate_mapping": "lying",
+      "candidate_mapping_observed_count": 185,
+      "derived_labels_created": false,
+      "empirical_category": "strong_but_not_deterministic",
+      "human_reviewed_examples": 200,
+      "interpretation": "Diagnostic human-review evidence only; no target was created.",
+      "posture_counts": {
+        "exclude": 0,
+        "lying": 185,
+        "sitting": 14,
+        "unresolved": 0,
+        "upright": 1
+      },
+      "posture_proportions": {
+        "exclude": 0.0,
+        "lying": 0.925,
+        "sitting": 0.07,
+        "unresolved": 0.0,
+        "upright": 0.005
+      }
+    },
+    {
+      "behavior_label": "stand",
+      "candidate_mapping": "upright",
+      "candidate_mapping_observed_count": 9,
+      "derived_labels_created": false,
+      "empirical_category": "empirically_near_deterministic",
+      "human_reviewed_examples": 9,
+      "interpretation": "Diagnostic human-review evidence only; no target was created.",
+      "posture_counts": {
+        "exclude": 0,
+        "lying": 0,
+        "sitting": 0,
+        "unresolved": 0,
+        "upright": 9
+      },
+      "posture_proportions": {
+        "exclude": 0.0,
+        "lying": 0.0,
+        "sitting": 0.0,
+        "unresolved": 0.0,
+        "upright": 1.0
+      }
+    },
+    {
+      "behavior_label": "move",
+      "candidate_mapping": null,
+      "candidate_mapping_observed_count": null,
+      "derived_labels_created": false,
+      "empirical_category": "empirically_near_deterministic",
+      "human_reviewed_examples": 13,
+      "interpretation": "Diagnostic human-review evidence only; no target was created.",
+      "posture_counts": {
+        "exclude": 0,
+        "lying": 0,
+        "sitting": 0,
+        "unresolved": 0,
+        "upright": 13
+      },
+      "posture_proportions": {
+        "exclude": 0.0,
+        "lying": 0.0,
+        "sitting": 0.0,
+        "unresolved": 0.0,
+        "upright": 1.0
+      }
+    },
+    {
+      "behavior_label": "sitting",
+      "candidate_mapping": "sitting",
+      "candidate_mapping_observed_count": 188,
+      "derived_labels_created": false,
+      "empirical_category": "strong_but_not_deterministic",
+      "human_reviewed_examples": 200,
+      "interpretation": "Diagnostic human-review evidence only; no target was created.",
+      "posture_counts": {
+        "exclude": 0,
+        "lying": 9,
+        "sitting": 188,
+        "unresolved": 0,
+        "upright": 3
+      },
+      "posture_proportions": {
+        "exclude": 0.0,
+        "lying": 0.045,
+        "sitting": 0.94,
+        "unresolved": 0.0,
+        "upright": 0.015
+      }
+    },
+    {
+      "behavior_label": "playwithtoy",
+      "candidate_mapping": null,
+      "candidate_mapping_observed_count": null,
+      "derived_labels_created": false,
+      "empirical_category": "insufficient_support",
+      "human_reviewed_examples": 1,
+      "interpretation": "Diagnostic human-review evidence only; no target was created.",
+      "posture_counts": {
+        "exclude": 0,
+        "lying": 0,
+        "sitting": 1,
+        "unresolved": 0,
+        "upright": 0
+      },
+      "posture_proportions": {
+        "exclude": 0.0,
+        "lying": 0.0,
+        "sitting": 1.0,
+        "unresolved": 0.0,
+        "upright": 0.0
+      }
+    }
+  ],
+  "schema_version": "classification_v2.posture_behavior_mapping_empirical_audit.v1",
+  "status": "COMPLETE_DIAGNOSTIC_ONLY",
+  "threshold_policy": "No retrospective numerical threshold was used. A registered candidate mapping is strong only when it is the unique observed mode; a single-label observation is near-deterministic."
+}

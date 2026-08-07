@@ -1,0 +1,49 @@
+{
+  "behavior_guardrails": [
+    "fight F1",
+    "social-nose F1",
+    "playwithtoy F1",
+    "lying behavior F1",
+    "sitting behavior F1",
+    "stand behavior F1",
+    "common-class harm"
+  ],
+  "behavior_primary_metric": "native-unit ten-class Macro-F1",
+  "class_order": [
+    "lying",
+    "sitting",
+    "upright"
+  ],
+  "derived_labels_created": false,
+  "execution_authorization": "NOT_AUTHORIZED_IN_THIS_PHASE",
+  "fixed_factors": [
+    "behavior data",
+    "reviewed snapshot",
+    "frozen split",
+    "temporal view",
+    "modalities",
+    "backbone",
+    "optimizer procedure",
+    "seed policy",
+    "stopping rule",
+    "behavior evaluator"
+  ],
+  "gold_evaluation_authority": "500-item human-reviewed posture labels only",
+  "included_in_s1": false,
+  "matched_comparison": {
+    "P0": "final selected behavior architecture without posture supervision",
+    "P1": "same architecture with independent masked posture auxiliary head"
+  },
+  "posture_authority": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\post_review_20260807\\posture_500_completed_authority.json",
+  "posture_authority_sha256": "92fd650ec7371fd8ead7475939b60413fb851ad56269a8ac66ab7c738c7c67af",
+  "posture_metrics": [
+    "Macro-F1",
+    "per-class F1",
+    "support"
+  ],
+  "primary_task": "lying_vs_sitting_vs_upright",
+  "promotion_rule": "Keep posture only when the matched comparison provides complementary behavior evidence without material overall or rare-class harm.",
+  "schema_version": "classification_v2.posture_independent_experiment_contract.v1",
+  "status": "REGISTERED_NOT_EXECUTED",
+  "unresolved_and_exclude_policy": "masked_or_excluded; never coerced"
+}

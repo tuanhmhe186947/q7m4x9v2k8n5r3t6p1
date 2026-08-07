@@ -1,0 +1,22 @@
+{
+  "BEHAVIOR_ONLY_S1_BLOCKED_BY_POSTURE": false,
+  "CURRENT_AUTHORITY": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\post_review_20260807\\posture_500_completed_authority.json",
+  "CURRENT_AUTHORITY_SHA256": "92fd650ec7371fd8ead7475939b60413fb851ad56269a8ac66ab7c738c7c67af",
+  "INDEPENDENT_CONTRACT": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\post_review_20260807\\posture_independent_experiment_contract.json",
+  "INDEPENDENT_CONTRACT_SHA256": "3b6c9dab5171ec612c810547cccae4f652e80dbfe4c2fd492b25daf40cb8133a",
+  "MAPPING_AUDIT": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\post_review_20260807\\posture_behavior_mapping_empirical_audit.json",
+  "MAPPING_AUDIT_SHA256": "2d7f23a68cc94419b4366769498506179589f271ce662b934c36a088450fd6aa",
+  "MATCHED_ABLATION_CONTRACT": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\post_review_20260807\\posture_behavior_matched_ablation_contract.json",
+  "MATCHED_ABLATION_CONTRACT_SHA256": "e1e815fbc40c928a422e44146fb434bd9e6b7b9f83dc8bbf0b90c85ac4a5d864",
+  "NEXT_ACTION": "Keep posture as a registered optional matched ablation; do not execute it in this closure phase.",
+  "PILOT_BINDING_AUDIT": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\post_review_20260807\\posture_120_pilot_binding_audit.json",
+  "PILOT_BINDING_AUDIT_SHA256": "da052512a0d4d3135f5ba374d10300a07a9fa206af2e0562cbafb1b064a74edb",
+  "POSTURE_AUTHORITY": "PASS",
+  "POSTURE_CAMPAIGN_STATUS": "HUMAN_REVIEW_CLOSED_AUTHORITY_BOUND",
+  "POSTURE_CLASS_SUPPORT_LIMITATION": true,
+  "POSTURE_EXPERIMENT_EXECUTABLE": true,
+  "POSTURE_INCLUDED_IN_S1": false,
+  "POSTURE_MATCHED_ABLATION_EXECUTABLE": true,
+  "POSTURE_REVIEW_REOPENED": false,
+  "schema_version": "classification_v2.updated_posture_readiness_decision.v1"
+}

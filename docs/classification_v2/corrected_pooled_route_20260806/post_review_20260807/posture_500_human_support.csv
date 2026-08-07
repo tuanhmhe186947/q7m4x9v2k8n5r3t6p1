@@ -1,0 +1,6 @@
+group_dimension,group_value,posture_label,machine_decision_value,support_count,usable_support_count,status
+overall,all_500_completed_items,lying,lying,194,194,PASS
+overall,all_500_completed_items,sitting,sitting,204,204,PASS
+overall,all_500_completed_items,upright,upright,102,102,PASS
+overall,all_500_completed_items,unresolved,unresolved,0,0,OBSERVED_ZERO_OR_NOT_USABLE
+overall,all_500_completed_items,exclude,technical_exclude,0,0,OBSERVED_ZERO_OR_NOT_USABLE

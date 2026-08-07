@@ -1,0 +1,212 @@
+{
+  "authorities": {
+    "candidate_manifest": {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\next_phase\\posture_500_20260806\\posture_500_candidate_manifest.json",
+      "semantic_role": "registered 500-item sampling and provenance manifest",
+      "sha256": "e2516e0ce5ce6d822e84825ba70198365f0a2cf098b74f75814920d26b27ab18",
+      "size_bytes": 251799
+    },
+    "candidate_population_hash": "7f35bdc3b7b90f2290136280c11048e724001c6d74cc393b1747ee54278bc172",
+    "effective_window_index": {
+      "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\effective_window_index.csv",
+      "semantic_role": "current effective window and role inheritance manifest",
+      "sha256": "810071b311ebc008d420c5873fea11f2369f9ec8edfc3b2dc2958635b30ac7f1",
+      "size_bytes": 94995662
+    },
+    "media_cache_artifacts": [
+      {
+        "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\posture_500_a566c58d252c1642\\.posture_pilot_frame_features.sqlite3",
+        "semantic_role": "GUI session media cache",
+        "sha256": "c94e6fef0c411c8efdccfcb029aa5bb5865681403c4241fa754d31850214f457",
+        "size_bytes": 51859456
+      },
+      {
+        "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\posture_500_a566c58d252c1642\\.final_behavior_frame_features.sqlite3",
+        "semantic_role": "GUI session media cache",
+        "sha256": "c94e6fef0c411c8efdccfcb029aa5bb5865681403c4241fa754d31850214f457",
+        "size_bytes": 51859456
+      }
+    ],
+    "review_gui": {
+      "git_head": "58523316becd7a091eb6cbfc33d29fdd4b32eaae",
+      "source_files": [
+        {
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\.codex_tmp\\worktrees\\classification_v2_behavior_posture_paired_ablation_v1\\scripts\\classification_v2\\01_review_units_gui\\review_posture_pilot_gui.py",
+          "semantic_role": "posture review GUI implementation",
+          "sha256": "2b7ddfabad01e7429986090a72224a5e7031028bbe27b33a45a580485ed53f3b",
+          "size_bytes": 33525
+        },
+        {
+          "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\.codex_tmp\\worktrees\\classification_v2_behavior_posture_paired_ablation_v1\\scripts\\classification_v2\\01_review_units_gui\\review_final_behavior_gui_v1.py",
+          "semantic_role": "posture review GUI implementation",
+          "sha256": "272c446c29c3e662c70a248aed33dea8ed291b2aed2d9ad8f6a1a25d4176242b",
+          "size_bytes": 62809
+        }
+      ],
+      "worktree": "E:\\PigProjectStorage\\PIG_Behavior_Project\\.codex_tmp\\worktrees\\classification_v2_behavior_posture_paired_ablation_v1"
+    },
+    "reviewed_snapshot": {
+      "frame_features": {
+        "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\reviewed_frame_features.csv.gz",
+        "semantic_role": "current reviewed snapshot frame/media binding",
+        "sha256": "a8c48f9d5546818fac3f091c915dfa577e0a5969f8e05623c83e2d5900b9610c",
+        "size_bytes": 343685346
+      },
+      "id": "reviewed_engineering_amendment_992f34c0204a85a1",
+      "manifest": {
+        "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\reviewed_engineering_snapshot_amendment_v4_1decfe4_20260803_231000\\reviewed_engineering_snapshot.json",
+        "semantic_role": "current reviewed snapshot identity manifest",
+        "sha256": "ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e",
+        "size_bytes": 10683
+      },
+      "sha256": "ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e"
+    },
+    "split_hash": "557156a7eb6cceeb6a91f667f7c51dcb286e3111f35f414970fa7431acc7e63b",
+    "split_manifest": {
+      "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\post_review_frame_amendment_materialization_fa028cb_20260803_224700\\split_manifest.csv",
+      "semantic_role": "frozen grouped split manifest",
+      "sha256": "cf00e7e7ef791e1a58dceb0af77898c64eb7a03819f5c570c5567067142088f6",
+      "size_bytes": 29558855
+    }
+  },
+  "binding_checks": {
+    "alignment_failure_counts": {},
+    "all_current_media_bindings_valid": true,
+    "all_current_snapshot_bindings_valid": true,
+    "all_current_split_bindings_valid": true,
+    "cross_role_native_unit_count": 0,
+    "current_snapshot_keys_missing": 0
+  },
+  "derived_posture_labels_created": false,
+  "output_files": {
+    "posture_120_pilot_binding_audit": {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\post_review_20260807\\posture_120_pilot_binding_audit.json",
+      "semantic_role": "post-review closure artifact",
+      "sha256": "da052512a0d4d3135f5ba374d10300a07a9fa206af2e0562cbafb1b064a74edb",
+      "size_bytes": 83059
+    },
+    "posture_500_behavior_posture_crosstab": {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\post_review_20260807\\posture_500_behavior_posture_crosstab.csv",
+      "semantic_role": "post-review closure artifact",
+      "sha256": "785d09ff724a3edd2803f9a7adacd484f9d6d6334bf19f97600fb0068e62bcbf",
+      "size_bytes": 1861
+    },
+    "posture_500_fold_support": {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\post_review_20260807\\posture_500_fold_support.csv",
+      "semantic_role": "post-review closure artifact",
+      "sha256": "1dc266ce93ce3bb0ccc7443116b03ba3ff3263cc8a95bba7f3f9233982c06f44",
+      "size_bytes": 1001
+    },
+    "posture_500_human_gold": {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\post_review_20260807\\posture_500_human_gold.csv",
+      "semantic_role": "post-review closure artifact",
+      "sha256": "898c5337754be9a4fcb8c48984dc00b421a515591a6ccacd1d9c856591498635",
+      "size_bytes": 416636
+    },
+    "posture_500_human_support": {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\post_review_20260807\\posture_500_human_support.csv",
+      "semantic_role": "post-review closure artifact",
+      "sha256": "8599f5555a500e779e7858e56750a86ee8c039bc7cbef77bdc04c07afccf10e6",
+      "size_bytes": 462
+    },
+    "posture_500_source_support": {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\post_review_20260807\\posture_500_source_support.csv",
+      "semantic_role": "post-review closure artifact",
+      "sha256": "194c84f59f34023b5eeda3ef1cedc992ce3d21f0691cb1890cf345f925dd75bd",
+      "size_bytes": 75996
+    },
+    "posture_behavior_mapping_empirical_audit": {
+      "path": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\post_review_20260807\\posture_behavior_mapping_empirical_audit.json",
+      "semantic_role": "post-review closure artifact",
+      "sha256": "2d7f23a68cc94419b4366769498506179589f271ce662b934c36a088450fd6aa",
+      "size_bytes": 7422
+    }
+  },
+  "review_reopened": false,
+  "review_session": {
+    "decision_rows": 500,
+    "decision_schema": "classification_v2.posture_pilot_decisions.v1",
+    "decision_values": {
+      "lying": 194,
+      "sitting": 204,
+      "upright": 102
+    },
+    "decisions": {
+      "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\posture_500_a566c58d252c1642\\posture_pilot_decisions.csv",
+      "semantic_role": "completed human posture decision ledger",
+      "sha256": "2680b7d96fdc212e5664482b999d1e05d711558cd4604bcf68f33f4cd2859d72",
+      "size_bytes": 246075
+    },
+    "duplicate_decision_keys": 0,
+    "manifest": {
+      "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\posture_500_a566c58d252c1642\\session_manifest.json",
+      "semantic_role": "completed posture session manifest",
+      "sha256": "7e979f41246abbf33424a03cf947aa16d2fef7a6dc87f3b175c409950cb4d168",
+      "size_bytes": 12426
+    },
+    "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\posture_500_a566c58d252c1642",
+    "pending_decisions": 0,
+    "queue": {
+      "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\posture_review_sessions\\posture_500_a566c58d252c1642\\posture_review_scope.csv",
+      "semantic_role": "frozen posture review queue",
+      "sha256": "a566c58d252c1642e83667c78afe3039f0c51b970f7d5e43f21a7cecd0ff699c",
+      "size_bytes": 191925
+    },
+    "queue_rows": 500,
+    "queue_unique_native_keys": 500,
+    "reviewers": [
+      "TuanHM"
+    ],
+    "unknown_decision_values": []
+  },
+  "schema_version": "classification_v2.posture_500_authority_audit.v1",
+  "scientific_decision": {
+    "POSTURE_AUTHORITY": "PASS",
+    "POSTURE_CLASS_SUPPORT_LIMITATION": true,
+    "POSTURE_EXPERIMENT_EXECUTABLE": true,
+    "POSTURE_MATCHED_ABLATION_EXECUTABLE": true,
+    "behavior_cross_tab_diagnostic_only": true,
+    "class_support_limitation_reason": "The three-class support is imbalanced (194/204/102), but every class has usable support and this is not a validity gate.",
+    "human_review_only_gold": true
+  },
+  "status": "PASS",
+  "support": {
+    "behavior_model_eligible_for_matched_ablation": {
+      "posture_support": {
+        "lying": 182,
+        "sitting": 196,
+        "upright": 98
+      },
+      "rows": 476
+    },
+    "outer_folds": [
+      "FOLD_1",
+      "FOLD_2",
+      "FOLD_3",
+      "FOLD_4"
+    ],
+    "overall": {
+      "exclude": 0,
+      "lying": 194,
+      "sitting": 204,
+      "unresolved": 0,
+      "upright": 102
+    },
+    "recording_date_count": 13,
+    "sampling_strata": {
+      "lying_enriched": 200,
+      "sitting_enriched": 200,
+      "upright_control": 100
+    },
+    "source_type_counts": {
+      "cvat_tracking_xml": 197,
+      "legacy_recovered": 303
+    },
+    "source_video_count": 253,
+    "usable_three_class": {
+      "lying": 194,
+      "sitting": 204,
+      "upright": 102
+    }
+  }
+}

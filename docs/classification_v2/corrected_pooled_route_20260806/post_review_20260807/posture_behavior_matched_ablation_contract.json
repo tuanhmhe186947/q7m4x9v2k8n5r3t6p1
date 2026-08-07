@@ -1,0 +1,45 @@
+{
+  "P0": {
+    "id": "behavior_only",
+    "posture_supervision": false,
+    "role": "matched_control"
+  },
+  "P1": {
+    "eligible_human_posture_support": {
+      "lying": 182,
+      "sitting": 196,
+      "upright": 98
+    },
+    "id": "behavior_plus_masked_posture",
+    "posture_authority": "C:\\Users\\ironh\\Downloads\\PIG_Behavior_Project\\.codex_worktrees\\classification_v2_e0_a12b_posture_20260806\\docs\\classification_v2\\corrected_pooled_route_20260806\\post_review_20260807\\posture_500_completed_authority.json",
+    "posture_authority_sha256": "92fd650ec7371fd8ead7475939b60413fb851ad56269a8ac66ab7c738c7c67af",
+    "posture_supervision": true,
+    "unresolved_targets_contribute": false,
+    "valid_mask": "usable_for_posture_supervision AND behavior_model_eligible_for_matched_ablation"
+  },
+  "executable_after_separate_experiment_authorization": true,
+  "fixed_factors": [
+    "behavior data",
+    "reviewed snapshot",
+    "frozen split",
+    "temporal view",
+    "modalities",
+    "backbone",
+    "optimizer procedure",
+    "seed policy",
+    "stopping rule",
+    "behavior evaluator"
+  ],
+  "included_in_s1": false,
+  "no_automatic_promotion": true,
+  "no_outer_guidance": true,
+  "posture_review_reopened": false,
+  "primary_behavior_metric": "native-unit ten-class Macro-F1",
+  "required_rare_class_metrics": [
+    "fight F1",
+    "social-nose F1",
+    "playwithtoy F1"
+  ],
+  "schema_version": "classification_v2.posture_behavior_matched_ablation_contract.v2",
+  "status": "REGISTERED_NOT_EXECUTED"
+}
