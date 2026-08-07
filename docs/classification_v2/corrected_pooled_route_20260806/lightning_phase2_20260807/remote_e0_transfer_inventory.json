@@ -1,0 +1,65 @@
+{
+  "schema_version": "classification_v2.remote_e0_transfer_inventory.v1",
+  "status": "BLOCKED_MISSING_CANONICAL_E0_EXECUTABLE",
+  "authority_commit": "7cd9041759edc750fc60ee38292ade40939157e2",
+  "declared_e0_descriptor_sha256": "db3a1461dde949c7f37118d60b9856e034094674898b9af6cb0829472e9dd10b",
+  "entries": [
+    {
+      "local_path": "docs/classification_v2/corrected_pooled_route_20260806/next_phase_20260806_r2/e0_l4_handoff.json",
+      "scientific_role": "declared E0 handoff",
+      "kind": "file",
+      "size_bytes": 7135,
+      "sha256": "9d8ea858b3d9dab3f065753afba22b122b406e9c61c79ec2038b81939d7d6c92",
+      "transfer_required": false,
+      "remote_destination": "NOT_APPLICABLE",
+      "classification": "REUSE_BUT_NOT_EXECUTABLE",
+      "reason": "Its launch command invokes full multimodal ablation, not the declared B3 E0 package."
+    },
+    {
+      "local_path": "scripts/classification_v2/04_baselines_smokes/classification_v2_run_multimodal_ablation_pilot.py",
+      "scientific_role": "handoff launch entry",
+      "kind": "file",
+      "size_bytes": 6164,
+      "sha256": "d5bdadeeba6a42fb19840b06fe3a091e6593a65a57a66b44ce70e6a81eea0d19",
+      "transfer_required": false,
+      "remote_destination": "NOT_APPLICABLE",
+      "classification": "MISMATCH",
+      "reason": "It passes --variants full rather than the registered RGB plus geometry 6D plus motion 12D E0 contract."
+    },
+    {
+      "local_path": "src/pig_behavior/classification_v2/training/full_multimodal_oof.py",
+      "scientific_role": "launch implementation",
+      "kind": "file",
+      "size_bytes": 72790,
+      "sha256": "164a4b4161312f43c09f77db42f4cb63740275847be47d35f332edc64bc14382",
+      "transfer_required": false,
+      "remote_destination": "NOT_APPLICABLE",
+      "classification": "MISMATCH",
+      "reason": "The full variant enables ROI, social, interaction, and visual-context branches."
+    },
+    {
+      "local_path": "MISSING",
+      "scientific_role": "FOLD_3-bound B3 T6 RGB plus geometry 6D plus motion 12D executable wrapper",
+      "kind": "missing executable",
+      "size_bytes": null,
+      "sha256": null,
+      "transfer_required": false,
+      "remote_destination": "NOT_APPLICABLE",
+      "classification": "MISSING",
+      "reason": "The handoff explicitly requires this wrapper; targeted repository and E0/L4 artifact lookup did not locate it."
+    }
+  ],
+  "explicitly_excluded": [
+    "H5 feature bundle",
+    "H6/H12/H24 artifacts",
+    "posture review media",
+    "historical outputs",
+    "tracking artifacts",
+    "checkpoints",
+    "caches"
+  ],
+  "remote_transfer_total_files": 0,
+  "remote_transfer_total_size_gb": 0.0,
+  "transfer_started": false,
+  "blocker": "E0_EXECUTABLE_CONTRACT_MISSING_AND_CURRENT_HANDOFF_LAUNCH_MISMATCH"
+}

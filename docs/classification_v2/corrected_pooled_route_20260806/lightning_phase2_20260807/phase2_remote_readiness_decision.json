@@ -1,0 +1,55 @@
+{
+  "schema_version": "classification_v2.phase2_remote_readiness.v1",
+  "phase": "LIGHTNING_REMOTE_CPU_PREFLIGHT",
+  "decision": "FAIL_PRE_REMOTE_PACKAGE_CONTRACT",
+  "authority_commit": "7cd9041759edc750fc60ee38292ade40939157e2",
+  "paid_execution_authorization": "NO",
+  "gpu_allocation_authorized": "NO",
+  "e0_execution_authorized": "NO",
+  "closed_authorities_reused": {
+    "a12_overlap_and_grouping_integrity": "PASS",
+    "posture_authority": "PASS",
+    "current_h5_contract_bound": true,
+    "e0_preflight": "PASS",
+    "e0_outer_test_access": "BLOCKED"
+  },
+  "e0_contract_check": {
+    "declared_model": "B3_ACTOR_T6_PLUS_GEOMETRY_MOTION",
+    "declared_temporal_view": "T6",
+    "declared_modalities": ["actor_RGB", "geometry_6D", "motion_12D"],
+    "declared_inner_fold": "FOLD_3",
+    "declared_seed": 20260804,
+    "handoff_launch_variant": "full",
+    "full_variant_forbidden_components": [
+      "ROI relation",
+      "social relation",
+      "interaction context",
+      "visual context"
+    ],
+    "fold_wrapper_required_by_handoff": true,
+    "fold_wrapper_found": false,
+    "result": "CONTRADICTION"
+  },
+  "remote_state": {
+    "lightning_connection_state": "NOT_CONFIGURED",
+    "lightning_studio_exists": "NOT_YET",
+    "remote_ssh_connection": "NOT_YET",
+    "remote_transfer_started": false,
+    "remote_cpu_preflight_started": false
+  },
+  "phase2_gates": {
+    "remote_package_hash_parity": "NOT_YET",
+    "remote_e0_data_manifest_parity": "NOT_YET",
+    "remote_environment_ready": "NOT_YET",
+    "remote_execution_authority_match": "NOT_YET",
+    "remote_outer_test_access": "NOT_YET",
+    "gpu_specific_preflight": "DEFERRED_TO_PHASE_3"
+  },
+  "inherited_governance_debt_blocks_phase2": false,
+  "blockers": [
+    "E0_EXECUTABLE_CONTRACT_MISSING_AND_CURRENT_HANDOFF_LAUNCH_MISMATCH",
+    "LIGHTNING_CONNECTION_NOT_CONFIGURED"
+  ],
+  "user_action_required": true,
+  "next_user_action": "Provide or authorize a canonical FOLD_3-bound B3 T6 RGB plus geometry 6D plus motion 12D E0 wrapper; do not create a Lightning Studio yet."
+}

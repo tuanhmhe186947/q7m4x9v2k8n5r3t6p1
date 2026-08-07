@@ -1,0 +1,32 @@
+{
+  "schema_version": "classification_v2.lightning_connectivity_audit.v1",
+  "status": "LOCAL_READY_REMOTE_NOT_CONFIGURED",
+  "local": {
+    "vscode_version": "1.132.0",
+    "vscode_available": true,
+    "openssh_client": "OpenSSH_for_Windows_9.5p2",
+    "git_version": "2.52.0.windows.1",
+    "remote_ssh_extension": {
+      "status": "PASS",
+      "extension": "ms-vscode-remote.remote-ssh",
+      "version": "0.124.0",
+      "installed_in_this_phase": true
+    }
+  },
+  "non_secret_connectivity_evidence": {
+    "ssh_config_exists": false,
+    "lightning_local_config_exists": false,
+    "vscode_remote_target_configured": false,
+    "connection_state": "NOT_CONFIGURED"
+  },
+  "remote_actions": {
+    "lightning_studio_created": false,
+    "cpu_resource_cost_confirmed_zero_or_authorized": false,
+    "ssh_connection_attempted": false,
+    "gpu_allocated": false,
+    "e0_executed": false
+  },
+  "credentials_inspected_or_recorded": false,
+  "user_action_required": true,
+  "next_user_action": "Resolve the missing canonical E0 executable contract before creating or connecting a Lightning Studio."
+}
