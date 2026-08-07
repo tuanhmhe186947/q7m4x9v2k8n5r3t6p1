@@ -1,0 +1,215 @@
+{
+  "audit": {
+    "by_behavior": [
+      {
+        "behavior_target_label": "drink",
+        "retention": 0.9963031423290203,
+        "source_type": "cvat_tracking_xml",
+        "targets": 541,
+        "valid": 539
+      },
+      {
+        "behavior_target_label": "eat",
+        "retention": 0.9948051948051948,
+        "source_type": "cvat_tracking_xml",
+        "targets": 2695,
+        "valid": 2681
+      },
+      {
+        "behavior_target_label": "explore",
+        "retention": 0.9970778808283572,
+        "source_type": "cvat_tracking_xml",
+        "targets": 7871,
+        "valid": 7848
+      },
+      {
+        "behavior_target_label": "fight",
+        "retention": 0.9979374355448608,
+        "source_type": "cvat_tracking_xml",
+        "targets": 2909,
+        "valid": 2903
+      },
+      {
+        "behavior_target_label": "lying",
+        "retention": 0.9967783505154639,
+        "source_type": "cvat_tracking_xml",
+        "targets": 1552,
+        "valid": 1547
+      },
+      {
+        "behavior_target_label": "move",
+        "retention": 0.9945945945945946,
+        "source_type": "cvat_tracking_xml",
+        "targets": 740,
+        "valid": 736
+      },
+      {
+        "behavior_target_label": "playwithtoy",
+        "retention": 0.9894736842105263,
+        "source_type": "cvat_tracking_xml",
+        "targets": 95,
+        "valid": 94
+      },
+      {
+        "behavior_target_label": "sitting",
+        "retention": 0.9973814079967771,
+        "source_type": "cvat_tracking_xml",
+        "targets": 9929,
+        "valid": 9903
+      },
+      {
+        "behavior_target_label": "social-nose",
+        "retention": 0.993916349809886,
+        "source_type": "cvat_tracking_xml",
+        "targets": 1315,
+        "valid": 1307
+      },
+      {
+        "behavior_target_label": "stand",
+        "retention": 0.9935004642525533,
+        "source_type": "cvat_tracking_xml",
+        "targets": 1077,
+        "valid": 1070
+      },
+      {
+        "behavior_target_label": "drink",
+        "retention": 1.0,
+        "source_type": "legacy_recovered",
+        "targets": 66,
+        "valid": 66
+      },
+      {
+        "behavior_target_label": "eat",
+        "retention": 1.0,
+        "source_type": "legacy_recovered",
+        "targets": 376,
+        "valid": 376
+      },
+      {
+        "behavior_target_label": "explore",
+        "retention": 1.0,
+        "source_type": "legacy_recovered",
+        "targets": 649,
+        "valid": 649
+      },
+      {
+        "behavior_target_label": "fight",
+        "retention": 1.0,
+        "source_type": "legacy_recovered",
+        "targets": 67,
+        "valid": 67
+      },
+      {
+        "behavior_target_label": "lying",
+        "retention": 1.0,
+        "source_type": "legacy_recovered",
+        "targets": 1437,
+        "valid": 1437
+      },
+      {
+        "behavior_target_label": "move",
+        "retention": 1.0,
+        "source_type": "legacy_recovered",
+        "targets": 141,
+        "valid": 141
+      },
+      {
+        "behavior_target_label": "playwithtoy",
+        "retention": 1.0,
+        "source_type": "legacy_recovered",
+        "targets": 34,
+        "valid": 34
+      },
+      {
+        "behavior_target_label": "sitting",
+        "retention": 1.0,
+        "source_type": "legacy_recovered",
+        "targets": 1523,
+        "valid": 1523
+      },
+      {
+        "behavior_target_label": "social-nose",
+        "retention": 1.0,
+        "source_type": "legacy_recovered",
+        "targets": 111,
+        "valid": 111
+      },
+      {
+        "behavior_target_label": "stand",
+        "retention": 1.0,
+        "source_type": "legacy_recovered",
+        "targets": 134,
+        "valid": 134
+      }
+    ],
+    "by_source": [
+      {
+        "retention": 0.9966578470965046,
+        "source_type": "cvat_tracking_xml",
+        "targets": 28724,
+        "valid": 28628
+      },
+      {
+        "retention": 1.0,
+        "source_type": "legacy_recovered",
+        "targets": 4538,
+        "valid": 4538
+      }
+    ],
+    "context": [
+      {
+        "h5_context_classification": "different_behavior_context",
+        "retention": 1.0,
+        "source_type": "cvat_tracking_xml",
+        "targets": 1306,
+        "valid": 1306
+      },
+      {
+        "h5_context_classification": "same_behavior",
+        "retention": 1.0,
+        "source_type": "cvat_tracking_xml",
+        "targets": 27322,
+        "valid": 27322
+      },
+      {
+        "h5_context_classification": "same_behavior",
+        "retention": 1.0,
+        "source_type": "legacy_recovered",
+        "targets": 4538,
+        "valid": 4538
+      }
+    ],
+    "h5_actor_scope_violations": 0,
+    "h5_future_frame_dependence": 0,
+    "h5_split_crossings": 0,
+    "h5_video_crossings": 0,
+    "legacy_t6_target_offsets": [
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "missing_history_targets": 96,
+    "missing_target_targets": 0,
+    "source_type_mismatches": 0,
+    "target_rows": 33262,
+    "valid_rows": 33166
+  },
+  "common_h5_matched_cohort": {
+    "path": "E:\\PigProjectStorage\\PIG_Behavior_Project\\outputs\\classification_v2\\agent_audits\\temporal_h5_current_authority_20260807\\common_h5_matched_cohort.csv",
+    "rows": 33166,
+    "sha256": "26f88bceb46e1bddfd28565e8e735d23ad02434d65dfac1346460a85daeb87cf"
+  },
+  "inputs": {
+    "effective_window_index_sha256": "810071b311ebc008d420c5873fea11f2369f9ec8edfc3b2dc2958635b30ac7f1",
+    "reviewed_frame_features_sha256": "a8c48f9d5546818fac3f091c915dfa577e0a5969f8e05623c83e2d5900b9610c",
+    "split_manifest_sha256": "cf00e7e7ef791e1a58dceb0af77898c64eb7a03819f5c570c5567067142088f6"
+  },
+  "reviewed_snapshot": "reviewed_engineering_amendment_992f34c0204a85a1",
+  "reviewed_snapshot_sha256": "ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e",
+  "schema_version": "classification_v2.temporal_h5_feasibility.v1",
+  "split_hash": "557156a7eb6cceeb6a91f667f7c51dcb286e3111f35f414970fa7431acc7e63b",
+  "status": "CURRENT_AUTHORITY_READ_ONLY_AUDIT"
+}

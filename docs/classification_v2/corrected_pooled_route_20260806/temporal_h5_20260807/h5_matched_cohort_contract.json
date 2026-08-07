@@ -1,0 +1,42 @@
+{
+  "schema_version": "classification_v2.common_h5_matched_cohort.v1",
+  "cohort_name": "COMMON_H5_MATCHED_COHORT",
+  "status": "FROZEN_CURRENT_AUTHORITY",
+  "external_cohort_path": "E:/PigProjectStorage/PIG_Behavior_Project/outputs/classification_v2/agent_audits/temporal_h5_current_authority_20260807/common_h5_matched_cohort.csv",
+  "rows": 33166,
+  "sha256": "26f88bceb46e1bddfd28565e8e735d23ad02434d65dfac1346460a85daeb87cf",
+  "stable_key": "h5_target_id",
+  "required_columns": [
+    "h5_target_id",
+    "window_id",
+    "source_type",
+    "object_track_key",
+    "behavior_target_label",
+    "model_split_role",
+    "outer_fold_id",
+    "history_frame_indices_json",
+    "target_frame_indices_json"
+  ],
+  "authority_bindings": {
+    "reviewed_snapshot_sha256": "ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e",
+    "split_sha256": "557156a7eb6cceeb6a91f667f7c51dcb286e3111f35f414970fa7431acc7e63b",
+    "temporal_contract_sha256": "e41aeab1a9bc167e8815138b4bd1cfeb4625e949ffa2a11e3bc695ab8ad8f068"
+  },
+  "arm_pairing": {
+    "H0": "T6 target only",
+    "H1": "H5 strictly preceding context plus the identical T6 target",
+    "paired_target_units_required": true,
+    "same_source_composition_required": true,
+    "same_split_roles_and_folds_required": true,
+    "same_model_parent_and_evaluator_required": true
+  },
+  "integrity": {
+    "duplicate_target_keys": 0,
+    "future_frame_dependence": 0,
+    "split_crossings": 0,
+    "video_crossings": 0,
+    "actor_scope_violations": 0,
+    "outer_labels_or_predictions_read": false,
+    "history_behavior_labels_are_model_inputs": false
+  }
+}

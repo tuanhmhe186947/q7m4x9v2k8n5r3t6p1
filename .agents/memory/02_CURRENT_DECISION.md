@@ -1,5 +1,23 @@
 # Current Decision
 
+## Classification V2 H5 closure and next permitted action (2026-08-07)
+
+- Status: `CURRENT_H5_CONTRACT_BOUND`; historical `COMMON_H5_T6_R` is rebound
+  to reviewed snapshot `reviewed_engineering_amendment_992f34c0204a85a1` and
+  frozen split SHA256 `557156a7eb6cceeb6a91f667f7c51dcb286e3111f35f414970fa7431acc7e63b`.
+- Contract: legacy H5 offsets `0..4`, fixed central T6 offsets `5..10`;
+  `COMMON_H5_MATCHED_COHORT=33,166` with zero future, split, video, and
+  actor-scope violations. H5 labels remain diagnostic only.
+- Decision: future causal ablation is paired T6 versus T6+H5 on the exact
+  matched cohort; H6, H12, and H24 are deferred and excluded from autoresearch.
+- H5 bundle: externally managed, snapshot/split/cohort/schema-bound; loader
+  plus two-source forward/loss/backward smoke pass. No H5 scientific training
+  occurred.
+- E0: unchanged and locally ready at T6/FOLD_3/seed 20260804 with no history or
+  posture; preflight is PASS, outer test is BLOCKED, and paid authorization is
+  still NO. Next action: obtain explicit authorization, then run exactly one
+  L4 E0 engineering pilot; do not run S1 or H5 training in that session.
+
 ## Contract
 
 - Scope: current workstreams, blockers, next permitted actions, and authority links.

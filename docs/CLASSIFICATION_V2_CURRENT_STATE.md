@@ -1,5 +1,24 @@
 # Classification V2 Current State
 
+## Current H5 temporal authority and E0 readiness (2026-08-07)
+
+The historical `COMMON_H5_T6_R` contract is current-bound, not newly designed.
+For legacy, H5 is offsets `0..4` and the frozen T6 target is `5..10` inside
+the native 16-frame burst. The current matched cohort contains 33,166 T6
+targets: CVAT retains 28,628/28,724 and legacy retains 4,538/4,538. The audit
+finds zero future-frame, split, video, or actor-scope violations. Its current
+authority closure is
+`docs/classification_v2/corrected_pooled_route_20260806/temporal_h5_20260807/`.
+
+The registered future comparison is T6 versus T6+H5 on that identical matched
+cohort; H6, H12, and H24 are deferred. H5 context labels are diagnostic only
+and never model inputs. The derived H5 feature bundle is externally managed and
+hash-bound to the reviewed snapshot, frozen split, cohort, and 46D schema.
+
+E0 is unchanged: `B3_ACTOR_T6_PLUS_GEOMETRY_MOTION`, T6, `FOLD_3`, seed
+`20260804`, no H5 and no posture. The existing E0 package/preflight and
+outer-test denial remain PASS/BLOCKED; paid execution remains unauthorized.
+
 ## S2 Top-K K=3 social branch at DEV_PASS (2026-08-04)
 
 The isolated S2 branch is implemented at commit `a8f727a5`, its real-data

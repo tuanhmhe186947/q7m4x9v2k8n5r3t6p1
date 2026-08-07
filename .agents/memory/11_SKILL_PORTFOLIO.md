@@ -1,5 +1,28 @@
 # Skill Portfolio Ledger
 
+## 2026-08-07 Classification V2 historical H5 closure
+
+- `scientific-ablation-controller`: preserved a single future matched family:
+  T6 versus T6+H5 on identical current target units; no history result was
+  promoted and E0 remained unchanged.
+- `dataset-contract-leakage-guard`: verified strict pre-target ordering,
+  source/video continuity, frozen split binding, zero future access, and no
+  history behavior labels in model input.
+- `experiment-lineage-reproducibility`: bound the external H5 bundle to the
+  reviewed snapshot, split, cohort, temporal contract, and 46D schema.
+- `safe-refactor-test-guardian`: covered central T6 legacy offsets, H5 window
+  identity, feature export, JSON contracts, compile, focused tests, and a
+  two-source loader-forward-backward smoke.
+- `project-state-steward`: recovered the same-session H5 task credential and
+  reconciled current authority, canonical route, readiness, and protected files.
+- Evidence: `temporal_h5_20260807` closure/contract/readiness artifacts, H5
+  bundle SHA256 `4449cc67c76b4e0d123c65b0c4c71b77704fce4a47dcf4bd47019d4568149`,
+  and 25 focused tests.
+- Reuse when: rebinding the existing `COMMON_H5_T6_R` contract to unchanged
+  target semantics and current reviewed/split authority.
+- Do not reuse when: the T6 anchor, reviewed snapshot, split, or feature
+  semantics changes, or when a claim would require H5 model evidence.
+
 ## 2026-08-05 Classification V2 pre-GPU plan continuation
 
 - `scientific-ablation-controller`: kept A12, social S0/S1/S2, native OOF and

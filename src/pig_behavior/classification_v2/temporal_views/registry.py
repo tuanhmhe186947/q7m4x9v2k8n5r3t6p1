@@ -26,6 +26,7 @@ TARGET_CONTIGUOUS_VIEWS: tuple[str, ...] = (
 )
 
 CAUSAL_HISTORY_VIEWS: tuple[str, ...] = (
+    "T6_TARGET_PLUS_H5",
     "T6_TARGET_PLUS_H6",
     "T6_TARGET_PLUS_H12",
     "T6_TARGET_PLUS_H24",
@@ -161,7 +162,7 @@ def _history_spec(history_length: int) -> TemporalViewSpec:
         contiguous_target=True,
         causal=True,
         legacy_only=False,
-        primary_cross_source_eligible=False,
+        primary_cross_source_eligible=history_length == 5,
         metrics_transferable=True,
         uses_real_elapsed_seconds=True,
         note=(
@@ -175,7 +176,7 @@ _REGISTRY: dict[str, TemporalViewSpec] = {}
 for _length in (6, 8, 12, 16):
     _spec = _contiguous_target_spec(_length)
     _REGISTRY[_spec.name] = _spec
-for _history in (6, 12, 24):
+for _history in (5, 6, 12, 24):
     _spec = _history_spec(_history)
     _REGISTRY[_spec.name] = _spec
 

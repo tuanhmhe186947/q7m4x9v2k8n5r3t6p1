@@ -126,11 +126,11 @@
     {
       "stage_id": "STAGE_4",
       "name": "justified_extensions",
-      "scientific_question": "Do any unresolved ROI, causal-history, social or simple-fusion extensions add reproducible value after simpler controls?",
+      "scientific_question": "Do any unresolved ROI, T6-plus-H5 causal-history, social or simple-fusion extensions add reproducible value after simpler controls?",
       "population": "pooled_reviewed_population",
       "control": "retained Stage 2-3 control with one extension changed",
       "changed_factor": "one_registered_extension_family",
-      "candidate_arms_max": ["ROI_concat_if_retained", "causal_history_if_supported", "S1_nearest_partner_if_supported", "availability_aware_fusion_if_needed"],
+      "candidate_arms_max": ["ROI_concat_if_retained", "T6_plus_H5_on_COMMON_H5_MATCHED_COHORT", "S1_nearest_partner_if_supported", "availability_aware_fusion_if_needed"],
       "initial_folds": "inner-development folds only",
       "initial_seeds": [20260804],
       "confirmation_policy": "confirm at most two extensions across two additional seeds",
@@ -141,7 +141,7 @@
       "metric": "native_unit_ten_class_macro_f1",
       "guardrails": ["interaction-class recall", "rare classes", "coverage", "calibration", "complexity", "runtime", "vram"],
       "promotion_rule": "an extension enters the finalist only after a relevant hypothesis, matched control, support and predeclared retain rule pass",
-      "stop_rule": "do not implement or run FiLM, two-timescale history, Top-K, GAT or quality-gated fusion without registry authorization",
+      "stop_rule": "run causal history only as matched T6 versus T6-plus-H5; H6, H12 and H24 are deferred and never enter the current search",
       "compute": {"p50_gpu_hours": 6.0, "p90_gpu_hours": 12.0, "basis": "extrapolated; implementation cost is excluded until authorized"},
       "outputs": ["extension_results.json", "extension_decisions.json"]
     },

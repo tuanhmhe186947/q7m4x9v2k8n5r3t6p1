@@ -1779,6 +1779,14 @@ def _selected_window_frame_indices(
             and sampling_pattern
             == "uniform_sparse_offsets_0_3_6_9_12_15"
         )
+    elif view_type == "T6_TARGET_PLUS_H5":
+        valid_identity = (
+            expected_count == 11
+            and int(row["history_length"]) == 5
+            and int(row["target_length"]) == 6
+            and sampling_pattern == "causal_history_5_then_target_6"
+            and expected_pair_deltas == [1] * 10
+        )
     else:
         valid_identity = (
             view_type == f"T{expected_count}_contiguous"

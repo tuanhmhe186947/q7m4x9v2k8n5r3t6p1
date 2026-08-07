@@ -1,0 +1,64 @@
+{
+  "schema_version": "classification_v2.prepaid_readiness_after_h5.v1",
+  "decision_status": "E0_READY_H5_REGISTERED_NOT_RUN",
+  "authority": {
+    "a12_overlap_and_grouping_integrity": "PASS",
+    "posture_authority": "PASS",
+    "reviewed_snapshot_sha256": "ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e",
+    "split_sha256": "557156a7eb6cceeb6a91f667f7c51dcb286e3111f35f414970fa7431acc7e63b"
+  },
+  "h5": {
+    "pooled_executable": true,
+    "matched_cohort_rows": 33166,
+    "feature_bundle_current": true,
+    "loader_status": "PASS",
+    "model_input_contract": "PASS",
+    "local_forward_pass": "PASS",
+    "local_loss_finite": true,
+    "local_backward_pass": "PASS",
+    "history_in_e0": false
+  },
+  "deferred_history": {
+    "H6": "DEFERRED",
+    "H12": "DEFERRED",
+    "H24": "DEFERRED",
+    "autoresearch_history_before_h5_ablation": ["none"],
+    "autoresearch_H6_allowed": false,
+    "autoresearch_H12_allowed": false,
+    "autoresearch_H24_allowed": false
+  },
+  "e0": {
+    "model": "B3_ACTOR_T6_PLUS_GEOMETRY_MOTION",
+    "temporal_view": "T6",
+    "inner_fold": "FOLD_3",
+    "seed": 20260804,
+    "exact_inner_fold_bound": true,
+    "package_reused": true,
+    "handoff_sha256": "9d8ea858b3d9dab3f065753afba22b122b406e9c61c79ec2038b81939d7d6c92",
+    "preflight": "PASS",
+    "outer_test_access": "BLOCKED",
+    "executed": false,
+    "future_provider": "Lightning_AI",
+    "future_gpu": "NVIDIA_L4_24GB",
+    "future_interruptible": false,
+    "future_max_cost_usd": 1.5,
+    "future_max_gpu_hours": 2,
+    "future_paid_retries": 0
+  },
+  "permissions_and_gates": {
+    "paid_execution_authorization": "NO",
+    "ready_for_paid_E0": true,
+    "ready_for_paid_inner_autoresearch_S1": false,
+    "ready_for_claim_grade_outer_OOF_C2": false,
+    "paper_grade_result_available": false,
+    "data_rebuild_required": false,
+    "outer_split_change_required": false,
+    "behavior_review_reopen_required": false,
+    "posture_review_reopen_required": false
+  },
+  "blockers": [
+    "E0_ENGINEERING_PILOT_NOT_YET_EXECUTED",
+    "PAID_EXECUTION_AUTHORIZATION=NO"
+  ],
+  "next_authorized_action": "Request explicit paid-execution authorization and run exactly one E0 engineering pilot on one NVIDIA L4 24 GB; do not start S1 or H5 scientific training in that paid session."
+}

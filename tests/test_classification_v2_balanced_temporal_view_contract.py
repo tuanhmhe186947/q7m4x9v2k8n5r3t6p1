@@ -68,6 +68,7 @@ def test_registry_exposes_the_exact_canonical_names() -> None:
         "T16_TARGET_CONTIGUOUS",
     )
     assert CAUSAL_HISTORY_VIEWS == (
+        "T6_TARGET_PLUS_H5",
         "T6_TARGET_PLUS_H6",
         "T6_TARGET_PLUS_H12",
         "T6_TARGET_PLUS_H24",

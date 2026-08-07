@@ -1,0 +1,61 @@
+{
+  "schema_version": "classification_v2.current_h5_authority_closure.v1",
+  "status": "CURRENT_H5_CONTRACT_BOUND",
+  "anti_redo_policy_applied": true,
+  "historical_authority": {
+    "contract": "COMMON_H5_T6_R",
+    "status": "FOUND_NEEDS_CURRENT_REBIND",
+    "path": "E:/PigProjectStorage/PIG_Behavior_Project/outputs/classification_v2/agent_audits/parallel_temporal_mode_design_4049aac_20260728T183620/h6_h5_reconciliation.md",
+    "sha256": "b4bfeca86a24e96061453ca09729a57369aebd7dbd893a2794e403963f721b39",
+    "support_rows": 33259,
+    "support_denominator": 33355
+  },
+  "current_authority": {
+    "reviewed_snapshot": "reviewed_engineering_amendment_992f34c0204a85a1",
+    "reviewed_snapshot_sha256": "ab86e2e04267cfdc8248f9bdb8774615479d67a3589f7a25844bb1a4c93a639e",
+    "split_sha256": "557156a7eb6cceeb6a91f667f7c51dcb286e3111f35f414970fa7431acc7e63b",
+    "feature_schema_sha256": "18377d825ba84974e49305e46561ada81353f9ffd0f2d2526471af1c199daad4",
+    "temporal_contract_sha256": "e41aeab1a9bc167e8815138b4bd1cfeb4625e949ffa2a11e3bc695ab8ad8f068"
+  },
+  "frozen_temporal_contract": {
+    "legacy_h5_offsets": [0, 1, 2, 3, 4],
+    "legacy_t6_target_offsets": [5, 6, 7, 8, 9, 10],
+    "legacy_t6_shift_authorized": false,
+    "legacy_preburst_recovery_authorized": false,
+    "h6_current_campaign_status": "DEFERRED",
+    "h12_current_campaign_status": "DEFERRED",
+    "h24_current_campaign_status": "DEFERRED"
+  },
+  "current_rebind": {
+    "feasibility_audit": "h5_feasibility_and_retention_audit.json",
+    "feasibility_audit_sha256": "d978012d22c8c9912296719ac0d8973025a47c1656aa374eba8469ba3a6dbc23",
+    "current_t6_targets": 33262,
+    "cvat_h5_valid_targets": 28628,
+    "cvat_h5_retention": 0.9966578470965046,
+    "legacy_h5_valid_targets": 4538,
+    "legacy_h5_retention": 1.0,
+    "matched_cohort_rows": 33166,
+    "matched_cohort_sha256": "26f88bceb46e1bddfd28565e8e735d23ad02434d65dfac1346460a85daeb87cf",
+    "future_frame_dependence": 0,
+    "split_crossings": 0,
+    "video_crossings": 0,
+    "actor_scope_violations": 0,
+    "history_labels_used_as_model_input": false
+  },
+  "feature_bundle": {
+    "previous_semantics_status": "ABSENT",
+    "current_semantics_status": "CURRENT",
+    "rematerialization_required": true,
+    "rematerialization_executed": true,
+    "rerun_reason": "No current snapshot/split/cohort-bound H5 numerical bundle existed.",
+    "manifest_path": "E:/PigProjectStorage/PIG_Behavior_Project/outputs/classification_v2/agent_audits/temporal_h5_current_authority_20260807/h5_training_bundle_manifest.json",
+    "bundle_sha256": "4449cc67c76b4e0d123c65b0c4c71b77704fce4a47dcf4bd47019d4568149",
+    "content_sha256": "c16ac356a0f04dcd5b3c375299869d91cc4fccd065907687ed45c50a350747e1"
+  },
+  "decision": {
+    "pooled_h5_executable": true,
+    "registered_comparison": "H0=T6 versus H1=T6+H5 on COMMON_H5_MATCHED_COHORT",
+    "e0_changed": false,
+    "training_executed": false
+  }
+}
