@@ -1,5 +1,20 @@
 # Skill Portfolio Ledger
 
+## 2026-08-05 Classification V2 pre-GPU plan continuation
+
+- `scientific-ablation-controller`: kept A12, social S0/S1/S2, native OOF and
+  permit decisions paired and fail-closed; no practical gain was promoted.
+- `experiment-lineage-reproducibility`: bound the current b4536eb run, paired
+  outputs, evidence hashes and the isolated continuation handoff.
+- `grouped-cv-evaluation`: verified native-unit pairing, four-fold coverage,
+  calibration scope and the bounded-only metric boundary.
+- `project-state-steward`: recovered and checkpointed `C2V2-20260805-15`,
+  preserved the dirty main worktree and recorded protected-authority hashes.
+- Evidence: `outputs/classification_v2/model_readiness_audit/`
+  `c2v2_plan_continuation_b4536eb_20260805_01`.
+- Reuse when: continuing the immutable pre-GPU plan after a bounded gate run.
+- Do not reuse when: treating bounded evidence as paper metrics or a GPU permit.
+
 ## 2026-08-05 Section 2.8 evidence-guided human review
 
 - `thesis-evidence-writing`: drafted a Vietnamese-first and original English
